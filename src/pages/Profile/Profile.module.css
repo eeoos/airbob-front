@@ -1,0 +1,164 @@
+.container {
+  max-width: 1760px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  position: relative;
+  z-index: 10;
+}
+
+.title {
+  font-size: 32px;
+  font-weight: 600;
+  color: #222222;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.modeToggle {
+  display: flex;
+  gap: 8px;
+  border: 1px solid #dddddd;
+  border-radius: 8px;
+  padding: 4px;
+  background: white;
+  position: relative;
+  z-index: 10;
+}
+
+.toggleButton {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #717171;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+.toggleButton:hover {
+  color: #222222;
+}
+
+.toggleButton.active {
+  background-color: #222222;
+  color: white;
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 48px;
+  position: relative;
+  min-height: calc(100vh - 200px);
+  align-items: start;
+}
+
+.sidebar {
+  position: sticky;
+  top: 100px;
+  height: fit-content;
+  padding-right: 48px;
+  border-right: 1px solid #ebebeb;
+  align-self: start;
+}
+
+.sidebar::after {
+  content: '';
+  position: absolute;
+  top: -80px;
+  right: -1px;
+  width: 1px;
+  height: calc(100vh - 80px);
+  background-color: #ebebeb;
+  pointer-events: none;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.navItem {
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-size: 16px;
+  font-weight: 500;
+  color: #717171;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.navItem:hover {
+  background-color: #f7f7f7;
+  color: #222222;
+}
+
+.navItem.active {
+  background-color: #f7f7f7;
+  color: #222222;
+  font-weight: 600;
+}
+
+.main {
+  min-width: 0;
+  padding-top: 0;
+}
+
+@media (max-width: 1024px) {
+  .content {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+  }
+
+  .nav {
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+
+  .navItem {
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .modeToggle {
+    width: 100%;
+  }
+
+  .toggleButton {
+    flex: 1;
+  }
+}
+
+
+

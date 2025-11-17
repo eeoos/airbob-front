@@ -1,0 +1,70 @@
+.menuWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.menuContainer {
+  position: relative;
+}
+
+.menuButton,
+.profileButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border: 1px solid #dddddd;
+  border-radius: 22px;
+  background: white;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease;
+  width: 40px;
+  height: 40px;
+}
+
+.menuButton:hover,
+.profileButton:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.18);
+}
+
+.icon {
+  width: 16px;
+  height: 16px;
+  color: #717171;
+}
+
+.menuDropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.18);
+  min-width: 200px;
+  padding: 8px 0;
+  z-index: 1000;
+}
+
+.menuItem {
+  width: 100%;
+  padding: 12px 16px;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #222222;
+  transition: background-color 0.2s ease;
+}
+
+.menuItem:hover {
+  background-color: #f7f7f7;
+}
+
+.divider {
+  height: 1px;
+  background-color: #ebebeb;
+  margin: 8px 0;
+}
+

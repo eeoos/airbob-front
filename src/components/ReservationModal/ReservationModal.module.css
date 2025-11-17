@@ -1,0 +1,284 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.18);
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  z-index: 1001;
+  padding: 0;
+}
+
+.closeButton {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+  color: #222222;
+  z-index: 10;
+}
+
+.closeButton:hover {
+  background-color: #f7f7f7;
+}
+
+.closeButton svg {
+  width: 24px;
+  height: 24px;
+}
+
+.content {
+  padding: 24px;
+}
+
+/* 숙소 정보 */
+.accommodationInfo {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #ebebeb;
+}
+
+.accommodationImage {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.accommodationDetails {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.accommodationTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #222222;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.accommodationRating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  color: #222222;
+}
+
+.star {
+  color: #ff385c;
+  font-size: 14px;
+}
+
+.reviewCount {
+  color: #717171;
+}
+
+/* 취소 정책 */
+.cancellationPolicy {
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #ebebeb;
+}
+
+.policyTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #222222;
+  margin-bottom: 8px;
+}
+
+.policyText {
+  font-size: 14px;
+  color: #222222;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.policyLink {
+  background: none;
+  border: none;
+  color: #222222;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.2s ease;
+}
+
+.policyLink:hover {
+  opacity: 0.7;
+}
+
+/* 정보 행 */
+.infoRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+  border-bottom: 1px solid #ebebeb;
+}
+
+.infoLabel {
+  font-size: 16px;
+  font-weight: 600;
+  color: #222222;
+}
+
+.infoValue {
+  font-size: 16px;
+  color: #222222;
+  flex: 1;
+  text-align: right;
+  margin-right: 16px;
+}
+
+.changeButton {
+  background: none;
+  border: 1px solid #b0b0b0;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #222222;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.changeButton:hover {
+  border-color: #222222;
+  background-color: #f7f7f7;
+}
+
+/* 요금 세부 정보 */
+.priceDetails {
+  margin: 24px 0;
+  padding-top: 24px;
+  border-top: 1px solid #ebebeb;
+}
+
+.priceDetailsTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #222222;
+  margin-bottom: 16px;
+}
+
+.priceRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 16px;
+  color: #222222;
+}
+
+.priceRow:last-of-type {
+  margin-bottom: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #ebebeb;
+}
+
+.totalLabel {
+  font-size: 18px;
+  font-weight: 600;
+  color: #222222;
+}
+
+.totalPrice {
+  font-size: 18px;
+  font-weight: 600;
+  color: #222222;
+}
+
+.priceDetailsLink {
+  background: none;
+  border: none;
+  color: #222222;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.2s ease;
+}
+
+.priceDetailsLink:hover {
+  opacity: 0.7;
+}
+
+.paymentWidget {
+  margin-bottom: 24px;
+}
+
+.reserveButton {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(to right, #ff385c, #e61e4d);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  margin-top: 24px;
+}
+
+.reserveButton:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.reserveButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.toastContainer {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 1002;
+}
+
+@media (max-width: 768px) {
+  .modal {
+    width: 95%;
+    padding: 0;
+  }
+
+  .content {
+    padding: 20px;
+  }
+}

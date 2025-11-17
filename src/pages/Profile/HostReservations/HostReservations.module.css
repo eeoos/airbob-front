@@ -1,0 +1,239 @@
+.container {
+  width: 100%;
+}
+
+.title {
+  font-size: 32px;
+  font-weight: 600;
+  color: #222222;
+  line-height: 1.2;
+  margin: -72px 0 24px 0;
+}
+
+.filterTabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #dddddd;
+  padding-bottom: 0;
+}
+
+.filterTab {
+  padding: 12px 16px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  color: #717171;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: -1px;
+}
+
+.filterTab:hover {
+  color: #222222;
+}
+
+.filterTab.active {
+  color: #222222;
+  border-bottom-color: #00a699;
+}
+
+.loading,
+.empty {
+  text-align: center;
+  padding: 80px 24px;
+  color: #717171;
+  font-size: 16px;
+}
+
+.tableContainer {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #dddddd;
+  border-radius: 8px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+.th {
+  padding: 16px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  color: #222222;
+  border-bottom: 1px solid #dddddd;
+  background-color: #f7f7f7;
+  white-space: nowrap;
+}
+
+.th.sortable {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.th.sortable:hover {
+  background-color: #eeeeee;
+}
+
+.sortIcon {
+  margin-left: 8px;
+  font-size: 12px;
+  color: #00a699;
+}
+
+.tableRow {
+  border-bottom: 1px solid #dddddd;
+  transition: background-color 0.2s ease;
+}
+
+.tableRow:hover {
+  background-color: #f7f7f7;
+}
+
+.tableRow:last-child {
+  border-bottom: none;
+}
+
+.td {
+  padding: 16px;
+  font-size: 14px;
+  color: #222222;
+  vertical-align: middle;
+}
+
+.guestInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.guestName {
+  font-size: 14px;
+  color: #222222;
+  font-weight: 500;
+}
+
+.guestCount {
+  font-size: 12px;
+  color: #717171;
+}
+
+.status {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.statusConfirmed {
+  color: #00a699;
+  background-color: #e6f7f5;
+}
+
+.statusCancelled {
+  color: #c13515;
+  background-color: #ffe5e5;
+}
+
+.statusDefault {
+  color: #717171;
+  background-color: #f7f7f7;
+}
+
+.actionButtons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.detailsButton {
+  padding: 8px 16px;
+  border: 1px solid #dddddd;
+  border-radius: 6px;
+  background: white;
+  font-size: 14px;
+  font-weight: 600;
+  color: #222222;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.detailsButton:hover {
+  border-color: #222222;
+  background-color: #f7f7f7;
+}
+
+.menuButton {
+  padding: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.menuButton:hover {
+  background-color: #f7f7f7;
+}
+
+.menuIcon {
+  font-size: 20px;
+  color: #222222;
+  line-height: 1;
+  transform: rotate(90deg);
+  display: inline-block;
+}
+
+.loadMoreContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 32px;
+  min-height: 60px;
+}
+
+.loadingMore {
+  color: #717171;
+  font-size: 14px;
+}
+
+.toastContainer {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 1000;
+}
+
+@media (max-width: 768px) {
+  .tableContainer {
+    overflow-x: scroll;
+  }
+
+  .th,
+  .td {
+    padding: 12px 8px;
+    font-size: 12px;
+  }
+
+  .actionButtons {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .detailsButton {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}

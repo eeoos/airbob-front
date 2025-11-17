@@ -1,0 +1,444 @@
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 40px 120px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.recentlyViewedHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+
+.recentlyViewedHeaderLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.recentlyViewedTitle {
+  font-size: 32px;
+  font-weight: 600;
+  color: #222222;
+  margin: 0;
+}
+
+.backButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #222222;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  align-self: flex-start;
+}
+
+.backButton:hover {
+  background-color: #f7f7f7;
+}
+
+.backButton svg {
+  width: 24px;
+  height: 24px;
+}
+
+.pageTitle {
+  font-size: 32px;
+  font-weight: 600;
+  color: #222222;
+  margin: 0;
+  flex: 1;
+  margin-top: 16px;
+  margin-bottom: 24px;
+}
+
+.editButton {
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid #222222;
+  border-radius: 8px;
+  color: #222222;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.editButton:hover {
+  background-color: #222222;
+  color: white;
+}
+
+.wishlistGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 32px 24px;
+  margin-bottom: 48px;
+}
+
+.wishlistCard {
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  transition: transform 0.2s ease;
+}
+
+.wishlistCard:hover {
+  transform: scale(1.02);
+}
+
+.wishlistCard:hover .wishlistCardImage {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.accommodationCard {
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  transition: transform 0.2s ease;
+}
+
+.accommodationCard:hover {
+  transform: scale(1.02);
+}
+
+.accommodationCard:hover .wishlistCardImage {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.wishlistCardImage {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  position: relative;
+  background-color: #f7f7f7;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.wishlistDeleteButton {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: white;
+  border: none;
+  color: #222222;
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.wishlistDeleteButton:hover {
+  background-color: #ff385c;
+  color: white;
+}
+
+.wishlistCardImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.searchIcon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  color: #717171;
+}
+
+.searchIcon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.placeholderImage {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f7f7f7;
+  color: #717171;
+}
+
+.placeholderImage svg {
+  width: 48px;
+  height: 48px;
+}
+
+.wishlistCardInfo {
+  padding: 10px 0 0 0;
+}
+
+.wishlistCardName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #222222;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.wishlistCardCount {
+  font-size: 13px;
+  color: #717171;
+  line-height: 1.4;
+}
+
+.section {
+  margin-bottom: 48px;
+}
+
+.sectionTitle {
+  font-size: 22px;
+  font-weight: 600;
+  color: #222222;
+  margin-bottom: 24px;
+}
+
+.dateSection {
+  margin-bottom: 64px;
+}
+
+.dateSection:last-child {
+  margin-bottom: 0;
+}
+
+.dateGroup {
+  margin-bottom: 32px;
+}
+
+.dateTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #222222;
+  margin-bottom: 16px;
+}
+
+.cardWrapper {
+  position: relative;
+}
+
+.deleteButton {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: white;
+  border: none;
+  color: #222222;
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.deleteButton:hover {
+  background-color: #ff385c;
+  color: white;
+}
+
+.deleteButtonLeft {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: white;
+  border: none;
+  color: #222222;
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.deleteButtonLeft:hover {
+  background-color: #ff385c;
+  color: white;
+}
+
+.wishlistButton {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  border-radius: 0;
+  width: auto;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.2s ease;
+  z-index: 10;
+  box-shadow: none;
+}
+
+.wishlistButton:hover {
+  transform: scale(1.1);
+}
+
+.wishlistButton svg {
+  width: 20px;
+  height: 20px;
+}
+
+.locationRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.location {
+  font-size: 14px;
+  font-weight: 600;
+  color: #222222;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.review {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+.star {
+  font-size: 14px;
+  color: #222222;
+}
+
+.rating {
+  font-size: 14px;
+  font-weight: 600;
+  color: #222222;
+}
+
+.reviewCount {
+  font-size: 14px;
+  color: #717171;
+}
+
+.name {
+  font-size: 14px;
+  font-weight: 400;
+  color: #222222;
+  line-height: 1.2;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.loading,
+.empty {
+  text-align: center;
+  padding: 80px 24px;
+  color: #717171;
+  font-size: 16px;
+}
+
+.loadMoreContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 32px;
+  min-height: 60px;
+}
+
+.loadingMore {
+  color: #717171;
+  font-size: 14px;
+}
+
+.toastContainer {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 1000;
+}
+
+@media (max-width: 1200px) {
+  .container {
+    padding: 40px 80px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .container {
+    padding: 40px 60px;
+  }
+  
+  .wishlistGrid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 28px 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 24px 24px;
+  }
+
+  .content {
+    gap: 24px;
+  }
+  
+  .wishlistGrid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 24px 16px;
+  }
+}
+
+

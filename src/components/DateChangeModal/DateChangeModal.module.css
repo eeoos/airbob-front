@@ -1,0 +1,310 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  z-index: 10001;
+  width: auto;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+  border-bottom: 1px solid #ebebeb;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 600;
+  color: #222222;
+  margin: 0;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #222222;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+}
+
+.closeButton:hover {
+  background-color: #f7f7f7;
+}
+
+.closeButton svg {
+  width: 24px;
+  height: 24px;
+}
+
+.content {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.calendars {
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.calendarWrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.monthNavButton {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #717171;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  align-self: flex-start;
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+
+.monthNavButton:hover {
+  background-color: #f7f7f7;
+  color: #222222;
+}
+
+.calendar {
+  flex: 1;
+  min-width: 300px;
+}
+
+.monthHeader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.monthName {
+  font-size: 18px;
+  font-weight: 600;
+  color: #222222;
+  margin: 0;
+  text-align: center;
+}
+
+.weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+  margin-bottom: 8px;
+}
+
+.weekday {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #717171;
+  padding: 8px 0;
+}
+
+.days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+}
+
+.day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.2s ease;
+}
+
+.day.empty {
+  cursor: default;
+}
+
+.dayNumber {
+  font-size: 14px;
+  color: #222222;
+  pointer-events: none;
+}
+
+.day:hover:not(.empty):not(.disabled):not(.selected) {
+  background-color: #f7f7f7;
+  border-radius: 50%;
+}
+
+.day.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.day.disabled .dayNumber {
+  color: #717171;
+}
+
+.day.selected {
+  background-color: #222222;
+  border-radius: 50%;
+  color: white;
+}
+
+.day.selected .dayNumber {
+  color: white;
+  font-weight: 600;
+}
+
+.day.start {
+  background-color: #222222;
+  border-radius: 50%;
+  color: white;
+}
+
+.day.start .dayNumber {
+  color: white;
+  font-weight: 600;
+}
+
+.day.end {
+  background-color: #222222;
+  border-radius: 50%;
+  color: white;
+}
+
+.day.end .dayNumber {
+  color: white;
+  font-weight: 600;
+}
+
+.day.inRange {
+  background-color: #f7f7f7;
+}
+
+.day.inRange:not(.start):not(.end) {
+  border-radius: 0;
+}
+
+.day.inRange.start {
+  border-top-left-radius: 50%;
+  border-bottom-left-radius: 50%;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.day.inRange.end {
+  border-top-right-radius: 50%;
+  border-bottom-right-radius: 50%;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+  border-top: 1px solid #ebebeb;
+}
+
+.clearButton {
+  background: none;
+  border: none;
+  color: #222222;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 12px 24px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.clearButton:hover {
+  background-color: #f7f7f7;
+}
+
+.saveButton {
+  background: #222222;
+  border: none;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 12px 24px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.saveButton:hover {
+  background: #000000;
+}
+
+@media (max-width: 1024px) {
+  .modal {
+    width: 95%;
+    max-width: none;
+  }
+
+  .calendars {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .calendarWrapper {
+    justify-content: center;
+  }
+}

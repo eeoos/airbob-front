@@ -1,0 +1,72 @@
+.container {
+  min-height: calc(100vh - 80px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.content {
+  text-align: center;
+  max-width: 500px;
+}
+
+.errorIcon {
+  font-size: 64px;
+  margin-bottom: 24px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #222222;
+  margin-bottom: 16px;
+}
+
+.message {
+  font-size: 16px;
+  color: #717171;
+  margin-bottom: 32px;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.button,
+.buttonSecondary {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.button {
+  background-color: #222222;
+  color: white;
+}
+
+.button:hover {
+  background-color: #000000;
+}
+
+.buttonSecondary {
+  background-color: #f7f7f7;
+  color: #222222;
+  border: 1px solid #dddddd;
+}
+
+.buttonSecondary:hover {
+  background-color: #ebebeb;
+}
+
+
+
+
+

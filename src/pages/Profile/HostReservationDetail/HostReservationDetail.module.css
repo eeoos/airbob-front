@@ -1,0 +1,432 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.loading,
+.error {
+  text-align: center;
+  padding: 80px 24px;
+  color: #717171;
+  font-size: 16px;
+}
+
+.toastContainer {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 1000;
+}
+
+.backButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 20px;
+  color: #222222;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+  margin-bottom: 24px;
+}
+
+.backButton:hover {
+  background-color: #f7f7f7;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.headerLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.statusBadge {
+  padding: 6px 12px;
+  background-color: #00a699;
+  color: white;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  align-self: flex-start;
+}
+
+.guestName {
+  font-size: 16px;
+  font-weight: 600;
+  color: #222222;
+}
+
+.guestNights {
+  font-size: 14px;
+  color: #717171;
+}
+
+.accommodationName {
+  font-size: 18px;
+  font-weight: 600;
+  color: #222222;
+}
+
+.profileImage,
+.profileImagePlaceholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.profileImagePlaceholder {
+  background-color: #f7f7f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 600;
+  color: #717171;
+}
+
+.section {
+  margin-bottom: 32px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid #dddddd;
+}
+
+.section:last-child {
+  border-bottom: none;
+}
+
+.reservationSection {
+  border-top: 1px solid #dddddd;
+  padding-top: 32px;
+}
+
+.accommodationInfo {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  position: relative;
+}
+
+.accommodationInfo:hover {
+  opacity: 0.8;
+}
+
+.accommodationThumbnail,
+.accommodationThumbnailPlaceholder {
+  width: 120px;
+  height: 120px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.accommodationThumbnailPlaceholder {
+  background-color: #f7f7f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+}
+
+.accommodationDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.accommodationInfoName {
+  font-size: 18px;
+  font-weight: 600;
+  color: #222222;
+}
+
+.accommodationInfoAddress {
+  font-size: 14px;
+  color: #717171;
+}
+
+.accommodationArrow {
+  font-size: 20px;
+  color: #222222;
+  margin-left: auto;
+  align-self: center;
+  flex-shrink: 0;
+}
+
+.guestInfoSection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.guestProfileImage,
+.guestProfileImagePlaceholder {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-left: auto;
+}
+
+.guestProfileImagePlaceholder {
+  background-color: #f7f7f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 600;
+  color: #717171;
+}
+
+.guestName {
+  font-size: 18px;
+  font-weight: 600;
+  color: #222222;
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #222222;
+  margin-bottom: 16px;
+}
+
+.ratingSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stars {
+  display: flex;
+  gap: 2px;
+}
+
+.star {
+  color: #00a699;
+  font-size: 18px;
+}
+
+.ratingComment {
+  font-size: 14px;
+  color: #222222;
+  line-height: 1.5;
+}
+
+.viewDetailsLink {
+  font-size: 14px;
+  color: #00a699;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.viewDetailsLink:hover {
+  color: #008489;
+}
+
+.guestInfoCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.guestInfoRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.guestInfoIcon {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+}
+
+.guestInfoText {
+  font-size: 14px;
+  color: #222222;
+}
+
+.viewProfileLink {
+  font-size: 14px;
+  color: #00a699;
+  text-decoration: underline;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.viewProfileLink:hover {
+  color: #008489;
+}
+
+.contactSection {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.messageButton,
+.callButton {
+  padding: 12px 24px;
+  border: 1px solid #222222;
+  border-radius: 8px;
+  background: white;
+  font-size: 14px;
+  font-weight: 600;
+  color: #222222;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.messageButton:hover,
+.callButton:hover {
+  background-color: #222222;
+  color: white;
+}
+
+.phoneNumber {
+  font-size: 14px;
+  color: #222222;
+  font-weight: 500;
+}
+
+.detailsList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.detailItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.detailLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: #222222;
+  min-width: 120px;
+  line-height: 1.5;
+}
+
+.detailValue {
+  font-size: 14px;
+  color: #717171;
+  text-align: right;
+  flex: 1;
+}
+
+.feeDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.feeItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.feeLabel {
+  font-size: 14px;
+  color: #222222;
+}
+
+.feeValue {
+  font-size: 14px;
+  color: #222222;
+  font-weight: 500;
+}
+
+.feeSeparator {
+  height: 1px;
+  background-color: #dddddd;
+  margin: 8px 0;
+}
+
+.feeTotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.feeTotalLabel {
+  font-size: 16px;
+  font-weight: 600;
+  color: #222222;
+  min-width: 120px;
+  line-height: 1.5;
+}
+
+.feeTotalValue {
+  font-size: 16px;
+  font-weight: 600;
+  color: #222222;
+  line-height: 1.5;
+}
+
+
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+
+  .header {
+    flex-wrap: wrap;
+  }
+
+  .profileImage,
+  .profileImagePlaceholder {
+    position: static;
+    margin-top: 8px;
+  }
+
+  .contactSection {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .messageButton,
+  .callButton {
+    width: 100%;
+  }
+
+  .phoneNumber {
+    text-align: center;
+  }
+
+  .detailItem {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .detailValue {
+    text-align: left;
+  }
+}
+

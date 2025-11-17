@@ -1,0 +1,1585 @@
+.container {
+  min-height: 100vh;
+  background: #f7f7f7;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 40px;
+  background: white;
+  border-bottom: 1px solid #ebebeb;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 600;
+  color: #222222;
+  margin: 0;
+}
+
+.saveAndExitButton {
+  padding: 10px 20px;
+  border: 1px solid #222222;
+  background: white;
+  color: #222222;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.saveAndExitButton:hover:not(:disabled) {
+  background: #222222;
+  color: white;
+}
+
+.saveAndExitButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.content {
+  display: flex;
+  max-width: 1400px;
+  margin: 0 auto;
+  min-height: calc(100vh - 89px);
+}
+
+/* 왼쪽 사이드바: 진행 단계 */
+.sidebar {
+  width: 320px;
+  padding: 40px 32px;
+  background: white;
+  border-right: 1px solid #ebebeb;
+}
+
+.stepItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid #ebebeb;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+}
+
+.stepItem:last-child {
+  border-bottom: none;
+}
+
+.stepItem.completed {
+  opacity: 0.6;
+}
+
+.stepItem.active {
+  opacity: 1;
+}
+
+.stepItem.clickable {
+  cursor: pointer;
+}
+
+.stepItem.clickable:hover {
+  background-color: #f7f7f7;
+  opacity: 1;
+}
+
+.stepNumber {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #ebebeb;
+  color: #717171;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.stepItem.active .stepNumber {
+  background: #222222;
+  color: white;
+}
+
+.stepItem.completed .stepNumber {
+  background: #222222;
+  color: white;
+}
+
+.stepInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.stepItemTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #222222;
+  margin-bottom: 4px;
+}
+
+.stepItem.active .stepItemTitle {
+  color: #222222;
+}
+
+.stepItem.completed .stepItemTitle {
+  color: #717171;
+}
+
+.stepItemDescription {
+  font-size: 14px;
+  color: #717171;
+  line-height: 1.4;
+}
+
+/* 오른쪽 메인 콘텐츠 */
+.mainContent {
+  flex: 1;
+  padding: 40px;
+  background: white;
+  overflow-y: auto;
+}
+
+.form {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.stepContent {
+  margin-bottom: 40px;
+}
+
+.stepTitle {
+  font-size: 28px;
+  font-weight: 600;
+  color: #222222;
+  margin-bottom: 8px;
+}
+
+.stepDescription {
+  font-size: 16px;
+  color: #717171;
+  margin-bottom: 32px;
+  line-height: 1.5;
+}
+
+/* 업로드 진행률 바 */
+.uploadProgressContainer {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: #f7f7f7;
+  border-radius: 8px;
+}
+
+.uploadProgressBar {
+  width: 100%;
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.uploadProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff385c 0%, #ff5a7f 100%);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.uploadProgressText {
+  font-size: 14px;
+  color: #222222;
+  margin: 0;
+  text-align: center;
+  font-weight: 500;
+}
+
+.formGroup {
+  margin-bottom: 24px;
+}
+
+.formGroup:last-child {
+  margin-bottom: 0;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.label {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  color: #222222;
+  margin-bottom: 8px;
+}
+
+.required {
+  color: #ff385c;
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.checkboxTextLabel {
+  font-size: 16px;
+  font-weight: 600;
+  color: #222222;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #222222;
+}
+
+/* 수량 선택기 */
+.quantityRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.quantityLabel {
+  font-size: 16px;
+  font-weight: 600;
+  color: #222222;
+}
+
+.quantitySelector {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.quantityButton {
+  width: 40px;
+  height: 40px;
+  border: 1px solid #b0b0b0;
+  border-radius: 50%;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.quantityButton:hover:not(:disabled) {
+  border-color: #222222;
+  background: #f7f7f7;
+}
+
+.quantityButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.quantityButton svg {
+  width: 16px;
+  height: 16px;
+  stroke: #222222;
+}
+
+.quantityButton:disabled svg {
+  stroke: #b0b0b0;
+}
+
+.quantityValue {
+  font-size: 18px;
+  font-weight: 600;
+  color: #222222;
+  min-width: 40px;
+  text-align: center;
+}
+
+.input,
+.textarea,
+.select {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #b0b0b0;
+  border-radius: 8px;
+  font-size: 16px;
+  color: #222222;
+  transition: border-color 0.2s ease;
+  font-family: inherit;
+}
+
+.input:focus,
+.textarea:focus,
+.select:focus {
+  outline: none;
+  border-color: #222222;
+}
+
+.input:disabled {
+  background: #f7f7f7;
+  cursor: not-allowed;
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 120px;
+  line-height: 1.5;
+}
+
+.select {
+  cursor: pointer;
+}
+
+.helperText {
+  font-size: 14px;
+  color: #717171;
+  margin-top: 8px;
+  line-height: 1.4;
+}
+
+.addressSearchContainer {
+  display: flex;
+  gap: 8px;
+}
+
+.addressSearchContainer .input {
+  flex: 1;
+}
+
+.addressSearchButton {
+  padding: 14px 24px;
+  background: #222222;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  white-space: nowrap;
+}
+
+.addressSearchButton:hover {
+  background: #000000;
+}
+
+.section {
+  margin-top: 32px;
+  padding-top: 32px;
+  border-top: 1px solid #ebebeb;
+}
+
+.sectionTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #222222;
+  margin-bottom: 24px;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 32px;
+  border-top: 1px solid #ebebeb;
+  margin-top: 40px;
+}
+
+.backButton,
+.nextButton,
+.submitButton {
+  padding: 14px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.backButton {
+  background: white;
+  border: 1px solid #222222;
+  color: #222222;
+}
+
+.backButton:hover {
+  background: #f7f7f7;
+}
+
+.nextButton,
+.submitButton {
+  background: #222222;
+  color: white;
+}
+
+.nextButton:hover:not(:disabled),
+.submitButton:hover:not(:disabled) {
+  background: #000000;
+}
+
+.nextButton:disabled,
+.submitButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 숙소 유형 선택 버튼 */
+.typeSelectButton {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #b0b0b0;
+  border-radius: 8px;
+  font-size: 16px;
+  color: #222222;
+  background: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: border-color 0.2s ease;
+  font-family: inherit;
+}
+
+.typeSelectButton:hover {
+  border-color: #222222;
+}
+
+.typeSelectButton svg {
+  width: 16px;
+  height: 16px;
+  color: #717171;
+}
+
+/* 숙소 유형 선택 모달 */
+.typeModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.typeModal {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.typeModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px;
+  border-bottom: 1px solid #ebebeb;
+}
+
+.typeModalTitle {
+  font-size: 22px;
+  font-weight: 600;
+  color: #222222;
+  margin: 0;
+}
+
+.typeModalClose {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #222222;
+  transition: color 0.2s ease;
+  border-radius: 50%;
+}
+
+.typeModalClose:hover {
+  background: #f7f7f7;
+  color: #717171;
+}
+
+.typeModalClose svg {
+  width: 20px;
+  height: 20px;
+}
+
+.typeModalGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.typeOption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 24px 16px;
+  border: 1px solid #b0b0b0;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 140px;
+  width: 100%;
+}
+
+.typeOption:hover {
+  border-color: #222222;
+}
+
+.typeOptionSelected {
+  border-color: #222222;
+  border-width: 2px;
+  background: #f7f7f7;
+}
+
+.typeOptionIcon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  color: #222222;
+  flex-shrink: 0;
+}
+
+.typeOptionIcon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.typeOptionLabel {
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  margin-top: auto;
+  color: #222222;
+  line-height: 1.4;
+}
+
+/* 로딩 점 애니메이션 */
+.loadingDots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.loadingDots span {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+  animation: loadingDot 1.4s infinite ease-in-out;
+}
+
+.loadingDots span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.loadingDots span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+.loadingDots span:nth-child(3) {
+  animation-delay: 0s;
+}
+
+@keyframes loadingDot {
+  0%,
+  80%,
+  100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.toastContainer {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 1000;
+}
+
+@media (max-width: 1024px) {
+  .content {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #ebebeb;
+    padding: 24px;
+  }
+
+  .stepItem {
+    padding: 12px 0;
+  }
+
+  .mainContent {
+    padding: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 16px 24px;
+  }
+
+  .title {
+    font-size: 18px;
+  }
+
+  .sidebar {
+    padding: 16px;
+  }
+
+  .mainContent {
+    padding: 16px;
+  }
+
+  .stepTitle {
+    font-size: 24px;
+  }
+
+  .stepDescription {
+    font-size: 14px;
+  }
+
+  .formRow {
+    grid-template-columns: 1fr;
+  }
+
+  .buttonGroup {
+    flex-direction: column-reverse;
+  }
+
+  .backButton,
+  .nextButton,
+  .submitButton {
+    width: 100%;
+  }
+
+  .imagePreviewContainer {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 12px;
+  }
+}
+
+.imageSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.imageUploadArea {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.imageInput {
+  display: none;
+}
+
+.imageInputLabel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  border: 2px dashed #b0b0b0;
+  border-radius: 8px;
+  background-color: #fafafa;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #222222;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.imageInputLabel:hover {
+  border-color: #ff385c;
+  background-color: #fff5f5;
+  color: #ff385c;
+}
+
+.imageInputLabel.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.imageInputLabel.disabled:hover {
+  border-color: #b0b0b0;
+  background-color: #fafafa;
+  color: #222222;
+}
+
+.imageInputLabel svg {
+  width: 20px;
+  height: 20px;
+}
+
+.imageHint {
+  font-size: 12px;
+  color: #717171;
+  margin: 0;
+}
+
+.imagePreviewContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px;
+}
+
+.imagePreviewItem {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #ebebeb;
+}
+
+.imagePreview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.imageRemoveButton {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.6);
+  border: none;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+  padding: 0;
+}
+
+.imageRemoveButton:hover:not(:disabled) {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.imageRemoveButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.imageRemoveButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* 3번째 이미지 스타일: 큰 업로드 박스 */
+.imageUploadBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 400px;
+  padding: 60px 40px;
+  background: #f7f7f7;
+  border: 2px dashed #b0b0b0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.imageUploadBox:hover {
+  border-color: #222222;
+  background: #f0f0f0;
+}
+
+.imageUploadBoxLabel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.cameraIcon {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 24px;
+  color: #717171;
+}
+
+.cameraIcon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.addPhotoButton {
+  padding: 14px 32px;
+  background: white;
+  border: 1px solid #222222;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #222222;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.addPhotoButton:hover {
+  background: #222222;
+  color: white;
+}
+
+/* 2번째 이미지 스타일: 업로드된 이미지 목록 */
+.uploadedImagesSection {
+  margin-top: 40px;
+}
+
+.uploadedImagesHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.uploadedImagesTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #222222;
+  margin: 0 0 4px 0;
+}
+
+.uploadedImagesSubtitle {
+  font-size: 14px;
+  color: #717171;
+  margin: 0;
+}
+
+.addMoreButton {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #222222;
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.addMoreButton:hover {
+  background: #000000;
+}
+
+.addMoreButton svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* 커버 사진 컨테이너 (전체 너비) */
+.coverPhotoContainer {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.coverPhotoContainer .uploadedImageItem {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+
+/* 썸네일 그리드 (2열, 행은 동적) */
+.thumbnailGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.thumbnailGrid .uploadedImageItem {
+  aspect-ratio: 1;
+  min-height: 0;
+}
+
+.thumbnailGrid .imagePlaceholder {
+  aspect-ratio: 1;
+  min-height: 0;
+}
+
+.thumbnailGrid .addImageSlot {
+  aspect-ratio: 1;
+  min-height: 0;
+}
+
+.uploadedImageItem {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: move;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.uploadedImageItem:hover {
+  border-color: #222222;
+}
+
+.uploadedImageItem.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.uploadedImageItem.dragOver {
+  border-color: #ff385c;
+  border-style: dashed;
+}
+
+.uploadedImageItem.coverPhoto {
+  grid-row: span 2;
+  grid-column: 1;
+}
+
+.uploadedImageItem.thumbnailPhoto {
+  grid-column: 2;
+}
+
+.coverPhotoLabel {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 1;
+}
+
+.uploadedImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.imageMenuButton {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  color: #222222;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+  z-index: 1;
+}
+
+.imageMenuButton:hover {
+  background: white;
+}
+
+.imageMenuButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* 이미지 플레이스홀더 (첫 번째 이미지 스타일) */
+.imagePlaceholder {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #717171;
+}
+
+.imagePlaceholder:hover {
+  border-color: #b0b0b0;
+  background: #fafafa;
+}
+
+.imagePlaceholder svg {
+  width: 48px;
+  height: 48px;
+}
+
+/* 추가 버튼 슬롯 (두 번째 이미지 스타일) */
+.addImageSlot {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  border: 2px dashed #b0b0b0;
+  background: #f7f7f7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #717171;
+}
+
+.addImageSlot:hover {
+  border-color: #222222;
+  background: #f0f0f0;
+  color: #222222;
+}
+
+.addImageSlot svg {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 8px;
+}
+
+.addImageSlot span {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* 모달 스타일 */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modalContent {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #ebebeb;
+}
+
+.modalCloseButton,
+.modalAddButton {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #222222;
+  transition: color 0.2s ease;
+}
+
+.modalCloseButton:hover,
+.modalAddButton:hover {
+  color: #717171;
+}
+
+.modalCloseButton svg,
+.modalAddButton svg {
+  width: 20px;
+  height: 20px;
+}
+
+.modalTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #222222;
+  margin: 0;
+}
+
+.modalBody {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.modalSelectedFiles {
+  font-size: 14px;
+  color: #717171;
+  margin: 0 0 24px 0;
+  text-align: center;
+}
+
+.modalDropZone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  padding: 40px;
+  border: 2px dashed #b0b0b0;
+  border-radius: 8px;
+  background: #fafafa;
+  transition: all 0.2s ease;
+}
+
+.modalDropZone:hover {
+  border-color: #222222;
+  background: #f7f7f7;
+}
+
+.dropZoneIcon {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 16px;
+  color: #717171;
+}
+
+.dropZoneIcon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.dropZoneText {
+  font-size: 18px;
+  font-weight: 600;
+  color: #222222;
+  margin: 0 0 8px 0;
+}
+
+.dropZoneSubtext {
+  font-size: 14px;
+  color: #717171;
+  margin: 0 0 24px 0;
+}
+
+.browseButton {
+  padding: 12px 32px;
+  background: #222222;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.browseButton:hover {
+  background: #000000;
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-top: 1px solid #ebebeb;
+  gap: 12px;
+}
+
+.modalDoneButton {
+  padding: 12px 24px;
+  background: white;
+  border: 1px solid #222222;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #222222;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modalDoneButton:hover {
+  background: #f7f7f7;
+}
+
+.modalUploadButton {
+  padding: 12px 24px;
+  background: #222222;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.modalUploadButton:hover:not(:disabled) {
+  background: #000000;
+}
+
+.modalUploadButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 편의시설 섹션 */
+.selectedAmenitiesList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.selectedAmenityItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #f7f7f7;
+  border-radius: 8px;
+  gap: 12px;
+}
+
+.selectedAmenityName {
+  flex: 1;
+  font-size: 16px;
+  color: #222222;
+  font-weight: 500;
+}
+
+.amenityCountSelector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.amenityCountButton {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #dddddd;
+  background: white;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.amenityCountButton:hover:not(:disabled) {
+  border-color: #222222;
+  background: #f7f7f7;
+}
+
+.amenityCountButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.amenityCountButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.amenityCountValue {
+  min-width: 32px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: #222222;
+}
+
+.amenityRemoveButton {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #717171;
+  transition: all 0.2s ease;
+  border-radius: 6px;
+}
+
+.amenityRemoveButton:hover {
+  background: #ebebeb;
+  color: #222222;
+}
+
+.amenityRemoveButton svg {
+  width: 18px;
+  height: 18px;
+}
+
+.addAmenityButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: 1px dashed #dddddd;
+  background: white;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #222222;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.addAmenityButton:hover {
+  border-color: #222222;
+  background: #f7f7f7;
+}
+
+.addAmenityButton svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* 편의시설 모달 */
+.amenityOptionContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+.amenityCountControl {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 4px 0 8px 0;
+  flex-shrink: 0;
+}
+
+.amenityCountControl .amenityCountButton {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+}
+
+.amenityCountControl .amenityCountValue {
+  min-width: 24px;
+  font-size: 14px;
+}
+
+.amenityModalFooter {
+  display: flex;
+  justify-content: flex-end;
+  padding: 20px 24px;
+  border-top: 1px solid #ebebeb;
+}
+
+.amenityModalDoneButton {
+  padding: 12px 32px;
+  background: #222222;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.amenityModalDoneButton:hover {
+  background: #000000;
+}
+
+/* 시간 선택 UI */
+.timeInputContainer {
+  position: relative;
+}
+
+.timeInputButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #b0b0b0;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 16px;
+}
+
+.timeInputButton:hover {
+  border-color: #222222;
+}
+
+.timeDisplay {
+  color: #222222;
+  font-weight: 500;
+}
+
+.timeInputButton svg {
+  width: 20px;
+  height: 20px;
+  color: #717171;
+}
+
+.timePickerDropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 1000;
+  background: white;
+  border: 1px solid #ebebeb;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  min-width: 320px;
+}
+
+.timePickerContent {
+  display: flex;
+  gap: 0;
+  max-height: 300px;
+}
+
+.timePickerColumn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #ebebeb;
+}
+
+.timePickerColumn:last-child {
+  border-right: none;
+}
+
+.timePickerHeader {
+  padding: 12px 16px;
+  background: #f7f7f7;
+  border-bottom: 1px solid #ebebeb;
+  font-size: 12px;
+  font-weight: 600;
+  color: #717171;
+  text-align: center;
+}
+
+.timePickerList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.timePickerInput {
+  width: 100%;
+  padding: 10px 16px;
+  border: 2px solid #222222;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: #222222;
+  background: white;
+  margin-bottom: 4px;
+}
+
+.timePickerInput:focus {
+  outline: none;
+  border-color: #222222;
+}
+
+.timePickerOptionEditable {
+  border: 1px dashed #b0b0b0 !important;
+  font-weight: 600;
+}
+
+.timePickerOptionEditable:hover {
+  border-color: #222222 !important;
+  background: #f7f7f7 !important;
+}
+
+.timePickerOption {
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: white;
+  text-align: center;
+  font-size: 14px;
+  color: #222222;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.timePickerOption:hover {
+  background: #f7f7f7;
+}
+
+.timePickerOptionSelected {
+  background: #222222;
+  color: white;
+  font-weight: 600;
+}
+
+.timePickerOptionSelected:hover {
+  background: #000000;
+}

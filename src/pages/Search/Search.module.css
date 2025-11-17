@@ -1,0 +1,179 @@
+.container {
+  width: 100%;
+}
+
+.main {
+  padding: 24px 40px;
+  max-width: 1760px;
+  margin: 0 auto;
+  position: relative; /* 확장 모드를 위한 기준점 */
+}
+
+.content {
+  display: flex;
+  gap: 24px;
+  height: calc(100vh - 200px);
+  min-height: 600px;
+}
+
+.results {
+  flex: 0 0 55%;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.mapSection {
+  flex: 1;
+  position: sticky;
+  top: 24px;
+  height: calc(100vh - 120px);
+  min-height: 600px;
+  align-self: flex-start;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 400;
+  color: #222222;
+  margin-bottom: 24px;
+}
+
+.loading,
+.empty {
+  text-align: center;
+  padding: 80px 24px;
+  color: #717171;
+  font-size: 16px;
+}
+
+.loadMoreContainer {
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.loadMoreButton {
+  padding: 12px 24px;
+  background-color: #222222;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.loadMoreButton:hover:not(:disabled) {
+  background-color: #000000;
+}
+
+.loadMoreButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.toastContainer {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 1000;
+}
+
+.cardWrapper {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cardWrapper:hover {
+  transform: translateY(-2px);
+}
+
+
+@media (max-width: 1200px) {
+  .main {
+    padding: 24px 60px;
+  }
+
+  .content.mapExpanded {
+    left: 60px; /* .main의 좌측 padding */
+    right: 60px; /* .main의 우측 padding */
+    width: calc(100% - 120px); /* .main의 좌우 padding(60px * 2) 제외 */
+    padding: 24px 0; /* 상하 padding만 */
+  }
+
+  .content.mapExpanded .mapSection {
+    flex: 1; /* 전체 너비 차지 (padding 내부) */
+  }
+}
+
+@media (max-width: 1024px) {
+  .main {
+    padding: 24px 40px;
+  }
+  
+  .content {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .mapSection {
+    position: relative;
+    top: 0;
+    height: 500px;
+    margin-top: 24px;
+  }
+
+  .results {
+    overflow-y: visible;
+  }
+}
+
+@media (max-width: 768px) {
+  .main {
+    padding: 24px 24px;
+  }
+
+  .content.mapExpanded {
+    left: 24px; /* .main의 좌측 padding */
+    right: 24px; /* .main의 우측 padding */
+    width: calc(100% - 48px); /* .main의 좌우 padding(24px * 2) 제외 */
+    padding: 24px 0; /* 상하 padding만 */
+  }
+
+  .content.mapExpanded .mapSection {
+    flex: 1; /* 전체 너비 차지 (padding 내부) */
+  }
+}
+
+/* 지도 확장 모드 */
+.content.mapExpanded {
+  position: absolute;
+  top: 0;
+  left: 40px; /* .main의 좌측 padding */
+  right: 40px; /* .main의 우측 padding */
+  bottom: auto;
+  z-index: 1000;
+  background: white;
+  padding: 24px 0; /* 상하 padding만, 좌우는 .main의 padding 사용 */
+  margin: 0;
+  height: calc(100vh - 120px); /* 헤더 높이(80px) + 아래 여백(40px) */
+  min-height: calc(100vh - 120px);
+  box-sizing: border-box;
+  width: calc(100% - 80px); /* .main의 좌우 padding(40px * 2) 제외 */
+  gap: 0; /* 확장 시 gap 제거 */
+}
+
+.content.mapExpanded .results {
+  display: none; /* 완전히 숨김 */
+}
+
+.content.mapExpanded .mapSection {
+  flex: 1; /* 전체 너비 차지 (padding 내부) */
+  position: relative;
+  top: 0;
+  height: calc(100vh - 120px); /* 헤더 높이(80px) + 아래 여백(40px) */
+  min-height: calc(100vh - 120px);
+  margin: 0;
+}
+

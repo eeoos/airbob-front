@@ -1,0 +1,66 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  background-color: white;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 0 24px;
+}
+
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1760px;
+  margin: 0 auto;
+  height: 80px;
+  gap: 24px;
+}
+
+.logo {
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.logoImage {
+  height: 64px;
+  width: auto;
+}
+
+.searchBar {
+  flex: 1;
+  max-width: 450px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+  transition: max-width 0.3s ease;
+}
+
+.searchBarExpanded {
+  max-width: 850px;
+}
+
+.menu {
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 0 16px;
+  }
+
+  .container {
+    height: 80px;
+    gap: 12px;
+  }
+
+  .logoImage {
+    height: 48px;
+  }
+
+  .searchBar {
+    display: none; /* 모바일에서는 검색바 숨김 */
+  }
+}
+
