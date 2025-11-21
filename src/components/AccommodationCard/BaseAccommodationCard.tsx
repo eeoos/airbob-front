@@ -34,14 +34,22 @@ export const BaseAccommodationCard: React.FC<BaseAccommodationCardProps> = ({
     <div className={styles.card} onClick={handleClick}>
       <div className={styles.imageContainer}>
         {thumbnailUrl ? (
-          <img
-            src={getImageUrl(thumbnailUrl)}
-            alt={name}
-            className={styles.image}
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = "/placeholder-image.png";
-            }}
-          />
+          <>
+            <img
+              src={getImageUrl(thumbnailUrl)}
+              alt={name}
+              className={styles.image}
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = "none";
+                const placeholder = target.nextElementSibling as HTMLElement;
+                if (placeholder && placeholder.classList.contains(styles.placeholderImage)) {
+                  placeholder.style.display = "flex";
+                }
+              }}
+            />
+            <div className={styles.placeholderImage} style={{ display: "none" }}>이미지 없음</div>
+          </>
         ) : (
           <div className={styles.placeholderImage}>이미지 없음</div>
         )}

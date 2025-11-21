@@ -76,13 +76,21 @@ export const AccommodationCardSearch: React.FC<AccommodationCardSearchProps> = (
     <div className={styles.accommodationCard} onClick={handleCardClick}>
       <div className={styles.wishlistCardImage}>
         {accommodation.accommodation_thumbnail_url ? (
-          <img
-            src={getImageUrl(accommodation.accommodation_thumbnail_url)}
-            alt={accommodation.name}
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = "/placeholder-image.png";
-            }}
-          />
+          <>
+            <img
+              src={getImageUrl(accommodation.accommodation_thumbnail_url)}
+              alt={accommodation.name}
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = "none";
+                const placeholder = target.nextElementSibling as HTMLElement;
+                if (placeholder && placeholder.classList.contains(styles.placeholderImage)) {
+                  placeholder.style.display = "flex";
+                }
+              }}
+            />
+            <div className={styles.placeholderImage} style={{ display: "none" }}>이미지 없음</div>
+          </>
         ) : (
           <div className={styles.placeholderImage}>이미지 없음</div>
         )}

@@ -14,6 +14,21 @@ interface MapProps {
   checkOut?: string | null;
   isExpanded?: boolean;
   onExpandToggle?: () => void;
+  onBoundsChange?: (bounds: {
+    north: number;
+    south: number;
+    east: number;
+    west: number;
+  }) => void;
+  isMapDragMode?: boolean;
+  shouldUpdateMapBounds?: boolean;
+  onMapBoundsUpdated?: () => void;
+  viewport?: {
+    north: number;
+    south: number;
+    east: number;
+    west: number;
+  } | null;
 }
 
 export const Map: React.FC<MapProps> = ({
@@ -26,6 +41,11 @@ export const Map: React.FC<MapProps> = ({
   checkOut,
   isExpanded = false,
   onExpandToggle,
+  onBoundsChange,
+  isMapDragMode = false,
+  shouldUpdateMapBounds = false,
+  onMapBoundsUpdated,
+  viewport,
 }) => {
   const navigate = useNavigate();
   const mapRef = useRef<HTMLDivElement>(null);
@@ -38,7 +58,14 @@ export const Map: React.FC<MapProps> = ({
   const prevHoveredIdRef = useRef<number | null>(null);
   const boundsInitializedRef = useRef(false);
   const hoveredAccommodationIdRef = useRef<number | null>(null);
+  const isMapDragModeRef = useRef(isMapDragMode);
   const onAccommodationSelectRef = useRef(onAccommodationSelect);
+  const boundsChangeTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const idleListenerRef = useRef<google.maps.MapsEventListener | null>(null);
+  const isInitialIdleRef = useRef(true);
+  const previousBoundsRef = useRef<{ north: number; south: number; east: number; west: number } | null>(null);
+  const [isLoadingBounds, setIsLoadingBounds] = useState(false);
+  const prevViewportRef = useRef<{ north: number; south: number; east: number; west: number } | null>(null);
   
   // onAccommodationSelect ref 업데이트
   useEffect(() => {
@@ -117,6 +144,11 @@ export const Map: React.FC<MapProps> = ({
   // 지도 초기화
   useEffect(() => {
     if (!isMapLoaded || !mapRef.current) return;
+    
+    // 지도가 이미 초기화되었으면 재초기화하지 않음 (한국으로 돌아가는 것 방지)
+    if (mapInstanceRef.current) {
+      return;
+    }
 
     const initMap = () => {
       if (!mapRef.current || !checkMapsLoaded()) {
@@ -124,7 +156,7 @@ export const Map: React.FC<MapProps> = ({
         return;
       }
 
-      // 기본 중심점 (한국)
+      // 기본 중심점 (한국) - 초기 로드 시에만 사용
       const defaultCenter = { lat: 37.5665, lng: 126.9780 };
 
       // 지도 생성
@@ -217,15 +249,127 @@ export const Map: React.FC<MapProps> = ({
           }
         });
 
-        // cleanup 함수는 필요 없음 (커스텀 버튼이 자체적으로 관리)
+        // idle 리스너는 별도 useEffect에서 설정 (지도 재초기화 방지)
       } catch (error) {
         console.error("지도 초기화 실패:", error);
         return undefined;
       }
     };
 
-    return initMap();
-  }, [isMapLoaded]);
+    const cleanup = initMap();
+    return cleanup;
+  }, [isMapLoaded]); // onBoundsChange와 isMapDragMode 제거하여 재초기화 방지
+
+  // isMapDragMode ref 업데이트
+  useEffect(() => {
+    isMapDragModeRef.current = isMapDragMode;
+    // 지도와 검색 결과를 완전히 분리: boundsInitializedRef를 절대 리셋하지 않음
+    // 지도 위치는 사용자가 설정한 위치 그대로 유지
+  }, [isMapDragMode]);
+
+  // onBoundsChange 변경 시 idle 리스너만 업데이트 (지도 재초기화 방지)
+  useEffect(() => {
+    // 지도가 초기화되지 않았으면 리스너 설정하지 않음
+    if (!mapInstanceRef.current || !onBoundsChange) return;
+    
+    const mapInstance = mapInstanceRef.current;
+
+    // 기존 리스너 제거
+    if (idleListenerRef.current) {
+      google.maps.event.removeListener(idleListenerRef.current);
+      idleListenerRef.current = null;
+    }
+    
+    // 기존 타이머 제거
+    if (boundsChangeTimerRef.current) {
+      clearTimeout(boundsChangeTimerRef.current);
+      boundsChangeTimerRef.current = null;
+    }
+    
+    const handleIdle = () => {
+      // 초기 idle 이벤트는 무시 (지도 초기화나 마커 fitBounds로 인한 것)
+      if (isInitialIdleRef.current) {
+        isInitialIdleRef.current = false;
+        // 현재 bounds를 저장
+        if (mapInstance.getBounds()) {
+          const bounds = mapInstance.getBounds()!;
+          const ne = bounds.getNorthEast();
+          const sw = bounds.getSouthWest();
+          previousBoundsRef.current = {
+            north: ne.lat(),
+            south: sw.lat(),
+            east: ne.lng(),
+            west: sw.lng(),
+          };
+        }
+        return;
+      }
+      
+      // 기존 타이머가 있으면 클리어
+      if (boundsChangeTimerRef.current) {
+        clearTimeout(boundsChangeTimerRef.current);
+        boundsChangeTimerRef.current = null;
+      }
+      
+      // 로딩 시작
+      setIsLoadingBounds(true);
+      
+      // 3초 후에 bounds 변경 콜백 호출
+      boundsChangeTimerRef.current = setTimeout(() => {
+        setIsLoadingBounds(false);
+        
+        if (onBoundsChange && mapInstance.getBounds()) {
+          const bounds = mapInstance.getBounds()!;
+          const ne = bounds.getNorthEast();
+          const sw = bounds.getSouthWest();
+          
+          const newBounds = {
+            north: ne.lat(),
+            south: sw.lat(),
+            east: ne.lng(),
+            west: sw.lng(),
+          };
+          
+          // 이전 bounds와 비교하여 실제로 변경되었는지 확인
+          const prev = previousBoundsRef.current;
+          if (prev) {
+            const threshold = 0.001; // 약 100m 차이
+            const hasChanged = 
+              Math.abs(prev.north - newBounds.north) > threshold ||
+              Math.abs(prev.south - newBounds.south) > threshold ||
+              Math.abs(prev.east - newBounds.east) > threshold ||
+              Math.abs(prev.west - newBounds.west) > threshold;
+            
+            if (!hasChanged) {
+              // bounds가 실제로 변경되지 않았으면 콜백 호출하지 않음
+              setIsLoadingBounds(false);
+              return;
+            }
+          }
+          
+          // bounds가 실제로 변경되었으면 콜백 호출
+          previousBoundsRef.current = newBounds;
+          onBoundsChange(newBounds);
+        }
+      }, 3000);
+    };
+
+    // idle 이벤트 리스너 추가 (드래그, 줌 완료 시)
+    idleListenerRef.current = mapInstance.addListener("idle", handleIdle);
+
+    // cleanup 함수
+    return () => {
+      if (boundsChangeTimerRef.current) {
+        clearTimeout(boundsChangeTimerRef.current);
+        boundsChangeTimerRef.current = null;
+      }
+      if (idleListenerRef.current) {
+        google.maps.event.removeListener(idleListenerRef.current);
+        idleListenerRef.current = null;
+      }
+      setIsLoadingBounds(false);
+    };
+  }, [onBoundsChange]);
 
   // 마커 생성 및 업데이트 (accommodations가 실제로 변경될 때만)
   useEffect(() => {
@@ -233,17 +377,22 @@ export const Map: React.FC<MapProps> = ({
 
     const map = mapInstanceRef.current;
 
-    // 기존 마커가 있고 accommodations가 변경되지 않았으면 마커 재생성하지 않음
-    if (markersRef.current.length > 0) {
-      const existingIds = new Set(markersRef.current.map(m => (m as any).accommodationId));
-      const newIds = new Set(accommodations.map(acc => acc.id));
-      
-      // accommodations가 실제로 변경되었는지 확인
-      if (existingIds.size === newIds.size && 
-          Array.from(existingIds).every(id => newIds.has(id))) {
-        // 변경되지 않았으면 마커 재생성하지 않음
-        return;
-      }
+    // isMapDragModeRef를 즉시 업데이트 (prop 변경 시)
+    isMapDragModeRef.current = isMapDragMode;
+
+    // 기존 마커 ID 추출
+    const existingIds = new Set(markersRef.current.map(m => (m as any).accommodationId));
+    const newIds = new Set(accommodations.map(acc => acc.id));
+    
+    // accommodations가 실제로 변경되었는지 확인
+    const hasChanged = 
+      existingIds.size !== newIds.size ||
+      !Array.from(existingIds).every(id => newIds.has(id)) ||
+      !Array.from(newIds).every(id => existingIds.has(id));
+
+    if (!hasChanged && markersRef.current.length > 0) {
+      // 변경되지 않았으면 마커 재생성하지 않음
+      return;
     }
 
     // 기존 마커 제거
@@ -257,8 +406,14 @@ export const Map: React.FC<MapProps> = ({
       infoWindowRef.current.close();
     }
     
-    // bounds 초기화 플래그 리셋 (새 accommodations가 로드될 때)
-    boundsInitializedRef.current = false;
+    // 지도와 검색 결과를 완전히 분리: 지도 위치는 절대 변경하지 않음
+    // 한 번 초기화되면 boundsInitializedRef를 절대 리셋하지 않음
+    // accommodations가 변경되어도 지도 위치는 유지 (마커만 업데이트)
+    if (!boundsInitializedRef.current) {
+      // 아직 초기화되지 않은 경우에만 false로 설정 (초기 로드 시에만 fitBounds 호출)
+      boundsInitializedRef.current = false;
+    }
+    // 이미 초기화된 경우에는 boundsInitializedRef를 true로 유지하여 fitBounds가 호출되지 않도록 함
 
     // 유효한 좌표를 가진 숙소만 필터링
     const validAccommodations = accommodations.filter(
@@ -467,10 +622,65 @@ export const Map: React.FC<MapProps> = ({
       bounds.extend({ lat, lng });
     });
 
-    // 모든 마커가 보이도록 지도 조정 (처음 한 번만)
-    if (!boundsInitializedRef.current) {
+    // 요구사항에 따른 지도 위치 업데이트 로직
+    // 1. 검색어 선택 시 viewport로 강제 이동 (shouldUpdateMapBounds가 true이고 viewport가 있으면)
+    // 2. 페이지 변경 시 해당 페이지 숙소들의 bounds로 이동
+    // 3. 그 외의 경우에는 지도 위치 유지
+    
+    // shouldUpdateMapBounds가 true이고 viewport가 제공되었으면 viewport로 강제 이동 (검색어 선택 시)
+    // shouldUpdateMapBounds가 true이면 viewport 변경 여부와 관계없이 무조건 viewport로 이동
+    if (shouldUpdateMapBounds && viewport) {
+      console.log("🗺️ shouldUpdateMapBounds=true이고 viewport 있음, 지도 이동:", viewport);
+      isInitialIdleRef.current = true;
+      const viewportBounds = new window.google.maps.LatLngBounds(
+        { lat: viewport.south, lng: viewport.west },
+        { lat: viewport.north, lng: viewport.east }
+      );
+      map.fitBounds(viewportBounds, 50);
+      boundsInitializedRef.current = true;
+      prevViewportRef.current = viewport;
+      
+      // 지도 bounds 업데이트 완료 알림
+      if (onMapBoundsUpdated) {
+        onMapBoundsUpdated();
+      }
+      return; // viewport로 이동했으므로 마커 bounds는 사용하지 않음
+    }
+    
+    // viewport가 제공되었고 변경되었으면 강제 이동 (shouldUpdateMapBounds 없이도 viewport 변경 감지)
+    if (viewport) {
+      const viewportChanged = 
+        !prevViewportRef.current ||
+        prevViewportRef.current.north !== viewport.north ||
+        prevViewportRef.current.south !== viewport.south ||
+        prevViewportRef.current.east !== viewport.east ||
+        prevViewportRef.current.west !== viewport.west;
+      
+      if (viewportChanged) {
+        console.log("🗺️ viewport 변경 감지, 지도 이동:", viewport);
+        isInitialIdleRef.current = true;
+        const viewportBounds = new window.google.maps.LatLngBounds(
+          { lat: viewport.south, lng: viewport.west },
+          { lat: viewport.north, lng: viewport.east }
+        );
+        map.fitBounds(viewportBounds, 50);
+        boundsInitializedRef.current = true;
+        prevViewportRef.current = viewport;
+        
+        // 지도 bounds 업데이트 완료 알림
+        if (onMapBoundsUpdated) {
+          onMapBoundsUpdated();
+        }
+        return; // viewport로 이동했으므로 마커 bounds는 사용하지 않음
+      }
+    }
+    
+    // 페이지 변경 시 해당 페이지 숙소들의 bounds로 이동 (viewport가 없을 때만)
+    if (shouldUpdateMapBounds && validAccommodations.length > 0 && !viewport) {
+      isInitialIdleRef.current = true;
+      
       if (validAccommodations.length > 1) {
-        map.fitBounds(bounds);
+        map.fitBounds(bounds, 50);
       } else if (validAccommodations.length === 1) {
         const firstAccommodation = validAccommodations[0];
         map.setCenter({
@@ -480,8 +690,35 @@ export const Map: React.FC<MapProps> = ({
         map.setZoom(12);
       }
       boundsInitializedRef.current = true;
+      
+      // 지도 bounds 업데이트 완료 알림
+      if (onMapBoundsUpdated) {
+        onMapBoundsUpdated();
+      }
+      return;
     }
-  }, [accommodations]);
+    
+    // 초기 로드 시에만 fitBounds 호출
+    if (!boundsInitializedRef.current && validAccommodations.length > 0) {
+      isInitialIdleRef.current = true;
+      
+      if (validAccommodations.length > 1) {
+        map.fitBounds(bounds, 50);
+      } else if (validAccommodations.length === 1) {
+        const firstAccommodation = validAccommodations[0];
+        map.setCenter({
+          lat: firstAccommodation.coordinate.latitude!,
+          lng: firstAccommodation.coordinate.longitude!,
+        });
+        map.setZoom(12);
+      }
+      boundsInitializedRef.current = true;
+      return;
+    }
+    
+    // 그 외의 경우(스크롤, 검색 결과 변경 등)에는 fitBounds를 호출하지 않음
+    // 지도 위치는 사용자가 설정한 위치 그대로 유지
+  }, [accommodations, isMapDragMode, shouldUpdateMapBounds, onMapBoundsUpdated, viewport]);
 
   // 선택된 숙소로 지도 이동 (지도 확대/축소 제거: 지도 크기는 항상 모든 숙소를 보여주는 크기로 유지)
   useEffect(() => {
@@ -559,7 +796,7 @@ export const Map: React.FC<MapProps> = ({
       if (selectedMarker) {
       const thumbnailUrl = selectedAccommodation.accommodation_thumbnail_url
         ? getImageUrl(selectedAccommodation.accommodation_thumbnail_url)
-        : "/placeholder-image.png";
+        : null;
 
       const wishlistIconColor = selectedAccommodation.is_in_wishlist ? "#ff385c" : "#222222";
       const wishlistIconFill = selectedAccommodation.is_in_wishlist ? "currentColor" : "none";
@@ -616,7 +853,8 @@ export const Map: React.FC<MapProps> = ({
         content: `
           <div id="info-window-${selectedAccommodation.id}" style="width: 327px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 16px rgba(0,0,0,0.18); background: white; margin: 0; padding: 0; cursor: pointer; display: flex; flex-direction: column;">
             <div style="position: relative; width: 327px; height: 211.94px; overflow: hidden; background-color: #f7f7f7;">
-              <img src="${thumbnailUrl}" alt="${selectedAccommodation.name}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='/placeholder-image.png'" />
+              ${thumbnailUrl ? `<img src="${thumbnailUrl}" alt="${selectedAccommodation.name}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+              <div style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; background-color: #f7f7f7; color: #717171; font-size: 14px;">이미지 없음</div>` : `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background-color: #f7f7f7; color: #717171; font-size: 14px;">이미지 없음</div>`}
               <div style="position: absolute; top: 12px; right: 12px; display: flex; gap: 8px; z-index: 10;">
                 ${onWishlistToggle ? `
                   <button onclick="event.stopPropagation(); window.toggleWishlist && window.toggleWishlist(${selectedAccommodation.id}, ${selectedAccommodation.is_in_wishlist})" style="width: 28px; height: 28px; border-radius: 50%; border: none; background: rgba(255, 255, 255, 0.95); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.08);">
@@ -1109,6 +1347,19 @@ export const Map: React.FC<MapProps> = ({
     );
   }
 
-  return <div ref={mapRef} className={styles.mapContainer} />;
+  return (
+    <div className={styles.mapContainer}>
+      <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
+      {isLoadingBounds && (
+        <div className={styles.boundsLoadingOverlay}>
+          <div className={styles.loadingDots}>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
