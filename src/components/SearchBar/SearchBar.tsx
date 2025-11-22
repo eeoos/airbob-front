@@ -79,11 +79,18 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
     setShowGuestPicker(false);
     setShowSuggestions(false);
 
+    // Google Place가 선택되었는지 확인
+    // selectedPlace가 있으면 Google Place가 선택된 것으로 간주
+    const isPlaceSelected = selectedPlace?.lat && selectedPlace?.lng && selectedPlace?.viewport;
+
+    // Google Place 선택 시에만 좌표와 viewport 포함, 그렇지 않으면 undefined로 설정하여 제거
     const searchParams: SearchParams = {
       destination: inputText || undefined, // UI 표시용
-      lat: selectedPlace?.lat,
-      lng: selectedPlace?.lng,
-      viewport: selectedPlace?.viewport,
+      // selectedPlace가 있고 완전한 정보가 있을 때만 좌표와 viewport 설정
+      // 검색어만 변경되고 Google Places를 선택하지 않은 경우 selectedPlace는 null이어야 함
+      lat: isPlaceSelected ? selectedPlace.lat : undefined,
+      lng: isPlaceSelected ? selectedPlace.lng : undefined,
+      viewport: isPlaceSelected ? selectedPlace.viewport : undefined,
       checkIn: checkIn || undefined,
       checkOut: checkOut || undefined,
       adultOccupancy,
@@ -96,19 +103,32 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
       onSearch(searchParams);
     } else {
       // 기본 동작: 검색 페이지로 이동
-      const params = new URLSearchParams();
-      if (inputText) params.set("destination", inputText);
-      // selectedPlace가 있으면 좌표와 viewport 설정, 없으면 destination만 사용
-      if (selectedPlace?.lat) params.set("lat", selectedPlace.lat.toString());
-      if (selectedPlace?.lng) params.set("lng", selectedPlace.lng.toString());
-      if (selectedPlace?.viewport) {
+      // 기존 URL 파라미터를 가져와서 유지 (날짜, 인원 수 등)
+      const params = new URLSearchParams(window.location.search);
+      
+      // destination 설정
+      if (inputText) {
+        params.set("destination", inputText);
+      } else {
+        params.delete("destination");
+      }
+      
+      // 검색어가 변경되면 페이지를 1페이지(0페이지)로 리셋
+      params.delete("page");
+      
+      // Google Place 선택 시에만 좌표와 viewport 설정
+      // 검색어만 변경된 경우 (selectedPlace가 없는 경우) viewport/좌표 제거
+      if (selectedPlace?.lat && selectedPlace?.lng && selectedPlace?.viewport) {
+        // Google Place가 선택된 경우: 좌표와 viewport 설정
+        params.set("lat", selectedPlace.lat.toString());
+        params.set("lng", selectedPlace.lng.toString());
         params.set("topLeftLat", selectedPlace.viewport.north.toString());
         params.set("topLeftLng", selectedPlace.viewport.west.toString());
         params.set("bottomRightLat", selectedPlace.viewport.south.toString());
         params.set("bottomRightLng", selectedPlace.viewport.east.toString());
       } else {
-        // selectedPlace가 없고 destination만 있는 경우, 이전 viewport 파라미터 제거
-        // (destination 기반 검색을 위해)
+        // Google Place가 선택되지 않고 검색어만 변경된 경우: 이전 viewport/좌표 파라미터 명시적으로 제거
+        // (destination 기반 검색을 위해 - 이전 위치 정보가 남아있으면 잘못된 검색 결과가 나올 수 있음)
         params.delete("topLeftLat");
         params.delete("topLeftLng");
         params.delete("bottomRightLat");
@@ -336,6 +356,63 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
     // 날짜 선택 후에도 달력은 열어둠 (다른 영역 클릭 시에만 닫힘)
   };
 
+  // URL 파라미터에서 초기값 읽기 (새로고침 시에도 유지)
+  useEffect(() => {
+    const destination = searchParams.get("destination");
+    const checkInParam = searchParams.get("checkIn");
+    const checkOutParam = searchParams.get("checkOut");
+    const adultOccupancyParam = searchParams.get("adultOccupancy");
+    const childOccupancyParam = searchParams.get("childOccupancy");
+    const infantOccupancyParam = searchParams.get("infantOccupancy");
+    const petOccupancyParam = searchParams.get("petOccupancy");
+
+    // destination이 있으면 inputText 설정
+    if (destination && !inputText) {
+      handleInputChange(destination);
+    }
+
+    // 날짜 설정
+    if (checkInParam) {
+      const checkInDate = new Date(checkInParam);
+      if (!isNaN(checkInDate.getTime())) {
+        setCheckIn(checkInDate);
+      }
+    }
+    if (checkOutParam) {
+      const checkOutDate = new Date(checkOutParam);
+      if (!isNaN(checkOutDate.getTime())) {
+        setCheckOut(checkOutDate);
+      }
+    }
+
+    // 인원 수 설정
+    if (adultOccupancyParam) {
+      const adult = parseInt(adultOccupancyParam, 10);
+      if (!isNaN(adult) && adult > 0) {
+        setAdultOccupancy(adult);
+      }
+    }
+    if (childOccupancyParam) {
+      const child = parseInt(childOccupancyParam, 10);
+      if (!isNaN(child) && child >= 0) {
+        setChildOccupancy(child);
+      }
+    }
+    if (infantOccupancyParam) {
+      const infant = parseInt(infantOccupancyParam, 10);
+      if (!isNaN(infant) && infant >= 0) {
+        setInfantOccupancy(infant);
+      }
+    }
+    if (petOccupancyParam) {
+      const pet = parseInt(petOccupancyParam, 10);
+      if (!isNaN(pet) && pet >= 0) {
+        setPetOccupancy(pet);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 컴포넌트 마운트 시 한 번만 실행
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -413,7 +490,13 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
                   if (isMapDragMode) {
                     exitMapDragMode();
                   }
-                  handleInputChange(e.target.value);
+                  const newValue = e.target.value;
+                  // 검색어가 변경되었을 때 이전에 선택한 Google Place 초기화
+                  // (새로운 검색어에 대한 Google Place를 선택할 수 있도록)
+                  if (selectedPlace && newValue !== inputText) {
+                    resetPlaces();
+                  }
+                  handleInputChange(newValue);
                   setShowSuggestions(true);
                 }}
                 onFocus={() => {
@@ -509,24 +592,26 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
               </div>
             </div>
             {showDatePicker && (
-              <DatePicker
-                checkIn={checkIn}
-                checkOut={checkOut}
-                onDateSelect={handleDateSelect}
-                onClose={() => {
-                  // 체크인만 선택된 경우 체크아웃을 다음 날로 자동 설정
-                  if (checkIn && !checkOut) {
-                    const nextDay = new Date(checkIn);
-                    nextDay.setDate(nextDay.getDate() + 1);
-                    handleDateSelect(checkIn, nextDay);
-                  }
-                  setShowDatePicker(false);
-                  // 닫기 버튼 클릭 시 검색바를 축소 모드로 변경
-                  setIsExpanded(false);
-                  onExpandedChange?.(false);
-                }}
-                datePickerRef={datePickerElementRef}
-              />
+              <div className={styles.datePickerContainer}>
+                <DatePicker
+                  checkIn={checkIn}
+                  checkOut={checkOut}
+                  onDateSelect={handleDateSelect}
+                  onClose={() => {
+                    // 체크인만 선택된 경우 체크아웃을 다음 날로 자동 설정
+                    if (checkIn && !checkOut) {
+                      const nextDay = new Date(checkIn);
+                      nextDay.setDate(nextDay.getDate() + 1);
+                      handleDateSelect(checkIn, nextDay);
+                    }
+                    setShowDatePicker(false);
+                    // 닫기 버튼 클릭 시 검색바를 축소 모드로 변경
+                    setIsExpanded(false);
+                    onExpandedChange?.(false);
+                  }}
+                  datePickerRef={datePickerElementRef}
+                />
+              </div>
             )}
           </>
         ) : (

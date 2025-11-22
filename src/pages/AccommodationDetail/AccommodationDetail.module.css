@@ -597,6 +597,24 @@
   line-height: 1.5;
   color: #222222;
   word-break: break-word;
+  margin-bottom: 0;
+}
+
+.reviewShowMoreButton {
+  margin-top: 8px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: #222222;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+.reviewShowMoreButton:hover {
+  color: #000000;
 }
 
 .reviewImages {
@@ -847,9 +865,16 @@
 
 .datePickerContainer {
   position: absolute;
-  top: -16px;
-  right: -24px;
+  top: 100%; /* dateSection 아래에 위치 */
+  right: 0; /* 오른쪽 정렬 (예약 박스의 오른쪽에 맞춤) */
+  margin-top: 8px; /* 약간의 간격 */
   z-index: 10001;
+  /* 달력이 화면 밖으로 나가지 않도록 조정 */
+  /* DatePicker가 오른쪽으로 나가지 않도록 */
+  width: fit-content;
+  max-width: calc(100vw - 40px); /* 좌우 여백 고려 */
+  /* 달력이 오른쪽으로 나가면 왼쪽으로 이동 */
+  transform-origin: top right;
 }
 
 .dateRow {

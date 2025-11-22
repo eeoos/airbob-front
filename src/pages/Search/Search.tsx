@@ -35,6 +35,7 @@ const Search: React.FC = () => {
   const isInitialLoadRef = useRef(true);
   const prevPageRef = useRef<number | null>(null);
   const prevSearchParamsRef = useRef<string>("");
+  const prevViewportRef = useRef<string | null>(null); // 이전 viewport 정보 추적
   const [shouldUpdateMapBounds, setShouldUpdateMapBounds] = useState(false);
 
   // 검색 함수
@@ -148,32 +149,35 @@ const Search: React.FC = () => {
     // 지도 드래그 모드: viewport만 변경되고 destination이 없는 경우
     const isMapDragMode = isViewportChanged && !currentParams.get("destination");
     
-    // URL에 viewport가 있으면 지도가 해당 viewport로 이동해야 함
+    // URL에 viewport가 있으면 항상 지도가 해당 viewport로 이동해야 함
+    // (뒤로가기, 초기 로드, 검색어 변경 등 모든 경우에 대응)
     const hasViewportForMap = !!searchParams.get("topLeftLat") && !!searchParams.get("topLeftLng");
-    // viewport가 변경되었거나 새로 추가되었고, 지도 드래그 모드가 아니면 지도 업데이트
-    if (hasViewportForMap && (isViewportChanged || isInitialLoadRef.current) && !isMapDragMode) {
-      console.log("🗺️ URL에 viewport가 있음, 지도 업데이트 설정:", {
-        hasViewportForMap,
-        isViewportChanged,
-        isInitialLoad: isInitialLoadRef.current,
-        isMapDragMode,
-        viewport: {
-          topLeftLat: searchParams.get("topLeftLat"),
-          topLeftLng: searchParams.get("topLeftLng"),
-          bottomRightLat: searchParams.get("bottomRightLat"),
-          bottomRightLng: searchParams.get("bottomRightLng"),
-        },
-      });
-      setShouldUpdateMapBounds(true);
+    const currentViewportString = hasViewportForMap 
+      ? `${searchParams.get("topLeftLat")},${searchParams.get("topLeftLng")},${searchParams.get("bottomRightLat")},${searchParams.get("bottomRightLng")}`
+      : null;
+    
+    // URL에 viewport가 있고, viewport가 변경되었을 때 항상 지도 업데이트
+    // (뒤로가기 시에도 URL의 viewport 정보를 읽어서 지도를 업데이트)
+    if (hasViewportForMap) {
+      // viewport가 변경되었거나, 이전과 다른 경우에만 업데이트 (중복 업데이트 방지)
+      if (prevViewportRef.current !== currentViewportString) {
+        setShouldUpdateMapBounds(true);
+        prevViewportRef.current = currentViewportString;
+      }
+    } else if (!hasViewportForMap) {
+      // viewport가 없으면 prevViewportRef 초기화
+      prevViewportRef.current = null;
     }
     
     // 검색 실행 조건 단순화:
     // 1. 초기 로드
     // 2. page만 변경된 경우 (다른 파라미터 변경 없음)
     // 3. page 외의 파라미터가 변경된 경우 (검색바에서 검색, 지도 드래그 등)
+    // 4. 지도 드래그 모드일 때 viewport 변경 시 (명시적으로 추가)
     const shouldFetch = isInitialLoadRef.current || 
       (isPageChanged && isOnlyPageChanged && !isMapDragMode) ||
-      (isSearchParamsChanged && !isPageChanged); // page 외의 파라미터 변경 시 항상 검색 실행
+      (isSearchParamsChanged) || // page 외의 파라미터 변경 시 항상 검색 실행 (page 변경 여부와 관계없이)
+      (isMapDragMode && isViewportChanged); // 지도 드래그 모드일 때 viewport 변경 시 검색 실행
     
     // 디버깅: 검색 실행 여부 확인
     console.log("🔍 검색 실행 조건 확인:", {
@@ -196,6 +200,18 @@ const Search: React.FC = () => {
       prevPageRef.current = page;
       prevSearchParamsRef.current = currentSearchParams;
       return;
+    }
+    
+    // 검색어가 변경되었으면 페이지를 0으로 리셋
+    if (isDestinationChanged && !isPageChanged) {
+      const resetParams = new URLSearchParams(currentSearchParams);
+      resetParams.delete("page");
+      if (resetParams.toString() !== currentSearchParams) {
+        setSearchParams(resetParams, { replace: true });
+        prevPageRef.current = 0;
+        prevSearchParamsRef.current = resetParams.toString();
+        return; // URL이 업데이트되면 useEffect가 다시 실행됨
+      }
     }
     
     if (isInitialLoadRef.current) {
@@ -259,20 +275,30 @@ const Search: React.FC = () => {
     east: number;
     west: number;
   }) => {
+    // 디버깅: 지도 bounds 변경 확인
+    console.log("🗺️ 지도 bounds 변경:", {
+      north: bounds.north,
+      south: bounds.south,
+      east: bounds.east,
+      west: bounds.west,
+    });
+    
     // URL 파라미터 업데이트
     const newParams = new URLSearchParams(searchParams.toString());
     newParams.set("topLeftLat", bounds.north.toString());
     newParams.set("topLeftLng", bounds.west.toString());
     newParams.set("bottomRightLat", bounds.south.toString());
     newParams.set("bottomRightLng", bounds.east.toString());
-    // destination 제거 (지도 드래그 모드)
+    // 지도 드래그 모드에서는 이전 Google Places 선택 정보 제거
     newParams.delete("destination");
+    newParams.delete("lat"); // Google Places 선택 시 설정된 좌표 제거
+    newParams.delete("lng"); // Google Places 선택 시 설정된 좌표 제거
     // page 파라미터 제거 (지도 드래그 시 첫 페이지로 리셋)
     newParams.delete("page");
     
-    // prevPageRef와 prevSearchParamsRef 리셋
+    // prevPageRef만 리셋 (prevSearchParamsRef는 useEffect에서 업데이트해야 변경 감지가 됨)
     prevPageRef.current = 0;
-    prevSearchParamsRef.current = newParams.toString();
+    // prevSearchParamsRef는 업데이트하지 않음 (useEffect에서 변경을 감지하기 위해)
     
     // URL 업데이트 (히스토리 추가하지 않음)
     // URL이 변경되면 useEffect에서 검색이 자동으로 실행됨
@@ -409,6 +435,8 @@ const Search: React.FC = () => {
   };
 
   const handleAccommodationCardClick = (accommodationId: number) => {
+    // 새 탭에서 열기
+    window.open(`/accommodations/${accommodationId}`, '_blank');
     setSelectedAccommodationId(accommodationId);
   };
 
@@ -433,7 +461,6 @@ const Search: React.FC = () => {
                       <div
                         key={accommodation.id}
                         id={`accommodation-${accommodation.id}`}
-                        onClick={() => handleAccommodationCardClick(accommodation.id)}
                         onMouseEnter={() => setHoveredAccommodationId(accommodation.id)}
                         onMouseLeave={() => setHoveredAccommodationId(null)}
                         className={`${styles.cardWrapper} ${
@@ -442,6 +469,7 @@ const Search: React.FC = () => {
                       >
                         <AccommodationCardSearch
                           accommodation={accommodation}
+                          onClick={() => handleAccommodationCardClick(accommodation.id)}
                           onWishlistToggle={() =>
                             handleWishlistToggle(accommodation.id, accommodation.is_in_wishlist)
                           }

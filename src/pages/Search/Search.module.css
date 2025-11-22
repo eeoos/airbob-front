@@ -5,36 +5,55 @@
 }
 
 .main {
-  padding: 24px 40px 0 40px;
+  padding: 24px 40px 0 40px; /* 하단 패딩 제거 */
   max-width: 1760px;
   margin: 0 auto 0 auto;
+  margin-bottom: 0; /* 하단 마진 제거 */
   position: relative; /* 확장 모드를 위한 기준점 */
   display: flex;
   gap: 48px;
-  height: calc(100vh - 200px);
-  min-height: 600px;
-  align-items: stretch;
+  height: calc(100vh - 80px); /* 헤더 높이만 제외하고 화면 하단까지 꽉 차게 */
+  min-height: calc(100vh - 80px); /* 최소 높이도 화면 하단까지 */
+  align-items: flex-start; /* stretch 대신 flex-start로 변경하여 하단 여백 제거 */
+  overflow: visible; /* 자식 요소의 스크롤을 방해하지 않음 */
 }
 
 .results {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: auto; /* 왼쪽 영역만 스크롤 */
+  overflow-x: hidden;
   padding: 0;
+  padding-bottom: 0; /* 하단 패딩 제거 */
   margin: 0 -40px 0 0;
+  margin-bottom: 0; /* 하단 마진 제거 */
   min-width: 0;
+  min-height: 0; /* 하단 여백 제거를 위한 최소 높이 제거 */
+  height: 100%; /* 부모(.main) 높이에 맞춤 */
+  max-height: 100%; /* 부모 높이를 넘지 않도록 */
   display: flex;
   flex-direction: column;
-  height: 100%;
   /* 스크롤바 숨기기 */
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE and Edge */
   outline: none !important;
   border: none !important;
+  /* 하단 여백 제거 */
+  align-content: flex-start;
+  justify-content: flex-start;
+  align-items: stretch; /* 자식 요소들이 전체 너비를 차지하도록 */
+  box-sizing: border-box; /* 패딩/마진을 높이에 포함 */
 }
 
 .results > *:last-child {
   margin-bottom: 0 !important;
   padding-bottom: 0 !important;
+}
+
+/* paginationContainer는 예외 처리 - 하지만 스크롤이 제대로 동작하도록 조정 */
+.results > .paginationContainer {
+  padding-bottom: 16px !important;
+  margin-bottom: 0 !important;
+  flex-shrink: 0; /* pagination이 축소되지 않도록 */
 }
 
 .results > * {
@@ -50,6 +69,17 @@
   padding-bottom: 0 !important;
 }
 
+/* results 내부의 모든 요소 하단 여백 제거 */
+.results > *:last-child > *:last-child {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* ListContainer 하단 여백 제거 */
+.results > * > * {
+  margin-bottom: 0;
+}
+
 .results::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
 }
@@ -61,7 +91,9 @@
   top: 24px;
   height: calc(100vh - 120px);
   min-height: 600px;
+  max-height: calc(100vh - 120px); /* 최대 높이 제한 */
   align-self: flex-start;
+  overflow: visible; /* 지도가 보이도록 */
 }
 
 .title {
@@ -85,6 +117,7 @@
   margin-top: 32px;
   margin-bottom: 0 !important;
   padding: 0 !important;
+  padding-bottom: 16px; /* 하단에 약간의 패딩 추가 */
 }
 
 .pagination {
@@ -219,7 +252,7 @@
 /* 지도 확장 모드 */
 .main.mapExpanded {
   position: absolute;
-  top: 0;
+  top: 80px; /* 헤더 높이만큼 아래로 이동 */
   left: 40px; /* .main의 좌측 padding */
   right: 40px; /* .main의 우측 padding */
   bottom: auto;
@@ -227,8 +260,8 @@
   background: white;
   padding: 24px 0; /* 상하 padding만, 좌우는 .main의 padding 사용 */
   margin: 0;
-  height: calc(100vh - 120px); /* 헤더 높이(80px) + 아래 여백(40px) */
-  min-height: calc(100vh - 120px);
+  height: calc(100vh - 80px); /* 헤더 높이만 제외 */
+  min-height: calc(100vh - 80px);
   box-sizing: border-box;
   width: calc(100% - 80px); /* .main의 좌우 padding(40px * 2) 제외 */
   gap: 0; /* 확장 시 gap 제거 */
@@ -242,8 +275,8 @@
   flex: 1; /* 전체 너비 차지 (padding 내부) */
   position: relative;
   top: 0;
-  height: calc(100vh - 120px); /* 헤더 높이(80px) + 아래 여백(40px) */
-  min-height: calc(100vh - 120px);
+  height: calc(100vh - 80px - 48px); /* 헤더 높이(80px) + 상하 padding(24px * 2) 제외 */
+  min-height: calc(100vh - 80px - 48px);
   margin: 0;
 }
 

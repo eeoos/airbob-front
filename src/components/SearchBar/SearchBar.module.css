@@ -222,6 +222,15 @@
   height: 16px;
 }
 
+.datePickerContainer {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  /* 확장된 검색바 중앙에 맞춤 */
+}
+
 .guestPicker {
   position: absolute;
   top: calc(100% + 8px);

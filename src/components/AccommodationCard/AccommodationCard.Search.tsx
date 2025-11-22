@@ -61,7 +61,8 @@ export const AccommodationCardSearch: React.FC<AccommodationCardSearchProps> = (
     if (onClick) {
       onClick();
     } else {
-      navigate(`/accommodations/${accommodation.id}`);
+      // 새 탭에서 열기
+      window.open(`/accommodations/${accommodation.id}`, '_blank');
     }
   };
 

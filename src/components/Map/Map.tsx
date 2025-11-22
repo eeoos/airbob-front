@@ -66,6 +66,8 @@ export const Map: React.FC<MapProps> = ({
   const previousBoundsRef = useRef<{ north: number; south: number; east: number; west: number } | null>(null);
   const [isLoadingBounds, setIsLoadingBounds] = useState(false);
   const prevViewportRef = useRef<{ north: number; south: number; east: number; west: number } | null>(null);
+  const viewportJustChangedRef = useRef(false);
+  const prevAccommodationsRef = useRef<AccommodationSearchInfo[]>([]);
   
   // onAccommodationSelect ref 업데이트
   useEffect(() => {
@@ -623,32 +625,14 @@ export const Map: React.FC<MapProps> = ({
     });
 
     // 요구사항에 따른 지도 위치 업데이트 로직
-    // 1. 검색어 선택 시 viewport로 강제 이동 (shouldUpdateMapBounds가 true이고 viewport가 있으면)
-    // 2. 페이지 변경 시 해당 페이지 숙소들의 bounds로 이동
-    // 3. 그 외의 경우에는 지도 위치 유지
+    // 1단계: 검색어 선택 시 viewport로 강제 이동 (초기 위치 잡기, Google Places 선택 시에만)
+    // 2단계: 백엔드로부터 숙소를 받아온 직후 → 숙소 기반 fitBounds (항상 수행)
+    // 3단계: 페이지 이동 시에도 해당 페이지 숙소들로 fitBounds
+    // 단, 지도 드래그 모드일 때는 사용자가 직접 지도를 움직이는 것이므로 fitBounds를 수행하지 않음
     
-    // shouldUpdateMapBounds가 true이고 viewport가 제공되었으면 viewport로 강제 이동 (검색어 선택 시)
-    // shouldUpdateMapBounds가 true이면 viewport 변경 여부와 관계없이 무조건 viewport로 이동
-    if (shouldUpdateMapBounds && viewport) {
-      console.log("🗺️ shouldUpdateMapBounds=true이고 viewport 있음, 지도 이동:", viewport);
-      isInitialIdleRef.current = true;
-      const viewportBounds = new window.google.maps.LatLngBounds(
-        { lat: viewport.south, lng: viewport.west },
-        { lat: viewport.north, lng: viewport.east }
-      );
-      map.fitBounds(viewportBounds, 50);
-      boundsInitializedRef.current = true;
-      prevViewportRef.current = viewport;
-      
-      // 지도 bounds 업데이트 완료 알림
-      if (onMapBoundsUpdated) {
-        onMapBoundsUpdated();
-      }
-      return; // viewport로 이동했으므로 마커 bounds는 사용하지 않음
-    }
-    
-    // viewport가 제공되었고 변경되었으면 강제 이동 (shouldUpdateMapBounds 없이도 viewport 변경 감지)
-    if (viewport) {
+    // 1단계: viewport가 제공되었고 변경되었으면 강제 이동 (검색어 선택 시, 초기 위치 잡기)
+    // 지도 드래그 모드가 아닐 때만 수행 (지도 드래그 모드는 사용자가 직접 지도를 움직이는 것이므로)
+    if (viewport && !isMapDragMode) {
       const viewportChanged = 
         !prevViewportRef.current ||
         prevViewportRef.current.north !== viewport.north ||
@@ -657,63 +641,66 @@ export const Map: React.FC<MapProps> = ({
         prevViewportRef.current.west !== viewport.west;
       
       if (viewportChanged) {
-        console.log("🗺️ viewport 변경 감지, 지도 이동:", viewport);
         isInitialIdleRef.current = true;
         const viewportBounds = new window.google.maps.LatLngBounds(
           { lat: viewport.south, lng: viewport.west },
           { lat: viewport.north, lng: viewport.east }
         );
         map.fitBounds(viewportBounds, 50);
-        boundsInitializedRef.current = true;
         prevViewportRef.current = viewport;
+        viewportJustChangedRef.current = true; // viewport로 이동했음을 표시
+        // 숙소가 로드되면 2단계에서 숙소 기반 fitBounds를 수행해야 함
+      }
+    }
+    
+    // accommodations 변경 감지
+    const accommodationsChanged = 
+      prevAccommodationsRef.current.length !== validAccommodations.length ||
+      prevAccommodationsRef.current.some((acc, idx) => 
+        acc.id !== validAccommodations[idx]?.id
+      );
+    
+    // 2단계 & 3단계: 숙소가 있으면 항상 숙소 기반 fitBounds 수행
+    // (검색 결과를 받은 직후 또는 페이지 변경 시)
+    // 단, 지도 드래그 모드가 아닐 때만 수행 (지도 드래그 모드는 사용자가 직접 지도를 움직이는 것이므로)
+    if (validAccommodations.length > 0 && !isMapDragMode) {
+      // viewport로 이동한 직후이거나, 페이지 변경 시, 또는 초기 로드 시, 또는 accommodations가 변경되었을 때
+      const shouldFitBounds = 
+        viewportJustChangedRef.current || // viewport로 이동한 직후 (숙소가 로드되면 fitBounds)
+        shouldUpdateMapBounds || // 페이지 변경 시
+        !boundsInitializedRef.current || // 초기 로드 시
+        accommodationsChanged; // accommodations가 변경되었을 때 (검색 결과를 받은 직후 또는 페이지 변경)
+      
+      if (shouldFitBounds) {
+        isInitialIdleRef.current = true;
+        
+        if (validAccommodations.length > 1) {
+          // 숙소들을 모두 포함하는 최소 bounding box로 fitBounds (padding 50px)
+          map.fitBounds(bounds, 50);
+        } else if (validAccommodations.length === 1) {
+          // 숙소가 1개인 경우 center와 zoom 설정
+          const firstAccommodation = validAccommodations[0];
+          map.setCenter({
+            lat: firstAccommodation.coordinate.latitude!,
+            lng: firstAccommodation.coordinate.longitude!,
+          });
+          map.setZoom(12);
+        }
+        boundsInitializedRef.current = true;
+        viewportJustChangedRef.current = false; // fitBounds 완료
+        prevAccommodationsRef.current = [...validAccommodations]; // accommodations 변경 추적
         
         // 지도 bounds 업데이트 완료 알림
         if (onMapBoundsUpdated) {
           onMapBoundsUpdated();
         }
-        return; // viewport로 이동했으므로 마커 bounds는 사용하지 않음
+        return;
       }
     }
     
-    // 페이지 변경 시 해당 페이지 숙소들의 bounds로 이동 (viewport가 없을 때만)
-    if (shouldUpdateMapBounds && validAccommodations.length > 0 && !viewport) {
-      isInitialIdleRef.current = true;
-      
-      if (validAccommodations.length > 1) {
-        map.fitBounds(bounds, 50);
-      } else if (validAccommodations.length === 1) {
-        const firstAccommodation = validAccommodations[0];
-        map.setCenter({
-          lat: firstAccommodation.coordinate.latitude!,
-          lng: firstAccommodation.coordinate.longitude!,
-        });
-        map.setZoom(12);
-      }
-      boundsInitializedRef.current = true;
-      
-      // 지도 bounds 업데이트 완료 알림
-      if (onMapBoundsUpdated) {
-        onMapBoundsUpdated();
-      }
-      return;
-    }
-    
-    // 초기 로드 시에만 fitBounds 호출
-    if (!boundsInitializedRef.current && validAccommodations.length > 0) {
-      isInitialIdleRef.current = true;
-      
-      if (validAccommodations.length > 1) {
-        map.fitBounds(bounds, 50);
-      } else if (validAccommodations.length === 1) {
-        const firstAccommodation = validAccommodations[0];
-        map.setCenter({
-          lat: firstAccommodation.coordinate.latitude!,
-          lng: firstAccommodation.coordinate.longitude!,
-        });
-        map.setZoom(12);
-      }
-      boundsInitializedRef.current = true;
-      return;
+    // accommodations 변경 추적 업데이트 (fitBounds를 수행하지 않았어도)
+    if (accommodationsChanged) {
+      prevAccommodationsRef.current = [...validAccommodations];
     }
     
     // 그 외의 경우(스크롤, 검색 결과 변경 등)에는 fitBounds를 호출하지 않음
@@ -950,7 +937,8 @@ export const Map: React.FC<MapProps> = ({
             // 버튼 클릭이 아닌 경우에만 네비게이션
             const target = e.target as HTMLElement;
             if (!target.closest('button')) {
-              navigate(`/accommodations/${selectedAccommodation.id}`);
+              // 새 탭에서 열기
+              window.open(`/accommodations/${selectedAccommodation.id}`, '_blank');
             }
           });
         }

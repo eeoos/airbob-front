@@ -306,9 +306,13 @@ const AccommodationDetail: React.FC = () => {
   const [hasMoreReviews, setHasMoreReviews] = useState(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const reviewObserverTarget = useRef<HTMLDivElement>(null);
+  // 각 리뷰의 expanded 상태 관리 (리뷰 ID를 키로 사용)
+  const [expandedReviews, setExpandedReviews] = useState<Record<number, boolean>>({});
   
   // 설명이 길면 잘라서 보여줄 길이 (약 3줄 정도)
   const MAX_DESCRIPTION_LENGTH = 200;
+  // 리뷰 content를 잘라서 보여줄 길이 (약 3-4줄 정도)
+  const MAX_REVIEW_CONTENT_LENGTH = 150;
 
   // 인원 상태 관리
   const [adultCount, setAdultCount] = useState(() => {
@@ -1170,7 +1174,23 @@ const AccommodationDetail: React.FC = () => {
                       {new Date(review.reviewed_at).getFullYear()}년 {new Date(review.reviewed_at).getMonth() + 1}월
                     </div>
                     
-                    <div className={styles.reviewContent}>{review.content}</div>
+                    <div className={styles.reviewContent}>
+                      {expandedReviews[review.id] || review.content.length <= MAX_REVIEW_CONTENT_LENGTH
+                        ? review.content
+                        : `${review.content.substring(0, MAX_REVIEW_CONTENT_LENGTH)}...`}
+                    </div>
+                    
+                    {review.content.length > MAX_REVIEW_CONTENT_LENGTH && (
+                      <button
+                        className={styles.reviewShowMoreButton}
+                        onClick={() => {
+                          // "더보기" 버튼 클릭 시 리뷰 모달 열기 (후기 모두 보기와 같은 기능)
+                          setIsReviewModalOpen(true);
+                        }}
+                      >
+                        더보기
+                      </button>
+                    )}
                     
                     {review.images && review.images.length > 0 && (
                       <div className={styles.reviewImages}>
