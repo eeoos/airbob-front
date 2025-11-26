@@ -345,7 +345,7 @@ const Wishlist: React.FC = () => {
                 {Object.entries(groupByDate(recentlyViewed)).map(([date, items]) => (
                   <div key={date} className={styles.dateSection}>
                     <h2 className={styles.dateTitle}>{date}</h2>
-                    <ListContainer columns={4} gap={40}>
+                    <div className={styles.recentlyViewedGrid}>
                       {items.map((item) => (
                         <div
                           key={item.accommodation_id}
@@ -425,7 +425,7 @@ const Wishlist: React.FC = () => {
                           </div>
                         </div>
                       ))}
-                    </ListContainer>
+                    </div>
                   </div>
                 ))}
               </>
