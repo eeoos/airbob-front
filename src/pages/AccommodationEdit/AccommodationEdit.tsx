@@ -1351,7 +1351,23 @@ const AccommodationEdit: React.FC = () => {
     }
 
     // 최종 한국 주소 매핑 로직
-    const handleComplete = (data) => {
+    const handleComplete = (data: {
+      zonecode: string;
+      address: string;
+      addressEnglish: string;
+      addressType: string;
+      bname: string;
+      buildingName: string;
+      apartment: string;
+      sido: string;
+      sigungu: string;
+      sigunguCode: string;
+      bcode: string;
+      roadname: string;
+      roadnameCode: string;
+      jibunAddress: string;
+      roadAddress?: string;
+    }) => {
       const fullSido = data.sido || "";
       const fullSigungu = data.sigungu || "";
 
