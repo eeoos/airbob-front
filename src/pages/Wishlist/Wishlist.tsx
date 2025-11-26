@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { MainLayout } from "../../layouts";
 import { ListContainer } from "../../components/ListContainer";
 import { BaseAccommodationCard } from "../../components/AccommodationCard";
@@ -21,12 +21,19 @@ import styles from "./Wishlist.module.css";
 
 const Wishlist: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { error, handleError, clearError } = useApiError();
   const [recentlyViewed, setRecentlyViewed] = useState<RecentlyViewedAccommodationInfo[]>([]);
   const [wishlists, setWishlists] = useState<WishlistInfo[]>([]);
-  const [selectedWishlist, setSelectedWishlist] = useState<number | null>(null);
-  const [showRecentlyViewed, setShowRecentlyViewed] = useState(false);
+  
+  // URL 파라미터에서 초기값 읽기
+  const viewParam = searchParams.get("view");
+  const wishlistIdParam = searchParams.get("id");
+  const [selectedWishlist, setSelectedWishlist] = useState<number | null>(
+    wishlistIdParam ? parseInt(wishlistIdParam) : null
+  );
+  const [showRecentlyViewed, setShowRecentlyViewed] = useState(viewParam === "recently-viewed");
   const [isEditMode, setIsEditMode] = useState(false);
   const [wishlistAccommodations, setWishlistAccommodations] = useState<
     WishlistAccommodationInfo[]
@@ -216,6 +223,7 @@ const Wishlist: React.FC = () => {
     setShowRecentlyViewed(true);
     setSelectedWishlist(null);
     setIsEditMode(false);
+    setSearchParams({ view: "recently-viewed" });
     
     // 최근 조회 목록 최신 데이터 조회
     setIsLoading(true);
@@ -234,6 +242,7 @@ const Wishlist: React.FC = () => {
     setShowRecentlyViewed(false);
     setSelectedWishlist(null);
     setIsEditMode(false);
+    setSearchParams({});
   };
 
   const handleWishlistToggle = async (accommodationId: number, isInWishlist: boolean) => {
@@ -483,6 +492,7 @@ const Wishlist: React.FC = () => {
                   onClick={() => {
                     setSelectedWishlist(null);
                     setIsEditMode(false);
+                    setSearchParams({});
                   }}
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -634,7 +644,10 @@ const Wishlist: React.FC = () => {
                   <div
                     key={wishlist.id}
                     className={styles.wishlistCard}
-                    onClick={() => setSelectedWishlist(wishlist.id)}
+                    onClick={() => {
+                      setSelectedWishlist(wishlist.id);
+                      setSearchParams({ id: wishlist.id.toString() });
+                    }}
                     onMouseEnter={(e) => {
                       const deleteBtn = e.currentTarget.querySelector(
                         `.${styles.wishlistDeleteButton}`
