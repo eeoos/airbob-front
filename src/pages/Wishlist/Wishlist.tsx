@@ -42,7 +42,11 @@ const Wishlist: React.FC = () => {
   const wishlistAccommodationsObserverTarget = useRef<HTMLDivElement>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [wishlistModalOpen, setWishlistModalOpen] = useState(false);
-  const [selectedAccommodationForWishlist, setSelectedAccommodationForWishlist] = useState<number | null>(null);
+  const [selectedAccommodationForWishlist, setSelectedAccommodationForWishlist] = useState<number | null>(null);  
+  // 메모 모달 상태
+  const [memoModalOpen, setMemoModalOpen] = useState(false);
+  const [selectedMemoItem, setSelectedMemoItem] = useState<WishlistAccommodationInfo | null>(null);
+  const [memoText, setMemoText] = useState("");
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -260,6 +264,45 @@ const Wishlist: React.FC = () => {
     } catch (err) {
       handleError(err);
     }
+  };
+
+  // 메모 모달 열기
+  const handleOpenMemoModal = (item: WishlistAccommodationInfo, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedMemoItem(item);
+    setMemoText(item.memo || "");
+    setMemoModalOpen(true);
+  };
+
+  // 메모 저장
+  const handleSaveMemo = async () => {
+    if (!selectedMemoItem || !memoText.trim()) return;
+
+    try {
+      await wishlistApi.updateAccommodationMemo(selectedMemoItem.wishlist_accommodation_id, {
+        memo: memoText.trim(),
+      });
+      
+      // 로컬 상태 업데이트
+      setWishlistAccommodations((prev) =>
+        prev.map((item) =>
+          item.wishlist_accommodation_id === selectedMemoItem.wishlist_accommodation_id
+            ? { ...item, memo: memoText.trim() }
+            : item
+        )
+      );
+      
+      setMemoModalOpen(false);
+      setSelectedMemoItem(null);
+      setMemoText("");
+    } catch (err) {
+      handleError(err);
+    }
+  };
+
+  // 메모 모두 지우기
+  const handleClearMemo = () => {
+    setMemoText("");
   };
 
   const handleDeleteWishlist = async (wishlistId: number, e: React.MouseEvent) => {
@@ -512,6 +555,19 @@ const Wishlist: React.FC = () => {
                         </div>
                         <div className={styles.name}>{item.accommodation.name}</div>
                       </div>
+                      {/* 메모 영역 */}
+                      <div 
+                        className={styles.memoArea}
+                        onClick={(e) => handleOpenMemoModal(item, e)}
+                      >
+                        {item.memo ? (
+                          <span className={styles.memoText}>
+                            {item.memo} <span className={styles.memoEdit}>수정</span>
+                          </span>
+                        ) : (
+                          <span className={styles.memoAdd}>메모 추가</span>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </ListContainer>
@@ -665,6 +721,48 @@ const Wishlist: React.FC = () => {
           onClose={() => setAuthModalOpen(false)}
           initialMode="login"
         />
+
+        {/* 메모 모달 */}
+        {memoModalOpen && (
+          <div className={styles.memoModalOverlay} onClick={() => setMemoModalOpen(false)}>
+            <div className={styles.memoModal} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.memoModalHeader}>
+                <h3 className={styles.memoModalTitle}>메모 추가</h3>
+                <button
+                  className={styles.memoModalClose}
+                  onClick={() => setMemoModalOpen(false)}
+                >
+                  ✕
+                </button>
+              </div>
+              <div className={styles.memoModalBody}>
+                <textarea
+                  className={styles.memoTextarea}
+                  value={memoText}
+                  onChange={(e) => setMemoText(e.target.value.slice(0, 250))}
+                  placeholder="메모를 입력하세요"
+                  maxLength={250}
+                />
+                <div className={styles.memoCharCount}>{memoText.length}/250자</div>
+              </div>
+              <div className={styles.memoModalFooter}>
+                <button
+                  className={styles.memoClearButton}
+                  onClick={handleClearMemo}
+                >
+                  모두 지우기
+                </button>
+                <button
+                  className={styles.memoSaveButton}
+                  onClick={handleSaveMemo}
+                  disabled={!memoText.trim()}
+                >
+                  저장
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </MainLayout>
   );

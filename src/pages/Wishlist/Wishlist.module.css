@@ -490,6 +490,172 @@
   z-index: 1000;
 }
 
+/* 메모 영역 */
+.memoArea {
+  padding: 12px;
+  border: 1px solid #dddddd;
+  border-radius: 8px;
+  margin-top: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.memoArea:hover {
+  border-color: #222222;
+}
+
+.memoAdd {
+  color: #222222;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.memoText {
+  color: #222222;
+  font-size: 14px;
+  line-height: 1.4;
+  display: block;
+}
+
+.memoEdit {
+  color: #222222;
+  font-weight: 600;
+  text-decoration: underline;
+  margin-left: 4px;
+}
+
+/* 메모 모달 */
+.memoModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+}
+
+.memoModal {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.memoModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid #ebebeb;
+}
+
+.memoModalTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #222222;
+  margin: 0;
+}
+
+.memoModalClose {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #717171;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+
+.memoModalClose:hover {
+  color: #222222;
+}
+
+.memoModalBody {
+  padding: 24px;
+}
+
+.memoTextarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 12px;
+  border: 1px solid #dddddd;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: none;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.memoTextarea:focus {
+  border-color: #222222;
+}
+
+.memoTextarea::placeholder {
+  color: #b0b0b0;
+}
+
+.memoCharCount {
+  text-align: right;
+  font-size: 12px;
+  color: #717171;
+  margin-top: 8px;
+}
+
+.memoModalFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-top: 1px solid #ebebeb;
+}
+
+.memoClearButton {
+  background: none;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: #222222;
+  cursor: pointer;
+  padding: 8px 0;
+  text-decoration: underline;
+}
+
+.memoClearButton:hover {
+  color: #000000;
+}
+
+.memoSaveButton {
+  background-color: #222222;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.memoSaveButton:hover {
+  background-color: #000000;
+}
+
+.memoSaveButton:disabled {
+  background-color: #dddddd;
+  color: #717171;
+  cursor: not-allowed;
+}
+
 @media (max-width: 1200px) {
   .container {
     padding: 40px 80px;
