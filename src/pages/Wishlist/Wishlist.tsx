@@ -412,7 +412,7 @@ const Wishlist: React.FC = () => {
                         <div
                           key={item.accommodation_id}
                           className={styles.recentlyViewedCard}
-                          onClick={() => navigate(`/accommodations/${item.accommodation_id}`)}
+                          onClick={() => window.open(`/accommodations/${item.accommodation_id}`, '_blank')}
                         >
                           <div className={styles.recentlyViewedImageWrapper}>
                             {item.thumbnail_url ? (
@@ -515,7 +515,7 @@ const Wishlist: React.FC = () => {
                     <div
                       key={item.wishlist_accommodation_id}
                       className={styles.accommodationCard}
-                      onClick={() => navigate(`/accommodations/${item.accommodation.id}`)}
+                      onClick={() => window.open(`/accommodations/${item.accommodation.id}`, '_blank')}
                       onMouseEnter={(e) => {
                         const deleteBtn = e.currentTarget.querySelector(
                           `.${styles.deleteButton}`
