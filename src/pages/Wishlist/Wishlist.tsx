@@ -206,10 +206,22 @@ const Wishlist: React.FC = () => {
     }
   };
 
-  const handleRecentlyViewedClick = () => {
+  const handleRecentlyViewedClick = async () => {
     setShowRecentlyViewed(true);
     setSelectedWishlist(null);
     setIsEditMode(false);
+    
+    // 최근 조회 목록 최신 데이터 조회
+    setIsLoading(true);
+    clearError();
+    try {
+      const response = await recentlyViewedApi.getRecentlyViewed();
+      setRecentlyViewed(response?.accommodations || []);
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleBackClick = () => {
