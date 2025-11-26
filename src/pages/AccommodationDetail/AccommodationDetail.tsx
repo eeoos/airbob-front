@@ -607,10 +607,10 @@ const AccommodationDetail: React.FC = () => {
       const guestCount = adultCount + childCount;
       
       const reservationResponse = await reservationApi.create({
-        accommodationId: accommodation.id,
-        checkInDate: checkInStr,
-        checkOutDate: checkOutStr,
-        guestCount: guestCount,
+        accommodation_id: accommodation.id,
+        check_in_date: checkInStr,
+        check_out_date: checkOutStr,
+        guest_count: guestCount,
       });
 
       const { reservation_uid, order_name, amount, customer_email, customer_name } = reservationResponse;

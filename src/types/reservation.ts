@@ -10,10 +10,10 @@ import { PaymentInfo } from "./payment";
 
 // 예약 생성 요청
 export interface CreateReservationRequest {
-  accommodationId: number;
-  checkInDate: string; // YYYY-MM-DD
-  checkOutDate: string; // YYYY-MM-DD
-  guestCount: number;
+  accommodation_id: number;
+  check_in_date: string; // YYYY-MM-DD
+  check_out_date: string; // YYYY-MM-DD
+  guest_count: number;
 }
 
 // 예약 생성 응답 (결제 대기 상태)
