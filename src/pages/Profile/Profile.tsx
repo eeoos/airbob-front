@@ -11,7 +11,7 @@ type ProfileMode = "guest" | "host";
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialMode = searchParams.get("mode") === "host" ? "host" : "guest";
   const initialTab = searchParams.get("tab") || (initialMode === "host" ? "listings" : "upcoming");
@@ -28,11 +28,13 @@ const Profile: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>(getInitialTab());
 
   useEffect(() => {
+    if (isAuthLoading) return;
+    
     if (!isAuthenticated) {
       navigate("/");
       return;
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, isAuthLoading, navigate]);
 
   useEffect(() => {
     const modeParam = searchParams.get("mode");
@@ -54,6 +56,14 @@ const Profile: React.FC = () => {
       setActiveTab(tabParam || "upcoming");
     }
   }, [searchParams]);
+
+  if (isAuthLoading) {
+    return (
+      <MainLayout>
+        <div className={styles.loading}>로딩 중...</div>
+      </MainLayout>
+    );
+  }
 
   if (!isAuthenticated) {
     return null;

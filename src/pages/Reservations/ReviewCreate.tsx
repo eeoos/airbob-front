@@ -12,7 +12,7 @@ import styles from "./ReviewCreate.module.css";
 const ReviewCreate: React.FC = () => {
   const { reservationUid } = useParams<{ reservationUid: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { error, handleError, clearError } = useApiError();
   const [reservation, setReservation] = useState<ReservationDetailInfo | null>(null);
   const [rating, setRating] = useState<number>(5);
@@ -23,6 +23,8 @@ const ReviewCreate: React.FC = () => {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   useEffect(() => {
+    if (isAuthLoading) return;
+    
     if (!isAuthenticated) {
       navigate("/");
       return;
@@ -148,6 +150,14 @@ const ReviewCreate: React.FC = () => {
       setIsSubmitting(false);
     }
   };
+
+  if (isAuthLoading) {
+    return (
+      <MainLayout>
+        <div className={styles.loading}>로딩 중...</div>
+      </MainLayout>
+    );
+  }
 
   if (!isAuthenticated) {
     return null;

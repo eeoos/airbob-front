@@ -21,7 +21,7 @@ import styles from "./Wishlist.module.css";
 
 const Wishlist: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { error, handleError, clearError } = useApiError();
   const [recentlyViewed, setRecentlyViewed] = useState<RecentlyViewedAccommodationInfo[]>([]);
   const [wishlists, setWishlists] = useState<WishlistInfo[]>([]);
@@ -49,6 +49,8 @@ const Wishlist: React.FC = () => {
   const [memoText, setMemoText] = useState("");
 
   useEffect(() => {
+    if (isAuthLoading) return;
+    
     if (!isAuthenticated) {
       navigate("/");
       return;
@@ -352,6 +354,14 @@ const Wishlist: React.FC = () => {
     });
     return groups;
   };
+
+  if (isAuthLoading) {
+    return (
+      <MainLayout>
+        <div className={styles.loading}>로딩 중...</div>
+      </MainLayout>
+    );
+  }
 
   if (!isAuthenticated) {
     return null;

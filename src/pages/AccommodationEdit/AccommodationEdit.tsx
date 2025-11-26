@@ -283,7 +283,7 @@ const AccommodationEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { error, handleError, clearError } = useApiError();
   const isNewDraft = searchParams.get("mode") === "create";
   const [isSaving, setIsSaving] = useState(false);
@@ -342,6 +342,8 @@ const AccommodationEdit: React.FC = () => {
   });
 
   useEffect(() => {
+    if (isAuthLoading) return;
+    
     if (!isAuthenticated) {
       navigate("/");
       return;
@@ -1341,6 +1343,14 @@ const AccommodationEdit: React.FC = () => {
   const canProceedToNext = (): boolean => {
     return isStepCompleted(currentStep);
   };
+
+  if (isAuthLoading) {
+    return (
+      <MainLayout>
+        <div className={styles.loading}>로딩 중...</div>
+      </MainLayout>
+    );
+  }
 
   if (!isAuthenticated) {
     return null;

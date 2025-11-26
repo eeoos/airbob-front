@@ -7,7 +7,17 @@ import styles from "./PaymentFail.module.css";
 const PaymentFail: React.FC = () => {
   const { reservationUid } = useParams<{ reservationUid: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
+
+  if (isAuthLoading) {
+    return (
+      <MainLayout>
+        <div className={styles.container}>
+          <div className={styles.content}>로딩 중...</div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   if (!isAuthenticated) {
     navigate("/");
