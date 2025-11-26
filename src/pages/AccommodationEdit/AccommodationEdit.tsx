@@ -1526,60 +1526,12 @@ const AccommodationEdit: React.FC = () => {
 
             <div className={styles.formGroup}>
               <label className={styles.label}>
-                국가 <span className={styles.required}>*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.addressInfo.country}
-                className={styles.input}
-                required
-                readOnly
-              />
-            </div>
-
-            <div className={styles.formGroup}>
-              <label className={styles.label}>
-                시/도 <span className={styles.required}>*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.addressInfo.state || ""}
-                className={styles.input}
-                readOnly
-              />
-            </div>
-
-            <div className={styles.formGroup}>
-              <label className={styles.label}>
-                도시 이름 <span className={styles.required}>*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.addressInfo.city || ""}
-                className={styles.input}
-                readOnly
-              />
-            </div>
-
-            <div className={styles.formGroup}>
-              <label className={styles.label}>
-                구/군 <span className={styles.required}>*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.addressInfo.district || ""}
-                className={styles.input}
-                readOnly
-              />
-            </div>
-
-            <div className={styles.formGroup}>
-              <label className={styles.label}>
                 우편번호 <span className={styles.required}>*</span>
               </label>
               <input
                 type="text"
                 value={formData.addressInfo.postalCode}
+                onChange={(e) => handleNestedChange("addressInfo", "postalCode", e.target.value)}
                 className={styles.input}
                 placeholder="12345"
                 required
@@ -1601,6 +1553,20 @@ const AccommodationEdit: React.FC = () => {
                 required
               />
               <p className={styles.helperText}>상세 주소(동/호수 등)를 입력해주세요.</p>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label className={styles.label}>
+                국가 <span className={styles.required}>*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.addressInfo.country}
+                onChange={(e) => handleNestedChange("addressInfo", "country", e.target.value)}
+                className={styles.input}
+                required
+                readOnly
+              />
             </div>
           </div>
         );
