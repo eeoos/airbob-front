@@ -334,7 +334,7 @@ const AccommodationEdit: React.FC = () => {
       street: "",
     },
     occupancyPolicyInfo: {
-      maxOccupancy: "",
+      maxOccupancy: "1",
       infantOccupancy: false,
       petOccupancy: false,
     },
