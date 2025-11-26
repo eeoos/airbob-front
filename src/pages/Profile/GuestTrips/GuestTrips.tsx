@@ -192,10 +192,10 @@ const GuestTrips: React.FC<GuestTripsProps> = ({ filterType }) => {
                         onClick={() => navigate(`/reservations/${reservation.reservation_uid}`)}
                       >
                         <div className={styles.image}>
-                          {reservation.accommodation_thumbnail_url ? (
+                          {reservation.accommodation.thumbnail_url ? (
                             <img
-                              src={getImageUrl(reservation.accommodation_thumbnail_url)}
-                              alt={reservation.accommodation_name}
+                              src={getImageUrl(reservation.accommodation.thumbnail_url)}
+                              alt={reservation.accommodation.name}
                             />
                           ) : (
                             <div className={styles.placeholder}>🏠</div>
@@ -203,7 +203,7 @@ const GuestTrips: React.FC<GuestTripsProps> = ({ filterType }) => {
                         </div>
                         <div className={styles.content}>
                           <div className={styles.location}>
-                            {reservation.accommodation_location}
+                            {reservation.accommodation.name}
                           </div>
                           <div className={styles.dateRange}>
                             {formatDateRange(reservation.check_in_date, reservation.check_out_date)}

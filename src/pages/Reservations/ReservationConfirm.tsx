@@ -231,9 +231,9 @@ const ReservationConfirm: React.FC = () => {
 
           {/* 숙소 정보 */}
           <div className={styles.accommodationInfo}>
-            {accommodation.image_urls && accommodation.image_urls.length > 0 && (
+            {accommodation.images && accommodation.images.length > 0 && (
               <img
-                src={getImageUrl(accommodation.image_urls[0])}
+                src={getImageUrl(accommodation.images[0].image_url)}
                 alt={accommodation.name}
                 className={styles.accommodationImage}
               />

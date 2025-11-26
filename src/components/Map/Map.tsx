@@ -435,7 +435,9 @@ export const Map: React.FC<MapProps> = ({
       const lng = accommodation.coordinate.longitude!;
 
       // 가격 버블을 위한 커스텀 아이콘 생성 (초기 생성 시에는 선택/호버 상태 반영 안 함)
-      const priceText = accommodation.price_per_night.price;
+      const priceText = accommodation.currency === "KRW" 
+        ? `₩${accommodation.base_price.toLocaleString()}` 
+        : `${accommodation.currency} ${accommodation.base_price.toLocaleString()}`;
       
       // 텍스트 길이에 맞춰 버블 너비 계산 (대략적인 계산)
       const textWidth = priceText.length * 8 + 20; // 문자당 8px + 여유 20px
@@ -800,17 +802,21 @@ export const Map: React.FC<MapProps> = ({
         return diffDays > 0 ? diffDays : 1;
       };
 
-      // 가격에서 숫자만 추출
-      const extractPriceNumber = (priceString: string): number => {
-        const numberString = priceString.replace(/[^\d]/g, '');
-        return parseInt(numberString, 10) || 0;
+      // 총 가격 계산 및 포맷팅
+      const formatTotalPrice = (basePrice: number, nights: number, currency: string): string => {
+        const totalPrice = basePrice * nights;
+        if (currency === "KRW") {
+          return `₩${totalPrice.toLocaleString()}`;
+        }
+        return `${currency} ${totalPrice.toLocaleString()}`;
       };
 
-      // 총 가격 계산 및 포맷팅
-      const formatTotalPrice = (pricePerNight: string, nights: number): string => {
-        const priceNumber = extractPriceNumber(pricePerNight);
-        const totalPrice = priceNumber * nights;
-        return `₩${totalPrice.toLocaleString()}`;
+      // 가격 포맷팅
+      const formatPrice = (basePrice: number, currency: string): string => {
+        if (currency === "KRW") {
+          return `₩${basePrice.toLocaleString()}`;
+        }
+        return `${currency} ${basePrice.toLocaleString()}`;
       };
 
       const nights = calculateNights(checkIn, checkOut);
@@ -819,18 +825,19 @@ export const Map: React.FC<MapProps> = ({
       // 가격 표시
       let priceDisplay = '';
       if (hasDates) {
-        const totalPrice = formatTotalPrice(selectedAccommodation.price_per_night.price, nights);
+        const totalPrice = formatTotalPrice(selectedAccommodation.base_price, nights, selectedAccommodation.currency);
         priceDisplay = `<span>${totalPrice}</span><span style="font-size: 14px; font-weight: 400; color: #717171;"> ${nights}박</span>`;
       } else {
-        priceDisplay = `<span>${selectedAccommodation.price_per_night.price}</span><span style="font-size: 14px; font-weight: 400; color: #717171;"> 1박</span>`;
+        const priceStr = formatPrice(selectedAccommodation.base_price, selectedAccommodation.currency);
+        priceDisplay = `<span>${priceStr}</span><span style="font-size: 14px; font-weight: 400; color: #717171;"> 1박</span>`;
       }
 
       // 리뷰 표시 (리뷰 수가 0이면 표시하지 않음)
-      const reviewDisplay = selectedAccommodation.review.total_count > 0 
+      const reviewDisplay = selectedAccommodation.review_summary.total_count > 0 
         ? `<div style="display: flex; align-items: center; gap: 4px; margin-left: 8px; flex-shrink: 0;">
             <span style="font-size: 14px; color: #222222;">★</span>
-            <span style="font-size: 14px; color: #222222; font-weight: 600;">${selectedAccommodation.review.average_rating.toFixed(1)}</span>
-            <span style="font-size: 14px; color: #717171;">(${selectedAccommodation.review.total_count})</span>
+            <span style="font-size: 14px; color: #222222; font-weight: 600;">${selectedAccommodation.review_summary.average_rating.toFixed(1)}</span>
+            <span style="font-size: 14px; color: #717171;">(${selectedAccommodation.review_summary.total_count})</span>
           </div>`
         : '';
 
@@ -855,7 +862,7 @@ export const Map: React.FC<MapProps> = ({
             </div>
             <div style="width: 327px; padding: 12px 12px 12px 12px; background: white; box-sizing: border-box; display: flex; flex-direction: column;">
               <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px;">
-                <p style="margin: 0; font-size: 14px; color: #222222; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">${selectedAccommodation.location_summary}</p>
+                <p style="margin: 0; font-size: 14px; color: #222222; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">${[selectedAccommodation.address_summary.city, selectedAccommodation.address_summary.district].filter(Boolean).join(", ") || selectedAccommodation.address_summary.country}</p>
                 ${reviewDisplay}
               </div>
               <h3 style="margin: 0 0 2px 0; font-size: 14px; font-weight: 400; color: #222222; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${selectedAccommodation.name}</h3>

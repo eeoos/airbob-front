@@ -3,8 +3,12 @@ import {
   AccommodationSearchRequest,
   AccommodationSearchResponse,
   AccommodationDetail,
-  MyAccommodationInfos,
+  HostAccommodationDetail,
+  HostAccommodationInfos,
+  CreateAccommodationResponse,
+  UploadImagesResponse,
 } from "../types/accommodation";
+import { AccommodationStatus } from "../types/enums";
 import { ApiResponse } from "../types/api";
 
 export const accommodationApi = {
@@ -17,7 +21,7 @@ export const accommodationApi = {
     return response.data.data!;
   },
 
-  // 숙소 상세 조회
+  // 숙소 상세 조회 (Public)
   getDetail: async (accommodationId: number): Promise<AccommodationDetail> => {
     const response = await client.get<ApiResponse<AccommodationDetail>>(
       `/accommodations/${accommodationId}`
@@ -26,8 +30,8 @@ export const accommodationApi = {
   },
 
   // 숙소 초안 생성
-  create: async (): Promise<{ id: number }> => {
-    const response = await client.post<ApiResponse<{ id: number }>>("/accommodations");
+  create: async (): Promise<CreateAccommodationResponse> => {
+    const response = await client.post<ApiResponse<CreateAccommodationResponse>>("/accommodations");
     return response.data.data!;
   },
 
@@ -38,12 +42,28 @@ export const accommodationApi = {
       name?: string;
       description?: string;
       base_price?: number;
-      address_info?: any;
-      amenity_infos?: any[];
-      occupancy_policy_info?: any;
+      currency?: string;
+      address_info?: {
+        postal_code: string;
+        country: string;
+        state?: string;
+        city: string;
+        district?: string;
+        street: string;
+        detail?: string;
+      };
+      amenity_infos?: Array<{
+        name: string;
+        count: number;
+      }>;
+      occupancy_policy_info?: {
+        max_occupancy: number;
+        infant_occupancy: number;
+        pet_occupancy: number;
+      };
       type?: string;
-      check_in_time?: string;
-      check_out_time?: string;
+      check_in_time?: string; // HH:mm 또는 HH:mm:ss
+      check_out_time?: string; // HH:mm 또는 HH:mm:ss
     }
   ): Promise<void> => {
     await client.patch<ApiResponse<null>>(`/accommodations/${accommodationId}`, data);
@@ -69,13 +89,13 @@ export const accommodationApi = {
     accommodationId: number,
     images: File[],
     onUploadProgress?: (progress: number) => void
-  ): Promise<{ uploaded_images: Array<{ id: number; image_url: string }> }> => {
+  ): Promise<UploadImagesResponse> => {
     const formData = new FormData();
     images.forEach((image) => {
       formData.append("images", image);
     });
 
-    const response = await client.post<ApiResponse<{ uploaded_images: Array<{ id: number; image_url: string }> }>>(
+    const response = await client.post<ApiResponse<UploadImagesResponse>>(
       `/accommodations/${accommodationId}/images`,
       formData,
       {
@@ -102,9 +122,9 @@ export const accommodationApi = {
   getMyAccommodations: async (params?: {
     size?: number;
     cursor?: string;
-    status?: "PUBLISHED" | "DRAFT" | "UNPUBLISHED";
-  }): Promise<MyAccommodationInfos> => {
-    const response = await client.get<ApiResponse<MyAccommodationInfos>>(
+    status?: AccommodationStatus;
+  }): Promise<HostAccommodationInfos> => {
+    const response = await client.get<ApiResponse<HostAccommodationInfos>>(
       "/profile/host/accommodations",
       { params }
     );
@@ -112,8 +132,8 @@ export const accommodationApi = {
   },
 
   // 호스트 숙소 상세 조회
-  getHostAccommodationDetail: async (accommodationId: number): Promise<AccommodationDetail> => {
-    const response = await client.get<ApiResponse<AccommodationDetail>>(
+  getHostAccommodationDetail: async (accommodationId: number): Promise<HostAccommodationDetail> => {
+    const response = await client.get<ApiResponse<HostAccommodationDetail>>(
       `/profile/host/accommodations/${accommodationId}`
     );
     return response.data.data!;

@@ -1,5 +1,5 @@
 import { ApiResponse, CursorPageInfo } from "./api";
-import { ReviewSortType } from "./enums";
+import { MemberInfo, ImageInfo } from "./accommodation";
 
 // 리뷰 작성
 export interface CreateReviewRequest {
@@ -32,30 +32,18 @@ export interface UploadReviewImagesData {
   uploaded_images: ImageInfo[];
 }
 
-export interface ImageInfo {
-  id: number;
-  image_url: string;
-}
-
 export type UploadReviewImagesResponse = ApiResponse<UploadReviewImagesData>;
 
 // 리뷰 이미지 삭제
 export type DeleteReviewImageResponse = ApiResponse<null>;
 
 // 리뷰 목록 조회
-export interface ReviewerInfo {
-  id: number;
-  nickname: string;
-  thumbnail_image_url: string | null;
-  joined_at: string;
-}
-
 export interface ReviewInfo {
   id: number;
   rating: number;
   content: string;
   reviewed_at: string;
-  reviewer: ReviewerInfo;
+  reviewer: MemberInfo;
   images: ImageInfo[];
 }
 
@@ -74,3 +62,5 @@ export interface ReviewSummary {
 
 export type GetReviewSummaryResponse = ApiResponse<ReviewSummary>;
 
+// ReviewerInfo 호환성 타입 (deprecated - MemberInfo 사용 권장)
+export type ReviewerInfo = MemberInfo;

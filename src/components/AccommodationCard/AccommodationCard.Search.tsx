@@ -1,7 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { AccommodationSearchInfo } from "../../types/accommodation";
-import { PriceResponse } from "../../types/accommodation";
 import { getImageUrl } from "../../utils/image";
 import styles from "./AccommodationCard.Search.module.css";
 
@@ -22,8 +21,11 @@ export const AccommodationCardSearch: React.FC<AccommodationCardSearchProps> = (
 }) => {
   const navigate = useNavigate();
 
-  const formatPrice = (price: PriceResponse): string => {
-    return price.price;
+  const formatPrice = (basePrice: number, currency: string): string => {
+    if (currency === "KRW") {
+      return `₩${basePrice.toLocaleString()}`;
+    }
+    return `${currency} ${basePrice.toLocaleString()}`;
   };
 
   // 날짜 차이 계산 (박수)
@@ -38,20 +40,13 @@ export const AccommodationCardSearch: React.FC<AccommodationCardSearchProps> = (
     return diffDays > 0 ? diffDays : 1;
   };
 
-  // 가격에서 숫자만 추출
-  const extractPriceNumber = (priceString: string): number => {
-    // "₩5,000" 형식에서 숫자만 추출
-    const numberString = priceString.replace(/[^\d]/g, '');
-    return parseInt(numberString, 10) || 0;
-  };
-
   // 총 가격 계산 및 포맷팅
-  const formatTotalPrice = (pricePerNight: PriceResponse, nights: number): string => {
-    const priceNumber = extractPriceNumber(pricePerNight.price);
-    const totalPrice = priceNumber * nights;
-    
-    // 천 단위 구분자 추가
-    return `₩${totalPrice.toLocaleString()}`;
+  const formatTotalPrice = (basePrice: number, nights: number, currency: string): string => {
+    const totalPrice = basePrice * nights;
+    if (currency === "KRW") {
+      return `₩${totalPrice.toLocaleString()}`;
+    }
+    return `${currency} ${totalPrice.toLocaleString()}`;
   };
 
   const nights = calculateNights(checkIn, checkOut);
@@ -115,12 +110,17 @@ export const AccommodationCardSearch: React.FC<AccommodationCardSearchProps> = (
       </div>
       <div className={styles.wishlistCardInfo}>
         <div className={styles.locationRow}>
-          <div className={styles.location}>{accommodation.location_summary}</div>
-          {accommodation.review.total_count > 0 && (
+          <div className={styles.location}>
+            {[
+              accommodation.address_summary.city,
+              accommodation.address_summary.district,
+            ].filter(Boolean).join(", ") || accommodation.address_summary.country}
+          </div>
+          {accommodation.review_summary.total_count > 0 && (
             <div className={styles.review}>
               <span className={styles.star}>★</span>
-              <span className={styles.rating}>{accommodation.review.average_rating.toFixed(1)}</span>
-              <span className={styles.reviewCount}>({accommodation.review.total_count})</span>
+              <span className={styles.rating}>{accommodation.review_summary.average_rating.toFixed(1)}</span>
+              <span className={styles.reviewCount}>({accommodation.review_summary.total_count})</span>
             </div>
           )}
         </div>
@@ -128,8 +128,8 @@ export const AccommodationCardSearch: React.FC<AccommodationCardSearchProps> = (
         <div className={styles.price}>
           <span className={styles.priceAmount}>
             {hasDates 
-              ? formatTotalPrice(accommodation.price_per_night, nights)
-              : formatPrice(accommodation.price_per_night)}
+              ? formatTotalPrice(accommodation.base_price, nights, accommodation.currency)
+              : formatPrice(accommodation.base_price, accommodation.currency)}
           </span>
           {hasDates && <span className={styles.priceUnit}> {nights}박</span>}
           {!hasDates && <span className={styles.priceUnit}> 1박</span>}

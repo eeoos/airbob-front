@@ -408,16 +408,18 @@ const Wishlist: React.FC = () => {
                           </div>
                           <div className={styles.wishlistCardInfo}>
                             <div className={styles.locationRow}>
-                              <div className={styles.location}>{item.location_summary}</div>
-                              {item.review_count > 0 && (
+                              <div className={styles.location}>
+                                {[item.address_summary.city, item.address_summary.district].filter(Boolean).join(", ") || item.address_summary.country}
+                              </div>
+                              {item.review_summary.total_count > 0 && (
                                 <div className={styles.review}>
                                   <span className={styles.star}>★</span>
-                                  <span className={styles.rating}>{item.average_rating.toFixed(1)}</span>
-                                  <span className={styles.reviewCount}>({item.review_count})</span>
+                                  <span className={styles.rating}>{item.review_summary.average_rating.toFixed(1)}</span>
+                                  <span className={styles.reviewCount}>({item.review_summary.total_count})</span>
                                 </div>
                               )}
                             </div>
-                            <div className={styles.name}>{item.accommodation_name}</div>
+                            <div className={styles.name}>{item.accommodation.name}</div>
                           </div>
                         </div>
                       ))}
@@ -459,7 +461,7 @@ const Wishlist: React.FC = () => {
                     <div
                       key={item.wishlist_accommodation_id}
                       className={styles.accommodationCard}
-                      onClick={() => navigate(`/accommodations/${item.accommodation_id}`)}
+                      onClick={() => navigate(`/accommodations/${item.accommodation.id}`)}
                       onMouseEnter={(e) => {
                         const deleteBtn = e.currentTarget.querySelector(
                           `.${styles.deleteButton}`
@@ -474,11 +476,11 @@ const Wishlist: React.FC = () => {
                       }}
                     >
                       <div className={styles.wishlistCardImage}>
-                        {item.thumbnail_url ? (
+                        {item.accommodation.thumbnail_url ? (
                           <>
                             <img
-                              src={getImageUrl(item.thumbnail_url)}
-                              alt={item.accommodation_name}
+                              src={getImageUrl(item.accommodation.thumbnail_url)}
+                              alt={item.accommodation.name}
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;
                                 target.style.display = "none";
@@ -506,16 +508,18 @@ const Wishlist: React.FC = () => {
                       </div>
                       <div className={styles.wishlistCardInfo}>
                         <div className={styles.locationRow}>
-                          <div className={styles.location}>{item.location_summary}</div>
-                          {item.review_count > 0 && (
+                          <div className={styles.location}>
+                            {[item.address_summary.city, item.address_summary.district].filter(Boolean).join(", ") || item.address_summary.country}
+                          </div>
+                          {item.review_summary.total_count > 0 && (
                             <div className={styles.review}>
                               <span className={styles.star}>★</span>
-                              <span className={styles.rating}>{item.average_rating.toFixed(1)}</span>
-                              <span className={styles.reviewCount}>({item.review_count})</span>
+                              <span className={styles.rating}>{item.review_summary.average_rating.toFixed(1)}</span>
+                              <span className={styles.reviewCount}>({item.review_summary.total_count})</span>
                             </div>
                           )}
                         </div>
-                        <div className={styles.name}>{item.accommodation_name}</div>
+                        <div className={styles.name}>{item.accommodation.name}</div>
                       </div>
                     </div>
                   ))}

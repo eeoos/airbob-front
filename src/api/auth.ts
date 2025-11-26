@@ -1,6 +1,10 @@
 import { AxiosError } from "axios";
 import { client } from "./client";
-import { LoginRequest, LoginResponse, SignupRequest, SignupResponse, LogoutResponse } from "../types/auth";
+import {
+  LoginRequest,
+  SignupRequest,
+  MeInfo,
+} from "../types/auth";
 import { ApiResponse } from "../types/api";
 
 export const authApi = {
@@ -139,5 +143,10 @@ export const authApi = {
       throw error;
     }
   },
-};
 
+  // 내 정보 조회
+  getMe: async (): Promise<MeInfo> => {
+    const response = await client.get<ApiResponse<MeInfo>>("/auth/me");
+    return response.data.data!;
+  },
+};

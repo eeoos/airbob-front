@@ -106,7 +106,7 @@ const HostReservationDetail: React.FC = () => {
   }
 
   const nights = calculateNights(reservation.check_in_date_time, reservation.check_out_date_time);
-  const totalAmount = reservation.payment_info?.total_amount || 0;
+  const totalAmount = reservation.payment?.total_amount || 0;
   const pricePerNight = nights > 0 ? Math.floor(totalAmount / nights) : 0;
 
   return (
@@ -119,21 +119,21 @@ const HostReservationDetail: React.FC = () => {
         <div className={styles.header}>
           <div className={styles.headerLeft}>
             <div className={styles.statusBadge}>{formatStatus(reservation.status)}</div>
-            <div className={styles.guestName}>{reservation.guest_info.nickname}</div>
+            <div className={styles.guestName}>{reservation.guest.nickname}</div>
             <div className={styles.guestNights}>
               {reservation.guest_count}게스트 • {nights}박
-              {reservation.payment_info && totalAmount > 0 && ` • ₩${totalAmount.toLocaleString()}`}
+              {reservation.payment && totalAmount > 0 && ` • ₩${totalAmount.toLocaleString()}`}
             </div>
           </div>
-          {reservation.guest_info.profile_image_url ? (
+          {reservation.guest.thumbnail_image_url ? (
             <img
-              src={getImageUrl(reservation.guest_info.profile_image_url)}
-              alt={reservation.guest_info.nickname}
+              src={getImageUrl(reservation.guest.thumbnail_image_url)}
+              alt={reservation.guest.nickname}
               className={styles.profileImage}
             />
           ) : (
             <div className={styles.profileImagePlaceholder}>
-              {reservation.guest_info.nickname.charAt(0).toUpperCase()}
+              {reservation.guest.nickname.charAt(0).toUpperCase()}
             </div>
           )}
         </div>
@@ -143,12 +143,12 @@ const HostReservationDetail: React.FC = () => {
           <h3 className={styles.sectionTitle}>숙소 정보</h3>
           <div 
             className={styles.accommodationInfo}
-            onClick={() => navigate(`/accommodations/${reservation.accommodation_id}`)}
+            onClick={() => navigate(`/accommodations/${reservation.accommodation.id}`)}
           >
-            {reservation.accommodation_thumbnail_url ? (
+            {reservation.accommodation.thumbnail_url ? (
               <img
-                src={getImageUrl(reservation.accommodation_thumbnail_url)}
-                alt={reservation.accommodation_name}
+                src={getImageUrl(reservation.accommodation.thumbnail_url)}
+                alt={reservation.accommodation.name}
                 className={styles.accommodationThumbnail}
               />
             ) : (
@@ -157,8 +157,17 @@ const HostReservationDetail: React.FC = () => {
               </div>
             )}
             <div className={styles.accommodationDetails}>
-              <div className={styles.accommodationInfoName}>{reservation.accommodation_name}</div>
-              <div className={styles.accommodationInfoAddress}>{reservation.accommodation_address}</div>
+              <div className={styles.accommodationInfoName}>{reservation.accommodation.name}</div>
+              <div className={styles.accommodationInfoAddress}>
+                {[
+                  reservation.address.country,
+                  reservation.address.state,
+                  reservation.address.city,
+                  reservation.address.district,
+                  reservation.address.street,
+                  reservation.address.detail,
+                ].filter(Boolean).join(" ")}
+              </div>
             </div>
             <div className={styles.accommodationArrow}>→</div>
           </div>
@@ -192,7 +201,7 @@ const HostReservationDetail: React.FC = () => {
         </section>
 
         {/* Fee Details Section */}
-        {reservation.payment_info && (
+        {reservation.payment && (
           <section className={styles.section}>
             <h3 className={styles.sectionTitle}>요금 세부 정보</h3>
             <div className={styles.feeDetails}>

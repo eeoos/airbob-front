@@ -1,43 +1,43 @@
 import { client } from "./client";
 import {
   CreateWishlistRequest,
-  CreateWishlistResponse,
+  CreateWishlistData,
   UpdateWishlistRequest,
-  UpdateWishlistResponse,
-  DeleteWishlistResponse,
-  GetWishlistsResponse,
+  UpdateWishlistData,
+  WishlistInfos,
   CreateWishlistAccommodationRequest,
-  CreateWishlistAccommodationResponse,
+  CreateWishlistAccommodationData,
   UpdateWishlistAccommodationRequest,
-  UpdateWishlistAccommodationResponse,
-  DeleteWishlistAccommodationResponse,
-  GetWishlistAccommodationsResponse,
+  UpdateWishlistAccommodationData,
+  WishlistAccommodationInfos,
 } from "../types/wishlist";
 import { ApiResponse } from "../types/api";
 
 export const wishlistApi = {
   // 위시리스트 생성
-  create: async (request: CreateWishlistRequest): Promise<CreateWishlistResponse> => {
-    const response = await client.post<CreateWishlistResponse>("/members/wishlists", request);
-    return response.data;
+  create: async (request: CreateWishlistRequest): Promise<CreateWishlistData> => {
+    const response = await client.post<ApiResponse<CreateWishlistData>>(
+      "/members/wishlists",
+      request
+    );
+    return response.data.data!;
   },
 
   // 위시리스트 수정
   update: async (
     wishlistId: number,
     request: UpdateWishlistRequest
-  ): Promise<UpdateWishlistResponse> => {
-    const response = await client.patch<UpdateWishlistResponse>(
+  ): Promise<UpdateWishlistData> => {
+    const response = await client.patch<ApiResponse<UpdateWishlistData>>(
       `/members/wishlists/${wishlistId}`,
       request
     );
-    return response.data;
+    return response.data.data!;
   },
 
   // 위시리스트 삭제
-  delete: async (wishlistId: number): Promise<DeleteWishlistResponse> => {
-    const response = await client.delete<DeleteWishlistResponse>(`/members/wishlists/${wishlistId}`);
-    return response.data;
+  delete: async (wishlistId: number): Promise<void> => {
+    await client.delete<ApiResponse<null>>(`/members/wishlists/${wishlistId}`);
   },
 
   // 위시리스트 목록 조회
@@ -45,59 +45,57 @@ export const wishlistApi = {
     size?: number;
     cursor?: string;
     accommodationId?: number;
-  }): Promise<GetWishlistsResponse> => {
-    const response = await client.get<GetWishlistsResponse>("/members/wishlists", { params });
-    return response.data;
+  }): Promise<WishlistInfos> => {
+    const response = await client.get<ApiResponse<WishlistInfos>>(
+      "/members/wishlists",
+      { params }
+    );
+    return response.data.data!;
   },
 
   // 위시리스트에 숙소 추가
   addAccommodation: async (
     wishlistId: number,
     request: CreateWishlistAccommodationRequest
-  ): Promise<CreateWishlistAccommodationResponse> => {
-    const response = await client.post<CreateWishlistAccommodationResponse>(
+  ): Promise<CreateWishlistAccommodationData> => {
+    const response = await client.post<ApiResponse<CreateWishlistAccommodationData>>(
       `/members/wishlists/accommodations/${wishlistId}`,
       request
     );
-    return response.data;
+    return response.data.data!;
   },
 
   // 위시리스트 숙소 메모 수정
   updateAccommodationMemo: async (
     wishlistAccommodationId: number,
     request: UpdateWishlistAccommodationRequest
-  ): Promise<UpdateWishlistAccommodationResponse> => {
-    const response = await client.patch<UpdateWishlistAccommodationResponse>(
-      `/members/wishlists/${wishlistAccommodationId}`,
+  ): Promise<UpdateWishlistAccommodationData> => {
+    const response = await client.patch<ApiResponse<UpdateWishlistAccommodationData>>(
+      `/members/wishlists/accommodations/${wishlistAccommodationId}`,
       request
     );
-    return response.data;
+    return response.data.data!;
   },
 
   // 위시리스트에서 숙소 삭제
-  removeAccommodation: async (
-    wishlistAccommodationId: number
-  ): Promise<DeleteWishlistAccommodationResponse> => {
-    const response = await client.delete<DeleteWishlistAccommodationResponse>(
+  removeAccommodation: async (wishlistAccommodationId: number): Promise<void> => {
+    await client.delete<ApiResponse<null>>(
       `/members/wishlists/accommodations/${wishlistAccommodationId}`
     );
-    return response.data;
   },
 
-  // 위시리스트 상세 조회
+  // 위시리스트 상세 조회 (숙소 목록)
   getWishlistAccommodations: async (
     wishlistId: number,
     params?: {
       size?: number;
       cursor?: string;
     }
-  ): Promise<GetWishlistAccommodationsResponse> => {
-    const response = await client.get<GetWishlistAccommodationsResponse>(
+  ): Promise<WishlistAccommodationInfos> => {
+    const response = await client.get<ApiResponse<WishlistAccommodationInfos>>(
       `/members/wishlists/accommodations/${wishlistId}`,
       { params }
     );
-    return response.data;
+    return response.data.data!;
   },
 };
-
-

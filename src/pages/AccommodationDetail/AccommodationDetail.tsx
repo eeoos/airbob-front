@@ -733,7 +733,7 @@ const AccommodationDetail: React.FC = () => {
           </div>
         </div>
 
-        {accommodation.image_urls.length > 0 && (
+        {accommodation.images.length > 0 && (
           <div className={styles.imageSection}>
             <div className={styles.imageGrid}>
               <div 
@@ -744,23 +744,23 @@ const AccommodationDetail: React.FC = () => {
                 }}
               >
                 <img
-                  src={getImageUrl(accommodation.image_urls[0])}
+                  src={getImageUrl(accommodation.images[0].image_url)}
                   alt={accommodation.name}
                   className={styles.image}
                 />
               </div>
               <div className={styles.thumbnailGrid}>
-                {accommodation.image_urls.slice(1, 5).map((url, index) => (
+                {accommodation.images.slice(1, 5).map((image, index) => (
                   <button
-                    key={index + 1}
+                    key={image.id}
                     className={styles.thumbnail}
                     onClick={() => {
                       setCurrentImageIndex(index + 1);
                       setIsImageGalleryOpen(true);
                     }}
                   >
-                    <img src={getImageUrl(url)} alt={`${accommodation.name} ${index + 2}`} />
-                    {index === 3 && accommodation.image_urls.length > 5 && (
+                    <img src={getImageUrl(image.image_url)} alt={`${accommodation.name} ${index + 2}`} />
+                    {index === 3 && accommodation.images.length > 5 && (
                       <div 
                         className={styles.viewAllButton}
                         onClick={(e) => {
@@ -794,8 +794,15 @@ const AccommodationDetail: React.FC = () => {
           <div className={styles.leftColumn}>
             <div className={styles.locationSection}>
               <div className={styles.locationInfo}>
-                <span className={styles.address}>{accommodation.address.full_address}</span>
-                <span className={styles.maxOccupancy}>최대 인원 {accommodation.policy_info.max_occupancy}명</span>
+                <span className={styles.address}>
+                  {[
+                    accommodation.address_summary.country,
+                    accommodation.address_summary.state,
+                    accommodation.address_summary.city,
+                    accommodation.address_summary.district,
+                  ].filter(Boolean).join(", ")}
+                </span>
+                <span className={styles.maxOccupancy}>최대 인원 {accommodation.policy.max_occupancy}명</span>
               </div>
             </div>
 
@@ -816,9 +823,9 @@ const AccommodationDetail: React.FC = () => {
               <section className={styles.section}>
                 <div className={styles.hostInfo}>
                   <div className={styles.hostAvatar}>
-                    {accommodation.host.profile_image_url ? (
+                    {accommodation.host.thumbnail_image_url ? (
                       <img
-                        src={getImageUrl(accommodation.host.profile_image_url)}
+                        src={getImageUrl(accommodation.host.thumbnail_image_url)}
                         alt={accommodation.host.nickname}
                       />
                     ) : (
@@ -952,14 +959,14 @@ const AccommodationDetail: React.FC = () => {
                           </button>
                           <span className={styles.guestPickerCount}>{adultCount}</span>
                           <button
-                            className={`${styles.guestPickerButton} ${adultCount + childCount >= (accommodation?.policy_info.max_occupancy || 10) ? styles.guestPickerButtonDisabled : ""}`}
+                            className={`${styles.guestPickerButton} ${adultCount + childCount >= (accommodation?.policy.max_occupancy || 10) ? styles.guestPickerButtonDisabled : ""}`}
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (adultCount + childCount < (accommodation?.policy_info.max_occupancy || 10)) {
+                              if (adultCount + childCount < (accommodation?.policy.max_occupancy || 10)) {
                                 setAdultCount(adultCount + 1);
                               }
                             }}
-                            disabled={adultCount + childCount >= (accommodation?.policy_info.max_occupancy || 10)}
+                            disabled={adultCount + childCount >= (accommodation?.policy.max_occupancy || 10)}
                           >
                             +
                           </button>
@@ -984,14 +991,14 @@ const AccommodationDetail: React.FC = () => {
                           </button>
                           <span className={styles.guestPickerCount}>{childCount}</span>
                           <button
-                            className={`${styles.guestPickerButton} ${adultCount + childCount >= (accommodation?.policy_info.max_occupancy || 10) ? styles.guestPickerButtonDisabled : ""}`}
+                            className={`${styles.guestPickerButton} ${adultCount + childCount >= (accommodation?.policy.max_occupancy || 10) ? styles.guestPickerButtonDisabled : ""}`}
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (adultCount + childCount < (accommodation?.policy_info.max_occupancy || 10)) {
+                              if (adultCount + childCount < (accommodation?.policy.max_occupancy || 10)) {
                                 setChildCount(childCount + 1);
                               }
                             }}
-                            disabled={adultCount + childCount >= (accommodation?.policy_info.max_occupancy || 10)}
+                            disabled={adultCount + childCount >= (accommodation?.policy.max_occupancy || 10)}
                           >
                             +
                           </button>
@@ -1005,25 +1012,25 @@ const AccommodationDetail: React.FC = () => {
                         </div>
                         <div className={styles.guestPickerControls}>
                           <button
-                            className={`${styles.guestPickerButton} ${infantCount <= 0 || (accommodation?.policy_info.infant_occupancy || 0) === 0 ? styles.guestPickerButtonDisabled : ""}`}
+                            className={`${styles.guestPickerButton} ${infantCount <= 0 || (accommodation?.policy.infant_occupancy || 0) === 0 ? styles.guestPickerButtonDisabled : ""}`}
                             onClick={(e) => {
                               e.stopPropagation();
                               if (infantCount > 0) setInfantCount(infantCount - 1);
                             }}
-                            disabled={infantCount <= 0 || (accommodation?.policy_info.infant_occupancy || 0) === 0}
+                            disabled={infantCount <= 0 || (accommodation?.policy.infant_occupancy || 0) === 0}
                           >
                             −
                           </button>
                           <span className={styles.guestPickerCount}>{infantCount}</span>
                           <button
-                            className={`${styles.guestPickerButton} ${infantCount >= (accommodation?.policy_info.infant_occupancy || 0) || (accommodation?.policy_info.infant_occupancy || 0) === 0 ? styles.guestPickerButtonDisabled : ""}`}
+                            className={`${styles.guestPickerButton} ${infantCount >= (accommodation?.policy.infant_occupancy || 0) || (accommodation?.policy.infant_occupancy || 0) === 0 ? styles.guestPickerButtonDisabled : ""}`}
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (infantCount < (accommodation?.policy_info.infant_occupancy || 0)) {
+                              if (infantCount < (accommodation?.policy.infant_occupancy || 0)) {
                                 setInfantCount(infantCount + 1);
                               }
                             }}
-                            disabled={infantCount >= (accommodation?.policy_info.infant_occupancy || 0) || (accommodation?.policy_info.infant_occupancy || 0) === 0}
+                            disabled={infantCount >= (accommodation?.policy.infant_occupancy || 0) || (accommodation?.policy.infant_occupancy || 0) === 0}
                           >
                             +
                           </button>
@@ -1034,7 +1041,7 @@ const AccommodationDetail: React.FC = () => {
                         <div className={styles.guestPickerLabel}>
                           <div className={styles.guestPickerTitle}>반려동물</div>
                           <div className={styles.guestPickerSubtitle}>
-                            {(accommodation?.policy_info.pet_occupancy || 0) === 0 ? (
+                            {(accommodation?.policy.pet_occupancy || 0) === 0 ? (
                               <span className={styles.guestPickerLink}>보조동물을 동반하시나요?</span>
                             ) : (
                               "반려동물"
@@ -1043,25 +1050,25 @@ const AccommodationDetail: React.FC = () => {
                         </div>
                         <div className={styles.guestPickerControls}>
                           <button
-                            className={`${styles.guestPickerButton} ${petCount <= 0 || (accommodation?.policy_info.pet_occupancy || 0) === 0 ? styles.guestPickerButtonDisabled : ""}`}
+                            className={`${styles.guestPickerButton} ${petCount <= 0 || (accommodation?.policy.pet_occupancy || 0) === 0 ? styles.guestPickerButtonDisabled : ""}`}
                             onClick={(e) => {
                               e.stopPropagation();
                               if (petCount > 0) setPetCount(petCount - 1);
                             }}
-                            disabled={petCount <= 0 || (accommodation?.policy_info.pet_occupancy || 0) === 0}
+                            disabled={petCount <= 0 || (accommodation?.policy.pet_occupancy || 0) === 0}
                           >
                             −
                           </button>
                           <span className={styles.guestPickerCount}>{petCount}</span>
                           <button
-                            className={`${styles.guestPickerButton} ${petCount >= (accommodation?.policy_info.pet_occupancy || 0) || (accommodation?.policy_info.pet_occupancy || 0) === 0 ? styles.guestPickerButtonDisabled : ""}`}
+                            className={`${styles.guestPickerButton} ${petCount >= (accommodation?.policy.pet_occupancy || 0) || (accommodation?.policy.pet_occupancy || 0) === 0 ? styles.guestPickerButtonDisabled : ""}`}
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (petCount < (accommodation?.policy_info.pet_occupancy || 0)) {
+                              if (petCount < (accommodation?.policy.pet_occupancy || 0)) {
                                 setPetCount(petCount + 1);
                               }
                             }}
-                            disabled={petCount >= (accommodation?.policy_info.pet_occupancy || 0) || (accommodation?.policy_info.pet_occupancy || 0) === 0}
+                            disabled={petCount >= (accommodation?.policy.pet_occupancy || 0) || (accommodation?.policy.pet_occupancy || 0) === 0}
                           >
                             +
                           </button>
@@ -1069,8 +1076,8 @@ const AccommodationDetail: React.FC = () => {
                       </div>
                       
                       <div className={styles.guestPickerNote}>
-                        이 숙소의 최대 숙박 인원은 {accommodation?.policy_info.max_occupancy || 0}명(유아 제외)입니다.{" "}
-                        {(accommodation?.policy_info.pet_occupancy || 0) === 0 && "반려동물 동반은 허용되지 않습니다."}
+                        이 숙소의 최대 숙박 인원은 {accommodation?.policy.max_occupancy || 0}명(유아 제외)입니다.{" "}
+                        {(accommodation?.policy.pet_occupancy || 0) === 0 && "반려동물 동반은 허용되지 않습니다."}
                       </div>
                       
                       <button
@@ -1103,7 +1110,14 @@ const AccommodationDetail: React.FC = () => {
 
         <section className={`${styles.section} ${styles.locationSectionFullWidth}`}>
           <h2 className={styles.sectionTitle}>위치</h2>
-          <p className={styles.address}>{accommodation.address.full_address}</p>
+          <p className={styles.address}>
+            {[
+              accommodation.address_summary.country,
+              accommodation.address_summary.state,
+              accommodation.address_summary.city,
+              accommodation.address_summary.district,
+            ].filter(Boolean).join(", ")}
+          </p>
           {accommodation.coordinate.latitude && accommodation.coordinate.longitude && (
             <div className={styles.mapContainer}>
               {GOOGLE_MAPS_API_KEY ? (
@@ -1303,27 +1317,27 @@ const AccommodationDetail: React.FC = () => {
             </button>
             <div className={styles.galleryMain}>
               <img
-                src={getImageUrl(accommodation.image_urls[currentImageIndex])}
+                src={getImageUrl(accommodation.images[currentImageIndex].image_url)}
                 alt={`${accommodation.name} ${currentImageIndex + 1}`}
                 className={styles.galleryImage}
               />
-              {accommodation.image_urls.length > 1 && (
+              {accommodation.images.length > 1 && (
                 <>
                   <button
                     className={`${styles.galleryNav} ${styles.galleryPrev}`}
                     onClick={() => setCurrentImageIndex((prev) => 
-                      prev === 0 ? accommodation.image_urls.length - 1 : prev - 1
+                      prev === 0 ? accommodation.images.length - 1 : prev - 1
                     )}
-                    disabled={accommodation.image_urls.length <= 1}
+                    disabled={accommodation.images.length <= 1}
                   >
                     ‹
                   </button>
                   <button
                     className={`${styles.galleryNav} ${styles.galleryNext}`}
                     onClick={() => setCurrentImageIndex((prev) => 
-                      prev === accommodation.image_urls.length - 1 ? 0 : prev + 1
+                      prev === accommodation.images.length - 1 ? 0 : prev + 1
                     )}
-                    disabled={accommodation.image_urls.length <= 1}
+                    disabled={accommodation.images.length <= 1}
                   >
                     ›
                   </button>
@@ -1331,15 +1345,15 @@ const AccommodationDetail: React.FC = () => {
               )}
             </div>
             <div className={styles.galleryThumbnails}>
-              {accommodation.image_urls.map((url, index) => (
+              {accommodation.images.map((image, index) => (
                 <button
-                  key={index}
+                  key={image.id}
                   className={`${styles.galleryThumbnail} ${
                     index === currentImageIndex ? styles.galleryThumbnailActive : ""
                   }`}
                   onClick={() => setCurrentImageIndex(index)}
                 >
-                  <img src={getImageUrl(url)} alt={`${accommodation.name} ${index + 1}`} />
+                  <img src={getImageUrl(image.image_url)} alt={`${accommodation.name} ${index + 1}`} />
                 </button>
               ))}
             </div>

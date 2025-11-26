@@ -241,14 +241,14 @@ const HostReservations: React.FC<HostReservationsProps> = ({ filterType, onFilte
                     </td>
                     <td className={styles.td}>
                       <div className={styles.guestInfo}>
-                        <div className={styles.guestName}>{reservation.guest_info.nickname}</div>
+                        <div className={styles.guestName}>{reservation.guest.nickname}</div>
                         <div className={styles.guestCount}>{reservation.guest_count}명</div>
                       </div>
                     </td>
                     <td className={styles.td}>{formatDate(reservation.check_in_date)}</td>
                     <td className={styles.td}>{formatDate(reservation.check_out_date)}</td>
                     <td className={styles.td}>{formatDate(reservation.created_at)}</td>
-                    <td className={styles.td}>{reservation.accommodation_name}</td>
+                    <td className={styles.td}>{reservation.accommodation.name}</td>
                     <td className={styles.td}>
                       {reservation.reservation_code || "-"}
                     </td>

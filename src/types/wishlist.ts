@@ -1,5 +1,9 @@
 import { ApiResponse, CursorPageInfo } from "./api";
-import { ReviewSummary } from "./accommodation";
+import {
+  AddressSummaryInfo,
+  ReviewSummary,
+  AccommodationBasicInfo,
+} from "./accommodation";
 
 // 위시리스트 생성
 export interface CreateWishlistRequest {
@@ -69,17 +73,14 @@ export type UpdateWishlistAccommodationResponse = ApiResponse<UpdateWishlistAcco
 // 위시리스트에서 숙소 삭제
 export type DeleteWishlistAccommodationResponse = ApiResponse<null>;
 
-// 위시리스트 상세 조회
+// 위시리스트 상세 조회 (숙소 목록)
 export interface WishlistAccommodationInfo {
   wishlist_accommodation_id: number;
-  memo: string;
-  accommodation_id: number;
-  accommodation_name: string;
-  thumbnail_url: string | null;
-  location_summary: string;
-  average_rating: number;
-  review_count: number;
+  memo: string | null;
   created_at: string;
+  accommodation: AccommodationBasicInfo;
+  address_summary: AddressSummaryInfo;
+  review_summary: ReviewSummary;
   is_in_wishlist: boolean;
 }
 
@@ -89,5 +90,3 @@ export interface WishlistAccommodationInfos {
 }
 
 export type GetWishlistAccommodationsResponse = ApiResponse<WishlistAccommodationInfos>;
-
-

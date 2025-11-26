@@ -1,38 +1,24 @@
 import { client } from "./client";
 import {
   GetRecentlyViewedResponse,
-  AddRecentlyViewedResponse,
-  DeleteRecentlyViewedResponse,
+  RecentlyViewedAccommodationInfos,
 } from "../types/recentlyViewed";
 import { ApiResponse } from "../types/api";
 
 export const recentlyViewedApi = {
   // 최근 조회 목록 조회
-  getRecentlyViewed: async (): Promise<GetRecentlyViewedResponse> => {
-    const response = await client.get<GetRecentlyViewedResponse>("/members/recently-viewed");
-    return response.data;
+  getRecentlyViewed: async (): Promise<RecentlyViewedAccommodationInfos> => {
+    const response = await client.get<ApiResponse<RecentlyViewedAccommodationInfos>>("/members/recently-viewed");
+    return response.data.data!;
   },
 
   // 최근 조회 추가
-  add: async (accommodationId: number): Promise<AddRecentlyViewedResponse> => {
-    const response = await client.post<AddRecentlyViewedResponse>(
-      `/members/recently-viewed/${accommodationId}`
-    );
-    return response.data;
+  add: async (accommodationId: number): Promise<void> => {
+    await client.post<ApiResponse<null>>(`/members/recently-viewed/${accommodationId}`);
   },
 
   // 최근 조회 삭제
-  remove: async (accommodationId: number): Promise<DeleteRecentlyViewedResponse> => {
-    const response = await client.delete<DeleteRecentlyViewedResponse>(
-      `/members/recently-viewed/${accommodationId}`
-    );
-    return response.data;
+  remove: async (accommodationId: number): Promise<void> => {
+    await client.delete<ApiResponse<null>>(`/members/recently-viewed/${accommodationId}`);
   },
 };
-
-
-
-
-
-
-

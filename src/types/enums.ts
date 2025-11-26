@@ -38,9 +38,11 @@ export enum PaymentStatus {
 
 export enum ReservationStatus {
   PAYMENT_PENDING = "PAYMENT_PENDING",
+  PAYMENT_COMPLETED = "PAYMENT_COMPLETED",
   CONFIRMED = "CONFIRMED",
   CANCELLED = "CANCELLED",
   CANCELLATION_FAILED = "CANCELLATION_FAILED",
+  COMPLETED = "COMPLETED",
   EXPIRED = "EXPIRED",
 }
 
@@ -83,9 +85,9 @@ export enum AmenityType {
   EXTRA_PILLOWS = "EXTRA_PILLOWS",
 }
 
-
-
-
-
-
-
+// 예약 필터 타입
+export enum ReservationFilterType {
+  UPCOMING = "UPCOMING",
+  COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
+}

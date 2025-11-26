@@ -371,9 +371,9 @@ const AccommodationEdit: React.FC = () => {
               street: data.address?.street || "",
             },
             occupancyPolicyInfo: {
-              maxOccupancy: String(data.policy_info?.max_occupancy || ""),
-              infantOccupancy: (data.policy_info?.infant_occupancy || 0) > 0,
-              petOccupancy: (data.policy_info?.pet_occupancy || 0) > 0,
+              maxOccupancy: String(data.policy?.max_occupancy || ""),
+              infantOccupancy: (data.policy?.infant_occupancy || 0) > 0,
+              petOccupancy: (data.policy?.pet_occupancy || 0) > 0,
             },
             amenityInfos: data.amenities?.map((a) => ({ name: a.type, count: a.count })) || [],
           });
@@ -382,10 +382,11 @@ const AccommodationEdit: React.FC = () => {
           const amenitySet = new Set(data.amenities?.map((a) => a.type) || []);
           setSelectedAmenities(amenitySet);
 
-          // 기존 이미지 설정 (id는 없지만 url만 있음)
-          if (data.image_urls && data.image_urls.length > 0) {
-            setImageItems(data.image_urls.map((url, index) => ({ 
-              url,
+          // 기존 이미지 설정
+          if (data.images && data.images.length > 0) {
+            setImageItems(data.images.map((image, index) => ({ 
+              id: image.id,
+              url: image.image_url,
               tempId: `existing-${index}-${Date.now()}`,
             })));
           }

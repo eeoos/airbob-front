@@ -1,6 +1,56 @@
 import { AccommodationStatus, AccommodationType, AmenityType } from "./enums";
 import { CursorPageInfo, PageInfo } from "./api";
 
+// 공통 타입
+export interface Coordinate {
+  latitude: number | null;
+  longitude: number | null;
+}
+
+export interface AddressSummaryInfo {
+  country: string;
+  state: string | null;
+  city: string;
+  district: string | null;
+}
+
+export interface AddressInfo {
+  country: string;
+  state: string | null;
+  city: string;
+  district: string | null;
+  street: string;
+  detail: string | null;
+  postal_code: string;
+}
+
+export interface MemberInfo {
+  id: number;
+  nickname: string;
+  thumbnail_image_url: string | null;
+}
+
+export interface PolicyInfo {
+  max_occupancy: number;
+  infant_occupancy: number;
+  pet_occupancy: number;
+}
+
+export interface AmenityInfo {
+  type: AmenityType;
+  count: number;
+}
+
+export interface ImageInfo {
+  id: number;
+  image_url: string;
+}
+
+export interface ReviewSummary {
+  total_count: number;
+  average_rating: number;
+}
+
 // 검색 관련
 export interface AccommodationSearchRequest {
   destination?: string;
@@ -22,30 +72,15 @@ export interface AccommodationSearchRequest {
   size?: number;
 }
 
-export interface Coordinate {
-  latitude: number | null;
-  longitude: number | null;
-}
-
-export interface PriceResponse {
-  currency_code: string;
-  display_price: string;
-  price: string;
-}
-
-export interface ReviewSummary {
-  total_count: number;
-  average_rating: number;
-}
-
 export interface AccommodationSearchInfo {
   id: number;
   name: string;
-  location_summary: string;
-  accommodation_thumbnail_url: string;
+  accommodation_thumbnail_url: string | null;
+  base_price: number;
+  currency: string;
+  address_summary: AddressSummaryInfo;
   coordinate: Coordinate;
-  price_per_night: PriceResponse;
-  review: ReviewSummary;
+  review_summary: ReviewSummary;
   is_in_wishlist: boolean;
 }
 
@@ -54,74 +89,79 @@ export interface AccommodationSearchResponse {
   page_info: PageInfo;
 }
 
-// 숙소 상세
-export interface AddressInfo {
-  country: string;
-  city: string;
-  district: string;
-  street: string;
-  detail: string;
-  postal_code: string;
-  full_address: string;
-}
-
-export interface HostInfo {
-  id: number;
-  nickname: string;
-  profile_image_url: string | null;
-}
-
-export interface PolicyInfo {
-  max_occupancy: number;
-  adult_occupancy: number;
-  child_occupancy: number;
-  infant_occupancy: number;
-  pet_occupancy: number;
-}
-
-export interface AmenityInfo {
-  type: AmenityType;
-  count: number;
-}
-
+// 숙소 상세 조회 (Public)
 export interface AccommodationDetail {
   id: number;
   name: string;
   description: string;
   type: AccommodationType;
   base_price: number;
+  currency: string;
   check_in_time: string; // HH:mm:ss
   check_out_time: string; // HH:mm:ss
-  address: AddressInfo;
-  coordinate: Coordinate;
-  host: HostInfo;
-  policy_info: PolicyInfo;
-  amenities: AmenityInfo[];
-  image_urls: string[];
-  review_summary: ReviewSummary;
   unavailable_dates: string[]; // YYYY-MM-DD[]
   is_in_wishlist: boolean;
+  address_summary: AddressSummaryInfo;
+  coordinate: Coordinate;
+  host: MemberInfo;
+  policy: PolicyInfo;
+  amenities: AmenityInfo[];
+  images: ImageInfo[];
+  review_summary: ReviewSummary;
+}
+
+// 호스트 숙소 상세 조회
+export interface HostAccommodationDetail {
+  id: number;
+  name: string | null;
+  description: string | null;
+  type: AccommodationType | null;
+  base_price: number | null;
+  currency: string | null;
+  check_in_time: string | null; // HH:mm:ss
+  check_out_time: string | null; // HH:mm:ss
+  address: AddressInfo | null;
+  coordinate: Coordinate | null;
+  host: MemberInfo;
+  policy: PolicyInfo | null;
+  amenities: AmenityInfo[];
+  images: ImageInfo[];
+  review_summary: ReviewSummary;
 }
 
 // 호스트 숙소 목록
-export interface MyAccommodationInfo {
+export interface HostAccommodationInfo {
   id: number;
   name: string | null;
   thumbnail_url: string | null;
   status: AccommodationStatus;
   type: AccommodationType | null;
-  location: string | null;
+  address_summary: AddressSummaryInfo | null;
   created_at: string;
 }
 
-export interface MyAccommodationInfos {
-  accommodations: MyAccommodationInfo[];
+export interface HostAccommodationInfos {
+  accommodations: HostAccommodationInfo[];
   page_info: CursorPageInfo;
 }
 
+// 숙소 기본 정보 (예약 등에서 사용)
+export interface AccommodationBasicInfo {
+  id: number;
+  name: string;
+  thumbnail_url: string | null;
+}
 
+// 숙소 생성 응답
+export interface CreateAccommodationResponse {
+  id: number;
+}
 
+// 숙소 이미지 업로드 응답
+export interface UploadImagesResponse {
+  uploaded_images: ImageInfo[];
+}
 
-
-
-
+// Legacy alias (하위 호환성)
+export type MyAccommodationInfo = HostAccommodationInfo;
+export type MyAccommodationInfos = HostAccommodationInfos;

@@ -1,14 +1,14 @@
 import { ApiResponse } from "./api";
+import { AddressSummaryInfo, ReviewSummary } from "./accommodation";
 
-// 최근 조회 목록
+// 최근 조회 숙소 정보
 export interface RecentlyViewedAccommodationInfo {
   viewed_at: string;
   accommodation_id: number;
   accommodation_name: string;
   thumbnail_url: string | null;
-  location_summary: string;
-  average_rating: number;
-  review_count: number;
+  address_summary: AddressSummaryInfo;
+  review_summary: ReviewSummary;
   is_in_wishlist: boolean;
 }
 
@@ -24,10 +24,3 @@ export type AddRecentlyViewedResponse = ApiResponse<null>;
 
 // 최근 조회 삭제
 export type DeleteRecentlyViewedResponse = ApiResponse<null>;
-
-
-
-
-
-
-

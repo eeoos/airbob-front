@@ -184,9 +184,9 @@ const ReservationDetail: React.FC = () => {
   const completed = isCompleted(reservation.check_out_date_time, reservation.check_out_time);
   const canReview = completed && reservation.status === ReservationStatus.CONFIRMED && reservation.can_write_review;
   const isVirtualAccountPending = 
-    reservation.payment_info?.virtual_account && 
-    reservation.payment_info.status === PaymentStatus.WAITING_FOR_DEPOSIT;
-  const isPaymentCompleted = reservation.payment_info?.status === PaymentStatus.DONE;
+    reservation.payment?.virtual_account && 
+    reservation.payment.status === PaymentStatus.WAITING_FOR_DEPOSIT;
+  const isPaymentCompleted = reservation.payment?.status === PaymentStatus.DONE;
 
   return (
     <MainLayout>
@@ -209,18 +209,27 @@ const ReservationDetail: React.FC = () => {
                 </svg>
               </button>
               <div className={styles.accommodationCard}>
-                {reservation.accommodation_thumbnail_url && (
+                {reservation.accommodation.thumbnail_url && (
                   <img
-                    src={getImageUrl(reservation.accommodation_thumbnail_url)}
-                    alt={reservation.accommodation_name}
+                    src={getImageUrl(reservation.accommodation.thumbnail_url)}
+                    alt={reservation.accommodation.name}
                     className={styles.accommodationImage}
                   />
                 )}
                 <div className={styles.accommodationInfo}>
-                  <p className={styles.accommodationAddress}>{reservation.accommodation_address.full_address}</p>
+                  <p className={styles.accommodationAddress}>
+                    {[
+                      reservation.address.country,
+                      reservation.address.state,
+                      reservation.address.city,
+                      reservation.address.district,
+                      reservation.address.street,
+                      reservation.address.detail,
+                    ].filter(Boolean).join(" ")}
+                  </p>
                   <div className={styles.hostInfo}>
                     <span className={styles.hostLabel}>호스트:</span>
-                    <span className={styles.hostName}>{reservation.accommodation_host.nickname} 님</span>
+                    <span className={styles.hostName}>{reservation.host.nickname} 님</span>
                   </div>
                   <div className={styles.dateInfo}>
                     <div className={styles.dateItem}>
@@ -240,7 +249,7 @@ const ReservationDetail: React.FC = () => {
                   </div>
                   <div
                     className={styles.accommodationBox}
-                    onClick={() => navigate(`/accommodations/${reservation.accommodation_id}`)}
+                    onClick={() => navigate(`/accommodations/${reservation.accommodation.id}`)}
                   >
                     <div className={styles.accommodationBoxContent}>
                       <span>숙소로 이동하기</span>
@@ -284,12 +293,6 @@ const ReservationDetail: React.FC = () => {
                   <span className={styles.infoLabel}>예약 코드</span>
                   <span className={styles.infoValue}>{reservation.reservation_code}</span>
                 </div>
-                {reservation.message && (
-                  <div className={styles.infoItem}>
-                    <span className={styles.infoLabel}>메시지</span>
-                    <span className={styles.infoValue}>{reservation.message}</span>
-                  </div>
-                )}
               </div>
             </section>
 
@@ -297,26 +300,26 @@ const ReservationDetail: React.FC = () => {
             <section className={styles.section}>
               <div className={styles.hostSection}>
                 <div className={styles.hostAvatar}>
-                  {reservation.accommodation_host.profile_image_url ? (
+                  {reservation.host.thumbnail_image_url ? (
                     <img
-                      src={getImageUrl(reservation.accommodation_host.profile_image_url)}
-                      alt={reservation.accommodation_host.nickname}
+                      src={getImageUrl(reservation.host.thumbnail_image_url)}
+                      alt={reservation.host.nickname}
                       className={styles.hostAvatarImage}
                     />
                   ) : (
                     <span className={styles.hostAvatarInitial}>
-                      {reservation.accommodation_host.nickname.charAt(0).toUpperCase()}
+                      {reservation.host.nickname.charAt(0).toUpperCase()}
                     </span>
                   )}
                 </div>
                 <div className={styles.hostText}>
-                  호스트: {reservation.accommodation_host.nickname} 님
+                  호스트: {reservation.host.nickname} 님
                 </div>
               </div>
             </section>
 
             {/* 결제 정보 섹션 */}
-            {reservation.payment_info && (
+            {reservation.payment && (
               <section className={styles.section}>
                 <div className={styles.sectionTitleRow}>
                   <h2 className={styles.sectionTitle}>결제 정보</h2>
@@ -331,59 +334,59 @@ const ReservationDetail: React.FC = () => {
                   >
                     {isPaymentCompleted && "결제 완료"}
                     {isVirtualAccountPending && "입금 대기"}
-                    {reservation.payment_info.status === PaymentStatus.READY && "결제 대기"}
-                    {reservation.payment_info.status === PaymentStatus.IN_PROGRESS && "결제 진행 중"}
-                    {reservation.payment_info.status === PaymentStatus.CANCELED && "결제 취소"}
-                    {reservation.payment_info.status === PaymentStatus.EXPIRED && "결제 만료"}
+                    {reservation.payment.status === PaymentStatus.READY && "결제 대기"}
+                    {reservation.payment.status === PaymentStatus.IN_PROGRESS && "결제 진행 중"}
+                    {reservation.payment.status === PaymentStatus.CANCELED && "결제 취소"}
+                    {reservation.payment.status === PaymentStatus.EXPIRED && "결제 만료"}
                   </span>
                 </div>
                 <div className={styles.infoList}>
                   <div className={styles.infoItem}>
                     <span className={styles.infoLabel}>결제 방법</span>
-                    <span className={styles.infoValue}>{reservation.payment_info.method}</span>
+                    <span className={styles.infoValue}>{reservation.payment.method}</span>
                   </div>
                   <div className={styles.infoItem}>
                     <span className={styles.infoLabel}>결제 금액</span>
                     <span className={styles.infoValue}>
-                      ₩{reservation.payment_info.total_amount.toLocaleString()}
+                      ₩{reservation.payment.total_amount.toLocaleString()}
                     </span>
                   </div>
-                  {reservation.payment_info.approved_at && (
+                  {reservation.payment.approved_at && (
                     <div className={styles.infoItem}>
                       <span className={styles.infoLabel}>결제 일시</span>
                       <span className={styles.infoValue}>
-                        {formatDateTime(reservation.payment_info.approved_at)}
+                        {formatDateTime(reservation.payment.approved_at)}
                       </span>
                     </div>
                   )}
                   
                   {/* 가상계좌 정보 (미입금 상태일 때만 표시) */}
-                  {isVirtualAccountPending && reservation.payment_info.virtual_account && (
+                  {isVirtualAccountPending && reservation.payment.virtual_account && (
                     <div className={styles.virtualAccountSection}>
                       <h3 className={styles.virtualAccountTitle}>가상계좌 입금 정보</h3>
                       <div className={styles.virtualAccountInfo}>
                         <div className={styles.virtualAccountItem}>
                           <span className={styles.virtualAccountLabel}>은행</span>
                           <span className={styles.virtualAccountValue}>
-                            {getBankName(reservation.payment_info.virtual_account.bank_code)}
+                            {getBankName(reservation.payment.virtual_account.bank_code)}
                           </span>
                         </div>
                         <div className={styles.virtualAccountItem}>
                           <span className={styles.virtualAccountLabel}>계좌번호</span>
                           <span className={styles.virtualAccountValue}>
-                            {reservation.payment_info.virtual_account.account_number}
+                            {reservation.payment.virtual_account.account_number}
                           </span>
                         </div>
                         <div className={styles.virtualAccountItem}>
                           <span className={styles.virtualAccountLabel}>예금주</span>
                           <span className={styles.virtualAccountValue}>
-                            {reservation.payment_info.virtual_account.customer_name}
+                            {reservation.payment.virtual_account.customer_name}
                           </span>
                         </div>
                         <div className={styles.virtualAccountItem}>
                           <span className={styles.virtualAccountLabel}>입금 기한</span>
                           <span className={styles.virtualAccountValue}>
-                            {formatDateTime(reservation.payment_info.virtual_account.due_date)}
+                            {formatDateTime(reservation.payment.virtual_account.due_date)}
                           </span>
                         </div>
                       </div>
@@ -401,14 +404,14 @@ const ReservationDetail: React.FC = () => {
           {/* 오른쪽 섹션 - 지도 */}
           <div className={styles.rightSection}>
             <div className={styles.mapContainer}>
-              {GOOGLE_MAPS_API_KEY && reservation.accommodation_address.latitude && reservation.accommodation_address.longitude ? (
+              {GOOGLE_MAPS_API_KEY && reservation.coordinate.latitude && reservation.coordinate.longitude ? (
                 <iframe
                   className={styles.map}
                   title="숙소 위치"
                   loading="lazy"
                   allowFullScreen
                   referrerPolicy="no-referrer-when-downgrade"
-                  src={`https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_API_KEY}&q=${reservation.accommodation_address.latitude},${reservation.accommodation_address.longitude}&zoom=15`}
+                  src={`https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_API_KEY}&q=${reservation.coordinate.latitude},${reservation.coordinate.longitude}&zoom=15`}
                 />
               ) : (
                 <div className={styles.mapPlaceholder}>

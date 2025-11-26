@@ -126,7 +126,7 @@ const ReviewCreate: React.FC = () => {
 
     try {
       // 1. 먼저 리뷰 생성
-      const createResponse = await reviewApi.create(reservation.accommodation_id, {
+      const createResponse = await reviewApi.create(reservation.accommodation.id, {
         rating,
         content: comment.trim(),
       });
@@ -187,22 +187,29 @@ const ReviewCreate: React.FC = () => {
           <div className={styles.header}>
             <h1 className={styles.title}>리뷰 작성</h1>
             <p className={styles.subtitle}>
-              {reservation.accommodation_name}에 대한 리뷰를 작성해주세요.
+              {reservation.accommodation.name}에 대한 리뷰를 작성해주세요.
             </p>
           </div>
 
           <div className={styles.accommodationInfo}>
-            {reservation.accommodation_thumbnail_url && (
+            {reservation.accommodation.thumbnail_url && (
               <img
-                src={getImageUrl(reservation.accommodation_thumbnail_url)}
-                alt={reservation.accommodation_name}
+                src={getImageUrl(reservation.accommodation.thumbnail_url)}
+                alt={reservation.accommodation.name}
                 className={styles.accommodationImage}
               />
             )}
             <div className={styles.accommodationDetails}>
-              <h2 className={styles.accommodationName}>{reservation.accommodation_name}</h2>
+              <h2 className={styles.accommodationName}>{reservation.accommodation.name}</h2>
               <p className={styles.accommodationAddress}>
-                {reservation.accommodation_address.full_address}
+                {[
+                  reservation.address.country,
+                  reservation.address.state,
+                  reservation.address.city,
+                  reservation.address.district,
+                  reservation.address.street,
+                  reservation.address.detail,
+                ].filter(Boolean).join(" ")}
               </p>
               <p className={styles.dates}>
                 {new Date(reservation.check_in_date_time).toLocaleDateString("ko-KR", {
