@@ -261,12 +261,14 @@
 
 .recentlyViewedGrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, 280px);
   gap: 24px;
+  justify-content: start;
 }
 
 .recentlyViewedCard {
   cursor: pointer;
+  width: 280px;
 }
 
 .recentlyViewedCard:hover {
@@ -274,8 +276,8 @@
 }
 
 .recentlyViewedImageWrapper {
-  width: 100%;
-  padding-bottom: 100%;
+  width: 280px;
+  height: 280px;
   position: relative;
   background-color: #f7f7f7;
   border-radius: 12px;
@@ -283,29 +285,42 @@
 }
 
 .recentlyViewedImageWrapper img {
-  position: absolute;
-  top: 0;
-  left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1400px) {
   .recentlyViewedGrid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, 280px);
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   .recentlyViewedGrid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, 280px);
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 700px) {
   .recentlyViewedGrid {
     grid-template-columns: 1fr;
+  }
+  
+  .recentlyViewedCard {
+    width: 100%;
+  }
+  
+  .recentlyViewedImageWrapper {
+    width: 100%;
+    height: 0;
+    padding-bottom: 100%;
+  }
+  
+  .recentlyViewedImageWrapper img {
+    position: absolute;
+    top: 0;
+    left: 0;
   }
 }
 
