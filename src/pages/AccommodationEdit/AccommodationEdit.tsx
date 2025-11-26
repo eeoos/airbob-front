@@ -328,6 +328,7 @@ const AccommodationEdit: React.FC = () => {
     addressInfo: {
       postalCode: "",
       city: "",
+      state: "",
       country: "대한민국",
       detail: "",
       district: "",
@@ -367,6 +368,7 @@ const AccommodationEdit: React.FC = () => {
             addressInfo: {
               postalCode: data.address?.postal_code || "",
               city: data.address?.city || "",
+              state: data.address?.state || "",
               country: data.address?.country || "대한민국",
               detail: data.address?.detail || "",
               district: data.address?.district || "",
@@ -442,6 +444,7 @@ const AccommodationEdit: React.FC = () => {
       const hasAddressData = 
         formData.addressInfo.postalCode ||
         formData.addressInfo.city ||
+        formData.addressInfo.state ||
         formData.addressInfo.district ||
         formData.addressInfo.street ||
         formData.addressInfo.detail;
@@ -453,6 +456,9 @@ const AccommodationEdit: React.FC = () => {
         }
         if (formData.addressInfo.city) {
           data.address_info.city = formData.addressInfo.city;
+        }
+        if (formData.addressInfo.state) {
+          data.address_info.state = formData.addressInfo.state;
         }
         if (formData.addressInfo.district) {
           data.address_info.district = formData.addressInfo.district;
@@ -500,6 +506,10 @@ const AccommodationEdit: React.FC = () => {
         // city가 유효한 경우에만 포함
         if (formData.addressInfo.city && formData.addressInfo.city.trim()) {
           data.address_info.city = formData.addressInfo.city.trim();
+        }
+        // state가 유효한 경우에만 포함
+        if (formData.addressInfo.state && formData.addressInfo.state.trim()) {
+          data.address_info.state = formData.addressInfo.state.trim();
         }
         // country가 유효한 경우에만 포함
         if (formData.addressInfo.country && formData.addressInfo.country.trim()) {
@@ -1289,6 +1299,7 @@ const AccommodationEdit: React.FC = () => {
           addressInfo: {
             postalCode: data.zonecode || "",
             city: data.sido || "",
+            state: data.sido || "",
             country: "대한민국",
             district: district,
             street: street || "",
