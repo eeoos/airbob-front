@@ -349,26 +349,15 @@ const Wishlist: React.FC = () => {
                       {items.map((item) => (
                         <div
                           key={item.accommodation_id}
-                          className={styles.accommodationCard}
+                          className={styles.recentlyViewedCard}
                           onClick={() => navigate(`/accommodations/${item.accommodation_id}`)}
                         >
-                          <div className={styles.wishlistCardImage}>
+                          <div className={styles.recentlyViewedImageWrapper}>
                             {item.thumbnail_url ? (
-                              <>
-                                <img
-                                  src={getImageUrl(item.thumbnail_url)}
-                                  alt={item.accommodation_name}
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = "none";
-                                    const placeholder = target.nextElementSibling as HTMLElement;
-                                    if (placeholder && placeholder.classList.contains(styles.placeholderImage)) {
-                                      placeholder.style.display = "flex";
-                                    }
-                                  }}
-                                />
-                                <div className={styles.placeholderImage} style={{ display: "none" }}>이미지 없음</div>
-                              </>
+                              <img
+                                src={getImageUrl(item.thumbnail_url)}
+                                alt={item.accommodation_name}
+                              />
                             ) : (
                               <div className={styles.placeholderImage}>이미지 없음</div>
                             )}

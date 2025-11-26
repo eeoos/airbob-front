@@ -265,6 +265,32 @@
   gap: 24px;
 }
 
+.recentlyViewedCard {
+  cursor: pointer;
+}
+
+.recentlyViewedCard:hover {
+  transform: scale(1.02);
+}
+
+.recentlyViewedImageWrapper {
+  width: 100%;
+  padding-bottom: 100%;
+  position: relative;
+  background-color: #f7f7f7;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.recentlyViewedImageWrapper img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 @media (max-width: 1200px) {
   .recentlyViewedGrid {
     grid-template-columns: repeat(3, 1fr);
