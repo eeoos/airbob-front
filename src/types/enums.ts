@@ -88,6 +88,6 @@ export enum AmenityType {
 // 예약 필터 타입
 export enum ReservationFilterType {
   UPCOMING = "UPCOMING",
-  COMPLETED = "COMPLETED",
+  PAST = "PAST",
   CANCELLED = "CANCELLED",
 }

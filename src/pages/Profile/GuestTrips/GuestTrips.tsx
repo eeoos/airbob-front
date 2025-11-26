@@ -8,7 +8,7 @@ import { getImageUrl } from "../../../utils/image";
 import styles from "./GuestTrips.module.css";
 
 interface GuestTripsProps {
-  filterType: "UPCOMING" | "COMPLETED" | "CANCELLED";
+  filterType: "UPCOMING" | "PAST" | "CANCELLED";
 }
 
 const GuestTrips: React.FC<GuestTripsProps> = ({ filterType }) => {
@@ -113,7 +113,7 @@ const GuestTrips: React.FC<GuestTripsProps> = ({ filterType }) => {
     switch (filterType) {
       case "UPCOMING":
         return "다가올 여행";
-      case "COMPLETED":
+      case "PAST":
         return "이전 여행";
       case "CANCELLED":
         return "취소된 여행";

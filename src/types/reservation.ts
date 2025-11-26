@@ -113,7 +113,7 @@ export interface HostReservationDetail {
 export type GetHostReservationDetailResponse = ApiResponse<HostReservationDetail>;
 
 // 필터 타입
-export type ReservationFilterType = "UPCOMING" | "COMPLETED" | "CANCELLED";
+export type ReservationFilterType = "UPCOMING" | "PAST" | "CANCELLED";
 
 // Legacy 호환성을 위한 타입 aliases
 export type MyReservationInfo = GuestReservationInfo;

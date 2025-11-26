@@ -8,8 +8,8 @@ import { ErrorToast } from "../../../components/ErrorToast";
 import styles from "./HostReservations.module.css";
 
 interface HostReservationsProps {
-  filterType: "UPCOMING" | "COMPLETED" | "CANCELLED";
-  onFilterChange: (filterType: "UPCOMING" | "COMPLETED" | "CANCELLED") => void;
+  filterType: "UPCOMING" | "PAST" | "CANCELLED";
+  onFilterChange: (filterType: "UPCOMING" | "PAST" | "CANCELLED") => void;
 }
 
 const HostReservations: React.FC<HostReservationsProps> = ({ filterType, onFilterChange }) => {
@@ -183,8 +183,8 @@ const HostReservations: React.FC<HostReservationsProps> = ({ filterType, onFilte
           예정된 예약
         </button>
         <button
-          className={`${styles.filterTab} ${filterType === "COMPLETED" ? styles.active : ""}`}
-          onClick={() => onFilterChange("COMPLETED")}
+          className={`${styles.filterTab} ${filterType === "PAST" ? styles.active : ""}`}
+          onClick={() => onFilterChange("PAST")}
         >
           완료된 예약
         </button>
