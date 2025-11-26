@@ -1412,7 +1412,7 @@ const AccommodationEdit: React.FC = () => {
 
       const addressInfo = {
         postalCode: data.zonecode || "",
-        country: "South Korea",
+        country: "대한민국",
         state,
         city,
         district,
