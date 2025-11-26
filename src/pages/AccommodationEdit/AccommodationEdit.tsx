@@ -297,6 +297,8 @@ const AccommodationEdit: React.FC = () => {
   const [isAmenityModalOpen, setIsAmenityModalOpen] = useState(false);
   const [selectedAmenities, setSelectedAmenities] = useState<Set<string>>(new Set());
   const [openTimePicker, setOpenTimePicker] = useState<"checkIn" | "checkOut" | null>(null);
+  const [initialFormData, setInitialFormData] = useState<any>(null);
+  const [initialImageItems, setInitialImageItems] = useState<ImageItem[]>([]);
   
   // imageItems가 변경될 때마다 ref 업데이트
   useEffect(() => {
@@ -358,7 +360,7 @@ const AccommodationEdit: React.FC = () => {
           const data = await accommodationApi.getHostAccommodationDetail(Number(id));
           
           // 폼 데이터 설정
-          setFormData({
+          const loadedFormData = {
             name: data.name || "",
             description: data.description || "",
             basePrice: String(data.base_price || ""),
@@ -375,25 +377,34 @@ const AccommodationEdit: React.FC = () => {
               street: data.address?.street || "",
             },
             occupancyPolicyInfo: {
-              maxOccupancy: String(data.policy?.max_occupancy || ""),
+              maxOccupancy: String(data.policy?.max_occupancy || "1"),
               infantOccupancy: (data.policy?.infant_occupancy || 0) > 0,
               petOccupancy: (data.policy?.pet_occupancy || 0) > 0,
             },
             amenityInfos: data.amenities?.map((a) => ({ name: a.type, count: a.count })) || [],
-          });
+          };
+          
+          setFormData(loadedFormData);
+          
+          // 초기 데이터 저장 (변경사항 추적용)
+          setInitialFormData(JSON.parse(JSON.stringify(loadedFormData)));
 
           // 편의시설 선택 상태 초기화
           const amenitySet = new Set(data.amenities?.map((a) => a.type) || []);
           setSelectedAmenities(amenitySet);
 
           // 기존 이미지 설정
-          if (data.images && data.images.length > 0) {
-            setImageItems(data.images.map((image, index) => ({ 
-              id: image.id,
-              url: image.image_url,
-              tempId: `existing-${index}-${Date.now()}`,
-            })));
-          }
+          const loadedImageItems = data.images && data.images.length > 0
+            ? data.images.map((image, index) => ({ 
+                id: image.id,
+                url: image.image_url,
+                tempId: `existing-${index}-${Date.now()}`,
+              }))
+            : [];
+          setImageItems(loadedImageItems);
+          
+          // 초기 이미지 저장
+          setInitialImageItems(JSON.parse(JSON.stringify(loadedImageItems)));
         } catch (err) {
           handleError(err);
         }
@@ -487,54 +498,125 @@ const AccommodationEdit: React.FC = () => {
         data.amenity_infos = formData.amenityInfos;
       }
     } else {
-      // 수정 모드일 때는 모든 필드 포함
-      data.name = formData.name;
-      data.description = formData.description;
-      data.base_price = Number(formData.basePrice);
-      data.type = formData.type;
-      data.check_in_time = formData.checkInTime;
-      data.check_out_time = formData.checkOutTime;
-      
-      // 주소 정보: 빈 문자열이나 undefined 제거하고 유효한 값만 포함
-      // API는 모든 필드가 필수이므로, 유효한 값이 있는 경우에만 포함
-      if (formData.addressInfo) {
-        data.address_info = {};
-        // postalCode가 유효한 경우에만 포함
-        if (formData.addressInfo.postalCode && formData.addressInfo.postalCode.trim()) {
-          data.address_info.postal_code = formData.addressInfo.postalCode.trim();
+      // 수정 모드일 때는 변경된 필드만 포함
+      if (!initialFormData) {
+        // 초기 데이터가 없으면 모든 필드 포함 (안전장치)
+        data.name = formData.name;
+        data.description = formData.description;
+        data.base_price = Number(formData.basePrice);
+        data.type = formData.type;
+        data.check_in_time = formData.checkInTime;
+        data.check_out_time = formData.checkOutTime;
+        
+        if (formData.addressInfo) {
+          data.address_info = {};
+          if (formData.addressInfo.postalCode && formData.addressInfo.postalCode.trim()) {
+            data.address_info.postal_code = formData.addressInfo.postalCode.trim();
+          }
+          if (formData.addressInfo.city && formData.addressInfo.city.trim()) {
+            data.address_info.city = formData.addressInfo.city.trim();
+          }
+          if (formData.addressInfo.state && formData.addressInfo.state.trim()) {
+            data.address_info.state = formData.addressInfo.state.trim();
+          }
+          if (formData.addressInfo.country && formData.addressInfo.country.trim()) {
+            data.address_info.country = formData.addressInfo.country.trim();
+          }
+          if (formData.addressInfo.detail && formData.addressInfo.detail.trim()) {
+            data.address_info.detail = formData.addressInfo.detail.trim();
+          }
+          if (formData.addressInfo.district && formData.addressInfo.district.trim()) {
+            data.address_info.district = formData.addressInfo.district.trim();
+          }
+          if (formData.addressInfo.street && formData.addressInfo.street.trim()) {
+            data.address_info.street = formData.addressInfo.street.trim();
+          }
         }
-        // city가 유효한 경우에만 포함
-        if (formData.addressInfo.city && formData.addressInfo.city.trim()) {
-          data.address_info.city = formData.addressInfo.city.trim();
+        
+        data.occupancy_policy_info = {
+          max_occupancy: Number(formData.occupancyPolicyInfo.maxOccupancy),
+          infant_occupancy: formData.occupancyPolicyInfo.infantOccupancy ? 1 : 0,
+          pet_occupancy: formData.occupancyPolicyInfo.petOccupancy ? 1 : 0,
+        };
+        data.amenity_infos = formData.amenityInfos;
+      } else {
+        // 초기 데이터와 비교해서 변경된 필드만 포함
+        if (formData.name !== initialFormData.name) {
+          data.name = formData.name;
         }
-        // state가 유효한 경우에만 포함
-        if (formData.addressInfo.state && formData.addressInfo.state.trim()) {
-          data.address_info.state = formData.addressInfo.state.trim();
+        if (formData.description !== initialFormData.description) {
+          data.description = formData.description;
         }
-        // country가 유효한 경우에만 포함
-        if (formData.addressInfo.country && formData.addressInfo.country.trim()) {
-          data.address_info.country = formData.addressInfo.country.trim();
+        if (formData.basePrice !== initialFormData.basePrice) {
+          data.base_price = Number(formData.basePrice);
         }
-        // detail이 유효한 경우에만 포함
-        if (formData.addressInfo.detail && formData.addressInfo.detail.trim()) {
-          data.address_info.detail = formData.addressInfo.detail.trim();
+        if (formData.type !== initialFormData.type) {
+          data.type = formData.type;
         }
-        // district가 유효한 경우에만 포함
-        if (formData.addressInfo.district && formData.addressInfo.district.trim()) {
-          data.address_info.district = formData.addressInfo.district.trim();
+        if (formData.checkInTime !== initialFormData.checkInTime) {
+          data.check_in_time = formData.checkInTime;
         }
-        // street가 유효한 경우에만 포함
-        if (formData.addressInfo.street && formData.addressInfo.street.trim()) {
-          data.address_info.street = formData.addressInfo.street.trim();
+        if (formData.checkOutTime !== initialFormData.checkOutTime) {
+          data.check_out_time = formData.checkOutTime;
+        }
+        
+        // 주소 정보 비교
+        const addressChanged = 
+          formData.addressInfo.postalCode !== initialFormData.addressInfo.postalCode ||
+          formData.addressInfo.city !== initialFormData.addressInfo.city ||
+          formData.addressInfo.state !== initialFormData.addressInfo.state ||
+          formData.addressInfo.country !== initialFormData.addressInfo.country ||
+          formData.addressInfo.detail !== initialFormData.addressInfo.detail ||
+          formData.addressInfo.district !== initialFormData.addressInfo.district ||
+          formData.addressInfo.street !== initialFormData.addressInfo.street;
+        
+        if (addressChanged) {
+          data.address_info = {};
+          if (formData.addressInfo.postalCode && formData.addressInfo.postalCode.trim()) {
+            data.address_info.postal_code = formData.addressInfo.postalCode.trim();
+          }
+          if (formData.addressInfo.city && formData.addressInfo.city.trim()) {
+            data.address_info.city = formData.addressInfo.city.trim();
+          }
+          if (formData.addressInfo.state && formData.addressInfo.state.trim()) {
+            data.address_info.state = formData.addressInfo.state.trim();
+          }
+          if (formData.addressInfo.country && formData.addressInfo.country.trim()) {
+            data.address_info.country = formData.addressInfo.country.trim();
+          }
+          if (formData.addressInfo.detail && formData.addressInfo.detail.trim()) {
+            data.address_info.detail = formData.addressInfo.detail.trim();
+          }
+          if (formData.addressInfo.district && formData.addressInfo.district.trim()) {
+            data.address_info.district = formData.addressInfo.district.trim();
+          }
+          if (formData.addressInfo.street && formData.addressInfo.street.trim()) {
+            data.address_info.street = formData.addressInfo.street.trim();
+          }
+        }
+        
+        // 수용 인원 정보 비교
+        const occupancyChanged = 
+          formData.occupancyPolicyInfo.maxOccupancy !== initialFormData.occupancyPolicyInfo.maxOccupancy ||
+          formData.occupancyPolicyInfo.infantOccupancy !== initialFormData.occupancyPolicyInfo.infantOccupancy ||
+          formData.occupancyPolicyInfo.petOccupancy !== initialFormData.occupancyPolicyInfo.petOccupancy;
+        
+        if (occupancyChanged) {
+          data.occupancy_policy_info = {
+            max_occupancy: Number(formData.occupancyPolicyInfo.maxOccupancy),
+            infant_occupancy: formData.occupancyPolicyInfo.infantOccupancy ? 1 : 0,
+            pet_occupancy: formData.occupancyPolicyInfo.petOccupancy ? 1 : 0,
+          };
+        }
+        
+        // 편의시설 비교
+        const amenityChanged = JSON.stringify(formData.amenityInfos.sort((a, b) => a.name.localeCompare(b.name))) !== 
+          JSON.stringify(initialFormData.amenityInfos.sort((a, b) => a.name.localeCompare(b.name)));
+        
+        if (amenityChanged) {
+          data.amenity_infos = formData.amenityInfos;
         }
       }
-      
-      data.occupancy_policy_info = {
-        max_occupancy: Number(formData.occupancyPolicyInfo.maxOccupancy),
-        infant_occupancy: formData.occupancyPolicyInfo.infantOccupancy ? 1 : 0,
-        pet_occupancy: formData.occupancyPolicyInfo.petOccupancy ? 1 : 0,
-      };
-      data.amenity_infos = formData.amenityInfos;
     }
     
     return data;
@@ -549,6 +631,22 @@ const AccommodationEdit: React.FC = () => {
     try {
       // 초안 모드일 때는 입력된 필드만 보내기
       const updateData = getUpdateData(isNewDraft);
+      
+      // 이미지 변경 확인
+      const imageChanged = !isNewDraft && initialImageItems.length > 0 && 
+        JSON.stringify(imageItems.map(i => ({ id: i.id, url: i.url })).sort((a, b) => (a.id || 0) - (b.id || 0))) !== 
+        JSON.stringify(initialImageItems.map(i => ({ id: i.id, url: i.url })).sort((a, b) => (a.id || 0) - (b.id || 0)));
+      
+      // 변경사항이 없으면 요청 보내지 않음
+      const hasChanges = Object.keys(updateData).length > 0 || imageChanged;
+      
+      if (!hasChanges) {
+        // 변경사항이 없으면 바로 이동
+        navigate("/profile?mode=host");
+        setIsSaving(false);
+        return;
+      }
+      
       console.log("저장 후 나가기 - 요청 데이터:", JSON.stringify(updateData, null, 2));
       console.log("저장 후 나가기 - 주소 정보:", updateData.address_info);
       await accommodationApi.update(Number(id), updateData);
