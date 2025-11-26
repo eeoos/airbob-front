@@ -717,12 +717,8 @@ const AccommodationEdit: React.FC = () => {
           clearError();
 
           try {
-            // 먼저 현재 폼 데이터로 숙소 수정
-            const updateData = getUpdateData();
-            console.log("저장하기 - 요청 데이터:", JSON.stringify(updateData, null, 2));
-            console.log("저장하기 - 주소 정보:", updateData.address_info);
-            await accommodationApi.update(Number(id), updateData);
-            // 그 다음 숙소 공개
+            // 5단계에서는 publish만 호출 (데이터는 4단계에서 이미 저장됨)
+            console.log("5단계 저장하기 - 숙소 공개");
             await accommodationApi.publish(Number(id));
             // 공개 성공 시 프로필 페이지의 호스트 모드로 이동
             navigate("/profile?mode=host");
@@ -741,12 +737,8 @@ const AccommodationEdit: React.FC = () => {
     clearError();
 
     try {
-      // 먼저 현재 폼 데이터로 숙소 수정
-      const updateData = getUpdateData();
-      console.log("저장하기 - 요청 데이터:", JSON.stringify(updateData, null, 2));
-      console.log("저장하기 - 주소 정보:", updateData.address_info);
-      await accommodationApi.update(Number(id), updateData);
-      // 그 다음 숙소 공개
+      // 5단계에서는 publish만 호출 (데이터는 4단계에서 이미 저장됨)
+      console.log("5단계 저장하기 - 숙소 공개");
       await accommodationApi.publish(Number(id));
       // 공개 성공 시 프로필 페이지의 호스트 모드로 이동
       navigate("/profile?mode=host");
@@ -1387,6 +1379,26 @@ const AccommodationEdit: React.FC = () => {
           }, 500);
         }
       }
+    }
+
+    // 4단계(체크인/체크아웃)에서 다음 버튼을 누를 때 데이터 저장
+    if (currentStep === 4 && id) {
+      setIsSaving(true);
+      clearError();
+
+      try {
+        const updateData = getUpdateData(isNewDraft);
+        console.log("4단계 저장 - 요청 데이터:", JSON.stringify(updateData, null, 2));
+        await accommodationApi.update(Number(id), updateData);
+        // 저장 성공 후 다음 단계로 이동
+        setCurrentStep((prev) => (prev + 1) as Step);
+      } catch (err) {
+        handleError(err);
+        return; // 에러 발생 시 단계 이동하지 않음
+      } finally {
+        setIsSaving(false);
+      }
+      return;
     }
 
     if (currentStep < 5) {
