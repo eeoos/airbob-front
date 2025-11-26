@@ -339,6 +339,17 @@
   cursor: not-allowed;
 }
 
+/* 기본 가격 입력 필드의 스피너 제거 */
+.priceInput::-webkit-inner-spin-button,
+.priceInput::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.priceInput {
+  -moz-appearance: textfield;
+}
+
 .textarea {
   resize: vertical;
   min-height: 120px;

@@ -6,3 +6,5 @@ export { AccommodationCardSearch } from "./AccommodationCard.Search";
 
 
 
+
+

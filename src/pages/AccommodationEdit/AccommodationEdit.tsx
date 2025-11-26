@@ -485,7 +485,37 @@ const AccommodationEdit: React.FC = () => {
       data.type = formData.type;
       data.check_in_time = formData.checkInTime;
       data.check_out_time = formData.checkOutTime;
-      data.address_info = formData.addressInfo;
+      
+      // 주소 정보: 빈 문자열이나 undefined 제거하고 유효한 값만 포함
+      // API는 모든 필드가 필수이므로, 유효한 값이 있는 경우에만 포함
+      if (formData.addressInfo) {
+        data.address_info = {};
+        // postalCode가 유효한 경우에만 포함
+        if (formData.addressInfo.postalCode && formData.addressInfo.postalCode.trim()) {
+          data.address_info.postal_code = formData.addressInfo.postalCode.trim();
+        }
+        // city가 유효한 경우에만 포함
+        if (formData.addressInfo.city && formData.addressInfo.city.trim()) {
+          data.address_info.city = formData.addressInfo.city.trim();
+        }
+        // country가 유효한 경우에만 포함
+        if (formData.addressInfo.country && formData.addressInfo.country.trim()) {
+          data.address_info.country = formData.addressInfo.country.trim();
+        }
+        // detail이 유효한 경우에만 포함
+        if (formData.addressInfo.detail && formData.addressInfo.detail.trim()) {
+          data.address_info.detail = formData.addressInfo.detail.trim();
+        }
+        // district가 유효한 경우에만 포함
+        if (formData.addressInfo.district && formData.addressInfo.district.trim()) {
+          data.address_info.district = formData.addressInfo.district.trim();
+        }
+        // street가 유효한 경우에만 포함
+        if (formData.addressInfo.street && formData.addressInfo.street.trim()) {
+          data.address_info.street = formData.addressInfo.street.trim();
+        }
+      }
+      
       data.occupancy_policy_info = {
         max_occupancy: Number(formData.occupancyPolicyInfo.maxOccupancy),
         infant_occupancy: formData.occupancyPolicyInfo.infantOccupancy ? 1 : 0,
@@ -505,7 +535,10 @@ const AccommodationEdit: React.FC = () => {
 
     try {
       // 초안 모드일 때는 입력된 필드만 보내기
-      await accommodationApi.update(Number(id), getUpdateData(isNewDraft));
+      const updateData = getUpdateData(isNewDraft);
+      console.log("저장 후 나가기 - 요청 데이터:", JSON.stringify(updateData, null, 2));
+      console.log("저장 후 나가기 - 주소 정보:", updateData.address_info);
+      await accommodationApi.update(Number(id), updateData);
       // 저장 성공 시 프로필 페이지의 호스트 모드로 이동
       navigate("/profile?mode=host");
     } catch (err) {
@@ -524,7 +557,10 @@ const AccommodationEdit: React.FC = () => {
 
     try {
       // 먼저 현재 폼 데이터로 숙소 수정
-      await accommodationApi.update(Number(id), getUpdateData());
+      const updateData = getUpdateData();
+      console.log("저장하기 - 요청 데이터:", JSON.stringify(updateData, null, 2));
+      console.log("저장하기 - 주소 정보:", updateData.address_info);
+      await accommodationApi.update(Number(id), updateData);
       // 그 다음 숙소 공개
       await accommodationApi.publish(Number(id));
       // 공개 성공 시 프로필 페이지의 호스트 모드로 이동
@@ -1205,17 +1241,23 @@ const AccommodationEdit: React.FC = () => {
 
     new window.daum.Postcode({
       oncomplete: (data) => {
+        // Daum 우편번호 서비스 응답 데이터 확인
+        console.log("Daum 우편번호 서비스 응답 데이터:", data);
+        console.log("sido:", data.sido);
+        console.log("sigungu:", data.sigungu);
+        console.log("sigunguCode:", data.sigunguCode);
+        
         // 주소 정보 파싱
-        let addr = ""; // 주소 변수
         let extraAddr = ""; // 참고항목 변수
 
-        // 사용자가 선택한 주소 타입에 따라 해당 주소 값을 가져온다.
-        if (data.addressType === "R") {
-          // 도로명 주소인 경우
-          addr = data.roadAddress || data.address;
+        // street 설정: 도로명 → 지번 → fallback(address)
+        let street = "";
+        if (data.roadAddress && data.roadAddress.trim() !== "") {
+          street = data.roadAddress;
+        } else if (data.jibunAddress && data.jibunAddress.trim() !== "") {
+          street = data.jibunAddress;
         } else {
-          // 지번 주소인 경우
-          addr = data.jibunAddress || data.address;
+          street = data.address;
         }
 
         // 사용자가 선택한 주소가 도로명 타입일때 참고항목을 조합한다.
@@ -1231,17 +1273,24 @@ const AccommodationEdit: React.FC = () => {
           }
         }
 
+        // district 설정: sigungu → bname → sido 순서
+        let district = data.sigungu;
+        if (!district || district.trim() === "") {
+          district = data.bname && data.bname.trim() !== "" ? data.bname : data.sido;
+        }
+        console.log("최종 district 값:", district);
+
         // 주소 정보 업데이트
         setFormData((prev) => ({
           ...prev,
           addressInfo: {
-            postalCode: data.zonecode,
-            city: data.sido,
+            postalCode: data.zonecode || "",
+            city: data.sido || "",
             country: "대한민국",
-            district: data.sigungu,
-            street: addr,
-            // 주소 검색 시 상세 주소는 초기화하지 않고 유지 (사용자가 입력한 값 보존)
-            detail: prev.addressInfo.detail || extraAddr || "",
+            district: district,
+            street: street || "",
+            // 주소 검색 시 상세 주소는 항상 초기화 (새 Daum 주소 선택 시)
+            detail: extraAddr || "",
           },
         }));
       },
@@ -1261,8 +1310,8 @@ const AccommodationEdit: React.FC = () => {
           formData.addressInfo.detail.trim() !== ""
         );
       case 2:
-        // 숙소 사진은 최소 5장 이상 필요
-        return imageItems.length >= 5;
+        // 숙소 사진은 최소 1장 이상 필요
+        return imageItems.length >= 1;
       case 3:
         // 숙소 정보: 이름, 설명, 가격, 유형, 수용 인원 완료
         return !!(
@@ -1383,7 +1432,7 @@ const AccommodationEdit: React.FC = () => {
           <div className={styles.stepContent}>
             <h2 className={styles.stepTitle}>숙소 사진을 등록하세요</h2>
             <p className={styles.stepDescription}>
-              숙소 등록을 시작하려면 사진 5장을 제출하셔야 합니다. 나중에 추가하거나 변경하실 수 있습니다.
+              숙소 등록을 시작하려면 사진 1장을 제출하셔야 합니다. 나중에 추가하거나 변경하실 수 있습니다.
             </p>
 
             {/* 업로드 진행률 바 */}
@@ -1436,7 +1485,7 @@ const AccommodationEdit: React.FC = () => {
                 <div className={styles.uploadedImagesHeader}>
                   <div>
                     <p className={styles.uploadedImagesTitle}>
-                      5장 이상의 사진을 선택하세요.
+                      1개 이상의 사진을 선택하세요.
                     </p>
                     <p className={styles.uploadedImagesSubtitle}>드래그하여 순서 변경</p>
                   </div>
@@ -1550,24 +1599,6 @@ const AccommodationEdit: React.FC = () => {
                     );
                   })}
                   
-                  {/* 빈 슬롯들 (처음 3개 중 비어있는 것들) */}
-                  {Array.from({ length: Math.max(0, 3 - (imageItems.length - 1)) }).map((_, index) => {
-                    const emptyIndex = imageItems.length - 1 + index;
-                    return (
-                      <div
-                        key={`empty-${emptyIndex}`}
-                        className={styles.imagePlaceholder}
-                        onClick={() => document.getElementById("imageInput")?.click()}
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                          <rect x="3" y="3" width="18" height="18" rx="2" />
-                          <circle cx="18" cy="6" r="1.5" />
-                          <path d="M3 18l3-3 3 3 6-6 6 6" />
-                        </svg>
-                      </div>
-                    );
-                  })}
-                  
                   {/* 마지막 슬롯은 항상 "추가" 버튼 */}
                   <div
                     className={styles.addImageSlot}
@@ -1644,7 +1675,7 @@ const AccommodationEdit: React.FC = () => {
                 type="number"
                 value={formData.basePrice}
                 onChange={(e) => handleInputChange("basePrice", e.target.value)}
-                className={styles.input}
+                className={`${styles.input} ${styles.priceInput}`}
                 placeholder="50000"
                 required
                 min={5000}
