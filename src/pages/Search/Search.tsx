@@ -612,7 +612,7 @@ const Search: React.FC = () => {
                 size: 20,
                 accommodationId: selectedAccommodationForWishlist,
               });
-              const isInAnyWishlist = response.wishlists.some((w) => w.is_contained) || false;
+              const isInAnyWishlist = response?.wishlists?.some((w) => w.is_contained) || false;
               
               // 검색 결과의 위시리스트 상태 업데이트
               setAccommodations((prev) =>

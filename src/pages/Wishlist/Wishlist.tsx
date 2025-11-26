@@ -57,13 +57,13 @@ const Wishlist: React.FC = () => {
       try {
         // 최근 조회 목록
         const recentlyViewedResponse = await recentlyViewedApi.getRecentlyViewed();
-        setRecentlyViewed(recentlyViewedResponse.accommodations);
+        setRecentlyViewed(recentlyViewedResponse?.accommodations || []);
 
         // 위시리스트 목록
         const wishlistsResponse = await wishlistApi.getWishlists({ size: 20 });
-        setWishlists(wishlistsResponse.wishlists);
-        setWishlistsCursor(wishlistsResponse.page_info?.next_cursor || null);
-        setWishlistsHasNext(wishlistsResponse.page_info?.has_next || false);
+        setWishlists(wishlistsResponse?.wishlists || []);
+        setWishlistsCursor(wishlistsResponse?.page_info?.next_cursor || null);
+        setWishlistsHasNext(wishlistsResponse?.page_info?.has_next || false);
       } catch (err) {
         handleError(err);
       } finally {
@@ -90,9 +90,9 @@ const Wishlist: React.FC = () => {
         const response = await wishlistApi.getWishlistAccommodations(selectedWishlist, {
           size: 20,
         });
-        setWishlistAccommodations(response.wishlist_accommodations);
-        setCursor(response.page_info.next_cursor);
-        setHasNext(response.page_info.has_next);
+        setWishlistAccommodations(response?.wishlist_accommodations || []);
+        setCursor(response?.page_info?.next_cursor || null);
+        setHasNext(response?.page_info?.has_next || false);
       } catch (err) {
         handleError(err);
       } finally {
@@ -116,10 +116,10 @@ const Wishlist: React.FC = () => {
       });
       setWishlistAccommodations((prev) => [
         ...prev,
-        ...response.wishlist_accommodations,
+        ...(response?.wishlist_accommodations || []),
       ]);
-      setCursor(response.page_info.next_cursor);
-      setHasNext(response.page_info.has_next);
+      setCursor(response?.page_info?.next_cursor || null);
+      setHasNext(response?.page_info?.has_next || false);
     } catch (err) {
       handleError(err);
     } finally {
@@ -135,8 +135,8 @@ const Wishlist: React.FC = () => {
 
     try {
       const response = await wishlistApi.getWishlists({ size: 20, cursor: wishlistsCursor });
-      setWishlists((prev) => [...prev, ...response.wishlists]);
-      setWishlistsCursor(response.page_info?.next_cursor || null);
+      setWishlists((prev) => [...prev, ...(response?.wishlists || [])]);
+      setWishlistsCursor(response?.page_info?.next_cursor || null);
       setWishlistsHasNext(response.page_info?.has_next || false);
     } catch (err) {
       handleError(err);
@@ -638,7 +638,7 @@ const Wishlist: React.FC = () => {
                   size: 20,
                   accommodationId: selectedAccommodationForWishlist,
                 });
-                const isInAnyWishlist = response.wishlists.some((w) => w.is_contained) || false;
+                const isInAnyWishlist = response?.wishlists?.some((w) => w.is_contained) || false;
                 
                 setRecentlyViewed((prev) =>
                   prev.map((acc) =>

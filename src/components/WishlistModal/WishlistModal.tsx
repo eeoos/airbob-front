@@ -44,14 +44,14 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
 
         if (cursor) {
           // 추가 로드
-          setWishlists((prev) => [...prev, ...response.wishlists]);
+          setWishlists((prev) => [...prev, ...(response?.wishlists || [])]);
         } else {
           // 초기 로드
-          setWishlists(response.wishlists);
+          setWishlists(response?.wishlists || []);
         }
 
-        setHasNext(response.page_info.has_next);
-        setNextCursor(response.page_info.next_cursor || null);
+        setHasNext(response?.page_info?.has_next || false);
+        setNextCursor(response?.page_info?.next_cursor || null);
       } catch (err) {
         handleError(err);
       } finally {
