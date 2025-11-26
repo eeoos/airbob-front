@@ -1350,62 +1350,70 @@ const AccommodationEdit: React.FC = () => {
       return;
     }
 
+    // 최종 한국 주소 매핑 로직
+    const handleComplete = (data) => {
+      const fullSido = data.sido || "";
+      const fullSigungu = data.sigungu || "";
+
+      let state = fullSido;
+      let city = "";
+      let district = "";
+
+      // 광역시/특별시 리스트
+      const metropolitanList = ["서울", "부산", "대구", "인천", "광주", "대전", "울산"];
+
+      // 1) "전주시 덕진구"처럼 시 + 구 구성
+      if (fullSigungu.includes(" ")) {
+        const parts = fullSigungu.split(" ").filter(Boolean);
+        city = parts[0];
+        district = parts.slice(1).join(" ");
+      }
+      // 2) 특별/광역시인 경우 (서울특별시, 서울 등 변형 포함)
+      else if (
+        fullSigungu !== "" &&
+        metropolitanList.some((metro) => fullSido.startsWith(metro))
+      ) {
+        city = fullSido;       // ex: "서울특별시", "부산광역시"
+        district = fullSigungu;
+      }
+      // 3) 일반 시/군 단독 ("구리시", "고창군", "서귀포시")
+      else if (fullSigungu !== "") {
+        city = fullSigungu;
+        district = "";
+      }
+      // 4) 세종·기타 sigungu 없음
+      else {
+        city = fullSido;
+        district = "";
+      }
+
+      // street 정제
+      let street = data.roadAddress || data.address || "";
+      street = street
+        .replace(fullSido, "")
+        .replace(fullSigungu, "")
+        .trim();
+
+      const addressInfo = {
+        postalCode: data.zonecode || "",
+        country: "South Korea",
+        state,
+        city,
+        district,
+        street,
+        detail: ""
+      };
+
+      console.log("Refined Address:", addressInfo);
+
+      setFormData((prev) => ({
+        ...prev,
+        addressInfo
+      }));
+    };
+
     new window.daum.Postcode({
-      oncomplete: (data) => {
-        // Daum 우편번호 서비스 응답 데이터 확인
-        console.log("Daum 우편번호 서비스 응답 데이터:", data);
-        console.log("sido:", data.sido);
-        console.log("sigungu:", data.sigungu);
-        console.log("sigunguCode:", data.sigunguCode);
-        
-        // 주소 정보 파싱
-        let extraAddr = ""; // 참고항목 변수
-
-        // street 설정: 도로명 → 지번 → fallback(address)
-        let street = "";
-        if (data.roadAddress && data.roadAddress.trim() !== "") {
-          street = data.roadAddress;
-        } else if (data.jibunAddress && data.jibunAddress.trim() !== "") {
-          street = data.jibunAddress;
-        } else {
-          street = data.address;
-        }
-
-        // 사용자가 선택한 주소가 도로명 타입일때 참고항목을 조합한다.
-        if (data.addressType === "R") {
-          // 법정동명이 있을 경우 추가한다. (법정리는 제외)
-          // 법정동의 경우 마지막 문자가 "동/로/가"로 끝난다.
-          if (data.bname !== "" && /[동|로|가]$/g.test(data.bname)) {
-            extraAddr += data.bname;
-          }
-          // 건물명이 있고, 공동주택일 경우 추가한다.
-          if (data.buildingName !== "" && data.apartment === "Y") {
-            extraAddr += extraAddr !== "" ? ", " + data.buildingName : data.buildingName;
-          }
-        }
-
-        // district 설정: sigungu → bname → sido 순서
-        let district = data.sigungu;
-        if (!district || district.trim() === "") {
-          district = data.bname && data.bname.trim() !== "" ? data.bname : data.sido;
-        }
-        console.log("최종 district 값:", district);
-
-        // 주소 정보 업데이트
-        setFormData((prev) => ({
-          ...prev,
-          addressInfo: {
-            postalCode: data.zonecode || "",
-            city: data.sido || "",
-            state: data.sido || "",
-            country: "대한민국",
-            district: district,
-            street: street || "",
-            // 주소 검색 시 상세 주소는 항상 초기화 (새 Daum 주소 선택 시)
-            detail: "",
-          },
-        }));
-      },
+      oncomplete: handleComplete,
       width: "100%",
       height: "100%",
     }).open();
