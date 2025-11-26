@@ -411,9 +411,9 @@ const Wishlist: React.FC = () => {
                           <div className={styles.wishlistCardInfo}>
                             <div className={styles.locationRow}>
                               <div className={styles.location}>
-                                {[item.address_summary.city, item.address_summary.district].filter(Boolean).join(", ") || item.address_summary.country}
+                                {[item.address_summary?.city, item.address_summary?.district].filter(Boolean).join(", ") || item.address_summary?.country || ""}
                               </div>
-                              {item.review_summary.total_count > 0 && (
+                              {item.review_summary && item.review_summary.total_count > 0 && (
                                 <div className={styles.review}>
                                   <span className={styles.star}>★</span>
                                   <span className={styles.rating}>{item.review_summary.average_rating.toFixed(1)}</span>

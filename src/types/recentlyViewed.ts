@@ -7,8 +7,8 @@ export interface RecentlyViewedAccommodationInfo {
   accommodation_id: number;
   accommodation_name: string;
   thumbnail_url: string | null;
-  address_summary: AddressSummaryInfo;
-  review_summary: ReviewSummary;
+  address_summary: AddressSummaryInfo | null;
+  review_summary: ReviewSummary | null;
   is_in_wishlist: boolean;
 }
 
