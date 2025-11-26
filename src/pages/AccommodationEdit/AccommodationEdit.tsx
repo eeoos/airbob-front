@@ -1402,7 +1402,7 @@ const AccommodationEdit: React.FC = () => {
             district: district,
             street: street || "",
             // 주소 검색 시 상세 주소는 항상 초기화 (새 Daum 주소 선택 시)
-            detail: extraAddr || "",
+            detail: "",
           },
         }));
       },
