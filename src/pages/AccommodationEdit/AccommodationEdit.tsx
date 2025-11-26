@@ -627,8 +627,8 @@ const AccommodationEdit: React.FC = () => {
   const handleSaveAndExit = async () => {
     if (!id) return;
 
-    // 3번 단계(위치 정보)에서 상세 주소 확인
-    if (currentStep === 3) {
+    // 1번 단계(위치 정보)에서 상세 주소 확인
+    if (currentStep === 1) {
       const hasDetailAddress = formData.addressInfo.detail && formData.addressInfo.detail.trim() !== "";
       if (!hasDetailAddress) {
         setPendingAction(() => async () => {
@@ -708,8 +708,8 @@ const AccommodationEdit: React.FC = () => {
     e.preventDefault();
     if (!id) return;
 
-    // 3번 단계(위치 정보)에서 상세 주소 확인
-    if (currentStep === 3) {
+    // 1번 단계(위치 정보)에서 상세 주소 확인
+    if (currentStep === 1) {
       const hasDetailAddress = formData.addressInfo.detail && formData.addressInfo.detail.trim() !== "";
       if (!hasDetailAddress) {
         setPendingAction(() => async () => {
@@ -1316,8 +1316,8 @@ const AccommodationEdit: React.FC = () => {
   };
 
   const handleNext = async () => {
-    // 3번 단계(위치 정보)에서 다음으로 넘어갈 때 상세 주소 확인
-    if (currentStep === 3) {
+    // 1번 단계(위치 정보)에서 다음으로 넘어갈 때 상세 주소 확인
+    if (currentStep === 1) {
       const hasDetailAddress = formData.addressInfo.detail && formData.addressInfo.detail.trim() !== "";
       if (!hasDetailAddress) {
         setPendingAction(() => () => {
