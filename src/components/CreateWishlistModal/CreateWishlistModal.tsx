@@ -50,10 +50,8 @@ export const CreateWishlistModal: React.FC<CreateWishlistModalProps> = ({
 
     try {
       const response = await wishlistApi.create({ name: name.trim() });
-      if (response.data) {
-        onSuccess(response.data.id);
-        setName("");
-      }
+      onSuccess(response.id);
+      setName("");
     } catch (err) {
       handleError(err);
     } finally {

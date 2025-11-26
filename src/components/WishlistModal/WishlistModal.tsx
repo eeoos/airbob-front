@@ -42,18 +42,16 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
           accommodationId: accommodationId,
         });
 
-        if (response.data) {
-          if (cursor) {
-            // 추가 로드
-            setWishlists((prev) => [...prev, ...response.data!.wishlists]);
-          } else {
-            // 초기 로드
-            setWishlists(response.data.wishlists);
-          }
-
-          setHasNext(response.data.page_info.has_next);
-          setNextCursor(response.data.page_info.next_cursor || null);
+        if (cursor) {
+          // 추가 로드
+          setWishlists((prev) => [...prev, ...response.wishlists]);
+        } else {
+          // 초기 로드
+          setWishlists(response.wishlists);
         }
+
+        setHasNext(response.page_info.has_next);
+        setNextCursor(response.page_info.next_cursor || null);
       } catch (err) {
         handleError(err);
       } finally {

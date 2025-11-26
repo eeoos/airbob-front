@@ -8,8 +8,8 @@ import { ErrorToast } from "../../../components/ErrorToast";
 import styles from "./HostReservations.module.css";
 
 interface HostReservationsProps {
-  filterType: "UPCOMING" | "PAST" | "CANCELLED";
-  onFilterChange: (filterType: "UPCOMING" | "PAST" | "CANCELLED") => void;
+  filterType: "UPCOMING" | "COMPLETED" | "CANCELLED";
+  onFilterChange: (filterType: "UPCOMING" | "COMPLETED" | "CANCELLED") => void;
 }
 
 const HostReservations: React.FC<HostReservationsProps> = ({ filterType, onFilterChange }) => {
@@ -35,13 +35,11 @@ const HostReservations: React.FC<HostReservationsProps> = ({ filterType, onFilte
       try {
         const response = await reservationApi.getHostReservations({ 
           size: 20, 
-          filterType: filterType || "UPCOMING" 
+          filterType: filterType || undefined 
         });
-        if (response.success && response.data) {
-          setReservations(response.data.reservations);
-          setCursor(response.data.page_info.next_cursor);
-          setHasNext(response.data.page_info.has_next);
-        }
+        setReservations(response.reservations);
+        setCursor(response.page_info.next_cursor);
+        setHasNext(response.page_info.has_next);
       } catch (err) {
         handleError(err);
       } finally {
@@ -63,13 +61,11 @@ const HostReservations: React.FC<HostReservationsProps> = ({ filterType, onFilte
       const response = await reservationApi.getHostReservations({ 
         size: 20, 
         cursor, 
-        filterType: filterType || "UPCOMING" 
+        filterType: filterType || undefined 
       });
-      if (response.success && response.data) {
-        setReservations((prev) => [...prev, ...response.data!.reservations]);
-        setCursor(response.data!.page_info.next_cursor);
-        setHasNext(response.data!.page_info.has_next);
-      }
+      setReservations((prev) => [...prev, ...response.reservations]);
+      setCursor(response.page_info.next_cursor);
+      setHasNext(response.page_info.has_next);
     } catch (err) {
       handleError(err);
     } finally {
@@ -187,8 +183,8 @@ const HostReservations: React.FC<HostReservationsProps> = ({ filterType, onFilte
           예정된 예약
         </button>
         <button
-          className={`${styles.filterTab} ${filterType === "PAST" ? styles.active : ""}`}
-          onClick={() => onFilterChange("PAST")}
+          className={`${styles.filterTab} ${filterType === "COMPLETED" ? styles.active : ""}`}
+          onClick={() => onFilterChange("COMPLETED")}
         >
           완료된 예약
         </button>

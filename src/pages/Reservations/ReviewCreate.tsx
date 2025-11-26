@@ -39,11 +39,7 @@ const ReviewCreate: React.FC = () => {
 
       try {
         const response = await reservationApi.getMyReservationDetail(reservationUid);
-        if (response.success && response.data) {
-          setReservation(response.data);
-        } else {
-          navigate("/profile");
-        }
+        setReservation(response);
       } catch (err) {
         handleError(err);
       } finally {
@@ -132,9 +128,9 @@ const ReviewCreate: React.FC = () => {
       });
 
       // 2. 리뷰 생성 성공 시, 이미지가 있으면 업로드
-      if (createResponse.success && createResponse.data && selectedImages.length > 0) {
+      if (createResponse && selectedImages.length > 0) {
         try {
-          await reviewApi.uploadImages(createResponse.data.id, selectedImages);
+          await reviewApi.uploadImages(createResponse.id, selectedImages);
         } catch (imageErr) {
           // 이미지 업로드 실패해도 리뷰는 생성되었으므로 경고만 표시
           handleError(new Error("리뷰는 작성되었지만 이미지 업로드에 실패했습니다."));

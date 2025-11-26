@@ -39,11 +39,7 @@ const HostReservationDetail: React.FC = () => {
 
       try {
         const response = await reservationApi.getHostReservationDetail(reservationUid);
-        if (response.success && response.data) {
-          setReservation(response.data);
-        } else {
-          navigate("/profile");
-        }
+        setReservation(response);
       } catch (err) {
         handleError(err);
       } finally {

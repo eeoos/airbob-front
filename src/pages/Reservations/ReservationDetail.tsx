@@ -42,11 +42,7 @@ const ReservationDetail: React.FC = () => {
 
       try {
         const response = await reservationApi.getMyReservationDetail(reservationUid);
-        if (response.success && response.data) {
-          setReservation(response.data);
-        } else {
-          navigate("/profile");
-        }
+        setReservation(response);
       } catch (err) {
         handleError(err);
       } finally {

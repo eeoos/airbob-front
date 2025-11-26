@@ -36,7 +36,7 @@ const HostListings: React.FC<HostListingsProps> = ({ statusType = "PUBLISHED", o
     try {
       const response = await accommodationApi.getMyAccommodations({ 
         size: 20, 
-        status: statusType || "PUBLISHED" 
+        status: statusType as AccommodationStatus || undefined 
       });
       setAccommodations(response.accommodations);
       setCursor(response.page_info.next_cursor);
@@ -62,7 +62,7 @@ const HostListings: React.FC<HostListingsProps> = ({ statusType = "PUBLISHED", o
       const response = await accommodationApi.getMyAccommodations({ 
         size: 20, 
         cursor, 
-        status: statusType || "PUBLISHED" 
+        status: statusType as AccommodationStatus || undefined 
       });
       setAccommodations((prev) => [...prev, ...response.accommodations]);
       setCursor(response.page_info.next_cursor);
@@ -186,7 +186,9 @@ const HostListings: React.FC<HostListingsProps> = ({ statusType = "PUBLISHED", o
                     {accommodation.name || "이름 없음"}
                   </div>
                   <div className={styles.location}>
-                    {accommodation.location || "위치 정보 없음"}
+                    {accommodation.address_summary 
+                      ? [accommodation.address_summary.city, accommodation.address_summary.district].filter(Boolean).join(", ") || accommodation.address_summary.country 
+                      : "위치 정보 없음"}
                   </div>
                   <div className={styles.status}>
                     {getStatusLabel(accommodation.status)}

@@ -160,7 +160,7 @@ const Profile: React.FC = () => {
             {mode === "guest" ? (
               <GuestTrips filterType={
                 activeTab === "upcoming" ? "UPCOMING" 
-                : activeTab === "past" ? "PAST" 
+                : activeTab === "past" ? "COMPLETED" 
                 : activeTab === "cancelled" ? "CANCELLED"
                 : "UPCOMING"
               } />
@@ -194,14 +194,14 @@ const Profile: React.FC = () => {
                   <HostReservations 
                     filterType={
                       activeTab === "reservations-upcoming" ? "UPCOMING"
-                      : activeTab === "reservations-past" ? "PAST"
+                      : activeTab === "reservations-past" ? "COMPLETED"
                       : activeTab === "reservations-cancelled" ? "CANCELLED"
                       : "UPCOMING"
                     }
                     onFilterChange={(newFilterType) => {
                       const newTab = 
                         newFilterType === "UPCOMING" ? "reservations-upcoming"
-                        : newFilterType === "PAST" ? "reservations-past"
+                        : newFilterType === "COMPLETED" ? "reservations-past"
                         : "reservations-cancelled";
                       setActiveTab(newTab);
                       setSearchParams({ mode: "host", tab: newTab }, { replace: true });

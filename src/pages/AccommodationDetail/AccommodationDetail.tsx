@@ -454,22 +454,20 @@ const AccommodationDetail: React.FC = () => {
         cursor: cursor || undefined,
       });
 
-      if (response.data) {
-        const fetchedReviews = response.data.reviews || [];
-        const pageInfo = response.data.page_info;
+      const fetchedReviews = response.reviews || [];
+      const pageInfo = response.page_info;
 
-        if (cursor) {
-          // 추가 로드 (무한 스크롤)
-          setAllReviews((prev) => [...prev, ...fetchedReviews]);
-        } else {
-          // 첫 로드
-          setReviews(fetchedReviews);
-          setAllReviews(fetchedReviews);
-        }
-
-        setReviewCursor(pageInfo.next_cursor || null);
-        setHasMoreReviews(pageInfo.has_next || false);
+      if (cursor) {
+        // 추가 로드 (무한 스크롤)
+        setAllReviews((prev) => [...prev, ...fetchedReviews]);
+      } else {
+        // 첫 로드
+        setReviews(fetchedReviews);
+        setAllReviews(fetchedReviews);
       }
+
+      setReviewCursor(pageInfo.next_cursor || null);
+      setHasMoreReviews(pageInfo.has_next || false);
     } catch (err) {
       handleError(err);
     } finally {
@@ -609,18 +607,13 @@ const AccommodationDetail: React.FC = () => {
       const guestCount = adultCount + childCount;
       
       const reservationResponse = await reservationApi.create({
-        accommodation_id: accommodation.id,
-        check_in_date: checkInStr,
-        check_out_date: checkOutStr,
-        guest_count: guestCount,
-        message: undefined,
+        accommodationId: accommodation.id,
+        checkInDate: checkInStr,
+        checkOutDate: checkOutStr,
+        guestCount: guestCount,
       });
 
-      if (!reservationResponse.success || !reservationResponse.data) {
-        throw new Error("예약 생성에 실패했습니다.");
-      }
-
-      const { reservation_uid, order_name, amount, customer_email, customer_name } = reservationResponse.data;
+      const { reservation_uid, order_name, amount, customer_email, customer_name } = reservationResponse;
       
       // 예약 생성 성공 시 확인 및 결제 페이지로 이동 (결제 정보 + 예약 박스 정보 포함)
       const params = new URLSearchParams();

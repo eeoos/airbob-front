@@ -8,7 +8,7 @@ import { getImageUrl } from "../../../utils/image";
 import styles from "./GuestTrips.module.css";
 
 interface GuestTripsProps {
-  filterType: "UPCOMING" | "PAST" | "CANCELLED";
+  filterType: "UPCOMING" | "COMPLETED" | "CANCELLED";
 }
 
 const GuestTrips: React.FC<GuestTripsProps> = ({ filterType }) => {
@@ -32,13 +32,11 @@ const GuestTrips: React.FC<GuestTripsProps> = ({ filterType }) => {
       try {
         const response = await reservationApi.getMyReservations({ 
           size: 20, 
-          filterType: filterType || "UPCOMING" 
+          filterType: filterType || undefined 
         });
-        if (response.success && response.data) {
-          setReservations(response.data.reservations);
-          setCursor(response.data.page_info.next_cursor);
-          setHasNext(response.data.page_info.has_next);
-        }
+        setReservations(response.reservations);
+        setCursor(response.page_info.next_cursor);
+        setHasNext(response.page_info.has_next);
       } catch (err) {
         handleError(err);
       } finally {
@@ -60,13 +58,11 @@ const GuestTrips: React.FC<GuestTripsProps> = ({ filterType }) => {
       const response = await reservationApi.getMyReservations({ 
         size: 20, 
         cursor, 
-        filterType: filterType || "UPCOMING" 
+        filterType: filterType || undefined 
       });
-      if (response.success && response.data) {
-        setReservations((prev) => [...prev, ...response.data!.reservations]);
-        setCursor(response.data!.page_info.next_cursor);
-        setHasNext(response.data!.page_info.has_next);
-      }
+      setReservations((prev) => [...prev, ...response.reservations]);
+      setCursor(response.page_info.next_cursor);
+      setHasNext(response.page_info.has_next);
     } catch (err) {
       handleError(err);
     } finally {
@@ -117,7 +113,7 @@ const GuestTrips: React.FC<GuestTripsProps> = ({ filterType }) => {
     switch (filterType) {
       case "UPCOMING":
         return "다가올 여행";
-      case "PAST":
+      case "COMPLETED":
         return "이전 여행";
       case "CANCELLED":
         return "취소된 여행";

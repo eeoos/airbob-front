@@ -160,19 +160,14 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
       const guestCount = propAdultCount + propChildCount;
       
       const reservationResponse = await reservationApi.create({
-        accommodation_id: accommodation.id,
-        check_in_date: checkInStr,
-        check_out_date: checkOutStr,
-        guest_count: guestCount,
-        message: message.trim() || undefined,
+        accommodationId: accommodation.id,
+        checkInDate: checkInStr,
+        checkOutDate: checkOutStr,
+        guestCount: guestCount,
       });
 
-      if (!reservationResponse.success || !reservationResponse.data) {
-        throw new Error("예약 생성에 실패했습니다.");
-      }
-
       const { reservation_uid, order_name, amount, customer_email, customer_name } =
-        reservationResponse.data;
+        reservationResponse;
 
       // Toss Payments 결제 진행
       if (!window.TossPayments) {

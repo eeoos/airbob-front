@@ -46,8 +46,8 @@ const PaymentSuccess: React.FC = () => {
       try {
         // 결제 확인
         await paymentApi.confirm({
-          payment_key: paymentKey,
-          order_id: orderId,
+          paymentKey: paymentKey,
+          orderId: orderId,
           amount: parseInt(amount),
         });
 
