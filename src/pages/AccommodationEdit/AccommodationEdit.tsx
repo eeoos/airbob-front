@@ -610,8 +610,8 @@ const AccommodationEdit: React.FC = () => {
         }
         
         // 편의시설 비교
-        const amenityChanged = JSON.stringify(formData.amenityInfos.sort((a, b) => a.name.localeCompare(b.name))) !== 
-          JSON.stringify(initialFormData.amenityInfos.sort((a, b) => a.name.localeCompare(b.name)));
+        const amenityChanged = JSON.stringify(formData.amenityInfos.sort((a: { name: string; count: number }, b: { name: string; count: number }) => a.name.localeCompare(b.name))) !== 
+          JSON.stringify(initialFormData.amenityInfos.sort((a: { name: string; count: number }, b: { name: string; count: number }) => a.name.localeCompare(b.name)));
         
         if (amenityChanged) {
           data.amenity_infos = formData.amenityInfos;
@@ -634,8 +634,8 @@ const AccommodationEdit: React.FC = () => {
       
       // 이미지 변경 확인
       const imageChanged = !isNewDraft && initialImageItems.length > 0 && 
-        JSON.stringify(imageItems.map(i => ({ id: i.id, url: i.url })).sort((a, b) => (a.id || 0) - (b.id || 0))) !== 
-        JSON.stringify(initialImageItems.map(i => ({ id: i.id, url: i.url })).sort((a, b) => (a.id || 0) - (b.id || 0)));
+        JSON.stringify(imageItems.map((i: ImageItem) => ({ id: i.id, url: i.url })).sort((a: { id?: number; url: string }, b: { id?: number; url: string }) => (a.id || 0) - (b.id || 0))) !== 
+        JSON.stringify(initialImageItems.map((i: ImageItem) => ({ id: i.id, url: i.url })).sort((a: { id?: number; url: string }, b: { id?: number; url: string }) => (a.id || 0) - (b.id || 0)));
       
       // 변경사항이 없으면 요청 보내지 않음
       const hasChanges = Object.keys(updateData).length > 0 || imageChanged;
