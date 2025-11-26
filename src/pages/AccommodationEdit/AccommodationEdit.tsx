@@ -301,6 +301,7 @@ const AccommodationEdit: React.FC = () => {
   const [initialImageItems, setInitialImageItems] = useState<ImageItem[]>([]);
   const [showDetailAddressConfirm, setShowDetailAddressConfirm] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const [typeError, setTypeError] = useState(false);
   
   // imageItems가 변경될 때마다 ref 업데이트
   useEffect(() => {
@@ -326,7 +327,7 @@ const AccommodationEdit: React.FC = () => {
     name: "",
     description: "",
     basePrice: "",
-    type: "APARTMENT",
+    type: "",
     checkInTime: "15:00",
     checkOutTime: "11:00",
     addressInfo: {
@@ -366,7 +367,7 @@ const AccommodationEdit: React.FC = () => {
             name: data.name || "",
             description: data.description || "",
             basePrice: String(data.base_price || ""),
-            type: data.type || "APARTMENT",
+            type: data.type || "",
             checkInTime: data.check_in_time || "15:00",
             checkOutTime: data.check_out_time || "11:00",
             addressInfo: {
@@ -1381,6 +1382,15 @@ const AccommodationEdit: React.FC = () => {
       }
     }
 
+    // 3단계(숙소 정보)에서 다음 버튼을 누를 때 숙소 유형 검증
+    if (currentStep === 3) {
+      if (!formData.type || formData.type.trim() === "") {
+        setTypeError(true);
+        return; // 숙소 유형이 선택되지 않았으면 다음 단계로 이동하지 않음
+      }
+      setTypeError(false);
+    }
+
     // 4단계(체크인/체크아웃)에서 다음 버튼을 누를 때 데이터 저장
     if (currentStep === 4 && id) {
       setIsSaving(true);
@@ -1864,8 +1874,11 @@ const AccommodationEdit: React.FC = () => {
               </label>
               <button
                 type="button"
-                className={styles.typeSelectButton}
-                onClick={() => setIsTypeModalOpen(true)}
+                className={`${styles.typeSelectButton} ${typeError ? styles.typeSelectButtonError : ""}`}
+                onClick={() => {
+                  setIsTypeModalOpen(true);
+                  setTypeError(false);
+                }}
               >
                 {ACCOMMODATION_TYPES.find((t) => t.value === formData.type)?.label || "숙소 유형 선택"}
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
