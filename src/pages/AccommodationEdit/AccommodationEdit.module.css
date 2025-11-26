@@ -481,15 +481,6 @@
   color: #717171;
 }
 
-.typeSelectButtonError {
-  border-color: #d93025 !important;
-  border-width: 2px;
-}
-
-.typeSelectButtonError:hover {
-  border-color: #d93025 !important;
-}
-
 /* 숙소 유형 선택 모달 */
 .typeModalOverlay {
   position: fixed;
