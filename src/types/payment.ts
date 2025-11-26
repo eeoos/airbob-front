@@ -3,8 +3,8 @@ import { PaymentStatus } from "./enums";
 
 // 결제 확인 요청
 export interface ConfirmPaymentRequest {
-  paymentKey: string;
-  orderId: string;
+  payment_key: string;
+  order_id: string;
   amount: number;
 }
 
