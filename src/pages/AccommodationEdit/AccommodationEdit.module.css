@@ -1594,3 +1594,73 @@
 .timePickerOptionSelected:hover {
   background: #000000;
 }
+
+/* 상세 주소 확인 모달 */
+.confirmModal {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.confirmModalContent {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.confirmModalTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #222222;
+  margin: 0;
+}
+
+.confirmModalMessage {
+  font-size: 16px;
+  color: #717171;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.confirmModalButtons {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.confirmModalButtonCancel,
+.confirmModalButtonConfirm {
+  flex: 1;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.confirmModalButtonCancel {
+  background: white;
+  color: #222222;
+  border: 1px solid #222222;
+}
+
+.confirmModalButtonCancel:hover {
+  background: #f7f7f7;
+}
+
+.confirmModalButtonConfirm {
+  background: #222222;
+  color: white;
+}
+
+.confirmModalButtonConfirm:hover {
+  background: #000000;
+}

@@ -299,6 +299,8 @@ const AccommodationEdit: React.FC = () => {
   const [openTimePicker, setOpenTimePicker] = useState<"checkIn" | "checkOut" | null>(null);
   const [initialFormData, setInitialFormData] = useState<any>(null);
   const [initialImageItems, setInitialImageItems] = useState<ImageItem[]>([]);
+  const [showDetailAddressConfirm, setShowDetailAddressConfirm] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   
   // imageItems가 변경될 때마다 ref 업데이트
   useEffect(() => {
@@ -625,6 +627,49 @@ const AccommodationEdit: React.FC = () => {
   const handleSaveAndExit = async () => {
     if (!id) return;
 
+    // 3번 단계(위치 정보)에서 상세 주소 확인
+    if (currentStep === 3) {
+      const hasDetailAddress = formData.addressInfo.detail && formData.addressInfo.detail.trim() !== "";
+      if (!hasDetailAddress) {
+        setPendingAction(() => async () => {
+          setIsSaving(true);
+          clearError();
+
+          try {
+            // 초안 모드일 때는 입력된 필드만 보내기
+            const updateData = getUpdateData(isNewDraft);
+            
+            // 이미지 변경 확인
+            const imageChanged = !isNewDraft && initialImageItems.length > 0 && 
+              JSON.stringify(imageItems.map((i: ImageItem) => ({ id: i.id, url: i.url })).sort((a: { id?: number; url: string }, b: { id?: number; url: string }) => (a.id || 0) - (b.id || 0))) !== 
+              JSON.stringify(initialImageItems.map((i: ImageItem) => ({ id: i.id, url: i.url })).sort((a: { id?: number; url: string }, b: { id?: number; url: string }) => (a.id || 0) - (b.id || 0)));
+            
+            // 변경사항이 없으면 요청 보내지 않음
+            const hasChanges = Object.keys(updateData).length > 0 || imageChanged;
+            
+            if (!hasChanges) {
+              // 변경사항이 없으면 바로 이동
+              navigate("/profile?mode=host");
+              setIsSaving(false);
+              return;
+            }
+            
+            console.log("저장 후 나가기 - 요청 데이터:", JSON.stringify(updateData, null, 2));
+            console.log("저장 후 나가기 - 주소 정보:", updateData.address_info);
+            await accommodationApi.update(Number(id), updateData);
+            // 저장 성공 시 프로필 페이지의 호스트 모드로 이동
+            navigate("/profile?mode=host");
+          } catch (err) {
+            handleError(err);
+          } finally {
+            setIsSaving(false);
+          }
+        });
+        setShowDetailAddressConfirm(true);
+        return;
+      }
+    }
+
     setIsSaving(true);
     clearError();
 
@@ -662,6 +707,35 @@ const AccommodationEdit: React.FC = () => {
   const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
+
+    // 3번 단계(위치 정보)에서 상세 주소 확인
+    if (currentStep === 3) {
+      const hasDetailAddress = formData.addressInfo.detail && formData.addressInfo.detail.trim() !== "";
+      if (!hasDetailAddress) {
+        setPendingAction(() => async () => {
+          setIsSaving(true);
+          clearError();
+
+          try {
+            // 먼저 현재 폼 데이터로 숙소 수정
+            const updateData = getUpdateData();
+            console.log("저장하기 - 요청 데이터:", JSON.stringify(updateData, null, 2));
+            console.log("저장하기 - 주소 정보:", updateData.address_info);
+            await accommodationApi.update(Number(id), updateData);
+            // 그 다음 숙소 공개
+            await accommodationApi.publish(Number(id));
+            // 공개 성공 시 프로필 페이지의 호스트 모드로 이동
+            navigate("/profile?mode=host");
+          } catch (err) {
+            handleError(err);
+          } finally {
+            setIsSaving(false);
+          }
+        });
+        setShowDetailAddressConfirm(true);
+        return;
+      }
+    }
 
     setIsSaving(true);
     clearError();
@@ -1242,6 +1316,20 @@ const AccommodationEdit: React.FC = () => {
   };
 
   const handleNext = async () => {
+    // 3번 단계(위치 정보)에서 다음으로 넘어갈 때 상세 주소 확인
+    if (currentStep === 3) {
+      const hasDetailAddress = formData.addressInfo.detail && formData.addressInfo.detail.trim() !== "";
+      if (!hasDetailAddress) {
+        setPendingAction(() => () => {
+          if (currentStep < 5) {
+            setCurrentStep((prev) => (prev + 1) as Step);
+          }
+        });
+        setShowDetailAddressConfirm(true);
+        return;
+      }
+    }
+
     // 2번 단계(숙소 사진)에서 다음으로 넘어갈 때 아직 업로드되지 않은 이미지 업로드
     if (currentStep === 2 && id) {
       const filesToUpload = imageItems.filter((item) => item.file && !item.id);
@@ -1438,12 +1526,10 @@ const AccommodationEdit: React.FC = () => {
   const isStepCompleted = (step: Step): boolean => {
     switch (step) {
       case 1:
-        // 위치: 우편번호, 상세 주소 완료
+        // 위치: 주소 검색 완료
         return !!(
-          formData.addressInfo.postalCode &&
-          formData.addressInfo.postalCode.trim() !== "" &&
-          formData.addressInfo.detail &&
-          formData.addressInfo.detail.trim() !== ""
+          formData.addressInfo.street &&
+          formData.addressInfo.street.trim() !== ""
         );
       case 2:
         // 숙소 사진은 최소 1장 이상 필요
@@ -1504,11 +1590,7 @@ const AccommodationEdit: React.FC = () => {
               <div className={styles.addressSearchContainer}>
                 <input
                   type="text"
-                  value={
-                    formData.addressInfo.street
-                      ? `[${formData.addressInfo.postalCode}] ${formData.addressInfo.street}`.trim()
-                      : ""
-                  }
+                  value={formData.addressInfo.street || ""}
                   className={styles.input}
                   placeholder="주소를 검색하세요"
                   readOnly
@@ -1526,23 +1608,7 @@ const AccommodationEdit: React.FC = () => {
 
             <div className={styles.formGroup}>
               <label className={styles.label}>
-                우편번호 <span className={styles.required}>*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.addressInfo.postalCode}
-                onChange={(e) => handleNestedChange("addressInfo", "postalCode", e.target.value)}
-                className={styles.input}
-                placeholder="12345"
-                required
-                maxLength={12}
-                readOnly
-              />
-            </div>
-
-            <div className={styles.formGroup}>
-              <label className={styles.label}>
-                상세 주소 <span className={styles.required}>*</span>
+                상세 주소
               </label>
               <input
                 type="text"
@@ -1550,23 +1616,8 @@ const AccommodationEdit: React.FC = () => {
                 onChange={(e) => handleNestedChange("addressInfo", "detail", e.target.value)}
                 className={styles.input}
                 placeholder="101호 또는 건물명, 동/호수 등을 입력하세요"
-                required
               />
-              <p className={styles.helperText}>상세 주소(동/호수 등)를 입력해주세요.</p>
-            </div>
-
-            <div className={styles.formGroup}>
-              <label className={styles.label}>
-                국가 <span className={styles.required}>*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.addressInfo.country}
-                onChange={(e) => handleNestedChange("addressInfo", "country", e.target.value)}
-                className={styles.input}
-                required
-                readOnly
-              />
+              <p className={styles.helperText}>상세 주소(동/호수 등)를 입력해주세요. (선택사항)</p>
             </div>
           </div>
         );
@@ -2195,6 +2246,48 @@ const AccommodationEdit: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* 상세 주소 확인 모달 */}
+      {showDetailAddressConfirm && (
+        <div className={styles.typeModalOverlay} onClick={() => {
+          setShowDetailAddressConfirm(false);
+          setPendingAction(null);
+        }}>
+          <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.confirmModalContent}>
+              <h2 className={styles.confirmModalTitle}>상세 주소 확인</h2>
+              <p className={styles.confirmModalMessage}>
+                상세주소를 입력하지 않으셨습니다. 이대로 진행하시겠습니까?
+              </p>
+              <div className={styles.confirmModalButtons}>
+                <button
+                  type="button"
+                  className={styles.confirmModalButtonCancel}
+                  onClick={() => {
+                    setShowDetailAddressConfirm(false);
+                    setPendingAction(null);
+                  }}
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  className={styles.confirmModalButtonConfirm}
+                  onClick={() => {
+                    if (pendingAction) {
+                      pendingAction();
+                    }
+                    setShowDetailAddressConfirm(false);
+                    setPendingAction(null);
+                  }}
+                >
+                  진행하기
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 숙소 유형 선택 모달 */}
       {isTypeModalOpen && (
