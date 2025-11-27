@@ -318,9 +318,9 @@
     bottom: 0; /* 화면 하단에서 시작 */
     top: auto; /* top 제거 */
     transform: translateY(0); /* transform 제거 */
-    height: calc(100vh - 80px - 24px); /* 헤더 높이(80px) + 여유 공간(24px) 제외한 높이 */
-    max-height: calc(100vh - 80px - 24px);
-    min-height: calc(100vh - 80px - 24px);
+    height: calc(100vh - 80px - 48px); /* 헤더 높이(80px) + 여유 공간(48px) 제외한 높이 */
+    max-height: calc(100vh - 80px - 48px);
+    min-height: calc(100vh - 80px - 48px);
   }
 
   /* Bottom Sheet Header - Always Visible */
@@ -483,9 +483,9 @@
     bottom: 0; /* 화면 하단에서 시작 */
     top: auto; /* top 제거 */
     transform: translateY(0); /* transform 제거 */
-    height: calc(100vh - 144px - 24px); /* 헤더 높이(144px) + 여유 공간(24px) 제외한 높이 */
-    max-height: calc(100vh - 144px - 24px);
-    min-height: calc(100vh - 144px - 24px);
+    height: calc(100vh - 144px - 48px); /* 헤더 높이(144px) + 여유 공간(48px) 제외한 높이 */
+    max-height: calc(100vh - 144px - 48px);
+    min-height: calc(100vh - 144px - 48px);
   }
 
   /* Mobile Header adjustments */
