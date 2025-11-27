@@ -4,7 +4,7 @@
   border-radius: 12px;
   box-shadow: 0 2px 16px rgba(0, 0, 0, 0.18);
   padding: 24px;
-  z-index: 1000;
+  z-index: 1000; /* 데스크톱 기본값 */
   width: 850px;
   max-width: 850px;
   animation: slideDownFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -289,6 +289,7 @@
     display: flex;
     flex-direction: column;
     max-height: calc(100vh - 180px); /* 헤더 + 검색바 아래 공간 */
+    z-index: 1; /* datePickerContainer의 z-index가 더 높으므로 상대적으로 낮게 설정 */
   }
 
   /* 네비게이션 헤더 - 고정 */
