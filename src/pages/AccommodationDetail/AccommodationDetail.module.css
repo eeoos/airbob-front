@@ -105,6 +105,11 @@
   padding: 0 80px;
 }
 
+/* 모바일 슬라이더 - 기본적으로 숨김 (데스크톱) */
+.mobileImageSlider {
+  display: none;
+}
+
 .contentWrapper {
   display: grid;
   grid-template-columns: 1fr minmax(320px, 400px);
@@ -182,8 +187,8 @@
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
   gap: 8px;
-  aspect-ratio: 2 / 1;
-  max-height: 500px;
+  width: 100%;
+  height: clamp(300px, 40vw, 560px);
 }
 
 .mainImage {
@@ -1224,7 +1229,7 @@
   }
 
   .imageSection {
-    padding: 0 24px;
+    padding: 0;
   }
 
   .contentWrapper {
@@ -1245,13 +1250,72 @@
   }
 
   .imageGrid {
-    grid-template-columns: 1fr;
-    aspect-ratio: 3 / 2;
-    max-height: none;
+    display: none;
+  }
+
+  /* 모바일 이미지 슬라이더 */
+  .mobileImageSlider {
+    display: block;
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+  }
+
+  .sliderContainer {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.3s ease;
+  }
+
+  .slideImage {
+    flex-shrink: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .sliderIndicator {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 10;
+  }
+
+  .sliderDots {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+    z-index: 10;
+  }
+
+  .sliderDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .sliderDot.active {
+    background: white;
   }
 
   .mainImage {
-    border-radius: 12px;
+    display: none;
   }
 
   .thumbnailGrid {
@@ -1319,7 +1383,7 @@
   }
 
   .imageSection {
-    padding: 0 16px;
+    padding: 0;
   }
 
   .contentWrapper {
@@ -1363,6 +1427,11 @@
   }
 
   .imageGrid {
+    display: none;
+  }
+
+  .mobileImageSlider {
+    display: block;
     aspect-ratio: 4 / 3;
   }
 

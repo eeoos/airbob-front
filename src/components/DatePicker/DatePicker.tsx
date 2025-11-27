@@ -256,20 +256,31 @@ const DatePicker: React.FC<DatePickerProps> = ({
 
   return (
     <div className={styles.datePicker} ref={pickerRef}>
-      <div className={styles.calendars}>
-        <div className={styles.calendarWrapper}>
-          <button className={styles.monthNavButton} onClick={handlePrevMonth}>
-            ←
-          </button>
-          {renderCalendar(currentMonth)}
-        </div>
-        <div className={styles.calendarWrapper}>
-          {renderCalendar(nextMonth)}
-          <button className={styles.monthNavButton} onClick={handleNextMonth}>
-            →
-          </button>
+      {/* 네비게이션 헤더 - 이전/다음 버튼 같은 행 */}
+      <div className={styles.navHeader}>
+        <button className={styles.monthNavButton} onClick={handlePrevMonth}>
+          ←
+        </button>
+        <span className={styles.navTitle}>
+          {currentMonth.toLocaleDateString("ko-KR", { year: "numeric", month: "long" })}
+        </span>
+        <button className={styles.monthNavButton} onClick={handleNextMonth}>
+          →
+        </button>
+      </div>
+      
+      {/* 스크롤 가능한 달력 영역 */}
+      <div className={styles.calendarsScrollArea}>
+        <div className={styles.calendars}>
+          <div className={styles.calendarWrapper}>
+            {renderCalendar(currentMonth)}
+          </div>
+          <div className={styles.calendarWrapper}>
+            {renderCalendar(nextMonth)}
+          </div>
         </div>
       </div>
+      
       {!hideFooter && (
         <div className={styles.footer}>
           <button className={styles.clearButton} onClick={() => onDateSelect(null, null)}>

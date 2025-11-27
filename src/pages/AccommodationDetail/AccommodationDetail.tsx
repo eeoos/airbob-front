@@ -285,6 +285,9 @@ const AccommodationDetail: React.FC = () => {
   const [accommodation, setAccommodation] = useState<AccommodationDetailType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [mobileSlideIndex, setMobileSlideIndex] = useState(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [isImageGalleryOpen, setIsImageGalleryOpen] = useState(false);
   const [isWishlistModalOpen, setIsWishlistModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -651,6 +654,34 @@ const AccommodationDetail: React.FC = () => {
     addToRecentlyViewed();
   }, [id, isAuthenticated, accommodation]);
 
+  // 모바일 이미지 슬라이더 터치 핸들러
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd || !accommodation) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    const maxIndex = accommodation.images.length - 1;
+    
+    if (isLeftSwipe && mobileSlideIndex < maxIndex) {
+      setMobileSlideIndex(mobileSlideIndex + 1);
+    }
+    if (isRightSwipe && mobileSlideIndex > 0) {
+      setMobileSlideIndex(mobileSlideIndex - 1);
+    }
+  };
+
   if (isLoading) {
     return (
       <MainLayout>
@@ -728,6 +759,7 @@ const AccommodationDetail: React.FC = () => {
 
         {accommodation.images.length > 0 && (
           <div className={styles.imageSection}>
+            {/* 데스크톱 이미지 그리드 */}
             <div className={styles.imageGrid}>
               <div 
                 className={styles.mainImage}
@@ -779,6 +811,49 @@ const AccommodationDetail: React.FC = () => {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* 모바일/태블릿 이미지 슬라이더 */}
+            <div 
+              className={styles.mobileImageSlider}
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+              onClick={() => {
+                setCurrentImageIndex(mobileSlideIndex);
+                setIsImageGalleryOpen(true);
+              }}
+            >
+              <div 
+                className={styles.sliderContainer}
+                style={{ transform: `translateX(-${mobileSlideIndex * 100}%)` }}
+              >
+                {accommodation.images.map((image, index) => (
+                  <img
+                    key={image.id}
+                    src={getImageUrl(image.image_url)}
+                    alt={`${accommodation.name} ${index + 1}`}
+                    className={styles.slideImage}
+                  />
+                ))}
+              </div>
+              <div className={styles.sliderIndicator}>
+                {mobileSlideIndex + 1} / {accommodation.images.length}
+              </div>
+              {accommodation.images.length <= 5 && (
+                <div className={styles.sliderDots}>
+                  {accommodation.images.map((_, index) => (
+                    <button
+                      key={index}
+                      className={`${styles.sliderDot} ${index === mobileSlideIndex ? styles.active : ""}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMobileSlideIndex(index);
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}

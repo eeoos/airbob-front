@@ -3,12 +3,14 @@
   background: white;
   border-radius: 12px;
   box-shadow: 0 2px 16px rgba(0, 0, 0, 0.18);
-  padding: 32px;
+  padding: 24px;
   z-index: 1000;
   width: 850px;
   max-width: 850px;
   animation: slideDownFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   transform-origin: top left;
+  display: flex;
+  flex-direction: column;
 }
 
 @keyframes slideDownFadeIn {
@@ -22,11 +24,35 @@
   }
 }
 
+/* 네비게이션 헤더 - 이전/다음 버튼 같은 행 */
+.navHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #ebebeb;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.navTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #222222;
+}
+
+/* 스크롤 가능한 달력 영역 */
+.calendarsScrollArea {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
 .calendars {
   display: flex;
-  gap: 48px;
+  gap: 32px;
   align-items: flex-start;
-  margin-bottom: 20px;
 }
 
 .monthNavButton {
@@ -257,9 +283,40 @@
     max-width: 100%;
     transform: none;
     border-radius: 16px;
-    padding: 16px 12px;
+    padding: 0;
     box-shadow: none;
     animation: none;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 180px); /* 헤더 + 검색바 아래 공간 */
+  }
+
+  /* 네비게이션 헤더 - 고정 */
+  .navHeader {
+    padding: 16px;
+    border-bottom: 1px solid #ebebeb;
+    margin-bottom: 0;
+    background: white;
+    flex-shrink: 0;
+  }
+
+  .navTitle {
+    font-size: 15px;
+  }
+
+  .monthNavButton {
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+  }
+
+  /* 스크롤 가능한 달력 영역 */
+  .calendarsScrollArea {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 12px 16px;
+    -webkit-overflow-scrolling: touch;
   }
 
   /* 모바일에서 한 달씩 세로로 표시 */
@@ -278,7 +335,16 @@
   .calendar {
     width: 100%;
     min-height: auto;
-    padding-top: 4px;
+    padding-top: 0;
+  }
+
+  .monthHeader {
+    margin-bottom: 8px;
+    justify-content: center;
+  }
+
+  .monthName {
+    font-size: 15px;
   }
 
   /* 7열 그리드 강제 적용 */
@@ -315,24 +381,13 @@
     justify-content: center;
   }
 
-  .monthHeader {
-    margin-bottom: 8px;
-    justify-content: center;
-  }
-
-  .monthName {
-    font-size: 16px;
-  }
-
-  .monthNavButton {
-    width: 32px;
-    height: 32px;
-    font-size: 18px;
-  }
-
+  /* 푸터 - 고정 */
   .footer {
-    padding-top: 12px;
-    margin-top: 8px;
+    padding: 12px 16px;
+    margin-top: 0;
+    border-top: 1px solid #ebebeb;
+    background: white;
+    flex-shrink: 0;
   }
 
   .closeButton {
@@ -346,13 +401,21 @@
 }
 
 @media (max-width: 360px) {
-  .datePicker {
-    padding: 12px 8px;
+  .navHeader {
+    padding: 12px;
+  }
+
+  .calendarsScrollArea {
+    padding: 8px 12px;
   }
 
   .day {
     min-height: 32px;
     font-size: 13px;
+  }
+
+  .footer {
+    padding: 10px 12px;
   }
 }
 
