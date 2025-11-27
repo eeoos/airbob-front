@@ -315,11 +315,12 @@
 
   /* Expanded State - Tablet */
   .bottomSheet.expanded {
-    top: 88px; /* 헤더 높이(80px) + 여유 공간(8px) 아래에서 시작 */
-    bottom: 0; /* 화면 하단까지 */
+    bottom: 0; /* 화면 하단에서 시작 */
+    top: auto; /* top 제거 */
     transform: translateY(0); /* transform 제거 */
-    height: calc(100vh - 88px); /* 명시적 높이 계산 */
+    height: calc(100vh - 88px); /* 헤더 높이(80px) + 여유 공간(8px) 제외한 높이 */
     max-height: calc(100vh - 88px);
+    min-height: calc(100vh - 88px);
   }
 
   /* Bottom Sheet Header - Always Visible */
@@ -479,11 +480,12 @@
   }
 
   .bottomSheet.expanded {
-    top: 152px; /* 헤더 높이(144px) + 여유 공간(8px) 아래에서 시작 */
-    bottom: 0; /* 화면 하단까지 */
+    bottom: 0; /* 화면 하단에서 시작 */
+    top: auto; /* top 제거 */
     transform: translateY(0); /* transform 제거 */
-    height: calc(100vh - 152px); /* 명시적 높이 계산 */
+    height: calc(100vh - 152px); /* 헤더 높이(144px) + 여유 공간(8px) 제외한 높이 */
     max-height: calc(100vh - 152px);
+    min-height: calc(100vh - 152px);
   }
 
   /* Mobile Header adjustments */
