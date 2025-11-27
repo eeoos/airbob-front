@@ -2,6 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { AccommodationSearchInfo } from "../../types/accommodation";
 import { getImageUrl } from "../../utils/image";
+import { AccommodationType } from "../../types/enums";
 import styles from "./AccommodationCard.Search.module.css";
 
 interface AccommodationCardSearchProps {
@@ -47,6 +48,17 @@ export const AccommodationCardSearch: React.FC<AccommodationCardSearchProps> = (
       return `₩${totalPrice.toLocaleString()}`;
     }
     return `${currency} ${totalPrice.toLocaleString()}`;
+  };
+
+  // AccommodationType을 한글로 변환하는 함수
+  const getAccommodationTypeKorean = (type: AccommodationType): string => {
+    const typeMap: Record<AccommodationType, string> = {
+      [AccommodationType.ENTIRE_PLACE]: "집 전체",
+      [AccommodationType.PRIVATE_ROOM]: "개인실",
+      [AccommodationType.SHARED_ROOM]: "다인실",
+      [AccommodationType.HOSTEL]: "호스텔",
+    };
+    return typeMap[type] || "숙소";
   };
 
   const nights = calculateNights(checkIn, checkOut);
@@ -111,7 +123,7 @@ export const AccommodationCardSearch: React.FC<AccommodationCardSearchProps> = (
       <div className={styles.wishlistCardInfo}>
         <div className={styles.locationRow}>
           <div className={styles.location}>
-            {accommodation.address_summary.city || accommodation.address_summary.country}
+            {accommodation.address_summary.city || accommodation.address_summary.country}의 {getAccommodationTypeKorean(accommodation.type)}
           </div>
           {accommodation.review_summary.total_count > 0 && (
             <div className={styles.review}>

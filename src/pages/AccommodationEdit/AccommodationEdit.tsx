@@ -442,6 +442,7 @@ const AccommodationEdit: React.FC = () => {
       }
       if (formData.basePrice && Number(formData.basePrice) > 0) {
         data.base_price = Number(formData.basePrice);
+        data.currency = "KRW";
       }
       if (formData.type) {
         data.type = formData.type;
@@ -506,6 +507,7 @@ const AccommodationEdit: React.FC = () => {
         data.name = formData.name;
         data.description = formData.description;
         data.base_price = Number(formData.basePrice);
+        data.currency = "KRW";
         data.type = formData.type;
         data.check_in_time = formData.checkInTime;
         data.check_out_time = formData.checkOutTime;
@@ -551,6 +553,7 @@ const AccommodationEdit: React.FC = () => {
         }
         if (formData.basePrice !== initialFormData.basePrice) {
           data.base_price = Number(formData.basePrice);
+          data.currency = "KRW";
         }
         if (formData.type !== initialFormData.type) {
           data.type = formData.type;

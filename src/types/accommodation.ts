@@ -78,6 +78,7 @@ export interface AccommodationSearchInfo {
   accommodation_thumbnail_url: string | null;
   base_price: number;
   currency: string;
+  type: AccommodationType;
   address_summary: AddressSummaryInfo;
   coordinate: Coordinate;
   review_summary: ReviewSummary;
