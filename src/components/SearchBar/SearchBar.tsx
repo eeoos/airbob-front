@@ -8,7 +8,6 @@ interface SearchBarProps {
   onSearch?: (searchParams: SearchParams) => void;
   onExpandedChange?: (isExpanded: boolean) => void;
   isMapDragMode?: boolean; // 지도 드래그 모드 여부
-  startExpanded?: boolean; // 확장된 상태로 시작할지 여부 (모바일용)
 }
 
 export interface SearchParams {
@@ -29,7 +28,7 @@ export interface SearchParams {
   petOccupancy?: number;
 }
 
-export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange, isMapDragMode = false, startExpanded = false }) => {
+export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange, isMapDragMode = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -39,7 +38,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
   const [childOccupancy, setChildOccupancy] = useState(0);
   const [infantOccupancy, setInfantOccupancy] = useState(0);
   const [petOccupancy, setPetOccupancy] = useState(0);
-  const [isExpanded, setIsExpanded] = useState(startExpanded);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [showGuestPicker, setShowGuestPicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isComposing, setIsComposing] = useState(false);

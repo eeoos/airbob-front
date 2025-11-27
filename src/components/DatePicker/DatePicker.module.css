@@ -251,26 +251,44 @@
 
 @media (max-width: 768px) {
   .datePicker {
+    position: relative;
     min-width: auto;
-    width: calc(100vw - 48px);
-    max-width: calc(100vw - 48px);
-    left: 50%;
-    transform: translateX(-50%);
-    border-radius: 12px;
-    padding: 24px;
+    width: 100%;
+    max-width: 100%;
+    left: auto;
+    transform: none;
+    border-radius: 0;
+    padding: 24px 16px;
+    box-shadow: none;
+    animation: none;
   }
 
   .calendars {
     flex-direction: column;
     gap: 24px;
   }
+
+  .calendar {
+    min-height: 320px;
+  }
+
+  .days {
+    min-height: 240px;
+  }
+
+  .day {
+    min-height: 36px;
+    font-size: 14px;
+  }
+
+  .monthName {
+    font-size: 16px;
+  }
 }
 
 @media (max-width: 360px) {
   .datePicker {
-    width: calc(100vw - 32px);
-    max-width: calc(100vw - 32px);
-    padding: 20px;
+    padding: 16px 12px;
   }
 }
 
