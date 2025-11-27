@@ -621,27 +621,34 @@ const Search: React.FC = () => {
                 accommodations.length === 0 ? styles.emptyResults : ""
               }`}
             >
-              {/* Drag Handle */}
-              <div
-                className={styles.dragHandle}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                onMouseDown={handleMouseDown}
-              >
-                <div className={styles.dragHandleBar} />
-              </div>
-
-              {/* Content */}
-              <div 
-                className={styles.bottomSheetContent}
-                onScroll={handleBottomSheetScroll}
-              >
+              {/* Header Section - Always Visible */}
+              <div className={styles.bottomSheetHeader}>
+                {/* Drag Handle */}
+                <div
+                  className={styles.dragHandle}
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                  onMouseDown={handleMouseDown}
+                >
+                  <div className={styles.dragHandleBar} />
+                </div>
+                
+                {/* Title - Always visible in collapsed state */}
                 <h2 className={styles.title}>
                   {totalElements >= 1000 
                     ? "숙소 1,000개 이상" 
                     : `숙소 ${totalElements.toLocaleString()}개`}
                 </h2>
+              </div>
+
+              {/* Content Section - Hidden in collapsed state */}
+              <div 
+                className={`${styles.bottomSheetContent} ${
+                  bottomSheetState === "collapsed" ? styles.hidden : ""
+                }`}
+                onScroll={handleBottomSheetScroll}
+              >
                 {isLoading && accommodations.length === 0 ? (
                   <div className={styles.loading}>로딩 중...</div>
                 ) : accommodations.length === 0 ? (
