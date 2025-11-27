@@ -12,6 +12,7 @@
   width: 100%;
   max-width: 450px;
   height: 48px;
+  z-index: 1; /* stacking context 생성 */
 }
 
 .searchBar:hover {
