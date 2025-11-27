@@ -1484,16 +1484,16 @@
     font-size: 20px;
   }
 
-  /* 모바일에서 예약 박스의 달력 컨테이너 - 100% 너비 */
+  /* 모바일에서 예약 박스의 달력 컨테이너 - 더 넓게 */
   .datePickerContainer {
     position: fixed;
-    top: auto;
-    left: 0;
-    right: 0;
-    width: 100%;
-    max-width: 100%;
-    margin-top: 8px;
+    top: 130px; /* 헤더 + 검색바 아래 */
+    left: 4px;
+    right: 4px;
+    width: auto;
+    max-width: none;
     transform-origin: top center;
+    z-index: 9999;
   }
 }
 
