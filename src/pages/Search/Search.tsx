@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { MainLayout } from "../../layouts";
 import { ListContainer } from "../../components/ListContainer";
@@ -12,6 +12,9 @@ import { useApiError } from "../../hooks/useApiError";
 import { useAuth } from "../../hooks/useAuth";
 import { ErrorToast } from "../../components/ErrorToast";
 import styles from "./Search.module.css";
+
+// Bottom sheet states
+type BottomSheetState = "collapsed" | "half" | "expanded";
 
 const MAX_PAGE = 15; // 최대 페이지 수 제한
 
@@ -37,6 +40,29 @@ const Search: React.FC = () => {
   const prevSearchParamsRef = useRef<string>("");
   const prevViewportRef = useRef<string | null>(null); // 이전 viewport 정보 추적
   const [shouldUpdateMapBounds, setShouldUpdateMapBounds] = useState(false);
+  
+  // Bottom sheet state management
+  const [bottomSheetState, setBottomSheetState] = useState<BottomSheetState>("half");
+  const [isMobileOrTablet, setIsMobileOrTablet] = useState(false);
+  const bottomSheetRef = useRef<HTMLDivElement>(null);
+  const dragStartY = useRef<number>(0);
+  const dragStartState = useRef<BottomSheetState>("half");
+  const isDragging = useRef(false);
+  const touchStartY = useRef<number>(0);
+
+  // Check if mobile/tablet on mount and resize
+  useEffect(() => {
+    const checkViewport = () => {
+      setIsMobileOrTablet(window.innerWidth < 1024);
+    };
+    
+    checkViewport();
+    window.addEventListener("resize", checkViewport);
+    
+    return () => {
+      window.removeEventListener("resize", checkViewport);
+    };
+  }, []);
 
   // 검색 함수
   const fetchAccommodations = async (params: AccommodationSearchRequest, isMapDrag = false) => {
@@ -440,160 +466,437 @@ const Search: React.FC = () => {
     setSelectedAccommodationId(accommodationId);
   };
 
+  // Bottom sheet drag handlers
+  const handleDragStart = useCallback((clientY: number) => {
+    isDragging.current = true;
+    dragStartY.current = clientY;
+    dragStartState.current = bottomSheetState;
+  }, [bottomSheetState]);
+
+  const handleDragMove = useCallback((clientY: number) => {
+    if (!isDragging.current) return;
+    
+    const deltaY = dragStartY.current - clientY; // Positive = dragging up
+    const threshold = 50; // Minimum drag distance to change state
+    
+    if (Math.abs(deltaY) < threshold) return;
+    
+    let newState: BottomSheetState = dragStartState.current;
+    
+    if (deltaY > threshold) {
+      // Dragging up
+      if (dragStartState.current === "collapsed") {
+        newState = "half";
+      } else if (dragStartState.current === "half") {
+        newState = "expanded";
+      }
+    } else if (deltaY < -threshold) {
+      // Dragging down
+      if (dragStartState.current === "expanded") {
+        newState = "half";
+      } else if (dragStartState.current === "half") {
+        newState = "collapsed";
+      }
+    }
+    
+    if (newState !== bottomSheetState) {
+      setBottomSheetState(newState);
+      isDragging.current = false;
+    }
+  }, [bottomSheetState]);
+
+  const handleDragEnd = useCallback(() => {
+    isDragging.current = false;
+  }, []);
+
+  // Touch handlers
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    e.preventDefault();
+    touchStartY.current = e.touches[0].clientY;
+    handleDragStart(e.touches[0].clientY);
+  }, [handleDragStart]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isDragging.current) return;
+    e.preventDefault();
+    handleDragMove(e.touches[0].clientY);
+  }, [handleDragMove]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    e.preventDefault();
+    handleDragEnd();
+  }, [handleDragEnd]);
+
+  // Mouse handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    handleDragStart(e.clientY);
+  }, [handleDragStart]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDragging.current) return;
+    handleDragMove(e.clientY);
+  }, [handleDragMove]);
+
+  const handleMouseUp = useCallback(() => {
+    handleDragEnd();
+  }, [handleDragEnd]);
+
+  // Map interaction handler - collapse sheet
+  const handleMapInteraction = useCallback(() => {
+    if (bottomSheetState !== "collapsed") {
+      setBottomSheetState("collapsed");
+    }
+  }, [bottomSheetState]);
+
+  // Scroll handler - expand sheet when scrolling
+  const handleBottomSheetScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    const scrollTop = target.scrollTop;
+    
+    // If scrolling down from top, expand to full
+    if (scrollTop > 10 && bottomSheetState !== "expanded") {
+      setBottomSheetState("expanded");
+    }
+  }, [bottomSheetState]);
+
+  // Global mouse move/up handlers for drag
+  useEffect(() => {
+    if (isDragging.current) {
+      const handleGlobalMouseMove = (e: MouseEvent) => {
+        handleDragMove(e.clientY);
+      };
+      const handleGlobalMouseUp = () => {
+        handleDragEnd();
+      };
+      
+      window.addEventListener("mousemove", handleGlobalMouseMove);
+      window.addEventListener("mouseup", handleGlobalMouseUp);
+      
+      return () => {
+        window.removeEventListener("mousemove", handleGlobalMouseMove);
+        window.removeEventListener("mouseup", handleGlobalMouseUp);
+      };
+    }
+  }, [handleDragMove, handleDragEnd]);
+
+
   return (
     <MainLayout>
       <div className={styles.container}>
-        <main className={`${styles.main} ${isMapExpanded ? styles.mapExpanded : ''}`}>
-          <div className={styles.results}>
-              <h2 className={styles.title}>
-                {totalElements >= 1000 
-                  ? "숙소 1,000개 이상" 
-                  : `숙소 ${totalElements.toLocaleString()}개`}
-              </h2>
-              {isLoading && accommodations.length === 0 ? (
-                <div className={styles.loading}>로딩 중...</div>
-              ) : accommodations.length === 0 ? (
-                <div className={styles.empty}>검색 결과가 없습니다.</div>
-              ) : (
-                <>
-                  <ListContainer columns={3} gap={10}>
-                    {accommodations.map((accommodation) => (
-                      <div
-                        key={accommodation.id}
-                        id={`accommodation-${accommodation.id}`}
-                        onMouseEnter={() => setHoveredAccommodationId(accommodation.id)}
-                        onMouseLeave={() => setHoveredAccommodationId(null)}
-                        className={`${styles.cardWrapper} ${
-                          selectedAccommodationId === accommodation.id ? styles.selected : ""
-                        }`}
-                      >
-                        <AccommodationCardSearch
-                          accommodation={accommodation}
-                          onClick={() => handleAccommodationCardClick(accommodation.id)}
-                          onWishlistToggle={() =>
-                            handleWishlistToggle(accommodation.id, accommodation.is_in_wishlist)
-                          }
-                          checkIn={searchParams.get("checkIn")}
-                          checkOut={searchParams.get("checkOut")}
-                        />
-                      </div>
-                    ))}
-                  </ListContainer>
-                  {totalPages > 1 && (
-                    <div className={styles.paginationContainer}>
-                      <div className={styles.pagination}>
-                        <button
-                          className={styles.paginationButton}
-                          onClick={() => handlePageChange(currentPage - 1)}
-                          disabled={currentPage === 0 || isLoading}
+        {isMobileOrTablet ? (
+          // Mobile/Tablet: Bottom Sheet Layout
+          <>
+            {/* Map Layer - Fixed Base */}
+            <div className={styles.mapLayer} onClick={handleMapInteraction}>
+              <Map
+                accommodations={accommodations}
+                selectedAccommodationId={selectedAccommodationId}
+                hoveredAccommodationId={hoveredAccommodationId}
+                onAccommodationSelect={handleAccommodationSelect}
+                onWishlistToggle={handleWishlistToggle}
+                checkIn={searchParams.get("checkIn")}
+                checkOut={searchParams.get("checkOut")}
+                isExpanded={false}
+                onExpandToggle={() => {}}
+                onBoundsChange={handleMapBoundsChange}
+                isMapDragMode={isMapDragMode}
+                shouldUpdateMapBounds={shouldUpdateMapBounds}
+                onMapBoundsUpdated={() => {
+                  setShouldUpdateMapBounds(false);
+                }}
+                viewport={
+                  searchParams.get("topLeftLat") && searchParams.get("topLeftLng")
+                    ? {
+                        north: parseFloat(searchParams.get("topLeftLat")!),
+                        south: parseFloat(searchParams.get("bottomRightLat")!),
+                        east: parseFloat(searchParams.get("bottomRightLng")!),
+                        west: parseFloat(searchParams.get("topLeftLng")!),
+                      }
+                    : null
+                }
+              />
+            </div>
+
+            {/* Bottom Sheet - Overlay */}
+            <div
+              ref={bottomSheetRef}
+              className={`${styles.bottomSheet} ${styles[bottomSheetState]}`}
+              onScroll={handleBottomSheetScroll}
+            >
+              {/* Drag Handle */}
+              <div
+                className={styles.dragHandle}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                onMouseDown={handleMouseDown}
+              >
+                <div className={styles.dragHandleBar} />
+              </div>
+
+              {/* Content */}
+              <div className={styles.bottomSheetContent}>
+                <h2 className={styles.title}>
+                  {totalElements >= 1000 
+                    ? "숙소 1,000개 이상" 
+                    : `숙소 ${totalElements.toLocaleString()}개`}
+                </h2>
+                {isLoading && accommodations.length === 0 ? (
+                  <div className={styles.loading}>로딩 중...</div>
+                ) : accommodations.length === 0 ? (
+                  <div className={styles.empty}>검색 결과가 없습니다.</div>
+                ) : (
+                  <>
+                    <div className={styles.cardGrid}>
+                      {accommodations.map((accommodation) => (
+                        <div
+                          key={accommodation.id}
+                          id={`accommodation-${accommodation.id}`}
+                          className={`${styles.cardWrapper} ${
+                            selectedAccommodationId === accommodation.id ? styles.selected : ""
+                          }`}
                         >
-                          이전
-                        </button>
-                        {(() => {
-                          const pages: (number | string)[] = [];
-                          const maxDisplayPages = Math.min(totalPages, MAX_PAGE);
-                          
-                          // 페이지 번호 생성 로직
-                          if (maxDisplayPages <= 7) {
-                            // 전체 페이지가 7개 이하면 모두 표시
-                            for (let i = 0; i < maxDisplayPages; i++) {
-                              pages.push(i);
+                          <AccommodationCardSearch
+                            accommodation={accommodation}
+                            onClick={() => handleAccommodationCardClick(accommodation.id)}
+                            onWishlistToggle={() =>
+                              handleWishlistToggle(accommodation.id, accommodation.is_in_wishlist)
                             }
-                          } else {
-                            // 첫 페이지
-                            pages.push(0);
-                            
-                            if (currentPage <= 3) {
-                              // 현재 페이지가 앞쪽에 있으면
-                              for (let i = 1; i <= 4; i++) {
-                                pages.push(i);
-                              }
-                              pages.push("ellipsis");
-                              pages.push(maxDisplayPages - 1);
-                            } else if (currentPage >= maxDisplayPages - 4) {
-                              // 현재 페이지가 뒤쪽에 있으면
-                              pages.push("ellipsis");
-                              for (let i = maxDisplayPages - 5; i < maxDisplayPages - 1; i++) {
-                                pages.push(i);
-                              }
-                              pages.push(maxDisplayPages - 1);
-                            } else {
-                              // 현재 페이지가 중간에 있으면
-                              pages.push("ellipsis");
-                              for (let i = currentPage - 1; i <= currentPage + 1; i++) {
-                                pages.push(i);
-                              }
-                              pages.push("ellipsis");
-                              pages.push(maxDisplayPages - 1);
-                            }
-                          }
-                          
-                          return pages.map((page, index) => {
-                            if (page === "ellipsis") {
-                              return (
-                                <span key={`ellipsis-${index}`} className={styles.paginationEllipsis}>
-                                  ...
-                                </span>
-                              );
-                            }
-                            const pageNum = page as number;
-                            return (
-                              <button
-                                key={pageNum}
-                                className={`${styles.paginationButton} ${
-                                  pageNum === currentPage ? styles.paginationButtonActive : ""
-                                }`}
-                                onClick={() => handlePageChange(pageNum)}
-                                disabled={isLoading}
-                              >
-                                {pageNum + 1}
-                              </button>
-                            );
-                          });
-                        })()}
-                        <button
-                          className={styles.paginationButton}
-                          onClick={() => handlePageChange(currentPage + 1)}
-                          disabled={currentPage >= Math.min(totalPages, MAX_PAGE) - 1 || isLoading}
-                        >
-                          다음
-                        </button>
-                      </div>
+                            checkIn={searchParams.get("checkIn")}
+                            checkOut={searchParams.get("checkOut")}
+                          />
+                        </div>
+                      ))}
                     </div>
-                  )}
-                </>
-              )}
-          </div>
-          <div className={styles.mapSection}>
-            <Map
-              accommodations={accommodations}
-              selectedAccommodationId={selectedAccommodationId}
-              hoveredAccommodationId={hoveredAccommodationId}
-              onAccommodationSelect={handleAccommodationSelect}
-              onWishlistToggle={handleWishlistToggle}
-              checkIn={searchParams.get("checkIn")}
-              checkOut={searchParams.get("checkOut")}
-              isExpanded={isMapExpanded}
-              onExpandToggle={() => setIsMapExpanded(!isMapExpanded)}
-              onBoundsChange={handleMapBoundsChange}
-              isMapDragMode={isMapDragMode}
-              shouldUpdateMapBounds={shouldUpdateMapBounds}
-              onMapBoundsUpdated={() => {
-                setShouldUpdateMapBounds(false);
-              }}
-              viewport={
-                searchParams.get("topLeftLat") && searchParams.get("topLeftLng")
-                  ? {
-                      north: parseFloat(searchParams.get("topLeftLat")!),
-                      south: parseFloat(searchParams.get("bottomRightLat")!),
-                      east: parseFloat(searchParams.get("bottomRightLng")!),
-                      west: parseFloat(searchParams.get("topLeftLng")!),
-                    }
-                  : null
-              }
-            />
-          </div>
-        </main>
+                    {totalPages > 1 && (
+                      <div className={styles.paginationContainer}>
+                        <div className={styles.pagination}>
+                          <button
+                            className={styles.paginationButton}
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage === 0 || isLoading}
+                          >
+                            이전
+                          </button>
+                          {(() => {
+                            const pages: (number | string)[] = [];
+                            const maxDisplayPages = Math.min(totalPages, MAX_PAGE);
+                            
+                            if (maxDisplayPages <= 7) {
+                              for (let i = 0; i < maxDisplayPages; i++) {
+                                pages.push(i);
+                              }
+                            } else {
+                              pages.push(0);
+                              
+                              if (currentPage <= 3) {
+                                for (let i = 1; i <= 4; i++) {
+                                  pages.push(i);
+                                }
+                                pages.push("ellipsis");
+                                pages.push(maxDisplayPages - 1);
+                              } else if (currentPage >= maxDisplayPages - 4) {
+                                pages.push("ellipsis");
+                                for (let i = maxDisplayPages - 5; i < maxDisplayPages - 1; i++) {
+                                  pages.push(i);
+                                }
+                                pages.push(maxDisplayPages - 1);
+                              } else {
+                                pages.push("ellipsis");
+                                for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+                                  pages.push(i);
+                                }
+                                pages.push("ellipsis");
+                                pages.push(maxDisplayPages - 1);
+                              }
+                            }
+                            
+                            return pages.map((page, index) => {
+                              if (page === "ellipsis") {
+                                return (
+                                  <span key={`ellipsis-${index}`} className={styles.paginationEllipsis}>
+                                    ...
+                                  </span>
+                                );
+                              }
+                              const pageNum = page as number;
+                              return (
+                                <button
+                                  key={pageNum}
+                                  className={`${styles.paginationButton} ${
+                                    pageNum === currentPage ? styles.paginationButtonActive : ""
+                                  }`}
+                                  onClick={() => handlePageChange(pageNum)}
+                                  disabled={isLoading}
+                                >
+                                  {pageNum + 1}
+                                </button>
+                              );
+                            });
+                          })()}
+                          <button
+                            className={styles.paginationButton}
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage >= Math.min(totalPages, MAX_PAGE) - 1 || isLoading}
+                          >
+                            다음
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+          // Desktop: Original Side-by-Side Layout
+          <main className={`${styles.main} ${isMapExpanded ? styles.mapExpanded : ''}`}>
+            <div className={styles.results}>
+                <h2 className={styles.title}>
+                  {totalElements >= 1000 
+                    ? "숙소 1,000개 이상" 
+                    : `숙소 ${totalElements.toLocaleString()}개`}
+                </h2>
+                {isLoading && accommodations.length === 0 ? (
+                  <div className={styles.loading}>로딩 중...</div>
+                ) : accommodations.length === 0 ? (
+                  <div className={styles.empty}>검색 결과가 없습니다.</div>
+                ) : (
+                  <>
+                    <ListContainer columns={3} gap={10}>
+                      {accommodations.map((accommodation) => (
+                        <div
+                          key={accommodation.id}
+                          id={`accommodation-${accommodation.id}`}
+                          onMouseEnter={() => setHoveredAccommodationId(accommodation.id)}
+                          onMouseLeave={() => setHoveredAccommodationId(null)}
+                          className={`${styles.cardWrapper} ${
+                            selectedAccommodationId === accommodation.id ? styles.selected : ""
+                          }`}
+                        >
+                          <AccommodationCardSearch
+                            accommodation={accommodation}
+                            onClick={() => handleAccommodationCardClick(accommodation.id)}
+                            onWishlistToggle={() =>
+                              handleWishlistToggle(accommodation.id, accommodation.is_in_wishlist)
+                            }
+                            checkIn={searchParams.get("checkIn")}
+                            checkOut={searchParams.get("checkOut")}
+                          />
+                        </div>
+                      ))}
+                    </ListContainer>
+                    {totalPages > 1 && (
+                      <div className={styles.paginationContainer}>
+                        <div className={styles.pagination}>
+                          <button
+                            className={styles.paginationButton}
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage === 0 || isLoading}
+                          >
+                            이전
+                          </button>
+                          {(() => {
+                            const pages: (number | string)[] = [];
+                            const maxDisplayPages = Math.min(totalPages, MAX_PAGE);
+                            
+                            if (maxDisplayPages <= 7) {
+                              for (let i = 0; i < maxDisplayPages; i++) {
+                                pages.push(i);
+                              }
+                            } else {
+                              pages.push(0);
+                              
+                              if (currentPage <= 3) {
+                                for (let i = 1; i <= 4; i++) {
+                                  pages.push(i);
+                                }
+                                pages.push("ellipsis");
+                                pages.push(maxDisplayPages - 1);
+                              } else if (currentPage >= maxDisplayPages - 4) {
+                                pages.push("ellipsis");
+                                for (let i = maxDisplayPages - 5; i < maxDisplayPages - 1; i++) {
+                                  pages.push(i);
+                                }
+                                pages.push(maxDisplayPages - 1);
+                              } else {
+                                pages.push("ellipsis");
+                                for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+                                  pages.push(i);
+                                }
+                                pages.push("ellipsis");
+                                pages.push(maxDisplayPages - 1);
+                              }
+                            }
+                            
+                            return pages.map((page, index) => {
+                              if (page === "ellipsis") {
+                                return (
+                                  <span key={`ellipsis-${index}`} className={styles.paginationEllipsis}>
+                                    ...
+                                  </span>
+                                );
+                              }
+                              const pageNum = page as number;
+                              return (
+                                <button
+                                  key={pageNum}
+                                  className={`${styles.paginationButton} ${
+                                    pageNum === currentPage ? styles.paginationButtonActive : ""
+                                  }`}
+                                  onClick={() => handlePageChange(pageNum)}
+                                  disabled={isLoading}
+                                >
+                                  {pageNum + 1}
+                                </button>
+                              );
+                            });
+                          })()}
+                          <button
+                            className={styles.paginationButton}
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage >= Math.min(totalPages, MAX_PAGE) - 1 || isLoading}
+                          >
+                            다음
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+            </div>
+            <div className={styles.mapSection}>
+              <Map
+                accommodations={accommodations}
+                selectedAccommodationId={selectedAccommodationId}
+                hoveredAccommodationId={hoveredAccommodationId}
+                onAccommodationSelect={handleAccommodationSelect}
+                onWishlistToggle={handleWishlistToggle}
+                checkIn={searchParams.get("checkIn")}
+                checkOut={searchParams.get("checkOut")}
+                isExpanded={isMapExpanded}
+                onExpandToggle={() => setIsMapExpanded(!isMapExpanded)}
+                onBoundsChange={handleMapBoundsChange}
+                isMapDragMode={isMapDragMode}
+                shouldUpdateMapBounds={shouldUpdateMapBounds}
+                onMapBoundsUpdated={() => {
+                  setShouldUpdateMapBounds(false);
+                }}
+                viewport={
+                  searchParams.get("topLeftLat") && searchParams.get("topLeftLng")
+                    ? {
+                        north: parseFloat(searchParams.get("topLeftLat")!),
+                        south: parseFloat(searchParams.get("bottomRightLat")!),
+                        east: parseFloat(searchParams.get("bottomRightLng")!),
+                        west: parseFloat(searchParams.get("topLeftLng")!),
+                      }
+                    : null
+                }
+              />
+            </div>
+          </main>
+        )}
 
         {error && (
           <div className={styles.toastContainer}>

@@ -6,6 +6,14 @@
   overflow-x: hidden;
 }
 
+/* Hide bottom sheet on desktop */
+@media (min-width: 1025px) {
+  .mapLayer,
+  .bottomSheet {
+    display: none;
+  }
+}
+
 .main {
   padding: 24px 80px 0 80px;
   max-width: 1760px;
@@ -234,75 +242,142 @@
 
 /* ---- Tablet (768-1024px) ---- */
 @media (max-width: 1024px) {
+  /* Hide desktop layout on tablet/mobile */
   .main {
-    padding: 24px 24px;
-    flex-direction: column;
-    height: auto;
-    min-height: auto;
-    gap: 24px;
+    display: none;
   }
 
-  .results {
-    overflow-y: visible;
-    height: auto;
-    max-height: none;
-  }
-
-  .mapSection {
-    flex: none;
-    width: 100%;
-    position: relative;
+  /* Bottom Sheet Layout for Mobile/Tablet */
+  .mapLayer {
+    position: fixed;
     top: 0;
-    height: 400px;
-    min-height: 350px;
-    max-height: 400px;
-    margin-top: 0;
-    order: 2;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100vh;
+    z-index: 1;
+    overflow: hidden;
   }
 
-  .main.mapExpanded {
-    left: 24px;
-    right: 24px;
-    width: calc(100% - 48px);
-    padding: 24px 0;
+  .mapLayer > * {
+    width: 100%;
+    height: 100%;
   }
 
-  .main.mapExpanded .mapSection {
+  .bottomSheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: white;
+    border-radius: 24px 24px 0 0;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    touch-action: pan-y;
+  }
+
+  .bottomSheet.collapsed {
+    transform: translateY(calc(100% - 120px)); /* Show ~1 card height */
+    max-height: 120px;
+  }
+
+  .bottomSheet.half {
+    transform: translateY(calc(100% - 50vh)); /* Show ~50% of viewport */
+    max-height: 50vh;
+  }
+
+  .bottomSheet.expanded {
+    transform: translateY(80px); /* Show full list with header space */
+    max-height: calc(100vh - 80px);
+  }
+
+  .dragHandle {
+    width: 100%;
+    padding: 12px 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: grab;
+    flex-shrink: 0;
+    touch-action: none;
+  }
+
+  .dragHandle:active {
+    cursor: grabbing;
+  }
+
+  .dragHandleBar {
+    width: 40px;
+    height: 4px;
+    background: #dddddd;
+    border-radius: 2px;
+  }
+
+  .bottomSheetContent {
     flex: 1;
-    height: calc(100vh - 80px - 48px);
-    max-height: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0 16px 16px 16px;
+    -webkit-overflow-scrolling: touch;
   }
+
+  .bottomSheetContent::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Card Grid - Tablet: 2 columns */
+  .cardGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .cardWrapper {
+    width: 100%;
+    min-width: 0;
+  }
+
 }
 
 /* ---- Mobile (<768px) ---- */
 @media (max-width: 768px) {
+  /* Hide desktop layout on mobile */
   .main {
-    padding: 16px 16px;
+    display: none;
+  }
+
+  /* Bottom Sheet - Mobile adjustments */
+  .bottomSheet.collapsed {
+    transform: translateY(calc(100% - 100px)); /* Show ~1 card height on mobile */
+    max-height: 100px;
+  }
+
+  .bottomSheet.half {
+    transform: translateY(calc(100% - 40vh)); /* Show ~40% of viewport */
+    max-height: 40vh;
+  }
+
+  .bottomSheet.expanded {
+    transform: translateY(60px); /* Show full list with header space */
+    max-height: calc(100vh - 60px);
+  }
+
+  /* Card Grid - Mobile: 1 column */
+  .cardGrid {
+    display: grid;
+    grid-template-columns: 1fr;
     gap: 16px;
-    max-width: 100%;
-    overflow-x: hidden;
+    margin-bottom: 16px;
   }
 
-  .results {
-    max-width: 100%;
-    overflow-x: hidden;
-  }
-
-  .mapSection {
-    height: 300px;
-    min-height: 280px;
-    max-height: 300px;
-  }
-
-  .main.mapExpanded {
-    left: 16px;
-    right: 16px;
-    width: calc(100% - 32px);
-    padding: 16px 0;
-  }
-
-  .main.mapExpanded .mapSection {
-    flex: 1;
+  .bottomSheetContent {
+    padding: 0 12px 12px 12px;
   }
 
   .paginationButton {
@@ -317,6 +392,7 @@
     max-width: 100%;
     overflow: hidden;
   }
+
 }
 
 /* 지도 확장 모드 */
@@ -350,4 +426,16 @@
   max-height: none;
   margin: 0;
   width: 100%;
+}
+
+/* Desktop: Show desktop layout, hide bottom sheet */
+@media (min-width: 1025px) {
+  .mapLayer,
+  .bottomSheet {
+    display: none !important;
+  }
+
+  .main {
+    display: flex !important;
+  }
 }
