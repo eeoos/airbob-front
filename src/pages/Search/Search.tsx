@@ -135,15 +135,21 @@ const Search: React.FC = () => {
     dragStartYRef.current = y.get();
   }, [isMobileOrTablet, bottomSheetState, y]);
   
-  // Handle drag - constrain to bounds
+  // Handle drag - constrain to bounds (real-time during drag)
   const handleDrag = useCallback((event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     if (!isMobileOrTablet) return;
     
     // info.offset.y is relative to drag start, negative = dragging up
-    const newY = Math.max(
+    // Calculate new position
+    let newY = dragStartYRef.current - info.offset.y;
+    
+    // Strictly constrain to snap positions bounds
+    // Cannot go below collapsed or above expanded
+    newY = Math.max(
       snapPositions.collapsed,
-      Math.min(snapPositions.expanded, dragStartYRef.current - info.offset.y)
+      Math.min(snapPositions.expanded, newY)
     );
+    
     y.set(newY);
   }, [isMobileOrTablet, snapPositions, y]);
 
@@ -633,8 +639,16 @@ const Search: React.FC = () => {
                   : undefined
               }
               drag={isMobileOrTablet ? "y" : false}
-              dragElastic={0.1}
+              dragElastic={0}
               dragMomentum={false}
+              dragConstraints={
+                isMobileOrTablet
+                  ? {
+                      top: -snapPositions.expanded,
+                      bottom: -snapPositions.collapsed,
+                    }
+                  : undefined
+              }
               onDragStart={handleDragStart}
               onDrag={handleDrag}
               onDragEnd={handleDragEnd}
