@@ -274,25 +274,19 @@
     border-radius: 24px 24px 0 0;
     box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
     z-index: 1000;
-    transition: transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
-                height 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-                top 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-                max-height 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-                min-height 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     display: flex;
     flex-direction: column;
     overflow: hidden;
     touch-action: pan-y;
-    will-change: transform, height, top;
+    will-change: transform;
     backface-visibility: hidden;
     -webkit-font-smoothing: antialiased;
-    transform: translateZ(0); /* GPU 가속 */
-    -webkit-transform: translateZ(0);
+    /* transform is controlled by react-spring */
   }
 
   /* Collapsed State - Pure Peek (Header Only) - Tablet */
   .bottomSheet.collapsed {
-    transform: translateY(calc(100% - 80px)); /* Tablet: exactly 80px */
+    /* transform is controlled by react-spring */
     height: 80px;
     max-height: 80px;
     min-height: 80px;
@@ -300,14 +294,14 @@
 
   /* Half State - Tablet: 45-50vh */
   .bottomSheet.half {
-    transform: translateY(calc(100% - 48vh)); /* Tablet: 45-50vh (using 48vh) */
+    /* transform is controlled by react-spring */
     height: 48vh;
     min-height: 48vh;
     max-height: 48vh;
   }
 
   .bottomSheet.half.emptyResults {
-    transform: translateY(calc(100% - 42vh)); /* Empty results: 40-45vh (using 42vh) */
+    /* transform is controlled by react-spring */
     height: 42vh;
     min-height: 42vh;
     max-height: 42vh;
@@ -315,9 +309,7 @@
 
   /* Expanded State - Tablet */
   .bottomSheet.expanded {
-    bottom: 0; /* 화면 하단에서 시작 */
-    top: auto; /* top 제거 */
-    transform: translateY(0); /* transform 제거 */
+    /* transform is controlled by react-spring */
     height: calc(100vh - 80px - 100px); /* 헤더 높이(80px) + 여유 공간(100px) 제외한 높이 */
     max-height: calc(100vh - 80px - 100px);
     min-height: calc(100vh - 80px - 100px);
@@ -444,9 +436,7 @@
   }
 
   .bottomSheet.collapsed {
-    bottom: 0; /* 화면 하단에 고정 */
-    top: auto; /* top 제거 */
-    transform: translateY(0); /* transform 제거 */
+    /* transform is controlled by react-spring */
     height: 64px;
     max-height: 64px;
     min-height: 64px;
@@ -462,27 +452,21 @@
   }
 
   .bottomSheet.half {
-    bottom: 0; /* 화면 하단에 고정 */
-    top: auto; /* top 제거 */
-    transform: translateY(0); /* transform 제거 */
+    /* transform is controlled by react-spring */
     height: 40vh;
     min-height: 40vh;
     max-height: 40vh;
   }
 
   .bottomSheet.half.emptyResults {
-    bottom: 0; /* 화면 하단에 고정 */
-    top: auto; /* top 제거 */
-    transform: translateY(0); /* transform 제거 */
+    /* transform is controlled by react-spring */
     height: 42vh;
     min-height: 42vh;
     max-height: 42vh;
   }
 
   .bottomSheet.expanded {
-    bottom: 0; /* 화면 하단에서 시작 */
-    top: auto; /* top 제거 */
-    transform: translateY(0); /* transform 제거 */
+    /* transform is controlled by react-spring */
     height: calc(100vh - 144px - 100px); /* 헤더 높이(144px) + 여유 공간(100px) 제외한 높이 */
     max-height: calc(100vh - 144px - 100px);
     min-height: calc(100vh - 144px - 100px);

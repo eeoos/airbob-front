@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSpring, useDrag } from "@react-spring/web";
 import { MainLayout } from "../../layouts";
 import { ListContainer } from "../../components/ListContainer";
 import { AccommodationCardSearch } from "../../components/AccommodationCard";
@@ -45,10 +46,114 @@ const Search: React.FC = () => {
   const [bottomSheetState, setBottomSheetState] = useState<BottomSheetState>("half");
   const [isMobileOrTablet, setIsMobileOrTablet] = useState(false);
   const bottomSheetRef = useRef<HTMLDivElement>(null);
-  const dragStartY = useRef<number>(0);
-  const dragStartState = useRef<BottomSheetState>("half");
-  const isDragging = useRef(false);
-  const touchStartY = useRef<number>(0);
+  
+  // Calculate snap positions based on viewport (from bottom of screen)
+  const snapPositions = useMemo(() => {
+    if (!isMobileOrTablet) return { collapsed: 0, half: 0, expanded: 0 };
+    
+    const isMobile = window.innerWidth < 768;
+    const headerHeight = isMobile ? 144 : 80;
+    const gap = 100;
+    
+    return {
+      collapsed: isMobile ? 64 : 80,
+      half: isMobile ? window.innerHeight * 0.4 : window.innerHeight * 0.48,
+      expanded: window.innerHeight - headerHeight - gap,
+    };
+  }, [isMobileOrTablet]);
+  
+  // Spring animation for bottom sheet (y represents distance from bottom)
+  const [{ y }, api] = useSpring(() => ({
+    y: snapPositions[bottomSheetState],
+    config: {
+      tension: 300,
+      friction: 30,
+    },
+  }));
+  
+  // Update spring when state changes
+  useEffect(() => {
+    if (isMobileOrTablet) {
+      api.start({
+        y: snapPositions[bottomSheetState],
+        immediate: false,
+      });
+    }
+  }, [bottomSheetState, snapPositions, api, isMobileOrTablet]);
+  
+  // Determine next state based on current state and drag direction
+  const getNextState = useCallback((currentState: BottomSheetState, dragUp: boolean): BottomSheetState => {
+    if (dragUp) {
+      if (currentState === "collapsed") return "half";
+      if (currentState === "half") return "expanded";
+      return currentState;
+    } else {
+      if (currentState === "expanded") return "half";
+      if (currentState === "half") return "collapsed";
+      return currentState;
+    }
+  }, []);
+  
+  // Track drag start state
+  const dragStartStateRef = useRef<BottomSheetState>(bottomSheetState);
+  
+  // Drag handler using react-spring
+  const bind = useDrag(
+    ({ movement: [, my], direction: [, dy], cancel, canceled, velocity: [, vy], first, last, memo }) => {
+      if (!isMobileOrTablet) return;
+      
+      // On drag start, record current state and initial Y
+      if (first) {
+        dragStartStateRef.current = bottomSheetState;
+        memo = y.get();
+      }
+      
+      // Only allow vertical dragging (dy should be dominant)
+      if (Math.abs(dy) < 0.5) return;
+      
+      const startY = memo as number;
+      const dragThreshold = 50;
+      const velocityThreshold = 0.5;
+      const dragDistance = Math.abs(my);
+      const isDraggingUp = my < 0; // Negative movement = dragging up
+      
+      // During drag, update position
+      if (!last && !canceled) {
+        const newY = Math.max(
+          snapPositions.collapsed,
+          Math.min(snapPositions.expanded, startY - my)
+        );
+        api.start({
+          y: newY,
+          immediate: true,
+        });
+        return newY;
+      }
+      
+      // On drag end, snap to nearest state
+      if (last || canceled) {
+        const shouldSnap = dragDistance > dragThreshold || Math.abs(vy) > velocityThreshold;
+        
+        if (shouldSnap) {
+          const nextState = getNextState(dragStartStateRef.current, isDraggingUp);
+          setBottomSheetState(nextState);
+        } else {
+          // If drag was too small, return to original state
+          api.start({
+            y: snapPositions[dragStartStateRef.current],
+            immediate: false,
+          });
+        }
+      }
+      
+      return memo;
+    },
+    {
+      axis: "y",
+      filterTaps: true,
+      from: () => [0, y.get()],
+    }
+  );
 
   // Check if mobile/tablet on mount and resize
   useEffect(() => {
@@ -471,72 +576,6 @@ const Search: React.FC = () => {
     setBottomSheetState("collapsed");
   }, []);
 
-  // Bottom sheet drag handlers
-  const handleDragStart = useCallback((clientY: number) => {
-    isDragging.current = true;
-    dragStartY.current = clientY;
-    dragStartState.current = bottomSheetState;
-  }, [bottomSheetState]);
-
-  const handleDragMove = useCallback((clientY: number) => {
-    if (!isDragging.current) return;
-    
-    const deltaY = dragStartY.current - clientY; // Positive = dragging up
-    const threshold = 50; // Minimum drag distance to change state
-    
-    if (Math.abs(deltaY) < threshold) return;
-    
-    let newState: BottomSheetState = dragStartState.current;
-    
-    if (deltaY > threshold) {
-      // Dragging up
-      if (dragStartState.current === "collapsed") {
-        newState = "half";
-      } else if (dragStartState.current === "half") {
-        newState = "expanded";
-      }
-    } else if (deltaY < -threshold) {
-      // Dragging down
-      if (dragStartState.current === "expanded") {
-        newState = "half";
-      } else if (dragStartState.current === "half") {
-        newState = "collapsed";
-      }
-    }
-    
-    if (newState !== bottomSheetState) {
-      setBottomSheetState(newState);
-      isDragging.current = false;
-    }
-  }, [bottomSheetState]);
-
-  const handleDragEnd = useCallback(() => {
-    isDragging.current = false;
-  }, []);
-
-  // Touch handlers
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    e.preventDefault();
-    touchStartY.current = e.touches[0].clientY;
-    handleDragStart(e.touches[0].clientY);
-  }, [handleDragStart]);
-
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!isDragging.current) return;
-    e.preventDefault();
-    handleDragMove(e.touches[0].clientY);
-  }, [handleDragMove]);
-
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    e.preventDefault();
-    handleDragEnd();
-  }, [handleDragEnd]);
-
-  // Mouse handlers
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    handleDragStart(e.clientY);
-  }, [handleDragStart]);
-
   // Scroll handler - expand sheet when scrolling down > 20px
   const handleBottomSheetScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
@@ -546,34 +585,7 @@ const Search: React.FC = () => {
     if (scrollTop > 20 && bottomSheetState !== "expanded") {
       setBottomSheetState("expanded");
     }
-    // If at top (scrollTop === 0) and user scrolls upward, return to half (NOT collapsed)
-    else if (scrollTop === 0 && bottomSheetState === "expanded") {
-      // Only transition to half if we're at the top and were expanded
-      // This is handled by the scroll event itself - if user scrolls up at top, we don't collapse
-    }
   }, [bottomSheetState]);
-
-  // Global mouse move/up handlers for drag
-  useEffect(() => {
-    const handleGlobalMouseMove = (e: MouseEvent) => {
-      if (isDragging.current) {
-        handleDragMove(e.clientY);
-      }
-    };
-    const handleGlobalMouseUp = () => {
-      if (isDragging.current) {
-        handleDragEnd();
-      }
-    };
-    
-    window.addEventListener("mousemove", handleGlobalMouseMove);
-    window.addEventListener("mouseup", handleGlobalMouseUp);
-    
-    return () => {
-      window.removeEventListener("mousemove", handleGlobalMouseMove);
-      window.removeEventListener("mouseup", handleGlobalMouseUp);
-    };
-  }, [handleDragMove, handleDragEnd]);
 
 
   return (
@@ -617,20 +629,23 @@ const Search: React.FC = () => {
             {/* Bottom Sheet - Overlay */}
             <div
               ref={bottomSheetRef}
+              {...(isMobileOrTablet ? bind() : {})}
               className={`${styles.bottomSheet} ${styles[bottomSheetState]} ${
                 accommodations.length === 0 ? styles.emptyResults : ""
               }`}
+              style={
+                isMobileOrTablet
+                  ? {
+                      transform: y.to((val) => `translateY(${window.innerHeight - val}px)`),
+                      touchAction: "pan-y",
+                    }
+                  : undefined
+              }
             >
               {/* Header Section - Always Visible */}
               <div className={styles.bottomSheetHeader}>
                 {/* Drag Handle */}
-                <div
-                  className={styles.dragHandle}
-                  onTouchStart={handleTouchStart}
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleTouchEnd}
-                  onMouseDown={handleMouseDown}
-                >
+                <div className={styles.dragHandle}>
                   <div className={styles.dragHandleBar} />
                 </div>
                 
