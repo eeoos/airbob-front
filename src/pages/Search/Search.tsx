@@ -48,21 +48,24 @@ const Search: React.FC = () => {
   const bottomSheetRef = useRef<HTMLDivElement | null>(null);
   
   // Calculate snap positions based on viewport (from bottom of screen)
+  // These values represent how much the sheet should move UP from bottom (0)
   const snapPositions = useMemo(() => {
     if (!isMobileOrTablet) return { collapsed: 0, half: 0, expanded: 0 };
     
     const isMobile = window.innerWidth < 768;
-    const headerHeight = isMobile ? 144 : 80;
     const viewportHeight = window.innerHeight;
-    const availableHeight = viewportHeight - headerHeight; // 헤더를 제외한 사용 가능한 높이
+    const headerHeight = isMobile ? 144 : 80;
     
     return {
-      // Collapsed: grabber + title만 보이는 peek 상태 (약 80-100px)
-      collapsed: isMobile ? 100 : 100,
-      // Half: 헤더를 제외한 영역의 약 50% (헤더 아래부터 시작)
-      half: isMobile ? availableHeight * 0.5 : availableHeight * 0.5,
-      // Expanded: 헤더 바로 아래부터 시작 (헤더 높이만 제외)
-      expanded: availableHeight,
+      // Collapsed: grabber + title만 보이는 peek 상태 (약 100px만 보임)
+      // 시트 높이는 100px이고, translateY는 0 (하단에 붙어있음)
+      collapsed: 0,
+      // Half: 화면 높이의 약 50% 위치
+      // 시트 높이는 50vh이고, translateY는 -50vh (하단에서 50vh 위로 올라감)
+      half: isMobile ? viewportHeight * 0.5 : viewportHeight * 0.5,
+      // Expanded: 헤더 바로 아래까지
+      // 시트 높이는 (100vh - headerHeight)이고, translateY는 -(100vh - headerHeight)
+      expanded: viewportHeight - headerHeight,
     };
   }, [isMobileOrTablet]);
   

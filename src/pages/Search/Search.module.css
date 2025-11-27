@@ -292,19 +292,19 @@
     min-height: 100px;
   }
 
-  /* Half State - Tablet: 헤더를 제외한 영역의 50% */
+  /* Half State - Tablet: 화면 높이의 50% */
   .bottomSheet.half {
     /* transform is controlled by framer-motion */
-    height: calc((100vh - 80px) * 0.5);
-    min-height: calc((100vh - 80px) * 0.5);
-    max-height: calc((100vh - 80px) * 0.5);
+    height: 50vh;
+    min-height: 50vh;
+    max-height: 50vh;
   }
 
   .bottomSheet.half.emptyResults {
     /* transform is controlled by framer-motion */
-    height: calc((100vh - 80px) * 0.5);
-    min-height: calc((100vh - 80px) * 0.5);
-    max-height: calc((100vh - 80px) * 0.5);
+    height: 50vh;
+    min-height: 50vh;
+    max-height: 50vh;
   }
 
   /* Expanded State - Tablet: 헤더 바로 아래부터 시작 */
@@ -453,16 +453,16 @@
 
   .bottomSheet.half {
     /* transform is controlled by framer-motion */
-    height: calc((100vh - 144px) * 0.5); /* 헤더를 제외한 영역의 50% */
-    min-height: calc((100vh - 144px) * 0.5);
-    max-height: calc((100vh - 144px) * 0.5);
+    height: 50vh; /* 화면 높이의 50% */
+    min-height: 50vh;
+    max-height: 50vh;
   }
 
   .bottomSheet.half.emptyResults {
     /* transform is controlled by framer-motion */
-    height: calc((100vh - 144px) * 0.5);
-    min-height: calc((100vh - 144px) * 0.5);
-    max-height: calc((100vh - 144px) * 0.5);
+    height: 50vh;
+    min-height: 50vh;
+    max-height: 50vh;
   }
 
   .bottomSheet.expanded {
