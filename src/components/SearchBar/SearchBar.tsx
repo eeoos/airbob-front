@@ -8,6 +8,7 @@ interface SearchBarProps {
   onSearch?: (searchParams: SearchParams) => void;
   onExpandedChange?: (isExpanded: boolean) => void;
   isMapDragMode?: boolean; // 지도 드래그 모드 여부
+  startExpanded?: boolean; // 확장된 상태로 시작할지 여부 (모바일용)
 }
 
 export interface SearchParams {
@@ -28,7 +29,7 @@ export interface SearchParams {
   petOccupancy?: number;
 }
 
-export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange, isMapDragMode = false }) => {
+export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange, isMapDragMode = false, startExpanded = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -38,7 +39,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
   const [childOccupancy, setChildOccupancy] = useState(0);
   const [infantOccupancy, setInfantOccupancy] = useState(0);
   const [petOccupancy, setPetOccupancy] = useState(0);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(startExpanded);
   const [showGuestPicker, setShowGuestPicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isComposing, setIsComposing] = useState(false);
@@ -235,7 +236,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
   };
 
   const handleDestinationClick = (e: React.MouseEvent) => {
-    // 다른 필터가 열려있으면 닫기
+    e.stopPropagation();
+    
+    // 다른 필터가 열려있으면 닫기 (검색바는 확장 상태 유지)
     if (showDatePicker || showGuestPicker) {
       // 체크인만 선택된 경우 체크아웃을 다음 날로 자동 설정
       if (checkIn && !checkOut && showDatePicker) {
@@ -245,15 +248,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
       }
       setShowDatePicker(false);
       setShowGuestPicker(false);
-      // 날짜가 선택되었으면 검색바를 축소 모드로 변경
-      if (checkIn || checkOut) {
-        setIsExpanded(false);
-        onExpandedChange?.(false);
-      }
-      e.stopPropagation();
-      return;
+      // 필터 간 전환 시에는 검색바를 축소하지 않음 (확장 상태 유지)
     }
-    e.stopPropagation();
     
     // 지도 드래그 모드 해제
     exitMapDragMode();

@@ -189,9 +189,19 @@
 
 /* ---- Mobile (<768px) ---- */
 @media (max-width: 768px) {
+  .accommodationCard {
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .wishlistCardImage {
+    max-width: 100%;
+  }
+
   .wishlistCardInfo {
     padding: 8px 0 0 0;
     min-height: 80px;
+    max-width: 100%;
   }
 
   .location {

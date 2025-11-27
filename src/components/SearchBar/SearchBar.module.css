@@ -320,15 +320,90 @@
 @media (max-width: 768px) {
   .searchBar {
     flex-wrap: wrap;
+    border-radius: 16px;
+    max-width: 100%;
+    height: auto;
+    padding: 8px;
+  }
+
+  .searchBar.expanded {
+    max-width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 16px;
     border-radius: 24px;
   }
 
   .searchItem {
     padding: 12px;
+    width: 100%;
+    border-bottom: 1px solid #ebebeb;
+  }
+
+  .searchBar.expanded .searchItem:last-of-type {
+    border-bottom: none;
   }
 
   .divider {
     display: none;
+  }
+
+  /* 모바일에서 검색 버튼 전체 너비 */
+  .searchBar.expanded .searchButton {
+    width: 100%;
+    border-radius: 12px;
+    margin-top: 16px;
+    height: 48px;
+  }
+
+  .searchBar.expanded .searchButton svg {
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+  }
+
+  /* 모바일에서 날짜 선택기 위치 조정 */
+  .datePickerContainer {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transform: none;
+    max-height: 70vh;
+    overflow-y: auto;
+    border-radius: 24px 24px 0 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  }
+
+  /* 모바일에서 여행자 선택기 위치 조정 */
+  .guestPicker {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    min-width: auto;
+    width: 100%;
+    border-radius: 24px 24px 0 0;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  /* 모바일에서 추천 드롭다운 */
+  .suggestions {
+    min-width: auto;
+    max-width: 100%;
+    width: 100%;
+    left: 0;
+    right: 0;
+  }
+
+  /* 날짜 필드 세로 배치 */
+  .dateFields {
+    flex-direction: column;
+    gap: 8px;
   }
 }
 

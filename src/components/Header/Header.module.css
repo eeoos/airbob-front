@@ -80,6 +80,38 @@
   text-overflow: ellipsis;
 }
 
+/* 모바일 닫기 버튼 */
+.mobileCloseButton {
+  display: none;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  color: #222222;
+  flex-shrink: 0;
+}
+
+.mobileCloseButton svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* 모바일 확장 검색바 컨테이너 */
+.mobileSearchContainer {
+  display: none;
+  padding: 16px;
+  border-top: 1px solid #ebebeb;
+  background: white;
+}
+
+/* 모바일 헤더 확장 상태 */
+.headerMobileExpanded {
+  /* 확장 시 추가 스타일 */
+}
+
 @media (max-width: 768px) {
   .header {
     padding: 0 16px;
@@ -95,12 +127,31 @@
   }
 
   .searchBar {
-    display: none; /* 모바일에서는 검색바 숨김 */
+    display: none; /* 모바일에서는 데스크탑 검색바 숨김 */
   }
 
   /* 모바일에서 검색 버튼 표시 */
   .mobileSearchButton {
     display: flex;
+  }
+
+  /* 모바일 닫기 버튼 표시 */
+  .mobileCloseButton {
+    display: flex;
+  }
+
+  /* 모바일 확장 검색바 표시 */
+  .mobileSearchContainer {
+    display: block;
+  }
+
+  /* 모바일 헤더 확장 시 스타일 */
+  .headerMobileExpanded .container {
+    height: 60px;
+  }
+
+  .headerMobileExpanded .mobileSearchButton {
+    display: none;
   }
 }
 
