@@ -421,8 +421,15 @@
   }
 
   /* Bottom Sheet - Mobile adjustments */
+  /* 헤더 아래에서 시작하도록 설정 (헤더: 60px container + 28px padding + 56px searchBar = 약 144px) */
+  .bottomSheet {
+    /* 기본값은 bottom: 0 (collapsed/half 상태용) */
+  }
+
   .bottomSheet.collapsed {
-    transform: translateY(calc(100% - 64px)); /* Mobile: exactly 64px */
+    bottom: 0; /* 화면 하단에 고정 */
+    top: auto; /* top 제거 */
+    transform: translateY(0); /* transform 제거 */
     height: 64px;
     max-height: 64px;
     min-height: 64px;
@@ -438,23 +445,29 @@
   }
 
   .bottomSheet.half {
-    transform: translateY(calc(100% - 40vh)); /* Mobile: 35-40vh */
+    bottom: 0; /* 화면 하단에 고정 */
+    top: auto; /* top 제거 */
+    transform: translateY(0); /* transform 제거 */
     height: 40vh;
     min-height: 40vh;
     max-height: 40vh;
   }
 
   .bottomSheet.half.emptyResults {
-    transform: translateY(calc(100% - 42vh)); /* Empty results: 40-45vh */
+    bottom: 0; /* 화면 하단에 고정 */
+    top: auto; /* top 제거 */
+    transform: translateY(0); /* transform 제거 */
     height: 42vh;
     min-height: 42vh;
     max-height: 42vh;
   }
 
   .bottomSheet.expanded {
-    transform: translateY(60px); /* Show full list with header space */
-    height: calc(100vh - 60px);
-    max-height: calc(100vh - 60px);
+    top: 144px !important; /* 헤더 아래에서 시작 (강제) */
+    bottom: 0 !important; /* 화면 하단까지 */
+    transform: translateY(0) !important; /* transform 제거 (강제) */
+    height: calc(100vh - 144px) !important; /* 헤더 높이 제외 (강제) */
+    max-height: calc(100vh - 144px) !important;
   }
 
   /* Mobile Header adjustments */
