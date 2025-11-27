@@ -402,49 +402,82 @@
     height: 14px;
   }
 
-  /* 모바일에서 날짜 선택기 - 헤더 아래에 표시 */
+  /* 모바일에서 날짜 선택기 - 하단에서 슬라이드 업 */
   .datePickerContainer {
-    position: absolute;
-    top: calc(100% + 8px);
+    position: fixed;
+    top: auto;
+    bottom: 0;
     left: 0;
     right: 0;
     transform: none;
-    max-height: calc(100vh - 150px);
-    overflow-y: auto;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    background: white;
     z-index: 1001;
+    /* DatePicker 컴포넌트 자체에서 스타일링 */
   }
 
   /* 모바일에서 여행자 선택기 - 헤더 아래에 표시 */
   .guestPicker {
-    position: absolute;
-    top: calc(100% + 8px);
+    position: fixed;
+    top: auto;
+    bottom: 0;
     left: 0;
     right: 0;
     min-width: auto;
     width: 100%;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    max-height: calc(100vh - 150px);
+    border-radius: 24px 24px 0 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    max-height: 60vh;
     overflow-y: auto;
     z-index: 1001;
+    padding: 24px 20px;
   }
 
-  /* 모바일에서 추천 드롭다운 - 헤더 아래에 표시 */
+  .guestRow {
+    padding: 16px 0;
+    flex-wrap: nowrap;
+  }
+
+  .guestLabel {
+    font-size: 16px;
+    white-space: nowrap;
+  }
+
+  .guestSubLabel {
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  .guestControls {
+    flex-shrink: 0;
+  }
+
+  /* 모바일에서 추천 드롭다운 - 하단에서 슬라이드 업 */
   .suggestions {
-    position: absolute;
-    top: calc(100% + 8px);
+    position: fixed;
+    top: auto;
+    bottom: 0;
     left: 0;
     right: 0;
     min-width: auto;
     max-width: 100%;
     width: 100%;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    max-height: calc(100vh - 150px);
+    border-radius: 24px 24px 0 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    max-height: 50vh;
     z-index: 1001;
+    padding-top: 16px;
+    padding-bottom: 24px;
+  }
+
+  .suggestionItem {
+    padding: 14px 20px;
+  }
+
+  .suggestionMainText {
+    font-size: 15px;
+  }
+
+  .suggestionSecondaryText {
+    font-size: 13px;
   }
 }
 

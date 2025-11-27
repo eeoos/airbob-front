@@ -251,27 +251,43 @@
 
 @media (max-width: 768px) {
   .datePicker {
-    position: relative;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
     min-width: auto;
     width: 100%;
     max-width: 100%;
-    left: auto;
     transform: none;
-    border-radius: 12px;
+    border-radius: 24px 24px 0 0;
     padding: 20px 16px;
-    box-shadow: none;
-    animation: none;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    animation: slideUp 0.3s ease;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
   }
 
   /* 모바일에서 한 달씩 세로로 표시 */
   .calendars {
     flex-direction: column;
-    gap: 16px;
+    gap: 24px;
+    width: 100%;
   }
 
   /* 달력이 전체 너비 사용 */
   .calendarWrapper {
     width: 100%;
+    flex-direction: column;
   }
 
   .calendar {
@@ -280,48 +296,69 @@
     padding-top: 8px;
   }
 
-  .days {
-    min-height: auto;
-    gap: 2px;
-  }
-
-  .day {
-    min-height: 44px;
-    font-size: 15px;
-    border-radius: 50%;
+  /* 7열 그리드 강제 적용 */
+  .weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0;
+    width: 100%;
   }
 
   .weekday {
     font-size: 13px;
-    padding: 6px 0;
+    padding: 8px 0;
+    text-align: center;
+  }
+
+  /* 7열 그리드 강제 적용 */
+  .days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-auto-rows: minmax(44px, auto);
+    gap: 4px;
+    width: 100%;
+    min-height: auto;
+  }
+
+  .day {
+    min-height: 44px;
+    width: 100%;
+    font-size: 15px;
+    border-radius: 50%;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .monthHeader {
     margin-bottom: 12px;
+    justify-content: center;
   }
 
   .monthName {
-    font-size: 17px;
-  }
-
-  .monthNavButton {
-    width: 32px;
-    height: 32px;
     font-size: 18px;
   }
 
+  .monthNavButton {
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+  }
+
   .footer {
-    padding-top: 12px;
-    margin-top: 8px;
+    padding-top: 16px;
+    margin-top: 12px;
   }
 
   .closeButton {
-    padding: 10px 20px;
-    font-size: 15px;
+    padding: 12px 24px;
+    font-size: 16px;
+    width: 100%;
   }
 
   .clearButton {
-    font-size: 13px;
+    font-size: 14px;
   }
 }
 
@@ -331,7 +368,7 @@
   }
 
   .day {
-    min-height: 40px;
+    min-height: 38px;
     font-size: 14px;
   }
 }
