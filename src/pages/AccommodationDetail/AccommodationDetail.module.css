@@ -1483,6 +1483,18 @@
   .sectionTitle {
     font-size: 20px;
   }
+
+  /* 모바일에서 예약 박스의 달력 컨테이너 - 100% 너비 */
+  .datePickerContainer {
+    position: fixed;
+    top: auto;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: 100%;
+    margin-top: 8px;
+    transform-origin: top center;
+  }
 }
 
 /* 숙소 설명 모달 */
