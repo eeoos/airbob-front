@@ -14,7 +14,7 @@
 
 .header {
   margin-bottom: 12px;
-  padding: 12px 160px 0 160px;
+  padding: 12px 80px 0 80px;
 }
 
 .titleSection {
@@ -102,15 +102,15 @@
 
 .imageSection {
   margin-bottom: 24px;
-  padding: 0 160px;
+  padding: 0 80px;
 }
 
 .contentWrapper {
   display: grid;
-  grid-template-columns: 1fr 400px;
+  grid-template-columns: 1fr minmax(320px, 400px);
   gap: 80px;
   margin-bottom: 48px;
-  padding: 0 160px;
+  padding: 0 80px;
 }
 
 .leftColumn {
@@ -158,7 +158,8 @@
   grid-template-columns: repeat(2, 1fr);
   gap: 16px 0;
   column-gap: 0;
-  width: 590.33px;
+  width: 100%;
+  max-width: 600px;
 }
 
 .amenityItem {
@@ -181,7 +182,8 @@
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
   gap: 8px;
-  height: 500px;
+  aspect-ratio: 2 / 1;
+  max-height: 500px;
 }
 
 .mainImage {
@@ -410,17 +412,17 @@
 
 .content {
   display: grid;
-  grid-template-columns: 1fr 400px;
+  grid-template-columns: 1fr minmax(320px, 400px);
   gap: 80px;
   margin-bottom: 48px;
-  padding: 0 160px;
+  padding: 0 80px;
 }
 
 .mainContent {
   display: flex;
   flex-direction: column;
   gap: 48px;
-  max-width: 653.33px;
+  max-width: 100%;
 }
 
 .section {
@@ -438,9 +440,9 @@
 
 /* 위치 섹션만 전체 너비로 표시 */
 .locationSectionFullWidth {
-  max-width: 1120px !important;
-  width: 1120px;
-  margin: 0 0 48px 160px;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 0 48px 80px;
   padding: 48px 0 0 0;
   position: relative;
 }
@@ -450,7 +452,8 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 1120px;
+  width: 100%;
+  max-width: 1120px;
   height: 1px;
   background-color: #ebebeb;
 }
@@ -491,9 +494,9 @@
 .reviewSection {
   position: relative;
   padding-top: 48px;
+  width: 100%;
   max-width: 1136px;
-  width: 1136px;
-  margin: 0 0 48px 160px;
+  margin: 0 0 48px 80px;
 }
 
 .reviewSection::before {
@@ -501,7 +504,8 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 1136px;
+  width: 100%;
+  max-width: 1136px;
   height: 1px;
   background-color: #ebebeb;
 }
@@ -511,7 +515,8 @@
   grid-template-columns: 1fr 1fr;
   gap: 48px 40px;
   margin-top: 32px;
-  width: 1136px;
+  width: 100%;
+  max-width: 1136px;
 }
 
 .reviewCard {
@@ -781,7 +786,8 @@
 
 .mapContainer {
   width: 100%;
-  height: 480px;
+  aspect-ratio: 2.3 / 1;
+  max-height: 480px;
   border-radius: 12px;
   overflow: hidden;
   margin-top: 16px;
@@ -865,15 +871,12 @@
 
 .datePickerContainer {
   position: absolute;
-  top: 100%; /* dateSection 아래에 위치 */
-  right: 0; /* 오른쪽 정렬 (예약 박스의 오른쪽에 맞춤) */
-  margin-top: 8px; /* 약간의 간격 */
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
   z-index: 10001;
-  /* 달력이 화면 밖으로 나가지 않도록 조정 */
-  /* DatePicker가 오른쪽으로 나가지 않도록 */
   width: fit-content;
-  max-width: calc(100vw - 40px); /* 좌우 여백 고려 */
-  /* 달력이 오른쪽으로 나가면 왼쪽으로 이동 */
+  max-width: calc(100vw - 40px);
   transform-origin: top right;
 }
 
@@ -1115,12 +1118,125 @@
   position: fixed;
   top: 24px;
   right: 24px;
-  z-index: 1000;
+  z-index: 1100;
 }
 
+/* ---- Mid-Desktop (1200-1400px) ---- */
+@media (max-width: 1400px) {
+  .header {
+    padding: 12px 60px 0 60px;
+  }
+
+  .imageSection {
+    padding: 0 60px;
+  }
+
+  .contentWrapper {
+    padding: 0 60px;
+    gap: 60px;
+  }
+
+  .content {
+    padding: 0 60px;
+    gap: 60px;
+  }
+
+  .locationSectionFullWidth {
+    margin-left: 60px;
+    max-width: calc(100% - 120px);
+  }
+
+  .locationSectionFullWidth::before {
+    max-width: calc(100% - 120px);
+  }
+
+  .reviewSection {
+    margin-left: 60px;
+    max-width: calc(100% - 120px);
+  }
+
+  .reviewSection::before {
+    max-width: calc(100% - 120px);
+  }
+
+  .reviewsGrid {
+    max-width: 100%;
+  }
+}
+
+/* ---- Small-Desktop (1024-1200px) ---- */
+@media (max-width: 1200px) {
+  .header {
+    padding: 12px 40px 0 40px;
+  }
+
+  .imageSection {
+    padding: 0 40px;
+  }
+
+  .contentWrapper {
+    padding: 0 40px;
+    gap: 40px;
+    grid-template-columns: 1fr minmax(280px, 350px);
+  }
+
+  .content {
+    padding: 0 40px;
+    gap: 40px;
+    grid-template-columns: 1fr minmax(280px, 350px);
+  }
+
+  .locationSectionFullWidth {
+    margin-left: 40px;
+    max-width: calc(100% - 80px);
+  }
+
+  .locationSectionFullWidth::before {
+    max-width: calc(100% - 80px);
+  }
+
+  .reviewSection {
+    margin-left: 40px;
+    max-width: calc(100% - 80px);
+  }
+
+  .reviewSection::before {
+    max-width: calc(100% - 80px);
+  }
+
+  .reviewsGrid {
+    gap: 32px 24px;
+  }
+
+  .mainContent {
+    gap: 40px;
+  }
+
+  .section {
+    padding-bottom: 40px;
+  }
+}
+
+/* ---- Tablet (768-1024px) ---- */
 @media (max-width: 1024px) {
+  .header {
+    padding: 12px 24px 0 24px;
+  }
+
+  .imageSection {
+    padding: 0 24px;
+  }
+
+  .contentWrapper {
+    grid-template-columns: 1fr;
+    padding: 0 24px;
+    gap: 32px;
+  }
+
   .content {
     grid-template-columns: 1fr;
+    padding: 0 24px;
+    gap: 32px;
   }
 
   .sidebar {
@@ -1130,18 +1246,61 @@
 
   .imageGrid {
     grid-template-columns: 1fr;
-    height: auto;
+    aspect-ratio: 3 / 2;
+    max-height: none;
+  }
+
+  .mainImage {
+    border-radius: 12px;
   }
 
   .thumbnailGrid {
-    grid-template-columns: repeat(4, 1fr);
-    height: auto;
+    display: none;
+  }
+
+  .locationSectionFullWidth {
+    margin-left: 24px;
+    margin-right: 24px;
+    max-width: calc(100% - 48px);
+  }
+
+  .locationSectionFullWidth::before {
+    max-width: 100%;
+  }
+
+  .reviewSection {
+    margin-left: 24px;
+    margin-right: 24px;
+    max-width: calc(100% - 48px);
+  }
+
+  .reviewSection::before {
+    max-width: 100%;
+  }
+
+  .reviewsGrid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .mainContent {
+    gap: 32px;
+  }
+
+  .section {
+    padding-bottom: 32px;
+  }
+
+  .mapContainer {
+    aspect-ratio: 16 / 9;
+    max-height: 350px;
   }
 }
 
+/* ---- Mobile (<768px) ---- */
 @media (max-width: 768px) {
   .header {
-    padding: 16px 96px 0 96px;
+    padding: 16px 16px 0 16px;
   }
 
   .titleSection {
@@ -1160,29 +1319,74 @@
   }
 
   .imageSection {
-    padding: 0 96px;
+    padding: 0 16px;
   }
 
-  .locationSection {
-    padding: 0 96px;
-  }
-
-  .amenitiesSection {
-    padding: 0 96px;
+  .contentWrapper {
+    padding: 0 16px;
+    gap: 24px;
   }
 
   .content {
-    padding: 0 96px;
+    padding: 0 16px;
+    gap: 24px;
+  }
+
+  .locationSectionFullWidth {
+    margin-left: 16px;
+    margin-right: 16px;
+    max-width: calc(100% - 32px);
+    padding-top: 32px;
+  }
+
+  .reviewSection {
+    margin-left: 16px;
+    margin-right: 16px;
+    max-width: calc(100% - 32px);
+    padding-top: 32px;
+  }
+
+  .reviewsGrid {
+    gap: 24px;
+  }
+
+  .mainContent {
+    gap: 24px;
+  }
+
+  .section {
+    padding-bottom: 24px;
+  }
+
+  .amenitiesGrid {
+    grid-template-columns: 1fr;
   }
 
   .imageGrid {
-    grid-template-columns: 1fr;
-    height: auto;
+    aspect-ratio: 4 / 3;
   }
 
-  .thumbnailGrid {
-    grid-template-columns: repeat(2, 1fr);
-    height: auto;
+  .mapContainer {
+    aspect-ratio: 4 / 3;
+    max-height: 280px;
+  }
+
+  .galleryModal {
+    padding: 16px;
+  }
+
+  .galleryThumbnail {
+    width: 70px;
+    height: 70px;
+  }
+
+  .reviewImage {
+    width: 100px;
+    height: 100px;
+  }
+
+  .sectionTitle {
+    font-size: 20px;
   }
 }
 
@@ -1251,4 +1455,16 @@
   white-space: pre-wrap;
 }
 
+@media (max-width: 768px) {
+  .descriptionModal {
+    padding: 16px;
+  }
 
+  .descriptionModalContent {
+    padding: 32px 24px;
+  }
+
+  .descriptionModalTitle {
+    font-size: 22px;
+  }
+}
