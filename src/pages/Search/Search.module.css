@@ -362,6 +362,8 @@
     overflow-x: hidden;
     padding: 0 16px 16px 16px;
     -webkit-overflow-scrolling: touch;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .bottomSheetContent.hidden {
@@ -400,6 +402,8 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 16px;
     margin-bottom: 16px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   /* Collapsed state: show ~1 row (2 cards) on tablet */
@@ -492,6 +496,8 @@
     grid-template-columns: 1fr;
     gap: 16px;
     margin-bottom: 16px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   /* Collapsed state: show ~1 card on mobile */
@@ -502,6 +508,8 @@
 
   .bottomSheetContent {
     padding: 0 12px 12px 12px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .paginationButton {

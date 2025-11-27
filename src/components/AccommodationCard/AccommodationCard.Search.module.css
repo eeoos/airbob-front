@@ -18,8 +18,8 @@
 }
 
 .wishlistCardImage {
-  width: 241.41px;
-  height: 229.34px;
+  width: 100%;
+  aspect-ratio: 241.41 / 229.34; /* 원래 비율 유지 */
   position: relative;
   background-color: #f7f7f7;
   overflow: hidden;
@@ -47,8 +47,7 @@
 }
 
 .wishlistCardInfo {
-  width: 233.414px;
-  height: 111.500px;
+  width: 100%;
   padding: 12px 0 0 0;
   display: flex;
   flex-direction: column;
