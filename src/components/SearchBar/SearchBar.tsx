@@ -43,11 +43,13 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isComposing, setIsComposing] = useState(false);
   const [isOpeningDatePicker, setIsOpeningDatePicker] = useState(false);
+  const [isOpeningGuestPicker, setIsOpeningGuestPicker] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchBarRef = useRef<HTMLDivElement>(null);
   const datePickerRef = useRef<HTMLDivElement>(null);
   const guestPickerRef = useRef<HTMLDivElement>(null);
   const destinationInputRef = useRef<HTMLInputElement>(null);
+  const destinationAreaRef = useRef<HTMLDivElement>(null);
   const datePickerElementRef = useRef<HTMLDivElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
@@ -181,14 +183,17 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
     // 여행자 필터 영역 확인
     const isGuestPickerArea = guestPickerRef.current?.contains(target);
     
+    // 여행지 영역 확인
+    const isDestinationArea = destinationAreaRef.current?.contains(target);
+    
     // 추천 리스트 영역 확인
     const isSuggestionsArea = suggestionsRef.current?.contains(target);
     
     // 검색 버튼 확인
     const isSearchButton = (target as HTMLElement).closest(`.${styles.searchButton}`);
     
-    // 달력이나 여행자 필터, 추천 리스트 영역이 아닌 다른 부분을 클릭한 경우
-    if (!isDatePickerArea && !isGuestPickerArea && !isDatePickerElement && !isSearchButton && !isSuggestionsArea) {
+    // 달력이나 여행자 필터, 여행지 영역, 추천 리스트 영역이 아닌 다른 부분을 클릭한 경우
+    if (!isDatePickerArea && !isGuestPickerArea && !isDatePickerElement && !isSearchButton && !isSuggestionsArea && !isDestinationArea) {
       // 달력이나 여행자 필터, 추천 리스트가 열려있으면 닫기
       if (showDatePicker || showGuestPicker || showSuggestions) {
         // 체크인만 선택된 경우 체크아웃을 다음 날로 자동 설정
@@ -318,11 +323,17 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
       setIsExpanded(true);
       onExpandedChange?.(true);
     }
+    // 달력을 열기 전에 플래그 설정 (onBlur가 검색바를 축소하지 않도록)
+    setIsOpeningDatePicker(true);
     // 달력이 닫혀있을 때만 열기 (체크인 선택 후에도 열어두기 위해)
     if (!showDatePicker) {
       setShowDatePicker(true);
     }
     setShowGuestPicker(false);
+    // 약간의 지연을 두어 상태 업데이트가 완료된 후 플래그 해제
+    setTimeout(() => {
+      setIsOpeningDatePicker(false);
+    }, 100);
   };
 
   const handleGuestClick = (e: React.MouseEvent) => {
@@ -331,8 +342,14 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
       setIsExpanded(true);
       onExpandedChange?.(true);
     }
+    // 여행자 필터를 열기 전에 플래그 설정 (onBlur가 검색바를 축소하지 않도록)
+    setIsOpeningGuestPicker(true);
     setShowGuestPicker(!showGuestPicker);
     setShowDatePicker(false);
+    // 약간의 지연을 두어 상태 업데이트가 완료된 후 플래그 해제
+    setTimeout(() => {
+      setIsOpeningGuestPicker(false);
+    }, 100);
   };
   
   // 검색바의 다른 영역 클릭 시 열려있는 필터 닫기
@@ -418,14 +435,17 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
       // GuestPicker의 실제 DOM 요소 확인
       const isInsideGuestPicker = guestPickerRef.current?.contains(target);
       
+      // 여행지 영역 확인
+      const isInsideDestinationArea = destinationAreaRef.current?.contains(target);
+      
       // Suggestions 영역 확인
       const isInsideSuggestions = suggestionsRef.current?.contains(target);
       
       // 검색바 내부 확인
       const isInsideSearchBar = searchBarRef.current?.contains(target);
       
-      // 달력이나 여행자 필터, 추천 리스트 영역 내부가 아닌 경우
-      if (!isInsideDatePicker && !isInsideGuestPicker && !isInsideSuggestions) {
+      // 달력이나 여행자 필터, 여행지 영역, 추천 리스트 영역 내부가 아닌 경우
+      if (!isInsideDatePicker && !isInsideGuestPicker && !isInsideSuggestions && !isInsideDestinationArea) {
         // 검색바 외부를 클릭한 경우
         if (!isInsideSearchBar) {
           // 검색바 외부 클릭 시 항상 닫기
@@ -468,6 +488,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
       onClick={handleSearchBarClick}
     >
       <div 
+        ref={destinationAreaRef}
         className={styles.searchItem} 
         onClick={handleDestinationClick}
       >
@@ -518,9 +539,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
                       return;
                     }
                     setShowSuggestions(false);
-                    // 달력이 열리는 중이거나 이미 열려있으면 검색바를 축소하지 않음
+                    // 달력이나 여행자 필터가 열리는 중이거나 이미 열려있으면 검색바를 축소하지 않음
                     // (엔터 키로 달력을 열 때 onBlur가 트리거되지만, 달력이 열려있으면 유지)
-                    if (!isOpeningDatePicker && !showDatePicker && !showGuestPicker) {
+                    if (!isOpeningDatePicker && !isOpeningGuestPicker && !showDatePicker && !showGuestPicker) {
                       // 목적지 입력 필드에서 포커스를 잃을 때 검색바 축소 (목적지 입력 여부와 관계없이)
                       setIsExpanded(false);
                       onExpandedChange?.(false);

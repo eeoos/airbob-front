@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { authApi } from "../api";
 import { LoginRequest } from "../types/auth";
 
@@ -8,9 +8,19 @@ interface AuthContextType {
   login: (credentials: LoginRequest) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
+  setUnauthenticated: () => void; // 세션 만료 시 호출
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// 전역 인증 상태 업데이트 함수 (interceptor에서 사용)
+let globalSetUnauthenticated: (() => void) | null = null;
+
+export const setAuthUnauthenticated = () => {
+  if (globalSetUnauthenticated) {
+    globalSetUnauthenticated();
+  }
+};
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -28,8 +38,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  // 세션 만료 시 인증 상태를 false로 설정하는 함수
+  const setUnauthenticated = () => {
+    setIsAuthenticated(false);
+  };
+
+  // 전역 함수 등록 (interceptor에서 사용)
+  useEffect(() => {
+    globalSetUnauthenticated = setUnauthenticated;
+    return () => {
+      globalSetUnauthenticated = null;
+    };
+  }, []);
+
   // 실제 API 호출로 세션 유효성 확인
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
       // 인증 확인 전용 API 호출
       const response = await fetch('/api/v1/auth/me', {
@@ -45,11 +68,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
+  // 초기 인증 상태 확인
   useEffect(() => {
     checkAuth();
   }, []);
+
+  // 페이지 포커스 시 인증 상태 재확인 (세션 만료 감지)
+  useEffect(() => {
+    const handleFocus = () => {
+      // 페이지가 다시 포커스를 받을 때 인증 상태 확인
+      checkAuth();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [checkAuth]);
 
   const login = async (credentials: LoginRequest) => {
     try {
@@ -84,10 +121,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         login,
         logout,
         checkAuth,
+        setUnauthenticated,
       }}
     >
       {children}
     </AuthContext.Provider>
   );
 };
+
 
