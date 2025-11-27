@@ -502,17 +502,17 @@
 @media (min-width: 769px) and (max-width: 1024px) {
   /* 태블릿에서 날짜 선택기 - 바텀 시트보다 높게 */
   .datePickerContainer {
-    z-index: 99999 !important; /* 바텀 시트(z-index: 1000)와 헤더(z-index: 200)보다 훨씬 높게 */
+    z-index: 100000 !important; /* 바텀 시트(z-index: 1000)와 헤더(z-index: 200)보다 훨씬 높게 */
   }
 
   /* 태블릿에서 여행자 선택기 - 바텀 시트보다 높게 */
   .guestPicker {
-    z-index: 99999 !important; /* 바텀 시트(z-index: 1000)와 헤더(z-index: 200)보다 훨씬 높게 */
+    z-index: 100000 !important; /* 바텀 시트(z-index: 1000)와 헤더(z-index: 200)보다 훨씬 높게 */
   }
 
   /* 태블릿에서 추천 드롭다운 - 바텀 시트보다 높게 */
   .suggestions {
-    z-index: 99999 !important; /* 바텀 시트(z-index: 1000)와 헤더(z-index: 200)보다 훨씬 높게 */
+    z-index: 100000 !important; /* 바텀 시트(z-index: 1000)와 헤더(z-index: 200)보다 훨씬 높게 */
   }
 }
 
