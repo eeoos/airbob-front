@@ -506,6 +506,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
                     // 지도 드래그 모드 해제 후 input 텍스트 초기화
                     handleInputChange("");
                   }
+                  // 여행지 입력 필드 포커스 시 달력 및 여행자 선택 닫기 (Bug fix: z-index 겹침 문제)
+                  setShowDatePicker(false);
+                  setShowGuestPicker(false);
                   setShowSuggestions(true);
                 }}
                 onKeyDown={handleDestinationKeyDown}

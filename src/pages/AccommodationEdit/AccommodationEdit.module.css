@@ -1,6 +1,9 @@
 .container {
   min-height: 100vh;
   background: #f7f7f7;
+  /* 모바일에서 가로 스크롤 방지 */
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 .header {
@@ -147,7 +150,9 @@
 
 .form {
   max-width: 600px;
+  width: 100%;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .stepContent {
@@ -675,7 +680,7 @@
 
 @media (max-width: 768px) {
   .header {
-    padding: 16px 24px;
+    padding: 16px;
   }
 
   .title {
@@ -688,6 +693,12 @@
 
   .mainContent {
     padding: 16px;
+    /* 모바일에서 가로 오버플로우 방지 */
+    overflow-x: hidden;
+  }
+
+  .form {
+    max-width: 100%;
   }
 
   .stepTitle {
@@ -715,6 +726,39 @@
   .imagePreviewContainer {
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
     gap: 12px;
+  }
+
+  /* 입력 필드 오버플로우 방지 */
+  .input,
+  .textarea,
+  .select {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* 주소 검색 컨테이너 모바일 최적화 */
+  .addressSearchContainer {
+    flex-direction: column;
+  }
+
+  .addressSearchButton {
+    width: 100%;
+  }
+
+  /* 타입 모달 모바일 최적화 */
+  .typeModal {
+    max-width: calc(100vw - 40px);
+  }
+
+  .typeModalGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .typeOption {
+    padding: 16px 12px;
+    min-height: 120px;
   }
 }
 
@@ -845,6 +889,8 @@
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
 .imageUploadBox:hover {
@@ -943,6 +989,9 @@
 .coverPhotoContainer {
   width: 100%;
   margin-bottom: 16px;
+  /* iOS Safari 스크롤 시 레이아웃 재계산 방지 */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .coverPhotoContainer .uploadedImageItem {
@@ -957,6 +1006,9 @@
   grid-auto-rows: 1fr;
   gap: 8px;
   margin-bottom: 16px;
+  /* iOS Safari 스크롤 시 레이아웃 재계산 방지 */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .thumbnailGrid .uploadedImageItem {
@@ -982,7 +1034,12 @@
   overflow: hidden;
   cursor: move;
   border: 2px solid transparent;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease;
+  /* iOS Safari 스크롤 시 이미지 크기 변경 버그 수정 */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 .uploadedImageItem:hover {
@@ -1025,6 +1082,11 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* iOS Safari 스크롤 시 이미지 크기 변경 버그 수정 */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 .imageMenuButton {

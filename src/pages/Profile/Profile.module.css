@@ -120,6 +120,13 @@
   padding-top: 0;
 }
 
+/* 타이틀이 탭/사이드바와 겹치지 않도록 안정적인 상단 마진 추가 */
+@media (max-width: 1024px) {
+  .main {
+    padding-top: 24px;
+  }
+}
+
 @media (max-width: 1024px) {
   .content {
     grid-template-columns: 1fr;
