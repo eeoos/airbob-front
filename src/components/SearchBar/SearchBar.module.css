@@ -402,82 +402,98 @@
     height: 14px;
   }
 
-  /* 모바일에서 날짜 선택기 - 하단에서 슬라이드 업 */
+  /* 모바일에서 날짜 선택기 - 헤더 아래에 표시 */
   .datePickerContainer {
     position: fixed;
-    top: auto;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    top: 130px; /* 헤더 + 검색바 아래 */
+    left: 16px;
+    right: 16px;
+    bottom: auto;
     transform: none;
-    z-index: 1001;
-    /* DatePicker 컴포넌트 자체에서 스타일링 */
+    z-index: 9999;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+    max-height: calc(100vh - 160px);
+    overflow-y: auto;
   }
 
   /* 모바일에서 여행자 선택기 - 헤더 아래에 표시 */
   .guestPicker {
     position: fixed;
-    top: auto;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    top: 130px; /* 헤더 + 검색바 아래 */
+    left: 16px;
+    right: 16px;
+    bottom: auto;
     min-width: auto;
-    width: 100%;
-    border-radius: 24px 24px 0 0;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
-    max-height: 60vh;
+    width: auto;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+    max-height: calc(100vh - 160px);
     overflow-y: auto;
-    z-index: 1001;
-    padding: 24px 20px;
+    z-index: 9999;
+    padding: 16px;
   }
 
   .guestRow {
-    padding: 16px 0;
+    padding: 12px 0;
     flex-wrap: nowrap;
+    gap: 16px;
   }
 
   .guestLabel {
-    font-size: 16px;
+    font-size: 15px;
     white-space: nowrap;
   }
 
   .guestSubLabel {
-    font-size: 14px;
+    font-size: 13px;
     white-space: nowrap;
   }
 
   .guestControls {
     flex-shrink: 0;
+    gap: 12px;
   }
 
-  /* 모바일에서 추천 드롭다운 - 하단에서 슬라이드 업 */
+  .controlButton {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+  }
+
+  .guestCount {
+    font-size: 15px;
+    min-width: 24px;
+  }
+
+  /* 모바일에서 추천 드롭다운 - 헤더 아래에 표시 */
   .suggestions {
     position: fixed;
-    top: auto;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    top: 130px; /* 헤더 + 검색바 아래 */
+    left: 16px;
+    right: 16px;
+    bottom: auto;
     min-width: auto;
-    max-width: 100%;
-    width: 100%;
-    border-radius: 24px 24px 0 0;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
-    max-height: 50vh;
-    z-index: 1001;
-    padding-top: 16px;
-    padding-bottom: 24px;
+    max-width: none;
+    width: auto;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+    max-height: calc(100vh - 160px);
+    z-index: 9999;
+    padding: 8px 0;
   }
 
   .suggestionItem {
-    padding: 14px 20px;
+    padding: 12px 16px;
   }
 
   .suggestionMainText {
-    font-size: 15px;
+    font-size: 14px;
   }
 
   .suggestionSecondaryText {
-    font-size: 13px;
+    font-size: 12px;
   }
 }
 
