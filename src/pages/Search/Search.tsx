@@ -466,6 +466,11 @@ const Search: React.FC = () => {
     setSelectedAccommodationId(accommodationId);
   };
 
+  // Map interaction handler - ALWAYS collapse sheet
+  const handleMapInteraction = useCallback(() => {
+    setBottomSheetState("collapsed");
+  }, []);
+
   // Bottom sheet drag handlers
   const handleDragStart = useCallback((clientY: number) => {
     isDragging.current = true;
@@ -532,51 +537,42 @@ const Search: React.FC = () => {
     handleDragStart(e.clientY);
   }, [handleDragStart]);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDragging.current) return;
-    handleDragMove(e.clientY);
-  }, [handleDragMove]);
-
-  const handleMouseUp = useCallback(() => {
-    handleDragEnd();
-  }, [handleDragEnd]);
-
-  // Map interaction handler - collapse sheet
-  const handleMapInteraction = useCallback(() => {
-    if (bottomSheetState !== "collapsed") {
-      setBottomSheetState("collapsed");
-    }
-  }, [bottomSheetState]);
-
-  // Scroll handler - expand sheet when scrolling
+  // Scroll handler - expand sheet when scrolling down > 20px
   const handleBottomSheetScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
     const scrollTop = target.scrollTop;
     
-    // If scrolling down from top, expand to full
-    if (scrollTop > 10 && bottomSheetState !== "expanded") {
+    // If scrolling down from top (> 20px), expand to full
+    if (scrollTop > 20 && bottomSheetState !== "expanded") {
       setBottomSheetState("expanded");
+    }
+    // If at top (scrollTop === 0) and user scrolls upward, return to half (NOT collapsed)
+    else if (scrollTop === 0 && bottomSheetState === "expanded") {
+      // Only transition to half if we're at the top and were expanded
+      // This is handled by the scroll event itself - if user scrolls up at top, we don't collapse
     }
   }, [bottomSheetState]);
 
   // Global mouse move/up handlers for drag
   useEffect(() => {
-    if (isDragging.current) {
-      const handleGlobalMouseMove = (e: MouseEvent) => {
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (isDragging.current) {
         handleDragMove(e.clientY);
-      };
-      const handleGlobalMouseUp = () => {
+      }
+    };
+    const handleGlobalMouseUp = () => {
+      if (isDragging.current) {
         handleDragEnd();
-      };
-      
-      window.addEventListener("mousemove", handleGlobalMouseMove);
-      window.addEventListener("mouseup", handleGlobalMouseUp);
-      
-      return () => {
-        window.removeEventListener("mousemove", handleGlobalMouseMove);
-        window.removeEventListener("mouseup", handleGlobalMouseUp);
-      };
-    }
+      }
+    };
+    
+    window.addEventListener("mousemove", handleGlobalMouseMove);
+    window.addEventListener("mouseup", handleGlobalMouseUp);
+    
+    return () => {
+      window.removeEventListener("mousemove", handleGlobalMouseMove);
+      window.removeEventListener("mouseup", handleGlobalMouseUp);
+    };
   }, [handleDragMove, handleDragEnd]);
 
 
@@ -587,7 +583,7 @@ const Search: React.FC = () => {
           // Mobile/Tablet: Bottom Sheet Layout
           <>
             {/* Map Layer - Fixed Base */}
-            <div className={styles.mapLayer} onClick={handleMapInteraction}>
+            <div className={styles.mapLayer}>
               <Map
                 accommodations={accommodations}
                 selectedAccommodationId={selectedAccommodationId}
@@ -604,6 +600,7 @@ const Search: React.FC = () => {
                 onMapBoundsUpdated={() => {
                   setShouldUpdateMapBounds(false);
                 }}
+                onMapInteraction={handleMapInteraction}
                 viewport={
                   searchParams.get("topLeftLat") && searchParams.get("topLeftLng")
                     ? {
@@ -620,8 +617,9 @@ const Search: React.FC = () => {
             {/* Bottom Sheet - Overlay */}
             <div
               ref={bottomSheetRef}
-              className={`${styles.bottomSheet} ${styles[bottomSheetState]}`}
-              onScroll={handleBottomSheetScroll}
+              className={`${styles.bottomSheet} ${styles[bottomSheetState]} ${
+                accommodations.length === 0 ? styles.emptyResults : ""
+              }`}
             >
               {/* Drag Handle */}
               <div
@@ -635,7 +633,10 @@ const Search: React.FC = () => {
               </div>
 
               {/* Content */}
-              <div className={styles.bottomSheetContent}>
+              <div 
+                className={styles.bottomSheetContent}
+                onScroll={handleBottomSheetScroll}
+              >
                 <h2 className={styles.title}>
                   {totalElements >= 1000 
                     ? "숙소 1,000개 이상" 

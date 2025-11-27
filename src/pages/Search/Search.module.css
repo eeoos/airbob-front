@@ -274,25 +274,37 @@
     border-radius: 24px 24px 0 0;
     box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
     z-index: 1000;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
     overflow: hidden;
     touch-action: pan-y;
+    will-change: transform, height;
   }
 
   .bottomSheet.collapsed {
-    transform: translateY(calc(100% - 120px)); /* Show ~1 card height */
+    transform: translateY(calc(100% - 120px)); /* Show ~1 card height (tablet: 2 cards) */
+    height: 120px;
     max-height: 120px;
   }
 
   .bottomSheet.half {
-    transform: translateY(calc(100% - 50vh)); /* Show ~50% of viewport */
-    max-height: 50vh;
+    transform: translateY(calc(100% - 55vh)); /* Show ~55% of viewport */
+    height: 55vh;
+    min-height: 55vh; /* Force minimum height even with empty results */
+    max-height: 55vh;
+  }
+
+  .bottomSheet.half.emptyResults {
+    /* Empty results: ensure half mode always covers map background */
+    height: 55vh;
+    min-height: 55vh;
+    max-height: 55vh;
   }
 
   .bottomSheet.expanded {
     transform: translateY(80px); /* Show full list with header space */
+    height: calc(100vh - 80px);
     max-height: calc(100vh - 80px);
   }
 
@@ -338,6 +350,12 @@
     margin-bottom: 16px;
   }
 
+  /* Collapsed state: show ~1 row (2 cards) on tablet */
+  .bottomSheet.collapsed .cardGrid {
+    overflow: hidden;
+    max-height: 120px;
+  }
+
   .cardWrapper {
     width: 100%;
     min-width: 0;
@@ -355,16 +373,27 @@
   /* Bottom Sheet - Mobile adjustments */
   .bottomSheet.collapsed {
     transform: translateY(calc(100% - 100px)); /* Show ~1 card height on mobile */
+    height: 100px;
     max-height: 100px;
   }
 
   .bottomSheet.half {
-    transform: translateY(calc(100% - 40vh)); /* Show ~40% of viewport */
-    max-height: 40vh;
+    transform: translateY(calc(100% - 55vh)); /* Show ~55% of viewport */
+    height: 55vh;
+    min-height: 55vh; /* Force minimum height even with empty results */
+    max-height: 55vh;
+  }
+
+  .bottomSheet.half.emptyResults {
+    /* Empty results: ensure half mode always covers map background */
+    height: 55vh;
+    min-height: 55vh;
+    max-height: 55vh;
   }
 
   .bottomSheet.expanded {
     transform: translateY(60px); /* Show full list with header space */
+    height: calc(100vh - 60px);
     max-height: calc(100vh - 60px);
   }
 
@@ -374,6 +403,12 @@
     grid-template-columns: 1fr;
     gap: 16px;
     margin-bottom: 16px;
+  }
+
+  /* Collapsed state: show ~1 card on mobile */
+  .bottomSheet.collapsed .cardGrid {
+    overflow: hidden;
+    max-height: 100px;
   }
 
   .bottomSheetContent {

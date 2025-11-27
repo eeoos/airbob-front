@@ -29,6 +29,7 @@ interface MapProps {
     east: number;
     west: number;
   } | null;
+  onMapInteraction?: () => void; // Callback when user interacts with map
 }
 
 export const Map: React.FC<MapProps> = ({
@@ -46,6 +47,7 @@ export const Map: React.FC<MapProps> = ({
   shouldUpdateMapBounds = false,
   onMapBoundsUpdated,
   viewport,
+  onMapInteraction,
 }) => {
   const navigate = useNavigate();
   const mapRef = useRef<HTMLDivElement>(null);
@@ -249,7 +251,30 @@ export const Map: React.FC<MapProps> = ({
             infoWindowRef.current.close();
             onAccommodationSelectRef.current(null);
           }
+          // Map interaction callback
+          if (onMapInteraction) {
+            onMapInteraction();
+          }
         });
+
+        // Map interaction listeners - collapse bottom sheet on any map interaction
+        if (onMapInteraction) {
+          map.addListener("dragstart", () => {
+            onMapInteraction();
+          });
+          map.addListener("zoomstart", () => {
+            onMapInteraction();
+          });
+          // Touch events for mobile
+          if (mapRef.current) {
+            mapRef.current.addEventListener("touchstart", () => {
+              onMapInteraction();
+            }, { passive: true });
+            mapRef.current.addEventListener("mousedown", () => {
+              onMapInteraction();
+            });
+          }
+        }
 
         // idle 리스너는 별도 useEffect에서 설정 (지도 재초기화 방지)
       } catch (error) {
