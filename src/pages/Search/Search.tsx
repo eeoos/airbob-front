@@ -62,20 +62,27 @@ const Search: React.FC = () => {
     };
   }, [isMobileOrTablet]);
   
-  // Motion value for Y position (distance from bottom)
-  const y = useMotionValue(snapPositions[bottomSheetState]);
+  // Motion value for Y position (height from bottom)
+  // Initialize with current state position
+  const y = useMotionValue(
+    isMobileOrTablet ? snapPositions[bottomSheetState] : 0
+  );
   const springY = useSpring(y, {
     stiffness: 300,
     damping: 30,
   });
   
-  // Transform Y to translateY
-  const translateY = useTransform(springY, (val) => window.innerHeight - val);
+  // Calculate translateY: negative value moves sheet up from bottom
+  // Since bottom: 0, negative translateY moves up
+  const translateY = useTransform(springY, (val) => -val);
   
   // Update motion value when state changes
   useEffect(() => {
     if (isMobileOrTablet) {
+      // Set y to the height value (how much to move up from bottom)
       y.set(snapPositions[bottomSheetState]);
+    } else {
+      y.set(0);
     }
   }, [bottomSheetState, snapPositions, isMobileOrTablet, y]);
   
