@@ -257,38 +257,82 @@
     max-width: 100%;
     left: auto;
     transform: none;
-    border-radius: 0;
-    padding: 24px 16px;
+    border-radius: 12px;
+    padding: 20px 16px;
     box-shadow: none;
     animation: none;
   }
 
+  /* 모바일에서 한 달씩 세로로 표시 */
   .calendars {
     flex-direction: column;
-    gap: 24px;
+    gap: 16px;
+  }
+
+  /* 달력이 전체 너비 사용 */
+  .calendarWrapper {
+    width: 100%;
   }
 
   .calendar {
-    min-height: 320px;
+    width: 100%;
+    min-height: auto;
+    padding-top: 8px;
   }
 
   .days {
-    min-height: 240px;
+    min-height: auto;
+    gap: 2px;
   }
 
   .day {
-    min-height: 36px;
-    font-size: 14px;
+    min-height: 44px;
+    font-size: 15px;
+    border-radius: 50%;
+  }
+
+  .weekday {
+    font-size: 13px;
+    padding: 6px 0;
+  }
+
+  .monthHeader {
+    margin-bottom: 12px;
   }
 
   .monthName {
-    font-size: 16px;
+    font-size: 17px;
+  }
+
+  .monthNavButton {
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+  }
+
+  .footer {
+    padding-top: 12px;
+    margin-top: 8px;
+  }
+
+  .closeButton {
+    padding: 10px 20px;
+    font-size: 15px;
+  }
+
+  .clearButton {
+    font-size: 13px;
   }
 }
 
 @media (max-width: 360px) {
   .datePicker {
     padding: 16px 12px;
+  }
+
+  .day {
+    min-height: 40px;
+    font-size: 14px;
   }
 }
 

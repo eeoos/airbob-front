@@ -116,13 +116,18 @@
 }
 
 @media (max-width: 768px) {
+  .reservationsGrid {
+    grid-template-columns: 1fr;
+  }
+
   .reservationCard {
     flex-direction: column;
   }
 
+  /* 호스트 모드와 동일하게 aspect-ratio 유지 */
   .image {
     width: 100%;
-    height: 200px;
+    aspect-ratio: 1;
   }
 
   .dates {

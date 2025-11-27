@@ -318,23 +318,27 @@
 }
 
 @media (max-width: 768px) {
+  /* 축소 모드 - 작게 표시 */
   .searchBar {
-    max-width: 100%;
-    height: 56px;
-    border-radius: 12px;
-    padding: 0 8px;
+    max-width: 280px;
+    height: 48px;
+    border-radius: 24px;
+    padding: 0 6px;
     flex-wrap: nowrap;
+    margin: 0 auto;
   }
 
+  /* 확장 모드 - 전체 너비 */
   .searchBar.expanded {
     max-width: 100%;
     height: 56px;
     border-radius: 12px;
+    padding: 0 8px;
   }
 
   /* 모바일에서 가로 레이아웃 유지 */
   .searchItem {
-    padding: 8px 12px;
+    padding: 6px 8px;
     flex: 1;
     min-width: 0;
   }
@@ -350,7 +354,12 @@
 
   .divider {
     display: block;
-    height: 24px;
+    height: 20px;
+  }
+
+  /* 축소 모드에서 divider 숨김 */
+  .searchBar:not(.expanded) .divider {
+    display: none;
   }
 
   .label {
@@ -362,11 +371,12 @@
     font-size: 12px;
   }
 
+  /* iOS 자동 확대 방지: 16px 이상 필요 */
   .input {
-    font-size: 12px;
+    font-size: 16px;
   }
 
-  /* 날짜 필드 가로 유지, 날짜만 표시 */
+  /* 날짜 필드 가로 유지 */
   .dateFields {
     flex-direction: row;
     gap: 4px;
@@ -378,8 +388,8 @@
 
   /* 모바일 검색 버튼 */
   .searchButton {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
   }
 
   .searchBar.expanded .searchButton {
@@ -392,49 +402,48 @@
     height: 14px;
   }
 
-  /* 모바일에서 날짜 선택기 위치 조정 - 하단에서 슬라이드 업 */
+  /* 모바일에서 날짜 선택기 - 헤더 아래에 표시 */
   .datePickerContainer {
-    position: fixed;
-    top: auto;
-    bottom: 0;
+    position: absolute;
+    top: calc(100% + 8px);
     left: 0;
     right: 0;
     transform: none;
-    max-height: 80vh;
+    max-height: calc(100vh - 150px);
     overflow-y: auto;
-    border-radius: 24px 24px 0 0;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     background: white;
     z-index: 1001;
   }
 
-  /* 모바일에서 여행자 선택기 위치 조정 */
+  /* 모바일에서 여행자 선택기 - 헤더 아래에 표시 */
   .guestPicker {
-    position: fixed;
-    top: auto;
-    bottom: 0;
+    position: absolute;
+    top: calc(100% + 8px);
     left: 0;
     right: 0;
     min-width: auto;
     width: 100%;
-    border-radius: 24px 24px 0 0;
-    max-height: 70vh;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    max-height: calc(100vh - 150px);
     overflow-y: auto;
     z-index: 1001;
   }
 
-  /* 모바일에서 추천 드롭다운 */
+  /* 모바일에서 추천 드롭다운 - 헤더 아래에 표시 */
   .suggestions {
-    position: fixed;
-    top: auto;
-    bottom: 0;
+    position: absolute;
+    top: calc(100% + 8px);
     left: 0;
     right: 0;
     min-width: auto;
     max-width: 100%;
     width: 100%;
-    border-radius: 24px 24px 0 0;
-    max-height: 60vh;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    max-height: calc(100vh - 150px);
     z-index: 1001;
   }
 }
