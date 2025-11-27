@@ -16,6 +16,17 @@ import { getImageUrl } from "../../utils/image";
 import { GOOGLE_MAPS_API_KEY } from "../../utils/constants";
 import styles from "./AccommodationDetail.module.css";
 
+// AccommodationType을 한글로 변환하는 함수
+const getAccommodationTypeKorean = (type: string): string => {
+  const typeMap: Record<string, string> = {
+    ENTIRE_PLACE: "집 전체",
+    PRIVATE_ROOM: "개인실",
+    SHARED_ROOM: "다인실",
+    HOSTEL: "호스텔",
+  };
+  return typeMap[type] || "숙소";
+};
+
 // AmenityType을 한글로 변환하는 함수
 const getAmenityTypeKorean = (type: string): string => {
   const amenityMap: Record<string, string> = {
@@ -863,12 +874,7 @@ const AccommodationDetail: React.FC = () => {
             <div className={styles.locationSection}>
               <div className={styles.locationInfo}>
                 <span className={styles.address}>
-                  {[
-                    accommodation.address_summary.country,
-                    accommodation.address_summary.state,
-                    accommodation.address_summary.city,
-                    accommodation.address_summary.district,
-                  ].filter(Boolean).join(", ")}
+                  {accommodation.address_summary.city || accommodation.address_summary.country}의 {getAccommodationTypeKorean(accommodation.type)}
                 </span>
                 <span className={styles.maxOccupancy}>최대 인원 {accommodation.policy.max_occupancy}명</span>
               </div>
@@ -1180,10 +1186,8 @@ const AccommodationDetail: React.FC = () => {
           <h2 className={styles.sectionTitle}>위치</h2>
           <p className={styles.address}>
             {[
-              accommodation.address_summary.country,
-              accommodation.address_summary.state,
               accommodation.address_summary.city,
-              accommodation.address_summary.district,
+              accommodation.address_summary.country,
             ].filter(Boolean).join(", ")}
           </p>
           {accommodation.coordinate.latitude && accommodation.coordinate.longitude && (

@@ -111,10 +111,7 @@ export const AccommodationCardSearch: React.FC<AccommodationCardSearchProps> = (
       <div className={styles.wishlistCardInfo}>
         <div className={styles.locationRow}>
           <div className={styles.location}>
-            {[
-              accommodation.address_summary.city,
-              accommodation.address_summary.district,
-            ].filter(Boolean).join(", ") || accommodation.address_summary.country}
+            {accommodation.address_summary.city || accommodation.address_summary.country}
           </div>
           {accommodation.review_summary.total_count > 0 && (
             <div className={styles.review}>
