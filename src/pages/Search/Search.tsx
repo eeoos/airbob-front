@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { useSpring, useDrag } from "@react-spring/web";
+import { motion, useMotionValue, useSpring, useTransform, PanInfo } from "framer-motion";
 import { MainLayout } from "../../layouts";
 import { ListContainer } from "../../components/ListContainer";
 import { AccommodationCardSearch } from "../../components/AccommodationCard";
@@ -45,7 +45,7 @@ const Search: React.FC = () => {
   // Bottom sheet state management
   const [bottomSheetState, setBottomSheetState] = useState<BottomSheetState>("half");
   const [isMobileOrTablet, setIsMobileOrTablet] = useState(false);
-  const bottomSheetRef = useRef<HTMLDivElement>(null);
+  const bottomSheetRef = useRef<HTMLDivElement | null>(null);
   
   // Calculate snap positions based on viewport (from bottom of screen)
   const snapPositions = useMemo(() => {
@@ -62,24 +62,22 @@ const Search: React.FC = () => {
     };
   }, [isMobileOrTablet]);
   
-  // Spring animation for bottom sheet (y represents distance from bottom)
-  const [{ y }, api] = useSpring(() => ({
-    y: snapPositions[bottomSheetState],
-    config: {
-      tension: 300,
-      friction: 30,
-    },
-  }));
+  // Motion value for Y position (distance from bottom)
+  const y = useMotionValue(snapPositions[bottomSheetState]);
+  const springY = useSpring(y, {
+    stiffness: 300,
+    damping: 30,
+  });
   
-  // Update spring when state changes
+  // Transform Y to translateY
+  const translateY = useTransform(springY, (val) => window.innerHeight - val);
+  
+  // Update motion value when state changes
   useEffect(() => {
     if (isMobileOrTablet) {
-      api.start({
-        y: snapPositions[bottomSheetState],
-        immediate: false,
-      });
+      y.set(snapPositions[bottomSheetState]);
     }
-  }, [bottomSheetState, snapPositions, api, isMobileOrTablet]);
+  }, [bottomSheetState, snapPositions, isMobileOrTablet, y]);
   
   // Determine next state based on current state and drag direction
   const getNextState = useCallback((currentState: BottomSheetState, dragUp: boolean): BottomSheetState => {
@@ -96,64 +94,47 @@ const Search: React.FC = () => {
   
   // Track drag start state
   const dragStartStateRef = useRef<BottomSheetState>(bottomSheetState);
+  const dragStartYRef = useRef<number>(0);
   
-  // Drag handler using react-spring
-  const bind = useDrag(
-    ({ movement: [, my], direction: [, dy], cancel, canceled, velocity: [, vy], first, last, memo }) => {
-      if (!isMobileOrTablet) return;
-      
-      // On drag start, record current state and initial Y
-      if (first) {
-        dragStartStateRef.current = bottomSheetState;
-        memo = y.get();
-      }
-      
-      // Only allow vertical dragging (dy should be dominant)
-      if (Math.abs(dy) < 0.5) return;
-      
-      const startY = memo as number;
-      const dragThreshold = 50;
-      const velocityThreshold = 0.5;
-      const dragDistance = Math.abs(my);
-      const isDraggingUp = my < 0; // Negative movement = dragging up
-      
-      // During drag, update position
-      if (!last && !canceled) {
-        const newY = Math.max(
-          snapPositions.collapsed,
-          Math.min(snapPositions.expanded, startY - my)
-        );
-        api.start({
-          y: newY,
-          immediate: true,
-        });
-        return newY;
-      }
-      
-      // On drag end, snap to nearest state
-      if (last || canceled) {
-        const shouldSnap = dragDistance > dragThreshold || Math.abs(vy) > velocityThreshold;
-        
-        if (shouldSnap) {
-          const nextState = getNextState(dragStartStateRef.current, isDraggingUp);
-          setBottomSheetState(nextState);
-        } else {
-          // If drag was too small, return to original state
-          api.start({
-            y: snapPositions[dragStartStateRef.current],
-            immediate: false,
-          });
-        }
-      }
-      
-      return memo;
-    },
-    {
-      axis: "y",
-      filterTaps: true,
-      from: () => [0, y.get()],
+  // Handle drag end - snap to nearest state
+  const handleDragEnd = useCallback((event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    if (!isMobileOrTablet) return;
+    
+    const dragThreshold = 50;
+    const velocityThreshold = 0.5;
+    const dragDistance = Math.abs(info.offset.y);
+    const isDraggingUp = info.offset.y < 0; // Negative offset = dragging up
+    const velocity = Math.abs(info.velocity.y);
+    
+    const shouldSnap = dragDistance > dragThreshold || velocity > velocityThreshold;
+    
+    if (shouldSnap) {
+      const nextState = getNextState(dragStartStateRef.current, isDraggingUp);
+      setBottomSheetState(nextState);
+    } else {
+      // If drag was too small, return to original state
+      y.set(snapPositions[dragStartStateRef.current]);
     }
-  );
+  }, [isMobileOrTablet, getNextState, snapPositions, y]);
+  
+  // Handle drag start
+  const handleDragStart = useCallback(() => {
+    if (!isMobileOrTablet) return;
+    dragStartStateRef.current = bottomSheetState;
+    dragStartYRef.current = y.get();
+  }, [isMobileOrTablet, bottomSheetState, y]);
+  
+  // Handle drag - constrain to bounds
+  const handleDrag = useCallback((event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    if (!isMobileOrTablet) return;
+    
+    // info.offset.y is relative to drag start, negative = dragging up
+    const newY = Math.max(
+      snapPositions.collapsed,
+      Math.min(snapPositions.expanded, dragStartYRef.current - info.offset.y)
+    );
+    y.set(newY);
+  }, [isMobileOrTablet, snapPositions, y]);
 
   // Check if mobile/tablet on mount and resize
   useEffect(() => {
@@ -627,20 +608,25 @@ const Search: React.FC = () => {
             </div>
 
             {/* Bottom Sheet - Overlay */}
-            <div
+            <motion.div
               ref={bottomSheetRef}
-              {...(isMobileOrTablet ? bind() : {})}
               className={`${styles.bottomSheet} ${styles[bottomSheetState]} ${
                 accommodations.length === 0 ? styles.emptyResults : ""
               }`}
               style={
                 isMobileOrTablet
                   ? {
-                      transform: y.to((val) => `translateY(${window.innerHeight - val}px)`),
+                      y: translateY,
                       touchAction: "pan-y",
                     }
                   : undefined
               }
+              drag={isMobileOrTablet ? "y" : false}
+              dragElastic={0.1}
+              dragMomentum={false}
+              onDragStart={handleDragStart}
+              onDrag={handleDrag}
+              onDragEnd={handleDragEnd}
             >
               {/* Header Section - Always Visible */}
               <div className={styles.bottomSheetHeader}>
@@ -770,7 +756,7 @@ const Search: React.FC = () => {
                   </>
                 )}
               </div>
-            </div>
+            </motion.div>
           </>
         ) : (
           // Desktop: Original Side-by-Side Layout
