@@ -286,33 +286,33 @@
 
   /* Collapsed State - Pure Peek (Header Only) - Tablet */
   .bottomSheet.collapsed {
-    /* transform is controlled by react-spring */
-    height: 80px;
-    max-height: 80px;
-    min-height: 80px;
+    /* transform is controlled by framer-motion */
+    height: 100px;
+    max-height: 100px;
+    min-height: 100px;
   }
 
-  /* Half State - Tablet: 45-50vh */
+  /* Half State - Tablet: 헤더를 제외한 영역의 50% */
   .bottomSheet.half {
-    /* transform is controlled by react-spring */
-    height: 48vh;
-    min-height: 48vh;
-    max-height: 48vh;
+    /* transform is controlled by framer-motion */
+    height: calc((100vh - 80px) * 0.5);
+    min-height: calc((100vh - 80px) * 0.5);
+    max-height: calc((100vh - 80px) * 0.5);
   }
 
   .bottomSheet.half.emptyResults {
-    /* transform is controlled by react-spring */
-    height: 42vh;
-    min-height: 42vh;
-    max-height: 42vh;
+    /* transform is controlled by framer-motion */
+    height: calc((100vh - 80px) * 0.5);
+    min-height: calc((100vh - 80px) * 0.5);
+    max-height: calc((100vh - 80px) * 0.5);
   }
 
-  /* Expanded State - Tablet */
+  /* Expanded State - Tablet: 헤더 바로 아래부터 시작 */
   .bottomSheet.expanded {
-    /* transform is controlled by react-spring */
-    height: calc(100vh - 80px - 100px); /* 헤더 높이(80px) + 여유 공간(100px) 제외한 높이 */
-    max-height: calc(100vh - 80px - 100px);
-    min-height: calc(100vh - 80px - 100px);
+    /* transform is controlled by framer-motion */
+    height: calc(100vh - 80px); /* 헤더 높이(80px)만 제외 */
+    max-height: calc(100vh - 80px);
+    min-height: calc(100vh - 80px);
   }
 
   /* Bottom Sheet Header - Always Visible */
@@ -436,10 +436,10 @@
   }
 
   .bottomSheet.collapsed {
-    /* transform is controlled by react-spring */
-    height: 64px;
-    max-height: 64px;
-    min-height: 64px;
+    /* transform is controlled by framer-motion */
+    height: 100px;
+    max-height: 100px;
+    min-height: 100px;
   }
 
   /* Mobile collapsed state - ensure only header visible */
@@ -452,24 +452,24 @@
   }
 
   .bottomSheet.half {
-    /* transform is controlled by react-spring */
-    height: 40vh;
-    min-height: 40vh;
-    max-height: 40vh;
+    /* transform is controlled by framer-motion */
+    height: calc((100vh - 144px) * 0.5); /* 헤더를 제외한 영역의 50% */
+    min-height: calc((100vh - 144px) * 0.5);
+    max-height: calc((100vh - 144px) * 0.5);
   }
 
   .bottomSheet.half.emptyResults {
-    /* transform is controlled by react-spring */
-    height: 42vh;
-    min-height: 42vh;
-    max-height: 42vh;
+    /* transform is controlled by framer-motion */
+    height: calc((100vh - 144px) * 0.5);
+    min-height: calc((100vh - 144px) * 0.5);
+    max-height: calc((100vh - 144px) * 0.5);
   }
 
   .bottomSheet.expanded {
-    /* transform is controlled by react-spring */
-    height: calc(100vh - 144px - 100px); /* 헤더 높이(144px) + 여유 공간(100px) 제외한 높이 */
-    max-height: calc(100vh - 144px - 100px);
-    min-height: calc(100vh - 144px - 100px);
+    /* transform is controlled by framer-motion */
+    height: calc(100vh - 144px); /* 헤더 높이(144px)만 제외 */
+    max-height: calc(100vh - 144px);
+    min-height: calc(100vh - 144px);
   }
 
   /* Mobile Header adjustments */

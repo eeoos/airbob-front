@@ -53,12 +53,16 @@ const Search: React.FC = () => {
     
     const isMobile = window.innerWidth < 768;
     const headerHeight = isMobile ? 144 : 80;
-    const gap = 100;
+    const viewportHeight = window.innerHeight;
+    const availableHeight = viewportHeight - headerHeight; // 헤더를 제외한 사용 가능한 높이
     
     return {
-      collapsed: isMobile ? 64 : 80,
-      half: isMobile ? window.innerHeight * 0.4 : window.innerHeight * 0.48,
-      expanded: window.innerHeight - headerHeight - gap,
+      // Collapsed: grabber + title만 보이는 peek 상태 (약 80-100px)
+      collapsed: isMobile ? 100 : 100,
+      // Half: 헤더를 제외한 영역의 약 50% (헤더 아래부터 시작)
+      half: isMobile ? availableHeight * 0.5 : availableHeight * 0.5,
+      // Expanded: 헤더 바로 아래부터 시작 (헤더 높이만 제외)
+      expanded: availableHeight,
     };
   }, [isMobileOrTablet]);
   
