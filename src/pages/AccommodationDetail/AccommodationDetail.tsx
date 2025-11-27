@@ -786,41 +786,59 @@ const AccommodationDetail: React.FC = () => {
                 />
               </div>
               <div className={styles.thumbnailGrid}>
-                {accommodation.images.slice(1, 5).map((image, index) => (
-                  <button
-                    key={image.id}
-                    className={styles.thumbnail}
-                    onClick={() => {
-                      setCurrentImageIndex(index + 1);
-                      setIsImageGalleryOpen(true);
-                    }}
-                  >
-                    <img src={getImageUrl(image.image_url)} alt={`${accommodation.name} ${index + 2}`} />
-                    {index === 3 && accommodation.images.length > 5 && (
-                      <div 
-                        className={styles.viewAllButton}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setCurrentImageIndex(0);
+                {Array.from({ length: 4 }).map((_, index) => {
+                  const imageIndex = index + 1;
+                  const image = accommodation.images[imageIndex];
+                  
+                  if (image) {
+                    return (
+                      <button
+                        key={image.id}
+                        className={styles.thumbnail}
+                        onClick={() => {
+                          setCurrentImageIndex(imageIndex);
                           setIsImageGalleryOpen(true);
                         }}
                       >
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <rect x="1" y="1" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                          <rect x="6" y="1" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                          <rect x="11" y="1" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                          <rect x="1" y="6" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                          <rect x="6" y="6" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                          <rect x="11" y="6" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                          <rect x="1" y="11" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                          <rect x="6" y="11" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                          <rect x="11" y="11" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                        <img src={getImageUrl(image.image_url)} alt={`${accommodation.name} ${imageIndex + 1}`} />
+                        {index === 3 && accommodation.images.length > 5 && (
+                          <div 
+                            className={styles.viewAllButton}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCurrentImageIndex(0);
+                              setIsImageGalleryOpen(true);
+                            }}
+                          >
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <rect x="1" y="1" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                              <rect x="6" y="1" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                              <rect x="11" y="1" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                              <rect x="1" y="6" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                              <rect x="6" y="6" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                              <rect x="11" y="6" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                              <rect x="1" y="11" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                              <rect x="6" y="11" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                              <rect x="11" y="11" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                            </svg>
+                            <span>사진 모두 보기</span>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  } else {
+                    // 플레이스홀더
+                    return (
+                      <div key={`placeholder-${index}`} className={styles.thumbnailPlaceholder}>
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                          <circle cx="8.5" cy="8.5" r="1.5"/>
+                          <polyline points="21 15 16 10 5 21"/>
                         </svg>
-                        <span>사진 모두 보기</span>
                       </div>
-                    )}
-                  </button>
-                ))}
+                    );
+                  }
+                })}
               </div>
             </div>
 
