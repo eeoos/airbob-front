@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { motion, useMotionValue, useSpring, useTransform, PanInfo } from "framer-motion";
+import { motion, useMotionValue, useSpring, useTransform, PanInfo, animate } from "framer-motion";
 import { MainLayout } from "../../layouts";
 import { ListContainer } from "../../components/ListContainer";
 import { AccommodationCardSearch } from "../../components/AccommodationCard";
@@ -75,9 +75,9 @@ const Search: React.FC = () => {
     isMobileOrTablet ? snapPositions[bottomSheetState] : 0
   );
   const springY = useSpring(y, {
-    stiffness: 200,
-    damping: 40,
-    mass: 0.8,
+    stiffness: 60,
+    damping: 30,
+    mass: 1.2,
   });
   
   // Calculate translateY: negative value moves sheet up from bottom
@@ -87,8 +87,13 @@ const Search: React.FC = () => {
   // Update motion value when state changes
   useEffect(() => {
     if (isMobileOrTablet) {
-      // Set y to the height value (how much to move up from bottom)
-      y.set(snapPositions[bottomSheetState]);
+      // Use animate for smoother spring transitions
+      animate(y, snapPositions[bottomSheetState], {
+        type: "spring",
+        stiffness: 60,
+        damping: 30,
+        mass: 1.2,
+      });
     } else {
       y.set(0);
     }
