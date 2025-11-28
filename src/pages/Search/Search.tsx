@@ -58,14 +58,14 @@ const Search: React.FC = () => {
     
     return {
       // Collapsed: grabber + title만 보이는 peek 상태 (약 100px만 보임)
-      // 시트 높이는 100px이고, translateY는 거의 0 (하단에 거의 붙어있음)
-      collapsed: 0, // 거의 하단에 붙음
-      // Half: 화면 높이의 약 0.05% 위치 (2배 더 내림)
-      // 시트 높이는 50vh이고, translateY는 -0.05vh (하단에서 0.05vh 위로 올라감)
-      half: isMobile ? viewportHeight * 0.0005 : viewportHeight * 0.0005,
-      // Expanded: 헤더 아래까지의 0.1% 위치 (2배 더 내림)
-      // 시트 높이는 (100vh - headerHeight)이고, translateY는 -(100vh - headerHeight) * 0.001
-      expanded: (viewportHeight - headerHeight) * 0.001,
+      // 시트 높이는 100px이고, translateY는 0 (하단에 완전히 붙어있음)
+      collapsed: 0, // 완전히 하단에 붙음
+      // Half: 거의 하단에 붙음 (거의 0)
+      // 시트 높이는 50vh이고, translateY는 거의 0
+      half: 0,
+      // Expanded: 거의 하단에 붙음 (거의 0)
+      // 시트 높이는 (100vh - headerHeight)이고, translateY는 거의 0
+      expanded: 0,
     };
   }, [isMobileOrTablet]);
   

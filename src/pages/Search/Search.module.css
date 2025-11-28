@@ -295,26 +295,26 @@
   /* Half State - Tablet: 화면 높이의 50% */
   .bottomSheet.half {
     /* transform is controlled by framer-motion */
-    /* 시트가 올라간 만큼 + 보여야 할 높이를 합쳐서 지도가 보이지 않도록 */
-    height: calc(50vh + 0.05vh); /* 50vh (보여야 할 높이) + 0.05vh (올라간 만큼) */
-    min-height: calc(50vh + 0.05vh);
-    max-height: calc(50vh + 0.05vh);
+    /* 시트가 거의 올라가지 않으므로 높이는 50vh만 */
+    height: 50vh;
+    min-height: 50vh;
+    max-height: 50vh;
   }
 
   .bottomSheet.half.emptyResults {
     /* transform is controlled by framer-motion */
-    height: calc(50vh + 0.05vh);
-    min-height: calc(50vh + 0.05vh);
-    max-height: calc(50vh + 0.05vh);
+    height: 50vh;
+    min-height: 50vh;
+    max-height: 50vh;
   }
 
   /* Expanded State - Tablet: 헤더 바로 아래부터 시작 */
   .bottomSheet.expanded {
     /* transform is controlled by framer-motion */
-    /* 시트가 올라간 만큼 + 보여야 할 높이를 합쳐서 지도가 보이지 않도록 */
-    height: calc(100vh - 80px + (100vh - 80px) * 0.001); /* 헤더 아래 높이 + 올라간 만큼 */
-    max-height: calc(100vh - 80px + (100vh - 80px) * 0.001);
-    min-height: calc(100vh - 80px + (100vh - 80px) * 0.001);
+    /* 시트가 거의 올라가지 않으므로 높이는 헤더 아래 높이만 */
+    height: calc(100vh - 80px);
+    max-height: calc(100vh - 80px);
+    min-height: calc(100vh - 80px);
   }
 
   /* Bottom Sheet Header - Always Visible */
@@ -455,25 +455,25 @@
 
   .bottomSheet.half {
     /* transform is controlled by framer-motion */
-    /* 시트가 올라간 만큼 + 보여야 할 높이를 합쳐서 지도가 보이지 않도록 */
-    height: calc(50vh + 0.05vh); /* 50vh (보여야 할 높이) + 0.05vh (올라간 만큼) */
-    min-height: calc(50vh + 0.05vh);
-    max-height: calc(50vh + 0.05vh);
+    /* 시트가 거의 올라가지 않으므로 높이는 50vh만 */
+    height: 50vh;
+    min-height: 50vh;
+    max-height: 50vh;
   }
 
   .bottomSheet.half.emptyResults {
     /* transform is controlled by framer-motion */
-    height: calc(50vh + 0.05vh);
-    min-height: calc(50vh + 0.05vh);
-    max-height: calc(50vh + 0.05vh);
+    height: 50vh;
+    min-height: 50vh;
+    max-height: 50vh;
   }
 
   .bottomSheet.expanded {
     /* transform is controlled by framer-motion */
-    /* 시트가 올라간 만큼 + 보여야 할 높이를 합쳐서 지도가 보이지 않도록 */
-    height: calc(100vh - 144px + (100vh - 144px) * 0.001); /* 헤더 아래 높이 + 올라간 만큼 */
-    max-height: calc(100vh - 144px + (100vh - 144px) * 0.001);
-    min-height: calc(100vh - 144px + (100vh - 144px) * 0.001);
+    /* 시트가 거의 올라가지 않으므로 높이는 헤더 아래 높이만 */
+    height: calc(100vh - 144px);
+    max-height: calc(100vh - 144px);
+    min-height: calc(100vh - 144px);
   }
 
   /* Mobile Header adjustments */
