@@ -75,8 +75,9 @@ const Search: React.FC = () => {
     isMobileOrTablet ? snapPositions[bottomSheetState] : 0
   );
   const springY = useSpring(y, {
-    stiffness: 300,
-    damping: 30,
+    stiffness: 200,
+    damping: 40,
+    mass: 0.8,
   });
   
   // Calculate translateY: negative value moves sheet up from bottom
