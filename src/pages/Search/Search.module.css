@@ -287,34 +287,34 @@
   /* Collapsed State - Pure Peek (Header Only) - Tablet */
   .bottomSheet.collapsed {
     /* transform is controlled by framer-motion */
-    height: 100px;
-    max-height: 100px;
-    min-height: 100px;
+    height: 80px;
+    max-height: 80px;
+    min-height: 80px;
   }
 
   /* Half State - Tablet: 화면 높이의 50% */
   .bottomSheet.half {
     /* transform is controlled by framer-motion */
     /* 시트가 거의 올라가지 않으므로 높이는 50vh만 */
-    height: 50vh;
-    min-height: 50vh;
-    max-height: 50vh;
+    height: 45vh;
+    min-height: 45vh;
+    max-height: 45vh;
   }
 
   .bottomSheet.half.emptyResults {
     /* transform is controlled by framer-motion */
-    height: 50vh;
-    min-height: 50vh;
-    max-height: 50vh;
+    height: 45vh;
+    min-height: 45vh;
+    max-height: 45vh;
   }
 
   /* Expanded State - Tablet: 헤더 바로 아래부터 시작 */
   .bottomSheet.expanded {
     /* transform is controlled by framer-motion */
     /* 시트가 거의 올라가지 않으므로 높이는 헤더 아래 높이만 */
-    height: calc(100vh - 80px);
-    max-height: calc(100vh - 80px);
-    min-height: calc(100vh - 80px);
+    height: calc(100vh - 80px - 20px);
+    max-height: calc(100vh - 80px - 20px);
+    min-height: calc(100vh - 80px - 20px);
   }
 
   /* Bottom Sheet Header - Always Visible */
@@ -439,9 +439,9 @@
 
   .bottomSheet.collapsed {
     /* transform is controlled by framer-motion */
-    height: 100px;
-    max-height: 100px;
-    min-height: 100px;
+    height: 80px;
+    max-height: 80px;
+    min-height: 80px;
   }
 
   /* Mobile collapsed state - ensure only header visible */
@@ -456,24 +456,24 @@
   .bottomSheet.half {
     /* transform is controlled by framer-motion */
     /* 시트가 거의 올라가지 않으므로 높이는 50vh만 */
-    height: 50vh;
-    min-height: 50vh;
-    max-height: 50vh;
+    height: 45vh;
+    min-height: 45vh;
+    max-height: 45vh;
   }
 
   .bottomSheet.half.emptyResults {
     /* transform is controlled by framer-motion */
-    height: 50vh;
-    min-height: 50vh;
-    max-height: 50vh;
+    height: 45vh;
+    min-height: 45vh;
+    max-height: 45vh;
   }
 
   .bottomSheet.expanded {
     /* transform is controlled by framer-motion */
     /* 시트가 거의 올라가지 않으므로 높이는 헤더 아래 높이만 */
-    height: calc(100vh - 144px);
-    max-height: calc(100vh - 144px);
-    min-height: calc(100vh - 144px);
+    height: calc(100vh - 144px - 20px);
+    max-height: calc(100vh - 144px - 20px);
+    min-height: calc(100vh - 144px - 20px);
   }
 
   /* Mobile Header adjustments */
