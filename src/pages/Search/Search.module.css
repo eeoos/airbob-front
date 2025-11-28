@@ -296,25 +296,25 @@
   .bottomSheet.half {
     /* transform is controlled by framer-motion */
     /* 시트가 올라간 만큼 + 보여야 할 높이를 합쳐서 지도가 보이지 않도록 */
-    height: calc(50vh + 2.5vh); /* 50vh (보여야 할 높이) + 2.5vh (올라간 만큼) */
-    min-height: calc(50vh + 2.5vh);
-    max-height: calc(50vh + 2.5vh);
+    height: calc(50vh + 1vh); /* 50vh (보여야 할 높이) + 1vh (올라간 만큼) */
+    min-height: calc(50vh + 1vh);
+    max-height: calc(50vh + 1vh);
   }
 
   .bottomSheet.half.emptyResults {
     /* transform is controlled by framer-motion */
-    height: calc(50vh + 2.5vh);
-    min-height: calc(50vh + 2.5vh);
-    max-height: calc(50vh + 2.5vh);
+    height: calc(50vh + 1vh);
+    min-height: calc(50vh + 1vh);
+    max-height: calc(50vh + 1vh);
   }
 
   /* Expanded State - Tablet: 헤더 바로 아래부터 시작 */
   .bottomSheet.expanded {
     /* transform is controlled by framer-motion */
     /* 시트가 올라간 만큼 + 보여야 할 높이를 합쳐서 지도가 보이지 않도록 */
-    height: calc(100vh - 80px + (100vh - 80px) * 0.05); /* 헤더 아래 높이 + 올라간 만큼 */
-    max-height: calc(100vh - 80px + (100vh - 80px) * 0.05);
-    min-height: calc(100vh - 80px + (100vh - 80px) * 0.05);
+    height: calc(100vh - 80px + (100vh - 80px) * 0.02); /* 헤더 아래 높이 + 올라간 만큼 */
+    max-height: calc(100vh - 80px + (100vh - 80px) * 0.02);
+    min-height: calc(100vh - 80px + (100vh - 80px) * 0.02);
   }
 
   /* Bottom Sheet Header - Always Visible */
@@ -456,24 +456,24 @@
   .bottomSheet.half {
     /* transform is controlled by framer-motion */
     /* 시트가 올라간 만큼 + 보여야 할 높이를 합쳐서 지도가 보이지 않도록 */
-    height: calc(50vh + 2.5vh); /* 50vh (보여야 할 높이) + 2.5vh (올라간 만큼) */
-    min-height: calc(50vh + 2.5vh);
-    max-height: calc(50vh + 2.5vh);
+    height: calc(50vh + 1vh); /* 50vh (보여야 할 높이) + 1vh (올라간 만큼) */
+    min-height: calc(50vh + 1vh);
+    max-height: calc(50vh + 1vh);
   }
 
   .bottomSheet.half.emptyResults {
     /* transform is controlled by framer-motion */
-    height: calc(50vh + 2.5vh);
-    min-height: calc(50vh + 2.5vh);
-    max-height: calc(50vh + 2.5vh);
+    height: calc(50vh + 1vh);
+    min-height: calc(50vh + 1vh);
+    max-height: calc(50vh + 1vh);
   }
 
   .bottomSheet.expanded {
     /* transform is controlled by framer-motion */
     /* 시트가 올라간 만큼 + 보여야 할 높이를 합쳐서 지도가 보이지 않도록 */
-    height: calc(100vh - 144px + (100vh - 144px) * 0.05); /* 헤더 아래 높이 + 올라간 만큼 */
-    max-height: calc(100vh - 144px + (100vh - 144px) * 0.05);
-    min-height: calc(100vh - 144px + (100vh - 144px) * 0.05);
+    height: calc(100vh - 144px + (100vh - 144px) * 0.02); /* 헤더 아래 높이 + 올라간 만큼 */
+    max-height: calc(100vh - 144px + (100vh - 144px) * 0.02);
+    min-height: calc(100vh - 144px + (100vh - 144px) * 0.02);
   }
 
   /* Mobile Header adjustments */
