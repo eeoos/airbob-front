@@ -1,5 +1,8 @@
+// src/contexts/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { authApi } from "../api";
+import { client } from "../api/client"; 
+import { onAuthError } from "../utils/authEvents"; // [수정] 이벤트 구독 함수
 import { LoginRequest } from "../types/auth";
 
 interface AuthContextType {
@@ -8,19 +11,9 @@ interface AuthContextType {
   login: (credentials: LoginRequest) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
-  setUnauthenticated: () => void; // 세션 만료 시 호출
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// 전역 인증 상태 업데이트 함수 (interceptor에서 사용)
-let globalSetUnauthenticated: (() => void) | null = null;
-
-export const setAuthUnauthenticated = () => {
-  if (globalSetUnauthenticated) {
-    globalSetUnauthenticated();
-  }
-};
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -38,60 +31,55 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 세션 만료 시 인증 상태를 false로 설정하는 함수
-  const setUnauthenticated = () => {
-    setIsAuthenticated(false);
-  };
-
-  // 전역 함수 등록 (interceptor에서 사용)
+  // [핵심 변경] 전역 인증 에러 이벤트 구독
   useEffect(() => {
-    globalSetUnauthenticated = setUnauthenticated;
-    return () => {
-      globalSetUnauthenticated = null;
+    const handleAuthError = () => {
+      console.warn("Session expired. Logging out...");
+      setIsAuthenticated(false);
+      // 필요하다면 여기서 토스트 메시지를 띄우거나 리다이렉트 처리를 추가할 수 있습니다.
     };
+
+    // 구독 시작 (unsubscribe 함수를 반환받음)
+    const unsubscribe = onAuthError(handleAuthError);
+
+    // 컴포넌트 언마운트 시 구독 해제 (cleanup)
+    return unsubscribe;
   }, []);
 
-  // 실제 API 호출로 세션 유효성 확인
   const checkAuth = useCallback(async () => {
     try {
-      // 인증 확인 전용 API 호출
-      const response = await fetch('/api/v1/auth/me', {
-        method: 'GET',
-        credentials: 'include', // 쿠키 포함
-      });
+      // axios client 사용 (운영 시 절대 경로로 요청됨)
+      const response = await client.get('/auth/me');
       
-      // 200 OK 또는 401 Unauthorized로 인증 상태 판단
-      setIsAuthenticated(response.ok);
+      // Vercel HTML 응답 방어
+      const contentType = response.headers['content-type'];
+      if (contentType && typeof contentType === 'string' && contentType.includes('text/html')) {
+        console.warn("Auth Check returned HTML. Treating as unauthenticated.");
+        throw new Error("Invalid API Response");
+      }
+      
+      setIsAuthenticated(true);
     } catch (error) {
-      // 네트워크 에러 등
       setIsAuthenticated(false);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  // 초기 인증 상태 확인
+  // 초기 로딩 및 포커스 시 체크
   useEffect(() => {
     checkAuth();
-  }, []);
+  }, [checkAuth]);
 
-  // 페이지 포커스 시 인증 상태 재확인 (세션 만료 감지)
   useEffect(() => {
-    const handleFocus = () => {
-      // 페이지가 다시 포커스를 받을 때 인증 상태 확인
-      checkAuth();
-    };
-
+    const handleFocus = () => checkAuth();
     window.addEventListener('focus', handleFocus);
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-    };
+    return () => window.removeEventListener('focus', handleFocus);
   }, [checkAuth]);
 
   const login = async (credentials: LoginRequest) => {
     try {
       await authApi.login(credentials);
-      // 로그인 성공 시 쿠키가 자동으로 설정됨
       setIsAuthenticated(true);
     } catch (error) {
       setIsAuthenticated(false);
@@ -102,11 +90,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async () => {
     try {
       await authApi.logout();
-      // 쿠키 삭제 (서버에서 처리되지만 클라이언트에서도 명시적으로 처리)
       document.cookie = "SESSION_ID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
       setIsAuthenticated(false);
     } catch (error) {
-      // 로그아웃 실패해도 클라이언트 상태는 업데이트
       document.cookie = "SESSION_ID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
       setIsAuthenticated(false);
       throw error;
@@ -114,19 +100,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        isAuthenticated,
-        isLoading,
-        login,
-        logout,
-        checkAuth,
-        setUnauthenticated,
-      }}
-    >
+    <AuthContext.Provider value={{ isAuthenticated, isLoading, login, logout, checkAuth }}>
       {children}
     </AuthContext.Provider>
   );
 };
-
-
