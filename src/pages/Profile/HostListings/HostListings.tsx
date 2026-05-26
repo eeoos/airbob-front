@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import { accommodationApi } from "../../../api";
 import { MyAccommodationInfo } from "../../../types/accommodation";
 import { AccommodationStatus } from "../../../types/enums";
@@ -15,7 +14,6 @@ interface HostListingsProps {
 }
 
 const HostListings: React.FC<HostListingsProps> = ({ statusType = "PUBLISHED", onStatusChange }) => {
-  const navigate = useNavigate();
   const { error, handleError, clearError } = useApiError();
   const [accommodations, setAccommodations] = useState<MyAccommodationInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);

@@ -1,8 +1,5 @@
 import { client } from "./client";
-import {
-  GetRecentlyViewedResponse,
-  RecentlyViewedAccommodationInfos,
-} from "../types/recentlyViewed";
+import { RecentlyViewedAccommodationInfos } from "../types/recentlyViewed";
 import { ApiResponse } from "../types/api";
 
 export const recentlyViewedApi = {

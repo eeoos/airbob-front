@@ -17,7 +17,6 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<"login" | "signup">("login");
-  const [isCreating, setIsCreating] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -60,16 +59,13 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
 
   const handleHosting = async () => {
     setIsMenuOpen(false);
-    setIsCreating(true);
-    
+
     try {
       const response = await accommodationApi.create();
       // 숙소 초안 생성 성공 시 숙소 생성 폼 페이지로 이동 (새로 생성된 초안임을 표시)
       navigate(`/accommodations/${response.id}/edit?mode=create`);
     } catch (error) {
       handleError(error);
-    } finally {
-      setIsCreating(false);
     }
   };
 

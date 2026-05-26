@@ -1,8 +1,6 @@
 import { client } from "./client";
 import {
   ConfirmPaymentRequest,
-  ConfirmPaymentResponse,
-  GetPaymentResponse,
   PaymentInfo,
 } from "../types/payment";
 import { ApiResponse } from "../types/api";

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { motion, useMotionValue, useSpring, useTransform, PanInfo, animate } from "framer-motion";
 import { MainLayout } from "../../layouts";
 import { ListContainer } from "../../components/ListContainer";
@@ -21,7 +21,6 @@ const MAX_PAGE = 15; // 최대 페이지 수 제한
 
 const Search: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
   const { error, handleError, clearError } = useApiError();
   const { isAuthenticated } = useAuth();
   const [accommodations, setAccommodations] = useState<AccommodationSearchInfo[]>([]);
@@ -51,11 +50,7 @@ const Search: React.FC = () => {
   // These values represent how much the sheet should move UP from bottom (0)
   const snapPositions = useMemo(() => {
     if (!isMobileOrTablet) return { collapsed: 0, half: 0, expanded: 0 };
-    
-    const isMobile = window.innerWidth < 768;
-    const viewportHeight = window.innerHeight;
-    const headerHeight = isMobile ? 144 : 80;
-    
+
     return {
       // Collapsed: grabber + title만 보이는 peek 상태 (약 100px만 보임)
       // 시트 높이는 100px이고, translateY는 0 (하단에 완전히 붙어있음)
@@ -229,16 +224,10 @@ const Search: React.FC = () => {
   };
 
   // URL 파라미터 기반 초기 검색 및 page 파라미터 변경 감지
+  const searchParamsString = searchParams.toString();
   useEffect(() => {
     // 현재 searchParams를 문자열로 변환하여 비교
-    const currentSearchParams = searchParams.toString();
-    
-    // 지도 드래그 모드 여부 확인 (destination이 없고 viewport 파라미터가 있으면 지도 드래그 모드)
-    const hasViewportParams = 
-      !!searchParams.get("topLeftLat") && 
-      !!searchParams.get("topLeftLng");
-    const hasDestinationParam = !!searchParams.get("destination");
-    const isMapDrag = hasViewportParams && !hasDestinationParam;
+    const currentSearchParams = searchParamsString;
     
     // URL에서 page 파라미터 읽기 (0부터 시작, 최대 15로 제한)
     const pageParam = searchParams.get("page");
@@ -404,7 +393,9 @@ const Search: React.FC = () => {
     };
 
     fetchAccommodations(params, isMapDragMode);
-  }, [searchParams.toString(), handleError, clearError]);
+    // fetchAccommodations, searchParams, setSearchParams는 의도적으로 제외 (searchParams 문자열 변화만 트리거)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParamsString, handleError, clearError]);
 
   // 지도 bounds 변경 핸들러 (지도 드래그/줌 시)
   const handleMapBoundsChange = (bounds: {

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import styles from "./DatePicker.module.css";
 
 interface DatePickerProps {
@@ -233,25 +233,6 @@ const DatePicker: React.FC<DatePickerProps> = ({
         </div>
       </div>
     );
-  };
-
-  const formatDateForDisplay = (date: Date | null): string => {
-    if (!date) return "";
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}. ${month}. ${day}.`;
-  };
-
-  const formatDateRange = (): string => {
-    if (!checkIn || !checkOut) return "";
-    const year = checkIn.getFullYear();
-    const month = checkIn.getMonth() + 1;
-    const day = checkIn.getDate();
-    const endYear = checkOut.getFullYear();
-    const endMonth = checkOut.getMonth() + 1;
-    const endDay = checkOut.getDate();
-    return `${year}년 ${month}월 ${day}일 - ${endYear}년 ${endMonth}월 ${endDay}일`;
   };
 
   return (

@@ -1,5 +1,4 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import { AccommodationSearchInfo } from "../../types/accommodation";
 import { getImageUrl } from "../../utils/image";
 import { AccommodationType } from "../../types/enums";
@@ -20,8 +19,6 @@ export const AccommodationCardSearch: React.FC<AccommodationCardSearchProps> = (
   checkIn,
   checkOut,
 }) => {
-  const navigate = useNavigate();
-
   const formatPrice = (basePrice: number, currency: string): string => {
     if (currency === "KRW") {
       return `₩${basePrice.toLocaleString()}`;

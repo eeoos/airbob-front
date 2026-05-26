@@ -61,7 +61,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
     selectedPlace,
     handleInputChange,
     handlePlaceSelect,
-    clearSuggestions,
     reset: resetPlaces,
     startNewSession,
   } = usePlacesAutocomplete({
@@ -357,16 +356,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
     }, 500);
   };
   
-  // 검색바의 다른 영역 클릭 시 열려있는 필터 닫기
-  const handleOtherAreaClick = () => {
-    if (showDatePicker) {
-      setShowDatePicker(false);
-    }
-    if (showGuestPicker) {
-      setShowGuestPicker(false);
-    }
-  };
-
   const handleDateSelect = (newCheckIn: Date | null, newCheckOut: Date | null) => {
     setCheckIn(newCheckIn);
     setCheckOut(newCheckOut);

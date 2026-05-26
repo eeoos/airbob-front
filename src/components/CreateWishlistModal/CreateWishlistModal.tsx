@@ -16,7 +16,7 @@ export const CreateWishlistModal: React.FC<CreateWishlistModalProps> = ({
 }) => {
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { error, handleError, clearError } = useApiError();
+  const { handleError, clearError } = useApiError();
 
   useEffect(() => {
     if (isOpen) {

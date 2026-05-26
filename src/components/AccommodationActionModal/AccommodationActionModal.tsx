@@ -103,19 +103,6 @@ export const AccommodationActionModal: React.FC<AccommodationActionModalProps> =
     }
   };
 
-  const getStatusLabel = (status: AccommodationStatus): string => {
-    switch (status) {
-      case AccommodationStatus.PUBLISHED:
-        return "공개";
-      case AccommodationStatus.DRAFT:
-        return "작성 중";
-      case AccommodationStatus.UNPUBLISHED:
-        return "비공개";
-      default:
-        return status;
-    }
-  };
-
   return (
     <>
       <div className={styles.overlay} onClick={onClose} />

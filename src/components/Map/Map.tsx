@@ -285,7 +285,9 @@ export const Map: React.FC<MapProps> = ({
 
     const cleanup = initMap();
     return cleanup;
-  }, [isMapLoaded]); // onBoundsChange와 isMapDragMode 제거하여 재초기화 방지
+    // 지도 재초기화 방지를 위해 onBoundsChange, isMapDragMode, onMapInteraction 등을 의도적으로 제외
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMapLoaded]);
 
   // isMapDragMode ref 업데이트
   useEffect(() => {
@@ -591,8 +593,7 @@ export const Map: React.FC<MapProps> = ({
       let currentScale = 1.0;
       const targetScale = 1.1;
       const animationDuration = 200; // 200ms
-      const startTime = Date.now();
-      
+
       const animateScale = (startScale: number, endScale: number, startTime: number) => {
         const now = Date.now();
         const elapsed = now - startTime;
@@ -732,6 +733,8 @@ export const Map: React.FC<MapProps> = ({
     
     // 그 외의 경우(스크롤, 검색 결과 변경 등)에는 fitBounds를 호출하지 않음
     // 지도 위치는 사용자가 설정한 위치 그대로 유지
+    // onAccommodationSelect는 마커 클릭 시점에만 호출되어 의도적으로 의존성에서 제외
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accommodations, isMapDragMode, shouldUpdateMapBounds, onMapBoundsUpdated, viewport]);
 
   // 선택된 숙소로 지도 이동 (지도 확대/축소 제거: 지도 크기는 항상 모든 숙소를 보여주는 크기로 유지)
@@ -1140,6 +1143,8 @@ export const Map: React.FC<MapProps> = ({
     }
     
     prevSelectedIdRef.current = currentSelectedId;
+    // checkIn, checkOut, hoveredAccommodationId는 InfoWindow 콘텐츠 생성 시점의 값만 필요해서 의도적으로 제외
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAccommodationId, accommodations, onAccommodationSelect, onWishlistToggle, navigate]);
   
   // 선택 해제 시 마커를 호버 상태에 따라 복원

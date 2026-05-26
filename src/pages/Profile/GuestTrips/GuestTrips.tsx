@@ -93,18 +93,6 @@ const GuestTrips: React.FC<GuestTripsProps> = ({ filterType }) => {
     };
   }, [hasNext, isLoadingMore, handleLoadMore]);
 
-  const handleReviewClick = (reservationUid: string) => {
-    navigate(`/reservations/${reservationUid}/review`);
-  };
-
-  const isCompleted = (checkOutDate: string): boolean => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const checkout = new Date(checkOutDate);
-    checkout.setHours(0, 0, 0, 0);
-    return checkout < today;
-  };
-
   if (isLoading) {
     return <div className={styles.loading}>로딩 중...</div>;
   }
@@ -180,7 +168,6 @@ const GuestTrips: React.FC<GuestTripsProps> = ({ filterType }) => {
                 <h3 className={styles.yearTitle}>{year}</h3>
                 <div className={styles.reservationsGrid}>
                   {yearReservations.map((reservation) => {
-                    const completed = isCompleted(reservation.check_out_date);
                     return (
                       <div
                         key={reservation.reservation_id}

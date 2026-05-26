@@ -100,6 +100,8 @@ export const usePlacesAutocomplete = ({
     } else {
       console.warn("Google Maps API 키가 설정되지 않았습니다.");
     }
+    // initializeServices는 아래에서 선언되며 stable한 useCallback이므로 의존성에서 제외
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 서비스 초기화 (한 번만 실행)

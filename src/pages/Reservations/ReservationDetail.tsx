@@ -18,7 +18,6 @@ const ReservationDetail: React.FC = () => {
   const { error, handleError, clearError } = useApiError();
   const [reservation, setReservation] = useState<ReservationDetailInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [showCancelModal, setShowCancelModal] = useState(false);
 
   useEffect(() => {
     // 인증 상태가 로드될 때까지 대기
@@ -75,25 +74,6 @@ const ReservationDetail: React.FC = () => {
     
     // 체크아웃 날짜가 미래면 false
     return false;
-  };
-
-  const canCancel = (status: ReservationStatus): boolean => {
-    return status === ReservationStatus.CONFIRMED || status === ReservationStatus.PAYMENT_PENDING;
-  };
-
-  const handleReviewClick = () => {
-    if (reservation) {
-      navigate(`/reservations/${reservation.reservation_uid}/review`);
-    }
-  };
-
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("ko-KR", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
   };
 
   const formatDateWithWeekday = (dateString: string): string => {

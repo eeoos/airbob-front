@@ -310,7 +310,7 @@ const AccommodationDetail: React.FC = () => {
   const datePickerRef = useRef<HTMLDivElement>(null);
   const dateSectionRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   
   // 리뷰 관련 상태
   const [reviews, setReviews] = useState<ReviewInfo[]>([]);
@@ -321,7 +321,7 @@ const AccommodationDetail: React.FC = () => {
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const reviewObserverTarget = useRef<HTMLDivElement>(null);
   // 각 리뷰의 expanded 상태 관리 (리뷰 ID를 키로 사용)
-  const [expandedReviews, setExpandedReviews] = useState<Record<number, boolean>>({});
+  const [expandedReviews] = useState<Record<number, boolean>>({});
   
   // 설명이 길면 잘라서 보여줄 길이 (약 3줄 정도)
   const MAX_DESCRIPTION_LENGTH = 200;
@@ -1212,6 +1212,7 @@ const AccommodationDetail: React.FC = () => {
             <div className={styles.mapContainer}>
               {GOOGLE_MAPS_API_KEY ? (
                 <iframe
+                  title="숙소 위치 지도"
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}

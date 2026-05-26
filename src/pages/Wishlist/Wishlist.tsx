@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { MainLayout } from "../../layouts";
 import { ListContainer } from "../../components/ListContainer";
-import { BaseAccommodationCard } from "../../components/AccommodationCard";
-import { AccommodationMeta } from "../../components/AccommodationCard";
 import { wishlistApi, recentlyViewedApi } from "../../api";
 import {
   WishlistInfo,
@@ -16,7 +14,6 @@ import { ErrorToast } from "../../components/ErrorToast";
 import { AuthModal } from "../../components/AuthModal/AuthModal";
 import { WishlistModal } from "../../components/WishlistModal";
 import { getImageUrl } from "../../utils/image";
-import baseStyles from "../../components/AccommodationCard/BaseAccommodationCard.module.css";
 import styles from "./Wishlist.module.css";
 
 const Wishlist: React.FC = () => {
@@ -85,7 +82,7 @@ const Wishlist: React.FC = () => {
     };
 
     fetchData();
-  }, [isAuthenticated, navigate, handleError, clearError]);
+  }, [isAuthenticated, isAuthLoading, navigate, handleError, clearError]);
 
   useEffect(() => {
     if (!selectedWishlist || showRecentlyViewed) {

@@ -1,10 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { MainLayout } from "../../layouts";
-import { paymentApi, reservationApi } from "../../api";
-import { useApiError } from "../../hooks/useApiError";
+import { paymentApi } from "../../api";
 import { useAuth } from "../../hooks/useAuth";
-import { ErrorToast } from "../../components/ErrorToast";
 import styles from "./PaymentSuccess.module.css";
 
 const PaymentSuccess: React.FC = () => {
@@ -12,8 +10,6 @@ const PaymentSuccess: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
-  const { error, handleError, clearError } = useApiError();
-  const [isProcessing, setIsProcessing] = useState(true);
 
   useEffect(() => {
     // 인증 상태가 로드될 때까지 대기

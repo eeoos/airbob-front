@@ -1,12 +1,7 @@
 import { client } from "./client";
 import {
   CreateReservationRequest,
-  CreateReservationResponse,
   CancelReservationRequest,
-  GetMyReservationsResponse,
-  GetReservationDetailResponse,
-  GetHostReservationsResponse,
-  GetHostReservationDetailResponse,
   ReservationReady,
   GuestReservationInfos,
   GuestReservationDetail,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { MainLayout } from "../../layouts";
 import { accommodationApi } from "../../api";
@@ -415,6 +415,8 @@ const AccommodationEdit: React.FC = () => {
       fetchAccommodation();
     }
     // 새로 생성된 초안인 경우 기본값만 유지 (이미 초기화되어 있음)
+    // isAuthLoading, isNewDraft는 인증 가드 흐름에서만 사용되어 의도적으로 제외
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isAuthenticated, navigate, handleError]);
 
   // 컴포넌트 언마운트 시 미리보기 URL 정리 (한 번만 실행)
@@ -1347,8 +1349,7 @@ const AccommodationEdit: React.FC = () => {
           // 업로드된 이미지 정보로 업데이트
           setImageItems((prev) => {
             const updated = [...prev];
-            let uploadIndex = 0;
-            
+
             response.uploaded_images.forEach((uploaded) => {
               // file이 있지만 id가 없는 항목 찾기
               const index = updated.findIndex((item) => item.file && !item.id);
