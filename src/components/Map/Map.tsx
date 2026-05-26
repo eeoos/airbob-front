@@ -160,12 +160,20 @@ export const Map: React.FC<MapProps> = ({
         return;
       }
 
-      // 기본 중심점 (한국) - 초기 로드 시에만 사용
+      // 기본 중심점 (한국) - viewport prop이 없을 때만 사용
       const defaultCenter = { lat: 37.5665, lng: 126.9780 };
+
+      // URL에서 전달된 viewport가 있으면 그 중심을 초기값으로 사용해 깜빡임을 방지
+      const initialCenter = viewport
+        ? {
+            lat: (viewport.north + viewport.south) / 2,
+            lng: (viewport.east + viewport.west) / 2,
+          }
+        : defaultCenter;
 
       // 지도 생성
       const mapOptions: google.maps.MapOptions = {
-        center: defaultCenter,
+        center: initialCenter,
         zoom: 7,
         mapTypeControl: false,
         fullscreenControl: false, // 기본 전체 화면 컨트롤 비활성화 (커스텀 버튼 사용)
@@ -184,6 +192,21 @@ export const Map: React.FC<MapProps> = ({
         const map = new window.google.maps.Map(mapRef.current, mapOptions);
 
         mapInstanceRef.current = map;
+
+        // 새로고침 등으로 URL에 viewport가 있는 경우 즉시 해당 영역으로 fitBounds.
+        // viewport useEffect는 mapInstanceRef 변경에 반응하지 않아 race condition이 생길 수 있어
+        // 지도 생성 시점에 한 번 처리하고 prevViewportRef를 동기화한다.
+        if (viewport) {
+          const initialBounds = new window.google.maps.LatLngBounds(
+            { lat: viewport.south, lng: viewport.west },
+            { lat: viewport.north, lng: viewport.east }
+          );
+          map.fitBounds(initialBounds, 50);
+          prevViewportRef.current = viewport;
+          // 숙소가 로드되면 숙소 기반 fitBounds를 수행하도록 표시
+          viewportJustChangedRef.current = true;
+          isInitialIdleRef.current = true;
+        }
 
         // 지도 확장/축소 버튼 추가 (지도가 로드된 후)
         setTimeout(() => {
@@ -733,9 +756,10 @@ export const Map: React.FC<MapProps> = ({
     
     // 그 외의 경우(스크롤, 검색 결과 변경 등)에는 fitBounds를 호출하지 않음
     // 지도 위치는 사용자가 설정한 위치 그대로 유지
+    // isMapLoaded: 새로고침 시 지도 초기화 직후 마커 생성을 trigger하기 위해 포함
     // onAccommodationSelect는 마커 클릭 시점에만 호출되어 의도적으로 의존성에서 제외
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accommodations, isMapDragMode, shouldUpdateMapBounds, onMapBoundsUpdated, viewport]);
+  }, [accommodations, isMapDragMode, shouldUpdateMapBounds, onMapBoundsUpdated, viewport, isMapLoaded]);
 
   // 선택된 숙소로 지도 이동 (지도 확대/축소 제거: 지도 크기는 항상 모든 숙소를 보여주는 크기로 유지)
   useEffect(() => {
