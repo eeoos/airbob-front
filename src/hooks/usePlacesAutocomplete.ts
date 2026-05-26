@@ -25,6 +25,20 @@ interface UsePlacesAutocompleteOptions {
   onPlaceSelect?: (place: SelectedPlace) => void;
 }
 
+// Places API (New)의 정확한 런타임 타입이 @types/google.maps 버전에 따라 누락될 수 있어
+// 부분적으로 느슨한 타입을 사용한다.
+type NewPlacePrediction = {
+  placeId: string;
+  text: { text: string };
+  mainText?: { text: string };
+  secondaryText?: { text: string };
+  toPlace: () => google.maps.places.Place;
+};
+
+type NewAutocompleteSuggestion = {
+  placePrediction: NewPlacePrediction | null;
+};
+
 export const usePlacesAutocomplete = ({
   debounceMs = 250,
   onPlaceSelect,
@@ -34,25 +48,40 @@ export const usePlacesAutocomplete = ({
   const [isLoading, setIsLoading] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
   const [isGoogleLoaded, setIsGoogleLoaded] = useState(false);
-  
+
   const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null);
-  const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null);
-  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
+  // 세션 토큰이 자동 첨부되는 toPlace() 흐름을 살리기 위해 raw suggestion을 보관한다.
+  const rawSuggestionsRef = useRef<Map<string, NewPlacePrediction>>(new Map());
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const isInitializedRef = useRef(false); // 서비스 초기화 여부 추적
+  const isInitializedRef = useRef(false);
+
+  // 새 세션 시작 (입력 필드 포커스 시)
+  const startNewSession = useCallback(() => {
+    if (window.google?.maps?.places) {
+      sessionTokenRef.current = new window.google.maps.places.AutocompleteSessionToken();
+    }
+  }, []);
 
   // Google Maps API 로드 확인 및 초기화
   useEffect(() => {
-    const checkGoogleLoaded = () => {
+    const isPlacesNewLoaded = () => {
       return !!(
         window.google &&
         window.google.maps &&
         window.google.maps.places &&
-        window.google.maps.places.AutocompleteService
+        // Places API (New)의 진입 클래스
+        (window.google.maps.places as unknown as { AutocompleteSuggestion?: unknown })
+          .AutocompleteSuggestion
       );
     };
 
-    if (checkGoogleLoaded()) {
+    const initializeServices = () => {
+      if (isInitializedRef.current) return;
+      sessionTokenRef.current = new window.google.maps.places.AutocompleteSessionToken();
+      isInitializedRef.current = true;
+    };
+
+    if (isPlacesNewLoaded()) {
       initializeServices();
       setIsGoogleLoaded(true);
       return;
@@ -62,7 +91,7 @@ export const usePlacesAutocomplete = ({
     const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
     if (existingScript) {
       const checkInterval = setInterval(() => {
-        if (checkGoogleLoaded()) {
+        if (isPlacesNewLoaded()) {
           initializeServices();
           setIsGoogleLoaded(true);
           clearInterval(checkInterval);
@@ -74,12 +103,12 @@ export const usePlacesAutocomplete = ({
     // Google Maps API 스크립트 로드
     if (GOOGLE_MAPS_API_KEY) {
       const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&v=weekly&loading=async`;
       script.async = true;
       script.defer = true;
       script.onload = () => {
         const checkInterval = setInterval(() => {
-          if (checkGoogleLoaded()) {
+          if (isPlacesNewLoaded()) {
             initializeServices();
             setIsGoogleLoaded(true);
             clearInterval(checkInterval);
@@ -88,8 +117,8 @@ export const usePlacesAutocomplete = ({
 
         setTimeout(() => {
           clearInterval(checkInterval);
-          if (!checkGoogleLoaded()) {
-            console.error("Google Maps Places API를 사용할 수 없습니다.");
+          if (!isPlacesNewLoaded()) {
+            console.error("Google Maps Places API (New)를 사용할 수 없습니다.");
           }
         }, 5000);
       };
@@ -100,95 +129,75 @@ export const usePlacesAutocomplete = ({
     } else {
       console.warn("Google Maps API 키가 설정되지 않았습니다.");
     }
-    // initializeServices는 아래에서 선언되며 stable한 useCallback이므로 의존성에서 제외
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 서비스 초기화 (한 번만 실행)
-  const initializeServices = useCallback(() => {
-    if (!window.google?.maps?.places) return;
-    
-    // 이미 초기화되었으면 중복 초기화 방지
-    if (isInitializedRef.current && autocompleteServiceRef.current && placesServiceRef.current) {
+  // 자동완성 검색 (Places API New)
+  const searchAutocomplete = useCallback(async (input: string) => {
+    if (!sessionTokenRef.current || !input.trim()) {
+      setSuggestions([]);
+      rawSuggestionsRef.current.clear();
       return;
     }
 
-    // 새 세션 토큰 생성
-    sessionTokenRef.current = new window.google.maps.places.AutocompleteSessionToken();
-    
-    // AutocompleteService 초기화 (한 번만)
-    if (!autocompleteServiceRef.current) {
-      autocompleteServiceRef.current = new window.google.maps.places.AutocompleteService();
-    }
-    
-    // PlacesService 초기화 (Place Details API용, 한 번만)
-    if (!placesServiceRef.current) {
-      const dummyDiv = document.createElement("div");
-      placesServiceRef.current = new window.google.maps.places.PlacesService(dummyDiv);
-    }
-    
-    isInitializedRef.current = true;
-  }, []);
+    const placesNs = window.google?.maps?.places as unknown as {
+      AutocompleteSuggestion?: {
+        fetchAutocompleteSuggestions: (request: {
+          input: string;
+          sessionToken: google.maps.places.AutocompleteSessionToken;
+          language?: string;
+        }) => Promise<{ suggestions: NewAutocompleteSuggestion[] }>;
+      };
+    };
 
-  // 새 세션 시작 (입력 필드 포커스 시)
-  const startNewSession = useCallback(() => {
-    if (window.google?.maps?.places) {
-      sessionTokenRef.current = new window.google.maps.places.AutocompleteSessionToken();
+    if (!placesNs?.AutocompleteSuggestion) {
+      console.error("AutocompleteSuggestion이 로드되지 않았습니다.");
+      setSuggestions([]);
+      return;
     }
-  }, []);
 
-  // 자동완성 검색
-  const searchAutocomplete = useCallback(
-    (input: string) => {
-      if (!autocompleteServiceRef.current || !sessionTokenRef.current || !input.trim()) {
-        setSuggestions([]);
-        return;
+    setIsLoading(true);
+
+    try {
+      const { suggestions: rawSuggestions } =
+        await placesNs.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+          input: input.trim(),
+          sessionToken: sessionTokenRef.current,
+          language: "ko",
+        });
+
+      rawSuggestionsRef.current.clear();
+      const formatted: PlacePrediction[] = [];
+
+      for (const s of rawSuggestions) {
+        const p = s.placePrediction;
+        if (!p) continue;
+        rawSuggestionsRef.current.set(p.placeId, p);
+        formatted.push({
+          placeId: p.placeId,
+          description: p.text.text,
+          mainText: p.mainText?.text ?? p.text.text,
+          secondaryText: p.secondaryText?.text ?? "",
+        });
       }
 
-      setIsLoading(true);
-
-      const request: google.maps.places.AutocompletionRequest = {
-        input: input.trim(),
-        sessionToken: sessionTokenRef.current,
-        language: "ko",
-      };
-
-      autocompleteServiceRef.current.getPlacePredictions(
-        request,
-        (predictions, status) => {
-          setIsLoading(false);
-          
-          if (
-            status === window.google.maps.places.PlacesServiceStatus.OK &&
-            predictions
-          ) {
-            const formattedPredictions: PlacePrediction[] = predictions.map((pred) => ({
-              placeId: pred.place_id,
-              description: pred.description,
-              mainText: pred.structured_formatting.main_text,
-              secondaryText: pred.structured_formatting.secondary_text || "",
-            }));
-            setSuggestions(formattedPredictions);
-          } else {
-            setSuggestions([]);
-          }
-        }
-      );
-    },
-    []
-  );
+      setSuggestions(formatted);
+    } catch (err) {
+      console.error("AutocompleteSuggestion 오류:", err);
+      setSuggestions([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   // Debounce 처리된 입력 핸들러
   const handleInputChange = useCallback(
     (value: string) => {
       setInputText(value);
-      
-      // 이전 타이머 클리어
+
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
 
-      // 새 타이머 설정
       debounceTimerRef.current = setTimeout(() => {
         searchAutocomplete(value);
       }, debounceMs);
@@ -196,68 +205,37 @@ export const usePlacesAutocomplete = ({
     [debounceMs, searchAutocomplete]
   );
 
-  // Place Details API 호출 (Basic Details만)
-  const getPlaceDetails = useCallback(
-    (placeId: string): Promise<SelectedPlace> => {
-      return new Promise((resolve, reject) => {
-        if (!placesServiceRef.current || !sessionTokenRef.current) {
-          reject(new Error("Places Service가 초기화되지 않았습니다."));
-          return;
-        }
+  // Place Details (Place.fetchFields 사용)
+  const getPlaceDetails = useCallback(async (placeId: string): Promise<SelectedPlace> => {
+    const raw = rawSuggestionsRef.current.get(placeId);
+    if (!raw) {
+      throw new Error("선택한 장소의 prediction을 찾을 수 없습니다.");
+    }
 
-        const request: google.maps.places.PlaceDetailsRequest = {
-          placeId,
-          sessionToken: sessionTokenRef.current,
-          fields: ["geometry.location", "geometry.viewport"],
-          language: "ko",
-        };
+    // toPlace()로 받은 Place 인스턴스는 세션 토큰이 자동 첨부되어 빌링 효율적이다.
+    const place = raw.toPlace();
+    // 새 API의 필드명: "location", "viewport"
+    await place.fetchFields({ fields: ["location", "viewport"] });
 
-        placesServiceRef.current.getDetails(request, (place, status) => {
-          if (
-            status === window.google.maps.places.PlacesServiceStatus.OK &&
-            place &&
-            place.geometry
-          ) {
-            const location = place.geometry.location;
-            const viewport = place.geometry.viewport;
+    const location = place.location;
+    const viewport = place.viewport;
 
-            if (!location || !viewport) {
-              reject(new Error("위치 정보를 가져올 수 없습니다."));
-              return;
-            }
+    if (!location || !viewport) {
+      throw new Error("위치 정보를 가져올 수 없습니다.");
+    }
 
-            // Google Maps LatLng 객체 처리
-            // location은 google.maps.LatLng 타입입니다
-            const latLng = location as google.maps.LatLng;
-            const lat = latLng.lat();
-            const lng = latLng.lng();
-
-            // Google Maps LatLngBounds 객체 처리
-            // viewport는 google.maps.LatLngBounds 타입입니다
-            const boundsObj = viewport as google.maps.LatLngBounds;
-            const bounds = {
-              north: boundsObj.getNorthEast().lat(),
-              south: boundsObj.getSouthWest().lat(),
-              east: boundsObj.getNorthEast().lng(),
-              west: boundsObj.getSouthWest().lng(),
-            };
-
-            const selectedPlace: SelectedPlace = {
-              placeId,
-              lat: Number(lat),
-              lng: Number(lng),
-              viewport: bounds,
-            };
-
-            resolve(selectedPlace);
-          } else {
-            reject(new Error(`Place Details API 오류: ${status}`));
-          }
-        });
-      });
-    },
-    []
-  );
+    return {
+      placeId,
+      lat: location.lat(),
+      lng: location.lng(),
+      viewport: {
+        north: viewport.getNorthEast().lat(),
+        south: viewport.getSouthWest().lat(),
+        east: viewport.getNorthEast().lng(),
+        west: viewport.getSouthWest().lng(),
+      },
+    };
+  }, []);
 
   // 장소 선택 핸들러
   const handlePlaceSelect = useCallback(
@@ -265,20 +243,20 @@ export const usePlacesAutocomplete = ({
       try {
         setIsLoading(true);
         const place = await getPlaceDetails(prediction.placeId);
-        
+
         setSelectedPlace(place);
         setInputText(prediction.description);
         setSuggestions([]);
-        
+        rawSuggestionsRef.current.clear();
+
         // 새 세션 시작 (다음 입력을 위해)
         startNewSession();
-        
-        // 콜백 호출
+
         if (onPlaceSelect) {
           onPlaceSelect(place);
         }
       } catch (error) {
-        console.error("Place Details API 오류:", error);
+        console.error("Place Details 오류:", error);
       } finally {
         setIsLoading(false);
       }
@@ -286,16 +264,16 @@ export const usePlacesAutocomplete = ({
     [getPlaceDetails, onPlaceSelect, startNewSession]
   );
 
-  // 추천 리스트 닫기
   const clearSuggestions = useCallback(() => {
     setSuggestions([]);
+    rawSuggestionsRef.current.clear();
   }, []);
 
-  // 모든 상태 초기화
   const reset = useCallback(() => {
     setInputText("");
     setSuggestions([]);
     setSelectedPlace(null);
+    rawSuggestionsRef.current.clear();
     startNewSession();
   }, [startNewSession]);
 
@@ -321,4 +299,3 @@ export const usePlacesAutocomplete = ({
     startNewSession,
   };
 };
-
