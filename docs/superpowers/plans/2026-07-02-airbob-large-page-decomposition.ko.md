@@ -532,12 +532,14 @@
 - Create matching tests under `src/features/accommodations/hooks/`
 - Modify: `src/pages/AccommodationDetail/AccommodationDetail.tsx`
 
-- [ ] booking price/date/query 계산을 먼저 테스트한다.
-- [ ] detail load, reviews, coupons, booking hook을 순서대로 이동한다.
-- [ ] section component 분리는 hook 분리 후 별도 commit으로 미룬다.
-- [ ] `npm run verify -- --no-cache`를 통과시킨다.
-- [ ] Browser QA로 상세/예약/리뷰/쿠폰/wishlist flow를 확인한다.
-- [ ] Commit: `refactor: extract accommodation detail hooks`
+- [x] booking price/date/query 계산을 먼저 테스트한다.
+- [x] detail load, reviews, coupons, booking hook을 순서대로 이동한다.
+- [x] section component 분리는 hook 분리 후 별도 commit으로 미룬다.
+- [x] `npm run verify -- --no-cache`를 통과시킨다.
+- [x] Browser QA로 상세/예약/리뷰/쿠폰/wishlist flow를 확인한다.
+  - QA 계정으로 `/accommodations/1` 직접 진입, 날짜/인원 picker, 쿠폰 적용, 예약 생성 후 confirm URL 이동, 리뷰 전체보기, 위시리스트 삭제/재추가와 detail refresh를 확인했다.
+  - 제한: `recentlyViewedApi.add`는 POST 200을 받지만 현재 API 응답 envelope 불일치로 `최근 조회 추가 실패: Invalid API Response` 콘솔 에러가 난다. 이전 page 코드에도 있던 응답 contract 이슈라 Task E에서는 기록만 남기고 backend/API 수정은 하지 않았다.
+- [x] Commit: `refactor: extract accommodation detail hooks`
 
 ### Task F: AccommodationEdit pure model 분리
 
