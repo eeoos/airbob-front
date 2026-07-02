@@ -1,4 +1,5 @@
 import { client } from "./client";
+import { unwrapApiResponse } from "./response";
 import { ApiResponse } from "../types/api";
 import { CommonCode, CommonCodeGroup } from "../types/commonCode";
 
@@ -7,6 +8,6 @@ export const commonCodeApi = {
     const response = await client.get<ApiResponse<CommonCode[]>>(
       `/common-codes/${group}`
     );
-    return response.data.data || [];
+    return unwrapApiResponse(response.data);
   },
 };

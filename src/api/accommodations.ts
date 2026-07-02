@@ -1,4 +1,5 @@
 import { client } from "./client";
+import { unwrapApiResponse } from "./response";
 import {
   AccommodationSearchRequest,
   AccommodationSearchResponse,
@@ -18,7 +19,7 @@ export const accommodationApi = {
       "/search/accommodations",
       { params }
     );
-    return response.data.data!;
+    return unwrapApiResponse(response.data);
   },
 
   // 숙소 상세 조회 (Public)
@@ -26,13 +27,13 @@ export const accommodationApi = {
     const response = await client.get<ApiResponse<AccommodationDetail>>(
       `/accommodations/${accommodationId}`
     );
-    return response.data.data!;
+    return unwrapApiResponse(response.data);
   },
 
   // 숙소 초안 생성
   create: async (): Promise<CreateAccommodationResponse> => {
     const response = await client.post<ApiResponse<CreateAccommodationResponse>>("/accommodations");
-    return response.data.data!;
+    return unwrapApiResponse(response.data);
   },
 
   // 숙소 수정
@@ -66,22 +67,26 @@ export const accommodationApi = {
       check_out_time?: string; // HH:mm 또는 HH:mm:ss
     }
   ): Promise<void> => {
-    await client.patch<ApiResponse<null>>(`/accommodations/${accommodationId}`, data);
+    const response = await client.patch<ApiResponse<null>>(`/accommodations/${accommodationId}`, data);
+    unwrapApiResponse(response.data, { allowNull: true });
   },
 
   // 숙소 공개
   publish: async (accommodationId: number): Promise<void> => {
-    await client.patch<ApiResponse<null>>(`/accommodations/${accommodationId}/publish`);
+    const response = await client.patch<ApiResponse<null>>(`/accommodations/${accommodationId}/publish`);
+    unwrapApiResponse(response.data, { allowNull: true });
   },
 
   // 숙소 비공개
   unpublish: async (accommodationId: number): Promise<void> => {
-    await client.patch<ApiResponse<null>>(`/accommodations/${accommodationId}/unpublish`);
+    const response = await client.patch<ApiResponse<null>>(`/accommodations/${accommodationId}/unpublish`);
+    unwrapApiResponse(response.data, { allowNull: true });
   },
 
   // 숙소 삭제
   delete: async (accommodationId: number): Promise<void> => {
-    await client.delete<ApiResponse<null>>(`/accommodations/${accommodationId}`);
+    const response = await client.delete<ApiResponse<null>>(`/accommodations/${accommodationId}`);
+    unwrapApiResponse(response.data, { allowNull: true });
   },
 
   // 숙소 이미지 업로드
@@ -110,12 +115,13 @@ export const accommodationApi = {
         },
       }
     );
-    return response.data.data!;
+    return unwrapApiResponse(response.data);
   },
 
   // 숙소 이미지 삭제
   deleteImage: async (accommodationId: number, imageId: number): Promise<void> => {
-    await client.delete<ApiResponse<null>>(`/accommodations/${accommodationId}/images/${imageId}`);
+    const response = await client.delete<ApiResponse<null>>(`/accommodations/${accommodationId}/images/${imageId}`);
+    unwrapApiResponse(response.data, { allowNull: true });
   },
 
   // 호스트 숙소 목록 조회
@@ -128,7 +134,7 @@ export const accommodationApi = {
       "/profile/host/accommodations",
       { params }
     );
-    return response.data.data!;
+    return unwrapApiResponse(response.data);
   },
 
   // 호스트 숙소 상세 조회
@@ -136,6 +142,6 @@ export const accommodationApi = {
     const response = await client.get<ApiResponse<HostAccommodationDetail>>(
       `/profile/host/accommodations/${accommodationId}`
     );
-    return response.data.data!;
+    return unwrapApiResponse(response.data);
   },
 };
