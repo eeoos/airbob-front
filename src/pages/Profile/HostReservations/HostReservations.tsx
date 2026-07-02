@@ -5,6 +5,7 @@ import { HostReservationInfo } from "../../../types/reservation";
 import { ReservationStatus } from "../../../types/enums";
 import { useApiError } from "../../../hooks/useApiError";
 import { ErrorToast } from "../../../components/ErrorToast";
+import { routeTo } from "../../../routes/paths";
 import styles from "./HostReservations.module.css";
 
 interface HostReservationsProps {
@@ -252,7 +253,9 @@ const HostReservations: React.FC<HostReservationsProps> = ({ filterType, onFilte
                     <td className={styles.td}>
                       <button
                         className={styles.detailsButton}
-                        onClick={() => navigate(`/profile/host/reservations/${reservation.reservation_uid}`)}
+                        onClick={() =>
+                          navigate(routeTo.hostReservationDetail(reservation.reservation_uid))
+                        }
                       >
                         상세
                       </button>

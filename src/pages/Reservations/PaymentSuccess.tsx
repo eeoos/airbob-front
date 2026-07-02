@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { MainLayout } from "../../layouts";
 import { paymentApi } from "../../api";
 import { useAuth } from "../../hooks/useAuth";
+import { routeTo } from "../../routes/paths";
 import styles from "./PaymentSuccess.module.css";
 
 const PaymentSuccess: React.FC = () => {
@@ -19,12 +20,12 @@ const PaymentSuccess: React.FC = () => {
 
     if (!isAuthenticated) {
       // 인증되지 않은 경우 홈으로 이동
-      navigate("/");
+      navigate(routeTo.home());
       return;
     }
 
     if (!reservationUid) {
-      navigate("/profile");
+      navigate(routeTo.profile());
       return;
     }
 
@@ -35,7 +36,7 @@ const PaymentSuccess: React.FC = () => {
 
       if (!paymentKey || !orderId || !amount) {
         // 결제 정보가 없어도 예약 상세 페이지로 이동 (가상계좌 등 비동기 결제의 경우)
-        navigate(`/reservations/${reservationUid}`);
+        navigate(routeTo.reservationDetail(reservationUid));
         return;
       }
 
@@ -48,11 +49,11 @@ const PaymentSuccess: React.FC = () => {
         });
 
         // 결제 확인 완료 후 예약 상세 페이지로 이동
-        navigate(`/reservations/${reservationUid}`);
+        navigate(routeTo.reservationDetail(reservationUid));
       } catch (err) {
         // 결제 확인 실패해도 예약 상세 페이지로 이동 (상태 확인 가능)
         console.error("결제 확인 중 오류:", err);
-        navigate(`/reservations/${reservationUid}`);
+        navigate(routeTo.reservationDetail(reservationUid));
       }
     };
 
@@ -74,6 +75,4 @@ const PaymentSuccess: React.FC = () => {
 };
 
 export default PaymentSuccess;
-
-
 

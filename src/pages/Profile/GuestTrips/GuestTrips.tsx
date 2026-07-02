@@ -5,6 +5,7 @@ import { MyReservationInfo } from "../../../types/reservation";
 import { useApiError } from "../../../hooks/useApiError";
 import { ErrorToast } from "../../../components/ErrorToast";
 import { getImageUrl } from "../../../utils/image";
+import { routeTo } from "../../../routes/paths";
 import styles from "./GuestTrips.module.css";
 
 interface GuestTripsProps {
@@ -172,7 +173,9 @@ const GuestTrips: React.FC<GuestTripsProps> = ({ filterType }) => {
                       <div
                         key={reservation.reservation_id}
                         className={styles.reservationCard}
-                        onClick={() => navigate(`/reservations/${reservation.reservation_uid}`)}
+                        onClick={() =>
+                          navigate(routeTo.reservationDetail(reservation.reservation_uid))
+                        }
                       >
                         <div className={styles.image}>
                           {reservation.accommodation.thumbnail_url ? (
