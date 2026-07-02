@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { authApi } from "../../../api";
 import { useApiError } from "../../../hooks/useApiError";
 import { ErrorToast } from "../../../components/ErrorToast";
+import { routeTo } from "../../../routes/paths";
+import { Button, Card, TextField } from "../../../shared/ui";
 import styles from "./Signup.module.css";
 
 const Signup: React.FC = () => {
@@ -38,7 +40,7 @@ const Signup: React.FC = () => {
         email: formData.email,
         password: formData.password,
       });
-      navigate("/login");
+      navigate(routeTo.login());
     } catch (err) {
       handleError(err);
     } finally {
@@ -55,99 +57,84 @@ const Signup: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.modal}>
+      <Card className={styles.modal} padding="lg">
         <div className={styles.header}>
           <h2 className={styles.title}>회원가입</h2>
         </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
-          <div className={styles.inputGroup}>
-            <label htmlFor="nickname" className={styles.label}>
-              닉네임
-            </label>
-            <input
-              type="text"
-              id="nickname"
-              name="nickname"
-              value={formData.nickname}
-              onChange={handleChange}
-              className={styles.input}
-              placeholder="닉네임을 입력하세요 (1-20자)"
-              minLength={1}
-              maxLength={20}
-              required
-            />
-          </div>
+          <TextField
+            type="text"
+            id="nickname"
+            name="nickname"
+            label="닉네임"
+            value={formData.nickname}
+            onChange={handleChange}
+            placeholder="닉네임을 입력하세요 (1-20자)"
+            minLength={1}
+            maxLength={20}
+            required
+          />
 
-          <div className={styles.inputGroup}>
-            <label htmlFor="email" className={styles.label}>
-              이메일
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className={styles.input}
-              placeholder="이메일을 입력하세요"
-              required
-            />
-          </div>
+          <TextField
+            type="email"
+            id="email"
+            name="email"
+            label="이메일"
+            value={formData.email}
+            onChange={handleChange}
+            placeholder="이메일을 입력하세요"
+            required
+          />
 
-          <div className={styles.inputGroup}>
-            <label htmlFor="password" className={styles.label}>
-              비밀번호
-            </label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className={styles.input}
-              placeholder="비밀번호를 입력하세요 (8-20자)"
-              minLength={8}
-              maxLength={20}
-              required
-            />
-          </div>
+          <TextField
+            type="password"
+            id="password"
+            name="password"
+            label="비밀번호"
+            value={formData.password}
+            onChange={handleChange}
+            placeholder="비밀번호를 입력하세요 (8-20자)"
+            minLength={8}
+            maxLength={20}
+            required
+          />
 
-          <div className={styles.inputGroup}>
-            <label htmlFor="confirmPassword" className={styles.label}>
-              비밀번호 확인
-            </label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              className={styles.input}
-              placeholder="비밀번호를 다시 입력하세요"
-              required
-            />
-          </div>
+          <TextField
+            type="password"
+            id="confirmPassword"
+            name="confirmPassword"
+            label="비밀번호 확인"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            placeholder="비밀번호를 다시 입력하세요"
+            required
+          />
 
-          <button
+          <Button
             type="submit"
+            fullWidth
+            isLoading={isLoading}
+            loadingLabel="가입 중..."
             className={styles.submitButton}
-            disabled={isLoading}
           >
-            {isLoading ? "가입 중..." : "회원가입"}
-          </button>
+            회원가입
+          </Button>
         </form>
 
         <div className={styles.footer}>
           <span className={styles.footerText}>이미 계정이 있으신가요? </span>
-          <button
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
             className={styles.linkButton}
-            onClick={() => navigate("/login")}
+            onClick={() => navigate(routeTo.login())}
           >
             로그인
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
 
       {error && (
         <div className={styles.toastContainer}>
