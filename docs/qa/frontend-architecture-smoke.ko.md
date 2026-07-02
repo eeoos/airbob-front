@@ -26,7 +26,10 @@ Airbnb 디자인 리팩터 전에 프론트엔드 아키텍처 변경이 주요 
 - [ ] Home search UI 가 viewport 안에 맞는다.
 - [ ] Search mobile bottom sheet 의 closed/half/full behavior 가 동작한다.
 - [ ] Detail booking panel/modal 이 viewport 안에 맞는다.
+- [ ] Reservation confirm page 의 CTA 와 결제 이동 영역이 viewport 안에 맞는다.
 - [ ] Wishlist modal 과 auth modal 이 close button 또는 overlay 로 닫힌다.
+- [ ] Profile guest tab 과 host tab 을 전환할 수 있고 내용이 viewport 안에 맞는다.
+- [ ] Host listing infinite scroll 또는 empty state 가 정상 표시된다.
 
 ## Recording
 

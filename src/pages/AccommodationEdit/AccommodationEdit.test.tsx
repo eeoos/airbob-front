@@ -65,8 +65,8 @@ const hostAccommodation: HostAccommodationDetail = {
     longitude: -73.75966,
   },
   host: {
-    id: 2573,
-    nickname: "Airbob QA",
+    id: 301,
+    nickname: "Test Host",
     thumbnail_image_url: "",
   },
   policy: {

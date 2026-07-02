@@ -23,7 +23,7 @@ const hostDetail = (
     detail: "101호",
   },
   coordinate: { latitude: 37.5, longitude: 127 },
-  host: { id: 2573, nickname: "Airbob QA", thumbnail_image_url: null },
+  host: { id: 301, nickname: "Test Host", thumbnail_image_url: null },
   policy: {
     max_occupancy: 4,
     infant_occupancy: 1,
