@@ -45,8 +45,37 @@ const requiredTokenDeclarations = [
   "--breakpoint-wide: 1400px;",
 ];
 
-const legacyAppOverlayZIndexPattern =
-  /z-index\s*:\s*(?:100000|99999|10001|10000|1000)\b(?:\s*!important)?/;
+const forbiddenAppOverlayZIndexValues = "100000|99999|10001|10000|1000";
+
+const legacyAppOverlayZIndexPatterns = [
+  {
+    name: "css-z-index",
+    regex: new RegExp(
+      `z-index\\s*:\\s*(?:${forbiddenAppOverlayZIndexValues})\\b(?:\\s*!important)?`,
+    ),
+  },
+  {
+    name: "react-zIndex",
+    regex: new RegExp(
+      `zIndex\\s*[:=]\\s*["']?(?:${forbiddenAppOverlayZIndexValues})\\b`,
+    ),
+  },
+];
+
+const findLegacyAppOverlayZIndexMatch = (line: string) => {
+  for (const pattern of legacyAppOverlayZIndexPatterns) {
+    const match = line.match(pattern.regex);
+
+    if (match) {
+      return {
+        pattern: pattern.name,
+        text: match[0],
+      };
+    }
+  }
+
+  return null;
+};
 
 const productionContractExtensions = [".css", ".ts", ".tsx"];
 
@@ -56,6 +85,7 @@ const isProductionContractFile = (filePath: string) => {
   return (
     productionContractExtensions.some((extension) => filePath.endsWith(extension)) &&
     !fileName.includes(".test.") &&
+    fileName !== "setupTests.ts" &&
     filePath !== tokensCssPath
   );
 };
@@ -120,17 +150,41 @@ describe("pre-design token stylesheet contract", () => {
         const source = fs.readFileSync(filePath, "utf8");
 
         return source.split(/\r?\n/).flatMap((line, index) => {
-          const match = line.match(legacyAppOverlayZIndexPattern);
+          const match = findLegacyAppOverlayZIndexMatch(line);
 
           if (!match) {
             return [];
           }
 
-          return `${path.relative(process.cwd(), filePath)}:${index + 1}: ${match[0]}`;
+          return `${path.relative(process.cwd(), filePath)}:${index + 1}: [${match.pattern}] ${match.text}`;
         });
       });
 
     expect(offenders).toEqual([]);
+  });
+
+  it("matches legacy overlay z-index literals in CSS and React style forms", () => {
+    expect(findLegacyAppOverlayZIndexMatch("z-index: 1000;")).toMatchObject({
+      pattern: "css-z-index",
+      text: "z-index: 1000",
+    });
+    expect(findLegacyAppOverlayZIndexMatch("z-index: 100000 !important;")).toMatchObject({
+      pattern: "css-z-index",
+      text: "z-index: 100000 !important",
+    });
+    expect(findLegacyAppOverlayZIndexMatch("style={{ zIndex: 1000 }}")).toMatchObject({
+      pattern: "react-zIndex",
+      text: "zIndex: 1000",
+    });
+    expect(findLegacyAppOverlayZIndexMatch("{ zIndex: '99999' }")).toMatchObject({
+      pattern: "react-zIndex",
+      text: "zIndex: '99999",
+    });
+    expect(findLegacyAppOverlayZIndexMatch("zIndex = \"10000\"")).toMatchObject({
+      pattern: "react-zIndex",
+      text: 'zIndex = "10000',
+    });
+    expect(findLegacyAppOverlayZIndexMatch('zIndex: "var(--z-popover)"')).toBeNull();
   });
 
   it("keeps app toast containers on the toast z-index token", () => {
