@@ -1,10 +1,15 @@
 import { AxiosError } from "axios";
 import { ApiResponse, ErrorResponse, FieldError } from "../types/api";
+import { isApiClientError, toErrorResponse } from "../api/response";
 
 /**
  * API 에러 응답을 파싱합니다.
  */
 export const parseApiError = (error: unknown): ErrorResponse | null => {
+  if (isApiClientError(error)) {
+    return toErrorResponse(error);
+  }
+
   if (error instanceof AxiosError) {
     // response.data가 있는 경우
     if (error.response?.data) {
