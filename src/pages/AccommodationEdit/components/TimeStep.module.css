@@ -41,7 +41,7 @@
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
-  z-index: 1000;
+  z-index: var(--z-dropdown);
   background: white;
   border: 1px solid #ebebeb;
   border-radius: 12px;

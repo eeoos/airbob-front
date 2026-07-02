@@ -26,9 +26,13 @@
   --shadow-md: 0 2px 16px rgba(0, 0, 0, 0.18);
   --shadow-lg: 0 4px 24px rgba(0, 0, 0, 0.15);
   --z-header: 1000;
-  --z-dropdown: 10000;
-  --z-modal: 99999;
-  --z-toast: 100000;
+  --z-sticky: 1100;
+  --z-dropdown: 2000;
+  --z-popover: 3000;
+  --z-bottom-sheet: 4000;
+  --z-modal: 5000;
+  --z-toast: 6000;
+  --overlay-backdrop: rgba(0, 0, 0, 0.45);
   --breakpoint-tablet: 768px;
   --breakpoint-desktop: 1024px;
   --breakpoint-wide: 1400px;

@@ -93,7 +93,7 @@
   max-height: 300px;
   overflow-y: auto;
   overflow-x: hidden;
-  z-index: 1000;
+  z-index: var(--z-dropdown);
   margin-top: 4px;
   animation: suggestionsSlideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   transform-origin: top;
@@ -228,7 +228,7 @@
   top: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1000; /* 데스크톱 기본값 */
+  z-index: var(--z-dropdown); /* 데스크톱 기본값 */
   /* 확장된 검색바 중앙에 맞춤 */
 }
 
@@ -241,7 +241,7 @@
   box-shadow: 0 2px 16px rgba(0, 0, 0, 0.18);
   padding: 16px;
   min-width: 300px;
-  z-index: 1000;
+  z-index: var(--z-dropdown);
   animation: guestPickerSlideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   transform-origin: top right;
 }
@@ -411,7 +411,7 @@
     right: 16px;
     bottom: auto;
     transform: none;
-    z-index: 99999 !important; /* 바텀 시트(z-index: 1000)와 헤더(z-index: 200)보다 훨씬 높게 */
+    z-index: var(--z-dropdown) !important;
     background: white;
     border-radius: 16px;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
@@ -432,7 +432,7 @@
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
     max-height: calc(100vh - 160px);
     overflow-y: auto;
-    z-index: 99999 !important; /* 바텀 시트(z-index: 1000)와 헤더(z-index: 200)보다 훨씬 높게 */
+    z-index: var(--z-dropdown) !important;
     padding: 16px;
   }
 
@@ -481,7 +481,7 @@
     border-radius: 16px;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
     max-height: calc(100vh - 160px);
-    z-index: 99999 !important; /* 바텀 시트(z-index: 1000)와 헤더(z-index: 200)보다 훨씬 높게 */
+    z-index: var(--z-dropdown) !important;
     padding: 8px 0;
   }
 
@@ -500,19 +500,18 @@
 
 /* ---- Tablet (768-1024px) ---- */
 @media (min-width: 769px) and (max-width: 1024px) {
-  /* 태블릿에서 날짜 선택기 - 바텀 시트보다 높게 */
+  /* 태블릿에서 날짜 선택기 - 드롭다운 계층 유지 */
   .datePickerContainer {
-    z-index: 100000 !important; /* 바텀 시트(z-index: 1000)와 헤더(z-index: 200)보다 훨씬 높게 */
+    z-index: var(--z-dropdown) !important;
   }
 
-  /* 태블릿에서 여행자 선택기 - 바텀 시트보다 높게 */
+  /* 태블릿에서 여행자 선택기 - 드롭다운 계층 유지 */
   .guestPicker {
-    z-index: 100000 !important; /* 바텀 시트(z-index: 1000)와 헤더(z-index: 200)보다 훨씬 높게 */
+    z-index: var(--z-dropdown) !important;
   }
 
-  /* 태블릿에서 추천 드롭다운 - 바텀 시트보다 높게 */
+  /* 태블릿에서 추천 드롭다운 - 드롭다운 계층 유지 */
   .suggestions {
-    z-index: 100000 !important; /* 바텀 시트(z-index: 1000)와 헤더(z-index: 200)보다 훨씬 높게 */
+    z-index: var(--z-dropdown) !important;
   }
 }
-

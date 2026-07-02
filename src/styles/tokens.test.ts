@@ -33,13 +33,36 @@ const requiredTokenDeclarations = [
   "--shadow-md: 0 2px 16px rgba(0, 0, 0, 0.18);",
   "--shadow-lg: 0 4px 24px rgba(0, 0, 0, 0.15);",
   "--z-header: 1000;",
-  "--z-dropdown: 10000;",
-  "--z-modal: 99999;",
-  "--z-toast: 100000;",
+  "--z-sticky: 1100;",
+  "--z-dropdown: 2000;",
+  "--z-popover: 3000;",
+  "--z-bottom-sheet: 4000;",
+  "--z-modal: 5000;",
+  "--z-toast: 6000;",
+  "--overlay-backdrop: rgba(0, 0, 0, 0.45);",
   "--breakpoint-tablet: 768px;",
   "--breakpoint-desktop: 1024px;",
   "--breakpoint-wide: 1400px;",
 ];
+
+const legacyAppOverlayZIndexPattern =
+  /z-index\s*:\s*(?:100000|99999|10001|10000|1000)\b(?:\s*!important)?/;
+
+const collectCssFiles = (dir: string): string[] => {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const entryPath = path.join(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      return collectCssFiles(entryPath);
+    }
+
+    if (entry.isFile() && entry.name.endsWith(".css")) {
+      return [entryPath];
+    }
+
+    return [];
+  });
+};
 
 describe("pre-design token stylesheet contract", () => {
   it("exposes global tokens and imports them before other global styles", () => {
@@ -58,5 +81,25 @@ describe("pre-design token stylesheet contract", () => {
     });
 
     expect(indexCss).toMatch(/body\s*\{[\s\S]*font-family:\s*var\(--font-family-base\);/);
+  });
+
+  it("keeps legacy app-level overlay z-index literals out of production CSS", () => {
+    const offenders = collectCssFiles(srcDir)
+      .filter((filePath) => filePath !== tokensCssPath)
+      .flatMap((filePath) => {
+        const css = fs.readFileSync(filePath, "utf8");
+
+        return css.split(/\r?\n/).flatMap((line, index) => {
+          const match = line.match(legacyAppOverlayZIndexPattern);
+
+          if (!match) {
+            return [];
+          }
+
+          return `${path.relative(process.cwd(), filePath)}:${index + 1}: ${match[0]}`;
+        });
+      });
+
+    expect(offenders).toEqual([]);
   });
 });

@@ -345,7 +345,7 @@
   position: fixed;
   top: 24px;
   right: 24px;
-  z-index: 1000;
+  z-index: var(--z-toast);
 }
 
 @media (max-width: 768px) {
@@ -376,7 +376,6 @@
     gap: 12px;
   }
 }
-
 
 
 

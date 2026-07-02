@@ -1,7 +1,7 @@
 .header {
   position: sticky;
   top: 0;
-  z-index: 200;
+  z-index: var(--z-header);
   background-color: white;
   border-bottom: 1px solid #e0e0e0;
   padding: 0 24px;
@@ -56,7 +56,7 @@
 @media (max-width: 768px) {
   .header {
     padding: 0 16px;
-    z-index: 100000 !important; /* 모바일에서 검색바 드롭다운이 바텀 시트(z-index: 1000) 위에 보이도록 매우 높게 설정 */
+    z-index: var(--z-header) !important;
     position: sticky !important; /* 모바일에서도 헤더 고정 */
     top: 0 !important; /* 상단에 고정 */
     isolation: isolate !important; /* stacking context 명시적 생성 유지 */
@@ -86,8 +86,7 @@
   .header {
     position: sticky !important; /* 태블릿에서도 헤더 고정 */
     top: 0 !important; /* 상단에 고정 */
-    z-index: 100000 !important; /* 태블릿에서 검색바 드롭다운이 바텀 시트(z-index: 1000) 위에 보이도록 매우 높게 설정 */
+    z-index: var(--z-header) !important;
     isolation: isolate !important; /* stacking context 명시적 생성 유지 */
   }
 }
-

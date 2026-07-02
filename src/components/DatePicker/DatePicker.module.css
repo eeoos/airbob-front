@@ -4,7 +4,7 @@
   border-radius: 12px;
   box-shadow: 0 2px 16px rgba(0, 0, 0, 0.18);
   padding: 24px;
-  z-index: 1000; /* 데스크톱 기본값 */
+  z-index: var(--z-dropdown); /* 데스크톱 기본값 */
   width: 850px;
   max-width: 850px;
   animation: slideDownFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -419,4 +419,3 @@
     padding: 10px 12px;
   }
 }
-
