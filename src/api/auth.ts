@@ -1,11 +1,18 @@
 import { AxiosError } from "axios";
 import { client } from "./client";
+import { ApiClientError, unwrapApiResponse } from "./response";
 import {
   LoginRequest,
   SignupRequest,
   MeInfo,
 } from "../types/auth";
 import { ApiResponse } from "../types/api";
+
+const INVALID_API_RESPONSE_ERROR = {
+  message: "Invalid API Response",
+  status: 500,
+  code: "INVALID_API_RESPONSE",
+};
 
 export const authApi = {
   // 로그인
@@ -147,6 +154,12 @@ export const authApi = {
   // 내 정보 조회
   getMe: async (): Promise<MeInfo> => {
     const response = await client.get<ApiResponse<MeInfo>>("/auth/me");
-    return response.data.data!;
+    const contentType = response.headers?.["content-type"];
+
+    if (typeof contentType === "string" && contentType.toLowerCase().includes("text/html")) {
+      throw new ApiClientError(INVALID_API_RESPONSE_ERROR);
+    }
+
+    return unwrapApiResponse(response.data);
   },
 };
