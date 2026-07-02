@@ -26,8 +26,9 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "test:ci": "react-scripts test --watchAll=false",
+    "test:ci:no-cache": "react-scripts test --watchAll=false --no-cache",
     "typecheck": "tsc --noEmit",
-    "verify": "npm run typecheck && npm run test:ci",
+    "verify": "npm run typecheck && npm run test:ci:no-cache && npm run build",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
