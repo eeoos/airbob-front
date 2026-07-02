@@ -11,6 +11,15 @@ interface UseReservationConfirmAccommodationOptions {
   clearError: () => void;
 }
 
+const parseRouteAccommodationId = (accommodationId?: string): number | null => {
+  if (!accommodationId || !/^\d+$/.test(accommodationId)) {
+    return null;
+  }
+
+  const parsedId = Number(accommodationId);
+  return Number.isSafeInteger(parsedId) ? parsedId : null;
+};
+
 export function useReservationConfirmAccommodation({
   accommodationId,
   reservationUid,
@@ -23,7 +32,9 @@ export function useReservationConfirmAccommodation({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!accommodationId) {
+    const parsedAccommodationId = parseRouteAccommodationId(accommodationId);
+
+    if (parsedAccommodationId === null) {
       navigate(routeTo.home());
       setIsLoading(false);
       return;
@@ -31,7 +42,7 @@ export function useReservationConfirmAccommodation({
 
     if (!reservationUid) {
       handleError(new Error("예약 정보가 없습니다."));
-      navigate(routeTo.accommodationDetail(accommodationId));
+      navigate(routeTo.accommodationDetail(parsedAccommodationId));
       setIsLoading(false);
       return;
     }
@@ -43,7 +54,7 @@ export function useReservationConfirmAccommodation({
       clearError();
 
       try {
-        const data = await accommodationApi.getDetail(parseInt(accommodationId, 10));
+        const data = await accommodationApi.getDetail(parsedAccommodationId);
 
         if (!isCancelled) {
           setAccommodation(data);

@@ -97,4 +97,30 @@ describe("useReservationConfirmAccommodation", () => {
     expect(navigate).toHaveBeenCalledWith("/accommodations/7");
     expect(accommodationApi.getDetail).not.toHaveBeenCalled();
   });
+
+  it.each(["7abc", "abc", "9007199254740992"])(
+    "treats invalid accommodation id %s like a missing route id",
+    async (accommodationId) => {
+      const navigate = jest.fn();
+      const handleError = jest.fn();
+      const clearError = jest.fn();
+
+      const { result } = renderHook(() =>
+        useReservationConfirmAccommodation({
+          accommodationId,
+          reservationUid: "res-123",
+          navigate,
+          handleError,
+          clearError,
+        })
+      );
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      expect(navigate).toHaveBeenCalledWith("/");
+      expect(accommodationApi.getDetail).not.toHaveBeenCalled();
+      expect(handleError).not.toHaveBeenCalled();
+      expect(clearError).not.toHaveBeenCalled();
+    }
+  );
 });
