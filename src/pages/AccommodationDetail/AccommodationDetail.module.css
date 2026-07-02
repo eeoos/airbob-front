@@ -1120,6 +1120,126 @@
   width: 100%;
 }
 
+.couponSection {
+  margin-bottom: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #ebebeb;
+}
+
+.couponHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.couponTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #222222;
+}
+
+.couponClearButton {
+  background: none;
+  border: none;
+  color: #222222;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+
+.couponEmpty {
+  font-size: 13px;
+  color: #717171;
+  line-height: 1.5;
+}
+
+.couponList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.couponItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #dddddd;
+  border-radius: 8px;
+  background-color: white;
+}
+
+.couponItemSelected {
+  border-color: #222222;
+  background-color: #f7f7f7;
+}
+
+.couponInfo {
+  min-width: 0;
+}
+
+.couponName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #222222;
+  margin-bottom: 4px;
+}
+
+.couponMeta {
+  font-size: 12px;
+  color: #717171;
+  line-height: 1.4;
+}
+
+.couponApplyButton {
+  flex-shrink: 0;
+  border: 1px solid #222222;
+  border-radius: 8px;
+  background-color: #222222;
+  color: white;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.couponApplyButton:hover:not(:disabled) {
+  background-color: #000000;
+}
+
+.couponApplyButton:disabled {
+  border-color: #dddddd;
+  background-color: #f7f7f7;
+  color: #b0b0b0;
+  cursor: not-allowed;
+}
+
+.priceBreakdown {
+  margin-bottom: 20px;
+  padding: 16px 0;
+  border-top: 1px solid #ebebeb;
+  border-bottom: 1px solid #ebebeb;
+}
+
+.priceBreakdownRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #222222;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.priceBreakdownRow + .priceBreakdownRow {
+  margin-top: 8px;
+}
+
 .reserveButton {
   width: 100%;
   padding: 14px;

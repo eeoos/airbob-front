@@ -28,14 +28,14 @@ export interface VirtualAccountInfo {
 // 결제 정보
 export interface PaymentInfo {
   order_id: string;
-  payment_key: string;
-  method: string;
+  payment_key?: string | null;
+  method?: string | null;
   total_amount: number;
-  balance_amount: number;
+  balance_amount?: number | null;
   status: PaymentStatus;
   requested_at: string;
-  approved_at: string | null;
-  cancels: CancelInfo[];
+  approved_at?: string | null;
+  cancels?: CancelInfo[];
   virtual_account?: VirtualAccountInfo | null;
 }
 

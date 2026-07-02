@@ -31,6 +31,10 @@ const ReservationConfirm: React.FC = () => {
   const amount = searchParams.get("amount") ? parseInt(searchParams.get("amount")!) : null;
   const customerEmail = searchParams.get("customerEmail");
   const customerName = searchParams.get("customerName");
+  const couponName = searchParams.get("couponName");
+  const couponDiscountParam = searchParams.get("couponDiscount")
+    ? parseInt(searchParams.get("couponDiscount")!)
+    : null;
   
   // 예약 박스에서 입력한 정보
   const checkIn = searchParams.get("checkIn") ? new Date(searchParams.get("checkIn")!) : null;
@@ -134,7 +138,7 @@ const ReservationConfirm: React.FC = () => {
       return;
     }
 
-    if (!reservationUid || !orderName || !amount || !customerEmail || !customerName) {
+    if (!reservationUid || !orderName || amount == null || !customerEmail || !customerName) {
       handleError(new Error("결제 정보가 올바르지 않습니다."));
       return;
     }
@@ -222,6 +226,9 @@ const ReservationConfirm: React.FC = () => {
 
   const nights = calculateNights();
   const totalPrice = calculateTotalPrice();
+  const responseDiscount = amount == null ? 0 : Math.max(totalPrice - amount, 0);
+  const couponDiscount = responseDiscount > 0 ? responseDiscount : couponDiscountParam ?? 0;
+  const payableAmount = amount ?? totalPrice;
 
   return (
     <MainLayout>
@@ -281,9 +288,15 @@ const ReservationConfirm: React.FC = () => {
               <span>{nights}박 x ₩{accommodation.base_price.toLocaleString()}</span>
               <span>₩{totalPrice.toLocaleString()}</span>
             </div>
+            {couponDiscount > 0 && (
+              <div className={styles.priceRow}>
+                <span>{couponName || "쿠폰 할인"}</span>
+                <span>-₩{couponDiscount.toLocaleString()}</span>
+              </div>
+            )}
             <div className={styles.priceRow}>
               <span className={styles.totalLabel}>총액 KRW</span>
-              <span className={styles.totalPrice}>₩{totalPrice.toLocaleString()}</span>
+              <span className={styles.totalPrice}>₩{payableAmount.toLocaleString()}</span>
             </div>
           </div>
 

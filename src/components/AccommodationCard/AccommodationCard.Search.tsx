@@ -1,7 +1,7 @@
 import React from "react";
 import { AccommodationSearchInfo } from "../../types/accommodation";
 import { getImageUrl } from "../../utils/image";
-import { AccommodationType } from "../../types/enums";
+import { getAccommodationTypeLabel } from "../../utils/codes";
 import styles from "./AccommodationCard.Search.module.css";
 
 interface AccommodationCardSearchProps {
@@ -48,14 +48,8 @@ export const AccommodationCardSearch: React.FC<AccommodationCardSearchProps> = (
   };
 
   // AccommodationType을 한글로 변환하는 함수
-  const getAccommodationTypeKorean = (type: AccommodationType): string => {
-    const typeMap: Record<AccommodationType, string> = {
-      [AccommodationType.ENTIRE_PLACE]: "집 전체",
-      [AccommodationType.PRIVATE_ROOM]: "개인실",
-      [AccommodationType.SHARED_ROOM]: "다인실",
-      [AccommodationType.HOSTEL]: "호스텔",
-    };
-    return typeMap[type] || "숙소";
+  const getAccommodationTypeKorean = (type: string): string => {
+    return getAccommodationTypeLabel(type);
   };
 
   const nights = calculateNights(checkIn, checkOut);
@@ -144,5 +138,4 @@ export const AccommodationCardSearch: React.FC<AccommodationCardSearchProps> = (
     </div>
   );
 };
-
 

@@ -7,7 +7,8 @@ export { paymentApi } from "./payments";
 export { reviewApi } from "./reviews";
 export { wishlistApi } from "./wishlist";
 export { recentlyViewedApi } from "./recentlyViewed";
-
+export { commonCodeApi } from "./commonCodes";
+export { couponApi } from "./coupons";
 
 
 

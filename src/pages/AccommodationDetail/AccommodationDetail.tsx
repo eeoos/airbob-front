@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useMemo, useRef, useTransition, useCallback } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { MainLayout } from "../../layouts";
-import { accommodationApi, recentlyViewedApi, reservationApi, reviewApi } from "../../api";
+import { accommodationApi, couponApi, recentlyViewedApi, reservationApi, reviewApi } from "../../api";
 import { AccommodationDetail as AccommodationDetailType } from "../../types/accommodation";
+import { CouponInfo } from "../../types/coupon";
 import { ReviewInfo } from "../../types/review";
 import { ReviewSortType } from "../../types/enums";
 import { useApiError } from "../../hooks/useApiError";
@@ -13,56 +14,24 @@ import { AuthModal } from "../../components/AuthModal/AuthModal";
 import { ReviewModal } from "../../components/ReviewModal/ReviewModal";
 import DatePicker from "../../components/DatePicker/DatePicker";
 import { getImageUrl } from "../../utils/image";
+import {
+  calculateCouponDiscount,
+  formatCouponDiscount,
+  getAccommodationTypeLabel,
+  getAmenityLabel,
+} from "../../utils/codes";
+import { parseApiError } from "../../utils/error";
 import { GOOGLE_MAPS_API_KEY } from "../../utils/constants";
 import styles from "./AccommodationDetail.module.css";
 
 // AccommodationType을 한글로 변환하는 함수
 const getAccommodationTypeKorean = (type: string): string => {
-  const typeMap: Record<string, string> = {
-    ENTIRE_PLACE: "집 전체",
-    PRIVATE_ROOM: "개인실",
-    SHARED_ROOM: "다인실",
-    HOSTEL: "호스텔",
-  };
-  return typeMap[type] || "숙소";
+  return getAccommodationTypeLabel(type);
 };
 
 // AmenityType을 한글로 변환하는 함수
 const getAmenityTypeKorean = (type: string): string => {
-  const amenityMap: Record<string, string> = {
-    WIFI: "무선 인터넷",
-    AIR_CONDITIONER: "에어컨",
-    HEATING: "난방",
-    KITCHEN: "주방",
-    WASHER: "세탁기",
-    DRYER: "건조기",
-    PARKING: "주차 공간",
-    TV: "TV",
-    HAIR_DRYER: "헤어드라이어",
-    IRON: "다리미",
-    SHAMPOO: "샴푸",
-    BED_LINENS: "침구류",
-    EXTRA_PILLOWS: "추가 베개 및 담요",
-    CRIB: "아기 침대",
-    HIGH_CHAIR: "아기 식탁의자",
-    DISHWASHER: "식기세척기",
-    COFFEE_MACHINE: "커피 머신",
-    MICROWAVE: "전자레인지",
-    REFRIGERATOR: "냉장고",
-    ELEVATOR: "엘리베이터",
-    POOL: "수영장",
-    HOT_TUB: "온수 욕조",
-    GYM: "헬스장",
-    SMOKE_ALARM: "화재 경보기",
-    CARBON_MONOXIDE_ALARM: "일산화탄소 경보기",
-    FIRE_EXTINGUISHER: "소화기",
-    PETS_ALLOWED: "반려동물 허용",
-    OUTDOOR_SPACE: "야외 공간",
-    BBQ_GRILL: "바베큐 그릴",
-    BALCONY: "발코니",
-    UNKNOWN: "알 수 없음",
-  };
-  return amenityMap[type] || type;
+  return getAmenityLabel(type);
 };
 
 // AmenityType에 맞는 아이콘을 반환하는 함수
@@ -341,6 +310,10 @@ const AccommodationDetail: React.FC = () => {
   const [petCount, setPetCount] = useState(() => {
     return searchParams.get("petOccupancy") ? parseInt(searchParams.get("petOccupancy") || "0") : 0;
   });
+  const [coupons, setCoupons] = useState<CouponInfo[]>([]);
+  const [isLoadingCoupons, setIsLoadingCoupons] = useState(false);
+  const [selectedCouponId, setSelectedCouponId] = useState<number | null>(null);
+  const [issuingCouponId, setIssuingCouponId] = useState<number | null>(null);
 
   // YYYY-MM-DD 문자열을 로컬 시간대 Date 객체로 변환
   const parseDateFromUrl = (dateString: string): Date => {
@@ -414,6 +387,18 @@ const AccommodationDetail: React.FC = () => {
     };
   }, [searchParams, accommodation]);
 
+  const selectedCoupon = useMemo(
+    () => coupons.find((coupon) => coupon.id === selectedCouponId) || null,
+    [coupons, selectedCouponId]
+  );
+
+  const couponDiscount = useMemo(() => {
+    if (!selectedCoupon || totalPrice <= 0) return 0;
+    return calculateCouponDiscount(selectedCoupon, totalPrice);
+  }, [selectedCoupon, totalPrice]);
+
+  const payablePrice = Math.max(totalPrice - couponDiscount, 0);
+
   // 날짜 포맷팅 함수
   const formatDate = (date: Date | null): string => {
     if (!date) return "";
@@ -442,6 +427,29 @@ const AccommodationDetail: React.FC = () => {
 
     fetchAccommodation();
   }, [id, handleError, clearError]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setCoupons([]);
+      setSelectedCouponId(null);
+      return;
+    }
+
+    const fetchCoupons = async () => {
+      setIsLoadingCoupons(true);
+      try {
+        const data = await couponApi.getValidCoupons();
+        setCoupons(data.infos || []);
+      } catch (err) {
+        console.error("쿠폰 목록 조회 실패:", err);
+        setCoupons([]);
+      } finally {
+        setIsLoadingCoupons(false);
+      }
+    };
+
+    fetchCoupons();
+  }, [isAuthenticated]);
 
   // 리뷰 목록 가져오기
   const fetchReviews = useCallback(async (cursor?: string | null) => {
@@ -625,6 +633,7 @@ const AccommodationDetail: React.FC = () => {
         check_in_date: checkInStr,
         check_out_date: checkOutStr,
         guest_count: guestCount,
+        coupon_id: couponDiscount > 0 ? selectedCouponId : null,
       });
 
       const { reservation_uid, order_name, amount, customer_email, customer_name } = reservationResponse;
@@ -643,9 +652,40 @@ const AccommodationDetail: React.FC = () => {
       params.set("childOccupancy", childCount.toString());
       params.set("infantOccupancy", infantCount.toString());
       params.set("petOccupancy", petCount.toString());
+      if (couponDiscount > 0 && selectedCoupon) {
+        params.set("couponName", selectedCoupon.name);
+        params.set("couponDiscount", couponDiscount.toString());
+      }
       navigate(`/accommodations/${id}/confirm?${params.toString()}`);
     } catch (err) {
       handleError(err);
+    }
+  };
+
+  const handleIssueCoupon = async (coupon: CouponInfo) => {
+    if (!isAuthenticated) {
+      setPendingAction(() => async () => {
+        await handleIssueCoupon(coupon);
+      });
+      setIsAuthModalOpen(true);
+      return;
+    }
+
+    setIssuingCouponId(coupon.id);
+    clearError();
+
+    try {
+      await couponApi.issue(coupon.id);
+      setSelectedCouponId(coupon.id);
+    } catch (err) {
+      const apiError = parseApiError(err);
+      if (apiError?.code === "CP003") {
+        setSelectedCouponId(coupon.id);
+      } else {
+        handleError(err);
+      }
+    } finally {
+      setIssuingCouponId(null);
     }
   };
 
@@ -958,7 +998,7 @@ const AccommodationDetail: React.FC = () => {
           <div className={styles.sidebar}>
             <div className={styles.bookingCard}>
               <div className={styles.priceSection}>
-                <span className={styles.totalPrice}>₩{totalPrice.toLocaleString()}</span>
+                <span className={styles.totalPrice}>₩{payablePrice.toLocaleString()}</span>
                 <span className={styles.priceInfo}>· {nights}박</span>
               </div>
               
@@ -1184,6 +1224,84 @@ const AccommodationDetail: React.FC = () => {
                     </div>
                   )}
               </div>
+
+              {isAuthenticated && (
+                <div className={styles.couponSection}>
+                  <div className={styles.couponHeader}>
+                    <div className={styles.couponTitle}>쿠폰</div>
+                    {selectedCoupon && couponDiscount > 0 && (
+                      <button
+                        type="button"
+                        className={styles.couponClearButton}
+                        onClick={() => setSelectedCouponId(null)}
+                      >
+                        해제
+                      </button>
+                    )}
+                  </div>
+                  {isLoadingCoupons ? (
+                    <div className={styles.couponEmpty}>쿠폰을 불러오는 중입니다.</div>
+                  ) : coupons.length === 0 ? (
+                    <div className={styles.couponEmpty}>발급 가능한 쿠폰이 없습니다.</div>
+                  ) : (
+                    <div className={styles.couponList}>
+                      {coupons.map((coupon) => {
+                        const discount = calculateCouponDiscount(coupon, totalPrice);
+                        const isApplicable = discount > 0;
+                        const isSelected = selectedCouponId === coupon.id && isApplicable;
+                        const remaining =
+                          coupon.total_quantity == null
+                            ? null
+                            : Math.max(coupon.total_quantity - coupon.issued_quantity, 0);
+
+                        return (
+                          <div
+                            key={coupon.id}
+                            className={`${styles.couponItem} ${isSelected ? styles.couponItemSelected : ""}`}
+                          >
+                            <div className={styles.couponInfo}>
+                              <div className={styles.couponName}>{coupon.name}</div>
+                              <div className={styles.couponMeta}>
+                                {formatCouponDiscount(coupon)}
+                                {coupon.min_payment_price != null &&
+                                  ` · ${coupon.min_payment_price.toLocaleString()}원 이상`}
+                                {remaining != null && ` · 남은 수량 ${remaining.toLocaleString()}장`}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              className={styles.couponApplyButton}
+                              onClick={() => handleIssueCoupon(coupon)}
+                              disabled={!isApplicable || issuingCouponId === coupon.id}
+                            >
+                              {isSelected
+                                ? "적용 중"
+                                : issuingCouponId === coupon.id
+                                ? "발급 중"
+                                : isApplicable
+                                ? "발급/적용"
+                                : "조건 미달"}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {couponDiscount > 0 && (
+                <div className={styles.priceBreakdown}>
+                  <div className={styles.priceBreakdownRow}>
+                    <span>{nights}박 x ₩{accommodation.base_price.toLocaleString()}</span>
+                    <span>₩{totalPrice.toLocaleString()}</span>
+                  </div>
+                  <div className={styles.priceBreakdownRow}>
+                    <span>{selectedCoupon?.name}</span>
+                    <span>-₩{couponDiscount.toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
               
               <button
                 className={styles.reserveButton}

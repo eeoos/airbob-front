@@ -6,6 +6,10 @@ import { useApiError } from "../../hooks/useApiError";
 import { ErrorToast } from "../../components/ErrorToast";
 import { useAuth } from "../../hooks/useAuth";
 import { getImageUrl } from "../../utils/image";
+import {
+  DEFAULT_ACCOMMODATION_TYPE_OPTIONS,
+  DEFAULT_AMENITY_OPTIONS,
+} from "../../utils/codes";
 import styles from "./AccommodationEdit.module.css";
 
 // Daum 우편번호 서비스 타입 정의
@@ -44,58 +48,10 @@ declare global {
 type Step = 1 | 2 | 3 | 4 | 5;
 
 // 숙소 유형 정보
-const ACCOMMODATION_TYPES = [
-  { value: "ENTIRE_PLACE", label: "전체 숙소" },
-  { value: "PRIVATE_ROOM", label: "개인실" },
-  { value: "SHARED_ROOM", label: "다인실" },
-  { value: "HOTEL_ROOM", label: "호텔 객실" },
-  { value: "HOSTEL", label: "호스텔" },
-  { value: "VILLA", label: "빌라" },
-  { value: "GUESTHOUSE", label: "게스트하우스" },
-  { value: "BNB", label: "B&B" },
-  { value: "RESORT", label: "리조트" },
-  { value: "APARTMENT", label: "아파트" },
-  { value: "HOUSE", label: "일반 주택" },
-  { value: "TENT", label: "텐트" },
-  { value: "BOAT", label: "보트" },
-  { value: "TREEHOUSE", label: "트리하우스" },
-  { value: "CAMPER_VAN", label: "캠핑카" },
-  { value: "CASTLE", label: "성" },
-] as const;
+const ACCOMMODATION_TYPES = DEFAULT_ACCOMMODATION_TYPE_OPTIONS;
 
 // 편의시설 정보
-const AMENITY_TYPES = [
-  { value: "WIFI", label: "무선 인터넷" },
-  { value: "AIR_CONDITIONER", label: "에어컨" },
-  { value: "HEATING", label: "난방" },
-  { value: "KITCHEN", label: "주방" },
-  { value: "WASHER", label: "세탁기" },
-  { value: "DRYER", label: "건조기" },
-  { value: "PARKING", label: "주차 공간" },
-  { value: "TV", label: "TV" },
-  { value: "HAIR_DRYER", label: "헤어드라이어" },
-  { value: "IRON", label: "다리미" },
-  { value: "SHAMPOO", label: "샴푸" },
-  { value: "BED_LINENS", label: "침구류" },
-  { value: "EXTRA_PILLOWS", label: "추가 베개 및 담요" },
-  { value: "CRIB", label: "아기 침대" },
-  { value: "HIGH_CHAIR", label: "아기 식탁의자" },
-  { value: "DISHWASHER", label: "식기세척기" },
-  { value: "COFFEE_MACHINE", label: "커피 머신" },
-  { value: "MICROWAVE", label: "전자레인지" },
-  { value: "REFRIGERATOR", label: "냉장고" },
-  { value: "ELEVATOR", label: "엘리베이터" },
-  { value: "POOL", label: "수영장" },
-  { value: "HOT_TUB", label: "온수 욕조" },
-  { value: "GYM", label: "헬스장" },
-  { value: "SMOKE_ALARM", label: "화재 경보기" },
-  { value: "CARBON_MONOXIDE_ALARM", label: "일산화탄소 경보기" },
-  { value: "FIRE_EXTINGUISHER", label: "소화기" },
-  { value: "PETS_ALLOWED", label: "반려동물 허용" },
-  { value: "OUTDOOR_SPACE", label: "야외 공간" },
-  { value: "BBQ_GRILL", label: "바베큐 그릴" },
-  { value: "BALCONY", label: "발코니" },
-] as const;
+const AMENITY_TYPES = DEFAULT_AMENITY_OPTIONS;
 
 // 이미지 아이템 타입: 업로드된 이미지(id 있음) 또는 업로드 대기 이미지(file 있음)
 interface ImageItem {

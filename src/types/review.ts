@@ -16,6 +16,7 @@ export type CreateReviewResponse = ApiResponse<CreateReviewData>;
 // 리뷰 수정
 export interface UpdateReviewRequest {
   content: string;
+  rating?: number;
 }
 
 export interface UpdateReviewData {
