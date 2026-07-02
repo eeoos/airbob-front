@@ -30,6 +30,11 @@ const PaymentSuccess: React.FC = () => {
       console.error("결제 확인 중 오류:", result.error);
     }
 
+    if (result.status === "invalid") {
+      navigate(routeTo.paymentFail(reservationUid));
+      return;
+    }
+
     navigate(routeTo.reservationDetail(reservationUid));
   }, [reservationUid, navigate, result]);
 

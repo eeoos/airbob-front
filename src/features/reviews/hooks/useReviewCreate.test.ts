@@ -1,6 +1,8 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { reservationApi, reviewApi } from "../../../api";
 import { ReservationStatus } from "../../../types/enums";
+import { ReservationDetailInfo } from "../../../types/reservation";
+import { UploadReviewImagesData } from "../../../types/review";
 import { useReviewCreate } from "./useReviewCreate";
 
 const mockClearError = jest.fn();
@@ -26,8 +28,9 @@ jest.mock("../../../hooks/useApiError", () => ({
   }),
 }));
 
-const createReservationDetail = (reservationUid = "reservation-1") =>
-  ({
+const createReservationDetail = (
+  reservationUid = "reservation-1"
+): ReservationDetailInfo => ({
     reservation_uid: reservationUid,
     reservation_code: "CODE-1",
     status: ReservationStatus.CONFIRMED,
@@ -62,7 +65,11 @@ const createReservationDetail = (reservationUid = "reservation-1") =>
       thumbnail_image_url: null,
     },
     payment: null,
-  } as any);
+  });
+
+const uploadReviewImagesData: UploadReviewImagesData = {
+  uploaded_images: [],
+};
 
 describe("useReviewCreate", () => {
   beforeEach(() => {
@@ -98,9 +105,7 @@ describe("useReviewCreate", () => {
       .mocked(reservationApi.getMyReservationDetail)
       .mockResolvedValue(reservation);
     jest.mocked(reviewApi.create).mockResolvedValue({ id: 55 });
-    jest.mocked(reviewApi.uploadImages).mockResolvedValue({
-      uploaded_images: [],
-    } as any);
+    jest.mocked(reviewApi.uploadImages).mockResolvedValue(uploadReviewImagesData);
 
     const { result } = renderHook(() => useReviewCreate("reservation-123"));
 
