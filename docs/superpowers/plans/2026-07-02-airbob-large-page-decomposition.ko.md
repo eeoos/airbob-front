@@ -693,11 +693,17 @@
 - Modify: `src/pages/AccommodationEdit/components/TimePicker.tsx`
 - Modify: `src/pages/AccommodationEdit/AccommodationEdit.module.css`
 
-- [ ] 사진 업로드/이미지 grid/drag state class를 `PhotosStep.module.css`로 이동한다.
-- [ ] 시간 input/time picker class를 `TimeStep.module.css`로 이동한다.
-- [ ] `AccommodationEdit.tsx`의 outside-click selector가 새 time style import와 일치하도록 유지한다.
-- [ ] focused tests, `npm run verify -- --no-cache`, browser QA를 수행한다.
-- [ ] Commit: `refactor: split accommodation edit media time styles`
+- [x] 사진 업로드/이미지 grid/drag state class를 `PhotosStep.module.css`로 이동한다.
+- [x] 시간 input/time picker class를 `TimeStep.module.css`로 이동한다.
+- [x] `AccommodationEdit.tsx`의 outside-click selector가 새 time style import와 일치하도록 유지한다.
+- [x] focused tests, `npm run verify -- --no-cache`, browser QA를 수행한다.
+  - RED: `AccommodationEditComponents.test.tsx`의 photo/time CSS module boundary test가 `PhotosStep.module.css` 미존재로 실패하는 것을 확인했다.
+  - GREEN: `npm test -- --watchAll=false --runTestsByPath src/pages/AccommodationEdit/components/AccommodationEditComponents.test.tsx --testNamePattern='photo and time styles'` 통과.
+  - Review 반영: `imagePlaceholder`, `coverPhoto`, `thumbnailPhoto`, `timePickerInput`, `timePickerOptionEditable` 같은 미사용 legacy selector는 새 모듈로 보존하지 않고 제거했으며, boundary test가 stale selector 부재도 검증한다.
+  - Focused: `npm test -- --watchAll=false --runTestsByPath src/pages/AccommodationEdit/components/AccommodationEditComponents.test.tsx src/pages/AccommodationEdit/AccommodationEdit.test.tsx` 통과, 2 suites / 14 tests.
+  - Full verify: `npm run verify -- --no-cache` 통과, 47 suites / 194 tests.
+  - Browser QA: QA 계정으로 `/accommodations/3/edit` 접속, 사진 step 렌더링, 시간 step 렌더링, time picker open/select/outside-close, 375px mobile viewport를 확인했고 console error 없음.
+- [x] Commit: `refactor: split accommodation edit media time styles`
 
 ### Task L: AccommodationEdit layout/form CSS module 분리
 

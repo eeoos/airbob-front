@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import styles from "../AccommodationEdit.module.css";
+import styles from "./TimeStep.module.css";
 
 interface TimePickerProps {
   hour: number;

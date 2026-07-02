@@ -1,0 +1,301 @@
+.uploadProgressContainer {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: #f7f7f7;
+  border-radius: 8px;
+}
+
+.uploadProgressBar {
+  width: 100%;
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.uploadProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff385c 0%, #ff5a7f 100%);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.uploadProgressText {
+  font-size: 14px;
+  color: #222222;
+  margin: 0;
+  text-align: center;
+  font-weight: 500;
+}
+
+.imageInput {
+  display: none;
+}
+
+.imageUploadBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 400px;
+  padding: 60px 40px;
+  background: #f7f7f7;
+  border: 2px dashed #b0b0b0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.imageUploadBox:hover {
+  border-color: #222222;
+  background: #f0f0f0;
+}
+
+.imageUploadBoxLabel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.cameraIcon {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 24px;
+  color: #717171;
+}
+
+.cameraIcon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.addPhotoButton {
+  padding: 14px 32px;
+  background: white;
+  border: 1px solid #222222;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #222222;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.addPhotoButton:hover {
+  background: #222222;
+  color: white;
+}
+
+.uploadedImagesSection {
+  margin-top: 40px;
+}
+
+.uploadedImagesHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.uploadedImagesTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #222222;
+  margin: 0 0 4px 0;
+}
+
+.uploadedImagesSubtitle {
+  font-size: 14px;
+  color: #717171;
+  margin: 0;
+}
+
+.addMoreButton {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #222222;
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.addMoreButton:hover {
+  background: #000000;
+}
+
+.addMoreButton svg {
+  width: 20px;
+  height: 20px;
+}
+
+.coverPhotoContainer {
+  width: 100%;
+  margin-bottom: 16px;
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  contain: layout style;
+}
+
+.coverPhotoContainer .uploadedImageItem {
+  width: 100%;
+  aspect-ratio: unset;
+  padding-bottom: 56.25%;
+  height: 0;
+}
+
+.thumbnailGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  contain: layout style;
+}
+
+.thumbnailGrid .uploadedImageItem {
+  aspect-ratio: unset;
+  padding-bottom: 100%;
+  height: 0;
+}
+
+.thumbnailGrid .addImageSlot {
+  aspect-ratio: unset;
+  padding-bottom: 100%;
+  height: 0;
+}
+
+.uploadedImageItem {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: move;
+  border: 2px solid transparent;
+  transition: border-color 0.2s ease;
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  will-change: transform;
+  contain: layout style paint;
+}
+
+.uploadedImageItem:hover {
+  border-color: #222222;
+}
+
+.uploadedImageItem.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.uploadedImageItem.dragOver {
+  border-color: #ff385c;
+  border-style: dashed;
+}
+
+.coverPhotoLabel {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 2;
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+}
+
+.uploadedImage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  will-change: transform;
+}
+
+.imageMenuButton {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  color: #222222;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+  z-index: 1;
+}
+
+.imageMenuButton:hover {
+  background: white;
+}
+
+.imageMenuButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.addImageSlot {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  border: 2px dashed #b0b0b0;
+  background: #f7f7f7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #717171;
+}
+
+.addImageSlot:hover {
+  border-color: #222222;
+  background: #f0f0f0;
+  color: #222222;
+}
+
+.addImageSlot svg {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 8px;
+}
+
+.addImageSlot span {
+  font-size: 14px;
+  font-weight: 500;
+}

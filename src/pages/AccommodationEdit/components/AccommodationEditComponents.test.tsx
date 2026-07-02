@@ -70,6 +70,117 @@ const getCssBlocks = (source: string, selector: string) => {
 };
 
 describe("AccommodationEdit extracted components", () => {
+  it("keeps photo and time styles in step-local CSS modules", () => {
+    const photosCssPath = path.join(
+      process.cwd(),
+      "src/pages/AccommodationEdit/components/PhotosStep.module.css"
+    );
+    const timeCssPath = path.join(
+      process.cwd(),
+      "src/pages/AccommodationEdit/components/TimeStep.module.css"
+    );
+    const photoClasses = [
+      "uploadProgressContainer",
+      "uploadProgressBar",
+      "uploadProgressFill",
+      "uploadProgressText",
+      "imageInput",
+      "imageUploadBox",
+      "imageUploadBoxLabel",
+      "cameraIcon",
+      "addPhotoButton",
+      "uploadedImagesSection",
+      "uploadedImagesHeader",
+      "uploadedImagesTitle",
+      "uploadedImagesSubtitle",
+      "addMoreButton",
+      "coverPhotoContainer",
+      "thumbnailGrid",
+      "uploadedImageItem",
+      "dragging",
+      "dragOver",
+      "coverPhotoLabel",
+      "uploadedImage",
+      "imageMenuButton",
+      "addImageSlot",
+    ];
+    const timeClasses = [
+      "formRow",
+      "timeInputContainer",
+      "timeInputButton",
+      "timeDisplay",
+      "timePickerDropdown",
+      "timePickerContent",
+      "timePickerColumn",
+      "timePickerHeader",
+      "timePickerList",
+      "timePickerOption",
+      "timePickerOptionSelected",
+    ];
+    const stalePhotoClasses = ["imagePlaceholder", "coverPhoto", "thumbnailPhoto"];
+    const staleTimeClasses = ["timePickerInput", "timePickerOptionEditable"];
+
+    expect(fs.existsSync(photosCssPath)).toBe(true);
+    expect(fs.existsSync(timeCssPath)).toBe(true);
+    if (!fs.existsSync(photosCssPath) || !fs.existsSync(timeCssPath)) {
+      return;
+    }
+
+    const photosCss = readProjectFile(
+      "src/pages/AccommodationEdit/components/PhotosStep.module.css"
+    );
+    const timeCss = readProjectFile(
+      "src/pages/AccommodationEdit/components/TimeStep.module.css"
+    );
+    const pageCss = readProjectFile(
+      "src/pages/AccommodationEdit/AccommodationEdit.module.css"
+    );
+    const photosStepSource = readProjectFile(
+      "src/pages/AccommodationEdit/components/PhotosStep.tsx"
+    );
+    const timeStepSource = readProjectFile(
+      "src/pages/AccommodationEdit/components/TimeStep.tsx"
+    );
+    const timePickerSource = readProjectFile(
+      "src/pages/AccommodationEdit/components/TimePicker.tsx"
+    );
+    const pageSource = readProjectFile(
+      "src/pages/AccommodationEdit/AccommodationEdit.tsx"
+    );
+
+    expect(photosStepSource).toContain("./PhotosStep.module.css");
+    expect(timeStepSource).toContain("./TimeStep.module.css");
+    expect(timePickerSource).toContain("./TimeStep.module.css");
+    expect(timePickerSource).not.toContain("../AccommodationEdit.module.css");
+    expect(pageSource).toContain("./components/TimeStep.module.css");
+    expect(pageSource).toContain("timeStyles.timeInputContainer");
+    expect(pageSource).not.toContain("styles.timeInputContainer");
+
+    photoClasses.forEach((className) => {
+      const classSelector = new RegExp(`\\.${className}(?![A-Za-z0-9_-])`);
+      expect(photosCss).toMatch(classSelector);
+      expect(pageCss).not.toMatch(classSelector);
+    });
+
+    timeClasses.forEach((className) => {
+      const classSelector = new RegExp(`\\.${className}(?![A-Za-z0-9_-])`);
+      expect(timeCss).toMatch(classSelector);
+      expect(pageCss).not.toMatch(classSelector);
+    });
+
+    stalePhotoClasses.forEach((className) => {
+      const classSelector = new RegExp(`\\.${className}(?![A-Za-z0-9_-])`);
+      expect(photosCss).not.toMatch(classSelector);
+      expect(pageCss).not.toMatch(classSelector);
+    });
+
+    staleTimeClasses.forEach((className) => {
+      const classSelector = new RegExp(`\\.${className}(?![A-Za-z0-9_-])`);
+      expect(timeCss).not.toMatch(classSelector);
+      expect(pageCss).not.toMatch(classSelector);
+    });
+  });
+
   it("keeps modal styles in the page-local modal CSS module", () => {
     const modalCssPath = path.join(
       process.cwd(),
