@@ -12,12 +12,22 @@ import { AccommodationSearchInfo, AccommodationSearchRequest } from "../../types
 import { useApiError } from "../../hooks/useApiError";
 import { useAuth } from "../../hooks/useAuth";
 import { ErrorToast } from "../../components/ErrorToast";
+import {
+  MAX_SEARCH_PAGE,
+  clampSearchPage,
+  getLimitedTotalPages,
+  getPaginationItems,
+} from "../../features/search/lib/pagination";
+import {
+  buildMapBoundsSearchParams,
+  buildSearchRequestFromParams,
+  getViewportFromSearchParams,
+  getViewportSearchParamSignature,
+} from "../../features/search/lib/searchParams";
 import styles from "./Search.module.css";
 
 // Bottom sheet states
 type BottomSheetState = "collapsed" | "half" | "expanded";
-
-const MAX_PAGE = 15; // 최대 페이지 수 제한
 
 const Search: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -207,11 +217,14 @@ const Search: React.FC = () => {
       const response = await accommodationApi.search(params);
       setAccommodations(response.stay_search_result_listing);
       // 최대 페이지 수 제한 (15개)
-      const limitedTotalPages = Math.min(response.page_info.total_pages, MAX_PAGE);
+      const limitedTotalPages = getLimitedTotalPages(response.page_info.total_pages);
       setTotalPages(limitedTotalPages);
       setTotalElements(response.page_info.total_elements);
       // 현재 페이지도 최대 페이지를 초과하지 않도록 제한
-      const limitedCurrentPage = Math.min(response.page_info.current_page, limitedTotalPages - 1);
+      const limitedCurrentPage = Math.max(
+        0,
+        Math.min(response.page_info.current_page, limitedTotalPages - 1)
+      );
       setCurrentPage(limitedCurrentPage);
       // prevPageRef와 prevSearchParamsRef 업데이트
       prevPageRef.current = limitedCurrentPage;
@@ -230,12 +243,11 @@ const Search: React.FC = () => {
     const currentSearchParams = searchParamsString;
     
     // URL에서 page 파라미터 읽기 (0부터 시작, 최대 15로 제한)
-    const pageParam = searchParams.get("page");
-    const page = pageParam ? Math.min(parseInt(pageParam, 10), MAX_PAGE - 1) : 0;
+    const page = clampSearchPage(searchParams.get("page"));
     
     // page 파라미터만 추출하여 비교 (다른 파라미터 변경은 무시)
     const prevPageParam = prevSearchParamsRef.current ? new URLSearchParams(prevSearchParamsRef.current).get("page") : null;
-    const prevPage = prevPageParam ? Math.min(parseInt(prevPageParam, 10), MAX_PAGE - 1) : 0;
+    const prevPage = clampSearchPage(prevPageParam);
     
     // 초기 로드이거나 page 파라미터만 변경된 경우에만 검색 실행
     // 단, 지도 드래그 모드가 아닐 때만 (지도 드래그는 handleMapBoundsChange에서 처리)
@@ -278,10 +290,8 @@ const Search: React.FC = () => {
     
     // URL에 viewport가 있으면 항상 지도가 해당 viewport로 이동해야 함
     // (뒤로가기, 초기 로드, 검색어 변경 등 모든 경우에 대응)
-    const hasViewportForMap = !!searchParams.get("topLeftLat") && !!searchParams.get("topLeftLng");
-    const currentViewportString = hasViewportForMap 
-      ? `${searchParams.get("topLeftLat")},${searchParams.get("topLeftLng")},${searchParams.get("bottomRightLat")},${searchParams.get("bottomRightLng")}`
-      : null;
+    const currentViewportString = getViewportSearchParamSignature(searchParams);
+    const hasViewportForMap = !!currentViewportString;
     
     // URL에 viewport가 있고, viewport가 변경되었을 때 항상 지도 업데이트
     // (뒤로가기 시에도 URL의 viewport 정보를 읽어서 지도를 업데이트)
@@ -348,49 +358,7 @@ const Search: React.FC = () => {
     prevPageRef.current = page;
     prevSearchParamsRef.current = currentSearchParams;
     
-    // 검색 파라미터 구성
-    // 1. viewport가 있으면 viewport 기반 검색 (지도 드래그 모드 또는 선택된 장소의 viewport)
-    //    - viewport가 있으면 항상 viewport만 사용하고 destination은 무시 (지도 범위 내 숙소만 검색)
-    // 2. viewport가 없고 destination이 있으면 destination 기반 검색
-    const hasViewportForSearch = !!searchParams.get("topLeftLat") && !!searchParams.get("topLeftLng");
-    const hasDestinationForSearch = !!searchParams.get("destination");
-    
-    const params: AccommodationSearchRequest = {
-      // viewport가 있으면 viewport 기반 검색 (지도 범위 내 숙소 검색)
-      // 지도 드래그 시에는 viewport만 사용하고 destination은 무시
-      topLeftLat: hasViewportForSearch
-        ? parseFloat(searchParams.get("topLeftLat")!)
-        : undefined,
-      topLeftLng: hasViewportForSearch
-        ? parseFloat(searchParams.get("topLeftLng")!)
-        : undefined,
-      bottomRightLat: hasViewportForSearch
-        ? parseFloat(searchParams.get("bottomRightLat")!)
-        : undefined,
-      bottomRightLng: hasViewportForSearch
-        ? parseFloat(searchParams.get("bottomRightLng")!)
-        : undefined,
-      // viewport가 없을 때만 destination 사용 (viewport가 있으면 destination 무시)
-      destination: !hasViewportForSearch && hasDestinationForSearch
-        ? searchParams.get("destination") || undefined
-        : undefined,
-      checkIn: searchParams.get("checkIn") || undefined,
-      checkOut: searchParams.get("checkOut") || undefined,
-      adultOccupancy: searchParams.get("adultOccupancy")
-        ? parseInt(searchParams.get("adultOccupancy")!)
-        : undefined,
-      childOccupancy: searchParams.get("childOccupancy")
-        ? parseInt(searchParams.get("childOccupancy")!)
-        : undefined,
-      infantOccupancy: searchParams.get("infantOccupancy")
-        ? parseInt(searchParams.get("infantOccupancy")!)
-        : undefined,
-      petOccupancy: searchParams.get("petOccupancy")
-        ? parseInt(searchParams.get("petOccupancy")!)
-        : undefined,
-      page: page,
-      size: 18,
-    };
+    const params = buildSearchRequestFromParams(searchParams, { page });
 
     fetchAccommodations(params, isMapDragMode);
     // fetchAccommodations, searchParams, setSearchParams는 의도적으로 제외 (searchParams 문자열 변화만 트리거)
@@ -412,18 +380,7 @@ const Search: React.FC = () => {
       west: bounds.west,
     });
     
-    // URL 파라미터 업데이트
-    const newParams = new URLSearchParams(searchParams.toString());
-    newParams.set("topLeftLat", bounds.north.toString());
-    newParams.set("topLeftLng", bounds.west.toString());
-    newParams.set("bottomRightLat", bounds.south.toString());
-    newParams.set("bottomRightLng", bounds.east.toString());
-    // 지도 드래그 모드에서는 이전 Google Places 선택 정보 제거
-    newParams.delete("destination");
-    newParams.delete("lat"); // Google Places 선택 시 설정된 좌표 제거
-    newParams.delete("lng"); // Google Places 선택 시 설정된 좌표 제거
-    // page 파라미터 제거 (지도 드래그 시 첫 페이지로 리셋)
-    newParams.delete("page");
+    const newParams = buildMapBoundsSearchParams(searchParams, bounds);
     
     // prevPageRef만 리셋 (prevSearchParamsRef는 useEffect에서 업데이트해야 변경 감지가 됨)
     prevPageRef.current = 0;
@@ -439,7 +396,7 @@ const Search: React.FC = () => {
     if (page === currentPage || isLoading) return;
     
     // 최대 페이지 수 제한
-    if (page >= MAX_PAGE) {
+    if (page >= MAX_SEARCH_PAGE) {
       return;
     }
     
@@ -465,54 +422,19 @@ const Search: React.FC = () => {
     clearError();
 
     try {
-      // 페이지 변경 시에도 현재 viewport를 유지하여 검색
-      const hasViewportForSearch = !!searchParams.get("topLeftLat") && !!searchParams.get("topLeftLng");
-      const hasDestinationForSearch = !!searchParams.get("destination");
-      
-      const params: AccommodationSearchRequest = {
-        // viewport가 있으면 viewport 기반 검색 (지도 범위 내 숙소 검색)
-        topLeftLat: hasViewportForSearch
-          ? parseFloat(searchParams.get("topLeftLat")!)
-          : undefined,
-        topLeftLng: hasViewportForSearch
-          ? parseFloat(searchParams.get("topLeftLng")!)
-          : undefined,
-        bottomRightLat: hasViewportForSearch
-          ? parseFloat(searchParams.get("bottomRightLat")!)
-          : undefined,
-        bottomRightLng: hasViewportForSearch
-          ? parseFloat(searchParams.get("bottomRightLng")!)
-          : undefined,
-        // viewport가 없을 때만 destination 사용
-        destination: !hasViewportForSearch && hasDestinationForSearch
-          ? searchParams.get("destination") || undefined
-          : undefined,
-        checkIn: searchParams.get("checkIn") || undefined,
-        checkOut: searchParams.get("checkOut") || undefined,
-        adultOccupancy: searchParams.get("adultOccupancy")
-          ? parseInt(searchParams.get("adultOccupancy")!)
-          : undefined,
-        childOccupancy: searchParams.get("childOccupancy")
-          ? parseInt(searchParams.get("childOccupancy")!)
-          : undefined,
-        infantOccupancy: searchParams.get("infantOccupancy")
-          ? parseInt(searchParams.get("infantOccupancy")!)
-          : undefined,
-        petOccupancy: searchParams.get("petOccupancy")
-          ? parseInt(searchParams.get("petOccupancy")!)
-          : undefined,
-        page: page,
-        size: 18,
-      };
+      const params = buildSearchRequestFromParams(searchParams, { page });
 
       const response = await accommodationApi.search(params);
       setAccommodations(response.stay_search_result_listing);
       // 최대 페이지 수 제한 (15개)
-      const limitedTotalPages = Math.min(response.page_info.total_pages, MAX_PAGE);
+      const limitedTotalPages = getLimitedTotalPages(response.page_info.total_pages);
       setTotalPages(limitedTotalPages);
       setTotalElements(response.page_info.total_elements);
       // 현재 페이지도 최대 페이지를 초과하지 않도록 제한
-      const limitedCurrentPage = Math.min(response.page_info.current_page, limitedTotalPages - 1);
+      const limitedCurrentPage = Math.max(
+        0,
+        Math.min(response.page_info.current_page, limitedTotalPages - 1)
+      );
       setCurrentPage(limitedCurrentPage);
       // prevPageRef와 prevSearchParamsRef 업데이트
       prevPageRef.current = limitedCurrentPage;
@@ -612,14 +534,7 @@ const Search: React.FC = () => {
                 }}
                 onMapInteraction={handleMapInteraction}
                 viewport={
-                  searchParams.get("topLeftLat") && searchParams.get("topLeftLng")
-                    ? {
-                        north: parseFloat(searchParams.get("topLeftLat")!),
-                        south: parseFloat(searchParams.get("bottomRightLat")!),
-                        east: parseFloat(searchParams.get("bottomRightLng")!),
-                        west: parseFloat(searchParams.get("topLeftLng")!),
-                      }
-                    : null
+                  getViewportFromSearchParams(searchParams)
                 }
               />
             </div>
@@ -712,40 +627,7 @@ const Search: React.FC = () => {
                           >
                             이전
                           </button>
-                          {(() => {
-                            const pages: (number | string)[] = [];
-                            const maxDisplayPages = Math.min(totalPages, MAX_PAGE);
-                            
-                            if (maxDisplayPages <= 7) {
-                              for (let i = 0; i < maxDisplayPages; i++) {
-                                pages.push(i);
-                              }
-                            } else {
-                              pages.push(0);
-                              
-                              if (currentPage <= 3) {
-                                for (let i = 1; i <= 4; i++) {
-                                  pages.push(i);
-                                }
-                                pages.push("ellipsis");
-                                pages.push(maxDisplayPages - 1);
-                              } else if (currentPage >= maxDisplayPages - 4) {
-                                pages.push("ellipsis");
-                                for (let i = maxDisplayPages - 5; i < maxDisplayPages - 1; i++) {
-                                  pages.push(i);
-                                }
-                                pages.push(maxDisplayPages - 1);
-                              } else {
-                                pages.push("ellipsis");
-                                for (let i = currentPage - 1; i <= currentPage + 1; i++) {
-                                  pages.push(i);
-                                }
-                                pages.push("ellipsis");
-                                pages.push(maxDisplayPages - 1);
-                              }
-                            }
-                            
-                            return pages.map((page, index) => {
+                          {getPaginationItems({ currentPage, totalPages }).map((page, index) => {
                               if (page === "ellipsis") {
                                 return (
                                   <span key={`ellipsis-${index}`} className={styles.paginationEllipsis}>
@@ -766,12 +648,11 @@ const Search: React.FC = () => {
                                   {pageNum + 1}
                                 </button>
                               );
-                            });
-                          })()}
+                            })}
                           <button
                             className={styles.paginationButton}
                             onClick={() => handlePageChange(currentPage + 1)}
-                            disabled={currentPage >= Math.min(totalPages, MAX_PAGE) - 1 || isLoading}
+                            disabled={currentPage >= getLimitedTotalPages(totalPages) - 1 || isLoading}
                           >
                             다음
                           </button>
@@ -831,40 +712,7 @@ const Search: React.FC = () => {
                           >
                             이전
                           </button>
-                          {(() => {
-                            const pages: (number | string)[] = [];
-                            const maxDisplayPages = Math.min(totalPages, MAX_PAGE);
-                            
-                            if (maxDisplayPages <= 7) {
-                              for (let i = 0; i < maxDisplayPages; i++) {
-                                pages.push(i);
-                              }
-                            } else {
-                              pages.push(0);
-                              
-                              if (currentPage <= 3) {
-                                for (let i = 1; i <= 4; i++) {
-                                  pages.push(i);
-                                }
-                                pages.push("ellipsis");
-                                pages.push(maxDisplayPages - 1);
-                              } else if (currentPage >= maxDisplayPages - 4) {
-                                pages.push("ellipsis");
-                                for (let i = maxDisplayPages - 5; i < maxDisplayPages - 1; i++) {
-                                  pages.push(i);
-                                }
-                                pages.push(maxDisplayPages - 1);
-                              } else {
-                                pages.push("ellipsis");
-                                for (let i = currentPage - 1; i <= currentPage + 1; i++) {
-                                  pages.push(i);
-                                }
-                                pages.push("ellipsis");
-                                pages.push(maxDisplayPages - 1);
-                              }
-                            }
-                            
-                            return pages.map((page, index) => {
+                          {getPaginationItems({ currentPage, totalPages }).map((page, index) => {
                               if (page === "ellipsis") {
                                 return (
                                   <span key={`ellipsis-${index}`} className={styles.paginationEllipsis}>
@@ -885,12 +733,11 @@ const Search: React.FC = () => {
                                   {pageNum + 1}
                                 </button>
                               );
-                            });
-                          })()}
+                            })}
                           <button
                             className={styles.paginationButton}
                             onClick={() => handlePageChange(currentPage + 1)}
-                            disabled={currentPage >= Math.min(totalPages, MAX_PAGE) - 1 || isLoading}
+                            disabled={currentPage >= getLimitedTotalPages(totalPages) - 1 || isLoading}
                           >
                             다음
                           </button>
@@ -918,14 +765,7 @@ const Search: React.FC = () => {
                   setShouldUpdateMapBounds(false);
                 }}
                 viewport={
-                  searchParams.get("topLeftLat") && searchParams.get("topLeftLng")
-                    ? {
-                        north: parseFloat(searchParams.get("topLeftLat")!),
-                        south: parseFloat(searchParams.get("bottomRightLat")!),
-                        east: parseFloat(searchParams.get("bottomRightLng")!),
-                        west: parseFloat(searchParams.get("topLeftLng")!),
-                      }
-                    : null
+                  getViewportFromSearchParams(searchParams)
                 }
               />
             </div>

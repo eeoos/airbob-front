@@ -462,10 +462,10 @@
 - Modify: `src/components/SearchBar/SearchBar.tsx`
 - Modify: `src/pages/Search/Search.tsx`
 
-- [ ] `SearchBar`와 `Search`가 공유할 query key, viewport 제거 규칙, page reset 규칙을 테스트로 고정한다.
-- [ ] helper를 기존 코드에 연결하되 렌더링 구조는 바꾸지 않는다.
-- [ ] `npm run verify -- --no-cache`를 통과시킨다.
-- [ ] Commit: `refactor: centralize search params helpers`
+- [x] `SearchBar`와 `Search`가 공유할 query key, viewport 제거 규칙, page reset 규칙을 테스트로 고정한다.
+- [x] helper를 기존 코드에 연결하되 렌더링 구조는 바꾸지 않는다.
+- [x] `npm run verify -- --no-cache`를 통과시킨다.
+- [x] Commit: `refactor: centralize search params helpers`
 
 ### Task B: SearchBar state 분리
 

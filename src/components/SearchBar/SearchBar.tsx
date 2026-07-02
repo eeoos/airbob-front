@@ -2,6 +2,10 @@ import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { DatePicker } from "../DatePicker";
 import { usePlacesAutocomplete } from "../../hooks/usePlacesAutocomplete";
+import {
+  buildSearchNavigationParams,
+  removeViewportParams,
+} from "../../features/search/lib/searchParams";
 import styles from "./SearchBar.module.css";
 
 interface SearchBarProps {
@@ -103,53 +107,22 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
     if (onSearch) {
       onSearch(searchParams);
     } else {
-      // 기본 동작: 검색 페이지로 이동
-      // 기존 URL 파라미터를 가져와서 유지 (날짜, 인원 수 등)
-      const params = new URLSearchParams(window.location.search);
-      
-      // destination 설정
-      if (inputText) {
-        params.set("destination", inputText);
-      } else {
-        params.delete("destination");
-      }
-      
-      // 검색어가 변경되면 페이지를 1페이지(0페이지)로 리셋
-      params.delete("page");
-      
-      // Google Place 선택 시에만 좌표와 viewport 설정
-      // 검색어만 변경된 경우 (selectedPlace가 없는 경우) viewport/좌표 제거
-      if (selectedPlace?.lat && selectedPlace?.lng && selectedPlace?.viewport) {
-        // Google Place가 선택된 경우: 좌표와 viewport 설정
-        params.set("lat", selectedPlace.lat.toString());
-        params.set("lng", selectedPlace.lng.toString());
-        params.set("topLeftLat", selectedPlace.viewport.north.toString());
-        params.set("topLeftLng", selectedPlace.viewport.west.toString());
-        params.set("bottomRightLat", selectedPlace.viewport.south.toString());
-        params.set("bottomRightLng", selectedPlace.viewport.east.toString());
-      } else {
-        // Google Place가 선택되지 않고 검색어만 변경된 경우: 이전 viewport/좌표 파라미터 명시적으로 제거
-        // (destination 기반 검색을 위해 - 이전 위치 정보가 남아있으면 잘못된 검색 결과가 나올 수 있음)
-        params.delete("topLeftLat");
-        params.delete("topLeftLng");
-        params.delete("bottomRightLat");
-        params.delete("bottomRightLng");
-        params.delete("lat");
-        params.delete("lng");
-      }
-      if (checkIn) params.set("checkIn", formatDate(checkIn));
-      if (checkOut) params.set("checkOut", formatDate(checkOut));
-      params.set("adultOccupancy", adultOccupancy.toString());
-      params.set("childOccupancy", childOccupancy.toString());
-      params.set("infantOccupancy", infantOccupancy.toString());
-      params.set("petOccupancy", petOccupancy.toString());
+      const params = buildSearchNavigationParams(
+        new URLSearchParams(window.location.search),
+        {
+          destination: inputText || undefined,
+          selectedPlace,
+          checkIn,
+          checkOut,
+          adultOccupancy,
+          childOccupancy,
+          infantOccupancy,
+          petOccupancy,
+        }
+      );
       
       navigate(`/search?${params.toString()}`);
     }
-  };
-
-  const formatDate = (date: Date): string => {
-    return date.toISOString().split("T")[0];
   };
 
   const formatDisplayDate = (date: Date | null): string => {
@@ -232,11 +205,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
   const exitMapDragMode = () => {
     if (isMapDragMode && location.pathname === "/search") {
       // URL에서 viewport 파라미터 제거하여 지도 드래그 모드 해제
-      const newParams = new URLSearchParams(searchParams.toString());
-      newParams.delete("topLeftLat");
-      newParams.delete("topLeftLng");
-      newParams.delete("bottomRightLat");
-      newParams.delete("bottomRightLng");
+      const newParams = removeViewportParams(searchParams);
       setSearchParams(newParams, { replace: true });
     }
   };
@@ -833,4 +802,3 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
     </div>
   );
 };
-
