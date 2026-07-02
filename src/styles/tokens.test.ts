@@ -64,6 +64,25 @@ const collectCssFiles = (dir: string): string[] => {
   });
 };
 
+const cssPath = (relativePath: string) => path.join(srcDir, relativePath);
+
+const readCss = (relativePath: string) => fs.readFileSync(cssPath(relativePath), "utf8");
+
+const selectorBlock = (css: string, selector: string) => {
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = css.match(new RegExp(`${escapedSelector}\\s*\\{[^}]*\\}`));
+
+  if (!match) {
+    throw new Error(`Missing selector block: ${selector}`);
+  }
+
+  return match[0];
+};
+
+const expectDeclaration = (block: string, declaration: string) => {
+  expect(block.replace(/\s+/g, " ")).toContain(declaration);
+};
+
 describe("pre-design token stylesheet contract", () => {
   it("exposes global tokens and imports them before other global styles", () => {
     expect(fs.existsSync(tokensCssPath)).toBe(true);
@@ -101,5 +120,41 @@ describe("pre-design token stylesheet contract", () => {
       });
 
     expect(offenders).toEqual([]);
+  });
+
+  it("keeps app toast containers on the toast z-index token", () => {
+    [
+      "pages/Search/Search.module.css",
+      "pages/AccommodationDetail/AccommodationDetail.module.css",
+      "pages/Reservations/ReservationDetail.module.css",
+      "pages/Reservations/ReservationConfirm.module.css",
+      "components/AccommodationActionModal/AccommodationActionModal.module.css",
+      "components/AuthModal/AuthModal.module.css",
+      "components/ReservationModal/ReservationModal.module.css",
+    ].forEach((relativePath) => {
+      const block = selectorBlock(readCss(relativePath), ".toastContainer");
+
+      expectDeclaration(block, "z-index: var(--z-toast);");
+    });
+  });
+
+  it("keeps real modal backdrops and foreground controls on overlay tokens", () => {
+    const galleryCss = readCss("pages/AccommodationDetail/AccommodationDetail.module.css");
+    const galleryModal = selectorBlock(galleryCss, ".galleryModal");
+    const galleryClose = selectorBlock(galleryCss, ".galleryClose");
+
+    expectDeclaration(galleryModal, "background: var(--overlay-backdrop);");
+    expectDeclaration(galleryModal, "z-index: var(--z-modal);");
+    expectDeclaration(galleryClose, "z-index: calc(var(--z-modal) + 1);");
+  });
+
+  it("keeps date picker overlays on the dropdown z-index token", () => {
+    const accommodationDetailCss = readCss(
+      "pages/AccommodationDetail/AccommodationDetail.module.css",
+    );
+
+    expect(accommodationDetailCss).toMatch(
+      /\.datePickerContainer\s*\{[\s\S]*?position:\s*fixed;[\s\S]*?top:\s*130px;[\s\S]*?z-index:\s*var\(--z-dropdown\);/,
+    );
   });
 });
