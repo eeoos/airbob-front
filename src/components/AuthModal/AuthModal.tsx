@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import { useApiError } from "../../hooks/useApiError";
 import { useSignup } from "../../features/auth/hooks/useSignup";
@@ -36,6 +36,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [isLoginLoading, setIsLoginLoading] = useState(false);
   const error = loginError || signupError;
   const isLoading = mode === "login" ? isLoginLoading : isSignupLoading;
+  const clearAuthErrors = useCallback(() => {
+    clearError();
+    clearSignupError();
+  }, [clearError, clearSignupError]);
 
   useEffect(() => {
     if (isOpen) {
@@ -46,10 +50,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         password: "",
         confirmPassword: "",
       });
-      clearError();
-      clearSignupError();
+      clearAuthErrors();
     }
-  }, [isOpen, initialMode, clearError, clearSignupError]);
+  }, [isOpen, initialMode, clearAuthErrors]);
 
   useEffect(() => {
     if (isOpen) {
@@ -65,8 +68,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    clearError();
-    clearSignupError();
+    clearAuthErrors();
 
     if (mode === "login") {
       setIsLoginLoading(true);
@@ -110,8 +112,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleSwitchMode = () => {
     setMode(mode === "login" ? "signup" : "login");
-    clearError();
-    clearSignupError();
+    clearAuthErrors();
     setFormData({
       nickname: "",
       email: "",
@@ -245,11 +246,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {error && (
           <div className={styles.toastContainer}>
-            <ErrorToast message={error} onClose={clearError} />
+            <ErrorToast message={error} onClose={clearAuthErrors} />
           </div>
         )}
       </div>
     </>
   );
 };
-
