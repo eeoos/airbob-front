@@ -244,11 +244,11 @@ src/features/wishlist/
   index.ts
 ```
 
-- [ ] `Wishlist.tsx`의 API state와 modal state를 분리한다.
-- [ ] `CreateWishlistModal`, `WishlistModal`과의 경계를 명확히 한다.
-- [ ] route builder 사용을 유지한다.
-- [ ] `npm run verify -- --no-cache` 통과.
-- [ ] Commit: `refactor: extract wishlist feature state`
+- [x] `Wishlist.tsx`의 API state와 modal state를 분리한다.
+- [x] `CreateWishlistModal`, `WishlistModal`과의 경계를 명확히 한다.
+- [x] route builder 사용을 유지한다.
+- [x] `npm run verify -- --no-cache` 통과.
+- [x] Commit: `refactor: extract wishlist feature state`
 
 ---
 
