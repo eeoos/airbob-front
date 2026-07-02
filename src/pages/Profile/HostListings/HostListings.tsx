@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { accommodationApi } from "../../../api";
 import { MyAccommodationInfo } from "../../../types/accommodation";
 import { AccommodationStatus } from "../../../types/enums";
-import { useApiError } from "../../../hooks/useApiError";
 import { ErrorToast } from "../../../components/ErrorToast";
 import { AccommodationActionModal } from "../../../components/AccommodationActionModal";
+import { useHostListings } from "../../../features/profile";
 import { getImageUrl } from "../../../utils/image";
 import { EmptyState, LoadingState } from "../../../shared/ui";
 import styles from "./HostListings.module.css";
@@ -15,70 +14,26 @@ interface HostListingsProps {
 }
 
 const HostListings: React.FC<HostListingsProps> = ({ statusType = "PUBLISHED", onStatusChange }) => {
-  const { error, handleError, clearError } = useApiError();
-  const [accommodations, setAccommodations] = useState<MyAccommodationInfo[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [cursor, setCursor] = useState<string | null>(null);
-  const [hasNext, setHasNext] = useState(false);
   const [selectedAccommodation, setSelectedAccommodation] = useState<MyAccommodationInfo | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const observerTarget = useRef<HTMLDivElement>(null);
-
-  const fetchAccommodations = useCallback(async () => {
-    setIsLoading(true);
-    clearError();
-    setAccommodations([]);
-    setCursor(null);
-    setHasNext(false);
-
-    try {
-      const response = await accommodationApi.getMyAccommodations({ 
-        size: 20, 
-        status: statusType as AccommodationStatus || undefined 
-      });
-      setAccommodations(response.accommodations);
-      setCursor(response.page_info.next_cursor);
-      setHasNext(response.page_info.has_next);
-    } catch (err) {
-      handleError(err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [statusType, clearError, handleError]);
-
-  useEffect(() => {
-    fetchAccommodations();
-  }, [fetchAccommodations]);
-
-  const handleLoadMore = useCallback(async () => {
-    if (!hasNext || isLoadingMore || !cursor) return;
-
-    setIsLoadingMore(true);
-    clearError();
-
-    try {
-      const response = await accommodationApi.getMyAccommodations({ 
-        size: 20, 
-        cursor, 
-        status: statusType as AccommodationStatus || undefined 
-      });
-      setAccommodations((prev) => [...prev, ...response.accommodations]);
-      setCursor(response.page_info.next_cursor);
-      setHasNext(response.page_info.has_next);
-    } catch (err) {
-      handleError(err);
-    } finally {
-      setIsLoadingMore(false);
-    }
-  }, [hasNext, isLoadingMore, cursor, statusType, clearError, handleError]);
+  const {
+    accommodations,
+    clearError,
+    error,
+    hasNext,
+    isLoading,
+    isLoadingMore,
+    loadMore,
+    reload,
+  } = useHostListings(statusType);
 
   // Intersection Observer를 사용한 무한 스크롤
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNext && !isLoadingMore) {
-          handleLoadMore();
+          loadMore();
         }
       },
       { threshold: 0.1 }
@@ -94,7 +49,7 @@ const HostListings: React.FC<HostListingsProps> = ({ statusType = "PUBLISHED", o
         observer.unobserve(currentTarget);
       }
     };
-  }, [hasNext, isLoadingMore, handleLoadMore]);
+  }, [hasNext, isLoadingMore, loadMore]);
 
   const getTitle = () => {
     return "숙소 관리";
@@ -126,7 +81,7 @@ const HostListings: React.FC<HostListingsProps> = ({ statusType = "PUBLISHED", o
   };
 
   const handleModalSuccess = () => {
-    fetchAccommodations();
+    reload();
   };
 
   if (isLoading) {

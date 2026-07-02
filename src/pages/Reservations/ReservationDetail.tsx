@@ -1,10 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { reservationApi } from "../../api";
-import { ReservationDetailInfo } from "../../types/reservation";
 import { ReservationStatus, PaymentStatus } from "../../types/enums";
-import { useApiError } from "../../hooks/useApiError";
 import { ErrorToast } from "../../components/ErrorToast";
+import { useReservationDetail } from "../../features/reservations";
 import { getImageUrl } from "../../utils/image";
 import { GOOGLE_MAPS_API_KEY } from "../../utils/constants";
 import { routeTo } from "../../routes/paths";
@@ -13,32 +11,14 @@ import styles from "./ReservationDetail.module.css";
 const ReservationDetail: React.FC = () => {
   const { reservationUid } = useParams<{ reservationUid: string }>();
   const navigate = useNavigate();
-  const { error, handleError, clearError } = useApiError();
-  const [reservation, setReservation] = useState<ReservationDetailInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { error, clearError, isLoading, reservation } =
+    useReservationDetail(reservationUid);
 
   useEffect(() => {
     if (!reservationUid) {
       navigate(routeTo.profile());
-      return;
     }
-
-    const fetchReservation = async () => {
-      setIsLoading(true);
-      clearError();
-
-      try {
-        const response = await reservationApi.getMyReservationDetail(reservationUid);
-        setReservation(response);
-      } catch (err) {
-        handleError(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchReservation();
-  }, [reservationUid, navigate, handleError, clearError]);
+  }, [reservationUid, navigate]);
 
   const isCompleted = (checkOutDateTime: string, checkOutTime: string): boolean => {
     const now = new Date();

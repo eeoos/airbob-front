@@ -1,10 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { reservationApi } from "../../../api";
-import { HostDetailInfo } from "../../../types/reservation";
 import { ReservationStatus } from "../../../types/enums";
-import { useApiError } from "../../../hooks/useApiError";
 import { ErrorToast } from "../../../components/ErrorToast";
+import { useHostReservationDetail } from "../../../features/reservations";
 import { getImageUrl } from "../../../utils/image";
 import { routeTo } from "../../../routes/paths";
 import styles from "./HostReservationDetail.module.css";
@@ -12,32 +10,14 @@ import styles from "./HostReservationDetail.module.css";
 const HostReservationDetail: React.FC = () => {
   const { reservationUid } = useParams<{ reservationUid: string }>();
   const navigate = useNavigate();
-  const { error, handleError, clearError } = useApiError();
-  const [reservation, setReservation] = useState<HostDetailInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { error, clearError, isLoading, reservation } =
+    useHostReservationDetail(reservationUid);
 
   useEffect(() => {
     if (!reservationUid) {
       navigate(routeTo.profile());
-      return;
     }
-
-    const fetchReservation = async () => {
-      setIsLoading(true);
-      clearError();
-
-      try {
-        const response = await reservationApi.getHostReservationDetail(reservationUid);
-        setReservation(response);
-      } catch (err) {
-        handleError(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchReservation();
-  }, [reservationUid, navigate, handleError, clearError]);
+  }, [reservationUid, navigate]);
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
