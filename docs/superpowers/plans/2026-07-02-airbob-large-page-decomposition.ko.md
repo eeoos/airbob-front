@@ -579,13 +579,18 @@
 - Modify: `src/pages/AccommodationEdit/AccommodationEdit.tsx`
 - Split CSS only after TSX split is stable.
 
-- [ ] form state hook을 먼저 이동한다.
-- [ ] image orchestration hook을 이동한다.
-- [ ] save/publish hook을 이동한다.
-- [ ] Daum Postcode global boundary를 이동한다.
-- [ ] step component를 한 commit에 하나 또는 두 개씩만 이동한다.
-- [ ] `npm run verify -- --no-cache`를 통과시킨다.
-- [ ] Browser QA로 create/edit/publish 전체 wizard를 확인한다.
+- [x] form state hook을 먼저 이동한다.
+- [x] image orchestration hook을 이동한다.
+- [x] save/publish hook을 이동한다.
+- [x] Daum Postcode global boundary를 이동한다.
+- [x] step component를 한 commit에 하나 또는 두 개씩만 이동한다.
+- [x] `npm run verify -- --no-cache`를 통과시킨다.
+- [x] Browser QA로 edit wizard를 비파괴적으로 확인한다.
+  - QA 계정으로 로그인 후 `/accommodations/3/edit` 직접 진입, 위치 step 로드와 콘솔 오류 없음을 확인했다.
+  - 사진 step 전환, 서버 이미지 렌더링, 로컬 이미지 추가/삭제, 삭제 시 네트워크 요청 없음과 console error 없음을 확인했다.
+  - 변경사항 없는 `저장 후 나가기`에서 PATCH 없이 `/profile?mode=host` 이동을 확인했다.
+  - 숙소 정보 step과 체크인/체크아웃 step 렌더링을 확인했다.
+  - create/publish 전체 wizard는 실제 새 listing 생성/공개가 필요한 별도 파괴적 QA라 이번 비파괴 리팩토링 검증에서는 실행하지 않았다.
 - [ ] Commit: `refactor: split accommodation edit workflow`
 
 ---

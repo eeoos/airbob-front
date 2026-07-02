@@ -1,70 +1,34 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useCallback, useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { MainLayout } from "../../layouts";
 import { accommodationApi } from "../../api";
 import { useApiError } from "../../hooks/useApiError";
 import { ErrorToast } from "../../components/ErrorToast";
 import { useAuth } from "../../hooks/useAuth";
-import { getImageUrl } from "../../utils/image";
 import {
   DEFAULT_ACCOMMODATION_TYPE_OPTIONS,
   DEFAULT_AMENITY_OPTIONS,
 } from "../../utils/codes";
 import {
-  buildAccommodationUpdateData,
-  createDefaultAccommodationEditFormData,
-  mapHostAccommodationToEditFormData,
-  toAccommodationApiUpdateData,
-} from "../../features/accommodations/edit/lib/accommodationEditMapper";
-import { areImageItemsChanged } from "../../features/accommodations/edit/lib/accommodationEditDirty";
-import {
-  DaumPostcodeData,
-  mapDaumPostcodeToAddressInfo,
-} from "../../features/accommodations/edit/lib/daumAddressMapper";
-import {
-  AccommodationEditImageItem,
-  applyUploadedImagesToItems,
-  createImageItems,
-  filterValidImageFiles,
-  getPendingUploadFiles,
-  mapHostImagesToImageItems,
-  removeImageItem,
-  reorderImageItems,
-} from "../../features/accommodations/edit/lib/imageItems";
-import { formatTime, parseTime } from "../../features/accommodations/edit/lib/time";
+  AccommodationEditStep,
+  useAccommodationEditForm,
+} from "../../features/accommodations/edit/hooks/useAccommodationEditForm";
+import { useAccommodationEditImages } from "../../features/accommodations/edit/hooks/useAccommodationEditImages";
+import { useAccommodationEditSave } from "../../features/accommodations/edit/hooks/useAccommodationEditSave";
+import { useDaumPostcode } from "../../features/accommodations/edit/hooks/useDaumPostcode";
+import { AccommodationEditAddressInfo } from "../../features/accommodations/edit/lib/daumAddressMapper";
+import { parseTime } from "../../features/accommodations/edit/lib/time";
+import { LocationStep } from "./components/LocationStep";
+import { PhotosStep } from "./components/PhotosStep";
 import styles from "./AccommodationEdit.module.css";
 
-// Daum 우편번호 서비스 타입 정의
-declare global {
-  interface Window {
-    daum: {
-      Postcode: new (options: {
-        oncomplete: (data: DaumPostcodeData) => void;
-        width?: string;
-        height?: string;
-        maxSuggestItems?: number;
-      }) => {
-        open: () => void;
-        embed: (element: HTMLElement) => void;
-      };
-    };
-  }
-}
-
-type Step = 1 | 2 | 3 | 4 | 5;
+type Step = AccommodationEditStep;
 
 // 숙소 유형 정보
 const ACCOMMODATION_TYPES = DEFAULT_ACCOMMODATION_TYPE_OPTIONS;
 
 // 편의시설 정보
 const AMENITY_TYPES = DEFAULT_AMENITY_OPTIONS;
-
-type ImageItem = AccommodationEditImageItem;
-
-const updateAccommodation = (
-  accommodationId: number,
-  updateData: ReturnType<typeof buildAccommodationUpdateData>
-) => accommodationApi.update(accommodationId, toAccommodationApiUpdateData(updateData));
 
 const STEPS = [
   { number: 1, title: "위치", description: "숙소 위치를 설정하세요" },
@@ -249,23 +213,84 @@ const AccommodationEdit: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState<Step>(1);
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-  const [imageItems, setImageItems] = useState<ImageItem[]>([]);
-  const imageItemsRef = React.useRef<ImageItem[]>([]);
   const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
   const [isAmenityModalOpen, setIsAmenityModalOpen] = useState(false);
-  const [selectedAmenities, setSelectedAmenities] = useState<Set<string>>(new Set());
-  const [openTimePicker, setOpenTimePicker] = useState<"checkIn" | "checkOut" | null>(null);
-  const [initialFormData, setInitialFormData] = useState<ReturnType<typeof createDefaultAccommodationEditFormData> | null>(null);
-  const [initialImageItems, setInitialImageItems] = useState<ImageItem[]>([]);
-  const [showDetailAddressConfirm, setShowDetailAddressConfirm] = useState(false);
-  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
-  
-  // imageItems가 변경될 때마다 ref 업데이트
-  useEffect(() => {
-    imageItemsRef.current = imageItems;
-  }, [imageItems]);
+
+  const {
+    formData,
+    setFormData,
+    initialFormData,
+    selectedAmenities,
+    setSelectedAmenities,
+    openTimePicker,
+    setOpenTimePicker,
+    loadAccommodation,
+    handleInputChange,
+    handleNestedChange,
+    handleTimeChange,
+    isStepCompleted: isFormStepCompleted,
+    canProceedToNext: canProceedToNextStep,
+  } = useAccommodationEditForm();
+
+  const {
+    imageItems,
+    initialImageItems,
+    draggedIndex,
+    dragOverIndex,
+    loadImages,
+    handleImageSelect,
+    handleDrop,
+    handleDragOver,
+    handleImageRemove,
+    handleDragStart,
+    handleDragOverItem,
+    handleDragEnd,
+    applyUploadedImages,
+    getPendingFiles,
+  } = useAccommodationEditImages({
+    accommodationId: id,
+    onError: handleError,
+  });
+
+  const navigateToHostProfile = useCallback(() => {
+    navigate("/profile?mode=host");
+  }, [navigate]);
+
+  const {
+    showDetailAddressConfirm,
+    requestDetailAddressConfirm,
+    closeDetailAddressConfirm,
+    confirmDetailAddress,
+    handleSaveAndExit,
+    handlePublish,
+    saveStepData,
+  } = useAccommodationEditSave({
+    accommodationId: id,
+    currentStep,
+    isNewDraft,
+    formData,
+    initialFormData,
+    imageItems,
+    initialImageItems,
+    clearError,
+    handleError,
+    setIsSaving,
+    navigateToHostProfile,
+  });
+
+  const handleAddressSelected = useCallback(
+    (addressInfo: AccommodationEditAddressInfo) => {
+      setFormData((prev) => ({
+        ...prev,
+        addressInfo,
+      }));
+    },
+    [setFormData]
+  );
+
+  const { openAddressSearch: handleAddressSearch } = useDaumPostcode({
+    onAddressSelected: handleAddressSelected,
+  });
 
   // 모달 외부 클릭 시 시간 선택기 닫기
   useEffect(() => {
@@ -281,9 +306,6 @@ const AccommodationEdit: React.FC = () => {
     }
   }, [openTimePicker]);
 
-  // 폼 상태
-  const [formData, setFormData] = useState(() => createDefaultAccommodationEditFormData());
-
   useEffect(() => {
     if (isAuthLoading) return;
     
@@ -298,30 +320,8 @@ const AccommodationEdit: React.FC = () => {
       const fetchAccommodation = async () => {
         try {
           const data = await accommodationApi.getHostAccommodationDetail(Number(id));
-          
-          // 폼 데이터 설정
-          const loadedFormData = mapHostAccommodationToEditFormData(data);
-          
-          setFormData(loadedFormData);
-          
-          // 초기 데이터 저장 (변경사항 추적용)
-          setInitialFormData(JSON.parse(JSON.stringify(loadedFormData)));
-
-          // 편의시설 선택 상태 초기화
-          const amenitySet = new Set(data.amenities?.map((a) => a.type) || []);
-          setSelectedAmenities(amenitySet);
-
-          // 기존 이미지 설정
-          const loadedImageItems = mapHostImagesToImageItems(
-            (data.images || []).map((image, index) => ({
-              ...image,
-              tempId: `existing-${index}-${Date.now()}`,
-            }))
-          );
-          setImageItems(loadedImageItems);
-          
-          // 초기 이미지 저장
-          setInitialImageItems(JSON.parse(JSON.stringify(loadedImageItems)));
+          loadAccommodation(data);
+          loadImages(data.images || []);
         } catch (err) {
           handleError(err);
         }
@@ -329,182 +329,16 @@ const AccommodationEdit: React.FC = () => {
 
       fetchAccommodation();
     }
-    // 새로 생성된 초안인 경우 기본값만 유지 (이미 초기화되어 있음)
-    // isAuthLoading, isNewDraft는 인증 가드 흐름에서만 사용되어 의도적으로 제외
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, isAuthenticated, navigate, handleError]);
-
-  // 컴포넌트 언마운트 시 미리보기 URL 정리 (한 번만 실행)
-  useEffect(() => {
-    return () => {
-      // unmount 시점에는 imageItemsRef.current를 사용하여 최신 값 참조
-      imageItemsRef.current.forEach((item) => {
-        if (item.preview) {
-          URL.revokeObjectURL(item.preview);
-        }
-      });
-    };
-  }, []); // 빈 배열: 컴포넌트 unmount 시에만 실행
-
-  const getUpdateData = (isDraft: boolean = false) => {
-    return buildAccommodationUpdateData({
-      isDraft,
-      formData,
-      initialFormData,
-    });
-  };
-
-  const handleSaveAndExit = async () => {
-    if (!id) return;
-
-    // 1번 단계(위치 정보)에서 상세 주소 확인
-    if (currentStep === 1) {
-      const hasDetailAddress = formData.addressInfo.detail && formData.addressInfo.detail.trim() !== "";
-      if (!hasDetailAddress) {
-        setPendingAction(() => async () => {
-          setIsSaving(true);
-          clearError();
-
-          try {
-            // 초안 모드일 때는 입력된 필드만 보내기
-            const updateData = getUpdateData(isNewDraft);
-            
-            // 이미지 변경 확인
-            const imageChanged = areImageItemsChanged({
-              isNewDraft,
-              currentImageItems: imageItems,
-              initialImageItems,
-            });
-            
-            // 변경사항이 없으면 요청 보내지 않음
-            const hasChanges = Object.keys(updateData).length > 0 || imageChanged;
-            
-            if (!hasChanges) {
-              // 변경사항이 없으면 바로 이동
-              navigate("/profile?mode=host");
-              setIsSaving(false);
-              return;
-            }
-            
-            console.log("저장 후 나가기 - 요청 데이터:", JSON.stringify(updateData, null, 2));
-            console.log("저장 후 나가기 - 주소 정보:", updateData.address_info);
-            await updateAccommodation(Number(id), updateData);
-            // 저장 성공 시 프로필 페이지의 호스트 모드로 이동
-            navigate("/profile?mode=host");
-          } catch (err) {
-            handleError(err);
-          } finally {
-            setIsSaving(false);
-          }
-        });
-        setShowDetailAddressConfirm(true);
-        return;
-      }
-    }
-
-    setIsSaving(true);
-    clearError();
-
-    try {
-      // 초안 모드일 때는 입력된 필드만 보내기
-      const updateData = getUpdateData(isNewDraft);
-      
-      // 이미지 변경 확인
-      const imageChanged = areImageItemsChanged({
-        isNewDraft,
-        currentImageItems: imageItems,
-        initialImageItems,
-      });
-      
-      // 변경사항이 없으면 요청 보내지 않음
-      const hasChanges = Object.keys(updateData).length > 0 || imageChanged;
-      
-      if (!hasChanges) {
-        // 변경사항이 없으면 바로 이동
-        navigate("/profile?mode=host");
-        setIsSaving(false);
-        return;
-      }
-      
-      console.log("저장 후 나가기 - 요청 데이터:", JSON.stringify(updateData, null, 2));
-      console.log("저장 후 나가기 - 주소 정보:", updateData.address_info);
-      await updateAccommodation(Number(id), updateData);
-      // 저장 성공 시 프로필 페이지의 호스트 모드로 이동
-      navigate("/profile?mode=host");
-    } catch (err) {
-      handleError(err);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handlePublish = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!id) return;
-
-    // 1번 단계(위치 정보)에서 상세 주소 확인
-    if (currentStep === 1) {
-      const hasDetailAddress = formData.addressInfo.detail && formData.addressInfo.detail.trim() !== "";
-      if (!hasDetailAddress) {
-        setPendingAction(() => async () => {
-          setIsSaving(true);
-          clearError();
-
-          try {
-            // 5단계에서는 publish만 호출 (데이터는 4단계에서 이미 저장됨)
-            console.log("5단계 저장하기 - 숙소 공개");
-            await accommodationApi.publish(Number(id));
-            // 공개 성공 시 프로필 페이지의 호스트 모드로 이동
-            navigate("/profile?mode=host");
-          } catch (err) {
-            handleError(err);
-          } finally {
-            setIsSaving(false);
-          }
-        });
-        setShowDetailAddressConfirm(true);
-        return;
-      }
-    }
-
-    setIsSaving(true);
-    clearError();
-
-    try {
-      // 5단계에서는 publish만 호출 (데이터는 4단계에서 이미 저장됨)
-      console.log("5단계 저장하기 - 숙소 공개");
-      await accommodationApi.publish(Number(id));
-      // 공개 성공 시 프로필 페이지의 호스트 모드로 이동
-      navigate("/profile?mode=host");
-    } catch (err) {
-      handleError(err);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleInputChange = (field: string, value: any) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const handleNestedChange = (parent: string, field: string, value: any) => {
-    setFormData((prev) => ({
-      ...prev,
-      [parent]: {
-        ...(prev[parent as keyof typeof prev] as any),
-        [field]: value,
-      },
-    }));
-  };
-
-  // 시간 업데이트
-  const handleTimeChange = (type: "checkIn" | "checkOut", hour: number, minute: number, period: "AM" | "PM") => {
-    const timeString = formatTime(hour, minute, period);
-    handleInputChange(type === "checkIn" ? "checkInTime" : "checkOutTime", timeString);
-  };
+  }, [
+    id,
+    isAuthenticated,
+    isAuthLoading,
+    isNewDraft,
+    navigate,
+    handleError,
+    loadAccommodation,
+    loadImages,
+  ]);
 
   // 숙소 유형별 아이콘 반환
   const getTypeIcon = (type: string) => {
@@ -898,131 +732,35 @@ const AccommodationEdit: React.FC = () => {
     }
   };
 
-  const validateFiles = (files: File[]): File[] => {
-    const result = filterValidImageFiles(files);
-    result.errors.forEach((message) => {
-      handleError(new Error(message));
+  const isStepCompleted = (step: Step): boolean =>
+    isFormStepCompleted(step, {
+      imageCount: imageItems.length,
+      isNewDraft,
     });
-    return result.validFiles;
-  };
 
-  const createPendingImageInputs = (files: File[]) =>
-    files.map((file, index) => ({
-      file,
-      preview: URL.createObjectURL(file),
-      tempId: `temp-${Date.now()}-${Math.random()}-${index}-${file.name}`,
-    }));
-
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-
-    const validFiles = validateFiles(files);
-    if (validFiles.length === 0) {
-      e.target.value = "";
-      return;
-    }
-
-    // 새로운 이미지 아이템 추가
-    const newItems = createImageItems(createPendingImageInputs(validFiles));
-
-    setImageItems((prev) => [...prev, ...newItems]);
-    e.target.value = "";
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length === 0) return;
-
-    const validFiles = validateFiles(files);
-    if (validFiles.length === 0) return;
-
-    const newItems = createImageItems(createPendingImageInputs(validFiles));
-
-    setImageItems((prev) => [...prev, ...newItems]);
-  };
-
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleImageRemove = (index: number) => {
-    const { nextItems, removedItem, previewToRevoke, imageIdToDelete } =
-      removeImageItem(imageItems, index);
-    
-    // 미리보기 URL 해제
-    if (previewToRevoke) {
-      URL.revokeObjectURL(previewToRevoke);
-    }
-
-    // 업로드된 이미지인 경우 서버에서 삭제
-    if (imageIdToDelete && id) {
-      accommodationApi.deleteImage(Number(id), imageIdToDelete).catch(handleError);
-    }
-
-    if (removedItem) {
-      setImageItems(nextItems);
-    }
-  };
-
-  // 드래그 앤 드롭으로 이미지 순서 변경
-  const handleDragStart = (index: number) => {
-    setDraggedIndex(index);
-    setDragOverIndex(null);
-  };
-
-  const handleDragOverItem = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (draggedIndex === null || draggedIndex === index) return;
-    
-    // 드래그 오버 인덱스만 업데이트 (실제 상태 변경은 하지 않음)
-    // 이전 값과 다를 때만 업데이트하여 불필요한 리렌더링 방지
-    if (dragOverIndex !== index) {
-      setDragOverIndex(index);
-    }
-  };
-
-  const handleDragEnd = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const currentDraggedIndex = draggedIndex;
-    const currentDragOverIndex = dragOverIndex;
-    
-    if (currentDraggedIndex !== null && currentDragOverIndex !== null && currentDraggedIndex !== currentDragOverIndex) {
-      // 드래그가 끝날 때만 실제 상태 변경 (ref를 사용하여 최신 값 보장)
-      setImageItems((prevItems) => {
-        const items = prevItems.length > 0 ? prevItems : imageItemsRef.current;
-        return reorderImageItems(items, currentDraggedIndex, currentDragOverIndex);
-      });
-    }
-    setDraggedIndex(null);
-    setDragOverIndex(null);
-  };
+  const canProceedToNext = (): boolean =>
+    canProceedToNextStep(currentStep, {
+      imageCount: imageItems.length,
+      isNewDraft,
+    });
 
   const handleNext = async () => {
     // 1번 단계(위치 정보)에서 다음으로 넘어갈 때 상세 주소 확인
     if (currentStep === 1) {
       const hasDetailAddress = formData.addressInfo.detail && formData.addressInfo.detail.trim() !== "";
       if (!hasDetailAddress) {
-        setPendingAction(() => () => {
+        requestDetailAddressConfirm(() => {
           if (currentStep < 5) {
             setCurrentStep((prev) => (prev + 1) as Step);
           }
         });
-        setShowDetailAddressConfirm(true);
         return;
       }
     }
 
     // 2번 단계(숙소 사진)에서 다음으로 넘어갈 때 아직 업로드되지 않은 이미지 업로드
     if (currentStep === 2 && id) {
-      const filesToUpload = getPendingUploadFiles(imageItems);
+      const filesToUpload = getPendingFiles();
       
       if (filesToUpload.length > 0) {
         setIsSaving(true);
@@ -1038,14 +776,7 @@ const AccommodationEdit: React.FC = () => {
             }
           );
           
-          // 업로드된 이미지 정보로 업데이트
-          setImageItems((prev) => {
-            const result = applyUploadedImagesToItems(prev, response.uploaded_images);
-            result.previewsToRevoke.forEach((preview) => {
-              URL.revokeObjectURL(preview);
-            });
-            return result.items;
-          });
+          applyUploadedImages(response.uploaded_images);
           setUploadProgress(100);
         } catch (err) {
           handleError(err);
@@ -1064,21 +795,9 @@ const AccommodationEdit: React.FC = () => {
 
     // 4단계(체크인/체크아웃)에서 다음 버튼을 누를 때 데이터 저장
     if (currentStep === 4 && id) {
-      setIsSaving(true);
-      clearError();
-
-      try {
-        const updateData = getUpdateData(isNewDraft);
-        console.log("4단계 저장 - 요청 데이터:", JSON.stringify(updateData, null, 2));
-        await updateAccommodation(Number(id), updateData);
-        // 저장 성공 후 다음 단계로 이동
-        setCurrentStep((prev) => (prev + 1) as Step);
-      } catch (err) {
-        handleError(err);
-        return; // 에러 발생 시 단계 이동하지 않음
-      } finally {
-        setIsSaving(false);
-      }
+      const saved = await saveStepData();
+      if (!saved) return;
+      setCurrentStep((prev) => (prev + 1) as Step);
       return;
     }
 
@@ -1125,71 +844,6 @@ const AccommodationEdit: React.FC = () => {
     }
   };
 
-  const handleAddressSearch = () => {
-    if (!window.daum || !window.daum.Postcode) {
-      alert("주소 검색 서비스를 불러올 수 없습니다. 페이지를 새로고침해주세요.");
-      return;
-    }
-
-    // 최종 한국 주소 매핑 로직
-    const handleComplete = (data: DaumPostcodeData) => {
-      const addressInfo = mapDaumPostcodeToAddressInfo(data);
-
-      console.log("Refined Address:", addressInfo);
-
-      setFormData((prev) => ({
-        ...prev,
-        addressInfo
-      }));
-    };
-
-    new window.daum.Postcode({
-      oncomplete: handleComplete,
-      width: "100%",
-      height: "100%",
-    }).open();
-  };
-
-  const isStepCompleted = (step: Step): boolean => {
-    switch (step) {
-      case 1:
-        // 위치: 주소 검색 완료
-        return !!(
-          formData.addressInfo.street &&
-          formData.addressInfo.street.trim() !== ""
-        );
-      case 2:
-        // 숙소 사진은 최소 1장 이상 필요
-        return imageItems.length >= 1;
-      case 3:
-        // 숙소 정보: 이름, 설명, 가격, 유형, 수용 인원 완료
-        return !!(
-          formData.name &&
-          formData.description &&
-          formData.basePrice &&
-          formData.type &&
-          formData.occupancyPolicyInfo.maxOccupancy
-        );
-      case 4:
-        // 초안 모드인 경우: 기본값이 있어도 이전 단계를 완료하지 않으면 완료로 간주하지 않음
-        if (isNewDraft) {
-          // 이전 단계들이 모두 완료되어야 체크인/체크아웃이 완료된 것으로 간주
-          const prevStepsCompleted = isStepCompleted(1) && isStepCompleted(2) && isStepCompleted(3);
-          return prevStepsCompleted && !!(formData.checkInTime && formData.checkOutTime);
-        }
-        return !!(formData.checkInTime && formData.checkOutTime);
-      case 5:
-        // 숙소 등록은 모든 단계가 완료되어야 함
-        return isStepCompleted(1) && isStepCompleted(2) && isStepCompleted(3) && isStepCompleted(4);
-      default:
-        return false;
-    }
-  };
-
-  const canProceedToNext = (): boolean => {
-    return isStepCompleted(currentStep);
-  };
-
   if (isAuthLoading) {
     return (
       <MainLayout>
@@ -1206,237 +860,31 @@ const AccommodationEdit: React.FC = () => {
     switch (currentStep) {
       case 1:
         return (
-          <div className={styles.stepContent}>
-            <h2 className={styles.stepTitle}>숙소 위치를 알려주세요</h2>
-            <p className={styles.stepDescription}>숙소의 정확한 위치를 입력해주세요.</p>
-
-            <div className={styles.formGroup}>
-              <label className={styles.label}>
-                주소 검색 <span className={styles.required}>*</span>
-              </label>
-              <div className={styles.addressSearchContainer}>
-                <input
-                  type="text"
-                  value={formData.addressInfo.street || ""}
-                  className={styles.input}
-                  placeholder="주소를 검색하세요"
-                  readOnly
-                />
-                <button
-                  type="button"
-                  className={styles.addressSearchButton}
-                  onClick={handleAddressSearch}
-                >
-                  주소 검색
-                </button>
-              </div>
-              <p className={styles.helperText}>주소 검색 버튼을 클릭하여 주소를 검색하세요.</p>
-            </div>
-
-            <div className={styles.formGroup}>
-              <label className={styles.label}>
-                상세 주소
-              </label>
-              <input
-                type="text"
-                value={formData.addressInfo.detail}
-                onChange={(e) => handleNestedChange("addressInfo", "detail", e.target.value)}
-                className={styles.input}
-                placeholder="101호 또는 건물명, 동/호수 등을 입력하세요"
-              />
-              <p className={styles.helperText}>상세 주소(동/호수 등)를 입력해주세요. (선택사항)</p>
-            </div>
-          </div>
+          <LocationStep
+            addressInfo={formData.addressInfo}
+            onAddressSearch={handleAddressSearch}
+            onDetailChange={(value) =>
+              handleNestedChange("addressInfo", "detail", value)
+            }
+          />
         );
 
       case 2:
         return (
-          <div className={styles.stepContent}>
-            <h2 className={styles.stepTitle}>숙소 사진을 등록하세요</h2>
-            <p className={styles.stepDescription}>
-              숙소 등록을 시작하려면 사진 1장을 제출하셔야 합니다. 나중에 추가하거나 변경하실 수 있습니다.
-            </p>
-
-            {/* 업로드 진행률 바 */}
-            {isSaving && uploadProgress > 0 && (
-              <div className={styles.uploadProgressContainer}>
-                <div className={styles.uploadProgressBar}>
-                  <div
-                    className={styles.uploadProgressFill}
-                    style={{ width: `${uploadProgress}%` }}
-                  />
-                </div>
-                <p className={styles.uploadProgressText}>{uploadProgress}% 업로드 중...</p>
-              </div>
-            )}
-
-            {/* 사진이 없을 때: 1번 이미지 스타일 - 큰 업로드 박스 */}
-            {imageItems.length === 0 ? (
-              <div
-                className={styles.imageUploadBox}
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-              >
-                <input
-                  key="empty-image-file-input"
-                  type="file"
-                  id="imageInputEmpty"
-                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                  multiple
-                  onChange={handleImageSelect}
-                  className={styles.imageInput}
-                />
-                <div className={styles.imageUploadBoxLabel}>
-                  <div className={styles.cameraIcon}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                      <circle cx="12" cy="13" r="4" />
-                    </svg>
-                  </div>
-                  <button
-                    type="button"
-                    className={styles.addPhotoButton}
-                    onClick={() => document.getElementById("imageInputEmpty")?.click()}
-                  >
-                    사진 추가하기
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* 사진이 있을 때: 커버 사진(전체 너비) + 2x2 그리드 */
-              <div className={styles.uploadedImagesSection}>
-                <div className={styles.uploadedImagesHeader}>
-                  <div>
-                    <p className={styles.uploadedImagesTitle}>
-                      1개 이상의 사진을 선택하세요.
-                    </p>
-                    <p className={styles.uploadedImagesSubtitle}>드래그하여 순서 변경</p>
-                  </div>
-                  <button
-                    type="button"
-                    className={styles.addMoreButton}
-                    onClick={() => document.getElementById("imageInput")?.click()}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <line x1="12" y1="5" x2="12" y2="19" />
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                  </button>
-                </div>
-
-                <input
-                  key="uploaded-image-file-input"
-                  type="file"
-                  id="imageInput"
-                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                  multiple
-                  onChange={handleImageSelect}
-                  className={styles.imageInput}
-                />
-
-                {/* 커버 사진 (최상단, 전체 너비) */}
-                {imageItems.length > 0 && (() => {
-                  const coverItem = imageItems[0];
-                  const coverImageUrl = coverItem.preview || getImageUrl(coverItem.url);
-                  const coverKey = coverItem.id || coverItem.tempId || `cover-${coverItem.preview || coverItem.url}`;
-                  
-                  return (
-                    <div className={styles.coverPhotoContainer}>
-                      <div
-                        key={coverKey}
-                        className={`${styles.uploadedImageItem} ${draggedIndex === 0 ? styles.dragging : ""} ${dragOverIndex === 0 ? styles.dragOver : ""}`}
-                        draggable
-                        onDragStart={(e) => {
-                          e.stopPropagation();
-                          handleDragStart(0);
-                        }}
-                        onDragOver={(e) => handleDragOverItem(e, 0)}
-                        onDragEnd={handleDragEnd}
-                      >
-                        <div className={styles.coverPhotoLabel}>커버 사진</div>
-                        <img
-                          key={`img-${coverKey}`}
-                          src={coverImageUrl}
-                          alt="커버 사진"
-                          className={styles.uploadedImage}
-                        />
-                        <button
-                          type="button"
-                          className={styles.imageMenuButton}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleImageRemove(0);
-                          }}
-                          aria-label="이미지 삭제"
-                        >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <line x1="18" y1="6" x2="6" y2="18" />
-                            <line x1="6" y1="6" x2="18" y2="18" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* 2열 그리드 (커버 사진 제외한 나머지) - 동적으로 늘어남 */}
-                <div className={styles.thumbnailGrid}>
-                  {/* 커버 사진 제외한 나머지 이미지들 */}
-                  {imageItems.slice(1).map((item, index) => {
-                    const itemIndex = index + 1; // 실제 인덱스 (커버 사진 다음부터)
-                    const imageUrl = item.preview || getImageUrl(item.url);
-                    // key는 인덱스 기반이 아닌 고유 ID만 사용 (드래그 후에도 안정적)
-                    const uniqueKey = item.id || item.tempId || `item-${item.preview || item.url}`;
-                    return (
-                      <div
-                        key={uniqueKey}
-                        className={`${styles.uploadedImageItem} ${draggedIndex === itemIndex ? styles.dragging : ""} ${dragOverIndex === itemIndex ? styles.dragOver : ""}`}
-                        draggable
-                        onDragStart={(e) => {
-                          e.stopPropagation();
-                          handleDragStart(itemIndex);
-                        }}
-                        onDragOver={(e) => handleDragOverItem(e, itemIndex)}
-                        onDragEnd={handleDragEnd}
-                      >
-                        <img 
-                          key={`img-${uniqueKey}`}
-                          src={imageUrl} 
-                          alt={`이미지 ${itemIndex + 1}`} 
-                          className={styles.uploadedImage}
-                        />
-                        <button
-                          type="button"
-                          className={styles.imageMenuButton}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleImageRemove(itemIndex);
-                          }}
-                          aria-label="이미지 삭제"
-                        >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <line x1="18" y1="6" x2="6" y2="18" />
-                            <line x1="6" y1="6" x2="18" y2="18" />
-                          </svg>
-                        </button>
-                      </div>
-                    );
-                  })}
-                  
-                  {/* 마지막 슬롯은 항상 "추가" 버튼 */}
-                  <div
-                    className={styles.addImageSlot}
-                    onClick={() => document.getElementById("imageInput")?.click()}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <path d="M12 5v14M5 12h14" />
-                    </svg>
-                    <span>추가</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          <PhotosStep
+            imageItems={imageItems}
+            isSaving={isSaving}
+            uploadProgress={uploadProgress}
+            draggedIndex={draggedIndex}
+            dragOverIndex={dragOverIndex}
+            onImageSelect={handleImageSelect}
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onImageRemove={handleImageRemove}
+            onDragStart={handleDragStart}
+            onDragOverItem={handleDragOverItem}
+            onDragEnd={handleDragEnd}
+          />
         );
 
       case 3:
@@ -1878,10 +1326,7 @@ const AccommodationEdit: React.FC = () => {
 
       {/* 상세 주소 확인 모달 */}
       {showDetailAddressConfirm && (
-        <div className={styles.typeModalOverlay} onClick={() => {
-          setShowDetailAddressConfirm(false);
-          setPendingAction(null);
-        }}>
+        <div className={styles.typeModalOverlay} onClick={closeDetailAddressConfirm}>
           <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.confirmModalContent}>
               <h2 className={styles.confirmModalTitle}>상세 주소 확인</h2>
@@ -1892,23 +1337,14 @@ const AccommodationEdit: React.FC = () => {
                 <button
                   type="button"
                   className={styles.confirmModalButtonCancel}
-                  onClick={() => {
-                    setShowDetailAddressConfirm(false);
-                    setPendingAction(null);
-                  }}
+                  onClick={closeDetailAddressConfirm}
                 >
                   취소
                 </button>
                 <button
                   type="button"
                   className={styles.confirmModalButtonConfirm}
-                  onClick={() => {
-                    if (pendingAction) {
-                      pendingAction();
-                    }
-                    setShowDetailAddressConfirm(false);
-                    setPendingAction(null);
-                  }}
+                  onClick={confirmDetailAddress}
                 >
                   진행하기
                 </button>

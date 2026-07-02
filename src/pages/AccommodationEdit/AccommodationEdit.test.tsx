@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { accommodationApi } from "../../api";
 import { HostAccommodationDetail } from "../../types/accommodation";
 import AccommodationEdit from "./AccommodationEdit";
@@ -109,6 +109,8 @@ beforeEach(() => {
   jest.mocked(accommodationApi.publish).mockReset();
   jest.mocked(accommodationApi.deleteImage).mockReset();
   jest.mocked(accommodationApi.uploadImages).mockReset();
+  global.URL.createObjectURL = jest.fn(() => "blob:pending-room");
+  global.URL.revokeObjectURL = jest.fn();
 });
 
 describe("AccommodationEdit", () => {
@@ -133,5 +135,53 @@ describe("AccommodationEdit", () => {
     );
 
     consoleError.mockRestore();
+  });
+
+  it("uploads pending photo files before moving from photo step to info step", async () => {
+    jest
+      .mocked(accommodationApi.getHostAccommodationDetail)
+      .mockResolvedValue(hostAccommodation);
+    jest.mocked(accommodationApi.uploadImages).mockResolvedValue({
+      uploaded_images: [
+        {
+          id: 99,
+          image_url: "https://example.com/uploaded-room.jpg",
+        },
+      ],
+    });
+
+    render(<AccommodationEdit />);
+
+    await screen.findByDisplayValue("ETL listing 5651579");
+    fireEvent.click(screen.getByText("숙소 사진"));
+    await screen.findByText("1개 이상의 사진을 선택하세요.");
+
+    const fileInput = document.getElementById("imageInput") as HTMLInputElement;
+    const pendingFile = new File(["room"], "room.png", { type: "image/png" });
+    fireEvent.change(fileInput, {
+      target: {
+        files: [pendingFile],
+      },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "다음" }));
+
+    await waitFor(() =>
+      expect(accommodationApi.uploadImages).toHaveBeenCalledWith(
+        3,
+        [pendingFile],
+        expect.any(Function)
+      )
+    );
+    await screen.findByText("숙소 정보를 알려주세요");
+
+    fireEvent.click(screen.getByText("숙소 사진"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByAltText("이미지 2").getAttribute("src")
+      ).toBe("https://example.com/uploaded-room.jpg")
+    );
+    expect(global.URL.revokeObjectURL).toHaveBeenCalledWith("blob:pending-room");
   });
 });
