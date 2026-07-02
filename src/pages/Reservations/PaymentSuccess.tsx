@@ -1,6 +1,5 @@
 import React, { useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { MainLayout } from "../../layouts";
 import { paymentApi } from "../../api";
 import { useAuth } from "../../hooks/useAuth";
 import { routeTo } from "../../routes/paths";
@@ -62,7 +61,7 @@ const PaymentSuccess: React.FC = () => {
 
   // 로딩 화면 표시 (리다이렉트 중)
   return (
-    <MainLayout>
+    <>
       <div className={styles.container}>
         <div className={styles.content}>
           <div className={styles.spinner}></div>
@@ -70,9 +69,8 @@ const PaymentSuccess: React.FC = () => {
           <p className={styles.message}>예약 상세 페이지로 이동합니다.</p>
         </div>
       </div>
-    </MainLayout>
+    </>
   );
 };
 
 export default PaymentSuccess;
-

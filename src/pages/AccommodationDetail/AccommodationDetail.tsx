@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState, useTransition } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
-import { MainLayout } from "../../layouts";
 import { useApiError } from "../../hooks/useApiError";
 import { useAuth } from "../../hooks/useAuth";
 import { ErrorToast } from "../../components/ErrorToast";
@@ -430,22 +429,22 @@ const AccommodationDetail: React.FC = () => {
 
   if (isLoading) {
     return (
-      <MainLayout>
+      <>
         <div className={styles.loading}>로딩 중...</div>
-      </MainLayout>
+      </>
     );
   }
 
   if (!accommodation) {
     return (
-      <MainLayout>
+      <>
         <div className={styles.error}>숙소를 찾을 수 없습니다.</div>
-      </MainLayout>
+      </>
     );
   }
 
   return (
-    <MainLayout>
+    <>
       <div className={styles.container}>
         <div className={styles.header}>
           <div className={styles.titleSection}>
@@ -1256,7 +1255,7 @@ const AccommodationDetail: React.FC = () => {
           </div>
         </div>
       )}
-    </MainLayout>
+    </>
   );
 };
 

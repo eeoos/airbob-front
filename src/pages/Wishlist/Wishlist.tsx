@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { MainLayout } from "../../layouts";
 import { ListContainer } from "../../components/ListContainer";
 import { WishlistAccommodationInfo } from "../../types/wishlist";
 import { RecentlyViewedAccommodationInfo } from "../../types/recentlyViewed";
@@ -238,9 +237,9 @@ const Wishlist: React.FC = () => {
 
   if (isAuthLoading) {
     return (
-      <MainLayout>
+      <>
         <div className={styles.loading}>로딩 중...</div>
-      </MainLayout>
+      </>
     );
   }
 
@@ -249,7 +248,7 @@ const Wishlist: React.FC = () => {
   }
 
   return (
-    <MainLayout>
+    <>
       <div className={styles.container}>
         {showRecentlyViewed ? (
           /* 최근 조회 상세 페이지 */
@@ -652,7 +651,7 @@ const Wishlist: React.FC = () => {
           </div>
         )}
       </div>
-    </MainLayout>
+    </>
   );
 };
 

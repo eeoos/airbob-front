@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { MainLayout } from "../../layouts";
 import { reservationApi } from "../../api";
 import { ReservationDetailInfo } from "../../types/reservation";
 import { ReservationStatus, PaymentStatus } from "../../types/enums";
@@ -133,9 +132,9 @@ const ReservationDetail: React.FC = () => {
   if (isAuthLoading || !isAuthenticated) {
     if (isAuthLoading) {
       return (
-        <MainLayout>
+        <>
           <div className={styles.loading}>로딩 중...</div>
-        </MainLayout>
+        </>
       );
     }
     return null;
@@ -143,17 +142,17 @@ const ReservationDetail: React.FC = () => {
 
   if (isLoading) {
     return (
-      <MainLayout>
+      <>
         <div className={styles.loading}>로딩 중...</div>
-      </MainLayout>
+      </>
     );
   }
 
   if (!reservation) {
     return (
-      <MainLayout>
+      <>
         <div className={styles.error}>예약을 찾을 수 없습니다.</div>
-      </MainLayout>
+      </>
     );
   }
 
@@ -165,7 +164,7 @@ const ReservationDetail: React.FC = () => {
   const isPaymentCompleted = reservation.payment?.status === PaymentStatus.DONE;
 
   return (
-    <MainLayout>
+    <>
       <div className={styles.container}>
         <button className={styles.backButton} onClick={() => navigate("/profile")}>
           ← 돌아가기
@@ -404,7 +403,7 @@ const ReservationDetail: React.FC = () => {
           <ErrorToast message={error} onClose={clearError} />
         </div>
       )}
-    </MainLayout>
+    </>
   );
 };
 

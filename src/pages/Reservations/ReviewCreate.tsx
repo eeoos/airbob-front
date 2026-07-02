@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { MainLayout } from "../../layouts";
 import { reviewApi, reservationApi } from "../../api";
 import { ReservationDetailInfo } from "../../types/reservation";
 import { useApiError } from "../../hooks/useApiError";
@@ -153,9 +152,9 @@ const ReviewCreate: React.FC = () => {
 
   if (isAuthLoading) {
     return (
-      <MainLayout>
+      <>
         <div className={styles.loading}>로딩 중...</div>
-      </MainLayout>
+      </>
     );
   }
 
@@ -165,22 +164,22 @@ const ReviewCreate: React.FC = () => {
 
   if (isLoading) {
     return (
-      <MainLayout>
+      <>
         <div className={styles.loading}>로딩 중...</div>
-      </MainLayout>
+      </>
     );
   }
 
   if (!reservation) {
     return (
-      <MainLayout>
+      <>
         <div className={styles.error}>예약을 찾을 수 없습니다.</div>
-      </MainLayout>
+      </>
     );
   }
 
   return (
-    <MainLayout>
+    <>
       <div className={styles.container}>
         <button className={styles.backButton} onClick={() => navigate(-1)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -353,9 +352,8 @@ const ReviewCreate: React.FC = () => {
           <ErrorToast message={error} onClose={clearError} />
         </div>
       )}
-    </MainLayout>
+    </>
   );
 };
 
 export default ReviewCreate;
-

@@ -1,10 +1,9 @@
 import React from "react";
-import { MainLayout } from "../../layouts";
 import styles from "./Home.module.css";
 
 const Home: React.FC = () => {
   return (
-    <MainLayout>
+    <>
       <div className={styles.container}>
         <div className={styles.hero}>
           <div className={styles.heroOverlay}>
@@ -17,7 +16,7 @@ const Home: React.FC = () => {
           </div>
         </div>
       </div>
-    </MainLayout>
+    </>
   );
 };
 

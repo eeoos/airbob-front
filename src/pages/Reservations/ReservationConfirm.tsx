@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { MainLayout } from "../../layouts";
 import { accommodationApi } from "../../api";
 import { AccommodationDetail } from "../../types/accommodation";
 import { useApiError } from "../../hooks/useApiError";
@@ -210,17 +209,17 @@ const ReservationConfirm: React.FC = () => {
 
   if (isLoading) {
     return (
-      <MainLayout>
+      <>
         <div className={styles.loading}>로딩 중...</div>
-      </MainLayout>
+      </>
     );
   }
 
   if (!accommodation) {
     return (
-      <MainLayout>
+      <>
         <div className={styles.error}>숙소 정보를 불러올 수 없습니다.</div>
-      </MainLayout>
+      </>
     );
   }
 
@@ -231,7 +230,7 @@ const ReservationConfirm: React.FC = () => {
   const payableAmount = amount ?? totalPrice;
 
   return (
-    <MainLayout>
+    <>
       <div className={styles.container}>
         <div className={styles.content}>
           <h1 className={styles.title}>확인 및 결제</h1>
@@ -317,7 +316,7 @@ const ReservationConfirm: React.FC = () => {
           <ErrorToast message={error} onClose={clearError} />
         </div>
       )}
-    </MainLayout>
+    </>
   );
 };
 

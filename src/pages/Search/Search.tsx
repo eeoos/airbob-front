@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { MainLayout } from "../../layouts";
 import { ListContainer } from "../../components/ListContainer";
 import { AccommodationCardSearch } from "../../components/AccommodationCard";
 import { Map } from "../../components/Map";
@@ -106,7 +105,7 @@ const Search: React.FC = () => {
 
 
   return (
-    <MainLayout>
+    <>
       <div className={styles.container}>
         {isMobileOrTablet ? (
           // Mobile/Tablet: Bottom Sheet Layout
@@ -261,7 +260,7 @@ const Search: React.FC = () => {
           </>
         ) : (
           // Desktop: Original Side-by-Side Layout
-          <main className={`${styles.main} ${isMapExpanded ? styles.mapExpanded : ''}`}>
+          <div className={`${styles.main} ${isMapExpanded ? styles.mapExpanded : ''}`}>
             <div className={styles.results}>
                 <h2 className={styles.title}>
                   {totalElements >= 1000 
@@ -362,7 +361,7 @@ const Search: React.FC = () => {
                 }
               />
             </div>
-          </main>
+          </div>
         )}
 
         {error && (
@@ -410,7 +409,7 @@ const Search: React.FC = () => {
         onClose={() => setAuthModalOpen(false)}
         initialMode="login"
       />
-    </MainLayout>
+    </>
   );
 };
 

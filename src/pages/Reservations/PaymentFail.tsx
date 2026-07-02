@@ -1,6 +1,5 @@
 import React, { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { MainLayout } from "../../layouts";
 import { useAuth } from "../../hooks/useAuth";
 import { routeTo } from "../../routes/paths";
 import styles from "./PaymentFail.module.css";
@@ -18,11 +17,11 @@ const PaymentFail: React.FC = () => {
 
   if (isAuthLoading) {
     return (
-      <MainLayout>
+      <>
         <div className={styles.container}>
           <div className={styles.content}>로딩 중...</div>
         </div>
-      </MainLayout>
+      </>
     );
   }
 
@@ -31,7 +30,7 @@ const PaymentFail: React.FC = () => {
   }
 
   return (
-    <MainLayout>
+    <>
       <div className={styles.container}>
         <div className={styles.content}>
           <div className={styles.errorIcon}>❌</div>
@@ -54,12 +53,11 @@ const PaymentFail: React.FC = () => {
           </div>
         </div>
       </div>
-    </MainLayout>
+    </>
   );
 };
 
 export default PaymentFail;
-
 
 
 

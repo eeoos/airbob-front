@@ -49,12 +49,6 @@ jest.mock("../../components/ErrorToast", () => ({
   ),
 }));
 
-jest.mock("../../layouts", () => ({
-  MainLayout: ({ children }: { children: React.ReactNode }) => (
-    <main>{children}</main>
-  ),
-}));
-
 const hostAccommodation: HostAccommodationDetail = {
   id: 3,
   name: "Large studio apt by Capital Center & ESP@",

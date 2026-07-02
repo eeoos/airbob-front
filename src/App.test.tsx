@@ -31,12 +31,26 @@ jest.mock(
     Routes: ({ children }: { children: React.ReactNode }) => (
       <div data-testid="routes">{children}</div>
     ),
-    Route: ({ path, element }: { path: string; element: React.ReactNode }) => (
-      <div data-testid={`route-${path}`}>
-        {path}
-        <div>{element}</div>
-      </div>
-    ),
+    Route: ({
+      path,
+      element,
+      children,
+    }: {
+      path?: string;
+      element: React.ReactNode;
+      children?: React.ReactNode;
+    }) =>
+      path === undefined ? (
+        <div data-testid="main-layout-route">
+          <div>{element}</div>
+          <div>{children}</div>
+        </div>
+      ) : (
+        <div data-testid={`route-${path}`}>
+          {path}
+          <div>{element}</div>
+        </div>
+      ),
     useNavigate: () => jest.fn(),
     useLocation: () => ({
       pathname: "/",
@@ -51,6 +65,10 @@ jest.mock(
   }),
   { virtual: true }
 );
+
+jest.mock("./layouts", () => ({
+  MainLayout: () => <div data-testid="main-layout" />,
+}));
 
 jest.mock("./pages/Home/Home", () => () => <div data-testid="page-home" />);
 jest.mock("./pages/Search/Search", () => () => <div data-testid="page-search" />);
@@ -96,53 +114,66 @@ jest.mock("./pages/NotFound/NotFound", () => () => (
 ));
 
 const routeMappings = [
-  { path: "/", pageTestId: "page-home", requiresAuth: false },
-  { path: "/search", pageTestId: "page-search", requiresAuth: false },
+  { path: "/", pageTestId: "page-home", requiresAuth: false, layout: "main" },
+  {
+    path: "/search",
+    pageTestId: "page-search",
+    requiresAuth: false,
+    layout: "main",
+  },
   {
     path: "/accommodations/:id",
     pageTestId: "page-accommodation-detail",
     requiresAuth: false,
+    layout: "main",
   },
   {
     path: "/accommodations/:id/confirm",
     pageTestId: "page-reservation-confirm",
     requiresAuth: true,
+    layout: "main",
   },
   {
     path: "/accommodations/:id/edit",
     pageTestId: "page-accommodation-edit",
     requiresAuth: true,
+    layout: "main",
   },
-  { path: "/wishlist", pageTestId: "page-wishlist", requiresAuth: true },
-  { path: "/profile", pageTestId: "page-profile", requiresAuth: true },
+  { path: "/wishlist", pageTestId: "page-wishlist", requiresAuth: true, layout: "main" },
+  { path: "/profile", pageTestId: "page-profile", requiresAuth: true, layout: "main" },
   {
     path: "/profile/host/reservations/:reservationUid",
     pageTestId: "page-host-reservation-detail",
     requiresAuth: true,
+    layout: "main",
   },
   {
     path: "/reservations/:reservationUid",
     pageTestId: "page-reservation-detail",
     requiresAuth: true,
+    layout: "main",
   },
   {
     path: "/reservations/:reservationUid/review",
     pageTestId: "page-review-create",
     requiresAuth: true,
+    layout: "main",
   },
   {
     path: "/reservations/:reservationUid/success",
     pageTestId: "page-payment-success",
     requiresAuth: true,
+    layout: "main",
   },
   {
     path: "/reservations/:reservationUid/fail",
     pageTestId: "page-payment-fail",
     requiresAuth: true,
+    layout: "main",
   },
-  { path: "/login", pageTestId: "page-login", requiresAuth: false },
-  { path: "/signup", pageTestId: "page-signup", requiresAuth: false },
-  { path: "*", pageTestId: "page-not-found", requiresAuth: false },
+  { path: "/login", pageTestId: "page-login", requiresAuth: false, layout: "bare" },
+  { path: "/signup", pageTestId: "page-signup", requiresAuth: false, layout: "bare" },
+  { path: "*", pageTestId: "page-not-found", requiresAuth: false, layout: "bare" },
 ];
 
 beforeEach(() => {
@@ -156,13 +187,29 @@ test("renders the complete configured route table", () => {
   render(<App />);
 
   expect(screen.getByTestId("browser-router")).toBeInTheDocument();
-  expect(screen.getAllByTestId(/^route-/)).toHaveLength(routeMappings.length);
+  expect(screen.getAllByTestId(/^route-(\/|\*)/)).toHaveLength(routeMappings.length);
+  expect(screen.getByTestId("main-layout-route")).toBeInTheDocument();
 
   routeMappings.forEach(({ path, pageTestId }) => {
     const route = screen.getByTestId(`route-${path}`);
 
     expect(route).toHaveTextContent(path);
     expect(within(route).getByTestId(pageTestId)).toBeInTheDocument();
+  });
+});
+
+test("groups main routes under the main layout route", () => {
+  render(<App />);
+
+  const mainLayoutRoute = screen.getByTestId("main-layout-route");
+
+  routeMappings.forEach(({ path, layout }) => {
+    if (layout === "main") {
+      expect(within(mainLayoutRoute).getByTestId(`route-${path}`)).toBeInTheDocument();
+      return;
+    }
+
+    expect(within(mainLayoutRoute).queryByTestId(`route-${path}`)).not.toBeInTheDocument();
   });
 });
 

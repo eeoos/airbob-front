@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { MainLayout } from "../../layouts";
 import { useAuth } from "../../hooks/useAuth";
 import GuestTrips from "./GuestTrips/GuestTrips";
 import HostListings from "./HostListings/HostListings";
@@ -59,9 +58,9 @@ const Profile: React.FC = () => {
 
   if (isAuthLoading) {
     return (
-      <MainLayout>
+      <>
         <div className={styles.loading}>로딩 중...</div>
-      </MainLayout>
+      </>
     );
   }
 
@@ -70,7 +69,7 @@ const Profile: React.FC = () => {
   }
 
   return (
-    <MainLayout>
+    <>
       <div className={styles.container}>
         <div className={styles.header}>
           <h1 className={styles.title}>프로필</h1>
@@ -223,7 +222,7 @@ const Profile: React.FC = () => {
           </div>
         </div>
       </div>
-    </MainLayout>
+    </>
   );
 };
 

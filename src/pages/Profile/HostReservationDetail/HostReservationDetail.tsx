@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { MainLayout } from "../../../layouts";
 import { reservationApi } from "../../../api";
 import { HostDetailInfo } from "../../../types/reservation";
 import { ReservationStatus } from "../../../types/enums";
@@ -87,17 +86,17 @@ const HostReservationDetail: React.FC = () => {
 
   if (isAuthLoading || isLoading) {
     return (
-      <MainLayout>
+      <>
         <div className={styles.loading}>로딩 중...</div>
-      </MainLayout>
+      </>
     );
   }
 
   if (!reservation) {
     return (
-      <MainLayout>
+      <>
         <div className={styles.error}>예약을 찾을 수 없습니다.</div>
-      </MainLayout>
+      </>
     );
   }
 
@@ -106,7 +105,7 @@ const HostReservationDetail: React.FC = () => {
   const pricePerNight = nights > 0 ? Math.floor(totalAmount / nights) : 0;
 
   return (
-    <MainLayout>
+    <>
       <div className={styles.container}>
         <button className={styles.backButton} onClick={() => navigate(-1)}>
           ←
@@ -222,9 +221,8 @@ const HostReservationDetail: React.FC = () => {
           <ErrorToast message={error} onClose={clearError} />
         </div>
       )}
-    </MainLayout>
+    </>
   );
 };
 
 export default HostReservationDetail;
-

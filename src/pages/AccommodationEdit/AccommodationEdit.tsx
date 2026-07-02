@@ -1,6 +1,5 @@
 import React, { useCallback, useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { MainLayout } from "../../layouts";
 import { accommodationApi } from "../../api";
 import { useApiError } from "../../hooks/useApiError";
 import { ErrorToast } from "../../components/ErrorToast";
@@ -285,9 +284,9 @@ const AccommodationEdit: React.FC = () => {
 
   if (isAuthLoading) {
     return (
-      <MainLayout>
+      <>
         <div className={styles.loading}>로딩 중...</div>
-      </MainLayout>
+      </>
     );
   }
 
@@ -359,7 +358,7 @@ const AccommodationEdit: React.FC = () => {
   };
 
   return (
-    <MainLayout>
+    <>
       <div className={styles.container}>
         <div className={styles.header}>
           <h1 className={styles.title}>숙소 등록</h1>
@@ -498,7 +497,7 @@ const AccommodationEdit: React.FC = () => {
           onClose={() => setIsAmenityModalOpen(false)}
         />
       )}
-    </MainLayout>
+    </>
   );
 };
 
