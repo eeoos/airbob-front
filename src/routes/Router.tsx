@@ -15,6 +15,7 @@ import Login from "../pages/Auth/Login/Login";
 import Signup from "../pages/Auth/Signup/Signup";
 import NotFound from "../pages/NotFound/NotFound";
 import { ROUTE_PATHS } from "./paths";
+import RequireAuth from "./RequireAuth";
 
 const Router = () => {
   return (
@@ -24,14 +25,70 @@ const Router = () => {
         <Route path={ROUTE_PATHS.search} element={<Search />} />
         <Route path={ROUTE_PATHS.accommodationDetail} element={<AccommodationDetail />} />
         <Route path={ROUTE_PATHS.accommodationConfirm} element={<ReservationConfirm />} />
-        <Route path={ROUTE_PATHS.accommodationEdit} element={<AccommodationEdit />} />
-        <Route path={ROUTE_PATHS.wishlist} element={<Wishlist />} />
-        <Route path={ROUTE_PATHS.profile} element={<Profile />} />
-        <Route path={ROUTE_PATHS.hostReservationDetail} element={<HostReservationDetail />} />
-        <Route path={ROUTE_PATHS.reservationDetail} element={<ReservationDetail />} />
-        <Route path={ROUTE_PATHS.reviewCreate} element={<ReviewCreate />} />
-        <Route path={ROUTE_PATHS.paymentSuccess} element={<PaymentSuccess />} />
-        <Route path={ROUTE_PATHS.paymentFail} element={<PaymentFail />} />
+        <Route
+          path={ROUTE_PATHS.accommodationEdit}
+          element={
+            <RequireAuth>
+              <AccommodationEdit />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={ROUTE_PATHS.wishlist}
+          element={
+            <RequireAuth>
+              <Wishlist />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={ROUTE_PATHS.profile}
+          element={
+            <RequireAuth>
+              <Profile />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={ROUTE_PATHS.hostReservationDetail}
+          element={
+            <RequireAuth>
+              <HostReservationDetail />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={ROUTE_PATHS.reservationDetail}
+          element={
+            <RequireAuth>
+              <ReservationDetail />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={ROUTE_PATHS.reviewCreate}
+          element={
+            <RequireAuth>
+              <ReviewCreate />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={ROUTE_PATHS.paymentSuccess}
+          element={
+            <RequireAuth>
+              <PaymentSuccess />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={ROUTE_PATHS.paymentFail}
+          element={
+            <RequireAuth>
+              <PaymentFail />
+            </RequireAuth>
+          }
+        />
         <Route path={ROUTE_PATHS.login} element={<Login />} />
         <Route path={ROUTE_PATHS.signup} element={<Signup />} />
         <Route path={ROUTE_PATHS.notFound} element={<NotFound />} />

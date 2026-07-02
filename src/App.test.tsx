@@ -2,6 +2,26 @@ import React from "react";
 import { render, screen, within } from "@testing-library/react";
 import App from "./App";
 
+const mockUseAuth = jest.fn();
+
+const createAuthState = ({
+  isAuthenticated,
+  isLoading,
+}: {
+  isAuthenticated: boolean;
+  isLoading: boolean;
+}) => ({
+  isAuthenticated,
+  isLoading,
+  login: jest.fn(),
+  logout: jest.fn(),
+  checkAuth: jest.fn(),
+});
+
+jest.mock("./hooks/useAuth", () => ({
+  useAuth: () => mockUseAuth(),
+}));
+
 jest.mock(
   "react-router-dom",
   () => ({
@@ -76,40 +96,61 @@ jest.mock("./pages/NotFound/NotFound", () => () => (
 ));
 
 const routeMappings = [
-  { path: "/", pageTestId: "page-home" },
-  { path: "/search", pageTestId: "page-search" },
-  { path: "/accommodations/:id", pageTestId: "page-accommodation-detail" },
+  { path: "/", pageTestId: "page-home", requiresAuth: false },
+  { path: "/search", pageTestId: "page-search", requiresAuth: false },
+  {
+    path: "/accommodations/:id",
+    pageTestId: "page-accommodation-detail",
+    requiresAuth: false,
+  },
   {
     path: "/accommodations/:id/confirm",
     pageTestId: "page-reservation-confirm",
+    requiresAuth: false,
   },
-  { path: "/accommodations/:id/edit", pageTestId: "page-accommodation-edit" },
-  { path: "/wishlist", pageTestId: "page-wishlist" },
-  { path: "/profile", pageTestId: "page-profile" },
+  {
+    path: "/accommodations/:id/edit",
+    pageTestId: "page-accommodation-edit",
+    requiresAuth: true,
+  },
+  { path: "/wishlist", pageTestId: "page-wishlist", requiresAuth: true },
+  { path: "/profile", pageTestId: "page-profile", requiresAuth: true },
   {
     path: "/profile/host/reservations/:reservationUid",
     pageTestId: "page-host-reservation-detail",
+    requiresAuth: true,
   },
   {
     path: "/reservations/:reservationUid",
     pageTestId: "page-reservation-detail",
+    requiresAuth: true,
   },
   {
     path: "/reservations/:reservationUid/review",
     pageTestId: "page-review-create",
+    requiresAuth: true,
   },
   {
     path: "/reservations/:reservationUid/success",
     pageTestId: "page-payment-success",
+    requiresAuth: true,
   },
   {
     path: "/reservations/:reservationUid/fail",
     pageTestId: "page-payment-fail",
+    requiresAuth: true,
   },
-  { path: "/login", pageTestId: "page-login" },
-  { path: "/signup", pageTestId: "page-signup" },
-  { path: "*", pageTestId: "page-not-found" },
+  { path: "/login", pageTestId: "page-login", requiresAuth: false },
+  { path: "/signup", pageTestId: "page-signup", requiresAuth: false },
+  { path: "*", pageTestId: "page-not-found", requiresAuth: false },
 ];
+
+beforeEach(() => {
+  mockUseAuth.mockReset();
+  mockUseAuth.mockReturnValue(
+    createAuthState({ isAuthenticated: true, isLoading: false })
+  );
+});
 
 test("renders the complete configured route table", () => {
   render(<App />);
@@ -122,5 +163,26 @@ test("renders the complete configured route table", () => {
 
     expect(route).toHaveTextContent(path);
     expect(within(route).getByTestId(pageTestId)).toBeInTheDocument();
+  });
+});
+
+test("classifies route elements by auth requirement for unauthenticated users", () => {
+  mockUseAuth.mockReturnValue(
+    createAuthState({ isAuthenticated: false, isLoading: false })
+  );
+
+  render(<App />);
+
+  routeMappings.forEach(({ path, pageTestId, requiresAuth }) => {
+    const route = screen.getByTestId(`route-${path}`);
+
+    if (requiresAuth) {
+      expect(within(route).getByTestId("navigate")).toHaveTextContent("/");
+      expect(within(route).queryByTestId(pageTestId)).not.toBeInTheDocument();
+      return;
+    }
+
+    expect(within(route).getByTestId(pageTestId)).toBeInTheDocument();
+    expect(within(route).queryByTestId("navigate")).not.toBeInTheDocument();
   });
 });
