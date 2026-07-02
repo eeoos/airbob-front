@@ -493,13 +493,13 @@
 - Create: `src/features/search/hooks/useSearchBottomSheet.test.tsx`
 - Modify: `src/pages/Search/Search.tsx`
 
-- [ ] 검색 API 호출과 pagination 상태를 `useSearchResults`로 이동한다.
-- [ ] selected/hovered/map drag 상태를 `useSearchMapState`로 이동한다.
-- [ ] 모바일 sheet 상태를 `useSearchBottomSheet`로 이동한다.
-- [ ] page query 중복 호출 방지 조건을 테스트로 고정한다.
-- [ ] `npm run verify -- --no-cache`를 통과시킨다.
-- [ ] Browser QA로 desktop/mobile search flow를 확인한다.
-- [ ] Commit: `refactor: extract search results state`
+- [x] 검색 API 호출과 pagination 상태를 `useSearchResults`로 이동한다.
+- [x] selected/hovered/map drag 상태를 `useSearchMapState`로 이동한다.
+- [x] 모바일 sheet 상태를 `useSearchBottomSheet`로 이동한다.
+- [x] page query 중복 호출 방지 조건을 테스트로 고정한다.
+- [x] `npm run verify -- --no-cache`를 통과시킨다.
+- [x] Browser QA로 desktop/mobile search flow를 확인한다.
+- [x] Commit: `refactor: extract search results state`
 
 ### Task D: Map pure helper 분리
 
