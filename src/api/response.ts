@@ -89,6 +89,10 @@ export function unwrapApiResponse<T>(
   }
 
   if (!hasOwnProperty(response, "data") || response.data === undefined) {
+    if (options?.allowNull === true) {
+      return null;
+    }
+
     throwInvalidApiResponse();
   }
 

@@ -141,6 +141,14 @@ describe("unwrapApiResponse", () => {
     expect(unwrapApiResponse(response, { allowNull: true })).toBeNull();
   });
 
+  it("allows missing data for mutation endpoints when configured with allowNull", () => {
+    const response = {
+      success: true,
+    } as unknown as ApiResponse<null>;
+
+    expect(unwrapApiResponse(response, { allowNull: true })).toBeNull();
+  });
+
   it("rejects string/html response as invalid API response", () => {
     expectInvalidApiResponse(() => {
       unwrapApiResponse("<html>login</html>" as unknown as ApiResponse<string>);
