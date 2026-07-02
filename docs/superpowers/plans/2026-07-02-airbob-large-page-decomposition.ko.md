@@ -557,12 +557,15 @@
 - Create: `src/features/accommodations/edit/lib/time.test.ts`
 - Modify: `src/pages/AccommodationEdit/AccommodationEdit.tsx`
 
-- [ ] API/form mapping과 dirty diff를 pure helper로 고정한다.
-- [ ] image item 계산을 pure helper로 고정한다.
-- [ ] hook/component 분리는 아직 하지 않는다.
-- [ ] `npm run verify -- --no-cache`를 통과시킨다.
-- [ ] Browser QA로 edit mode load, save-and-exit, image remove/add를 확인한다.
-- [ ] Commit: `refactor: extract accommodation edit model helpers`
+- [x] API/form mapping과 dirty diff를 pure helper로 고정한다.
+- [x] image item 계산을 pure helper로 고정한다.
+- [x] hook/component 분리는 아직 하지 않는다.
+- [x] `npm run verify -- --no-cache`를 통과시킨다.
+- [x] Browser QA로 edit mode load, save-and-exit, image remove/add를 확인한다.
+  - QA 계정으로 `/accommodations/3/edit` 직접 진입, 변경 없음 `저장 후 나가기`에서 `/profile?mode=host` 이동과 PATCH 미호출을 확인했다.
+  - 사진 단계에서 로컬 테스트 이미지를 추가한 뒤 새 이미지 삭제 버튼만 눌러 제거했고, 기존 서버 이미지 삭제 API는 호출하지 않았다. 삭제 시 네트워크 요청 없음과 console error 없음을 확인했다.
+  - QA 중 step 전환 시 file input DOM 재사용으로 controlled/uncontrolled React 경고가 발생해 file input key 회귀 테스트와 수정까지 포함했다.
+- [x] Commit: `refactor: extract accommodation edit model helpers`
 
 ### Task G: AccommodationEdit hooks/components 분리
 

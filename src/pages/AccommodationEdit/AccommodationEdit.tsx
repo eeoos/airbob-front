@@ -10,6 +10,28 @@ import {
   DEFAULT_ACCOMMODATION_TYPE_OPTIONS,
   DEFAULT_AMENITY_OPTIONS,
 } from "../../utils/codes";
+import {
+  buildAccommodationUpdateData,
+  createDefaultAccommodationEditFormData,
+  mapHostAccommodationToEditFormData,
+  toAccommodationApiUpdateData,
+} from "../../features/accommodations/edit/lib/accommodationEditMapper";
+import { areImageItemsChanged } from "../../features/accommodations/edit/lib/accommodationEditDirty";
+import {
+  DaumPostcodeData,
+  mapDaumPostcodeToAddressInfo,
+} from "../../features/accommodations/edit/lib/daumAddressMapper";
+import {
+  AccommodationEditImageItem,
+  applyUploadedImagesToItems,
+  createImageItems,
+  filterValidImageFiles,
+  getPendingUploadFiles,
+  mapHostImagesToImageItems,
+  removeImageItem,
+  reorderImageItems,
+} from "../../features/accommodations/edit/lib/imageItems";
+import { formatTime, parseTime } from "../../features/accommodations/edit/lib/time";
 import styles from "./AccommodationEdit.module.css";
 
 // Daum 우편번호 서비스 타입 정의
@@ -17,23 +39,7 @@ declare global {
   interface Window {
     daum: {
       Postcode: new (options: {
-        oncomplete: (data: {
-          zonecode: string;
-          address: string;
-          addressEnglish: string;
-          addressType: string;
-          bname: string;
-          buildingName: string;
-          apartment: string;
-          sido: string;
-          sigungu: string;
-          sigunguCode: string;
-          bcode: string;
-          roadname: string;
-          roadnameCode: string;
-          jibunAddress: string;
-          roadAddress?: string;
-        }) => void;
+        oncomplete: (data: DaumPostcodeData) => void;
         width?: string;
         height?: string;
         maxSuggestItems?: number;
@@ -53,14 +59,12 @@ const ACCOMMODATION_TYPES = DEFAULT_ACCOMMODATION_TYPE_OPTIONS;
 // 편의시설 정보
 const AMENITY_TYPES = DEFAULT_AMENITY_OPTIONS;
 
-// 이미지 아이템 타입: 업로드된 이미지(id 있음) 또는 업로드 대기 이미지(file 있음)
-interface ImageItem {
-  id?: number; // 업로드된 이미지 ID
-  url: string; // 이미지 URL
-  file?: File; // 아직 업로드되지 않은 파일
-  preview?: string; // 미리보기 URL (file이 있을 때)
-  tempId?: string; // 임시 고유 ID (드래그 앤 드롭용)
-}
+type ImageItem = AccommodationEditImageItem;
+
+const updateAccommodation = (
+  accommodationId: number,
+  updateData: ReturnType<typeof buildAccommodationUpdateData>
+) => accommodationApi.update(accommodationId, toAccommodationApiUpdateData(updateData));
 
 const STEPS = [
   { number: 1, title: "위치", description: "숙소 위치를 설정하세요" },
@@ -253,7 +257,7 @@ const AccommodationEdit: React.FC = () => {
   const [isAmenityModalOpen, setIsAmenityModalOpen] = useState(false);
   const [selectedAmenities, setSelectedAmenities] = useState<Set<string>>(new Set());
   const [openTimePicker, setOpenTimePicker] = useState<"checkIn" | "checkOut" | null>(null);
-  const [initialFormData, setInitialFormData] = useState<any>(null);
+  const [initialFormData, setInitialFormData] = useState<ReturnType<typeof createDefaultAccommodationEditFormData> | null>(null);
   const [initialImageItems, setInitialImageItems] = useState<ImageItem[]>([]);
   const [showDetailAddressConfirm, setShowDetailAddressConfirm] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
@@ -278,29 +282,7 @@ const AccommodationEdit: React.FC = () => {
   }, [openTimePicker]);
 
   // 폼 상태
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    basePrice: "",
-    type: "",
-    checkInTime: "15:00",
-    checkOutTime: "11:00",
-    addressInfo: {
-      postalCode: "",
-      city: "",
-      state: "",
-      country: "대한민국",
-      detail: "",
-      district: "",
-      street: "",
-    },
-    occupancyPolicyInfo: {
-      maxOccupancy: "1",
-      infantOccupancy: false,
-      petOccupancy: false,
-    },
-    amenityInfos: [] as Array<{ name: string; count: number }>,
-  });
+  const [formData, setFormData] = useState(() => createDefaultAccommodationEditFormData());
 
   useEffect(() => {
     if (isAuthLoading) return;
@@ -318,29 +300,7 @@ const AccommodationEdit: React.FC = () => {
           const data = await accommodationApi.getHostAccommodationDetail(Number(id));
           
           // 폼 데이터 설정
-          const loadedFormData = {
-            name: data.name || "",
-            description: data.description || "",
-            basePrice: String(data.base_price || ""),
-            type: data.type || "",
-            checkInTime: data.check_in_time || "15:00",
-            checkOutTime: data.check_out_time || "11:00",
-            addressInfo: {
-              postalCode: data.address?.postal_code || "",
-              city: data.address?.city || "",
-              state: data.address?.state || "",
-              country: data.address?.country || "대한민국",
-              detail: data.address?.detail || "",
-              district: data.address?.district || "",
-              street: data.address?.street || "",
-            },
-            occupancyPolicyInfo: {
-              maxOccupancy: String(data.policy?.max_occupancy || "1"),
-              infantOccupancy: (data.policy?.infant_occupancy || 0) > 0,
-              petOccupancy: (data.policy?.pet_occupancy || 0) > 0,
-            },
-            amenityInfos: data.amenities?.map((a) => ({ name: a.type, count: a.count })) || [],
-          };
+          const loadedFormData = mapHostAccommodationToEditFormData(data);
           
           setFormData(loadedFormData);
           
@@ -352,13 +312,12 @@ const AccommodationEdit: React.FC = () => {
           setSelectedAmenities(amenitySet);
 
           // 기존 이미지 설정
-          const loadedImageItems = data.images && data.images.length > 0
-            ? data.images.map((image, index) => ({ 
-                id: image.id,
-                url: image.image_url,
-                tempId: `existing-${index}-${Date.now()}`,
-              }))
-            : [];
+          const loadedImageItems = mapHostImagesToImageItems(
+            (data.images || []).map((image, index) => ({
+              ...image,
+              tempId: `existing-${index}-${Date.now()}`,
+            }))
+          );
           setImageItems(loadedImageItems);
           
           // 초기 이미지 저장
@@ -388,201 +347,11 @@ const AccommodationEdit: React.FC = () => {
   }, []); // 빈 배열: 컴포넌트 unmount 시에만 실행
 
   const getUpdateData = (isDraft: boolean = false) => {
-    const data: any = {};
-    
-    // 초안 모드일 때는 입력된 필드만 포함
-    if (isDraft) {
-      if (formData.name && formData.name.trim()) {
-        data.name = formData.name;
-      }
-      if (formData.description && formData.description.trim()) {
-        data.description = formData.description;
-      }
-      if (formData.basePrice && Number(formData.basePrice) > 0) {
-        data.base_price = Number(formData.basePrice);
-        data.currency = "KRW";
-      }
-      if (formData.type) {
-        data.type = formData.type;
-      }
-      if (formData.checkInTime) {
-        data.check_in_time = formData.checkInTime;
-      }
-      if (formData.checkOutTime) {
-        data.check_out_time = formData.checkOutTime;
-      }
-      
-      // 주소 정보: 하나라도 입력된 경우에만 포함
-      const hasAddressData = 
-        formData.addressInfo.postalCode ||
-        formData.addressInfo.city ||
-        formData.addressInfo.state ||
-        formData.addressInfo.district ||
-        formData.addressInfo.street ||
-        formData.addressInfo.detail;
-      
-      if (hasAddressData) {
-        data.address_info = {};
-        if (formData.addressInfo.postalCode) {
-          data.address_info.postal_code = formData.addressInfo.postalCode;
-        }
-        if (formData.addressInfo.city) {
-          data.address_info.city = formData.addressInfo.city;
-        }
-        if (formData.addressInfo.state) {
-          data.address_info.state = formData.addressInfo.state;
-        }
-        if (formData.addressInfo.district) {
-          data.address_info.district = formData.addressInfo.district;
-        }
-        if (formData.addressInfo.street) {
-          data.address_info.street = formData.addressInfo.street;
-        }
-        if (formData.addressInfo.detail) {
-          data.address_info.detail = formData.addressInfo.detail;
-        }
-        if (formData.addressInfo.country) {
-          data.address_info.country = formData.addressInfo.country;
-        }
-      }
-      
-      // 수용 인원 정보: 입력된 경우에만 포함
-      if (formData.occupancyPolicyInfo.maxOccupancy && Number(formData.occupancyPolicyInfo.maxOccupancy) > 0) {
-        data.occupancy_policy_info = {
-          max_occupancy: Number(formData.occupancyPolicyInfo.maxOccupancy),
-          infant_occupancy: formData.occupancyPolicyInfo.infantOccupancy ? 1 : 0,
-          pet_occupancy: formData.occupancyPolicyInfo.petOccupancy ? 1 : 0,
-        };
-      }
-      
-      if (formData.amenityInfos.length > 0) {
-        data.amenity_infos = formData.amenityInfos;
-      }
-    } else {
-      // 수정 모드일 때는 변경된 필드만 포함
-      if (!initialFormData) {
-        // 초기 데이터가 없으면 모든 필드 포함 (안전장치)
-        data.name = formData.name;
-        data.description = formData.description;
-        data.base_price = Number(formData.basePrice);
-        data.currency = "KRW";
-        data.type = formData.type;
-        data.check_in_time = formData.checkInTime;
-        data.check_out_time = formData.checkOutTime;
-        
-        if (formData.addressInfo) {
-          data.address_info = {};
-          if (formData.addressInfo.postalCode && formData.addressInfo.postalCode.trim()) {
-            data.address_info.postal_code = formData.addressInfo.postalCode.trim();
-          }
-          if (formData.addressInfo.city && formData.addressInfo.city.trim()) {
-            data.address_info.city = formData.addressInfo.city.trim();
-          }
-          if (formData.addressInfo.state && formData.addressInfo.state.trim()) {
-            data.address_info.state = formData.addressInfo.state.trim();
-          }
-          if (formData.addressInfo.country && formData.addressInfo.country.trim()) {
-            data.address_info.country = formData.addressInfo.country.trim();
-          }
-          if (formData.addressInfo.detail && formData.addressInfo.detail.trim()) {
-            data.address_info.detail = formData.addressInfo.detail.trim();
-          }
-          if (formData.addressInfo.district && formData.addressInfo.district.trim()) {
-            data.address_info.district = formData.addressInfo.district.trim();
-          }
-          if (formData.addressInfo.street && formData.addressInfo.street.trim()) {
-            data.address_info.street = formData.addressInfo.street.trim();
-          }
-        }
-        
-        data.occupancy_policy_info = {
-          max_occupancy: Number(formData.occupancyPolicyInfo.maxOccupancy),
-          infant_occupancy: formData.occupancyPolicyInfo.infantOccupancy ? 1 : 0,
-          pet_occupancy: formData.occupancyPolicyInfo.petOccupancy ? 1 : 0,
-        };
-        data.amenity_infos = formData.amenityInfos;
-      } else {
-        // 초기 데이터와 비교해서 변경된 필드만 포함
-        if (formData.name !== initialFormData.name) {
-          data.name = formData.name;
-        }
-        if (formData.description !== initialFormData.description) {
-          data.description = formData.description;
-        }
-        if (formData.basePrice !== initialFormData.basePrice) {
-          data.base_price = Number(formData.basePrice);
-          data.currency = "KRW";
-        }
-        if (formData.type !== initialFormData.type) {
-          data.type = formData.type;
-        }
-        if (formData.checkInTime !== initialFormData.checkInTime) {
-          data.check_in_time = formData.checkInTime;
-        }
-        if (formData.checkOutTime !== initialFormData.checkOutTime) {
-          data.check_out_time = formData.checkOutTime;
-        }
-        
-        // 주소 정보 비교
-        const addressChanged = 
-          formData.addressInfo.postalCode !== initialFormData.addressInfo.postalCode ||
-          formData.addressInfo.city !== initialFormData.addressInfo.city ||
-          formData.addressInfo.state !== initialFormData.addressInfo.state ||
-          formData.addressInfo.country !== initialFormData.addressInfo.country ||
-          formData.addressInfo.detail !== initialFormData.addressInfo.detail ||
-          formData.addressInfo.district !== initialFormData.addressInfo.district ||
-          formData.addressInfo.street !== initialFormData.addressInfo.street;
-        
-        if (addressChanged) {
-          data.address_info = {};
-          if (formData.addressInfo.postalCode && formData.addressInfo.postalCode.trim()) {
-            data.address_info.postal_code = formData.addressInfo.postalCode.trim();
-          }
-          if (formData.addressInfo.city && formData.addressInfo.city.trim()) {
-            data.address_info.city = formData.addressInfo.city.trim();
-          }
-          if (formData.addressInfo.state && formData.addressInfo.state.trim()) {
-            data.address_info.state = formData.addressInfo.state.trim();
-          }
-          if (formData.addressInfo.country && formData.addressInfo.country.trim()) {
-            data.address_info.country = formData.addressInfo.country.trim();
-          }
-          if (formData.addressInfo.detail && formData.addressInfo.detail.trim()) {
-            data.address_info.detail = formData.addressInfo.detail.trim();
-          }
-          if (formData.addressInfo.district && formData.addressInfo.district.trim()) {
-            data.address_info.district = formData.addressInfo.district.trim();
-          }
-          if (formData.addressInfo.street && formData.addressInfo.street.trim()) {
-            data.address_info.street = formData.addressInfo.street.trim();
-          }
-        }
-        
-        // 수용 인원 정보 비교
-        const occupancyChanged = 
-          formData.occupancyPolicyInfo.maxOccupancy !== initialFormData.occupancyPolicyInfo.maxOccupancy ||
-          formData.occupancyPolicyInfo.infantOccupancy !== initialFormData.occupancyPolicyInfo.infantOccupancy ||
-          formData.occupancyPolicyInfo.petOccupancy !== initialFormData.occupancyPolicyInfo.petOccupancy;
-        
-        if (occupancyChanged) {
-          data.occupancy_policy_info = {
-            max_occupancy: Number(formData.occupancyPolicyInfo.maxOccupancy),
-            infant_occupancy: formData.occupancyPolicyInfo.infantOccupancy ? 1 : 0,
-            pet_occupancy: formData.occupancyPolicyInfo.petOccupancy ? 1 : 0,
-          };
-        }
-        
-        // 편의시설 비교
-        const amenityChanged = JSON.stringify(formData.amenityInfos.sort((a: { name: string; count: number }, b: { name: string; count: number }) => a.name.localeCompare(b.name))) !== 
-          JSON.stringify(initialFormData.amenityInfos.sort((a: { name: string; count: number }, b: { name: string; count: number }) => a.name.localeCompare(b.name)));
-        
-        if (amenityChanged) {
-          data.amenity_infos = formData.amenityInfos;
-        }
-      }
-    }
-    
-    return data;
+    return buildAccommodationUpdateData({
+      isDraft,
+      formData,
+      initialFormData,
+    });
   };
 
   const handleSaveAndExit = async () => {
@@ -601,9 +370,11 @@ const AccommodationEdit: React.FC = () => {
             const updateData = getUpdateData(isNewDraft);
             
             // 이미지 변경 확인
-            const imageChanged = !isNewDraft && initialImageItems.length > 0 && 
-              JSON.stringify(imageItems.map((i: ImageItem) => ({ id: i.id, url: i.url })).sort((a: { id?: number; url: string }, b: { id?: number; url: string }) => (a.id || 0) - (b.id || 0))) !== 
-              JSON.stringify(initialImageItems.map((i: ImageItem) => ({ id: i.id, url: i.url })).sort((a: { id?: number; url: string }, b: { id?: number; url: string }) => (a.id || 0) - (b.id || 0)));
+            const imageChanged = areImageItemsChanged({
+              isNewDraft,
+              currentImageItems: imageItems,
+              initialImageItems,
+            });
             
             // 변경사항이 없으면 요청 보내지 않음
             const hasChanges = Object.keys(updateData).length > 0 || imageChanged;
@@ -617,7 +388,7 @@ const AccommodationEdit: React.FC = () => {
             
             console.log("저장 후 나가기 - 요청 데이터:", JSON.stringify(updateData, null, 2));
             console.log("저장 후 나가기 - 주소 정보:", updateData.address_info);
-            await accommodationApi.update(Number(id), updateData);
+            await updateAccommodation(Number(id), updateData);
             // 저장 성공 시 프로필 페이지의 호스트 모드로 이동
             navigate("/profile?mode=host");
           } catch (err) {
@@ -639,9 +410,11 @@ const AccommodationEdit: React.FC = () => {
       const updateData = getUpdateData(isNewDraft);
       
       // 이미지 변경 확인
-      const imageChanged = !isNewDraft && initialImageItems.length > 0 && 
-        JSON.stringify(imageItems.map((i: ImageItem) => ({ id: i.id, url: i.url })).sort((a: { id?: number; url: string }, b: { id?: number; url: string }) => (a.id || 0) - (b.id || 0))) !== 
-        JSON.stringify(initialImageItems.map((i: ImageItem) => ({ id: i.id, url: i.url })).sort((a: { id?: number; url: string }, b: { id?: number; url: string }) => (a.id || 0) - (b.id || 0)));
+      const imageChanged = areImageItemsChanged({
+        isNewDraft,
+        currentImageItems: imageItems,
+        initialImageItems,
+      });
       
       // 변경사항이 없으면 요청 보내지 않음
       const hasChanges = Object.keys(updateData).length > 0 || imageChanged;
@@ -655,7 +428,7 @@ const AccommodationEdit: React.FC = () => {
       
       console.log("저장 후 나가기 - 요청 데이터:", JSON.stringify(updateData, null, 2));
       console.log("저장 후 나가기 - 주소 정보:", updateData.address_info);
-      await accommodationApi.update(Number(id), updateData);
+      await updateAccommodation(Number(id), updateData);
       // 저장 성공 시 프로필 페이지의 호스트 모드로 이동
       navigate("/profile?mode=host");
     } catch (err) {
@@ -725,27 +498,6 @@ const AccommodationEdit: React.FC = () => {
         [field]: value,
       },
     }));
-  };
-
-  // 시간을 12시간 형식으로 변환 (HH:mm -> {hour, minute, period})
-  const parseTime = (time: string) => {
-    const [hourStr, minuteStr] = time.split(":");
-    const hour = parseInt(hourStr, 10);
-    const minute = parseInt(minuteStr, 10);
-    const period: "AM" | "PM" = hour >= 12 ? "PM" : "AM";
-    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-    return { hour: displayHour, minute, period, originalHour: hour };
-  };
-
-  // 12시간 형식을 24시간 형식으로 변환
-  const formatTime = (hour: number, minute: number, period: "AM" | "PM"): string => {
-    let hour24 = hour;
-    if (period === "PM" && hour !== 12) {
-      hour24 = hour + 12;
-    } else if (period === "AM" && hour === 12) {
-      hour24 = 0;
-    }
-    return `${String(hour24).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
   };
 
   // 시간 업데이트
@@ -1147,21 +899,19 @@ const AccommodationEdit: React.FC = () => {
   };
 
   const validateFiles = (files: File[]): File[] => {
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    const imageTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
-
-    return files.filter((file) => {
-      if (file.size > maxSize) {
-        handleError(new Error(`${file.name} 파일 크기는 10MB를 초과할 수 없습니다.`));
-        return false;
-      }
-      if (!imageTypes.includes(file.type)) {
-        handleError(new Error(`${file.name}은(는) 지원하지 않는 이미지 형식입니다.`));
-        return false;
-      }
-      return true;
+    const result = filterValidImageFiles(files);
+    result.errors.forEach((message) => {
+      handleError(new Error(message));
     });
+    return result.validFiles;
   };
+
+  const createPendingImageInputs = (files: File[]) =>
+    files.map((file, index) => ({
+      file,
+      preview: URL.createObjectURL(file),
+      tempId: `temp-${Date.now()}-${Math.random()}-${index}-${file.name}`,
+    }));
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -1174,12 +924,7 @@ const AccommodationEdit: React.FC = () => {
     }
 
     // 새로운 이미지 아이템 추가
-    const newItems: ImageItem[] = validFiles.map((file, idx) => ({
-      file,
-      url: "",
-      preview: URL.createObjectURL(file),
-      tempId: `temp-${Date.now()}-${Math.random()}-${idx}-${file.name}`,
-    }));
+    const newItems = createImageItems(createPendingImageInputs(validFiles));
 
     setImageItems((prev) => [...prev, ...newItems]);
     e.target.value = "";
@@ -1195,12 +940,7 @@ const AccommodationEdit: React.FC = () => {
     const validFiles = validateFiles(files);
     if (validFiles.length === 0) return;
 
-    const newItems: ImageItem[] = validFiles.map((file, idx) => ({
-      file,
-      url: "",
-      preview: URL.createObjectURL(file),
-      tempId: `temp-${Date.now()}-${Math.random()}-${idx}-${file.name}`,
-    }));
+    const newItems = createImageItems(createPendingImageInputs(validFiles));
 
     setImageItems((prev) => [...prev, ...newItems]);
   };
@@ -1211,19 +951,22 @@ const AccommodationEdit: React.FC = () => {
   };
 
   const handleImageRemove = (index: number) => {
-    const item = imageItems[index];
+    const { nextItems, removedItem, previewToRevoke, imageIdToDelete } =
+      removeImageItem(imageItems, index);
     
     // 미리보기 URL 해제
-    if (item.preview) {
-      URL.revokeObjectURL(item.preview);
+    if (previewToRevoke) {
+      URL.revokeObjectURL(previewToRevoke);
     }
 
     // 업로드된 이미지인 경우 서버에서 삭제
-    if (item.id && id) {
-      accommodationApi.deleteImage(Number(id), item.id).catch(handleError);
+    if (imageIdToDelete && id) {
+      accommodationApi.deleteImage(Number(id), imageIdToDelete).catch(handleError);
     }
 
-    setImageItems((prev) => prev.filter((_, i) => i !== index));
+    if (removedItem) {
+      setImageItems(nextItems);
+    }
   };
 
   // 드래그 앤 드롭으로 이미지 순서 변경
@@ -1255,13 +998,7 @@ const AccommodationEdit: React.FC = () => {
       // 드래그가 끝날 때만 실제 상태 변경 (ref를 사용하여 최신 값 보장)
       setImageItems((prevItems) => {
         const items = prevItems.length > 0 ? prevItems : imageItemsRef.current;
-        const newItems = [...items];
-        // 드래그된 아이템을 그대로 참조 복사 (preview URL 유지)
-        // spread operator로 얕은 복사만 하면 preview URL 참조가 유지됨
-        const draggedItem = newItems[currentDraggedIndex];
-        newItems.splice(currentDraggedIndex, 1);
-        newItems.splice(currentDragOverIndex, 0, draggedItem);
-        return newItems;
+        return reorderImageItems(items, currentDraggedIndex, currentDragOverIndex);
       });
     }
     setDraggedIndex(null);
@@ -1285,7 +1022,7 @@ const AccommodationEdit: React.FC = () => {
 
     // 2번 단계(숙소 사진)에서 다음으로 넘어갈 때 아직 업로드되지 않은 이미지 업로드
     if (currentStep === 2 && id) {
-      const filesToUpload = imageItems.filter((item) => item.file && !item.id);
+      const filesToUpload = getPendingUploadFiles(imageItems);
       
       if (filesToUpload.length > 0) {
         setIsSaving(true);
@@ -1293,10 +1030,9 @@ const AccommodationEdit: React.FC = () => {
         clearError();
 
         try {
-          const files = filesToUpload.map((item) => item.file!);
           const response = await accommodationApi.uploadImages(
             Number(id),
-            files,
+            filesToUpload,
             (progress) => {
               setUploadProgress(progress);
             }
@@ -1304,26 +1040,11 @@ const AccommodationEdit: React.FC = () => {
           
           // 업로드된 이미지 정보로 업데이트
           setImageItems((prev) => {
-            const updated = [...prev];
-
-            response.uploaded_images.forEach((uploaded) => {
-              // file이 있지만 id가 없는 항목 찾기
-              const index = updated.findIndex((item) => item.file && !item.id);
-              if (index !== -1) {
-                const item = updated[index];
-                // 미리보기 URL 해제
-                if (item.preview) {
-                  URL.revokeObjectURL(item.preview);
-                }
-                updated[index] = {
-                  id: uploaded.id,
-                  url: uploaded.image_url,
-                  tempId: item.tempId, // tempId 유지
-                };
-              }
+            const result = applyUploadedImagesToItems(prev, response.uploaded_images);
+            result.previewsToRevoke.forEach((preview) => {
+              URL.revokeObjectURL(preview);
             });
-            
-            return updated;
+            return result.items;
           });
           setUploadProgress(100);
         } catch (err) {
@@ -1349,7 +1070,7 @@ const AccommodationEdit: React.FC = () => {
       try {
         const updateData = getUpdateData(isNewDraft);
         console.log("4단계 저장 - 요청 데이터:", JSON.stringify(updateData, null, 2));
-        await accommodationApi.update(Number(id), updateData);
+        await updateAccommodation(Number(id), updateData);
         // 저장 성공 후 다음 단계로 이동
         setCurrentStep((prev) => (prev + 1) as Step);
       } catch (err) {
@@ -1411,74 +1132,8 @@ const AccommodationEdit: React.FC = () => {
     }
 
     // 최종 한국 주소 매핑 로직
-    const handleComplete = (data: {
-      zonecode: string;
-      address: string;
-      addressEnglish: string;
-      addressType: string;
-      bname: string;
-      buildingName: string;
-      apartment: string;
-      sido: string;
-      sigungu: string;
-      sigunguCode: string;
-      bcode: string;
-      roadname: string;
-      roadnameCode: string;
-      jibunAddress: string;
-      roadAddress?: string;
-    }) => {
-      const fullSido = data.sido || "";
-      const fullSigungu = data.sigungu || "";
-
-      let state = fullSido;
-      let city = "";
-      let district = "";
-
-      // 광역시/특별시 리스트
-      const metropolitanList = ["서울", "부산", "대구", "인천", "광주", "대전", "울산"];
-
-      // 1) "전주시 덕진구"처럼 시 + 구 구성
-      if (fullSigungu.includes(" ")) {
-        const parts = fullSigungu.split(" ").filter(Boolean);
-        city = parts[0];
-        district = parts.slice(1).join(" ");
-      }
-      // 2) 특별/광역시인 경우 (서울특별시, 서울 등 변형 포함)
-      else if (
-        fullSigungu !== "" &&
-        metropolitanList.some((metro) => fullSido.startsWith(metro))
-      ) {
-        city = fullSido;       // ex: "서울특별시", "부산광역시"
-        district = fullSigungu;
-      }
-      // 3) 일반 시/군 단독 ("구리시", "고창군", "서귀포시")
-      else if (fullSigungu !== "") {
-        city = fullSigungu;
-        district = "";
-      }
-      // 4) 세종·기타 sigungu 없음
-      else {
-        city = fullSido;
-        district = "";
-      }
-
-      // street 정제
-      let street = data.roadAddress || data.address || "";
-      street = street
-        .replace(fullSido, "")
-        .replace(fullSigungu, "")
-        .trim();
-
-      const addressInfo = {
-        postalCode: data.zonecode || "",
-        country: "대한민국",
-        state,
-        city,
-        district,
-        street,
-        detail: ""
-      };
+    const handleComplete = (data: DaumPostcodeData) => {
+      const addressInfo = mapDaumPostcodeToAddressInfo(data);
 
       console.log("Refined Address:", addressInfo);
 
@@ -1623,6 +1278,7 @@ const AccommodationEdit: React.FC = () => {
                 onDragOver={handleDragOver}
               >
                 <input
+                  key="empty-image-file-input"
                   type="file"
                   id="imageInputEmpty"
                   accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
@@ -1669,6 +1325,7 @@ const AccommodationEdit: React.FC = () => {
                 </div>
 
                 <input
+                  key="uploaded-image-file-input"
                   type="file"
                   id="imageInput"
                   accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
