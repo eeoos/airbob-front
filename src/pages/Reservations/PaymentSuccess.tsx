@@ -1,7 +1,6 @@
 import React, { useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { paymentApi } from "../../api";
-import { useAuth } from "../../hooks/useAuth";
 import { routeTo } from "../../routes/paths";
 import styles from "./PaymentSuccess.module.css";
 
@@ -9,20 +8,8 @@ const PaymentSuccess: React.FC = () => {
   const { reservationUid } = useParams<{ reservationUid: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   useEffect(() => {
-    // 인증 상태가 로드될 때까지 대기
-    if (isAuthLoading) {
-      return;
-    }
-
-    if (!isAuthenticated) {
-      // 인증되지 않은 경우 홈으로 이동
-      navigate(routeTo.home());
-      return;
-    }
-
     if (!reservationUid) {
       navigate(routeTo.profile());
       return;
@@ -57,7 +44,7 @@ const PaymentSuccess: React.FC = () => {
     };
 
     processPayment();
-  }, [reservationUid, searchParams, isAuthenticated, isAuthLoading, navigate]);
+  }, [reservationUid, searchParams, navigate]);
 
   // 로딩 화면 표시 (리다이렉트 중)
   return (

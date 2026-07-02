@@ -1,33 +1,11 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useAuth } from "../../hooks/useAuth";
 import { routeTo } from "../../routes/paths";
 import styles from "./PaymentFail.module.css";
 
 const PaymentFail: React.FC = () => {
   const { reservationUid } = useParams<{ reservationUid: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
-
-  useEffect(() => {
-    if (!isAuthLoading && !isAuthenticated) {
-      navigate(routeTo.home());
-    }
-  }, [isAuthLoading, isAuthenticated, navigate]);
-
-  if (isAuthLoading) {
-    return (
-      <>
-        <div className={styles.container}>
-          <div className={styles.content}>로딩 중...</div>
-        </div>
-      </>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null;
-  }
 
   return (
     <>
@@ -58,7 +36,6 @@ const PaymentFail: React.FC = () => {
 };
 
 export default PaymentFail;
-
 
 
 

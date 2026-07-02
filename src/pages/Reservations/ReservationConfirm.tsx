@@ -3,7 +3,6 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { accommodationApi } from "../../api";
 import { AccommodationDetail } from "../../types/accommodation";
 import { useApiError } from "../../hooks/useApiError";
-import { useAuth } from "../../hooks/useAuth";
 import { ErrorToast } from "../../components/ErrorToast";
 import { getImageUrl } from "../../utils/image";
 import styles from "./ReservationConfirm.module.css";
@@ -18,7 +17,6 @@ const ReservationConfirm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
   const { error, handleError, clearError } = useApiError();
   const [accommodation, setAccommodation] = useState<AccommodationDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -132,11 +130,6 @@ const ReservationConfirm: React.FC = () => {
   };
 
   const handleReserve = async () => {
-    if (!isAuthenticated) {
-      handleError(new Error("로그인이 필요합니다."));
-      return;
-    }
-
     if (!reservationUid || !orderName || amount == null || !customerEmail || !customerName) {
       handleError(new Error("결제 정보가 올바르지 않습니다."));
       return;

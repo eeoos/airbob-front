@@ -4,7 +4,6 @@ import { reservationApi } from "../../api";
 import { ReservationDetailInfo } from "../../types/reservation";
 import { ReservationStatus, PaymentStatus } from "../../types/enums";
 import { useApiError } from "../../hooks/useApiError";
-import { useAuth } from "../../hooks/useAuth";
 import { ErrorToast } from "../../components/ErrorToast";
 import { getImageUrl } from "../../utils/image";
 import { GOOGLE_MAPS_API_KEY } from "../../utils/constants";
@@ -13,22 +12,11 @@ import styles from "./ReservationDetail.module.css";
 const ReservationDetail: React.FC = () => {
   const { reservationUid } = useParams<{ reservationUid: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { error, handleError, clearError } = useApiError();
   const [reservation, setReservation] = useState<ReservationDetailInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // 인증 상태가 로드될 때까지 대기
-    if (isAuthLoading) {
-      return;
-    }
-
-    if (!isAuthenticated) {
-      navigate("/");
-      return;
-    }
-
     if (!reservationUid) {
       navigate("/profile");
       return;
@@ -49,7 +37,7 @@ const ReservationDetail: React.FC = () => {
     };
 
     fetchReservation();
-  }, [reservationUid, isAuthenticated, isAuthLoading, navigate, handleError, clearError]);
+  }, [reservationUid, navigate, handleError, clearError]);
 
   const isCompleted = (checkOutDateTime: string, checkOutTime: string): boolean => {
     const now = new Date();
@@ -127,18 +115,6 @@ const ReservationDetail: React.FC = () => {
     };
     return bankMap[bankCode] || `은행코드 ${bankCode}`;
   };
-
-  // 인증 상태가 로드 중이거나 인증되지 않은 경우
-  if (isAuthLoading || !isAuthenticated) {
-    if (isAuthLoading) {
-      return (
-        <>
-          <div className={styles.loading}>로딩 중...</div>
-        </>
-      );
-    }
-    return null;
-  }
 
   if (isLoading) {
     return (

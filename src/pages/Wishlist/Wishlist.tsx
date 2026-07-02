@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { ListContainer } from "../../components/ListContainer";
 import { WishlistAccommodationInfo } from "../../types/wishlist";
 import { RecentlyViewedAccommodationInfo } from "../../types/recentlyViewed";
-import { useAuth } from "../../hooks/useAuth";
 import { ErrorToast } from "../../components/ErrorToast";
-import { AuthModal } from "../../components/AuthModal/AuthModal";
 import { WishlistModal } from "../../components/WishlistModal";
 import { useWishlistData, useWishlistModals } from "../../features/wishlist";
 import { routeTo } from "../../routes/paths";
@@ -13,9 +11,7 @@ import { getImageUrl } from "../../utils/image";
 import styles from "./Wishlist.module.css";
 
 const Wishlist: React.FC = () => {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   
   // URL 파라미터에서 초기값 읽기
   const viewParam = searchParams.get("view");
@@ -48,19 +44,16 @@ const Wishlist: React.FC = () => {
     wishlists,
     wishlistsHasNext,
   } = useWishlistData({
-    enabled: isAuthenticated && !isAuthLoading,
+    enabled: true,
     selectedWishlistId: selectedWishlist,
     showRecentlyViewed,
   });
   const {
-    authModalOpen,
     clearMemoText,
-    closeAuthModal,
     closeMemoModal,
     closeWishlistModal,
     memoModalOpen,
     memoText,
-    openAuthModal,
     openMemoModal,
     openWishlistModal,
     selectedAccommodationForWishlist,
@@ -68,16 +61,6 @@ const Wishlist: React.FC = () => {
     updateMemoText,
     wishlistModalOpen,
   } = useWishlistModals();
-
-  useEffect(() => {
-    if (isAuthLoading) return;
-    
-    if (!isAuthenticated) {
-      navigate("/");
-      return;
-    }
-
-  }, [isAuthenticated, isAuthLoading, navigate]);
 
   // 위시리스트 목록 무한 스크롤
   useEffect(() => {
@@ -148,12 +131,7 @@ const Wishlist: React.FC = () => {
     setSearchParams({});
   };
 
-  const handleWishlistToggle = async (accommodationId: number, _isInWishlist: boolean) => {
-    if (!isAuthenticated) {
-      openAuthModal();
-      return;
-    }
-
+  const handleWishlistToggle = async (accommodationId: number) => {
     openWishlistModal(accommodationId);
   };
 
@@ -235,18 +213,6 @@ const Wishlist: React.FC = () => {
     return groups;
   };
 
-  if (isAuthLoading) {
-    return (
-      <>
-        <div className={styles.loading}>로딩 중...</div>
-      </>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null;
-  }
-
   return (
     <>
       <div className={styles.container}>
@@ -317,7 +283,7 @@ const Wishlist: React.FC = () => {
                                 }`}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleWishlistToggle(item.accommodation_id, item.is_in_wishlist);
+                                  handleWishlistToggle(item.accommodation_id);
                                 }}
                                 aria-label="위시리스트"
                               >
@@ -602,12 +568,6 @@ const Wishlist: React.FC = () => {
             onSuccess={handleWishlistSuccess}
           />
         )}
-
-        <AuthModal
-          isOpen={authModalOpen}
-          onClose={closeAuthModal}
-          initialMode="login"
-        />
 
         {/* 메모 모달 */}
         {memoModalOpen && (

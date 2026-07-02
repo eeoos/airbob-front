@@ -3,7 +3,6 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { accommodationApi } from "../../api";
 import { useApiError } from "../../hooks/useApiError";
 import { ErrorToast } from "../../components/ErrorToast";
-import { useAuth } from "../../hooks/useAuth";
 import {
   AccommodationEditStep,
   useAccommodationEditForm,
@@ -37,7 +36,6 @@ const AccommodationEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { error, handleError, clearError } = useApiError();
   const isNewDraft = searchParams.get("mode") === "create";
   const [isSaving, setIsSaving] = useState(false);
@@ -137,13 +135,6 @@ const AccommodationEdit: React.FC = () => {
   }, [openTimePicker]);
 
   useEffect(() => {
-    if (isAuthLoading) return;
-    
-    if (!isAuthenticated) {
-      navigate("/");
-      return;
-    }
-
     // 수정 모드일 때 기존 데이터 불러오기
     // "호스팅하기"로 새로 생성된 초안인 경우 API 호출하지 않음
     if (id && !isNewDraft) {
@@ -161,10 +152,7 @@ const AccommodationEdit: React.FC = () => {
     }
   }, [
     id,
-    isAuthenticated,
-    isAuthLoading,
     isNewDraft,
-    navigate,
     handleError,
     loadAccommodation,
     loadImages,
@@ -281,18 +269,6 @@ const AccommodationEdit: React.FC = () => {
       }
     }
   };
-
-  if (isAuthLoading) {
-    return (
-      <>
-        <div className={styles.loading}>로딩 중...</div>
-      </>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null;
-  }
 
   const renderStepContent = () => {
     switch (currentStep) {

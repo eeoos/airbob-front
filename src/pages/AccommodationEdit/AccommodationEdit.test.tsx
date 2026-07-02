@@ -28,13 +28,6 @@ jest.mock("../../api", () => ({
   },
 }));
 
-jest.mock("../../hooks/useAuth", () => ({
-  useAuth: () => ({
-    isAuthenticated: true,
-    isLoading: false,
-  }),
-}));
-
 jest.mock("../../hooks/useApiError", () => ({
   useApiError: () => ({
     error: null,

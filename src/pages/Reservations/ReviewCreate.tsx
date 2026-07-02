@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { reviewApi, reservationApi } from "../../api";
 import { ReservationDetailInfo } from "../../types/reservation";
 import { useApiError } from "../../hooks/useApiError";
-import { useAuth } from "../../hooks/useAuth";
 import { ErrorToast } from "../../components/ErrorToast";
 import { getImageUrl } from "../../utils/image";
 import styles from "./ReviewCreate.module.css";
@@ -11,7 +10,6 @@ import styles from "./ReviewCreate.module.css";
 const ReviewCreate: React.FC = () => {
   const { reservationUid } = useParams<{ reservationUid: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { error, handleError, clearError } = useApiError();
   const [reservation, setReservation] = useState<ReservationDetailInfo | null>(null);
   const [rating, setRating] = useState<number>(5);
@@ -22,13 +20,6 @@ const ReviewCreate: React.FC = () => {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   useEffect(() => {
-    if (isAuthLoading) return;
-    
-    if (!isAuthenticated) {
-      navigate("/");
-      return;
-    }
-
     if (!reservationUid) {
       navigate("/profile");
       return;
@@ -49,7 +40,7 @@ const ReviewCreate: React.FC = () => {
     };
 
     fetchReservation();
-  }, [reservationUid, isAuthenticated, isAuthLoading, navigate, handleError, clearError]);
+  }, [reservationUid, navigate, handleError, clearError]);
 
   // 컴포넌트 언마운트 시 미리보기 URL 정리
   useEffect(() => {
@@ -149,18 +140,6 @@ const ReviewCreate: React.FC = () => {
       setIsSubmitting(false);
     }
   };
-
-  if (isAuthLoading) {
-    return (
-      <>
-        <div className={styles.loading}>로딩 중...</div>
-      </>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null;
-  }
 
   if (isLoading) {
     return (
