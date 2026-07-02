@@ -266,11 +266,12 @@ High-risk files:
 
 Required output:
 
-- 각 파일의 책임 목록.
-- 분리할 컴포넌트/hook 후보.
-- 유지해야 할 user flow.
-- 테스트/브라우저 QA 기준.
-- migration 순서.
+- [x] 각 파일의 책임 목록.
+- [x] 분리할 컴포넌트/hook 후보.
+- [x] 유지해야 할 user flow.
+- [x] 테스트/브라우저 QA 기준.
+- [x] migration 순서.
+- [x] 세부 계획 문서: `docs/superpowers/plans/2026-07-02-airbob-large-page-decomposition.ko.md`
 
 Commit:
 
