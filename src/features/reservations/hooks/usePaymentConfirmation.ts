@@ -4,7 +4,7 @@ import { paymentApi } from "../../../api";
 export type PaymentConfirmationResult =
   | {
       error: null;
-      status: "confirmed" | "skipped";
+      status: "confirmed" | "invalid" | "skipped";
     }
   | {
       error: unknown;
@@ -17,6 +17,13 @@ interface UsePaymentConfirmationOptions {
   orderId: string | null;
   paymentKey: string | null;
 }
+
+const parsePaymentAmount = (amount: string): number | null => {
+  if (!/^\d+$/.test(amount)) return null;
+
+  const parsedAmount = Number(amount);
+  return Number.isSafeInteger(parsedAmount) ? parsedAmount : null;
+};
 
 export function usePaymentConfirmation({
   amount,
@@ -48,11 +55,20 @@ export function usePaymentConfirmation({
         return;
       }
 
+      const parsedAmount = parsePaymentAmount(amount);
+      if (parsedAmount === null) {
+        if (isActive) {
+          setResult({ status: "invalid", error: null });
+          setIsProcessing(false);
+        }
+        return;
+      }
+
       try {
         await paymentApi.confirm({
           payment_key: paymentKey,
           order_id: orderId,
-          amount: parseInt(amount, 10),
+          amount: parsedAmount,
         });
 
         if (isActive) {

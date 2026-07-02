@@ -57,6 +57,24 @@ describe("usePaymentConfirmation", () => {
     });
   });
 
+  it("returns an invalid result without confirming malformed amount values", async () => {
+    const { result } = renderHook(() =>
+      usePaymentConfirmation({
+        amount: "120000x",
+        orderId: "order-1",
+        paymentKey: "payment-key-1",
+      })
+    );
+
+    await waitFor(() => expect(result.current.isProcessing).toBe(false));
+
+    expect(paymentApi.confirm).not.toHaveBeenCalled();
+    expect(result.current.result).toEqual({
+      status: "invalid",
+      error: null,
+    });
+  });
+
   it("returns completion result even when confirmation fails", async () => {
     const error = new Error("confirm failed");
     jest.mocked(paymentApi.confirm).mockRejectedValue(error);

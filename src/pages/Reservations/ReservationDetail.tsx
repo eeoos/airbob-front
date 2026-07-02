@@ -1,5 +1,5 @@
-import React, { useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { ReservationStatus, PaymentStatus } from "../../types/enums";
 import { ErrorToast } from "../../components/ErrorToast";
 import { useReservationDetail } from "../../features/reservations";
@@ -8,9 +8,20 @@ import { GOOGLE_MAPS_API_KEY } from "../../utils/constants";
 import { routeTo } from "../../routes/paths";
 import styles from "./ReservationDetail.module.css";
 
+interface ReservationDetailLocationState {
+  toastMessage?: string;
+}
+
 const ReservationDetail: React.FC = () => {
   const { reservationUid } = useParams<{ reservationUid: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const locationState = location.state as ReservationDetailLocationState | null;
+  const [routeToastMessage, setRouteToastMessage] = useState<string | null>(
+    typeof locationState?.toastMessage === "string"
+      ? locationState.toastMessage
+      : null
+  );
   const { error, clearError, isLoading, reservation } =
     useReservationDetail(reservationUid);
 
@@ -355,9 +366,12 @@ const ReservationDetail: React.FC = () => {
         </div>
       </div>
 
-      {error && (
+      {(error || routeToastMessage) && (
         <div className={styles.toastContainer}>
-          <ErrorToast message={error} onClose={clearError} />
+          <ErrorToast
+            message={error ?? routeToastMessage ?? ""}
+            onClose={error ? clearError : () => setRouteToastMessage(null)}
+          />
         </div>
       )}
     </>

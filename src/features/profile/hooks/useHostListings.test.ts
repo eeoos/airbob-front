@@ -1,5 +1,9 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { accommodationApi } from "../../../api";
+import {
+  HostAccommodationInfo,
+  HostAccommodationInfos,
+} from "../../../types/accommodation";
 import { AccommodationStatus } from "../../../types/enums";
 import { useHostListings } from "./useHostListings";
 
@@ -20,8 +24,10 @@ jest.mock("../../../hooks/useApiError", () => ({
   }),
 }));
 
-const createAccommodation = (id: number, status = AccommodationStatus.PUBLISHED) =>
-  ({
+const createAccommodation = (
+  id: number,
+  status = AccommodationStatus.PUBLISHED
+): HostAccommodationInfo => ({
     id,
     name: `숙소 ${id}`,
     thumbnail_url: null,
@@ -34,7 +40,30 @@ const createAccommodation = (id: number, status = AccommodationStatus.PUBLISHED)
       district: "Mapo",
     },
     created_at: "2026-07-01T00:00:00",
-  } as any);
+  });
+
+const createAccommodationPage = (
+  accommodations: HostAccommodationInfo[],
+  nextCursor: string | null = null
+): HostAccommodationInfos => ({
+  accommodations,
+  page_info: {
+    current_size: accommodations.length,
+    has_next: nextCursor !== null,
+    next_cursor: nextCursor,
+  },
+});
+
+const deferred = <T,>() => {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+
+  return { promise, reject, resolve };
+};
 
 describe("useHostListings", () => {
   beforeEach(() => {
@@ -45,13 +74,9 @@ describe("useHostListings", () => {
 
   it("loads the first host listing page for the selected status", async () => {
     const accommodation = createAccommodation(1);
-    jest.mocked(accommodationApi.getMyAccommodations).mockResolvedValue({
-      accommodations: [accommodation],
-      page_info: {
-        has_next: true,
-        next_cursor: "cursor-1",
-      },
-    } as any);
+    jest
+      .mocked(accommodationApi.getMyAccommodations)
+      .mockResolvedValue(createAccommodationPage([accommodation], "cursor-1"));
 
     const { result } = renderHook(() => useHostListings("PUBLISHED"));
 
@@ -72,20 +97,10 @@ describe("useHostListings", () => {
     const secondAccommodation = createAccommodation(2);
     jest
       .mocked(accommodationApi.getMyAccommodations)
-      .mockResolvedValueOnce({
-        accommodations: [firstAccommodation],
-        page_info: {
-          has_next: true,
-          next_cursor: "cursor-1",
-        },
-      } as any)
-      .mockResolvedValueOnce({
-        accommodations: [secondAccommodation],
-        page_info: {
-          has_next: false,
-          next_cursor: null,
-        },
-      } as any);
+      .mockResolvedValueOnce(
+        createAccommodationPage([firstAccommodation], "cursor-1")
+      )
+      .mockResolvedValueOnce(createAccommodationPage([secondAccommodation]));
 
     const { result } = renderHook(() => useHostListings("PUBLISHED"));
 
@@ -115,20 +130,10 @@ describe("useHostListings", () => {
     const draftAccommodation = createAccommodation(2, AccommodationStatus.DRAFT);
     jest
       .mocked(accommodationApi.getMyAccommodations)
-      .mockResolvedValueOnce({
-        accommodations: [publishedAccommodation],
-        page_info: {
-          has_next: true,
-          next_cursor: "published-cursor",
-        },
-      } as any)
-      .mockResolvedValueOnce({
-        accommodations: [draftAccommodation],
-        page_info: {
-          has_next: false,
-          next_cursor: null,
-        },
-      } as any);
+      .mockResolvedValueOnce(
+        createAccommodationPage([publishedAccommodation], "published-cursor")
+      )
+      .mockResolvedValueOnce(createAccommodationPage([draftAccommodation]));
 
     const { result, rerender } = renderHook(
       ({ statusType }: { statusType: "PUBLISHED" | "DRAFT" }) =>
@@ -162,20 +167,8 @@ describe("useHostListings", () => {
     const reloadedAccommodation = createAccommodation(2);
     jest
       .mocked(accommodationApi.getMyAccommodations)
-      .mockResolvedValueOnce({
-        accommodations: [firstAccommodation],
-        page_info: {
-          has_next: false,
-          next_cursor: null,
-        },
-      } as any)
-      .mockResolvedValueOnce({
-        accommodations: [reloadedAccommodation],
-        page_info: {
-          has_next: false,
-          next_cursor: null,
-        },
-      } as any);
+      .mockResolvedValueOnce(createAccommodationPage([firstAccommodation]))
+      .mockResolvedValueOnce(createAccommodationPage([reloadedAccommodation]));
 
     const { result } = renderHook(() => useHostListings("PUBLISHED"));
 
@@ -189,5 +182,87 @@ describe("useHostListings", () => {
 
     expect(result.current.accommodations).toEqual([reloadedAccommodation]);
     expect(accommodationApi.getMyAccommodations).toHaveBeenCalledTimes(2);
+  });
+
+  it("ignores stale first-page responses after the status changes", async () => {
+    const publishedAccommodation = createAccommodation(
+      1,
+      AccommodationStatus.PUBLISHED
+    );
+    const draftAccommodation = createAccommodation(2, AccommodationStatus.DRAFT);
+    const publishedRequest =
+      deferred<HostAccommodationInfos>();
+    const draftRequest = deferred<HostAccommodationInfos>();
+
+    jest
+      .mocked(accommodationApi.getMyAccommodations)
+      .mockReturnValueOnce(publishedRequest.promise)
+      .mockReturnValueOnce(draftRequest.promise);
+
+    const { result, rerender } = renderHook(
+      ({ statusType }: { statusType: "PUBLISHED" | "DRAFT" }) =>
+        useHostListings(statusType),
+      {
+        initialProps: {
+          statusType: "PUBLISHED" as "PUBLISHED" | "DRAFT",
+        },
+      }
+    );
+
+    rerender({ statusType: "DRAFT" });
+
+    await act(async () => {
+      draftRequest.resolve(createAccommodationPage([draftAccommodation]));
+      await draftRequest.promise;
+    });
+
+    await waitFor(() =>
+      expect(result.current.accommodations).toEqual([draftAccommodation])
+    );
+
+    await act(async () => {
+      publishedRequest.resolve(createAccommodationPage([publishedAccommodation]));
+      await publishedRequest.promise;
+    });
+
+    expect(result.current.accommodations).toEqual([draftAccommodation]);
+  });
+
+  it("does not issue duplicate loadMore requests before loading state commits", async () => {
+    const firstAccommodation = createAccommodation(1);
+    const secondAccommodation = createAccommodation(2);
+    const loadMoreRequest = deferred<HostAccommodationInfos>();
+
+    jest
+      .mocked(accommodationApi.getMyAccommodations)
+      .mockResolvedValueOnce(
+        createAccommodationPage([firstAccommodation], "cursor-1")
+      )
+      .mockReturnValueOnce(loadMoreRequest.promise)
+      .mockResolvedValue(createAccommodationPage([createAccommodation(3)]));
+
+    const { result } = renderHook(() => useHostListings("PUBLISHED"));
+
+    await waitFor(() => expect(result.current.hasNext).toBe(true));
+
+    let firstLoadMore!: Promise<void>;
+    let secondLoadMore!: Promise<void>;
+    await act(async () => {
+      firstLoadMore = result.current.loadMore();
+      secondLoadMore = result.current.loadMore();
+    });
+
+    expect(accommodationApi.getMyAccommodations).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      loadMoreRequest.resolve(createAccommodationPage([secondAccommodation]));
+      await firstLoadMore;
+      await secondLoadMore;
+    });
+
+    expect(result.current.accommodations).toEqual([
+      firstAccommodation,
+      secondAccommodation,
+    ]);
   });
 });

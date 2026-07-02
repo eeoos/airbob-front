@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ErrorToast } from "../../components/ErrorToast";
-import { useReviewCreate } from "../../features/reviews";
+import {
+  REVIEW_IMAGE_UPLOAD_ERROR_MESSAGE,
+  useReviewCreate,
+} from "../../features/reviews";
 import { getImageUrl } from "../../utils/image";
 import { routeTo } from "../../routes/paths";
 import styles from "./ReviewCreate.module.css";
@@ -98,8 +101,17 @@ const ReviewCreate: React.FC = () => {
       rating,
     });
 
-    if (result.status === "success" || result.status === "upload_failed") {
+    if (result.status === "success") {
       navigate(routeTo.reservationDetail(result.reservationUid));
+      return;
+    }
+
+    if (result.status === "upload_failed") {
+      navigate(routeTo.reservationDetail(result.reservationUid), {
+        state: {
+          toastMessage: REVIEW_IMAGE_UPLOAD_ERROR_MESSAGE,
+        },
+      });
     }
   };
 

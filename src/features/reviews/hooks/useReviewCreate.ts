@@ -3,6 +3,9 @@ import { reservationApi, reviewApi } from "../../../api";
 import { useApiError } from "../../../hooks/useApiError";
 import { ReservationDetailInfo } from "../../../types/reservation";
 
+export const REVIEW_IMAGE_UPLOAD_ERROR_MESSAGE =
+  "리뷰는 작성되었지만 이미지 업로드에 실패했습니다.";
+
 interface SubmitReviewRequest {
   content: string;
   images: File[];
@@ -79,9 +82,7 @@ export function useReviewCreate(reservationUid?: string) {
           try {
             await reviewApi.uploadImages(createResponse.id, images);
           } catch {
-            handleError(
-              new Error("리뷰는 작성되었지만 이미지 업로드에 실패했습니다.")
-            );
+            handleError(new Error(REVIEW_IMAGE_UPLOAD_ERROR_MESSAGE));
             return {
               status: "upload_failed",
               reservationUid: reservation.reservation_uid,

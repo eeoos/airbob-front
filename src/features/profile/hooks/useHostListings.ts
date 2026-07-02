@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { accommodationApi } from "../../../api";
 import { useApiError } from "../../../hooks/useApiError";
 import { MyAccommodationInfo } from "../../../types/accommodation";
@@ -18,6 +18,8 @@ export function useHostListings(statusType: HostListingStatusType) {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasNext, setHasNext] = useState(false);
+  const loadingMoreRef = useRef(false);
+  const requestIdRef = useRef(0);
 
   const applyPageInfo = (pageInfo: CursorPageInfo) => {
     setCursor(pageInfo.next_cursor);
@@ -25,7 +27,11 @@ export function useHostListings(statusType: HostListingStatusType) {
   };
 
   const reload = useCallback(async () => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+    loadingMoreRef.current = false;
     setIsLoading(true);
+    setIsLoadingMore(false);
     clearError();
     setAccommodations([]);
     setCursor(null);
@@ -37,12 +43,18 @@ export function useHostListings(statusType: HostListingStatusType) {
         status: statusType as AccommodationStatus,
       });
 
+      if (requestIdRef.current !== requestId) return;
+
       setAccommodations(response.accommodations);
       applyPageInfo(response.page_info);
     } catch (err) {
+      if (requestIdRef.current !== requestId) return;
+
       handleError(err);
     } finally {
-      setIsLoading(false);
+      if (requestIdRef.current === requestId) {
+        setIsLoading(false);
+      }
     }
   }, [clearError, handleError, statusType]);
 
@@ -51,8 +63,10 @@ export function useHostListings(statusType: HostListingStatusType) {
   }, [reload]);
 
   const loadMore = useCallback(async () => {
-    if (!hasNext || isLoadingMore || !cursor) return;
+    if (!hasNext || loadingMoreRef.current || !cursor) return;
 
+    const requestId = requestIdRef.current;
+    loadingMoreRef.current = true;
     setIsLoadingMore(true);
     clearError();
 
@@ -63,21 +77,21 @@ export function useHostListings(statusType: HostListingStatusType) {
         status: statusType as AccommodationStatus,
       });
 
+      if (requestIdRef.current !== requestId) return;
+
       setAccommodations((prev) => [...prev, ...response.accommodations]);
       applyPageInfo(response.page_info);
     } catch (err) {
+      if (requestIdRef.current !== requestId) return;
+
       handleError(err);
     } finally {
-      setIsLoadingMore(false);
+      if (requestIdRef.current === requestId) {
+        loadingMoreRef.current = false;
+        setIsLoadingMore(false);
+      }
     }
-  }, [
-    clearError,
-    cursor,
-    handleError,
-    hasNext,
-    isLoadingMore,
-    statusType,
-  ]);
+  }, [clearError, cursor, handleError, hasNext, statusType]);
 
   return {
     accommodations,
