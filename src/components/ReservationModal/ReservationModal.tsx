@@ -6,6 +6,7 @@ import { useApiError } from "../../hooks/useApiError";
 import { useAuth } from "../../hooks/useAuth";
 import { ErrorToast } from "../ErrorToast";
 import { getImageUrl } from "../../utils/image";
+import { routeTo } from "../../routes/paths";
 import styles from "./ReservationModal.module.css";
 
 interface ReservationModalProps {
@@ -195,8 +196,8 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
       paymentWidget.requestPayment({
         orderId: reservation_uid,
         orderName: order_name,
-        successUrl: `${window.location.origin}/reservations/${reservation_uid}/success`,
-        failUrl: `${window.location.origin}/reservations/${reservation_uid}/fail`,
+        successUrl: `${window.location.origin}${routeTo.paymentSuccess(reservation_uid)}`,
+        failUrl: `${window.location.origin}${routeTo.paymentFail(reservation_uid)}`,
         customerEmail: customer_email,
         customerName: customer_name,
         amount,
@@ -329,5 +330,4 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
 };
 
 export default ReservationModal;
-
 

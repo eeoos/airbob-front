@@ -7,6 +7,7 @@ import { useApiError } from "../../hooks/useApiError";
 import { ErrorToast } from "../../components/ErrorToast";
 import { getImageUrl } from "../../utils/image";
 import { GOOGLE_MAPS_API_KEY } from "../../utils/constants";
+import { routeTo } from "../../routes/paths";
 import styles from "./ReservationDetail.module.css";
 
 const ReservationDetail: React.FC = () => {
@@ -18,7 +19,7 @@ const ReservationDetail: React.FC = () => {
 
   useEffect(() => {
     if (!reservationUid) {
-      navigate("/profile");
+      navigate(routeTo.profile());
       return;
     }
 
@@ -142,7 +143,7 @@ const ReservationDetail: React.FC = () => {
   return (
     <>
       <div className={styles.container}>
-        <button className={styles.backButton} onClick={() => navigate("/profile")}>
+        <button className={styles.backButton} onClick={() => navigate(routeTo.profile())}>
           ← 돌아가기
         </button>
 
@@ -200,7 +201,7 @@ const ReservationDetail: React.FC = () => {
                   </div>
                   <div
                     className={styles.accommodationBox}
-                    onClick={() => navigate(`/accommodations/${reservation.accommodation.id}`)}
+                    onClick={() => navigate(routeTo.accommodationDetail(reservation.accommodation.id))}
                   >
                     <div className={styles.accommodationBoxContent}>
                       <span>숙소로 이동하기</span>
@@ -210,7 +211,7 @@ const ReservationDetail: React.FC = () => {
                   {canReview && (
                     <div
                       className={styles.accommodationBox}
-                      onClick={() => navigate(`/reservations/${reservation.reservation_uid}/review`)}
+                      onClick={() => navigate(routeTo.reviewCreate(reservation.reservation_uid))}
                     >
                       <div className={styles.accommodationBoxContent}>
                         <span>리뷰 작성하기</span>

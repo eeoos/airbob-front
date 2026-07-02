@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { reservationApi } from "../../../api";
 import { AccommodationDetail } from "../../../types/accommodation";
 import { CouponInfo } from "../../../types/coupon";
+import { routeTo } from "../../../routes/paths";
 
 type SetSearchParams = (
   nextParams: URLSearchParams,
@@ -270,7 +271,7 @@ export const useAccommodationBooking = ({
         params.set("couponDiscount", reserveCouponDiscount.toString());
       }
 
-      navigate(`/accommodations/${accommodationId}/confirm?${params.toString()}`);
+      navigate(routeTo.accommodationConfirm(accommodationId, params));
     } catch (error) {
       handleError(error);
     }

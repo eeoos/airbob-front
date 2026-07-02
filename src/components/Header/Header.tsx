@@ -4,6 +4,7 @@ import { SearchBar } from "../SearchBar/SearchBar";
 import { UserMenu } from "./UserMenu";
 import { useAuth } from "../../hooks/useAuth";
 import logoImage from "../../assets/logo/logo.png";
+import { routeTo } from "../../routes/paths";
 import styles from "./Header.module.css";
 
 export const Header: React.FC = () => {
@@ -14,7 +15,7 @@ export const Header: React.FC = () => {
   const [isSearchBarExpanded, setIsSearchBarExpanded] = useState(false);
 
   const handleLogoClick = () => {
-    navigate("/");
+    navigate(routeTo.home());
   };
 
   // Search 페이지이고 destination 파라미터가 없고 viewport 파라미터가 있으면 지도 드래그 모드
@@ -48,4 +49,3 @@ export const Header: React.FC = () => {
     </header>
   );
 };
-

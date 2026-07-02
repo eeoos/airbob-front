@@ -2,6 +2,7 @@ import React from "react";
 import { AccommodationSearchInfo } from "../../types/accommodation";
 import { getImageUrl } from "../../utils/image";
 import { getAccommodationTypeLabel } from "../../utils/codes";
+import { routeTo } from "../../routes/paths";
 import styles from "./AccommodationCard.Search.module.css";
 
 interface AccommodationCardSearchProps {
@@ -60,7 +61,7 @@ export const AccommodationCardSearch: React.FC<AccommodationCardSearchProps> = (
       onClick();
     } else {
       // 새 탭에서 열기
-      window.open(`/accommodations/${accommodation.id}`, '_blank');
+      window.open(routeTo.accommodationDetail(accommodation.id), '_blank');
     }
   };
 
@@ -138,4 +139,3 @@ export const AccommodationCardSearch: React.FC<AccommodationCardSearchProps> = (
     </div>
   );
 };
-

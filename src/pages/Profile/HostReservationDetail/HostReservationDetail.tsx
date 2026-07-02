@@ -6,6 +6,7 @@ import { ReservationStatus } from "../../../types/enums";
 import { useApiError } from "../../../hooks/useApiError";
 import { ErrorToast } from "../../../components/ErrorToast";
 import { getImageUrl } from "../../../utils/image";
+import { routeTo } from "../../../routes/paths";
 import styles from "./HostReservationDetail.module.css";
 
 const HostReservationDetail: React.FC = () => {
@@ -17,7 +18,7 @@ const HostReservationDetail: React.FC = () => {
 
   useEffect(() => {
     if (!reservationUid) {
-      navigate("/profile");
+      navigate(routeTo.profile());
       return;
     }
 
@@ -127,7 +128,7 @@ const HostReservationDetail: React.FC = () => {
           <h3 className={styles.sectionTitle}>숙소 정보</h3>
           <div 
             className={styles.accommodationInfo}
-            onClick={() => navigate(`/accommodations/${reservation.accommodation.id}`)}
+            onClick={() => navigate(routeTo.accommodationDetail(reservation.accommodation.id))}
           >
             {reservation.accommodation.thumbnail_url ? (
               <img

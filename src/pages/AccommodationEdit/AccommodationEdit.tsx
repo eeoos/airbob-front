@@ -19,6 +19,7 @@ import { LocationStep } from "./components/LocationStep";
 import { PhotosStep } from "./components/PhotosStep";
 import { PublishStep } from "./components/PublishStep";
 import { TimeStep } from "./components/TimeStep";
+import { routeTo } from "../../routes/paths";
 import styles from "./components/EditWizardLayout.module.css";
 import timeStyles from "./components/TimeStep.module.css";
 
@@ -81,7 +82,7 @@ const AccommodationEdit: React.FC = () => {
   });
 
   const navigateToHostProfile = useCallback(() => {
-    navigate("/profile?mode=host");
+    navigate(routeTo.profile({ mode: "host" }));
   }, [navigate]);
 
   const {

@@ -13,6 +13,7 @@ import {
   getMarkerIconModel,
 } from "./lib/markerIcon";
 import { buildInfoWindowContent } from "./lib/infoWindowContent";
+import { routeTo } from "../../routes/paths";
 import styles from "./Map.module.css";
 
 interface MapProps {
@@ -851,7 +852,7 @@ export const Map: React.FC<MapProps> = ({
             const target = e.target as HTMLElement;
             if (!target.closest('button')) {
               // 새 탭에서 열기
-              window.open(`/accommodations/${selectedAccommodation.id}`, '_blank');
+              window.open(routeTo.accommodationDetail(selectedAccommodation.id), '_blank');
             }
           });
         }

@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { getImageUrl } from "../../utils/image";
+import { routeTo } from "../../routes/paths";
 import styles from "./BaseAccommodationCard.module.css";
 
 interface BaseAccommodationCardProps {
@@ -26,7 +27,7 @@ export const BaseAccommodationCard: React.FC<BaseAccommodationCardProps> = ({
     if (onClick) {
       onClick();
     } else {
-      navigate(`/accommodations/${id}`);
+      navigate(routeTo.accommodationDetail(id));
     }
   };
 
@@ -62,7 +63,6 @@ export const BaseAccommodationCard: React.FC<BaseAccommodationCardProps> = ({
     </div>
   );
 };
-
 
 
 

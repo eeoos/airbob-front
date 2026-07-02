@@ -5,6 +5,7 @@ import {
   buildSearchNavigationParams,
   removeViewportParams,
 } from "../lib/searchParams";
+import { routeTo } from "../../../routes/paths";
 
 export interface SearchParams {
   destination?: string;
@@ -148,7 +149,7 @@ export const useSearchBarState = ({
       }
     );
 
-    navigate(`/search?${params.toString()}`);
+    navigate(routeTo.search(params));
   }, [
     adultOccupancy,
     checkIn,

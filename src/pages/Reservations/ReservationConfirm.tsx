@@ -5,6 +5,7 @@ import { AccommodationDetail } from "../../types/accommodation";
 import { useApiError } from "../../hooks/useApiError";
 import { ErrorToast } from "../../components/ErrorToast";
 import { getImageUrl } from "../../utils/image";
+import { routeTo } from "../../routes/paths";
 import styles from "./ReservationConfirm.module.css";
 
 declare global {
@@ -44,13 +45,13 @@ const ReservationConfirm: React.FC = () => {
   useEffect(() => {
     const fetchAccommodation = async () => {
       if (!id) {
-        navigate("/");
+        navigate(routeTo.home());
         return;
       }
 
       if (!reservationUid) {
         handleError(new Error("예약 정보가 없습니다."));
-        navigate(`/accommodations/${id}`);
+        navigate(routeTo.accommodationDetail(id));
         return;
       }
 
@@ -158,8 +159,8 @@ const ReservationConfirm: React.FC = () => {
       await paymentWidget.requestPayment({
         orderId: reservationUid,
         orderName: orderName,
-        successUrl: `${window.location.origin}/reservations/${reservationUid}/success`,
-        failUrl: `${window.location.origin}/reservations/${reservationUid}/fail`,
+        successUrl: `${window.location.origin}${routeTo.paymentSuccess(reservationUid)}`,
+        failUrl: `${window.location.origin}${routeTo.paymentFail(reservationUid)}`,
         customerEmail: customerEmail,
         customerName: customerName,
         amount: amount,

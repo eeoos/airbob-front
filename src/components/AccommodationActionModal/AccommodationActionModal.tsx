@@ -6,6 +6,7 @@ import { AccommodationStatus } from "../../types/enums";
 import { useApiError } from "../../hooks/useApiError";
 import { ErrorToast } from "../ErrorToast";
 import { getImageUrl } from "../../utils/image";
+import { routeTo } from "../../routes/paths";
 import styles from "./AccommodationActionModal.module.css";
 
 interface AccommodationActionModalProps {
@@ -41,7 +42,7 @@ export const AccommodationActionModal: React.FC<AccommodationActionModalProps> =
   if (!isOpen || !accommodation) return null;
 
   const handleEdit = () => {
-    navigate(`/accommodations/${accommodation.id}/edit`);
+    navigate(routeTo.accommodationEdit(accommodation.id));
     onClose();
   };
 
@@ -118,7 +119,7 @@ export const AccommodationActionModal: React.FC<AccommodationActionModalProps> =
             <div 
               className={styles.accommodationHeader}
               onClick={() => {
-                navigate(`/accommodations/${accommodation.id}`);
+                navigate(routeTo.accommodationDetail(accommodation.id));
                 onClose();
               }}
             >
@@ -209,6 +210,5 @@ export const AccommodationActionModal: React.FC<AccommodationActionModalProps> =
     </>
   );
 };
-
 
 

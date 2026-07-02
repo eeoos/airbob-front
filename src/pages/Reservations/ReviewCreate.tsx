@@ -5,6 +5,7 @@ import { ReservationDetailInfo } from "../../types/reservation";
 import { useApiError } from "../../hooks/useApiError";
 import { ErrorToast } from "../../components/ErrorToast";
 import { getImageUrl } from "../../utils/image";
+import { routeTo } from "../../routes/paths";
 import styles from "./ReviewCreate.module.css";
 
 const ReviewCreate: React.FC = () => {
@@ -21,7 +22,7 @@ const ReviewCreate: React.FC = () => {
 
   useEffect(() => {
     if (!reservationUid) {
-      navigate("/profile");
+      navigate(routeTo.profile());
       return;
     }
 
@@ -127,13 +128,13 @@ const ReviewCreate: React.FC = () => {
           // 이미지 업로드 실패해도 리뷰는 생성되었으므로 경고만 표시
           handleError(new Error("리뷰는 작성되었지만 이미지 업로드에 실패했습니다."));
           // 이미지 업로드 실패해도 리뷰 작성은 완료되었으므로 이동
-          navigate(`/reservations/${reservation.reservation_uid}`);
+          navigate(routeTo.reservationDetail(reservation.reservation_uid));
           return;
         }
       }
 
       // 3. 성공 시 예약 상세 페이지로 이동
-      navigate(`/reservations/${reservation.reservation_uid}`);
+      navigate(routeTo.reservationDetail(reservation.reservation_uid));
     } catch (err) {
       handleError(err);
     } finally {

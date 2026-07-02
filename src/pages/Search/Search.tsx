@@ -18,6 +18,7 @@ import { getViewportFromSearchParams } from "../../features/search/lib/searchPar
 import { useSearchBottomSheet } from "../../features/search/hooks/useSearchBottomSheet";
 import { useSearchMapState } from "../../features/search/hooks/useSearchMapState";
 import { useSearchResults } from "../../features/search/hooks/useSearchResults";
+import { routeTo } from "../../routes/paths";
 import styles from "./Search.module.css";
 
 const Search: React.FC = () => {
@@ -99,7 +100,7 @@ const Search: React.FC = () => {
 
   const handleAccommodationCardClick = (accommodationId: number) => {
     // 새 탭에서 열기
-    window.open(`/accommodations/${accommodationId}`, '_blank');
+    window.open(routeTo.accommodationDetail(accommodationId), '_blank');
     selectAccommodationId(accommodationId);
   };
 
