@@ -591,7 +591,37 @@
   - 변경사항 없는 `저장 후 나가기`에서 PATCH 없이 `/profile?mode=host` 이동을 확인했다.
   - 숙소 정보 step과 체크인/체크아웃 step 렌더링을 확인했다.
   - create/publish 전체 wizard는 실제 새 listing 생성/공개가 필요한 별도 파괴적 QA라 이번 비파괴 리팩토링 검증에서는 실행하지 않았다.
-- [ ] Commit: `refactor: split accommodation edit workflow`
+- [x] Commit: `refactor: split accommodation edit workflow`
+
+### Task H: AccommodationEdit remaining UI components 분리
+
+**Files:**
+
+- Create: `src/pages/AccommodationEdit/components/InfoStep.tsx`
+- Create: `src/pages/AccommodationEdit/components/TimeStep.tsx`
+- Create: `src/pages/AccommodationEdit/components/PublishStep.tsx`
+- Create: `src/pages/AccommodationEdit/components/TimePicker.tsx`
+- Create: `src/pages/AccommodationEdit/components/AccommodationTypeModal.tsx`
+- Create: `src/pages/AccommodationEdit/components/AmenityModal.tsx`
+- Create: `src/pages/AccommodationEdit/components/DetailAddressConfirmModal.tsx`
+- Create: `src/pages/AccommodationEdit/components/accommodationEditIcons.tsx`
+- Modify: `src/pages/AccommodationEdit/AccommodationEdit.tsx`
+- Keep CSS class names unchanged. Split CSS only after component boundaries are stable.
+
+- [x] Info step을 page-local component로 이동한다.
+- [x] Time step과 TimePicker를 page-local component로 이동한다.
+- [x] Publish step을 page-local component로 이동한다.
+- [x] 숙소 유형/편의시설/상세주소 확인 모달을 page-local component로 이동한다.
+- [x] type/amenity icon rendering을 helper component로 이동한다.
+- [x] `npm run verify -- --no-cache`를 통과시킨다.
+- [x] Browser QA로 edit wizard step/modal 기본 동작을 확인한다.
+  - QA 계정으로 `/accommodations/3/edit`에 진입해 숙소 정보 step, 숙소 유형 모달, 편의시설 모달, 체크인/체크아웃 step, TimePicker 렌더링을 확인했다.
+  - QA 중 편의시설 모달의 nested `<button>` React console error를 발견했고, 선택 카드를 `role="button"` 컨테이너로 바꿔 수량 조절 버튼과 분리했다.
+  - 회귀 테스트 `does not nest amenity count buttons inside selectable buttons`를 추가했다.
+  - subagent code review에서 수량 조절 버튼의 keyboard event bubbling 문제를 발견했고, outer `role="button"`이 자기 자신에게 온 Enter/Space만 처리하도록 수정했다.
+  - 회귀 테스트 `does not toggle amenity selection when count buttons receive keyboard events`를 추가했다.
+  - 수정 후 modal/time picker 재검증에서 console error 없음과 추가 network request 없음이 확인됐다.
+- [x] Commit: `refactor: split accommodation edit UI components`
 
 ---
 
