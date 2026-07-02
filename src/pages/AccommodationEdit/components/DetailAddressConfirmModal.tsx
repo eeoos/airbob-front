@@ -1,5 +1,6 @@
 import React from "react";
 import styles from "../AccommodationEdit.module.css";
+import { EditModalShell } from "./EditModalShell";
 
 interface DetailAddressConfirmModalProps {
   onClose: () => void;
@@ -8,11 +9,13 @@ interface DetailAddressConfirmModalProps {
 
 export const DetailAddressConfirmModal: React.FC<
   DetailAddressConfirmModalProps
-> = ({ onClose, onConfirm }) => (
-  <div className={styles.typeModalOverlay} onClick={onClose}>
-    <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
+> = ({ onClose, onConfirm }) => {
+  const title = "상세 주소 확인";
+
+  return (
+    <EditModalShell title={title} modalClassName={styles.confirmModal} onClose={onClose}>
       <div className={styles.confirmModalContent}>
-        <h2 className={styles.confirmModalTitle}>상세 주소 확인</h2>
+        <h2 className={styles.confirmModalTitle}>{title}</h2>
         <p className={styles.confirmModalMessage}>
           상세주소를 입력하지 않으셨습니다. 이대로 진행하시겠습니까?
         </p>
@@ -33,6 +36,6 @@ export const DetailAddressConfirmModal: React.FC<
           </button>
         </div>
       </div>
-    </div>
-  </div>
-);
+    </EditModalShell>
+  );
+};

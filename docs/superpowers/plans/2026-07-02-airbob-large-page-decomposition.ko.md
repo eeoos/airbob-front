@@ -623,6 +623,29 @@
   - 수정 후 modal/time picker 재검증에서 console error 없음과 추가 network request 없음이 확인됐다.
 - [x] Commit: `refactor: split accommodation edit UI components`
 
+### Task I: AccommodationEdit modal accessibility boundary 정리
+
+**Files:**
+
+- Create: `src/pages/AccommodationEdit/components/EditModalShell.tsx`
+- Modify: `src/pages/AccommodationEdit/components/AccommodationTypeModal.tsx`
+- Modify: `src/pages/AccommodationEdit/components/AmenityModal.tsx`
+- Modify: `src/pages/AccommodationEdit/components/DetailAddressConfirmModal.tsx`
+- Modify: `src/pages/AccommodationEdit/components/AccommodationEditComponents.test.tsx`
+- Keep CSS class names unchanged. Visual redesign은 Airbnb `design.md` 적용 단계에서 한다.
+
+- [x] 세 모달에 공통 `role="dialog"` / `aria-modal="true"` / accessible name 경계를 적용한다.
+- [x] Escape key close와 overlay close를 공통 shell에서 처리한다.
+- [x] 모달 open 시 첫 번째 조작 가능한 요소로 focus를 이동한다.
+- [x] 기존 type/amenity/detail confirm 동작을 유지한다.
+- [x] `npm run verify -- --no-cache`를 통과시킨다.
+- [x] Browser QA로 edit wizard modal 기본 동작과 console error 없음을 확인한다.
+  - QA 계정으로 `/accommodations/3/edit` 진입 후 숙소 정보 step에서 숙소 유형/편의시설 모달을 열어 `role="dialog"`, `aria-modal="true"`, accessible name, 초기 focus를 확인했다.
+  - Escape key로 두 모달이 닫히는 것과 console error 없음, 추가 network request 없음을 확인했다.
+  - 상세주소 확인 모달은 현재 QA listing의 주소 step `다음` 버튼이 disabled라 비파괴 브라우저 QA로 열 수 없었고, component test에서 동일 shell 동작을 검증했다.
+  - 남은 비차단 리스크: focus trap과 background inert 처리는 아직 없다. Airbnb design system 적용 전 접근성 강화 task로 분리한다.
+- [x] Commit: `refactor: add accommodation edit modal shell`
+
 ---
 
 ## 리팩토링 위험 구간

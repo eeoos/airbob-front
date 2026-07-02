@@ -74,6 +74,52 @@ describe("AccommodationEdit extracted components", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it("renders edit modals as accessible dialogs and focuses the close action", () => {
+    const { unmount } = render(
+      <AccommodationTypeModal
+        selectedType="ENTIRE_PLACE"
+        onSelect={jest.fn()}
+        onClose={jest.fn()}
+      />
+    );
+
+    expect(
+      screen.getByRole("dialog", {
+        name: "다음 중 숙소를 가장 잘 설명하는 것은 무엇인가요?",
+      })
+    ).toHaveAttribute("aria-modal", "true");
+    expect(screen.getByLabelText("모달 닫기")).toHaveFocus();
+
+    unmount();
+
+    render(
+      <DetailAddressConfirmModal onClose={jest.fn()} onConfirm={jest.fn()} />
+    );
+
+    expect(
+      screen.getByRole("dialog", { name: "상세 주소 확인" })
+    ).toHaveAttribute("aria-modal", "true");
+    expect(screen.getByText("취소")).toHaveFocus();
+  });
+
+  it("closes edit modals with the Escape key", () => {
+    const onClose = jest.fn();
+
+    render(
+      <AmenityModal
+        amenityInfos={[]}
+        selectedAmenities={new Set()}
+        setFormData={jest.fn()}
+        setSelectedAmenities={jest.fn()}
+        onClose={onClose}
+      />
+    );
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(onClose).toHaveBeenCalled();
+  });
+
   it("selects and increments amenities from the extracted modal", () => {
     const setFormData = jest.fn();
     const setSelectedAmenities = jest.fn();

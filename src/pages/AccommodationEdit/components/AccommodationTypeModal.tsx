@@ -2,6 +2,7 @@ import React from "react";
 import { DEFAULT_ACCOMMODATION_TYPE_OPTIONS } from "../../../utils/codes";
 import styles from "../AccommodationEdit.module.css";
 import { AccommodationTypeIcon } from "./accommodationEditIcons";
+import { EditModalShell } from "./EditModalShell";
 
 interface AccommodationTypeModalProps {
   selectedType: string;
@@ -13,12 +14,19 @@ export const AccommodationTypeModal: React.FC<AccommodationTypeModalProps> = ({
   selectedType,
   onSelect,
   onClose,
-}) => (
-  <div className={styles.typeModalOverlay} onClick={onClose}>
-    <div className={styles.typeModal} onClick={(e) => e.stopPropagation()}>
+}) => {
+  const title = "다음 중 숙소를 가장 잘 설명하는 것은 무엇인가요?";
+
+  return (
+    <EditModalShell title={title} modalClassName={styles.typeModal} onClose={onClose}>
       <div className={styles.typeModalHeader}>
-        <h2 className={styles.typeModalTitle}>다음 중 숙소를 가장 잘 설명하는 것은 무엇인가요?</h2>
-        <button type="button" className={styles.typeModalClose} onClick={onClose}>
+        <h2 className={styles.typeModalTitle}>{title}</h2>
+        <button
+          type="button"
+          className={styles.typeModalClose}
+          onClick={onClose}
+          aria-label="모달 닫기"
+        >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <line x1="18" y1="6" x2="6" y2="18" />
             <line x1="6" y1="6" x2="18" y2="18" />
@@ -43,6 +51,6 @@ export const AccommodationTypeModal: React.FC<AccommodationTypeModalProps> = ({
           </button>
         ))}
       </div>
-    </div>
-  </div>
-);
+    </EditModalShell>
+  );
+};
