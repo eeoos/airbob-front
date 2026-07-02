@@ -72,3 +72,4 @@ storybook-static/
 # Assets - Screen captures (large files, reference only)
 src/assets/screen/
 src/assets/api/
+.gstack/
