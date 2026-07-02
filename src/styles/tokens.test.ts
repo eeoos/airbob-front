@@ -48,15 +48,27 @@ const requiredTokenDeclarations = [
 const legacyAppOverlayZIndexPattern =
   /z-index\s*:\s*(?:100000|99999|10001|10000|1000)\b(?:\s*!important)?/;
 
-const collectCssFiles = (dir: string): string[] => {
+const productionContractExtensions = [".css", ".ts", ".tsx"];
+
+const isProductionContractFile = (filePath: string) => {
+  const fileName = path.basename(filePath);
+
+  return (
+    productionContractExtensions.some((extension) => filePath.endsWith(extension)) &&
+    !fileName.includes(".test.") &&
+    filePath !== tokensCssPath
+  );
+};
+
+const collectProductionContractFiles = (dir: string): string[] => {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const entryPath = path.join(dir, entry.name);
 
     if (entry.isDirectory()) {
-      return collectCssFiles(entryPath);
+      return collectProductionContractFiles(entryPath);
     }
 
-    if (entry.isFile() && entry.name.endsWith(".css")) {
+    if (entry.isFile() && isProductionContractFile(entryPath)) {
       return [entryPath];
     }
 
@@ -102,13 +114,12 @@ describe("pre-design token stylesheet contract", () => {
     expect(indexCss).toMatch(/body\s*\{[\s\S]*font-family:\s*var\(--font-family-base\);/);
   });
 
-  it("keeps legacy app-level overlay z-index literals out of production CSS", () => {
-    const offenders = collectCssFiles(srcDir)
-      .filter((filePath) => filePath !== tokensCssPath)
+  it("keeps legacy app-level overlay z-index literals out of production source files", () => {
+    const offenders = collectProductionContractFiles(srcDir)
       .flatMap((filePath) => {
-        const css = fs.readFileSync(filePath, "utf8");
+        const source = fs.readFileSync(filePath, "utf8");
 
-        return css.split(/\r?\n/).flatMap((line, index) => {
+        return source.split(/\r?\n/).flatMap((line, index) => {
           const match = line.match(legacyAppOverlayZIndexPattern);
 
           if (!match) {

@@ -255,7 +255,7 @@ export const Map: React.FC<MapProps> = ({
             border-radius: 2px;
             box-shadow: 0 1px 4px rgba(0,0,0,0.3);
             cursor: pointer;
-            z-index: 1000;
+            z-index: var(--z-popover);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1165,7 +1165,7 @@ export const Map: React.FC<MapProps> = ({
           border-radius: 2px;
           box-shadow: 0 1px 4px rgba(0,0,0,0.3);
           cursor: pointer;
-          z-index: 1000;
+          z-index: var(--z-popover);
           display: flex;
           align-items: center;
           justify-content: center;
