@@ -40,14 +40,6 @@
   border-bottom-color: #00a699;
 }
 
-.loading,
-.empty {
-  text-align: center;
-  padding: 80px 24px;
-  color: #717171;
-  font-size: 16px;
-}
-
 .accommodationsGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

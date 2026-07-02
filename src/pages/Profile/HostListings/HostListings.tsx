@@ -6,6 +6,7 @@ import { useApiError } from "../../../hooks/useApiError";
 import { ErrorToast } from "../../../components/ErrorToast";
 import { AccommodationActionModal } from "../../../components/AccommodationActionModal";
 import { getImageUrl } from "../../../utils/image";
+import { EmptyState, LoadingState } from "../../../shared/ui";
 import styles from "./HostListings.module.css";
 
 interface HostListingsProps {
@@ -129,7 +130,7 @@ const HostListings: React.FC<HostListingsProps> = ({ statusType = "PUBLISHED", o
   };
 
   if (isLoading) {
-    return <div className={styles.loading}>로딩 중...</div>;
+    return <LoadingState title="로딩 중..." />;
   }
 
   return (
@@ -157,9 +158,7 @@ const HostListings: React.FC<HostListingsProps> = ({ statusType = "PUBLISHED", o
       </div>
 
       {accommodations.length === 0 ? (
-        <div className={styles.empty}>
-          <p>아직 숙소가 없습니다.</p>
-        </div>
+        <EmptyState title="아직 숙소가 없습니다." />
       ) : (
         <>
           <div className={styles.accommodationsGrid}>

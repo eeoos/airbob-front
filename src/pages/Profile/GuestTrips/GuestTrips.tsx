@@ -6,6 +6,7 @@ import { useApiError } from "../../../hooks/useApiError";
 import { ErrorToast } from "../../../components/ErrorToast";
 import { getImageUrl } from "../../../utils/image";
 import { routeTo } from "../../../routes/paths";
+import { EmptyState, LoadingState } from "../../../shared/ui";
 import styles from "./GuestTrips.module.css";
 
 interface GuestTripsProps {
@@ -95,7 +96,7 @@ const GuestTrips: React.FC<GuestTripsProps> = ({ filterType }) => {
   }, [hasNext, isLoadingMore, handleLoadMore]);
 
   if (isLoading) {
-    return <div className={styles.loading}>로딩 중...</div>;
+    return <LoadingState title="로딩 중..." />;
   }
 
   const getTitle = () => {
@@ -158,9 +159,7 @@ const GuestTrips: React.FC<GuestTripsProps> = ({ filterType }) => {
       <h2 className={styles.title}>{getTitle()}</h2>
 
       {reservations.length === 0 ? (
-        <div className={styles.empty}>
-          <p>아직 예약한 여행이 없습니다.</p>
-        </div>
+        <EmptyState title="아직 예약한 여행이 없습니다." />
       ) : (
         <>
           <div className={styles.reservationsByYear}>

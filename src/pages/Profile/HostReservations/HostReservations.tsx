@@ -6,6 +6,7 @@ import { ReservationStatus } from "../../../types/enums";
 import { useApiError } from "../../../hooks/useApiError";
 import { ErrorToast } from "../../../components/ErrorToast";
 import { routeTo } from "../../../routes/paths";
+import { EmptyState, LoadingState } from "../../../shared/ui";
 import styles from "./HostReservations.module.css";
 
 interface HostReservationsProps {
@@ -170,7 +171,7 @@ const HostReservations: React.FC<HostReservationsProps> = ({ filterType, onFilte
   });
 
   if (isLoading) {
-    return <div className={styles.loading}>로딩 중...</div>;
+    return <LoadingState title="로딩 중..." />;
   }
 
   return (
@@ -198,9 +199,7 @@ const HostReservations: React.FC<HostReservationsProps> = ({ filterType, onFilte
       </div>
 
       {reservations.length === 0 ? (
-        <div className={styles.empty}>
-          <p>아직 예약이 없습니다.</p>
-        </div>
+        <EmptyState title="아직 예약이 없습니다." />
       ) : (
         <>
           <div className={styles.tableContainer}>
