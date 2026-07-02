@@ -475,11 +475,11 @@
 - Create: `src/features/search/hooks/useSearchBarState.test.tsx`
 - Modify: `src/components/SearchBar/SearchBar.tsx`
 
-- [ ] URL 초기값, submit navigation, picker open/close 상태를 hook 테스트로 고정한다.
-- [ ] `SearchBar.tsx`에서 state/handler를 hook으로 이동한다.
-- [ ] JSX 구조와 CSS class는 최대한 유지한다.
-- [ ] `npm run verify -- --no-cache`를 통과시킨다.
-- [ ] Commit: `refactor: extract search bar state`
+- [x] URL 초기값, submit navigation, picker open/close 상태를 hook 테스트로 고정한다.
+- [x] `SearchBar.tsx`에서 state/handler를 hook으로 이동한다.
+- [x] JSX 구조와 CSS class는 최대한 유지한다.
+- [x] `npm run verify -- --no-cache`를 통과시킨다.
+- [x] Commit: `refactor: extract search bar state`
 
 ### Task C: Search results state 분리
 
