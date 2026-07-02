@@ -3,6 +3,9 @@ import { render, screen } from "@testing-library/react";
 import { reservationApi } from "../../../api";
 import GuestTrips from "./GuestTrips";
 
+const mockClearError = jest.fn();
+const mockHandleError = jest.fn();
+
 jest.mock("react-router-dom", () => ({
   useNavigate: () => jest.fn(),
 }), { virtual: true });
@@ -16,8 +19,8 @@ jest.mock("../../../api", () => ({
 jest.mock("../../../hooks/useApiError", () => ({
   useApiError: () => ({
     error: null,
-    clearError: jest.fn(),
-    handleError: jest.fn(),
+    clearError: mockClearError,
+    handleError: mockHandleError,
   }),
 }));
 
@@ -43,6 +46,8 @@ jest.mock("../../../shared/ui", () => {
 });
 
 beforeEach(() => {
+  mockClearError.mockReset();
+  mockHandleError.mockReset();
   jest.mocked(reservationApi.getMyReservations).mockReset();
   window.IntersectionObserver = jest.fn().mockImplementation(() => ({
     disconnect: jest.fn(),
