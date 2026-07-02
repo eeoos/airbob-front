@@ -21,7 +21,7 @@ import { LocationStep } from "./components/LocationStep";
 import { PhotosStep } from "./components/PhotosStep";
 import { PublishStep } from "./components/PublishStep";
 import { TimeStep } from "./components/TimeStep";
-import styles from "./AccommodationEdit.module.css";
+import styles from "./components/EditWizardLayout.module.css";
 import timeStyles from "./components/TimeStep.module.css";
 
 type Step = AccommodationEditStep;

@@ -1,7 +1,7 @@
 import React from "react";
 import { AccommodationEditImageItem } from "../../../features/accommodations/edit/lib/imageItems";
 import { getImageUrl } from "../../../utils/image";
-import layoutStyles from "../AccommodationEdit.module.css";
+import formStyles from "./EditForm.module.css";
 import styles from "./PhotosStep.module.css";
 
 interface PhotosStepProps {
@@ -33,9 +33,9 @@ export const PhotosStep: React.FC<PhotosStepProps> = ({
   onDragOverItem,
   onDragEnd,
 }) => (
-  <div className={layoutStyles.stepContent}>
-    <h2 className={layoutStyles.stepTitle}>숙소 사진을 등록하세요</h2>
-    <p className={layoutStyles.stepDescription}>
+  <div className={formStyles.stepContent}>
+    <h2 className={formStyles.stepTitle}>숙소 사진을 등록하세요</h2>
+    <p className={formStyles.stepDescription}>
       숙소 등록을 시작하려면 사진 1장을 제출하셔야 합니다. 나중에 추가하거나 변경하실 수 있습니다.
     </p>
 

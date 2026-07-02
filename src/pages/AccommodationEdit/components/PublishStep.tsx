@@ -1,5 +1,5 @@
 import React from "react";
-import styles from "../AccommodationEdit.module.css";
+import styles from "./EditForm.module.css";
 
 export const PublishStep: React.FC = () => (
   <div className={styles.stepContent}>

@@ -6,7 +6,7 @@ import {
   DEFAULT_ACCOMMODATION_TYPE_OPTIONS,
   DEFAULT_AMENITY_OPTIONS,
 } from "../../../utils/codes";
-import styles from "../AccommodationEdit.module.css";
+import styles from "./EditForm.module.css";
 
 type NestedFormFields = {
   addressInfo: AccommodationEditFormData["addressInfo"];

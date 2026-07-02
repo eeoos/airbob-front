@@ -1,6 +1,6 @@
 import React from "react";
 import { AccommodationEditFormData } from "../../../features/accommodations/edit/lib/accommodationEditMapper";
-import styles from "../AccommodationEdit.module.css";
+import styles from "./EditForm.module.css";
 
 interface LocationStepProps {
   addressInfo: AccommodationEditFormData["addressInfo"];

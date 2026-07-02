@@ -29,6 +29,11 @@ const createFormData = (
 const readProjectFile = (relativePath: string) =>
   fs.readFileSync(path.join(process.cwd(), relativePath), "utf8");
 
+const readOptionalProjectFile = (relativePath: string) => {
+  const absolutePath = path.join(process.cwd(), relativePath);
+  return fs.existsSync(absolutePath) ? fs.readFileSync(absolutePath, "utf8") : "";
+};
+
 const getCssBlocks = (source: string, selector: string) => {
   const blocks: string[] = [];
   let searchStart = 0;
@@ -70,6 +75,149 @@ const getCssBlocks = (source: string, selector: string) => {
 };
 
 describe("AccommodationEdit extracted components", () => {
+  it("keeps wizard layout and edit form styles in dedicated CSS modules", () => {
+    const formCssPath = path.join(
+      process.cwd(),
+      "src/pages/AccommodationEdit/components/EditForm.module.css"
+    );
+    const layoutCssPath = path.join(
+      process.cwd(),
+      "src/pages/AccommodationEdit/components/EditWizardLayout.module.css"
+    );
+    const formClasses = [
+      "stepContent",
+      "stepTitle",
+      "stepDescription",
+      "formGroup",
+      "label",
+      "required",
+      "checkboxRow",
+      "checkboxTextLabel",
+      "checkboxLabel",
+      "checkbox",
+      "quantityRow",
+      "quantityLabel",
+      "quantitySelector",
+      "quantityButton",
+      "quantityValue",
+      "input",
+      "textarea",
+      "priceInput",
+      "helperText",
+      "addressSearchContainer",
+      "addressSearchButton",
+      "section",
+      "sectionTitle",
+      "typeSelectButton",
+      "selectedAmenitiesList",
+      "selectedAmenityItem",
+      "selectedAmenityName",
+      "amenityCountSelector",
+      "amenityCountButton",
+      "amenityCountValue",
+      "amenityRemoveButton",
+      "addAmenityButton",
+    ];
+    const layoutClasses = [
+      "loading",
+      "container",
+      "header",
+      "title",
+      "saveAndExitButton",
+      "content",
+      "sidebar",
+      "stepItem",
+      "active",
+      "completed",
+      "clickable",
+      "stepNumber",
+      "stepInfo",
+      "stepItemTitle",
+      "stepItemDescription",
+      "mainContent",
+      "form",
+      "buttonGroup",
+      "backButton",
+      "nextButton",
+      "submitButton",
+      "loadingDots",
+      "toastContainer",
+    ];
+    const stalePageClasses = [
+      ...formClasses,
+      ...layoutClasses,
+      "select",
+      "modalOverlay",
+      "modalContent",
+      "modalHeader",
+      "modalCloseButton",
+      "modalAddButton",
+      "modalTitle",
+      "modalBody",
+      "modalSelectedFiles",
+      "modalDropZone",
+      "dropZoneIcon",
+      "dropZoneText",
+      "dropZoneSubtext",
+      "browseButton",
+      "modalFooter",
+      "modalDoneButton",
+      "modalUploadButton",
+    ];
+
+    expect(fs.existsSync(formCssPath)).toBe(true);
+    expect(fs.existsSync(layoutCssPath)).toBe(true);
+    if (!fs.existsSync(formCssPath) || !fs.existsSync(layoutCssPath)) {
+      return;
+    }
+
+    const formCss = readProjectFile(
+      "src/pages/AccommodationEdit/components/EditForm.module.css"
+    );
+    const layoutCss = readProjectFile(
+      "src/pages/AccommodationEdit/components/EditWizardLayout.module.css"
+    );
+    const pageCss = readOptionalProjectFile(
+      "src/pages/AccommodationEdit/AccommodationEdit.module.css"
+    );
+    const pageSource = readProjectFile(
+      "src/pages/AccommodationEdit/AccommodationEdit.tsx"
+    );
+    const formFiles = [
+      "src/pages/AccommodationEdit/components/LocationStep.tsx",
+      "src/pages/AccommodationEdit/components/InfoStep.tsx",
+      "src/pages/AccommodationEdit/components/PublishStep.tsx",
+      "src/pages/AccommodationEdit/components/PhotosStep.tsx",
+      "src/pages/AccommodationEdit/components/TimeStep.tsx",
+    ];
+
+    expect(pageSource).toContain("./components/EditWizardLayout.module.css");
+    expect(pageSource).not.toContain("./AccommodationEdit.module.css");
+
+    formFiles.forEach((file) => {
+      const source = readProjectFile(file);
+      expect(source).toContain("./EditForm.module.css");
+      expect(source).not.toContain("../AccommodationEdit.module.css");
+    });
+
+    formClasses.forEach((className) => {
+      const classSelector = new RegExp(`\\.${className}(?![A-Za-z0-9_-])`);
+      expect(formCss).toMatch(classSelector);
+      expect(pageCss).not.toMatch(classSelector);
+    });
+
+    layoutClasses.forEach((className) => {
+      const classSelector = new RegExp(`\\.${className}(?![A-Za-z0-9_-])`);
+      expect(layoutCss).toMatch(classSelector);
+      expect(pageCss).not.toMatch(classSelector);
+    });
+
+    stalePageClasses.forEach((className) => {
+      const classSelector = new RegExp(`\\.${className}(?![A-Za-z0-9_-])`);
+      expect(pageCss).not.toMatch(classSelector);
+    });
+  });
+
   it("keeps photo and time styles in step-local CSS modules", () => {
     const photosCssPath = path.join(
       process.cwd(),
@@ -132,7 +280,7 @@ describe("AccommodationEdit extracted components", () => {
     const timeCss = readProjectFile(
       "src/pages/AccommodationEdit/components/TimeStep.module.css"
     );
-    const pageCss = readProjectFile(
+    const pageCss = readOptionalProjectFile(
       "src/pages/AccommodationEdit/AccommodationEdit.module.css"
     );
     const photosStepSource = readProjectFile(
@@ -186,6 +334,10 @@ describe("AccommodationEdit extracted components", () => {
       process.cwd(),
       "src/pages/AccommodationEdit/components/EditModal.module.css"
     );
+    const formCssPath = path.join(
+      process.cwd(),
+      "src/pages/AccommodationEdit/components/EditForm.module.css"
+    );
     const modalFiles = [
       "src/pages/AccommodationEdit/components/AccommodationTypeModal.tsx",
       "src/pages/AccommodationEdit/components/AmenityModal.tsx",
@@ -222,14 +374,18 @@ describe("AccommodationEdit extracted components", () => {
     const mobileModalClasses = ["typeModal", "typeModalGrid", "typeOption"];
 
     expect(fs.existsSync(modalCssPath)).toBe(true);
-    if (!fs.existsSync(modalCssPath)) {
+    expect(fs.existsSync(formCssPath)).toBe(true);
+    if (!fs.existsSync(modalCssPath) || !fs.existsSync(formCssPath)) {
       return;
     }
 
     const modalCss = readProjectFile(
       "src/pages/AccommodationEdit/components/EditModal.module.css"
     );
-    const pageCss = readProjectFile(
+    const formCss = readProjectFile(
+      "src/pages/AccommodationEdit/components/EditForm.module.css"
+    );
+    const pageCss = readOptionalProjectFile(
       "src/pages/AccommodationEdit/AccommodationEdit.module.css"
     );
 
@@ -248,7 +404,8 @@ describe("AccommodationEdit extracted components", () => {
     sharedAmenityCountClasses.forEach((className) => {
       const classSelector = new RegExp(`\\.${className}(?![A-Za-z0-9_-])`);
       expect(modalCss).toMatch(classSelector);
-      expect(pageCss).toMatch(classSelector);
+      expect(formCss).toMatch(classSelector);
+      expect(pageCss).not.toMatch(classSelector);
     });
 
     const amenityModalSource = readProjectFile(

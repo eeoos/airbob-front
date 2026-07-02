@@ -716,14 +716,25 @@
 - Modify: `src/pages/AccommodationEdit/AccommodationEdit.tsx`
 - Modify: `src/pages/AccommodationEdit/components/LocationStep.tsx`
 - Modify: `src/pages/AccommodationEdit/components/InfoStep.tsx`
+- Modify: `src/pages/AccommodationEdit/components/PhotosStep.tsx`
 - Modify: `src/pages/AccommodationEdit/components/PublishStep.tsx`
+- Modify: `src/pages/AccommodationEdit/components/TimeStep.tsx`
 - Modify: `src/pages/AccommodationEdit/AccommodationEdit.module.css`
 
-- [ ] form field 공통 class(`formGroup`, `label`, `input`, `textarea`, `helperText`, quantity/checkbox/section)를 `EditForm.module.css`로 이동한다.
-- [ ] page shell/sidebar/button group/loading/toast class를 `EditWizardLayout.module.css` 또는 page CSS에 명확히 남긴다.
-- [ ] `shared/ui` 적용 전에 남은 중복 button/input 후보를 문서화한다.
-- [ ] focused tests, `npm run verify -- --no-cache`, browser QA를 수행한다.
-- [ ] Commit: `refactor: split accommodation edit layout form styles`
+- [x] form field 공통 class(`formGroup`, `label`, `input`, `textarea`, `helperText`, quantity/checkbox/section)를 `EditForm.module.css`로 이동한다.
+- [x] page shell/sidebar/button group/loading/toast class를 `EditWizardLayout.module.css` 또는 page CSS에 명확히 남긴다.
+  - `AccommodationEdit.module.css`는 더 이상 import되지 않아 삭제했다.
+  - 기존에 TSX에서 쓰였지만 CSS 정의가 없던 `loading` class를 `EditWizardLayout.module.css`에 추가했다.
+- [x] `shared/ui` 적용 전에 남은 중복 button/input 후보를 문서화한다.
+  - Button 후보: `saveAndExitButton`, `backButton`, `nextButton`, `submitButton`, `addressSearchButton`, `typeSelectButton`, `quantityButton`, `amenityCountButton`, `amenityRemoveButton`, `addAmenityButton`, modal button 계열.
+  - Input 후보: `input`, `textarea`, `priceInput`, checkbox 계열. `TextField`, `Button` 적용 전에 disabled/focus/mobile width 규칙을 공통 API로 맞춰야 한다.
+- [x] focused tests, `npm run verify -- --no-cache`, browser QA를 수행한다.
+  - RED: `AccommodationEditComponents.test.tsx`의 layout/form CSS module boundary test가 `EditForm.module.css` 미존재로 실패하는 것을 확인했다.
+  - GREEN: layout/form boundary test 통과.
+  - Focused: `npm test -- --watchAll=false --runTestsByPath src/pages/AccommodationEdit/components/AccommodationEditComponents.test.tsx src/pages/AccommodationEdit/AccommodationEdit.test.tsx` 통과, 2 suites / 15 tests.
+  - Full verify: `npm run verify -- --no-cache` 통과, 47 suites / 195 tests.
+  - Browser QA: QA 계정으로 `/accommodations/3/edit` 접속, 위치/정보/type modal/사진/시간/publish step, time picker outside-close, 375px mobile viewport를 확인했고 console error 없음.
+- [x] Commit: `refactor: split accommodation edit layout form styles`
 
 ---
 

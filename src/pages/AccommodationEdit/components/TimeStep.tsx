@@ -1,6 +1,6 @@
 import React from "react";
 import { parseTime } from "../../../features/accommodations/edit/lib/time";
-import layoutStyles from "../AccommodationEdit.module.css";
+import formStyles from "./EditForm.module.css";
 import styles from "./TimeStep.module.css";
 import { TimeIcon } from "./accommodationEditIcons";
 import { TimePicker } from "./TimePicker";
@@ -31,14 +31,14 @@ export const TimeStep: React.FC<TimeStepProps> = ({
   const checkOutParsed = parseTime(checkOutTime);
 
   return (
-    <div className={layoutStyles.stepContent}>
-      <h2 className={layoutStyles.stepTitle}>체크인/체크아웃 시간을 설정하세요</h2>
-      <p className={layoutStyles.stepDescription}>게스트가 체크인하고 체크아웃할 수 있는 시간을 설정해주세요.</p>
+    <div className={formStyles.stepContent}>
+      <h2 className={formStyles.stepTitle}>체크인/체크아웃 시간을 설정하세요</h2>
+      <p className={formStyles.stepDescription}>게스트가 체크인하고 체크아웃할 수 있는 시간을 설정해주세요.</p>
 
       <div className={styles.formRow}>
-        <div className={layoutStyles.formGroup}>
-          <label className={layoutStyles.label}>
-            체크인 시간 <span className={layoutStyles.required}>*</span>
+        <div className={formStyles.formGroup}>
+          <label className={formStyles.label}>
+            체크인 시간 <span className={formStyles.required}>*</span>
           </label>
           <div className={styles.timeInputContainer}>
             <button
@@ -63,12 +63,12 @@ export const TimeStep: React.FC<TimeStepProps> = ({
               />
             )}
           </div>
-          <p className={layoutStyles.helperText}>게스트가 체크인할 수 있는 시간입니다.</p>
+          <p className={formStyles.helperText}>게스트가 체크인할 수 있는 시간입니다.</p>
         </div>
 
-        <div className={layoutStyles.formGroup}>
-          <label className={layoutStyles.label}>
-            체크아웃 시간 <span className={layoutStyles.required}>*</span>
+        <div className={formStyles.formGroup}>
+          <label className={formStyles.label}>
+            체크아웃 시간 <span className={formStyles.required}>*</span>
           </label>
           <div className={styles.timeInputContainer}>
             <button
@@ -93,7 +93,7 @@ export const TimeStep: React.FC<TimeStepProps> = ({
               />
             )}
           </div>
-          <p className={layoutStyles.helperText}>게스트가 체크아웃해야 하는 시간입니다.</p>
+          <p className={formStyles.helperText}>게스트가 체크아웃해야 하는 시간입니다.</p>
         </div>
       </div>
     </div>
