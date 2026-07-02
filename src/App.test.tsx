@@ -106,7 +106,7 @@ const routeMappings = [
   {
     path: "/accommodations/:id/confirm",
     pageTestId: "page-reservation-confirm",
-    requiresAuth: false,
+    requiresAuth: true,
   },
   {
     path: "/accommodations/:id/edit",
