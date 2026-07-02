@@ -7,6 +7,14 @@ const wishlistAccommodation = {
 } as any;
 
 describe("useWishlistModals", () => {
+  it("does not expose route-level auth modal state", () => {
+    const { result } = renderHook(() => useWishlistModals());
+
+    expect(result.current).not.toHaveProperty("authModalOpen");
+    expect(result.current).not.toHaveProperty("openAuthModal");
+    expect(result.current).not.toHaveProperty("closeAuthModal");
+  });
+
   it("tracks the selected accommodation for the wishlist modal", () => {
     const { result } = renderHook(() => useWishlistModals());
 

@@ -2,7 +2,6 @@ import { useCallback, useState } from "react";
 import { WishlistAccommodationInfo } from "../../../types/wishlist";
 
 export function useWishlistModals() {
-  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [wishlistModalOpen, setWishlistModalOpen] = useState(false);
   const [selectedAccommodationForWishlist, setSelectedAccommodationForWishlist] =
     useState<number | null>(null);
@@ -10,14 +9,6 @@ export function useWishlistModals() {
   const [selectedMemoItem, setSelectedMemoItem] =
     useState<WishlistAccommodationInfo | null>(null);
   const [memoText, setMemoText] = useState("");
-
-  const openAuthModal = useCallback(() => {
-    setAuthModalOpen(true);
-  }, []);
-
-  const closeAuthModal = useCallback(() => {
-    setAuthModalOpen(false);
-  }, []);
 
   const openWishlistModal = useCallback((accommodationId: number) => {
     setSelectedAccommodationForWishlist(accommodationId);
@@ -50,14 +41,11 @@ export function useWishlistModals() {
   }, []);
 
   return {
-    authModalOpen,
     clearMemoText,
-    closeAuthModal,
     closeMemoModal,
     closeWishlistModal,
     memoModalOpen,
     memoText,
-    openAuthModal,
     openMemoModal,
     openWishlistModal,
     selectedAccommodationForWishlist,

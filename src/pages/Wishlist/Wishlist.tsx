@@ -44,7 +44,6 @@ const Wishlist: React.FC = () => {
     wishlists,
     wishlistsHasNext,
   } = useWishlistData({
-    enabled: true,
     selectedWishlistId: selectedWishlist,
     showRecentlyViewed,
   });

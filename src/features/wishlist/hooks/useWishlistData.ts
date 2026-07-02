@@ -10,13 +10,11 @@ import {
 const WISHLIST_PAGE_SIZE = 20;
 
 type UseWishlistDataOptions = {
-  enabled: boolean;
   selectedWishlistId: number | null;
   showRecentlyViewed: boolean;
 };
 
 export function useWishlistData({
-  enabled,
   selectedWishlistId,
   showRecentlyViewed,
 }: UseWishlistDataOptions) {
@@ -47,11 +45,6 @@ export function useWishlistData({
   }, []);
 
   useEffect(() => {
-    if (!enabled) {
-      setIsInitialLoading(false);
-      return;
-    }
-
     let isCancelled = false;
 
     const fetchInitialData = async () => {
@@ -86,10 +79,10 @@ export function useWishlistData({
     return () => {
       isCancelled = true;
     };
-  }, [clearError, enabled, handleError]);
+  }, [clearError, handleError]);
 
   useEffect(() => {
-    if (!enabled || !selectedWishlistId || showRecentlyViewed) {
+    if (!selectedWishlistId || showRecentlyViewed) {
       resetWishlistAccommodations();
       return;
     }
@@ -129,7 +122,6 @@ export function useWishlistData({
     };
   }, [
     clearError,
-    enabled,
     handleError,
     resetWishlistAccommodations,
     selectedWishlistId,

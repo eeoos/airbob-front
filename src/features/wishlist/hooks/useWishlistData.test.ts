@@ -90,7 +90,7 @@ describe("useWishlistData", () => {
     jest.mocked(wishlistApi.updateAccommodationMemo).mockReset();
   });
 
-  it("loads recently viewed accommodations and wishlists when enabled", async () => {
+  it("loads recently viewed accommodations and wishlists", async () => {
     const recentlyViewed = createRecentlyViewed(1);
     const wishlist = createWishlist(10);
     jest.mocked(recentlyViewedApi.getRecentlyViewed).mockResolvedValue({
@@ -104,7 +104,6 @@ describe("useWishlistData", () => {
 
     const { result } = renderHook(() =>
       useWishlistData({
-        enabled: true,
         selectedWishlistId: null,
         showRecentlyViewed: false,
       })
@@ -141,7 +140,6 @@ describe("useWishlistData", () => {
 
     const { result } = renderHook(() =>
       useWishlistData({
-        enabled: true,
         selectedWishlistId: null,
         showRecentlyViewed: false,
       })
@@ -185,7 +183,6 @@ describe("useWishlistData", () => {
 
     const { result } = renderHook(() =>
       useWishlistData({
-        enabled: true,
         selectedWishlistId: 7,
         showRecentlyViewed: false,
       })
@@ -228,7 +225,6 @@ describe("useWishlistData", () => {
 
     const { result } = renderHook(() =>
       useWishlistData({
-        enabled: true,
         selectedWishlistId: 7,
         showRecentlyViewed: false,
       })
@@ -269,7 +265,6 @@ describe("useWishlistData", () => {
 
     const { result } = renderHook(() =>
       useWishlistData({
-        enabled: true,
         selectedWishlistId: 7,
         showRecentlyViewed: false,
       })
