@@ -646,6 +646,79 @@
   - 남은 비차단 리스크: focus trap과 background inert 처리는 아직 없다. Airbnb design system 적용 전 접근성 강화 task로 분리한다.
 - [x] Commit: `refactor: add accommodation edit modal shell`
 
+### Task J: AccommodationEdit modal CSS module 분리
+
+**Goal:** `AccommodationEdit.module.css`에서 modal 전용 스타일을 `EditModal.module.css`로 분리해, Airbnb 디자인 시스템 적용 전에 modal 스타일 영향 범위를 독립시킨다.
+
+**Files:**
+
+- Create: `src/pages/AccommodationEdit/components/EditModal.module.css`
+- Modify: `src/pages/AccommodationEdit/components/EditModalShell.tsx`
+- Modify: `src/pages/AccommodationEdit/components/AccommodationTypeModal.tsx`
+- Modify: `src/pages/AccommodationEdit/components/AmenityModal.tsx`
+- Modify: `src/pages/AccommodationEdit/components/DetailAddressConfirmModal.tsx`
+- Modify: `src/pages/AccommodationEdit/components/AccommodationEditComponents.test.tsx`
+- Modify: `src/pages/AccommodationEdit/AccommodationEdit.module.css`
+
+- [x] TDD RED: modal components가 `AccommodationEdit.module.css` 대신 `EditModal.module.css`를 import해야 한다는 boundary test를 추가한다.
+- [x] `npm test -- --watchAll=false --runTestsByPath src/pages/AccommodationEdit/components/AccommodationEditComponents.test.tsx --testNamePattern="modal CSS"`가 실패하는 것을 확인한다.
+  - RED 결과: `EditModal.module.css`가 없어 `fs.existsSync(modalCssPath)` assertion이 실패했다.
+  - Review 반영: boundary test가 modal import/class 이동뿐 아니라 `amenityCountButton/value`의 양쪽 CSS 소유권과 mobile media rule 이동도 검증한다.
+- [x] `EditModal.module.css`를 만들고 다음 class를 이동한다: `typeModalOverlay`, `typeModal`, `typeModalHeader`, `typeModalTitle`, `typeModalClose`, `typeModalGrid`, `typeOption`, `typeOptionSelected`, `typeOptionIcon`, `typeOptionLabel`, `amenityOptionContainer`, `amenityCountControl`, `amenityModalFooter`, `amenityModalDoneButton`, `confirmModal*`.
+- [x] `AmenityModal` 내부 count button/value는 modal CSS module의 `amenityCountButton` / `amenityCountValue`로 전환하되, `InfoStep`의 selected amenity list 스타일은 기존 CSS에 남긴다.
+- [x] mobile media query의 modal rule(`typeModal`, `typeModalGrid`, `typeOption`)도 `EditModal.module.css`로 이동한다.
+- [x] focused tests, `npm run typecheck`, `npm run verify -- --no-cache`를 통과시킨다.
+  - GREEN: modal CSS boundary test PASS.
+  - Focused tests: `AccommodationEditComponents.test.tsx`, `AccommodationEdit.test.tsx` PASS, 13 tests.
+  - Full verify: 47 suites / 193 tests PASS.
+- [x] Browser QA로 type/amenity modal 렌더링, Escape close, console error 없음, 추가 network request 없음을 확인한다.
+  - QA 계정 세션에서 `/accommodations/3/edit` 진입, `/api/v1/auth/me` 200, 숙소 detail API 200 확인.
+  - Desktop: type modal open/Escape close, amenity modal open/Escape close, console error 없음, modal open/close 중 추가 network request 없음.
+  - Mobile 375x812: type modal 2-column grid와 Escape close 확인, console error 없음, 추가 network request 없음.
+  - 비차단 리스크: 기존 dev server overlay에 `useDaumPostcode.ts`의 `Window.daum` declaration 중복 경고가 남아 dismiss 후 QA했다. `npm run typecheck`/`npm run verify`는 통과하므로 이번 CSS 분리와 직접 관련된 실패는 아니다.
+  - 비차단 리스크: mobile viewport에서 type modal header/title이 화면 상단에서 답답하게 보인다. 기존 CSS 값을 그대로 이동한 결과라 새 회귀는 아니지만, 반응형 리디자인 단계에서 modal layout을 다시 설계해야 한다.
+  - 비차단 리스크: gstack browse pointer click이 amenity modal 내부 nested count button에서 timeout을 냈다. DOM click으로 count 1→2→1 동작과 네트워크/콘솔 없음은 확인했고, 기존 component tests가 nested button event propagation을 커버한다.
+- [x] Commit: `refactor: split accommodation edit modal styles`
+
+### Task K: AccommodationEdit media/time CSS module 분리
+
+**Goal:** 사진 업로드 step과 시간 선택 step의 스타일을 컴포넌트별 CSS module로 분리한다.
+
+**Files:**
+
+- Create: `src/pages/AccommodationEdit/components/PhotosStep.module.css`
+- Create: `src/pages/AccommodationEdit/components/TimeStep.module.css`
+- Modify: `src/pages/AccommodationEdit/components/PhotosStep.tsx`
+- Modify: `src/pages/AccommodationEdit/components/TimeStep.tsx`
+- Modify: `src/pages/AccommodationEdit/components/TimePicker.tsx`
+- Modify: `src/pages/AccommodationEdit/AccommodationEdit.module.css`
+
+- [ ] 사진 업로드/이미지 grid/drag state class를 `PhotosStep.module.css`로 이동한다.
+- [ ] 시간 input/time picker class를 `TimeStep.module.css`로 이동한다.
+- [ ] `AccommodationEdit.tsx`의 outside-click selector가 새 time style import와 일치하도록 유지한다.
+- [ ] focused tests, `npm run verify -- --no-cache`, browser QA를 수행한다.
+- [ ] Commit: `refactor: split accommodation edit media time styles`
+
+### Task L: AccommodationEdit layout/form CSS module 분리
+
+**Goal:** 남은 layout, wizard sidebar, shared form field style을 정리해 `AccommodationEdit.module.css`를 page shell 중심으로 축소한다.
+
+**Files:**
+
+- Create: `src/pages/AccommodationEdit/components/EditForm.module.css`
+- Create: `src/pages/AccommodationEdit/components/EditWizardLayout.module.css`
+- Modify: `src/pages/AccommodationEdit/AccommodationEdit.tsx`
+- Modify: `src/pages/AccommodationEdit/components/LocationStep.tsx`
+- Modify: `src/pages/AccommodationEdit/components/InfoStep.tsx`
+- Modify: `src/pages/AccommodationEdit/components/PublishStep.tsx`
+- Modify: `src/pages/AccommodationEdit/AccommodationEdit.module.css`
+
+- [ ] form field 공통 class(`formGroup`, `label`, `input`, `textarea`, `helperText`, quantity/checkbox/section)를 `EditForm.module.css`로 이동한다.
+- [ ] page shell/sidebar/button group/loading/toast class를 `EditWizardLayout.module.css` 또는 page CSS에 명확히 남긴다.
+- [ ] `shared/ui` 적용 전에 남은 중복 button/input 후보를 문서화한다.
+- [ ] focused tests, `npm run verify -- --no-cache`, browser QA를 수행한다.
+- [ ] Commit: `refactor: split accommodation edit layout form styles`
+
 ---
 
 ## 리팩토링 위험 구간

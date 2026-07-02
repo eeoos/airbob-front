@@ -1,6 +1,6 @@
 import React from "react";
 import { DEFAULT_ACCOMMODATION_TYPE_OPTIONS } from "../../../utils/codes";
-import styles from "../AccommodationEdit.module.css";
+import styles from "./EditModal.module.css";
 import { AccommodationTypeIcon } from "./accommodationEditIcons";
 import { EditModalShell } from "./EditModalShell";
 

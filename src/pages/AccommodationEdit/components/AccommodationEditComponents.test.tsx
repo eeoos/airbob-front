@@ -1,3 +1,5 @@
+import * as fs from "fs";
+import * as path from "path";
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import {
@@ -24,7 +26,144 @@ const createFormData = (
   ...overrides,
 });
 
+const readProjectFile = (relativePath: string) =>
+  fs.readFileSync(path.join(process.cwd(), relativePath), "utf8");
+
+const getCssBlocks = (source: string, selector: string) => {
+  const blocks: string[] = [];
+  let searchStart = 0;
+
+  while (searchStart < source.length) {
+    const selectorStart = source.indexOf(selector, searchStart);
+    if (selectorStart === -1) {
+      break;
+    }
+
+    const blockStart = source.indexOf("{", selectorStart);
+    if (blockStart === -1) {
+      break;
+    }
+
+    let depth = 0;
+    let foundBlockEnd = false;
+    for (let index = blockStart; index < source.length; index += 1) {
+      if (source[index] === "{") {
+        depth += 1;
+      }
+      if (source[index] === "}") {
+        depth -= 1;
+      }
+      if (depth === 0) {
+        blocks.push(source.slice(blockStart + 1, index));
+        searchStart = index + 1;
+        foundBlockEnd = true;
+        break;
+      }
+    }
+
+    if (!foundBlockEnd) {
+      break;
+    }
+  }
+
+  return blocks;
+};
+
 describe("AccommodationEdit extracted components", () => {
+  it("keeps modal styles in the page-local modal CSS module", () => {
+    const modalCssPath = path.join(
+      process.cwd(),
+      "src/pages/AccommodationEdit/components/EditModal.module.css"
+    );
+    const modalFiles = [
+      "src/pages/AccommodationEdit/components/AccommodationTypeModal.tsx",
+      "src/pages/AccommodationEdit/components/AmenityModal.tsx",
+      "src/pages/AccommodationEdit/components/DetailAddressConfirmModal.tsx",
+      "src/pages/AccommodationEdit/components/EditModalShell.tsx",
+    ];
+    const movedClasses = [
+      "typeModalOverlay",
+      "typeModal",
+      "typeModalHeader",
+      "typeModalTitle",
+      "typeModalClose",
+      "typeModalGrid",
+      "typeOption",
+      "typeOptionSelected",
+      "typeOptionIcon",
+      "typeOptionLabel",
+      "amenityOptionContainer",
+      "amenityCountControl",
+      "amenityModalFooter",
+      "amenityModalDoneButton",
+      "confirmModal",
+      "confirmModalContent",
+      "confirmModalTitle",
+      "confirmModalMessage",
+      "confirmModalButtons",
+      "confirmModalButtonCancel",
+      "confirmModalButtonConfirm",
+    ];
+    const sharedAmenityCountClasses = [
+      "amenityCountButton",
+      "amenityCountValue",
+    ];
+    const mobileModalClasses = ["typeModal", "typeModalGrid", "typeOption"];
+
+    expect(fs.existsSync(modalCssPath)).toBe(true);
+    if (!fs.existsSync(modalCssPath)) {
+      return;
+    }
+
+    const modalCss = readProjectFile(
+      "src/pages/AccommodationEdit/components/EditModal.module.css"
+    );
+    const pageCss = readProjectFile(
+      "src/pages/AccommodationEdit/AccommodationEdit.module.css"
+    );
+
+    modalFiles.forEach((file) => {
+      const source = readProjectFile(file);
+      expect(source).toContain("./EditModal.module.css");
+      expect(source).not.toContain("../AccommodationEdit.module.css");
+    });
+
+    movedClasses.forEach((className) => {
+      const classSelector = new RegExp(`\\.${className}(?![A-Za-z0-9_-])`);
+      expect(modalCss).toMatch(classSelector);
+      expect(pageCss).not.toMatch(classSelector);
+    });
+
+    sharedAmenityCountClasses.forEach((className) => {
+      const classSelector = new RegExp(`\\.${className}(?![A-Za-z0-9_-])`);
+      expect(modalCss).toMatch(classSelector);
+      expect(pageCss).toMatch(classSelector);
+    });
+
+    const amenityModalSource = readProjectFile(
+      "src/pages/AccommodationEdit/components/AmenityModal.tsx"
+    );
+    const infoStepSource = readProjectFile(
+      "src/pages/AccommodationEdit/components/InfoStep.tsx"
+    );
+
+    sharedAmenityCountClasses.forEach((className) => {
+      expect(amenityModalSource).toContain(`styles.${className}`);
+      expect(infoStepSource).toContain(`styles.${className}`);
+    });
+
+    const modalMobileRules = getCssBlocks(modalCss, "@media (max-width: 768px)")
+      .join("\n");
+    const pageMobileRules = getCssBlocks(pageCss, "@media (max-width: 768px)")
+      .join("\n");
+
+    mobileModalClasses.forEach((className) => {
+      const classSelector = new RegExp(`\\.${className}(?![A-Za-z0-9_-])`);
+      expect(modalMobileRules).toMatch(classSelector);
+      expect(pageMobileRules).not.toMatch(classSelector);
+    });
+  });
+
   it("renders info step fields and forwards edits", () => {
     const onInputChange = jest.fn();
     const onNestedChange = jest.fn();

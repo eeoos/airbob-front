@@ -3,7 +3,7 @@ import {
   AccommodationEditFormData,
 } from "../../../features/accommodations/edit/lib/accommodationEditMapper";
 import { DEFAULT_AMENITY_OPTIONS } from "../../../utils/codes";
-import styles from "../AccommodationEdit.module.css";
+import styles from "./EditModal.module.css";
 import { AmenityIcon } from "./accommodationEditIcons";
 import { EditModalShell } from "./EditModalShell";
 

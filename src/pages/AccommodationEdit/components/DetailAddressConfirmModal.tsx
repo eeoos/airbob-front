@@ -1,5 +1,5 @@
 import React from "react";
-import styles from "../AccommodationEdit.module.css";
+import styles from "./EditModal.module.css";
 import { EditModalShell } from "./EditModalShell";
 
 interface DetailAddressConfirmModalProps {

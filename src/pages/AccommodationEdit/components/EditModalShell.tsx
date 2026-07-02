@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import styles from "../AccommodationEdit.module.css";
+import styles from "./EditModal.module.css";
 
 interface EditModalShellProps {
   title: string;
