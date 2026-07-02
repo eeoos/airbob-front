@@ -12,6 +12,12 @@ const FALLBACK_ERROR: ErrorResponse = {
   code: "UNKNOWN_API_ERROR",
 };
 
+const INVALID_API_RESPONSE_ERROR: ErrorResponse = {
+  message: "Invalid API Response",
+  status: 500,
+  code: "INVALID_API_RESPONSE",
+};
+
 export class ApiClientError extends Error {
   readonly status: number;
   readonly code: string;
@@ -47,6 +53,18 @@ export function toErrorResponse(error: ApiClientError): ErrorResponse {
   return errorResponse;
 }
 
+function isObjectEnvelope(response: unknown): response is Record<string, unknown> {
+  return typeof response === "object" && response !== null;
+}
+
+function hasOwnProperty(response: Record<string, unknown>, property: string): boolean {
+  return Object.prototype.hasOwnProperty.call(response, property);
+}
+
+function throwInvalidApiResponse(): never {
+  throw new ApiClientError(INVALID_API_RESPONSE_ERROR);
+}
+
 export function unwrapApiResponse<T>(response: ApiResponse<T>): NonNullable<T>;
 export function unwrapApiResponse<T>(
   response: ApiResponse<T>,
@@ -60,8 +78,18 @@ export function unwrapApiResponse<T>(
   response: ApiResponse<T>,
   options?: { allowNull?: boolean }
 ): T | null {
+  if (!isObjectEnvelope(response) || typeof response.success !== "boolean") {
+    throwInvalidApiResponse();
+  }
+
   if (response.success === false) {
-    throw new ApiClientError(response.error ?? FALLBACK_ERROR);
+    throw new ApiClientError(
+      (response.error as ErrorResponse | null | undefined) ?? FALLBACK_ERROR
+    );
+  }
+
+  if (!hasOwnProperty(response, "data") || response.data === undefined) {
+    throwInvalidApiResponse();
   }
 
   if (response.data === null) {

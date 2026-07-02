@@ -29,6 +29,21 @@ const maybeListing: TypeContractListing | null = nullableUnwrappedListing;
 // @ts-expect-error allowNull can return null and must not be assigned to a non-null type.
 const mustRejectNullableListing: TypeContractListing = nullableUnwrappedListing;
 
+function expectInvalidApiResponse(thunk: () => unknown) {
+  let thrownError: unknown;
+  try {
+    thunk();
+  } catch (error) {
+    thrownError = error;
+  }
+
+  expect(thrownError).toBeInstanceOf(ApiClientError);
+  const clientError = thrownError as ApiClientError;
+  expect(clientError.message).toBe("Invalid API Response");
+  expect(clientError.status).toBe(500);
+  expect(clientError.code).toBe("INVALID_API_RESPONSE");
+}
+
 describe("unwrapApiResponse", () => {
   it("returns data for successful response", () => {
     const response: ApiResponse<{ id: number; name: string }> = {
@@ -124,5 +139,49 @@ describe("unwrapApiResponse", () => {
     };
 
     expect(unwrapApiResponse(response, { allowNull: true })).toBeNull();
+  });
+
+  it("rejects string/html response as invalid API response", () => {
+    expectInvalidApiResponse(() => {
+      unwrapApiResponse("<html>login</html>" as unknown as ApiResponse<string>);
+    });
+  });
+
+  it("rejects undefined or null response as invalid API response", () => {
+    expectInvalidApiResponse(() => {
+      unwrapApiResponse(undefined as unknown as ApiResponse<string>);
+    });
+
+    expectInvalidApiResponse(() => {
+      unwrapApiResponse(null as unknown as ApiResponse<string>);
+    });
+  });
+
+  it("rejects object missing success as invalid API response", () => {
+    expectInvalidApiResponse(() => {
+      unwrapApiResponse({
+        data: { id: 1, name: "Seoul stay" },
+        error: null,
+      } as unknown as ApiResponse<TypeContractListing>);
+    });
+  });
+
+  it("rejects object with non-boolean success as invalid API response", () => {
+    expectInvalidApiResponse(() => {
+      unwrapApiResponse({
+        success: "true",
+        data: { id: 1, name: "Seoul stay" },
+        error: null,
+      } as unknown as ApiResponse<TypeContractListing>);
+    });
+  });
+
+  it("rejects success true missing data as invalid API response", () => {
+    expectInvalidApiResponse(() => {
+      unwrapApiResponse({
+        success: true,
+        error: null,
+      } as unknown as ApiResponse<TypeContractListing>);
+    });
   });
 });
