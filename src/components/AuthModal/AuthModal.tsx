@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../hooks/useAuth";
-import { authApi } from "../../api";
 import { useApiError } from "../../hooks/useApiError";
+import { useSignup } from "../../features/auth/hooks/useSignup";
 import { ErrorToast } from "../ErrorToast";
 import styles from "./AuthModal.module.css";
 
@@ -20,14 +20,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 }) => {
   const [mode, setMode] = useState<"login" | "signup">(initialMode);
   const { login } = useAuth();
-  const { error, handleError, clearError } = useApiError();
+  const { error: loginError, handleError, clearError } = useApiError();
+  const {
+    error: signupError,
+    clearError: clearSignupError,
+    isLoading: isSignupLoading,
+    signup,
+  } = useSignup();
   const [formData, setFormData] = useState({
     nickname: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoginLoading, setIsLoginLoading] = useState(false);
+  const error = loginError || signupError;
+  const isLoading = mode === "login" ? isLoginLoading : isSignupLoading;
 
   useEffect(() => {
     if (isOpen) {
@@ -39,8 +47,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         confirmPassword: "",
       });
       clearError();
+      clearSignupError();
     }
-  }, [isOpen, initialMode, clearError]);
+  }, [isOpen, initialMode, clearError, clearSignupError]);
 
   useEffect(() => {
     if (isOpen) {
@@ -57,10 +66,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
-    setIsLoading(true);
+    clearSignupError();
 
-    try {
-      if (mode === "login") {
+    if (mode === "login") {
+      setIsLoginLoading(true);
+
+      try {
         await login({
           email: formData.email,
           password: formData.password,
@@ -69,35 +80,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         if (onSuccess) {
           onSuccess();
         }
-      } else {
-        if (formData.password !== formData.confirmPassword) {
-          handleError(new Error("비밀번호가 일치하지 않습니다."));
-          return;
-        }
-
-        if (formData.password.length < 8 || formData.password.length > 20) {
-          handleError(new Error("비밀번호는 8자 이상 20자 이하여야 합니다."));
-          return;
-        }
-
-        await authApi.signup({
-          nickname: formData.nickname,
-          email: formData.email,
-          password: formData.password,
-        });
-        // 회원가입 성공 후 로그인 모드로 전환
-        setMode("login");
-        setFormData({
-          nickname: "",
-          email: "",
-          password: "",
-          confirmPassword: "",
-        });
+      } catch (err) {
+        handleError(err);
+      } finally {
+        setIsLoginLoading(false);
       }
-    } catch (err) {
-      handleError(err);
-    } finally {
-      setIsLoading(false);
+      return;
+    }
+
+    const signedUp = await signup(formData);
+    if (signedUp) {
+      // 회원가입 성공 후 로그인 모드로 전환
+      setMode("login");
+      setFormData({
+        nickname: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+      });
     }
   };
 
@@ -111,6 +111,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleSwitchMode = () => {
     setMode(mode === "login" ? "signup" : "login");
     clearError();
+    clearSignupError();
     setFormData({
       nickname: "",
       email: "",
@@ -251,5 +252,4 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     </>
   );
 };
-
 

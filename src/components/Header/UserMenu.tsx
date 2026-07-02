@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
-import { accommodationApi } from "../../api";
+import { useCreateAccommodationDraft } from "../../features/accommodations/hooks/useCreateAccommodationDraft";
 import { AuthModal } from "../AuthModal";
 import { useApiError } from "../../hooks/useApiError";
 import { routeTo } from "../../routes/paths";
@@ -19,6 +19,13 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<"login" | "signup">("login");
   const menuRef = useRef<HTMLDivElement>(null);
+  const { createDraft } = useCreateAccommodationDraft({
+    onCreated: (accommodationId) => {
+      // 숙소 초안 생성 성공 시 숙소 생성 폼 페이지로 이동 (새로 생성된 초안임을 표시)
+      navigate(routeTo.accommodationEdit(accommodationId, { mode: "create" }));
+    },
+    onError: handleError,
+  });
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -60,14 +67,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
 
   const handleHosting = async () => {
     setIsMenuOpen(false);
-
-    try {
-      const response = await accommodationApi.create();
-      // 숙소 초안 생성 성공 시 숙소 생성 폼 페이지로 이동 (새로 생성된 초안임을 표시)
-      navigate(routeTo.accommodationEdit(response.id, { mode: "create" }));
-    } catch (error) {
-      handleError(error);
-    }
+    await createDraft();
   };
 
   const handleLogout = async () => {

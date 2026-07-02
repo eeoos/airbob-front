@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { wishlistApi } from "../../api/wishlist";
+import React, { useEffect, useRef } from "react";
 import { WishlistInfo } from "../../types/wishlist";
-import { useApiError } from "../../hooks/useApiError";
+import { useWishlistSelection } from "../../features/wishlist/hooks/useWishlistSelection";
 import { getImageUrl } from "../../utils/image";
 import { CreateWishlistModal } from "../CreateWishlistModal/CreateWishlistModal";
 import styles from "./WishlistModal.module.css";
@@ -19,60 +18,24 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
   accommodationId,
   onSuccess,
 }) => {
-  const [wishlists, setWishlists] = useState<WishlistInfo[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasNext, setHasNext] = useState(false);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const { handleError, clearError } = useApiError();
+  const {
+    closeCreateModal,
+    handleCreateSuccess,
+    hasNext,
+    isLoading,
+    loadMoreWishlists,
+    openCreateModal,
+    showCreateModal,
+    toggleWishlist,
+    wishlists,
+  } = useWishlistSelection({
+    isOpen,
+    accommodationId,
+    onSuccess,
+  });
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
-
-  // 위시리스트 목록 조회
-  const fetchWishlists = useCallback(
-    async (cursor?: string | null) => {
-      setIsLoading(true);
-      clearError();
-
-      try {
-        const response = await wishlistApi.getWishlists({
-          size: 20,
-          cursor: cursor || undefined,
-          accommodationId: accommodationId,
-        });
-
-        if (cursor) {
-          // 추가 로드
-          setWishlists((prev) => [...prev, ...(response?.wishlists || [])]);
-        } else {
-          // 초기 로드
-          setWishlists(response?.wishlists || []);
-        }
-
-        setHasNext(response?.page_info?.has_next || false);
-        setNextCursor(response?.page_info?.next_cursor || null);
-      } catch (err) {
-        handleError(err);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [handleError, clearError, accommodationId]
-  );
-
-  // 초기 로드
-  useEffect(() => {
-    if (isOpen) {
-      fetchWishlists();
-    } else {
-      // 모달이 닫힐 때 상태 초기화
-      setWishlists([]);
-      setHasNext(false);
-      setNextCursor(null);
-      clearError();
-    }
-  }, [isOpen, fetchWishlists, clearError]);
 
   // 무한스크롤 설정
   useEffect(() => {
@@ -87,8 +50,8 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasNext && nextCursor && !isLoading) {
-          fetchWishlists(nextCursor);
+        if (entries[0].isIntersecting && hasNext && !isLoading) {
+          loadMoreWishlists();
         }
       },
       { threshold: 0.1, rootMargin: "100px" }
@@ -106,61 +69,11 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
         observerRef.current = null;
       }
     };
-  }, [isOpen, hasNext, nextCursor, isLoading, fetchWishlists]);
+  }, [isOpen, hasNext, isLoading, loadMoreWishlists]);
 
   // 위시리스트에 숙소 추가/삭제
   const handleWishlistClick = async (wishlist: WishlistInfo, e?: React.MouseEvent) => {
-    if (e) {
-      e.stopPropagation();
-    }
-    
-    try {
-      if (wishlist.is_contained && wishlist.wishlist_accommodation_id) {
-        // 위시리스트에서 삭제
-        await wishlistApi.removeAccommodation(wishlist.wishlist_accommodation_id);
-        // 목록 새로고침하여 삭제 반영
-        await fetchWishlists();
-        // onSuccess 콜백 호출
-        if (onSuccess) {
-          onSuccess();
-        }
-        // 모달은 닫지 않고 유지
-      } else {
-        // 위시리스트에 추가
-        await wishlistApi.addAccommodation(wishlist.id, {
-          accommodation_id: accommodationId,
-        });
-        // 목록 새로고침하여 추가 반영
-        await fetchWishlists();
-        // onSuccess 콜백 호출
-        if (onSuccess) {
-          onSuccess();
-        }
-        // 모달은 닫지 않고 유지
-      }
-    } catch (err) {
-      handleError(err);
-    }
-  };
-
-  // 새 위시리스트 생성 후 목록 새로고침
-  const handleCreateSuccess = async (newWishlistId: number) => {
-    setShowCreateModal(false);
-    // 새로 생성된 위시리스트에 바로 추가
-    try {
-      await wishlistApi.addAccommodation(newWishlistId, {
-        accommodation_id: accommodationId,
-      });
-      // 목록 새로고침하여 새로 추가된 위시리스트 반영
-      await fetchWishlists();
-      // onSuccess 콜백 호출
-      if (onSuccess) {
-        onSuccess();
-      }
-      // 모달은 닫지 않고 유지
-    } catch (err) {
-      handleError(err);
-    }
+    await toggleWishlist(wishlist, e);
   };
 
   // 모달이 열릴 때 body 스크롤 방지
@@ -256,7 +169,7 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
 
           <button
             className={styles.createButton}
-            onClick={() => setShowCreateModal(true)}
+            onClick={openCreateModal}
           >
             새로운 위시리스트 만들기
           </button>
@@ -265,10 +178,9 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
 
       <CreateWishlistModal
         isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={closeCreateModal}
         onSuccess={handleCreateSuccess}
       />
     </>
   );
 };
-

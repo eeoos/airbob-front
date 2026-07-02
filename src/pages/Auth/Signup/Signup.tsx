@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { authApi } from "../../../api";
-import { useApiError } from "../../../hooks/useApiError";
+import { useSignup } from "../../../features/auth/hooks/useSignup";
 import { ErrorToast } from "../../../components/ErrorToast";
 import { routeTo } from "../../../routes/paths";
 import { Button, Card, TextField } from "../../../shared/ui";
@@ -9,42 +8,20 @@ import styles from "./Signup.module.css";
 
 const Signup: React.FC = () => {
   const navigate = useNavigate();
-  const { error, handleError, clearError } = useApiError();
+  const { error, clearError, isLoading, signup } = useSignup();
   const [formData, setFormData] = useState({
     nickname: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
-  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    clearError();
 
-    if (formData.password !== formData.confirmPassword) {
-      handleError(new Error("비밀번호가 일치하지 않습니다."));
-      return;
-    }
-
-    if (formData.password.length < 8 || formData.password.length > 20) {
-      handleError(new Error("비밀번호는 8자 이상 20자 이하여야 합니다."));
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      await authApi.signup({
-        nickname: formData.nickname,
-        email: formData.email,
-        password: formData.password,
-      });
+    const signedUp = await signup(formData);
+    if (signedUp) {
       navigate(routeTo.login());
-    } catch (err) {
-      handleError(err);
-    } finally {
-      setIsLoading(false);
     }
   };
 

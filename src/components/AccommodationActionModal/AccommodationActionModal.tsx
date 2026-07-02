@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { accommodationApi } from "../../api/accommodations";
 import { MyAccommodationInfo } from "../../types/accommodation";
 import { AccommodationStatus } from "../../types/enums";
-import { useApiError } from "../../hooks/useApiError";
+import { useAccommodationActions } from "../../features/accommodations/hooks/useAccommodationActions";
 import { ErrorToast } from "../ErrorToast";
 import { getImageUrl } from "../../utils/image";
 import { routeTo } from "../../routes/paths";
@@ -23,8 +22,17 @@ export const AccommodationActionModal: React.FC<AccommodationActionModalProps> =
   onSuccess,
 }) => {
   const navigate = useNavigate();
-  const { error, handleError, clearError } = useApiError();
-  const [isProcessing, setIsProcessing] = useState(false);
+  const {
+    clearError,
+    deleteAccommodation,
+    error,
+    isProcessing,
+    publishAccommodation,
+    unpublishAccommodation,
+  } = useAccommodationActions({
+    onClose,
+    onSuccess,
+  });
 
   useEffect(() => {
     if (isOpen) {
@@ -47,61 +55,15 @@ export const AccommodationActionModal: React.FC<AccommodationActionModalProps> =
   };
 
   const handlePublish = async () => {
-    if (isProcessing) return;
-    setIsProcessing(true);
-    clearError();
-
-    try {
-      await accommodationApi.publish(accommodation.id);
-      if (onSuccess) {
-        onSuccess();
-      }
-      onClose();
-    } catch (err) {
-      handleError(err);
-    } finally {
-      setIsProcessing(false);
-    }
+    await publishAccommodation(accommodation.id);
   };
 
   const handleUnpublish = async () => {
-    if (isProcessing) return;
-    setIsProcessing(true);
-    clearError();
-
-    try {
-      await accommodationApi.unpublish(accommodation.id);
-      if (onSuccess) {
-        onSuccess();
-      }
-      onClose();
-    } catch (err) {
-      handleError(err);
-    } finally {
-      setIsProcessing(false);
-    }
+    await unpublishAccommodation(accommodation.id);
   };
 
   const handleDelete = async () => {
-    if (isProcessing) return;
-    if (!window.confirm("정말 이 리스팅을 삭제하시겠습니까?")) {
-      return;
-    }
-
-    setIsProcessing(true);
-    clearError();
-
-    try {
-      await accommodationApi.delete(accommodation.id);
-      if (onSuccess) {
-        onSuccess();
-      }
-      onClose();
-    } catch (err) {
-      handleError(err);
-    } finally {
-      setIsProcessing(false);
-    }
+    await deleteAccommodation(accommodation.id);
   };
 
   return (
@@ -210,5 +172,4 @@ export const AccommodationActionModal: React.FC<AccommodationActionModalProps> =
     </>
   );
 };
-
 

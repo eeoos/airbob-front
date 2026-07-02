@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { wishlistApi } from "../../api/wishlist";
-import { useApiError } from "../../hooks/useApiError";
+import React, { useEffect } from "react";
+import { useCreateWishlist } from "../../features/wishlist/hooks/useCreateWishlist";
 import styles from "./CreateWishlistModal.module.css";
 
 interface CreateWishlistModalProps {
@@ -14,16 +13,10 @@ export const CreateWishlistModal: React.FC<CreateWishlistModalProps> = ({
   onClose,
   onSuccess,
 }) => {
-  const [name, setName] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const { handleError, clearError } = useApiError();
-
-  useEffect(() => {
-    if (isOpen) {
-      setName("");
-      clearError();
-    }
-  }, [isOpen, clearError]);
+  const { isLoading, name, submit, updateName } = useCreateWishlist({
+    isOpen,
+    onSuccess,
+  });
 
   // 모달이 열릴 때 body 스크롤 방지
   useEffect(() => {
@@ -38,32 +31,8 @@ export const CreateWishlistModal: React.FC<CreateWishlistModalProps> = ({
     };
   }, [isOpen]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!name.trim()) {
-      return;
-    }
-
-    setIsLoading(true);
-    clearError();
-
-    try {
-      const response = await wishlistApi.create({ name: name.trim() });
-      onSuccess(response.id);
-      setName("");
-    } catch (err) {
-      handleError(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    if (value.length <= 50) {
-      setName(value);
-    }
+    updateName(e.target.value);
   };
 
   if (!isOpen) return null;
@@ -81,7 +50,7 @@ export const CreateWishlistModal: React.FC<CreateWishlistModalProps> = ({
         <div className={styles.content}>
           <h2 className={styles.title}>위시리스트 만들기</h2>
 
-          <form onSubmit={handleSubmit} className={styles.form}>
+          <form onSubmit={submit} className={styles.form}>
             <div className={styles.inputGroup}>
               <label htmlFor="name" className={styles.label}>
                 이름
@@ -122,4 +91,3 @@ export const CreateWishlistModal: React.FC<CreateWishlistModalProps> = ({
     </>
   );
 };
-

@@ -1,12 +1,13 @@
 import React, { useCallback, useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { accommodationApi } from "../../api";
 import { useApiError } from "../../hooks/useApiError";
 import { ErrorToast } from "../../components/ErrorToast";
 import {
   AccommodationEditStep,
   useAccommodationEditForm,
 } from "../../features/accommodations/edit/hooks/useAccommodationEditForm";
+import { useAccommodationEditDetail } from "../../features/accommodations/edit/hooks/useAccommodationEditDetail";
+import { useAccommodationEditImageUpload } from "../../features/accommodations/edit/hooks/useAccommodationEditImageUpload";
 import { useAccommodationEditImages } from "../../features/accommodations/edit/hooks/useAccommodationEditImages";
 import { useAccommodationEditSave } from "../../features/accommodations/edit/hooks/useAccommodationEditSave";
 import { useDaumPostcode } from "../../features/accommodations/edit/hooks/useDaumPostcode";
@@ -121,6 +122,24 @@ const AccommodationEdit: React.FC = () => {
     onAddressSelected: handleAddressSelected,
   });
 
+  useAccommodationEditDetail({
+    accommodationId: id,
+    isNewDraft,
+    loadAccommodation,
+    loadImages,
+    handleError,
+  });
+
+  const { uploadPendingImages } = useAccommodationEditImageUpload({
+    accommodationId: id,
+    applyUploadedImages,
+    clearError,
+    getPendingFiles,
+    handleError,
+    setIsSaving,
+    setUploadProgress,
+  });
+
   // 모달 외부 클릭 시 시간 선택기 닫기
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -134,30 +153,6 @@ const AccommodationEdit: React.FC = () => {
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [openTimePicker]);
-
-  useEffect(() => {
-    // 수정 모드일 때 기존 데이터 불러오기
-    // "호스팅하기"로 새로 생성된 초안인 경우 API 호출하지 않음
-    if (id && !isNewDraft) {
-      const fetchAccommodation = async () => {
-        try {
-          const data = await accommodationApi.getHostAccommodationDetail(Number(id));
-          loadAccommodation(data);
-          loadImages(data.images || []);
-        } catch (err) {
-          handleError(err);
-        }
-      };
-
-      fetchAccommodation();
-    }
-  }, [
-    id,
-    isNewDraft,
-    handleError,
-    loadAccommodation,
-    loadImages,
-  ]);
 
   const isStepCompleted = (step: Step): boolean =>
     isFormStepCompleted(step, {
@@ -186,38 +181,9 @@ const AccommodationEdit: React.FC = () => {
     }
 
     // 2번 단계(숙소 사진)에서 다음으로 넘어갈 때 아직 업로드되지 않은 이미지 업로드
-    if (currentStep === 2 && id) {
-      const filesToUpload = getPendingFiles();
-      
-      if (filesToUpload.length > 0) {
-        setIsSaving(true);
-        setUploadProgress(0);
-        clearError();
-
-        try {
-          const response = await accommodationApi.uploadImages(
-            Number(id),
-            filesToUpload,
-            (progress) => {
-              setUploadProgress(progress);
-            }
-          );
-          
-          applyUploadedImages(response.uploaded_images);
-          setUploadProgress(100);
-        } catch (err) {
-          handleError(err);
-          setIsSaving(false);
-          setUploadProgress(0);
-          return;
-        } finally {
-          setIsSaving(false);
-          // 진행률을 잠시 유지한 후 초기화
-          setTimeout(() => {
-            setUploadProgress(0);
-          }, 500);
-        }
-      }
+    if (currentStep === 2) {
+      const uploaded = await uploadPendingImages();
+      if (!uploaded) return;
     }
 
     // 4단계(체크인/체크아웃)에서 다음 버튼을 누를 때 데이터 저장

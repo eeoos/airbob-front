@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ListContainer } from "../../components/ListContainer";
@@ -6,7 +6,6 @@ import { AccommodationCardSearch } from "../../components/AccommodationCard";
 import { Map } from "../../components/Map";
 import { WishlistModal } from "../../components/WishlistModal/WishlistModal";
 import { AuthModal } from "../../components/AuthModal/AuthModal";
-import { wishlistApi } from "../../api";
 import { useApiError } from "../../hooks/useApiError";
 import { useAuth } from "../../hooks/useAuth";
 import { ErrorToast } from "../../components/ErrorToast";
@@ -18,6 +17,7 @@ import { getViewportFromSearchParams } from "../../features/search/lib/searchPar
 import { useSearchBottomSheet } from "../../features/search/hooks/useSearchBottomSheet";
 import { useSearchMapState } from "../../features/search/hooks/useSearchMapState";
 import { useSearchResults } from "../../features/search/hooks/useSearchResults";
+import { useSearchWishlistModal } from "../../features/search/hooks/useSearchWishlistModal";
 import { routeTo } from "../../routes/paths";
 import styles from "./Search.module.css";
 
@@ -25,9 +25,6 @@ const Search: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { error, handleError, clearError } = useApiError();
   const { isAuthenticated } = useAuth();
-  const [wishlistModalOpen, setWishlistModalOpen] = useState(false);
-  const [selectedAccommodationForWishlist, setSelectedAccommodationForWishlist] = useState<number | null>(null);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   const {
     selectedAccommodationId,
@@ -75,28 +72,17 @@ const Search: React.FC = () => {
     handleBottomSheetScroll,
   } = useSearchBottomSheet();
 
-  const handleWishlistToggle = async (accommodationId: number, isInWishlist: boolean) => {
-    if (!isAuthenticated) {
-      // 로그인 모달 표시
-      setAuthModalOpen(true);
-      return;
-    }
-
-    if (isInWishlist) {
-      // 위시리스트 모달 열기 (삭제를 위해)
-      setSelectedAccommodationForWishlist(accommodationId);
-      setWishlistModalOpen(true);
-    } else {
-      // 위시리스트 모달 열기
-      setSelectedAccommodationForWishlist(accommodationId);
-      setWishlistModalOpen(true);
-    }
-  };
-
-  const handleWishlistSuccess = () => {
-    // onSuccess는 모달 내부에서 호출되지만, 모달이 닫힐 때 onClose에서 상태를 업데이트하므로
-    // 여기서는 특별한 처리가 필요 없음
-  };
+  const {
+    authModalOpen,
+    closeAuthModal,
+    closeWishlistModal,
+    openWishlistModal,
+    selectedAccommodationForWishlist,
+    wishlistModalOpen,
+  } = useSearchWishlistModal({
+    isAuthenticated,
+    setAccommodations,
+  });
 
   const handleAccommodationCardClick = (accommodationId: number) => {
     // 새 탭에서 열기
@@ -118,7 +104,7 @@ const Search: React.FC = () => {
                 selectedAccommodationId={selectedAccommodationId}
                 hoveredAccommodationId={hoveredAccommodationId}
                 onAccommodationSelect={handleAccommodationSelect}
-                onWishlistToggle={handleWishlistToggle}
+                onWishlistToggle={openWishlistModal}
                 checkIn={searchParams.get("checkIn")}
                 checkOut={searchParams.get("checkOut")}
                 isExpanded={false}
@@ -203,9 +189,7 @@ const Search: React.FC = () => {
                           <AccommodationCardSearch
                             accommodation={accommodation}
                             onClick={() => handleAccommodationCardClick(accommodation.id)}
-                            onWishlistToggle={() =>
-                              handleWishlistToggle(accommodation.id, accommodation.is_in_wishlist)
-                            }
+                            onWishlistToggle={() => openWishlistModal(accommodation.id)}
                             checkIn={searchParams.get("checkIn")}
                             checkOut={searchParams.get("checkOut")}
                           />
@@ -288,9 +272,7 @@ const Search: React.FC = () => {
                           <AccommodationCardSearch
                             accommodation={accommodation}
                             onClick={() => handleAccommodationCardClick(accommodation.id)}
-                            onWishlistToggle={() =>
-                              handleWishlistToggle(accommodation.id, accommodation.is_in_wishlist)
-                            }
+                            onWishlistToggle={() => openWishlistModal(accommodation.id)}
                             checkIn={searchParams.get("checkIn")}
                             checkOut={searchParams.get("checkOut")}
                           />
@@ -348,7 +330,7 @@ const Search: React.FC = () => {
                 selectedAccommodationId={selectedAccommodationId}
                 hoveredAccommodationId={hoveredAccommodationId}
                 onAccommodationSelect={handleAccommodationSelect}
-                onWishlistToggle={handleWishlistToggle}
+                onWishlistToggle={openWishlistModal}
                 checkIn={searchParams.get("checkIn")}
                 checkOut={searchParams.get("checkOut")}
                 isExpanded={isMapExpanded}
@@ -375,39 +357,14 @@ const Search: React.FC = () => {
       {selectedAccommodationForWishlist && (
         <WishlistModal
           isOpen={wishlistModalOpen}
-          onClose={async () => {
-            // 모달이 닫힐 때 위시리스트 상태 확인하여 검색 결과 업데이트
-            try {
-              const response = await wishlistApi.getWishlists({
-                size: 20,
-                accommodationId: selectedAccommodationForWishlist,
-              });
-              const isInAnyWishlist = response?.wishlists?.some((w) => w.is_contained) || false;
-              
-              // 검색 결과의 위시리스트 상태 업데이트
-              setAccommodations((prev) =>
-                prev.map((acc) =>
-                  acc.id === selectedAccommodationForWishlist
-                    ? { ...acc, is_in_wishlist: isInAnyWishlist }
-                    : acc
-                )
-              );
-            } catch (err) {
-              // 에러가 발생해도 모달은 닫기
-              console.error("위시리스트 상태 확인 실패:", err);
-            }
-            
-            setWishlistModalOpen(false);
-            setSelectedAccommodationForWishlist(null);
-          }}
+          onClose={closeWishlistModal}
           accommodationId={selectedAccommodationForWishlist}
-          onSuccess={handleWishlistSuccess}
         />
       )}
 
       <AuthModal
         isOpen={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
+        onClose={closeAuthModal}
         initialMode="login"
       />
     </>

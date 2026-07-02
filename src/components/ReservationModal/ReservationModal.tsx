@@ -1,12 +1,10 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { reservationApi, paymentApi } from "../../api";
+import React, { useEffect } from "react";
 import { AccommodationDetail } from "../../types/accommodation";
 import { useApiError } from "../../hooks/useApiError";
 import { useAuth } from "../../hooks/useAuth";
+import { useReservationPayment } from "../../features/reservations/hooks/useReservationPayment";
 import { ErrorToast } from "../ErrorToast";
 import { getImageUrl } from "../../utils/image";
-import { routeTo } from "../../routes/paths";
 import styles from "./ReservationModal.module.css";
 
 interface ReservationModalProps {
@@ -23,12 +21,6 @@ interface ReservationModalProps {
   onGuestChange?: () => void;
 }
 
-declare global {
-  interface Window {
-    TossPayments: any;
-  }
-}
-
 const ReservationModal: React.FC<ReservationModalProps> = ({
   isOpen,
   onClose,
@@ -42,12 +34,16 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
   onDateChange,
   onGuestChange,
 }) => {
-  const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const { error, handleError, clearError } = useApiError();
-  const [message, setMessage] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const {
+    isLoading,
+    isProcessingPayment,
+    startReservationPayment,
+  } = useReservationPayment({
+    clearError,
+    handleError,
+  });
 
   useEffect(() => {
     if (isOpen) {
@@ -151,69 +147,17 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
       return;
     }
 
-    setIsLoading(true);
-    clearError();
-
-    try {
-      // 예약 생성
-      const checkInStr = propCheckIn ? formatDateForUrl(propCheckIn) : "";
-      const checkOutStr = propCheckOut ? formatDateForUrl(propCheckOut) : "";
-      const guestCount = propAdultCount + propChildCount;
-      
-      const reservationResponse = await reservationApi.create({
-        accommodation_id: accommodation.id,
-        check_in_date: checkInStr,
-        check_out_date: checkOutStr,
-        guest_count: guestCount,
-      });
-
-      const { reservation_uid, order_name, amount, customer_email, customer_name } =
-        reservationResponse;
-
-      // Toss Payments 결제 진행
-      if (!window.TossPayments) {
-        throw new Error("결제 시스템을 불러올 수 없습니다.");
-      }
-
-      setIsProcessingPayment(true);
-
-      const tossClientKey = process.env.REACT_APP_TOSS_CLIENT_KEY;
-      if (!tossClientKey) {
-        throw new Error("결제 설정이 올바르지 않습니다.");
-      }
-
-      const paymentWidget = window.TossPayments(tossClientKey);
-      const paymentMethodsWidget = paymentWidget.widgets({
-        customerKey: customer_email,
-      });
-
-      await paymentMethodsWidget.renderPaymentMethods(
-        "#payment-widget",
-        { value: amount },
-        { variantKey: "DEFAULT" }
-      );
-
-      paymentWidget.requestPayment({
-        orderId: reservation_uid,
-        orderName: order_name,
-        successUrl: `${window.location.origin}${routeTo.paymentSuccess(reservation_uid)}`,
-        failUrl: `${window.location.origin}${routeTo.paymentFail(reservation_uid)}`,
-        customerEmail: customer_email,
-        customerName: customer_name,
-        amount,
-      });
-    } catch (err) {
-      handleError(err);
-      setIsLoading(false);
-      setIsProcessingPayment(false);
+    if (!propCheckIn || !propCheckOut) {
+      return;
     }
-  };
 
-  const formatDateForUrl = (date: Date): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
+    await startReservationPayment({
+      accommodationId: accommodation.id,
+      checkIn: propCheckIn,
+      checkOut: propCheckOut,
+      adultCount: propAdultCount,
+      childCount: propChildCount,
+    });
   };
 
   if (!isOpen) return null;
@@ -330,4 +274,3 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
 };
 
 export default ReservationModal;
-

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { accommodationApi } from "../../api";
-import { AccommodationDetail } from "../../types/accommodation";
 import { useApiError } from "../../hooks/useApiError";
+import { useReservationConfirmAccommodation } from "../../features/reservations/hooks/useReservationConfirmAccommodation";
 import { ErrorToast } from "../../components/ErrorToast";
 import { getImageUrl } from "../../utils/image";
 import { routeTo } from "../../routes/paths";
@@ -19,8 +18,6 @@ const ReservationConfirm: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { error, handleError, clearError } = useApiError();
-  const [accommodation, setAccommodation] = useState<AccommodationDetail | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   // URL 파라미터에서 예약 정보 가져오기
@@ -42,34 +39,13 @@ const ReservationConfirm: React.FC = () => {
   const infantCount = searchParams.get("infantOccupancy") ? parseInt(searchParams.get("infantOccupancy")!) : 0;
   const petCount = searchParams.get("petOccupancy") ? parseInt(searchParams.get("petOccupancy")!) : 0;
 
-  useEffect(() => {
-    const fetchAccommodation = async () => {
-      if (!id) {
-        navigate(routeTo.home());
-        return;
-      }
-
-      if (!reservationUid) {
-        handleError(new Error("예약 정보가 없습니다."));
-        navigate(routeTo.accommodationDetail(id));
-        return;
-      }
-
-      setIsLoading(true);
-      clearError();
-
-      try {
-        const data = await accommodationApi.getDetail(parseInt(id));
-        setAccommodation(data);
-      } catch (err) {
-        handleError(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchAccommodation();
-  }, [id, reservationUid, navigate, handleError, clearError]);
+  const { accommodation, isLoading } = useReservationConfirmAccommodation({
+    accommodationId: id,
+    reservationUid,
+    navigate,
+    handleError,
+    clearError,
+  });
 
   useEffect(() => {
     // Toss Payments SDK 로드
