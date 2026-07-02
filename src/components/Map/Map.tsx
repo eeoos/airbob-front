@@ -2,6 +2,17 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AccommodationSearchInfo } from "../../types/accommodation";
 import { getImageUrl } from "../../utils/image";
+import {
+  haveAccommodationIdsChanged,
+  hasBoundsChanged,
+  hasViewportChanged,
+  shouldFitAccommodationBounds,
+} from "./lib/mapBounds";
+import {
+  buildMarkerPriceSvg,
+  getMarkerIconModel,
+} from "./lib/markerIcon";
+import { buildInfoWindowContent } from "./lib/infoWindowContent";
 import styles from "./Map.module.css";
 
 interface MapProps {
@@ -382,21 +393,10 @@ export const Map: React.FC<MapProps> = ({
             west: sw.lng(),
           };
           
-          // 이전 bounds와 비교하여 실제로 변경되었는지 확인
-          const prev = previousBoundsRef.current;
-          if (prev) {
-            const threshold = 0.001; // 약 100m 차이
-            const hasChanged = 
-              Math.abs(prev.north - newBounds.north) > threshold ||
-              Math.abs(prev.south - newBounds.south) > threshold ||
-              Math.abs(prev.east - newBounds.east) > threshold ||
-              Math.abs(prev.west - newBounds.west) > threshold;
-            
-            if (!hasChanged) {
-              // bounds가 실제로 변경되지 않았으면 콜백 호출하지 않음
-              setIsLoadingBounds(false);
-              return;
-            }
+          if (!hasBoundsChanged(previousBoundsRef.current, newBounds)) {
+            // bounds가 실제로 변경되지 않았으면 콜백 호출하지 않음
+            setIsLoadingBounds(false);
+            return;
           }
           
           // bounds가 실제로 변경되었으면 콜백 호출
@@ -484,40 +484,12 @@ export const Map: React.FC<MapProps> = ({
       const lat = accommodation.coordinate.latitude!;
       const lng = accommodation.coordinate.longitude!;
 
-      // 가격 버블을 위한 커스텀 아이콘 생성 (초기 생성 시에는 선택/호버 상태 반영 안 함)
-      const priceText = accommodation.currency === "KRW" 
-        ? `₩${accommodation.base_price.toLocaleString()}` 
-        : `${accommodation.currency} ${accommodation.base_price.toLocaleString()}`;
-      
-      // 텍스트 길이에 맞춰 버블 너비 계산 (대략적인 계산)
-      const textWidth = priceText.length * 8 + 20; // 문자당 8px + 여유 20px
-      const bubbleWidth = Math.max(textWidth, 60); // 최소 60px
-      const bubbleHeight = 28;
-      const padding = 12; // 좌우 패딩
-      const totalWidth = bubbleWidth + padding * 2;
-      
-      // SVG를 사용한 가격 버블 아이콘
-      const svgIcon = `
-        <svg width="${totalWidth}" height="${bubbleHeight}" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <style>
-              .price-bubble {
-                fill: #ffffff;
-                stroke: #dddddd;
-                stroke-width: 1;
-              }
-              .price-text {
-                fill: #222222;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-                font-size: 14px;
-                font-weight: 600;
-              }
-            </style>
-          </defs>
-          <rect class="price-bubble" x="0" y="0" width="${totalWidth}" height="${bubbleHeight}" rx="14" ry="14"/>
-          <text class="price-text" x="${totalWidth / 2}" y="${bubbleHeight / 2 + 4}" text-anchor="middle" dominant-baseline="middle">${priceText}</text>
-        </svg>
-      `;
+      const markerIconModel = getMarkerIconModel({
+        basePrice: accommodation.base_price,
+        currency: accommodation.currency,
+      });
+      const { totalWidth, bubbleHeight, anchor } = markerIconModel;
+      const svgIcon = buildMarkerPriceSvg(markerIconModel, "default");
 
       // SVG를 Data URL로 변환
       const svgBlob = new Blob([svgIcon], { type: 'image/svg+xml' });
@@ -530,7 +502,7 @@ export const Map: React.FC<MapProps> = ({
         icon: {
           url: svgUrl,
           scaledSize: new window.google.maps.Size(totalWidth, bubbleHeight),
-          anchor: new window.google.maps.Point(totalWidth / 2, bubbleHeight),
+          anchor: new window.google.maps.Point(anchor.x, anchor.y),
         },
       });
 
@@ -539,57 +511,17 @@ export const Map: React.FC<MapProps> = ({
       (marker as any).accommodation = accommodation;
       
       // 선택됨 상태 아이콘 미리 생성
-      const selectedSvgIcon = `
-        <svg width="${totalWidth}" height="${bubbleHeight}" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <style>
-              .price-bubble {
-                fill: #222222;
-                stroke: #222222;
-                stroke-width: 2;
-              }
-              .price-text {
-                fill: #ffffff;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-                font-size: 14px;
-                font-weight: 600;
-              }
-            </style>
-          </defs>
-          <rect class="price-bubble" x="0" y="0" width="${totalWidth}" height="${bubbleHeight}" rx="14" ry="14"/>
-          <text class="price-text" x="${totalWidth / 2}" y="${bubbleHeight / 2 + 4}" text-anchor="middle" dominant-baseline="middle">${priceText}</text>
-        </svg>
-      `;
+      const selectedSvgIcon = buildMarkerPriceSvg(markerIconModel, "selected");
       const selectedSvgBlob = new Blob([selectedSvgIcon], { type: 'image/svg+xml' });
       const selectedSvgUrl = URL.createObjectURL(selectedSvgBlob);
       
       // 호버됨 상태 아이콘 미리 생성
-      const hoveredSvgIcon = `
-        <svg width="${totalWidth}" height="${bubbleHeight}" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <style>
-              .price-bubble {
-                fill: #222222;
-                stroke: #222222;
-                stroke-width: 2;
-              }
-              .price-text {
-                fill: #ffffff;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-                font-size: 14px;
-                font-weight: 600;
-              }
-            </style>
-          </defs>
-          <rect class="price-bubble" x="0" y="0" width="${totalWidth}" height="${bubbleHeight}" rx="14" ry="14"/>
-          <text class="price-text" x="${totalWidth / 2}" y="${bubbleHeight / 2 + 4}" text-anchor="middle" dominant-baseline="middle">${priceText}</text>
-        </svg>
-      `;
+      const hoveredSvgIcon = buildMarkerPriceSvg(markerIconModel, "hovered");
       const hoveredSvgBlob = new Blob([hoveredSvgIcon], { type: 'image/svg+xml' });
       const hoveredSvgUrl = URL.createObjectURL(hoveredSvgBlob);
       
       const iconSize = new window.google.maps.Size(totalWidth, bubbleHeight);
-      const iconAnchor = new window.google.maps.Point(totalWidth / 2, bubbleHeight);
+      const iconAnchor = new window.google.maps.Point(anchor.x, anchor.y);
       
       // 모든 상태의 아이콘을 미리 생성하여 저장
       (marker as any).icons = {
@@ -684,12 +616,10 @@ export const Map: React.FC<MapProps> = ({
     // 1단계: viewport가 제공되었고 변경되었으면 강제 이동 (검색어 선택 시, 초기 위치 잡기)
     // 지도 드래그 모드가 아닐 때만 수행 (지도 드래그 모드는 사용자가 직접 지도를 움직이는 것이므로)
     if (viewport && !isMapDragMode) {
-      const viewportChanged = 
-        !prevViewportRef.current ||
-        prevViewportRef.current.north !== viewport.north ||
-        prevViewportRef.current.south !== viewport.south ||
-        prevViewportRef.current.east !== viewport.east ||
-        prevViewportRef.current.west !== viewport.west;
+      const viewportChanged = hasViewportChanged(
+        prevViewportRef.current,
+        viewport
+      );
       
       if (viewportChanged) {
         isInitialIdleRef.current = true;
@@ -705,24 +635,24 @@ export const Map: React.FC<MapProps> = ({
     }
     
     // accommodations 변경 감지
-    const accommodationsChanged = 
-      prevAccommodationsRef.current.length !== validAccommodations.length ||
-      prevAccommodationsRef.current.some((acc, idx) => 
-        acc.id !== validAccommodations[idx]?.id
-      );
+    const accommodationsChanged = haveAccommodationIdsChanged(
+      prevAccommodationsRef.current,
+      validAccommodations
+    );
     
     // 2단계 & 3단계: 숙소가 있으면 항상 숙소 기반 fitBounds 수행
     // (검색 결과를 받은 직후 또는 페이지 변경 시)
     // 단, 지도 드래그 모드가 아닐 때만 수행 (지도 드래그 모드는 사용자가 직접 지도를 움직이는 것이므로)
-    if (validAccommodations.length > 0 && !isMapDragMode) {
-      // viewport로 이동한 직후이거나, 페이지 변경 시, 또는 초기 로드 시, 또는 accommodations가 변경되었을 때
-      const shouldFitBounds = 
-        viewportJustChangedRef.current || // viewport로 이동한 직후 (숙소가 로드되면 fitBounds)
-        shouldUpdateMapBounds || // 페이지 변경 시
-        !boundsInitializedRef.current || // 초기 로드 시
-        accommodationsChanged; // accommodations가 변경되었을 때 (검색 결과를 받은 직후 또는 페이지 변경)
-      
-      if (shouldFitBounds) {
+    if (
+      shouldFitAccommodationBounds({
+        validAccommodationCount: validAccommodations.length,
+        isMapDragMode,
+        viewportJustChanged: viewportJustChangedRef.current,
+        shouldUpdateMapBounds,
+        boundsInitialized: boundsInitializedRef.current,
+        accommodationsChanged,
+      })
+    ) {
         isInitialIdleRef.current = true;
         
         if (validAccommodations.length > 1) {
@@ -746,7 +676,6 @@ export const Map: React.FC<MapProps> = ({
           onMapBoundsUpdated();
         }
         return;
-      }
     }
     
     // accommodations 변경 추적 업데이트 (fitBounds를 수행하지 않았어도)
@@ -839,91 +768,16 @@ export const Map: React.FC<MapProps> = ({
         ? getImageUrl(selectedAccommodation.accommodation_thumbnail_url)
         : null;
 
-      const wishlistIconColor = selectedAccommodation.is_in_wishlist ? "#ff385c" : "#222222";
-      const wishlistIconFill = selectedAccommodation.is_in_wishlist ? "currentColor" : "none";
-
-      // 날짜 차이 계산 (박수)
-      const calculateNights = (checkIn: string | null | undefined, checkOut: string | null | undefined): number => {
-        if (!checkIn || !checkOut) return 1;
-        
-        const checkInDate = new Date(checkIn);
-        const checkOutDate = new Date(checkOut);
-        const diffTime = checkOutDate.getTime() - checkInDate.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
-        return diffDays > 0 ? diffDays : 1;
-      };
-
-      // 총 가격 계산 및 포맷팅
-      const formatTotalPrice = (basePrice: number, nights: number, currency: string): string => {
-        const totalPrice = basePrice * nights;
-        if (currency === "KRW") {
-          return `₩${totalPrice.toLocaleString()}`;
-        }
-        return `${currency} ${totalPrice.toLocaleString()}`;
-      };
-
-      // 가격 포맷팅
-      const formatPrice = (basePrice: number, currency: string): string => {
-        if (currency === "KRW") {
-          return `₩${basePrice.toLocaleString()}`;
-        }
-        return `${currency} ${basePrice.toLocaleString()}`;
-      };
-
-      const nights = calculateNights(checkIn, checkOut);
-      const hasDates = checkIn && checkOut;
-      
-      // 가격 표시
-      let priceDisplay = '';
-      if (hasDates) {
-        const totalPrice = formatTotalPrice(selectedAccommodation.base_price, nights, selectedAccommodation.currency);
-        priceDisplay = `<span>${totalPrice}</span><span style="font-size: 14px; font-weight: 400; color: #717171;"> ${nights}박</span>`;
-      } else {
-        const priceStr = formatPrice(selectedAccommodation.base_price, selectedAccommodation.currency);
-        priceDisplay = `<span>${priceStr}</span><span style="font-size: 14px; font-weight: 400; color: #717171;"> 1박</span>`;
-      }
-
-      // 리뷰 표시 (리뷰 수가 0이면 표시하지 않음)
-      const reviewDisplay = selectedAccommodation.review_summary.total_count > 0 
-        ? `<div style="display: flex; align-items: center; gap: 4px; margin-left: 8px; flex-shrink: 0;">
-            <span style="font-size: 14px; color: #222222;">★</span>
-            <span style="font-size: 14px; color: #222222; font-weight: 600;">${selectedAccommodation.review_summary.average_rating.toFixed(1)}</span>
-            <span style="font-size: 14px; color: #717171;">(${selectedAccommodation.review_summary.total_count})</span>
-          </div>`
-        : '';
-
       // InfoWindow 생성 시 꼬리 제거를 위한 옵션 설정
       const infoWindow = new window.google.maps.InfoWindow({
         disableAutoPan: true,
-        content: `
-          <div id="info-window-${selectedAccommodation.id}" style="width: 327px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 16px rgba(0,0,0,0.18); background: white; margin: 0; padding: 0; cursor: pointer; display: flex; flex-direction: column;">
-            <div style="position: relative; width: 327px; height: 211.94px; overflow: hidden; background-color: #f7f7f7;">
-              ${thumbnailUrl ? `<img src="${thumbnailUrl}" alt="${selectedAccommodation.name}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
-              <div style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; background-color: #f7f7f7; color: #717171; font-size: 14px;">이미지 없음</div>` : `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background-color: #f7f7f7; color: #717171; font-size: 14px;">이미지 없음</div>`}
-              <div style="position: absolute; top: 12px; right: 12px; display: flex; gap: 8px; z-index: 10;">
-                ${onWishlistToggle ? `
-                  <button onclick="event.stopPropagation(); window.toggleWishlist && window.toggleWishlist(${selectedAccommodation.id}, ${selectedAccommodation.is_in_wishlist})" style="width: 28px; height: 28px; border-radius: 50%; border: none; background: rgba(255, 255, 255, 0.95); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.08);">
-                    <svg viewBox="0 0 24 24" fill="${wishlistIconFill}" stroke="${wishlistIconColor}" stroke-width="1.5" style="width: 16px; height: 16px; color: ${wishlistIconColor};">
-                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                    </svg>
-                  </button>
-                ` : ''}
-                <button onclick="event.stopPropagation(); window.closeInfoWindow && window.closeInfoWindow()" style="width: 30px; height: 30px; border-radius: 50%; border: none; background: rgba(255, 255, 255, 0.95); cursor: pointer; display: flex; align-items: center; justify-content: center; color: #222222; font-size: 20px; line-height: 1; box-shadow: 0 1px 2px rgba(0,0,0,0.08);">×</button>
-              </div>
-            </div>
-            <div style="width: 327px; padding: 12px 12px 12px 12px; background: white; box-sizing: border-box; display: flex; flex-direction: column;">
-              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px;">
-                <p style="margin: 0; font-size: 14px; color: #222222; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">${[selectedAccommodation.address_summary.city, selectedAccommodation.address_summary.district].filter(Boolean).join(", ") || selectedAccommodation.address_summary.country}</p>
-                ${reviewDisplay}
-              </div>
-              <h3 style="margin: 0 0 2px 0; font-size: 14px; font-weight: 400; color: #222222; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${selectedAccommodation.name}</h3>
-              <p style="margin: 0; font-size: 14px; font-weight: 600; color: #222222;">
-                ${priceDisplay}
-              </p>
-            </div>
-          </div>
-        `,
+        content: buildInfoWindowContent({
+          accommodation: selectedAccommodation,
+          thumbnailUrl,
+          checkIn,
+          checkOut,
+          canToggleWishlist: !!onWishlistToggle,
+        }),
       });
       
       // InfoWindow 클릭 이벤트 추가 및 스타일 오버라이드
@@ -1411,4 +1265,3 @@ export const Map: React.FC<MapProps> = ({
     </div>
   );
 };
-

@@ -513,12 +513,13 @@
 - Create: `src/components/Map/lib/infoWindowContent.test.ts`
 - Modify: `src/components/Map/Map.tsx`
 
-- [ ] bounds compare/debounce 판단에서 순수 계산만 먼저 뺀다.
-- [ ] marker icon 계산을 helper로 뺀다.
-- [ ] InfoWindow HTML 생성을 helper로 뺀다.
-- [ ] `npm run verify -- --no-cache`를 통과시킨다.
-- [ ] Browser QA로 marker/InfoWindow/bounds flow를 확인한다.
-- [ ] Commit: `refactor: extract map helper logic`
+- [x] bounds compare/debounce 판단에서 순수 계산만 먼저 뺀다.
+- [x] marker icon 계산을 helper로 뺀다.
+- [x] InfoWindow HTML 생성을 helper로 뺀다.
+- [x] `npm run verify -- --no-cache`를 통과시킨다.
+- [x] Browser QA로 QA 계정 로그인, search API 200, 지도 렌더링, console error 없음, bounds query flow를 확인한다.
+  - 제한: 로컬 Elasticsearch `accommodations` index가 0건이라 실제 marker/InfoWindow click flow는 현재 데이터 상태에서 확인하지 못했다. 이를 완료하려면 ES 재색인 또는 테스트 검색 데이터 투입이 필요하며, backend/data 상태 변경이므로 별도 승인 후 진행한다.
+- [x] Commit: `refactor: extract map helper logic`
 
 ### Task E: AccommodationDetail data hooks 분리
 
