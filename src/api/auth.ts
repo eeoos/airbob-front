@@ -32,15 +32,17 @@ export const authApi = {
 
   // 내 정보 조회
   getMe: async (signal?: AbortSignal): Promise<MeInfo> => {
-    const response = signal
-      ? await client.get<ApiResponse<MeInfo>>("/auth/me", { signal })
-      : await client.get<ApiResponse<MeInfo>>("/auth/me");
-    const contentType = response.headers?.["content-type"];
+    return requestApi(async () => {
+      const response = signal
+        ? await client.get<ApiResponse<MeInfo>>("/auth/me", { signal })
+        : await client.get<ApiResponse<MeInfo>>("/auth/me");
+      const contentType = response.headers?.["content-type"];
 
-    if (typeof contentType === "string" && contentType.toLowerCase().includes("text/html")) {
-      throw new ApiClientError(INVALID_API_RESPONSE_ERROR);
-    }
+      if (typeof contentType === "string" && contentType.toLowerCase().includes("text/html")) {
+        throw new ApiClientError(INVALID_API_RESPONSE_ERROR);
+      }
 
-    return requestApi(() => Promise.resolve(response));
+      return response;
+    });
   },
 };
