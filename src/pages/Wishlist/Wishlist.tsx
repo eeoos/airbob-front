@@ -2,10 +2,13 @@ import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ListContainer } from "../../components/ListContainer";
 import { WishlistAccommodationInfo } from "../../types/wishlist";
-import { RecentlyViewedAccommodationInfo } from "../../types/recentlyViewed";
 import { ErrorToast } from "../../components/ErrorToast";
 import { WishlistModal } from "../../components/WishlistModal";
 import { useWishlistData, useWishlistModals } from "../../features/wishlist";
+import {
+  formatRecentlyViewedDate,
+  groupRecentlyViewedByDate,
+} from "../../features/wishlist/lib/recentlyViewedGroups";
 import {
   buildWishlistRouteSearchParams,
   parseWishlistRouteState,
@@ -201,40 +204,6 @@ const Wishlist: React.FC = () => {
     }
   };
 
-  // 최근 조회 날짜 포맷팅 (어제, 오늘 등)
-  const formatRecentlyViewedDate = (viewedAt: string): string => {
-    const viewedDate = new Date(viewedAt);
-    const now = new Date();
-    const diffTime = now.getTime() - viewedDate.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) {
-      return "오늘";
-    } else if (diffDays === 1) {
-      return "어제";
-    } else if (diffDays < 7) {
-      return `${diffDays}일 전`;
-    } else {
-      return viewedDate.toLocaleDateString("ko-KR", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-    }
-  };
-
-  const groupByDate = (items: RecentlyViewedAccommodationInfo[]) => {
-    const groups: { [key: string]: RecentlyViewedAccommodationInfo[] } = {};
-    items.forEach((item) => {
-      const date = formatRecentlyViewedDate(item.viewed_at);
-      if (!groups[date]) {
-        groups[date] = [];
-      }
-      groups[date].push(item);
-    });
-    return groups;
-  };
-
   return (
     <>
       <div className={styles.container}>
@@ -263,7 +232,7 @@ const Wishlist: React.FC = () => {
               <div className={styles.empty}>최근 조회한 숙소가 없습니다.</div>
             ) : (
               <>
-                {Object.entries(groupByDate(recentlyViewed)).map(([date, items]) => (
+                {Object.entries(groupRecentlyViewedByDate(recentlyViewed)).map(([date, items]) => (
                   <div key={date} className={styles.dateSection}>
                     <h2 className={styles.dateTitle}>{date}</h2>
                     <div className={styles.recentlyViewedGrid}>
