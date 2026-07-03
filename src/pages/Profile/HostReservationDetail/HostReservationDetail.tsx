@@ -1,54 +1,23 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { MainLayout } from "../../../layouts";
-import { reservationApi } from "../../../api";
-import { HostDetailInfo } from "../../../types/reservation";
 import { ReservationStatus } from "../../../types/enums";
-import { useApiError } from "../../../hooks/useApiError";
-import { useAuth } from "../../../hooks/useAuth";
 import { ErrorToast } from "../../../components/ErrorToast";
+import { useHostReservationDetail } from "../../../features/reservations";
 import { getImageUrl } from "../../../utils/image";
+import { routeTo } from "../../../routes/paths";
 import styles from "./HostReservationDetail.module.css";
 
 const HostReservationDetail: React.FC = () => {
   const { reservationUid } = useParams<{ reservationUid: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
-  const { error, handleError, clearError } = useApiError();
-  const [reservation, setReservation] = useState<HostDetailInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { error, clearError, isLoading, reservation } =
+    useHostReservationDetail(reservationUid);
 
   useEffect(() => {
-    if (isAuthLoading) {
-      return;
-    }
-
-    if (!isAuthenticated) {
-      navigate("/");
-      return;
-    }
-
     if (!reservationUid) {
-      navigate("/profile");
-      return;
+      navigate(routeTo.profile());
     }
-
-    const fetchReservation = async () => {
-      setIsLoading(true);
-      clearError();
-
-      try {
-        const response = await reservationApi.getHostReservationDetail(reservationUid);
-        setReservation(response);
-      } catch (err) {
-        handleError(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchReservation();
-  }, [reservationUid, isAuthenticated, isAuthLoading, navigate, handleError, clearError]);
+  }, [reservationUid, navigate]);
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
@@ -85,19 +54,19 @@ const HostReservationDetail: React.FC = () => {
     return diffDays;
   };
 
-  if (isAuthLoading || isLoading) {
+  if (isLoading) {
     return (
-      <MainLayout>
+      <>
         <div className={styles.loading}>로딩 중...</div>
-      </MainLayout>
+      </>
     );
   }
 
   if (!reservation) {
     return (
-      <MainLayout>
+      <>
         <div className={styles.error}>예약을 찾을 수 없습니다.</div>
-      </MainLayout>
+      </>
     );
   }
 
@@ -106,7 +75,7 @@ const HostReservationDetail: React.FC = () => {
   const pricePerNight = nights > 0 ? Math.floor(totalAmount / nights) : 0;
 
   return (
-    <MainLayout>
+    <>
       <div className={styles.container}>
         <button className={styles.backButton} onClick={() => navigate(-1)}>
           ←
@@ -139,7 +108,7 @@ const HostReservationDetail: React.FC = () => {
           <h3 className={styles.sectionTitle}>숙소 정보</h3>
           <div 
             className={styles.accommodationInfo}
-            onClick={() => navigate(`/accommodations/${reservation.accommodation.id}`)}
+            onClick={() => navigate(routeTo.accommodationDetail(reservation.accommodation.id))}
           >
             {reservation.accommodation.thumbnail_url ? (
               <img
@@ -222,9 +191,8 @@ const HostReservationDetail: React.FC = () => {
           <ErrorToast message={error} onClose={clearError} />
         </div>
       )}
-    </MainLayout>
+    </>
   );
 };
 
 export default HostReservationDetail;
-

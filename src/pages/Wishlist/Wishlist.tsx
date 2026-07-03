@@ -1,28 +1,17 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { MainLayout } from "../../layouts";
+import React, { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ListContainer } from "../../components/ListContainer";
-import { wishlistApi, recentlyViewedApi } from "../../api";
-import {
-  WishlistInfo,
-  WishlistAccommodationInfo,
-} from "../../types/wishlist";
+import { WishlistAccommodationInfo } from "../../types/wishlist";
 import { RecentlyViewedAccommodationInfo } from "../../types/recentlyViewed";
-import { useApiError } from "../../hooks/useApiError";
-import { useAuth } from "../../hooks/useAuth";
 import { ErrorToast } from "../../components/ErrorToast";
-import { AuthModal } from "../../components/AuthModal/AuthModal";
 import { WishlistModal } from "../../components/WishlistModal";
+import { useWishlistData, useWishlistModals } from "../../features/wishlist";
+import { routeTo } from "../../routes/paths";
 import { getImageUrl } from "../../utils/image";
 import styles from "./Wishlist.module.css";
 
 const Wishlist: React.FC = () => {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
-  const { error, handleError, clearError } = useApiError();
-  const [recentlyViewed, setRecentlyViewed] = useState<RecentlyViewedAccommodationInfo[]>([]);
-  const [wishlists, setWishlists] = useState<WishlistInfo[]>([]);
   
   // URL 파라미터에서 초기값 읽기
   const viewParam = searchParams.get("view");
@@ -32,128 +21,45 @@ const Wishlist: React.FC = () => {
   );
   const [showRecentlyViewed, setShowRecentlyViewed] = useState(viewParam === "recently-viewed");
   const [isEditMode, setIsEditMode] = useState(false);
-  const [wishlistAccommodations, setWishlistAccommodations] = useState<
-    WishlistAccommodationInfo[]
-  >([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [cursor, setCursor] = useState<string | null>(null);
-  const [hasNext, setHasNext] = useState(false);
-  const [wishlistsCursor, setWishlistsCursor] = useState<string | null>(null);
-  const [wishlistsHasNext, setWishlistsHasNext] = useState(false);
-  const [isLoadingMoreWishlists, setIsLoadingMoreWishlists] = useState(false);
   const wishlistsObserverTarget = useRef<HTMLDivElement>(null);
   const wishlistAccommodationsObserverTarget = useRef<HTMLDivElement>(null);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [wishlistModalOpen, setWishlistModalOpen] = useState(false);
-  const [selectedAccommodationForWishlist, setSelectedAccommodationForWishlist] = useState<number | null>(null);  
-  // 메모 모달 상태
-  const [memoModalOpen, setMemoModalOpen] = useState(false);
-  const [selectedMemoItem, setSelectedMemoItem] = useState<WishlistAccommodationInfo | null>(null);
-  const [memoText, setMemoText] = useState("");
-
-  useEffect(() => {
-    if (isAuthLoading) return;
-    
-    if (!isAuthenticated) {
-      navigate("/");
-      return;
-    }
-
-    const fetchData = async () => {
-      setIsLoading(true);
-      clearError();
-
-      try {
-        // 최근 조회 목록
-        const recentlyViewedResponse = await recentlyViewedApi.getRecentlyViewed();
-        setRecentlyViewed(recentlyViewedResponse?.accommodations || []);
-
-        // 위시리스트 목록
-        const wishlistsResponse = await wishlistApi.getWishlists({ size: 20 });
-        setWishlists(wishlistsResponse?.wishlists || []);
-        setWishlistsCursor(wishlistsResponse?.page_info?.next_cursor || null);
-        setWishlistsHasNext(wishlistsResponse?.page_info?.has_next || false);
-      } catch (err) {
-        handleError(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [isAuthenticated, isAuthLoading, navigate, handleError, clearError]);
-
-  useEffect(() => {
-    if (!selectedWishlist || showRecentlyViewed) {
-      setWishlistAccommodations([]);
-      setCursor(null);
-      setHasNext(false);
-      return;
-    }
-
-    const fetchWishlistAccommodations = async () => {
-      setIsLoading(true);
-      clearError();
-
-      try {
-        const response = await wishlistApi.getWishlistAccommodations(selectedWishlist, {
-          size: 20,
-        });
-        setWishlistAccommodations(response?.wishlist_accommodations || []);
-        setCursor(response?.page_info?.next_cursor || null);
-        setHasNext(response?.page_info?.has_next || false);
-      } catch (err) {
-        handleError(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchWishlistAccommodations();
-  }, [selectedWishlist, showRecentlyViewed, handleError, clearError]);
-
-  const handleLoadMoreWishlistAccommodations = useCallback(async () => {
-    if (!selectedWishlist || !hasNext || isLoadingMore || !cursor) return;
-
-    setIsLoadingMore(true);
-    clearError();
-
-    try {
-      const response = await wishlistApi.getWishlistAccommodations(selectedWishlist, {
-        size: 20,
-        cursor,
-      });
-      setWishlistAccommodations((prev) => [
-        ...prev,
-        ...(response?.wishlist_accommodations || []),
-      ]);
-      setCursor(response?.page_info?.next_cursor || null);
-      setHasNext(response?.page_info?.has_next || false);
-    } catch (err) {
-      handleError(err);
-    } finally {
-      setIsLoadingMore(false);
-    }
-  }, [selectedWishlist, hasNext, isLoadingMore, cursor, clearError, handleError]);
-
-  const handleLoadMoreWishlists = useCallback(async () => {
-    if (!wishlistsHasNext || isLoadingMoreWishlists || !wishlistsCursor) return;
-
-    setIsLoadingMoreWishlists(true);
-    clearError();
-
-    try {
-      const response = await wishlistApi.getWishlists({ size: 20, cursor: wishlistsCursor });
-      setWishlists((prev) => [...prev, ...(response?.wishlists || [])]);
-      setWishlistsCursor(response?.page_info?.next_cursor || null);
-      setWishlistsHasNext(response.page_info?.has_next || false);
-    } catch (err) {
-      handleError(err);
-    } finally {
-      setIsLoadingMoreWishlists(false);
-    }
-  }, [wishlistsHasNext, isLoadingMoreWishlists, wishlistsCursor, clearError, handleError]);
+  const {
+    clearError,
+    deleteWishlist,
+    error,
+    hasNext,
+    isLoading,
+    isLoadingMore,
+    isLoadingMoreWishlists,
+    loadMoreWishlistAccommodations,
+    loadMoreWishlists,
+    recentlyViewed,
+    refreshRecentlyViewedWishlistState,
+    reloadRecentlyViewed,
+    removeFromWishlist,
+    removeRecentlyViewed,
+    saveWishlistAccommodationMemo,
+    toggleRecentlyViewedWishlistState,
+    wishlistAccommodations,
+    wishlists,
+    wishlistsHasNext,
+  } = useWishlistData({
+    selectedWishlistId: selectedWishlist,
+    showRecentlyViewed,
+  });
+  const {
+    clearMemoText,
+    closeMemoModal,
+    closeWishlistModal,
+    memoModalOpen,
+    memoText,
+    openMemoModal,
+    openWishlistModal,
+    selectedAccommodationForWishlist,
+    selectedMemoItem,
+    updateMemoText,
+    wishlistModalOpen,
+  } = useWishlistModals();
 
   // 위시리스트 목록 무한 스크롤
   useEffect(() => {
@@ -162,7 +68,7 @@ const Wishlist: React.FC = () => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && wishlistsHasNext && !isLoadingMoreWishlists) {
-          handleLoadMoreWishlists();
+          loadMoreWishlists();
         }
       },
       { threshold: 0.1 }
@@ -178,7 +84,7 @@ const Wishlist: React.FC = () => {
         observer.unobserve(currentTarget);
       }
     };
-  }, [wishlistsHasNext, isLoadingMoreWishlists, handleLoadMoreWishlists, selectedWishlist, showRecentlyViewed]);
+  }, [wishlistsHasNext, isLoadingMoreWishlists, loadMoreWishlists, selectedWishlist, showRecentlyViewed]);
 
   // 위시리스트 상세 무한 스크롤
   useEffect(() => {
@@ -187,7 +93,7 @@ const Wishlist: React.FC = () => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNext && !isLoadingMore) {
-          handleLoadMoreWishlistAccommodations();
+          loadMoreWishlistAccommodations();
         }
       },
       { threshold: 0.1 }
@@ -203,17 +109,10 @@ const Wishlist: React.FC = () => {
         observer.unobserve(currentTarget);
       }
     };
-  }, [hasNext, isLoadingMore, handleLoadMoreWishlistAccommodations, selectedWishlist, showRecentlyViewed]);
+  }, [hasNext, isLoadingMore, loadMoreWishlistAccommodations, selectedWishlist, showRecentlyViewed]);
 
   const handleRemoveRecentlyViewed = async (accommodationId: number) => {
-    try {
-      await recentlyViewedApi.remove(accommodationId);
-      setRecentlyViewed((prev) =>
-        prev.filter((item) => item.accommodation_id !== accommodationId)
-      );
-    } catch (err) {
-      handleError(err);
-    }
+    await removeRecentlyViewed(accommodationId);
   };
 
   const handleRecentlyViewedClick = async () => {
@@ -221,18 +120,7 @@ const Wishlist: React.FC = () => {
     setSelectedWishlist(null);
     setIsEditMode(false);
     setSearchParams({ view: "recently-viewed" });
-    
-    // 최근 조회 목록 최신 데이터 조회
-    setIsLoading(true);
-    clearError();
-    try {
-      const response = await recentlyViewedApi.getRecentlyViewed();
-      setRecentlyViewed(response?.accommodations || []);
-    } catch (err) {
-      handleError(err);
-    } finally {
-      setIsLoading(false);
-    }
+    await reloadRecentlyViewed();
   };
 
   const handleBackClick = () => {
@@ -242,88 +130,51 @@ const Wishlist: React.FC = () => {
     setSearchParams({});
   };
 
-  const handleWishlistToggle = async (accommodationId: number, isInWishlist: boolean) => {
-    if (!isAuthenticated) {
-      setAuthModalOpen(true);
-      return;
-    }
-
-    setSelectedAccommodationForWishlist(accommodationId);
-    setWishlistModalOpen(true);
+  const handleWishlistToggle = async (accommodationId: number) => {
+    openWishlistModal(accommodationId);
   };
 
   const handleWishlistSuccess = () => {
-    // 최근 조회 목록의 위시리스트 상태 업데이트
-    setRecentlyViewed((prev) =>
-      prev.map((item) =>
-        item.accommodation_id === selectedAccommodationForWishlist
-          ? { ...item, is_in_wishlist: !item.is_in_wishlist }
-          : item
-      )
-    );
+    if (selectedAccommodationForWishlist !== null) {
+      toggleRecentlyViewedWishlistState(selectedAccommodationForWishlist);
+    }
   };
 
   const handleRemoveFromWishlist = async (wishlistAccommodationId: number) => {
-    try {
-      await wishlistApi.removeAccommodation(wishlistAccommodationId);
-      setWishlistAccommodations((prev) =>
-        prev.filter((item) => item.wishlist_accommodation_id !== wishlistAccommodationId)
-      );
-    } catch (err) {
-      handleError(err);
-    }
+    await removeFromWishlist(wishlistAccommodationId);
   };
 
   // 메모 모달 열기
   const handleOpenMemoModal = (item: WishlistAccommodationInfo, e: React.MouseEvent) => {
     e.stopPropagation();
-    setSelectedMemoItem(item);
-    setMemoText(item.memo || "");
-    setMemoModalOpen(true);
+    openMemoModal(item);
   };
 
   // 메모 저장
   const handleSaveMemo = async () => {
     if (!selectedMemoItem || !memoText.trim()) return;
 
-    try {
-      await wishlistApi.updateAccommodationMemo(selectedMemoItem.wishlist_accommodation_id, {
-        memo: memoText.trim(),
-      });
-      
-      // 로컬 상태 업데이트
-      setWishlistAccommodations((prev) =>
-        prev.map((item) =>
-          item.wishlist_accommodation_id === selectedMemoItem.wishlist_accommodation_id
-            ? { ...item, memo: memoText.trim() }
-            : item
-        )
-      );
-      
-      setMemoModalOpen(false);
-      setSelectedMemoItem(null);
-      setMemoText("");
-    } catch (err) {
-      handleError(err);
+    const isSaved = await saveWishlistAccommodationMemo(
+      selectedMemoItem.wishlist_accommodation_id,
+      memoText
+    );
+
+    if (isSaved) {
+      closeMemoModal();
     }
   };
 
   // 메모 모두 지우기
   const handleClearMemo = () => {
-    setMemoText("");
+    clearMemoText();
   };
 
   const handleDeleteWishlist = async (wishlistId: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    try {
-      await wishlistApi.delete(wishlistId);
-      setWishlists((prev) => prev.filter((w) => w.id !== wishlistId));
-      // 현재 선택된 위시리스트가 삭제된 경우 선택 해제
-      if (selectedWishlist === wishlistId) {
-        setSelectedWishlist(null);
-      }
-    } catch (err) {
-      handleError(err);
+    const isDeleted = await deleteWishlist(wishlistId);
+    // 현재 선택된 위시리스트가 삭제된 경우 선택 해제
+    if (isDeleted && selectedWishlist === wishlistId) {
+      setSelectedWishlist(null);
     }
   };
 
@@ -361,20 +212,8 @@ const Wishlist: React.FC = () => {
     return groups;
   };
 
-  if (isAuthLoading) {
-    return (
-      <MainLayout>
-        <div className={styles.loading}>로딩 중...</div>
-      </MainLayout>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null;
-  }
-
   return (
-    <MainLayout>
+    <>
       <div className={styles.container}>
         {showRecentlyViewed ? (
           /* 최근 조회 상세 페이지 */
@@ -409,7 +248,9 @@ const Wishlist: React.FC = () => {
                         <div
                           key={item.accommodation_id}
                           className={styles.recentlyViewedCard}
-                          onClick={() => window.open(`/accommodations/${item.accommodation_id}`, '_blank')}
+                          onClick={() =>
+                            window.open(routeTo.accommodationDetail(item.accommodation_id), "_blank")
+                          }
                         >
                           <div className={styles.recentlyViewedImageWrapper}>
                             {item.thumbnail_url ? (
@@ -441,7 +282,7 @@ const Wishlist: React.FC = () => {
                                 }`}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleWishlistToggle(item.accommodation_id, item.is_in_wishlist);
+                                  handleWishlistToggle(item.accommodation_id);
                                 }}
                                 aria-label="위시리스트"
                               >
@@ -512,7 +353,9 @@ const Wishlist: React.FC = () => {
                     <div
                       key={item.wishlist_accommodation_id}
                       className={styles.accommodationCard}
-                      onClick={() => window.open(`/accommodations/${item.accommodation.id}`, '_blank')}
+                      onClick={() =>
+                        window.open(routeTo.accommodationDetail(item.accommodation.id), "_blank")
+                      }
                       onMouseEnter={(e) => {
                         const deleteBtn = e.currentTarget.querySelector(
                           `.${styles.deleteButton}`
@@ -706,51 +549,34 @@ const Wishlist: React.FC = () => {
           </div>
         )}
 
-        {selectedAccommodationForWishlist && (
+        {selectedAccommodationForWishlist !== null && (
           <WishlistModal
             isOpen={wishlistModalOpen}
             onClose={async () => {
               try {
-                const response = await wishlistApi.getWishlists({
-                  size: 20,
-                  accommodationId: selectedAccommodationForWishlist,
-                });
-                const isInAnyWishlist = response?.wishlists?.some((w) => w.is_contained) || false;
-                
-                setRecentlyViewed((prev) =>
-                  prev.map((acc) =>
-                    acc.accommodation_id === selectedAccommodationForWishlist
-                      ? { ...acc, is_in_wishlist: isInAnyWishlist }
-                      : acc
-                  )
+                await refreshRecentlyViewedWishlistState(
+                  selectedAccommodationForWishlist
                 );
               } catch (err) {
                 console.error("위시리스트 상태 확인 실패:", err);
               }
               
-              setWishlistModalOpen(false);
-              setSelectedAccommodationForWishlist(null);
+              closeWishlistModal();
             }}
             accommodationId={selectedAccommodationForWishlist}
             onSuccess={handleWishlistSuccess}
           />
         )}
 
-        <AuthModal
-          isOpen={authModalOpen}
-          onClose={() => setAuthModalOpen(false)}
-          initialMode="login"
-        />
-
         {/* 메모 모달 */}
         {memoModalOpen && (
-          <div className={styles.memoModalOverlay} onClick={() => setMemoModalOpen(false)}>
+          <div className={styles.memoModalOverlay} onClick={closeMemoModal}>
             <div className={styles.memoModal} onClick={(e) => e.stopPropagation()}>
               <div className={styles.memoModalHeader}>
                 <h3 className={styles.memoModalTitle}>메모 추가</h3>
                 <button
                   className={styles.memoModalClose}
-                  onClick={() => setMemoModalOpen(false)}
+                  onClick={closeMemoModal}
                 >
                   ✕
                 </button>
@@ -759,7 +585,7 @@ const Wishlist: React.FC = () => {
                 <textarea
                   className={styles.memoTextarea}
                   value={memoText}
-                  onChange={(e) => setMemoText(e.target.value.slice(0, 250))}
+                  onChange={(e) => updateMemoText(e.target.value)}
                   placeholder="메모를 입력하세요"
                   maxLength={250}
                 />
@@ -784,7 +610,7 @@ const Wishlist: React.FC = () => {
           </div>
         )}
       </div>
-    </MainLayout>
+    </>
   );
 };
 

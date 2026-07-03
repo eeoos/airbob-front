@@ -1,56 +1,6 @@
-.overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-  backdrop-filter: blur(4px);
-}
-
-.modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.18);
-  width: 90%;
+.dialog {
+  height: min(80vh, 720px);
   max-width: 600px;
-  height: 80vh;
-  max-height: 80vh;
-  overflow: hidden;
-  z-index: 1001;
-  display: flex;
-  flex-direction: column;
-}
-
-.closeButton {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: background-color 0.2s ease;
-  color: #222222;
-  z-index: 10;
-}
-
-.closeButton:hover {
-  background-color: #f7f7f7;
-}
-
-.closeButton svg {
-  width: 24px;
-  height: 24px;
 }
 
 .content {
@@ -61,13 +11,6 @@
   min-height: 0;
   overflow: hidden;
   box-sizing: border-box;
-}
-
-.title {
-  font-size: 22px;
-  font-weight: 600;
-  color: #222222;
-  margin-bottom: 24px;
 }
 
 .wishlistGrid {
@@ -88,35 +31,46 @@
 }
 
 .wishlistGrid::-webkit-scrollbar-track {
-  background: #f7f7f7;
-  border-radius: 4px;
+  background: var(--color-background-muted);
+  border-radius: var(--radius-sm);
 }
 
 .wishlistGrid::-webkit-scrollbar-thumb {
-  background: #dddddd;
-  border-radius: 4px;
+  background: var(--color-border-default);
+  border-radius: var(--radius-sm);
 }
 
 .wishlistGrid::-webkit-scrollbar-thumb:hover {
-  background: #b0b0b0;
+  background: var(--color-border-strong);
 }
 
 .wishlistItem {
-  border-radius: 12px;
+  width: 100%;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   transition: transform 0.2s ease;
   position: relative;
   cursor: pointer;
   background: transparent;
   border: none;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  text-align: left;
 }
 
-.wishlistItem:hover {
+.wishlistItem:hover,
+.wishlistItem:focus-visible {
   transform: scale(1.02);
 }
 
+.wishlistItem:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 3px;
+}
+
 .wishlistItem:hover .wishlistImage {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
 }
 
 .wishlistImage {
@@ -124,8 +78,8 @@
   aspect-ratio: 1 / 1;
   position: relative;
   overflow: hidden;
-  background-color: #f7f7f7;
-  border-radius: 12px;
+  background-color: var(--color-background-muted);
+  border-radius: var(--radius-lg);
 }
 
 .wishlistIcon {
@@ -137,13 +91,13 @@
   align-items: center;
   justify-content: center;
   z-index: 10;
-  color: #222222;
+  color: var(--color-text-primary);
   transition: transform 0.2s ease, color 0.2s ease;
   pointer-events: none;
 }
 
 .wishlistIcon.active {
-  color: #ff385c;
+  color: var(--color-brand-coral);
 }
 
 .wishlistIcon svg {
@@ -158,7 +112,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
 }
 
 .placeholderImage {
@@ -170,9 +124,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f7f7f7;
-  color: #717171;
-  border-radius: 12px;
+  background-color: var(--color-background-muted);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-lg);
 }
 
 .placeholderImage svg {
@@ -182,13 +136,13 @@
 
 .wishlistInfo {
   padding: 10px 0 0 0;
-  background: white;
+  background: var(--color-background-page);
 }
 
 .wishlistName {
   font-size: 14px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
   margin-bottom: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -198,7 +152,7 @@
 
 .wishlistCount {
   font-size: 13px;
-  color: #717171;
+  color: var(--color-text-secondary);
   line-height: 1.4;
 }
 
@@ -206,7 +160,7 @@
   grid-column: 1 / -1;
   text-align: center;
   padding: 16px;
-  color: #717171;
+  color: var(--color-text-secondary);
   font-size: 14px;
   min-height: 50px;
   display: flex;
@@ -217,10 +171,10 @@
 .createButton {
   width: 100%;
   padding: 14px;
-  background-color: #222222;
-  color: white;
+  background-color: var(--color-text-primary);
+  color: var(--color-text-inverse);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
@@ -229,6 +183,13 @@
 }
 
 .createButton:hover {
-  background-color: #000000;
+  background-color: var(--color-text-primary);
 }
 
+.toastContainer {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-toast);
+}

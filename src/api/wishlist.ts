@@ -1,4 +1,5 @@
 import { client } from "./client";
+import { unwrapApiResponse } from "./response";
 import {
   CreateWishlistRequest,
   CreateWishlistData,
@@ -20,7 +21,7 @@ export const wishlistApi = {
       "/members/wishlists",
       request
     );
-    return response.data.data!;
+    return unwrapApiResponse(response.data);
   },
 
   // 위시리스트 수정
@@ -32,12 +33,13 @@ export const wishlistApi = {
       `/members/wishlists/${wishlistId}`,
       request
     );
-    return response.data.data!;
+    return unwrapApiResponse(response.data);
   },
 
   // 위시리스트 삭제
   delete: async (wishlistId: number): Promise<void> => {
-    await client.delete<ApiResponse<null>>(`/members/wishlists/${wishlistId}`);
+    const response = await client.delete<ApiResponse<null>>(`/members/wishlists/${wishlistId}`);
+    unwrapApiResponse(response.data, { allowNull: true });
   },
 
   // 위시리스트 목록 조회
@@ -50,7 +52,7 @@ export const wishlistApi = {
       "/members/wishlists",
       { params }
     );
-    return response.data.data!;
+    return unwrapApiResponse(response.data);
   },
 
   // 위시리스트에 숙소 추가
@@ -62,7 +64,7 @@ export const wishlistApi = {
       `/members/wishlists/accommodations/${wishlistId}`,
       request
     );
-    return response.data.data!;
+    return unwrapApiResponse(response.data);
   },
 
   // 위시리스트 숙소 메모 수정
@@ -74,14 +76,15 @@ export const wishlistApi = {
       `/members/wishlists/accommodations/${wishlistAccommodationId}`,
       request
     );
-    return response.data.data!;
+    return unwrapApiResponse(response.data);
   },
 
   // 위시리스트에서 숙소 삭제
   removeAccommodation: async (wishlistAccommodationId: number): Promise<void> => {
-    await client.delete<ApiResponse<null>>(
+    const response = await client.delete<ApiResponse<null>>(
       `/members/wishlists/accommodations/${wishlistAccommodationId}`
     );
+    unwrapApiResponse(response.data, { allowNull: true });
   },
 
   // 위시리스트 상세 조회 (숙소 목록)
@@ -96,6 +99,6 @@ export const wishlistApi = {
       `/members/wishlists/accommodations/${wishlistId}`,
       { params }
     );
-    return response.data.data!;
+    return unwrapApiResponse(response.data);
   },
 };

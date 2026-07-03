@@ -14,6 +14,7 @@ export interface CreateReservationRequest {
   check_in_date: string; // YYYY-MM-DD
   check_out_date: string; // YYYY-MM-DD
   guest_count: number;
+  coupon_id?: number | null;
 }
 
 // 예약 생성 응답 (결제 대기 상태)

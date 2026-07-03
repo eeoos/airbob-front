@@ -1,10 +1,5 @@
-import React, { useEffect, useState, useMemo, useRef, useTransition, useCallback } from "react";
+import React, { useEffect, useRef, useState, useTransition } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
-import { MainLayout } from "../../layouts";
-import { accommodationApi, recentlyViewedApi, reservationApi, reviewApi } from "../../api";
-import { AccommodationDetail as AccommodationDetailType } from "../../types/accommodation";
-import { ReviewInfo } from "../../types/review";
-import { ReviewSortType } from "../../types/enums";
 import { useApiError } from "../../hooks/useApiError";
 import { useAuth } from "../../hooks/useAuth";
 import { ErrorToast } from "../../components/ErrorToast";
@@ -13,56 +8,27 @@ import { AuthModal } from "../../components/AuthModal/AuthModal";
 import { ReviewModal } from "../../components/ReviewModal/ReviewModal";
 import DatePicker from "../../components/DatePicker/DatePicker";
 import { getImageUrl } from "../../utils/image";
+import {
+  calculateCouponDiscount,
+  formatCouponDiscount,
+  getAccommodationTypeLabel,
+  getAmenityLabel,
+} from "../../utils/codes";
 import { GOOGLE_MAPS_API_KEY } from "../../utils/constants";
+import { useAccommodationBooking } from "../../features/accommodations/hooks/useAccommodationBooking";
+import { useAccommodationCoupons } from "../../features/accommodations/hooks/useAccommodationCoupons";
+import { useAccommodationDetail } from "../../features/accommodations/hooks/useAccommodationDetail";
+import { useAccommodationReviews } from "../../features/accommodations/hooks/useAccommodationReviews";
 import styles from "./AccommodationDetail.module.css";
 
 // AccommodationType을 한글로 변환하는 함수
 const getAccommodationTypeKorean = (type: string): string => {
-  const typeMap: Record<string, string> = {
-    ENTIRE_PLACE: "집 전체",
-    PRIVATE_ROOM: "개인실",
-    SHARED_ROOM: "다인실",
-    HOSTEL: "호스텔",
-  };
-  return typeMap[type] || "숙소";
+  return getAccommodationTypeLabel(type);
 };
 
 // AmenityType을 한글로 변환하는 함수
 const getAmenityTypeKorean = (type: string): string => {
-  const amenityMap: Record<string, string> = {
-    WIFI: "무선 인터넷",
-    AIR_CONDITIONER: "에어컨",
-    HEATING: "난방",
-    KITCHEN: "주방",
-    WASHER: "세탁기",
-    DRYER: "건조기",
-    PARKING: "주차 공간",
-    TV: "TV",
-    HAIR_DRYER: "헤어드라이어",
-    IRON: "다리미",
-    SHAMPOO: "샴푸",
-    BED_LINENS: "침구류",
-    EXTRA_PILLOWS: "추가 베개 및 담요",
-    CRIB: "아기 침대",
-    HIGH_CHAIR: "아기 식탁의자",
-    DISHWASHER: "식기세척기",
-    COFFEE_MACHINE: "커피 머신",
-    MICROWAVE: "전자레인지",
-    REFRIGERATOR: "냉장고",
-    ELEVATOR: "엘리베이터",
-    POOL: "수영장",
-    HOT_TUB: "온수 욕조",
-    GYM: "헬스장",
-    SMOKE_ALARM: "화재 경보기",
-    CARBON_MONOXIDE_ALARM: "일산화탄소 경보기",
-    FIRE_EXTINGUISHER: "소화기",
-    PETS_ALLOWED: "반려동물 허용",
-    OUTDOOR_SPACE: "야외 공간",
-    BBQ_GRILL: "바베큐 그릴",
-    BALCONY: "발코니",
-    UNKNOWN: "알 수 없음",
-  };
-  return amenityMap[type] || type;
+  return getAmenityLabel(type);
 };
 
 // AmenityType에 맞는 아이콘을 반환하는 함수
@@ -293,8 +259,6 @@ const AccommodationDetail: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { error, handleError, clearError } = useApiError();
   const { isAuthenticated } = useAuth();
-  const [accommodation, setAccommodation] = useState<AccommodationDetailType | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [mobileSlideIndex, setMobileSlideIndex] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -304,234 +268,108 @@ const AccommodationDetail: React.FC = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isDescriptionModalOpen, setIsDescriptionModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
-  const [isGuestPickerOpen, setIsGuestPickerOpen] = useState(false);
-  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const guestPickerRef = useRef<HTMLDivElement>(null);
   const datePickerRef = useRef<HTMLDivElement>(null);
   const dateSectionRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const [, startTransition] = useTransition();
-  
-  // 리뷰 관련 상태
-  const [reviews, setReviews] = useState<ReviewInfo[]>([]);
-  const [allReviews, setAllReviews] = useState<ReviewInfo[]>([]);
-  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
-  const [reviewCursor, setReviewCursor] = useState<string | null>(null);
-  const [hasMoreReviews, setHasMoreReviews] = useState(false);
-  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-  const reviewObserverTarget = useRef<HTMLDivElement>(null);
-  // 각 리뷰의 expanded 상태 관리 (리뷰 ID를 키로 사용)
-  const [expandedReviews] = useState<Record<number, boolean>>({});
+
+  const requireAuth = (action: () => void | Promise<void>) => {
+    setPendingAction(() => action);
+    setIsAuthModalOpen(true);
+  };
   
   // 설명이 길면 잘라서 보여줄 길이 (약 3줄 정도)
   const MAX_DESCRIPTION_LENGTH = 200;
   // 리뷰 content를 잘라서 보여줄 길이 (약 3-4줄 정도)
   const MAX_REVIEW_CONTENT_LENGTH = 150;
 
-  // 인원 상태 관리
-  const [adultCount, setAdultCount] = useState(() => {
-    return searchParams.get("adultOccupancy") ? parseInt(searchParams.get("adultOccupancy") || "1") : 1;
-  });
-  const [childCount, setChildCount] = useState(() => {
-    return searchParams.get("childOccupancy") ? parseInt(searchParams.get("childOccupancy") || "0") : 0;
-  });
-  const [infantCount, setInfantCount] = useState(() => {
-    return searchParams.get("infantOccupancy") ? parseInt(searchParams.get("infantOccupancy") || "0") : 0;
-  });
-  const [petCount, setPetCount] = useState(() => {
-    return searchParams.get("petOccupancy") ? parseInt(searchParams.get("petOccupancy") || "0") : 0;
+  const {
+    accommodation,
+    isLoading,
+    reloadAccommodation,
+  } = useAccommodationDetail({
+    accommodationId: id,
+    isAuthenticated,
+    handleError,
+    clearError,
   });
 
-  // YYYY-MM-DD 문자열을 로컬 시간대 Date 객체로 변환
-  const parseDateFromUrl = (dateString: string): Date => {
-    const [year, month, day] = dateString.split("-").map(Number);
-    return new Date(year, month - 1, day);
-  };
+  const booking = useAccommodationBooking({
+    accommodationId: id,
+    accommodation,
+    searchParams,
+    setSearchParams,
+    isAuthenticated,
+    selectedCoupon: null,
+    selectedCouponId: null,
+    couponDiscount: 0,
+    navigate,
+    handleError,
+    clearError,
+    onRequireAuth: requireAuth,
+    startTransition,
+  });
 
-  // 체크인/체크아웃 날짜 계산
-  const { checkIn, checkOut, nights, totalPrice } = useMemo(() => {
-    const urlCheckIn = searchParams.get("checkIn");
-    const urlCheckOut = searchParams.get("checkOut");
-    
-    if (urlCheckIn && urlCheckOut && accommodation) {
-      const checkInDate = parseDateFromUrl(urlCheckIn);
-      const checkOutDate = parseDateFromUrl(urlCheckOut);
-      const nightsCount = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
-      const total = accommodation.base_price * nightsCount;
-      return {
-        checkIn: checkInDate,
-        checkOut: checkOutDate,
-        nights: nightsCount,
-        totalPrice: total,
-      };
-    }
-    
-    // 체크인만 있는 경우
-    if (urlCheckIn && accommodation) {
-      const checkInDate = parseDateFromUrl(urlCheckIn);
-      return {
-        checkIn: checkInDate,
-        checkOut: null,
-        nights: 0,
-        totalPrice: 0,
-      };
-    }
-    
-    // 날짜가 없으면 예약 가능한 날짜부터 1박
-    if (accommodation) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      // unavailable_dates를 Date 객체로 변환
-      const unavailableDates = accommodation.unavailable_dates.map(date => {
-        const d = new Date(date);
-        d.setHours(0, 0, 0, 0);
-        return d;
-      });
-      
-      // 예약 가능한 날짜 찾기
-      let checkInDate = new Date(today);
-      while (unavailableDates.some(ud => ud.getTime() === checkInDate.getTime())) {
-        checkInDate.setDate(checkInDate.getDate() + 1);
-      }
-      
-      const checkOutDate = new Date(checkInDate);
-      checkOutDate.setDate(checkOutDate.getDate() + 1);
-      
-      return {
-        checkIn: checkInDate,
-        checkOut: checkOutDate,
-        nights: 1,
-        totalPrice: accommodation.base_price,
-      };
-    }
-    
-    return {
-      checkIn: null,
-      checkOut: null,
-      nights: 0,
-      totalPrice: 0,
-    };
-  }, [searchParams, accommodation]);
+  const {
+    coupons,
+    isLoadingCoupons,
+    selectedCoupon,
+    selectedCouponId,
+    setSelectedCouponId,
+    issuingCouponId,
+    couponDiscount,
+    payablePrice,
+    handleIssueCoupon,
+  } = useAccommodationCoupons({
+    isAuthenticated,
+    totalPrice: booking.totalPrice,
+    handleError,
+    clearError,
+    onRequireAuth: requireAuth,
+  });
 
-  // 날짜 포맷팅 함수
-  const formatDate = (date: Date | null): string => {
-    if (!date) return "";
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}. ${month}. ${day}.`;
-  };
+  const {
+    reviews,
+    allReviews,
+    isReviewModalOpen,
+    setIsReviewModalOpen,
+    reviewObserverTarget,
+    expandedReviews,
+  } = useAccommodationReviews({
+    accommodationId: id,
+    totalReviewCount: accommodation?.review_summary.total_count ?? 0,
+    handleError,
+    clearError,
+  });
 
-  useEffect(() => {
-    const fetchAccommodation = async () => {
-      if (!id) return;
+  const {
+    adultCount,
+    setAdultCount,
+    childCount,
+    setChildCount,
+    infantCount,
+    setInfantCount,
+    petCount,
+    setPetCount,
+    isGuestPickerOpen,
+    setIsGuestPickerOpen,
+    isDatePickerOpen,
+    setIsDatePickerOpen,
+    checkIn,
+    checkOut,
+    nights,
+    totalPrice,
+    formatDate,
+    handleDateSelect,
+  } = booking;
 
-      setIsLoading(true);
-      clearError();
-
-      try {
-        const data = await accommodationApi.getDetail(parseInt(id));
-        setAccommodation(data);
-      } catch (err) {
-        handleError(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchAccommodation();
-  }, [id, handleError, clearError]);
-
-  // 리뷰 목록 가져오기
-  const fetchReviews = useCallback(async (cursor?: string | null) => {
-    if (!id || !accommodation) return;
-
-    // total_count가 0이면 리뷰를 가져오지 않음
-    if (accommodation.review_summary.total_count === 0) {
-      setReviews([]);
-      setAllReviews([]);
-      setReviewCursor(null);
-      setHasMoreReviews(false);
-      return;
-    }
-
-    setIsLoadingReviews(true);
-    clearError();
-
-    try {
-      // 리뷰가 6개 이하인 경우 size=6, 6개 초과인 경우도 size=6으로 설정
-      const size = 6;
-      const response = await reviewApi.getReviews(Number(id), {
-        sortType: ReviewSortType.LATEST,
-        size,
-        cursor: cursor || undefined,
-      });
-
-      const fetchedReviews = response.reviews || [];
-      const pageInfo = response.page_info;
-
-      if (cursor) {
-        // 추가 로드 (무한 스크롤)
-        setAllReviews((prev) => [...prev, ...fetchedReviews]);
-      } else {
-        // 첫 로드
-        setReviews(fetchedReviews);
-        setAllReviews(fetchedReviews);
-      }
-
-      setReviewCursor(pageInfo.next_cursor || null);
-      setHasMoreReviews(pageInfo.has_next || false);
-    } catch (err) {
-      handleError(err);
-    } finally {
-      setIsLoadingReviews(false);
-    }
-  }, [id, accommodation, clearError, handleError]);
-
-  useEffect(() => {
-    if (id && accommodation) {
-      fetchReviews();
-    }
-  }, [id, accommodation, fetchReviews]);
-
-  // 무한 스크롤을 위한 Intersection Observer
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMoreReviews && !isLoadingReviews && reviewCursor) {
-          fetchReviews(reviewCursor);
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    const currentTarget = reviewObserverTarget.current;
-    if (currentTarget) {
-      observer.observe(currentTarget);
-    }
-
-    return () => {
-      if (currentTarget) {
-        observer.unobserve(currentTarget);
-      }
-    };
-  }, [hasMoreReviews, isLoadingReviews, reviewCursor, fetchReviews]);
-  
-  // URL 파라미터에서 인원 정보 동기화 (숙소 데이터 로드 후)
-  useEffect(() => {
-    if (!accommodation) return;
-    
-        const adult = searchParams.get("adultOccupancy") ? parseInt(searchParams.get("adultOccupancy") || "1") : 1;
-        const child = searchParams.get("childOccupancy") ? parseInt(searchParams.get("childOccupancy") || "0") : 0;
-        const infant = searchParams.get("infantOccupancy") ? parseInt(searchParams.get("infantOccupancy") || "0") : 0;
-        const pet = searchParams.get("petOccupancy") ? parseInt(searchParams.get("petOccupancy") || "0") : 0;
-        
-        setAdultCount(adult);
-        setChildCount(child);
-        setInfantCount(infant);
-        setPetCount(pet);
-  }, [accommodation, searchParams]);
+  const handleReserve = () =>
+    booking.handleReserve({
+      selectedCoupon,
+      selectedCouponId,
+      couponDiscount,
+    });
 
   // 외부 클릭 시 드롭다운 닫기
   useEffect(() => {
@@ -561,110 +399,6 @@ const AccommodationDetail: React.FC = () => {
     };
   }, [isGuestPickerOpen, isDatePickerOpen]);
   
-  // 날짜를 YYYY-MM-DD 형식의 로컬 시간대 문자열로 변환
-  const formatDateForUrl = (date: Date): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
-  
-  const handleDateSelect = (newCheckIn: Date | null, newCheckOut: Date | null) => {
-    if (!id) return;
-    
-    // startTransition으로 URL 업데이트를 낮은 우선순위로 처리하여 깜빡임 방지
-    startTransition(() => {
-    const params = new URLSearchParams(searchParams);
-    
-      if (newCheckIn) {
-        params.set("checkIn", formatDateForUrl(newCheckIn));
-    } else {
-      params.delete("checkIn");
-      }
-      
-      if (newCheckOut) {
-        params.set("checkOut", formatDateForUrl(newCheckOut));
-        // 체크아웃까지 선택 완료되면 달력 닫기
-        setIsDatePickerOpen(false);
-      } else {
-      params.delete("checkOut");
-    }
-    
-      setSearchParams(params, { replace: true });
-    });
-  };
-
-  const handleReserve = async () => {
-    if (!isAuthenticated) {
-      setPendingAction(() => async () => {
-        await handleReserve();
-      });
-      setIsAuthModalOpen(true);
-      return;
-    }
-
-    if (!id || !accommodation) {
-      handleError(new Error("숙소 정보를 불러올 수 없습니다."));
-      return;
-    }
-
-    if (!checkIn || !checkOut) {
-      handleError(new Error("체크인/체크아웃 날짜를 선택해주세요."));
-      return;
-    }
-
-    clearError();
-
-    try {
-      const checkInStr = formatDateForUrl(checkIn);
-      const checkOutStr = formatDateForUrl(checkOut);
-      const guestCount = adultCount + childCount;
-      
-      const reservationResponse = await reservationApi.create({
-        accommodation_id: accommodation.id,
-        check_in_date: checkInStr,
-        check_out_date: checkOutStr,
-        guest_count: guestCount,
-      });
-
-      const { reservation_uid, order_name, amount, customer_email, customer_name } = reservationResponse;
-      
-      // 예약 생성 성공 시 확인 및 결제 페이지로 이동 (결제 정보 + 예약 박스 정보 포함)
-      const params = new URLSearchParams();
-      params.set("reservationUid", reservation_uid);
-      params.set("orderName", order_name);
-      params.set("amount", amount.toString());
-      params.set("customerEmail", customer_email);
-      params.set("customerName", customer_name);
-      // 예약 박스에서 입력한 정보도 함께 전달
-      params.set("checkIn", checkInStr);
-      params.set("checkOut", checkOutStr);
-      params.set("adultOccupancy", adultCount.toString());
-      params.set("childOccupancy", childCount.toString());
-      params.set("infantOccupancy", infantCount.toString());
-      params.set("petOccupancy", petCount.toString());
-      navigate(`/accommodations/${id}/confirm?${params.toString()}`);
-    } catch (err) {
-      handleError(err);
-    }
-  };
-
-  // 최근 조회에 추가 (로그인한 사용자만)
-  useEffect(() => {
-    const addToRecentlyViewed = async () => {
-      if (!id || !isAuthenticated || !accommodation) return;
-
-      try {
-        await recentlyViewedApi.add(parseInt(id));
-      } catch (err) {
-        // 최근 조회 추가 실패는 조용히 처리 (사용자에게 에러를 보여주지 않음)
-        console.error("최근 조회 추가 실패:", err);
-      }
-    };
-
-    addToRecentlyViewed();
-  }, [id, isAuthenticated, accommodation]);
-
   // 모바일 이미지 슬라이더 터치 핸들러
   const minSwipeDistance = 50;
 
@@ -695,22 +429,22 @@ const AccommodationDetail: React.FC = () => {
 
   if (isLoading) {
     return (
-      <MainLayout>
+      <>
         <div className={styles.loading}>로딩 중...</div>
-      </MainLayout>
+      </>
     );
   }
 
   if (!accommodation) {
     return (
-      <MainLayout>
+      <>
         <div className={styles.error}>숙소를 찾을 수 없습니다.</div>
-      </MainLayout>
+      </>
     );
   }
 
   return (
-    <MainLayout>
+    <>
       <div className={styles.container}>
         <div className={styles.header}>
           <div className={styles.titleSection}>
@@ -958,7 +692,7 @@ const AccommodationDetail: React.FC = () => {
           <div className={styles.sidebar}>
             <div className={styles.bookingCard}>
               <div className={styles.priceSection}>
-                <span className={styles.totalPrice}>₩{totalPrice.toLocaleString()}</span>
+                <span className={styles.totalPrice}>₩{payablePrice.toLocaleString()}</span>
                 <span className={styles.priceInfo}>· {nights}박</span>
               </div>
               
@@ -1184,6 +918,84 @@ const AccommodationDetail: React.FC = () => {
                     </div>
                   )}
               </div>
+
+              {isAuthenticated && (
+                <div className={styles.couponSection}>
+                  <div className={styles.couponHeader}>
+                    <div className={styles.couponTitle}>쿠폰</div>
+                    {selectedCoupon && couponDiscount > 0 && (
+                      <button
+                        type="button"
+                        className={styles.couponClearButton}
+                        onClick={() => setSelectedCouponId(null)}
+                      >
+                        해제
+                      </button>
+                    )}
+                  </div>
+                  {isLoadingCoupons ? (
+                    <div className={styles.couponEmpty}>쿠폰을 불러오는 중입니다.</div>
+                  ) : coupons.length === 0 ? (
+                    <div className={styles.couponEmpty}>발급 가능한 쿠폰이 없습니다.</div>
+                  ) : (
+                    <div className={styles.couponList}>
+                      {coupons.map((coupon) => {
+                        const discount = calculateCouponDiscount(coupon, totalPrice);
+                        const isApplicable = discount > 0;
+                        const isSelected = selectedCouponId === coupon.id && isApplicable;
+                        const remaining =
+                          coupon.total_quantity == null
+                            ? null
+                            : Math.max(coupon.total_quantity - coupon.issued_quantity, 0);
+
+                        return (
+                          <div
+                            key={coupon.id}
+                            className={`${styles.couponItem} ${isSelected ? styles.couponItemSelected : ""}`}
+                          >
+                            <div className={styles.couponInfo}>
+                              <div className={styles.couponName}>{coupon.name}</div>
+                              <div className={styles.couponMeta}>
+                                {formatCouponDiscount(coupon)}
+                                {coupon.min_payment_price != null &&
+                                  ` · ${coupon.min_payment_price.toLocaleString()}원 이상`}
+                                {remaining != null && ` · 남은 수량 ${remaining.toLocaleString()}장`}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              className={styles.couponApplyButton}
+                              onClick={() => handleIssueCoupon(coupon)}
+                              disabled={!isApplicable || issuingCouponId === coupon.id}
+                            >
+                              {isSelected
+                                ? "적용 중"
+                                : issuingCouponId === coupon.id
+                                ? "발급 중"
+                                : isApplicable
+                                ? "발급/적용"
+                                : "조건 미달"}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {couponDiscount > 0 && (
+                <div className={styles.priceBreakdown}>
+                  <div className={styles.priceBreakdownRow}>
+                    <span>{nights}박 x ₩{accommodation.base_price.toLocaleString()}</span>
+                    <span>₩{totalPrice.toLocaleString()}</span>
+                  </div>
+                  <div className={styles.priceBreakdownRow}>
+                    <span>{selectedCoupon?.name}</span>
+                    <span>-₩{couponDiscount.toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
               
               <button
                 className={styles.reserveButton}
@@ -1342,15 +1154,7 @@ const AccommodationDetail: React.FC = () => {
             onClose={() => setIsWishlistModalOpen(false)}
             accommodationId={accommodation.id}
             onSuccess={async () => {
-              // 위시리스트 변경 후 accommodation 데이터 다시 불러오기
-              if (id) {
-                try {
-                  const data = await accommodationApi.getDetail(parseInt(id));
-                  setAccommodation(data);
-                } catch (err) {
-                  handleError(err);
-                }
-              }
+              await reloadAccommodation();
             }}
           />
           <AuthModal
@@ -1451,7 +1255,7 @@ const AccommodationDetail: React.FC = () => {
           </div>
         </div>
       )}
-    </MainLayout>
+    </>
   );
 };
 

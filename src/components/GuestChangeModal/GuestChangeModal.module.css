@@ -4,9 +4,9 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: var(--overlay-backdrop);
   backdrop-filter: blur(4px);
-  z-index: 10000;
+  z-index: var(--z-modal);
   animation: fadeIn 0.2s ease;
 }
 
@@ -27,7 +27,7 @@
   background: white;
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  z-index: 10001;
+  z-index: calc(var(--z-modal) + 1);
   width: 90%;
   max-width: 600px;
   max-height: 90vh;
@@ -216,7 +216,6 @@
     width: 95%;
   }
 }
-
 
 
 

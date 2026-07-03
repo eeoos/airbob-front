@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { reservationApi, paymentApi } from "../../api";
+import React, { useEffect } from "react";
 import { AccommodationDetail } from "../../types/accommodation";
 import { useApiError } from "../../hooks/useApiError";
 import { useAuth } from "../../hooks/useAuth";
+import { useReservationPayment } from "../../features/reservations/hooks/useReservationPayment";
+import { Dialog } from "../../shared/ui";
 import { ErrorToast } from "../ErrorToast";
 import { getImageUrl } from "../../utils/image";
 import styles from "./ReservationModal.module.css";
@@ -22,12 +22,6 @@ interface ReservationModalProps {
   onGuestChange?: () => void;
 }
 
-declare global {
-  interface Window {
-    TossPayments: any;
-  }
-}
-
 const ReservationModal: React.FC<ReservationModalProps> = ({
   isOpen,
   onClose,
@@ -41,24 +35,16 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
   onDateChange,
   onGuestChange,
 }) => {
-  const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const { error, handleError, clearError } = useApiError();
-  const [message, setMessage] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
-    }
-
-    return () => {
-      document.body.style.overflow = "unset";
-    };
-  }, [isOpen]);
+  const {
+    isLoading,
+    isProcessingPayment,
+    startReservationPayment,
+  } = useReservationPayment({
+    clearError,
+    handleError,
+  });
 
   useEffect(() => {
     // Toss Payments SDK 로드
@@ -150,69 +136,17 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
       return;
     }
 
-    setIsLoading(true);
-    clearError();
-
-    try {
-      // 예약 생성
-      const checkInStr = propCheckIn ? formatDateForUrl(propCheckIn) : "";
-      const checkOutStr = propCheckOut ? formatDateForUrl(propCheckOut) : "";
-      const guestCount = propAdultCount + propChildCount;
-      
-      const reservationResponse = await reservationApi.create({
-        accommodation_id: accommodation.id,
-        check_in_date: checkInStr,
-        check_out_date: checkOutStr,
-        guest_count: guestCount,
-      });
-
-      const { reservation_uid, order_name, amount, customer_email, customer_name } =
-        reservationResponse;
-
-      // Toss Payments 결제 진행
-      if (!window.TossPayments) {
-        throw new Error("결제 시스템을 불러올 수 없습니다.");
-      }
-
-      setIsProcessingPayment(true);
-
-      const tossClientKey = process.env.REACT_APP_TOSS_CLIENT_KEY;
-      if (!tossClientKey) {
-        throw new Error("결제 설정이 올바르지 않습니다.");
-      }
-
-      const paymentWidget = window.TossPayments(tossClientKey);
-      const paymentMethodsWidget = paymentWidget.widgets({
-        customerKey: customer_email,
-      });
-
-      await paymentMethodsWidget.renderPaymentMethods(
-        "#payment-widget",
-        { value: amount },
-        { variantKey: "DEFAULT" }
-      );
-
-      paymentWidget.requestPayment({
-        orderId: reservation_uid,
-        orderName: order_name,
-        successUrl: `${window.location.origin}/reservations/${reservation_uid}/success`,
-        failUrl: `${window.location.origin}/reservations/${reservation_uid}/fail`,
-        customerEmail: customer_email,
-        customerName: customer_name,
-        amount,
-      });
-    } catch (err) {
-      handleError(err);
-      setIsLoading(false);
-      setIsProcessingPayment(false);
+    if (!propCheckIn || !propCheckOut) {
+      return;
     }
-  };
 
-  const formatDateForUrl = (date: Date): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
+    await startReservationPayment({
+      accommodationId: accommodation.id,
+      checkIn: propCheckIn,
+      checkOut: propCheckOut,
+      adultCount: propAdultCount,
+      childCount: propChildCount,
+    });
   };
 
   if (!isOpen) return null;
@@ -221,16 +155,13 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
   const totalPrice = calculateTotalPrice();
 
   return (
-    <>
-      <div className={styles.overlay} onClick={onClose} />
-      <div className={styles.modal}>
-        <button className={styles.closeButton} onClick={onClose}>
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-          </svg>
-        </button>
-
-        <div className={styles.content}>
+    <Dialog
+      isOpen={isOpen}
+      title="예약 확인"
+      onClose={onClose}
+      className={styles.dialog}
+      bodyClassName={styles.content}
+    >
           {/* 숙소 정보 */}
           <div className={styles.accommodationInfo}>
             {accommodation.images && accommodation.images.length > 0 && (
@@ -316,18 +247,13 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
               ? "예약 생성 중..."
               : "확인 및 결제"}
           </button>
-        </div>
-      </div>
-
       {error && (
         <div className={styles.toastContainer}>
           <ErrorToast message={error} onClose={clearError} />
         </div>
       )}
-    </>
+    </Dialog>
   );
 };
 
 export default ReservationModal;
-
-

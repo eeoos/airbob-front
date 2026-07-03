@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
-import { accommodationApi } from "../../api";
+import { useCreateAccommodationDraft } from "../../features/accommodations/hooks/useCreateAccommodationDraft";
 import { AuthModal } from "../AuthModal";
 import { useApiError } from "../../hooks/useApiError";
+import { routeTo } from "../../routes/paths";
 import styles from "./UserMenu.module.css";
 
 interface UserMenuProps {
@@ -18,6 +19,13 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<"login" | "signup">("login");
   const menuRef = useRef<HTMLDivElement>(null);
+  const { createDraft } = useCreateAccommodationDraft({
+    onCreated: (accommodationId) => {
+      // 숙소 초안 생성 성공 시 숙소 생성 폼 페이지로 이동 (새로 생성된 초안임을 표시)
+      navigate(routeTo.accommodationEdit(accommodationId, { mode: "create" }));
+    },
+    onError: handleError,
+  });
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -48,32 +56,25 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
   };
 
   const handleWishlist = () => {
-    navigate("/wishlist");
+    navigate(routeTo.wishlist());
     setIsMenuOpen(false);
   };
 
   const handleProfile = () => {
-    navigate("/profile");
+    navigate(routeTo.profile());
     setIsMenuOpen(false);
   };
 
   const handleHosting = async () => {
     setIsMenuOpen(false);
-
-    try {
-      const response = await accommodationApi.create();
-      // 숙소 초안 생성 성공 시 숙소 생성 폼 페이지로 이동 (새로 생성된 초안임을 표시)
-      navigate(`/accommodations/${response.id}/edit?mode=create`);
-    } catch (error) {
-      handleError(error);
-    }
+    await createDraft();
   };
 
   const handleLogout = async () => {
     try {
       await logout();
       setIsMenuOpen(false);
-      navigate("/");
+      navigate(routeTo.home());
     } catch (error) {
       console.error("Logout failed:", error);
       setIsMenuOpen(false);
@@ -140,4 +141,3 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
     </>
   );
 };
-

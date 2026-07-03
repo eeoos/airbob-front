@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { MainLayout } from "../../layouts";
-import { accommodationApi } from "../../api";
-import { AccommodationDetail } from "../../types/accommodation";
 import { useApiError } from "../../hooks/useApiError";
-import { useAuth } from "../../hooks/useAuth";
+import { useReservationConfirmAccommodation } from "../../features/reservations/hooks/useReservationConfirmAccommodation";
 import { ErrorToast } from "../../components/ErrorToast";
 import { getImageUrl } from "../../utils/image";
+import { routeTo } from "../../routes/paths";
 import styles from "./ReservationConfirm.module.css";
 
 declare global {
@@ -19,10 +17,7 @@ const ReservationConfirm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
   const { error, handleError, clearError } = useApiError();
-  const [accommodation, setAccommodation] = useState<AccommodationDetail | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   // URL 파라미터에서 예약 정보 가져오기
@@ -31,6 +26,10 @@ const ReservationConfirm: React.FC = () => {
   const amount = searchParams.get("amount") ? parseInt(searchParams.get("amount")!) : null;
   const customerEmail = searchParams.get("customerEmail");
   const customerName = searchParams.get("customerName");
+  const couponName = searchParams.get("couponName");
+  const couponDiscountParam = searchParams.get("couponDiscount")
+    ? parseInt(searchParams.get("couponDiscount")!)
+    : null;
   
   // 예약 박스에서 입력한 정보
   const checkIn = searchParams.get("checkIn") ? new Date(searchParams.get("checkIn")!) : null;
@@ -40,34 +39,13 @@ const ReservationConfirm: React.FC = () => {
   const infantCount = searchParams.get("infantOccupancy") ? parseInt(searchParams.get("infantOccupancy")!) : 0;
   const petCount = searchParams.get("petOccupancy") ? parseInt(searchParams.get("petOccupancy")!) : 0;
 
-  useEffect(() => {
-    const fetchAccommodation = async () => {
-      if (!id) {
-        navigate("/");
-        return;
-      }
-
-      if (!reservationUid) {
-        handleError(new Error("예약 정보가 없습니다."));
-        navigate(`/accommodations/${id}`);
-        return;
-      }
-
-      setIsLoading(true);
-      clearError();
-
-      try {
-        const data = await accommodationApi.getDetail(parseInt(id));
-        setAccommodation(data);
-      } catch (err) {
-        handleError(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchAccommodation();
-  }, [id, reservationUid, navigate, handleError, clearError]);
+  const { accommodation, isLoading } = useReservationConfirmAccommodation({
+    accommodationId: id,
+    reservationUid,
+    navigate,
+    handleError,
+    clearError,
+  });
 
   useEffect(() => {
     // Toss Payments SDK 로드
@@ -129,12 +107,7 @@ const ReservationConfirm: React.FC = () => {
   };
 
   const handleReserve = async () => {
-    if (!isAuthenticated) {
-      handleError(new Error("로그인이 필요합니다."));
-      return;
-    }
-
-    if (!reservationUid || !orderName || !amount || !customerEmail || !customerName) {
+    if (!reservationUid || !orderName || amount == null || !customerEmail || !customerName) {
       handleError(new Error("결제 정보가 올바르지 않습니다."));
       return;
     }
@@ -162,8 +135,8 @@ const ReservationConfirm: React.FC = () => {
       await paymentWidget.requestPayment({
         orderId: reservationUid,
         orderName: orderName,
-        successUrl: `${window.location.origin}/reservations/${reservationUid}/success`,
-        failUrl: `${window.location.origin}/reservations/${reservationUid}/fail`,
+        successUrl: `${window.location.origin}${routeTo.paymentSuccess(reservationUid)}`,
+        failUrl: `${window.location.origin}${routeTo.paymentFail(reservationUid)}`,
         customerEmail: customerEmail,
         customerName: customerName,
         amount: amount,
@@ -206,25 +179,28 @@ const ReservationConfirm: React.FC = () => {
 
   if (isLoading) {
     return (
-      <MainLayout>
+      <>
         <div className={styles.loading}>로딩 중...</div>
-      </MainLayout>
+      </>
     );
   }
 
   if (!accommodation) {
     return (
-      <MainLayout>
+      <>
         <div className={styles.error}>숙소 정보를 불러올 수 없습니다.</div>
-      </MainLayout>
+      </>
     );
   }
 
   const nights = calculateNights();
   const totalPrice = calculateTotalPrice();
+  const responseDiscount = amount == null ? 0 : Math.max(totalPrice - amount, 0);
+  const couponDiscount = responseDiscount > 0 ? responseDiscount : couponDiscountParam ?? 0;
+  const payableAmount = amount ?? totalPrice;
 
   return (
-    <MainLayout>
+    <>
       <div className={styles.container}>
         <div className={styles.content}>
           <h1 className={styles.title}>확인 및 결제</h1>
@@ -281,9 +257,15 @@ const ReservationConfirm: React.FC = () => {
               <span>{nights}박 x ₩{accommodation.base_price.toLocaleString()}</span>
               <span>₩{totalPrice.toLocaleString()}</span>
             </div>
+            {couponDiscount > 0 && (
+              <div className={styles.priceRow}>
+                <span>{couponName || "쿠폰 할인"}</span>
+                <span>-₩{couponDiscount.toLocaleString()}</span>
+              </div>
+            )}
             <div className={styles.priceRow}>
               <span className={styles.totalLabel}>총액 KRW</span>
-              <span className={styles.totalPrice}>₩{totalPrice.toLocaleString()}</span>
+              <span className={styles.totalPrice}>₩{payableAmount.toLocaleString()}</span>
             </div>
           </div>
 
@@ -304,7 +286,7 @@ const ReservationConfirm: React.FC = () => {
           <ErrorToast message={error} onClose={clearError} />
         </div>
       )}
-    </MainLayout>
+    </>
   );
 };
 

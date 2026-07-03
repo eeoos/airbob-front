@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { useAuth } from "../../hooks/useAuth";
-import { authApi } from "../../api";
 import { useApiError } from "../../hooks/useApiError";
+import { useSignup } from "../../features/auth/hooks/useSignup";
+import { Dialog } from "../../shared/ui";
 import { ErrorToast } from "../ErrorToast";
 import styles from "./AuthModal.module.css";
 
@@ -20,14 +21,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 }) => {
   const [mode, setMode] = useState<"login" | "signup">(initialMode);
   const { login } = useAuth();
-  const { error, handleError, clearError } = useApiError();
+  const { error: loginError, handleError, clearError } = useApiError();
+  const {
+    error: signupError,
+    clearError: clearSignupError,
+    isLoading: isSignupLoading,
+    signup,
+  } = useSignup();
   const [formData, setFormData] = useState({
     nickname: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoginLoading, setIsLoginLoading] = useState(false);
+  const error = loginError || signupError;
+  const isLoading = mode === "login" ? isLoginLoading : isSignupLoading;
+  const clearAuthErrors = useCallback(() => {
+    clearError();
+    clearSignupError();
+  }, [clearError, clearSignupError]);
 
   useEffect(() => {
     if (isOpen) {
@@ -38,29 +51,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         password: "",
         confirmPassword: "",
       });
-      clearError();
+      clearAuthErrors();
     }
-  }, [isOpen, initialMode, clearError]);
-
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
-    }
-
-    return () => {
-      document.body.style.overflow = "unset";
-    };
-  }, [isOpen]);
+  }, [isOpen, initialMode, clearAuthErrors]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    clearError();
-    setIsLoading(true);
+    clearAuthErrors();
 
-    try {
-      if (mode === "login") {
+    if (mode === "login") {
+      setIsLoginLoading(true);
+
+      try {
         await login({
           email: formData.email,
           password: formData.password,
@@ -69,35 +71,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         if (onSuccess) {
           onSuccess();
         }
-      } else {
-        if (formData.password !== formData.confirmPassword) {
-          handleError(new Error("비밀번호가 일치하지 않습니다."));
-          return;
-        }
-
-        if (formData.password.length < 8 || formData.password.length > 20) {
-          handleError(new Error("비밀번호는 8자 이상 20자 이하여야 합니다."));
-          return;
-        }
-
-        await authApi.signup({
-          nickname: formData.nickname,
-          email: formData.email,
-          password: formData.password,
-        });
-        // 회원가입 성공 후 로그인 모드로 전환
-        setMode("login");
-        setFormData({
-          nickname: "",
-          email: "",
-          password: "",
-          confirmPassword: "",
-        });
+      } catch (err) {
+        handleError(err);
+      } finally {
+        setIsLoginLoading(false);
       }
-    } catch (err) {
-      handleError(err);
-    } finally {
-      setIsLoading(false);
+      return;
+    }
+
+    const signedUp = await signup(formData);
+    if (signedUp) {
+      // 회원가입 성공 후 로그인 모드로 전환
+      setMode("login");
+      setFormData({
+        nickname: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+      });
     }
   };
 
@@ -110,7 +101,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleSwitchMode = () => {
     setMode(mode === "login" ? "signup" : "login");
-    clearError();
+    clearAuthErrors();
     setFormData({
       nickname: "",
       email: "",
@@ -119,23 +110,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     });
   };
 
-  if (!isOpen) return null;
+  const title = mode === "login" ? "로그인" : "회원가입";
 
   return (
-    <>
-      <div className={styles.overlay} onClick={onClose} />
-      <div className={styles.modal}>
-        <button className={styles.closeButton} onClick={onClose}>
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-          </svg>
-        </button>
-
-        <div className={styles.content}>
-          <h2 className={styles.title}>
-            {mode === "login" ? "로그인" : "회원가입"}
-          </h2>
-
+    <Dialog
+      isOpen={isOpen}
+      title={title}
+      onClose={onClose}
+      className={styles.dialog}
+      bodyClassName={styles.content}
+    >
           <form onSubmit={handleSubmit} className={styles.form}>
             {mode === "signup" && (
               <div className={styles.inputGroup}>
@@ -240,16 +224,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               {mode === "login" ? "회원가입" : "로그인"}
             </button>
           </div>
+      {error && (
+        <div className={styles.toastContainer}>
+          <ErrorToast message={error} onClose={clearAuthErrors} />
         </div>
-
-        {error && (
-          <div className={styles.toastContainer}>
-            <ErrorToast message={error} onClose={clearError} />
-          </div>
-        )}
-      </div>
-    </>
+      )}
+    </Dialog>
   );
 };
-
-

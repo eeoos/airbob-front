@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { MainLayout } from "../../layouts";
-import { useAuth } from "../../hooks/useAuth";
+import { useSearchParams } from "react-router-dom";
 import GuestTrips from "./GuestTrips/GuestTrips";
 import HostListings from "./HostListings/HostListings";
 import HostReservations from "./HostReservations/HostReservations";
@@ -10,8 +8,6 @@ import styles from "./Profile.module.css";
 type ProfileMode = "guest" | "host";
 
 const Profile: React.FC = () => {
-  const navigate = useNavigate();
-  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialMode = searchParams.get("mode") === "host" ? "host" : "guest";
   const initialTab = searchParams.get("tab") || (initialMode === "host" ? "listings" : "upcoming");
@@ -26,15 +22,6 @@ const Profile: React.FC = () => {
   
   const [mode, setMode] = useState<ProfileMode>(initialMode);
   const [activeTab, setActiveTab] = useState<string>(getInitialTab());
-
-  useEffect(() => {
-    if (isAuthLoading) return;
-    
-    if (!isAuthenticated) {
-      navigate("/");
-      return;
-    }
-  }, [isAuthenticated, isAuthLoading, navigate]);
 
   useEffect(() => {
     const modeParam = searchParams.get("mode");
@@ -57,20 +44,8 @@ const Profile: React.FC = () => {
     }
   }, [searchParams]);
 
-  if (isAuthLoading) {
-    return (
-      <MainLayout>
-        <div className={styles.loading}>로딩 중...</div>
-      </MainLayout>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null;
-  }
-
   return (
-    <MainLayout>
+    <>
       <div className={styles.container}>
         <div className={styles.header}>
           <h1 className={styles.title}>프로필</h1>
@@ -223,7 +198,7 @@ const Profile: React.FC = () => {
           </div>
         </div>
       </div>
-    </MainLayout>
+    </>
   );
 };
 

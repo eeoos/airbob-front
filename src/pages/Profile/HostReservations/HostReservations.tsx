@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { reservationApi } from "../../../api";
-import { HostReservationInfo } from "../../../types/reservation";
 import { ReservationStatus } from "../../../types/enums";
-import { useApiError } from "../../../hooks/useApiError";
 import { ErrorToast } from "../../../components/ErrorToast";
+import { routeTo } from "../../../routes/paths";
+import { useHostReservations } from "../../../features/reservations";
+import { EmptyState, LoadingState } from "../../../shared/ui";
 import styles from "./HostReservations.module.css";
 
 interface HostReservationsProps {
@@ -14,71 +14,25 @@ interface HostReservationsProps {
 
 const HostReservations: React.FC<HostReservationsProps> = ({ filterType, onFilterChange }) => {
   const navigate = useNavigate();
-  const { error, handleError, clearError } = useApiError();
-  const [reservations, setReservations] = useState<HostReservationInfo[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [cursor, setCursor] = useState<string | null>(null);
-  const [hasNext, setHasNext] = useState(false);
+  const {
+    clearError,
+    error,
+    hasNext,
+    isLoading,
+    isLoadingMore,
+    loadMore,
+    reservations,
+  } = useHostReservations(filterType);
   const [sortBy, setSortBy] = useState<"check_in" | "check_out" | "created_at">("check_in");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const observerTarget = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const fetchReservations = async () => {
-      setIsLoading(true);
-      clearError();
-      setReservations([]);
-      setCursor(null);
-      setHasNext(false);
-
-      try {
-        const response = await reservationApi.getHostReservations({ 
-          size: 20, 
-          filterType: filterType || undefined 
-        });
-        setReservations(response.reservations);
-        setCursor(response.page_info.next_cursor);
-        setHasNext(response.page_info.has_next);
-      } catch (err) {
-        handleError(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchReservations();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterType]);
-
-  const handleLoadMore = useCallback(async () => {
-    if (!hasNext || isLoadingMore || !cursor) return;
-
-    setIsLoadingMore(true);
-    clearError();
-
-    try {
-      const response = await reservationApi.getHostReservations({ 
-        size: 20, 
-        cursor, 
-        filterType: filterType || undefined 
-      });
-      setReservations((prev) => [...prev, ...response.reservations]);
-      setCursor(response.page_info.next_cursor);
-      setHasNext(response.page_info.has_next);
-    } catch (err) {
-      handleError(err);
-    } finally {
-      setIsLoadingMore(false);
-    }
-  }, [hasNext, isLoadingMore, cursor, filterType, clearError, handleError]);
 
   // Intersection Observer를 사용한 무한 스크롤
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNext && !isLoadingMore) {
-          handleLoadMore();
+          loadMore();
         }
       },
       { threshold: 0.1 }
@@ -94,7 +48,7 @@ const HostReservations: React.FC<HostReservationsProps> = ({ filterType, onFilte
         observer.unobserve(currentTarget);
       }
     };
-  }, [hasNext, isLoadingMore, handleLoadMore]);
+  }, [hasNext, isLoadingMore, loadMore]);
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
@@ -169,7 +123,7 @@ const HostReservations: React.FC<HostReservationsProps> = ({ filterType, onFilte
   });
 
   if (isLoading) {
-    return <div className={styles.loading}>로딩 중...</div>;
+    return <LoadingState title="로딩 중..." />;
   }
 
   return (
@@ -197,9 +151,7 @@ const HostReservations: React.FC<HostReservationsProps> = ({ filterType, onFilte
       </div>
 
       {reservations.length === 0 ? (
-        <div className={styles.empty}>
-          <p>아직 예약이 없습니다.</p>
-        </div>
+        <EmptyState title="아직 예약이 없습니다." />
       ) : (
         <>
           <div className={styles.tableContainer}>
@@ -252,7 +204,9 @@ const HostReservations: React.FC<HostReservationsProps> = ({ filterType, onFilte
                     <td className={styles.td}>
                       <button
                         className={styles.detailsButton}
-                        onClick={() => navigate(`/profile/host/reservations/${reservation.reservation_uid}`)}
+                        onClick={() =>
+                          navigate(routeTo.hostReservationDetail(reservation.reservation_uid))
+                        }
                       >
                         상세
                       </button>

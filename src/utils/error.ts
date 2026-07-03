@@ -1,10 +1,15 @@
 import { AxiosError } from "axios";
 import { ApiResponse, ErrorResponse, FieldError } from "../types/api";
+import { isApiClientError, toErrorResponse } from "../api/response";
 
 /**
  * API 에러 응답을 파싱합니다.
  */
 export const parseApiError = (error: unknown): ErrorResponse | null => {
+  if (isApiClientError(error)) {
+    return toErrorResponse(error);
+  }
+
   if (error instanceof AxiosError) {
     // response.data가 있는 경우
     if (error.response?.data) {
@@ -109,6 +114,16 @@ export const getErrorMessage = (errorCode: string, defaultMessage?: string): str
     // Discount
     D001: "존재하지 않는 할인정책입니다.",
 
+    // Coupon
+    CP001: "존재하지 않는 쿠폰입니다.",
+    CP002: "쿠폰이 모두 소진되었습니다.",
+    CP003: "이미 발급받은 쿠폰입니다.",
+    CP004: "쿠폰 발급에 실패했습니다. 잠시 후 다시 시도해주세요.",
+    CP005: "발급할 수 없는 쿠폰입니다.",
+    CP006: "보유하지 않은 쿠폰입니다.",
+    CP007: "이미 사용한 쿠폰입니다.",
+    CP008: "사용할 수 없는 쿠폰입니다.",
+
     // Image
     I001: "이미지 업로드 중 오류가 발생했습니다.",
     I002: "이미지 삭제 중 오류가 발생했습니다.",
@@ -162,4 +177,3 @@ export const isAuthError = (error: unknown): boolean => {
 
   return apiError.code === "M004" || apiError.status === 401;
 };
-

@@ -1,7 +1,6 @@
 // src/contexts/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { authApi } from "../api";
-import { client } from "../api/client"; 
 import { onAuthError } from "../utils/authEvents"; // [수정] 이벤트 구독 함수
 import { LoginRequest } from "../types/auth";
 
@@ -48,16 +47,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const checkAuth = useCallback(async () => {
     try {
-      // axios client 사용 (운영 시 절대 경로로 요청됨)
-      const response = await client.get('/auth/me');
-      
-      // Vercel HTML 응답 방어
-      const contentType = response.headers['content-type'];
-      if (contentType && typeof contentType === 'string' && contentType.includes('text/html')) {
-        console.warn("Auth Check returned HTML. Treating as unauthenticated.");
-        throw new Error("Invalid API Response");
-      }
-      
+      await authApi.getMe();
       setIsAuthenticated(true);
     } catch (error) {
       setIsAuthenticated(false);

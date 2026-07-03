@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { getImageUrl } from "../../utils/image";
+import { routeTo } from "../../routes/paths";
 import styles from "./BaseAccommodationCard.module.css";
 
 interface BaseAccommodationCardProps {
@@ -26,12 +27,17 @@ export const BaseAccommodationCard: React.FC<BaseAccommodationCardProps> = ({
     if (onClick) {
       onClick();
     } else {
-      navigate(`/accommodations/${id}`);
+      navigate(routeTo.accommodationDetail(id));
     }
   };
 
   return (
-    <div className={styles.card} onClick={handleClick}>
+    <button
+      type="button"
+      className={styles.card}
+      aria-label={`숙소 상세 보기: ${name}`}
+      onClick={handleClick}
+    >
       <div className={styles.imageContainer}>
         {thumbnailUrl ? (
           <>
@@ -59,11 +65,9 @@ export const BaseAccommodationCard: React.FC<BaseAccommodationCardProps> = ({
         <div className={styles.name}>{name}</div>
         {children}
       </div>
-    </div>
+    </button>
   );
 };
-
-
 
 
 

@@ -1,56 +1,36 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { MainLayout } from "../../layouts";
-import { reviewApi, reservationApi } from "../../api";
-import { ReservationDetailInfo } from "../../types/reservation";
-import { useApiError } from "../../hooks/useApiError";
-import { useAuth } from "../../hooks/useAuth";
 import { ErrorToast } from "../../components/ErrorToast";
+import {
+  REVIEW_IMAGE_UPLOAD_ERROR_MESSAGE,
+  useReviewCreate,
+} from "../../features/reviews";
 import { getImageUrl } from "../../utils/image";
+import { routeTo } from "../../routes/paths";
 import styles from "./ReviewCreate.module.css";
 
 const ReviewCreate: React.FC = () => {
   const { reservationUid } = useParams<{ reservationUid: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
-  const { error, handleError, clearError } = useApiError();
-  const [reservation, setReservation] = useState<ReservationDetailInfo | null>(null);
   const [rating, setRating] = useState<number>(5);
   const [comment, setComment] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const {
+    clearError,
+    error,
+    handleError,
+    isLoading,
+    isSubmitting,
+    reservation,
+    submitReview,
+  } = useReviewCreate(reservationUid);
 
   useEffect(() => {
-    if (isAuthLoading) return;
-    
-    if (!isAuthenticated) {
-      navigate("/");
-      return;
-    }
-
     if (!reservationUid) {
-      navigate("/profile");
-      return;
+      navigate(routeTo.profile());
     }
-
-    const fetchReservation = async () => {
-      setIsLoading(true);
-      clearError();
-
-      try {
-        const response = await reservationApi.getMyReservationDetail(reservationUid);
-        setReservation(response);
-      } catch (err) {
-        handleError(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchReservation();
-  }, [reservationUid, isAuthenticated, isAuthLoading, navigate, handleError, clearError]);
+  }, [reservationUid, navigate]);
 
   // 컴포넌트 언마운트 시 미리보기 URL 정리
   useEffect(() => {
@@ -114,73 +94,45 @@ const ReviewCreate: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reservation || !comment.trim()) {
-      handleError(new Error("리뷰 내용을 입력해주세요."));
+
+    const result = await submitReview({
+      content: comment,
+      images: selectedImages,
+      rating,
+    });
+
+    if (result.status === "success") {
+      navigate(routeTo.reservationDetail(result.reservationUid));
       return;
     }
 
-    setIsSubmitting(true);
-    clearError();
-
-    try {
-      // 1. 먼저 리뷰 생성
-      const createResponse = await reviewApi.create(reservation.accommodation.id, {
-        rating,
-        content: comment.trim(),
+    if (result.status === "upload_failed") {
+      navigate(routeTo.reservationDetail(result.reservationUid), {
+        state: {
+          toastMessage: REVIEW_IMAGE_UPLOAD_ERROR_MESSAGE,
+        },
       });
-
-      // 2. 리뷰 생성 성공 시, 이미지가 있으면 업로드
-      if (createResponse && selectedImages.length > 0) {
-        try {
-          await reviewApi.uploadImages(createResponse.id, selectedImages);
-        } catch (imageErr) {
-          // 이미지 업로드 실패해도 리뷰는 생성되었으므로 경고만 표시
-          handleError(new Error("리뷰는 작성되었지만 이미지 업로드에 실패했습니다."));
-          // 이미지 업로드 실패해도 리뷰 작성은 완료되었으므로 이동
-          navigate(`/reservations/${reservation.reservation_uid}`);
-          return;
-        }
-      }
-
-      // 3. 성공 시 예약 상세 페이지로 이동
-      navigate(`/reservations/${reservation.reservation_uid}`);
-    } catch (err) {
-      handleError(err);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
-  if (isAuthLoading) {
-    return (
-      <MainLayout>
-        <div className={styles.loading}>로딩 중...</div>
-      </MainLayout>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null;
-  }
-
   if (isLoading) {
     return (
-      <MainLayout>
+      <>
         <div className={styles.loading}>로딩 중...</div>
-      </MainLayout>
+      </>
     );
   }
 
   if (!reservation) {
     return (
-      <MainLayout>
+      <>
         <div className={styles.error}>예약을 찾을 수 없습니다.</div>
-      </MainLayout>
+      </>
     );
   }
 
   return (
-    <MainLayout>
+    <>
       <div className={styles.container}>
         <button className={styles.backButton} onClick={() => navigate(-1)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -353,9 +305,8 @@ const ReviewCreate: React.FC = () => {
           <ErrorToast message={error} onClose={clearError} />
         </div>
       )}
-    </MainLayout>
+    </>
   );
 };
 
 export default ReviewCreate;
-

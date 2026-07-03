@@ -1,0 +1,248 @@
+import { act, renderHook } from "@testing-library/react";
+import { reservationApi } from "../../../api";
+import { AccommodationDetail } from "../../../types/accommodation";
+import { CouponInfo } from "../../../types/coupon";
+import { useAccommodationBooking } from "./useAccommodationBooking";
+
+jest.mock("../../../api", () => ({
+  reservationApi: {
+    create: jest.fn(),
+  },
+}));
+
+const mockSetSearchParams = jest.fn();
+const mockNavigate = jest.fn();
+const mockHandleError = jest.fn();
+const mockClearError = jest.fn();
+const mockRequireAuth = jest.fn();
+
+const createAccommodation = (
+  overrides: Partial<AccommodationDetail> = {}
+): AccommodationDetail => ({
+  id: 7,
+  name: "테스트 숙소",
+  description: "설명",
+  type: "ENTIRE_PLACE",
+  base_price: 100000,
+  currency: "KRW",
+  check_in_time: "15:00:00",
+  check_out_time: "11:00:00",
+  unavailable_dates: [],
+  is_in_wishlist: false,
+  address_summary: {
+    country: "KR",
+    state: null,
+    city: "Seoul",
+    district: "Mapo",
+  },
+  coordinate: {
+    latitude: 37.5,
+    longitude: 127,
+  },
+  host: {
+    id: 1,
+    nickname: "호스트",
+    thumbnail_image_url: null,
+  },
+  policy: {
+    max_occupancy: 4,
+    infant_occupancy: 1,
+    pet_occupancy: 1,
+  },
+  amenities: [],
+  images: [],
+  review_summary: {
+    total_count: 0,
+    average_rating: 0,
+  },
+  ...overrides,
+});
+
+const createCoupon = (overrides: Partial<CouponInfo> = {}): CouponInfo => ({
+  id: 3,
+  name: "만원 쿠폰",
+  description: null,
+  discount_type: "FIXED_AMOUNT",
+  discount_value: 10000,
+  min_payment_price: null,
+  max_discount_amount: null,
+  start_date: "2026-07-01",
+  end_date: "2026-12-31",
+  total_quantity: null,
+  issued_quantity: 0,
+  ...overrides,
+});
+
+const renderUseAccommodationBooking = (
+  searchParams: URLSearchParams,
+  options: Partial<Parameters<typeof useAccommodationBooking>[0]> = {}
+) =>
+  renderHook(() =>
+    useAccommodationBooking({
+      accommodationId: "7",
+      accommodation: createAccommodation(),
+      searchParams,
+      setSearchParams: mockSetSearchParams,
+      isAuthenticated: true,
+      selectedCoupon: null,
+      selectedCouponId: null,
+      couponDiscount: 0,
+      navigate: mockNavigate,
+      handleError: mockHandleError,
+      clearError: mockClearError,
+      onRequireAuth: mockRequireAuth,
+      startTransition: (callback) => callback(),
+      ...options,
+    })
+  );
+
+describe("useAccommodationBooking", () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2026-07-10T12:00:00"));
+    mockSetSearchParams.mockReset();
+    mockNavigate.mockReset();
+    mockHandleError.mockReset();
+    mockClearError.mockReset();
+    mockRequireAuth.mockReset();
+    jest.mocked(reservationApi.create).mockReset();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("calculates stay dates, nights, and total price from URL params", () => {
+    const { result } = renderUseAccommodationBooking(
+      new URLSearchParams("checkIn=2026-07-20&checkOut=2026-07-23")
+    );
+
+    expect(result.current.checkIn?.getFullYear()).toBe(2026);
+    expect(result.current.checkIn?.getMonth()).toBe(6);
+    expect(result.current.checkIn?.getDate()).toBe(20);
+    expect(result.current.nights).toBe(3);
+    expect(result.current.totalPrice).toBe(300000);
+    expect(result.current.payablePrice).toBe(300000);
+  });
+
+  it("chooses the first available default one-night stay when dates are absent", () => {
+    const { result } = renderUseAccommodationBooking(new URLSearchParams(), {
+      accommodation: createAccommodation({
+        unavailable_dates: ["2026-07-10", "2026-07-11"],
+      }),
+    });
+
+    expect(result.current.formatDate(result.current.checkIn)).toBe("2026. 07. 12.");
+    expect(result.current.formatDate(result.current.checkOut)).toBe("2026. 07. 13.");
+    expect(result.current.nights).toBe(1);
+    expect(result.current.totalPrice).toBe(100000);
+  });
+
+  it("updates date query params and closes the picker after checkout is selected", () => {
+    const { result } = renderUseAccommodationBooking(
+      new URLSearchParams("adultOccupancy=2")
+    );
+
+    act(() => {
+      result.current.handleDateSelect(
+        new Date(2026, 6, 20),
+        new Date(2026, 6, 21)
+      );
+    });
+
+    const nextParams = mockSetSearchParams.mock.calls[0][0] as URLSearchParams;
+    expect(nextParams.toString()).toBe(
+      "adultOccupancy=2&checkIn=2026-07-20&checkOut=2026-07-21"
+    );
+    expect(mockSetSearchParams.mock.calls[0][1]).toEqual({ replace: true });
+    expect(result.current.isDatePickerOpen).toBe(false);
+  });
+
+  it("creates a reservation and navigates to confirmation with booking and coupon params", async () => {
+    jest.mocked(reservationApi.create).mockResolvedValue({
+      reservation_uid: "res-1",
+      order_name: "주문명",
+      amount: 190000,
+      customer_email: "guest@example.com",
+      customer_name: "게스트",
+    });
+
+    const { result } = renderUseAccommodationBooking(
+      new URLSearchParams(
+        "checkIn=2026-07-20&checkOut=2026-07-22&adultOccupancy=2&childOccupancy=1&infantOccupancy=1&petOccupancy=1"
+      ),
+      {
+        selectedCoupon: createCoupon(),
+        selectedCouponId: 3,
+        couponDiscount: 10000,
+      }
+    );
+
+    await act(async () => {
+      await result.current.handleReserve();
+    });
+
+    expect(reservationApi.create).toHaveBeenCalledWith({
+      accommodation_id: 7,
+      check_in_date: "2026-07-20",
+      check_out_date: "2026-07-22",
+      guest_count: 3,
+      coupon_id: 3,
+    });
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/accommodations/7/confirm?reservationUid=res-1&orderName=%EC%A3%BC%EB%AC%B8%EB%AA%85&amount=190000&customerEmail=guest%40example.com&customerName=%EA%B2%8C%EC%8A%A4%ED%8A%B8&checkIn=2026-07-20&checkOut=2026-07-22&adultOccupancy=2&childOccupancy=1&infantOccupancy=1&petOccupancy=1&couponName=%EB%A7%8C%EC%9B%90+%EC%BF%A0%ED%8F%B0&couponDiscount=10000"
+    );
+  });
+
+  it("defers reservation behind auth when logged out", async () => {
+    const { result } = renderUseAccommodationBooking(
+      new URLSearchParams("checkIn=2026-07-20&checkOut=2026-07-22"),
+      { isAuthenticated: false }
+    );
+
+    await act(async () => {
+      await result.current.handleReserve();
+    });
+
+    expect(mockRequireAuth).toHaveBeenCalledTimes(1);
+    expect(reservationApi.create).not.toHaveBeenCalled();
+  });
+
+  it("replays a deferred reservation after auth success without reopening auth", async () => {
+    jest.mocked(reservationApi.create).mockResolvedValue({
+      reservation_uid: "res-1",
+      order_name: "주문명",
+      amount: 200000,
+      customer_email: "guest@example.com",
+      customer_name: "게스트",
+    });
+    let pendingAction: (() => void | Promise<void>) | undefined;
+    mockRequireAuth.mockImplementation((action) => {
+      pendingAction = action;
+    });
+
+    const { result } = renderUseAccommodationBooking(
+      new URLSearchParams("checkIn=2026-07-20&checkOut=2026-07-22"),
+      { isAuthenticated: false }
+    );
+
+    await act(async () => {
+      await result.current.handleReserve();
+    });
+
+    mockRequireAuth.mockClear();
+
+    await act(async () => {
+      await pendingAction?.();
+    });
+
+    expect(mockRequireAuth).not.toHaveBeenCalled();
+    expect(reservationApi.create).toHaveBeenCalledWith({
+      accommodation_id: 7,
+      check_in_date: "2026-07-20",
+      check_out_date: "2026-07-22",
+      guest_count: 1,
+      coupon_id: null,
+    });
+  });
+});

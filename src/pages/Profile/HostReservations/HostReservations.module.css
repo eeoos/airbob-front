@@ -40,14 +40,6 @@
   border-bottom-color: #00a699;
 }
 
-.loading,
-.empty {
-  text-align: center;
-  padding: 80px 24px;
-  color: #717171;
-  font-size: 16px;
-}
-
 .tableContainer {
   width: 100%;
   overflow-x: auto;
@@ -213,7 +205,7 @@
   position: fixed;
   top: 24px;
   right: 24px;
-  z-index: 1000;
+  z-index: var(--z-toast);
 }
 
 @media (max-width: 768px) {

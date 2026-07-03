@@ -1,4 +1,5 @@
 import { client } from "./client";
+import { unwrapApiResponse } from "./response";
 import {
   CreateReviewRequest,
   CreateReviewData,
@@ -21,7 +22,7 @@ export const reviewApi = {
       `/accommodations/${accommodationId}/reviews`,
       request
     );
-    return response.data.data!;
+    return unwrapApiResponse(response.data);
   },
 
   // 리뷰 수정
@@ -33,12 +34,13 @@ export const reviewApi = {
       `/reviews/${reviewId}`,
       request
     );
-    return response.data.data!;
+    return unwrapApiResponse(response.data);
   },
 
   // 리뷰 삭제
   delete: async (reviewId: number): Promise<void> => {
-    await client.delete<ApiResponse<null>>(`/reviews/${reviewId}`);
+    const response = await client.delete<ApiResponse<null>>(`/reviews/${reviewId}`);
+    unwrapApiResponse(response.data, { allowNull: true });
   },
 
   // 리뷰 이미지 업로드
@@ -60,14 +62,15 @@ export const reviewApi = {
         },
       }
     );
-    return response.data.data!;
+    return unwrapApiResponse(response.data);
   },
 
   // 리뷰 이미지 삭제
   deleteImage: async (reviewId: number, imageId: number): Promise<void> => {
-    await client.delete<ApiResponse<null>>(
+    const response = await client.delete<ApiResponse<null>>(
       `/reviews/${reviewId}/images/${imageId}`
     );
+    unwrapApiResponse(response.data, { allowNull: true });
   },
 
   // 리뷰 목록 조회
@@ -83,7 +86,7 @@ export const reviewApi = {
       `/accommodations/${accommodationId}/reviews`,
       { params }
     );
-    return response.data.data!;
+    return unwrapApiResponse(response.data);
   },
 
   // 리뷰 요약 조회
@@ -91,6 +94,6 @@ export const reviewApi = {
     const response = await client.get<ApiResponse<ReviewSummary>>(
       `/accommodations/${accommodationId}/reviews/summary`
     );
-    return response.data.data!;
+    return unwrapApiResponse(response.data);
   },
 };

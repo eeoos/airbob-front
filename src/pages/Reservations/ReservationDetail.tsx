@@ -1,56 +1,35 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { MainLayout } from "../../layouts";
-import { reservationApi } from "../../api";
-import { ReservationDetailInfo } from "../../types/reservation";
+import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { ReservationStatus, PaymentStatus } from "../../types/enums";
-import { useApiError } from "../../hooks/useApiError";
-import { useAuth } from "../../hooks/useAuth";
 import { ErrorToast } from "../../components/ErrorToast";
+import { useReservationDetail } from "../../features/reservations";
 import { getImageUrl } from "../../utils/image";
 import { GOOGLE_MAPS_API_KEY } from "../../utils/constants";
+import { routeTo } from "../../routes/paths";
 import styles from "./ReservationDetail.module.css";
+
+interface ReservationDetailLocationState {
+  toastMessage?: string;
+}
 
 const ReservationDetail: React.FC = () => {
   const { reservationUid } = useParams<{ reservationUid: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
-  const { error, handleError, clearError } = useApiError();
-  const [reservation, setReservation] = useState<ReservationDetailInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const location = useLocation();
+  const locationState = location.state as ReservationDetailLocationState | null;
+  const [routeToastMessage, setRouteToastMessage] = useState<string | null>(
+    typeof locationState?.toastMessage === "string"
+      ? locationState.toastMessage
+      : null
+  );
+  const { error, clearError, isLoading, reservation } =
+    useReservationDetail(reservationUid);
 
   useEffect(() => {
-    // 인증 상태가 로드될 때까지 대기
-    if (isAuthLoading) {
-      return;
-    }
-
-    if (!isAuthenticated) {
-      navigate("/");
-      return;
-    }
-
     if (!reservationUid) {
-      navigate("/profile");
-      return;
+      navigate(routeTo.profile());
     }
-
-    const fetchReservation = async () => {
-      setIsLoading(true);
-      clearError();
-
-      try {
-        const response = await reservationApi.getMyReservationDetail(reservationUid);
-        setReservation(response);
-      } catch (err) {
-        handleError(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchReservation();
-  }, [reservationUid, isAuthenticated, isAuthLoading, navigate, handleError, clearError]);
+  }, [reservationUid, navigate]);
 
   const isCompleted = (checkOutDateTime: string, checkOutTime: string): boolean => {
     const now = new Date();
@@ -129,31 +108,19 @@ const ReservationDetail: React.FC = () => {
     return bankMap[bankCode] || `은행코드 ${bankCode}`;
   };
 
-  // 인증 상태가 로드 중이거나 인증되지 않은 경우
-  if (isAuthLoading || !isAuthenticated) {
-    if (isAuthLoading) {
-      return (
-        <MainLayout>
-          <div className={styles.loading}>로딩 중...</div>
-        </MainLayout>
-      );
-    }
-    return null;
-  }
-
   if (isLoading) {
     return (
-      <MainLayout>
+      <>
         <div className={styles.loading}>로딩 중...</div>
-      </MainLayout>
+      </>
     );
   }
 
   if (!reservation) {
     return (
-      <MainLayout>
+      <>
         <div className={styles.error}>예약을 찾을 수 없습니다.</div>
-      </MainLayout>
+      </>
     );
   }
 
@@ -165,9 +132,9 @@ const ReservationDetail: React.FC = () => {
   const isPaymentCompleted = reservation.payment?.status === PaymentStatus.DONE;
 
   return (
-    <MainLayout>
+    <>
       <div className={styles.container}>
-        <button className={styles.backButton} onClick={() => navigate("/profile")}>
+        <button className={styles.backButton} onClick={() => navigate(routeTo.profile())}>
           ← 돌아가기
         </button>
 
@@ -225,7 +192,7 @@ const ReservationDetail: React.FC = () => {
                   </div>
                   <div
                     className={styles.accommodationBox}
-                    onClick={() => navigate(`/accommodations/${reservation.accommodation.id}`)}
+                    onClick={() => navigate(routeTo.accommodationDetail(reservation.accommodation.id))}
                   >
                     <div className={styles.accommodationBoxContent}>
                       <span>숙소로 이동하기</span>
@@ -235,7 +202,7 @@ const ReservationDetail: React.FC = () => {
                   {canReview && (
                     <div
                       className={styles.accommodationBox}
-                      onClick={() => navigate(`/reservations/${reservation.reservation_uid}/review`)}
+                      onClick={() => navigate(routeTo.reviewCreate(reservation.reservation_uid))}
                     >
                       <div className={styles.accommodationBoxContent}>
                         <span>리뷰 작성하기</span>
@@ -399,12 +366,15 @@ const ReservationDetail: React.FC = () => {
         </div>
       </div>
 
-      {error && (
+      {(error || routeToastMessage) && (
         <div className={styles.toastContainer}>
-          <ErrorToast message={error} onClose={clearError} />
+          <ErrorToast
+            message={error ?? routeToastMessage ?? ""}
+            onClose={error ? clearError : () => setRouteToastMessage(null)}
+          />
         </div>
       )}
-    </MainLayout>
+    </>
   );
 };
 

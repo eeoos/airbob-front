@@ -1,4 +1,4 @@
-import { AccommodationStatus, AccommodationType, AmenityType } from "./enums";
+import { AccommodationStatus } from "./enums";
 import { CursorPageInfo, PageInfo } from "./api";
 
 // 공통 타입
@@ -37,7 +37,7 @@ export interface PolicyInfo {
 }
 
 export interface AmenityInfo {
-  type: AmenityType;
+  type: string;
   count: number;
 }
 
@@ -78,7 +78,7 @@ export interface AccommodationSearchInfo {
   accommodation_thumbnail_url: string | null;
   base_price: number;
   currency: string;
-  type: AccommodationType;
+  type: string;
   address_summary: AddressSummaryInfo;
   coordinate: Coordinate;
   review_summary: ReviewSummary;
@@ -95,7 +95,7 @@ export interface AccommodationDetail {
   id: number;
   name: string;
   description: string;
-  type: AccommodationType;
+  type: string;
   base_price: number;
   currency: string;
   check_in_time: string; // HH:mm:ss
@@ -116,7 +116,7 @@ export interface HostAccommodationDetail {
   id: number;
   name: string | null;
   description: string | null;
-  type: AccommodationType | null;
+  type: string | null;
   base_price: number | null;
   currency: string | null;
   check_in_time: string | null; // HH:mm:ss
@@ -136,7 +136,7 @@ export interface HostAccommodationInfo {
   name: string | null;
   thumbnail_url: string | null;
   status: AccommodationStatus;
-  type: AccommodationType | null;
+  type: string | null;
   address_summary: AddressSummaryInfo | null;
   created_at: string;
 }

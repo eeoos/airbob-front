@@ -1,31 +1,14 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { MainLayout } from "../../layouts";
-import { useAuth } from "../../hooks/useAuth";
+import { routeTo } from "../../routes/paths";
 import styles from "./PaymentFail.module.css";
 
 const PaymentFail: React.FC = () => {
   const { reservationUid } = useParams<{ reservationUid: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
-
-  if (isAuthLoading) {
-    return (
-      <MainLayout>
-        <div className={styles.container}>
-          <div className={styles.content}>로딩 중...</div>
-        </div>
-      </MainLayout>
-    );
-  }
-
-  if (!isAuthenticated) {
-    navigate("/");
-    return null;
-  }
 
   return (
-    <MainLayout>
+    <>
       <div className={styles.container}>
         <div className={styles.content}>
           <div className={styles.errorIcon}>❌</div>
@@ -34,13 +17,13 @@ const PaymentFail: React.FC = () => {
             결제 처리 중 문제가 발생했습니다. 다시 시도해주세요.
           </p>
           <div className={styles.actions}>
-            <button className={styles.button} onClick={() => navigate("/profile")}>
+            <button className={styles.button} onClick={() => navigate(routeTo.profile())}>
               프로필로 이동
             </button>
             {reservationUid && (
               <button
                 className={styles.buttonSecondary}
-                onClick={() => navigate(`/reservations/${reservationUid}`)}
+                onClick={() => navigate(routeTo.reservationDetail(reservationUid))}
               >
                 예약 상세 보기
               </button>
@@ -48,15 +31,11 @@ const PaymentFail: React.FC = () => {
           </div>
         </div>
       </div>
-    </MainLayout>
+    </>
   );
 };
 
 export default PaymentFail;
-
-
-
-
 
 
 

@@ -43,7 +43,7 @@
   box-shadow: 0 2px 16px rgba(0, 0, 0, 0.18);
   min-width: 200px;
   padding: 8px 0;
-  z-index: 1000;
+  z-index: var(--z-dropdown);
 }
 
 .menuItem {
@@ -67,4 +67,3 @@
   background-color: #ebebeb;
   margin: 8px 0;
 }
-

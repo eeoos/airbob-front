@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { reservationApi } from "../../../api";
 import { MyReservationInfo } from "../../../types/reservation";
-import { useApiError } from "../../../hooks/useApiError";
 import { ErrorToast } from "../../../components/ErrorToast";
 import { getImageUrl } from "../../../utils/image";
+import { routeTo } from "../../../routes/paths";
+import { useGuestTrips } from "../../../features/reservations";
+import { EmptyState, LoadingState } from "../../../shared/ui";
 import styles from "./GuestTrips.module.css";
 
 interface GuestTripsProps {
@@ -13,69 +14,23 @@ interface GuestTripsProps {
 
 const GuestTrips: React.FC<GuestTripsProps> = ({ filterType }) => {
   const navigate = useNavigate();
-  const { error, handleError, clearError } = useApiError();
-  const [reservations, setReservations] = useState<MyReservationInfo[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [cursor, setCursor] = useState<string | null>(null);
-  const [hasNext, setHasNext] = useState(false);
+  const {
+    clearError,
+    error,
+    hasNext,
+    isLoading,
+    isLoadingMore,
+    loadMore,
+    reservations,
+  } = useGuestTrips(filterType);
   const observerTarget = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const fetchReservations = async () => {
-      setIsLoading(true);
-      clearError();
-      setReservations([]);
-      setCursor(null);
-      setHasNext(false);
-
-      try {
-        const response = await reservationApi.getMyReservations({ 
-          size: 20, 
-          filterType: filterType || undefined 
-        });
-        setReservations(response.reservations);
-        setCursor(response.page_info.next_cursor);
-        setHasNext(response.page_info.has_next);
-      } catch (err) {
-        handleError(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchReservations();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterType]);
-
-  const handleLoadMore = useCallback(async () => {
-    if (!hasNext || isLoadingMore || !cursor) return;
-
-    setIsLoadingMore(true);
-    clearError();
-
-    try {
-      const response = await reservationApi.getMyReservations({ 
-        size: 20, 
-        cursor, 
-        filterType: filterType || undefined 
-      });
-      setReservations((prev) => [...prev, ...response.reservations]);
-      setCursor(response.page_info.next_cursor);
-      setHasNext(response.page_info.has_next);
-    } catch (err) {
-      handleError(err);
-    } finally {
-      setIsLoadingMore(false);
-    }
-  }, [hasNext, isLoadingMore, cursor, filterType, clearError, handleError]);
 
   // Intersection Observer를 사용한 무한 스크롤
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNext && !isLoadingMore) {
-          handleLoadMore();
+          loadMore();
         }
       },
       { threshold: 0.1 }
@@ -91,10 +46,10 @@ const GuestTrips: React.FC<GuestTripsProps> = ({ filterType }) => {
         observer.unobserve(currentTarget);
       }
     };
-  }, [hasNext, isLoadingMore, handleLoadMore]);
+  }, [hasNext, isLoadingMore, loadMore]);
 
   if (isLoading) {
-    return <div className={styles.loading}>로딩 중...</div>;
+    return <LoadingState title="로딩 중..." />;
   }
 
   const getTitle = () => {
@@ -157,9 +112,7 @@ const GuestTrips: React.FC<GuestTripsProps> = ({ filterType }) => {
       <h2 className={styles.title}>{getTitle()}</h2>
 
       {reservations.length === 0 ? (
-        <div className={styles.empty}>
-          <p>아직 예약한 여행이 없습니다.</p>
-        </div>
+        <EmptyState title="아직 예약한 여행이 없습니다." />
       ) : (
         <>
           <div className={styles.reservationsByYear}>
@@ -172,7 +125,9 @@ const GuestTrips: React.FC<GuestTripsProps> = ({ filterType }) => {
                       <div
                         key={reservation.reservation_id}
                         className={styles.reservationCard}
-                        onClick={() => navigate(`/reservations/${reservation.reservation_uid}`)}
+                        onClick={() =>
+                          navigate(routeTo.reservationDetail(reservation.reservation_uid))
+                        }
                       >
                         <div className={styles.image}>
                           {reservation.accommodation.thumbnail_url ? (

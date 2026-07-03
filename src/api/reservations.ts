@@ -1,4 +1,5 @@
 import { client } from "./client";
+import { unwrapApiResponse } from "./response";
 import {
   CreateReservationRequest,
   CancelReservationRequest,
@@ -15,7 +16,7 @@ export const reservationApi = {
   // 예약 생성 (결제 대기 상태)
   create: async (request: CreateReservationRequest): Promise<ReservationReady> => {
     const response = await client.post<ApiResponse<ReservationReady>>("/reservations", request);
-    return response.data.data!;
+    return unwrapApiResponse(response.data);
   },
 
   // 예약 취소 (POST 메서드 사용)
@@ -23,10 +24,11 @@ export const reservationApi = {
     reservationUid: string,
     request: CancelReservationRequest
   ): Promise<void> => {
-    await client.post<ApiResponse<null>>(
+    const response = await client.post<ApiResponse<null>>(
       `/reservations/${reservationUid}`,
       request
     );
+    unwrapApiResponse(response.data, { allowNull: true });
   },
 
   // 게스트 예약 목록 조회
@@ -39,7 +41,7 @@ export const reservationApi = {
       "/profile/guest/reservations",
       { params }
     );
-    return response.data.data!;
+    return unwrapApiResponse(response.data);
   },
 
   // 게스트 예약 상세 조회
@@ -47,7 +49,7 @@ export const reservationApi = {
     const response = await client.get<ApiResponse<GuestReservationDetail>>(
       `/profile/guest/reservations/${reservationUid}`
     );
-    return response.data.data!;
+    return unwrapApiResponse(response.data);
   },
 
   // 호스트 예약 목록 조회
@@ -60,7 +62,7 @@ export const reservationApi = {
       "/profile/host/reservations",
       { params }
     );
-    return response.data.data!;
+    return unwrapApiResponse(response.data);
   },
 
   // 호스트 예약 상세 조회
@@ -70,6 +72,6 @@ export const reservationApi = {
     const response = await client.get<ApiResponse<HostReservationDetail>>(
       `/profile/host/reservations/${reservationUid}`
     );
-    return response.data.data!;
+    return unwrapApiResponse(response.data);
   },
 };

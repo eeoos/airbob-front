@@ -1,20 +1,20 @@
 import React from "react";
+import { Outlet } from "react-router-dom";
 import { Header } from "../components/Header";
 import styles from "./MainLayout.module.css";
 
 interface MainLayoutProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   return (
     <div className={styles.container}>
       <Header />
-      <main className={styles.main}>{children}</main>
+      <main className={styles.main}>{children ?? <Outlet />}</main>
     </div>
   );
 };
-
 
 
 
