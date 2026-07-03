@@ -1,18 +1,14 @@
 import React from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ListContainer } from "../../components/ListContainer";
-import { AccommodationCardSearch } from "../../components/AccommodationCard";
 import { Map } from "../../components/Map";
 import { WishlistModal } from "../../components/WishlistModal/WishlistModal";
 import { AuthModal } from "../../features/auth/components/AuthModal";
 import { useApiError } from "../../hooks/useApiError";
 import { useAuth } from "../../hooks/useAuth";
 import { ErrorToast } from "../../components/ErrorToast";
-import {
-  getLimitedTotalPages,
-  getPaginationItems,
-} from "../../features/search/lib/pagination";
+import { SearchPagination } from "../../features/search/components/SearchPagination";
+import { SearchResultsList } from "../../features/search/components/SearchResultsList";
 import { getViewportFromSearchParams } from "../../features/search/lib/searchParams";
 import { useSearchBottomSheet } from "../../features/search/hooks/useSearchBottomSheet";
 import { useSearchMapState } from "../../features/search/hooks/useSearchMapState";
@@ -90,6 +86,25 @@ const Search: React.FC = () => {
     selectAccommodationId(accommodationId);
   };
 
+  const checkIn = searchParams.get("checkIn");
+  const checkOut = searchParams.get("checkOut");
+  const hasResults = accommodations.length > 0;
+
+  const resultsListClassNames = {
+    loading: styles.loading,
+    empty: styles.empty,
+    cardGrid: styles.cardGrid,
+    cardWrapper: styles.cardWrapper,
+    selected: styles.selected,
+  };
+
+  const paginationClassNames = {
+    container: styles.paginationContainer,
+    pagination: styles.pagination,
+    button: styles.paginationButton,
+    activeButton: styles.paginationButtonActive,
+    ellipsis: styles.paginationEllipsis,
+  };
 
   return (
     <>
@@ -105,8 +120,8 @@ const Search: React.FC = () => {
                 hoveredAccommodationId={hoveredAccommodationId}
                 onAccommodationSelect={handleAccommodationSelect}
                 onWishlistToggle={openWishlistModal}
-                checkIn={searchParams.get("checkIn")}
-                checkOut={searchParams.get("checkOut")}
+                checkIn={checkIn}
+                checkOut={checkOut}
                 isExpanded={false}
                 onExpandToggle={() => {}}
                 onBoundsChange={handleMapBoundsChange}
@@ -171,74 +186,25 @@ const Search: React.FC = () => {
                 }`}
                 onScroll={handleBottomSheetScroll}
               >
-                {isLoading && accommodations.length === 0 ? (
-                  <div className={styles.loading}>로딩 중...</div>
-                ) : accommodations.length === 0 ? (
-                  <div className={styles.empty}>검색 결과가 없습니다.</div>
-                ) : (
-                  <>
-                    <div className={styles.cardGrid}>
-                      {accommodations.map((accommodation) => (
-                        <div
-                          key={accommodation.id}
-                          id={`accommodation-${accommodation.id}`}
-                          className={`${styles.cardWrapper} ${
-                            selectedAccommodationId === accommodation.id ? styles.selected : ""
-                          }`}
-                        >
-                          <AccommodationCardSearch
-                            accommodation={accommodation}
-                            onClick={() => handleAccommodationCardClick(accommodation.id)}
-                            onWishlistToggle={() => openWishlistModal(accommodation.id)}
-                            checkIn={searchParams.get("checkIn")}
-                            checkOut={searchParams.get("checkOut")}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                    {totalPages > 1 && (
-                      <div className={styles.paginationContainer}>
-                        <div className={styles.pagination}>
-                          <button
-                            className={styles.paginationButton}
-                            onClick={() => handlePageChange(currentPage - 1)}
-                            disabled={currentPage === 0 || isLoading}
-                          >
-                            이전
-                          </button>
-                          {getPaginationItems({ currentPage, totalPages }).map((page, index) => {
-                              if (page === "ellipsis") {
-                                return (
-                                  <span key={`ellipsis-${index}`} className={styles.paginationEllipsis}>
-                                    ...
-                                  </span>
-                                );
-                              }
-                              const pageNum = page as number;
-                              return (
-                                <button
-                                  key={pageNum}
-                                  className={`${styles.paginationButton} ${
-                                    pageNum === currentPage ? styles.paginationButtonActive : ""
-                                  }`}
-                                  onClick={() => handlePageChange(pageNum)}
-                                  disabled={isLoading}
-                                >
-                                  {pageNum + 1}
-                                </button>
-                              );
-                            })}
-                          <button
-                            className={styles.paginationButton}
-                            onClick={() => handlePageChange(currentPage + 1)}
-                            disabled={currentPage >= getLimitedTotalPages(totalPages) - 1 || isLoading}
-                          >
-                            다음
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </>
+                <SearchResultsList
+                  accommodations={accommodations}
+                  isLoading={isLoading}
+                  selectedAccommodationId={selectedAccommodationId}
+                  onAccommodationClick={handleAccommodationCardClick}
+                  onWishlistToggle={openWishlistModal}
+                  checkIn={checkIn}
+                  checkOut={checkOut}
+                  layout="bottomSheet"
+                  classNames={resultsListClassNames}
+                />
+                {hasResults && (
+                  <SearchPagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    isLoading={isLoading}
+                    onPageChange={handlePageChange}
+                    classNames={paginationClassNames}
+                  />
                 )}
               </div>
             </motion.div>
@@ -252,76 +218,26 @@ const Search: React.FC = () => {
                     ? "숙소 1,000개 이상" 
                     : `숙소 ${totalElements.toLocaleString()}개`}
                 </h2>
-                {isLoading && accommodations.length === 0 ? (
-                  <div className={styles.loading}>로딩 중...</div>
-                ) : accommodations.length === 0 ? (
-                  <div className={styles.empty}>검색 결과가 없습니다.</div>
-                ) : (
-                  <>
-                    <ListContainer columns={3} gap={10}>
-                      {accommodations.map((accommodation) => (
-                        <div
-                          key={accommodation.id}
-                          id={`accommodation-${accommodation.id}`}
-                          onMouseEnter={() => setHoveredAccommodationId(accommodation.id)}
-                          onMouseLeave={() => setHoveredAccommodationId(null)}
-                          className={`${styles.cardWrapper} ${
-                            selectedAccommodationId === accommodation.id ? styles.selected : ""
-                          }`}
-                        >
-                          <AccommodationCardSearch
-                            accommodation={accommodation}
-                            onClick={() => handleAccommodationCardClick(accommodation.id)}
-                            onWishlistToggle={() => openWishlistModal(accommodation.id)}
-                            checkIn={searchParams.get("checkIn")}
-                            checkOut={searchParams.get("checkOut")}
-                          />
-                        </div>
-                      ))}
-                    </ListContainer>
-                    {totalPages > 1 && (
-                      <div className={styles.paginationContainer}>
-                        <div className={styles.pagination}>
-                          <button
-                            className={styles.paginationButton}
-                            onClick={() => handlePageChange(currentPage - 1)}
-                            disabled={currentPage === 0 || isLoading}
-                          >
-                            이전
-                          </button>
-                          {getPaginationItems({ currentPage, totalPages }).map((page, index) => {
-                              if (page === "ellipsis") {
-                                return (
-                                  <span key={`ellipsis-${index}`} className={styles.paginationEllipsis}>
-                                    ...
-                                  </span>
-                                );
-                              }
-                              const pageNum = page as number;
-                              return (
-                                <button
-                                  key={pageNum}
-                                  className={`${styles.paginationButton} ${
-                                    pageNum === currentPage ? styles.paginationButtonActive : ""
-                                  }`}
-                                  onClick={() => handlePageChange(pageNum)}
-                                  disabled={isLoading}
-                                >
-                                  {pageNum + 1}
-                                </button>
-                              );
-                            })}
-                          <button
-                            className={styles.paginationButton}
-                            onClick={() => handlePageChange(currentPage + 1)}
-                            disabled={currentPage >= getLimitedTotalPages(totalPages) - 1 || isLoading}
-                          >
-                            다음
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </>
+                <SearchResultsList
+                  accommodations={accommodations}
+                  isLoading={isLoading}
+                  selectedAccommodationId={selectedAccommodationId}
+                  onAccommodationClick={handleAccommodationCardClick}
+                  onWishlistToggle={openWishlistModal}
+                  onHoveredAccommodationChange={setHoveredAccommodationId}
+                  checkIn={checkIn}
+                  checkOut={checkOut}
+                  layout="desktop"
+                  classNames={resultsListClassNames}
+                />
+                {hasResults && (
+                  <SearchPagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    isLoading={isLoading}
+                    onPageChange={handlePageChange}
+                    classNames={paginationClassNames}
+                  />
                 )}
             </div>
             <div className={styles.mapSection}>
@@ -331,8 +247,8 @@ const Search: React.FC = () => {
                 hoveredAccommodationId={hoveredAccommodationId}
                 onAccommodationSelect={handleAccommodationSelect}
                 onWishlistToggle={openWishlistModal}
-                checkIn={searchParams.get("checkIn")}
-                checkOut={searchParams.get("checkOut")}
+                checkIn={checkIn}
+                checkOut={checkOut}
                 isExpanded={isMapExpanded}
                 onExpandToggle={toggleMapExpanded}
                 onBoundsChange={handleMapBoundsChange}
