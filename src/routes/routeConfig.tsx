@@ -1,26 +1,41 @@
 import React from "react";
-import Home from "../pages/Home/Home";
-import Search from "../pages/Search/Search";
-import AccommodationDetail from "../pages/AccommodationDetail/AccommodationDetail";
-import AccommodationEdit from "../pages/AccommodationEdit/AccommodationEdit";
-import Wishlist from "../pages/Wishlist/Wishlist";
-import Profile from "../pages/Profile/Profile";
-import ReservationDetail from "../pages/Reservations/ReservationDetail";
-import HostReservationDetail from "../pages/Profile/HostReservationDetail/HostReservationDetail";
-import ReservationConfirm from "../pages/Reservations/ReservationConfirm";
-import ReviewCreate from "../pages/Reservations/ReviewCreate";
-import PaymentSuccess from "../pages/Reservations/PaymentSuccess";
-import PaymentFail from "../pages/Reservations/PaymentFail";
-import Login from "../pages/Auth/Login/Login";
-import Signup from "../pages/Auth/Signup/Signup";
-import NotFound from "../pages/NotFound/NotFound";
 import { ROUTE_PATHS } from "./paths";
+
+const Home = React.lazy(() => import("../pages/Home/Home"));
+const Search = React.lazy(() => import("../pages/Search/Search"));
+const AccommodationDetail = React.lazy(
+  () => import("../pages/AccommodationDetail/AccommodationDetail")
+);
+const AccommodationEdit = React.lazy(
+  () => import("../pages/AccommodationEdit/AccommodationEdit")
+);
+const Wishlist = React.lazy(() => import("../pages/Wishlist/Wishlist"));
+const Profile = React.lazy(() => import("../pages/Profile/Profile"));
+const ReservationDetail = React.lazy(
+  () => import("../pages/Reservations/ReservationDetail")
+);
+const HostReservationDetail = React.lazy(
+  () => import("../pages/Profile/HostReservationDetail/HostReservationDetail")
+);
+const ReservationConfirm = React.lazy(
+  () => import("../pages/Reservations/ReservationConfirm")
+);
+const ReviewCreate = React.lazy(
+  () => import("../pages/Reservations/ReviewCreate")
+);
+const PaymentSuccess = React.lazy(
+  () => import("../pages/Reservations/PaymentSuccess")
+);
+const PaymentFail = React.lazy(() => import("../pages/Reservations/PaymentFail"));
+const Login = React.lazy(() => import("../pages/Auth/Login/Login"));
+const Signup = React.lazy(() => import("../pages/Auth/Signup/Signup"));
+const NotFound = React.lazy(() => import("../pages/NotFound/NotFound"));
 
 export type AppRouteLayout = "main" | "bare";
 
 export interface AppRouteConfig {
   path: string;
-  component: React.ComponentType;
+  component: React.LazyExoticComponent<React.ComponentType>;
   requiresAuth: boolean;
   layout: AppRouteLayout;
 }
