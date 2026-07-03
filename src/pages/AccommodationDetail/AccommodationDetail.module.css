@@ -1256,7 +1256,7 @@
   /* 모바일에서 예약 박스의 달력 컨테이너 - 더 넓게 */
   .datePickerContainer {
     position: fixed;
-    top: 130px; /* 헤더 + 검색바 아래 */
+    top: var(--layout-search-mobile-popover-top);
     left: 4px;
     right: 4px;
     width: auto;

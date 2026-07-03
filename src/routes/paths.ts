@@ -1,3 +1,9 @@
+import type {
+  ProfileRouteMode,
+  ProfileRouteTab,
+} from "../features/profile/lib/profileRouteState";
+import type { WishlistRouteView } from "../features/wishlist/lib/wishlistRouteState";
+
 export const ROUTE_PATHS = {
   home: "/",
   search: "/search",
@@ -16,8 +22,15 @@ export const ROUTE_PATHS = {
   notFound: "*",
 } as const;
 
-type ProfileMode = "guest" | "host";
 type RouteParamValue = string | number;
+type WishlistRouteQuery = {
+  id?: RouteParamValue;
+  view?: Extract<WishlistRouteView, "recently-viewed">;
+};
+type ProfileRouteQuery = {
+  mode?: ProfileRouteMode;
+  tab?: ProfileRouteTab;
+};
 
 const buildPath = (template: string, params: Record<string, RouteParamValue>) =>
   template.replace(/:([A-Za-z0-9_]+)/g, (_, key: string) =>
@@ -56,12 +69,12 @@ export const routeTo = {
     withRawQuery(buildPath(ROUTE_PATHS.accommodationConfirm, { id }), query),
   accommodationEdit: (id: string | number, query?: { mode?: "create" }) =>
     withQuery(buildPath(ROUTE_PATHS.accommodationEdit, { id }), { mode: query?.mode }),
-  wishlist: (query?: { id?: string | number; view?: string }) =>
+  wishlist: (query?: WishlistRouteQuery) =>
     withQuery(ROUTE_PATHS.wishlist, {
       id: query?.id,
       view: query?.view,
     }),
-  profile: (query?: { mode?: ProfileMode; tab?: string }) =>
+  profile: (query?: ProfileRouteQuery) =>
     withQuery(ROUTE_PATHS.profile, {
       mode: query?.mode,
       tab: query?.tab,

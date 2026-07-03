@@ -135,6 +135,10 @@ const forbiddenDesignLiteralPatterns = [
     name: "core-shadow",
     regex: /box-shadow\s*:\s*0\s+(?:1px\s+2px|4px\s+12px)\s+rgba\(0,\s*0,\s*0,\s*(?:0\.08|0\.15)\)/i,
   },
+  {
+    name: "card-media-ratio",
+    regex: /aspect-ratio\s*:\s*1\s*\/\s*1\b/i,
+  },
 ];
 
 const findForbiddenDesignLiteral = (line: string) => {
@@ -262,7 +266,7 @@ describe("pre-design token stylesheet contract", () => {
     );
 
     expect(accommodationDetailCss).toMatch(
-      /\.datePickerContainer\s*\{[\s\S]*?position:\s*fixed;[\s\S]*?top:\s*130px;[\s\S]*?z-index:\s*var\(--z-dropdown\);/,
+      /\.datePickerContainer\s*\{[\s\S]*?position:\s*fixed;[\s\S]*?top:\s*var\(--layout-search-mobile-popover-top\);[\s\S]*?z-index:\s*var\(--z-dropdown\);/,
     );
   });
 
