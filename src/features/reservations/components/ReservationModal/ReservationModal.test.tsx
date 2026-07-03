@@ -75,6 +75,9 @@ describe("ReservationModal", () => {
   afterEach(() => {
     process.env.REACT_APP_TOSS_CLIENT_KEY = originalClientKey;
     delete (window as any).TossPayments;
+    document
+      .querySelectorAll('script[src="https://js.tosspayments.com/v1"]')
+      .forEach((script) => script.remove());
   });
 
   it("renders reservation content inside the shared accessible dialog", () => {
