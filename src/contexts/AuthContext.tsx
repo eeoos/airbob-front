@@ -42,6 +42,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     });
   }, [queryClient]);
 
+  const refreshSession = useCallback(async () => {
+    try {
+      await queryClient.refetchQueries(
+        { queryKey: authQueryKeys.me(), type: "active" },
+        { throwOnError: true }
+      );
+    } catch (error) {
+      await clearSession();
+      throw error;
+    }
+  }, [clearSession, queryClient]);
+
   useEffect(() => {
     const handleAuthError = () => {
       console.warn("Session expired. Logging out...");
@@ -53,12 +65,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [clearSession]);
 
   const checkAuth = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: authQueryKeys.me() });
-  }, [queryClient]);
+    await refreshSession();
+  }, [refreshSession]);
 
   const login = async (credentials: LoginRequest) => {
     await authApi.login(credentials);
-    await queryClient.invalidateQueries({ queryKey: authQueryKeys.me() });
+    await refreshSession();
   };
 
   const logout = async () => {
