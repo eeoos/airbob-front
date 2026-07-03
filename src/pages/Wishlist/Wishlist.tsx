@@ -1,34 +1,32 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import React, { useEffect, useRef } from "react";
 import { ListContainer } from "../../components/ListContainer";
 import { WishlistAccommodationInfo } from "../../types/wishlist";
 import { ErrorToast } from "../../components/ErrorToast";
 import { WishlistModal } from "../../components/WishlistModal";
-import { useWishlistData, useWishlistModals } from "../../features/wishlist";
+import {
+  useWishlistData,
+  useWishlistModals,
+  useWishlistRouteViewState,
+} from "../../features/wishlist";
 import {
   formatRecentlyViewedDate,
   groupRecentlyViewedByDate,
 } from "../../features/wishlist/lib/recentlyViewedGroups";
-import {
-  buildWishlistRouteSearchParams,
-  parseWishlistRouteState,
-} from "../../features/wishlist/lib/wishlistRouteState";
 import { routeTo } from "../../routes/paths";
 import { getImageUrl } from "../../utils/image";
 import styles from "./Wishlist.module.css";
 
 const Wishlist: React.FC = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  
-  // URL 파라미터에서 초기값 읽기
-  const wishlistRouteState = parseWishlistRouteState(searchParams);
-  const [selectedWishlist, setSelectedWishlist] = useState<number | null>(
-    wishlistRouteState.wishlistId
-  );
-  const [showRecentlyViewed, setShowRecentlyViewed] = useState(
-    wishlistRouteState.view === "recently-viewed"
-  );
-  const [isEditMode, setIsEditMode] = useState(false);
+  const {
+    backToIndex,
+    clearSelectedWishlist,
+    isEditMode,
+    openRecentlyViewed,
+    openWishlist,
+    selectedWishlist,
+    setIsEditMode,
+    showRecentlyViewed,
+  } = useWishlistRouteViewState();
   const wishlistsObserverTarget = useRef<HTMLDivElement>(null);
   const wishlistAccommodationsObserverTarget = useRef<HTMLDivElement>(null);
   const {
@@ -68,14 +66,6 @@ const Wishlist: React.FC = () => {
     updateMemoText,
     wishlistModalOpen,
   } = useWishlistModals();
-
-  useEffect(() => {
-    const routeState = parseWishlistRouteState(searchParams);
-
-    setSelectedWishlist(routeState.wishlistId);
-    setShowRecentlyViewed(routeState.view === "recently-viewed");
-    setIsEditMode(false);
-  }, [searchParams]);
 
   // 위시리스트 목록 무한 스크롤
   useEffect(() => {
@@ -132,28 +122,12 @@ const Wishlist: React.FC = () => {
   };
 
   const handleRecentlyViewedClick = async () => {
-    setShowRecentlyViewed(true);
-    setSelectedWishlist(null);
-    setIsEditMode(false);
-    setSearchParams(
-      buildWishlistRouteSearchParams({
-        view: "recently-viewed",
-        wishlistId: null,
-      })
-    );
+    openRecentlyViewed();
     await reloadRecentlyViewed();
   };
 
   const handleBackClick = () => {
-    setShowRecentlyViewed(false);
-    setSelectedWishlist(null);
-    setIsEditMode(false);
-    setSearchParams(
-      buildWishlistRouteSearchParams({
-        view: "index",
-        wishlistId: null,
-      })
-    );
+    backToIndex();
   };
 
   const handleWishlistToggle = async (accommodationId: number) => {
@@ -200,7 +174,7 @@ const Wishlist: React.FC = () => {
     const isDeleted = await deleteWishlist(wishlistId);
     // 현재 선택된 위시리스트가 삭제된 경우 선택 해제
     if (isDeleted && selectedWishlist === wishlistId) {
-      setSelectedWishlist(null);
+      clearSelectedWishlist();
     }
   };
 
@@ -319,16 +293,7 @@ const Wishlist: React.FC = () => {
               <div className={styles.recentlyViewedHeaderLeft}>
                 <button
                   className={styles.backButton}
-                  onClick={() => {
-                    setSelectedWishlist(null);
-                    setIsEditMode(false);
-                    setSearchParams(
-                      buildWishlistRouteSearchParams({
-                        view: "index",
-                        wishlistId: null,
-                      })
-                    );
-                  }}
+                  onClick={backToIndex}
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -481,15 +446,7 @@ const Wishlist: React.FC = () => {
                   <div
                     key={wishlist.id}
                     className={styles.wishlistCard}
-                    onClick={() => {
-                      setSelectedWishlist(wishlist.id);
-                      setSearchParams(
-                        buildWishlistRouteSearchParams({
-                          view: "wishlist-detail",
-                          wishlistId: wishlist.id,
-                        })
-                      );
-                    }}
+                    onClick={() => openWishlist(wishlist.id)}
                     onMouseEnter={(e) => {
                       const deleteBtn = e.currentTarget.querySelector(
                         `.${styles.wishlistDeleteButton}`

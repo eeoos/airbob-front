@@ -28,49 +28,56 @@ jest.mock("../../features/wishlist/lib/wishlistRouteState", () => {
   };
 });
 
-jest.mock("../../features/wishlist", () => ({
-  useWishlistData: () => ({
-    clearError: jest.fn(),
-    deleteWishlist: jest.fn(),
-    error: null,
-    hasNext: false,
-    isLoading: false,
-    isLoadingMore: false,
-    isLoadingMoreWishlists: false,
-    loadMoreWishlistAccommodations: jest.fn(),
-    loadMoreWishlists: jest.fn(),
-    recentlyViewed: [],
-    refreshRecentlyViewedWishlistState: jest.fn(),
-    reloadRecentlyViewed: jest.fn(),
-    removeFromWishlist: jest.fn(),
-    removeRecentlyViewed: jest.fn(),
-    saveWishlistAccommodationMemo: jest.fn(),
-    toggleRecentlyViewedWishlistState: jest.fn(),
-    wishlistAccommodations: [],
-    wishlists: [
-      {
-        id: 42,
-        name: "Weekend",
-        thumbnail_image_url: null,
-        wishlist_item_count: 3,
-      },
-    ],
-    wishlistsHasNext: false,
-  }),
-  useWishlistModals: () => ({
-    clearMemoText: jest.fn(),
-    closeMemoModal: jest.fn(),
-    closeWishlistModal: jest.fn(),
-    memoModalOpen: false,
-    memoText: "",
-    openMemoModal: jest.fn(),
-    openWishlistModal: jest.fn(),
-    selectedAccommodationForWishlist: null,
-    selectedMemoItem: null,
-    updateMemoText: jest.fn(),
-    wishlistModalOpen: false,
-  }),
-}));
+jest.mock("../../features/wishlist", () => {
+  const { useWishlistRouteViewState } = jest.requireActual(
+    "../../features/wishlist/hooks/useWishlistRouteViewState"
+  );
+
+  return {
+    useWishlistRouteViewState,
+    useWishlistData: () => ({
+      clearError: jest.fn(),
+      deleteWishlist: jest.fn(),
+      error: null,
+      hasNext: false,
+      isLoading: false,
+      isLoadingMore: false,
+      isLoadingMoreWishlists: false,
+      loadMoreWishlistAccommodations: jest.fn(),
+      loadMoreWishlists: jest.fn(),
+      recentlyViewed: [],
+      refreshRecentlyViewedWishlistState: jest.fn(),
+      reloadRecentlyViewed: jest.fn(),
+      removeFromWishlist: jest.fn(),
+      removeRecentlyViewed: jest.fn(),
+      saveWishlistAccommodationMemo: jest.fn(),
+      toggleRecentlyViewedWishlistState: jest.fn(),
+      wishlistAccommodations: [],
+      wishlists: [
+        {
+          id: 42,
+          name: "Weekend",
+          thumbnail_image_url: null,
+          wishlist_item_count: 3,
+        },
+      ],
+      wishlistsHasNext: false,
+    }),
+    useWishlistModals: () => ({
+      clearMemoText: jest.fn(),
+      closeMemoModal: jest.fn(),
+      closeWishlistModal: jest.fn(),
+      memoModalOpen: false,
+      memoText: "",
+      openMemoModal: jest.fn(),
+      openWishlistModal: jest.fn(),
+      selectedAccommodationForWishlist: null,
+      selectedMemoItem: null,
+      updateMemoText: jest.fn(),
+      wishlistModalOpen: false,
+    }),
+  };
+});
 
 jest.mock("../../components/ListContainer", () => ({
   ListContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
