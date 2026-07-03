@@ -70,16 +70,14 @@ describe("toss success route state", () => {
   it("parses complete Toss success query params", () => {
     const state = parseTossSuccessRouteState(
       "r-1",
-      new URLSearchParams(
-        "paymentKey=payment-key-1&orderId=order-1&amount=120000"
-      )
+      new URLSearchParams("paymentKey=payment-key-1&orderId=r-1&amount=120000")
     );
 
     expect(state).toEqual({
       status: "valid",
       reservationUid: "r-1",
       paymentKey: "payment-key-1",
-      orderId: "order-1",
+      orderId: "r-1",
       amount: "120000",
     });
   });
@@ -93,6 +91,34 @@ describe("toss success route state", () => {
     expect(state).toEqual({
       status: "invalid",
       reason: "MISSING_TOSS_SUCCESS_QUERY",
+    });
+  });
+
+  it("marks Toss success query invalid when orderId does not match reservationUid", () => {
+    const state = parseTossSuccessRouteState(
+      "reservation-123",
+      new URLSearchParams(
+        "paymentKey=payment-key-1&orderId=reservation-456&amount=120000"
+      )
+    );
+
+    expect(state).toEqual({
+      status: "invalid",
+      reason: "MISMATCHED_TOSS_ORDER",
+    });
+  });
+
+  it("marks Toss success query invalid when amount is not a safe integer string", () => {
+    const state = parseTossSuccessRouteState(
+      "reservation-123",
+      new URLSearchParams(
+        "paymentKey=payment-key-1&orderId=reservation-123&amount=120000x"
+      )
+    );
+
+    expect(state).toEqual({
+      status: "invalid",
+      reason: "INVALID_TOSS_SUCCESS_AMOUNT",
     });
   });
 });

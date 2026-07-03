@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../hooks/useAuth";
 import { useApiError } from "../../../hooks/useApiError";
 import { ErrorToast } from "../../../components/ErrorToast";
@@ -7,8 +7,38 @@ import { routeTo } from "../../../routes/paths";
 import { Button, Card, TextField } from "../../../shared/ui";
 import styles from "./Login.module.css";
 
+type AuthReturnLocation = {
+  pathname?: unknown;
+  search?: unknown;
+  hash?: unknown;
+};
+
+const getAuthReturnPath = (state: unknown): string | null => {
+  if (typeof state !== "object" || state === null || !("from" in state)) {
+    return null;
+  }
+
+  const from = (state as { from?: AuthReturnLocation }).from;
+
+  if (typeof from !== "object" || from === null) {
+    return null;
+  }
+
+  const pathname = typeof from.pathname === "string" ? from.pathname : "";
+
+  if (!pathname.startsWith("/") || pathname.startsWith("//")) {
+    return null;
+  }
+
+  const search = typeof from.search === "string" ? from.search : "";
+  const hash = typeof from.hash === "string" ? from.hash : "";
+
+  return `${pathname}${search}${hash}`;
+};
+
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const { error, handleError, clearError } = useApiError();
   const [formData, setFormData] = useState({
@@ -27,7 +57,7 @@ const Login: React.FC = () => {
         email: formData.email,
         password: formData.password,
       });
-      navigate(routeTo.home());
+      navigate(getAuthReturnPath(location.state) ?? routeTo.home());
     } catch (err) {
       handleError(err);
     } finally {

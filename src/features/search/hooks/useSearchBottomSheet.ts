@@ -9,22 +9,30 @@ import {
 
 export type BottomSheetState = "collapsed" | "half" | "expanded";
 
+const getViewportHeight = () =>
+  typeof window === "undefined" ? 0 : window.innerHeight;
+
 export const useSearchBottomSheet = () => {
   const [bottomSheetState, setBottomSheetState] =
     useState<BottomSheetState>("half");
   const [isMobileOrTablet, setIsMobileOrTablet] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState(getViewportHeight);
   const bottomSheetRef = useRef<HTMLDivElement | null>(null);
   const snapPositions = useMemo(() => {
     if (!isMobileOrTablet) {
       return { collapsed: 0, half: 0, expanded: 0 };
     }
 
+    const collapsed = 0;
+    const half = Math.round(viewportHeight * 0.32);
+    const expanded = Math.round(viewportHeight * 0.68);
+
     return {
-      collapsed: 0,
-      half: 0,
-      expanded: 0,
+      collapsed,
+      half,
+      expanded,
     };
-  }, [isMobileOrTablet]);
+  }, [isMobileOrTablet, viewportHeight]);
   const y = useMotionValue(
     isMobileOrTablet ? snapPositions[bottomSheetState] : 0
   );
@@ -124,6 +132,7 @@ export const useSearchBottomSheet = () => {
   useEffect(() => {
     const checkViewport = () => {
       setIsMobileOrTablet(window.innerWidth < 1024);
+      setViewportHeight(getViewportHeight());
     };
 
     checkViewport();

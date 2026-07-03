@@ -63,8 +63,8 @@ const withQuery = (path: string, entries: Record<string, string | number | undef
 export const routeTo = {
   home: () => ROUTE_PATHS.home,
   search: (query?: URLSearchParams | string) => withRawQuery(ROUTE_PATHS.search, query),
-  accommodationDetail: (id: string | number) =>
-    buildPath(ROUTE_PATHS.accommodationDetail, { id }),
+  accommodationDetail: (id: string | number, query?: URLSearchParams | string) =>
+    withRawQuery(buildPath(ROUTE_PATHS.accommodationDetail, { id }), query),
   accommodationConfirm: (id: string | number, query?: URLSearchParams | string) =>
     withRawQuery(buildPath(ROUTE_PATHS.accommodationConfirm, { id }), query),
   accommodationEdit: (id: string | number, query?: { mode?: "create" }) =>

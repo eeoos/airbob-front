@@ -112,16 +112,37 @@ const cssPath = (relativePath: string) => path.join(srcDir, relativePath);
 const readCss = (relativePath: string) => fs.readFileSync(cssPath(relativePath), "utf8");
 
 const designTokenOwnedCssFiles = [
-  "components/CreateWishlistModal/CreateWishlistModal.module.css",
-  "components/WishlistModal/WishlistModal.module.css",
+  "features/wishlist/components/CreateWishlistModal/CreateWishlistModal.module.css",
+  "features/wishlist/components/WishlistModal/WishlistModal.module.css",
+  "features/reviews/components/ReviewModal/ReviewModal.module.css",
+  "features/accommodations/components/AccommodationActionModal/AccommodationActionModal.module.css",
   "components/AccommodationCard/BaseAccommodationCard.module.css",
   "components/AccommodationCard/AccommodationCard.Search.module.css",
+  "pages/Search/Search.module.css",
+  "pages/Wishlist/Wishlist.module.css",
+  "pages/Profile/Profile.module.css",
+  "features/accommodations/components/AccommodationBookingCard.module.css",
+  "features/accommodations/components/AccommodationHero.module.css",
+  "features/accommodations/components/AccommodationReviewsSection.module.css",
+  "features/accommodations/components/AccommodationDescriptionModal.module.css",
+  "features/accommodations/components/AccommodationImageGalleryModal.module.css",
 ];
+
+const allowedBreakpointValues = new Set([
+  "480px",
+  "768px",
+  "769px",
+  "1024px",
+  "1025px",
+  "1200px",
+  "1400px",
+]);
 
 const forbiddenDesignLiteralPatterns = [
   {
     name: "core-color-hex",
-    regex: /#(?:000000|222222|717171|f7f7f7|dddddd|b0b0b0|ff385c|ffffff)\b/i,
+    regex:
+      /#(?:000000|222222|717171|f7f7f7|dddddd|b0b0b0|ff385c|e61e4d|ffffff)\b/i,
   },
   {
     name: "core-color-name",
@@ -251,15 +272,16 @@ describe("pre-design token stylesheet contract", () => {
   });
 
   it("keeps real modal backdrops and foreground controls on overlay tokens", () => {
+    const dialogCss = readCss("shared/ui/Dialog/Dialog.module.css");
     const galleryCss = readCss(
       "features/accommodations/components/AccommodationImageGalleryModal.module.css",
     );
-    const galleryModal = selectorBlock(galleryCss, ".galleryModal");
+    const dialogOverlay = selectorBlock(dialogCss, ".overlay");
     const galleryClose = selectorBlock(galleryCss, ".galleryClose");
 
-    expectDeclaration(galleryModal, "background: var(--overlay-backdrop);");
-    expectDeclaration(galleryModal, "z-index: var(--z-modal);");
-    expectDeclaration(galleryClose, "z-index: calc(var(--z-modal) + 1);");
+    expectDeclaration(dialogOverlay, "background: var(--overlay-backdrop);");
+    expectDeclaration(dialogOverlay, "z-index: var(--z-modal);");
+    expectDeclaration(galleryClose, "z-index: 1;");
   });
 
   it("keeps date picker overlays on the dropdown z-index token", () => {
@@ -284,6 +306,45 @@ describe("pre-design token stylesheet contract", () => {
         }
 
         return `${relativePath}:${index + 1}: [${patternName}] ${line.trim()}`;
+      });
+    });
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("keeps media query breakpoints on the agreed pre-design scale", () => {
+    const offenders = collectProductionContractFiles(srcDir)
+      .filter((filePath) => filePath.endsWith(".css"))
+      .flatMap((filePath) => {
+        const source = fs.readFileSync(filePath, "utf8");
+
+        return source.split(/\r?\n/).flatMap((line, index) => {
+          const matches = Array.from(line.matchAll(/@media[^{]*?(\d+px)/g));
+
+          return matches
+            .filter((match) => !allowedBreakpointValues.has(match[1]))
+            .map(
+              (match) =>
+                `${path.relative(process.cwd(), filePath)}:${index + 1}: ${match[1]}`
+            );
+        });
+      });
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("keeps local z-index literals out of high-impact design-owned CSS", () => {
+    const offenders = designTokenOwnedCssFiles.flatMap((relativePath) => {
+      const source = readCss(relativePath);
+
+      return source.split(/\r?\n/).flatMap((line, index) => {
+        const match = line.match(/z-index\s*:\s*(?:10|100)\b/);
+
+        if (!match) {
+          return [];
+        }
+
+        return `${relativePath}:${index + 1}: ${match[0]}`;
       });
     });
 

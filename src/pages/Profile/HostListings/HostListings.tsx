@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { MyAccommodationInfo } from "../../../types/accommodation";
 import { AccommodationStatus } from "../../../types/enums";
 import { ErrorToast } from "../../../components/ErrorToast";
-import { AccommodationActionModal } from "../../../components/AccommodationActionModal";
+import { AccommodationActionModal } from "../../../features/accommodations/components/AccommodationActionModal";
 import { useHostListings } from "../../../features/profile";
 import { getImageUrl } from "../../../utils/image";
 import { EmptyState, LoadingState } from "../../../shared/ui";

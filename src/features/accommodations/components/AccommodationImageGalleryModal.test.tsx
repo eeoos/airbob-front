@@ -36,6 +36,9 @@ describe("AccommodationImageGalleryModal", () => {
   it("renders the current image and thumbnails", () => {
     renderGalleryModal();
 
+    expect(
+      screen.getByRole("dialog", { name: "남산 전망 숙소 사진 갤러리" })
+    ).toBeInTheDocument();
     expect(screen.getAllByAltText("남산 전망 숙소 2")[0]).toHaveAttribute(
       "src",
       "/two.jpg"
@@ -50,12 +53,20 @@ describe("AccommodationImageGalleryModal", () => {
     );
   });
 
+  it("focuses the explicit close control", () => {
+    renderGalleryModal();
+
+    expect(
+      screen.getByRole("button", { name: "사진 갤러리 닫기" })
+    ).toHaveFocus();
+  });
+
   it("changes images from previous, next, and thumbnail controls", () => {
     const onCurrentImageIndexChange = jest.fn();
     renderGalleryModal({ onCurrentImageIndexChange });
 
-    fireEvent.click(screen.getByRole("button", { name: "‹" }));
-    fireEvent.click(screen.getByRole("button", { name: "›" }));
+    fireEvent.click(screen.getByRole("button", { name: "이전 사진" }));
+    fireEvent.click(screen.getByRole("button", { name: "다음 사진" }));
     fireEvent.click(screen.getByAltText("남산 전망 숙소 3"));
 
     expect(onCurrentImageIndexChange).toHaveBeenNthCalledWith(1, 0);
@@ -70,7 +81,7 @@ describe("AccommodationImageGalleryModal", () => {
       onCurrentImageIndexChange,
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "‹" }));
+    fireEvent.click(screen.getByRole("button", { name: "이전 사진" }));
 
     rerender(
       <AccommodationImageGalleryModal
@@ -82,19 +93,23 @@ describe("AccommodationImageGalleryModal", () => {
         onClose={jest.fn()}
       />
     );
-    fireEvent.click(screen.getByRole("button", { name: "›" }));
+    fireEvent.click(screen.getByRole("button", { name: "다음 사진" }));
 
     expect(onCurrentImageIndexChange).toHaveBeenNthCalledWith(1, 2);
     expect(onCurrentImageIndexChange).toHaveBeenNthCalledWith(2, 0);
   });
 
-  it("closes from the close button and backdrop", () => {
+  it("closes from the close button, Escape, and backdrop", () => {
     const { props, container } = renderGalleryModal();
 
-    fireEvent.click(screen.getByRole("button", { name: "×" }));
-    fireEvent.click(container.firstElementChild as Element);
+    fireEvent.click(screen.getByRole("button", { name: "사진 갤러리 닫기" }));
+    fireEvent.keyDown(
+      screen.getByRole("dialog", { name: "남산 전망 숙소 사진 갤러리" }),
+      { key: "Escape" }
+    );
+    fireEvent.mouseDown(container.firstElementChild as Element);
 
-    expect(props.onClose).toHaveBeenCalledTimes(2);
+    expect(props.onClose).toHaveBeenCalledTimes(3);
   });
 
   it("renders nothing while closed or empty", () => {

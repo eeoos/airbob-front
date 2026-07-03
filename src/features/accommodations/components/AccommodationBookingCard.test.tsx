@@ -112,6 +112,7 @@ const renderBookingCard = (
     issuingCouponId: null,
     couponDiscount: 10000,
     handleIssueCoupon: jest.fn(),
+    isReserving: false,
     onReserve: jest.fn(),
     ...overrides,
   };
@@ -176,5 +177,17 @@ describe("AccommodationBookingCard", () => {
 
     expect(setSelectedCouponId).toHaveBeenCalledWith(null);
     expect(handleIssueCoupon).toHaveBeenCalledWith(coupon);
+  });
+
+  it("disables the reserve button while a reservation is being created", () => {
+    const props = renderBookingCard({ isReserving: true });
+
+    const reserveButton = screen.getByRole("button", { name: "예약 중..." });
+
+    expect(reserveButton).toBeDisabled();
+
+    fireEvent.click(reserveButton);
+
+    expect(props.onReserve).not.toHaveBeenCalled();
   });
 });

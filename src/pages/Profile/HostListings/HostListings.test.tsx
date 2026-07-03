@@ -26,7 +26,7 @@ jest.mock("../../../components/ErrorToast", () => ({
   ),
 }));
 
-jest.mock("../../../components/AccommodationActionModal", () => ({
+jest.mock("../../../features/accommodations/components/AccommodationActionModal", () => ({
   AccommodationActionModal: () => null,
 }));
 

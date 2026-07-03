@@ -6,8 +6,8 @@ const mockNavigate = jest.fn();
 const mockUsePaymentConfirmation = jest.fn();
 let mockReservationUid: string | undefined = "reservation-123";
 let mockSearchParams = new URLSearchParams({
-  amount: "120000x",
-  orderId: "order-1",
+  amount: "120000",
+  orderId: "reservation-123",
   paymentKey: "payment-key-1",
 });
 
@@ -28,8 +28,8 @@ describe("PaymentSuccess", () => {
     mockUsePaymentConfirmation.mockReset();
     mockReservationUid = "reservation-123";
     mockSearchParams = new URLSearchParams({
-      amount: "120000x",
-      orderId: "order-1",
+      amount: "120000",
+      orderId: "reservation-123",
       paymentKey: "payment-key-1",
     });
   });
@@ -44,12 +44,24 @@ describe("PaymentSuccess", () => {
 
     render(<PaymentSuccess />);
 
+    expect(mockUsePaymentConfirmation).toHaveBeenCalledWith({
+      amount: "120000",
+      enabled: true,
+      orderId: "reservation-123",
+      paymentKey: "payment-key-1",
+    });
+
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith("/reservations/reservation-123");
     });
   });
 
   it("routes malformed payment confirmation results to the failure page", async () => {
+    mockSearchParams = new URLSearchParams({
+      amount: "120000x",
+      orderId: "reservation-123",
+      paymentKey: "payment-key-1",
+    });
     mockUsePaymentConfirmation.mockReturnValue({
       result: {
         error: null,
@@ -104,6 +116,32 @@ describe("PaymentSuccess", () => {
     mockSearchParams = new URLSearchParams({
       amount: "120000",
       orderId: "order-1",
+    });
+    mockUsePaymentConfirmation.mockReturnValue({
+      result: null,
+    });
+
+    render(<PaymentSuccess />);
+
+    expect(mockUsePaymentConfirmation).toHaveBeenCalledWith({
+      amount: null,
+      enabled: false,
+      orderId: null,
+      paymentKey: null,
+    });
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        "/reservations/reservation-123/fail"
+      );
+    });
+  });
+
+  it("disables confirmation and routes to failure when Toss orderId mismatches the route reservationUid", async () => {
+    mockSearchParams = new URLSearchParams({
+      amount: "120000",
+      orderId: "other-reservation",
+      paymentKey: "payment-key-1",
     });
     mockUsePaymentConfirmation.mockReturnValue({
       result: null,

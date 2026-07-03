@@ -104,7 +104,7 @@
 .title {
   font-size: 14px;
   font-weight: 400;
-  color: #222222;
+  color: var(--color-text-primary);
   margin: 0 0 24px 0;
 }
 
@@ -112,7 +112,7 @@
 .empty {
   text-align: center;
   padding: 80px 24px;
-  color: #717171;
+  color: var(--color-text-secondary);
   font-size: 16px;
 }
 
@@ -135,10 +135,10 @@
   min-width: 40px;
   height: 40px;
   padding: 0 12px;
-  background-color: white;
-  color: #222222;
-  border: 1px solid #dddddd;
-  border-radius: 8px;
+  background-color: var(--color-background-page);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -149,8 +149,8 @@
 }
 
 .paginationButton:hover:not(:disabled) {
-  border-color: #222222;
-  background-color: #f7f7f7;
+  border-color: var(--color-text-primary);
+  background-color: var(--color-background-muted);
 }
 
 .paginationButton:disabled {
@@ -159,19 +159,19 @@
 }
 
 .paginationButtonActive {
-  background-color: #222222;
-  color: white;
-  border-color: #222222;
+  background-color: var(--color-text-primary);
+  color: var(--color-text-inverse);
+  border-color: var(--color-text-primary);
 }
 
 .paginationButtonActive:hover {
-  background-color: #000000;
-  border-color: #000000;
+  background-color: var(--color-text-primary);
+  border-color: var(--color-text-primary);
 }
 
 .paginationEllipsis {
   padding: 0 8px;
-  color: #717171;
+  color: var(--color-text-secondary);
   font-size: 14px;
   user-select: none;
 }
@@ -270,7 +270,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: white;
+    background: var(--color-background-page);
     border-radius: 24px 24px 0 0;
     box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
     z-index: var(--z-bottom-sheet);
@@ -344,7 +344,7 @@
   .dragHandleBar {
     width: 40px;
     height: 4px;
-    background: #dddddd;
+    background: var(--color-border-default);
     border-radius: 2px;
   }
 
@@ -352,7 +352,7 @@
   .bottomSheetHeader .title {
     font-size: 14px;
     font-weight: 400;
-    color: #222222;
+    color: var(--color-text-primary);
     margin: 0;
     padding: 0 0 12px 0;
     text-align: center;
@@ -537,7 +537,7 @@
   right: 80px;
   bottom: auto;
   z-index: var(--z-bottom-sheet);
-  background: white;
+  background: var(--color-background-page);
   padding: 24px 0;
   margin: 0;
   height: calc(100vh - var(--layout-header-desktop-height));

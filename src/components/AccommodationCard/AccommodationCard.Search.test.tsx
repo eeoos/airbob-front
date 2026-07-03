@@ -71,4 +71,20 @@ describe("AccommodationCardSearch", () => {
     expect(onWishlistToggle).toHaveBeenCalledTimes(1);
     expect(onClick).not.toHaveBeenCalled();
   });
+
+  it("uses a query-preserving detail URL when provided", () => {
+    render(
+      <AccommodationCardSearch
+        accommodation={accommodation}
+        detailUrl="/accommodations/1?checkIn=2026-07-10&checkOut=2026-07-12"
+      />
+    );
+
+    expect(
+      screen.getByRole("link", { name: "숙소 상세 보기: 성수 숙소" })
+    ).toHaveAttribute(
+      "href",
+      "/accommodations/1?checkIn=2026-07-10&checkOut=2026-07-12"
+    );
+  });
 });

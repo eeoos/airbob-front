@@ -1,6 +1,7 @@
 import React from "react";
 import { AccommodationCardSearch } from "../../../components/AccommodationCard";
 import { ListContainer } from "../../../components/ListContainer";
+import { routeTo } from "../../../routes/paths";
 import { AccommodationSearchInfo } from "../../../types/accommodation";
 
 type SearchResultsLayout = "desktop" | "bottomSheet";
@@ -20,6 +21,7 @@ interface SearchResultsListProps {
   onAccommodationClick: (accommodationId: number) => void;
   onWishlistToggle: (accommodationId: number) => void;
   onHoveredAccommodationChange?: (accommodationId: number | null) => void;
+  detailSearchParams?: URLSearchParams;
   checkIn?: string | null;
   checkOut?: string | null;
   layout?: SearchResultsLayout;
@@ -36,6 +38,7 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = ({
   onAccommodationClick,
   onWishlistToggle,
   onHoveredAccommodationChange,
+  detailSearchParams,
   checkIn,
   checkOut,
   layout = "desktop",
@@ -64,6 +67,10 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = ({
     >
       <AccommodationCardSearch
         accommodation={accommodation}
+        detailUrl={routeTo.accommodationDetail(
+          accommodation.id,
+          detailSearchParams
+        )}
         onClick={() => onAccommodationClick(accommodation.id)}
         onWishlistToggle={() => onWishlistToggle(accommodation.id)}
         checkIn={checkIn}

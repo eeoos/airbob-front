@@ -7,6 +7,7 @@ import styles from "./AccommodationCard.Search.module.css";
 
 interface AccommodationCardSearchProps {
   accommodation: AccommodationSearchInfo;
+  detailUrl?: string;
   onWishlistToggle?: () => void;
   onClick?: () => void;
   checkIn?: string | null;
@@ -15,6 +16,7 @@ interface AccommodationCardSearchProps {
 
 export const AccommodationCardSearch: React.FC<AccommodationCardSearchProps> = ({
   accommodation,
+  detailUrl: providedDetailUrl,
   onWishlistToggle,
   onClick,
   checkIn,
@@ -56,7 +58,8 @@ export const AccommodationCardSearch: React.FC<AccommodationCardSearchProps> = (
   const nights = calculateNights(checkIn, checkOut);
   const hasDates = checkIn && checkOut;
 
-  const detailUrl = routeTo.accommodationDetail(accommodation.id);
+  const detailUrl =
+    providedDetailUrl ?? routeTo.accommodationDetail(accommodation.id);
 
   const handleCardClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (onClick) {

@@ -5,8 +5,10 @@ import Login from "./Login";
 
 const mockNavigate = jest.fn();
 const mockLogin = jest.fn();
+let mockLocationState: unknown = null;
 
 jest.mock("react-router-dom", () => ({
+  useLocation: () => ({ state: mockLocationState }),
   useNavigate: () => mockNavigate,
 }), { virtual: true });
 
@@ -84,6 +86,7 @@ jest.mock("../../../shared/ui", () => {
 
 describe("Login", () => {
   beforeEach(() => {
+    mockLocationState = null;
     mockNavigate.mockReset();
     mockLogin.mockReset();
     mockLogin.mockResolvedValue(undefined);
@@ -97,7 +100,7 @@ describe("Login", () => {
     expect(screen.getAllByTestId("shared-button")).toHaveLength(2);
   });
 
-  it("submits credentials and keeps the existing home redirect", async () => {
+  it("submits credentials and redirects home when no return target exists", async () => {
     render(<Login />);
 
     await userEvent.type(screen.getByLabelText("이메일"), "user@example.com");
@@ -111,6 +114,28 @@ describe("Login", () => {
       });
     });
     expect(mockNavigate).toHaveBeenCalledWith("/");
+  });
+
+  it("redirects to the protected route return target after login", async () => {
+    mockLocationState = {
+      from: {
+        pathname: "/profile",
+        search: "?mode=host&tab=reservations",
+        hash: "#calendar",
+      },
+    };
+
+    render(<Login />);
+
+    await userEvent.type(screen.getByLabelText("이메일"), "host@example.com");
+    await userEvent.type(screen.getByLabelText("비밀번호"), "password123");
+    await userEvent.click(screen.getByRole("button", { name: "로그인" }));
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        "/profile?mode=host&tab=reservations#calendar"
+      );
+    });
   });
 
   it("keeps the signup navigation link", async () => {

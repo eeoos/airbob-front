@@ -1,8 +1,8 @@
 import React from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Map } from "../../components/Map";
-import { WishlistModal } from "../../components/WishlistModal/WishlistModal";
+import { Map } from "../../features/search/components/SearchMap";
+import { WishlistModal } from "../../features/wishlist/components/WishlistModal";
 import { AuthModal } from "../../features/auth/components/AuthModal";
 import { useApiError } from "../../hooks/useApiError";
 import { useAuth } from "../../hooks/useAuth";
@@ -82,7 +82,7 @@ const Search: React.FC = () => {
 
   const handleAccommodationCardClick = (accommodationId: number) => {
     // 새 탭에서 열기
-    window.open(routeTo.accommodationDetail(accommodationId), '_blank');
+    window.open(routeTo.accommodationDetail(accommodationId, searchParams), '_blank');
     selectAccommodationId(accommodationId);
   };
 
@@ -192,6 +192,7 @@ const Search: React.FC = () => {
                   selectedAccommodationId={selectedAccommodationId}
                   onAccommodationClick={handleAccommodationCardClick}
                   onWishlistToggle={openWishlistModal}
+                  detailSearchParams={searchParams}
                   checkIn={checkIn}
                   checkOut={checkOut}
                   layout="bottomSheet"
@@ -225,6 +226,7 @@ const Search: React.FC = () => {
                   onAccommodationClick={handleAccommodationCardClick}
                   onWishlistToggle={openWishlistModal}
                   onHoveredAccommodationChange={setHoveredAccommodationId}
+                  detailSearchParams={searchParams}
                   checkIn={checkIn}
                   checkOut={checkOut}
                   layout="desktop"

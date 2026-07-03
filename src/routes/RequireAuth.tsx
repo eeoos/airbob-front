@@ -18,7 +18,7 @@ const RequireAuth = ({ children }: RequireAuthProps) => {
   if (!isAuthenticated) {
     return (
       <Navigate
-        to={routeTo.home()}
+        to={routeTo.login()}
         replace
         state={{
           from: {

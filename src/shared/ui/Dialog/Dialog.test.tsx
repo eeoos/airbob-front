@@ -181,6 +181,53 @@ describe("Dialog", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it("supports headerless dialogs with an accessible aria-label", () => {
+    render(
+      <Dialog isOpen title="후기 2개" onClose={jest.fn()} showHeader={false}>
+        <button type="button" autoFocus>
+          후기 닫기
+        </button>
+        content
+      </Dialog>
+    );
+
+    expect(screen.getByRole("dialog", { name: "후기 2개" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "후기 2개" })
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "후기 닫기" })).toHaveFocus();
+  });
+
+  it("can disable backdrop close for modal workflows that require explicit actions", async () => {
+    const onClose = jest.fn();
+    render(
+      <Dialog isOpen title="예약 확인" onClose={onClose} closeOnBackdrop={false}>
+        content
+      </Dialog>
+    );
+
+    await userEvent.click(screen.getByRole("presentation"));
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("applies custom size and body padding variants without losing content", () => {
+    render(
+      <Dialog
+        isOpen
+        title="후기"
+        onClose={jest.fn()}
+        size="xl"
+        bodyPadding="none"
+      >
+        content
+      </Dialog>
+    );
+
+    expect(screen.getByRole("dialog", { name: "후기" })).toBeInTheDocument();
+    expect(screen.getByText("content")).toBeInTheDocument();
+  });
+
   it("does not close when the inner dialog is pressed", async () => {
     const onClose = jest.fn();
     render(
