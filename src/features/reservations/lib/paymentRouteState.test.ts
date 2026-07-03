@@ -50,6 +50,20 @@ describe("payment route state", () => {
       reason: "INVALID_PAYMENT_AMOUNT",
     });
   });
+
+  it("drops invalid optional date params instead of returning Invalid Date objects", () => {
+    const state = parsePaymentRouteState(
+      new URLSearchParams(
+        "reservationUid=r-1&orderName=Airbob&amount=120000&customerEmail=a%40b.com&customerName=Jae&checkIn=not-a-date&checkOut=2026-99-99"
+      )
+    );
+
+    expect(state).toMatchObject({
+      status: "valid",
+      checkIn: null,
+      checkOut: null,
+    });
+  });
 });
 
 describe("toss success route state", () => {
