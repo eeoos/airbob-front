@@ -8,6 +8,7 @@ import {
   hasViewportChanged,
   shouldFitAccommodationBounds,
 } from "./lib/mapBounds";
+import { useGoogleMapsScript } from "../../features/search/map/useGoogleMapsScript";
 import {
   buildMarkerPriceSvg,
   getMarkerIconModel,
@@ -66,8 +67,7 @@ export const Map: React.FC<MapProps> = ({
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
-  const [isMapLoaded, setIsMapLoaded] = useState(false);
-  const scriptLoadedRef = useRef(false);
+  const { isLoaded: isMapLoaded, status: mapScriptStatus } = useGoogleMapsScript();
   const prevSelectedIdRef = useRef<number | null>(null);
   const prevHoveredIdRef = useRef<number | null>(null);
   const boundsInitializedRef = useRef(false);
@@ -88,75 +88,6 @@ export const Map: React.FC<MapProps> = ({
     onAccommodationSelectRef.current = onAccommodationSelect;
   }, [onAccommodationSelect]);
 
-  // Google Maps API가 완전히 로드되었는지 확인하는 함수
-  const checkMapsLoaded = (): boolean => {
-    return !!(
-      window.google &&
-      window.google.maps &&
-      window.google.maps.Map &&
-      typeof window.google.maps.Map === 'function'
-    );
-  };
-
-  // Google Maps API 동적 로드
-  useEffect(() => {
-    if (scriptLoadedRef.current) return;
-
-    // 이미 로드되어 있는지 확인
-    if (checkMapsLoaded()) {
-      setIsMapLoaded(true);
-      return;
-    }
-
-    // 스크립트가 이미 추가되어 있는지 확인
-    const existingScript = document.querySelector(
-      'script[src*="maps.googleapis.com"]'
-    );
-    if (existingScript) {
-      const checkLoaded = setInterval(() => {
-        if (checkMapsLoaded()) {
-          setIsMapLoaded(true);
-          clearInterval(checkLoaded);
-        }
-      }, 100);
-      return () => clearInterval(checkLoaded);
-    }
-
-    // Google Maps API 스크립트 로드
-    const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
-    console.log("Google Maps API Key:", apiKey ? "설정됨" : "설정되지 않음");
-    if (apiKey) {
-      const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&loading=async`;
-      script.async = true;
-      script.defer = true;
-      script.onload = () => {
-        // onload 후에도 Map 생성자가 사용 가능할 때까지 대기
-        const checkInterval = setInterval(() => {
-          if (checkMapsLoaded()) {
-            setIsMapLoaded(true);
-            clearInterval(checkInterval);
-          }
-        }, 50);
-        
-        // 최대 5초 대기
-        setTimeout(() => {
-          clearInterval(checkInterval);
-          if (!checkMapsLoaded()) {
-            console.error("Google Maps API Map 생성자를 사용할 수 없습니다.");
-          }
-        }, 5000);
-      };
-      script.onerror = () => {
-        console.error("Google Maps API 로드 실패");
-      };
-      document.head.appendChild(script);
-      scriptLoadedRef.current = true;
-    } else {
-      console.warn("Google Maps API 키가 설정되지 않았습니다. REACT_APP_GOOGLE_MAPS_API_KEY 환경 변수를 설정하고 개발 서버를 재시작해주세요.");
-    }
-  }, []);
-
   // 지도 초기화
   useEffect(() => {
     if (!isMapLoaded || !mapRef.current) return;
@@ -167,7 +98,10 @@ export const Map: React.FC<MapProps> = ({
     }
 
     const initMap = () => {
-      if (!mapRef.current || !checkMapsLoaded()) {
+      if (
+        !mapRef.current ||
+        typeof window.google?.maps?.Map !== "function"
+      ) {
         console.warn("Google Maps API가 아직 완전히 로드되지 않았습니다.");
         return;
       }
@@ -1244,9 +1178,14 @@ export const Map: React.FC<MapProps> = ({
   }, [isExpanded, onExpandToggle, isMapLoaded]);
 
   if (!isMapLoaded) {
+    const mapFallbackText =
+      mapScriptStatus === "missing-key" || mapScriptStatus === "error"
+        ? "지도를 불러올 수 없습니다."
+        : "지도를 불러오는 중...";
+
     return (
       <div className={styles.mapContainer}>
-        <div className={styles.loading}>지도를 불러오는 중...</div>
+        <div className={styles.loading}>{mapFallbackText}</div>
       </div>
     );
   }
