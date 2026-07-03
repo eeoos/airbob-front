@@ -23,13 +23,6 @@ const createClient = (version: string): AxiosInstance => {
     headers: { 'Content-Type': 'application/json' }
   });
 
-  console.log("[axios client]", {
-    nodeEnv: process.env.NODE_ENV,
-    apiDomain: API_DOMAIN,
-    baseURL: instance.defaults.baseURL,
-    version,
-  });
-
   instance.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => config,
     (error) => Promise.reject(error)

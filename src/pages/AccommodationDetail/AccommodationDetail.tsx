@@ -113,7 +113,6 @@ const AccommodationDetail: React.FC = () => {
     allReviews,
     isReviewModalOpen,
     setIsReviewModalOpen,
-    reviewObserverTarget,
     expandedReviews,
   } = useAccommodationReviews({
     accommodationId: id,
@@ -176,7 +175,7 @@ const AccommodationDetail: React.FC = () => {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isGuestPickerOpen, isDatePickerOpen]);
+  }, [isGuestPickerOpen, isDatePickerOpen, setIsGuestPickerOpen, setIsDatePickerOpen]);
   
   // 모바일 이미지 슬라이더 터치 핸들러
   const minSwipeDistance = 50;

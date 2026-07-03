@@ -27,15 +27,16 @@ const PaymentSuccess: React.FC = () => {
     orderId,
     paymentKey,
   });
-  const result = isPaymentQueryIncomplete
-    ? ({ error: null, status: "skipped" } as const)
-    : confirmationResult;
 
   useEffect(() => {
     if (!reservationUid) {
       navigate(routeTo.profile());
       return;
     }
+
+    const result = isPaymentQueryIncomplete
+      ? ({ error: null, status: "skipped" } as const)
+      : confirmationResult;
 
     if (!result) return;
 
@@ -45,7 +46,7 @@ const PaymentSuccess: React.FC = () => {
     }
 
     navigate(routeTo.paymentFail(reservationUid));
-  }, [reservationUid, navigate, result]);
+  }, [confirmationResult, isPaymentQueryIncomplete, reservationUid, navigate]);
 
   // 로딩 화면 표시 (리다이렉트 중)
   return (
