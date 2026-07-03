@@ -7,29 +7,16 @@ import { WishlistModal } from "../../components/WishlistModal";
 import { AuthModal } from "../../features/auth/components/AuthModal";
 import { ReviewModal } from "../../components/ReviewModal/ReviewModal";
 import { getImageUrl } from "../../utils/image";
-import {
-  getAccommodationTypeLabel,
-  getAmenityLabel,
-} from "../../utils/codes";
-import { GOOGLE_MAPS_API_KEY } from "../../utils/constants";
 import { useAccommodationBooking } from "../../features/accommodations/hooks/useAccommodationBooking";
 import { useAccommodationCoupons } from "../../features/accommodations/hooks/useAccommodationCoupons";
 import { useAccommodationDetail } from "../../features/accommodations/hooks/useAccommodationDetail";
 import { useAccommodationReviews } from "../../features/accommodations/hooks/useAccommodationReviews";
 import { AccommodationBookingCard } from "../../features/accommodations/components/AccommodationBookingCard";
+import { AccommodationLocationSection } from "../../features/accommodations/components/AccommodationLocationSection";
+import { AccommodationOverview } from "../../features/accommodations/components/AccommodationOverview";
+import { AccommodationReviewsSection } from "../../features/accommodations/components/AccommodationReviewsSection";
 import AccommodationHero from "../../features/accommodations/components/AccommodationHero";
-import AmenityIcon from "../../features/accommodations/components/AmenityIcon";
 import styles from "./AccommodationDetail.module.css";
-
-// AccommodationType을 한글로 변환하는 함수
-const getAccommodationTypeKorean = (type: string): string => {
-  return getAccommodationTypeLabel(type);
-};
-
-// AmenityType을 한글로 변환하는 함수
-const getAmenityTypeKorean = (type: string): string => {
-  return getAmenityLabel(type);
-};
 
 const AccommodationDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -56,11 +43,6 @@ const AccommodationDetail: React.FC = () => {
     setIsAuthModalOpen(true);
   };
   
-  // 설명이 길면 잘라서 보여줄 길이 (약 3줄 정도)
-  const MAX_DESCRIPTION_LENGTH = 200;
-  // 리뷰 content를 잘라서 보여줄 길이 (약 3-4줄 정도)
-  const MAX_REVIEW_CONTENT_LENGTH = 150;
-
   const {
     accommodation,
     isLoading,
@@ -246,70 +228,10 @@ const AccommodationDetail: React.FC = () => {
 
         <div className={styles.contentWrapper}>
           <div className={styles.leftColumn}>
-            <div className={styles.locationSection}>
-              <div className={styles.locationInfo}>
-                <span className={styles.address}>
-                  {accommodation.address_summary.city || accommodation.address_summary.country}의 {getAccommodationTypeKorean(accommodation.type)}
-                </span>
-                <span className={styles.maxOccupancy}>최대 인원 {accommodation.policy.max_occupancy}명</span>
-              </div>
-            </div>
-
-            {accommodation.amenities.length > 0 && (
-              <div className={styles.amenitiesSection}>
-                <div className={styles.amenitiesGrid}>
-                  {accommodation.amenities.map((amenity, index) => (
-                    <div key={index} className={styles.amenityItem}>
-                      <AmenityIcon type={amenity.type} decorative />
-                      <span>{getAmenityTypeKorean(amenity.type)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className={styles.mainContent}>
-              <section className={styles.section}>
-                <div className={styles.hostInfo}>
-                  <div className={styles.hostAvatar}>
-                    {accommodation.host.thumbnail_image_url ? (
-                      <img
-                        src={getImageUrl(accommodation.host.thumbnail_image_url)}
-                        alt={accommodation.host.nickname}
-                      />
-                    ) : (
-                      <div className={styles.avatarPlaceholder}>
-                        {accommodation.host.nickname.charAt(0)}
-                      </div>
-                    )}
-                  </div>
-                  <div className={styles.hostDetails}>
-                    <span className={styles.hostLabel}>호스트:</span>
-                    <span className={styles.hostName}>{accommodation.host.nickname} 님</span>
-                  </div>
-                </div>
-              </section>
-
-              <section className={styles.section}>
-                {accommodation.description && (
-                  <>
-                    <p className={styles.description}>
-                      {accommodation.description.length > MAX_DESCRIPTION_LENGTH
-                        ? `${accommodation.description.substring(0, MAX_DESCRIPTION_LENGTH)}...`
-                        : accommodation.description}
-                    </p>
-                    {accommodation.description.length > MAX_DESCRIPTION_LENGTH && (
-                      <button
-                        className={styles.showMoreButton}
-                        onClick={() => setIsDescriptionModalOpen(true)}
-                      >
-                        더 보기
-                      </button>
-                    )}
-                  </>
-                )}
-              </section>
-            </div>
+            <AccommodationOverview
+              accommodation={accommodation}
+              onOpenDescription={() => setIsDescriptionModalOpen(true)}
+            />
           </div>
 
           <div className={styles.sidebar}>
@@ -350,168 +272,45 @@ const AccommodationDetail: React.FC = () => {
             />
           </div>
         </div>
-        </div>
 
-        <section className={`${styles.section} ${styles.locationSectionFullWidth}`}>
-          <h2 className={styles.sectionTitle}>위치</h2>
-          <p className={styles.address}>
-            {[
-              accommodation.address_summary.city,
-              accommodation.address_summary.country,
-            ].filter(Boolean).join(", ")}
-          </p>
-          {accommodation.coordinate.latitude && accommodation.coordinate.longitude && (
-            <div className={styles.mapContainer}>
-              {GOOGLE_MAPS_API_KEY ? (
-                <iframe
-                  title="숙소 위치 지도"
-                  width="100%"
-                  height="100%"
-                  style={{ border: 0 }}
-                  loading="lazy"
-                  allowFullScreen
-                  referrerPolicy="no-referrer-when-downgrade"
-                  src={`https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_API_KEY}&q=${accommodation.coordinate.latitude},${accommodation.coordinate.longitude}&zoom=15`}
-                />
-              ) : (
-                <div className={styles.mapPlaceholder}>
-                  지도 (위도: {accommodation.coordinate.latitude}, 경도:{" "}
-                  {accommodation.coordinate.longitude})
-                </div>
-              )}
-            </div>
-          )}
-        </section>
+        <AccommodationLocationSection accommodation={accommodation} />
 
-        {/* Reviews Section */}
-        {accommodation.review_summary.total_count > 0 && (
-          <section className={`${styles.section} ${styles.reviewSection}`}>
-            <h2 className={styles.sectionTitle}>
-              ★ {accommodation.review_summary.average_rating.toFixed(2)} · 후기 {accommodation.review_summary.total_count}개
-            </h2>
-            
-            {reviews.length > 0 && (
-              <div className={styles.reviewsGrid}>
-                {reviews.map((review) => (
-                  <div key={review.id} className={styles.reviewCard}>
-                    <div className={styles.reviewHeader}>
-                      <div className={styles.reviewerInfo}>
-                        {review.reviewer.thumbnail_image_url ? (
-                          <img
-                            src={getImageUrl(review.reviewer.thumbnail_image_url)}
-                            alt={review.reviewer.nickname}
-                            className={styles.reviewerAvatar}
-                          />
-                        ) : (
-                          <div className={styles.reviewerAvatarPlaceholder}>
-                            {review.reviewer.nickname.charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                        <div className={styles.reviewerDetails}>
-                          <div className={styles.reviewerName}>{review.reviewer.nickname}</div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className={styles.reviewRating}>
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <svg
-                          key={i}
-                          viewBox="0 0 24 24"
-                          fill={i < review.rating ? "currentColor" : "none"}
-                          stroke="currentColor"
-                          className={styles.starIcon}
-                        >
-                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                        </svg>
-                      ))}
-                    </div>
-                    
-                    <div className={styles.reviewDate}>
-                      {new Date(review.reviewed_at).getFullYear()}년 {new Date(review.reviewed_at).getMonth() + 1}월
-                    </div>
-                    
-                    <div className={styles.reviewContent}>
-                      {expandedReviews[review.id] || review.content.length <= MAX_REVIEW_CONTENT_LENGTH
-                        ? review.content
-                        : `${review.content.substring(0, MAX_REVIEW_CONTENT_LENGTH)}...`}
-                    </div>
-                    
-                    {review.content.length > MAX_REVIEW_CONTENT_LENGTH && (
-                      <button
-                        className={styles.reviewShowMoreButton}
-                        onClick={() => {
-                          // "더보기" 버튼 클릭 시 리뷰 모달 열기 (후기 모두 보기와 같은 기능)
-                          setIsReviewModalOpen(true);
-                        }}
-                      >
-                        더보기
-                      </button>
-                    )}
-                    
-                    {review.images && review.images.length > 0 && (
-                      <div className={styles.reviewImages}>
-                        {review.images.map((image) => (
-                          <img
-                            key={image.id}
-                            src={getImageUrl(image.image_url)}
-                            alt="리뷰 이미지"
-                            className={styles.reviewImage}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            {/* 리뷰가 6개 초과인 경우에만 "모두 보기" 버튼 표시 */}
-            {accommodation.review_summary.total_count > 6 && (
-              <div className={styles.reviewViewAll}>
-                <button 
-                  className={styles.reviewViewAllButton}
-                  onClick={() => setIsReviewModalOpen(true)}
-                >
-                  후기 {accommodation.review_summary.total_count}개 모두 보기
-                </button>
-              </div>
-            )}
-          </section>
-        )}
+        <AccommodationReviewsSection
+          reviewSummary={accommodation.review_summary}
+          reviews={reviews}
+          expandedReviews={expandedReviews}
+          onOpenReviews={() => setIsReviewModalOpen(true)}
+        />
+      </div>
 
-        {accommodation && (
-        <>
-          <ReviewModal
-            isOpen={isReviewModalOpen}
-            onClose={() => setIsReviewModalOpen(false)}
-            reviews={allReviews}
-            averageRating={accommodation.review_summary.average_rating}
-            totalCount={accommodation.review_summary.total_count}
-          />
-          <WishlistModal
-            isOpen={isWishlistModalOpen}
-            onClose={() => setIsWishlistModalOpen(false)}
-            accommodationId={accommodation.id}
-            onSuccess={async () => {
-              await reloadAccommodation();
-            }}
-          />
-          <AuthModal
-            isOpen={isAuthModalOpen}
-            onClose={() => {
-              setIsAuthModalOpen(false);
-              setPendingAction(null);
-            }}
-            onSuccess={() => {
-              if (pendingAction) {
-                pendingAction();
-                setPendingAction(null);
-              }
-            }}
-          />
-        </>
-      )}
+      <ReviewModal
+        isOpen={isReviewModalOpen}
+        onClose={() => setIsReviewModalOpen(false)}
+        reviews={allReviews}
+        averageRating={accommodation.review_summary.average_rating}
+        totalCount={accommodation.review_summary.total_count}
+      />
+      <WishlistModal
+        isOpen={isWishlistModalOpen}
+        onClose={() => setIsWishlistModalOpen(false)}
+        accommodationId={accommodation.id}
+        onSuccess={async () => {
+          await reloadAccommodation();
+        }}
+      />
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => {
+          setIsAuthModalOpen(false);
+          setPendingAction(null);
+        }}
+        onSuccess={() => {
+          if (pendingAction) {
+            pendingAction();
+            setPendingAction(null);
+          }
+        }}
+      />
 
       {error && (
         <div className={styles.toastContainer}>
