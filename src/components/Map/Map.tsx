@@ -8,7 +8,7 @@ import {
   hasViewportChanged,
   shouldFitAccommodationBounds,
 } from "./lib/mapBounds";
-import { useGoogleMapsScript } from "../../features/search/map/useGoogleMapsScript";
+import { useGoogleMapsScript } from "../../hooks/useGoogleMapsScript";
 import {
   buildMarkerPriceSvg,
   getMarkerIconModel,

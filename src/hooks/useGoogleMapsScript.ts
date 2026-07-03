@@ -16,9 +16,11 @@ const GOOGLE_MAPS_SCRIPT_SELECTOR =
   'script[src*="maps.googleapis.com/maps/api/js"]';
 const GOOGLE_MAPS_API_URL = "https://maps.googleapis.com/maps/api/js";
 const READINESS_CHECK_INTERVAL_MS = 50;
+const READINESS_TIMEOUT_MS = 5000;
 
 let currentStatus: GoogleMapsScriptStatus = "idle";
 let readinessTimer: ReturnType<typeof setTimeout> | null = null;
+let readinessTimeoutTimer: ReturnType<typeof setTimeout> | null = null;
 let erroredScript: HTMLScriptElement | null = null;
 
 const listeners = new Set<(status: GoogleMapsScriptStatus) => void>();
@@ -32,6 +34,14 @@ const findGoogleMapsScript = () =>
   typeof document === "undefined"
     ? null
     : document.querySelector<HTMLScriptElement>(GOOGLE_MAPS_SCRIPT_SELECTOR);
+
+const getStatusSnapshot = (): GoogleMapsScriptStatus => {
+  if (isGoogleMapsReady()) return "loaded";
+  if (currentStatus === "loaded") {
+    return findGoogleMapsScript() ? "loading" : "idle";
+  }
+  return currentStatus;
+};
 
 const notifyListeners = () => {
   listeners.forEach((listener) => listener(getStatusSnapshot()));
@@ -51,12 +61,26 @@ const clearReadinessTimer = () => {
   readinessTimer = null;
 };
 
+const clearReadinessTimeout = () => {
+  if (readinessTimeoutTimer === null) return;
+
+  clearTimeout(readinessTimeoutTimer);
+  readinessTimeoutTimer = null;
+};
+
 const markLoadedIfReady = () => {
   if (!isGoogleMapsReady()) return false;
 
   clearReadinessTimer();
+  clearReadinessTimeout();
   setStatus("loaded");
   return true;
+};
+
+const markError = () => {
+  clearReadinessTimer();
+  clearReadinessTimeout();
+  setStatus("error");
 };
 
 const scheduleReadinessCheck = () => {
@@ -72,6 +96,17 @@ const scheduleReadinessCheck = () => {
   }, READINESS_CHECK_INTERVAL_MS);
 };
 
+const scheduleReadinessTimeout = () => {
+  if (readinessTimeoutTimer !== null || currentStatus !== "loading") return;
+
+  readinessTimeoutTimer = setTimeout(() => {
+    readinessTimeoutTimer = null;
+
+    if (markLoadedIfReady()) return;
+    markError();
+  }, READINESS_TIMEOUT_MS);
+};
+
 const watchForMapsReadiness = (script?: HTMLScriptElement) => {
   if (markLoadedIfReady()) return;
 
@@ -80,6 +115,7 @@ const watchForMapsReadiness = (script?: HTMLScriptElement) => {
     setStatus("loading");
   }
   scheduleReadinessCheck();
+  scheduleReadinessTimeout();
 };
 
 const handleScriptLoad = (event: Event) => {
@@ -88,8 +124,7 @@ const handleScriptLoad = (event: Event) => {
 
 const handleScriptError = (event: Event) => {
   erroredScript = event.currentTarget as HTMLScriptElement;
-  clearReadinessTimer();
-  setStatus("error");
+  markError();
 };
 
 const observeScript = (script: HTMLScriptElement) => {
@@ -123,6 +158,7 @@ const ensureGoogleMapsScript = () => {
   const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY?.trim();
   if (!apiKey) {
     clearReadinessTimer();
+    clearReadinessTimeout();
     setStatus("missing-key");
     return;
   }
@@ -137,14 +173,7 @@ const ensureGoogleMapsScript = () => {
   setStatus("loading");
   document.head.appendChild(script);
   scheduleReadinessCheck();
-};
-
-const getStatusSnapshot = (): GoogleMapsScriptStatus => {
-  if (isGoogleMapsReady()) return "loaded";
-  if (currentStatus === "loaded") {
-    return findGoogleMapsScript() ? "loading" : "idle";
-  }
-  return currentStatus;
+  scheduleReadinessTimeout();
 };
 
 export const useGoogleMapsScript = (): GoogleMapsScriptState => {
@@ -160,6 +189,7 @@ export const useGoogleMapsScript = (): GoogleMapsScriptState => {
       listeners.delete(setHookStatus);
       if (listeners.size === 0) {
         clearReadinessTimer();
+        clearReadinessTimeout();
       }
     };
   }, []);

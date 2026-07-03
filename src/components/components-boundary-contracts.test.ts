@@ -11,7 +11,6 @@ const allowedWorkflowFiles = new Set([
   "CreateWishlistModal/CreateWishlistModal.tsx",
   "Header/Header.tsx",
   "Header/UserMenu.tsx",
-  "Map/Map.tsx",
   "WishlistModal/WishlistModal.tsx",
 ]);
 

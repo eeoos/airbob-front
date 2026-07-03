@@ -121,4 +121,28 @@ describe("useGoogleMapsScript", () => {
     expect(result.current.isLoaded).toBe(true);
     expect(mapsScripts()).toHaveLength(1);
   });
+
+  it("reports error when an existing script never exposes Google Maps", async () => {
+    const existingScript = document.createElement("script");
+    existingScript.src =
+      "https://maps.googleapis.com/maps/api/js?key=already-present&libraries=places&loading=async";
+    document.head.appendChild(existingScript);
+
+    const { result } = renderHook(() => useGoogleMapsScript());
+
+    await waitFor(() => {
+      expect(result.current.status).toBe("loading");
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(5000);
+    });
+
+    await waitFor(() => {
+      expect(result.current.status).toBe("error");
+    });
+
+    expect(result.current.isLoaded).toBe(false);
+    expect(mapsScripts()).toHaveLength(1);
+  });
 });
