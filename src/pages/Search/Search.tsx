@@ -5,7 +5,7 @@ import { ListContainer } from "../../components/ListContainer";
 import { AccommodationCardSearch } from "../../components/AccommodationCard";
 import { Map } from "../../components/Map";
 import { WishlistModal } from "../../components/WishlistModal/WishlistModal";
-import { AuthModal } from "../../components/AuthModal/AuthModal";
+import { AuthModal } from "../../features/auth/components/AuthModal";
 import { useApiError } from "../../hooks/useApiError";
 import { useAuth } from "../../hooks/useAuth";
 import { ErrorToast } from "../../components/ErrorToast";

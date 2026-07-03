@@ -4,7 +4,7 @@ import { useApiError } from "../../hooks/useApiError";
 import { useAuth } from "../../hooks/useAuth";
 import { ErrorToast } from "../../components/ErrorToast";
 import { WishlistModal } from "../../components/WishlistModal";
-import { AuthModal } from "../../components/AuthModal/AuthModal";
+import { AuthModal } from "../../features/auth/components/AuthModal";
 import { ReviewModal } from "../../components/ReviewModal/ReviewModal";
 import DatePicker from "../../components/DatePicker/DatePicker";
 import { getImageUrl } from "../../utils/image";

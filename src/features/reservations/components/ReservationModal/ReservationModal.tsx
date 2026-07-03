@@ -1,11 +1,11 @@
 import React, { useEffect } from "react";
-import { AccommodationDetail } from "../../types/accommodation";
-import { useApiError } from "../../hooks/useApiError";
-import { useAuth } from "../../hooks/useAuth";
-import { useReservationPayment } from "../../features/reservations/hooks/useReservationPayment";
-import { Dialog } from "../../shared/ui";
-import { ErrorToast } from "../ErrorToast";
-import { getImageUrl } from "../../utils/image";
+import { AccommodationDetail } from "../../../../types/accommodation";
+import { useApiError } from "../../../../hooks/useApiError";
+import { useAuth } from "../../../../hooks/useAuth";
+import { useReservationPayment } from "../../hooks/useReservationPayment";
+import { Dialog } from "../../../../shared/ui";
+import { ErrorToast } from "../../../../components/ErrorToast";
+import { getImageUrl } from "../../../../utils/image";
 import styles from "./ReservationModal.module.css";
 
 interface ReservationModalProps {

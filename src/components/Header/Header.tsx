@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
-import { SearchBar } from "../SearchBar/SearchBar";
+import { SearchBar } from "../../features/search/components/SearchBar";
 import { UserMenu } from "./UserMenu";
 import { useAuth } from "../../hooks/useAuth";
 import logoImage from "../../assets/logo/logo.png";

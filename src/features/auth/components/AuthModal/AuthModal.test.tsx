@@ -3,13 +3,13 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AuthModal } from "./AuthModal";
 
-jest.mock("../../hooks/useAuth", () => ({
+jest.mock("../../../../hooks/useAuth", () => ({
   useAuth: () => ({
     login: jest.fn(),
   }),
 }));
 
-jest.mock("../../hooks/useApiError", () => {
+jest.mock("../../../../hooks/useApiError", () => {
   const React = require("react");
 
   return {
@@ -30,7 +30,7 @@ jest.mock("../../hooks/useApiError", () => {
   };
 });
 
-jest.mock("../../features/auth/hooks/useSignup", () => {
+jest.mock("../../hooks/useSignup", () => {
   const React = require("react");
 
   return {
@@ -52,7 +52,7 @@ jest.mock("../../features/auth/hooks/useSignup", () => {
   };
 });
 
-jest.mock("../ErrorToast", () => ({
+jest.mock("../../../../components/ErrorToast", () => ({
   ErrorToast: ({
     message,
     onClose,

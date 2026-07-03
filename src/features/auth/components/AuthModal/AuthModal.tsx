@@ -1,9 +1,9 @@
 import React, { useCallback, useState, useEffect } from "react";
-import { useAuth } from "../../hooks/useAuth";
-import { useApiError } from "../../hooks/useApiError";
-import { useSignup } from "../../features/auth/hooks/useSignup";
-import { Dialog } from "../../shared/ui";
-import { ErrorToast } from "../ErrorToast";
+import { useAuth } from "../../../../hooks/useAuth";
+import { useApiError } from "../../../../hooks/useApiError";
+import { useSignup } from "../../hooks/useSignup";
+import { Dialog } from "../../../../shared/ui";
+import { ErrorToast } from "../../../../components/ErrorToast";
 import styles from "./AuthModal.module.css";
 
 interface AuthModalProps {

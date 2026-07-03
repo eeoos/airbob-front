@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { useCreateAccommodationDraft } from "../../features/accommodations/hooks/useCreateAccommodationDraft";
-import { AuthModal } from "../AuthModal";
+import { AuthModal } from "../../features/auth/components/AuthModal";
 import { useApiError } from "../../hooks/useApiError";
 import { routeTo } from "../../routes/paths";
 import styles from "./UserMenu.module.css";

@@ -1,23 +1,23 @@
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { reservationApi } from "../../api";
-import { AccommodationDetail } from "../../types/accommodation";
+import { reservationApi } from "../../../../api";
+import { AccommodationDetail } from "../../../../types/accommodation";
 import ReservationModal from "./ReservationModal";
 
-jest.mock("../../api", () => ({
+jest.mock("../../../../api", () => ({
   reservationApi: {
     create: jest.fn(),
   },
 }));
 
-jest.mock("../../hooks/useAuth", () => ({
+jest.mock("../../../../hooks/useAuth", () => ({
   useAuth: () => ({
     isAuthenticated: true,
   }),
 }));
 
-jest.mock("../../hooks/useApiError", () => ({
+jest.mock("../../../../hooks/useApiError", () => ({
   useApiError: () => ({
     error: null,
     handleError: jest.fn(),
