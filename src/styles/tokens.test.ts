@@ -261,11 +261,11 @@ describe("pre-design token stylesheet contract", () => {
   });
 
   it("keeps date picker overlays on the dropdown z-index token", () => {
-    const accommodationDetailCss = readCss(
-      "pages/AccommodationDetail/AccommodationDetail.module.css",
+    const accommodationBookingCardCss = readCss(
+      "features/accommodations/components/AccommodationBookingCard.module.css",
     );
 
-    expect(accommodationDetailCss).toMatch(
+    expect(accommodationBookingCardCss).toMatch(
       /\.datePickerContainer\s*\{[\s\S]*?position:\s*fixed;[\s\S]*?top:\s*var\(--layout-search-mobile-popover-top\);[\s\S]*?z-index:\s*var\(--z-dropdown\);/,
     );
   });

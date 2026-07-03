@@ -6,11 +6,8 @@ import { ErrorToast } from "../../components/ErrorToast";
 import { WishlistModal } from "../../components/WishlistModal";
 import { AuthModal } from "../../features/auth/components/AuthModal";
 import { ReviewModal } from "../../components/ReviewModal/ReviewModal";
-import DatePicker from "../../components/DatePicker/DatePicker";
 import { getImageUrl } from "../../utils/image";
 import {
-  calculateCouponDiscount,
-  formatCouponDiscount,
   getAccommodationTypeLabel,
   getAmenityLabel,
 } from "../../utils/codes";
@@ -19,6 +16,7 @@ import { useAccommodationBooking } from "../../features/accommodations/hooks/use
 import { useAccommodationCoupons } from "../../features/accommodations/hooks/useAccommodationCoupons";
 import { useAccommodationDetail } from "../../features/accommodations/hooks/useAccommodationDetail";
 import { useAccommodationReviews } from "../../features/accommodations/hooks/useAccommodationReviews";
+import { AccommodationBookingCard } from "../../features/accommodations/components/AccommodationBookingCard";
 import AccommodationHero from "../../features/accommodations/components/AccommodationHero";
 import AmenityIcon from "../../features/accommodations/components/AmenityIcon";
 import styles from "./AccommodationDetail.module.css";
@@ -315,324 +313,41 @@ const AccommodationDetail: React.FC = () => {
           </div>
 
           <div className={styles.sidebar}>
-            <div className={styles.bookingCard}>
-              <div className={styles.priceSection}>
-                <span className={styles.totalPrice}>₩{payablePrice.toLocaleString()}</span>
-                <span className={styles.priceInfo}>· {nights}박</span>
-              </div>
-              
-              <div className={styles.dateSection} ref={dateSectionRef}>
-                <div 
-                  className={styles.dateRow}
-                  onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
-                  style={{ cursor: "pointer" }}
-                >
-                  <div className={styles.dateColumn}>
-                    <div className={styles.dateLabel}>체크인</div>
-                    <div className={styles.dateValue}>{formatDate(checkIn)}</div>
-                  </div>
-                  <div className={styles.dateDivider}></div>
-                  <div className={styles.dateColumn}>
-                    <div className={styles.dateLabel}>체크아웃</div>
-                    <div className={styles.dateValue}>{formatDate(checkOut)}</div>
-                  </div>
-                </div>
-                <div className={styles.horizontalDivider}></div>
-                
-                {isDatePickerOpen && (
-                  <div className={styles.datePickerContainer}>
-                    <DatePicker
-                      checkIn={checkIn}
-                      checkOut={checkOut}
-                      onDateSelect={handleDateSelect}
-                      onClose={() => setIsDatePickerOpen(false)}
-                      datePickerRef={datePickerRef}
-                      unavailableDates={accommodation?.unavailable_dates?.map(date => {
-                        // LocalDate 형식 (YYYY-MM-DD)을 그대로 사용
-                        if (typeof date === 'string') {
-                          return date;
-                        }
-                        // Date 객체인 경우 변환
-                        const d = new Date(date);
-                        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-                      }) || []}
-                    />
-                  </div>
-                )}
-              </div>
-              
-              <div className={`${styles.guestRowContainer} ${isDatePickerOpen ? styles.hidden : ''}`} ref={guestPickerRef}>
-                  <div 
-                    className={styles.guestRow}
-                    onClick={() => setIsGuestPickerOpen(!isGuestPickerOpen)}
-                  >
-                    <div className={styles.guestColumn}>
-                      <div className={styles.dateLabel}>인원</div>
-                      <div className={styles.guestValue}>
-                        {(() => {
-                          const guestCount = adultCount + childCount;
-                          const parts: string[] = [];
-                          
-                          if (guestCount > 0) {
-                            parts.push(`게스트 ${guestCount}명`);
-                          }
-                          if (infantCount > 0) {
-                            parts.push(`유아 ${infantCount}명`);
-                          }
-                          if (petCount > 0) {
-                            parts.push(`반려동물 ${petCount}마리`);
-                          }
-                          
-                          return parts.length > 0 ? parts.join(", ") : "게스트 1명";
-                        })()}
-                      </div>
-                    </div>
-                    <div className={styles.guestArrow}>{isGuestPickerOpen ? "⌃" : "⌄"}</div>
-                  </div>
-                  
-                  {isGuestPickerOpen && (
-                    <div className={styles.guestPicker}>
-                      <div className={styles.guestPickerItem}>
-                        <div className={styles.guestPickerLabel}>
-                          <div className={styles.guestPickerTitle}>성인</div>
-                          <div className={styles.guestPickerSubtitle}>13세 이상</div>
-                        </div>
-                        <div className={styles.guestPickerControls}>
-                          <button
-                            className={`${styles.guestPickerButton} ${adultCount <= 1 ? styles.guestPickerButtonDisabled : ""}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (adultCount > 1) setAdultCount(adultCount - 1);
-                            }}
-                            disabled={adultCount <= 1}
-                          >
-                            −
-                          </button>
-                          <span className={styles.guestPickerCount}>{adultCount}</span>
-                          <button
-                            className={`${styles.guestPickerButton} ${adultCount + childCount >= (accommodation?.policy.max_occupancy || 10) ? styles.guestPickerButtonDisabled : ""}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (adultCount + childCount < (accommodation?.policy.max_occupancy || 10)) {
-                                setAdultCount(adultCount + 1);
-                              }
-                            }}
-                            disabled={adultCount + childCount >= (accommodation?.policy.max_occupancy || 10)}
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-                      
-                      <div className={styles.guestPickerItem}>
-                        <div className={styles.guestPickerLabel}>
-                          <div className={styles.guestPickerTitle}>어린이</div>
-                          <div className={styles.guestPickerSubtitle}>2~12세</div>
-                        </div>
-                        <div className={styles.guestPickerControls}>
-                          <button
-                            className={`${styles.guestPickerButton} ${childCount <= 0 ? styles.guestPickerButtonDisabled : ""}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (childCount > 0) setChildCount(childCount - 1);
-                            }}
-                            disabled={childCount <= 0}
-                          >
-                            −
-                          </button>
-                          <span className={styles.guestPickerCount}>{childCount}</span>
-                          <button
-                            className={`${styles.guestPickerButton} ${adultCount + childCount >= (accommodation?.policy.max_occupancy || 10) ? styles.guestPickerButtonDisabled : ""}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (adultCount + childCount < (accommodation?.policy.max_occupancy || 10)) {
-                                setChildCount(childCount + 1);
-                              }
-                            }}
-                            disabled={adultCount + childCount >= (accommodation?.policy.max_occupancy || 10)}
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-                      
-                      <div className={styles.guestPickerItem}>
-                        <div className={styles.guestPickerLabel}>
-                          <div className={styles.guestPickerTitle}>유아</div>
-                          <div className={styles.guestPickerSubtitle}>2세 미만</div>
-                        </div>
-                        <div className={styles.guestPickerControls}>
-                          <button
-                            className={`${styles.guestPickerButton} ${infantCount <= 0 || (accommodation?.policy.infant_occupancy || 0) === 0 ? styles.guestPickerButtonDisabled : ""}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (infantCount > 0) setInfantCount(infantCount - 1);
-                            }}
-                            disabled={infantCount <= 0 || (accommodation?.policy.infant_occupancy || 0) === 0}
-                          >
-                            −
-                          </button>
-                          <span className={styles.guestPickerCount}>{infantCount}</span>
-                          <button
-                            className={`${styles.guestPickerButton} ${infantCount >= (accommodation?.policy.infant_occupancy || 0) || (accommodation?.policy.infant_occupancy || 0) === 0 ? styles.guestPickerButtonDisabled : ""}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (infantCount < (accommodation?.policy.infant_occupancy || 0)) {
-                                setInfantCount(infantCount + 1);
-                              }
-                            }}
-                            disabled={infantCount >= (accommodation?.policy.infant_occupancy || 0) || (accommodation?.policy.infant_occupancy || 0) === 0}
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-                      
-                      <div className={styles.guestPickerItem}>
-                        <div className={styles.guestPickerLabel}>
-                          <div className={styles.guestPickerTitle}>반려동물</div>
-                          <div className={styles.guestPickerSubtitle}>
-                            {(accommodation?.policy.pet_occupancy || 0) === 0 ? (
-                              <span className={styles.guestPickerLink}>보조동물을 동반하시나요?</span>
-                            ) : (
-                              "반려동물"
-                            )}
-                          </div>
-                        </div>
-                        <div className={styles.guestPickerControls}>
-                          <button
-                            className={`${styles.guestPickerButton} ${petCount <= 0 || (accommodation?.policy.pet_occupancy || 0) === 0 ? styles.guestPickerButtonDisabled : ""}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (petCount > 0) setPetCount(petCount - 1);
-                            }}
-                            disabled={petCount <= 0 || (accommodation?.policy.pet_occupancy || 0) === 0}
-                          >
-                            −
-                          </button>
-                          <span className={styles.guestPickerCount}>{petCount}</span>
-                          <button
-                            className={`${styles.guestPickerButton} ${petCount >= (accommodation?.policy.pet_occupancy || 0) || (accommodation?.policy.pet_occupancy || 0) === 0 ? styles.guestPickerButtonDisabled : ""}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (petCount < (accommodation?.policy.pet_occupancy || 0)) {
-                                setPetCount(petCount + 1);
-                              }
-                            }}
-                            disabled={petCount >= (accommodation?.policy.pet_occupancy || 0) || (accommodation?.policy.pet_occupancy || 0) === 0}
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-                      
-                      <div className={styles.guestPickerNote}>
-                        이 숙소의 최대 숙박 인원은 {accommodation?.policy.max_occupancy || 0}명(유아 제외)입니다.{" "}
-                        {(accommodation?.policy.pet_occupancy || 0) === 0 && "반려동물 동반은 허용되지 않습니다."}
-                      </div>
-                      
-                      <button
-                        className={styles.guestPickerClose}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsGuestPickerOpen(false);
-                        }}
-                      >
-                        닫기
-                      </button>
-                    </div>
-                  )}
-              </div>
-
-              {isAuthenticated && (
-                <div className={styles.couponSection}>
-                  <div className={styles.couponHeader}>
-                    <div className={styles.couponTitle}>쿠폰</div>
-                    {selectedCoupon && couponDiscount > 0 && (
-                      <button
-                        type="button"
-                        className={styles.couponClearButton}
-                        onClick={() => setSelectedCouponId(null)}
-                      >
-                        해제
-                      </button>
-                    )}
-                  </div>
-                  {isLoadingCoupons ? (
-                    <div className={styles.couponEmpty}>쿠폰을 불러오는 중입니다.</div>
-                  ) : coupons.length === 0 ? (
-                    <div className={styles.couponEmpty}>발급 가능한 쿠폰이 없습니다.</div>
-                  ) : (
-                    <div className={styles.couponList}>
-                      {coupons.map((coupon) => {
-                        const discount = calculateCouponDiscount(coupon, totalPrice);
-                        const isApplicable = discount > 0;
-                        const isSelected = selectedCouponId === coupon.id && isApplicable;
-                        const remaining =
-                          coupon.total_quantity == null
-                            ? null
-                            : Math.max(coupon.total_quantity - coupon.issued_quantity, 0);
-
-                        return (
-                          <div
-                            key={coupon.id}
-                            className={`${styles.couponItem} ${isSelected ? styles.couponItemSelected : ""}`}
-                          >
-                            <div className={styles.couponInfo}>
-                              <div className={styles.couponName}>{coupon.name}</div>
-                              <div className={styles.couponMeta}>
-                                {formatCouponDiscount(coupon)}
-                                {coupon.min_payment_price != null &&
-                                  ` · ${coupon.min_payment_price.toLocaleString()}원 이상`}
-                                {remaining != null && ` · 남은 수량 ${remaining.toLocaleString()}장`}
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              className={styles.couponApplyButton}
-                              onClick={() => handleIssueCoupon(coupon)}
-                              disabled={!isApplicable || issuingCouponId === coupon.id}
-                            >
-                              {isSelected
-                                ? "적용 중"
-                                : issuingCouponId === coupon.id
-                                ? "발급 중"
-                                : isApplicable
-                                ? "발급/적용"
-                                : "조건 미달"}
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {couponDiscount > 0 && (
-                <div className={styles.priceBreakdown}>
-                  <div className={styles.priceBreakdownRow}>
-                    <span>{nights}박 x ₩{accommodation.base_price.toLocaleString()}</span>
-                    <span>₩{totalPrice.toLocaleString()}</span>
-                  </div>
-                  <div className={styles.priceBreakdownRow}>
-                    <span>{selectedCoupon?.name}</span>
-                    <span>-₩{couponDiscount.toLocaleString()}</span>
-                  </div>
-                </div>
-              )}
-              
-              <button
-                className={styles.reserveButton}
-                onClick={handleReserve}
-              >
-                예약하기
-              </button>
-              
-              <div className={styles.bookingNote}>
-                예약 확정 전에는 요금이 청구되지 않습니다.
-              </div>
-            </div>
+            <AccommodationBookingCard
+              accommodation={accommodation}
+              isAuthenticated={isAuthenticated}
+              payablePrice={payablePrice}
+              nights={nights}
+              totalPrice={totalPrice}
+              checkIn={checkIn}
+              checkOut={checkOut}
+              formatDate={formatDate}
+              handleDateSelect={handleDateSelect}
+              dateSectionRef={dateSectionRef}
+              datePickerRef={datePickerRef}
+              guestPickerRef={guestPickerRef}
+              isDatePickerOpen={isDatePickerOpen}
+              setIsDatePickerOpen={setIsDatePickerOpen}
+              isGuestPickerOpen={isGuestPickerOpen}
+              setIsGuestPickerOpen={setIsGuestPickerOpen}
+              adultCount={adultCount}
+              setAdultCount={setAdultCount}
+              childCount={childCount}
+              setChildCount={setChildCount}
+              infantCount={infantCount}
+              setInfantCount={setInfantCount}
+              petCount={petCount}
+              setPetCount={setPetCount}
+              coupons={coupons}
+              isLoadingCoupons={isLoadingCoupons}
+              selectedCoupon={selectedCoupon}
+              selectedCouponId={selectedCouponId}
+              setSelectedCouponId={setSelectedCouponId}
+              issuingCouponId={issuingCouponId}
+              couponDiscount={couponDiscount}
+              handleIssueCoupon={handleIssueCoupon}
+              onReserve={handleReserve}
+            />
           </div>
         </div>
         </div>
