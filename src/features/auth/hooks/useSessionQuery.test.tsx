@@ -88,7 +88,10 @@ describe("useSessionQuery", () => {
     const sessionQuery = queryClient
       .getQueryCache()
       .find({ queryKey: authQueryKeys.me() });
+    const sessionQueryOptions = sessionQuery?.options as
+      | { refetchOnWindowFocus?: unknown }
+      | undefined;
 
-    expect(sessionQuery?.options.refetchOnWindowFocus).toBe(true);
+    expect(sessionQueryOptions?.refetchOnWindowFocus).toBe(true);
   });
 });
