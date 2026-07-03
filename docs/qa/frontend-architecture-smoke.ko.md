@@ -10,6 +10,13 @@ Airbnb 디자인 리팩터 전에 프론트엔드 아키텍처 변경이 주요 
 - Backend: http://localhost:8080
 - QA 계정: 스레드에서 사용자가 제공한 QA 계정을 사용한다. 실제 이메일, 비밀번호, 닉네임, member_id 같은 자격 증명 값은 문서나 커밋에 남기지 않는다.
 
+## Architecture Checkpoints
+
+- query route contract: Search/Profile/Wishlist/payment query deep links must preserve existing URL behavior.
+- server-state auth boundary: login, logout, focus refresh, and 401 handling must leave Header/UserMenu and protected routes consistent.
+- components ownership boundary: shared UI primitives must remain domain-free, and workflow containers must live under features or pages.
+- design system entry contracts: header height, mobile search popover position, page width, card media ratio, modal z-index, and bottom-sheet z-index must use tokens.
+
 ## Desktop 1280px 체크리스트
 
 - [ ] Header logo 가 키보드 포커스를 받고 Enter 로 Home 이동이 가능하다.

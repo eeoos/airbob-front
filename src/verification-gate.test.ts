@@ -86,6 +86,12 @@ describe("frontend verification gate", () => {
       "Host listing",
       "auth modal",
     ];
+    const architectureTerms = [
+      "query route contract",
+      "server-state auth boundary",
+      "components ownership boundary",
+      "design system entry contracts",
+    ];
 
     requiredTerms.forEach((term) => {
       expect(qaDoc).toContain(term);
@@ -95,6 +101,9 @@ describe("frontend verification gate", () => {
     });
     mobileTerms.forEach((term) => {
       expect(mobileSection).toContain(term);
+    });
+    architectureTerms.forEach((term) => {
+      expect(qaDoc).toContain(term);
     });
 
     expect(qaDoc).not.toMatch(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
