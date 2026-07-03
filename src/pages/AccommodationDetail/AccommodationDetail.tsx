@@ -9,6 +9,7 @@ import { ReviewModal } from "../../components/ReviewModal/ReviewModal";
 import { useAccommodationBooking } from "../../features/accommodations/hooks/useAccommodationBooking";
 import { useAccommodationCoupons } from "../../features/accommodations/hooks/useAccommodationCoupons";
 import { useAccommodationDetail } from "../../features/accommodations/hooks/useAccommodationDetail";
+import { useAccommodationImageGallery } from "../../features/accommodations/hooks/useAccommodationImageGallery";
 import { useAccommodationReviews } from "../../features/accommodations/hooks/useAccommodationReviews";
 import { AccommodationBookingCard } from "../../features/accommodations/components/AccommodationBookingCard";
 import { AccommodationDescriptionModal } from "../../features/accommodations/components/AccommodationDescriptionModal";
@@ -24,11 +25,6 @@ const AccommodationDetail: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { error, handleError, clearError } = useApiError();
   const { isAuthenticated } = useAuth();
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [mobileSlideIndex, setMobileSlideIndex] = useState(0);
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const [isImageGalleryOpen, setIsImageGalleryOpen] = useState(false);
   const [isWishlistModalOpen, setIsWishlistModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isDescriptionModalOpen, setIsDescriptionModalOpen] = useState(false);
@@ -102,6 +98,10 @@ const AccommodationDetail: React.FC = () => {
     clearError,
   });
 
+  const imageGallery = useAccommodationImageGallery({
+    imageCount: accommodation?.images.length ?? 0,
+  });
+
   const {
     adultCount,
     setAdultCount,
@@ -158,34 +158,6 @@ const AccommodationDetail: React.FC = () => {
     };
   }, [isGuestPickerOpen, isDatePickerOpen, setIsGuestPickerOpen, setIsDatePickerOpen]);
   
-  // 모바일 이미지 슬라이더 터치 핸들러
-  const minSwipeDistance = 50;
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd || !accommodation) return;
-    
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-    const maxIndex = accommodation.images.length - 1;
-    
-    if (isLeftSwipe && mobileSlideIndex < maxIndex) {
-      setMobileSlideIndex(mobileSlideIndex + 1);
-    }
-    if (isRightSwipe && mobileSlideIndex > 0) {
-      setMobileSlideIndex(mobileSlideIndex - 1);
-    }
-  };
-
   if (isLoading) {
     return (
       <>
@@ -207,12 +179,9 @@ const AccommodationDetail: React.FC = () => {
       <div className={styles.container}>
         <AccommodationHero
           accommodation={accommodation}
-          mobileSlideIndex={mobileSlideIndex}
-          onMobileSlideIndexChange={setMobileSlideIndex}
-          onOpenGallery={(index) => {
-            setCurrentImageIndex(index);
-            setIsImageGalleryOpen(true);
-          }}
+          mobileSlideIndex={imageGallery.mobileSlideIndex}
+          onMobileSlideIndexChange={imageGallery.setMobileSlideIndex}
+          onOpenGallery={imageGallery.openGallery}
           onSave={() => {
             if (!isAuthenticated) {
               setPendingAction(() => () => setIsWishlistModalOpen(true));
@@ -222,9 +191,9 @@ const AccommodationDetail: React.FC = () => {
             }
           }}
           onShare={() => {}}
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
+          onTouchStart={imageGallery.onTouchStart}
+          onTouchMove={imageGallery.onTouchMove}
+          onTouchEnd={imageGallery.onTouchEnd}
         />
 
         <div className={styles.contentWrapper}>
@@ -326,12 +295,12 @@ const AccommodationDetail: React.FC = () => {
       />
 
       <AccommodationImageGalleryModal
-        isOpen={isImageGalleryOpen}
+        isOpen={imageGallery.isImageGalleryOpen}
         accommodationName={accommodation.name}
         images={accommodation.images}
-        currentImageIndex={currentImageIndex}
-        onCurrentImageIndexChange={setCurrentImageIndex}
-        onClose={() => setIsImageGalleryOpen(false)}
+        currentImageIndex={imageGallery.currentImageIndex}
+        onCurrentImageIndexChange={imageGallery.setCurrentImageIndex}
+        onClose={imageGallery.closeGallery}
       />
     </>
   );
