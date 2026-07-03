@@ -21,7 +21,7 @@ export function useWishlistSelection({
   const [hasNext, setHasNext] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const { handleError, clearError } = useApiError();
+  const { error, handleError, clearError } = useApiError();
 
   const fetchWishlists = useCallback(
     async (cursor?: string | null) => {
@@ -123,6 +123,8 @@ export function useWishlistSelection({
 
   return {
     closeCreateModal,
+    clearError,
+    error,
     handleCreateSuccess,
     hasNext,
     isLoading,

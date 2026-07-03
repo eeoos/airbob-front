@@ -76,6 +76,7 @@ export const useSearchResults = ({
   const prevSearchParamsRef = useRef("");
   const prevViewportRef = useRef<string | null>(null);
   const pendingPageResetRef = useRef<string | null>(null);
+  const requestIdRef = useRef(0);
   const searchParamsString = searchParams.toString();
 
   const applySearchResponse = useCallback((
@@ -93,11 +94,26 @@ export const useSearchResults = ({
     prevSearchParamsRef.current = paramsSignature;
   }, []);
 
+  const updateAccommodationWishlistStatus = useCallback(
+    (accommodationId: number, isInWishlist: boolean) => {
+      setAccommodations((prev) =>
+        prev.map((accommodation) =>
+          accommodation.id === accommodationId
+            ? { ...accommodation, is_in_wishlist: isInWishlist }
+            : accommodation
+        )
+      );
+    },
+    []
+  );
+
   const fetchAccommodations = useCallback(async (
     params: AccommodationSearchRequest,
     isMapDrag = false,
     paramsSignature = searchParamsString
   ) => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
     setIsMapDragMode(isMapDrag);
     setIsLoading(true);
     clearError();
@@ -110,11 +126,15 @@ export const useSearchResults = ({
 
     try {
       const response = await accommodationApi.search(params);
+      if (requestIdRef.current !== requestId) return;
       applySearchResponse(response, paramsSignature);
     } catch (error) {
+      if (requestIdRef.current !== requestId) return;
       handleError(error);
     } finally {
-      setIsLoading(false);
+      if (requestIdRef.current === requestId) {
+        setIsLoading(false);
+      }
     }
   }, [
     applySearchResponse,
@@ -242,18 +262,24 @@ export const useSearchResults = ({
     prevPageRef.current = page;
     prevSearchParamsRef.current = newParams.toString();
     setSearchParams(newParams, { replace: false });
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
     setIsLoading(true);
     clearError();
 
     try {
       const params = buildSearchRequestFromParams(searchParams, { page });
       const response = await accommodationApi.search(params);
+      if (requestIdRef.current !== requestId) return;
       applySearchResponse(response, newParams.toString());
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
+      if (requestIdRef.current !== requestId) return;
       handleError(error);
     } finally {
-      setIsLoading(false);
+      if (requestIdRef.current === requestId) {
+        setIsLoading(false);
+      }
     }
   }, [
     applySearchResponse,
@@ -269,7 +295,7 @@ export const useSearchResults = ({
 
   return {
     accommodations,
-    setAccommodations,
+    updateAccommodationWishlistStatus,
     isLoading,
     currentPage,
     totalPages,

@@ -896,7 +896,7 @@ export const Map: React.FC<MapProps> = ({
 
       // 위시리스트 토글 함수 등록
       if (onWishlistToggle) {
-        (window as any).toggleWishlist = (accommodationId: number, isInWishlist: boolean) => {
+        window.toggleWishlist = (accommodationId: number, isInWishlist: boolean) => {
           onWishlistToggle(accommodationId, isInWishlist);
           // InfoWindow 닫기
           if (infoWindowRef.current) {
@@ -906,7 +906,7 @@ export const Map: React.FC<MapProps> = ({
       }
 
       // InfoWindow 닫기 함수 등록
-      (window as any).closeInfoWindow = () => {
+      window.closeInfoWindow = () => {
         if (infoWindowRef.current) {
           infoWindowRef.current.close();
           // InfoWindow가 닫히면 선택 상태 해제

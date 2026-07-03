@@ -87,6 +87,32 @@ const hostAccommodation: HostAccommodationDetail = {
   },
 };
 
+const completedHostAccommodation: HostAccommodationDetail = {
+  ...hostAccommodation,
+  address: {
+    country: "United States",
+    state: "New York",
+    city: "Albany",
+    district: "Albany",
+    street: "State Street",
+    detail: "ETL listing 5651579",
+    postal_code: "",
+  },
+};
+
+const missingDetailCompletedHostAccommodation: HostAccommodationDetail = {
+  ...completedHostAccommodation,
+  address: {
+    country: "United States",
+    state: "New York",
+    city: "Albany",
+    district: "Albany",
+    street: "State Street",
+    detail: "",
+    postal_code: "",
+  },
+};
+
 beforeEach(() => {
   mockNavigate.mockReset();
   mockClearError.mockReset();
@@ -99,6 +125,10 @@ beforeEach(() => {
   global.URL.createObjectURL = jest.fn(() => "blob:pending-room");
   global.URL.revokeObjectURL = jest.fn();
 });
+
+const clickPublishStep = () => {
+  fireEvent.click(screen.getAllByText("숙소 등록")[1]);
+};
 
 describe("AccommodationEdit", () => {
   it("keeps image file inputs uncontrolled when moving from address to photo step", async () => {
@@ -170,5 +200,131 @@ describe("AccommodationEdit", () => {
       ).toBe("https://example.com/uploaded-room.jpg")
     );
     expect(global.URL.revokeObjectURL).toHaveBeenCalledWith("blob:pending-room");
+  });
+
+  it("uploads pending photo files before publishing from the final step", async () => {
+    const callOrder: string[] = [];
+    jest
+      .mocked(accommodationApi.getHostAccommodationDetail)
+      .mockResolvedValue(completedHostAccommodation);
+    jest.mocked(accommodationApi.uploadImages).mockImplementation(async () => {
+      callOrder.push("upload");
+      return {
+        uploaded_images: [
+          {
+            id: 99,
+            image_url: "https://example.com/uploaded-room.jpg",
+          },
+        ],
+      };
+    });
+    jest.mocked(accommodationApi.publish).mockImplementation(async () => {
+      callOrder.push("publish");
+    });
+
+    render(<AccommodationEdit />);
+
+    await screen.findByDisplayValue("ETL listing 5651579");
+    fireEvent.click(screen.getByText("숙소 사진"));
+
+    const fileInput = document.getElementById("imageInput") as HTMLInputElement;
+    const pendingFile = new File(["room"], "room.png", { type: "image/png" });
+    fireEvent.change(fileInput, {
+      target: {
+        files: [pendingFile],
+      },
+    });
+
+    clickPublishStep();
+    await screen.findByRole("heading", { name: "숙소를 등록하세요" });
+    fireEvent.click(screen.getByRole("button", { name: "저장하기" }));
+
+    await waitFor(() => expect(accommodationApi.publish).toHaveBeenCalled());
+
+    expect(callOrder).toEqual(["upload", "publish"]);
+    expect(accommodationApi.uploadImages).toHaveBeenCalledWith(
+      3,
+      [pendingFile],
+      expect.any(Function)
+    );
+  });
+
+  it("does not publish when pending photo upload fails on the final step", async () => {
+    const uploadError = new Error("upload failed");
+    jest
+      .mocked(accommodationApi.getHostAccommodationDetail)
+      .mockResolvedValue(completedHostAccommodation);
+    jest.mocked(accommodationApi.uploadImages).mockRejectedValue(uploadError);
+
+    render(<AccommodationEdit />);
+
+    await screen.findByDisplayValue("ETL listing 5651579");
+    fireEvent.click(screen.getByText("숙소 사진"));
+
+    const fileInput = document.getElementById("imageInput") as HTMLInputElement;
+    const pendingFile = new File(["room"], "room.png", { type: "image/png" });
+    fireEvent.change(fileInput, {
+      target: {
+        files: [pendingFile],
+      },
+    });
+
+    clickPublishStep();
+    await screen.findByRole("heading", { name: "숙소를 등록하세요" });
+    fireEvent.click(screen.getByRole("button", { name: "저장하기" }));
+
+    await waitFor(() => expect(mockHandleError).toHaveBeenCalledWith(uploadError));
+
+    expect(accommodationApi.publish).not.toHaveBeenCalled();
+  });
+
+  it("asks for detail address confirmation before uploading pending photos on final publish", async () => {
+    const callOrder: string[] = [];
+    jest
+      .mocked(accommodationApi.getHostAccommodationDetail)
+      .mockResolvedValue(missingDetailCompletedHostAccommodation);
+    jest.mocked(accommodationApi.uploadImages).mockImplementation(async () => {
+      callOrder.push("upload");
+      return {
+        uploaded_images: [
+          {
+            id: 99,
+            image_url: "https://example.com/uploaded-room.jpg",
+          },
+        ],
+      };
+    });
+    jest.mocked(accommodationApi.publish).mockImplementation(async () => {
+      callOrder.push("publish");
+    });
+
+    render(<AccommodationEdit />);
+
+    await screen.findByDisplayValue("State Street");
+    fireEvent.click(screen.getByText("숙소 사진"));
+
+    const fileInput = document.getElementById("imageInput") as HTMLInputElement;
+    const pendingFile = new File(["room"], "room.png", { type: "image/png" });
+    fireEvent.change(fileInput, {
+      target: {
+        files: [pendingFile],
+      },
+    });
+
+    clickPublishStep();
+    await screen.findByRole("heading", { name: "숙소를 등록하세요" });
+    fireEvent.click(screen.getByRole("button", { name: "저장하기" }));
+
+    expect(
+      await screen.findByRole("dialog", { name: "상세 주소 확인" })
+    ).toBeInTheDocument();
+    expect(accommodationApi.uploadImages).not.toHaveBeenCalled();
+    expect(accommodationApi.publish).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "진행하기" }));
+
+    await waitFor(() => expect(accommodationApi.publish).toHaveBeenCalled());
+
+    expect(callOrder).toEqual(["upload", "publish"]);
   });
 });

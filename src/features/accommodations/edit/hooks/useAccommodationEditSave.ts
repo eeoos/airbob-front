@@ -158,6 +158,12 @@ export const useAccommodationEditSave = ({
     clearError();
 
     try {
+      const updateData = getUpdateData();
+
+      if (Object.keys(updateData).length > 0) {
+        await updateAccommodation(Number(accommodationId), updateData);
+      }
+
       await publishAccommodation(Number(accommodationId));
       navigateToHostProfile();
     } catch (err) {
@@ -168,10 +174,12 @@ export const useAccommodationEditSave = ({
   }, [
     accommodationId,
     clearError,
+    getUpdateData,
     handleError,
     navigateToHostProfile,
     publishAccommodation,
     setIsSaving,
+    updateAccommodation,
   ]);
 
   const handlePublish = useCallback(

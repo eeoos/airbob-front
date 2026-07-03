@@ -32,7 +32,12 @@ export const BaseAccommodationCard: React.FC<BaseAccommodationCardProps> = ({
   };
 
   return (
-    <div className={styles.card} onClick={handleClick}>
+    <button
+      type="button"
+      className={styles.card}
+      aria-label={`숙소 상세 보기: ${name}`}
+      onClick={handleClick}
+    >
       <div className={styles.imageContainer}>
         {thumbnailUrl ? (
           <>
@@ -60,10 +65,9 @@ export const BaseAccommodationCard: React.FC<BaseAccommodationCardProps> = ({
         <div className={styles.name}>{name}</div>
         {children}
       </div>
-    </div>
+    </button>
   );
 };
-
 
 
 

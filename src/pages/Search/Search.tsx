@@ -43,7 +43,7 @@ const Search: React.FC = () => {
 
   const {
     accommodations,
-    setAccommodations,
+    updateAccommodationWishlistStatus,
     isLoading,
     currentPage,
     totalPages,
@@ -81,7 +81,7 @@ const Search: React.FC = () => {
     wishlistModalOpen,
   } = useSearchWishlistModal({
     isAuthenticated,
-    setAccommodations,
+    onWishlistStatusChange: updateAccommodationWishlistStatus,
   });
 
   const handleAccommodationCardClick = (accommodationId: number) => {

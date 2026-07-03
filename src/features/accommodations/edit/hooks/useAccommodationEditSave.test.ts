@@ -159,6 +159,44 @@ describe("useAccommodationEditSave", () => {
     expect(navigateToHostProfile).toHaveBeenCalled();
   });
 
+  it("saves changed form data before publishing", async () => {
+    const initialFormData = createFilledFormData();
+    const formData = {
+      ...initialFormData,
+      name: "게시 직전 변경",
+    };
+
+    const { result } = renderHook(() =>
+      useAccommodationEditSave({
+        accommodationId: "3",
+        currentStep: 5,
+        isNewDraft: false,
+        formData,
+        initialFormData,
+        imageItems,
+        initialImageItems: imageItems,
+        clearError,
+        handleError,
+        setIsSaving,
+        navigateToHostProfile,
+        updateAccommodation,
+        publishAccommodation,
+      })
+    );
+
+    await act(async () => {
+      await result.current.handlePublish({ preventDefault: jest.fn() });
+    });
+
+    expect(updateAccommodation).toHaveBeenCalledWith(3, {
+      name: "게시 직전 변경",
+    });
+    expect(publishAccommodation).toHaveBeenCalledWith(3);
+    expect(updateAccommodation.mock.invocationCallOrder[0]).toBeLessThan(
+      publishAccommodation.mock.invocationCallOrder[0]
+    );
+  });
+
   it("saves the current step data through the update boundary", async () => {
     const initialFormData = createFilledFormData();
     const formData = {

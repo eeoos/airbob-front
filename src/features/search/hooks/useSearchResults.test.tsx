@@ -18,7 +18,10 @@ const mockClearError = jest.fn();
 const mockSetIsMapDragMode = jest.fn();
 const mockRequestMapBoundsUpdate = jest.fn();
 
-const createAccommodation = (id: number): AccommodationSearchInfo =>
+const createAccommodation = (
+  id: number,
+  isInWishlist = false
+): AccommodationSearchInfo =>
   ({
     id,
     name: `숙소 ${id}`,
@@ -40,7 +43,7 @@ const createAccommodation = (id: number): AccommodationSearchInfo =>
       total_count: 0,
       average_rating: 0,
     },
-    is_in_wishlist: false,
+    is_in_wishlist: isInWishlist,
   });
 
 const createSearchResponse = (
@@ -115,6 +118,34 @@ describe("useSearchResults", () => {
     expect(result.current.totalPages).toBe(15);
     expect(result.current.totalElements).toBe(42);
     expect(mockSetIsMapDragMode).toHaveBeenLastCalledWith(false);
+  });
+
+  it("updates wishlist status through an explicit hook boundary", async () => {
+    const response = createSearchResponse(0, 1, 2, [
+      createAccommodation(1),
+      createAccommodation(2),
+    ]);
+    jest.mocked(accommodationApi.search).mockResolvedValue(response);
+
+    const { result } = renderUseSearchResults(
+      new URLSearchParams("destination=Seoul")
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(typeof (result.current as any).updateAccommodationWishlistStatus).toBe(
+      "function"
+    );
+    expect((result.current as any).setAccommodations).toBeUndefined();
+
+    act(() => {
+      (result.current as any).updateAccommodationWishlistStatus(2, true);
+    });
+
+    expect(result.current.accommodations).toEqual([
+      createAccommodation(1),
+      createAccommodation(2, true),
+    ]);
   });
 
   it("fetches a clicked page once and suppresses the matching URL effect fetch", async () => {
@@ -256,5 +287,204 @@ describe("useSearchResults", () => {
 
     expect(mockHandleError).toHaveBeenCalledWith(error);
     expect(result.current.accommodations).toEqual([]);
+  });
+
+  it("keeps the latest search response when an older request resolves last", async () => {
+    let resolveFirstSearch!: (response: AccommodationSearchResponse) => void;
+    let resolveSecondSearch!: (response: AccommodationSearchResponse) => void;
+
+    const firstSearch = new Promise<AccommodationSearchResponse>((resolve) => {
+      resolveFirstSearch = resolve;
+    });
+    const secondSearch = new Promise<AccommodationSearchResponse>((resolve) => {
+      resolveSecondSearch = resolve;
+    });
+
+    jest
+      .mocked(accommodationApi.search)
+      .mockReturnValueOnce(firstSearch)
+      .mockReturnValueOnce(secondSearch);
+
+    const { result, rerender } = renderUseSearchResults(
+      new URLSearchParams("destination=Seoul")
+    );
+
+    rerender({ searchParams: new URLSearchParams("destination=Busan") });
+
+    await act(async () => {
+      resolveSecondSearch(
+        createSearchResponse(0, 1, 1, [createAccommodation(200)])
+      );
+    });
+
+    await waitFor(() =>
+      expect(result.current.accommodations[0]?.id).toBe(200)
+    );
+
+    await act(async () => {
+      resolveFirstSearch(
+        createSearchResponse(0, 1, 1, [createAccommodation(100)])
+      );
+    });
+
+    expect(result.current.accommodations[0]?.id).toBe(200);
+  });
+
+  it("ignores an older rejected search request after a newer response succeeds", async () => {
+    let rejectFirstSearch!: (error: Error) => void;
+    let resolveSecondSearch!: (response: AccommodationSearchResponse) => void;
+
+    const firstSearch = new Promise<AccommodationSearchResponse>((_, reject) => {
+      rejectFirstSearch = reject;
+    });
+    const secondSearch = new Promise<AccommodationSearchResponse>((resolve) => {
+      resolveSecondSearch = resolve;
+    });
+
+    jest
+      .mocked(accommodationApi.search)
+      .mockReturnValueOnce(firstSearch)
+      .mockReturnValueOnce(secondSearch);
+
+    const { result, rerender } = renderUseSearchResults(
+      new URLSearchParams("destination=Seoul")
+    );
+
+    rerender({ searchParams: new URLSearchParams("destination=Busan") });
+
+    await act(async () => {
+      resolveSecondSearch(
+        createSearchResponse(0, 1, 1, [createAccommodation(200)])
+      );
+    });
+
+    await waitFor(() =>
+      expect(result.current.accommodations[0]?.id).toBe(200)
+    );
+
+    await act(async () => {
+      rejectFirstSearch(new Error("stale search failed"));
+      await Promise.resolve();
+    });
+
+    expect(mockHandleError).not.toHaveBeenCalled();
+    expect(result.current.accommodations[0]?.id).toBe(200);
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it("keeps a newer search response when an older page request resolves last", async () => {
+    let resolvePageSearch!: (response: AccommodationSearchResponse) => void;
+    let resolveDestinationSearch!: (
+      response: AccommodationSearchResponse
+    ) => void;
+
+    const pageSearch = new Promise<AccommodationSearchResponse>((resolve) => {
+      resolvePageSearch = resolve;
+    });
+    const destinationSearch = new Promise<AccommodationSearchResponse>(
+      (resolve) => {
+        resolveDestinationSearch = resolve;
+      }
+    );
+
+    jest
+      .mocked(accommodationApi.search)
+      .mockResolvedValueOnce(createSearchResponse(0, 5, 50))
+      .mockReturnValueOnce(pageSearch)
+      .mockReturnValueOnce(destinationSearch);
+
+    const { result, rerender } = renderUseSearchResults(
+      new URLSearchParams("destination=Seoul")
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    let pageChangePromise!: Promise<void>;
+    await act(async () => {
+      pageChangePromise = result.current.handlePageChange(1);
+      await Promise.resolve();
+    });
+
+    rerender({ searchParams: new URLSearchParams("destination=Busan") });
+
+    await waitFor(() => expect(accommodationApi.search).toHaveBeenCalledTimes(3));
+
+    await act(async () => {
+      resolveDestinationSearch(
+        createSearchResponse(0, 1, 1, [createAccommodation(200)])
+      );
+    });
+
+    await waitFor(() =>
+      expect(result.current.accommodations[0]?.id).toBe(200)
+    );
+
+    await act(async () => {
+      resolvePageSearch(
+        createSearchResponse(1, 5, 50, [createAccommodation(100)])
+      );
+      await pageChangePromise;
+    });
+
+    expect(result.current.accommodations[0]?.id).toBe(200);
+    expect(window.scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("ignores an older rejected page request after a newer search succeeds", async () => {
+    let rejectPageSearch!: (error: Error) => void;
+    let resolveDestinationSearch!: (
+      response: AccommodationSearchResponse
+    ) => void;
+
+    const pageSearch = new Promise<AccommodationSearchResponse>((_, reject) => {
+      rejectPageSearch = reject;
+    });
+    const destinationSearch = new Promise<AccommodationSearchResponse>(
+      (resolve) => {
+        resolveDestinationSearch = resolve;
+      }
+    );
+
+    jest
+      .mocked(accommodationApi.search)
+      .mockResolvedValueOnce(createSearchResponse(0, 5, 50))
+      .mockReturnValueOnce(pageSearch)
+      .mockReturnValueOnce(destinationSearch);
+
+    const { result, rerender } = renderUseSearchResults(
+      new URLSearchParams("destination=Seoul")
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    mockHandleError.mockClear();
+
+    let pageChangePromise!: Promise<void>;
+    await act(async () => {
+      pageChangePromise = result.current.handlePageChange(1);
+      await Promise.resolve();
+    });
+
+    rerender({ searchParams: new URLSearchParams("destination=Busan") });
+
+    await waitFor(() => expect(accommodationApi.search).toHaveBeenCalledTimes(3));
+
+    await act(async () => {
+      resolveDestinationSearch(
+        createSearchResponse(0, 1, 1, [createAccommodation(200)])
+      );
+    });
+
+    await waitFor(() =>
+      expect(result.current.accommodations[0]?.id).toBe(200)
+    );
+
+    await act(async () => {
+      rejectPageSearch(new Error("stale page failed"));
+      await pageChangePromise;
+    });
+
+    expect(mockHandleError).not.toHaveBeenCalled();
+    expect(result.current.accommodations[0]?.id).toBe(200);
+    expect(window.scrollTo).not.toHaveBeenCalled();
   });
 });

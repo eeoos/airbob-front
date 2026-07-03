@@ -17,7 +17,7 @@ export function useCreateWishlist({
 }: UseCreateWishlistOptions) {
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { handleError, clearError } = useApiError();
+  const { error, handleError, clearError } = useApiError();
 
   useEffect(() => {
     if (isOpen) {
@@ -58,6 +58,8 @@ export function useCreateWishlist({
   );
 
   return {
+    clearError,
+    error,
     isLoading,
     name,
     submit,

@@ -1,30 +1,32 @@
-import { readFileSync } from "fs";
+import { readdirSync, readFileSync } from "fs";
 import { join } from "path";
 import * as ts from "typescript";
 
-const scopedNavigationFiles = [
-  "src/components/Header/Header.tsx",
-  "src/components/Header/UserMenu.tsx",
-  "src/components/AccommodationCard/BaseAccommodationCard.tsx",
-  "src/components/AccommodationCard/AccommodationCard.Search.tsx",
-  "src/components/AccommodationActionModal/AccommodationActionModal.tsx",
-  "src/components/ReservationModal/ReservationModal.tsx",
-  "src/components/Map/Map.tsx",
-  "src/features/accommodations/hooks/useAccommodationBooking.ts",
-  "src/features/search/hooks/useSearchBarState.ts",
-  "src/pages/Auth/Login/Login.tsx",
-  "src/pages/Auth/Signup/Signup.tsx",
-  "src/pages/AccommodationEdit/AccommodationEdit.tsx",
-  "src/pages/Profile/GuestTrips/GuestTrips.tsx",
-  "src/pages/Profile/HostReservationDetail/HostReservationDetail.tsx",
-  "src/pages/Profile/HostReservations/HostReservations.tsx",
-  "src/pages/Reservations/ReservationConfirm.tsx",
-  "src/pages/Reservations/ReservationDetail.tsx",
-  "src/pages/Reservations/ReviewCreate.tsx",
-  "src/pages/Reservations/PaymentFail.tsx",
-  "src/pages/Reservations/PaymentSuccess.tsx",
-  "src/pages/Search/Search.tsx",
-];
+const productionSourceExtensions = [".ts", ".tsx"];
+
+const collectProductionSourceFiles = (relativeDirectory: string): string[] =>
+  readdirSync(join(process.cwd(), relativeDirectory), { withFileTypes: true })
+    .flatMap((entry) => {
+      const relativePath = `${relativeDirectory}/${entry.name}`;
+
+      if (entry.isDirectory()) {
+        return collectProductionSourceFiles(relativePath);
+      }
+
+      const isProductionSource =
+        productionSourceExtensions.some((extension) =>
+          entry.name.endsWith(extension)
+        ) &&
+        !entry.name.includes(".test.") &&
+        !entry.name.endsWith(".d.ts");
+
+      return isProductionSource ? [relativePath] : [];
+    });
+
+const sourceText = (relativePath: string) =>
+  readFileSync(join(process.cwd(), relativePath), "utf8");
+
+const scopedNavigationFiles = collectProductionSourceFiles("src");
 
 const paymentNavigationFiles = [
   "src/pages/Reservations/PaymentFail.tsx",
@@ -32,11 +34,11 @@ const paymentNavigationFiles = [
 ];
 
 const sourceFile = (relativePath: string) => {
-  const sourceText = readFileSync(join(process.cwd(), relativePath), "utf8");
+  const source = sourceText(relativePath);
 
   return ts.createSourceFile(
     relativePath,
-    sourceText,
+    source,
     ts.ScriptTarget.Latest,
     true,
     ts.ScriptKind.TSX
@@ -146,6 +148,61 @@ const collectWindowOpenCallViolations = (
   isViolation: (callExpression: ts.CallExpression) => boolean
 ): string[] => collectCallViolations(relativePath, isWindowOpenCall, isViolation);
 
+const isTrackedRouterLinkElement = (
+  node: ts.Node
+): node is ts.JsxOpeningElement | ts.JsxSelfClosingElement => {
+  if (!ts.isJsxOpeningElement(node) && !ts.isJsxSelfClosingElement(node)) {
+    return false;
+  }
+
+  return (
+    ts.isIdentifier(node.tagName) &&
+    (node.tagName.text === "Link" || node.tagName.text === "NavLink")
+  );
+};
+
+const isDirectInternalRouteJsxValue = (
+  initializer: ts.JsxAttributeValue | undefined
+): boolean => {
+  if (!initializer) {
+    return false;
+  }
+
+  if (ts.isStringLiteral(initializer)) {
+    return startsWithInternalRoute(initializer.text);
+  }
+
+  return (
+    ts.isJsxExpression(initializer) &&
+    initializer.expression !== undefined &&
+    isDirectInternalRouteString(initializer.expression)
+  );
+};
+
+const collectRouterLinkViolations = (relativePath: string): string[] => {
+  const source = sourceFile(relativePath);
+  const violations: string[] = [];
+
+  const visit = (node: ts.Node) => {
+    if (isTrackedRouterLinkElement(node)) {
+      const toAttribute = node.attributes.properties.find(
+        (property): property is ts.JsxAttribute =>
+          ts.isJsxAttribute(property) && property.name.text === "to"
+      );
+
+      if (isDirectInternalRouteJsxValue(toAttribute?.initializer)) {
+        violations.push(formatNodeLocation(source, node));
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(source);
+
+  return violations;
+};
+
 describe("navigation route builder contracts", () => {
   it("keeps scoped pages from navigating with direct route strings", () => {
     const directStringNavigations = scopedNavigationFiles.flatMap((relativePath) =>
@@ -175,6 +232,13 @@ describe("navigation route builder contracts", () => {
     );
 
     expect(directStringWindowOpens).toEqual([]);
+  });
+
+  it("keeps router links from using direct internal route strings", () => {
+    const directStringRouterLinks =
+      scopedNavigationFiles.flatMap(collectRouterLinkViolations);
+
+    expect(directStringRouterLinks).toEqual([]);
   });
 
   it("allows external URLs in window.open targets", () => {

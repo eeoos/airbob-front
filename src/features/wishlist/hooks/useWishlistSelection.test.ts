@@ -5,6 +5,7 @@ import { useWishlistSelection } from "./useWishlistSelection";
 
 const mockClearError = jest.fn();
 const mockHandleError = jest.fn();
+let mockError: string | null = null;
 
 jest.mock("../../../api/wishlist", () => ({
   wishlistApi: {
@@ -17,6 +18,7 @@ jest.mock("../../../api/wishlist", () => ({
 jest.mock("../../../hooks/useApiError", () => ({
   useApiError: () => ({
     clearError: mockClearError,
+    error: mockError,
     handleError: mockHandleError,
   }),
 }));
@@ -43,6 +45,7 @@ const createWishlist = (
 
 describe("useWishlistSelection", () => {
   beforeEach(() => {
+    mockError = null;
     mockClearError.mockReset();
     mockHandleError.mockReset();
     jest.mocked(wishlistApi.addAccommodation).mockReset();
@@ -206,5 +209,19 @@ describe("useWishlistSelection", () => {
     });
     expect(onSuccess).toHaveBeenCalled();
     expect(result.current.wishlists[0].is_contained).toBe(true);
+  });
+
+  it("exposes the shared error state for modal rendering", () => {
+    mockError = "위시리스트 실패";
+
+    const { result } = renderHook(() =>
+      useWishlistSelection({
+        isOpen: false,
+        accommodationId: 7,
+      })
+    );
+
+    expect(result.current.error).toBe("위시리스트 실패");
+    expect(result.current.clearError).toBe(mockClearError);
   });
 });

@@ -5,7 +5,7 @@ import {
   buildSearchNavigationParams,
   removeViewportParams,
 } from "../lib/searchParams";
-import { routeTo } from "../../../routes/paths";
+import { ROUTE_PATHS, routeTo } from "../../../routes/paths";
 
 export interface SearchParams {
   destination?: string;
@@ -165,7 +165,7 @@ export const useSearchBarState = ({
   ]);
 
   const exitMapDragMode = useCallback(() => {
-    if (isMapDragMode && location.pathname === "/search") {
+    if (isMapDragMode && location.pathname === ROUTE_PATHS.search) {
       const newParams = removeViewportParams(urlSearchParams);
       setUrlSearchParams(newParams, { replace: true });
     }

@@ -2,7 +2,9 @@ import React, { useEffect, useRef } from "react";
 import { WishlistInfo } from "../../types/wishlist";
 import { useWishlistSelection } from "../../features/wishlist/hooks/useWishlistSelection";
 import { getImageUrl } from "../../utils/image";
+import { Dialog } from "../../shared/ui";
 import { CreateWishlistModal } from "../CreateWishlistModal/CreateWishlistModal";
+import { ErrorToast } from "../ErrorToast";
 import styles from "./WishlistModal.module.css";
 
 interface WishlistModalProps {
@@ -20,6 +22,8 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
 }) => {
   const {
     closeCreateModal,
+    clearError,
+    error,
     handleCreateSuccess,
     hasNext,
     isLoading,
@@ -76,37 +80,23 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
     await toggleWishlist(wishlist, e);
   };
 
-  // 모달이 열릴 때 body 스크롤 방지
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
-    }
-
-    return () => {
-      document.body.style.overflow = "unset";
-    };
-  }, [isOpen]);
-
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   return (
     <>
-      <div className={styles.overlay} onClick={onClose} />
-      <div className={styles.modal}>
-        <button className={styles.closeButton} onClick={onClose}>
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-          </svg>
-        </button>
-
-        <div className={styles.content}>
-          <h2 className={styles.title}>위시리스트에 저장하기</h2>
-
+      <Dialog
+        isOpen={isOpen}
+        title="위시리스트에 저장하기"
+        onClose={onClose}
+        className={styles.dialog}
+        bodyClassName={styles.content}
+      >
           <div className={styles.wishlistGrid} ref={scrollContainerRef}>
             {wishlists.map((wishlist) => (
-              <div
+              <button
+                type="button"
                 key={wishlist.id}
                 className={styles.wishlistItem}
                 onClick={(e) => handleWishlistClick(wishlist, e)}
@@ -160,7 +150,7 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
                     저장된 항목 {wishlist.wishlist_item_count}개
                   </div>
                 </div>
-              </div>
+              </button>
             ))}
             <div ref={loadingRef} className={styles.loadingIndicator}>
               {hasNext && isLoading && "로딩 중..."}
@@ -173,8 +163,12 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
           >
             새로운 위시리스트 만들기
           </button>
-        </div>
-      </div>
+          {error && (
+            <div className={styles.toastContainer}>
+              <ErrorToast message={error} onClose={clearError} />
+            </div>
+          )}
+      </Dialog>
 
       <CreateWishlistModal
         isOpen={showCreateModal}

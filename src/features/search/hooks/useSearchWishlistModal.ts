@@ -1,19 +1,17 @@
 import { useCallback, useState } from "react";
 import { wishlistApi } from "../../../api";
-import { AccommodationSearchInfo } from "../../../types/accommodation";
-
-type SetAccommodations = React.Dispatch<
-  React.SetStateAction<AccommodationSearchInfo[]>
->;
 
 interface UseSearchWishlistModalOptions {
   isAuthenticated: boolean;
-  setAccommodations: SetAccommodations;
+  onWishlistStatusChange: (
+    accommodationId: number,
+    isInWishlist: boolean
+  ) => void;
 }
 
 export function useSearchWishlistModal({
   isAuthenticated,
-  setAccommodations,
+  onWishlistStatusChange,
 }: UseSearchWishlistModalOptions) {
   const [wishlistModalOpen, setWishlistModalOpen] = useState(false);
   const [
@@ -50,12 +48,9 @@ export function useSearchWishlistModal({
           response?.wishlists?.some((wishlist) => wishlist.is_contained) ||
           false;
 
-        setAccommodations((prev) =>
-          prev.map((accommodation) =>
-            accommodation.id === selectedAccommodationForWishlist
-              ? { ...accommodation, is_in_wishlist: isInAnyWishlist }
-              : accommodation
-          )
+        onWishlistStatusChange(
+          selectedAccommodationForWishlist,
+          isInAnyWishlist
         );
       } catch (error) {
         console.error("위시리스트 상태 확인 실패:", error);
@@ -64,7 +59,7 @@ export function useSearchWishlistModal({
 
     setWishlistModalOpen(false);
     setSelectedAccommodationForWishlist(null);
-  }, [selectedAccommodationForWishlist, setAccommodations]);
+  }, [onWishlistStatusChange, selectedAccommodationForWishlist]);
 
   return {
     authModalOpen,

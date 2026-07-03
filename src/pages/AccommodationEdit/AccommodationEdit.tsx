@@ -199,6 +199,38 @@ const AccommodationEdit: React.FC = () => {
     }
   };
 
+  const publishAfterUploadingPendingImages = useCallback(async () => {
+    const uploaded = await uploadPendingImages();
+    if (!uploaded) return;
+
+    await handlePublish();
+  }, [handlePublish, uploadPendingImages]);
+
+  const handlePublishSubmit = useCallback(
+    async (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+
+      if (currentStep !== 5) return;
+
+      const hasDetailAddress =
+        formData.addressInfo.detail && formData.addressInfo.detail.trim() !== "";
+      if (!hasDetailAddress) {
+        requestDetailAddressConfirm(() => {
+          void publishAfterUploadingPendingImages();
+        });
+        return;
+      }
+
+      await publishAfterUploadingPendingImages();
+    },
+    [
+      currentStep,
+      formData.addressInfo.detail,
+      publishAfterUploadingPendingImages,
+      requestDetailAddressConfirm,
+    ]
+  );
+
   const handleBack = () => {
     if (currentStep > 1) {
       setCurrentStep((prev) => (prev - 1) as Step);
@@ -366,7 +398,7 @@ const AccommodationEdit: React.FC = () => {
 
           {/* 오른쪽: 현재 단계 폼 */}
           <div className={styles.mainContent}>
-            <form onSubmit={currentStep === 5 ? handlePublish : undefined} className={styles.form}>
+            <form onSubmit={currentStep === 5 ? handlePublishSubmit : undefined} className={styles.form}>
               {renderStepContent()}
 
               <div className={styles.buttonGroup}>

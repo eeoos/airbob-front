@@ -45,7 +45,8 @@ const requiredTokenDeclarations = [
   "--breakpoint-wide: 1400px;",
 ];
 
-const forbiddenAppOverlayZIndexValues = "100000|99999|10001|10000|1000";
+const forbiddenAppOverlayZIndexValues =
+  "100000|99999|10001|10000|6000|5000|4000|3000|2000|1100|1000";
 
 const legacyAppOverlayZIndexPatterns = [
   {
@@ -109,6 +110,42 @@ const collectProductionContractFiles = (dir: string): string[] => {
 const cssPath = (relativePath: string) => path.join(srcDir, relativePath);
 
 const readCss = (relativePath: string) => fs.readFileSync(cssPath(relativePath), "utf8");
+
+const designTokenOwnedCssFiles = [
+  "components/CreateWishlistModal/CreateWishlistModal.module.css",
+  "components/WishlistModal/WishlistModal.module.css",
+  "components/AccommodationCard/BaseAccommodationCard.module.css",
+  "components/AccommodationCard/AccommodationCard.Search.module.css",
+];
+
+const forbiddenDesignLiteralPatterns = [
+  {
+    name: "core-color-hex",
+    regex: /#(?:000000|222222|717171|f7f7f7|dddddd|b0b0b0|ff385c|ffffff)\b/i,
+  },
+  {
+    name: "core-color-name",
+    regex: /\b(?:background|background-color|color)\s*:\s*(?:white|black)\b/i,
+  },
+  {
+    name: "core-radius",
+    regex: /border-radius\s*:\s*(?:4px|8px|12px|50%)\b/i,
+  },
+  {
+    name: "core-shadow",
+    regex: /box-shadow\s*:\s*0\s+(?:1px\s+2px|4px\s+12px)\s+rgba\(0,\s*0,\s*0,\s*(?:0\.08|0\.15)\)/i,
+  },
+];
+
+const findForbiddenDesignLiteral = (line: string) => {
+  for (const pattern of forbiddenDesignLiteralPatterns) {
+    if (pattern.regex.test(line)) {
+      return pattern.name;
+    }
+  }
+
+  return null;
+};
 
 const selectorBlock = (css: string, selector: string) => {
   const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -184,21 +221,27 @@ describe("pre-design token stylesheet contract", () => {
       pattern: "react-zIndex",
       text: 'zIndex = "10000',
     });
+    expect(findLegacyAppOverlayZIndexMatch("z-index: 5000;")).toMatchObject({
+      pattern: "css-z-index",
+      text: "z-index: 5000",
+    });
     expect(findLegacyAppOverlayZIndexMatch('zIndex: "var(--z-popover)"')).toBeNull();
   });
 
   it("keeps app toast containers on the toast z-index token", () => {
-    [
-      "pages/Search/Search.module.css",
-      "pages/AccommodationDetail/AccommodationDetail.module.css",
-      "pages/Reservations/ReservationDetail.module.css",
-      "pages/Reservations/ReservationConfirm.module.css",
-      "components/AccommodationActionModal/AccommodationActionModal.module.css",
-      "components/AuthModal/AuthModal.module.css",
-      "components/ReservationModal/ReservationModal.module.css",
-    ].forEach((relativePath) => {
-      const block = selectorBlock(readCss(relativePath), ".toastContainer");
+    const toastContainerFiles = collectProductionContractFiles(srcDir).filter(
+      (filePath) =>
+        filePath.endsWith(".css") &&
+        fs.readFileSync(filePath, "utf8").includes(".toastContainer")
+    );
 
+    expect(toastContainerFiles.length).toBeGreaterThan(0);
+
+    toastContainerFiles.forEach((filePath) => {
+      const block = selectorBlock(
+        fs.readFileSync(filePath, "utf8"),
+        ".toastContainer"
+      );
       expectDeclaration(block, "z-index: var(--z-toast);");
     });
   });
@@ -221,5 +264,23 @@ describe("pre-design token stylesheet contract", () => {
     expect(accommodationDetailCss).toMatch(
       /\.datePickerContainer\s*\{[\s\S]*?position:\s*fixed;[\s\S]*?top:\s*130px;[\s\S]*?z-index:\s*var\(--z-dropdown\);/,
     );
+  });
+
+  it("keeps design-owned component CSS on color, radius, and shadow tokens", () => {
+    const offenders = designTokenOwnedCssFiles.flatMap((relativePath) => {
+      const source = readCss(relativePath);
+
+      return source.split(/\r?\n/).flatMap((line, index) => {
+        const patternName = findForbiddenDesignLiteral(line);
+
+        if (!patternName) {
+          return [];
+        }
+
+        return `${relativePath}:${index + 1}: [${patternName}] ${line.trim()}`;
+      });
+    });
+
+    expect(offenders).toEqual([]);
   });
 });

@@ -26,16 +26,12 @@ const PaymentSuccess: React.FC = () => {
 
     if (!result) return;
 
-    if (result.status === "failed") {
-      console.error("결제 확인 중 오류:", result.error);
-    }
-
-    if (result.status === "invalid") {
-      navigate(routeTo.paymentFail(reservationUid));
+    if (result.status === "confirmed") {
+      navigate(routeTo.reservationDetail(reservationUid));
       return;
     }
 
-    navigate(routeTo.reservationDetail(reservationUid));
+    navigate(routeTo.paymentFail(reservationUid));
   }, [reservationUid, navigate, result]);
 
   // 로딩 화면 표시 (리다이렉트 중)

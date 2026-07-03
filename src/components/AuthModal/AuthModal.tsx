@@ -2,6 +2,7 @@ import React, { useCallback, useState, useEffect } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import { useApiError } from "../../hooks/useApiError";
 import { useSignup } from "../../features/auth/hooks/useSignup";
+import { Dialog } from "../../shared/ui";
 import { ErrorToast } from "../ErrorToast";
 import styles from "./AuthModal.module.css";
 
@@ -53,18 +54,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       clearAuthErrors();
     }
   }, [isOpen, initialMode, clearAuthErrors]);
-
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
-    }
-
-    return () => {
-      document.body.style.overflow = "unset";
-    };
-  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,23 +110,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     });
   };
 
-  if (!isOpen) return null;
+  const title = mode === "login" ? "로그인" : "회원가입";
 
   return (
-    <>
-      <div className={styles.overlay} onClick={onClose} />
-      <div className={styles.modal}>
-        <button className={styles.closeButton} onClick={onClose}>
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-          </svg>
-        </button>
-
-        <div className={styles.content}>
-          <h2 className={styles.title}>
-            {mode === "login" ? "로그인" : "회원가입"}
-          </h2>
-
+    <Dialog
+      isOpen={isOpen}
+      title={title}
+      onClose={onClose}
+      className={styles.dialog}
+      bodyClassName={styles.content}
+    >
           <form onSubmit={handleSubmit} className={styles.form}>
             {mode === "signup" && (
               <div className={styles.inputGroup}>
@@ -242,14 +224,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               {mode === "login" ? "회원가입" : "로그인"}
             </button>
           </div>
+      {error && (
+        <div className={styles.toastContainer}>
+          <ErrorToast message={error} onClose={clearAuthErrors} />
         </div>
-
-        {error && (
-          <div className={styles.toastContainer}>
-            <ErrorToast message={error} onClose={clearAuthErrors} />
-          </div>
-        )}
-      </div>
-    </>
+      )}
+    </Dialog>
   );
 };

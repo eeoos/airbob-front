@@ -70,6 +70,15 @@ jest.mock("../ErrorToast", () => ({
 }));
 
 describe("AuthModal", () => {
+  it("renders the login form inside the shared accessible dialog", () => {
+    render(
+      <AuthModal isOpen={true} onClose={jest.fn()} initialMode="login" />
+    );
+
+    expect(screen.getByRole("dialog", { name: "로그인" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "닫기" })).toHaveFocus();
+  });
+
   it("dismisses signup errors when the toast closes", async () => {
     render(
       <AuthModal isOpen={true} onClose={jest.fn()} initialMode="signup" />
@@ -85,7 +94,9 @@ describe("AuthModal", () => {
       "비밀번호가 일치하지 않습니다."
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "닫기" }));
+    await userEvent.click(
+      screen.getByRole("alert").querySelector("button") as HTMLButtonElement
+    );
 
     await waitFor(() => {
       expect(screen.queryByRole("alert")).not.toBeInTheDocument();

@@ -43,11 +43,11 @@ describe("useSearchWishlistModal", () => {
   });
 
   it("opens the auth modal instead of wishlist selection when signed out", () => {
-    const setAccommodations = jest.fn();
+    const onWishlistStatusChange = jest.fn();
     const { result } = renderHook(() =>
       useSearchWishlistModal({
         isAuthenticated: false,
-        setAccommodations,
+        onWishlistStatusChange,
       })
     );
 
@@ -58,14 +58,11 @@ describe("useSearchWishlistModal", () => {
     expect(result.current.authModalOpen).toBe(true);
     expect(result.current.wishlistModalOpen).toBe(false);
     expect(result.current.selectedAccommodationForWishlist).toBeNull();
+    expect(onWishlistStatusChange).not.toHaveBeenCalled();
   });
 
   it("reconciles the search card wishlist state when the modal closes", async () => {
-    let accommodations = [createAccommodation(7, false), createAccommodation(8, false)];
-    const setAccommodations = jest.fn((updater) => {
-      accommodations =
-        typeof updater === "function" ? updater(accommodations) : updater;
-    });
+    const onWishlistStatusChange = jest.fn();
     jest.mocked(wishlistApi.getWishlists).mockResolvedValue({
       wishlists: [
         {
@@ -88,7 +85,7 @@ describe("useSearchWishlistModal", () => {
     const { result } = renderHook(() =>
       useSearchWishlistModal({
         isAuthenticated: true,
-        setAccommodations,
+        onWishlistStatusChange,
       })
     );
 
@@ -104,10 +101,7 @@ describe("useSearchWishlistModal", () => {
       size: 20,
       accommodationId: 7,
     });
-    expect(accommodations).toEqual([
-      createAccommodation(7, true),
-      createAccommodation(8, false),
-    ]);
+    expect(onWishlistStatusChange).toHaveBeenCalledWith(7, true);
     expect(result.current.wishlistModalOpen).toBe(false);
     expect(result.current.selectedAccommodationForWishlist).toBeNull();
   });

@@ -4,6 +4,10 @@ import React from "react";
 import { Dialog } from "./Dialog";
 
 describe("Dialog", () => {
+  beforeEach(() => {
+    document.body.style.overflow = "";
+  });
+
   it("does not render content when closed", () => {
     render(
       <Dialog isOpen={false} title="위시리스트" onClose={jest.fn()}>
@@ -50,6 +54,16 @@ describe("Dialog", () => {
     expect(screen.getByRole("button", { name: "닫기" })).toHaveFocus();
   });
 
+  it("respects an autofocus child as the initial focus target", () => {
+    render(
+      <Dialog isOpen title="위시리스트 만들기" onClose={jest.fn()}>
+        <input aria-label="이름" autoFocus />
+      </Dialog>
+    );
+
+    expect(screen.getByLabelText("이름")).toHaveFocus();
+  });
+
   it("calls onClose when Escape is pressed", async () => {
     const onClose = jest.fn();
     render(
@@ -89,6 +103,39 @@ describe("Dialog", () => {
     openButton.focus();
 
     await userEvent.click(openButton);
+    await userEvent.click(screen.getByRole("button", { name: "닫기" }));
+
+    expect(openButton).toHaveFocus();
+  });
+
+  it("restores focus after closing a dialog with an autofocus child", async () => {
+    function DialogFixture() {
+      const [isOpen, setIsOpen] = React.useState(false);
+
+      return (
+        <>
+          <button type="button" onClick={() => setIsOpen(true)}>
+            열기
+          </button>
+          <Dialog
+            isOpen={isOpen}
+            title="위시리스트 만들기"
+            onClose={() => setIsOpen(false)}
+          >
+            <input aria-label="이름" autoFocus />
+          </Dialog>
+        </>
+      );
+    }
+
+    render(<DialogFixture />);
+
+    const openButton = screen.getByRole("button", { name: "열기" });
+    openButton.focus();
+
+    await userEvent.click(openButton);
+    expect(screen.getByLabelText("이름")).toHaveFocus();
+
     await userEvent.click(screen.getByRole("button", { name: "닫기" }));
 
     expect(openButton).toHaveFocus();
@@ -145,5 +192,39 @@ describe("Dialog", () => {
     await userEvent.click(screen.getByRole("dialog", { name: "위시리스트" }));
 
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("keeps body scroll locked until every open dialog closes", () => {
+    document.body.style.overflow = "auto";
+
+    const { rerender, unmount } = render(
+      <>
+        <Dialog isOpen title="첫 번째" onClose={jest.fn()}>
+          content
+        </Dialog>
+        <Dialog isOpen title="두 번째" onClose={jest.fn()}>
+          content
+        </Dialog>
+      </>
+    );
+
+    expect(document.body.style.overflow).toBe("hidden");
+
+    rerender(
+      <>
+        <Dialog isOpen={false} title="첫 번째" onClose={jest.fn()}>
+          content
+        </Dialog>
+        <Dialog isOpen title="두 번째" onClose={jest.fn()}>
+          content
+        </Dialog>
+      </>
+    );
+
+    expect(document.body.style.overflow).toBe("hidden");
+
+    unmount();
+
+    expect(document.body.style.overflow).toBe("auto");
   });
 });

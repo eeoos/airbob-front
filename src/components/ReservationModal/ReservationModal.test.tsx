@@ -77,6 +77,27 @@ describe("ReservationModal", () => {
     delete (window as any).TossPayments;
   });
 
+  it("renders reservation content inside the shared accessible dialog", () => {
+    render(
+      <ReservationModal
+        isOpen={true}
+        onClose={jest.fn()}
+        accommodation={accommodation}
+        checkIn={new Date(2026, 6, 10)}
+        checkOut={new Date(2026, 6, 12)}
+        adultCount={2}
+        childCount={0}
+        infantCount={0}
+        petCount={0}
+      />
+    );
+
+    expect(
+      screen.getByRole("dialog", { name: "예약 확인" })
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "닫기" })).toHaveFocus();
+  });
+
   it("mounts the Toss payment widget container before rendering payment methods", async () => {
     let widgetContainerAtRender: Element | null = null;
     const renderPaymentMethods = jest.fn().mockImplementation(() => {

@@ -1,6 +1,7 @@
 ---
 title: Frontend Architecture Verification Loop Before Design Work
 date: 2026-07-03
+last_updated: 2026-07-03
 category: workflow-issues
 module: frontend-architecture
 problem_type: workflow_issue
@@ -29,9 +30,11 @@ The target architecture was:
 - `styles/tokens.css` owns shared overlay and z-index tokens.
 - The verification gate and QA smoke doc block unsafe design work until typecheck, tests, build, and browser smoke coverage agree.
 
-The final gate was verified at HEAD: `npm run verify` passed with 76 suites and 288 tests, and the build exited 0. Final architecture and testing reviews approved the split. Browser QA ran against a fresh dev server with the thread-provided QA account.
+The first final gate was verified at HEAD: `npm run verify` passed with 76 suites and 288 tests, and the build exited 0. Browser QA ran against a fresh dev server with the thread-provided QA account. A later final audit pass found that a green verify was still insufficient: stale async paths, card semantics, modal focus restoration, and test-contract gaps can survive unless specialized reviewers attack the diff after the first green run. After those review-loop fixes, `npm run verify` passed with 83 suites and 318 tests, and the build exited 0.
 
-The loop also surfaced process failures worth preserving. A credential-safety test initially used real QA credential strings, the QA doc initially missed mobile Reservation/Profile/Host listing checkpoints, a stale default-port dev server showed old CRA compile overlay errors after HEAD was already clean, browser QA caught mobile Profile overflow, map QA was limited by Google Maps localhost referer restrictions and empty search results, and several legacy modals still need migration to the shared `Dialog` primitive.
+The loop also surfaced process failures worth preserving. A credential-safety test initially used real QA credential strings, the QA doc initially missed mobile Reservation/Profile/Host listing checkpoints, a stale default-port dev server showed old CRA compile overlay errors after HEAD was already clean, browser QA caught mobile Profile overflow, map QA was limited by Google Maps localhost referer restrictions and empty search results, and several legacy modals still need migration to the shared `Dialog` primitive. The later review pass also caught several mistakes that tests did not initially cover: pagination bypassed the search stale-response guard, reservation `loadMore` could start duplicate same-cursor requests before state committed, Dialog autofocus handling skipped focus restoration, and migrated modal CSS still contained dead pre-`Dialog` selectors.
+
+A final architecture-closure pass converted the highest-risk review findings into contracts before visual work: Header logo navigation became a semantic home link, Map InfoWindow raw HTML received typed global callbacks plus accessible button labels, stale rejected async requests gained regression coverage, AccommodationEdit final publish now confirms missing detail address before pending image upload, Search wishlist reconciliation stopped leaking a raw React state setter, touched design-entry CSS moved to tokens, and Auth/Reservation modals moved onto `shared/ui/Dialog`.
 
 ## Guidance
 
@@ -47,6 +50,10 @@ Fourth, verify against the current HEAD, not whatever a browser tab happens to s
 
 Fifth, let browser QA feed back into architecture contracts. The Profile guest mobile horizontal overflow was not just a visual bug. It showed that desktop sidebar spacing and dividers were leaking into tablet/mobile layout. The fix reset the Profile sidebar padding, border, divider, and main width at the tablet/mobile breakpoint, then locked the contract with `profile-responsive-contracts.test.ts`.
 
+Sixth, run a review pass after the first green verify and treat reviewer findings as new test obligations. The high-value pattern is: add a failing regression test for the reviewer claim, fix the smallest code path, rerun the targeted test, then rerun the full gate. This caught the search pagination race, duplicate reservation `loadMore`, Dialog autofocus focus-restore regression, ErrorToast announcement gap, card keyboard-accessibility gap, and stale modal CSS selectors.
+
+Seventh, close architecture escape hatches explicitly before design. Raw HTML integration points such as Google Maps InfoWindow may remain outside React, but they need typed global callbacks, escaped API data, accessible action names, and token-owned values. Page-level hooks should expose intent methods such as `updateAccommodationWishlistStatus`, not raw state setters. Modals touched by design should enter through `shared/ui/Dialog` so focus, backdrop, Escape, and body scroll-lock behavior stay centralized.
+
 Finally, record design-phase limitations instead of pretending coverage is complete. Search map QA was limited by `RefererNotAllowedMapError`, and live search queries returned zero results. The design phase should use an authorized Google Maps referer and a seeded result query before treating map styling as verified.
 
 ## Why This Matters
@@ -54,6 +61,8 @@ Finally, record design-phase limitations instead of pretending coverage is compl
 Architecture work before visual design creates a stable surface for design changes. Without this gate, a redesign can mix layout regressions, auth routing mistakes, modal stacking issues, API-state bugs, and missing mobile flows into one large diff. That makes browser QA slower and root causes harder to isolate.
 
 The loop also prevents two common forms of false confidence. Passing unit tests alone does not prove that mobile route screens still fit or that stale browser servers reflect HEAD. Browser QA alone does not prove that route ownership, token ownership, and secret hygiene are durable. The architecture verification loop joins both sides: automated contracts for boundaries, plus browser smoke checks for the user flows most likely to break during design work.
+
+A third false-confidence mode is "green verify before adversarial review." A broad architecture branch can pass typecheck, tests, and build while still carrying untested alternate async paths, inaccessible interactive elements, or dead design-system CSS. The corrective action is not to distrust the test suite; it is to let review findings become new tests so the suite permanently learns the missed edge.
 
 The credential mistake is the strongest warning. A safety test that embeds the exact QA email, password, nickname, or member id becomes a credential leak. The correct pattern is to use generic detection in committed tests and run exact-value scans only as local verification against the thread-provided QA account.
 
@@ -130,12 +139,51 @@ expect(tabletBlock).toMatch(/\.sidebar::after\s*{[^}]*display:\s*none;/s);
 expect(tabletBlock).toMatch(/\.main\s*{[^}]*width:\s*100%;/s);
 ```
 
+Async state review findings should become race tests that resolve requests out of order:
+
+```ts
+await act(async () => {
+  resolveNewerSearch(newerResponse);
+});
+
+await waitFor(() => {
+  expect(result.current.accommodations[0]?.id).toBe(newerId);
+});
+
+await act(async () => {
+  resolveOlderSearch(olderResponse);
+});
+
+expect(result.current.accommodations[0]?.id).toBe(newerId);
+```
+
+Load-more hooks need a synchronous ref guard, not only `isLoadingMore` state, because two calls can happen before React commits the loading state:
+
+```ts
+if (!hasNext || isLoadingMore || loadingMoreRef.current || !cursor) return;
+
+loadingMoreRef.current = true;
+setIsLoadingMore(true);
+```
+
+Dialog tests should cover both initial focus and focus restoration. Supporting autofocus children is not enough if the close path fails to return focus to the opener:
+
+```tsx
+await userEvent.click(openButton);
+expect(screen.getByLabelText("이름")).toHaveFocus();
+
+await userEvent.click(screen.getByRole("button", { name: "닫기" }));
+expect(openButton).toHaveFocus();
+```
+
 The design handoff should preserve known limitations:
 
 - Start a fresh dev server on an unused port before browser QA if the default port may be stale.
 - Authorize the Google Maps localhost referer used for QA before validating search map visuals.
 - Seed or choose a query known to return results before assessing search list and map design.
-- Keep legacy modals rendering and closeable, but migrate them to `role="dialog"` and `shared/ui/Dialog` when their visuals are touched.
+- Keep legacy modals rendering and closeable, but migrate them to `role="dialog"` and `shared/ui/Dialog` when their visuals are touched. Auth and Reservation are already on `shared/ui/Dialog`; Review and AccommodationAction are the known remaining legacy modal debt.
+- Remove dead pre-migration CSS selectors when a modal is moved to `shared/ui/Dialog`; otherwise the design pass may style selectors the component no longer renders.
+- Before applying broad Airbnb `design.md` styles, run the token contract so touched component CSS cannot reintroduce core color, radius, shadow, or overlay literals.
 
 ## Related
 

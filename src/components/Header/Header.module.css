@@ -19,8 +19,16 @@
 }
 
 .logo {
+  display: inline-flex;
+  align-items: center;
   cursor: pointer;
   flex-shrink: 0;
+}
+
+.logo:focus-visible {
+  border-radius: var(--radius-md);
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 4px;
 }
 
 .logoImage {

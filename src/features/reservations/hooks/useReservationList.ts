@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useApiError } from "../../../hooks/useApiError";
 import { CursorPageInfo } from "../../../types/api";
 import { ReservationFilterType } from "../../../types/reservation";
@@ -26,6 +26,8 @@ export function useReservationList<TReservation>(
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasNext, setHasNext] = useState(false);
+  const requestIdRef = useRef(0);
+  const loadingMoreRef = useRef(false);
 
   const applyPageInfo = (pageInfo: CursorPageInfo) => {
     setCursor(pageInfo.next_cursor);
@@ -33,7 +35,11 @@ export function useReservationList<TReservation>(
   };
 
   const fetchFirstPage = useCallback(async () => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
     setIsLoading(true);
+    setIsLoadingMore(false);
+    loadingMoreRef.current = false;
     clearError();
     setReservations([]);
     setCursor(null);
@@ -45,12 +51,18 @@ export function useReservationList<TReservation>(
         size: RESERVATION_PAGE_SIZE,
       });
 
+      if (requestIdRef.current !== requestId) return;
+
       setReservations(response.reservations);
       applyPageInfo(response.page_info);
     } catch (err) {
+      if (requestIdRef.current !== requestId) return;
+
       handleError(err);
     } finally {
-      setIsLoading(false);
+      if (requestIdRef.current === requestId) {
+        setIsLoading(false);
+      }
     }
   }, [clearError, fetchReservationPage, filterType, handleError]);
 
@@ -59,8 +71,10 @@ export function useReservationList<TReservation>(
   }, [fetchFirstPage]);
 
   const loadMore = useCallback(async () => {
-    if (!hasNext || isLoadingMore || !cursor) return;
+    if (!hasNext || isLoadingMore || loadingMoreRef.current || !cursor) return;
 
+    const requestId = requestIdRef.current;
+    loadingMoreRef.current = true;
     setIsLoadingMore(true);
     clearError();
 
@@ -71,12 +85,19 @@ export function useReservationList<TReservation>(
         size: RESERVATION_PAGE_SIZE,
       });
 
+      if (requestIdRef.current !== requestId) return;
+
       setReservations((prev) => [...prev, ...response.reservations]);
       applyPageInfo(response.page_info);
     } catch (err) {
+      if (requestIdRef.current !== requestId) return;
+
       handleError(err);
     } finally {
-      setIsLoadingMore(false);
+      if (requestIdRef.current === requestId) {
+        setIsLoadingMore(false);
+        loadingMoreRef.current = false;
+      }
     }
   }, [
     clearError,

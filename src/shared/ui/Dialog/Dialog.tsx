@@ -3,10 +3,18 @@ import styles from "./Dialog.module.css";
 
 export interface DialogProps {
   children: React.ReactNode;
+  bodyClassName?: string;
+  className?: string;
   isOpen: boolean;
   onClose: () => void;
   title: string;
 }
+
+let openDialogCount = 0;
+let previousBodyOverflow = "";
+
+const cx = (...classNames: Array<string | undefined>) =>
+  classNames.filter(Boolean).join(" ");
 
 const focusableSelector = [
   "a[href]",
@@ -24,21 +32,82 @@ const getFocusableElements = (element: HTMLElement) =>
       focusableElement.getAttribute("aria-hidden") !== "true"
   );
 
-export function Dialog({ children, isOpen, onClose, title }: DialogProps) {
+const getAutofocusElement = (element: HTMLElement) =>
+  getFocusableElements(element).find(
+    (focusableElement) =>
+      (focusableElement as HTMLInputElement).autofocus ||
+      focusableElement.hasAttribute("autofocus")
+  ) ?? null;
+
+export function Dialog({
+  bodyClassName,
+  children,
+  className,
+  isOpen,
+  onClose,
+  title,
+}: DialogProps) {
   const dialogRef = React.useRef<HTMLElement>(null);
   const closeButtonRef = React.useRef<HTMLButtonElement>(null);
   const previousFocusedElementRef = React.useRef<Element | null>(null);
+  const wasOpenRef = React.useRef(false);
+
+  if (isOpen && !wasOpenRef.current && previousFocusedElementRef.current === null) {
+    previousFocusedElementRef.current = document.activeElement;
+  }
+
+  React.useEffect(() => {
+    wasOpenRef.current = isOpen;
+  }, [isOpen]);
 
   React.useEffect(() => {
     if (!isOpen) {
       return;
     }
 
-    previousFocusedElementRef.current = document.activeElement;
-    closeButtonRef.current?.focus();
+    if (openDialogCount === 0) {
+      previousBodyOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+    }
+
+    openDialogCount += 1;
+
+    return () => {
+      openDialogCount = Math.max(0, openDialogCount - 1);
+
+      if (openDialogCount === 0) {
+        document.body.style.overflow = previousBodyOverflow;
+        previousBodyOverflow = "";
+      }
+    };
+  }, [isOpen]);
+
+  React.useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    if (previousFocusedElementRef.current === null) {
+      previousFocusedElementRef.current = document.activeElement;
+    }
+
+    if (
+      !(document.activeElement instanceof HTMLElement) ||
+      !dialogRef.current?.contains(document.activeElement)
+    ) {
+      const autofocusElement = dialogRef.current
+        ? getAutofocusElement(dialogRef.current)
+        : null;
+      if (autofocusElement) {
+        autofocusElement.focus();
+      } else {
+        closeButtonRef.current?.focus();
+      }
+    }
 
     return () => {
       const previousFocusedElement = previousFocusedElementRef.current;
+      previousFocusedElementRef.current = null;
 
       if (
         previousFocusedElement instanceof HTMLElement &&
@@ -93,7 +162,7 @@ export function Dialog({ children, isOpen, onClose, title }: DialogProps) {
         ref={dialogRef}
         aria-modal="true"
         aria-label={title}
-        className={styles.dialog}
+        className={cx(styles.dialog, className)}
         role="dialog"
         tabIndex={-1}
         onKeyDown={handleKeyDown}
@@ -110,7 +179,7 @@ export function Dialog({ children, isOpen, onClose, title }: DialogProps) {
             닫기
           </button>
         </header>
-        <div className={styles.body}>{children}</div>
+        <div className={cx(styles.body, bodyClassName)}>{children}</div>
       </section>
     </div>
   );

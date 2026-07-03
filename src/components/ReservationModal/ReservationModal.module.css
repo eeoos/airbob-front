@@ -1,3 +1,7 @@
+.dialog {
+  max-width: 600px;
+}
+
 .overlay {
   position: fixed;
   top: 0;

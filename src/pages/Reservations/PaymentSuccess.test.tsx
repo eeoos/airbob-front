@@ -28,11 +28,60 @@ describe("PaymentSuccess", () => {
     mockUsePaymentConfirmation.mockReset();
   });
 
+  it("routes confirmed payment confirmation to the reservation detail page", async () => {
+    mockUsePaymentConfirmation.mockReturnValue({
+      result: {
+        error: null,
+        status: "confirmed",
+      },
+    });
+
+    render(<PaymentSuccess />);
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith("/reservations/reservation-123");
+    });
+  });
+
   it("routes malformed payment confirmation results to the failure page", async () => {
     mockUsePaymentConfirmation.mockReturnValue({
       result: {
         error: null,
         status: "invalid",
+      },
+    });
+
+    render(<PaymentSuccess />);
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        "/reservations/reservation-123/fail"
+      );
+    });
+  });
+
+  it("routes failed payment confirmation to the failure page", async () => {
+    mockUsePaymentConfirmation.mockReturnValue({
+      result: {
+        error: new Error("confirm failed"),
+        status: "failed",
+      },
+    });
+
+    render(<PaymentSuccess />);
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        "/reservations/reservation-123/fail"
+      );
+    });
+  });
+
+  it("routes skipped payment confirmation to the failure page", async () => {
+    mockUsePaymentConfirmation.mockReturnValue({
+      result: {
+        error: null,
+        status: "skipped",
       },
     });
 
