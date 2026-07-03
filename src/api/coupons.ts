@@ -1,16 +1,16 @@
 import { client } from "./client";
-import { unwrapApiResponse } from "./response";
+import { requestApi, requestApiNullable } from "./request";
 import { ApiResponse } from "../types/api";
 import { CouponInfos } from "../types/coupon";
 
 export const couponApi = {
   getValidCoupons: async (): Promise<CouponInfos> => {
-    const response = await client.get<ApiResponse<CouponInfos>>("/coupons");
-    return unwrapApiResponse(response.data);
+    return requestApi(() => client.get<ApiResponse<CouponInfos>>("/coupons"));
   },
 
   issue: async (couponId: number): Promise<void> => {
-    const response = await client.post<ApiResponse<null>>(`/coupons/${couponId}/issue`);
-    unwrapApiResponse(response.data, { allowNull: true });
+    await requestApiNullable(() =>
+      client.post<ApiResponse<null>>(`/coupons/${couponId}/issue`)
+    );
   },
 };

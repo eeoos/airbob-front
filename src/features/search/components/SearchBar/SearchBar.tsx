@@ -1,12 +1,12 @@
 import React, { useRef, useEffect } from "react";
-import { DatePicker } from "../DatePicker";
+import { DatePicker } from "../../../../components/DatePicker";
 import {
   type SearchParams,
   useSearchBarState,
-} from "../../features/search/hooks/useSearchBarState";
+} from "../../hooks/useSearchBarState";
 import styles from "./SearchBar.module.css";
 
-export type { SearchParams } from "../../features/search/hooks/useSearchBarState";
+export type { SearchParams } from "../../hooks/useSearchBarState";
 
 interface SearchBarProps {
   onSearch?: (searchParams: SearchParams) => void;

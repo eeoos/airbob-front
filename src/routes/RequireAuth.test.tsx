@@ -11,9 +11,29 @@ jest.mock("../hooks/useAuth", () => ({
 jest.mock(
   "react-router-dom",
   () => ({
-    Navigate: ({ to, replace }: { to: string; replace?: boolean }) => (
-      <div data-testid="navigate" data-replace={String(replace)} data-to={to} />
+    Navigate: ({
+      to,
+      replace,
+      state,
+    }: {
+      to: string;
+      replace?: boolean;
+      state?: unknown;
+    }) => (
+      <div
+        data-testid="navigate"
+        data-replace={String(replace)}
+        data-state={JSON.stringify(state)}
+        data-to={to}
+      />
     ),
+    useLocation: () => ({
+      pathname: "/wishlist",
+      search: "?view=recently-viewed",
+      hash: "",
+      state: null,
+      key: "test-location",
+    }),
   }),
   { virtual: true }
 );
@@ -55,6 +75,16 @@ test("renders Navigate to home with replace when unauthenticated", () => {
 
   expect(screen.getByTestId("navigate")).toHaveAttribute("data-to", routeTo.home());
   expect(screen.getByTestId("navigate")).toHaveAttribute("data-replace", "true");
+  expect(screen.getByTestId("navigate")).toHaveAttribute(
+    "data-state",
+    JSON.stringify({
+      from: {
+        pathname: "/wishlist",
+        search: "?view=recently-viewed",
+        hash: "",
+      },
+    })
+  );
   expect(screen.queryByText("보호된 페이지")).not.toBeInTheDocument();
 });
 

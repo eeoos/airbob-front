@@ -1,28 +1,33 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import React from "react";
 import { ListContainer } from "../../components/ListContainer";
 import { WishlistAccommodationInfo } from "../../types/wishlist";
-import { RecentlyViewedAccommodationInfo } from "../../types/recentlyViewed";
 import { ErrorToast } from "../../components/ErrorToast";
 import { WishlistModal } from "../../components/WishlistModal";
-import { useWishlistData, useWishlistModals } from "../../features/wishlist";
+import {
+  useWishlistData,
+  useWishlistModals,
+  useWishlistRouteViewState,
+} from "../../features/wishlist";
+import {
+  formatRecentlyViewedDate,
+  groupRecentlyViewedByDate,
+} from "../../features/wishlist/lib/recentlyViewedGroups";
 import { routeTo } from "../../routes/paths";
+import { useIntersectionLoadMore } from "../../hooks/useIntersectionLoadMore";
 import { getImageUrl } from "../../utils/image";
 import styles from "./Wishlist.module.css";
 
 const Wishlist: React.FC = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  
-  // URL 파라미터에서 초기값 읽기
-  const viewParam = searchParams.get("view");
-  const wishlistIdParam = searchParams.get("id");
-  const [selectedWishlist, setSelectedWishlist] = useState<number | null>(
-    wishlistIdParam ? parseInt(wishlistIdParam) : null
-  );
-  const [showRecentlyViewed, setShowRecentlyViewed] = useState(viewParam === "recently-viewed");
-  const [isEditMode, setIsEditMode] = useState(false);
-  const wishlistsObserverTarget = useRef<HTMLDivElement>(null);
-  const wishlistAccommodationsObserverTarget = useRef<HTMLDivElement>(null);
+  const {
+    backToIndex,
+    clearSelectedWishlist,
+    isEditMode,
+    openRecentlyViewed,
+    openWishlist,
+    selectedWishlist,
+    setIsEditMode,
+    showRecentlyViewed,
+  } = useWishlistRouteViewState();
   const {
     clearError,
     deleteWishlist,
@@ -60,74 +65,46 @@ const Wishlist: React.FC = () => {
     updateMemoText,
     wishlistModalOpen,
   } = useWishlistModals();
+  const setWishlistsObserverTarget = useIntersectionLoadMore({
+    disabled: Boolean(selectedWishlist || showRecentlyViewed),
+    hasNext: wishlistsHasNext,
+    isLoading: isLoadingMoreWishlists,
+    onLoadMore: loadMoreWishlists,
+  });
+  const setWishlistAccommodationsObserverTarget = useIntersectionLoadMore({
+    disabled: !selectedWishlist || showRecentlyViewed,
+    hasNext,
+    isLoading: isLoadingMore,
+    onLoadMore: loadMoreWishlistAccommodations,
+  });
 
-  // 위시리스트 목록 무한 스크롤
-  useEffect(() => {
-    if (selectedWishlist || showRecentlyViewed) return;
+  React.useEffect(() => {
+    if (!memoModalOpen) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && wishlistsHasNext && !isLoadingMoreWishlists) {
-          loadMoreWishlists();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    const currentTarget = wishlistsObserverTarget.current;
-    if (currentTarget) {
-      observer.observe(currentTarget);
-    }
-
-    return () => {
-      if (currentTarget) {
-        observer.unobserve(currentTarget);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeMemoModal();
       }
     };
-  }, [wishlistsHasNext, isLoadingMoreWishlists, loadMoreWishlists, selectedWishlist, showRecentlyViewed]);
 
-  // 위시리스트 상세 무한 스크롤
-  useEffect(() => {
-    if (!selectedWishlist || showRecentlyViewed) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNext && !isLoadingMore) {
-          loadMoreWishlistAccommodations();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    const currentTarget = wishlistAccommodationsObserverTarget.current;
-    if (currentTarget) {
-      observer.observe(currentTarget);
-    }
+    document.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      if (currentTarget) {
-        observer.unobserve(currentTarget);
-      }
+      document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [hasNext, isLoadingMore, loadMoreWishlistAccommodations, selectedWishlist, showRecentlyViewed]);
+  }, [closeMemoModal, memoModalOpen]);
 
   const handleRemoveRecentlyViewed = async (accommodationId: number) => {
     await removeRecentlyViewed(accommodationId);
   };
 
   const handleRecentlyViewedClick = async () => {
-    setShowRecentlyViewed(true);
-    setSelectedWishlist(null);
-    setIsEditMode(false);
-    setSearchParams({ view: "recently-viewed" });
+    openRecentlyViewed();
     await reloadRecentlyViewed();
   };
 
   const handleBackClick = () => {
-    setShowRecentlyViewed(false);
-    setSelectedWishlist(null);
-    setIsEditMode(false);
-    setSearchParams({});
+    backToIndex();
   };
 
   const handleWishlistToggle = async (accommodationId: number) => {
@@ -174,42 +151,8 @@ const Wishlist: React.FC = () => {
     const isDeleted = await deleteWishlist(wishlistId);
     // 현재 선택된 위시리스트가 삭제된 경우 선택 해제
     if (isDeleted && selectedWishlist === wishlistId) {
-      setSelectedWishlist(null);
+      clearSelectedWishlist();
     }
-  };
-
-  // 최근 조회 날짜 포맷팅 (어제, 오늘 등)
-  const formatRecentlyViewedDate = (viewedAt: string): string => {
-    const viewedDate = new Date(viewedAt);
-    const now = new Date();
-    const diffTime = now.getTime() - viewedDate.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) {
-      return "오늘";
-    } else if (diffDays === 1) {
-      return "어제";
-    } else if (diffDays < 7) {
-      return `${diffDays}일 전`;
-    } else {
-      return viewedDate.toLocaleDateString("ko-KR", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-    }
-  };
-
-  const groupByDate = (items: RecentlyViewedAccommodationInfo[]) => {
-    const groups: { [key: string]: RecentlyViewedAccommodationInfo[] } = {};
-    items.forEach((item) => {
-      const date = formatRecentlyViewedDate(item.viewed_at);
-      if (!groups[date]) {
-        groups[date] = [];
-      }
-      groups[date].push(item);
-    });
-    return groups;
   };
 
   return (
@@ -240,7 +183,7 @@ const Wishlist: React.FC = () => {
               <div className={styles.empty}>최근 조회한 숙소가 없습니다.</div>
             ) : (
               <>
-                {Object.entries(groupByDate(recentlyViewed)).map(([date, items]) => (
+                {Object.entries(groupRecentlyViewedByDate(recentlyViewed)).map(([date, items]) => (
                   <div key={date} className={styles.dateSection}>
                     <h2 className={styles.dateTitle}>{date}</h2>
                     <div className={styles.recentlyViewedGrid}>
@@ -327,11 +270,7 @@ const Wishlist: React.FC = () => {
               <div className={styles.recentlyViewedHeaderLeft}>
                 <button
                   className={styles.backButton}
-                  onClick={() => {
-                    setSelectedWishlist(null);
-                    setIsEditMode(false);
-                    setSearchParams({});
-                  }}
+                  onClick={backToIndex}
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -432,7 +371,7 @@ const Wishlist: React.FC = () => {
                   ))}
                 </ListContainer>
                 {hasNext && (
-                  <div ref={wishlistAccommodationsObserverTarget} className={styles.loadMoreContainer}>
+                  <div ref={setWishlistAccommodationsObserverTarget} className={styles.loadMoreContainer}>
                     {isLoadingMore && (
                       <div className={styles.loadingMore}>로딩 중...</div>
                     )}
@@ -484,10 +423,7 @@ const Wishlist: React.FC = () => {
                   <div
                     key={wishlist.id}
                     className={styles.wishlistCard}
-                    onClick={() => {
-                      setSelectedWishlist(wishlist.id);
-                      setSearchParams({ id: wishlist.id.toString() });
-                    }}
+                    onClick={() => openWishlist(wishlist.id)}
                     onMouseEnter={(e) => {
                       const deleteBtn = e.currentTarget.querySelector(
                         `.${styles.wishlistDeleteButton}`
@@ -532,7 +468,7 @@ const Wishlist: React.FC = () => {
                   </div>
                 ))}
                 {wishlistsHasNext && (
-                  <div ref={wishlistsObserverTarget} className={styles.loadMoreContainer}>
+                  <div ref={setWishlistsObserverTarget} className={styles.loadMoreContainer}>
                     {isLoadingMoreWishlists && (
                       <div className={styles.loadingMore}>로딩 중...</div>
                     )}

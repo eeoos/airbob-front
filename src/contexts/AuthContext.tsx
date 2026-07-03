@@ -1,8 +1,11 @@
 // src/contexts/AuthContext.tsx
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import React, { createContext, useContext, useEffect, ReactNode, useCallback } from "react";
 import { authApi } from "../api";
-import { onAuthError } from "../utils/authEvents"; // [수정] 이벤트 구독 함수
-import { LoginRequest } from "../types/auth";
+import { useSessionQuery } from "../features/auth/hooks/useSessionQuery";
+import { authQueryKeys } from "../features/auth/queryKeys";
+import { onAuthError } from "../utils/authEvents";
+import { LoginRequest, MeInfo } from "../types/auth";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -27,67 +30,59 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const sessionQuery = useSessionQuery();
 
-  // [핵심 변경] 전역 인증 에러 이벤트 구독
+  const clearSession = useCallback(async () => {
+    await queryClient.cancelQueries({ queryKey: authQueryKeys.me() });
+    queryClient.setQueryData<MeInfo | null>(authQueryKeys.me(), null);
+    queryClient.removeQueries({
+      queryKey: authQueryKeys.me(),
+      type: "inactive",
+    });
+  }, [queryClient]);
+
+  const refreshSession = useCallback(async () => {
+    try {
+      const meInfo = await authApi.getMe();
+      queryClient.setQueryData<MeInfo | null>(authQueryKeys.me(), meInfo);
+    } catch (error) {
+      await clearSession();
+      throw error;
+    }
+  }, [clearSession, queryClient]);
+
   useEffect(() => {
     const handleAuthError = () => {
       console.warn("Session expired. Logging out...");
-      setIsAuthenticated(false);
-      // 필요하다면 여기서 토스트 메시지를 띄우거나 리다이렉트 처리를 추가할 수 있습니다.
+      void clearSession();
     };
 
-    // 구독 시작 (unsubscribe 함수를 반환받음)
     const unsubscribe = onAuthError(handleAuthError);
-
-    // 컴포넌트 언마운트 시 구독 해제 (cleanup)
     return unsubscribe;
-  }, []);
+  }, [clearSession]);
 
   const checkAuth = useCallback(async () => {
-    try {
-      await authApi.getMe();
-      setIsAuthenticated(true);
-    } catch (error) {
-      setIsAuthenticated(false);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // 초기 로딩 및 포커스 시 체크
-  useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
-
-  useEffect(() => {
-    const handleFocus = () => checkAuth();
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [checkAuth]);
+    await refreshSession();
+  }, [refreshSession]);
 
   const login = async (credentials: LoginRequest) => {
-    try {
-      await authApi.login(credentials);
-      setIsAuthenticated(true);
-    } catch (error) {
-      setIsAuthenticated(false);
-      throw error;
-    }
+    await authApi.login(credentials);
+    await queryClient.cancelQueries({ queryKey: authQueryKeys.me() });
+    await refreshSession();
   };
 
   const logout = async () => {
     try {
       await authApi.logout();
+    } finally {
       document.cookie = "SESSION_ID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-      setIsAuthenticated(false);
-    } catch (error) {
-      document.cookie = "SESSION_ID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-      setIsAuthenticated(false);
-      throw error;
+      await clearSession();
     }
   };
+
+  const isAuthenticated = sessionQuery.data != null;
+  const isLoading = sessionQuery.isLoading;
 
   return (
     <AuthContext.Provider value={{ isAuthenticated, isLoading, login, logout, checkAuth }}>

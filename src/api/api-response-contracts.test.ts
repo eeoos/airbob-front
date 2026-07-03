@@ -2,23 +2,15 @@ import * as fs from "fs";
 import * as path from "path";
 import * as ts from "typescript";
 
-const migratedApiFiles = [
-  "accommodations.ts",
-  "reservations.ts",
-  "payments.ts",
-  "reviews.ts",
-  "wishlist.ts",
-  "recentlyViewed.ts",
-  "coupons.ts",
-  "commonCodes.ts",
-];
-
 const clientMethods = new Set(["get", "post", "patch", "delete"]);
+const requestHelperNames = new Set(["requestApi", "requestApiNullable"]);
+const infrastructureModules = new Set(["./client", "./request"]);
 
 type FunctionScopeAnalysis = {
   responseVariables: Set<string>;
-  unwrappedVariables: Set<string>;
+  helperWrappedResponseVariables: Set<string>;
   hasDirectPayloadAccess: boolean;
+  hasUnroutedInlineClientCall: boolean;
 };
 
 const stripExpressionWrappers = (expression: ts.Expression): ts.Expression => {
@@ -58,6 +50,12 @@ const typeReferencesApiResponse = (typeNode: ts.TypeNode): boolean => {
   return referencesApiResponse;
 };
 
+const isIdentifierNamed = (node: ts.Node | undefined, names: Set<string>): node is ts.Identifier =>
+  Boolean(node && ts.isIdentifier(node) && names.has(node.text));
+
+const isRequestHelperCall = (node: ts.Node): node is ts.CallExpression =>
+  ts.isCallExpression(node) && isIdentifierNamed(node.expression, requestHelperNames);
+
 const isApiResponseClientCall = (node: ts.Node): node is ts.CallExpression => {
   if (!ts.isCallExpression(node) || !node.typeArguments?.some(typeReferencesApiResponse)) {
     return false;
@@ -96,6 +94,31 @@ const isFunctionLikeWithBody = (
   );
 };
 
+const isRequestHelperCallback = (node: ts.Node): boolean => {
+  const parent = node.parent;
+
+  return (
+    isFunctionLikeWithBody(node) &&
+    parent !== undefined &&
+    isRequestHelperCall(parent) &&
+    parent.arguments.some((argument) => argument === node)
+  );
+};
+
+const isInsideRequestHelperCallback = (node: ts.Node): boolean => {
+  let current: ts.Node | undefined = node.parent;
+
+  while (current) {
+    if (isRequestHelperCallback(current)) {
+      return true;
+    }
+
+    current = current.parent;
+  }
+
+  return false;
+};
+
 const isDataPropertyAccess = (node: ts.Node): node is ts.PropertyAccessExpression => {
   return ts.isPropertyAccessExpression(node) && node.name.text === "data";
 };
@@ -119,16 +142,71 @@ const getResponseDataOwnerName = (expression: ts.Expression): string | undefined
   return undefined;
 };
 
+const isPromiseResolveCall = (expression: ts.Expression): expression is ts.CallExpression => {
+  const unwrappedExpression = stripExpressionWrappers(expression);
+
+  return (
+    ts.isCallExpression(unwrappedExpression) &&
+    ts.isPropertyAccessExpression(unwrappedExpression.expression) &&
+    ts.isIdentifier(unwrappedExpression.expression.expression) &&
+    unwrappedExpression.expression.expression.text === "Promise" &&
+    unwrappedExpression.expression.name.text === "resolve"
+  );
+};
+
+const getPromiseResolvedIdentifier = (expression: ts.Expression): string | undefined => {
+  const unwrappedExpression = stripExpressionWrappers(expression);
+
+  if (!isPromiseResolveCall(unwrappedExpression)) {
+    return undefined;
+  }
+
+  const resolvedValue = unwrappedExpression.arguments[0];
+  return resolvedValue && ts.isIdentifier(resolvedValue) ? resolvedValue.text : undefined;
+};
+
+const getRequestHelperWrappedResponseName = (node: ts.CallExpression): string | undefined => {
+  const requestFactory = node.arguments[0];
+
+  if (!requestFactory || !isFunctionLikeWithBody(requestFactory)) {
+    return undefined;
+  }
+
+  const body = requestFactory.body;
+
+  if (ts.isBlock(body)) {
+    const returnStatement = body.statements.find(ts.isReturnStatement);
+    return returnStatement?.expression
+      ? getPromiseResolvedIdentifier(returnStatement.expression)
+      : undefined;
+  }
+
+  return getPromiseResolvedIdentifier(body);
+};
+
+const isApiResponseClientCallAssignedToResponseVariable = (node: ts.CallExpression): boolean => {
+  const parent = node.parent;
+  const maybeAwait = parent && ts.isAwaitExpression(parent) ? parent : undefined;
+  const maybeDeclaration = maybeAwait?.parent;
+
+  return Boolean(
+    maybeDeclaration &&
+      ts.isVariableDeclaration(maybeDeclaration) &&
+      ts.isIdentifier(maybeDeclaration.name),
+  );
+};
+
 const analyzeFunctionScope = (node: ts.FunctionLikeDeclaration & { body: ts.ConciseBody }) => {
   const analysis: FunctionScopeAnalysis = {
     responseVariables: new Set(),
-    unwrappedVariables: new Set(),
+    helperWrappedResponseVariables: new Set(),
     hasDirectPayloadAccess: false,
+    hasUnroutedInlineClientCall: false,
   };
   const directPayloadAccessOwners = new Set<string>();
 
   const visit = (scopeNode: ts.Node) => {
-    if (scopeNode !== node.body && isFunctionLikeWithBody(scopeNode)) {
+    if (scopeNode !== node.body && isFunctionLikeWithBody(scopeNode) && !isRequestHelperCallback(scopeNode)) {
       return;
     }
 
@@ -141,18 +219,20 @@ const analyzeFunctionScope = (node: ts.FunctionLikeDeclaration & { body: ts.Conc
       analysis.responseVariables.add(scopeNode.name.text);
     }
 
-    if (
-      ts.isCallExpression(scopeNode) &&
-      ts.isIdentifier(scopeNode.expression) &&
-      scopeNode.expression.text === "unwrapApiResponse"
-    ) {
-      const responseName = scopeNode.arguments[0]
-        ? getResponseDataOwnerName(scopeNode.arguments[0])
-        : undefined;
+    if (isRequestHelperCall(scopeNode)) {
+      const responseName = getRequestHelperWrappedResponseName(scopeNode);
 
       if (responseName !== undefined) {
-        analysis.unwrappedVariables.add(responseName);
+        analysis.helperWrappedResponseVariables.add(responseName);
       }
+    }
+
+    if (
+      isApiResponseClientCall(scopeNode) &&
+      !isInsideRequestHelperCallback(scopeNode) &&
+      !isApiResponseClientCallAssignedToResponseVariable(scopeNode)
+    ) {
+      analysis.hasUnroutedInlineClientCall = true;
     }
 
     if (isDataPropertyAccess(scopeNode) || isDataElementAccess(scopeNode)) {
@@ -177,32 +257,43 @@ const analyzeFunctionScope = (node: ts.FunctionLikeDeclaration & { body: ts.Conc
   return analysis;
 };
 
-const collectApiResponseContractViolations = (fileName: string, sourceFile: ts.SourceFile) => {
-  const violations: string[] = [];
+const sourceImportsUnwrapApiResponse = (source: string) =>
+  /import\s*\{[^}]*\bunwrapApiResponse\b[^}]*\}\s*from\s*["']\.\/response["'];/.test(source);
 
-  const visit = (node: ts.Node) => {
-    if (isFunctionLikeWithBody(node)) {
-      const analysis = analyzeFunctionScope(node);
+const getExportedDomainApiFiles = (): string[] => {
+  const indexPath = path.join(__dirname, "index.ts");
+  const source = fs.readFileSync(indexPath, "utf8");
+  const sourceFile = ts.createSourceFile(
+    "index.ts",
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+  const files = new Set<string>();
 
-      if (analysis.hasDirectPayloadAccess) {
-        violations.push(`${fileName} still has direct ApiResponse payload access`);
-      }
-
-      analysis.responseVariables.forEach((responseVariable) => {
-        if (!analysis.unwrappedVariables.has(responseVariable)) {
-          violations.push(
-            `${fileName} must unwrap ${responseVariable}.data through unwrapApiResponse in the same function scope`,
-          );
-        }
-      });
+  sourceFile.statements.forEach((statement) => {
+    if (
+      !ts.isExportDeclaration(statement) ||
+      !statement.moduleSpecifier ||
+      !ts.isStringLiteral(statement.moduleSpecifier) ||
+      infrastructureModules.has(statement.moduleSpecifier.text) ||
+      !statement.exportClause ||
+      !ts.isNamedExports(statement.exportClause)
+    ) {
+      return;
     }
 
-    ts.forEachChild(node, visit);
-  };
+    const exportsDomainApi = statement.exportClause.elements.some((element) =>
+      element.name.text.endsWith("Api")
+    );
 
-  visit(sourceFile);
+    if (exportsDomainApi) {
+      files.add(`${statement.moduleSpecifier.text.replace(/^\.\//, "")}.ts`);
+    }
+  });
 
-  return violations;
+  return Array.from(files).sort();
 };
 
 const findApiResponseContractViolations = (fileName: string, source: string) => {
@@ -215,64 +306,139 @@ const findApiResponseContractViolations = (fileName: string, source: string) => 
     ts.ScriptKind.TS,
   );
 
-  if (!/import\s*\{[^}]*\bunwrapApiResponse\b[^}]*\}\s*from\s*["']\.\/response["'];/.test(source)) {
-    violations.push(`${fileName} must import unwrapApiResponse from ./response`);
+  if (sourceImportsUnwrapApiResponse(source)) {
+    violations.push(
+      `${fileName} must not import unwrapApiResponse from ./response; use requestApi/requestApiNullable`,
+    );
   }
 
-  if (!/\bunwrapApiResponse\s*\(/.test(source)) {
-    violations.push(`${fileName} must use unwrapApiResponse`);
+  if (/\bunwrapApiResponse\s*\(/.test(source)) {
+    violations.push(`${fileName} must not call unwrapApiResponse directly`);
   }
 
-  violations.push(...collectApiResponseContractViolations(fileName, sourceFile));
+  const visit = (node: ts.Node) => {
+    if (isFunctionLikeWithBody(node)) {
+      const analysis = analyzeFunctionScope(node);
+
+      if (analysis.hasDirectPayloadAccess) {
+        violations.push(`${fileName} still has direct ApiResponse payload access`);
+      }
+
+      if (analysis.hasUnroutedInlineClientCall) {
+        violations.push(
+          `${fileName} must route ApiResponse client calls through requestApi or requestApiNullable`,
+        );
+      }
+
+      analysis.responseVariables.forEach((responseVariable) => {
+        if (!analysis.helperWrappedResponseVariables.has(responseVariable)) {
+          violations.push(
+            `${fileName} must route ${responseVariable} through requestApi or requestApiNullable`,
+          );
+        }
+      });
+
+      return;
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
 
   return violations;
 };
 
 describe("migrated API response contracts", () => {
-  it("reports an ApiResponse response variable without a matching unwrap", () => {
+  it("reports direct unwrap imports and calls in domain API modules", () => {
     const source = `
       import { client } from "./client";
       import { unwrapApiResponse } from "./response";
       import type { ApiResponse } from "./types";
 
-      export const couponsApi = {
+      export const couponApi = {
         async getCoupons() {
           const response = await client.get<ApiResponse<CouponInfos>>("/coupons");
           return unwrapApiResponse(response.data);
         },
-        async issueCoupon(couponId: number) {
-          const response = await client.post<ApiResponse<null>>(\`/coupons/\${couponId}/issue\`);
-        },
       };
     `;
 
-    expect(findApiResponseContractViolations("fixture.ts", source)).toContain(
-      "fixture.ts must unwrap response.data through unwrapApiResponse in the same function scope",
+    expect(findApiResponseContractViolations("fixture.ts", source)).toEqual(
+      expect.arrayContaining([
+        "fixture.ts must not import unwrapApiResponse from ./response; use requestApi/requestApiNullable",
+        "fixture.ts must not call unwrapApiResponse directly",
+      ]),
     );
   });
 
-  it("reports the ApiResponse variable that is not unwrapped even when counts match", () => {
+  it("reports ApiResponse client calls outside requestApi/requestApiNullable", () => {
     const source = `
       import { client } from "./client";
-      import { unwrapApiResponse } from "./response";
+      import { requestApi } from "./request";
       import type { ApiResponse } from "./types";
 
-      export const couponsApi = {
+      export const couponApi = {
         async getCoupons() {
-          const firstResponse = await client.get<ApiResponse<CouponInfos>>("/coupons/first");
-          const secondResponse = await client.get<ApiResponse<CouponInfos>>("/coupons/second");
-
-          return [
-            unwrapApiResponse(firstResponse.data),
-            unwrapApiResponse(firstResponse.data),
-          ];
+          return client.get<ApiResponse<CouponInfos>>("/coupons");
+        },
+        async issueCoupon(couponId: number) {
+          return requestApi(() =>
+            client.post<ApiResponse<CouponIssueResult>>(\`/coupons/\${couponId}/issue\`)
+          );
         },
       };
     `;
 
     expect(findApiResponseContractViolations("fixture.ts", source)).toContain(
-      "fixture.ts must unwrap secondResponse.data through unwrapApiResponse in the same function scope",
+      "fixture.ts must route ApiResponse client calls through requestApi or requestApiNullable",
     );
+  });
+
+  it("reports response variables that are not routed through a request helper", () => {
+    const source = `
+      import { client } from "./client";
+      import { requestApi } from "./request";
+      import type { ApiResponse } from "./types";
+
+      export const authApi = {
+        async getMe() {
+          const response = await client.get<ApiResponse<MeInfo>>("/auth/me");
+          return response.data;
+        },
+        async getProfile() {
+          const response = await client.get<ApiResponse<Profile>>("/profile");
+          return requestApi(() => Promise.resolve(response));
+        },
+      };
+    `;
+
+    expect(findApiResponseContractViolations("fixture.ts", source)).toContain(
+      "fixture.ts must route response through requestApi or requestApiNullable",
+    );
+  });
+
+  it("allows response-level checks before routing the response through requestApi", () => {
+    const source = `
+      import { client } from "./client";
+      import { requestApi } from "./request";
+      import type { ApiResponse } from "./types";
+
+      export const authApi = {
+        async getMe() {
+          const response = await client.get<ApiResponse<MeInfo>>("/auth/me");
+          const contentType = response.headers?.["content-type"];
+
+          if (typeof contentType === "string" && contentType.includes("text/html")) {
+            throw new Error("Invalid API Response");
+          }
+
+          return requestApi(() => Promise.resolve(response));
+        },
+      };
+    `;
+
+    expect(findApiResponseContractViolations("fixture.ts", source)).toEqual([]);
   });
 
   it.each([
@@ -284,17 +450,14 @@ describe("migrated API response contracts", () => {
   ])("reports direct ApiResponse payload access via %s", (directAccess) => {
     const source = `
       import { client } from "./client";
-      import { unwrapApiResponse } from "./response";
+      import { requestApi } from "./request";
       import type { ApiResponse } from "./types";
 
       export const couponsApi = {
         async getCoupons() {
           const response = await client.get<ApiResponse<CouponInfos>>("/coupons");
           const directPayload = ${directAccess};
-          return {
-            directPayload,
-            unwrappedPayload: unwrapApiResponse(response.data),
-          };
+          return requestApi(() => Promise.resolve(response));
         },
       };
     `;
@@ -304,10 +467,22 @@ describe("migrated API response contracts", () => {
     );
   });
 
-  it("unwraps ApiResponse envelopes through unwrapApiResponse", () => {
+  it("discovers exported domain API wrappers from the API barrel", () => {
+    expect(getExportedDomainApiFiles()).toEqual(
+      expect.arrayContaining([
+        "auth.ts",
+        "accommodations.ts",
+        "commonCodes.ts",
+        "coupons.ts",
+      ]),
+    );
+    expect(getExportedDomainApiFiles()).not.toContain("request.ts");
+  });
+
+  it("routes exported domain API envelopes through requestApi or requestApiNullable", () => {
     const violations: string[] = [];
 
-    migratedApiFiles.forEach((fileName) => {
+    getExportedDomainApiFiles().forEach((fileName) => {
       const source = fs.readFileSync(path.join(__dirname, fileName), "utf8");
       violations.push(...findApiResponseContractViolations(fileName, source));
     });

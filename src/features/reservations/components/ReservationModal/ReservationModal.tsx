@@ -1,11 +1,11 @@
-import React, { useEffect } from "react";
-import { AccommodationDetail } from "../../types/accommodation";
-import { useApiError } from "../../hooks/useApiError";
-import { useAuth } from "../../hooks/useAuth";
-import { useReservationPayment } from "../../features/reservations/hooks/useReservationPayment";
-import { Dialog } from "../../shared/ui";
-import { ErrorToast } from "../ErrorToast";
-import { getImageUrl } from "../../utils/image";
+import React from "react";
+import { AccommodationDetail } from "../../../../types/accommodation";
+import { useApiError } from "../../../../hooks/useApiError";
+import { useAuth } from "../../../../hooks/useAuth";
+import { useReservationPayment } from "../../hooks/useReservationPayment";
+import { Dialog } from "../../../../shared/ui";
+import { ErrorToast } from "../../../../components/ErrorToast";
+import { getImageUrl } from "../../../../utils/image";
 import styles from "./ReservationModal.module.css";
 
 interface ReservationModalProps {
@@ -45,18 +45,6 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
     clearError,
     handleError,
   });
-
-  useEffect(() => {
-    // Toss Payments SDK 로드
-    const script = document.createElement("script");
-    script.src = "https://js.tosspayments.com/v1";
-    script.async = true;
-    document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
 
   const formatDateForDisplay = (date: Date | null): string => {
     if (!date) return "";

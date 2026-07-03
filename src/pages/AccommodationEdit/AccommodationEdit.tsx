@@ -152,7 +152,7 @@ const AccommodationEdit: React.FC = () => {
       document.addEventListener("mousedown", handleClickOutside);
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
-  }, [openTimePicker]);
+  }, [openTimePicker, setOpenTimePicker]);
 
   const isStepCompleted = (step: Step): boolean =>
     isFormStepCompleted(step, {

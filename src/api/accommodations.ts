@@ -1,5 +1,5 @@
 import { client } from "./client";
-import { unwrapApiResponse } from "./response";
+import { requestApi, requestApiNullable } from "./request";
 import {
   AccommodationSearchRequest,
   AccommodationSearchResponse,
@@ -15,25 +15,23 @@ import { ApiResponse } from "../types/api";
 export const accommodationApi = {
   // 숙소 검색
   search: async (params: AccommodationSearchRequest): Promise<AccommodationSearchResponse> => {
-    const response = await client.get<ApiResponse<AccommodationSearchResponse>>(
-      "/search/accommodations",
-      { params }
+    return requestApi(() =>
+      client.get<ApiResponse<AccommodationSearchResponse>>("/search/accommodations", { params })
     );
-    return unwrapApiResponse(response.data);
   },
 
   // 숙소 상세 조회 (Public)
   getDetail: async (accommodationId: number): Promise<AccommodationDetail> => {
-    const response = await client.get<ApiResponse<AccommodationDetail>>(
-      `/accommodations/${accommodationId}`
+    return requestApi(() =>
+      client.get<ApiResponse<AccommodationDetail>>(`/accommodations/${accommodationId}`)
     );
-    return unwrapApiResponse(response.data);
   },
 
   // 숙소 초안 생성
   create: async (): Promise<CreateAccommodationResponse> => {
-    const response = await client.post<ApiResponse<CreateAccommodationResponse>>("/accommodations");
-    return unwrapApiResponse(response.data);
+    return requestApi(() =>
+      client.post<ApiResponse<CreateAccommodationResponse>>("/accommodations")
+    );
   },
 
   // 숙소 수정
@@ -67,26 +65,30 @@ export const accommodationApi = {
       check_out_time?: string; // HH:mm 또는 HH:mm:ss
     }
   ): Promise<void> => {
-    const response = await client.patch<ApiResponse<null>>(`/accommodations/${accommodationId}`, data);
-    unwrapApiResponse(response.data, { allowNull: true });
+    await requestApiNullable(() =>
+      client.patch<ApiResponse<null>>(`/accommodations/${accommodationId}`, data)
+    );
   },
 
   // 숙소 공개
   publish: async (accommodationId: number): Promise<void> => {
-    const response = await client.patch<ApiResponse<null>>(`/accommodations/${accommodationId}/publish`);
-    unwrapApiResponse(response.data, { allowNull: true });
+    await requestApiNullable(() =>
+      client.patch<ApiResponse<null>>(`/accommodations/${accommodationId}/publish`)
+    );
   },
 
   // 숙소 비공개
   unpublish: async (accommodationId: number): Promise<void> => {
-    const response = await client.patch<ApiResponse<null>>(`/accommodations/${accommodationId}/unpublish`);
-    unwrapApiResponse(response.data, { allowNull: true });
+    await requestApiNullable(() =>
+      client.patch<ApiResponse<null>>(`/accommodations/${accommodationId}/unpublish`)
+    );
   },
 
   // 숙소 삭제
   delete: async (accommodationId: number): Promise<void> => {
-    const response = await client.delete<ApiResponse<null>>(`/accommodations/${accommodationId}`);
-    unwrapApiResponse(response.data, { allowNull: true });
+    await requestApiNullable(() =>
+      client.delete<ApiResponse<null>>(`/accommodations/${accommodationId}`)
+    );
   },
 
   // 숙소 이미지 업로드
@@ -100,28 +102,30 @@ export const accommodationApi = {
       formData.append("images", image);
     });
 
-    const response = await client.post<ApiResponse<UploadImagesResponse>>(
-      `/accommodations/${accommodationId}/images`,
-      formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
+    return requestApi(() =>
+      client.post<ApiResponse<UploadImagesResponse>>(
+        `/accommodations/${accommodationId}/images`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total && onUploadProgress) {
+              const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              onUploadProgress(percentCompleted);
+            }
+          },
         },
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total && onUploadProgress) {
-            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            onUploadProgress(percentCompleted);
-          }
-        },
-      }
+      )
     );
-    return unwrapApiResponse(response.data);
   },
 
   // 숙소 이미지 삭제
   deleteImage: async (accommodationId: number, imageId: number): Promise<void> => {
-    const response = await client.delete<ApiResponse<null>>(`/accommodations/${accommodationId}/images/${imageId}`);
-    unwrapApiResponse(response.data, { allowNull: true });
+    await requestApiNullable(() =>
+      client.delete<ApiResponse<null>>(`/accommodations/${accommodationId}/images/${imageId}`)
+    );
   },
 
   // 호스트 숙소 목록 조회
@@ -130,18 +134,17 @@ export const accommodationApi = {
     cursor?: string;
     status?: AccommodationStatus;
   }): Promise<HostAccommodationInfos> => {
-    const response = await client.get<ApiResponse<HostAccommodationInfos>>(
-      "/profile/host/accommodations",
-      { params }
+    return requestApi(() =>
+      client.get<ApiResponse<HostAccommodationInfos>>("/profile/host/accommodations", { params })
     );
-    return unwrapApiResponse(response.data);
   },
 
   // 호스트 숙소 상세 조회
   getHostAccommodationDetail: async (accommodationId: number): Promise<HostAccommodationDetail> => {
-    const response = await client.get<ApiResponse<HostAccommodationDetail>>(
-      `/profile/host/accommodations/${accommodationId}`
+    return requestApi(() =>
+      client.get<ApiResponse<HostAccommodationDetail>>(
+        `/profile/host/accommodations/${accommodationId}`
+      )
     );
-    return unwrapApiResponse(response.data);
   },
 };

@@ -34,6 +34,9 @@ describe("useReservationPayment", () => {
   afterEach(() => {
     process.env.REACT_APP_TOSS_CLIENT_KEY = originalClientKey;
     delete (window as any).TossPayments;
+    document
+      .querySelectorAll('script[src="https://js.tosspayments.com/v1"]')
+      .forEach((script) => script.remove());
   });
 
   it("creates a reservation and starts Toss payment with route-based URLs", async () => {
@@ -83,6 +86,36 @@ describe("useReservationPayment", () => {
     );
     expect(handleError).not.toHaveBeenCalled();
     expect(result.current.isProcessingPayment).toBe(true);
+  });
+
+  it("loads the Toss SDK through the shared adapter", async () => {
+    const handleError = jest.fn();
+    const clearError = jest.fn();
+    const renderPaymentMethods = jest.fn().mockResolvedValue(undefined);
+    const requestPayment = jest.fn();
+    const widgets = jest.fn(() => ({ renderPaymentMethods }));
+    (window as any).TossPayments = jest.fn(() => ({
+      widgets,
+      requestPayment,
+    }));
+    jest.mocked(reservationApi.create).mockResolvedValue(reservationResponse);
+
+    const { result } = renderHook(() =>
+      useReservationPayment({
+        clearError,
+        handleError,
+      })
+    );
+
+    expect(
+      document.querySelectorAll('script[src="https://js.tosspayments.com/v1"]')
+    ).toHaveLength(1);
+
+    await act(async () => {
+      await result.current.startReservationPayment(paymentOptions);
+    });
+
+    await waitFor(() => expect(requestPayment).toHaveBeenCalled());
   });
 
   it("surfaces Toss setup failures and resets payment state", async () => {

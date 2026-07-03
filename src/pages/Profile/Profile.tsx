@@ -3,46 +3,51 @@ import { useSearchParams } from "react-router-dom";
 import GuestTrips from "./GuestTrips/GuestTrips";
 import HostListings from "./HostListings/HostListings";
 import HostReservations from "./HostReservations/HostReservations";
+import {
+  buildProfileRouteSearchParams,
+  parseProfileRouteState,
+  ProfileRouteState,
+  ProfileRouteTab,
+} from "../../features/profile/lib/profileRouteState";
 import styles from "./Profile.module.css";
 
 type ProfileMode = "guest" | "host";
 
+const getActiveTabFromRouteTab = (tab: ProfileRouteTab): string => {
+  if (tab === "trips") {
+    return "upcoming";
+  }
+
+  if (tab === "listings") {
+    return "listings-published";
+  }
+
+  if (tab === "reservations") {
+    return "reservations-upcoming";
+  }
+
+  return tab;
+};
+
 const Profile: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialMode = searchParams.get("mode") === "host" ? "host" : "guest";
-  const initialTab = searchParams.get("tab") || (initialMode === "host" ? "listings" : "upcoming");
+  const initialRouteState = parseProfileRouteState(searchParams);
   
-  // 호스트 모드에서 "reservations" 탭이 선택되면 기본값을 "reservations-upcoming"으로 설정
-  const getInitialTab = () => {
-    if (initialMode === "host" && initialTab === "reservations") {
-      return "reservations-upcoming";
-    }
-    return initialTab;
-  };
-  
-  const [mode, setMode] = useState<ProfileMode>(initialMode);
-  const [activeTab, setActiveTab] = useState<string>(getInitialTab());
+  const [mode, setMode] = useState<ProfileMode>(initialRouteState.mode);
+  const [activeTab, setActiveTab] = useState<string>(
+    getActiveTabFromRouteTab(initialRouteState.tab)
+  );
 
   useEffect(() => {
-    const modeParam = searchParams.get("mode");
-    const tabParam = searchParams.get("tab");
-    
-    if (modeParam === "host") {
-      setMode("host");
-      // 호스트 모드에서 "reservations" 탭이 선택되면 기본값을 "reservations-upcoming"으로 설정
-      // 호스트 모드에서 "listings" 탭이 선택되면 기본값을 "listings-published"로 설정
-      if (tabParam === "reservations") {
-        setActiveTab("reservations-upcoming");
-      } else if (tabParam === "listings") {
-        setActiveTab("listings-published");
-      } else {
-        setActiveTab(tabParam || "listings-published");
-      }
-    } else {
-      setMode("guest");
-      setActiveTab(tabParam || "upcoming");
-    }
+    const routeState = parseProfileRouteState(searchParams);
+
+    setMode(routeState.mode);
+    setActiveTab(getActiveTabFromRouteTab(routeState.tab));
   }, [searchParams]);
+
+  const setProfileRouteState = (state: ProfileRouteState) => {
+    setSearchParams(buildProfileRouteSearchParams(state), { replace: true });
+  };
 
   return (
     <>
@@ -58,7 +63,7 @@ const Profile: React.FC = () => {
                 e.stopPropagation();
                 setMode("guest");
                 setActiveTab("upcoming");
-                setSearchParams({ mode: "guest", tab: "upcoming" }, { replace: true });
+                setProfileRouteState({ mode: "guest", tab: "upcoming" });
               }}
             >
               게스트
@@ -71,7 +76,7 @@ const Profile: React.FC = () => {
                 e.stopPropagation();
                 setMode("host");
                 setActiveTab("listings");
-                setSearchParams({ mode: "host", tab: "listings" }, { replace: true });
+                setProfileRouteState({ mode: "host", tab: "listings" });
               }}
             >
               호스트
@@ -87,7 +92,7 @@ const Profile: React.FC = () => {
                   className={`${styles.navItem} ${activeTab === "upcoming" ? styles.active : ""}`}
                   onClick={() => {
                     setActiveTab("upcoming");
-                    setSearchParams({ mode: "guest", tab: "upcoming" }, { replace: true });
+                    setProfileRouteState({ mode: "guest", tab: "upcoming" });
                   }}
                 >
                   다가올 여행
@@ -96,7 +101,7 @@ const Profile: React.FC = () => {
                   className={`${styles.navItem} ${activeTab === "past" ? styles.active : ""}`}
                   onClick={() => {
                     setActiveTab("past");
-                    setSearchParams({ mode: "guest", tab: "past" }, { replace: true });
+                    setProfileRouteState({ mode: "guest", tab: "past" });
                   }}
                 >
                   이전 여행
@@ -105,7 +110,7 @@ const Profile: React.FC = () => {
                   className={`${styles.navItem} ${activeTab === "cancelled" ? styles.active : ""}`}
                   onClick={() => {
                     setActiveTab("cancelled");
-                    setSearchParams({ mode: "guest", tab: "cancelled" }, { replace: true });
+                    setProfileRouteState({ mode: "guest", tab: "cancelled" });
                   }}
                 >
                   취소된 여행
@@ -120,7 +125,7 @@ const Profile: React.FC = () => {
                     activeTab === "listings-unpublished" ? styles.active : ""}`}
                   onClick={() => {
                     setActiveTab("listings-published");
-                    setSearchParams({ mode: "host", tab: "listings-published" }, { replace: true });
+                    setProfileRouteState({ mode: "host", tab: "listings-published" });
                   }}
                 >
                   숙소 관리
@@ -132,7 +137,7 @@ const Profile: React.FC = () => {
                     activeTab === "reservations-cancelled" ? styles.active : ""}`}
                   onClick={() => {
                     setActiveTab("reservations-upcoming");
-                    setSearchParams({ mode: "host", tab: "reservations-upcoming" }, { replace: true });
+                    setProfileRouteState({ mode: "host", tab: "reservations-upcoming" });
                   }}
                 >
                   예약 관리
@@ -168,7 +173,7 @@ const Profile: React.FC = () => {
                         : newStatusType === "DRAFT" ? "listings-draft"
                         : "listings-unpublished";
                       setActiveTab(newTab);
-                      setSearchParams({ mode: "host", tab: newTab }, { replace: true });
+                      setProfileRouteState({ mode: "host", tab: newTab });
                     }}
                   />
                 )}
@@ -189,7 +194,7 @@ const Profile: React.FC = () => {
                         : newFilterType === "PAST" ? "reservations-past"
                         : "reservations-cancelled";
                       setActiveTab(newTab);
-                      setSearchParams({ mode: "host", tab: newTab }, { replace: true });
+                      setProfileRouteState({ mode: "host", tab: newTab });
                     }}
                   />
                 )}

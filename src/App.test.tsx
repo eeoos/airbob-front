@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import App from "./App";
 
 const mockUseAuth = jest.fn();
@@ -68,6 +68,12 @@ jest.mock(
 
 jest.mock("./layouts", () => ({
   MainLayout: () => <div data-testid="main-layout" />,
+}));
+
+jest.mock("./shared/ui", () => ({
+  LoadingState: ({ title }: { title: string }) => (
+    <div data-testid="route-loading">{title}</div>
+  ),
 }));
 
 jest.mock("./pages/Home/Home", () => () => <div data-testid="page-home" />);
@@ -183,18 +189,20 @@ beforeEach(() => {
   );
 });
 
-test("renders the complete configured route table", () => {
+test("renders the complete configured route table", async () => {
   render(<App />);
 
   expect(screen.getByTestId("browser-router")).toBeInTheDocument();
   expect(screen.getAllByTestId(/^route-(\/|\*)/)).toHaveLength(routeMappings.length);
   expect(screen.getByTestId("main-layout-route")).toBeInTheDocument();
 
-  routeMappings.forEach(({ path, pageTestId }) => {
-    const route = screen.getByTestId(`route-${path}`);
+  await waitFor(() => {
+    routeMappings.forEach(({ path, pageTestId }) => {
+      const route = screen.getByTestId(`route-${path}`);
 
-    expect(route).toHaveTextContent(path);
-    expect(within(route).getByTestId(pageTestId)).toBeInTheDocument();
+      expect(route).toHaveTextContent(path);
+      expect(within(route).getByTestId(pageTestId)).toBeInTheDocument();
+    });
   });
 });
 
@@ -213,23 +221,25 @@ test("groups main routes under the main layout route", () => {
   });
 });
 
-test("classifies route elements by auth requirement for unauthenticated users", () => {
+test("classifies route elements by auth requirement for unauthenticated users", async () => {
   mockUseAuth.mockReturnValue(
     createAuthState({ isAuthenticated: false, isLoading: false })
   );
 
   render(<App />);
 
-  routeMappings.forEach(({ path, pageTestId, requiresAuth }) => {
-    const route = screen.getByTestId(`route-${path}`);
+  await waitFor(() => {
+    routeMappings.forEach(({ path, pageTestId, requiresAuth }) => {
+      const route = screen.getByTestId(`route-${path}`);
 
-    if (requiresAuth) {
-      expect(within(route).getByTestId("navigate")).toHaveTextContent("/");
-      expect(within(route).queryByTestId(pageTestId)).not.toBeInTheDocument();
-      return;
-    }
+      if (requiresAuth) {
+        expect(within(route).getByTestId("navigate")).toHaveTextContent("/");
+        expect(within(route).queryByTestId(pageTestId)).not.toBeInTheDocument();
+        return;
+      }
 
-    expect(within(route).getByTestId(pageTestId)).toBeInTheDocument();
-    expect(within(route).queryByTestId("navigate")).not.toBeInTheDocument();
+      expect(within(route).getByTestId(pageTestId)).toBeInTheDocument();
+      expect(within(route).queryByTestId("navigate")).not.toBeInTheDocument();
+    });
   });
 });

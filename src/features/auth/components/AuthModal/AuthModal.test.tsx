@@ -1,15 +1,17 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AuthModal } from "./AuthModal";
 
-jest.mock("../../hooks/useAuth", () => ({
+const mockLogin = jest.fn();
+
+jest.mock("../../../../hooks/useAuth", () => ({
   useAuth: () => ({
-    login: jest.fn(),
+    login: mockLogin,
   }),
 }));
 
-jest.mock("../../hooks/useApiError", () => {
+jest.mock("../../../../hooks/useApiError", () => {
   const React = require("react");
 
   return {
@@ -30,7 +32,7 @@ jest.mock("../../hooks/useApiError", () => {
   };
 });
 
-jest.mock("../../features/auth/hooks/useSignup", () => {
+jest.mock("../../hooks/useSignup", () => {
   const React = require("react");
 
   return {
@@ -52,7 +54,7 @@ jest.mock("../../features/auth/hooks/useSignup", () => {
   };
 });
 
-jest.mock("../ErrorToast", () => ({
+jest.mock("../../../../components/ErrorToast", () => ({
   ErrorToast: ({
     message,
     onClose,
@@ -70,6 +72,11 @@ jest.mock("../ErrorToast", () => ({
 }));
 
 describe("AuthModal", () => {
+  beforeEach(() => {
+    mockLogin.mockReset();
+    mockLogin.mockResolvedValue(undefined);
+  });
+
   it("renders the login form inside the shared accessible dialog", () => {
     render(
       <AuthModal isOpen={true} onClose={jest.fn()} initialMode="login" />
@@ -101,5 +108,73 @@ describe("AuthModal", () => {
     await waitFor(() => {
       expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     });
+  });
+
+  it("closes and runs the success callback after a completed login while open", async () => {
+    const onClose = jest.fn();
+    const onSuccess = jest.fn();
+
+    render(
+      <AuthModal
+        isOpen={true}
+        onClose={onClose}
+        initialMode="login"
+        onSuccess={onSuccess}
+      />
+    );
+
+    await userEvent.type(screen.getByLabelText("이메일"), "user@example.com");
+    await userEvent.type(screen.getByLabelText("비밀번호"), "password123");
+    await userEvent.click(screen.getByRole("button", { name: "로그인" }));
+
+    await waitFor(() => {
+      expect(mockLogin).toHaveBeenCalledWith({
+        email: "user@example.com",
+        password: "password123",
+      });
+    });
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not replay the success callback when the modal closes before login resolves", async () => {
+    let resolveLogin!: () => void;
+    mockLogin.mockReturnValue(
+      new Promise<void>((resolve) => {
+        resolveLogin = resolve;
+      })
+    );
+    const onClose = jest.fn();
+    const onSuccess = jest.fn();
+    const { rerender } = render(
+      <AuthModal
+        isOpen={true}
+        onClose={onClose}
+        initialMode="login"
+        onSuccess={onSuccess}
+      />
+    );
+
+    await userEvent.type(screen.getByLabelText("이메일"), "user@example.com");
+    await userEvent.type(screen.getByLabelText("비밀번호"), "password123");
+    await userEvent.click(screen.getByRole("button", { name: "로그인" }));
+    await waitFor(() => expect(mockLogin).toHaveBeenCalledTimes(1));
+
+    rerender(
+      <AuthModal
+        isOpen={false}
+        onClose={onClose}
+        initialMode="login"
+        onSuccess={onSuccess}
+      />
+    );
+
+    await act(async () => {
+      resolveLogin();
+      await Promise.resolve();
+    });
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(onSuccess).not.toHaveBeenCalled();
   });
 });

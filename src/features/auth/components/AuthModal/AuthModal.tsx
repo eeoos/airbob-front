@@ -1,9 +1,9 @@
-import React, { useCallback, useState, useEffect } from "react";
-import { useAuth } from "../../hooks/useAuth";
-import { useApiError } from "../../hooks/useApiError";
-import { useSignup } from "../../features/auth/hooks/useSignup";
-import { Dialog } from "../../shared/ui";
-import { ErrorToast } from "../ErrorToast";
+import React, { useCallback, useState, useEffect, useRef } from "react";
+import { useAuth } from "../../../../hooks/useAuth";
+import { useApiError } from "../../../../hooks/useApiError";
+import { useSignup } from "../../hooks/useSignup";
+import { Dialog } from "../../../../shared/ui";
+import { ErrorToast } from "../../../../components/ErrorToast";
 import styles from "./AuthModal.module.css";
 
 interface AuthModalProps {
@@ -21,6 +21,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 }) => {
   const [mode, setMode] = useState<"login" | "signup">(initialMode);
   const { login } = useAuth();
+  const isOpenRef = useRef(isOpen);
   const { error: loginError, handleError, clearError } = useApiError();
   const {
     error: signupError,
@@ -43,6 +44,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   }, [clearError, clearSignupError]);
 
   useEffect(() => {
+    isOpenRef.current = isOpen;
+
     if (isOpen) {
       setMode(initialMode);
       setFormData({
@@ -67,6 +70,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           email: formData.email,
           password: formData.password,
         });
+        if (!isOpenRef.current) {
+          return;
+        }
         onClose();
         if (onSuccess) {
           onSuccess();

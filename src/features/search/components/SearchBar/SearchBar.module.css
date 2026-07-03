@@ -406,7 +406,7 @@
   /* 모바일에서 날짜 선택기 - 헤더 아래에 표시 */
   .datePickerContainer {
     position: fixed;
-    top: 130px; /* 헤더 + 검색바 아래 */
+    top: var(--layout-search-mobile-popover-top); /* 헤더 + 검색바 아래 */
     left: 16px;
     right: 16px;
     bottom: auto;
@@ -422,7 +422,7 @@
   /* 모바일에서 여행자 선택기 - 헤더 아래에 표시 */
   .guestPicker {
     position: fixed;
-    top: 130px; /* 헤더 + 검색바 아래 */
+    top: var(--layout-search-mobile-popover-top); /* 헤더 + 검색바 아래 */
     left: 16px;
     right: 16px;
     bottom: auto;
@@ -471,7 +471,7 @@
   /* 모바일에서 추천 드롭다운 - 헤더 아래에 표시 */
   .suggestions {
     position: fixed;
-    top: 130px; /* 헤더 + 검색바 아래 */
+    top: var(--layout-search-mobile-popover-top); /* 헤더 + 검색바 아래 */
     left: 16px;
     right: 16px;
     bottom: auto;

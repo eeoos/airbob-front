@@ -36,8 +36,8 @@ describe("shared UI boundary contracts", () => {
 
   it("keeps design-entry modals on the shared Dialog scroll-lock boundary", () => {
     const dialogOwnedModalFiles = [
-      "components/AuthModal/AuthModal.tsx",
-      "components/ReservationModal/ReservationModal.tsx",
+      "features/auth/components/AuthModal/AuthModal.tsx",
+      "features/reservations/components/ReservationModal/ReservationModal.tsx",
     ];
 
     const violations = dialogOwnedModalFiles.flatMap((relativePath) => {

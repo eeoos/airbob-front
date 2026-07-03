@@ -75,7 +75,7 @@
 
 .wishlistImage {
   width: 100%;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: var(--card-media-ratio);
   position: relative;
   overflow: hidden;
   background-color: var(--color-background-muted);

@@ -66,6 +66,32 @@ describe("auth boundary contracts", () => {
     expect(mockClientGet).toHaveBeenCalledWith("/auth/me");
   });
 
+  it("passes an AbortSignal through to the getMe request when provided", async () => {
+    const meInfo: MeInfo = {
+      id: 1,
+      email: "guest@example.com",
+      nickname: "Guest",
+      thumbnail_image_url: null,
+    };
+    const controller = new AbortController();
+
+    mockClientGet.mockResolvedValue({
+      data: {
+        success: true,
+        data: meInfo,
+        error: null,
+      },
+      headers: {
+        "content-type": "application/json;charset=utf-8",
+      },
+    });
+
+    await expect(authApi.getMe(controller.signal)).resolves.toEqual(meInfo);
+    expect(mockClientGet).toHaveBeenCalledWith("/auth/me", {
+      signal: controller.signal,
+    });
+  });
+
   it("rejects a backend getMe error envelope as ApiClientError", async () => {
     const backendError: ErrorResponse = {
       message: "인증이 필요합니다.",
@@ -120,13 +146,17 @@ describe("auth boundary contracts", () => {
     expect(clientError.code).toBe("INVALID_API_RESPONSE");
   });
 
-  it("keeps AuthContext authentication checks behind authApi.getMe", () => {
+  it("keeps AuthContext authentication state behind the auth query boundary", () => {
     const authContextSource = readSource("..", "contexts", "AuthContext.tsx");
 
     expect(authContextSource).not.toMatch(/from\s+["']\.\.\/api\/client["'];?/);
     expect(authContextSource).not.toMatch(/client\.get\(\s*["']\/auth\/me["']\s*\)/);
-    expect(authContextSource).toMatch(/await\s+authApi\.getMe\(\s*\);/);
-    expect(authContextSource).toMatch(/setIsAuthenticated\(\s*true\s*\);/);
-    expect(authContextSource).toMatch(/finally\s*\{[\s\S]*setIsLoading\(\s*false\s*\);[\s\S]*\}/);
+    expect(authContextSource).not.toMatch(/setIsAuthenticated/);
+    expect(authContextSource).not.toMatch(/setIsLoading/);
+    expect(authContextSource).toMatch(/useSessionQuery\(\s*\)/);
+    expect(authContextSource).toMatch(/useQueryClient\(\s*\)/);
+    expect(authContextSource).toMatch(/authQueryKeys\.me\(\s*\)/);
+    expect(authContextSource).toMatch(/authApi\.getMe\(\s*\)/);
+    expect(authContextSource).toMatch(/setQueryData[\s\S]*authQueryKeys\.me\(\s*\)/);
   });
 });

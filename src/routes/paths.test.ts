@@ -39,12 +39,19 @@ describe("route path contracts", () => {
     expect(routeTo.accommodationEdit(12, { mode: "create" })).toBe(
       "/accommodations/12/edit?mode=create"
     );
-    expect(routeTo.wishlist({ id: "wish 1", view: "grid/card" })).toBe(
-      "/wishlist?id=wish+1&view=grid%2Fcard"
+    expect(routeTo.wishlist({ id: "wish 1", view: "recently-viewed" })).toBe(
+      "/wishlist?id=wish+1&view=recently-viewed"
     );
     expect(routeTo.profile({ mode: "host", tab: "listings-published" })).toBe(
       "/profile?mode=host&tab=listings-published"
     );
+  });
+
+  it("rejects unsupported route-state query values at compile time", () => {
+    // @ts-expect-error wishlist view must stay aligned with WishlistRouteView.
+    routeTo.wishlist({ view: "grid/card" });
+    // @ts-expect-error profile tab must stay aligned with ProfileRouteTab.
+    routeTo.profile({ mode: "host", tab: "payments" });
   });
 
   it("normalizes leading question marks for raw query string builders", () => {

@@ -10,6 +10,32 @@ Airbnb 디자인 리팩터 전에 프론트엔드 아키텍처 변경이 주요 
 - Backend: http://localhost:8080
 - QA 계정: 스레드에서 사용자가 제공한 QA 계정을 사용한다. 실제 이메일, 비밀번호, 닉네임, member_id 같은 자격 증명 값은 문서나 커밋에 남기지 않는다.
 
+## Architecture Checkpoints
+
+### query route contract
+
+- Steps: open saved deep links for `/search`, `/profile?mode=host&tab=reservations`, `/wishlist?view=recently-viewed`, `/wishlist?id=<wishlistId>`, and the payment redirect pages with safe QA data.
+- Expected: page state, selected tab/view, pagination, reservation/payment state, and browser back/forward behavior match the URL without resetting to defaults.
+- Evidence: record the tested URL, expected state, actual state, and whether refresh/back/forward preserved it.
+
+### server-state auth boundary
+
+- Steps: test login, logout, focus refresh, and a protected route after an expired or rejected session.
+- Expected: Header/UserMenu, auth modal, protected route redirects, wishlist/reservation actions, and 401 handling all reflect the same authenticated or unauthenticated state.
+- Evidence: record the auth state before/after the action, visible Header/UserMenu state, route/modal result, and any 401 network response.
+
+### components ownership boundary
+
+- Steps: inspect affected UI during Search, Wishlist, Reservation, Auth, and Accommodation detail flows after running `npm run test:ci:no-cache`.
+- Expected: shared UI primitives behave consistently across flows, and workflow containers remain under features or pages without leaking domain-specific behavior into shared components.
+- Evidence: record the component/flow checked, the interaction performed, the expected shared behavior, and any boundary violation found.
+
+### design system entry contracts
+
+- Steps: run `npm run test:ci -- --runTestsByPath src/styles/design-system-contracts.test.ts src/styles/tokens.test.ts`, then smoke Header, mobile Search popovers, Search bottom sheet, cards, and modal overlays at desktop and mobile widths.
+- Expected: header height, mobile search popover position, page width, card media ratio, modal z-index, and bottom-sheet z-index follow shared tokens without visual overlap or clipped controls.
+- Evidence: record the command result, viewport size, screen/flow checked, screenshot path, and any token/layout mismatch.
+
 ## Desktop 1280px 체크리스트
 
 - [ ] Header logo 가 키보드 포커스를 받고 Enter 로 Home 이동이 가능하다.

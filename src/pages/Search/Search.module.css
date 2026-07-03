@@ -22,8 +22,8 @@
   position: relative;
   display: flex;
   gap: 48px;
-  height: calc(100vh - 80px);
-  min-height: calc(100vh - 80px);
+  height: calc(100vh - var(--layout-header-desktop-height));
+  min-height: calc(100vh - var(--layout-header-desktop-height));
   align-items: flex-start;
   overflow: visible;
 }
@@ -312,9 +312,9 @@
   .bottomSheet.expanded {
     /* transform is controlled by framer-motion */
     /* 시트가 거의 올라가지 않으므로 높이는 헤더 아래 높이만 */
-    height: calc(100vh - 80px - 20px);
-    max-height: calc(100vh - 80px - 20px);
-    min-height: calc(100vh - 80px - 20px);
+    height: calc(100vh - var(--layout-header-desktop-height) - 20px);
+    max-height: calc(100vh - var(--layout-header-desktop-height) - 20px);
+    min-height: calc(100vh - var(--layout-header-desktop-height) - 20px);
   }
 
   /* Bottom Sheet Header - Always Visible */
@@ -432,7 +432,7 @@
   }
 
   /* Bottom Sheet - Mobile adjustments */
-  /* 헤더 아래에서 시작하도록 설정 (헤더: 60px container + 28px padding + 56px searchBar = 약 144px) */
+  /* 헤더 아래에서 시작하도록 설정 */
   .bottomSheet {
     /* 기본값은 bottom: 0 (collapsed/half 상태용) */
   }
@@ -471,9 +471,9 @@
   .bottomSheet.expanded {
     /* transform is controlled by framer-motion */
     /* 시트가 거의 올라가지 않으므로 높이는 헤더 아래 높이만 */
-    height: calc(100vh - 144px - 60px);
-    max-height: calc(100vh - 144px - 60px);
-    min-height: calc(100vh - 144px - 60px);
+    height: calc(100vh - var(--layout-search-mobile-bottom-sheet-offset) - 60px);
+    max-height: calc(100vh - var(--layout-search-mobile-bottom-sheet-offset) - 60px);
+    min-height: calc(100vh - var(--layout-search-mobile-bottom-sheet-offset) - 60px);
   }
 
   /* Mobile Header adjustments */
@@ -532,7 +532,7 @@
 /* 지도 확장 모드 */
 .main.mapExpanded {
   position: absolute;
-  top: 80px;
+  top: var(--layout-header-desktop-height);
   left: 80px;
   right: 80px;
   bottom: auto;
@@ -540,8 +540,8 @@
   background: white;
   padding: 24px 0;
   margin: 0;
-  height: calc(100vh - 80px);
-  min-height: calc(100vh - 80px);
+  height: calc(100vh - var(--layout-header-desktop-height));
+  min-height: calc(100vh - var(--layout-header-desktop-height));
   box-sizing: border-box;
   width: calc(100% - 160px);
   gap: 0;
@@ -555,8 +555,8 @@
   flex: 1;
   position: relative;
   top: 0;
-  height: calc(100vh - 80px - 48px);
-  min-height: calc(100vh - 80px - 48px);
+  height: calc(100vh - var(--layout-header-desktop-height) - 48px);
+  min-height: calc(100vh - var(--layout-header-desktop-height) - 48px);
   max-height: none;
   margin: 0;
   width: 100%;

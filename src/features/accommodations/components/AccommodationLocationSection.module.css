@@ -1,0 +1,122 @@
+.section {
+  padding-bottom: 48px;
+  border-bottom: 1px solid #ebebeb;
+}
+
+.locationSectionFullWidth {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 0 48px 80px;
+  padding: 48px 0 0 0;
+  position: relative;
+}
+
+.locationSectionFullWidth::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  max-width: 1120px;
+  height: 1px;
+  background-color: #ebebeb;
+}
+
+.sectionTitle {
+  font-size: 22px;
+  font-weight: 600;
+  color: #222222;
+  margin-bottom: 24px;
+}
+
+.address {
+  font-size: 16px;
+  color: #222222;
+  margin-bottom: 16px;
+}
+
+.mapContainer {
+  width: 100%;
+  aspect-ratio: 2.3 / 1;
+  max-height: 480px;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-top: 16px;
+  position: relative;
+  z-index: 0;
+}
+
+.mapContainer iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 12px;
+}
+
+.mapPlaceholder {
+  width: 100%;
+  height: 100%;
+  background-color: #f7f7f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #717171;
+  border: 1px solid #ebebeb;
+}
+
+@media (max-width: 1400px) {
+  .locationSectionFullWidth {
+    margin-left: 60px;
+    max-width: calc(100% - 120px);
+  }
+
+  .locationSectionFullWidth::before {
+    max-width: calc(100% - 120px);
+  }
+}
+
+@media (max-width: 1200px) {
+  .locationSectionFullWidth {
+    margin-left: 40px;
+    max-width: calc(100% - 80px);
+  }
+
+  .locationSectionFullWidth::before {
+    max-width: calc(100% - 80px);
+  }
+}
+
+@media (max-width: 1024px) {
+  .locationSectionFullWidth {
+    margin-left: 24px;
+    margin-right: 24px;
+    max-width: calc(100% - 48px);
+  }
+
+  .locationSectionFullWidth::before {
+    max-width: 100%;
+  }
+
+  .mapContainer {
+    aspect-ratio: 16 / 9;
+    max-height: 350px;
+  }
+}
+
+@media (max-width: 768px) {
+  .locationSectionFullWidth {
+    margin-left: 16px;
+    margin-right: 16px;
+    max-width: calc(100% - 32px);
+    padding-top: 32px;
+  }
+
+  .mapContainer {
+    aspect-ratio: 4 / 3;
+    max-height: 280px;
+  }
+
+  .sectionTitle {
+    font-size: 20px;
+  }
+}

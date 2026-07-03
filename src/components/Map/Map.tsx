@@ -8,11 +8,17 @@ import {
   hasViewportChanged,
   shouldFitAccommodationBounds,
 } from "./lib/mapBounds";
+import { useGoogleMapsScript } from "../../hooks/useGoogleMapsScript";
 import {
   buildMarkerPriceSvg,
   getMarkerIconModel,
 } from "./lib/markerIcon";
 import { buildInfoWindowContent } from "./lib/infoWindowContent";
+import {
+  adjustInfoWindowIntoMapView,
+  applyInfoWindowChromeStyles,
+} from "./lib/infoWindowDom";
+import { renderMapExpandControl } from "./lib/mapExpandControl";
 import { routeTo } from "../../routes/paths";
 import styles from "./Map.module.css";
 
@@ -66,8 +72,7 @@ export const Map: React.FC<MapProps> = ({
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
-  const [isMapLoaded, setIsMapLoaded] = useState(false);
-  const scriptLoadedRef = useRef(false);
+  const { isLoaded: isMapLoaded, status: mapScriptStatus } = useGoogleMapsScript();
   const prevSelectedIdRef = useRef<number | null>(null);
   const prevHoveredIdRef = useRef<number | null>(null);
   const boundsInitializedRef = useRef(false);
@@ -88,75 +93,6 @@ export const Map: React.FC<MapProps> = ({
     onAccommodationSelectRef.current = onAccommodationSelect;
   }, [onAccommodationSelect]);
 
-  // Google Maps API가 완전히 로드되었는지 확인하는 함수
-  const checkMapsLoaded = (): boolean => {
-    return !!(
-      window.google &&
-      window.google.maps &&
-      window.google.maps.Map &&
-      typeof window.google.maps.Map === 'function'
-    );
-  };
-
-  // Google Maps API 동적 로드
-  useEffect(() => {
-    if (scriptLoadedRef.current) return;
-
-    // 이미 로드되어 있는지 확인
-    if (checkMapsLoaded()) {
-      setIsMapLoaded(true);
-      return;
-    }
-
-    // 스크립트가 이미 추가되어 있는지 확인
-    const existingScript = document.querySelector(
-      'script[src*="maps.googleapis.com"]'
-    );
-    if (existingScript) {
-      const checkLoaded = setInterval(() => {
-        if (checkMapsLoaded()) {
-          setIsMapLoaded(true);
-          clearInterval(checkLoaded);
-        }
-      }, 100);
-      return () => clearInterval(checkLoaded);
-    }
-
-    // Google Maps API 스크립트 로드
-    const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
-    console.log("Google Maps API Key:", apiKey ? "설정됨" : "설정되지 않음");
-    if (apiKey) {
-      const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&loading=async`;
-      script.async = true;
-      script.defer = true;
-      script.onload = () => {
-        // onload 후에도 Map 생성자가 사용 가능할 때까지 대기
-        const checkInterval = setInterval(() => {
-          if (checkMapsLoaded()) {
-            setIsMapLoaded(true);
-            clearInterval(checkInterval);
-          }
-        }, 50);
-        
-        // 최대 5초 대기
-        setTimeout(() => {
-          clearInterval(checkInterval);
-          if (!checkMapsLoaded()) {
-            console.error("Google Maps API Map 생성자를 사용할 수 없습니다.");
-          }
-        }, 5000);
-      };
-      script.onerror = () => {
-        console.error("Google Maps API 로드 실패");
-      };
-      document.head.appendChild(script);
-      scriptLoadedRef.current = true;
-    } else {
-      console.warn("Google Maps API 키가 설정되지 않았습니다. REACT_APP_GOOGLE_MAPS_API_KEY 환경 변수를 설정하고 개발 서버를 재시작해주세요.");
-    }
-  }, []);
-
   // 지도 초기화
   useEffect(() => {
     if (!isMapLoaded || !mapRef.current) return;
@@ -167,7 +103,10 @@ export const Map: React.FC<MapProps> = ({
     }
 
     const initMap = () => {
-      if (!mapRef.current || !checkMapsLoaded()) {
+      if (
+        !mapRef.current ||
+        typeof window.google?.maps?.Map !== "function"
+      ) {
         console.warn("Google Maps API가 아직 완전히 로드되지 않았습니다.");
         return;
       }
@@ -224,59 +163,11 @@ export const Map: React.FC<MapProps> = ({
         setTimeout(() => {
           if (!mapRef.current || !onExpandToggle) return;
 
-          // 기존 버튼이 있으면 제거
-          const existingButton = mapRef.current.querySelector('.map-expand-button');
-          if (existingButton) {
-            existingButton.remove();
-          }
-
-          // 확장/축소 버튼 생성
-          const expandButton = document.createElement('button');
-          expandButton.className = 'map-expand-button';
-          expandButton.innerHTML = isExpanded
-            ? `
-              <svg viewBox="0 0 24 24" fill="currentColor" style="width: 20px; height: 20px;">
-                <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
-              </svg>
-            `
-            : `
-              <svg viewBox="0 0 24 24" fill="currentColor" style="width: 20px; height: 20px;">
-                <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
-              </svg>
-            `;
-          expandButton.style.cssText = `
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 40px;
-            height: 40px;
-            background: white;
-            border: none;
-            border-radius: 2px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-            cursor: pointer;
-            z-index: var(--z-popover);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #222222;
-            transition: background-color 0.2s ease;
-          `;
-          
-          expandButton.addEventListener('mouseenter', () => {
-            expandButton.style.backgroundColor = '#f7f7f7';
+          renderMapExpandControl({
+            container: mapRef.current,
+            isExpanded,
+            onToggle: onExpandToggle,
           });
-          expandButton.addEventListener('mouseleave', () => {
-            expandButton.style.backgroundColor = 'white';
-          });
-
-          expandButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            onExpandToggle();
-          });
-          
-          // 지도 컨테이너에 버튼 추가
-          mapRef.current.appendChild(expandButton);
         }, 500);
 
         // 지도 클릭 시 InfoWindow 닫기
@@ -792,57 +683,7 @@ export const Map: React.FC<MapProps> = ({
         
         // InfoWindow DOM 요소 찾기
         setTimeout(() => {
-          const infoWindowContainer = document.querySelector('.gm-style-iw-c') as HTMLElement;
-          if (!infoWindowContainer) {
-            return;
-          }
-          
-          const infoWindowParent = infoWindowContainer.parentElement;
-          if (!infoWindowParent) {
-            return;
-          }
-          
-          const mapRect = mapDiv.getBoundingClientRect();
-          const infoWindowRect = infoWindowContainer.getBoundingClientRect();
-          
-          const infoWindowWidth = 327;
-          const infoWindowHeight = infoWindowRect.height; // 실제 높이 사용
-          const margin = 20;
-          
-          // InfoWindow의 현재 위치 (지도 컨테이너 기준)
-          const infoWindowLeft = infoWindowRect.left - mapRect.left;
-          const infoWindowTop = infoWindowRect.top - mapRect.top;
-          const infoWindowRight = infoWindowLeft + infoWindowWidth;
-          const infoWindowBottom = infoWindowTop + infoWindowHeight;
-          
-          const mapWidth = mapRect.width;
-          const mapHeight = mapRect.height;
-          
-          let adjustX = 0;
-          let adjustY = 0;
-          
-          // 화면 밖으로 나가는 경우에만 조정
-          if (infoWindowLeft < margin) {
-            adjustX = margin - infoWindowLeft;
-          } else if (infoWindowRight > mapWidth - margin) {
-            adjustX = (mapWidth - margin) - infoWindowRight;
-          }
-          
-          if (infoWindowTop < margin) {
-            adjustY = margin - infoWindowTop;
-          } else if (infoWindowBottom > mapHeight - margin) {
-            adjustY = (mapHeight - margin) - infoWindowBottom;
-          }
-          
-          // 위치 조정 적용
-          if (adjustX !== 0 || adjustY !== 0) {
-            const currentTransform = infoWindowParent.style.transform || '';
-            const translateMatch = currentTransform.match(/translate\(([^,]+),\s*([^)]+)\)/);
-            const currentX = translateMatch ? parseFloat(translateMatch[1]) : 0;
-            const currentY = translateMatch ? parseFloat(translateMatch[2]) : 0;
-            
-            infoWindowParent.style.transform = `translate(${currentX + adjustX}px, ${currentY + adjustY}px)`;
-          }
+          adjustInfoWindowIntoMapView({ mapElement: mapDiv });
         }, 50);
         
         const infoWindowElement = document.getElementById(`info-window-${selectedAccommodation.id}`);
@@ -857,41 +698,7 @@ export const Map: React.FC<MapProps> = ({
           });
         }
         
-        // InfoWindow 스타일 오버라이드
-        const infoWindowD = document.querySelector('.gm-style-iw-d') as HTMLElement;
-        if (infoWindowD) {
-          infoWindowD.style.padding = '0';
-          infoWindowD.style.background = 'transparent';
-          infoWindowD.style.boxShadow = 'none';
-        }
-        const infoWindowC = document.querySelector('.gm-style-iw-c') as HTMLElement;
-        if (infoWindowC) {
-          infoWindowC.style.padding = '0';
-          infoWindowC.style.background = 'transparent';
-          infoWindowC.style.boxShadow = 'none';
-          infoWindowC.style.borderRadius = '12px';
-          infoWindowC.style.overflow = 'hidden';
-        }
-        
-        // Google Maps 기본 닫기 버튼 영역 완전히 제거
-        // .gm-ui-hover-effect는 닫기 버튼
-        // .gm-style-iw-chr, .gm-style-iw-ch는 닫기 버튼을 감싸는 컨테이너
-        const closeButtonContainer = document.querySelector('.gm-style-iw-chr') as HTMLElement;
-        if (closeButtonContainer) {
-          closeButtonContainer.remove();
-        }
-        const closeButton = document.querySelector('.gm-ui-hover-effect') as HTMLElement;
-        if (closeButton) {
-          closeButton.remove();
-        }
-        // 추가로 닫기 버튼을 감싸는 다른 요소들도 제거
-        const closeButtonWrapper = document.querySelector('.gm-style-iw-ch') as HTMLElement;
-        if (closeButtonWrapper && closeButtonWrapper.children.length === 0) {
-          closeButtonWrapper.remove();
-        }
-        
-        // InfoWindow 꼬리 부분의 가상 요소만 제거 (CSS로 처리)
-        // JavaScript로 조작하지 않고 CSS만 사용하여 InfoWindow에 영향 없게 처리
+        applyInfoWindowChromeStyles();
       });
 
       // 위시리스트 토글 함수 등록
@@ -952,62 +759,11 @@ export const Map: React.FC<MapProps> = ({
         if (!infoWindowRef.current || !mapRef.current) {
           return;
         }
+
+        const mapElement = mapRef.current;
         
         setTimeout(() => {
-          const infoWindowContainer = document.querySelector('.gm-style-iw-c') as HTMLElement;
-          if (!infoWindowContainer) {
-            return;
-          }
-          
-          const infoWindowParent = infoWindowContainer.parentElement;
-          if (!infoWindowParent) {
-            return;
-          }
-          
-          const mapDiv = mapRef.current;
-          if (!mapDiv) {
-            return;
-          }
-          
-          const mapRect = mapDiv.getBoundingClientRect();
-          const infoWindowRect = infoWindowContainer.getBoundingClientRect();
-          
-          const infoWindowWidth = 327;
-          const infoWindowHeight = infoWindowRect.height; // 실제 높이 사용
-          const margin = 20;
-          
-          const infoWindowLeft = infoWindowRect.left - mapRect.left;
-          const infoWindowTop = infoWindowRect.top - mapRect.top;
-          const infoWindowRight = infoWindowLeft + infoWindowWidth;
-          const infoWindowBottom = infoWindowTop + infoWindowHeight;
-          
-          const mapWidth = mapRect.width;
-          const mapHeight = mapRect.height;
-          
-          let adjustX = 0;
-          let adjustY = 0;
-          
-          // 화면 밖으로 나가는 경우에만 조정
-          if (infoWindowLeft < margin) {
-            adjustX = margin - infoWindowLeft;
-          } else if (infoWindowRight > mapWidth - margin) {
-            adjustX = (mapWidth - margin) - infoWindowRight;
-          }
-          
-          if (infoWindowTop < margin) {
-            adjustY = margin - infoWindowTop;
-          } else if (infoWindowBottom > mapHeight - margin) {
-            adjustY = (mapHeight - margin) - infoWindowBottom;
-          }
-          
-          if (adjustX !== 0 || adjustY !== 0) {
-            const currentTransform = infoWindowParent.style.transform || '';
-            const translateMatch = currentTransform.match(/translate\(([^,]+),\s*([^)]+)\)/);
-            const currentX = translateMatch ? parseFloat(translateMatch[1]) : 0;
-            const currentY = translateMatch ? parseFloat(translateMatch[2]) : 0;
-            
-            infoWindowParent.style.transform = `translate(${currentX + adjustX}px, ${currentY + adjustY}px)`;
-          }
+          adjustInfoWindowIntoMapView({ mapElement });
         }, 100);
       };
       
@@ -1148,83 +904,11 @@ export const Map: React.FC<MapProps> = ({
     const updateOrCreateButton = () => {
       if (!mapRef.current || !onExpandToggle) return;
 
-      let expandButton = mapRef.current.querySelector('.map-expand-button') as HTMLElement;
-      
-      if (!expandButton) {
-        // 버튼이 없으면 생성
-        expandButton = document.createElement('button');
-        expandButton.className = 'map-expand-button';
-        expandButton.style.cssText = `
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          width: 40px;
-          height: 40px;
-          background: white;
-          border: none;
-          border-radius: 2px;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-          cursor: pointer;
-          z-index: var(--z-popover);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #222222;
-          transition: background-color 0.2s ease;
-        `;
-        
-        expandButton.addEventListener('mouseenter', () => {
-          expandButton.style.backgroundColor = '#f7f7f7';
-        });
-        expandButton.addEventListener('mouseleave', () => {
-          expandButton.style.backgroundColor = 'white';
-        });
-
-        // 클릭 이벤트 등록
-        expandButton.addEventListener('click', (e) => {
-          e.stopPropagation();
-          if (onExpandToggle) {
-            onExpandToggle();
-          }
-        });
-        
-        if (mapRef.current) {
-          mapRef.current.appendChild(expandButton);
-        }
-      }
-
-      // 기존 클릭 이벤트 리스너 제거 후 재등록 (innerHTML 변경 시 이벤트가 사라질 수 있음)
-      const newExpandButton = expandButton.cloneNode(true) as HTMLElement;
-      expandButton.parentNode?.replaceChild(newExpandButton, expandButton);
-      
-      // 이벤트 리스너 재등록
-      newExpandButton.addEventListener('mouseenter', () => {
-        newExpandButton.style.backgroundColor = '#f7f7f7';
+      renderMapExpandControl({
+        container: mapRef.current,
+        isExpanded,
+        onToggle: onExpandToggle,
       });
-      newExpandButton.addEventListener('mouseleave', () => {
-        newExpandButton.style.backgroundColor = 'white';
-      });
-      newExpandButton.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (onExpandToggle) {
-          onExpandToggle();
-        }
-      });
-
-      // 아이콘 업데이트
-      newExpandButton.innerHTML = isExpanded
-        ? `
-          <svg viewBox="0 0 24 24" fill="currentColor" style="width: 20px; height: 20px;">
-            <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
-          </svg>
-        `
-        : `
-          <svg viewBox="0 0 24 24" fill="currentColor" style="width: 20px; height: 20px;">
-            <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
-          </svg>
-        `;
-      
-      expandButton = newExpandButton;
     };
 
     // 지도가 로드된 후 버튼 생성/업데이트
@@ -1244,9 +928,14 @@ export const Map: React.FC<MapProps> = ({
   }, [isExpanded, onExpandToggle, isMapLoaded]);
 
   if (!isMapLoaded) {
+    const mapFallbackText =
+      mapScriptStatus === "missing-key" || mapScriptStatus === "error"
+        ? "지도를 불러올 수 없습니다."
+        : "지도를 불러오는 중...";
+
     return (
       <div className={styles.mapContainer}>
-        <div className={styles.loading}>지도를 불러오는 중...</div>
+        <div className={styles.loading}>{mapFallbackText}</div>
       </div>
     );
   }

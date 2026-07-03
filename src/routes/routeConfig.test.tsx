@@ -1,3 +1,5 @@
+import { readFileSync } from "fs";
+import { join } from "path";
 import { ROUTE_PATHS } from "./paths";
 import { appRoutes } from "./routeConfig";
 
@@ -69,5 +71,15 @@ describe("app route config", () => {
       ROUTE_PATHS.signup,
       ROUTE_PATHS.notFound,
     ]);
+  });
+
+  it("uses lazy route components so pages can split by route", () => {
+    const source = readFileSync(
+      join(process.cwd(), "src/routes/routeConfig.tsx"),
+      "utf8"
+    );
+
+    expect(source).toContain("React.lazy");
+    expect(source).not.toMatch(/import\s+\w+\s+from\s+["']\.\.\/pages\//);
   });
 });

@@ -5,10 +5,13 @@ const projectRoot = process.cwd();
 const packageJsonPath = path.join(projectRoot, "package.json");
 const qaDocPath = path.join(projectRoot, "docs/qa/frontend-architecture-smoke.ko.md");
 
-const getSection = (content: string, heading: string) => {
+const getSection = (content: string, heading: string, level = 2) => {
   const escapedHeading = heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const headingPrefix = "#".repeat(level);
   const section = content.match(
-    new RegExp(`## ${escapedHeading}\\n([\\s\\S]*?)(?=\\n## |$)`),
+    new RegExp(
+      `${headingPrefix} ${escapedHeading}\\n([\\s\\S]*?)(?=\\n${headingPrefix} |$)`,
+    ),
   );
 
   expect(section).not.toBeNull();
@@ -86,6 +89,29 @@ describe("frontend verification gate", () => {
       "Host listing",
       "auth modal",
     ];
+    const architectureSection = getSection(qaDoc, "Architecture Checkpoints");
+    const architectureCheckpoints = [
+      {
+        heading: "query route contract",
+        expectedTerms: [
+          "/profile?mode=host&tab=reservations",
+          "/wishlist?view=recently-viewed",
+          "browser back/forward",
+        ],
+      },
+      {
+        heading: "server-state auth boundary",
+        expectedTerms: ["login", "logout", "401 handling"],
+      },
+      {
+        heading: "components ownership boundary",
+        expectedTerms: ["shared UI primitives", "workflow containers"],
+      },
+      {
+        heading: "design system entry contracts",
+        expectedTerms: ["src/styles/design-system-contracts.test.ts", "screenshot path"],
+      },
+    ];
 
     requiredTerms.forEach((term) => {
       expect(qaDoc).toContain(term);
@@ -95,6 +121,16 @@ describe("frontend verification gate", () => {
     });
     mobileTerms.forEach((term) => {
       expect(mobileSection).toContain(term);
+    });
+    architectureCheckpoints.forEach(({ heading, expectedTerms }) => {
+      const checkpoint = getSection(architectureSection, heading, 3);
+
+      expect(checkpoint).toContain("Steps:");
+      expect(checkpoint).toContain("Expected:");
+      expect(checkpoint).toContain("Evidence:");
+      expectedTerms.forEach((term) => {
+        expect(checkpoint).toContain(term);
+      });
     });
 
     expect(qaDoc).not.toMatch(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);

@@ -33,6 +33,13 @@
   --z-modal: 5000;
   --z-toast: 6000;
   --overlay-backdrop: rgba(0, 0, 0, 0.45);
+  --layout-page-max-width: 1120px;
+  --layout-page-padding-x: 24px;
+  --layout-header-desktop-height: 80px;
+  --layout-header-mobile-height: 130px;
+  --layout-search-mobile-popover-top: var(--layout-header-mobile-height);
+  --layout-search-mobile-bottom-sheet-offset: 144px;
+  --card-media-ratio: 1 / 1;
   --breakpoint-tablet: 768px;
   --breakpoint-desktop: 1024px;
   --breakpoint-wide: 1400px;

@@ -2,16 +2,18 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useApiError } from "../../hooks/useApiError";
 import { useReservationConfirmAccommodation } from "../../features/reservations/hooks/useReservationConfirmAccommodation";
+import { parsePaymentRouteState } from "../../features/reservations/lib/paymentRouteState";
+import {
+  ensureTossPaymentsScript,
+  getTossClientKey,
+  getTossPaymentsClient,
+  shouldSilentlyResetPayment,
+  toReservationPaymentError,
+} from "../../features/reservations/lib/tossPayments";
 import { ErrorToast } from "../../components/ErrorToast";
 import { getImageUrl } from "../../utils/image";
 import { routeTo } from "../../routes/paths";
 import styles from "./ReservationConfirm.module.css";
-
-declare global {
-  interface Window {
-    TossPayments: any;
-  }
-}
 
 const ReservationConfirm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,23 +23,35 @@ const ReservationConfirm: React.FC = () => {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   // URL 파라미터에서 예약 정보 가져오기
-  const reservationUid = searchParams.get("reservationUid");
-  const orderName = searchParams.get("orderName");
-  const amount = searchParams.get("amount") ? parseInt(searchParams.get("amount")!) : null;
-  const customerEmail = searchParams.get("customerEmail");
-  const customerName = searchParams.get("customerName");
-  const couponName = searchParams.get("couponName");
-  const couponDiscountParam = searchParams.get("couponDiscount")
-    ? parseInt(searchParams.get("couponDiscount")!)
-    : null;
+  const paymentRouteState = parsePaymentRouteState(searchParams);
+  const reservationUid =
+    paymentRouteState.status === "valid" ? paymentRouteState.reservationUid : null;
+  const orderName =
+    paymentRouteState.status === "valid" ? paymentRouteState.orderName : null;
+  const amount =
+    paymentRouteState.status === "valid" ? paymentRouteState.amount : null;
+  const customerEmail =
+    paymentRouteState.status === "valid" ? paymentRouteState.customerEmail : null;
+  const customerName =
+    paymentRouteState.status === "valid" ? paymentRouteState.customerName : null;
+  const couponName =
+    paymentRouteState.status === "valid" ? paymentRouteState.couponName : null;
+  const couponDiscountParam =
+    paymentRouteState.status === "valid" ? paymentRouteState.couponDiscount : null;
   
   // 예약 박스에서 입력한 정보
-  const checkIn = searchParams.get("checkIn") ? new Date(searchParams.get("checkIn")!) : null;
-  const checkOut = searchParams.get("checkOut") ? new Date(searchParams.get("checkOut")!) : null;
-  const adultCount = searchParams.get("adultOccupancy") ? parseInt(searchParams.get("adultOccupancy")!) : 1;
-  const childCount = searchParams.get("childOccupancy") ? parseInt(searchParams.get("childOccupancy")!) : 0;
-  const infantCount = searchParams.get("infantOccupancy") ? parseInt(searchParams.get("infantOccupancy")!) : 0;
-  const petCount = searchParams.get("petOccupancy") ? parseInt(searchParams.get("petOccupancy")!) : 0;
+  const checkIn =
+    paymentRouteState.status === "valid" ? paymentRouteState.checkIn : null;
+  const checkOut =
+    paymentRouteState.status === "valid" ? paymentRouteState.checkOut : null;
+  const adultCount =
+    paymentRouteState.status === "valid" ? paymentRouteState.adultOccupancy : 1;
+  const childCount =
+    paymentRouteState.status === "valid" ? paymentRouteState.childOccupancy : 0;
+  const infantCount =
+    paymentRouteState.status === "valid" ? paymentRouteState.infantOccupancy : 0;
+  const petCount =
+    paymentRouteState.status === "valid" ? paymentRouteState.petOccupancy : 0;
 
   const { accommodation, isLoading } = useReservationConfirmAccommodation({
     accommodationId: id,
@@ -48,17 +62,7 @@ const ReservationConfirm: React.FC = () => {
   });
 
   useEffect(() => {
-    // Toss Payments SDK 로드
-    const script = document.createElement("script");
-    script.src = "https://js.tosspayments.com/v1";
-    script.async = true;
-    document.body.appendChild(script);
-
-    return () => {
-      if (document.body.contains(script)) {
-        document.body.removeChild(script);
-      }
-    };
+    ensureTossPaymentsScript();
   }, []);
 
   const formatDateForDisplay = (date: Date | null): string => {
@@ -116,21 +120,7 @@ const ReservationConfirm: React.FC = () => {
     clearError();
 
     try {
-      // Toss Payments 결제 진행
-      if (!window.TossPayments) {
-        throw new Error("결제 시스템을 불러올 수 없습니다. Toss Payments SDK가 로드되지 않았습니다.");
-      }
-
-      const tossClientKey = process.env.REACT_APP_TOSS_CLIENT_KEY;
-      if (!tossClientKey) {
-        throw new Error(
-          "Toss Payments 클라이언트 키가 설정되지 않았습니다. " +
-          ".env 파일에 REACT_APP_TOSS_CLIENT_KEY를 설정해주세요. " +
-          "(예: REACT_APP_TOSS_CLIENT_KEY=test_ck_...)"
-        );
-      }
-
-      const paymentWidget = window.TossPayments(tossClientKey);
+      const paymentWidget = getTossPaymentsClient(getTossClientKey());
       
       await paymentWidget.requestPayment({
         orderId: reservationUid,
@@ -140,39 +130,16 @@ const ReservationConfirm: React.FC = () => {
         customerEmail: customerEmail,
         customerName: customerName,
         amount: amount,
-      }).catch((paymentError: any) => {
-        // Toss Payments 에러 처리
-        const errorCode = paymentError?.code || "";
-        const errorMessage = paymentError?.message || "";
-        
-        // 사용자가 결제를 취소한 경우 - 에러 표시하지 않음
-        if (errorCode === "USER_CANCEL" || errorMessage.includes("취소") || errorMessage.includes("USER_CANCEL")) {
+      }).catch((paymentError: unknown) => {
+        if (shouldSilentlyResetPayment(paymentError)) {
           setIsProcessingPayment(false);
-          return; // 에러를 throw하지 않고 조용히 종료
+          return;
         }
-        
-        // 인증 관련 에러
-        if (errorMessage.includes("인증") || errorMessage.includes("Unauthorized")) {
-          throw new Error(
-            "Toss Payments 클라이언트 키 인증에 실패했습니다. " +
-            "클라이언트 키가 올바른지 확인해주세요. " +
-            "샌드박스 환경에서는 'test_ck_'로 시작하는 키를 사용해야 합니다."
-          );
-        }
-        
-        // 결제 방법 선택 오류 (퀵계좌이체 등) - Toss Payments가 이미 모달로 표시하므로 에러 표시하지 않음
-        if (errorCode === "BAD_REQUEST" || errorMessage.includes("계약 후 테스트")) {
-          setIsProcessingPayment(false);
-          return; // 에러를 throw하지 않고 조용히 종료
-        }
-        
-        // 기타 에러는 표시
-        throw paymentError;
+
+        throw toReservationPaymentError(paymentError);
       });
-    } catch (err: any) {
-      // catch 블록에 도달한 경우에만 에러 표시
-      const errorMessage = err?.message || "결제 진행 중 오류가 발생했습니다.";
-      handleError(new Error(errorMessage));
+    } catch (err) {
+      handleError(toReservationPaymentError(err));
       setIsProcessingPayment(false);
     }
   };

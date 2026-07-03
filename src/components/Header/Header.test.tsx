@@ -26,7 +26,7 @@ jest.mock(
   { virtual: true }
 );
 
-jest.mock("../SearchBar/SearchBar", () => ({
+jest.mock("../../features/search/components/SearchBar", () => ({
   SearchBar: () => <div data-testid="search-bar" />,
 }));
 

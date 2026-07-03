@@ -135,6 +135,10 @@ const forbiddenDesignLiteralPatterns = [
     name: "core-shadow",
     regex: /box-shadow\s*:\s*0\s+(?:1px\s+2px|4px\s+12px)\s+rgba\(0,\s*0,\s*0,\s*(?:0\.08|0\.15)\)/i,
   },
+  {
+    name: "card-media-ratio",
+    regex: /aspect-ratio\s*:\s*1\s*\/\s*1\b/i,
+  },
 ];
 
 const findForbiddenDesignLiteral = (line: string) => {
@@ -247,7 +251,9 @@ describe("pre-design token stylesheet contract", () => {
   });
 
   it("keeps real modal backdrops and foreground controls on overlay tokens", () => {
-    const galleryCss = readCss("pages/AccommodationDetail/AccommodationDetail.module.css");
+    const galleryCss = readCss(
+      "features/accommodations/components/AccommodationImageGalleryModal.module.css",
+    );
     const galleryModal = selectorBlock(galleryCss, ".galleryModal");
     const galleryClose = selectorBlock(galleryCss, ".galleryClose");
 
@@ -257,12 +263,12 @@ describe("pre-design token stylesheet contract", () => {
   });
 
   it("keeps date picker overlays on the dropdown z-index token", () => {
-    const accommodationDetailCss = readCss(
-      "pages/AccommodationDetail/AccommodationDetail.module.css",
+    const accommodationBookingCardCss = readCss(
+      "features/accommodations/components/AccommodationBookingCard.module.css",
     );
 
-    expect(accommodationDetailCss).toMatch(
-      /\.datePickerContainer\s*\{[\s\S]*?position:\s*fixed;[\s\S]*?top:\s*130px;[\s\S]*?z-index:\s*var\(--z-dropdown\);/,
+    expect(accommodationBookingCardCss).toMatch(
+      /\.datePickerContainer\s*\{[\s\S]*?position:\s*fixed;[\s\S]*?top:\s*var\(--layout-search-mobile-popover-top\);[\s\S]*?z-index:\s*var\(--z-dropdown\);/,
     );
   });
 
