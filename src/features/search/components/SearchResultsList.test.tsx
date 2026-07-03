@@ -6,12 +6,14 @@ import { SearchResultsList } from "./SearchResultsList";
 jest.mock("../../../components/AccommodationCard", () => ({
   AccommodationCardSearch: ({
     accommodation,
+    detailUrl,
     onClick,
   }: {
     accommodation: AccommodationSearchInfo;
+    detailUrl?: string;
     onClick: () => void;
   }) => (
-    <button type="button" onClick={onClick}>
+    <button type="button" data-detail-url={detailUrl} onClick={onClick}>
       {`숙소 카드 ${accommodation.id}`}
     </button>
   ),
@@ -73,5 +75,25 @@ describe("SearchResultsList", () => {
 
     expect(onAccommodationClick).toHaveBeenCalledTimes(1);
     expect(onAccommodationClick).toHaveBeenCalledWith(7);
+  });
+
+  it("passes the current search query to accommodation detail cards", () => {
+    render(
+      <SearchResultsList
+        accommodations={[createAccommodation(7)]}
+        isLoading={false}
+        selectedAccommodationId={null}
+        onAccommodationClick={jest.fn()}
+        onWishlistToggle={jest.fn()}
+        detailSearchParams={
+          new URLSearchParams("checkIn=2026-07-10&checkOut=2026-07-12")
+        }
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "숙소 카드 7" })).toHaveAttribute(
+      "data-detail-url",
+      "/accommodations/7?checkIn=2026-07-10&checkOut=2026-07-12"
+    );
   });
 });

@@ -2,11 +2,16 @@ import { act, renderHook } from "@testing-library/react";
 import { PanInfo } from "framer-motion";
 import { useSearchBottomSheet } from "./useSearchBottomSheet";
 
-const resizeWindow = (width: number) => {
+const resizeWindow = (width: number, height = 844) => {
   Object.defineProperty(window, "innerWidth", {
     writable: true,
     configurable: true,
     value: width,
+  });
+  Object.defineProperty(window, "innerHeight", {
+    writable: true,
+    configurable: true,
+    value: height,
   });
   window.dispatchEvent(new Event("resize"));
 };
@@ -63,6 +68,19 @@ describe("useSearchBottomSheet", () => {
     });
 
     expect(result.current.bottomSheetState).toBe("half");
+  });
+
+  it("computes distinct mobile snap positions from the viewport", () => {
+    resizeWindow(390, 844);
+    const { result } = renderHook(() => useSearchBottomSheet());
+
+    expect(result.current.snapPositions.collapsed).toBe(0);
+    expect(result.current.snapPositions.half).toBeGreaterThan(
+      result.current.snapPositions.collapsed
+    );
+    expect(result.current.snapPositions.expanded).toBeGreaterThan(
+      result.current.snapPositions.half
+    );
   });
 
   it("does not run mobile drag transitions on desktop", () => {

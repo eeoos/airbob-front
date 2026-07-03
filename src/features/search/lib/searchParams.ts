@@ -37,8 +37,12 @@ const LOCATION_KEYS = ["lat", "lng"] as const;
 const cloneParams = (params: URLSearchParams): URLSearchParams =>
   new URLSearchParams(params.toString());
 
-const formatDateForSearchParam = (date: Date): string =>
-  date.toISOString().split("T")[0];
+const formatDateForSearchParam = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 const parseOptionalInt = (
   params: URLSearchParams,
@@ -150,10 +154,14 @@ export const buildSearchNavigationParams = (
 
   if (input.checkIn) {
     params.set("checkIn", formatDateForSearchParam(input.checkIn));
+  } else {
+    params.delete("checkIn");
   }
 
   if (input.checkOut) {
     params.set("checkOut", formatDateForSearchParam(input.checkOut));
+  } else {
+    params.delete("checkOut");
   }
 
   params.set("adultOccupancy", input.adultOccupancy.toString());

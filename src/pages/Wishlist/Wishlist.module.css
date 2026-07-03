@@ -27,7 +27,7 @@
 .recentlyViewedTitle {
   font-size: 32px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -37,17 +37,17 @@
   justify-content: center;
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   border: none;
   background: transparent;
-  color: #222222;
+  color: var(--color-text-primary);
   cursor: pointer;
   transition: background-color 0.2s ease;
   align-self: flex-start;
 }
 
 .backButton:hover {
-  background-color: #f7f7f7;
+  background-color: var(--color-background-muted);
 }
 
 .backButton svg {
@@ -58,7 +58,7 @@
 .pageTitle {
   font-size: 32px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
   margin: 0;
   flex: 1;
   margin-top: 16px;
@@ -68,9 +68,9 @@
 .editButton {
   padding: 8px 16px;
   background: transparent;
-  border: 1px solid #222222;
-  border-radius: 8px;
-  color: #222222;
+  border: 1px solid var(--color-text-primary);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -78,8 +78,8 @@
 }
 
 .editButton:hover {
-  background-color: #222222;
-  color: white;
+  background-color: var(--color-text-primary);
+  color: var(--color-text-inverse);
 }
 
 .wishlistGrid {
@@ -101,7 +101,7 @@
 }
 
 .wishlistCard:hover .wishlistCardImage {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
 }
 
 .accommodationCard {
@@ -116,16 +116,16 @@
 }
 
 .accommodationCard:hover .wishlistCardImage {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
 }
 
 .wishlistCardImage {
   width: 100%;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: var(--card-media-ratio);
   position: relative;
-  background-color: #f7f7f7;
+  background-color: var(--color-background-muted);
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   flex-shrink: 0;
 }
 
@@ -150,10 +150,10 @@
   left: 12px;
   width: 32px;
   height: 32px;
-  border-radius: 50%;
-  background-color: white;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-background-page);
   border: none;
-  color: #222222;
+  color: var(--color-text-primary);
   font-size: 20px;
   font-weight: 600;
   cursor: pointer;
@@ -162,20 +162,20 @@
   justify-content: center;
   opacity: 0;
   transition: opacity 0.2s ease, background-color 0.2s ease, color 0.2s ease;
-  z-index: 10;
+  z-index: 1;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .wishlistDeleteButton:hover {
-  background-color: #ff385c;
-  color: white;
+  background-color: var(--color-brand-coral);
+  color: var(--color-text-inverse);
 }
 
 .wishlistCardImage img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
 }
 
 .searchIcon {
@@ -185,7 +185,7 @@
   transform: translate(-50%, -50%);
   width: 48px;
   height: 48px;
-  color: #717171;
+  color: var(--color-text-secondary);
 }
 
 .searchIcon svg {
@@ -199,8 +199,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f7f7f7;
-  color: #717171;
+  background-color: var(--color-background-muted);
+  color: var(--color-text-secondary);
 }
 
 .placeholderImage svg {
@@ -215,7 +215,7 @@
 .wishlistCardName {
   font-size: 14px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
   margin-bottom: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -225,7 +225,7 @@
 
 .wishlistCardCount {
   font-size: 13px;
-  color: #717171;
+  color: var(--color-text-secondary);
   line-height: 1.4;
 }
 
@@ -236,7 +236,7 @@
 .sectionTitle {
   font-size: 22px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
   margin-bottom: 24px;
 }
 
@@ -255,7 +255,7 @@
 .dateTitle {
   font-size: 18px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
   margin-bottom: 16px;
 }
 
@@ -279,8 +279,8 @@
   width: 280px;
   height: 280px;
   position: relative;
-  background-color: #f7f7f7;
-  border-radius: 12px;
+  background-color: var(--color-background-muted);
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
@@ -296,13 +296,13 @@
   }
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1200px) {
   .recentlyViewedGrid {
     grid-template-columns: repeat(2, 280px);
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 768px) {
   .recentlyViewedGrid {
     grid-template-columns: 1fr;
   }
@@ -334,10 +334,10 @@
   right: 12px;
   width: 32px;
   height: 32px;
-  border-radius: 50%;
-  background-color: white;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-background-page);
   border: none;
-  color: #222222;
+  color: var(--color-text-primary);
   font-size: 20px;
   font-weight: 600;
   cursor: pointer;
@@ -346,13 +346,13 @@
   justify-content: center;
   opacity: 0;
   transition: opacity 0.2s ease, background-color 0.2s ease, color 0.2s ease;
-  z-index: 10;
+  z-index: 1;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .deleteButton:hover {
-  background-color: #ff385c;
-  color: white;
+  background-color: var(--color-brand-coral);
+  color: var(--color-text-inverse);
 }
 
 .deleteButtonLeft {
@@ -361,24 +361,24 @@
   left: 12px;
   width: 32px;
   height: 32px;
-  border-radius: 50%;
-  background-color: white;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-background-page);
   border: none;
-  color: #222222;
+  color: var(--color-text-primary);
   font-size: 20px;
   font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10;
+  z-index: 1;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .deleteButtonLeft:hover {
-  background-color: #ff385c;
-  color: white;
+  background-color: var(--color-brand-coral);
+  color: var(--color-text-inverse);
 }
 
 .wishlistButton {
@@ -396,7 +396,7 @@
   cursor: pointer;
   padding: 0;
   transition: transform 0.2s ease;
-  z-index: 10;
+  z-index: 1;
   box-shadow: none;
 }
 
@@ -419,7 +419,7 @@
 .location {
   font-size: 14px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
   line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -437,24 +437,24 @@
 
 .star {
   font-size: 14px;
-  color: #222222;
+  color: var(--color-text-primary);
 }
 
 .rating {
   font-size: 14px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
 }
 
 .reviewCount {
   font-size: 14px;
-  color: #717171;
+  color: var(--color-text-secondary);
 }
 
 .name {
   font-size: 14px;
   font-weight: 400;
-  color: #222222;
+  color: var(--color-text-primary);
   line-height: 1.2;
   margin-bottom: 4px;
   overflow: hidden;
@@ -466,7 +466,7 @@
 .empty {
   text-align: center;
   padding: 80px 24px;
-  color: #717171;
+  color: var(--color-text-secondary);
   font-size: 16px;
 }
 
@@ -479,7 +479,7 @@
 }
 
 .loadingMore {
-  color: #717171;
+  color: var(--color-text-secondary);
   font-size: 14px;
 }
 
@@ -493,33 +493,33 @@
 /* 메모 영역 */
 .memoArea {
   padding: 12px;
-  border: 1px solid #dddddd;
-  border-radius: 8px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
   margin-top: 8px;
   cursor: pointer;
   transition: border-color 0.2s ease;
-  background-color: #f7f7f7;
+  background-color: var(--color-background-muted);
 }
 
 .memoArea:hover {
-  border-color: #222222;
+  border-color: var(--color-text-primary);
 }
 
 .memoAdd {
-  color: #717171;
+  color: var(--color-text-secondary);
   font-size: 14px;
   font-weight: 500;
 }
 
 .memoText {
-  color: #222222;
+  color: var(--color-text-primary);
   font-size: 14px;
   line-height: 1.4;
   display: block;
 }
 
 .memoEdit {
-  color: #222222;
+  color: var(--color-text-primary);
   font-weight: 600;
   text-decoration: underline;
   margin-left: 4px;
@@ -542,8 +542,8 @@
 }
 
 .memoModal {
-  background: white;
-  border-radius: 12px;
+  background: var(--color-background-page);
+  border-radius: var(--radius-lg);
   width: 400px;
   max-width: 100%;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
@@ -555,13 +555,13 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 24px;
-  border-bottom: 1px solid #ebebeb;
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .memoModalTitle {
   font-size: 16px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -569,7 +569,7 @@
   background: none;
   border: none;
   font-size: 18px;
-  color: #717171;
+  color: var(--color-text-secondary);
   cursor: pointer;
   padding: 4px;
   display: flex;
@@ -579,7 +579,7 @@
 }
 
 .memoModalClose:hover {
-  color: #222222;
+  color: var(--color-text-primary);
 }
 
 .memoModalBody {
@@ -590,8 +590,8 @@
   width: 100%;
   min-height: 100px;
   padding: 12px;
-  border: 1px solid #dddddd;
-  border-radius: 8px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
   font-size: 14px;
   font-family: inherit;
   resize: none;
@@ -601,17 +601,17 @@
 }
 
 .memoTextarea:focus {
-  border-color: #222222;
+  border-color: var(--color-text-primary);
 }
 
 .memoTextarea::placeholder {
-  color: #b0b0b0;
+  color: var(--color-border-strong);
 }
 
 .memoCharCount {
   text-align: right;
   font-size: 12px;
-  color: #717171;
+  color: var(--color-text-secondary);
   margin-top: 8px;
 }
 
@@ -620,7 +620,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 24px;
-  border-top: 1px solid #ebebeb;
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .memoClearButton {
@@ -628,21 +628,21 @@
   border: none;
   font-size: 14px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
   cursor: pointer;
   padding: 8px 0;
   text-decoration: underline;
 }
 
 .memoClearButton:hover {
-  color: #000000;
+  color: var(--color-text-primary);
 }
 
 .memoSaveButton {
-  background-color: #222222;
-  color: white;
+  background-color: var(--color-text-primary);
+  color: var(--color-text-inverse);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 12px 24px;
   font-size: 14px;
   font-weight: 600;
@@ -651,12 +651,12 @@
 }
 
 .memoSaveButton:hover {
-  background-color: #000000;
+  background-color: var(--color-text-primary);
 }
 
 .memoSaveButton:disabled {
-  background-color: #dddddd;
-  color: #717171;
+  background-color: var(--color-border-default);
+  color: var(--color-text-secondary);
   cursor: not-allowed;
 }
 

@@ -70,10 +70,10 @@ test("renders loading text while auth state is loading", () => {
   expect(screen.queryByTestId("navigate")).not.toBeInTheDocument();
 });
 
-test("renders Navigate to home with replace when unauthenticated", () => {
+test("redirects unauthenticated users to login with a protected route return target", () => {
   renderRequireAuth({ isAuthenticated: false, isLoading: false });
 
-  expect(screen.getByTestId("navigate")).toHaveAttribute("data-to", routeTo.home());
+  expect(screen.getByTestId("navigate")).toHaveAttribute("data-to", routeTo.login());
   expect(screen.getByTestId("navigate")).toHaveAttribute("data-replace", "true");
   expect(screen.getByTestId("navigate")).toHaveAttribute(
     "data-state",

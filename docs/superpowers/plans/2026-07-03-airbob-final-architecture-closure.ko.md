@@ -304,3 +304,11 @@ Expected: typecheck, Jest, build, whitespace check PASS.
 - P1: Header semantic, InfoWindow typed/accessibility escape hatch, stale rejected request tests 제거.
 - P2: AccommodationEdit confirm/upload 순서, Search wishlist updater boundary, touched CSS token cleanup, Auth/Reservation Dialog 수렴 완료.
 - Airbnb `design.md` 적용은 이 계획 완료 후 가능. Review/AccommodationAction modal은 디자인 pass에서 직접 만질 때 `Dialog`로 이관한다.
+
+## 2026-07-03 Phase 8 Pre-Design Closure
+
+- Removed unreferenced generic custom modals and locked the `src/components` boundary against `DateChangeModal`/`GuestChangeModal` returning.
+- Stabilized fullscreen gallery overlay accessibility by moving `AccommodationImageGalleryModal` onto the shared `Dialog` primitive and labelled controls.
+- Expanded token, z-index, and breakpoint contracts for high-impact pre-design screens: Search, Wishlist, Profile, accommodation booking/hero/reviews/description/gallery.
+- Ran gstack report-only browser QA for search/map/detail/gallery/booking/modal/protected-route flows.
+- Verification: `npm run typecheck`, full `npm run test:ci:no-cache -- --runInBand`, `npm run build`, focused contract suites, and QA report `.gstack/qa-reports/qa-report-localhost-3002-2026-07-03-phase8.md`.

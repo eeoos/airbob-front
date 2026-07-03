@@ -92,7 +92,7 @@ jest.mock("../../components/ErrorToast", () => ({
   ErrorToast: () => null,
 }));
 
-jest.mock("../../components/WishlistModal", () => ({
+jest.mock("../../features/wishlist/components/WishlistModal", () => ({
   WishlistModal: () => null,
 }));
 

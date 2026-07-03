@@ -6,13 +6,7 @@ const productionSourceExtensions = [".ts", ".tsx"];
 const forbiddenImportPattern =
   /from\s+["'](?:\.\.\/)+(?:api|features|pages)(?:\/[^"']*)?["']/;
 
-const allowedWorkflowFiles = new Set([
-  "AccommodationActionModal/AccommodationActionModal.tsx",
-  "CreateWishlistModal/CreateWishlistModal.tsx",
-  "Header/Header.tsx",
-  "Header/UserMenu.tsx",
-  "WishlistModal/WishlistModal.tsx",
-]);
+const allowedWorkflowFiles = new Set(["Header/Header.tsx", "Header/UserMenu.tsx"]);
 
 const collectProductionSourceFiles = (directory: string): string[] =>
   readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -33,6 +27,28 @@ const collectProductionSourceFiles = (directory: string): string[] =>
   });
 
 describe("generic components boundary contracts", () => {
+  it("keeps workflow components out of generic components", () => {
+    const forbiddenWorkflowDirectories = [
+      "Map",
+      "ReviewModal",
+      "DateChangeModal",
+      "GuestChangeModal",
+    ];
+
+    const existingForbiddenDirectories = forbiddenWorkflowDirectories.filter(
+      (directoryName) => {
+        try {
+          readdirSync(join(componentsRoot, directoryName));
+          return true;
+        } catch {
+          return false;
+        }
+      }
+    );
+
+    expect(existingForbiddenDirectories).toEqual([]);
+  });
+
   it("keeps generic components independent from app domains", () => {
     const violations = collectProductionSourceFiles(componentsRoot)
       .filter((filePath) => {

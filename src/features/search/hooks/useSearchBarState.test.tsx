@@ -105,9 +105,10 @@ describe("useSearchBarState", () => {
 
   it("submits plain text search by navigating with stale viewport removed", () => {
     placesState.inputText = "Busan";
-    setBrowserSearch(
-      "?destination=Seoul&page=3&lat=37&lng=127&topLeftLat=38&topLeftLng=126&bottomRightLat=37&bottomRightLng=128"
+    currentSearchParams = new URLSearchParams(
+      "destination=Seoul&page=3&lat=37&lng=127&topLeftLat=38&topLeftLng=126&bottomRightLat=37&bottomRightLng=128"
     );
+    setBrowserSearch("");
 
     const { result } = renderHook(() => useSearchBarState());
 
@@ -121,6 +122,24 @@ describe("useSearchBarState", () => {
     expect(result.current.showDatePicker).toBe(false);
     expect(result.current.showGuestPicker).toBe(false);
     expect(result.current.showSuggestions).toBe(false);
+  });
+
+  it("builds search params from router params instead of browser global search", () => {
+    placesState.inputText = "Jeju";
+    currentSearchParams = new URLSearchParams("destination=Seoul&page=3");
+    setBrowserSearch(
+      "?destination=Seoul&checkIn=2026-07-10&checkOut=2026-07-12&page=3"
+    );
+
+    const { result } = renderHook(() => useSearchBarState());
+
+    act(() => {
+      result.current.handleSearch();
+    });
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/search?destination=Jeju&adultOccupancy=1&childOccupancy=0&infantOccupancy=0&petOccupancy=0"
+    );
   });
 
   it("calls onSearch with selected place coordinates instead of navigating", () => {

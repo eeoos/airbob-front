@@ -1,5 +1,6 @@
 import { ImageInfo } from "../../../types/accommodation";
 import { getImageUrl } from "../../../utils/image";
+import { Dialog } from "../../../shared/ui";
 import styles from "./AccommodationImageGalleryModal.module.css";
 
 interface AccommodationImageGalleryModalProps {
@@ -42,59 +43,71 @@ export function AccommodationImageGalleryModal({
   };
 
   return (
-    <div className={styles.galleryModal} onClick={onClose}>
-      <div
-        className={styles.galleryContent}
-        onClick={(event) => event.stopPropagation()}
+    <Dialog
+      bodyClassName={styles.galleryBody}
+      bodyPadding="none"
+      className={styles.galleryDialog}
+      isOpen={isOpen}
+      onClose={onClose}
+      showHeader={false}
+      size="fullscreen"
+      title={`${accommodationName} 사진 갤러리`}
+    >
+      <button
+        type="button"
+        aria-label="사진 갤러리 닫기"
+        autoFocus
+        className={styles.galleryClose}
+        onClick={onClose}
       >
-        <button type="button" className={styles.galleryClose} onClick={onClose}>
-          ×
-        </button>
-        <div className={styles.galleryMain}>
-          <img
-            src={getImageUrl(currentImage.image_url)}
-            alt={`${accommodationName} ${displayIndex + 1}`}
-            className={styles.galleryImage}
-          />
-          {showNavigation && (
-            <>
-              <button
-                type="button"
-                className={`${styles.galleryNav} ${styles.galleryPrev}`}
-                onClick={goToPreviousImage}
-                disabled={!showNavigation}
-              >
-                ‹
-              </button>
-              <button
-                type="button"
-                className={`${styles.galleryNav} ${styles.galleryNext}`}
-                onClick={goToNextImage}
-                disabled={!showNavigation}
-              >
-                ›
-              </button>
-            </>
-          )}
-        </div>
-        <div className={styles.galleryThumbnails}>
-          {images.map((image, index) => (
+        ×
+      </button>
+      <div className={styles.galleryMain}>
+        <img
+          src={getImageUrl(currentImage.image_url)}
+          alt={`${accommodationName} ${displayIndex + 1}`}
+          className={styles.galleryImage}
+        />
+        {showNavigation && (
+          <>
             <button
               type="button"
-              key={image.id}
-              className={`${styles.galleryThumbnail} ${
-                index === displayIndex ? styles.galleryThumbnailActive : ""
-              }`}
-              onClick={() => onCurrentImageIndexChange(index)}
+              aria-label="이전 사진"
+              className={`${styles.galleryNav} ${styles.galleryPrev}`}
+              onClick={goToPreviousImage}
+              disabled={!showNavigation}
             >
-              <img
-                src={getImageUrl(image.image_url)}
-                alt={`${accommodationName} ${index + 1}`}
-              />
+              ‹
             </button>
-          ))}
-        </div>
+            <button
+              type="button"
+              aria-label="다음 사진"
+              className={`${styles.galleryNav} ${styles.galleryNext}`}
+              onClick={goToNextImage}
+              disabled={!showNavigation}
+            >
+              ›
+            </button>
+          </>
+        )}
       </div>
-    </div>
+      <div className={styles.galleryThumbnails}>
+        {images.map((image, index) => (
+          <button
+            type="button"
+            key={image.id}
+            className={`${styles.galleryThumbnail} ${
+              index === displayIndex ? styles.galleryThumbnailActive : ""
+            }`}
+            onClick={() => onCurrentImageIndexChange(index)}
+          >
+            <img
+              src={getImageUrl(image.image_url)}
+              alt={`${accommodationName} ${index + 1}`}
+            />
+          </button>
+        ))}
+      </div>
+    </Dialog>
   );
 }

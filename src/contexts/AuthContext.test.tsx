@@ -240,7 +240,7 @@ describe("AuthProvider", () => {
     await waitFor(() => expect(result.current.isAuthenticated).toBe(true));
   });
 
-  it("clears authenticated state and the session cookie when logout rejects", async () => {
+  it("keeps authenticated state when server logout rejects", async () => {
     const logoutError = new Error("로그아웃 실패");
     jest.mocked(authApi.getMe).mockResolvedValueOnce(meInfo);
     jest.mocked(authApi.logout).mockRejectedValueOnce(logoutError);
@@ -259,8 +259,25 @@ describe("AuthProvider", () => {
       }
     });
 
-    await waitFor(() => expect(result.current.isAuthenticated).toBe(false));
+    await waitFor(() => expect(result.current.isAuthenticated).toBe(true));
     expect(thrownError).toBe(logoutError);
+    expect(document.cookie).toContain("SESSION_ID=test-session");
+  });
+
+  it("clears authenticated state and the session cookie when logout succeeds", async () => {
+    jest.mocked(authApi.getMe).mockResolvedValueOnce(meInfo);
+    jest.mocked(authApi.logout).mockResolvedValueOnce(undefined);
+    document.cookie = "SESSION_ID=test-session; path=/;";
+
+    const { result } = renderUseAuth();
+    await waitForSessionSettled(result);
+    expect(result.current.isAuthenticated).toBe(true);
+
+    await act(async () => {
+      await result.current.logout();
+    });
+
+    await waitFor(() => expect(result.current.isAuthenticated).toBe(false));
     expect(document.cookie).not.toContain("SESSION_ID=");
   });
 

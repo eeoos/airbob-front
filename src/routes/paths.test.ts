@@ -35,6 +35,17 @@ describe("route path contracts", () => {
     expect(routeTo.paymentFail("rsv_123")).toBe("/reservations/rsv_123/fail");
   });
 
+  it("preserves raw search query params on accommodation detail routes", () => {
+    expect(
+      routeTo.accommodationDetail(
+        12,
+        "checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2"
+      )
+    ).toBe(
+      "/accommodations/12?checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2"
+    );
+  });
+
   it("builds object query routes with URLSearchParams encoding", () => {
     expect(routeTo.accommodationEdit(12, { mode: "create" })).toBe(
       "/accommodations/12/edit?mode=create"

@@ -2,6 +2,7 @@ import { act, renderHook } from "@testing-library/react";
 import { reservationApi } from "../../../api";
 import { AccommodationDetail } from "../../../types/accommodation";
 import { CouponInfo } from "../../../types/coupon";
+import { ReservationReady } from "../../../types/reservation";
 import { useAccommodationBooking } from "./useAccommodationBooking";
 
 jest.mock("../../../api", () => ({
@@ -244,5 +245,82 @@ describe("useAccommodationBooking", () => {
       guest_count: 1,
       coupon_id: null,
     });
+  });
+
+  it("ignores duplicate reserve calls while reservation creation is in flight", async () => {
+    let resolveReservation!: (value: ReservationReady) => void;
+    jest.mocked(reservationApi.create).mockReturnValue(
+      new Promise((resolve) => {
+        resolveReservation = resolve;
+      })
+    );
+
+    const { result } = renderUseAccommodationBooking(
+      new URLSearchParams("checkIn=2026-07-20&checkOut=2026-07-22")
+    );
+
+    await act(async () => {
+      void result.current.handleReserve();
+      void result.current.handleReserve();
+    });
+
+    expect(reservationApi.create).toHaveBeenCalledTimes(1);
+    expect(result.current.isReserving).toBe(true);
+
+    await act(async () => {
+      resolveReservation({
+        reservation_uid: "res-1",
+        order_name: "주문명",
+        amount: 200000,
+        customer_email: "guest@example.com",
+        customer_name: "게스트",
+      });
+    });
+
+    expect(result.current.isReserving).toBe(false);
+  });
+
+  it("falls back from malformed URL dates and clamps malformed occupancy params", async () => {
+    const { result } = renderUseAccommodationBooking(
+      new URLSearchParams(
+        "checkIn=2026-02-31&checkOut=not-a-date&adultOccupancy=-5&childOccupancy=abc&infantOccupancy=3&petOccupancy=2"
+      ),
+      {
+        accommodation: createAccommodation({
+          policy: {
+            max_occupancy: 4,
+            infant_occupancy: 1,
+            pet_occupancy: 1,
+          },
+        }),
+      }
+    );
+
+    expect(result.current.formatDate(result.current.checkIn)).toBe("2026. 07. 10.");
+    expect(result.current.formatDate(result.current.checkOut)).toBe("2026. 07. 11.");
+    expect(result.current.adultCount).toBe(1);
+    expect(result.current.childCount).toBe(0);
+    expect(result.current.infantCount).toBe(1);
+    expect(result.current.petCount).toBe(1);
+  });
+
+  it("blocks reservations whose selected range contains an unavailable date", async () => {
+    const { result } = renderUseAccommodationBooking(
+      new URLSearchParams("checkIn=2026-07-20&checkOut=2026-07-23"),
+      {
+        accommodation: createAccommodation({
+          unavailable_dates: ["2026-07-21"],
+        }),
+      }
+    );
+
+    await act(async () => {
+      await result.current.handleReserve();
+    });
+
+    expect(reservationApi.create).not.toHaveBeenCalled();
+    expect(mockHandleError).toHaveBeenCalledWith(
+      new Error("선택한 날짜에 예약할 수 없는 날짜가 포함되어 있습니다.")
+    );
   });
 });

@@ -14,8 +14,8 @@
 
 .descriptionModalContent {
   position: relative;
-  background: white;
-  border-radius: 12px;
+  background: var(--color-background-page);
+  border-radius: var(--radius-lg);
   max-width: 800px;
   width: 100%;
   max-height: 90vh;
@@ -30,10 +30,10 @@
   left: 20px;
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   border: none;
-  background: #f7f7f7;
-  color: #222222;
+  background: var(--color-background-muted);
+  color: var(--color-text-primary);
   font-size: 28px;
   line-height: 1;
   cursor: pointer;
@@ -44,13 +44,13 @@
 }
 
 .descriptionModalClose:hover {
-  background: #ebebeb;
+  background: var(--color-border-subtle);
 }
 
 .descriptionModalTitle {
   font-size: 26px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
   margin-bottom: 24px;
   margin-top: 0;
 }
@@ -58,7 +58,7 @@
 .descriptionModalText {
   font-size: 16px;
   line-height: 1.6;
-  color: #222222;
+  color: var(--color-text-primary);
   white-space: pre-wrap;
 }
 

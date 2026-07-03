@@ -44,6 +44,7 @@ interface AccommodationBookingCardProps {
   issuingCouponId: number | null;
   couponDiscount: number;
   handleIssueCoupon: (coupon: CouponInfo) => void | Promise<void>;
+  isReserving: boolean;
   onReserve: () => void;
 }
 
@@ -199,6 +200,7 @@ export function AccommodationBookingCard({
   issuingCouponId,
   couponDiscount,
   handleIssueCoupon,
+  isReserving,
   onReserve,
 }: AccommodationBookingCardProps) {
   const maxOccupancy = accommodation.policy.max_occupancy;
@@ -430,8 +432,13 @@ export function AccommodationBookingCard({
         </div>
       )}
 
-      <button type="button" className={styles.reserveButton} onClick={onReserve}>
-        예약하기
+      <button
+        type="button"
+        className={styles.reserveButton}
+        onClick={onReserve}
+        disabled={isReserving}
+      >
+        {isReserving ? "예약 중..." : "예약하기"}
       </button>
 
       <div className={styles.bookingNote}>

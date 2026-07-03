@@ -3,9 +3,9 @@ import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { useApiError } from "../../hooks/useApiError";
 import { useAuth } from "../../hooks/useAuth";
 import { ErrorToast } from "../../components/ErrorToast";
-import { WishlistModal } from "../../components/WishlistModal";
+import { WishlistModal } from "../../features/wishlist/components/WishlistModal";
 import { AuthModal } from "../../features/auth/components/AuthModal";
-import { ReviewModal } from "../../components/ReviewModal/ReviewModal";
+import { ReviewModal } from "../../features/reviews/components/ReviewModal/ReviewModal";
 import { useAccommodationBooking } from "../../features/accommodations/hooks/useAccommodationBooking";
 import { useAccommodationCoupons } from "../../features/accommodations/hooks/useAccommodationCoupons";
 import { useAccommodationDetail } from "../../features/accommodations/hooks/useAccommodationDetail";
@@ -238,6 +238,7 @@ const AccommodationDetail: React.FC = () => {
               issuingCouponId={issuingCouponId}
               couponDiscount={couponDiscount}
               handleIssueCoupon={handleIssueCoupon}
+              isReserving={booking.isReserving}
               onReserve={handleReserve}
             />
           </div>

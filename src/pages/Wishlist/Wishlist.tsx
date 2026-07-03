@@ -2,7 +2,7 @@ import React from "react";
 import { ListContainer } from "../../components/ListContainer";
 import { WishlistAccommodationInfo } from "../../types/wishlist";
 import { ErrorToast } from "../../components/ErrorToast";
-import { WishlistModal } from "../../components/WishlistModal";
+import { WishlistModal } from "../../features/wishlist/components/WishlistModal";
 import {
   useWishlistData,
   useWishlistModals,

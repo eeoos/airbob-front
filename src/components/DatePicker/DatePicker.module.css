@@ -1,7 +1,7 @@
 .datePicker {
   position: relative; /* 기본값: relative (부모 컨테이너 기준) */
-  background: white;
-  border-radius: 12px;
+  background: var(--color-background-page);
+  border-radius: var(--radius-lg);
   box-shadow: 0 2px 16px rgba(0, 0, 0, 0.18);
   padding: 24px;
   z-index: var(--z-dropdown); /* 데스크톱 기본값 */
@@ -30,7 +30,7 @@
   justify-content: space-between;
   align-items: center;
   padding-bottom: 16px;
-  border-bottom: 1px solid #ebebeb;
+  border-bottom: 1px solid var(--color-border-subtle);
   margin-bottom: 16px;
   flex-shrink: 0;
 }
@@ -38,7 +38,7 @@
 .navTitle {
   font-size: 16px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
 }
 
 /* 스크롤 가능한 달력 영역 */
@@ -59,10 +59,10 @@
   background: none;
   border: none;
   font-size: 20px;
-  color: #717171;
+  color: var(--color-text-secondary);
   cursor: pointer;
   padding: 10px;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   transition: background-color 0.2s ease, color 0.2s ease;
   align-self: flex-start;
   margin-top: 6px;
@@ -75,8 +75,8 @@
 }
 
 .monthNavButton:hover {
-  background-color: #f7f7f7;
-  color: #222222;
+  background-color: var(--color-background-muted);
+  color: var(--color-text-primary);
 }
 
 
@@ -107,7 +107,7 @@
 .monthName {
   font-size: 18px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
   margin: 0;
   text-align: center;
 }
@@ -123,7 +123,7 @@
   text-align: center;
   font-size: 12px;
   font-weight: 600;
-  color: #717171;
+  color: var(--color-text-secondary);
   padding: 8px 0;
 }
 
@@ -141,9 +141,9 @@
   align-items: center;
   justify-content: center;
   font-size: 15px;
-  color: #222222;
+  color: var(--color-text-primary);
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   transition: all 0.2s ease;
   position: relative;
   min-height: 40px;
@@ -157,15 +157,15 @@
 }
 
 .day:hover:not(.disabled):not(.empty) {
-  background-color: #f7f7f7;
+  background-color: var(--color-background-muted);
 }
 
 .day.otherMonth {
-  color: #b0b0b0;
+  color: var(--color-border-strong);
 }
 
 .day.disabled {
-  color: #b0b0b0;
+  color: var(--color-border-strong);
   cursor: not-allowed;
   opacity: 0.5;
 }
@@ -176,7 +176,7 @@
 
 .day.past,
 .day.unavailable {
-  color: #b0b0b0;
+  color: var(--color-border-strong);
   cursor: not-allowed;
 }
 
@@ -197,44 +197,44 @@
   left: 50%;
   transform: translate(-50%, -50%);
   font-size: 18px;
-  color: #b0b0b0;
+  color: var(--color-border-strong);
   z-index: 2;
   pointer-events: none;
 }
 
 .day.selected {
-  background-color: #222222;
-  color: white;
+  background-color: var(--color-text-primary);
+  color: var(--color-text-inverse);
   font-weight: 600;
 }
 
 .day.inRange {
-  background-color: #f7f7f7;
-  color: #222222;
+  background-color: var(--color-background-muted);
+  color: var(--color-text-primary);
 }
 
 .day.start {
-  background-color: #222222;
-  color: white;
+  background-color: var(--color-text-primary);
+  color: var(--color-text-inverse);
   border-top-left-radius: 8px;
   border-bottom-left-radius: 8px;
 }
 
 .day.end {
-  background-color: #222222;
-  color: white;
+  background-color: var(--color-text-primary);
+  color: var(--color-text-inverse);
   border-top-right-radius: 8px;
   border-bottom-right-radius: 8px;
 }
 
 .day.start.end {
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .clearButton {
   background: none;
   border: none;
-  color: #222222;
+  color: var(--color-text-primary);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -246,7 +246,7 @@
 }
 
 .clearButton:hover {
-  color: #ff385c;
+  color: var(--color-brand-coral);
 }
 
 .footer {
@@ -255,24 +255,24 @@
   align-items: center;
   margin-top: 0;
   padding-top: 16px;
-  border-top: 1px solid #ebebeb;
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .closeButton {
-  background: #222222;
+  background: var(--color-text-primary);
   border: none;
-  color: white;
+  color: var(--color-text-inverse);
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   padding: 12px 24px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   transition: background-color 0.2s ease;
 }
 
 .closeButton:hover {
-  background: #000000;
-  color: white;
+  background: var(--color-text-primary);
+  color: var(--color-text-inverse);
 }
 
 @media (max-width: 768px) {
@@ -295,9 +295,9 @@
   /* 네비게이션 헤더 - 고정 */
   .navHeader {
     padding: 16px;
-    border-bottom: 1px solid #ebebeb;
+    border-bottom: 1px solid var(--color-border-subtle);
     margin-bottom: 0;
-    background: white;
+    background: var(--color-background-page);
     flex-shrink: 0;
   }
 
@@ -376,7 +376,7 @@
     min-height: 36px;
     width: 100%;
     font-size: 14px;
-    border-radius: 50%;
+    border-radius: var(--radius-pill);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -386,8 +386,8 @@
   .footer {
     padding: 12px 16px;
     margin-top: 0;
-    border-top: 1px solid #ebebeb;
-    background: white;
+    border-top: 1px solid var(--color-border-subtle);
+    background: var(--color-background-page);
     flex-shrink: 0;
   }
 
@@ -401,7 +401,7 @@
   }
 }
 
-@media (max-width: 360px) {
+@media (max-width: 480px) {
   .navHeader {
     padding: 12px;
   }

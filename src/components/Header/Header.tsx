@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { SearchBar } from "../../features/search/components/SearchBar";
+import { getViewportFromSearchParams } from "../../features/search/lib/searchParams";
 import { UserMenu } from "./UserMenu";
 import { useAuth } from "../../hooks/useAuth";
 import logoImage from "../../assets/logo/logo.png";
@@ -14,11 +15,11 @@ export const Header: React.FC = () => {
   const [isSearchBarExpanded, setIsSearchBarExpanded] = useState(false);
 
   // Search 페이지이고 destination 파라미터가 없고 viewport 파라미터가 있으면 지도 드래그 모드
+  const hasViewport = getViewportFromSearchParams(searchParams) !== null;
   const isMapDragMode = 
     location.pathname === ROUTE_PATHS.search &&
     !searchParams.get("destination") &&
-    !!searchParams.get("topLeftLat") &&
-    !!searchParams.get("topLeftLng");
+    hasViewport;
 
   return (
     <header className={styles.header}>

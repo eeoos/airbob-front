@@ -136,7 +136,7 @@ export const useSearchBarState = ({
     }
 
     const params = buildSearchNavigationParams(
-      new URLSearchParams(window.location.search),
+      urlSearchParams,
       {
         destination: inputText || undefined,
         selectedPlace: isPlaceSelected ? selectedPlace : null,
@@ -162,6 +162,7 @@ export const useSearchBarState = ({
     onSearch,
     petOccupancy,
     selectedPlace,
+    urlSearchParams,
   ]);
 
   const exitMapDragMode = useCallback(() => {

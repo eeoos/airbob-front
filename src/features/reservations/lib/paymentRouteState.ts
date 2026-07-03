@@ -2,7 +2,10 @@ export type PaymentRouteInvalidReason =
   | "MISSING_PAYMENT_QUERY"
   | "INVALID_PAYMENT_AMOUNT";
 
-export type TossSuccessRouteInvalidReason = "MISSING_TOSS_SUCCESS_QUERY";
+export type TossSuccessRouteInvalidReason =
+  | "MISSING_TOSS_SUCCESS_QUERY"
+  | "INVALID_TOSS_SUCCESS_AMOUNT"
+  | "MISMATCHED_TOSS_ORDER";
 
 export type PaymentRouteState =
   | {
@@ -126,6 +129,20 @@ export const parseTossSuccessRouteState = (
     return {
       status: "invalid",
       reason: "MISSING_TOSS_SUCCESS_QUERY",
+    };
+  }
+
+  if (orderId !== reservationUid) {
+    return {
+      status: "invalid",
+      reason: "MISMATCHED_TOSS_ORDER",
+    };
+  }
+
+  if (parseIntegerParam(params, "amount") === null) {
+    return {
+      status: "invalid",
+      reason: "INVALID_TOSS_SUCCESS_AMOUNT",
     };
   }
 

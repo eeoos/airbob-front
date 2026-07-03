@@ -34,10 +34,12 @@ describe("shared UI boundary contracts", () => {
     expect(violations).toEqual([]);
   });
 
-  it("keeps design-entry modals on the shared Dialog scroll-lock boundary", () => {
+  it("keeps design-entry modals on the shared Dialog primitive", () => {
     const dialogOwnedModalFiles = [
       "features/auth/components/AuthModal/AuthModal.tsx",
       "features/reservations/components/ReservationModal/ReservationModal.tsx",
+      "features/reviews/components/ReviewModal/ReviewModal.tsx",
+      "features/accommodations/components/AccommodationActionModal/AccommodationActionModal.tsx",
     ];
 
     const violations = dialogOwnedModalFiles.flatMap((relativePath) => {
@@ -45,7 +47,11 @@ describe("shared UI boundary contracts", () => {
       const fileViolations: string[] = [];
 
       if (!source.includes("<Dialog")) {
-        fileViolations.push(`${relativePath}: missing <Dialog boundary`);
+        fileViolations.push(`${relativePath}: missing shared Dialog primitive`);
+      }
+
+      if (source.includes("useBodyScrollLock(")) {
+        fileViolations.push(`${relativePath}: owns scroll-lock hook directly`);
       }
 
       if (source.includes("document.body.style.overflow")) {

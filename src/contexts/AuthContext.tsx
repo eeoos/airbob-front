@@ -73,12 +73,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = async () => {
-    try {
-      await authApi.logout();
-    } finally {
-      document.cookie = "SESSION_ID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-      await clearSession();
-    }
+    await authApi.logout();
+    document.cookie = "SESSION_ID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    await clearSession();
   };
 
   const isAuthenticated = sessionQuery.data != null;

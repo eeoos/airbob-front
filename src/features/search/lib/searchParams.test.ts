@@ -81,6 +81,44 @@ describe("search params helpers", () => {
     expect(params.get("petOccupancy")).toBe("0");
   });
 
+  it("removes stale dates when a new search has no selected dates", () => {
+    const existing = new URLSearchParams(
+      "destination=old&checkIn=2026-07-10&checkOut=2026-07-12&page=2"
+    );
+
+    const params = buildSearchNavigationParams(existing, {
+      destination: "Jeju",
+      selectedPlace: null,
+      checkIn: null,
+      checkOut: null,
+      adultOccupancy: 1,
+      childOccupancy: 0,
+      infantOccupancy: 0,
+      petOccupancy: 0,
+    });
+
+    expect(params.get("destination")).toBe("Jeju");
+    expect(params.has("checkIn")).toBe(false);
+    expect(params.has("checkOut")).toBe(false);
+    expect(params.has("page")).toBe(false);
+  });
+
+  it("formats local calendar dates without shifting them through UTC", () => {
+    const params = buildSearchNavigationParams(new URLSearchParams(), {
+      destination: "Seoul",
+      selectedPlace: null,
+      checkIn: new Date(2026, 6, 10),
+      checkOut: new Date(2026, 6, 12),
+      adultOccupancy: 1,
+      childOccupancy: 0,
+      infantOccupancy: 0,
+      petOccupancy: 0,
+    });
+
+    expect(params.get("checkIn")).toBe("2026-07-10");
+    expect(params.get("checkOut")).toBe("2026-07-12");
+  });
+
   it("builds map bounds params by clearing destination, coordinates, and page", () => {
     const existing = new URLSearchParams(
       "destination=Seoul&lat=37&lng=127&page=2&checkIn=2026-07-10&adultOccupancy=2"

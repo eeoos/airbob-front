@@ -11,16 +11,39 @@
 }
 
 .dialog {
+  position: relative;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 560px;
   max-height: calc(100vh - 48px);
   border-radius: var(--radius-lg);
   background: var(--color-background-page);
   box-shadow: var(--shadow-lg);
   color: var(--color-text-primary);
+}
+
+.sizeSm {
+  max-width: 400px;
+}
+
+.sizeMd {
+  max-width: 560px;
+}
+
+.sizeLg {
+  max-width: 800px;
+}
+
+.sizeXl {
+  max-width: 1200px;
+}
+
+.sizeFullscreen {
+  width: calc(100vw - 48px);
+  max-width: none;
+  height: calc(100dvh - 48px);
+  max-height: calc(100dvh - 48px);
 }
 
 .header {
@@ -72,4 +95,8 @@
   min-height: 0;
   overflow: auto;
   padding: 24px;
+}
+
+.bodyPaddingNone {
+  padding: 0;
 }
