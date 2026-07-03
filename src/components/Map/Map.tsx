@@ -14,6 +14,10 @@ import {
   getMarkerIconModel,
 } from "./lib/markerIcon";
 import { buildInfoWindowContent } from "./lib/infoWindowContent";
+import {
+  adjustInfoWindowIntoMapView,
+  applyInfoWindowChromeStyles,
+} from "./lib/infoWindowDom";
 import { renderMapExpandControl } from "./lib/mapExpandControl";
 import { routeTo } from "../../routes/paths";
 import styles from "./Map.module.css";
@@ -679,57 +683,7 @@ export const Map: React.FC<MapProps> = ({
         
         // InfoWindow DOM 요소 찾기
         setTimeout(() => {
-          const infoWindowContainer = document.querySelector('.gm-style-iw-c') as HTMLElement;
-          if (!infoWindowContainer) {
-            return;
-          }
-          
-          const infoWindowParent = infoWindowContainer.parentElement;
-          if (!infoWindowParent) {
-            return;
-          }
-          
-          const mapRect = mapDiv.getBoundingClientRect();
-          const infoWindowRect = infoWindowContainer.getBoundingClientRect();
-          
-          const infoWindowWidth = 327;
-          const infoWindowHeight = infoWindowRect.height; // 실제 높이 사용
-          const margin = 20;
-          
-          // InfoWindow의 현재 위치 (지도 컨테이너 기준)
-          const infoWindowLeft = infoWindowRect.left - mapRect.left;
-          const infoWindowTop = infoWindowRect.top - mapRect.top;
-          const infoWindowRight = infoWindowLeft + infoWindowWidth;
-          const infoWindowBottom = infoWindowTop + infoWindowHeight;
-          
-          const mapWidth = mapRect.width;
-          const mapHeight = mapRect.height;
-          
-          let adjustX = 0;
-          let adjustY = 0;
-          
-          // 화면 밖으로 나가는 경우에만 조정
-          if (infoWindowLeft < margin) {
-            adjustX = margin - infoWindowLeft;
-          } else if (infoWindowRight > mapWidth - margin) {
-            adjustX = (mapWidth - margin) - infoWindowRight;
-          }
-          
-          if (infoWindowTop < margin) {
-            adjustY = margin - infoWindowTop;
-          } else if (infoWindowBottom > mapHeight - margin) {
-            adjustY = (mapHeight - margin) - infoWindowBottom;
-          }
-          
-          // 위치 조정 적용
-          if (adjustX !== 0 || adjustY !== 0) {
-            const currentTransform = infoWindowParent.style.transform || '';
-            const translateMatch = currentTransform.match(/translate\(([^,]+),\s*([^)]+)\)/);
-            const currentX = translateMatch ? parseFloat(translateMatch[1]) : 0;
-            const currentY = translateMatch ? parseFloat(translateMatch[2]) : 0;
-            
-            infoWindowParent.style.transform = `translate(${currentX + adjustX}px, ${currentY + adjustY}px)`;
-          }
+          adjustInfoWindowIntoMapView({ mapElement: mapDiv });
         }, 50);
         
         const infoWindowElement = document.getElementById(`info-window-${selectedAccommodation.id}`);
@@ -744,41 +698,7 @@ export const Map: React.FC<MapProps> = ({
           });
         }
         
-        // InfoWindow 스타일 오버라이드
-        const infoWindowD = document.querySelector('.gm-style-iw-d') as HTMLElement;
-        if (infoWindowD) {
-          infoWindowD.style.padding = '0';
-          infoWindowD.style.background = 'transparent';
-          infoWindowD.style.boxShadow = 'none';
-        }
-        const infoWindowC = document.querySelector('.gm-style-iw-c') as HTMLElement;
-        if (infoWindowC) {
-          infoWindowC.style.padding = '0';
-          infoWindowC.style.background = 'transparent';
-          infoWindowC.style.boxShadow = 'none';
-          infoWindowC.style.borderRadius = '12px';
-          infoWindowC.style.overflow = 'hidden';
-        }
-        
-        // Google Maps 기본 닫기 버튼 영역 완전히 제거
-        // .gm-ui-hover-effect는 닫기 버튼
-        // .gm-style-iw-chr, .gm-style-iw-ch는 닫기 버튼을 감싸는 컨테이너
-        const closeButtonContainer = document.querySelector('.gm-style-iw-chr') as HTMLElement;
-        if (closeButtonContainer) {
-          closeButtonContainer.remove();
-        }
-        const closeButton = document.querySelector('.gm-ui-hover-effect') as HTMLElement;
-        if (closeButton) {
-          closeButton.remove();
-        }
-        // 추가로 닫기 버튼을 감싸는 다른 요소들도 제거
-        const closeButtonWrapper = document.querySelector('.gm-style-iw-ch') as HTMLElement;
-        if (closeButtonWrapper && closeButtonWrapper.children.length === 0) {
-          closeButtonWrapper.remove();
-        }
-        
-        // InfoWindow 꼬리 부분의 가상 요소만 제거 (CSS로 처리)
-        // JavaScript로 조작하지 않고 CSS만 사용하여 InfoWindow에 영향 없게 처리
+        applyInfoWindowChromeStyles();
       });
 
       // 위시리스트 토글 함수 등록
@@ -839,62 +759,11 @@ export const Map: React.FC<MapProps> = ({
         if (!infoWindowRef.current || !mapRef.current) {
           return;
         }
+
+        const mapElement = mapRef.current;
         
         setTimeout(() => {
-          const infoWindowContainer = document.querySelector('.gm-style-iw-c') as HTMLElement;
-          if (!infoWindowContainer) {
-            return;
-          }
-          
-          const infoWindowParent = infoWindowContainer.parentElement;
-          if (!infoWindowParent) {
-            return;
-          }
-          
-          const mapDiv = mapRef.current;
-          if (!mapDiv) {
-            return;
-          }
-          
-          const mapRect = mapDiv.getBoundingClientRect();
-          const infoWindowRect = infoWindowContainer.getBoundingClientRect();
-          
-          const infoWindowWidth = 327;
-          const infoWindowHeight = infoWindowRect.height; // 실제 높이 사용
-          const margin = 20;
-          
-          const infoWindowLeft = infoWindowRect.left - mapRect.left;
-          const infoWindowTop = infoWindowRect.top - mapRect.top;
-          const infoWindowRight = infoWindowLeft + infoWindowWidth;
-          const infoWindowBottom = infoWindowTop + infoWindowHeight;
-          
-          const mapWidth = mapRect.width;
-          const mapHeight = mapRect.height;
-          
-          let adjustX = 0;
-          let adjustY = 0;
-          
-          // 화면 밖으로 나가는 경우에만 조정
-          if (infoWindowLeft < margin) {
-            adjustX = margin - infoWindowLeft;
-          } else if (infoWindowRight > mapWidth - margin) {
-            adjustX = (mapWidth - margin) - infoWindowRight;
-          }
-          
-          if (infoWindowTop < margin) {
-            adjustY = margin - infoWindowTop;
-          } else if (infoWindowBottom > mapHeight - margin) {
-            adjustY = (mapHeight - margin) - infoWindowBottom;
-          }
-          
-          if (adjustX !== 0 || adjustY !== 0) {
-            const currentTransform = infoWindowParent.style.transform || '';
-            const translateMatch = currentTransform.match(/translate\(([^,]+),\s*([^)]+)\)/);
-            const currentX = translateMatch ? parseFloat(translateMatch[1]) : 0;
-            const currentY = translateMatch ? parseFloat(translateMatch[2]) : 0;
-            
-            infoWindowParent.style.transform = `translate(${currentX + adjustX}px, ${currentY + adjustY}px)`;
-          }
+          adjustInfoWindowIntoMapView({ mapElement });
         }, 100);
       };
       
