@@ -14,6 +14,7 @@ import {
   getMarkerIconModel,
 } from "./lib/markerIcon";
 import { buildInfoWindowContent } from "./lib/infoWindowContent";
+import { renderMapExpandControl } from "./lib/mapExpandControl";
 import { routeTo } from "../../routes/paths";
 import styles from "./Map.module.css";
 
@@ -158,59 +159,11 @@ export const Map: React.FC<MapProps> = ({
         setTimeout(() => {
           if (!mapRef.current || !onExpandToggle) return;
 
-          // 기존 버튼이 있으면 제거
-          const existingButton = mapRef.current.querySelector('.map-expand-button');
-          if (existingButton) {
-            existingButton.remove();
-          }
-
-          // 확장/축소 버튼 생성
-          const expandButton = document.createElement('button');
-          expandButton.className = 'map-expand-button';
-          expandButton.innerHTML = isExpanded
-            ? `
-              <svg viewBox="0 0 24 24" fill="currentColor" style="width: 20px; height: 20px;">
-                <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
-              </svg>
-            `
-            : `
-              <svg viewBox="0 0 24 24" fill="currentColor" style="width: 20px; height: 20px;">
-                <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
-              </svg>
-            `;
-          expandButton.style.cssText = `
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 40px;
-            height: 40px;
-            background: white;
-            border: none;
-            border-radius: 2px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-            cursor: pointer;
-            z-index: var(--z-popover);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #222222;
-            transition: background-color 0.2s ease;
-          `;
-          
-          expandButton.addEventListener('mouseenter', () => {
-            expandButton.style.backgroundColor = '#f7f7f7';
+          renderMapExpandControl({
+            container: mapRef.current,
+            isExpanded,
+            onToggle: onExpandToggle,
           });
-          expandButton.addEventListener('mouseleave', () => {
-            expandButton.style.backgroundColor = 'white';
-          });
-
-          expandButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            onExpandToggle();
-          });
-          
-          // 지도 컨테이너에 버튼 추가
-          mapRef.current.appendChild(expandButton);
         }, 500);
 
         // 지도 클릭 시 InfoWindow 닫기
@@ -1082,83 +1035,11 @@ export const Map: React.FC<MapProps> = ({
     const updateOrCreateButton = () => {
       if (!mapRef.current || !onExpandToggle) return;
 
-      let expandButton = mapRef.current.querySelector('.map-expand-button') as HTMLElement;
-      
-      if (!expandButton) {
-        // 버튼이 없으면 생성
-        expandButton = document.createElement('button');
-        expandButton.className = 'map-expand-button';
-        expandButton.style.cssText = `
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          width: 40px;
-          height: 40px;
-          background: white;
-          border: none;
-          border-radius: 2px;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-          cursor: pointer;
-          z-index: var(--z-popover);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #222222;
-          transition: background-color 0.2s ease;
-        `;
-        
-        expandButton.addEventListener('mouseenter', () => {
-          expandButton.style.backgroundColor = '#f7f7f7';
-        });
-        expandButton.addEventListener('mouseleave', () => {
-          expandButton.style.backgroundColor = 'white';
-        });
-
-        // 클릭 이벤트 등록
-        expandButton.addEventListener('click', (e) => {
-          e.stopPropagation();
-          if (onExpandToggle) {
-            onExpandToggle();
-          }
-        });
-        
-        if (mapRef.current) {
-          mapRef.current.appendChild(expandButton);
-        }
-      }
-
-      // 기존 클릭 이벤트 리스너 제거 후 재등록 (innerHTML 변경 시 이벤트가 사라질 수 있음)
-      const newExpandButton = expandButton.cloneNode(true) as HTMLElement;
-      expandButton.parentNode?.replaceChild(newExpandButton, expandButton);
-      
-      // 이벤트 리스너 재등록
-      newExpandButton.addEventListener('mouseenter', () => {
-        newExpandButton.style.backgroundColor = '#f7f7f7';
+      renderMapExpandControl({
+        container: mapRef.current,
+        isExpanded,
+        onToggle: onExpandToggle,
       });
-      newExpandButton.addEventListener('mouseleave', () => {
-        newExpandButton.style.backgroundColor = 'white';
-      });
-      newExpandButton.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (onExpandToggle) {
-          onExpandToggle();
-        }
-      });
-
-      // 아이콘 업데이트
-      newExpandButton.innerHTML = isExpanded
-        ? `
-          <svg viewBox="0 0 24 24" fill="currentColor" style="width: 20px; height: 20px;">
-            <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
-          </svg>
-        `
-        : `
-          <svg viewBox="0 0 24 24" fill="currentColor" style="width: 20px; height: 20px;">
-            <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
-          </svg>
-        `;
-      
-      expandButton = newExpandButton;
     };
 
     // 지도가 로드된 후 버튼 생성/업데이트
