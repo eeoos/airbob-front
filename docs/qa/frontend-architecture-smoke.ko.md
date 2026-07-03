@@ -14,7 +14,7 @@ Airbnb 디자인 리팩터 전에 프론트엔드 아키텍처 변경이 주요 
 
 ### query route contract
 
-- Steps: open saved deep links for `/search`, `/profile?mode=host&tab=reservations`, `/wishlists?view=recently-viewed`, `/wishlists?id=<wishlistId>`, and the payment redirect pages with safe QA data.
+- Steps: open saved deep links for `/search`, `/profile?mode=host&tab=reservations`, `/wishlist?view=recently-viewed`, `/wishlist?id=<wishlistId>`, and the payment redirect pages with safe QA data.
 - Expected: page state, selected tab/view, pagination, reservation/payment state, and browser back/forward behavior match the URL without resetting to defaults.
 - Evidence: record the tested URL, expected state, actual state, and whether refresh/back/forward preserved it.
 

@@ -93,7 +93,11 @@ describe("frontend verification gate", () => {
     const architectureCheckpoints = [
       {
         heading: "query route contract",
-        expectedTerms: ["/profile?mode=host&tab=reservations", "browser back/forward"],
+        expectedTerms: [
+          "/profile?mode=host&tab=reservations",
+          "/wishlist?view=recently-viewed",
+          "browser back/forward",
+        ],
       },
       {
         heading: "server-state auth boundary",
