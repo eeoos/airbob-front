@@ -12,6 +12,7 @@ const requiredLayoutTokenDeclarations = [
   "--layout-header-desktop-height: 80px;",
   "--layout-header-mobile-height: 130px;",
   "--layout-search-mobile-popover-top: var(--layout-header-mobile-height);",
+  "--layout-search-mobile-bottom-sheet-offset: 144px;",
   "--card-media-ratio: 1 / 1;",
 ];
 
@@ -37,6 +38,9 @@ describe("design system entry contracts", () => {
     const searchPageCss = readSource("pages/Search/Search.module.css");
 
     expect(searchPageCss).toContain("var(--layout-header-desktop-height)");
-    expect(searchPageCss).toContain("var(--layout-header-mobile-height)");
+    expect(searchPageCss).toContain("var(--layout-search-mobile-bottom-sheet-offset)");
+    expect(searchPageCss).not.toContain(
+      "100vh - var(--layout-header-mobile-height) - 60px",
+    );
   });
 });

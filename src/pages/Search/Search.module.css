@@ -471,9 +471,9 @@
   .bottomSheet.expanded {
     /* transform is controlled by framer-motion */
     /* 시트가 거의 올라가지 않으므로 높이는 헤더 아래 높이만 */
-    height: calc(100vh - var(--layout-header-mobile-height) - 60px);
-    max-height: calc(100vh - var(--layout-header-mobile-height) - 60px);
-    min-height: calc(100vh - var(--layout-header-mobile-height) - 60px);
+    height: calc(100vh - var(--layout-search-mobile-bottom-sheet-offset) - 60px);
+    max-height: calc(100vh - var(--layout-search-mobile-bottom-sheet-offset) - 60px);
+    min-height: calc(100vh - var(--layout-search-mobile-bottom-sheet-offset) - 60px);
   }
 
   /* Mobile Header adjustments */
