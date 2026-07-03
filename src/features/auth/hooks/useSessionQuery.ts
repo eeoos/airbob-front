@@ -11,7 +11,8 @@ export function useSessionQuery() {
     ReturnType<typeof authQueryKeys.me>
   >({
     queryKey: authQueryKeys.me(),
-    queryFn: authApi.getMe,
+    queryFn: ({ signal }) => authApi.getMe(signal),
+    refetchOnWindowFocus: true,
     retry: false,
   });
 }

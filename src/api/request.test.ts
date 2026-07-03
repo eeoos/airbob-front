@@ -1,4 +1,5 @@
 import { ApiResponse, ErrorResponse } from "../types/api";
+import { onAuthError } from "../utils/authEvents";
 import { ApiClientError } from "./response";
 import { requestApi, requestApiNullable } from "./request";
 
@@ -58,5 +59,54 @@ describe("requestApi", () => {
     expect(clientError.message).toBe("예약을 찾을 수 없습니다.");
     expect(clientError.status).toBe(404);
     expect(clientError.code).toBe("RESERVATION_NOT_FOUND");
+  });
+
+  it("publishes a global auth error for 401 or M004 unsuccessful envelopes", async () => {
+    jest.useFakeTimers();
+    const listener = jest.fn();
+    const unsubscribe = onAuthError(listener);
+
+    try {
+      const unauthorizedResponse: ApiResponse<never> = {
+        success: false,
+        data: null,
+        error: {
+          message: "인증이 필요합니다.",
+          status: 401,
+          code: "AUTH_REQUIRED",
+        },
+      };
+      const expiredSessionResponse: ApiResponse<never> = {
+        success: false,
+        data: null,
+        error: {
+          message: "세션이 만료되었습니다.",
+          status: 403,
+          code: "M004",
+        },
+      };
+
+      await expect(
+        requestApi(() => Promise.resolve({ data: unauthorizedResponse }))
+      ).rejects.toMatchObject({
+        code: "AUTH_REQUIRED",
+        status: 401,
+      });
+      expect(listener).toHaveBeenCalledTimes(1);
+
+      jest.advanceTimersByTime(1000);
+
+      await expect(
+        requestApiNullable(() => Promise.resolve({ data: expiredSessionResponse }))
+      ).rejects.toMatchObject({
+        code: "M004",
+        status: 403,
+      });
+      expect(listener).toHaveBeenCalledTimes(2);
+    } finally {
+      unsubscribe();
+      jest.runOnlyPendingTimers();
+      jest.useRealTimers();
+    }
   });
 });

@@ -3,6 +3,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import React from "react";
 import { authApi } from "../api";
 import { AuthProvider, useAuth } from "./AuthContext";
+import { authQueryKeys } from "../features/auth/queryKeys";
 import { triggerAuthError } from "../utils/authEvents";
 import { LoginRequest, MeInfo } from "../types/auth";
 
@@ -42,7 +43,10 @@ const renderUseAuth = () => {
     </QueryClientProvider>
   );
 
-  return renderHook(() => useAuth(), { wrapper });
+  return {
+    ...renderHook(() => useAuth(), { wrapper }),
+    queryClient,
+  };
 };
 
 const waitForSessionSettled = async (
@@ -212,6 +216,28 @@ describe("AuthProvider", () => {
     expect(authApi.login).toHaveBeenCalledWith(credentials);
     expect(didResolve).toBe(false);
     expect(thrownError).toBe(refreshError);
+  });
+
+  it("cancels any stale session query before refreshing session after login", async () => {
+    const staleSession = new Promise<MeInfo>(() => {});
+    jest
+      .mocked(authApi.getMe)
+      .mockReturnValueOnce(staleSession)
+      .mockResolvedValueOnce(meInfo);
+    jest.mocked(authApi.login).mockResolvedValueOnce(undefined);
+
+    const { result, queryClient } = renderUseAuth();
+    const cancelQueriesSpy = jest.spyOn(queryClient, "cancelQueries");
+
+    await act(async () => {
+      await result.current.login(credentials);
+    });
+
+    expect(authApi.login).toHaveBeenCalledWith(credentials);
+    expect(cancelQueriesSpy).toHaveBeenCalledWith({
+      queryKey: authQueryKeys.me(),
+    });
+    await waitFor(() => expect(result.current.isAuthenticated).toBe(true));
   });
 
   it("clears authenticated state and the session cookie when logout rejects", async () => {

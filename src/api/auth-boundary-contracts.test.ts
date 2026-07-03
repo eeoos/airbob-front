@@ -66,6 +66,32 @@ describe("auth boundary contracts", () => {
     expect(mockClientGet).toHaveBeenCalledWith("/auth/me");
   });
 
+  it("passes an AbortSignal through to the getMe request when provided", async () => {
+    const meInfo: MeInfo = {
+      id: 1,
+      email: "guest@example.com",
+      nickname: "Guest",
+      thumbnail_image_url: null,
+    };
+    const controller = new AbortController();
+
+    mockClientGet.mockResolvedValue({
+      data: {
+        success: true,
+        data: meInfo,
+        error: null,
+      },
+      headers: {
+        "content-type": "application/json;charset=utf-8",
+      },
+    });
+
+    await expect(authApi.getMe(controller.signal)).resolves.toEqual(meInfo);
+    expect(mockClientGet).toHaveBeenCalledWith("/auth/me", {
+      signal: controller.signal,
+    });
+  });
+
   it("rejects a backend getMe error envelope as ApiClientError", async () => {
     const backendError: ErrorResponse = {
       message: "인증이 필요합니다.",

@@ -68,6 +68,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (credentials: LoginRequest) => {
     await authApi.login(credentials);
+    await queryClient.cancelQueries({ queryKey: authQueryKeys.me() });
     await refreshSession();
   };
 
