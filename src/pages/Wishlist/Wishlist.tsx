@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import { ListContainer } from "../../components/ListContainer";
 import { WishlistAccommodationInfo } from "../../types/wishlist";
 import { ErrorToast } from "../../components/ErrorToast";
@@ -13,6 +13,7 @@ import {
   groupRecentlyViewedByDate,
 } from "../../features/wishlist/lib/recentlyViewedGroups";
 import { routeTo } from "../../routes/paths";
+import { useIntersectionLoadMore } from "../../hooks/useIntersectionLoadMore";
 import { getImageUrl } from "../../utils/image";
 import styles from "./Wishlist.module.css";
 
@@ -27,8 +28,6 @@ const Wishlist: React.FC = () => {
     setIsEditMode,
     showRecentlyViewed,
   } = useWishlistRouteViewState();
-  const wishlistsObserverTarget = useRef<HTMLDivElement>(null);
-  const wishlistAccommodationsObserverTarget = useRef<HTMLDivElement>(null);
   const {
     clearError,
     deleteWishlist,
@@ -66,56 +65,18 @@ const Wishlist: React.FC = () => {
     updateMemoText,
     wishlistModalOpen,
   } = useWishlistModals();
-
-  // 위시리스트 목록 무한 스크롤
-  useEffect(() => {
-    if (selectedWishlist || showRecentlyViewed) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && wishlistsHasNext && !isLoadingMoreWishlists) {
-          loadMoreWishlists();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    const currentTarget = wishlistsObserverTarget.current;
-    if (currentTarget) {
-      observer.observe(currentTarget);
-    }
-
-    return () => {
-      if (currentTarget) {
-        observer.unobserve(currentTarget);
-      }
-    };
-  }, [wishlistsHasNext, isLoadingMoreWishlists, loadMoreWishlists, selectedWishlist, showRecentlyViewed]);
-
-  // 위시리스트 상세 무한 스크롤
-  useEffect(() => {
-    if (!selectedWishlist || showRecentlyViewed) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNext && !isLoadingMore) {
-          loadMoreWishlistAccommodations();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    const currentTarget = wishlistAccommodationsObserverTarget.current;
-    if (currentTarget) {
-      observer.observe(currentTarget);
-    }
-
-    return () => {
-      if (currentTarget) {
-        observer.unobserve(currentTarget);
-      }
-    };
-  }, [hasNext, isLoadingMore, loadMoreWishlistAccommodations, selectedWishlist, showRecentlyViewed]);
+  const setWishlistsObserverTarget = useIntersectionLoadMore({
+    disabled: Boolean(selectedWishlist || showRecentlyViewed),
+    hasNext: wishlistsHasNext,
+    isLoading: isLoadingMoreWishlists,
+    onLoadMore: loadMoreWishlists,
+  });
+  const setWishlistAccommodationsObserverTarget = useIntersectionLoadMore({
+    disabled: !selectedWishlist || showRecentlyViewed,
+    hasNext,
+    isLoading: isLoadingMore,
+    onLoadMore: loadMoreWishlistAccommodations,
+  });
 
   const handleRemoveRecentlyViewed = async (accommodationId: number) => {
     await removeRecentlyViewed(accommodationId);
@@ -394,7 +355,7 @@ const Wishlist: React.FC = () => {
                   ))}
                 </ListContainer>
                 {hasNext && (
-                  <div ref={wishlistAccommodationsObserverTarget} className={styles.loadMoreContainer}>
+                  <div ref={setWishlistAccommodationsObserverTarget} className={styles.loadMoreContainer}>
                     {isLoadingMore && (
                       <div className={styles.loadingMore}>로딩 중...</div>
                     )}
@@ -491,7 +452,7 @@ const Wishlist: React.FC = () => {
                   </div>
                 ))}
                 {wishlistsHasNext && (
-                  <div ref={wishlistsObserverTarget} className={styles.loadMoreContainer}>
+                  <div ref={setWishlistsObserverTarget} className={styles.loadMoreContainer}>
                     {isLoadingMoreWishlists && (
                       <div className={styles.loadingMore}>로딩 중...</div>
                     )}
