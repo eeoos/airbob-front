@@ -251,7 +251,9 @@ describe("pre-design token stylesheet contract", () => {
   });
 
   it("keeps real modal backdrops and foreground controls on overlay tokens", () => {
-    const galleryCss = readCss("pages/AccommodationDetail/AccommodationDetail.module.css");
+    const galleryCss = readCss(
+      "features/accommodations/components/AccommodationImageGalleryModal.module.css",
+    );
     const galleryModal = selectorBlock(galleryCss, ".galleryModal");
     const galleryClose = selectorBlock(galleryCss, ".galleryClose");
 

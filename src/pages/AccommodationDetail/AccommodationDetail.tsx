@@ -6,12 +6,13 @@ import { ErrorToast } from "../../components/ErrorToast";
 import { WishlistModal } from "../../components/WishlistModal";
 import { AuthModal } from "../../features/auth/components/AuthModal";
 import { ReviewModal } from "../../components/ReviewModal/ReviewModal";
-import { getImageUrl } from "../../utils/image";
 import { useAccommodationBooking } from "../../features/accommodations/hooks/useAccommodationBooking";
 import { useAccommodationCoupons } from "../../features/accommodations/hooks/useAccommodationCoupons";
 import { useAccommodationDetail } from "../../features/accommodations/hooks/useAccommodationDetail";
 import { useAccommodationReviews } from "../../features/accommodations/hooks/useAccommodationReviews";
 import { AccommodationBookingCard } from "../../features/accommodations/components/AccommodationBookingCard";
+import { AccommodationDescriptionModal } from "../../features/accommodations/components/AccommodationDescriptionModal";
+import { AccommodationImageGalleryModal } from "../../features/accommodations/components/AccommodationImageGalleryModal";
 import { AccommodationLocationSection } from "../../features/accommodations/components/AccommodationLocationSection";
 import { AccommodationOverview } from "../../features/accommodations/components/AccommodationOverview";
 import { AccommodationReviewsSection } from "../../features/accommodations/components/AccommodationReviewsSection";
@@ -318,82 +319,20 @@ const AccommodationDetail: React.FC = () => {
         </div>
       )}
 
-      {isDescriptionModalOpen && accommodation && (
-        <div className={styles.descriptionModal} onClick={() => setIsDescriptionModalOpen(false)}>
-          <div className={styles.descriptionModalContent} onClick={(e) => e.stopPropagation()}>
-            <button 
-              className={styles.descriptionModalClose}
-              onClick={() => setIsDescriptionModalOpen(false)}
-            >
-              ×
-            </button>
-            <h2 className={styles.descriptionModalTitle}>숙소 설명</h2>
-            <div className={styles.descriptionModalText}>
-              {accommodation.description.split('\n').map((line, index) => (
-                <React.Fragment key={index}>
-                  {line}
-                  {index < accommodation.description.split('\n').length - 1 && <br />}
-                </React.Fragment>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      <AccommodationDescriptionModal
+        isOpen={isDescriptionModalOpen}
+        description={accommodation.description}
+        onClose={() => setIsDescriptionModalOpen(false)}
+      />
 
-      {isImageGalleryOpen && accommodation && (
-        <div className={styles.galleryModal} onClick={() => setIsImageGalleryOpen(false)}>
-          <div className={styles.galleryContent} onClick={(e) => e.stopPropagation()}>
-            <button 
-              className={styles.galleryClose}
-              onClick={() => setIsImageGalleryOpen(false)}
-            >
-              ×
-            </button>
-            <div className={styles.galleryMain}>
-              <img
-                src={getImageUrl(accommodation.images[currentImageIndex].image_url)}
-                alt={`${accommodation.name} ${currentImageIndex + 1}`}
-                className={styles.galleryImage}
-              />
-              {accommodation.images.length > 1 && (
-                <>
-                  <button
-                    className={`${styles.galleryNav} ${styles.galleryPrev}`}
-                    onClick={() => setCurrentImageIndex((prev) => 
-                      prev === 0 ? accommodation.images.length - 1 : prev - 1
-                    )}
-                    disabled={accommodation.images.length <= 1}
-                  >
-                    ‹
-                  </button>
-                  <button
-                    className={`${styles.galleryNav} ${styles.galleryNext}`}
-                    onClick={() => setCurrentImageIndex((prev) => 
-                      prev === accommodation.images.length - 1 ? 0 : prev + 1
-                    )}
-                    disabled={accommodation.images.length <= 1}
-                  >
-                    ›
-                  </button>
-                </>
-              )}
-            </div>
-            <div className={styles.galleryThumbnails}>
-              {accommodation.images.map((image, index) => (
-                <button
-                  key={image.id}
-                  className={`${styles.galleryThumbnail} ${
-                    index === currentImageIndex ? styles.galleryThumbnailActive : ""
-                  }`}
-                  onClick={() => setCurrentImageIndex(index)}
-                >
-                  <img src={getImageUrl(image.image_url)} alt={`${accommodation.name} ${index + 1}`} />
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      <AccommodationImageGalleryModal
+        isOpen={isImageGalleryOpen}
+        accommodationName={accommodation.name}
+        images={accommodation.images}
+        currentImageIndex={currentImageIndex}
+        onCurrentImageIndexChange={setCurrentImageIndex}
+        onClose={() => setIsImageGalleryOpen(false)}
+      />
     </>
   );
 };

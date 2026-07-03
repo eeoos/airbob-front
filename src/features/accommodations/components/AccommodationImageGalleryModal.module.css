@@ -1,0 +1,145 @@
+.galleryModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--overlay-backdrop);
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.galleryContent {
+  width: 100%;
+  max-width: 1200px;
+  height: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.galleryClose {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.9);
+  color: #222222;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: calc(var(--z-modal) + 1);
+  transition: background-color 0.2s ease;
+}
+
+.galleryClose:hover {
+  background: white;
+}
+
+.galleryMain {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.galleryImage {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.galleryNav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.9);
+  color: #222222;
+  font-size: 32px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+  z-index: 10;
+}
+
+.galleryNav:hover {
+  background: white;
+}
+
+.galleryNav:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.galleryPrev {
+  left: 20px;
+}
+
+.galleryNext {
+  right: 20px;
+}
+
+.galleryThumbnails {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px 0;
+  max-height: 120px;
+}
+
+.galleryThumbnail {
+  flex-shrink: 0;
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  background: none;
+  transition: border-color 0.2s ease;
+}
+
+.galleryThumbnail:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.galleryThumbnailActive {
+  border-color: white;
+}
+
+.galleryThumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (max-width: 768px) {
+  .galleryModal {
+    padding: 16px;
+  }
+
+  .galleryThumbnail {
+    width: 70px;
+    height: 70px;
+  }
+}
