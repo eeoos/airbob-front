@@ -1,0 +1,95 @@
+export type PaymentRouteInvalidReason =
+  | "MISSING_PAYMENT_QUERY"
+  | "INVALID_PAYMENT_AMOUNT";
+
+export type PaymentRouteState =
+  | {
+      status: "valid";
+      reservationUid: string;
+      orderName: string;
+      amount: number;
+      customerEmail: string;
+      customerName: string;
+      checkIn: Date | null;
+      checkOut: Date | null;
+      adultOccupancy: number;
+      childOccupancy: number;
+      infantOccupancy: number;
+      petOccupancy: number;
+      couponName: string | null;
+      couponDiscount: number | null;
+    }
+  | {
+      status: "invalid";
+      reason: PaymentRouteInvalidReason;
+    };
+
+const parseIntegerParam = (
+  params: URLSearchParams,
+  key: string
+): number | null => {
+  const value = params.get(key);
+
+  if (value === null || !/^\d+$/.test(value)) {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+};
+
+const parseOccupancyParam = (
+  params: URLSearchParams,
+  key: string,
+  fallback: number
+): number => {
+  const parsed = parseIntegerParam(params, key);
+  return parsed ?? fallback;
+};
+
+const parseDateParam = (params: URLSearchParams, key: string): Date | null => {
+  const value = params.get(key);
+  return value ? new Date(value) : null;
+};
+
+export const parsePaymentRouteState = (
+  params: URLSearchParams
+): PaymentRouteState => {
+  const reservationUid = params.get("reservationUid");
+  const orderName = params.get("orderName");
+  const amountParam = params.get("amount");
+  const customerEmail = params.get("customerEmail");
+  const customerName = params.get("customerName");
+
+  if (!reservationUid || !orderName || !amountParam || !customerEmail || !customerName) {
+    return {
+      status: "invalid",
+      reason: "MISSING_PAYMENT_QUERY",
+    };
+  }
+
+  const amount = parseIntegerParam(params, "amount");
+  if (amount === null) {
+    return {
+      status: "invalid",
+      reason: "INVALID_PAYMENT_AMOUNT",
+    };
+  }
+
+  return {
+    status: "valid",
+    reservationUid,
+    orderName,
+    amount,
+    customerEmail,
+    customerName,
+    checkIn: parseDateParam(params, "checkIn"),
+    checkOut: parseDateParam(params, "checkOut"),
+    adultOccupancy: parseOccupancyParam(params, "adultOccupancy", 1),
+    childOccupancy: parseOccupancyParam(params, "childOccupancy", 0),
+    infantOccupancy: parseOccupancyParam(params, "infantOccupancy", 0),
+    petOccupancy: parseOccupancyParam(params, "petOccupancy", 0),
+    couponName: params.get("couponName"),
+    couponDiscount: parseIntegerParam(params, "couponDiscount"),
+  };
+};

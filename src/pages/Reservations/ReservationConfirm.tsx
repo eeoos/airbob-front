@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useApiError } from "../../hooks/useApiError";
 import { useReservationConfirmAccommodation } from "../../features/reservations/hooks/useReservationConfirmAccommodation";
+import { parsePaymentRouteState } from "../../features/reservations/lib/paymentRouteState";
 import { ErrorToast } from "../../components/ErrorToast";
 import { getImageUrl } from "../../utils/image";
 import { routeTo } from "../../routes/paths";
@@ -21,23 +22,35 @@ const ReservationConfirm: React.FC = () => {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   // URL 파라미터에서 예약 정보 가져오기
-  const reservationUid = searchParams.get("reservationUid");
-  const orderName = searchParams.get("orderName");
-  const amount = searchParams.get("amount") ? parseInt(searchParams.get("amount")!) : null;
-  const customerEmail = searchParams.get("customerEmail");
-  const customerName = searchParams.get("customerName");
-  const couponName = searchParams.get("couponName");
-  const couponDiscountParam = searchParams.get("couponDiscount")
-    ? parseInt(searchParams.get("couponDiscount")!)
-    : null;
+  const paymentRouteState = parsePaymentRouteState(searchParams);
+  const reservationUid =
+    paymentRouteState.status === "valid" ? paymentRouteState.reservationUid : null;
+  const orderName =
+    paymentRouteState.status === "valid" ? paymentRouteState.orderName : null;
+  const amount =
+    paymentRouteState.status === "valid" ? paymentRouteState.amount : null;
+  const customerEmail =
+    paymentRouteState.status === "valid" ? paymentRouteState.customerEmail : null;
+  const customerName =
+    paymentRouteState.status === "valid" ? paymentRouteState.customerName : null;
+  const couponName =
+    paymentRouteState.status === "valid" ? paymentRouteState.couponName : null;
+  const couponDiscountParam =
+    paymentRouteState.status === "valid" ? paymentRouteState.couponDiscount : null;
   
   // 예약 박스에서 입력한 정보
-  const checkIn = searchParams.get("checkIn") ? new Date(searchParams.get("checkIn")!) : null;
-  const checkOut = searchParams.get("checkOut") ? new Date(searchParams.get("checkOut")!) : null;
-  const adultCount = searchParams.get("adultOccupancy") ? parseInt(searchParams.get("adultOccupancy")!) : 1;
-  const childCount = searchParams.get("childOccupancy") ? parseInt(searchParams.get("childOccupancy")!) : 0;
-  const infantCount = searchParams.get("infantOccupancy") ? parseInt(searchParams.get("infantOccupancy")!) : 0;
-  const petCount = searchParams.get("petOccupancy") ? parseInt(searchParams.get("petOccupancy")!) : 0;
+  const checkIn =
+    paymentRouteState.status === "valid" ? paymentRouteState.checkIn : null;
+  const checkOut =
+    paymentRouteState.status === "valid" ? paymentRouteState.checkOut : null;
+  const adultCount =
+    paymentRouteState.status === "valid" ? paymentRouteState.adultOccupancy : 1;
+  const childCount =
+    paymentRouteState.status === "valid" ? paymentRouteState.childOccupancy : 0;
+  const infantCount =
+    paymentRouteState.status === "valid" ? paymentRouteState.infantOccupancy : 0;
+  const petCount =
+    paymentRouteState.status === "valid" ? paymentRouteState.petOccupancy : 0;
 
   const { accommodation, isLoading } = useReservationConfirmAccommodation({
     accommodationId: id,

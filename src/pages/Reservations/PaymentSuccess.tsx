@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { usePaymentConfirmation } from "../../features/reservations";
+import { parsePaymentRouteState } from "../../features/reservations/lib/paymentRouteState";
 import { routeTo } from "../../routes/paths";
 import styles from "./PaymentSuccess.module.css";
 
@@ -11,12 +12,35 @@ const PaymentSuccess: React.FC = () => {
   const paymentKey = searchParams.get("paymentKey");
   const orderId = searchParams.get("orderId");
   const amount = searchParams.get("amount");
-  const { result } = usePaymentConfirmation({
+
+  const tossPaymentQueryParams = new URLSearchParams();
+  if (reservationUid) {
+    tossPaymentQueryParams.set("reservationUid", reservationUid);
+  }
+  if (orderId) {
+    tossPaymentQueryParams.set("orderName", orderId);
+  }
+  if (amount) {
+    tossPaymentQueryParams.set("amount", amount);
+  }
+  if (paymentKey) {
+    tossPaymentQueryParams.set("customerEmail", paymentKey);
+    tossPaymentQueryParams.set("customerName", "Toss Payments");
+  }
+  const paymentRouteState = parsePaymentRouteState(tossPaymentQueryParams);
+  const isPaymentQueryIncomplete =
+    paymentRouteState.status === "invalid" &&
+    paymentRouteState.reason === "MISSING_PAYMENT_QUERY";
+
+  const { result: confirmationResult } = usePaymentConfirmation({
     amount,
-    enabled: Boolean(reservationUid),
+    enabled: Boolean(reservationUid) && !isPaymentQueryIncomplete,
     orderId,
     paymentKey,
   });
+  const result = isPaymentQueryIncomplete
+    ? ({ error: null, status: "skipped" } as const)
+    : confirmationResult;
 
   useEffect(() => {
     if (!reservationUid) {

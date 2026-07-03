@@ -3,45 +3,44 @@ import { useSearchParams } from "react-router-dom";
 import GuestTrips from "./GuestTrips/GuestTrips";
 import HostListings from "./HostListings/HostListings";
 import HostReservations from "./HostReservations/HostReservations";
+import {
+  parseProfileRouteState,
+  ProfileRouteTab,
+} from "../../features/profile/lib/profileRouteState";
 import styles from "./Profile.module.css";
 
 type ProfileMode = "guest" | "host";
 
+const getActiveTabFromRouteTab = (tab: ProfileRouteTab): string => {
+  if (tab === "trips") {
+    return "upcoming";
+  }
+
+  if (tab === "listings") {
+    return "listings-published";
+  }
+
+  if (tab === "reservations") {
+    return "reservations-upcoming";
+  }
+
+  return tab;
+};
+
 const Profile: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialMode = searchParams.get("mode") === "host" ? "host" : "guest";
-  const initialTab = searchParams.get("tab") || (initialMode === "host" ? "listings" : "upcoming");
+  const initialRouteState = parseProfileRouteState(searchParams);
   
-  // 호스트 모드에서 "reservations" 탭이 선택되면 기본값을 "reservations-upcoming"으로 설정
-  const getInitialTab = () => {
-    if (initialMode === "host" && initialTab === "reservations") {
-      return "reservations-upcoming";
-    }
-    return initialTab;
-  };
-  
-  const [mode, setMode] = useState<ProfileMode>(initialMode);
-  const [activeTab, setActiveTab] = useState<string>(getInitialTab());
+  const [mode, setMode] = useState<ProfileMode>(initialRouteState.mode);
+  const [activeTab, setActiveTab] = useState<string>(
+    getActiveTabFromRouteTab(initialRouteState.tab)
+  );
 
   useEffect(() => {
-    const modeParam = searchParams.get("mode");
-    const tabParam = searchParams.get("tab");
-    
-    if (modeParam === "host") {
-      setMode("host");
-      // 호스트 모드에서 "reservations" 탭이 선택되면 기본값을 "reservations-upcoming"으로 설정
-      // 호스트 모드에서 "listings" 탭이 선택되면 기본값을 "listings-published"로 설정
-      if (tabParam === "reservations") {
-        setActiveTab("reservations-upcoming");
-      } else if (tabParam === "listings") {
-        setActiveTab("listings-published");
-      } else {
-        setActiveTab(tabParam || "listings-published");
-      }
-    } else {
-      setMode("guest");
-      setActiveTab(tabParam || "upcoming");
-    }
+    const routeState = parseProfileRouteState(searchParams);
+
+    setMode(routeState.mode);
+    setActiveTab(getActiveTabFromRouteTab(routeState.tab));
   }, [searchParams]);
 
   return (

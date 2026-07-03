@@ -6,6 +6,7 @@ import { RecentlyViewedAccommodationInfo } from "../../types/recentlyViewed";
 import { ErrorToast } from "../../components/ErrorToast";
 import { WishlistModal } from "../../components/WishlistModal";
 import { useWishlistData, useWishlistModals } from "../../features/wishlist";
+import { parseWishlistRouteState } from "../../features/wishlist/lib/wishlistRouteState";
 import { routeTo } from "../../routes/paths";
 import { getImageUrl } from "../../utils/image";
 import styles from "./Wishlist.module.css";
@@ -14,12 +15,13 @@ const Wishlist: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   
   // URL 파라미터에서 초기값 읽기
-  const viewParam = searchParams.get("view");
-  const wishlistIdParam = searchParams.get("id");
+  const wishlistRouteState = parseWishlistRouteState(searchParams);
   const [selectedWishlist, setSelectedWishlist] = useState<number | null>(
-    wishlistIdParam ? parseInt(wishlistIdParam) : null
+    wishlistRouteState.wishlistId
   );
-  const [showRecentlyViewed, setShowRecentlyViewed] = useState(viewParam === "recently-viewed");
+  const [showRecentlyViewed, setShowRecentlyViewed] = useState(
+    wishlistRouteState.view === "recently-viewed"
+  );
   const [isEditMode, setIsEditMode] = useState(false);
   const wishlistsObserverTarget = useRef<HTMLDivElement>(null);
   const wishlistAccommodationsObserverTarget = useRef<HTMLDivElement>(null);
