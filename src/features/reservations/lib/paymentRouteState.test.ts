@@ -1,4 +1,7 @@
-import { parsePaymentRouteState } from "./paymentRouteState";
+import {
+  parsePaymentRouteState,
+  parseTossSuccessRouteState,
+} from "./paymentRouteState";
 
 describe("payment route state", () => {
   it("parses complete reservation confirm query params", () => {
@@ -45,6 +48,37 @@ describe("payment route state", () => {
     expect(state).toEqual({
       status: "invalid",
       reason: "INVALID_PAYMENT_AMOUNT",
+    });
+  });
+});
+
+describe("toss success route state", () => {
+  it("parses complete Toss success query params", () => {
+    const state = parseTossSuccessRouteState(
+      "r-1",
+      new URLSearchParams(
+        "paymentKey=payment-key-1&orderId=order-1&amount=120000"
+      )
+    );
+
+    expect(state).toEqual({
+      status: "valid",
+      reservationUid: "r-1",
+      paymentKey: "payment-key-1",
+      orderId: "order-1",
+      amount: "120000",
+    });
+  });
+
+  it("marks Toss success query invalid when required values are missing", () => {
+    const state = parseTossSuccessRouteState(
+      "r-1",
+      new URLSearchParams("paymentKey=payment-key-1&amount=120000")
+    );
+
+    expect(state).toEqual({
+      status: "invalid",
+      reason: "MISSING_TOSS_SUCCESS_QUERY",
     });
   });
 });

@@ -2,6 +2,8 @@ export type PaymentRouteInvalidReason =
   | "MISSING_PAYMENT_QUERY"
   | "INVALID_PAYMENT_AMOUNT";
 
+export type TossSuccessRouteInvalidReason = "MISSING_TOSS_SUCCESS_QUERY";
+
 export type PaymentRouteState =
   | {
       status: "valid";
@@ -22,6 +24,19 @@ export type PaymentRouteState =
   | {
       status: "invalid";
       reason: PaymentRouteInvalidReason;
+    };
+
+export type TossSuccessRouteState =
+  | {
+      status: "valid";
+      reservationUid: string;
+      paymentKey: string;
+      orderId: string;
+      amount: string;
+    }
+  | {
+      status: "invalid";
+      reason: TossSuccessRouteInvalidReason;
     };
 
 const parseIntegerParam = (
@@ -91,5 +106,29 @@ export const parsePaymentRouteState = (
     petOccupancy: parseOccupancyParam(params, "petOccupancy", 0),
     couponName: params.get("couponName"),
     couponDiscount: parseIntegerParam(params, "couponDiscount"),
+  };
+};
+
+export const parseTossSuccessRouteState = (
+  reservationUid: string | null | undefined,
+  params: URLSearchParams
+): TossSuccessRouteState => {
+  const paymentKey = params.get("paymentKey");
+  const orderId = params.get("orderId");
+  const amount = params.get("amount");
+
+  if (!reservationUid || !paymentKey || !orderId || !amount) {
+    return {
+      status: "invalid",
+      reason: "MISSING_TOSS_SUCCESS_QUERY",
+    };
+  }
+
+  return {
+    status: "valid",
+    reservationUid,
+    paymentKey,
+    orderId,
+    amount,
   };
 };

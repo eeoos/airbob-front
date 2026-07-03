@@ -6,7 +6,10 @@ import { RecentlyViewedAccommodationInfo } from "../../types/recentlyViewed";
 import { ErrorToast } from "../../components/ErrorToast";
 import { WishlistModal } from "../../components/WishlistModal";
 import { useWishlistData, useWishlistModals } from "../../features/wishlist";
-import { parseWishlistRouteState } from "../../features/wishlist/lib/wishlistRouteState";
+import {
+  buildWishlistRouteSearchParams,
+  parseWishlistRouteState,
+} from "../../features/wishlist/lib/wishlistRouteState";
 import { routeTo } from "../../routes/paths";
 import { getImageUrl } from "../../utils/image";
 import styles from "./Wishlist.module.css";
@@ -121,7 +124,12 @@ const Wishlist: React.FC = () => {
     setShowRecentlyViewed(true);
     setSelectedWishlist(null);
     setIsEditMode(false);
-    setSearchParams({ view: "recently-viewed" });
+    setSearchParams(
+      buildWishlistRouteSearchParams({
+        view: "recently-viewed",
+        wishlistId: null,
+      })
+    );
     await reloadRecentlyViewed();
   };
 
@@ -129,7 +137,12 @@ const Wishlist: React.FC = () => {
     setShowRecentlyViewed(false);
     setSelectedWishlist(null);
     setIsEditMode(false);
-    setSearchParams({});
+    setSearchParams(
+      buildWishlistRouteSearchParams({
+        view: "index",
+        wishlistId: null,
+      })
+    );
   };
 
   const handleWishlistToggle = async (accommodationId: number) => {
@@ -332,7 +345,12 @@ const Wishlist: React.FC = () => {
                   onClick={() => {
                     setSelectedWishlist(null);
                     setIsEditMode(false);
-                    setSearchParams({});
+                    setSearchParams(
+                      buildWishlistRouteSearchParams({
+                        view: "index",
+                        wishlistId: null,
+                      })
+                    );
                   }}
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -488,7 +506,12 @@ const Wishlist: React.FC = () => {
                     className={styles.wishlistCard}
                     onClick={() => {
                       setSelectedWishlist(wishlist.id);
-                      setSearchParams({ id: wishlist.id.toString() });
+                      setSearchParams(
+                        buildWishlistRouteSearchParams({
+                          view: "wishlist-detail",
+                          wishlistId: wishlist.id,
+                        })
+                      );
                     }}
                     onMouseEnter={(e) => {
                       const deleteBtn = e.currentTarget.querySelector(
