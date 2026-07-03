@@ -120,13 +120,16 @@ describe("auth boundary contracts", () => {
     expect(clientError.code).toBe("INVALID_API_RESPONSE");
   });
 
-  it("keeps AuthContext authentication checks behind authApi.getMe", () => {
+  it("keeps AuthContext authentication state behind the session query boundary", () => {
     const authContextSource = readSource("..", "contexts", "AuthContext.tsx");
 
     expect(authContextSource).not.toMatch(/from\s+["']\.\.\/api\/client["'];?/);
     expect(authContextSource).not.toMatch(/client\.get\(\s*["']\/auth\/me["']\s*\)/);
-    expect(authContextSource).toMatch(/await\s+authApi\.getMe\(\s*\);/);
-    expect(authContextSource).toMatch(/setIsAuthenticated\(\s*true\s*\);/);
-    expect(authContextSource).toMatch(/finally\s*\{[\s\S]*setIsLoading\(\s*false\s*\);[\s\S]*\}/);
+    expect(authContextSource).not.toMatch(/authApi\.getMe\(\s*\)/);
+    expect(authContextSource).not.toMatch(/setIsAuthenticated/);
+    expect(authContextSource).not.toMatch(/setIsLoading/);
+    expect(authContextSource).toMatch(/useSessionQuery\(\s*\)/);
+    expect(authContextSource).toMatch(/useQueryClient\(\s*\)/);
+    expect(authContextSource).toMatch(/authQueryKeys\.me\(\s*\)/);
   });
 });
