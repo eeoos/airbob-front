@@ -2,13 +2,16 @@ import React from "react";
 
 interface AmenityIconProps {
   type: string;
+  decorative?: boolean;
 }
 
-const AmenityIcon: React.FC<AmenityIconProps> = ({ type }) => {
+const AmenityIcon: React.FC<AmenityIconProps> = ({ type, decorative = false }) => {
   const iconStyle = { width: "24px", height: "24px", flexShrink: 0 };
-  const baseProps = {
-    role: "img",
-    "aria-label": type,
+  const accessibilityProps: React.SVGProps<SVGSVGElement> = decorative
+    ? { "aria-hidden": true, focusable: "false" }
+    : { role: "img", "aria-label": type };
+  const baseProps: React.SVGProps<SVGSVGElement> = {
+    ...accessibilityProps,
     viewBox: "0 0 24 24",
     style: iconStyle,
   };

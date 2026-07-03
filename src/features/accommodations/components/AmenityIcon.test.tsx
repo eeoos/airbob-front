@@ -18,4 +18,15 @@ describe("AmenityIcon", () => {
 
     expect(icon.querySelector('circle[cx="12"][cy="12"][r="10"]')).toBeInTheDocument();
   });
+
+  it("hides decorative usage from assistive technology", () => {
+    const { container } = render(<AmenityIcon type="WIFI" decorative />);
+
+    const icon = container.querySelector("svg");
+
+    expect(screen.queryByRole("img", { name: "WIFI" })).not.toBeInTheDocument();
+    expect(icon).toHaveAttribute("aria-hidden", "true");
+    expect(icon).toHaveAttribute("focusable", "false");
+    expect(icon).not.toHaveAttribute("aria-label");
+  });
 });

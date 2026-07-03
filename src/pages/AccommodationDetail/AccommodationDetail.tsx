@@ -263,7 +263,7 @@ const AccommodationDetail: React.FC = () => {
                 <div className={styles.amenitiesGrid}>
                   {accommodation.amenities.map((amenity, index) => (
                     <div key={index} className={styles.amenityItem}>
-                      <AmenityIcon type={amenity.type} />
+                      <AmenityIcon type={amenity.type} decorative />
                       <span>{getAmenityTypeKorean(amenity.type)}</span>
                     </div>
                   ))}

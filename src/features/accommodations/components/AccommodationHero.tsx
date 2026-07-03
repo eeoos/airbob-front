@@ -1,7 +1,7 @@
 import React from "react";
 import { AccommodationDetail } from "../../../types/accommodation";
 import { getImageUrl } from "../../../utils/image";
-import styles from "../../../pages/AccommodationDetail/AccommodationDetail.module.css";
+import styles from "./AccommodationHero.module.css";
 
 interface AccommodationHeroProps {
   accommodation: AccommodationDetail;
