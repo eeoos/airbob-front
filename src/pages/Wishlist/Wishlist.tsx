@@ -66,6 +66,14 @@ const Wishlist: React.FC = () => {
     wishlistModalOpen,
   } = useWishlistModals();
 
+  useEffect(() => {
+    const routeState = parseWishlistRouteState(searchParams);
+
+    setSelectedWishlist(routeState.wishlistId);
+    setShowRecentlyViewed(routeState.view === "recently-viewed");
+    setIsEditMode(false);
+  }, [searchParams]);
+
   // 위시리스트 목록 무한 스크롤
   useEffect(() => {
     if (selectedWishlist || showRecentlyViewed) return;

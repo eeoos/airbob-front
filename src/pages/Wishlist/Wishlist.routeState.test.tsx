@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Wishlist from "./Wishlist";
 
@@ -129,5 +129,31 @@ describe("Wishlist route state integration", () => {
     expect(mockSetSearchParams).toHaveBeenCalledWith(
       new URLSearchParams("builtView=wishlist-detail&builtWishlistId=42")
     );
+  });
+
+  it("syncs the visible wishlist view when the URL search params change after mount", async () => {
+    const { rerender } = render(<Wishlist />);
+
+    expect(
+      screen.getByRole("heading", { name: "위시리스트" })
+    ).toBeInTheDocument();
+
+    mockSearchParams = new URLSearchParams("view=recently-viewed");
+    rerender(<Wishlist />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: "최근 조회" })
+      ).toBeInTheDocument();
+    });
+
+    mockSearchParams = new URLSearchParams("id=42");
+    rerender(<Wishlist />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: "Weekend" })
+      ).toBeInTheDocument();
+    });
   });
 });
