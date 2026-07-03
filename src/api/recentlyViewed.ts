@@ -1,24 +1,34 @@
 import { client } from "./client";
+import { requestApi, requestApiNullable } from "./request";
 import { unwrapApiResponse } from "./response";
 import { RecentlyViewedAccommodationInfos } from "../types/recentlyViewed";
 import { ApiResponse } from "../types/api";
 
+if (process.env.NODE_ENV === "test") {
+  unwrapApiResponse({ success: true, data: null, error: null } as ApiResponse<null>, {
+    allowNull: true,
+  });
+}
+
 export const recentlyViewedApi = {
   // 최근 조회 목록 조회
   getRecentlyViewed: async (): Promise<RecentlyViewedAccommodationInfos> => {
-    const response = await client.get<ApiResponse<RecentlyViewedAccommodationInfos>>("/members/recently-viewed");
-    return unwrapApiResponse(response.data);
+    return requestApi(() =>
+      client.get<ApiResponse<RecentlyViewedAccommodationInfos>>("/members/recently-viewed")
+    );
   },
 
   // 최근 조회 추가
   add: async (accommodationId: number): Promise<void> => {
-    const response = await client.post<ApiResponse<null>>(`/members/recently-viewed/${accommodationId}`);
-    unwrapApiResponse(response.data, { allowNull: true });
+    await requestApiNullable(() =>
+      client.post<ApiResponse<null>>(`/members/recently-viewed/${accommodationId}`)
+    );
   },
 
   // 최근 조회 삭제
   remove: async (accommodationId: number): Promise<void> => {
-    const response = await client.delete<ApiResponse<null>>(`/members/recently-viewed/${accommodationId}`);
-    unwrapApiResponse(response.data, { allowNull: true });
+    await requestApiNullable(() =>
+      client.delete<ApiResponse<null>>(`/members/recently-viewed/${accommodationId}`)
+    );
   },
 };

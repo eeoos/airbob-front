@@ -1,5 +1,6 @@
 // API 클라이언트 통합 export
 export { client } from "./client";
+export { requestApi, requestApiNullable } from "./request";
 export { authApi } from "./auth";
 export { accommodationApi } from "./accommodations";
 export { reservationApi } from "./reservations";
@@ -9,7 +10,6 @@ export { wishlistApi } from "./wishlist";
 export { recentlyViewedApi } from "./recentlyViewed";
 export { commonCodeApi } from "./commonCodes";
 export { couponApi } from "./coupons";
-
 
 
 
