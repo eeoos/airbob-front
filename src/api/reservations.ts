@@ -1,6 +1,5 @@
 import { client } from "./client";
 import { requestApi, requestApiNullable } from "./request";
-import { unwrapApiResponse } from "./response";
 import {
   CreateReservationRequest,
   CancelReservationRequest,
@@ -12,12 +11,6 @@ import {
   ReservationFilterType,
 } from "../types/reservation";
 import { ApiResponse } from "../types/api";
-
-if (process.env.NODE_ENV === "test") {
-  unwrapApiResponse({ success: true, data: null, error: null } as ApiResponse<null>, {
-    allowNull: true,
-  });
-}
 
 export const reservationApi = {
   // 예약 생성 (결제 대기 상태)

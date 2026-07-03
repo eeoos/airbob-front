@@ -1,6 +1,5 @@
 import { client } from "./client";
 import { requestApi, requestApiNullable } from "./request";
-import { unwrapApiResponse } from "./response";
 import {
   CreateWishlistRequest,
   CreateWishlistData,
@@ -14,12 +13,6 @@ import {
   WishlistAccommodationInfos,
 } from "../types/wishlist";
 import { ApiResponse } from "../types/api";
-
-if (process.env.NODE_ENV === "test") {
-  unwrapApiResponse({ success: true, data: null, error: null } as ApiResponse<null>, {
-    allowNull: true,
-  });
-}
 
 export const wishlistApi = {
   // 위시리스트 생성

@@ -1,6 +1,5 @@
 import { client } from "./client";
 import { requestApi, requestApiNullable } from "./request";
-import { unwrapApiResponse } from "./response";
 import {
   CreateReviewRequest,
   CreateReviewData,
@@ -12,12 +11,6 @@ import {
 } from "../types/review";
 import { ReviewSortType } from "../types/enums";
 import { ApiResponse } from "../types/api";
-
-if (process.env.NODE_ENV === "test") {
-  unwrapApiResponse({ success: true, data: null, error: null } as ApiResponse<null>, {
-    allowNull: true,
-  });
-}
 
 export const reviewApi = {
   // 리뷰 작성

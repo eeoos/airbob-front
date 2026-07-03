@@ -1,17 +1,10 @@
 import { client } from "./client";
 import { requestApi, requestApiNullable } from "./request";
-import { unwrapApiResponse } from "./response";
 import {
   ConfirmPaymentRequest,
   PaymentInfo,
 } from "../types/payment";
 import { ApiResponse } from "../types/api";
-
-if (process.env.NODE_ENV === "test") {
-  unwrapApiResponse({ success: true, data: null, error: null } as ApiResponse<null>, {
-    allowNull: true,
-  });
-}
 
 export const paymentApi = {
   // 결제 확인 (PG 승인 요청) - 비동기 처리, 202 Accepted
