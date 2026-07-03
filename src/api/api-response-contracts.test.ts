@@ -2,20 +2,9 @@ import * as fs from "fs";
 import * as path from "path";
 import * as ts from "typescript";
 
-const requestMigratedApiFiles = [
-  "auth.ts",
-  "accommodations.ts",
-  "reservations.ts",
-  "payments.ts",
-  "reviews.ts",
-  "wishlist.ts",
-  "recentlyViewed.ts",
-  "coupons.ts",
-];
-
-const explicitLegacyApiFiles = ["commonCodes.ts"];
 const clientMethods = new Set(["get", "post", "patch", "delete"]);
 const requestHelperNames = new Set(["requestApi", "requestApiNullable"]);
+const infrastructureModules = new Set(["./client", "./request"]);
 
 type FunctionScopeAnalysis = {
   responseVariables: Set<string>;
@@ -271,6 +260,42 @@ const analyzeFunctionScope = (node: ts.FunctionLikeDeclaration & { body: ts.Conc
 const sourceImportsUnwrapApiResponse = (source: string) =>
   /import\s*\{[^}]*\bunwrapApiResponse\b[^}]*\}\s*from\s*["']\.\/response["'];/.test(source);
 
+const getExportedDomainApiFiles = (): string[] => {
+  const indexPath = path.join(__dirname, "index.ts");
+  const source = fs.readFileSync(indexPath, "utf8");
+  const sourceFile = ts.createSourceFile(
+    "index.ts",
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+  const files = new Set<string>();
+
+  sourceFile.statements.forEach((statement) => {
+    if (
+      !ts.isExportDeclaration(statement) ||
+      !statement.moduleSpecifier ||
+      !ts.isStringLiteral(statement.moduleSpecifier) ||
+      infrastructureModules.has(statement.moduleSpecifier.text) ||
+      !statement.exportClause ||
+      !ts.isNamedExports(statement.exportClause)
+    ) {
+      return;
+    }
+
+    const exportsDomainApi = statement.exportClause.elements.some((element) =>
+      element.name.text.endsWith("Api")
+    );
+
+    if (exportsDomainApi) {
+      files.add(`${statement.moduleSpecifier.text.replace(/^\.\//, "")}.ts`);
+    }
+  });
+
+  return Array.from(files).sort();
+};
+
 const findApiResponseContractViolations = (fileName: string, source: string) => {
   const violations: string[] = [];
   const sourceFile = ts.createSourceFile(
@@ -442,18 +467,26 @@ describe("migrated API response contracts", () => {
     );
   });
 
-  it("routes migrated domain API envelopes through requestApi or requestApiNullable", () => {
+  it("discovers exported domain API wrappers from the API barrel", () => {
+    expect(getExportedDomainApiFiles()).toEqual(
+      expect.arrayContaining([
+        "auth.ts",
+        "accommodations.ts",
+        "commonCodes.ts",
+        "coupons.ts",
+      ]),
+    );
+    expect(getExportedDomainApiFiles()).not.toContain("request.ts");
+  });
+
+  it("routes exported domain API envelopes through requestApi or requestApiNullable", () => {
     const violations: string[] = [];
 
-    requestMigratedApiFiles.forEach((fileName) => {
+    getExportedDomainApiFiles().forEach((fileName) => {
       const source = fs.readFileSync(path.join(__dirname, fileName), "utf8");
       violations.push(...findApiResponseContractViolations(fileName, source));
     });
 
     expect(violations).toEqual([]);
-  });
-
-  it("documents API modules intentionally excluded from the Task B request-helper migration", () => {
-    expect(explicitLegacyApiFiles).toEqual(["commonCodes.ts"]);
   });
 });
