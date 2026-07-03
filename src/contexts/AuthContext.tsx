@@ -44,10 +44,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const refreshSession = useCallback(async () => {
     try {
-      await queryClient.refetchQueries(
-        { queryKey: authQueryKeys.me(), type: "active" },
-        { throwOnError: true }
-      );
+      const meInfo = await authApi.getMe();
+      queryClient.setQueryData<MeInfo | null>(authQueryKeys.me(), meInfo);
     } catch (error) {
       await clearSession();
       throw error;

@@ -51,13 +51,36 @@ const waitForSessionSettled = async (
   await waitFor(() => expect(result.current.isLoading).toBe(false));
 };
 
+const waitForAuthEventThrottleReset = () =>
+  new Promise((resolve) => {
+    setTimeout(resolve, 1100);
+  });
+
 describe("AuthProvider", () => {
+  let triggeredAuthError = false;
+
   beforeEach(() => {
+    triggeredAuthError = false;
     jest.mocked(authApi.getMe).mockReset();
     jest.mocked(authApi.login).mockReset();
     jest.mocked(authApi.logout).mockReset();
     document.cookie = "SESSION_ID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
   });
+
+  afterEach(async () => {
+    jest.restoreAllMocks();
+
+    if (triggeredAuthError) {
+      await waitForAuthEventThrottleReset();
+    }
+  });
+
+  const triggerAuthErrorThenReject = async (error: Error) => {
+    triggeredAuthError = true;
+    triggerAuthError();
+    await Promise.resolve();
+    throw error;
+  };
 
   it("exposes authenticated state after the first successful session load", async () => {
     jest.mocked(authApi.getMe).mockResolvedValueOnce(meInfo);
@@ -107,6 +130,34 @@ describe("AuthProvider", () => {
     expect(thrownError).toBe(authError);
   });
 
+  it("rejects checkAuth when the auth interceptor clears the active session before getMe rejects", async () => {
+    const authError = new Error("세션이 만료되었습니다.");
+    jest.spyOn(console, "warn").mockImplementation(() => {});
+    jest
+      .mocked(authApi.getMe)
+      .mockResolvedValueOnce(meInfo)
+      .mockImplementationOnce(() => triggerAuthErrorThenReject(authError));
+
+    const { result } = renderUseAuth();
+    await waitForSessionSettled(result);
+    expect(result.current.isAuthenticated).toBe(true);
+
+    let didResolve = false;
+    let thrownError: unknown;
+    await act(async () => {
+      try {
+        await result.current.checkAuth();
+        didResolve = true;
+      } catch (error) {
+        thrownError = error;
+      }
+    });
+
+    await waitFor(() => expect(result.current.isAuthenticated).toBe(false));
+    expect(didResolve).toBe(false);
+    expect(thrownError).toBe(authError);
+  });
+
   it("clears stale authenticated state and rejects login when the post-login session refresh fails", async () => {
     const refreshError = new Error("세션 확인에 실패했습니다.");
     jest
@@ -130,6 +181,36 @@ describe("AuthProvider", () => {
 
     await waitFor(() => expect(result.current.isAuthenticated).toBe(false));
     expect(authApi.login).toHaveBeenCalledWith(credentials);
+    expect(thrownError).toBe(refreshError);
+  });
+
+  it("rejects login when the auth interceptor clears the active session before post-login getMe rejects", async () => {
+    const refreshError = new Error("세션 확인에 실패했습니다.");
+    jest.spyOn(console, "warn").mockImplementation(() => {});
+    jest
+      .mocked(authApi.getMe)
+      .mockResolvedValueOnce(meInfo)
+      .mockImplementationOnce(() => triggerAuthErrorThenReject(refreshError));
+    jest.mocked(authApi.login).mockResolvedValueOnce(undefined);
+
+    const { result } = renderUseAuth();
+    await waitForSessionSettled(result);
+    expect(result.current.isAuthenticated).toBe(true);
+
+    let didResolve = false;
+    let thrownError: unknown;
+    await act(async () => {
+      try {
+        await result.current.login(credentials);
+        didResolve = true;
+      } catch (error) {
+        thrownError = error;
+      }
+    });
+
+    await waitFor(() => expect(result.current.isAuthenticated).toBe(false));
+    expect(authApi.login).toHaveBeenCalledWith(credentials);
+    expect(didResolve).toBe(false);
     expect(thrownError).toBe(refreshError);
   });
 
@@ -166,6 +247,7 @@ describe("AuthProvider", () => {
     expect(result.current.isAuthenticated).toBe(true);
 
     await act(async () => {
+      triggeredAuthError = true;
       triggerAuthError();
     });
 
