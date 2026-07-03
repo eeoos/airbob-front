@@ -78,6 +78,22 @@ const Wishlist: React.FC = () => {
     onLoadMore: loadMoreWishlistAccommodations,
   });
 
+  React.useEffect(() => {
+    if (!memoModalOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeMemoModal();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [closeMemoModal, memoModalOpen]);
+
   const handleRemoveRecentlyViewed = async (accommodationId: number) => {
     await removeRecentlyViewed(accommodationId);
   };
