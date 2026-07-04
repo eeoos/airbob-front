@@ -1,4 +1,6 @@
-const parseCheckoutDate = (dateString: string): Date | null => {
+const dayMs = 1000 * 60 * 60 * 24;
+
+export const parseLocalCheckoutDate = (dateString: string): Date | null => {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateString);
   if (!match) {
     return null;
@@ -21,18 +23,20 @@ const parseCheckoutDate = (dateString: string): Date | null => {
   return date;
 };
 
+export const calculateCheckoutNightsFromDates = (start: Date, end: Date) => {
+  const nights = Math.ceil((end.getTime() - start.getTime()) / dayMs);
+
+  return Number.isFinite(nights) ? Math.max(0, nights) : 0;
+};
+
 export const calculateCheckoutNights = (checkIn: string, checkOut: string) => {
-  const start = parseCheckoutDate(checkIn);
-  const end = parseCheckoutDate(checkOut);
+  const start = parseLocalCheckoutDate(checkIn);
+  const end = parseLocalCheckoutDate(checkOut);
   if (!start || !end) {
     return 0;
   }
 
-  const nights = Math.ceil(
-    (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
-  );
-
-  return Number.isFinite(nights) ? Math.max(0, nights) : 0;
+  return calculateCheckoutNightsFromDates(start, end);
 };
 
 export const calculatePayableAmount = (
