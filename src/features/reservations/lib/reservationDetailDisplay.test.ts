@@ -1,4 +1,4 @@
-import { ReservationStatus } from "../../../types/enums";
+import { PaymentStatus, ReservationStatus } from "../../../types/enums";
 import {
   canCreateReview,
   formatBankName,
@@ -15,6 +15,10 @@ describe("reservation detail display", () => {
     expect(formatBankName("UNKNOWN")).toBe("은행코드 UNKNOWN");
     expect(formatPaymentStatus("DONE")).toBe("결제 완료");
     expect(formatPaymentStatus("WAITING_FOR_DEPOSIT")).toBe("입금 대기");
+    expect(formatPaymentStatus(PaymentStatus.PARTIAL_CANCELED)).toBe(
+      "PARTIAL_CANCELED",
+    );
+    expect(formatPaymentStatus("UNKNOWN_STATUS")).toBe("UNKNOWN_STATUS");
   });
 
   it("allows review creation only after confirmed checkout when review writing is enabled", () => {

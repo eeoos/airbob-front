@@ -103,7 +103,7 @@ describe("ReservationDetailRoute", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
-  it("redirects missing reservation uid to profile with replace", () => {
+  it("redirects missing reservation uid to profile without replacing history", () => {
     render(
       <ReservationDetailRoute
         locationState={null}
@@ -112,7 +112,7 @@ describe("ReservationDetailRoute", () => {
       />,
     );
 
-    expect(mockNavigate).toHaveBeenCalledWith("/profile", { replace: true });
+    expect(mockNavigate).toHaveBeenCalledWith("/profile");
   });
 
   it("preserves loading and missing reservation output", () => {

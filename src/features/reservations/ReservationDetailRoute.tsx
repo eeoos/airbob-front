@@ -55,7 +55,7 @@ export const ReservationDetailRoute: React.FC<ReservationDetailRouteProps> = ({
 
   useEffect(() => {
     if (!reservationUid) {
-      navigate(routeTo.profile(), { replace: true });
+      navigate(routeTo.profile());
     }
   }, [reservationUid, navigate]);
 

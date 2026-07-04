@@ -29,8 +29,6 @@ const PAYMENT_STATUS_LABELS: Record<string, string> = {
   [PaymentStatus.WAITING_FOR_DEPOSIT]: "입금 대기",
   [PaymentStatus.DONE]: "결제 완료",
   [PaymentStatus.CANCELED]: "결제 취소",
-  [PaymentStatus.PARTIAL_CANCELED]: "부분 결제 취소",
-  [PaymentStatus.ABORTED]: "결제 실패",
   [PaymentStatus.EXPIRED]: "결제 만료",
 };
 
