@@ -3,6 +3,10 @@ import { reservationApi } from "../../../api";
 import { AccommodationDetail } from "../../../types/accommodation";
 import { CouponInfo } from "../../../types/coupon";
 import { routeTo } from "../../../routes/paths";
+import type { ReservationCheckoutState } from "../../reservations/lib/reservationCheckoutState";
+import {
+  saveReservationCheckoutState,
+} from "../../reservations/lib/reservationCheckoutState";
 
 type SetSearchParams = (
   nextParams: URLSearchParams,
@@ -18,7 +22,10 @@ interface UseAccommodationBookingOptions {
   selectedCoupon: CouponInfo | null;
   selectedCouponId: number | null;
   couponDiscount: number;
-  navigate: (to: string) => void;
+  navigate: (
+    to: string,
+    options?: { replace?: boolean; state?: unknown }
+  ) => void;
   handleError: (error: unknown) => unknown;
   clearError: () => void;
   onRequireAuth: (action: () => void | Promise<void>) => void;
@@ -356,24 +363,29 @@ export const useAccommodationBooking = ({
         customer_name,
       } = reservationResponse;
 
-      const params = new URLSearchParams();
-      params.set("reservationUid", reservation_uid);
-      params.set("orderName", order_name);
-      params.set("amount", amount.toString());
-      params.set("customerEmail", customer_email);
-      params.set("customerName", customer_name);
-      params.set("checkIn", checkInStr);
-      params.set("checkOut", checkOutStr);
-      params.set("adultOccupancy", adultCount.toString());
-      params.set("childOccupancy", childCount.toString());
-      params.set("infantOccupancy", infantCount.toString());
-      params.set("petOccupancy", petCount.toString());
-      if (reserveCouponDiscount > 0 && reserveSelectedCoupon) {
-        params.set("couponName", reserveSelectedCoupon.name);
-        params.set("couponDiscount", reserveCouponDiscount.toString());
-      }
+      const checkoutState: ReservationCheckoutState = {
+        reservationUid: reservation_uid,
+        orderName: order_name,
+        amount,
+        customerEmail: customer_email,
+        customerName: customer_name,
+        checkIn: checkInStr,
+        checkOut: checkOutStr,
+        adultOccupancy: adultCount,
+        childOccupancy: childCount,
+        infantOccupancy: infantCount,
+        petOccupancy: petCount,
+        couponName:
+          reserveCouponDiscount > 0 && reserveSelectedCoupon
+            ? reserveSelectedCoupon.name
+            : null,
+        couponDiscount: reserveCouponDiscount > 0 ? reserveCouponDiscount : null,
+      };
 
-      navigate(routeTo.accommodationConfirm(accommodationId, params));
+      saveReservationCheckoutState(accommodationId, checkoutState);
+      navigate(routeTo.accommodationConfirm(accommodationId), {
+        state: checkoutState,
+      });
     } catch (error) {
       handleError(error);
     } finally {

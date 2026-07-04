@@ -1,0 +1,100 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-header);
+  background-color: var(--color-background-page);
+  border-bottom: 1px solid var(--color-border-default);
+  padding: 0 var(--space-6);
+  isolation: isolate; /* stacking context 명시적 생성 */
+}
+
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1760px;
+  margin: 0 auto;
+  height: var(--layout-header-desktop-height);
+  gap: var(--space-6);
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.logo:focus-visible {
+  border-radius: var(--radius-md);
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: var(--space-1);
+}
+
+.logoImage {
+  height: var(--space-16);
+  width: auto;
+}
+
+.searchBar {
+  flex: 1;
+  max-width: 450px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+  transition: max-width var(--motion-duration-slow) var(--motion-ease-standard);
+}
+
+.searchBarExpanded {
+  max-width: 850px;
+}
+
+.menu {
+  flex-shrink: 0;
+}
+
+/* 모바일 검색바 행 - 기본적으로 숨김 */
+.mobileSearchRow {
+  display: none;
+  padding: var(--space-3) 0 var(--space-4) 0;
+  background: var(--color-background-page);
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 0 var(--space-4);
+    z-index: var(--z-header);
+    position: sticky; /* 모바일에서도 헤더 고정 */
+    top: 0; /* 상단에 고정 */
+    isolation: isolate; /* stacking context 명시적 생성 유지 */
+  }
+
+  .container {
+    height: 60px;
+    gap: var(--space-3);
+  }
+
+  .logoImage {
+    height: var(--space-10);
+  }
+
+  .searchBar {
+    display: none; /* 모바일에서는 데스크탑 검색바 숨김 */
+  }
+
+  /* 모바일에서 검색바 행 표시 */
+  .mobileSearchRow {
+    display: block;
+  }
+}
+
+/* 태블릿 (769-1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .header {
+    position: sticky; /* 태블릿에서도 헤더 고정 */
+    top: 0; /* 상단에 고정 */
+    z-index: var(--z-header);
+    isolation: isolate; /* stacking context 명시적 생성 유지 */
+  }
+}

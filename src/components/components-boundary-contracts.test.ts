@@ -4,9 +4,7 @@ import { join, relative } from "path";
 const componentsRoot = join(process.cwd(), "src/components");
 const productionSourceExtensions = [".ts", ".tsx"];
 const forbiddenImportPattern =
-  /from\s+["'](?:\.\.\/)+(?:api|features|pages)(?:\/[^"']*)?["']/;
-
-const allowedWorkflowFiles = new Set(["Header/Header.tsx", "Header/UserMenu.tsx"]);
+  /from\s+["'](?:\.\.\/)+(?:api|features|pages|routes|types)(?:\/[^"']*)?["']/;
 
 const collectProductionSourceFiles = (directory: string): string[] =>
   readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -29,6 +27,7 @@ const collectProductionSourceFiles = (directory: string): string[] =>
 describe("generic components boundary contracts", () => {
   it("keeps workflow components out of generic components", () => {
     const forbiddenWorkflowDirectories = [
+      "Header",
       "Map",
       "ReviewModal",
       "DateChangeModal",
@@ -51,16 +50,15 @@ describe("generic components boundary contracts", () => {
 
   it("keeps generic components independent from app domains", () => {
     const violations = collectProductionSourceFiles(componentsRoot)
-      .filter((filePath) => {
-        const relativePath = relative(componentsRoot, filePath);
-
-        return !allowedWorkflowFiles.has(relativePath);
-      })
       .filter((filePath) =>
         forbiddenImportPattern.test(readFileSync(filePath, "utf8"))
       )
       .map((filePath) => relative(componentsRoot, filePath));
 
     expect(violations).toEqual([]);
+  });
+
+  it("keeps app-shell components out of generic components", () => {
+    expect(() => readdirSync(join(componentsRoot, "Header"))).toThrow();
   });
 });

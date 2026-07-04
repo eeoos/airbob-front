@@ -1,11 +1,44 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
+import React from "react";
 import { wishlistApi } from "../../../api/wishlist";
 import { WishlistInfo } from "../../../types/wishlist";
+import { searchQueryKeys } from "../../search/queryKeys";
+import { wishlistQueryKeys } from "../queryKeys";
 import { useWishlistSelection } from "./useWishlistSelection";
 
 const mockClearError = jest.fn();
 const mockHandleError = jest.fn();
 let mockError: string | null = null;
+
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+      mutations: {
+        retry: false,
+      },
+    },
+  });
+
+  const Wrapper = ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: queryClient }, children);
+
+  return { Wrapper, queryClient };
+};
+
+const renderUseWishlistSelection = (
+  options: Parameters<typeof useWishlistSelection>[0]
+) => {
+  const { Wrapper, queryClient } = createWrapper();
+  const hook = renderHook(() => useWishlistSelection(options), {
+    wrapper: Wrapper,
+  });
+
+  return { ...hook, queryClient };
+};
 
 jest.mock("../../../api/wishlist", () => ({
   wishlistApi: {
@@ -43,6 +76,20 @@ const createWishlist = (
   ...overrides,
 });
 
+const expectWishlistMutationCacheInvalidations = (
+  invalidateQueriesSpy: jest.SpyInstance
+) => {
+  expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+    queryKey: wishlistQueryKeys.all,
+  });
+  expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+    queryKey: wishlistQueryKeys.recentlyViewed(),
+  });
+  expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+    queryKey: searchQueryKeys.all,
+  });
+};
+
 describe("useWishlistSelection", () => {
   beforeEach(() => {
     mockError = null;
@@ -60,12 +107,10 @@ describe("useWishlistSelection", () => {
       page_info: pageInfo(true, "cursor-1"),
     });
 
-    const { result } = renderHook(() =>
-      useWishlistSelection({
-        isOpen: true,
-        accommodationId: 7,
-      })
-    );
+    const { result } = renderUseWishlistSelection({
+      isOpen: true,
+      accommodationId: 7,
+    });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -92,12 +137,10 @@ describe("useWishlistSelection", () => {
         page_info: pageInfo(false, null),
       });
 
-    const { result } = renderHook(() =>
-      useWishlistSelection({
-        isOpen: true,
-        accommodationId: 7,
-      })
-    );
+    const { result } = renderUseWishlistSelection({
+      isOpen: true,
+      accommodationId: 7,
+    });
 
     await waitFor(() => expect(result.current.hasNext).toBe(true));
 
@@ -137,15 +180,15 @@ describe("useWishlistSelection", () => {
     jest.mocked(wishlistApi.addAccommodation).mockResolvedValue({ id: 10 });
     jest.mocked(wishlistApi.removeAccommodation).mockResolvedValue(undefined);
 
-    const { result } = renderHook(() =>
-      useWishlistSelection({
-        isOpen: true,
-        accommodationId: 7,
-        onSuccess,
-      })
-    );
+    const { queryClient, result } = renderUseWishlistSelection({
+      isOpen: true,
+      accommodationId: 7,
+      onSuccess,
+    });
 
     await waitFor(() => expect(result.current.wishlists).toEqual([emptyWishlist]));
+
+    const invalidateQueriesSpy = jest.spyOn(queryClient, "invalidateQueries");
 
     await act(async () => {
       await result.current.toggleWishlist(emptyWishlist);
@@ -156,6 +199,8 @@ describe("useWishlistSelection", () => {
     });
     expect(onSuccess).toHaveBeenCalledTimes(1);
     expect(result.current.wishlists).toEqual([containedWishlist]);
+    expect(invalidateQueriesSpy).toHaveBeenCalledTimes(3);
+    expectWishlistMutationCacheInvalidations(invalidateQueriesSpy);
 
     await act(async () => {
       await result.current.toggleWishlist(containedWishlist);
@@ -164,6 +209,7 @@ describe("useWishlistSelection", () => {
     expect(wishlistApi.removeAccommodation).toHaveBeenCalledWith(99);
     expect(onSuccess).toHaveBeenCalledTimes(2);
     expect(result.current.wishlists).toEqual([emptyWishlist]);
+    expect(invalidateQueriesSpy).toHaveBeenCalledTimes(6);
   });
 
   it("adds the accommodation to a newly created wishlist and refreshes", async () => {
@@ -185,15 +231,15 @@ describe("useWishlistSelection", () => {
       });
     jest.mocked(wishlistApi.addAccommodation).mockResolvedValue({ id: 101 });
 
-    const { result } = renderHook(() =>
-      useWishlistSelection({
-        isOpen: true,
-        accommodationId: 7,
-        onSuccess,
-      })
-    );
+    const { queryClient, result } = renderUseWishlistSelection({
+      isOpen: true,
+      accommodationId: 7,
+      onSuccess,
+    });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const invalidateQueriesSpy = jest.spyOn(queryClient, "invalidateQueries");
 
     act(() => {
       result.current.openCreateModal();
@@ -209,17 +255,141 @@ describe("useWishlistSelection", () => {
     });
     expect(onSuccess).toHaveBeenCalled();
     expect(result.current.wishlists[0].is_contained).toBe(true);
+    expect(invalidateQueriesSpy).toHaveBeenCalledTimes(3);
+    expectWishlistMutationCacheInvalidations(invalidateQueriesSpy);
+  });
+
+  it("invalidates caches before a failed toggle refresh after adding", async () => {
+    const onSuccess = jest.fn();
+    const refreshError = new Error("refresh failed");
+    const emptyWishlist = createWishlist(1);
+    jest
+      .mocked(wishlistApi.getWishlists)
+      .mockResolvedValueOnce({
+        wishlists: [emptyWishlist],
+        page_info: pageInfo(false, null),
+      })
+      .mockRejectedValueOnce(refreshError);
+    jest.mocked(wishlistApi.addAccommodation).mockResolvedValue({ id: 10 });
+
+    const { queryClient, result } = renderUseWishlistSelection({
+      isOpen: true,
+      accommodationId: 7,
+      onSuccess,
+    });
+
+    await waitFor(() => expect(result.current.wishlists).toEqual([emptyWishlist]));
+
+    const invalidateQueriesSpy = jest.spyOn(queryClient, "invalidateQueries");
+
+    await act(async () => {
+      await result.current.toggleWishlist(emptyWishlist);
+    });
+
+    expect(wishlistApi.addAccommodation).toHaveBeenCalledWith(1, {
+      accommodation_id: 7,
+    });
+    expect(mockHandleError).toHaveBeenCalledWith(refreshError);
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+    expect(invalidateQueriesSpy).toHaveBeenCalledTimes(3);
+    expectWishlistMutationCacheInvalidations(invalidateQueriesSpy);
+    expect(
+      invalidateQueriesSpy.mock.invocationCallOrder[0]
+    ).toBeLessThan(jest.mocked(wishlistApi.getWishlists).mock.invocationCallOrder[1]);
+  });
+
+  it("invalidates caches before a failed toggle refresh after removing", async () => {
+    const onSuccess = jest.fn();
+    const refreshError = new Error("refresh failed");
+    const containedWishlist = createWishlist(1, {
+      is_contained: true,
+      wishlist_accommodation_id: 99,
+    });
+    jest
+      .mocked(wishlistApi.getWishlists)
+      .mockResolvedValueOnce({
+        wishlists: [containedWishlist],
+        page_info: pageInfo(false, null),
+      })
+      .mockRejectedValueOnce(refreshError);
+    jest.mocked(wishlistApi.removeAccommodation).mockResolvedValue(undefined);
+
+    const { queryClient, result } = renderUseWishlistSelection({
+      isOpen: true,
+      accommodationId: 7,
+      onSuccess,
+    });
+
+    await waitFor(() =>
+      expect(result.current.wishlists).toEqual([containedWishlist])
+    );
+
+    const invalidateQueriesSpy = jest.spyOn(queryClient, "invalidateQueries");
+
+    await act(async () => {
+      await result.current.toggleWishlist(containedWishlist);
+    });
+
+    expect(wishlistApi.removeAccommodation).toHaveBeenCalledWith(99);
+    expect(mockHandleError).toHaveBeenCalledWith(refreshError);
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+    expect(invalidateQueriesSpy).toHaveBeenCalledTimes(3);
+    expectWishlistMutationCacheInvalidations(invalidateQueriesSpy);
+    expect(
+      invalidateQueriesSpy.mock.invocationCallOrder[0]
+    ).toBeLessThan(jest.mocked(wishlistApi.getWishlists).mock.invocationCallOrder[1]);
+  });
+
+  it("invalidates caches before a failed create-success refresh", async () => {
+    const onSuccess = jest.fn();
+    const refreshError = new Error("refresh failed");
+    jest
+      .mocked(wishlistApi.getWishlists)
+      .mockResolvedValueOnce({
+        wishlists: [],
+        page_info: pageInfo(false, null),
+      })
+      .mockRejectedValueOnce(refreshError);
+    jest.mocked(wishlistApi.addAccommodation).mockResolvedValue({ id: 101 });
+
+    const { queryClient, result } = renderUseWishlistSelection({
+      isOpen: true,
+      accommodationId: 7,
+      onSuccess,
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const invalidateQueriesSpy = jest.spyOn(queryClient, "invalidateQueries");
+
+    act(() => {
+      result.current.openCreateModal();
+    });
+
+    await act(async () => {
+      await result.current.handleCreateSuccess(55);
+    });
+
+    expect(result.current.showCreateModal).toBe(false);
+    expect(wishlistApi.addAccommodation).toHaveBeenCalledWith(55, {
+      accommodation_id: 7,
+    });
+    expect(mockHandleError).toHaveBeenCalledWith(refreshError);
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+    expect(invalidateQueriesSpy).toHaveBeenCalledTimes(3);
+    expectWishlistMutationCacheInvalidations(invalidateQueriesSpy);
+    expect(
+      invalidateQueriesSpy.mock.invocationCallOrder[0]
+    ).toBeLessThan(jest.mocked(wishlistApi.getWishlists).mock.invocationCallOrder[1]);
   });
 
   it("exposes the shared error state for modal rendering", () => {
     mockError = "위시리스트 실패";
 
-    const { result } = renderHook(() =>
-      useWishlistSelection({
-        isOpen: false,
-        accommodationId: 7,
-      })
-    );
+    const { result } = renderUseWishlistSelection({
+      isOpen: false,
+      accommodationId: 7,
+    });
 
     expect(result.current.error).toBe("위시리스트 실패");
     expect(result.current.clearError).toBe(mockClearError);

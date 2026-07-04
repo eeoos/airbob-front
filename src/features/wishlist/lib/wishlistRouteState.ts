@@ -1,4 +1,6 @@
-export type WishlistRouteView = "index" | "recently-viewed" | "wishlist-detail";
+import type { WishlistRouteView } from "../../../routes/paths";
+
+export type { WishlistRouteView } from "../../../routes/paths";
 
 export interface WishlistRouteState {
   view: WishlistRouteView;

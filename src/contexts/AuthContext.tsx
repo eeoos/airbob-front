@@ -4,8 +4,13 @@ import React, { createContext, useContext, useEffect, ReactNode, useCallback } f
 import { authApi } from "../api";
 import { useSessionQuery } from "../features/auth/hooks/useSessionQuery";
 import { authQueryKeys } from "../features/auth/queryKeys";
+import {
+  clearSessionQueryData,
+  refreshSessionQueryData,
+} from "../query/sessionCacheBoundary";
+import { clearAllReservationCheckoutState } from "../features/reservations/lib/reservationCheckoutState";
 import { onAuthError } from "../utils/authEvents";
-import { LoginRequest, MeInfo } from "../types/auth";
+import { LoginRequest } from "../types/auth";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -34,18 +39,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const sessionQuery = useSessionQuery();
 
   const clearSession = useCallback(async () => {
-    await queryClient.cancelQueries({ queryKey: authQueryKeys.me() });
-    queryClient.setQueryData<MeInfo | null>(authQueryKeys.me(), null);
-    queryClient.removeQueries({
-      queryKey: authQueryKeys.me(),
-      type: "inactive",
-    });
+    clearAllReservationCheckoutState();
+    await clearSessionQueryData(queryClient);
   }, [queryClient]);
 
   const refreshSession = useCallback(async () => {
     try {
       const meInfo = await authApi.getMe();
-      queryClient.setQueryData<MeInfo | null>(authQueryKeys.me(), meInfo);
+      await refreshSessionQueryData(queryClient, meInfo);
     } catch (error) {
       await clearSession();
       throw error;

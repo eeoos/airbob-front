@@ -15,6 +15,7 @@ export interface SearchMapProps {
   hoveredAccommodationId?: number | null;
   onAccommodationSelect: (accommodation: AccommodationSearchInfo | null) => void;
   onWishlistToggle?: (accommodationId: number, isInWishlist: boolean) => void;
+  detailSearchParams?: URLSearchParams;
   checkIn?: string | null;
   checkOut?: string | null;
   isExpanded?: boolean;

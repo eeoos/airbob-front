@@ -1,11 +1,18 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { clearReservationCheckoutStateByReservationUid } from "../../features/reservations/lib/reservationCheckoutState";
 import { routeTo } from "../../routes/paths";
 import styles from "./PaymentFail.module.css";
 
 const PaymentFail: React.FC = () => {
   const { reservationUid } = useParams<{ reservationUid: string }>();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!reservationUid) return;
+
+    clearReservationCheckoutStateByReservationUid(reservationUid);
+  }, [reservationUid]);
 
   return (
     <>
@@ -36,6 +43,5 @@ const PaymentFail: React.FC = () => {
 };
 
 export default PaymentFail;
-
 
 

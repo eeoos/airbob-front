@@ -1,4 +1,6 @@
 .container {
+  --reservation-detail-back-button-layer: 10;
+
   max-width: none;
   margin: 0;
   padding: 0;
@@ -10,28 +12,28 @@
   margin-bottom: 24px;
   padding: 8px 16px;
   background: none;
-  border: 1px solid #dddddd;
-  border-radius: 8px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
   font-size: 14px;
-  color: #222222;
+  color: var(--color-text-primary);
   cursor: pointer;
   transition: all 0.2s ease;
   position: absolute;
   top: 24px;
   left: 24px;
-  z-index: 10;
+  z-index: var(--reservation-detail-back-button-layer);
 }
 
 .backButton:hover {
-  background-color: #f7f7f7;
-  border-color: #222222;
+  background-color: var(--color-background-muted);
+  border-color: var(--color-text-primary);
 }
 
 .loading,
 .error {
   text-align: center;
   padding: 80px 24px;
-  color: #717171;
+  color: var(--color-text-secondary);
   font-size: 16px;
 }
 
@@ -60,12 +62,12 @@
 
 .mainContent::-webkit-scrollbar-track {
   background: #f1f1f1;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .mainContent::-webkit-scrollbar-thumb {
   background: #888;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .mainContent::-webkit-scrollbar-thumb:hover {
@@ -92,7 +94,7 @@
 .sectionTitle {
   font-size: 22px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -143,13 +145,13 @@
 
 .infoLabel {
   font-size: 14px;
-  color: #222222;
+  color: var(--color-text-primary);
   font-weight: 700;
 }
 
 .infoValue {
   font-size: 16px;
-  color: #222222;
+  color: var(--color-text-primary);
 }
 
 .accommodationCard {
@@ -162,7 +164,7 @@
   width: 100%;
   aspect-ratio: 16 / 10;
   max-height: 400px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   object-fit: cover;
 }
 
@@ -186,7 +188,7 @@
 .backButtonOnImage svg {
   width: 24px;
   height: 24px;
-  color: #222222;
+  color: var(--color-text-primary);
 }
 
 .accommodationInfo {
@@ -198,7 +200,7 @@
 .accommodationAddress {
   font-size: 22px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -210,12 +212,12 @@
 
 .hostLabel {
   font-size: 16px;
-  color: #222222;
+  color: var(--color-text-primary);
 }
 
 .hostName {
   font-size: 16px;
-  color: #222222;
+  color: var(--color-text-primary);
   font-weight: 400;
 }
 
@@ -245,13 +247,13 @@
 
 .hostAvatarInitial {
   font-size: 18px;
-  color: #717171;
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 
 .hostText {
   font-size: 18px;
-  color: #222222;
+  color: var(--color-text-primary);
   font-weight: 700;
 }
 
@@ -261,7 +263,7 @@
   gap: 0;
   margin-top: 16px;
   border: 1px solid #ebebeb;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
@@ -279,7 +281,7 @@
 
 .dateLabel {
   font-size: 14px;
-  color: #222222;
+  color: var(--color-text-primary);
   font-weight: 600;
 }
 
@@ -291,26 +293,26 @@
 
 .dateValue > span:first-child {
   font-size: 16px;
-  color: #222222;
+  color: var(--color-text-primary);
 }
 
 .timeValue {
   font-size: 14px;
-  color: #717171;
+  color: var(--color-text-secondary);
 }
 
 .accommodationBox {
   margin-top: 16px;
   padding: 16px;
   border: 1px solid #ebebeb;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .accommodationBox:hover {
-  border-color: #222222;
-  background-color: #f7f7f7;
+  border-color: var(--color-text-primary);
+  background-color: var(--color-background-muted);
 }
 
 .accommodationBoxContent {
@@ -318,13 +320,13 @@
   justify-content: space-between;
   align-items: center;
   font-size: 16px;
-  color: #222222;
+  color: var(--color-text-primary);
   line-height: 1.5;
 }
 
 .accommodationBoxArrow {
   font-size: 18px;
-  color: #222222;
+  color: var(--color-text-primary);
 }
 
 .paymentInfo {
@@ -338,19 +340,19 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  background-color: #f7f7f7;
-  border-radius: 8px;
+  background-color: var(--color-background-muted);
+  border-radius: var(--radius-md);
 }
 
 .paymentLabel {
   font-size: 14px;
-  color: #717171;
+  color: var(--color-text-secondary);
   font-weight: 600;
 }
 
 .paymentValue {
   font-size: 16px;
-  color: #222222;
+  color: var(--color-text-primary);
   font-weight: 600;
 }
 
@@ -402,14 +404,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f7f7f7;
-  color: #717171;
+  background-color: var(--color-background-muted);
+  color: var(--color-text-secondary);
   font-size: 14px;
 }
 
 .actionCard {
-  border: 1px solid #dddddd;
-  border-radius: 12px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
   padding: 24px;
   box-shadow: 0 2px 16px rgba(0, 0, 0, 0.12);
   display: flex;
@@ -422,7 +424,7 @@
   width: 100%;
   padding: 14px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
@@ -430,35 +432,35 @@
 }
 
 .reviewButton {
-  background-color: #222222;
-  color: white;
+  background-color: var(--color-text-primary);
+  color: var(--color-text-inverse);
 }
 
 .reviewButton:hover {
-  background-color: #000000;
+  background-color: var(--color-text-primary);
 }
 
 .cancelButton {
-  background-color: #ff385c;
-  color: white;
+  background-color: var(--color-brand-coral);
+  color: var(--color-text-inverse);
 }
 
 .cancelButton:hover {
-  background-color: #e61e4d;
+  background-color: var(--color-brand-coral-hover);
 }
 
 .virtualAccountSection {
   margin-top: 24px;
   padding: 24px;
-  background-color: #f7f7f7;
-  border-radius: 12px;
+  background-color: var(--color-background-muted);
+  border-radius: var(--radius-lg);
   border: 1px solid #ebebeb;
 }
 
 .virtualAccountTitle {
   font-size: 18px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
   margin-bottom: 20px;
 }
 
@@ -483,13 +485,13 @@
 
 .virtualAccountLabel {
   font-size: 14px;
-  color: #717171;
+  color: var(--color-text-secondary);
   font-weight: 600;
 }
 
 .virtualAccountValue {
   font-size: 16px;
-  color: #222222;
+  color: var(--color-text-primary);
   font-weight: 600;
   font-family: monospace;
 }
@@ -497,7 +499,7 @@
 .virtualAccountNotice {
   padding: 16px;
   background-color: #fff3cd;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border-left: 4px solid #ffc107;
 }
 

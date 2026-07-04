@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { usePlacesAutocomplete } from "../../../hooks/usePlacesAutocomplete";
 import {
   buildSearchNavigationParams,
   removeViewportParams,
+  toSearchRouteQuery,
 } from "../lib/searchParams";
 import { ROUTE_PATHS, routeTo } from "../../../routes/paths";
 
@@ -31,6 +32,84 @@ interface UseSearchBarStateOptions {
   isMapDragMode?: boolean;
 }
 
+const SEARCH_BAR_URL_PARAM_KEYS = [
+  "destination",
+  "checkIn",
+  "checkOut",
+  "adultOccupancy",
+  "childOccupancy",
+  "infantOccupancy",
+  "petOccupancy",
+] as const;
+
+const getSearchBarUrlStateSignature = (params: URLSearchParams) => {
+  const nextParams = new URLSearchParams();
+
+  SEARCH_BAR_URL_PARAM_KEYS.forEach((key) => {
+    const value = params.get(key);
+    if (value !== null) {
+      nextParams.set(key, value);
+    }
+  });
+
+  return nextParams.toString();
+};
+
+const parseDateParam = (value: string | null): Date | null => {
+  if (!value) {
+    return null;
+  }
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) {
+    return null;
+  }
+
+  const [, yearValue, monthValue, dayValue] = match;
+  const year = Number(yearValue);
+  const month = Number(monthValue);
+  const day = Number(dayValue);
+  const date = new Date(year, month - 1, day);
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
+};
+
+const parsePositiveInt = (value: string | null, fallback: number) => {
+  if (!value || !/^\d+$/.test(value)) {
+    return fallback;
+  }
+
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const parseNonNegativeInt = (value: string | null, fallback: number) => {
+  if (!value || !/^\d+$/.test(value)) {
+    return fallback;
+  }
+
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : fallback;
+};
+
+const parseSearchBarUrlState = (params: URLSearchParams) => ({
+  destination: params.get("destination") ?? "",
+  checkIn: parseDateParam(params.get("checkIn")),
+  checkOut: parseDateParam(params.get("checkOut")),
+  adultOccupancy: parsePositiveInt(params.get("adultOccupancy"), 1),
+  childOccupancy: parseNonNegativeInt(params.get("childOccupancy"), 0),
+  infantOccupancy: parseNonNegativeInt(params.get("infantOccupancy"), 0),
+  petOccupancy: parseNonNegativeInt(params.get("petOccupancy"), 0),
+});
+
 export const useSearchBarState = ({
   onSearch,
   onExpandedChange,
@@ -45,6 +124,7 @@ export const useSearchBarState = ({
   const [childOccupancy, setChildOccupancy] = useState(0);
   const [infantOccupancy, setInfantOccupancy] = useState(0);
   const [petOccupancy, setPetOccupancy] = useState(0);
+  const syncedDestinationRef = useRef<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showGuestPicker, setShowGuestPicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -69,10 +149,13 @@ export const useSearchBarState = ({
     },
   });
 
-  const setExpanded = useCallback((nextIsExpanded: boolean) => {
-    setIsExpanded(nextIsExpanded);
-    onExpandedChange?.(nextIsExpanded);
-  }, [onExpandedChange]);
+  const setExpanded = useCallback(
+    (nextIsExpanded: boolean) => {
+      setIsExpanded(nextIsExpanded);
+      onExpandedChange?.(nextIsExpanded);
+    },
+    [onExpandedChange],
+  );
 
   const completeCheckoutIfNeeded = useCallback(() => {
     if (!checkIn || checkOut) {
@@ -84,60 +167,56 @@ export const useSearchBarState = ({
     setCheckOut(nextDay);
   }, [checkIn, checkOut]);
 
-  const closeTransientPanels = useCallback(({
-    collapseWhenDateSelected = false,
-  }: { collapseWhenDateSelected?: boolean } = {}) => {
-    if (showDatePicker) {
-      completeCheckoutIfNeeded();
-    }
+  const closeTransientPanels = useCallback(
+    ({
+      collapseWhenDateSelected = false,
+    }: { collapseWhenDateSelected?: boolean } = {}) => {
+      if (showDatePicker) {
+        completeCheckoutIfNeeded();
+      }
 
-    setShowDatePicker(false);
-    setShowGuestPicker(false);
-    setShowSuggestions(false);
+      setShowDatePicker(false);
+      setShowGuestPicker(false);
+      setShowSuggestions(false);
 
-    if (collapseWhenDateSelected && (checkIn || checkOut)) {
-      setExpanded(false);
-    }
-  }, [
-    checkIn,
-    checkOut,
-    completeCheckoutIfNeeded,
-    setExpanded,
-    showDatePicker,
-  ]);
+      if (collapseWhenDateSelected && (checkIn || checkOut)) {
+        setExpanded(false);
+      }
+    },
+    [checkIn, checkOut, completeCheckoutIfNeeded, setExpanded, showDatePicker],
+  );
 
-  const handleSearch = useCallback((e?: { stopPropagation?: () => void }) => {
-    e?.stopPropagation?.();
-    closeTransientPanels();
+  const handleSearch = useCallback(
+    (e?: { stopPropagation?: () => void }) => {
+      e?.stopPropagation?.();
+      closeTransientPanels();
 
-    const isPlaceSelected = !!(
-      selectedPlace &&
-      Number.isFinite(selectedPlace.lat) &&
-      Number.isFinite(selectedPlace.lng) &&
-      selectedPlace.viewport
-    );
+      const isPlaceSelected = !!(
+        selectedPlace &&
+        Number.isFinite(selectedPlace.lat) &&
+        Number.isFinite(selectedPlace.lng) &&
+        selectedPlace.viewport
+      );
 
-    const searchParams: SearchParams = {
-      destination: inputText || undefined,
-      lat: isPlaceSelected ? selectedPlace.lat : undefined,
-      lng: isPlaceSelected ? selectedPlace.lng : undefined,
-      viewport: isPlaceSelected ? selectedPlace.viewport : undefined,
-      checkIn: checkIn || undefined,
-      checkOut: checkOut || undefined,
-      adultOccupancy,
-      childOccupancy,
-      infantOccupancy,
-      petOccupancy,
-    };
+      const searchParams: SearchParams = {
+        destination: inputText || undefined,
+        lat: isPlaceSelected ? selectedPlace.lat : undefined,
+        lng: isPlaceSelected ? selectedPlace.lng : undefined,
+        viewport: isPlaceSelected ? selectedPlace.viewport : undefined,
+        checkIn: checkIn || undefined,
+        checkOut: checkOut || undefined,
+        adultOccupancy,
+        childOccupancy,
+        infantOccupancy,
+        petOccupancy,
+      };
 
-    if (onSearch) {
-      onSearch(searchParams);
-      return;
-    }
+      if (onSearch) {
+        onSearch(searchParams);
+        return;
+      }
 
-    const params = buildSearchNavigationParams(
-      urlSearchParams,
-      {
+      const params = buildSearchNavigationParams(urlSearchParams, {
         destination: inputText || undefined,
         selectedPlace: isPlaceSelected ? selectedPlace : null,
         checkIn,
@@ -146,24 +225,25 @@ export const useSearchBarState = ({
         childOccupancy,
         infantOccupancy,
         petOccupancy,
-      }
-    );
+      });
 
-    navigate(routeTo.search(params));
-  }, [
-    adultOccupancy,
-    checkIn,
-    checkOut,
-    childOccupancy,
-    closeTransientPanels,
-    infantOccupancy,
-    inputText,
-    navigate,
-    onSearch,
-    petOccupancy,
-    selectedPlace,
-    urlSearchParams,
-  ]);
+      navigate(routeTo.search(toSearchRouteQuery(params)));
+    },
+    [
+      adultOccupancy,
+      checkIn,
+      checkOut,
+      childOccupancy,
+      closeTransientPanels,
+      infantOccupancy,
+      inputText,
+      navigate,
+      onSearch,
+      petOccupancy,
+      selectedPlace,
+      urlSearchParams,
+    ],
+  );
 
   const exitMapDragMode = useCallback(() => {
     if (isMapDragMode && location.pathname === ROUTE_PATHS.search) {
@@ -204,75 +284,40 @@ export const useSearchBarState = ({
     }, 500);
   }, [isExpanded, setExpanded, showGuestPicker]);
 
-  const handleDateSelect = useCallback((
-    newCheckIn: Date | null,
-    newCheckOut: Date | null
-  ) => {
-    setCheckIn(newCheckIn);
-    setCheckOut(newCheckOut);
-  }, []);
+  const handleDateSelect = useCallback(
+    (newCheckIn: Date | null, newCheckOut: Date | null) => {
+      setCheckIn(newCheckIn);
+      setCheckOut(newCheckOut);
+    },
+    [],
+  );
 
   const getTotalGuests = useCallback(
     () => adultOccupancy + childOccupancy,
-    [adultOccupancy, childOccupancy]
+    [adultOccupancy, childOccupancy],
   );
 
+  const searchBarUrlStateSignature =
+    getSearchBarUrlStateSignature(urlSearchParams);
+
   useEffect(() => {
-    const destination = urlSearchParams.get("destination");
-    const checkInParam = urlSearchParams.get("checkIn");
-    const checkOutParam = urlSearchParams.get("checkOut");
-    const adultOccupancyParam = urlSearchParams.get("adultOccupancy");
-    const childOccupancyParam = urlSearchParams.get("childOccupancy");
-    const infantOccupancyParam = urlSearchParams.get("infantOccupancy");
-    const petOccupancyParam = urlSearchParams.get("petOccupancy");
+    const nextState = parseSearchBarUrlState(
+      new URLSearchParams(searchBarUrlStateSignature),
+    );
 
-    if (destination && !inputText) {
-      handleInputChange(destination);
+    if (syncedDestinationRef.current !== nextState.destination) {
+      resetPlaces();
+      handleInputChange(nextState.destination);
+      syncedDestinationRef.current = nextState.destination;
     }
 
-    if (checkInParam) {
-      const checkInDate = new Date(checkInParam);
-      if (!isNaN(checkInDate.getTime())) {
-        setCheckIn(checkInDate);
-      }
-    }
-
-    if (checkOutParam) {
-      const checkOutDate = new Date(checkOutParam);
-      if (!isNaN(checkOutDate.getTime())) {
-        setCheckOut(checkOutDate);
-      }
-    }
-
-    if (adultOccupancyParam) {
-      const adult = parseInt(adultOccupancyParam, 10);
-      if (!isNaN(adult) && adult > 0) {
-        setAdultOccupancy(adult);
-      }
-    }
-
-    if (childOccupancyParam) {
-      const child = parseInt(childOccupancyParam, 10);
-      if (!isNaN(child) && child >= 0) {
-        setChildOccupancy(child);
-      }
-    }
-
-    if (infantOccupancyParam) {
-      const infant = parseInt(infantOccupancyParam, 10);
-      if (!isNaN(infant) && infant >= 0) {
-        setInfantOccupancy(infant);
-      }
-    }
-
-    if (petOccupancyParam) {
-      const pet = parseInt(petOccupancyParam, 10);
-      if (!isNaN(pet) && pet >= 0) {
-        setPetOccupancy(pet);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    setCheckIn(nextState.checkIn);
+    setCheckOut(nextState.checkOut);
+    setAdultOccupancy(nextState.adultOccupancy);
+    setChildOccupancy(nextState.childOccupancy);
+    setInfantOccupancy(nextState.infantOccupancy);
+    setPetOccupancy(nextState.petOccupancy);
+  }, [handleInputChange, resetPlaces, searchBarUrlStateSignature]);
 
   return {
     checkIn,

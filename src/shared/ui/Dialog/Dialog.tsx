@@ -3,7 +3,7 @@ import { useBodyScrollLock } from "../useBodyScrollLock";
 import styles from "./Dialog.module.css";
 
 export type DialogBodyPadding = "default" | "none";
-export type DialogSize = "sm" | "md" | "lg" | "xl" | "fullscreen";
+export type DialogSize = "sm" | "md" | "lg" | "xl" | "fullscreen" | "custom";
 
 export interface DialogProps {
   children: React.ReactNode;
@@ -64,13 +64,16 @@ export function Dialog({
   const wasOpenRef = React.useRef(false);
   const titleId = React.useId();
 
-  const sizeClassName = {
-    sm: styles.sizeSm,
-    md: styles.sizeMd,
-    lg: styles.sizeLg,
-    xl: styles.sizeXl,
-    fullscreen: styles.sizeFullscreen,
-  }[size];
+  const sizeClassName =
+    size === "custom"
+      ? undefined
+      : {
+          sm: styles.sizeSm,
+          md: styles.sizeMd,
+          lg: styles.sizeLg,
+          xl: styles.sizeXl,
+          fullscreen: styles.sizeFullscreen,
+        }[size];
 
   const bodyPaddingClassName =
     bodyPadding === "none" ? styles.bodyPaddingNone : undefined;
@@ -101,10 +104,17 @@ export function Dialog({
       const autofocusElement = dialogRef.current
         ? getAutofocusElement(dialogRef.current)
         : null;
+      const firstFocusableElement = dialogRef.current
+        ? getFocusableElements(dialogRef.current)[0] ?? null
+        : null;
       if (autofocusElement) {
         autofocusElement.focus();
       } else {
-        (closeButtonRef.current ?? dialogRef.current)?.focus();
+        (
+          closeButtonRef.current ??
+          firstFocusableElement ??
+          dialogRef.current
+        )?.focus();
       }
     }
 

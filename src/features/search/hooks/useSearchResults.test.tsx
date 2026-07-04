@@ -1,9 +1,12 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
+import React from "react";
 import { accommodationApi } from "../../../api";
 import {
   AccommodationSearchInfo,
   AccommodationSearchResponse,
 } from "../../../types/accommodation";
+import { searchQueryKeys } from "../queryKeys";
 import { useSearchResults } from "./useSearchResults";
 
 jest.mock("../../../api", () => ({
@@ -17,6 +20,23 @@ const mockHandleError = jest.fn();
 const mockClearError = jest.fn();
 const mockSetIsMapDragMode = jest.fn();
 const mockRequestMapBoundsUpdate = jest.fn();
+
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+        refetchOnWindowFocus: false,
+      },
+    },
+  });
+
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+
+  return { Wrapper, queryClient };
+};
 
 const createAccommodation = (
   id: number,
@@ -65,8 +85,9 @@ const createSearchResponse = (
   },
 });
 
-const renderUseSearchResults = (initialParams: URLSearchParams) =>
-  renderHook(
+const renderUseSearchResults = (initialParams: URLSearchParams) => {
+  const { Wrapper, queryClient } = createWrapper();
+  const hook = renderHook(
     ({ searchParams }) =>
       useSearchResults({
         searchParams,
@@ -76,8 +97,14 @@ const renderUseSearchResults = (initialParams: URLSearchParams) =>
         setIsMapDragMode: mockSetIsMapDragMode,
         requestMapBoundsUpdate: mockRequestMapBoundsUpdate,
       }),
-    { initialProps: { searchParams: initialParams } }
+    {
+      initialProps: { searchParams: initialParams },
+      wrapper: Wrapper,
+    }
   );
+
+  return { ...hook, queryClient };
+};
 
 describe("useSearchResults", () => {
   beforeEach(() => {
@@ -109,7 +136,8 @@ describe("useSearchResults", () => {
         page: 0,
         size: 18,
         adultOccupancy: 2,
-      })
+      }),
+      expect.any(AbortSignal)
     );
     expect(result.current.accommodations).toEqual(
       response.stay_search_result_listing
@@ -127,12 +155,14 @@ describe("useSearchResults", () => {
     ]);
     jest.mocked(accommodationApi.search).mockResolvedValue(response);
 
-    const { result } = renderUseSearchResults(
+    const { result, queryClient } = renderUseSearchResults(
       new URLSearchParams("destination=Seoul")
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
+    const queryKey = searchQueryKeys.results("destination=Seoul");
+    expect(queryClient.getQueryData(queryKey)).toEqual(response);
     expect(typeof (result.current as any).updateAccommodationWishlistStatus).toBe(
       "function"
     );
@@ -142,10 +172,67 @@ describe("useSearchResults", () => {
       (result.current as any).updateAccommodationWishlistStatus(2, true);
     });
 
-    expect(result.current.accommodations).toEqual([
-      createAccommodation(1),
-      createAccommodation(2, true),
+    await waitFor(() =>
+      expect(result.current.accommodations).toEqual([
+        createAccommodation(1),
+        createAccommodation(2, true),
+      ])
+    );
+    expect(
+      queryClient.getQueryData<AccommodationSearchResponse>(queryKey)
+        ?.stay_search_result_listing
+    ).toEqual([createAccommodation(1), createAccommodation(2, true)]);
+  });
+
+  it("patches visible placeholder results while a page query is pending", async () => {
+    const firstPageKey = searchQueryKeys.results("destination=Seoul");
+    const secondPageKey = searchQueryKeys.results("destination=Seoul&page=1");
+    const firstPageResponse = createSearchResponse(0, 2, 2, [
+      createAccommodation(1, false),
     ]);
+    const pendingPageSearch = new Promise<AccommodationSearchResponse>(() => {});
+
+    jest
+      .mocked(accommodationApi.search)
+      .mockResolvedValueOnce(firstPageResponse)
+      .mockReturnValueOnce(pendingPageSearch);
+
+    const { result, rerender, queryClient } = renderUseSearchResults(
+      new URLSearchParams("destination=Seoul")
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.accommodations).toEqual([
+      createAccommodation(1, false),
+    ]);
+
+    act(() => {
+      result.current.handlePageChange(1);
+    });
+
+    const nextParams = mockSetSearchParams.mock.calls[0][0] as URLSearchParams;
+    rerender({ searchParams: nextParams });
+
+    await waitFor(() => expect(accommodationApi.search).toHaveBeenCalledTimes(2));
+    expect(result.current.accommodations).toEqual([
+      createAccommodation(1, false),
+    ]);
+    expect(queryClient.getQueryData(secondPageKey)).toBeUndefined();
+
+    act(() => {
+      result.current.updateAccommodationWishlistStatus(1, true);
+    });
+
+    await waitFor(() =>
+      expect(result.current.accommodations).toEqual([
+        createAccommodation(1, true),
+      ])
+    );
+    expect(
+      queryClient.getQueryData<AccommodationSearchResponse>(firstPageKey)
+        ?.stay_search_result_listing
+    ).toEqual([createAccommodation(1, true)]);
+    expect(queryClient.getQueryData(secondPageKey)).toBeUndefined();
   });
 
   it("fetches a clicked page once and suppresses the matching URL effect fetch", async () => {
@@ -161,17 +248,10 @@ describe("useSearchResults", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     jest.mocked(accommodationApi.search).mockClear();
 
-    await act(async () => {
-      await result.current.handlePageChange(1);
+    act(() => {
+      result.current.handlePageChange(1);
     });
 
-    expect(accommodationApi.search).toHaveBeenCalledTimes(1);
-    expect(accommodationApi.search).toHaveBeenCalledWith(
-      expect.objectContaining({
-        destination: "Seoul",
-        page: 1,
-      })
-    );
     expect(mockSetSearchParams).toHaveBeenCalledTimes(1);
     const nextParams = mockSetSearchParams.mock.calls[0][0] as URLSearchParams;
     expect(nextParams.get("page")).toBe("1");
@@ -182,6 +262,13 @@ describe("useSearchResults", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(accommodationApi.search).toHaveBeenCalledTimes(1);
+    expect(accommodationApi.search).toHaveBeenCalledWith(
+      expect.objectContaining({
+        destination: "Seoul",
+        page: 1,
+      }),
+      expect.any(AbortSignal)
+    );
     expect(window.scrollTo).toHaveBeenCalledWith({
       top: 0,
       behavior: "smooth",
@@ -222,7 +309,8 @@ describe("useSearchResults", () => {
         destination: "Seoul",
         adultOccupancy: 1,
         page: 0,
-      })
+      }),
+      expect.any(AbortSignal)
     );
   });
 
@@ -269,7 +357,8 @@ describe("useSearchResults", () => {
         bottomRightLng: 128,
         destination: undefined,
         page: 0,
-      })
+      }),
+      expect.any(AbortSignal)
     );
     expect(mockSetIsMapDragMode).toHaveBeenLastCalledWith(true);
     expect(mockRequestMapBoundsUpdate).toHaveBeenCalled();
@@ -399,11 +488,13 @@ describe("useSearchResults", () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    let pageChangePromise!: Promise<void>;
-    await act(async () => {
-      pageChangePromise = result.current.handlePageChange(1);
-      await Promise.resolve();
+    act(() => {
+      result.current.handlePageChange(1);
     });
+
+    const pageParams = mockSetSearchParams.mock.calls[0][0] as URLSearchParams;
+    rerender({ searchParams: pageParams });
+    await waitFor(() => expect(accommodationApi.search).toHaveBeenCalledTimes(2));
 
     rerender({ searchParams: new URLSearchParams("destination=Busan") });
 
@@ -423,7 +514,7 @@ describe("useSearchResults", () => {
       resolvePageSearch(
         createSearchResponse(1, 5, 50, [createAccommodation(100)])
       );
-      await pageChangePromise;
+      await Promise.resolve();
     });
 
     expect(result.current.accommodations[0]?.id).toBe(200);
@@ -458,11 +549,13 @@ describe("useSearchResults", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     mockHandleError.mockClear();
 
-    let pageChangePromise!: Promise<void>;
-    await act(async () => {
-      pageChangePromise = result.current.handlePageChange(1);
-      await Promise.resolve();
+    act(() => {
+      result.current.handlePageChange(1);
     });
+
+    const pageParams = mockSetSearchParams.mock.calls[0][0] as URLSearchParams;
+    rerender({ searchParams: pageParams });
+    await waitFor(() => expect(accommodationApi.search).toHaveBeenCalledTimes(2));
 
     rerender({ searchParams: new URLSearchParams("destination=Busan") });
 
@@ -480,7 +573,7 @@ describe("useSearchResults", () => {
 
     await act(async () => {
       rejectPageSearch(new Error("stale page failed"));
-      await pageChangePromise;
+      await Promise.resolve();
     });
 
     expect(mockHandleError).not.toHaveBeenCalled();

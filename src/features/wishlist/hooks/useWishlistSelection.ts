@@ -1,7 +1,10 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import { wishlistApi } from "../../../api/wishlist";
 import { useApiError } from "../../../hooks/useApiError";
 import { WishlistInfo } from "../../../types/wishlist";
+import { searchQueryKeys } from "../../search/queryKeys";
+import { wishlistQueryKeys } from "../queryKeys";
 
 const WISHLIST_PAGE_SIZE = 20;
 
@@ -16,6 +19,7 @@ export function useWishlistSelection({
   accommodationId,
   onSuccess,
 }: UseWishlistSelectionOptions) {
+  const queryClient = useQueryClient();
   const [wishlists, setWishlists] = useState<WishlistInfo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasNext, setHasNext] = useState(false);
@@ -72,6 +76,14 @@ export function useWishlistSelection({
     await fetchWishlists(nextCursor);
   }, [fetchWishlists, hasNext, isLoading, nextCursor]);
 
+  const invalidateMutationCaches = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: wishlistQueryKeys.all });
+    queryClient.invalidateQueries({
+      queryKey: wishlistQueryKeys.recentlyViewed(),
+    });
+    queryClient.invalidateQueries({ queryKey: searchQueryKeys.all });
+  }, [queryClient]);
+
   const toggleWishlist = useCallback(
     async (wishlist: WishlistInfo, event?: { stopPropagation: () => void }) => {
       event?.stopPropagation();
@@ -87,13 +99,20 @@ export function useWishlistSelection({
           });
         }
 
+        invalidateMutationCaches();
         await fetchWishlists();
         onSuccess?.();
       } catch (error) {
         handleError(error);
       }
     },
-    [accommodationId, fetchWishlists, handleError, onSuccess]
+    [
+      accommodationId,
+      fetchWishlists,
+      handleError,
+      invalidateMutationCaches,
+      onSuccess,
+    ]
   );
 
   const openCreateModal = useCallback(() => {
@@ -112,13 +131,20 @@ export function useWishlistSelection({
         await wishlistApi.addAccommodation(newWishlistId, {
           accommodation_id: accommodationId,
         });
+        invalidateMutationCaches();
         await fetchWishlists();
         onSuccess?.();
       } catch (error) {
         handleError(error);
       }
     },
-    [accommodationId, fetchWishlists, handleError, onSuccess]
+    [
+      accommodationId,
+      fetchWishlists,
+      handleError,
+      invalidateMutationCaches,
+      onSuccess,
+    ]
   );
 
   return {

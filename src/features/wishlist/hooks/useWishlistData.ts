@@ -1,263 +1,377 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { InfiniteData } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { recentlyViewedApi, wishlistApi } from "../../../api";
 import { useApiError } from "../../../hooks/useApiError";
-import { RecentlyViewedAccommodationInfo } from "../../../types/recentlyViewed";
+import { RecentlyViewedAccommodationInfos } from "../../../types/recentlyViewed";
 import {
-  WishlistAccommodationInfo,
-  WishlistInfo,
+  WishlistAccommodationInfos,
+  WishlistInfos,
 } from "../../../types/wishlist";
-
-const WISHLIST_PAGE_SIZE = 20;
+import { searchQueryKeys } from "../../search/queryKeys";
+import { fetchAccommodationWishlistMembership } from "../lib/wishlistMembership";
+import { wishlistQueryKeys } from "../queryKeys";
+import { useRecentlyViewedQuery } from "./useRecentlyViewedQuery";
+import { useWishlistDetailQuery } from "./useWishlistDetailQuery";
+import {
+  getWishlistListsParamsSignature,
+  useWishlistListsQuery,
+} from "./useWishlistListsQuery";
 
 type UseWishlistDataOptions = {
   selectedWishlistId: number | null;
   showRecentlyViewed: boolean;
 };
 
+type WishlistListsInfiniteData = InfiniteData<
+  WishlistInfos,
+  string | null
+>;
+type WishlistDetailInfiniteData = InfiniteData<
+  WishlistAccommodationInfos,
+  string | null
+>;
+
+const wishlistListsQueryPrefix = [...wishlistQueryKeys.all, "lists"] as const;
+const wishlistDetailQueryPrefix = [...wishlistQueryKeys.all, "detail"] as const;
+const getWishlistDetailQueryPrefix = (wishlistId: number) =>
+  [...wishlistQueryKeys.all, "detail", wishlistId] as const;
+
+const removeWishlistFromPages = (
+  data: WishlistListsInfiniteData | undefined,
+  wishlistId: number
+) =>
+  data
+    ? {
+        ...data,
+        pages: data.pages.map((page) => ({
+          ...page,
+          wishlists: page.wishlists.filter(
+            (wishlist) => wishlist.id !== wishlistId
+          ),
+        })),
+      }
+    : data;
+
+const removeAccommodationFromPages = (
+  data: WishlistDetailInfiniteData | undefined,
+  wishlistAccommodationId: number
+) =>
+  data
+    ? {
+        ...data,
+        pages: data.pages.map((page) => ({
+          ...page,
+          wishlist_accommodations: page.wishlist_accommodations.filter(
+            (item) =>
+              item.wishlist_accommodation_id !== wishlistAccommodationId
+          ),
+        })),
+      }
+    : data;
+
+const updateAccommodationMemoInPages = (
+  data: WishlistDetailInfiniteData | undefined,
+  wishlistAccommodationId: number,
+  memo: string
+) =>
+  data
+    ? {
+        ...data,
+        pages: data.pages.map((page) => ({
+          ...page,
+          wishlist_accommodations: page.wishlist_accommodations.map((item) =>
+            item.wishlist_accommodation_id === wishlistAccommodationId
+              ? { ...item, memo }
+              : item
+          ),
+        })),
+      }
+    : data;
+
+const removeRecentlyViewedAccommodation = (
+  data: RecentlyViewedAccommodationInfos | undefined,
+  accommodationId: number
+) => {
+  if (!data) return data;
+
+  const accommodations = data.accommodations.filter(
+    (item) => item.accommodation_id !== accommodationId
+  );
+
+  return {
+    ...data,
+    accommodations,
+    total_count:
+      accommodations.length === data.accommodations.length
+        ? data.total_count
+        : Math.max(0, data.total_count - 1),
+  };
+};
+
+const updateRecentlyViewedWishlistState = (
+  data: RecentlyViewedAccommodationInfos | undefined,
+  accommodationId: number,
+  getNextValue: (currentValue: boolean) => boolean
+) =>
+  data
+    ? {
+        ...data,
+        accommodations: data.accommodations.map((item) =>
+          item.accommodation_id === accommodationId
+            ? {
+                ...item,
+                is_in_wishlist: getNextValue(item.is_in_wishlist),
+              }
+            : item
+        ),
+      }
+    : data;
+
 export function useWishlistData({
   selectedWishlistId,
   showRecentlyViewed,
 }: UseWishlistDataOptions) {
+  const queryClient = useQueryClient();
   const { error, handleError, clearError } = useApiError();
-  const [recentlyViewed, setRecentlyViewed] = useState<
-    RecentlyViewedAccommodationInfo[]
-  >([]);
-  const [wishlists, setWishlists] = useState<WishlistInfo[]>([]);
-  const [wishlistAccommodations, setWishlistAccommodations] = useState<
-    WishlistAccommodationInfo[]
-  >([]);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [isRecentlyViewedLoading, setIsRecentlyViewedLoading] = useState(false);
-  const [isDetailLoading, setIsDetailLoading] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [cursor, setCursor] = useState<string | null>(null);
-  const [hasNext, setHasNext] = useState(false);
-  const [wishlistsCursor, setWishlistsCursor] = useState<string | null>(null);
-  const [wishlistsHasNext, setWishlistsHasNext] = useState(false);
-  const [isLoadingMoreWishlists, setIsLoadingMoreWishlists] = useState(false);
-
-  const resetWishlistAccommodations = useCallback(() => {
-    setWishlistAccommodations([]);
-    setCursor(null);
-    setHasNext(false);
-    setIsDetailLoading(false);
-    setIsLoadingMore(false);
-  }, []);
+  const recentlyViewedQuery = useRecentlyViewedQuery();
+  const wishlistsQuery = useWishlistListsQuery();
+  const wishlistDetailQuery = useWishlistDetailQuery({
+    wishlistId: selectedWishlistId,
+    enabled: Boolean(selectedWishlistId) && !showRecentlyViewed,
+  });
+  const handledErrorUpdatedAtRef = useRef({
+    detail: 0,
+    recentlyViewed: 0,
+    wishlists: 0,
+  });
 
   useEffect(() => {
-    let isCancelled = false;
-
-    const fetchInitialData = async () => {
-      setIsInitialLoading(true);
-      clearError();
-
-      try {
-        const [recentlyViewedResponse, wishlistsResponse] = await Promise.all([
-          recentlyViewedApi.getRecentlyViewed(),
-          wishlistApi.getWishlists({ size: WISHLIST_PAGE_SIZE }),
-        ]);
-
-        if (isCancelled) return;
-
-        setRecentlyViewed(recentlyViewedResponse?.accommodations || []);
-        setWishlists(wishlistsResponse?.wishlists || []);
-        setWishlistsCursor(wishlistsResponse?.page_info?.next_cursor || null);
-        setWishlistsHasNext(wishlistsResponse?.page_info?.has_next || false);
-      } catch (err) {
-        if (!isCancelled) {
-          handleError(err);
-        }
-      } finally {
-        if (!isCancelled) {
-          setIsInitialLoading(false);
-        }
-      }
-    };
-
-    fetchInitialData();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [clearError, handleError]);
+    clearError();
+  }, [clearError]);
 
   useEffect(() => {
-    if (!selectedWishlistId || showRecentlyViewed) {
-      resetWishlistAccommodations();
+    if (
+      !recentlyViewedQuery.isError ||
+      !recentlyViewedQuery.error ||
+      handledErrorUpdatedAtRef.current.recentlyViewed ===
+        recentlyViewedQuery.errorUpdatedAt
+    ) {
       return;
     }
 
-    let isCancelled = false;
-
-    const fetchWishlistAccommodations = async () => {
-      setIsDetailLoading(true);
-      clearError();
-
-      try {
-        const response = await wishlistApi.getWishlistAccommodations(
-          selectedWishlistId,
-          { size: WISHLIST_PAGE_SIZE }
-        );
-
-        if (isCancelled) return;
-
-        setWishlistAccommodations(response?.wishlist_accommodations || []);
-        setCursor(response?.page_info?.next_cursor || null);
-        setHasNext(response?.page_info?.has_next || false);
-      } catch (err) {
-        if (!isCancelled) {
-          handleError(err);
-        }
-      } finally {
-        if (!isCancelled) {
-          setIsDetailLoading(false);
-        }
-      }
-    };
-
-    fetchWishlistAccommodations();
-
-    return () => {
-      isCancelled = true;
-    };
+    handledErrorUpdatedAtRef.current.recentlyViewed =
+      recentlyViewedQuery.errorUpdatedAt;
+    handleError(recentlyViewedQuery.error);
   }, [
-    clearError,
     handleError,
-    resetWishlistAccommodations,
-    selectedWishlistId,
-    showRecentlyViewed,
+    recentlyViewedQuery.error,
+    recentlyViewedQuery.errorUpdatedAt,
+    recentlyViewedQuery.isError,
   ]);
 
-  const reloadRecentlyViewed = useCallback(async () => {
-    setIsRecentlyViewedLoading(true);
-    clearError();
-
-    try {
-      const response = await recentlyViewedApi.getRecentlyViewed();
-      setRecentlyViewed(response?.accommodations || []);
-    } catch (err) {
-      handleError(err);
-    } finally {
-      setIsRecentlyViewedLoading(false);
+  useEffect(() => {
+    if (
+      !wishlistsQuery.isError ||
+      !wishlistsQuery.error ||
+      handledErrorUpdatedAtRef.current.wishlists ===
+        wishlistsQuery.errorUpdatedAt
+    ) {
+      return;
     }
-  }, [clearError, handleError]);
+
+    handledErrorUpdatedAtRef.current.wishlists = wishlistsQuery.errorUpdatedAt;
+    handleError(wishlistsQuery.error);
+  }, [
+    handleError,
+    wishlistsQuery.error,
+    wishlistsQuery.errorUpdatedAt,
+    wishlistsQuery.isError,
+  ]);
+
+  useEffect(() => {
+    if (
+      !wishlistDetailQuery.isError ||
+      !wishlistDetailQuery.error ||
+      handledErrorUpdatedAtRef.current.detail ===
+        wishlistDetailQuery.errorUpdatedAt
+    ) {
+      return;
+    }
+
+    handledErrorUpdatedAtRef.current.detail =
+      wishlistDetailQuery.errorUpdatedAt;
+    handleError(wishlistDetailQuery.error);
+  }, [
+    handleError,
+    wishlistDetailQuery.error,
+    wishlistDetailQuery.errorUpdatedAt,
+    wishlistDetailQuery.isError,
+  ]);
+
+  const recentlyViewed = recentlyViewedQuery.data?.accommodations ?? [];
+  const wishlists = useMemo(
+    () =>
+      wishlistsQuery.data?.pages.flatMap((page) => page?.wishlists ?? []) ?? [],
+    [wishlistsQuery.data]
+  );
+  const wishlistAccommodations = useMemo(
+    () =>
+      wishlistDetailQuery.data?.pages.flatMap(
+        (page) => page?.wishlist_accommodations ?? []
+      ) ?? [],
+    [wishlistDetailQuery.data]
+  );
+
+  const removeRecentlyViewedMutation = useMutation({
+    mutationFn: (accommodationId: number) =>
+      recentlyViewedApi.remove(accommodationId),
+    onSuccess: (_data, accommodationId) => {
+      queryClient.setQueryData<RecentlyViewedAccommodationInfos>(
+        wishlistQueryKeys.recentlyViewed(),
+        (prev: RecentlyViewedAccommodationInfos | undefined) =>
+          removeRecentlyViewedAccommodation(prev, accommodationId)
+      );
+    },
+  });
+
+  const deleteWishlistMutation = useMutation({
+    mutationFn: (wishlistId: number) => wishlistApi.delete(wishlistId),
+    onSuccess: (_data, wishlistId) => {
+      queryClient.setQueriesData<WishlistListsInfiniteData>(
+        { queryKey: wishlistListsQueryPrefix },
+        (prev: WishlistListsInfiniteData | undefined) =>
+          removeWishlistFromPages(prev, wishlistId)
+      );
+      queryClient.removeQueries({
+        queryKey: getWishlistDetailQueryPrefix(wishlistId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: wishlistQueryKeys.recentlyViewed(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: searchQueryKeys.all,
+      });
+    },
+  });
+
+  const removeFromWishlistMutation = useMutation({
+    mutationFn: (wishlistAccommodationId: number) =>
+      wishlistApi.removeAccommodation(wishlistAccommodationId),
+    onSuccess: (_data, wishlistAccommodationId) => {
+      queryClient.setQueriesData<WishlistDetailInfiniteData>(
+        { queryKey: wishlistDetailQueryPrefix },
+        (prev: WishlistDetailInfiniteData | undefined) =>
+          removeAccommodationFromPages(prev, wishlistAccommodationId)
+      );
+      queryClient.invalidateQueries({
+        queryKey: wishlistListsQueryPrefix,
+      });
+      queryClient.invalidateQueries({
+        queryKey: wishlistQueryKeys.recentlyViewed(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: searchQueryKeys.all,
+      });
+    },
+  });
+
+  const saveWishlistAccommodationMemoMutation = useMutation({
+    mutationFn: ({
+      memo,
+      wishlistAccommodationId,
+    }: {
+      memo: string;
+      wishlistAccommodationId: number;
+    }) =>
+      wishlistApi.updateAccommodationMemo(wishlistAccommodationId, {
+        memo,
+      }),
+    onSuccess: (_data, { memo, wishlistAccommodationId }) => {
+      queryClient.setQueriesData<WishlistDetailInfiniteData>(
+        { queryKey: wishlistDetailQueryPrefix },
+        (prev: WishlistDetailInfiniteData | undefined) =>
+          updateAccommodationMemoInPages(
+            prev,
+            wishlistAccommodationId,
+            memo
+          )
+      );
+    },
+  });
+
+  const reloadRecentlyViewed = useCallback(async () => {
+    clearError();
+    await recentlyViewedQuery.refetch();
+  }, [clearError, recentlyViewedQuery]);
 
   const loadMoreWishlistAccommodations = useCallback(async () => {
     if (
       !selectedWishlistId ||
       showRecentlyViewed ||
-      !hasNext ||
-      isLoadingMore ||
-      !cursor
+      !wishlistDetailQuery.hasNextPage ||
+      wishlistDetailQuery.isFetchingNextPage
     ) {
       return;
     }
 
-    setIsLoadingMore(true);
     clearError();
-
-    try {
-      const response = await wishlistApi.getWishlistAccommodations(
-        selectedWishlistId,
-        {
-          cursor,
-          size: WISHLIST_PAGE_SIZE,
-        }
-      );
-
-      setWishlistAccommodations((prev) => [
-        ...prev,
-        ...(response?.wishlist_accommodations || []),
-      ]);
-      setCursor(response?.page_info?.next_cursor || null);
-      setHasNext(response?.page_info?.has_next || false);
-    } catch (err) {
-      handleError(err);
-    } finally {
-      setIsLoadingMore(false);
-    }
+    await wishlistDetailQuery.fetchNextPage();
   }, [
     clearError,
-    cursor,
-    handleError,
-    hasNext,
-    isLoadingMore,
     selectedWishlistId,
     showRecentlyViewed,
+    wishlistDetailQuery,
   ]);
 
   const loadMoreWishlists = useCallback(async () => {
-    if (!wishlistsHasNext || isLoadingMoreWishlists || !wishlistsCursor) {
+    if (!wishlistsQuery.hasNextPage || wishlistsQuery.isFetchingNextPage) {
       return;
     }
 
-    setIsLoadingMoreWishlists(true);
     clearError();
-
-    try {
-      const response = await wishlistApi.getWishlists({
-        cursor: wishlistsCursor,
-        size: WISHLIST_PAGE_SIZE,
-      });
-
-      setWishlists((prev) => [...prev, ...(response?.wishlists || [])]);
-      setWishlistsCursor(response?.page_info?.next_cursor || null);
-      setWishlistsHasNext(response?.page_info?.has_next || false);
-    } catch (err) {
-      handleError(err);
-    } finally {
-      setIsLoadingMoreWishlists(false);
-    }
-  }, [
-    clearError,
-    handleError,
-    isLoadingMoreWishlists,
-    wishlistsCursor,
-    wishlistsHasNext,
-  ]);
+    await wishlistsQuery.fetchNextPage();
+  }, [clearError, wishlistsQuery]);
 
   const removeRecentlyViewed = useCallback(
     async (accommodationId: number) => {
+      clearError();
+
       try {
-        await recentlyViewedApi.remove(accommodationId);
-        setRecentlyViewed((prev) =>
-          prev.filter((item) => item.accommodation_id !== accommodationId)
-        );
+        await removeRecentlyViewedMutation.mutateAsync(accommodationId);
       } catch (err) {
         handleError(err);
       }
     },
-    [handleError]
+    [clearError, handleError, removeRecentlyViewedMutation]
   );
 
   const deleteWishlist = useCallback(
     async (wishlistId: number) => {
+      clearError();
+
       try {
-        await wishlistApi.delete(wishlistId);
-        setWishlists((prev) => prev.filter((wishlist) => wishlist.id !== wishlistId));
+        await deleteWishlistMutation.mutateAsync(wishlistId);
         return true;
       } catch (err) {
         handleError(err);
         return false;
       }
     },
-    [handleError]
+    [clearError, deleteWishlistMutation, handleError]
   );
 
   const removeFromWishlist = useCallback(
     async (wishlistAccommodationId: number) => {
+      clearError();
+
       try {
-        await wishlistApi.removeAccommodation(wishlistAccommodationId);
-        setWishlistAccommodations((prev) =>
-          prev.filter(
-            (item) => item.wishlist_accommodation_id !== wishlistAccommodationId
-          )
-        );
+        await removeFromWishlistMutation.mutateAsync(wishlistAccommodationId);
       } catch (err) {
         handleError(err);
       }
     },
-    [handleError]
+    [clearError, handleError, removeFromWishlistMutation]
   );
 
   const saveWishlistAccommodationMemo = useCallback(
@@ -265,73 +379,97 @@ export function useWishlistData({
       const trimmedMemo = memo.trim();
       if (!trimmedMemo) return false;
 
+      clearError();
+
       try {
-        await wishlistApi.updateAccommodationMemo(wishlistAccommodationId, {
+        await saveWishlistAccommodationMemoMutation.mutateAsync({
+          wishlistAccommodationId,
           memo: trimmedMemo,
         });
-
-        setWishlistAccommodations((prev) =>
-          prev.map((item) =>
-            item.wishlist_accommodation_id === wishlistAccommodationId
-              ? { ...item, memo: trimmedMemo }
-              : item
-          )
-        );
         return true;
       } catch (err) {
         handleError(err);
         return false;
       }
     },
-    [handleError]
+    [clearError, handleError, saveWishlistAccommodationMemoMutation]
   );
 
   const toggleRecentlyViewedWishlistState = useCallback(
     (accommodationId: number) => {
-      setRecentlyViewed((prev) =>
-        prev.map((item) =>
-          item.accommodation_id === accommodationId
-            ? { ...item, is_in_wishlist: !item.is_in_wishlist }
-            : item
-        )
+      queryClient.setQueryData<RecentlyViewedAccommodationInfos>(
+        wishlistQueryKeys.recentlyViewed(),
+        (prev: RecentlyViewedAccommodationInfos | undefined) =>
+          updateRecentlyViewedWishlistState(
+            prev,
+            accommodationId,
+            (isInWishlist) => !isInWishlist
+          )
       );
     },
-    []
+    [queryClient]
   );
 
   const refreshRecentlyViewedWishlistState = useCallback(
     async (accommodationId: number) => {
-      const response = await wishlistApi.getWishlists({
-        accommodationId,
-        size: WISHLIST_PAGE_SIZE,
-      });
-      const isInAnyWishlist =
-        response?.wishlists?.some((wishlist) => wishlist.is_contained) || false;
+      clearError();
 
-      setRecentlyViewed((prev) =>
-        prev.map((item) =>
-          item.accommodation_id === accommodationId
-            ? { ...item, is_in_wishlist: isInAnyWishlist }
-            : item
-        )
-      );
+      try {
+        const { isInAnyWishlist, pageParams, pages } =
+          await fetchAccommodationWishlistMembership(accommodationId);
+
+        queryClient.setQueryData<RecentlyViewedAccommodationInfos>(
+          wishlistQueryKeys.recentlyViewed(),
+          (prev: RecentlyViewedAccommodationInfos | undefined) =>
+            updateRecentlyViewedWishlistState(
+              prev,
+              accommodationId,
+              () => isInAnyWishlist
+            )
+        );
+
+        queryClient.setQueryData<WishlistListsInfiniteData>(
+          wishlistQueryKeys.lists(
+            getWishlistListsParamsSignature({ accommodationId })
+          ),
+          {
+            pageParams,
+            pages,
+          }
+        );
+      } catch (err) {
+        handleError(err);
+      }
     },
-    []
+    [clearError, handleError, queryClient]
   );
 
+  const isDetailQueryEnabled =
+    Boolean(selectedWishlistId) && !showRecentlyViewed;
   const isLoading = useMemo(
-    () => isInitialLoading || isRecentlyViewedLoading || isDetailLoading,
-    [isDetailLoading, isInitialLoading, isRecentlyViewedLoading]
+    () =>
+      recentlyViewedQuery.isFetching ||
+      wishlistsQuery.isLoading ||
+      (isDetailQueryEnabled &&
+        wishlistDetailQuery.isFetching &&
+        !wishlistDetailQuery.isFetchingNextPage),
+    [
+      isDetailQueryEnabled,
+      recentlyViewedQuery.isFetching,
+      wishlistDetailQuery.isFetching,
+      wishlistDetailQuery.isFetchingNextPage,
+      wishlistsQuery.isLoading,
+    ]
   );
 
   return {
     clearError,
     deleteWishlist,
     error,
-    hasNext,
+    hasNext: wishlistDetailQuery.hasNextPage,
     isLoading,
-    isLoadingMore,
-    isLoadingMoreWishlists,
+    isLoadingMore: wishlistDetailQuery.isFetchingNextPage,
+    isLoadingMoreWishlists: wishlistsQuery.isFetchingNextPage,
     loadMoreWishlistAccommodations,
     loadMoreWishlists,
     refreshRecentlyViewedWishlistState,
@@ -343,6 +481,6 @@ export function useWishlistData({
     toggleRecentlyViewedWishlistState,
     wishlistAccommodations,
     wishlists,
-    wishlistsHasNext,
+    wishlistsHasNext: wishlistsQuery.hasNextPage,
   };
 }

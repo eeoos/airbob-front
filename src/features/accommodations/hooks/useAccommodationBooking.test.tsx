@@ -101,6 +101,7 @@ describe("useAccommodationBooking", () => {
   beforeEach(() => {
     jest.useFakeTimers();
     jest.setSystemTime(new Date("2026-07-10T12:00:00"));
+    sessionStorage.clear();
     mockSetSearchParams.mockReset();
     mockNavigate.mockReset();
     mockHandleError.mockReset();
@@ -159,7 +160,7 @@ describe("useAccommodationBooking", () => {
     expect(result.current.isDatePickerOpen).toBe(false);
   });
 
-  it("creates a reservation and navigates to confirmation with booking and coupon params", async () => {
+  it("creates a reservation and navigates to confirmation with checkout state outside the URL", async () => {
     jest.mocked(reservationApi.create).mockResolvedValue({
       reservation_uid: "res-1",
       order_name: "주문명",
@@ -190,9 +191,77 @@ describe("useAccommodationBooking", () => {
       guest_count: 3,
       coupon_id: 3,
     });
-    expect(mockNavigate).toHaveBeenCalledWith(
-      "/accommodations/7/confirm?reservationUid=res-1&orderName=%EC%A3%BC%EB%AC%B8%EB%AA%85&amount=190000&customerEmail=guest%40example.com&customerName=%EA%B2%8C%EC%8A%A4%ED%8A%B8&checkIn=2026-07-20&checkOut=2026-07-22&adultOccupancy=2&childOccupancy=1&infantOccupancy=1&petOccupancy=1&couponName=%EB%A7%8C%EC%9B%90+%EC%BF%A0%ED%8F%B0&couponDiscount=10000"
+    expect(mockNavigate).toHaveBeenCalledWith("/accommodations/7/confirm", {
+      state: expect.objectContaining({
+        reservationUid: "res-1",
+        orderName: "주문명",
+        amount: 190000,
+        customerEmail: "guest@example.com",
+        customerName: "게스트",
+      }),
+    });
+    expect(mockNavigate.mock.calls[0][0]).not.toContain("customerEmail");
+    expect(mockNavigate.mock.calls[0][0]).not.toContain("orderName");
+    expect(mockNavigate.mock.calls[0][0]).not.toContain("couponName");
+
+    const storedState = JSON.parse(
+      sessionStorage.getItem("airbob:reservation-checkout:7") ?? "{}"
     );
+    expect(storedState).toEqual(
+      expect.objectContaining({
+        reservationUid: "res-1",
+        orderName: "주문명",
+        amount: 190000,
+        customerEmail: "guest@example.com",
+        customerName: "게스트",
+        checkIn: "2026-07-20",
+        checkOut: "2026-07-22",
+        adultOccupancy: 2,
+        childOccupancy: 1,
+        infantOccupancy: 1,
+        petOccupancy: 1,
+        couponName: "만원 쿠폰",
+        couponDiscount: 10000,
+      })
+    );
+  });
+
+  it("navigates with router state even when saving checkout fallback fails", async () => {
+    jest.mocked(reservationApi.create).mockResolvedValue({
+      reservation_uid: "res-1",
+      order_name: "주문명",
+      amount: 200000,
+      customer_email: "guest@example.com",
+      customer_name: "게스트",
+    });
+    const setItemSpy = jest
+      .spyOn(Storage.prototype, "setItem")
+      .mockImplementation(() => {
+        throw new Error("storage unavailable");
+      });
+
+    try {
+      const { result } = renderUseAccommodationBooking(
+        new URLSearchParams("checkIn=2026-07-20&checkOut=2026-07-22")
+      );
+
+      await act(async () => {
+        await result.current.handleReserve();
+      });
+
+      expect(mockNavigate).toHaveBeenCalledWith("/accommodations/7/confirm", {
+        state: expect.objectContaining({
+          reservationUid: "res-1",
+          orderName: "주문명",
+          amount: 200000,
+          customerEmail: "guest@example.com",
+          customerName: "게스트",
+        }),
+      });
+      expect(mockHandleError).not.toHaveBeenCalled();
+    } finally {
+      setItemSpy.mockRestore();
+    }
   });
 
   it("defers reservation behind auth when logged out", async () => {

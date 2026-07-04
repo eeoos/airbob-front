@@ -198,6 +198,17 @@ describe("Dialog", () => {
     expect(screen.getByRole("button", { name: "후기 닫기" })).toHaveFocus();
   });
 
+  it("moves focus to the first focusable child in a headerless dialog", () => {
+    render(
+      <Dialog isOpen title="상세 주소 확인" onClose={jest.fn()} showHeader={false}>
+        <button type="button">취소</button>
+        <button type="button">진행하기</button>
+      </Dialog>
+    );
+
+    expect(screen.getByRole("button", { name: "취소" })).toHaveFocus();
+  });
+
   it("can disable backdrop close for modal workflows that require explicit actions", async () => {
     const onClose = jest.fn();
     render(

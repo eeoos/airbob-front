@@ -16,11 +16,31 @@ const requiredLayoutTokenDeclarations = [
   "--card-media-ratio: 1 / 1;",
 ];
 
+const requiredInteractionTokenDeclarations = [
+  "--space-7: 28px;",
+  "--space-12: 48px;",
+  "--space-16: 64px;",
+  "--control-touch-target: 44px;",
+  "--focus-ring: 0 0 0 2px rgba(34, 34, 34, 0.24);",
+  "--color-status-warning-bg: #fff3cd;",
+  "--color-status-warning-text: #856404;",
+  "--motion-duration-slow: 300ms;",
+  "--layout-mobile-safe-bottom: env(safe-area-inset-bottom, 0px);",
+];
+
 describe("design system entry contracts", () => {
   it("exposes layout and media tokens from the global token entrypoint", () => {
     const tokensCss = readSource("styles/tokens.css");
 
     requiredLayoutTokenDeclarations.forEach((declaration) => {
+      expect(tokensCss).toContain(declaration);
+    });
+  });
+
+  it("exposes interaction, warning, and safe-area tokens from the global token entrypoint", () => {
+    const tokensCss = readSource("styles/tokens.css");
+
+    requiredInteractionTokenDeclarations.forEach((declaration) => {
       expect(tokensCss).toContain(declaration);
     });
   });

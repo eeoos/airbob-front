@@ -65,7 +65,13 @@ export const useWishlistRouteViewState = () => {
 
   const clearSelectedWishlist = useCallback(() => {
     setSelectedWishlist(null);
-  }, []);
+    setShowRecentlyViewed(false);
+    setIsEditMode(false);
+    setSearchParams(
+      buildWishlistRouteSearchParams({ view: "index", wishlistId: null }),
+      { replace: true }
+    );
+  }, [setSearchParams]);
 
   return {
     backToIndex,

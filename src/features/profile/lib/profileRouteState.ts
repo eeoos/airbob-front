@@ -1,18 +1,6 @@
-export type ProfileRouteMode = "guest" | "host";
+import type { ProfileRouteMode, ProfileRouteTab } from "../../../routes/paths";
 
-export type ProfileRouteTab =
-  | "trips"
-  | "upcoming"
-  | "past"
-  | "cancelled"
-  | "listings"
-  | "listings-published"
-  | "listings-draft"
-  | "listings-unpublished"
-  | "reservations"
-  | "reservations-upcoming"
-  | "reservations-past"
-  | "reservations-cancelled";
+export type { ProfileRouteMode, ProfileRouteTab } from "../../../routes/paths";
 
 export interface ProfileRouteState {
   mode: ProfileRouteMode;

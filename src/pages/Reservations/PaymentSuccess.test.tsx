@@ -4,6 +4,7 @@ import PaymentSuccess from "./PaymentSuccess";
 
 const mockNavigate = jest.fn();
 const mockUsePaymentConfirmation = jest.fn();
+const mockClearReservationCheckoutStateByReservationUid = jest.fn();
 let mockReservationUid: string | undefined = "reservation-123";
 let mockSearchParams = new URLSearchParams({
   amount: "120000",
@@ -22,10 +23,16 @@ jest.mock("../../features/reservations", () => ({
     mockUsePaymentConfirmation(options),
 }));
 
+jest.mock("../../features/reservations/lib/reservationCheckoutState", () => ({
+  clearReservationCheckoutStateByReservationUid: (reservationUid: string) =>
+    mockClearReservationCheckoutStateByReservationUid(reservationUid),
+}));
+
 describe("PaymentSuccess", () => {
   beforeEach(() => {
     mockNavigate.mockReset();
     mockUsePaymentConfirmation.mockReset();
+    mockClearReservationCheckoutStateByReservationUid.mockReset();
     mockReservationUid = "reservation-123";
     mockSearchParams = new URLSearchParams({
       amount: "120000",
@@ -52,7 +59,35 @@ describe("PaymentSuccess", () => {
     });
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith("/reservations/reservation-123");
+      expect(mockClearReservationCheckoutStateByReservationUid).toHaveBeenCalledWith(
+        "reservation-123"
+      );
+      expect(mockNavigate).toHaveBeenCalledWith("/reservations/reservation-123", {
+        replace: true,
+      });
+    });
+  });
+
+  it("routes confirmed payment confirmation even if checkout cleanup throws", async () => {
+    mockClearReservationCheckoutStateByReservationUid.mockImplementation(() => {
+      throw new Error("cleanup failed");
+    });
+    mockUsePaymentConfirmation.mockReturnValue({
+      result: {
+        error: null,
+        status: "confirmed",
+      },
+    });
+
+    render(<PaymentSuccess />);
+
+    await waitFor(() => {
+      expect(mockClearReservationCheckoutStateByReservationUid).toHaveBeenCalledWith(
+        "reservation-123"
+      );
+      expect(mockNavigate).toHaveBeenCalledWith("/reservations/reservation-123", {
+        replace: true,
+      });
     });
   });
 
@@ -72,8 +107,12 @@ describe("PaymentSuccess", () => {
     render(<PaymentSuccess />);
 
     await waitFor(() => {
+      expect(mockClearReservationCheckoutStateByReservationUid).toHaveBeenCalledWith(
+        "reservation-123"
+      );
       expect(mockNavigate).toHaveBeenCalledWith(
-        "/reservations/reservation-123/fail"
+        "/reservations/reservation-123/fail",
+        { replace: true }
       );
     });
   });
@@ -89,8 +128,12 @@ describe("PaymentSuccess", () => {
     render(<PaymentSuccess />);
 
     await waitFor(() => {
+      expect(mockClearReservationCheckoutStateByReservationUid).toHaveBeenCalledWith(
+        "reservation-123"
+      );
       expect(mockNavigate).toHaveBeenCalledWith(
-        "/reservations/reservation-123/fail"
+        "/reservations/reservation-123/fail",
+        { replace: true }
       );
     });
   });
@@ -106,8 +149,12 @@ describe("PaymentSuccess", () => {
     render(<PaymentSuccess />);
 
     await waitFor(() => {
+      expect(mockClearReservationCheckoutStateByReservationUid).toHaveBeenCalledWith(
+        "reservation-123"
+      );
       expect(mockNavigate).toHaveBeenCalledWith(
-        "/reservations/reservation-123/fail"
+        "/reservations/reservation-123/fail",
+        { replace: true }
       );
     });
   });
@@ -131,8 +178,12 @@ describe("PaymentSuccess", () => {
     });
 
     await waitFor(() => {
+      expect(mockClearReservationCheckoutStateByReservationUid).toHaveBeenCalledWith(
+        "reservation-123"
+      );
       expect(mockNavigate).toHaveBeenCalledWith(
-        "/reservations/reservation-123/fail"
+        "/reservations/reservation-123/fail",
+        { replace: true }
       );
     });
   });
@@ -157,9 +208,36 @@ describe("PaymentSuccess", () => {
     });
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        "/reservations/reservation-123/fail"
+      expect(mockClearReservationCheckoutStateByReservationUid).toHaveBeenCalledWith(
+        "reservation-123"
       );
+      expect(mockNavigate).toHaveBeenCalledWith(
+        "/reservations/reservation-123/fail",
+        { replace: true }
+      );
+    });
+  });
+
+  it("routes missing reservationUid to profile with replacement history", async () => {
+    mockReservationUid = undefined;
+    mockUsePaymentConfirmation.mockReturnValue({
+      result: null,
+    });
+
+    render(<PaymentSuccess />);
+
+    expect(mockUsePaymentConfirmation).toHaveBeenCalledWith({
+      amount: null,
+      enabled: false,
+      orderId: null,
+      paymentKey: null,
+    });
+
+    await waitFor(() => {
+      expect(mockClearReservationCheckoutStateByReservationUid).not.toHaveBeenCalled();
+      expect(mockNavigate).toHaveBeenCalledWith("/profile", {
+        replace: true,
+      });
     });
   });
 });

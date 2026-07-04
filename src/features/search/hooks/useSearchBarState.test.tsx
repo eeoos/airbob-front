@@ -19,9 +19,15 @@ jest.mock("../../../hooks/usePlacesAutocomplete", () => ({
 
 const mockNavigate = jest.fn();
 const mockSetSearchParams = jest.fn();
-const mockHandleInputChange = jest.fn();
+const mockHandleInputChange = jest.fn((value: string) => {
+  placesState.inputText = value;
+});
 const mockHandlePlaceSelect = jest.fn();
-const mockResetPlaces = jest.fn();
+const mockResetPlaces = jest.fn(() => {
+  placesState.inputText = "";
+  placesState.suggestions = [];
+  placesState.selectedPlace = null;
+});
 const mockStartNewSession = jest.fn();
 
 let currentSearchParams = new URLSearchParams();
@@ -37,14 +43,25 @@ const setBrowserSearch = (queryString: string) => {
   window.history.pushState(null, "", `/search${queryString}`);
 };
 
+const getLocalDateKey = (date: Date | null | undefined) => {
+  if (!date) {
+    return null;
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 describe("useSearchBarState", () => {
   beforeEach(() => {
     jest.useFakeTimers();
     mockNavigate.mockReset();
     mockSetSearchParams.mockReset();
-    mockHandleInputChange.mockReset();
+    mockHandleInputChange.mockClear();
     mockHandlePlaceSelect.mockReset();
-    mockResetPlaces.mockReset();
+    mockResetPlaces.mockClear();
     mockStartNewSession.mockReset();
 
     currentSearchParams = new URLSearchParams();
@@ -55,6 +72,14 @@ describe("useSearchBarState", () => {
       isLoading: false,
       selectedPlace: null,
     };
+    mockHandleInputChange.mockImplementation((value: string) => {
+      placesState.inputText = value;
+    });
+    mockResetPlaces.mockImplementation(() => {
+      placesState.inputText = "";
+      placesState.suggestions = [];
+      placesState.selectedPlace = null;
+    });
 
     jest.mocked(useNavigate).mockReturnValue(mockNavigate);
     jest.mocked(useLocation).mockImplementation(() => ({
@@ -95,12 +120,158 @@ describe("useSearchBarState", () => {
       expect(mockHandleInputChange).toHaveBeenCalledWith("Seoul");
     });
 
-    expect(result.current.checkIn?.toISOString().slice(0, 10)).toBe("2026-07-10");
-    expect(result.current.checkOut?.toISOString().slice(0, 10)).toBe("2026-07-12");
+    expect(getLocalDateKey(result.current.checkIn)).toBe("2026-07-10");
+    expect(getLocalDateKey(result.current.checkOut)).toBe("2026-07-12");
     expect(result.current.adultOccupancy).toBe(2);
     expect(result.current.childOccupancy).toBe(1);
     expect(result.current.infantOccupancy).toBe(1);
     expect(result.current.petOccupancy).toBe(1);
+  });
+
+  it("syncs search bar state when URL search params change after mount", async () => {
+    currentSearchParams = new URLSearchParams(
+      "destination=Seoul&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2&childOccupancy=1&infantOccupancy=1&petOccupancy=1"
+    );
+
+    const { result, rerender } = renderHook(() => useSearchBarState());
+
+    await waitFor(() => {
+      expect(mockHandleInputChange).toHaveBeenCalledWith("Seoul");
+    });
+    expect(getLocalDateKey(result.current.checkIn)).toBe("2026-07-10");
+    expect(getLocalDateKey(result.current.checkOut)).toBe("2026-07-12");
+    expect(result.current.adultOccupancy).toBe(2);
+    expect(result.current.childOccupancy).toBe(1);
+    expect(result.current.infantOccupancy).toBe(1);
+    expect(result.current.petOccupancy).toBe(1);
+
+    mockHandleInputChange.mockClear();
+    currentSearchParams = new URLSearchParams(
+      "destination=Busan&checkIn=2026-08-01&checkOut=2026-08-04&adultOccupancy=4&childOccupancy=2&infantOccupancy=1&petOccupancy=1"
+    );
+    rerender();
+
+    await waitFor(() => {
+      expect(mockHandleInputChange).toHaveBeenCalledWith("Busan");
+    });
+    expect(getLocalDateKey(result.current.checkIn)).toBe("2026-08-01");
+    expect(getLocalDateKey(result.current.checkOut)).toBe("2026-08-04");
+    expect(result.current.adultOccupancy).toBe(4);
+    expect(result.current.childOccupancy).toBe(2);
+    expect(result.current.infantOccupancy).toBe(1);
+    expect(result.current.petOccupancy).toBe(1);
+
+    mockHandleInputChange.mockClear();
+    currentSearchParams = new URLSearchParams();
+    rerender();
+
+    await waitFor(() => {
+      expect(mockHandleInputChange).toHaveBeenCalledWith("");
+    });
+    expect(result.current.checkIn).toBeNull();
+    expect(result.current.checkOut).toBeNull();
+    expect(result.current.adultOccupancy).toBe(1);
+    expect(result.current.childOccupancy).toBe(0);
+    expect(result.current.infantOccupancy).toBe(0);
+    expect(result.current.petOccupancy).toBe(0);
+  });
+
+  it("falls back to defaults for malformed URL dates and guest counts", async () => {
+    currentSearchParams = new URLSearchParams(
+      "destination=Seoul&checkIn=2026-02-31&checkOut=not-a-date&adultOccupancy=0&childOccupancy=1.5&infantOccupancy=-1&petOccupancy=2abc"
+    );
+
+    const { result } = renderHook(() => useSearchBarState());
+
+    await waitFor(() => {
+      expect(mockHandleInputChange).toHaveBeenCalledWith("Seoul");
+    });
+    expect(result.current.checkIn).toBeNull();
+    expect(result.current.checkOut).toBeNull();
+    expect(result.current.adultOccupancy).toBe(1);
+    expect(result.current.childOccupancy).toBe(0);
+    expect(result.current.infantOccupancy).toBe(0);
+    expect(result.current.petOccupancy).toBe(0);
+  });
+
+  it("clears stale selected place when URL sync changes the destination", async () => {
+    currentSearchParams = new URLSearchParams("destination=Seoul");
+    placesState.inputText = "Seoul";
+    placesState.selectedPlace = {
+      placeId: "stale-place",
+      lat: 37.5665,
+      lng: 126.978,
+      viewport: {
+        north: 37.7,
+        south: 37.4,
+        east: 127.1,
+        west: 126.8,
+      },
+    };
+
+    const { result, rerender } = renderHook(() => useSearchBarState());
+
+    await waitFor(() => {
+      expect(mockHandleInputChange).toHaveBeenCalledWith("Seoul");
+    });
+
+    mockHandleInputChange.mockClear();
+    mockResetPlaces.mockClear();
+    mockNavigate.mockClear();
+    currentSearchParams = new URLSearchParams("destination=Busan");
+    rerender();
+
+    await waitFor(() => {
+      expect(mockResetPlaces).toHaveBeenCalled();
+      expect(mockHandleInputChange).toHaveBeenCalledWith("Busan");
+    });
+    rerender();
+
+    act(() => {
+      result.current.handleSearch();
+    });
+
+    const navigatedUrl = mockNavigate.mock.calls[0][0] as string;
+    expect(navigatedUrl).toBe(
+      "/search?destination=Busan&adultOccupancy=1&childOccupancy=0&infantOccupancy=0&petOccupancy=0"
+    );
+    expect(navigatedUrl).not.toContain("lat=");
+    expect(navigatedUrl).not.toContain("lng=");
+    expect(navigatedUrl).not.toContain("topLeftLat=");
+    expect(navigatedUrl).not.toContain("topLeftLng=");
+    expect(navigatedUrl).not.toContain("bottomRightLat=");
+    expect(navigatedUrl).not.toContain("bottomRightLng=");
+  });
+
+  it("does not reset local input when unrelated URL params change", async () => {
+    currentSearchParams = new URLSearchParams("destination=Seoul");
+
+    const { result, rerender } = renderHook(() => useSearchBarState());
+
+    await waitFor(() => {
+      expect(mockHandleInputChange).toHaveBeenCalledWith("Seoul");
+    });
+
+    placesState.inputText = "Seoul cafe";
+    rerender();
+    mockHandleInputChange.mockClear();
+    mockResetPlaces.mockClear();
+    mockNavigate.mockClear();
+    currentSearchParams = new URLSearchParams(
+      "destination=Seoul&page=2&topLeftLat=38&topLeftLng=126&bottomRightLat=37&bottomRightLng=128"
+    );
+    rerender();
+
+    expect(mockHandleInputChange).not.toHaveBeenCalled();
+    expect(mockResetPlaces).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.handleSearch();
+    });
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/search?destination=Seoul+cafe&adultOccupancy=1&childOccupancy=0&infantOccupancy=0&petOccupancy=0"
+    );
   });
 
   it("submits plain text search by navigating with stale viewport removed", () => {

@@ -5,7 +5,7 @@
 .title {
   font-size: 32px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
   line-height: 1.2;
   margin: 0 0 32px 0;
 }
@@ -25,7 +25,7 @@
 .yearTitle {
   font-size: 22px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -49,7 +49,7 @@
 .image {
   width: 100%;
   aspect-ratio: 1;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   margin-bottom: 12px;
 }
@@ -63,7 +63,7 @@
 .placeholder {
   width: 100%;
   height: 100%;
-  background-color: #f7f7f7;
+  background-color: var(--color-background-muted);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -79,12 +79,12 @@
 .location {
   font-size: 15px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
 }
 
 .dateRange {
   font-size: 14px;
-  color: #717171;
+  color: var(--color-text-secondary);
 }
 
 .loadMoreContainer {
@@ -96,7 +96,7 @@
 }
 
 .loadingMore {
-  color: #717171;
+  color: var(--color-text-secondary);
   font-size: 14px;
 }
 

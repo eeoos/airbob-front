@@ -137,9 +137,14 @@
 }
 
 .day {
+  appearance: none;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-family: inherit;
   font-size: 15px;
   color: var(--color-text-primary);
   cursor: pointer;
@@ -149,6 +154,11 @@
   min-height: 40px;
   width: 100%;
   height: 100%;
+}
+
+.day:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 .day.empty {
@@ -366,14 +376,14 @@
   .days {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    grid-auto-rows: minmax(36px, auto);
+    grid-auto-rows: minmax(var(--control-touch-target), auto);
     gap: 2px;
     width: 100%;
     min-height: auto;
   }
 
   .day {
-    min-height: 36px;
+    min-height: var(--control-touch-target);
     width: 100%;
     font-size: 14px;
     border-radius: var(--radius-pill);
@@ -411,7 +421,7 @@
   }
 
   .day {
-    min-height: 32px;
+    min-height: var(--control-touch-target);
     font-size: 13px;
   }
 

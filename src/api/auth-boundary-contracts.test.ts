@@ -148,15 +148,28 @@ describe("auth boundary contracts", () => {
 
   it("keeps AuthContext authentication state behind the auth query boundary", () => {
     const authContextSource = readSource("..", "contexts", "AuthContext.tsx");
+    const sessionCacheBoundarySource = readSource(
+      "..",
+      "query",
+      "sessionCacheBoundary.ts"
+    );
 
     expect(authContextSource).not.toMatch(/from\s+["']\.\.\/api\/client["'];?/);
     expect(authContextSource).not.toMatch(/client\.get\(\s*["']\/auth\/me["']\s*\)/);
     expect(authContextSource).not.toMatch(/setIsAuthenticated/);
     expect(authContextSource).not.toMatch(/setIsLoading/);
+    expect(authContextSource).not.toMatch(/setQueryData/);
     expect(authContextSource).toMatch(/useSessionQuery\(\s*\)/);
     expect(authContextSource).toMatch(/useQueryClient\(\s*\)/);
     expect(authContextSource).toMatch(/authQueryKeys\.me\(\s*\)/);
     expect(authContextSource).toMatch(/authApi\.getMe\(\s*\)/);
-    expect(authContextSource).toMatch(/setQueryData[\s\S]*authQueryKeys\.me\(\s*\)/);
+    expect(authContextSource).toMatch(/clearSessionQueryData\(\s*queryClient\s*\)/);
+    expect(authContextSource).toMatch(
+      /refreshSessionQueryData\(\s*queryClient,\s*meInfo\s*\)/
+    );
+    expect(sessionCacheBoundarySource).toMatch(/authQueryKeys\.me\(\s*\)/);
+    expect(sessionCacheBoundarySource).toMatch(
+      /setQueryData[\s\S]*authQueryKeys\.me\(\s*\)/
+    );
   });
 });

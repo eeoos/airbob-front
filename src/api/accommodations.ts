@@ -14,9 +14,15 @@ import { ApiResponse } from "../types/api";
 
 export const accommodationApi = {
   // 숙소 검색
-  search: async (params: AccommodationSearchRequest): Promise<AccommodationSearchResponse> => {
+  search: async (
+    params: AccommodationSearchRequest,
+    signal?: AbortSignal
+  ): Promise<AccommodationSearchResponse> => {
     return requestApi(() =>
-      client.get<ApiResponse<AccommodationSearchResponse>>("/search/accommodations", { params })
+      client.get<ApiResponse<AccommodationSearchResponse>>("/search/accommodations", {
+        params,
+        signal,
+      })
     );
   },
 

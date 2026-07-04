@@ -1,4 +1,6 @@
 .container {
+  --profile-content-layer: 1;
+
   max-width: 1760px;
   margin: 0 auto;
   padding: 24px;
@@ -10,7 +12,7 @@
   align-items: center;
   margin-bottom: 32px;
   position: relative;
-  z-index: 1;
+  z-index: var(--profile-content-layer);
 }
 
 .title {
@@ -29,7 +31,7 @@
   padding: 4px;
   background: var(--color-background-page);
   position: relative;
-  z-index: 1;
+  z-index: var(--profile-content-layer);
 }
 
 .toggleButton {
@@ -43,7 +45,7 @@
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
-  z-index: 1;
+  z-index: var(--profile-content-layer);
   pointer-events: auto;
 }
 
@@ -174,5 +176,4 @@
     flex: 1;
   }
 }
-
 

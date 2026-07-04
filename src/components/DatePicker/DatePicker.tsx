@@ -36,17 +36,17 @@ const DatePicker: React.FC<DatePickerProps> = ({
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const getDaysInMonth = (date: Date): Date[] => {
+  const getDaysInMonth = (date: Date): Array<Date | null> => {
     const year = date.getFullYear();
     const month = date.getMonth();
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
-    const days: Date[] = [];
+    const days: Array<Date | null> = [];
 
     // 첫 주의 빈 칸 채우기 (null로 표시)
     const startDay = firstDay.getDay();
     for (let i = 0; i < startDay; i++) {
-      days.push(null as any); // 빈 칸
+      days.push(null); // 빈 칸
     }
 
     // 해당 월의 날짜들만 추가
@@ -58,7 +58,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
     const totalDays = days.length;
     const remainingDays = 42 - totalDays;
     for (let i = 0; i < remainingDays; i++) {
-      days.push(null as any); // 빈 칸
+      days.push(null); // 빈 칸
     }
 
     return days;
@@ -99,32 +99,32 @@ const DatePicker: React.FC<DatePickerProps> = ({
   const isDateDisabled = (date: Date): boolean => {
     const dateStr = formatDateKey(date);
     const todayStr = formatDateKey(today);
-    
+
     // 과거 날짜는 비활성화
     if (dateStr < todayStr) {
       return true;
     }
-    
+
     // unavailable_dates에 포함된 날짜는 비활성화
     if (unavailableDates.includes(dateStr)) {
       return true;
     }
-    
+
     // 체크인이 선택된 경우, 체크인 이전 날짜는 비활성화
     if (checkIn && !checkOut) {
       const checkInStr = formatDateKey(checkIn);
       return dateStr <= checkInStr;
     }
-    
+
     return false;
   };
-  
+
   const isPastDate = (date: Date): boolean => {
     const dateStr = formatDateKey(date);
     const todayStr = formatDateKey(today);
     return dateStr < todayStr;
   };
-  
+
   const isUnavailableDate = (date: Date): boolean => {
     const dateStr = formatDateKey(date);
     return unavailableDates.includes(dateStr);
@@ -137,7 +137,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
 
     const dateStr = formatDateKey(date);
     const todayStr = formatDateKey(today);
-    
+
     // 과거 날짜는 선택 불가
     if (dateStr < todayStr) {
       return;
@@ -188,7 +188,12 @@ const DatePicker: React.FC<DatePickerProps> = ({
           {days.map((date, index) => {
             // null인 경우 빈 칸으로 표시
             if (!date) {
-              return <div key={index} className={`${styles.day} ${styles.empty}`} />;
+              return (
+                <div
+                  key={`empty-${index}`}
+                  className={`${styles.day} ${styles.empty}`}
+                />
+              );
             }
 
             const dateStr = formatDateKey(date);
@@ -205,8 +210,11 @@ const DatePicker: React.FC<DatePickerProps> = ({
             const isEnd = isCurrentMonth && checkOut && formatDateKey(checkOut) === dateStr;
 
             return (
-              <div
-                key={index}
+              <button
+                key={dateStr}
+                type="button"
+                aria-label={dateStr}
+                disabled={isDisabled}
                 className={`${styles.day} ${
                   isSelected ? styles.selected : ""
                 } ${isInRange || isInHoverRange ? styles.inRange : ""} ${
@@ -227,7 +235,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
               >
                 <span className={styles.dayNumber}>{date.getDate()}</span>
                 {(isPast || isUnavailable) && <span className={styles.dayStrike}>−</span>}
-              </div>
+              </button>
             );
           })}
         </div>
@@ -239,17 +247,25 @@ const DatePicker: React.FC<DatePickerProps> = ({
     <div className={styles.datePicker} ref={pickerRef}>
       {/* 네비게이션 헤더 - 이전/다음 버튼 같은 행 */}
       <div className={styles.navHeader}>
-        <button className={styles.monthNavButton} onClick={handlePrevMonth}>
+        <button
+          className={styles.monthNavButton}
+          type="button"
+          onClick={handlePrevMonth}
+        >
           ←
         </button>
         <span className={styles.navTitle}>
           {currentMonth.toLocaleDateString("ko-KR", { year: "numeric", month: "long" })}
         </span>
-        <button className={styles.monthNavButton} onClick={handleNextMonth}>
+        <button
+          className={styles.monthNavButton}
+          type="button"
+          onClick={handleNextMonth}
+        >
           →
         </button>
       </div>
-      
+
       {/* 스크롤 가능한 달력 영역 */}
       <div className={styles.calendarsScrollArea}>
         <div className={styles.calendars}>
@@ -261,13 +277,17 @@ const DatePicker: React.FC<DatePickerProps> = ({
           </div>
         </div>
       </div>
-      
+
       {!hideFooter && (
         <div className={styles.footer}>
-          <button className={styles.clearButton} onClick={() => onDateSelect(null, null)}>
+          <button
+            className={styles.clearButton}
+            type="button"
+            onClick={() => onDateSelect(null, null)}
+          >
             날짜 지우기
           </button>
-          <button className={styles.closeButton} onClick={onClose}>
+          <button className={styles.closeButton} type="button" onClick={onClose}>
             닫기
           </button>
         </div>
@@ -277,4 +297,3 @@ const DatePicker: React.FC<DatePickerProps> = ({
 };
 
 export default DatePicker;
-
