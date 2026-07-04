@@ -5,6 +5,7 @@ import { ErrorToast } from "../../components/ErrorToast";
 import { AccommodationActionModal } from "../accommodations/components/AccommodationActionModal";
 import { useHostListings } from "./hooks";
 import { getImageUrl } from "../../utils/image";
+import { useIntersectionLoadMore } from "../../hooks/useIntersectionLoadMore";
 import { EmptyState, LoadingState } from "../../shared/ui";
 import styles from "./HostListingsPanel.module.css";
 
@@ -20,7 +21,6 @@ export const HostListingsPanel: React.FC<HostListingsPanelProps> = ({
   const [selectedAccommodation, setSelectedAccommodation] =
     React.useState<MyAccommodationInfo | null>(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
-  const observerTarget = React.useRef<HTMLDivElement>(null);
   const {
     accommodations,
     clearError,
@@ -31,29 +31,11 @@ export const HostListingsPanel: React.FC<HostListingsPanelProps> = ({
     loadMore,
     reload,
   } = useHostListings(statusType);
-
-  // Intersection Observer를 사용한 무한 스크롤
-  React.useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNext && !isLoadingMore) {
-          loadMore();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    const currentTarget = observerTarget.current;
-    if (currentTarget) {
-      observer.observe(currentTarget);
-    }
-
-    return () => {
-      if (currentTarget) {
-        observer.unobserve(currentTarget);
-      }
-    };
-  }, [hasNext, isLoadingMore, loadMore]);
+  const observerTarget = useIntersectionLoadMore({
+    hasNext,
+    isLoading: isLoadingMore,
+    onLoadMore: loadMore,
+  });
 
   const getTitle = () => {
     return "숙소 관리";
