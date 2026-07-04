@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
-import { SearchBar } from "../../features/search/components/SearchBar";
-import { getViewportFromSearchParams } from "../../features/search/lib/searchParams";
+import {
+  HeaderSearchBar,
+  getViewportFromSearchParams,
+} from "../../features/search/appShell";
 import { UserMenu } from "./UserMenu";
 import { useAuth } from "../../hooks/useAuth";
 import logoImage from "../../assets/logo/logo.png";
@@ -34,7 +36,7 @@ export const Header: React.FC = () => {
         
         {/* 데스크탑 검색바 */}
         <div className={`${styles.searchBar} ${isSearchBarExpanded ? styles.searchBarExpanded : ""}`}>
-          <SearchBar onExpandedChange={setIsSearchBarExpanded} isMapDragMode={isMapDragMode} />
+          <HeaderSearchBar onExpandedChange={setIsSearchBarExpanded} isMapDragMode={isMapDragMode} />
         </div>
 
         <div className={styles.menu}>
@@ -44,7 +46,7 @@ export const Header: React.FC = () => {
 
       {/* 모바일 검색바 - 로고/메뉴 아래에 항상 표시 */}
       <div className={styles.mobileSearchRow}>
-        <SearchBar onExpandedChange={setIsSearchBarExpanded} isMapDragMode={isMapDragMode} />
+        <HeaderSearchBar onExpandedChange={setIsSearchBarExpanded} isMapDragMode={isMapDragMode} />
       </div>
     </header>
   );

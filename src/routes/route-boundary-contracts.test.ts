@@ -2,11 +2,14 @@ import { readFileSync, readdirSync } from "fs";
 import { join, relative } from "path";
 
 const routesRoot = join(process.cwd(), "src/routes");
+const layoutsRoot = join(process.cwd(), "src/layouts");
 const featuresRoot = join(process.cwd(), "src/features");
 const projectRoot = process.cwd();
 const sourceExtensions = [".ts", ".tsx"];
 const forbiddenFeatureImportPattern =
   /from\s+["'](?:\.\.\/)+(?:features)(?:\/[^"']*)?["']/;
+const forbiddenLayoutFeatureDeepImportPattern =
+  /from\s+["'](?:\.\.\/)+(?:features\/[^"']+\/(?:components|hooks|lib))(?:\/[^"']*)?["']/;
 const forbiddenPageImportPattern =
   /from\s+["'](?:\.\.\/)+pages(?:\/[^"']*)?["']/;
 const featureRouteAdapters = [
@@ -68,6 +71,18 @@ describe("route boundary contracts", () => {
     const violations = collectSourceFiles(featuresRoot)
       .filter((filePath) =>
         forbiddenPageImportPattern.test(readFileSync(filePath, "utf8"))
+      )
+      .map((filePath) => relative(projectRoot, filePath));
+
+    expect(violations).toEqual([]);
+  });
+
+  it("keeps layouts on explicit feature app-shell APIs", () => {
+    const violations = collectSourceFiles(layoutsRoot)
+      .filter((filePath) =>
+        forbiddenLayoutFeatureDeepImportPattern.test(
+          readFileSync(filePath, "utf8")
+        )
       )
       .map((filePath) => relative(projectRoot, filePath));
 
