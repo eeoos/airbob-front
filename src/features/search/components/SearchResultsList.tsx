@@ -1,8 +1,9 @@
 import React from "react";
-import { AccommodationCardSearch } from "../../../components/AccommodationCard";
 import { ListContainer } from "../../../components/ListContainer";
 import { routeTo } from "../../../routes/paths";
 import { AccommodationSearchInfo } from "../../../types/accommodation";
+import { toAccommodationBookingRouteQuery } from "../lib/accommodationDetailParams";
+import { SearchAccommodationCard } from "./SearchAccommodationCard";
 
 type SearchResultsLayout = "desktop" | "bottomSheet";
 
@@ -52,6 +53,10 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = ({
     return <div className={classNames?.empty}>검색 결과가 없습니다.</div>;
   }
 
+  const detailParams = detailSearchParams
+    ? toAccommodationBookingRouteQuery(detailSearchParams)
+    : undefined;
+
   const cards = accommodations.map((accommodation) => (
     <div
       key={accommodation.id}
@@ -62,15 +67,12 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = ({
         classNames?.cardWrapper,
         selectedAccommodationId === accommodation.id
           ? classNames?.selected
-          : undefined
+          : undefined,
       )}
     >
-      <AccommodationCardSearch
+      <SearchAccommodationCard
         accommodation={accommodation}
-        detailUrl={routeTo.accommodationDetail(
-          accommodation.id,
-          detailSearchParams
-        )}
+        detailUrl={routeTo.accommodationDetail(accommodation.id, detailParams)}
         onClick={() => onAccommodationClick(accommodation.id)}
         onWishlistToggle={() => onWishlistToggle(accommodation.id)}
         checkIn={checkIn}

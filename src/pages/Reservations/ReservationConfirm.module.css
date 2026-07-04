@@ -12,7 +12,7 @@
 .title {
   font-size: 32px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
   margin-bottom: 24px;
 }
 
@@ -20,7 +20,7 @@
 .error {
   text-align: center;
   padding: 80px 24px;
-  color: #717171;
+  color: var(--color-text-secondary);
   font-size: 16px;
 }
 
@@ -35,7 +35,7 @@
 .accommodationImage {
   width: 80px;
   height: 80px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   object-fit: cover;
   flex-shrink: 0;
 }
@@ -50,7 +50,7 @@
 .accommodationTitle {
   font-size: 16px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
   margin: 0;
   line-height: 1.4;
 }
@@ -60,16 +60,16 @@
   align-items: center;
   gap: 4px;
   font-size: 14px;
-  color: #222222;
+  color: var(--color-text-primary);
 }
 
 .star {
-  color: #ff385c;
+  color: var(--color-brand-coral);
   font-size: 14px;
 }
 
 .reviewCount {
-  color: #717171;
+  color: var(--color-text-secondary);
 }
 
 /* 취소 정책 */
@@ -81,13 +81,13 @@
 .policyTitle {
   font-size: 16px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
   margin-bottom: 8px;
 }
 
 .policyText {
   font-size: 14px;
-  color: #222222;
+  color: var(--color-text-primary);
   margin-bottom: 8px;
   line-height: 1.5;
 }
@@ -95,7 +95,7 @@
 .policyLink {
   background: none;
   border: none;
-  color: #222222;
+  color: var(--color-text-primary);
   font-size: 14px;
   font-weight: 600;
   text-decoration: underline;
@@ -121,12 +121,12 @@
 .infoLabel {
   font-size: 16px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
 }
 
 .infoValue {
   font-size: 16px;
-  color: #222222;
+  color: var(--color-text-primary);
   flex: 1;
   text-align: right;
   margin-right: 16px;
@@ -134,19 +134,19 @@
 
 .changeButton {
   background: none;
-  border: 1px solid #b0b0b0;
-  border-radius: 8px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
   padding: 8px 16px;
   font-size: 14px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
   cursor: pointer;
   transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .changeButton:hover {
-  border-color: #222222;
-  background-color: #f7f7f7;
+  border-color: var(--color-text-primary);
+  background-color: var(--color-background-muted);
 }
 
 
@@ -159,7 +159,7 @@
 .priceDetailsTitle {
   font-size: 16px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
   margin-bottom: 16px;
 }
 
@@ -169,7 +169,7 @@
   align-items: center;
   margin-bottom: 12px;
   font-size: 16px;
-  color: #222222;
+  color: var(--color-text-primary);
 }
 
 .priceRow:last-of-type {
@@ -181,19 +181,19 @@
 .totalLabel {
   font-size: 18px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
 }
 
 .totalPrice {
   font-size: 18px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
 }
 
 .priceDetailsLink {
   background: none;
   border: none;
-  color: #222222;
+  color: var(--color-text-primary);
   font-size: 14px;
   font-weight: 600;
   text-decoration: underline;
@@ -213,10 +213,10 @@
 .reserveButton {
   width: 100%;
   padding: 16px;
-  background: linear-gradient(to right, #ff385c, #e61e4d);
-  color: white;
+  background: linear-gradient(to right, var(--color-brand-coral), var(--color-brand-coral-hover));
+  color: var(--color-text-inverse);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;

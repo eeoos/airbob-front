@@ -1,4 +1,5 @@
 import { AccommodationSearchRequest } from "../../../types/accommodation";
+import type { SearchRouteQuery } from "../../../routes/paths";
 import { clampSearchPage } from "./pagination";
 
 export interface SearchViewport {
@@ -37,6 +38,51 @@ const LOCATION_KEYS = ["lat", "lng"] as const;
 const cloneParams = (params: URLSearchParams): URLSearchParams =>
   new URLSearchParams(params.toString());
 
+const SEARCH_QUERY_KEYS_TO_PRESERVE = [
+  "destination",
+  "page",
+  "lat",
+  "lng",
+  "topLeftLat",
+  "topLeftLng",
+  "bottomRightLat",
+  "bottomRightLng",
+  "checkIn",
+  "checkOut",
+  "adultOccupancy",
+  "childOccupancy",
+  "infantOccupancy",
+  "petOccupancy",
+] as const;
+
+export const pickSearchParams = (params: URLSearchParams) => {
+  const nextParams = new URLSearchParams();
+
+  SEARCH_QUERY_KEYS_TO_PRESERVE.forEach((key) => {
+    const value = params.get(key);
+    if (value !== null && value !== "") {
+      nextParams.set(key, value);
+    }
+  });
+
+  return nextParams;
+};
+
+export const toSearchRouteQuery = (
+  params: URLSearchParams,
+): SearchRouteQuery => {
+  const query: SearchRouteQuery = {};
+
+  SEARCH_QUERY_KEYS_TO_PRESERVE.forEach((key) => {
+    const value = params.get(key);
+    if (value !== null && value !== "") {
+      query[key] = value;
+    }
+  });
+
+  return query;
+};
+
 const formatDateForSearchParam = (date: Date): string => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -46,7 +92,7 @@ const formatDateForSearchParam = (date: Date): string => {
 
 const parseOptionalInt = (
   params: URLSearchParams,
-  key: string
+  key: string,
 ): number | undefined => {
   const value = params.get(key);
   if (value === null) {
@@ -59,7 +105,7 @@ const parseOptionalInt = (
 
 const parseOptionalFloat = (
   params: URLSearchParams,
-  key: string
+  key: string,
 ): number | undefined => {
   const value = params.get(key);
   if (value === null) {
@@ -72,7 +118,7 @@ const parseOptionalFloat = (
 
 const setViewportParams = (
   params: URLSearchParams,
-  viewport: SearchViewport
+  viewport: SearchViewport,
 ) => {
   params.set("topLeftLat", viewport.north.toString());
   params.set("topLeftLng", viewport.west.toString());
@@ -81,7 +127,7 @@ const setViewportParams = (
 };
 
 export const removeViewportParams = (
-  params: URLSearchParams
+  params: URLSearchParams,
 ): URLSearchParams => {
   const nextParams = cloneParams(params);
   VIEWPORT_KEYS.forEach((key) => nextParams.delete(key));
@@ -89,7 +135,7 @@ export const removeViewportParams = (
 };
 
 const removeViewportAndLocationParams = (
-  params: URLSearchParams
+  params: URLSearchParams,
 ): URLSearchParams => {
   const nextParams = removeViewportParams(params);
   LOCATION_KEYS.forEach((key) => nextParams.delete(key));
@@ -97,7 +143,7 @@ const removeViewportAndLocationParams = (
 };
 
 export const getViewportFromSearchParams = (
-  params: URLSearchParams
+  params: URLSearchParams,
 ): SearchViewport | null => {
   const north = parseOptionalFloat(params, "topLeftLat");
   const west = parseOptionalFloat(params, "topLeftLng");
@@ -117,7 +163,7 @@ export const getViewportFromSearchParams = (
 };
 
 export const getViewportSearchParamSignature = (
-  params: URLSearchParams
+  params: URLSearchParams,
 ): string | null => {
   const viewport = getViewportFromSearchParams(params);
 
@@ -130,9 +176,9 @@ export const getViewportSearchParamSignature = (
 
 export const buildSearchNavigationParams = (
   currentParams: URLSearchParams,
-  input: SearchNavigationInput
+  input: SearchNavigationInput,
 ): URLSearchParams => {
-  const params = cloneParams(currentParams);
+  const params = pickSearchParams(currentParams);
   const destination = input.destination?.trim();
 
   if (destination) {
@@ -174,9 +220,11 @@ export const buildSearchNavigationParams = (
 
 export const buildMapBoundsSearchParams = (
   currentParams: URLSearchParams,
-  bounds: SearchViewport
+  bounds: SearchViewport,
 ): URLSearchParams => {
-  const params = removeViewportAndLocationParams(currentParams);
+  const params = removeViewportAndLocationParams(
+    pickSearchParams(currentParams),
+  );
 
   setViewportParams(params, bounds);
   params.delete("destination");
@@ -187,7 +235,7 @@ export const buildMapBoundsSearchParams = (
 
 export const buildSearchRequestFromParams = (
   params: URLSearchParams,
-  options: { page?: number; size?: number } = {}
+  options: { page?: number; size?: number } = {},
 ): AccommodationSearchRequest => {
   const viewport = getViewportFromSearchParams(params);
   const page = options.page ?? clampSearchPage(params.get("page"));

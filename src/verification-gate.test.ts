@@ -1,9 +1,12 @@
 import fs from "fs";
+import os from "os";
 import path from "path";
+import { spawnSync } from "child_process";
 
 const projectRoot = process.cwd();
 const packageJsonPath = path.join(projectRoot, "package.json");
 const qaDocPath = path.join(projectRoot, "docs/qa/frontend-architecture-smoke.ko.md");
+const frontendSmokePath = path.join(projectRoot, "scripts/smoke/frontend-smoke.mjs");
 
 const getSection = (content: string, heading: string, level = 2) => {
   const escapedHeading = heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -26,9 +29,108 @@ describe("frontend verification gate", () => {
     expect(packageJson.scripts["test:ci:no-cache"]).toBe(
       "react-scripts test --watchAll=false --no-cache",
     );
+    expect(packageJson.scripts["verify:pre-redesign"]).toBe(
+      "npm run typecheck && npm run test:ci:no-cache -- --runInBand && npm run build",
+    );
     expect(packageJson.scripts.verify).toContain("npm run typecheck");
     expect(packageJson.scripts.verify).toContain("npm run test:ci:no-cache");
     expect(packageJson.scripts.verify).toContain("npm run build");
+  });
+
+  test("frontend smoke enforces route-specific assertions and redacted output guards", () => {
+    expect(fs.existsSync(frontendSmokePath)).toBe(true);
+
+    const smokeScript = fs.readFileSync(frontendSmokePath, "utf8");
+
+    [
+      "selector",
+      "expectedText",
+      "Promise",
+      "setTimeout",
+      "timeout",
+      "document.querySelector(selector)",
+      "visibleText.includes(expectedText)",
+      "consoleFailurePattern",
+      "apiFailurePattern",
+      "browseJsFailurePattern",
+      "redactionEntries",
+      "delete childEnv.AIRBOB_QA_EMAIL",
+      "delete childEnv.AIRBOB_QA_PASSWORD",
+      "Missing required environment variables",
+      "missingEnv.join",
+      "process.exit(status === 0 ? 1 : status)",
+    ].forEach((term) => {
+      expect(smokeScript).toContain(term);
+    });
+
+    [
+      'selector: "#root"',
+      'expectedText: "특별한 숙소"',
+      'expectedText: "숙소"',
+      'expectedText: "위시리스트"',
+      'expectedText: "최근"',
+      'expectedText: "호스트"',
+    ].forEach((term) => {
+      expect(smokeScript).toContain(term);
+    });
+
+    expect(smokeScript).not.toMatch(/process\.env\.AIRBOB_QA_(?:EMAIL|PASSWORD)[^;]*console/);
+  });
+
+  test("frontend smoke fails when browse exits zero with guarded console and JS error output", () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "airbob-smoke-"));
+    const fakeBrowsePath = path.join(tempDir, "fake-browse.mjs");
+
+    fs.writeFileSync(
+      fakeBrowsePath,
+      [
+        "#!/usr/bin/env node",
+        "process.stdin.resume();",
+        "process.stdin.on('end', () => {",
+        '  console.log("console.error: React route assertion failed");',
+        '  console.log("[js] ERROR: evaluate: Error: route assertion failed");',
+        "  process.exit(0);",
+        "});",
+      ].join("\n"),
+      { mode: 0o755 },
+    );
+
+    try {
+      const result = spawnSync(process.execPath, [frontendSmokePath], {
+        cwd: projectRoot,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          AIRBOB_QA_EMAIL: "fake-user@example.invalid",
+          AIRBOB_QA_PASSWORD: "fake-password",
+          GSTACK_BROWSE_BIN: fakeBrowsePath,
+          AIRBOB_FRONTEND_URL: "http://localhost:3000",
+        },
+        maxBuffer: 10 * 1024 * 1024,
+      });
+      const output = `${result.stdout}\n${result.stderr}`;
+      const reportPathMatch = output.match(/Smoke report written to (.+\.md)/);
+      const reportPath = reportPathMatch
+        ? path.join(projectRoot, reportPathMatch[1])
+        : "";
+      const report = reportPath ? fs.readFileSync(reportPath, "utf8") : "";
+
+      if (reportPath) {
+        fs.rmSync(reportPath, { force: true });
+      }
+
+      expect(result.status).toBe(1);
+      expect(report).toContain("- Status: FAIL");
+      expect(report).toContain(
+        "- Output guard failures: console error/warning output, browse JS error output",
+      );
+      expect(output).not.toContain("fake-user@example.invalid");
+      expect(output).not.toContain("fake-password");
+      expect(report).not.toContain("fake-user@example.invalid");
+      expect(report).not.toContain("fake-password");
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 
   test("QA smoke document covers required browser checkpoints without credentials", () => {
@@ -47,6 +149,9 @@ describe("frontend verification gate", () => {
       "console error",
       "network failed request",
       "screenshot path",
+      "verify:pre-redesign",
+      "Smoke report evidence",
+      "2026-07-04 KST Redesign Readiness Smoke Gate",
     ];
     const desktopSection = getSection(qaDoc, "Desktop 1280px 체크리스트");
     const desktopTerms = [

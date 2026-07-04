@@ -29,6 +29,8 @@
     "test:ci": "react-scripts test --watchAll=false",
     "test:ci:no-cache": "react-scripts test --watchAll=false --no-cache",
     "typecheck": "tsc --noEmit",
+    "smoke:frontend": "node scripts/smoke/frontend-smoke.mjs",
+    "verify:pre-redesign": "npm run typecheck && npm run test:ci:no-cache -- --runInBand && npm run build",
     "verify": "npm run typecheck && npm run test:ci:no-cache && npm run build",
     "eject": "react-scripts eject"
   },

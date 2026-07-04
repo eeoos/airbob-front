@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { usePaymentConfirmation } from "../../features/reservations";
+import { clearReservationCheckoutStateByReservationUid } from "../../features/reservations/lib/reservationCheckoutState";
 import { parseTossSuccessRouteState } from "../../features/reservations/lib/paymentRouteState";
 import { routeTo } from "../../routes/paths";
 import styles from "./PaymentSuccess.module.css";
@@ -30,7 +31,7 @@ const PaymentSuccess: React.FC = () => {
 
   useEffect(() => {
     if (!reservationUid) {
-      navigate(routeTo.profile());
+      navigate(routeTo.profile(), { replace: true });
       return;
     }
 
@@ -40,12 +41,18 @@ const PaymentSuccess: React.FC = () => {
 
     if (!result) return;
 
+    try {
+      clearReservationCheckoutStateByReservationUid(reservationUid);
+    } catch {
+      // Cleanup is best-effort and must not block the payment result redirect.
+    }
+
     if (result.status === "confirmed") {
-      navigate(routeTo.reservationDetail(reservationUid));
+      navigate(routeTo.reservationDetail(reservationUid), { replace: true });
       return;
     }
 
-    navigate(routeTo.paymentFail(reservationUid));
+    navigate(routeTo.paymentFail(reservationUid), { replace: true });
   }, [confirmationResult, isPaymentQueryIncomplete, reservationUid, navigate]);
 
   // 로딩 화면 표시 (리다이렉트 중)

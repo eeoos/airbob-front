@@ -1,5 +1,10 @@
+import { useQueryClient } from "@tanstack/react-query";
+import type { InfiniteData } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
-import { wishlistApi } from "../../../api";
+import { WishlistInfos } from "../../../types/wishlist";
+import { getWishlistListsParamsSignature } from "../../wishlist/hooks/useWishlistListsQuery";
+import { fetchAccommodationWishlistMembership } from "../../wishlist/lib/wishlistMembership";
+import { wishlistQueryKeys } from "../../wishlist/queryKeys";
 
 interface UseSearchWishlistModalOptions {
   isAuthenticated: boolean;
@@ -13,6 +18,7 @@ export function useSearchWishlistModal({
   isAuthenticated,
   onWishlistStatusChange,
 }: UseSearchWishlistModalOptions) {
+  const queryClient = useQueryClient();
   const [wishlistModalOpen, setWishlistModalOpen] = useState(false);
   const [
     selectedAccommodationForWishlist,
@@ -40,13 +46,22 @@ export function useSearchWishlistModal({
   const closeWishlistModal = useCallback(async () => {
     if (selectedAccommodationForWishlist) {
       try {
-        const response = await wishlistApi.getWishlists({
-          size: 20,
-          accommodationId: selectedAccommodationForWishlist,
-        });
-        const isInAnyWishlist =
-          response?.wishlists?.some((wishlist) => wishlist.is_contained) ||
-          false;
+        const { isInAnyWishlist, pageParams, pages } =
+          await fetchAccommodationWishlistMembership(
+            selectedAccommodationForWishlist
+          );
+
+        queryClient.setQueryData<InfiniteData<WishlistInfos, string | null>>(
+          wishlistQueryKeys.lists(
+            getWishlistListsParamsSignature({
+              accommodationId: selectedAccommodationForWishlist,
+            })
+          ),
+          {
+            pageParams,
+            pages,
+          }
+        );
 
         onWishlistStatusChange(
           selectedAccommodationForWishlist,
@@ -59,7 +74,7 @@ export function useSearchWishlistModal({
 
     setWishlistModalOpen(false);
     setSelectedAccommodationForWishlist(null);
-  }, [onWishlistStatusChange, selectedAccommodationForWishlist]);
+  }, [onWishlistStatusChange, queryClient, selectedAccommodationForWishlist]);
 
   return {
     authModalOpen,

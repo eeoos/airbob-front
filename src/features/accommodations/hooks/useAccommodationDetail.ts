@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { accommodationApi, recentlyViewedApi } from "../../../api";
 import { AccommodationDetail } from "../../../types/accommodation";
+import { clearAccommodationWishlistMembership } from "../lib/accommodationDetailMembership";
 
 interface UseAccommodationDetailOptions {
   accommodationId?: string;
@@ -29,27 +30,51 @@ export const useAccommodationDetail = ({
   );
   const [isLoading, setIsLoading] = useState(true);
   const parsedAccommodationId = parseAccommodationId(accommodationId);
+  const isLoadingRef = useRef(isLoading);
+  const latestAuthRef = useRef(isAuthenticated);
+  const previousAuthRef = useRef(isAuthenticated);
+  const requestIdRef = useRef(0);
+
+  isLoadingRef.current = isLoading;
+  latestAuthRef.current = isAuthenticated;
 
   const loadAccommodation = useCallback(async (showLoading: boolean) => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+    const shouldCompleteLoading = showLoading || isLoadingRef.current;
+
     if (!parsedAccommodationId) {
+      isLoadingRef.current = false;
       setIsLoading(false);
       return null;
     }
 
     if (showLoading) {
+      isLoadingRef.current = true;
       setIsLoading(true);
     }
     clearError();
 
     try {
       const data = await accommodationApi.getDetail(parsedAccommodationId);
-      setAccommodation(data);
-      return data;
+      if (requestId !== requestIdRef.current) {
+        return null;
+      }
+
+      const accommodationToStore = latestAuthRef.current
+        ? data
+        : clearAccommodationWishlistMembership(data);
+
+      setAccommodation(accommodationToStore);
+      return accommodationToStore;
     } catch (error) {
-      handleError(error);
+      if (requestId === requestIdRef.current) {
+        handleError(error);
+      }
       return null;
     } finally {
-      if (showLoading) {
+      if (shouldCompleteLoading && requestId === requestIdRef.current) {
+        isLoadingRef.current = false;
         setIsLoading(false);
       }
     }
@@ -58,6 +83,26 @@ export const useAccommodationDetail = ({
   useEffect(() => {
     loadAccommodation(true);
   }, [loadAccommodation]);
+
+  useEffect(() => {
+    const wasAuthenticated = previousAuthRef.current;
+    previousAuthRef.current = isAuthenticated;
+
+    if (!parsedAccommodationId) {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      setAccommodation((current) =>
+        clearAccommodationWishlistMembership(current)
+      );
+      return;
+    }
+
+    if (!wasAuthenticated) {
+      void loadAccommodation(false);
+    }
+  }, [isAuthenticated, loadAccommodation, parsedAccommodationId]);
 
   useEffect(() => {
     if (!parsedAccommodationId || !isAuthenticated || !accommodation) {

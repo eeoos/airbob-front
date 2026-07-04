@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { AccommodationDescriptionModal } from "./AccommodationDescriptionModal";
 
 const renderDescriptionModal = (
@@ -22,16 +23,29 @@ describe("AccommodationDescriptionModal", () => {
   it("renders multiline description content", () => {
     renderDescriptionModal();
 
+    expect(
+      screen.getByRole("dialog", { name: "숙소 설명" })
+    ).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "숙소 설명" })).toBeInTheDocument();
     expect(screen.getByText("첫 번째 줄")).toBeInTheDocument();
     expect(screen.getByText("두 번째 줄")).toBeInTheDocument();
   });
 
-  it("closes from the close button and backdrop", () => {
+  it("closes when Escape is pressed", async () => {
+    const { props } = renderDescriptionModal();
+
+    await userEvent.keyboard("{Escape}");
+
+    expect(props.onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("closes from the close button and backdrop", async () => {
     const { props, container } = renderDescriptionModal();
 
-    fireEvent.click(screen.getByRole("button", { name: "×" }));
-    fireEvent.click(container.firstElementChild as Element);
+    await userEvent.click(
+      screen.getByRole("button", { name: "숙소 설명 닫기" })
+    );
+    await userEvent.click(container.firstElementChild as Element);
 
     expect(props.onClose).toHaveBeenCalledTimes(2);
   });

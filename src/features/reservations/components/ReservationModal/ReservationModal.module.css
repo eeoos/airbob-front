@@ -2,76 +2,23 @@
   max-width: 600px;
 }
 
-.overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: var(--overlay-backdrop);
-  z-index: var(--z-modal);
-  backdrop-filter: blur(4px);
-}
-
-.modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.18);
-  width: 90%;
-  max-width: 600px;
-  max-height: 90vh;
-  overflow-y: auto;
-  z-index: calc(var(--z-modal) + 1);
-  padding: 0;
-}
-
-.closeButton {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: background-color 0.2s ease;
-  color: #222222;
-  z-index: 10;
-}
-
-.closeButton:hover {
-  background-color: #f7f7f7;
-}
-
-.closeButton svg {
-  width: 24px;
-  height: 24px;
-}
-
 .content {
-  padding: 24px;
+  padding: var(--space-6);
 }
 
 /* 숙소 정보 */
 .accommodationInfo {
   display: flex;
-  gap: 16px;
-  margin-bottom: 24px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid #ebebeb;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .accommodationImage {
   width: 80px;
   height: 80px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   object-fit: cover;
   flex-shrink: 0;
 }
@@ -80,13 +27,13 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .accommodationTitle {
-  font-size: 16px;
+  font-size: var(--font-size-md);
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
   margin: 0;
   line-height: 1.4;
 }
@@ -94,51 +41,51 @@
 .accommodationRating {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 14px;
-  color: #222222;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
 }
 
 .star {
-  color: #ff385c;
-  font-size: 14px;
+  color: var(--color-brand-coral);
+  font-size: var(--font-size-sm);
 }
 
 .reviewCount {
-  color: #717171;
+  color: var(--color-text-secondary);
 }
 
 /* 취소 정책 */
 .cancellationPolicy {
-  margin-bottom: 24px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid #ebebeb;
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .policyTitle {
-  font-size: 16px;
+  font-size: var(--font-size-md);
   font-weight: 600;
-  color: #222222;
-  margin-bottom: 8px;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
 }
 
 .policyText {
-  font-size: 14px;
-  color: #222222;
-  margin-bottom: 8px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
   line-height: 1.5;
 }
 
 .policyLink {
   background: none;
   border: none;
-  color: #222222;
-  font-size: 14px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
   font-weight: 600;
   text-decoration: underline;
   cursor: pointer;
   padding: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--motion-duration-base) var(--motion-ease-standard);
 }
 
 .policyLink:hover {
@@ -150,92 +97,93 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 0;
-  border-bottom: 1px solid #ebebeb;
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .infoLabel {
-  font-size: 16px;
+  font-size: var(--font-size-md);
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
 }
 
 .infoValue {
-  font-size: 16px;
-  color: #222222;
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
   flex: 1;
   text-align: right;
-  margin-right: 16px;
+  margin-right: var(--space-4);
 }
 
 .changeButton {
   background: none;
-  border: 1px solid #b0b0b0;
-  border-radius: 8px;
-  padding: 8px 16px;
-  font-size: 14px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
   cursor: pointer;
-  transition: border-color 0.2s ease, background-color 0.2s ease;
+  transition: border-color var(--motion-duration-base) var(--motion-ease-standard),
+    background-color var(--motion-duration-base) var(--motion-ease-standard);
 }
 
 .changeButton:hover {
-  border-color: #222222;
-  background-color: #f7f7f7;
+  border-color: var(--color-text-primary);
+  background-color: var(--color-background-muted);
 }
 
 /* 요금 세부 정보 */
 .priceDetails {
-  margin: 24px 0;
-  padding-top: 24px;
-  border-top: 1px solid #ebebeb;
+  margin: var(--space-6) 0;
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .priceDetailsTitle {
-  font-size: 16px;
+  font-size: var(--font-size-md);
   font-weight: 600;
-  color: #222222;
-  margin-bottom: 16px;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-4);
 }
 
 .priceRow {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
-  font-size: 16px;
-  color: #222222;
+  margin-bottom: var(--space-3);
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
 }
 
 .priceRow:last-of-type {
-  margin-bottom: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #ebebeb;
+  margin-bottom: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .totalLabel {
-  font-size: 18px;
+  font-size: var(--font-size-lg);
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
 }
 
 .totalPrice {
-  font-size: 18px;
+  font-size: var(--font-size-lg);
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
 }
 
 .priceDetailsLink {
   background: none;
   border: none;
-  color: #222222;
-  font-size: 14px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
   font-weight: 600;
   text-decoration: underline;
   cursor: pointer;
   padding: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--motion-duration-base) var(--motion-ease-standard);
 }
 
 .priceDetailsLink:hover {
@@ -243,21 +191,25 @@
 }
 
 .paymentWidget {
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .reserveButton {
   width: 100%;
-  padding: 16px;
-  background: linear-gradient(to right, #ff385c, #e61e4d);
-  color: white;
+  padding: var(--space-4);
+  background: linear-gradient(
+    to right,
+    var(--color-brand-coral),
+    var(--color-brand-coral-hover)
+  );
+  color: var(--color-text-inverse);
   border: none;
-  border-radius: 8px;
-  font-size: 16px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-md);
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s ease;
-  margin-top: 24px;
+  transition: opacity var(--motion-duration-base) var(--motion-ease-standard);
+  margin-top: var(--space-6);
 }
 
 .reserveButton:hover:not(:disabled) {
@@ -271,18 +223,13 @@
 
 .toastContainer {
   position: fixed;
-  top: 24px;
-  right: 24px;
+  top: var(--space-6);
+  right: var(--space-6);
   z-index: var(--z-toast);
 }
 
 @media (max-width: 768px) {
-  .modal {
-    width: 95%;
-    padding: 0;
-  }
-
   .content {
-    padding: 20px;
+    padding: var(--space-5);
   }
 }

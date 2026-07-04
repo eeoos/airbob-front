@@ -1,3 +1,4 @@
+import { Dialog } from "../../../shared/ui";
 import styles from "./AccommodationDescriptionModal.module.css";
 
 interface AccommodationDescriptionModalProps {
@@ -11,35 +12,36 @@ export function AccommodationDescriptionModal({
   description,
   onClose,
 }: AccommodationDescriptionModalProps) {
-  if (!isOpen) {
-    return null;
-  }
-
   const lines = description.split("\n");
 
   return (
-    <div className={styles.descriptionModal} onClick={onClose}>
-      <div
-        className={styles.descriptionModalContent}
-        onClick={(event) => event.stopPropagation()}
+    <Dialog
+      isOpen={isOpen}
+      title="숙소 설명"
+      onClose={onClose}
+      showHeader={false}
+      size="custom"
+      bodyPadding="none"
+      className={styles.descriptionModalContent}
+      bodyClassName={styles.descriptionModalBody}
+    >
+      <button
+        type="button"
+        className={styles.descriptionModalClose}
+        aria-label="숙소 설명 닫기"
+        onClick={onClose}
       >
-        <button
-          type="button"
-          className={styles.descriptionModalClose}
-          onClick={onClose}
-        >
-          ×
-        </button>
-        <h2 className={styles.descriptionModalTitle}>숙소 설명</h2>
-        <div className={styles.descriptionModalText}>
-          {lines.map((line, index) => (
-            <span key={`${line}-${index}`}>
-              {line}
-              {index < lines.length - 1 && <br />}
-            </span>
-          ))}
-        </div>
+        ×
+      </button>
+      <h2 className={styles.descriptionModalTitle}>숙소 설명</h2>
+      <div className={styles.descriptionModalText}>
+        {lines.map((line, index) => (
+          <span key={`${line}-${index}`}>
+            {line}
+            {index < lines.length - 1 && <br />}
+          </span>
+        ))}
       </div>
-    </div>
+    </Dialog>
   );
 }

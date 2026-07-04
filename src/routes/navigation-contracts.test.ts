@@ -259,9 +259,14 @@ describe("navigation route builder contracts", () => {
     ).toBe(true);
   });
 
-  it("keeps payment route-builder navigation as push navigation", () => {
+  it("keeps payment route-builder navigation as push navigation outside callback cleanup", () => {
+    const replaceAllowedFiles = new Set([
+      "src/pages/Reservations/PaymentSuccess.tsx",
+    ]);
     const replaceNavigations = paymentNavigationFiles.flatMap((relativePath) =>
-      collectNavigateCallViolations(relativePath, hasReplaceTrueOption)
+      replaceAllowedFiles.has(relativePath)
+        ? []
+        : collectNavigateCallViolations(relativePath, hasReplaceTrueOption)
     );
 
     expect(replaceNavigations).toEqual([]);

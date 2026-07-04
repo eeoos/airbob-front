@@ -2,6 +2,7 @@ import { MutableRefObject, RefObject, useEffect } from "react";
 import { AccommodationSearchInfo } from "../../../../../types/accommodation";
 import { getImageUrl } from "../../../../../utils/image";
 import { routeTo } from "../../../../../routes/paths";
+import { toAccommodationBookingRouteQuery } from "../../../lib/accommodationDetailParams";
 import { buildInfoWindowContent } from "../lib/infoWindowContent";
 import {
   adjustInfoWindowIntoMapView,
@@ -13,13 +14,16 @@ interface UseMapSelectionInfoWindowOptions {
   accommodations: AccommodationSearchInfo[];
   checkIn?: string | null;
   checkOut?: string | null;
+  detailSearchParams?: URLSearchParams;
   hoveredAccommodationId?: number | null;
   hoveredAccommodationIdRef: MutableRefObject<number | null>;
   infoWindowRef: MutableRefObject<google.maps.InfoWindow | null>;
   mapInstanceRef: MutableRefObject<google.maps.Map | null>;
   mapRef: RefObject<HTMLDivElement | null>;
   markersRef: MutableRefObject<SearchMapMarker[]>;
-  onAccommodationSelect: (accommodation: AccommodationSearchInfo | null) => void;
+  onAccommodationSelect: (
+    accommodation: AccommodationSearchInfo | null,
+  ) => void;
   onWishlistToggle?: (accommodationId: number, isInWishlist: boolean) => void;
   prevHoveredIdRef: MutableRefObject<number | null>;
   prevSelectedIdRef: MutableRefObject<number | null>;
@@ -28,14 +32,14 @@ interface UseMapSelectionInfoWindowOptions {
 
 const findMarkerByAccommodationId = (
   markers: SearchMapMarker[],
-  accommodationId: number
+  accommodationId: number,
 ) =>
   markers.find((marker) => marker.accommodationId === accommodationId) ?? null;
 
 const restoreMarkerForHoverState = (
   marker: SearchMapMarker,
   accommodationId: number,
-  hoveredAccommodationId: number | null
+  hoveredAccommodationId: number | null,
 ) => {
   if (!marker.icons) return;
 
@@ -47,6 +51,7 @@ export const useMapSelectionInfoWindow = ({
   accommodations,
   checkIn,
   checkOut,
+  detailSearchParams,
   hoveredAccommodationId,
   hoveredAccommodationIdRef,
   infoWindowRef,
@@ -68,21 +73,21 @@ export const useMapSelectionInfoWindow = ({
     if (prevSelectedId !== null && prevSelectedId !== currentSelectedId) {
       const prevMarker = findMarkerByAccommodationId(
         markersRef.current,
-        prevSelectedId
+        prevSelectedId,
       );
 
       if (prevMarker) {
         restoreMarkerForHoverState(
           prevMarker,
           prevSelectedId,
-          hoveredAccommodationId ?? null
+          hoveredAccommodationId ?? null,
         );
       }
     }
 
     if (currentSelectedId) {
       const selectedAccommodation = accommodations.find(
-        (accommodation) => accommodation.id === selectedAccommodationId
+        (accommodation) => accommodation.id === selectedAccommodationId,
       );
 
       if (
@@ -95,7 +100,7 @@ export const useMapSelectionInfoWindow = ({
 
       const targetMarker = findMarkerByAccommodationId(
         markersRef.current,
-        selectedAccommodation.id
+        selectedAccommodation.id,
       );
 
       if (targetMarker?.icons) {
@@ -109,7 +114,7 @@ export const useMapSelectionInfoWindow = ({
 
         const marker = findMarkerByAccommodationId(
           markersRef.current,
-          selectedAccommodation.id
+          selectedAccommodation.id,
         );
         if (marker?.icons) {
           marker.setIcon(marker.icons.selected);
@@ -122,13 +127,16 @@ export const useMapSelectionInfoWindow = ({
 
       const selectedMarker = findMarkerByAccommodationId(
         markersRef.current,
-        selectedAccommodation.id
+        selectedAccommodation.id,
       );
 
       if (selectedMarker) {
         const thumbnailUrl = selectedAccommodation.accommodation_thumbnail_url
           ? getImageUrl(selectedAccommodation.accommodation_thumbnail_url)
           : null;
+        const detailParams = detailSearchParams
+          ? toAccommodationBookingRouteQuery(detailSearchParams)
+          : undefined;
 
         const infoWindow = new window.google.maps.InfoWindow({
           disableAutoPan: true,
@@ -153,15 +161,18 @@ export const useMapSelectionInfoWindow = ({
           }, 50);
 
           const infoWindowElement = document.getElementById(
-            `info-window-${selectedAccommodation.id}`
+            `info-window-${selectedAccommodation.id}`,
           );
           if (infoWindowElement) {
             infoWindowElement.addEventListener("click", (event) => {
               const target = event.target as HTMLElement;
               if (!target.closest("button")) {
                 window.open(
-                  routeTo.accommodationDetail(selectedAccommodation.id),
-                  "_blank"
+                  routeTo.accommodationDetail(
+                    selectedAccommodation.id,
+                    detailParams,
+                  ),
+                  "_blank",
                 );
               }
             });
@@ -173,7 +184,7 @@ export const useMapSelectionInfoWindow = ({
         if (onWishlistToggle) {
           window.toggleWishlist = (
             accommodationId: number,
-            isInWishlist: boolean
+            isInWishlist: boolean,
           ) => {
             onWishlistToggle(accommodationId, isInWishlist);
             if (infoWindowRef.current) {
@@ -193,7 +204,7 @@ export const useMapSelectionInfoWindow = ({
           restoreMarkerForHoverState(
             selectedMarker,
             selectedAccommodation.id,
-            hoveredAccommodationIdRef.current
+            hoveredAccommodationIdRef.current,
           );
           onAccommodationSelect(null);
         });
@@ -202,7 +213,7 @@ export const useMapSelectionInfoWindow = ({
           restoreMarkerForHoverState(
             selectedMarker,
             selectedAccommodation.id,
-            hoveredAccommodationIdRef.current
+            hoveredAccommodationIdRef.current,
           );
           onAccommodationSelect(null);
 
@@ -242,7 +253,7 @@ export const useMapSelectionInfoWindow = ({
           "resize",
           () => {
             adjustInfoWindowPosition();
-          }
+          },
         );
 
         (
@@ -258,6 +269,7 @@ export const useMapSelectionInfoWindow = ({
     accommodations,
     checkIn,
     checkOut,
+    detailSearchParams,
     hoveredAccommodationId,
     hoveredAccommodationIdRef,
     infoWindowRef,
@@ -277,14 +289,14 @@ export const useMapSelectionInfoWindow = ({
     if (prevSelectedId !== null) {
       const prevMarker = findMarkerByAccommodationId(
         markersRef.current,
-        prevSelectedId
+        prevSelectedId,
       );
 
       if (prevMarker) {
         restoreMarkerForHoverState(
           prevMarker,
           prevSelectedId,
-          hoveredAccommodationId ?? null
+          hoveredAccommodationId ?? null,
         );
       }
     }
@@ -306,7 +318,7 @@ export const useMapSelectionInfoWindow = ({
       if (prevHoveredId !== selectedAccommodationId) {
         const prevMarker = findMarkerByAccommodationId(
           markersRef.current,
-          prevHoveredId
+          prevHoveredId,
         );
 
         if (prevMarker?.icons) {
@@ -321,7 +333,7 @@ export const useMapSelectionInfoWindow = ({
     ) {
       const hoveredMarker = findMarkerByAccommodationId(
         markersRef.current,
-        currentHoveredId
+        currentHoveredId,
       );
 
       if (hoveredMarker?.icons) {
@@ -346,7 +358,7 @@ export const useMapSelectionInfoWindow = ({
     const currentSelectedId = selectedAccommodationId;
     const selectedMarker = findMarkerByAccommodationId(
       markersRef.current,
-      currentSelectedId
+      currentSelectedId,
     );
 
     if (selectedMarker?.icons) {
@@ -360,7 +372,7 @@ export const useMapSelectionInfoWindow = ({
 
         const marker = findMarkerByAccommodationId(
           markersRef.current,
-          currentSelectedId
+          currentSelectedId,
         );
 
         if (marker?.icons) {

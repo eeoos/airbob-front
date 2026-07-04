@@ -57,12 +57,24 @@ const createAccommodation = (
   ...overrides,
 });
 
+const createDeferred = <T>() => {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+
+  return { promise, resolve, reject };
+};
+
 describe("useAccommodationDetail", () => {
   beforeEach(() => {
     mockHandleError.mockReset();
     mockClearError.mockReset();
     jest.mocked(accommodationApi.getDetail).mockReset();
     jest.mocked(recentlyViewedApi.add).mockReset();
+    jest.mocked(recentlyViewedApi.add).mockResolvedValue(undefined);
   });
 
   it("loads accommodation detail and records recently viewed for authenticated users", async () => {
@@ -118,7 +130,7 @@ describe("useAccommodationDetail", () => {
     const { result } = renderHook(() =>
       useAccommodationDetail({
         accommodationId: "7",
-        isAuthenticated: false,
+        isAuthenticated: true,
         handleError: mockHandleError,
         clearError: mockClearError,
       })
@@ -132,6 +144,130 @@ describe("useAccommodationDetail", () => {
     await waitFor(() =>
       expect(result.current.accommodation?.is_in_wishlist).toBe(true)
     );
+    expect(accommodationApi.getDetail).toHaveBeenCalledTimes(2);
+  });
+
+  it("clears user-scoped wishlist state when authentication is lost", async () => {
+    jest
+      .mocked(accommodationApi.getDetail)
+      .mockResolvedValue(createAccommodation({ is_in_wishlist: true }));
+
+    const { result, rerender } = renderHook(
+      ({ isAuthenticated }) =>
+        useAccommodationDetail({
+          accommodationId: "7",
+          isAuthenticated,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+        }),
+      { initialProps: { isAuthenticated: true } }
+    );
+
+    await waitFor(() =>
+      expect(result.current.accommodation?.is_in_wishlist).toBe(true)
+    );
+
+    rerender({ isAuthenticated: false });
+
+    await waitFor(() =>
+      expect(result.current.accommodation?.is_in_wishlist).toBe(false)
+    );
+  });
+
+  it("reloads detail membership when authentication is gained", async () => {
+    jest
+      .mocked(accommodationApi.getDetail)
+      .mockResolvedValueOnce(createAccommodation({ is_in_wishlist: false }))
+      .mockResolvedValueOnce(createAccommodation({ is_in_wishlist: true }));
+
+    const { result, rerender } = renderHook(
+      ({ isAuthenticated }) =>
+        useAccommodationDetail({
+          accommodationId: "7",
+          isAuthenticated,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+        }),
+      { initialProps: { isAuthenticated: false } }
+    );
+
+    await waitFor(() =>
+      expect(result.current.accommodation?.is_in_wishlist).toBe(false)
+    );
+
+    rerender({ isAuthenticated: true });
+
+    await waitFor(() =>
+      expect(result.current.accommodation?.is_in_wishlist).toBe(true)
+    );
+    expect(accommodationApi.getDetail).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not restore wishlist membership when an authenticated detail request resolves after logout", async () => {
+    const detailRequest = createDeferred<AccommodationDetail>();
+    jest.mocked(accommodationApi.getDetail).mockReturnValue(detailRequest.promise);
+
+    const { result, rerender } = renderHook(
+      ({ isAuthenticated }) =>
+        useAccommodationDetail({
+          accommodationId: "7",
+          isAuthenticated,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+        }),
+      { initialProps: { isAuthenticated: true } }
+    );
+
+    rerender({ isAuthenticated: false });
+
+    await act(async () => {
+      detailRequest.resolve(createAccommodation({ is_in_wishlist: true }));
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.accommodation?.is_in_wishlist).toBe(false);
+  });
+
+  it("keeps refreshed wishlist membership when an unauthenticated detail request resolves after auth reload", async () => {
+    const unauthenticatedRequest = createDeferred<AccommodationDetail>();
+    const authenticatedRequest = createDeferred<AccommodationDetail>();
+    jest
+      .mocked(accommodationApi.getDetail)
+      .mockReturnValueOnce(unauthenticatedRequest.promise)
+      .mockReturnValueOnce(authenticatedRequest.promise);
+
+    const { result, rerender } = renderHook(
+      ({ isAuthenticated }) =>
+        useAccommodationDetail({
+          accommodationId: "7",
+          isAuthenticated,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+        }),
+      { initialProps: { isAuthenticated: false } }
+    );
+
+    rerender({ isAuthenticated: true });
+
+    await waitFor(() =>
+      expect(accommodationApi.getDetail).toHaveBeenCalledTimes(2)
+    );
+
+    await act(async () => {
+      authenticatedRequest.resolve(createAccommodation({ is_in_wishlist: true }));
+    });
+
+    await waitFor(() =>
+      expect(result.current.accommodation?.is_in_wishlist).toBe(true)
+    );
+
+    await act(async () => {
+      unauthenticatedRequest.resolve(
+        createAccommodation({ is_in_wishlist: false })
+      );
+    });
+
+    expect(result.current.accommodation?.is_in_wishlist).toBe(true);
     expect(accommodationApi.getDetail).toHaveBeenCalledTimes(2);
   });
 });

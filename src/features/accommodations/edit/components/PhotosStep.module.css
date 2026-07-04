@@ -1,0 +1,304 @@
+.uploadProgressContainer {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: var(--color-background-muted);
+  border-radius: var(--radius-md);
+}
+
+.uploadProgressBar {
+  width: 100%;
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.uploadProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-brand-coral) 0%, #ff5a7f 100%);
+  border-radius: var(--radius-sm);
+  transition: width 0.3s ease;
+}
+
+.uploadProgressText {
+  font-size: 14px;
+  color: var(--color-text-primary);
+  margin: 0;
+  text-align: center;
+  font-weight: 500;
+}
+
+.imageInput {
+  display: none;
+}
+
+.imageUploadBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 400px;
+  padding: 60px 40px;
+  background: var(--color-background-muted);
+  border: 2px dashed var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.imageUploadBox:hover {
+  border-color: var(--color-text-primary);
+  background: #f0f0f0;
+}
+
+.imageUploadBoxLabel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.cameraIcon {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 24px;
+  color: var(--color-text-secondary);
+}
+
+.cameraIcon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.addPhotoButton {
+  padding: 14px 32px;
+  background: var(--color-background-page);
+  border: 1px solid var(--color-text-primary);
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.addPhotoButton:hover {
+  background: var(--color-text-primary);
+  color: var(--color-text-inverse);
+}
+
+.uploadedImagesSection {
+  margin-top: 40px;
+}
+
+.uploadedImagesHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.uploadedImagesTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 4px 0;
+}
+
+.uploadedImagesSubtitle {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.addMoreButton {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-text-primary);
+  color: var(--color-text-inverse);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.addMoreButton:hover {
+  background: var(--color-text-primary);
+}
+
+.addMoreButton svg {
+  width: 20px;
+  height: 20px;
+}
+
+.coverPhotoContainer {
+  width: 100%;
+  margin-bottom: 16px;
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  contain: layout style;
+}
+
+.coverPhotoContainer .uploadedImageItem {
+  width: 100%;
+  aspect-ratio: unset;
+  padding-bottom: 56.25%;
+  height: 0;
+}
+
+.thumbnailGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  contain: layout style;
+}
+
+.thumbnailGrid .uploadedImageItem {
+  aspect-ratio: unset;
+  padding-bottom: 100%;
+  height: 0;
+}
+
+.thumbnailGrid .addImageSlot {
+  aspect-ratio: unset;
+  padding-bottom: 100%;
+  height: 0;
+}
+
+.uploadedImageItem {
+  --photos-step-cover-label-layer: 2;
+  --photos-step-image-menu-layer: 1;
+
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  cursor: move;
+  border: 2px solid transparent;
+  transition: border-color 0.2s ease;
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  will-change: transform;
+  contain: layout style paint;
+}
+
+.uploadedImageItem:hover {
+  border-color: var(--color-text-primary);
+}
+
+.uploadedImageItem.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.uploadedImageItem.dragOver {
+  border-color: var(--color-brand-coral);
+  border-style: dashed;
+}
+
+.coverPhotoLabel {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.7);
+  color: var(--color-text-inverse);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  z-index: var(--photos-step-cover-label-layer);
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+}
+
+.uploadedImage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  will-change: transform;
+}
+
+.imageMenuButton {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+  z-index: var(--photos-step-image-menu-layer);
+}
+
+.imageMenuButton:hover {
+  background: var(--color-background-page);
+}
+
+.imageMenuButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.addImageSlot {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--radius-md);
+  border: 2px dashed var(--color-border-strong);
+  background: var(--color-background-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--color-text-secondary);
+}
+
+.addImageSlot:hover {
+  border-color: var(--color-text-primary);
+  background: #f0f0f0;
+  color: var(--color-text-primary);
+}
+
+.addImageSlot svg {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 8px;
+}
+
+.addImageSlot span {
+  font-size: 14px;
+  font-weight: 500;
+}

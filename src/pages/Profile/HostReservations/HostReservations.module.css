@@ -5,7 +5,7 @@
 .title {
   font-size: 32px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
   line-height: 1.2;
   margin: 0 0 24px 0;
 }
@@ -14,7 +14,7 @@
   display: flex;
   gap: 8px;
   margin-bottom: 24px;
-  border-bottom: 1px solid #dddddd;
+  border-bottom: 1px solid var(--color-border-default);
   padding-bottom: 0;
 }
 
@@ -25,32 +25,32 @@
   background: transparent;
   font-size: 14px;
   font-weight: 600;
-  color: #717171;
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: all 0.2s ease;
   margin-bottom: -1px;
 }
 
 .filterTab:hover {
-  color: #222222;
+  color: var(--color-text-primary);
 }
 
 .filterTab.active {
-  color: #222222;
+  color: var(--color-text-primary);
   border-bottom-color: #00a699;
 }
 
 .tableContainer {
   width: 100%;
   overflow-x: auto;
-  border: 1px solid #dddddd;
-  border-radius: 8px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
-  background: white;
+  background: var(--color-background-page);
 }
 
 .th {
@@ -58,9 +58,9 @@
   text-align: left;
   font-size: 14px;
   font-weight: 600;
-  color: #222222;
-  border-bottom: 1px solid #dddddd;
-  background-color: #f7f7f7;
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border-default);
+  background-color: var(--color-background-muted);
   white-space: nowrap;
 }
 
@@ -81,12 +81,12 @@
 }
 
 .tableRow {
-  border-bottom: 1px solid #dddddd;
+  border-bottom: 1px solid var(--color-border-default);
   transition: background-color 0.2s ease;
 }
 
 .tableRow:hover {
-  background-color: #f7f7f7;
+  background-color: var(--color-background-muted);
 }
 
 .tableRow:last-child {
@@ -96,7 +96,7 @@
 .td {
   padding: 16px;
   font-size: 14px;
-  color: #222222;
+  color: var(--color-text-primary);
   vertical-align: middle;
 }
 
@@ -108,19 +108,19 @@
 
 .guestName {
   font-size: 14px;
-  color: #222222;
+  color: var(--color-text-primary);
   font-weight: 500;
 }
 
 .guestCount {
   font-size: 12px;
-  color: #717171;
+  color: var(--color-text-secondary);
 }
 
 .status {
   display: inline-block;
   padding: 4px 12px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 13px;
   font-weight: 600;
 }
@@ -136,8 +136,8 @@
 }
 
 .statusDefault {
-  color: #717171;
-  background-color: #f7f7f7;
+  color: var(--color-text-secondary);
+  background-color: var(--color-background-muted);
 }
 
 .actionButtons {
@@ -149,19 +149,19 @@
 
 .detailsButton {
   padding: 8px 16px;
-  border: 1px solid #dddddd;
+  border: 1px solid var(--color-border-default);
   border-radius: 6px;
-  background: white;
+  background: var(--color-background-page);
   font-size: 14px;
   font-weight: 600;
-  color: #222222;
+  color: var(--color-text-primary);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .detailsButton:hover {
-  border-color: #222222;
-  background-color: #f7f7f7;
+  border-color: var(--color-text-primary);
+  background-color: var(--color-background-muted);
 }
 
 .menuButton {
@@ -172,17 +172,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   transition: background-color 0.2s ease;
 }
 
 .menuButton:hover {
-  background-color: #f7f7f7;
+  background-color: var(--color-background-muted);
 }
 
 .menuIcon {
   font-size: 20px;
-  color: #222222;
+  color: var(--color-text-primary);
   line-height: 1;
   transform: rotate(90deg);
   display: inline-block;
@@ -197,7 +197,7 @@
 }
 
 .loadingMore {
-  color: #717171;
+  color: var(--color-text-secondary);
   font-size: 14px;
 }
 

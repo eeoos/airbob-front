@@ -1,4 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { accommodationApi } from "../../../api";
 import {
   AccommodationSearchInfo,
@@ -16,6 +21,7 @@ import {
   buildSearchRequestFromParams,
   getViewportSearchParamSignature,
 } from "../lib/searchParams";
+import { searchQueryKeys } from "../queryKeys";
 
 type SetSearchParams = (
   nextParams: URLSearchParams,
@@ -37,23 +43,57 @@ const getParamsWithoutPage = (params: string) => {
   return nextParams;
 };
 
-const applySearchPageInfo = (
-  response: AccommodationSearchResponse,
-  setTotalPages: (totalPages: number) => void,
-  setTotalElements: (totalElements: number) => void,
-  setCurrentPage: (currentPage: number) => void
-) => {
-  const limitedTotalPages = getLimitedTotalPages(response.page_info.total_pages);
-  setTotalPages(limitedTotalPages);
-  setTotalElements(response.page_info.total_elements);
+const getSearchPageInfo = (response?: AccommodationSearchResponse) => {
+  if (!response) {
+    return {
+      currentPage: 0,
+      totalPages: 0,
+      totalElements: 0,
+    };
+  }
 
+  const limitedTotalPages = getLimitedTotalPages(response.page_info.total_pages);
   const limitedCurrentPage = Math.max(
     0,
     Math.min(response.page_info.current_page, limitedTotalPages - 1)
   );
-  setCurrentPage(limitedCurrentPage);
 
-  return limitedCurrentPage;
+  return {
+    currentPage: limitedCurrentPage,
+    totalPages: limitedTotalPages,
+    totalElements: response.page_info.total_elements,
+  };
+};
+
+const patchAccommodationWishlistStatus = (
+  response: AccommodationSearchResponse,
+  accommodationId: number,
+  isInWishlist: boolean
+): AccommodationSearchResponse => {
+  let didUpdate = false;
+  const staySearchResultListing = response.stay_search_result_listing.map(
+    (accommodation) => {
+      if (
+        accommodation.id !== accommodationId ||
+        accommodation.is_in_wishlist === isInWishlist
+      ) {
+        return accommodation;
+      }
+
+      didUpdate = true;
+      return {
+        ...accommodation,
+        is_in_wishlist: isInWishlist,
+      };
+    }
+  );
+
+  return didUpdate
+    ? {
+        ...response,
+        stay_search_result_listing: staySearchResultListing,
+      }
+    : response;
 };
 
 export const useSearchResults = ({
@@ -64,85 +104,89 @@ export const useSearchResults = ({
   setIsMapDragMode,
   requestMapBoundsUpdate,
 }: UseSearchResultsOptions) => {
-  const [accommodations, setAccommodations] = useState<
-    AccommodationSearchInfo[]
-  >([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalElements, setTotalElements] = useState(0);
+  const queryClient = useQueryClient();
   const isInitialLoadRef = useRef(true);
   const prevPageRef = useRef<number | null>(null);
   const prevSearchParamsRef = useRef("");
   const prevViewportRef = useRef<string | null>(null);
   const pendingPageResetRef = useRef<string | null>(null);
-  const requestIdRef = useRef(0);
+  const pendingScrollToTopRef = useRef<string | null>(null);
+  const activeSearchParamsRef = useRef<string | null>(null);
+  const handledErrorUpdatedAtRef = useRef(0);
+  const [placeholderWishlistOverrides, setPlaceholderWishlistOverrides] =
+    useState<Record<number, boolean>>({});
   const searchParamsString = searchParams.toString();
-
-  const applySearchResponse = useCallback((
-    response: AccommodationSearchResponse,
-    paramsSignature: string
-  ) => {
-    setAccommodations(response.stay_search_result_listing);
-    const limitedCurrentPage = applySearchPageInfo(
-      response,
-      setTotalPages,
-      setTotalElements,
-      setCurrentPage
-    );
-    prevPageRef.current = limitedCurrentPage;
-    prevSearchParamsRef.current = paramsSignature;
-  }, []);
-
-  const updateAccommodationWishlistStatus = useCallback(
-    (accommodationId: number, isInWishlist: boolean) => {
-      setAccommodations((prev) =>
-        prev.map((accommodation) =>
-          accommodation.id === accommodationId
-            ? { ...accommodation, is_in_wishlist: isInWishlist }
-            : accommodation
-        )
-      );
-    },
-    []
+  const page = clampSearchPage(searchParams.get("page"));
+  const prevPageParam = prevSearchParamsRef.current
+    ? new URLSearchParams(prevSearchParamsRef.current).get("page")
+    : null;
+  const prevPage = clampSearchPage(prevPageParam);
+  const isPageChanged =
+    prevPageRef.current !== null && prevPageRef.current !== page;
+  const isOnlyPageChanged =
+    prevPage !== page &&
+    getParamsWithoutPage(prevSearchParamsRef.current).toString() ===
+      getParamsWithoutPage(searchParamsString).toString();
+  const prevParams = getParamsWithoutPage(prevSearchParamsRef.current);
+  const currentParams = getParamsWithoutPage(searchParamsString);
+  const isSearchParamsChanged =
+    prevParams.toString() !== currentParams.toString();
+  const isViewportChanged =
+    prevParams.get("topLeftLat") !== currentParams.get("topLeftLat") ||
+    prevParams.get("topLeftLng") !== currentParams.get("topLeftLng") ||
+    prevParams.get("bottomRightLat") !== currentParams.get("bottomRightLat") ||
+    prevParams.get("bottomRightLng") !== currentParams.get("bottomRightLng");
+  const prevDestination = prevParams.get("destination");
+  const currentDestination = currentParams.get("destination");
+  const isDestinationChanged = prevDestination !== currentDestination;
+  const isMapDragMode = isViewportChanged && !currentParams.get("destination");
+  const currentViewportString = getViewportSearchParamSignature(searchParams);
+  const hasViewportForMap = !!currentViewportString;
+  const resetParams = useMemo(() => {
+    const nextParams = new URLSearchParams(searchParamsString);
+    nextParams.delete("page");
+    return nextParams;
+  }, [searchParamsString]);
+  const shouldResetPage =
+    isDestinationChanged &&
+    !isPageChanged &&
+    resetParams.toString() !== searchParamsString;
+  const shouldFetch =
+    isInitialLoadRef.current ||
+    (isPageChanged && isOnlyPageChanged && !isMapDragMode) ||
+    isSearchParamsChanged ||
+    (isMapDragMode && isViewportChanged);
+  const isPendingPageReset = pendingPageResetRef.current === searchParamsString;
+  const queryEnabled =
+    !isPendingPageReset &&
+    !shouldResetPage &&
+    (shouldFetch || activeSearchParamsRef.current === searchParamsString);
+  const searchRequest = useMemo<AccommodationSearchRequest>(
+    () => buildSearchRequestFromParams(searchParams, { page }),
+    [page, searchParams]
+  );
+  const searchResultsQueryKey = useMemo(
+    () => searchQueryKeys.results(searchParamsString),
+    [searchParamsString]
   );
 
-  const fetchAccommodations = useCallback(async (
-    params: AccommodationSearchRequest,
-    isMapDrag = false,
-    paramsSignature = searchParamsString
-  ) => {
-    const requestId = requestIdRef.current + 1;
-    requestIdRef.current = requestId;
-    setIsMapDragMode(isMapDrag);
-    setIsLoading(true);
-    clearError();
-
-    if (!isMapDrag && params.page !== undefined) {
-      setCurrentPage(params.page);
-    } else {
-      setCurrentPage(0);
-    }
-
-    try {
-      const response = await accommodationApi.search(params);
-      if (requestIdRef.current !== requestId) return;
-      applySearchResponse(response, paramsSignature);
-    } catch (error) {
-      if (requestIdRef.current !== requestId) return;
-      handleError(error);
-    } finally {
-      if (requestIdRef.current === requestId) {
-        setIsLoading(false);
-      }
-    }
-  }, [
-    applySearchResponse,
-    clearError,
-    handleError,
-    searchParamsString,
-    setIsMapDragMode,
-  ]);
+  const searchResultsQuery = useQuery<
+    AccommodationSearchResponse,
+    unknown,
+    AccommodationSearchResponse,
+    ReturnType<typeof searchQueryKeys.results>
+  >({
+    queryKey: searchResultsQueryKey,
+    queryFn: ({ signal }) => {
+      activeSearchParamsRef.current = searchParamsString;
+      setIsMapDragMode(isMapDragMode);
+      clearError();
+      return accommodationApi.search(searchRequest, signal);
+    },
+    enabled: queryEnabled,
+    placeholderData: keepPreviousData,
+    throwOnError: false,
+  });
 
   useEffect(() => {
     const currentSearchParams = searchParamsString;
@@ -155,35 +199,12 @@ export const useSearchResults = ({
       pendingPageResetRef.current = null;
     }
 
-    const page = clampSearchPage(searchParams.get("page"));
-    const prevPageParam = prevSearchParamsRef.current
-      ? new URLSearchParams(prevSearchParamsRef.current).get("page")
-      : null;
-    const prevPage = clampSearchPage(prevPageParam);
-
-    const isPageChanged =
-      prevPageRef.current !== null && prevPageRef.current !== page;
-    const isOnlyPageChanged =
-      prevPage !== page &&
-      getParamsWithoutPage(prevSearchParamsRef.current).toString() ===
-        getParamsWithoutPage(currentSearchParams).toString();
-
-    const prevParams = getParamsWithoutPage(prevSearchParamsRef.current);
-    const currentParams = getParamsWithoutPage(currentSearchParams);
-    const isSearchParamsChanged =
-      prevParams.toString() !== currentParams.toString();
-    const isViewportChanged =
-      prevParams.get("topLeftLat") !== currentParams.get("topLeftLat") ||
-      prevParams.get("topLeftLng") !== currentParams.get("topLeftLng") ||
-      prevParams.get("bottomRightLat") !== currentParams.get("bottomRightLat") ||
-      prevParams.get("bottomRightLng") !== currentParams.get("bottomRightLng");
-    const prevDestination = prevParams.get("destination");
-    const currentDestination = currentParams.get("destination");
-    const isDestinationChanged = prevDestination !== currentDestination;
-    const isMapDragMode =
-      isViewportChanged && !currentParams.get("destination");
-    const currentViewportString = getViewportSearchParamSignature(searchParams);
-    const hasViewportForMap = !!currentViewportString;
+    if (
+      pendingScrollToTopRef.current !== null &&
+      pendingScrollToTopRef.current !== currentSearchParams
+    ) {
+      pendingScrollToTopRef.current = null;
+    }
 
     if (hasViewportForMap) {
       if (prevViewportRef.current !== currentViewportString) {
@@ -194,28 +215,18 @@ export const useSearchResults = ({
       prevViewportRef.current = null;
     }
 
-    const shouldFetch =
-      isInitialLoadRef.current ||
-      (isPageChanged && isOnlyPageChanged && !isMapDragMode) ||
-      isSearchParamsChanged ||
-      (isMapDragMode && isViewportChanged);
-
     if (!shouldFetch) {
       prevPageRef.current = page;
       prevSearchParamsRef.current = currentSearchParams;
       return;
     }
 
-    if (isDestinationChanged && !isPageChanged) {
-      const resetParams = new URLSearchParams(currentSearchParams);
-      resetParams.delete("page");
-      if (resetParams.toString() !== currentSearchParams) {
-        pendingPageResetRef.current = currentSearchParams;
-        setSearchParams(resetParams, { replace: true });
-        prevPageRef.current = 0;
-        prevSearchParamsRef.current = resetParams.toString();
-        return;
-      }
+    if (shouldResetPage) {
+      pendingPageResetRef.current = currentSearchParams;
+      setSearchParams(resetParams, { replace: true });
+      prevPageRef.current = 0;
+      prevSearchParamsRef.current = resetParams.toString();
+      return;
     }
 
     if (isInitialLoadRef.current) {
@@ -224,16 +235,131 @@ export const useSearchResults = ({
 
     prevPageRef.current = page;
     prevSearchParamsRef.current = currentSearchParams;
-
-    const params = buildSearchRequestFromParams(searchParams, { page });
-    fetchAccommodations(params, isMapDragMode, currentSearchParams);
   }, [
-    fetchAccommodations,
+    currentViewportString,
+    hasViewportForMap,
+    page,
     requestMapBoundsUpdate,
-    searchParams,
+    resetParams,
     searchParamsString,
     setSearchParams,
+    shouldFetch,
+    shouldResetPage,
   ]);
+
+  useEffect(() => {
+    if (!searchResultsQuery.data || searchResultsQuery.isPlaceholderData) {
+      return;
+    }
+
+    activeSearchParamsRef.current = searchParamsString;
+    const { currentPage: limitedCurrentPage } = getSearchPageInfo(
+      searchResultsQuery.data
+    );
+    prevPageRef.current = limitedCurrentPage;
+    prevSearchParamsRef.current = searchParamsString;
+
+    if (pendingScrollToTopRef.current === searchParamsString) {
+      pendingScrollToTopRef.current = null;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [
+    searchParamsString,
+    searchResultsQuery.data,
+    searchResultsQuery.dataUpdatedAt,
+    searchResultsQuery.isPlaceholderData,
+  ]);
+
+  useEffect(() => {
+    if (searchResultsQuery.isPlaceholderData) {
+      return;
+    }
+
+    setPlaceholderWishlistOverrides((prev) =>
+      Object.keys(prev).length > 0 ? {} : prev
+    );
+  }, [searchResultsQuery.dataUpdatedAt, searchResultsQuery.isPlaceholderData]);
+
+  useEffect(() => {
+    if (
+      !searchResultsQuery.isError ||
+      !searchResultsQuery.error ||
+      handledErrorUpdatedAtRef.current === searchResultsQuery.errorUpdatedAt
+    ) {
+      return;
+    }
+
+    handledErrorUpdatedAtRef.current = searchResultsQuery.errorUpdatedAt;
+    if (pendingScrollToTopRef.current === searchParamsString) {
+      pendingScrollToTopRef.current = null;
+    }
+    handleError(searchResultsQuery.error);
+  }, [
+    handleError,
+    searchParamsString,
+    searchResultsQuery.error,
+    searchResultsQuery.errorUpdatedAt,
+    searchResultsQuery.isError,
+  ]);
+
+  const searchResponse = searchResultsQuery.data;
+  const { currentPage, totalPages, totalElements } =
+    getSearchPageInfo(searchResponse);
+  const accommodations = useMemo(() => {
+    const searchResultListing: AccommodationSearchInfo[] =
+      searchResponse?.stay_search_result_listing ?? [];
+
+    if (
+      !searchResultsQuery.isPlaceholderData ||
+      Object.keys(placeholderWishlistOverrides).length === 0
+    ) {
+      return searchResultListing;
+    }
+
+    return searchResultListing.map((accommodation) => {
+      const isInWishlist = placeholderWishlistOverrides[accommodation.id];
+
+      return isInWishlist === undefined
+        ? accommodation
+        : {
+            ...accommodation,
+            is_in_wishlist: isInWishlist,
+          };
+    });
+  }, [
+    placeholderWishlistOverrides,
+    searchResponse?.stay_search_result_listing,
+    searchResultsQuery.isPlaceholderData,
+  ]);
+  const isLoading = queryEnabled
+    ? searchResultsQuery.isFetching
+    : isInitialLoadRef.current || isPendingPageReset;
+
+  const updateAccommodationWishlistStatus = useCallback(
+    (accommodationId: number, isInWishlist: boolean) => {
+      queryClient.setQueriesData<AccommodationSearchResponse>(
+        { queryKey: [...searchQueryKeys.all, "results"] },
+        (
+          prev: AccommodationSearchResponse | undefined
+        ): AccommodationSearchResponse | undefined =>
+          prev
+            ? patchAccommodationWishlistStatus(
+                prev,
+                accommodationId,
+                isInWishlist
+              )
+            : prev
+      );
+
+      if (searchResultsQuery.isPlaceholderData) {
+        setPlaceholderWishlistOverrides((prev) => ({
+          ...prev,
+          [accommodationId]: isInWishlist,
+        }));
+      }
+    },
+    [queryClient, searchResultsQuery.isPlaceholderData]
+  );
 
   const handleMapBoundsChange = useCallback((bounds: SearchViewport) => {
     const newParams = buildMapBoundsSearchParams(searchParams, bounds);
@@ -241,7 +367,7 @@ export const useSearchResults = ({
     setSearchParams(newParams, { replace: true });
   }, [searchParams, setSearchParams]);
 
-  const handlePageChange = useCallback(async (page: number) => {
+  const handlePageChange = useCallback((page: number) => {
     if (page === currentPage || isLoading) {
       return;
     }
@@ -259,36 +385,12 @@ export const useSearchResults = ({
       newParams.set("page", page.toString());
     }
 
-    prevPageRef.current = page;
-    prevSearchParamsRef.current = newParams.toString();
+    pendingScrollToTopRef.current = newParams.toString();
     setSearchParams(newParams, { replace: false });
-    const requestId = requestIdRef.current + 1;
-    requestIdRef.current = requestId;
-    setIsLoading(true);
-    clearError();
-
-    try {
-      const params = buildSearchRequestFromParams(searchParams, { page });
-      const response = await accommodationApi.search(params);
-      if (requestIdRef.current !== requestId) return;
-      applySearchResponse(response, newParams.toString());
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } catch (error) {
-      if (requestIdRef.current !== requestId) return;
-      handleError(error);
-    } finally {
-      if (requestIdRef.current === requestId) {
-        setIsLoading(false);
-      }
-    }
   }, [
-    applySearchResponse,
-    clearError,
     currentPage,
-    handleError,
     isLoading,
     requestMapBoundsUpdate,
-    searchParams,
     searchParamsString,
     setSearchParams,
   ]);

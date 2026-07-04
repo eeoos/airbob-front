@@ -1,6 +1,6 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
-import { Header } from "../components/Header";
+import { Header } from "./AppHeader";
 import styles from "./MainLayout.module.css";
 
 interface MainLayoutProps {
@@ -15,7 +15,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     </div>
   );
 };
-
 
 
 

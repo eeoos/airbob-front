@@ -3,8 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { AccommodationSearchInfo } from "../../../types/accommodation";
 import { SearchResultsList } from "./SearchResultsList";
 
-jest.mock("../../../components/AccommodationCard", () => ({
-  AccommodationCardSearch: ({
+jest.mock("./SearchAccommodationCard", () => ({
+  SearchAccommodationCard: ({
     accommodation,
     detailUrl,
     onClick,
@@ -77,7 +77,7 @@ describe("SearchResultsList", () => {
     expect(onAccommodationClick).toHaveBeenCalledWith(7);
   });
 
-  it("passes the current search query to accommodation detail cards", () => {
+  it("passes only booking-safe search query to accommodation detail cards", () => {
     render(
       <SearchResultsList
         accommodations={[createAccommodation(7)]}
@@ -86,14 +86,16 @@ describe("SearchResultsList", () => {
         onAccommodationClick={jest.fn()}
         onWishlistToggle={jest.fn()}
         detailSearchParams={
-          new URLSearchParams("checkIn=2026-07-10&checkOut=2026-07-12")
+          new URLSearchParams(
+            "destination=Seoul&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2&token=secret&email=a@example.com"
+          )
         }
       />
     );
 
     expect(screen.getByRole("button", { name: "숙소 카드 7" })).toHaveAttribute(
       "data-detail-url",
-      "/accommodations/7?checkIn=2026-07-10&checkOut=2026-07-12"
+      "/accommodations/7?checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2"
     );
   });
 });

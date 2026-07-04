@@ -1,0 +1,647 @@
+.recentlyViewedHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: var(--space-8);
+}
+
+.recentlyViewedHeaderLeft {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.recentlyViewedTitle {
+  font-size: var(--font-size-2xl);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.backButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-touch-target);
+  height: var(--control-touch-target);
+  border-radius: var(--radius-pill);
+  border: none;
+  background: transparent;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: background-color var(--motion-duration-base) var(--motion-ease-standard);
+  align-self: flex-start;
+}
+
+.backButton:hover {
+  background-color: var(--color-background-muted);
+}
+
+.backButton svg {
+  width: var(--space-6);
+  height: var(--space-6);
+}
+
+.pageTitle {
+  font-size: var(--font-size-2xl);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+  flex: 1;
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.editButton {
+  padding: var(--space-2) var(--space-4);
+  background: transparent;
+  border: 1px solid var(--color-text-primary);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-duration-base) var(--motion-ease-standard),
+    color var(--motion-duration-base) var(--motion-ease-standard);
+}
+
+.editButton:hover {
+  background-color: var(--color-text-primary);
+  color: var(--color-text-inverse);
+}
+
+.wishlistGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-8) var(--space-6);
+  margin-bottom: var(--space-12);
+}
+
+.wishlistCard {
+  position: relative;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  transition: transform var(--motion-duration-base) var(--motion-ease-standard);
+}
+
+.wishlistCard:hover {
+  transform: scale(1.02);
+}
+
+.wishlistCard:hover .wishlistCardImage {
+  box-shadow: var(--shadow-lg);
+}
+
+.accommodationCard {
+  position: relative;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  transition: transform var(--motion-duration-base) var(--motion-ease-standard);
+}
+
+.accommodationCard:hover {
+  transform: scale(1.02);
+}
+
+.accommodationCard:hover .wishlistCardImage {
+  box-shadow: var(--shadow-lg);
+}
+
+.wishlistCardImage {
+  width: 100%;
+  aspect-ratio: var(--card-media-ratio);
+  position: relative;
+  background-color: var(--color-background-muted);
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  flex-shrink: 0;
+}
+
+.wishlistDeleteButton {
+  position: absolute;
+  top: var(--space-1);
+  left: var(--space-1);
+  width: var(--control-touch-target);
+  height: var(--control-touch-target);
+  border-radius: var(--radius-pill);
+  background-color: var(--color-background-page);
+  border: none;
+  color: var(--color-text-primary);
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition:
+    opacity var(--motion-duration-base) var(--motion-ease-standard),
+    background-color var(--motion-duration-base) var(--motion-ease-standard),
+    color var(--motion-duration-base) var(--motion-ease-standard);
+  box-shadow: var(--shadow-md);
+}
+
+.wishlistDeleteButton:hover {
+  background-color: var(--color-brand-coral);
+  color: var(--color-text-inverse);
+}
+
+.wishlistCard:hover .wishlistDeleteButton,
+.wishlistCard:focus-within .wishlistDeleteButton {
+  opacity: 1;
+}
+
+.wishlistDeleteButton:focus-visible {
+  opacity: 1;
+  outline: none;
+  box-shadow: var(--shadow-md), var(--focus-ring);
+}
+
+.cardActionButton {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.cardActionButton:focus-visible {
+  outline: none;
+}
+
+.cardActionButton:focus-visible .wishlistCardImage,
+.cardActionButton:focus-visible .recentlyViewedImageWrapper {
+  box-shadow: var(--shadow-lg), var(--focus-ring);
+}
+
+.wishlistCardImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+}
+
+.searchIcon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: var(--control-height-lg);
+  height: var(--control-height-lg);
+  color: var(--color-text-secondary);
+}
+
+.searchIcon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.placeholderImage {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-background-muted);
+  color: var(--color-text-secondary);
+}
+
+.placeholderImage svg {
+  width: var(--control-height-lg);
+  height: var(--control-height-lg);
+}
+
+.wishlistCardInfo {
+  padding: 10px 0 0 0;
+}
+
+.wishlistCardName {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.wishlistCardCount {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.dateSection {
+  margin-bottom: var(--space-16);
+}
+
+.dateSection:last-child {
+  margin-bottom: 0;
+}
+
+.dateTitle {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-4);
+}
+
+.recentlyViewedGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 280px);
+  gap: var(--space-6);
+  justify-content: start;
+}
+
+.recentlyViewedCard {
+  position: relative;
+  cursor: pointer;
+  width: 280px;
+}
+
+.recentlyViewedCard:hover {
+  transform: scale(1.02);
+}
+
+.recentlyViewedImageWrapper {
+  width: 280px;
+  height: 280px;
+  position: relative;
+  background-color: var(--color-background-muted);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.recentlyViewedImageWrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.deleteButton {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  width: var(--control-touch-target);
+  height: var(--control-touch-target);
+  border-radius: var(--radius-pill);
+  background-color: var(--color-background-page);
+  border: none;
+  color: var(--color-text-primary);
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition:
+    opacity var(--motion-duration-base) var(--motion-ease-standard),
+    background-color var(--motion-duration-base) var(--motion-ease-standard),
+    color var(--motion-duration-base) var(--motion-ease-standard);
+  box-shadow: var(--shadow-md);
+}
+
+.deleteButton:hover {
+  background-color: var(--color-brand-coral);
+  color: var(--color-text-inverse);
+}
+
+.accommodationCard:hover .deleteButton,
+.accommodationCard:focus-within .deleteButton {
+  opacity: 1;
+}
+
+.deleteButton:focus-visible {
+  opacity: 1;
+  outline: none;
+  box-shadow: var(--shadow-md), var(--focus-ring);
+}
+
+.deleteButtonLeft {
+  position: absolute;
+  top: var(--space-1);
+  left: var(--space-1);
+  width: var(--control-touch-target);
+  height: var(--control-touch-target);
+  border-radius: var(--radius-pill);
+  background-color: var(--color-background-page);
+  border: none;
+  color: var(--color-text-primary);
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+  transition:
+    background-color var(--motion-duration-base) var(--motion-ease-standard),
+    color var(--motion-duration-base) var(--motion-ease-standard);
+}
+
+.deleteButtonLeft:hover {
+  background-color: var(--color-brand-coral);
+  color: var(--color-text-inverse);
+}
+
+.deleteButtonLeft:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-md), var(--focus-ring);
+}
+
+.wishlistButton {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: none;
+  border: none;
+  width: var(--control-touch-target);
+  height: var(--control-touch-target);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: transform var(--motion-duration-base) var(--motion-ease-standard);
+  box-shadow: none;
+}
+
+.wishlistButton:hover {
+  transform: scale(1.1);
+}
+
+.wishlistButton:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.wishlistButton svg {
+  width: var(--space-5);
+  height: var(--space-5);
+}
+
+.locationRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.location {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.review {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-left: var(--space-2);
+  flex-shrink: 0;
+}
+
+.star {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+}
+
+.rating {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.reviewCount {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.name {
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+  margin-bottom: var(--space-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.loading,
+.empty {
+  text-align: center;
+  padding: 80px var(--space-6);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-md);
+}
+
+.loadMoreContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: var(--space-8);
+  min-height: 60px;
+}
+
+.loadingMore {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.memoArea {
+  display: block;
+  width: 100%;
+  min-height: var(--control-touch-target);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  margin-top: var(--space-2);
+  cursor: pointer;
+  transition: border-color var(--motion-duration-base) var(--motion-ease-standard);
+  background-color: var(--color-background-muted);
+  font: inherit;
+  text-align: left;
+}
+
+.memoArea:hover {
+  border-color: var(--color-text-primary);
+}
+
+.memoArea:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.memoAdd {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.memoText {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  display: block;
+}
+
+.memoEdit {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  text-decoration: underline;
+  margin-left: var(--space-1);
+}
+
+.memoModal {
+  background: var(--color-background-page);
+  border-radius: var(--radius-lg);
+  width: 400px;
+  max-width: 100%;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.memoModalBody {
+  padding: var(--space-6);
+}
+
+.memoTextarea {
+  width: 100%;
+  min-height: 100px;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  resize: none;
+  outline: none;
+  transition:
+    border-color var(--motion-duration-base) var(--motion-ease-standard),
+    box-shadow var(--motion-duration-base) var(--motion-ease-standard);
+  box-sizing: border-box;
+}
+
+.memoTextarea:focus {
+  border-color: var(--color-text-primary);
+}
+
+.memoTextarea:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+.memoTextarea::placeholder {
+  color: var(--color-border-strong);
+}
+
+.memoCharCount {
+  text-align: right;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-2);
+}
+
+.memoModalFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.memoClearButton {
+  background: none;
+  border: none;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  padding: var(--space-2) 0;
+  text-decoration: underline;
+}
+
+.memoClearButton:hover {
+  color: var(--color-text-primary);
+}
+
+.memoSaveButton {
+  background-color: var(--color-text-primary);
+  color: var(--color-text-inverse);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-6);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--motion-duration-base) var(--motion-ease-standard);
+}
+
+.memoSaveButton:hover {
+  background-color: var(--color-text-primary);
+}
+
+.memoSaveButton:disabled {
+  background-color: var(--color-border-default);
+  color: var(--color-text-secondary);
+  cursor: not-allowed;
+}
+
+@media (max-width: 1400px) {
+  .recentlyViewedGrid {
+    grid-template-columns: repeat(3, 280px);
+  }
+}
+
+@media (max-width: 1200px) {
+  .recentlyViewedGrid {
+    grid-template-columns: repeat(2, 280px);
+  }
+}
+
+@media (max-width: 1024px) {
+  .wishlistGrid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: var(--space-7) var(--space-5);
+  }
+}
+
+@media (max-width: 768px) {
+  .recentlyViewedGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .recentlyViewedCard {
+    width: 100%;
+  }
+
+  .recentlyViewedImageWrapper {
+    width: 100%;
+    height: 0;
+    padding-bottom: 100%;
+  }
+
+  .recentlyViewedImageWrapper img {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  .wishlistGrid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--space-6) var(--space-4);
+  }
+}

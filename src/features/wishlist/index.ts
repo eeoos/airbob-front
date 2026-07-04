@@ -1,1 +1,1 @@
-export * from "./hooks";
+export { WishlistRoute } from "./WishlistRoute";

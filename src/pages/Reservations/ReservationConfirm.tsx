@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useApiError } from "../../hooks/useApiError";
 import { useReservationConfirmAccommodation } from "../../features/reservations/hooks/useReservationConfirmAccommodation";
-import { parsePaymentRouteState } from "../../features/reservations/lib/paymentRouteState";
+import { readReservationCheckoutState } from "../../features/reservations/lib/reservationCheckoutState";
 import {
   ensureTossPaymentsScript,
   getTossClientKey,
@@ -15,43 +15,54 @@ import { getImageUrl } from "../../utils/image";
 import { routeTo } from "../../routes/paths";
 import styles from "./ReservationConfirm.module.css";
 
+const parseCheckoutDate = (dateString?: string): Date | null => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateString ?? "");
+  if (!match) {
+    return null;
+  }
+
+  const [, yearValue, monthValue, dayValue] = match;
+  const year = Number(yearValue);
+  const month = Number(monthValue);
+  const day = Number(dayValue);
+  const date = new Date(year, month - 1, day);
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
+};
+
 const ReservationConfirm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const { error, handleError, clearError } = useApiError();
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-  // URL 파라미터에서 예약 정보 가져오기
-  const paymentRouteState = parsePaymentRouteState(searchParams);
-  const reservationUid =
-    paymentRouteState.status === "valid" ? paymentRouteState.reservationUid : null;
-  const orderName =
-    paymentRouteState.status === "valid" ? paymentRouteState.orderName : null;
-  const amount =
-    paymentRouteState.status === "valid" ? paymentRouteState.amount : null;
-  const customerEmail =
-    paymentRouteState.status === "valid" ? paymentRouteState.customerEmail : null;
-  const customerName =
-    paymentRouteState.status === "valid" ? paymentRouteState.customerName : null;
-  const couponName =
-    paymentRouteState.status === "valid" ? paymentRouteState.couponName : null;
-  const couponDiscountParam =
-    paymentRouteState.status === "valid" ? paymentRouteState.couponDiscount : null;
-  
+  const checkoutState = id
+    ? readReservationCheckoutState(id, location.state)
+    : null;
+  const reservationUid = checkoutState?.reservationUid ?? null;
+  const orderName = checkoutState?.orderName ?? null;
+  const amount = checkoutState?.amount ?? null;
+  const customerEmail = checkoutState?.customerEmail ?? null;
+  const customerName = checkoutState?.customerName ?? null;
+  const couponName = checkoutState?.couponName ?? null;
+  const couponDiscountParam = checkoutState?.couponDiscount ?? null;
+
   // 예약 박스에서 입력한 정보
-  const checkIn =
-    paymentRouteState.status === "valid" ? paymentRouteState.checkIn : null;
-  const checkOut =
-    paymentRouteState.status === "valid" ? paymentRouteState.checkOut : null;
-  const adultCount =
-    paymentRouteState.status === "valid" ? paymentRouteState.adultOccupancy : 1;
-  const childCount =
-    paymentRouteState.status === "valid" ? paymentRouteState.childOccupancy : 0;
-  const infantCount =
-    paymentRouteState.status === "valid" ? paymentRouteState.infantOccupancy : 0;
-  const petCount =
-    paymentRouteState.status === "valid" ? paymentRouteState.petOccupancy : 0;
+  const checkIn = parseCheckoutDate(checkoutState?.checkIn);
+  const checkOut = parseCheckoutDate(checkoutState?.checkOut);
+  const adultCount = checkoutState?.adultOccupancy ?? 1;
+  const childCount = checkoutState?.childOccupancy ?? 0;
+  const infantCount = checkoutState?.infantOccupancy ?? 0;
+  const petCount = checkoutState?.petOccupancy ?? 0;
 
   const { accommodation, isLoading } = useReservationConfirmAccommodation({
     accommodationId: id,

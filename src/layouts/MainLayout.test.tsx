@@ -29,7 +29,7 @@ jest.mock(
   { virtual: true }
 );
 
-jest.mock("../components/Header", () => ({
+jest.mock("./AppHeader", () => ({
   Header: () => <header data-testid="header" />,
 }));
 
