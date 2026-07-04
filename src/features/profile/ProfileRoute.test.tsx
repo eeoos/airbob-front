@@ -2,20 +2,27 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ProfileRoute } from "./ProfileRoute";
+import type { ProfileRouteState } from "./lib/profileRouteState";
 
 const mockSetSearchParams = jest.fn();
-const mockBuildProfileRouteSearchParams = jest.fn((state) => {
+const buildMockProfileRouteSearchParams = (
+  state: ProfileRouteState,
+): URLSearchParams => {
   const params = new URLSearchParams();
   params.set("builtMode", state.mode);
   params.set("builtTab", state.tab);
   return params;
-});
+};
+const mockBuildProfileRouteSearchParams = jest.fn<
+  URLSearchParams,
+  [ProfileRouteState]
+>(buildMockProfileRouteSearchParams);
 
 jest.mock("./lib/profileRouteState", () => {
   const actual = jest.requireActual("./lib/profileRouteState");
   return {
     ...actual,
-    buildProfileRouteSearchParams: (state: unknown) =>
+    buildProfileRouteSearchParams: (state: ProfileRouteState) =>
       mockBuildProfileRouteSearchParams(state),
   };
 });
@@ -41,12 +48,9 @@ describe("ProfileRoute", () => {
   beforeEach(() => {
     mockSetSearchParams.mockReset();
     mockBuildProfileRouteSearchParams.mockClear();
-    mockBuildProfileRouteSearchParams.mockImplementation((state) => {
-      const params = new URLSearchParams();
-      params.set("builtMode", state.mode);
-      params.set("builtTab", state.tab);
-      return params;
-    });
+    mockBuildProfileRouteSearchParams.mockImplementation(
+      buildMockProfileRouteSearchParams,
+    );
   });
 
   it("uses route-state builder when switching to host mode", async () => {

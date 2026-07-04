@@ -3,11 +3,19 @@ import type { ProfileRouteMode } from "../lib/profileRouteState";
 import type { ProfileActiveTab } from "../lib/profileTabs";
 import styles from "../../../pages/Profile/Profile.module.css";
 
+type GuestProfileTab = "upcoming" | "past" | "cancelled";
+
+const guestNavItems = [
+  ["upcoming", "다가올 여행"],
+  ["past", "이전 여행"],
+  ["cancelled", "취소된 여행"],
+] satisfies ReadonlyArray<readonly [GuestProfileTab, string]>;
+
 interface ProfileShellProps {
   mode: ProfileRouteMode;
   activeTab: ProfileActiveTab;
   onModeChange: (mode: ProfileRouteMode) => void;
-  onGuestTabChange: (tab: "upcoming" | "past" | "cancelled") => void;
+  onGuestTabChange: (tab: GuestProfileTab) => void;
   onHostListingsClick: () => void;
   onHostReservationsClick: () => void;
   children: React.ReactNode;
@@ -50,20 +58,14 @@ export const ProfileShell: React.FC<ProfileShellProps> = ({
       <div className={styles.sidebar}>
         {mode === "guest" ? (
           <nav className={styles.nav} aria-label="게스트 프로필">
-            {[
-              ["upcoming", "다가올 여행"],
-              ["past", "이전 여행"],
-              ["cancelled", "취소된 여행"],
-            ].map(([tab, label]) => (
+            {guestNavItems.map(([tab, label]) => (
               <button
                 key={tab}
                 type="button"
                 className={`${styles.navItem} ${
                   activeTab === tab ? styles.active : ""
                 }`}
-                onClick={() =>
-                  onGuestTabChange(tab as "upcoming" | "past" | "cancelled")
-                }
+                onClick={() => onGuestTabChange(tab)}
               >
                 {label}
               </button>
