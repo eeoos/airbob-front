@@ -3,7 +3,7 @@ import type { NavigateFunction } from "react-router-dom";
 import { routeTo } from "../../routes/paths";
 import type { PaymentFailReason } from "../../routes/paths";
 import { clearReservationCheckoutStateByReservationUid } from "./lib/reservationCheckoutState";
-import styles from "../../pages/Reservations/PaymentFail.module.css";
+import styles from "./PaymentFailRoute.module.css";
 
 interface PaymentFailRouteProps {
   navigate: NavigateFunction;

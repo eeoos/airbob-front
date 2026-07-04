@@ -8,7 +8,7 @@ import {
   useReviewCreate,
 } from "./hooks";
 import { useReviewImageSelection } from "./hooks/useReviewImageSelection";
-import styles from "../../pages/Reservations/ReviewCreate.module.css";
+import styles from "./ReviewCreateRoute.module.css";
 
 interface ReviewCreateRouteProps {
   navigate: NavigateFunction;

@@ -105,13 +105,6 @@ const collectSourceFiles = (directory: string): string[] =>
     return isSource ? [entryPath] : [];
   });
 
-const allowedFeaturePageImports = new Set([
-  join(projectRoot, "src/features/profile/components/ProfileShell.tsx"),
-  join(projectRoot, "src/features/reviews/ReviewCreateRoute.tsx"),
-  join(projectRoot, "src/features/reservations/PaymentFailRoute.tsx"),
-  join(projectRoot, "src/features/reservations/PaymentSuccessRoute.tsx"),
-]);
-
 describe("route boundary contracts", () => {
   it("keeps route URL contracts independent from feature internals", () => {
     const violations = collectSourceFiles(routesRoot)
@@ -125,7 +118,6 @@ describe("route boundary contracts", () => {
 
   it("keeps feature modules from importing page modules", () => {
     const violations = collectSourceFiles(featuresRoot)
-      .filter((filePath) => !allowedFeaturePageImports.has(filePath))
       .filter((filePath) =>
         forbiddenPageImportPattern.test(readFileSync(filePath, "utf8")),
       )
@@ -250,7 +242,9 @@ describe("route boundary contracts", () => {
       );
 
       expect(publicBarrel).toContain(routeContainer);
-      expect(publicBarrel).not.toMatch(/\.\/(?:components|hooks|lib)/);
+      expect(publicBarrel).not.toMatch(
+        /(?:\.\/(?:components|hooks|lib)|Panel|use[A-Z]|REVIEW_IMAGE_UPLOAD_ERROR_MESSAGE)/,
+      );
     });
   });
 });

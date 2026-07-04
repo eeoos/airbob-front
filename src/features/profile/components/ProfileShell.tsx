@@ -1,7 +1,7 @@
 import React from "react";
 import type { ProfileRouteMode } from "../lib/profileRouteState";
 import type { ProfileActiveTab } from "../lib/profileTabs";
-import styles from "../../../pages/Profile/Profile.module.css";
+import styles from "./ProfileShell.module.css";
 
 type GuestProfileTab = "upcoming" | "past" | "cancelled";
 

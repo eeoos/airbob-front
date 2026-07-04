@@ -4,7 +4,7 @@ import { routeTo } from "../../routes/paths";
 import { usePaymentConfirmation } from "./hooks/usePaymentConfirmation";
 import { clearReservationCheckoutStateByReservationUid } from "./lib/reservationCheckoutState";
 import { parseTossSuccessRouteState } from "./lib/paymentRouteState";
-import styles from "../../pages/Reservations/PaymentSuccess.module.css";
+import styles from "./PaymentSuccessRoute.module.css";
 
 interface PaymentSuccessRouteProps {
   navigate: NavigateFunction;

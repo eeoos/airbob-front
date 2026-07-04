@@ -27,8 +27,11 @@ jest.mock("./lib/profileRouteState", () => {
   };
 });
 
-jest.mock("../reservations", () => ({
+jest.mock("../reservations/GuestTripsPanel", () => ({
   GuestTripsPanel: () => <div data-testid="guest-trips" />,
+}));
+
+jest.mock("../reservations/HostReservationsPanel", () => ({
   HostReservationsPanel: () => <div data-testid="host-reservations" />,
 }));
 
