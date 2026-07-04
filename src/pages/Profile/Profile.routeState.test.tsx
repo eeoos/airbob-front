@@ -26,21 +26,19 @@ jest.mock("../../features/profile/lib/profileRouteState", () => {
   };
 });
 
-jest.mock("./GuestTrips/GuestTrips", () => ({
-  __esModule: true,
-  default: () => <div data-testid="guest-trips" />,
+jest.mock("../../features/reservations", () => ({
+  GuestTripsPanel: () => <div data-testid="guest-trips" />,
+  HostReservationsPanel: () => <div data-testid="host-reservations" />,
 }));
 
-jest.mock("./HostListings/HostListings", () => ({
-  __esModule: true,
-  default: ({ onStatusChange }: { onStatusChange: (status: string) => void }) => (
+jest.mock("../../features/profile", () => ({
+  HostListingsPanel: ({
+    onStatusChange,
+  }: {
+    onStatusChange: (status: string) => void;
+  }) => (
     <button onClick={() => onStatusChange("DRAFT")}>draft listings</button>
   ),
-}));
-
-jest.mock("./HostReservations/HostReservations", () => ({
-  __esModule: true,
-  default: () => <div data-testid="host-reservations" />,
 }));
 
 describe("Profile route state integration", () => {

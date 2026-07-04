@@ -1,18 +1,22 @@
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
-import { MyReservationInfo } from "../../../types/reservation";
-import { ErrorToast } from "../../../components/ErrorToast";
-import { getImageUrl } from "../../../utils/image";
-import { routeTo } from "../../../routes/paths";
-import { useGuestTrips } from "../../../features/reservations";
-import { EmptyState, LoadingState } from "../../../shared/ui";
-import styles from "./GuestTrips.module.css";
+import { ErrorToast } from "../../components/ErrorToast";
+import { routeTo } from "../../routes/paths";
+import { EmptyState, LoadingState } from "../../shared/ui";
+import { useIntersectionLoadMore } from "../../hooks/useIntersectionLoadMore";
+import { getImageUrl } from "../../utils/image";
+import { useGuestTrips } from "./hooks";
+import {
+  formatGuestTripDateRange,
+  groupGuestTripsByYear,
+} from "./lib/guestTripGroups";
+import styles from "./GuestTripsPanel.module.css";
 
-interface GuestTripsProps {
+export interface GuestTripsPanelProps {
   filterType: "UPCOMING" | "PAST" | "CANCELLED";
 }
 
-const GuestTrips: React.FC<GuestTripsProps> = ({ filterType }) => {
+export const GuestTripsPanel: React.FC<GuestTripsPanelProps> = ({ filterType }) => {
   const navigate = useNavigate();
   const {
     clearError,
@@ -23,30 +27,11 @@ const GuestTrips: React.FC<GuestTripsProps> = ({ filterType }) => {
     loadMore,
     reservations,
   } = useGuestTrips(filterType);
-  const observerTarget = useRef<HTMLDivElement>(null);
-
-  // Intersection Observer를 사용한 무한 스크롤
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNext && !isLoadingMore) {
-          loadMore();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    const currentTarget = observerTarget.current;
-    if (currentTarget) {
-      observer.observe(currentTarget);
-    }
-
-    return () => {
-      if (currentTarget) {
-        observer.unobserve(currentTarget);
-      }
-    };
-  }, [hasNext, isLoadingMore, loadMore]);
+  const observerTarget = useIntersectionLoadMore({
+    hasNext,
+    isLoading: isLoadingMore,
+    onLoadMore: loadMore,
+  });
 
   if (isLoading) {
     return <LoadingState title="로딩 중..." />;
@@ -65,47 +50,7 @@ const GuestTrips: React.FC<GuestTripsProps> = ({ filterType }) => {
     }
   };
 
-  // 연도별로 예약 그룹화
-  const groupReservationsByYear = (reservations: MyReservationInfo[]) => {
-    const grouped: { [year: number]: MyReservationInfo[] } = {};
-    reservations.forEach((reservation) => {
-      const year = new Date(reservation.check_in_date).getFullYear();
-      if (!grouped[year]) {
-        grouped[year] = [];
-      }
-      grouped[year].push(reservation);
-    });
-    // 연도 내림차순 정렬
-    return Object.keys(grouped)
-      .map(Number)
-      .sort((a, b) => b - a)
-      .map((year) => ({ year, reservations: grouped[year] }));
-  };
-
-  const formatDateRange = (checkIn: string, checkOut: string): string => {
-    const checkInDate = new Date(checkIn);
-    const checkOutDate = new Date(checkOut);
-    
-    const checkInYear = checkInDate.getFullYear();
-    const checkInMonth = checkInDate.getMonth() + 1;
-    const checkInDay = checkInDate.getDate();
-    
-    const checkOutMonth = checkOutDate.getMonth() + 1;
-    const checkOutDay = checkOutDate.getDate();
-    
-    // 같은 연도, 같은 월인 경우
-    if (checkInYear === checkOutDate.getFullYear() && checkInMonth === checkOutMonth) {
-      return `${checkInYear}년 ${checkInMonth}월 ${checkInDay}일 ~ ${checkOutDay}일`;
-    }
-    // 같은 연도, 다른 월인 경우
-    if (checkInYear === checkOutDate.getFullYear()) {
-      return `${checkInYear}년 ${checkInMonth}월 ${checkInDay}일 ~ ${checkOutMonth}월 ${checkOutDay}일`;
-    }
-    // 다른 연도인 경우
-    return `${checkInYear}년 ${checkInMonth}월 ${checkInDay}일 ~ ${checkOutDate.getFullYear()}년 ${checkOutMonth}월 ${checkOutDay}일`;
-  };
-
-  const groupedReservations = groupReservationsByYear(reservations);
+  const groupedReservations = groupGuestTripsByYear(reservations);
 
   return (
     <div className={styles.container}>
@@ -144,7 +89,10 @@ const GuestTrips: React.FC<GuestTripsProps> = ({ filterType }) => {
                             {reservation.accommodation.name}
                           </div>
                           <div className={styles.dateRange}>
-                            {formatDateRange(reservation.check_in_date, reservation.check_out_date)}
+                            {formatGuestTripDateRange(
+                              reservation.check_in_date,
+                              reservation.check_out_date
+                            )}
                           </div>
                         </div>
                       </div>
@@ -173,5 +121,3 @@ const GuestTrips: React.FC<GuestTripsProps> = ({ filterType }) => {
     </div>
   );
 };
-
-export default GuestTrips;

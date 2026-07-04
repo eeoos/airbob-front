@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import GuestTrips from "./GuestTrips/GuestTrips";
-import HostListings from "./HostListings/HostListings";
-import HostReservations from "./HostReservations/HostReservations";
+import { HostListingsPanel } from "../../features/profile";
+import { GuestTripsPanel, HostReservationsPanel } from "../../features/reservations";
 import {
   buildProfileRouteSearchParams,
   parseProfileRouteState,
@@ -148,7 +147,7 @@ const Profile: React.FC = () => {
 
           <div className={styles.main}>
             {mode === "guest" ? (
-              <GuestTrips filterType={
+              <GuestTripsPanel filterType={
                 activeTab === "upcoming" ? "UPCOMING" 
                 : activeTab === "past" ? "PAST" 
                 : activeTab === "cancelled" ? "CANCELLED"
@@ -160,7 +159,7 @@ const Profile: React.FC = () => {
                   activeTab === "listings-published" || 
                   activeTab === "listings-draft" || 
                   activeTab === "listings-unpublished") && (
-                  <HostListings 
+                  <HostListingsPanel
                     statusType={
                       activeTab === "listings-published" ? "PUBLISHED"
                       : activeTab === "listings-draft" ? "DRAFT"
@@ -181,7 +180,7 @@ const Profile: React.FC = () => {
                   activeTab === "reservations-upcoming" || 
                   activeTab === "reservations-past" || 
                   activeTab === "reservations-cancelled") && (
-                  <HostReservations 
+                  <HostReservationsPanel
                     filterType={
                       activeTab === "reservations-upcoming" ? "UPCOMING"
                       : activeTab === "reservations-past" ? "PAST"

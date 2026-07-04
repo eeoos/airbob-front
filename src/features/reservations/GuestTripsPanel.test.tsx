@@ -1,18 +1,22 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
-import { accommodationApi } from "../../../api";
-import HostListings from "./HostListings";
+import { reservationApi } from "../../api";
+import { GuestTripsPanel } from "./GuestTripsPanel";
 
 const mockClearError = jest.fn();
 const mockHandleError = jest.fn();
 
-jest.mock("../../../api", () => ({
-  accommodationApi: {
-    getMyAccommodations: jest.fn(),
+jest.mock("react-router-dom", () => ({
+  useNavigate: () => jest.fn(),
+}), { virtual: true });
+
+jest.mock("../../api", () => ({
+  reservationApi: {
+    getMyReservations: jest.fn(),
   },
 }));
 
-jest.mock("../../../hooks/useApiError", () => ({
+jest.mock("../../hooks/useApiError", () => ({
   useApiError: () => ({
     error: null,
     clearError: mockClearError,
@@ -20,17 +24,13 @@ jest.mock("../../../hooks/useApiError", () => ({
   }),
 }));
 
-jest.mock("../../../components/ErrorToast", () => ({
+jest.mock("../../components/ErrorToast", () => ({
   ErrorToast: ({ message }: { message: string }) => (
     <div role="alert">{message}</div>
   ),
 }));
 
-jest.mock("../../../features/accommodations/components/AccommodationActionModal", () => ({
-  AccommodationActionModal: () => null,
-}));
-
-jest.mock("../../../shared/ui", () => {
+jest.mock("../../shared/ui", () => {
   const React = require("react");
 
   return {
@@ -48,7 +48,7 @@ jest.mock("../../../shared/ui", () => {
 beforeEach(() => {
   mockClearError.mockReset();
   mockHandleError.mockReset();
-  jest.mocked(accommodationApi.getMyAccommodations).mockReset();
+  jest.mocked(reservationApi.getMyReservations).mockReset();
   window.IntersectionObserver = jest.fn().mockImplementation(() => ({
     disconnect: jest.fn(),
     observe: jest.fn(),
@@ -56,17 +56,17 @@ beforeEach(() => {
   }));
 });
 
-describe("HostListings", () => {
-  it("renders shared loading state while fetching accommodations", async () => {
-    jest.mocked(accommodationApi.getMyAccommodations).mockResolvedValue({
-      accommodations: [],
+describe("GuestTripsPanel", () => {
+  it("renders shared loading state while fetching reservations", async () => {
+    jest.mocked(reservationApi.getMyReservations).mockResolvedValue({
       page_info: {
         has_next: false,
         next_cursor: null,
       },
+      reservations: [],
     } as any);
 
-    render(<HostListings onStatusChange={jest.fn()} />);
+    render(<GuestTripsPanel filterType="UPCOMING" />);
 
     expect(screen.getByTestId("shared-loading-state")).toHaveTextContent(
       "로딩 중..."
@@ -74,19 +74,19 @@ describe("HostListings", () => {
     await screen.findByTestId("shared-empty-state");
   });
 
-  it("renders shared empty state when the host has no accommodations", async () => {
-    jest.mocked(accommodationApi.getMyAccommodations).mockResolvedValue({
-      accommodations: [],
+  it("renders shared empty state when the guest has no trips", async () => {
+    jest.mocked(reservationApi.getMyReservations).mockResolvedValue({
       page_info: {
         has_next: false,
         next_cursor: null,
       },
+      reservations: [],
     } as any);
 
-    render(<HostListings onStatusChange={jest.fn()} />);
+    render(<GuestTripsPanel filterType="UPCOMING" />);
 
     expect(await screen.findByTestId("shared-empty-state")).toHaveTextContent(
-      "아직 숙소가 없습니다."
+      "아직 예약한 여행이 없습니다."
     );
   });
 });

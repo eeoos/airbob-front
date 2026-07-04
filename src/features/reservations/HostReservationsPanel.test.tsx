@@ -1,8 +1,8 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
-import { reservationApi } from "../../../api";
-import { ReservationStatus } from "../../../types/enums";
-import HostReservations from "./HostReservations";
+import { reservationApi } from "../../api";
+import { ReservationStatus } from "../../types/enums";
+import { HostReservationsPanel } from "./HostReservationsPanel";
 
 const mockClearError = jest.fn();
 const mockHandleError = jest.fn();
@@ -11,13 +11,13 @@ jest.mock("react-router-dom", () => ({
   useNavigate: () => jest.fn(),
 }), { virtual: true });
 
-jest.mock("../../../api", () => ({
+jest.mock("../../api", () => ({
   reservationApi: {
     getHostReservations: jest.fn(),
   },
 }));
 
-jest.mock("../../../hooks/useApiError", () => ({
+jest.mock("../../hooks/useApiError", () => ({
   useApiError: () => ({
     error: null,
     clearError: mockClearError,
@@ -25,13 +25,13 @@ jest.mock("../../../hooks/useApiError", () => ({
   }),
 }));
 
-jest.mock("../../../components/ErrorToast", () => ({
+jest.mock("../../components/ErrorToast", () => ({
   ErrorToast: ({ message }: { message: string }) => (
     <div role="alert">{message}</div>
   ),
 }));
 
-jest.mock("../../../shared/ui", () => {
+jest.mock("../../shared/ui", () => {
   const React = require("react");
 
   return {
@@ -81,7 +81,7 @@ beforeEach(() => {
   }));
 });
 
-describe("HostReservations", () => {
+describe("HostReservationsPanel", () => {
   it("renders shared loading state while fetching reservations", async () => {
     jest.mocked(reservationApi.getHostReservations).mockResolvedValue({
       page_info: {
@@ -92,7 +92,7 @@ describe("HostReservations", () => {
     } as any);
 
     render(
-      <HostReservations filterType="UPCOMING" onFilterChange={jest.fn()} />
+      <HostReservationsPanel filterType="UPCOMING" onFilterChange={jest.fn()} />
     );
 
     expect(screen.getByTestId("shared-loading-state")).toHaveTextContent(
@@ -111,7 +111,7 @@ describe("HostReservations", () => {
     } as any);
 
     render(
-      <HostReservations filterType="UPCOMING" onFilterChange={jest.fn()} />
+      <HostReservationsPanel filterType="UPCOMING" onFilterChange={jest.fn()} />
     );
 
     expect(await screen.findByTestId("shared-empty-state")).toHaveTextContent(
@@ -132,7 +132,7 @@ describe("HostReservations", () => {
     } as any);
 
     render(
-      <HostReservations filterType="UPCOMING" onFilterChange={jest.fn()} />
+      <HostReservationsPanel filterType="UPCOMING" onFilterChange={jest.fn()} />
     );
 
     expect(await screen.findByText("결제 완료")).toBeInTheDocument();

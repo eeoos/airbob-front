@@ -1,22 +1,26 @@
-import React, { useState, useEffect, useRef } from "react";
-import { MyAccommodationInfo } from "../../../types/accommodation";
-import { AccommodationStatus } from "../../../types/enums";
-import { ErrorToast } from "../../../components/ErrorToast";
-import { AccommodationActionModal } from "../../../features/accommodations/components/AccommodationActionModal";
-import { useHostListings } from "../../../features/profile";
-import { getImageUrl } from "../../../utils/image";
-import { EmptyState, LoadingState } from "../../../shared/ui";
-import styles from "./HostListings.module.css";
+import React from "react";
+import { MyAccommodationInfo } from "../../types/accommodation";
+import { AccommodationStatus } from "../../types/enums";
+import { ErrorToast } from "../../components/ErrorToast";
+import { AccommodationActionModal } from "../accommodations/components/AccommodationActionModal";
+import { useHostListings } from "./hooks";
+import { getImageUrl } from "../../utils/image";
+import { EmptyState, LoadingState } from "../../shared/ui";
+import styles from "./HostListingsPanel.module.css";
 
-interface HostListingsProps {
+export interface HostListingsPanelProps {
   statusType?: "PUBLISHED" | "DRAFT" | "UNPUBLISHED";
   onStatusChange: (statusType: "PUBLISHED" | "DRAFT" | "UNPUBLISHED") => void;
 }
 
-const HostListings: React.FC<HostListingsProps> = ({ statusType = "PUBLISHED", onStatusChange }) => {
-  const [selectedAccommodation, setSelectedAccommodation] = useState<MyAccommodationInfo | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const observerTarget = useRef<HTMLDivElement>(null);
+export const HostListingsPanel: React.FC<HostListingsPanelProps> = ({
+  statusType = "PUBLISHED",
+  onStatusChange,
+}) => {
+  const [selectedAccommodation, setSelectedAccommodation] =
+    React.useState<MyAccommodationInfo | null>(null);
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const observerTarget = React.useRef<HTMLDivElement>(null);
   const {
     accommodations,
     clearError,
@@ -29,7 +33,7 @@ const HostListings: React.FC<HostListingsProps> = ({ statusType = "PUBLISHED", o
   } = useHostListings(statusType);
 
   // Intersection Observer를 사용한 무한 스크롤
-  useEffect(() => {
+  React.useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNext && !isLoadingMore) {
@@ -175,5 +179,3 @@ const HostListings: React.FC<HostListingsProps> = ({ statusType = "PUBLISHED", o
     </div>
   );
 };
-
-export default HostListings;
