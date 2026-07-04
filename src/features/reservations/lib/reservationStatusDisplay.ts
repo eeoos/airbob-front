@@ -8,7 +8,7 @@ type ReservationStatusDisplay = {
   tone: ReservationStatusTone;
 };
 
-const reservationStatusDisplay = {
+export const reservationStatusDisplay = {
   [ReservationStatus.PAYMENT_PENDING]: {
     classKey: "payment_pending",
     label: "결제 대기",
