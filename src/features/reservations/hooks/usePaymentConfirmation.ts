@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { paymentApi } from "../../../api";
+import { isApiClientError } from "../../../api/response";
 import {
   getPaymentConfirmationAttemptKey,
   runPaymentConfirmationAttempt,
@@ -12,7 +13,7 @@ export type PaymentConfirmationResult =
     }
   | {
       error: unknown;
-      retryable: true;
+      retryable: boolean;
       status: "failed";
     };
 
@@ -28,6 +29,14 @@ const parsePaymentAmount = (amount: string): number | null => {
 
   const parsedAmount = Number(amount);
   return Number.isSafeInteger(parsedAmount) ? parsedAmount : null;
+};
+
+const isPaymentConfirmationFailureRetryable = (error: unknown): boolean => {
+  if (!isApiClientError(error)) return true;
+
+  if (error.status === 408 || error.status === 429) return true;
+
+  return error.status < 400 || error.status >= 500;
 };
 
 export function usePaymentConfirmation({
@@ -89,7 +98,11 @@ export function usePaymentConfirmation({
         }
       } catch (err) {
         if (isActive) {
-          setResult({ status: "failed", retryable: true, error: err });
+          setResult({
+            status: "failed",
+            retryable: isPaymentConfirmationFailureRetryable(err),
+            error: err,
+          });
         }
       } finally {
         if (isActive) {

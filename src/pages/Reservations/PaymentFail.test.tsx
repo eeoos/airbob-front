@@ -46,4 +46,16 @@ describe("PaymentFail", () => {
       reservationUid: "reservation-123",
     });
   });
+
+  it("passes undefined reason when the failure reason is unknown", () => {
+    mockSearchParams = new URLSearchParams("reason=bogus");
+
+    render(<PaymentFail />);
+
+    expect(mockPaymentFailRoute).toHaveBeenCalledWith({
+      navigate: mockNavigate,
+      reason: undefined,
+      reservationUid: "reservation-123",
+    });
+  });
 });

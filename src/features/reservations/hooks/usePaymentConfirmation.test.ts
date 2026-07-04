@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { paymentApi } from "../../../api";
+import { ApiClientError } from "../../../api/response";
 import { resetPaymentConfirmationAttemptRegistryForTests } from "../lib/paymentConfirmationAttemptRegistry";
 import { usePaymentConfirmation } from "./usePaymentConfirmation";
 
@@ -80,6 +81,56 @@ describe("usePaymentConfirmation", () => {
 
   it("returns a retryable failed result when confirmation fails", async () => {
     const error = new Error("confirm failed");
+    jest.mocked(paymentApi.confirm).mockRejectedValue(error);
+
+    const { result } = renderHook(() =>
+      usePaymentConfirmation({
+        amount: "120000",
+        orderId: "order-1",
+        paymentKey: "payment-key-1",
+      })
+    );
+
+    await waitFor(() => expect(result.current.isProcessing).toBe(false));
+
+    expect(result.current.result).toEqual({
+      status: "failed",
+      retryable: true,
+      error,
+    });
+  });
+
+  it("returns a non-retryable failed result for client-side confirmation failures", async () => {
+    const error = new ApiClientError({
+      code: "INVALID_PAYMENT_CONFIRMATION",
+      message: "결제 승인 요청이 올바르지 않습니다.",
+      status: 400,
+    });
+    jest.mocked(paymentApi.confirm).mockRejectedValue(error);
+
+    const { result } = renderHook(() =>
+      usePaymentConfirmation({
+        amount: "120000",
+        orderId: "order-1",
+        paymentKey: "payment-key-1",
+      })
+    );
+
+    await waitFor(() => expect(result.current.isProcessing).toBe(false));
+
+    expect(result.current.result).toEqual({
+      status: "failed",
+      retryable: false,
+      error,
+    });
+  });
+
+  it("keeps timeout and rate-limit confirmation failures retryable", async () => {
+    const error = new ApiClientError({
+      code: "RATE_LIMITED",
+      message: "잠시 후 다시 시도해주세요.",
+      status: 429,
+    });
     jest.mocked(paymentApi.confirm).mockRejectedValue(error);
 
     const { result } = renderHook(() =>

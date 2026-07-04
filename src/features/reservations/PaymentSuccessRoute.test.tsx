@@ -2,9 +2,13 @@ import React from "react";
 import { render, waitFor } from "@testing-library/react";
 import type { NavigateFunction } from "react-router-dom";
 import { PaymentSuccessRoute } from "./PaymentSuccessRoute";
+import type { usePaymentConfirmation } from "./hooks/usePaymentConfirmation";
 
 const mockNavigate = jest.fn() as jest.MockedFunction<NavigateFunction>;
-const mockUsePaymentConfirmation = jest.fn();
+const mockUsePaymentConfirmation = jest.fn<
+  ReturnType<typeof usePaymentConfirmation>,
+  Parameters<typeof usePaymentConfirmation>
+>();
 const mockClearReservationCheckoutStateByReservationUid = jest.fn();
 let searchParams = new URLSearchParams({
   amount: "120000",
@@ -13,7 +17,9 @@ let searchParams = new URLSearchParams({
 });
 
 jest.mock("./hooks/usePaymentConfirmation", () => ({
-  usePaymentConfirmation: (options: unknown) =>
+  usePaymentConfirmation: (
+    options: Parameters<typeof usePaymentConfirmation>[0],
+  ) =>
     mockUsePaymentConfirmation(options),
 }));
 
@@ -45,6 +51,7 @@ describe("PaymentSuccessRoute", () => {
 
   it("routes confirmed payment confirmation to the reservation detail page", async () => {
     mockUsePaymentConfirmation.mockReturnValue({
+      isProcessing: false,
       result: {
         error: null,
         status: "confirmed",
@@ -75,6 +82,7 @@ describe("PaymentSuccessRoute", () => {
       throw new Error("cleanup failed");
     });
     mockUsePaymentConfirmation.mockReturnValue({
+      isProcessing: false,
       result: {
         error: null,
         status: "confirmed",
@@ -100,6 +108,7 @@ describe("PaymentSuccessRoute", () => {
       paymentKey: "payment-key-1",
     });
     mockUsePaymentConfirmation.mockReturnValue({
+      isProcessing: false,
       result: {
         error: null,
         status: "invalid",
@@ -121,6 +130,7 @@ describe("PaymentSuccessRoute", () => {
 
   it("preserves checkout state and routes retryable confirmation failures to the confirm failed page", async () => {
     mockUsePaymentConfirmation.mockReturnValue({
+      isProcessing: false,
       result: {
         error: new Error("confirm failed"),
         retryable: true,
@@ -141,6 +151,7 @@ describe("PaymentSuccessRoute", () => {
 
   it("clears checkout state and routes non-retryable confirmation failures to the confirm failed page", async () => {
     mockUsePaymentConfirmation.mockReturnValue({
+      isProcessing: false,
       result: {
         error: new Error("confirm failed"),
         retryable: false,
@@ -163,6 +174,7 @@ describe("PaymentSuccessRoute", () => {
 
   it("routes skipped payment confirmation to the invalid callback failure page", async () => {
     mockUsePaymentConfirmation.mockReturnValue({
+      isProcessing: false,
       result: {
         error: null,
         status: "skipped",
@@ -188,6 +200,7 @@ describe("PaymentSuccessRoute", () => {
       orderId: "order-1",
     });
     mockUsePaymentConfirmation.mockReturnValue({
+      isProcessing: false,
       result: null,
     });
 
@@ -218,6 +231,7 @@ describe("PaymentSuccessRoute", () => {
       paymentKey: "payment-key-1",
     });
     mockUsePaymentConfirmation.mockReturnValue({
+      isProcessing: false,
       result: null,
     });
 
@@ -243,6 +257,7 @@ describe("PaymentSuccessRoute", () => {
 
   it("routes missing reservationUid to profile with replacement history", async () => {
     mockUsePaymentConfirmation.mockReturnValue({
+      isProcessing: false,
       result: null,
     });
 

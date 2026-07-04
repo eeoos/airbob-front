@@ -3,6 +3,16 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PaymentFailRoute } from "../../features/reservations";
 import type { PaymentFailReason } from "../../routes/paths";
 
+const parsePaymentFailReason = (
+  reason: string | null,
+): PaymentFailReason | undefined => {
+  if (reason === "confirm-failed" || reason === "invalid-callback") {
+    return reason;
+  }
+
+  return undefined;
+};
+
 const PaymentFail: React.FC = () => {
   const navigate = useNavigate();
   const { reservationUid } = useParams<{ reservationUid: string }>();
@@ -12,11 +22,7 @@ const PaymentFail: React.FC = () => {
     <PaymentFailRoute
       navigate={navigate}
       reservationUid={reservationUid}
-      reason={
-        (searchParams.get("reason") || undefined) as
-          | PaymentFailReason
-          | undefined
-      }
+      reason={parsePaymentFailReason(searchParams.get("reason"))}
     />
   );
 };
