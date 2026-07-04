@@ -117,6 +117,24 @@ describe("route boundary contracts", () => {
     );
   });
 
+  it("keeps profile and reservations page adapters out of feature internals", () => {
+    [
+      "src/pages/Profile/Profile.tsx",
+      "src/pages/Profile/HostReservationDetail/HostReservationDetail.tsx",
+      "src/pages/Reservations/PaymentSuccess.tsx",
+      "src/pages/Reservations/PaymentFail.tsx",
+      "src/pages/Reservations/ReservationDetail.tsx",
+      "src/pages/Reservations/ReservationConfirm.tsx",
+      "src/pages/Reservations/ReviewCreate.tsx",
+    ].forEach((pagePath) => {
+      const source = readFileSync(join(process.cwd(), pagePath), "utf8");
+
+      expect(source).not.toMatch(
+        /features\/(?:profile|reservations|reviews)\/(?:hooks|lib|components)\//,
+      );
+    });
+  });
+
   it("keeps Profile page as a thin adapter to the profile feature route", () => {
     const pageSource = readFileSync(
       join(process.cwd(), "src/pages/Profile/Profile.tsx"),
@@ -182,7 +200,7 @@ describe("route boundary contracts", () => {
   it("keeps feature public route barrels from exporting workflow internals", () => {
     featureRouteAdapters.forEach(({ publicImport, routeContainer }) => {
       const publicBarrelPath = `${publicImport.replace(
-        /^\.\.\/\.\.\//,
+        /^(?:\.\.\/)+/,
         "src/",
       )}/index.ts`;
       const publicBarrel = readFileSync(

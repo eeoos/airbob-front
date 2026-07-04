@@ -139,6 +139,8 @@ npm run smoke:frontend
 
 ### Skipped Dynamic Routes
 
+- Profile/Reservations route-boundary refactor must pass `npm run verify:design-ready`.
+- If `AIRBOB_SMOKE_RESERVATION_UID` and `AIRBOB_SMOKE_HOST_RESERVATION_UID` are unavailable, the generated smoke report must list those routes under `Skipped Dynamic Routes`; this is residual QA scope, not tested coverage.
 - If `AIRBOB_SMOKE_RESERVATION_UID` is not supplied, `reservation-detail` is skipped and the generated smoke report lists the skipped route and required env name.
 - If `AIRBOB_SMOKE_HOST_RESERVATION_UID` is not supplied, `host-reservation-detail` is skipped and the generated smoke report lists the skipped route and required env name.
 - Skipped dynamic routes are not counted as tested route coverage.

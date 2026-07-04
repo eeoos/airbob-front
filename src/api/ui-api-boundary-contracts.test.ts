@@ -20,6 +20,15 @@ const featureRouteContainerFiles = [
   "features/accommodations/AccommodationDetailRoute.tsx",
   "features/accommodations/edit/AccommodationEditRoute.tsx",
   "features/profile/ProfileRoute.tsx",
+  "features/reservations/GuestTripsPanel.tsx",
+  "features/reservations/HostReservationsPanel.tsx",
+  "features/reservations/HostReservationDetailRoute.tsx",
+  "features/reservations/PaymentFailRoute.tsx",
+  "features/reservations/PaymentSuccessRoute.tsx",
+  "features/reservations/ReservationConfirmRoute.tsx",
+  "features/reservations/ReservationDetailRoute.tsx",
+  "features/reviews/ReviewCreateRoute.tsx",
+  "features/profile/HostListingsPanel.tsx",
 ];
 const productionSourceExtensions = [".ts", ".tsx"];
 const directApiImportPattern = /from\s+["'](?:\.\.\/)+(?:api|api\/[^"']*)["']/;

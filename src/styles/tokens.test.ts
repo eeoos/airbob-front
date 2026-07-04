@@ -161,7 +161,7 @@ const designTokenOwnedCssFiles = [
   "features/search/components/SearchAccommodationCard.module.css",
   "features/search/SearchRoute.module.css",
   "pages/Wishlist/Wishlist.module.css",
-  "pages/Profile/Profile.module.css",
+  "features/profile/HostListingsPanel.module.css",
   "features/accommodations/AccommodationDetailRoute.module.css",
   "features/accommodations/components/AccommodationBookingCard.module.css",
   "features/accommodations/components/AccommodationHero.module.css",
@@ -172,13 +172,13 @@ const designTokenOwnedCssFiles = [
 ];
 
 const highRiskPreRedesignCssFiles = [
+  "src/features/reservations/GuestTripsPanel.module.css",
+  "src/features/reservations/HostReservationsPanel.module.css",
+  "src/features/reservations/HostReservationDetailRoute.module.css",
   "src/features/reservations/ReservationDetailRoute.module.css",
   "src/features/reservations/ReservationConfirmRoute.module.css",
   "src/pages/Reservations/ReviewCreate.module.css",
-  "src/pages/Profile/Profile.module.css",
   "src/features/profile/HostListingsPanel.module.css",
-  "src/features/reservations/HostReservationsPanel.module.css",
-  "src/features/reservations/GuestTripsPanel.module.css",
   "src/features/accommodations/edit/components/EditForm.module.css",
   "src/features/accommodations/edit/components/EditModal.module.css",
   "src/features/accommodations/edit/components/EditWizardLayout.module.css",
