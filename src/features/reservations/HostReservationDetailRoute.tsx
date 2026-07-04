@@ -4,7 +4,10 @@ import { ErrorToast } from "../../components/ErrorToast";
 import { routeTo } from "../../routes/paths";
 import { getImageUrl } from "../../utils/image";
 import { useHostReservationDetail } from "./hooks";
-import { formatKoreanDate, formatNullablePrice } from "./lib/reservationDateDisplay";
+import {
+  formatKoreanDateWithWeekday,
+  formatNullablePrice,
+} from "./lib/reservationDateDisplay";
 import { formatReservationStatus } from "./lib/reservationStatusDisplay";
 import styles from "./HostReservationDetailRoute.module.css";
 
@@ -141,19 +144,19 @@ export const HostReservationDetailRoute: React.FC<
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>체크인</span>
               <span className={styles.detailValue}>
-                {formatKoreanDate(reservation.check_in_date_time)}
+                {formatKoreanDateWithWeekday(reservation.check_in_date_time)}
               </span>
             </div>
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>체크아웃</span>
               <span className={styles.detailValue}>
-                {formatKoreanDate(reservation.check_out_date_time)}
+                {formatKoreanDateWithWeekday(reservation.check_out_date_time)}
               </span>
             </div>
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>예약일</span>
               <span className={styles.detailValue}>
-                {formatKoreanDate(reservation.created_at)}
+                {formatKoreanDateWithWeekday(reservation.created_at)}
               </span>
             </div>
             <div className={styles.detailItem}>

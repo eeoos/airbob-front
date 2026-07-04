@@ -1,7 +1,8 @@
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { NavigateFunction } from "react-router-dom";
-import { ReservationStatus } from "../../types/enums";
+import { PaymentStatus, ReservationStatus } from "../../types/enums";
+import type { HostReservationDetail } from "../../types/reservation";
 import { HostReservationDetailRoute } from "./HostReservationDetailRoute";
 import { useHostReservationDetail } from "./hooks";
 
@@ -27,8 +28,7 @@ jest.mock("../../components/ErrorToast", () => ({
   ),
 }));
 
-const createHostReservationDetail = () =>
-  ({
+const createHostReservationDetail = (): HostReservationDetail => ({
     reservation_uid: "host-reservation-1",
     reservation_code: "HOST-CODE-1",
     status: ReservationStatus.CONFIRMED,
@@ -58,10 +58,10 @@ const createHostReservationDetail = () =>
     payment: {
       order_id: "order-1",
       total_amount: 240000,
-      status: "DONE",
+      status: PaymentStatus.DONE,
       requested_at: "2026-07-01T00:00:00",
     },
-  } as any);
+  });
 
 const mockHostReservationDetail = (
   overrides: Partial<ReturnType<typeof useHostReservationDetail>>,
@@ -144,9 +144,14 @@ describe("HostReservationDetailRoute", () => {
     expect(screen.getByText("2게스트 • 2박 • ₩240,000")).toBeInTheDocument();
     expect(screen.getByText("테스트 숙소")).toBeInTheDocument();
     expect(screen.getByText("KR Seoul Mapo 와우산로")).toBeInTheDocument();
-    expect(screen.getByText("2026년 7월 10일")).toBeInTheDocument();
+    expect(screen.getByText("2026년 7월 10일 (금)")).toBeInTheDocument();
+    expect(screen.getByText("2026년 7월 12일 (일)")).toBeInTheDocument();
+    expect(screen.getByText("2026년 7월 1일 (수)")).toBeInTheDocument();
     expect(screen.getByText("2박 x ₩120,000")).toBeInTheDocument();
     expect(screen.getAllByText("₩240,000")).toHaveLength(2);
+
+    fireEvent.click(screen.getByText("테스트 숙소"));
+    expect(mockNavigate).toHaveBeenCalledWith("/accommodations/7");
   });
 
   it("keeps back navigation and error toast behavior", () => {
