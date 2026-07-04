@@ -66,6 +66,7 @@ const collectSourceFiles = (directory: string): string[] =>
 
 const allowedFeaturePageImports = new Set([
   join(projectRoot, "src/features/profile/components/ProfileShell.tsx"),
+  join(projectRoot, "src/features/reviews/ReviewCreateRoute.tsx"),
   join(projectRoot, "src/features/reservations/PaymentFailRoute.tsx"),
   join(projectRoot, "src/features/reservations/PaymentSuccessRoute.tsx"),
 ]);
@@ -164,6 +165,18 @@ describe("route boundary contracts", () => {
     expect(failSource).not.toContain(
       "clearReservationCheckoutStateByReservationUid",
     );
+  });
+
+  it("keeps ReviewCreate page as an adapter to the reviews feature route", () => {
+    const pageSource = readFileSync(
+      join(process.cwd(), "src/pages/Reservations/ReviewCreate.tsx"),
+      "utf8",
+    );
+
+    expect(pageSource).toContain("../../features/reviews");
+    expect(pageSource).toContain("ReviewCreateRoute");
+    expect(pageSource).not.toContain("useReviewCreate");
+    expect(pageSource).not.toContain("useState");
   });
 
   it("keeps feature public route barrels from exporting workflow internals", () => {
