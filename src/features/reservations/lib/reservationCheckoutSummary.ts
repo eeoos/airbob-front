@@ -1,7 +1,36 @@
+const parseCheckoutDate = (dateString: string): Date | null => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateString);
+  if (!match) {
+    return null;
+  }
+
+  const [, yearValue, monthValue, dayValue] = match;
+  const year = Number(yearValue);
+  const month = Number(monthValue);
+  const day = Number(dayValue);
+  const date = new Date(year, month - 1, day);
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
+};
+
 export const calculateCheckoutNights = (checkIn: string, checkOut: string) => {
-  const start = new Date(checkIn).getTime();
-  const end = new Date(checkOut).getTime();
-  const nights = Math.round((end - start) / (1000 * 60 * 60 * 24));
+  const start = parseCheckoutDate(checkIn);
+  const end = parseCheckoutDate(checkOut);
+  if (!start || !end) {
+    return 0;
+  }
+
+  const nights = Math.ceil(
+    (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
+  );
 
   return Number.isFinite(nights) ? Math.max(0, nights) : 0;
 };
