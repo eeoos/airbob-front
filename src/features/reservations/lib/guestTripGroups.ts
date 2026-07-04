@@ -1,8 +1,12 @@
 import type { MyReservationInfo } from "../../../types/reservation";
 
-export interface GuestTripsYearGroup {
+export type GuestTripGroupReservation = Pick<MyReservationInfo, "check_in_date">;
+
+export interface GuestTripsYearGroup<
+  TReservation extends GuestTripGroupReservation = MyReservationInfo
+> {
   year: number;
-  reservations: MyReservationInfo[];
+  reservations: TReservation[];
 }
 
 const getDateOnlyParts = (dateString: string) => {
@@ -10,10 +14,12 @@ const getDateOnlyParts = (dateString: string) => {
   return { year, month, day };
 };
 
-export const groupGuestTripsByYear = (
-  reservations: MyReservationInfo[]
-): GuestTripsYearGroup[] => {
-  const grouped = reservations.reduce<Record<number, MyReservationInfo[]>>(
+export const groupGuestTripsByYear = <
+  TReservation extends GuestTripGroupReservation
+>(
+  reservations: TReservation[]
+): GuestTripsYearGroup<TReservation>[] => {
+  const grouped = reservations.reduce<Record<number, TReservation[]>>(
     (groups, reservation) => {
       const { year } = getDateOnlyParts(reservation.check_in_date);
       return {

@@ -1,22 +1,22 @@
 import type { MyReservationInfo } from "../../../types/reservation";
 import { formatGuestTripDateRange, groupGuestTripsByYear } from "./guestTripGroups";
 
+type GuestTripGroupFixture = Pick<
+  MyReservationInfo,
+  "reservation_id" | "reservation_uid" | "check_in_date" | "check_out_date"
+>;
+
 const makeTrip = (
   reservationId: number,
   checkInDate: string,
   checkOutDate: string
-): MyReservationInfo =>
+): GuestTripGroupFixture =>
   ({
     reservation_id: reservationId,
     reservation_uid: `guest-${reservationId}`,
     check_in_date: checkInDate,
     check_out_date: checkOutDate,
-    accommodation: {
-      id: reservationId,
-      name: `숙소 ${reservationId}`,
-      thumbnail_url: null,
-    },
-  }) as MyReservationInfo;
+  });
 
 describe("guest trip display helpers", () => {
   it("groups trips by descending check-in year", () => {

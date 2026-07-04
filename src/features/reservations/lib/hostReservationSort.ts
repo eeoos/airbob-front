@@ -2,9 +2,13 @@ import type { HostReservationInfo } from "../../../types/reservation";
 
 export type HostReservationSortColumn = "check_in" | "check_out" | "created_at";
 export type HostReservationSortOrder = "asc" | "desc";
+export type HostReservationSortReservation = Pick<
+  HostReservationInfo,
+  "check_in_date" | "check_out_date" | "created_at"
+>;
 
 const getSortValue = (
-  reservation: HostReservationInfo,
+  reservation: HostReservationSortReservation,
   column: HostReservationSortColumn
 ) => {
   if (column === "check_in") return reservation.check_in_date;
@@ -12,11 +16,13 @@ const getSortValue = (
   return reservation.created_at;
 };
 
-export const sortHostReservations = (
-  reservations: HostReservationInfo[],
+export const sortHostReservations = <
+  TReservation extends HostReservationSortReservation
+>(
+  reservations: TReservation[],
   column: HostReservationSortColumn,
   order: HostReservationSortOrder
-) =>
+): TReservation[] =>
   [...reservations].sort((a, b) => {
     const comparison = getSortValue(a, column).localeCompare(getSortValue(b, column));
     return order === "asc" ? comparison : -comparison;

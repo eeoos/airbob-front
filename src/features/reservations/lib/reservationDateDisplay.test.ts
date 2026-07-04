@@ -7,6 +7,10 @@ describe("reservation date display", () => {
     expect(formatKoreanDate("2026-12-31")).toBe("2026년 12월 31일");
   });
 
+  it("formats Korean date labels from timestamp input", () => {
+    expect(formatKoreanDate("2026-07-10T15:30:00")).toBe("2026년 7월 10일");
+  });
+
   it("formats Korean date-time labels", () => {
     expect(formatKoreanDateTime("2026-07-10T15:30:00")).toContain("2026년 7월 10일");
   });

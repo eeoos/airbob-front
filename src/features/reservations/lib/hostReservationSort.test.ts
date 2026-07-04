@@ -1,18 +1,23 @@
 import type { HostReservationInfo } from "../../../types/reservation";
-import { sortHostReservations } from "./hostReservationSort";
+import { getNextHostReservationSort, sortHostReservations } from "./hostReservationSort";
+
+type HostReservationSortFixture = Pick<
+  HostReservationInfo,
+  "reservation_uid" | "check_in_date" | "check_out_date" | "created_at"
+>;
 
 const makeReservation = (
   reservationUid: string,
   checkInDate: string,
   checkOutDate: string,
   createdAt: string
-): HostReservationInfo =>
+): HostReservationSortFixture =>
   ({
     reservation_uid: reservationUid,
     check_in_date: checkInDate,
     check_out_date: checkOutDate,
     created_at: createdAt,
-  }) as HostReservationInfo;
+  });
 
 describe("host reservation sort", () => {
   const reservations = [
@@ -60,5 +65,26 @@ describe("host reservation sort", () => {
       "second",
       "first",
     ]);
+  });
+
+  it("defaults to descending order when selecting a different column", () => {
+    expect(getNextHostReservationSort("check_in", "asc", "created_at")).toEqual({
+      column: "created_at",
+      order: "desc",
+    });
+  });
+
+  it("toggles same-column sort from descending to ascending", () => {
+    expect(getNextHostReservationSort("check_in", "desc", "check_in")).toEqual({
+      column: "check_in",
+      order: "asc",
+    });
+  });
+
+  it("toggles same-column sort from ascending to descending", () => {
+    expect(getNextHostReservationSort("check_out", "asc", "check_out")).toEqual({
+      column: "check_out",
+      order: "desc",
+    });
   });
 });
