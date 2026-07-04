@@ -129,6 +129,21 @@ describe("route boundary contracts", () => {
     expect(pageSource).not.toContain("useState");
   });
 
+  it("keeps HostReservationDetail page as an adapter to the reservations feature route", () => {
+    const pageSource = readFileSync(
+      join(
+        process.cwd(),
+        "src/pages/Profile/HostReservationDetail/HostReservationDetail.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(pageSource).toContain("../../../features/reservations");
+    expect(pageSource).toContain("HostReservationDetailRoute");
+    expect(pageSource).not.toContain("useHostReservationDetail");
+    expect(pageSource).not.toContain("formatReservationStatus");
+  });
+
   it("keeps feature public route barrels from exporting workflow internals", () => {
     featureRouteAdapters.forEach(({ publicImport, routeContainer }) => {
       const publicBarrelPath = `${publicImport.replace(
