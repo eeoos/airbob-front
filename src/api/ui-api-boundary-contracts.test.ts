@@ -6,6 +6,7 @@ const productionUiRoots = [
   "components",
   "layouts",
   "features/accommodations/components",
+  "features/accommodations/edit/components",
   "features/auth/components",
   "features/profile/components",
   "features/reservations/components",
