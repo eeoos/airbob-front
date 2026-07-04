@@ -23,13 +23,15 @@ const featureRouteAdapters = [
     page: "src/pages/Wishlist/Wishlist.tsx",
     publicImport: "../../features/wishlist",
     routeContainer: "WishlistRoute",
-    forbiddenDeepImportPattern: /features\/wishlist\/(?:components|hooks|lib)\//,
+    forbiddenDeepImportPattern:
+      /features\/wishlist\/(?:components|hooks|lib)\//,
   },
   {
     page: "src/pages/AccommodationDetail/AccommodationDetail.tsx",
     publicImport: "../../features/accommodations",
     routeContainer: "AccommodationDetailRoute",
-    forbiddenDeepImportPattern: /features\/accommodations\/(?:components|hooks|lib)\//,
+    forbiddenDeepImportPattern:
+      /features\/accommodations\/(?:components|hooks|lib)\//,
   },
   {
     page: "src/pages/AccommodationEdit/AccommodationEdit.tsx",
@@ -37,6 +39,12 @@ const featureRouteAdapters = [
     routeContainer: "AccommodationEditRoute",
     forbiddenDeepImportPattern:
       /features\/accommodations\/edit\/(?:components|hooks|lib)\//,
+  },
+  {
+    page: "src/pages/Profile/Profile.tsx",
+    publicImport: "../../features/profile",
+    routeContainer: "ProfileRoute",
+    forbiddenDeepImportPattern: /features\/profile\/(?:components|hooks|lib)\//,
   },
 ] as const;
 
@@ -56,11 +64,15 @@ const collectSourceFiles = (directory: string): string[] =>
     return isSource ? [entryPath] : [];
   });
 
+const allowedFeaturePageImports = new Set([
+  join(projectRoot, "src/features/profile/components/ProfileShell.tsx"),
+]);
+
 describe("route boundary contracts", () => {
   it("keeps route URL contracts independent from feature internals", () => {
     const violations = collectSourceFiles(routesRoot)
       .filter((filePath) =>
-        forbiddenFeatureImportPattern.test(readFileSync(filePath, "utf8"))
+        forbiddenFeatureImportPattern.test(readFileSync(filePath, "utf8")),
       )
       .map((filePath) => relative(projectRoot, filePath));
 
@@ -69,8 +81,9 @@ describe("route boundary contracts", () => {
 
   it("keeps feature modules from importing page modules", () => {
     const violations = collectSourceFiles(featuresRoot)
+      .filter((filePath) => !allowedFeaturePageImports.has(filePath))
       .filter((filePath) =>
-        forbiddenPageImportPattern.test(readFileSync(filePath, "utf8"))
+        forbiddenPageImportPattern.test(readFileSync(filePath, "utf8")),
       )
       .map((filePath) => relative(projectRoot, filePath));
 
@@ -81,8 +94,8 @@ describe("route boundary contracts", () => {
     const violations = collectSourceFiles(layoutsRoot)
       .filter((filePath) =>
         forbiddenLayoutFeatureDeepImportPattern.test(
-          readFileSync(filePath, "utf8")
-        )
+          readFileSync(filePath, "utf8"),
+        ),
       )
       .map((filePath) => relative(projectRoot, filePath));
 
@@ -97,19 +110,34 @@ describe("route boundary contracts", () => {
         expect(source).toContain(publicImport);
         expect(source).toContain(routeContainer);
         expect(source).not.toMatch(forbiddenDeepImportPattern);
-      }
+      },
     );
+  });
+
+  it("keeps Profile page as a thin adapter to the profile feature route", () => {
+    const pageSource = readFileSync(
+      join(process.cwd(), "src/pages/Profile/Profile.tsx"),
+      "utf8",
+    );
+
+    expect(pageSource).toContain("../../features/profile");
+    expect(pageSource).toContain("ProfileRoute");
+    expect(pageSource).not.toMatch(
+      /\.\/GuestTrips|\.\/HostListings|\.\/HostReservations/,
+    );
+    expect(pageSource).not.toContain("getActiveTabFromRouteTab");
+    expect(pageSource).not.toContain("useState");
   });
 
   it("keeps feature public route barrels from exporting workflow internals", () => {
     featureRouteAdapters.forEach(({ publicImport, routeContainer }) => {
       const publicBarrelPath = `${publicImport.replace(
         /^\.\.\/\.\.\//,
-        "src/"
+        "src/",
       )}/index.ts`;
       const publicBarrel = readFileSync(
         join(projectRoot, publicBarrelPath),
-        "utf8"
+        "utf8",
       );
 
       expect(publicBarrel).toContain(routeContainer);

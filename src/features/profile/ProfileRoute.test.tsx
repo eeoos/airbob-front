@@ -1,0 +1,89 @@
+import React from "react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { ProfileRoute } from "./ProfileRoute";
+
+const mockSetSearchParams = jest.fn();
+const mockBuildProfileRouteSearchParams = jest.fn((state) => {
+  const params = new URLSearchParams();
+  params.set("builtMode", state.mode);
+  params.set("builtTab", state.tab);
+  return params;
+});
+
+jest.mock("./lib/profileRouteState", () => {
+  const actual = jest.requireActual("./lib/profileRouteState");
+  return {
+    ...actual,
+    buildProfileRouteSearchParams: (state: unknown) =>
+      mockBuildProfileRouteSearchParams(state),
+  };
+});
+
+jest.mock("../reservations", () => ({
+  GuestTripsPanel: () => <div data-testid="guest-trips" />,
+  HostReservationsPanel: () => <div data-testid="host-reservations" />,
+}));
+
+jest.mock("./HostListingsPanel", () => ({
+  HostListingsPanel: ({
+    onStatusChange,
+  }: {
+    onStatusChange: (status: "DRAFT") => void;
+  }) => (
+    <button type="button" onClick={() => onStatusChange("DRAFT")}>
+      draft listings
+    </button>
+  ),
+}));
+
+describe("ProfileRoute", () => {
+  beforeEach(() => {
+    mockSetSearchParams.mockReset();
+    mockBuildProfileRouteSearchParams.mockClear();
+    mockBuildProfileRouteSearchParams.mockImplementation((state) => {
+      const params = new URLSearchParams();
+      params.set("builtMode", state.mode);
+      params.set("builtTab", state.tab);
+      return params;
+    });
+  });
+
+  it("uses route-state builder when switching to host mode", async () => {
+    render(
+      <ProfileRoute
+        searchParams={new URLSearchParams("")}
+        setSearchParams={mockSetSearchParams}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "호스트" }));
+
+    expect(mockBuildProfileRouteSearchParams).toHaveBeenCalledWith({
+      mode: "host",
+      tab: "listings",
+    });
+    expect(mockSetSearchParams).toHaveBeenCalledWith(
+      new URLSearchParams("builtMode=host&builtTab=listings"),
+      { replace: true },
+    );
+  });
+
+  it("maps host listing status changes back into route state", async () => {
+    render(
+      <ProfileRoute
+        searchParams={new URLSearchParams("mode=host&tab=listings")}
+        setSearchParams={mockSetSearchParams}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "draft listings" }),
+    );
+
+    expect(mockBuildProfileRouteSearchParams).toHaveBeenCalledWith({
+      mode: "host",
+      tab: "listings-draft",
+    });
+  });
+});

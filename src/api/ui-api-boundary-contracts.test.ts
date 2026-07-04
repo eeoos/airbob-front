@@ -12,16 +12,17 @@ const productionUiRoots = [
   "features/reviews/components",
   "features/search/components",
   "features/wishlist/components",
+  "features/profile/components",
 ];
 const featureRouteContainerFiles = [
   "features/search/SearchRoute.tsx",
   "features/wishlist/WishlistRoute.tsx",
   "features/accommodations/AccommodationDetailRoute.tsx",
   "features/accommodations/edit/AccommodationEditRoute.tsx",
+  "features/profile/ProfileRoute.tsx",
 ];
 const productionSourceExtensions = [".ts", ".tsx"];
-const directApiImportPattern =
-  /from\s+["'](?:\.\.\/)+(?:api|api\/[^"']*)["']/;
+const directApiImportPattern = /from\s+["'](?:\.\.\/)+(?:api|api\/[^"']*)["']/;
 const sourceRoot = path.resolve(__dirname, "..");
 
 const collectProductionUiFiles = (directory: string): string[] => {
@@ -51,10 +52,10 @@ const collectProductionUiFiles = (directory: string): string[] => {
 
 const collectConfiguredProductionUiFiles = () => [
   ...productionUiRoots.flatMap((root) =>
-    collectProductionUiFiles(path.join(sourceRoot, root))
+    collectProductionUiFiles(path.join(sourceRoot, root)),
   ),
   ...featureRouteContainerFiles.map((filePath) =>
-    path.join(sourceRoot, filePath)
+    path.join(sourceRoot, filePath),
   ),
 ];
 
@@ -64,10 +65,10 @@ const toSourceRootRelativePath = (filePath: string) =>
 describe("production UI API boundaries", () => {
   it("keeps configured UI API boundary paths present", () => {
     const missingRoots = productionUiRoots.filter(
-      (root) => !fs.existsSync(path.join(sourceRoot, root))
+      (root) => !fs.existsSync(path.join(sourceRoot, root)),
     );
     const missingFiles = featureRouteContainerFiles.filter(
-      (filePath) => !fs.existsSync(path.join(sourceRoot, filePath))
+      (filePath) => !fs.existsSync(path.join(sourceRoot, filePath)),
     );
 
     expect([
@@ -78,7 +79,7 @@ describe("production UI API boundaries", () => {
 
   it("includes feature route containers in the UI API boundary scan", () => {
     const scannedFiles = collectConfiguredProductionUiFiles().map(
-      toSourceRootRelativePath
+      toSourceRootRelativePath,
     );
 
     featureRouteContainerFiles.forEach((filePath) => {
@@ -89,7 +90,7 @@ describe("production UI API boundaries", () => {
   it("keeps production UI behind feature hooks instead of direct API imports", () => {
     const violations = collectConfiguredProductionUiFiles()
       .filter((filePath) =>
-        directApiImportPattern.test(fs.readFileSync(filePath, "utf8"))
+        directApiImportPattern.test(fs.readFileSync(filePath, "utf8")),
       )
       .map(toSourceRootRelativePath);
 
