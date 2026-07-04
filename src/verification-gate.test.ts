@@ -32,6 +32,9 @@ describe("frontend verification gate", () => {
     expect(packageJson.scripts["verify:pre-redesign"]).toBe(
       "npm run typecheck && npm run test:ci:no-cache -- --runInBand && npm run build",
     );
+    expect(packageJson.scripts["verify:design-ready"]).toBe(
+      "npm run verify:pre-redesign && npm run smoke:frontend",
+    );
     expect(packageJson.scripts.verify).toContain("npm run typecheck");
     expect(packageJson.scripts.verify).toContain("npm run test:ci:no-cache");
     expect(packageJson.scripts.verify).toContain("npm run build");
@@ -56,6 +59,12 @@ describe("frontend verification gate", () => {
       "redactionEntries",
       "delete childEnv.AIRBOB_QA_EMAIL",
       "delete childEnv.AIRBOB_QA_PASSWORD",
+      "AIRBOB_SMOKE_ACCOMMODATION_ID",
+      "AIRBOB_SMOKE_RESERVATION_UID",
+      "AIRBOB_SMOKE_HOST_RESERVATION_UID",
+      "skippedDynamicRoutes",
+      "Skipped Dynamic Routes",
+      "Skipped dynamic smoke routes",
       "Missing required environment variables",
       "missingEnv.join",
       "process.exit(status === 0 ? 1 : status)",
@@ -70,6 +79,12 @@ describe("frontend verification gate", () => {
       'expectedText: "위시리스트"',
       'expectedText: "최근"',
       'expectedText: "호스트"',
+      'name: "accommodation-detail"',
+      'pathTemplate: "/accommodations/:id"',
+      'name: "reservation-detail"',
+      'pathTemplate: "/reservations/:reservationUid"',
+      'name: "host-reservation-detail"',
+      'pathTemplate: "/profile/host/reservations/:reservationUid"',
     ].forEach((term) => {
       expect(smokeScript).toContain(term);
     });
@@ -124,6 +139,15 @@ describe("frontend verification gate", () => {
       expect(report).toContain(
         "- Output guard failures: console error/warning output, browse JS error output",
       );
+      expect(report).toContain("## Skipped Dynamic Routes");
+      expect(report).toContain(
+        "- reservation-detail (/reservations/:reservationUid): skipped; set AIRBOB_SMOKE_RESERVATION_UID to cover this route.",
+      );
+      expect(report).toContain(
+        "- host-reservation-detail (/profile/host/reservations/:reservationUid): skipped; set AIRBOB_SMOKE_HOST_RESERVATION_UID to cover this route.",
+      );
+      expect(output).toContain("Skipped dynamic smoke routes");
+      expect(output).toContain("AIRBOB_SMOKE_RESERVATION_UID");
       expect(output).not.toContain("fake-user@example.invalid");
       expect(output).not.toContain("fake-password");
       expect(report).not.toContain("fake-user@example.invalid");
@@ -150,6 +174,11 @@ describe("frontend verification gate", () => {
       "network failed request",
       "screenshot path",
       "verify:pre-redesign",
+      "verify:design-ready",
+      "AIRBOB_SMOKE_ACCOMMODATION_ID",
+      "AIRBOB_SMOKE_RESERVATION_UID",
+      "AIRBOB_SMOKE_HOST_RESERVATION_UID",
+      "Skipped Dynamic Routes",
       "Smoke report evidence",
       "2026-07-04 KST Redesign Readiness Smoke Gate",
     ];
@@ -239,7 +268,9 @@ describe("frontend verification gate", () => {
     });
 
     expect(qaDoc).not.toMatch(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
-    expect(qaDoc).not.toMatch(/(?:email|password|member[_ -]?id)\s*[:=]/i);
+    expect(qaDoc).not.toMatch(/(?:email|password|nickname|member[_ -]?id)\s*[:=]/i);
     expect(qaDoc).not.toMatch(/(?:이메일|비밀번호)\s*[:=：]/);
+    expect(qaDoc).not.toContain("Final Verification");
+    expect(qaDoc).not.toContain("PASS in final verification");
   });
 });

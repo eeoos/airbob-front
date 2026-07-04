@@ -30,8 +30,11 @@ const qaEmail = process.env.AIRBOB_QA_EMAIL;
 const qaPassword = process.env.AIRBOB_QA_PASSWORD;
 const browseBin = process.env.GSTACK_BROWSE_BIN;
 const frontendUrl = process.env.AIRBOB_FRONTEND_URL ?? DEFAULT_FRONTEND_URL;
+const envValue = (name) => process.env[name]?.trim() || "";
 const editAccommodationId =
-  process.env.AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID?.trim() || "3";
+  envValue("AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID") || "3";
+const accommodationId =
+  envValue("AIRBOB_SMOKE_ACCOMMODATION_ID") || editAccommodationId;
 const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 const reportPath = join(REPORT_ROOT, `frontend-smoke-${timestamp}.md`);
 
@@ -39,6 +42,45 @@ const VIEWPORTS = [
   { name: "desktop", size: "1280x720" },
   { name: "mobile", size: "375x812" },
 ];
+
+const buildRoutePath = (pathTemplate, params) =>
+  pathTemplate.replace(/:([A-Za-z0-9_]+)/g, (_, key) => {
+    const value = params[key];
+
+    if (value === undefined || value === null || String(value).trim() === "") {
+      throw new Error(`Missing route param ${key} for ${pathTemplate}`);
+    }
+
+    return encodeURIComponent(String(value));
+  });
+
+const routeFromTemplate = ({ pathTemplate, params, ...route }) => ({
+  ...route,
+  pathTemplate,
+  path: buildRoutePath(pathTemplate, params),
+});
+
+const skippedDynamicRoutes = [];
+
+const dynamicRouteFromEnv = ({ envName, paramName, ...route }) => {
+  const value = envValue(envName);
+
+  if (!value) {
+    skippedDynamicRoutes.push({
+      name: route.name,
+      pathTemplate: route.pathTemplate,
+      envName,
+    });
+    return null;
+  }
+
+  return routeFromTemplate({
+    ...route,
+    params: {
+      [paramName]: value,
+    },
+  });
+};
 
 const ROUTES = [
   {
@@ -71,13 +113,51 @@ const ROUTES = [
     selector: "main, #root",
     expectedText: "호스트",
   },
+  routeFromTemplate({
+    name: "accommodation-detail",
+    pathTemplate: "/accommodations/:id",
+    params: { id: accommodationId },
+    selector: "main, #root",
+    expectedText: "숙소",
+  }),
   {
     name: "accommodation-edit",
-    path: `/accommodations/${encodeURIComponent(editAccommodationId)}/edit`,
+    path: buildRoutePath("/accommodations/:id/edit", {
+      id: editAccommodationId,
+    }),
     selector: "main, #root",
     expectedText: "숙소",
   },
-];
+  dynamicRouteFromEnv({
+    name: "reservation-detail",
+    pathTemplate: "/reservations/:reservationUid",
+    envName: "AIRBOB_SMOKE_RESERVATION_UID",
+    paramName: "reservationUid",
+    selector: "main, #root",
+    expectedText: "예약",
+  }),
+  dynamicRouteFromEnv({
+    name: "host-reservation-detail",
+    pathTemplate: "/profile/host/reservations/:reservationUid",
+    envName: "AIRBOB_SMOKE_HOST_RESERVATION_UID",
+    paramName: "reservationUid",
+    selector: "main, #root",
+    expectedText: "예약",
+  }),
+].filter(Boolean);
+
+const skippedDynamicRouteLines = skippedDynamicRoutes.map(
+  ({ name, pathTemplate, envName }) =>
+    `- ${name} (${pathTemplate}): skipped; set ${envName} to cover this route.`
+);
+
+if (skippedDynamicRoutes.length > 0) {
+  console.warn(
+    `Skipped dynamic smoke routes: ${skippedDynamicRoutes
+      .map(({ name, envName }) => `${name} (set ${envName})`)
+      .join(", ")}`
+  );
+}
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -216,6 +296,7 @@ for (const viewport of VIEWPORTS) {
     screenshotEntries.push({
       viewport: viewport.name,
       size: viewport.size,
+      routeName: route.name,
       route: route.path,
       screenshotPath,
     });
@@ -308,13 +389,20 @@ const report = [
   `- Browse command: ${redact(browseBin)} chain`,
   `- Credential inputs: AIRBOB_QA_EMAIL and AIRBOB_QA_PASSWORD were supplied via environment variables and redacted from wrapper output.`,
   `- Edit accommodation id source: AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID or fallback ${editAccommodationId}`,
+  `- Accommodation detail id source: AIRBOB_SMOKE_ACCOMMODATION_ID or edit-id fallback ${accommodationId}`,
   "",
   "## Route Coverage",
   "",
   ...screenshotEntries.map(
     (entry) =>
-      `- ${entry.viewport} ${entry.size} ${entry.route} -> ${entry.screenshotPath}`
+      `- ${entry.viewport} ${entry.size} ${entry.routeName} ${entry.route} -> ${entry.screenshotPath}`
   ),
+  "",
+  "## Skipped Dynamic Routes",
+  "",
+  ...(skippedDynamicRouteLines.length > 0
+    ? skippedDynamicRouteLines
+    : ["- none"]),
   "",
   "## Process Result",
   "",

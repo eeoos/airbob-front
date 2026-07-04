@@ -12,6 +12,8 @@ Airbnb 디자인 리팩터 전에 프론트엔드 아키텍처 변경이 주요 
 
 ## 자동화 실행
 
+`npm run verify:design-ready`는 정적 pre-redesign gate와 frontend smoke gate를 순서대로 실행한다. 정적 gate만 확인할 때는 `npm run verify:pre-redesign`, 브라우저 smoke만 확인할 때는 `npm run smoke:frontend`를 사용한다.
+
 `npm run smoke:frontend`은 `scripts/smoke/frontend-smoke.mjs`를 실행해 gstack browse로 데스크톱 `1280x720`과 모바일 `375x812` 라우트 스모크를 수행한다. 스크립트는 자격 증명 값을 출력하지 않고, 리포트와 스크린샷을 `.gstack/qa-reports` 아래에 남긴다.
 
 | 환경 변수 | 필수 여부 | 값 |
@@ -20,7 +22,10 @@ Airbnb 디자인 리팩터 전에 프론트엔드 아키텍처 변경이 주요 
 | `AIRBOB_QA_PASSWORD` | 필수 | `[provided out-of-band]` |
 | `GSTACK_BROWSE_BIN` | 필수 | `/absolute/path/to/browse` |
 | `AIRBOB_FRONTEND_URL` | 선택 | `http://localhost:3000` 기본값 |
+| `AIRBOB_SMOKE_ACCOMMODATION_ID` | 선택 | accommodation detail 전용 ID. 없으면 edit ID fallback 사용 |
 | `AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID` | 선택 | `3` 기본값 |
+| `AIRBOB_SMOKE_RESERVATION_UID` | 선택 | 제공하면 guest reservation detail route를 smoke 한다 |
+| `AIRBOB_SMOKE_HOST_RESERVATION_UID` | 선택 | 제공하면 host reservation detail route를 smoke 한다 |
 
 ```bash
 read -r AIRBOB_QA_EMAIL
@@ -36,12 +41,15 @@ npm run smoke:frontend
 
 자동화 라우트 커버리지:
 
-- `/`
-- `/search?destination=Seoul&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`
-- `/wishlist`
-- `/wishlist?view=recently-viewed`
-- `/profile?mode=host&tab=listings`
-- `/accommodations/:id/edit` (`AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID` 값 또는 기본값 `3`)
+- `home`: `/`
+- `search-seoul`: `/search?destination=Seoul&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`
+- `wishlist`: `/wishlist`
+- `wishlist-recently-viewed`: `/wishlist?view=recently-viewed`
+- `profile-host-listings`: `/profile?mode=host&tab=listings`
+- `accommodation-detail`: `/accommodations/:id` (`AIRBOB_SMOKE_ACCOMMODATION_ID` 값 또는 edit ID fallback)
+- `accommodation-edit`: `/accommodations/:id/edit` (`AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID` 값 또는 기본값 `3`)
+- `reservation-detail`: `/reservations/:reservationUid` (`AIRBOB_SMOKE_RESERVATION_UID` 제공 시)
+- `host-reservation-detail`: `/profile/host/reservations/:reservationUid` (`AIRBOB_SMOKE_HOST_RESERVATION_UID` 제공 시)
 
 ## Architecture Checkpoints
 
@@ -111,12 +119,11 @@ npm run smoke:frontend
 
 - 목적: Airbnb 스타일 redesign 전에 라우트가 단순 load 되는지만 보지 않고, 각 route shell 이 lazy chunk 렌더링 후 기대하는 핵심 visible text 를 렌더링하는지 확인한다.
 - Static gate command: `npm run verify:pre-redesign`
-- Static gate status: PASS in final verification. See `2026-07-04 KST Redesign Readiness Final Verification`.
+- Combined gate command: `npm run verify:design-ready`
 - Wrapper validation command: `env -u AIRBOB_QA_EMAIL -u AIRBOB_QA_PASSWORD -u GSTACK_BROWSE_BIN node scripts/smoke/frontend-smoke.mjs`
 - Wrapper validation expected status: exit 1, missing environment variable names only, no credential values.
 - Browser smoke command: `npm run smoke:frontend`
-- Browser smoke status: PASS in final verification.
-- Smoke report evidence: `.gstack/qa-reports/frontend-smoke-2026-07-04T09-54-13-980Z.md`.
+- Smoke report evidence: each run writes `.gstack/qa-reports/frontend-smoke-<timestamp>.md`; attach the latest generated path when recording a run.
 
 ### Route-specific assertions
 
@@ -125,7 +132,16 @@ npm run smoke:frontend
 - `/wishlist`: `main, #root` contains `위시리스트`.
 - `/wishlist?view=recently-viewed`: `main, #root` contains `최근`.
 - `/profile?mode=host&tab=listings`: `main, #root` contains `호스트`.
+- `/accommodations/:id`: `main, #root` contains `숙소`.
 - `/accommodations/:id/edit`: `main, #root` contains `숙소`.
+- `/reservations/:reservationUid`: `main, #root` contains `예약` when `AIRBOB_SMOKE_RESERVATION_UID` is supplied.
+- `/profile/host/reservations/:reservationUid`: `main, #root` contains `예약` when `AIRBOB_SMOKE_HOST_RESERVATION_UID` is supplied.
+
+### Skipped Dynamic Routes
+
+- If `AIRBOB_SMOKE_RESERVATION_UID` is not supplied, `reservation-detail` is skipped and the generated smoke report lists the skipped route and required env name.
+- If `AIRBOB_SMOKE_HOST_RESERVATION_UID` is not supplied, `host-reservation-detail` is skipped and the generated smoke report lists the skipped route and required env name.
+- Skipped dynamic routes are not counted as tested route coverage.
 
 ### Output guards
 
@@ -133,123 +149,3 @@ npm run smoke:frontend
 - Route loop clears console/network state before each navigation.
 - Route assertions poll for rendered root text and route-specific expected text before screenshots.
 - Redacted browser output containing console errors/warnings, browse `[js] ERROR`/`ERROR: evaluate` output, or API 4xx/5xx network failures fails the wrapper.
-
-## 2026-07-04 KST Redesign Readiness Final Verification
-
-- `git diff --check`: PASS.
-- `npm run typecheck`: PASS.
-- `npm run test:ci:no-cache -- --runInBand`: PASS, 128 suites / 588 tests.
-- `npm run build`: PASS. Existing `baseline-browser-mapping` and `caniuse-lite` freshness warnings remain.
-- Reviewer-fix focused suite: PASS, 4 suites / 63 tests.
-- `node --check scripts/smoke/frontend-smoke.mjs`: PASS.
-- `npm run test:ci:no-cache -- --runTestsByPath src/verification-gate.test.ts --runInBand`: PASS, 1 suite / 4 tests.
-- `npm run smoke:frontend`: PASS. Report: `.gstack/qa-reports/frontend-smoke-2026-07-04T09-54-13-980Z.md`.
-- Smoke process result: exit status `0`, output guard failures `none`.
-- QA credential value scan across docs, scripts, source, package metadata, and `.gstack/qa-reports`: PASS. A historical local QA report from 2026-07-02 was redacted.
-
-### Final Smoke Screenshots
-
-- desktop `1280x720` `/`: `.gstack/qa-reports/screenshots/frontend-smoke-2026-07-04T09-54-13-980Z-desktop-home.png`
-- desktop `1280x720` `/search?destination=Seoul&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`: `.gstack/qa-reports/screenshots/frontend-smoke-2026-07-04T09-54-13-980Z-desktop-search-seoul.png`
-- desktop `1280x720` `/wishlist`: `.gstack/qa-reports/screenshots/frontend-smoke-2026-07-04T09-54-13-980Z-desktop-wishlist.png`
-- desktop `1280x720` `/wishlist?view=recently-viewed`: `.gstack/qa-reports/screenshots/frontend-smoke-2026-07-04T09-54-13-980Z-desktop-wishlist-recently-viewed.png`
-- desktop `1280x720` `/profile?mode=host&tab=listings`: `.gstack/qa-reports/screenshots/frontend-smoke-2026-07-04T09-54-13-980Z-desktop-profile-host-listings.png`
-- desktop `1280x720` `/accommodations/3/edit`: `.gstack/qa-reports/screenshots/frontend-smoke-2026-07-04T09-54-13-980Z-desktop-accommodation-edit.png`
-- mobile `375x812` `/`: `.gstack/qa-reports/screenshots/frontend-smoke-2026-07-04T09-54-13-980Z-mobile-home.png`
-- mobile `375x812` `/search?destination=Seoul&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`: `.gstack/qa-reports/screenshots/frontend-smoke-2026-07-04T09-54-13-980Z-mobile-search-seoul.png`
-- mobile `375x812` `/wishlist`: `.gstack/qa-reports/screenshots/frontend-smoke-2026-07-04T09-54-13-980Z-mobile-wishlist.png`
-- mobile `375x812` `/wishlist?view=recently-viewed`: `.gstack/qa-reports/screenshots/frontend-smoke-2026-07-04T09-54-13-980Z-mobile-wishlist-recently-viewed.png`
-- mobile `375x812` `/profile?mode=host&tab=listings`: `.gstack/qa-reports/screenshots/frontend-smoke-2026-07-04T09-54-13-980Z-mobile-profile-host-listings.png`
-- mobile `375x812` `/accommodations/3/edit`: `.gstack/qa-reports/screenshots/frontend-smoke-2026-07-04T09-54-13-980Z-mobile-accommodation-edit.png`
-
-## 2026-07-04 KST 구조 리팩터 스모크 결과 (Pre-Task7/Stale)
-
-이 섹션은 현재 Task 7 `scripts/smoke/frontend-smoke.mjs` 강화 이전의 과거 증거다. 현재 smoke PASS 로 해석하지 않는다. 최신 full browser smoke 결과는 위 `2026-07-04 KST Redesign Readiness Final Verification` 섹션을 기준으로 본다.
-
-- Frontend: `http://localhost:3000`
-- Backend: `http://localhost:8080`
-- Browser QA: gstack browse, authenticated with the thread-provided QA account. 자격 증명 값은 기록하지 않는다.
-- Static verification: `npm run typecheck`, `npm run test:ci:no-cache -- --runInBand`, `npm run build`, `git diff --check` 통과.
-- Known tooling warnings: `baseline-browser-mapping` and `caniuse-lite` freshness warnings only. Build/test failure는 아니다.
-
-### 확인한 흐름
-
-- Home unauthenticated load:
-  - Result: page loaded.
-  - Note: initial `/api/v1/auth/me` returned 401 and logged session-expired warning before login. 비로그인 세션 확인 동작으로 분류.
-  - Screenshot: `.gstack/qa-reports/screenshots/airbob-home-initial.png`
-
-- Auth modal login:
-  - Result: login modal opened, QA account login completed, header switched to authenticated state.
-  - Screenshot: `.gstack/qa-reports/screenshots/airbob-login-success.png`
-
-- Search route:
-  - URL: `/search?destination=Seoul&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1&page=1`
-  - Result: route loaded, auth/me 200, search API 200, Google map loaded, no new console errors.
-  - Note: app normalized URL by dropping `page=1`.
-  - Screenshot: `.gstack/qa-reports/screenshots/airbob-search-results.png`
-
-- Search route with Albany fixture:
-  - URL: `/search?destination=Albany&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1&page=1`
-  - Result: route loaded, search API 200, no new console errors.
-  - Limitation: current backend response was empty, so search result card rendering was not browser-verified in this pass.
-  - Screenshot: `.gstack/qa-reports/screenshots/airbob-search-results-albany.png`
-
-- Wishlist index:
-  - URL: `/wishlist`
-  - Result: recently viewed and wishlist lists loaded with API 200 responses, no console errors.
-  - Screenshot: `.gstack/qa-reports/screenshots/airbob-wishlist-index.png`
-
-- Wishlist detail:
-  - URL after click: `/wishlist?id=1001`
-  - Result: detail query loaded with API 200, cards and memo controls rendered, no console errors.
-  - Screenshot: `.gstack/qa-reports/screenshots/airbob-wishlist-detail.png`
-
-- Wishlist recently viewed:
-  - URL: `/wishlist?view=recently-viewed`
-  - Result: recently viewed query and wishlist lists loaded with API 200 responses, no console errors.
-  - Screenshot: `.gstack/qa-reports/screenshots/airbob-wishlist-recent.png`
-
-- Profile host listings:
-  - URL: `/profile?mode=host&tab=listings`
-  - Result: host listings query loaded with API 200, published listings rendered, no console errors.
-  - Screenshot: `.gstack/qa-reports/screenshots/airbob-profile-host-listings.png`
-
-- Accommodation edit:
-  - URL after host listing edit action: `/accommodations/3/edit`
-  - Result: edit page chunk loaded, accommodation detail API 200, wizard shell rendered, no console errors.
-  - Screenshot: `.gstack/qa-reports/screenshots/airbob-accommodation-edit.png`
-
-## 2026-07-04 KST 최종 안정화 검증 (Pre-Task7/Stale)
-
-이 섹션은 현재 Task 7 smoke wrapper guard 강화 이전의 과거 증거다. 아래 PASS 항목은 historical result 이며, 현재 smoke script 에 대한 full browser smoke PASS 는 위 `2026-07-04 KST Redesign Readiness Final Verification` 섹션을 기준으로 본다.
-
-- Frontend: `http://localhost:3000`
-- Backend: `http://localhost:8080`
-- Browser QA: `npm run smoke:frontend`, gstack browse, thread-provided QA account via environment variables only. 자격 증명 값은 기록하지 않는다.
-- Smoke report: `.gstack/qa-reports/frontend-smoke-2026-07-04T05-26-37-958Z.md`
-- Historical result: PASS before the current Task 7 smoke wrapper guard update. Current full browser smoke PASS is pending rerun.
-
-### Commands
-
-- `git diff --check`: PASS
-- `npm run typecheck`: PASS
-- `npm run test:ci:no-cache -- --runInBand`: PASS, 128 suites / 566 tests.
-- `npm run test:ci:no-cache -- --runTestsByPath src/contexts/AuthContext.test.tsx src/features/reservations/lib/paymentRouteState.test.ts src/features/search/hooks/useSearchBarState.test.tsx src/features/search/lib/searchParams.test.ts src/features/wishlist/hooks/useWishlistData.test.ts src/styles/tokens.test.ts src/styles/design-system-contracts.test.ts --runInBand`: PASS, 7 suites / 79 tests.
-- `npm run build`: PASS, `Compiled successfully.` Existing `baseline-browser-mapping` and `caniuse-lite` freshness warnings remain.
-- `npm run smoke:frontend`: PASS.
-
-### Browser Smoke Coverage
-
-- desktop `1280x720` `/`: `.gstack/qa-reports/screenshots/frontend-smoke-2026-07-04T05-26-37-958Z-desktop-home.png`
-- desktop `1280x720` `/search?destination=Seoul&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`: `.gstack/qa-reports/screenshots/frontend-smoke-2026-07-04T05-26-37-958Z-desktop-search-seoul.png`
-- desktop `1280x720` `/wishlist`: `.gstack/qa-reports/screenshots/frontend-smoke-2026-07-04T05-26-37-958Z-desktop-wishlist.png`
-- desktop `1280x720` `/wishlist?view=recently-viewed`: `.gstack/qa-reports/screenshots/frontend-smoke-2026-07-04T05-26-37-958Z-desktop-wishlist-recently-viewed.png`
-- desktop `1280x720` `/profile?mode=host&tab=listings`: `.gstack/qa-reports/screenshots/frontend-smoke-2026-07-04T05-26-37-958Z-desktop-profile-host-listings.png`
-- desktop `1280x720` `/accommodations/3/edit`: `.gstack/qa-reports/screenshots/frontend-smoke-2026-07-04T05-26-37-958Z-desktop-accommodation-edit.png`
-- mobile `375x812` `/`: `.gstack/qa-reports/screenshots/frontend-smoke-2026-07-04T05-26-37-958Z-mobile-home.png`
-- mobile `375x812` `/search?destination=Seoul&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`: `.gstack/qa-reports/screenshots/frontend-smoke-2026-07-04T05-26-37-958Z-mobile-search-seoul.png`
-- mobile `375x812` `/wishlist`: `.gstack/qa-reports/screenshots/frontend-smoke-2026-07-04T05-26-37-958Z-mobile-wishlist.png`
-- mobile `375x812` `/wishlist?view=recently-viewed`: `.gstack/qa-reports/screenshots/frontend-smoke-2026-07-04T05-26-37-958Z-mobile-wishlist-recently-viewed.png`
-- mobile `375x812` `/profile?mode=host&tab=listings`: `.gstack/qa-reports/screenshots/frontend-smoke-2026-07-04T05-26-37-958Z-mobile-profile-host-listings.png`
-- mobile `375x812` `/accommodations/3/edit`: `.gstack/qa-reports/screenshots/frontend-smoke-2026-07-04T05-26-37-958Z-mobile-accommodation-edit.png`
