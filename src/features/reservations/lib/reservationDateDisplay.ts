@@ -1,6 +1,11 @@
+const getDateOnlyParts = (dateString: string) => {
+  const [year, month, day] = dateString.split("-").map(Number);
+  return { year, month, day };
+};
+
 export const formatKoreanDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
+  const { year, month, day } = getDateOnlyParts(dateString);
+  return `${year}년 ${month}월 ${day}일`;
 };
 
 export const formatKoreanDateTime = (dateString: string): string =>

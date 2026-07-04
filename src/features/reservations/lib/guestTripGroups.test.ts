@@ -33,6 +33,20 @@ describe("guest trip display helpers", () => {
     ]);
   });
 
+  it("groups trips by literal check-in year for date-only boundaries", () => {
+    const groups = groupGuestTripsByYear([
+      makeTrip(1, "2026-01-01", "2026-01-02"),
+      makeTrip(2, "2026-12-31", "2027-01-01"),
+      makeTrip(3, "2027-01-01", "2027-01-02"),
+    ]);
+
+    expect(groups.map((group) => group.year)).toEqual([2027, 2026]);
+    expect(groups[1].reservations.map((trip) => trip.reservation_uid)).toEqual([
+      "guest-1",
+      "guest-2",
+    ]);
+  });
+
   it("formats same-month, same-year, and cross-year date ranges", () => {
     expect(formatGuestTripDateRange("2026-07-10", "2026-07-12")).toBe(
       "2026년 7월 10일 ~ 12일"
@@ -42,6 +56,15 @@ describe("guest trip display helpers", () => {
     );
     expect(formatGuestTripDateRange("2026-12-31", "2027-01-02")).toBe(
       "2026년 12월 31일 ~ 2027년 1월 2일"
+    );
+  });
+
+  it("formats date-only boundary ranges from literal calendar parts", () => {
+    expect(formatGuestTripDateRange("2026-01-01", "2026-01-02")).toBe(
+      "2026년 1월 1일 ~ 2일"
+    );
+    expect(formatGuestTripDateRange("2026-12-31", "2027-01-01")).toBe(
+      "2026년 12월 31일 ~ 2027년 1월 1일"
     );
   });
 });

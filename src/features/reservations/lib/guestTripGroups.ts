@@ -5,12 +5,17 @@ export interface GuestTripsYearGroup {
   reservations: MyReservationInfo[];
 }
 
+const getDateOnlyParts = (dateString: string) => {
+  const [year, month, day] = dateString.split("-").map(Number);
+  return { year, month, day };
+};
+
 export const groupGuestTripsByYear = (
   reservations: MyReservationInfo[]
 ): GuestTripsYearGroup[] => {
   const grouped = reservations.reduce<Record<number, MyReservationInfo[]>>(
     (groups, reservation) => {
-      const year = new Date(reservation.check_in_date).getFullYear();
+      const { year } = getDateOnlyParts(reservation.check_in_date);
       return {
         ...groups,
         [year]: [...(groups[year] ?? []), reservation],
@@ -29,14 +34,8 @@ export const formatGuestTripDateRange = (
   checkIn: string,
   checkOut: string
 ): string => {
-  const checkInDate = new Date(checkIn);
-  const checkOutDate = new Date(checkOut);
-  const checkInYear = checkInDate.getFullYear();
-  const checkOutYear = checkOutDate.getFullYear();
-  const checkInMonth = checkInDate.getMonth() + 1;
-  const checkOutMonth = checkOutDate.getMonth() + 1;
-  const checkInDay = checkInDate.getDate();
-  const checkOutDay = checkOutDate.getDate();
+  const { year: checkInYear, month: checkInMonth, day: checkInDay } = getDateOnlyParts(checkIn);
+  const { year: checkOutYear, month: checkOutMonth, day: checkOutDay } = getDateOnlyParts(checkOut);
 
   if (checkInYear === checkOutYear && checkInMonth === checkOutMonth) {
     return `${checkInYear}년 ${checkInMonth}월 ${checkInDay}일 ~ ${checkOutDay}일`;
