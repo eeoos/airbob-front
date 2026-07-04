@@ -23,7 +23,7 @@ const BANK_NAMES: Record<string, string> = {
   "92": "토스뱅크",
 };
 
-const PAYMENT_STATUS_LABELS: Record<string, string> = {
+const PAYMENT_STATUS_LABELS: Partial<Record<PaymentStatus, string>> = {
   [PaymentStatus.READY]: "결제 대기",
   [PaymentStatus.IN_PROGRESS]: "결제 진행 중",
   [PaymentStatus.WAITING_FOR_DEPOSIT]: "입금 대기",
@@ -31,6 +31,9 @@ const PAYMENT_STATUS_LABELS: Record<string, string> = {
   [PaymentStatus.CANCELED]: "결제 취소",
   [PaymentStatus.EXPIRED]: "결제 만료",
 };
+
+const isPaymentStatus = (status: string): status is PaymentStatus =>
+  Object.values(PaymentStatus).includes(status as PaymentStatus);
 
 const isCheckoutCompleted = (
   checkOutDateTime: string,
@@ -69,8 +72,12 @@ export const formatBankName = (bankCode?: string | null) => {
   return BANK_NAMES[bankCode] ?? `은행코드 ${bankCode}`;
 };
 
-export const formatPaymentStatus = (status?: string | null) => {
+export const formatPaymentStatus = (
+  status?: PaymentStatus | string | null,
+) => {
   if (!status) return "-";
+  if (!isPaymentStatus(status)) return status;
+
   return PAYMENT_STATUS_LABELS[status] ?? status;
 };
 
