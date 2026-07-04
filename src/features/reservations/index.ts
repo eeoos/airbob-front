@@ -5,6 +5,7 @@ export { HostReservationsPanel } from "./HostReservationsPanel";
 export type { HostReservationsPanelProps } from "./HostReservationsPanel";
 export { PaymentFailRoute } from "./PaymentFailRoute";
 export { PaymentSuccessRoute } from "./PaymentSuccessRoute";
+export { ReservationConfirmRoute } from "./ReservationConfirmRoute";
 export { ReservationDetailRoute } from "./ReservationDetailRoute";
 export {
   useGuestTrips,
