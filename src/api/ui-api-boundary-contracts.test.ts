@@ -1,12 +1,27 @@
 import * as fs from "fs";
 import * as path from "path";
 
-const productionUiRoots = ["pages", "components"];
+const productionUiRoots = [
+  "pages",
+  "components",
+  "layouts",
+  "features/accommodations/components",
+  "features/auth/components",
+  "features/profile/components",
+  "features/reservations/components",
+  "features/reviews/components",
+  "features/search/components",
+  "features/wishlist/components",
+];
 const productionSourceExtensions = [".ts", ".tsx"];
 const directApiImportPattern =
   /from\s+["'](?:\.\.\/)+(?:api|api\/[^"']*)["']/;
 
 const collectProductionUiFiles = (directory: string): string[] => {
+  if (!fs.existsSync(directory)) {
+    return [];
+  }
+
   const entries = fs.readdirSync(directory, { withFileTypes: true });
 
   return entries.flatMap((entry) => {
@@ -28,7 +43,7 @@ const collectProductionUiFiles = (directory: string): string[] => {
 };
 
 describe("production UI API boundaries", () => {
-  it("keeps pages and components behind feature hooks instead of direct API imports", () => {
+  it("keeps production UI behind feature hooks instead of direct API imports", () => {
     const sourceRoot = path.resolve(__dirname, "..");
     const violations = productionUiRoots.flatMap((root) =>
       collectProductionUiFiles(path.join(sourceRoot, root))

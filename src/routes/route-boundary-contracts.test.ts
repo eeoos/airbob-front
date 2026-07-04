@@ -2,10 +2,13 @@ import { readFileSync, readdirSync } from "fs";
 import { join, relative } from "path";
 
 const routesRoot = join(process.cwd(), "src/routes");
+const featuresRoot = join(process.cwd(), "src/features");
 const projectRoot = process.cwd();
 const sourceExtensions = [".ts", ".tsx"];
 const forbiddenFeatureImportPattern =
   /from\s+["'](?:\.\.\/)+(?:features)(?:\/[^"']*)?["']/;
+const forbiddenPageImportPattern =
+  /from\s+["'](?:\.\.\/)+pages(?:\/[^"']*)?["']/;
 const featureRouteAdapters = [
   {
     page: "src/pages/Search/Search.tsx",
@@ -55,6 +58,16 @@ describe("route boundary contracts", () => {
     const violations = collectSourceFiles(routesRoot)
       .filter((filePath) =>
         forbiddenFeatureImportPattern.test(readFileSync(filePath, "utf8"))
+      )
+      .map((filePath) => relative(projectRoot, filePath));
+
+    expect(violations).toEqual([]);
+  });
+
+  it("keeps feature modules from importing page modules", () => {
+    const violations = collectSourceFiles(featuresRoot)
+      .filter((filePath) =>
+        forbiddenPageImportPattern.test(readFileSync(filePath, "utf8"))
       )
       .map((filePath) => relative(projectRoot, filePath));
 
