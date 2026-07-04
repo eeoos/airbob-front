@@ -4,7 +4,14 @@ import Profile from "./Profile";
 
 const mockSetSearchParams = jest.fn();
 let mockSearchParams = new URLSearchParams("");
-const mockProfileRoute = jest.fn(() => <div data-testid="profile-route" />);
+interface MockProfileRouteProps {
+  searchParams: URLSearchParams;
+  setSearchParams: typeof mockSetSearchParams;
+}
+
+const mockProfileRoute = jest.fn(
+  (_props: MockProfileRouteProps) => <div data-testid="profile-route" />,
+);
 
 jest.mock(
   "react-router-dom",
@@ -15,7 +22,7 @@ jest.mock(
 );
 
 jest.mock("../../features/profile", () => ({
-  ProfileRoute: (props: unknown) => mockProfileRoute(props),
+  ProfileRoute: (props: MockProfileRouteProps) => mockProfileRoute(props),
 }));
 
 describe("Profile route state integration", () => {
