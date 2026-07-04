@@ -41,6 +41,14 @@ const PaymentSuccess: React.FC = () => {
 
     if (!result) return;
 
+    if (result.status === "failed" && result.retryable) {
+      navigate(
+        routeTo.paymentFail(reservationUid, { reason: "confirm-failed" }),
+        { replace: true }
+      );
+      return;
+    }
+
     try {
       clearReservationCheckoutStateByReservationUid(reservationUid);
     } catch {
@@ -52,7 +60,10 @@ const PaymentSuccess: React.FC = () => {
       return;
     }
 
-    navigate(routeTo.paymentFail(reservationUid), { replace: true });
+    navigate(
+      routeTo.paymentFail(reservationUid, { reason: "invalid-callback" }),
+      { replace: true }
+    );
   }, [confirmationResult, isPaymentQueryIncomplete, reservationUid, navigate]);
 
   // 로딩 화면 표시 (리다이렉트 중)

@@ -91,7 +91,7 @@ describe("PaymentSuccess", () => {
     });
   });
 
-  it("routes malformed payment confirmation results to the failure page", async () => {
+  it("routes malformed payment confirmation results to the invalid callback failure page", async () => {
     mockSearchParams = new URLSearchParams({
       amount: "120000x",
       orderId: "reservation-123",
@@ -111,34 +111,33 @@ describe("PaymentSuccess", () => {
         "reservation-123"
       );
       expect(mockNavigate).toHaveBeenCalledWith(
-        "/reservations/reservation-123/fail",
+        "/reservations/reservation-123/fail?reason=invalid-callback",
         { replace: true }
       );
     });
   });
 
-  it("routes failed payment confirmation to the failure page", async () => {
+  it("preserves checkout state and routes retryable confirmation failures to the confirm failed page", async () => {
     mockUsePaymentConfirmation.mockReturnValue({
       result: {
         error: new Error("confirm failed"),
         status: "failed",
+        retryable: true,
       },
     });
 
     render(<PaymentSuccess />);
 
     await waitFor(() => {
-      expect(mockClearReservationCheckoutStateByReservationUid).toHaveBeenCalledWith(
-        "reservation-123"
-      );
+      expect(mockClearReservationCheckoutStateByReservationUid).not.toHaveBeenCalled();
       expect(mockNavigate).toHaveBeenCalledWith(
-        "/reservations/reservation-123/fail",
+        "/reservations/reservation-123/fail?reason=confirm-failed",
         { replace: true }
       );
     });
   });
 
-  it("routes skipped payment confirmation to the failure page", async () => {
+  it("routes skipped payment confirmation to the invalid callback failure page", async () => {
     mockUsePaymentConfirmation.mockReturnValue({
       result: {
         error: null,
@@ -153,7 +152,7 @@ describe("PaymentSuccess", () => {
         "reservation-123"
       );
       expect(mockNavigate).toHaveBeenCalledWith(
-        "/reservations/reservation-123/fail",
+        "/reservations/reservation-123/fail?reason=invalid-callback",
         { replace: true }
       );
     });
@@ -182,7 +181,7 @@ describe("PaymentSuccess", () => {
         "reservation-123"
       );
       expect(mockNavigate).toHaveBeenCalledWith(
-        "/reservations/reservation-123/fail",
+        "/reservations/reservation-123/fail?reason=invalid-callback",
         { replace: true }
       );
     });
@@ -212,7 +211,7 @@ describe("PaymentSuccess", () => {
         "reservation-123"
       );
       expect(mockNavigate).toHaveBeenCalledWith(
-        "/reservations/reservation-123/fail",
+        "/reservations/reservation-123/fail?reason=invalid-callback",
         { replace: true }
       );
     });

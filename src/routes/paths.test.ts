@@ -41,6 +41,12 @@ describe("route path contracts", () => {
       "/reservations/rsv_123/success",
     );
     expect(routeTo.paymentFail("rsv_123")).toBe("/reservations/rsv_123/fail");
+    expect(routeTo.paymentFail("reservation-123", { reason: "confirm-failed" })).toBe(
+      "/reservations/reservation-123/fail?reason=confirm-failed",
+    );
+    expect(routeTo.paymentFail("reservation-123", { reason: "invalid-callback" })).toBe(
+      "/reservations/reservation-123/fail?reason=invalid-callback",
+    );
   });
 
   it("builds typed search query routes with current viewport keys", () => {
@@ -122,6 +128,8 @@ describe("route path contracts", () => {
     routeTo.accommodationConfirm(12, "memberId=999999");
     // @ts-expect-error accommodation confirm route queries must be typed objects.
     routeTo.accommodationConfirm(12, new URLSearchParams("checkIn=2026-07-10"));
+    // @ts-expect-error payment fail reason must stay aligned with supported recovery reasons.
+    routeTo.paymentFail("rsv_123", { reason: "declined" });
   });
 
   it("encodes dynamic path params for route builders", () => {

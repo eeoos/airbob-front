@@ -22,6 +22,8 @@ export type ProfileRouteTab =
   | ProfileGuestRouteTab
   | ProfileHostRouteTab;
 
+export type PaymentFailReason = "confirm-failed" | "invalid-callback";
+
 export const ROUTE_PATHS = {
   home: "/",
   search: "/search",
@@ -81,6 +83,9 @@ type ProfileRouteQuery =
       mode: "host";
       tab?: ProfileHostRouteTab;
     };
+type PaymentFailRouteQuery = {
+  reason?: PaymentFailReason;
+};
 
 const buildPath = (template: string, params: Record<string, RouteParamValue>) =>
   template.replace(/:([A-Za-z0-9_]+)/g, (_, key: string) =>
@@ -178,8 +183,10 @@ export const routeTo = {
     buildPath(ROUTE_PATHS.reviewCreate, { reservationUid }),
   paymentSuccess: (reservationUid: string) =>
     buildPath(ROUTE_PATHS.paymentSuccess, { reservationUid }),
-  paymentFail: (reservationUid: string) =>
-    buildPath(ROUTE_PATHS.paymentFail, { reservationUid }),
+  paymentFail: (reservationUid: string, query?: PaymentFailRouteQuery) =>
+    withQuery(buildPath(ROUTE_PATHS.paymentFail, { reservationUid }), {
+      reason: query?.reason,
+    }),
   login: () => ROUTE_PATHS.login,
   signup: () => ROUTE_PATHS.signup,
 };

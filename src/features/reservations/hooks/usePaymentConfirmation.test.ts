@@ -1,5 +1,6 @@
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { paymentApi } from "../../../api";
+import { resetPaymentConfirmationAttemptRegistryForTests } from "../lib/paymentConfirmationAttemptRegistry";
 import { usePaymentConfirmation } from "./usePaymentConfirmation";
 
 jest.mock("../../../api", () => ({
@@ -11,6 +12,8 @@ jest.mock("../../../api", () => ({
 describe("usePaymentConfirmation", () => {
   beforeEach(() => {
     jest.mocked(paymentApi.confirm).mockReset();
+    resetPaymentConfirmationAttemptRegistryForTests();
+    sessionStorage.clear();
   });
 
   it("confirms payment when all payment query values are present", async () => {
@@ -75,7 +78,7 @@ describe("usePaymentConfirmation", () => {
     });
   });
 
-  it("returns completion result even when confirmation fails", async () => {
+  it("returns a retryable failed result when confirmation fails", async () => {
     const error = new Error("confirm failed");
     jest.mocked(paymentApi.confirm).mockRejectedValue(error);
 
@@ -91,7 +94,43 @@ describe("usePaymentConfirmation", () => {
 
     expect(result.current.result).toEqual({
       status: "failed",
+      retryable: true,
       error,
+    });
+  });
+
+  it("shares duplicate in-flight confirmation attempts for the same payment values", async () => {
+    let resolveConfirm: () => void = () => undefined;
+    jest.mocked(paymentApi.confirm).mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveConfirm = resolve;
+        })
+    );
+    const paymentValues = {
+      amount: "120000",
+      orderId: "order-1",
+      paymentKey: "payment-key-1",
+    };
+
+    const first = renderHook(() => usePaymentConfirmation(paymentValues));
+    const duplicate = renderHook(() => usePaymentConfirmation(paymentValues));
+
+    expect(paymentApi.confirm).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveConfirm();
+    });
+
+    await waitFor(() => {
+      expect(first.result.current.result).toEqual({
+        status: "confirmed",
+        error: null,
+      });
+      expect(duplicate.result.current.result).toEqual({
+        status: "confirmed",
+        error: null,
+      });
     });
   });
 });

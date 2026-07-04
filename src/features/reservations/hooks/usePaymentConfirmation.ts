@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
 import { paymentApi } from "../../../api";
+import {
+  getPaymentConfirmationAttemptKey,
+  runPaymentConfirmationAttempt,
+} from "../lib/paymentConfirmationAttemptRegistry";
 
 export type PaymentConfirmationResult =
   | {
@@ -8,6 +12,7 @@ export type PaymentConfirmationResult =
     }
   | {
       error: unknown;
+      retryable: true;
       status: "failed";
     };
 
@@ -65,18 +70,26 @@ export function usePaymentConfirmation({
       }
 
       try {
-        await paymentApi.confirm({
-          payment_key: paymentKey,
-          order_id: orderId,
+        const attemptKey = getPaymentConfirmationAttemptKey({
           amount: parsedAmount,
+          orderId,
+          paymentKey,
         });
+
+        await runPaymentConfirmationAttempt(attemptKey, () =>
+          paymentApi.confirm({
+            payment_key: paymentKey,
+            order_id: orderId,
+            amount: parsedAmount,
+          })
+        );
 
         if (isActive) {
           setResult({ status: "confirmed", error: null });
         }
       } catch (err) {
         if (isActive) {
-          setResult({ status: "failed", error: err });
+          setResult({ status: "failed", retryable: true, error: err });
         }
       } finally {
         if (isActive) {
