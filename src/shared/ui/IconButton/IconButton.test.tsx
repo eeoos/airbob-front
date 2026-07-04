@@ -1,9 +1,23 @@
+import * as fs from "fs";
+import * as path from "path";
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { IconButton } from "./IconButton";
 
+const readProjectFile = (relativePath: string) =>
+  fs.readFileSync(path.join(process.cwd(), relativePath), "utf8");
+
 describe("IconButton", () => {
+  it("keeps the clickable box at the shared touch target size", () => {
+    const css = readProjectFile(
+      "src/shared/ui/IconButton/IconButton.module.css"
+    );
+
+    expect(css).toContain("min-width: var(--control-touch-target);");
+    expect(css).toContain("min-height: var(--control-touch-target);");
+  });
+
   it("uses label as the accessible name and default title", () => {
     render(<IconButton label="검색">⌕</IconButton>);
 

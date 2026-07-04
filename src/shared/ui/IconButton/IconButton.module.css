@@ -4,6 +4,8 @@
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
+  min-width: var(--control-touch-target);
+  min-height: var(--control-touch-target);
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
