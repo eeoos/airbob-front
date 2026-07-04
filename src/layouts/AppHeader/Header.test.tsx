@@ -33,7 +33,7 @@ jest.mock(
 );
 
 jest.mock("../../features/search/appShell", () => ({
-  ...jest.requireActual("../../features/search/lib/searchParams"),
+  ...jest.requireActual("../../features/search/appShell"),
   HeaderSearchBar: (props: { isMapDragMode?: boolean }) => {
     mockSearchBar(props);
     return <div data-testid="search-bar" />;
