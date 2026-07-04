@@ -172,7 +172,7 @@ const designTokenOwnedCssFiles = [
 ];
 
 const highRiskPreRedesignCssFiles = [
-  "src/pages/Reservations/ReservationDetail.module.css",
+  "src/features/reservations/ReservationDetailRoute.module.css",
   "src/pages/Reservations/ReservationConfirm.module.css",
   "src/pages/Reservations/ReviewCreate.module.css",
   "src/pages/Profile/Profile.module.css",
