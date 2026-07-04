@@ -66,6 +66,8 @@ const collectSourceFiles = (directory: string): string[] =>
 
 const allowedFeaturePageImports = new Set([
   join(projectRoot, "src/features/profile/components/ProfileShell.tsx"),
+  join(projectRoot, "src/features/reservations/PaymentFailRoute.tsx"),
+  join(projectRoot, "src/features/reservations/PaymentSuccessRoute.tsx"),
 ]);
 
 describe("route boundary contracts", () => {
@@ -142,6 +144,26 @@ describe("route boundary contracts", () => {
     expect(pageSource).toContain("HostReservationDetailRoute");
     expect(pageSource).not.toContain("useHostReservationDetail");
     expect(pageSource).not.toContain("formatReservationStatus");
+  });
+
+  it("keeps payment callback pages as adapters to reservation feature routes", () => {
+    const successSource = readFileSync(
+      join(process.cwd(), "src/pages/Reservations/PaymentSuccess.tsx"),
+      "utf8",
+    );
+    const failSource = readFileSync(
+      join(process.cwd(), "src/pages/Reservations/PaymentFail.tsx"),
+      "utf8",
+    );
+
+    expect(successSource).toContain("../../features/reservations");
+    expect(successSource).toContain("PaymentSuccessRoute");
+    expect(successSource).not.toContain("usePaymentConfirmation");
+    expect(failSource).toContain("../../features/reservations");
+    expect(failSource).toContain("PaymentFailRoute");
+    expect(failSource).not.toContain(
+      "clearReservationCheckoutStateByReservationUid",
+    );
   });
 
   it("keeps feature public route barrels from exporting workflow internals", () => {

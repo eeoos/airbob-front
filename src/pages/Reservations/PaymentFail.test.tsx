@@ -3,7 +3,7 @@ import { render } from "@testing-library/react";
 import PaymentFail from "./PaymentFail";
 
 const mockNavigate = jest.fn();
-const mockClearReservationCheckoutStateByReservationUid = jest.fn();
+const mockPaymentFailRoute = jest.fn((_props: unknown) => null);
 let mockReservationUid: string | undefined = "reservation-123";
 let mockSearchParams = new URLSearchParams();
 
@@ -13,42 +13,37 @@ jest.mock("react-router-dom", () => ({
   useSearchParams: () => [mockSearchParams],
 }), { virtual: true });
 
-jest.mock("../../features/reservations/lib/reservationCheckoutState", () => ({
-  clearReservationCheckoutStateByReservationUid: (reservationUid: string) =>
-    mockClearReservationCheckoutStateByReservationUid(reservationUid),
+jest.mock("../../features/reservations", () => ({
+  PaymentFailRoute: (props: unknown) => mockPaymentFailRoute(props),
 }));
 
 describe("PaymentFail", () => {
   beforeEach(() => {
     mockNavigate.mockReset();
-    mockClearReservationCheckoutStateByReservationUid.mockReset();
+    mockPaymentFailRoute.mockClear();
     mockReservationUid = "reservation-123";
     mockSearchParams = new URLSearchParams();
   });
 
-  it("clears checkout state when failure reason is missing", () => {
-    render(<PaymentFail />);
-
-    expect(mockClearReservationCheckoutStateByReservationUid).toHaveBeenCalledWith(
-      "reservation-123"
-    );
-  });
-
-  it("keeps checkout state when confirmation failed retryably", () => {
+  it("passes router primitives to the payment failure feature route", () => {
     mockSearchParams = new URLSearchParams("reason=confirm-failed");
 
     render(<PaymentFail />);
 
-    expect(mockClearReservationCheckoutStateByReservationUid).not.toHaveBeenCalled();
+    expect(mockPaymentFailRoute).toHaveBeenCalledWith({
+      navigate: mockNavigate,
+      reason: "confirm-failed",
+      reservationUid: "reservation-123",
+    });
   });
 
-  it("clears checkout state when the callback was invalid", () => {
-    mockSearchParams = new URLSearchParams("reason=invalid-callback");
-
+  it("passes undefined reason when no failure reason is present", () => {
     render(<PaymentFail />);
 
-    expect(mockClearReservationCheckoutStateByReservationUid).toHaveBeenCalledWith(
-      "reservation-123"
-    );
+    expect(mockPaymentFailRoute).toHaveBeenCalledWith({
+      navigate: mockNavigate,
+      reason: undefined,
+      reservationUid: "reservation-123",
+    });
   });
 });

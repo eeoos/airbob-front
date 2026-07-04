@@ -3,6 +3,8 @@ export type { GuestTripsPanelProps } from "./GuestTripsPanel";
 export { HostReservationDetailRoute } from "./HostReservationDetailRoute";
 export { HostReservationsPanel } from "./HostReservationsPanel";
 export type { HostReservationsPanelProps } from "./HostReservationsPanel";
+export { PaymentFailRoute } from "./PaymentFailRoute";
+export { PaymentSuccessRoute } from "./PaymentSuccessRoute";
 export {
   useGuestTrips,
   useHostReservationDetail,
