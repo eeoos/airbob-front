@@ -46,6 +46,47 @@ const featureRouteAdapters = [
     routeContainer: "ProfileRoute",
     forbiddenDeepImportPattern: /features\/profile\/(?:components|hooks|lib)\//,
   },
+  {
+    page: "src/pages/Profile/HostReservationDetail/HostReservationDetail.tsx",
+    publicImport: "../../../features/reservations",
+    routeContainer: "HostReservationDetailRoute",
+    forbiddenDeepImportPattern:
+      /features\/reservations\/(?:components|hooks|lib)\//,
+  },
+  {
+    page: "src/pages/Reservations/PaymentSuccess.tsx",
+    publicImport: "../../features/reservations",
+    routeContainer: "PaymentSuccessRoute",
+    forbiddenDeepImportPattern:
+      /features\/reservations\/(?:components|hooks|lib)\//,
+  },
+  {
+    page: "src/pages/Reservations/PaymentFail.tsx",
+    publicImport: "../../features/reservations",
+    routeContainer: "PaymentFailRoute",
+    forbiddenDeepImportPattern:
+      /features\/reservations\/(?:components|hooks|lib)\//,
+  },
+  {
+    page: "src/pages/Reservations/ReservationDetail.tsx",
+    publicImport: "../../features/reservations",
+    routeContainer: "ReservationDetailRoute",
+    forbiddenDeepImportPattern:
+      /features\/reservations\/(?:components|hooks|lib)\//,
+  },
+  {
+    page: "src/pages/Reservations/ReservationConfirm.tsx",
+    publicImport: "../../features/reservations",
+    routeContainer: "ReservationConfirmRoute",
+    forbiddenDeepImportPattern:
+      /features\/reservations\/(?:components|hooks|lib)\//,
+  },
+  {
+    page: "src/pages/Reservations/ReviewCreate.tsx",
+    publicImport: "../../features/reviews",
+    routeContainer: "ReviewCreateRoute",
+    forbiddenDeepImportPattern: /features\/reviews\/(?:components|hooks|lib)\//,
+  },
 ] as const;
 
 const collectSourceFiles = (directory: string): string[] =>
