@@ -24,7 +24,22 @@ describe("useReviewImageSelection", () => {
     });
 
     expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:review-image");
+    expect(URL.revokeObjectURL).toHaveBeenCalledTimes(1);
 
     unmount();
+    expect(URL.revokeObjectURL).toHaveBeenCalledTimes(1);
+  });
+
+  it("revokes active preview URLs on unmount", () => {
+    const { result, unmount } = renderHook(() => useReviewImageSelection());
+
+    act(() => {
+      result.current.addFiles([file]);
+    });
+
+    unmount();
+
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:review-image");
+    expect(URL.revokeObjectURL).toHaveBeenCalledTimes(1);
   });
 });

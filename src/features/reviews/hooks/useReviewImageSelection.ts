@@ -49,5 +49,5 @@ export const useReviewImageSelection = () => {
     [],
   );
 
-  return { addFiles, images, removeImage, setImages };
+  return { addFiles, images, removeImage };
 };

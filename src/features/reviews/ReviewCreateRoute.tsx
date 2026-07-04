@@ -42,36 +42,39 @@ export const ReviewCreateRoute: React.FC<ReviewCreateRouteProps> = ({
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    const maxSize = 10 * 1024 * 1024;
-    const validFiles = files.filter((file) => {
-      if (file.size > maxSize) {
-        handleError(new Error(`${file.name} 파일 크기는 10MB를 초과할 수 없습니다.`));
-        return false;
-      }
-      return true;
-    });
+    try {
+      const maxSize = 10 * 1024 * 1024;
+      const validFiles = files.filter((file) => {
+        if (file.size > maxSize) {
+          handleError(new Error(`${file.name} 파일 크기는 10MB를 초과할 수 없습니다.`));
+          return false;
+        }
+        return true;
+      });
 
-    if (validFiles.length === 0) return;
+      if (validFiles.length === 0) return;
 
-    const imageTypes = [
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "image/gif",
-      "image/webp",
-    ];
-    const filteredFiles = validFiles.filter((file) => {
-      if (!imageTypes.includes(file.type)) {
-        handleError(new Error(`${file.name}은(는) 지원하지 않는 이미지 형식입니다.`));
-        return false;
-      }
-      return true;
-    });
+      const imageTypes = [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/gif",
+        "image/webp",
+      ];
+      const filteredFiles = validFiles.filter((file) => {
+        if (!imageTypes.includes(file.type)) {
+          handleError(new Error(`${file.name}은(는) 지원하지 않는 이미지 형식입니다.`));
+          return false;
+        }
+        return true;
+      });
 
-    if (filteredFiles.length === 0) return;
+      if (filteredFiles.length === 0) return;
 
-    imageSelection.addFiles(filteredFiles);
-    e.target.value = "";
+      imageSelection.addFiles(filteredFiles);
+    } finally {
+      e.target.value = "";
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

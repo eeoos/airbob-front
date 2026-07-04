@@ -161,6 +161,40 @@ describe("ReviewCreateRoute", () => {
     expect(URL.createObjectURL).not.toHaveBeenCalled();
   });
 
+  it("resets the file input after invalid-only image selections", async () => {
+    const oversizedImage = new File(["image"], "large.png", {
+      type: "image/png",
+    });
+    Object.defineProperty(oversizedImage, "size", {
+      value: 10 * 1024 * 1024 + 1,
+    });
+    const textFile = new File(["text"], "note.txt", { type: "text/plain" });
+
+    render(
+      <ReviewCreateRoute
+        navigate={mockNavigate}
+        reservationUid="reservation-123"
+      />,
+    );
+
+    const input = screen.getByLabelText("사진 선택") as HTMLInputElement;
+
+    await userEvent.upload(input, oversizedImage);
+
+    expect(mockHandleError).toHaveBeenCalledWith(
+      new Error("large.png 파일 크기는 10MB를 초과할 수 없습니다."),
+    );
+    expect(input.value).toBe("");
+
+    await userEvent.upload(input, textFile);
+
+    expect(mockHandleError).toHaveBeenCalledWith(
+      new Error("note.txt은(는) 지원하지 않는 이미지 형식입니다."),
+    );
+    expect(input.value).toBe("");
+    expect(URL.createObjectURL).not.toHaveBeenCalled();
+  });
+
   it("revokes preview URLs when selected images are removed", async () => {
     const image = new File(["image"], "review.png", { type: "image/png" });
 
