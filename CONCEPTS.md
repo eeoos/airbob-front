@@ -21,6 +21,11 @@ The user-flow verification pass that exercises the app in a real browser at desk
 ### Feature App-Shell Entry Point
 A public feature boundary that exposes only the behavior needed by application shell components, keeping layouts and headers from depending on feature internals.
 
+### Feature Route Barrel
+A public feature boundary that exposes route containers to page adapters without exposing the feature's workflow internals.
+
+Feature Route Barrels are distinct from Feature App-Shell Entry Points: page adapters use them to mount route containers, while feature-owned containers compose hooks, panels, helpers, and CSS inside the feature boundary.
+
 ### Thread-Provided QA Account
 The shared test account supplied in the conversation for authenticated QA flows. Its values may be used locally for testing but must not be written into repository files or generated documentation.
 
