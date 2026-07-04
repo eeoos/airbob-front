@@ -361,6 +361,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
                       className={styles.suggestionItem}
                       onMouseDown={(e) => {
                         e.preventDefault();
+                      }}
+                      onClick={() => {
                         handlePlaceSelect(suggestion);
                       }}
                       type="button"

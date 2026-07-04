@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { SearchBar } from "./SearchBar";
 import { useSearchBarState } from "../../hooks/useSearchBarState";
 
@@ -74,6 +75,37 @@ const createSearchBarState = (
   ...overrides,
 });
 
+const seoulSuggestion = {
+  placeId: "place-1",
+  description: "서울, 대한민국",
+  mainText: "서울",
+  secondaryText: "대한민국",
+};
+
+const renderExpandedSearchBarWithSuggestions = (
+  overrides: Partial<SearchBarState> = {}
+) => {
+  const handlePlaceSelect = jest.fn();
+
+  mockUseSearchBarState.mockReturnValue(
+    createSearchBarState({
+      isExpanded: true,
+      showSuggestions: true,
+      inputText: "서",
+      suggestions: [seoulSuggestion],
+      handlePlaceSelect,
+      ...overrides,
+    })
+  );
+
+  render(<SearchBar />);
+
+  return {
+    handlePlaceSelect,
+    suggestionButton: screen.getByRole("button", { name: /서울/ }),
+  };
+};
+
 describe("SearchBar", () => {
   beforeEach(() => {
     mockUseSearchBarState.mockReturnValue(createSearchBarState());
@@ -114,27 +146,30 @@ describe("SearchBar", () => {
   });
 
   it("renders place suggestions as semantic buttons", () => {
-    mockUseSearchBarState.mockReturnValue(
-      createSearchBarState({
-        isExpanded: true,
-        showSuggestions: true,
-        inputText: "서",
-        suggestions: [
-          {
-            placeId: "place-1",
-            description: "서울, 대한민국",
-            mainText: "서울",
-            secondaryText: "대한민국",
-          },
-        ],
-      })
-    );
+    const { suggestionButton } = renderExpandedSearchBarWithSuggestions();
 
-    render(<SearchBar />);
+    expect(suggestionButton).toHaveAttribute("type", "button");
+  });
 
-    expect(screen.getByRole("button", { name: /서울/ })).toHaveAttribute(
-      "type",
-      "button"
-    );
+  it("selects a place suggestion with pointer activation", async () => {
+    const { handlePlaceSelect, suggestionButton } =
+      renderExpandedSearchBarWithSuggestions();
+
+    await userEvent.click(suggestionButton);
+
+    expect(handlePlaceSelect).toHaveBeenCalledWith(seoulSuggestion);
+  });
+
+  it.each([
+    ["Enter", "{Enter}"],
+    ["Space", " "],
+  ])("selects a place suggestion with %s", async (_keyName, key) => {
+    const { handlePlaceSelect, suggestionButton } =
+      renderExpandedSearchBarWithSuggestions();
+
+    suggestionButton.focus();
+    await userEvent.keyboard(key);
+
+    expect(handlePlaceSelect).toHaveBeenCalledWith(seoulSuggestion);
   });
 });

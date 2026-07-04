@@ -4,8 +4,7 @@
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  min-width: var(--control-touch-target);
-  min-height: var(--control-touch-target);
+  position: relative;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
@@ -19,6 +18,16 @@
     background-color 120ms ease,
     border-color 120ms ease,
     color 120ms ease;
+}
+
+.iconButton::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--control-touch-target);
+  height: var(--control-touch-target);
+  transform: translate(-50%, -50%);
 }
 
 .iconButton:focus-visible {
