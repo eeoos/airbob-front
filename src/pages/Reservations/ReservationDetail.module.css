@@ -116,6 +116,11 @@
   color: #856404;
 }
 
+.status.payment_completed {
+  background: var(--color-status-success-bg);
+  color: var(--color-success);
+}
+
 .status.cancelled {
   background-color: #f8d7da;
   color: #721c24;
@@ -129,6 +134,11 @@
 .status.expired {
   background-color: #e2e3e5;
   color: #383d41;
+}
+
+.status.completed {
+  background: var(--color-background-muted);
+  color: var(--color-text-secondary);
 }
 
 .infoList {

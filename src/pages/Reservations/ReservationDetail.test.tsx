@@ -1,9 +1,11 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
+import { ReservationStatus } from "../../types/enums";
 import ReservationDetail from "./ReservationDetail";
 
 const mockNavigate = jest.fn();
 const mockClearError = jest.fn();
+let mockReservationStatus = ReservationStatus.CONFIRMED;
 
 jest.mock("react-router-dom", () => ({
   useLocation: () => ({
@@ -23,7 +25,7 @@ jest.mock("../../features/reservations", () => ({
     reservation: {
       reservation_uid: "reservation-123",
       reservation_code: "CODE-123",
-      status: "CONFIRMED",
+      status: mockReservationStatus,
       created_at: "2026-07-01T00:00:00",
       guest_count: 2,
       check_in_date_time: "2026-07-10T15:00:00",
@@ -69,6 +71,7 @@ describe("ReservationDetail", () => {
   beforeEach(() => {
     mockNavigate.mockReset();
     mockClearError.mockReset();
+    mockReservationStatus = ReservationStatus.CONFIRMED;
   });
 
   it("shows feedback passed through route state", () => {
@@ -77,5 +80,16 @@ describe("ReservationDetail", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "리뷰는 작성되었지만 이미지 업로드에 실패했습니다."
     );
+  });
+
+  it.each([
+    [ReservationStatus.PAYMENT_COMPLETED, "결제 완료"],
+    [ReservationStatus.COMPLETED, "이용 완료"],
+  ])("renders the shared label for %s", (status, label) => {
+    mockReservationStatus = status;
+
+    render(<ReservationDetail />);
+
+    expect(screen.getByText(label)).toBeInTheDocument();
   });
 });

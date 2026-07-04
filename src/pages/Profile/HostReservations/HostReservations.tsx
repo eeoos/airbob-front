@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ReservationStatus } from "../../../types/enums";
 import { ErrorToast } from "../../../components/ErrorToast";
 import { routeTo } from "../../../routes/paths";
 import { useHostReservations } from "../../../features/reservations";
+import {
+  formatReservationStatus,
+  getReservationStatusTone,
+} from "../../../features/reservations/lib/reservationStatusDisplay";
 import { EmptyState, LoadingState } from "../../../shared/ui";
 import styles from "./HostReservations.module.css";
 
@@ -11,6 +14,13 @@ interface HostReservationsProps {
   filterType: "UPCOMING" | "PAST" | "CANCELLED";
   onFilterChange: (filterType: "UPCOMING" | "PAST" | "CANCELLED") => void;
 }
+
+const statusClassByTone = {
+  success: styles.statusConfirmed,
+  warning: styles.statusDefault,
+  danger: styles.statusCancelled,
+  neutral: styles.statusDefault,
+} as const;
 
 const HostReservations: React.FC<HostReservationsProps> = ({ filterType, onFilterChange }) => {
   const navigate = useNavigate();
@@ -56,34 +66,6 @@ const HostReservations: React.FC<HostReservationsProps> = ({ filterType, onFilte
     const month = date.getMonth() + 1;
     const day = date.getDate();
     return `${year}년 ${month}월 ${day}일`;
-  };
-
-  const formatStatus = (status: ReservationStatus): string => {
-    switch (status) {
-      case ReservationStatus.CONFIRMED:
-        return "확정됨";
-      case ReservationStatus.CANCELLED:
-        return "취소됨";
-      case ReservationStatus.PAYMENT_PENDING:
-        return "결제 대기";
-      case ReservationStatus.CANCELLATION_FAILED:
-        return "취소 실패";
-      case ReservationStatus.EXPIRED:
-        return "만료됨";
-      default:
-        return status;
-    }
-  };
-
-  const getStatusClass = (status: ReservationStatus): string => {
-    switch (status) {
-      case ReservationStatus.CONFIRMED:
-        return styles.statusConfirmed;
-      case ReservationStatus.CANCELLED:
-        return styles.statusCancelled;
-      default:
-        return styles.statusDefault;
-    }
   };
 
   const formatPrice = (price: number | null): string => {
@@ -183,8 +165,12 @@ const HostReservations: React.FC<HostReservationsProps> = ({ filterType, onFilte
                 {sortedReservations.map((reservation) => (
                   <tr key={reservation.reservation_uid} className={styles.tableRow}>
                     <td className={styles.td}>
-                      <span className={`${styles.status} ${getStatusClass(reservation.status)}`}>
-                        {formatStatus(reservation.status)}
+                      <span
+                        className={`${styles.status} ${
+                          statusClassByTone[getReservationStatusTone(reservation.status)]
+                        }`}
+                      >
+                        {formatReservationStatus(reservation.status)}
                       </span>
                     </td>
                     <td className={styles.td}>

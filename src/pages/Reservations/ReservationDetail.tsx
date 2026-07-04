@@ -3,6 +3,10 @@ import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { ReservationStatus, PaymentStatus } from "../../types/enums";
 import { ErrorToast } from "../../components/ErrorToast";
 import { useReservationDetail } from "../../features/reservations";
+import {
+  formatReservationStatus,
+  getReservationStatusClassKey,
+} from "../../features/reservations/lib/reservationStatusDisplay";
 import { getImageUrl } from "../../utils/image";
 import { GOOGLE_MAPS_API_KEY } from "../../utils/constants";
 import { routeTo } from "../../routes/paths";
@@ -218,12 +222,12 @@ const ReservationDetail: React.FC = () => {
             <section className={styles.section}>
               <div className={styles.sectionTitleRow}>
                 <h2 className={styles.sectionTitle}>예약 세부정보</h2>
-                <span className={`${styles.status} ${styles[reservation.status.toLowerCase()]}`}>
-                  {reservation.status === ReservationStatus.CONFIRMED && "확정됨"}
-                  {reservation.status === ReservationStatus.PAYMENT_PENDING && "결제 대기"}
-                  {reservation.status === ReservationStatus.CANCELLED && "취소됨"}
-                  {reservation.status === ReservationStatus.CANCELLATION_FAILED && "취소 실패"}
-                  {reservation.status === ReservationStatus.EXPIRED && "만료됨"}
+                <span
+                  className={`${styles.status} ${
+                    styles[getReservationStatusClassKey(reservation.status)]
+                  }`}
+                >
+                  {formatReservationStatus(reservation.status)}
                 </span>
               </div>
 

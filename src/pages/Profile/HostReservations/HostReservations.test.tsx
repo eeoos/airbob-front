@@ -1,6 +1,7 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import { reservationApi } from "../../../api";
+import { ReservationStatus } from "../../../types/enums";
 import HostReservations from "./HostReservations";
 
 const mockClearError = jest.fn();
@@ -44,6 +45,30 @@ jest.mock("../../../shared/ui", () => {
       ),
   };
 });
+
+const createHostReservation = (
+  reservationId: number,
+  status: ReservationStatus
+) =>
+  ({
+    reservation_uid: `host-${reservationId}`,
+    reservation_code: `CODE-${reservationId}`,
+    total_price: 100000 + reservationId,
+    currency: "KRW",
+    guest_count: 2,
+    check_in_date: `2026-07-${10 + reservationId}`,
+    check_out_date: `2026-07-${12 + reservationId}`,
+    created_at: "2026-07-01",
+    status,
+    guest: {
+      id: reservationId,
+      nickname: `게스트 ${reservationId}`,
+    },
+    accommodation: {
+      id: reservationId,
+      name: `숙소 ${reservationId}`,
+    },
+  } as any);
 
 beforeEach(() => {
   mockClearError.mockReset();
@@ -92,5 +117,25 @@ describe("HostReservations", () => {
     expect(await screen.findByTestId("shared-empty-state")).toHaveTextContent(
       "아직 예약이 없습니다."
     );
+  });
+
+  it("renders labels for payment-completed and completed reservations", async () => {
+    jest.mocked(reservationApi.getHostReservations).mockResolvedValue({
+      page_info: {
+        has_next: false,
+        next_cursor: null,
+      },
+      reservations: [
+        createHostReservation(1, ReservationStatus.PAYMENT_COMPLETED),
+        createHostReservation(2, ReservationStatus.COMPLETED),
+      ],
+    } as any);
+
+    render(
+      <HostReservations filterType="UPCOMING" onFilterChange={jest.fn()} />
+    );
+
+    expect(await screen.findByText("결제 완료")).toBeInTheDocument();
+    expect(screen.getByText("이용 완료")).toBeInTheDocument();
   });
 });

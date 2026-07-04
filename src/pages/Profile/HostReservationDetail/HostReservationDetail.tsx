@@ -1,8 +1,8 @@
 import React, { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ReservationStatus } from "../../../types/enums";
 import { ErrorToast } from "../../../components/ErrorToast";
 import { useHostReservationDetail } from "../../../features/reservations";
+import { formatReservationStatus } from "../../../features/reservations/lib/reservationStatusDisplay";
 import { getImageUrl } from "../../../utils/image";
 import { routeTo } from "../../../routes/paths";
 import styles from "./HostReservationDetail.module.css";
@@ -27,23 +27,6 @@ const HostReservationDetail: React.FC = () => {
     const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
     const weekday = weekdays[date.getDay()];
     return `${year}년 ${month}월 ${day}일 (${weekday})`;
-  };
-
-  const formatStatus = (status: ReservationStatus): string => {
-    switch (status) {
-      case ReservationStatus.CONFIRMED:
-        return "확정됨";
-      case ReservationStatus.CANCELLED:
-        return "취소됨";
-      case ReservationStatus.PAYMENT_PENDING:
-        return "결제 대기";
-      case ReservationStatus.CANCELLATION_FAILED:
-        return "취소 실패";
-      case ReservationStatus.EXPIRED:
-        return "만료됨";
-      default:
-        return status;
-    }
   };
 
   const calculateNights = (checkIn: string, checkOut: string): number => {
@@ -83,7 +66,9 @@ const HostReservationDetail: React.FC = () => {
 
         <div className={styles.header}>
           <div className={styles.headerLeft}>
-            <div className={styles.statusBadge}>{formatStatus(reservation.status)}</div>
+            <div className={styles.statusBadge}>
+              {formatReservationStatus(reservation.status)}
+            </div>
             <div className={styles.guestName}>{reservation.guest.nickname}</div>
             <div className={styles.guestNights}>
               {reservation.guest_count}게스트 • {nights}박
