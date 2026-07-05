@@ -7,6 +7,10 @@ export interface SearchMapInfoWindowContent {
   imageUrl?: string;
   ratingLabel?: string;
   isWishlisted: boolean;
+  canToggleWishlist?: boolean;
+  locationLabel?: string;
+  priceSuffixLabel?: string;
+  ratingSecondaryLabel?: string;
 }
 
 interface BuildInfoWindowContentInput {
@@ -16,13 +20,12 @@ interface BuildInfoWindowContentInput {
   canToggleWishlist: boolean;
 }
 
-interface SearchMapInfoWindowContentViewModel
-  extends SearchMapInfoWindowContent {
+type SearchMapInfoWindowContentViewModel = Omit<
+  SearchMapInfoWindowContent,
+  "canToggleWishlist"
+> & {
   canToggleWishlist: boolean;
-  locationLabel?: string;
-  priceSuffixLabel?: string;
-  ratingSecondaryLabel?: string;
-}
+};
 
 const escapeHtml = (value: string | number) =>
   String(value)
@@ -185,7 +188,7 @@ export const buildSearchMapInfoWindowContent = (
 ) =>
   buildSearchMapInfoWindowContentView({
     ...content,
-    canToggleWishlist: true,
+    canToggleWishlist: content.canToggleWishlist ?? true,
   });
 
 export const buildInfoWindowContent = ({
@@ -197,7 +200,7 @@ export const buildInfoWindowContent = ({
   const priceDisplay = buildPriceDisplay(accommodation, checkIn, checkOut);
   const reviewLabels = buildReviewLabels(accommodation);
 
-  return buildSearchMapInfoWindowContentView({
+  return buildSearchMapInfoWindowContent({
     accommodationId: String(accommodation.id),
     title: accommodation.name,
     priceLabel: priceDisplay.priceLabel,

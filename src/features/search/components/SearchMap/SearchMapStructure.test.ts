@@ -81,6 +81,23 @@ describe("SearchMap structure", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("routes the rich accommodation adapter through the exported info-window content boundary", () => {
+    const contentSource = readFileSync(
+      join(searchMapRoot, "lib/infoWindowContent.ts"),
+      "utf8",
+    );
+    const adapterStart = contentSource.indexOf(
+      "export const buildInfoWindowContent",
+    );
+    const adapterSource = contentSource.slice(adapterStart);
+
+    expect(adapterStart).toBeGreaterThanOrEqual(0);
+    expect(adapterSource).toContain("return buildSearchMapInfoWindowContent({");
+    expect(adapterSource).not.toContain(
+      "return buildSearchMapInfoWindowContentView({",
+    );
+  });
+
   it("keeps Google Maps CSS overrides inside the documented vendor boundary", () => {
     const mapCss = readFileSync(join(searchMapRoot, "Map.module.css"), "utf8");
     const boundaryStart = mapCss.indexOf(

@@ -68,6 +68,7 @@ describe("info window content helper", () => {
     expect(html).toContain("테스트 숙소");
     expect(html).toContain("₩100,000");
     expect(html).toContain("1박");
+    expect(html).not.toContain('data-info-window-action="wishlist"');
     expect(html).not.toContain("window.toggleWishlist");
     expect(html).not.toContain("window.closeInfoWindow");
     expect(html).not.toContain("onclick=");
