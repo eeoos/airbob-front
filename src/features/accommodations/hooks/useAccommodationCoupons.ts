@@ -4,6 +4,7 @@ import { couponApi } from "../../../api";
 import { CouponInfo, CouponInfos } from "../../../types/coupon";
 import { calculateCouponDiscount } from "../../../utils/codes";
 import { parseApiError } from "../../../utils/error";
+import { accommodationQueryKeys } from "../queryKeys";
 
 interface UseAccommodationCouponsOptions {
   isAuthenticated: boolean;
@@ -16,9 +17,6 @@ interface UseAccommodationCouponsOptions {
 interface IssueCouponOptions {
   skipAuthCheck?: boolean;
 }
-
-const accommodationCouponsQueryKey = () =>
-  ["accommodation", "coupons", "valid"] as const;
 
 export const useAccommodationCoupons = ({
   isAuthenticated,
@@ -36,9 +34,9 @@ export const useAccommodationCoupons = ({
     CouponInfos,
     unknown,
     CouponInfos,
-    ReturnType<typeof accommodationCouponsQueryKey>
+    ReturnType<typeof accommodationQueryKeys.validCoupons>
   >({
-    queryKey: accommodationCouponsQueryKey(),
+    queryKey: accommodationQueryKeys.validCoupons(),
     queryFn: () => couponApi.getValidCoupons(),
     enabled: isAuthenticated,
     retry: false,

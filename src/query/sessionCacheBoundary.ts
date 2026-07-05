@@ -1,4 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
+import { accommodationQueryKeys } from "../features/accommodations/queryKeys";
 import { authQueryKeys } from "../features/auth/queryKeys";
 import { profileQueryKeys } from "../features/profile/queryKeys";
 import { reservationQueryKeys } from "../features/reservations/queryKeys";
@@ -7,6 +8,8 @@ import { wishlistQueryKeys } from "../features/wishlist/queryKeys";
 import { MeInfo } from "../types/auth";
 
 const userScopedQueryRoots = [
+  accommodationQueryKeys.detailRoot,
+  accommodationQueryKeys.couponsRoot,
   wishlistQueryKeys.all,
   profileQueryKeys.all,
   reservationQueryKeys.all,

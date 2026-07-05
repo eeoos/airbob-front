@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { accommodationApi, recentlyViewedApi } from "../../../api";
 import { AccommodationDetail } from "../../../types/accommodation";
 import { clearAccommodationWishlistMembership } from "../lib/accommodationDetailMembership";
+import { accommodationQueryKeys } from "../queryKeys";
 
 interface UseAccommodationDetailOptions {
   accommodationId?: string;
@@ -19,17 +20,6 @@ const parseAccommodationId = (accommodationId?: string) => {
   const parsedId = Number(accommodationId);
   return Number.isNaN(parsedId) ? null : parsedId;
 };
-
-const accommodationDetailQueryKey = (
-  accommodationId: number | null,
-  authRefreshIndex: number,
-) =>
-  [
-    "accommodation",
-    "detail",
-    accommodationId ?? "missing",
-    authRefreshIndex,
-  ] as const;
 
 export const useAccommodationDetail = ({
   accommodationId,
@@ -49,9 +39,12 @@ export const useAccommodationDetail = ({
     AccommodationDetail,
     unknown,
     AccommodationDetail,
-    ReturnType<typeof accommodationDetailQueryKey>
+    ReturnType<typeof accommodationQueryKeys.detail>
   >({
-    queryKey: accommodationDetailQueryKey(parsedAccommodationId, authRefreshIndex),
+    queryKey: accommodationQueryKeys.detail(
+      parsedAccommodationId,
+      authRefreshIndex,
+    ),
     queryFn: () => {
       if (!parsedAccommodationId) {
         throw new Error("accommodationId is required");

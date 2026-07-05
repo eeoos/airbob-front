@@ -33,35 +33,23 @@ const featureRouteContainerFiles = [
   "features/reviews/ReviewCreateRoute.tsx",
   "features/profile/HostListingsPanel.tsx",
 ];
-const dtoMappedPresentationFiles = [
-  "features/accommodations/AccommodationDetailRoute.tsx",
-  "features/accommodations/components/AccommodationBookingCard.tsx",
-  "features/accommodations/components/AccommodationHero.tsx",
-  "features/accommodations/components/AccommodationImageGalleryModal.tsx",
-  "features/accommodations/components/AccommodationLocationSection.tsx",
-  "features/accommodations/components/AccommodationOverview.tsx",
-  "features/accommodations/components/AccommodationReviewsSection.tsx",
-  "features/reviews/components/ReviewModal/ReviewModal.tsx",
-  "features/search/components/SearchAccommodationCard.tsx",
-  "features/search/components/SearchResultsList.tsx",
-  "features/search/components/SearchMap/types.ts",
-  "features/search/components/SearchMap/Map.tsx",
-  "features/search/components/SearchMap/hooks/useAccommodationMarkers.ts",
-  "features/search/components/SearchMap/hooks/useGoogleMapInstance.ts",
-  "features/search/components/SearchMap/hooks/useMapSelectionInfoWindow.ts",
-  "features/search/components/SearchMap/lib/infoWindowContent.ts",
-  "features/wishlist/components/RecentlyViewedView.tsx",
-  "features/wishlist/components/WishlistDetailView.tsx",
-  "features/wishlist/components/WishlistIndexView.tsx",
-  "features/wishlist/components/WishlistModal/WishlistModal.tsx",
-  "features/reservations/GuestTripsPanel.tsx",
-  "features/reservations/HostReservationsPanel.tsx",
-  "features/reservations/HostReservationDetailRoute.tsx",
-  "features/reservations/ReservationDetailRoute.tsx",
-];
 const productionSourceExtensions = [".ts", ".tsx"];
 const directApiImportPattern = /from\s+["'](?:\.\.\/)+(?:api|api\/[^"']*)["']/;
 const serverDtoImportPattern = /from\s+["'](?:\.\.\/)+types\/[^"']+["']/;
+const legacyPresentationDtoImportAllowlist: Record<string, string> = {
+  // Existing booking section still receives coupon DTOs from the booking hook.
+  "features/accommodations/components/AccommodationBookingCardSections.tsx":
+    "coupon selection DTO props are still owned by the booking-card hook boundary",
+  // Existing host action modal shares host accommodation DTO/status types with host listing hooks.
+  "features/accommodations/components/AccommodationActionModal/AccommodationActionModal.tsx":
+    "host accommodation action modal has not yet moved behind a listing view model",
+  // Existing reservation modal still reads accommodation detail DTO fields directly.
+  "features/reservations/components/ReservationModal/ReservationModal.tsx":
+    "reservation modal accommodation summary still depends on the detail DTO",
+  // Existing profile listing panel still renders host accommodation DTO/status fields directly.
+  "features/profile/HostListingsPanel.tsx":
+    "host listings panel has not yet moved behind a listing view model",
+};
 const moduleSpecifierPattern =
   /\bfrom\s+["']([^"']+)["']|import\s+["']([^"']+)["']/g;
 const privateFeatureSegments = new Set(["components", "hooks", "lib"]);
@@ -211,15 +199,33 @@ describe("production UI API boundaries", () => {
     expect(violations).toEqual([]);
   });
 
-  it("keeps DTO-mapped presentation files from importing server DTO types", () => {
-    const violations = dtoMappedPresentationFiles
-      .filter((filePath) =>
-        serverDtoImportPattern.test(
-          fs.readFileSync(path.join(sourceRoot, filePath), "utf8"),
-        ),
+  it("keeps production UI files from importing server DTO types directly", () => {
+    const violations = collectConfiguredProductionUiFiles()
+      .map(toSourceRootRelativePath)
+      .filter(
+        (filePath) =>
+          !legacyPresentationDtoImportAllowlist[filePath] &&
+          serverDtoImportPattern.test(
+            fs.readFileSync(path.join(sourceRoot, filePath), "utf8"),
+          ),
       )
       .map((filePath) => `file:${filePath}`);
 
     expect(violations).toEqual([]);
+  });
+
+  it("keeps legacy presentation DTO import exceptions exact and documented", () => {
+    const staleOrMissingAllowlistEntries = Object.keys(
+      legacyPresentationDtoImportAllowlist,
+    ).filter((filePath) => {
+      const absolutePath = path.join(sourceRoot, filePath);
+
+      return (
+        !fs.existsSync(absolutePath) ||
+        !serverDtoImportPattern.test(fs.readFileSync(absolutePath, "utf8"))
+      );
+    });
+
+    expect(staleOrMissingAllowlistEntries).toEqual([]);
   });
 });
