@@ -27,7 +27,6 @@ export function AccommodationLocationSection({
               title="숙소 위치 지도"
               width="100%"
               height="100%"
-              style={{ border: 0 }}
               loading="lazy"
               allowFullScreen
               referrerPolicy="no-referrer-when-downgrade"

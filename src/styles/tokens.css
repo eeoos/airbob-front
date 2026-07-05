@@ -58,6 +58,7 @@
   --z-header: 1000;
   --z-sticky: 1100;
   --z-dropdown: 2000;
+  --z-dropdown-raised: calc(var(--z-dropdown) + 1);
   --z-popover: 3000;
   --z-bottom-sheet: 4000;
   --z-modal: 5000;

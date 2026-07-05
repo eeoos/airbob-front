@@ -34,6 +34,7 @@ const requiredInteractionTokenDeclarations = [
   "--overlay-scrim-strong: rgba(0, 0, 0, 0.7);",
   "--overlay-surface-strong: rgba(255, 255, 255, 0.9);",
   "--overlay-surface-muted: rgba(255, 255, 255, 0.5);",
+  "--z-dropdown-raised: calc(var(--z-dropdown) + 1);",
   "--z-local-base: 0;",
   "--z-local-raised: 1;",
   "--z-local-overlay: 2;",
