@@ -69,6 +69,7 @@ const mockHostReservationDetail = (
   jest.mocked(useHostReservationDetail).mockReturnValue({
     error: null,
     clearError: mockClearError,
+    isError: false,
     isLoading: false,
     reload: jest.fn(),
     reservation: createHostReservationDetail(),
@@ -112,6 +113,29 @@ describe("HostReservationDetailRoute", () => {
     );
 
     expect(screen.getByText("예약을 찾을 수 없습니다.")).toBeInTheDocument();
+  });
+
+  it("renders a load failure branch with toast when the detail query fails", () => {
+    mockHostReservationDetail({
+      error: "존재하지 않는 예약입니다.",
+      isError: true,
+      reservation: null,
+    });
+
+    render(
+      <HostReservationDetailRoute
+        navigate={mockNavigate}
+        reservationUid="host-reservation-1"
+      />,
+    );
+
+    expect(
+      screen.getByText("예약 정보를 불러오지 못했습니다."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("예약을 찾을 수 없습니다.")).not.toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "존재하지 않는 예약입니다.",
+    );
   });
 
   it("redirects to profile when reservation uid is missing", () => {

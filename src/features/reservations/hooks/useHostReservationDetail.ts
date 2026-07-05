@@ -1,45 +1,64 @@
-import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useCallback, useEffect, useRef } from "react";
 import { reservationApi } from "../../../api";
 import { useApiError } from "../../../hooks/useApiError";
 import { HostDetailInfo } from "../../../types/reservation";
+import { reservationQueryKeys } from "../queryKeys";
 
 export function useHostReservationDetail(reservationUid?: string) {
   const { error, handleError, clearError } = useApiError();
-  const [reservation, setReservation] = useState<HostDetailInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(Boolean(reservationUid));
+  const handledErrorUpdatedAtRef = useRef(0);
+  const detailQuery = useQuery<
+    HostDetailInfo,
+    unknown,
+    HostDetailInfo,
+    ReturnType<typeof reservationQueryKeys.hostReservationDetail>
+  >({
+    queryKey: reservationQueryKeys.hostReservationDetail(reservationUid ?? ""),
+    queryFn: () => {
+      if (!reservationUid) {
+        throw new Error("reservationUid is required");
+      }
 
-  const reload = useCallback(async () => {
-    if (!reservationUid) {
-      setReservation(null);
-      setIsLoading(false);
+      clearError();
+      return reservationApi.getHostReservationDetail(reservationUid);
+    },
+    enabled: Boolean(reservationUid),
+    retry: false,
+    throwOnError: false,
+  });
+  const { refetch } = detailQuery;
+
+  useEffect(() => {
+    if (
+      !detailQuery.isError ||
+      !detailQuery.error ||
+      handledErrorUpdatedAtRef.current === detailQuery.errorUpdatedAt
+    ) {
       return;
     }
 
-    setIsLoading(true);
-    clearError();
+    handledErrorUpdatedAtRef.current = detailQuery.errorUpdatedAt;
+    handleError(detailQuery.error);
+  }, [
+    detailQuery.error,
+    detailQuery.errorUpdatedAt,
+    detailQuery.isError,
+    handleError,
+  ]);
 
-    try {
-      const response = await reservationApi.getHostReservationDetail(
-        reservationUid
-      );
-      setReservation(response);
-    } catch (err) {
-      setReservation(null);
-      handleError(err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [clearError, handleError, reservationUid]);
+  const reload = useCallback(async () => {
+    if (!reservationUid) return;
 
-  useEffect(() => {
-    reload();
-  }, [reload]);
+    await refetch();
+  }, [refetch, reservationUid]);
 
   return {
     clearError,
     error,
-    isLoading,
+    isError: detailQuery.isError,
+    isLoading: detailQuery.isLoading,
     reload,
-    reservation,
+    reservation: detailQuery.isError ? null : detailQuery.data ?? null,
   };
 }

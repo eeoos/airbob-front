@@ -16,4 +16,13 @@ describe("reservationQueryKeys", () => {
       "page=1",
     ]);
   });
+
+  it("builds stable reservation detail keys", () => {
+    expect(reservationQueryKeys.guestReservationDetail("reservation-1")).toEqual(
+      ["reservations", "guestDetail", "reservation-1"],
+    );
+    expect(reservationQueryKeys.hostReservationDetail("reservation-1")).toEqual(
+      ["reservations", "hostDetail", "reservation-1"],
+    );
+  });
 });
