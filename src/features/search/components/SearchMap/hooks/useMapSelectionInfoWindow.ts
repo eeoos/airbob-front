@@ -1,17 +1,16 @@
-import { MutableRefObject, RefObject, useEffect } from "react";
-import { AccommodationSearchInfo } from "../../../../../types/accommodation";
-import { getImageUrl } from "../../../../../utils/image";
+import { MutableRefObject, RefObject, useEffect, useRef } from "react";
 import { routeTo } from "../../../../../routes/paths";
 import { toAccommodationBookingRouteQuery } from "../../../lib/accommodationDetailParams";
+import { bindInfoWindowEvents } from "../lib/infoWindowEvents";
 import { buildInfoWindowContent } from "../lib/infoWindowContent";
 import {
   adjustInfoWindowIntoMapView,
   applyInfoWindowChromeStyles,
 } from "../lib/infoWindowDom";
-import { SearchMapMarker } from "../types";
+import { SearchMapAccommodation, SearchMapMarker } from "../types";
 
 interface UseMapSelectionInfoWindowOptions {
-  accommodations: AccommodationSearchInfo[];
+  accommodations: SearchMapAccommodation[];
   checkIn?: string | null;
   checkOut?: string | null;
   detailSearchParams?: URLSearchParams;
@@ -22,13 +21,19 @@ interface UseMapSelectionInfoWindowOptions {
   mapRef: RefObject<HTMLDivElement | null>;
   markersRef: MutableRefObject<SearchMapMarker[]>;
   onAccommodationSelect: (
-    accommodation: AccommodationSearchInfo | null,
+    accommodation: SearchMapAccommodation | null,
   ) => void;
   onWishlistToggle?: (accommodationId: number, isInWishlist: boolean) => void;
   prevHoveredIdRef: MutableRefObject<number | null>;
   prevSelectedIdRef: MutableRefObject<number | null>;
   selectedAccommodationId: number | null;
 }
+
+interface CloseInfoWindowOptions {
+  clearSelection?: boolean;
+}
+
+type CloseInfoWindow = (options?: CloseInfoWindowOptions) => void;
 
 const findMarkerByAccommodationId = (
   markers: SearchMapMarker[],
@@ -64,11 +69,41 @@ export const useMapSelectionInfoWindow = ({
   prevSelectedIdRef,
   selectedAccommodationId,
 }: UseMapSelectionInfoWindowOptions) => {
+  const closeInfoWindowRef = useRef<CloseInfoWindow | null>(null);
+
   useEffect(() => {
     if (!mapInstanceRef.current) return;
 
     const currentSelectedId = selectedAccommodationId;
     const prevSelectedId = prevSelectedIdRef.current;
+    const closeStaleInfoWindow = () => {
+      const closeInfoWindow = closeInfoWindowRef.current;
+
+      if (closeInfoWindow) {
+        closeInfoWindow({ clearSelection: true });
+        return;
+      }
+
+      if (infoWindowRef.current) {
+        infoWindowRef.current.close();
+        infoWindowRef.current = null;
+      }
+
+      onAccommodationSelect(null);
+    };
+    const closeCurrentInfoWindowForReplacement = () => {
+      const closeInfoWindow = closeInfoWindowRef.current;
+
+      if (closeInfoWindow) {
+        closeInfoWindow({ clearSelection: false });
+        return;
+      }
+
+      if (infoWindowRef.current) {
+        infoWindowRef.current.close();
+        infoWindowRef.current = null;
+      }
+    };
 
     if (prevSelectedId !== null && prevSelectedId !== currentSelectedId) {
       const prevMarker = findMarkerByAccommodationId(
@@ -85,9 +120,9 @@ export const useMapSelectionInfoWindow = ({
       }
     }
 
-    if (currentSelectedId) {
+    if (currentSelectedId !== null) {
       const selectedAccommodation = accommodations.find(
-        (accommodation) => accommodation.id === selectedAccommodationId,
+        (accommodation) => accommodation.id === currentSelectedId,
       );
 
       if (
@@ -95,6 +130,7 @@ export const useMapSelectionInfoWindow = ({
         selectedAccommodation.coordinate.latitude === null ||
         selectedAccommodation.coordinate.longitude === null
       ) {
+        closeStaleInfoWindow();
         return;
       }
 
@@ -122,7 +158,7 @@ export const useMapSelectionInfoWindow = ({
       }, 0);
 
       if (infoWindowRef.current) {
-        infoWindowRef.current.close();
+        closeCurrentInfoWindowForReplacement();
       }
 
       const selectedMarker = findMarkerByAccommodationId(
@@ -131,9 +167,6 @@ export const useMapSelectionInfoWindow = ({
       );
 
       if (selectedMarker) {
-        const thumbnailUrl = selectedAccommodation.accommodation_thumbnail_url
-          ? getImageUrl(selectedAccommodation.accommodation_thumbnail_url)
-          : null;
         const detailParams = detailSearchParams
           ? toAccommodationBookingRouteQuery(detailSearchParams)
           : undefined;
@@ -142,14 +175,80 @@ export const useMapSelectionInfoWindow = ({
           disableAutoPan: true,
           content: buildInfoWindowContent({
             accommodation: selectedAccommodation,
-            thumbnailUrl,
             checkIn,
             checkOut,
             canToggleWishlist: !!onWishlistToggle,
           }),
         });
 
-        infoWindow.addListener("domready", () => {
+        let unbindInfoWindowEvents: (() => void) | null = null;
+        let domReadyListener: google.maps.MapsEventListener | null = null;
+        let closeClickListener: google.maps.MapsEventListener | null = null;
+        let closeListener: google.maps.MapsEventListener | null = null;
+        let resizeListener: google.maps.MapsEventListener | null = null;
+        let didHandleInfoWindowClose = false;
+        let pendingCloseOptions: CloseInfoWindowOptions | null = null;
+        let closeSelectedInfoWindow: CloseInfoWindow;
+
+        const cleanupInfoWindowListeners = () => {
+          unbindInfoWindowEvents?.();
+          unbindInfoWindowEvents = null;
+
+          [
+            domReadyListener,
+            closeClickListener,
+            closeListener,
+            resizeListener,
+          ].forEach((listener) => {
+            if (listener) {
+              google.maps.event.removeListener(listener);
+            }
+          });
+
+          domReadyListener = null;
+          closeClickListener = null;
+          closeListener = null;
+          resizeListener = null;
+        };
+
+        const handleInfoWindowClose = (options?: CloseInfoWindowOptions) => {
+          if (didHandleInfoWindowClose) {
+            pendingCloseOptions = null;
+            return;
+          }
+
+          const closeOptions = options ?? pendingCloseOptions ?? {};
+          pendingCloseOptions = null;
+          didHandleInfoWindowClose = true;
+          restoreMarkerForHoverState(
+            selectedMarker,
+            selectedAccommodation.id,
+            hoveredAccommodationIdRef.current,
+          );
+
+          if (infoWindowRef.current === infoWindow) {
+            infoWindowRef.current = null;
+          }
+
+          if (closeOptions.clearSelection !== false) {
+            onAccommodationSelect(null);
+          }
+
+          cleanupInfoWindowListeners();
+          if (closeInfoWindowRef.current === closeSelectedInfoWindow) {
+            closeInfoWindowRef.current = null;
+          }
+        };
+
+        closeSelectedInfoWindow = (options = {}) => {
+          pendingCloseOptions = options;
+          infoWindow.close();
+          handleInfoWindowClose(options);
+        };
+
+        closeInfoWindowRef.current = closeSelectedInfoWindow;
+
+        domReadyListener = infoWindow.addListener("domready", () => {
           const mapElement = mapRef.current;
 
           if (!mapElement) {
@@ -164,9 +263,10 @@ export const useMapSelectionInfoWindow = ({
             `info-window-${selectedAccommodation.id}`,
           );
           if (infoWindowElement) {
-            infoWindowElement.addEventListener("click", (event) => {
-              const target = event.target as HTMLElement;
-              if (!target.closest("button")) {
+            unbindInfoWindowEvents?.();
+            unbindInfoWindowEvents = bindInfoWindowEvents({
+              root: infoWindowElement,
+              onCardClick: () => {
                 window.open(
                   routeTo.accommodationDetail(
                     selectedAccommodation.id,
@@ -174,64 +274,32 @@ export const useMapSelectionInfoWindow = ({
                   ),
                   "_blank",
                 );
-              }
+              },
+              onClose: closeSelectedInfoWindow,
+              onWishlistToggle: (accommodationId, isInWishlist) => {
+                if (onWishlistToggle) {
+                  onWishlistToggle(accommodationId, isInWishlist);
+                  closeSelectedInfoWindow();
+                }
+              },
             });
           }
 
           applyInfoWindowChromeStyles();
         });
 
-        if (onWishlistToggle) {
-          window.toggleWishlist = (
-            accommodationId: number,
-            isInWishlist: boolean,
-          ) => {
-            onWishlistToggle(accommodationId, isInWishlist);
-            if (infoWindowRef.current) {
-              infoWindowRef.current.close();
-            }
-          };
-        }
-
-        window.closeInfoWindow = () => {
-          if (infoWindowRef.current) {
-            infoWindowRef.current.close();
-            onAccommodationSelect(null);
-          }
-        };
-
-        infoWindow.addListener("closeclick", () => {
-          restoreMarkerForHoverState(
-            selectedMarker,
-            selectedAccommodation.id,
-            hoveredAccommodationIdRef.current,
-          );
-          onAccommodationSelect(null);
-        });
-
-        infoWindow.addListener("close", () => {
-          restoreMarkerForHoverState(
-            selectedMarker,
-            selectedAccommodation.id,
-            hoveredAccommodationIdRef.current,
-          );
-          onAccommodationSelect(null);
-
-          const resizeListener = (
-            infoWindow as google.maps.InfoWindow & {
-              _resizeListener?: google.maps.MapsEventListener | null;
-            }
-          )._resizeListener;
-
-          if (resizeListener) {
-            google.maps.event.removeListener(resizeListener);
-            (
-              infoWindow as google.maps.InfoWindow & {
-                _resizeListener?: google.maps.MapsEventListener | null;
-              }
-            )._resizeListener = null;
-          }
-        });
+        closeClickListener = infoWindow.addListener(
+          "closeclick",
+          () => {
+            handleInfoWindowClose();
+          },
+        );
+        closeListener = infoWindow.addListener(
+          "close",
+          () => {
+            handleInfoWindowClose();
+          },
+        );
 
         infoWindow.open(mapInstanceRef.current, selectedMarker);
         infoWindowRef.current = infoWindow;
@@ -248,19 +316,13 @@ export const useMapSelectionInfoWindow = ({
           }, 100);
         };
 
-        const resizeListener = google.maps.event.addListener(
+        resizeListener = google.maps.event.addListener(
           mapInstanceRef.current,
           "resize",
           () => {
             adjustInfoWindowPosition();
           },
         );
-
-        (
-          infoWindow as google.maps.InfoWindow & {
-            _resizeListener?: google.maps.MapsEventListener | null;
-          }
-        )._resizeListener = resizeListener;
       }
     }
 

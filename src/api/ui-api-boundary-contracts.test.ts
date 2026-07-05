@@ -30,8 +30,24 @@ const featureRouteContainerFiles = [
   "features/reviews/ReviewCreateRoute.tsx",
   "features/profile/HostListingsPanel.tsx",
 ];
+const dtoMappedPresentationFiles = [
+  "features/search/components/SearchAccommodationCard.tsx",
+  "features/search/components/SearchResultsList.tsx",
+  "features/search/components/SearchMap/types.ts",
+  "features/search/components/SearchMap/Map.tsx",
+  "features/search/components/SearchMap/hooks/useAccommodationMarkers.ts",
+  "features/search/components/SearchMap/hooks/useGoogleMapInstance.ts",
+  "features/search/components/SearchMap/hooks/useMapSelectionInfoWindow.ts",
+  "features/search/components/SearchMap/lib/infoWindowContent.ts",
+  "features/wishlist/components/RecentlyViewedView.tsx",
+  "features/wishlist/components/WishlistDetailView.tsx",
+  "features/wishlist/components/WishlistIndexView.tsx",
+  "features/reservations/HostReservationDetailRoute.tsx",
+  "features/reservations/ReservationDetailRoute.tsx",
+];
 const productionSourceExtensions = [".ts", ".tsx"];
 const directApiImportPattern = /from\s+["'](?:\.\.\/)+(?:api|api\/[^"']*)["']/;
+const serverDtoImportPattern = /from\s+["'](?:\.\.\/)+types\/[^"']+["']/;
 const sourceRoot = path.resolve(__dirname, "..");
 
 const collectProductionUiFiles = (directory: string): string[] => {
@@ -102,6 +118,18 @@ describe("production UI API boundaries", () => {
         directApiImportPattern.test(fs.readFileSync(filePath, "utf8")),
       )
       .map(toSourceRootRelativePath);
+
+    expect(violations).toEqual([]);
+  });
+
+  it("keeps DTO-mapped presentation files from importing server DTO types", () => {
+    const violations = dtoMappedPresentationFiles
+      .filter((filePath) =>
+        serverDtoImportPattern.test(
+          fs.readFileSync(path.join(sourceRoot, filePath), "utf8"),
+        ),
+      )
+      .map((filePath) => `file:${filePath}`);
 
     expect(violations).toEqual([]);
   });

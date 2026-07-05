@@ -21,6 +21,10 @@ import {
   buildSearchRequestFromParams,
   getViewportSearchParamSignature,
 } from "../lib/searchParams";
+import {
+  toSearchAccommodationCardViewModel,
+  toSearchAccommodationMapViewModel,
+} from "../lib/searchAccommodationViewModel";
 import { searchQueryKeys } from "../queryKeys";
 
 type SetSearchParams = (
@@ -331,6 +335,14 @@ export const useSearchResults = ({
     searchResponse?.stay_search_result_listing,
     searchResultsQuery.isPlaceholderData,
   ]);
+  const accommodationCards = useMemo(
+    () => accommodations.map(toSearchAccommodationCardViewModel),
+    [accommodations],
+  );
+  const accommodationMapItems = useMemo(
+    () => accommodations.map(toSearchAccommodationMapViewModel),
+    [accommodations],
+  );
   const isLoading = queryEnabled
     ? searchResultsQuery.isFetching
     : isInitialLoadRef.current || isPendingPageReset;
@@ -397,6 +409,8 @@ export const useSearchResults = ({
 
   return {
     accommodations,
+    accommodationCards,
+    accommodationMapItems,
     updateAccommodationWishlistStatus,
     isLoading,
     currentPage,

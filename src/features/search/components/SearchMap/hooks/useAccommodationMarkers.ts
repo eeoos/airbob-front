@@ -1,5 +1,4 @@
 import { MutableRefObject, useEffect, useRef } from "react";
-import { AccommodationSearchInfo } from "../../../../../types/accommodation";
 import {
   haveAccommodationIdsChanged,
   hasViewportChanged,
@@ -10,19 +9,20 @@ import {
   getMarkerIconModel,
 } from "../lib/markerIcon";
 import {
+  SearchMapAccommodation,
   SearchMapMarker,
   SearchMapViewport,
 } from "../types";
 
 interface UseAccommodationMarkersOptions {
-  accommodations: AccommodationSearchInfo[];
+  accommodations: SearchMapAccommodation[];
   isInitialIdleRef: MutableRefObject<boolean>;
   isMapDragMode: boolean;
   isMapLoaded: boolean;
   mapInstanceRef: MutableRefObject<google.maps.Map | null>;
   markersRef: MutableRefObject<SearchMapMarker[]>;
   onAccommodationSelectRef: MutableRefObject<
-    (accommodation: AccommodationSearchInfo | null) => void
+    (accommodation: SearchMapAccommodation | null) => void
   >;
   onMapBoundsUpdated?: () => void;
   prevViewportRef: MutableRefObject<SearchMapViewport | null>;
@@ -52,7 +52,7 @@ export const useAccommodationMarkers = ({
   viewportJustChangedRef,
 }: UseAccommodationMarkersOptions) => {
   const boundsInitializedRef = useRef(false);
-  const prevAccommodationsRef = useRef<AccommodationSearchInfo[]>([]);
+  const prevAccommodationsRef = useRef<SearchMapAccommodation[]>([]);
 
   useEffect(() => {
     if (!mapInstanceRef.current || !window.google) return;
@@ -99,7 +99,7 @@ export const useAccommodationMarkers = ({
       const lng = accommodation.coordinate.longitude!;
 
       const markerIconModel = getMarkerIconModel({
-        basePrice: accommodation.base_price,
+        basePrice: accommodation.basePrice,
         currency: accommodation.currency,
       });
       const { totalWidth, bubbleHeight, anchor } = markerIconModel;

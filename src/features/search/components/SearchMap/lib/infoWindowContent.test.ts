@@ -1,30 +1,23 @@
-import { AccommodationSearchInfo } from "../../../../../types/accommodation";
+import type { SearchMapAccommodation } from "../types";
 import { buildInfoWindowContent } from "./infoWindowContent";
 
 const createAccommodation = (
-  overrides: Partial<AccommodationSearchInfo> = {}
-): AccommodationSearchInfo => ({
+  overrides: Partial<SearchMapAccommodation> = {}
+): SearchMapAccommodation => ({
   id: 10,
   name: "테스트 숙소",
-  accommodation_thumbnail_url: null,
-  base_price: 100000,
+  thumbnailUrl: null,
+  locationLabel: "Seoul, Mapo",
+  showReview: false,
+  reviewRatingLabel: "0.0",
+  reviewCountLabel: "(0)",
+  basePrice: 100000,
   currency: "KRW",
-  type: "APARTMENT",
-  address_summary: {
-    country: "KR",
-    state: null,
-    city: "Seoul",
-    district: "Mapo",
-  },
+  isInWishlist: false,
   coordinate: {
     latitude: 37.5,
     longitude: 127,
   },
-  review_summary: {
-    total_count: 0,
-    average_rating: 0,
-  },
-  is_in_wishlist: false,
   ...overrides,
 });
 
@@ -32,7 +25,6 @@ describe("info window content helper", () => {
   it("renders fallback image, location, name, and nightly price without dates", () => {
     const html = buildInfoWindowContent({
       accommodation: createAccommodation(),
-      thumbnailUrl: null,
       checkIn: null,
       checkOut: null,
       canToggleWishlist: false,
@@ -45,15 +37,16 @@ describe("info window content helper", () => {
     expect(html).toContain("₩100,000");
     expect(html).toContain("1박");
     expect(html).not.toContain("window.toggleWishlist");
+    expect(html).not.toContain("window.closeInfoWindow");
+    expect(html).not.toContain("onclick=");
   });
 
   it("renders thumbnail image and wishlist button when enabled", () => {
     const html = buildInfoWindowContent({
       accommodation: createAccommodation({
-        accommodation_thumbnail_url: "accommodations/10/thumb.jpg",
-        is_in_wishlist: true,
+        thumbnailUrl: "https://cdn.example.com/accommodations/10/thumb.jpg",
+        isInWishlist: true,
       }),
-      thumbnailUrl: "https://cdn.example.com/accommodations/10/thumb.jpg",
       checkIn: null,
       checkOut: null,
       canToggleWishlist: true,
@@ -62,7 +55,12 @@ describe("info window content helper", () => {
     expect(html).toContain(
       '<img src="https://cdn.example.com/accommodations/10/thumb.jpg"'
     );
-    expect(html).toContain("window.toggleWishlist && window.toggleWishlist(10, true)");
+    expect(html).toContain('data-info-window-action="wishlist"');
+    expect(html).toContain('data-accommodation-id="10"');
+    expect(html).toContain('data-is-in-wishlist="true"');
+    expect(html).not.toContain("window.toggleWishlist");
+    expect(html).not.toContain("window.closeInfoWindow");
+    expect(html).not.toContain("onclick=");
     expect(html).toContain('fill="currentColor"');
     expect(html).toContain('stroke="var(--color-brand-coral)"');
   });
@@ -71,9 +69,9 @@ describe("info window content helper", () => {
     const html = buildInfoWindowContent({
       accommodation: createAccommodation({
         name: "O'Hare suite",
-        is_in_wishlist: true,
+        thumbnailUrl: "https://cdn.example.com/o'hare.jpg",
+        isInWishlist: true,
       }),
-      thumbnailUrl: "https://cdn.example.com/o'hare.jpg",
       checkIn: null,
       checkOut: null,
       canToggleWishlist: true,
@@ -81,6 +79,7 @@ describe("info window content helper", () => {
 
     expect(html).toContain('aria-label="위시리스트에서 제거"');
     expect(html).toContain('aria-pressed="true"');
+    expect(html).toContain('data-info-window-action="close"');
     expect(html).toContain('aria-label="지도 숙소 카드 닫기"');
     expect(html).toContain("O&#39;Hare suite");
     expect(html).toContain("o&#39;hare.jpg");
@@ -89,7 +88,6 @@ describe("info window content helper", () => {
   it("renders total stay price and nights when dates are present", () => {
     const html = buildInfoWindowContent({
       accommodation: createAccommodation(),
-      thumbnailUrl: null,
       checkIn: "2026-07-10",
       checkOut: "2026-07-13",
       canToggleWishlist: false,
@@ -102,19 +100,16 @@ describe("info window content helper", () => {
   it("renders review summary only when reviews exist", () => {
     const withoutReviews = buildInfoWindowContent({
       accommodation: createAccommodation(),
-      thumbnailUrl: null,
       checkIn: null,
       checkOut: null,
       canToggleWishlist: false,
     });
     const withReviews = buildInfoWindowContent({
       accommodation: createAccommodation({
-        review_summary: {
-          total_count: 12,
-          average_rating: 4.75,
-        },
+        showReview: true,
+        reviewRatingLabel: "4.8",
+        reviewCountLabel: "(12)",
       }),
-      thumbnailUrl: null,
       checkIn: null,
       checkOut: null,
       canToggleWishlist: false,
@@ -130,14 +125,9 @@ describe("info window content helper", () => {
     const html = buildInfoWindowContent({
       accommodation: createAccommodation({
         name: `<img src=x onerror="alert(1)">`,
-        address_summary: {
-          country: `KR"><script>alert(1)</script>`,
-          state: null,
-          city: `<Seoul>`,
-          district: `Mapo & Hongdae`,
-        },
+        locationLabel: `<Seoul>, Mapo & Hongdae`,
+        thumbnailUrl: `https://cdn.example.com/thumb.jpg" onerror="alert(1)`,
       }),
-      thumbnailUrl: `https://cdn.example.com/thumb.jpg" onerror="alert(1)`,
       checkIn: null,
       checkOut: null,
       canToggleWishlist: false,
@@ -156,14 +146,8 @@ describe("info window content helper", () => {
     const html = buildInfoWindowContent({
       accommodation: createAccommodation({
         currency: `USD"><script>alert(1)</script>`,
-        address_summary: {
-          country: `<Country & Region>`,
-          state: null,
-          city: "",
-          district: "",
-        },
+        locationLabel: `<Country & Region>`,
       }),
-      thumbnailUrl: null,
       checkIn: null,
       checkOut: null,
       canToggleWishlist: false,

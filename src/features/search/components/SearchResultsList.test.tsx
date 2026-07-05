@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { AccommodationSearchInfo } from "../../../types/accommodation";
+import { SearchAccommodationCardViewModel } from "../lib/searchAccommodationViewModel";
 import { SearchResultsList } from "./SearchResultsList";
 
 jest.mock("./SearchAccommodationCard", () => ({
@@ -9,7 +9,7 @@ jest.mock("./SearchAccommodationCard", () => ({
     detailUrl,
     onClick,
   }: {
-    accommodation: AccommodationSearchInfo;
+    accommodation: SearchAccommodationCardViewModel;
     detailUrl?: string;
     onClick: () => void;
   }) => (
@@ -19,28 +19,17 @@ jest.mock("./SearchAccommodationCard", () => ({
   ),
 }));
 
-const createAccommodation = (id: number): AccommodationSearchInfo => ({
+const createAccommodation = (id: number): SearchAccommodationCardViewModel => ({
   id,
   name: `숙소 ${id}`,
-  accommodation_thumbnail_url: null,
-  base_price: 100000,
+  thumbnailUrl: null,
+  locationLabel: "Seoul의 아파트",
+  showReview: false,
+  reviewRatingLabel: "0.0",
+  reviewCountLabel: "(0)",
+  basePrice: 100000,
   currency: "KRW",
-  type: "APARTMENT",
-  address_summary: {
-    country: "KR",
-    state: null,
-    city: "Seoul",
-    district: null,
-  },
-  coordinate: {
-    latitude: 37.5,
-    longitude: 127,
-  },
-  review_summary: {
-    total_count: 0,
-    average_rating: 0,
-  },
-  is_in_wishlist: false,
+  isInWishlist: false,
 });
 
 describe("SearchResultsList", () => {

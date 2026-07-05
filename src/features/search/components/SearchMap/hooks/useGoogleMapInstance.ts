@@ -1,7 +1,6 @@
 import { MutableRefObject, RefObject, useEffect, useRef } from "react";
-import { AccommodationSearchInfo } from "../../../../../types/accommodation";
 import { renderMapExpandControl } from "../lib/mapExpandControl";
-import { SearchMapViewport } from "../types";
+import { SearchMapAccommodation, SearchMapViewport } from "../types";
 
 interface UseGoogleMapInstanceOptions {
   infoWindowRef: MutableRefObject<google.maps.InfoWindow | null>;
@@ -11,7 +10,7 @@ interface UseGoogleMapInstanceOptions {
   mapInstanceRef: MutableRefObject<google.maps.Map | null>;
   mapRef: RefObject<HTMLDivElement | null>;
   onAccommodationSelectRef: MutableRefObject<
-    (accommodation: AccommodationSearchInfo | null) => void
+    (accommodation: SearchMapAccommodation | null) => void
   >;
   onExpandToggle?: () => void;
   onMapInteraction?: () => void;

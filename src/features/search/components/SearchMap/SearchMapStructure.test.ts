@@ -48,4 +48,29 @@ describe("SearchMap structure", () => {
       /routeTo\.accommodationDetail\(\s*selectedAccommodation\.id,\s*detailParams,?\s*\)/,
     );
   });
+
+  it("uses delegated info-window events without window globals or private Google Maps fields", () => {
+    const hookSource = readFileSync(
+      join(searchMapRoot, "hooks/useMapSelectionInfoWindow.ts"),
+      "utf8",
+    );
+    const contentSource = readFileSync(
+      join(searchMapRoot, "lib/infoWindowContent.ts"),
+      "utf8",
+    );
+    const infoWindowSource = `${hookSource}\n${contentSource}`;
+
+    expect(infoWindowSource).toContain("bindInfoWindowEvents");
+
+    const forbiddenInfoWindowSnippets = [
+      "window.toggleWishlist",
+      "window.closeInfoWindow",
+      "_resizeListener",
+    ];
+    const offenders = forbiddenInfoWindowSnippets.filter((snippet) =>
+      infoWindowSource.includes(snippet),
+    );
+
+    expect(offenders).toEqual([]);
+  });
 });

@@ -49,7 +49,8 @@ export const SearchRoute: React.FC<SearchRouteProps> = ({
   } = useSearchMapState();
 
   const {
-    accommodations,
+    accommodationCards,
+    accommodationMapItems,
     updateAccommodationWishlistStatus,
     isLoading,
     currentPage,
@@ -104,7 +105,7 @@ export const SearchRoute: React.FC<SearchRouteProps> = ({
 
   const checkIn = searchParams.get("checkIn");
   const checkOut = searchParams.get("checkOut");
-  const hasResults = accommodations.length > 0;
+  const hasResults = accommodationCards.length > 0;
 
   const resultsListClassNames = {
     loading: styles.loading,
@@ -131,7 +132,7 @@ export const SearchRoute: React.FC<SearchRouteProps> = ({
             {/* Map Layer - Fixed Base */}
             <div className={styles.mapLayer}>
               <Map
-                accommodations={accommodations}
+                accommodations={accommodationMapItems}
                 selectedAccommodationId={selectedAccommodationId}
                 hoveredAccommodationId={hoveredAccommodationId}
                 onAccommodationSelect={handleAccommodationSelect}
@@ -154,7 +155,7 @@ export const SearchRoute: React.FC<SearchRouteProps> = ({
             <motion.div
               ref={bottomSheetRef}
               className={`${styles.bottomSheet} ${styles[bottomSheetState]} ${
-                accommodations.length === 0 ? styles.emptyResults : ""
+                accommodationCards.length === 0 ? styles.emptyResults : ""
               }`}
               style={
                 isMobileOrTablet
@@ -202,7 +203,7 @@ export const SearchRoute: React.FC<SearchRouteProps> = ({
                 onScroll={handleBottomSheetScroll}
               >
                 <SearchResultsList
-                  accommodations={accommodations}
+                  accommodations={accommodationCards}
                   isLoading={isLoading}
                   selectedAccommodationId={selectedAccommodationId}
                   onAccommodationClick={handleAccommodationCardClick}
@@ -237,7 +238,7 @@ export const SearchRoute: React.FC<SearchRouteProps> = ({
                   : `숙소 ${totalElements.toLocaleString()}개`}
               </h2>
               <SearchResultsList
-                accommodations={accommodations}
+                accommodations={accommodationCards}
                 isLoading={isLoading}
                 selectedAccommodationId={selectedAccommodationId}
                 onAccommodationClick={handleAccommodationCardClick}
@@ -261,7 +262,7 @@ export const SearchRoute: React.FC<SearchRouteProps> = ({
             </div>
             <div className={styles.mapSection}>
               <Map
-                accommodations={accommodations}
+                accommodations={accommodationMapItems}
                 selectedAccommodationId={selectedAccommodationId}
                 hoveredAccommodationId={hoveredAccommodationId}
                 onAccommodationSelect={handleAccommodationSelect}
