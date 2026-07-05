@@ -25,15 +25,69 @@ export interface TossPaymentsClient {
 
 const TOSS_PAYMENTS_SCRIPT_SRC = "https://js.tosspayments.com/v1";
 
-export const ensureTossPaymentsScript = () => {
-  if (document.querySelector(`script[src="${TOSS_PAYMENTS_SCRIPT_SRC}"]`)) {
-    return;
+let tossPaymentsScriptPromise: Promise<void> | null = null;
+
+const resolveWhenTossPaymentsIsReady = (
+  script: HTMLScriptElement,
+): Promise<void> =>
+  new Promise((resolve, reject) => {
+    const handleLoad = () => {
+      if (window.TossPayments) {
+        resolve();
+        return;
+      }
+
+      tossPaymentsScriptPromise = null;
+      script.remove();
+      reject(new Error("결제 시스템을 불러올 수 없습니다."));
+    };
+    const handleError = () => {
+      tossPaymentsScriptPromise = null;
+      script.remove();
+      reject(new Error("결제 시스템을 불러올 수 없습니다."));
+    };
+
+    script.addEventListener("load", handleLoad, { once: true });
+    script.addEventListener("error", handleError, { once: true });
+  });
+
+export const ensureTossPaymentsScript = (): Promise<void> => {
+  if (window.TossPayments) {
+    return Promise.resolve();
   }
 
-  const script = document.createElement("script");
+  const existingScript = document.querySelector<HTMLScriptElement>(
+    `script[src="${TOSS_PAYMENTS_SCRIPT_SRC}"]`,
+  );
+
+  if (tossPaymentsScriptPromise) {
+    if (!existingScript) {
+      tossPaymentsScriptPromise = null;
+    } else {
+      return tossPaymentsScriptPromise;
+    }
+  }
+
+  if (window.TossPayments) {
+    return Promise.resolve();
+  }
+
+  const script = existingScript ?? document.createElement("script");
   script.src = TOSS_PAYMENTS_SCRIPT_SRC;
   script.async = true;
-  document.body.appendChild(script);
+
+  tossPaymentsScriptPromise = resolveWhenTossPaymentsIsReady(script).catch(
+    (error) => {
+      tossPaymentsScriptPromise = null;
+      throw error;
+    },
+  );
+
+  if (!existingScript) {
+    document.body.appendChild(script);
+  }
+
+  return tossPaymentsScriptPromise;
 };
 
 export const getTossClientKey = () => {

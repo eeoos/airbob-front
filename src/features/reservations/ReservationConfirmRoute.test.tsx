@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { NavigateFunction } from "react-router-dom";
 import type { AccommodationDetail } from "../../types/accommodation";
 import { ReservationConfirmRoute } from "./ReservationConfirmRoute";
@@ -17,6 +17,17 @@ const mockUseReservationConfirmAccommodation = jest.fn<
 const mockEnsureTossPaymentsScript = jest.fn();
 const mockGetTossPaymentsClient = jest.fn();
 const mockRequestPayment = jest.fn();
+
+const createDeferred = <T,>() => {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+
+  return { promise, reject, resolve };
+};
 
 jest.mock("../../hooks/useApiError", () => ({
   useApiError: () => ({
@@ -133,6 +144,9 @@ describe("ReservationConfirmRoute", () => {
     mockReadReservationCheckoutState.mockReset();
     mockUseReservationConfirmAccommodation.mockReset();
     mockEnsureTossPaymentsScript.mockReset();
+    mockEnsureTossPaymentsScript.mockImplementation(
+      () => new Promise<void>(() => {}),
+    );
     mockGetTossPaymentsClient.mockReset();
     mockRequestPayment.mockReset();
     mockRequestPayment.mockResolvedValue(undefined);
@@ -184,11 +198,17 @@ describe("ReservationConfirmRoute", () => {
   });
 
   it("loads Toss on mount and requests payment with unchanged checkout fields", async () => {
+    mockEnsureTossPaymentsScript.mockResolvedValue(undefined);
     renderRoute();
 
     expect(mockEnsureTossPaymentsScript).toHaveBeenCalledTimes(1);
 
-    fireEvent.click(screen.getByRole("button", { name: "확인 및 결제" }));
+    const paymentButton = await screen.findByRole("button", {
+      name: "확인 및 결제",
+    });
+    expect(paymentButton).toBeEnabled();
+
+    fireEvent.click(paymentButton);
 
     await waitFor(() => {
       expect(mockGetTossPaymentsClient).toHaveBeenCalledWith("test_ck_123");
@@ -205,12 +225,43 @@ describe("ReservationConfirmRoute", () => {
   });
 
   it("silently resets payment processing for Toss user cancellation", async () => {
+    mockEnsureTossPaymentsScript.mockResolvedValue(undefined);
     mockRequestPayment.mockRejectedValue({ code: "USER_CANCEL" });
     renderRoute();
 
-    fireEvent.click(screen.getByRole("button", { name: "확인 및 결제" }));
+    const paymentButton = await screen.findByRole("button", {
+      name: "확인 및 결제",
+    });
+    expect(paymentButton).toBeEnabled();
+
+    fireEvent.click(paymentButton);
 
     expect(await screen.findByRole("button", { name: "확인 및 결제" })).toBeEnabled();
     expect(mockHandleError).not.toHaveBeenCalled();
+  });
+
+  it("keeps payment disabled until the Toss SDK loader resolves", async () => {
+    const tossReady = createDeferred<void>();
+    mockEnsureTossPaymentsScript.mockReturnValueOnce(tossReady.promise);
+
+    renderRoute();
+
+    const paymentButton = screen.getByRole("button", {
+      name: "결제 시스템 로딩 중...",
+    });
+    expect(paymentButton).toBeDisabled();
+
+    fireEvent.click(paymentButton);
+    expect(mockGetTossPaymentsClient).not.toHaveBeenCalled();
+
+    await act(async () => {
+      tossReady.resolve();
+    });
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "확인 및 결제" }),
+      ).toBeEnabled(),
+    );
   });
 });

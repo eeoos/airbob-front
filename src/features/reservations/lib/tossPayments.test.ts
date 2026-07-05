@@ -10,6 +10,7 @@ describe("tossPayments adapter", () => {
 
   afterEach(() => {
     process.env.REACT_APP_TOSS_CLIENT_KEY = originalClientKey;
+    delete window.TossPayments;
     document
       .querySelectorAll('script[src="https://js.tosspayments.com/v1"]')
       .forEach((script) => script.remove());
@@ -21,6 +22,44 @@ describe("tossPayments adapter", () => {
 
     expect(
       document.querySelectorAll('script[src="https://js.tosspayments.com/v1"]')
+    ).toHaveLength(1);
+  });
+
+  it("shares SDK loading work and resolves after the script loads", async () => {
+    const firstLoad = ensureTossPaymentsScript();
+    const secondLoad = ensureTossPaymentsScript();
+    const script = document.querySelector<HTMLScriptElement>(
+      'script[src="https://js.tosspayments.com/v1"]',
+    );
+
+    expect(secondLoad).toBe(firstLoad);
+    expect(script).not.toBeNull();
+
+    window.TossPayments = jest.fn();
+    script?.dispatchEvent(new Event("load"));
+
+    await expect(firstLoad).resolves.toBeUndefined();
+  });
+
+  it("removes failed SDK scripts so a later load can retry", async () => {
+    const failedLoad = ensureTossPaymentsScript();
+    const failedScript = document.querySelector<HTMLScriptElement>(
+      'script[src="https://js.tosspayments.com/v1"]',
+    );
+
+    failedScript?.dispatchEvent(new Event("error"));
+
+    await expect(failedLoad).rejects.toThrow(
+      "결제 시스템을 불러올 수 없습니다.",
+    );
+    expect(
+      document.querySelector('script[src="https://js.tosspayments.com/v1"]'),
+    ).toBeNull();
+
+    ensureTossPaymentsScript().catch(() => undefined);
+
+    expect(
+      document.querySelectorAll('script[src="https://js.tosspayments.com/v1"]'),
     ).toHaveLength(1);
   });
 

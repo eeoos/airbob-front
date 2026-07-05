@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { reservationApi } from "../../../api";
 import { routeTo } from "../../../routes/paths";
@@ -59,9 +59,15 @@ export function useReservationPayment({
 }: UseReservationPaymentOptions) {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const isLoadingRef = useRef(false);
 
   const startReservationPayment = useCallback(
     async (options: StartReservationPaymentOptions) => {
+      if (isLoadingRef.current) {
+        return;
+      }
+
+      isLoadingRef.current = true;
       setIsLoading(true);
       clearError();
 
@@ -86,6 +92,7 @@ export function useReservationPayment({
       } catch (error) {
         handleError(error);
       } finally {
+        isLoadingRef.current = false;
         setIsLoading(false);
       }
     },

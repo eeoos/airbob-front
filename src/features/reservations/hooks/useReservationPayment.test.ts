@@ -37,6 +37,17 @@ describe("useReservationPayment", () => {
     petCount: 1,
   };
 
+  const createDeferred = <T,>() => {
+    let resolve!: (value: T | PromiseLike<T>) => void;
+    let reject!: (reason?: unknown) => void;
+    const promise = new Promise<T>((promiseResolve, promiseReject) => {
+      resolve = promiseResolve;
+      reject = promiseReject;
+    });
+
+    return { promise, reject, resolve };
+  };
+
   beforeEach(() => {
     sessionStorage.clear();
     mockNavigate.mockReset();
@@ -120,5 +131,36 @@ describe("useReservationPayment", () => {
     expect(clearError).toHaveBeenCalledTimes(1);
     expect(handleError).toHaveBeenCalledWith(error);
     expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("ignores duplicate starts while reservation creation is in flight", async () => {
+    const handleError = jest.fn();
+    const clearError = jest.fn();
+    const pendingReservation = createDeferred<typeof reservationResponse>();
+    jest
+      .mocked(reservationApi.create)
+      .mockReturnValue(pendingReservation.promise);
+
+    const { result } = renderHook(() =>
+      useReservationPayment({
+        clearError,
+        handleError,
+      }),
+    );
+
+    await act(async () => {
+      void result.current.startReservationPayment(paymentOptions);
+      void result.current.startReservationPayment(paymentOptions);
+    });
+
+    expect(reservationApi.create).toHaveBeenCalledTimes(1);
+    expect(clearError).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      pendingReservation.resolve(reservationResponse);
+    });
+
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(handleError).not.toHaveBeenCalled();
   });
 });
