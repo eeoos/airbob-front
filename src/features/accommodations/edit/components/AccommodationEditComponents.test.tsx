@@ -148,7 +148,12 @@ describe("AccommodationEdit extracted components", () => {
       "EditForm.module.css",
       "EditModal.module.css",
       "EditModalShell.tsx",
+      "EditStepContent.tsx",
+      "EditWizardActionBar.tsx",
+      "EditWizardDialogs.tsx",
       "EditWizardLayout.module.css",
+      "EditWizardNavigation.tsx",
+      "EditWizardSidebar.tsx",
       "InfoStep.tsx",
       "LocationStep.tsx",
       "PhotosStep.module.css",
@@ -157,7 +162,10 @@ describe("AccommodationEdit extracted components", () => {
       "TimePicker.tsx",
       "TimeStep.module.css",
       "TimeStep.tsx",
+      "accommodationTypeIcons.tsx",
       "accommodationEditIcons.tsx",
+      "amenityIcons.tsx",
+      "editStepIcons.tsx",
       "AccommodationEditComponents.test.tsx",
     ];
 
@@ -179,6 +187,27 @@ describe("AccommodationEdit extracted components", () => {
       /features\/accommodations\/edit\/(?:components|hooks|lib)\//
     );
     expect(pageSource).not.toMatch(/from\s+["'][^"']*components\/[^"']+\.module\.css["']/);
+
+    const extractedComponentFiles = [
+      "EditStepContent.tsx",
+      "EditWizardActionBar.tsx",
+      "EditWizardDialogs.tsx",
+      "EditWizardNavigation.tsx",
+      "EditWizardSidebar.tsx",
+    ];
+    extractedComponentFiles.forEach((file) => {
+      const source = readProjectFile(`${FEATURE_COMPONENTS_DIR}/${file}`);
+
+      expect(source).not.toMatch(/from\s+["'][^"']*(?:\/api\/|\/api|api\/)/);
+      expect(source).not.toMatch(/from\s+["'][^"']*services\//);
+    });
+
+    const screenSource = readProjectFile(
+      `${FEATURE_COMPONENTS_DIR}/AccommodationEditScreen.tsx`
+    );
+    expect(screenSource).not.toContain("const STEPS");
+    expect(screenSource).not.toContain("stepButtonStyle");
+    expect(screenSource).not.toContain("renderStepContent");
   });
 
   it("keeps wizard layout and edit form styles in dedicated CSS modules", () => {

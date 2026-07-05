@@ -75,8 +75,11 @@ const AccommodationHero: React.FC<AccommodationHeroProps> = ({
             <button className={styles.saveButton} onClick={onSave}>
               <svg
                 viewBox="0 0 24 24"
-                fill={detailView.isInWishlist ? "#ff385c" : "none"}
-                stroke={detailView.isInWishlist ? "#ff385c" : "currentColor"}
+                className={
+                  detailView.isInWishlist ? styles.saveIconActive : undefined
+                }
+                fill={detailView.isInWishlist ? "currentColor" : "none"}
+                stroke="currentColor"
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"

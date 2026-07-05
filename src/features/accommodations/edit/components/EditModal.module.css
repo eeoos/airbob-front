@@ -17,7 +17,7 @@
   border-radius: var(--radius-lg);
   width: 100%;
   max-width: 900px;
-  max-height: 90vh;
+  max-height: var(--layout-modal-max-height);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -28,7 +28,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 24px;
-  border-bottom: 1px solid #ebebeb;
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .typeModalTitle {
@@ -49,7 +49,7 @@
   justify-content: center;
   color: var(--color-text-primary);
   transition: color 0.2s ease;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
 }
 
 .typeModalClose:hover {
@@ -80,7 +80,8 @@
   border-radius: var(--radius-md);
   background: var(--color-background-page);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color var(--motion-duration-base) var(--motion-ease-standard),
+    border-color var(--motion-duration-base) var(--motion-ease-standard);
   min-height: 140px;
   width: 100%;
 }
@@ -139,12 +140,13 @@
   height: 32px;
   border: 1px solid var(--color-border-default);
   background: var(--color-background-page);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color var(--motion-duration-base) var(--motion-ease-standard),
+    border-color var(--motion-duration-base) var(--motion-ease-standard);
 }
 
 .amenityCountButton:hover:not(:disabled) {
@@ -185,7 +187,7 @@
   display: flex;
   justify-content: flex-end;
   padding: 20px 24px;
-  border-top: 1px solid #ebebeb;
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .amenityModalDoneButton {
@@ -212,7 +214,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-modal);
 }
 
 .confirmModalContent {
@@ -250,7 +252,9 @@
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color var(--motion-duration-base) var(--motion-ease-standard),
+    color var(--motion-duration-base) var(--motion-ease-standard),
+    border-color var(--motion-duration-base) var(--motion-ease-standard);
   border: none;
 }
 
@@ -275,7 +279,7 @@
 
 @media (max-width: 768px) {
   .typeModal {
-    max-width: calc(100vw - 40px);
+    max-width: calc(var(--layout-viewport-width) - 40px);
   }
 
   .typeModalGrid {
