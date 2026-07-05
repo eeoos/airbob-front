@@ -168,7 +168,7 @@ npm run smoke:frontend:strict
 ### Route-specific assertions
 
 - `/`: `#root` contains `특별한 숙소`.
-- `/search?destination=Albany&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`: `main, #root` contains `숙소`, search button exists, and wishlist/save action exists when the local search index returns cards. If the local ES-backed search index has no hits, the explicit `검색 결과가 없습니다.` empty state is acceptable smoke coverage.
+- `/search?destination=Albany&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`: `main, #root` contains `숙소`, search button exists, and wishlist/save action exists when the local search index returns cards. If `AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS` is unset and the local ES-backed search index has no hits, the explicit `검색 결과가 없습니다.` empty state is acceptable smoke coverage. When `AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS=true`, a visible search result card is required.
 - `/wishlist`: `main, #root` contains `위시리스트`.
 - `/wishlist?view=recently-viewed`: `main, #root` contains `최근`.
 - `/profile?mode=host&tab=listings`: `main, #root` contains `호스트`.

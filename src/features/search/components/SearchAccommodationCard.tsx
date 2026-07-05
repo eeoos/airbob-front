@@ -46,7 +46,7 @@ export const SearchAccommodationCard: React.FC<SearchAccommodationCardProps> = (
   };
 
   return (
-    <div className={styles.accommodationCard}>
+    <div className={styles.accommodationCard} data-testid="search-result-card">
       <a
         href={detailUrl}
         target="_blank"

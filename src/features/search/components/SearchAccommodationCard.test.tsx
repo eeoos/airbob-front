@@ -17,6 +17,16 @@ const accommodation: SearchAccommodationCardViewModel = {
 };
 
 describe("SearchAccommodationCard", () => {
+  it("exposes the stable smoke selector on the card wrapper", () => {
+    render(<SearchAccommodationCard accommodation={accommodation} />);
+
+    expect(screen.getByTestId("search-result-card")).toContainElement(
+      screen.getByRole("link", {
+        name: "숙소 상세 보기: 성수 숙소",
+      }),
+    );
+  });
+
   it("opens the card action from keyboard Enter", async () => {
     const onClick = jest.fn();
 
