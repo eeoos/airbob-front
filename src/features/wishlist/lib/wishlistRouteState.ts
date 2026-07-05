@@ -1,6 +1,6 @@
-import type { WishlistRouteView } from "../../../routes/paths";
+import type { WishlistRouteView } from "./wishlistRouteQuery";
 
-export type { WishlistRouteView } from "../../../routes/paths";
+export type { WishlistRouteView } from "./wishlistRouteQuery";
 
 export interface WishlistRouteState {
   view: WishlistRouteView;

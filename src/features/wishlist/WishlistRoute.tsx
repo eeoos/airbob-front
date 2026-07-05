@@ -23,12 +23,19 @@ import {
 } from "./lib/wishlistAccommodationViewModel";
 
 interface WishlistRouteProps {
+  searchParams: URLSearchParams;
+  setSearchParams: (
+    nextParams: URLSearchParams,
+    options?: { replace?: boolean },
+  ) => void;
   className?: string;
   toastClassName?: string;
 }
 
 export const WishlistRoute: React.FC<WishlistRouteProps> = ({
   className,
+  searchParams,
+  setSearchParams,
   toastClassName,
 }) => {
   const {
@@ -40,7 +47,7 @@ export const WishlistRoute: React.FC<WishlistRouteProps> = ({
     selectedWishlist,
     setIsEditMode,
     showRecentlyViewed,
-  } = useWishlistRouteViewState();
+  } = useWishlistRouteViewState(searchParams, setSearchParams);
   const {
     clearError,
     deleteWishlist,

@@ -7,14 +7,6 @@ const mockCloseMemoModal = jest.fn();
 const mockSetSearchParams = jest.fn();
 let mockSearchParams = new URLSearchParams("id=42");
 
-jest.mock(
-  "react-router-dom",
-  () => ({
-    useSearchParams: () => [mockSearchParams, mockSetSearchParams],
-  }),
-  { virtual: true }
-);
-
 jest.mock("./hooks/useWishlistData", () => ({
   useWishlistData: () => ({
     clearError: jest.fn(),
@@ -108,7 +100,12 @@ describe("Wishlist memo modal", () => {
     // Regression: ISSUE-001 - Wishlist memo modal ignored Escape.
     // Found by /qa on 2026-07-03.
     // Report: .gstack/qa-reports/qa-report-localhost-3000-2026-07-03-structural-final.md
-    render(<WishlistRoute />);
+    render(
+      <WishlistRoute
+        searchParams={mockSearchParams}
+        setSearchParams={mockSetSearchParams}
+      />,
+    );
 
     expect(screen.getByRole("heading", { name: "메모 추가" })).toBeInTheDocument();
 

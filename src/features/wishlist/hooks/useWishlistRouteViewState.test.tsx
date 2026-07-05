@@ -1,30 +1,28 @@
 import { act, renderHook } from "@testing-library/react";
-import { useSearchParams } from "react-router-dom";
 import { useWishlistRouteViewState } from "./useWishlistRouteViewState";
-
-jest.mock(
-  "react-router-dom",
-  () => ({
-    useSearchParams: jest.fn(),
-  }),
-  { virtual: true }
-);
 
 const mockSetSearchParams = jest.fn();
 let currentSearchParams = new URLSearchParams();
+
+const renderWishlistRouteViewState = () =>
+  renderHook(
+    ({ searchParams }) =>
+      useWishlistRouteViewState(searchParams, mockSetSearchParams),
+    {
+      initialProps: {
+        searchParams: currentSearchParams,
+      },
+    },
+  );
 
 describe("useWishlistRouteViewState", () => {
   beforeEach(() => {
     mockSetSearchParams.mockReset();
     currentSearchParams = new URLSearchParams();
-    jest.mocked(useSearchParams).mockImplementation(() => [
-      currentSearchParams,
-      mockSetSearchParams,
-    ] as any);
   });
 
   it("defaults to the wishlist index view", () => {
-    const { result } = renderHook(() => useWishlistRouteViewState());
+    const { result } = renderWishlistRouteViewState();
 
     expect(result.current.selectedWishlist).toBeNull();
     expect(result.current.showRecentlyViewed).toBe(false);
@@ -32,7 +30,7 @@ describe("useWishlistRouteViewState", () => {
   });
 
   it("opens recently viewed and resets local edit state", () => {
-    const { result } = renderHook(() => useWishlistRouteViewState());
+    const { result } = renderWishlistRouteViewState();
 
     act(() => {
       result.current.setIsEditMode(true);
@@ -51,7 +49,7 @@ describe("useWishlistRouteViewState", () => {
   });
 
   it("opens a wishlist detail route", () => {
-    const { result } = renderHook(() => useWishlistRouteViewState());
+    const { result } = renderWishlistRouteViewState();
 
     act(() => {
       result.current.openWishlist(42);
@@ -65,10 +63,10 @@ describe("useWishlistRouteViewState", () => {
   });
 
   it("syncs state from changed URL search params", () => {
-    const { result, rerender } = renderHook(() => useWishlistRouteViewState());
+    const { result, rerender } = renderWishlistRouteViewState();
 
     currentSearchParams = new URLSearchParams("view=recently-viewed");
-    rerender();
+    rerender({ searchParams: currentSearchParams });
 
     expect(result.current.showRecentlyViewed).toBe(true);
     expect(result.current.selectedWishlist).toBeNull();
@@ -78,7 +76,7 @@ describe("useWishlistRouteViewState", () => {
     });
 
     currentSearchParams = new URLSearchParams("id=42");
-    rerender();
+    rerender({ searchParams: currentSearchParams });
 
     expect(result.current.showRecentlyViewed).toBe(false);
     expect(result.current.selectedWishlist).toBe(42);
