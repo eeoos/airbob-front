@@ -23,7 +23,9 @@
   font-size: var(--font-size-md);
 }
 
-/* Google Maps InfoWindow 스타일 오버라이드 */
+/* Vendor boundary: Google Maps InfoWindow chrome.
+   Google renders these .gm-* nodes and some inline styles outside React.
+   Keep .gm-* selectors here; !important is limited to Google-owned chrome. */
 .mapContainer :global(.gm-style-iw-c) {
   padding: 0 !important;
   background: transparent !important;
@@ -64,6 +66,7 @@
 .mapContainer :global(.gm-ui-hover-effect) {
   display: none !important;
 }
+/* End vendor boundary: Google Maps InfoWindow chrome. */
 
 /* 지도 드래그 로딩 오버레이 */
 .boundsLoadingOverlay {

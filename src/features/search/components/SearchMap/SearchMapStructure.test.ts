@@ -35,17 +35,17 @@ describe("SearchMap structure", () => {
   });
 
   it("filters booking-safe params for map info-window detail links", () => {
-    const hookSource = readFileSync(
-      join(searchMapRoot, "hooks/useMapSelectionInfoWindow.ts"),
+    const eventsHookSource = readFileSync(
+      join(searchMapRoot, "hooks/useMapInfoWindowEvents.ts"),
       "utf8",
     );
 
-    expect(hookSource).toContain("toAccommodationBookingRouteQuery");
-    expect(hookSource).toMatch(
+    expect(eventsHookSource).toContain("toAccommodationBookingRouteQuery");
+    expect(eventsHookSource).toMatch(
       /const detailParams = detailSearchParams\s*\?\s*toAccommodationBookingRouteQuery\(detailSearchParams\)\s*:\s*undefined;/,
     );
-    expect(hookSource).toMatch(
-      /routeTo\.accommodationDetail\(\s*selectedAccommodation\.id,\s*detailParams,?\s*\)/,
+    expect(eventsHookSource).toMatch(
+      /routeTo\.accommodationDetail\(\s*accommodationId,\s*detailParams,?\s*\)/,
     );
   });
 
@@ -54,13 +54,20 @@ describe("SearchMap structure", () => {
       join(searchMapRoot, "hooks/useMapSelectionInfoWindow.ts"),
       "utf8",
     );
+    const eventsHookSource = readFileSync(
+      join(searchMapRoot, "hooks/useMapInfoWindowEvents.ts"),
+      "utf8",
+    );
     const contentSource = readFileSync(
       join(searchMapRoot, "lib/infoWindowContent.ts"),
       "utf8",
     );
-    const infoWindowSource = `${hookSource}\n${contentSource}`;
+    const infoWindowSource = `${hookSource}\n${eventsHookSource}\n${contentSource}`;
 
-    expect(infoWindowSource).toContain("bindInfoWindowEvents");
+    expect(hookSource).toContain("useMapInfoWindowEvents");
+    expect(hookSource).not.toContain('from "../lib/infoWindowEvents"');
+    expect(hookSource).not.toContain("bindInfoWindowEvents({");
+    expect(eventsHookSource).toContain("bindInfoWindowEvents");
 
     const forbiddenInfoWindowSnippets = [
       "window.toggleWishlist",
@@ -72,5 +79,33 @@ describe("SearchMap structure", () => {
     );
 
     expect(offenders).toEqual([]);
+  });
+
+  it("keeps Google Maps CSS overrides inside the documented vendor boundary", () => {
+    const mapCss = readFileSync(join(searchMapRoot, "Map.module.css"), "utf8");
+    const boundaryStart = mapCss.indexOf(
+      "Vendor boundary: Google Maps InfoWindow chrome",
+    );
+    const boundaryEnd = mapCss.indexOf(
+      "End vendor boundary: Google Maps InfoWindow chrome",
+    );
+
+    expect(boundaryStart).toBeGreaterThanOrEqual(0);
+    expect(boundaryEnd).toBeGreaterThan(boundaryStart);
+
+    const googleMapsOverrideIndexes: number[] = [];
+    const googleMapsOverridePattern = /:global\(\.gm-/g;
+    let match: RegExpExecArray | null;
+
+    while ((match = googleMapsOverridePattern.exec(mapCss)) !== null) {
+      googleMapsOverrideIndexes.push(match.index);
+    }
+
+    expect(googleMapsOverrideIndexes.length).toBeGreaterThan(0);
+    expect(
+      googleMapsOverrideIndexes.every(
+        (index) => index > boundaryStart && index < boundaryEnd,
+      ),
+    ).toBe(true);
   });
 });

@@ -1,6 +1,7 @@
 import React from "react";
 import type { URLSearchParamsInit } from "react-router-dom";
 import { motion } from "framer-motion";
+import type { MotionStyle } from "framer-motion";
 import { AuthModal } from "../auth/appShell";
 import { WishlistModal } from "../wishlist/appShell";
 import { ErrorToast } from "../../components/ErrorToast";
@@ -17,6 +18,10 @@ import { useSearchWishlistModal } from "./hooks/useSearchWishlistModal";
 import { toAccommodationBookingRouteQuery } from "./lib/accommodationDetailParams";
 import { getViewportFromSearchParams } from "./lib/searchParams";
 import styles from "./SearchRoute.module.css";
+
+const getBottomSheetMotionStyle = (y: MotionStyle["y"]): MotionStyle => ({
+  y,
+});
 
 export interface SearchRouteProps {
   searchParams: URLSearchParams;
@@ -157,14 +162,7 @@ export const SearchRoute: React.FC<SearchRouteProps> = ({
               className={`${styles.bottomSheet} ${styles[bottomSheetState]} ${
                 accommodationCards.length === 0 ? styles.emptyResults : ""
               }`}
-              style={
-                isMobileOrTablet
-                  ? {
-                      y: translateY,
-                      touchAction: "pan-y",
-                    }
-                  : undefined
-              }
+              style={getBottomSheetMotionStyle(translateY)}
               drag={isMobileOrTablet ? "y" : false}
               dragElastic={0}
               dragMomentum={false}

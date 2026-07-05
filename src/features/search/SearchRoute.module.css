@@ -281,7 +281,7 @@
     will-change: transform;
     backface-visibility: hidden;
     -webkit-font-smoothing: antialiased;
-    /* transform is controlled by react-spring */
+    /* transform is controlled by Framer Motion; touch handling stays in CSS. */
   }
 
   /* Collapsed State - Pure Peek (Header Only) - Tablet */

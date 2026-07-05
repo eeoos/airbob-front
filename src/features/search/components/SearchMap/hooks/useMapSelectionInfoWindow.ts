@@ -1,13 +1,11 @@
 import { MutableRefObject, RefObject, useEffect, useRef } from "react";
-import { routeTo } from "../../../../../routes/paths";
-import { toAccommodationBookingRouteQuery } from "../../../lib/accommodationDetailParams";
-import { bindInfoWindowEvents } from "../lib/infoWindowEvents";
 import { buildInfoWindowContent } from "../lib/infoWindowContent";
 import {
   adjustInfoWindowIntoMapView,
   applyInfoWindowChromeStyles,
 } from "../lib/infoWindowDom";
 import { SearchMapAccommodation, SearchMapMarker } from "../types";
+import { useMapInfoWindowEvents } from "./useMapInfoWindowEvents";
 
 interface UseMapSelectionInfoWindowOptions {
   accommodations: SearchMapAccommodation[];
@@ -70,6 +68,10 @@ export const useMapSelectionInfoWindow = ({
   selectedAccommodationId,
 }: UseMapSelectionInfoWindowOptions) => {
   const closeInfoWindowRef = useRef<CloseInfoWindow | null>(null);
+  const bindMapInfoWindowEvents = useMapInfoWindowEvents({
+    detailSearchParams,
+    onWishlistToggle,
+  });
 
   useEffect(() => {
     if (!mapInstanceRef.current) return;
@@ -167,10 +169,6 @@ export const useMapSelectionInfoWindow = ({
       );
 
       if (selectedMarker) {
-        const detailParams = detailSearchParams
-          ? toAccommodationBookingRouteQuery(detailSearchParams)
-          : undefined;
-
         const infoWindow = new window.google.maps.InfoWindow({
           disableAutoPan: true,
           content: buildInfoWindowContent({
@@ -264,24 +262,10 @@ export const useMapSelectionInfoWindow = ({
           );
           if (infoWindowElement) {
             unbindInfoWindowEvents?.();
-            unbindInfoWindowEvents = bindInfoWindowEvents({
+            unbindInfoWindowEvents = bindMapInfoWindowEvents({
               root: infoWindowElement,
-              onCardClick: () => {
-                window.open(
-                  routeTo.accommodationDetail(
-                    selectedAccommodation.id,
-                    detailParams,
-                  ),
-                  "_blank",
-                );
-              },
+              accommodationId: selectedAccommodation.id,
               onClose: closeSelectedInfoWindow,
-              onWishlistToggle: (accommodationId, isInWishlist) => {
-                if (onWishlistToggle) {
-                  onWishlistToggle(accommodationId, isInWishlist);
-                  closeSelectedInfoWindow();
-                }
-              },
             });
           }
 
@@ -329,9 +313,9 @@ export const useMapSelectionInfoWindow = ({
     prevSelectedIdRef.current = currentSelectedId;
   }, [
     accommodations,
+    bindMapInfoWindowEvents,
     checkIn,
     checkOut,
-    detailSearchParams,
     hoveredAccommodationId,
     hoveredAccommodationIdRef,
     infoWindowRef,
