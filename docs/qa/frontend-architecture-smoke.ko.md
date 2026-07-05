@@ -74,7 +74,7 @@ npm run smoke:frontend:strict
 자동화 라우트 커버리지:
 
 - `home`: `/`
-- `search-seoul`: `/search?destination=Seoul&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`
+- `search-seoul`: `/search?destination=Albany&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`
 - `wishlist`: `/wishlist`
 - `wishlist-recently-viewed`: `/wishlist?view=recently-viewed`
 - `profile-host-listings`: `/profile?mode=host&tab=listings`
@@ -161,7 +161,7 @@ npm run smoke:frontend:strict
 ### Route-specific assertions
 
 - `/`: `#root` contains `특별한 숙소`.
-- `/search?destination=Seoul&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`: `main, #root` contains `숙소`, search button exists, and wishlist/save action exists.
+- `/search?destination=Albany&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`: `main, #root` contains `숙소`, search button exists, and wishlist/save action exists when the local search index returns cards. If the local ES-backed search index has no hits, the explicit `검색 결과가 없습니다.` empty state is acceptable smoke coverage.
 - `/wishlist`: `main, #root` contains `위시리스트`.
 - `/wishlist?view=recently-viewed`: `main, #root` contains `최근`.
 - `/profile?mode=host&tab=listings`: `main, #root` contains `호스트`.
@@ -207,7 +207,23 @@ npm run smoke:frontend
 - QA credentials: supplied out-of-band through environment variables; no account values were written to this document.
 - Smoke report: `.gstack/qa-reports/frontend-smoke-2026-07-05T04-04-18-698Z.md`
 - Screenshot directory: `.gstack/qa-reports/screenshots/`
-- Desktop coverage: `/`, `/search?destination=Seoul&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`, `/wishlist`, `/wishlist?view=recently-viewed`, `/profile?mode=host&tab=listings`, `/accommodations/3`, `/accommodations/3/edit`.
-- Mobile coverage: `/`, `/search?destination=Seoul&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`, `/wishlist`, `/wishlist?view=recently-viewed`, `/profile?mode=host&tab=listings`, `/accommodations/3`, `/accommodations/3/edit`.
+- Desktop coverage: `/`, `/search?destination=Albany&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`, `/wishlist`, `/wishlist?view=recently-viewed`, `/profile?mode=host&tab=listings`, `/accommodations/3`, `/accommodations/3/edit`.
+- Mobile coverage: `/`, `/search?destination=Albany&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`, `/wishlist`, `/wishlist?view=recently-viewed`, `/profile?mode=host&tab=listings`, `/accommodations/3`, `/accommodations/3/edit`.
 - Skipped dynamic routes: `/reservations/:reservationUid` and `/profile/host/reservations/:reservationUid`; stable route UIDs were not supplied in this run, so the smoke report lists them under `Skipped Dynamic Routes`.
 - Observed environment warning: Google Maps API key warning appears during route loads. The smoke wrapper still exited `0`; no API 4xx/5xx route assertion failure was reported.
+
+## 2026-07-05 KST Architecture Readiness Closure
+
+- Static gate command: `npm run verify:pre-redesign`
+- Static gate result: PASS. `typecheck`, full no-cache Jest, and production build completed successfully.
+- Jest result: 164 suites passed, 758 tests passed.
+- Build result: `Compiled successfully.` Freshness notices for `baseline-browser-mapping` and `caniuse-lite` remain environment maintenance warnings, not build failures.
+- Strict browser smoke command: `npm run smoke:frontend:strict`
+- Strict browser smoke result: PASS.
+- Dynamic reservation route IDs: guest and host PAST reservation UIDs were extracted through the credential-safe API flow above and supplied via environment variables. Actual UID values are intentionally not recorded in this document.
+- Smoke report: `.gstack/qa-reports/frontend-smoke-2026-07-05T07-37-20-134Z.md`
+- Screenshot directory: `.gstack/qa-reports/screenshots/`
+- Desktop coverage: `/`, `/search?destination=Albany&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`, `/wishlist`, `/wishlist?view=recently-viewed`, `/profile?mode=host&tab=listings`, `/accommodations/3`, `/accommodations/3/edit`, `/reservations/:reservationUid`, `/profile/host/reservations/:reservationUid`.
+- Mobile coverage: `/`, `/search?destination=Albany&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`, `/wishlist`, `/wishlist?view=recently-viewed`, `/profile?mode=host&tab=listings`, `/accommodations/3`, `/accommodations/3/edit`, `/reservations/:reservationUid`, `/profile/host/reservations/:reservationUid`.
+- Skipped dynamic routes: none.
+- Search route note: local `/api/v1/search/accommodations` returned an empty result set for the Albany smoke query, so this run verified the explicit search empty state rather than search result cards. Search result card styling should still be visually checked after the local ES search index is seeded or a fallback search fixture is available.

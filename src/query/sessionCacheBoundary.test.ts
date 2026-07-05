@@ -8,9 +8,9 @@ import { MeInfo } from "../types/auth";
 import { refreshSessionQueryData } from "./sessionCacheBoundary";
 
 const meInfo: MeInfo = {
-  id: 2573,
-  email: "qa@etl.airbob.local",
-  nickname: "Airbob QA",
+  id: 9001,
+  email: "synthetic-member@example.invalid",
+  nickname: "Synthetic Member",
   thumbnail_image_url: null,
 };
 
