@@ -34,6 +34,7 @@ Airbnb 디자인 리팩터 전에 프론트엔드 아키텍처 변경이 주요 
 - Strict design smoke는 ES 데이터 seed 전에도 실행할 수 있다. 이 경우 `/search`는 empty state까지 확인하지만 search card visual QA는 완료된 것으로 보지 않는다.
 - ES index가 seed된 뒤에는 `AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS=true npm run smoke:frontend:strict`로 실행해 `/search` result card가 실제로 보이는지 확인한다.
 - Smoke report는 `Google Maps API key: present` 또는 `Google Maps API key: missing`처럼 Google Maps key readiness만 기록해야 하며, key 값 자체는 기록하지 않는다.
+- Strict dynamic route UID 추출은 현재 guest/host reservation list의 `filterType=PAST&size=1` path가 안정적인 fixture 경로다. Unfiltered list endpoint는 local QA에서 HTTP 500을 반환한 이력이 있으므로 재사용 스니펫도 PAST filter를 유지한다.
 
 ```bash
 export AIRBOB_API_BASE_URL="${AIRBOB_API_BASE_URL:-http://localhost:8080/api/v1}"
@@ -59,17 +60,17 @@ curl -fsS \
   "$AIRBOB_API_BASE_URL/auth/login" >/dev/null
 
 guest_reservation_uid="$(
-  curl -fsS -b "$cookie_jar" "$AIRBOB_API_BASE_URL/profile/guest/reservations?size=1" |
+  curl -fsS -b "$cookie_jar" "$AIRBOB_API_BASE_URL/profile/guest/reservations?filterType=PAST&size=1" |
     node -e 'let data = ""; process.stdin.on("data", (chunk) => data += chunk); process.stdin.on("end", () => { const json = JSON.parse(data); const uid = json.data?.reservations?.[0]?.reservation_uid; if (uid) process.stdout.write(uid); });'
 )"
 
 host_reservation_uid="$(
-  curl -fsS -b "$cookie_jar" "$AIRBOB_API_BASE_URL/profile/host/reservations?size=1" |
+  curl -fsS -b "$cookie_jar" "$AIRBOB_API_BASE_URL/profile/host/reservations?filterType=PAST&size=1" |
     node -e 'let data = ""; process.stdin.on("data", (chunk) => data += chunk); process.stdin.on("end", () => { const json = JSON.parse(data); const uid = json.data?.reservations?.[0]?.reservation_uid; if (uid) process.stdout.write(uid); });'
 )"
 
-: "${guest_reservation_uid:?No guest reservation UID returned for smoke}"
-: "${host_reservation_uid:?No host reservation UID returned for smoke}"
+: "${guest_reservation_uid:?No guest PAST reservation UID returned for smoke}"
+: "${host_reservation_uid:?No host PAST reservation UID returned for smoke}"
 
 export AIRBOB_SMOKE_RESERVATION_UID="$guest_reservation_uid"
 export AIRBOB_SMOKE_HOST_RESERVATION_UID="$host_reservation_uid"

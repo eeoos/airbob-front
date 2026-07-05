@@ -85,6 +85,7 @@ const isolatedSmokeSubprocessEnv = (
     "AIRBOB_SMOKE_HOST_RESERVATION_UID",
     "AIRBOB_SMOKE_ACCOMMODATION_ID",
     "AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS",
+    "AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES",
   ].forEach((key) => {
     delete env[key];
   });
