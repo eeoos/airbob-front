@@ -234,3 +234,21 @@ npm run smoke:frontend
 - Mobile coverage: `/`, `/search?destination=Albany&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`, `/wishlist`, `/wishlist?view=recently-viewed`, `/profile?mode=host&tab=listings`, `/accommodations/3`, `/accommodations/3/edit`, `/reservations/:reservationUid`, `/profile/host/reservations/:reservationUid`.
 - Skipped dynamic routes: none.
 - Search route note: local `/api/v1/search/accommodations` returned an empty result set for the Albany smoke query, so this run verified the explicit search empty state rather than search result cards. Search result card styling should still be visually checked after the local ES search index is seeded or a fallback search fixture is available.
+
+## 2026-07-06 KST Task 10 Strict Smoke Retry
+
+- Static gate command: `npm run verify:pre-redesign`
+- Static gate result: PASS. TypeScript, full no-cache Jest, and production build command exited successfully.
+- Jest result: 170 suites passed, 810 tests passed.
+- Build result: `Compiled with warnings.` CRA completed the production build; the remaining warning is the existing `react-hooks/exhaustive-deps` warning in `src/features/search/hooks/useSearchResults.ts`.
+- Dynamic reservation route IDs: guest and host PAST reservation UIDs were extracted through the credential-safe API flow and supplied via environment variables. Actual UID values are intentionally not recorded in this document.
+- Strict browser smoke command: `npm run smoke:frontend:strict`
+- Strict browser smoke report: `.gstack/qa-reports/frontend-smoke-2026-07-05T16-03-45-234Z.md`
+- ES search result fixture: present. The Albany search route showed a visible result card with `AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS=true`.
+- Google Maps key readiness: present in the smoke report. QA credential values, actual reservation UID values, and API key values were not recorded in this document.
+- Dynamic route coverage: desktop and mobile covered `/reservations/:reservationUid` and `/profile/host/reservations/:reservationUid`; skipped dynamic routes: none.
+- Browser QA result: FAIL. The strict smoke reached 18 desktop/mobile route entries and verified the search result card plus dynamic reservation routes, but mobile `/accommodations/14` failed the route assertion because `main, #root` did not include the expected `숙소` text. Reservation CTA and gallery controls were present, so the blocker is the route text assertion or mobile detail copy, not a missing route load.
+- Output guard result: FAIL with `browse JS error output` from the failed route assertion.
+- Final full verification command: `npm run verify:design-ready`
+- Final full verification result: FAIL before build/smoke. With the user-required dynamic smoke UID env exported, `src/verification-gate.test.ts` inherits those env values in fake-browse subprocesses; 1 suite failed and 2 tests failed because the fake-browse tests expected dynamic routes to be skipped. A placeholder-UID reproduction confirmed the same failure mode without exposing real UID values.
+- Remaining backend fixture risk: unfiltered guest/host reservation list endpoints returned HTTP 500 during UID extraction. `filterType=PAST` returned usable guest and host route IDs in this run; if that fixture becomes unavailable, strict dynamic route smoke will block before browser coverage.
