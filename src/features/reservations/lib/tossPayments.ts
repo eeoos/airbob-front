@@ -26,6 +26,7 @@ export interface TossPaymentsClient {
 const TOSS_PAYMENTS_SCRIPT_SRC = "https://js.tosspayments.com/v1";
 
 let tossPaymentsScriptPromise: Promise<void> | null = null;
+let tossPaymentsScriptElement: HTMLScriptElement | null = null;
 
 const resolveWhenTossPaymentsIsReady = (
   script: HTMLScriptElement,
@@ -38,11 +39,13 @@ const resolveWhenTossPaymentsIsReady = (
       }
 
       tossPaymentsScriptPromise = null;
+      tossPaymentsScriptElement = null;
       script.remove();
       reject(new Error("결제 시스템을 불러올 수 없습니다."));
     };
     const handleError = () => {
       tossPaymentsScriptPromise = null;
+      tossPaymentsScriptElement = null;
       script.remove();
       reject(new Error("결제 시스템을 불러올 수 없습니다."));
     };
@@ -56,16 +59,33 @@ export const ensureTossPaymentsScript = (): Promise<void> => {
     return Promise.resolve();
   }
 
-  const existingScript = document.querySelector<HTMLScriptElement>(
+  let existingScript = document.querySelector<HTMLScriptElement>(
     `script[src="${TOSS_PAYMENTS_SCRIPT_SRC}"]`,
   );
 
   if (tossPaymentsScriptPromise) {
-    if (!existingScript) {
-      tossPaymentsScriptPromise = null;
-    } else {
+    if (
+      existingScript &&
+      existingScript === tossPaymentsScriptElement &&
+      existingScript.isConnected
+    ) {
       return tossPaymentsScriptPromise;
     }
+
+    if (existingScript) {
+      existingScript.remove();
+      existingScript = null;
+    }
+
+    if (!tossPaymentsScriptElement?.isConnected) {
+      tossPaymentsScriptPromise = null;
+      tossPaymentsScriptElement = null;
+    }
+  }
+
+  if (existingScript) {
+    existingScript.remove();
+    existingScript = null;
   }
 
   if (window.TossPayments) {
@@ -79,9 +99,11 @@ export const ensureTossPaymentsScript = (): Promise<void> => {
   tossPaymentsScriptPromise = resolveWhenTossPaymentsIsReady(script).catch(
     (error) => {
       tossPaymentsScriptPromise = null;
+      tossPaymentsScriptElement = null;
       throw error;
     },
   );
+  tossPaymentsScriptElement = script;
 
   if (!existingScript) {
     document.body.appendChild(script);
