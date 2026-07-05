@@ -104,6 +104,17 @@ const STEPS: Array<{
   { number: 5, title: "숙소 등록", description: "숙소를 등록하세요" },
 ];
 
+const stepButtonStyle: React.CSSProperties = {
+  appearance: "none",
+  borderLeft: 0,
+  borderRight: 0,
+  borderTop: 0,
+  color: "inherit",
+  font: "inherit",
+  textAlign: "left",
+  width: "100%",
+};
+
 export const AccommodationEditScreen: React.FC<AccommodationEditScreenProps> = ({
   state,
   actions,
@@ -247,29 +258,38 @@ export const AccommodationEditScreen: React.FC<AccommodationEditScreenProps> = (
 
         <div className={styles.content}>
           <div className={styles.sidebar}>
-            {STEPS.map((step) => (
-              <div
-                key={step.number}
-                className={`${styles.stepItem} ${
-                  currentStep === step.number ? styles.active : ""
-                } ${
-                  isStepCompleted(step.number) &&
-                  currentStep !== step.number &&
-                  step.number !== 5
-                    ? styles.completed
-                    : ""
-                } ${isStepClickable(step.number) ? styles.clickable : ""}`}
-                onClick={() => onStepClick(step.number)}
-              >
-                <div className={styles.stepNumber}>{step.number}</div>
-                <div className={styles.stepInfo}>
-                  <div className={styles.stepItemTitle}>{step.title}</div>
-                  <div className={styles.stepItemDescription}>
-                    {step.description}
+            {STEPS.map((step) => {
+              const isClickable = isStepClickable(step.number);
+              const isCurrent = currentStep === step.number;
+
+              return (
+                <button
+                  key={step.number}
+                  type="button"
+                  className={`${styles.stepItem} ${
+                    isCurrent ? styles.active : ""
+                  } ${
+                    isStepCompleted(step.number) &&
+                    !isCurrent &&
+                    step.number !== 5
+                      ? styles.completed
+                      : ""
+                  } ${isClickable ? styles.clickable : ""}`}
+                  style={stepButtonStyle}
+                  disabled={!isClickable}
+                  aria-current={isCurrent ? "step" : undefined}
+                  onClick={() => onStepClick(step.number)}
+                >
+                  <div className={styles.stepNumber}>{step.number}</div>
+                  <div className={styles.stepInfo}>
+                    <div className={styles.stepItemTitle}>{step.title}</div>
+                    <div className={styles.stepItemDescription}>
+                      {step.description}
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
+                </button>
+              );
+            })}
           </div>
 
           <div className={styles.mainContent}>

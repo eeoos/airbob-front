@@ -1,6 +1,7 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { accommodationApi } from "../../api";
+import { AccommodationStatus } from "../../types/enums";
 import { HostListingsPanel } from "./HostListingsPanel";
 
 const mockClearError = jest.fn();
@@ -27,13 +28,19 @@ jest.mock("../../components/ErrorToast", () => ({
 }));
 
 jest.mock("../accommodations/components/AccommodationActionModal", () => ({
-  AccommodationActionModal: () => null,
+  AccommodationActionModal: (props: any) => {
+    return props.isOpen ? (
+      <div role="dialog">{props.accommodation?.name}</div>
+    ) : null;
+  },
 }));
 
 jest.mock("../../shared/ui", () => {
   const React = require("react");
+  const actual = jest.requireActual("../../shared/ui");
 
   return {
+    ...actual,
     EmptyState: ({ title }: { title: React.ReactNode }) =>
       React.createElement("div", { "data-testid": "shared-empty-state" }, title),
     LoadingState: ({ title }: { title: React.ReactNode }) =>
@@ -88,5 +95,42 @@ describe("HostListingsPanel", () => {
     expect(await screen.findByTestId("shared-empty-state")).toHaveTextContent(
       "아직 숙소가 없습니다."
     );
+  });
+
+  it("opens accommodation management from a semantic listing card button", async () => {
+    jest.mocked(accommodationApi.getMyAccommodations).mockResolvedValue({
+      accommodations: [
+        {
+          id: 7,
+          name: "바다 숙소",
+          thumbnail_url: null,
+          status: AccommodationStatus.PUBLISHED,
+          type: "ENTIRE_PLACE",
+          address_summary: {
+            country: "대한민국",
+            state: null,
+            city: "부산",
+            district: "해운대구",
+          },
+          created_at: "2026-07-01T00:00:00Z",
+        },
+      ],
+      page_info: {
+        has_next: false,
+        next_cursor: null,
+      },
+    } as any);
+
+    render(<HostListingsPanel onStatusChange={jest.fn()} />);
+
+    const card = await screen.findByRole("button", {
+      name: "바다 숙소 숙소 관리 열기",
+    });
+
+    expect(card).toHaveClass("accommodationCard");
+
+    fireEvent.click(card);
+
+    expect(screen.getByRole("dialog")).toHaveTextContent("바다 숙소");
   });
 });

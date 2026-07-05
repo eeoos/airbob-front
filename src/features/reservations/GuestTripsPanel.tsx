@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { ErrorToast } from "../../components/ErrorToast";
 import { routeTo } from "../../routes/paths";
-import { EmptyState, LoadingState } from "../../shared/ui";
+import { ClickableCard, EmptyState, LoadingState } from "../../shared/ui";
 import { useIntersectionLoadMore } from "../../hooks/useIntersectionLoadMore";
 import { getImageUrl } from "../../utils/image";
 import { useGuestTrips } from "./hooks";
@@ -67,9 +67,10 @@ export const GuestTripsPanel: React.FC<GuestTripsPanelProps> = ({ filterType }) 
                 <div className={styles.reservationsGrid}>
                   {yearReservations.map((reservation) => {
                     return (
-                      <div
+                      <ClickableCard
                         key={reservation.reservation_id}
                         className={styles.reservationCard}
+                        ariaLabel={`${reservation.accommodation.name} 예약 상세 보기`}
                         onClick={() =>
                           navigate(routeTo.reservationDetail(reservation.reservation_uid))
                         }
@@ -95,7 +96,7 @@ export const GuestTripsPanel: React.FC<GuestTripsPanelProps> = ({ filterType }) 
                             )}
                           </div>
                         </div>
-                      </div>
+                      </ClickableCard>
                     );
                   })}
                 </div>

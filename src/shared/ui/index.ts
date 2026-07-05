@@ -2,6 +2,8 @@ export { Button } from "./Button";
 export type { ButtonProps, ButtonSize, ButtonVariant } from "./Button";
 export { Card } from "./Card";
 export type { CardElement, CardPadding, CardProps } from "./Card";
+export { ClickableCard } from "./ClickableCard";
+export type { ClickableCardProps } from "./ClickableCard";
 export { CounterStepper } from "./CounterStepper";
 export type { CounterStepperProps } from "./CounterStepper";
 export { Dialog } from "./Dialog";

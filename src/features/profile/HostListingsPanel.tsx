@@ -6,7 +6,7 @@ import { AccommodationActionModal } from "../accommodations/components/Accommoda
 import { useHostListings } from "./hooks";
 import { getImageUrl } from "../../utils/image";
 import { useIntersectionLoadMore } from "../../hooks/useIntersectionLoadMore";
-import { EmptyState, LoadingState } from "../../shared/ui";
+import { ClickableCard, EmptyState, LoadingState } from "../../shared/ui";
 import styles from "./HostListingsPanel.module.css";
 
 export interface HostListingsPanelProps {
@@ -54,9 +54,7 @@ export const HostListingsPanel: React.FC<HostListingsPanelProps> = ({
     }
   };
 
-  const handleCardClick = (accommodation: MyAccommodationInfo, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleCardClick = (accommodation: MyAccommodationInfo) => {
     setSelectedAccommodation(accommodation);
     setIsModalOpen(true);
   };
@@ -104,10 +102,11 @@ export const HostListingsPanel: React.FC<HostListingsPanelProps> = ({
         <>
           <div className={styles.accommodationsGrid}>
             {accommodations.map((accommodation) => (
-              <div
+              <ClickableCard
                 key={accommodation.id}
                 className={styles.accommodationCard}
-                onClick={(e) => handleCardClick(accommodation, e)}
+                ariaLabel={`${accommodation.name || "이름 없음"} 숙소 관리 열기`}
+                onClick={() => handleCardClick(accommodation)}
               >
                 <div className={styles.image}>
                   {accommodation.thumbnail_url ? (
@@ -132,7 +131,7 @@ export const HostListingsPanel: React.FC<HostListingsPanelProps> = ({
                     {getStatusLabel(accommodation.status)}
                   </div>
                 </div>
-              </div>
+              </ClickableCard>
             ))}
           </div>
 
