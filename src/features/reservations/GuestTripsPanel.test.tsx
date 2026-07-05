@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { reservationApi } from "../../api";
@@ -48,6 +49,22 @@ jest.mock("../../shared/ui", () => {
   };
 });
 
+const createQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+const renderGuestTripsPanel = (filterType: "UPCOMING" | "PAST" | "CANCELLED") =>
+  render(
+    <QueryClientProvider client={createQueryClient()}>
+      <GuestTripsPanel filterType={filterType} />
+    </QueryClientProvider>
+  );
+
 beforeEach(() => {
   mockClearError.mockReset();
   mockHandleError.mockReset();
@@ -70,7 +87,7 @@ describe("GuestTripsPanel", () => {
       reservations: [],
     } as any);
 
-    render(<GuestTripsPanel filterType="UPCOMING" />);
+    renderGuestTripsPanel("UPCOMING");
 
     expect(screen.getByTestId("shared-loading-state")).toHaveTextContent(
       "로딩 중..."
@@ -87,7 +104,7 @@ describe("GuestTripsPanel", () => {
       reservations: [],
     } as any);
 
-    render(<GuestTripsPanel filterType="UPCOMING" />);
+    renderGuestTripsPanel("UPCOMING");
 
     expect(await screen.findByTestId("shared-empty-state")).toHaveTextContent(
       "아직 예약한 여행이 없습니다."
@@ -116,7 +133,7 @@ describe("GuestTripsPanel", () => {
       ],
     } as any);
 
-    render(<GuestTripsPanel filterType="UPCOMING" />);
+    renderGuestTripsPanel("UPCOMING");
 
     const card = await screen.findByRole("button", {
       name: "산장 숙소 예약 상세 보기",
