@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  type Dispatch,
+  type SetStateAction,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { usePlacesAutocomplete } from "../../../hooks/usePlacesAutocomplete";
 import {
@@ -110,6 +117,17 @@ const parseSearchBarUrlState = (params: URLSearchParams) => ({
   petOccupancy: parseNonNegativeInt(params.get("petOccupancy"), 0),
 });
 
+const resolveCountUpdate = (
+  nextValue: SetStateAction<number>,
+  currentValue: number
+) =>
+  typeof nextValue === "function"
+    ? (nextValue as (value: number) => number)(currentValue)
+    : nextValue;
+
+const clampCount = (value: number, min: number) =>
+  Number.isFinite(value) ? Math.max(min, value) : min;
+
 export const useSearchBarState = ({
   onSearch,
   onExpandedChange,
@@ -120,10 +138,10 @@ export const useSearchBarState = ({
   const [urlSearchParams, setUrlSearchParams] = useSearchParams();
   const [checkIn, setCheckIn] = useState<Date | null>(null);
   const [checkOut, setCheckOut] = useState<Date | null>(null);
-  const [adultOccupancy, setAdultOccupancy] = useState(1);
-  const [childOccupancy, setChildOccupancy] = useState(0);
-  const [infantOccupancy, setInfantOccupancy] = useState(0);
-  const [petOccupancy, setPetOccupancy] = useState(0);
+  const [adultOccupancy, setAdultOccupancyState] = useState(1);
+  const [childOccupancy, setChildOccupancyState] = useState(0);
+  const [infantOccupancy, setInfantOccupancyState] = useState(0);
+  const [petOccupancy, setPetOccupancyState] = useState(0);
   const syncedDestinationRef = useRef<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showGuestPicker, setShowGuestPicker] = useState(false);
@@ -148,6 +166,42 @@ export const useSearchBarState = ({
       setShowSuggestions(false);
     },
   });
+
+  const setAdultOccupancy: Dispatch<SetStateAction<number>> = useCallback(
+    (nextValue) => {
+      setAdultOccupancyState((currentValue) =>
+        clampCount(resolveCountUpdate(nextValue, currentValue), 1)
+      );
+    },
+    []
+  );
+
+  const setChildOccupancy: Dispatch<SetStateAction<number>> = useCallback(
+    (nextValue) => {
+      setChildOccupancyState((currentValue) =>
+        clampCount(resolveCountUpdate(nextValue, currentValue), 0)
+      );
+    },
+    []
+  );
+
+  const setInfantOccupancy: Dispatch<SetStateAction<number>> = useCallback(
+    (nextValue) => {
+      setInfantOccupancyState((currentValue) =>
+        clampCount(resolveCountUpdate(nextValue, currentValue), 0)
+      );
+    },
+    []
+  );
+
+  const setPetOccupancy: Dispatch<SetStateAction<number>> = useCallback(
+    (nextValue) => {
+      setPetOccupancyState((currentValue) =>
+        clampCount(resolveCountUpdate(nextValue, currentValue), 0)
+      );
+    },
+    []
+  );
 
   const setExpanded = useCallback(
     (nextIsExpanded: boolean) => {
@@ -286,6 +340,16 @@ export const useSearchBarState = ({
 
   const handleDateSelect = useCallback(
     (newCheckIn: Date | null, newCheckOut: Date | null) => {
+      if (
+        newCheckIn &&
+        newCheckOut &&
+        newCheckOut.getTime() < newCheckIn.getTime()
+      ) {
+        setCheckIn(newCheckOut);
+        setCheckOut(newCheckIn);
+        return;
+      }
+
       setCheckIn(newCheckIn);
       setCheckOut(newCheckOut);
     },
@@ -313,10 +377,10 @@ export const useSearchBarState = ({
 
     setCheckIn(nextState.checkIn);
     setCheckOut(nextState.checkOut);
-    setAdultOccupancy(nextState.adultOccupancy);
-    setChildOccupancy(nextState.childOccupancy);
-    setInfantOccupancy(nextState.infantOccupancy);
-    setPetOccupancy(nextState.petOccupancy);
+    setAdultOccupancyState(nextState.adultOccupancy);
+    setChildOccupancyState(nextState.childOccupancy);
+    setInfantOccupancyState(nextState.infantOccupancy);
+    setPetOccupancyState(nextState.petOccupancy);
   }, [handleInputChange, resetPlaces, searchBarUrlStateSignature]);
 
   return {

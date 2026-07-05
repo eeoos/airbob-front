@@ -316,6 +316,21 @@
   gap: 16px;
 }
 
+.guestControls button {
+  min-width: var(--control-touch-target);
+  min-height: var(--control-touch-target);
+  border-radius: var(--radius-pill);
+  font-size: 18px;
+}
+
+.guestControls span {
+  min-width: 20px;
+  color: var(--color-text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+}
+
 .controlButton {
   width: 32px;
   height: 32px;
