@@ -1,7 +1,7 @@
 ---
 title: Frontend Architecture Verification Loop Before Design Work
 date: 2026-07-03
-last_updated: 2026-07-04
+last_updated: 2026-07-05
 category: workflow-issues
 module: frontend-architecture
 problem_type: workflow_issue
@@ -11,7 +11,7 @@ applies_when:
   - Frontend architecture refactors must be verified before Airbnb design styling
   - Verification needs static contract tests plus authenticated desktop and mobile browser QA
   - QA credentials are needed for smoke testing but must not be committed or documented
-tags: [frontend-architecture, verification-loop, browser-qa, contract-tests, credential-hygiene, responsive-qa, route-boundaries, public-barrels]
+tags: [frontend-architecture, verification-loop, browser-qa, contract-tests, credential-hygiene, responsive-qa, route-boundaries, public-barrels, dto-boundaries]
 related_components: [testing_framework, documentation, tooling]
 ---
 
@@ -40,7 +40,9 @@ The post-merge readiness pass extended the same loop to the remaining design blo
 
 The profile/reservation closure pass exposed two more architecture escape hatches that a green static gate initially missed. First, reservations and reviews pages imported route containers from public feature barrels, but those barrels still re-exported hooks. A page could therefore reintroduce workflow logic indirectly through the "public" path while avoiding deep-import checks. Second, several feature route containers still imported CSS modules from `pages/**`, and the contract had an allowlist for those violations. The fix was to make public feature barrels route-only, move route CSS modules into the owning feature folders, remove the feature-to-page allowlist, and update token fixtures so moved shells remained covered.
 
-The design-ready gate also became stricter about browser smoke truthfulness. `verify:design-ready` runs the static pre-redesign gate and then the authenticated smoke wrapper. The smoke wrapper covers home, search, wishlist, profile host listings, accommodation detail, and accommodation edit by default. Reservation detail and host reservation detail require stable reservation UIDs supplied out of band; when those values are missing, the smoke report lists the dynamic routes as skipped rather than implying they were tested.
+The design-ready gate also became stricter about browser smoke truthfulness. `verify:design-ready` runs the static pre-redesign gate and then the authenticated strict smoke wrapper. The smoke wrapper covers home, search, wishlist, profile host listings, accommodation detail, accommodation edit, reservation detail, and host reservation detail. Reservation detail and host reservation detail require stable reservation UIDs supplied out of band; non-strict smoke may list missing dynamic routes as skipped, but the design-ready gate fails until those UIDs are supplied.
+
+The final DTO-boundary review found one more false-confidence mode: a presentation boundary test can pass while only scanning the obvious card components. Map integrations, raw HTML builders, index views, and detail route containers can still read server-shaped fields directly. The corrective action was to map Search cards and Search map items separately, add host reservation detail and wishlist index/recent-view view models, and expand the DTO-mapped presentation allowlist to every production presentation file that must not import server DTO types.
 
 ## Guidance
 
@@ -70,7 +72,9 @@ Eleventh, treat every temporary architecture allowlist as unresolved debt. The d
 
 Twelfth, use semantic UI fixes as architecture readiness work, not as visual polish. When converting clickable `div` rows to buttons, prove mouse and keyboard activation. When adding touch target rules to a shared primitive, preserve existing visual size contracts unless the redesign intentionally changes them. This avoids turning accessibility cleanup into a layout regression source immediately before page-level styling.
 
-Finally, record design-phase limitations instead of pretending coverage is complete. Search map QA was limited by `RefererNotAllowedMapError`, and live search queries returned zero results. Reservation detail smoke coverage also depends on stable guest and host reservation UIDs. The design phase should use an authorized Google Maps referer, a seeded result query, and valid out-of-band reservation UIDs before treating map and reservation-detail styling as verified.
+Thirteenth, make DTO-boundary tests follow every presentation surface, not just the first component touched by a refactor. If a route maps an API list into `CardViewModel[]`, also check map markers, InfoWindow HTML helpers, summary/index cards, and detail route containers. A server DTO import in any of those files means a future backend field rename can still break the design pass in a place reviewers are less likely to inspect.
+
+Finally, record design-phase limitations instead of pretending coverage is complete. Search map QA was limited by `RefererNotAllowedMapError`, and live search queries returned zero results. Reservation detail smoke coverage also depends on stable guest and host reservation UIDs. The design phase should use an authorized Google Maps referer, a seeded result query, and valid out-of-band reservation UIDs before treating map and reservation-detail styling as verified. The strict smoke script turns the UID requirement into a gate instead of a note.
 
 ## Why This Matters
 
@@ -82,7 +86,7 @@ A third false-confidence mode is "green verify before adversarial review." A bro
 
 The credential mistake is the strongest warning. A safety test that embeds the exact QA email, password, nickname, or member id becomes a credential leak. The correct pattern is to use generic detection in committed tests and run exact-value scans only as local verification against the thread-provided QA account.
 
-The dynamic-route smoke gate adds a similar warning about coverage claims. If a route needs live data that cannot be safely hardcoded, skip reporting is better than a fake default. A smoke report that says "skipped; set this env var" creates honest residual risk. A report that silently omits the route or points at a made-up UID creates false confidence.
+The dynamic-route smoke gate adds a similar warning about coverage claims. If a route needs live data that cannot be safely hardcoded, skip reporting is better than a fake default for exploratory smoke, and strict design-ready smoke should fail until the data is supplied. A smoke report that says "skipped; set this env var" creates honest residual risk. A report that silently omits the route or points at a made-up UID creates false confidence.
 
 ## When to Apply
 
@@ -152,7 +156,8 @@ A design-ready script should join static and browser gates so a broad visual pas
 ```json
 {
   "verify:pre-redesign": "npm run typecheck && npm run test:ci:no-cache -- --runInBand && npm run build",
-  "verify:design-ready": "npm run verify:pre-redesign && npm run smoke:frontend"
+  "smoke:frontend:strict": "AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES=true node scripts/smoke/frontend-smoke.mjs",
+  "verify:design-ready": "npm run verify:pre-redesign && npm run smoke:frontend:strict"
 }
 ```
 

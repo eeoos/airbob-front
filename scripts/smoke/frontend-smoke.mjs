@@ -30,6 +30,7 @@ const qaEmail = process.env.AIRBOB_QA_EMAIL;
 const qaPassword = process.env.AIRBOB_QA_PASSWORD;
 const browseBin = process.env.GSTACK_BROWSE_BIN;
 const frontendUrl = process.env.AIRBOB_FRONTEND_URL ?? DEFAULT_FRONTEND_URL;
+const strictDynamicRoutes = process.env.AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES === "true";
 const envValue = (name) => process.env[name]?.trim() || "";
 const editAccommodationId =
   envValue("AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID") || "3";
@@ -151,6 +152,20 @@ const skippedDynamicRouteLines = skippedDynamicRoutes.map(
     `- ${name} (${pathTemplate}): skipped; set ${envName} to cover this route.`
 );
 
+if (strictDynamicRoutes && skippedDynamicRoutes.length > 0) {
+  const missingDynamicEnvNames = skippedDynamicRoutes.map(({ envName }) => envName);
+
+  console.error(
+    `Strict dynamic route smoke mode requires stable route ids. Set ${missingDynamicEnvNames.join(
+      ", "
+    )} before running smoke:frontend:strict.`
+  );
+  skippedDynamicRoutes.forEach(({ name, pathTemplate, envName }) => {
+    console.error(`- ${envName} is required for ${name} (${pathTemplate}).`);
+  });
+  process.exit(1);
+}
+
 if (skippedDynamicRoutes.length > 0) {
   console.warn(
     `Skipped dynamic smoke routes: ${skippedDynamicRoutes
@@ -256,6 +271,106 @@ const routeAssertion = ({ path, selector, expectedText }) => {
   })()`.replace(/\s+/g, " ");
 };
 
+const routeInteractionAssertion = ({ name }) => {
+  if (name === "search-seoul") {
+    return `(() => {
+      const labelFor = (button) => [
+        button.getAttribute("aria-label"),
+        button.getAttribute("title"),
+        button.textContent
+      ].filter(Boolean).join(" ").replace(/\\s+/g, " ").trim();
+      const readState = () => {
+        const labels = Array.from(document.querySelectorAll("button")).map(labelFor);
+        return {
+          hasSearchButton: labels.some((label) => label.includes("검색")),
+          hasWishlistAction: labels.some((label) =>
+            label.includes("위시리스트에 저장") || label.includes("위시리스트에서 제거")
+          )
+        };
+      };
+      const missingFor = (state) => [
+        !state.hasSearchButton && "search button",
+        !state.hasWishlistAction && "wishlist/save action"
+      ].filter(Boolean);
+      const timeoutMs = 6000;
+      const pollMs = 150;
+
+      return new Promise((resolve, reject) => {
+        const startedAt = Date.now();
+        const poll = () => {
+          const state = readState();
+          const missing = missingFor(state);
+
+          if (missing.length === 0) {
+            resolve("search route interaction controls are present");
+            return;
+          }
+
+          if (Date.now() - startedAt >= timeoutMs) {
+            reject(new Error(\`Search route interaction assertion failed: missing \${missing.join(", ")}\`));
+            return;
+          }
+
+          setTimeout(poll, pollMs);
+        };
+
+        poll();
+      });
+    })()`.replace(/\s+/g, " ");
+  }
+
+  if (name === "accommodation-detail") {
+    return `(() => {
+      const labelFor = (button) => [
+        button.getAttribute("aria-label"),
+        button.getAttribute("title"),
+        button.textContent
+      ].filter(Boolean).join(" ").replace(/\\s+/g, " ").trim();
+      const readState = () => {
+        const labels = Array.from(document.querySelectorAll("button")).map(labelFor);
+        return {
+          hasReservationCta: labels.some((label) =>
+            label.includes("예약하기") || label.includes("예약 중")
+          ),
+          hasGalleryTrigger: labels.some((label) =>
+            label.includes("사진") && (label.includes("보기") || label.includes("갤러리"))
+          )
+        };
+      };
+      const missingFor = (state) => [
+        !state.hasReservationCta && "reservation CTA",
+        !state.hasGalleryTrigger && "gallery trigger buttons"
+      ].filter(Boolean);
+      const timeoutMs = 6000;
+      const pollMs = 150;
+
+      return new Promise((resolve, reject) => {
+        const startedAt = Date.now();
+        const poll = () => {
+          const state = readState();
+          const missing = missingFor(state);
+
+          if (missing.length === 0) {
+            resolve("accommodation detail interaction controls are present");
+            return;
+          }
+
+          if (Date.now() - startedAt >= timeoutMs) {
+            reject(new Error(\`Accommodation detail interaction assertion failed: missing \${missing.join(", ")}\`));
+            return;
+          }
+
+          setTimeout(poll, pollMs);
+        };
+
+        poll();
+      });
+    })()`.replace(/\s+/g, " ");
+  }
+
+  return null;
+};
+
 const loginExpression = `(() => fetch("/api/v1/auth/login", {
   method: "POST",
   credentials: "include",
@@ -306,7 +421,15 @@ for (const viewport of VIEWPORTS) {
       ["network", "--clear"],
       ["goto", url],
       ["wait", "--load"],
-      ["js", routeAssertion(route)],
+      ["js", routeAssertion(route)]
+    );
+
+    const interactionAssertion = routeInteractionAssertion(route);
+    if (interactionAssertion) {
+      commands.push(["js", interactionAssertion]);
+    }
+
+    commands.push(
       ["screenshot", screenshotPath],
       ["console", "--errors"],
       ["console", "--warnings"],

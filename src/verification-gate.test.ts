@@ -26,14 +26,22 @@ describe("frontend verification gate", () => {
   test("package scripts run typecheck, no-cache CI tests, and build", () => {
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
 
+    expect(packageJson.packageManager).toBe("npm@10.7.0");
+    expect(packageJson.engines?.node).toBe(">=20.0.0");
     expect(packageJson.scripts["test:ci:no-cache"]).toBe(
       "react-scripts test --watchAll=false --no-cache",
     );
     expect(packageJson.scripts["verify:pre-redesign"]).toBe(
       "npm run typecheck && npm run test:ci:no-cache -- --runInBand && npm run build",
     );
+    expect(packageJson.scripts["smoke:frontend"]).toBe(
+      "node scripts/smoke/frontend-smoke.mjs",
+    );
+    expect(packageJson.scripts["smoke:frontend:strict"]).toBe(
+      "AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES=true node scripts/smoke/frontend-smoke.mjs",
+    );
     expect(packageJson.scripts["verify:design-ready"]).toBe(
-      "npm run verify:pre-redesign && npm run smoke:frontend",
+      "npm run verify:pre-redesign && npm run smoke:frontend:strict",
     );
     expect(packageJson.scripts.verify).toContain("npm run typecheck");
     expect(packageJson.scripts.verify).toContain("npm run test:ci:no-cache");
@@ -62,11 +70,18 @@ describe("frontend verification gate", () => {
       "AIRBOB_SMOKE_ACCOMMODATION_ID",
       "AIRBOB_SMOKE_RESERVATION_UID",
       "AIRBOB_SMOKE_HOST_RESERVATION_UID",
+      'const strictDynamicRoutes = process.env.AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES === "true";',
       "skippedDynamicRoutes",
+      "strictDynamicRoutes && skippedDynamicRoutes.length > 0",
+      "Strict dynamic route smoke mode requires stable route ids",
       "Skipped Dynamic Routes",
       "Skipped dynamic smoke routes",
       "Missing required environment variables",
       "missingEnv.join",
+      "routeInteractionAssertion",
+      "routeInteractionAssertion(route)",
+      "Search route interaction assertion failed",
+      "Accommodation detail interaction assertion failed",
       "process.exit(status === 0 ? 1 : status)",
     ].forEach((term) => {
       expect(smokeScript).toContain(term);
@@ -157,6 +172,50 @@ describe("frontend verification gate", () => {
     }
   });
 
+  test("frontend smoke strict mode fails before browse when dynamic route UIDs are missing", () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "airbob-smoke-"));
+    const fakeBrowsePath = path.join(tempDir, "fake-browse.mjs");
+
+    fs.writeFileSync(
+      fakeBrowsePath,
+      [
+        "#!/usr/bin/env node",
+        'console.log("fake browse invoked");',
+        "process.exit(0);",
+      ].join("\n"),
+      { mode: 0o755 },
+    );
+
+    try {
+      const result = spawnSync(process.execPath, [frontendSmokePath], {
+        cwd: projectRoot,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          AIRBOB_QA_EMAIL: "fake-user@example.invalid",
+          AIRBOB_QA_PASSWORD: "fake-password",
+          GSTACK_BROWSE_BIN: fakeBrowsePath,
+          AIRBOB_FRONTEND_URL: "http://localhost:3000",
+          AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES: "true",
+        },
+        maxBuffer: 10 * 1024 * 1024,
+      });
+      const output = `${result.stdout}\n${result.stderr}`;
+
+      expect(result.status).toBe(1);
+      expect(output).toContain(
+        "Strict dynamic route smoke mode requires stable route ids",
+      );
+      expect(output).toContain("AIRBOB_SMOKE_RESERVATION_UID");
+      expect(output).toContain("AIRBOB_SMOKE_HOST_RESERVATION_UID");
+      expect(output).not.toContain("fake browse invoked");
+      expect(output).not.toContain("fake-user@example.invalid");
+      expect(output).not.toContain("fake-password");
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   test("QA smoke document covers required browser checkpoints without credentials", () => {
     expect(fs.existsSync(qaDocPath)).toBe(true);
 
@@ -175,9 +234,19 @@ describe("frontend verification gate", () => {
       "screenshot path",
       "verify:pre-redesign",
       "verify:design-ready",
+      "smoke:frontend:strict",
+      "AIRBOB_API_BASE_URL",
+      "AIRBOB_FRONTEND_URL",
+      "GSTACK_BROWSE_BIN",
+      "AIRBOB_QA_EMAIL",
+      ': "${AIRBOB_QA_PASSWORD:?Set AIRBOB_QA_PASSWORD in the shell before running smoke}"',
       "AIRBOB_SMOKE_ACCOMMODATION_ID",
       "AIRBOB_SMOKE_RESERVATION_UID",
       "AIRBOB_SMOKE_HOST_RESERVATION_UID",
+      "curl -fsS",
+      "guest_reservation_uid",
+      "host_reservation_uid",
+      "npm run smoke:frontend:strict",
       "Skipped Dynamic Routes",
       "Smoke report evidence",
       "2026-07-04 KST Redesign Readiness Smoke Gate",
@@ -268,7 +337,9 @@ describe("frontend verification gate", () => {
     });
 
     expect(qaDoc).not.toMatch(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
-    expect(qaDoc).not.toMatch(/(?:email|password|nickname|member[_ -]?id)\s*[:=]/i);
+    expect(qaDoc).not.toMatch(
+      /(?:^|[^A-Z_])(?:email|password|nickname|member[_ -]?id)\s*[:=]/i,
+    );
     expect(qaDoc).not.toMatch(/(?:이메일|비밀번호)\s*[:=：]/);
     expect(qaDoc).not.toContain("Final Verification");
     expect(qaDoc).not.toContain("PASS in final verification");
