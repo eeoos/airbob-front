@@ -1,4 +1,6 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
+import React from "react";
 import { couponApi } from "../../../api";
 import { ApiClientError } from "../../../api/response";
 import { CouponInfo } from "../../../types/coupon";
@@ -18,6 +20,28 @@ jest.mock("../../../api", () => ({
 const mockHandleError = jest.fn();
 const mockClearError = jest.fn();
 const mockRequireAuth = jest.fn();
+
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+  return function QueryClientTestWrapper({
+    children,
+  }: {
+    children: React.ReactNode;
+  }) {
+    return React.createElement(
+      QueryClientProvider,
+      { client: queryClient },
+      children,
+    );
+  };
+};
 
 const createCoupon = (
   id: number,
@@ -52,14 +76,16 @@ describe("useAccommodationCoupons", () => {
       infos: [coupon],
     });
 
-    const { result } = renderHook(() =>
-      useAccommodationCoupons({
-        isAuthenticated: true,
-        totalPrice: 50000,
-        handleError: mockHandleError,
-        clearError: mockClearError,
-        onRequireAuth: mockRequireAuth,
-      })
+    const { result } = renderHook(
+      () =>
+        useAccommodationCoupons({
+          isAuthenticated: true,
+          totalPrice: 50000,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+          onRequireAuth: mockRequireAuth,
+        }),
+      { wrapper: createWrapper() },
     );
 
     await waitFor(() => expect(result.current.isLoadingCoupons).toBe(false));
@@ -77,14 +103,16 @@ describe("useAccommodationCoupons", () => {
   });
 
   it("resets coupon state and skips fetching when unauthenticated", () => {
-    const { result } = renderHook(() =>
-      useAccommodationCoupons({
-        isAuthenticated: false,
-        totalPrice: 50000,
-        handleError: mockHandleError,
-        clearError: mockClearError,
-        onRequireAuth: mockRequireAuth,
-      })
+    const { result } = renderHook(
+      () =>
+        useAccommodationCoupons({
+          isAuthenticated: false,
+          totalPrice: 50000,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+          onRequireAuth: mockRequireAuth,
+        }),
+      { wrapper: createWrapper() },
     );
 
     expect(couponApi.getValidCoupons).not.toHaveBeenCalled();
@@ -99,14 +127,16 @@ describe("useAccommodationCoupons", () => {
     });
     jest.mocked(couponApi.issue).mockResolvedValue(undefined);
 
-    const { result } = renderHook(() =>
-      useAccommodationCoupons({
-        isAuthenticated: true,
-        totalPrice: 50000,
-        handleError: mockHandleError,
-        clearError: mockClearError,
-        onRequireAuth: mockRequireAuth,
-      })
+    const { result } = renderHook(
+      () =>
+        useAccommodationCoupons({
+          isAuthenticated: true,
+          totalPrice: 50000,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+          onRequireAuth: mockRequireAuth,
+        }),
+      { wrapper: createWrapper() },
     );
 
     await waitFor(() => expect(result.current.isLoadingCoupons).toBe(false));
@@ -132,14 +162,16 @@ describe("useAccommodationCoupons", () => {
     });
     jest.mocked(couponApi.issue).mockRejectedValue(error);
 
-    const { result } = renderHook(() =>
-      useAccommodationCoupons({
-        isAuthenticated: true,
-        totalPrice: 50000,
-        handleError: mockHandleError,
-        clearError: mockClearError,
-        onRequireAuth: mockRequireAuth,
-      })
+    const { result } = renderHook(
+      () =>
+        useAccommodationCoupons({
+          isAuthenticated: true,
+          totalPrice: 50000,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+          onRequireAuth: mockRequireAuth,
+        }),
+      { wrapper: createWrapper() },
     );
 
     await waitFor(() => expect(result.current.isLoadingCoupons).toBe(false));
@@ -154,14 +186,16 @@ describe("useAccommodationCoupons", () => {
 
   it("defers coupon issue behind auth when logged out", async () => {
     const coupon = createCoupon(4);
-    const { result } = renderHook(() =>
-      useAccommodationCoupons({
-        isAuthenticated: false,
-        totalPrice: 50000,
-        handleError: mockHandleError,
-        clearError: mockClearError,
-        onRequireAuth: mockRequireAuth,
-      })
+    const { result } = renderHook(
+      () =>
+        useAccommodationCoupons({
+          isAuthenticated: false,
+          totalPrice: 50000,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+          onRequireAuth: mockRequireAuth,
+        }),
+      { wrapper: createWrapper() },
     );
 
     await act(async () => {
@@ -180,14 +214,16 @@ describe("useAccommodationCoupons", () => {
     });
     jest.mocked(couponApi.issue).mockResolvedValue(undefined);
 
-    const { result } = renderHook(() =>
-      useAccommodationCoupons({
-        isAuthenticated: false,
-        totalPrice: 50000,
-        handleError: mockHandleError,
-        clearError: mockClearError,
-        onRequireAuth: mockRequireAuth,
-      })
+    const { result } = renderHook(
+      () =>
+        useAccommodationCoupons({
+          isAuthenticated: false,
+          totalPrice: 50000,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+          onRequireAuth: mockRequireAuth,
+        }),
+      { wrapper: createWrapper() },
     );
 
     await act(async () => {

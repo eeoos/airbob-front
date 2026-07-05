@@ -1,11 +1,9 @@
-import { AccommodationDetail } from "../../../types/accommodation";
-import { getAccommodationTypeLabel, getAmenityLabel } from "../../../utils/codes";
-import { getImageUrl } from "../../../utils/image";
+import type { AccommodationDetailViewModel } from "../lib/accommodationDetailViewModel";
 import AmenityIcon from "./AmenityIcon";
 import styles from "./AccommodationOverview.module.css";
 
 interface AccommodationOverviewProps {
-  accommodation: AccommodationDetail;
+  detailView: AccommodationDetailViewModel;
   maxDescriptionLength?: number;
   onOpenDescription: () => void;
 }
@@ -13,38 +11,36 @@ interface AccommodationOverviewProps {
 const DEFAULT_MAX_DESCRIPTION_LENGTH = 200;
 
 export function AccommodationOverview({
-  accommodation,
+  detailView,
   maxDescriptionLength = DEFAULT_MAX_DESCRIPTION_LENGTH,
   onOpenDescription,
 }: AccommodationOverviewProps) {
-  const locationName =
-    accommodation.address_summary.city || accommodation.address_summary.country;
   const isDescriptionLong =
-    accommodation.description.length > maxDescriptionLength;
+    detailView.description.length > maxDescriptionLength;
   const visibleDescription = isDescriptionLong
-    ? `${accommodation.description.substring(0, maxDescriptionLength)}...`
-    : accommodation.description;
+    ? `${detailView.description.substring(0, maxDescriptionLength)}...`
+    : detailView.description;
 
   return (
     <>
       <div className={styles.locationSection}>
         <div className={styles.locationInfo}>
           <span className={styles.address}>
-            {locationName}의 {getAccommodationTypeLabel(accommodation.type)}
+            {detailView.overviewTitleLabel}
           </span>
           <span className={styles.maxOccupancy}>
-            최대 인원 {accommodation.policy.max_occupancy}명
+            {detailView.counts.guestLabel}
           </span>
         </div>
       </div>
 
-      {accommodation.amenities.length > 0 && (
+      {detailView.amenities.length > 0 && (
         <div className={styles.amenitiesSection}>
           <div className={styles.amenitiesGrid}>
-            {accommodation.amenities.map((amenity, index) => (
-              <div key={`${amenity.type}-${index}`} className={styles.amenityItem}>
+            {detailView.amenities.map((amenity) => (
+              <div key={amenity.key} className={styles.amenityItem}>
                 <AmenityIcon type={amenity.type} decorative />
-                <span>{getAmenityLabel(amenity.type)}</span>
+                <span>{amenity.label}</span>
               </div>
             ))}
           </div>
@@ -55,28 +51,28 @@ export function AccommodationOverview({
         <section className={styles.section}>
           <div className={styles.hostInfo}>
             <div className={styles.hostAvatar}>
-              {accommodation.host.thumbnail_image_url ? (
+              {detailView.hostSummary.avatarUrl ? (
                 <img
-                  src={getImageUrl(accommodation.host.thumbnail_image_url)}
-                  alt={accommodation.host.nickname}
+                  src={detailView.hostSummary.avatarUrl}
+                  alt={detailView.hostSummary.name}
                 />
               ) : (
                 <div className={styles.avatarPlaceholder}>
-                  {accommodation.host.nickname.charAt(0)}
+                  {detailView.hostSummary.avatarInitial}
                 </div>
               )}
             </div>
             <div className={styles.hostDetails}>
               <span className={styles.hostLabel}>호스트:</span>
               <span className={styles.hostName}>
-                {accommodation.host.nickname} 님
+                {detailView.hostSummary.displayName}
               </span>
             </div>
           </div>
         </section>
 
         <section className={styles.section}>
-          {accommodation.description && (
+          {detailView.description && (
             <>
               <p className={styles.description}>{visibleDescription}</p>
               {isDescriptionLong && (

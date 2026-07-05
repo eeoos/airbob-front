@@ -1,26 +1,24 @@
-import { AccommodationDetail } from "../../../types/accommodation";
 import { GOOGLE_MAPS_API_KEY } from "../../../utils/constants";
+import type { AccommodationDetailViewModel } from "../lib/accommodationDetailViewModel";
 import styles from "./AccommodationLocationSection.module.css";
 
 interface AccommodationLocationSectionProps {
-  accommodation: AccommodationDetail;
+  detailView: AccommodationDetailViewModel;
   googleMapsApiKey?: string;
 }
 
 export function AccommodationLocationSection({
-  accommodation,
+  detailView,
   googleMapsApiKey = GOOGLE_MAPS_API_KEY,
 }: AccommodationLocationSectionProps) {
-  const { latitude, longitude } = accommodation.coordinate;
+  const { latitude, longitude } = detailView.coordinate;
   const hasCoordinates = Boolean(latitude && longitude);
 
   return (
     <section className={`${styles.section} ${styles.locationSectionFullWidth}`}>
       <h2 className={styles.sectionTitle}>위치</h2>
       <p className={styles.address}>
-        {[accommodation.address_summary.city, accommodation.address_summary.country]
-          .filter(Boolean)
-          .join(", ")}
+        {detailView.locationLabel}
       </p>
       {hasCoordinates && (
         <div className={styles.mapContainer}>

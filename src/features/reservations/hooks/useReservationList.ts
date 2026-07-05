@@ -1,7 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { reservationApi } from "../../../api";
 import { useApiError } from "../../../hooks/useApiError";
 import { CursorPageInfo } from "../../../types/api";
 import { ReservationFilterType } from "../../../types/reservation";
+import { reservationQueryKeys } from "../queryKeys";
 
 const RESERVATION_PAGE_SIZE = 20;
 
@@ -16,85 +19,166 @@ type FetchReservationPage<TReservation> = (params: {
   filterType?: ReservationFilterType;
 }) => Promise<ReservationPage<TReservation>>;
 
+type ReservationListQueryScope = "guest" | "host" | string;
+
+const getReservationListQueryScope = <TReservation,>(
+  fetchReservationPage: FetchReservationPage<TReservation>,
+): ReservationListQueryScope => {
+  if (fetchReservationPage === reservationApi.getMyReservations) {
+    return "guest";
+  }
+
+  if (fetchReservationPage === reservationApi.getHostReservations) {
+    return "host";
+  }
+
+  return fetchReservationPage.name || "custom";
+};
+
+const getReservationListParamsSignature = (
+  filterType: ReservationFilterType,
+  cursor?: string,
+) => {
+  const params = new URLSearchParams();
+  params.set("filterType", filterType);
+  params.set("size", RESERVATION_PAGE_SIZE.toString());
+
+  if (cursor) {
+    params.set("cursor", cursor);
+  }
+
+  return params.toString();
+};
+
+const getReservationListQueryKey = (
+  scope: ReservationListQueryScope,
+  filterType: ReservationFilterType,
+  cursor?: string,
+) => {
+  const paramsSignature = getReservationListParamsSignature(filterType, cursor);
+
+  if (scope === "host") {
+    return reservationQueryKeys.hostReservations(paramsSignature);
+  }
+
+  if (scope === "guest") {
+    return reservationQueryKeys.guestReservations(paramsSignature);
+  }
+
+  return [
+    ...reservationQueryKeys.all,
+    "custom",
+    scope,
+    paramsSignature,
+  ] as const;
+};
+
 export function useReservationList<TReservation>(
   filterType: ReservationFilterType,
   fetchReservationPage: FetchReservationPage<TReservation>
 ) {
+  const queryClient = useQueryClient();
   const { error, handleError, clearError } = useApiError();
   const [reservations, setReservations] = useState<TReservation[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasNext, setHasNext] = useState(false);
-  const requestIdRef = useRef(0);
+  const requestGenerationRef = useRef(0);
   const loadingMoreRef = useRef(false);
+  const handledErrorUpdatedAtRef = useRef(0);
+  const queryScope = useMemo(
+    () => getReservationListQueryScope(fetchReservationPage),
+    [fetchReservationPage],
+  );
+  const firstPageQueryKey = useMemo(
+    () => getReservationListQueryKey(queryScope, filterType),
+    [filterType, queryScope],
+  );
 
   const applyPageInfo = (pageInfo: CursorPageInfo) => {
     setCursor(pageInfo.next_cursor);
     setHasNext(pageInfo.has_next);
   };
 
-  const fetchFirstPage = useCallback(async () => {
-    const requestId = requestIdRef.current + 1;
-    requestIdRef.current = requestId;
-    setIsLoading(true);
-    setIsLoadingMore(false);
-    loadingMoreRef.current = false;
-    clearError();
-    setReservations([]);
-    setCursor(null);
-    setHasNext(false);
-
-    try {
-      const response = await fetchReservationPage({
+  const firstPageQuery = useQuery<ReservationPage<TReservation>, unknown>({
+    queryKey: firstPageQueryKey,
+    queryFn: () => {
+      clearError();
+      return fetchReservationPage({
         filterType,
         size: RESERVATION_PAGE_SIZE,
       });
-
-      if (requestIdRef.current !== requestId) return;
-
-      setReservations(response.reservations);
-      applyPageInfo(response.page_info);
-    } catch (err) {
-      if (requestIdRef.current !== requestId) return;
-
-      handleError(err);
-    } finally {
-      if (requestIdRef.current === requestId) {
-        setIsLoading(false);
-      }
-    }
-  }, [clearError, fetchReservationPage, filterType, handleError]);
+    },
+    enabled: Boolean(filterType),
+    retry: false,
+    throwOnError: false,
+  });
 
   useEffect(() => {
-    fetchFirstPage();
-  }, [fetchFirstPage]);
+    requestGenerationRef.current += 1;
+    setIsLoadingMore(false);
+    loadingMoreRef.current = false;
+    setReservations([]);
+    setCursor(null);
+    setHasNext(false);
+  }, [fetchReservationPage, filterType]);
+
+  useEffect(() => {
+    if (!firstPageQuery.data) {
+      return;
+    }
+
+    setReservations(firstPageQuery.data.reservations);
+    applyPageInfo(firstPageQuery.data.page_info);
+  }, [firstPageQuery.data, firstPageQuery.dataUpdatedAt]);
+
+  useEffect(() => {
+    if (
+      !firstPageQuery.isError ||
+      !firstPageQuery.error ||
+      handledErrorUpdatedAtRef.current === firstPageQuery.errorUpdatedAt
+    ) {
+      return;
+    }
+
+    handledErrorUpdatedAtRef.current = firstPageQuery.errorUpdatedAt;
+    handleError(firstPageQuery.error);
+  }, [
+    firstPageQuery.error,
+    firstPageQuery.errorUpdatedAt,
+    firstPageQuery.isError,
+    handleError,
+  ]);
 
   const loadMore = useCallback(async () => {
     if (!hasNext || isLoadingMore || loadingMoreRef.current || !cursor) return;
 
-    const requestId = requestIdRef.current;
+    const requestGeneration = requestGenerationRef.current;
     loadingMoreRef.current = true;
     setIsLoadingMore(true);
     clearError();
 
     try {
-      const response = await fetchReservationPage({
-        cursor,
-        filterType,
-        size: RESERVATION_PAGE_SIZE,
+      const response = await queryClient.fetchQuery({
+        queryKey: getReservationListQueryKey(queryScope, filterType, cursor),
+        queryFn: () =>
+          fetchReservationPage({
+            cursor,
+            filterType,
+            size: RESERVATION_PAGE_SIZE,
+          }),
       });
 
-      if (requestIdRef.current !== requestId) return;
+      if (requestGenerationRef.current !== requestGeneration) return;
 
       setReservations((prev) => [...prev, ...response.reservations]);
       applyPageInfo(response.page_info);
     } catch (err) {
-      if (requestIdRef.current !== requestId) return;
+      if (requestGenerationRef.current !== requestGeneration) return;
 
       handleError(err);
     } finally {
-      if (requestIdRef.current === requestId) {
+      if (requestGenerationRef.current === requestGeneration) {
         setIsLoadingMore(false);
         loadingMoreRef.current = false;
       }
@@ -107,13 +191,17 @@ export function useReservationList<TReservation>(
     handleError,
     hasNext,
     isLoadingMore,
+    queryClient,
+    queryScope,
   ]);
 
   return {
     clearError,
     error,
     hasNext,
-    isLoading,
+    isLoading:
+      firstPageQuery.isLoading ||
+      (firstPageQuery.isFetching && reservations.length === 0),
     isLoadingMore,
     loadMore,
     reservations,

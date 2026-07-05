@@ -34,7 +34,14 @@ const featureRouteContainerFiles = [
   "features/profile/HostListingsPanel.tsx",
 ];
 const dtoMappedPresentationFiles = [
+  "features/accommodations/AccommodationDetailRoute.tsx",
   "features/accommodations/components/AccommodationBookingCard.tsx",
+  "features/accommodations/components/AccommodationHero.tsx",
+  "features/accommodations/components/AccommodationImageGalleryModal.tsx",
+  "features/accommodations/components/AccommodationLocationSection.tsx",
+  "features/accommodations/components/AccommodationOverview.tsx",
+  "features/accommodations/components/AccommodationReviewsSection.tsx",
+  "features/reviews/components/ReviewModal/ReviewModal.tsx",
   "features/search/components/SearchAccommodationCard.tsx",
   "features/search/components/SearchResultsList.tsx",
   "features/search/components/SearchMap/types.ts",

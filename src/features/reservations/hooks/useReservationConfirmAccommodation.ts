@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import { accommodationApi } from "../../../api";
 import { routeTo } from "../../../routes/paths";
 import { AccommodationDetail } from "../../../types/accommodation";
@@ -20,6 +21,17 @@ const parseRouteAccommodationId = (accommodationId?: string): number | null => {
   return Number.isSafeInteger(parsedId) ? parsedId : null;
 };
 
+const reservationConfirmAccommodationQueryKey = (
+  accommodationId: number | null,
+  reservationUid: string | null,
+) =>
+  [
+    "reservation",
+    "confirmAccommodation",
+    accommodationId ?? "missing",
+    reservationUid ?? "missing",
+  ] as const;
+
 export function useReservationConfirmAccommodation({
   accommodationId,
   reservationUid,
@@ -27,58 +39,67 @@ export function useReservationConfirmAccommodation({
   handleError,
   clearError,
 }: UseReservationConfirmAccommodationOptions) {
-  const [accommodation, setAccommodation] =
-    useState<AccommodationDetail | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const parsedAccommodationId = parseRouteAccommodationId(accommodationId);
+  const handledErrorUpdatedAtRef = useRef(0);
 
   useEffect(() => {
-    const parsedAccommodationId = parseRouteAccommodationId(accommodationId);
-
     if (parsedAccommodationId === null) {
       navigate(routeTo.home());
-      setIsLoading(false);
       return;
     }
 
     if (!reservationUid) {
       handleError(new Error("예약 정보가 없습니다."));
       navigate(routeTo.accommodationDetail(parsedAccommodationId));
-      setIsLoading(false);
+      return;
+    }
+  }, [handleError, navigate, parsedAccommodationId, reservationUid]);
+
+  const accommodationQuery = useQuery<
+    AccommodationDetail,
+    unknown,
+    AccommodationDetail,
+    ReturnType<typeof reservationConfirmAccommodationQueryKey>
+  >({
+    queryKey: reservationConfirmAccommodationQueryKey(
+      parsedAccommodationId,
+      reservationUid,
+    ),
+    queryFn: () => {
+      if (parsedAccommodationId === null) {
+        throw new Error("accommodationId is required");
+      }
+
+      clearError();
+      return accommodationApi.getDetail(parsedAccommodationId);
+    },
+    enabled: parsedAccommodationId !== null && Boolean(reservationUid),
+    retry: false,
+    throwOnError: false,
+  });
+
+  useEffect(() => {
+    if (
+      !accommodationQuery.isError ||
+      !accommodationQuery.error ||
+      handledErrorUpdatedAtRef.current === accommodationQuery.errorUpdatedAt
+    ) {
       return;
     }
 
-    let isCancelled = false;
-
-    const fetchAccommodation = async () => {
-      setIsLoading(true);
-      clearError();
-
-      try {
-        const data = await accommodationApi.getDetail(parsedAccommodationId);
-
-        if (!isCancelled) {
-          setAccommodation(data);
-        }
-      } catch (error) {
-        if (!isCancelled) {
-          handleError(error);
-        }
-      } finally {
-        if (!isCancelled) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    fetchAccommodation();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [accommodationId, clearError, handleError, navigate, reservationUid]);
+    handledErrorUpdatedAtRef.current = accommodationQuery.errorUpdatedAt;
+    handleError(accommodationQuery.error);
+  }, [
+    accommodationQuery.error,
+    accommodationQuery.errorUpdatedAt,
+    accommodationQuery.isError,
+    handleError,
+  ]);
 
   return {
-    accommodation,
-    isLoading,
+    accommodation: accommodationQuery.isError
+      ? null
+      : accommodationQuery.data ?? null,
+    isLoading: accommodationQuery.isLoading,
   };
 }

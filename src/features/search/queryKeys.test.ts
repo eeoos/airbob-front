@@ -8,4 +8,13 @@ describe("searchQueryKeys", () => {
       "destination=Seoul&page=2",
     ]);
   });
+
+  it("canonicalizes equivalent search params independent of insertion order", () => {
+    expect(searchQueryKeys.results("page=2&destination=Seoul")).toEqual(
+      searchQueryKeys.results("destination=Seoul&page=2"),
+    );
+    expect(
+      searchQueryKeys.results(new URLSearchParams("page=2&destination=Seoul")),
+    ).toEqual(searchQueryKeys.results("destination=Seoul&page=2"));
+  });
 });

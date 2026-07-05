@@ -1,4 +1,6 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
+import React from "react";
 import { reservationApi } from "../../../api";
 import { ReservationStatus } from "../../../types/enums";
 import { useHostReservations } from "./useHostReservations";
@@ -19,6 +21,28 @@ jest.mock("../../../hooks/useApiError", () => ({
     handleError: mockHandleError,
   }),
 }));
+
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+  return function QueryClientTestWrapper({
+    children,
+  }: {
+    children: React.ReactNode;
+  }) {
+    return React.createElement(
+      QueryClientProvider,
+      { client: queryClient },
+      children,
+    );
+  };
+};
 
 const createHostReservation = (reservationId: number, checkInDate: string) =>
   ({
@@ -58,7 +82,9 @@ describe("useHostReservations", () => {
       reservations: [firstReservation],
     } as any);
 
-    const { result } = renderHook(() => useHostReservations("UPCOMING"));
+    const { result } = renderHook(() => useHostReservations("UPCOMING"), {
+      wrapper: createWrapper(),
+    });
 
     expect(result.current.isLoading).toBe(true);
 
@@ -92,7 +118,9 @@ describe("useHostReservations", () => {
         reservations: [secondReservation],
       } as any);
 
-    const { result } = renderHook(() => useHostReservations("PAST"));
+    const { result } = renderHook(() => useHostReservations("PAST"), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => expect(result.current.hasNext).toBe(true));
 
@@ -116,7 +144,9 @@ describe("useHostReservations", () => {
     const error = new Error("host reservations failed");
     jest.mocked(reservationApi.getHostReservations).mockRejectedValue(error);
 
-    const { result } = renderHook(() => useHostReservations("CANCELLED"));
+    const { result } = renderHook(() => useHostReservations("CANCELLED"), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 

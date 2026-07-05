@@ -1,4 +1,6 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
+import React from "react";
 import { reviewApi } from "../../../api";
 import { ReviewInfo, ReviewInfos } from "../../../types/review";
 import { ReviewSortType } from "../../../types/enums";
@@ -12,6 +14,28 @@ jest.mock("../../../api", () => ({
 
 const mockHandleError = jest.fn();
 const mockClearError = jest.fn();
+
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+  return function QueryClientTestWrapper({
+    children,
+  }: {
+    children: React.ReactNode;
+  }) {
+    return React.createElement(
+      QueryClientProvider,
+      { client: queryClient },
+      children,
+    );
+  };
+};
 
 const createReview = (id: number): ReviewInfo => ({
   id,
@@ -47,13 +71,15 @@ describe("useAccommodationReviews", () => {
   });
 
   it("skips fetching and clears review state when total review count is zero", async () => {
-    const { result } = renderHook(() =>
-      useAccommodationReviews({
-        accommodationId: "7",
-        totalReviewCount: 0,
-        handleError: mockHandleError,
-        clearError: mockClearError,
-      })
+    const { result } = renderHook(
+      () =>
+        useAccommodationReviews({
+          accommodationId: "7",
+          totalReviewCount: 0,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+        }),
+      { wrapper: createWrapper() },
     );
 
     await waitFor(() => expect(result.current.isLoadingReviews).toBe(false));
@@ -70,13 +96,15 @@ describe("useAccommodationReviews", () => {
       .mocked(reviewApi.getReviews)
       .mockResolvedValue(createReviewResponse(firstPage, true, "cursor-1"));
 
-    const { result } = renderHook(() =>
-      useAccommodationReviews({
-        accommodationId: "7",
-        totalReviewCount: 12,
-        handleError: mockHandleError,
-        clearError: mockClearError,
-      })
+    const { result } = renderHook(
+      () =>
+        useAccommodationReviews({
+          accommodationId: "7",
+          totalReviewCount: 12,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+        }),
+      { wrapper: createWrapper() },
     );
 
     await waitFor(() => expect(result.current.isLoadingReviews).toBe(false));
@@ -100,13 +128,15 @@ describe("useAccommodationReviews", () => {
       .mockResolvedValueOnce(createReviewResponse(firstPage, true, "cursor-1"))
       .mockResolvedValueOnce(createReviewResponse(secondPage, false, null));
 
-    const { result } = renderHook(() =>
-      useAccommodationReviews({
-        accommodationId: "7",
-        totalReviewCount: 12,
-        handleError: mockHandleError,
-        clearError: mockClearError,
-      })
+    const { result } = renderHook(
+      () =>
+        useAccommodationReviews({
+          accommodationId: "7",
+          totalReviewCount: 12,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+        }),
+      { wrapper: createWrapper() },
     );
 
     await waitFor(() => expect(result.current.reviewCursor).toBe("cursor-1"));
@@ -124,13 +154,15 @@ describe("useAccommodationReviews", () => {
     const error = new Error("reviews failed");
     jest.mocked(reviewApi.getReviews).mockRejectedValue(error);
 
-    const { result } = renderHook(() =>
-      useAccommodationReviews({
-        accommodationId: "7",
-        totalReviewCount: 1,
-        handleError: mockHandleError,
-        clearError: mockClearError,
-      })
+    const { result } = renderHook(
+      () =>
+        useAccommodationReviews({
+          accommodationId: "7",
+          totalReviewCount: 1,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+        }),
+      { wrapper: createWrapper() },
     );
 
     await waitFor(() => expect(result.current.isLoadingReviews).toBe(false));

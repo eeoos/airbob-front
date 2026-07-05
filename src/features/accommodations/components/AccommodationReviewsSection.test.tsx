@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { ReviewInfo } from "../../../types/review";
+import { toReviewViewModel } from "../../reviews/lib/reviewViewModel";
 import { AccommodationReviewsSection } from "./AccommodationReviewsSection";
 
 jest.mock("../../../utils/image", () => ({
@@ -26,10 +27,13 @@ const renderReviews = (
 ) => {
   const props: React.ComponentProps<typeof AccommodationReviewsSection> = {
     reviewSummary: {
-      total_count: 7,
-      average_rating: 4.75,
+      averageRating: 4.75,
+      reviewCount: 7,
+      hasReviews: true,
+      averageRatingLabel: "4.8",
+      reviewCountLabel: "(7)",
     },
-    reviews: [review],
+    reviews: [toReviewViewModel(review)],
     expandedReviews: {},
     onOpenReviews: jest.fn(),
     ...overrides,
@@ -79,8 +83,11 @@ describe("AccommodationReviewsSection", () => {
     const { container } = render(
       <AccommodationReviewsSection
         reviewSummary={{
-          total_count: 0,
-          average_rating: 0,
+          averageRating: 0,
+          reviewCount: 0,
+          hasReviews: false,
+          averageRatingLabel: "0.0",
+          reviewCountLabel: "(0)",
         }}
         reviews={[]}
         expandedReviews={{}}

@@ -1,14 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { Dialog } from "../../../../shared/ui";
-import { ReviewInfo } from "../../../../types/review";
-import { ReviewSortType } from "../../../../types/enums";
-import { getImageUrl } from "../../../../utils/image";
+import type { ReviewViewModel } from "../../lib/reviewViewModel";
 import styles from "./ReviewModal.module.css";
+
+type ReviewSortType = "LATEST" | "HIGHEST_RATING" | "LOWEST_RATING";
+
+const REVIEW_SORT_TYPE = {
+  LATEST: "LATEST",
+  HIGHEST_RATING: "HIGHEST_RATING",
+  LOWEST_RATING: "LOWEST_RATING",
+} as const satisfies Record<ReviewSortType, ReviewSortType>;
 
 interface ReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  reviews: ReviewInfo[];
+  reviews: ReviewViewModel[];
   averageRating: number;
   totalCount: number;
 }
@@ -20,7 +26,9 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
   averageRating,
   totalCount,
 }) => {
-  const [sortType, setSortType] = useState<ReviewSortType>(ReviewSortType.LATEST);
+  const [sortType, setSortType] = useState<ReviewSortType>(
+    REVIEW_SORT_TYPE.LATEST,
+  );
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
 
   useEffect(() => {
@@ -45,11 +53,11 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
 
   const sortedReviews = [...reviews].sort((a, b) => {
     switch (sortType) {
-      case ReviewSortType.LATEST:
-        return new Date(b.reviewed_at).getTime() - new Date(a.reviewed_at).getTime();
-      case ReviewSortType.HIGHEST_RATING:
+      case REVIEW_SORT_TYPE.LATEST:
+        return b.date.timestamp - a.date.timestamp;
+      case REVIEW_SORT_TYPE.HIGHEST_RATING:
         return b.rating - a.rating;
-      case ReviewSortType.LOWEST_RATING:
+      case REVIEW_SORT_TYPE.LOWEST_RATING:
         return a.rating - b.rating;
       default:
         return 0;
@@ -60,11 +68,11 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
 
   const getSortLabel = (type: ReviewSortType): string => {
     switch (type) {
-      case ReviewSortType.LATEST:
+      case REVIEW_SORT_TYPE.LATEST:
         return "최신순";
-      case ReviewSortType.HIGHEST_RATING:
+      case REVIEW_SORT_TYPE.HIGHEST_RATING:
         return "높은 평점순";
-      case ReviewSortType.LOWEST_RATING:
+      case REVIEW_SORT_TYPE.LOWEST_RATING:
         return "낮은 평점순";
       default:
         return "최신순";
@@ -120,13 +128,13 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
             <div className={styles.sortDropdown}>
               <button
                 className={
-                  sortType === ReviewSortType.LATEST
+                  sortType === REVIEW_SORT_TYPE.LATEST
                     ? styles.sortOptionActive
                     : styles.sortOption
                 }
                 type="button"
                 onClick={() => {
-                  setSortType(ReviewSortType.LATEST);
+                  setSortType(REVIEW_SORT_TYPE.LATEST);
                   setIsSortDropdownOpen(false);
                 }}
               >
@@ -134,13 +142,13 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
               </button>
               <button
                 className={
-                  sortType === ReviewSortType.HIGHEST_RATING
+                  sortType === REVIEW_SORT_TYPE.HIGHEST_RATING
                     ? styles.sortOptionActive
                     : styles.sortOption
                 }
                 type="button"
                 onClick={() => {
-                  setSortType(ReviewSortType.HIGHEST_RATING);
+                  setSortType(REVIEW_SORT_TYPE.HIGHEST_RATING);
                   setIsSortDropdownOpen(false);
                 }}
               >
@@ -148,13 +156,13 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
               </button>
               <button
                 className={
-                  sortType === ReviewSortType.LOWEST_RATING
+                  sortType === REVIEW_SORT_TYPE.LOWEST_RATING
                     ? styles.sortOptionActive
                     : styles.sortOption
                 }
                 type="button"
                 onClick={() => {
-                  setSortType(ReviewSortType.LOWEST_RATING);
+                  setSortType(REVIEW_SORT_TYPE.LOWEST_RATING);
                   setIsSortDropdownOpen(false);
                 }}
               >
@@ -169,19 +177,19 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
         {filteredReviews.map((review) => (
           <div key={review.id} className={styles.reviewItem}>
             <div className={styles.reviewerInfo}>
-              {review.reviewer.thumbnail_image_url ? (
+              {review.author.avatarUrl ? (
                 <img
-                  src={getImageUrl(review.reviewer.thumbnail_image_url)}
-                  alt={review.reviewer.nickname}
+                  src={review.author.avatarUrl}
+                  alt={review.author.name}
                   className={styles.reviewerAvatar}
                 />
               ) : (
                 <div className={styles.reviewerAvatarPlaceholder}>
-                  {review.reviewer.nickname.charAt(0).toUpperCase()}
+                  {review.author.avatarInitial}
                 </div>
               )}
               <div className={styles.reviewerDetails}>
-                <div className={styles.reviewerName}>{review.reviewer.nickname}</div>
+                <div className={styles.reviewerName}>{review.author.name}</div>
               </div>
             </div>
 
@@ -199,8 +207,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
             </div>
 
             <div className={styles.reviewDate}>
-              {new Date(review.reviewed_at).getFullYear()}년{" "}
-              {new Date(review.reviewed_at).getMonth() + 1}월
+              {review.date.label}
             </div>
 
             <div className={styles.reviewContent}>{review.content}</div>
@@ -210,8 +217,8 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
                 {review.images.map((image) => (
                   <img
                     key={image.id}
-                    src={getImageUrl(image.image_url)}
-                    alt="리뷰 이미지"
+                    src={image.url}
+                    alt={image.alt}
                     className={styles.reviewImage}
                   />
                 ))}

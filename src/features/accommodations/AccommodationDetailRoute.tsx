@@ -4,7 +4,7 @@ import { ErrorToast } from "../../components/ErrorToast";
 import { useApiError } from "../../hooks/useApiError";
 import { useAuth } from "../../hooks/useAuth";
 import { AuthModal } from "../auth/appShell";
-import { ReviewModal } from "../reviews/appShell";
+import { ReviewModal, toReviewViewModels } from "../reviews/appShell";
 import { WishlistModal } from "../wishlist/appShell";
 import { AccommodationBookingCard } from "./components/AccommodationBookingCard";
 import { AccommodationDescriptionModal } from "./components/AccommodationDescriptionModal";
@@ -19,6 +19,7 @@ import { useAccommodationDetail } from "./hooks/useAccommodationDetail";
 import { useAccommodationImageGallery } from "./hooks/useAccommodationImageGallery";
 import { useAccommodationReviews } from "./hooks/useAccommodationReviews";
 import { toAccommodationBookingViewModel } from "./lib/accommodationBookingViewModel";
+import { toAccommodationDetailViewModel } from "./lib/accommodationDetailViewModel";
 import styles from "./AccommodationDetailRoute.module.css";
 
 export interface AccommodationDetailRouteProps {
@@ -97,6 +98,10 @@ export const AccommodationDetailRoute: React.FC<
     onRequireAuth: requireAuth,
   });
 
+  const detailView = accommodation
+    ? toAccommodationDetailViewModel(accommodation)
+    : null;
+
   const {
     reviews,
     allReviews,
@@ -105,13 +110,13 @@ export const AccommodationDetailRoute: React.FC<
     expandedReviews,
   } = useAccommodationReviews({
     accommodationId,
-    totalReviewCount: accommodation?.review_summary.total_count ?? 0,
+    totalReviewCount: detailView?.rating.reviewCount ?? 0,
     handleError,
     clearError,
   });
 
   const imageGallery = useAccommodationImageGallery({
-    imageCount: accommodation?.images.length ?? 0,
+    imageCount: detailView?.heroImages.length ?? 0,
   });
 
   const {
@@ -186,7 +191,7 @@ export const AccommodationDetailRoute: React.FC<
     );
   }
 
-  if (!accommodation) {
+  if (!accommodation || !detailView) {
     return (
       <>
         <div className={styles.error}>숙소를 찾을 수 없습니다.</div>
@@ -195,12 +200,14 @@ export const AccommodationDetailRoute: React.FC<
   }
 
   const bookingView = toAccommodationBookingViewModel(accommodation);
+  const reviewViews = toReviewViewModels(reviews);
+  const allReviewViews = toReviewViewModels(allReviews);
 
   return (
     <>
       <div className={styles.container}>
         <AccommodationHero
-          accommodation={accommodation}
+          detailView={detailView}
           mobileSlideIndex={imageGallery.mobileSlideIndex}
           onMobileSlideIndexChange={imageGallery.setMobileSlideIndex}
           onOpenGallery={imageGallery.openGallery}
@@ -221,7 +228,7 @@ export const AccommodationDetailRoute: React.FC<
         <div className={styles.contentWrapper}>
           <div className={styles.leftColumn}>
             <AccommodationOverview
-              accommodation={accommodation}
+              detailView={detailView}
               onOpenDescription={() => setIsDescriptionModalOpen(true)}
             />
           </div>
@@ -266,11 +273,11 @@ export const AccommodationDetailRoute: React.FC<
           </div>
         </div>
 
-        <AccommodationLocationSection accommodation={accommodation} />
+        <AccommodationLocationSection detailView={detailView} />
 
         <AccommodationReviewsSection
-          reviewSummary={accommodation.review_summary}
-          reviews={reviews}
+          reviewSummary={detailView.rating}
+          reviews={reviewViews}
           expandedReviews={expandedReviews}
           onOpenReviews={() => setIsReviewModalOpen(true)}
         />
@@ -279,14 +286,14 @@ export const AccommodationDetailRoute: React.FC<
       <ReviewModal
         isOpen={isReviewModalOpen}
         onClose={() => setIsReviewModalOpen(false)}
-        reviews={allReviews}
-        averageRating={accommodation.review_summary.average_rating}
-        totalCount={accommodation.review_summary.total_count}
+        reviews={allReviewViews}
+        averageRating={detailView.rating.averageRating}
+        totalCount={detailView.rating.reviewCount}
       />
       <WishlistModal
         isOpen={isWishlistModalOpen}
         onClose={() => setIsWishlistModalOpen(false)}
-        accommodationId={accommodation.id}
+        accommodationId={detailView.id}
         onSuccess={async () => {
           await reloadAccommodation();
         }}
@@ -313,14 +320,14 @@ export const AccommodationDetailRoute: React.FC<
 
       <AccommodationDescriptionModal
         isOpen={isDescriptionModalOpen}
-        description={accommodation.description}
+        description={detailView.description}
         onClose={() => setIsDescriptionModalOpen(false)}
       />
 
       <AccommodationImageGalleryModal
         isOpen={imageGallery.isImageGalleryOpen}
-        accommodationName={accommodation.name}
-        images={accommodation.images}
+        accommodationName={detailView.title}
+        images={detailView.heroImages}
         currentImageIndex={imageGallery.currentImageIndex}
         onCurrentImageIndexChange={imageGallery.setCurrentImageIndex}
         onClose={imageGallery.closeGallery}

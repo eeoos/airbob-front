@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import AccommodationHero from "./AccommodationHero";
 import { AccommodationDetail } from "../../../types/accommodation";
+import { toAccommodationDetailViewModel } from "../lib/accommodationDetailViewModel";
 
 jest.mock("../../../utils/image", () => ({
   getImageUrl: (url: string) => url,
@@ -56,7 +57,7 @@ const renderHero = (
   overrides: Partial<React.ComponentProps<typeof AccommodationHero>> = {}
 ) => {
   const props: React.ComponentProps<typeof AccommodationHero> = {
-    accommodation,
+    detailView: toAccommodationDetailViewModel(accommodation),
     mobileSlideIndex: 0,
     onMobileSlideIndexChange: jest.fn(),
     onOpenGallery: jest.fn(),
@@ -134,10 +135,10 @@ describe("AccommodationHero", () => {
     const onMobileSlideIndexChange = jest.fn();
     const onOpenGallery = jest.fn();
     renderHero({
-      accommodation: {
+      detailView: toAccommodationDetailViewModel({
         ...accommodation,
         images: accommodation.images.slice(0, 5),
-      },
+      }),
       onMobileSlideIndexChange,
       onOpenGallery,
     });

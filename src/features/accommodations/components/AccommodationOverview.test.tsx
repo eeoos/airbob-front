@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { AccommodationDetail } from "../../../types/accommodation";
+import { toAccommodationDetailViewModel } from "../lib/accommodationDetailViewModel";
 import { AccommodationOverview } from "./AccommodationOverview";
 
 jest.mock("../../../utils/image", () => ({
@@ -52,7 +53,7 @@ const renderOverview = (
   overrides: Partial<React.ComponentProps<typeof AccommodationOverview>> = {}
 ) => {
   const props: React.ComponentProps<typeof AccommodationOverview> = {
-    accommodation,
+    detailView: toAccommodationDetailViewModel(accommodation),
     onOpenDescription: jest.fn(),
     ...overrides,
   };
@@ -91,13 +92,13 @@ describe("AccommodationOverview", () => {
 
   it("uses the host initial when the host has no thumbnail", () => {
     renderOverview({
-      accommodation: {
+      detailView: toAccommodationDetailViewModel({
         ...accommodation,
         host: {
           ...accommodation.host,
           thumbnail_image_url: null,
         },
-      },
+      }),
     });
 
     expect(screen.getByText("호")).toBeInTheDocument();

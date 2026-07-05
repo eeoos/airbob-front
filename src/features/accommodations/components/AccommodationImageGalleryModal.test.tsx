@@ -1,15 +1,11 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { ImageInfo } from "../../../types/accommodation";
+import type { AccommodationDetailImageViewModel } from "../lib/accommodationDetailViewModel";
 import { AccommodationImageGalleryModal } from "./AccommodationImageGalleryModal";
 
-jest.mock("../../../utils/image", () => ({
-  getImageUrl: (url: string) => url,
-}));
-
-const images: ImageInfo[] = [
-  { id: 1, image_url: "/one.jpg" },
-  { id: 2, image_url: "/two.jpg" },
-  { id: 3, image_url: "/three.jpg" },
+const images: AccommodationDetailImageViewModel[] = [
+  { id: 1, url: "/one.jpg", alt: "남산 전망 숙소 1" },
+  { id: 2, url: "/two.jpg", alt: "남산 전망 숙소 2" },
+  { id: 3, url: "/three.jpg", alt: "남산 전망 숙소 3" },
 ];
 
 const renderGalleryModal = (

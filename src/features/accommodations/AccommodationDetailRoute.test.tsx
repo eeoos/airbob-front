@@ -48,6 +48,7 @@ jest.mock("../auth/appShell", () => ({
 }));
 
 jest.mock("../reviews/appShell", () => ({
+  ...jest.requireActual("../reviews/appShell"),
   ReviewModal: ({
     isOpen,
     totalCount,
@@ -136,16 +137,16 @@ jest.mock("./components/AccommodationDescriptionModal", () => ({
 jest.mock("./components/AccommodationHero", () => ({
   __esModule: true,
   default: ({
-    accommodation,
+    detailView,
     onOpenGallery,
     onSave,
   }: {
-    accommodation: AccommodationDetail;
+    detailView: { title: string };
     onOpenGallery: (imageIndex: number) => void;
     onSave: () => void;
   }) => (
     <section data-testid="accommodation-hero">
-      <h1>{accommodation.name}</h1>
+      <h1>{detailView.title}</h1>
       <button type="button" onClick={onSave}>
         저장
       </button>
@@ -172,28 +173,26 @@ jest.mock("./components/AccommodationImageGalleryModal", () => ({
 
 jest.mock("./components/AccommodationLocationSection", () => ({
   AccommodationLocationSection: ({
-    accommodation,
+    detailView,
   }: {
-    accommodation: AccommodationDetail;
+    detailView: { locationLabel: string };
   }) => (
     <section data-testid="location-section">
-      {[accommodation.address_summary.city, accommodation.address_summary.country]
-        .filter(Boolean)
-        .join(", ")}
+      {detailView.locationLabel}
     </section>
   ),
 }));
 
 jest.mock("./components/AccommodationOverview", () => ({
   AccommodationOverview: ({
-    accommodation,
+    detailView,
     onOpenDescription,
   }: {
-    accommodation: AccommodationDetail;
+    detailView: { description: string };
     onOpenDescription: () => void;
   }) => (
     <section data-testid="overview-section">
-      <p>{accommodation.description}</p>
+      <p>{detailView.description}</p>
       <button type="button" onClick={onOpenDescription}>
         설명 더 보기
       </button>
@@ -209,14 +208,14 @@ jest.mock("./components/AccommodationReviewsSection", () => ({
   }: {
     onOpenReviews: () => void;
     reviewSummary: {
-      average_rating: number;
-      total_count: number;
+      averageRating: number;
+      reviewCount: number;
     };
-    reviews: ReviewInfo[];
+    reviews: unknown[];
   }) => (
     <section data-testid="reviews-section">
-      <h2>{`후기 ${reviewSummary.total_count}개`}</h2>
-      <div>{`평점 ${reviewSummary.average_rating}`}</div>
+      <h2>{`후기 ${reviewSummary.reviewCount}개`}</h2>
+      <div>{`평점 ${reviewSummary.averageRating}`}</div>
       <div>{`표시 리뷰 ${reviews.length}개`}</div>
       <button type="button" onClick={onOpenReviews}>
         후기 모두 보기

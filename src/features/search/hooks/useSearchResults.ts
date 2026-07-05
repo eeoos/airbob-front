@@ -19,6 +19,7 @@ import {
   SearchViewport,
   buildMapBoundsSearchParams,
   buildSearchRequestFromParams,
+  getSearchParamsSignature,
   getViewportSearchParamSignature,
 } from "../lib/searchParams";
 import {
@@ -120,6 +121,10 @@ export const useSearchResults = ({
   const [placeholderWishlistOverrides, setPlaceholderWishlistOverrides] =
     useState<Record<number, boolean>>({});
   const searchParamsString = searchParams.toString();
+  const searchParamsSignature = useMemo(
+    () => getSearchParamsSignature(searchParams),
+    [searchParams, searchParamsString],
+  );
   const page = clampSearchPage(searchParams.get("page"));
   const prevPageParam = prevSearchParamsRef.current
     ? new URLSearchParams(prevSearchParamsRef.current).get("page")
@@ -170,8 +175,8 @@ export const useSearchResults = ({
     [page, searchParams]
   );
   const searchResultsQueryKey = useMemo(
-    () => searchQueryKeys.results(searchParamsString),
-    [searchParamsString]
+    () => searchQueryKeys.results(searchParamsSignature),
+    [searchParamsSignature]
   );
 
   const searchResultsQuery = useQuery<

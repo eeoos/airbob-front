@@ -1,3 +1,4 @@
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { accommodationApi, recentlyViewedApi } from "../../../api";
 import { AccommodationDetail } from "../../../types/accommodation";
@@ -19,70 +20,52 @@ const parseAccommodationId = (accommodationId?: string) => {
   return Number.isNaN(parsedId) ? null : parsedId;
 };
 
+const accommodationDetailQueryKey = (
+  accommodationId: number | null,
+  authRefreshIndex: number,
+) =>
+  [
+    "accommodation",
+    "detail",
+    accommodationId ?? "missing",
+    authRefreshIndex,
+  ] as const;
+
 export const useAccommodationDetail = ({
   accommodationId,
   isAuthenticated,
   handleError,
   clearError,
 }: UseAccommodationDetailOptions) => {
-  const [accommodation, setAccommodation] = useState<AccommodationDetail | null>(
-    null
-  );
-  const [isLoading, setIsLoading] = useState(true);
   const parsedAccommodationId = parseAccommodationId(accommodationId);
-  const isLoadingRef = useRef(isLoading);
+  const [authRefreshIndex, setAuthRefreshIndex] = useState(0);
   const latestAuthRef = useRef(isAuthenticated);
   const previousAuthRef = useRef(isAuthenticated);
-  const requestIdRef = useRef(0);
+  const handledErrorUpdatedAtRef = useRef(0);
 
-  isLoadingRef.current = isLoading;
   latestAuthRef.current = isAuthenticated;
 
-  const loadAccommodation = useCallback(async (showLoading: boolean) => {
-    const requestId = requestIdRef.current + 1;
-    requestIdRef.current = requestId;
-    const shouldCompleteLoading = showLoading || isLoadingRef.current;
-
-    if (!parsedAccommodationId) {
-      isLoadingRef.current = false;
-      setIsLoading(false);
-      return null;
-    }
-
-    if (showLoading) {
-      isLoadingRef.current = true;
-      setIsLoading(true);
-    }
-    clearError();
-
-    try {
-      const data = await accommodationApi.getDetail(parsedAccommodationId);
-      if (requestId !== requestIdRef.current) {
-        return null;
+  const detailQuery = useQuery<
+    AccommodationDetail,
+    unknown,
+    AccommodationDetail,
+    ReturnType<typeof accommodationDetailQueryKey>
+  >({
+    queryKey: accommodationDetailQueryKey(parsedAccommodationId, authRefreshIndex),
+    queryFn: () => {
+      if (!parsedAccommodationId) {
+        throw new Error("accommodationId is required");
       }
 
-      const accommodationToStore = latestAuthRef.current
-        ? data
-        : clearAccommodationWishlistMembership(data);
-
-      setAccommodation(accommodationToStore);
-      return accommodationToStore;
-    } catch (error) {
-      if (requestId === requestIdRef.current) {
-        handleError(error);
-      }
-      return null;
-    } finally {
-      if (shouldCompleteLoading && requestId === requestIdRef.current) {
-        isLoadingRef.current = false;
-        setIsLoading(false);
-      }
-    }
-  }, [clearError, handleError, parsedAccommodationId]);
-
-  useEffect(() => {
-    loadAccommodation(true);
-  }, [loadAccommodation]);
+      clearError();
+      return accommodationApi.getDetail(parsedAccommodationId);
+    },
+    enabled: parsedAccommodationId !== null,
+    placeholderData: keepPreviousData,
+    retry: false,
+    throwOnError: false,
+  });
+  const { refetch } = detailQuery;
 
   useEffect(() => {
     const wasAuthenticated = previousAuthRef.current;
@@ -93,16 +76,37 @@ export const useAccommodationDetail = ({
     }
 
     if (!isAuthenticated) {
-      setAccommodation((current) =>
-        clearAccommodationWishlistMembership(current)
-      );
       return;
     }
 
     if (!wasAuthenticated) {
-      void loadAccommodation(false);
+      setAuthRefreshIndex((currentIndex) => currentIndex + 1);
     }
-  }, [isAuthenticated, loadAccommodation, parsedAccommodationId]);
+  }, [isAuthenticated, parsedAccommodationId]);
+
+  useEffect(() => {
+    if (
+      !detailQuery.isError ||
+      !detailQuery.error ||
+      handledErrorUpdatedAtRef.current === detailQuery.errorUpdatedAt
+    ) {
+      return;
+    }
+
+    handledErrorUpdatedAtRef.current = detailQuery.errorUpdatedAt;
+    handleError(detailQuery.error);
+  }, [
+    detailQuery.error,
+    detailQuery.errorUpdatedAt,
+    detailQuery.isError,
+    handleError,
+  ]);
+
+  const accommodation = detailQuery.isError
+    ? null
+    : latestAuthRef.current
+      ? detailQuery.data ?? null
+      : clearAccommodationWishlistMembership(detailQuery.data ?? null);
 
   useEffect(() => {
     if (!parsedAccommodationId || !isAuthenticated || !accommodation) {
@@ -114,14 +118,24 @@ export const useAccommodationDetail = ({
     });
   }, [accommodation, isAuthenticated, parsedAccommodationId]);
 
-  const reloadAccommodation = useCallback(
-    () => loadAccommodation(false),
-    [loadAccommodation]
-  );
+  const reloadAccommodation = useCallback(async () => {
+    if (!parsedAccommodationId) {
+      return null;
+    }
+
+    const result = await refetch();
+    if (result.isError) {
+      return null;
+    }
+
+    return latestAuthRef.current
+      ? result.data ?? null
+      : clearAccommodationWishlistMembership(result.data ?? null);
+  }, [parsedAccommodationId, refetch]);
 
   return {
     accommodation,
-    isLoading,
+    isLoading: detailQuery.isLoading,
     reloadAccommodation,
   };
 };

@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { couponApi } from "../../../api";
-import { CouponInfo } from "../../../types/coupon";
+import { CouponInfo, CouponInfos } from "../../../types/coupon";
 import { calculateCouponDiscount } from "../../../utils/codes";
 import { parseApiError } from "../../../utils/error";
 
@@ -16,6 +17,9 @@ interface IssueCouponOptions {
   skipAuthCheck?: boolean;
 }
 
+const accommodationCouponsQueryKey = () =>
+  ["accommodation", "coupons", "valid"] as const;
+
 export const useAccommodationCoupons = ({
   isAuthenticated,
   totalPrice,
@@ -24,45 +28,55 @@ export const useAccommodationCoupons = ({
   onRequireAuth,
 }: UseAccommodationCouponsOptions) => {
   const [coupons, setCoupons] = useState<CouponInfo[]>([]);
-  const [isLoadingCoupons, setIsLoadingCoupons] = useState(false);
   const [selectedCouponId, setSelectedCouponId] = useState<number | null>(null);
   const [issuingCouponId, setIssuingCouponId] = useState<number | null>(null);
+  const handledCouponErrorUpdatedAtRef = useRef(0);
+
+  const couponsQuery = useQuery<
+    CouponInfos,
+    unknown,
+    CouponInfos,
+    ReturnType<typeof accommodationCouponsQueryKey>
+  >({
+    queryKey: accommodationCouponsQueryKey(),
+    queryFn: () => couponApi.getValidCoupons(),
+    enabled: isAuthenticated,
+    retry: false,
+    throwOnError: false,
+  });
 
   useEffect(() => {
     if (!isAuthenticated) {
       setCoupons([]);
       setSelectedCouponId(null);
+    };
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!couponsQuery.data || !isAuthenticated) {
       return;
     }
 
-    let isCancelled = false;
+    setCoupons(couponsQuery.data.infos || []);
+  }, [couponsQuery.data, couponsQuery.dataUpdatedAt, isAuthenticated]);
 
-    const fetchCoupons = async () => {
-      setIsLoadingCoupons(true);
+  useEffect(() => {
+    if (
+      !couponsQuery.isError ||
+      !couponsQuery.error ||
+      handledCouponErrorUpdatedAtRef.current === couponsQuery.errorUpdatedAt
+    ) {
+      return;
+    }
 
-      try {
-        const data = await couponApi.getValidCoupons();
-        if (!isCancelled) {
-          setCoupons(data.infos || []);
-        }
-      } catch (error) {
-        console.error("쿠폰 목록 조회 실패:", error);
-        if (!isCancelled) {
-          setCoupons([]);
-        }
-      } finally {
-        if (!isCancelled) {
-          setIsLoadingCoupons(false);
-        }
-      }
-    };
-
-    fetchCoupons();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [isAuthenticated]);
+    handledCouponErrorUpdatedAtRef.current = couponsQuery.errorUpdatedAt;
+    console.error("쿠폰 목록 조회 실패:", couponsQuery.error);
+    setCoupons([]);
+  }, [
+    couponsQuery.error,
+    couponsQuery.errorUpdatedAt,
+    couponsQuery.isError,
+  ]);
 
   const selectedCoupon = useMemo(
     () => coupons.find((coupon) => coupon.id === selectedCouponId) || null,
@@ -108,7 +122,7 @@ export const useAccommodationCoupons = ({
 
   return {
     coupons,
-    isLoadingCoupons,
+    isLoadingCoupons: isAuthenticated && couponsQuery.isFetching,
     selectedCoupon,
     selectedCouponId,
     setSelectedCouponId,
