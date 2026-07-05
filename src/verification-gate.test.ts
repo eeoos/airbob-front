@@ -386,6 +386,8 @@ describe("frontend verification gate", () => {
       "AIRBOB_SMOKE_RESERVATION_UID",
       "AIRBOB_SMOKE_HOST_RESERVATION_UID",
       "curl -fsS",
+      "profile/guest/reservations?filterType=PAST&size=1",
+      "profile/host/reservations?filterType=PAST&size=1",
       "guest_reservation_uid",
       "host_reservation_uid",
       "npm run smoke:frontend:strict",
