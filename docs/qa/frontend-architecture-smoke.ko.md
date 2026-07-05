@@ -172,7 +172,7 @@ npm run smoke:frontend:strict
 - `/wishlist`: `main, #root` contains `위시리스트`.
 - `/wishlist?view=recently-viewed`: `main, #root` contains `최근`.
 - `/profile?mode=host&tab=listings`: `main, #root` contains `호스트`.
-- `/accommodations/:id`: `main, #root` contains `숙소`, reservation CTA exists, and gallery trigger buttons exist.
+- `/accommodations/:id`: `main, #root` contains `예약하기`, reservation CTA exists, and gallery trigger buttons exist.
 - `/accommodations/:id/edit`: `main, #root` contains `숙소`.
 - `/reservations/:reservationUid`: `main, #root` contains `예약` when `AIRBOB_SMOKE_RESERVATION_UID` is supplied.
 - `/profile/host/reservations/:reservationUid`: `main, #root` contains `예약` when `AIRBOB_SMOKE_HOST_RESERVATION_UID` is supplied.

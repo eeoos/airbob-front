@@ -130,7 +130,7 @@ const ROUTES = [
     pathTemplate: "/accommodations/:id",
     params: { id: accommodationId },
     selector: "main, #root",
-    expectedText: "숙소",
+    expectedText: "예약하기",
   }),
   {
     name: "accommodation-edit",

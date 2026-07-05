@@ -75,6 +75,23 @@ const getSection = (content: string, heading: string, level = 2) => {
   return section?.[1] ?? "";
 };
 
+const isolatedSmokeSubprocessEnv = (
+  overrides: Record<string, string | undefined> = {},
+) => {
+  const env = { ...process.env };
+
+  [
+    "AIRBOB_SMOKE_RESERVATION_UID",
+    "AIRBOB_SMOKE_HOST_RESERVATION_UID",
+    "AIRBOB_SMOKE_ACCOMMODATION_ID",
+    "AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS",
+  ].forEach((key) => {
+    delete env[key];
+  });
+
+  return { ...env, ...overrides };
+};
+
 describe("frontend verification gate", () => {
   test("production source routes warn/error logging and static inline styles through guardrails", () => {
     const rawConsoleViolations: string[] = [];
@@ -216,6 +233,11 @@ describe("frontend verification gate", () => {
       expect(smokeScript).toContain(term);
     });
 
+    const accommodationDetailRoute = smokeScript.match(
+      /routeFromTemplate\(\{\s*name:\s*"accommodation-detail",[\s\S]*?\n\s*\}\),/,
+    );
+    expect(accommodationDetailRoute?.[0]).toContain('expectedText: "예약하기"');
+
     expect(smokeScript).not.toMatch(/process\.env\.AIRBOB_QA_(?:EMAIL|PASSWORD)[^;]*console/);
   });
 
@@ -243,14 +265,13 @@ describe("frontend verification gate", () => {
       const result = spawnSync(process.execPath, [frontendSmokePath], {
         cwd: projectRoot,
         encoding: "utf8",
-        env: {
-          ...process.env,
+        env: isolatedSmokeSubprocessEnv({
           AIRBOB_QA_EMAIL: "fake-user@example.invalid",
           AIRBOB_QA_PASSWORD: "fake-password",
           GSTACK_BROWSE_BIN: fakeBrowsePath,
           AIRBOB_FRONTEND_URL: "http://localhost:3000",
           REACT_APP_GOOGLE_MAPS_API_KEY: "  fake-google-maps-key  ",
-        },
+        }),
         maxBuffer: 10 * 1024 * 1024,
       });
       const output = `${result.stdout}\n${result.stderr}`;
@@ -308,14 +329,13 @@ describe("frontend verification gate", () => {
       const result = spawnSync(process.execPath, [frontendSmokePath], {
         cwd: projectRoot,
         encoding: "utf8",
-        env: {
-          ...process.env,
+        env: isolatedSmokeSubprocessEnv({
           AIRBOB_QA_EMAIL: "fake-user@example.invalid",
           AIRBOB_QA_PASSWORD: "fake-password",
           GSTACK_BROWSE_BIN: fakeBrowsePath,
           AIRBOB_FRONTEND_URL: "http://localhost:3000",
           AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES: "true",
-        },
+        }),
         maxBuffer: 10 * 1024 * 1024,
       });
       const output = `${result.stdout}\n${result.stderr}`;
