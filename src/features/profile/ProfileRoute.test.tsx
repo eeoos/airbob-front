@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ProfileRoute } from "./ProfileRoute";
 import type { ProfileRouteState } from "./lib/profileRouteState";
@@ -64,7 +64,11 @@ describe("ProfileRoute", () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "호스트" }));
+    const modeTabs = within(
+      screen.getByRole("tablist", { name: "프로필 모드" }),
+    );
+
+    await userEvent.click(modeTabs.getByRole("tab", { name: "호스트" }));
 
     expect(mockBuildProfileRouteSearchParams).toHaveBeenCalledWith({
       mode: "host",
