@@ -141,9 +141,7 @@ const cssPath = (relativePath: string) => path.join(srcDir, relativePath);
 
 const readCss = (relativePath: string) => fs.readFileSync(cssPath(relativePath), "utf8");
 
-const tokenMigrationAllowlist = new Set([
-  "src/features/search/components/SearchBar/SearchBar.module.css",
-]);
+const tokenMigrationAllowlist = new Set<string>();
 
 const newlyTokenOwnedCssFiles = [
   "layouts/AppHeader/Header.module.css",
@@ -169,6 +167,7 @@ const designTokenOwnedCssFiles = [
   "features/accommodations/components/AccommodationReviewsSection.module.css",
   "features/accommodations/components/AccommodationDescriptionModal.module.css",
   "features/accommodations/components/AccommodationImageGalleryModal.module.css",
+  "features/search/components/SearchBar/SearchBar.module.css",
   ...newlyTokenOwnedCssFiles,
 ];
 
@@ -702,35 +701,21 @@ describe("pre-design token stylesheet contract", () => {
     ]);
   });
 
-  it("keeps the token migration allowlist explicit", () => {
+  it("keeps the token migration allowlist retired", () => {
     const cleanedModalCssFiles = [
       "features/auth/components/AuthModal/AuthModal.module.css",
       "features/reservations/components/ReservationModal/ReservationModal.module.css",
+      "features/search/components/SearchBar/SearchBar.module.css",
     ];
 
-    expect(Array.from(tokenMigrationAllowlist)).toEqual([
-      "src/features/search/components/SearchBar/SearchBar.module.css",
-    ]);
+    expect(Array.from(tokenMigrationAllowlist)).toEqual([]);
     expect(designTokenOwnedCssFiles).toContain(
       "features/search/components/SearchAccommodationCard.module.css",
     );
 
     cleanedModalCssFiles.forEach((relativePath) => {
       expect(tokenMigrationAllowlist.has(`src/${relativePath}`)).toBe(false);
-      expect(newlyTokenOwnedCssFiles).toContain(relativePath);
       expect(designTokenOwnedCssFiles).toContain(relativePath);
-    });
-
-    tokenMigrationAllowlist.forEach((relativePath) => {
-      const sourcePath = path.join(process.cwd(), relativePath);
-      expect(fs.existsSync(sourcePath)).toBe(true);
-
-      const source = fs.readFileSync(sourcePath, "utf8");
-      const hasLegacyDesignLiteral = source
-        .split(/\r?\n/)
-        .some((line) => findForbiddenDesignLiteral(line));
-
-      expect(hasLegacyDesignLiteral).toBe(true);
     });
   });
 
