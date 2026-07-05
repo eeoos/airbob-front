@@ -31,7 +31,9 @@ const qaPassword = process.env.AIRBOB_QA_PASSWORD;
 const browseBin = process.env.GSTACK_BROWSE_BIN;
 const frontendUrl = process.env.AIRBOB_FRONTEND_URL ?? DEFAULT_FRONTEND_URL;
 const strictDynamicRoutes = process.env.AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES === "true";
-const googleMapsApiKeyReady = Boolean(process.env.REACT_APP_GOOGLE_MAPS_API_KEY);
+const rawGoogleMapsApiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+const googleMapsApiKey = rawGoogleMapsApiKey?.trim() ?? "";
+const googleMapsApiKeyReady = Boolean(googleMapsApiKey);
 const strictSearchResults =
   process.env.AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS === "true";
 const envValue = (name) => process.env[name]?.trim() || "";
@@ -188,7 +190,8 @@ const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const redactionEntries = [
   ["AIRBOB_QA_EMAIL", qaEmail],
   ["AIRBOB_QA_PASSWORD", qaPassword],
-  ["REACT_APP_GOOGLE_MAPS_API_KEY", process.env.REACT_APP_GOOGLE_MAPS_API_KEY],
+  ["REACT_APP_GOOGLE_MAPS_API_KEY", rawGoogleMapsApiKey],
+  ["REACT_APP_GOOGLE_MAPS_API_KEY", googleMapsApiKey],
 ].flatMap(([name, value]) => {
   if (!value) {
     return [];

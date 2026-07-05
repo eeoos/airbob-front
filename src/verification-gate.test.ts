@@ -88,6 +88,8 @@ describe("frontend verification gate", () => {
     });
 
     [
+      "rawGoogleMapsApiKey",
+      'const googleMapsApiKey = rawGoogleMapsApiKey?.trim() ?? "";',
       "googleMapsApiKeyReady",
       "Google Maps API key:",
       "AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS",
@@ -129,6 +131,7 @@ describe("frontend verification gate", () => {
         '  console.log("console.error: React route assertion failed");',
         '  console.log("[js] ERROR: evaluate: Error: route assertion failed");',
         '  console.log("fake-google-maps-key");',
+        '  console.log("  fake-google-maps-key  ");',
         "  process.exit(0);",
         "});",
       ].join("\n"),
@@ -145,7 +148,7 @@ describe("frontend verification gate", () => {
           AIRBOB_QA_PASSWORD: "fake-password",
           GSTACK_BROWSE_BIN: fakeBrowsePath,
           AIRBOB_FRONTEND_URL: "http://localhost:3000",
-          REACT_APP_GOOGLE_MAPS_API_KEY: "fake-google-maps-key",
+          REACT_APP_GOOGLE_MAPS_API_KEY: "  fake-google-maps-key  ",
         },
         maxBuffer: 10 * 1024 * 1024,
       });
