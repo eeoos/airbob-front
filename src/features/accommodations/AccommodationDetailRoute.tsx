@@ -18,6 +18,7 @@ import { useAccommodationCoupons } from "./hooks/useAccommodationCoupons";
 import { useAccommodationDetail } from "./hooks/useAccommodationDetail";
 import { useAccommodationImageGallery } from "./hooks/useAccommodationImageGallery";
 import { useAccommodationReviews } from "./hooks/useAccommodationReviews";
+import { toAccommodationBookingViewModel } from "./lib/accommodationBookingViewModel";
 import styles from "./AccommodationDetailRoute.module.css";
 
 export interface AccommodationDetailRouteProps {
@@ -193,6 +194,8 @@ export const AccommodationDetailRoute: React.FC<
     );
   }
 
+  const bookingView = toAccommodationBookingViewModel(accommodation);
+
   return (
     <>
       <div className={styles.container}>
@@ -225,7 +228,7 @@ export const AccommodationDetailRoute: React.FC<
 
           <div className={styles.sidebar}>
             <AccommodationBookingCard
-              accommodation={accommodation}
+              bookingView={bookingView}
               isAuthenticated={isAuthenticated}
               payablePrice={payablePrice}
               nights={nights}

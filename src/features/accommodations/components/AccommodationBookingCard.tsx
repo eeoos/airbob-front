@@ -1,6 +1,5 @@
 import React from "react";
-import { AccommodationDetail } from "../../../types/accommodation";
-import { CouponInfo } from "../../../types/coupon";
+import type { AccommodationBookingViewModel } from "../lib/accommodationBookingViewModel";
 import {
   BookingCouponSection,
   BookingDateSection,
@@ -13,9 +12,11 @@ import styles from "./AccommodationBookingCard.module.css";
 
 type NumberSetter = React.Dispatch<React.SetStateAction<number>>;
 type BooleanSetter = React.Dispatch<React.SetStateAction<boolean>>;
+type BookingCoupon =
+  React.ComponentProps<typeof BookingCouponSection>["coupons"][number];
 
 interface AccommodationBookingCardProps {
-  accommodation: AccommodationDetail;
+  bookingView: AccommodationBookingViewModel;
   isAuthenticated: boolean;
   payablePrice: number;
   nights: number;
@@ -39,21 +40,21 @@ interface AccommodationBookingCardProps {
   setInfantCount: NumberSetter;
   petCount: number;
   setPetCount: NumberSetter;
-  coupons: CouponInfo[];
+  coupons: BookingCoupon[];
   isLoadingCoupons: boolean;
-  selectedCoupon: CouponInfo | null;
+  selectedCoupon: BookingCoupon | null;
   selectedCouponId: number | null;
   setSelectedCouponId: (couponId: number | null) => void;
   issuingCouponId: number | null;
   couponDiscount: number;
-  handleIssueCoupon: (coupon: CouponInfo) => void | Promise<void>;
+  handleIssueCoupon: (coupon: BookingCoupon) => void | Promise<void>;
   isReserving: boolean;
   onReserve: () => void;
 }
 
 
 export function AccommodationBookingCard({
-  accommodation,
+  bookingView,
   isAuthenticated,
   payablePrice,
   nights,
@@ -88,9 +89,11 @@ export function AccommodationBookingCard({
   isReserving,
   onReserve,
 }: AccommodationBookingCardProps) {
-  const maxOccupancy = accommodation.policy.max_occupancy;
-  const maxInfants = accommodation.policy.infant_occupancy;
-  const maxPets = accommodation.policy.pet_occupancy;
+  const {
+    basePrice,
+    unavailableDates,
+    guestLimits: { maxAdultsAndChildren, maxInfants, maxPets },
+  } = bookingView;
 
   return (
     <div className={styles.bookingCard}>
@@ -105,7 +108,7 @@ export function AccommodationBookingCard({
         handleDateSelect={handleDateSelect}
         isDatePickerOpen={isDatePickerOpen}
         setIsDatePickerOpen={setIsDatePickerOpen}
-        unavailableDates={accommodation.unavailable_dates}
+        unavailableDates={unavailableDates}
       />
 
       <BookingGuestSection
@@ -116,7 +119,7 @@ export function AccommodationBookingCard({
         isDatePickerOpen={isDatePickerOpen}
         isGuestPickerOpen={isGuestPickerOpen}
         maxInfants={maxInfants}
-        maxOccupancy={maxOccupancy}
+        maxOccupancy={maxAdultsAndChildren}
         maxPets={maxPets}
         petCount={petCount}
         setAdultCount={setAdultCount}
@@ -141,7 +144,7 @@ export function AccommodationBookingCard({
       )}
 
       <BookingPriceBreakdown
-        basePrice={accommodation.base_price}
+        basePrice={basePrice}
         couponDiscount={couponDiscount}
         nights={nights}
         selectedCoupon={selectedCoupon}
