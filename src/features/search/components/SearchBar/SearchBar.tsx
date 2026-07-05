@@ -390,18 +390,19 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
 
       <div className={styles.divider} />
 
-      <div
-        className={styles.searchItem}
-        ref={datePickerRef}
-        style={{ position: "relative" }}
-        onMouseDown={(e) => {
-          // onBlur보다 먼저 실행되도록 onMouseDown에서 플래그 설정
-          setIsOpeningDatePicker(true);
-        }}
-        onClick={handleDateClick}
-      >
-        {isExpanded ? (
-          <>
+      <div className={styles.searchItemHost} ref={datePickerRef}>
+        <button
+          aria-controls="search-date-picker"
+          aria-expanded={showDatePicker}
+          className={styles.searchItem}
+          onMouseDown={() => {
+            // onBlur보다 먼저 실행되도록 onMouseDown에서 플래그 설정
+            setIsOpeningDatePicker(true);
+          }}
+          onClick={handleDateClick}
+          type="button"
+        >
+          {isExpanded ? (
             <div className={styles.dateFields}>
               <div className={styles.dateField}>
                 <div className={styles.label}>체크인</div>
@@ -416,176 +417,201 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
                 </div>
               </div>
             </div>
-            {showDatePicker && (
-              <div className={styles.datePickerContainer}>
-                <DatePicker
-                  checkIn={checkIn}
-                  checkOut={checkOut}
-                  onDateSelect={handleDateSelect}
-                  onClose={() => {
-                    // 체크인만 선택된 경우 체크아웃을 다음 날로 자동 설정
-                    completeCheckoutIfNeeded();
-                    setShowDatePicker(false);
-                    // 닫기 버튼 클릭 시 검색바를 축소 모드로 변경
-                    setExpanded(false);
-                  }}
-                  datePickerRef={datePickerElementRef}
-                />
-              </div>
-            )}
-          </>
-        ) : (
-          <div className={styles.compactValue}>
-            {checkIn && checkOut
-              ? `${formatCompactDate(checkIn)} - ${formatCompactDate(checkOut)}`
-              : "언제든지"}
+          ) : (
+            <div className={styles.compactValue}>
+              {checkIn && checkOut
+                ? `${formatCompactDate(checkIn)} - ${formatCompactDate(checkOut)}`
+                : "언제든지"}
+            </div>
+          )}
+        </button>
+        {isExpanded && showDatePicker && (
+          <div
+            className={styles.datePickerContainer}
+            id="search-date-picker"
+          >
+            <DatePicker
+              checkIn={checkIn}
+              checkOut={checkOut}
+              onDateSelect={handleDateSelect}
+              onClose={() => {
+                // 체크인만 선택된 경우 체크아웃을 다음 날로 자동 설정
+                completeCheckoutIfNeeded();
+                setShowDatePicker(false);
+                // 닫기 버튼 클릭 시 검색바를 축소 모드로 변경
+                setExpanded(false);
+              }}
+              datePickerRef={datePickerElementRef}
+            />
           </div>
         )}
       </div>
 
       <div className={styles.divider} />
 
-      <div
-        className={styles.searchItem}
-        ref={guestPickerRef}
-        style={{ position: "relative" }}
-        onMouseDown={(e) => {
-          // onBlur보다 먼저 실행되도록 onMouseDown에서 플래그 설정
-          setIsOpeningGuestPicker(true);
-        }}
-        onClick={handleGuestClick}
-      >
-        {isExpanded ? (
-          <>
-            <div className={styles.label}>여행자</div>
-            <div className={styles.value}>
-              {getTotalGuests() > 0
-                ? `게스트 ${getTotalGuests()}명`
-                : "게스트 추가"}
-            </div>
-            {showGuestPicker && (
-              <div className={styles.guestPicker}>
-                <div className={styles.guestRow}>
-                  <div>
-                    <div className={styles.guestLabel}>성인</div>
-                    <div className={styles.guestSubLabel}>13세 이상</div>
-                  </div>
-                  <div className={styles.guestControls}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setAdultOccupancy(Math.max(1, adultOccupancy - 1));
-                      }}
-                      disabled={adultOccupancy <= 1}
-                      className={styles.controlButton}
-                    >
-                      −
-                    </button>
-                    <span className={styles.guestCount}>{adultOccupancy}</span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setAdultOccupancy(adultOccupancy + 1);
-                      }}
-                      className={styles.controlButton}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-
-                <div className={styles.guestRow}>
-                  <div>
-                    <div className={styles.guestLabel}>어린이</div>
-                    <div className={styles.guestSubLabel}>2~12세</div>
-                  </div>
-                  <div className={styles.guestControls}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setChildOccupancy(Math.max(0, childOccupancy - 1));
-                      }}
-                      disabled={childOccupancy <= 0}
-                      className={styles.controlButton}
-                    >
-                      −
-                    </button>
-                    <span className={styles.guestCount}>{childOccupancy}</span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setChildOccupancy(childOccupancy + 1);
-                      }}
-                      className={styles.controlButton}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-
-                <div className={styles.guestRow}>
-                  <div>
-                    <div className={styles.guestLabel}>유아</div>
-                    <div className={styles.guestSubLabel}>2세 미만</div>
-                  </div>
-                  <div className={styles.guestControls}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setInfantOccupancy(Math.max(0, infantOccupancy - 1));
-                      }}
-                      disabled={infantOccupancy <= 0}
-                      className={styles.controlButton}
-                    >
-                      −
-                    </button>
-                    <span className={styles.guestCount}>{infantOccupancy}</span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setInfantOccupancy(infantOccupancy + 1);
-                      }}
-                      className={styles.controlButton}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-
-                <div className={styles.guestRow}>
-                  <div>
-                    <div className={styles.guestLabel}>반려동물</div>
-                    <div className={styles.guestSubLabel}>반려동물을 데려오시나요?</div>
-                  </div>
-                  <div className={styles.guestControls}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPetOccupancy(Math.max(0, petOccupancy - 1));
-                      }}
-                      disabled={petOccupancy <= 0}
-                      className={styles.controlButton}
-                    >
-                      −
-                    </button>
-                    <span className={styles.guestCount}>{petOccupancy}</span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPetOccupancy(petOccupancy + 1);
-                      }}
-                      className={styles.controlButton}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
+      <div className={styles.searchItemHost} ref={guestPickerRef}>
+        <button
+          aria-controls="search-guest-picker"
+          aria-expanded={showGuestPicker}
+          className={styles.searchItem}
+          onMouseDown={() => {
+            // onBlur보다 먼저 실행되도록 onMouseDown에서 플래그 설정
+            setIsOpeningGuestPicker(true);
+          }}
+          onClick={handleGuestClick}
+          type="button"
+        >
+          {isExpanded ? (
+            <>
+              <div className={styles.label}>여행자</div>
+              <div className={styles.value}>
+                {getTotalGuests() > 0
+                  ? `게스트 ${getTotalGuests()}명`
+                  : "게스트 추가"}
               </div>
-            )}
-          </>
-        ) : (
-          <div className={styles.compactValue}>
-            {getTotalGuests() > 0 ? `게스트 ${getTotalGuests()}명` : "게스트 추가"}
+            </>
+          ) : (
+            <div className={styles.compactValue}>
+              {getTotalGuests() > 0 ? `게스트 ${getTotalGuests()}명` : "게스트 추가"}
+            </div>
+          )}
+        </button>
+        {isExpanded && showGuestPicker && (
+          <div
+            className={styles.guestPicker}
+            id="search-guest-picker"
+          >
+            <div className={styles.guestRow}>
+              <div>
+                <div className={styles.guestLabel}>성인</div>
+                <div className={styles.guestSubLabel}>13세 이상</div>
+              </div>
+              <div className={styles.guestControls}>
+                <button
+                  aria-label="성인 인원 줄이기"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setAdultOccupancy(Math.max(1, adultOccupancy - 1));
+                  }}
+                  disabled={adultOccupancy <= 1}
+                  className={styles.controlButton}
+                  type="button"
+                >
+                  −
+                </button>
+                <span className={styles.guestCount}>{adultOccupancy}</span>
+                <button
+                  aria-label="성인 인원 늘리기"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setAdultOccupancy(adultOccupancy + 1);
+                  }}
+                  className={styles.controlButton}
+                  type="button"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            <div className={styles.guestRow}>
+              <div>
+                <div className={styles.guestLabel}>어린이</div>
+                <div className={styles.guestSubLabel}>2~12세</div>
+              </div>
+              <div className={styles.guestControls}>
+                <button
+                  aria-label="어린이 인원 줄이기"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setChildOccupancy(Math.max(0, childOccupancy - 1));
+                  }}
+                  disabled={childOccupancy <= 0}
+                  className={styles.controlButton}
+                  type="button"
+                >
+                  −
+                </button>
+                <span className={styles.guestCount}>{childOccupancy}</span>
+                <button
+                  aria-label="어린이 인원 늘리기"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setChildOccupancy(childOccupancy + 1);
+                  }}
+                  className={styles.controlButton}
+                  type="button"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            <div className={styles.guestRow}>
+              <div>
+                <div className={styles.guestLabel}>유아</div>
+                <div className={styles.guestSubLabel}>2세 미만</div>
+              </div>
+              <div className={styles.guestControls}>
+                <button
+                  aria-label="유아 인원 줄이기"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setInfantOccupancy(Math.max(0, infantOccupancy - 1));
+                  }}
+                  disabled={infantOccupancy <= 0}
+                  className={styles.controlButton}
+                  type="button"
+                >
+                  −
+                </button>
+                <span className={styles.guestCount}>{infantOccupancy}</span>
+                <button
+                  aria-label="유아 인원 늘리기"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setInfantOccupancy(infantOccupancy + 1);
+                  }}
+                  className={styles.controlButton}
+                  type="button"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            <div className={styles.guestRow}>
+              <div>
+                <div className={styles.guestLabel}>반려동물</div>
+                <div className={styles.guestSubLabel}>반려동물을 데려오시나요?</div>
+              </div>
+              <div className={styles.guestControls}>
+                <button
+                  aria-label="반려동물 수 줄이기"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPetOccupancy(Math.max(0, petOccupancy - 1));
+                  }}
+                  disabled={petOccupancy <= 0}
+                  className={styles.controlButton}
+                  type="button"
+                >
+                  −
+                </button>
+                <span className={styles.guestCount}>{petOccupancy}</span>
+                <button
+                  aria-label="반려동물 수 늘리기"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPetOccupancy(petOccupancy + 1);
+                  }}
+                  className={styles.controlButton}
+                  type="button"
+                >
+                  +
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

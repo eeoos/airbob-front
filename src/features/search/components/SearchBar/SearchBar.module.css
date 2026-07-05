@@ -27,6 +27,12 @@
 }
 
 .searchItem {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  margin: 0;
   padding: 8px 16px;
   cursor: pointer;
   flex: 1;
@@ -35,6 +41,18 @@
   flex-direction: column;
   justify-content: center;
   min-height: 40px;
+  text-align: left;
+}
+
+.searchItemHost {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+
+.searchItemHost > .searchItem {
+  width: 100%;
 }
 
 /* 컴팩트 모드에서 searchItem 패딩 줄이기 */
@@ -42,12 +60,13 @@
   padding: 0 12px;
 }
 
-.searchItem:first-child {
+.searchBar > .searchItem:first-child {
   flex: 1.2;
 }
 
 /* 체크인/체크아웃 필드 (3번째 searchItem) */
-.searchBar > .searchItem:nth-child(3) {
+.searchBar > .searchItem:nth-child(3),
+.searchBar > .searchItemHost:nth-child(3) {
   flex: 1.8;
 }
 
@@ -354,12 +373,13 @@
     min-width: 0;
   }
 
-  .searchItem:first-child {
+  .searchBar > .searchItem:first-child {
     flex: 1.5;
   }
 
   /* 체크인/체크아웃 필드 */
-  .searchBar > .searchItem:nth-child(3) {
+  .searchBar > .searchItem:nth-child(3),
+  .searchBar > .searchItemHost:nth-child(3) {
     flex: 1;
   }
 

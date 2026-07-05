@@ -115,10 +115,15 @@ describe("SearchBar", () => {
     const css = readProjectFile(
       "src/features/search/components/SearchBar/SearchBar.module.css"
     );
+    const searchItemStyles = getCssBlock(css, ".searchItem");
     const searchButtonStyles = getCssBlock(css, ".searchButton");
     const controlButtonStyles = getCssBlock(css, ".controlButton");
     const suggestionItemStyles = getCssBlock(css, ".suggestionItem");
 
+    expect(searchItemStyles).toContain("appearance: none;");
+    expect(searchItemStyles).toContain("border: 0;");
+    expect(searchItemStyles).toContain("background: transparent;");
+    expect(searchItemStyles).toContain("font: inherit;");
     expect(searchButtonStyles).toContain(
       "min-width: var(--control-touch-target);"
     );
@@ -143,6 +148,73 @@ describe("SearchBar", () => {
     const searchButton = screen.getByRole("button", { name: "검색" });
 
     expect(searchButton).toHaveAttribute("type", "button");
+  });
+
+  it("renders date and guest segments as disclosure buttons", () => {
+    mockUseSearchBarState.mockReturnValue(
+      createSearchBarState({ isExpanded: true })
+    );
+
+    render(<SearchBar />);
+
+    const dateTrigger = screen.getByRole("button", {
+      name: /체크인[\s\S]*체크아웃/,
+    });
+    const guestTrigger = screen.getByRole("button", { name: /여행자/ });
+
+    expect(dateTrigger).toHaveAttribute("type", "button");
+    expect(dateTrigger).toHaveAttribute("aria-expanded", "false");
+    expect(dateTrigger).toHaveAttribute("aria-controls", "search-date-picker");
+    expect(guestTrigger).toHaveAttribute("type", "button");
+    expect(guestTrigger).toHaveAttribute("aria-expanded", "false");
+    expect(guestTrigger).toHaveAttribute("aria-controls", "search-guest-picker");
+  });
+
+  it("links expanded date and guest panels to their triggers", () => {
+    mockUseSearchBarState.mockReturnValue(
+      createSearchBarState({
+        isExpanded: true,
+        showDatePicker: true,
+        showGuestPicker: true,
+      })
+    );
+
+    render(<SearchBar />);
+
+    const dateTrigger = screen.getByRole("button", {
+      name: /체크인[\s\S]*체크아웃/,
+    });
+    const guestTrigger = screen.getByRole("button", { name: /여행자/ });
+
+    expect(dateTrigger).toHaveAttribute("aria-expanded", "true");
+    expect(document.getElementById("search-date-picker")).toBeInTheDocument();
+    expect(guestTrigger).toHaveAttribute("aria-expanded", "true");
+    expect(document.getElementById("search-guest-picker")).toBeInTheDocument();
+  });
+
+  it.each([
+    "성인 인원 줄이기",
+    "성인 인원 늘리기",
+    "어린이 인원 줄이기",
+    "어린이 인원 늘리기",
+    "유아 인원 줄이기",
+    "유아 인원 늘리기",
+    "반려동물 수 줄이기",
+    "반려동물 수 늘리기",
+  ])("labels the %s counter button", (label) => {
+    mockUseSearchBarState.mockReturnValue(
+      createSearchBarState({
+        isExpanded: true,
+        showGuestPicker: true,
+      })
+    );
+
+    render(<SearchBar />);
+
+    expect(screen.getByRole("button", { name: label })).toHaveAttribute(
+      "type",
+      "button"
+    );
   });
 
   it("renders place suggestions as semantic buttons", () => {
