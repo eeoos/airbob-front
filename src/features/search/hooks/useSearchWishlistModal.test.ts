@@ -3,7 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import React from "react";
 import { wishlistApi } from "../../../api";
 import { AccommodationSearchInfo } from "../../../types/accommodation";
-import { getWishlistListsParamsSignature } from "../../wishlist/hooks/useWishlistListsQuery";
+import { getWishlistListsParamsSignature } from "../../wishlist/lib/wishlistListQueryParams";
 import { wishlistQueryKeys } from "../../wishlist/queryKeys";
 import { useSearchWishlistModal } from "./useSearchWishlistModal";
 
@@ -132,7 +132,7 @@ describe("useSearchWishlistModal", () => {
     });
 
     act(() => {
-      result.current.openWishlistModal(7);
+      result.current.openWishlistModal(0);
     });
 
     act(() => {

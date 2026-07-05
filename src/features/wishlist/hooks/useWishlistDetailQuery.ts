@@ -2,8 +2,8 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import type { InfiniteData } from "@tanstack/react-query";
 import { wishlistApi } from "../../../api";
 import { WishlistAccommodationInfos } from "../../../types/wishlist";
+import { WISHLIST_PAGE_SIZE } from "../lib/wishlistListQueryParams";
 import { wishlistQueryKeys } from "../queryKeys";
-import { WISHLIST_PAGE_SIZE } from "./useWishlistListsQuery";
 
 type WishlistDetailQueryOptions = {
   enabled?: boolean;

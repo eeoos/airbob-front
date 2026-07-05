@@ -1,28 +1,19 @@
-import { RecentlyViewedAccommodationInfo } from "../../../types/recentlyViewed";
 import {
   formatRecentlyViewedDate,
   groupRecentlyViewedByDate,
 } from "./recentlyViewedGroups";
 
+interface RecentlyViewedTestItem {
+  accommodationId: number;
+  viewedAt: string;
+}
+
 const createRecentlyViewed = (
   id: number,
-  viewedAt: string
-): RecentlyViewedAccommodationInfo => ({
-  accommodation_id: id,
-  accommodation_name: `Accommodation ${id}`,
-  thumbnail_url: null,
-  address_summary: {
-    country: "KR",
-    state: null,
-    city: "Seoul",
-    district: "Mapo",
-  },
-  review_summary: {
-    total_count: 0,
-    average_rating: 0,
-  },
-  is_in_wishlist: false,
-  viewed_at: viewedAt,
+  viewedAt: string,
+): RecentlyViewedTestItem => ({
+  accommodationId: id,
+  viewedAt,
 });
 
 describe("recently viewed groups", () => {
@@ -54,7 +45,7 @@ describe("recently viewed groups", () => {
     );
 
     expect(Object.keys(groups)).toEqual(["오늘", "어제"]);
-    expect(groups["오늘"].map((item) => item.accommodation_id)).toEqual([1, 3]);
-    expect(groups["어제"].map((item) => item.accommodation_id)).toEqual([2]);
+    expect(groups["오늘"].map((item) => item.accommodationId)).toEqual([1, 3]);
+    expect(groups["어제"].map((item) => item.accommodationId)).toEqual([2]);
   });
 });

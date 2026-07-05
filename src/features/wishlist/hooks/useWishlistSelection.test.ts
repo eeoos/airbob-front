@@ -2,8 +2,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import React from "react";
 import { wishlistApi } from "../../../api/wishlist";
-import { WishlistInfo } from "../../../types/wishlist";
+import { WishlistInfo, WishlistInfos } from "../../../types/wishlist";
 import { searchQueryKeys } from "../../search/queryKeys";
+import { toWishlistModalItemViewModel } from "../lib/wishlistAccommodationViewModel";
 import { wishlistQueryKeys } from "../queryKeys";
 import { useWishlistSelection } from "./useWishlistSelection";
 
@@ -33,9 +34,14 @@ const renderUseWishlistSelection = (
   options: Parameters<typeof useWishlistSelection>[0]
 ) => {
   const { Wrapper, queryClient } = createWrapper();
-  const hook = renderHook(() => useWishlistSelection(options), {
-    wrapper: Wrapper,
-  });
+  const hook = renderHook(
+    (props: Parameters<typeof useWishlistSelection>[0]) =>
+      useWishlistSelection(props),
+    {
+      initialProps: options,
+      wrapper: Wrapper,
+    }
+  );
 
   return { ...hook, queryClient };
 };
@@ -119,7 +125,9 @@ describe("useWishlistSelection", () => {
       cursor: undefined,
       accommodationId: 7,
     });
-    expect(result.current.wishlists).toEqual([wishlist]);
+    expect(result.current.wishlists).toEqual([
+      toWishlistModalItemViewModel(wishlist),
+    ]);
     expect(result.current.hasNext).toBe(true);
   });
 
@@ -153,7 +161,10 @@ describe("useWishlistSelection", () => {
       cursor: "cursor-1",
       accommodationId: 7,
     });
-    expect(result.current.wishlists).toEqual([first, second]);
+    expect(result.current.wishlists).toEqual([
+      toWishlistModalItemViewModel(first),
+      toWishlistModalItemViewModel(second),
+    ]);
   });
 
   it("adds and removes an accommodation, then refreshes the list", async () => {
@@ -176,9 +187,12 @@ describe("useWishlistSelection", () => {
       .mockResolvedValueOnce({
         wishlists: [emptyWishlist],
         page_info: pageInfo(false, null),
-      });
+    });
     jest.mocked(wishlistApi.addAccommodation).mockResolvedValue({ id: 10 });
     jest.mocked(wishlistApi.removeAccommodation).mockResolvedValue(undefined);
+    const emptyModalWishlist = toWishlistModalItemViewModel(emptyWishlist);
+    const containedModalWishlist =
+      toWishlistModalItemViewModel(containedWishlist);
 
     const { queryClient, result } = renderUseWishlistSelection({
       isOpen: true,
@@ -186,29 +200,31 @@ describe("useWishlistSelection", () => {
       onSuccess,
     });
 
-    await waitFor(() => expect(result.current.wishlists).toEqual([emptyWishlist]));
+    await waitFor(() =>
+      expect(result.current.wishlists).toEqual([emptyModalWishlist])
+    );
 
     const invalidateQueriesSpy = jest.spyOn(queryClient, "invalidateQueries");
 
     await act(async () => {
-      await result.current.toggleWishlist(emptyWishlist);
+      await result.current.toggleWishlist(emptyModalWishlist);
     });
 
     expect(wishlistApi.addAccommodation).toHaveBeenCalledWith(1, {
       accommodation_id: 7,
     });
     expect(onSuccess).toHaveBeenCalledTimes(1);
-    expect(result.current.wishlists).toEqual([containedWishlist]);
+    expect(result.current.wishlists).toEqual([containedModalWishlist]);
     expect(invalidateQueriesSpy).toHaveBeenCalledTimes(3);
     expectWishlistMutationCacheInvalidations(invalidateQueriesSpy);
 
     await act(async () => {
-      await result.current.toggleWishlist(containedWishlist);
+      await result.current.toggleWishlist(containedModalWishlist);
     });
 
     expect(wishlistApi.removeAccommodation).toHaveBeenCalledWith(99);
     expect(onSuccess).toHaveBeenCalledTimes(2);
-    expect(result.current.wishlists).toEqual([emptyWishlist]);
+    expect(result.current.wishlists).toEqual([emptyModalWishlist]);
     expect(invalidateQueriesSpy).toHaveBeenCalledTimes(6);
   });
 
@@ -254,7 +270,7 @@ describe("useWishlistSelection", () => {
       accommodation_id: 7,
     });
     expect(onSuccess).toHaveBeenCalled();
-    expect(result.current.wishlists[0].is_contained).toBe(true);
+    expect(result.current.wishlists[0].isContained).toBe(true);
     expect(invalidateQueriesSpy).toHaveBeenCalledTimes(3);
     expectWishlistMutationCacheInvalidations(invalidateQueriesSpy);
   });
@@ -278,12 +294,16 @@ describe("useWishlistSelection", () => {
       onSuccess,
     });
 
-    await waitFor(() => expect(result.current.wishlists).toEqual([emptyWishlist]));
+    const emptyModalWishlist = toWishlistModalItemViewModel(emptyWishlist);
+
+    await waitFor(() =>
+      expect(result.current.wishlists).toEqual([emptyModalWishlist])
+    );
 
     const invalidateQueriesSpy = jest.spyOn(queryClient, "invalidateQueries");
 
     await act(async () => {
-      await result.current.toggleWishlist(emptyWishlist);
+      await result.current.toggleWishlist(emptyModalWishlist);
     });
 
     expect(wishlistApi.addAccommodation).toHaveBeenCalledWith(1, {
@@ -321,13 +341,17 @@ describe("useWishlistSelection", () => {
     });
 
     await waitFor(() =>
-      expect(result.current.wishlists).toEqual([containedWishlist])
+      expect(result.current.wishlists).toEqual([
+        toWishlistModalItemViewModel(containedWishlist),
+      ])
     );
 
     const invalidateQueriesSpy = jest.spyOn(queryClient, "invalidateQueries");
 
     await act(async () => {
-      await result.current.toggleWishlist(containedWishlist);
+      await result.current.toggleWishlist(
+        toWishlistModalItemViewModel(containedWishlist)
+      );
     });
 
     expect(wishlistApi.removeAccommodation).toHaveBeenCalledWith(99);
@@ -393,5 +417,93 @@ describe("useWishlistSelection", () => {
 
     expect(result.current.error).toBe("위시리스트 실패");
     expect(result.current.clearError).toBe(mockClearError);
+  });
+
+  it("clears selection state when the modal closes", async () => {
+    const wishlist = createWishlist(1);
+    jest.mocked(wishlistApi.getWishlists).mockResolvedValue({
+      wishlists: [wishlist],
+      page_info: pageInfo(true, "cursor-1"),
+    });
+
+    const { rerender, result } = renderUseWishlistSelection({
+      isOpen: true,
+      accommodationId: 7,
+    });
+
+    await waitFor(() =>
+      expect(result.current.wishlists).toEqual([
+        toWishlistModalItemViewModel(wishlist),
+      ])
+    );
+    expect(result.current.hasNext).toBe(true);
+
+    rerender({
+      isOpen: false,
+      accommodationId: 7,
+    });
+
+    await waitFor(() => expect(result.current.wishlists).toEqual([]));
+    expect(result.current.hasNext).toBe(false);
+    expect(mockClearError).toHaveBeenCalled();
+  });
+
+  it("resets stale selection before fetching a different accommodation while open", async () => {
+    const firstWishlist = createWishlist(1);
+    const secondWishlist = createWishlist(2);
+    const secondPage: WishlistInfos = {
+      wishlists: [secondWishlist],
+      page_info: pageInfo(false, null),
+    };
+    let resolveSecondPage!: (value: WishlistInfos) => void;
+    const secondPagePromise = new Promise<WishlistInfos>((resolve) => {
+      resolveSecondPage = resolve;
+    });
+
+    jest
+      .mocked(wishlistApi.getWishlists)
+      .mockResolvedValueOnce({
+        wishlists: [firstWishlist],
+        page_info: pageInfo(true, "cursor-1"),
+      })
+      .mockReturnValueOnce(secondPagePromise);
+
+    const { rerender, result } = renderUseWishlistSelection({
+      isOpen: true,
+      accommodationId: 7,
+    });
+
+    await waitFor(() =>
+      expect(result.current.wishlists).toEqual([
+        toWishlistModalItemViewModel(firstWishlist),
+      ])
+    );
+    expect(result.current.hasNext).toBe(true);
+
+    rerender({
+      isOpen: true,
+      accommodationId: 8,
+    });
+
+    await waitFor(() =>
+      expect(wishlistApi.getWishlists).toHaveBeenLastCalledWith({
+        size: 20,
+        cursor: undefined,
+        accommodationId: 8,
+      })
+    );
+    expect(result.current.wishlists).toEqual([]);
+    expect(result.current.hasNext).toBe(false);
+
+    await act(async () => {
+      resolveSecondPage(secondPage);
+      await secondPagePromise;
+    });
+
+    await waitFor(() =>
+      expect(result.current.wishlists).toEqual([
+        toWishlistModalItemViewModel(secondWishlist),
+      ])
+    );
   });
 });

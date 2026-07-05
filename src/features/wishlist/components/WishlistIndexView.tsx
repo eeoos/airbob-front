@@ -1,8 +1,5 @@
 import React from "react";
-import { formatRecentlyViewedDate } from "../lib/recentlyViewedGroups";
-import { getImageUrl } from "../../../utils/image";
-import { RecentlyViewedAccommodationInfo } from "../../../types/recentlyViewed";
-import { WishlistInfo } from "../../../types/wishlist";
+import type { WishlistIndexCardViewModel } from "../lib/wishlistAccommodationViewModel";
 import styles from "./WishlistViews.module.css";
 
 interface WishlistIndexViewProps {
@@ -14,9 +11,9 @@ interface WishlistIndexViewProps {
   ) => void;
   onOpenRecentlyViewed: () => void;
   onOpenWishlist: (wishlistId: number) => void;
-  recentlyViewed: RecentlyViewedAccommodationInfo[];
+  recentlyViewedSummaryLabel: string;
   setWishlistsObserverTarget: (node: Element | null) => void;
-  wishlists: WishlistInfo[];
+  wishlists: WishlistIndexCardViewModel[];
   wishlistsHasNext: boolean;
 }
 
@@ -26,7 +23,7 @@ export function WishlistIndexView({
   onDeleteWishlist,
   onOpenRecentlyViewed,
   onOpenWishlist,
-  recentlyViewed,
+  recentlyViewedSummaryLabel,
   setWishlistsObserverTarget,
   wishlists,
   wishlistsHasNext,
@@ -34,7 +31,9 @@ export function WishlistIndexView({
   return (
     <>
       <h1 className={styles.pageTitle}>위시리스트</h1>
-      {isLoading && recentlyViewed.length === 0 && wishlists.length === 0 ? (
+      {isLoading &&
+      recentlyViewedSummaryLabel === "항목 없음" &&
+      wishlists.length === 0 ? (
         <div className={styles.loading}>로딩 중...</div>
       ) : (
         <div className={styles.wishlistGrid}>
@@ -61,29 +60,21 @@ export function WishlistIndexView({
             <div className={styles.wishlistCardInfo}>
               <div className={styles.wishlistCardName}>최근 조회</div>
               <div className={styles.wishlistCardCount}>
-                {recentlyViewed.length > 0
-                  ? formatRecentlyViewedDate(recentlyViewed[0].viewed_at)
-                : "항목 없음"}
+                {recentlyViewedSummaryLabel}
               </div>
             </div>
           </button>
 
           {wishlists.map((wishlist) => (
-            <div
-              key={wishlist.id}
-              className={styles.wishlistCard}
-            >
+            <div key={wishlist.id} className={styles.wishlistCard}>
               <button
                 className={styles.cardActionButton}
                 type="button"
                 onClick={() => onOpenWishlist(wishlist.id)}
               >
                 <div className={styles.wishlistCardImage}>
-                  {wishlist.thumbnail_image_url ? (
-                    <img
-                      src={getImageUrl(wishlist.thumbnail_image_url)}
-                      alt={wishlist.name}
-                    />
+                  {wishlist.thumbnailUrl ? (
+                    <img src={wishlist.thumbnailUrl} alt={wishlist.name} />
                   ) : (
                     <div className={styles.placeholderImage}>
                       <svg viewBox="0 0 24 24" fill="currentColor">
@@ -95,7 +86,7 @@ export function WishlistIndexView({
                 <div className={styles.wishlistCardInfo}>
                   <div className={styles.wishlistCardName}>{wishlist.name}</div>
                   <div className={styles.wishlistCardCount}>
-                    저장된 항목 {wishlist.wishlist_item_count}개
+                    {wishlist.itemCountLabel}
                   </div>
                 </div>
               </button>

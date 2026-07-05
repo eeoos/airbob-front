@@ -1,10 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
-import type { InfiniteData } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
-import { WishlistInfos } from "../../../types/wishlist";
-import { getWishlistListsParamsSignature } from "../../wishlist/hooks/useWishlistListsQuery";
+import { setAccommodationScopedWishlistMembershipCache } from "../../wishlist/lib/wishlistCacheSync";
 import { fetchAccommodationWishlistMembership } from "../../wishlist/lib/wishlistMembership";
-import { wishlistQueryKeys } from "../../wishlist/queryKeys";
 
 interface UseSearchWishlistModalOptions {
   isAuthenticated: boolean;
@@ -60,26 +57,18 @@ export function useSearchWishlistModal({
   const closeWishlistModal = useCallback(async () => {
     if (selectedAccommodationForWishlist !== null) {
       try {
-        const { isInAnyWishlist, pageParams, pages } =
-          await fetchAccommodationWishlistMembership(
-            selectedAccommodationForWishlist
-          );
-
-        queryClient.setQueryData<InfiniteData<WishlistInfos, string | null>>(
-          wishlistQueryKeys.lists(
-            getWishlistListsParamsSignature({
-              accommodationId: selectedAccommodationForWishlist,
-            })
-          ),
-          {
-            pageParams,
-            pages,
-          }
+        const membership = await fetchAccommodationWishlistMembership(
+          selectedAccommodationForWishlist,
+        );
+        setAccommodationScopedWishlistMembershipCache(
+          queryClient,
+          selectedAccommodationForWishlist,
+          membership,
         );
 
         onWishlistStatusChange(
           selectedAccommodationForWishlist,
-          isInAnyWishlist
+          membership.isInAnyWishlist,
         );
       } catch (error) {
         console.error("위시리스트 상태 확인 실패:", error);

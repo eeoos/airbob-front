@@ -2,7 +2,6 @@ import React from "react";
 import { ErrorToast } from "../../components/ErrorToast";
 import { useIntersectionLoadMore } from "../../hooks/useIntersectionLoadMore";
 import { routeTo } from "../../routes/paths";
-import { WishlistAccommodationInfo } from "../../types/wishlist";
 import {
   RecentlyViewedView,
   WishlistDetailView,
@@ -15,6 +14,13 @@ import {
   useWishlistModals,
   useWishlistRouteViewState,
 } from "./hooks";
+import {
+  getRecentlyViewedSummaryLabel,
+  toRecentlyViewedAccommodationCardViewModel,
+  toWishlistAccommodationCardViewModel,
+  toWishlistIndexCardViewModel,
+  WishlistAccommodationMemoTarget,
+} from "./lib/wishlistAccommodationViewModel";
 
 interface WishlistRouteProps {
   className?: string;
@@ -84,6 +90,26 @@ export const WishlistRoute: React.FC<WishlistRouteProps> = ({
     isLoading: isLoadingMore,
     onLoadMore: loadMoreWishlistAccommodations,
   });
+  const wishlistAccommodationCards = React.useMemo(
+    () => wishlistAccommodations.map(toWishlistAccommodationCardViewModel),
+    [wishlistAccommodations],
+  );
+  const recentlyViewedCards = React.useMemo(
+    () => recentlyViewed.map(toRecentlyViewedAccommodationCardViewModel),
+    [recentlyViewed],
+  );
+  const wishlistIndexCards = React.useMemo(
+    () => wishlists.map(toWishlistIndexCardViewModel),
+    [wishlists],
+  );
+  const recentlyViewedSummaryLabel = React.useMemo(
+    () => getRecentlyViewedSummaryLabel(recentlyViewedCards),
+    [recentlyViewedCards],
+  );
+  const selectedWishlistName = React.useMemo(
+    () => wishlists.find((wishlist) => wishlist.id === selectedWishlist)?.name,
+    [selectedWishlist, wishlists],
+  );
 
   const handleRecentlyViewedClick = async () => {
     openRecentlyViewed();
@@ -96,7 +122,7 @@ export const WishlistRoute: React.FC<WishlistRouteProps> = ({
     }
   };
 
-  const handleOpenMemoModal = (item: WishlistAccommodationInfo) => {
+  const handleOpenMemoModal = (item: WishlistAccommodationMemoTarget) => {
     openMemoModal(item);
   };
 
@@ -104,7 +130,7 @@ export const WishlistRoute: React.FC<WishlistRouteProps> = ({
     if (!selectedMemoItem || !memoText.trim()) return;
 
     const isSaved = await saveWishlistAccommodationMemo(
-      selectedMemoItem.wishlist_accommodation_id,
+      selectedMemoItem.wishlistAccommodationId,
       memoText
     );
 
@@ -139,7 +165,7 @@ export const WishlistRoute: React.FC<WishlistRouteProps> = ({
           onRemoveRecentlyViewed={removeRecentlyViewed}
           onToggleEditMode={() => setIsEditMode(!isEditMode)}
           onWishlistToggle={openWishlistModal}
-          recentlyViewed={recentlyViewed}
+          recentlyViewed={recentlyViewedCards}
         />
       ) : selectedWishlist ? (
         <WishlistDetailView
@@ -150,12 +176,11 @@ export const WishlistRoute: React.FC<WishlistRouteProps> = ({
           onOpenAccommodationDetail={handleAccommodationDetailClick}
           onOpenMemo={handleOpenMemoModal}
           onRemoveFromWishlist={removeFromWishlist}
-          selectedWishlistId={selectedWishlist}
+          selectedWishlistName={selectedWishlistName}
           setWishlistAccommodationsObserverTarget={
             setWishlistAccommodationsObserverTarget
           }
-          wishlistAccommodations={wishlistAccommodations}
-          wishlists={wishlists}
+          wishlistAccommodations={wishlistAccommodationCards}
         />
       ) : (
         <WishlistIndexView
@@ -164,9 +189,9 @@ export const WishlistRoute: React.FC<WishlistRouteProps> = ({
           onDeleteWishlist={handleDeleteWishlist}
           onOpenRecentlyViewed={handleRecentlyViewedClick}
           onOpenWishlist={openWishlist}
-          recentlyViewed={recentlyViewed}
+          recentlyViewedSummaryLabel={recentlyViewedSummaryLabel}
           setWishlistsObserverTarget={setWishlistsObserverTarget}
-          wishlists={wishlists}
+          wishlists={wishlistIndexCards}
           wishlistsHasNext={wishlistsHasNext}
         />
       )}

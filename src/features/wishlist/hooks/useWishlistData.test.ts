@@ -10,7 +10,7 @@ import {
 } from "../../../types/wishlist";
 import { searchQueryKeys } from "../../search/queryKeys";
 import { wishlistQueryKeys } from "../queryKeys";
-import { getWishlistListsParamsSignature } from "./useWishlistListsQuery";
+import { getWishlistListsParamsSignature } from "../lib/wishlistListQueryParams";
 import { useWishlistData } from "./useWishlistData";
 
 const mockClearError = jest.fn();

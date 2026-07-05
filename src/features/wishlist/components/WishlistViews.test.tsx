@@ -6,6 +6,14 @@ import {
   WishlistAccommodationInfo,
   WishlistInfo,
 } from "../../../types/wishlist";
+import {
+  RecentlyViewedAccommodationCardViewModel,
+  toRecentlyViewedAccommodationCardViewModel,
+  toWishlistAccommodationCardViewModel,
+  toWishlistIndexCardViewModel,
+  WishlistAccommodationCardViewModel,
+  WishlistIndexCardViewModel,
+} from "../lib/wishlistAccommodationViewModel";
 import { RecentlyViewedView } from "./RecentlyViewedView";
 import { WishlistDetailView } from "./WishlistDetailView";
 import { WishlistIndexView } from "./WishlistIndexView";
@@ -22,6 +30,10 @@ const makeWishlist = (overrides: Partial<WishlistInfo> = {}): WishlistInfo => ({
   wishlist_item_count: 2,
   ...overrides,
 });
+
+const makeWishlistCard = (
+  overrides: Partial<WishlistInfo> = {},
+): WishlistIndexCardViewModel => toWishlistIndexCardViewModel(makeWishlist(overrides));
 
 const makeRecentlyViewed = (
   overrides: Partial<RecentlyViewedAccommodationInfo> = {}
@@ -43,6 +55,11 @@ const makeRecentlyViewed = (
   viewed_at: "2026-07-04T00:00:00Z",
   ...overrides,
 });
+
+const makeRecentlyViewedCard = (
+  overrides: Partial<RecentlyViewedAccommodationInfo> = {},
+): RecentlyViewedAccommodationCardViewModel =>
+  toRecentlyViewedAccommodationCardViewModel(makeRecentlyViewed(overrides));
 
 const makeWishlistAccommodation = (
   overrides: Partial<WishlistAccommodationInfo> = {}
@@ -69,6 +86,11 @@ const makeWishlistAccommodation = (
   ...overrides,
 });
 
+const makeWishlistAccommodationCard = (
+  overrides: Partial<WishlistAccommodationInfo> = {},
+): WishlistAccommodationCardViewModel =>
+  toWishlistAccommodationCardViewModel(makeWishlistAccommodation(overrides));
+
 const expectNoNestedInteractiveControls = (container: HTMLElement) => {
   expect(container.querySelector("button button")).toBeNull();
   expect(container.querySelector('[role="button"] button')).toBeNull();
@@ -84,7 +106,7 @@ const renderWishlistIndex = (
       onDeleteWishlist={jest.fn()}
       onOpenRecentlyViewed={jest.fn()}
       onOpenWishlist={jest.fn()}
-      recentlyViewed={[]}
+      recentlyViewedSummaryLabel="항목 없음"
       setWishlistsObserverTarget={noopObserver}
       wishlists={[]}
       wishlistsHasNext={false}
@@ -104,10 +126,9 @@ const renderWishlistDetail = (
       onOpenAccommodationDetail={jest.fn()}
       onOpenMemo={jest.fn()}
       onRemoveFromWishlist={jest.fn()}
-      selectedWishlistId={42}
+      selectedWishlistName="Weekend saves"
       setWishlistAccommodationsObserverTarget={noopObserver}
       wishlistAccommodations={[]}
-      wishlists={[makeWishlist({ id: 42 })]}
       {...props}
     />
   );
@@ -155,7 +176,7 @@ describe("Wishlist view components", () => {
     const { container } = renderWishlistIndex({
       onDeleteWishlist,
       onOpenWishlist,
-      wishlists: [makeWishlist()],
+      wishlists: [makeWishlistCard()],
     });
 
     await userEvent.click(screen.getByRole("button", { name: "위시리스트 삭제" }));
@@ -172,7 +193,7 @@ describe("Wishlist view components", () => {
     const { container } = renderWishlistDetail({
       onOpenAccommodationDetail,
       onRemoveFromWishlist,
-      wishlistAccommodations: [makeWishlistAccommodation()],
+      wishlistAccommodations: [makeWishlistAccommodationCard()],
     });
 
     await userEvent.click(screen.getByRole("button", { name: "삭제" }));
@@ -184,7 +205,7 @@ describe("Wishlist view components", () => {
 
   it("shows the image fallback when a wishlist detail thumbnail fails to load", () => {
     renderWishlistDetail({
-      wishlistAccommodations: [makeWishlistAccommodation()],
+      wishlistAccommodations: [makeWishlistAccommodationCard()],
     });
 
     const image = screen.getByRole("img", { name: "Lake cabin" });
@@ -200,7 +221,7 @@ describe("Wishlist view components", () => {
   });
 
   it("opens the memo dialog from a wishlist detail memo button", async () => {
-    const item = makeWishlistAccommodation({ memo: "Bring coffee" });
+    const item = makeWishlistAccommodationCard({ memo: "Bring coffee" });
     const onOpenAccommodationDetail = jest.fn();
     const onOpenMemo = jest.fn();
 
@@ -212,7 +233,10 @@ describe("Wishlist view components", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /Bring coffee/ }));
 
-    expect(onOpenMemo).toHaveBeenCalledWith(item);
+    expect(onOpenMemo).toHaveBeenCalledWith({
+      wishlistAccommodationId: item.wishlistAccommodationId,
+      memo: "Bring coffee",
+    });
     expect(onOpenAccommodationDetail).not.toHaveBeenCalled();
   });
 
@@ -224,7 +248,7 @@ describe("Wishlist view components", () => {
       isEditMode: true,
       onOpenAccommodationDetail,
       onRemoveRecentlyViewed,
-      recentlyViewed: [makeRecentlyViewed()],
+      recentlyViewed: [makeRecentlyViewedCard()],
     });
 
     await userEvent.click(screen.getByRole("button", { name: "삭제" }));
@@ -241,7 +265,7 @@ describe("Wishlist view components", () => {
     const { container } = renderRecentlyViewed({
       onOpenAccommodationDetail,
       onWishlistToggle,
-      recentlyViewed: [makeRecentlyViewed()],
+      recentlyViewed: [makeRecentlyViewedCard()],
     });
 
     await userEvent.click(screen.getByRole("button", { name: "위시리스트" }));
@@ -253,18 +277,18 @@ describe("Wishlist view components", () => {
 
   it("keeps card actions and nested controls separate", () => {
     const { container: indexContainer } = renderWishlistIndex({
-      recentlyViewed: [makeRecentlyViewed()],
-      wishlists: [makeWishlist()],
+      recentlyViewedSummaryLabel: "오늘",
+      wishlists: [makeWishlistCard()],
     });
     expectNoNestedInteractiveControls(indexContainer);
 
     const { container: detailContainer } = renderWishlistDetail({
-      wishlistAccommodations: [makeWishlistAccommodation()],
+      wishlistAccommodations: [makeWishlistAccommodationCard()],
     });
     expectNoNestedInteractiveControls(detailContainer);
 
     const { container: recentlyViewedContainer } = renderRecentlyViewed({
-      recentlyViewed: [makeRecentlyViewed()],
+      recentlyViewed: [makeRecentlyViewedCard()],
     });
     expectNoNestedInteractiveControls(recentlyViewedContainer);
   });

@@ -1,8 +1,10 @@
-import { RecentlyViewedAccommodationInfo } from "../../../types/recentlyViewed";
+export interface RecentlyViewedGroupable {
+  viewedAt: string;
+}
 
-export type RecentlyViewedGroups = Record<
+export type RecentlyViewedGroups<T extends RecentlyViewedGroupable> = Record<
   string,
-  RecentlyViewedAccommodationInfo[]
+  T[]
 >;
 
 export const formatRecentlyViewedDate = (
@@ -32,12 +34,14 @@ export const formatRecentlyViewedDate = (
   });
 };
 
-export const groupRecentlyViewedByDate = (
-  items: RecentlyViewedAccommodationInfo[],
-  now = new Date()
+export const groupRecentlyViewedByDate = <
+  T extends RecentlyViewedGroupable,
+>(
+  items: T[],
+  now = new Date(),
 ) =>
-  items.reduce<RecentlyViewedGroups>((groups, item) => {
-    const date = formatRecentlyViewedDate(item.viewed_at, now);
+  items.reduce<RecentlyViewedGroups<T>>((groups, item) => {
+    const date = formatRecentlyViewedDate(item.viewedAt, now);
 
     if (!groups[date]) {
       groups[date] = [];
