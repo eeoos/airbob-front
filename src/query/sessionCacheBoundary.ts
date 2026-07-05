@@ -36,8 +36,15 @@ export const refreshSessionQueryData = async (
   queryClient: QueryClient,
   meInfo: MeInfo
 ) => {
+  await Promise.all(
+    userScopedQueryRoots.map((queryKey) =>
+      queryClient.cancelQueries({ queryKey })
+    )
+  );
+
   userScopedQueryRoots.forEach((queryKey) => {
     queryClient.removeQueries({ queryKey });
   });
+
   queryClient.setQueryData<MeInfo | null>(authQueryKeys.me(), meInfo);
 };
