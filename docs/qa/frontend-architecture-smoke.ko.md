@@ -27,6 +27,13 @@ Airbnb 디자인 리팩터 전에 프론트엔드 아키텍처 변경이 주요 
 | `AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID` | 선택 | `3` 기본값 |
 | `AIRBOB_SMOKE_RESERVATION_UID` | strict 필수 | guest reservation detail route UID |
 | `AIRBOB_SMOKE_HOST_RESERVATION_UID` | strict 필수 | host reservation detail route UID |
+| `AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS` | ES seed 후 선택 | `true`면 `/search`에서 result card가 보여야 함 |
+
+## ES Search Fixture Gate
+
+- Strict design smoke는 ES 데이터 seed 전에도 실행할 수 있다. 이 경우 `/search`는 empty state까지 확인하지만 search card visual QA는 완료된 것으로 보지 않는다.
+- ES index가 seed된 뒤에는 `AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS=true npm run smoke:frontend:strict`로 실행해 `/search` result card가 실제로 보이는지 확인한다.
+- Smoke report는 `Google Maps API key: present` 또는 `Google Maps API key: missing`처럼 Google Maps key readiness만 기록해야 하며, key 값 자체는 기록하지 않는다.
 
 ```bash
 export AIRBOB_API_BASE_URL="${AIRBOB_API_BASE_URL:-http://localhost:8080/api/v1}"

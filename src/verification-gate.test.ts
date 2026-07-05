@@ -88,6 +88,15 @@ describe("frontend verification gate", () => {
     });
 
     [
+      "googleMapsApiKeyReady",
+      "Google Maps API key:",
+      "AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS",
+      "Search result fixture was required but no result card was visible",
+    ].forEach((term) => {
+      expect(smokeScript).toContain(term);
+    });
+
+    [
       'selector: "#root"',
       'expectedText: "특별한 숙소"',
       'expectedText: "숙소"',
@@ -119,6 +128,7 @@ describe("frontend verification gate", () => {
         "process.stdin.on('end', () => {",
         '  console.log("console.error: React route assertion failed");',
         '  console.log("[js] ERROR: evaluate: Error: route assertion failed");',
+        '  console.log("fake-google-maps-key");',
         "  process.exit(0);",
         "});",
       ].join("\n"),
@@ -135,6 +145,7 @@ describe("frontend verification gate", () => {
           AIRBOB_QA_PASSWORD: "fake-password",
           GSTACK_BROWSE_BIN: fakeBrowsePath,
           AIRBOB_FRONTEND_URL: "http://localhost:3000",
+          REACT_APP_GOOGLE_MAPS_API_KEY: "fake-google-maps-key",
         },
         maxBuffer: 10 * 1024 * 1024,
       });
@@ -151,6 +162,7 @@ describe("frontend verification gate", () => {
 
       expect(result.status).toBe(1);
       expect(report).toContain("- Status: FAIL");
+      expect(report).toContain("- Google Maps API key: present");
       expect(report).toContain(
         "- Output guard failures: console error/warning output, browse JS error output",
       );
@@ -165,8 +177,10 @@ describe("frontend verification gate", () => {
       expect(output).toContain("AIRBOB_SMOKE_RESERVATION_UID");
       expect(output).not.toContain("fake-user@example.invalid");
       expect(output).not.toContain("fake-password");
+      expect(output).not.toContain("fake-google-maps-key");
       expect(report).not.toContain("fake-user@example.invalid");
       expect(report).not.toContain("fake-password");
+      expect(report).not.toContain("fake-google-maps-key");
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
@@ -235,6 +249,9 @@ describe("frontend verification gate", () => {
       "verify:pre-redesign",
       "verify:design-ready",
       "smoke:frontend:strict",
+      "ES Search Fixture Gate",
+      "AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS",
+      "Google Maps API key: present",
       "AIRBOB_API_BASE_URL",
       "AIRBOB_FRONTEND_URL",
       "GSTACK_BROWSE_BIN",
