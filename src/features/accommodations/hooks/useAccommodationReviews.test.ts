@@ -131,6 +131,49 @@ describe("useAccommodationReviews", () => {
     expect(result.current.hasMoreReviews).toBe(true);
   });
 
+  it("does not repopulate cached reviews when the review count drops to zero", async () => {
+    const cachedFirstPage = [createReview(1)];
+    jest
+      .mocked(reviewApi.getReviews)
+      .mockResolvedValue(createReviewResponse(cachedFirstPage, true, "cursor-1"));
+    const wrapper = createWrapper();
+
+    const populatedHook = renderHook(
+      () =>
+        useAccommodationReviews({
+          accommodationId: "7",
+          totalReviewCount: 1,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+        }),
+      { wrapper },
+    );
+
+    await waitFor(() =>
+      expect(populatedHook.result.current.reviews).toEqual(cachedFirstPage)
+    );
+    populatedHook.unmount();
+
+    const { result } = renderHook(
+      () =>
+        useAccommodationReviews({
+          accommodationId: "7",
+          totalReviewCount: 0,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+        }),
+      { wrapper },
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(result.current.reviews).toEqual([]);
+    expect(result.current.allReviews).toEqual([]);
+    expect(result.current.hasMoreReviews).toBe(false);
+  });
+
   it("appends reviews when fetching with a cursor", async () => {
     const firstPage = [createReview(1)];
     const secondPage = [createReview(2)];

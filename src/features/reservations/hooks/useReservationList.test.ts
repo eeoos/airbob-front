@@ -269,6 +269,52 @@ describe("useReservationList", () => {
     );
   });
 
+  it("keeps a custom fetcher on a stable cache scope when its identity changes", async () => {
+    const fetchReservationPage = jest.fn().mockResolvedValue({
+      page_info: {
+        has_next: false,
+        next_cursor: null,
+      },
+      reservations: [createReservation(1)],
+    });
+    const firstInlineFetcher = (params: {
+      size?: number;
+      cursor?: string;
+      filterType?: ReservationFilterType;
+    }) => fetchReservationPage(params);
+    const secondInlineFetcher = (params: {
+      size?: number;
+      cursor?: string;
+      filterType?: ReservationFilterType;
+    }) => fetchReservationPage(params);
+
+    const { result, rerender } = renderHook(
+      ({ fetcher }) =>
+        useReservationList<TestReservation>(
+          "UPCOMING" as ReservationFilterType,
+          fetcher,
+        ),
+      {
+        initialProps: { fetcher: firstInlineFetcher },
+        wrapper: createWrapper(),
+      },
+    );
+
+    await waitFor(() =>
+      expect(result.current.reservations).toEqual([createReservation(1)])
+    );
+    expect(fetchReservationPage).toHaveBeenCalledTimes(1);
+
+    rerender({ fetcher: secondInlineFetcher });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(result.current.reservations).toEqual([createReservation(1)]);
+    expect(fetchReservationPage).toHaveBeenCalledTimes(1);
+  });
+
   it("routes first-page errors through the shared API error hook", async () => {
     const error = new Error("reservations failed");
     const fetchReservationPage = jest.fn().mockRejectedValue(error);

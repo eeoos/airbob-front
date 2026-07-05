@@ -98,23 +98,14 @@ export function useReservationList<TReservation>(
   const requestGenerationRef = useRef(0);
   const loadingMoreRef = useRef(false);
   const handledErrorUpdatedAtRef = useRef(0);
-  const customQueryScopeRef = useRef<{
-    fetchReservationPage: FetchReservationPage<TReservation>;
-    scope: CustomReservationListScope;
-  } | null>(null);
+  const fallbackCustomScopeRef = useRef<CustomReservationListScope | null>(null);
 
-  if (
-    !customQueryScopeRef.current ||
-    customQueryScopeRef.current.fetchReservationPage !== fetchReservationPage
-  ) {
-    customQueryScopeRef.current = {
-      fetchReservationPage,
-      scope: `custom-${customReservationListScopeCounter}`,
-    };
+  if (fallbackCustomScopeRef.current === null) {
+    fallbackCustomScopeRef.current = `custom-${customReservationListScopeCounter}`;
     customReservationListScopeCounter += 1;
   }
 
-  const fallbackCustomScope = customQueryScopeRef.current.scope;
+  const fallbackCustomScope = fallbackCustomScopeRef.current;
   const queryScope = useMemo(
     () =>
       getReservationListQueryScope(
@@ -155,7 +146,7 @@ export function useReservationList<TReservation>(
     setReservations([]);
     setCursor(null);
     setHasNext(false);
-  }, [fetchReservationPage, filterType, queryScope]);
+  }, [filterType, queryScope]);
 
   useEffect(() => {
     if (!firstPageQuery.data) {

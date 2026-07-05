@@ -172,12 +172,17 @@ export const useAccommodationReviews = ({
   }, [resetReviews, shouldFetchReviews]);
 
   useEffect(() => {
-    if (!firstPageQuery.data) {
+    if (!shouldFetchReviews || !firstPageQuery.data) {
       return;
     }
 
     applyFirstPage(firstPageQuery.data);
-  }, [applyFirstPage, firstPageQuery.data, firstPageQuery.dataUpdatedAt]);
+  }, [
+    applyFirstPage,
+    firstPageQuery.data,
+    firstPageQuery.dataUpdatedAt,
+    shouldFetchReviews,
+  ]);
 
   useEffect(() => {
     if (
