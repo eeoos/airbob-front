@@ -63,6 +63,17 @@ const createReviewResponse = (
   },
 });
 
+const createDeferred = <T>() => {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+
+  return { promise, resolve, reject };
+};
+
 describe("useAccommodationReviews", () => {
   beforeEach(() => {
     mockHandleError.mockReset();
@@ -147,6 +158,72 @@ describe("useAccommodationReviews", () => {
 
     expect(result.current.reviews).toEqual(firstPage);
     expect(result.current.allReviews).toEqual([...firstPage, ...secondPage]);
+    expect(result.current.hasMoreReviews).toBe(false);
+  });
+
+  it("ignores a cursor page that resolves after switching accommodations", async () => {
+    const firstAccommodationFirstPage = [createReview(1)];
+    const firstAccommodationSecondPage = [createReview(2)];
+    const secondAccommodationFirstPage = [createReview(20)];
+    const staleCursorRequest = createDeferred<ReviewInfos>();
+    jest
+      .mocked(reviewApi.getReviews)
+      .mockResolvedValueOnce(
+        createReviewResponse(firstAccommodationFirstPage, true, "cursor-a"),
+      )
+      .mockReturnValueOnce(staleCursorRequest.promise)
+      .mockResolvedValueOnce(
+        createReviewResponse(secondAccommodationFirstPage, false, null),
+      );
+
+    const { result, rerender } = renderHook(
+      ({ accommodationId }) =>
+        useAccommodationReviews({
+          accommodationId,
+          totalReviewCount: 12,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+        }),
+      {
+        initialProps: { accommodationId: "7" },
+        wrapper: createWrapper(),
+      },
+    );
+
+    await waitFor(() => expect(result.current.reviewCursor).toBe("cursor-a"));
+
+    act(() => {
+      void result.current.fetchReviews("cursor-a");
+    });
+
+    await waitFor(() =>
+      expect(reviewApi.getReviews).toHaveBeenCalledWith(7, {
+        sortType: ReviewSortType.LATEST,
+        size: 6,
+        cursor: "cursor-a",
+      })
+    );
+
+    rerender({ accommodationId: "8" });
+
+    await waitFor(() =>
+      expect(reviewApi.getReviews).toHaveBeenCalledWith(8, {
+        sortType: ReviewSortType.LATEST,
+        size: 6,
+        cursor: undefined,
+      })
+    );
+    await waitFor(() =>
+      expect(result.current.allReviews).toEqual(secondAccommodationFirstPage)
+    );
+
+    await act(async () => {
+      staleCursorRequest.resolve(
+        createReviewResponse(firstAccommodationSecondPage, false, null),
+      );
+    });
+
+    expect(result.current.allReviews).toEqual(secondAccommodationFirstPage);
     expect(result.current.hasMoreReviews).toBe(false);
   });
 

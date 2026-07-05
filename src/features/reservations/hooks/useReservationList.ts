@@ -19,10 +19,19 @@ type FetchReservationPage<TReservation> = (params: {
   filterType?: ReservationFilterType;
 }) => Promise<ReservationPage<TReservation>>;
 
-type ReservationListQueryScope = "guest" | "host" | string;
+type ReservationListQueryScope = "guest" | "host" | `custom:${string}`;
+type CustomReservationListScope = string;
+
+let customReservationListScopeCounter = 0;
+
+const toCustomReservationListQueryScope = (
+  scope: CustomReservationListScope,
+): ReservationListQueryScope => `custom:${scope}`;
 
 const getReservationListQueryScope = <TReservation,>(
   fetchReservationPage: FetchReservationPage<TReservation>,
+  explicitScope: CustomReservationListScope | undefined,
+  fallbackCustomScope: CustomReservationListScope,
 ): ReservationListQueryScope => {
   if (fetchReservationPage === reservationApi.getMyReservations) {
     return "guest";
@@ -32,7 +41,9 @@ const getReservationListQueryScope = <TReservation,>(
     return "host";
   }
 
-  return fetchReservationPage.name || "custom";
+  return toCustomReservationListQueryScope(
+    explicitScope ?? fallbackCustomScope,
+  );
 };
 
 const getReservationListParamsSignature = (
@@ -68,14 +79,15 @@ const getReservationListQueryKey = (
   return [
     ...reservationQueryKeys.all,
     "custom",
-    scope,
+    scope.slice("custom:".length),
     paramsSignature,
   ] as const;
 };
 
 export function useReservationList<TReservation>(
   filterType: ReservationFilterType,
-  fetchReservationPage: FetchReservationPage<TReservation>
+  fetchReservationPage: FetchReservationPage<TReservation>,
+  scope?: CustomReservationListScope,
 ) {
   const queryClient = useQueryClient();
   const { error, handleError, clearError } = useApiError();
@@ -86,9 +98,31 @@ export function useReservationList<TReservation>(
   const requestGenerationRef = useRef(0);
   const loadingMoreRef = useRef(false);
   const handledErrorUpdatedAtRef = useRef(0);
+  const customQueryScopeRef = useRef<{
+    fetchReservationPage: FetchReservationPage<TReservation>;
+    scope: CustomReservationListScope;
+  } | null>(null);
+
+  if (
+    !customQueryScopeRef.current ||
+    customQueryScopeRef.current.fetchReservationPage !== fetchReservationPage
+  ) {
+    customQueryScopeRef.current = {
+      fetchReservationPage,
+      scope: `custom-${customReservationListScopeCounter}`,
+    };
+    customReservationListScopeCounter += 1;
+  }
+
+  const fallbackCustomScope = customQueryScopeRef.current.scope;
   const queryScope = useMemo(
-    () => getReservationListQueryScope(fetchReservationPage),
-    [fetchReservationPage],
+    () =>
+      getReservationListQueryScope(
+        fetchReservationPage,
+        scope,
+        fallbackCustomScope,
+      ),
+    [fallbackCustomScope, fetchReservationPage, scope],
   );
   const firstPageQueryKey = useMemo(
     () => getReservationListQueryKey(queryScope, filterType),
@@ -121,7 +155,7 @@ export function useReservationList<TReservation>(
     setReservations([]);
     setCursor(null);
     setHasNext(false);
-  }, [fetchReservationPage, filterType]);
+  }, [fetchReservationPage, filterType, queryScope]);
 
   useEffect(() => {
     if (!firstPageQuery.data) {

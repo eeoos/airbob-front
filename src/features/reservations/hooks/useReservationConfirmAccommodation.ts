@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import { accommodationApi } from "../../../api";
 import { routeTo } from "../../../routes/paths";
 import { AccommodationDetail } from "../../../types/accommodation";
+import { reservationQueryKeys } from "../queryKeys";
 
 interface UseReservationConfirmAccommodationOptions {
   accommodationId?: string;
@@ -20,17 +21,6 @@ const parseRouteAccommodationId = (accommodationId?: string): number | null => {
   const parsedId = Number(accommodationId);
   return Number.isSafeInteger(parsedId) ? parsedId : null;
 };
-
-const reservationConfirmAccommodationQueryKey = (
-  accommodationId: number | null,
-  reservationUid: string | null,
-) =>
-  [
-    "reservation",
-    "confirmAccommodation",
-    accommodationId ?? "missing",
-    reservationUid ?? "missing",
-  ] as const;
 
 export function useReservationConfirmAccommodation({
   accommodationId,
@@ -59,9 +49,9 @@ export function useReservationConfirmAccommodation({
     AccommodationDetail,
     unknown,
     AccommodationDetail,
-    ReturnType<typeof reservationConfirmAccommodationQueryKey>
+    ReturnType<typeof reservationQueryKeys.confirmAccommodation>
   >({
-    queryKey: reservationConfirmAccommodationQueryKey(
+    queryKey: reservationQueryKeys.confirmAccommodation(
       parsedAccommodationId,
       reservationUid,
     ),

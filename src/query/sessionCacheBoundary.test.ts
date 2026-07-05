@@ -88,4 +88,30 @@ describe("sessionCacheBoundary", () => {
     ).toBeUndefined();
     expect(queryClient.getQueryData(authQueryKeys.me())).toBeNull();
   });
+
+  it("removes reservation confirm accommodation data on session clear and refresh", async () => {
+    const queryClient = new QueryClient();
+    const confirmAccommodationKey = reservationQueryKeys.confirmAccommodation(
+      7,
+      "res-123",
+    );
+
+    queryClient.setQueryData(confirmAccommodationKey, {
+      id: 7,
+      is_in_wishlist: true,
+    });
+
+    await clearSessionQueryData(queryClient);
+
+    expect(queryClient.getQueryData(confirmAccommodationKey)).toBeUndefined();
+
+    queryClient.setQueryData(confirmAccommodationKey, {
+      id: 7,
+      is_in_wishlist: true,
+    });
+
+    await refreshSessionQueryData(queryClient, meInfo);
+
+    expect(queryClient.getQueryData(confirmAccommodationKey)).toBeUndefined();
+  });
 });

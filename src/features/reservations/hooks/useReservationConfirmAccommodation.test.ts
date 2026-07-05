@@ -3,6 +3,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import React from "react";
 import { accommodationApi } from "../../../api";
 import { AccommodationDetail } from "../../../types/accommodation";
+import { reservationQueryKeys } from "../queryKeys";
 import { useReservationConfirmAccommodation } from "./useReservationConfirmAccommodation";
 
 jest.mock("../../../api", () => ({
@@ -11,8 +12,8 @@ jest.mock("../../../api", () => ({
   },
 }));
 
-const createWrapper = () => {
-  const queryClient = new QueryClient({
+const createQueryClient = () =>
+  new QueryClient({
     defaultOptions: {
       queries: {
         retry: false,
@@ -20,6 +21,7 @@ const createWrapper = () => {
     },
   });
 
+const createWrapper = (queryClient = createQueryClient()) => {
   return function QueryClientTestWrapper({
     children,
   }: {
@@ -101,6 +103,32 @@ describe("useReservationConfirmAccommodation", () => {
     expect(accommodationApi.getDetail).toHaveBeenCalledWith(7);
     expect(result.current.accommodation).toEqual(accommodation);
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it("stores the confirmation accommodation under the reservation query root", async () => {
+    const queryClient = createQueryClient();
+    const accommodation = createAccommodation();
+    jest.mocked(accommodationApi.getDetail).mockResolvedValue(accommodation);
+
+    const { result } = renderHook(
+      () =>
+        useReservationConfirmAccommodation({
+          accommodationId: "7",
+          reservationUid: "res-123",
+          navigate: jest.fn(),
+          handleError: jest.fn(),
+          clearError: jest.fn(),
+        }),
+      { wrapper: createWrapper(queryClient) },
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(
+      queryClient.getQueryData(
+        reservationQueryKeys.confirmAccommodation(7, "res-123"),
+      ),
+    ).toEqual(accommodation);
   });
 
   it("reports missing reservation information and returns to the detail page", async () => {

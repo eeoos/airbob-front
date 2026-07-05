@@ -42,6 +42,7 @@ export const useAccommodationReviews = ({
   const reviewObserverTarget = useRef<HTMLDivElement>(null);
   const [expandedReviews] = useState<Record<number, boolean>>({});
   const handledErrorUpdatedAtRef = useRef(0);
+  const requestGenerationRef = useRef(0);
   const shouldFetchReviews = Boolean(accommodationId) && totalReviewCount > 0;
 
   const firstPageQuery = useQuery<
@@ -99,6 +100,8 @@ export const useAccommodationReviews = ({
       return;
     }
 
+    const requestGeneration = requestGenerationRef.current;
+
     if (totalReviewCount === 0) {
       resetReviews();
       return;
@@ -106,7 +109,7 @@ export const useAccommodationReviews = ({
 
     if (!cursor) {
       const result = await firstPageQuery.refetch();
-      if (result.data) {
+      if (requestGenerationRef.current === requestGeneration && result.data) {
         applyFirstPage(result.data);
       }
       return;
@@ -126,11 +129,21 @@ export const useAccommodationReviews = ({
           }),
       });
 
+      if (requestGenerationRef.current !== requestGeneration) {
+        return;
+      }
+
       appendReviewPage(response);
     } catch (error) {
+      if (requestGenerationRef.current !== requestGeneration) {
+        return;
+      }
+
       handleError(error);
     } finally {
-      setIsLoadingMoreReviews(false);
+      if (requestGenerationRef.current === requestGeneration) {
+        setIsLoadingMoreReviews(false);
+      }
     }
   }, [
     accommodationId,
@@ -145,7 +158,15 @@ export const useAccommodationReviews = ({
   ]);
 
   useEffect(() => {
+    requestGenerationRef.current += 1;
+    setIsLoadingMoreReviews(false);
+    resetReviews();
+  }, [accommodationId, resetReviews]);
+
+  useEffect(() => {
     if (!shouldFetchReviews) {
+      requestGenerationRef.current += 1;
+      setIsLoadingMoreReviews(false);
       resetReviews();
     }
   }, [resetReviews, shouldFetchReviews]);

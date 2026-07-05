@@ -52,6 +52,17 @@ const createReservation = (reservationId: number): TestReservation => ({
   reservation_uid: `reservation-${reservationId}`,
 });
 
+const createDeferred = <T>() => {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+
+  return { promise, resolve, reject };
+};
+
 describe("useReservationList", () => {
   beforeEach(() => {
     mockClearError.mockReset();
@@ -197,6 +208,64 @@ describe("useReservationList", () => {
 
     expect(result.current.reservations[0]?.reservation_uid).toBe(
       "reservation-2",
+    );
+  });
+
+  it("does not share cached results between custom anonymous fetchers without a scope", async () => {
+    const secondRequest = createDeferred<{
+      page_info: { has_next: boolean; next_cursor: string | null };
+      reservations: TestReservation[];
+    }>();
+    const firstFetcher = jest.fn().mockResolvedValue({
+      page_info: {
+        has_next: false,
+        next_cursor: null,
+      },
+      reservations: [createReservation(1)],
+    });
+    const secondFetcher = jest.fn().mockReturnValue(secondRequest.promise);
+    const wrapper = createWrapper();
+
+    const { result: firstResult } = renderHook(
+      () =>
+        useReservationList<TestReservation>(
+          "UPCOMING" as ReservationFilterType,
+          firstFetcher,
+        ),
+      { wrapper },
+    );
+
+    await waitFor(() =>
+      expect(firstResult.current.reservations).toEqual([createReservation(1)])
+    );
+
+    const { result: secondResult } = renderHook(
+      () =>
+        useReservationList<TestReservation>(
+          "UPCOMING" as ReservationFilterType,
+          secondFetcher,
+        ),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(secondFetcher).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(secondResult.current.reservations).toEqual([]);
+
+    await act(async () => {
+      secondRequest.resolve({
+        page_info: {
+          has_next: false,
+          next_cursor: null,
+        },
+        reservations: [createReservation(2)],
+      });
+    });
+
+    await waitFor(() =>
+      expect(secondResult.current.reservations).toEqual([createReservation(2)])
     );
   });
 

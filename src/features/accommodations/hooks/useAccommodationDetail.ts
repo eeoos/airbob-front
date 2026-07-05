@@ -1,4 +1,4 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { accommodationApi, recentlyViewedApi } from "../../../api";
 import { AccommodationDetail } from "../../../types/accommodation";
@@ -54,7 +54,6 @@ export const useAccommodationDetail = ({
       return accommodationApi.getDetail(parsedAccommodationId);
     },
     enabled: parsedAccommodationId !== null,
-    placeholderData: keepPreviousData,
     retry: false,
     throwOnError: false,
   });
@@ -95,14 +94,21 @@ export const useAccommodationDetail = ({
     handleError,
   ]);
 
+  const routeMatchedDetail =
+    detailQuery.data?.id === parsedAccommodationId ? detailQuery.data : null;
   const accommodation = detailQuery.isError
     ? null
     : latestAuthRef.current
-      ? detailQuery.data ?? null
-      : clearAccommodationWishlistMembership(detailQuery.data ?? null);
+      ? routeMatchedDetail
+      : clearAccommodationWishlistMembership(routeMatchedDetail);
 
   useEffect(() => {
-    if (!parsedAccommodationId || !isAuthenticated || !accommodation) {
+    if (
+      !parsedAccommodationId ||
+      !isAuthenticated ||
+      !accommodation ||
+      accommodation.id !== parsedAccommodationId
+    ) {
       return;
     }
 
@@ -121,9 +127,12 @@ export const useAccommodationDetail = ({
       return null;
     }
 
+    const routeMatchedResult =
+      result.data?.id === parsedAccommodationId ? result.data : null;
+
     return latestAuthRef.current
-      ? result.data ?? null
-      : clearAccommodationWishlistMembership(result.data ?? null);
+      ? routeMatchedResult
+      : clearAccommodationWishlistMembership(routeMatchedResult);
   }, [parsedAccommodationId, refetch]);
 
   return {

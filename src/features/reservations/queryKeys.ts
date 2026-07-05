@@ -8,4 +8,14 @@ export const reservationQueryKeys = {
     [...reservationQueryKeys.all, "host", paramsSignature] as const,
   hostReservationDetail: (reservationUid: string) =>
     [...reservationQueryKeys.all, "hostDetail", reservationUid] as const,
+  confirmAccommodation: (
+    accommodationId: number | null,
+    reservationUid: string | null,
+  ) =>
+    [
+      ...reservationQueryKeys.all,
+      "confirmAccommodation",
+      accommodationId ?? "missing",
+      reservationUid ?? "missing",
+    ] as const,
 };

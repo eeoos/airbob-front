@@ -267,6 +267,46 @@ describe("useAccommodationDetail", () => {
     expect(result.current.accommodation?.is_in_wishlist).toBe(false);
   });
 
+  it("does not expose the previous accommodation while a new route id is pending", async () => {
+    const nextDetailRequest = createDeferred<AccommodationDetail>();
+    jest
+      .mocked(accommodationApi.getDetail)
+      .mockResolvedValueOnce(createAccommodation({ id: 7 }))
+      .mockReturnValueOnce(nextDetailRequest.promise);
+
+    const { result, rerender } = renderHook(
+      ({ accommodationId }) =>
+        useAccommodationDetail({
+          accommodationId,
+          isAuthenticated: true,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+        }),
+      {
+        initialProps: { accommodationId: "7" },
+        wrapper: createWrapper(),
+      },
+    );
+
+    await waitFor(() => expect(result.current.accommodation?.id).toBe(7));
+    jest.mocked(recentlyViewedApi.add).mockClear();
+
+    rerender({ accommodationId: "8" });
+
+    await waitFor(() =>
+      expect(accommodationApi.getDetail).toHaveBeenCalledWith(8)
+    );
+    expect(result.current.accommodation).toBeNull();
+    expect(recentlyViewedApi.add).not.toHaveBeenCalled();
+
+    await act(async () => {
+      nextDetailRequest.resolve(createAccommodation({ id: 8 }));
+    });
+
+    await waitFor(() => expect(result.current.accommodation?.id).toBe(8));
+    expect(recentlyViewedApi.add).toHaveBeenCalledWith(8);
+  });
+
   it("keeps refreshed wishlist membership when an unauthenticated detail request resolves after auth reload", async () => {
     const unauthenticatedRequest = createDeferred<AccommodationDetail>();
     const authenticatedRequest = createDeferred<AccommodationDetail>();
