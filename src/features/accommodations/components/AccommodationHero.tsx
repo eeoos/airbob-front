@@ -3,6 +3,17 @@ import { AccommodationDetail } from "../../../types/accommodation";
 import { getImageUrl } from "../../../utils/image";
 import styles from "./AccommodationHero.module.css";
 
+const adaptDivTouchHandler = (
+  handler: React.TouchEventHandler<HTMLDivElement> | undefined
+): React.TouchEventHandler<HTMLButtonElement> | undefined => {
+  if (!handler) {
+    return undefined;
+  }
+
+  return (event) =>
+    handler(event as unknown as React.TouchEvent<HTMLDivElement>);
+};
+
 interface AccommodationHeroProps {
   accommodation: AccommodationDetail;
   mobileSlideIndex: number;
@@ -26,6 +37,10 @@ const AccommodationHero: React.FC<AccommodationHeroProps> = ({
   onTouchMove,
   onTouchEnd,
 }) => {
+  const handleMobileTouchStart = adaptDivTouchHandler(onTouchStart);
+  const handleMobileTouchMove = adaptDivTouchHandler(onTouchMove);
+  const handleMobileTouchEnd = adaptDivTouchHandler(onTouchEnd);
+
   return (
     <>
       <div className={styles.header}>
@@ -77,13 +92,18 @@ const AccommodationHero: React.FC<AccommodationHeroProps> = ({
       {accommodation.images.length > 0 && (
         <div className={styles.imageSection}>
           <div className={styles.imageGrid}>
-            <div className={styles.mainImage} onClick={() => onOpenGallery(0)}>
+            <button
+              type="button"
+              className={styles.mainImage}
+              aria-label={`${accommodation.name} 대표 사진 크게 보기`}
+              onClick={() => onOpenGallery(0)}
+            >
               <img
                 src={getImageUrl(accommodation.images[0].image_url)}
                 alt={accommodation.name}
                 className={styles.image}
               />
-            </div>
+            </button>
             <div className={styles.thumbnailGrid}>
               {Array.from({ length: 4 }).map((_, index) => {
                 const imageIndex = index + 1;
@@ -136,34 +156,42 @@ const AccommodationHero: React.FC<AccommodationHeroProps> = ({
             </div>
           </div>
 
-          <div
-            className={styles.mobileImageSlider}
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
-            onClick={() => onOpenGallery(mobileSlideIndex)}
-          >
-            <div
-              className={styles.sliderContainer}
-              style={{ transform: `translateX(-${mobileSlideIndex * 100}%)` }}
+          <div className={styles.mobileImageSliderFrame}>
+            <button
+              type="button"
+              className={styles.mobileImageSlider}
+              aria-label={`${accommodation.name} 사진 ${
+                mobileSlideIndex + 1
+              } 크게 보기`}
+              onTouchStart={handleMobileTouchStart}
+              onTouchMove={handleMobileTouchMove}
+              onTouchEnd={handleMobileTouchEnd}
+              onClick={() => onOpenGallery(mobileSlideIndex)}
             >
-              {accommodation.images.map((image, index) => (
-                <img
-                  key={image.id}
-                  src={getImageUrl(image.image_url)}
-                  alt={`${accommodation.name} ${index + 1}`}
-                  className={styles.slideImage}
-                />
-              ))}
-            </div>
-            <div className={styles.sliderIndicator}>
-              {mobileSlideIndex + 1} / {accommodation.images.length}
-            </div>
+              <div
+                className={styles.sliderContainer}
+                style={{ transform: `translateX(-${mobileSlideIndex * 100}%)` }}
+              >
+                {accommodation.images.map((image, index) => (
+                  <img
+                    key={image.id}
+                    src={getImageUrl(image.image_url)}
+                    alt={`${accommodation.name} ${index + 1}`}
+                    className={styles.slideImage}
+                  />
+                ))}
+              </div>
+              <div className={styles.sliderIndicator}>
+                {mobileSlideIndex + 1} / {accommodation.images.length}
+              </div>
+            </button>
             {accommodation.images.length <= 5 && (
               <div className={styles.sliderDots}>
                 {accommodation.images.map((_, index) => (
                   <button
+                    type="button"
                     key={index}
+                    aria-label={`${accommodation.name} 사진 ${index + 1} 보기`}
                     className={`${styles.sliderDot} ${index === mobileSlideIndex ? styles.active : ""}`}
                     onClick={(e) => {
                       e.stopPropagation();

@@ -139,6 +139,33 @@ describe("AccommodationBookingCard", () => {
     expect(props.onReserve).toHaveBeenCalledTimes(1);
   });
 
+  it("exposes date and guest pickers through semantic disclosure buttons", () => {
+    renderBookingCard({
+      isDatePickerOpen: true,
+      isGuestPickerOpen: true,
+    });
+
+    const dateButton = screen.getByRole("button", { name: /체크인/ });
+    const guestButton = screen.getByRole("button", { name: /인원/ });
+
+    expect(dateButton).toHaveAttribute("type", "button");
+    expect(dateButton).toHaveAttribute("aria-expanded", "true");
+    expect(dateButton).toHaveAttribute("aria-controls", "booking-date-picker");
+    expect(document.getElementById("booking-date-picker")).toContainElement(
+      screen.getByTestId("date-picker")
+    );
+
+    expect(guestButton).toHaveAttribute("type", "button");
+    expect(guestButton).toHaveAttribute("aria-expanded", "true");
+    expect(guestButton).toHaveAttribute(
+      "aria-controls",
+      "booking-guest-picker"
+    );
+    expect(document.getElementById("booking-guest-picker")).toContainElement(
+      screen.getByText("성인")
+    );
+  });
+
   it("opens date picker through controlled state and closes via DatePicker callback", () => {
     const setIsDatePickerOpen = jest.fn();
     renderBookingCard({ isDatePickerOpen: true, setIsDatePickerOpen });
@@ -157,7 +184,11 @@ describe("AccommodationBookingCard", () => {
       setAdultCount,
     });
 
-    fireEvent.click(screen.getAllByRole("button", { name: "+" })[0]);
+    expect(
+      screen.getByRole("button", { name: "성인 줄이기" })
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "성인 늘리기" }));
 
     expect(setAdultCount).toHaveBeenCalledWith(3);
   });
