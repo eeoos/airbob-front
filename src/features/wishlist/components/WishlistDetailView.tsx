@@ -26,6 +26,7 @@ const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
 
   const placeholder = target.nextElementSibling as HTMLElement | null;
   if (placeholder?.classList.contains(styles.placeholderImage)) {
+    placeholder.hidden = false;
     placeholder.style.display = "flex";
   }
 };
@@ -80,8 +81,8 @@ export function WishlistDetailView({
                           onError={handleImageError}
                         />
                         <div
-                          className={styles.placeholderImage}
-                          style={{ display: "none" }}
+                          className={`${styles.placeholderImage} ${styles.placeholderImageHidden}`}
+                          hidden
                         >
                           이미지 없음
                         </div>

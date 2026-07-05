@@ -1,4 +1,5 @@
 import React from "react";
+import styles from "./ClickableCard.module.css";
 
 const INTERACTIVE_TARGET_SELECTOR = [
   "button",
@@ -11,17 +12,6 @@ const INTERACTIVE_TARGET_SELECTOR = [
   "[role='link']",
   "[tabindex]:not([tabindex='-1'])",
 ].join(",");
-
-const buttonResetStyle: React.CSSProperties = {
-  appearance: "none",
-  background: "transparent",
-  border: 0,
-  color: "inherit",
-  font: "inherit",
-  margin: 0,
-  padding: 0,
-  textAlign: "inherit",
-};
 
 export interface ClickableCardProps
   extends Omit<
@@ -56,6 +46,7 @@ export const ClickableCard = React.forwardRef<
     {
       ariaLabel,
       children,
+      className,
       onClick,
       style,
       type = "button",
@@ -78,7 +69,8 @@ export const ClickableCard = React.forwardRef<
         ref={ref}
         type={type}
         aria-label={ariaLabel}
-        style={{ ...buttonResetStyle, ...style }}
+        className={className ? `${styles.button} ${className}` : styles.button}
+        style={style}
         onClick={handleClick}
       >
         {children}

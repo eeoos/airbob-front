@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { accommodationApi, recentlyViewedApi } from "../../../api";
 import { AccommodationDetail } from "../../../types/accommodation";
+import { clientLogger } from "../../../utils/clientLogger";
 import { clearAccommodationWishlistMembership } from "../lib/accommodationDetailMembership";
 import { accommodationQueryKeys } from "../queryKeys";
 
@@ -113,7 +114,10 @@ export const useAccommodationDetail = ({
     }
 
     recentlyViewedApi.add(parsedAccommodationId).catch((error) => {
-      console.error("최근 조회 추가 실패:", error);
+      clientLogger.error({
+        message: "최근 조회 추가 실패:",
+        error,
+      });
     });
   }, [accommodation, isAuthenticated, parsedAccommodationId]);
 

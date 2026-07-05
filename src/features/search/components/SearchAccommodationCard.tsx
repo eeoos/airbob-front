@@ -66,11 +66,17 @@ export const SearchAccommodationCard: React.FC<SearchAccommodationCardProps> = (
                   target.style.display = "none";
                   const placeholder = target.nextElementSibling as HTMLElement;
                   if (placeholder && placeholder.classList.contains(styles.placeholderImage)) {
+                    placeholder.hidden = false;
                     placeholder.style.display = "flex";
                   }
                 }}
               />
-              <div className={styles.placeholderImage} style={{ display: "none" }}>이미지 없음</div>
+              <div
+                className={`${styles.placeholderImage} ${styles.placeholderImageHidden}`}
+                hidden
+              >
+                이미지 없음
+              </div>
             </>
           ) : (
             <div className={styles.placeholderImage}>이미지 없음</div>

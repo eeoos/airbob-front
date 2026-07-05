@@ -10,6 +10,7 @@ import {
 } from "../query/sessionCacheBoundary";
 import { clearAllReservationCheckoutState } from "../features/reservations/lib/reservationCheckoutState";
 import { onAuthError } from "../utils/authEvents";
+import { clientLogger } from "../utils/clientLogger";
 import { LoginRequest } from "../types/auth";
 
 interface AuthContextType {
@@ -55,7 +56,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const handleAuthError = () => {
-      console.warn("Session expired. Logging out...");
+      clientLogger.warn({ message: "Session expired. Logging out..." });
       void clearSession();
     };
 

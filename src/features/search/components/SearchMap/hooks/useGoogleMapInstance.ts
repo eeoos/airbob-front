@@ -1,4 +1,5 @@
 import { MutableRefObject, RefObject, useEffect, useRef } from "react";
+import { clientLogger } from "../../../../../utils/clientLogger";
 import { renderMapExpandControl } from "../lib/mapExpandControl";
 import { SearchMapAccommodation, SearchMapViewport } from "../types";
 
@@ -140,7 +141,10 @@ export const useGoogleMapInstance = ({
         { event: "mousedown", listener: mouseDownListener }
       );
     } catch (error) {
-      console.error("지도 초기화 실패:", error);
+      clientLogger.error({
+        message: "지도 초기화 실패:",
+        error,
+      });
     }
 
     return () => {

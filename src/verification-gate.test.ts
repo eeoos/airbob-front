@@ -7,6 +7,59 @@ const projectRoot = process.cwd();
 const packageJsonPath = path.join(projectRoot, "package.json");
 const qaDocPath = path.join(projectRoot, "docs/qa/frontend-architecture-smoke.ko.md");
 const frontendSmokePath = path.join(projectRoot, "scripts/smoke/frontend-smoke.mjs");
+const sourceRoot = path.join(projectRoot, "src");
+
+const productionSourceExtensions = new Set([".js", ".jsx", ".ts", ".tsx"]);
+const rawConsoleAllowlist = new Set(["src/utils/clientLogger.ts"]);
+const dynamicInlineStyleAllowlist = [
+  {
+    filePath: "src/features/accommodations/edit/components/PhotosStep.tsx",
+    pattern: /style=\{\{\s*width:\s*`\$\{uploadProgress\}%`\s*\}\}/,
+  },
+  {
+    filePath: "src/features/accommodations/components/AccommodationHero.tsx",
+    pattern:
+      /style=\{\{\s*transform:\s*`translateX\(-\$\{mobileSlideIndex \* 100\}%\)`\s*\}\}/,
+  },
+];
+
+const toProjectPath = (filePath: string) =>
+  path.relative(projectRoot, filePath).split(path.sep).join("/");
+
+const getFiles = (directory: string): string[] =>
+  fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const entryPath = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      return getFiles(entryPath);
+    }
+
+    return entry.isFile() ? [entryPath] : [];
+  });
+
+const isProductionSourceFile = (filePath: string) => {
+  const relativePath = toProjectPath(filePath);
+  const extension = path.extname(filePath);
+
+  if (!relativePath.startsWith("src/")) {
+    return false;
+  }
+
+  if (!productionSourceExtensions.has(extension)) {
+    return false;
+  }
+
+  return !(
+    relativePath.endsWith(".d.ts") ||
+    relativePath === "src/setupTests.ts" ||
+    relativePath.includes("/__mocks__/") ||
+    relativePath.includes("/__tests__/") ||
+    /\.(?:test|spec)\.[jt]sx?$/.test(relativePath)
+  );
+};
+
+const getProductionSourceFiles = () =>
+  getFiles(sourceRoot).filter(isProductionSourceFile).sort();
 
 const getSection = (content: string, heading: string, level = 2) => {
   const escapedHeading = heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -23,6 +76,54 @@ const getSection = (content: string, heading: string, level = 2) => {
 };
 
 describe("frontend verification gate", () => {
+  test("production source routes warn/error logging and static inline styles through guardrails", () => {
+    const rawConsoleViolations: string[] = [];
+    const staticInlineStyleViolations: string[] = [];
+
+    getProductionSourceFiles().forEach((filePath) => {
+      const relativePath = toProjectPath(filePath);
+      const source = fs.readFileSync(filePath, "utf8");
+
+      if (!rawConsoleAllowlist.has(relativePath)) {
+        Array.from(source.matchAll(/\bconsole\.(?:warn|error)\s*\(/g)).forEach(
+          (match) => {
+            rawConsoleViolations.push(`${relativePath}: ${match[0]}`);
+          },
+        );
+      }
+
+      Array.from(source.matchAll(/style=\{\{[\s\S]*?\}\}/g)).forEach(
+        (match) => {
+          const styleSource = match[0].replace(/\s+/g, " ").trim();
+          const isAllowedDynamicStyle = dynamicInlineStyleAllowlist.some(
+            (allowed) =>
+              allowed.filePath === relativePath && allowed.pattern.test(match[0]),
+          );
+
+          if (isAllowedDynamicStyle) {
+            return;
+          }
+
+          if (
+            /\bdisplay\s*:\s*["']none["']/.test(match[0]) ||
+            /\bborder\s*:\s*0\b/.test(match[0])
+          ) {
+            staticInlineStyleViolations.push(`${relativePath}: ${styleSource}`);
+          }
+        },
+      );
+
+      if (/\bbuttonResetStyle\b/.test(source)) {
+        staticInlineStyleViolations.push(
+          `${relativePath}: buttonResetStyle static reset object`,
+        );
+      }
+    });
+
+    expect(rawConsoleViolations).toEqual([]);
+    expect(staticInlineStyleViolations).toEqual([]);
+  });
+
   test("package scripts run typecheck, no-cache CI tests, and build", () => {
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
 

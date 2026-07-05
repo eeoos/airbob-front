@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { clientLogger } from "../utils/clientLogger";
 import { useGoogleMapsScript } from "./useGoogleMapsScript";
 
 export interface PlacePrediction {
@@ -94,12 +95,12 @@ export const usePlacesAutocomplete = ({
     setIsGoogleLoaded(false);
 
     if (googleMapsScriptStatus === "missing-key") {
-      console.warn("Google Maps API 키가 설정되지 않았습니다.");
+      clientLogger.warn({ message: "Google Maps API 키가 설정되지 않았습니다." });
       return;
     }
 
     if (googleMapsScriptStatus === "error") {
-      console.error("Google Maps API 로드 실패");
+      clientLogger.error({ message: "Google Maps API 로드 실패" });
       return;
     }
 
@@ -118,7 +119,9 @@ export const usePlacesAutocomplete = ({
       clearInterval(checkInterval);
 
       if (!isPlacesNewLoaded()) {
-        console.error("Google Maps Places API (New)를 사용할 수 없습니다.");
+        clientLogger.error({
+          message: "Google Maps Places API (New)를 사용할 수 없습니다.",
+        });
       }
     }, 5000);
 
@@ -147,7 +150,9 @@ export const usePlacesAutocomplete = ({
     };
 
     if (!placesNs?.AutocompleteSuggestion) {
-      console.error("AutocompleteSuggestion이 로드되지 않았습니다.");
+      clientLogger.error({
+        message: "AutocompleteSuggestion이 로드되지 않았습니다.",
+      });
       setSuggestions([]);
       return;
     }
@@ -179,7 +184,10 @@ export const usePlacesAutocomplete = ({
 
       setSuggestions(formatted);
     } catch (err) {
-      console.error("AutocompleteSuggestion 오류:", err);
+      clientLogger.error({
+        message: "AutocompleteSuggestion 오류:",
+        error: err,
+      });
       setSuggestions([]);
     } finally {
       setIsLoading(false);
@@ -253,7 +261,10 @@ export const usePlacesAutocomplete = ({
           onPlaceSelect(place);
         }
       } catch (error) {
-        console.error("Place Details 오류:", error);
+        clientLogger.error({
+          message: "Place Details 오류:",
+          error,
+        });
       } finally {
         setIsLoading(false);
       }

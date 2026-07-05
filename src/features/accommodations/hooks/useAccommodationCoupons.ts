@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { couponApi } from "../../../api";
 import { CouponInfo, CouponInfos } from "../../../types/coupon";
+import { clientLogger } from "../../../utils/clientLogger";
 import { calculateCouponDiscount } from "../../../utils/codes";
 import { parseApiError } from "../../../utils/error";
 import { accommodationQueryKeys } from "../queryKeys";
@@ -68,7 +69,10 @@ export const useAccommodationCoupons = ({
     }
 
     handledCouponErrorUpdatedAtRef.current = couponsQuery.errorUpdatedAt;
-    console.error("쿠폰 목록 조회 실패:", couponsQuery.error);
+    clientLogger.error({
+      message: "쿠폰 목록 조회 실패:",
+      error: couponsQuery.error,
+    });
     setCoupons([]);
   }, [
     couponsQuery.error,

@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
+import { clientLogger } from "../../../utils/clientLogger";
 import { setAccommodationScopedWishlistMembershipCache } from "../../wishlist/lib/wishlistCacheSync";
 import { fetchAccommodationWishlistMembership } from "../../wishlist/lib/wishlistMembership";
 
@@ -71,7 +72,10 @@ export function useSearchWishlistModal({
           membership.isInAnyWishlist,
         );
       } catch (error) {
-        console.error("위시리스트 상태 확인 실패:", error);
+        clientLogger.error({
+          message: "위시리스트 상태 확인 실패:",
+          error,
+        });
       }
     }
 

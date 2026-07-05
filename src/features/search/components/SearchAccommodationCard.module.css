@@ -62,6 +62,10 @@
   font-size: 14px;
 }
 
+.placeholderImageHidden {
+  display: none;
+}
+
 .wishlistCardInfo {
   width: 100%;
   padding: 12px 0 0 0;

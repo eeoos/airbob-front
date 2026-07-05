@@ -6,6 +6,7 @@ import { AuthModal } from "../../features/auth/appShell";
 import { useApiError } from "../../hooks/useApiError";
 import { routeTo } from "../../routes/paths";
 import { useOutsideClick } from "../../shared/ui";
+import { clientLogger } from "../../utils/clientLogger";
 import styles from "./UserMenu.module.css";
 
 interface UserMenuProps {
@@ -63,7 +64,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
       setIsMenuOpen(false);
       navigate(routeTo.home());
     } catch (error) {
-      console.error("Logout failed:", error);
+      clientLogger.error({ message: "Logout failed:", error });
       setIsMenuOpen(false);
     }
   };

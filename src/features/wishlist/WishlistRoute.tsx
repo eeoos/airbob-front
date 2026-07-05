@@ -2,6 +2,7 @@ import React from "react";
 import { ErrorToast } from "../../components/ErrorToast";
 import { useIntersectionLoadMore } from "../../hooks/useIntersectionLoadMore";
 import { routeTo } from "../../routes/paths";
+import { clientLogger } from "../../utils/clientLogger";
 import {
   RecentlyViewedView,
   WishlistDetailView,
@@ -218,7 +219,10 @@ export const WishlistRoute: React.FC<WishlistRouteProps> = ({
                 selectedAccommodationForWishlist
               );
             } catch (err) {
-              console.error("위시리스트 상태 확인 실패:", err);
+              clientLogger.error({
+                message: "위시리스트 상태 확인 실패:",
+                error: err,
+              });
             }
 
             closeWishlistModal();
