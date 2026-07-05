@@ -27,7 +27,7 @@ jest.mock("../../components/ErrorToast", () => ({
   ),
 }));
 
-jest.mock("../accommodations/components/AccommodationActionModal", () => ({
+jest.mock("../accommodations/appShell", () => ({
   AccommodationActionModal: (props: any) => {
     return props.isOpen ? (
       <div role="dialog">{props.accommodation?.name}</div>

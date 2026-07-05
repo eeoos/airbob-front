@@ -2,7 +2,7 @@ import React from "react";
 import { MyAccommodationInfo } from "../../types/accommodation";
 import { AccommodationStatus } from "../../types/enums";
 import { ErrorToast } from "../../components/ErrorToast";
-import { AccommodationActionModal } from "../accommodations/components/AccommodationActionModal";
+import { AccommodationActionModal } from "../accommodations/appShell";
 import { useHostListings } from "./hooks";
 import { getImageUrl } from "../../utils/image";
 import { useIntersectionLoadMore } from "../../hooks/useIntersectionLoadMore";

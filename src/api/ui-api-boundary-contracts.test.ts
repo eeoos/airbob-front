@@ -15,6 +15,9 @@ const productionUiRoots = [
   "features/profile/components",
 ];
 const featureRouteContainerFiles = [
+  "features/home/HomeRoute.tsx",
+  "features/auth/LoginRoute.tsx",
+  "features/auth/SignupRoute.tsx",
   "features/search/SearchRoute.tsx",
   "features/wishlist/WishlistRoute.tsx",
   "features/accommodations/AccommodationDetailRoute.tsx",
@@ -52,6 +55,9 @@ const dtoMappedPresentationFiles = [
 const productionSourceExtensions = [".ts", ".tsx"];
 const directApiImportPattern = /from\s+["'](?:\.\.\/)+(?:api|api\/[^"']*)["']/;
 const serverDtoImportPattern = /from\s+["'](?:\.\.\/)+types\/[^"']+["']/;
+const moduleSpecifierPattern =
+  /\bfrom\s+["']([^"']+)["']|import\s+["']([^"']+)["']/g;
+const privateFeatureSegments = new Set(["components", "hooks", "lib"]);
 const sourceRoot = path.resolve(__dirname, "..");
 
 const collectProductionUiFiles = (directory: string): string[] => {
@@ -91,6 +97,53 @@ const collectConfiguredProductionUiFiles = () => [
 const toSourceRootRelativePath = (filePath: string) =>
   path.relative(sourceRoot, filePath);
 
+const extractModuleSpecifiers = (source: string): string[] => {
+  const specifiers: string[] = [];
+  let match: RegExpExecArray | null;
+
+  moduleSpecifierPattern.lastIndex = 0;
+  while ((match = moduleSpecifierPattern.exec(source)) !== null) {
+    specifiers.push(match[1] ?? match[2]);
+  }
+
+  return specifiers;
+};
+
+const getFeatureName = (sourceRootRelativePath: string) =>
+  sourceRootRelativePath.match(/^features\/([^/]+)/)?.[1] ?? null;
+
+const resolveFeatureImportPath = (
+  importerPath: string,
+  specifier: string,
+): string | null => {
+  const normalizedSpecifier = specifier.startsWith(".")
+    ? path.normalize(path.join(path.dirname(importerPath), specifier))
+    : specifier.startsWith("src/")
+      ? specifier.slice("src/".length)
+      : specifier;
+
+  return normalizedSpecifier.startsWith("features/")
+    ? normalizedSpecifier
+    : null;
+};
+
+const isCrossFeaturePrivateImport = (
+  importerPath: string,
+  importedPath: string,
+) => {
+  const importerFeature = getFeatureName(importerPath);
+  const importedFeature = getFeatureName(importedPath);
+
+  if (!importerFeature || !importedFeature || importerFeature === importedFeature) {
+    return false;
+  }
+
+  return importedPath
+    .split("/")
+    .slice(2)
+    .some((segment) => privateFeatureSegments.has(segment));
+};
+
 describe("production UI API boundaries", () => {
   it("keeps configured UI API boundary paths present", () => {
     const missingRoots = productionUiRoots.filter(
@@ -122,6 +175,31 @@ describe("production UI API boundaries", () => {
         directApiImportPattern.test(fs.readFileSync(filePath, "utf8")),
       )
       .map(toSourceRootRelativePath);
+
+    expect(violations).toEqual([]);
+  });
+
+  it("keeps route containers on public entries for cross-feature imports", () => {
+    const violations = featureRouteContainerFiles.flatMap((filePath) => {
+      const source = fs.readFileSync(path.join(sourceRoot, filePath), "utf8");
+
+      return extractModuleSpecifiers(source)
+        .map((specifier) => ({
+          importedPath: resolveFeatureImportPath(filePath, specifier),
+          specifier,
+        }))
+        .filter(
+          (entry): entry is { importedPath: string; specifier: string } =>
+            entry.importedPath !== null,
+        )
+        .filter(({ importedPath }) =>
+          isCrossFeaturePrivateImport(filePath, importedPath),
+        )
+        .map(
+          ({ importedPath, specifier }) =>
+            `${filePath} -> ${specifier} (${importedPath})`,
+        );
+    });
 
     expect(violations).toEqual([]);
   });

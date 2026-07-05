@@ -1,8 +1,8 @@
 import React from "react";
 import type { URLSearchParamsInit } from "react-router-dom";
 import { motion } from "framer-motion";
-import { AuthModal } from "../auth/components/AuthModal";
-import { WishlistModal } from "../wishlist/components/WishlistModal";
+import { AuthModal } from "../auth/appShell";
+import { WishlistModal } from "../wishlist/appShell";
 import { ErrorToast } from "../../components/ErrorToast";
 import { useApiError } from "../../hooks/useApiError";
 import { useAuth } from "../../hooks/useAuth";
