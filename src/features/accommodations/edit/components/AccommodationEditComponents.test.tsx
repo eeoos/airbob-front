@@ -247,7 +247,6 @@ describe("AccommodationEdit extracted components", () => {
       "nextButton",
       "submitButton",
       "loadingDots",
-      "toastContainer",
     ];
     expect(fs.existsSync(formCssPath)).toBe(true);
     expect(fs.existsSync(layoutCssPath)).toBe(true);

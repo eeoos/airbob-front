@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ErrorToast } from "../../components/ErrorToast";
 import { routeTo } from "../../routes/paths";
-import { EmptyState, LoadingState } from "../../shared/ui";
+import { EmptyState, LoadingState, StatusBadge, Tabs } from "../../shared/ui";
 import { useIntersectionLoadMore } from "../../hooks/useIntersectionLoadMore";
 import { useHostReservations } from "./hooks";
 import {
@@ -19,12 +19,13 @@ export interface HostReservationsPanelProps {
   onFilterChange: (filterType: "UPCOMING" | "PAST" | "CANCELLED") => void;
 }
 
-const statusClassByTone = {
-  success: styles.statusConfirmed,
-  warning: styles.statusDefault,
-  danger: styles.statusCancelled,
-  neutral: styles.statusDefault,
-} as const;
+type HostReservationFilterType = HostReservationsPanelProps["filterType"];
+
+const filterItems = [
+  { value: "UPCOMING", label: "예정된 예약" },
+  { value: "PAST", label: "완료된 예약" },
+  { value: "CANCELLED", label: "취소된 예약" },
+] satisfies ReadonlyArray<{ value: HostReservationFilterType; label: string }>;
 
 export const HostReservationsPanel: React.FC<HostReservationsPanelProps> = ({
   filterType,
@@ -56,6 +57,12 @@ export const HostReservationsPanel: React.FC<HostReservationsPanelProps> = ({
 
   const sortedReservations = sortHostReservations(reservations, sortBy, sortOrder);
   const reservationRows = sortedReservations.map(toHostReservationRowViewModel);
+  const checkInSortDirection: "ascending" | "descending" | "none" =
+    sortBy === "check_in"
+      ? sortOrder === "asc"
+        ? "ascending"
+        : "descending"
+      : "none";
 
   if (isLoading) {
     return <LoadingState title="로딩 중..." />;
@@ -64,26 +71,13 @@ export const HostReservationsPanel: React.FC<HostReservationsPanelProps> = ({
   return (
     <div className={styles.container}>
       <h2 className={styles.title}>예약 관리</h2>
-      <div className={styles.filterTabs}>
-        <button
-          className={`${styles.filterTab} ${filterType === "UPCOMING" ? styles.active : ""}`}
-          onClick={() => onFilterChange("UPCOMING")}
-        >
-          예정된 예약
-        </button>
-        <button
-          className={`${styles.filterTab} ${filterType === "PAST" ? styles.active : ""}`}
-          onClick={() => onFilterChange("PAST")}
-        >
-          완료된 예약
-        </button>
-        <button
-          className={`${styles.filterTab} ${filterType === "CANCELLED" ? styles.active : ""}`}
-          onClick={() => onFilterChange("CANCELLED")}
-        >
-          취소된 예약
-        </button>
-      </div>
+      <Tabs
+        ariaLabel="예약 상태 필터"
+        className={styles.filterTabs}
+        items={filterItems}
+        value={filterType}
+        onValueChange={onFilterChange}
+      />
 
       {reservations.length === 0 ? (
         <EmptyState title="아직 예약이 없습니다." />
@@ -95,16 +89,22 @@ export const HostReservationsPanel: React.FC<HostReservationsPanelProps> = ({
                 <tr>
                   <th className={styles.th}>상태</th>
                   <th className={styles.th}>게스트</th>
-                  <th 
-                    className={`${styles.th} ${styles.sortable}`}
-                    onClick={() => handleSort("check_in")}
+                  <th
+                    aria-sort={checkInSortDirection}
+                    className={styles.th}
                   >
-                    체크인
-                    {sortBy === "check_in" && (
-                      <span className={styles.sortIcon}>
-                        {sortOrder === "asc" ? "↑" : "↓"}
-                      </span>
-                    )}
+                    <button
+                      type="button"
+                      className={styles.sortButton}
+                      onClick={() => handleSort("check_in")}
+                    >
+                      체크인
+                      {sortBy === "check_in" && (
+                        <span className={styles.sortIcon} aria-hidden="true">
+                          {sortOrder === "asc" ? "↑" : "↓"}
+                        </span>
+                      )}
+                    </button>
                   </th>
                   <th className={styles.th}>체크아웃</th>
                   <th className={styles.th}>예약일</th>
@@ -118,13 +118,9 @@ export const HostReservationsPanel: React.FC<HostReservationsPanelProps> = ({
                 {reservationRows.map((reservation) => (
                   <tr key={reservation.reservationUid} className={styles.tableRow}>
                     <td className={styles.td}>
-                      <span
-                        className={`${styles.status} ${
-                          statusClassByTone[reservation.statusTone]
-                        }`}
-                      >
+                      <StatusBadge size="sm" tone={reservation.statusTone}>
                         {reservation.statusLabel}
-                      </span>
+                      </StatusBadge>
                     </td>
                     <td className={styles.td}>
                       <div className={styles.guestInfo}>
@@ -140,6 +136,7 @@ export const HostReservationsPanel: React.FC<HostReservationsPanelProps> = ({
                     <td className={styles.td}>{reservation.totalPriceLabel}</td>
                     <td className={styles.td}>
                       <button
+                        type="button"
                         className={styles.detailsButton}
                         onClick={() =>
                           navigate(routeTo.hostReservationDetail(reservation.reservationUid))
@@ -164,11 +161,7 @@ export const HostReservationsPanel: React.FC<HostReservationsPanelProps> = ({
         </>
       )}
 
-      {error && (
-        <div className={styles.toastContainer}>
-          <ErrorToast message={error} onClose={clearError} />
-        </div>
-      )}
+      {error && <ErrorToast message={error} onClose={clearError} />}
     </div>
   );
 };

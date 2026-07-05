@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useTransition } from "react";
+import React, { useRef, useState, useTransition } from "react";
 import type { NavigateFunction, URLSearchParamsInit } from "react-router-dom";
 import { ErrorToast } from "../../components/ErrorToast";
 import { useApiError } from "../../hooks/useApiError";
@@ -20,6 +20,7 @@ import { useAccommodationImageGallery } from "./hooks/useAccommodationImageGalle
 import { useAccommodationReviews } from "./hooks/useAccommodationReviews";
 import { toAccommodationBookingViewModel } from "./lib/accommodationBookingViewModel";
 import { toAccommodationDetailViewModel } from "./lib/accommodationDetailViewModel";
+import { useOutsideClick } from "../../shared/ui";
 import styles from "./AccommodationDetailRoute.module.css";
 
 export interface AccommodationDetailRouteProps {
@@ -49,6 +50,9 @@ export const AccommodationDetailRoute: React.FC<
   const guestPickerRef = useRef<HTMLDivElement>(null);
   const datePickerRef = useRef<HTMLDivElement>(null);
   const dateSectionRef = useRef<HTMLDivElement>(null);
+  const datePickerBoundaryRef = useRef<{
+    contains: (target: Node) => boolean;
+  } | null>(null);
   const [, startTransition] = useTransition();
 
   const requireAuth = (action: () => void | Promise<void>) => {
@@ -147,41 +151,24 @@ export const AccommodationDetailRoute: React.FC<
       couponDiscount,
     });
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
+  datePickerBoundaryRef.current = {
+    contains: (target: Node) =>
+      Boolean(
+        datePickerRef.current?.contains(target) ||
+          dateSectionRef.current?.contains(target)
+      ),
+  };
 
-      if (
-        isGuestPickerOpen &&
-        guestPickerRef.current &&
-        !guestPickerRef.current.contains(target)
-      ) {
-        setIsGuestPickerOpen(false);
-      }
-
-      if (isDatePickerOpen) {
-        const isInsideDatePicker = datePickerRef.current?.contains(target);
-        const isInsideDateSection = dateSectionRef.current?.contains(target);
-
-        if (!isInsideDatePicker && !isInsideDateSection) {
-          setIsDatePickerOpen(false);
-        }
-      }
-    };
-
-    if (isGuestPickerOpen || isDatePickerOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [
-    isGuestPickerOpen,
-    isDatePickerOpen,
-    setIsGuestPickerOpen,
-    setIsDatePickerOpen,
-  ]);
+  useOutsideClick(
+    guestPickerRef,
+    () => setIsGuestPickerOpen(false),
+    isGuestPickerOpen
+  );
+  useOutsideClick(
+    datePickerBoundaryRef,
+    () => setIsDatePickerOpen(false),
+    isDatePickerOpen
+  );
 
   if (isLoading) {
     return (
@@ -312,11 +299,7 @@ export const AccommodationDetailRoute: React.FC<
         }}
       />
 
-      {error && (
-        <div className={styles.toastContainer}>
-          <ErrorToast message={error} onClose={clearError} />
-        </div>
-      )}
+      {error && <ErrorToast message={error} onClose={clearError} />}
 
       <AccommodationDescriptionModal
         isOpen={isDescriptionModalOpen}

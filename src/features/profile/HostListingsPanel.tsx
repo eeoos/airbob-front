@@ -6,13 +6,27 @@ import { AccommodationActionModal } from "../accommodations/appShell";
 import { useHostListings } from "./hooks";
 import { getImageUrl } from "../../utils/image";
 import { useIntersectionLoadMore } from "../../hooks/useIntersectionLoadMore";
-import { ClickableCard, EmptyState, LoadingState } from "../../shared/ui";
+import {
+  ClickableCard,
+  EmptyState,
+  LoadingState,
+  StatusBadge,
+  Tabs,
+} from "../../shared/ui";
 import styles from "./HostListingsPanel.module.css";
 
+type HostListingStatusType = "PUBLISHED" | "DRAFT" | "UNPUBLISHED";
+
 export interface HostListingsPanelProps {
-  statusType?: "PUBLISHED" | "DRAFT" | "UNPUBLISHED";
-  onStatusChange: (statusType: "PUBLISHED" | "DRAFT" | "UNPUBLISHED") => void;
+  statusType?: HostListingStatusType;
+  onStatusChange: (statusType: HostListingStatusType) => void;
 }
+
+const statusFilterItems = [
+  { value: "PUBLISHED", label: "공개" },
+  { value: "DRAFT", label: "작성 중" },
+  { value: "UNPUBLISHED", label: "비공개" },
+] satisfies ReadonlyArray<{ value: HostListingStatusType; label: string }>;
 
 export const HostListingsPanel: React.FC<HostListingsPanelProps> = ({
   statusType = "PUBLISHED",
@@ -75,26 +89,13 @@ export const HostListingsPanel: React.FC<HostListingsPanelProps> = ({
   return (
     <div className={styles.container}>
       <h2 className={styles.title}>{getTitle()}</h2>
-      <div className={styles.filterTabs}>
-        <button
-          className={`${styles.filterTab} ${statusType === "PUBLISHED" ? styles.active : ""}`}
-          onClick={() => onStatusChange("PUBLISHED")}
-        >
-          공개
-        </button>
-        <button
-          className={`${styles.filterTab} ${statusType === "DRAFT" ? styles.active : ""}`}
-          onClick={() => onStatusChange("DRAFT")}
-        >
-          작성 중
-        </button>
-        <button
-          className={`${styles.filterTab} ${statusType === "UNPUBLISHED" ? styles.active : ""}`}
-          onClick={() => onStatusChange("UNPUBLISHED")}
-        >
-          비공개
-        </button>
-      </div>
+      <Tabs
+        ariaLabel="숙소 상태 필터"
+        className={styles.filterTabs}
+        items={statusFilterItems}
+        value={statusType}
+        onValueChange={onStatusChange}
+      />
 
       {accommodations.length === 0 ? (
         <EmptyState title="아직 숙소가 없습니다." />
@@ -127,9 +128,9 @@ export const HostListingsPanel: React.FC<HostListingsPanelProps> = ({
                       ? [accommodation.address_summary.city, accommodation.address_summary.district].filter(Boolean).join(", ") || accommodation.address_summary.country 
                       : "위치 정보 없음"}
                   </div>
-                  <div className={styles.status}>
+                  <StatusBadge size="sm" tone="neutral">
                     {getStatusLabel(accommodation.status)}
-                  </div>
+                  </StatusBadge>
                 </div>
               </ClickableCard>
             ))}
@@ -145,11 +146,7 @@ export const HostListingsPanel: React.FC<HostListingsPanelProps> = ({
         </>
       )}
 
-      {error && (
-        <div className={styles.toastContainer}>
-          <ErrorToast message={error} onClose={clearError} />
-        </div>
-      )}
+      {error && <ErrorToast message={error} onClose={clearError} />}
 
       <AccommodationActionModal
         isOpen={isModalOpen}

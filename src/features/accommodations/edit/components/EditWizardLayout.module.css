@@ -253,13 +253,6 @@
   }
 }
 
-.toastContainer {
-  position: fixed;
-  top: 24px;
-  right: 24px;
-  z-index: var(--z-toast);
-}
-
 @media (max-width: 1024px) {
   .content {
     flex-direction: column;

@@ -11,33 +11,7 @@
 }
 
 .filterTabs {
-  display: flex;
-  gap: 8px;
   margin-bottom: 24px;
-  border-bottom: 1px solid var(--color-border-default);
-  padding-bottom: 0;
-}
-
-.filterTab {
-  padding: 12px 16px;
-  border: none;
-  border-bottom: 2px solid transparent;
-  background: transparent;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  margin-bottom: -1px;
-}
-
-.filterTab:hover {
-  color: var(--color-text-primary);
-}
-
-.filterTab.active {
-  color: var(--color-text-primary);
-  border-bottom-color: #00a699;
 }
 
 .accommodationsGrid {
@@ -98,12 +72,6 @@
   color: var(--color-text-secondary);
 }
 
-.status {
-  font-size: 14px;
-  color: var(--color-text-secondary);
-  margin-top: 4px;
-}
-
 .loadMoreContainer {
   display: flex;
   justify-content: center;
@@ -115,13 +83,6 @@
 .loadingMore {
   color: var(--color-text-secondary);
   font-size: 14px;
-}
-
-.toastContainer {
-  position: fixed;
-  top: 24px;
-  right: 24px;
-  z-index: var(--z-toast);
 }
 
 @media (max-width: 768px) {

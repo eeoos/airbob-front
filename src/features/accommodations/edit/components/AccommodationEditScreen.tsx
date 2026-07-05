@@ -1,5 +1,6 @@
-import React, { useEffect } from "react";
+import React, { useRef } from "react";
 import { ErrorToast } from "../../../../components/ErrorToast";
+import { useOutsideClick } from "../../../../shared/ui";
 import { AccommodationEditStep } from "../hooks/useAccommodationEditForm";
 import { AccommodationEditFormData } from "../lib/accommodationEditMapper";
 import { AccommodationEditImageItem } from "../lib/imageItems";
@@ -119,6 +120,9 @@ export const AccommodationEditScreen: React.FC<AccommodationEditScreenProps> = (
   state,
   actions,
 }) => {
+  const timePickerBoundaryRef = useRef<{
+    contains: (target: Node) => boolean;
+  } | null>(null);
   const {
     currentStep,
     isSaving,
@@ -166,19 +170,17 @@ export const AccommodationEditScreen: React.FC<AccommodationEditScreenProps> = (
     onConfirmDetailAddress,
     onClearError,
   } = actions;
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (openTimePicker && !target.closest(`.${timeStyles.timeInputContainer}`)) {
-        setOpenTimePicker(null);
-      }
-    };
+  timePickerBoundaryRef.current = {
+    contains: (target: Node) =>
+      target instanceof Element &&
+      Boolean(target.closest(`.${timeStyles.timeInputContainer}`)),
+  };
 
-    if (openTimePicker) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
-    }
-  }, [openTimePicker, setOpenTimePicker]);
+  useOutsideClick(
+    timePickerBoundaryRef,
+    () => setOpenTimePicker(null),
+    Boolean(openTimePicker)
+  );
 
   const renderStepContent = () => {
     switch (currentStep) {
@@ -340,11 +342,7 @@ export const AccommodationEditScreen: React.FC<AccommodationEditScreenProps> = (
           </div>
         </div>
 
-        {error && (
-          <div className={styles.toastContainer}>
-            <ErrorToast message={error} onClose={onClearError} />
-          </div>
-        )}
+        {error && <ErrorToast message={error} onClose={onClearError} />}
       </div>
 
       {showDetailAddressConfirm && (

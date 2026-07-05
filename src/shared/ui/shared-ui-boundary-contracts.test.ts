@@ -63,4 +63,20 @@ describe("shared UI boundary contracts", () => {
 
     expect(violations).toEqual([]);
   });
+
+  it("records src/components carve-outs for date picking and toast compatibility", () => {
+    const datePickerSource = readFileSync(
+      join(srcRoot, "components/DatePicker/DatePicker.tsx"),
+      "utf8"
+    );
+    const errorToastSource = readFileSync(
+      join(srcRoot, "components/ErrorToast/ErrorToast.tsx"),
+      "utf8"
+    );
+
+    expect(datePickerSource).toContain("const DatePicker");
+    expect(datePickerSource).toContain("renderCalendar");
+    expect(errorToastSource).toContain("ToastHost");
+    expect(errorToastSource).toContain('from "../../shared/ui"');
+  });
 });

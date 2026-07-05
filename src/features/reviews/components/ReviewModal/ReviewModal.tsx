@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Dialog } from "../../../../shared/ui";
+import React, { useRef, useState } from "react";
+import { Dialog, useOutsideClick } from "../../../../shared/ui";
 import type { ReviewViewModel } from "../../lib/reviewViewModel";
 import styles from "./ReviewModal.module.css";
 
@@ -27,27 +27,16 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
   totalCount,
 }) => {
   const [sortType, setSortType] = useState<ReviewSortType>(
-    REVIEW_SORT_TYPE.LATEST,
+    REVIEW_SORT_TYPE.LATEST
   );
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
+  const sortContainerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      const sortContainer = document.querySelector(`.${styles.sortContainer}`);
-      if (isSortDropdownOpen && sortContainer && !sortContainer.contains(target)) {
-        setIsSortDropdownOpen(false);
-      }
-    };
-
-    if (isSortDropdownOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isSortDropdownOpen]);
+  useOutsideClick(
+    sortContainerRef,
+    () => setIsSortDropdownOpen(false),
+    isSortDropdownOpen
+  );
 
   if (!isOpen) return null;
 
@@ -107,7 +96,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
           <span className={styles.rating}>★ {averageRating.toFixed(2)}</span>
           <span className={styles.reviewCount}>후기 {totalCount}개</span>
         </div>
-        <div className={styles.sortContainer}>
+        <div className={styles.sortContainer} ref={sortContainerRef}>
           <button
             className={styles.sortButton}
             type="button"

@@ -1,4 +1,5 @@
 import React from "react";
+import { Tabs } from "../../../shared/ui";
 import type { ProfileRouteMode } from "../lib/profileRouteState";
 import type { ProfileActiveTab } from "../lib/profileTabs";
 import styles from "./ProfileShell.module.css";
@@ -6,10 +7,25 @@ import styles from "./ProfileShell.module.css";
 type GuestProfileTab = "upcoming" | "past" | "cancelled";
 
 const guestNavItems = [
-  ["upcoming", "다가올 여행"],
-  ["past", "이전 여행"],
-  ["cancelled", "취소된 여행"],
-] satisfies ReadonlyArray<readonly [GuestProfileTab, string]>;
+  { value: "upcoming", label: "다가올 여행" },
+  { value: "past", label: "이전 여행" },
+  { value: "cancelled", label: "취소된 여행" },
+] satisfies ReadonlyArray<{ value: GuestProfileTab; label: string }>;
+
+type HostProfileSection = "listings" | "reservations";
+
+const hostNavItems = [
+  { value: "listings", label: "숙소 관리" },
+  { value: "reservations", label: "예약 관리" },
+] satisfies ReadonlyArray<{ value: HostProfileSection; label: string }>;
+
+const modeItems = [
+  { value: "guest", label: "게스트" },
+  { value: "host", label: "호스트" },
+] satisfies ReadonlyArray<{ value: ProfileRouteMode; label: string }>;
+
+const isGuestProfileTab = (tab: ProfileActiveTab): tab is GuestProfileTab =>
+  guestNavItems.some((item) => item.value === tab);
 
 interface ProfileShellProps {
   mode: ProfileRouteMode;
@@ -29,72 +45,64 @@ export const ProfileShell: React.FC<ProfileShellProps> = ({
   onHostListingsClick,
   onHostReservationsClick,
   onModeChange,
-}) => (
-  <div className={styles.container}>
-    <div className={styles.header}>
-      <h1 className={styles.title}>프로필</h1>
-      <div className={styles.modeToggle}>
-        <button
-          type="button"
-          className={`${styles.toggleButton} ${
-            mode === "guest" ? styles.active : ""
-          }`}
-          onClick={() => onModeChange("guest")}
-        >
-          게스트
-        </button>
-        <button
-          type="button"
-          className={`${styles.toggleButton} ${
-            mode === "host" ? styles.active : ""
-          }`}
-          onClick={() => onModeChange("host")}
-        >
-          호스트
-        </button>
+}) => {
+  const activeHostSection: HostProfileSection = activeTab.startsWith("listings")
+    ? "listings"
+    : "reservations";
+  const activeGuestTab = isGuestProfileTab(activeTab) ? activeTab : "upcoming";
+
+  const handleHostSectionChange = (section: HostProfileSection) => {
+    if (section === "listings") {
+      onHostListingsClick();
+      return;
+    }
+
+    onHostReservationsClick();
+  };
+
+  return (
+    <div className={styles.container}>
+      <div className={styles.header}>
+        <h1 className={styles.title}>프로필</h1>
+        <Tabs
+          ariaLabel="프로필 모드"
+          className={styles.modeToggle}
+          items={modeItems}
+          selectedTabClassName={styles.active}
+          tabClassName={styles.toggleButton}
+          value={mode}
+          variant="plain"
+          onValueChange={onModeChange}
+        />
+      </div>
+      <div className={styles.content}>
+        <div className={styles.sidebar}>
+          {mode === "guest" ? (
+            <Tabs
+              ariaLabel="게스트 프로필"
+              className={styles.nav}
+              items={guestNavItems}
+              selectedTabClassName={styles.active}
+              tabClassName={styles.navItem}
+              value={activeGuestTab}
+              variant="plain"
+              onValueChange={onGuestTabChange}
+            />
+          ) : (
+            <Tabs
+              ariaLabel="호스트 프로필"
+              className={styles.nav}
+              items={hostNavItems}
+              selectedTabClassName={styles.active}
+              tabClassName={styles.navItem}
+              value={activeHostSection}
+              variant="plain"
+              onValueChange={handleHostSectionChange}
+            />
+          )}
+        </div>
+        <div className={styles.main}>{children}</div>
       </div>
     </div>
-    <div className={styles.content}>
-      <div className={styles.sidebar}>
-        {mode === "guest" ? (
-          <nav className={styles.nav} aria-label="게스트 프로필">
-            {guestNavItems.map(([tab, label]) => (
-              <button
-                key={tab}
-                type="button"
-                className={`${styles.navItem} ${
-                  activeTab === tab ? styles.active : ""
-                }`}
-                onClick={() => onGuestTabChange(tab)}
-              >
-                {label}
-              </button>
-            ))}
-          </nav>
-        ) : (
-          <nav className={styles.nav} aria-label="호스트 프로필">
-            <button
-              type="button"
-              className={`${styles.navItem} ${
-                activeTab.startsWith("listings") ? styles.active : ""
-              }`}
-              onClick={onHostListingsClick}
-            >
-              숙소 관리
-            </button>
-            <button
-              type="button"
-              className={`${styles.navItem} ${
-                activeTab.startsWith("reservations") ? styles.active : ""
-              }`}
-              onClick={onHostReservationsClick}
-            >
-              예약 관리
-            </button>
-          </nav>
-        )}
-      </div>
-      <div className={styles.main}>{children}</div>
-    </div>
-  </div>
-);
+  );
+};

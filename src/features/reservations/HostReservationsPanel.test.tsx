@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { reservationApi } from "../../api";
 import { ReservationStatus } from "../../types/enums";
 import { HostReservationsPanel } from "./HostReservationsPanel";
@@ -34,8 +35,10 @@ jest.mock("../../components/ErrorToast", () => ({
 
 jest.mock("../../shared/ui", () => {
   const React = require("react");
+  const actual = jest.requireActual("../../shared/ui");
 
   return {
+    ...actual,
     EmptyState: ({ title }: { title: React.ReactNode }) =>
       React.createElement("div", { "data-testid": "shared-empty-state" }, title),
     LoadingState: ({ title }: { title: React.ReactNode }) =>
@@ -153,5 +156,32 @@ describe("HostReservationsPanel", () => {
 
     expect(await screen.findByText("결제 완료")).toBeInTheDocument();
     expect(screen.getByText("이용 완료")).toBeInTheDocument();
+  });
+
+  it("exposes keyboard-accessible check-in sorting metadata", async () => {
+    jest.mocked(reservationApi.getHostReservations).mockResolvedValue({
+      page_info: {
+        has_next: false,
+        next_cursor: null,
+      },
+      reservations: [
+        createHostReservation(1, ReservationStatus.PAYMENT_COMPLETED),
+        createHostReservation(2, ReservationStatus.CONFIRMED),
+      ],
+    } as any);
+
+    renderHostReservationsPanel("UPCOMING");
+
+    const sortButton = await screen.findByRole("button", { name: /체크인/ });
+    const checkInHeader = screen.getByRole("columnheader", { name: /체크인/ });
+
+    expect(checkInHeader).toHaveAttribute("aria-sort", "descending");
+
+    sortButton.focus();
+    expect(sortButton).toHaveFocus();
+
+    await userEvent.keyboard("{Enter}");
+
+    expect(checkInHeader).toHaveAttribute("aria-sort", "ascending");
   });
 });
