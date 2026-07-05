@@ -43,6 +43,8 @@ const dtoMappedPresentationFiles = [
   "features/wishlist/components/RecentlyViewedView.tsx",
   "features/wishlist/components/WishlistDetailView.tsx",
   "features/wishlist/components/WishlistIndexView.tsx",
+  "features/reservations/GuestTripsPanel.tsx",
+  "features/reservations/HostReservationsPanel.tsx",
   "features/reservations/HostReservationDetailRoute.tsx",
   "features/reservations/ReservationDetailRoute.tsx",
 ];

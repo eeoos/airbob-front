@@ -6,16 +6,12 @@ import { EmptyState, LoadingState } from "../../shared/ui";
 import { useIntersectionLoadMore } from "../../hooks/useIntersectionLoadMore";
 import { useHostReservations } from "./hooks";
 import {
-  formatReservationStatus,
-  getReservationStatusTone,
-} from "./lib/reservationStatusDisplay";
-import { formatKoreanDate, formatNullablePrice } from "./lib/reservationDateDisplay";
-import {
   getNextHostReservationSort,
   HostReservationSortColumn,
   HostReservationSortOrder,
   sortHostReservations,
 } from "./lib/hostReservationSort";
+import { toHostReservationRowViewModel } from "./lib/reservationListViewModel";
 import styles from "./HostReservationsPanel.module.css";
 
 export interface HostReservationsPanelProps {
@@ -59,6 +55,7 @@ export const HostReservationsPanel: React.FC<HostReservationsPanelProps> = ({
   };
 
   const sortedReservations = sortHostReservations(reservations, sortBy, sortOrder);
+  const reservationRows = sortedReservations.map(toHostReservationRowViewModel);
 
   if (isLoading) {
     return <LoadingState title="로딩 중..." />;
@@ -118,36 +115,34 @@ export const HostReservationsPanel: React.FC<HostReservationsPanelProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {sortedReservations.map((reservation) => (
-                  <tr key={reservation.reservation_uid} className={styles.tableRow}>
+                {reservationRows.map((reservation) => (
+                  <tr key={reservation.reservationUid} className={styles.tableRow}>
                     <td className={styles.td}>
                       <span
                         className={`${styles.status} ${
-                          statusClassByTone[getReservationStatusTone(reservation.status)]
+                          statusClassByTone[reservation.statusTone]
                         }`}
                       >
-                        {formatReservationStatus(reservation.status)}
+                        {reservation.statusLabel}
                       </span>
                     </td>
                     <td className={styles.td}>
                       <div className={styles.guestInfo}>
-                        <div className={styles.guestName}>{reservation.guest.nickname}</div>
-                        <div className={styles.guestCount}>{reservation.guest_count}명</div>
+                        <div className={styles.guestName}>{reservation.guestName}</div>
+                        <div className={styles.guestCount}>{reservation.guestCountLabel}</div>
                       </div>
                     </td>
-                    <td className={styles.td}>{formatKoreanDate(reservation.check_in_date)}</td>
-                    <td className={styles.td}>{formatKoreanDate(reservation.check_out_date)}</td>
-                    <td className={styles.td}>{formatKoreanDate(reservation.created_at)}</td>
-                    <td className={styles.td}>{reservation.accommodation.name}</td>
-                    <td className={styles.td}>
-                      {reservation.reservation_code || "-"}
-                    </td>
-                    <td className={styles.td}>{formatNullablePrice(reservation.total_price)}</td>
+                    <td className={styles.td}>{reservation.checkInLabel}</td>
+                    <td className={styles.td}>{reservation.checkOutLabel}</td>
+                    <td className={styles.td}>{reservation.createdAtLabel}</td>
+                    <td className={styles.td}>{reservation.accommodationName}</td>
+                    <td className={styles.td}>{reservation.reservationCodeLabel}</td>
+                    <td className={styles.td}>{reservation.totalPriceLabel}</td>
                     <td className={styles.td}>
                       <button
                         className={styles.detailsButton}
                         onClick={() =>
-                          navigate(routeTo.hostReservationDetail(reservation.reservation_uid))
+                          navigate(routeTo.hostReservationDetail(reservation.reservationUid))
                         }
                       >
                         상세

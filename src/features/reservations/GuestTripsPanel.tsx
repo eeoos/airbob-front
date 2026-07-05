@@ -4,12 +4,9 @@ import { ErrorToast } from "../../components/ErrorToast";
 import { routeTo } from "../../routes/paths";
 import { ClickableCard, EmptyState, LoadingState } from "../../shared/ui";
 import { useIntersectionLoadMore } from "../../hooks/useIntersectionLoadMore";
-import { getImageUrl } from "../../utils/image";
 import { useGuestTrips } from "./hooks";
-import {
-  formatGuestTripDateRange,
-  groupGuestTripsByYear,
-} from "./lib/guestTripGroups";
+import { groupGuestTripsByYear } from "./lib/guestTripGroups";
+import { toGuestTripCardViewModel } from "./lib/reservationListViewModel";
 import styles from "./GuestTripsPanel.module.css";
 
 export interface GuestTripsPanelProps {
@@ -50,7 +47,12 @@ export const GuestTripsPanel: React.FC<GuestTripsPanelProps> = ({ filterType }) 
     }
   };
 
-  const groupedReservations = groupGuestTripsByYear(reservations);
+  const groupedReservations = groupGuestTripsByYear(reservations).map(
+    ({ year, reservations: yearReservations }) => ({
+      year,
+      reservations: yearReservations.map(toGuestTripCardViewModel),
+    }),
+  );
 
   return (
     <div className={styles.container}>
@@ -68,18 +70,18 @@ export const GuestTripsPanel: React.FC<GuestTripsPanelProps> = ({ filterType }) 
                   {yearReservations.map((reservation) => {
                     return (
                       <ClickableCard
-                        key={reservation.reservation_id}
+                        key={reservation.id}
                         className={styles.reservationCard}
-                        ariaLabel={`${reservation.accommodation.name} 예약 상세 보기`}
+                        ariaLabel={`${reservation.accommodationName} 예약 상세 보기`}
                         onClick={() =>
-                          navigate(routeTo.reservationDetail(reservation.reservation_uid))
+                          navigate(routeTo.reservationDetail(reservation.reservationUid))
                         }
                       >
                         <div className={styles.image}>
-                          {reservation.accommodation.thumbnail_url ? (
+                          {reservation.thumbnailUrl ? (
                             <img
-                              src={getImageUrl(reservation.accommodation.thumbnail_url)}
-                              alt={reservation.accommodation.name}
+                              src={reservation.thumbnailUrl}
+                              alt={reservation.accommodationName}
                             />
                           ) : (
                             <div className={styles.placeholder}>🏠</div>
@@ -87,13 +89,10 @@ export const GuestTripsPanel: React.FC<GuestTripsPanelProps> = ({ filterType }) 
                         </div>
                         <div className={styles.content}>
                           <div className={styles.location}>
-                            {reservation.accommodation.name}
+                            {reservation.accommodationName}
                           </div>
                           <div className={styles.dateRange}>
-                            {formatGuestTripDateRange(
-                              reservation.check_in_date,
-                              reservation.check_out_date
-                            )}
+                            {reservation.dateRangeLabel}
                           </div>
                         </div>
                       </ClickableCard>
