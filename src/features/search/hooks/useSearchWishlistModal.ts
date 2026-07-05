@@ -24,11 +24,14 @@ export function useSearchWishlistModal({
     selectedAccommodationForWishlist,
     setSelectedAccommodationForWishlist,
   ] = useState<number | null>(null);
+  const [pendingAccommodationForWishlist, setPendingAccommodationForWishlist] =
+    useState<number | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
   const openWishlistModal = useCallback(
     (accommodationId: number) => {
       if (!isAuthenticated) {
+        setPendingAccommodationForWishlist(accommodationId);
         setAuthModalOpen(true);
         return;
       }
@@ -41,10 +44,21 @@ export function useSearchWishlistModal({
 
   const closeAuthModal = useCallback(() => {
     setAuthModalOpen(false);
+    setPendingAccommodationForWishlist(null);
   }, []);
 
+  const handleAuthSuccess = useCallback(() => {
+    setAuthModalOpen(false);
+
+    if (pendingAccommodationForWishlist !== null) {
+      setSelectedAccommodationForWishlist(pendingAccommodationForWishlist);
+      setPendingAccommodationForWishlist(null);
+      setWishlistModalOpen(true);
+    }
+  }, [pendingAccommodationForWishlist]);
+
   const closeWishlistModal = useCallback(async () => {
-    if (selectedAccommodationForWishlist) {
+    if (selectedAccommodationForWishlist !== null) {
       try {
         const { isInAnyWishlist, pageParams, pages } =
           await fetchAccommodationWishlistMembership(
@@ -80,7 +94,9 @@ export function useSearchWishlistModal({
     authModalOpen,
     closeAuthModal,
     closeWishlistModal,
+    handleAuthSuccess,
     openWishlistModal,
+    pendingAccommodationForWishlist,
     selectedAccommodationForWishlist,
     wishlistModalOpen,
   };

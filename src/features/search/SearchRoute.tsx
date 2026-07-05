@@ -83,6 +83,7 @@ export const SearchRoute: React.FC<SearchRouteProps> = ({
     authModalOpen,
     closeAuthModal,
     closeWishlistModal,
+    handleAuthSuccess,
     openWishlistModal,
     selectedAccommodationForWishlist,
     wishlistModalOpen,
@@ -287,7 +288,7 @@ export const SearchRoute: React.FC<SearchRouteProps> = ({
         )}
       </div>
 
-      {selectedAccommodationForWishlist && (
+      {selectedAccommodationForWishlist !== null && (
         <WishlistModal
           isOpen={wishlistModalOpen}
           onClose={closeWishlistModal}
@@ -298,6 +299,7 @@ export const SearchRoute: React.FC<SearchRouteProps> = ({
       <AuthModal
         isOpen={authModalOpen}
         onClose={closeAuthModal}
+        onSuccess={handleAuthSuccess}
         initialMode="login"
       />
     </>

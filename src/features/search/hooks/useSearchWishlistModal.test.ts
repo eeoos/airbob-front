@@ -35,9 +35,14 @@ const renderUseSearchWishlistModal = (
   options: Parameters<typeof useSearchWishlistModal>[0]
 ) => {
   const { Wrapper, queryClient } = createWrapper();
-  const hook = renderHook(() => useSearchWishlistModal(options), {
-    wrapper: Wrapper,
-  });
+  const hook = renderHook(
+    (props: Parameters<typeof useSearchWishlistModal>[0]) =>
+      useSearchWishlistModal(props),
+    {
+      initialProps: options,
+      wrapper: Wrapper,
+    }
+  );
 
   return { ...hook, queryClient };
 };
@@ -89,7 +94,55 @@ describe("useSearchWishlistModal", () => {
     expect(result.current.authModalOpen).toBe(true);
     expect(result.current.wishlistModalOpen).toBe(false);
     expect(result.current.selectedAccommodationForWishlist).toBeNull();
+    expect(result.current.pendingAccommodationForWishlist).toBe(7);
     expect(onWishlistStatusChange).not.toHaveBeenCalled();
+  });
+
+  it("resumes the pending wishlist action after successful auth for accommodation id 0", () => {
+    const onWishlistStatusChange = jest.fn();
+    const { rerender, result } = renderUseSearchWishlistModal({
+      isAuthenticated: false,
+      onWishlistStatusChange,
+    });
+
+    act(() => {
+      result.current.openWishlistModal(0);
+    });
+
+    rerender({
+      isAuthenticated: true,
+      onWishlistStatusChange,
+    });
+
+    act(() => {
+      result.current.handleAuthSuccess();
+    });
+
+    expect(result.current.authModalOpen).toBe(false);
+    expect(result.current.wishlistModalOpen).toBe(true);
+    expect(result.current.selectedAccommodationForWishlist).toBe(0);
+    expect(result.current.pendingAccommodationForWishlist).toBeNull();
+  });
+
+  it("clears the pending wishlist action when auth modal closes", () => {
+    const onWishlistStatusChange = jest.fn();
+    const { result } = renderUseSearchWishlistModal({
+      isAuthenticated: false,
+      onWishlistStatusChange,
+    });
+
+    act(() => {
+      result.current.openWishlistModal(7);
+    });
+
+    act(() => {
+      result.current.closeAuthModal();
+    });
+
+    expect(result.current.authModalOpen).toBe(false);
+    expect(result.current.pendingAccommodationForWishlist).toBeNull();
+    expect(result.current.wishlistModalOpen).toBe(false);
+    expect(result.current.selectedAccommodationForWishlist).toBeNull();
   });
 
   it("reconciles the search card wishlist state when the modal closes", async () => {
@@ -141,7 +194,7 @@ describe("useSearchWishlistModal", () => {
     });
 
     act(() => {
-      result.current.openWishlistModal(7);
+      result.current.openWishlistModal(0);
     });
 
     await act(async () => {
@@ -150,18 +203,18 @@ describe("useSearchWishlistModal", () => {
 
     expect(wishlistApi.getWishlists).toHaveBeenNthCalledWith(1, {
       size: 20,
-      accommodationId: 7,
+      accommodationId: 0,
     });
     expect(wishlistApi.getWishlists).toHaveBeenNthCalledWith(2, {
       size: 20,
-      accommodationId: 7,
+      accommodationId: 0,
       cursor: "cursor-2",
     });
-    expect(onWishlistStatusChange).toHaveBeenCalledWith(7, true);
+    expect(onWishlistStatusChange).toHaveBeenCalledWith(0, true);
     expect(
       queryClient.getQueryData(
         wishlistQueryKeys.lists(
-          getWishlistListsParamsSignature({ accommodationId: 7 })
+          getWishlistListsParamsSignature({ accommodationId: 0 })
         )
       )
     ).toEqual({
