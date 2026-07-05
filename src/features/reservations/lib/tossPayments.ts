@@ -28,6 +28,23 @@ const TOSS_PAYMENTS_SCRIPT_SRC = "https://js.tosspayments.com/v1";
 let tossPaymentsScriptPromise: Promise<void> | null = null;
 let tossPaymentsScriptElement: HTMLScriptElement | null = null;
 
+const getTossPaymentsScripts = () =>
+  Array.from(
+    document.querySelectorAll<HTMLScriptElement>(
+      `script[src="${TOSS_PAYMENTS_SCRIPT_SRC}"]`,
+    ),
+  );
+
+const removeStaleTossPaymentsScripts = (
+  activeScript: HTMLScriptElement | null,
+) => {
+  getTossPaymentsScripts().forEach((script) => {
+    if (script !== activeScript) {
+      script.remove();
+    }
+  });
+};
+
 const resolveWhenTossPaymentsIsReady = (
   script: HTMLScriptElement,
 ): Promise<void> =>
@@ -59,40 +76,26 @@ export const ensureTossPaymentsScript = (): Promise<void> => {
     return Promise.resolve();
   }
 
-  let existingScript = document.querySelector<HTMLScriptElement>(
-    `script[src="${TOSS_PAYMENTS_SCRIPT_SRC}"]`,
-  );
+  const activeScript =
+    tossPaymentsScriptPromise && tossPaymentsScriptElement?.isConnected
+      ? tossPaymentsScriptElement
+      : null;
+  removeStaleTossPaymentsScripts(activeScript);
 
   if (tossPaymentsScriptPromise) {
-    if (
-      existingScript &&
-      existingScript === tossPaymentsScriptElement &&
-      existingScript.isConnected
-    ) {
+    if (activeScript) {
       return tossPaymentsScriptPromise;
     }
 
-    if (existingScript) {
-      existingScript.remove();
-      existingScript = null;
-    }
-
-    if (!tossPaymentsScriptElement?.isConnected) {
-      tossPaymentsScriptPromise = null;
-      tossPaymentsScriptElement = null;
-    }
-  }
-
-  if (existingScript) {
-    existingScript.remove();
-    existingScript = null;
+    tossPaymentsScriptPromise = null;
+    tossPaymentsScriptElement = null;
   }
 
   if (window.TossPayments) {
     return Promise.resolve();
   }
 
-  const script = existingScript ?? document.createElement("script");
+  const script = document.createElement("script");
   script.src = TOSS_PAYMENTS_SCRIPT_SRC;
   script.async = true;
 
@@ -105,9 +108,7 @@ export const ensureTossPaymentsScript = (): Promise<void> => {
   );
   tossPaymentsScriptElement = script;
 
-  if (!existingScript) {
-    document.body.appendChild(script);
-  }
+  document.body.appendChild(script);
 
   return tossPaymentsScriptPromise;
 };

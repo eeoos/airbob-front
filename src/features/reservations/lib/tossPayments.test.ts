@@ -80,6 +80,26 @@ describe("tossPayments adapter", () => {
     expect(currentScript?.isConnected).toBe(true);
   });
 
+  it("removes stale duplicates before reusing an active SDK loader", () => {
+    const activeLoad = ensureTossPaymentsScript();
+    const activeScript = document.querySelector<HTMLScriptElement>(
+      'script[src="https://js.tosspayments.com/v1"]',
+    );
+    const staleScript = document.createElement("script");
+    staleScript.src = "https://js.tosspayments.com/v1";
+    staleScript.async = true;
+    document.body.prepend(staleScript);
+
+    const duplicateLoad = ensureTossPaymentsScript();
+
+    expect(duplicateLoad).toBe(activeLoad);
+    expect(staleScript.isConnected).toBe(false);
+    expect(activeScript?.isConnected).toBe(true);
+    expect(
+      document.querySelectorAll('script[src="https://js.tosspayments.com/v1"]'),
+    ).toHaveLength(1);
+  });
+
   it("returns the configured client key", () => {
     process.env.REACT_APP_TOSS_CLIENT_KEY = "test_ck_123";
 
