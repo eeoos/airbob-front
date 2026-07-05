@@ -14,6 +14,7 @@ export interface TabsProps<TValue extends string = string> {
   className?: string;
   items: ReadonlyArray<TabItem<TValue>>;
   onValueChange: (value: TValue) => void;
+  orientation?: "horizontal" | "vertical";
   selectedTabClassName?: string;
   tabClassName?: string;
   value: TValue;
@@ -28,6 +29,7 @@ export function Tabs<TValue extends string = string>({
   className,
   items,
   onValueChange,
+  orientation = "horizontal",
   selectedTabClassName,
   tabClassName,
   value,
@@ -35,6 +37,11 @@ export function Tabs<TValue extends string = string>({
 }: TabsProps<TValue>) {
   const tabRefs = React.useRef<Array<HTMLButtonElement | null>>([]);
   const selectedIndex = items.findIndex((item) => item.value === value);
+  const selectedEnabledIndex =
+    selectedIndex >= 0 && !items[selectedIndex]?.disabled ? selectedIndex : -1;
+  const firstEnabledIndex = items.findIndex((item) => !item.disabled);
+  const focusableIndex =
+    selectedEnabledIndex >= 0 ? selectedEnabledIndex : firstEnabledIndex;
 
   const selectTabAt = (index: number) => {
     const item = items[index];
@@ -55,7 +62,8 @@ export function Tabs<TValue extends string = string>({
     const activeIndex = tabRefs.current.findIndex(
       (element) => element === document.activeElement
     );
-    const startIndex = activeIndex >= 0 ? activeIndex : Math.max(selectedIndex, 0);
+    const startIndex =
+      activeIndex >= 0 ? activeIndex : Math.max(focusableIndex, 0);
 
     for (let offset = 1; offset <= items.length; offset += 1) {
       const nextIndex =
@@ -84,13 +92,31 @@ export function Tabs<TValue extends string = string>({
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "ArrowRight") {
+    if (
+      orientation === "horizontal" &&
+      event.key === "ArrowRight"
+    ) {
       event.preventDefault();
       moveSelection(1);
       return;
     }
 
-    if (event.key === "ArrowLeft") {
+    if (
+      orientation === "horizontal" &&
+      event.key === "ArrowLeft"
+    ) {
+      event.preventDefault();
+      moveSelection(-1);
+      return;
+    }
+
+    if (orientation === "vertical" && event.key === "ArrowDown") {
+      event.preventDefault();
+      moveSelection(1);
+      return;
+    }
+
+    if (orientation === "vertical" && event.key === "ArrowUp") {
       event.preventDefault();
       moveSelection(-1);
       return;
@@ -111,6 +137,7 @@ export function Tabs<TValue extends string = string>({
   return (
     <div
       aria-label={ariaLabel}
+      aria-orientation={orientation}
       className={cx(styles.tabList, styles[variant], className)}
       role="tablist"
       onKeyDown={handleKeyDown}
@@ -137,7 +164,7 @@ export function Tabs<TValue extends string = string>({
             disabled={item.disabled}
             id={item.id}
             role="tab"
-            tabIndex={isSelected ? 0 : -1}
+            tabIndex={index === focusableIndex ? 0 : -1}
             type="button"
             onClick={() => onValueChange(item.value)}
           >

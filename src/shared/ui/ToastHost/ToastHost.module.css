@@ -13,7 +13,7 @@
   max-width: min(500px, calc(100vw - 48px));
   padding: 16px 20px;
   border-radius: var(--radius-md);
-  background-color: #222222;
+  background-color: var(--color-text-primary);
   box-shadow: var(--shadow-lg);
   color: var(--color-text-inverse);
   animation: slideIn 0.3s ease;

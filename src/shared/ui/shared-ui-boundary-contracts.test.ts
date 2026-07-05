@@ -79,4 +79,27 @@ describe("shared UI boundary contracts", () => {
     expect(errorToastSource).toContain("ToastHost");
     expect(errorToastSource).toContain('from "../../shared/ui"');
   });
+
+  it("keeps shared status and toast styles on design tokens", () => {
+    const sharedStyleFiles = [
+      "shared/ui/StatusBadge/StatusBadge.module.css",
+      "shared/ui/ToastHost/ToastHost.module.css",
+    ];
+
+    const violations = sharedStyleFiles.flatMap((relativePath) => {
+      const source = readFileSync(join(srcRoot, relativePath), "utf8");
+      return /#[0-9a-fA-F]{3,8}\b/.test(source) ? [relativePath] : [];
+    });
+
+    expect(violations).toEqual([]);
+  });
+
+  it("keeps ErrorToast as a thin wrapper without a dead local stylesheet", () => {
+    const errorToastStylePath = join(
+      srcRoot,
+      "components/ErrorToast/ErrorToast.module.css"
+    );
+
+    expect(() => readFileSync(errorToastStylePath, "utf8")).toThrow();
+  });
 });

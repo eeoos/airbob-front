@@ -23,17 +23,17 @@
 }
 
 .success {
-  background-color: #e6f7f5;
+  background-color: var(--color-status-success-bg);
   color: var(--color-success);
 }
 
 .warning {
-  background-color: #fff1f2;
-  color: var(--color-brand-coral);
+  background-color: var(--color-status-warning-bg);
+  color: var(--color-status-warning-text);
 }
 
 .danger {
-  background-color: #ffe5e5;
+  background-color: var(--color-status-danger-bg);
   color: var(--color-danger);
 }
 

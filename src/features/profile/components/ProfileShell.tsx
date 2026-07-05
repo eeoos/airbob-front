@@ -85,6 +85,7 @@ export const ProfileShell: React.FC<ProfileShellProps> = ({
               selectedTabClassName={styles.active}
               tabClassName={styles.navItem}
               value={activeGuestTab}
+              orientation="vertical"
               variant="plain"
               onValueChange={onGuestTabChange}
             />
@@ -96,6 +97,7 @@ export const ProfileShell: React.FC<ProfileShellProps> = ({
               selectedTabClassName={styles.active}
               tabClassName={styles.navItem}
               value={activeHostSection}
+              orientation="vertical"
               variant="plain"
               onValueChange={handleHostSectionChange}
             />

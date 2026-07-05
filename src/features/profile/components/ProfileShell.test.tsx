@@ -21,6 +21,9 @@ describe("ProfileShell", () => {
     );
 
     expect(screen.getByText("profile content")).toBeInTheDocument();
+    expect(
+      screen.getByRole("tablist", { name: "게스트 프로필" })
+    ).toHaveAttribute("aria-orientation", "vertical");
 
     await userEvent.click(screen.getByRole("tab", { name: "이전 여행" }));
 
