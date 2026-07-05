@@ -4,7 +4,10 @@ import {
   formatKoreanDateWithWeekday,
   formatNullablePrice,
 } from "./reservationDateDisplay";
-import { formatReservationStatus } from "./reservationStatusDisplay";
+import {
+  formatReservationStatus,
+  getReservationStatusTone,
+} from "./reservationStatusDisplay";
 
 interface HostReservationGuestViewModel {
   nickname: string;
@@ -27,6 +30,7 @@ interface HostReservationPaymentViewModel {
 export interface HostReservationDetailViewModel {
   reservationCode: string;
   statusLabel: string;
+  statusTone: ReturnType<typeof getReservationStatusTone>;
   guest: HostReservationGuestViewModel;
   guestStaySummaryLabel: string;
   accommodation: HostReservationAccommodationViewModel;
@@ -93,6 +97,7 @@ export const toHostReservationDetailViewModel = (
   return {
     reservationCode: reservation.reservation_code,
     statusLabel: formatReservationStatus(reservation.status),
+    statusTone: getReservationStatusTone(reservation.status),
     guest: {
       nickname: reservation.guest.nickname,
       avatarUrl: reservation.guest.thumbnail_image_url

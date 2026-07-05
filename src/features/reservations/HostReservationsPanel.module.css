@@ -109,23 +109,6 @@
   justify-content: flex-end;
 }
 
-.detailsButton {
-  padding: 8px 16px;
-  border: 1px solid var(--color-border-default);
-  border-radius: 6px;
-  background: var(--color-background-page);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.detailsButton:hover {
-  border-color: var(--color-text-primary);
-  background-color: var(--color-background-muted);
-}
-
 .menuButton {
   padding: 8px;
   border: none;
@@ -179,8 +162,4 @@
     gap: 8px;
   }
 
-  .detailsButton {
-    padding: 6px 12px;
-    font-size: 12px;
-  }
 }

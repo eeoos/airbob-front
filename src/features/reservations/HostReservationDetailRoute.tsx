@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import type { NavigateFunction } from "react-router-dom";
 import { ErrorToast } from "../../components/ErrorToast";
 import { routeTo } from "../../routes/paths";
+import { StatusBadge } from "../../shared/ui";
 import { useHostReservationDetail } from "./hooks";
 import { toHostReservationDetailViewModel } from "./lib/hostReservationDetailViewModel";
 import styles from "./HostReservationDetailRoute.module.css";
@@ -63,9 +64,13 @@ export const HostReservationDetailRoute: React.FC<
 
         <div className={styles.header}>
           <div className={styles.headerLeft}>
-            <div className={styles.statusBadge}>
+            <StatusBadge
+              className={styles.statusBadge}
+              size="sm"
+              tone={reservationView.statusTone}
+            >
               {reservationView.statusLabel}
-            </div>
+            </StatusBadge>
             <div className={styles.guestName}>
               {reservationView.guest.nickname}
             </div>

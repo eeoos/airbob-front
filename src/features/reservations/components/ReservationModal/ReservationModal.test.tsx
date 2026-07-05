@@ -5,6 +5,16 @@ import { reservationApi } from "../../../../api";
 import { AccommodationDetail } from "../../../../types/accommodation";
 import ReservationModal from "./ReservationModal";
 
+const mockNavigate = jest.fn();
+
+jest.mock(
+  "react-router-dom",
+  () => ({
+    useNavigate: () => mockNavigate,
+  }),
+  { virtual: true },
+);
+
 jest.mock("../../../../api", () => ({
   reservationApi: {
     create: jest.fn(),
@@ -65,19 +75,10 @@ const accommodation: AccommodationDetail = {
 };
 
 describe("ReservationModal", () => {
-  const originalClientKey = process.env.REACT_APP_TOSS_CLIENT_KEY;
-
   beforeEach(() => {
+    sessionStorage.clear();
+    mockNavigate.mockReset();
     jest.mocked(reservationApi.create).mockReset();
-    process.env.REACT_APP_TOSS_CLIENT_KEY = "test_ck_123";
-  });
-
-  afterEach(() => {
-    process.env.REACT_APP_TOSS_CLIENT_KEY = originalClientKey;
-    delete (window as any).TossPayments;
-    document
-      .querySelectorAll('script[src="https://js.tosspayments.com/v1"]')
-      .forEach((script) => script.remove());
   });
 
   it("renders reservation content inside the shared accessible dialog", () => {
@@ -101,18 +102,7 @@ describe("ReservationModal", () => {
     expect(screen.getByRole("button", { name: "닫기" })).toHaveFocus();
   });
 
-  it("mounts the Toss payment widget container before rendering payment methods", async () => {
-    let widgetContainerAtRender: Element | null = null;
-    const renderPaymentMethods = jest.fn().mockImplementation(() => {
-      widgetContainerAtRender = document.querySelector("#payment-widget");
-      return Promise.resolve();
-    });
-    const requestPayment = jest.fn();
-    const widgets = jest.fn(() => ({ renderPaymentMethods }));
-    (window as any).TossPayments = jest.fn(() => ({
-      widgets,
-      requestPayment,
-    }));
+  it("creates checkout state and routes payment through the confirm page", async () => {
     jest.mocked(reservationApi.create).mockResolvedValue({
       reservation_uid: "res-123",
       order_name: "테스트 숙소",
@@ -137,8 +127,30 @@ describe("ReservationModal", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "확인 및 결제" }));
 
-    await waitFor(() => expect(renderPaymentMethods).toHaveBeenCalled());
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith("/accommodations/7/confirm", {
+        state: expect.objectContaining({
+          reservationUid: "res-123",
+          orderName: "테스트 숙소",
+          amount: 200000,
+          customerEmail: "user@example.com",
+          customerName: "홍길동",
+          checkIn: "2026-07-10",
+          checkOut: "2026-07-12",
+          adultOccupancy: 2,
+          childOccupancy: 0,
+          infantOccupancy: 0,
+          petOccupancy: 0,
+        }),
+      });
+    });
 
-    expect(widgetContainerAtRender).not.toBeNull();
+    expect(reservationApi.create).toHaveBeenCalledWith({
+      accommodation_id: 7,
+      check_in_date: "2026-07-10",
+      check_out_date: "2026-07-12",
+      guest_count: 2,
+    });
+    expect(document.querySelector("#payment-widget")).toBeNull();
   });
 });

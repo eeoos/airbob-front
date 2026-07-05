@@ -42,6 +42,37 @@ interface ReserveOptions {
   skipAuthCheck?: boolean;
 }
 
+interface BookingDateRangeValidation {
+  checkIn: Date | null;
+  checkOut: Date | null;
+  unavailableDates: Array<string | Date>;
+}
+
+interface BookingGuestCountValidation {
+  adultCount: number;
+  childCount: number;
+  maxOccupancy: number;
+}
+
+interface CouponSelectionInput {
+  reserveCouponState?: ReserveCouponState;
+  selectedCoupon: CouponInfo | null;
+  selectedCouponId: number | null;
+  couponDiscount: number;
+}
+
+interface ReservationCheckoutInput {
+  adultCount: number;
+  childCount: number;
+  checkIn: string;
+  checkOut: string;
+  couponDiscount: number;
+  infantCount: number;
+  petCount: number;
+  reservationResponse: Awaited<ReturnType<typeof reservationApi.create>>;
+  selectedCoupon: CouponInfo | null;
+}
+
 const clampNumber = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
 
@@ -127,6 +158,107 @@ const hasUnavailableDateInRange = (
   }
 
   return false;
+};
+
+const validateDateRange = ({
+  checkIn,
+  checkOut,
+  unavailableDates,
+}: BookingDateRangeValidation): Error | null => {
+  if (!checkIn || !checkOut) {
+    return new Error("체크인/체크아웃 날짜를 선택해주세요.");
+  }
+
+  if (checkOut <= checkIn) {
+    return new Error("체크아웃 날짜는 체크인 날짜 이후여야 합니다.");
+  }
+
+  if (hasUnavailableDateInRange(checkIn, checkOut, unavailableDates)) {
+    return new Error("선택한 날짜에 예약할 수 없는 날짜가 포함되어 있습니다.");
+  }
+
+  return null;
+};
+
+const validateGuestCount = ({
+  adultCount,
+  childCount,
+  maxOccupancy,
+}: BookingGuestCountValidation): Error | null => {
+  const guestCount = adultCount + childCount;
+
+  if (guestCount < 1 || guestCount > maxOccupancy) {
+    return new Error("예약 가능한 인원 수를 확인해주세요.");
+  }
+
+  return null;
+};
+
+const selectReservationCoupon = ({
+  reserveCouponState,
+  selectedCoupon,
+  selectedCouponId,
+  couponDiscount,
+}: CouponSelectionInput) => {
+  const discount = reserveCouponState?.couponDiscount ?? couponDiscount;
+
+  return {
+    discount,
+    coupon: reserveCouponState?.selectedCoupon ?? selectedCoupon,
+    couponId: reserveCouponState?.selectedCouponId ?? selectedCouponId,
+  };
+};
+
+const handoffReservationAuth = (
+  isAuthenticated: boolean,
+  options: ReserveOptions,
+  onRequireAuth: (action: () => void | Promise<void>) => void,
+  action: () => void | Promise<void>,
+) => {
+  if (options.skipAuthCheck || isAuthenticated) {
+    return false;
+  }
+
+  onRequireAuth(action);
+  return true;
+};
+
+const buildReservationCheckoutState = ({
+  adultCount,
+  childCount,
+  checkIn,
+  checkOut,
+  couponDiscount,
+  infantCount,
+  petCount,
+  reservationResponse,
+  selectedCoupon,
+}: ReservationCheckoutInput): ReservationCheckoutState => ({
+  reservationUid: reservationResponse.reservation_uid,
+  orderName: reservationResponse.order_name,
+  amount: reservationResponse.amount,
+  customerEmail: reservationResponse.customer_email,
+  customerName: reservationResponse.customer_name,
+  checkIn,
+  checkOut,
+  adultOccupancy: adultCount,
+  childOccupancy: childCount,
+  infantOccupancy: infantCount,
+  petOccupancy: petCount,
+  couponName:
+    couponDiscount > 0 && selectedCoupon ? selectedCoupon.name : null,
+  couponDiscount: couponDiscount > 0 ? couponDiscount : null,
+});
+
+const navigateToReservationConfirm = (
+  accommodationId: string,
+  checkoutState: ReservationCheckoutState,
+  navigate: UseAccommodationBookingOptions["navigate"],
+) => {
+  saveReservationCheckoutState(accommodationId, checkoutState);
+  navigate(routeTo.accommodationConfirm(accommodationId), {
+    state: checkoutState,
+  });
 };
 
 export const useAccommodationBooking = ({
@@ -298,8 +430,11 @@ export const useAccommodationBooking = ({
     reserveCouponState?: ReserveCouponState,
     options: ReserveOptions = {}
   ) {
-    if (!options.skipAuthCheck && !isAuthenticated) {
-      onRequireAuth(() => reserve(reserveCouponState, { skipAuthCheck: true }));
+    if (
+      handoffReservationAuth(isAuthenticated, options, onRequireAuth, () =>
+        reserve(reserveCouponState, { skipAuthCheck: true }),
+      )
+    ) {
       return;
     }
 
@@ -308,24 +443,29 @@ export const useAccommodationBooking = ({
       return;
     }
 
-    if (!checkIn || !checkOut) {
-      handleError(new Error("체크인/체크아웃 날짜를 선택해주세요."));
+    const dateRangeError = validateDateRange({
+      checkIn,
+      checkOut,
+      unavailableDates: accommodation.unavailable_dates,
+    });
+    if (dateRangeError) {
+      handleError(dateRangeError);
       return;
     }
 
-    if (checkOut <= checkIn) {
-      handleError(new Error("체크아웃 날짜는 체크인 날짜 이후여야 합니다."));
+    const validCheckIn = checkIn;
+    const validCheckOut = checkOut;
+    if (!validCheckIn || !validCheckOut) {
       return;
     }
 
-    if (hasUnavailableDateInRange(checkIn, checkOut, accommodation.unavailable_dates)) {
-      handleError(new Error("선택한 날짜에 예약할 수 없는 날짜가 포함되어 있습니다."));
-      return;
-    }
-
-    const guestCount = adultCount + childCount;
-    if (guestCount < 1 || guestCount > accommodation.policy.max_occupancy) {
-      handleError(new Error("예약 가능한 인원 수를 확인해주세요."));
+    const guestCountError = validateGuestCount({
+      adultCount,
+      childCount,
+      maxOccupancy: accommodation.policy.max_occupancy,
+    });
+    if (guestCountError) {
+      handleError(guestCountError);
       return;
     }
 
@@ -338,54 +478,37 @@ export const useAccommodationBooking = ({
     clearError();
 
     try {
-      const checkInStr = formatDateForUrl(checkIn);
-      const checkOutStr = formatDateForUrl(checkOut);
-      const reserveCouponDiscount =
-        reserveCouponState?.couponDiscount ?? couponDiscount;
-      const reserveSelectedCouponId =
-        reserveCouponState?.selectedCouponId ?? selectedCouponId;
-      const reserveSelectedCoupon =
-        reserveCouponState?.selectedCoupon ?? selectedCoupon;
+      const checkInStr = formatDateForUrl(validCheckIn);
+      const checkOutStr = formatDateForUrl(validCheckOut);
+      const guestCount = adultCount + childCount;
+      const reservationCoupon = selectReservationCoupon({
+        reserveCouponState,
+        selectedCoupon,
+        selectedCouponId,
+        couponDiscount,
+      });
 
       const reservationResponse = await reservationApi.create({
         accommodation_id: accommodation.id,
         check_in_date: checkInStr,
         check_out_date: checkOutStr,
         guest_count: guestCount,
-        coupon_id: reserveCouponDiscount > 0 ? reserveSelectedCouponId : null,
+        coupon_id:
+          reservationCoupon.discount > 0 ? reservationCoupon.couponId : null,
       });
 
-      const {
-        reservation_uid,
-        order_name,
-        amount,
-        customer_email,
-        customer_name,
-      } = reservationResponse;
-
-      const checkoutState: ReservationCheckoutState = {
-        reservationUid: reservation_uid,
-        orderName: order_name,
-        amount,
-        customerEmail: customer_email,
-        customerName: customer_name,
+      const checkoutState = buildReservationCheckoutState({
+        reservationResponse,
         checkIn: checkInStr,
         checkOut: checkOutStr,
-        adultOccupancy: adultCount,
-        childOccupancy: childCount,
-        infantOccupancy: infantCount,
-        petOccupancy: petCount,
-        couponName:
-          reserveCouponDiscount > 0 && reserveSelectedCoupon
-            ? reserveSelectedCoupon.name
-            : null,
-        couponDiscount: reserveCouponDiscount > 0 ? reserveCouponDiscount : null,
-      };
-
-      saveReservationCheckoutState(accommodationId, checkoutState);
-      navigate(routeTo.accommodationConfirm(accommodationId), {
-        state: checkoutState,
+        adultCount,
+        childCount,
+        couponDiscount: reservationCoupon.discount,
+        infantCount,
+        petCount,
+        selectedCoupon: reservationCoupon.coupon,
       });
+      navigateToReservationConfirm(accommodationId, checkoutState, navigate);
     } catch (error) {
       handleError(error);
     } finally {

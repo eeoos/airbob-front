@@ -50,6 +50,7 @@ describe("host reservation detail view model", () => {
     ).toEqual({
       reservationCode: "HOST-CODE-1",
       statusLabel: "확정됨",
+      statusTone: "success",
       guest: {
         nickname: "게스트",
         avatarUrl: "https://d1wivnghydqg7i.cloudfront.net/guests/2.jpg",

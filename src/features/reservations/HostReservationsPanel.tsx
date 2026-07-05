@@ -2,7 +2,13 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ErrorToast } from "../../components/ErrorToast";
 import { routeTo } from "../../routes/paths";
-import { EmptyState, LoadingState, StatusBadge, Tabs } from "../../shared/ui";
+import {
+  Button,
+  EmptyState,
+  LoadingState,
+  StatusBadge,
+  Tabs,
+} from "../../shared/ui";
 import { useIntersectionLoadMore } from "../../hooks/useIntersectionLoadMore";
 import { useHostReservations } from "./hooks";
 import {
@@ -135,15 +141,15 @@ export const HostReservationsPanel: React.FC<HostReservationsPanelProps> = ({
                     <td className={styles.td}>{reservation.reservationCodeLabel}</td>
                     <td className={styles.td}>{reservation.totalPriceLabel}</td>
                     <td className={styles.td}>
-                      <button
-                        type="button"
-                        className={styles.detailsButton}
+                      <Button
+                        size="sm"
+                        variant="secondary"
                         onClick={() =>
                           navigate(routeTo.hostReservationDetail(reservation.reservationUid))
                         }
                       >
                         상세
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 ))}

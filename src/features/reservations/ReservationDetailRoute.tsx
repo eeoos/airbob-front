@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import type { NavigateFunction } from "react-router-dom";
 import { ErrorToast } from "../../components/ErrorToast";
 import { routeTo } from "../../routes/paths";
+import { StatusBadge } from "../../shared/ui";
 import { GOOGLE_MAPS_API_KEY } from "../../utils/constants";
 import { useReservationDetail } from "./hooks";
 import { toReservationDetailViewModel } from "./lib/reservationDetailViewModel";
@@ -173,13 +174,9 @@ export const ReservationDetailRoute: React.FC<ReservationDetailRouteProps> = ({
             <section className={styles.section}>
               <div className={styles.sectionTitleRow}>
                 <h2 className={styles.sectionTitle}>예약 세부정보</h2>
-                <span
-                  className={`${styles.status} ${
-                    styles[reservationView.status.classKey]
-                  }`}
-                >
+                <StatusBadge tone={reservationView.status.tone}>
                   {reservationView.status.label}
-                </span>
+                </StatusBadge>
               </div>
 
               <div className={styles.infoList}>
@@ -223,13 +220,9 @@ export const ReservationDetailRoute: React.FC<ReservationDetailRouteProps> = ({
               <section className={styles.section}>
                 <div className={styles.sectionTitleRow}>
                   <h2 className={styles.sectionTitle}>결제 정보</h2>
-                  <span
-                    className={`${styles.paymentStatus} ${
-                      styles[reservationView.payment.statusClassKey]
-                    }`}
-                  >
+                  <StatusBadge tone={reservationView.payment.statusTone}>
                     {reservationView.payment.statusLabel}
-                  </span>
+                  </StatusBadge>
                 </div>
                 <div className={styles.infoList}>
                   <div className={styles.infoItem}>

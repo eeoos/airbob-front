@@ -5,6 +5,7 @@ import {
   calculateCouponDiscount,
   formatCouponDiscount,
 } from "../../../utils/codes";
+import { Button, CounterStepper } from "../../../shared/ui";
 import styles from "./AccommodationBookingCard.module.css";
 
 type NumberSetter = React.Dispatch<React.SetStateAction<number>>;
@@ -71,10 +72,11 @@ interface BookingReserveActionProps {
 }
 
 interface GuestCounterRowProps {
-  decrementDisabled: boolean;
-  incrementDisabled: boolean;
-  onDecrement: () => void;
-  onIncrement: () => void;
+  decrementLabel: string;
+  incrementLabel: string;
+  max?: number;
+  min?: number;
+  onChange: (value: number) => void;
   subtitle: React.ReactNode;
   title: string;
   value: number;
@@ -138,10 +140,11 @@ const getCouponActionLabel = ({
 };
 
 function GuestCounterRow({
-  decrementDisabled,
-  incrementDisabled,
-  onDecrement,
-  onIncrement,
+  decrementLabel,
+  incrementLabel,
+  max,
+  min = 0,
+  onChange,
   subtitle,
   title,
   value,
@@ -152,41 +155,14 @@ function GuestCounterRow({
         <div className={styles.guestPickerTitle}>{title}</div>
         <div className={styles.guestPickerSubtitle}>{subtitle}</div>
       </div>
-      <div className={styles.guestPickerControls}>
-        <button
-          type="button"
-          aria-label={`${title} 줄이기`}
-          className={`${styles.guestPickerButton} ${
-            decrementDisabled ? styles.guestPickerButtonDisabled : ""
-          }`}
-          onClick={(event) => {
-            event.stopPropagation();
-            if (!decrementDisabled) {
-              onDecrement();
-            }
-          }}
-          disabled={decrementDisabled}
-        >
-          −
-        </button>
-        <span className={styles.guestPickerCount}>{value}</span>
-        <button
-          type="button"
-          aria-label={`${title} 늘리기`}
-          className={`${styles.guestPickerButton} ${
-            incrementDisabled ? styles.guestPickerButtonDisabled : ""
-          }`}
-          onClick={(event) => {
-            event.stopPropagation();
-            if (!incrementDisabled) {
-              onIncrement();
-            }
-          }}
-          disabled={incrementDisabled}
-        >
-          +
-        </button>
-      </div>
+      <CounterStepper
+        decrementLabel={decrementLabel}
+        incrementLabel={incrementLabel}
+        min={min}
+        max={max}
+        value={value}
+        onChange={onChange}
+      />
     </div>
   );
 }
@@ -306,30 +282,31 @@ export function BookingGuestSection({
             title="성인"
             subtitle="13세 이상"
             value={adultCount}
-            decrementDisabled={adultCount <= 1}
-            incrementDisabled={guestCount >= maxOccupancy}
-            onDecrement={() => setAdultCount(adultCount - 1)}
-            onIncrement={() => setAdultCount(adultCount + 1)}
+            decrementLabel="성인 줄이기"
+            incrementLabel="성인 늘리기"
+            min={1}
+            max={adultCount + (maxOccupancy - guestCount)}
+            onChange={setAdultCount}
           />
 
           <GuestCounterRow
             title="어린이"
             subtitle="2~12세"
             value={childCount}
-            decrementDisabled={childCount <= 0}
-            incrementDisabled={guestCount >= maxOccupancy}
-            onDecrement={() => setChildCount(childCount - 1)}
-            onIncrement={() => setChildCount(childCount + 1)}
+            decrementLabel="어린이 줄이기"
+            incrementLabel="어린이 늘리기"
+            max={childCount + (maxOccupancy - guestCount)}
+            onChange={setChildCount}
           />
 
           <GuestCounterRow
             title="유아"
             subtitle="2세 미만"
             value={infantCount}
-            decrementDisabled={infantCount <= 0 || maxInfants === 0}
-            incrementDisabled={infantCount >= maxInfants || maxInfants === 0}
-            onDecrement={() => setInfantCount(infantCount - 1)}
-            onIncrement={() => setInfantCount(infantCount + 1)}
+            decrementLabel="유아 줄이기"
+            incrementLabel="유아 늘리기"
+            max={maxInfants}
+            onChange={setInfantCount}
           />
 
           <GuestCounterRow
@@ -344,10 +321,10 @@ export function BookingGuestSection({
               )
             }
             value={petCount}
-            decrementDisabled={petCount <= 0 || maxPets === 0}
-            incrementDisabled={petCount >= maxPets || maxPets === 0}
-            onDecrement={() => setPetCount(petCount - 1)}
-            onIncrement={() => setPetCount(petCount + 1)}
+            decrementLabel="반려동물 줄이기"
+            incrementLabel="반려동물 늘리기"
+            max={maxPets}
+            onChange={setPetCount}
           />
 
           <div className={styles.guestPickerNote}>
@@ -355,8 +332,9 @@ export function BookingGuestSection({
             {maxPets === 0 && "반려동물 동반은 허용되지 않습니다."}
           </div>
 
-          <button
-            type="button"
+          <Button
+            variant="secondary"
+            size="sm"
             className={styles.guestPickerClose}
             onClick={(event) => {
               event.stopPropagation();
@@ -364,7 +342,7 @@ export function BookingGuestSection({
             }}
           >
             닫기
-          </button>
+          </Button>
         </div>
       )}
     </div>
@@ -483,14 +461,16 @@ export function BookingReserveAction({
 }: BookingReserveActionProps) {
   return (
     <>
-      <button
-        type="button"
+      <Button
+        fullWidth
+        size="lg"
         className={styles.reserveButton}
         onClick={onReserve}
-        disabled={isReserving}
+        isLoading={isReserving}
+        loadingLabel="예약 중..."
       >
-        {isReserving ? "예약 중..." : "예약하기"}
-      </button>
+        예약하기
+      </Button>
 
       <div className={styles.bookingNote}>
         예약 확정 전에는 요금이 청구되지 않습니다.

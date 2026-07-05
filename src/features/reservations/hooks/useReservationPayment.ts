@@ -1,13 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { reservationApi } from "../../../api";
 import { routeTo } from "../../../routes/paths";
-import {
-  ensureTossPaymentsScript,
-  getTossClientKey,
-  getTossPaymentsClient,
-  shouldSilentlyResetPayment,
-  toReservationPaymentError,
-} from "../lib/tossPayments";
+import type { ReservationCheckoutState } from "../lib/reservationCheckoutState";
+import { saveReservationCheckoutState } from "../lib/reservationCheckoutState";
 
 interface UseReservationPaymentOptions {
   clearError: () => void;
@@ -20,15 +16,8 @@ interface StartReservationPaymentOptions {
   checkOut: Date;
   adultCount: number;
   childCount: number;
-}
-
-interface PendingPayment {
-  reservationUid: string;
-  orderName: string;
-  amount: number;
-  customerEmail: string;
-  customerName: string;
-  tossClientKey: string;
+  infantCount?: number;
+  petCount?: number;
 }
 
 const formatDateForUrl = (date: Date): string => {
@@ -38,133 +27,74 @@ const formatDateForUrl = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
+const buildReservationCheckoutState = ({
+  adultCount,
+  childCount,
+  checkIn,
+  checkOut,
+  infantCount = 0,
+  petCount = 0,
+  reservationResponse,
+}: StartReservationPaymentOptions & {
+  reservationResponse: Awaited<ReturnType<typeof reservationApi.create>>;
+}): ReservationCheckoutState => ({
+  reservationUid: reservationResponse.reservation_uid,
+  orderName: reservationResponse.order_name,
+  amount: reservationResponse.amount,
+  customerEmail: reservationResponse.customer_email,
+  customerName: reservationResponse.customer_name,
+  checkIn: formatDateForUrl(checkIn),
+  checkOut: formatDateForUrl(checkOut),
+  adultOccupancy: adultCount,
+  childOccupancy: childCount,
+  infantOccupancy: infantCount,
+  petOccupancy: petCount,
+  couponName: null,
+  couponDiscount: null,
+});
+
 export function useReservationPayment({
   clearError,
   handleError,
 }: UseReservationPaymentOptions) {
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const [pendingPayment, setPendingPayment] = useState<PendingPayment | null>(
-    null
-  );
-
-  useEffect(() => {
-    ensureTossPaymentsScript();
-  }, []);
 
   const startReservationPayment = useCallback(
-    async ({
-      accommodationId,
-      checkIn,
-      checkOut,
-      adultCount,
-      childCount,
-    }: StartReservationPaymentOptions) => {
+    async (options: StartReservationPaymentOptions) => {
       setIsLoading(true);
       clearError();
-      setPendingPayment(null);
 
       try {
         const reservationResponse = await reservationApi.create({
-          accommodation_id: accommodationId,
-          check_in_date: formatDateForUrl(checkIn),
-          check_out_date: formatDateForUrl(checkOut),
-          guest_count: adultCount + childCount,
+          accommodation_id: options.accommodationId,
+          check_in_date: formatDateForUrl(options.checkIn),
+          check_out_date: formatDateForUrl(options.checkOut),
+          guest_count: options.adultCount + options.childCount,
         });
 
-        const {
-          reservation_uid,
-          order_name,
-          amount,
-          customer_email,
-          customer_name,
-        } = reservationResponse;
-
-        const tossClientKey = getTossClientKey();
-
-        setPendingPayment({
-          reservationUid: reservation_uid,
-          orderName: order_name,
-          amount,
-          customerEmail: customer_email,
-          customerName: customer_name,
-          tossClientKey,
+        const checkoutState = buildReservationCheckoutState({
+          ...options,
+          reservationResponse,
         });
-        setIsProcessingPayment(true);
+        const accommodationId = String(options.accommodationId);
+
+        saveReservationCheckoutState(accommodationId, checkoutState);
+        navigate(routeTo.accommodationConfirm(accommodationId), {
+          state: checkoutState,
+        });
       } catch (error) {
         handleError(error);
+      } finally {
         setIsLoading(false);
-        setIsProcessingPayment(false);
-        setPendingPayment(null);
       }
     },
-    [clearError, handleError]
+    [clearError, handleError, navigate],
   );
-
-  useEffect(() => {
-    if (!pendingPayment || !isProcessingPayment) {
-      return;
-    }
-
-    let isCancelled = false;
-
-    const resetPaymentState = () => {
-      if (isCancelled) {
-        return;
-      }
-
-      setIsLoading(false);
-      setIsProcessingPayment(false);
-      setPendingPayment(null);
-    };
-
-    const requestTossPayment = async () => {
-      try {
-        const paymentWidget = getTossPaymentsClient(pendingPayment.tossClientKey);
-        const paymentMethodsWidget = paymentWidget.widgets({
-          customerKey: pendingPayment.customerEmail,
-        });
-
-        await paymentMethodsWidget.renderPaymentMethods(
-          "#payment-widget",
-          { value: pendingPayment.amount },
-          { variantKey: "DEFAULT" }
-        );
-
-        await paymentWidget.requestPayment({
-          orderId: pendingPayment.reservationUid,
-          orderName: pendingPayment.orderName,
-          successUrl: `${window.location.origin}${routeTo.paymentSuccess(pendingPayment.reservationUid)}`,
-          failUrl: `${window.location.origin}${routeTo.paymentFail(pendingPayment.reservationUid)}`,
-          customerEmail: pendingPayment.customerEmail,
-          customerName: pendingPayment.customerName,
-          amount: pendingPayment.amount,
-        });
-      } catch (error) {
-        if (isCancelled) {
-          return;
-        }
-
-        if (shouldSilentlyResetPayment(error)) {
-          resetPaymentState();
-          return;
-        }
-
-        handleError(toReservationPaymentError(error));
-        resetPaymentState();
-      }
-    };
-
-    requestTossPayment();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [handleError, isProcessingPayment, pendingPayment]);
 
   return {
     isLoading,
-    isProcessingPayment,
+    isProcessingPayment: false,
     startReservationPayment,
   };
 }

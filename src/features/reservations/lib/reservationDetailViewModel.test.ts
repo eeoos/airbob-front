@@ -70,7 +70,7 @@ describe("reservation detail view model", () => {
       },
       status: {
         label: "확정됨",
-        classKey: "confirmed",
+        tone: "success",
       },
       canReview: true,
       payment: null,
@@ -106,7 +106,7 @@ describe("reservation detail view model", () => {
       amountLabel: "₩120,000",
       approvedAtLabel: null,
       statusLabel: "입금 대기",
-      statusClassKey: "waiting",
+      statusTone: "warning",
       virtualAccount: {
         bankName: "KB국민은행",
         accountNumber: "123-456",

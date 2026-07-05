@@ -14,10 +14,10 @@ import {
 } from "./reservationDateDisplay";
 import {
   formatReservationStatus,
-  getReservationStatusClassKey,
+  getReservationStatusTone,
 } from "./reservationStatusDisplay";
 
-type PaymentStatusClassKey = "paid" | "waiting" | "pending";
+type PaymentStatusTone = "success" | "warning" | "neutral";
 
 interface ReservationDateTimeViewModel {
   dateLabel: string;
@@ -29,7 +29,7 @@ interface ReservationPaymentViewModel {
   amountLabel: string;
   approvedAtLabel: string | null;
   statusLabel: string;
-  statusClassKey: PaymentStatusClassKey;
+  statusTone: PaymentStatusTone;
   virtualAccount: {
     bankName: string;
     accountNumber: string;
@@ -58,7 +58,7 @@ export interface ReservationDetailViewModel {
   };
   status: {
     label: string;
-    classKey: string;
+    tone: ReturnType<typeof getReservationStatusTone>;
   };
   canReview: boolean;
   payment: ReservationPaymentViewModel | null;
@@ -96,21 +96,21 @@ const getMapCoordinate = (
   };
 };
 
-const getPaymentStatusClassKey = (
+const getPaymentStatusTone = (
   payment: NonNullable<GuestReservationDetail["payment"]>,
-): PaymentStatusClassKey => {
+): PaymentStatusTone => {
   if (payment.status === PaymentStatus.DONE) {
-    return "paid";
+    return "success";
   }
 
   if (
     payment.virtual_account &&
     payment.status === PaymentStatus.WAITING_FOR_DEPOSIT
   ) {
-    return "waiting";
+    return "warning";
   }
 
-  return "pending";
+  return "neutral";
 };
 
 const toReservationPaymentViewModel = (
@@ -129,7 +129,7 @@ const toReservationPaymentViewModel = (
       ? formatKoreanDateTime(payment.approved_at)
       : null,
     statusLabel: formatPaymentStatus(payment.status),
-    statusClassKey: getPaymentStatusClassKey(payment),
+    statusTone: getPaymentStatusTone(payment),
     virtualAccount: isVirtualAccountPending
       ? {
           bankName: formatBankName(payment.virtual_account?.bank_code),
@@ -175,7 +175,7 @@ export const toReservationDetailViewModel = (
   },
   status: {
     label: formatReservationStatus(reservation.status),
-    classKey: getReservationStatusClassKey(reservation.status),
+    tone: getReservationStatusTone(reservation.status),
   },
   canReview: canCreateReview({
     can_write_review: reservation.can_write_review,
