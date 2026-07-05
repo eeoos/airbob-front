@@ -18,7 +18,7 @@ import { useAccommodationCoupons } from "./hooks/useAccommodationCoupons";
 import { useAccommodationDetail } from "./hooks/useAccommodationDetail";
 import { useAccommodationImageGallery } from "./hooks/useAccommodationImageGallery";
 import { useAccommodationReviews } from "./hooks/useAccommodationReviews";
-import styles from "../../pages/AccommodationDetail/AccommodationDetail.module.css";
+import styles from "./AccommodationDetailRoute.module.css";
 
 export interface AccommodationDetailRouteProps {
   accommodationId?: string;

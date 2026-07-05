@@ -1,0 +1,66 @@
+const dayMs = 1000 * 60 * 60 * 24;
+
+export const parseLocalCheckoutDate = (dateString: string): Date | null => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateString);
+  if (!match) {
+    return null;
+  }
+
+  const [, yearValue, monthValue, dayValue] = match;
+  const year = Number(yearValue);
+  const month = Number(monthValue);
+  const day = Number(dayValue);
+  const date = new Date(year, month - 1, day);
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
+};
+
+export const calculateCheckoutNightsFromDates = (start: Date, end: Date) => {
+  const nights = Math.ceil((end.getTime() - start.getTime()) / dayMs);
+
+  return Number.isFinite(nights) ? Math.max(0, nights) : 0;
+};
+
+export const calculateCheckoutNights = (checkIn: string, checkOut: string) => {
+  const start = parseLocalCheckoutDate(checkIn);
+  const end = parseLocalCheckoutDate(checkOut);
+  if (!start || !end) {
+    return 0;
+  }
+
+  return calculateCheckoutNightsFromDates(start, end);
+};
+
+export const calculatePayableAmount = (
+  totalAmount: number,
+  couponDiscountAmount = 0,
+) => Math.max(0, totalAmount - couponDiscountAmount);
+
+export const formatGuestSummary = ({
+  adultOccupancy = 0,
+  childOccupancy = 0,
+  infantOccupancy = 0,
+  petOccupancy = 0,
+}: {
+  adultOccupancy?: number;
+  childOccupancy?: number;
+  infantOccupancy?: number;
+  petOccupancy?: number;
+}) => {
+  const guestCount = adultOccupancy + childOccupancy;
+  const parts = [
+    guestCount > 0 && `성인 ${guestCount}명`,
+    infantOccupancy > 0 && `유아 ${infantOccupancy}명`,
+    petOccupancy > 0 && `반려동물 ${petOccupancy}마리`,
+  ].filter(Boolean);
+
+  return parts.length > 0 ? parts.join(", ") : "성인 1명";
+};

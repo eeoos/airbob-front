@@ -1,47 +1,30 @@
-import React, { useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { clearReservationCheckoutStateByReservationUid } from "../../features/reservations/lib/reservationCheckoutState";
-import { routeTo } from "../../routes/paths";
-import styles from "./PaymentFail.module.css";
+import React from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { PaymentFailRoute } from "../../features/reservations";
+import type { PaymentFailReason } from "../../routes/paths";
+
+const parsePaymentFailReason = (
+  reason: string | null,
+): PaymentFailReason | undefined => {
+  if (reason === "confirm-failed" || reason === "invalid-callback") {
+    return reason;
+  }
+
+  return undefined;
+};
 
 const PaymentFail: React.FC = () => {
-  const { reservationUid } = useParams<{ reservationUid: string }>();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!reservationUid) return;
-
-    clearReservationCheckoutStateByReservationUid(reservationUid);
-  }, [reservationUid]);
+  const { reservationUid } = useParams<{ reservationUid: string }>();
+  const [searchParams] = useSearchParams();
 
   return (
-    <>
-      <div className={styles.container}>
-        <div className={styles.content}>
-          <div className={styles.errorIcon}>❌</div>
-          <h1 className={styles.title}>결제에 실패했습니다</h1>
-          <p className={styles.message}>
-            결제 처리 중 문제가 발생했습니다. 다시 시도해주세요.
-          </p>
-          <div className={styles.actions}>
-            <button className={styles.button} onClick={() => navigate(routeTo.profile())}>
-              프로필로 이동
-            </button>
-            {reservationUid && (
-              <button
-                className={styles.buttonSecondary}
-                onClick={() => navigate(routeTo.reservationDetail(reservationUid))}
-              >
-                예약 상세 보기
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    </>
+    <PaymentFailRoute
+      navigate={navigate}
+      reservationUid={reservationUid}
+      reason={parsePaymentFailReason(searchParams.get("reason"))}
+    />
   );
 };
 
 export default PaymentFail;
-
-

@@ -1,22 +1,26 @@
-import React, { useState, useEffect, useRef } from "react";
-import { MyAccommodationInfo } from "../../../types/accommodation";
-import { AccommodationStatus } from "../../../types/enums";
-import { ErrorToast } from "../../../components/ErrorToast";
-import { AccommodationActionModal } from "../../../features/accommodations/components/AccommodationActionModal";
-import { useHostListings } from "../../../features/profile";
-import { getImageUrl } from "../../../utils/image";
-import { EmptyState, LoadingState } from "../../../shared/ui";
-import styles from "./HostListings.module.css";
+import React from "react";
+import { MyAccommodationInfo } from "../../types/accommodation";
+import { AccommodationStatus } from "../../types/enums";
+import { ErrorToast } from "../../components/ErrorToast";
+import { AccommodationActionModal } from "../accommodations/components/AccommodationActionModal";
+import { useHostListings } from "./hooks";
+import { getImageUrl } from "../../utils/image";
+import { useIntersectionLoadMore } from "../../hooks/useIntersectionLoadMore";
+import { EmptyState, LoadingState } from "../../shared/ui";
+import styles from "./HostListingsPanel.module.css";
 
-interface HostListingsProps {
+export interface HostListingsPanelProps {
   statusType?: "PUBLISHED" | "DRAFT" | "UNPUBLISHED";
   onStatusChange: (statusType: "PUBLISHED" | "DRAFT" | "UNPUBLISHED") => void;
 }
 
-const HostListings: React.FC<HostListingsProps> = ({ statusType = "PUBLISHED", onStatusChange }) => {
-  const [selectedAccommodation, setSelectedAccommodation] = useState<MyAccommodationInfo | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const observerTarget = useRef<HTMLDivElement>(null);
+export const HostListingsPanel: React.FC<HostListingsPanelProps> = ({
+  statusType = "PUBLISHED",
+  onStatusChange,
+}) => {
+  const [selectedAccommodation, setSelectedAccommodation] =
+    React.useState<MyAccommodationInfo | null>(null);
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
   const {
     accommodations,
     clearError,
@@ -27,29 +31,11 @@ const HostListings: React.FC<HostListingsProps> = ({ statusType = "PUBLISHED", o
     loadMore,
     reload,
   } = useHostListings(statusType);
-
-  // Intersection Observer를 사용한 무한 스크롤
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNext && !isLoadingMore) {
-          loadMore();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    const currentTarget = observerTarget.current;
-    if (currentTarget) {
-      observer.observe(currentTarget);
-    }
-
-    return () => {
-      if (currentTarget) {
-        observer.unobserve(currentTarget);
-      }
-    };
-  }, [hasNext, isLoadingMore, loadMore]);
+  const observerTarget = useIntersectionLoadMore({
+    hasNext,
+    isLoading: isLoadingMore,
+    onLoadMore: loadMore,
+  });
 
   const getTitle = () => {
     return "숙소 관리";
@@ -175,5 +161,3 @@ const HostListings: React.FC<HostListingsProps> = ({ statusType = "PUBLISHED", o
     </div>
   );
 };
-
-export default HostListings;

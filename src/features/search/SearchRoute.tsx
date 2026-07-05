@@ -16,7 +16,7 @@ import { useSearchResults } from "./hooks/useSearchResults";
 import { useSearchWishlistModal } from "./hooks/useSearchWishlistModal";
 import { toAccommodationBookingRouteQuery } from "./lib/accommodationDetailParams";
 import { getViewportFromSearchParams } from "./lib/searchParams";
-import styles from "../../pages/Search/Search.module.css";
+import styles from "./SearchRoute.module.css";
 
 export interface SearchRouteProps {
   searchParams: URLSearchParams;

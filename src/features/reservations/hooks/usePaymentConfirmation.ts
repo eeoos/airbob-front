@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
 import { paymentApi } from "../../../api";
+import { isApiClientError } from "../../../api/response";
+import {
+  getPaymentConfirmationAttemptKey,
+  runPaymentConfirmationAttempt,
+} from "../lib/paymentConfirmationAttemptRegistry";
 
 export type PaymentConfirmationResult =
   | {
@@ -8,6 +13,7 @@ export type PaymentConfirmationResult =
     }
   | {
       error: unknown;
+      retryable: boolean;
       status: "failed";
     };
 
@@ -23,6 +29,14 @@ const parsePaymentAmount = (amount: string): number | null => {
 
   const parsedAmount = Number(amount);
   return Number.isSafeInteger(parsedAmount) ? parsedAmount : null;
+};
+
+const isPaymentConfirmationFailureRetryable = (error: unknown): boolean => {
+  if (!isApiClientError(error)) return true;
+
+  if (error.status === 408 || error.status === 429) return true;
+
+  return error.status < 400 || error.status >= 500;
 };
 
 export function usePaymentConfirmation({
@@ -65,18 +79,30 @@ export function usePaymentConfirmation({
       }
 
       try {
-        await paymentApi.confirm({
-          payment_key: paymentKey,
-          order_id: orderId,
+        const attemptKey = getPaymentConfirmationAttemptKey({
           amount: parsedAmount,
+          orderId,
+          paymentKey,
         });
+
+        await runPaymentConfirmationAttempt(attemptKey, () =>
+          paymentApi.confirm({
+            payment_key: paymentKey,
+            order_id: orderId,
+            amount: parsedAmount,
+          })
+        );
 
         if (isActive) {
           setResult({ status: "confirmed", error: null });
         }
       } catch (err) {
         if (isActive) {
-          setResult({ status: "failed", error: err });
+          setResult({
+            status: "failed",
+            retryable: isPaymentConfirmationFailureRetryable(err),
+            error: err,
+          });
         }
       } finally {
         if (isActive) {

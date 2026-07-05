@@ -55,7 +55,7 @@ describe("design system entry contracts", () => {
   });
 
   it("uses header height tokens for search page viewport math", () => {
-    const searchPageCss = readSource("pages/Search/Search.module.css");
+    const searchPageCss = readSource("features/search/SearchRoute.module.css");
 
     expect(searchPageCss).toContain("var(--layout-header-desktop-height)");
     expect(searchPageCss).toContain("var(--layout-search-mobile-bottom-sheet-offset)");

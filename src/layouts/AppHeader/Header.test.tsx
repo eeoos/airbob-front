@@ -32,8 +32,9 @@ jest.mock(
   { virtual: true }
 );
 
-jest.mock("../../features/search/components/SearchBar", () => ({
-  SearchBar: (props: { isMapDragMode?: boolean }) => {
+jest.mock("../../features/search/appShell", () => ({
+  ...jest.requireActual("../../features/search/appShell"),
+  HeaderSearchBar: (props: { isMapDragMode?: boolean }) => {
     mockSearchBar(props);
     return <div data-testid="search-bar" />;
   },

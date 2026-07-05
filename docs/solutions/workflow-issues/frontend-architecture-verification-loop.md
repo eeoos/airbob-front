@@ -1,7 +1,7 @@
 ---
 title: Frontend Architecture Verification Loop Before Design Work
 date: 2026-07-03
-last_updated: 2026-07-03
+last_updated: 2026-07-04
 category: workflow-issues
 module: frontend-architecture
 problem_type: workflow_issue
@@ -11,7 +11,7 @@ applies_when:
   - Frontend architecture refactors must be verified before Airbnb design styling
   - Verification needs static contract tests plus authenticated desktop and mobile browser QA
   - QA credentials are needed for smoke testing but must not be committed or documented
-tags: [frontend-architecture, verification-loop, browser-qa, contract-tests, credential-hygiene, responsive-qa]
+tags: [frontend-architecture, verification-loop, browser-qa, contract-tests, credential-hygiene, responsive-qa, route-boundaries, public-barrels]
 related_components: [testing_framework, documentation, tooling]
 ---
 
@@ -36,6 +36,12 @@ The loop also surfaced process failures worth preserving. A credential-safety te
 
 A final architecture-closure pass converted the highest-risk review findings into contracts before visual work: Header logo navigation became a semantic home link, Map InfoWindow raw HTML received typed global callbacks plus accessible button labels, stale rejected async requests gained regression coverage, AccommodationEdit final publish now confirms missing detail address before pending image upload, Search wishlist reconciliation stopped leaking a raw React state setter, touched design-entry CSS moved to tokens, and Auth/Reservation modals moved onto `shared/ui/Dialog`.
 
+The post-merge readiness pass extended the same loop to the remaining design blockers. Payment confirmation recovery now keeps retry state across confirm failures and clears checkout state only after a verified terminal path. Reservation status labels and tones moved behind one helper. Route containers now own their CSS under feature-owned paths, and route/API boundary tests prevent page, layout, and shared UI layers from reaching through feature internals. Header and UserMenu now depend on explicit feature app-shell entry points. SearchBar suggestions and primary actions use semantic buttons with keyboard activation, while IconButton keeps compact visual sizes and provides touch target affordance through its hit area instead of widening every small control.
+
+The profile/reservation closure pass exposed two more architecture escape hatches that a green static gate initially missed. First, reservations and reviews pages imported route containers from public feature barrels, but those barrels still re-exported hooks. A page could therefore reintroduce workflow logic indirectly through the "public" path while avoiding deep-import checks. Second, several feature route containers still imported CSS modules from `pages/**`, and the contract had an allowlist for those violations. The fix was to make public feature barrels route-only, move route CSS modules into the owning feature folders, remove the feature-to-page allowlist, and update token fixtures so moved shells remained covered.
+
+The design-ready gate also became stricter about browser smoke truthfulness. `verify:design-ready` runs the static pre-redesign gate and then the authenticated smoke wrapper. The smoke wrapper covers home, search, wishlist, profile host listings, accommodation detail, and accommodation edit by default. Reservation detail and host reservation detail require stable reservation UIDs supplied out of band; when those values are missing, the smoke report lists the dynamic routes as skipped rather than implying they were tested.
+
 ## Guidance
 
 Run an explicit architecture verification loop before starting visual design work. Treat the loop as a release gate, not as a best-effort checklist.
@@ -54,7 +60,17 @@ Sixth, run a review pass after the first green verify and treat reviewer finding
 
 Seventh, close architecture escape hatches explicitly before design. Raw HTML integration points such as Google Maps InfoWindow may remain outside React, but they need typed global callbacks, escaped API data, accessible action names, and token-owned values. Page-level hooks should expose intent methods such as `updateAccommodationWishlistStatus`, not raw state setters. Modals touched by design should enter through `shared/ui/Dialog` so focus, backdrop, Escape, and body scroll-lock behavior stay centralized.
 
-Finally, record design-phase limitations instead of pretending coverage is complete. Search map QA was limited by `RefererNotAllowedMapError`, and live search queries returned zero results. The design phase should use an authorized Google Maps referer and a seeded result query before treating map styling as verified.
+Eighth, force cross-layer dependencies through public seams. Layouts can use route helpers, shared UI, hooks, and explicit feature app-shell entry points, but they should not import deep feature internals just because a header menu or top-level shell needs one small behavior. Route boundary tests should include the route container files themselves so feature-owned screens do not quietly drift back into page-owned CSS or page-owned orchestration.
+
+Ninth, make public route barrels route-only. A page adapter importing from `features/reservations` or `features/reviews` should receive route containers, not hooks, helpers, panels, constants, or internal component building blocks. Feature-owned composition can still import internal panels directly from sibling modules, but that should happen inside the feature boundary. If a route barrel exports `useSomething`, `Panel`, `components`, `hooks`, or `lib`, the page layer has an easy path back into orchestration.
+
+Tenth, treat CSS ownership as part of the architecture boundary. A route container that lives under `features/*` should not import a CSS module from `pages/**`; the stylesheet moves with the route container or into a shared UI primitive. When moving CSS, update token and high-risk fixtures at the same time. Otherwise the design refactor can lose coverage over the exact shell that now owns the route.
+
+Eleventh, treat every temporary architecture allowlist as unresolved debt. The durable loop is: move orchestration, move ownership-adjacent CSS/API seams with it, delete the exception, and assert zero violations. An allowlist can be useful while sequencing a refactor, but it should not survive the readiness gate.
+
+Twelfth, use semantic UI fixes as architecture readiness work, not as visual polish. When converting clickable `div` rows to buttons, prove mouse and keyboard activation. When adding touch target rules to a shared primitive, preserve existing visual size contracts unless the redesign intentionally changes them. This avoids turning accessibility cleanup into a layout regression source immediately before page-level styling.
+
+Finally, record design-phase limitations instead of pretending coverage is complete. Search map QA was limited by `RefererNotAllowedMapError`, and live search queries returned zero results. Reservation detail smoke coverage also depends on stable guest and host reservation UIDs. The design phase should use an authorized Google Maps referer, a seeded result query, and valid out-of-band reservation UIDs before treating map and reservation-detail styling as verified.
 
 ## Why This Matters
 
@@ -66,12 +82,15 @@ A third false-confidence mode is "green verify before adversarial review." A bro
 
 The credential mistake is the strongest warning. A safety test that embeds the exact QA email, password, nickname, or member id becomes a credential leak. The correct pattern is to use generic detection in committed tests and run exact-value scans only as local verification against the thread-provided QA account.
 
+The dynamic-route smoke gate adds a similar warning about coverage claims. If a route needs live data that cannot be safely hardcoded, skip reporting is better than a fake default. A smoke report that says "skipped; set this env var" creates honest residual risk. A report that silently omits the route or points at a made-up UID creates false confidence.
+
 ## When to Apply
 
 - Before any broad frontend visual pass, especially when the design work will touch route screens, layout wrappers, modal systems, responsive behavior, maps, date pickers, or shared CSS tokens.
 - After a behavior-preserving architecture refactor that moves responsibilities between `routes`, `pages`, `features`, `shared/ui`, and `styles`.
 - When browser QA reports an issue that looks visual but may indicate a missing contract.
 - When an external service blocks local verification. Record the limitation and define the exact condition required for the next phase.
+- After a merge into `main` changes the baseline. Re-run the audit and readiness plan against the merged tree before starting broad styling, even if a previous branch already passed.
 
 ## Examples
 
@@ -126,6 +145,86 @@ expect(protectedPaths).toEqual([
   ROUTE_PATHS.paymentSuccess,
   ROUTE_PATHS.paymentFail,
 ]);
+```
+
+A design-ready script should join static and browser gates so a broad visual pass cannot skip either side:
+
+```json
+{
+  "verify:pre-redesign": "npm run typecheck && npm run test:ci:no-cache -- --runInBand && npm run build",
+  "verify:design-ready": "npm run verify:pre-redesign && npm run smoke:frontend"
+}
+```
+
+Public route barrels should reject workflow internals, not only deep import paths:
+
+```ts
+// Good: the page adapter sees only route containers.
+export { PaymentSuccessRoute } from "./PaymentSuccessRoute";
+export { PaymentFailRoute } from "./PaymentFailRoute";
+
+// Bad: a broad barrel lets pages re-import internals indirectly.
+export { usePaymentConfirmation } from "./hooks";
+export { GuestTripsPanel } from "./GuestTripsPanel";
+```
+
+The contract should assert the barrel surface directly:
+
+```ts
+featureRouteAdapters.forEach(({ publicImport, routeContainer }) => {
+  const publicBarrel = readFileSync(resolvePublicBarrel(publicImport), "utf8");
+
+  expect(publicBarrel).toContain(routeContainer);
+  expect(publicBarrel).not.toMatch(
+    /(?:\.\/(?:components|hooks|lib)|Panel|use[A-Z]|REVIEW_IMAGE_UPLOAD_ERROR_MESSAGE)/,
+  );
+});
+```
+
+The feature-to-page import contract should have no route-container CSS allowlist:
+
+```ts
+const violations = collectSourceFiles(featuresRoot)
+  .filter((filePath) =>
+    /from\s+["'](?:\.\.\/)+pages(?:\/[^"']*)?["']/.test(
+      readFileSync(filePath, "utf8"),
+    ),
+  )
+  .map((filePath) => relative(projectRoot, filePath));
+
+expect(violations).toEqual([]);
+```
+
+Feature route CSS should stay enrolled after it moves:
+
+```ts
+const highRiskPreRedesignCssFiles = [
+  "src/features/reviews/ReviewCreateRoute.module.css",
+  "src/features/profile/components/ProfileShell.module.css",
+];
+```
+
+Dynamic smoke routes should report missing live identifiers explicitly:
+
+```js
+if (!reservationUid) {
+  skippedDynamicRoutes.push({
+    name: "reservation-detail",
+    pathTemplate: "/reservations/:reservationUid",
+    envName: "AIRBOB_SMOKE_RESERVATION_UID",
+  });
+}
+```
+
+Shared compact controls should separate visual size from touch affordance:
+
+```css
+.iconButton::before {
+  content: "";
+  position: absolute;
+  width: var(--control-touch-target);
+  height: var(--control-touch-target);
+}
 ```
 
 A responsive contract should encode the browser QA fix, not just the symptom:
@@ -184,13 +283,18 @@ The design handoff should preserve known limitations:
 - Keep legacy modals rendering and closeable, but migrate them to `role="dialog"` and `shared/ui/Dialog` when their visuals are touched. Auth and Reservation are already on `shared/ui/Dialog`; Review and AccommodationAction are the known remaining legacy modal debt.
 - Remove dead pre-migration CSS selectors when a modal is moved to `shared/ui/Dialog`; otherwise the design pass may style selectors the component no longer renders.
 - Before applying broad Airbnb `design.md` styles, run the token contract so touched component CSS cannot reintroduce core color, radius, shadow, or overlay literals.
+- Treat skipped reservation-detail smoke routes as unresolved QA scope until valid guest and host reservation UIDs are supplied through environment variables.
 
 ## Related
 
 - `docs/superpowers/plans/2026-07-02-airbob-pre-design-architecture.md` describes the pre-design architecture plan and the reason design work was deferred.
+- `docs/superpowers/plans/2026-07-04-airbob-profile-reservation-boundary-refactor.ko.md` describes the profile, reservation, payment, and review route-boundary refactor that produced the route-only barrel and feature-owned CSS rules.
 - `docs/qa/frontend-architecture-smoke.ko.md` is the browser smoke checklist for desktop and mobile verification with the thread-provided QA account.
+- `scripts/smoke/frontend-smoke.mjs` implements the authenticated smoke wrapper, route-specific assertions, credential redaction, and skipped dynamic route reporting.
 - `src/verification-gate.test.ts` locks the verification scripts, QA checklist coverage, and credential-safety checks.
 - `src/routes/routeConfig.test.tsx` locks route/auth/layout ownership in `routes/*`.
+- `src/routes/route-boundary-contracts.test.ts` locks page/layout/shared UI imports against feature-internal coupling.
 - `src/styles/tokens.test.ts` locks global token import order, overlay z-index tokens, and legacy z-index literal prevention.
 - `src/pages/Profile/profile-responsive-contracts.test.ts` locks the Profile mobile overflow fix.
+- `src/features/profile/index.ts`, `src/features/reservations/index.ts`, and `src/features/reviews/index.ts` are route-only public barrels for page adapters.
 - `src/shared/ui/Dialog/*` is the target primitive for modal migrations during future visual work.

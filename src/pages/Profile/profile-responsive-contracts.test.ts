@@ -2,7 +2,10 @@ import { readFileSync } from "fs";
 import { join } from "path";
 
 const readProfileCss = () =>
-  readFileSync(join(process.cwd(), "src/pages/Profile/Profile.module.css"), "utf8");
+  readFileSync(
+    join(process.cwd(), "src/features/profile/components/ProfileShell.module.css"),
+    "utf8",
+  );
 
 const getMediaBlock = (css: string, query: string) => {
   const start = css.indexOf(`@media ${query}`);

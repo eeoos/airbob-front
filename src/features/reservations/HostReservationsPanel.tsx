@@ -1,18 +1,39 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ReservationStatus } from "../../../types/enums";
-import { ErrorToast } from "../../../components/ErrorToast";
-import { routeTo } from "../../../routes/paths";
-import { useHostReservations } from "../../../features/reservations";
-import { EmptyState, LoadingState } from "../../../shared/ui";
-import styles from "./HostReservations.module.css";
+import { ErrorToast } from "../../components/ErrorToast";
+import { routeTo } from "../../routes/paths";
+import { EmptyState, LoadingState } from "../../shared/ui";
+import { useIntersectionLoadMore } from "../../hooks/useIntersectionLoadMore";
+import { useHostReservations } from "./hooks";
+import {
+  formatReservationStatus,
+  getReservationStatusTone,
+} from "./lib/reservationStatusDisplay";
+import { formatKoreanDate, formatNullablePrice } from "./lib/reservationDateDisplay";
+import {
+  getNextHostReservationSort,
+  HostReservationSortColumn,
+  HostReservationSortOrder,
+  sortHostReservations,
+} from "./lib/hostReservationSort";
+import styles from "./HostReservationsPanel.module.css";
 
-interface HostReservationsProps {
+export interface HostReservationsPanelProps {
   filterType: "UPCOMING" | "PAST" | "CANCELLED";
   onFilterChange: (filterType: "UPCOMING" | "PAST" | "CANCELLED") => void;
 }
 
-const HostReservations: React.FC<HostReservationsProps> = ({ filterType, onFilterChange }) => {
+const statusClassByTone = {
+  success: styles.statusConfirmed,
+  warning: styles.statusDefault,
+  danger: styles.statusCancelled,
+  neutral: styles.statusDefault,
+} as const;
+
+export const HostReservationsPanel: React.FC<HostReservationsPanelProps> = ({
+  filterType,
+  onFilterChange,
+}) => {
   const navigate = useNavigate();
   const {
     clearError,
@@ -23,104 +44,21 @@ const HostReservations: React.FC<HostReservationsProps> = ({ filterType, onFilte
     loadMore,
     reservations,
   } = useHostReservations(filterType);
-  const [sortBy, setSortBy] = useState<"check_in" | "check_out" | "created_at">("check_in");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const observerTarget = useRef<HTMLDivElement>(null);
-
-  // Intersection Observer를 사용한 무한 스크롤
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNext && !isLoadingMore) {
-          loadMore();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    const currentTarget = observerTarget.current;
-    if (currentTarget) {
-      observer.observe(currentTarget);
-    }
-
-    return () => {
-      if (currentTarget) {
-        observer.unobserve(currentTarget);
-      }
-    };
-  }, [hasNext, isLoadingMore, loadMore]);
-
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    return `${year}년 ${month}월 ${day}일`;
-  };
-
-  const formatStatus = (status: ReservationStatus): string => {
-    switch (status) {
-      case ReservationStatus.CONFIRMED:
-        return "확정됨";
-      case ReservationStatus.CANCELLED:
-        return "취소됨";
-      case ReservationStatus.PAYMENT_PENDING:
-        return "결제 대기";
-      case ReservationStatus.CANCELLATION_FAILED:
-        return "취소 실패";
-      case ReservationStatus.EXPIRED:
-        return "만료됨";
-      default:
-        return status;
-    }
-  };
-
-  const getStatusClass = (status: ReservationStatus): string => {
-    switch (status) {
-      case ReservationStatus.CONFIRMED:
-        return styles.statusConfirmed;
-      case ReservationStatus.CANCELLED:
-        return styles.statusCancelled;
-      default:
-        return styles.statusDefault;
-    }
-  };
-
-  const formatPrice = (price: number | null): string => {
-    if (price === null) return "-";
-    return `₩${price.toLocaleString()}`;
-  };
-
-  const handleSort = (column: "check_in" | "check_out" | "created_at") => {
-    if (sortBy === column) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setSortBy(column);
-      setSortOrder("desc");
-    }
-  };
-
-  const sortedReservations = [...reservations].sort((a, b) => {
-    let aValue: string;
-    let bValue: string;
-    
-    if (sortBy === "check_in") {
-      aValue = a.check_in_date;
-      bValue = b.check_in_date;
-    } else if (sortBy === "check_out") {
-      aValue = a.check_out_date;
-      bValue = b.check_out_date;
-    } else {
-      aValue = a.created_at;
-      bValue = b.created_at;
-    }
-    
-    if (sortOrder === "asc") {
-      return aValue.localeCompare(bValue);
-    } else {
-      return bValue.localeCompare(aValue);
-    }
+  const [sortBy, setSortBy] = useState<HostReservationSortColumn>("check_in");
+  const [sortOrder, setSortOrder] = useState<HostReservationSortOrder>("desc");
+  const observerTarget = useIntersectionLoadMore({
+    hasNext,
+    isLoading: isLoadingMore,
+    onLoadMore: loadMore,
   });
+
+  const handleSort = (column: HostReservationSortColumn) => {
+    const nextSort = getNextHostReservationSort(sortBy, sortOrder, column);
+    setSortBy(nextSort.column);
+    setSortOrder(nextSort.order);
+  };
+
+  const sortedReservations = sortHostReservations(reservations, sortBy, sortOrder);
 
   if (isLoading) {
     return <LoadingState title="로딩 중..." />;
@@ -183,8 +121,12 @@ const HostReservations: React.FC<HostReservationsProps> = ({ filterType, onFilte
                 {sortedReservations.map((reservation) => (
                   <tr key={reservation.reservation_uid} className={styles.tableRow}>
                     <td className={styles.td}>
-                      <span className={`${styles.status} ${getStatusClass(reservation.status)}`}>
-                        {formatStatus(reservation.status)}
+                      <span
+                        className={`${styles.status} ${
+                          statusClassByTone[getReservationStatusTone(reservation.status)]
+                        }`}
+                      >
+                        {formatReservationStatus(reservation.status)}
                       </span>
                     </td>
                     <td className={styles.td}>
@@ -193,14 +135,14 @@ const HostReservations: React.FC<HostReservationsProps> = ({ filterType, onFilte
                         <div className={styles.guestCount}>{reservation.guest_count}명</div>
                       </div>
                     </td>
-                    <td className={styles.td}>{formatDate(reservation.check_in_date)}</td>
-                    <td className={styles.td}>{formatDate(reservation.check_out_date)}</td>
-                    <td className={styles.td}>{formatDate(reservation.created_at)}</td>
+                    <td className={styles.td}>{formatKoreanDate(reservation.check_in_date)}</td>
+                    <td className={styles.td}>{formatKoreanDate(reservation.check_out_date)}</td>
+                    <td className={styles.td}>{formatKoreanDate(reservation.created_at)}</td>
                     <td className={styles.td}>{reservation.accommodation.name}</td>
                     <td className={styles.td}>
                       {reservation.reservation_code || "-"}
                     </td>
-                    <td className={styles.td}>{formatPrice(reservation.total_price)}</td>
+                    <td className={styles.td}>{formatNullablePrice(reservation.total_price)}</td>
                     <td className={styles.td}>
                       <button
                         className={styles.detailsButton}
@@ -235,5 +177,3 @@ const HostReservations: React.FC<HostReservationsProps> = ({ filterType, onFilte
     </div>
   );
 };
-
-export default HostReservations;

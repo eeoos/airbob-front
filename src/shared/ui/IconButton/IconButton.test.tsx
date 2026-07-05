@@ -1,9 +1,45 @@
+import * as fs from "fs";
+import * as path from "path";
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { IconButton } from "./IconButton";
 
+const readProjectFile = (relativePath: string) =>
+  fs.readFileSync(path.join(process.cwd(), relativePath), "utf8");
+
+const getCssBlock = (source: string, selector: string) => {
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = source.match(new RegExp(`${escapedSelector}\\s*\\{([^}]*)\\}`));
+
+  if (!match) {
+    throw new Error(`Missing CSS block for ${selector}`);
+  }
+
+  return match[1];
+};
+
 describe("IconButton", () => {
+  it("keeps compact visuals while exposing the shared touch target", () => {
+    const css = readProjectFile(
+      "src/shared/ui/IconButton/IconButton.module.css"
+    );
+    const baseStyles = getCssBlock(css, ".iconButton");
+    const touchTargetStyles = getCssBlock(css, ".iconButton::before");
+    const smallStyles = getCssBlock(css, ".sm");
+    const mediumStyles = getCssBlock(css, ".md");
+
+    expect(baseStyles).not.toContain("min-width: var(--control-touch-target);");
+    expect(baseStyles).not.toContain("min-height: var(--control-touch-target);");
+    expect(baseStyles).toContain("position: relative;");
+    expect(touchTargetStyles).toContain("width: var(--control-touch-target);");
+    expect(touchTargetStyles).toContain("height: var(--control-touch-target);");
+    expect(smallStyles).toContain("width: 32px;");
+    expect(smallStyles).toContain("height: 32px;");
+    expect(mediumStyles).toContain("width: 40px;");
+    expect(mediumStyles).toContain("height: 40px;");
+  });
+
   it("uses label as the accessible name and default title", () => {
     render(<IconButton label="검색">⌕</IconButton>);
 

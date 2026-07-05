@@ -356,13 +356,16 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
                     <div className={styles.suggestionItem}>검색 중...</div>
                   )}
                   {suggestions.map((suggestion) => (
-                    <div
+                    <button
                       key={suggestion.placeId}
                       className={styles.suggestionItem}
                       onMouseDown={(e) => {
                         e.preventDefault();
+                      }}
+                      onClick={() => {
                         handlePlaceSelect(suggestion);
                       }}
+                      type="button"
                     >
                       <div className={styles.suggestionMainText}>
                         {suggestion.mainText}
@@ -372,7 +375,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
                           {suggestion.secondaryText}
                         </div>
                       )}
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
@@ -588,6 +591,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
       </div>
 
       <button
+        aria-label="검색"
         className={styles.searchButton}
         onClick={(e) => {
           e.stopPropagation();
@@ -597,6 +601,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onExpandedChange
           }
           handleSearch(e);
         }}
+        type="button"
       >
         <svg viewBox="0 0 32 32" fill="currentColor">
           <path d="M13 0c7.18 0 13 5.82 13 13 0 2.868-.93 5.52-2.502 7.68l7.607 7.608-1.414 1.414-7.607-7.607C18.52 25.07 15.868 26 13 26 5.82 26 0 20.18 0 13S5.82 0 13 0zm0 2C7.477 2 3 6.477 3 12s4.477 10 10 10 10-4.477 10-10S18.523 2 13 2z" />
