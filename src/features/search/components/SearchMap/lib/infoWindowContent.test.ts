@@ -38,6 +38,9 @@ describe("info window content helper", () => {
       brand: "var(--color-brand-coral)",
       textPrimary: "var(--color-text-primary)",
     });
+    expect(INFO_WINDOW_STYLE_TOKENS).not.toHaveProperty("fullSize");
+    expect(INFO_WINDOW_STYLE_TOKENS).not.toHaveProperty("noMargin");
+    expect(INFO_WINDOW_STYLE_TOKENS).not.toHaveProperty("textEllipsis");
   });
 
   it("builds planned info-window content from the vendor-neutral content model", () => {
