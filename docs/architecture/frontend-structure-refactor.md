@@ -11,7 +11,7 @@
 ## Verification Gate
 
 - `verify` remains unchanged and continues to run typecheck, no-cache CI tests, and build.
-- `verify:structure` adds lint visibility after typecheck and focused CI tests without promoting strict lint into the default verification gate.
+- `verify:structure` adds lint visibility after typecheck and the no-cache CI test suite with `--runInBand`, without promoting strict lint into the default verification gate.
 - Task 1-6 focused tests/typecheck passed before this verification cleanup.
 - Full browser smoke remains Task 8.
 
@@ -23,9 +23,9 @@
 
 ## Full Suite Outcome
 
-- `npm run test:ci:no-cache -- --runInBand` failed on 2026-07-06 KST with 4 failed suites, 10 failed tests, 829 passed tests, and 171 passed suites.
+- `npm run test:ci:no-cache -- --runInBand` failed on 2026-07-06 KST with 3 failed suites, 9 failed tests, 830 passed tests, and 172 passed suites.
 - The prior raw-console guardrail regression in `src/contexts/AuthContext.tsx` is fixed; `src/verification-gate.test.ts` passes in the full-suite run.
-- The remaining full-suite failures are in accommodation edit, guest/host reservation pagination, and host listings tests.
+- The remaining full-suite failures are in guest trips pagination, accommodation edit, and host listings tests.
 
 ## Remaining Follow-Ups
 
