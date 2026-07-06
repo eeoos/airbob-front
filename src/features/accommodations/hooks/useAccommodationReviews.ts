@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { reviewApi } from "../../../api";
 import { ReviewSortType } from "../../../types/enums";
 import { ReviewInfo, ReviewInfos } from "../../../types/review";
+import { accommodationQueryKeys } from "../queryKeys";
 
 interface UseAccommodationReviewsOptions {
   accommodationId?: string;
@@ -17,14 +18,12 @@ const accommodationReviewsQueryKey = (
   accommodationId: string | undefined,
   cursor: string | null,
 ) =>
-  [
-    "accommodation",
-    "reviews",
-    accommodationId ?? "missing",
-    ReviewSortType.LATEST,
-    REVIEW_PAGE_SIZE,
-    cursor ?? "first",
-  ] as const;
+  accommodationQueryKeys.reviews({
+    accommodationId: accommodationId ?? null,
+    cursor,
+    size: REVIEW_PAGE_SIZE,
+    sortType: ReviewSortType.LATEST,
+  });
 
 export const useAccommodationReviews = ({
   accommodationId,

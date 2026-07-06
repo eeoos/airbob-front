@@ -4,6 +4,7 @@ import React from "react";
 import { reviewApi } from "../../../api";
 import { ReviewInfo, ReviewInfos } from "../../../types/review";
 import { ReviewSortType } from "../../../types/enums";
+import { accommodationQueryKeys } from "../queryKeys";
 import { useAccommodationReviews } from "./useAccommodationReviews";
 
 jest.mock("../../../api", () => ({
@@ -15,7 +16,7 @@ jest.mock("../../../api", () => ({
 const mockHandleError = jest.fn();
 const mockClearError = jest.fn();
 
-const createWrapper = () => {
+const createWrapperWithClient = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -24,7 +25,7 @@ const createWrapper = () => {
     },
   });
 
-  return function QueryClientTestWrapper({
+  const wrapper = function QueryClientTestWrapper({
     children,
   }: {
     children: React.ReactNode;
@@ -35,7 +36,11 @@ const createWrapper = () => {
       children,
     );
   };
+
+  return { queryClient, wrapper };
 };
+
+const createWrapper = () => createWrapperWithClient().wrapper;
 
 const createReview = (id: number): ReviewInfo => ({
   id,
@@ -103,10 +108,12 @@ describe("useAccommodationReviews", () => {
 
   it("loads the first review page with latest sort and page size six", async () => {
     const firstPage = [createReview(1), createReview(2)];
+    const firstPageResponse = createReviewResponse(firstPage, true, "cursor-1");
     jest
       .mocked(reviewApi.getReviews)
-      .mockResolvedValue(createReviewResponse(firstPage, true, "cursor-1"));
+      .mockResolvedValue(firstPageResponse);
 
+    const { queryClient, wrapper } = createWrapperWithClient();
     const { result } = renderHook(
       () =>
         useAccommodationReviews({
@@ -115,7 +122,7 @@ describe("useAccommodationReviews", () => {
           handleError: mockHandleError,
           clearError: mockClearError,
         }),
-      { wrapper: createWrapper() },
+      { wrapper },
     );
 
     await waitFor(() => expect(result.current.isLoadingReviews).toBe(false));
@@ -125,6 +132,26 @@ describe("useAccommodationReviews", () => {
       size: 6,
       cursor: undefined,
     });
+    expect(
+      queryClient.getQueryData(
+        accommodationQueryKeys.reviews({
+          accommodationId: "7",
+          cursor: null,
+          size: 6,
+          sortType: ReviewSortType.LATEST,
+        }),
+      ),
+    ).toEqual(firstPageResponse);
+    expect(
+      queryClient.getQueryData([
+        "accommodation",
+        "reviews",
+        7,
+        ReviewSortType.LATEST,
+        6,
+        "first",
+      ]),
+    ).toBeUndefined();
     expect(result.current.reviews).toEqual(firstPage);
     expect(result.current.allReviews).toEqual(firstPage);
     expect(result.current.reviewCursor).toBe("cursor-1");
@@ -138,7 +165,7 @@ describe("useAccommodationReviews", () => {
       .mockResolvedValue(createReviewResponse(cachedFirstPage, true, "cursor-1"));
     const wrapper = createWrapper();
 
-    const populatedHook = renderHook(
+    const view = renderHook(
       () =>
         useAccommodationReviews({
           accommodationId: "7",
@@ -150,9 +177,9 @@ describe("useAccommodationReviews", () => {
     );
 
     await waitFor(() =>
-      expect(populatedHook.result.current.reviews).toEqual(cachedFirstPage)
+      expect(view.result.current.reviews).toEqual(cachedFirstPage)
     );
-    populatedHook.unmount();
+    view.unmount();
 
     const { result } = renderHook(
       () =>
