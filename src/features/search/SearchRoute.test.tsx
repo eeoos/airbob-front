@@ -1,21 +1,18 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { readFileSync } from "fs";
+import path from "path";
 import type {
   SearchAccommodationCardViewModel,
   SearchAccommodationMapViewModel,
 } from "./lib/searchAccommodationViewModel";
 import { SearchRoute } from "./SearchRoute";
 
-const mockUseApiError = jest.fn();
-const mockUseAuth = jest.fn();
-const mockUseSearchBottomSheet = jest.fn();
-const mockUseSearchMapState = jest.fn();
-const mockUseSearchResults = jest.fn();
-const mockUseSearchWishlistModal = jest.fn();
+const mockUseSearchRouteController = jest.fn();
 const mockOpenWishlistModal = jest.fn();
 const mockCloseAuthModal = jest.fn();
 const mockCloseWishlistModal = jest.fn();
 const mockHandleAuthSuccess = jest.fn();
+const mockOpenAccommodationDetail = jest.fn();
 
 jest.mock("framer-motion", () => {
   const React = require("react");
@@ -53,14 +50,6 @@ jest.mock("framer-motion", () => {
     },
   };
 });
-
-jest.mock("../../hooks/useApiError", () => ({
-  useApiError: () => mockUseApiError(),
-}));
-
-jest.mock("../../hooks/useAuth", () => ({
-  useAuth: () => mockUseAuth(),
-}));
 
 jest.mock("../auth/appShell", () => ({
   AuthModal: ({
@@ -157,10 +146,12 @@ jest.mock("./components/SearchResultsList", () => ({
   SearchResultsList: ({
     accommodations,
     layout,
+    onAccommodationClick,
     onWishlistToggle,
   }: {
     accommodations: SearchAccommodationCardViewModel[];
     layout?: "desktop" | "bottomSheet";
+    onAccommodationClick: (accommodationId: number) => void;
     onWishlistToggle: (accommodationId: number) => void;
   }) => (
     <section data-testid="search-results-list" data-layout={layout}>
@@ -174,27 +165,21 @@ jest.mock("./components/SearchResultsList", () => ({
           >
             {`wishlist ${accommodation.id}`}
           </button>
+          <button
+            type="button"
+            onClick={() => onAccommodationClick(accommodation.id)}
+          >
+            {`open ${accommodation.id}`}
+          </button>
         </article>
       ))}
     </section>
   ),
 }));
 
-jest.mock("./hooks/useSearchBottomSheet", () => ({
-  useSearchBottomSheet: () => mockUseSearchBottomSheet(),
-}));
-
-jest.mock("./hooks/useSearchMapState", () => ({
-  useSearchMapState: () => mockUseSearchMapState(),
-}));
-
-jest.mock("./hooks/useSearchResults", () => ({
-  useSearchResults: (options: unknown) => mockUseSearchResults(options),
-}));
-
-jest.mock("./hooks/useSearchWishlistModal", () => ({
-  useSearchWishlistModal: (options: unknown) =>
-    mockUseSearchWishlistModal(options),
+jest.mock("./hooks/useSearchRouteController", () => ({
+  useSearchRouteController: (options: unknown) =>
+    mockUseSearchRouteController(options),
 }));
 
 const accommodationCards: SearchAccommodationCardViewModel[] = [
@@ -245,67 +230,85 @@ const renderSearchRoute = () =>
     />
   );
 
+describe("SearchRoute structure", () => {
+  it("keeps route orchestration in useSearchRouteController", () => {
+    const routeSource = readFileSync(
+      path.join(process.cwd(), "src/features/search/SearchRoute.tsx"),
+      "utf8"
+    );
+
+    expect(routeSource).toContain("useSearchRouteController");
+    expect(routeSource).not.toContain("window.open(");
+    expect(routeSource).not.toContain("routeTo.accommodationDetail");
+    expect(routeSource).not.toContain("useSearchResults({");
+    expect(routeSource).not.toContain("useSearchWishlistModal({");
+  });
+});
+
 describe("SearchRoute", () => {
   beforeEach(() => {
-    mockUseApiError.mockReturnValue({
-      error: null,
-      handleError: jest.fn(),
-      clearError: jest.fn(),
-    });
-    mockUseAuth.mockReturnValue({ isAuthenticated: false });
-    mockUseSearchMapState.mockReturnValue({
-      selectedAccommodationId: 7,
-      hoveredAccommodationId: null,
-      isMapExpanded: false,
-      isMapDragMode: false,
-      shouldUpdateMapBounds: false,
-      setHoveredAccommodationId: jest.fn(),
-      setIsMapDragMode: jest.fn(),
-      handleAccommodationSelect: jest.fn(),
-      selectAccommodationId: jest.fn(),
-      toggleMapExpanded: jest.fn(),
-      requestMapBoundsUpdate: jest.fn(),
-      onMapBoundsUpdated: jest.fn(),
-    });
-    mockUseSearchResults.mockReturnValue({
-      accommodationCards,
-      accommodationMapItems,
-      updateAccommodationWishlistStatus: jest.fn(),
-      isLoading: false,
-      currentPage: 0,
-      totalPages: 3,
-      totalElements: accommodationCards.length,
-      handleMapBoundsChange: jest.fn(),
-      handlePageChange: jest.fn(),
-    });
-    mockUseSearchBottomSheet.mockReturnValue({
-      bottomSheetState: "expanded",
-      isMobileOrTablet: false,
-      bottomSheetRef: { current: null },
-      snapPositions: {
-        expanded: 600,
-        collapsed: 120,
+    mockUseSearchRouteController.mockReturnValue({
+      bottomSheet: {
+        bottomSheetState: "expanded",
+        isMobileOrTablet: false,
+        bottomSheetRef: { current: null },
+        snapPositions: {
+          expanded: 600,
+          collapsed: 120,
+        },
+        translateY: 0,
+        handleDragStart: jest.fn(),
+        handleDrag: jest.fn(),
+        handleDragEnd: jest.fn(),
+        handleMapInteraction: jest.fn(),
+        handleBottomSheetScroll: jest.fn(),
       },
-      translateY: 0,
-      handleDragStart: jest.fn(),
-      handleDrag: jest.fn(),
-      handleDragEnd: jest.fn(),
-      handleMapInteraction: jest.fn(),
-      handleBottomSheetScroll: jest.fn(),
-    });
-    mockUseSearchWishlistModal.mockReturnValue({
-      authModalOpen: true,
-      closeAuthModal: mockCloseAuthModal,
-      closeWishlistModal: mockCloseWishlistModal,
-      handleAuthSuccess: mockHandleAuthSuccess,
-      openWishlistModal: mockOpenWishlistModal,
-      selectedAccommodationForWishlist: accommodationCards[0].id,
-      wishlistModalOpen: true,
+      checkIn: "2026-07-10",
+      checkOut: "2026-07-12",
+      clearError: jest.fn(),
+      error: null,
+      hasResults: true,
+      mapState: {
+        selectedAccommodationId: 7,
+        hoveredAccommodationId: null,
+        isMapExpanded: false,
+        isMapDragMode: false,
+        shouldUpdateMapBounds: false,
+        setHoveredAccommodationId: jest.fn(),
+        setIsMapDragMode: jest.fn(),
+        handleAccommodationSelect: jest.fn(),
+        selectAccommodationId: jest.fn(),
+        toggleMapExpanded: jest.fn(),
+        requestMapBoundsUpdate: jest.fn(),
+        onMapBoundsUpdated: jest.fn(),
+      },
+      openAccommodationDetail: mockOpenAccommodationDetail,
+      searchResults: {
+        accommodationCards,
+        accommodationMapItems,
+        updateAccommodationWishlistStatus: jest.fn(),
+        isLoading: false,
+        currentPage: 0,
+        totalPages: 3,
+        totalElements: accommodationCards.length,
+        handleMapBoundsChange: jest.fn(),
+        handlePageChange: jest.fn(),
+      },
+      wishlist: {
+        authModalOpen: true,
+        closeAuthModal: mockCloseAuthModal,
+        closeWishlistModal: mockCloseWishlistModal,
+        handleAuthSuccess: mockHandleAuthSuccess,
+        openWishlistModal: mockOpenWishlistModal,
+        selectedAccommodationForWishlist: accommodationCards[0].id,
+        wishlistModalOpen: true,
+      },
     });
     mockOpenWishlistModal.mockClear();
     mockCloseAuthModal.mockClear();
     mockCloseWishlistModal.mockClear();
     mockHandleAuthSuccess.mockClear();
+    mockOpenAccommodationDetail.mockClear();
   });
 
   it("composes the results, map, wishlist modal, and auth modal shell", () => {
@@ -342,9 +345,11 @@ describe("SearchRoute", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "wishlist 11" }));
     fireEvent.click(screen.getByRole("button", { name: "map wishlist" }));
+    fireEvent.click(screen.getByRole("button", { name: "open 11" }));
 
     expect(mockOpenWishlistModal).toHaveBeenNthCalledWith(1, 11);
     expect(mockOpenWishlistModal).toHaveBeenNthCalledWith(2, 7, false);
+    expect(mockOpenAccommodationDetail).toHaveBeenCalledWith(11);
   });
 
   it("defines the selected result style with existing focus and brand tokens", () => {
