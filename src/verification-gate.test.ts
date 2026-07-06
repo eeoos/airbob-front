@@ -89,7 +89,9 @@ const isolatedSmokeSubprocessEnv = (
     "AIRBOB_SMOKE_RESERVATION_UID",
     "AIRBOB_SMOKE_HOST_RESERVATION_UID",
     "AIRBOB_SMOKE_ACCOMMODATION_ID",
+    "AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID",
     "AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS",
+    "AIRBOB_SMOKE_REPORT_ROOT",
     "AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES",
   ].forEach((key) => {
     delete env[key];
@@ -98,7 +100,78 @@ const isolatedSmokeSubprocessEnv = (
   return { ...env, ...overrides };
 };
 
+const readDirectoryEntries = (directory: string) =>
+  fs.existsSync(directory) ? fs.readdirSync(directory).sort() : null;
+
+const toSmokeReportPath = (reportedPath: string) =>
+  path.isAbsolute(reportedPath)
+    ? reportedPath
+    : path.join(projectRoot, reportedPath);
+
+const removeNewDirectoryEntries = (
+  directory: string,
+  previousEntries: string[] | null,
+) => {
+  if (!fs.existsSync(directory)) {
+    return;
+  }
+
+  if (previousEntries === null) {
+    fs.rmSync(directory, { recursive: true, force: true });
+    return;
+  }
+
+  const previousEntrySet = new Set(previousEntries);
+
+  fs.readdirSync(directory)
+    .filter((entry) => !previousEntrySet.has(entry))
+    .forEach((entry) => {
+      fs.rmSync(path.join(directory, entry), { recursive: true, force: true });
+    });
+};
+
 describe("frontend verification gate", () => {
+  test("smoke subprocess env removes parent smoke vars unless explicitly overridden", () => {
+    const previousReportRoot = process.env.AIRBOB_SMOKE_REPORT_ROOT;
+    const previousEditAccommodationId =
+      process.env.AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID;
+
+    process.env.AIRBOB_SMOKE_REPORT_ROOT = "/tmp/airbob-parent-smoke";
+    process.env.AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID = "parent-id";
+
+    try {
+      const defaultEnv = isolatedSmokeSubprocessEnv();
+
+      expect(
+        defaultEnv.AIRBOB_SMOKE_REPORT_ROOT,
+      ).toBeUndefined();
+      expect(defaultEnv.AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID).toBeUndefined();
+
+      const overrideEnv = isolatedSmokeSubprocessEnv({
+        AIRBOB_SMOKE_REPORT_ROOT: "/tmp/airbob-override-smoke",
+        AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID: "override-id",
+      });
+
+      expect(overrideEnv.AIRBOB_SMOKE_REPORT_ROOT).toBe(
+        "/tmp/airbob-override-smoke",
+      );
+      expect(overrideEnv.AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID).toBe("override-id");
+    } finally {
+      if (previousReportRoot === undefined) {
+        delete process.env.AIRBOB_SMOKE_REPORT_ROOT;
+      } else {
+        process.env.AIRBOB_SMOKE_REPORT_ROOT = previousReportRoot;
+      }
+
+      if (previousEditAccommodationId === undefined) {
+        delete process.env.AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID;
+      } else {
+        process.env.AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID =
+          previousEditAccommodationId;
+      }
+    }
+  });
+
   test("production source routes warn/error logging and static inline styles through guardrails", () => {
     const rawConsoleViolations: string[] = [];
     const staticInlineStyleViolations: string[] = [];
@@ -197,6 +270,8 @@ describe("frontend verification gate", () => {
       "Task 1-6 focused tests/typecheck passed",
       "Full browser smoke remains Task 8.",
       "Promote `lint:strict` into `verify` after existing lint debt is closed.",
+      "`verify` remains the default static local gate and still excludes lint and strict smoke.",
+      "`verify:design-ready` remains the explicit browser-backed gate because it needs live credentials, stable reservation UIDs, gstack browse, and seeded search data.",
     ].forEach((term) => {
       expect(architectureDoc).toContain(term);
     });
@@ -206,6 +281,7 @@ describe("frontend verification gate", () => {
       "REACT_APP_GOOGLE_MAPS_API_KEY=replace-with-local-dev-key",
       "AIRBOB_QA_EMAIL=qa@example.com",
       "AIRBOB_QA_PASSWORD=replace-with-local-qa-password",
+      "AIRBOB_SMOKE_REPORT_ROOT=.gstack/qa-reports",
       "AIRBOB_SMOKE_RESERVATION_UID=replace-with-stable-reservation-uid",
     ].forEach((term) => {
       expect(envExample).toContain(term);
@@ -287,6 +363,45 @@ describe("frontend verification gate", () => {
     expect(smokeScript).not.toMatch(/process\.env\.AIRBOB_QA_(?:EMAIL|PASSWORD)[^;]*console/);
   });
 
+  test("frontend smoke writes reports under an override root during harness tests", () => {
+    const tempReportRoot = fs.mkdtempSync(
+      path.join(os.tmpdir(), "airbob-smoke-report-"),
+    );
+    const defaultReportRoot = path.join(projectRoot, ".gstack", "qa-reports");
+    const defaultReportEntriesBefore = readDirectoryEntries(defaultReportRoot);
+
+    try {
+      const result = spawnSync("node", [frontendSmokePath], {
+        cwd: projectRoot,
+        encoding: "utf8",
+        env: isolatedSmokeSubprocessEnv({
+          AIRBOB_FRONTEND_URL: "http://127.0.0.1:9",
+          AIRBOB_QA_EMAIL: "fake-user@example.invalid",
+          AIRBOB_QA_PASSWORD: "fake-password",
+          AIRBOB_SMOKE_REPORT_ROOT: tempReportRoot,
+          GSTACK_BROWSE_BIN: "node",
+        }),
+      });
+      const defaultReportEntriesAfter = readDirectoryEntries(defaultReportRoot);
+      const overrideReportEntries = fs.readdirSync(tempReportRoot);
+
+      expect(result.status).not.toBe(0);
+      expect(fs.existsSync(tempReportRoot)).toBe(true);
+      expect(
+        overrideReportEntries.some((entry) =>
+          /^frontend-smoke-.+\.md$/.test(entry),
+        ),
+      ).toBe(true);
+      expect(defaultReportEntriesAfter).toEqual(defaultReportEntriesBefore);
+      if (defaultReportEntriesBefore === null) {
+        expect(fs.existsSync(defaultReportRoot)).toBe(false);
+      }
+    } finally {
+      removeNewDirectoryEntries(defaultReportRoot, defaultReportEntriesBefore);
+      fs.rmSync(tempReportRoot, { recursive: true, force: true });
+    }
+  });
+
   test("frontend smoke fails when browse exits zero with guarded console and JS error output", () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "airbob-smoke-"));
     const fakeBrowsePath = path.join(tempDir, "fake-browse.mjs");
@@ -323,7 +438,7 @@ describe("frontend verification gate", () => {
       const output = `${result.stdout}\n${result.stderr}`;
       const reportPathMatch = output.match(/Smoke report written to (.+\.md)/);
       const reportPath = reportPathMatch
-        ? path.join(projectRoot, reportPathMatch[1])
+        ? toSmokeReportPath(reportPathMatch[1])
         : "";
       const report = reportPath ? fs.readFileSync(reportPath, "utf8") : "";
 
@@ -424,6 +539,7 @@ describe("frontend verification gate", () => {
       "Google Maps API key: present",
       "AIRBOB_API_BASE_URL",
       "AIRBOB_FRONTEND_URL",
+      "AIRBOB_SMOKE_REPORT_ROOT",
       "GSTACK_BROWSE_BIN",
       "AIRBOB_QA_EMAIL",
       ': "${AIRBOB_QA_PASSWORD:?Set AIRBOB_QA_PASSWORD in the shell before running smoke}"',

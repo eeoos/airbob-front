@@ -12,7 +12,9 @@
 ## Verification Gate
 
 - `verify` remains unchanged and continues to run typecheck, no-cache CI tests, and build.
+- `verify` remains the default static local gate and still excludes lint and strict smoke.
 - `verify:structure` adds lint visibility after typecheck and the no-cache CI test suite with `--runInBand`, without promoting strict lint into the default verification gate.
+- `verify:design-ready` remains the explicit browser-backed gate because it needs live credentials, stable reservation UIDs, gstack browse, and seeded search data.
 - Task 1-6 focused tests/typecheck passed before this verification cleanup.
 - Full browser smoke remains Task 8.
 
