@@ -76,46 +76,56 @@ jest.mock("./shared/ui", () => ({
   ),
 }));
 
-jest.mock("./features/home", () => ({
+jest.mock("./features/home/HomeRoute", () => ({
   HomeRoute: () => <div data-testid="page-home" />,
 }));
-jest.mock("./features/search", () => ({
+jest.mock("./features/search/SearchRoute", () => ({
   SearchRoute: () => <div data-testid="page-search" />,
 }));
-jest.mock("./features/accommodations", () => ({
+jest.mock("./features/accommodations/AccommodationDetailRoute", () => ({
   AccommodationDetailRoute: () => (
     <div data-testid="page-accommodation-detail" />
   ),
 }));
-jest.mock("./features/accommodations/edit", () => ({
+jest.mock("./features/accommodations/edit/AccommodationEditRoute", () => ({
   AccommodationEditRoute: () => (
     <div data-testid="page-accommodation-edit" />
   ),
 }));
-jest.mock("./features/wishlist", () => ({
+jest.mock("./features/wishlist/WishlistRoute", () => ({
   WishlistRoute: () => <div data-testid="page-wishlist" />,
 }));
-jest.mock("./features/profile", () => ({
+jest.mock("./features/profile/ProfileRoute", () => ({
   ProfileRoute: () => <div data-testid="page-profile" />,
 }));
-jest.mock("./features/reservations", () => ({
+jest.mock("./features/reservations/HostReservationDetailRoute", () => ({
   HostReservationDetailRoute: () => (
     <div data-testid="page-host-reservation-detail" />
   ),
+}));
+jest.mock("./features/reservations/PaymentFailRoute", () => ({
   PaymentFailRoute: () => <div data-testid="page-payment-fail" />,
+}));
+jest.mock("./features/reservations/PaymentSuccessRoute", () => ({
   PaymentSuccessRoute: () => <div data-testid="page-payment-success" />,
+}));
+jest.mock("./features/reservations/ReservationConfirmRoute", () => ({
   ReservationConfirmRoute: () => (
     <div data-testid="page-reservation-confirm" />
   ),
+}));
+jest.mock("./features/reservations/ReservationDetailRoute", () => ({
   ReservationDetailRoute: () => (
     <div data-testid="page-reservation-detail" />
   ),
 }));
-jest.mock("./features/reviews", () => ({
+jest.mock("./features/reviews/ReviewCreateRoute", () => ({
   ReviewCreateRoute: () => <div data-testid="page-review-create" />,
 }));
-jest.mock("./features/auth", () => ({
+jest.mock("./features/auth/LoginRoute", () => ({
   LoginRoute: () => <div data-testid="page-login" />,
+}));
+jest.mock("./features/auth/SignupRoute", () => ({
   SignupRoute: () => <div data-testid="page-signup" />,
 }));
 jest.mock("./routes/NotFoundRoute", () => ({

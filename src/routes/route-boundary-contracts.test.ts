@@ -19,72 +19,72 @@ const forbiddenPageImportPattern =
 const featureRouteContainers = [
   {
     publicBarrel: "src/features/home/index.ts",
-    lazyImport: "../features/home",
+    lazyImport: "../features/home/HomeRoute",
     routeContainer: "HomeRoute",
   },
   {
     publicBarrel: "src/features/search/index.ts",
-    lazyImport: "../features/search",
+    lazyImport: "../features/search/SearchRoute",
     routeContainer: "SearchRoute",
   },
   {
     publicBarrel: "src/features/wishlist/index.ts",
-    lazyImport: "../features/wishlist",
+    lazyImport: "../features/wishlist/WishlistRoute",
     routeContainer: "WishlistRoute",
   },
   {
     publicBarrel: "src/features/accommodations/index.ts",
-    lazyImport: "../features/accommodations",
+    lazyImport: "../features/accommodations/AccommodationDetailRoute",
     routeContainer: "AccommodationDetailRoute",
   },
   {
     publicBarrel: "src/features/accommodations/edit/index.ts",
-    lazyImport: "../features/accommodations/edit",
+    lazyImport: "../features/accommodations/edit/AccommodationEditRoute",
     routeContainer: "AccommodationEditRoute",
   },
   {
     publicBarrel: "src/features/profile/index.ts",
-    lazyImport: "../features/profile",
+    lazyImport: "../features/profile/ProfileRoute",
     routeContainer: "ProfileRoute",
   },
   {
     publicBarrel: "src/features/reservations/index.ts",
-    lazyImport: "../features/reservations",
+    lazyImport: "../features/reservations/HostReservationDetailRoute",
     routeContainer: "HostReservationDetailRoute",
   },
   {
     publicBarrel: "src/features/reservations/index.ts",
-    lazyImport: "../features/reservations",
+    lazyImport: "../features/reservations/PaymentSuccessRoute",
     routeContainer: "PaymentSuccessRoute",
   },
   {
     publicBarrel: "src/features/reservations/index.ts",
-    lazyImport: "../features/reservations",
+    lazyImport: "../features/reservations/PaymentFailRoute",
     routeContainer: "PaymentFailRoute",
   },
   {
     publicBarrel: "src/features/reservations/index.ts",
-    lazyImport: "../features/reservations",
+    lazyImport: "../features/reservations/ReservationDetailRoute",
     routeContainer: "ReservationDetailRoute",
   },
   {
     publicBarrel: "src/features/reservations/index.ts",
-    lazyImport: "../features/reservations",
+    lazyImport: "../features/reservations/ReservationConfirmRoute",
     routeContainer: "ReservationConfirmRoute",
   },
   {
     publicBarrel: "src/features/reviews/index.ts",
-    lazyImport: "../features/reviews",
+    lazyImport: "../features/reviews/ReviewCreateRoute",
     routeContainer: "ReviewCreateRoute",
   },
   {
     publicBarrel: "src/features/auth/index.ts",
-    lazyImport: "../features/auth",
+    lazyImport: "../features/auth/LoginRoute",
     routeContainer: "LoginRoute",
   },
   {
     publicBarrel: "src/features/auth/index.ts",
-    lazyImport: "../features/auth",
+    lazyImport: "../features/auth/SignupRoute",
     routeContainer: "SignupRoute",
   },
 ] as const;
@@ -163,6 +163,11 @@ const collectPrivateCrossFeatureImports = (
           `${relative(projectRoot, filePath)} imports ${importSource}`,
       );
   });
+
+const collectLazyImportTargets = (source: string) =>
+  Array.from(source.matchAll(/React\.lazy\(\(\)\s*=>\s*import\("([^"]+)"\)/g))
+    .map((match) => match[1])
+    .filter((target): target is string => Boolean(target));
 
 describe("route boundary contracts", () => {
   it("keeps route files from importing feature modules", () => {
@@ -248,17 +253,22 @@ describe("route boundary contracts", () => {
     expect(violations).toEqual([]);
   });
 
-  it("loads route containers from feature public barrels directly", () => {
+  it("loads route containers from direct per-route feature modules", () => {
     const routeConfigSource = readFileSync(
       join(projectRoot, "src/routes/routeConfig.tsx"),
       "utf8",
     );
+    const lazyImportTargets = collectLazyImportTargets(routeConfigSource);
 
     expect(routeConfigSource).not.toContain("../pages/");
+    expect(lazyImportTargets).toHaveLength(featureRouteContainers.length + 1);
+    expect(new Set(lazyImportTargets).size).toBe(lazyImportTargets.length);
     featureRouteContainers.forEach(({ lazyImport, routeContainer }) => {
-      expect(routeConfigSource).toContain(lazyImport);
+      expect(lazyImportTargets).toContain(lazyImport);
       expect(routeConfigSource).toContain(routeContainer);
     });
+    expect(lazyImportTargets).not.toContain("../features/reservations");
+    expect(lazyImportTargets).not.toContain("../features/auth");
   });
 
   it("keeps feature public route barrels from exporting workflow internals", () => {
