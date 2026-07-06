@@ -55,6 +55,8 @@ The July 6 structure-first refactor added a narrower lesson: moving files is not
 
 ## Guidance
 
+After a broad architecture merge, rerun a full-audit pass before visual styling. The second pass should look for remaining private URL/query dependencies, cache keys outside feature query key modules, public seams that are implied but not tested, CSS Modules outside token ownership, and verification scripts that leave local artifacts during tests.
+
 Run an explicit architecture verification loop before starting visual design work. Treat the loop as a release gate, not as a best-effort checklist.
 
 First, freeze the architecture ownership rules in tests. Route tests should prove that URL/auth/layout policy is centralized in `routes/*`. Domain hook tests should prove that API state lives under `features/*`. Shared primitive tests should prove that reusable UI remains domain-free. Token tests should prevent legacy app-level z-index literals from returning after `styles/tokens.css` becomes the overlay source of truth.
