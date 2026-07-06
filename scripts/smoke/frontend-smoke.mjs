@@ -270,6 +270,26 @@ const normalizeBaseUrl = (url) => {
   return parsed.toString().replace(/\/+$/, "");
 };
 
+const stripUrlUserinfo = (value) =>
+  String(value ?? "").replace(
+    /\b([a-z][a-z0-9+.-]*:\/\/)([^/@\s]+)@/gi,
+    "$1",
+  );
+
+const sanitizeUrlForDisplay = (url) => {
+  try {
+    const parsed = new URL(url);
+    parsed.username = "";
+    parsed.password = "";
+    return parsed.toString().replace(/\/+$/, "");
+  } catch {
+    return stripUrlUserinfo(url);
+  }
+};
+
+const sanitizeReachabilityMessage = (message) =>
+  redact(stripUrlUserinfo(message));
+
 const baseUrl = normalizeBaseUrl(frontendUrl);
 const toAbsoluteUrl = (routePath) => new URL(routePath, `${baseUrl}/`).toString();
 
@@ -288,6 +308,7 @@ const validateBrowserBinaryPath = (binaryPath) => {
 
 const checkReachability = async (name, url) => {
   const controller = new AbortController();
+  const displayUrl = sanitizeUrlForDisplay(url);
   const timeoutMs = Number(
     process.env.AIRBOB_SMOKE_PREFLIGHT_TIMEOUT_MS ?? "3000",
   );
@@ -299,14 +320,16 @@ const checkReachability = async (name, url) => {
       signal: controller.signal,
     });
 
-    if (response.status >= 500) {
-      return `${name} responded with HTTP ${response.status}.`;
+    if (response.status < 200 || response.status >= 400) {
+      return `${name} responded with HTTP ${response.status} at ${displayUrl}.`;
     }
 
     return null;
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return `${name} is not reachable at ${url}: ${message}`;
+    const message = sanitizeReachabilityMessage(
+      error instanceof Error ? error.message : String(error),
+    );
+    return `${name} is not reachable at ${displayUrl}: ${message}`;
   } finally {
     clearTimeout(timeout);
   }
@@ -343,8 +366,10 @@ const runPreflight = async () => {
 
   console.log("Frontend smoke preflight passed.");
   console.log("Validated env names without printing secret values.");
-  console.log(`Frontend reachable: ${baseUrl}`);
-  console.log(`Backend reachable: ${normalizeBaseUrl(backendUrl)}`);
+  console.log(`Frontend reachable: ${sanitizeUrlForDisplay(baseUrl)}`);
+  console.log(
+    `Backend reachable: ${sanitizeUrlForDisplay(normalizeBaseUrl(backendUrl))}`,
+  );
   console.log("Browser binary executable: GSTACK_BROWSE_BIN");
 };
 

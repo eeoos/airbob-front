@@ -91,6 +91,15 @@ const makeWishlistAccommodationCard = (
 ): WishlistAccommodationCardViewModel =>
   toWishlistAccommodationCardViewModel(makeWishlistAccommodation(overrides));
 
+const expectNoNestedInteractiveControls = (container: HTMLElement) => {
+  // This is a DOM-structure regression guard: nested buttons are invalid even
+  // when each control still has an accessible role.
+  // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
+  expect(container.querySelectorAll("button button")).toHaveLength(0);
+  // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
+  expect(container.querySelectorAll('[role="button"] button')).toHaveLength(0);
+};
+
 const renderWishlistIndex = (
   props: Partial<React.ComponentProps<typeof WishlistIndexView>> = {}
 ) =>
@@ -288,20 +297,23 @@ describe("Wishlist view components", () => {
   });
 
   it("keeps card actions and nested controls separate", () => {
-    renderWishlistIndex({
+    const { container: indexContainer } = renderWishlistIndex({
       recentlyViewedSummaryLabel: "오늘",
       wishlists: [makeWishlistCard()],
     });
     expect(screen.getByRole("button", { name: "위시리스트 삭제" })).toBeInTheDocument();
+    expectNoNestedInteractiveControls(indexContainer);
 
-    renderWishlistDetail({
+    const { container: detailContainer } = renderWishlistDetail({
       wishlistAccommodations: [makeWishlistAccommodationCard()],
     });
     expect(screen.getByRole("button", { name: "삭제" })).toBeInTheDocument();
+    expectNoNestedInteractiveControls(detailContainer);
 
-    renderRecentlyViewed({
+    const { container: recentlyViewedContainer } = renderRecentlyViewed({
       recentlyViewed: [makeRecentlyViewedCard()],
     });
     expect(screen.getByRole("button", { name: "위시리스트" })).toBeInTheDocument();
+    expectNoNestedInteractiveControls(recentlyViewedContainer);
   });
 });
