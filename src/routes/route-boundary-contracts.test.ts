@@ -172,6 +172,23 @@ describe("route boundary contracts", () => {
     expect(violations).toEqual([]);
   });
 
+  it("keeps search and wishlist cross-feature cache access on public boundaries", () => {
+    const wishlistCacheSync = readFileSync(
+      join(process.cwd(), "src/features/wishlist/lib/wishlistCacheSync.ts"),
+      "utf8",
+    );
+    const searchWishlistModal = readFileSync(
+      join(
+        process.cwd(),
+        "src/features/search/hooks/useSearchWishlistModal.ts",
+      ),
+      "utf8",
+    );
+
+    expect(wishlistCacheSync).not.toContain("../../search/queryKeys");
+    expect(searchWishlistModal).not.toContain("../../wishlist/lib/");
+  });
+
   it("keeps layouts on explicit feature app-shell APIs", () => {
     const violations = collectSourceFiles(layoutsRoot)
       .filter((filePath) =>
