@@ -153,11 +153,16 @@ const importsPrivateFeatureSurface = (
   targetFeature: "search" | "wishlist",
 ) => {
   const targetFeatureRoot = `src/features/${targetFeature}`;
+  const privateSurfaceRoots = ["lib", "hooks", "components"].map(
+    (surface) => `${targetFeatureRoot}/${surface}`,
+  );
 
   return (
-    importTarget.startsWith(`${targetFeatureRoot}/lib/`) ||
-    importTarget.startsWith(`${targetFeatureRoot}/hooks/`) ||
-    importTarget.startsWith(`${targetFeatureRoot}/components/`) ||
+    privateSurfaceRoots.some(
+      (surfaceRoot) =>
+        importTarget === surfaceRoot ||
+        importTarget.startsWith(`${surfaceRoot}/`),
+    ) ||
     importTarget === `${targetFeatureRoot}/queryKeys` ||
     importTarget.startsWith(`${targetFeatureRoot}/queryKeys.`)
   );
@@ -237,6 +242,21 @@ describe("route boundary contracts", () => {
     ];
 
     expect(violations).toEqual([]);
+  });
+
+  it("treats cross-feature private barrel roots as boundary violations", () => {
+    expect(
+      importsPrivateFeatureSurface("src/features/wishlist/hooks", "wishlist"),
+    ).toBe(true);
+    expect(
+      importsPrivateFeatureSurface(
+        "src/features/wishlist/components",
+        "wishlist",
+      ),
+    ).toBe(true);
+    expect(
+      importsPrivateFeatureSurface("src/features/wishlist/lib", "wishlist"),
+    ).toBe(true);
   });
 
   it("keeps layouts on explicit feature app-shell APIs", () => {
