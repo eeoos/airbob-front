@@ -426,10 +426,12 @@ export const useAccommodationBooking = ({
         couponDiscount,
       });
       const appliedCoupon =
-        reservationCoupon.discount > 0
+        reservationCoupon.discount > 0 &&
+        reservationCoupon.couponId !== null &&
+        reservationCoupon.coupon !== null
           ? {
               id: reservationCoupon.couponId,
-              name: reservationCoupon.coupon?.name ?? null,
+              name: reservationCoupon.coupon.name,
               discount: reservationCoupon.discount,
             }
           : null;

@@ -226,6 +226,45 @@ describe("useAccommodationBooking", () => {
     );
   });
 
+  it("treats discounted checkout without a complete coupon as no coupon", async () => {
+    jest.mocked(reservationApi.create).mockResolvedValue({
+      reservation_uid: "res-1",
+      order_name: "주문명",
+      amount: 200000,
+      customer_email: "guest@example.com",
+      customer_name: "게스트",
+    });
+
+    const { result } = renderUseAccommodationBooking(
+      new URLSearchParams("checkIn=2026-07-20&checkOut=2026-07-22"),
+      {
+        selectedCoupon: createCoupon(),
+        selectedCouponId: null,
+        couponDiscount: 10000,
+      }
+    );
+
+    await act(async () => {
+      await result.current.handleReserve();
+    });
+
+    expect(reservationApi.create).toHaveBeenCalledWith({
+      accommodation_id: 7,
+      check_in_date: "2026-07-20",
+      check_out_date: "2026-07-22",
+      guest_count: 1,
+    });
+    expect(
+      JSON.parse(sessionStorage.getItem("airbob:reservation-checkout:7") ?? "{}")
+    ).toEqual(
+      expect.objectContaining({
+        reservationUid: "res-1",
+        couponName: null,
+        couponDiscount: null,
+      })
+    );
+  });
+
   it("navigates with router state even when saving checkout fallback fails", async () => {
     jest.mocked(reservationApi.create).mockResolvedValue({
       reservation_uid: "res-1",

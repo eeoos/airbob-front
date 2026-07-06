@@ -18,8 +18,8 @@ export type ReservationCheckoutHandoffNavigate = (
 ) => void;
 
 export interface AppliedReservationCheckoutCoupon {
-  id: number | null;
-  name: string | null;
+  id: number;
+  name: string;
   discount: number;
 }
 

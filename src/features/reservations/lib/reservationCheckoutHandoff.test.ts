@@ -1,5 +1,16 @@
 import { reservationApi } from "../../../api";
-import { startReservationCheckoutHandoff } from "./reservationCheckoutHandoff";
+import {
+  startReservationCheckoutHandoff,
+  type AppliedReservationCheckoutCoupon,
+} from "./reservationCheckoutHandoff";
+
+const acceptAppliedCoupon = (coupon: AppliedReservationCheckoutCoupon) => coupon;
+
+acceptAppliedCoupon({ id: 3, name: "만원 쿠폰", discount: 10000 });
+// @ts-expect-error Applied coupon requires a non-null coupon id.
+acceptAppliedCoupon({ id: null, name: "만원 쿠폰", discount: 10000 });
+// @ts-expect-error Applied coupon requires a non-null coupon name.
+acceptAppliedCoupon({ id: 3, name: null, discount: 10000 });
 
 jest.mock("../../../api", () => ({
   reservationApi: {
