@@ -1,13 +1,15 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { reservationApi } from "../../api";
 import { GuestTripsPanel } from "./GuestTripsPanel";
 
 const mockClearError = jest.fn();
 const mockHandleError = jest.fn();
+const mockNavigate = jest.fn();
 
 jest.mock("react-router-dom", () => ({
-  useNavigate: () => jest.fn(),
+  useNavigate: () => mockNavigate,
 }), { virtual: true });
 
 jest.mock("../../api", () => ({
@@ -32,8 +34,10 @@ jest.mock("../../components/ErrorToast", () => ({
 
 jest.mock("../../shared/ui", () => {
   const React = require("react");
+  const actual = jest.requireActual("../../shared/ui");
 
   return {
+    ...actual,
     EmptyState: ({ title }: { title: React.ReactNode }) =>
       React.createElement("div", { "data-testid": "shared-empty-state" }, title),
     LoadingState: ({ title }: { title: React.ReactNode }) =>
@@ -45,9 +49,26 @@ jest.mock("../../shared/ui", () => {
   };
 });
 
+const createQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+const renderGuestTripsPanel = (filterType: "UPCOMING" | "PAST" | "CANCELLED") =>
+  render(
+    <QueryClientProvider client={createQueryClient()}>
+      <GuestTripsPanel filterType={filterType} />
+    </QueryClientProvider>
+  );
+
 beforeEach(() => {
   mockClearError.mockReset();
   mockHandleError.mockReset();
+  mockNavigate.mockReset();
   jest.mocked(reservationApi.getMyReservations).mockReset();
   window.IntersectionObserver = jest.fn().mockImplementation(() => ({
     disconnect: jest.fn(),
@@ -66,7 +87,7 @@ describe("GuestTripsPanel", () => {
       reservations: [],
     } as any);
 
-    render(<GuestTripsPanel filterType="UPCOMING" />);
+    renderGuestTripsPanel("UPCOMING");
 
     expect(screen.getByTestId("shared-loading-state")).toHaveTextContent(
       "로딩 중..."
@@ -83,10 +104,45 @@ describe("GuestTripsPanel", () => {
       reservations: [],
     } as any);
 
-    render(<GuestTripsPanel filterType="UPCOMING" />);
+    renderGuestTripsPanel("UPCOMING");
 
     expect(await screen.findByTestId("shared-empty-state")).toHaveTextContent(
       "아직 예약한 여행이 없습니다."
     );
+  });
+
+  it("navigates from a semantic reservation card button", async () => {
+    jest.mocked(reservationApi.getMyReservations).mockResolvedValue({
+      page_info: {
+        has_next: false,
+        next_cursor: null,
+      },
+      reservations: [
+        {
+          reservation_id: 11,
+          reservation_uid: "reservation-11",
+          check_in_date: "2026-07-10",
+          check_out_date: "2026-07-12",
+          created_at: "2026-07-01T00:00:00Z",
+          accommodation: {
+            id: 5,
+            name: "산장 숙소",
+            thumbnail_url: null,
+          },
+        },
+      ],
+    } as any);
+
+    renderGuestTripsPanel("UPCOMING");
+
+    const card = await screen.findByRole("button", {
+      name: "산장 숙소 예약 상세 보기",
+    });
+
+    expect(card).toHaveClass("reservationCard");
+
+    fireEvent.click(card);
+
+    expect(mockNavigate).toHaveBeenCalledWith("/reservations/reservation-11");
   });
 });

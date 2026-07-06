@@ -1,18 +1,13 @@
-import React, { useEffect } from "react";
-import { ErrorToast } from "../../../../components/ErrorToast";
+import React from "react";
 import { AccommodationEditStep } from "../hooks/useAccommodationEditForm";
 import { AccommodationEditFormData } from "../lib/accommodationEditMapper";
 import { AccommodationEditImageItem } from "../lib/imageItems";
-import { AccommodationTypeModal } from "./AccommodationTypeModal";
-import { AmenityModal } from "./AmenityModal";
-import { DetailAddressConfirmModal } from "./DetailAddressConfirmModal";
-import { InfoStep } from "./InfoStep";
-import { LocationStep } from "./LocationStep";
-import { PhotosStep } from "./PhotosStep";
-import { PublishStep } from "./PublishStep";
-import { TimeStep } from "./TimeStep";
+import { EditStepContent } from "./EditStepContent";
+import { EditWizardActionBar } from "./EditWizardActionBar";
+import { EditWizardDialogs } from "./EditWizardDialogs";
 import styles from "./EditWizardLayout.module.css";
-import timeStyles from "./TimeStep.module.css";
+import { EditWizardNavigation } from "./EditWizardNavigation";
+import { EditWizardSidebar } from "./EditWizardSidebar";
 
 type Step = AccommodationEditStep;
 
@@ -92,18 +87,6 @@ export interface AccommodationEditScreenProps {
   actions: AccommodationEditScreenActions;
 }
 
-const STEPS: Array<{
-  number: Step;
-  title: string;
-  description: string;
-}> = [
-  { number: 1, title: "위치", description: "숙소 위치를 설정하세요" },
-  { number: 2, title: "숙소 사진", description: "숙소 사진을 등록하세요" },
-  { number: 3, title: "숙소 정보", description: "기본 정보를 입력하세요" },
-  { number: 4, title: "체크인/체크아웃", description: "체크인/체크아웃 시간을 설정하세요" },
-  { number: 5, title: "숙소 등록", description: "숙소를 등록하세요" },
-];
-
 export const AccommodationEditScreen: React.FC<AccommodationEditScreenProps> = ({
   state,
   actions,
@@ -111,246 +94,54 @@ export const AccommodationEditScreen: React.FC<AccommodationEditScreenProps> = (
   const {
     currentStep,
     isSaving,
-    uploadProgress,
-    formData,
-    selectedAmenities,
-    imageItems,
-    draggedIndex,
-    dragOverIndex,
-    openTimePicker,
-    isTypeModalOpen,
-    isAmenityModalOpen,
-    showDetailAddressConfirm,
-    error,
     canProceedToNext,
   } = state;
   const {
     isStepCompleted,
     isStepClickable,
-    setFormData,
-    setSelectedAmenities,
-    setOpenTimePicker,
-    onAddressSearch,
-    onDetailChange,
-    onImageSelect,
-    onDrop,
-    onDragOver,
-    onImageRemove,
-    onDragStart,
-    onDragOverItem,
-    onDragEnd,
-    onInputChange,
-    onNestedChange,
-    onTimeChange,
-    onOpenTypeModal,
-    onCloseTypeModal,
-    onOpenAmenityModal,
-    onCloseAmenityModal,
     onSaveAndExit,
     onNext,
     onBack,
     onStepClick,
     onPublishSubmit,
-    onCloseDetailAddressConfirm,
-    onConfirmDetailAddress,
-    onClearError,
   } = actions;
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (openTimePicker && !target.closest(`.${timeStyles.timeInputContainer}`)) {
-        setOpenTimePicker(null);
-      }
-    };
-
-    if (openTimePicker) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
-    }
-  }, [openTimePicker, setOpenTimePicker]);
-
-  const renderStepContent = () => {
-    switch (currentStep) {
-      case 1:
-        return (
-          <LocationStep
-            addressInfo={formData.addressInfo}
-            onAddressSearch={onAddressSearch}
-            onDetailChange={onDetailChange}
-          />
-        );
-
-      case 2:
-        return (
-          <PhotosStep
-            imageItems={imageItems}
-            isSaving={isSaving}
-            uploadProgress={uploadProgress}
-            draggedIndex={draggedIndex}
-            dragOverIndex={dragOverIndex}
-            onImageSelect={onImageSelect}
-            onDrop={onDrop}
-            onDragOver={onDragOver}
-            onImageRemove={onImageRemove}
-            onDragStart={onDragStart}
-            onDragOverItem={onDragOverItem}
-            onDragEnd={onDragEnd}
-          />
-        );
-
-      case 3:
-        return (
-          <InfoStep
-            formData={formData}
-            onInputChange={onInputChange}
-            onNestedChange={onNestedChange}
-            setFormData={setFormData}
-            setSelectedAmenities={setSelectedAmenities}
-            onOpenTypeModal={onOpenTypeModal}
-            onOpenAmenityModal={onOpenAmenityModal}
-          />
-        );
-
-      case 4:
-        return (
-          <TimeStep
-            checkInTime={formData.checkInTime}
-            checkOutTime={formData.checkOutTime}
-            openTimePicker={openTimePicker}
-            setOpenTimePicker={setOpenTimePicker}
-            onTimeChange={onTimeChange}
-          />
-        );
-
-      case 5:
-        return <PublishStep />;
-
-      default:
-        return null;
-    }
-  };
 
   return (
     <>
       <div className={styles.container}>
-        <div className={styles.header}>
-          <h1 className={styles.title}>숙소 등록</h1>
-          <button
-            type="button"
-            className={styles.saveAndExitButton}
-            onClick={onSaveAndExit}
-            disabled={isSaving}
-          >
-            저장 후 나가기
-          </button>
-        </div>
+        <EditWizardActionBar
+          isSaving={isSaving}
+          onSaveAndExit={onSaveAndExit}
+        />
 
         <div className={styles.content}>
-          <div className={styles.sidebar}>
-            {STEPS.map((step) => (
-              <div
-                key={step.number}
-                className={`${styles.stepItem} ${
-                  currentStep === step.number ? styles.active : ""
-                } ${
-                  isStepCompleted(step.number) &&
-                  currentStep !== step.number &&
-                  step.number !== 5
-                    ? styles.completed
-                    : ""
-                } ${isStepClickable(step.number) ? styles.clickable : ""}`}
-                onClick={() => onStepClick(step.number)}
-              >
-                <div className={styles.stepNumber}>{step.number}</div>
-                <div className={styles.stepInfo}>
-                  <div className={styles.stepItemTitle}>{step.title}</div>
-                  <div className={styles.stepItemDescription}>
-                    {step.description}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <EditWizardSidebar
+            currentStep={currentStep}
+            isStepCompleted={isStepCompleted}
+            isStepClickable={isStepClickable}
+            onStepClick={onStepClick}
+          />
 
           <div className={styles.mainContent}>
             <form
               onSubmit={currentStep === 5 ? onPublishSubmit : undefined}
               className={styles.form}
             >
-              {renderStepContent()}
+              <EditStepContent state={state} actions={actions} />
 
-              <div className={styles.buttonGroup}>
-                {currentStep > 1 && (
-                  <button
-                    type="button"
-                    className={styles.backButton}
-                    onClick={onBack}
-                  >
-                    뒤로
-                  </button>
-                )}
-                {currentStep < 5 ? (
-                  <button
-                    type="button"
-                    className={styles.nextButton}
-                    onClick={onNext}
-                    disabled={isSaving || !canProceedToNext}
-                  >
-                    {isSaving ? (
-                      <span className={styles.loadingDots}>
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                      </span>
-                    ) : (
-                      "다음"
-                    )}
-                  </button>
-                ) : (
-                  <button
-                    type="submit"
-                    className={styles.submitButton}
-                    disabled={isSaving || !canProceedToNext}
-                  >
-                    {isSaving ? "저장 중..." : "저장하기"}
-                  </button>
-                )}
-              </div>
+              <EditWizardNavigation
+                currentStep={currentStep}
+                isSaving={isSaving}
+                canProceedToNext={canProceedToNext}
+                onBack={onBack}
+                onNext={onNext}
+              />
             </form>
           </div>
         </div>
-
-        {error && (
-          <div className={styles.toastContainer}>
-            <ErrorToast message={error} onClose={onClearError} />
-          </div>
-        )}
       </div>
 
-      {showDetailAddressConfirm && (
-        <DetailAddressConfirmModal
-          onClose={onCloseDetailAddressConfirm}
-          onConfirm={onConfirmDetailAddress}
-        />
-      )}
-
-      {isTypeModalOpen && (
-        <AccommodationTypeModal
-          selectedType={formData.type}
-          onSelect={(type) => onInputChange("type", type)}
-          onClose={onCloseTypeModal}
-        />
-      )}
-
-      {isAmenityModalOpen && (
-        <AmenityModal
-          amenityInfos={formData.amenityInfos}
-          selectedAmenities={selectedAmenities}
-          setFormData={setFormData}
-          setSelectedAmenities={setSelectedAmenities}
-          onClose={onCloseAmenityModal}
-        />
-      )}
+      <EditWizardDialogs state={state} actions={actions} />
     </>
   );
 };

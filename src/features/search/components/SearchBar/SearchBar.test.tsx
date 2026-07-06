@@ -115,10 +115,15 @@ describe("SearchBar", () => {
     const css = readProjectFile(
       "src/features/search/components/SearchBar/SearchBar.module.css"
     );
+    const searchItemStyles = getCssBlock(css, ".searchItem");
     const searchButtonStyles = getCssBlock(css, ".searchButton");
     const controlButtonStyles = getCssBlock(css, ".controlButton");
     const suggestionItemStyles = getCssBlock(css, ".suggestionItem");
 
+    expect(searchItemStyles).toContain("appearance: none;");
+    expect(searchItemStyles).toContain("border: 0;");
+    expect(searchItemStyles).toContain("background: transparent;");
+    expect(searchItemStyles).toContain("font: inherit;");
     expect(searchButtonStyles).toContain(
       "min-width: var(--control-touch-target);"
     );
@@ -145,6 +150,73 @@ describe("SearchBar", () => {
     expect(searchButton).toHaveAttribute("type", "button");
   });
 
+  it("renders date and guest segments as disclosure buttons", () => {
+    mockUseSearchBarState.mockReturnValue(
+      createSearchBarState({ isExpanded: true })
+    );
+
+    render(<SearchBar />);
+
+    const dateTrigger = screen.getByRole("button", {
+      name: /체크인[\s\S]*체크아웃/,
+    });
+    const guestTrigger = screen.getByRole("button", { name: /여행자/ });
+
+    expect(dateTrigger).toHaveAttribute("type", "button");
+    expect(dateTrigger).toHaveAttribute("aria-expanded", "false");
+    expect(dateTrigger).toHaveAttribute("aria-controls", "search-date-picker");
+    expect(guestTrigger).toHaveAttribute("type", "button");
+    expect(guestTrigger).toHaveAttribute("aria-expanded", "false");
+    expect(guestTrigger).toHaveAttribute("aria-controls", "search-guest-picker");
+  });
+
+  it("links expanded date and guest panels to their triggers", () => {
+    mockUseSearchBarState.mockReturnValue(
+      createSearchBarState({
+        isExpanded: true,
+        showDatePicker: true,
+        showGuestPicker: true,
+      })
+    );
+
+    render(<SearchBar />);
+
+    const dateTrigger = screen.getByRole("button", {
+      name: /체크인[\s\S]*체크아웃/,
+    });
+    const guestTrigger = screen.getByRole("button", { name: /여행자/ });
+
+    expect(dateTrigger).toHaveAttribute("aria-expanded", "true");
+    expect(document.getElementById("search-date-picker")).toBeInTheDocument();
+    expect(guestTrigger).toHaveAttribute("aria-expanded", "true");
+    expect(document.getElementById("search-guest-picker")).toBeInTheDocument();
+  });
+
+  it.each([
+    "성인 인원 줄이기",
+    "성인 인원 늘리기",
+    "어린이 인원 줄이기",
+    "어린이 인원 늘리기",
+    "유아 인원 줄이기",
+    "유아 인원 늘리기",
+    "반려동물 수 줄이기",
+    "반려동물 수 늘리기",
+  ])("labels the %s counter button", (label) => {
+    mockUseSearchBarState.mockReturnValue(
+      createSearchBarState({
+        isExpanded: true,
+        showGuestPicker: true,
+      })
+    );
+
+    render(<SearchBar />);
+
+    expect(screen.getByRole("button", { name: label })).toHaveAttribute(
+      "type",
+      "button"
+    );
+  });
+
   it("renders place suggestions as semantic buttons", () => {
     const { suggestionButton } = renderExpandedSearchBarWithSuggestions();
 
@@ -158,6 +230,130 @@ describe("SearchBar", () => {
     await userEvent.click(suggestionButton);
 
     expect(handlePlaceSelect).toHaveBeenCalledWith(seoulSuggestion);
+  });
+
+  it("updates destination input state, resets stale place selection, and opens suggestions while typing", async () => {
+    const handleInputChange = jest.fn();
+    const resetPlaces = jest.fn();
+    const setShowSuggestions = jest.fn();
+
+    mockUseSearchBarState.mockReturnValue(
+      createSearchBarState({
+        isExpanded: true,
+        inputText: "서",
+        selectedPlace: {
+          placeId: "stale-place",
+          lat: 37.5665,
+          lng: 126.978,
+          viewport: {
+            north: 37.7,
+            south: 37.4,
+            east: 127.1,
+            west: 126.8,
+          },
+        },
+        handleInputChange,
+        resetPlaces,
+        setShowSuggestions,
+      })
+    );
+
+    render(<SearchBar />);
+
+    await userEvent.type(
+      screen.getByPlaceholderText("어디로 여행가세요?"),
+      "울"
+    );
+
+    expect(resetPlaces).toHaveBeenCalledTimes(1);
+    expect(handleInputChange).toHaveBeenCalledWith("서울");
+    expect(setShowSuggestions).toHaveBeenCalledWith(true);
+  });
+
+  it("clamps guest counter decrements at their minimum values", async () => {
+    const setAdultOccupancy = jest.fn();
+    const setChildOccupancy = jest.fn();
+    const setInfantOccupancy = jest.fn();
+    const setPetOccupancy = jest.fn();
+
+    mockUseSearchBarState.mockReturnValue(
+      createSearchBarState({
+        isExpanded: true,
+        showGuestPicker: true,
+        adultOccupancy: 1,
+        childOccupancy: 0,
+        infantOccupancy: 0,
+        petOccupancy: 0,
+        setAdultOccupancy,
+        setChildOccupancy,
+        setInfantOccupancy,
+        setPetOccupancy,
+      })
+    );
+
+    render(<SearchBar />);
+
+    const decrementLabels = [
+      "성인 인원 줄이기",
+      "어린이 인원 줄이기",
+      "유아 인원 줄이기",
+      "반려동물 수 줄이기",
+    ];
+
+    decrementLabels.forEach((label) => {
+      expect(screen.getByRole("button", { name: label })).toBeDisabled();
+    });
+
+    for (const label of decrementLabels) {
+      await userEvent.click(screen.getByRole("button", { name: label }));
+    }
+
+    expect(setAdultOccupancy).not.toHaveBeenCalled();
+    expect(setChildOccupancy).not.toHaveBeenCalled();
+    expect(setInfantOccupancy).not.toHaveBeenCalled();
+    expect(setPetOccupancy).not.toHaveBeenCalled();
+  });
+
+  it("submits through the current search handler and closes open filters", async () => {
+    const closeTransientPanels = jest.fn();
+    const handleSearch = jest.fn();
+
+    mockUseSearchBarState.mockReturnValue(
+      createSearchBarState({
+        isExpanded: true,
+        showDatePicker: true,
+        closeTransientPanels,
+        handleSearch,
+      })
+    );
+
+    render(<SearchBar />);
+
+    await userEvent.click(screen.getByRole("button", { name: "검색" }));
+
+    expect(closeTransientPanels).toHaveBeenCalledWith({
+      collapseWhenDateSelected: true,
+    });
+    expect(handleSearch).toHaveBeenCalledTimes(1);
+  });
+
+  it("closes the active guest popover on Escape", async () => {
+    const setShowGuestPicker = jest.fn();
+
+    mockUseSearchBarState.mockReturnValue(
+      createSearchBarState({
+        isExpanded: true,
+        showGuestPicker: true,
+        setShowGuestPicker,
+      })
+    );
+
+    render(<SearchBar />);
+
+    screen.getByRole("button", { name: "성인 인원 늘리기" }).focus();
+    await userEvent.keyboard("{Escape}");
+
+    expect(setShowGuestPicker).toHaveBeenCalledWith(false);
   });
 
   it.each([

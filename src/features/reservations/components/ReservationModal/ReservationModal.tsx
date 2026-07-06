@@ -39,7 +39,6 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
   const { error, handleError, clearError } = useApiError();
   const {
     isLoading,
-    isProcessingPayment,
     startReservationPayment,
   } = useReservationPayment({
     clearError,
@@ -134,6 +133,8 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
       checkOut: propCheckOut,
       adultCount: propAdultCount,
       childCount: propChildCount,
+      infantCount: propInfantCount,
+      petCount: propPetCount,
     });
   };
 
@@ -220,18 +221,12 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
             <button className={styles.priceDetailsLink}>요금 상세 내역</button>
           </div>
 
-          {isProcessingPayment && (
-            <div id="payment-widget" className={styles.paymentWidget}></div>
-          )}
-
           <button
             className={styles.reserveButton}
             onClick={handleReserve}
-            disabled={isLoading || isProcessingPayment || !propCheckIn || !propCheckOut}
+            disabled={isLoading || !propCheckIn || !propCheckOut}
           >
-            {isProcessingPayment
-              ? "결제 진행 중..."
-              : isLoading
+            {isLoading
               ? "예약 생성 중..."
               : "확인 및 결제"}
           </button>

@@ -1,8 +1,8 @@
 import React from "react";
 import { ListContainer } from "../../../components/ListContainer";
 import { routeTo } from "../../../routes/paths";
-import { AccommodationSearchInfo } from "../../../types/accommodation";
 import { toAccommodationBookingRouteQuery } from "../lib/accommodationDetailParams";
+import { SearchAccommodationCardViewModel } from "../lib/searchAccommodationViewModel";
 import { SearchAccommodationCard } from "./SearchAccommodationCard";
 
 type SearchResultsLayout = "desktop" | "bottomSheet";
@@ -16,7 +16,7 @@ interface SearchResultsListClassNames {
 }
 
 interface SearchResultsListProps {
-  accommodations: AccommodationSearchInfo[];
+  accommodations: SearchAccommodationCardViewModel[];
   isLoading: boolean;
   selectedAccommodationId: number | null;
   onAccommodationClick: (accommodationId: number) => void;

@@ -21,8 +21,11 @@ describe("ProfileShell", () => {
     );
 
     expect(screen.getByText("profile content")).toBeInTheDocument();
+    expect(
+      screen.getByRole("tablist", { name: "게스트 프로필" })
+    ).toHaveAttribute("aria-orientation", "vertical");
 
-    await userEvent.click(screen.getByRole("button", { name: "이전 여행" }));
+    await userEvent.click(screen.getByRole("tab", { name: "이전 여행" }));
 
     expect(onGuestTabChange).toHaveBeenCalledWith("past");
   });
@@ -43,7 +46,7 @@ describe("ProfileShell", () => {
       </ProfileShell>,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "예약 관리" }));
+    await userEvent.click(screen.getByRole("tab", { name: "예약 관리" }));
 
     expect(onHostReservationsClick).toHaveBeenCalled();
   });

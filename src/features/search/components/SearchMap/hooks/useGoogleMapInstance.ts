@@ -1,7 +1,7 @@
 import { MutableRefObject, RefObject, useEffect, useRef } from "react";
-import { AccommodationSearchInfo } from "../../../../../types/accommodation";
+import { clientLogger } from "../../../../../utils/clientLogger";
 import { renderMapExpandControl } from "../lib/mapExpandControl";
-import { SearchMapViewport } from "../types";
+import { SearchMapAccommodation, SearchMapViewport } from "../types";
 
 interface UseGoogleMapInstanceOptions {
   infoWindowRef: MutableRefObject<google.maps.InfoWindow | null>;
@@ -11,7 +11,7 @@ interface UseGoogleMapInstanceOptions {
   mapInstanceRef: MutableRefObject<google.maps.Map | null>;
   mapRef: RefObject<HTMLDivElement | null>;
   onAccommodationSelectRef: MutableRefObject<
-    (accommodation: AccommodationSearchInfo | null) => void
+    (accommodation: SearchMapAccommodation | null) => void
   >;
   onExpandToggle?: () => void;
   onMapInteraction?: () => void;
@@ -141,7 +141,10 @@ export const useGoogleMapInstance = ({
         { event: "mousedown", listener: mouseDownListener }
       );
     } catch (error) {
-      console.error("지도 초기화 실패:", error);
+      clientLogger.error({
+        message: "지도 초기화 실패:",
+        error,
+      });
     }
 
     return () => {

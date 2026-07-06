@@ -1,10 +1,12 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { useCreateAccommodationDraft } from "../../features/accommodations/appShell";
 import { AuthModal } from "../../features/auth/appShell";
 import { useApiError } from "../../hooks/useApiError";
 import { routeTo } from "../../routes/paths";
+import { useOutsideClick } from "../../shared/ui";
+import { clientLogger } from "../../utils/clientLogger";
 import styles from "./UserMenu.module.css";
 
 interface UserMenuProps {
@@ -27,21 +29,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
     onError: handleError,
   });
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
-      }
-    };
-
-    if (isMenuOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isMenuOpen]);
+  useOutsideClick(menuRef, () => setIsMenuOpen(false), isMenuOpen);
 
   const handleLogin = () => {
     setAuthModalMode("login");
@@ -76,7 +64,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
       setIsMenuOpen(false);
       navigate(routeTo.home());
     } catch (error) {
-      console.error("Logout failed:", error);
+      clientLogger.error({ message: "Logout failed:", error });
       setIsMenuOpen(false);
     }
   };

@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ReviewInfo } from "../../../../types/review";
+import { toReviewViewModels } from "../../lib/reviewViewModel";
 import { ReviewModal } from "./ReviewModal";
 
 jest.mock("../../../../utils/image", () => ({
@@ -41,7 +42,7 @@ const renderReviewModal = (
     averageRating: 4.25,
     isOpen: true,
     onClose: jest.fn(),
-    reviews,
+    reviews: toReviewViewModels(reviews),
     totalCount: 2,
     ...overrides,
   };

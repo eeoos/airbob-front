@@ -2,9 +2,9 @@ import { act, renderHook } from "@testing-library/react";
 import { useWishlistModals } from "./useWishlistModals";
 
 const wishlistAccommodation = {
-  wishlist_accommodation_id: 10,
+  wishlistAccommodationId: 10,
   memo: "기존 메모",
-} as any;
+};
 
 describe("useWishlistModals", () => {
   it("does not expose route-level auth modal state", () => {

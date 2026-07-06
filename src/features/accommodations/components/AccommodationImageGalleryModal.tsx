@@ -1,12 +1,11 @@
-import { ImageInfo } from "../../../types/accommodation";
-import { getImageUrl } from "../../../utils/image";
 import { Dialog } from "../../../shared/ui";
+import type { AccommodationDetailImageViewModel } from "../lib/accommodationDetailViewModel";
 import styles from "./AccommodationImageGalleryModal.module.css";
 
 interface AccommodationImageGalleryModalProps {
   isOpen: boolean;
   accommodationName: string;
-  images: ImageInfo[];
+  images: AccommodationDetailImageViewModel[];
   currentImageIndex: number;
   onCurrentImageIndexChange: (index: number) => void;
   onClose: () => void;
@@ -64,7 +63,7 @@ export function AccommodationImageGalleryModal({
       </button>
       <div className={styles.galleryMain}>
         <img
-          src={getImageUrl(currentImage.image_url)}
+          src={currentImage.url}
           alt={`${accommodationName} ${displayIndex + 1}`}
           className={styles.galleryImage}
         />
@@ -102,8 +101,8 @@ export function AccommodationImageGalleryModal({
             onClick={() => onCurrentImageIndexChange(index)}
           >
             <img
-              src={getImageUrl(image.image_url)}
-              alt={`${accommodationName} ${index + 1}`}
+              src={image.url}
+              alt={image.alt}
             />
           </button>
         ))}

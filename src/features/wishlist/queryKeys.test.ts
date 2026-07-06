@@ -11,6 +11,9 @@ describe("wishlistQueryKeys", () => {
       "lists",
       "page=1",
     ]);
+    expect(wishlistQueryKeys.lists("page=1&accommodationId=7")).toEqual(
+      wishlistQueryKeys.lists("accommodationId=7&page=1"),
+    );
   });
 
   it("builds stable wishlist detail keys", () => {
@@ -26,6 +29,9 @@ describe("wishlistQueryKeys", () => {
       7,
       "memo=1",
     ]);
+    expect(wishlistQueryKeys.detail(7, "page=1&memo=1")).toEqual(
+      wishlistQueryKeys.detail(7, "memo=1&page=1"),
+    );
   });
 
   it("builds stable recently viewed keys", () => {

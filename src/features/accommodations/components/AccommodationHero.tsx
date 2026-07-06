@@ -1,10 +1,20 @@
 import React from "react";
-import { AccommodationDetail } from "../../../types/accommodation";
-import { getImageUrl } from "../../../utils/image";
+import type { AccommodationDetailViewModel } from "../lib/accommodationDetailViewModel";
 import styles from "./AccommodationHero.module.css";
 
+const adaptDivTouchHandler = (
+  handler: React.TouchEventHandler<HTMLDivElement> | undefined
+): React.TouchEventHandler<HTMLButtonElement> | undefined => {
+  if (!handler) {
+    return undefined;
+  }
+
+  return (event) =>
+    handler(event as unknown as React.TouchEvent<HTMLDivElement>);
+};
+
 interface AccommodationHeroProps {
-  accommodation: AccommodationDetail;
+  detailView: AccommodationDetailViewModel;
   mobileSlideIndex: number;
   onMobileSlideIndexChange: (index: number) => void;
   onOpenGallery: (index: number) => void;
@@ -16,7 +26,7 @@ interface AccommodationHeroProps {
 }
 
 const AccommodationHero: React.FC<AccommodationHeroProps> = ({
-  accommodation,
+  detailView,
   mobileSlideIndex,
   onMobileSlideIndexChange,
   onOpenGallery,
@@ -26,21 +36,26 @@ const AccommodationHero: React.FC<AccommodationHeroProps> = ({
   onTouchMove,
   onTouchEnd,
 }) => {
+  const handleMobileTouchStart = adaptDivTouchHandler(onTouchStart);
+  const handleMobileTouchMove = adaptDivTouchHandler(onTouchMove);
+  const handleMobileTouchEnd = adaptDivTouchHandler(onTouchEnd);
+  const { heroImages, rating, title } = detailView;
+
   return (
     <>
       <div className={styles.header}>
         <div className={styles.titleSection}>
           <div className={styles.titleWrapper}>
-            <h1 className={styles.title}>{accommodation.name}</h1>
+            <h1 className={styles.title}>{title}</h1>
             <div className={styles.meta}>
-              {accommodation.review_summary.total_count > 0 && (
+              {rating.hasReviews && (
                 <div className={styles.review}>
                   <svg viewBox="0 0 24 24" fill="currentColor" className={styles.star}>
                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                   </svg>
-                  <span>{accommodation.review_summary.average_rating.toFixed(1)}</span>
+                  <span>{rating.averageRatingLabel}</span>
                   <span className={styles.reviewCount}>
-                    ({accommodation.review_summary.total_count})
+                    {rating.reviewCountLabel}
                   </span>
                 </div>
               )}
@@ -60,34 +75,42 @@ const AccommodationHero: React.FC<AccommodationHeroProps> = ({
             <button className={styles.saveButton} onClick={onSave}>
               <svg
                 viewBox="0 0 24 24"
-                fill={accommodation.is_in_wishlist ? "#ff385c" : "none"}
-                stroke={accommodation.is_in_wishlist ? "#ff385c" : "currentColor"}
+                className={
+                  detailView.isInWishlist ? styles.saveIconActive : undefined
+                }
+                fill={detailView.isInWishlist ? "currentColor" : "none"}
+                stroke="currentColor"
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
               </svg>
-              <span>{accommodation.is_in_wishlist ? "저장 목록" : "저장"}</span>
+              <span>{detailView.isInWishlist ? "저장 목록" : "저장"}</span>
             </button>
           </div>
         </div>
       </div>
 
-      {accommodation.images.length > 0 && (
+      {heroImages.length > 0 && (
         <div className={styles.imageSection}>
           <div className={styles.imageGrid}>
-            <div className={styles.mainImage} onClick={() => onOpenGallery(0)}>
+            <button
+              type="button"
+              className={styles.mainImage}
+              aria-label={`${title} 대표 사진 크게 보기`}
+              onClick={() => onOpenGallery(0)}
+            >
               <img
-                src={getImageUrl(accommodation.images[0].image_url)}
-                alt={accommodation.name}
+                src={heroImages[0].url}
+                alt={title}
                 className={styles.image}
               />
-            </div>
+            </button>
             <div className={styles.thumbnailGrid}>
               {Array.from({ length: 4 }).map((_, index) => {
                 const imageIndex = index + 1;
-                const image = accommodation.images[imageIndex];
+                const image = heroImages[imageIndex];
 
                 if (image) {
                   return (
@@ -96,8 +119,8 @@ const AccommodationHero: React.FC<AccommodationHeroProps> = ({
                       className={styles.thumbnail}
                       onClick={() => onOpenGallery(imageIndex)}
                     >
-                      <img src={getImageUrl(image.image_url)} alt={`${accommodation.name} ${imageIndex + 1}`} />
-                      {index === 3 && accommodation.images.length > 5 && (
+                      <img src={image.url} alt={image.alt} />
+                      {index === 3 && heroImages.length > 5 && (
                         <div
                           className={styles.viewAllButton}
                           onClick={(e) => {
@@ -136,34 +159,42 @@ const AccommodationHero: React.FC<AccommodationHeroProps> = ({
             </div>
           </div>
 
-          <div
-            className={styles.mobileImageSlider}
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
-            onClick={() => onOpenGallery(mobileSlideIndex)}
-          >
-            <div
-              className={styles.sliderContainer}
-              style={{ transform: `translateX(-${mobileSlideIndex * 100}%)` }}
+          <div className={styles.mobileImageSliderFrame}>
+            <button
+              type="button"
+              className={styles.mobileImageSlider}
+              aria-label={`${title} 사진 ${
+                mobileSlideIndex + 1
+              } 크게 보기`}
+              onTouchStart={handleMobileTouchStart}
+              onTouchMove={handleMobileTouchMove}
+              onTouchEnd={handleMobileTouchEnd}
+              onClick={() => onOpenGallery(mobileSlideIndex)}
             >
-              {accommodation.images.map((image, index) => (
-                <img
-                  key={image.id}
-                  src={getImageUrl(image.image_url)}
-                  alt={`${accommodation.name} ${index + 1}`}
-                  className={styles.slideImage}
-                />
-              ))}
-            </div>
-            <div className={styles.sliderIndicator}>
-              {mobileSlideIndex + 1} / {accommodation.images.length}
-            </div>
-            {accommodation.images.length <= 5 && (
+              <div
+                className={styles.sliderContainer}
+                style={{ transform: `translateX(-${mobileSlideIndex * 100}%)` }}
+              >
+                {heroImages.map((image) => (
+                  <img
+                    key={image.id}
+                    src={image.url}
+                    alt={image.alt}
+                    className={styles.slideImage}
+                  />
+                ))}
+              </div>
+              <div className={styles.sliderIndicator}>
+                {mobileSlideIndex + 1} / {heroImages.length}
+              </div>
+            </button>
+            {heroImages.length <= 5 && (
               <div className={styles.sliderDots}>
-                {accommodation.images.map((_, index) => (
+                {heroImages.map((_, index) => (
                   <button
+                    type="button"
                     key={index}
+                    aria-label={`${title} 사진 ${index + 1} 보기`}
                     className={`${styles.sliderDot} ${index === mobileSlideIndex ? styles.active : ""}`}
                     onClick={(e) => {
                       e.stopPropagation();

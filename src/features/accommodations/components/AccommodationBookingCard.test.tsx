@@ -1,7 +1,7 @@
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { AccommodationDetail } from "../../../types/accommodation";
 import { CouponInfo } from "../../../types/coupon";
+import type { AccommodationBookingViewModel } from "../lib/accommodationBookingViewModel";
 import { AccommodationBookingCard } from "./AccommodationBookingCard";
 
 jest.mock("../../../components/DatePicker/DatePicker", () => ({
@@ -15,42 +15,14 @@ jest.mock("../../../components/DatePicker/DatePicker", () => ({
   ),
 }));
 
-const accommodation: AccommodationDetail = {
-  id: 7,
-  name: "테스트 숙소",
-  description: "설명",
-  type: "APARTMENT",
-  base_price: 100000,
-  currency: "KRW",
-  check_in_time: "15:00:00",
-  check_out_time: "11:00:00",
-  unavailable_dates: [],
-  is_in_wishlist: false,
-  address_summary: {
-    country: "대한민국",
-    state: null,
-    city: "서울",
-    district: "중구",
-  },
-  coordinate: {
-    latitude: 37.5,
-    longitude: 127,
-  },
-  host: {
-    id: 1,
-    nickname: "호스트",
-    thumbnail_image_url: null,
-  },
-  policy: {
-    max_occupancy: 4,
-    infant_occupancy: 1,
-    pet_occupancy: 0,
-  },
-  amenities: [],
-  images: [],
-  review_summary: {
-    total_count: 0,
-    average_rating: 0,
+const bookingView: AccommodationBookingViewModel = {
+  basePrice: 100000,
+  basePriceLabel: "₩100,000",
+  unavailableDates: [],
+  guestLimits: {
+    maxAdultsAndChildren: 4,
+    maxInfants: 1,
+    maxPets: 0,
   },
 };
 
@@ -74,7 +46,7 @@ const renderBookingCard = (
   > = {}
 ) => {
   const props: React.ComponentProps<typeof AccommodationBookingCard> = {
-    accommodation,
+    bookingView,
     isAuthenticated: true,
     payablePrice: 190000,
     nights: 2,
@@ -132,11 +104,39 @@ describe("AccommodationBookingCard", () => {
     expect(screen.getByText("2026. 07. 12.")).toBeInTheDocument();
     expect(screen.getByText("게스트 3명")).toBeInTheDocument();
     expect(screen.getAllByText("만원 쿠폰")).toHaveLength(2);
+    expect(screen.getByText("2박 x ₩100,000")).toBeInTheDocument();
     expect(screen.getByText("-₩10,000")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "예약하기" }));
 
     expect(props.onReserve).toHaveBeenCalledTimes(1);
+  });
+
+  it("exposes date and guest pickers through semantic disclosure buttons", () => {
+    renderBookingCard({
+      isDatePickerOpen: true,
+      isGuestPickerOpen: true,
+    });
+
+    const dateButton = screen.getByRole("button", { name: /체크인/ });
+    const guestButton = screen.getByRole("button", { name: /인원/ });
+
+    expect(dateButton).toHaveAttribute("type", "button");
+    expect(dateButton).toHaveAttribute("aria-expanded", "true");
+    expect(dateButton).toHaveAttribute("aria-controls", "booking-date-picker");
+    expect(document.getElementById("booking-date-picker")).toContainElement(
+      screen.getByTestId("date-picker")
+    );
+
+    expect(guestButton).toHaveAttribute("type", "button");
+    expect(guestButton).toHaveAttribute("aria-expanded", "true");
+    expect(guestButton).toHaveAttribute(
+      "aria-controls",
+      "booking-guest-picker"
+    );
+    expect(document.getElementById("booking-guest-picker")).toContainElement(
+      screen.getByText("성인")
+    );
   });
 
   it("opens date picker through controlled state and closes via DatePicker callback", () => {
@@ -157,9 +157,38 @@ describe("AccommodationBookingCard", () => {
       setAdultCount,
     });
 
-    fireEvent.click(screen.getAllByRole("button", { name: "+" })[0]);
+    expect(
+      screen.getByRole("button", { name: "성인 줄이기" })
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "성인 늘리기" }));
 
     expect(setAdultCount).toHaveBeenCalledWith(3);
+  });
+
+  it("uses booking view guest limits to bound guest picker controls", () => {
+    renderBookingCard({
+      adultCount: 2,
+      childCount: 1,
+      isGuestPickerOpen: true,
+      bookingView: {
+        ...bookingView,
+        guestLimits: {
+          maxAdultsAndChildren: 3,
+          maxInfants: 0,
+          maxPets: 0,
+        },
+      },
+    });
+
+    expect(screen.getByRole("button", { name: "성인 늘리기" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "어린이 늘리기" })
+    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "유아 늘리기" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "반려동물 늘리기" })
+    ).toBeDisabled();
   });
 
   it("clears and applies coupons from the booking card", () => {

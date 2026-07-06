@@ -1,31 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
-import { AccommodationSearchInfo } from "../../../types/accommodation";
 import { useSearchMapState } from "./useSearchMapState";
-
-const createAccommodation = (id: number): AccommodationSearchInfo =>
-  ({
-    id,
-    name: `숙소 ${id}`,
-    accommodation_thumbnail_url: null,
-    base_price: 100000,
-    currency: "KRW",
-    type: "APARTMENT",
-    address_summary: {
-      country: "KR",
-      state: null,
-      city: "Seoul",
-      district: null,
-    },
-    coordinate: {
-      latitude: 37.5,
-      longitude: 127,
-    },
-    review_summary: {
-      total_count: 0,
-      average_rating: 0,
-    },
-    is_in_wishlist: false,
-  });
 
 describe("useSearchMapState", () => {
   it("tracks selected and hovered accommodations for list/map sync", () => {
@@ -39,7 +13,7 @@ describe("useSearchMapState", () => {
 
     act(() => {
       result.current.setHoveredAccommodationId(10);
-      result.current.handleAccommodationSelect(createAccommodation(10));
+      result.current.handleAccommodationSelect({ id: 10 });
     });
 
     expect(result.current.hoveredAccommodationId).toBe(10);

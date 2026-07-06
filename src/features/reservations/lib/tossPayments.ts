@@ -25,15 +25,92 @@ export interface TossPaymentsClient {
 
 const TOSS_PAYMENTS_SCRIPT_SRC = "https://js.tosspayments.com/v1";
 
-export const ensureTossPaymentsScript = () => {
-  if (document.querySelector(`script[src="${TOSS_PAYMENTS_SCRIPT_SRC}"]`)) {
-    return;
+let tossPaymentsScriptPromise: Promise<void> | null = null;
+let tossPaymentsScriptElement: HTMLScriptElement | null = null;
+
+const getTossPaymentsScripts = () =>
+  Array.from(
+    document.querySelectorAll<HTMLScriptElement>(
+      `script[src="${TOSS_PAYMENTS_SCRIPT_SRC}"]`,
+    ),
+  );
+
+const removeStaleTossPaymentsScripts = (
+  activeScript: HTMLScriptElement | null,
+) => {
+  getTossPaymentsScripts().forEach((script) => {
+    if (script !== activeScript) {
+      script.remove();
+    }
+  });
+};
+
+const resolveWhenTossPaymentsIsReady = (
+  script: HTMLScriptElement,
+): Promise<void> =>
+  new Promise((resolve, reject) => {
+    const handleLoad = () => {
+      if (window.TossPayments) {
+        resolve();
+        return;
+      }
+
+      tossPaymentsScriptPromise = null;
+      tossPaymentsScriptElement = null;
+      script.remove();
+      reject(new Error("결제 시스템을 불러올 수 없습니다."));
+    };
+    const handleError = () => {
+      tossPaymentsScriptPromise = null;
+      tossPaymentsScriptElement = null;
+      script.remove();
+      reject(new Error("결제 시스템을 불러올 수 없습니다."));
+    };
+
+    script.addEventListener("load", handleLoad, { once: true });
+    script.addEventListener("error", handleError, { once: true });
+  });
+
+export const ensureTossPaymentsScript = (): Promise<void> => {
+  if (window.TossPayments) {
+    return Promise.resolve();
+  }
+
+  const activeScript =
+    tossPaymentsScriptPromise && tossPaymentsScriptElement?.isConnected
+      ? tossPaymentsScriptElement
+      : null;
+  removeStaleTossPaymentsScripts(activeScript);
+
+  if (tossPaymentsScriptPromise) {
+    if (activeScript) {
+      return tossPaymentsScriptPromise;
+    }
+
+    tossPaymentsScriptPromise = null;
+    tossPaymentsScriptElement = null;
+  }
+
+  if (window.TossPayments) {
+    return Promise.resolve();
   }
 
   const script = document.createElement("script");
   script.src = TOSS_PAYMENTS_SCRIPT_SRC;
   script.async = true;
+
+  tossPaymentsScriptPromise = resolveWhenTossPaymentsIsReady(script).catch(
+    (error) => {
+      tossPaymentsScriptPromise = null;
+      tossPaymentsScriptElement = null;
+      throw error;
+    },
+  );
+  tossPaymentsScriptElement = script;
+
   document.body.appendChild(script);
+
+  return tossPaymentsScriptPromise;
 };
 
 export const getTossClientKey = () => {

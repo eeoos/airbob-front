@@ -1,4 +1,6 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
+import React from "react";
 import { reviewApi } from "../../../api";
 import { ReviewInfo, ReviewInfos } from "../../../types/review";
 import { ReviewSortType } from "../../../types/enums";
@@ -12,6 +14,28 @@ jest.mock("../../../api", () => ({
 
 const mockHandleError = jest.fn();
 const mockClearError = jest.fn();
+
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+  return function QueryClientTestWrapper({
+    children,
+  }: {
+    children: React.ReactNode;
+  }) {
+    return React.createElement(
+      QueryClientProvider,
+      { client: queryClient },
+      children,
+    );
+  };
+};
 
 const createReview = (id: number): ReviewInfo => ({
   id,
@@ -39,6 +63,17 @@ const createReviewResponse = (
   },
 });
 
+const createDeferred = <T>() => {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+
+  return { promise, resolve, reject };
+};
+
 describe("useAccommodationReviews", () => {
   beforeEach(() => {
     mockHandleError.mockReset();
@@ -47,13 +82,15 @@ describe("useAccommodationReviews", () => {
   });
 
   it("skips fetching and clears review state when total review count is zero", async () => {
-    const { result } = renderHook(() =>
-      useAccommodationReviews({
-        accommodationId: "7",
-        totalReviewCount: 0,
-        handleError: mockHandleError,
-        clearError: mockClearError,
-      })
+    const { result } = renderHook(
+      () =>
+        useAccommodationReviews({
+          accommodationId: "7",
+          totalReviewCount: 0,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+        }),
+      { wrapper: createWrapper() },
     );
 
     await waitFor(() => expect(result.current.isLoadingReviews).toBe(false));
@@ -70,13 +107,15 @@ describe("useAccommodationReviews", () => {
       .mocked(reviewApi.getReviews)
       .mockResolvedValue(createReviewResponse(firstPage, true, "cursor-1"));
 
-    const { result } = renderHook(() =>
-      useAccommodationReviews({
-        accommodationId: "7",
-        totalReviewCount: 12,
-        handleError: mockHandleError,
-        clearError: mockClearError,
-      })
+    const { result } = renderHook(
+      () =>
+        useAccommodationReviews({
+          accommodationId: "7",
+          totalReviewCount: 12,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+        }),
+      { wrapper: createWrapper() },
     );
 
     await waitFor(() => expect(result.current.isLoadingReviews).toBe(false));
@@ -92,6 +131,49 @@ describe("useAccommodationReviews", () => {
     expect(result.current.hasMoreReviews).toBe(true);
   });
 
+  it("does not repopulate cached reviews when the review count drops to zero", async () => {
+    const cachedFirstPage = [createReview(1)];
+    jest
+      .mocked(reviewApi.getReviews)
+      .mockResolvedValue(createReviewResponse(cachedFirstPage, true, "cursor-1"));
+    const wrapper = createWrapper();
+
+    const populatedHook = renderHook(
+      () =>
+        useAccommodationReviews({
+          accommodationId: "7",
+          totalReviewCount: 1,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+        }),
+      { wrapper },
+    );
+
+    await waitFor(() =>
+      expect(populatedHook.result.current.reviews).toEqual(cachedFirstPage)
+    );
+    populatedHook.unmount();
+
+    const { result } = renderHook(
+      () =>
+        useAccommodationReviews({
+          accommodationId: "7",
+          totalReviewCount: 0,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+        }),
+      { wrapper },
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(result.current.reviews).toEqual([]);
+    expect(result.current.allReviews).toEqual([]);
+    expect(result.current.hasMoreReviews).toBe(false);
+  });
+
   it("appends reviews when fetching with a cursor", async () => {
     const firstPage = [createReview(1)];
     const secondPage = [createReview(2)];
@@ -100,13 +182,15 @@ describe("useAccommodationReviews", () => {
       .mockResolvedValueOnce(createReviewResponse(firstPage, true, "cursor-1"))
       .mockResolvedValueOnce(createReviewResponse(secondPage, false, null));
 
-    const { result } = renderHook(() =>
-      useAccommodationReviews({
-        accommodationId: "7",
-        totalReviewCount: 12,
-        handleError: mockHandleError,
-        clearError: mockClearError,
-      })
+    const { result } = renderHook(
+      () =>
+        useAccommodationReviews({
+          accommodationId: "7",
+          totalReviewCount: 12,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+        }),
+      { wrapper: createWrapper() },
     );
 
     await waitFor(() => expect(result.current.reviewCursor).toBe("cursor-1"));
@@ -120,17 +204,85 @@ describe("useAccommodationReviews", () => {
     expect(result.current.hasMoreReviews).toBe(false);
   });
 
+  it("ignores a cursor page that resolves after switching accommodations", async () => {
+    const firstAccommodationFirstPage = [createReview(1)];
+    const firstAccommodationSecondPage = [createReview(2)];
+    const secondAccommodationFirstPage = [createReview(20)];
+    const staleCursorRequest = createDeferred<ReviewInfos>();
+    jest
+      .mocked(reviewApi.getReviews)
+      .mockResolvedValueOnce(
+        createReviewResponse(firstAccommodationFirstPage, true, "cursor-a"),
+      )
+      .mockReturnValueOnce(staleCursorRequest.promise)
+      .mockResolvedValueOnce(
+        createReviewResponse(secondAccommodationFirstPage, false, null),
+      );
+
+    const { result, rerender } = renderHook(
+      ({ accommodationId }) =>
+        useAccommodationReviews({
+          accommodationId,
+          totalReviewCount: 12,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+        }),
+      {
+        initialProps: { accommodationId: "7" },
+        wrapper: createWrapper(),
+      },
+    );
+
+    await waitFor(() => expect(result.current.reviewCursor).toBe("cursor-a"));
+
+    act(() => {
+      void result.current.fetchReviews("cursor-a");
+    });
+
+    await waitFor(() =>
+      expect(reviewApi.getReviews).toHaveBeenCalledWith(7, {
+        sortType: ReviewSortType.LATEST,
+        size: 6,
+        cursor: "cursor-a",
+      })
+    );
+
+    rerender({ accommodationId: "8" });
+
+    await waitFor(() =>
+      expect(reviewApi.getReviews).toHaveBeenCalledWith(8, {
+        sortType: ReviewSortType.LATEST,
+        size: 6,
+        cursor: undefined,
+      })
+    );
+    await waitFor(() =>
+      expect(result.current.allReviews).toEqual(secondAccommodationFirstPage)
+    );
+
+    await act(async () => {
+      staleCursorRequest.resolve(
+        createReviewResponse(firstAccommodationSecondPage, false, null),
+      );
+    });
+
+    expect(result.current.allReviews).toEqual(secondAccommodationFirstPage);
+    expect(result.current.hasMoreReviews).toBe(false);
+  });
+
   it("routes API errors through the provided handler", async () => {
     const error = new Error("reviews failed");
     jest.mocked(reviewApi.getReviews).mockRejectedValue(error);
 
-    const { result } = renderHook(() =>
-      useAccommodationReviews({
-        accommodationId: "7",
-        totalReviewCount: 1,
-        handleError: mockHandleError,
-        clearError: mockClearError,
-      })
+    const { result } = renderHook(
+      () =>
+        useAccommodationReviews({
+          accommodationId: "7",
+          totalReviewCount: 1,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+        }),
+      { wrapper: createWrapper() },
     );
 
     await waitFor(() => expect(result.current.isLoadingReviews).toBe(false));

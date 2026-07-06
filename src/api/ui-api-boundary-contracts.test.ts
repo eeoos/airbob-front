@@ -15,6 +15,9 @@ const productionUiRoots = [
   "features/profile/components",
 ];
 const featureRouteContainerFiles = [
+  "features/home/HomeRoute.tsx",
+  "features/auth/LoginRoute.tsx",
+  "features/auth/SignupRoute.tsx",
   "features/search/SearchRoute.tsx",
   "features/wishlist/WishlistRoute.tsx",
   "features/accommodations/AccommodationDetailRoute.tsx",
@@ -32,6 +35,24 @@ const featureRouteContainerFiles = [
 ];
 const productionSourceExtensions = [".ts", ".tsx"];
 const directApiImportPattern = /from\s+["'](?:\.\.\/)+(?:api|api\/[^"']*)["']/;
+const serverDtoImportPattern = /from\s+["'](?:\.\.\/)+types\/[^"']+["']/;
+const legacyPresentationDtoImportAllowlist: Record<string, string> = {
+  // Existing booking section still receives coupon DTOs from the booking hook.
+  "features/accommodations/components/AccommodationBookingCardSections.tsx":
+    "coupon selection DTO props are still owned by the booking-card hook boundary",
+  // Existing host action modal shares host accommodation DTO/status types with host listing hooks.
+  "features/accommodations/components/AccommodationActionModal/AccommodationActionModal.tsx":
+    "host accommodation action modal has not yet moved behind a listing view model",
+  // Existing reservation modal still reads accommodation detail DTO fields directly.
+  "features/reservations/components/ReservationModal/ReservationModal.tsx":
+    "reservation modal accommodation summary still depends on the detail DTO",
+  // Existing profile listing panel still renders host accommodation DTO/status fields directly.
+  "features/profile/HostListingsPanel.tsx":
+    "host listings panel has not yet moved behind a listing view model",
+};
+const moduleSpecifierPattern =
+  /\bfrom\s+["']([^"']+)["']|import\s+["']([^"']+)["']/g;
+const privateFeatureSegments = new Set(["components", "hooks", "lib"]);
 const sourceRoot = path.resolve(__dirname, "..");
 
 const collectProductionUiFiles = (directory: string): string[] => {
@@ -71,6 +92,53 @@ const collectConfiguredProductionUiFiles = () => [
 const toSourceRootRelativePath = (filePath: string) =>
   path.relative(sourceRoot, filePath);
 
+const extractModuleSpecifiers = (source: string): string[] => {
+  const specifiers: string[] = [];
+  let match: RegExpExecArray | null;
+
+  moduleSpecifierPattern.lastIndex = 0;
+  while ((match = moduleSpecifierPattern.exec(source)) !== null) {
+    specifiers.push(match[1] ?? match[2]);
+  }
+
+  return specifiers;
+};
+
+const getFeatureName = (sourceRootRelativePath: string) =>
+  sourceRootRelativePath.match(/^features\/([^/]+)/)?.[1] ?? null;
+
+const resolveFeatureImportPath = (
+  importerPath: string,
+  specifier: string,
+): string | null => {
+  const normalizedSpecifier = specifier.startsWith(".")
+    ? path.normalize(path.join(path.dirname(importerPath), specifier))
+    : specifier.startsWith("src/")
+      ? specifier.slice("src/".length)
+      : specifier;
+
+  return normalizedSpecifier.startsWith("features/")
+    ? normalizedSpecifier
+    : null;
+};
+
+const isCrossFeaturePrivateImport = (
+  importerPath: string,
+  importedPath: string,
+) => {
+  const importerFeature = getFeatureName(importerPath);
+  const importedFeature = getFeatureName(importedPath);
+
+  if (!importerFeature || !importedFeature || importerFeature === importedFeature) {
+    return false;
+  }
+
+  return importedPath
+    .split("/")
+    .slice(2)
+    .some((segment) => privateFeatureSegments.has(segment));
+};
+
 describe("production UI API boundaries", () => {
   it("keeps configured UI API boundary paths present", () => {
     const missingRoots = productionUiRoots.filter(
@@ -104,5 +172,60 @@ describe("production UI API boundaries", () => {
       .map(toSourceRootRelativePath);
 
     expect(violations).toEqual([]);
+  });
+
+  it("keeps route containers on public entries for cross-feature imports", () => {
+    const violations = featureRouteContainerFiles.flatMap((filePath) => {
+      const source = fs.readFileSync(path.join(sourceRoot, filePath), "utf8");
+
+      return extractModuleSpecifiers(source)
+        .map((specifier) => ({
+          importedPath: resolveFeatureImportPath(filePath, specifier),
+          specifier,
+        }))
+        .filter(
+          (entry): entry is { importedPath: string; specifier: string } =>
+            entry.importedPath !== null,
+        )
+        .filter(({ importedPath }) =>
+          isCrossFeaturePrivateImport(filePath, importedPath),
+        )
+        .map(
+          ({ importedPath, specifier }) =>
+            `${filePath} -> ${specifier} (${importedPath})`,
+        );
+    });
+
+    expect(violations).toEqual([]);
+  });
+
+  it("keeps production UI files from importing server DTO types directly", () => {
+    const violations = collectConfiguredProductionUiFiles()
+      .map(toSourceRootRelativePath)
+      .filter(
+        (filePath) =>
+          !legacyPresentationDtoImportAllowlist[filePath] &&
+          serverDtoImportPattern.test(
+            fs.readFileSync(path.join(sourceRoot, filePath), "utf8"),
+          ),
+      )
+      .map((filePath) => `file:${filePath}`);
+
+    expect(violations).toEqual([]);
+  });
+
+  it("keeps legacy presentation DTO import exceptions exact and documented", () => {
+    const staleOrMissingAllowlistEntries = Object.keys(
+      legacyPresentationDtoImportAllowlist,
+    ).filter((filePath) => {
+      const absolutePath = path.join(sourceRoot, filePath);
+
+      return (
+        !fs.existsSync(absolutePath) ||
+        !serverDtoImportPattern.test(fs.readFileSync(absolutePath, "utf8"))
+      );
+    });
+
+    expect(staleOrMissingAllowlistEntries).toEqual([]);
   });
 });

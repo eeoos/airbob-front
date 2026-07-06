@@ -12,37 +12,77 @@ Airbnb 디자인 리팩터 전에 프론트엔드 아키텍처 변경이 주요 
 
 ## 자동화 실행
 
-`npm run verify:design-ready`는 정적 pre-redesign gate와 frontend smoke gate를 순서대로 실행한다. 정적 gate만 확인할 때는 `npm run verify:pre-redesign`, 브라우저 smoke만 확인할 때는 `npm run smoke:frontend`를 사용한다.
+`npm run verify:design-ready`는 정적 pre-redesign gate와 strict frontend smoke gate를 순서대로 실행한다. 정적 gate만 확인할 때는 `npm run verify:pre-redesign`, 브라우저 smoke만 확인할 때는 `npm run smoke:frontend`를 사용한다. 디자인 착수 전 최종 gate는 반드시 `npm run smoke:frontend:strict` 또는 `npm run verify:design-ready`로 실행한다.
 
-`npm run smoke:frontend`은 `scripts/smoke/frontend-smoke.mjs`를 실행해 gstack browse로 데스크톱 `1280x720`과 모바일 `375x812` 라우트 스모크를 수행한다. 스크립트는 자격 증명 값을 출력하지 않고, 리포트와 스크린샷을 `.gstack/qa-reports` 아래에 남긴다.
+`npm run smoke:frontend`은 `scripts/smoke/frontend-smoke.mjs`를 실행해 gstack browse로 데스크톱 `1280x720`과 모바일 `375x812` 라우트 스모크를 수행한다. 스크립트는 자격 증명 값을 출력하지 않고, 리포트와 스크린샷을 `.gstack/qa-reports` 아래에 남긴다. `npm run smoke:frontend:strict`는 dynamic reservation route UID가 없으면 브라우저를 실행하기 전에 실패한다.
 
 | 환경 변수 | 필수 여부 | 값 |
 | --- | --- | --- |
+| `AIRBOB_API_BASE_URL` | UID 추출 시 필수 | `http://localhost:8080/api/v1` 예시 |
+| `AIRBOB_FRONTEND_URL` | 선택 | `http://localhost:3000` 기본값 |
 | `AIRBOB_QA_EMAIL` | 필수 | `[provided out-of-band]` |
 | `AIRBOB_QA_PASSWORD` | 필수 | `[provided out-of-band]` |
 | `GSTACK_BROWSE_BIN` | 필수 | `/absolute/path/to/browse` |
-| `AIRBOB_FRONTEND_URL` | 선택 | `http://localhost:3000` 기본값 |
 | `AIRBOB_SMOKE_ACCOMMODATION_ID` | 선택 | accommodation detail 전용 ID. 없으면 edit ID fallback 사용 |
 | `AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID` | 선택 | `3` 기본값 |
-| `AIRBOB_SMOKE_RESERVATION_UID` | 선택 | 제공하면 guest reservation detail route를 smoke 한다 |
-| `AIRBOB_SMOKE_HOST_RESERVATION_UID` | 선택 | 제공하면 host reservation detail route를 smoke 한다 |
+| `AIRBOB_SMOKE_RESERVATION_UID` | strict 필수 | guest reservation detail route UID |
+| `AIRBOB_SMOKE_HOST_RESERVATION_UID` | strict 필수 | host reservation detail route UID |
+| `AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS` | ES seed 후 선택 | `true`면 `/search`에서 result card가 보여야 함 |
+
+## ES Search Fixture Gate
+
+- Strict design smoke는 ES 데이터 seed 전에도 실행할 수 있다. 이 경우 `/search`는 empty state까지 확인하지만 search card visual QA는 완료된 것으로 보지 않는다.
+- ES index가 seed된 뒤에는 `AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS=true npm run smoke:frontend:strict`로 실행해 `/search` result card가 실제로 보이는지 확인한다.
+- Smoke report는 `Google Maps API key: present` 또는 `Google Maps API key: missing`처럼 Google Maps key readiness만 기록해야 하며, key 값 자체는 기록하지 않는다.
+- Strict dynamic route UID 추출은 현재 guest/host reservation list의 `filterType=PAST&size=1` path가 안정적인 fixture 경로다. Unfiltered list endpoint는 local QA에서 HTTP 500을 반환한 이력이 있으므로 재사용 스니펫도 PAST filter를 유지한다.
 
 ```bash
-read -r AIRBOB_QA_EMAIL
-read -rsp "AIRBOB_QA_PASSWORD" AIRBOB_QA_PASSWORD
-printf '\n'
-export AIRBOB_QA_EMAIL AIRBOB_QA_PASSWORD
+export AIRBOB_API_BASE_URL="${AIRBOB_API_BASE_URL:-http://localhost:8080/api/v1}"
+export AIRBOB_FRONTEND_URL="${AIRBOB_FRONTEND_URL:-http://localhost:3000}"
+export GSTACK_BROWSE_BIN="${GSTACK_BROWSE_BIN:-/absolute/path/to/browse}"
+# export AIRBOB_QA_EMAIL="<provided-out-of-band>"
 
-AIRBOB_FRONTEND_URL=http://localhost:3000 \
-GSTACK_BROWSE_BIN=/absolute/path/to/browse \
-AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID=3 \
-npm run smoke:frontend
+: "${AIRBOB_QA_EMAIL:?Set AIRBOB_QA_EMAIL in the shell before running smoke}"
+: "${AIRBOB_QA_PASSWORD:?Set AIRBOB_QA_PASSWORD in the shell before running smoke}"
+
+cookie_jar="$(mktemp)"
+trap 'rm -f "$cookie_jar"' EXIT
+
+login_body="$(
+  node -e 'const body = {}; body["email"] = process.env.AIRBOB_QA_EMAIL; body["password"] = process.env.AIRBOB_QA_PASSWORD; process.stdout.write(JSON.stringify(body));'
+)"
+
+curl -fsS \
+  -c "$cookie_jar" \
+  -b "$cookie_jar" \
+  -H "Content-Type: application/json" \
+  -d "$login_body" \
+  "$AIRBOB_API_BASE_URL/auth/login" >/dev/null
+
+guest_reservation_uid="$(
+  curl -fsS -b "$cookie_jar" "$AIRBOB_API_BASE_URL/profile/guest/reservations?filterType=PAST&size=1" |
+    node -e 'let data = ""; process.stdin.on("data", (chunk) => data += chunk); process.stdin.on("end", () => { const json = JSON.parse(data); const uid = json.data?.reservations?.[0]?.reservation_uid; if (uid) process.stdout.write(uid); });'
+)"
+
+host_reservation_uid="$(
+  curl -fsS -b "$cookie_jar" "$AIRBOB_API_BASE_URL/profile/host/reservations?filterType=PAST&size=1" |
+    node -e 'let data = ""; process.stdin.on("data", (chunk) => data += chunk); process.stdin.on("end", () => { const json = JSON.parse(data); const uid = json.data?.reservations?.[0]?.reservation_uid; if (uid) process.stdout.write(uid); });'
+)"
+
+: "${guest_reservation_uid:?No guest PAST reservation UID returned for smoke}"
+: "${host_reservation_uid:?No host PAST reservation UID returned for smoke}"
+
+export AIRBOB_SMOKE_RESERVATION_UID="$guest_reservation_uid"
+export AIRBOB_SMOKE_HOST_RESERVATION_UID="$host_reservation_uid"
+export AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID="${AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID:-3}"
+
+npm run smoke:frontend:strict
 ```
 
 자동화 라우트 커버리지:
 
 - `home`: `/`
-- `search-seoul`: `/search?destination=Seoul&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`
+- `search-seoul`: `/search?destination=Albany&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`
 - `wishlist`: `/wishlist`
 - `wishlist-recently-viewed`: `/wishlist?view=recently-viewed`
 - `profile-host-listings`: `/profile?mode=host&tab=listings`
@@ -122,17 +162,18 @@ npm run smoke:frontend
 - Combined gate command: `npm run verify:design-ready`
 - Wrapper validation command: `env -u AIRBOB_QA_EMAIL -u AIRBOB_QA_PASSWORD -u GSTACK_BROWSE_BIN node scripts/smoke/frontend-smoke.mjs`
 - Wrapper validation expected status: exit 1, missing environment variable names only, no credential values.
-- Browser smoke command: `npm run smoke:frontend`
+- Non-strict browser smoke command: `npm run smoke:frontend`
+- Strict browser smoke command: `npm run smoke:frontend:strict`
 - Smoke report evidence: each run writes `.gstack/qa-reports/frontend-smoke-<timestamp>.md`; attach the latest generated path when recording a run.
 
 ### Route-specific assertions
 
 - `/`: `#root` contains `특별한 숙소`.
-- `/search?destination=Seoul&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`: `main, #root` contains `숙소`.
+- `/search?destination=Albany&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`: `main, #root` contains `숙소`, search button exists, and wishlist/save action exists when the local search index returns cards. If `AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS` is unset and the local ES-backed search index has no hits, the explicit `검색 결과가 없습니다.` empty state is acceptable smoke coverage. When `AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS=true`, a visible search result card is required.
 - `/wishlist`: `main, #root` contains `위시리스트`.
 - `/wishlist?view=recently-viewed`: `main, #root` contains `최근`.
 - `/profile?mode=host&tab=listings`: `main, #root` contains `호스트`.
-- `/accommodations/:id`: `main, #root` contains `숙소`.
+- `/accommodations/:id`: `main, #root` contains `예약하기`, reservation CTA exists, and gallery trigger buttons exist.
 - `/accommodations/:id/edit`: `main, #root` contains `숙소`.
 - `/reservations/:reservationUid`: `main, #root` contains `예약` when `AIRBOB_SMOKE_RESERVATION_UID` is supplied.
 - `/profile/host/reservations/:reservationUid`: `main, #root` contains `예약` when `AIRBOB_SMOKE_HOST_RESERVATION_UID` is supplied.
@@ -140,9 +181,8 @@ npm run smoke:frontend
 ### Skipped Dynamic Routes
 
 - Profile/Reservations route-boundary refactor must pass `npm run verify:design-ready`.
-- If `AIRBOB_SMOKE_RESERVATION_UID` and `AIRBOB_SMOKE_HOST_RESERVATION_UID` are unavailable, the generated smoke report must list those routes under `Skipped Dynamic Routes`; this is residual QA scope, not tested coverage.
-- If `AIRBOB_SMOKE_RESERVATION_UID` is not supplied, `reservation-detail` is skipped and the generated smoke report lists the skipped route and required env name.
-- If `AIRBOB_SMOKE_HOST_RESERVATION_UID` is not supplied, `host-reservation-detail` is skipped and the generated smoke report lists the skipped route and required env name.
+- In non-strict `npm run smoke:frontend`, unavailable dynamic route UIDs are listed under `Skipped Dynamic Routes`; this is residual QA scope, not tested coverage.
+- In strict `npm run smoke:frontend:strict`, missing `AIRBOB_SMOKE_RESERVATION_UID` or `AIRBOB_SMOKE_HOST_RESERVATION_UID` fails the wrapper before browser launch.
 - Skipped dynamic routes are not counted as tested route coverage.
 
 ### Output guards
@@ -151,3 +191,66 @@ npm run smoke:frontend
 - Route loop clears console/network state before each navigation.
 - Route assertions poll for rendered root text and route-specific expected text before screenshots.
 - Redacted browser output containing console errors/warnings, browse `[js] ERROR`/`ERROR: evaluate` output, or API 4xx/5xx network failures fails the wrapper.
+
+## 2026-07-05 KST Architecture Stabilization Verification
+
+- Static gate command: `npm run verify:pre-redesign`
+- Static gate result: PASS. `typecheck`, full no-cache Jest, and production build completed successfully.
+- Jest result: 154 suites passed, 711 tests passed.
+- Build result: `Compiled successfully.` Freshness notices for `baseline-browser-mapping` and `caniuse-lite` remain environment maintenance warnings, not build failures.
+- Targeted DTO-boundary recheck: PASS. Search map, wishlist index/recent views, host reservation detail view-model tests, and `src/api/ui-api-boundary-contracts.test.ts` passed.
+- Frontend dev server: `http://localhost:3000`
+- Backend server: `http://localhost:8080`
+- Non-strict browser smoke command used for preliminary route evidence:
+
+```bash
+AIRBOB_FRONTEND_URL=http://localhost:3000 \
+GSTACK_BROWSE_BIN=/Users/jaehoonchoi/gstack/browse/dist/browse \
+AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID=3 \
+npm run smoke:frontend
+```
+
+- Non-strict browser smoke result: PASS for static route subset.
+- Strict browser smoke result: deferred until `AIRBOB_SMOKE_RESERVATION_UID` and `AIRBOB_SMOKE_HOST_RESERVATION_UID` are exported through the credential-safe UID extraction flow above.
+- QA credentials: supplied out-of-band through environment variables; no account values were written to this document.
+- Smoke report: `.gstack/qa-reports/frontend-smoke-2026-07-05T04-04-18-698Z.md`
+- Screenshot directory: `.gstack/qa-reports/screenshots/`
+- Desktop coverage: `/`, `/search?destination=Albany&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`, `/wishlist`, `/wishlist?view=recently-viewed`, `/profile?mode=host&tab=listings`, `/accommodations/3`, `/accommodations/3/edit`.
+- Mobile coverage: `/`, `/search?destination=Albany&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`, `/wishlist`, `/wishlist?view=recently-viewed`, `/profile?mode=host&tab=listings`, `/accommodations/3`, `/accommodations/3/edit`.
+- Skipped dynamic routes: `/reservations/:reservationUid` and `/profile/host/reservations/:reservationUid`; stable route UIDs were not supplied in this run, so the smoke report lists them under `Skipped Dynamic Routes`.
+- Observed environment warning: Google Maps API key warning appears during route loads. The smoke wrapper still exited `0`; no API 4xx/5xx route assertion failure was reported.
+
+## 2026-07-05 KST Architecture Readiness Closure
+
+- Static gate command: `npm run verify:pre-redesign`
+- Static gate result: PASS. `typecheck`, full no-cache Jest, and production build completed successfully.
+- Jest result: 164 suites passed, 758 tests passed.
+- Build result: `Compiled successfully.` Freshness notices for `baseline-browser-mapping` and `caniuse-lite` remain environment maintenance warnings, not build failures.
+- Strict browser smoke command: `npm run smoke:frontend:strict`
+- Strict browser smoke result: PASS.
+- Dynamic reservation route IDs: guest and host PAST reservation UIDs were extracted through the credential-safe API flow above and supplied via environment variables. Actual UID values are intentionally not recorded in this document.
+- Smoke report: `.gstack/qa-reports/frontend-smoke-2026-07-05T07-37-20-134Z.md`
+- Screenshot directory: `.gstack/qa-reports/screenshots/`
+- Desktop coverage: `/`, `/search?destination=Albany&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`, `/wishlist`, `/wishlist?view=recently-viewed`, `/profile?mode=host&tab=listings`, `/accommodations/3`, `/accommodations/3/edit`, `/reservations/:reservationUid`, `/profile/host/reservations/:reservationUid`.
+- Mobile coverage: `/`, `/search?destination=Albany&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`, `/wishlist`, `/wishlist?view=recently-viewed`, `/profile?mode=host&tab=listings`, `/accommodations/3`, `/accommodations/3/edit`, `/reservations/:reservationUid`, `/profile/host/reservations/:reservationUid`.
+- Skipped dynamic routes: none.
+- Search route note: local `/api/v1/search/accommodations` returned an empty result set for the Albany smoke query, so this run verified the explicit search empty state rather than search result cards. Search result card styling should still be visually checked after the local ES search index is seeded or a fallback search fixture is available.
+
+## 2026-07-06 KST Task 10 Final Design Readiness Verification
+
+- Static gate command: `npm run verify:pre-redesign`
+- Static gate result: PASS. TypeScript, full no-cache Jest, and production build command exited successfully.
+- Jest result: 170 suites passed, 810 tests passed.
+- Build result: `Compiled with warnings.` CRA completed the production build; the remaining warning is the existing `react-hooks/exhaustive-deps` warning in `src/features/search/hooks/useSearchResults.ts`.
+- Dynamic reservation route IDs: guest and host PAST reservation UIDs were extracted through the credential-safe API flow and supplied via environment variables. Actual UID values are intentionally not recorded in this document.
+- Strict browser smoke command: `npm run smoke:frontend:strict`
+- Strict browser smoke report: `.gstack/qa-reports/frontend-smoke-2026-07-05T16-28-09-570Z.md`
+- ES search result fixture: present. The Albany search route showed a visible result card with `AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS=true`.
+- Google Maps key readiness: present in the smoke report. QA credential values, actual reservation UID values, and API key values were not recorded in this document.
+- Dynamic route coverage: desktop and mobile covered `/reservations/:reservationUid` and `/profile/host/reservations/:reservationUid`; skipped dynamic routes: none.
+- Browser QA result: PASS. Strict smoke covered 18 desktop/mobile route entries, verified the search result card, and covered both dynamic reservation detail routes.
+- Output guard result: PASS. The smoke report recorded output guard failures: none.
+- Final full verification command: `npm run verify:design-ready`
+- Final full verification result: PASS. The full gate reran the static gate and strict smoke with the same exported dynamic route environment values.
+- Final full verification smoke report: `.gstack/qa-reports/frontend-smoke-2026-07-05T16-28-58-450Z.md`
+- Remaining backend fixture risk: unfiltered guest/host reservation list endpoints returned HTTP 500 during UID extraction. `filterType=PAST` returned usable guest and host route IDs in this run; if that fixture becomes unavailable, strict dynamic route smoke will block before browser coverage.

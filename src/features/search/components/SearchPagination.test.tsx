@@ -33,4 +33,23 @@ describe("SearchPagination", () => {
 
     expect(screen.getByRole("button", { name: "이전" })).toBeDisabled();
   });
+
+  it("marks the active page within a labeled pagination nav", () => {
+    render(
+      <SearchPagination
+        currentPage={1}
+        totalPages={4}
+        isLoading={false}
+        onPageChange={jest.fn()}
+      />
+    );
+
+    expect(
+      screen.getByRole("navigation", { name: "검색 결과 페이지" })
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "2" })).toHaveAttribute(
+      "aria-current",
+      "page"
+    );
+  });
 });

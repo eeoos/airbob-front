@@ -1,6 +1,6 @@
 import { wishlistApi } from "../../../api";
 import { WishlistInfos } from "../../../types/wishlist";
-import { WISHLIST_PAGE_SIZE } from "../hooks/useWishlistListsQuery";
+import { getWishlistListParams } from "./wishlistListQueryParams";
 
 export interface WishlistMembershipResult {
   isInAnyWishlist: boolean;
@@ -17,11 +17,12 @@ export const fetchAccommodationWishlistMembership = async (
 
   while (true) {
     pageParams.push(cursor);
-    const response: WishlistInfos = await wishlistApi.getWishlists({
-      accommodationId,
-      ...(cursor ? { cursor } : {}),
-      size: WISHLIST_PAGE_SIZE,
-    });
+    const response: WishlistInfos = await wishlistApi.getWishlists(
+      getWishlistListParams({
+        accommodationId,
+        cursor,
+      }),
+    );
     pages.push(response);
 
     if (response.wishlists.some((wishlist) => wishlist.is_contained)) {

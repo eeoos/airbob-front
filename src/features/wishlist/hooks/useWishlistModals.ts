@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { WishlistAccommodationInfo } from "../../../types/wishlist";
+import { WishlistAccommodationMemoTarget } from "../lib/wishlistAccommodationViewModel";
 
 export function useWishlistModals() {
   const [wishlistModalOpen, setWishlistModalOpen] = useState(false);
@@ -7,7 +7,7 @@ export function useWishlistModals() {
     useState<number | null>(null);
   const [memoModalOpen, setMemoModalOpen] = useState(false);
   const [selectedMemoItem, setSelectedMemoItem] =
-    useState<WishlistAccommodationInfo | null>(null);
+    useState<WishlistAccommodationMemoTarget | null>(null);
   const [memoText, setMemoText] = useState("");
 
   const openWishlistModal = useCallback((accommodationId: number) => {
@@ -20,7 +20,7 @@ export function useWishlistModals() {
     setSelectedAccommodationForWishlist(null);
   }, []);
 
-  const openMemoModal = useCallback((item: WishlistAccommodationInfo) => {
+  const openMemoModal = useCallback((item: WishlistAccommodationMemoTarget) => {
     setSelectedMemoItem(item);
     setMemoText(item.memo || "");
     setMemoModalOpen(true);

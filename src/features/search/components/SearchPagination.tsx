@@ -37,9 +37,10 @@ export const SearchPagination: React.FC<SearchPaginationProps> = ({
   const limitedTotalPages = getLimitedTotalPages(totalPages);
 
   return (
-    <div className={classNames?.container}>
+    <nav className={classNames?.container} aria-label="검색 결과 페이지">
       <div className={classNames?.pagination}>
         <button
+          type="button"
           className={classNames?.button}
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 0 || isLoading}
@@ -58,6 +59,8 @@ export const SearchPagination: React.FC<SearchPaginationProps> = ({
           return (
             <button
               key={page}
+              type="button"
+              aria-current={page === currentPage ? "page" : undefined}
               className={classNamesFor(
                 classNames?.button,
                 page === currentPage ? classNames?.activeButton : undefined
@@ -70,6 +73,7 @@ export const SearchPagination: React.FC<SearchPaginationProps> = ({
           );
         })}
         <button
+          type="button"
           className={classNames?.button}
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage >= limitedTotalPages - 1 || isLoading}
@@ -77,6 +81,6 @@ export const SearchPagination: React.FC<SearchPaginationProps> = ({
           다음
         </button>
       </div>
-    </div>
+    </nav>
   );
 };

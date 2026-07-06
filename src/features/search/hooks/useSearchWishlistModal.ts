@@ -1,10 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query";
-import type { InfiniteData } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
-import { WishlistInfos } from "../../../types/wishlist";
-import { getWishlistListsParamsSignature } from "../../wishlist/hooks/useWishlistListsQuery";
+import { clientLogger } from "../../../utils/clientLogger";
+import { setAccommodationScopedWishlistMembershipCache } from "../../wishlist/lib/wishlistCacheSync";
 import { fetchAccommodationWishlistMembership } from "../../wishlist/lib/wishlistMembership";
-import { wishlistQueryKeys } from "../../wishlist/queryKeys";
 
 interface UseSearchWishlistModalOptions {
   isAuthenticated: boolean;
@@ -24,11 +22,14 @@ export function useSearchWishlistModal({
     selectedAccommodationForWishlist,
     setSelectedAccommodationForWishlist,
   ] = useState<number | null>(null);
+  const [pendingAccommodationForWishlist, setPendingAccommodationForWishlist] =
+    useState<number | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
   const openWishlistModal = useCallback(
     (accommodationId: number) => {
       if (!isAuthenticated) {
+        setPendingAccommodationForWishlist(accommodationId);
         setAuthModalOpen(true);
         return;
       }
@@ -41,34 +42,40 @@ export function useSearchWishlistModal({
 
   const closeAuthModal = useCallback(() => {
     setAuthModalOpen(false);
+    setPendingAccommodationForWishlist(null);
   }, []);
 
-  const closeWishlistModal = useCallback(async () => {
-    if (selectedAccommodationForWishlist) {
-      try {
-        const { isInAnyWishlist, pageParams, pages } =
-          await fetchAccommodationWishlistMembership(
-            selectedAccommodationForWishlist
-          );
+  const handleAuthSuccess = useCallback(() => {
+    setAuthModalOpen(false);
 
-        queryClient.setQueryData<InfiniteData<WishlistInfos, string | null>>(
-          wishlistQueryKeys.lists(
-            getWishlistListsParamsSignature({
-              accommodationId: selectedAccommodationForWishlist,
-            })
-          ),
-          {
-            pageParams,
-            pages,
-          }
+    if (pendingAccommodationForWishlist !== null) {
+      setSelectedAccommodationForWishlist(pendingAccommodationForWishlist);
+      setPendingAccommodationForWishlist(null);
+      setWishlistModalOpen(true);
+    }
+  }, [pendingAccommodationForWishlist]);
+
+  const closeWishlistModal = useCallback(async () => {
+    if (selectedAccommodationForWishlist !== null) {
+      try {
+        const membership = await fetchAccommodationWishlistMembership(
+          selectedAccommodationForWishlist,
+        );
+        setAccommodationScopedWishlistMembershipCache(
+          queryClient,
+          selectedAccommodationForWishlist,
+          membership,
         );
 
         onWishlistStatusChange(
           selectedAccommodationForWishlist,
-          isInAnyWishlist
+          membership.isInAnyWishlist,
         );
       } catch (error) {
-        console.error("위시리스트 상태 확인 실패:", error);
+        clientLogger.error({
+          message: "위시리스트 상태 확인 실패:",
+          error,
+        });
       }
     }
 
@@ -80,7 +87,9 @@ export function useSearchWishlistModal({
     authModalOpen,
     closeAuthModal,
     closeWishlistModal,
+    handleAuthSuccess,
     openWishlistModal,
+    pendingAccommodationForWishlist,
     selectedAccommodationForWishlist,
     wishlistModalOpen,
   };

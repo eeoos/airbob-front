@@ -14,27 +14,27 @@
   justify-content: space-between;
   width: 100%;
   padding: 12px 16px;
-  border: 1px solid #b0b0b0;
-  border-radius: 8px;
-  background: white;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-background-page);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: border-color var(--motion-duration-base) var(--motion-ease-standard);
   font-size: 16px;
 }
 
 .timeInputButton:hover {
-  border-color: #222222;
+  border-color: var(--color-text-primary);
 }
 
 .timeDisplay {
-  color: #222222;
+  color: var(--color-text-primary);
   font-weight: 500;
 }
 
 .timeInputButton svg {
   width: 20px;
   height: 20px;
-  color: #717171;
+  color: var(--color-text-secondary);
 }
 
 .timePickerDropdown {
@@ -42,10 +42,10 @@
   top: calc(100% + 8px);
   left: 0;
   z-index: var(--z-dropdown);
-  background: white;
-  border: 1px solid #ebebeb;
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  background: var(--color-background-page);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-modal);
   min-width: 320px;
 }
 
@@ -59,7 +59,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #ebebeb;
+  border-right: 1px solid var(--color-border-subtle);
 }
 
 .timePickerColumn:last-child {
@@ -68,11 +68,11 @@
 
 .timePickerHeader {
   padding: 12px 16px;
-  background: #f7f7f7;
-  border-bottom: 1px solid #ebebeb;
+  background: var(--color-background-muted);
+  border-bottom: 1px solid var(--color-border-subtle);
   font-size: 12px;
   font-weight: 600;
-  color: #717171;
+  color: var(--color-text-secondary);
   text-align: center;
 }
 
@@ -86,26 +86,27 @@
   width: 100%;
   padding: 10px 16px;
   border: none;
-  background: white;
+  background: var(--color-background-page);
   text-align: center;
   font-size: 14px;
-  color: #222222;
+  color: var(--color-text-primary);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color var(--motion-duration-base) var(--motion-ease-standard),
+    color var(--motion-duration-base) var(--motion-ease-standard);
 }
 
 .timePickerOption:hover {
-  background: #f7f7f7;
+  background: var(--color-background-muted);
 }
 
 .timePickerOptionSelected {
-  background: #222222;
-  color: white;
+  background: var(--color-text-primary);
+  color: var(--color-text-inverse);
   font-weight: 600;
 }
 
 .timePickerOptionSelected:hover {
-  background: #000000;
+  background: var(--color-text-strong);
 }
 
 @media (max-width: 768px) {

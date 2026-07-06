@@ -1,17 +1,7 @@
 import React from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PaymentFailRoute } from "../../features/reservations";
-import type { PaymentFailReason } from "../../routes/paths";
-
-const parsePaymentFailReason = (
-  reason: string | null,
-): PaymentFailReason | undefined => {
-  if (reason === "confirm-failed" || reason === "invalid-callback") {
-    return reason;
-  }
-
-  return undefined;
-};
+import { parsePaymentFailReason } from "../../routes/paths";
 
 const PaymentFail: React.FC = () => {
   const navigate = useNavigate();

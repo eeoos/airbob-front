@@ -1,5 +1,8 @@
 import { useCallback, useState } from "react";
-import { AccommodationSearchInfo } from "../../../types/accommodation";
+
+interface SearchMapSelectionTarget {
+  id: number;
+}
 
 export const useSearchMapState = () => {
   const [selectedAccommodationId, setSelectedAccommodationId] = useState<
@@ -13,7 +16,7 @@ export const useSearchMapState = () => {
   const [shouldUpdateMapBounds, setShouldUpdateMapBounds] = useState(false);
 
   const handleAccommodationSelect = useCallback((
-    accommodation: AccommodationSearchInfo | null
+    accommodation: SearchMapSelectionTarget | null
   ) => {
     if (!accommodation) {
       setSelectedAccommodationId(null);

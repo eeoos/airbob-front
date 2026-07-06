@@ -2,17 +2,30 @@ import { readFileSync, readdirSync } from "fs";
 import { join, relative } from "path";
 
 const routesRoot = join(process.cwd(), "src/routes");
+const routePathsFile = join(routesRoot, "paths.ts");
 const layoutsRoot = join(process.cwd(), "src/layouts");
 const featuresRoot = join(process.cwd(), "src/features");
 const projectRoot = process.cwd();
 const sourceExtensions = [".ts", ".tsx"];
 const forbiddenFeatureImportPattern =
   /from\s+["'](?:\.\.\/)+(?:features)(?:\/[^"']*)?["']/;
+const allowedRouteFeatureImportPatterns = [
+  /from\s+["']\.\.\/features\/search\/lib\/searchRouteQuery["']/g,
+  /from\s+["']\.\.\/features\/wishlist\/lib\/wishlistRouteQuery["']/g,
+  /from\s+["']\.\.\/features\/profile\/lib\/profileRouteQuery["']/g,
+  /from\s+["']\.\.\/features\/reservations\/lib\/paymentRouteState["']/g,
+];
 const forbiddenLayoutFeatureDeepImportPattern =
   /from\s+["'](?:\.\.\/)+(?:features\/[^"']+\/(?:components|hooks|lib))(?:\/[^"']*)?["']/;
 const forbiddenPageImportPattern =
   /from\s+["'](?:\.\.\/)+pages(?:\/[^"']*)?["']/;
 const featureRouteAdapters = [
+  {
+    page: "src/pages/Home/Home.tsx",
+    publicImport: "../../features/home",
+    routeContainer: "HomeRoute",
+    forbiddenDeepImportPattern: /features\/home\/(?:components|hooks|lib)\//,
+  },
   {
     page: "src/pages/Search/Search.tsx",
     publicImport: "../../features/search",
@@ -87,6 +100,18 @@ const featureRouteAdapters = [
     routeContainer: "ReviewCreateRoute",
     forbiddenDeepImportPattern: /features\/reviews\/(?:components|hooks|lib)\//,
   },
+  {
+    page: "src/pages/Auth/Login/Login.tsx",
+    publicImport: "../../../features/auth",
+    routeContainer: "LoginRoute",
+    forbiddenDeepImportPattern: /features\/auth\/(?:components|hooks|lib)\//,
+  },
+  {
+    page: "src/pages/Auth/Signup/Signup.tsx",
+    publicImport: "../../../features/auth",
+    routeContainer: "SignupRoute",
+    forbiddenDeepImportPattern: /features\/auth\/(?:components|hooks|lib)\//,
+  },
 ] as const;
 
 const collectSourceFiles = (directory: string): string[] =>
@@ -106,11 +131,21 @@ const collectSourceFiles = (directory: string): string[] =>
   });
 
 describe("route boundary contracts", () => {
-  it("keeps route URL contracts independent from feature internals", () => {
+  it("keeps route URL contracts limited to domain route query ownership", () => {
     const violations = collectSourceFiles(routesRoot)
-      .filter((filePath) =>
-        forbiddenFeatureImportPattern.test(readFileSync(filePath, "utf8")),
-      )
+      .filter((filePath) => {
+        const source = readFileSync(filePath, "utf8");
+        const sourceWithoutAllowedImports =
+          filePath === routePathsFile
+            ? allowedRouteFeatureImportPatterns.reduce(
+                (nextSource, allowedPattern) =>
+                  nextSource.replace(allowedPattern, ""),
+                source,
+              )
+            : source;
+
+        return forbiddenFeatureImportPattern.test(sourceWithoutAllowedImports);
+      })
       .map((filePath) => relative(projectRoot, filePath));
 
     expect(violations).toEqual([]);
@@ -230,12 +265,24 @@ describe("route boundary contracts", () => {
     expect(pageSource).not.toContain("useState");
   });
 
+  it("keeps Home page as a thin adapter to the home feature route", () => {
+    const pageSource = readFileSync(
+      join(process.cwd(), "src/pages/Home/Home.tsx"),
+      "utf8",
+    );
+
+    expect(pageSource).toContain("../../features/home");
+    expect(pageSource).toContain("HomeRoute");
+    expect(pageSource).not.toMatch(/\.\/Home\.module\.css|styles\./);
+    expect(pageSource).not.toContain("<div");
+    expect(pageSource).not.toContain("<h1");
+    expect(pageSource).not.toContain("<p");
+  });
+
   it("keeps feature public route barrels from exporting workflow internals", () => {
     featureRouteAdapters.forEach(({ publicImport, routeContainer }) => {
-      const publicBarrelPath = `${publicImport.replace(
-        /^(?:\.\.\/)+/,
-        "src/",
-      )}/index.ts`;
+      const publicBarrelPath =
+        `${publicImport.replace(/^(?:\.\.\/)+/, "src/")}/index.ts`;
       const publicBarrel = readFileSync(
         join(projectRoot, publicBarrelPath),
         "utf8",

@@ -56,6 +56,7 @@ export const ReservationConfirmRoute: React.FC<ReservationConfirmRouteProps> = (
 }) => {
   const { error, handleError, clearError } = useApiError();
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [isTossReady, setIsTossReady] = useState(false);
 
   const checkoutState = accommodationId
     ? readReservationCheckoutState(accommodationId, locationState)
@@ -85,8 +86,25 @@ export const ReservationConfirmRoute: React.FC<ReservationConfirmRouteProps> = (
   });
 
   useEffect(() => {
-    ensureTossPaymentsScript();
-  }, []);
+    let isCancelled = false;
+
+    setIsTossReady(false);
+    ensureTossPaymentsScript()
+      .then(() => {
+        if (!isCancelled) {
+          setIsTossReady(true);
+        }
+      })
+      .catch((error) => {
+        if (!isCancelled) {
+          handleError(toReservationPaymentError(error));
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [handleError]);
 
   const formatDateForDisplay = (date: Date | null): string => {
     if (!date) return "";
@@ -128,6 +146,8 @@ export const ReservationConfirmRoute: React.FC<ReservationConfirmRouteProps> = (
     clearError();
 
     try {
+      await ensureTossPaymentsScript();
+      setIsTossReady(true);
       const paymentWidget = getTossPaymentsClient(getTossClientKey());
 
       await paymentWidget
@@ -265,9 +285,13 @@ export const ReservationConfirmRoute: React.FC<ReservationConfirmRouteProps> = (
           <button
             className={styles.reserveButton}
             onClick={handleReserve}
-            disabled={isProcessingPayment}
+            disabled={!isTossReady || isProcessingPayment}
           >
-            {isProcessingPayment ? "결제 진행 중..." : "확인 및 결제"}
+            {!isTossReady
+              ? "결제 시스템 로딩 중..."
+              : isProcessingPayment
+                ? "결제 진행 중..."
+                : "확인 및 결제"}
           </button>
         </div>
       </div>

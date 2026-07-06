@@ -7,6 +7,59 @@ const projectRoot = process.cwd();
 const packageJsonPath = path.join(projectRoot, "package.json");
 const qaDocPath = path.join(projectRoot, "docs/qa/frontend-architecture-smoke.ko.md");
 const frontendSmokePath = path.join(projectRoot, "scripts/smoke/frontend-smoke.mjs");
+const sourceRoot = path.join(projectRoot, "src");
+
+const productionSourceExtensions = new Set([".js", ".jsx", ".ts", ".tsx"]);
+const rawConsoleAllowlist = new Set(["src/utils/clientLogger.ts"]);
+const dynamicInlineStyleAllowlist = [
+  {
+    filePath: "src/features/accommodations/edit/components/PhotosStep.tsx",
+    pattern: /style=\{\{\s*width:\s*`\$\{uploadProgress\}%`\s*\}\}/,
+  },
+  {
+    filePath: "src/features/accommodations/components/AccommodationHero.tsx",
+    pattern:
+      /style=\{\{\s*transform:\s*`translateX\(-\$\{mobileSlideIndex \* 100\}%\)`\s*\}\}/,
+  },
+];
+
+const toProjectPath = (filePath: string) =>
+  path.relative(projectRoot, filePath).split(path.sep).join("/");
+
+const getFiles = (directory: string): string[] =>
+  fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const entryPath = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      return getFiles(entryPath);
+    }
+
+    return entry.isFile() ? [entryPath] : [];
+  });
+
+const isProductionSourceFile = (filePath: string) => {
+  const relativePath = toProjectPath(filePath);
+  const extension = path.extname(filePath);
+
+  if (!relativePath.startsWith("src/")) {
+    return false;
+  }
+
+  if (!productionSourceExtensions.has(extension)) {
+    return false;
+  }
+
+  return !(
+    relativePath.endsWith(".d.ts") ||
+    relativePath === "src/setupTests.ts" ||
+    relativePath.includes("/__mocks__/") ||
+    relativePath.includes("/__tests__/") ||
+    /\.(?:test|spec)\.[jt]sx?$/.test(relativePath)
+  );
+};
+
+const getProductionSourceFiles = () =>
+  getFiles(sourceRoot).filter(isProductionSourceFile).sort();
 
 const getSection = (content: string, heading: string, level = 2) => {
   const escapedHeading = heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -22,18 +75,92 @@ const getSection = (content: string, heading: string, level = 2) => {
   return section?.[1] ?? "";
 };
 
+const isolatedSmokeSubprocessEnv = (
+  overrides: Record<string, string | undefined> = {},
+) => {
+  const env = { ...process.env };
+
+  [
+    "AIRBOB_SMOKE_RESERVATION_UID",
+    "AIRBOB_SMOKE_HOST_RESERVATION_UID",
+    "AIRBOB_SMOKE_ACCOMMODATION_ID",
+    "AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS",
+    "AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES",
+  ].forEach((key) => {
+    delete env[key];
+  });
+
+  return { ...env, ...overrides };
+};
+
 describe("frontend verification gate", () => {
+  test("production source routes warn/error logging and static inline styles through guardrails", () => {
+    const rawConsoleViolations: string[] = [];
+    const staticInlineStyleViolations: string[] = [];
+
+    getProductionSourceFiles().forEach((filePath) => {
+      const relativePath = toProjectPath(filePath);
+      const source = fs.readFileSync(filePath, "utf8");
+
+      if (!rawConsoleAllowlist.has(relativePath)) {
+        Array.from(source.matchAll(/\bconsole\.(?:warn|error)\s*\(/g)).forEach(
+          (match) => {
+            rawConsoleViolations.push(`${relativePath}: ${match[0]}`);
+          },
+        );
+      }
+
+      Array.from(source.matchAll(/style=\{\{[\s\S]*?\}\}/g)).forEach(
+        (match) => {
+          const styleSource = match[0].replace(/\s+/g, " ").trim();
+          const isAllowedDynamicStyle = dynamicInlineStyleAllowlist.some(
+            (allowed) =>
+              allowed.filePath === relativePath && allowed.pattern.test(match[0]),
+          );
+
+          if (isAllowedDynamicStyle) {
+            return;
+          }
+
+          if (
+            /\bdisplay\s*:\s*["']none["']/.test(match[0]) ||
+            /\bborder\s*:\s*0\b/.test(match[0])
+          ) {
+            staticInlineStyleViolations.push(`${relativePath}: ${styleSource}`);
+          }
+        },
+      );
+
+      if (/\bbuttonResetStyle\b/.test(source)) {
+        staticInlineStyleViolations.push(
+          `${relativePath}: buttonResetStyle static reset object`,
+        );
+      }
+    });
+
+    expect(rawConsoleViolations).toEqual([]);
+    expect(staticInlineStyleViolations).toEqual([]);
+  });
+
   test("package scripts run typecheck, no-cache CI tests, and build", () => {
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
 
+    expect(packageJson.packageManager).toBe("npm@10.7.0");
+    expect(packageJson.engines?.node).toBe(">=20.0.0");
     expect(packageJson.scripts["test:ci:no-cache"]).toBe(
       "react-scripts test --watchAll=false --no-cache",
     );
     expect(packageJson.scripts["verify:pre-redesign"]).toBe(
       "npm run typecheck && npm run test:ci:no-cache -- --runInBand && npm run build",
     );
+    expect(packageJson.scripts["smoke:frontend"]).toBe(
+      "node scripts/smoke/frontend-smoke.mjs",
+    );
+    expect(packageJson.scripts["smoke:frontend:strict"]).toBe(
+      "AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES=true node scripts/smoke/frontend-smoke.mjs",
+    );
     expect(packageJson.scripts["verify:design-ready"]).toBe(
-      "npm run verify:pre-redesign && npm run smoke:frontend",
+      "npm run verify:pre-redesign && npm run smoke:frontend:strict",
     );
     expect(packageJson.scripts.verify).toContain("npm run typecheck");
     expect(packageJson.scripts.verify).toContain("npm run test:ci:no-cache");
@@ -62,12 +189,30 @@ describe("frontend verification gate", () => {
       "AIRBOB_SMOKE_ACCOMMODATION_ID",
       "AIRBOB_SMOKE_RESERVATION_UID",
       "AIRBOB_SMOKE_HOST_RESERVATION_UID",
+      'const strictDynamicRoutes = process.env.AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES === "true";',
       "skippedDynamicRoutes",
+      "strictDynamicRoutes && skippedDynamicRoutes.length > 0",
+      "Strict dynamic route smoke mode requires stable route ids",
       "Skipped Dynamic Routes",
       "Skipped dynamic smoke routes",
       "Missing required environment variables",
       "missingEnv.join",
+      "routeInteractionAssertion",
+      "routeInteractionAssertion(route)",
+      "Search route interaction assertion failed",
+      "Accommodation detail interaction assertion failed",
       "process.exit(status === 0 ? 1 : status)",
+    ].forEach((term) => {
+      expect(smokeScript).toContain(term);
+    });
+
+    [
+      "rawGoogleMapsApiKey",
+      'const googleMapsApiKey = rawGoogleMapsApiKey?.trim() ?? "";',
+      "googleMapsApiKeyReady",
+      "Google Maps API key:",
+      "AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS",
+      "Search result fixture was required but no result card was visible",
     ].forEach((term) => {
       expect(smokeScript).toContain(term);
     });
@@ -89,6 +234,11 @@ describe("frontend verification gate", () => {
       expect(smokeScript).toContain(term);
     });
 
+    const accommodationDetailRoute = smokeScript.match(
+      /routeFromTemplate\(\{\s*name:\s*"accommodation-detail",[\s\S]*?\n\s*\}\),/,
+    );
+    expect(accommodationDetailRoute?.[0]).toContain('expectedText: "예약하기"');
+
     expect(smokeScript).not.toMatch(/process\.env\.AIRBOB_QA_(?:EMAIL|PASSWORD)[^;]*console/);
   });
 
@@ -104,6 +254,8 @@ describe("frontend verification gate", () => {
         "process.stdin.on('end', () => {",
         '  console.log("console.error: React route assertion failed");',
         '  console.log("[js] ERROR: evaluate: Error: route assertion failed");',
+        '  console.log("fake-google-maps-key");',
+        '  console.log("  fake-google-maps-key  ");',
         "  process.exit(0);",
         "});",
       ].join("\n"),
@@ -114,13 +266,13 @@ describe("frontend verification gate", () => {
       const result = spawnSync(process.execPath, [frontendSmokePath], {
         cwd: projectRoot,
         encoding: "utf8",
-        env: {
-          ...process.env,
+        env: isolatedSmokeSubprocessEnv({
           AIRBOB_QA_EMAIL: "fake-user@example.invalid",
           AIRBOB_QA_PASSWORD: "fake-password",
           GSTACK_BROWSE_BIN: fakeBrowsePath,
           AIRBOB_FRONTEND_URL: "http://localhost:3000",
-        },
+          REACT_APP_GOOGLE_MAPS_API_KEY: "  fake-google-maps-key  ",
+        }),
         maxBuffer: 10 * 1024 * 1024,
       });
       const output = `${result.stdout}\n${result.stderr}`;
@@ -136,6 +288,7 @@ describe("frontend verification gate", () => {
 
       expect(result.status).toBe(1);
       expect(report).toContain("- Status: FAIL");
+      expect(report).toContain("- Google Maps API key: present");
       expect(report).toContain(
         "- Output guard failures: console error/warning output, browse JS error output",
       );
@@ -150,8 +303,53 @@ describe("frontend verification gate", () => {
       expect(output).toContain("AIRBOB_SMOKE_RESERVATION_UID");
       expect(output).not.toContain("fake-user@example.invalid");
       expect(output).not.toContain("fake-password");
+      expect(output).not.toContain("fake-google-maps-key");
       expect(report).not.toContain("fake-user@example.invalid");
       expect(report).not.toContain("fake-password");
+      expect(report).not.toContain("fake-google-maps-key");
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test("frontend smoke strict mode fails before browse when dynamic route UIDs are missing", () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "airbob-smoke-"));
+    const fakeBrowsePath = path.join(tempDir, "fake-browse.mjs");
+
+    fs.writeFileSync(
+      fakeBrowsePath,
+      [
+        "#!/usr/bin/env node",
+        'console.log("fake browse invoked");',
+        "process.exit(0);",
+      ].join("\n"),
+      { mode: 0o755 },
+    );
+
+    try {
+      const result = spawnSync(process.execPath, [frontendSmokePath], {
+        cwd: projectRoot,
+        encoding: "utf8",
+        env: isolatedSmokeSubprocessEnv({
+          AIRBOB_QA_EMAIL: "fake-user@example.invalid",
+          AIRBOB_QA_PASSWORD: "fake-password",
+          GSTACK_BROWSE_BIN: fakeBrowsePath,
+          AIRBOB_FRONTEND_URL: "http://localhost:3000",
+          AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES: "true",
+        }),
+        maxBuffer: 10 * 1024 * 1024,
+      });
+      const output = `${result.stdout}\n${result.stderr}`;
+
+      expect(result.status).toBe(1);
+      expect(output).toContain(
+        "Strict dynamic route smoke mode requires stable route ids",
+      );
+      expect(output).toContain("AIRBOB_SMOKE_RESERVATION_UID");
+      expect(output).toContain("AIRBOB_SMOKE_HOST_RESERVATION_UID");
+      expect(output).not.toContain("fake browse invoked");
+      expect(output).not.toContain("fake-user@example.invalid");
+      expect(output).not.toContain("fake-password");
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
@@ -175,9 +373,24 @@ describe("frontend verification gate", () => {
       "screenshot path",
       "verify:pre-redesign",
       "verify:design-ready",
+      "smoke:frontend:strict",
+      "ES Search Fixture Gate",
+      "AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS",
+      "Google Maps API key: present",
+      "AIRBOB_API_BASE_URL",
+      "AIRBOB_FRONTEND_URL",
+      "GSTACK_BROWSE_BIN",
+      "AIRBOB_QA_EMAIL",
+      ': "${AIRBOB_QA_PASSWORD:?Set AIRBOB_QA_PASSWORD in the shell before running smoke}"',
       "AIRBOB_SMOKE_ACCOMMODATION_ID",
       "AIRBOB_SMOKE_RESERVATION_UID",
       "AIRBOB_SMOKE_HOST_RESERVATION_UID",
+      "curl -fsS",
+      "profile/guest/reservations?filterType=PAST&size=1",
+      "profile/host/reservations?filterType=PAST&size=1",
+      "guest_reservation_uid",
+      "host_reservation_uid",
+      "npm run smoke:frontend:strict",
       "Skipped Dynamic Routes",
       "Smoke report evidence",
       "2026-07-04 KST Redesign Readiness Smoke Gate",
@@ -268,7 +481,9 @@ describe("frontend verification gate", () => {
     });
 
     expect(qaDoc).not.toMatch(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
-    expect(qaDoc).not.toMatch(/(?:email|password|nickname|member[_ -]?id)\s*[:=]/i);
+    expect(qaDoc).not.toMatch(
+      /(?:^|[^A-Z_])(?:email|password|nickname|member[_ -]?id)\s*[:=]/i,
+    );
     expect(qaDoc).not.toMatch(/(?:이메일|비밀번호)\s*[:=：]/);
     expect(qaDoc).not.toContain("Final Verification");
     expect(qaDoc).not.toContain("PASS in final verification");

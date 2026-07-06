@@ -295,6 +295,54 @@ describe("useSearchBarState", () => {
     expect(result.current.showSuggestions).toBe(false);
   });
 
+  it("uses the latest typed destination for route-ready search submission", () => {
+    const { result, rerender } = renderHook(() => useSearchBarState());
+
+    act(() => {
+      result.current.handleInputChange("Gangneung");
+    });
+    rerender();
+
+    act(() => {
+      result.current.handleSearch();
+    });
+
+    expect(mockHandleInputChange).toHaveBeenCalledWith("Gangneung");
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/search?destination=Gangneung&adultOccupancy=1&childOccupancy=0&infantOccupancy=0&petOccupancy=0"
+    );
+  });
+
+  it("normalizes reversed date selections so check-in stays before check-out", () => {
+    const { result } = renderHook(() => useSearchBarState());
+
+    act(() => {
+      result.current.handleDateSelect(
+        new Date(2026, 6, 12),
+        new Date(2026, 6, 10)
+      );
+    });
+
+    expect(getLocalDateKey(result.current.checkIn)).toBe("2026-07-10");
+    expect(getLocalDateKey(result.current.checkOut)).toBe("2026-07-12");
+  });
+
+  it("clamps guest count setters to their minimum values", () => {
+    const { result } = renderHook(() => useSearchBarState());
+
+    act(() => {
+      result.current.setAdultOccupancy(0);
+      result.current.setChildOccupancy(-1);
+      result.current.setInfantOccupancy(-1);
+      result.current.setPetOccupancy(-1);
+    });
+
+    expect(result.current.adultOccupancy).toBe(1);
+    expect(result.current.childOccupancy).toBe(0);
+    expect(result.current.infantOccupancy).toBe(0);
+    expect(result.current.petOccupancy).toBe(0);
+  });
+
   it("builds search params from router params instead of browser global search", () => {
     placesState.inputText = "Jeju";
     currentSearchParams = new URLSearchParams("destination=Seoul&page=3");

@@ -6,6 +6,11 @@ import {
   AccommodationEditFormData,
   createDefaultAccommodationEditFormData,
 } from "../lib/accommodationEditMapper";
+import {
+  AccommodationEditScreen,
+  AccommodationEditScreenActions,
+  AccommodationEditScreenState,
+} from "./AccommodationEditScreen";
 import { AccommodationTypeModal } from "./AccommodationTypeModal";
 import { AmenityModal } from "./AmenityModal";
 import { DetailAddressConfirmModal } from "./DetailAddressConfirmModal";
@@ -23,6 +28,61 @@ const createFormData = (
   basePrice: "120000",
   type: "ENTIRE_PLACE",
   amenityInfos: [{ name: "WIFI", count: 1 }],
+  ...overrides,
+});
+
+const createScreenState = (
+  overrides: Partial<AccommodationEditScreenState> = {}
+): AccommodationEditScreenState => ({
+  currentStep: 2,
+  isSaving: false,
+  uploadProgress: 0,
+  formData: createFormData(),
+  selectedAmenities: new Set(["WIFI"]),
+  imageItems: [],
+  draggedIndex: null,
+  dragOverIndex: null,
+  openTimePicker: null,
+  isTypeModalOpen: false,
+  isAmenityModalOpen: false,
+  showDetailAddressConfirm: false,
+  error: null,
+  canProceedToNext: true,
+  ...overrides,
+});
+
+const createScreenActions = (
+  overrides: Partial<AccommodationEditScreenActions> = {}
+): AccommodationEditScreenActions => ({
+  isStepCompleted: (step) => step < 2,
+  isStepClickable: (step) => step <= 2,
+  setFormData: jest.fn(),
+  setSelectedAmenities: jest.fn(),
+  setOpenTimePicker: jest.fn(),
+  onAddressSearch: jest.fn(),
+  onDetailChange: jest.fn(),
+  onImageSelect: jest.fn(),
+  onDrop: jest.fn(),
+  onDragOver: jest.fn(),
+  onImageRemove: jest.fn(),
+  onDragStart: jest.fn(),
+  onDragOverItem: jest.fn(),
+  onDragEnd: jest.fn(),
+  onInputChange: jest.fn(),
+  onNestedChange: jest.fn(),
+  onTimeChange: jest.fn(),
+  onOpenTypeModal: jest.fn(),
+  onCloseTypeModal: jest.fn(),
+  onOpenAmenityModal: jest.fn(),
+  onCloseAmenityModal: jest.fn(),
+  onSaveAndExit: jest.fn(),
+  onNext: jest.fn(),
+  onBack: jest.fn(),
+  onStepClick: jest.fn(),
+  onPublishSubmit: jest.fn(),
+  onCloseDetailAddressConfirm: jest.fn(),
+  onConfirmDetailAddress: jest.fn(),
+  onClearError: jest.fn(),
   ...overrides,
 });
 
@@ -88,7 +148,12 @@ describe("AccommodationEdit extracted components", () => {
       "EditForm.module.css",
       "EditModal.module.css",
       "EditModalShell.tsx",
+      "EditStepContent.tsx",
+      "EditWizardActionBar.tsx",
+      "EditWizardDialogs.tsx",
       "EditWizardLayout.module.css",
+      "EditWizardNavigation.tsx",
+      "EditWizardSidebar.tsx",
       "InfoStep.tsx",
       "LocationStep.tsx",
       "PhotosStep.module.css",
@@ -97,7 +162,10 @@ describe("AccommodationEdit extracted components", () => {
       "TimePicker.tsx",
       "TimeStep.module.css",
       "TimeStep.tsx",
+      "accommodationTypeIcons.tsx",
       "accommodationEditIcons.tsx",
+      "amenityIcons.tsx",
+      "editStepIcons.tsx",
       "AccommodationEditComponents.test.tsx",
     ];
 
@@ -119,6 +187,27 @@ describe("AccommodationEdit extracted components", () => {
       /features\/accommodations\/edit\/(?:components|hooks|lib)\//
     );
     expect(pageSource).not.toMatch(/from\s+["'][^"']*components\/[^"']+\.module\.css["']/);
+
+    const extractedComponentFiles = [
+      "EditStepContent.tsx",
+      "EditWizardActionBar.tsx",
+      "EditWizardDialogs.tsx",
+      "EditWizardNavigation.tsx",
+      "EditWizardSidebar.tsx",
+    ];
+    extractedComponentFiles.forEach((file) => {
+      const source = readProjectFile(`${FEATURE_COMPONENTS_DIR}/${file}`);
+
+      expect(source).not.toMatch(/from\s+["'][^"']*(?:\/api\/|\/api|api\/)/);
+      expect(source).not.toMatch(/from\s+["'][^"']*services\//);
+    });
+
+    const screenSource = readProjectFile(
+      `${FEATURE_COMPONENTS_DIR}/AccommodationEditScreen.tsx`
+    );
+    expect(screenSource).not.toContain("const STEPS");
+    expect(screenSource).not.toContain("stepButtonStyle");
+    expect(screenSource).not.toContain("renderStepContent");
   });
 
   it("keeps wizard layout and edit form styles in dedicated CSS modules", () => {
@@ -187,7 +276,6 @@ describe("AccommodationEdit extracted components", () => {
       "nextButton",
       "submitButton",
       "loadingDots",
-      "toastContainer",
     ];
     expect(fs.existsSync(formCssPath)).toBe(true);
     expect(fs.existsSync(layoutCssPath)).toBe(true);
@@ -434,6 +522,37 @@ describe("AccommodationEdit extracted components", () => {
       const classSelector = new RegExp(`\\.${className}(?![A-Za-z0-9_-])`);
       expect(modalMobileRules).toMatch(classSelector);
     });
+  });
+
+  it("renders wizard sidebar steps as semantic buttons", () => {
+    const onStepClick = jest.fn();
+
+    render(
+      <AccommodationEditScreen
+        state={createScreenState()}
+        actions={createScreenActions({ onStepClick })}
+      />
+    );
+
+    const completedStep = screen.getByRole("button", {
+      name: /1\s*위치\s*숙소 위치를 설정하세요/,
+    });
+    const currentStep = screen.getByRole("button", {
+      name: /2\s*숙소 사진\s*숙소 사진을 등록하세요/,
+    });
+    const lockedStep = screen.getByRole("button", {
+      name: /3\s*숙소 정보\s*기본 정보를 입력하세요/,
+    });
+
+    expect(currentStep).toHaveAttribute("aria-current", "step");
+    expect(completedStep).not.toBeDisabled();
+    expect(lockedStep).toBeDisabled();
+
+    fireEvent.click(completedStep);
+    fireEvent.click(lockedStep);
+
+    expect(onStepClick).toHaveBeenCalledTimes(1);
+    expect(onStepClick).toHaveBeenCalledWith(1);
   });
 
   it("renders info step fields and forwards edits", () => {

@@ -1,6 +1,5 @@
 import { groupRecentlyViewedByDate } from "../lib/recentlyViewedGroups";
-import { getImageUrl } from "../../../utils/image";
-import { RecentlyViewedAccommodationInfo } from "../../../types/recentlyViewed";
+import type { RecentlyViewedAccommodationCardViewModel } from "../lib/wishlistAccommodationViewModel";
 import styles from "./WishlistViews.module.css";
 
 interface RecentlyViewedViewProps {
@@ -10,15 +9,8 @@ interface RecentlyViewedViewProps {
   onRemoveRecentlyViewed: (accommodationId: number) => void;
   onToggleEditMode: () => void;
   onWishlistToggle: (accommodationId: number) => void;
-  recentlyViewed: RecentlyViewedAccommodationInfo[];
+  recentlyViewed: RecentlyViewedAccommodationCardViewModel[];
 }
-
-const getLocationLabel = (item: RecentlyViewedAccommodationInfo) =>
-  [item.address_summary?.city, item.address_summary?.district]
-    .filter(Boolean)
-    .join(", ") ||
-  item.address_summary?.country ||
-  "";
 
 export function RecentlyViewedView({
   isEditMode,
@@ -34,7 +26,12 @@ export function RecentlyViewedView({
       <div className={styles.recentlyViewedHeader}>
         <div className={styles.recentlyViewedHeaderLeft}>
           <button className={styles.backButton} onClick={onBack} type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M19 12H5M12 19l-7-7 7-7" />
             </svg>
           </button>
@@ -61,45 +58,43 @@ export function RecentlyViewedView({
                 <div className={styles.recentlyViewedGrid}>
                   {items.map((item) => (
                     <div
-                      key={item.accommodation_id}
+                      key={item.accommodationId}
                       className={styles.recentlyViewedCard}
                     >
                       <button
                         className={styles.cardActionButton}
                         type="button"
                         onClick={() =>
-                          onOpenAccommodationDetail(item.accommodation_id)
+                          onOpenAccommodationDetail(item.accommodationId)
                         }
                       >
                         <div className={styles.recentlyViewedImageWrapper}>
-                          {item.thumbnail_url ? (
-                            <img
-                              src={getImageUrl(item.thumbnail_url)}
-                              alt={item.accommodation_name}
-                            />
+                          {item.thumbnailUrl ? (
+                            <img src={item.thumbnailUrl} alt={item.name} />
                           ) : (
-                            <div className={styles.placeholderImage}>이미지 없음</div>
+                            <div className={styles.placeholderImage}>
+                              이미지 없음
+                            </div>
                           )}
                         </div>
                         <div className={styles.wishlistCardInfo}>
                           <div className={styles.locationRow}>
                             <div className={styles.location}>
-                              {getLocationLabel(item)}
+                              {item.locationLabel}
                             </div>
-                            {item.review_summary &&
-                              item.review_summary.total_count > 0 && (
-                                <div className={styles.review}>
-                                  <span className={styles.star}>★</span>
-                                  <span className={styles.rating}>
-                                    {item.review_summary.average_rating.toFixed(1)}
-                                  </span>
-                                  <span className={styles.reviewCount}>
-                                    ({item.review_summary.total_count})
-                                  </span>
-                                </div>
-                              )}
+                            {item.showReview && (
+                              <div className={styles.review}>
+                                <span className={styles.star}>★</span>
+                                <span className={styles.rating}>
+                                  {item.reviewRatingLabel}
+                                </span>
+                                <span className={styles.reviewCount}>
+                                  {item.reviewCountLabel}
+                                </span>
+                              </div>
+                            )}
                           </div>
-                          <div className={styles.name}>{item.accommodation_name}</div>
+                          <div className={styles.name}>{item.name}</div>
                         </div>
                       </button>
                       {isEditMode && (
@@ -107,7 +102,7 @@ export function RecentlyViewedView({
                           className={styles.deleteButtonLeft}
                           onClick={(event) => {
                             event.stopPropagation();
-                            onRemoveRecentlyViewed(item.accommodation_id);
+                            onRemoveRecentlyViewed(item.accommodationId);
                           }}
                           aria-label="삭제"
                           type="button"
@@ -120,15 +115,15 @@ export function RecentlyViewedView({
                           className={styles.wishlistButton}
                           onClick={(event) => {
                             event.stopPropagation();
-                            onWishlistToggle(item.accommodation_id);
+                            onWishlistToggle(item.accommodationId);
                           }}
                           aria-label="위시리스트"
                           type="button"
                         >
                           <svg
                             viewBox="0 0 24 24"
-                            fill={item.is_in_wishlist ? "#ff385c" : "none"}
-                            stroke={item.is_in_wishlist ? "#ffffff" : "#222222"}
+                            fill={item.isInWishlist ? "#ff385c" : "none"}
+                            stroke={item.isInWishlist ? "#ffffff" : "#222222"}
                             strokeWidth="1.5"
                           >
                             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />

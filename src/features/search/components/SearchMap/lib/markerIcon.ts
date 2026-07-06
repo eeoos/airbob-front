@@ -19,6 +19,15 @@ const MARKER_BUBBLE_HEIGHT = 28;
 const MARKER_MIN_BUBBLE_WIDTH = 60;
 const MARKER_HORIZONTAL_PADDING = 12;
 
+export const MARKER_ICON_COLORS = {
+  activeBackground: "#222222",
+  activeBorder: "#222222",
+  activeText: "#ffffff",
+  defaultBackground: "#ffffff",
+  defaultBorder: "#dddddd",
+  defaultText: "#222222",
+} as const;
+
 export const getMarkerPriceText = ({
   basePrice,
   currency,
@@ -52,10 +61,16 @@ export const buildMarkerPriceSvg = (
   state: MarkerIconState
 ) => {
   const isActive = state === "selected" || state === "hovered";
-  const bubbleFill = isActive ? "#222222" : "#ffffff";
-  const bubbleStroke = isActive ? "#222222" : "#dddddd";
+  const bubbleFill = isActive
+    ? MARKER_ICON_COLORS.activeBackground
+    : MARKER_ICON_COLORS.defaultBackground;
+  const bubbleStroke = isActive
+    ? MARKER_ICON_COLORS.activeBorder
+    : MARKER_ICON_COLORS.defaultBorder;
   const strokeWidth = isActive ? 2 : 1;
-  const textFill = isActive ? "#ffffff" : "#222222";
+  const textFill = isActive
+    ? MARKER_ICON_COLORS.activeText
+    : MARKER_ICON_COLORS.defaultText;
 
   return `
         <svg width="${model.totalWidth}" height="${model.bubbleHeight}" xmlns="http://www.w3.org/2000/svg">

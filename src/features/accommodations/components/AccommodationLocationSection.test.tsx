@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { AccommodationDetail } from "../../../types/accommodation";
+import { toAccommodationDetailViewModel } from "../lib/accommodationDetailViewModel";
 import { AccommodationLocationSection } from "./AccommodationLocationSection";
 
 const accommodation: AccommodationDetail = {
@@ -45,7 +46,7 @@ describe("AccommodationLocationSection", () => {
   it("renders the address and embedded Google map when an API key is present", () => {
     render(
       <AccommodationLocationSection
-        accommodation={accommodation}
+        detailView={toAccommodationDetailViewModel(accommodation)}
         googleMapsApiKey="maps-key"
       />
     );
@@ -61,7 +62,7 @@ describe("AccommodationLocationSection", () => {
   it("renders a coordinate placeholder when the API key is absent", () => {
     render(
       <AccommodationLocationSection
-        accommodation={accommodation}
+        detailView={toAccommodationDetailViewModel(accommodation)}
         googleMapsApiKey=""
       />
     );

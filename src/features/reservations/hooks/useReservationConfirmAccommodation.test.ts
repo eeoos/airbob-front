@@ -1,6 +1,9 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
+import React from "react";
 import { accommodationApi } from "../../../api";
 import { AccommodationDetail } from "../../../types/accommodation";
+import { reservationQueryKeys } from "../queryKeys";
 import { useReservationConfirmAccommodation } from "./useReservationConfirmAccommodation";
 
 jest.mock("../../../api", () => ({
@@ -8,6 +11,29 @@ jest.mock("../../../api", () => ({
     getDetail: jest.fn(),
   },
 }));
+
+const createQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+const createWrapper = (queryClient = createQueryClient()) => {
+  return function QueryClientTestWrapper({
+    children,
+  }: {
+    children: React.ReactNode;
+  }) {
+    return React.createElement(
+      QueryClientProvider,
+      { client: queryClient },
+      children,
+    );
+  };
+};
 
 const createAccommodation = (): AccommodationDetail => ({
   id: 7,
@@ -60,14 +86,16 @@ describe("useReservationConfirmAccommodation", () => {
     const handleError = jest.fn();
     const clearError = jest.fn();
 
-    const { result } = renderHook(() =>
-      useReservationConfirmAccommodation({
-        accommodationId: "7",
-        reservationUid: "res-123",
-        navigate,
-        handleError,
-        clearError,
-      })
+    const { result } = renderHook(
+      () =>
+        useReservationConfirmAccommodation({
+          accommodationId: "7",
+          reservationUid: "res-123",
+          navigate,
+          handleError,
+          clearError,
+        }),
+      { wrapper: createWrapper() },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -77,18 +105,46 @@ describe("useReservationConfirmAccommodation", () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
+  it("stores the confirmation accommodation under the reservation query root", async () => {
+    const queryClient = createQueryClient();
+    const accommodation = createAccommodation();
+    jest.mocked(accommodationApi.getDetail).mockResolvedValue(accommodation);
+
+    const { result } = renderHook(
+      () =>
+        useReservationConfirmAccommodation({
+          accommodationId: "7",
+          reservationUid: "res-123",
+          navigate: jest.fn(),
+          handleError: jest.fn(),
+          clearError: jest.fn(),
+        }),
+      { wrapper: createWrapper(queryClient) },
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(
+      queryClient.getQueryData(
+        reservationQueryKeys.confirmAccommodation(7, "res-123"),
+      ),
+    ).toEqual(accommodation);
+  });
+
   it("reports missing reservation information and returns to the detail page", async () => {
     const navigate = jest.fn();
     const handleError = jest.fn();
 
-    const { result } = renderHook(() =>
-      useReservationConfirmAccommodation({
-        accommodationId: "7",
-        reservationUid: null,
-        navigate,
-        handleError,
-        clearError: jest.fn(),
-      })
+    const { result } = renderHook(
+      () =>
+        useReservationConfirmAccommodation({
+          accommodationId: "7",
+          reservationUid: null,
+          navigate,
+          handleError,
+          clearError: jest.fn(),
+        }),
+      { wrapper: createWrapper() },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -105,14 +161,16 @@ describe("useReservationConfirmAccommodation", () => {
       const handleError = jest.fn();
       const clearError = jest.fn();
 
-      const { result } = renderHook(() =>
-        useReservationConfirmAccommodation({
-          accommodationId,
-          reservationUid: "res-123",
-          navigate,
-          handleError,
-          clearError,
-        })
+      const { result } = renderHook(
+        () =>
+          useReservationConfirmAccommodation({
+            accommodationId,
+            reservationUid: "res-123",
+            navigate,
+            handleError,
+            clearError,
+          }),
+        { wrapper: createWrapper() },
       );
 
       await waitFor(() => expect(result.current.isLoading).toBe(false));

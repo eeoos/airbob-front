@@ -1,4 +1,6 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
+import React from "react";
 import { reservationApi } from "../../../api";
 import { ReservationFilterType } from "../../../types/reservation";
 import { useGuestTrips } from "./useGuestTrips";
@@ -19,6 +21,28 @@ jest.mock("../../../hooks/useApiError", () => ({
     handleError: mockHandleError,
   }),
 }));
+
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+  return function QueryClientTestWrapper({
+    children,
+  }: {
+    children: React.ReactNode;
+  }) {
+    return React.createElement(
+      QueryClientProvider,
+      { client: queryClient },
+      children,
+    );
+  };
+};
 
 const createGuestReservation = (reservationId: number) =>
   ({
@@ -51,7 +75,9 @@ describe("useGuestTrips", () => {
       reservations: [firstReservation],
     } as any);
 
-    const { result } = renderHook(() => useGuestTrips("UPCOMING"));
+    const { result } = renderHook(() => useGuestTrips("UPCOMING"), {
+      wrapper: createWrapper(),
+    });
 
     expect(result.current.isLoading).toBe(true);
 
@@ -85,7 +111,9 @@ describe("useGuestTrips", () => {
         reservations: [secondReservation],
       } as any);
 
-    const { result } = renderHook(() => useGuestTrips("PAST"));
+    const { result } = renderHook(() => useGuestTrips("PAST"), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => expect(result.current.hasNext).toBe(true));
 
@@ -109,7 +137,9 @@ describe("useGuestTrips", () => {
     const error = new Error("guest reservations failed");
     jest.mocked(reservationApi.getMyReservations).mockRejectedValue(error);
 
-    const { result } = renderHook(() => useGuestTrips("CANCELLED"));
+    const { result } = renderHook(() => useGuestTrips("CANCELLED"), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -135,7 +165,10 @@ describe("useGuestTrips", () => {
     const { result, rerender } = renderHook(
       ({ filterType }: { filterType: ReservationFilterType }) =>
         useGuestTrips(filterType),
-      { initialProps: { filterType: "UPCOMING" as ReservationFilterType } }
+      {
+        initialProps: { filterType: "UPCOMING" as ReservationFilterType },
+        wrapper: createWrapper(),
+      },
     );
 
     rerender({ filterType: "PAST" as ReservationFilterType });
@@ -186,7 +219,10 @@ describe("useGuestTrips", () => {
     const { result, rerender } = renderHook(
       ({ filterType }: { filterType: ReservationFilterType }) =>
         useGuestTrips(filterType),
-      { initialProps: { filterType: "UPCOMING" as ReservationFilterType } }
+      {
+        initialProps: { filterType: "UPCOMING" as ReservationFilterType },
+        wrapper: createWrapper(),
+      },
     );
 
     rerender({ filterType: "PAST" as ReservationFilterType });
@@ -241,7 +277,10 @@ describe("useGuestTrips", () => {
     const { result, rerender } = renderHook(
       ({ filterType }: { filterType: ReservationFilterType }) =>
         useGuestTrips(filterType),
-      { initialProps: { filterType: "UPCOMING" as ReservationFilterType } }
+      {
+        initialProps: { filterType: "UPCOMING" as ReservationFilterType },
+        wrapper: createWrapper(),
+      },
     );
 
     await waitFor(() => expect(result.current.hasNext).toBe(true));
@@ -310,7 +349,10 @@ describe("useGuestTrips", () => {
     const { result, rerender } = renderHook(
       ({ filterType }: { filterType: ReservationFilterType }) =>
         useGuestTrips(filterType),
-      { initialProps: { filterType: "UPCOMING" as ReservationFilterType } }
+      {
+        initialProps: { filterType: "UPCOMING" as ReservationFilterType },
+        wrapper: createWrapper(),
+      },
     );
 
     await waitFor(() => expect(result.current.hasNext).toBe(true));
@@ -368,7 +410,9 @@ describe("useGuestTrips", () => {
       } as any)
       .mockReturnValue(loadMoreRequest as never);
 
-    const { result } = renderHook(() => useGuestTrips("UPCOMING"));
+    const { result } = renderHook(() => useGuestTrips("UPCOMING"), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => expect(result.current.hasNext).toBe(true));
 

@@ -30,6 +30,12 @@ const qaEmail = process.env.AIRBOB_QA_EMAIL;
 const qaPassword = process.env.AIRBOB_QA_PASSWORD;
 const browseBin = process.env.GSTACK_BROWSE_BIN;
 const frontendUrl = process.env.AIRBOB_FRONTEND_URL ?? DEFAULT_FRONTEND_URL;
+const strictDynamicRoutes = process.env.AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES === "true";
+const rawGoogleMapsApiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+const googleMapsApiKey = rawGoogleMapsApiKey?.trim() ?? "";
+const googleMapsApiKeyReady = Boolean(googleMapsApiKey);
+const strictSearchResults =
+  process.env.AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS === "true";
 const envValue = (name) => process.env[name]?.trim() || "";
 const editAccommodationId =
   envValue("AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID") || "3";
@@ -41,6 +47,12 @@ const reportPath = join(REPORT_ROOT, `frontend-smoke-${timestamp}.md`);
 const VIEWPORTS = [
   { name: "desktop", size: "1280x720" },
   { name: "mobile", size: "375x812" },
+];
+
+const SEARCH_RESULT_CARD_SELECTORS = [
+  "[data-testid='search-result-card']",
+  "[data-testid='accommodation-card']",
+  "article[aria-label*='숙소']",
 ];
 
 const buildRoutePath = (pathTemplate, params) =>
@@ -91,7 +103,7 @@ const ROUTES = [
   },
   {
     name: "search-seoul",
-    path: "/search?destination=Seoul&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1",
+    path: "/search?destination=Albany&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1",
     selector: "main, #root",
     expectedText: "숙소",
   },
@@ -118,7 +130,7 @@ const ROUTES = [
     pathTemplate: "/accommodations/:id",
     params: { id: accommodationId },
     selector: "main, #root",
-    expectedText: "숙소",
+    expectedText: "예약하기",
   }),
   {
     name: "accommodation-edit",
@@ -151,6 +163,20 @@ const skippedDynamicRouteLines = skippedDynamicRoutes.map(
     `- ${name} (${pathTemplate}): skipped; set ${envName} to cover this route.`
 );
 
+if (strictDynamicRoutes && skippedDynamicRoutes.length > 0) {
+  const missingDynamicEnvNames = skippedDynamicRoutes.map(({ envName }) => envName);
+
+  console.error(
+    `Strict dynamic route smoke mode requires stable route ids. Set ${missingDynamicEnvNames.join(
+      ", "
+    )} before running smoke:frontend:strict.`
+  );
+  skippedDynamicRoutes.forEach(({ name, pathTemplate, envName }) => {
+    console.error(`- ${envName} is required for ${name} (${pathTemplate}).`);
+  });
+  process.exit(1);
+}
+
 if (skippedDynamicRoutes.length > 0) {
   console.warn(
     `Skipped dynamic smoke routes: ${skippedDynamicRoutes
@@ -164,7 +190,13 @@ const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const redactionEntries = [
   ["AIRBOB_QA_EMAIL", qaEmail],
   ["AIRBOB_QA_PASSWORD", qaPassword],
+  ["REACT_APP_GOOGLE_MAPS_API_KEY", rawGoogleMapsApiKey],
+  ["REACT_APP_GOOGLE_MAPS_API_KEY", googleMapsApiKey],
 ].flatMap(([name, value]) => {
+  if (!value) {
+    return [];
+  }
+
   const variants = new Set([
     value,
     encodeURIComponent(value),
@@ -256,6 +288,135 @@ const routeAssertion = ({ path, selector, expectedText }) => {
   })()`.replace(/\s+/g, " ");
 };
 
+const routeInteractionAssertion = ({ name }) => {
+  if (name === "search-seoul") {
+    return `(() => {
+      const strictSearchResults = ${JSON.stringify(strictSearchResults)};
+      const resultCardSelectors = ${JSON.stringify(SEARCH_RESULT_CARD_SELECTORS)};
+      const isVisible = (element) => {
+        const style = window.getComputedStyle(element);
+        const rect = element.getBoundingClientRect();
+        return style.display !== "none" &&
+          style.visibility !== "hidden" &&
+          rect.width > 0 &&
+          rect.height > 0;
+      };
+      const labelFor = (button) => [
+        button.getAttribute("aria-label"),
+        button.getAttribute("title"),
+        button.textContent
+      ].filter(Boolean).join(" ").replace(/\\s+/g, " ").trim();
+      const readState = () => {
+        const labels = Array.from(document.querySelectorAll("button")).map(labelFor);
+        const pageText = document.body.textContent || "";
+        return {
+          hasSearchButton: labels.some((label) => label.includes("검색")),
+          hasSearchResultCard: resultCardSelectors.some((selector) =>
+            Array.from(document.querySelectorAll(selector)).some(isVisible)
+          ),
+          hasWishlistAction: labels.some((label) =>
+            label.includes("위시리스트에 저장") || label.includes("위시리스트에서 제거")
+          ),
+          hasSearchEmptyState: pageText.includes("검색 결과가 없습니다.")
+        };
+      };
+      const missingFor = (state) => [
+        !state.hasSearchButton && "search button",
+        strictSearchResults && !state.hasSearchResultCard && "search result card",
+        !strictSearchResults &&
+          !state.hasSearchResultCard &&
+          !state.hasWishlistAction &&
+          !state.hasSearchEmptyState &&
+          "wishlist/save action, result card, or empty state"
+      ].filter(Boolean);
+      const timeoutMs = 6000;
+      const pollMs = 150;
+
+      return new Promise((resolve, reject) => {
+        const startedAt = Date.now();
+        const poll = () => {
+          const state = readState();
+          const missing = missingFor(state);
+
+          if (missing.length === 0) {
+            resolve(state.hasSearchResultCard
+              ? "search route result card is visible"
+              : state.hasWishlistAction
+              ? "search route interaction controls are present"
+              : "search route empty state is present");
+            return;
+          }
+
+          if (Date.now() - startedAt >= timeoutMs) {
+            if (strictSearchResults && !state.hasSearchResultCard) {
+              reject(new Error("Search result fixture was required but no result card was visible"));
+              return;
+            }
+
+            reject(new Error(\`Search route interaction assertion failed: missing \${missing.join(", ")}\`));
+            return;
+          }
+
+          setTimeout(poll, pollMs);
+        };
+
+        poll();
+      });
+    })()`.replace(/\s+/g, " ");
+  }
+
+  if (name === "accommodation-detail") {
+    return `(() => {
+      const labelFor = (button) => [
+        button.getAttribute("aria-label"),
+        button.getAttribute("title"),
+        button.textContent
+      ].filter(Boolean).join(" ").replace(/\\s+/g, " ").trim();
+      const readState = () => {
+        const labels = Array.from(document.querySelectorAll("button")).map(labelFor);
+        return {
+          hasReservationCta: labels.some((label) =>
+            label.includes("예약하기") || label.includes("예약 중")
+          ),
+          hasGalleryTrigger: labels.some((label) =>
+            label.includes("사진") && (label.includes("보기") || label.includes("갤러리"))
+          )
+        };
+      };
+      const missingFor = (state) => [
+        !state.hasReservationCta && "reservation CTA",
+        !state.hasGalleryTrigger && "gallery trigger buttons"
+      ].filter(Boolean);
+      const timeoutMs = 6000;
+      const pollMs = 150;
+
+      return new Promise((resolve, reject) => {
+        const startedAt = Date.now();
+        const poll = () => {
+          const state = readState();
+          const missing = missingFor(state);
+
+          if (missing.length === 0) {
+            resolve("accommodation detail interaction controls are present");
+            return;
+          }
+
+          if (Date.now() - startedAt >= timeoutMs) {
+            reject(new Error(\`Accommodation detail interaction assertion failed: missing \${missing.join(", ")}\`));
+            return;
+          }
+
+          setTimeout(poll, pollMs);
+        };
+
+        poll();
+      });
+    })()`.replace(/\s+/g, " ");
+  }
+
+  return null;
+};
+
 const loginExpression = `(() => fetch("/api/v1/auth/login", {
   method: "POST",
   credentials: "include",
@@ -306,7 +467,15 @@ for (const viewport of VIEWPORTS) {
       ["network", "--clear"],
       ["goto", url],
       ["wait", "--load"],
-      ["js", routeAssertion(route)],
+      ["js", routeAssertion(route)]
+    );
+
+    const interactionAssertion = routeInteractionAssertion(route);
+    if (interactionAssertion) {
+      commands.push(["js", interactionAssertion]);
+    }
+
+    commands.push(
       ["screenshot", screenshotPath],
       ["console", "--errors"],
       ["console", "--warnings"],
@@ -388,8 +557,15 @@ const report = [
   `- Frontend URL: ${baseUrl}`,
   `- Browse command: ${redact(browseBin)} chain`,
   `- Credential inputs: AIRBOB_QA_EMAIL and AIRBOB_QA_PASSWORD were supplied via environment variables and redacted from wrapper output.`,
+  `- Google Maps API key: ${googleMapsApiKeyReady ? "present" : "missing"}`,
   `- Edit accommodation id source: AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID or fallback ${editAccommodationId}`,
   `- Accommodation detail id source: AIRBOB_SMOKE_ACCOMMODATION_ID or edit-id fallback ${accommodationId}`,
+  `- Search result fixture gate: ${
+    strictSearchResults
+      ? "required via AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS=true"
+      : "optional; empty state is accepted until ES data is seeded"
+  }.`,
+  "- Search route fixture: Albany query; records visible result card state when present, otherwise validates the explicit empty state.",
   "",
   "## Route Coverage",
   "",

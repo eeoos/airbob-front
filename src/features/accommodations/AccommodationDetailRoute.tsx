@@ -1,11 +1,11 @@
-import React, { useEffect, useRef, useState, useTransition } from "react";
+import React, { useRef, useState, useTransition } from "react";
 import type { NavigateFunction, URLSearchParamsInit } from "react-router-dom";
 import { ErrorToast } from "../../components/ErrorToast";
 import { useApiError } from "../../hooks/useApiError";
 import { useAuth } from "../../hooks/useAuth";
-import { AuthModal } from "../auth/components/AuthModal";
-import { ReviewModal } from "../reviews/components/ReviewModal/ReviewModal";
-import { WishlistModal } from "../wishlist/components/WishlistModal";
+import { AuthModal } from "../auth/appShell";
+import { ReviewModal, toReviewViewModels } from "../reviews/appShell";
+import { WishlistModal } from "../wishlist/appShell";
 import { AccommodationBookingCard } from "./components/AccommodationBookingCard";
 import { AccommodationDescriptionModal } from "./components/AccommodationDescriptionModal";
 import AccommodationHero from "./components/AccommodationHero";
@@ -18,6 +18,9 @@ import { useAccommodationCoupons } from "./hooks/useAccommodationCoupons";
 import { useAccommodationDetail } from "./hooks/useAccommodationDetail";
 import { useAccommodationImageGallery } from "./hooks/useAccommodationImageGallery";
 import { useAccommodationReviews } from "./hooks/useAccommodationReviews";
+import { toAccommodationBookingViewModel } from "./lib/accommodationBookingViewModel";
+import { toAccommodationDetailViewModel } from "./lib/accommodationDetailViewModel";
+import { useOutsideClick } from "../../shared/ui";
 import styles from "./AccommodationDetailRoute.module.css";
 
 export interface AccommodationDetailRouteProps {
@@ -47,6 +50,9 @@ export const AccommodationDetailRoute: React.FC<
   const guestPickerRef = useRef<HTMLDivElement>(null);
   const datePickerRef = useRef<HTMLDivElement>(null);
   const dateSectionRef = useRef<HTMLDivElement>(null);
+  const datePickerBoundaryRef = useRef<{
+    contains: (target: Node) => boolean;
+  } | null>(null);
   const [, startTransition] = useTransition();
 
   const requireAuth = (action: () => void | Promise<void>) => {
@@ -96,6 +102,10 @@ export const AccommodationDetailRoute: React.FC<
     onRequireAuth: requireAuth,
   });
 
+  const detailView = accommodation
+    ? toAccommodationDetailViewModel(accommodation)
+    : null;
+
   const {
     reviews,
     allReviews,
@@ -104,13 +114,13 @@ export const AccommodationDetailRoute: React.FC<
     expandedReviews,
   } = useAccommodationReviews({
     accommodationId,
-    totalReviewCount: accommodation?.review_summary.total_count ?? 0,
+    totalReviewCount: detailView?.rating.reviewCount ?? 0,
     handleError,
     clearError,
   });
 
   const imageGallery = useAccommodationImageGallery({
-    imageCount: accommodation?.images.length ?? 0,
+    imageCount: detailView?.heroImages.length ?? 0,
   });
 
   const {
@@ -141,41 +151,24 @@ export const AccommodationDetailRoute: React.FC<
       couponDiscount,
     });
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
+  datePickerBoundaryRef.current = {
+    contains: (target: Node) =>
+      Boolean(
+        datePickerRef.current?.contains(target) ||
+          dateSectionRef.current?.contains(target)
+      ),
+  };
 
-      if (
-        isGuestPickerOpen &&
-        guestPickerRef.current &&
-        !guestPickerRef.current.contains(target)
-      ) {
-        setIsGuestPickerOpen(false);
-      }
-
-      if (isDatePickerOpen) {
-        const isInsideDatePicker = datePickerRef.current?.contains(target);
-        const isInsideDateSection = dateSectionRef.current?.contains(target);
-
-        if (!isInsideDatePicker && !isInsideDateSection) {
-          setIsDatePickerOpen(false);
-        }
-      }
-    };
-
-    if (isGuestPickerOpen || isDatePickerOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [
-    isGuestPickerOpen,
-    isDatePickerOpen,
-    setIsGuestPickerOpen,
-    setIsDatePickerOpen,
-  ]);
+  useOutsideClick(
+    guestPickerRef,
+    () => setIsGuestPickerOpen(false),
+    isGuestPickerOpen
+  );
+  useOutsideClick(
+    datePickerBoundaryRef,
+    () => setIsDatePickerOpen(false),
+    isDatePickerOpen
+  );
 
   if (isLoading) {
     return (
@@ -185,7 +178,7 @@ export const AccommodationDetailRoute: React.FC<
     );
   }
 
-  if (!accommodation) {
+  if (!accommodation || !detailView) {
     return (
       <>
         <div className={styles.error}>숙소를 찾을 수 없습니다.</div>
@@ -193,11 +186,15 @@ export const AccommodationDetailRoute: React.FC<
     );
   }
 
+  const bookingView = toAccommodationBookingViewModel(accommodation);
+  const reviewViews = toReviewViewModels(reviews);
+  const allReviewViews = toReviewViewModels(allReviews);
+
   return (
     <>
       <div className={styles.container}>
         <AccommodationHero
-          accommodation={accommodation}
+          detailView={detailView}
           mobileSlideIndex={imageGallery.mobileSlideIndex}
           onMobileSlideIndexChange={imageGallery.setMobileSlideIndex}
           onOpenGallery={imageGallery.openGallery}
@@ -218,14 +215,14 @@ export const AccommodationDetailRoute: React.FC<
         <div className={styles.contentWrapper}>
           <div className={styles.leftColumn}>
             <AccommodationOverview
-              accommodation={accommodation}
+              detailView={detailView}
               onOpenDescription={() => setIsDescriptionModalOpen(true)}
             />
           </div>
 
           <div className={styles.sidebar}>
             <AccommodationBookingCard
-              accommodation={accommodation}
+              bookingView={bookingView}
               isAuthenticated={isAuthenticated}
               payablePrice={payablePrice}
               nights={nights}
@@ -263,11 +260,11 @@ export const AccommodationDetailRoute: React.FC<
           </div>
         </div>
 
-        <AccommodationLocationSection accommodation={accommodation} />
+        <AccommodationLocationSection detailView={detailView} />
 
         <AccommodationReviewsSection
-          reviewSummary={accommodation.review_summary}
-          reviews={reviews}
+          reviewSummary={detailView.rating}
+          reviews={reviewViews}
           expandedReviews={expandedReviews}
           onOpenReviews={() => setIsReviewModalOpen(true)}
         />
@@ -276,14 +273,14 @@ export const AccommodationDetailRoute: React.FC<
       <ReviewModal
         isOpen={isReviewModalOpen}
         onClose={() => setIsReviewModalOpen(false)}
-        reviews={allReviews}
-        averageRating={accommodation.review_summary.average_rating}
-        totalCount={accommodation.review_summary.total_count}
+        reviews={allReviewViews}
+        averageRating={detailView.rating.averageRating}
+        totalCount={detailView.rating.reviewCount}
       />
       <WishlistModal
         isOpen={isWishlistModalOpen}
         onClose={() => setIsWishlistModalOpen(false)}
-        accommodationId={accommodation.id}
+        accommodationId={detailView.id}
         onSuccess={async () => {
           await reloadAccommodation();
         }}
@@ -302,22 +299,18 @@ export const AccommodationDetailRoute: React.FC<
         }}
       />
 
-      {error && (
-        <div className={styles.toastContainer}>
-          <ErrorToast message={error} onClose={clearError} />
-        </div>
-      )}
+      {error && <ErrorToast message={error} onClose={clearError} />}
 
       <AccommodationDescriptionModal
         isOpen={isDescriptionModalOpen}
-        description={accommodation.description}
+        description={detailView.description}
         onClose={() => setIsDescriptionModalOpen(false)}
       />
 
       <AccommodationImageGalleryModal
         isOpen={imageGallery.isImageGalleryOpen}
-        accommodationName={accommodation.name}
-        images={accommodation.images}
+        accommodationName={detailView.title}
+        images={detailView.heroImages}
         currentImageIndex={imageGallery.currentImageIndex}
         onCurrentImageIndexChange={imageGallery.setCurrentImageIndex}
         onClose={imageGallery.closeGallery}

@@ -55,12 +55,6 @@
 }
 
 .statusBadge {
-  padding: 6px 12px;
-  background-color: #00a699;
-  color: var(--color-text-inverse);
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  font-weight: 600;
   text-transform: uppercase;
   align-self: flex-start;
 }

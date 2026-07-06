@@ -112,7 +112,7 @@ describe("UserMenu", () => {
     await openMenu();
     expect(screen.getByRole("button", { name: "로그아웃" })).toBeInTheDocument();
 
-    fireEvent.mouseDown(document.body);
+    fireEvent.pointerDown(document.body);
 
     await waitFor(() => {
       expect(

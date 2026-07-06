@@ -1,28 +1,39 @@
-export type WishlistRouteView = "index" | "recently-viewed" | "wishlist-detail";
+import {
+  buildAccommodationBookingRouteSearchParams,
+  buildSearchRouteSearchParams,
+} from "../features/search/lib/searchRouteQuery";
+import { buildPaymentFailRouteSearchParams } from "../features/reservations/lib/paymentRouteState";
+import { buildProfileRouteQuerySearchParams } from "../features/profile/lib/profileRouteQuery";
+import { buildWishlistRouteQuerySearchParams } from "../features/wishlist/lib/wishlistRouteQuery";
+import type {
+  AccommodationBookingRouteQuery,
+  SearchRouteQuery,
+} from "../features/search/lib/searchRouteQuery";
+import type { PaymentFailRouteQuery } from "../features/reservations/lib/paymentRouteState";
+import type { ProfileRouteQuery } from "../features/profile/lib/profileRouteQuery";
+import type { WishlistRouteQuery } from "../features/wishlist/lib/wishlistRouteQuery";
+import { appendDefinedSearchParam } from "./routeQuery";
 
-export type ProfileRouteMode = "guest" | "host";
-
-export type ProfileGuestRouteTab =
-  | "trips"
-  | "upcoming"
-  | "past"
-  | "cancelled";
-
-export type ProfileHostRouteTab =
-  | "listings"
-  | "listings-published"
-  | "listings-draft"
-  | "listings-unpublished"
-  | "reservations"
-  | "reservations-upcoming"
-  | "reservations-past"
-  | "reservations-cancelled";
-
-export type ProfileRouteTab =
-  | ProfileGuestRouteTab
-  | ProfileHostRouteTab;
-
-export type PaymentFailReason = "confirm-failed" | "invalid-callback";
+export type {
+  AccommodationBookingRouteQuery,
+  SearchRouteQuery,
+} from "../features/search/lib/searchRouteQuery";
+export type {
+  PaymentFailReason,
+  PaymentFailRouteQuery,
+} from "../features/reservations/lib/paymentRouteState";
+export { parsePaymentFailReason } from "../features/reservations/lib/paymentRouteState";
+export type {
+  ProfileGuestRouteTab,
+  ProfileHostRouteTab,
+  ProfileRouteMode,
+  ProfileRouteQuery,
+  ProfileRouteTab,
+} from "../features/profile/lib/profileRouteQuery";
+export type {
+  WishlistRouteQuery,
+  WishlistRouteView,
+} from "../features/wishlist/lib/wishlistRouteQuery";
 
 export const ROUTE_PATHS = {
   home: "/",
@@ -43,49 +54,6 @@ export const ROUTE_PATHS = {
 } as const;
 
 export type RouteParamValue = string | number;
-export type AccommodationBookingRouteQuery = {
-  checkIn?: RouteParamValue;
-  checkOut?: RouteParamValue;
-  adultOccupancy?: RouteParamValue;
-  childOccupancy?: RouteParamValue;
-  infantOccupancy?: RouteParamValue;
-  petOccupancy?: RouteParamValue;
-};
-export type SearchRouteQuery = AccommodationBookingRouteQuery & {
-  destination?: RouteParamValue;
-  page?: RouteParamValue;
-  lat?: RouteParamValue;
-  lng?: RouteParamValue;
-  topLeftLat?: RouteParamValue;
-  topLeftLng?: RouteParamValue;
-  bottomRightLat?: RouteParamValue;
-  bottomRightLng?: RouteParamValue;
-};
-type WishlistRouteQuery =
-  | {
-      id: RouteParamValue;
-      view?: never;
-    }
-  | {
-      id?: never;
-      view: "recently-viewed";
-    }
-  | {
-      id?: undefined;
-      view?: undefined;
-    };
-type ProfileRouteQuery =
-  | {
-      mode?: "guest";
-      tab?: ProfileGuestRouteTab;
-    }
-  | {
-      mode: "host";
-      tab?: ProfileHostRouteTab;
-    };
-type PaymentFailRouteQuery = {
-  reason?: PaymentFailReason;
-};
 
 const buildPath = (template: string, params: Record<string, RouteParamValue>) =>
   template.replace(/:([A-Za-z0-9_]+)/g, (_, key: string) =>
@@ -109,9 +77,7 @@ const withQuery = (
   const params = new URLSearchParams();
 
   Object.entries(entries).forEach(([key, value]) => {
-    if (value !== undefined && value !== "") {
-      params.set(key, String(value));
-    }
+    appendDefinedSearchParam(params, key, value);
   });
 
   const query = params.toString();
@@ -121,60 +87,34 @@ const withQuery = (
 export const routeTo = {
   home: () => ROUTE_PATHS.home,
   search: (query?: SearchRouteQuery) =>
-    withQuery(ROUTE_PATHS.search, {
-      destination: query?.destination,
-      page: query?.page,
-      lat: query?.lat,
-      lng: query?.lng,
-      topLeftLat: query?.topLeftLat,
-      topLeftLng: query?.topLeftLng,
-      bottomRightLat: query?.bottomRightLat,
-      bottomRightLng: query?.bottomRightLng,
-      checkIn: query?.checkIn,
-      checkOut: query?.checkOut,
-      adultOccupancy: query?.adultOccupancy,
-      childOccupancy: query?.childOccupancy,
-      infantOccupancy: query?.infantOccupancy,
-      petOccupancy: query?.petOccupancy,
-    }),
+    withRawQuery(ROUTE_PATHS.search, buildSearchRouteSearchParams(query)),
   accommodationDetail: (
     id: string | number,
     query?: AccommodationBookingRouteQuery,
   ) =>
-    withQuery(buildPath(ROUTE_PATHS.accommodationDetail, { id }), {
-      checkIn: query?.checkIn,
-      checkOut: query?.checkOut,
-      adultOccupancy: query?.adultOccupancy,
-      childOccupancy: query?.childOccupancy,
-      infantOccupancy: query?.infantOccupancy,
-      petOccupancy: query?.petOccupancy,
-    }),
+    withRawQuery(
+      buildPath(ROUTE_PATHS.accommodationDetail, { id }),
+      buildAccommodationBookingRouteSearchParams(query),
+    ),
   accommodationConfirm: (
     id: string | number,
     query?: AccommodationBookingRouteQuery,
   ) =>
-    withQuery(buildPath(ROUTE_PATHS.accommodationConfirm, { id }), {
-      checkIn: query?.checkIn,
-      checkOut: query?.checkOut,
-      adultOccupancy: query?.adultOccupancy,
-      childOccupancy: query?.childOccupancy,
-      infantOccupancy: query?.infantOccupancy,
-      petOccupancy: query?.petOccupancy,
-    }),
+    withRawQuery(
+      buildPath(ROUTE_PATHS.accommodationConfirm, { id }),
+      buildAccommodationBookingRouteSearchParams(query),
+    ),
   accommodationEdit: (id: string | number, query?: { mode?: "create" }) =>
     withQuery(buildPath(ROUTE_PATHS.accommodationEdit, { id }), {
       mode: query?.mode,
     }),
   wishlist: (query?: WishlistRouteQuery) =>
-    withQuery(ROUTE_PATHS.wishlist, {
-      id: query?.id,
-      view: query?.view,
-    }),
+    withRawQuery(
+      ROUTE_PATHS.wishlist,
+      buildWishlistRouteQuerySearchParams(query),
+    ),
   profile: (query?: ProfileRouteQuery) =>
-    withQuery(ROUTE_PATHS.profile, {
-      mode: query?.mode,
-      tab: query?.tab,
-    }),
+    withRawQuery(ROUTE_PATHS.profile, buildProfileRouteQuerySearchParams(query)),
   hostReservationDetail: (reservationUid: string) =>
     buildPath(ROUTE_PATHS.hostReservationDetail, { reservationUid }),
   reservationDetail: (reservationUid: string) =>
@@ -184,9 +124,10 @@ export const routeTo = {
   paymentSuccess: (reservationUid: string) =>
     buildPath(ROUTE_PATHS.paymentSuccess, { reservationUid }),
   paymentFail: (reservationUid: string, query?: PaymentFailRouteQuery) =>
-    withQuery(buildPath(ROUTE_PATHS.paymentFail, { reservationUid }), {
-      reason: query?.reason,
-    }),
+    withRawQuery(
+      buildPath(ROUTE_PATHS.paymentFail, { reservationUid }),
+      buildPaymentFailRouteSearchParams(query),
+    ),
   login: () => ROUTE_PATHS.login,
   signup: () => ROUTE_PATHS.signup,
 };

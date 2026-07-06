@@ -1,11 +1,10 @@
-import { ReviewSummary } from "../../../types/accommodation";
-import { ReviewInfo } from "../../../types/review";
-import { getImageUrl } from "../../../utils/image";
+import type { AccommodationDetailViewModel } from "../lib/accommodationDetailViewModel";
+import type { ReviewViewModel } from "../../reviews/lib/reviewViewModel";
 import styles from "./AccommodationReviewsSection.module.css";
 
 interface AccommodationReviewsSectionProps {
-  reviewSummary: ReviewSummary;
-  reviews: ReviewInfo[];
+  reviewSummary: AccommodationDetailViewModel["rating"];
+  reviews: ReviewViewModel[];
   expandedReviews: Record<number, boolean>;
   maxReviewContentLength?: number;
   onOpenReviews: () => void;
@@ -20,15 +19,15 @@ export function AccommodationReviewsSection({
   maxReviewContentLength = DEFAULT_MAX_REVIEW_CONTENT_LENGTH,
   onOpenReviews,
 }: AccommodationReviewsSectionProps) {
-  if (reviewSummary.total_count <= 0) {
+  if (!reviewSummary.hasReviews) {
     return null;
   }
 
   return (
     <section className={`${styles.section} ${styles.reviewSection}`}>
       <h2 className={styles.sectionTitle}>
-        ★ {reviewSummary.average_rating.toFixed(2)} · 후기{" "}
-        {reviewSummary.total_count}개
+        ★ {reviewSummary.averageRating.toFixed(2)} · 후기{" "}
+        {reviewSummary.reviewCount}개
       </h2>
 
       {reviews.length > 0 && (
@@ -41,26 +40,24 @@ export function AccommodationReviewsSection({
               isExpanded || !isLongReview
                 ? review.content
                 : `${review.content.substring(0, maxReviewContentLength)}...`;
-            const reviewedAt = new Date(review.reviewed_at);
-
             return (
               <div key={review.id} className={styles.reviewCard}>
                 <div className={styles.reviewHeader}>
                   <div className={styles.reviewerInfo}>
-                    {review.reviewer.thumbnail_image_url ? (
+                    {review.author.avatarUrl ? (
                       <img
-                        src={getImageUrl(review.reviewer.thumbnail_image_url)}
-                        alt={review.reviewer.nickname}
+                        src={review.author.avatarUrl}
+                        alt={review.author.name}
                         className={styles.reviewerAvatar}
                       />
                     ) : (
                       <div className={styles.reviewerAvatarPlaceholder}>
-                        {review.reviewer.nickname.charAt(0).toUpperCase()}
+                        {review.author.avatarInitial}
                       </div>
                     )}
                     <div className={styles.reviewerDetails}>
                       <div className={styles.reviewerName}>
-                        {review.reviewer.nickname}
+                        {review.author.name}
                       </div>
                     </div>
                   </div>
@@ -81,7 +78,7 @@ export function AccommodationReviewsSection({
                 </div>
 
                 <div className={styles.reviewDate}>
-                  {reviewedAt.getFullYear()}년 {reviewedAt.getMonth() + 1}월
+                  {review.date.label}
                 </div>
 
                 <div className={styles.reviewContent}>{visibleContent}</div>
@@ -101,8 +98,8 @@ export function AccommodationReviewsSection({
                     {review.images.map((image) => (
                       <img
                         key={image.id}
-                        src={getImageUrl(image.image_url)}
-                        alt="리뷰 이미지"
+                        src={image.url}
+                        alt={image.alt}
                         className={styles.reviewImage}
                       />
                     ))}
@@ -114,14 +111,14 @@ export function AccommodationReviewsSection({
         </div>
       )}
 
-      {reviewSummary.total_count > 6 && (
+      {reviewSummary.reviewCount > 6 && (
         <div className={styles.reviewViewAll}>
           <button
             type="button"
             className={styles.reviewViewAllButton}
             onClick={onOpenReviews}
           >
-            후기 {reviewSummary.total_count}개 모두 보기
+            후기 {reviewSummary.reviewCount}개 모두 보기
           </button>
         </div>
       )}

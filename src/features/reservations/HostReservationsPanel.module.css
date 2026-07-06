@@ -11,33 +11,7 @@
 }
 
 .filterTabs {
-  display: flex;
-  gap: 8px;
   margin-bottom: 24px;
-  border-bottom: 1px solid var(--color-border-default);
-  padding-bottom: 0;
-}
-
-.filterTab {
-  padding: 12px 16px;
-  border: none;
-  border-bottom: 2px solid transparent;
-  background: transparent;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  margin-bottom: -1px;
-}
-
-.filterTab:hover {
-  color: var(--color-text-primary);
-}
-
-.filterTab.active {
-  color: var(--color-text-primary);
-  border-bottom-color: #00a699;
 }
 
 .tableContainer {
@@ -64,20 +38,31 @@
   white-space: nowrap;
 }
 
-.th.sortable {
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
   cursor: pointer;
-  user-select: none;
-  position: relative;
+  font: inherit;
+  letter-spacing: 0;
 }
 
-.th.sortable:hover {
-  background-color: #eeeeee;
+.sortButton:hover {
+  color: var(--color-text-primary);
+}
+
+.sortButton:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 2px;
 }
 
 .sortIcon {
-  margin-left: 8px;
   font-size: 12px;
-  color: #00a699;
+  color: var(--color-success);
 }
 
 .tableRow {
@@ -117,51 +102,11 @@
   color: var(--color-text-secondary);
 }
 
-.status {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.statusConfirmed {
-  color: #00a699;
-  background-color: #e6f7f5;
-}
-
-.statusCancelled {
-  color: #c13515;
-  background-color: #ffe5e5;
-}
-
-.statusDefault {
-  color: var(--color-text-secondary);
-  background-color: var(--color-background-muted);
-}
-
 .actionButtons {
   display: flex;
   align-items: center;
   gap: 12px;
   justify-content: flex-end;
-}
-
-.detailsButton {
-  padding: 8px 16px;
-  border: 1px solid var(--color-border-default);
-  border-radius: 6px;
-  background: var(--color-background-page);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.detailsButton:hover {
-  border-color: var(--color-text-primary);
-  background-color: var(--color-background-muted);
 }
 
 .menuButton {
@@ -201,13 +146,6 @@
   font-size: 14px;
 }
 
-.toastContainer {
-  position: fixed;
-  top: 24px;
-  right: 24px;
-  z-index: var(--z-toast);
-}
-
 @media (max-width: 768px) {
   .tableContainer {
     overflow-x: scroll;
@@ -224,8 +162,4 @@
     gap: 8px;
   }
 
-  .detailsButton {
-    padding: 6px 12px;
-    font-size: 12px;
-  }
 }

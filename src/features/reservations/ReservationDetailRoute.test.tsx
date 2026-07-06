@@ -8,12 +8,14 @@ const mockNavigate = jest.fn();
 const mockClearError = jest.fn();
 let mockReservation: GuestReservationDetail | null = null;
 let mockIsLoading = false;
+let mockIsError = false;
 let mockError: string | null = null;
 
 jest.mock("./hooks", () => ({
   useReservationDetail: () => ({
     clearError: mockClearError,
     error: mockError,
+    isError: mockIsError,
     isLoading: mockIsLoading,
     reservation: mockReservation,
   }),
@@ -80,6 +82,7 @@ describe("ReservationDetailRoute", () => {
     mockClearError.mockReset();
     mockReservation = reservationFixture();
     mockIsLoading = false;
+    mockIsError = false;
     mockError = null;
   });
 
@@ -115,10 +118,10 @@ describe("ReservationDetailRoute", () => {
     expect(mockNavigate).toHaveBeenCalledWith("/profile");
   });
 
-  it("preserves loading and missing reservation output", () => {
+  it("preserves loading output while fetching reservation detail", () => {
     mockIsLoading = true;
 
-    const { rerender } = render(
+    render(
       <ReservationDetailRoute
         locationState={null}
         navigate={mockNavigate}
@@ -127,11 +130,34 @@ describe("ReservationDetailRoute", () => {
     );
 
     expect(screen.getByText("로딩 중...")).toBeInTheDocument();
+  });
 
-    mockIsLoading = false;
+  it("renders a load failure branch with toast when the detail query fails", () => {
+    mockReservation = null;
+    mockIsError = true;
+    mockError = "해당 예약에 대한 접근 권한이 없습니다.";
+
+    render(
+      <ReservationDetailRoute
+        locationState={null}
+        navigate={mockNavigate}
+        reservationUid="reservation-123"
+      />,
+    );
+
+    expect(
+      screen.getByText("예약 정보를 불러오지 못했습니다."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("예약을 찾을 수 없습니다.")).not.toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "해당 예약에 대한 접근 권한이 없습니다.",
+    );
+  });
+
+  it("renders the missing reservation branch when there is no query error", () => {
     mockReservation = null;
 
-    rerender(
+    render(
       <ReservationDetailRoute
         locationState={null}
         navigate={mockNavigate}

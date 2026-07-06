@@ -1,4 +1,6 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
+import React from "react";
 import { accommodationApi, recentlyViewedApi } from "../../../api";
 import { AccommodationDetail } from "../../../types/accommodation";
 import { useAccommodationDetail } from "./useAccommodationDetail";
@@ -14,6 +16,28 @@ jest.mock("../../../api", () => ({
 
 const mockHandleError = jest.fn();
 const mockClearError = jest.fn();
+
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+  return function QueryClientTestWrapper({
+    children,
+  }: {
+    children: React.ReactNode;
+  }) {
+    return React.createElement(
+      QueryClientProvider,
+      { client: queryClient },
+      children,
+    );
+  };
+};
 
 const createAccommodation = (
   overrides: Partial<AccommodationDetail> = {}
@@ -82,13 +106,15 @@ describe("useAccommodationDetail", () => {
     jest.mocked(accommodationApi.getDetail).mockResolvedValue(accommodation);
     jest.mocked(recentlyViewedApi.add).mockResolvedValue(undefined);
 
-    const { result } = renderHook(() =>
-      useAccommodationDetail({
-        accommodationId: "7",
-        isAuthenticated: true,
-        handleError: mockHandleError,
-        clearError: mockClearError,
-      })
+    const { result } = renderHook(
+      () =>
+        useAccommodationDetail({
+          accommodationId: "7",
+          isAuthenticated: true,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+        }),
+      { wrapper: createWrapper() },
     );
 
     expect(result.current.isLoading).toBe(true);
@@ -105,13 +131,15 @@ describe("useAccommodationDetail", () => {
     const error = new Error("detail failed");
     jest.mocked(accommodationApi.getDetail).mockRejectedValue(error);
 
-    const { result } = renderHook(() =>
-      useAccommodationDetail({
-        accommodationId: "7",
-        isAuthenticated: false,
-        handleError: mockHandleError,
-        clearError: mockClearError,
-      })
+    const { result } = renderHook(
+      () =>
+        useAccommodationDetail({
+          accommodationId: "7",
+          isAuthenticated: false,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+        }),
+      { wrapper: createWrapper() },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -127,13 +155,15 @@ describe("useAccommodationDetail", () => {
       .mockResolvedValueOnce(createAccommodation({ is_in_wishlist: false }))
       .mockResolvedValueOnce(createAccommodation({ is_in_wishlist: true }));
 
-    const { result } = renderHook(() =>
-      useAccommodationDetail({
-        accommodationId: "7",
-        isAuthenticated: true,
-        handleError: mockHandleError,
-        clearError: mockClearError,
-      })
+    const { result } = renderHook(
+      () =>
+        useAccommodationDetail({
+          accommodationId: "7",
+          isAuthenticated: true,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+        }),
+      { wrapper: createWrapper() },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -160,7 +190,10 @@ describe("useAccommodationDetail", () => {
           handleError: mockHandleError,
           clearError: mockClearError,
         }),
-      { initialProps: { isAuthenticated: true } }
+      {
+        initialProps: { isAuthenticated: true },
+        wrapper: createWrapper(),
+      },
     );
 
     await waitFor(() =>
@@ -188,7 +221,10 @@ describe("useAccommodationDetail", () => {
           handleError: mockHandleError,
           clearError: mockClearError,
         }),
-      { initialProps: { isAuthenticated: false } }
+      {
+        initialProps: { isAuthenticated: false },
+        wrapper: createWrapper(),
+      },
     );
 
     await waitFor(() =>
@@ -215,7 +251,10 @@ describe("useAccommodationDetail", () => {
           handleError: mockHandleError,
           clearError: mockClearError,
         }),
-      { initialProps: { isAuthenticated: true } }
+      {
+        initialProps: { isAuthenticated: true },
+        wrapper: createWrapper(),
+      },
     );
 
     rerender({ isAuthenticated: false });
@@ -226,6 +265,46 @@ describe("useAccommodationDetail", () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.accommodation?.is_in_wishlist).toBe(false);
+  });
+
+  it("does not expose the previous accommodation while a new route id is pending", async () => {
+    const nextDetailRequest = createDeferred<AccommodationDetail>();
+    jest
+      .mocked(accommodationApi.getDetail)
+      .mockResolvedValueOnce(createAccommodation({ id: 7 }))
+      .mockReturnValueOnce(nextDetailRequest.promise);
+
+    const { result, rerender } = renderHook(
+      ({ accommodationId }) =>
+        useAccommodationDetail({
+          accommodationId,
+          isAuthenticated: true,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+        }),
+      {
+        initialProps: { accommodationId: "7" },
+        wrapper: createWrapper(),
+      },
+    );
+
+    await waitFor(() => expect(result.current.accommodation?.id).toBe(7));
+    jest.mocked(recentlyViewedApi.add).mockClear();
+
+    rerender({ accommodationId: "8" });
+
+    await waitFor(() =>
+      expect(accommodationApi.getDetail).toHaveBeenCalledWith(8)
+    );
+    expect(result.current.accommodation).toBeNull();
+    expect(recentlyViewedApi.add).not.toHaveBeenCalled();
+
+    await act(async () => {
+      nextDetailRequest.resolve(createAccommodation({ id: 8 }));
+    });
+
+    await waitFor(() => expect(result.current.accommodation?.id).toBe(8));
+    expect(recentlyViewedApi.add).toHaveBeenCalledWith(8);
   });
 
   it("keeps refreshed wishlist membership when an unauthenticated detail request resolves after auth reload", async () => {
@@ -244,7 +323,10 @@ describe("useAccommodationDetail", () => {
           handleError: mockHandleError,
           clearError: mockClearError,
         }),
-      { initialProps: { isAuthenticated: false } }
+      {
+        initialProps: { isAuthenticated: false },
+        wrapper: createWrapper(),
+      },
     );
 
     rerender({ isAuthenticated: true });

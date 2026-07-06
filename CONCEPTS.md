@@ -15,6 +15,11 @@ The browser-backed portion of the verification workflow that checks route shells
 
 Dynamic data routes in this gate are either covered with out-of-band identifiers or reported as skipped; skipped routes are not treated as verified coverage.
 
+### Dynamic Smoke Fixture
+An out-of-band data identifier or seeded data condition used to make a dynamic browser smoke route verifiable without hardcoding private or environment-specific values.
+
+Dynamic Smoke Fixtures must be supplied through local environment variables or documented fixture setup steps, and their raw values must not be committed to repository files or generated documentation.
+
 ### Browser Smoke QA
 The user-flow verification pass that exercises the app in a real browser at desktop and mobile sizes using the thread-provided QA account when authenticated data is required.
 

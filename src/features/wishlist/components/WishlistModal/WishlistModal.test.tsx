@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useWishlistSelection } from "../../hooks/useWishlistSelection";
-import { WishlistInfo } from "../../../../types/wishlist";
+import type { WishlistModalItemViewModel } from "../../lib/wishlistAccommodationViewModel";
 import { WishlistModal } from "./WishlistModal";
 
 jest.mock("../../hooks/useWishlistSelection", () => ({
@@ -14,14 +14,13 @@ jest.mock("../CreateWishlistModal/CreateWishlistModal", () => ({
 }));
 
 const mockWishlistSelection = jest.mocked(useWishlistSelection);
-const defaultWishlist: WishlistInfo = {
+const defaultWishlist: WishlistModalItemViewModel = {
   id: 1,
   name: "서울 여행",
-  thumbnail_image_url: null,
-  wishlist_item_count: 2,
-  is_contained: false,
-  wishlist_accommodation_id: null,
-  created_at: "2026-07-01T00:00:00Z",
+  thumbnailUrl: "https://example.com/seoul.jpg",
+  itemCountLabel: "저장된 항목 2개",
+  isContained: true,
+  wishlistAccommodationId: 10,
 };
 
 const defaultSelection = {
@@ -35,7 +34,7 @@ const defaultSelection = {
   openCreateModal: jest.fn(),
   showCreateModal: false,
   toggleWishlist: jest.fn(),
-  wishlists: [] as WishlistInfo[],
+  wishlists: [] as WishlistModalItemViewModel[],
 };
 
 describe("WishlistModal", () => {
@@ -75,6 +74,15 @@ describe("WishlistModal", () => {
     expect(
       screen.getByRole("dialog", { name: "위시리스트에 저장하기" })
     ).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "서울 여행" })).toHaveAttribute(
+      "src",
+      "https://example.com/seoul.jpg"
+    );
+    expect(screen.getByText("저장된 항목 2개")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /서울 여행/ })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
 
     await userEvent.click(screen.getByRole("button", { name: /서울 여행/ }));
 

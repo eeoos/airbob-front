@@ -1,12 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import {
   buildWishlistRouteSearchParams,
   parseWishlistRouteState,
 } from "../lib/wishlistRouteState";
 
-export const useWishlistRouteViewState = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
+type SetWishlistRouteSearchParams = (
+  nextParams: URLSearchParams,
+  options?: { replace?: boolean },
+) => void;
+
+export const useWishlistRouteViewState = (
+  searchParams: URLSearchParams,
+  setSearchParams: SetWishlistRouteSearchParams,
+) => {
   const wishlistRouteState = parseWishlistRouteState(searchParams);
   const [selectedWishlist, setSelectedWishlist] = useState<number | null>(
     wishlistRouteState.wishlistId

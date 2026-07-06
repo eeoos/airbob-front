@@ -1,132 +1,25 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { InfiniteData } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { recentlyViewedApi, wishlistApi } from "../../../api";
 import { useApiError } from "../../../hooks/useApiError";
-import { RecentlyViewedAccommodationInfos } from "../../../types/recentlyViewed";
 import {
-  WishlistAccommodationInfos,
-  WishlistInfos,
-} from "../../../types/wishlist";
-import { searchQueryKeys } from "../../search/queryKeys";
+  invalidateWishlistCollectionCaches,
+  removeRecentlyViewedAccommodationFromCache,
+  removeWishlistAccommodationFromCache,
+  removeWishlistFromCache,
+  setAccommodationScopedWishlistMembershipCache,
+  updateRecentlyViewedWishlistStateInCache,
+  updateWishlistAccommodationMemoInCache,
+} from "../lib/wishlistCacheSync";
 import { fetchAccommodationWishlistMembership } from "../lib/wishlistMembership";
-import { wishlistQueryKeys } from "../queryKeys";
 import { useRecentlyViewedQuery } from "./useRecentlyViewedQuery";
 import { useWishlistDetailQuery } from "./useWishlistDetailQuery";
-import {
-  getWishlistListsParamsSignature,
-  useWishlistListsQuery,
-} from "./useWishlistListsQuery";
+import { useWishlistListsQuery } from "./useWishlistListsQuery";
 
 type UseWishlistDataOptions = {
   selectedWishlistId: number | null;
   showRecentlyViewed: boolean;
 };
-
-type WishlistListsInfiniteData = InfiniteData<
-  WishlistInfos,
-  string | null
->;
-type WishlistDetailInfiniteData = InfiniteData<
-  WishlistAccommodationInfos,
-  string | null
->;
-
-const wishlistListsQueryPrefix = [...wishlistQueryKeys.all, "lists"] as const;
-const wishlistDetailQueryPrefix = [...wishlistQueryKeys.all, "detail"] as const;
-const getWishlistDetailQueryPrefix = (wishlistId: number) =>
-  [...wishlistQueryKeys.all, "detail", wishlistId] as const;
-
-const removeWishlistFromPages = (
-  data: WishlistListsInfiniteData | undefined,
-  wishlistId: number
-) =>
-  data
-    ? {
-        ...data,
-        pages: data.pages.map((page) => ({
-          ...page,
-          wishlists: page.wishlists.filter(
-            (wishlist) => wishlist.id !== wishlistId
-          ),
-        })),
-      }
-    : data;
-
-const removeAccommodationFromPages = (
-  data: WishlistDetailInfiniteData | undefined,
-  wishlistAccommodationId: number
-) =>
-  data
-    ? {
-        ...data,
-        pages: data.pages.map((page) => ({
-          ...page,
-          wishlist_accommodations: page.wishlist_accommodations.filter(
-            (item) =>
-              item.wishlist_accommodation_id !== wishlistAccommodationId
-          ),
-        })),
-      }
-    : data;
-
-const updateAccommodationMemoInPages = (
-  data: WishlistDetailInfiniteData | undefined,
-  wishlistAccommodationId: number,
-  memo: string
-) =>
-  data
-    ? {
-        ...data,
-        pages: data.pages.map((page) => ({
-          ...page,
-          wishlist_accommodations: page.wishlist_accommodations.map((item) =>
-            item.wishlist_accommodation_id === wishlistAccommodationId
-              ? { ...item, memo }
-              : item
-          ),
-        })),
-      }
-    : data;
-
-const removeRecentlyViewedAccommodation = (
-  data: RecentlyViewedAccommodationInfos | undefined,
-  accommodationId: number
-) => {
-  if (!data) return data;
-
-  const accommodations = data.accommodations.filter(
-    (item) => item.accommodation_id !== accommodationId
-  );
-
-  return {
-    ...data,
-    accommodations,
-    total_count:
-      accommodations.length === data.accommodations.length
-        ? data.total_count
-        : Math.max(0, data.total_count - 1),
-  };
-};
-
-const updateRecentlyViewedWishlistState = (
-  data: RecentlyViewedAccommodationInfos | undefined,
-  accommodationId: number,
-  getNextValue: (currentValue: boolean) => boolean
-) =>
-  data
-    ? {
-        ...data,
-        accommodations: data.accommodations.map((item) =>
-          item.accommodation_id === accommodationId
-            ? {
-                ...item,
-                is_in_wishlist: getNextValue(item.is_in_wishlist),
-              }
-            : item
-        ),
-      }
-    : data;
 
 export function useWishlistData({
   selectedWishlistId,
@@ -227,31 +120,15 @@ export function useWishlistData({
     mutationFn: (accommodationId: number) =>
       recentlyViewedApi.remove(accommodationId),
     onSuccess: (_data, accommodationId) => {
-      queryClient.setQueryData<RecentlyViewedAccommodationInfos>(
-        wishlistQueryKeys.recentlyViewed(),
-        (prev: RecentlyViewedAccommodationInfos | undefined) =>
-          removeRecentlyViewedAccommodation(prev, accommodationId)
-      );
+      removeRecentlyViewedAccommodationFromCache(queryClient, accommodationId);
     },
   });
 
   const deleteWishlistMutation = useMutation({
     mutationFn: (wishlistId: number) => wishlistApi.delete(wishlistId),
     onSuccess: (_data, wishlistId) => {
-      queryClient.setQueriesData<WishlistListsInfiniteData>(
-        { queryKey: wishlistListsQueryPrefix },
-        (prev: WishlistListsInfiniteData | undefined) =>
-          removeWishlistFromPages(prev, wishlistId)
-      );
-      queryClient.removeQueries({
-        queryKey: getWishlistDetailQueryPrefix(wishlistId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: wishlistQueryKeys.recentlyViewed(),
-      });
-      queryClient.invalidateQueries({
-        queryKey: searchQueryKeys.all,
-      });
+      removeWishlistFromCache(queryClient, wishlistId);
+      invalidateWishlistCollectionCaches(queryClient);
     },
   });
 
@@ -259,20 +136,11 @@ export function useWishlistData({
     mutationFn: (wishlistAccommodationId: number) =>
       wishlistApi.removeAccommodation(wishlistAccommodationId),
     onSuccess: (_data, wishlistAccommodationId) => {
-      queryClient.setQueriesData<WishlistDetailInfiniteData>(
-        { queryKey: wishlistDetailQueryPrefix },
-        (prev: WishlistDetailInfiniteData | undefined) =>
-          removeAccommodationFromPages(prev, wishlistAccommodationId)
+      removeWishlistAccommodationFromCache(
+        queryClient,
+        wishlistAccommodationId
       );
-      queryClient.invalidateQueries({
-        queryKey: wishlistListsQueryPrefix,
-      });
-      queryClient.invalidateQueries({
-        queryKey: wishlistQueryKeys.recentlyViewed(),
-      });
-      queryClient.invalidateQueries({
-        queryKey: searchQueryKeys.all,
-      });
+      invalidateWishlistCollectionCaches(queryClient);
     },
   });
 
@@ -288,14 +156,10 @@ export function useWishlistData({
         memo,
       }),
     onSuccess: (_data, { memo, wishlistAccommodationId }) => {
-      queryClient.setQueriesData<WishlistDetailInfiniteData>(
-        { queryKey: wishlistDetailQueryPrefix },
-        (prev: WishlistDetailInfiniteData | undefined) =>
-          updateAccommodationMemoInPages(
-            prev,
-            wishlistAccommodationId,
-            memo
-          )
+      updateWishlistAccommodationMemoInCache(
+        queryClient,
+        wishlistAccommodationId,
+        memo,
       );
     },
   });
@@ -397,14 +261,10 @@ export function useWishlistData({
 
   const toggleRecentlyViewedWishlistState = useCallback(
     (accommodationId: number) => {
-      queryClient.setQueryData<RecentlyViewedAccommodationInfos>(
-        wishlistQueryKeys.recentlyViewed(),
-        (prev: RecentlyViewedAccommodationInfos | undefined) =>
-          updateRecentlyViewedWishlistState(
-            prev,
-            accommodationId,
-            (isInWishlist) => !isInWishlist
-          )
+      updateRecentlyViewedWishlistStateInCache(
+        queryClient,
+        accommodationId,
+        (isInWishlist) => !isInWishlist
       );
     },
     [queryClient]
@@ -415,27 +275,18 @@ export function useWishlistData({
       clearError();
 
       try {
-        const { isInAnyWishlist, pageParams, pages } =
+        const membership =
           await fetchAccommodationWishlistMembership(accommodationId);
-
-        queryClient.setQueryData<RecentlyViewedAccommodationInfos>(
-          wishlistQueryKeys.recentlyViewed(),
-          (prev: RecentlyViewedAccommodationInfos | undefined) =>
-            updateRecentlyViewedWishlistState(
-              prev,
-              accommodationId,
-              () => isInAnyWishlist
-            )
+        setAccommodationScopedWishlistMembershipCache(
+          queryClient,
+          accommodationId,
+          membership,
         );
 
-        queryClient.setQueryData<WishlistListsInfiniteData>(
-          wishlistQueryKeys.lists(
-            getWishlistListsParamsSignature({ accommodationId })
-          ),
-          {
-            pageParams,
-            pages,
-          }
+        updateRecentlyViewedWishlistStateInCache(
+          queryClient,
+          accommodationId,
+          () => membership.isInAnyWishlist,
         );
       } catch (err) {
         handleError(err);

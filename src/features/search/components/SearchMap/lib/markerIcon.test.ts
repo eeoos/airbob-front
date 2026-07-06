@@ -1,4 +1,5 @@
 import {
+  MARKER_ICON_COLORS,
   buildMarkerPriceSvg,
   getMarkerIconModel,
   getMarkerPriceText,
@@ -34,6 +35,17 @@ describe("marker icon helpers", () => {
     expect(model.totalWidth).toBeGreaterThan(84);
   });
 
+  it("names the marker palette used by Google Maps SVG icons", () => {
+    expect(MARKER_ICON_COLORS).toEqual({
+      activeBackground: "#222222",
+      activeBorder: "#222222",
+      activeText: "#ffffff",
+      defaultBackground: "#ffffff",
+      defaultBorder: "#dddddd",
+      defaultText: "#222222",
+    });
+  });
+
   it("builds default and active state SVGs with the same text and dimensions", () => {
     const model = getMarkerIconModel({ basePrice: 123456, currency: "KRW" });
     const defaultSvg = buildMarkerPriceSvg(model, "default");
@@ -42,19 +54,19 @@ describe("marker icon helpers", () => {
     expect(defaultSvg).toContain(`width="${model.totalWidth}"`);
     expect(defaultSvg).toContain("₩123,456");
     expect(defaultSvg).toContain(`.price-bubble {
-                fill: #ffffff;
-                stroke: #dddddd;
+                fill: ${MARKER_ICON_COLORS.defaultBackground};
+                stroke: ${MARKER_ICON_COLORS.defaultBorder};
                 stroke-width: 1;
               }`);
     expect(defaultSvg).toContain(`.price-text {
-                fill: #222222;`);
+                fill: ${MARKER_ICON_COLORS.defaultText};`);
     expect(selectedSvg).toContain("₩123,456");
     expect(selectedSvg).toContain(`.price-bubble {
-                fill: #222222;
-                stroke: #222222;
+                fill: ${MARKER_ICON_COLORS.activeBackground};
+                stroke: ${MARKER_ICON_COLORS.activeBorder};
                 stroke-width: 2;
               }`);
     expect(selectedSvg).toContain(`.price-text {
-                fill: #ffffff;`);
+                fill: ${MARKER_ICON_COLORS.activeText};`);
   });
 });

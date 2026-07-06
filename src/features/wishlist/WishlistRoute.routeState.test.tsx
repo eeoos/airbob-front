@@ -25,10 +25,6 @@ const mockBuildWishlistRouteSearchParams = jest.fn((state) => {
   return params;
 });
 
-jest.mock("react-router-dom", () => ({
-  useSearchParams: () => [mockSearchParams, mockSetSearchParams],
-}), { virtual: true });
-
 jest.mock("./lib/wishlistRouteState", () => {
   const actual = jest.requireActual("./lib/wishlistRouteState");
 
@@ -98,6 +94,14 @@ jest.mock("./components/WishlistModal", () => ({
     ) : null,
 }));
 
+const renderWishlistRoute = () =>
+  render(
+    <WishlistRoute
+      searchParams={mockSearchParams}
+      setSearchParams={mockSetSearchParams}
+    />,
+  );
+
 describe("Wishlist route state integration", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -136,7 +140,7 @@ describe("Wishlist route state integration", () => {
   });
 
   it("uses the wishlist route-state builder when opening recently viewed", async () => {
-    render(<WishlistRoute />);
+    renderWishlistRoute();
 
     await userEvent.click(screen.getByText("최근 조회"));
 
@@ -150,7 +154,7 @@ describe("Wishlist route state integration", () => {
   });
 
   it("uses the wishlist route-state builder when opening a wishlist", async () => {
-    render(<WishlistRoute />);
+    renderWishlistRoute();
 
     await userEvent.click(screen.getByText("Weekend"));
 
@@ -164,14 +168,19 @@ describe("Wishlist route state integration", () => {
   });
 
   it("syncs the visible wishlist view when the URL search params change after mount", async () => {
-    const { rerender } = render(<WishlistRoute />);
+    const { rerender } = renderWishlistRoute();
 
     expect(
       screen.getByRole("heading", { name: "위시리스트" })
     ).toBeInTheDocument();
 
     mockSearchParams = new URLSearchParams("view=recently-viewed");
-    rerender(<WishlistRoute />);
+    rerender(
+      <WishlistRoute
+        searchParams={mockSearchParams}
+        setSearchParams={mockSetSearchParams}
+      />,
+    );
 
     await waitFor(() => {
       expect(
@@ -180,7 +189,12 @@ describe("Wishlist route state integration", () => {
     });
 
     mockSearchParams = new URLSearchParams("id=42");
-    rerender(<WishlistRoute />);
+    rerender(
+      <WishlistRoute
+        searchParams={mockSearchParams}
+        setSearchParams={mockSetSearchParams}
+      />,
+    );
 
     await waitFor(() => {
       expect(
@@ -213,7 +227,7 @@ describe("Wishlist route state integration", () => {
         selectedWishlist,
         setIsEditMode,
         showRecentlyViewed,
-      } = useWishlistRouteViewState();
+      } = useWishlistRouteViewState(mockSearchParams, mockSetSearchParams);
 
       return (
         <div>
@@ -279,7 +293,7 @@ describe("Wishlist route state integration", () => {
       },
     ];
 
-    render(<WishlistRoute />);
+    renderWishlistRoute();
 
     await userEvent.click(screen.getByRole("button", { name: "위시리스트" }));
 
@@ -331,7 +345,7 @@ describe("Wishlist route state integration", () => {
       },
     ];
 
-    render(<WishlistRoute />);
+    renderWishlistRoute();
 
     await userEvent.click(screen.getByRole("button", { name: "메모 추가" }));
 

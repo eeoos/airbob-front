@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import AccommodationHero from "./AccommodationHero";
 import { AccommodationDetail } from "../../../types/accommodation";
+import { toAccommodationDetailViewModel } from "../lib/accommodationDetailViewModel";
 
 jest.mock("../../../utils/image", () => ({
   getImageUrl: (url: string) => url,
@@ -52,9 +53,11 @@ const accommodation: AccommodationDetail = {
   },
 };
 
-const renderHero = (overrides: Partial<React.ComponentProps<typeof AccommodationHero>> = {}) => {
+const renderHero = (
+  overrides: Partial<React.ComponentProps<typeof AccommodationHero>> = {}
+) => {
   const props: React.ComponentProps<typeof AccommodationHero> = {
-    accommodation,
+    detailView: toAccommodationDetailViewModel(accommodation),
     mobileSlideIndex: 0,
     onMobileSlideIndexChange: jest.fn(),
     onOpenGallery: jest.fn(),
@@ -72,12 +75,20 @@ describe("AccommodationHero", () => {
   it("renders title, review metadata, images, and save state", () => {
     renderHero();
 
-    expect(screen.getByRole("heading", { name: "남산 전망 숙소" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "남산 전망 숙소" })
+    ).toBeInTheDocument();
     expect(screen.getByText("4.8")).toBeInTheDocument();
     expect(screen.getByText("(12)")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /저장/ })).toBeInTheDocument();
-    expect(screen.getByAltText("남산 전망 숙소")).toHaveAttribute("src", "/images/hero-1.jpg");
-    expect(screen.getAllByAltText("남산 전망 숙소 2")[0]).toHaveAttribute("src", "/images/hero-2.jpg");
+    expect(screen.getByAltText("남산 전망 숙소")).toHaveAttribute(
+      "src",
+      "/images/hero-1.jpg"
+    );
+    expect(screen.getAllByAltText("남산 전망 숙소 2")[0]).toHaveAttribute(
+      "src",
+      "/images/hero-2.jpg"
+    );
   });
 
   it("runs the save and share actions", () => {
@@ -99,5 +110,44 @@ describe("AccommodationHero", () => {
     fireEvent.click(screen.getAllByAltText("남산 전망 숙소 3")[0]);
 
     expect(onOpenGallery).toHaveBeenCalledWith(2);
+  });
+
+  it("opens the gallery from semantic main and mobile image triggers", () => {
+    const onOpenGallery = jest.fn();
+    renderHero({ mobileSlideIndex: 2, onOpenGallery });
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "남산 전망 숙소 대표 사진 크게 보기",
+      })
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "남산 전망 숙소 사진 3 크게 보기",
+      })
+    );
+
+    expect(onOpenGallery).toHaveBeenNthCalledWith(1, 0);
+    expect(onOpenGallery).toHaveBeenNthCalledWith(2, 2);
+  });
+
+  it("changes mobile pagination without opening the gallery", () => {
+    const onMobileSlideIndexChange = jest.fn();
+    const onOpenGallery = jest.fn();
+    renderHero({
+      detailView: toAccommodationDetailViewModel({
+        ...accommodation,
+        images: accommodation.images.slice(0, 5),
+      }),
+      onMobileSlideIndexChange,
+      onOpenGallery,
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "남산 전망 숙소 사진 3 보기" })
+    );
+
+    expect(onMobileSlideIndexChange).toHaveBeenCalledWith(2);
+    expect(onOpenGallery).not.toHaveBeenCalled();
   });
 });

@@ -1,0 +1,78 @@
+.host {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: var(--z-toast);
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 300px;
+  max-width: min(500px, calc(100vw - 48px));
+  padding: 16px 20px;
+  border-radius: var(--radius-md);
+  background-color: var(--color-text-primary);
+  box-shadow: var(--shadow-lg);
+  color: var(--color-text-inverse);
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.content {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.message {
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.closeButton {
+  flex-shrink: 0;
+  margin-left: 12px;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-inverse);
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 120ms ease;
+}
+
+.closeButton:hover {
+  opacity: 1;
+}
+
+.closeButton:focus-visible {
+  outline: 2px solid var(--color-text-inverse);
+  outline-offset: 2px;
+}
+
+.closeButton svg {
+  width: 18px;
+  height: 18px;
+}

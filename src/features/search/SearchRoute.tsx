@@ -1,8 +1,9 @@
 import React from "react";
 import type { URLSearchParamsInit } from "react-router-dom";
 import { motion } from "framer-motion";
-import { AuthModal } from "../auth/components/AuthModal";
-import { WishlistModal } from "../wishlist/components/WishlistModal";
+import type { MotionStyle } from "framer-motion";
+import { AuthModal } from "../auth/appShell";
+import { WishlistModal } from "../wishlist/appShell";
 import { ErrorToast } from "../../components/ErrorToast";
 import { useApiError } from "../../hooks/useApiError";
 import { useAuth } from "../../hooks/useAuth";
@@ -17,6 +18,10 @@ import { useSearchWishlistModal } from "./hooks/useSearchWishlistModal";
 import { toAccommodationBookingRouteQuery } from "./lib/accommodationDetailParams";
 import { getViewportFromSearchParams } from "./lib/searchParams";
 import styles from "./SearchRoute.module.css";
+
+const getBottomSheetMotionStyle = (y: MotionStyle["y"]): MotionStyle => ({
+  y,
+});
 
 export interface SearchRouteProps {
   searchParams: URLSearchParams;
@@ -49,7 +54,8 @@ export const SearchRoute: React.FC<SearchRouteProps> = ({
   } = useSearchMapState();
 
   const {
-    accommodations,
+    accommodationCards,
+    accommodationMapItems,
     updateAccommodationWishlistStatus,
     isLoading,
     currentPage,
@@ -83,6 +89,7 @@ export const SearchRoute: React.FC<SearchRouteProps> = ({
     authModalOpen,
     closeAuthModal,
     closeWishlistModal,
+    handleAuthSuccess,
     openWishlistModal,
     selectedAccommodationForWishlist,
     wishlistModalOpen,
@@ -103,7 +110,7 @@ export const SearchRoute: React.FC<SearchRouteProps> = ({
 
   const checkIn = searchParams.get("checkIn");
   const checkOut = searchParams.get("checkOut");
-  const hasResults = accommodations.length > 0;
+  const hasResults = accommodationCards.length > 0;
 
   const resultsListClassNames = {
     loading: styles.loading,
@@ -130,7 +137,7 @@ export const SearchRoute: React.FC<SearchRouteProps> = ({
             {/* Map Layer - Fixed Base */}
             <div className={styles.mapLayer}>
               <Map
-                accommodations={accommodations}
+                accommodations={accommodationMapItems}
                 selectedAccommodationId={selectedAccommodationId}
                 hoveredAccommodationId={hoveredAccommodationId}
                 onAccommodationSelect={handleAccommodationSelect}
@@ -153,16 +160,9 @@ export const SearchRoute: React.FC<SearchRouteProps> = ({
             <motion.div
               ref={bottomSheetRef}
               className={`${styles.bottomSheet} ${styles[bottomSheetState]} ${
-                accommodations.length === 0 ? styles.emptyResults : ""
+                accommodationCards.length === 0 ? styles.emptyResults : ""
               }`}
-              style={
-                isMobileOrTablet
-                  ? {
-                      y: translateY,
-                      touchAction: "pan-y",
-                    }
-                  : undefined
-              }
+              style={getBottomSheetMotionStyle(translateY)}
               drag={isMobileOrTablet ? "y" : false}
               dragElastic={0}
               dragMomentum={false}
@@ -201,7 +201,7 @@ export const SearchRoute: React.FC<SearchRouteProps> = ({
                 onScroll={handleBottomSheetScroll}
               >
                 <SearchResultsList
-                  accommodations={accommodations}
+                  accommodations={accommodationCards}
                   isLoading={isLoading}
                   selectedAccommodationId={selectedAccommodationId}
                   onAccommodationClick={handleAccommodationCardClick}
@@ -236,7 +236,7 @@ export const SearchRoute: React.FC<SearchRouteProps> = ({
                   : `숙소 ${totalElements.toLocaleString()}개`}
               </h2>
               <SearchResultsList
-                accommodations={accommodations}
+                accommodations={accommodationCards}
                 isLoading={isLoading}
                 selectedAccommodationId={selectedAccommodationId}
                 onAccommodationClick={handleAccommodationCardClick}
@@ -260,7 +260,7 @@ export const SearchRoute: React.FC<SearchRouteProps> = ({
             </div>
             <div className={styles.mapSection}>
               <Map
-                accommodations={accommodations}
+                accommodations={accommodationMapItems}
                 selectedAccommodationId={selectedAccommodationId}
                 hoveredAccommodationId={hoveredAccommodationId}
                 onAccommodationSelect={handleAccommodationSelect}
@@ -287,7 +287,7 @@ export const SearchRoute: React.FC<SearchRouteProps> = ({
         )}
       </div>
 
-      {selectedAccommodationForWishlist && (
+      {selectedAccommodationForWishlist !== null && (
         <WishlistModal
           isOpen={wishlistModalOpen}
           onClose={closeWishlistModal}
@@ -298,6 +298,7 @@ export const SearchRoute: React.FC<SearchRouteProps> = ({
       <AuthModal
         isOpen={authModalOpen}
         onClose={closeAuthModal}
+        onSuccess={handleAuthSuccess}
         initialMode="login"
       />
     </>

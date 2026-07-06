@@ -16,11 +16,14 @@ const requiredTokenDeclarations = [
   "--color-text-inverse: #ffffff;",
   "--color-background-page: #ffffff;",
   "--color-background-muted: #f7f7f7;",
+  "--color-background-hover: #f0f0f0;",
   "--color-border-default: #dddddd;",
   "--color-border-subtle: #ebebeb;",
   "--color-border-strong: #b0b0b0;",
   "--color-brand-coral: #ff385c;",
+  "--color-brand-coral-gradient-end: #ff5a7f;",
   "--color-brand-coral-hover: #e61e4d;",
+  "--color-text-strong: #000000;",
   "--color-success: #00a699;",
   "--color-danger: #c13515;",
   "--space-1: 4px;",
@@ -58,18 +61,32 @@ const requiredTokenDeclarations = [
   "--radius-lg: 12px;",
   "--radius-pill: 999px;",
   "--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);",
+  "--shadow-control: 0 2px 8px rgba(0, 0, 0, 0.15);",
+  "--shadow-card: 0 2px 16px rgba(0, 0, 0, 0.12);",
   "--shadow-md: 0 2px 16px rgba(0, 0, 0, 0.18);",
+  "--shadow-modal: 0 4px 16px rgba(0, 0, 0, 0.15);",
   "--shadow-lg: 0 4px 24px rgba(0, 0, 0, 0.15);",
   "--focus-ring: 0 0 0 2px rgba(34, 34, 34, 0.24);",
   "--z-header: 1000;",
   "--z-sticky: 1100;",
   "--z-dropdown: 2000;",
+  "--z-dropdown-raised: calc(var(--z-dropdown) + 1);",
   "--z-popover: 3000;",
   "--z-bottom-sheet: 4000;",
   "--z-modal: 5000;",
   "--z-toast: 6000;",
   "--overlay-backdrop: rgba(0, 0, 0, 0.45);",
+  "--overlay-scrim-strong: rgba(0, 0, 0, 0.7);",
+  "--overlay-surface-strong: rgba(255, 255, 255, 0.9);",
+  "--overlay-surface-muted: rgba(255, 255, 255, 0.5);",
+  "--z-local-base: 0;",
+  "--z-local-raised: 1;",
+  "--z-local-overlay: 2;",
+  "--layout-viewport-width: 100vw;",
+  "--layout-viewport-height: 100vh;",
   "--layout-mobile-safe-bottom: env(safe-area-inset-bottom, 0px);",
+  "--layout-edit-header-height: 89px;",
+  "--layout-modal-max-height: 90vh;",
   "--breakpoint-tablet: 768px;",
   "--breakpoint-desktop: 1024px;",
   "--breakpoint-wide: 1400px;",
@@ -141,9 +158,7 @@ const cssPath = (relativePath: string) => path.join(srcDir, relativePath);
 
 const readCss = (relativePath: string) => fs.readFileSync(cssPath(relativePath), "utf8");
 
-const tokenMigrationAllowlist = new Set([
-  "src/features/search/components/SearchBar/SearchBar.module.css",
-]);
+const tokenMigrationAllowlist = new Set<string>();
 
 const newlyTokenOwnedCssFiles = [
   "layouts/AppHeader/Header.module.css",
@@ -166,9 +181,12 @@ const designTokenOwnedCssFiles = [
   "features/accommodations/AccommodationDetailRoute.module.css",
   "features/accommodations/components/AccommodationBookingCard.module.css",
   "features/accommodations/components/AccommodationHero.module.css",
+  "features/accommodations/components/AccommodationLocationSection.module.css",
+  "features/accommodations/components/AccommodationOverview.module.css",
   "features/accommodations/components/AccommodationReviewsSection.module.css",
   "features/accommodations/components/AccommodationDescriptionModal.module.css",
   "features/accommodations/components/AccommodationImageGalleryModal.module.css",
+  "features/search/components/SearchBar/SearchBar.module.css",
   ...newlyTokenOwnedCssFiles,
 ];
 
@@ -185,6 +203,11 @@ const highRiskPreRedesignCssFiles = [
   "src/features/accommodations/edit/components/EditModal.module.css",
   "src/features/accommodations/edit/components/EditWizardLayout.module.css",
   "src/features/accommodations/edit/components/PhotosStep.module.css",
+  "src/features/accommodations/edit/components/TimeStep.module.css",
+  "src/features/accommodations/components/AccommodationBookingCard.module.css",
+  "src/features/accommodations/components/AccommodationHero.module.css",
+  "src/features/accommodations/components/AccommodationLocationSection.module.css",
+  "src/features/accommodations/components/AccommodationOverview.module.css",
 ];
 
 const allowedBreakpointValues = new Set([
@@ -702,35 +725,21 @@ describe("pre-design token stylesheet contract", () => {
     ]);
   });
 
-  it("keeps the token migration allowlist explicit", () => {
+  it("keeps the token migration allowlist retired", () => {
     const cleanedModalCssFiles = [
       "features/auth/components/AuthModal/AuthModal.module.css",
       "features/reservations/components/ReservationModal/ReservationModal.module.css",
+      "features/search/components/SearchBar/SearchBar.module.css",
     ];
 
-    expect(Array.from(tokenMigrationAllowlist)).toEqual([
-      "src/features/search/components/SearchBar/SearchBar.module.css",
-    ]);
+    expect(Array.from(tokenMigrationAllowlist)).toEqual([]);
     expect(designTokenOwnedCssFiles).toContain(
       "features/search/components/SearchAccommodationCard.module.css",
     );
 
     cleanedModalCssFiles.forEach((relativePath) => {
       expect(tokenMigrationAllowlist.has(`src/${relativePath}`)).toBe(false);
-      expect(newlyTokenOwnedCssFiles).toContain(relativePath);
       expect(designTokenOwnedCssFiles).toContain(relativePath);
-    });
-
-    tokenMigrationAllowlist.forEach((relativePath) => {
-      const sourcePath = path.join(process.cwd(), relativePath);
-      expect(fs.existsSync(sourcePath)).toBe(true);
-
-      const source = fs.readFileSync(sourcePath, "utf8");
-      const hasLegacyDesignLiteral = source
-        .split(/\r?\n/)
-        .some((line) => findForbiddenDesignLiteral(line));
-
-      expect(hasLegacyDesignLiteral).toBe(true);
     });
   });
 

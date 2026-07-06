@@ -1,3 +1,5 @@
+import { appendDefinedSearchParam } from "../../../routes/routeQuery";
+
 export type TossSuccessRouteInvalidReason =
   | "MISSING_TOSS_SUCCESS_QUERY"
   | "INVALID_TOSS_SUCCESS_AMOUNT"
@@ -15,6 +17,32 @@ export type TossSuccessRouteState =
       status: "invalid";
       reason: TossSuccessRouteInvalidReason;
     };
+
+export type PaymentFailReason = "confirm-failed" | "invalid-callback";
+
+export type PaymentFailRouteQuery = {
+  reason?: PaymentFailReason;
+};
+
+export const parsePaymentFailReason = (
+  reason: string | null,
+): PaymentFailReason | undefined => {
+  if (reason === "confirm-failed" || reason === "invalid-callback") {
+    return reason;
+  }
+
+  return undefined;
+};
+
+export const buildPaymentFailRouteSearchParams = (
+  query?: PaymentFailRouteQuery,
+) => {
+  const params = new URLSearchParams();
+
+  appendDefinedSearchParam(params, "reason", query?.reason);
+
+  return params;
+};
 
 const parseIntegerParam = (
   params: URLSearchParams,

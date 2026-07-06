@@ -10,6 +10,7 @@ describe("tossPayments adapter", () => {
 
   afterEach(() => {
     process.env.REACT_APP_TOSS_CLIENT_KEY = originalClientKey;
+    delete window.TossPayments;
     document
       .querySelectorAll('script[src="https://js.tosspayments.com/v1"]')
       .forEach((script) => script.remove());
@@ -21,6 +22,81 @@ describe("tossPayments adapter", () => {
 
     expect(
       document.querySelectorAll('script[src="https://js.tosspayments.com/v1"]')
+    ).toHaveLength(1);
+  });
+
+  it("shares SDK loading work and resolves after the script loads", async () => {
+    const firstLoad = ensureTossPaymentsScript();
+    const secondLoad = ensureTossPaymentsScript();
+    const script = document.querySelector<HTMLScriptElement>(
+      'script[src="https://js.tosspayments.com/v1"]',
+    );
+
+    expect(secondLoad).toBe(firstLoad);
+    expect(script).not.toBeNull();
+
+    window.TossPayments = jest.fn();
+    script?.dispatchEvent(new Event("load"));
+
+    await expect(firstLoad).resolves.toBeUndefined();
+  });
+
+  it("removes failed SDK scripts so a later load can retry", async () => {
+    const failedLoad = ensureTossPaymentsScript();
+    const failedScript = document.querySelector<HTMLScriptElement>(
+      'script[src="https://js.tosspayments.com/v1"]',
+    );
+
+    failedScript?.dispatchEvent(new Event("error"));
+
+    await expect(failedLoad).rejects.toThrow(
+      "결제 시스템을 불러올 수 없습니다.",
+    );
+    expect(
+      document.querySelector('script[src="https://js.tosspayments.com/v1"]'),
+    ).toBeNull();
+
+    ensureTossPaymentsScript().catch(() => undefined);
+
+    expect(
+      document.querySelectorAll('script[src="https://js.tosspayments.com/v1"]'),
+    ).toHaveLength(1);
+  });
+
+  it("replaces a stale pre-existing SDK script when no loader is active", () => {
+    const staleScript = document.createElement("script");
+    staleScript.src = "https://js.tosspayments.com/v1";
+    staleScript.async = true;
+    document.body.appendChild(staleScript);
+
+    ensureTossPaymentsScript().catch(() => undefined);
+
+    const currentScript = document.querySelector<HTMLScriptElement>(
+      'script[src="https://js.tosspayments.com/v1"]',
+    );
+
+    expect(currentScript).not.toBe(staleScript);
+    expect(staleScript.isConnected).toBe(false);
+    expect(currentScript?.isConnected).toBe(true);
+  });
+
+  it("removes stale duplicates before reusing an active SDK loader", () => {
+    const activeLoad = ensureTossPaymentsScript();
+    const activeScript = document.querySelector<HTMLScriptElement>(
+      'script[src="https://js.tosspayments.com/v1"]',
+    );
+    const staleScript = document.createElement("script");
+    staleScript.src = "https://js.tosspayments.com/v1";
+    staleScript.async = true;
+    document.body.prepend(staleScript);
+
+    const duplicateLoad = ensureTossPaymentsScript();
+
+    expect(duplicateLoad).toBe(activeLoad);
+    expect(staleScript.isConnected).toBe(false);
+    expect(activeScript?.isConnected).toBe(true);
+    expect(
+      document.querySelectorAll('script[src="https://js.tosspayments.com/v1"]'),
     ).toHaveLength(1);
   });
 

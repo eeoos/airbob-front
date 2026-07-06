@@ -1,33 +1,32 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { AccommodationSearchInfo } from "../../../types/accommodation";
+import { SearchAccommodationCardViewModel } from "../lib/searchAccommodationViewModel";
 import { SearchAccommodationCard } from "./SearchAccommodationCard";
 
-const accommodation: AccommodationSearchInfo = {
+const accommodation: SearchAccommodationCardViewModel = {
   id: 1,
   name: "성수 숙소",
-  accommodation_thumbnail_url: null,
-  base_price: 100000,
+  thumbnailUrl: null,
+  locationLabel: "Seoul의 아파트",
+  showReview: false,
+  reviewRatingLabel: "0.0",
+  reviewCountLabel: "(0)",
+  basePrice: 100000,
   currency: "KRW",
-  type: "APARTMENT",
-  address_summary: {
-    country: "KR",
-    state: null,
-    city: "Seoul",
-    district: null,
-  },
-  coordinate: {
-    latitude: 37.5,
-    longitude: 127,
-  },
-  review_summary: {
-    total_count: 0,
-    average_rating: 0,
-  },
-  is_in_wishlist: false,
+  isInWishlist: false,
 };
 
 describe("SearchAccommodationCard", () => {
+  it("exposes the stable smoke selector on the card wrapper", () => {
+    render(<SearchAccommodationCard accommodation={accommodation} />);
+
+    expect(screen.getByTestId("search-result-card")).toContainElement(
+      screen.getByRole("link", {
+        name: "숙소 상세 보기: 성수 숙소",
+      }),
+    );
+  });
+
   it("opens the card action from keyboard Enter", async () => {
     const onClick = jest.fn();
 

@@ -33,13 +33,6 @@
   z-index: var(--z-sticky);
 }
 
-.toastContainer {
-  position: fixed;
-  top: 24px;
-  right: 24px;
-  z-index: var(--z-toast);
-}
-
 /* ---- Mid-Desktop (1200-1400px) ---- */
 @media (max-width: 1400px) {
   .contentWrapper {

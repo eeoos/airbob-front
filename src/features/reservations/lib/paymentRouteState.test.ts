@@ -1,4 +1,7 @@
-import { parseTossSuccessRouteState } from "./paymentRouteState";
+import {
+  parsePaymentFailReason,
+  parseTossSuccessRouteState,
+} from "./paymentRouteState";
 
 describe("toss success route state", () => {
   it("parses complete Toss success query params", () => {
@@ -54,5 +57,20 @@ describe("toss success route state", () => {
       status: "invalid",
       reason: "INVALID_TOSS_SUCCESS_AMOUNT",
     });
+  });
+});
+
+describe("payment fail route state", () => {
+  it("parses supported payment failure reasons", () => {
+    expect(parsePaymentFailReason("confirm-failed")).toBe("confirm-failed");
+    expect(parsePaymentFailReason("invalid-callback")).toBe(
+      "invalid-callback",
+    );
+  });
+
+  it("ignores missing or unsupported payment failure reasons", () => {
+    expect(parsePaymentFailReason(null)).toBeUndefined();
+    expect(parsePaymentFailReason("declined")).toBeUndefined();
+    expect(parsePaymentFailReason("")).toBeUndefined();
   });
 });

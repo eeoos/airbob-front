@@ -1,10 +1,10 @@
 import React from "react";
 import { ListContainer } from "../../../components/ListContainer";
-import { getImageUrl } from "../../../utils/image";
 import {
-  WishlistAccommodationInfo,
-  WishlistInfo,
-} from "../../../types/wishlist";
+  toWishlistAccommodationMemoTarget,
+  WishlistAccommodationCardViewModel,
+  WishlistAccommodationMemoTarget,
+} from "../lib/wishlistAccommodationViewModel";
 import styles from "./WishlistViews.module.css";
 
 interface WishlistDetailViewProps {
@@ -13,12 +13,11 @@ interface WishlistDetailViewProps {
   isLoadingMore: boolean;
   onBack: () => void;
   onOpenAccommodationDetail: (accommodationId: number) => void;
-  onOpenMemo: (item: WishlistAccommodationInfo) => void;
+  onOpenMemo: (item: WishlistAccommodationMemoTarget) => void;
   onRemoveFromWishlist: (wishlistAccommodationId: number) => void;
-  selectedWishlistId: number;
+  selectedWishlistName?: string;
   setWishlistAccommodationsObserverTarget: (node: Element | null) => void;
-  wishlistAccommodations: WishlistAccommodationInfo[];
-  wishlists: WishlistInfo[];
+  wishlistAccommodations: WishlistAccommodationCardViewModel[];
 }
 
 const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
@@ -27,14 +26,10 @@ const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
 
   const placeholder = target.nextElementSibling as HTMLElement | null;
   if (placeholder?.classList.contains(styles.placeholderImage)) {
+    placeholder.hidden = false;
     placeholder.style.display = "flex";
   }
 };
-
-const getLocationLabel = (item: WishlistAccommodationInfo) =>
-  [item.address_summary.city, item.address_summary.district]
-    .filter(Boolean)
-    .join(", ") || item.address_summary.country;
 
 export function WishlistDetailView({
   hasNext,
@@ -44,15 +39,10 @@ export function WishlistDetailView({
   onOpenAccommodationDetail,
   onOpenMemo,
   onRemoveFromWishlist,
-  selectedWishlistId,
+  selectedWishlistName,
   setWishlistAccommodationsObserverTarget,
   wishlistAccommodations,
-  wishlists,
 }: WishlistDetailViewProps) {
-  const selectedWishlistName = wishlists.find(
-    (wishlist) => wishlist.id === selectedWishlistId
-  )?.name;
-
   return (
     <>
       <div className={styles.recentlyViewedHeader}>
@@ -74,25 +64,25 @@ export function WishlistDetailView({
           <ListContainer columns={4} gap={40}>
             {wishlistAccommodations.map((item) => (
               <div
-                key={item.wishlist_accommodation_id}
+                key={item.wishlistAccommodationId}
                 className={styles.accommodationCard}
               >
                 <button
                   className={styles.cardActionButton}
                   type="button"
-                  onClick={() => onOpenAccommodationDetail(item.accommodation.id)}
+                  onClick={() => onOpenAccommodationDetail(item.accommodationId)}
                 >
                   <div className={styles.wishlistCardImage}>
-                    {item.accommodation.thumbnail_url ? (
+                    {item.thumbnailUrl ? (
                       <>
                         <img
-                          src={getImageUrl(item.accommodation.thumbnail_url)}
-                          alt={item.accommodation.name}
+                          src={item.thumbnailUrl}
+                          alt={item.name}
                           onError={handleImageError}
                         />
                         <div
-                          className={styles.placeholderImage}
-                          style={{ display: "none" }}
+                          className={`${styles.placeholderImage} ${styles.placeholderImageHidden}`}
+                          hidden
                         >
                           이미지 없음
                         </div>
@@ -103,27 +93,27 @@ export function WishlistDetailView({
                   </div>
                   <div className={styles.wishlistCardInfo}>
                     <div className={styles.locationRow}>
-                      <div className={styles.location}>{getLocationLabel(item)}</div>
-                      {item.review_summary.total_count > 0 && (
+                      <div className={styles.location}>{item.locationLabel}</div>
+                      {item.showReview && (
                         <div className={styles.review}>
                           <span className={styles.star}>★</span>
                           <span className={styles.rating}>
-                            {item.review_summary.average_rating.toFixed(1)}
+                            {item.reviewRatingLabel}
                           </span>
                           <span className={styles.reviewCount}>
-                            ({item.review_summary.total_count})
+                            {item.reviewCountLabel}
                           </span>
                         </div>
                       )}
                     </div>
-                    <div className={styles.name}>{item.accommodation.name}</div>
+                    <div className={styles.name}>{item.name}</div>
                   </div>
                 </button>
                 <button
                   className={styles.deleteButton}
                   onClick={(event) => {
                     event.stopPropagation();
-                    onRemoveFromWishlist(item.wishlist_accommodation_id);
+                    onRemoveFromWishlist(item.wishlistAccommodationId);
                   }}
                   aria-label="삭제"
                   type="button"
@@ -133,7 +123,9 @@ export function WishlistDetailView({
                 <button
                   type="button"
                   className={styles.memoArea}
-                  onClick={() => onOpenMemo(item)}
+                  onClick={() =>
+                    onOpenMemo(toWishlistAccommodationMemoTarget(item))
+                  }
                 >
                   {item.memo ? (
                     <span className={styles.memoText}>

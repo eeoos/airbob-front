@@ -1,12 +1,13 @@
 import React from "react";
-import { AccommodationSearchInfo } from "../../../types/accommodation";
-import { getImageUrl } from "../../../utils/image";
-import { getAccommodationTypeLabel } from "../../../utils/codes";
 import { routeTo } from "../../../routes/paths";
+import {
+  getSearchAccommodationPriceDisplay,
+  SearchAccommodationCardViewModel,
+} from "../lib/searchAccommodationViewModel";
 import styles from "./SearchAccommodationCard.module.css";
 
 interface SearchAccommodationCardProps {
-  accommodation: AccommodationSearchInfo;
+  accommodation: SearchAccommodationCardViewModel;
   detailUrl?: string;
   onWishlistToggle?: () => void;
   onClick?: () => void;
@@ -22,44 +23,13 @@ export const SearchAccommodationCard: React.FC<SearchAccommodationCardProps> = (
   checkIn,
   checkOut,
 }) => {
-  const formatPrice = (basePrice: number, currency: string): string => {
-    if (currency === "KRW") {
-      return `₩${basePrice.toLocaleString()}`;
-    }
-    return `${currency} ${basePrice.toLocaleString()}`;
-  };
-
-  // 날짜 차이 계산 (박수)
-  const calculateNights = (checkIn: string | null | undefined, checkOut: string | null | undefined): number => {
-    if (!checkIn || !checkOut) return 1;
-    
-    const checkInDate = new Date(checkIn);
-    const checkOutDate = new Date(checkOut);
-    const diffTime = checkOutDate.getTime() - checkInDate.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    return diffDays > 0 ? diffDays : 1;
-  };
-
-  // 총 가격 계산 및 포맷팅
-  const formatTotalPrice = (basePrice: number, nights: number, currency: string): string => {
-    const totalPrice = basePrice * nights;
-    if (currency === "KRW") {
-      return `₩${totalPrice.toLocaleString()}`;
-    }
-    return `${currency} ${totalPrice.toLocaleString()}`;
-  };
-
-  // AccommodationType을 한글로 변환하는 함수
-  const getAccommodationTypeKorean = (type: string): string => {
-    return getAccommodationTypeLabel(type);
-  };
-
-  const nights = calculateNights(checkIn, checkOut);
-  const hasDates = checkIn && checkOut;
-
   const detailUrl =
     providedDetailUrl ?? routeTo.accommodationDetail(accommodation.id);
+  const priceDisplay = getSearchAccommodationPriceDisplay(
+    accommodation,
+    checkIn,
+    checkOut,
+  );
 
   const handleCardClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (onClick) {
@@ -76,7 +46,7 @@ export const SearchAccommodationCard: React.FC<SearchAccommodationCardProps> = (
   };
 
   return (
-    <div className={styles.accommodationCard}>
+    <div className={styles.accommodationCard} data-testid="search-result-card">
       <a
         href={detailUrl}
         target="_blank"
@@ -86,21 +56,27 @@ export const SearchAccommodationCard: React.FC<SearchAccommodationCardProps> = (
         onClick={handleCardClick}
       >
         <div className={styles.wishlistCardImage}>
-          {accommodation.accommodation_thumbnail_url ? (
+          {accommodation.thumbnailUrl ? (
             <>
               <img
-                src={getImageUrl(accommodation.accommodation_thumbnail_url)}
+                src={accommodation.thumbnailUrl}
                 alt={accommodation.name}
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   target.style.display = "none";
                   const placeholder = target.nextElementSibling as HTMLElement;
                   if (placeholder && placeholder.classList.contains(styles.placeholderImage)) {
+                    placeholder.hidden = false;
                     placeholder.style.display = "flex";
                   }
                 }}
               />
-              <div className={styles.placeholderImage} style={{ display: "none" }}>이미지 없음</div>
+              <div
+                className={`${styles.placeholderImage} ${styles.placeholderImageHidden}`}
+                hidden
+              >
+                이미지 없음
+              </div>
             </>
           ) : (
             <div className={styles.placeholderImage}>이미지 없음</div>
@@ -109,25 +85,26 @@ export const SearchAccommodationCard: React.FC<SearchAccommodationCardProps> = (
         <div className={styles.wishlistCardInfo}>
           <div className={styles.locationRow}>
             <div className={styles.location}>
-              {accommodation.address_summary.city || accommodation.address_summary.country}의 {getAccommodationTypeKorean(accommodation.type)}
+              {accommodation.locationLabel}
             </div>
-            {accommodation.review_summary.total_count > 0 && (
+            {accommodation.showReview && (
               <div className={styles.review}>
                 <span className={styles.star}>★</span>
-                <span className={styles.rating}>{accommodation.review_summary.average_rating.toFixed(1)}</span>
-                <span className={styles.reviewCount}>({accommodation.review_summary.total_count})</span>
+                <span className={styles.rating}>
+                  {accommodation.reviewRatingLabel}
+                </span>
+                <span className={styles.reviewCount}>
+                  {accommodation.reviewCountLabel}
+                </span>
               </div>
             )}
           </div>
           <div className={styles.name}>{accommodation.name}</div>
           <div className={styles.price}>
             <span className={styles.priceAmount}>
-              {hasDates
-                ? formatTotalPrice(accommodation.base_price, nights, accommodation.currency)
-                : formatPrice(accommodation.base_price, accommodation.currency)}
+              {priceDisplay.amountLabel}
             </span>
-            {hasDates && <span className={styles.priceUnit}> {nights}박</span>}
-            {!hasDates && <span className={styles.priceUnit}> 1박</span>}
+            <span className={styles.priceUnit}> {priceDisplay.unitLabel}</span>
           </div>
         </div>
       </a>
@@ -135,20 +112,20 @@ export const SearchAccommodationCard: React.FC<SearchAccommodationCardProps> = (
         <button
           type="button"
           className={`${styles.wishlistButton} ${
-            accommodation.is_in_wishlist ? styles.active : ""
+            accommodation.isInWishlist ? styles.active : ""
           }`}
           aria-label={
-            accommodation.is_in_wishlist
+            accommodation.isInWishlist
               ? "위시리스트에서 제거"
               : "위시리스트에 저장"
           }
-          aria-pressed={accommodation.is_in_wishlist}
+          aria-pressed={accommodation.isInWishlist}
           onClick={handleWishlistClick}
         >
           <svg
             viewBox="0 0 24 24"
-            fill={accommodation.is_in_wishlist ? "#ff385c" : "none"}
-            stroke={accommodation.is_in_wishlist ? "#ffffff" : "#222222"}
+            fill={accommodation.isInWishlist ? "#ff385c" : "none"}
+            stroke={accommodation.isInWishlist ? "#ffffff" : "#222222"}
             strokeWidth="1.5"
           >
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />

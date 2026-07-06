@@ -2,14 +2,27 @@ export { Button } from "./Button";
 export type { ButtonProps, ButtonSize, ButtonVariant } from "./Button";
 export { Card } from "./Card";
 export type { CardElement, CardPadding, CardProps } from "./Card";
+export { ClickableCard } from "./ClickableCard";
+export type { ClickableCardProps } from "./ClickableCard";
 export { CounterStepper } from "./CounterStepper";
 export type { CounterStepperProps } from "./CounterStepper";
 export { Dialog } from "./Dialog";
 export type { DialogBodyPadding, DialogProps, DialogSize } from "./Dialog";
-export { useBodyScrollLock } from "./useBodyScrollLock";
 export { IconButton } from "./IconButton";
 export type { IconButtonProps } from "./IconButton";
 export { EmptyState, ErrorState, LoadingState } from "./StateView";
 export type { StateViewProps } from "./StateView";
+export { StatusBadge } from "./StatusBadge/StatusBadge";
+export type {
+  StatusBadgeProps,
+  StatusBadgeSize,
+  StatusBadgeTone,
+} from "./StatusBadge/StatusBadge";
+export { Tabs } from "./Tabs/Tabs";
+export type { TabItem, TabsProps } from "./Tabs/Tabs";
 export { TextField } from "./TextField";
 export type { TextFieldProps } from "./TextField";
+export { ToastHost } from "./ToastHost/ToastHost";
+export type { ToastHostProps } from "./ToastHost/ToastHost";
+export { useBodyScrollLock } from "./useBodyScrollLock";
+export { useOutsideClick } from "./useOutsideClick";

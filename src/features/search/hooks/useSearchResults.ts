@@ -19,8 +19,13 @@ import {
   SearchViewport,
   buildMapBoundsSearchParams,
   buildSearchRequestFromParams,
+  getSearchParamsSignature,
   getViewportSearchParamSignature,
 } from "../lib/searchParams";
+import {
+  toSearchAccommodationCardViewModel,
+  toSearchAccommodationMapViewModel,
+} from "../lib/searchAccommodationViewModel";
 import { searchQueryKeys } from "../queryKeys";
 
 type SetSearchParams = (
@@ -116,6 +121,10 @@ export const useSearchResults = ({
   const [placeholderWishlistOverrides, setPlaceholderWishlistOverrides] =
     useState<Record<number, boolean>>({});
   const searchParamsString = searchParams.toString();
+  const searchParamsSignature = useMemo(
+    () => getSearchParamsSignature(searchParams),
+    [searchParams, searchParamsString],
+  );
   const page = clampSearchPage(searchParams.get("page"));
   const prevPageParam = prevSearchParamsRef.current
     ? new URLSearchParams(prevSearchParamsRef.current).get("page")
@@ -166,8 +175,8 @@ export const useSearchResults = ({
     [page, searchParams]
   );
   const searchResultsQueryKey = useMemo(
-    () => searchQueryKeys.results(searchParamsString),
-    [searchParamsString]
+    () => searchQueryKeys.results(searchParamsSignature),
+    [searchParamsSignature]
   );
 
   const searchResultsQuery = useQuery<
@@ -331,6 +340,14 @@ export const useSearchResults = ({
     searchResponse?.stay_search_result_listing,
     searchResultsQuery.isPlaceholderData,
   ]);
+  const accommodationCards = useMemo(
+    () => accommodations.map(toSearchAccommodationCardViewModel),
+    [accommodations],
+  );
+  const accommodationMapItems = useMemo(
+    () => accommodations.map(toSearchAccommodationMapViewModel),
+    [accommodations],
+  );
   const isLoading = queryEnabled
     ? searchResultsQuery.isFetching
     : isInitialLoadRef.current || isPendingPageReset;
@@ -397,6 +414,8 @@ export const useSearchResults = ({
 
   return {
     accommodations,
+    accommodationCards,
+    accommodationMapItems,
     updateAccommodationWishlistStatus,
     isLoading,
     currentPage,

@@ -1,4 +1,4 @@
-import { AccommodationSearchInfo } from "../../../../types/accommodation";
+import type { SearchAccommodationMapViewModel } from "../../lib/searchAccommodationViewModel";
 
 export interface SearchMapBounds {
   north: number;
@@ -8,12 +8,13 @@ export interface SearchMapBounds {
 }
 
 export type SearchMapViewport = SearchMapBounds;
+export type SearchMapAccommodation = SearchAccommodationMapViewModel;
 
 export interface SearchMapProps {
-  accommodations: AccommodationSearchInfo[];
+  accommodations: SearchMapAccommodation[];
   selectedAccommodationId: number | null;
   hoveredAccommodationId?: number | null;
-  onAccommodationSelect: (accommodation: AccommodationSearchInfo | null) => void;
+  onAccommodationSelect: (accommodation: SearchMapAccommodation | null) => void;
   onWishlistToggle?: (accommodationId: number, isInWishlist: boolean) => void;
   detailSearchParams?: URLSearchParams;
   checkIn?: string | null;
@@ -35,7 +36,7 @@ export interface SearchMapMarkerIcons {
 }
 
 export type SearchMapMarker = google.maps.Marker & {
-  accommodation?: AccommodationSearchInfo;
+  accommodation?: SearchMapAccommodation;
   accommodationId?: number;
   icons?: SearchMapMarkerIcons;
   originalIcon?: google.maps.Icon;

@@ -218,6 +218,10 @@
   height: var(--control-height-lg);
 }
 
+.placeholderImageHidden {
+  display: none;
+}
+
 .wishlistCardInfo {
   padding: 10px 0 0 0;
 }
