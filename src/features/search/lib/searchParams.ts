@@ -1,5 +1,5 @@
 import { AccommodationSearchRequest } from "../../../types/accommodation";
-import { toCanonicalSearchString } from "../../../routes/routeQuery";
+import { toCanonicalSearchString } from "../../../shared/lib/urlSearchParams";
 import { clampSearchPage } from "./pagination";
 import type { SearchRouteQuery } from "./searchRouteQuery";
 
@@ -85,7 +85,7 @@ export const toSearchRouteQuery = (
 };
 
 export const getSearchParamsSignature = (params: URLSearchParams): string =>
-  toCanonicalSearchString(params);
+  toCanonicalSearchString(pickSearchParams(params));
 
 const formatDateForSearchParam = (date: Date): string => {
   const year = date.getFullYear();

@@ -2,6 +2,7 @@ import {
   buildMapBoundsSearchParams,
   buildSearchNavigationParams,
   buildSearchRequestFromParams,
+  getSearchParamsSignature,
   getViewportFromSearchParams,
   removeViewportParams,
   toSearchRouteQuery,
@@ -228,6 +229,14 @@ describe("search params helpers", () => {
       infantOccupancy: "0",
       petOccupancy: "1",
     });
+  });
+
+  it("drops non-search params from query cache signatures", () => {
+    const params = new URLSearchParams(
+      "destination=Seoul&page=2&token=secret&email=a@example.com&memberId=999",
+    );
+
+    expect(getSearchParamsSignature(params)).toBe("destination=Seoul&page=2");
   });
 
   it("converts URLSearchParams to an accommodation booking route query", () => {
