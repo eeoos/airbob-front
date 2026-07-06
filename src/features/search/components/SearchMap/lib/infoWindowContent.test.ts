@@ -31,6 +31,10 @@ describe("info window content helper", () => {
       cardWidth: "327px",
       imageHeight: "211.94px",
       buttonWishlistSize: "28px",
+      closeButtonFontSize: "20px",
+      lineHeightCompact: "1.2",
+      semiboldFontWeight: "600",
+      textFontSize: "14px",
       brand: "var(--color-brand-coral)",
       textPrimary: "var(--color-text-primary)",
     });

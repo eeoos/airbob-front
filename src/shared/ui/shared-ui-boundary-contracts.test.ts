@@ -6,6 +6,8 @@ const srcRoot = join(process.cwd(), "src");
 const productionSourceExtensions = [".ts", ".tsx"];
 const forbiddenBoundaryImportPattern =
   /from\s+["'](?:\.\.\/)+(?:api|features|pages|routes|types)(?:\/[^"']*)?["']/;
+const sharedUiImportPattern =
+  /^[ \t]*import\s+\{([^{}]*?)\}\s+from\s+["'][^"']*shared\/ui["'];?/gm;
 
 const collectProductionSourceFiles = (directory: string): string[] =>
   readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -22,6 +24,17 @@ const collectProductionSourceFiles = (directory: string): string[] =>
 
     return isProductionSource ? [entryPath] : [];
   });
+
+const collectSharedUiNamedImports = (source: string) =>
+  Array.from(source.matchAll(sharedUiImportPattern)).flatMap((match) =>
+    match[1]
+      .split(",")
+      .map((importName) => importName.trim().split(/\s+as\s+/)[0].trim())
+      .filter(Boolean)
+  );
+
+const usesJsxTag = (source: string, componentName: string) =>
+  new RegExp(`<${componentName}(?:\\s|>|/)`).test(source);
 
 describe("shared UI boundary contracts", () => {
   it("keeps shared UI primitives independent from app domains", () => {
@@ -138,14 +151,38 @@ describe("shared UI boundary contracts", () => {
 
     const violations = primitiveContracts.flatMap(({ relativePath, expected }) => {
       const source = readFileSync(join(srcRoot, relativePath), "utf8");
+      const sharedUiImports = new Set(collectSharedUiNamedImports(source));
 
-      return expected.flatMap((primitive) =>
-        source.includes(primitive)
-          ? []
-          : [`${relativePath}: missing ${primitive}`],
-      );
+      return expected.flatMap((primitive) => {
+        const primitiveViolations: string[] = [];
+
+        if (!sharedUiImports.has(primitive)) {
+          primitiveViolations.push(
+            `${relativePath}: missing ${primitive} import from shared/ui`,
+          );
+        }
+
+        if (!usesJsxTag(source, primitive)) {
+          primitiveViolations.push(
+            `${relativePath}: missing <${primitive}> JSX usage`,
+          );
+        }
+
+        return primitiveViolations;
+      });
     });
 
     expect(violations).toEqual([]);
+  });
+
+  it("does not satisfy primitive contracts from incidental substrings", () => {
+    const source = `
+      import styles from "./Example.module.css";
+      const submitButton = styles.submitButton;
+      export const Example = () => <button className={submitButton}>Save</button>;
+    `;
+
+    expect(collectSharedUiNamedImports(source)).toEqual([]);
+    expect(usesJsxTag(source, "Button")).toBe(false);
   });
 });
