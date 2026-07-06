@@ -6,6 +6,11 @@ import { spawnSync } from "child_process";
 const projectRoot = process.cwd();
 const packageJsonPath = path.join(projectRoot, "package.json");
 const qaDocPath = path.join(projectRoot, "docs/qa/frontend-architecture-smoke.ko.md");
+const architectureDocPath = path.join(
+  projectRoot,
+  "docs/architecture/frontend-structure-refactor.md",
+);
+const envExamplePath = path.join(projectRoot, ".env.example");
 const frontendSmokePath = path.join(projectRoot, "scripts/smoke/frontend-smoke.mjs");
 const sourceRoot = path.join(projectRoot, "src");
 
@@ -150,6 +155,13 @@ describe("frontend verification gate", () => {
     expect(packageJson.scripts["test:ci:no-cache"]).toBe(
       "react-scripts test --watchAll=false --no-cache",
     );
+    expect(packageJson.scripts.lint).toBe("eslint src --ext .ts,.tsx");
+    expect(packageJson.scripts["lint:strict"]).toBe(
+      "eslint src --ext .ts,.tsx --max-warnings=0",
+    );
+    expect(packageJson.scripts["verify:structure"]).toBe(
+      "npm run typecheck && npm run test:ci:no-cache -- --runInBand && npm run lint",
+    );
     expect(packageJson.scripts["verify:pre-redesign"]).toBe(
       "npm run typecheck && npm run test:ci:no-cache -- --runInBand && npm run build",
     );
@@ -165,6 +177,39 @@ describe("frontend verification gate", () => {
     expect(packageJson.scripts.verify).toContain("npm run typecheck");
     expect(packageJson.scripts.verify).toContain("npm run test:ci:no-cache");
     expect(packageJson.scripts.verify).toContain("npm run build");
+    expect(packageJson.scripts.verify).not.toContain("npm run lint");
+    expect(packageJson.scripts.verify).not.toContain("lint:strict");
+  });
+
+  test("frontend structure refactor docs and placeholder env example are present", () => {
+    expect(fs.existsSync(architectureDocPath)).toBe(true);
+    expect(fs.existsSync(envExamplePath)).toBe(true);
+
+    const architectureDoc = fs.readFileSync(architectureDocPath, "utf8");
+    const envExample = fs.readFileSync(envExamplePath, "utf8");
+
+    [
+      "Keep feature-first structure and thin page adapters.",
+      "Keep CSS Modules and tokenized styling before Airbnb visual redesign.",
+      "Keep TanStack Query as the server-state layer.",
+      "Keep backend/API/DB/server contracts unchanged.",
+      "Defer CRA-to-Vite migration until structure and smoke gates are stable.",
+      "Task 1-6 focused tests/typecheck passed",
+      "Full browser smoke remains Task 8.",
+      "Promote `lint:strict` into `verify` after existing lint debt is closed.",
+    ].forEach((term) => {
+      expect(architectureDoc).toContain(term);
+    });
+
+    [
+      "REACT_APP_API_URL=http://localhost:8080",
+      "REACT_APP_GOOGLE_MAPS_API_KEY=replace-with-local-dev-key",
+      "AIRBOB_QA_EMAIL=qa@example.com",
+      "AIRBOB_QA_PASSWORD=replace-with-local-qa-password",
+      "AIRBOB_SMOKE_RESERVATION_UID=replace-with-stable-reservation-uid",
+    ].forEach((term) => {
+      expect(envExample).toContain(term);
+    });
   });
 
   test("frontend smoke enforces route-specific assertions and redacted output guards", () => {
