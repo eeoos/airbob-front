@@ -1,12 +1,16 @@
 import { readFileSync, readdirSync } from "fs";
-import { join, relative } from "path";
+import { dirname, join, relative, resolve } from "path";
 
 const routesRoot = join(process.cwd(), "src/routes");
 const routePathsFile = join(routesRoot, "paths.ts");
 const layoutsRoot = join(process.cwd(), "src/layouts");
 const featuresRoot = join(process.cwd(), "src/features");
+const searchFeatureRoot = join(featuresRoot, "search");
+const wishlistFeatureRoot = join(featuresRoot, "wishlist");
 const projectRoot = process.cwd();
 const sourceExtensions = [".ts", ".tsx"];
+const importDeclarationPattern =
+  /\b(?:import|export)\s+(?:type\s+)?(?:[\s\S]*?\s+from\s+)?["']([^"']+)["']/g;
 const forbiddenFeatureImportPattern =
   /from\s+["'](?:\.\.\/)+(?:features)(?:\/[^"']*)?["']/;
 const allowedRouteFeatureImportPatterns = [
@@ -130,6 +134,60 @@ const collectSourceFiles = (directory: string): string[] =>
     return isSource ? [entryPath] : [];
   });
 
+const toProjectRelativeImportTarget = (
+  filePath: string,
+  importSource: string,
+) => {
+  if (!importSource.startsWith(".")) {
+    return null;
+  }
+
+  return relative(
+    projectRoot,
+    resolve(dirname(filePath), importSource),
+  ).replace(/\\/g, "/");
+};
+
+const importsPrivateFeatureSurface = (
+  importTarget: string,
+  targetFeature: "search" | "wishlist",
+) => {
+  const targetFeatureRoot = `src/features/${targetFeature}`;
+
+  return (
+    importTarget.startsWith(`${targetFeatureRoot}/lib/`) ||
+    importTarget.startsWith(`${targetFeatureRoot}/hooks/`) ||
+    importTarget.startsWith(`${targetFeatureRoot}/components/`) ||
+    importTarget === `${targetFeatureRoot}/queryKeys` ||
+    importTarget.startsWith(`${targetFeatureRoot}/queryKeys.`)
+  );
+};
+
+const collectPrivateCrossFeatureImports = (
+  sourceRoot: string,
+  targetFeature: "search" | "wishlist",
+) =>
+  collectSourceFiles(sourceRoot).flatMap((filePath) => {
+    const source = readFileSync(filePath, "utf8");
+
+    return Array.from(source.matchAll(importDeclarationPattern))
+      .map((match) => match[1])
+      .filter((importSource): importSource is string => Boolean(importSource))
+      .map((importSource) => ({
+        importSource,
+        importTarget: toProjectRelativeImportTarget(filePath, importSource),
+      }))
+      .filter(
+        ({ importTarget }) =>
+          importTarget !== null &&
+          importsPrivateFeatureSurface(importTarget, targetFeature),
+      )
+      .map(
+        ({ importSource }) =>
+          `${relative(projectRoot, filePath)} imports ${importSource}`,
+      );
+  });
+
 describe("route boundary contracts", () => {
   it("keeps route URL contracts limited to domain route query ownership", () => {
     const violations = collectSourceFiles(routesRoot)
@@ -173,20 +231,12 @@ describe("route boundary contracts", () => {
   });
 
   it("keeps search and wishlist cross-feature cache access on public boundaries", () => {
-    const wishlistCacheSync = readFileSync(
-      join(process.cwd(), "src/features/wishlist/lib/wishlistCacheSync.ts"),
-      "utf8",
-    );
-    const searchWishlistModal = readFileSync(
-      join(
-        process.cwd(),
-        "src/features/search/hooks/useSearchWishlistModal.ts",
-      ),
-      "utf8",
-    );
+    const violations = [
+      ...collectPrivateCrossFeatureImports(searchFeatureRoot, "wishlist"),
+      ...collectPrivateCrossFeatureImports(wishlistFeatureRoot, "search"),
+    ];
 
-    expect(wishlistCacheSync).not.toContain("../../search/queryKeys");
-    expect(searchWishlistModal).not.toContain("../../wishlist/lib/");
+    expect(violations).toEqual([]);
   });
 
   it("keeps layouts on explicit feature app-shell APIs", () => {
