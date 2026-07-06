@@ -133,10 +133,12 @@ describe("useHostReservations", () => {
       filterType: "PAST",
       size: 20,
     });
-    expect(result.current.reservations).toEqual([
-      firstReservation,
-      secondReservation,
-    ]);
+    await waitFor(() =>
+      expect(result.current.reservations).toEqual([
+        firstReservation,
+        secondReservation,
+      ])
+    );
     expect(result.current.hasNext).toBe(false);
   });
 

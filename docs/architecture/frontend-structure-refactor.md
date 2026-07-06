@@ -23,9 +23,9 @@
 
 ## Full Suite Outcome
 
-- `npm run test:ci:no-cache -- --runInBand` failed on 2026-07-06 KST with 3 failed suites, 9 failed tests, 830 passed tests, and 172 passed suites.
-- The prior raw-console guardrail regression in `src/contexts/AuthContext.tsx` is fixed; `src/verification-gate.test.ts` passes in the full-suite run.
-- The remaining full-suite failures are in reservation pagination, accommodation edit, and host listings tests.
+- `npm run verify:pre-redesign` passed on 2026-07-06 KST after updating Query-backed test harnesses.
+- Full no-cache CI tests passed with 175 suites and 839 tests.
+- The production build passed with existing CRA/Browserslist/baseline-browser-mapping warnings and the existing `react-hooks/exhaustive-deps` warning in `src/features/search/hooks/useSearchResults.ts`.
 
 ## Remaining Follow-Ups
 
