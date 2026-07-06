@@ -13,6 +13,8 @@ const importDeclarationPattern =
   /\b(?:import|export)\s+(?:type\s+)?(?:[\s\S]*?\s+from\s+)?["']([^"']+)["']/g;
 const forbiddenFeatureImportPattern =
   /from\s+["'](?:\.\.\/)+(?:features)(?:\/[^"']*)?["']/;
+// This allowlist must shrink to zero when route query contracts move fully
+// under src/routes or src/shared. Do not add new feature lib imports here.
 const allowedRouteFeatureImportPatterns = [
   /from\s+["']\.\.\/features\/search\/lib\/searchRouteQuery["']/g,
   /from\s+["']\.\.\/features\/wishlist\/lib\/wishlistRouteQuery["']/g,
@@ -214,6 +216,10 @@ describe("route boundary contracts", () => {
     expect(violations).toEqual([]);
   });
 
+  it("does not add new route feature import allowlist entries", () => {
+    expect(allowedRouteFeatureImportPatterns).toHaveLength(4);
+  });
+
   it("keeps route shell definitions component-free", () => {
     const definitionSource = readFileSync(
       join(process.cwd(), "src/routes/routeDefinitions.ts"),
@@ -242,6 +248,18 @@ describe("route boundary contracts", () => {
     ];
 
     expect(violations).toEqual([]);
+  });
+
+  it("keeps cross-feature profile composition on reservation app-shell APIs", () => {
+    const profileRouteSource = readFileSync(
+      join(process.cwd(), "src/features/profile/ProfileRoute.tsx"),
+      "utf8",
+    );
+
+    expect(profileRouteSource).toContain("../reservations/appShell");
+    expect(profileRouteSource).not.toMatch(
+      /from\s+["']\.\.\/reservations\/(?:GuestTripsPanel|HostReservationsPanel)["']/,
+    );
   });
 
   it("treats cross-feature private barrel roots as boundary violations", () => {

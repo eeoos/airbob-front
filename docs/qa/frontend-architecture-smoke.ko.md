@@ -16,10 +16,13 @@ Airbnb 디자인 리팩터 전에 프론트엔드 아키텍처 변경이 주요 
 
 `npm run smoke:frontend`은 `scripts/smoke/frontend-smoke.mjs`를 실행해 gstack browse로 데스크톱 `1280x720`과 모바일 `375x812` 라우트 스모크를 수행한다. 스크립트는 자격 증명 값을 출력하지 않고, 리포트와 스크린샷을 `.gstack/qa-reports` 아래에 남긴다. `npm run smoke:frontend:strict`는 dynamic reservation route UID가 없으면 브라우저를 실행하기 전에 실패한다.
 
+`AIRBOB_SMOKE_REPORT_ROOT` can point smoke artifacts at a temporary directory during harness tests. Normal manual QA can leave it unset so reports continue under `.gstack/qa-reports`.
+
 | 환경 변수 | 필수 여부 | 값 |
 | --- | --- | --- |
 | `AIRBOB_API_BASE_URL` | UID 추출 시 필수 | `http://localhost:8080/api/v1` 예시 |
 | `AIRBOB_FRONTEND_URL` | 선택 | `http://localhost:3000` 기본값 |
+| `AIRBOB_SMOKE_REPORT_ROOT` | 선택 | harness test 전용 artifact root override |
 | `AIRBOB_QA_EMAIL` | 필수 | `[provided out-of-band]` |
 | `AIRBOB_QA_PASSWORD` | 필수 | `[provided out-of-band]` |
 | `GSTACK_BROWSE_BIN` | 필수 | `/absolute/path/to/browse` |

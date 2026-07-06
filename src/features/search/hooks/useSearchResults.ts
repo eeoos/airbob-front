@@ -122,8 +122,8 @@ export const useSearchResults = ({
     useState<Record<number, boolean>>({});
   const searchParamsString = searchParams.toString();
   const searchParamsSignature = useMemo(
-    () => getSearchParamsSignature(searchParams),
-    [searchParams, searchParamsString],
+    () => getSearchParamsSignature(new URLSearchParams(searchParamsString)),
+    [searchParamsString],
   );
   const page = clampSearchPage(searchParams.get("page"));
   const prevPageParam = prevSearchParamsRef.current

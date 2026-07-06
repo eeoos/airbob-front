@@ -7,6 +7,11 @@ Shared domain vocabulary for this project — entities, named processes, and sta
 ### Architecture Verification Loop
 The pre-design workflow that combines static architecture contracts, authenticated browser smoke checks, review passes, and final verification before broad styling work begins.
 
+### Subagent Review Loop
+A task execution pattern where a fresh implementer is followed by independent spec and code-quality reviewers before the next task begins.
+
+In this workflow, reviewer findings become new regression tests rather than notes. The loop is especially useful when a structure-first refactor touches cache identity, payment redirects, accessibility semantics, or verification harness behavior.
+
 ### Structure-First Refactor
 A behavior-preserving frontend reorganization that makes ownership boundaries executable before visual redesign, framework migration, or broad product styling begins.
 

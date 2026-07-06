@@ -11,15 +11,15 @@
 }
 
 .sm {
-  padding: 12px;
+  padding: var(--space-3);
 }
 
 .md {
-  padding: 16px;
+  padding: var(--space-4);
 }
 
 .lg {
-  padding: 24px;
+  padding: var(--space-6);
 }
 
 .interactive {

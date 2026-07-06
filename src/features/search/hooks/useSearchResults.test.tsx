@@ -87,7 +87,7 @@ const createSearchResponse = (
 
 const renderUseSearchResults = (initialParams: URLSearchParams) => {
   const { Wrapper, queryClient } = createWrapper();
-  const hook = renderHook(
+  const view = renderHook(
     ({ searchParams }) =>
       useSearchResults({
         searchParams,
@@ -103,7 +103,7 @@ const renderUseSearchResults = (initialParams: URLSearchParams) => {
     }
   );
 
-  return { ...hook, queryClient };
+  return { ...view, queryClient };
 };
 
 describe("useSearchResults", () => {
@@ -146,6 +146,30 @@ describe("useSearchResults", () => {
     expect(result.current.totalPages).toBe(15);
     expect(result.current.totalElements).toBe(42);
     expect(mockSetIsMapDragMode).toHaveBeenLastCalledWith(false);
+  });
+
+  it("stores results under a sanitized search query signature", async () => {
+    const response = createSearchResponse(0, 1, 1);
+    jest.mocked(accommodationApi.search).mockResolvedValue(response);
+
+    const { result, queryClient } = renderUseSearchResults(
+      new URLSearchParams(
+        "destination=Seoul&token=secret&email=a@example.com&memberId=999"
+      )
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(
+      queryClient.getQueryData(searchQueryKeys.results("destination=Seoul"))
+    ).toEqual(response);
+    expect(
+      queryClient.getQueryData([
+        "search",
+        "results",
+        "destination=Seoul&email=a%40example.com&memberId=999&token=secret",
+      ])
+    ).toBeUndefined();
   });
 
   it("updates wishlist status through an explicit hook boundary", async () => {

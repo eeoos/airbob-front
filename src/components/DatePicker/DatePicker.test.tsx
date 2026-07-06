@@ -57,6 +57,25 @@ describe("DatePicker", () => {
     );
   });
 
+  it("labels month navigation buttons for screen readers", () => {
+    render(
+      <DatePicker
+        checkIn={null}
+        checkOut={null}
+        onClose={jest.fn()}
+        onDateSelect={jest.fn()}
+        unavailableDates={[]}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "이전 달 보기" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "다음 달 보기" }),
+    ).toBeInTheDocument();
+  });
+
   it("does not call onDateSelect for disabled past or unavailable dates", async () => {
     const { props } = renderDatePicker({
       unavailableDates: ["2026-07-12"],

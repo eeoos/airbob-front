@@ -190,7 +190,11 @@ describe("HostReservationDetailRoute", () => {
       />,
     );
 
-    fireEvent.click(screen.getByText("←"));
+    const backButton = screen.getByRole("button", { name: "뒤로 가기" });
+
+    expect(backButton).toHaveAttribute("type", "button");
+
+    fireEvent.click(backButton);
     expect(mockNavigate).toHaveBeenCalledWith(-1);
 
     expect(screen.getByRole("alert")).toHaveTextContent(

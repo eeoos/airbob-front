@@ -1,18 +1,11 @@
-import { toCanonicalSearchString } from "../../routes/routeQuery";
+import { toCanonicalSearchString } from "../../shared/lib/urlSearchParams";
 
-type QueryParamsSignature = string | URLSearchParams;
+type QueryParamsSignature = string;
 
-const toCanonicalQueryKeySignature = (
-  paramsSignature: QueryParamsSignature,
-) => {
-  if (typeof paramsSignature === "string") {
-    return paramsSignature
-      ? toCanonicalSearchString(new URLSearchParams(paramsSignature))
-      : "";
-  }
-
-  return toCanonicalSearchString(paramsSignature);
-};
+const toCanonicalQueryKeySignature = (paramsSignature: QueryParamsSignature) =>
+  paramsSignature
+    ? toCanonicalSearchString(new URLSearchParams(paramsSignature))
+    : "";
 
 export const wishlistQueryKeys = {
   all: ["wishlist"] as const,

@@ -11,7 +11,8 @@ const REQUIRED_ENV = [
 ];
 
 const DEFAULT_FRONTEND_URL = "http://localhost:3000";
-const REPORT_ROOT = join(".gstack", "qa-reports");
+const REPORT_ROOT =
+  process.env.AIRBOB_SMOKE_REPORT_ROOT?.trim() || join(".gstack", "qa-reports");
 const SCREENSHOT_ROOT = join(REPORT_ROOT, "screenshots");
 
 const missingEnv = REQUIRED_ENV.filter((name) => !process.env[name]);

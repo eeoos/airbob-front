@@ -34,10 +34,10 @@ describe("IconButton", () => {
     expect(baseStyles).toContain("position: relative;");
     expect(touchTargetStyles).toContain("width: var(--control-touch-target);");
     expect(touchTargetStyles).toContain("height: var(--control-touch-target);");
-    expect(smallStyles).toContain("width: 32px;");
-    expect(smallStyles).toContain("height: 32px;");
-    expect(mediumStyles).toContain("width: 40px;");
-    expect(mediumStyles).toContain("height: 40px;");
+    expect(smallStyles).toContain("width: var(--control-height-sm);");
+    expect(smallStyles).toContain("height: var(--control-height-sm);");
+    expect(mediumStyles).toContain("width: var(--control-height-md);");
+    expect(mediumStyles).toContain("height: var(--control-height-md);");
   });
 
   it("uses label as the accessible name and default title", () => {

@@ -131,6 +131,22 @@ describe("ReviewCreateRoute", () => {
     );
   });
 
+  it("labels the back button for assistive technology", () => {
+    render(
+      <ReviewCreateRoute
+        navigate={mockNavigate}
+        reservationUid="reservation-123"
+      />,
+    );
+
+    const backButton = screen.getByRole("button", {
+      name: /뒤로 가기|돌아가기/,
+    });
+
+    expect(backButton).toBeInTheDocument();
+    expect(backButton).toHaveAttribute("type", "button");
+  });
+
   it("validates image type and size before adding previews", async () => {
     const oversizedImage = new File(["image"], "large.png", {
       type: "image/png",

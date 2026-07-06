@@ -6,6 +6,11 @@ describe("wishlistQueryKeys", () => {
   });
 
   it("builds stable wishlist collection keys", () => {
+    expect(wishlistQueryKeys.lists("")).toEqual([
+      "wishlist",
+      "lists",
+      "",
+    ]);
     expect(wishlistQueryKeys.lists("page=1")).toEqual([
       "wishlist",
       "lists",

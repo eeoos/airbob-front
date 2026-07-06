@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import type { SetURLSearchParams } from "react-router-dom";
-import { GuestTripsPanel } from "../reservations/GuestTripsPanel";
-import { HostReservationsPanel } from "../reservations/HostReservationsPanel";
+import {
+  GuestTripsPanel,
+  HostReservationsPanel,
+} from "../reservations/appShell";
 import { HostListingsPanel } from "./HostListingsPanel";
 import { ProfileShell } from "./components/ProfileShell";
 import {

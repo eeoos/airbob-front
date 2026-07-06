@@ -1,9 +1,11 @@
 import React, { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { NavigateFunction } from "react-router-dom";
 import { routeTo } from "../../routes/paths";
 import { usePaymentConfirmation } from "./hooks/usePaymentConfirmation";
 import { clearReservationCheckoutStateByReservationUid } from "./lib/reservationCheckoutState";
 import { parseTossSuccessRouteState } from "./lib/paymentRouteState";
+import { invalidateReservationPaymentCaches } from "./publicCache";
 import styles from "./PaymentSuccessRoute.module.css";
 
 interface PaymentSuccessRouteProps {
@@ -17,6 +19,7 @@ export const PaymentSuccessRoute: React.FC<PaymentSuccessRouteProps> = ({
   reservationUid,
   searchParams,
 }) => {
+  const queryClient = useQueryClient();
   const tossSuccessRouteState = parseTossSuccessRouteState(
     reservationUid,
     searchParams,
@@ -39,6 +42,8 @@ export const PaymentSuccessRoute: React.FC<PaymentSuccessRouteProps> = ({
   });
 
   useEffect(() => {
+    let isActive = true;
+
     const clearCheckoutState = (reservationUidToClear: string) => {
       try {
         clearReservationCheckoutStateByReservationUid(reservationUidToClear);
@@ -47,38 +52,58 @@ export const PaymentSuccessRoute: React.FC<PaymentSuccessRouteProps> = ({
       }
     };
 
-    if (!reservationUid) {
-      navigate(routeTo.profile(), { replace: true });
-      return;
-    }
-
-    const result = isPaymentQueryIncomplete
-      ? ({ error: null, status: "skipped" } as const)
-      : confirmationResult;
-
-    if (!result) return;
-
-    if (result.status === "failed") {
-      if (result.retryable !== true) {
-        clearCheckoutState(reservationUid);
+    const finishPaymentRedirect = async () => {
+      if (!reservationUid) {
+        navigate(routeTo.profile(), { replace: true });
+        return;
       }
-      navigate(routeTo.paymentFail(reservationUid, { reason: "confirm-failed" }), {
+
+      const result = isPaymentQueryIncomplete
+        ? ({ error: null, status: "skipped" } as const)
+        : confirmationResult;
+
+      if (!result) return;
+
+      if (result.status === "failed") {
+        if (result.retryable !== true) {
+          clearCheckoutState(reservationUid);
+        }
+        navigate(routeTo.paymentFail(reservationUid, { reason: "confirm-failed" }), {
+          replace: true,
+        });
+        return;
+      }
+
+      clearCheckoutState(reservationUid);
+
+      if (result.status === "confirmed") {
+        try {
+          await invalidateReservationPaymentCaches(queryClient, reservationUid);
+        } catch {
+          // Cache invalidation is best-effort and must not block the success redirect.
+        }
+        if (!isActive) return;
+        navigate(routeTo.reservationDetail(reservationUid), { replace: true });
+        return;
+      }
+
+      navigate(routeTo.paymentFail(reservationUid, { reason: "invalid-callback" }), {
         replace: true,
       });
-      return;
-    }
+    };
 
-    clearCheckoutState(reservationUid);
+    void finishPaymentRedirect();
 
-    if (result.status === "confirmed") {
-      navigate(routeTo.reservationDetail(reservationUid), { replace: true });
-      return;
-    }
-
-    navigate(routeTo.paymentFail(reservationUid, { reason: "invalid-callback" }), {
-      replace: true,
-    });
-  }, [confirmationResult, isPaymentQueryIncomplete, navigate, reservationUid]);
+    return () => {
+      isActive = false;
+    };
+  }, [
+    confirmationResult,
+    isPaymentQueryIncomplete,
+    navigate,
+    queryClient,
+    reservationUid,
+  ]);
 
   return (
     <>

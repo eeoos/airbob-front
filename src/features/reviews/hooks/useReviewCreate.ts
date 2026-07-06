@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { reservationApi, reviewApi } from "../../../api";
 import { useApiError } from "../../../hooks/useApiError";
 import { ReservationDetailInfo } from "../../../types/reservation";
+import { accommodationQueryKeys } from "../../accommodations/queryKeys";
 import { reservationQueryKeys } from "../../reservations/queryKeys";
 
 export const REVIEW_IMAGE_UPLOAD_ERROR_MESSAGE =
@@ -70,11 +71,9 @@ export function useReviewCreate(reservationUid?: string) {
           queryKey: reservationQueryKeys.guestReservationsRoot,
         }),
         queryClient.invalidateQueries({
-          queryKey: [
-            "accommodation",
-            "reviews",
+          queryKey: accommodationQueryKeys.reviewsRoot(
             String(reviewedReservation.accommodation.id),
-          ],
+          ),
         }),
       ]);
     },

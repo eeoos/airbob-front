@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import React from "react";
 import { reservationApi, reviewApi } from "../../../api";
+import { accommodationQueryKeys } from "../../accommodations/queryKeys";
 import { reservationQueryKeys } from "../../reservations/queryKeys";
 import { ReservationStatus } from "../../../types/enums";
 import { ReservationDetailInfo } from "../../../types/reservation";
@@ -164,7 +165,7 @@ describe("useReviewCreate", () => {
       queryKey: reservationQueryKeys.all,
     });
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-      queryKey: ["accommodation", "reviews", "7"],
+      queryKey: accommodationQueryKeys.reviewsRoot("7"),
     });
     expect(result.current.isSubmitting).toBe(false);
   });

@@ -106,6 +106,28 @@ describe("ReservationDetailRoute", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
+  it("labels back buttons for assistive technology", () => {
+    render(
+      <ReservationDetailRoute
+        locationState={null}
+        navigate={mockNavigate}
+        reservationUid="reservation-123"
+      />,
+    );
+
+    expect(
+      screen.getAllByRole("button", { name: /뒤로 가기|돌아가기/ }).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getByRole("button", { name: /돌아가기/ }),
+    ).toHaveAttribute("type", "button");
+
+    const imageBackButton = screen.getByRole("button", { name: "뒤로 가기" });
+
+    expect(imageBackButton).toBeInTheDocument();
+    expect(imageBackButton).toHaveAttribute("type", "button");
+  });
+
   it("redirects missing reservation uid to profile without replacing history", () => {
     render(
       <ReservationDetailRoute
