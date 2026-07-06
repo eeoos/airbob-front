@@ -23,8 +23,9 @@
 
 ## Full Suite Outcome
 
-- `npm run test:ci:no-cache -- --runInBand` failed on 2026-07-06 KST with 4 failed suites, 11 failed tests, and 171 passed suites.
-- The failure appears to be a pre-existing/base full-suite failure from base `6222794`; Task 7 did not change the failing feature test files.
+- `npm run test:ci:no-cache -- --runInBand` failed on 2026-07-06 KST with 4 failed suites, 10 failed tests, 829 passed tests, and 171 passed suites.
+- The prior raw-console guardrail regression in `src/contexts/AuthContext.tsx` is fixed; `src/verification-gate.test.ts` passes in the full-suite run.
+- The remaining full-suite failures are in accommodation edit, guest/host reservation pagination, and host listings tests.
 
 ## Remaining Follow-Ups
 

@@ -10,6 +10,7 @@ import { searchQueryKeys } from "../features/search/queryKeys";
 import { wishlistQueryKeys } from "../features/wishlist/queryKeys";
 import { clearSessionQueryData } from "../query/sessionCacheBoundary";
 import { triggerAuthError } from "../utils/authEvents";
+import { clientLogger } from "../utils/clientLogger";
 import { LoginRequest, MeInfo } from "../types/auth";
 
 jest.mock("../api", () => ({
@@ -287,7 +288,9 @@ describe("AuthProvider", () => {
 
   it("clears local authenticated state and logs when server logout rejects", async () => {
     const logoutError = new Error("로그아웃 실패");
-    const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const loggerErrorSpy = jest
+      .spyOn(clientLogger, "error")
+      .mockImplementation(() => {});
     jest.mocked(authApi.getMe).mockResolvedValueOnce(meInfo);
     let logoutCookieAtCall = "";
     jest.mocked(authApi.logout).mockImplementationOnce(() => {
@@ -307,10 +310,10 @@ describe("AuthProvider", () => {
     await waitFor(() => expect(result.current.isAuthenticated).toBe(false));
     expect(logoutCookieAtCall).toContain("SESSION_ID=test-session");
     expect(document.cookie).not.toContain("SESSION_ID=");
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      "Logout request failed after local session clear",
-      logoutError,
-    );
+    expect(loggerErrorSpy).toHaveBeenCalledWith({
+      message: "Logout request failed after local session clear",
+      error: logoutError,
+    });
   });
 
   it("clears authenticated state and the session cookie when logout succeeds", async () => {
