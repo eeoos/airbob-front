@@ -285,8 +285,9 @@ describe("AuthProvider", () => {
     await waitFor(() => expect(result.current.isAuthenticated).toBe(true));
   });
 
-  it("keeps authenticated state when server logout rejects", async () => {
+  it("clears local authenticated state and logs when server logout rejects", async () => {
     const logoutError = new Error("로그아웃 실패");
+    const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     jest.mocked(authApi.getMe).mockResolvedValueOnce(meInfo);
     jest.mocked(authApi.logout).mockRejectedValueOnce(logoutError);
     document.cookie = "SESSION_ID=test-session; path=/;";
@@ -295,18 +296,16 @@ describe("AuthProvider", () => {
     await waitForSessionSettled(result);
     expect(result.current.isAuthenticated).toBe(true);
 
-    let thrownError: unknown;
     await act(async () => {
-      try {
-        await result.current.logout();
-      } catch (error) {
-        thrownError = error;
-      }
+      await result.current.logout();
     });
 
-    await waitFor(() => expect(result.current.isAuthenticated).toBe(true));
-    expect(thrownError).toBe(logoutError);
-    expect(document.cookie).toContain("SESSION_ID=test-session");
+    await waitFor(() => expect(result.current.isAuthenticated).toBe(false));
+    expect(document.cookie).not.toContain("SESSION_ID=");
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      "Logout request failed after local session clear",
+      logoutError,
+    );
   });
 
   it("clears authenticated state and the session cookie when logout succeeds", async () => {

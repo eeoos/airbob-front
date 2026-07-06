@@ -1,4 +1,6 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
+import React from "react";
 import { accommodationApi } from "../../../api";
 import {
   HostAccommodationInfo,
@@ -23,6 +25,28 @@ jest.mock("../../../hooks/useApiError", () => ({
     handleError: mockHandleError,
   }),
 }));
+
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+  return function QueryClientTestWrapper({
+    children,
+  }: {
+    children: React.ReactNode;
+  }) {
+    return React.createElement(
+      QueryClientProvider,
+      { client: queryClient },
+      children,
+    );
+  };
+};
 
 const createAccommodation = (
   id: number,
@@ -78,7 +102,9 @@ describe("useHostListings", () => {
       .mocked(accommodationApi.getMyAccommodations)
       .mockResolvedValue(createAccommodationPage([accommodation], "cursor-1"));
 
-    const { result } = renderHook(() => useHostListings("PUBLISHED"));
+    const { result } = renderHook(() => useHostListings("PUBLISHED"), {
+      wrapper: createWrapper(),
+    });
 
     expect(result.current.isLoading).toBe(true);
 
@@ -102,7 +128,9 @@ describe("useHostListings", () => {
       )
       .mockResolvedValueOnce(createAccommodationPage([secondAccommodation]));
 
-    const { result } = renderHook(() => useHostListings("PUBLISHED"));
+    const { result } = renderHook(() => useHostListings("PUBLISHED"), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => expect(result.current.hasNext).toBe(true));
 
@@ -115,10 +143,12 @@ describe("useHostListings", () => {
       size: 20,
       status: AccommodationStatus.PUBLISHED,
     });
-    expect(result.current.accommodations).toEqual([
-      firstAccommodation,
-      secondAccommodation,
-    ]);
+    await waitFor(() =>
+      expect(result.current.accommodations).toEqual([
+        firstAccommodation,
+        secondAccommodation,
+      ])
+    );
     expect(result.current.hasNext).toBe(false);
   });
 
@@ -142,6 +172,7 @@ describe("useHostListings", () => {
         initialProps: {
           statusType: "PUBLISHED" as "PUBLISHED" | "DRAFT",
         },
+        wrapper: createWrapper(),
       }
     );
 
@@ -170,7 +201,9 @@ describe("useHostListings", () => {
       .mockResolvedValueOnce(createAccommodationPage([firstAccommodation]))
       .mockResolvedValueOnce(createAccommodationPage([reloadedAccommodation]));
 
-    const { result } = renderHook(() => useHostListings("PUBLISHED"));
+    const { result } = renderHook(() => useHostListings("PUBLISHED"), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() =>
       expect(result.current.accommodations).toEqual([firstAccommodation])
@@ -180,7 +213,9 @@ describe("useHostListings", () => {
       await result.current.reload();
     });
 
-    expect(result.current.accommodations).toEqual([reloadedAccommodation]);
+    await waitFor(() =>
+      expect(result.current.accommodations).toEqual([reloadedAccommodation])
+    );
     expect(accommodationApi.getMyAccommodations).toHaveBeenCalledTimes(2);
   });
 
@@ -206,6 +241,7 @@ describe("useHostListings", () => {
         initialProps: {
           statusType: "PUBLISHED" as "PUBLISHED" | "DRAFT",
         },
+        wrapper: createWrapper(),
       }
     );
 
@@ -241,7 +277,9 @@ describe("useHostListings", () => {
       .mockReturnValueOnce(loadMoreRequest.promise)
       .mockResolvedValue(createAccommodationPage([createAccommodation(3)]));
 
-    const { result } = renderHook(() => useHostListings("PUBLISHED"));
+    const { result } = renderHook(() => useHostListings("PUBLISHED"), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => expect(result.current.hasNext).toBe(true));
 
@@ -260,9 +298,11 @@ describe("useHostListings", () => {
       await secondLoadMore;
     });
 
-    expect(result.current.accommodations).toEqual([
-      firstAccommodation,
-      secondAccommodation,
-    ]);
+    await waitFor(() =>
+      expect(result.current.accommodations).toEqual([
+        firstAccommodation,
+        secondAccommodation,
+      ])
+    );
   });
 });

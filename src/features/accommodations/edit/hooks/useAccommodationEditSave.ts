@@ -1,5 +1,8 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { accommodationApi } from "../../../../api";
+import { profileQueryKeys } from "../../../profile/queryKeys";
+import { accommodationQueryKeys } from "../../queryKeys";
 import {
   AccommodationEditFormData,
   AccommodationEditUpdateData,
@@ -56,9 +59,21 @@ export const useAccommodationEditSave = ({
   updateAccommodation = defaultUpdateAccommodation,
   publishAccommodation = defaultPublishAccommodation,
 }: UseAccommodationEditSaveOptions) => {
+  const queryClient = useQueryClient();
   const [showDetailAddressConfirm, setShowDetailAddressConfirm] =
     useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+
+  const invalidateAccommodationCaches = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: accommodationQueryKeys.detailRoot,
+      }),
+      queryClient.invalidateQueries({
+        queryKey: profileQueryKeys.hostListingsRoot,
+      }),
+    ]);
+  }, [queryClient]);
 
   const hasMissingDetailAddress = useCallback(
     () =>
@@ -112,6 +127,7 @@ export const useAccommodationEditSave = ({
 
       if (hasChanges) {
         await updateAccommodation(Number(accommodationId), updateData);
+        await invalidateAccommodationCaches();
       }
 
       navigateToHostProfile();
@@ -127,6 +143,7 @@ export const useAccommodationEditSave = ({
     handleError,
     imageItems,
     initialImageItems,
+    invalidateAccommodationCaches,
     isNewDraft,
     navigateToHostProfile,
     setIsSaving,
@@ -165,6 +182,7 @@ export const useAccommodationEditSave = ({
       }
 
       await publishAccommodation(Number(accommodationId));
+      await invalidateAccommodationCaches();
       navigateToHostProfile();
     } catch (err) {
       handleError(err);
@@ -176,6 +194,7 @@ export const useAccommodationEditSave = ({
     clearError,
     getUpdateData,
     handleError,
+    invalidateAccommodationCaches,
     navigateToHostProfile,
     publishAccommodation,
     setIsSaving,
@@ -212,6 +231,7 @@ export const useAccommodationEditSave = ({
 
     try {
       await updateAccommodation(Number(accommodationId), getUpdateData());
+      await invalidateAccommodationCaches();
       return true;
     } catch (err) {
       handleError(err);
@@ -224,6 +244,7 @@ export const useAccommodationEditSave = ({
     clearError,
     getUpdateData,
     handleError,
+    invalidateAccommodationCaches,
     setIsSaving,
     updateAccommodation,
   ]);

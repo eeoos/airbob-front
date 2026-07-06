@@ -1,7 +1,9 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import { reservationApi, reviewApi } from "../../../api";
 import { useApiError } from "../../../hooks/useApiError";
 import { ReservationDetailInfo } from "../../../types/reservation";
+import { reservationQueryKeys } from "../../reservations/queryKeys";
 
 export const REVIEW_IMAGE_UPLOAD_ERROR_MESSAGE =
   "리뷰는 작성되었지만 이미지 업로드에 실패했습니다.";
@@ -22,6 +24,7 @@ export type SubmitReviewResult =
     };
 
 export function useReviewCreate(reservationUid?: string) {
+  const queryClient = useQueryClient();
   const { error, handleError, clearError } = useApiError();
   const [reservation, setReservation] =
     useState<ReservationDetailInfo | null>(null);
@@ -55,6 +58,29 @@ export function useReviewCreate(reservationUid?: string) {
     reload();
   }, [reload]);
 
+  const invalidateReviewCreateCaches = useCallback(
+    async (reviewedReservation: ReservationDetailInfo) => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: reservationQueryKeys.guestReservationDetail(
+            reviewedReservation.reservation_uid,
+          ),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: reservationQueryKeys.all,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: [
+            "accommodation",
+            "reviews",
+            String(reviewedReservation.accommodation.id),
+          ],
+        }),
+      ]);
+    },
+    [queryClient],
+  );
+
   const submitReview = useCallback(
     async ({
       content,
@@ -82,6 +108,7 @@ export function useReviewCreate(reservationUid?: string) {
           try {
             await reviewApi.uploadImages(createResponse.id, images);
           } catch {
+            await invalidateReviewCreateCaches(reservation);
             handleError(new Error(REVIEW_IMAGE_UPLOAD_ERROR_MESSAGE));
             return {
               status: "upload_failed",
@@ -90,6 +117,7 @@ export function useReviewCreate(reservationUid?: string) {
           }
         }
 
+        await invalidateReviewCreateCaches(reservation);
         return {
           status: "success",
           reservationUid: reservation.reservation_uid,
@@ -101,7 +129,7 @@ export function useReviewCreate(reservationUid?: string) {
         setIsSubmitting(false);
       }
     },
-    [clearError, handleError, reservation]
+    [clearError, handleError, invalidateReviewCreateCaches, reservation]
   );
 
   return {
