@@ -21,6 +21,11 @@
 - The remaining lint debt appears pre-existing and is concentrated in test lint rules such as `testing-library/no-node-access`, `testing-library/no-wait-for-multiple-assertions`, `testing-library/render-result-naming-convention`, `jest/no-conditional-expect`, and `import/first`, plus a small set of unused-variable / hook-dependency warnings.
 - Broad lint cleanup is intentionally deferred. Task 7 only adds visibility scripts and does not promote `lint:strict` into `verify`.
 
+## Full Suite Outcome
+
+- `npm run test:ci:no-cache -- --runInBand` failed on 2026-07-06 KST with 4 failed suites, 11 failed tests, and 171 passed suites.
+- The failure appears to be a pre-existing/base full-suite failure from base `6222794`; Task 7 did not change the failing feature test files.
+
 ## Remaining Follow-Ups
 
 - Run `npm audit` and prioritize direct dependency upgrades.
