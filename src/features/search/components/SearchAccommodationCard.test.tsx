@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { readFileSync } from "fs";
 import { SearchAccommodationCardViewModel } from "../lib/searchAccommodationViewModel";
 import { SearchAccommodationCard } from "./SearchAccommodationCard";
 
@@ -85,5 +86,16 @@ describe("SearchAccommodationCard", () => {
       "href",
       "/accommodations/1?checkIn=2026-07-10&checkOut=2026-07-12"
     );
+  });
+
+  it("keeps wishlist icon color state in token-backed CSS", () => {
+    const css = readFileSync(
+      `${__dirname}/SearchAccommodationCard.module.css`,
+      "utf8"
+    );
+
+    expect(css).toContain("fill: var(--color-brand-coral);");
+    expect(css).toContain("stroke: var(--color-text-inverse);");
+    expect(css).toContain("stroke: var(--color-text-primary);");
   });
 });

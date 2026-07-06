@@ -105,4 +105,47 @@ describe("shared UI boundary contracts", () => {
 
     expect(() => readFileSync(errorToastStylePath, "utf8")).toThrow();
   });
+
+  it("keeps direct-fit task 5 surfaces on shared form and action primitives", () => {
+    const primitiveContracts = [
+      {
+        relativePath: "features/auth/components/AuthModal/AuthModal.tsx",
+        expected: ["Button", "Dialog", "TextField"],
+      },
+      {
+        relativePath:
+          "features/reservations/components/ReservationModal/ReservationModal.tsx",
+        expected: ["Button", "Dialog"],
+      },
+      {
+        relativePath: "features/wishlist/components/WishlistModal/WishlistModal.tsx",
+        expected: ["Button", "Dialog"],
+      },
+      {
+        relativePath:
+          "features/accommodations/components/AccommodationActionModal/AccommodationActionModal.tsx",
+        expected: ["Button", "Dialog"],
+      },
+      {
+        relativePath: "features/reservations/PaymentFailRoute.tsx",
+        expected: ["Button"],
+      },
+      {
+        relativePath: "components/ErrorBoundary/ErrorBoundary.tsx",
+        expected: ["Button"],
+      },
+    ];
+
+    const violations = primitiveContracts.flatMap(({ relativePath, expected }) => {
+      const source = readFileSync(join(srcRoot, relativePath), "utf8");
+
+      return expected.flatMap((primitive) =>
+        source.includes(primitive)
+          ? []
+          : [`${relativePath}: missing ${primitive}`],
+      );
+    });
+
+    expect(violations).toEqual([]);
+  });
 });

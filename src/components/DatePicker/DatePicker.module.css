@@ -2,7 +2,7 @@
   position: relative; /* 기본값: relative (부모 컨테이너 기준) */
   background: var(--color-background-page);
   border-radius: var(--radius-lg);
-  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--shadow-md);
   padding: 24px;
   z-index: var(--z-dropdown); /* 데스크톱 기본값 */
   width: 850px;
@@ -226,15 +226,15 @@
 .day.start {
   background-color: var(--color-text-primary);
   color: var(--color-text-inverse);
-  border-top-left-radius: 8px;
-  border-bottom-left-radius: 8px;
+  border-top-left-radius: var(--radius-md);
+  border-bottom-left-radius: var(--radius-md);
 }
 
 .day.end {
   background-color: var(--color-text-primary);
   color: var(--color-text-inverse);
-  border-top-right-radius: 8px;
-  border-bottom-right-radius: 8px;
+  border-top-right-radius: var(--radius-md);
+  border-bottom-right-radius: var(--radius-md);
 }
 
 .day.start.end {

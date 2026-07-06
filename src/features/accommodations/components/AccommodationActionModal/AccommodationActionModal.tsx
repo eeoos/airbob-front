@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Dialog } from "../../../../shared/ui";
+import { Button, Dialog } from "../../../../shared/ui";
 import { useAccommodationActions } from "../../hooks/useAccommodationActions";
 import { ErrorToast } from "../../../../components/ErrorToast";
 import { getImageUrl } from "../../../../utils/image";
@@ -134,48 +134,45 @@ export const AccommodationActionModal: React.FC<AccommodationActionModalProps> =
       )}
 
       <div className={styles.actions}>
-        <button
+        <Button
           className={styles.editButton}
           disabled={isProcessing}
-          type="button"
           onClick={handleEdit}
         >
           리스팅 수정
-        </button>
+        </Button>
 
         {accommodation.canUnpublish && (
-          <button
+          <Button
             className={styles.actionButton}
             disabled={isProcessing}
-            type="button"
             onClick={handleUnpublish}
           >
             리스팅 비공개
-          </button>
+          </Button>
         )}
 
         {accommodation.canPublish && (
-          <button
+          <Button
             className={styles.actionButton}
             disabled={isProcessing}
-            type="button"
             onClick={handlePublish}
           >
             리스팅 공개
-          </button>
+          </Button>
         )}
 
-        <button
+        <Button
+          variant="ghost"
           className={styles.deleteButton}
           disabled={isProcessing}
-          type="button"
           onClick={handleDelete}
         >
           <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor">
             <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
           </svg>
           리스팅 삭제
-        </button>
+        </Button>
       </div>
 
       {error && (

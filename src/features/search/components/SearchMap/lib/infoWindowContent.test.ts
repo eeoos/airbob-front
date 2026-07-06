@@ -2,6 +2,7 @@ import type { SearchMapAccommodation } from "../types";
 import {
   buildInfoWindowContent,
   buildSearchMapInfoWindowContent,
+  INFO_WINDOW_STYLE_TOKENS,
 } from "./infoWindowContent";
 
 const createAccommodation = (
@@ -25,6 +26,16 @@ const createAccommodation = (
 });
 
 describe("info window content helper", () => {
+  it("keeps repeated inline style values behind named constants", () => {
+    expect(INFO_WINDOW_STYLE_TOKENS).toMatchObject({
+      cardWidth: "327px",
+      imageHeight: "211.94px",
+      buttonWishlistSize: "28px",
+      brand: "var(--color-brand-coral)",
+      textPrimary: "var(--color-text-primary)",
+    });
+  });
+
   it("builds planned info-window content from the vendor-neutral content model", () => {
     const html = buildSearchMapInfoWindowContent({
       accommodationId: `map-10" data-unsafe="true`,

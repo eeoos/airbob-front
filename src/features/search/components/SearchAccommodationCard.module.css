@@ -180,7 +180,9 @@
   stroke: var(--color-text-inverse);
 }
 
-.wishlistButton svg {
+.wishlistIcon {
   width: 20px;
   height: 20px;
+  fill: none;
+  stroke: var(--color-text-primary);
 }

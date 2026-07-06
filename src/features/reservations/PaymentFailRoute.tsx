@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import type { NavigateFunction } from "react-router-dom";
 import { routeTo } from "../../routes/paths";
 import type { PaymentFailReason } from "../../routes/routeQueryContracts";
+import { Button } from "../../shared/ui";
 import { clearReservationCheckoutStateByReservationUid } from "./lib/reservationCheckoutState";
 import styles from "./PaymentFailRoute.module.css";
 
@@ -32,19 +33,20 @@ export const PaymentFailRoute: React.FC<PaymentFailRouteProps> = ({
             결제 처리 중 문제가 발생했습니다. 다시 시도해주세요.
           </p>
           <div className={styles.actions}>
-            <button
+            <Button
               className={styles.button}
               onClick={() => navigate(routeTo.profile())}
             >
               프로필로 이동
-            </button>
+            </Button>
             {reservationUid && (
-              <button
+              <Button
+                variant="secondary"
                 className={styles.buttonSecondary}
                 onClick={() => navigate(routeTo.reservationDetail(reservationUid))}
               >
                 예약 상세 보기
-              </button>
+              </Button>
             )}
           </div>
         </div>

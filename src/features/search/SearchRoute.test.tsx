@@ -354,5 +354,9 @@ describe("SearchRoute", () => {
     expect(css).toContain("outline: 2px solid var(--color-brand-coral);");
     expect(css).toContain("outline-offset: 2px;");
     expect(css).toContain("box-shadow: var(--focus-ring);");
+    expect(css).not.toContain("outline: none !important");
+    expect(css).toMatch(
+      /\.results:focus-visible\s*\{[\s\S]*box-shadow:\s*var\(--focus-ring\);/
+    );
   });
 });

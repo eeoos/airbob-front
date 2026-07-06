@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { useWishlistSelection } from "../../hooks/useWishlistSelection";
 import type { WishlistModalItemViewModel } from "../../lib/wishlistAccommodationViewModel";
-import { Dialog } from "../../../../shared/ui";
+import { Button, Dialog } from "../../../../shared/ui";
 import { CreateWishlistModal } from "../CreateWishlistModal/CreateWishlistModal";
 import { ErrorToast } from "../../../../components/ErrorToast";
 import styles from "./WishlistModal.module.css";
@@ -170,9 +170,9 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
           </div>
         </div>
 
-        <button className={styles.createButton} onClick={openCreateModal}>
+        <Button className={styles.createButton} onClick={openCreateModal}>
           새로운 위시리스트 만들기
-        </button>
+        </Button>
         {error && (
           <div className={styles.toastContainer}>
             <ErrorToast message={error} onClose={clearError} />

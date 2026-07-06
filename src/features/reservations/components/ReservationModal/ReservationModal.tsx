@@ -3,7 +3,7 @@ import type { ReservationModalAccommodationViewModel } from "../../lib/reservati
 import { useApiError } from "../../../../hooks/useApiError";
 import { useAuth } from "../../../../hooks/useAuth";
 import { useReservationPayment } from "../../hooks/useReservationPayment";
-import { Dialog } from "../../../../shared/ui";
+import { Button, Dialog } from "../../../../shared/ui";
 import { ErrorToast } from "../../../../components/ErrorToast";
 import { getImageUrl } from "../../../../utils/image";
 import styles from "./ReservationModal.module.css";
@@ -221,15 +221,15 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
             <button className={styles.priceDetailsLink}>요금 상세 내역</button>
           </div>
 
-          <button
+          <Button
             className={styles.reserveButton}
             onClick={handleReserve}
             disabled={isLoading || !propCheckIn || !propCheckOut}
+            isLoading={isLoading}
+            loadingLabel="예약 생성 중..."
           >
-            {isLoading
-              ? "예약 생성 중..."
-              : "확인 및 결제"}
-          </button>
+            확인 및 결제
+          </Button>
       {error && (
         <div className={styles.toastContainer}>
           <ErrorToast message={error} onClose={clearError} />

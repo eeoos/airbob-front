@@ -1,4 +1,7 @@
-import { renderMapExpandControl } from "./mapExpandControl";
+import {
+  MAP_EXPAND_CONTROL_STYLE_TOKENS,
+  renderMapExpandControl,
+} from "./mapExpandControl";
 
 describe("map expand control helper", () => {
   let container: HTMLDivElement;
@@ -10,6 +13,16 @@ describe("map expand control helper", () => {
 
   afterEach(() => {
     document.body.innerHTML = "";
+  });
+
+  it("keeps inline DOM style values behind named constants", () => {
+    expect(MAP_EXPAND_CONTROL_STYLE_TOKENS).toMatchObject({
+      background: "var(--color-background-page)",
+      backgroundHover: "var(--color-background-muted)",
+      iconSize: "20px",
+      size: "40px",
+      zIndex: "var(--z-popover)",
+    });
   });
 
   it("creates a map expand button that calls the toggle handler without bubbling", () => {
