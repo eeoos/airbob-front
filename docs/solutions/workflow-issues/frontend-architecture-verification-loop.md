@@ -53,9 +53,13 @@ The final DTO-boundary review found one more false-confidence mode: a presentati
 
 The July 6 structure-first refactor added a narrower lesson: moving files is not enough unless the moved boundary is consumed and tested. Route shell metadata moved into component-free route definitions and `MainLayout` now passes the matched `headerMode` into the header. Reservation and host-listing server state moved further into Query-backed hooks, which required provider-backed async tests instead of synchronous hook assertions. Search and wishlist cache coordination moved behind public cache modules so features no longer reach through private query keys. Booking/payment props were grouped by route-state boundary, and pre-redesign shared primitives (`PageShell`, `ListingCard`, `OverlaySurface`) gained semantic contracts before Airbnb styling began.
 
+The follow-up full-audit hardening pass showed that task-specific subagent review loops are part of the gate, not just implementation mechanics. Spec reviewers caught review cache invalidation using numeric accommodation ids while active route queries used string ids, payment success routing that called invalidation without awaiting it, and later tests that asserted accessible names without also locking `type="button"`. Code-quality reviewers caught the next-order failures: rejected invalidation promises could strand a paid user on a spinner, `role="menu"` required full menu-button keyboard behavior, hidden separators undermined menu semantics, and parent smoke env vars could leak into verification subprocesses. Each finding became a focused regression test before the task closed.
+
 ## Guidance
 
 After a broad architecture merge, rerun a full-audit pass before visual styling. The second pass should look for remaining private URL/query dependencies, cache keys outside feature query key modules, public seams that are implied but not tested, CSS Modules outside token ownership, and verification scripts that leave local artifacts during tests.
+
+When executing that pass with subagents, require two independent reviews per task: a spec review that checks the exact requested behavior and a code-quality review that attacks failure modes introduced by the fix. Treat every valid reviewer finding as a new test obligation before moving to the next task. This is especially important for cache key identity, payment redirects, ARIA role contracts, and test-environment isolation because the first green implementation often covers only the happy path.
 
 Run an explicit architecture verification loop before starting visual design work. Treat the loop as a release gate, not as a best-effort checklist.
 
@@ -275,7 +279,9 @@ const isolatedSmokeSubprocessEnv = (overrides = {}) => {
     "AIRBOB_SMOKE_RESERVATION_UID",
     "AIRBOB_SMOKE_HOST_RESERVATION_UID",
     "AIRBOB_SMOKE_ACCOMMODATION_ID",
+    "AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID",
     "AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS",
+    "AIRBOB_SMOKE_REPORT_ROOT",
     "AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES",
   ].forEach((key) => {
     delete env[key];
