@@ -3,6 +3,13 @@ import type { AccommodationDetail } from "../../types/accommodation";
 import type { CouponInfo } from "../../types/coupon";
 import type { ReviewInfo } from "../../types/review";
 import { AccommodationDetailRoute } from "./AccommodationDetailRoute";
+import type {
+  AccommodationBookingActions,
+  AccommodationBookingState,
+  AccommodationCouponActions,
+  AccommodationCouponState,
+} from "./components/AccommodationBookingCard";
+import type { AccommodationBookingViewModel } from "./lib/accommodationBookingViewModel";
 
 const mockUseApiError = jest.fn();
 const mockUseAuth = jest.fn();
@@ -13,20 +20,13 @@ const mockUseAccommodationImageGallery = jest.fn();
 const mockUseAccommodationReviews = jest.fn();
 const mockHandleReserve = jest.fn();
 const mockReloadAccommodation = jest.fn();
-let mockBookingCardProps: {
-  bookingView: {
-    basePriceLabel: string;
-  };
-  bookingState?: {
-    nights: number;
-  };
-  bookingActions?: {
-    onReserve: () => void;
-  };
-  couponState?: {
-    payablePrice: number;
-  };
-  couponActions?: object;
+type MockBookingCardProps = {
+  bookingView: AccommodationBookingViewModel;
+  isAuthenticated: boolean;
+  bookingState: AccommodationBookingState;
+  bookingActions: AccommodationBookingActions;
+  couponState: AccommodationCouponState;
+  couponActions: AccommodationCouponActions;
   nights?: number;
   onReserve?: () => void;
   payablePrice?: number;
@@ -39,6 +39,7 @@ let mockBookingCardProps: {
   couponDiscount?: number;
   handleIssueCoupon?: (coupon: CouponInfo) => void | Promise<void>;
 };
+let mockBookingCardProps: MockBookingCardProps;
 
 jest.mock("../../hooks/useApiError", () => ({
   useApiError: () => mockUseApiError(),
@@ -123,22 +124,15 @@ jest.mock("../wishlist/appShell", () => ({
 }));
 
 jest.mock("./components/AccommodationBookingCard", () => ({
-  AccommodationBookingCard: (
-    props: typeof mockBookingCardProps,
-  ) => {
+  AccommodationBookingCard: (props: MockBookingCardProps) => {
     mockBookingCardProps = props;
-    const nights = props.bookingState?.nights ?? props.nights ?? 0;
-    const payablePrice =
-      props.couponState?.payablePrice ?? props.payablePrice ?? 0;
-    const onReserve =
-      props.bookingActions?.onReserve ?? props.onReserve ?? jest.fn();
 
     return (
       <aside data-testid="booking-card">
         <div>{props.bookingView.basePriceLabel}</div>
-        <div>{`${nights}박`}</div>
-        <div>{`결제 금액 ${payablePrice.toLocaleString()}`}</div>
-        <button type="button" onClick={onReserve}>
+        <div>{`${props.bookingState.nights}박`}</div>
+        <div>{`결제 금액 ${props.bookingState.payablePrice.toLocaleString()}`}</div>
+        <button type="button" onClick={props.bookingActions.onReserve}>
           예약하기
         </button>
       </aside>
@@ -347,7 +341,7 @@ const renderDetailRoute = () =>
 describe("AccommodationDetailRoute", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockBookingCardProps = undefined as unknown as typeof mockBookingCardProps;
+    mockBookingCardProps = undefined as unknown as MockBookingCardProps;
     mockUseApiError.mockReturnValue({
       error: null,
       handleError: jest.fn(),
@@ -428,6 +422,16 @@ describe("AccommodationDetailRoute", () => {
       couponState: expect.any(Object),
       couponActions: expect.any(Object),
     });
+    expect(mockBookingCardProps.bookingState).toMatchObject({
+      payablePrice: 240000,
+      nights: 2,
+    });
+    expect(mockBookingCardProps.couponState).toMatchObject({
+      couponDiscount: 0,
+    });
+    expect(mockBookingCardProps.bookingActions.onReserve).toEqual(
+      expect.any(Function)
+    );
     expect(mockBookingCardProps.coupons).toBeUndefined();
     expect(mockBookingCardProps.isLoadingCoupons).toBeUndefined();
     expect(mockBookingCardProps.selectedCoupon).toBeUndefined();
