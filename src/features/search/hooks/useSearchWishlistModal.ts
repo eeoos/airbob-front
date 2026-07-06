@@ -1,8 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { clientLogger } from "../../../utils/clientLogger";
-import { setAccommodationScopedWishlistMembershipCache } from "../../wishlist/lib/wishlistCacheSync";
-import { fetchAccommodationWishlistMembership } from "../../wishlist/lib/wishlistMembership";
+import { refreshAccommodationScopedWishlistMembershipCache } from "../../wishlist/publicCache";
 
 interface UseSearchWishlistModalOptions {
   isAuthenticated: boolean;
@@ -58,13 +57,9 @@ export function useSearchWishlistModal({
   const closeWishlistModal = useCallback(async () => {
     if (selectedAccommodationForWishlist !== null) {
       try {
-        const membership = await fetchAccommodationWishlistMembership(
-          selectedAccommodationForWishlist,
-        );
-        setAccommodationScopedWishlistMembershipCache(
+        const membership = await refreshAccommodationScopedWishlistMembershipCache(
           queryClient,
           selectedAccommodationForWishlist,
-          membership,
         );
 
         onWishlistStatusChange(

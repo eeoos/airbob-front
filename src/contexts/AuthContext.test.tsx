@@ -10,6 +10,7 @@ import { searchQueryKeys } from "../features/search/queryKeys";
 import { wishlistQueryKeys } from "../features/wishlist/queryKeys";
 import { clearSessionQueryData } from "../query/sessionCacheBoundary";
 import { triggerAuthError } from "../utils/authEvents";
+import { clientLogger } from "../utils/clientLogger";
 import { LoginRequest, MeInfo } from "../types/auth";
 
 jest.mock("../api", () => ({
@@ -285,28 +286,34 @@ describe("AuthProvider", () => {
     await waitFor(() => expect(result.current.isAuthenticated).toBe(true));
   });
 
-  it("keeps authenticated state when server logout rejects", async () => {
+  it("clears local authenticated state and logs when server logout rejects", async () => {
     const logoutError = new Error("로그아웃 실패");
+    const loggerErrorSpy = jest
+      .spyOn(clientLogger, "error")
+      .mockImplementation(() => {});
     jest.mocked(authApi.getMe).mockResolvedValueOnce(meInfo);
-    jest.mocked(authApi.logout).mockRejectedValueOnce(logoutError);
+    let logoutCookieAtCall = "";
+    jest.mocked(authApi.logout).mockImplementationOnce(() => {
+      logoutCookieAtCall = document.cookie;
+      return Promise.reject(logoutError);
+    });
     document.cookie = "SESSION_ID=test-session; path=/;";
 
     const { result } = renderUseAuth();
     await waitForSessionSettled(result);
     expect(result.current.isAuthenticated).toBe(true);
 
-    let thrownError: unknown;
     await act(async () => {
-      try {
-        await result.current.logout();
-      } catch (error) {
-        thrownError = error;
-      }
+      await result.current.logout();
     });
 
-    await waitFor(() => expect(result.current.isAuthenticated).toBe(true));
-    expect(thrownError).toBe(logoutError);
-    expect(document.cookie).toContain("SESSION_ID=test-session");
+    await waitFor(() => expect(result.current.isAuthenticated).toBe(false));
+    expect(logoutCookieAtCall).toContain("SESSION_ID=test-session");
+    expect(document.cookie).not.toContain("SESSION_ID=");
+    expect(loggerErrorSpy).toHaveBeenCalledWith({
+      message: "Logout request failed after local session clear",
+      error: logoutError,
+    });
   });
 
   it("clears authenticated state and the session cookie when logout succeeds", async () => {

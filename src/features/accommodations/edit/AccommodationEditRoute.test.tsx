@@ -1,4 +1,5 @@
 import React from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { accommodationApi } from "../../../api";
 import { HostAccommodationDetail } from "../../../types/accommodation";
@@ -97,14 +98,25 @@ const missingDetailCompletedHostAccommodation: HostAccommodationDetail = {
   },
 };
 
-const renderRoute = () =>
-  render(
-    <AccommodationEditRoute
-      accommodationId="3"
-      isNewDraft={false}
-      onNavigateToHostProfile={mockNavigateToHostProfile}
-    />
+const renderRoute = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <AccommodationEditRoute
+        accommodationId="3"
+        isNewDraft={false}
+        onNavigateToHostProfile={mockNavigateToHostProfile}
+      />
+    </QueryClientProvider>
   );
+};
 
 beforeEach(() => {
   mockNavigateToHostProfile.mockReset();

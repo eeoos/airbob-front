@@ -2,6 +2,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { ROUTE_PATHS } from "./paths";
 import { appRoutes } from "./routeConfig";
+import { routeDefinitions } from "./routeDefinitions";
 
 jest.mock("../pages/Home/Home", () => () => null);
 jest.mock("../pages/Search/Search", () => () => null);
@@ -23,28 +24,14 @@ jest.mock("../pages/Auth/Signup/Signup", () => () => null);
 jest.mock("../pages/NotFound/NotFound", () => () => null);
 
 describe("app route config", () => {
-  it("keeps the complete route table in one place", () => {
-    expect(appRoutes.map((route) => route.path)).toEqual([
-      ROUTE_PATHS.home,
-      ROUTE_PATHS.search,
-      ROUTE_PATHS.accommodationDetail,
-      ROUTE_PATHS.accommodationConfirm,
-      ROUTE_PATHS.accommodationEdit,
-      ROUTE_PATHS.wishlist,
-      ROUTE_PATHS.profile,
-      ROUTE_PATHS.hostReservationDetail,
-      ROUTE_PATHS.reservationDetail,
-      ROUTE_PATHS.reviewCreate,
-      ROUTE_PATHS.paymentSuccess,
-      ROUTE_PATHS.paymentFail,
-      ROUTE_PATHS.login,
-      ROUTE_PATHS.signup,
-      ROUTE_PATHS.notFound,
-    ]);
+  it("builds lazy app routes from component-free route definitions", () => {
+    expect(appRoutes.map(({ component, ...route }) => route)).toEqual(
+      routeDefinitions,
+    );
   });
 
   it("declares protected routes explicitly", () => {
-    const protectedPaths = appRoutes
+    const protectedPaths = routeDefinitions
       .filter((route) => route.requiresAuth)
       .map((route) => route.path);
 
@@ -62,7 +49,7 @@ describe("app route config", () => {
   });
 
   it("declares layout ownership explicitly", () => {
-    const barePaths = appRoutes
+    const barePaths = routeDefinitions
       .filter((route) => route.layout === "bare")
       .map((route) => route.path);
 
@@ -70,108 +57,6 @@ describe("app route config", () => {
       ROUTE_PATHS.login,
       ROUTE_PATHS.signup,
       ROUTE_PATHS.notFound,
-    ]);
-  });
-
-  it("declares route shell metadata explicitly", () => {
-    expect(
-      appRoutes.map(({ id, path, layout, headerMode }) => ({
-        id,
-        path,
-        layout,
-        headerMode,
-      })),
-    ).toEqual([
-      {
-        id: "home",
-        path: ROUTE_PATHS.home,
-        layout: "main",
-        headerMode: "default",
-      },
-      {
-        id: "search",
-        path: ROUTE_PATHS.search,
-        layout: "main",
-        headerMode: "search",
-      },
-      {
-        id: "accommodation-detail",
-        path: ROUTE_PATHS.accommodationDetail,
-        layout: "main",
-        headerMode: "default",
-      },
-      {
-        id: "accommodation-confirm",
-        path: ROUTE_PATHS.accommodationConfirm,
-        layout: "main",
-        headerMode: "default",
-      },
-      {
-        id: "accommodation-edit",
-        path: ROUTE_PATHS.accommodationEdit,
-        layout: "main",
-        headerMode: "default",
-      },
-      {
-        id: "wishlist",
-        path: ROUTE_PATHS.wishlist,
-        layout: "main",
-        headerMode: "default",
-      },
-      {
-        id: "profile",
-        path: ROUTE_PATHS.profile,
-        layout: "main",
-        headerMode: "default",
-      },
-      {
-        id: "host-reservation-detail",
-        path: ROUTE_PATHS.hostReservationDetail,
-        layout: "main",
-        headerMode: "default",
-      },
-      {
-        id: "reservation-detail",
-        path: ROUTE_PATHS.reservationDetail,
-        layout: "main",
-        headerMode: "default",
-      },
-      {
-        id: "reservation-review",
-        path: ROUTE_PATHS.reviewCreate,
-        layout: "main",
-        headerMode: "default",
-      },
-      {
-        id: "payment-success",
-        path: ROUTE_PATHS.paymentSuccess,
-        layout: "main",
-        headerMode: "default",
-      },
-      {
-        id: "payment-fail",
-        path: ROUTE_PATHS.paymentFail,
-        layout: "main",
-        headerMode: "default",
-      },
-      {
-        id: "login",
-        path: ROUTE_PATHS.login,
-        layout: "bare",
-        headerMode: "hidden",
-      },
-      {
-        id: "signup",
-        path: ROUTE_PATHS.signup,
-        layout: "bare",
-        headerMode: "hidden",
-      },
-      {
-        id: "not-found",
-        path: ROUTE_PATHS.notFound,
-        layout: "bare",
-        headerMode: "hidden",
-      },
     ]);
   });
 

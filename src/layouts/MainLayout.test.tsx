@@ -56,9 +56,11 @@ describe("MainLayout", () => {
 
   it("renders explicit children inside its main landmark", () => {
     render(
-      <MainLayout>
-        <div data-testid="explicit-child">Explicit child</div>
-      </MainLayout>
+      <MemoryRouter>
+        <MainLayout>
+          <div data-testid="explicit-child">Explicit child</div>
+        </MainLayout>
+      </MemoryRouter>
     );
 
     const main = screen.getByRole("main");

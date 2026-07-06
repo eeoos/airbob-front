@@ -2,6 +2,10 @@ import { reservationQueryKeys } from "./queryKeys";
 
 describe("reservationQueryKeys", () => {
   it("builds stable guest reservation keys", () => {
+    expect(reservationQueryKeys.guestReservationsRoot).toEqual([
+      "reservations",
+      "guest",
+    ]);
     expect(reservationQueryKeys.guestReservations("page=1")).toEqual([
       "reservations",
       "guest",

@@ -1,5 +1,8 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
+import React from "react";
 import { reservationApi, reviewApi } from "../../../api";
+import { reservationQueryKeys } from "../../reservations/queryKeys";
 import { ReservationStatus } from "../../../types/enums";
 import { ReservationDetailInfo } from "../../../types/reservation";
 import { UploadReviewImagesData } from "../../../types/review";
@@ -27,6 +30,21 @@ jest.mock("../../../hooks/useApiError", () => ({
     handleError: mockHandleError,
   }),
 }));
+
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+  const wrapper = ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: queryClient }, children);
+
+  return { queryClient, wrapper };
+};
 
 const createReservationDetail = (
   reservationUid = "reservation-1"
@@ -86,7 +104,9 @@ describe("useReviewCreate", () => {
       .mocked(reservationApi.getMyReservationDetail)
       .mockResolvedValue(reservation);
 
-    const { result } = renderHook(() => useReviewCreate("reservation-123"));
+    const { result } = renderHook(() => useReviewCreate("reservation-123"), {
+      wrapper: createWrapper().wrapper,
+    });
 
     expect(result.current.isLoading).toBe(true);
 
@@ -107,7 +127,12 @@ describe("useReviewCreate", () => {
     jest.mocked(reviewApi.create).mockResolvedValue({ id: 55 });
     jest.mocked(reviewApi.uploadImages).mockResolvedValue(uploadReviewImagesData);
 
-    const { result } = renderHook(() => useReviewCreate("reservation-123"));
+    const { queryClient, wrapper } = createWrapper();
+    const invalidateQueriesSpy = jest.spyOn(queryClient, "invalidateQueries");
+
+    const { result } = renderHook(() => useReviewCreate("reservation-123"), {
+      wrapper,
+    });
 
     await waitFor(() => expect(result.current.reservation).toEqual(reservation));
 
@@ -129,6 +154,18 @@ describe("useReviewCreate", () => {
       status: "success",
       reservationUid: "reservation-123",
     });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: reservationQueryKeys.guestReservationDetail("reservation-123"),
+    });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: reservationQueryKeys.guestReservationsRoot,
+    });
+    expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({
+      queryKey: reservationQueryKeys.all,
+    });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: ["accommodation", "reviews", "7"],
+    });
     expect(result.current.isSubmitting).toBe(false);
   });
 
@@ -143,7 +180,9 @@ describe("useReviewCreate", () => {
       .mocked(reviewApi.uploadImages)
       .mockRejectedValue(new Error("upload failed"));
 
-    const { result } = renderHook(() => useReviewCreate("reservation-123"));
+    const { result } = renderHook(() => useReviewCreate("reservation-123"), {
+      wrapper: createWrapper().wrapper,
+    });
 
     await waitFor(() => expect(result.current.reservation).toEqual(reservation));
 
@@ -172,7 +211,9 @@ describe("useReviewCreate", () => {
       .mocked(reservationApi.getMyReservationDetail)
       .mockResolvedValue(reservation);
 
-    const { result } = renderHook(() => useReviewCreate("reservation-123"));
+    const { result } = renderHook(() => useReviewCreate("reservation-123"), {
+      wrapper: createWrapper().wrapper,
+    });
 
     await waitFor(() => expect(result.current.reservation).toEqual(reservation));
 

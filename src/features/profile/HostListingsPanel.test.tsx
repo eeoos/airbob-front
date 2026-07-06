@@ -1,4 +1,5 @@
 import React from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { accommodationApi } from "../../api";
 import { AccommodationStatus } from "../../types/enums";
@@ -52,6 +53,22 @@ jest.mock("../../shared/ui", () => {
   };
 });
 
+const renderPanel = (onStatusChange = jest.fn()) => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <HostListingsPanel onStatusChange={onStatusChange} />
+    </QueryClientProvider>
+  );
+};
+
 beforeEach(() => {
   mockClearError.mockReset();
   mockHandleError.mockReset();
@@ -73,7 +90,7 @@ describe("HostListingsPanel", () => {
       },
     } as any);
 
-    render(<HostListingsPanel onStatusChange={jest.fn()} />);
+    renderPanel();
 
     expect(screen.getByTestId("shared-loading-state")).toHaveTextContent(
       "로딩 중..."
@@ -90,7 +107,7 @@ describe("HostListingsPanel", () => {
       },
     } as any);
 
-    render(<HostListingsPanel onStatusChange={jest.fn()} />);
+    renderPanel();
 
     expect(await screen.findByTestId("shared-empty-state")).toHaveTextContent(
       "아직 숙소가 없습니다."
@@ -121,7 +138,7 @@ describe("HostListingsPanel", () => {
       },
     } as any);
 
-    render(<HostListingsPanel onStatusChange={jest.fn()} />);
+    renderPanel();
 
     const card = await screen.findByRole("button", {
       name: "바다 숙소 숙소 관리 열기",

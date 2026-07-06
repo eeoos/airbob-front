@@ -4,7 +4,7 @@ import {
   WishlistAccommodationInfos,
   WishlistInfos,
 } from "../../../types/wishlist";
-import { searchQueryKeys } from "../../search/queryKeys";
+import { invalidateSearchResultCaches } from "../../search/publicCache";
 import { wishlistQueryKeys } from "../queryKeys";
 import type { WishlistMembershipResult } from "./wishlistMembership";
 import { getWishlistListsParamsSignature } from "./wishlistListQueryParams";
@@ -205,7 +205,7 @@ export const invalidateWishlistCollectionCaches = (queryClient: QueryClient) => 
   queryClient.invalidateQueries({
     queryKey: wishlistQueryKeys.recentlyViewed(),
   });
-  queryClient.invalidateQueries({ queryKey: searchQueryKeys.all });
+  invalidateSearchResultCaches(queryClient);
 };
 
 export const invalidateWishlistMutationCaches = (queryClient: QueryClient) => {
@@ -213,5 +213,5 @@ export const invalidateWishlistMutationCaches = (queryClient: QueryClient) => {
   queryClient.invalidateQueries({
     queryKey: wishlistQueryKeys.recentlyViewed(),
   });
-  queryClient.invalidateQueries({ queryKey: searchQueryKeys.all });
+  invalidateSearchResultCaches(queryClient);
 };

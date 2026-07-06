@@ -189,6 +189,46 @@ export const AccommodationDetailRoute: React.FC<
   const bookingView = toAccommodationBookingViewModel(accommodation);
   const reviewViews = toReviewViewModels(reviews);
   const allReviewViews = toReviewViewModels(allReviews);
+  const bookingState = {
+    payablePrice,
+    nights,
+    totalPrice,
+    checkIn,
+    checkOut,
+    dateSectionRef,
+    datePickerRef,
+    guestPickerRef,
+    isDatePickerOpen,
+    isGuestPickerOpen,
+    adultCount,
+    childCount,
+    infantCount,
+    petCount,
+    isReserving: booking.isReserving,
+  };
+  const bookingActions = {
+    formatDate,
+    handleDateSelect,
+    setIsDatePickerOpen,
+    setIsGuestPickerOpen,
+    setAdultCount,
+    setChildCount,
+    setInfantCount,
+    setPetCount,
+    onReserve: handleReserve,
+  };
+  const couponState = {
+    coupons,
+    isLoadingCoupons,
+    selectedCoupon,
+    selectedCouponId,
+    issuingCouponId,
+    couponDiscount,
+  };
+  const couponActions = {
+    setSelectedCouponId,
+    handleIssueCoupon,
+  };
 
   return (
     <>
@@ -224,38 +264,10 @@ export const AccommodationDetailRoute: React.FC<
             <AccommodationBookingCard
               bookingView={bookingView}
               isAuthenticated={isAuthenticated}
-              payablePrice={payablePrice}
-              nights={nights}
-              totalPrice={totalPrice}
-              checkIn={checkIn}
-              checkOut={checkOut}
-              formatDate={formatDate}
-              handleDateSelect={handleDateSelect}
-              dateSectionRef={dateSectionRef}
-              datePickerRef={datePickerRef}
-              guestPickerRef={guestPickerRef}
-              isDatePickerOpen={isDatePickerOpen}
-              setIsDatePickerOpen={setIsDatePickerOpen}
-              isGuestPickerOpen={isGuestPickerOpen}
-              setIsGuestPickerOpen={setIsGuestPickerOpen}
-              adultCount={adultCount}
-              setAdultCount={setAdultCount}
-              childCount={childCount}
-              setChildCount={setChildCount}
-              infantCount={infantCount}
-              setInfantCount={setInfantCount}
-              petCount={petCount}
-              setPetCount={setPetCount}
-              coupons={coupons}
-              isLoadingCoupons={isLoadingCoupons}
-              selectedCoupon={selectedCoupon}
-              selectedCouponId={selectedCouponId}
-              setSelectedCouponId={setSelectedCouponId}
-              issuingCouponId={issuingCouponId}
-              couponDiscount={couponDiscount}
-              handleIssueCoupon={handleIssueCoupon}
-              isReserving={booking.isReserving}
-              onReserve={handleReserve}
+              bookingState={bookingState}
+              bookingActions={bookingActions}
+              couponState={couponState}
+              couponActions={couponActions}
             />
           </div>
         </div>

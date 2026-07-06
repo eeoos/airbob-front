@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { reservationApi } from "../../../api";
 import { routeTo } from "../../../routes/paths";
+import { formatCheckoutDateParam } from "../lib/paymentRouteState";
 import type { ReservationCheckoutState } from "../lib/reservationCheckoutState";
 import { saveReservationCheckoutState } from "../lib/reservationCheckoutState";
 
@@ -20,13 +21,6 @@ interface StartReservationPaymentOptions {
   petCount?: number;
 }
 
-const formatDateForUrl = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
-
 const buildReservationCheckoutState = ({
   adultCount,
   childCount,
@@ -43,8 +37,8 @@ const buildReservationCheckoutState = ({
   amount: reservationResponse.amount,
   customerEmail: reservationResponse.customer_email,
   customerName: reservationResponse.customer_name,
-  checkIn: formatDateForUrl(checkIn),
-  checkOut: formatDateForUrl(checkOut),
+  checkIn: formatCheckoutDateParam(checkIn),
+  checkOut: formatCheckoutDateParam(checkOut),
   adultOccupancy: adultCount,
   childOccupancy: childCount,
   infantOccupancy: infantCount,
@@ -74,8 +68,8 @@ export function useReservationPayment({
       try {
         const reservationResponse = await reservationApi.create({
           accommodation_id: options.accommodationId,
-          check_in_date: formatDateForUrl(options.checkIn),
-          check_out_date: formatDateForUrl(options.checkOut),
+          check_in_date: formatCheckoutDateParam(options.checkIn),
+          check_out_date: formatCheckoutDateParam(options.checkOut),
           guest_count: options.adultCount + options.childCount,
         });
 

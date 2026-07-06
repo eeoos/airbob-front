@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { readFileSync } from "fs";
 import type {
   SearchAccommodationCardViewModel,
   SearchAccommodationMapViewModel,
@@ -344,5 +345,14 @@ describe("SearchRoute", () => {
 
     expect(mockOpenWishlistModal).toHaveBeenNthCalledWith(1, 11);
     expect(mockOpenWishlistModal).toHaveBeenNthCalledWith(2, 7, false);
+  });
+
+  it("defines the selected result style with existing focus and brand tokens", () => {
+    const css = readFileSync(`${__dirname}/SearchRoute.module.css`, "utf8");
+
+    expect(css).toContain(".selected");
+    expect(css).toContain("outline: 2px solid var(--color-brand-coral);");
+    expect(css).toContain("outline-offset: 2px;");
+    expect(css).toContain("box-shadow: var(--focus-ring);");
   });
 });

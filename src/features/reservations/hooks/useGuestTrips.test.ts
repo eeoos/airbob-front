@@ -126,10 +126,12 @@ describe("useGuestTrips", () => {
       filterType: "PAST",
       size: 20,
     });
-    expect(result.current.reservations).toEqual([
-      firstReservation,
-      secondReservation,
-    ]);
+    await waitFor(() =>
+      expect(result.current.reservations).toEqual([
+        firstReservation,
+        secondReservation,
+      ])
+    );
     expect(result.current.hasNext).toBe(false);
   });
 
@@ -438,9 +440,12 @@ describe("useGuestTrips", () => {
       });
     });
 
-    expect(result.current.reservations.map((reservation) => reservation.reservation_uid)).toEqual([
-      "guest-1",
-      "guest-2",
-    ]);
+    await waitFor(() =>
+      expect(
+        result.current.reservations.map(
+          (reservation) => reservation.reservation_uid,
+        ),
+      ).toEqual(["guest-1", "guest-2"]),
+    );
   });
 });

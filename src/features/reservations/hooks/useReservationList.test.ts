@@ -148,11 +148,19 @@ describe("useReservationList", () => {
       });
     });
 
-    expect(result.current.reservations).toEqual([
-      createReservation(1),
-      createReservation(2),
-    ]);
+    await waitFor(() =>
+      expect(result.current.reservations).toEqual([
+        createReservation(1),
+        createReservation(2),
+      ])
+    );
+    expect(
+      result.current.reservations.map(
+        (reservation) => reservation.reservation_uid,
+      ),
+    ).toEqual(["reservation-1", "reservation-2"]);
     expect(result.current.hasNext).toBe(false);
+    expect(result.current.isLoadingMore).toBe(false);
   });
 
   it("keeps the latest filter result when an older first-page request resolves last", async () => {

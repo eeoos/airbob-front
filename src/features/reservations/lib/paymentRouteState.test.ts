@@ -1,7 +1,67 @@
 import {
+  buildPaymentFailRouteSearchParams,
+  formatCheckoutDateParam,
+  getReservationPaymentRequestState,
+  parseCheckoutDateParam,
   parsePaymentFailReason,
   parseTossSuccessRouteState,
 } from "./paymentRouteState";
+import type { ReservationCheckoutState } from "./reservationCheckoutState";
+
+const checkoutState: ReservationCheckoutState = {
+  adultOccupancy: 2,
+  amount: 180000,
+  checkIn: "2026-07-10",
+  checkOut: "2026-07-12",
+  childOccupancy: 1,
+  couponDiscount: 10000,
+  couponName: "여름 할인",
+  customerEmail: "guest@example.com",
+  customerName: "홍길동",
+  infantOccupancy: 1,
+  orderName: "테스트 숙소",
+  petOccupancy: 0,
+  reservationUid: "reservation-123",
+};
+
+describe("checkout route state", () => {
+  it("formats checkout dates for route state using local date fields", () => {
+    expect(formatCheckoutDateParam(new Date(2026, 6, 10))).toBe("2026-07-10");
+  });
+
+  it("parses checkout route dates and rejects impossible dates", () => {
+    const parsed = parseCheckoutDateParam("2026-07-10");
+
+    expect(parsed?.getFullYear()).toBe(2026);
+    expect(parsed?.getMonth()).toBe(6);
+    expect(parsed?.getDate()).toBe(10);
+    expect(parseCheckoutDateParam("2026-02-30")).toBeNull();
+    expect(parseCheckoutDateParam(undefined)).toBeNull();
+  });
+
+  it("marks missing checkout state as unavailable for payment requests", () => {
+    expect(getReservationPaymentRequestState(null)).toEqual({
+      status: "missing",
+    });
+    expect(
+      getReservationPaymentRequestState({
+        ...checkoutState,
+        customerEmail: "",
+      }),
+    ).toEqual({ status: "missing" });
+  });
+
+  it("returns Toss payment request fields from complete checkout state", () => {
+    expect(getReservationPaymentRequestState(checkoutState)).toEqual({
+      status: "valid",
+      reservationUid: "reservation-123",
+      orderName: "테스트 숙소",
+      amount: 180000,
+      customerEmail: "guest@example.com",
+      customerName: "홍길동",
+    });
+  });
+});
 
 describe("toss success route state", () => {
   it("parses complete Toss success query params", () => {
@@ -72,5 +132,13 @@ describe("payment fail route state", () => {
     expect(parsePaymentFailReason(null)).toBeUndefined();
     expect(parsePaymentFailReason("declined")).toBeUndefined();
     expect(parsePaymentFailReason("")).toBeUndefined();
+  });
+
+  it("builds the confirm-failed route reason without changing fail URL semantics", () => {
+    expect(
+      buildPaymentFailRouteSearchParams({
+        reason: "confirm-failed",
+      }).toString(),
+    ).toBe("reason=confirm-failed");
   });
 });

@@ -1,7 +1,15 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { AccommodationDetail } from "../../types/accommodation";
+import type { CouponInfo } from "../../types/coupon";
 import type { ReviewInfo } from "../../types/review";
 import { AccommodationDetailRoute } from "./AccommodationDetailRoute";
+import type {
+  AccommodationBookingActions,
+  AccommodationBookingState,
+  AccommodationCouponActions,
+  AccommodationCouponState,
+} from "./components/AccommodationBookingCard";
+import type { AccommodationBookingViewModel } from "./lib/accommodationBookingViewModel";
 
 const mockUseApiError = jest.fn();
 const mockUseAuth = jest.fn();
@@ -12,6 +20,26 @@ const mockUseAccommodationImageGallery = jest.fn();
 const mockUseAccommodationReviews = jest.fn();
 const mockHandleReserve = jest.fn();
 const mockReloadAccommodation = jest.fn();
+type MockBookingCardProps = {
+  bookingView: AccommodationBookingViewModel;
+  isAuthenticated: boolean;
+  bookingState: AccommodationBookingState;
+  bookingActions: AccommodationBookingActions;
+  couponState: AccommodationCouponState;
+  couponActions: AccommodationCouponActions;
+  nights?: number;
+  onReserve?: () => void;
+  payablePrice?: number;
+  coupons?: CouponInfo[];
+  isLoadingCoupons?: boolean;
+  selectedCoupon?: CouponInfo | null;
+  selectedCouponId?: number | null;
+  setSelectedCouponId?: (couponId: number | null) => void;
+  issuingCouponId?: number | null;
+  couponDiscount?: number;
+  handleIssueCoupon?: (coupon: CouponInfo) => void | Promise<void>;
+};
+let mockBookingCardProps: MockBookingCardProps;
 
 jest.mock("../../hooks/useApiError", () => ({
   useApiError: () => mockUseApiError(),
@@ -96,28 +124,20 @@ jest.mock("../wishlist/appShell", () => ({
 }));
 
 jest.mock("./components/AccommodationBookingCard", () => ({
-  AccommodationBookingCard: ({
-    bookingView,
-    nights,
-    onReserve,
-    payablePrice,
-  }: {
-    bookingView: {
-      basePriceLabel: string;
-    };
-    nights: number;
-    onReserve: () => void;
-    payablePrice: number;
-  }) => (
-    <aside data-testid="booking-card">
-      <div>{bookingView.basePriceLabel}</div>
-      <div>{`${nights}박`}</div>
-      <div>{`결제 금액 ${payablePrice.toLocaleString()}`}</div>
-      <button type="button" onClick={onReserve}>
-        예약하기
-      </button>
-    </aside>
-  ),
+  AccommodationBookingCard: (props: MockBookingCardProps) => {
+    mockBookingCardProps = props;
+
+    return (
+      <aside data-testid="booking-card">
+        <div>{props.bookingView.basePriceLabel}</div>
+        <div>{`${props.bookingState.nights}박`}</div>
+        <div>{`결제 금액 ${props.bookingState.payablePrice.toLocaleString()}`}</div>
+        <button type="button" onClick={props.bookingActions.onReserve}>
+          예약하기
+        </button>
+      </aside>
+    );
+  },
 }));
 
 jest.mock("./components/AccommodationDescriptionModal", () => ({
@@ -321,6 +341,7 @@ const renderDetailRoute = () =>
 describe("AccommodationDetailRoute", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockBookingCardProps = undefined as unknown as MockBookingCardProps;
     mockUseApiError.mockReturnValue({
       error: null,
       handleError: jest.fn(),
@@ -390,6 +411,35 @@ describe("AccommodationDetailRoute", () => {
       onTouchMove: jest.fn(),
       onTouchEnd: jest.fn(),
     });
+  });
+
+  it("passes grouped booking and coupon boundaries to the booking card", () => {
+    renderDetailRoute();
+
+    expect(mockBookingCardProps).toMatchObject({
+      bookingState: expect.any(Object),
+      bookingActions: expect.any(Object),
+      couponState: expect.any(Object),
+      couponActions: expect.any(Object),
+    });
+    expect(mockBookingCardProps.bookingState).toMatchObject({
+      payablePrice: 240000,
+      nights: 2,
+    });
+    expect(mockBookingCardProps.couponState).toMatchObject({
+      couponDiscount: 0,
+    });
+    expect(mockBookingCardProps.bookingActions.onReserve).toEqual(
+      expect.any(Function)
+    );
+    expect(mockBookingCardProps.coupons).toBeUndefined();
+    expect(mockBookingCardProps.isLoadingCoupons).toBeUndefined();
+    expect(mockBookingCardProps.selectedCoupon).toBeUndefined();
+    expect(mockBookingCardProps.selectedCouponId).toBeUndefined();
+    expect(mockBookingCardProps.setSelectedCouponId).toBeUndefined();
+    expect(mockBookingCardProps.issuingCouponId).toBeUndefined();
+    expect(mockBookingCardProps.couponDiscount).toBeUndefined();
+    expect(mockBookingCardProps.handleIssueCoupon).toBeUndefined();
   });
 
   it("renders the loaded route shell with save, booking, overview, and reviews", () => {

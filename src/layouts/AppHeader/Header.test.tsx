@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { readFileSync } from "fs";
 import React from "react";
 import { Header } from "./Header";
 
@@ -36,7 +37,7 @@ jest.mock("../../features/search/appShell", () => ({
   ...jest.requireActual("../../features/search/appShell"),
   HeaderSearchBar: (props: { isMapDragMode?: boolean }) => {
     mockSearchBar(props);
-    return <div data-testid="search-bar" />;
+    return <div data-testid="header-search-bar" />;
   },
 }));
 
@@ -73,6 +74,33 @@ describe("Header", () => {
     expect(
       screen.getByRole("link", { name: "Airbob 홈으로 이동" })
     ).toHaveAttribute("href", "/");
+  });
+
+  it("renders one logical search bar for searchable header modes", () => {
+    mockPathname = "/search";
+
+    render(<Header headerMode="search" />);
+
+    expect(screen.getAllByTestId("header-search-bar")).toHaveLength(1);
+  });
+
+  it("renders no logical search bars for hidden header mode", () => {
+    render(<Header headerMode="hidden" />);
+
+    expect(screen.queryAllByTestId("header-search-bar")).toHaveLength(0);
+  });
+
+  it("centers mobile menu contents in the wrapped header row", () => {
+    const css = readFileSync(`${__dirname}/Header.module.css`, "utf8");
+
+    expect(css).toContain(
+      [
+        "  .menu {",
+        "    display: flex;",
+        "    align-items: center;",
+        "  }",
+      ].join("\n")
+    );
   });
 
   it("passes map drag mode only when all viewport params are valid", () => {

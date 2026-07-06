@@ -1,4 +1,8 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
+import React from "react";
+import { accommodationQueryKeys } from "../../queryKeys";
+import { profileQueryKeys } from "../../../profile/queryKeys";
 import {
   AccommodationEditFormData,
   createDefaultAccommodationEditFormData,
@@ -12,6 +16,21 @@ jest.mock("../../../../api", () => ({
     publish: jest.fn(),
   },
 }));
+
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+  const wrapper = ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: queryClient }, children);
+
+  return { queryClient, wrapper };
+};
 
 const createFilledFormData = (
   overrides: Partial<AccommodationEditFormData> = {}
@@ -64,22 +83,24 @@ describe("useAccommodationEditSave", () => {
   it("skips PATCH and navigates when save-and-exit has no form or image changes", async () => {
     const formData = createFilledFormData();
 
-    const { result } = renderHook(() =>
-      useAccommodationEditSave({
-        accommodationId: "3",
-        currentStep: 2,
-        isNewDraft: false,
-        formData,
-        initialFormData: formData,
-        imageItems,
-        initialImageItems: imageItems,
-        clearError,
-        handleError,
-        setIsSaving,
-        navigateToHostProfile,
-        updateAccommodation,
-        publishAccommodation,
-      })
+    const { result } = renderHook(
+      () =>
+        useAccommodationEditSave({
+          accommodationId: "3",
+          currentStep: 2,
+          isNewDraft: false,
+          formData,
+          initialFormData: formData,
+          imageItems,
+          initialImageItems: imageItems,
+          clearError,
+          handleError,
+          setIsSaving,
+          navigateToHostProfile,
+          updateAccommodation,
+          publishAccommodation,
+        }),
+      { wrapper: createWrapper().wrapper },
     );
 
     await act(async () => {
@@ -98,22 +119,24 @@ describe("useAccommodationEditSave", () => {
       },
     });
 
-    const { result } = renderHook(() =>
-      useAccommodationEditSave({
-        accommodationId: "3",
-        currentStep: 1,
-        isNewDraft: false,
-        formData,
-        initialFormData: formData,
-        imageItems,
-        initialImageItems: imageItems,
-        clearError,
-        handleError,
-        setIsSaving,
-        navigateToHostProfile,
-        updateAccommodation,
-        publishAccommodation,
-      })
+    const { result } = renderHook(
+      () =>
+        useAccommodationEditSave({
+          accommodationId: "3",
+          currentStep: 1,
+          isNewDraft: false,
+          formData,
+          initialFormData: formData,
+          imageItems,
+          initialImageItems: imageItems,
+          clearError,
+          handleError,
+          setIsSaving,
+          navigateToHostProfile,
+          updateAccommodation,
+          publishAccommodation,
+        }),
+      { wrapper: createWrapper().wrapper },
     );
 
     await act(async () => {
@@ -133,22 +156,24 @@ describe("useAccommodationEditSave", () => {
   it("publishes the accommodation through the injected API boundary", async () => {
     const formData = createFilledFormData();
 
-    const { result } = renderHook(() =>
-      useAccommodationEditSave({
-        accommodationId: "3",
-        currentStep: 5,
-        isNewDraft: false,
-        formData,
-        initialFormData: formData,
-        imageItems,
-        initialImageItems: imageItems,
-        clearError,
-        handleError,
-        setIsSaving,
-        navigateToHostProfile,
-        updateAccommodation,
-        publishAccommodation,
-      })
+    const { result } = renderHook(
+      () =>
+        useAccommodationEditSave({
+          accommodationId: "3",
+          currentStep: 5,
+          isNewDraft: false,
+          formData,
+          initialFormData: formData,
+          imageItems,
+          initialImageItems: imageItems,
+          clearError,
+          handleError,
+          setIsSaving,
+          navigateToHostProfile,
+          updateAccommodation,
+          publishAccommodation,
+        }),
+      { wrapper: createWrapper().wrapper },
     );
 
     await act(async () => {
@@ -166,22 +191,24 @@ describe("useAccommodationEditSave", () => {
       name: "게시 직전 변경",
     };
 
-    const { result } = renderHook(() =>
-      useAccommodationEditSave({
-        accommodationId: "3",
-        currentStep: 5,
-        isNewDraft: false,
-        formData,
-        initialFormData,
-        imageItems,
-        initialImageItems: imageItems,
-        clearError,
-        handleError,
-        setIsSaving,
-        navigateToHostProfile,
-        updateAccommodation,
-        publishAccommodation,
-      })
+    const { result } = renderHook(
+      () =>
+        useAccommodationEditSave({
+          accommodationId: "3",
+          currentStep: 5,
+          isNewDraft: false,
+          formData,
+          initialFormData,
+          imageItems,
+          initialImageItems: imageItems,
+          clearError,
+          handleError,
+          setIsSaving,
+          navigateToHostProfile,
+          updateAccommodation,
+          publishAccommodation,
+        }),
+      { wrapper: createWrapper().wrapper },
     );
 
     await act(async () => {
@@ -204,22 +231,24 @@ describe("useAccommodationEditSave", () => {
       name: "변경된 숙소",
     };
 
-    const { result } = renderHook(() =>
-      useAccommodationEditSave({
-        accommodationId: "3",
-        currentStep: 4,
-        isNewDraft: false,
-        formData,
-        initialFormData,
-        imageItems,
-        initialImageItems: imageItems,
-        clearError,
-        handleError,
-        setIsSaving,
-        navigateToHostProfile,
-        updateAccommodation,
-        publishAccommodation,
-      })
+    const { result } = renderHook(
+      () =>
+        useAccommodationEditSave({
+          accommodationId: "3",
+          currentStep: 4,
+          isNewDraft: false,
+          formData,
+          initialFormData,
+          imageItems,
+          initialImageItems: imageItems,
+          clearError,
+          handleError,
+          setIsSaving,
+          navigateToHostProfile,
+          updateAccommodation,
+          publishAccommodation,
+        }),
+      { wrapper: createWrapper().wrapper },
     );
 
     let saved = false;
@@ -231,6 +260,96 @@ describe("useAccommodationEditSave", () => {
     expect(updateAccommodation).toHaveBeenCalledWith(3, {
       name: "변경된 숙소",
     });
+    expect(navigateToHostProfile).not.toHaveBeenCalled();
+  });
+
+  it("invalidates accommodation detail and host listing caches after saving changes", async () => {
+    const initialFormData = createFilledFormData();
+    const formData = {
+      ...initialFormData,
+      name: "변경된 숙소",
+    };
+    const { queryClient, wrapper } = createWrapper();
+    const invalidateQueriesSpy = jest.spyOn(queryClient, "invalidateQueries");
+
+    const { result } = renderHook(
+      () =>
+        useAccommodationEditSave({
+          accommodationId: "3",
+          currentStep: 4,
+          isNewDraft: false,
+          formData,
+          initialFormData,
+          imageItems,
+          initialImageItems: imageItems,
+          clearError,
+          handleError,
+          setIsSaving,
+          navigateToHostProfile,
+          updateAccommodation,
+          publishAccommodation,
+        }),
+      { wrapper },
+    );
+
+    await act(async () => {
+      await result.current.saveStepData();
+    });
+
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: accommodationQueryKeys.detailRoot,
+    });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: profileQueryKeys.hostListingsRoot,
+    });
+  });
+
+  it("invalidates changed accommodation caches when publish fails after a successful update", async () => {
+    const initialFormData = createFilledFormData();
+    const formData = {
+      ...initialFormData,
+      name: "게시 실패 전 저장된 변경",
+    };
+    const publishError = new Error("publish failed");
+    publishAccommodation.mockRejectedValueOnce(publishError);
+    const { queryClient, wrapper } = createWrapper();
+    const invalidateQueriesSpy = jest.spyOn(queryClient, "invalidateQueries");
+
+    const { result } = renderHook(
+      () =>
+        useAccommodationEditSave({
+          accommodationId: "3",
+          currentStep: 5,
+          isNewDraft: false,
+          formData,
+          initialFormData,
+          imageItems,
+          initialImageItems: imageItems,
+          clearError,
+          handleError,
+          setIsSaving,
+          navigateToHostProfile,
+          updateAccommodation,
+          publishAccommodation,
+        }),
+      { wrapper },
+    );
+
+    await act(async () => {
+      await result.current.handlePublish({ preventDefault: jest.fn() });
+    });
+
+    expect(updateAccommodation).toHaveBeenCalledWith(3, {
+      name: "게시 실패 전 저장된 변경",
+    });
+    expect(publishAccommodation).toHaveBeenCalledWith(3);
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: accommodationQueryKeys.detailRoot,
+    });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: profileQueryKeys.hostListingsRoot,
+    });
+    expect(handleError).toHaveBeenCalledWith(publishError);
     expect(navigateToHostProfile).not.toHaveBeenCalled();
   });
 });

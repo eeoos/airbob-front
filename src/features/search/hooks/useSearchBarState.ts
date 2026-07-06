@@ -3,6 +3,7 @@ import {
   type SetStateAction,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -383,46 +384,125 @@ export const useSearchBarState = ({
     setPetOccupancyState(nextState.petOccupancy);
   }, [handleInputChange, resetPlaces, searchBarUrlStateSignature]);
 
+  const destination = useMemo(
+    () => ({
+      inputText,
+      suggestions,
+      selectedPlace,
+    }),
+    [inputText, selectedPlace, suggestions],
+  );
+
+  const dates = useMemo(
+    () => ({
+      checkIn,
+      checkOut,
+    }),
+    [checkIn, checkOut],
+  );
+
+  const guests = useMemo(
+    () => ({
+      adultOccupancy,
+      childOccupancy,
+      infantOccupancy,
+      petOccupancy,
+      getTotalGuests,
+    }),
+    [
+      adultOccupancy,
+      childOccupancy,
+      getTotalGuests,
+      infantOccupancy,
+      petOccupancy,
+    ],
+  );
+
+  const popover = useMemo(
+    () => ({
+      isExpanded,
+      showGuestPicker,
+      showDatePicker,
+      isComposing,
+      isOpeningDatePicker,
+      isOpeningGuestPicker,
+      showSuggestions,
+    }),
+    [
+      isComposing,
+      isExpanded,
+      isOpeningDatePicker,
+      isOpeningGuestPicker,
+      showDatePicker,
+      showGuestPicker,
+      showSuggestions,
+    ],
+  );
+
+  const actions = useMemo(
+    () => ({
+      setAdultOccupancy,
+      setChildOccupancy,
+      setInfantOccupancy,
+      setPetOccupancy,
+      setExpanded,
+      setShowGuestPicker,
+      setShowDatePicker,
+      setIsComposing,
+      setIsOpeningDatePicker,
+      setIsOpeningGuestPicker,
+      setShowSuggestions,
+      handleInputChange,
+      handlePlaceSelect,
+      resetPlaces,
+      startNewSession,
+      handleSearch,
+      exitMapDragMode,
+      completeCheckoutIfNeeded,
+      closeTransientPanels,
+      openDatePicker,
+      toggleGuestPicker,
+      handleDateSelect,
+    }),
+    [
+      closeTransientPanels,
+      completeCheckoutIfNeeded,
+      exitMapDragMode,
+      handleDateSelect,
+      handleInputChange,
+      handlePlaceSelect,
+      handleSearch,
+      openDatePicker,
+      resetPlaces,
+      setAdultOccupancy,
+      setChildOccupancy,
+      setExpanded,
+      setInfantOccupancy,
+      setIsComposing,
+      setIsOpeningDatePicker,
+      setIsOpeningGuestPicker,
+      setPetOccupancy,
+      setShowDatePicker,
+      setShowGuestPicker,
+      setShowSuggestions,
+      startNewSession,
+      toggleGuestPicker,
+    ],
+  );
+
+  const status = useMemo(
+    () => ({
+      isPlacesLoading,
+    }),
+    [isPlacesLoading],
+  );
+
   return {
-    checkIn,
-    checkOut,
-    adultOccupancy,
-    childOccupancy,
-    infantOccupancy,
-    petOccupancy,
-    isExpanded,
-    showGuestPicker,
-    showDatePicker,
-    isComposing,
-    isOpeningDatePicker,
-    isOpeningGuestPicker,
-    showSuggestions,
-    inputText,
-    suggestions,
-    isPlacesLoading,
-    selectedPlace,
-    setAdultOccupancy,
-    setChildOccupancy,
-    setInfantOccupancy,
-    setPetOccupancy,
-    setExpanded,
-    setShowGuestPicker,
-    setShowDatePicker,
-    setIsComposing,
-    setIsOpeningDatePicker,
-    setIsOpeningGuestPicker,
-    setShowSuggestions,
-    handleInputChange,
-    handlePlaceSelect,
-    resetPlaces,
-    startNewSession,
-    handleSearch,
-    exitMapDragMode,
-    completeCheckoutIfNeeded,
-    closeTransientPanels,
-    openDatePicker,
-    toggleGuestPicker,
-    handleDateSelect,
-    getTotalGuests,
+    destination,
+    dates,
+    guests,
+    popover,
+    actions,
+    status,
   };
 };

@@ -31,13 +31,27 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   const datePickerElementRef = useRef<HTMLDivElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
+  const { destination, dates, guests, popover, actions, status } =
+    useSearchBarState({
+      onSearch,
+      onExpandedChange,
+      isMapDragMode,
+    });
+
   const {
-    checkIn,
-    checkOut,
+    inputText,
+    suggestions,
+    selectedPlace,
+  } = destination;
+  const { checkIn, checkOut } = dates;
+  const {
     adultOccupancy,
     childOccupancy,
     infantOccupancy,
     petOccupancy,
+    getTotalGuests,
+  } = guests;
+  const {
     isExpanded,
     showGuestPicker,
     showDatePicker,
@@ -45,10 +59,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     isOpeningDatePicker,
     isOpeningGuestPicker,
     showSuggestions,
-    inputText,
-    suggestions,
-    isPlacesLoading,
-    selectedPlace,
+  } = popover;
+  const { isPlacesLoading } = status;
+  const {
     setAdultOccupancy,
     setChildOccupancy,
     setInfantOccupancy,
@@ -71,12 +84,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     openDatePicker,
     toggleGuestPicker,
     handleDateSelect,
-    getTotalGuests,
-  } = useSearchBarState({
-    onSearch,
-    onExpandedChange,
-    isMapDragMode,
-  });
+  } = actions;
 
   const closeDatePopover = () => {
     completeCheckoutIfNeeded();

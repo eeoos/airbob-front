@@ -1,12 +1,16 @@
 import { readFileSync, readdirSync } from "fs";
-import { join, relative } from "path";
+import { dirname, join, relative, resolve } from "path";
 
 const routesRoot = join(process.cwd(), "src/routes");
 const routePathsFile = join(routesRoot, "paths.ts");
 const layoutsRoot = join(process.cwd(), "src/layouts");
 const featuresRoot = join(process.cwd(), "src/features");
+const searchFeatureRoot = join(featuresRoot, "search");
+const wishlistFeatureRoot = join(featuresRoot, "wishlist");
 const projectRoot = process.cwd();
 const sourceExtensions = [".ts", ".tsx"];
+const importDeclarationPattern =
+  /\b(?:import|export)\s+(?:type\s+)?(?:[\s\S]*?\s+from\s+)?["']([^"']+)["']/g;
 const forbiddenFeatureImportPattern =
   /from\s+["'](?:\.\.\/)+(?:features)(?:\/[^"']*)?["']/;
 const allowedRouteFeatureImportPatterns = [
@@ -130,6 +134,65 @@ const collectSourceFiles = (directory: string): string[] =>
     return isSource ? [entryPath] : [];
   });
 
+const toProjectRelativeImportTarget = (
+  filePath: string,
+  importSource: string,
+) => {
+  if (!importSource.startsWith(".")) {
+    return null;
+  }
+
+  return relative(
+    projectRoot,
+    resolve(dirname(filePath), importSource),
+  ).replace(/\\/g, "/");
+};
+
+const importsPrivateFeatureSurface = (
+  importTarget: string,
+  targetFeature: "search" | "wishlist",
+) => {
+  const targetFeatureRoot = `src/features/${targetFeature}`;
+  const privateSurfaceRoots = ["lib", "hooks", "components"].map(
+    (surface) => `${targetFeatureRoot}/${surface}`,
+  );
+
+  return (
+    privateSurfaceRoots.some(
+      (surfaceRoot) =>
+        importTarget === surfaceRoot ||
+        importTarget.startsWith(`${surfaceRoot}/`),
+    ) ||
+    importTarget === `${targetFeatureRoot}/queryKeys` ||
+    importTarget.startsWith(`${targetFeatureRoot}/queryKeys.`)
+  );
+};
+
+const collectPrivateCrossFeatureImports = (
+  sourceRoot: string,
+  targetFeature: "search" | "wishlist",
+) =>
+  collectSourceFiles(sourceRoot).flatMap((filePath) => {
+    const source = readFileSync(filePath, "utf8");
+
+    return Array.from(source.matchAll(importDeclarationPattern))
+      .map((match) => match[1])
+      .filter((importSource): importSource is string => Boolean(importSource))
+      .map((importSource) => ({
+        importSource,
+        importTarget: toProjectRelativeImportTarget(filePath, importSource),
+      }))
+      .filter(
+        ({ importTarget }) =>
+          importTarget !== null &&
+          importsPrivateFeatureSurface(importTarget, targetFeature),
+      )
+      .map(
+        ({ importSource }) =>
+          `${relative(projectRoot, filePath)} imports ${importSource}`,
+      );
+  });
+
 describe("route boundary contracts", () => {
   it("keeps route URL contracts limited to domain route query ownership", () => {
     const violations = collectSourceFiles(routesRoot)
@@ -151,6 +214,17 @@ describe("route boundary contracts", () => {
     expect(violations).toEqual([]);
   });
 
+  it("keeps route shell definitions component-free", () => {
+    const definitionSource = readFileSync(
+      join(process.cwd(), "src/routes/routeDefinitions.ts"),
+      "utf8",
+    );
+
+    expect(definitionSource).not.toContain("React.lazy");
+    expect(definitionSource).not.toMatch(/pages\//);
+    expect(definitionSource).not.toMatch(/features\//);
+  });
+
   it("keeps feature modules from importing page modules", () => {
     const violations = collectSourceFiles(featuresRoot)
       .filter((filePath) =>
@@ -159,6 +233,30 @@ describe("route boundary contracts", () => {
       .map((filePath) => relative(projectRoot, filePath));
 
     expect(violations).toEqual([]);
+  });
+
+  it("keeps search and wishlist cross-feature cache access on public boundaries", () => {
+    const violations = [
+      ...collectPrivateCrossFeatureImports(searchFeatureRoot, "wishlist"),
+      ...collectPrivateCrossFeatureImports(wishlistFeatureRoot, "search"),
+    ];
+
+    expect(violations).toEqual([]);
+  });
+
+  it("treats cross-feature private barrel roots as boundary violations", () => {
+    expect(
+      importsPrivateFeatureSurface("src/features/wishlist/hooks", "wishlist"),
+    ).toBe(true);
+    expect(
+      importsPrivateFeatureSurface(
+        "src/features/wishlist/components",
+        "wishlist",
+      ),
+    ).toBe(true);
+    expect(
+      importsPrivateFeatureSurface("src/features/wishlist/lib", "wishlist"),
+    ).toBe(true);
   });
 
   it("keeps layouts on explicit feature app-shell APIs", () => {
