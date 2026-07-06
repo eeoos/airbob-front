@@ -5,6 +5,10 @@ import { useApiError } from "../../hooks/useApiError";
 import { routeTo } from "../../routes/paths";
 import { getImageUrl } from "../../utils/image";
 import { useReservationConfirmAccommodation } from "./hooks/useReservationConfirmAccommodation";
+import {
+  getReservationPaymentRequestState,
+  parseCheckoutDateParam,
+} from "./lib/paymentRouteState";
 import { readReservationCheckoutState } from "./lib/reservationCheckoutState";
 import {
   calculateCheckoutNights,
@@ -26,29 +30,6 @@ interface ReservationConfirmRouteProps {
   navigate: NavigateFunction;
 }
 
-const parseCheckoutDate = (dateString?: string): Date | null => {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateString ?? "");
-  if (!match) {
-    return null;
-  }
-
-  const [, yearValue, monthValue, dayValue] = match;
-  const year = Number(yearValue);
-  const month = Number(monthValue);
-  const day = Number(dayValue);
-  const date = new Date(year, month - 1, day);
-
-  if (
-    date.getFullYear() !== year ||
-    date.getMonth() !== month - 1 ||
-    date.getDate() !== day
-  ) {
-    return null;
-  }
-
-  return date;
-};
-
 export const ReservationConfirmRoute: React.FC<ReservationConfirmRouteProps> = ({
   accommodationId,
   locationState,
@@ -62,16 +43,12 @@ export const ReservationConfirmRoute: React.FC<ReservationConfirmRouteProps> = (
     ? readReservationCheckoutState(accommodationId, locationState)
     : null;
   const reservationUid = checkoutState?.reservationUid ?? null;
-  const orderName = checkoutState?.orderName ?? null;
-  const amount = checkoutState?.amount ?? null;
-  const customerEmail = checkoutState?.customerEmail ?? null;
-  const customerName = checkoutState?.customerName ?? null;
   const couponName = checkoutState?.couponName ?? null;
   const couponDiscountParam = checkoutState?.couponDiscount ?? null;
 
   // 예약 박스에서 입력한 정보
-  const checkIn = parseCheckoutDate(checkoutState?.checkIn);
-  const checkOut = parseCheckoutDate(checkoutState?.checkOut);
+  const checkIn = parseCheckoutDateParam(checkoutState?.checkIn);
+  const checkOut = parseCheckoutDateParam(checkoutState?.checkOut);
   const adultCount = checkoutState?.adultOccupancy ?? 1;
   const childCount = checkoutState?.childOccupancy ?? 0;
   const infantCount = checkoutState?.infantOccupancy ?? 0;
@@ -129,15 +106,10 @@ export const ReservationConfirmRoute: React.FC<ReservationConfirmRouteProps> = (
         )
       : 0;
   const totalPrice = accommodation ? accommodation.base_price * nights : 0;
+  const paymentRequestState = getReservationPaymentRequestState(checkoutState);
 
   const handleReserve = async () => {
-    if (
-      !reservationUid ||
-      !orderName ||
-      amount == null ||
-      !customerEmail ||
-      !customerName
-    ) {
+    if (paymentRequestState.status === "missing") {
       handleError(new Error("결제 정보가 올바르지 않습니다."));
       return;
     }
@@ -152,13 +124,13 @@ export const ReservationConfirmRoute: React.FC<ReservationConfirmRouteProps> = (
 
       await paymentWidget
         .requestPayment({
-          orderId: reservationUid,
-          orderName: orderName,
-          successUrl: `${window.location.origin}${routeTo.paymentSuccess(reservationUid)}`,
-          failUrl: `${window.location.origin}${routeTo.paymentFail(reservationUid)}`,
-          customerEmail: customerEmail,
-          customerName: customerName,
-          amount: amount,
+          orderId: paymentRequestState.reservationUid,
+          orderName: paymentRequestState.orderName,
+          successUrl: `${window.location.origin}${routeTo.paymentSuccess(paymentRequestState.reservationUid)}`,
+          failUrl: `${window.location.origin}${routeTo.paymentFail(paymentRequestState.reservationUid)}`,
+          customerEmail: paymentRequestState.customerEmail,
+          customerName: paymentRequestState.customerName,
+          amount: paymentRequestState.amount,
         })
         .catch((paymentError: unknown) => {
           if (shouldSilentlyResetPayment(paymentError)) {
@@ -190,6 +162,8 @@ export const ReservationConfirmRoute: React.FC<ReservationConfirmRouteProps> = (
     );
   }
 
+  const amount =
+    paymentRequestState.status === "valid" ? paymentRequestState.amount : null;
   const responseDiscount = amount == null ? 0 : Math.max(totalPrice - amount, 0);
   const couponDiscount =
     responseDiscount > 0 ? responseDiscount : couponDiscountParam ?? 0;

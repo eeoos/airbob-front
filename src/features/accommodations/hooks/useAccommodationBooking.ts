@@ -4,6 +4,7 @@ import { AccommodationDetail } from "../../../types/accommodation";
 import { CouponInfo } from "../../../types/coupon";
 import { routeTo } from "../../../routes/paths";
 import type { ReservationCheckoutState } from "../../reservations/lib/reservationCheckoutState";
+import { formatCheckoutDateParam } from "../../reservations/lib/paymentRouteState";
 import {
   saveReservationCheckoutState,
 } from "../../reservations/lib/reservationCheckoutState";
@@ -119,12 +120,7 @@ const parseDateFromUrl = (dateString: string): Date | null => {
   return date;
 };
 
-const formatDateForUrl = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
+const formatDateForUrl = formatCheckoutDateParam;
 
 const toDateKey = (date: Date | string) => {
   const parsedDate = typeof date === "string" ? parseDateFromUrl(date) : date;

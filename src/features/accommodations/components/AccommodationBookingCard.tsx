@@ -15,80 +15,104 @@ type BooleanSetter = React.Dispatch<React.SetStateAction<boolean>>;
 type BookingCoupon =
   React.ComponentProps<typeof BookingCouponSection>["coupons"][number];
 
-interface AccommodationBookingCardProps {
-  bookingView: AccommodationBookingViewModel;
-  isAuthenticated: boolean;
+export interface AccommodationBookingState {
   payablePrice: number;
   nights: number;
   totalPrice: number;
   checkIn: Date | null;
   checkOut: Date | null;
-  formatDate: (date: Date | null) => string;
-  handleDateSelect: (checkIn: Date | null, checkOut: Date | null) => void;
   dateSectionRef: React.RefObject<HTMLDivElement | null>;
   datePickerRef: React.RefObject<HTMLDivElement | null>;
   guestPickerRef: React.RefObject<HTMLDivElement | null>;
   isDatePickerOpen: boolean;
-  setIsDatePickerOpen: BooleanSetter;
   isGuestPickerOpen: boolean;
-  setIsGuestPickerOpen: BooleanSetter;
   adultCount: number;
-  setAdultCount: NumberSetter;
   childCount: number;
-  setChildCount: NumberSetter;
   infantCount: number;
-  setInfantCount: NumberSetter;
   petCount: number;
+  isReserving: boolean;
+}
+
+export interface AccommodationBookingActions {
+  formatDate: (date: Date | null) => string;
+  handleDateSelect: (checkIn: Date | null, checkOut: Date | null) => void;
+  setIsDatePickerOpen: BooleanSetter;
+  setIsGuestPickerOpen: BooleanSetter;
+  setAdultCount: NumberSetter;
+  setChildCount: NumberSetter;
+  setInfantCount: NumberSetter;
   setPetCount: NumberSetter;
+  onReserve: () => void;
+}
+
+export interface AccommodationCouponState {
   coupons: BookingCoupon[];
   isLoadingCoupons: boolean;
   selectedCoupon: BookingCoupon | null;
   selectedCouponId: number | null;
-  setSelectedCouponId: (couponId: number | null) => void;
   issuingCouponId: number | null;
   couponDiscount: number;
-  handleIssueCoupon: (coupon: BookingCoupon) => void | Promise<void>;
-  isReserving: boolean;
-  onReserve: () => void;
 }
 
+export interface AccommodationCouponActions {
+  setSelectedCouponId: (couponId: number | null) => void;
+  handleIssueCoupon: (coupon: BookingCoupon) => void | Promise<void>;
+}
+
+interface AccommodationBookingCardProps {
+  bookingView: AccommodationBookingViewModel;
+  isAuthenticated: boolean;
+  bookingState: AccommodationBookingState;
+  bookingActions: AccommodationBookingActions;
+  couponState: AccommodationCouponState;
+  couponActions: AccommodationCouponActions;
+}
 
 export function AccommodationBookingCard({
   bookingView,
   isAuthenticated,
-  payablePrice,
-  nights,
-  totalPrice,
-  checkIn,
-  checkOut,
-  formatDate,
-  handleDateSelect,
-  dateSectionRef,
-  datePickerRef,
-  guestPickerRef,
-  isDatePickerOpen,
-  setIsDatePickerOpen,
-  isGuestPickerOpen,
-  setIsGuestPickerOpen,
-  adultCount,
-  setAdultCount,
-  childCount,
-  setChildCount,
-  infantCount,
-  setInfantCount,
-  petCount,
-  setPetCount,
-  coupons,
-  isLoadingCoupons,
-  selectedCoupon,
-  selectedCouponId,
-  setSelectedCouponId,
-  issuingCouponId,
-  couponDiscount,
-  handleIssueCoupon,
-  isReserving,
-  onReserve,
+  bookingState,
+  bookingActions,
+  couponState,
+  couponActions,
 }: AccommodationBookingCardProps) {
+  const {
+    payablePrice,
+    nights,
+    totalPrice,
+    checkIn,
+    checkOut,
+    dateSectionRef,
+    datePickerRef,
+    guestPickerRef,
+    isDatePickerOpen,
+    isGuestPickerOpen,
+    adultCount,
+    childCount,
+    infantCount,
+    petCount,
+    isReserving,
+  } = bookingState;
+  const {
+    formatDate,
+    handleDateSelect,
+    setAdultCount,
+    setChildCount,
+    setInfantCount,
+    setIsDatePickerOpen,
+    setIsGuestPickerOpen,
+    setPetCount,
+    onReserve,
+  } = bookingActions;
+  const {
+    coupons,
+    isLoadingCoupons,
+    selectedCoupon,
+    selectedCouponId,
+    issuingCouponId,
+    couponDiscount,
+  } = couponState;
+  const { setSelectedCouponId, handleIssueCoupon } = couponActions;
   const {
     basePrice,
     unavailableDates,

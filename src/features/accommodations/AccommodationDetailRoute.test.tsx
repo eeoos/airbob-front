@@ -12,6 +12,26 @@ const mockUseAccommodationImageGallery = jest.fn();
 const mockUseAccommodationReviews = jest.fn();
 const mockHandleReserve = jest.fn();
 const mockReloadAccommodation = jest.fn();
+let mockBookingCardProps: {
+  bookingView: {
+    basePriceLabel: string;
+  };
+  bookingState?: {
+    nights: number;
+  };
+  bookingActions?: {
+    onReserve: () => void;
+  };
+  couponState?: {
+    payablePrice: number;
+  };
+  couponActions?: object;
+  nights?: number;
+  onReserve?: () => void;
+  payablePrice?: number;
+  selectedCouponId?: number | null;
+  setSelectedCouponId?: (couponId: number | null) => void;
+};
 
 jest.mock("../../hooks/useApiError", () => ({
   useApiError: () => mockUseApiError(),
@@ -96,28 +116,27 @@ jest.mock("../wishlist/appShell", () => ({
 }));
 
 jest.mock("./components/AccommodationBookingCard", () => ({
-  AccommodationBookingCard: ({
-    bookingView,
-    nights,
-    onReserve,
-    payablePrice,
-  }: {
-    bookingView: {
-      basePriceLabel: string;
-    };
-    nights: number;
-    onReserve: () => void;
-    payablePrice: number;
-  }) => (
-    <aside data-testid="booking-card">
-      <div>{bookingView.basePriceLabel}</div>
-      <div>{`${nights}박`}</div>
-      <div>{`결제 금액 ${payablePrice.toLocaleString()}`}</div>
-      <button type="button" onClick={onReserve}>
-        예약하기
-      </button>
-    </aside>
-  ),
+  AccommodationBookingCard: (
+    props: typeof mockBookingCardProps,
+  ) => {
+    mockBookingCardProps = props;
+    const nights = props.bookingState?.nights ?? props.nights ?? 0;
+    const payablePrice =
+      props.couponState?.payablePrice ?? props.payablePrice ?? 0;
+    const onReserve =
+      props.bookingActions?.onReserve ?? props.onReserve ?? jest.fn();
+
+    return (
+      <aside data-testid="booking-card">
+        <div>{props.bookingView.basePriceLabel}</div>
+        <div>{`${nights}박`}</div>
+        <div>{`결제 금액 ${payablePrice.toLocaleString()}`}</div>
+        <button type="button" onClick={onReserve}>
+          예약하기
+        </button>
+      </aside>
+    );
+  },
 }));
 
 jest.mock("./components/AccommodationDescriptionModal", () => ({
@@ -321,6 +340,7 @@ const renderDetailRoute = () =>
 describe("AccommodationDetailRoute", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockBookingCardProps = undefined as unknown as typeof mockBookingCardProps;
     mockUseApiError.mockReturnValue({
       error: null,
       handleError: jest.fn(),
@@ -390,6 +410,19 @@ describe("AccommodationDetailRoute", () => {
       onTouchMove: jest.fn(),
       onTouchEnd: jest.fn(),
     });
+  });
+
+  it("passes grouped booking and coupon boundaries to the booking card", () => {
+    renderDetailRoute();
+
+    expect(mockBookingCardProps).toMatchObject({
+      bookingState: expect.any(Object),
+      bookingActions: expect.any(Object),
+      couponState: expect.any(Object),
+      couponActions: expect.any(Object),
+    });
+    expect(mockBookingCardProps.selectedCouponId).toBeUndefined();
+    expect(mockBookingCardProps.setSelectedCouponId).toBeUndefined();
   });
 
   it("renders the loaded route shell with save, booking, overview, and reviews", () => {

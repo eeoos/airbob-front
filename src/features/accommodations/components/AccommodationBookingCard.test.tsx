@@ -40,53 +40,91 @@ const coupon: CouponInfo = {
   issued_quantity: 2,
 };
 
-const renderBookingCard = (
-  overrides: Partial<
-    React.ComponentProps<typeof AccommodationBookingCard>
-  > = {}
-) => {
-  const props: React.ComponentProps<typeof AccommodationBookingCard> = {
+type BookingCardProps = React.ComponentProps<typeof AccommodationBookingCard>;
+type BookingCardOverrides = Partial<
+  Omit<
+    BookingCardProps,
+    "bookingActions" | "bookingState" | "couponActions" | "couponState"
+  >
+> & {
+  bookingActions?: Partial<BookingCardProps["bookingActions"]>;
+  bookingState?: Partial<BookingCardProps["bookingState"]>;
+  couponActions?: Partial<BookingCardProps["couponActions"]>;
+  couponState?: Partial<BookingCardProps["couponState"]>;
+};
+
+const createBookingCardProps = (): BookingCardProps => ({
     bookingView,
     isAuthenticated: true,
-    payablePrice: 190000,
-    nights: 2,
-    totalPrice: 200000,
-    checkIn: new Date(2026, 6, 10),
-    checkOut: new Date(2026, 6, 12),
-    formatDate: (date) =>
-      date
-        ? `${date.getFullYear()}. ${String(date.getMonth() + 1).padStart(
-            2,
-            "0"
-          )}. ${String(date.getDate()).padStart(2, "0")}.`
-        : "",
-    handleDateSelect: jest.fn(),
-    dateSectionRef: React.createRef<HTMLDivElement>(),
-    datePickerRef: React.createRef<HTMLDivElement>(),
-    guestPickerRef: React.createRef<HTMLDivElement>(),
-    isDatePickerOpen: false,
-    setIsDatePickerOpen: jest.fn(),
-    isGuestPickerOpen: false,
-    setIsGuestPickerOpen: jest.fn(),
-    adultCount: 2,
-    setAdultCount: jest.fn(),
-    childCount: 1,
-    setChildCount: jest.fn(),
-    infantCount: 0,
-    setInfantCount: jest.fn(),
-    petCount: 0,
-    setPetCount: jest.fn(),
-    coupons: [coupon],
-    isLoadingCoupons: false,
-    selectedCoupon: coupon,
-    selectedCouponId: coupon.id,
-    setSelectedCouponId: jest.fn(),
-    issuingCouponId: null,
-    couponDiscount: 10000,
-    handleIssueCoupon: jest.fn(),
-    isReserving: false,
-    onReserve: jest.fn(),
+    bookingState: {
+      payablePrice: 190000,
+      nights: 2,
+      totalPrice: 200000,
+      checkIn: new Date(2026, 6, 10),
+      checkOut: new Date(2026, 6, 12),
+      dateSectionRef: React.createRef<HTMLDivElement>(),
+      datePickerRef: React.createRef<HTMLDivElement>(),
+      guestPickerRef: React.createRef<HTMLDivElement>(),
+      isDatePickerOpen: false,
+      isGuestPickerOpen: false,
+      adultCount: 2,
+      childCount: 1,
+      infantCount: 0,
+      petCount: 0,
+      isReserving: false,
+    },
+    bookingActions: {
+      formatDate: (date) =>
+        date
+          ? `${date.getFullYear()}. ${String(date.getMonth() + 1).padStart(
+              2,
+              "0"
+            )}. ${String(date.getDate()).padStart(2, "0")}.`
+          : "",
+      handleDateSelect: jest.fn(),
+      setIsDatePickerOpen: jest.fn(),
+      setIsGuestPickerOpen: jest.fn(),
+      setAdultCount: jest.fn(),
+      setChildCount: jest.fn(),
+      setInfantCount: jest.fn(),
+      setPetCount: jest.fn(),
+      onReserve: jest.fn(),
+    },
+    couponState: {
+      coupons: [coupon],
+      isLoadingCoupons: false,
+      selectedCoupon: coupon,
+      selectedCouponId: coupon.id,
+      issuingCouponId: null,
+      couponDiscount: 10000,
+    },
+    couponActions: {
+      setSelectedCouponId: jest.fn(),
+      handleIssueCoupon: jest.fn(),
+    },
+});
+
+const renderBookingCard = (overrides: BookingCardOverrides = {}) => {
+  const baseProps = createBookingCardProps();
+  const props: BookingCardProps = {
+    ...baseProps,
     ...overrides,
+    bookingState: {
+      ...baseProps.bookingState,
+      ...overrides.bookingState,
+    },
+    bookingActions: {
+      ...baseProps.bookingActions,
+      ...overrides.bookingActions,
+    },
+    couponState: {
+      ...baseProps.couponState,
+      ...overrides.couponState,
+    },
+    couponActions: {
+      ...baseProps.couponActions,
+      ...overrides.couponActions,
+    },
   };
 
   render(<AccommodationBookingCard {...props} />);
@@ -109,13 +147,15 @@ describe("AccommodationBookingCard", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "예약하기" }));
 
-    expect(props.onReserve).toHaveBeenCalledTimes(1);
+    expect(props.bookingActions.onReserve).toHaveBeenCalledTimes(1);
   });
 
   it("exposes date and guest pickers through semantic disclosure buttons", () => {
     renderBookingCard({
-      isDatePickerOpen: true,
-      isGuestPickerOpen: true,
+      bookingState: {
+        isDatePickerOpen: true,
+        isGuestPickerOpen: true,
+      },
     });
 
     const dateButton = screen.getByRole("button", { name: /체크인/ });
@@ -141,7 +181,10 @@ describe("AccommodationBookingCard", () => {
 
   it("opens date picker through controlled state and closes via DatePicker callback", () => {
     const setIsDatePickerOpen = jest.fn();
-    renderBookingCard({ isDatePickerOpen: true, setIsDatePickerOpen });
+    renderBookingCard({
+      bookingState: { isDatePickerOpen: true },
+      bookingActions: { setIsDatePickerOpen },
+    });
 
     expect(screen.getByTestId("date-picker")).toBeInTheDocument();
 
@@ -153,8 +196,8 @@ describe("AccommodationBookingCard", () => {
   it("updates guest counts through guest picker controls", () => {
     const setAdultCount = jest.fn();
     renderBookingCard({
-      isGuestPickerOpen: true,
-      setAdultCount,
+      bookingState: { isGuestPickerOpen: true },
+      bookingActions: { setAdultCount },
     });
 
     expect(
@@ -168,9 +211,11 @@ describe("AccommodationBookingCard", () => {
 
   it("uses booking view guest limits to bound guest picker controls", () => {
     renderBookingCard({
-      adultCount: 2,
-      childCount: 1,
-      isGuestPickerOpen: true,
+      bookingState: {
+        adultCount: 2,
+        childCount: 1,
+        isGuestPickerOpen: true,
+      },
       bookingView: {
         ...bookingView,
         guestLimits: {
@@ -195,10 +240,14 @@ describe("AccommodationBookingCard", () => {
     const setSelectedCouponId = jest.fn();
     const handleIssueCoupon = jest.fn();
     renderBookingCard({
-      selectedCoupon: coupon,
-      selectedCouponId: coupon.id,
-      setSelectedCouponId,
-      handleIssueCoupon,
+      couponState: {
+        selectedCoupon: coupon,
+        selectedCouponId: coupon.id,
+      },
+      couponActions: {
+        setSelectedCouponId,
+        handleIssueCoupon,
+      },
     });
 
     fireEvent.click(screen.getByRole("button", { name: "해제" }));
@@ -209,7 +258,7 @@ describe("AccommodationBookingCard", () => {
   });
 
   it("disables the reserve button while a reservation is being created", () => {
-    const props = renderBookingCard({ isReserving: true });
+    const props = renderBookingCard({ bookingState: { isReserving: true } });
 
     const reserveButton = screen.getByRole("button", { name: "예약 중..." });
 
@@ -217,6 +266,6 @@ describe("AccommodationBookingCard", () => {
 
     fireEvent.click(reserveButton);
 
-    expect(props.onReserve).not.toHaveBeenCalled();
+    expect(props.bookingActions.onReserve).not.toHaveBeenCalled();
   });
 });
