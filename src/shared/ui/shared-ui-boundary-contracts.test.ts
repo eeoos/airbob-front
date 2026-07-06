@@ -82,6 +82,9 @@ describe("shared UI boundary contracts", () => {
 
   it("keeps shared status and toast styles on design tokens", () => {
     const sharedStyleFiles = [
+      "shared/ui/ListingCard/ListingCard.module.css",
+      "shared/ui/OverlaySurface/OverlaySurface.module.css",
+      "shared/ui/PageShell/PageShell.module.css",
       "shared/ui/StatusBadge/StatusBadge.module.css",
       "shared/ui/ToastHost/ToastHost.module.css",
     ];
