@@ -4,8 +4,6 @@ import { dirname, join, relative, resolve } from "path";
 const routesRoot = join(process.cwd(), "src/routes");
 const layoutsRoot = join(process.cwd(), "src/layouts");
 const featuresRoot = join(process.cwd(), "src/features");
-const searchFeatureRoot = join(featuresRoot, "search");
-const wishlistFeatureRoot = join(featuresRoot, "wishlist");
 const projectRoot = process.cwd();
 const sourceExtensions = [".ts", ".tsx"];
 const importDeclarationPattern =
@@ -119,32 +117,86 @@ const toProjectRelativeImportTarget = (
   ).replace(/\\/g, "/");
 };
 
-const importsPrivateFeatureSurface = (
-  importTarget: string,
-  targetFeature: "search" | "wishlist",
-) => {
-  const targetFeatureRoot = `src/features/${targetFeature}`;
-  const privateSurfaceRoots = ["lib", "hooks", "components"].map(
-    (surface) => `${targetFeatureRoot}/${surface}`,
+const publicFeatureSurfaceFiles = new Set(["appShell", "publicCache"]);
+const privateFeatureSegments = new Set(["components", "hooks", "lib"]);
+
+const getFeatureIdentity = (sourceRootRelativePath: string) => {
+  const accommodationEditMatch = sourceRootRelativePath.match(
+    /^src\/features\/accommodations\/edit(?:\/(.+))?$/,
   );
 
-  return (
-    privateSurfaceRoots.some(
-      (surfaceRoot) =>
-        importTarget === surfaceRoot ||
-        importTarget.startsWith(`${surfaceRoot}/`),
-    ) ||
-    importTarget === `${targetFeatureRoot}/queryKeys` ||
-    importTarget.startsWith(`${targetFeatureRoot}/queryKeys.`)
+  if (accommodationEditMatch) {
+    return {
+      featureName: "accommodations/edit",
+      rest: accommodationEditMatch[1] ?? "",
+    };
+  }
+
+  const match = sourceRootRelativePath.match(
+    /^src\/features\/([^/]+)(?:\/(.+))?$/,
   );
+
+  if (!match) {
+    return null;
+  }
+
+  return {
+    featureName: match[1],
+    rest: match[2] ?? "",
+  };
 };
 
-const collectPrivateCrossFeatureImports = (
-  sourceRoot: string,
-  targetFeature: "search" | "wishlist",
-) =>
-  collectSourceFiles(sourceRoot).flatMap((filePath) => {
+const getFeatureName = (sourceRootRelativePath: string) =>
+  getFeatureIdentity(sourceRootRelativePath)?.featureName ?? null;
+
+const getImportedFeatureSurface = (importTarget: string) => {
+  const identity = getFeatureIdentity(importTarget);
+
+  if (!identity) {
+    return null;
+  }
+
+  const { featureName, rest } = identity;
+  const [firstSegment = "index"] = rest ? rest.split("/") : ["index"];
+  const basename = firstSegment.replace(/\.[tj]sx?$/, "");
+
+  return {
+    featureName,
+    firstSegment,
+    basename,
+  };
+};
+
+const importsPrivateCrossFeatureSurface = (
+  importerPath: string,
+  importTarget: string,
+) => {
+  const importerFeature = getFeatureName(importerPath);
+  const imported = getImportedFeatureSurface(importTarget);
+
+  if (!importerFeature || !imported || importerFeature === imported.featureName) {
+    return false;
+  }
+
+  if (publicFeatureSurfaceFiles.has(imported.basename)) {
+    return false;
+  }
+
+  if (imported.basename === "index") {
+    return true;
+  }
+
+  if (privateFeatureSegments.has(imported.firstSegment)) {
+    return true;
+  }
+
+  return imported.firstSegment === "queryKeys";
+};
+
+const collectPrivateCrossFeatureImports = () =>
+  collectSourceFiles(featuresRoot).flatMap((filePath) => {
     const source = readFileSync(filePath, "utf8");
+    const importerPath = relative(projectRoot, filePath).replace(/\\/g, "/");
 
     return Array.from(source.matchAll(importDeclarationPattern))
       .map((match) => match[1])
@@ -156,11 +208,11 @@ const collectPrivateCrossFeatureImports = (
       .filter(
         ({ importTarget }) =>
           importTarget !== null &&
-          importsPrivateFeatureSurface(importTarget, targetFeature),
+          importsPrivateCrossFeatureSurface(importerPath, importTarget),
       )
       .map(
-        ({ importSource }) =>
-          `${relative(projectRoot, filePath)} imports ${importSource}`,
+        ({ importSource, importTarget }) =>
+          `${importerPath} imports ${importSource} (${importTarget})`,
       );
   });
 
@@ -205,13 +257,8 @@ describe("route boundary contracts", () => {
     expect(violations).toEqual([]);
   });
 
-  it("keeps search and wishlist cross-feature cache access on public boundaries", () => {
-    const violations = [
-      ...collectPrivateCrossFeatureImports(searchFeatureRoot, "wishlist"),
-      ...collectPrivateCrossFeatureImports(wishlistFeatureRoot, "search"),
-    ];
-
-    expect(violations).toEqual([]);
+  it("keeps feature-to-feature imports on public feature surfaces", () => {
+    expect(collectPrivateCrossFeatureImports()).toEqual([]);
   });
 
   it("keeps cross-feature profile composition on reservation app-shell APIs", () => {
@@ -228,17 +275,71 @@ describe("route boundary contracts", () => {
 
   it("treats cross-feature private barrel roots as boundary violations", () => {
     expect(
-      importsPrivateFeatureSurface("src/features/wishlist/hooks", "wishlist"),
-    ).toBe(true);
-    expect(
-      importsPrivateFeatureSurface(
-        "src/features/wishlist/components",
-        "wishlist",
+      importsPrivateCrossFeatureSurface(
+        "src/features/search/index.ts",
+        "src/features/wishlist",
       ),
     ).toBe(true);
     expect(
-      importsPrivateFeatureSurface("src/features/wishlist/lib", "wishlist"),
+      importsPrivateCrossFeatureSurface(
+        "src/features/search/index.ts",
+        "src/features/wishlist/index",
+      ),
     ).toBe(true);
+    expect(
+      importsPrivateCrossFeatureSurface(
+        "src/features/search/index.ts",
+        "src/features/wishlist/appShell",
+      ),
+    ).toBe(false);
+    expect(
+      importsPrivateCrossFeatureSurface(
+        "src/features/search/index.ts",
+        "src/features/wishlist/publicCache",
+      ),
+    ).toBe(false);
+    expect(
+      importsPrivateCrossFeatureSurface(
+        "src/features/search/index.ts",
+        "src/features/wishlist/hooks",
+      ),
+    ).toBe(true);
+    expect(
+      importsPrivateCrossFeatureSurface(
+        "src/features/search/index.ts",
+        "src/features/wishlist/components",
+      ),
+    ).toBe(true);
+    expect(
+      importsPrivateCrossFeatureSurface(
+        "src/features/search/index.ts",
+        "src/features/wishlist/lib",
+      ),
+    ).toBe(true);
+    expect(
+      importsPrivateCrossFeatureSurface(
+        "src/features/accommodations/edit/AccommodationEditRoute.tsx",
+        "src/features/accommodations/hooks",
+      ),
+    ).toBe(true);
+    expect(
+      importsPrivateCrossFeatureSurface(
+        "src/features/accommodations/AccommodationDetailRoute.tsx",
+        "src/features/accommodations/edit/hooks",
+      ),
+    ).toBe(true);
+    expect(
+      importsPrivateCrossFeatureSurface(
+        "src/features/accommodations/edit/AccommodationEditRoute.tsx",
+        "src/features/accommodations/edit/hooks",
+      ),
+    ).toBe(false);
+    expect(
+      importsPrivateCrossFeatureSurface(
+        "src/features/accommodations/edit/AccommodationEditRoute.tsx",
+        "src/features/accommodations/edit",
+      ),
+    ).toBe(false);
   });
 
   it("keeps layouts on explicit feature app-shell APIs", () => {
