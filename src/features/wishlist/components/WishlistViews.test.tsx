@@ -203,6 +203,28 @@ describe("Wishlist view components", () => {
     expectNoNestedInteractiveControls(container);
   });
 
+  it("labels the wishlist detail back button for assistive technology", () => {
+    renderWishlistDetail();
+
+    const backButton = screen.getByRole("button", {
+      name: /뒤로 가기|돌아가기/,
+    });
+
+    expect(backButton).toBeInTheDocument();
+    expect(backButton).toHaveAttribute("type", "button");
+  });
+
+  it("labels the recently viewed back button for assistive technology", () => {
+    renderRecentlyViewed();
+
+    const backButton = screen.getByRole("button", {
+      name: "위시리스트 목록으로 돌아가기",
+    });
+
+    expect(backButton).toBeInTheDocument();
+    expect(backButton).toHaveAttribute("type", "button");
+  });
+
   it("shows the image fallback when a wishlist detail thumbnail fails to load", () => {
     renderWishlistDetail({
       wishlistAccommodations: [makeWishlistAccommodationCard()],

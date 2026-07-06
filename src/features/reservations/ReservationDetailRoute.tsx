@@ -81,14 +81,23 @@ export const ReservationDetailRoute: React.FC<ReservationDetailRouteProps> = ({
   return (
     <>
       <div className={styles.container}>
-        <button className={styles.backButton} onClick={() => navigate(routeTo.profile())}>
+        <button
+          className={styles.backButton}
+          type="button"
+          onClick={() => navigate(routeTo.profile())}
+        >
           ← 돌아가기
         </button>
 
         <div className={styles.content}>
           <div className={styles.mainContent}>
             <section className={styles.section}>
-              <button className={styles.backButtonOnImage} onClick={() => navigate(-1)}>
+              <button
+                aria-label="뒤로 가기"
+                className={styles.backButtonOnImage}
+                type="button"
+                onClick={() => navigate(-1)}
+              >
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"

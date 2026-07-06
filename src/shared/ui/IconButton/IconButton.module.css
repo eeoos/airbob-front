@@ -41,14 +41,14 @@
 }
 
 .sm {
-  width: 32px;
-  height: 32px;
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
   font-size: var(--font-size-sm);
 }
 
 .md {
-  width: 40px;
-  height: 40px;
+  width: var(--control-height-md);
+  height: var(--control-height-md);
   font-size: var(--font-size-md);
 }
 

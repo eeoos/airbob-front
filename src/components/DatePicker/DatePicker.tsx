@@ -248,6 +248,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
       {/* 네비게이션 헤더 - 이전/다음 버튼 같은 행 */}
       <div className={styles.navHeader}>
         <button
+          aria-label="이전 달 보기"
           className={styles.monthNavButton}
           type="button"
           onClick={handlePrevMonth}
@@ -258,6 +259,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
           {currentMonth.toLocaleDateString("ko-KR", { year: "numeric", month: "long" })}
         </span>
         <button
+          aria-label="다음 달 보기"
           className={styles.monthNavButton}
           type="button"
           onClick={handleNextMonth}

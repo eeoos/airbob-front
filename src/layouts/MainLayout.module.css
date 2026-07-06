@@ -1,12 +1,11 @@
 .container {
-  min-height: 100vh;
-  background-color: #ffffff;
+  min-height: var(--layout-viewport-height);
+  background-color: var(--color-background-page);
 }
 
 .main {
   width: 100%;
 }
-
 
 
 

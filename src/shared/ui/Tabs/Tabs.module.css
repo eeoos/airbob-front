@@ -1,6 +1,6 @@
 .tabList {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .line {
@@ -45,7 +45,7 @@
 .lineTab {
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
 }
 
 .lineSelected {
@@ -55,7 +55,7 @@
 
 .plainTab {
   border-radius: var(--radius-md);
-  padding: 8px 16px;
+  padding: var(--space-2) var(--space-4);
 }
 
 .plainSelected {

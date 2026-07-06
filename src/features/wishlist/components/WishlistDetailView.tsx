@@ -47,7 +47,12 @@ export function WishlistDetailView({
     <>
       <div className={styles.recentlyViewedHeader}>
         <div className={styles.recentlyViewedHeaderLeft}>
-          <button className={styles.backButton} onClick={onBack} type="button">
+          <button
+            aria-label="위시리스트 목록으로 돌아가기"
+            className={styles.backButton}
+            type="button"
+            onClick={onBack}
+          >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M19 12H5M12 19l-7-7 7-7" />
             </svg>

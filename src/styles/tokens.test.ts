@@ -168,7 +168,31 @@ const newlyTokenOwnedCssFiles = [
   "features/reservations/components/ReservationModal/ReservationModal.module.css",
 ];
 
+const sharedPrimitiveCssFiles = [
+  "shared/ui/Button/Button.module.css",
+  "shared/ui/Card/Card.module.css",
+  "shared/ui/ClickableCard/ClickableCard.module.css",
+  "shared/ui/CounterStepper/CounterStepper.module.css",
+  "shared/ui/Dialog/Dialog.module.css",
+  "shared/ui/IconButton/IconButton.module.css",
+  "shared/ui/ListingCard/ListingCard.module.css",
+  "shared/ui/OverlaySurface/OverlaySurface.module.css",
+  "shared/ui/PageShell/PageShell.module.css",
+  "shared/ui/StateView/StateView.module.css",
+  "shared/ui/StatusBadge/StatusBadge.module.css",
+  "shared/ui/Tabs/Tabs.module.css",
+  "shared/ui/TextField/TextField.module.css",
+  "shared/ui/ToastHost/ToastHost.module.css",
+  "layouts/MainLayout.module.css",
+];
+
+const strictTokenOwnedCssFiles = [
+  ...sharedPrimitiveCssFiles,
+  ...newlyTokenOwnedCssFiles,
+];
+
 const designTokenOwnedCssFiles = [
+  ...sharedPrimitiveCssFiles,
   "features/wishlist/components/CreateWishlistModal/CreateWishlistModal.module.css",
   "features/wishlist/components/WishlistModal/WishlistModal.module.css",
   "features/reviews/components/ReviewModal/ReviewModal.module.css",
@@ -375,8 +399,17 @@ const cssRuleBlocks = (source: string) =>
     })
     .filter((block) => block.selectors.length > 0 && !block.selectorText.startsWith("@"));
 
-const focusVisibleSelectorFor = (selector: string) =>
-  selector.includes(":focus-visible") ? selector : `${selector}:focus-visible`;
+const focusVisibleSelectorFor = (selector: string) => {
+  if (selector.includes(":focus-visible")) {
+    return selector;
+  }
+
+  if (/:focus(?![-\w])/.test(selector)) {
+    return selector.replace(/:focus(?![-\w])/g, ":focus-visible");
+  }
+
+  return `${selector}:focus-visible`;
+};
 
 const collectOutlineResetOffenders = (relativePath: string, source: string) => {
   const blocks = cssRuleBlocks(source);
@@ -399,10 +432,10 @@ const collectOutlineResetOffenders = (relativePath: string, source: string) => {
   });
 };
 
-const collectNewlyOwnedCssLineOffenders = (
+const collectStrictTokenOwnedCssLineOffenders = (
   findOffender: (line: string, index: number, lines: string[]) => string | null,
 ) =>
-  newlyTokenOwnedCssFiles.flatMap((relativePath) => {
+  strictTokenOwnedCssFiles.flatMap((relativePath) => {
     const lines = readCss(relativePath).split(/\r?\n/);
 
     return lines.flatMap((line, index) => {
@@ -416,10 +449,10 @@ const collectNewlyOwnedCssLineOffenders = (
     });
   });
 
-const collectNewlyOwnedCssSourceOffenders = (
+const collectStrictTokenOwnedCssSourceOffenders = (
   findOffenders: (relativePath: string, source: string) => string[],
 ) =>
-  newlyTokenOwnedCssFiles.flatMap((relativePath) =>
+  strictTokenOwnedCssFiles.flatMap((relativePath) =>
     findOffenders(relativePath, readCss(relativePath)),
   );
 
@@ -605,8 +638,14 @@ describe("pre-design token stylesheet contract", () => {
     });
   });
 
-  it("keeps newly token-owned CSS off transition-all declarations", () => {
-    const offenders = collectNewlyOwnedCssSourceOffenders((relativePath, source) =>
+  it("keeps shared primitive CSS files enrolled in strict token ownership", () => {
+    sharedPrimitiveCssFiles.forEach((relativePath) => {
+      expect(strictTokenOwnedCssFiles).toContain(relativePath);
+    });
+  });
+
+  it("keeps strict token-owned CSS off transition-all declarations", () => {
+    const offenders = collectStrictTokenOwnedCssSourceOffenders((relativePath, source) =>
       findTransitionAllMatches(source).map(
         (match) =>
           `${relativePath}:${sourceLineNumberAt(source, match.index)}: ${match.text}`,
@@ -625,8 +664,8 @@ describe("pre-design token stylesheet contract", () => {
     ]);
   });
 
-  it("keeps newly token-owned CSS z-index declarations on tokens", () => {
-    const offenders = collectNewlyOwnedCssLineOffenders((line) =>
+  it("keeps strict token-owned CSS z-index declarations on tokens", () => {
+    const offenders = collectStrictTokenOwnedCssLineOffenders((line) =>
       findRawZIndexDeclaration(line),
     );
 
@@ -648,8 +687,8 @@ describe("pre-design token stylesheet contract", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("keeps newly token-owned CSS outline resets paired with focus-visible styles", () => {
-    const offenders = collectNewlyOwnedCssSourceOffenders((relativePath, source) =>
+  it("keeps strict token-owned CSS outline resets paired with focus-visible styles", () => {
+    const offenders = collectStrictTokenOwnedCssSourceOffenders((relativePath, source) =>
       collectOutlineResetOffenders(relativePath, source),
     );
 
@@ -674,21 +713,28 @@ describe("pre-design token stylesheet contract", () => {
     expect(
       collectOutlineResetOffenders(
         "test.css",
+        ".field:focus { outline: none; box-shadow: var(--focus-ring); }\n.field:focus-visible { outline: none; box-shadow: var(--focus-ring); }",
+      ),
+    ).toEqual([]);
+
+    expect(
+      collectOutlineResetOffenders(
+        "test.css",
         ".field:focus-visible { outline: none; box-shadow: var(--focus-ring); }",
       ),
     ).toEqual([]);
   });
 
-  it("keeps newly token-owned CSS free of important overrides", () => {
-    const offenders = collectNewlyOwnedCssLineOffenders((line) =>
+  it("keeps strict token-owned CSS free of important overrides", () => {
+    const offenders = collectStrictTokenOwnedCssLineOffenders((line) =>
       line.includes("!important") ? line.trim() : null,
     );
 
     expect(offenders).toEqual([]);
   });
 
-  it("keeps newly token-owned CSS on color, radius, and shadow tokens", () => {
-    const offenders = collectNewlyOwnedCssLineOffenders((line) => {
+  it("keeps strict token-owned CSS on color, radius, and shadow tokens", () => {
+    const offenders = collectStrictTokenOwnedCssLineOffenders((line) => {
       const patternName = findForbiddenNewlyOwnedDesignLiteral(line);
 
       return patternName ? `[${patternName}] ${line.trim()}` : null;
@@ -697,8 +743,8 @@ describe("pre-design token stylesheet contract", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("keeps newly token-owned CSS off token-equivalent spacing and font literals", () => {
-    const offenders = collectNewlyOwnedCssSourceOffenders((relativePath, source) =>
+  it("keeps strict token-owned CSS off token-equivalent spacing and font literals", () => {
+    const offenders = collectStrictTokenOwnedCssSourceOffenders((relativePath, source) =>
       findForbiddenTokenEquivalentLiteralMatches(source).map(
         (match) =>
           `${relativePath}:${sourceLineNumberAt(source, match.index)}: [${match.name}] ${match.text}`,

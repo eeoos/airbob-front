@@ -58,7 +58,12 @@ export const HostReservationDetailRoute: React.FC<
   return (
     <>
       <div className={styles.container}>
-        <button className={styles.backButton} onClick={() => navigate(-1)}>
+        <button
+          aria-label="뒤로 가기"
+          className={styles.backButton}
+          onClick={() => navigate(-1)}
+          type="button"
+        >
           ←
         </button>
 
