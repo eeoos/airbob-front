@@ -303,4 +303,53 @@ describe("useAccommodationEditSave", () => {
       queryKey: profileQueryKeys.hostListingsRoot,
     });
   });
+
+  it("invalidates changed accommodation caches when publish fails after a successful update", async () => {
+    const initialFormData = createFilledFormData();
+    const formData = {
+      ...initialFormData,
+      name: "게시 실패 전 저장된 변경",
+    };
+    const publishError = new Error("publish failed");
+    publishAccommodation.mockRejectedValueOnce(publishError);
+    const { queryClient, wrapper } = createWrapper();
+    const invalidateQueriesSpy = jest.spyOn(queryClient, "invalidateQueries");
+
+    const { result } = renderHook(
+      () =>
+        useAccommodationEditSave({
+          accommodationId: "3",
+          currentStep: 5,
+          isNewDraft: false,
+          formData,
+          initialFormData,
+          imageItems,
+          initialImageItems: imageItems,
+          clearError,
+          handleError,
+          setIsSaving,
+          navigateToHostProfile,
+          updateAccommodation,
+          publishAccommodation,
+        }),
+      { wrapper },
+    );
+
+    await act(async () => {
+      await result.current.handlePublish({ preventDefault: jest.fn() });
+    });
+
+    expect(updateAccommodation).toHaveBeenCalledWith(3, {
+      name: "게시 실패 전 저장된 변경",
+    });
+    expect(publishAccommodation).toHaveBeenCalledWith(3);
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: accommodationQueryKeys.detailRoot,
+    });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: profileQueryKeys.hostListingsRoot,
+    });
+    expect(handleError).toHaveBeenCalledWith(publishError);
+    expect(navigateToHostProfile).not.toHaveBeenCalled();
+  });
 });

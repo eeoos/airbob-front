@@ -289,7 +289,11 @@ describe("AuthProvider", () => {
     const logoutError = new Error("로그아웃 실패");
     const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     jest.mocked(authApi.getMe).mockResolvedValueOnce(meInfo);
-    jest.mocked(authApi.logout).mockRejectedValueOnce(logoutError);
+    let logoutCookieAtCall = "";
+    jest.mocked(authApi.logout).mockImplementationOnce(() => {
+      logoutCookieAtCall = document.cookie;
+      return Promise.reject(logoutError);
+    });
     document.cookie = "SESSION_ID=test-session; path=/;";
 
     const { result } = renderUseAuth();
@@ -301,6 +305,7 @@ describe("AuthProvider", () => {
     });
 
     await waitFor(() => expect(result.current.isAuthenticated).toBe(false));
+    expect(logoutCookieAtCall).toContain("SESSION_ID=test-session");
     expect(document.cookie).not.toContain("SESSION_ID=");
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       "Logout request failed after local session clear",

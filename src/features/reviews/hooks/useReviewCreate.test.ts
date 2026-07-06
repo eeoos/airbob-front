@@ -158,6 +158,9 @@ describe("useReviewCreate", () => {
       queryKey: reservationQueryKeys.guestReservationDetail("reservation-123"),
     });
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: reservationQueryKeys.guestReservationsRoot,
+    });
+    expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({
       queryKey: reservationQueryKeys.all,
     });
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({

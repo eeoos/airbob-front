@@ -1,7 +1,8 @@
 export const reservationQueryKeys = {
   all: ["reservations"] as const,
+  guestReservationsRoot: ["reservations", "guest"] as const,
   guestReservations: (paramsSignature: string) =>
-    [...reservationQueryKeys.all, "guest", paramsSignature] as const,
+    [...reservationQueryKeys.guestReservationsRoot, paramsSignature] as const,
   guestReservationDetail: (reservationUid: string) =>
     [...reservationQueryKeys.all, "guestDetail", reservationUid] as const,
   hostReservations: (paramsSignature: string) =>

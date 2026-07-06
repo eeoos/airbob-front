@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { accommodationApi } from "../../../api";
 import { useApiError } from "../../../hooks/useApiError";
@@ -22,6 +22,7 @@ const getHostListingsParamsSignature = (statusType: HostListingStatusType) => {
 };
 
 export function useHostListings(statusType: HostListingStatusType) {
+  const queryClient = useQueryClient();
   const { error, handleError, clearError } = useApiError();
   const handledErrorUpdatedAtRef = useRef(0);
   const queryKey = useMemo(
@@ -85,8 +86,8 @@ export function useHostListings(statusType: HostListingStatusType) {
 
   const reload = useCallback(async () => {
     clearError();
-    await hostListingsQuery.refetch();
-  }, [clearError, hostListingsQuery]);
+    await queryClient.resetQueries({ queryKey, exact: true });
+  }, [clearError, queryClient, queryKey]);
 
   return {
     accommodations,

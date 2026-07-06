@@ -219,6 +219,60 @@ describe("useHostListings", () => {
     expect(accommodationApi.getMyAccommodations).toHaveBeenCalledTimes(2);
   });
 
+  it("reloads from the first page and replaces accumulated rows after loading more", async () => {
+    const firstAccommodation = createAccommodation(1);
+    const secondAccommodation = createAccommodation(2);
+    const reloadedAccommodation = createAccommodation(3);
+    const reloadRequest = deferred<HostAccommodationInfos>();
+    jest
+      .mocked(accommodationApi.getMyAccommodations)
+      .mockResolvedValueOnce(
+        createAccommodationPage([firstAccommodation], "cursor-1")
+      )
+      .mockResolvedValueOnce(createAccommodationPage([secondAccommodation]))
+      .mockReturnValueOnce(reloadRequest.promise);
+
+    const { result } = renderHook(() => useHostListings("PUBLISHED"), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.hasNext).toBe(true));
+
+    await act(async () => {
+      await result.current.loadMore();
+    });
+
+    await waitFor(() =>
+      expect(result.current.accommodations).toEqual([
+        firstAccommodation,
+        secondAccommodation,
+      ])
+    );
+
+    let reloadPromise!: Promise<void>;
+    act(() => {
+      reloadPromise = result.current.reload();
+    });
+
+    await waitFor(() => {
+      expect(result.current.accommodations).toEqual([]);
+      expect(result.current.isLoading).toBe(true);
+    });
+
+    await act(async () => {
+      reloadRequest.resolve(createAccommodationPage([reloadedAccommodation]));
+      await reloadPromise;
+    });
+
+    await waitFor(() =>
+      expect(result.current.accommodations).toEqual([reloadedAccommodation])
+    );
+    expect(accommodationApi.getMyAccommodations).toHaveBeenLastCalledWith({
+      size: 20,
+      status: AccommodationStatus.PUBLISHED,
+    });
+  });
+
   it("ignores stale first-page responses after the status changes", async () => {
     const publishedAccommodation = createAccommodation(
       1,

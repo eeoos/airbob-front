@@ -179,6 +179,7 @@ export const useAccommodationEditSave = ({
 
       if (Object.keys(updateData).length > 0) {
         await updateAccommodation(Number(accommodationId), updateData);
+        await invalidateAccommodationCaches();
       }
 
       await publishAccommodation(Number(accommodationId));

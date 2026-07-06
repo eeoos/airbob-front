@@ -67,7 +67,7 @@ export function useReviewCreate(reservationUid?: string) {
           ),
         }),
         queryClient.invalidateQueries({
-          queryKey: reservationQueryKeys.all,
+          queryKey: reservationQueryKeys.guestReservationsRoot,
         }),
         queryClient.invalidateQueries({
           queryKey: [

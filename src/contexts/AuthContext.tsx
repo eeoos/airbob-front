@@ -75,12 +75,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = async () => {
-    document.cookie = "SESSION_ID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-    await clearSession();
+    let logoutRequest: Promise<unknown>;
+
     try {
-      await authApi.logout();
+      logoutRequest = authApi.logout();
     } catch (error) {
-      console.error("Logout request failed after local session clear", error);
+      logoutRequest = Promise.reject(error);
+    }
+
+    try {
+      await clearSession();
+    } finally {
+      try {
+        await logoutRequest;
+      } catch (error) {
+        console.error("Logout request failed after local session clear", error);
+      } finally {
+        document.cookie = "SESSION_ID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      }
     }
   };
 
