@@ -425,6 +425,14 @@ export const useAccommodationBooking = ({
         selectedCouponId,
         couponDiscount,
       });
+      const appliedCoupon =
+        reservationCoupon.discount > 0
+          ? {
+              id: reservationCoupon.couponId,
+              name: reservationCoupon.coupon?.name ?? null,
+              discount: reservationCoupon.discount,
+            }
+          : null;
 
       await startReservationCheckoutHandoff({
         accommodationId: accommodation.id,
@@ -434,10 +442,7 @@ export const useAccommodationBooking = ({
         childCount,
         infantCount,
         petCount,
-        couponId:
-          reservationCoupon.discount > 0 ? reservationCoupon.couponId : null,
-        couponName: reservationCoupon.coupon?.name ?? null,
-        couponDiscount: reservationCoupon.discount,
+        appliedCoupon,
         navigate,
       });
     } catch (error) {

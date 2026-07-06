@@ -25,7 +25,7 @@ describe("reservation checkout handoff", () => {
     jest.restoreAllMocks();
   });
 
-  it("creates a reservation, writes fallback state, and navigates to confirmation", async () => {
+  it("creates a reservation with an explicit applied coupon object", async () => {
     const navigate = jest.fn();
     const events: string[] = [];
     const originalSetItem = Storage.prototype.setItem;
@@ -51,9 +51,11 @@ describe("reservation checkout handoff", () => {
       childCount: 1,
       infantCount: 1,
       petCount: 1,
-      couponId: 3,
-      couponName: "만원 쿠폰",
-      couponDiscount: 10000,
+      appliedCoupon: {
+        id: 3,
+        name: "만원 쿠폰",
+        discount: 10000,
+      },
       navigate,
     });
 
@@ -108,5 +110,46 @@ describe("reservation checkout handoff", () => {
         event.startsWith("set:airbob:reservation-checkout:7")
       )
     ).toBeLessThan(events.indexOf("navigate"));
+  });
+
+  it("creates a reservation without coupon fields when no coupon is applied", async () => {
+    const navigate = jest.fn();
+    jest.mocked(reservationApi.create).mockResolvedValue(reservationResponse);
+
+    const result = await startReservationCheckoutHandoff({
+      accommodationId: 7,
+      checkIn: new Date(2026, 6, 10),
+      checkOut: new Date(2026, 6, 12),
+      adultCount: 2,
+      childCount: 1,
+      infantCount: 0,
+      petCount: 0,
+      appliedCoupon: null,
+      navigate,
+    });
+
+    expect(reservationApi.create).toHaveBeenCalledWith({
+      accommodation_id: 7,
+      check_in_date: "2026-07-10",
+      check_out_date: "2026-07-12",
+      guest_count: 3,
+    });
+    expect(result.checkoutState).toEqual(
+      expect.objectContaining({
+        couponName: null,
+        couponDiscount: null,
+      })
+    );
+    expect(
+      JSON.parse(sessionStorage.getItem("airbob:reservation-checkout:7") ?? "{}")
+    ).toEqual(
+      expect.objectContaining({
+        couponName: null,
+        couponDiscount: null,
+      })
+    );
+    expect(navigate).toHaveBeenCalledWith("/accommodations/7/confirm", {
+      state: result.checkoutState,
+    });
   });
 });

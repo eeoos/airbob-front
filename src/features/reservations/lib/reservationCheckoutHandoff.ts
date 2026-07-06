@@ -17,6 +17,12 @@ export type ReservationCheckoutHandoffNavigate = (
   options?: { replace?: boolean; state?: unknown }
 ) => void;
 
+export interface AppliedReservationCheckoutCoupon {
+  id: number | null;
+  name: string | null;
+  discount: number;
+}
+
 export interface StartReservationCheckoutHandoffOptions {
   accommodationId: number;
   checkIn: CheckoutDateInput;
@@ -25,9 +31,7 @@ export interface StartReservationCheckoutHandoffOptions {
   childCount: number;
   infantCount?: number;
   petCount?: number;
-  couponId?: number | null;
-  couponName?: string | null;
-  couponDiscount?: number | null;
+  appliedCoupon: AppliedReservationCheckoutCoupon | null;
   navigate: ReservationCheckoutHandoffNavigate;
 }
 
@@ -42,10 +46,9 @@ const formatCheckoutDateInput = (date: CheckoutDateInput) =>
 const buildReservationCheckoutState = ({
   adultCount,
   childCount,
+  appliedCoupon,
   checkIn,
   checkOut,
-  couponDiscount,
-  couponName,
   infantCount = 0,
   petCount = 0,
   reservationResponse,
@@ -53,35 +56,29 @@ const buildReservationCheckoutState = ({
   checkIn: string;
   checkOut: string;
   reservationResponse: ReservationReady;
-}): ReservationCheckoutState => {
-  const appliedCouponDiscount = couponDiscount ?? 0;
-
-  return {
-    reservationUid: reservationResponse.reservation_uid,
-    orderName: reservationResponse.order_name,
-    amount: reservationResponse.amount,
-    customerEmail: reservationResponse.customer_email,
-    customerName: reservationResponse.customer_name,
-    checkIn,
-    checkOut,
-    adultOccupancy: adultCount,
-    childOccupancy: childCount,
-    infantOccupancy: infantCount,
-    petOccupancy: petCount,
-    couponName:
-      appliedCouponDiscount > 0 && couponName ? couponName : null,
-    couponDiscount: appliedCouponDiscount > 0 ? appliedCouponDiscount : null,
-  };
-};
+}): ReservationCheckoutState => ({
+  reservationUid: reservationResponse.reservation_uid,
+  orderName: reservationResponse.order_name,
+  amount: reservationResponse.amount,
+  customerEmail: reservationResponse.customer_email,
+  customerName: reservationResponse.customer_name,
+  checkIn,
+  checkOut,
+  adultOccupancy: adultCount,
+  childOccupancy: childCount,
+  infantOccupancy: infantCount,
+  petOccupancy: petCount,
+  couponName: appliedCoupon?.name ?? null,
+  couponDiscount: appliedCoupon?.discount ?? null,
+});
 
 const buildReservationCreateRequest = ({
   accommodationId,
   adultCount,
+  appliedCoupon,
   childCount,
   checkIn,
   checkOut,
-  couponDiscount,
-  couponId,
 }: StartReservationCheckoutHandoffOptions & {
   checkIn: string;
   checkOut: string;
@@ -93,8 +90,8 @@ const buildReservationCreateRequest = ({
     guest_count: adultCount + childCount,
   };
 
-  if (couponId !== undefined) {
-    request.coupon_id = (couponDiscount ?? 0) > 0 ? couponId ?? null : null;
+  if (appliedCoupon) {
+    request.coupon_id = appliedCoupon.id;
   }
 
   return request;

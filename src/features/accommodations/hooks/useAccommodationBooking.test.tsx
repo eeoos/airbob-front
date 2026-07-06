@@ -312,7 +312,6 @@ describe("useAccommodationBooking", () => {
       check_in_date: "2026-07-20",
       check_out_date: "2026-07-22",
       guest_count: 1,
-      coupon_id: null,
     });
   });
 

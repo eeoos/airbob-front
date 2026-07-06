@@ -38,6 +38,7 @@ export function useReservationPayment({
       try {
         await startReservationCheckoutHandoff({
           ...options,
+          appliedCoupon: null,
           navigate,
         });
       } catch (error) {
