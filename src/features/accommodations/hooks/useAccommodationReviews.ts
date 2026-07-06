@@ -2,6 +2,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import type { InfiniteData } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { reviewApi } from "../../../api";
+import { useHandledQueryError } from "../../../query/useHandledQueryError";
 import { ReviewSortType } from "../../../types/enums";
 import { ReviewInfos } from "../../../types/review";
 import { accommodationQueryKeys } from "../queryKeys";
@@ -35,7 +36,6 @@ export const useAccommodationReviews = ({
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const reviewObserverTarget = useRef<HTMLDivElement>(null);
   const [expandedReviews] = useState<Record<number, boolean>>({});
-  const handledErrorUpdatedAtRef = useRef(0);
   const shouldFetchReviews = Boolean(accommodationId) && totalReviewCount > 0;
 
   const reviewsQuery = useInfiniteQuery<
@@ -130,18 +130,12 @@ export const useAccommodationReviews = ({
     shouldFetchReviews,
   ]);
 
-  useEffect(() => {
-    if (
-      !isError ||
-      !reviewsError ||
-      handledErrorUpdatedAtRef.current === errorUpdatedAt
-    ) {
-      return;
-    }
-
-    handledErrorUpdatedAtRef.current = errorUpdatedAt;
-    handleError(reviewsError);
-  }, [errorUpdatedAt, handleError, isError, reviewsError]);
+  useHandledQueryError({
+    error: reviewsError,
+    errorUpdatedAt,
+    isError,
+    onError: handleError,
+  });
 
   useEffect(() => {
     if (typeof IntersectionObserver === "undefined") {

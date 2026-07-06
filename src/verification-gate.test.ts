@@ -192,6 +192,19 @@ const startPreflightServer = (statusCode: number) =>
   });
 
 describe("frontend verification gate", () => {
+  test("query error toast handling uses the shared query hook", () => {
+    const productionFiles = getProductionSourceFiles()
+      .map(toProjectPath)
+      .filter((relativePath) => relativePath.startsWith("src/features/"));
+
+    const violations = productionFiles.filter((relativePath) => {
+      const source = fs.readFileSync(path.join(projectRoot, relativePath), "utf8");
+      return /handledErrorUpdatedAtRef/.test(source);
+    });
+
+    expect(violations).toEqual([]);
+  });
+
   test("smoke subprocess env removes parent smoke vars unless explicitly overridden", () => {
     const previousReportRoot = process.env.AIRBOB_SMOKE_REPORT_ROOT;
     const previousEditAccommodationId =

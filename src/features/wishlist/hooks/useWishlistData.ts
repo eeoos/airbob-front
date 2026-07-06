@@ -1,7 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { recentlyViewedApi, wishlistApi } from "../../../api";
 import { useApiError } from "../../../hooks/useApiError";
+import { useHandledQueryError } from "../../../query/useHandledQueryError";
 import {
   invalidateWishlistCollectionCaches,
   removeRecentlyViewedAccommodationFromCache,
@@ -33,74 +34,31 @@ export function useWishlistData({
     wishlistId: selectedWishlistId,
     enabled: Boolean(selectedWishlistId) && !showRecentlyViewed,
   });
-  const handledErrorUpdatedAtRef = useRef({
-    detail: 0,
-    recentlyViewed: 0,
-    wishlists: 0,
-  });
 
   useEffect(() => {
     clearError();
   }, [clearError]);
 
-  useEffect(() => {
-    if (
-      !recentlyViewedQuery.isError ||
-      !recentlyViewedQuery.error ||
-      handledErrorUpdatedAtRef.current.recentlyViewed ===
-        recentlyViewedQuery.errorUpdatedAt
-    ) {
-      return;
-    }
+  useHandledQueryError({
+    error: recentlyViewedQuery.error,
+    errorUpdatedAt: recentlyViewedQuery.errorUpdatedAt,
+    isError: recentlyViewedQuery.isError,
+    onError: handleError,
+  });
 
-    handledErrorUpdatedAtRef.current.recentlyViewed =
-      recentlyViewedQuery.errorUpdatedAt;
-    handleError(recentlyViewedQuery.error);
-  }, [
-    handleError,
-    recentlyViewedQuery.error,
-    recentlyViewedQuery.errorUpdatedAt,
-    recentlyViewedQuery.isError,
-  ]);
+  useHandledQueryError({
+    error: wishlistsQuery.error,
+    errorUpdatedAt: wishlistsQuery.errorUpdatedAt,
+    isError: wishlistsQuery.isError,
+    onError: handleError,
+  });
 
-  useEffect(() => {
-    if (
-      !wishlistsQuery.isError ||
-      !wishlistsQuery.error ||
-      handledErrorUpdatedAtRef.current.wishlists ===
-        wishlistsQuery.errorUpdatedAt
-    ) {
-      return;
-    }
-
-    handledErrorUpdatedAtRef.current.wishlists = wishlistsQuery.errorUpdatedAt;
-    handleError(wishlistsQuery.error);
-  }, [
-    handleError,
-    wishlistsQuery.error,
-    wishlistsQuery.errorUpdatedAt,
-    wishlistsQuery.isError,
-  ]);
-
-  useEffect(() => {
-    if (
-      !wishlistDetailQuery.isError ||
-      !wishlistDetailQuery.error ||
-      handledErrorUpdatedAtRef.current.detail ===
-        wishlistDetailQuery.errorUpdatedAt
-    ) {
-      return;
-    }
-
-    handledErrorUpdatedAtRef.current.detail =
-      wishlistDetailQuery.errorUpdatedAt;
-    handleError(wishlistDetailQuery.error);
-  }, [
-    handleError,
-    wishlistDetailQuery.error,
-    wishlistDetailQuery.errorUpdatedAt,
-    wishlistDetailQuery.isError,
-  ]);
+  useHandledQueryError({
+    error: wishlistDetailQuery.error,
+    errorUpdatedAt: wishlistDetailQuery.errorUpdatedAt,
+    isError: wishlistDetailQuery.isError,
+    onError: handleError,
+  });
 
   const recentlyViewed = recentlyViewedQuery.data?.accommodations ?? [];
   const wishlists = useMemo(

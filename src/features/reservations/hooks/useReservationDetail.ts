@@ -1,30 +1,19 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback } from "react";
 import { useApiError } from "../../../hooks/useApiError";
+import { useHandledQueryError } from "../../../query/useHandledQueryError";
 import { useReservationDetailQuery } from "./useReservationDetailQuery";
 
 export function useReservationDetail(reservationUid?: string) {
   const { error, handleError, clearError } = useApiError();
-  const handledErrorUpdatedAtRef = useRef(0);
   const detailQuery = useReservationDetailQuery(reservationUid);
   const { refetch } = detailQuery;
 
-  useEffect(() => {
-    if (
-      !detailQuery.isError ||
-      !detailQuery.error ||
-      handledErrorUpdatedAtRef.current === detailQuery.errorUpdatedAt
-    ) {
-      return;
-    }
-
-    handledErrorUpdatedAtRef.current = detailQuery.errorUpdatedAt;
-    handleError(detailQuery.error);
-  }, [
-    detailQuery.error,
-    detailQuery.errorUpdatedAt,
-    detailQuery.isError,
-    handleError,
-  ]);
+  useHandledQueryError({
+    error: detailQuery.error,
+    errorUpdatedAt: detailQuery.errorUpdatedAt,
+    isError: detailQuery.isError,
+    onError: handleError,
+  });
 
   const reload = useCallback(async () => {
     if (!reservationUid) return;

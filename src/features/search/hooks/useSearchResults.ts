@@ -5,6 +5,7 @@ import {
 } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { accommodationApi } from "../../../api";
+import { useHandledQueryError } from "../../../query/useHandledQueryError";
 import {
   AccommodationSearchInfo,
   AccommodationSearchRequest,
@@ -117,7 +118,6 @@ export const useSearchResults = ({
   const pendingPageResetRef = useRef<string | null>(null);
   const pendingScrollToTopRef = useRef<string | null>(null);
   const activeSearchParamsRef = useRef<string | null>(null);
-  const handledErrorUpdatedAtRef = useRef(0);
   const [placeholderWishlistOverrides, setPlaceholderWishlistOverrides] =
     useState<Record<number, boolean>>({});
   const searchParamsString = searchParams.toString();
@@ -289,27 +289,19 @@ export const useSearchResults = ({
     );
   }, [searchResultsQuery.dataUpdatedAt, searchResultsQuery.isPlaceholderData]);
 
-  useEffect(() => {
-    if (
-      !searchResultsQuery.isError ||
-      !searchResultsQuery.error ||
-      handledErrorUpdatedAtRef.current === searchResultsQuery.errorUpdatedAt
-    ) {
-      return;
-    }
-
-    handledErrorUpdatedAtRef.current = searchResultsQuery.errorUpdatedAt;
+  const handleSearchResultsError = useCallback((queryError: unknown) => {
     if (pendingScrollToTopRef.current === searchParamsString) {
       pendingScrollToTopRef.current = null;
     }
-    handleError(searchResultsQuery.error);
-  }, [
-    handleError,
-    searchParamsString,
-    searchResultsQuery.error,
-    searchResultsQuery.errorUpdatedAt,
-    searchResultsQuery.isError,
-  ]);
+    handleError(queryError);
+  }, [handleError, searchParamsString]);
+
+  useHandledQueryError({
+    error: searchResultsQuery.error,
+    errorUpdatedAt: searchResultsQuery.errorUpdatedAt,
+    isError: searchResultsQuery.isError,
+    onError: handleSearchResultsError,
+  });
 
   const searchResponse = searchResultsQuery.data;
   const { currentPage, totalPages, totalElements } =

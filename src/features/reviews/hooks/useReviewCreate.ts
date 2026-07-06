@@ -1,7 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { reviewApi } from "../../../api";
 import { useApiError } from "../../../hooks/useApiError";
+import { useHandledQueryError } from "../../../query/useHandledQueryError";
 import { ReservationDetailInfo } from "../../../types/reservation";
 import { invalidateAccommodationReviewCaches } from "../../accommodations/publicCache";
 import { useReservationDetailQuery } from "../../reservations/appShell";
@@ -28,7 +29,6 @@ export type SubmitReviewResult =
 export function useReviewCreate(reservationUid?: string) {
   const queryClient = useQueryClient();
   const { error, handleError, clearError } = useApiError();
-  const handledErrorUpdatedAtRef = useRef(0);
   const reservationDetailQuery = useReservationDetailQuery(reservationUid);
   const { refetch } = reservationDetailQuery;
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,23 +45,12 @@ export function useReviewCreate(reservationUid?: string) {
     await refetch();
   }, [clearError, refetch, reservationUid]);
 
-  useEffect(() => {
-    if (
-      !reservationDetailQuery.isError ||
-      !reservationDetailQuery.error ||
-      handledErrorUpdatedAtRef.current === reservationDetailQuery.errorUpdatedAt
-    ) {
-      return;
-    }
-
-    handledErrorUpdatedAtRef.current = reservationDetailQuery.errorUpdatedAt;
-    handleError(reservationDetailQuery.error);
-  }, [
-    handleError,
-    reservationDetailQuery.error,
-    reservationDetailQuery.errorUpdatedAt,
-    reservationDetailQuery.isError,
-  ]);
+  useHandledQueryError({
+    error: reservationDetailQuery.error,
+    errorUpdatedAt: reservationDetailQuery.errorUpdatedAt,
+    isError: reservationDetailQuery.isError,
+    onError: handleError,
+  });
 
   const invalidateReviewCreateCaches = useCallback(
     async (reviewedReservation: ReservationDetailInfo) => {

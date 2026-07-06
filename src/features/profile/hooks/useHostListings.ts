@@ -1,7 +1,8 @@
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
 import { accommodationApi } from "../../../api";
 import { useApiError } from "../../../hooks/useApiError";
+import { useHandledQueryError } from "../../../query/useHandledQueryError";
 import {
   MyAccommodationInfo,
   MyAccommodationInfos,
@@ -24,7 +25,6 @@ const getHostListingsParamsSignature = (statusType: HostListingStatusType) => {
 export function useHostListings(statusType: HostListingStatusType) {
   const queryClient = useQueryClient();
   const { error, handleError, clearError } = useApiError();
-  const handledErrorUpdatedAtRef = useRef(0);
   const queryKey = useMemo(
     () => profileQueryKeys.hostListings(getHostListingsParamsSignature(statusType)),
     [statusType],
@@ -57,21 +57,12 @@ export function useHostListings(statusType: HostListingStatusType) {
     [hostListingsQuery.data],
   );
 
-  useEffect(() => {
-    if (
-      !hostListingsQuery.error ||
-      handledErrorUpdatedAtRef.current === hostListingsQuery.errorUpdatedAt
-    ) {
-      return;
-    }
-
-    handledErrorUpdatedAtRef.current = hostListingsQuery.errorUpdatedAt;
-    handleError(hostListingsQuery.error);
-  }, [
-    hostListingsQuery.error,
-    hostListingsQuery.errorUpdatedAt,
-    handleError,
-  ]);
+  useHandledQueryError({
+    error: hostListingsQuery.error,
+    errorUpdatedAt: hostListingsQuery.errorUpdatedAt,
+    isError: hostListingsQuery.isError,
+    onError: handleError,
+  });
 
   const loadMore = useCallback(async () => {
     if (
