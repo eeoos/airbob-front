@@ -141,7 +141,10 @@ describe("useAccommodationReviews", () => {
           sortType: ReviewSortType.LATEST,
         }),
       ),
-    ).toEqual(firstPageResponse);
+    ).toEqual({
+      pages: [firstPageResponse],
+      pageParams: [undefined],
+    });
     expect(
       queryClient.getQueryData([
         "accommodation",
@@ -204,11 +207,18 @@ describe("useAccommodationReviews", () => {
   it("appends reviews when fetching with a cursor", async () => {
     const firstPage = [createReview(1)];
     const secondPage = [createReview(2)];
+    const firstPageResponse = createReviewResponse(
+      firstPage,
+      true,
+      "cursor-1",
+    );
+    const secondPageResponse = createReviewResponse(secondPage, false, null);
     jest
       .mocked(reviewApi.getReviews)
-      .mockResolvedValueOnce(createReviewResponse(firstPage, true, "cursor-1"))
-      .mockResolvedValueOnce(createReviewResponse(secondPage, false, null));
+      .mockResolvedValueOnce(firstPageResponse)
+      .mockResolvedValueOnce(secondPageResponse);
 
+    const { queryClient, wrapper } = createWrapperWithClient();
     const { result } = renderHook(
       () =>
         useAccommodationReviews({
@@ -217,7 +227,7 @@ describe("useAccommodationReviews", () => {
           handleError: mockHandleError,
           clearError: mockClearError,
         }),
-      { wrapper: createWrapper() },
+      { wrapper },
     );
 
     await waitFor(() => expect(result.current.reviewCursor).toBe("cursor-1"));
@@ -226,9 +236,35 @@ describe("useAccommodationReviews", () => {
       await result.current.fetchReviews("cursor-1");
     });
 
+    await waitFor(() =>
+      expect(result.current.allReviews).toEqual([...firstPage, ...secondPage]),
+    );
+
     expect(result.current.reviews).toEqual(firstPage);
-    expect(result.current.allReviews).toEqual([...firstPage, ...secondPage]);
     expect(result.current.hasMoreReviews).toBe(false);
+    expect(
+      queryClient.getQueryData(
+        accommodationQueryKeys.reviews({
+          accommodationId: "7",
+          cursor: null,
+          size: 6,
+          sortType: ReviewSortType.LATEST,
+        }),
+      ),
+    ).toEqual({
+      pages: [firstPageResponse, secondPageResponse],
+      pageParams: [undefined, "cursor-1"],
+    });
+    expect(
+      queryClient.getQueryData(
+        accommodationQueryKeys.reviews({
+          accommodationId: "7",
+          cursor: "cursor-1",
+          size: 6,
+          sortType: ReviewSortType.LATEST,
+        }),
+      ),
+    ).toBeUndefined();
   });
 
   it("ignores a cursor page that resolves after switching accommodations", async () => {

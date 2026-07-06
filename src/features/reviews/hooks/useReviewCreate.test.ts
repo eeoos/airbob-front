@@ -105,8 +105,9 @@ describe("useReviewCreate", () => {
       .mocked(reservationApi.getMyReservationDetail)
       .mockResolvedValue(reservation);
 
+    const { queryClient, wrapper } = createWrapper();
     const { result } = renderHook(() => useReviewCreate("reservation-123"), {
-      wrapper: createWrapper().wrapper,
+      wrapper,
     });
 
     expect(result.current.isLoading).toBe(true);
@@ -116,6 +117,11 @@ describe("useReviewCreate", () => {
     expect(reservationApi.getMyReservationDetail).toHaveBeenCalledWith(
       "reservation-123"
     );
+    expect(
+      queryClient.getQueryData(
+        reservationQueryKeys.guestReservationDetail("reservation-123"),
+      ),
+    ).toEqual(reservation);
     expect(result.current.reservation).toEqual(reservation);
   });
 
@@ -136,6 +142,11 @@ describe("useReviewCreate", () => {
     });
 
     await waitFor(() => expect(result.current.reservation).toEqual(reservation));
+    expect(
+      queryClient.getQueryData(
+        reservationQueryKeys.guestReservationDetail("reservation-123"),
+      ),
+    ).toEqual(reservation);
 
     let submitResult: Awaited<ReturnType<typeof result.current.submitReview>>;
     await act(async () => {

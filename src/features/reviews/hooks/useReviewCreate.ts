@@ -1,9 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useState } from "react";
-import { reservationApi, reviewApi } from "../../../api";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { reviewApi } from "../../../api";
 import { useApiError } from "../../../hooks/useApiError";
 import { ReservationDetailInfo } from "../../../types/reservation";
 import { accommodationQueryKeys } from "../../accommodations/queryKeys";
+import { useReservationDetailQuery } from "../../reservations/hooks/useReservationDetailQuery";
 import { reservationQueryKeys } from "../../reservations/queryKeys";
 
 export const REVIEW_IMAGE_UPLOAD_ERROR_MESSAGE =
@@ -27,37 +28,40 @@ export type SubmitReviewResult =
 export function useReviewCreate(reservationUid?: string) {
   const queryClient = useQueryClient();
   const { error, handleError, clearError } = useApiError();
-  const [reservation, setReservation] =
-    useState<ReservationDetailInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(Boolean(reservationUid));
+  const handledErrorUpdatedAtRef = useRef(0);
+  const reservationDetailQuery = useReservationDetailQuery(reservationUid);
+  const { refetch } = reservationDetailQuery;
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const reservation =
+    reservationDetailQuery.isError ? null : reservationDetailQuery.data ?? null;
 
   const reload = useCallback(async () => {
     if (!reservationUid) {
-      setReservation(null);
-      setIsLoading(false);
       return;
     }
 
-    setIsLoading(true);
     clearError();
-
-    try {
-      const response = await reservationApi.getMyReservationDetail(
-        reservationUid
-      );
-      setReservation(response);
-    } catch (err) {
-      setReservation(null);
-      handleError(err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [clearError, handleError, reservationUid]);
+    await refetch();
+  }, [clearError, refetch, reservationUid]);
 
   useEffect(() => {
-    reload();
-  }, [reload]);
+    if (
+      !reservationDetailQuery.isError ||
+      !reservationDetailQuery.error ||
+      handledErrorUpdatedAtRef.current === reservationDetailQuery.errorUpdatedAt
+    ) {
+      return;
+    }
+
+    handledErrorUpdatedAtRef.current = reservationDetailQuery.errorUpdatedAt;
+    handleError(reservationDetailQuery.error);
+  }, [
+    handleError,
+    reservationDetailQuery.error,
+    reservationDetailQuery.errorUpdatedAt,
+    reservationDetailQuery.isError,
+  ]);
 
   const invalidateReviewCreateCaches = useCallback(
     async (reviewedReservation: ReservationDetailInfo) => {
@@ -135,7 +139,7 @@ export function useReviewCreate(reservationUid?: string) {
     clearError,
     error,
     handleError,
-    isLoading,
+    isLoading: reservationDetailQuery.isLoading,
     isSubmitting,
     reload,
     reservation,
