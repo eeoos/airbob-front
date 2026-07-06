@@ -7,6 +7,7 @@
 - Keep TanStack Query as the server-state layer.
 - Keep backend/API/DB/server contracts unchanged.
 - Defer CRA-to-Vite migration until structure and smoke gates are stable.
+- Feature-to-feature route composition uses explicit `appShell.ts` seams; public `index.ts` barrels remain route-container-only for page adapters.
 
 ## Verification Gate
 
