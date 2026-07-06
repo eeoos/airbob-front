@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { AccommodationDetail } from "../../types/accommodation";
+import type { CouponInfo } from "../../types/coupon";
 import type { ReviewInfo } from "../../types/review";
 import { AccommodationDetailRoute } from "./AccommodationDetailRoute";
 
@@ -29,8 +30,14 @@ let mockBookingCardProps: {
   nights?: number;
   onReserve?: () => void;
   payablePrice?: number;
+  coupons?: CouponInfo[];
+  isLoadingCoupons?: boolean;
+  selectedCoupon?: CouponInfo | null;
   selectedCouponId?: number | null;
   setSelectedCouponId?: (couponId: number | null) => void;
+  issuingCouponId?: number | null;
+  couponDiscount?: number;
+  handleIssueCoupon?: (coupon: CouponInfo) => void | Promise<void>;
 };
 
 jest.mock("../../hooks/useApiError", () => ({
@@ -421,8 +428,14 @@ describe("AccommodationDetailRoute", () => {
       couponState: expect.any(Object),
       couponActions: expect.any(Object),
     });
+    expect(mockBookingCardProps.coupons).toBeUndefined();
+    expect(mockBookingCardProps.isLoadingCoupons).toBeUndefined();
+    expect(mockBookingCardProps.selectedCoupon).toBeUndefined();
     expect(mockBookingCardProps.selectedCouponId).toBeUndefined();
     expect(mockBookingCardProps.setSelectedCouponId).toBeUndefined();
+    expect(mockBookingCardProps.issuingCouponId).toBeUndefined();
+    expect(mockBookingCardProps.couponDiscount).toBeUndefined();
+    expect(mockBookingCardProps.handleIssueCoupon).toBeUndefined();
   });
 
   it("renders the loaded route shell with save, booking, overview, and reviews", () => {
