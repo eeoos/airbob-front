@@ -192,8 +192,11 @@ describe("useReviewCreate", () => {
       .mocked(reviewApi.uploadImages)
       .mockRejectedValue(new Error("upload failed"));
 
+    const { queryClient, wrapper } = createWrapper();
+    const invalidateQueriesSpy = jest.spyOn(queryClient, "invalidateQueries");
+
     const { result } = renderHook(() => useReviewCreate("reservation-123"), {
-      wrapper: createWrapper().wrapper,
+      wrapper,
     });
 
     await waitFor(() => expect(result.current.reservation).toEqual(reservation));
@@ -213,6 +216,15 @@ describe("useReviewCreate", () => {
     expect(submitResult!).toEqual({
       status: "upload_failed",
       reservationUid: "reservation-123",
+    });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: reservationQueryKeys.guestReservationDetail("reservation-123"),
+    });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: reservationQueryKeys.guestReservationsRoot,
+    });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: accommodationQueryKeys.reviewsRoot("7"),
     });
     expect(result.current.isSubmitting).toBe(false);
   });

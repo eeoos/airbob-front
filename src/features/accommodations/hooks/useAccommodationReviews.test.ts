@@ -267,6 +267,52 @@ describe("useAccommodationReviews", () => {
     ).toBeUndefined();
   });
 
+  it("does not start duplicate cursor requests while the next page is already loading", async () => {
+    const firstPage = [createReview(1)];
+    const secondPage = [createReview(2)];
+    const nextPageRequest = createDeferred<ReviewInfos>();
+    jest
+      .mocked(reviewApi.getReviews)
+      .mockResolvedValueOnce(createReviewResponse(firstPage, true, "cursor-1"))
+      .mockReturnValueOnce(nextPageRequest.promise);
+
+    const { result } = renderHook(
+      () =>
+        useAccommodationReviews({
+          accommodationId: "7",
+          totalReviewCount: 12,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.reviewCursor).toBe("cursor-1"));
+
+    act(() => {
+      void result.current.fetchReviews("cursor-1");
+      void result.current.fetchReviews("cursor-1");
+    });
+
+    await waitFor(() =>
+      expect(
+        jest.mocked(reviewApi.getReviews).mock.calls.filter(
+          ([, params]) => params?.cursor === "cursor-1",
+        ),
+      ).toHaveLength(1),
+    );
+    expect(reviewApi.getReviews).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      nextPageRequest.resolve(createReviewResponse(secondPage, false, null));
+    });
+
+    await waitFor(() =>
+      expect(result.current.allReviews).toEqual([...firstPage, ...secondPage]),
+    );
+    expect(reviewApi.getReviews).toHaveBeenCalledTimes(2);
+  });
+
   it("ignores a cursor page that resolves after switching accommodations", async () => {
     const firstAccommodationFirstPage = [createReview(1)];
     const firstAccommodationSecondPage = [createReview(2)];
