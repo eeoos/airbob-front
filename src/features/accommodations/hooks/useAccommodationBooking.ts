@@ -1,13 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { reservationApi } from "../../../api";
 import { AccommodationDetail } from "../../../types/accommodation";
 import { CouponInfo } from "../../../types/coupon";
-import { routeTo } from "../../../routes/paths";
-import type { ReservationCheckoutState } from "../../reservations/lib/reservationCheckoutState";
 import { formatCheckoutDateParam } from "../../reservations/lib/paymentRouteState";
-import {
-  saveReservationCheckoutState,
-} from "../../reservations/lib/reservationCheckoutState";
+import { startReservationCheckoutHandoff } from "../../reservations/lib/reservationCheckoutHandoff";
 
 type SetSearchParams = (
   nextParams: URLSearchParams,
@@ -60,18 +55,6 @@ interface CouponSelectionInput {
   selectedCoupon: CouponInfo | null;
   selectedCouponId: number | null;
   couponDiscount: number;
-}
-
-interface ReservationCheckoutInput {
-  adultCount: number;
-  childCount: number;
-  checkIn: string;
-  checkOut: string;
-  couponDiscount: number;
-  infantCount: number;
-  petCount: number;
-  reservationResponse: Awaited<ReturnType<typeof reservationApi.create>>;
-  selectedCoupon: CouponInfo | null;
 }
 
 const clampNumber = (value: number, min: number, max: number) =>
@@ -217,44 +200,6 @@ const handoffReservationAuth = (
 
   onRequireAuth(action);
   return true;
-};
-
-const buildReservationCheckoutState = ({
-  adultCount,
-  childCount,
-  checkIn,
-  checkOut,
-  couponDiscount,
-  infantCount,
-  petCount,
-  reservationResponse,
-  selectedCoupon,
-}: ReservationCheckoutInput): ReservationCheckoutState => ({
-  reservationUid: reservationResponse.reservation_uid,
-  orderName: reservationResponse.order_name,
-  amount: reservationResponse.amount,
-  customerEmail: reservationResponse.customer_email,
-  customerName: reservationResponse.customer_name,
-  checkIn,
-  checkOut,
-  adultOccupancy: adultCount,
-  childOccupancy: childCount,
-  infantOccupancy: infantCount,
-  petOccupancy: petCount,
-  couponName:
-    couponDiscount > 0 && selectedCoupon ? selectedCoupon.name : null,
-  couponDiscount: couponDiscount > 0 ? couponDiscount : null,
-});
-
-const navigateToReservationConfirm = (
-  accommodationId: string,
-  checkoutState: ReservationCheckoutState,
-  navigate: UseAccommodationBookingOptions["navigate"],
-) => {
-  saveReservationCheckoutState(accommodationId, checkoutState);
-  navigate(routeTo.accommodationConfirm(accommodationId), {
-    state: checkoutState,
-  });
 };
 
 export const useAccommodationBooking = ({
@@ -474,9 +419,6 @@ export const useAccommodationBooking = ({
     clearError();
 
     try {
-      const checkInStr = formatDateForUrl(validCheckIn);
-      const checkOutStr = formatDateForUrl(validCheckOut);
-      const guestCount = adultCount + childCount;
       const reservationCoupon = selectReservationCoupon({
         reserveCouponState,
         selectedCoupon,
@@ -484,27 +426,20 @@ export const useAccommodationBooking = ({
         couponDiscount,
       });
 
-      const reservationResponse = await reservationApi.create({
-        accommodation_id: accommodation.id,
-        check_in_date: checkInStr,
-        check_out_date: checkOutStr,
-        guest_count: guestCount,
-        coupon_id:
-          reservationCoupon.discount > 0 ? reservationCoupon.couponId : null,
-      });
-
-      const checkoutState = buildReservationCheckoutState({
-        reservationResponse,
-        checkIn: checkInStr,
-        checkOut: checkOutStr,
+      await startReservationCheckoutHandoff({
+        accommodationId: accommodation.id,
+        checkIn: validCheckIn,
+        checkOut: validCheckOut,
         adultCount,
         childCount,
-        couponDiscount: reservationCoupon.discount,
         infantCount,
         petCount,
-        selectedCoupon: reservationCoupon.coupon,
+        couponId:
+          reservationCoupon.discount > 0 ? reservationCoupon.couponId : null,
+        couponName: reservationCoupon.coupon?.name ?? null,
+        couponDiscount: reservationCoupon.discount,
+        navigate,
       });
-      navigateToReservationConfirm(accommodationId, checkoutState, navigate);
     } catch (error) {
       handleError(error);
     } finally {

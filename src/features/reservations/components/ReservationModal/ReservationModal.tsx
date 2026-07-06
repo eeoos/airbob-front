@@ -39,7 +39,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
   const { error, handleError, clearError } = useApiError();
   const {
     isLoading,
-    startReservationPayment,
+    startReservationPayment: startReservationCheckout,
   } = useReservationPayment({
     clearError,
     handleError,
@@ -127,7 +127,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
       return;
     }
 
-    await startReservationPayment({
+    await startReservationCheckout({
       accommodationId: accommodation.id,
       checkIn: propCheckIn,
       checkOut: propCheckOut,

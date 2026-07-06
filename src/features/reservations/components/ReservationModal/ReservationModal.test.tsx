@@ -151,6 +151,13 @@ describe("ReservationModal", () => {
       check_out_date: "2026-07-12",
       guest_count: 2,
     });
-    expect(document.querySelector("#payment-widget")).toBeNull();
+    expect(
+      JSON.parse(sessionStorage.getItem("airbob:reservation-checkout:7") ?? "{}")
+    ).toEqual(
+      expect.objectContaining({
+        reservationUid: "res-123",
+        customerEmail: "user@example.com",
+      })
+    );
   });
 });
