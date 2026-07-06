@@ -50,3 +50,9 @@
 - Run `npm audit` and prioritize direct dependency upgrades.
 - Plan CRA-to-Vite/Vitest migration as a separate branch.
 - Keep `verify:design-ready` browser-backed because strict smoke still depends on external QA credentials, route UIDs, browser binary, frontend server, and backend server.
+
+## Architecture Freeze
+
+- Freeze criteria now live in `docs/architecture/frontend-architecture-freeze.ko.md`.
+- Future frontend structure audits should start from the freeze criteria instead of restarting a full-app audit.
+- Design work should proceed screen-by-screen after `npm run verify:structure` passes.

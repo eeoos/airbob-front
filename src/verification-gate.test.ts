@@ -14,6 +14,10 @@ const architectureDocPath = path.join(
   projectRoot,
   "docs/architecture/frontend-structure-refactor.md",
 );
+const architectureFreezeDocPath = path.join(
+  projectRoot,
+  "docs/architecture/frontend-architecture-freeze.ko.md",
+);
 const envExamplePath = path.join(projectRoot, ".env.example");
 const frontendSmokePath = path.join(projectRoot, "scripts/smoke/frontend-smoke.mjs");
 const sourceRoot = path.join(projectRoot, "src");
@@ -394,6 +398,24 @@ describe("frontend verification gate", () => {
       "AIRBOB_SMOKE_RESERVATION_UID=replace-with-stable-reservation-uid",
     ].forEach((term) => {
       expect(envExample).toContain(term);
+    });
+  });
+
+  test("frontend architecture freeze criteria are documented", () => {
+    expect(fs.existsSync(architectureFreezeDocPath)).toBe(true);
+
+    const freezeDoc = fs.readFileSync(architectureFreezeDocPath, "utf8");
+
+    [
+      "구조 freeze 기준",
+      "Production feature 파일은 다른 feature의 private surface를 직접 import하지 않는다.",
+      "Cross-feature 사용은 appShell.ts 또는 publicCache.ts를 통한다.",
+      "SearchRoute는 화면 렌더링을 담당하고 useSearchRouteController가 route orchestration을 소유한다.",
+      "Query 에러 toast 중복 방지는 useHandledQueryError가 소유한다.",
+      "AuthProvider는 provider 역할을 맡고 sessionLifecycle이 세션 side effect를 소유한다.",
+      "Airbnb 스타일 시각 리팩토링은 이 문서의 freeze gate 통과 뒤 화면 단위로 진행한다.",
+    ].forEach((term) => {
+      expect(freezeDoc).toContain(term);
     });
   });
 

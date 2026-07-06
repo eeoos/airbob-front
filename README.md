@@ -34,6 +34,21 @@ npm run verify:design-ready
 - `smoke:frontend:preflight`: validates smoke env names, dynamic route fixture IDs, browser binary path, frontend URL, and backend reachability without screenshots.
 - `verify:design-ready`: runs `verify:pre-redesign` and strict browser smoke.
 
+### Frontend Architecture Freeze
+
+구조 리팩토링 종료 기준은 `docs/architecture/frontend-architecture-freeze.ko.md`에 기록되어 있습니다.
+
+```bash
+npm run verify:structure
+npm run test:ci:no-cache -- --runInBand src/verification-gate.test.ts
+```
+
+브라우저 기반 smoke까지 확인하려면 QA 계정, 안정적인 reservation UID, 프론트/백엔드 서버, `GSTACK_BROWSE_BIN`을 준비한 뒤 실행합니다.
+
+```bash
+npm run verify:design-ready
+```
+
 Required smoke environment variables:
 
 - `AIRBOB_QA_EMAIL`
