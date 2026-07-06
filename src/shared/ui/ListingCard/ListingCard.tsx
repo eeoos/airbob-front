@@ -38,9 +38,9 @@ export function ListingCard({
 }: ListingCardProps) {
   return (
     <article
+      {...cardProps}
       aria-selected={selected}
       className={cx(styles.card, selected && styles.selected, className)}
-      {...cardProps}
     >
       {imageUrl && (
         <img className={styles.image} src={imageUrl} alt={imageAlt ?? title} />

@@ -12,4 +12,10 @@ describe("PageShell", () => {
     expect(screen.getByRole("main", { name: "검색 결과" })).toBeInTheDocument();
     expect(screen.getByText("content")).toBeInTheDocument();
   });
+
+  it("keeps the title as the accessible page label", () => {
+    render(<PageShell title="검색 결과" aria-label="override" />);
+
+    expect(screen.getByRole("main", { name: "검색 결과" })).toBeInTheDocument();
+  });
 });

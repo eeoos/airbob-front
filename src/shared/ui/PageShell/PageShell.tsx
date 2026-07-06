@@ -5,7 +5,7 @@ export interface PageShellProps
   extends Omit<React.HTMLAttributes<HTMLElement>, "title"> {
   title: string;
   actions?: React.ReactNode;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   contentClassName?: string;
   description?: React.ReactNode;
 }
@@ -24,9 +24,9 @@ export function PageShell({
 }: PageShellProps) {
   return (
     <main
+      {...shellProps}
       aria-label={title}
       className={cx(styles.shell, className)}
-      {...shellProps}
     >
       <header className={styles.header}>
         <div className={styles.headingGroup}>

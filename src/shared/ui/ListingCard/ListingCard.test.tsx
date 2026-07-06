@@ -17,4 +17,16 @@ describe("ListingCard", () => {
     expect(screen.getByText("서울 한옥")).toBeInTheDocument();
     expect(screen.getByRole("article")).toHaveAttribute("aria-selected", "true");
   });
+
+  it("keeps selected as the source of aria-selected", () => {
+    render(
+      <ListingCard
+        title="서울 한옥"
+        selected
+        aria-selected={false}
+      />
+    );
+
+    expect(screen.getByRole("article")).toHaveAttribute("aria-selected", "true");
+  });
 });
