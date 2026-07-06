@@ -15,10 +15,11 @@ describe("ListingCard", () => {
 
     expect(screen.getByRole("img", { name: "서울 한옥 숙소 사진" })).toBeInTheDocument();
     expect(screen.getByText("서울 한옥")).toBeInTheDocument();
-    expect(screen.getByRole("article")).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("article")).toHaveAttribute("data-selected", "true");
+    expect(screen.getByRole("article")).not.toHaveAttribute("aria-selected");
   });
 
-  it("keeps selected as the source of aria-selected", () => {
+  it("keeps selected as the source of visual selected state", () => {
     render(
       <ListingCard
         title="서울 한옥"
@@ -27,6 +28,7 @@ describe("ListingCard", () => {
       />
     );
 
-    expect(screen.getByRole("article")).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("article")).toHaveAttribute("data-selected", "true");
+    expect(screen.getByRole("article")).not.toHaveAttribute("aria-selected");
   });
 });

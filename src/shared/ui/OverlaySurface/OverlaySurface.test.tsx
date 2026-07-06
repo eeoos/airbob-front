@@ -2,15 +2,21 @@ import { render, screen } from "@testing-library/react";
 import { OverlaySurface } from "./OverlaySurface";
 import styles from "./OverlaySurface.module.css";
 
+const unnamedDialogVariantSurface = (
+  // @ts-expect-error dialog variant surfaces require an accessible name.
+  <OverlaySurface variant="dialog">내용</OverlaySurface>
+);
+void unnamedDialogVariantSurface;
+
 describe("OverlaySurface", () => {
-  it("renders popovers as labelled dialogs by default", () => {
+  it("renders popovers as groups by default", () => {
     render(
-      <OverlaySurface variant="popover" aria-label="필터">
+      <OverlaySurface variant="popover">
         필터 내용
       </OverlaySurface>
     );
 
-    expect(screen.getByRole("dialog", { name: "필터" })).toBeInTheDocument();
+    expect(screen.getByRole("group")).toHaveClass(styles.popover);
   });
 
   it("allows callers to override the accessibility role", () => {
@@ -23,10 +29,20 @@ describe("OverlaySurface", () => {
     expect(screen.getByRole("menu", { name: "정렬" })).toBeInTheDocument();
   });
 
+  it("requires dialog role surfaces to have an accessible name", () => {
+    expect(() =>
+      render(
+        <OverlaySurface {...({ role: "dialog" } as any)}>
+          확인 내용
+        </OverlaySurface>
+      )
+    ).toThrow("OverlaySurface dialog role requires an accessible name.");
+  });
+
   it("applies variant classes for bottom sheets and dialogs", () => {
     render(
       <>
-        <OverlaySurface variant="bottom-sheet" aria-label="예약 옵션">
+        <OverlaySurface variant="bottom-sheet">
           예약 내용
         </OverlaySurface>
         <OverlaySurface variant="dialog" aria-label="확인">
@@ -35,9 +51,7 @@ describe("OverlaySurface", () => {
       </>
     );
 
-    expect(screen.getByRole("dialog", { name: "예약 옵션" })).toHaveClass(
-      styles.bottomSheet
-    );
+    expect(screen.getByRole("group")).toHaveClass(styles.bottomSheet);
     expect(screen.getByRole("dialog", { name: "확인" })).toHaveClass(
       styles.dialog
     );

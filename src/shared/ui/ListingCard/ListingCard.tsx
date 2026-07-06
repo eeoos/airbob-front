@@ -27,6 +27,7 @@ const cx = (...classNames: Array<string | false | undefined>) =>
 
 export function ListingCard({
   actions,
+  "aria-selected": _ariaSelected,
   children,
   className,
   imageAlt,
@@ -39,7 +40,7 @@ export function ListingCard({
   return (
     <article
       {...cardProps}
-      aria-selected={selected}
+      data-selected={selected ? "true" : undefined}
       className={cx(styles.card, selected && styles.selected, className)}
     >
       {imageUrl && (
