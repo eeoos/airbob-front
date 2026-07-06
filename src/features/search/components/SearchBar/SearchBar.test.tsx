@@ -10,6 +10,14 @@ jest.mock("../../hooks/useSearchBarState", () => ({
 }));
 
 type SearchBarState = ReturnType<typeof useSearchBarState>;
+type SearchBarStateOverrides = {
+  destination?: Partial<SearchBarState["destination"]>;
+  dates?: Partial<SearchBarState["dates"]>;
+  guests?: Partial<SearchBarState["guests"]>;
+  popover?: Partial<SearchBarState["popover"]>;
+  actions?: Partial<SearchBarState["actions"]>;
+  status?: Partial<SearchBarState["status"]>;
+};
 
 const mockUseSearchBarState = useSearchBarState as jest.MockedFunction<
   typeof useSearchBarState
@@ -30,106 +38,70 @@ const getCssBlock = (source: string, selector: string) => {
 };
 
 const createSearchBarState = (
-  overrides: Record<string, unknown> = {}
+  overrides: SearchBarStateOverrides = {}
 ): SearchBarState => {
   const state = {
-    checkIn: null,
-    checkOut: null,
-    adultOccupancy: 1,
-    childOccupancy: 0,
-    infantOccupancy: 0,
-    petOccupancy: 0,
-    isExpanded: false,
-    showGuestPicker: false,
-    showDatePicker: false,
-    isComposing: false,
-    isOpeningDatePicker: false,
-    isOpeningGuestPicker: false,
-    showSuggestions: false,
-    inputText: "",
-    suggestions: [],
-    isPlacesLoading: false,
-    selectedPlace: null,
-    setAdultOccupancy: jest.fn(),
-    setChildOccupancy: jest.fn(),
-    setInfantOccupancy: jest.fn(),
-    setPetOccupancy: jest.fn(),
-    setExpanded: jest.fn(),
-    setShowGuestPicker: jest.fn(),
-    setShowDatePicker: jest.fn(),
-    setIsComposing: jest.fn(),
-    setIsOpeningDatePicker: jest.fn(),
-    setIsOpeningGuestPicker: jest.fn(),
-    setShowSuggestions: jest.fn(),
-    handleInputChange: jest.fn(),
-    handlePlaceSelect: jest.fn(),
-    resetPlaces: jest.fn(),
-    startNewSession: jest.fn(),
-    handleSearch: jest.fn(),
-    exitMapDragMode: jest.fn(),
-    completeCheckoutIfNeeded: jest.fn(),
-    closeTransientPanels: jest.fn(),
-    openDatePicker: jest.fn(),
-    toggleGuestPicker: jest.fn(),
-    handleDateSelect: jest.fn(),
-    getTotalGuests: jest.fn(() => 1),
-    ...overrides,
-  };
-
-  return {
     destination: {
-      inputText: state.inputText,
-      suggestions: state.suggestions,
-      selectedPlace: state.selectedPlace,
+      inputText: "",
+      suggestions: [],
+      selectedPlace: null,
+      ...overrides.destination,
     },
     dates: {
-      checkIn: state.checkIn,
-      checkOut: state.checkOut,
+      checkIn: null,
+      checkOut: null,
+      ...overrides.dates,
     },
     guests: {
-      adultOccupancy: state.adultOccupancy,
-      childOccupancy: state.childOccupancy,
-      infantOccupancy: state.infantOccupancy,
-      petOccupancy: state.petOccupancy,
-      getTotalGuests: state.getTotalGuests,
+      adultOccupancy: 1,
+      childOccupancy: 0,
+      infantOccupancy: 0,
+      petOccupancy: 0,
+      getTotalGuests: jest.fn(() => 1),
+      ...overrides.guests,
     },
     popover: {
-      isExpanded: state.isExpanded,
-      showGuestPicker: state.showGuestPicker,
-      showDatePicker: state.showDatePicker,
-      isComposing: state.isComposing,
-      isOpeningDatePicker: state.isOpeningDatePicker,
-      isOpeningGuestPicker: state.isOpeningGuestPicker,
-      showSuggestions: state.showSuggestions,
+      isExpanded: false,
+      showGuestPicker: false,
+      showDatePicker: false,
+      isComposing: false,
+      isOpeningDatePicker: false,
+      isOpeningGuestPicker: false,
+      showSuggestions: false,
+      ...overrides.popover,
     },
     actions: {
-      setAdultOccupancy: state.setAdultOccupancy,
-      setChildOccupancy: state.setChildOccupancy,
-      setInfantOccupancy: state.setInfantOccupancy,
-      setPetOccupancy: state.setPetOccupancy,
-      setExpanded: state.setExpanded,
-      setShowGuestPicker: state.setShowGuestPicker,
-      setShowDatePicker: state.setShowDatePicker,
-      setIsComposing: state.setIsComposing,
-      setIsOpeningDatePicker: state.setIsOpeningDatePicker,
-      setIsOpeningGuestPicker: state.setIsOpeningGuestPicker,
-      setShowSuggestions: state.setShowSuggestions,
-      handleInputChange: state.handleInputChange,
-      handlePlaceSelect: state.handlePlaceSelect,
-      resetPlaces: state.resetPlaces,
-      startNewSession: state.startNewSession,
-      handleSearch: state.handleSearch,
-      exitMapDragMode: state.exitMapDragMode,
-      completeCheckoutIfNeeded: state.completeCheckoutIfNeeded,
-      closeTransientPanels: state.closeTransientPanels,
-      openDatePicker: state.openDatePicker,
-      toggleGuestPicker: state.toggleGuestPicker,
-      handleDateSelect: state.handleDateSelect,
+      setAdultOccupancy: jest.fn(),
+      setChildOccupancy: jest.fn(),
+      setInfantOccupancy: jest.fn(),
+      setPetOccupancy: jest.fn(),
+      setExpanded: jest.fn(),
+      setShowGuestPicker: jest.fn(),
+      setShowDatePicker: jest.fn(),
+      setIsComposing: jest.fn(),
+      setIsOpeningDatePicker: jest.fn(),
+      setIsOpeningGuestPicker: jest.fn(),
+      setShowSuggestions: jest.fn(),
+      handleInputChange: jest.fn(),
+      handlePlaceSelect: jest.fn(),
+      resetPlaces: jest.fn(),
+      startNewSession: jest.fn(),
+      handleSearch: jest.fn(),
+      exitMapDragMode: jest.fn(),
+      completeCheckoutIfNeeded: jest.fn(),
+      closeTransientPanels: jest.fn(),
+      openDatePicker: jest.fn(),
+      toggleGuestPicker: jest.fn(),
+      handleDateSelect: jest.fn(),
+      ...overrides.actions,
     },
     status: {
-      isPlacesLoading: state.isPlacesLoading,
+      isPlacesLoading: false,
+      ...overrides.status,
     },
-  } as SearchBarState;
+  } satisfies SearchBarState;
+
+  return state;
 };
 
 const seoulSuggestion = {
@@ -140,18 +112,27 @@ const seoulSuggestion = {
 };
 
 const renderExpandedSearchBarWithSuggestions = (
-  overrides: Record<string, unknown> = {}
+  overrides: SearchBarStateOverrides = {}
 ) => {
   const handlePlaceSelect = jest.fn();
 
   mockUseSearchBarState.mockReturnValue(
     createSearchBarState({
-      isExpanded: true,
-      showSuggestions: true,
-      inputText: "서",
-      suggestions: [seoulSuggestion],
-      handlePlaceSelect,
       ...overrides,
+      destination: {
+        inputText: "서",
+        suggestions: [seoulSuggestion],
+        ...overrides.destination,
+      },
+      popover: {
+        isExpanded: true,
+        showSuggestions: true,
+        ...overrides.popover,
+      },
+      actions: {
+        handlePlaceSelect,
+        ...overrides.actions,
+      },
     })
   );
 
@@ -209,7 +190,7 @@ describe("SearchBar", () => {
 
   it("renders date and guest segments as disclosure buttons", () => {
     mockUseSearchBarState.mockReturnValue(
-      createSearchBarState({ isExpanded: true })
+      createSearchBarState({ popover: { isExpanded: true } })
     );
 
     render(<SearchBar />);
@@ -230,9 +211,11 @@ describe("SearchBar", () => {
   it("links expanded date and guest panels to their triggers", () => {
     mockUseSearchBarState.mockReturnValue(
       createSearchBarState({
-        isExpanded: true,
-        showDatePicker: true,
-        showGuestPicker: true,
+        popover: {
+          isExpanded: true,
+          showDatePicker: true,
+          showGuestPicker: true,
+        },
       })
     );
 
@@ -261,8 +244,10 @@ describe("SearchBar", () => {
   ])("labels the %s counter button", (label) => {
     mockUseSearchBarState.mockReturnValue(
       createSearchBarState({
-        isExpanded: true,
-        showGuestPicker: true,
+        popover: {
+          isExpanded: true,
+          showGuestPicker: true,
+        },
       })
     );
 
@@ -296,22 +281,28 @@ describe("SearchBar", () => {
 
     mockUseSearchBarState.mockReturnValue(
       createSearchBarState({
-        isExpanded: true,
-        inputText: "서",
-        selectedPlace: {
-          placeId: "stale-place",
-          lat: 37.5665,
-          lng: 126.978,
-          viewport: {
-            north: 37.7,
-            south: 37.4,
-            east: 127.1,
-            west: 126.8,
+        destination: {
+          inputText: "서",
+          selectedPlace: {
+            placeId: "stale-place",
+            lat: 37.5665,
+            lng: 126.978,
+            viewport: {
+              north: 37.7,
+              south: 37.4,
+              east: 127.1,
+              west: 126.8,
+            },
           },
         },
-        handleInputChange,
-        resetPlaces,
-        setShowSuggestions,
+        popover: {
+          isExpanded: true,
+        },
+        actions: {
+          handleInputChange,
+          resetPlaces,
+          setShowSuggestions,
+        },
       })
     );
 
@@ -335,16 +326,22 @@ describe("SearchBar", () => {
 
     mockUseSearchBarState.mockReturnValue(
       createSearchBarState({
-        isExpanded: true,
-        showGuestPicker: true,
-        adultOccupancy: 1,
-        childOccupancy: 0,
-        infantOccupancy: 0,
-        petOccupancy: 0,
-        setAdultOccupancy,
-        setChildOccupancy,
-        setInfantOccupancy,
-        setPetOccupancy,
+        guests: {
+          adultOccupancy: 1,
+          childOccupancy: 0,
+          infantOccupancy: 0,
+          petOccupancy: 0,
+        },
+        popover: {
+          isExpanded: true,
+          showGuestPicker: true,
+        },
+        actions: {
+          setAdultOccupancy,
+          setChildOccupancy,
+          setInfantOccupancy,
+          setPetOccupancy,
+        },
       })
     );
 
@@ -377,10 +374,14 @@ describe("SearchBar", () => {
 
     mockUseSearchBarState.mockReturnValue(
       createSearchBarState({
-        isExpanded: true,
-        showDatePicker: true,
-        closeTransientPanels,
-        handleSearch,
+        popover: {
+          isExpanded: true,
+          showDatePicker: true,
+        },
+        actions: {
+          closeTransientPanels,
+          handleSearch,
+        },
       })
     );
 
@@ -399,9 +400,13 @@ describe("SearchBar", () => {
 
     mockUseSearchBarState.mockReturnValue(
       createSearchBarState({
-        isExpanded: true,
-        showGuestPicker: true,
-        setShowGuestPicker,
+        popover: {
+          isExpanded: true,
+          showGuestPicker: true,
+        },
+        actions: {
+          setShowGuestPicker,
+        },
       })
     );
 

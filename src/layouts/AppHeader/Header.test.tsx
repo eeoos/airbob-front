@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { readFileSync } from "fs";
 import React from "react";
 import { Header } from "./Header";
 
@@ -87,6 +88,19 @@ describe("Header", () => {
     render(<Header headerMode="hidden" />);
 
     expect(screen.queryAllByTestId("header-search-bar")).toHaveLength(0);
+  });
+
+  it("centers mobile menu contents in the wrapped header row", () => {
+    const css = readFileSync(`${__dirname}/Header.module.css`, "utf8");
+
+    expect(css).toContain(
+      [
+        "  .menu {",
+        "    display: flex;",
+        "    align-items: center;",
+        "  }",
+      ].join("\n")
+    );
   });
 
   it("passes map drag mode only when all viewport params are valid", () => {
