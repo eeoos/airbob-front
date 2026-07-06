@@ -120,12 +120,29 @@ describe("useSearchBarState", () => {
       expect(mockHandleInputChange).toHaveBeenCalledWith("Seoul");
     });
 
-    expect(getLocalDateKey(result.current.checkIn)).toBe("2026-07-10");
-    expect(getLocalDateKey(result.current.checkOut)).toBe("2026-07-12");
-    expect(result.current.adultOccupancy).toBe(2);
-    expect(result.current.childOccupancy).toBe(1);
-    expect(result.current.infantOccupancy).toBe(1);
-    expect(result.current.petOccupancy).toBe(1);
+    expect(getLocalDateKey(result.current.dates.checkIn)).toBe("2026-07-10");
+    expect(getLocalDateKey(result.current.dates.checkOut)).toBe("2026-07-12");
+    expect(result.current.guests.adultOccupancy).toBe(2);
+    expect(result.current.guests.childOccupancy).toBe(1);
+    expect(result.current.guests.infantOccupancy).toBe(1);
+    expect(result.current.guests.petOccupancy).toBe(1);
+  });
+
+  it("returns grouped state instead of exposing every field at the top level", () => {
+    const { result } = renderHook(() => useSearchBarState());
+
+    expect(result.current).toEqual(
+      expect.objectContaining({
+        destination: expect.any(Object),
+        dates: expect.any(Object),
+        guests: expect.any(Object),
+        popover: expect.any(Object),
+        actions: expect.any(Object),
+        status: expect.any(Object),
+      })
+    );
+    expect(result.current).not.toHaveProperty("checkIn");
+    expect(result.current).not.toHaveProperty("handleSearch");
   });
 
   it("syncs search bar state when URL search params change after mount", async () => {
@@ -138,12 +155,12 @@ describe("useSearchBarState", () => {
     await waitFor(() => {
       expect(mockHandleInputChange).toHaveBeenCalledWith("Seoul");
     });
-    expect(getLocalDateKey(result.current.checkIn)).toBe("2026-07-10");
-    expect(getLocalDateKey(result.current.checkOut)).toBe("2026-07-12");
-    expect(result.current.adultOccupancy).toBe(2);
-    expect(result.current.childOccupancy).toBe(1);
-    expect(result.current.infantOccupancy).toBe(1);
-    expect(result.current.petOccupancy).toBe(1);
+    expect(getLocalDateKey(result.current.dates.checkIn)).toBe("2026-07-10");
+    expect(getLocalDateKey(result.current.dates.checkOut)).toBe("2026-07-12");
+    expect(result.current.guests.adultOccupancy).toBe(2);
+    expect(result.current.guests.childOccupancy).toBe(1);
+    expect(result.current.guests.infantOccupancy).toBe(1);
+    expect(result.current.guests.petOccupancy).toBe(1);
 
     mockHandleInputChange.mockClear();
     currentSearchParams = new URLSearchParams(
@@ -154,12 +171,12 @@ describe("useSearchBarState", () => {
     await waitFor(() => {
       expect(mockHandleInputChange).toHaveBeenCalledWith("Busan");
     });
-    expect(getLocalDateKey(result.current.checkIn)).toBe("2026-08-01");
-    expect(getLocalDateKey(result.current.checkOut)).toBe("2026-08-04");
-    expect(result.current.adultOccupancy).toBe(4);
-    expect(result.current.childOccupancy).toBe(2);
-    expect(result.current.infantOccupancy).toBe(1);
-    expect(result.current.petOccupancy).toBe(1);
+    expect(getLocalDateKey(result.current.dates.checkIn)).toBe("2026-08-01");
+    expect(getLocalDateKey(result.current.dates.checkOut)).toBe("2026-08-04");
+    expect(result.current.guests.adultOccupancy).toBe(4);
+    expect(result.current.guests.childOccupancy).toBe(2);
+    expect(result.current.guests.infantOccupancy).toBe(1);
+    expect(result.current.guests.petOccupancy).toBe(1);
 
     mockHandleInputChange.mockClear();
     currentSearchParams = new URLSearchParams();
@@ -168,12 +185,12 @@ describe("useSearchBarState", () => {
     await waitFor(() => {
       expect(mockHandleInputChange).toHaveBeenCalledWith("");
     });
-    expect(result.current.checkIn).toBeNull();
-    expect(result.current.checkOut).toBeNull();
-    expect(result.current.adultOccupancy).toBe(1);
-    expect(result.current.childOccupancy).toBe(0);
-    expect(result.current.infantOccupancy).toBe(0);
-    expect(result.current.petOccupancy).toBe(0);
+    expect(result.current.dates.checkIn).toBeNull();
+    expect(result.current.dates.checkOut).toBeNull();
+    expect(result.current.guests.adultOccupancy).toBe(1);
+    expect(result.current.guests.childOccupancy).toBe(0);
+    expect(result.current.guests.infantOccupancy).toBe(0);
+    expect(result.current.guests.petOccupancy).toBe(0);
   });
 
   it("falls back to defaults for malformed URL dates and guest counts", async () => {
@@ -186,12 +203,12 @@ describe("useSearchBarState", () => {
     await waitFor(() => {
       expect(mockHandleInputChange).toHaveBeenCalledWith("Seoul");
     });
-    expect(result.current.checkIn).toBeNull();
-    expect(result.current.checkOut).toBeNull();
-    expect(result.current.adultOccupancy).toBe(1);
-    expect(result.current.childOccupancy).toBe(0);
-    expect(result.current.infantOccupancy).toBe(0);
-    expect(result.current.petOccupancy).toBe(0);
+    expect(result.current.dates.checkIn).toBeNull();
+    expect(result.current.dates.checkOut).toBeNull();
+    expect(result.current.guests.adultOccupancy).toBe(1);
+    expect(result.current.guests.childOccupancy).toBe(0);
+    expect(result.current.guests.infantOccupancy).toBe(0);
+    expect(result.current.guests.petOccupancy).toBe(0);
   });
 
   it("clears stale selected place when URL sync changes the destination", async () => {
@@ -228,7 +245,7 @@ describe("useSearchBarState", () => {
     rerender();
 
     act(() => {
-      result.current.handleSearch();
+      result.current.actions.handleSearch();
     });
 
     const navigatedUrl = mockNavigate.mock.calls[0][0] as string;
@@ -266,7 +283,7 @@ describe("useSearchBarState", () => {
     expect(mockResetPlaces).not.toHaveBeenCalled();
 
     act(() => {
-      result.current.handleSearch();
+      result.current.actions.handleSearch();
     });
 
     expect(mockNavigate).toHaveBeenCalledWith(
@@ -284,27 +301,27 @@ describe("useSearchBarState", () => {
     const { result } = renderHook(() => useSearchBarState());
 
     act(() => {
-      result.current.handleSearch();
+      result.current.actions.handleSearch();
     });
 
     expect(mockNavigate).toHaveBeenCalledWith(
       "/search?destination=Busan&adultOccupancy=1&childOccupancy=0&infantOccupancy=0&petOccupancy=0"
     );
-    expect(result.current.showDatePicker).toBe(false);
-    expect(result.current.showGuestPicker).toBe(false);
-    expect(result.current.showSuggestions).toBe(false);
+    expect(result.current.popover.showDatePicker).toBe(false);
+    expect(result.current.popover.showGuestPicker).toBe(false);
+    expect(result.current.popover.showSuggestions).toBe(false);
   });
 
   it("uses the latest typed destination for route-ready search submission", () => {
     const { result, rerender } = renderHook(() => useSearchBarState());
 
     act(() => {
-      result.current.handleInputChange("Gangneung");
+      result.current.actions.handleInputChange("Gangneung");
     });
     rerender();
 
     act(() => {
-      result.current.handleSearch();
+      result.current.actions.handleSearch();
     });
 
     expect(mockHandleInputChange).toHaveBeenCalledWith("Gangneung");
@@ -317,30 +334,30 @@ describe("useSearchBarState", () => {
     const { result } = renderHook(() => useSearchBarState());
 
     act(() => {
-      result.current.handleDateSelect(
+      result.current.actions.handleDateSelect(
         new Date(2026, 6, 12),
         new Date(2026, 6, 10)
       );
     });
 
-    expect(getLocalDateKey(result.current.checkIn)).toBe("2026-07-10");
-    expect(getLocalDateKey(result.current.checkOut)).toBe("2026-07-12");
+    expect(getLocalDateKey(result.current.dates.checkIn)).toBe("2026-07-10");
+    expect(getLocalDateKey(result.current.dates.checkOut)).toBe("2026-07-12");
   });
 
   it("clamps guest count setters to their minimum values", () => {
     const { result } = renderHook(() => useSearchBarState());
 
     act(() => {
-      result.current.setAdultOccupancy(0);
-      result.current.setChildOccupancy(-1);
-      result.current.setInfantOccupancy(-1);
-      result.current.setPetOccupancy(-1);
+      result.current.actions.setAdultOccupancy(0);
+      result.current.actions.setChildOccupancy(-1);
+      result.current.actions.setInfantOccupancy(-1);
+      result.current.actions.setPetOccupancy(-1);
     });
 
-    expect(result.current.adultOccupancy).toBe(1);
-    expect(result.current.childOccupancy).toBe(0);
-    expect(result.current.infantOccupancy).toBe(0);
-    expect(result.current.petOccupancy).toBe(0);
+    expect(result.current.guests.adultOccupancy).toBe(1);
+    expect(result.current.guests.childOccupancy).toBe(0);
+    expect(result.current.guests.infantOccupancy).toBe(0);
+    expect(result.current.guests.petOccupancy).toBe(0);
   });
 
   it("builds search params from router params instead of browser global search", () => {
@@ -353,7 +370,7 @@ describe("useSearchBarState", () => {
     const { result } = renderHook(() => useSearchBarState());
 
     act(() => {
-      result.current.handleSearch();
+      result.current.actions.handleSearch();
     });
 
     expect(mockNavigate).toHaveBeenCalledWith(
@@ -379,7 +396,7 @@ describe("useSearchBarState", () => {
     const { result } = renderHook(() => useSearchBarState({ onSearch }));
 
     act(() => {
-      result.current.handleSearch();
+      result.current.actions.handleSearch();
     });
 
     expect(onSearch).toHaveBeenCalledWith({
@@ -419,7 +436,7 @@ describe("useSearchBarState", () => {
     const { result } = renderHook(() => useSearchBarState());
 
     act(() => {
-      result.current.handleSearch();
+      result.current.actions.handleSearch();
     });
 
     expect(mockNavigate).toHaveBeenCalledWith(
@@ -432,21 +449,21 @@ describe("useSearchBarState", () => {
     const { result } = renderHook(() => useSearchBarState({ onExpandedChange }));
 
     act(() => {
-      result.current.openDatePicker();
+      result.current.actions.openDatePicker();
     });
 
-    expect(result.current.isExpanded).toBe(true);
-    expect(result.current.showDatePicker).toBe(true);
-    expect(result.current.showGuestPicker).toBe(false);
+    expect(result.current.popover.isExpanded).toBe(true);
+    expect(result.current.popover.showDatePicker).toBe(true);
+    expect(result.current.popover.showGuestPicker).toBe(false);
     expect(onExpandedChange).toHaveBeenCalledWith(true);
 
     act(() => {
-      result.current.toggleGuestPicker();
+      result.current.actions.toggleGuestPicker();
     });
 
-    expect(result.current.isExpanded).toBe(true);
-    expect(result.current.showDatePicker).toBe(false);
-    expect(result.current.showGuestPicker).toBe(true);
+    expect(result.current.popover.isExpanded).toBe(true);
+    expect(result.current.popover.showDatePicker).toBe(false);
+    expect(result.current.popover.showGuestPicker).toBe(true);
   });
 
   it("removes only viewport keys when exiting map drag mode from search page", () => {
@@ -459,7 +476,7 @@ describe("useSearchBarState", () => {
     );
 
     act(() => {
-      result.current.exitMapDragMode();
+      result.current.actions.exitMapDragMode();
     });
 
     expect(mockSetSearchParams).toHaveBeenCalledTimes(1);

@@ -41,7 +41,6 @@ export const Header: React.FC<HeaderProps> = ({ headerMode = "default" }) => {
           <img src={logoImage} alt="" className={styles.logoImage} />
         </Link>
 
-        {/* 데스크탑 검색바 */}
         {shouldRenderSearch && (
           <div
             className={`${styles.searchBar} ${
@@ -59,16 +58,6 @@ export const Header: React.FC<HeaderProps> = ({ headerMode = "default" }) => {
           <UserMenu isLoggedIn={isAuthenticated} />
         </div>
       </div>
-
-      {/* 모바일 검색바 - 로고/메뉴 아래에 항상 표시 */}
-      {shouldRenderSearch && (
-        <div className={styles.mobileSearchRow}>
-          <HeaderSearchBar
-            onExpandedChange={setIsSearchBarExpanded}
-            isMapDragMode={isMapDragMode}
-          />
-        </div>
-      )}
     </header>
   );
 };

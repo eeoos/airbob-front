@@ -30,50 +30,107 @@ const getCssBlock = (source: string, selector: string) => {
 };
 
 const createSearchBarState = (
-  overrides: Partial<SearchBarState> = {}
-): SearchBarState => ({
-  checkIn: null,
-  checkOut: null,
-  adultOccupancy: 1,
-  childOccupancy: 0,
-  infantOccupancy: 0,
-  petOccupancy: 0,
-  isExpanded: false,
-  showGuestPicker: false,
-  showDatePicker: false,
-  isComposing: false,
-  isOpeningDatePicker: false,
-  isOpeningGuestPicker: false,
-  showSuggestions: false,
-  inputText: "",
-  suggestions: [],
-  isPlacesLoading: false,
-  selectedPlace: null,
-  setAdultOccupancy: jest.fn(),
-  setChildOccupancy: jest.fn(),
-  setInfantOccupancy: jest.fn(),
-  setPetOccupancy: jest.fn(),
-  setExpanded: jest.fn(),
-  setShowGuestPicker: jest.fn(),
-  setShowDatePicker: jest.fn(),
-  setIsComposing: jest.fn(),
-  setIsOpeningDatePicker: jest.fn(),
-  setIsOpeningGuestPicker: jest.fn(),
-  setShowSuggestions: jest.fn(),
-  handleInputChange: jest.fn(),
-  handlePlaceSelect: jest.fn(),
-  resetPlaces: jest.fn(),
-  startNewSession: jest.fn(),
-  handleSearch: jest.fn(),
-  exitMapDragMode: jest.fn(),
-  completeCheckoutIfNeeded: jest.fn(),
-  closeTransientPanels: jest.fn(),
-  openDatePicker: jest.fn(),
-  toggleGuestPicker: jest.fn(),
-  handleDateSelect: jest.fn(),
-  getTotalGuests: jest.fn(() => 1),
-  ...overrides,
-});
+  overrides: Record<string, unknown> = {}
+): SearchBarState => {
+  const state = {
+    checkIn: null,
+    checkOut: null,
+    adultOccupancy: 1,
+    childOccupancy: 0,
+    infantOccupancy: 0,
+    petOccupancy: 0,
+    isExpanded: false,
+    showGuestPicker: false,
+    showDatePicker: false,
+    isComposing: false,
+    isOpeningDatePicker: false,
+    isOpeningGuestPicker: false,
+    showSuggestions: false,
+    inputText: "",
+    suggestions: [],
+    isPlacesLoading: false,
+    selectedPlace: null,
+    setAdultOccupancy: jest.fn(),
+    setChildOccupancy: jest.fn(),
+    setInfantOccupancy: jest.fn(),
+    setPetOccupancy: jest.fn(),
+    setExpanded: jest.fn(),
+    setShowGuestPicker: jest.fn(),
+    setShowDatePicker: jest.fn(),
+    setIsComposing: jest.fn(),
+    setIsOpeningDatePicker: jest.fn(),
+    setIsOpeningGuestPicker: jest.fn(),
+    setShowSuggestions: jest.fn(),
+    handleInputChange: jest.fn(),
+    handlePlaceSelect: jest.fn(),
+    resetPlaces: jest.fn(),
+    startNewSession: jest.fn(),
+    handleSearch: jest.fn(),
+    exitMapDragMode: jest.fn(),
+    completeCheckoutIfNeeded: jest.fn(),
+    closeTransientPanels: jest.fn(),
+    openDatePicker: jest.fn(),
+    toggleGuestPicker: jest.fn(),
+    handleDateSelect: jest.fn(),
+    getTotalGuests: jest.fn(() => 1),
+    ...overrides,
+  };
+
+  return {
+    destination: {
+      inputText: state.inputText,
+      suggestions: state.suggestions,
+      selectedPlace: state.selectedPlace,
+    },
+    dates: {
+      checkIn: state.checkIn,
+      checkOut: state.checkOut,
+    },
+    guests: {
+      adultOccupancy: state.adultOccupancy,
+      childOccupancy: state.childOccupancy,
+      infantOccupancy: state.infantOccupancy,
+      petOccupancy: state.petOccupancy,
+      getTotalGuests: state.getTotalGuests,
+    },
+    popover: {
+      isExpanded: state.isExpanded,
+      showGuestPicker: state.showGuestPicker,
+      showDatePicker: state.showDatePicker,
+      isComposing: state.isComposing,
+      isOpeningDatePicker: state.isOpeningDatePicker,
+      isOpeningGuestPicker: state.isOpeningGuestPicker,
+      showSuggestions: state.showSuggestions,
+    },
+    actions: {
+      setAdultOccupancy: state.setAdultOccupancy,
+      setChildOccupancy: state.setChildOccupancy,
+      setInfantOccupancy: state.setInfantOccupancy,
+      setPetOccupancy: state.setPetOccupancy,
+      setExpanded: state.setExpanded,
+      setShowGuestPicker: state.setShowGuestPicker,
+      setShowDatePicker: state.setShowDatePicker,
+      setIsComposing: state.setIsComposing,
+      setIsOpeningDatePicker: state.setIsOpeningDatePicker,
+      setIsOpeningGuestPicker: state.setIsOpeningGuestPicker,
+      setShowSuggestions: state.setShowSuggestions,
+      handleInputChange: state.handleInputChange,
+      handlePlaceSelect: state.handlePlaceSelect,
+      resetPlaces: state.resetPlaces,
+      startNewSession: state.startNewSession,
+      handleSearch: state.handleSearch,
+      exitMapDragMode: state.exitMapDragMode,
+      completeCheckoutIfNeeded: state.completeCheckoutIfNeeded,
+      closeTransientPanels: state.closeTransientPanels,
+      openDatePicker: state.openDatePicker,
+      toggleGuestPicker: state.toggleGuestPicker,
+      handleDateSelect: state.handleDateSelect,
+    },
+    status: {
+      isPlacesLoading: state.isPlacesLoading,
+    },
+  } as SearchBarState;
+};
 
 const seoulSuggestion = {
   placeId: "place-1",
@@ -83,7 +140,7 @@ const seoulSuggestion = {
 };
 
 const renderExpandedSearchBarWithSuggestions = (
-  overrides: Partial<SearchBarState> = {}
+  overrides: Record<string, unknown> = {}
 ) => {
   const handlePlaceSelect = jest.fn();
 

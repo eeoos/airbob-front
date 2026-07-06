@@ -191,6 +191,12 @@
   height: 100%;
 }
 
+.selected {
+  outline: 2px solid var(--color-brand-coral);
+  outline-offset: 2px;
+  box-shadow: var(--focus-ring);
+}
+
 /* ---- Mid-Desktop (1200-1400px) ---- */
 @media (max-width: 1400px) {
   .main {

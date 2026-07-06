@@ -54,13 +54,6 @@
   flex-shrink: 0;
 }
 
-/* 모바일 검색바 행 - 기본적으로 숨김 */
-.mobileSearchRow {
-  display: none;
-  padding: var(--space-3) 0 var(--space-4) 0;
-  background: var(--color-background-page);
-}
-
 @media (max-width: 768px) {
   .header {
     padding: 0 var(--space-4);
@@ -71,21 +64,28 @@
   }
 
   .container {
-    height: 60px;
-    gap: var(--space-3);
+    height: auto;
+    min-height: 60px;
+    flex-wrap: wrap;
+    gap: 0 var(--space-3);
   }
 
   .logoImage {
     height: var(--space-10);
   }
 
-  .searchBar {
-    display: none; /* 모바일에서는 데스크탑 검색바 숨김 */
+  .logo,
+  .menu {
+    min-height: 60px;
   }
 
-  /* 모바일에서 검색바 행 표시 */
-  .mobileSearchRow {
-    display: block;
+  .searchBar {
+    order: 3;
+    flex: 0 0 100%;
+    max-width: none;
+    margin: 0;
+    padding: var(--space-3) 0 var(--space-4) 0;
+    background: var(--color-background-page);
   }
 }
 
