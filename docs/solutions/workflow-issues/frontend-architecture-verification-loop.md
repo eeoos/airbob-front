@@ -11,6 +11,7 @@ applies_when:
   - Frontend architecture refactors must be verified before Airbnb design styling
   - Verification needs static contract tests plus authenticated desktop and mobile browser QA
   - QA credentials are needed for smoke testing but must not be committed or documented
+  - Structure-first refactors need route, feature cache, Query, and shared UI primitive boundaries locked before broad styling
 tags: [frontend-architecture, verification-loop, browser-qa, contract-tests, credential-hygiene, responsive-qa, route-boundaries, dto-boundaries]
 related_components: [testing_framework, documentation, tooling]
 ---
@@ -50,11 +51,15 @@ The final QA run also made live fixture setup executable. Unfiltered reservation
 
 The final DTO-boundary review found one more false-confidence mode: a presentation boundary test can pass while only scanning the obvious card components. Map integrations, raw HTML builders, index views, and detail route containers can still read server-shaped fields directly. The corrective action was to map Search cards and Search map items separately, add host reservation detail and wishlist index/recent-view view models, and expand the DTO-mapped presentation allowlist to every production presentation file that must not import server DTO types.
 
+The July 6 structure-first refactor added a narrower lesson: moving files is not enough unless the moved boundary is consumed and tested. Route shell metadata moved into component-free route definitions and `MainLayout` now passes the matched `headerMode` into the header. Reservation and host-listing server state moved further into Query-backed hooks, which required provider-backed async tests instead of synchronous hook assertions. Search and wishlist cache coordination moved behind public cache modules so features no longer reach through private query keys. Booking/payment props were grouped by route-state boundary, and pre-redesign shared primitives (`PageShell`, `ListingCard`, `OverlaySurface`) gained semantic contracts before Airbnb styling began.
+
 ## Guidance
 
 Run an explicit architecture verification loop before starting visual design work. Treat the loop as a release gate, not as a best-effort checklist.
 
 First, freeze the architecture ownership rules in tests. Route tests should prove that URL/auth/layout policy is centralized in `routes/*`. Domain hook tests should prove that API state lives under `features/*`. Shared primitive tests should prove that reusable UI remains domain-free. Token tests should prevent legacy app-level z-index literals from returning after `styles/tokens.css` becomes the overlay source of truth.
+
+For route shell work, keep metadata component-free and prove that at least one real consumer uses every shell field. A route definition with `headerMode: "search"` is incomplete until the layout resolves the current pathname and passes that mode to the header. Otherwise the route table looks centralized while the app still behaves from duplicated component logic.
 
 Second, make the QA smoke doc part of the gate. The doc should cover both desktop and mobile sections, and tests should check the sections independently. Do not only assert that terms appear somewhere in the file, because that allows a desktop-only checklist to satisfy a mobile requirement by accident.
 
@@ -72,15 +77,21 @@ Eighth, force cross-layer dependencies through public seams. Layouts can use rou
 
 Ninth, make public route barrels route-only. A page adapter importing from `features/reservations` or `features/reviews` should receive route containers, not hooks, helpers, panels, constants, or internal component building blocks. Feature-owned composition can still import internal panels directly from sibling modules, but that should happen inside the feature boundary. If a route barrel exports `useSomething`, `Panel`, `components`, `hooks`, or `lib`, the page layer has an easy path back into orchestration.
 
+Apply the same rule to cross-feature cache behavior. A feature that needs another feature's cache should import a public cache helper, not private query keys or sync internals. Boundary tests should check both deep private paths and public barrels, because a broad barrel can re-export the private seam and make the import look acceptable.
+
 Tenth, treat CSS ownership as part of the architecture boundary. A route container that lives under `features/*` should not import a CSS module from `pages/**`; the stylesheet moves with the route container or into a shared UI primitive. When moving CSS, update token and high-risk fixtures at the same time. Otherwise the design refactor can lose coverage over the exact shell that now owns the route.
 
 Eleventh, treat every temporary architecture allowlist as unresolved debt. The durable loop is: move orchestration, move ownership-adjacent CSS/API seams with it, delete the exception, and assert zero violations. An allowlist can be useful while sequencing a refactor, but it should not survive the readiness gate.
 
 Twelfth, use semantic UI fixes as architecture readiness work, not as visual polish. When converting clickable `div` rows to buttons, prove mouse and keyboard activation. When adding touch target rules to a shared primitive, preserve existing visual size contracts unless the redesign intentionally changes them. This avoids turning accessibility cleanup into a layout regression source immediately before page-level styling.
 
+When adding shared UI primitives before a redesign, encode domain independence and semantic constraints immediately. Product-level primitives can expose visual state through data attributes, but ARIA state must match the element role. Overlay primitives that render as dialogs should require an accessible name at runtime and in tests, so visual styling cannot ship an unnamed modal.
+
 Thirteenth, make DTO-boundary tests follow every presentation surface, not just the first component touched by a refactor. If a route maps an API list into `CardViewModel[]`, also check map markers, InfoWindow HTML helpers, summary/index cards, and detail route containers. A server DTO import in any of those files means a future backend field rename can still break the design pass in a place reviewers are less likely to inspect.
 
 Finally, record design-phase limitations instead of pretending coverage is complete. Search map QA was limited by `RefererNotAllowedMapError`, and live search queries returned zero results. Reservation detail smoke coverage also depends on stable guest and host reservation UIDs. The design phase should use an authorized Google Maps referer, a seeded result query, and valid out-of-band reservation UIDs before treating map and reservation-detail styling as verified. The strict smoke script turns the UID requirement into a gate instead of a note.
+
+Keep verification gates honest about what they are allowed to block. `verify:pre-redesign` should stay focused on typecheck, no-cache tests, and build while it is the proven entry gate for visual work. A separate structure or lint-visibility script can expose existing lint debt without promoting unrelated historical errors into the default readiness gate.
 
 After the final closure pass, the design-ready gate had concrete positive evidence: ES-backed Albany search returned visible result cards, Google Maps key readiness was present without recording the key value, strict dynamic reservation routes were covered on desktop and mobile, and the smoke output guard reported no failures. This is the bar for entering the visual redesign phase.
 
@@ -161,6 +172,19 @@ expect(protectedPaths).toEqual([
 ]);
 ```
 
+Route shell metadata should be tested as both data and behavior:
+
+```ts
+expect(getRouteShellForPathname(ROUTE_PATHS.search)).toMatchObject({
+  id: "search",
+  headerMode: "search",
+  layout: "main",
+});
+
+render(<MainLayout />);
+expect(screen.getByRole("search")).toBeInTheDocument();
+```
+
 A design-ready script should join static and browser gates so a broad visual pass cannot skip either side:
 
 ```json
@@ -194,6 +218,14 @@ featureRouteAdapters.forEach(({ publicImport, routeContainer }) => {
     /(?:\.\/(?:components|hooks|lib)|Panel|use[A-Z]|REVIEW_IMAGE_UPLOAD_ERROR_MESSAGE)/,
   );
 });
+```
+
+Public cache boundaries need a similar direct export check:
+
+```ts
+expect(searchPublicCache).toContain("invalidateSearchResults");
+expect(searchPublicCache).not.toMatch(/queryKeys|cacheSync|hooks/);
+expect(wishlistPublicCache).toContain("updateWishlistMembership");
 ```
 
 The feature-to-page import contract should have no route-container CSS allowlist:
@@ -319,6 +351,28 @@ await userEvent.click(screen.getByRole("button", { name: "닫기" }));
 expect(openButton).toHaveFocus();
 ```
 
+Query-backed hooks need provider-backed tests and async assertions:
+
+```tsx
+const wrapper = ({ children }: PropsWithChildren) => (
+  <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+);
+
+const { result } = renderHook(() => useHostListings("PUBLISHED"), { wrapper });
+
+await waitFor(() => {
+  expect(result.current.isLoading).toBe(false);
+});
+```
+
+Shared card selection styling should avoid invalid ARIA on generic content roles:
+
+```tsx
+<article data-selected={selected ? "true" : undefined}>
+  <h2>{title}</h2>
+</article>
+```
+
 The design handoff should preserve known limitations:
 
 - Start a fresh dev server on an unused port before browser QA if the default port may be stale.
@@ -337,7 +391,10 @@ The design handoff should preserve known limitations:
 - `scripts/smoke/frontend-smoke.mjs` implements the authenticated smoke wrapper, route-specific assertions, credential redaction, and skipped dynamic route reporting.
 - `src/verification-gate.test.ts` locks the verification scripts, QA checklist coverage, and credential-safety checks.
 - `src/routes/routeConfig.test.tsx` locks route/auth/layout ownership in `routes/*`.
+- `src/routes/routeDefinitions.ts` and `src/routes/routeMatching.ts` keep shell metadata component-free and consumable by layouts.
 - `src/routes/route-boundary-contracts.test.ts` locks page/layout/shared UI imports against feature-internal coupling.
+- `src/features/search/publicCache.ts` and `src/features/wishlist/publicCache.ts` are the public cache seams for cross-feature search/wishlist reconciliation.
+- `src/shared/ui/PageShell/*`, `src/shared/ui/ListingCard/*`, and `src/shared/ui/OverlaySurface/*` are the pre-redesign product UI primitives that should stay domain-free.
 - `src/styles/tokens.test.ts` locks global token import order, overlay z-index tokens, and legacy z-index literal prevention.
 - `src/pages/Profile/profile-responsive-contracts.test.ts` locks the Profile mobile overflow fix.
 - `src/features/profile/index.ts`, `src/features/reservations/index.ts`, and `src/features/reviews/index.ts` are route-only public barrels for page adapters.

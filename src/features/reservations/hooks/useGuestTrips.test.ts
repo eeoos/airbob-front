@@ -440,9 +440,12 @@ describe("useGuestTrips", () => {
       });
     });
 
-    expect(result.current.reservations.map((reservation) => reservation.reservation_uid)).toEqual([
-      "guest-1",
-      "guest-2",
-    ]);
+    await waitFor(() =>
+      expect(
+        result.current.reservations.map(
+          (reservation) => reservation.reservation_uid,
+        ),
+      ).toEqual(["guest-1", "guest-2"]),
+    );
   });
 });

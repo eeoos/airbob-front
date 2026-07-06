@@ -7,13 +7,22 @@ Shared domain vocabulary for this project — entities, named processes, and sta
 ### Architecture Verification Loop
 The pre-design workflow that combines static architecture contracts, authenticated browser smoke checks, review passes, and final verification before broad styling work begins.
 
+### Structure-First Refactor
+A behavior-preserving frontend reorganization that makes ownership boundaries executable before visual redesign, framework migration, or broad product styling begins.
+
 ### Verification Gate
 The automated portion of the Architecture Verification Loop that proves type safety, test coverage, production build viability, QA checklist coverage, and credential hygiene before a branch is considered ready for design work.
+
+### Pre-Redesign Gate
+The static verification threshold that must pass before visual styling begins, focused on type safety, deterministic test coverage, and production build viability.
 
 ### Design-Ready Smoke Gate
 The browser-backed portion of the verification workflow that checks route shells at desktop and mobile sizes before broad visual styling begins.
 
 Dynamic data routes in this gate are either covered with out-of-band identifiers or reported as skipped; skipped routes are not treated as verified coverage.
+
+### Lint Visibility Gate
+A non-blocking verification layer that exposes known lint debt without making unrelated historical lint failures decide whether structure work is ready for visual design.
 
 ### Dynamic Smoke Fixture
 An out-of-band data identifier or seeded data condition used to make a dynamic browser smoke route verifiable without hardcoding private or environment-specific values.
@@ -30,6 +39,18 @@ A public feature boundary that exposes only the behavior needed by application s
 A public feature boundary that exposes route containers to page adapters without exposing the feature's workflow internals.
 
 Feature Route Barrels are distinct from Feature App-Shell Entry Points: page adapters use them to mount route containers, while feature-owned containers compose hooks, panels, helpers, and CSS inside the feature boundary.
+
+### Route Shell Metadata
+Route-owned facts about layout, authentication, and header behavior that layouts consume instead of duplicating shell policy inside pages or components.
+
+### Public Cache Boundary
+A feature-owned public API for cache membership, invalidation, or reconciliation that other features may call without importing private query keys or synchronization internals.
+
+### Shared UI Primitive
+A domain-free reusable UI building block whose accessibility and interaction semantics are tested independently from route or feature workflows.
+
+### Query-Backed Hook Test Harness
+A server-state hook test setup that exercises the same provider context and asynchronous state transitions the hook uses at runtime.
 
 ### Thread-Provided QA Account
 The shared test account supplied in the conversation for authenticated QA flows. Its values may be used locally for testing but must not be written into repository files or generated documentation.
