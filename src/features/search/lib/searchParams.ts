@@ -1,7 +1,7 @@
 import { AccommodationSearchRequest } from "../../../types/accommodation";
 import { toCanonicalSearchString } from "../../../shared/lib/urlSearchParams";
+import type { SearchRouteQuery } from "../../../routes/routeQueryContracts";
 import { clampSearchPage } from "./pagination";
-import type { SearchRouteQuery } from "./searchRouteQuery";
 
 export interface SearchViewport {
   north: number;

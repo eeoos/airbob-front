@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import type { NavigateFunction } from "react-router-dom";
 import { routeTo } from "../../routes/paths";
-import type { PaymentFailReason } from "./lib/paymentRouteState";
+import type { PaymentFailReason } from "../../routes/routeQueryContracts";
 import { clearReservationCheckoutStateByReservationUid } from "./lib/reservationCheckoutState";
 import styles from "./PaymentFailRoute.module.css";
 

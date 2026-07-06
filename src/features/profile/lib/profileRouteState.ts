@@ -1,6 +1,12 @@
-import type { ProfileRouteMode, ProfileRouteTab } from "./profileRouteQuery";
+import type {
+  ProfileRouteMode,
+  ProfileRouteTab,
+} from "../../../routes/routeQueryContracts";
 
-export type { ProfileRouteMode, ProfileRouteTab } from "./profileRouteQuery";
+export type {
+  ProfileRouteMode,
+  ProfileRouteTab,
+} from "../../../routes/routeQueryContracts";
 
 export interface ProfileRouteState {
   mode: ProfileRouteMode;

@@ -2,7 +2,6 @@ import { readFileSync, readdirSync } from "fs";
 import { dirname, join, relative, resolve } from "path";
 
 const routesRoot = join(process.cwd(), "src/routes");
-const routePathsFile = join(routesRoot, "paths.ts");
 const layoutsRoot = join(process.cwd(), "src/layouts");
 const featuresRoot = join(process.cwd(), "src/features");
 const searchFeatureRoot = join(featuresRoot, "search");
@@ -13,14 +12,6 @@ const importDeclarationPattern =
   /\b(?:import|export)\s+(?:type\s+)?(?:[\s\S]*?\s+from\s+)?["']([^"']+)["']/g;
 const forbiddenFeatureImportPattern =
   /from\s+["'](?:\.\.\/)+(?:features)(?:\/[^"']*)?["']/;
-// This allowlist must shrink to zero when route query contracts move fully
-// under src/routes or src/shared. Do not add new feature lib imports here.
-const allowedRouteFeatureImportPatterns = [
-  /from\s+["']\.\.\/features\/search\/lib\/searchRouteQuery["']/g,
-  /from\s+["']\.\.\/features\/wishlist\/lib\/wishlistRouteQuery["']/g,
-  /from\s+["']\.\.\/features\/profile\/lib\/profileRouteQuery["']/g,
-  /from\s+["']\.\.\/features\/reservations\/lib\/paymentRouteState["']/g,
-];
 const forbiddenLayoutFeatureDeepImportPattern =
   /from\s+["'](?:\.\.\/)+(?:features\/[^"']+\/(?:components|hooks|lib))(?:\/[^"']*)?["']/;
 const forbiddenPageImportPattern =
@@ -196,28 +187,14 @@ const collectPrivateCrossFeatureImports = (
   });
 
 describe("route boundary contracts", () => {
-  it("keeps route URL contracts limited to domain route query ownership", () => {
+  it("keeps route files from importing feature modules", () => {
     const violations = collectSourceFiles(routesRoot)
-      .filter((filePath) => {
-        const source = readFileSync(filePath, "utf8");
-        const sourceWithoutAllowedImports =
-          filePath === routePathsFile
-            ? allowedRouteFeatureImportPatterns.reduce(
-                (nextSource, allowedPattern) =>
-                  nextSource.replace(allowedPattern, ""),
-                source,
-              )
-            : source;
-
-        return forbiddenFeatureImportPattern.test(sourceWithoutAllowedImports);
-      })
+      .filter((filePath) =>
+        forbiddenFeatureImportPattern.test(readFileSync(filePath, "utf8")),
+      )
       .map((filePath) => relative(projectRoot, filePath));
 
     expect(violations).toEqual([]);
-  });
-
-  it("does not add new route feature import allowlist entries", () => {
-    expect(allowedRouteFeatureImportPatterns).toHaveLength(4);
   });
 
   it("keeps route shell definitions component-free", () => {
