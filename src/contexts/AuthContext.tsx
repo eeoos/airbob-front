@@ -3,12 +3,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import React, { createContext, useContext, useEffect, ReactNode, useCallback } from "react";
 import { authApi } from "../api";
 import { useSessionQuery } from "../features/auth/hooks/useSessionQuery";
-import { authQueryKeys } from "../features/auth/queryKeys";
 import {
-  clearSessionQueryData,
-  refreshSessionQueryData,
-} from "../query/sessionCacheBoundary";
-import { clearAllReservationCheckoutState } from "../features/reservations/lib/reservationCheckoutState";
+  clearAuthenticatedSession,
+  refreshAuthenticatedSession,
+} from "../features/auth/lib/sessionLifecycle";
+import { authQueryKeys } from "../features/auth/queryKeys";
 import { onAuthError } from "../utils/authEvents";
 import { clientLogger } from "../utils/clientLogger";
 import { LoginRequest } from "../types/auth";
@@ -40,19 +39,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const sessionQuery = useSessionQuery();
 
   const clearSession = useCallback(async () => {
-    clearAllReservationCheckoutState();
-    await clearSessionQueryData(queryClient);
+    await clearAuthenticatedSession(queryClient);
   }, [queryClient]);
 
   const refreshSession = useCallback(async () => {
-    try {
-      const meInfo = await authApi.getMe();
-      await refreshSessionQueryData(queryClient, meInfo);
-    } catch (error) {
-      await clearSession();
-      throw error;
-    }
-  }, [clearSession, queryClient]);
+    await refreshAuthenticatedSession(queryClient);
+  }, [queryClient]);
 
   useEffect(() => {
     const handleAuthError = () => {

@@ -148,6 +148,13 @@ describe("auth boundary contracts", () => {
 
   it("keeps AuthContext authentication state behind the auth query boundary", () => {
     const authContextSource = readSource("..", "contexts", "AuthContext.tsx");
+    const sessionLifecycleSource = readSource(
+      "..",
+      "features",
+      "auth",
+      "lib",
+      "sessionLifecycle.ts"
+    );
     const sessionCacheBoundarySource = readSource(
       "..",
       "query",
@@ -162,10 +169,28 @@ describe("auth boundary contracts", () => {
     expect(authContextSource).toMatch(/useSessionQuery\(\s*\)/);
     expect(authContextSource).toMatch(/useQueryClient\(\s*\)/);
     expect(authContextSource).toMatch(/authQueryKeys\.me\(\s*\)/);
-    expect(authContextSource).toMatch(/authApi\.getMe\(\s*\)/);
-    expect(authContextSource).toMatch(/clearSessionQueryData\(\s*queryClient\s*\)/);
     expect(authContextSource).toMatch(
+      /clearAuthenticatedSession\(\s*queryClient\s*\)/
+    );
+    expect(authContextSource).toMatch(
+      /refreshAuthenticatedSession\(\s*queryClient\s*\)/
+    );
+    expect(authContextSource).not.toMatch(/authApi\.getMe\(\s*\)/);
+    expect(authContextSource).not.toMatch(
+      /clearSessionQueryData\(\s*queryClient\s*\)/
+    );
+    expect(authContextSource).not.toMatch(
       /refreshSessionQueryData\(\s*queryClient,\s*meInfo\s*\)/
+    );
+    expect(sessionLifecycleSource).toMatch(/authApi\.getMe\(\s*\)/);
+    expect(sessionLifecycleSource).toMatch(
+      /clearSessionQueryData\(\s*queryClient\s*\)/
+    );
+    expect(sessionLifecycleSource).toMatch(
+      /refreshSessionQueryData\(\s*queryClient,\s*meInfo\s*\)/
+    );
+    expect(sessionLifecycleSource).toMatch(
+      /catch\s*\([^)]*\)\s*{[\s\S]*clearAuthenticatedSession\(\s*queryClient\s*\)/
     );
     expect(sessionCacheBoundarySource).toMatch(/authQueryKeys\.me\(\s*\)/);
     expect(sessionCacheBoundarySource).toMatch(
