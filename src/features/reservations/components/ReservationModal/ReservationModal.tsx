@@ -1,5 +1,5 @@
 import React from "react";
-import { AccommodationDetail } from "../../../../types/accommodation";
+import type { ReservationModalAccommodationViewModel } from "../../lib/reservationModalViewModel";
 import { useApiError } from "../../../../hooks/useApiError";
 import { useAuth } from "../../../../hooks/useAuth";
 import { useReservationPayment } from "../../hooks/useReservationPayment";
@@ -11,7 +11,7 @@ import styles from "./ReservationModal.module.css";
 interface ReservationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  accommodation: AccommodationDetail;
+  accommodation: ReservationModalAccommodationViewModel;
   checkIn: Date | null;
   checkOut: Date | null;
   adultCount: number;
@@ -69,7 +69,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
 
   const calculateTotalPrice = (): number => {
     const nights = calculateNights();
-    return accommodation.base_price * nights;
+    return accommodation.basePrice * nights;
   };
 
   const getGuestText = (): string => {
@@ -153,20 +153,20 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
     >
           {/* 숙소 정보 */}
           <div className={styles.accommodationInfo}>
-            {accommodation.images && accommodation.images.length > 0 && (
+            {accommodation.primaryImageUrl && (
               <img
-                src={getImageUrl(accommodation.images[0].image_url)}
+                src={getImageUrl(accommodation.primaryImageUrl)}
                 alt={accommodation.name}
                 className={styles.accommodationImage}
               />
             )}
             <div className={styles.accommodationDetails}>
               <h3 className={styles.accommodationTitle}>{accommodation.name}</h3>
-              {accommodation.review_summary.total_count > 0 && (
+              {accommodation.rating.reviewCount > 0 && (
                 <div className={styles.accommodationRating}>
                   <span className={styles.star}>★</span>
-                  <span>{accommodation.review_summary.average_rating.toFixed(2)}</span>
-                  <span className={styles.reviewCount}>(후기 {accommodation.review_summary.total_count}개)</span>
+                  <span>{accommodation.rating.averageRating.toFixed(2)}</span>
+                  <span className={styles.reviewCount}>(후기 {accommodation.rating.reviewCount}개)</span>
                 </div>
               )}
             </div>
@@ -211,7 +211,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
           <div className={styles.priceDetails}>
             <div className={styles.priceDetailsTitle}>요금 세부 정보</div>
             <div className={styles.priceRow}>
-              <span>{nights}박 x ₩{accommodation.base_price.toLocaleString()}</span>
+              <span>{nights}박 x ₩{accommodation.basePrice.toLocaleString()}</span>
               <span>₩{totalPrice.toLocaleString()}</span>
             </div>
             <div className={styles.priceRow}>

@@ -1,10 +1,6 @@
 import React from "react";
 import DatePicker from "../../../components/DatePicker/DatePicker";
-import { CouponInfo } from "../../../types/coupon";
-import {
-  calculateCouponDiscount,
-  formatCouponDiscount,
-} from "../../../utils/codes";
+import type { AccommodationBookingCouponViewModel } from "../lib/accommodationBookingSectionsViewModel";
 import { Button, CounterStepper } from "../../../shared/ui";
 import styles from "./AccommodationBookingCard.module.css";
 
@@ -48,21 +44,20 @@ interface BookingGuestSectionProps {
 
 interface BookingCouponSectionProps {
   couponDiscount: number;
-  coupons: CouponInfo[];
-  handleIssueCoupon: (coupon: CouponInfo) => void | Promise<void>;
+  coupons: AccommodationBookingCouponViewModel[];
+  handleIssueCoupon: (
+    coupon: AccommodationBookingCouponViewModel,
+  ) => void | Promise<void>;
   isLoadingCoupons: boolean;
-  issuingCouponId: number | null;
-  selectedCoupon: CouponInfo | null;
-  selectedCouponId: number | null;
+  selectedCoupon: AccommodationBookingCouponViewModel | null;
   setSelectedCouponId: (couponId: number | null) => void;
-  totalPrice: number;
 }
 
 interface BookingPriceBreakdownProps {
   basePrice: number;
   couponDiscount: number;
   nights: number;
-  selectedCoupon: CouponInfo | null;
+  selectedCoupon: AccommodationBookingCouponViewModel | null;
   totalPrice: number;
 }
 
@@ -116,27 +111,6 @@ const buildGuestSummary = ({
   }
 
   return parts.length > 0 ? parts.join(", ") : "게스트 1명";
-};
-
-const getCouponActionLabel = ({
-  isApplicable,
-  isIssuing,
-  isSelected,
-}: {
-  isApplicable: boolean;
-  isIssuing: boolean;
-  isSelected: boolean;
-}) => {
-  if (isSelected) {
-    return "적용 중";
-  }
-  if (isIssuing) {
-    return "발급 중";
-  }
-  if (isApplicable) {
-    return "발급/적용";
-  }
-  return "조건 미달";
 };
 
 function GuestCounterRow({
@@ -354,11 +328,8 @@ export function BookingCouponSection({
   coupons,
   handleIssueCoupon,
   isLoadingCoupons,
-  issuingCouponId,
   selectedCoupon,
-  selectedCouponId,
   setSelectedCouponId,
-  totalPrice,
 }: BookingCouponSectionProps) {
   return (
     <div className={styles.couponSection}>
@@ -381,43 +352,26 @@ export function BookingCouponSection({
       ) : (
         <div className={styles.couponList}>
           {coupons.map((coupon) => {
-            const discount = calculateCouponDiscount(coupon, totalPrice);
-            const isApplicable = discount > 0;
-            const isSelected = selectedCouponId === coupon.id && isApplicable;
-            const isIssuing = issuingCouponId === coupon.id;
-            const remaining =
-              coupon.total_quantity == null
-                ? null
-                : Math.max(coupon.total_quantity - coupon.issued_quantity, 0);
-
             return (
               <div
                 key={coupon.id}
                 className={`${styles.couponItem} ${
-                  isSelected ? styles.couponItemSelected : ""
+                  coupon.isSelected ? styles.couponItemSelected : ""
                 }`}
               >
                 <div className={styles.couponInfo}>
                   <div className={styles.couponName}>{coupon.name}</div>
                   <div className={styles.couponMeta}>
-                    {formatCouponDiscount(coupon)}
-                    {coupon.min_payment_price != null &&
-                      ` · ${coupon.min_payment_price.toLocaleString()}원 이상`}
-                    {remaining != null &&
-                      ` · 남은 수량 ${remaining.toLocaleString()}장`}
+                    {coupon.metadataLabel}
                   </div>
                 </div>
                 <button
                   type="button"
                   className={styles.couponApplyButton}
                   onClick={() => handleIssueCoupon(coupon)}
-                  disabled={!isApplicable || isIssuing}
+                  disabled={!coupon.isApplicable || coupon.isIssuing}
                 >
-                  {getCouponActionLabel({
-                    isApplicable,
-                    isIssuing,
-                    isSelected,
-                  })}
+                  {coupon.actionLabel}
                 </button>
               </div>
             );

@@ -18,6 +18,10 @@ import { useAccommodationCoupons } from "./hooks/useAccommodationCoupons";
 import { useAccommodationDetail } from "./hooks/useAccommodationDetail";
 import { useAccommodationImageGallery } from "./hooks/useAccommodationImageGallery";
 import { useAccommodationReviews } from "./hooks/useAccommodationReviews";
+import {
+  toAccommodationBookingCouponViewModel,
+  toAccommodationBookingCouponViewModels,
+} from "./lib/accommodationBookingSectionsViewModel";
 import { toAccommodationBookingViewModel } from "./lib/accommodationBookingViewModel";
 import { toAccommodationDetailViewModel } from "./lib/accommodationDetailViewModel";
 import { useOutsideClick } from "../../shared/ui";
@@ -151,6 +155,34 @@ export const AccommodationDetailRoute: React.FC<
       couponDiscount,
     });
 
+  const couponViewModelOptions = {
+    issuingCouponId,
+    selectedCouponId,
+    totalPrice,
+  };
+  const couponViews = toAccommodationBookingCouponViewModels(
+    coupons,
+    couponViewModelOptions,
+  );
+  const selectedCouponView = selectedCoupon
+    ? (couponViews.find((coupon) => coupon.id === selectedCoupon.id) ??
+      toAccommodationBookingCouponViewModel(
+        selectedCoupon,
+        couponViewModelOptions,
+      ))
+    : null;
+  const handleIssueCouponView = (
+    couponView: (typeof couponViews)[number],
+  ) => {
+    const sourceCoupon = coupons.find((coupon) => coupon.id === couponView.id);
+
+    if (!sourceCoupon) {
+      return;
+    }
+
+    return handleIssueCoupon(sourceCoupon);
+  };
+
   datePickerBoundaryRef.current = {
     contains: (target: Node) =>
       Boolean(
@@ -218,16 +250,14 @@ export const AccommodationDetailRoute: React.FC<
     onReserve: handleReserve,
   };
   const couponState = {
-    coupons,
+    coupons: couponViews,
     isLoadingCoupons,
-    selectedCoupon,
-    selectedCouponId,
-    issuingCouponId,
+    selectedCoupon: selectedCouponView,
     couponDiscount,
   };
   const couponActions = {
     setSelectedCouponId,
-    handleIssueCoupon,
+    handleIssueCoupon: handleIssueCouponView,
   };
 
   return (

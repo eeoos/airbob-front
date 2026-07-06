@@ -1,6 +1,6 @@
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { CouponInfo } from "../../../types/coupon";
+import type { AccommodationBookingCouponViewModel } from "../lib/accommodationBookingSectionsViewModel";
 import type { AccommodationBookingViewModel } from "../lib/accommodationBookingViewModel";
 import { AccommodationBookingCard } from "./AccommodationBookingCard";
 
@@ -26,18 +26,15 @@ const bookingView: AccommodationBookingViewModel = {
   },
 };
 
-const coupon: CouponInfo = {
+const coupon: AccommodationBookingCouponViewModel = {
+  actionLabel: "적용 중",
+  discount: 10000,
   id: 3,
+  isApplicable: true,
+  isIssuing: false,
+  isSelected: true,
+  metadataLabel: "10,000원 할인 · 남은 수량 8장",
   name: "만원 쿠폰",
-  description: null,
-  discount_type: "FIXED_AMOUNT",
-  discount_value: 10000,
-  min_payment_price: null,
-  max_discount_amount: null,
-  start_date: "2026-07-01",
-  end_date: "2026-07-31",
-  total_quantity: 10,
-  issued_quantity: 2,
 };
 
 type BookingCardProps = React.ComponentProps<typeof AccommodationBookingCard>;
@@ -94,8 +91,6 @@ const createBookingCardProps = (): BookingCardProps => ({
       coupons: [coupon],
       isLoadingCoupons: false,
       selectedCoupon: coupon,
-      selectedCouponId: coupon.id,
-      issuingCouponId: null,
       couponDiscount: 10000,
     },
     couponActions: {
@@ -242,7 +237,6 @@ describe("AccommodationBookingCard", () => {
     renderBookingCard({
       couponState: {
         selectedCoupon: coupon,
-        selectedCouponId: coupon.id,
       },
       couponActions: {
         setSelectedCouponId,

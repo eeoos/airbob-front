@@ -2,7 +2,6 @@ import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { accommodationApi } from "../../api";
-import { AccommodationStatus } from "../../types/enums";
 import { HostListingsPanel } from "./HostListingsPanel";
 
 const mockClearError = jest.fn();
@@ -121,7 +120,7 @@ describe("HostListingsPanel", () => {
           id: 7,
           name: "바다 숙소",
           thumbnail_url: null,
-          status: AccommodationStatus.PUBLISHED,
+          status: "PUBLISHED",
           type: "ENTIRE_PLACE",
           address_summary: {
             country: "대한민국",

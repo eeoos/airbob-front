@@ -2,7 +2,8 @@ import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { reservationApi } from "../../../../api";
-import { AccommodationDetail } from "../../../../types/accommodation";
+import type { AccommodationDetail } from "../../../../types/accommodation";
+import { toReservationModalAccommodationViewModel } from "../../lib/reservationModalViewModel";
 import ReservationModal from "./ReservationModal";
 
 const mockNavigate = jest.fn();
@@ -35,7 +36,7 @@ jest.mock("../../../../hooks/useApiError", () => ({
   }),
 }));
 
-const accommodation: AccommodationDetail = {
+const accommodationDetail: AccommodationDetail = {
   id: 7,
   name: "테스트 숙소",
   description: "설명",
@@ -73,6 +74,9 @@ const accommodation: AccommodationDetail = {
     average_rating: 0,
   },
 };
+const accommodation = toReservationModalAccommodationViewModel(
+  accommodationDetail,
+);
 
 describe("ReservationModal", () => {
   beforeEach(() => {

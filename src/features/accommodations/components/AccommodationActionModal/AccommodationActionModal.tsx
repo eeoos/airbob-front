@@ -1,18 +1,26 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog } from "../../../../shared/ui";
-import { MyAccommodationInfo } from "../../../../types/accommodation";
-import { AccommodationStatus } from "../../../../types/enums";
 import { useAccommodationActions } from "../../hooks/useAccommodationActions";
 import { ErrorToast } from "../../../../components/ErrorToast";
 import { getImageUrl } from "../../../../utils/image";
 import { routeTo } from "../../../../routes/paths";
 import styles from "./AccommodationActionModal.module.css";
 
+export interface AccommodationActionViewModel {
+  canOpenDetail: boolean;
+  canPublish: boolean;
+  canUnpublish: boolean;
+  id: number;
+  imageAlt: string;
+  name: string;
+  thumbnailUrl: string | null;
+}
+
 interface AccommodationActionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  accommodation: MyAccommodationInfo | null;
+  accommodation: AccommodationActionViewModel | null;
   onSuccess?: () => void;
 }
 
@@ -83,9 +91,9 @@ export const AccommodationActionModal: React.FC<AccommodationActionModalProps> =
         </svg>
       </button>
 
-      {accommodation.status === AccommodationStatus.PUBLISHED ? (
+      {accommodation.canOpenDetail ? (
         <button
-          aria-label={`${accommodation.name || "이름 없음"} 상세 보기`}
+          aria-label={`${accommodation.name} 상세 보기`}
           className={styles.accommodationHeader}
           type="button"
           onClick={() => {
@@ -94,10 +102,10 @@ export const AccommodationActionModal: React.FC<AccommodationActionModalProps> =
           }}
         >
           <div className={styles.imageContainer}>
-            {accommodation.thumbnail_url ? (
+            {accommodation.thumbnailUrl ? (
               <img
-                src={getImageUrl(accommodation.thumbnail_url)}
-                alt={accommodation.name || "숙소"}
+                src={getImageUrl(accommodation.thumbnailUrl)}
+                alt={accommodation.imageAlt}
                 className={styles.image}
               />
             ) : (
@@ -105,17 +113,15 @@ export const AccommodationActionModal: React.FC<AccommodationActionModalProps> =
             )}
           </div>
 
-          <div className={styles.name}>
-            {accommodation.name || "이름 없음"}
-          </div>
+          <div className={styles.name}>{accommodation.name}</div>
         </button>
       ) : (
         <>
           <div className={styles.imageContainer}>
-            {accommodation.thumbnail_url ? (
+            {accommodation.thumbnailUrl ? (
               <img
-                src={getImageUrl(accommodation.thumbnail_url)}
-                alt={accommodation.name || "숙소"}
+                src={getImageUrl(accommodation.thumbnailUrl)}
+                alt={accommodation.imageAlt}
                 className={styles.image}
               />
             ) : (
@@ -123,9 +129,7 @@ export const AccommodationActionModal: React.FC<AccommodationActionModalProps> =
             )}
           </div>
 
-          <div className={styles.name}>
-            {accommodation.name || "이름 없음"}
-          </div>
+          <div className={styles.name}>{accommodation.name}</div>
         </>
       )}
 
@@ -139,7 +143,7 @@ export const AccommodationActionModal: React.FC<AccommodationActionModalProps> =
           리스팅 수정
         </button>
 
-        {accommodation.status === AccommodationStatus.PUBLISHED && (
+        {accommodation.canUnpublish && (
           <button
             className={styles.actionButton}
             disabled={isProcessing}
@@ -150,7 +154,7 @@ export const AccommodationActionModal: React.FC<AccommodationActionModalProps> =
           </button>
         )}
 
-        {accommodation.status === AccommodationStatus.UNPUBLISHED && (
+        {accommodation.canPublish && (
           <button
             className={styles.actionButton}
             disabled={isProcessing}

@@ -1,5 +1,6 @@
 import React from "react";
 import type { AccommodationBookingViewModel } from "../lib/accommodationBookingViewModel";
+import type { AccommodationBookingCouponViewModel } from "../lib/accommodationBookingSectionsViewModel";
 import {
   BookingCouponSection,
   BookingDateSection,
@@ -12,8 +13,7 @@ import styles from "./AccommodationBookingCard.module.css";
 
 type NumberSetter = React.Dispatch<React.SetStateAction<number>>;
 type BooleanSetter = React.Dispatch<React.SetStateAction<boolean>>;
-type BookingCoupon =
-  React.ComponentProps<typeof BookingCouponSection>["coupons"][number];
+type BookingCoupon = AccommodationBookingCouponViewModel;
 
 export interface AccommodationBookingState {
   payablePrice: number;
@@ -49,8 +49,6 @@ export interface AccommodationCouponState {
   coupons: BookingCoupon[];
   isLoadingCoupons: boolean;
   selectedCoupon: BookingCoupon | null;
-  selectedCouponId: number | null;
-  issuingCouponId: number | null;
   couponDiscount: number;
 }
 
@@ -108,8 +106,6 @@ export function AccommodationBookingCard({
     coupons,
     isLoadingCoupons,
     selectedCoupon,
-    selectedCouponId,
-    issuingCouponId,
     couponDiscount,
   } = couponState;
   const { setSelectedCouponId, handleIssueCoupon } = couponActions;
@@ -159,11 +155,8 @@ export function AccommodationBookingCard({
           coupons={coupons}
           handleIssueCoupon={handleIssueCoupon}
           isLoadingCoupons={isLoadingCoupons}
-          issuingCouponId={issuingCouponId}
           selectedCoupon={selectedCoupon}
-          selectedCouponId={selectedCouponId}
           setSelectedCouponId={setSelectedCouponId}
-          totalPrice={totalPrice}
         />
       )}
 

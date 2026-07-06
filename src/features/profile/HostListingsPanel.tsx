@@ -1,11 +1,13 @@
 import React from "react";
-import { MyAccommodationInfo } from "../../types/accommodation";
-import { AccommodationStatus } from "../../types/enums";
 import { ErrorToast } from "../../components/ErrorToast";
 import { AccommodationActionModal } from "../accommodations/appShell";
 import { useHostListings } from "./hooks";
 import { getImageUrl } from "../../utils/image";
 import { useIntersectionLoadMore } from "../../hooks/useIntersectionLoadMore";
+import {
+  toHostListingViewModels,
+  type HostListingViewModel,
+} from "./lib/hostListingViewModel";
 import {
   ClickableCard,
   EmptyState,
@@ -33,7 +35,7 @@ export const HostListingsPanel: React.FC<HostListingsPanelProps> = ({
   onStatusChange,
 }) => {
   const [selectedAccommodation, setSelectedAccommodation] =
-    React.useState<MyAccommodationInfo | null>(null);
+    React.useState<HostListingViewModel | null>(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const {
     accommodations,
@@ -50,25 +52,16 @@ export const HostListingsPanel: React.FC<HostListingsPanelProps> = ({
     isLoading: isLoadingMore,
     onLoadMore: loadMore,
   });
+  const listingViews = React.useMemo(
+    () => toHostListingViewModels(accommodations),
+    [accommodations],
+  );
 
   const getTitle = () => {
     return "숙소 관리";
   };
 
-  const getStatusLabel = (status: AccommodationStatus): string => {
-    switch (status) {
-      case AccommodationStatus.PUBLISHED:
-        return "공개";
-      case AccommodationStatus.DRAFT:
-        return "작성 중";
-      case AccommodationStatus.UNPUBLISHED:
-        return "비공개";
-      default:
-        return status;
-    }
-  };
-
-  const handleCardClick = (accommodation: MyAccommodationInfo) => {
+  const handleCardClick = (accommodation: HostListingViewModel) => {
     setSelectedAccommodation(accommodation);
     setIsModalOpen(true);
   };
@@ -97,23 +90,23 @@ export const HostListingsPanel: React.FC<HostListingsPanelProps> = ({
         onValueChange={onStatusChange}
       />
 
-      {accommodations.length === 0 ? (
+      {listingViews.length === 0 ? (
         <EmptyState title="아직 숙소가 없습니다." />
       ) : (
         <>
           <div className={styles.accommodationsGrid}>
-            {accommodations.map((accommodation) => (
+            {listingViews.map((accommodation) => (
               <ClickableCard
                 key={accommodation.id}
                 className={styles.accommodationCard}
-                ariaLabel={`${accommodation.name || "이름 없음"} 숙소 관리 열기`}
+                ariaLabel={accommodation.managementLabel}
                 onClick={() => handleCardClick(accommodation)}
               >
                 <div className={styles.image}>
-                  {accommodation.thumbnail_url ? (
+                  {accommodation.thumbnailUrl ? (
                     <img
-                      src={getImageUrl(accommodation.thumbnail_url)}
-                      alt={accommodation.name || "숙소"}
+                      src={getImageUrl(accommodation.thumbnailUrl)}
+                      alt={accommodation.imageAlt}
                     />
                   ) : (
                     <div className={styles.placeholder}>🏠</div>
@@ -121,15 +114,13 @@ export const HostListingsPanel: React.FC<HostListingsPanelProps> = ({
                 </div>
                 <div className={styles.content}>
                   <div className={styles.name}>
-                    {accommodation.name || "이름 없음"}
+                    {accommodation.name}
                   </div>
                   <div className={styles.location}>
-                    {accommodation.address_summary 
-                      ? [accommodation.address_summary.city, accommodation.address_summary.district].filter(Boolean).join(", ") || accommodation.address_summary.country 
-                      : "위치 정보 없음"}
+                    {accommodation.locationLabel}
                   </div>
                   <StatusBadge size="sm" tone="neutral">
-                    {getStatusLabel(accommodation.status)}
+                    {accommodation.statusLabel}
                   </StatusBadge>
                 </div>
               </ClickableCard>

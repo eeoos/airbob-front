@@ -1,9 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { routeTo } from "../../../../routes/paths";
-import { MyAccommodationInfo } from "../../../../types/accommodation";
-import { AccommodationStatus } from "../../../../types/enums";
-import { AccommodationActionModal } from "./AccommodationActionModal";
+import {
+  AccommodationActionModal,
+  type AccommodationActionViewModel,
+} from "./AccommodationActionModal";
 
 const mockNavigate = jest.fn();
 const mockClearError = jest.fn();
@@ -42,14 +43,14 @@ jest.mock("../../../../utils/image", () => ({
   getImageUrl: (url: string) => url,
 }));
 
-const accommodation: MyAccommodationInfo = {
-  address_summary: null,
-  created_at: "2026-07-03T10:00:00Z",
+const accommodation: AccommodationActionViewModel = {
+  canOpenDetail: true,
+  canPublish: false,
+  canUnpublish: true,
   id: 7,
+  imageAlt: "남산 숙소",
   name: "남산 숙소",
-  status: AccommodationStatus.PUBLISHED,
-  thumbnail_url: "/stay.jpg",
-  type: "APARTMENT",
+  thumbnailUrl: "/stay.jpg",
 };
 
 const renderActionModal = (
@@ -116,7 +117,9 @@ describe("AccommodationActionModal", () => {
       <AccommodationActionModal
         accommodation={{
           ...accommodation,
-          status: AccommodationStatus.UNPUBLISHED,
+          canOpenDetail: false,
+          canPublish: true,
+          canUnpublish: false,
         }}
         isOpen
         onClose={jest.fn()}
