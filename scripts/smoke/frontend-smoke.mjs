@@ -102,7 +102,7 @@ const ROUTES = [
     expectedText: "특별한 숙소",
   },
   {
-    name: "search-seoul",
+    name: "search",
     path: "/search?destination=Albany&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1",
     selector: "main, #root",
     expectedText: "숙소",
@@ -157,6 +157,35 @@ const ROUTES = [
     expectedText: "예약",
   }),
 ].filter(Boolean);
+
+const KNOWN_ROUTE_NAMES = [
+  "home",
+  "search",
+  "wishlist",
+  "wishlist-recently-viewed",
+  "profile-host-listings",
+  "accommodation-detail",
+  "accommodation-edit",
+  "reservation-detail",
+  "host-reservation-detail",
+];
+
+const registeredRouteNames = new Set([
+  ...ROUTES.map((route) => route.name),
+  ...skippedDynamicRoutes.map((route) => route.name),
+]);
+const missingKnownRouteNames = KNOWN_ROUTE_NAMES.filter(
+  (name) => !registeredRouteNames.has(name)
+);
+
+if (missingKnownRouteNames.length > 0) {
+  console.error(
+    `Smoke route registry is missing known routes: ${missingKnownRouteNames.join(
+      ", "
+    )}`
+  );
+  process.exit(1);
+}
 
 const skippedDynamicRouteLines = skippedDynamicRoutes.map(
   ({ name, pathTemplate, envName }) =>
@@ -289,7 +318,7 @@ const routeAssertion = ({ path, selector, expectedText }) => {
 };
 
 const routeInteractionAssertion = ({ name }) => {
-  if (name === "search-seoul") {
+  if (name === "search") {
     return `(() => {
       const strictSearchResults = ${JSON.stringify(strictSearchResults)};
       const resultCardSelectors = ${JSON.stringify(SEARCH_RESULT_CARD_SELECTORS)};

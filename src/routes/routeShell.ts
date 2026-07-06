@@ -18,8 +18,8 @@ export type RouteShell = "main" | "bare";
 
 export type HeaderMode = "default" | "search" | "hidden";
 
-export interface RouteShellMeta {
-  id: RouteId;
+export interface RouteShellMeta<RouteIdentifier extends string = RouteId> {
+  id: RouteIdentifier;
   layout: RouteShell;
   headerMode: HeaderMode;
   requiresAuth?: boolean;

@@ -151,6 +151,17 @@ describe("route boundary contracts", () => {
     expect(violations).toEqual([]);
   });
 
+  it("keeps route shell definitions component-free", () => {
+    const definitionSource = readFileSync(
+      join(process.cwd(), "src/routes/routeDefinitions.ts"),
+      "utf8",
+    );
+
+    expect(definitionSource).not.toContain("React.lazy");
+    expect(definitionSource).not.toMatch(/pages\//);
+    expect(definitionSource).not.toMatch(/features\//);
+  });
+
   it("keeps feature modules from importing page modules", () => {
     const violations = collectSourceFiles(featuresRoot)
       .filter((filePath) =>

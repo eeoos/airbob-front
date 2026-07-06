@@ -1,6 +1,8 @@
 import React from "react";
-import { ROUTE_PATHS } from "./paths";
-import type { RouteId, RouteShellMeta } from "./routeShell";
+import {
+  routeDefinitions,
+  type AppRouteDefinition,
+} from "./routeDefinitions";
 
 const Home = React.lazy(() => import("../pages/Home/Home"));
 const Search = React.lazy(() => import("../pages/Search/Search"));
@@ -32,134 +34,32 @@ const Login = React.lazy(() => import("../pages/Auth/Login/Login"));
 const Signup = React.lazy(() => import("../pages/Auth/Signup/Signup"));
 const NotFound = React.lazy(() => import("../pages/NotFound/NotFound"));
 
-type AppRouteId = RouteId | "not-found";
+const routeComponents = {
+  home: Home,
+  search: Search,
+  "accommodation-detail": AccommodationDetail,
+  "accommodation-confirm": ReservationConfirm,
+  "accommodation-edit": AccommodationEdit,
+  wishlist: Wishlist,
+  profile: Profile,
+  "host-reservation-detail": HostReservationDetail,
+  "reservation-detail": ReservationDetail,
+  "reservation-review": ReviewCreate,
+  "payment-success": PaymentSuccess,
+  "payment-fail": PaymentFail,
+  login: Login,
+  signup: Signup,
+  "not-found": NotFound,
+} satisfies Record<
+  AppRouteDefinition["id"],
+  React.LazyExoticComponent<React.ComponentType>
+>;
 
-export interface AppRouteConfig extends Omit<RouteShellMeta, "id" | "requiresAuth"> {
-  id: AppRouteId;
-  path: string;
+export interface AppRouteConfig extends AppRouteDefinition {
   component: React.LazyExoticComponent<React.ComponentType>;
-  requiresAuth: boolean;
 }
 
-export const appRoutes: AppRouteConfig[] = [
-  {
-    id: "home",
-    path: ROUTE_PATHS.home,
-    component: Home,
-    requiresAuth: false,
-    layout: "main",
-    headerMode: "default",
-  },
-  {
-    id: "search",
-    path: ROUTE_PATHS.search,
-    component: Search,
-    requiresAuth: false,
-    layout: "main",
-    headerMode: "search",
-  },
-  {
-    id: "accommodation-detail",
-    path: ROUTE_PATHS.accommodationDetail,
-    component: AccommodationDetail,
-    requiresAuth: false,
-    layout: "main",
-    headerMode: "default",
-  },
-  {
-    id: "accommodation-confirm",
-    path: ROUTE_PATHS.accommodationConfirm,
-    component: ReservationConfirm,
-    requiresAuth: true,
-    layout: "main",
-    headerMode: "default",
-  },
-  {
-    id: "accommodation-edit",
-    path: ROUTE_PATHS.accommodationEdit,
-    component: AccommodationEdit,
-    requiresAuth: true,
-    layout: "main",
-    headerMode: "default",
-  },
-  {
-    id: "wishlist",
-    path: ROUTE_PATHS.wishlist,
-    component: Wishlist,
-    requiresAuth: true,
-    layout: "main",
-    headerMode: "default",
-  },
-  {
-    id: "profile",
-    path: ROUTE_PATHS.profile,
-    component: Profile,
-    requiresAuth: true,
-    layout: "main",
-    headerMode: "default",
-  },
-  {
-    id: "host-reservation-detail",
-    path: ROUTE_PATHS.hostReservationDetail,
-    component: HostReservationDetail,
-    requiresAuth: true,
-    layout: "main",
-    headerMode: "default",
-  },
-  {
-    id: "reservation-detail",
-    path: ROUTE_PATHS.reservationDetail,
-    component: ReservationDetail,
-    requiresAuth: true,
-    layout: "main",
-    headerMode: "default",
-  },
-  {
-    id: "reservation-review",
-    path: ROUTE_PATHS.reviewCreate,
-    component: ReviewCreate,
-    requiresAuth: true,
-    layout: "main",
-    headerMode: "default",
-  },
-  {
-    id: "payment-success",
-    path: ROUTE_PATHS.paymentSuccess,
-    component: PaymentSuccess,
-    requiresAuth: true,
-    layout: "main",
-    headerMode: "default",
-  },
-  {
-    id: "payment-fail",
-    path: ROUTE_PATHS.paymentFail,
-    component: PaymentFail,
-    requiresAuth: true,
-    layout: "main",
-    headerMode: "default",
-  },
-  {
-    id: "login",
-    path: ROUTE_PATHS.login,
-    component: Login,
-    requiresAuth: false,
-    layout: "bare",
-    headerMode: "hidden",
-  },
-  {
-    id: "signup",
-    path: ROUTE_PATHS.signup,
-    component: Signup,
-    requiresAuth: false,
-    layout: "bare",
-    headerMode: "hidden",
-  },
-  {
-    id: "not-found",
-    path: ROUTE_PATHS.notFound,
-    component: NotFound,
-    requiresAuth: false,
-    layout: "bare",
-    headerMode: "hidden",
-  },
-];
+export const appRoutes: AppRouteConfig[] = routeDefinitions.map((route) => ({
+  ...route,
+  component: routeComponents[route.id],
+}));
