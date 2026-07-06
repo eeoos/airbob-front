@@ -3,9 +3,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { reviewApi } from "../../../api";
 import { useApiError } from "../../../hooks/useApiError";
 import { ReservationDetailInfo } from "../../../types/reservation";
-import { accommodationQueryKeys } from "../../accommodations/queryKeys";
-import { useReservationDetailQuery } from "../../reservations/hooks/useReservationDetailQuery";
-import { reservationQueryKeys } from "../../reservations/queryKeys";
+import { invalidateAccommodationReviewCaches } from "../../accommodations/publicCache";
+import { useReservationDetailQuery } from "../../reservations/appShell";
+import { invalidateGuestReservationCaches } from "../../reservations/publicCache";
 
 export const REVIEW_IMAGE_UPLOAD_ERROR_MESSAGE =
   "리뷰는 작성되었지만 이미지 업로드에 실패했습니다.";
@@ -66,19 +66,14 @@ export function useReviewCreate(reservationUid?: string) {
   const invalidateReviewCreateCaches = useCallback(
     async (reviewedReservation: ReservationDetailInfo) => {
       await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: reservationQueryKeys.guestReservationDetail(
-            reviewedReservation.reservation_uid,
-          ),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: reservationQueryKeys.guestReservationsRoot,
-        }),
-        queryClient.invalidateQueries({
-          queryKey: accommodationQueryKeys.reviewsRoot(
-            String(reviewedReservation.accommodation.id),
-          ),
-        }),
+        invalidateGuestReservationCaches(
+          queryClient,
+          reviewedReservation.reservation_uid,
+        ),
+        invalidateAccommodationReviewCaches(
+          queryClient,
+          reviewedReservation.accommodation.id,
+        ),
       ]);
     },
     [queryClient],

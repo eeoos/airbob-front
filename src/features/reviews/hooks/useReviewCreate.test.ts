@@ -1,9 +1,14 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+} from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import React from "react";
 import { reservationApi, reviewApi } from "../../../api";
 import { accommodationQueryKeys } from "../../accommodations/queryKeys";
 import { reservationQueryKeys } from "../../reservations/queryKeys";
+import { useReservationDetailQuery } from "../../reservations/appShell";
 import { ReservationStatus } from "../../../types/enums";
 import { ReservationDetailInfo } from "../../../types/reservation";
 import { UploadReviewImagesData } from "../../../types/review";
@@ -31,6 +36,12 @@ jest.mock("../../../hooks/useApiError", () => ({
     handleError: mockHandleError,
   }),
 }));
+
+jest.mock("../../reservations/appShell", () => ({
+  useReservationDetailQuery: jest.fn(),
+}));
+
+const mockUseReservationDetailQuery = jest.mocked(useReservationDetailQuery);
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -97,6 +108,25 @@ describe("useReviewCreate", () => {
     jest.mocked(reservationApi.getMyReservationDetail).mockReset();
     jest.mocked(reviewApi.create).mockReset();
     jest.mocked(reviewApi.uploadImages).mockReset();
+    mockUseReservationDetailQuery.mockReset();
+    mockUseReservationDetailQuery.mockImplementation(
+      (reservationUid?: string) =>
+        useQuery({
+          queryKey: reservationQueryKeys.guestReservationDetail(
+            reservationUid ?? "",
+          ),
+          queryFn: () => {
+            if (!reservationUid) {
+              throw new Error("reservationUid is required");
+            }
+
+            return reservationApi.getMyReservationDetail(reservationUid);
+          },
+          enabled: Boolean(reservationUid),
+          retry: false,
+          throwOnError: false,
+        }),
+    );
   });
 
   it("loads reservation detail for the review form", async () => {

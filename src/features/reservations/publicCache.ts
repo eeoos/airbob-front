@@ -1,7 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { reservationQueryKeys } from "./queryKeys";
 
-export const invalidateReservationPaymentCaches = async (
+export const invalidateGuestReservationCaches = async (
   queryClient: QueryClient,
   reservationUid: string,
 ) => {
@@ -14,3 +14,6 @@ export const invalidateReservationPaymentCaches = async (
     }),
   ]);
 };
+
+export const invalidateReservationPaymentCaches =
+  invalidateGuestReservationCaches;

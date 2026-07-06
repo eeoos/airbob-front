@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AccommodationDetail } from "../../../types/accommodation";
 import { CouponInfo } from "../../../types/coupon";
-import { formatCheckoutDateParam } from "../../reservations/lib/paymentRouteState";
-import { startReservationCheckoutHandoff } from "../../reservations/lib/reservationCheckoutHandoff";
+import {
+  formatCheckoutDateParam,
+  startReservationCheckoutHandoff,
+} from "../../reservations/appShell";
 
 type SetSearchParams = (
   nextParams: URLSearchParams,
