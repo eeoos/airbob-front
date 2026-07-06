@@ -1,5 +1,9 @@
 import React, { useState } from "react";
-import type { NavigateFunction } from "react-router-dom";
+import {
+  useLocation,
+  useNavigate,
+  type NavigateFunction,
+} from "react-router-dom";
 import { ErrorToast } from "../../components/ErrorToast";
 import { useApiError } from "../../hooks/useApiError";
 import { useAuth } from "../../hooks/useAuth";
@@ -14,8 +18,8 @@ type AuthReturnLocation = {
 };
 
 interface LoginRouteProps {
-  locationState: unknown;
-  navigate: NavigateFunction;
+  locationState?: unknown;
+  navigate?: NavigateFunction;
 }
 
 const getAuthReturnPath = (state: unknown): string | null => {
@@ -41,7 +45,9 @@ const getAuthReturnPath = (state: unknown): string | null => {
   return `${pathname}${search}${hash}`;
 };
 
-export const LoginRoute: React.FC<LoginRouteProps> = ({
+type LoginRouteContentProps = Required<LoginRouteProps>;
+
+const LoginRouteContent: React.FC<LoginRouteContentProps> = ({
   locationState,
   navigate,
 }) => {
@@ -140,4 +146,29 @@ export const LoginRoute: React.FC<LoginRouteProps> = ({
       )}
     </div>
   );
+};
+
+const LoginRouteWithRouter: React.FC<LoginRouteProps> = (props) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  return (
+    <LoginRouteContent
+      locationState={props.locationState ?? location.state}
+      navigate={props.navigate ?? navigate}
+    />
+  );
+};
+
+export const LoginRoute: React.FC<LoginRouteProps> = (props) => {
+  if (props.locationState !== undefined && props.navigate) {
+    return (
+      <LoginRouteContent
+        locationState={props.locationState}
+        navigate={props.navigate}
+      />
+    );
+  }
+
+  return <LoginRouteWithRouter {...props} />;
 };

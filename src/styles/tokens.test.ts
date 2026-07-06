@@ -203,7 +203,7 @@ const designTokenOwnedCssFiles = [
   "features/reservations/PaymentFailRoute.module.css",
   "features/search/components/SearchAccommodationCard.module.css",
   "features/search/SearchRoute.module.css",
-  "pages/Wishlist/Wishlist.module.css",
+  "features/wishlist/WishlistRoute.module.css",
   "features/profile/components/ProfileShell.module.css",
   "features/profile/HostListingsPanel.module.css",
   "features/accommodations/AccommodationDetailRoute.module.css",

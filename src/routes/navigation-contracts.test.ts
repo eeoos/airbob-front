@@ -29,8 +29,8 @@ const sourceText = (relativePath: string) =>
 const scopedNavigationFiles = collectProductionSourceFiles("src");
 
 const paymentNavigationFiles = [
-  "src/pages/Reservations/PaymentFail.tsx",
-  "src/pages/Reservations/PaymentSuccess.tsx",
+  "src/features/reservations/PaymentFailRoute.tsx",
+  "src/features/reservations/PaymentSuccessRoute.tsx",
 ];
 
 const sourceFile = (relativePath: string) => {
@@ -261,7 +261,7 @@ describe("navigation route builder contracts", () => {
 
   it("keeps payment route-builder navigation as push navigation outside callback cleanup", () => {
     const replaceAllowedFiles = new Set([
-      "src/pages/Reservations/PaymentSuccess.tsx",
+      "src/features/reservations/PaymentSuccessRoute.tsx",
     ]);
     const replaceNavigations = paymentNavigationFiles.flatMap((relativePath) =>
       replaceAllowedFiles.has(relativePath)

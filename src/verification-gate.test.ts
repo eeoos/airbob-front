@@ -354,7 +354,7 @@ describe("frontend verification gate", () => {
     const envExample = fs.readFileSync(envExamplePath, "utf8");
 
     [
-      "Keep feature-first structure and thin page adapters.",
+      "Keep feature-first structure with routeConfig loading feature route containers directly.",
       "Keep CSS Modules and tokenized styling before Airbnb visual redesign.",
       "Keep TanStack Query as the server-state layer.",
       "Keep backend/API/DB/server contracts unchanged.",
@@ -363,6 +363,7 @@ describe("frontend verification gate", () => {
       "Presentation DTO imports are closed at the API/UI boundary",
       "Task 1-6 focused tests/typecheck and strict lint are now actionable pre-redesign gates.",
       "`verify:structure` now runs typecheck, the no-cache CI test suite with `--runInBand`, and `lint:strict`.",
+      "Task 7 collapsed the temporary `src/pages/**` adapter layer into feature route containers.",
       "GitHub Actions runs Node 20",
       "`smoke:frontend:preflight` validates smoke env names",
       "`verify` remains the default static local gate and still excludes lint and strict smoke.",

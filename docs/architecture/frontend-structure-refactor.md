@@ -2,12 +2,12 @@
 
 ## Decisions
 
-- Keep feature-first structure and thin page adapters.
+- Keep feature-first structure with routeConfig loading feature route containers directly.
 - Keep CSS Modules and tokenized styling before Airbnb visual redesign.
 - Keep TanStack Query as the server-state layer.
 - Keep backend/API/DB/server contracts unchanged.
 - Defer CRA-to-Vite migration until structure and smoke gates are stable.
-- Feature-to-feature route composition uses explicit `appShell.ts` seams; public `index.ts` barrels remain route-container-only for page adapters.
+- Feature-to-feature route composition uses explicit `appShell.ts` seams; public `index.ts` barrels remain route-container-only for routeConfig.
 - Route query ownership moved into `src/routes`; feature route-query imports are no longer allowlisted.
 - Presentation DTO imports are closed at the API/UI boundary; feature view models own UI shape after Tasks 1-5.
 
@@ -20,6 +20,7 @@
 - `smoke:frontend:preflight` validates smoke env names, route fixture IDs, browser binary path, frontend URL, and backend reachability without screenshots.
 - `verify:design-ready` remains the explicit browser-backed gate because it needs live credentials, stable reservation UIDs, gstack browse, and seeded search data.
 - Task 1-6 focused tests/typecheck and strict lint are now actionable pre-redesign gates.
+- Task 7 collapsed the temporary `src/pages/**` adapter layer into feature route containers.
 
 ## Post-Audit Follow-Up
 
@@ -39,8 +40,8 @@
 
 ## Full Suite Outcome
 
-- `npm run verify:pre-redesign` passed on 2026-07-06 KST after the full-audit hardening follow-ups.
-- Full no-cache CI tests passed with 178 suites and 871 tests.
+- `npm run verify:pre-redesign` passed on 2026-07-06 KST after Task 7 collapsed page adapters.
+- Full no-cache CI tests passed with 176 suites and 884 tests.
 - The production build passed with existing CRA/Browserslist/baseline-browser-mapping freshness warnings.
 - No `react-hooks/exhaustive-deps` warning remained for `src/features/search/hooks/useSearchResults.ts`.
 

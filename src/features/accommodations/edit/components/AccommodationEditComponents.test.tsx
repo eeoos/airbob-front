@@ -94,7 +94,8 @@ const FEATURE_COMPONENTS_DIR =
 const PAGE_COMPONENTS_DIR = ["src", "pages", "AccommodationEdit", "components"].join(
   "/"
 );
-const PAGE_SOURCE_PATH = "src/pages/AccommodationEdit/AccommodationEdit.tsx";
+const ROUTE_SOURCE_PATH =
+  "src/features/accommodations/edit/AccommodationEditRoute.tsx";
 const LEGACY_PAGE_CSS_PATH =
   "src/pages/AccommodationEdit/AccommodationEdit.module.css";
 
@@ -179,14 +180,15 @@ describe("AccommodationEdit extracted components", () => {
       false
     );
 
-    const pageSource = readProjectFile(PAGE_SOURCE_PATH);
-    expect(pageSource).toContain("../../features/accommodations/edit");
-    expect(pageSource).toContain("AccommodationEditRoute");
-    expect(pageSource).not.toMatch(/from\s+["']\.\/components\//);
-    expect(pageSource).not.toMatch(
+    const routeSource = readProjectFile(ROUTE_SOURCE_PATH);
+    expect(routeSource).toContain("AccommodationEditScreen");
+    expect(routeSource).toContain("useAccommodationEditController");
+    expect(routeSource).not.toMatch(
       /features\/accommodations\/edit\/(?:components|hooks|lib)\//
     );
-    expect(pageSource).not.toMatch(/from\s+["'][^"']*components\/[^"']+\.module\.css["']/);
+    expect(routeSource).not.toMatch(
+      /from\s+["'][^"']*components\/[^"']+\.module\.css["']/,
+    );
 
     const extractedComponentFiles = [
       "EditStepContent.tsx",
@@ -289,7 +291,7 @@ describe("AccommodationEdit extracted components", () => {
     const layoutCss = readProjectFile(
       `${FEATURE_COMPONENTS_DIR}/EditWizardLayout.module.css`
     );
-    const pageSource = readProjectFile(PAGE_SOURCE_PATH);
+    const routeSource = readProjectFile(ROUTE_SOURCE_PATH);
     const formFiles = [
       `${FEATURE_COMPONENTS_DIR}/LocationStep.tsx`,
       `${FEATURE_COMPONENTS_DIR}/InfoStep.tsx`,
@@ -298,10 +300,11 @@ describe("AccommodationEdit extracted components", () => {
       `${FEATURE_COMPONENTS_DIR}/TimeStep.tsx`,
     ];
 
-    expect(pageSource).toContain("../../features/accommodations/edit");
-    expect(pageSource).not.toContain("AccommodationEditScreen");
-    expect(pageSource).not.toMatch(/from\s+["'][^"']*EditWizardLayout\.module\.css["']/);
-    expect(pageSource).not.toContain("./AccommodationEdit.module.css");
+    expect(routeSource).toContain("AccommodationEditScreen");
+    expect(routeSource).not.toMatch(
+      /from\s+["'][^"']*EditWizardLayout\.module\.css["']/,
+    );
+    expect(routeSource).not.toContain("./AccommodationEdit.module.css");
 
     formFiles.forEach((file) => {
       const source = readProjectFile(file);
@@ -391,15 +394,17 @@ describe("AccommodationEdit extracted components", () => {
     const timePickerSource = readProjectFile(
       `${FEATURE_COMPONENTS_DIR}/TimePicker.tsx`
     );
-    const pageSource = readProjectFile(PAGE_SOURCE_PATH);
+    const routeSource = readProjectFile(ROUTE_SOURCE_PATH);
 
     expect(photosStepSource).toContain("./PhotosStep.module.css");
     expect(timeStepSource).toContain("./TimeStep.module.css");
     expect(timePickerSource).toContain("./TimeStep.module.css");
     expect(timePickerSource).not.toContain("../AccommodationEdit.module.css");
-    expect(pageSource).not.toMatch(/from\s+["'][^"']*TimeStep\.module\.css["']/);
-    expect(pageSource).not.toContain("timeStyles.timeInputContainer");
-    expect(pageSource).not.toContain("styles.timeInputContainer");
+    expect(routeSource).not.toMatch(
+      /from\s+["'][^"']*TimeStep\.module\.css["']/,
+    );
+    expect(routeSource).not.toContain("timeStyles.timeInputContainer");
+    expect(routeSource).not.toContain("styles.timeInputContainer");
 
     photoClasses.forEach((className) => {
       const classSelector = new RegExp(`\\.${className}(?![A-Za-z0-9_-])`);

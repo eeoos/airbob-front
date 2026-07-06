@@ -1,18 +1,31 @@
 import React, { useEffect } from "react";
-import type { NavigateFunction } from "react-router-dom";
+import {
+  useNavigate,
+  useParams,
+  useSearchParams,
+  type NavigateFunction,
+} from "react-router-dom";
 import { routeTo } from "../../routes/paths";
-import type { PaymentFailReason } from "../../routes/routeQueryContracts";
+import {
+  parsePaymentFailReason,
+  type PaymentFailReason,
+} from "../../routes/routeQueryContracts";
 import { Button } from "../../shared/ui";
 import { clearReservationCheckoutStateByReservationUid } from "./lib/reservationCheckoutState";
 import styles from "./PaymentFailRoute.module.css";
 
 interface PaymentFailRouteProps {
-  navigate: NavigateFunction;
+  navigate?: NavigateFunction;
   reason?: PaymentFailReason;
   reservationUid?: string;
 }
 
-export const PaymentFailRoute: React.FC<PaymentFailRouteProps> = ({
+type PaymentFailRouteContentProps = Required<
+  Pick<PaymentFailRouteProps, "navigate">
+> &
+  Omit<PaymentFailRouteProps, "navigate">;
+
+const PaymentFailRouteContent: React.FC<PaymentFailRouteContentProps> = ({
   navigate,
   reason,
   reservationUid,
@@ -53,4 +66,32 @@ export const PaymentFailRoute: React.FC<PaymentFailRouteProps> = ({
       </div>
     </>
   );
+};
+
+const PaymentFailRouteWithRouter: React.FC<PaymentFailRouteProps> = (props) => {
+  const navigate = useNavigate();
+  const { reservationUid } = useParams<{ reservationUid: string }>();
+  const [searchParams] = useSearchParams();
+
+  return (
+    <PaymentFailRouteContent
+      navigate={props.navigate ?? navigate}
+      reason={props.reason ?? parsePaymentFailReason(searchParams.get("reason"))}
+      reservationUid={props.reservationUid ?? reservationUid}
+    />
+  );
+};
+
+export const PaymentFailRoute: React.FC<PaymentFailRouteProps> = (props) => {
+  if (props.navigate) {
+    return (
+      <PaymentFailRouteContent
+        navigate={props.navigate}
+        reason={props.reason}
+        reservationUid={props.reservationUid}
+      />
+    );
+  }
+
+  return <PaymentFailRouteWithRouter {...props} />;
 };

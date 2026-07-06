@@ -1,5 +1,8 @@
 import React from "react";
-import type { URLSearchParamsInit } from "react-router-dom";
+import {
+  useSearchParams,
+  type SetURLSearchParams,
+} from "react-router-dom";
 import { motion } from "framer-motion";
 import type { MotionStyle } from "framer-motion";
 import { AuthModal } from "../auth/appShell";
@@ -24,14 +27,13 @@ const getBottomSheetMotionStyle = (y: MotionStyle["y"]): MotionStyle => ({
 });
 
 export interface SearchRouteProps {
-  searchParams: URLSearchParams;
-  setSearchParams: (
-    nextInit: URLSearchParamsInit,
-    options?: { replace?: boolean }
-  ) => void;
+  searchParams?: URLSearchParams;
+  setSearchParams?: SetURLSearchParams;
 }
 
-export const SearchRoute: React.FC<SearchRouteProps> = ({
+type SearchRouteContentProps = Required<SearchRouteProps>;
+
+const SearchRouteContent: React.FC<SearchRouteContentProps> = ({
   searchParams,
   setSearchParams,
 }) => {
@@ -303,4 +305,28 @@ export const SearchRoute: React.FC<SearchRouteProps> = ({
       />
     </>
   );
+};
+
+const SearchRouteWithRouter: React.FC<SearchRouteProps> = (props) => {
+  const [routeSearchParams, routeSetSearchParams] = useSearchParams();
+
+  return (
+    <SearchRouteContent
+      searchParams={props.searchParams ?? routeSearchParams}
+      setSearchParams={props.setSearchParams ?? routeSetSearchParams}
+    />
+  );
+};
+
+export const SearchRoute: React.FC<SearchRouteProps> = (props) => {
+  if (props.searchParams && props.setSearchParams) {
+    return (
+      <SearchRouteContent
+        searchParams={props.searchParams}
+        setSearchParams={props.setSearchParams}
+      />
+    );
+  }
+
+  return <SearchRouteWithRouter {...props} />;
 };

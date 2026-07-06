@@ -4,24 +4,29 @@ import { ROUTE_PATHS } from "./paths";
 import { appRoutes } from "./routeConfig";
 import { routeDefinitions } from "./routeDefinitions";
 
-jest.mock("../pages/Home/Home", () => () => null);
-jest.mock("../pages/Search/Search", () => () => null);
-jest.mock("../pages/AccommodationDetail/AccommodationDetail", () => () => null);
-jest.mock("../pages/AccommodationEdit/AccommodationEdit", () => () => null);
-jest.mock("../pages/Wishlist/Wishlist", () => () => null);
-jest.mock("../pages/Profile/Profile", () => () => null);
-jest.mock("../pages/Reservations/ReservationDetail", () => () => null);
-jest.mock(
-  "../pages/Profile/HostReservationDetail/HostReservationDetail",
-  () => () => null
-);
-jest.mock("../pages/Reservations/ReservationConfirm", () => () => null);
-jest.mock("../pages/Reservations/ReviewCreate", () => () => null);
-jest.mock("../pages/Reservations/PaymentSuccess", () => () => null);
-jest.mock("../pages/Reservations/PaymentFail", () => () => null);
-jest.mock("../pages/Auth/Login/Login", () => () => null);
-jest.mock("../pages/Auth/Signup/Signup", () => () => null);
-jest.mock("../pages/NotFound/NotFound", () => () => null);
+jest.mock("../features/home", () => ({ HomeRoute: () => null }));
+jest.mock("../features/search", () => ({ SearchRoute: () => null }));
+jest.mock("../features/accommodations", () => ({
+  AccommodationDetailRoute: () => null,
+}));
+jest.mock("../features/accommodations/edit", () => ({
+  AccommodationEditRoute: () => null,
+}));
+jest.mock("../features/wishlist", () => ({ WishlistRoute: () => null }));
+jest.mock("../features/profile", () => ({ ProfileRoute: () => null }));
+jest.mock("../features/reservations", () => ({
+  HostReservationDetailRoute: () => null,
+  PaymentFailRoute: () => null,
+  PaymentSuccessRoute: () => null,
+  ReservationConfirmRoute: () => null,
+  ReservationDetailRoute: () => null,
+}));
+jest.mock("../features/reviews", () => ({ ReviewCreateRoute: () => null }));
+jest.mock("../features/auth", () => ({
+  LoginRoute: () => null,
+  SignupRoute: () => null,
+}));
+jest.mock("./NotFoundRoute", () => ({ NotFoundRoute: () => null }));
 
 describe("app route config", () => {
   it("builds lazy app routes from component-free route definitions", () => {
@@ -60,13 +65,17 @@ describe("app route config", () => {
     ]);
   });
 
-  it("uses lazy route components so pages can split by route", () => {
+  it("uses lazy route components so feature routes can split by route", () => {
     const source = readFileSync(
       join(process.cwd(), "src/routes/routeConfig.tsx"),
       "utf8"
     );
 
     expect(source).toContain("React.lazy");
-    expect(source).not.toMatch(/import\s+\w+\s+from\s+["']\.\.\/pages\//);
+    expect(source).not.toMatch(/\.\.\/pages\//);
+    expect(source).toContain("../features/home");
+    expect(source).toContain("HomeRoute");
+    expect(source).toContain("SearchRoute");
+    expect(source).toContain("ReservationDetailRoute");
   });
 });

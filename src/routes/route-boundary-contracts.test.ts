@@ -16,98 +16,76 @@ const forbiddenLayoutFeatureDeepImportPattern =
   /from\s+["'](?:\.\.\/)+(?:features\/[^"']+\/(?:components|hooks|lib))(?:\/[^"']*)?["']/;
 const forbiddenPageImportPattern =
   /from\s+["'](?:\.\.\/)+pages(?:\/[^"']*)?["']/;
-const featureRouteAdapters = [
+const featureRouteContainers = [
   {
-    page: "src/pages/Home/Home.tsx",
-    publicImport: "../../features/home",
+    publicBarrel: "src/features/home/index.ts",
+    lazyImport: "../features/home",
     routeContainer: "HomeRoute",
-    forbiddenDeepImportPattern: /features\/home\/(?:components|hooks|lib)\//,
   },
   {
-    page: "src/pages/Search/Search.tsx",
-    publicImport: "../../features/search",
+    publicBarrel: "src/features/search/index.ts",
+    lazyImport: "../features/search",
     routeContainer: "SearchRoute",
-    forbiddenDeepImportPattern: /features\/search\/(?:components|hooks|lib)\//,
   },
   {
-    page: "src/pages/Wishlist/Wishlist.tsx",
-    publicImport: "../../features/wishlist",
+    publicBarrel: "src/features/wishlist/index.ts",
+    lazyImport: "../features/wishlist",
     routeContainer: "WishlistRoute",
-    forbiddenDeepImportPattern:
-      /features\/wishlist\/(?:components|hooks|lib)\//,
   },
   {
-    page: "src/pages/AccommodationDetail/AccommodationDetail.tsx",
-    publicImport: "../../features/accommodations",
+    publicBarrel: "src/features/accommodations/index.ts",
+    lazyImport: "../features/accommodations",
     routeContainer: "AccommodationDetailRoute",
-    forbiddenDeepImportPattern:
-      /features\/accommodations\/(?:components|hooks|lib)\//,
   },
   {
-    page: "src/pages/AccommodationEdit/AccommodationEdit.tsx",
-    publicImport: "../../features/accommodations/edit",
+    publicBarrel: "src/features/accommodations/edit/index.ts",
+    lazyImport: "../features/accommodations/edit",
     routeContainer: "AccommodationEditRoute",
-    forbiddenDeepImportPattern:
-      /features\/accommodations\/edit\/(?:components|hooks|lib)\//,
   },
   {
-    page: "src/pages/Profile/Profile.tsx",
-    publicImport: "../../features/profile",
+    publicBarrel: "src/features/profile/index.ts",
+    lazyImport: "../features/profile",
     routeContainer: "ProfileRoute",
-    forbiddenDeepImportPattern: /features\/profile\/(?:components|hooks|lib)\//,
   },
   {
-    page: "src/pages/Profile/HostReservationDetail/HostReservationDetail.tsx",
-    publicImport: "../../../features/reservations",
+    publicBarrel: "src/features/reservations/index.ts",
+    lazyImport: "../features/reservations",
     routeContainer: "HostReservationDetailRoute",
-    forbiddenDeepImportPattern:
-      /features\/reservations\/(?:components|hooks|lib)\//,
   },
   {
-    page: "src/pages/Reservations/PaymentSuccess.tsx",
-    publicImport: "../../features/reservations",
+    publicBarrel: "src/features/reservations/index.ts",
+    lazyImport: "../features/reservations",
     routeContainer: "PaymentSuccessRoute",
-    forbiddenDeepImportPattern:
-      /features\/reservations\/(?:components|hooks|lib)\//,
   },
   {
-    page: "src/pages/Reservations/PaymentFail.tsx",
-    publicImport: "../../features/reservations",
+    publicBarrel: "src/features/reservations/index.ts",
+    lazyImport: "../features/reservations",
     routeContainer: "PaymentFailRoute",
-    forbiddenDeepImportPattern:
-      /features\/reservations\/(?:components|hooks|lib)\//,
   },
   {
-    page: "src/pages/Reservations/ReservationDetail.tsx",
-    publicImport: "../../features/reservations",
+    publicBarrel: "src/features/reservations/index.ts",
+    lazyImport: "../features/reservations",
     routeContainer: "ReservationDetailRoute",
-    forbiddenDeepImportPattern:
-      /features\/reservations\/(?:components|hooks|lib)\//,
   },
   {
-    page: "src/pages/Reservations/ReservationConfirm.tsx",
-    publicImport: "../../features/reservations",
+    publicBarrel: "src/features/reservations/index.ts",
+    lazyImport: "../features/reservations",
     routeContainer: "ReservationConfirmRoute",
-    forbiddenDeepImportPattern:
-      /features\/reservations\/(?:components|hooks|lib)\//,
   },
   {
-    page: "src/pages/Reservations/ReviewCreate.tsx",
-    publicImport: "../../features/reviews",
+    publicBarrel: "src/features/reviews/index.ts",
+    lazyImport: "../features/reviews",
     routeContainer: "ReviewCreateRoute",
-    forbiddenDeepImportPattern: /features\/reviews\/(?:components|hooks|lib)\//,
   },
   {
-    page: "src/pages/Auth/Login/Login.tsx",
-    publicImport: "../../../features/auth",
+    publicBarrel: "src/features/auth/index.ts",
+    lazyImport: "../features/auth",
     routeContainer: "LoginRoute",
-    forbiddenDeepImportPattern: /features\/auth\/(?:components|hooks|lib)\//,
   },
   {
-    page: "src/pages/Auth/Signup/Signup.tsx",
-    publicImport: "../../../features/auth",
+    publicBarrel: "src/features/auth/index.ts",
+    lazyImport: "../features/auth",
     routeContainer: "SignupRoute",
-    forbiddenDeepImportPattern: /features\/auth\/(?:components|hooks|lib)\//,
   },
 ] as const;
 
@@ -189,6 +167,10 @@ const collectPrivateCrossFeatureImports = (
 describe("route boundary contracts", () => {
   it("keeps route files from importing feature modules", () => {
     const violations = collectSourceFiles(routesRoot)
+      .filter(
+        (filePath) =>
+          relative(projectRoot, filePath) !== "src/routes/routeConfig.tsx",
+      )
       .filter((filePath) =>
         forbiddenFeatureImportPattern.test(readFileSync(filePath, "utf8")),
       )
@@ -266,123 +248,28 @@ describe("route boundary contracts", () => {
     expect(violations).toEqual([]);
   });
 
-  it("keeps page route adapters pointed at feature route containers", () => {
-    featureRouteAdapters.forEach(
-      ({ page, publicImport, routeContainer, forbiddenDeepImportPattern }) => {
-        const source = readFileSync(join(projectRoot, page), "utf8");
-
-        expect(source).toContain(publicImport);
-        expect(source).toContain(routeContainer);
-        expect(source).not.toMatch(forbiddenDeepImportPattern);
-      },
+  it("loads route containers from feature public barrels directly", () => {
+    const routeConfigSource = readFileSync(
+      join(projectRoot, "src/routes/routeConfig.tsx"),
+      "utf8",
     );
-  });
 
-  it("keeps profile and reservations page adapters out of feature internals", () => {
-    [
-      "src/pages/Profile/Profile.tsx",
-      "src/pages/Profile/HostReservationDetail/HostReservationDetail.tsx",
-      "src/pages/Reservations/PaymentSuccess.tsx",
-      "src/pages/Reservations/PaymentFail.tsx",
-      "src/pages/Reservations/ReservationDetail.tsx",
-      "src/pages/Reservations/ReservationConfirm.tsx",
-      "src/pages/Reservations/ReviewCreate.tsx",
-    ].forEach((pagePath) => {
-      const source = readFileSync(join(process.cwd(), pagePath), "utf8");
-
-      expect(source).not.toMatch(
-        /features\/(?:profile|reservations|reviews)\/(?:hooks|lib|components)\//,
-      );
+    expect(routeConfigSource).not.toContain("../pages/");
+    featureRouteContainers.forEach(({ lazyImport, routeContainer }) => {
+      expect(routeConfigSource).toContain(lazyImport);
+      expect(routeConfigSource).toContain(routeContainer);
     });
   });
 
-  it("keeps Profile page as a thin adapter to the profile feature route", () => {
-    const pageSource = readFileSync(
-      join(process.cwd(), "src/pages/Profile/Profile.tsx"),
-      "utf8",
-    );
-
-    expect(pageSource).toContain("../../features/profile");
-    expect(pageSource).toContain("ProfileRoute");
-    expect(pageSource).not.toMatch(
-      /\.\/GuestTrips|\.\/HostListings|\.\/HostReservations/,
-    );
-    expect(pageSource).not.toContain("getActiveTabFromRouteTab");
-    expect(pageSource).not.toContain("useState");
-  });
-
-  it("keeps HostReservationDetail page as an adapter to the reservations feature route", () => {
-    const pageSource = readFileSync(
-      join(
-        process.cwd(),
-        "src/pages/Profile/HostReservationDetail/HostReservationDetail.tsx",
-      ),
-      "utf8",
-    );
-
-    expect(pageSource).toContain("../../../features/reservations");
-    expect(pageSource).toContain("HostReservationDetailRoute");
-    expect(pageSource).not.toContain("useHostReservationDetail");
-    expect(pageSource).not.toContain("formatReservationStatus");
-  });
-
-  it("keeps payment callback pages as adapters to reservation feature routes", () => {
-    const successSource = readFileSync(
-      join(process.cwd(), "src/pages/Reservations/PaymentSuccess.tsx"),
-      "utf8",
-    );
-    const failSource = readFileSync(
-      join(process.cwd(), "src/pages/Reservations/PaymentFail.tsx"),
-      "utf8",
-    );
-
-    expect(successSource).toContain("../../features/reservations");
-    expect(successSource).toContain("PaymentSuccessRoute");
-    expect(successSource).not.toContain("usePaymentConfirmation");
-    expect(failSource).toContain("../../features/reservations");
-    expect(failSource).toContain("PaymentFailRoute");
-    expect(failSource).not.toContain(
-      "clearReservationCheckoutStateByReservationUid",
-    );
-  });
-
-  it("keeps ReviewCreate page as an adapter to the reviews feature route", () => {
-    const pageSource = readFileSync(
-      join(process.cwd(), "src/pages/Reservations/ReviewCreate.tsx"),
-      "utf8",
-    );
-
-    expect(pageSource).toContain("../../features/reviews");
-    expect(pageSource).toContain("ReviewCreateRoute");
-    expect(pageSource).not.toContain("useReviewCreate");
-    expect(pageSource).not.toContain("useState");
-  });
-
-  it("keeps Home page as a thin adapter to the home feature route", () => {
-    const pageSource = readFileSync(
-      join(process.cwd(), "src/pages/Home/Home.tsx"),
-      "utf8",
-    );
-
-    expect(pageSource).toContain("../../features/home");
-    expect(pageSource).toContain("HomeRoute");
-    expect(pageSource).not.toMatch(/\.\/Home\.module\.css|styles\./);
-    expect(pageSource).not.toContain("<div");
-    expect(pageSource).not.toContain("<h1");
-    expect(pageSource).not.toContain("<p");
-  });
-
   it("keeps feature public route barrels from exporting workflow internals", () => {
-    featureRouteAdapters.forEach(({ publicImport, routeContainer }) => {
-      const publicBarrelPath =
-        `${publicImport.replace(/^(?:\.\.\/)+/, "src/")}/index.ts`;
-      const publicBarrel = readFileSync(
-        join(projectRoot, publicBarrelPath),
+    featureRouteContainers.forEach(({ publicBarrel, routeContainer }) => {
+      const publicBarrelSource = readFileSync(
+        join(projectRoot, publicBarrel),
         "utf8",
       );
 
-      expect(publicBarrel).toContain(routeContainer);
-      expect(publicBarrel).not.toMatch(
+      expect(publicBarrelSource).toContain(routeContainer);
+      expect(publicBarrelSource).not.toMatch(
         /(?:\.\/(?:components|hooks|lib)|Panel|use[A-Z]|REVIEW_IMAGE_UPLOAD_ERROR_MESSAGE)/,
       );
     });

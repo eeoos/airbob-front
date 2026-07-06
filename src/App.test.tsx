@@ -76,48 +76,51 @@ jest.mock("./shared/ui", () => ({
   ),
 }));
 
-jest.mock("./pages/Home/Home", () => () => <div data-testid="page-home" />);
-jest.mock("./pages/Search/Search", () => () => <div data-testid="page-search" />);
-jest.mock("./pages/AccommodationDetail/AccommodationDetail", () => () => (
-  <div data-testid="page-accommodation-detail" />
-));
-jest.mock("./pages/AccommodationEdit/AccommodationEdit", () => () => (
-  <div data-testid="page-accommodation-edit" />
-));
-jest.mock("./pages/Wishlist/Wishlist", () => () => (
-  <div data-testid="page-wishlist" />
-));
-jest.mock("./pages/Profile/Profile", () => () => (
-  <div data-testid="page-profile" />
-));
-jest.mock("./pages/Reservations/ReservationDetail", () => () => (
-  <div data-testid="page-reservation-detail" />
-));
-jest.mock(
-  "./pages/Profile/HostReservationDetail/HostReservationDetail",
-  () => () => <div data-testid="page-host-reservation-detail" />
-);
-jest.mock("./pages/Reservations/ReservationConfirm", () => () => (
-  <div data-testid="page-reservation-confirm" />
-));
-jest.mock("./pages/Reservations/ReviewCreate", () => () => (
-  <div data-testid="page-review-create" />
-));
-jest.mock("./pages/Reservations/PaymentSuccess", () => () => (
-  <div data-testid="page-payment-success" />
-));
-jest.mock("./pages/Reservations/PaymentFail", () => () => (
-  <div data-testid="page-payment-fail" />
-));
-jest.mock("./pages/Auth/Login/Login", () => () => (
-  <div data-testid="page-login" />
-));
-jest.mock("./pages/Auth/Signup/Signup", () => () => (
-  <div data-testid="page-signup" />
-));
-jest.mock("./pages/NotFound/NotFound", () => () => (
-  <div data-testid="page-not-found" />
-));
+jest.mock("./features/home", () => ({
+  HomeRoute: () => <div data-testid="page-home" />,
+}));
+jest.mock("./features/search", () => ({
+  SearchRoute: () => <div data-testid="page-search" />,
+}));
+jest.mock("./features/accommodations", () => ({
+  AccommodationDetailRoute: () => (
+    <div data-testid="page-accommodation-detail" />
+  ),
+}));
+jest.mock("./features/accommodations/edit", () => ({
+  AccommodationEditRoute: () => (
+    <div data-testid="page-accommodation-edit" />
+  ),
+}));
+jest.mock("./features/wishlist", () => ({
+  WishlistRoute: () => <div data-testid="page-wishlist" />,
+}));
+jest.mock("./features/profile", () => ({
+  ProfileRoute: () => <div data-testid="page-profile" />,
+}));
+jest.mock("./features/reservations", () => ({
+  HostReservationDetailRoute: () => (
+    <div data-testid="page-host-reservation-detail" />
+  ),
+  PaymentFailRoute: () => <div data-testid="page-payment-fail" />,
+  PaymentSuccessRoute: () => <div data-testid="page-payment-success" />,
+  ReservationConfirmRoute: () => (
+    <div data-testid="page-reservation-confirm" />
+  ),
+  ReservationDetailRoute: () => (
+    <div data-testid="page-reservation-detail" />
+  ),
+}));
+jest.mock("./features/reviews", () => ({
+  ReviewCreateRoute: () => <div data-testid="page-review-create" />,
+}));
+jest.mock("./features/auth", () => ({
+  LoginRoute: () => <div data-testid="page-login" />,
+  SignupRoute: () => <div data-testid="page-signup" />,
+}));
+jest.mock("./routes/NotFoundRoute", () => ({
+  NotFoundRoute: () => <div data-testid="page-not-found" />,
+}));
 
 const routeMappings = [
   { path: "/", pageTestId: "page-home", requiresAuth: false, layout: "main" },
