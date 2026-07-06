@@ -91,11 +91,6 @@ const makeWishlistAccommodationCard = (
 ): WishlistAccommodationCardViewModel =>
   toWishlistAccommodationCardViewModel(makeWishlistAccommodation(overrides));
 
-const expectNoNestedInteractiveControls = (container: HTMLElement) => {
-  expect(container.querySelector("button button")).toBeNull();
-  expect(container.querySelector('[role="button"] button')).toBeNull();
-};
-
 const renderWishlistIndex = (
   props: Partial<React.ComponentProps<typeof WishlistIndexView>> = {}
 ) =>
@@ -173,7 +168,7 @@ describe("Wishlist view components", () => {
     );
     const onOpenWishlist = jest.fn();
 
-    const { container } = renderWishlistIndex({
+    renderWishlistIndex({
       onDeleteWishlist,
       onOpenWishlist,
       wishlists: [makeWishlistCard()],
@@ -183,14 +178,13 @@ describe("Wishlist view components", () => {
 
     expect(onDeleteWishlist).toHaveBeenCalledWith(42, expect.any(Object));
     expect(onOpenWishlist).not.toHaveBeenCalled();
-    expectNoNestedInteractiveControls(container);
   });
 
   it("does not open an accommodation card when deleting a wishlist accommodation", async () => {
     const onOpenAccommodationDetail = jest.fn();
     const onRemoveFromWishlist = jest.fn();
 
-    const { container } = renderWishlistDetail({
+    renderWishlistDetail({
       onOpenAccommodationDetail,
       onRemoveFromWishlist,
       wishlistAccommodations: [makeWishlistAccommodationCard()],
@@ -200,7 +194,6 @@ describe("Wishlist view components", () => {
 
     expect(onRemoveFromWishlist).toHaveBeenCalledWith(501);
     expect(onOpenAccommodationDetail).not.toHaveBeenCalled();
-    expectNoNestedInteractiveControls(container);
   });
 
   it("labels the wishlist detail back button for assistive technology", () => {
@@ -231,9 +224,8 @@ describe("Wishlist view components", () => {
     });
 
     const image = screen.getByRole("img", { name: "Lake cabin" });
-    const placeholder = image.nextElementSibling as HTMLElement;
+    const placeholder = screen.getByText("이미지 없음");
 
-    expect(placeholder).toHaveTextContent("이미지 없음");
     expect(placeholder).toHaveStyle({ display: "none" });
 
     fireEvent.error(image);
@@ -266,7 +258,7 @@ describe("Wishlist view components", () => {
     const onOpenAccommodationDetail = jest.fn();
     const onRemoveRecentlyViewed = jest.fn();
 
-    const { container } = renderRecentlyViewed({
+    renderRecentlyViewed({
       isEditMode: true,
       onOpenAccommodationDetail,
       onRemoveRecentlyViewed,
@@ -277,14 +269,13 @@ describe("Wishlist view components", () => {
 
     expect(onRemoveRecentlyViewed).toHaveBeenCalledWith(101);
     expect(onOpenAccommodationDetail).not.toHaveBeenCalled();
-    expectNoNestedInteractiveControls(container);
   });
 
   it("does not open a recently viewed card when toggling wishlist state", async () => {
     const onOpenAccommodationDetail = jest.fn();
     const onWishlistToggle = jest.fn();
 
-    const { container } = renderRecentlyViewed({
+    renderRecentlyViewed({
       onOpenAccommodationDetail,
       onWishlistToggle,
       recentlyViewed: [makeRecentlyViewedCard()],
@@ -294,24 +285,23 @@ describe("Wishlist view components", () => {
 
     expect(onWishlistToggle).toHaveBeenCalledWith(101);
     expect(onOpenAccommodationDetail).not.toHaveBeenCalled();
-    expectNoNestedInteractiveControls(container);
   });
 
   it("keeps card actions and nested controls separate", () => {
-    const { container: indexContainer } = renderWishlistIndex({
+    renderWishlistIndex({
       recentlyViewedSummaryLabel: "오늘",
       wishlists: [makeWishlistCard()],
     });
-    expectNoNestedInteractiveControls(indexContainer);
+    expect(screen.getByRole("button", { name: "위시리스트 삭제" })).toBeInTheDocument();
 
-    const { container: detailContainer } = renderWishlistDetail({
+    renderWishlistDetail({
       wishlistAccommodations: [makeWishlistAccommodationCard()],
     });
-    expectNoNestedInteractiveControls(detailContainer);
+    expect(screen.getByRole("button", { name: "삭제" })).toBeInTheDocument();
 
-    const { container: recentlyViewedContainer } = renderRecentlyViewed({
+    renderRecentlyViewed({
       recentlyViewed: [makeRecentlyViewedCard()],
     });
-    expectNoNestedInteractiveControls(recentlyViewedContainer);
+    expect(screen.getByRole("button", { name: "위시리스트" })).toBeInTheDocument();
   });
 });

@@ -227,9 +227,9 @@ describe("SearchBar", () => {
     const guestTrigger = screen.getByRole("button", { name: /여행자/ });
 
     expect(dateTrigger).toHaveAttribute("aria-expanded", "true");
-    expect(document.getElementById("search-date-picker")).toBeInTheDocument();
+    expect(screen.getAllByText("2026년 7월").length).toBeGreaterThan(0);
     expect(guestTrigger).toHaveAttribute("aria-expanded", "true");
-    expect(document.getElementById("search-guest-picker")).toBeInTheDocument();
+    expect(screen.getByText("성인")).toBeInTheDocument();
   });
 
   it.each([

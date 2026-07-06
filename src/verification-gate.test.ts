@@ -5,6 +5,10 @@ import { spawnSync } from "child_process";
 
 const projectRoot = process.cwd();
 const packageJsonPath = path.join(projectRoot, "package.json");
+const frontendWorkflowPath = path.join(
+  projectRoot,
+  ".github/workflows/frontend.yml",
+);
 const qaDocPath = path.join(projectRoot, "docs/qa/frontend-architecture-smoke.ko.md");
 const architectureDocPath = path.join(
   projectRoot,
@@ -93,6 +97,7 @@ const isolatedSmokeSubprocessEnv = (
     "AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS",
     "AIRBOB_SMOKE_REPORT_ROOT",
     "AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES",
+    "AIRBOB_API_BASE_URL",
   ].forEach((key) => {
     delete env[key];
   });
@@ -233,13 +238,16 @@ describe("frontend verification gate", () => {
       "eslint src --ext .ts,.tsx --max-warnings=0",
     );
     expect(packageJson.scripts["verify:structure"]).toBe(
-      "npm run typecheck && npm run test:ci:no-cache -- --runInBand && npm run lint",
+      "npm run typecheck && npm run test:ci:no-cache -- --runInBand && npm run lint:strict",
     );
     expect(packageJson.scripts["verify:pre-redesign"]).toBe(
       "npm run typecheck && npm run test:ci:no-cache -- --runInBand && npm run build",
     );
     expect(packageJson.scripts["smoke:frontend"]).toBe(
       "node scripts/smoke/frontend-smoke.mjs",
+    );
+    expect(packageJson.scripts["smoke:frontend:preflight"]).toBe(
+      "node scripts/smoke/frontend-smoke.mjs --preflight",
     );
     expect(packageJson.scripts["smoke:frontend:strict"]).toBe(
       "AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES=true node scripts/smoke/frontend-smoke.mjs",
@@ -252,6 +260,34 @@ describe("frontend verification gate", () => {
     expect(packageJson.scripts.verify).toContain("npm run build");
     expect(packageJson.scripts.verify).not.toContain("npm run lint");
     expect(packageJson.scripts.verify).not.toContain("lint:strict");
+  });
+
+  test("frontend CI workflow runs the static verification command list on Node 20", () => {
+    expect(fs.existsSync(frontendWorkflowPath)).toBe(true);
+
+    const workflow = fs.readFileSync(frontendWorkflowPath, "utf8");
+
+    [
+      "node-version: 20",
+      "run: npm ci",
+      "run: npm run typecheck",
+      "run: npm run test:ci:no-cache -- --runInBand",
+      "run: npm run build",
+      "run: npm run lint:strict",
+    ].forEach((term) => {
+      expect(workflow).toContain(term);
+    });
+
+    const commandOrder = [
+      "run: npm ci",
+      "run: npm run typecheck",
+      "run: npm run test:ci:no-cache -- --runInBand",
+      "run: npm run build",
+      "run: npm run lint:strict",
+    ].map((term) => workflow.indexOf(term));
+
+    expect(commandOrder.every((index) => index >= 0)).toBe(true);
+    expect(commandOrder).toEqual([...commandOrder].sort((a, b) => a - b));
   });
 
   test("frontend structure refactor docs and placeholder env example are present", () => {
@@ -267,9 +303,12 @@ describe("frontend verification gate", () => {
       "Keep TanStack Query as the server-state layer.",
       "Keep backend/API/DB/server contracts unchanged.",
       "Defer CRA-to-Vite migration until structure and smoke gates are stable.",
-      "Task 1-6 focused tests/typecheck passed",
-      "Full browser smoke remains Task 8.",
-      "Promote `lint:strict` into `verify` after existing lint debt is closed.",
+      "Route query ownership moved into `src/routes`",
+      "Presentation DTO imports are closed at the API/UI boundary",
+      "Task 1-6 focused tests/typecheck and strict lint are now actionable pre-redesign gates.",
+      "`verify:structure` now runs typecheck, the no-cache CI test suite with `--runInBand`, and `lint:strict`.",
+      "GitHub Actions runs Node 20",
+      "`smoke:frontend:preflight` validates smoke env names",
       "`verify` remains the default static local gate and still excludes lint and strict smoke.",
       "`verify:design-ready` remains the explicit browser-backed gate because it needs live credentials, stable reservation UIDs, gstack browse, and seeded search data.",
     ].forEach((term) => {
@@ -308,8 +347,14 @@ describe("frontend verification gate", () => {
       "delete childEnv.AIRBOB_QA_EMAIL",
       "delete childEnv.AIRBOB_QA_PASSWORD",
       "AIRBOB_SMOKE_ACCOMMODATION_ID",
+      "AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID",
       "AIRBOB_SMOKE_RESERVATION_UID",
       "AIRBOB_SMOKE_HOST_RESERVATION_UID",
+      "AIRBOB_API_BASE_URL",
+      "isPreflightMode",
+      "runPreflight",
+      "Frontend smoke preflight failed",
+      "GSTACK_BROWSE_BIN must point to an existing executable file",
       'const strictDynamicRoutes = process.env.AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES === "true";',
       "skippedDynamicRoutes",
       "strictDynamicRoutes && skippedDynamicRoutes.length > 0",
@@ -363,6 +408,50 @@ describe("frontend verification gate", () => {
     expect(smokeScript).not.toMatch(/process\.env\.AIRBOB_QA_(?:EMAIL|PASSWORD)[^;]*console/);
   });
 
+  test("frontend smoke preflight validates external prerequisites without reports or screenshots", () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "airbob-preflight-"));
+    const fakeBrowsePath = path.join(tempDir, "fake-browse.mjs");
+    const reportRoot = path.join(tempDir, "reports");
+
+    fs.writeFileSync(
+      fakeBrowsePath,
+      ["#!/usr/bin/env node", 'console.log("browse should not run");'].join("\n"),
+      { mode: 0o755 },
+    );
+
+    try {
+      const result = spawnSync(process.execPath, [frontendSmokePath, "--preflight"], {
+        cwd: projectRoot,
+        encoding: "utf8",
+        env: isolatedSmokeSubprocessEnv({
+          AIRBOB_API_BASE_URL: "http://127.0.0.1:9",
+          AIRBOB_FRONTEND_URL: "http://127.0.0.1:9",
+          AIRBOB_QA_EMAIL: "fake-user@example.invalid",
+          AIRBOB_QA_PASSWORD: "fake-password",
+          AIRBOB_SMOKE_ACCOMMODATION_ID: "3",
+          AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID: "3",
+          AIRBOB_SMOKE_HOST_RESERVATION_UID: "host-reservation-uid",
+          AIRBOB_SMOKE_REPORT_ROOT: reportRoot,
+          AIRBOB_SMOKE_RESERVATION_UID: "guest-reservation-uid",
+          GSTACK_BROWSE_BIN: fakeBrowsePath,
+        }),
+        maxBuffer: 10 * 1024 * 1024,
+      });
+      const output = `${result.stdout}\n${result.stderr}`;
+
+      expect(result.status).toBe(1);
+      expect(output).toContain("Frontend smoke preflight failed");
+      expect(output).toContain("Frontend is not reachable");
+      expect(output).toContain("Backend is not reachable");
+      expect(output).not.toContain("browse should not run");
+      expect(output).not.toContain("fake-user@example.invalid");
+      expect(output).not.toContain("fake-password");
+      expect(fs.existsSync(reportRoot)).toBe(false);
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   test("frontend smoke writes reports under an override root during harness tests", () => {
     const tempReportRoot = fs.mkdtempSync(
       path.join(os.tmpdir(), "airbob-smoke-report-"),
@@ -393,9 +482,9 @@ describe("frontend verification gate", () => {
         ),
       ).toBe(true);
       expect(defaultReportEntriesAfter).toEqual(defaultReportEntriesBefore);
-      if (defaultReportEntriesBefore === null) {
-        expect(fs.existsSync(defaultReportRoot)).toBe(false);
-      }
+      expect(
+        defaultReportEntriesBefore !== null || !fs.existsSync(defaultReportRoot),
+      ).toBe(true);
     } finally {
       removeNewDirectoryEntries(defaultReportRoot, defaultReportEntriesBefore);
       fs.rmSync(tempReportRoot, { recursive: true, force: true });
@@ -542,7 +631,10 @@ describe("frontend verification gate", () => {
       "AIRBOB_SMOKE_REPORT_ROOT",
       "GSTACK_BROWSE_BIN",
       "AIRBOB_QA_EMAIL",
-      ': "${AIRBOB_QA_PASSWORD:?Set AIRBOB_QA_PASSWORD in the shell before running smoke}"',
+      ': "' +
+        "$" +
+        "{AIRBOB_QA_PASSWORD:?Set AIRBOB_QA_PASSWORD in the shell before running smoke}" +
+        '"',
       "AIRBOB_SMOKE_ACCOMMODATION_ID",
       "AIRBOB_SMOKE_RESERVATION_UID",
       "AIRBOB_SMOKE_HOST_RESERVATION_UID",

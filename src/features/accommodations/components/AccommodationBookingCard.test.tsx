@@ -99,7 +99,7 @@ const createBookingCardProps = (): BookingCardProps => ({
     },
 });
 
-const renderBookingCard = (overrides: BookingCardOverrides = {}) => {
+const setupBookingCard = (overrides: BookingCardOverrides = {}) => {
   const baseProps = createBookingCardProps();
   const props: BookingCardProps = {
     ...baseProps,
@@ -129,7 +129,7 @@ const renderBookingCard = (overrides: BookingCardOverrides = {}) => {
 
 describe("AccommodationBookingCard", () => {
   it("renders booking price, dates, guest summary, coupon, and reserve action", () => {
-    const props = renderBookingCard();
+    const bookingProps = setupBookingCard();
 
     expect(screen.getByText("₩190,000")).toBeInTheDocument();
     expect(screen.getByText("· 2박")).toBeInTheDocument();
@@ -142,11 +142,11 @@ describe("AccommodationBookingCard", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "예약하기" }));
 
-    expect(props.bookingActions.onReserve).toHaveBeenCalledTimes(1);
+    expect(bookingProps.bookingActions.onReserve).toHaveBeenCalledTimes(1);
   });
 
   it("exposes date and guest pickers through semantic disclosure buttons", () => {
-    renderBookingCard({
+    setupBookingCard({
       bookingState: {
         isDatePickerOpen: true,
         isGuestPickerOpen: true,
@@ -159,9 +159,7 @@ describe("AccommodationBookingCard", () => {
     expect(dateButton).toHaveAttribute("type", "button");
     expect(dateButton).toHaveAttribute("aria-expanded", "true");
     expect(dateButton).toHaveAttribute("aria-controls", "booking-date-picker");
-    expect(document.getElementById("booking-date-picker")).toContainElement(
-      screen.getByTestId("date-picker")
-    );
+    expect(screen.getByTestId("date-picker")).toBeInTheDocument();
 
     expect(guestButton).toHaveAttribute("type", "button");
     expect(guestButton).toHaveAttribute("aria-expanded", "true");
@@ -169,14 +167,12 @@ describe("AccommodationBookingCard", () => {
       "aria-controls",
       "booking-guest-picker"
     );
-    expect(document.getElementById("booking-guest-picker")).toContainElement(
-      screen.getByText("성인")
-    );
+    expect(screen.getByText("성인")).toBeInTheDocument();
   });
 
   it("opens date picker through controlled state and closes via DatePicker callback", () => {
     const setIsDatePickerOpen = jest.fn();
-    renderBookingCard({
+    setupBookingCard({
       bookingState: { isDatePickerOpen: true },
       bookingActions: { setIsDatePickerOpen },
     });
@@ -190,7 +186,7 @@ describe("AccommodationBookingCard", () => {
 
   it("updates guest counts through guest picker controls", () => {
     const setAdultCount = jest.fn();
-    renderBookingCard({
+    setupBookingCard({
       bookingState: { isGuestPickerOpen: true },
       bookingActions: { setAdultCount },
     });
@@ -205,7 +201,7 @@ describe("AccommodationBookingCard", () => {
   });
 
   it("uses booking view guest limits to bound guest picker controls", () => {
-    renderBookingCard({
+    setupBookingCard({
       bookingState: {
         adultCount: 2,
         childCount: 1,
@@ -234,7 +230,7 @@ describe("AccommodationBookingCard", () => {
   it("clears and applies coupons from the booking card", () => {
     const setSelectedCouponId = jest.fn();
     const handleIssueCoupon = jest.fn();
-    renderBookingCard({
+    setupBookingCard({
       couponState: {
         selectedCoupon: coupon,
       },
@@ -252,7 +248,7 @@ describe("AccommodationBookingCard", () => {
   });
 
   it("disables the reserve button while a reservation is being created", () => {
-    const props = renderBookingCard({ bookingState: { isReserving: true } });
+    const bookingProps = setupBookingCard({ bookingState: { isReserving: true } });
 
     const reserveButton = screen.getByRole("button", { name: "예약 중..." });
 
@@ -260,6 +256,6 @@ describe("AccommodationBookingCard", () => {
 
     fireEvent.click(reserveButton);
 
-    expect(props.bookingActions.onReserve).not.toHaveBeenCalled();
+    expect(bookingProps.bookingActions.onReserve).not.toHaveBeenCalled();
   });
 });

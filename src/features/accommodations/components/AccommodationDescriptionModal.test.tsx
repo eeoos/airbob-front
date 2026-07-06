@@ -40,12 +40,12 @@ describe("AccommodationDescriptionModal", () => {
   });
 
   it("closes from the close button and backdrop", async () => {
-    const { props, container } = renderDescriptionModal();
+    const { props } = renderDescriptionModal();
 
     await userEvent.click(
       screen.getByRole("button", { name: "숙소 설명 닫기" })
     );
-    await userEvent.click(container.firstElementChild as Element);
+    await userEvent.click(screen.getByRole("presentation"));
 
     expect(props.onClose).toHaveBeenCalledTimes(2);
   });

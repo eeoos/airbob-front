@@ -12,11 +12,11 @@ Airbnb 디자인 리팩터 전에 프론트엔드 아키텍처 변경이 주요 
 
 ## 자동화 실행
 
-`npm run verify:design-ready`는 정적 pre-redesign gate와 strict frontend smoke gate를 순서대로 실행한다. 정적 gate만 확인할 때는 `npm run verify:pre-redesign`, 브라우저 smoke만 확인할 때는 `npm run smoke:frontend`를 사용한다. 디자인 착수 전 최종 gate는 반드시 `npm run smoke:frontend:strict` 또는 `npm run verify:design-ready`로 실행한다.
+`npm run verify:design-ready`는 정적 pre-redesign gate와 strict frontend smoke gate를 순서대로 실행한다. 정적 gate만 확인할 때는 `npm run verify:pre-redesign`, 구조/lint gate는 `npm run verify:structure`, 브라우저 smoke만 확인할 때는 `npm run smoke:frontend`를 사용한다. 디자인 착수 전 최종 gate는 반드시 `npm run smoke:frontend:strict` 또는 `npm run verify:design-ready`로 실행한다.
 
 `npm run smoke:frontend`은 `scripts/smoke/frontend-smoke.mjs`를 실행해 gstack browse로 데스크톱 `1280x720`과 모바일 `375x812` 라우트 스모크를 수행한다. 스크립트는 자격 증명 값을 출력하지 않고, 리포트와 스크린샷을 `.gstack/qa-reports` 아래에 남긴다. `npm run smoke:frontend:strict`는 dynamic reservation route UID가 없으면 브라우저를 실행하기 전에 실패한다.
 
-`AIRBOB_SMOKE_REPORT_ROOT` can point smoke artifacts at a temporary directory during harness tests. Normal manual QA can leave it unset so reports continue under `.gstack/qa-reports`.
+`npm run smoke:frontend:preflight`는 스크린샷이나 리포트를 쓰지 않고 smoke 필수 환경 변수, dynamic route UID, accommodation fixture ID, `GSTACK_BROWSE_BIN` 실행 가능 여부, frontend URL, backend URL reachability를 먼저 검증한다. `AIRBOB_SMOKE_REPORT_ROOT` can point smoke artifacts at a temporary directory during harness tests. Normal manual QA can leave it unset so reports continue under `.gstack/qa-reports`.
 
 | 환경 변수 | 필수 여부 | 값 |
 | --- | --- | --- |
@@ -26,8 +26,8 @@ Airbnb 디자인 리팩터 전에 프론트엔드 아키텍처 변경이 주요 
 | `AIRBOB_QA_EMAIL` | 필수 | `[provided out-of-band]` |
 | `AIRBOB_QA_PASSWORD` | 필수 | `[provided out-of-band]` |
 | `GSTACK_BROWSE_BIN` | 필수 | `/absolute/path/to/browse` |
-| `AIRBOB_SMOKE_ACCOMMODATION_ID` | 선택 | accommodation detail 전용 ID. 없으면 edit ID fallback 사용 |
-| `AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID` | 선택 | `3` 기본값 |
+| `AIRBOB_SMOKE_ACCOMMODATION_ID` | preflight 필수 | accommodation detail 전용 stable fixture ID |
+| `AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID` | preflight 필수 | accommodation edit 전용 stable fixture ID |
 | `AIRBOB_SMOKE_RESERVATION_UID` | strict 필수 | guest reservation detail route UID |
 | `AIRBOB_SMOKE_HOST_RESERVATION_UID` | strict 필수 | host reservation detail route UID |
 | `AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS` | ES seed 후 선택 | `true`면 `/search`에서 result card가 보여야 함 |
@@ -78,7 +78,9 @@ host_reservation_uid="$(
 export AIRBOB_SMOKE_RESERVATION_UID="$guest_reservation_uid"
 export AIRBOB_SMOKE_HOST_RESERVATION_UID="$host_reservation_uid"
 export AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID="${AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID:-3}"
+export AIRBOB_SMOKE_ACCOMMODATION_ID="${AIRBOB_SMOKE_ACCOMMODATION_ID:-$AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID}"
 
+npm run smoke:frontend:preflight
 npm run smoke:frontend:strict
 ```
 
@@ -163,6 +165,7 @@ npm run smoke:frontend:strict
 - 목적: Airbnb 스타일 redesign 전에 라우트가 단순 load 되는지만 보지 않고, 각 route shell 이 lazy chunk 렌더링 후 기대하는 핵심 visible text 를 렌더링하는지 확인한다.
 - Static gate command: `npm run verify:pre-redesign`
 - Combined gate command: `npm run verify:design-ready`
+- Preflight command: `npm run smoke:frontend:preflight`
 - Wrapper validation command: `env -u AIRBOB_QA_EMAIL -u AIRBOB_QA_PASSWORD -u GSTACK_BROWSE_BIN node scripts/smoke/frontend-smoke.mjs`
 - Wrapper validation expected status: exit 1, missing environment variable names only, no credential values.
 - Non-strict browser smoke command: `npm run smoke:frontend`
@@ -244,7 +247,7 @@ npm run smoke:frontend
 - Static gate command: `npm run verify:pre-redesign`
 - Static gate result: PASS. TypeScript, full no-cache Jest, and production build command exited successfully.
 - Jest result: 170 suites passed, 810 tests passed.
-- Build result: `Compiled with warnings.` CRA completed the production build; the remaining warning is the existing `react-hooks/exhaustive-deps` warning in `src/features/search/hooks/useSearchResults.ts`.
+- Build result: CRA completed the production build; environment freshness notices may still appear and should be handled as maintenance.
 - Dynamic reservation route IDs: guest and host PAST reservation UIDs were extracted through the credential-safe API flow and supplied via environment variables. Actual UID values are intentionally not recorded in this document.
 - Strict browser smoke command: `npm run smoke:frontend:strict`
 - Strict browser smoke report: `.gstack/qa-reports/frontend-smoke-2026-07-05T16-28-09-570Z.md`

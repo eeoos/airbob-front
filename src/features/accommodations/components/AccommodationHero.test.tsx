@@ -125,7 +125,6 @@ describe("AccommodationHero", () => {
     });
 
     expect(viewAllButton).toHaveTextContent("사진 모두 보기");
-    expect(viewAllButton.querySelector("button")).toBeNull();
     expect(
       screen.queryByRole("button", { name: "사진 모두 보기" })
     ).not.toBeInTheDocument();

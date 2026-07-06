@@ -20,14 +20,17 @@ const listingResponseWithNullableGeneric: ApiResponse<TypeContractListing | null
 
 const defaultUnwrappedListing = unwrapApiResponse(listingResponseWithNullableGeneric);
 const mustBeNonNullListing: TypeContractListing = defaultUnwrappedListing;
+void mustBeNonNullListing;
 
 const nullableUnwrappedListing = unwrapApiResponse<TypeContractListing>(
   nullableListingResponse,
   { allowNull: true }
 );
 const maybeListing: TypeContractListing | null = nullableUnwrappedListing;
+void maybeListing;
 // @ts-expect-error allowNull can return null and must not be assigned to a non-null type.
 const mustRejectNullableListing: TypeContractListing = nullableUnwrappedListing;
+void mustRejectNullableListing;
 
 function expectInvalidApiResponse(thunk: () => unknown) {
   let thrownError: unknown;

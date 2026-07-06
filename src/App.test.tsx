@@ -211,12 +211,17 @@ test("groups main routes under the main layout route", () => {
 
   const mainLayoutRoute = screen.getByTestId("main-layout-route");
 
-  routeMappings.forEach(({ path, layout }) => {
-    if (layout === "main") {
-      expect(within(mainLayoutRoute).getByTestId(`route-${path}`)).toBeInTheDocument();
-      return;
-    }
+  const mainRoutePaths = routeMappings
+    .filter(({ layout }) => layout === "main")
+    .map(({ path }) => path);
+  const nonMainRoutePaths = routeMappings
+    .filter(({ layout }) => layout !== "main")
+    .map(({ path }) => path);
 
+  mainRoutePaths.forEach((path) => {
+    expect(within(mainLayoutRoute).getByTestId(`route-${path}`)).toBeInTheDocument();
+  });
+  nonMainRoutePaths.forEach((path) => {
     expect(within(mainLayoutRoute).queryByTestId(`route-${path}`)).not.toBeInTheDocument();
   });
 });
@@ -229,17 +234,24 @@ test("classifies route elements by auth requirement for unauthenticated users", 
   render(<App />);
 
   await waitFor(() => {
-    routeMappings.forEach(({ path, pageTestId, requiresAuth }) => {
-      const route = screen.getByTestId(`route-${path}`);
+    routeMappings
+      .filter(({ requiresAuth }) => requiresAuth)
+      .forEach(({ path, pageTestId }) => {
+        const route = screen.getByTestId(`route-${path}`);
 
-      if (requiresAuth) {
         expect(within(route).getByTestId("navigate")).toHaveTextContent("/");
         expect(within(route).queryByTestId(pageTestId)).not.toBeInTheDocument();
-        return;
-      }
+      });
+  });
+
+  await waitFor(() => {
+    routeMappings
+      .filter(({ requiresAuth }) => !requiresAuth)
+      .forEach(({ path, pageTestId }) => {
+      const route = screen.getByTestId(`route-${path}`);
 
       expect(within(route).getByTestId(pageTestId)).toBeInTheDocument();
       expect(within(route).queryByTestId("navigate")).not.toBeInTheDocument();
-    });
+      });
   });
 });

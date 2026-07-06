@@ -9,7 +9,7 @@ describe("ToastHost", () => {
     const alert = screen.getByRole("alert");
 
     expect(alert).toHaveTextContent("저장에 실패했습니다.");
-    expect(alert.parentElement).toHaveClass("host");
+    expect(screen.getByTestId("toast-host")).toHaveClass("host");
   });
 
   it("delegates close clicks", async () => {

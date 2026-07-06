@@ -210,17 +210,17 @@ describe("ReservationConfirmRoute", () => {
 
     fireEvent.click(paymentButton);
 
-    await waitFor(() => {
-      expect(mockGetTossPaymentsClient).toHaveBeenCalledWith("test_ck_123");
-      expect(mockRequestPayment).toHaveBeenCalledWith({
-        amount: 180000,
-        customerEmail: "guest@example.com",
-        customerName: "홍길동",
-        failUrl: "http://localhost/reservations/reservation-123/fail",
-        orderId: "reservation-123",
-        orderName: "테스트 숙소 2박",
-        successUrl: "http://localhost/reservations/reservation-123/success",
-      });
+    await waitFor(() =>
+      expect(mockGetTossPaymentsClient).toHaveBeenCalledWith("test_ck_123")
+    );
+    expect(mockRequestPayment).toHaveBeenCalledWith({
+      amount: 180000,
+      customerEmail: "guest@example.com",
+      customerName: "홍길동",
+      failUrl: "http://localhost/reservations/reservation-123/fail",
+      orderId: "reservation-123",
+      orderName: "테스트 숙소 2박",
+      successUrl: "http://localhost/reservations/reservation-123/success",
     });
   });
 

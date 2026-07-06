@@ -30,20 +30,26 @@ describe("useBodyScrollLock", () => {
   });
 
   it("keeps body locked until the last nested lock is released", () => {
-    const first = renderHook(({ isLocked }) => useBodyScrollLock(isLocked), {
-      initialProps: { isLocked: true },
-    });
-    const second = renderHook(({ isLocked }) => useBodyScrollLock(isLocked), {
-      initialProps: { isLocked: true },
-    });
+    const { unmount: unmountFirst } = renderHook(
+      ({ isLocked }) => useBodyScrollLock(isLocked),
+      {
+        initialProps: { isLocked: true },
+      }
+    );
+    const { unmount: unmountSecond } = renderHook(
+      ({ isLocked }) => useBodyScrollLock(isLocked),
+      {
+        initialProps: { isLocked: true },
+      }
+    );
 
     expect(document.body.style.overflow).toBe("hidden");
 
-    first.unmount();
+    unmountFirst();
 
     expect(document.body.style.overflow).toBe("hidden");
 
-    second.unmount();
+    unmountSecond();
 
     expect(document.body.style.overflow).toBe("");
   });

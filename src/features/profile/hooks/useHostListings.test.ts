@@ -254,10 +254,8 @@ describe("useHostListings", () => {
       reloadPromise = result.current.reload();
     });
 
-    await waitFor(() => {
-      expect(result.current.accommodations).toEqual([]);
-      expect(result.current.isLoading).toBe(true);
-    });
+    await waitFor(() => expect(result.current.isLoading).toBe(true));
+    expect(result.current.accommodations).toEqual([]);
 
     await act(async () => {
       reloadRequest.resolve(createAccommodationPage([reloadedAccommodation]));

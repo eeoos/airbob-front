@@ -30,16 +30,16 @@ describe("map expand control helper", () => {
     const onContainerClick = jest.fn();
     container.addEventListener("click", onContainerClick);
 
-    const button = renderMapExpandControl({
+    const view = renderMapExpandControl({
       container,
       isExpanded: false,
       onToggle,
     });
 
     expect(container.querySelectorAll(".map-expand-button")).toHaveLength(1);
-    expect(button.innerHTML).toContain("M7 14H5v5h5v-2H7v-3");
+    expect(view.innerHTML).toContain("M7 14H5v5h5v-2H7v-3");
 
-    button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    view.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
     expect(onToggle).toHaveBeenCalledTimes(1);
     expect(onContainerClick).not.toHaveBeenCalled();
@@ -47,30 +47,30 @@ describe("map expand control helper", () => {
 
   it("updates the existing button instead of appending duplicates", () => {
     const onToggle = jest.fn();
-    const firstButton = renderMapExpandControl({
+    const view = renderMapExpandControl({
       container,
       isExpanded: false,
       onToggle,
     });
 
-    const secondButton = renderMapExpandControl({
+    const utils = renderMapExpandControl({
       container,
       isExpanded: true,
       onToggle,
     });
 
     expect(container.querySelectorAll(".map-expand-button")).toHaveLength(1);
-    expect(secondButton).toBe(firstButton);
-    expect(secondButton.innerHTML).toContain("M5 16h3v3h2v-5H5v2");
+    expect(utils).toBe(view);
+    expect(utils.innerHTML).toContain("M5 16h3v3h2v-5H5v2");
 
-    secondButton.dispatchEvent(new MouseEvent("mouseenter"));
+    utils.dispatchEvent(new MouseEvent("mouseenter"));
     expect(
-      secondButton.style.getPropertyValue("--map-expand-control-background")
+      utils.style.getPropertyValue("--map-expand-control-background")
     ).toBe("var(--color-background-muted)");
 
-    secondButton.dispatchEvent(new MouseEvent("mouseleave"));
+    utils.dispatchEvent(new MouseEvent("mouseleave"));
     expect(
-      secondButton.style.getPropertyValue("--map-expand-control-background")
+      utils.style.getPropertyValue("--map-expand-control-background")
     ).toBe("var(--color-background-page)");
   });
 });

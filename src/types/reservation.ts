@@ -1,5 +1,5 @@
 import { ApiResponse, CursorPageInfo } from "./api";
-import { ReservationStatus, PaymentStatus } from "./enums";
+import { ReservationStatus } from "./enums";
 import {
   AddressInfo,
   Coordinate,

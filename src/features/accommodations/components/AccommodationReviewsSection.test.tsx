@@ -20,7 +20,7 @@ const review: ReviewInfo = {
   images: [{ id: 3, image_url: "/review.jpg" }],
 };
 
-const renderReviews = (
+const setupReviews = (
   overrides: Partial<
     React.ComponentProps<typeof AccommodationReviewsSection>
   > = {}
@@ -46,7 +46,7 @@ const renderReviews = (
 
 describe("AccommodationReviewsSection", () => {
   it("renders review summary, reviewer, rating date, content, images, and view-all action", () => {
-    const props = renderReviews();
+    const reviewsProps = setupReviews();
 
     expect(
       screen.getByRole("heading", { name: "★ 4.75 · 후기 7개" })
@@ -62,12 +62,12 @@ describe("AccommodationReviewsSection", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "후기 7개 모두 보기" }));
 
-    expect(props.onOpenReviews).toHaveBeenCalledTimes(1);
+    expect(reviewsProps.onOpenReviews).toHaveBeenCalledTimes(1);
   });
 
   it("opens all reviews from a truncated review", () => {
     const onOpenReviews = jest.fn();
-    renderReviews({
+    setupReviews({
       maxReviewContentLength: 5,
       onOpenReviews,
     });

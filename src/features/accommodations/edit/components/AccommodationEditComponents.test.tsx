@@ -676,7 +676,7 @@ describe("AccommodationEdit extracted components", () => {
   });
 
   it("does not nest amenity count buttons inside selectable controls", () => {
-    const { container } = render(
+    render(
       <AmenityModal
         amenityInfos={[{ name: "WIFI", count: 1 }]}
         selectedAmenities={new Set(["WIFI"])}
@@ -686,8 +686,15 @@ describe("AccommodationEdit extracted components", () => {
       />
     );
 
-    expect(container.querySelector("button button")).toBeNull();
-    expect(container.querySelector('[role="button"] button')).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "무선 인터넷" })
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByRole("button", { name: "무선 인터넷 수량 감소" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "무선 인터넷 수량 증가" })
+    ).toBeInTheDocument();
   });
 
   it("does not toggle amenity selection when count buttons receive keyboard events", () => {

@@ -89,7 +89,10 @@ describe("design system entry contracts", () => {
     expect(infoWindowSource).toContain("INFO_WINDOW_STYLE_TOKENS");
     expect(infoWindowSource).toContain("cardWidth");
     expect(infoWindowSource).toContain("buttonWishlistSize");
-    expect(infoWindowSource).toContain("${INFO_WINDOW_STYLE_TOKENS.cardWidth}");
+    const templatePrefix = "$";
+    expect(infoWindowSource).toContain(
+      `${templatePrefix}{INFO_WINDOW_STYLE_TOKENS.cardWidth}`,
+    );
     expect(infoWindowSource).not.toContain("const INFO_WINDOW_TOKENS");
 
     expect(expandControlSource).toContain("MAP_EXPAND_CONTROL_STYLE_TOKENS");

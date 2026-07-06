@@ -23,7 +23,7 @@ export const ToastHost: React.FC<ToastHostProps> = ({
   }, [duration, onClose]);
 
   return (
-    <div className={styles.host}>
+    <div className={styles.host} data-testid="toast-host">
       <div className={styles.toast} role="alert" aria-live="assertive">
         <div className={styles.content}>
           <svg

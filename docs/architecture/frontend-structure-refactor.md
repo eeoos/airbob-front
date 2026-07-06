@@ -8,15 +8,18 @@
 - Keep backend/API/DB/server contracts unchanged.
 - Defer CRA-to-Vite migration until structure and smoke gates are stable.
 - Feature-to-feature route composition uses explicit `appShell.ts` seams; public `index.ts` barrels remain route-container-only for page adapters.
+- Route query ownership moved into `src/routes`; feature route-query imports are no longer allowlisted.
+- Presentation DTO imports are closed at the API/UI boundary; feature view models own UI shape after Tasks 1-5.
 
 ## Verification Gate
 
 - `verify` remains unchanged and continues to run typecheck, no-cache CI tests, and build.
 - `verify` remains the default static local gate and still excludes lint and strict smoke.
-- `verify:structure` adds lint visibility after typecheck and the no-cache CI test suite with `--runInBand`, without promoting strict lint into the default verification gate.
+- `verify:structure` now runs typecheck, the no-cache CI test suite with `--runInBand`, and `lint:strict`.
+- GitHub Actions runs Node 20, `npm ci`, typecheck, no-cache Jest in band, build, and `lint:strict`.
+- `smoke:frontend:preflight` validates smoke env names, route fixture IDs, browser binary path, frontend URL, and backend reachability without screenshots.
 - `verify:design-ready` remains the explicit browser-backed gate because it needs live credentials, stable reservation UIDs, gstack browse, and seeded search data.
-- Task 1-6 focused tests/typecheck passed before this verification cleanup.
-- Full browser smoke remains Task 8.
+- Task 1-6 focused tests/typecheck and strict lint are now actionable pre-redesign gates.
 
 ## Post-Audit Follow-Up
 
@@ -31,8 +34,8 @@
 
 - The full-audit baseline was 81 problems: 74 errors and 7 warnings.
 - `npm run lint -- --format compact` failed on 2026-07-06 KST with 70 problems: 64 errors and 6 warnings.
-- The remaining lint debt is lower than the audit baseline and is concentrated in `testing-library/no-node-access` (32), `testing-library/render-result-naming-convention` (15), `testing-library/no-wait-for-multiple-assertions` (8), `@typescript-eslint/no-unused-vars` (5), `jest/no-conditional-expect` (4), `testing-library/no-container` (3), `import/first` (2), and `no-template-curly-in-string` (1).
-- Broad lint cleanup is intentionally deferred. `lint:strict` is not promoted into `verify` while lint visibility still fails.
+- Task 6 reduced compact lint from 71 problems to 0 without weakening lint config.
+- `lint:strict` is promoted into `verify:structure`; strict lint is also enforced by frontend CI.
 
 ## Full Suite Outcome
 
@@ -45,4 +48,4 @@
 
 - Run `npm audit` and prioritize direct dependency upgrades.
 - Plan CRA-to-Vite/Vitest migration as a separate branch.
-- Promote `lint:strict` into `verify` after existing lint debt is closed.
+- Keep `verify:design-ready` browser-backed because strict smoke still depends on external QA credentials, route UIDs, browser binary, frontend server, and backend server.

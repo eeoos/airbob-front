@@ -61,6 +61,7 @@ export const PhotosStep: React.FC<PhotosStepProps> = ({
           key="empty-image-file-input"
           type="file"
           id="imageInputEmpty"
+          aria-label="숙소 사진 선택"
           accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
           multiple
           onChange={onImageSelect}
@@ -107,6 +108,7 @@ export const PhotosStep: React.FC<PhotosStepProps> = ({
           key="uploaded-image-file-input"
           type="file"
           id="imageInput"
+          aria-label="숙소 사진 추가 선택"
           accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
           multiple
           onChange={onImageSelect}
