@@ -12,6 +12,7 @@ applies_when:
   - Verification needs static contract tests plus authenticated desktop and mobile browser QA
   - QA credentials are needed for smoke testing but must not be committed or documented
   - Structure-first refactors need route, feature cache, Query, and shared UI primitive boundaries locked before broad styling
+  - Architecture freeze work needs executable public-surface contracts and a documented restart point for future audits
 tags: [frontend-architecture, verification-loop, browser-qa, contract-tests, credential-hygiene, responsive-qa, route-boundaries, dto-boundaries]
 related_components: [testing_framework, documentation, tooling]
 ---
@@ -55,6 +56,12 @@ The July 6 structure-first refactor added a narrower lesson: moving files is not
 
 The follow-up full-audit hardening pass showed that task-specific subagent review loops are part of the gate, not just implementation mechanics. Spec reviewers caught review cache invalidation using numeric accommodation ids while active route queries used string ids, payment success routing that called invalidation without awaiting it, and later tests that asserted accessible names without also locking `type="button"`. Code-quality reviewers caught the next-order failures: rejected invalidation promises could strand a paid user on a spinner, `role="menu"` required full menu-button keyboard behavior, hidden separators undermined menu semantics, and parent smoke env vars could leak into verification subprocesses. Each finding became a focused regression test before the task closed.
 
+The architecture-freeze closure pass converted repeated audit findings into explicit public-surface contracts. Production feature files can no longer import another feature's `components`, `hooks`, `lib`, `queryKeys`, or root barrel directly; cross-feature calls must go through `appShell.ts` or `publicCache.ts`. Reservation checkout, review display, review-create cache invalidation, profile host listing invalidation, and auth session cleanup now cross those public seams. Query error toast de-duplication moved to `useHandledQueryError`, Search route orchestration moved to `useSearchRouteController`, and Auth session refresh/clear side effects moved to `sessionLifecycle`.
+
+That closure exposed two review-loop failure modes worth preserving. First, a plan can become stale while earlier tasks tighten the architecture: Task 5 originally followed the written plan and imported reservation checkout storage cleanup from `reservations/lib`, but the newly frozen boundary correctly rejected it. The fix was to expose a narrow reservation public surface instead of weakening the contract. Second, source-level contract tests must be updated when ownership changes. `auth-boundary-contracts.test.ts` still expected `AuthContext` to own `authApi.getMe` and session query cache writes after those responsibilities moved to `sessionLifecycle`; the contract had to be rewritten so it documented the new boundary rather than pulling the code back to the old shape.
+
+Final full-gate verification caught a third false-confidence mode: tests must mock the same public surface that production imports. `ProfileRoute.test.tsx` mocked `../reservations/GuestTripsPanel` and `../reservations/HostReservationsPanel`, but production had moved to `../reservations/appShell`. The focused test passed only until the full suite loaded the real app-shell path, which pulled reservation query code and the Axios ESM entry into Jest. The durable fix was to mock `../reservations/appShell`, matching the production public surface and keeping the test aligned with the freeze boundary.
+
 ## Guidance
 
 After a broad architecture merge, rerun a full-audit pass before visual styling. The second pass should look for remaining private URL/query dependencies, cache keys outside feature query key modules, public seams that are implied but not tested, CSS Modules outside token ownership, and verification scripts that leave local artifacts during tests.
@@ -84,6 +91,12 @@ Eighth, force cross-layer dependencies through public seams. Layouts can use rou
 Ninth, make public route barrels route-only. A page adapter importing from `features/reservations` or `features/reviews` should receive route containers, not hooks, helpers, panels, constants, or internal component building blocks. Feature-owned composition can still import internal panels directly from sibling modules, but that should happen inside the feature boundary. If a route barrel exports `useSomething`, `Panel`, `components`, `hooks`, or `lib`, the page layer has an easy path back into orchestration.
 
 Apply the same rule to cross-feature cache behavior. A feature that needs another feature's cache should import a public cache helper, not private query keys or sync internals. Boundary tests should check both deep private paths and public barrels, because a broad barrel can re-export the private seam and make the import look acceptable.
+
+When the freeze contract changes, update existing source-contract tests in the same task. A stale contract that asserts the old owner is worse than no contract: it makes a correct refactor look like a regression and can push future work back toward the coupling the freeze was meant to remove.
+
+Keep tests aligned with production public surfaces. If production imports `features/reservations/appShell`, the test should mock `features/reservations/appShell`, not the private files that app-shell happens to re-export. This prevents full-suite-only failures where a focused test accidentally bypasses the real dependency path.
+
+Document the freeze point as a restart point. A future "frontend audit" should begin with `docs/architecture/frontend-architecture-freeze.ko.md`, `src/routes/route-boundary-contracts.test.ts`, and `src/verification-gate.test.ts` rather than re-reading the whole app and rediscovering already-closed ownership problems.
 
 Tenth, treat CSS ownership as part of the architecture boundary. A route container that lives under `features/*` should not import a CSS module from `pages/**`; the stylesheet moves with the route container or into a shared UI primitive. When moving CSS, update token and high-risk fixtures at the same time. Otherwise the design refactor can lose coverage over the exact shell that now owns the route.
 
@@ -395,13 +408,18 @@ The design handoff should preserve known limitations:
 
 - `docs/superpowers/plans/2026-07-02-airbob-pre-design-architecture.md` describes the pre-design architecture plan and the reason design work was deferred.
 - `docs/superpowers/plans/2026-07-04-airbob-profile-reservation-boundary-refactor.ko.md` describes the profile, reservation, payment, and review route-boundary refactor that produced the route-only barrel and feature-owned CSS rules.
+- `docs/superpowers/plans/2026-07-06-airbob-frontend-architecture-freeze.ko.md` documents the task-by-task architecture freeze execution plan.
+- `docs/architecture/frontend-architecture-freeze.ko.md` is the freeze restart point for future frontend structure audits.
 - `docs/qa/frontend-architecture-smoke.ko.md` is the browser smoke checklist for desktop and mobile verification with the thread-provided QA account.
 - `scripts/smoke/frontend-smoke.mjs` implements the authenticated smoke wrapper, route-specific assertions, credential redaction, and skipped dynamic route reporting.
 - `src/verification-gate.test.ts` locks the verification scripts, QA checklist coverage, and credential-safety checks.
 - `src/routes/routeConfig.test.tsx` locks route/auth/layout ownership in `routes/*`.
 - `src/routes/routeDefinitions.ts` and `src/routes/routeMatching.ts` keep shell metadata component-free and consumable by layouts.
-- `src/routes/route-boundary-contracts.test.ts` locks page/layout/shared UI imports against feature-internal coupling.
-- `src/features/search/publicCache.ts` and `src/features/wishlist/publicCache.ts` are the public cache seams for cross-feature search/wishlist reconciliation.
+- `src/routes/route-boundary-contracts.test.ts` locks route, layout, shared UI, and feature-to-feature imports against feature-internal coupling.
+- `src/features/search/publicCache.ts`, `src/features/wishlist/publicCache.ts`, `src/features/accommodations/publicCache.ts`, `src/features/profile/publicCache.ts`, and `src/features/reservations/publicCache.ts` are the public seams for cross-feature cache and session cleanup coordination.
+- `src/query/useHandledQueryError.ts` centralizes Query error toast de-duplication by `errorUpdatedAt`.
+- `src/features/search/hooks/useSearchRouteController.ts` owns Search route orchestration outside the render route.
+- `src/features/auth/lib/sessionLifecycle.ts` owns authenticated session refresh and clear side effects outside `AuthContext`.
 - `src/shared/ui/PageShell/*`, `src/shared/ui/ListingCard/*`, and `src/shared/ui/OverlaySurface/*` are the pre-redesign product UI primitives that should stay domain-free.
 - `src/styles/tokens.test.ts` locks global token import order, overlay z-index tokens, and legacy z-index literal prevention.
 - `src/pages/Profile/profile-responsive-contracts.test.ts` locks the Profile mobile overflow fix.

@@ -1,10 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { reservationApi } from "../../../api";
-import { routeTo } from "../../../routes/paths";
-import { formatCheckoutDateParam } from "../lib/paymentRouteState";
-import type { ReservationCheckoutState } from "../lib/reservationCheckoutState";
-import { saveReservationCheckoutState } from "../lib/reservationCheckoutState";
+import { startReservationCheckoutHandoff } from "../lib/reservationCheckoutHandoff";
 
 interface UseReservationPaymentOptions {
   clearError: () => void;
@@ -20,32 +16,6 @@ interface StartReservationPaymentOptions {
   infantCount?: number;
   petCount?: number;
 }
-
-const buildReservationCheckoutState = ({
-  adultCount,
-  childCount,
-  checkIn,
-  checkOut,
-  infantCount = 0,
-  petCount = 0,
-  reservationResponse,
-}: StartReservationPaymentOptions & {
-  reservationResponse: Awaited<ReturnType<typeof reservationApi.create>>;
-}): ReservationCheckoutState => ({
-  reservationUid: reservationResponse.reservation_uid,
-  orderName: reservationResponse.order_name,
-  amount: reservationResponse.amount,
-  customerEmail: reservationResponse.customer_email,
-  customerName: reservationResponse.customer_name,
-  checkIn: formatCheckoutDateParam(checkIn),
-  checkOut: formatCheckoutDateParam(checkOut),
-  adultOccupancy: adultCount,
-  childOccupancy: childCount,
-  infantOccupancy: infantCount,
-  petOccupancy: petCount,
-  couponName: null,
-  couponDiscount: null,
-});
 
 export function useReservationPayment({
   clearError,
@@ -66,22 +36,10 @@ export function useReservationPayment({
       clearError();
 
       try {
-        const reservationResponse = await reservationApi.create({
-          accommodation_id: options.accommodationId,
-          check_in_date: formatCheckoutDateParam(options.checkIn),
-          check_out_date: formatCheckoutDateParam(options.checkOut),
-          guest_count: options.adultCount + options.childCount,
-        });
-
-        const checkoutState = buildReservationCheckoutState({
+        await startReservationCheckoutHandoff({
           ...options,
-          reservationResponse,
-        });
-        const accommodationId = String(options.accommodationId);
-
-        saveReservationCheckoutState(accommodationId, checkoutState);
-        navigate(routeTo.accommodationConfirm(accommodationId), {
-          state: checkoutState,
+          appliedCoupon: null,
+          navigate,
         });
       } catch (error) {
         handleError(error);

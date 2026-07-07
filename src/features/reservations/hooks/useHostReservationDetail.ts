@@ -1,13 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback } from "react";
 import { reservationApi } from "../../../api";
 import { useApiError } from "../../../hooks/useApiError";
+import { useHandledQueryError } from "../../../query/useHandledQueryError";
 import { HostDetailInfo } from "../../../types/reservation";
 import { reservationQueryKeys } from "../queryKeys";
 
 export function useHostReservationDetail(reservationUid?: string) {
   const { error, handleError, clearError } = useApiError();
-  const handledErrorUpdatedAtRef = useRef(0);
   const detailQuery = useQuery<
     HostDetailInfo,
     unknown,
@@ -29,23 +29,12 @@ export function useHostReservationDetail(reservationUid?: string) {
   });
   const { refetch } = detailQuery;
 
-  useEffect(() => {
-    if (
-      !detailQuery.isError ||
-      !detailQuery.error ||
-      handledErrorUpdatedAtRef.current === detailQuery.errorUpdatedAt
-    ) {
-      return;
-    }
-
-    handledErrorUpdatedAtRef.current = detailQuery.errorUpdatedAt;
-    handleError(detailQuery.error);
-  }, [
-    detailQuery.error,
-    detailQuery.errorUpdatedAt,
-    detailQuery.isError,
-    handleError,
-  ]);
+  useHandledQueryError({
+    error: detailQuery.error,
+    errorUpdatedAt: detailQuery.errorUpdatedAt,
+    isError: detailQuery.isError,
+    onError: handleError,
+  });
 
   const reload = useCallback(async () => {
     if (!reservationUid) return;

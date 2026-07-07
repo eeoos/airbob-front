@@ -1,4 +1,4 @@
-import type { AccommodationBookingRouteQuery } from "./searchRouteQuery";
+import type { AccommodationBookingRouteQuery } from "../../../routes/routeQueryContracts";
 
 const DETAIL_QUERY_KEYS_TO_PRESERVE = [
   "checkIn",

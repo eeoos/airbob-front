@@ -1,4 +1,4 @@
-import { renderHook } from "@testing-library/react";
+import { fireEvent, renderHook, screen } from "@testing-library/react";
 import { useMapInfoWindowEvents } from "./useMapInfoWindowEvents";
 
 describe("useMapInfoWindowEvents", () => {
@@ -32,9 +32,7 @@ describe("useMapInfoWindowEvents", () => {
       onClose: jest.fn(),
     });
 
-    root.querySelector("p")?.dispatchEvent(
-      new MouseEvent("click", { bubbles: true }),
-    );
+    fireEvent.click(screen.getByText("card body"));
 
     expect(openSpy).toHaveBeenCalledWith(
       "/accommodations/10?checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2",
@@ -72,9 +70,7 @@ describe("useMapInfoWindowEvents", () => {
       onClose,
     });
 
-    root.querySelector("span")?.dispatchEvent(
-      new MouseEvent("click", { bubbles: true }),
-    );
+    fireEvent.click(screen.getByText("heart"));
 
     expect(onWishlistToggle).toHaveBeenCalledWith(10, true);
     expect(onClose).toHaveBeenCalledTimes(1);

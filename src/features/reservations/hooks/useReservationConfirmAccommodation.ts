@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { accommodationApi } from "../../../api";
+import { useHandledQueryError } from "../../../query/useHandledQueryError";
 import { routeTo } from "../../../routes/paths";
 import { AccommodationDetail } from "../../../types/accommodation";
 import { reservationQueryKeys } from "../queryKeys";
@@ -30,7 +31,6 @@ export function useReservationConfirmAccommodation({
   clearError,
 }: UseReservationConfirmAccommodationOptions) {
   const parsedAccommodationId = parseRouteAccommodationId(accommodationId);
-  const handledErrorUpdatedAtRef = useRef(0);
 
   useEffect(() => {
     if (parsedAccommodationId === null) {
@@ -68,23 +68,12 @@ export function useReservationConfirmAccommodation({
     throwOnError: false,
   });
 
-  useEffect(() => {
-    if (
-      !accommodationQuery.isError ||
-      !accommodationQuery.error ||
-      handledErrorUpdatedAtRef.current === accommodationQuery.errorUpdatedAt
-    ) {
-      return;
-    }
-
-    handledErrorUpdatedAtRef.current = accommodationQuery.errorUpdatedAt;
-    handleError(accommodationQuery.error);
-  }, [
-    accommodationQuery.error,
-    accommodationQuery.errorUpdatedAt,
-    accommodationQuery.isError,
-    handleError,
-  ]);
+  useHandledQueryError({
+    error: accommodationQuery.error,
+    errorUpdatedAt: accommodationQuery.errorUpdatedAt,
+    isError: accommodationQuery.isError,
+    onError: handleError,
+  });
 
   return {
     accommodation: accommodationQuery.isError

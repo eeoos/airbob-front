@@ -39,11 +39,11 @@ const renderUseWishlistData = (
   options: Parameters<typeof useWishlistData>[0]
 ) => {
   const { Wrapper, queryClient } = createWrapper();
-  const hook = renderHook(() => useWishlistData(options), {
+  const view = renderHook(() => useWishlistData(options), {
     wrapper: Wrapper,
   });
 
-  return { ...hook, queryClient };
+  return { ...view, queryClient };
 };
 
 jest.mock("../../../api", () => ({

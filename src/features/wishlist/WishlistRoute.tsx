@@ -1,4 +1,5 @@
 import React from "react";
+import { useSearchParams, type SetURLSearchParams } from "react-router-dom";
 import { ErrorToast } from "../../components/ErrorToast";
 import { useIntersectionLoadMore } from "../../hooks/useIntersectionLoadMore";
 import { routeTo } from "../../routes/paths";
@@ -22,23 +23,28 @@ import {
   toWishlistIndexCardViewModel,
   WishlistAccommodationMemoTarget,
 } from "./lib/wishlistAccommodationViewModel";
+import styles from "./WishlistRoute.module.css";
 
 interface WishlistRouteProps {
-  searchParams: URLSearchParams;
-  setSearchParams: (
-    nextParams: URLSearchParams,
-    options?: { replace?: boolean },
-  ) => void;
+  searchParams?: URLSearchParams;
+  setSearchParams?: SetURLSearchParams;
   className?: string;
   toastClassName?: string;
 }
 
-export const WishlistRoute: React.FC<WishlistRouteProps> = ({
+type WishlistRouteContentProps = Required<
+  Pick<WishlistRouteProps, "searchParams" | "setSearchParams">
+> &
+  Pick<WishlistRouteProps, "className" | "toastClassName">;
+
+const WishlistRouteContent: React.FC<WishlistRouteContentProps> = ({
   className,
   searchParams,
   setSearchParams,
   toastClassName,
 }) => {
+  const containerClassName = className ?? styles.container;
+  const errorToastClassName = toastClassName ?? styles.toastContainer;
   const {
     backToIndex,
     clearSelectedWishlist,
@@ -164,7 +170,7 @@ export const WishlistRoute: React.FC<WishlistRouteProps> = ({
   };
 
   return (
-    <div className={className}>
+    <div className={containerClassName}>
       {showRecentlyViewed ? (
         <RecentlyViewedView
           isEditMode={isEditMode}
@@ -205,7 +211,7 @@ export const WishlistRoute: React.FC<WishlistRouteProps> = ({
       )}
 
       {error && (
-        <div className={toastClassName}>
+        <div className={errorToastClassName}>
           <ErrorToast message={error} onClose={clearError} />
         </div>
       )}
@@ -242,4 +248,30 @@ export const WishlistRoute: React.FC<WishlistRouteProps> = ({
       />
     </div>
   );
+};
+
+const WishlistRouteWithRouter: React.FC<WishlistRouteProps> = (props) => {
+  const [routeSearchParams, routeSetSearchParams] = useSearchParams();
+
+  return (
+    <WishlistRouteContent
+      {...props}
+      searchParams={props.searchParams ?? routeSearchParams}
+      setSearchParams={props.setSearchParams ?? routeSetSearchParams}
+    />
+  );
+};
+
+export const WishlistRoute: React.FC<WishlistRouteProps> = (props) => {
+  if (props.searchParams && props.setSearchParams) {
+    return (
+      <WishlistRouteContent
+        {...props}
+        searchParams={props.searchParams}
+        setSearchParams={props.setSearchParams}
+      />
+    );
+  }
+
+  return <WishlistRouteWithRouter {...props} />;
 };

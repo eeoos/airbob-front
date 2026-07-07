@@ -1,9 +1,7 @@
 import {
-  buildPaymentFailRouteSearchParams,
   formatCheckoutDateParam,
   getReservationPaymentRequestState,
   parseCheckoutDateParam,
-  parsePaymentFailReason,
   parseTossSuccessRouteState,
 } from "./paymentRouteState";
 import type { ReservationCheckoutState } from "./reservationCheckoutState";
@@ -117,28 +115,5 @@ describe("toss success route state", () => {
       status: "invalid",
       reason: "INVALID_TOSS_SUCCESS_AMOUNT",
     });
-  });
-});
-
-describe("payment fail route state", () => {
-  it("parses supported payment failure reasons", () => {
-    expect(parsePaymentFailReason("confirm-failed")).toBe("confirm-failed");
-    expect(parsePaymentFailReason("invalid-callback")).toBe(
-      "invalid-callback",
-    );
-  });
-
-  it("ignores missing or unsupported payment failure reasons", () => {
-    expect(parsePaymentFailReason(null)).toBeUndefined();
-    expect(parsePaymentFailReason("declined")).toBeUndefined();
-    expect(parsePaymentFailReason("")).toBeUndefined();
-  });
-
-  it("builds the confirm-failed route reason without changing fail URL semantics", () => {
-    expect(
-      buildPaymentFailRouteSearchParams({
-        reason: "confirm-failed",
-      }).toString(),
-    ).toBe("reason=confirm-failed");
   });
 });

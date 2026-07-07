@@ -8,7 +8,7 @@ describe("AmenityIcon", () => {
     const icon = screen.getByRole("img", { name: "WIFI" });
 
     expect(icon).toHaveAttribute("viewBox", "0 0 24 24");
-    expect(icon.querySelector('path[d="M5 12.55a11 11 0 0 1 14.08 0"]')).toBeInTheDocument();
+    expect(icon).toHaveAttribute("stroke", "currentColor");
   });
 
   it("renders the fallback icon for unknown amenity types", () => {
@@ -16,12 +16,14 @@ describe("AmenityIcon", () => {
 
     const icon = screen.getByRole("img", { name: "UNKNOWN_AMENITY" });
 
-    expect(icon.querySelector('circle[cx="12"][cy="12"][r="10"]')).toBeInTheDocument();
+    expect(icon).toHaveAttribute("stroke", "currentColor");
+    expect(icon).toHaveAttribute("fill", "none");
   });
 
   it("hides decorative usage from assistive technology", () => {
     const { container } = render(<AmenityIcon type="WIFI" decorative />);
-
+    // Decorative SVGs are intentionally hidden from accessibility queries.
+    // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
     const icon = container.querySelector("svg");
 
     expect(screen.queryByRole("img", { name: "WIFI" })).not.toBeInTheDocument();

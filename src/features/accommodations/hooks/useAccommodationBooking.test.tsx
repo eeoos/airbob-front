@@ -3,7 +3,36 @@ import { reservationApi } from "../../../api";
 import { AccommodationDetail } from "../../../types/accommodation";
 import { CouponInfo } from "../../../types/coupon";
 import { ReservationReady } from "../../../types/reservation";
+import { startReservationCheckoutHandoff } from "../../reservations/appShell";
 import { useAccommodationBooking } from "./useAccommodationBooking";
+
+type MockCheckoutDateInput = Date | string;
+
+interface MockStartReservationCheckoutHandoffOptions {
+  accommodationId: number;
+  checkIn: MockCheckoutDateInput;
+  checkOut: MockCheckoutDateInput;
+  adultCount: number;
+  childCount: number;
+  infantCount?: number;
+  petCount?: number;
+  appliedCoupon: {
+    id: number;
+    name: string;
+    discount: number;
+  } | null;
+  navigate: (
+    to: string,
+    options?: { replace?: boolean; state?: unknown }
+  ) => void;
+}
+
+const formatCheckoutDateParamForTest = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 jest.mock("../../../api", () => ({
   reservationApi: {
@@ -11,6 +40,19 @@ jest.mock("../../../api", () => ({
   },
 }));
 
+jest.mock("../../reservations/appShell", () => ({
+  formatCheckoutDateParam: (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  },
+  startReservationCheckoutHandoff: jest.fn(),
+}));
+
+const mockStartReservationCheckoutHandoff = jest.mocked(
+  startReservationCheckoutHandoff,
+);
 const mockSetSearchParams = jest.fn();
 const mockNavigate = jest.fn();
 const mockHandleError = jest.fn();
@@ -107,6 +149,59 @@ describe("useAccommodationBooking", () => {
     mockHandleError.mockReset();
     mockClearError.mockReset();
     mockRequireAuth.mockReset();
+    mockStartReservationCheckoutHandoff.mockReset();
+    mockStartReservationCheckoutHandoff.mockImplementation(
+      async (options: MockStartReservationCheckoutHandoffOptions) => {
+        const checkIn =
+          typeof options.checkIn === "string"
+            ? options.checkIn
+            : formatCheckoutDateParamForTest(options.checkIn);
+        const checkOut =
+          typeof options.checkOut === "string"
+            ? options.checkOut
+            : formatCheckoutDateParamForTest(options.checkOut);
+        const reservationResponse = await reservationApi.create({
+          accommodation_id: options.accommodationId,
+          check_in_date: checkIn,
+          check_out_date: checkOut,
+          guest_count: options.adultCount + options.childCount,
+          ...(options.appliedCoupon ? { coupon_id: options.appliedCoupon.id } : {}),
+        });
+        const checkoutState = {
+          reservationUid: reservationResponse.reservation_uid,
+          orderName: reservationResponse.order_name,
+          amount: reservationResponse.amount,
+          customerEmail: reservationResponse.customer_email,
+          customerName: reservationResponse.customer_name,
+          checkIn,
+          checkOut,
+          adultOccupancy: options.adultCount,
+          childOccupancy: options.childCount,
+          infantOccupancy: options.infantCount ?? 0,
+          petOccupancy: options.petCount ?? 0,
+          couponName: options.appliedCoupon?.name ?? null,
+          couponDiscount: options.appliedCoupon?.discount ?? null,
+        };
+
+        try {
+          sessionStorage.setItem(
+            `airbob:reservation-checkout:${options.accommodationId}`,
+            JSON.stringify(checkoutState),
+          );
+        } catch {
+          // The production handoff still navigates when fallback storage is unavailable.
+        }
+
+        options.navigate(`/accommodations/${options.accommodationId}/confirm`, {
+          state: checkoutState,
+        });
+
+        return {
+          reservationResponse,
+          checkoutState,
+        };
+      },
+    );
     jest.mocked(reservationApi.create).mockReset();
   });
 
@@ -226,6 +321,45 @@ describe("useAccommodationBooking", () => {
     );
   });
 
+  it("treats discounted checkout without a complete coupon as no coupon", async () => {
+    jest.mocked(reservationApi.create).mockResolvedValue({
+      reservation_uid: "res-1",
+      order_name: "주문명",
+      amount: 200000,
+      customer_email: "guest@example.com",
+      customer_name: "게스트",
+    });
+
+    const { result } = renderUseAccommodationBooking(
+      new URLSearchParams("checkIn=2026-07-20&checkOut=2026-07-22"),
+      {
+        selectedCoupon: createCoupon(),
+        selectedCouponId: null,
+        couponDiscount: 10000,
+      }
+    );
+
+    await act(async () => {
+      await result.current.handleReserve();
+    });
+
+    expect(reservationApi.create).toHaveBeenCalledWith({
+      accommodation_id: 7,
+      check_in_date: "2026-07-20",
+      check_out_date: "2026-07-22",
+      guest_count: 1,
+    });
+    expect(
+      JSON.parse(sessionStorage.getItem("airbob:reservation-checkout:7") ?? "{}")
+    ).toEqual(
+      expect.objectContaining({
+        reservationUid: "res-1",
+        couponName: null,
+        couponDiscount: null,
+      })
+    );
+  });
+
   it("navigates with router state even when saving checkout fallback fails", async () => {
     jest.mocked(reservationApi.create).mockResolvedValue({
       reservation_uid: "res-1",
@@ -312,7 +446,6 @@ describe("useAccommodationBooking", () => {
       check_in_date: "2026-07-20",
       check_out_date: "2026-07-22",
       guest_count: 1,
-      coupon_id: null,
     });
   });
 

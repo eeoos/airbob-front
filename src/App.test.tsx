@@ -76,48 +76,61 @@ jest.mock("./shared/ui", () => ({
   ),
 }));
 
-jest.mock("./pages/Home/Home", () => () => <div data-testid="page-home" />);
-jest.mock("./pages/Search/Search", () => () => <div data-testid="page-search" />);
-jest.mock("./pages/AccommodationDetail/AccommodationDetail", () => () => (
-  <div data-testid="page-accommodation-detail" />
-));
-jest.mock("./pages/AccommodationEdit/AccommodationEdit", () => () => (
-  <div data-testid="page-accommodation-edit" />
-));
-jest.mock("./pages/Wishlist/Wishlist", () => () => (
-  <div data-testid="page-wishlist" />
-));
-jest.mock("./pages/Profile/Profile", () => () => (
-  <div data-testid="page-profile" />
-));
-jest.mock("./pages/Reservations/ReservationDetail", () => () => (
-  <div data-testid="page-reservation-detail" />
-));
-jest.mock(
-  "./pages/Profile/HostReservationDetail/HostReservationDetail",
-  () => () => <div data-testid="page-host-reservation-detail" />
-);
-jest.mock("./pages/Reservations/ReservationConfirm", () => () => (
-  <div data-testid="page-reservation-confirm" />
-));
-jest.mock("./pages/Reservations/ReviewCreate", () => () => (
-  <div data-testid="page-review-create" />
-));
-jest.mock("./pages/Reservations/PaymentSuccess", () => () => (
-  <div data-testid="page-payment-success" />
-));
-jest.mock("./pages/Reservations/PaymentFail", () => () => (
-  <div data-testid="page-payment-fail" />
-));
-jest.mock("./pages/Auth/Login/Login", () => () => (
-  <div data-testid="page-login" />
-));
-jest.mock("./pages/Auth/Signup/Signup", () => () => (
-  <div data-testid="page-signup" />
-));
-jest.mock("./pages/NotFound/NotFound", () => () => (
-  <div data-testid="page-not-found" />
-));
+jest.mock("./features/home/HomeRoute", () => ({
+  HomeRoute: () => <div data-testid="page-home" />,
+}));
+jest.mock("./features/search/SearchRoute", () => ({
+  SearchRoute: () => <div data-testid="page-search" />,
+}));
+jest.mock("./features/accommodations/AccommodationDetailRoute", () => ({
+  AccommodationDetailRoute: () => (
+    <div data-testid="page-accommodation-detail" />
+  ),
+}));
+jest.mock("./features/accommodations/edit/AccommodationEditRoute", () => ({
+  AccommodationEditRoute: () => (
+    <div data-testid="page-accommodation-edit" />
+  ),
+}));
+jest.mock("./features/wishlist/WishlistRoute", () => ({
+  WishlistRoute: () => <div data-testid="page-wishlist" />,
+}));
+jest.mock("./features/profile/ProfileRoute", () => ({
+  ProfileRoute: () => <div data-testid="page-profile" />,
+}));
+jest.mock("./features/reservations/HostReservationDetailRoute", () => ({
+  HostReservationDetailRoute: () => (
+    <div data-testid="page-host-reservation-detail" />
+  ),
+}));
+jest.mock("./features/reservations/PaymentFailRoute", () => ({
+  PaymentFailRoute: () => <div data-testid="page-payment-fail" />,
+}));
+jest.mock("./features/reservations/PaymentSuccessRoute", () => ({
+  PaymentSuccessRoute: () => <div data-testid="page-payment-success" />,
+}));
+jest.mock("./features/reservations/ReservationConfirmRoute", () => ({
+  ReservationConfirmRoute: () => (
+    <div data-testid="page-reservation-confirm" />
+  ),
+}));
+jest.mock("./features/reservations/ReservationDetailRoute", () => ({
+  ReservationDetailRoute: () => (
+    <div data-testid="page-reservation-detail" />
+  ),
+}));
+jest.mock("./features/reviews/ReviewCreateRoute", () => ({
+  ReviewCreateRoute: () => <div data-testid="page-review-create" />,
+}));
+jest.mock("./features/auth/LoginRoute", () => ({
+  LoginRoute: () => <div data-testid="page-login" />,
+}));
+jest.mock("./features/auth/SignupRoute", () => ({
+  SignupRoute: () => <div data-testid="page-signup" />,
+}));
+jest.mock("./routes/NotFoundRoute", () => ({
+  NotFoundRoute: () => <div data-testid="page-not-found" />,
+}));
 
 const routeMappings = [
   { path: "/", pageTestId: "page-home", requiresAuth: false, layout: "main" },
@@ -211,12 +224,17 @@ test("groups main routes under the main layout route", () => {
 
   const mainLayoutRoute = screen.getByTestId("main-layout-route");
 
-  routeMappings.forEach(({ path, layout }) => {
-    if (layout === "main") {
-      expect(within(mainLayoutRoute).getByTestId(`route-${path}`)).toBeInTheDocument();
-      return;
-    }
+  const mainRoutePaths = routeMappings
+    .filter(({ layout }) => layout === "main")
+    .map(({ path }) => path);
+  const nonMainRoutePaths = routeMappings
+    .filter(({ layout }) => layout !== "main")
+    .map(({ path }) => path);
 
+  mainRoutePaths.forEach((path) => {
+    expect(within(mainLayoutRoute).getByTestId(`route-${path}`)).toBeInTheDocument();
+  });
+  nonMainRoutePaths.forEach((path) => {
     expect(within(mainLayoutRoute).queryByTestId(`route-${path}`)).not.toBeInTheDocument();
   });
 });
@@ -229,17 +247,24 @@ test("classifies route elements by auth requirement for unauthenticated users", 
   render(<App />);
 
   await waitFor(() => {
-    routeMappings.forEach(({ path, pageTestId, requiresAuth }) => {
-      const route = screen.getByTestId(`route-${path}`);
+    routeMappings
+      .filter(({ requiresAuth }) => requiresAuth)
+      .forEach(({ path, pageTestId }) => {
+        const route = screen.getByTestId(`route-${path}`);
 
-      if (requiresAuth) {
         expect(within(route).getByTestId("navigate")).toHaveTextContent("/");
         expect(within(route).queryByTestId(pageTestId)).not.toBeInTheDocument();
-        return;
-      }
+      });
+  });
+
+  await waitFor(() => {
+    routeMappings
+      .filter(({ requiresAuth }) => !requiresAuth)
+      .forEach(({ path, pageTestId }) => {
+      const route = screen.getByTestId(`route-${path}`);
 
       expect(within(route).getByTestId(pageTestId)).toBeInTheDocument();
       expect(within(route).queryByTestId("navigate")).not.toBeInTheDocument();
-    });
+      });
   });
 });

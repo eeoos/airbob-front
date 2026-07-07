@@ -1,5 +1,11 @@
 import React, { useRef, useState, useTransition } from "react";
-import type { NavigateFunction, URLSearchParamsInit } from "react-router-dom";
+import {
+  useNavigate,
+  useParams,
+  useSearchParams,
+  type NavigateFunction,
+  type SetURLSearchParams,
+} from "react-router-dom";
 import { ErrorToast } from "../../components/ErrorToast";
 import { useApiError } from "../../hooks/useApiError";
 import { useAuth } from "../../hooks/useAuth";
@@ -18,6 +24,10 @@ import { useAccommodationCoupons } from "./hooks/useAccommodationCoupons";
 import { useAccommodationDetail } from "./hooks/useAccommodationDetail";
 import { useAccommodationImageGallery } from "./hooks/useAccommodationImageGallery";
 import { useAccommodationReviews } from "./hooks/useAccommodationReviews";
+import {
+  toAccommodationBookingCouponViewModel,
+  toAccommodationBookingCouponViewModels,
+} from "./lib/accommodationBookingSectionsViewModel";
 import { toAccommodationBookingViewModel } from "./lib/accommodationBookingViewModel";
 import { toAccommodationDetailViewModel } from "./lib/accommodationDetailViewModel";
 import { useOutsideClick } from "../../shared/ui";
@@ -25,16 +35,18 @@ import styles from "./AccommodationDetailRoute.module.css";
 
 export interface AccommodationDetailRouteProps {
   accommodationId?: string;
-  bookingSearchParams: URLSearchParams;
-  setBookingSearchParams: (
-    nextInit: URLSearchParamsInit,
-    options?: { replace?: boolean }
-  ) => void;
-  navigate: NavigateFunction;
+  bookingSearchParams?: URLSearchParams;
+  setBookingSearchParams?: SetURLSearchParams;
+  navigate?: NavigateFunction;
 }
 
-export const AccommodationDetailRoute: React.FC<
-  AccommodationDetailRouteProps
+type AccommodationDetailRouteContentProps = Required<
+  Omit<AccommodationDetailRouteProps, "accommodationId">
+> &
+  Pick<AccommodationDetailRouteProps, "accommodationId">;
+
+const AccommodationDetailRouteContent: React.FC<
+  AccommodationDetailRouteContentProps
 > = ({
   accommodationId,
   bookingSearchParams,
@@ -151,6 +163,34 @@ export const AccommodationDetailRoute: React.FC<
       couponDiscount,
     });
 
+  const couponViewModelOptions = {
+    issuingCouponId,
+    selectedCouponId,
+    totalPrice,
+  };
+  const couponViews = toAccommodationBookingCouponViewModels(
+    coupons,
+    couponViewModelOptions,
+  );
+  const selectedCouponView = selectedCoupon
+    ? (couponViews.find((coupon) => coupon.id === selectedCoupon.id) ??
+      toAccommodationBookingCouponViewModel(
+        selectedCoupon,
+        couponViewModelOptions,
+      ))
+    : null;
+  const handleIssueCouponView = (
+    couponView: (typeof couponViews)[number],
+  ) => {
+    const sourceCoupon = coupons.find((coupon) => coupon.id === couponView.id);
+
+    if (!sourceCoupon) {
+      return;
+    }
+
+    return handleIssueCoupon(sourceCoupon);
+  };
+
   datePickerBoundaryRef.current = {
     contains: (target: Node) =>
       Boolean(
@@ -218,16 +258,14 @@ export const AccommodationDetailRoute: React.FC<
     onReserve: handleReserve,
   };
   const couponState = {
-    coupons,
+    coupons: couponViews,
     isLoadingCoupons,
-    selectedCoupon,
-    selectedCouponId,
-    issuingCouponId,
+    selectedCoupon: selectedCouponView,
     couponDiscount,
   };
   const couponActions = {
     setSelectedCouponId,
-    handleIssueCoupon,
+    handleIssueCoupon: handleIssueCouponView,
   };
 
   return (
@@ -329,4 +367,44 @@ export const AccommodationDetailRoute: React.FC<
       />
     </>
   );
+};
+
+const AccommodationDetailRouteWithRouter: React.FC<
+  AccommodationDetailRouteProps
+> = (props) => {
+  const { id } = useParams<{ id: string }>();
+  const [routeSearchParams, routeSetSearchParams] = useSearchParams();
+  const routeNavigate = useNavigate();
+
+  return (
+    <AccommodationDetailRouteContent
+      accommodationId={props.accommodationId ?? id}
+      bookingSearchParams={props.bookingSearchParams ?? routeSearchParams}
+      navigate={props.navigate ?? routeNavigate}
+      setBookingSearchParams={
+        props.setBookingSearchParams ?? routeSetSearchParams
+      }
+    />
+  );
+};
+
+export const AccommodationDetailRoute: React.FC<
+  AccommodationDetailRouteProps
+> = (props) => {
+  if (
+    props.bookingSearchParams &&
+    props.setBookingSearchParams &&
+    props.navigate
+  ) {
+    return (
+      <AccommodationDetailRouteContent
+        accommodationId={props.accommodationId}
+        bookingSearchParams={props.bookingSearchParams}
+        navigate={props.navigate}
+        setBookingSearchParams={props.setBookingSearchParams}
+      />
+    );
+  }
+
+  return <AccommodationDetailRouteWithRouter {...props} />;
 };

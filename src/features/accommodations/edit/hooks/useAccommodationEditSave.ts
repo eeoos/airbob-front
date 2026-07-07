@@ -1,8 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { accommodationApi } from "../../../../api";
-import { profileQueryKeys } from "../../../profile/queryKeys";
-import { accommodationQueryKeys } from "../../queryKeys";
+import { invalidateProfileHostListingCaches } from "../../../profile/publicCache";
+import { invalidateAccommodationDetailCaches } from "../../publicCache";
 import {
   AccommodationEditFormData,
   AccommodationEditUpdateData,
@@ -66,12 +66,8 @@ export const useAccommodationEditSave = ({
 
   const invalidateAccommodationCaches = useCallback(async () => {
     await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: accommodationQueryKeys.detailRoot,
-      }),
-      queryClient.invalidateQueries({
-        queryKey: profileQueryKeys.hostListingsRoot,
-      }),
+      invalidateAccommodationDetailCaches(queryClient),
+      invalidateProfileHostListingCaches(queryClient),
     ]);
   }, [queryClient]);
 

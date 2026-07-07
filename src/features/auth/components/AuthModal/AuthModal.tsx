@@ -2,7 +2,7 @@ import React, { useCallback, useState, useEffect, useRef } from "react";
 import { useAuth } from "../../../../hooks/useAuth";
 import { useApiError } from "../../../../hooks/useApiError";
 import { useSignup } from "../../hooks/useSignup";
-import { Dialog } from "../../../../shared/ui";
+import { Button, Dialog, TextField } from "../../../../shared/ui";
 import { ErrorToast } from "../../../../components/ErrorToast";
 import styles from "./AuthModal.module.css";
 
@@ -128,94 +128,73 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     >
           <form onSubmit={handleSubmit} className={styles.form}>
             {mode === "signup" && (
-              <div className={styles.inputGroup}>
-                <label htmlFor="nickname" className={styles.label}>
-                  닉네임
-                </label>
-                <input
-                  type="text"
-                  id="nickname"
-                  name="nickname"
-                  value={formData.nickname}
-                  onChange={handleChange}
-                  className={styles.input}
-                  placeholder="닉네임을 입력하세요 (1-20자)"
-                  minLength={1}
-                  maxLength={20}
-                  required
-                />
-              </div>
+              <TextField
+                type="text"
+                id="nickname"
+                name="nickname"
+                label="닉네임"
+                value={formData.nickname}
+                onChange={handleChange}
+                className={styles.input}
+                placeholder="닉네임을 입력하세요 (1-20자)"
+                minLength={1}
+                maxLength={20}
+                required
+              />
             )}
 
-            <div className={styles.inputGroup}>
-              <label htmlFor="email" className={styles.label}>
-                이메일
-              </label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className={styles.input}
-                placeholder="이메일을 입력하세요"
-                required
-              />
-            </div>
+            <TextField
+              type="email"
+              id="email"
+              name="email"
+              label="이메일"
+              value={formData.email}
+              onChange={handleChange}
+              className={styles.input}
+              placeholder="이메일을 입력하세요"
+              required
+            />
 
-            <div className={styles.inputGroup}>
-              <label htmlFor="password" className={styles.label}>
-                비밀번호
-              </label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className={styles.input}
-                placeholder={
-                  mode === "login"
-                    ? "비밀번호를 입력하세요"
-                    : "비밀번호를 입력하세요 (8-20자)"
-                }
-                minLength={mode === "signup" ? 8 : undefined}
-                maxLength={mode === "signup" ? 20 : undefined}
-                required
-              />
-            </div>
+            <TextField
+              type="password"
+              id="password"
+              name="password"
+              label="비밀번호"
+              value={formData.password}
+              onChange={handleChange}
+              className={styles.input}
+              placeholder={
+                mode === "login"
+                  ? "비밀번호를 입력하세요"
+                  : "비밀번호를 입력하세요 (8-20자)"
+              }
+              minLength={mode === "signup" ? 8 : undefined}
+              maxLength={mode === "signup" ? 20 : undefined}
+              required
+            />
 
             {mode === "signup" && (
-              <div className={styles.inputGroup}>
-                <label htmlFor="confirmPassword" className={styles.label}>
-                  비밀번호 확인
-                </label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className={styles.input}
-                  placeholder="비밀번호를 다시 입력하세요"
-                  required
-                />
-              </div>
+              <TextField
+                type="password"
+                id="confirmPassword"
+                name="confirmPassword"
+                label="비밀번호 확인"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                className={styles.input}
+                placeholder="비밀번호를 다시 입력하세요"
+                required
+              />
             )}
 
-            <button
+            <Button
               type="submit"
               className={styles.submitButton}
-              disabled={isLoading}
+              isLoading={isLoading}
+              loadingLabel={mode === "login" ? "로그인 중..." : "가입 중..."}
             >
-              {isLoading
-                ? mode === "login"
-                  ? "로그인 중..."
-                  : "가입 중..."
-                : mode === "login"
-                ? "로그인"
-                : "회원가입"}
-            </button>
+              {mode === "login" ? "로그인" : "회원가입"}
+            </Button>
           </form>
 
           <div className={styles.footer}>

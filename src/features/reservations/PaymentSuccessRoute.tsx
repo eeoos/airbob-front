@@ -1,6 +1,11 @@
 import React, { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import type { NavigateFunction } from "react-router-dom";
+import {
+  useNavigate,
+  useParams,
+  useSearchParams,
+  type NavigateFunction,
+} from "react-router-dom";
 import { routeTo } from "../../routes/paths";
 import { usePaymentConfirmation } from "./hooks/usePaymentConfirmation";
 import { clearReservationCheckoutStateByReservationUid } from "./lib/reservationCheckoutState";
@@ -9,12 +14,17 @@ import { invalidateReservationPaymentCaches } from "./publicCache";
 import styles from "./PaymentSuccessRoute.module.css";
 
 interface PaymentSuccessRouteProps {
-  navigate: NavigateFunction;
+  navigate?: NavigateFunction;
   reservationUid?: string;
-  searchParams: URLSearchParams;
+  searchParams?: URLSearchParams;
 }
 
-export const PaymentSuccessRoute: React.FC<PaymentSuccessRouteProps> = ({
+type PaymentSuccessRouteContentProps = Required<
+  Omit<PaymentSuccessRouteProps, "reservationUid">
+> &
+  Pick<PaymentSuccessRouteProps, "reservationUid">;
+
+const PaymentSuccessRouteContent: React.FC<PaymentSuccessRouteContentProps> = ({
   navigate,
   reservationUid,
   searchParams,
@@ -116,4 +126,36 @@ export const PaymentSuccessRoute: React.FC<PaymentSuccessRouteProps> = ({
       </div>
     </>
   );
+};
+
+const PaymentSuccessRouteWithRouter: React.FC<PaymentSuccessRouteProps> = (
+  props,
+) => {
+  const navigate = useNavigate();
+  const { reservationUid } = useParams<{ reservationUid: string }>();
+  const [searchParams] = useSearchParams();
+
+  return (
+    <PaymentSuccessRouteContent
+      navigate={props.navigate ?? navigate}
+      reservationUid={props.reservationUid ?? reservationUid}
+      searchParams={props.searchParams ?? searchParams}
+    />
+  );
+};
+
+export const PaymentSuccessRoute: React.FC<PaymentSuccessRouteProps> = (
+  props,
+) => {
+  if (props.navigate && props.searchParams) {
+    return (
+      <PaymentSuccessRouteContent
+        navigate={props.navigate}
+        reservationUid={props.reservationUid}
+        searchParams={props.searchParams}
+      />
+    );
+  }
+
+  return <PaymentSuccessRouteWithRouter {...props} />;
 };

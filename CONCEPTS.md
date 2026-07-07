@@ -7,6 +7,9 @@ Shared domain vocabulary for this project — entities, named processes, and sta
 ### Architecture Verification Loop
 The pre-design workflow that combines static architecture contracts, authenticated browser smoke checks, review passes, and final verification before broad styling work begins.
 
+### Architecture Freeze
+The point in the frontend verification workflow where ownership boundaries are documented and enforced by executable tests so future audits start from known contracts instead of rediscovering the same structural problems.
+
 ### Subagent Review Loop
 A task execution pattern where a fresh implementer is followed by independent spec and code-quality reviewers before the next task begins.
 

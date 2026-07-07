@@ -1,4 +1,3 @@
-import { appendDefinedSearchParam } from "../../../routes/routeQuery";
 import type { ReservationCheckoutState } from "./reservationCheckoutState";
 
 export type TossSuccessRouteInvalidReason =
@@ -18,12 +17,6 @@ export type TossSuccessRouteState =
       status: "invalid";
       reason: TossSuccessRouteInvalidReason;
     };
-
-export type PaymentFailReason = "confirm-failed" | "invalid-callback";
-
-export type PaymentFailRouteQuery = {
-  reason?: PaymentFailReason;
-};
 
 export type ReservationPaymentRequestState =
   | {
@@ -91,26 +84,6 @@ export const getReservationPaymentRequestState = (
     customerEmail: checkoutState.customerEmail,
     customerName: checkoutState.customerName,
   };
-};
-
-export const parsePaymentFailReason = (
-  reason: string | null,
-): PaymentFailReason | undefined => {
-  if (reason === "confirm-failed" || reason === "invalid-callback") {
-    return reason;
-  }
-
-  return undefined;
-};
-
-export const buildPaymentFailRouteSearchParams = (
-  query?: PaymentFailRouteQuery,
-) => {
-  const params = new URLSearchParams();
-
-  appendDefinedSearchParam(params, "reason", query?.reason);
-
-  return params;
 };
 
 const parseIntegerParam = (

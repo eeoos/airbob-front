@@ -2,121 +2,88 @@ import { readFileSync, readdirSync } from "fs";
 import { dirname, join, relative, resolve } from "path";
 
 const routesRoot = join(process.cwd(), "src/routes");
-const routePathsFile = join(routesRoot, "paths.ts");
 const layoutsRoot = join(process.cwd(), "src/layouts");
 const featuresRoot = join(process.cwd(), "src/features");
-const searchFeatureRoot = join(featuresRoot, "search");
-const wishlistFeatureRoot = join(featuresRoot, "wishlist");
 const projectRoot = process.cwd();
 const sourceExtensions = [".ts", ".tsx"];
 const importDeclarationPattern =
   /\b(?:import|export)\s+(?:type\s+)?(?:[\s\S]*?\s+from\s+)?["']([^"']+)["']/g;
 const forbiddenFeatureImportPattern =
   /from\s+["'](?:\.\.\/)+(?:features)(?:\/[^"']*)?["']/;
-// This allowlist must shrink to zero when route query contracts move fully
-// under src/routes or src/shared. Do not add new feature lib imports here.
-const allowedRouteFeatureImportPatterns = [
-  /from\s+["']\.\.\/features\/search\/lib\/searchRouteQuery["']/g,
-  /from\s+["']\.\.\/features\/wishlist\/lib\/wishlistRouteQuery["']/g,
-  /from\s+["']\.\.\/features\/profile\/lib\/profileRouteQuery["']/g,
-  /from\s+["']\.\.\/features\/reservations\/lib\/paymentRouteState["']/g,
-];
 const forbiddenLayoutFeatureDeepImportPattern =
   /from\s+["'](?:\.\.\/)+(?:features\/[^"']+\/(?:components|hooks|lib))(?:\/[^"']*)?["']/;
 const forbiddenPageImportPattern =
   /from\s+["'](?:\.\.\/)+pages(?:\/[^"']*)?["']/;
-const featureRouteAdapters = [
+const featureRouteContainers = [
   {
-    page: "src/pages/Home/Home.tsx",
-    publicImport: "../../features/home",
+    publicBarrel: "src/features/home/index.ts",
+    lazyImport: "../features/home/HomeRoute",
     routeContainer: "HomeRoute",
-    forbiddenDeepImportPattern: /features\/home\/(?:components|hooks|lib)\//,
   },
   {
-    page: "src/pages/Search/Search.tsx",
-    publicImport: "../../features/search",
+    publicBarrel: "src/features/search/index.ts",
+    lazyImport: "../features/search/SearchRoute",
     routeContainer: "SearchRoute",
-    forbiddenDeepImportPattern: /features\/search\/(?:components|hooks|lib)\//,
   },
   {
-    page: "src/pages/Wishlist/Wishlist.tsx",
-    publicImport: "../../features/wishlist",
+    publicBarrel: "src/features/wishlist/index.ts",
+    lazyImport: "../features/wishlist/WishlistRoute",
     routeContainer: "WishlistRoute",
-    forbiddenDeepImportPattern:
-      /features\/wishlist\/(?:components|hooks|lib)\//,
   },
   {
-    page: "src/pages/AccommodationDetail/AccommodationDetail.tsx",
-    publicImport: "../../features/accommodations",
+    publicBarrel: "src/features/accommodations/index.ts",
+    lazyImport: "../features/accommodations/AccommodationDetailRoute",
     routeContainer: "AccommodationDetailRoute",
-    forbiddenDeepImportPattern:
-      /features\/accommodations\/(?:components|hooks|lib)\//,
   },
   {
-    page: "src/pages/AccommodationEdit/AccommodationEdit.tsx",
-    publicImport: "../../features/accommodations/edit",
+    publicBarrel: "src/features/accommodations/edit/index.ts",
+    lazyImport: "../features/accommodations/edit/AccommodationEditRoute",
     routeContainer: "AccommodationEditRoute",
-    forbiddenDeepImportPattern:
-      /features\/accommodations\/edit\/(?:components|hooks|lib)\//,
   },
   {
-    page: "src/pages/Profile/Profile.tsx",
-    publicImport: "../../features/profile",
+    publicBarrel: "src/features/profile/index.ts",
+    lazyImport: "../features/profile/ProfileRoute",
     routeContainer: "ProfileRoute",
-    forbiddenDeepImportPattern: /features\/profile\/(?:components|hooks|lib)\//,
   },
   {
-    page: "src/pages/Profile/HostReservationDetail/HostReservationDetail.tsx",
-    publicImport: "../../../features/reservations",
+    publicBarrel: "src/features/reservations/index.ts",
+    lazyImport: "../features/reservations/HostReservationDetailRoute",
     routeContainer: "HostReservationDetailRoute",
-    forbiddenDeepImportPattern:
-      /features\/reservations\/(?:components|hooks|lib)\//,
   },
   {
-    page: "src/pages/Reservations/PaymentSuccess.tsx",
-    publicImport: "../../features/reservations",
+    publicBarrel: "src/features/reservations/index.ts",
+    lazyImport: "../features/reservations/PaymentSuccessRoute",
     routeContainer: "PaymentSuccessRoute",
-    forbiddenDeepImportPattern:
-      /features\/reservations\/(?:components|hooks|lib)\//,
   },
   {
-    page: "src/pages/Reservations/PaymentFail.tsx",
-    publicImport: "../../features/reservations",
+    publicBarrel: "src/features/reservations/index.ts",
+    lazyImport: "../features/reservations/PaymentFailRoute",
     routeContainer: "PaymentFailRoute",
-    forbiddenDeepImportPattern:
-      /features\/reservations\/(?:components|hooks|lib)\//,
   },
   {
-    page: "src/pages/Reservations/ReservationDetail.tsx",
-    publicImport: "../../features/reservations",
+    publicBarrel: "src/features/reservations/index.ts",
+    lazyImport: "../features/reservations/ReservationDetailRoute",
     routeContainer: "ReservationDetailRoute",
-    forbiddenDeepImportPattern:
-      /features\/reservations\/(?:components|hooks|lib)\//,
   },
   {
-    page: "src/pages/Reservations/ReservationConfirm.tsx",
-    publicImport: "../../features/reservations",
+    publicBarrel: "src/features/reservations/index.ts",
+    lazyImport: "../features/reservations/ReservationConfirmRoute",
     routeContainer: "ReservationConfirmRoute",
-    forbiddenDeepImportPattern:
-      /features\/reservations\/(?:components|hooks|lib)\//,
   },
   {
-    page: "src/pages/Reservations/ReviewCreate.tsx",
-    publicImport: "../../features/reviews",
+    publicBarrel: "src/features/reviews/index.ts",
+    lazyImport: "../features/reviews/ReviewCreateRoute",
     routeContainer: "ReviewCreateRoute",
-    forbiddenDeepImportPattern: /features\/reviews\/(?:components|hooks|lib)\//,
   },
   {
-    page: "src/pages/Auth/Login/Login.tsx",
-    publicImport: "../../../features/auth",
+    publicBarrel: "src/features/auth/index.ts",
+    lazyImport: "../features/auth/LoginRoute",
     routeContainer: "LoginRoute",
-    forbiddenDeepImportPattern: /features\/auth\/(?:components|hooks|lib)\//,
   },
   {
-    page: "src/pages/Auth/Signup/Signup.tsx",
-    publicImport: "../../../features/auth",
+    publicBarrel: "src/features/auth/index.ts",
+    lazyImport: "../features/auth/SignupRoute",
     routeContainer: "SignupRoute",
-    forbiddenDeepImportPattern: /features\/auth\/(?:components|hooks|lib)\//,
   },
 ] as const;
 
@@ -150,32 +117,86 @@ const toProjectRelativeImportTarget = (
   ).replace(/\\/g, "/");
 };
 
-const importsPrivateFeatureSurface = (
-  importTarget: string,
-  targetFeature: "search" | "wishlist",
-) => {
-  const targetFeatureRoot = `src/features/${targetFeature}`;
-  const privateSurfaceRoots = ["lib", "hooks", "components"].map(
-    (surface) => `${targetFeatureRoot}/${surface}`,
+const publicFeatureSurfaceFiles = new Set(["appShell", "publicCache"]);
+const privateFeatureSegments = new Set(["components", "hooks", "lib"]);
+
+const getFeatureIdentity = (sourceRootRelativePath: string) => {
+  const accommodationEditMatch = sourceRootRelativePath.match(
+    /^src\/features\/accommodations\/edit(?:\/(.+))?$/,
   );
 
-  return (
-    privateSurfaceRoots.some(
-      (surfaceRoot) =>
-        importTarget === surfaceRoot ||
-        importTarget.startsWith(`${surfaceRoot}/`),
-    ) ||
-    importTarget === `${targetFeatureRoot}/queryKeys` ||
-    importTarget.startsWith(`${targetFeatureRoot}/queryKeys.`)
+  if (accommodationEditMatch) {
+    return {
+      featureName: "accommodations/edit",
+      rest: accommodationEditMatch[1] ?? "",
+    };
+  }
+
+  const match = sourceRootRelativePath.match(
+    /^src\/features\/([^/]+)(?:\/(.+))?$/,
   );
+
+  if (!match) {
+    return null;
+  }
+
+  return {
+    featureName: match[1],
+    rest: match[2] ?? "",
+  };
 };
 
-const collectPrivateCrossFeatureImports = (
-  sourceRoot: string,
-  targetFeature: "search" | "wishlist",
-) =>
-  collectSourceFiles(sourceRoot).flatMap((filePath) => {
+const getFeatureName = (sourceRootRelativePath: string) =>
+  getFeatureIdentity(sourceRootRelativePath)?.featureName ?? null;
+
+const getImportedFeatureSurface = (importTarget: string) => {
+  const identity = getFeatureIdentity(importTarget);
+
+  if (!identity) {
+    return null;
+  }
+
+  const { featureName, rest } = identity;
+  const [firstSegment = "index"] = rest ? rest.split("/") : ["index"];
+  const basename = firstSegment.replace(/\.[tj]sx?$/, "");
+
+  return {
+    featureName,
+    firstSegment,
+    basename,
+  };
+};
+
+const importsPrivateCrossFeatureSurface = (
+  importerPath: string,
+  importTarget: string,
+) => {
+  const importerFeature = getFeatureName(importerPath);
+  const imported = getImportedFeatureSurface(importTarget);
+
+  if (!importerFeature || !imported || importerFeature === imported.featureName) {
+    return false;
+  }
+
+  if (publicFeatureSurfaceFiles.has(imported.basename)) {
+    return false;
+  }
+
+  if (imported.basename === "index") {
+    return true;
+  }
+
+  if (privateFeatureSegments.has(imported.firstSegment)) {
+    return true;
+  }
+
+  return imported.firstSegment === "queryKeys";
+};
+
+const collectPrivateCrossFeatureImports = () =>
+  collectSourceFiles(featuresRoot).flatMap((filePath) => {
     const source = readFileSync(filePath, "utf8");
+    const importerPath = relative(projectRoot, filePath).replace(/\\/g, "/");
 
     return Array.from(source.matchAll(importDeclarationPattern))
       .map((match) => match[1])
@@ -187,37 +208,32 @@ const collectPrivateCrossFeatureImports = (
       .filter(
         ({ importTarget }) =>
           importTarget !== null &&
-          importsPrivateFeatureSurface(importTarget, targetFeature),
+          importsPrivateCrossFeatureSurface(importerPath, importTarget),
       )
       .map(
-        ({ importSource }) =>
-          `${relative(projectRoot, filePath)} imports ${importSource}`,
+        ({ importSource, importTarget }) =>
+          `${importerPath} imports ${importSource} (${importTarget})`,
       );
   });
 
-describe("route boundary contracts", () => {
-  it("keeps route URL contracts limited to domain route query ownership", () => {
-    const violations = collectSourceFiles(routesRoot)
-      .filter((filePath) => {
-        const source = readFileSync(filePath, "utf8");
-        const sourceWithoutAllowedImports =
-          filePath === routePathsFile
-            ? allowedRouteFeatureImportPatterns.reduce(
-                (nextSource, allowedPattern) =>
-                  nextSource.replace(allowedPattern, ""),
-                source,
-              )
-            : source;
+const collectLazyImportTargets = (source: string) =>
+  Array.from(source.matchAll(/React\.lazy\(\(\)\s*=>\s*import\("([^"]+)"\)/g))
+    .map((match) => match[1])
+    .filter((target): target is string => Boolean(target));
 
-        return forbiddenFeatureImportPattern.test(sourceWithoutAllowedImports);
-      })
+describe("route boundary contracts", () => {
+  it("keeps route files from importing feature modules", () => {
+    const violations = collectSourceFiles(routesRoot)
+      .filter(
+        (filePath) =>
+          relative(projectRoot, filePath) !== "src/routes/routeConfig.tsx",
+      )
+      .filter((filePath) =>
+        forbiddenFeatureImportPattern.test(readFileSync(filePath, "utf8")),
+      )
       .map((filePath) => relative(projectRoot, filePath));
 
     expect(violations).toEqual([]);
-  });
-
-  it("does not add new route feature import allowlist entries", () => {
-    expect(allowedRouteFeatureImportPatterns).toHaveLength(4);
   });
 
   it("keeps route shell definitions component-free", () => {
@@ -241,13 +257,8 @@ describe("route boundary contracts", () => {
     expect(violations).toEqual([]);
   });
 
-  it("keeps search and wishlist cross-feature cache access on public boundaries", () => {
-    const violations = [
-      ...collectPrivateCrossFeatureImports(searchFeatureRoot, "wishlist"),
-      ...collectPrivateCrossFeatureImports(wishlistFeatureRoot, "search"),
-    ];
-
-    expect(violations).toEqual([]);
+  it("keeps feature-to-feature imports on public feature surfaces", () => {
+    expect(collectPrivateCrossFeatureImports()).toEqual([]);
   });
 
   it("keeps cross-feature profile composition on reservation app-shell APIs", () => {
@@ -264,17 +275,71 @@ describe("route boundary contracts", () => {
 
   it("treats cross-feature private barrel roots as boundary violations", () => {
     expect(
-      importsPrivateFeatureSurface("src/features/wishlist/hooks", "wishlist"),
-    ).toBe(true);
-    expect(
-      importsPrivateFeatureSurface(
-        "src/features/wishlist/components",
-        "wishlist",
+      importsPrivateCrossFeatureSurface(
+        "src/features/search/index.ts",
+        "src/features/wishlist",
       ),
     ).toBe(true);
     expect(
-      importsPrivateFeatureSurface("src/features/wishlist/lib", "wishlist"),
+      importsPrivateCrossFeatureSurface(
+        "src/features/search/index.ts",
+        "src/features/wishlist/index",
+      ),
     ).toBe(true);
+    expect(
+      importsPrivateCrossFeatureSurface(
+        "src/features/search/index.ts",
+        "src/features/wishlist/appShell",
+      ),
+    ).toBe(false);
+    expect(
+      importsPrivateCrossFeatureSurface(
+        "src/features/search/index.ts",
+        "src/features/wishlist/publicCache",
+      ),
+    ).toBe(false);
+    expect(
+      importsPrivateCrossFeatureSurface(
+        "src/features/search/index.ts",
+        "src/features/wishlist/hooks",
+      ),
+    ).toBe(true);
+    expect(
+      importsPrivateCrossFeatureSurface(
+        "src/features/search/index.ts",
+        "src/features/wishlist/components",
+      ),
+    ).toBe(true);
+    expect(
+      importsPrivateCrossFeatureSurface(
+        "src/features/search/index.ts",
+        "src/features/wishlist/lib",
+      ),
+    ).toBe(true);
+    expect(
+      importsPrivateCrossFeatureSurface(
+        "src/features/accommodations/edit/AccommodationEditRoute.tsx",
+        "src/features/accommodations/hooks",
+      ),
+    ).toBe(true);
+    expect(
+      importsPrivateCrossFeatureSurface(
+        "src/features/accommodations/AccommodationDetailRoute.tsx",
+        "src/features/accommodations/edit/hooks",
+      ),
+    ).toBe(true);
+    expect(
+      importsPrivateCrossFeatureSurface(
+        "src/features/accommodations/edit/AccommodationEditRoute.tsx",
+        "src/features/accommodations/edit/hooks",
+      ),
+    ).toBe(false);
+    expect(
+      importsPrivateCrossFeatureSurface(
+        "src/features/accommodations/edit/AccommodationEditRoute.tsx",
+        "src/features/accommodations/edit",
+      ),
+    ).toBe(false);
   });
 
   it("keeps layouts on explicit feature app-shell APIs", () => {
@@ -289,123 +354,33 @@ describe("route boundary contracts", () => {
     expect(violations).toEqual([]);
   });
 
-  it("keeps page route adapters pointed at feature route containers", () => {
-    featureRouteAdapters.forEach(
-      ({ page, publicImport, routeContainer, forbiddenDeepImportPattern }) => {
-        const source = readFileSync(join(projectRoot, page), "utf8");
-
-        expect(source).toContain(publicImport);
-        expect(source).toContain(routeContainer);
-        expect(source).not.toMatch(forbiddenDeepImportPattern);
-      },
+  it("loads route containers from direct per-route feature modules", () => {
+    const routeConfigSource = readFileSync(
+      join(projectRoot, "src/routes/routeConfig.tsx"),
+      "utf8",
     );
-  });
+    const lazyImportTargets = collectLazyImportTargets(routeConfigSource);
 
-  it("keeps profile and reservations page adapters out of feature internals", () => {
-    [
-      "src/pages/Profile/Profile.tsx",
-      "src/pages/Profile/HostReservationDetail/HostReservationDetail.tsx",
-      "src/pages/Reservations/PaymentSuccess.tsx",
-      "src/pages/Reservations/PaymentFail.tsx",
-      "src/pages/Reservations/ReservationDetail.tsx",
-      "src/pages/Reservations/ReservationConfirm.tsx",
-      "src/pages/Reservations/ReviewCreate.tsx",
-    ].forEach((pagePath) => {
-      const source = readFileSync(join(process.cwd(), pagePath), "utf8");
-
-      expect(source).not.toMatch(
-        /features\/(?:profile|reservations|reviews)\/(?:hooks|lib|components)\//,
-      );
+    expect(routeConfigSource).not.toContain("../pages/");
+    expect(lazyImportTargets).toHaveLength(featureRouteContainers.length + 1);
+    expect(new Set(lazyImportTargets).size).toBe(lazyImportTargets.length);
+    featureRouteContainers.forEach(({ lazyImport, routeContainer }) => {
+      expect(lazyImportTargets).toContain(lazyImport);
+      expect(routeConfigSource).toContain(routeContainer);
     });
-  });
-
-  it("keeps Profile page as a thin adapter to the profile feature route", () => {
-    const pageSource = readFileSync(
-      join(process.cwd(), "src/pages/Profile/Profile.tsx"),
-      "utf8",
-    );
-
-    expect(pageSource).toContain("../../features/profile");
-    expect(pageSource).toContain("ProfileRoute");
-    expect(pageSource).not.toMatch(
-      /\.\/GuestTrips|\.\/HostListings|\.\/HostReservations/,
-    );
-    expect(pageSource).not.toContain("getActiveTabFromRouteTab");
-    expect(pageSource).not.toContain("useState");
-  });
-
-  it("keeps HostReservationDetail page as an adapter to the reservations feature route", () => {
-    const pageSource = readFileSync(
-      join(
-        process.cwd(),
-        "src/pages/Profile/HostReservationDetail/HostReservationDetail.tsx",
-      ),
-      "utf8",
-    );
-
-    expect(pageSource).toContain("../../../features/reservations");
-    expect(pageSource).toContain("HostReservationDetailRoute");
-    expect(pageSource).not.toContain("useHostReservationDetail");
-    expect(pageSource).not.toContain("formatReservationStatus");
-  });
-
-  it("keeps payment callback pages as adapters to reservation feature routes", () => {
-    const successSource = readFileSync(
-      join(process.cwd(), "src/pages/Reservations/PaymentSuccess.tsx"),
-      "utf8",
-    );
-    const failSource = readFileSync(
-      join(process.cwd(), "src/pages/Reservations/PaymentFail.tsx"),
-      "utf8",
-    );
-
-    expect(successSource).toContain("../../features/reservations");
-    expect(successSource).toContain("PaymentSuccessRoute");
-    expect(successSource).not.toContain("usePaymentConfirmation");
-    expect(failSource).toContain("../../features/reservations");
-    expect(failSource).toContain("PaymentFailRoute");
-    expect(failSource).not.toContain(
-      "clearReservationCheckoutStateByReservationUid",
-    );
-  });
-
-  it("keeps ReviewCreate page as an adapter to the reviews feature route", () => {
-    const pageSource = readFileSync(
-      join(process.cwd(), "src/pages/Reservations/ReviewCreate.tsx"),
-      "utf8",
-    );
-
-    expect(pageSource).toContain("../../features/reviews");
-    expect(pageSource).toContain("ReviewCreateRoute");
-    expect(pageSource).not.toContain("useReviewCreate");
-    expect(pageSource).not.toContain("useState");
-  });
-
-  it("keeps Home page as a thin adapter to the home feature route", () => {
-    const pageSource = readFileSync(
-      join(process.cwd(), "src/pages/Home/Home.tsx"),
-      "utf8",
-    );
-
-    expect(pageSource).toContain("../../features/home");
-    expect(pageSource).toContain("HomeRoute");
-    expect(pageSource).not.toMatch(/\.\/Home\.module\.css|styles\./);
-    expect(pageSource).not.toContain("<div");
-    expect(pageSource).not.toContain("<h1");
-    expect(pageSource).not.toContain("<p");
+    expect(lazyImportTargets).not.toContain("../features/reservations");
+    expect(lazyImportTargets).not.toContain("../features/auth");
   });
 
   it("keeps feature public route barrels from exporting workflow internals", () => {
-    featureRouteAdapters.forEach(({ publicImport, routeContainer }) => {
-      const publicBarrelPath =
-        `${publicImport.replace(/^(?:\.\.\/)+/, "src/")}/index.ts`;
-      const publicBarrel = readFileSync(
-        join(projectRoot, publicBarrelPath),
+    featureRouteContainers.forEach(({ publicBarrel, routeContainer }) => {
+      const publicBarrelSource = readFileSync(
+        join(projectRoot, publicBarrel),
         "utf8",
       );
 
-      expect(publicBarrel).toContain(routeContainer);
-      expect(publicBarrel).not.toMatch(
+      expect(publicBarrelSource).toContain(routeContainer);
+      expect(publicBarrelSource).not.toMatch(
         /(?:\.\/(?:components|hooks|lib)|Panel|use[A-Z]|REVIEW_IMAGE_UPLOAD_ERROR_MESSAGE)/,
       );
     });

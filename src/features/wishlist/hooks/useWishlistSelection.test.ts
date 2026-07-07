@@ -34,7 +34,7 @@ const renderUseWishlistSelection = (
   options: Parameters<typeof useWishlistSelection>[0]
 ) => {
   const { Wrapper, queryClient } = createWrapper();
-  const hook = renderHook(
+  const view = renderHook(
     (props: Parameters<typeof useWishlistSelection>[0]) =>
       useWishlistSelection(props),
     {
@@ -43,7 +43,7 @@ const renderUseWishlistSelection = (
     }
   );
 
-  return { ...hook, queryClient };
+  return { ...view, queryClient };
 };
 
 jest.mock("../../../api/wishlist", () => ({

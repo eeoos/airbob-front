@@ -96,14 +96,14 @@ describe("AccommodationImageGalleryModal", () => {
   });
 
   it("closes from the close button, Escape, and backdrop", () => {
-    const { props, container } = renderGalleryModal();
+    const { props } = renderGalleryModal();
 
     fireEvent.click(screen.getByRole("button", { name: "사진 갤러리 닫기" }));
     fireEvent.keyDown(
       screen.getByRole("dialog", { name: "남산 전망 숙소 사진 갤러리" }),
       { key: "Escape" }
     );
-    fireEvent.mouseDown(container.firstElementChild as Element);
+    fireEvent.mouseDown(screen.getByRole("presentation"));
 
     expect(props.onClose).toHaveBeenCalledTimes(3);
   });

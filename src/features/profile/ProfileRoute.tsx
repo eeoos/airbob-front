@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import type { SetURLSearchParams } from "react-router-dom";
+import { useSearchParams, type SetURLSearchParams } from "react-router-dom";
 import {
   GuestTripsPanel,
   HostReservationsPanel,
@@ -25,11 +25,13 @@ import {
 } from "./lib/profileTabs";
 
 interface ProfileRouteProps {
-  searchParams: URLSearchParams;
-  setSearchParams: SetURLSearchParams;
+  searchParams?: URLSearchParams;
+  setSearchParams?: SetURLSearchParams;
 }
 
-export const ProfileRoute: React.FC<ProfileRouteProps> = ({
+type ProfileRouteContentProps = Required<ProfileRouteProps>;
+
+const ProfileRouteContent: React.FC<ProfileRouteContentProps> = ({
   searchParams,
   setSearchParams,
 }) => {
@@ -95,4 +97,28 @@ export const ProfileRoute: React.FC<ProfileRouteProps> = ({
       )}
     </ProfileShell>
   );
+};
+
+const ProfileRouteWithRouter: React.FC<ProfileRouteProps> = (props) => {
+  const [routeSearchParams, routeSetSearchParams] = useSearchParams();
+
+  return (
+    <ProfileRouteContent
+      searchParams={props.searchParams ?? routeSearchParams}
+      setSearchParams={props.setSearchParams ?? routeSetSearchParams}
+    />
+  );
+};
+
+export const ProfileRoute: React.FC<ProfileRouteProps> = (props) => {
+  if (props.searchParams && props.setSearchParams) {
+    return (
+      <ProfileRouteContent
+        searchParams={props.searchParams}
+        setSearchParams={props.setSearchParams}
+      />
+    );
+  }
+
+  return <ProfileRouteWithRouter {...props} />;
 };

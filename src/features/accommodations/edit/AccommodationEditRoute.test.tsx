@@ -178,7 +178,7 @@ describe("AccommodationEditRoute", () => {
     fireEvent.click(screen.getByText("숙소 사진"));
     await screen.findByText("1개 이상의 사진을 선택하세요.");
 
-    const fileInput = document.getElementById("imageInput") as HTMLInputElement;
+    const fileInput = screen.getByLabelText("숙소 사진 추가 선택");
     const pendingFile = new File(["room"], "room.png", { type: "image/png" });
     fireEvent.change(fileInput, {
       target: {
@@ -232,7 +232,7 @@ describe("AccommodationEditRoute", () => {
     await screen.findByDisplayValue("ETL listing 5651579");
     fireEvent.click(screen.getByText("숙소 사진"));
 
-    const fileInput = document.getElementById("imageInput") as HTMLInputElement;
+    const fileInput = screen.getByLabelText("숙소 사진 추가 선택");
     const pendingFile = new File(["room"], "room.png", { type: "image/png" });
     fireEvent.change(fileInput, {
       target: {
@@ -267,7 +267,7 @@ describe("AccommodationEditRoute", () => {
     await screen.findByDisplayValue("ETL listing 5651579");
     fireEvent.click(screen.getByText("숙소 사진"));
 
-    const fileInput = document.getElementById("imageInput") as HTMLInputElement;
+    const fileInput = screen.getByLabelText("숙소 사진 추가 선택");
     const pendingFile = new File(["room"], "room.png", { type: "image/png" });
     fireEvent.change(fileInput, {
       target: {
@@ -309,7 +309,7 @@ describe("AccommodationEditRoute", () => {
     await screen.findByDisplayValue("State Street");
     fireEvent.click(screen.getByText("숙소 사진"));
 
-    const fileInput = document.getElementById("imageInput") as HTMLInputElement;
+    const fileInput = screen.getByLabelText("숙소 사진 추가 선택");
     const pendingFile = new File(["room"], "room.png", { type: "image/png" });
     fireEvent.change(fileInput, {
       target: {

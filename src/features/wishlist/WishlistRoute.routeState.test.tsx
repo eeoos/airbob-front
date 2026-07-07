@@ -311,12 +311,14 @@ describe("Wishlist route state integration", () => {
       screen.getByRole("button", { name: "위시리스트 모달 닫기" })
     );
 
-    await waitFor(() => {
-      expect(mockRefreshRecentlyViewedWishlistState).toHaveBeenCalledWith(101);
+    await waitFor(() =>
+      expect(mockRefreshRecentlyViewedWishlistState).toHaveBeenCalledWith(101)
+    );
+    await waitFor(() =>
       expect(
         screen.queryByRole("dialog", { name: "위시리스트에 저장하기" })
-      ).not.toBeInTheDocument();
-    });
+      ).not.toBeInTheDocument()
+    );
   });
 
   it("wires the wishlist memo modal save path", async () => {
@@ -354,14 +356,16 @@ describe("Wishlist route state integration", () => {
     await userEvent.type(screen.getByLabelText("메모"), "Pack sunscreen");
     await userEvent.click(screen.getByRole("button", { name: "저장" }));
 
-    await waitFor(() => {
+    await waitFor(() =>
       expect(mockSaveWishlistAccommodationMemo).toHaveBeenCalledWith(
         501,
         "Pack sunscreen"
-      );
+      )
+    );
+    await waitFor(() =>
       expect(
         screen.queryByRole("dialog", { name: "메모 추가" })
-      ).not.toBeInTheDocument();
-    });
+      ).not.toBeInTheDocument()
+    );
   });
 });

@@ -422,12 +422,12 @@ describe("AuthProvider", () => {
       triggerAuthError();
     });
 
-    await waitFor(() => {
-      expect(sessionStorage.getItem("airbob:reservation-checkout:7")).toBeNull();
-      expect(
-        sessionStorage.getItem("airbob:reservation-checkout-index:reservation-123")
-      ).toBeNull();
-    });
+    await waitFor(() =>
+      expect(sessionStorage.getItem("airbob:reservation-checkout:7")).toBeNull()
+    );
+    expect(
+      sessionStorage.getItem("airbob:reservation-checkout-index:reservation-123")
+    ).toBeNull();
   });
 
   it("leaves auth session query data null when clearing without an active session observer", async () => {

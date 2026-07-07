@@ -1,4 +1,4 @@
-import { ROUTE_PATHS, routeTo } from "./paths";
+import { parsePaymentFailReason, ROUTE_PATHS, routeTo } from "./paths";
 
 describe("route path contracts", () => {
   it("keeps existing router path shapes", () => {
@@ -24,6 +24,11 @@ describe("route path contracts", () => {
     expect(routeTo.profile()).toBe("/profile");
     expect(routeTo.login()).toBe("/login");
     expect(routeTo.signup()).toBe("/signup");
+  });
+
+  it("re-exports payment fail query helpers from route contracts", () => {
+    expect(parsePaymentFailReason("confirm-failed")).toBe("confirm-failed");
+    expect(parsePaymentFailReason("declined")).toBeUndefined();
   });
 
   it("builds every dynamic route builder without changing URL contracts", () => {

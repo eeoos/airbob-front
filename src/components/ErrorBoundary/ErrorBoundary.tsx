@@ -1,4 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
+import { Button } from "../../shared/ui";
 import { clientLogger } from "../../utils/clientLogger";
 import styles from "./ErrorBoundary.module.css";
 
@@ -55,9 +56,9 @@ export class ErrorBoundary extends Component<Props, State> {
             <p className={styles.message}>
               {this.state.error?.message || "예상치 못한 오류가 발생했습니다."}
             </p>
-            <button className={styles.button} onClick={this.handleReset}>
+            <Button className={styles.button} onClick={this.handleReset}>
               다시 시도
-            </button>
+            </Button>
           </div>
         </div>
       );
@@ -66,7 +67,6 @@ export class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
-
 
 
 

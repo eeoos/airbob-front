@@ -4,11 +4,11 @@ import { useGoogleMapsScript } from "./useGoogleMapsScript";
 const originalGoogle = window.google;
 const originalApiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
+// Script tags live in document.head and have no accessible role to query.
 const mapsScripts = () =>
-  Array.from(
-    document.querySelectorAll<HTMLScriptElement>(
-      'script[src*="maps.googleapis.com/maps/api/js"]'
-    )
+  // eslint-disable-next-line testing-library/no-node-access
+  Array.from(document.scripts).filter((script) =>
+    script.src.includes("maps.googleapis.com/maps/api/js")
   );
 
 const setGoogleMapsReady = () => {
@@ -38,15 +38,15 @@ describe("useGoogleMapsScript", () => {
   });
 
   it("adds one script tag across multiple hook instances", async () => {
-    const first = renderHook(() => useGoogleMapsScript());
-    const second = renderHook(() => useGoogleMapsScript());
+    const { result: firstResult } = renderHook(() => useGoogleMapsScript());
+    const { result: secondResult } = renderHook(() => useGoogleMapsScript());
 
     await waitFor(() => {
       expect(mapsScripts()).toHaveLength(1);
     });
 
-    expect(first.result.current.status).toBe("loading");
-    expect(second.result.current.status).toBe("loading");
+    expect(firstResult.current.status).toBe("loading");
+    expect(secondResult.current.status).toBe("loading");
     expect(mapsScripts()[0].src).toContain("key=test-api-key");
   });
 

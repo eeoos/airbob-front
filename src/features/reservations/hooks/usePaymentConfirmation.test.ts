@@ -164,8 +164,12 @@ describe("usePaymentConfirmation", () => {
       paymentKey: "payment-key-1",
     };
 
-    const first = renderHook(() => usePaymentConfirmation(paymentValues));
-    const duplicate = renderHook(() => usePaymentConfirmation(paymentValues));
+    const { result: firstResult } = renderHook(() =>
+      usePaymentConfirmation(paymentValues)
+    );
+    const { result: duplicateResult } = renderHook(() =>
+      usePaymentConfirmation(paymentValues)
+    );
 
     expect(paymentApi.confirm).toHaveBeenCalledTimes(1);
 
@@ -173,15 +177,15 @@ describe("usePaymentConfirmation", () => {
       resolveConfirm();
     });
 
-    await waitFor(() => {
-      expect(first.result.current.result).toEqual({
+    await waitFor(() =>
+      expect(firstResult.current.result).toEqual({
         status: "confirmed",
         error: null,
-      });
-      expect(duplicate.result.current.result).toEqual({
-        status: "confirmed",
-        error: null,
-      });
+      })
+    );
+    expect(duplicateResult.current.result).toEqual({
+      status: "confirmed",
+      error: null,
     });
   });
 });

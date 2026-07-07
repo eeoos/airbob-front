@@ -103,13 +103,36 @@ describe("AccommodationHero", () => {
     expect(onShare).toHaveBeenCalledTimes(1);
   });
 
-  it("opens the gallery from a desktop thumbnail", () => {
+  it("opens the gallery from named desktop thumbnail buttons", () => {
     const onOpenGallery = jest.fn();
     renderHero({ onOpenGallery });
 
-    fireEvent.click(screen.getAllByAltText("남산 전망 숙소 3")[0]);
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "남산 전망 숙소 사진 3 크게 보기",
+      })
+    );
 
     expect(onOpenGallery).toHaveBeenCalledWith(2);
+  });
+
+  it("opens the full gallery from a single named overlay thumbnail button", () => {
+    const onOpenGallery = jest.fn();
+    renderHero({ onOpenGallery });
+
+    const viewAllButton = screen.getByRole("button", {
+      name: "남산 전망 숙소 사진 모두 보기",
+    });
+
+    expect(viewAllButton).toHaveTextContent("사진 모두 보기");
+    expect(
+      screen.queryByRole("button", { name: "사진 모두 보기" })
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(viewAllButton);
+
+    expect(onOpenGallery).toHaveBeenCalledTimes(1);
+    expect(onOpenGallery).toHaveBeenCalledWith(0);
   });
 
   it("opens the gallery from semantic main and mobile image triggers", () => {
@@ -123,7 +146,7 @@ describe("AccommodationHero", () => {
     );
     fireEvent.click(
       screen.getByRole("button", {
-        name: "남산 전망 숙소 사진 3 크게 보기",
+        name: "남산 전망 숙소 모바일 사진 3 크게 보기",
       })
     );
 
@@ -149,5 +172,20 @@ describe("AccommodationHero", () => {
 
     expect(onMobileSlideIndexChange).toHaveBeenCalledWith(2);
     expect(onOpenGallery).not.toHaveBeenCalled();
+  });
+
+  it("keeps every gallery action on a stable accessible button name", () => {
+    renderHero();
+
+    [
+      "남산 전망 숙소 대표 사진 크게 보기",
+      "남산 전망 숙소 사진 2 크게 보기",
+      "남산 전망 숙소 사진 3 크게 보기",
+      "남산 전망 숙소 사진 4 크게 보기",
+      "남산 전망 숙소 사진 모두 보기",
+      "남산 전망 숙소 모바일 사진 1 크게 보기",
+    ].forEach((name) => {
+      expect(screen.getByRole("button", { name })).toBeInTheDocument();
+    });
   });
 });

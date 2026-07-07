@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from "react";
-import type { NavigateFunction } from "react-router-dom";
+import {
+  useNavigate,
+  useParams,
+  type NavigateFunction,
+} from "react-router-dom";
 import { ErrorToast } from "../../components/ErrorToast";
 import { getImageUrl } from "../../utils/image";
 import { routeTo } from "../../routes/paths";
@@ -11,11 +15,16 @@ import { useReviewImageSelection } from "./hooks/useReviewImageSelection";
 import styles from "./ReviewCreateRoute.module.css";
 
 interface ReviewCreateRouteProps {
-  navigate: NavigateFunction;
+  navigate?: NavigateFunction;
   reservationUid?: string;
 }
 
-export const ReviewCreateRoute: React.FC<ReviewCreateRouteProps> = ({
+type ReviewCreateRouteContentProps = Required<
+  Pick<ReviewCreateRouteProps, "navigate">
+> &
+  Pick<ReviewCreateRouteProps, "reservationUid">;
+
+const ReviewCreateRouteContent: React.FC<ReviewCreateRouteContentProps> = ({
   navigate,
   reservationUid,
 }) => {
@@ -297,4 +306,31 @@ export const ReviewCreateRoute: React.FC<ReviewCreateRouteProps> = ({
       )}
     </>
   );
+};
+
+const ReviewCreateRouteWithRouter: React.FC<ReviewCreateRouteProps> = (
+  props,
+) => {
+  const navigate = useNavigate();
+  const { reservationUid } = useParams<{ reservationUid: string }>();
+
+  return (
+    <ReviewCreateRouteContent
+      navigate={props.navigate ?? navigate}
+      reservationUid={props.reservationUid ?? reservationUid}
+    />
+  );
+};
+
+export const ReviewCreateRoute: React.FC<ReviewCreateRouteProps> = (props) => {
+  if (props.navigate) {
+    return (
+      <ReviewCreateRouteContent
+        navigate={props.navigate}
+        reservationUid={props.reservationUid}
+      />
+    );
+  }
+
+  return <ReviewCreateRouteWithRouter {...props} />;
 };

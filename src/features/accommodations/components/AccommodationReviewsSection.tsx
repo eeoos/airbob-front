@@ -1,5 +1,5 @@
 import type { AccommodationDetailViewModel } from "../lib/accommodationDetailViewModel";
-import type { ReviewViewModel } from "../../reviews/lib/reviewViewModel";
+import type { ReviewViewModel } from "../../reviews/appShell";
 import styles from "./AccommodationReviewsSection.module.css";
 
 interface AccommodationReviewsSectionProps {

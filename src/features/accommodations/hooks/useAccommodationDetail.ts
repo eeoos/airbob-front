@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { accommodationApi, recentlyViewedApi } from "../../../api";
+import { useHandledQueryError } from "../../../query/useHandledQueryError";
 import { AccommodationDetail } from "../../../types/accommodation";
 import { clientLogger } from "../../../utils/clientLogger";
 import { clearAccommodationWishlistMembership } from "../lib/accommodationDetailMembership";
@@ -32,7 +33,6 @@ export const useAccommodationDetail = ({
   const [authRefreshIndex, setAuthRefreshIndex] = useState(0);
   const latestAuthRef = useRef(isAuthenticated);
   const previousAuthRef = useRef(isAuthenticated);
-  const handledErrorUpdatedAtRef = useRef(0);
 
   latestAuthRef.current = isAuthenticated;
 
@@ -77,23 +77,12 @@ export const useAccommodationDetail = ({
     }
   }, [isAuthenticated, parsedAccommodationId]);
 
-  useEffect(() => {
-    if (
-      !detailQuery.isError ||
-      !detailQuery.error ||
-      handledErrorUpdatedAtRef.current === detailQuery.errorUpdatedAt
-    ) {
-      return;
-    }
-
-    handledErrorUpdatedAtRef.current = detailQuery.errorUpdatedAt;
-    handleError(detailQuery.error);
-  }, [
-    detailQuery.error,
-    detailQuery.errorUpdatedAt,
-    detailQuery.isError,
-    handleError,
-  ]);
+  useHandledQueryError({
+    error: detailQuery.error,
+    errorUpdatedAt: detailQuery.errorUpdatedAt,
+    isError: detailQuery.isError,
+    onError: handleError,
+  });
 
   const routeMatchedDetail =
     detailQuery.data?.id === parsedAccommodationId ? detailQuery.data : null;

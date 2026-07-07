@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from "react";
-import type { Location, NavigateFunction } from "react-router-dom";
+import {
+  useLocation,
+  useNavigate,
+  useParams,
+  type Location,
+  type NavigateFunction,
+} from "react-router-dom";
 import { ErrorToast } from "../../components/ErrorToast";
 import { useApiError } from "../../hooks/useApiError";
 import { routeTo } from "../../routes/paths";
@@ -26,11 +32,18 @@ import styles from "./ReservationConfirmRoute.module.css";
 
 interface ReservationConfirmRouteProps {
   accommodationId?: string;
-  locationState: Location["state"];
-  navigate: NavigateFunction;
+  locationState?: Location["state"];
+  navigate?: NavigateFunction;
 }
 
-export const ReservationConfirmRoute: React.FC<ReservationConfirmRouteProps> = ({
+type ReservationConfirmRouteContentProps = Required<
+  Omit<ReservationConfirmRouteProps, "accommodationId">
+> &
+  Pick<ReservationConfirmRouteProps, "accommodationId">;
+
+const ReservationConfirmRouteContent: React.FC<
+  ReservationConfirmRouteContentProps
+> = ({
   accommodationId,
   locationState,
   navigate,
@@ -277,4 +290,36 @@ export const ReservationConfirmRoute: React.FC<ReservationConfirmRouteProps> = (
       )}
     </>
   );
+};
+
+const ReservationConfirmRouteWithRouter: React.FC<
+  ReservationConfirmRouteProps
+> = (props) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+
+  return (
+    <ReservationConfirmRouteContent
+      accommodationId={props.accommodationId ?? id}
+      locationState={props.locationState ?? location.state}
+      navigate={props.navigate ?? navigate}
+    />
+  );
+};
+
+export const ReservationConfirmRoute: React.FC<
+  ReservationConfirmRouteProps
+> = (props) => {
+  if (props.locationState !== undefined && props.navigate) {
+    return (
+      <ReservationConfirmRouteContent
+        accommodationId={props.accommodationId}
+        locationState={props.locationState}
+        navigate={props.navigate}
+      />
+    );
+  }
+
+  return <ReservationConfirmRouteWithRouter {...props} />;
 };

@@ -238,10 +238,8 @@ describe("useSearchBarState", () => {
     currentSearchParams = new URLSearchParams("destination=Busan");
     rerender();
 
-    await waitFor(() => {
-      expect(mockResetPlaces).toHaveBeenCalled();
-      expect(mockHandleInputChange).toHaveBeenCalledWith("Busan");
-    });
+    await waitFor(() => expect(mockResetPlaces).toHaveBeenCalled());
+    expect(mockHandleInputChange).toHaveBeenCalledWith("Busan");
     rerender();
 
     act(() => {

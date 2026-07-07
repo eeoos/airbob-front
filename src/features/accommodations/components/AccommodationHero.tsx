@@ -113,20 +113,27 @@ const AccommodationHero: React.FC<AccommodationHeroProps> = ({
                 const image = heroImages[imageIndex];
 
                 if (image) {
+                  const isViewAllThumbnail = index === 3 && heroImages.length > 5;
+
                   return (
                     <button
                       key={image.id}
+                      type="button"
                       className={styles.thumbnail}
-                      onClick={() => onOpenGallery(imageIndex)}
+                      aria-label={
+                        isViewAllThumbnail
+                          ? `${title} 사진 모두 보기`
+                          : `${title} 사진 ${imageIndex + 1} 크게 보기`
+                      }
+                      onClick={() =>
+                        onOpenGallery(isViewAllThumbnail ? 0 : imageIndex)
+                      }
                     >
                       <img src={image.url} alt={image.alt} />
-                      {index === 3 && heroImages.length > 5 && (
+                      {isViewAllThumbnail && (
                         <div
                           className={styles.viewAllButton}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onOpenGallery(0);
-                          }}
+                          aria-hidden="true"
                         >
                           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <rect x="1" y="1" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
@@ -163,7 +170,7 @@ const AccommodationHero: React.FC<AccommodationHeroProps> = ({
             <button
               type="button"
               className={styles.mobileImageSlider}
-              aria-label={`${title} 사진 ${
+              aria-label={`${title} 모바일 사진 ${
                 mobileSlideIndex + 1
               } 크게 보기`}
               onTouchStart={handleMobileTouchStart}

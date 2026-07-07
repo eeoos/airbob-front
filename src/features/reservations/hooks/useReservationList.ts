@@ -1,7 +1,8 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { reservationApi } from "../../../api";
 import { useApiError } from "../../../hooks/useApiError";
+import { useHandledQueryError } from "../../../query/useHandledQueryError";
 import { CursorPageInfo } from "../../../types/api";
 import { ReservationFilterType } from "../../../types/reservation";
 import { reservationQueryKeys } from "../queryKeys";
@@ -84,7 +85,6 @@ export function useReservationList<TReservation>(
   scope?: CustomReservationListScope,
 ) {
   const { error, handleError, clearError } = useApiError();
-  const handledErrorUpdatedAtRef = useRef(0);
   const fallbackCustomScopeRef = useRef<CustomReservationListScope | null>(null);
 
   if (fallbackCustomScopeRef.current === null) {
@@ -135,21 +135,12 @@ export function useReservationList<TReservation>(
     [reservationListQuery.data],
   );
 
-  useEffect(() => {
-    if (
-      !reservationListQuery.error ||
-      handledErrorUpdatedAtRef.current === reservationListQuery.errorUpdatedAt
-    ) {
-      return;
-    }
-
-    handledErrorUpdatedAtRef.current = reservationListQuery.errorUpdatedAt;
-    handleError(reservationListQuery.error);
-  }, [
-    reservationListQuery.error,
-    reservationListQuery.errorUpdatedAt,
-    handleError,
-  ]);
+  useHandledQueryError({
+    error: reservationListQuery.error,
+    errorUpdatedAt: reservationListQuery.errorUpdatedAt,
+    isError: reservationListQuery.isError,
+    onError: handleError,
+  });
 
   const loadMore = useCallback(async () => {
     if (

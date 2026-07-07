@@ -1,8 +1,10 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import type { InfiniteData } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { reviewApi } from "../../../api";
+import { useHandledQueryError } from "../../../query/useHandledQueryError";
 import { ReviewSortType } from "../../../types/enums";
-import { ReviewInfo, ReviewInfos } from "../../../types/review";
+import { ReviewInfos } from "../../../types/review";
 import { accommodationQueryKeys } from "../queryKeys";
 
 interface UseAccommodationReviewsOptions {
@@ -31,27 +33,20 @@ export const useAccommodationReviews = ({
   handleError,
   clearError,
 }: UseAccommodationReviewsOptions) => {
-  const queryClient = useQueryClient();
-  const [reviews, setReviews] = useState<ReviewInfo[]>([]);
-  const [allReviews, setAllReviews] = useState<ReviewInfo[]>([]);
-  const [isLoadingMoreReviews, setIsLoadingMoreReviews] = useState(false);
-  const [reviewCursor, setReviewCursor] = useState<string | null>(null);
-  const [hasMoreReviews, setHasMoreReviews] = useState(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const reviewObserverTarget = useRef<HTMLDivElement>(null);
   const [expandedReviews] = useState<Record<number, boolean>>({});
-  const handledErrorUpdatedAtRef = useRef(0);
-  const requestGenerationRef = useRef(0);
   const shouldFetchReviews = Boolean(accommodationId) && totalReviewCount > 0;
 
-  const firstPageQuery = useQuery<
+  const reviewsQuery = useInfiniteQuery<
     ReviewInfos,
     unknown,
-    ReviewInfos,
-    ReturnType<typeof accommodationReviewsQueryKey>
+    InfiniteData<ReviewInfos, string | undefined>,
+    ReturnType<typeof accommodationReviewsQueryKey>,
+    string | undefined
   >({
     queryKey: accommodationReviewsQueryKey(accommodationId, null),
-    queryFn: () => {
+    queryFn: ({ pageParam }) => {
       if (!accommodationId) {
         throw new Error("accommodationId is required");
       }
@@ -60,146 +55,87 @@ export const useAccommodationReviews = ({
       return reviewApi.getReviews(Number(accommodationId), {
         sortType: ReviewSortType.LATEST,
         size: REVIEW_PAGE_SIZE,
-        cursor: undefined,
+        cursor: pageParam,
       });
     },
     enabled: shouldFetchReviews,
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) =>
+      lastPage.page_info.has_next
+        ? lastPage.page_info.next_cursor ?? undefined
+        : undefined,
     retry: false,
     throwOnError: false,
   });
+  const {
+    data: reviewsData,
+    error: reviewsError,
+    errorUpdatedAt,
+    fetchNextPage,
+    hasNextPage,
+    isError,
+    isFetching,
+    isFetchingNextPage,
+    refetch,
+  } = reviewsQuery;
 
-  const resetReviews = useCallback(() => {
-    setReviews([]);
-    setAllReviews([]);
-    setReviewCursor(null);
-    setHasMoreReviews(false);
-  }, []);
-
-  const applyFirstPage = useCallback((response: ReviewInfos) => {
-    const fetchedReviews = response.reviews || [];
-    const pageInfo = response.page_info;
-
-    setReviews(fetchedReviews);
-    setAllReviews(fetchedReviews);
-    setReviewCursor(pageInfo.next_cursor || null);
-    setHasMoreReviews(pageInfo.has_next || false);
-  }, []);
-
-  const appendReviewPage = useCallback((response: ReviewInfos) => {
-    const fetchedReviews = response.reviews || [];
-    const pageInfo = response.page_info;
-
-    setAllReviews((prev) => [...prev, ...fetchedReviews]);
-    setReviewCursor(pageInfo.next_cursor || null);
-    setHasMoreReviews(pageInfo.has_next || false);
-  }, []);
+  const reviewPages = useMemo(
+    () => (shouldFetchReviews ? reviewsData?.pages ?? [] : []),
+    [reviewsData, shouldFetchReviews],
+  );
+  const reviews = useMemo(
+    () => reviewPages[0]?.reviews ?? [],
+    [reviewPages],
+  );
+  const allReviews = useMemo(
+    () => reviewPages.flatMap((page) => page.reviews ?? []),
+    [reviewPages],
+  );
+  const latestPage = reviewPages[reviewPages.length - 1];
+  const reviewCursor =
+    hasNextPage && latestPage
+      ? latestPage.page_info.next_cursor ?? null
+      : null;
+  const hasMoreReviews = shouldFetchReviews && Boolean(hasNextPage);
+  const isLoadingMoreReviews = isFetchingNextPage;
 
   const fetchReviews = useCallback(async (cursor?: string | null) => {
-    if (!accommodationId) {
-      return;
-    }
-
-    const requestGeneration = requestGenerationRef.current;
-
-    if (totalReviewCount === 0) {
-      resetReviews();
+    if (!shouldFetchReviews) {
       return;
     }
 
     if (!cursor) {
-      const result = await firstPageQuery.refetch();
-      if (requestGenerationRef.current === requestGeneration && result.data) {
-        applyFirstPage(result.data);
-      }
+      clearError();
+      await refetch();
       return;
     }
 
-    setIsLoadingMoreReviews(true);
-    clearError();
-
-    try {
-      const response = await queryClient.fetchQuery({
-        queryKey: accommodationReviewsQueryKey(accommodationId, cursor),
-        queryFn: () =>
-          reviewApi.getReviews(Number(accommodationId), {
-            sortType: ReviewSortType.LATEST,
-            size: REVIEW_PAGE_SIZE,
-            cursor,
-          }),
-      });
-
-      if (requestGenerationRef.current !== requestGeneration) {
-        return;
-      }
-
-      appendReviewPage(response);
-    } catch (error) {
-      if (requestGenerationRef.current !== requestGeneration) {
-        return;
-      }
-
-      handleError(error);
-    } finally {
-      if (requestGenerationRef.current === requestGeneration) {
-        setIsLoadingMoreReviews(false);
-      }
-    }
-  }, [
-    accommodationId,
-    appendReviewPage,
-    applyFirstPage,
-    clearError,
-    firstPageQuery,
-    handleError,
-    queryClient,
-    resetReviews,
-    totalReviewCount,
-  ]);
-
-  useEffect(() => {
-    requestGenerationRef.current += 1;
-    setIsLoadingMoreReviews(false);
-    resetReviews();
-  }, [accommodationId, resetReviews]);
-
-  useEffect(() => {
-    if (!shouldFetchReviews) {
-      requestGenerationRef.current += 1;
-      setIsLoadingMoreReviews(false);
-      resetReviews();
-    }
-  }, [resetReviews, shouldFetchReviews]);
-
-  useEffect(() => {
-    if (!shouldFetchReviews || !firstPageQuery.data) {
-      return;
-    }
-
-    applyFirstPage(firstPageQuery.data);
-  }, [
-    applyFirstPage,
-    firstPageQuery.data,
-    firstPageQuery.dataUpdatedAt,
-    shouldFetchReviews,
-  ]);
-
-  useEffect(() => {
     if (
-      !firstPageQuery.isError ||
-      !firstPageQuery.error ||
-      handledErrorUpdatedAtRef.current === firstPageQuery.errorUpdatedAt
+      cursor !== reviewCursor ||
+      !hasNextPage ||
+      isFetchingNextPage
     ) {
       return;
     }
 
-    handledErrorUpdatedAtRef.current = firstPageQuery.errorUpdatedAt;
-    handleError(firstPageQuery.error);
+    clearError();
+    await fetchNextPage({ cancelRefetch: false });
   }, [
-    firstPageQuery.error,
-    firstPageQuery.errorUpdatedAt,
-    firstPageQuery.isError,
-    handleError,
+    clearError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    refetch,
+    reviewCursor,
+    shouldFetchReviews,
   ]);
+
+  useHandledQueryError({
+    error: reviewsError,
+    errorUpdatedAt,
+    isError,
+    onError: handleError,
+  });
 
   useEffect(() => {
     if (typeof IntersectionObserver === "undefined") {
@@ -235,7 +171,7 @@ export const useAccommodationReviews = ({
   return {
     reviews,
     allReviews,
-    isLoadingReviews: firstPageQuery.isFetching || isLoadingMoreReviews,
+    isLoadingReviews: shouldFetchReviews && isFetching,
     reviewCursor,
     hasMoreReviews,
     isReviewModalOpen,

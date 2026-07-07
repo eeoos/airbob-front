@@ -1,16 +1,30 @@
 #!/usr/bin/env node
 
 import { spawnSync } from "child_process";
-import { mkdirSync, writeFileSync } from "fs";
+import { accessSync, constants, mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
+
+const args = process.argv.slice(2);
+const isPreflightMode =
+  args.includes("--preflight") ||
+  process.env.AIRBOB_SMOKE_PREFLIGHT === "true";
 
 const REQUIRED_ENV = [
   "AIRBOB_QA_EMAIL",
   "AIRBOB_QA_PASSWORD",
   "GSTACK_BROWSE_BIN",
 ];
+const STRICT_ROUTE_ENV = [
+  "AIRBOB_SMOKE_RESERVATION_UID",
+  "AIRBOB_SMOKE_HOST_RESERVATION_UID",
+];
+const ACCOMMODATION_FIXTURE_ENV = [
+  "AIRBOB_SMOKE_ACCOMMODATION_ID",
+  "AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID",
+];
 
 const DEFAULT_FRONTEND_URL = "http://localhost:3000";
+const DEFAULT_BACKEND_URL = "http://localhost:8080";
 const REPORT_ROOT =
   process.env.AIRBOB_SMOKE_REPORT_ROOT?.trim() || join(".gstack", "qa-reports");
 const SCREENSHOT_ROOT = join(REPORT_ROOT, "screenshots");
@@ -31,6 +45,7 @@ const qaEmail = process.env.AIRBOB_QA_EMAIL;
 const qaPassword = process.env.AIRBOB_QA_PASSWORD;
 const browseBin = process.env.GSTACK_BROWSE_BIN;
 const frontendUrl = process.env.AIRBOB_FRONTEND_URL ?? DEFAULT_FRONTEND_URL;
+const backendUrl = process.env.AIRBOB_API_BASE_URL ?? DEFAULT_BACKEND_URL;
 const strictDynamicRoutes = process.env.AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES === "true";
 const rawGoogleMapsApiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 const googleMapsApiKey = rawGoogleMapsApiKey?.trim() ?? "";
@@ -193,7 +208,7 @@ const skippedDynamicRouteLines = skippedDynamicRoutes.map(
     `- ${name} (${pathTemplate}): skipped; set ${envName} to cover this route.`
 );
 
-if (strictDynamicRoutes && skippedDynamicRoutes.length > 0) {
+if (!isPreflightMode && strictDynamicRoutes && skippedDynamicRoutes.length > 0) {
   const missingDynamicEnvNames = skippedDynamicRoutes.map(({ envName }) => envName);
 
   console.error(
@@ -255,8 +270,113 @@ const normalizeBaseUrl = (url) => {
   return parsed.toString().replace(/\/+$/, "");
 };
 
+const stripUrlUserinfo = (value) =>
+  String(value ?? "").replace(
+    /\b([a-z][a-z0-9+.-]*:\/\/)([^/@\s]+)@/gi,
+    "$1",
+  );
+
+const sanitizeUrlForDisplay = (url) => {
+  try {
+    const parsed = new URL(url);
+    parsed.username = "";
+    parsed.password = "";
+    return parsed.toString().replace(/\/+$/, "");
+  } catch {
+    return stripUrlUserinfo(url);
+  }
+};
+
+const sanitizeReachabilityMessage = (message) =>
+  redact(stripUrlUserinfo(message));
+
 const baseUrl = normalizeBaseUrl(frontendUrl);
 const toAbsoluteUrl = (routePath) => new URL(routePath, `${baseUrl}/`).toString();
+
+const validateBrowserBinaryPath = (binaryPath) => {
+  if (!binaryPath?.trim()) {
+    return "GSTACK_BROWSE_BIN is required.";
+  }
+
+  try {
+    accessSync(binaryPath, constants.F_OK | constants.X_OK);
+    return null;
+  } catch {
+    return "GSTACK_BROWSE_BIN must point to an existing executable file.";
+  }
+};
+
+const checkReachability = async (name, url) => {
+  const controller = new AbortController();
+  const displayUrl = sanitizeUrlForDisplay(url);
+  const timeoutMs = Number(
+    process.env.AIRBOB_SMOKE_PREFLIGHT_TIMEOUT_MS ?? "3000",
+  );
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      signal: controller.signal,
+    });
+
+    if (response.status < 200 || response.status >= 400) {
+      return `${name} responded with HTTP ${response.status} at ${displayUrl}.`;
+    }
+
+    return null;
+  } catch (error) {
+    const message = sanitizeReachabilityMessage(
+      error instanceof Error ? error.message : String(error),
+    );
+    return `${name} is not reachable at ${displayUrl}: ${message}`;
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
+const runPreflight = async () => {
+  const preflightRequiredEnv = [
+    ...REQUIRED_ENV,
+    ...STRICT_ROUTE_ENV,
+    ...ACCOMMODATION_FIXTURE_ENV,
+  ];
+  const missingPreflightEnv = preflightRequiredEnv.filter(
+    (name) => !envValue(name),
+  );
+  const failures = [
+    ...missingPreflightEnv.map((name) => `${name} is required.`),
+    validateBrowserBinaryPath(browseBin),
+    await checkReachability("Frontend", baseUrl),
+    await checkReachability("Backend", normalizeBaseUrl(backendUrl)),
+  ].filter(Boolean);
+
+  if (failures.length > 0) {
+    console.error("Frontend smoke preflight failed:");
+    failures.forEach((failure) => {
+      console.error(`- ${failure}`);
+    });
+    console.error(
+      "Required env names: " +
+        preflightRequiredEnv.join(", ") +
+        ", AIRBOB_FRONTEND_URL, AIRBOB_API_BASE_URL.",
+    );
+    process.exit(1);
+  }
+
+  console.log("Frontend smoke preflight passed.");
+  console.log("Validated env names without printing secret values.");
+  console.log(`Frontend reachable: ${sanitizeUrlForDisplay(baseUrl)}`);
+  console.log(
+    `Backend reachable: ${sanitizeUrlForDisplay(normalizeBaseUrl(backendUrl))}`,
+  );
+  console.log("Browser binary executable: GSTACK_BROWSE_BIN");
+};
+
+if (isPreflightMode) {
+  await runPreflight();
+  process.exit(0);
+}
 
 const routeAssertion = ({ path, selector, expectedText }) => {
   const expected = new URL(path, `${baseUrl}/`);

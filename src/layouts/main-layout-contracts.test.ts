@@ -1,19 +1,19 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 
-const mainLayoutRoutePages = [
-  "src/pages/Home/Home.tsx",
-  "src/pages/Search/Search.tsx",
-  "src/pages/AccommodationDetail/AccommodationDetail.tsx",
-  "src/pages/AccommodationEdit/AccommodationEdit.tsx",
-  "src/pages/Wishlist/Wishlist.tsx",
-  "src/pages/Profile/Profile.tsx",
-  "src/pages/Profile/HostReservationDetail/HostReservationDetail.tsx",
-  "src/pages/Reservations/ReservationConfirm.tsx",
-  "src/pages/Reservations/ReservationDetail.tsx",
-  "src/pages/Reservations/ReviewCreate.tsx",
-  "src/pages/Reservations/PaymentSuccess.tsx",
-  "src/pages/Reservations/PaymentFail.tsx",
+const mainLayoutRouteContainers = [
+  "src/features/home/HomeRoute.tsx",
+  "src/features/search/SearchRoute.tsx",
+  "src/features/accommodations/AccommodationDetailRoute.tsx",
+  "src/features/accommodations/edit/AccommodationEditRoute.tsx",
+  "src/features/wishlist/WishlistRoute.tsx",
+  "src/features/profile/ProfileRoute.tsx",
+  "src/features/reservations/HostReservationDetailRoute.tsx",
+  "src/features/reservations/ReservationConfirmRoute.tsx",
+  "src/features/reservations/ReservationDetailRoute.tsx",
+  "src/features/reviews/ReviewCreateRoute.tsx",
+  "src/features/reservations/PaymentSuccessRoute.tsx",
+  "src/features/reservations/PaymentFailRoute.tsx",
 ];
 
 const sourceText = (relativePath: string) =>
@@ -21,7 +21,7 @@ const sourceText = (relativePath: string) =>
 
 describe("MainLayout ownership", () => {
   it("keeps MainLayout owned by the router instead of individual pages", () => {
-    const violations = mainLayoutRoutePages.flatMap((relativePath) => {
+    const violations = mainLayoutRouteContainers.flatMap((relativePath) => {
       const source = sourceText(relativePath);
       const importsMainLayout =
         source.includes("from \"../../layouts\"") ||
@@ -37,7 +37,7 @@ describe("MainLayout ownership", () => {
   });
 
   it("keeps Search from nesting a main element inside MainLayout", () => {
-    const source = sourceText("src/pages/Search/Search.tsx");
+    const source = sourceText("src/features/search/SearchRoute.tsx");
 
     expect(source).not.toContain("<main");
     expect(source).not.toContain("</main>");

@@ -251,13 +251,13 @@ describe("ReviewCreateRoute", () => {
     await userEvent.type(screen.getByLabelText("리뷰 내용"), "좋은 숙소였어요.");
     await userEvent.click(screen.getByRole("button", { name: "리뷰 작성하기" }));
 
-    await waitFor(() => {
+    await waitFor(() =>
       expect(mockSubmitReview).toHaveBeenCalledWith({
         content: "좋은 숙소였어요.",
         images: [image],
         rating: 5,
-      });
-      expect(mockNavigate).toHaveBeenCalledWith("/reservations/reservation-123");
-    });
+      })
+    );
+    expect(mockNavigate).toHaveBeenCalledWith("/reservations/reservation-123");
   });
 });

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import type { NavigateFunction } from "react-router-dom";
+import { useNavigate, type NavigateFunction } from "react-router-dom";
 import { ErrorToast } from "../../components/ErrorToast";
 import { routeTo } from "../../routes/paths";
 import { Button, Card, TextField } from "../../shared/ui";
@@ -7,10 +7,12 @@ import { useSignup } from "./hooks/useSignup";
 import styles from "./SignupRoute.module.css";
 
 interface SignupRouteProps {
-  navigate: NavigateFunction;
+  navigate?: NavigateFunction;
 }
 
-export const SignupRoute: React.FC<SignupRouteProps> = ({ navigate }) => {
+type SignupRouteContentProps = Required<SignupRouteProps>;
+
+const SignupRouteContent: React.FC<SignupRouteContentProps> = ({ navigate }) => {
   const { error, clearError, isLoading, signup } = useSignup();
   const [formData, setFormData] = useState({
     nickname: "",
@@ -123,4 +125,18 @@ export const SignupRoute: React.FC<SignupRouteProps> = ({ navigate }) => {
       )}
     </div>
   );
+};
+
+const SignupRouteWithRouter: React.FC<SignupRouteProps> = (props) => {
+  const navigate = useNavigate();
+
+  return <SignupRouteContent navigate={props.navigate ?? navigate} />;
+};
+
+export const SignupRoute: React.FC<SignupRouteProps> = (props) => {
+  if (props.navigate) {
+    return <SignupRouteContent navigate={props.navigate} />;
+  }
+
+  return <SignupRouteWithRouter {...props} />;
 };

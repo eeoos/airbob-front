@@ -4,35 +4,81 @@ import {
   type AppRouteDefinition,
 } from "./routeDefinitions";
 
-const Home = React.lazy(() => import("../pages/Home/Home"));
-const Search = React.lazy(() => import("../pages/Search/Search"));
-const AccommodationDetail = React.lazy(
-  () => import("../pages/AccommodationDetail/AccommodationDetail")
+const Home = React.lazy(() =>
+  import("../features/home/HomeRoute").then((module) => ({
+    default: module.HomeRoute,
+  }))
 );
-const AccommodationEdit = React.lazy(
-  () => import("../pages/AccommodationEdit/AccommodationEdit")
+const Search = React.lazy(() =>
+  import("../features/search/SearchRoute").then((module) => ({
+    default: module.SearchRoute,
+  }))
 );
-const Wishlist = React.lazy(() => import("../pages/Wishlist/Wishlist"));
-const Profile = React.lazy(() => import("../pages/Profile/Profile"));
-const ReservationDetail = React.lazy(
-  () => import("../pages/Reservations/ReservationDetail")
+const AccommodationDetail = React.lazy(() =>
+  import("../features/accommodations/AccommodationDetailRoute").then((module) => ({
+    default: module.AccommodationDetailRoute,
+  }))
 );
-const HostReservationDetail = React.lazy(
-  () => import("../pages/Profile/HostReservationDetail/HostReservationDetail")
+const AccommodationEdit = React.lazy(() =>
+  import("../features/accommodations/edit/AccommodationEditRoute").then((module) => ({
+    default: module.AccommodationEditRoute,
+  }))
 );
-const ReservationConfirm = React.lazy(
-  () => import("../pages/Reservations/ReservationConfirm")
+const Wishlist = React.lazy(() =>
+  import("../features/wishlist/WishlistRoute").then((module) => ({
+    default: module.WishlistRoute,
+  }))
 );
-const ReviewCreate = React.lazy(
-  () => import("../pages/Reservations/ReviewCreate")
+const Profile = React.lazy(() =>
+  import("../features/profile/ProfileRoute").then((module) => ({
+    default: module.ProfileRoute,
+  }))
 );
-const PaymentSuccess = React.lazy(
-  () => import("../pages/Reservations/PaymentSuccess")
+const ReservationDetail = React.lazy(() =>
+  import("../features/reservations/ReservationDetailRoute").then((module) => ({
+    default: module.ReservationDetailRoute,
+  }))
 );
-const PaymentFail = React.lazy(() => import("../pages/Reservations/PaymentFail"));
-const Login = React.lazy(() => import("../pages/Auth/Login/Login"));
-const Signup = React.lazy(() => import("../pages/Auth/Signup/Signup"));
-const NotFound = React.lazy(() => import("../pages/NotFound/NotFound"));
+const HostReservationDetail = React.lazy(() =>
+  import("../features/reservations/HostReservationDetailRoute").then((module) => ({
+    default: module.HostReservationDetailRoute,
+  }))
+);
+const ReservationConfirm = React.lazy(() =>
+  import("../features/reservations/ReservationConfirmRoute").then((module) => ({
+    default: module.ReservationConfirmRoute,
+  }))
+);
+const ReviewCreate = React.lazy(() =>
+  import("../features/reviews/ReviewCreateRoute").then((module) => ({
+    default: module.ReviewCreateRoute,
+  }))
+);
+const PaymentSuccess = React.lazy(() =>
+  import("../features/reservations/PaymentSuccessRoute").then((module) => ({
+    default: module.PaymentSuccessRoute,
+  }))
+);
+const PaymentFail = React.lazy(() =>
+  import("../features/reservations/PaymentFailRoute").then((module) => ({
+    default: module.PaymentFailRoute,
+  }))
+);
+const Login = React.lazy(() =>
+  import("../features/auth/LoginRoute").then((module) => ({
+    default: module.LoginRoute,
+  }))
+);
+const Signup = React.lazy(() =>
+  import("../features/auth/SignupRoute").then((module) => ({
+    default: module.SignupRoute,
+  }))
+);
+const NotFound = React.lazy(() =>
+  import("./NotFoundRoute").then((module) => ({
+    default: module.NotFoundRoute,
+  }))
+);
 
 const routeComponents = {
   home: Home,

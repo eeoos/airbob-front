@@ -1,5 +1,9 @@
 import React, { useEffect } from "react";
-import type { NavigateFunction } from "react-router-dom";
+import {
+  useNavigate,
+  useParams,
+  type NavigateFunction,
+} from "react-router-dom";
 import { ErrorToast } from "../../components/ErrorToast";
 import { routeTo } from "../../routes/paths";
 import { StatusBadge } from "../../shared/ui";
@@ -8,12 +12,17 @@ import { toHostReservationDetailViewModel } from "./lib/hostReservationDetailVie
 import styles from "./HostReservationDetailRoute.module.css";
 
 interface HostReservationDetailRouteProps {
-  navigate: NavigateFunction;
+  navigate?: NavigateFunction;
   reservationUid?: string;
 }
 
-export const HostReservationDetailRoute: React.FC<
-  HostReservationDetailRouteProps
+type HostReservationDetailRouteContentProps = Required<
+  Pick<HostReservationDetailRouteProps, "navigate">
+> &
+  Pick<HostReservationDetailRouteProps, "reservationUid">;
+
+const HostReservationDetailRouteContent: React.FC<
+  HostReservationDetailRouteContentProps
 > = ({ navigate, reservationUid }) => {
   const { error, clearError, isError, isLoading, reservation } =
     useHostReservationDetail(reservationUid);
@@ -198,4 +207,33 @@ export const HostReservationDetailRoute: React.FC<
       )}
     </>
   );
+};
+
+const HostReservationDetailRouteWithRouter: React.FC<
+  HostReservationDetailRouteProps
+> = (props) => {
+  const navigate = useNavigate();
+  const { reservationUid } = useParams<{ reservationUid: string }>();
+
+  return (
+    <HostReservationDetailRouteContent
+      navigate={props.navigate ?? navigate}
+      reservationUid={props.reservationUid ?? reservationUid}
+    />
+  );
+};
+
+export const HostReservationDetailRoute: React.FC<
+  HostReservationDetailRouteProps
+> = (props) => {
+  if (props.navigate) {
+    return (
+      <HostReservationDetailRouteContent
+        navigate={props.navigate}
+        reservationUid={props.reservationUid}
+      />
+    );
+  }
+
+  return <HostReservationDetailRouteWithRouter {...props} />;
 };

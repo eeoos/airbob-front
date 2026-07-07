@@ -1,14 +1,22 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { spawnSync } from "child_process";
+import { spawn, spawnSync } from "child_process";
 
 const projectRoot = process.cwd();
 const packageJsonPath = path.join(projectRoot, "package.json");
+const frontendWorkflowPath = path.join(
+  projectRoot,
+  ".github/workflows/frontend.yml",
+);
 const qaDocPath = path.join(projectRoot, "docs/qa/frontend-architecture-smoke.ko.md");
 const architectureDocPath = path.join(
   projectRoot,
   "docs/architecture/frontend-structure-refactor.md",
+);
+const architectureFreezeDocPath = path.join(
+  projectRoot,
+  "docs/architecture/frontend-architecture-freeze.ko.md",
 );
 const envExamplePath = path.join(projectRoot, ".env.example");
 const frontendSmokePath = path.join(projectRoot, "scripts/smoke/frontend-smoke.mjs");
@@ -93,6 +101,7 @@ const isolatedSmokeSubprocessEnv = (
     "AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS",
     "AIRBOB_SMOKE_REPORT_ROOT",
     "AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES",
+    "AIRBOB_API_BASE_URL",
   ].forEach((key) => {
     delete env[key];
   });
@@ -130,7 +139,76 @@ const removeNewDirectoryEntries = (
     });
 };
 
+const startPreflightServer = (statusCode: number) =>
+  new Promise<{ url: string; stop: () => void }>((resolve, reject) => {
+    const serverProcess = spawn(
+      process.execPath,
+      [
+        "-e",
+        [
+          "const http = require('http');",
+          "const statusCode = Number(process.argv[1]);",
+          "const server = http.createServer((_request, response) => {",
+          "  response.statusCode = statusCode;",
+          "  response.end('ok');",
+          "});",
+          "server.listen(0, '127.0.0.1', () => {",
+          "  process.stdout.write(String(server.address().port));",
+          "});",
+          "process.on('SIGTERM', () => server.close(() => process.exit(0)));",
+        ].join("\n"),
+        String(statusCode),
+      ],
+      {
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+    let stderr = "";
+    const timeout = setTimeout(() => {
+      serverProcess.kill();
+      reject(new Error(`Timed out starting preflight server: ${stderr}`));
+    }, 5000);
+
+    serverProcess.stderr.on("data", (chunk) => {
+      stderr += String(chunk);
+    });
+    serverProcess.once("error", (error) => {
+      clearTimeout(timeout);
+      reject(error);
+    });
+    serverProcess.stdout.once("data", (chunk) => {
+      clearTimeout(timeout);
+      const port = Number(String(chunk).trim());
+
+      if (!Number.isSafeInteger(port)) {
+        serverProcess.kill();
+        reject(new Error(`Invalid preflight server port: ${chunk}`));
+        return;
+      }
+
+      resolve({
+        url: `http://127.0.0.1:${port}`,
+        stop: () => {
+          serverProcess.kill();
+        },
+      });
+    });
+  });
+
 describe("frontend verification gate", () => {
+  test("query error toast handling uses the shared query hook", () => {
+    const productionFiles = getProductionSourceFiles()
+      .map(toProjectPath)
+      .filter((relativePath) => relativePath.startsWith("src/features/"));
+
+    const violations = productionFiles.filter((relativePath) => {
+      const source = fs.readFileSync(path.join(projectRoot, relativePath), "utf8");
+      return /handledErrorUpdatedAtRef/.test(source);
+    });
+
+    expect(violations).toEqual([]);
+  });
+
   test("smoke subprocess env removes parent smoke vars unless explicitly overridden", () => {
     const previousReportRoot = process.env.AIRBOB_SMOKE_REPORT_ROOT;
     const previousEditAccommodationId =
@@ -233,13 +311,16 @@ describe("frontend verification gate", () => {
       "eslint src --ext .ts,.tsx --max-warnings=0",
     );
     expect(packageJson.scripts["verify:structure"]).toBe(
-      "npm run typecheck && npm run test:ci:no-cache -- --runInBand && npm run lint",
+      "npm run typecheck && npm run test:ci:no-cache -- --runInBand && npm run lint:strict",
     );
     expect(packageJson.scripts["verify:pre-redesign"]).toBe(
       "npm run typecheck && npm run test:ci:no-cache -- --runInBand && npm run build",
     );
     expect(packageJson.scripts["smoke:frontend"]).toBe(
       "node scripts/smoke/frontend-smoke.mjs",
+    );
+    expect(packageJson.scripts["smoke:frontend:preflight"]).toBe(
+      "node scripts/smoke/frontend-smoke.mjs --preflight",
     );
     expect(packageJson.scripts["smoke:frontend:strict"]).toBe(
       "AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES=true node scripts/smoke/frontend-smoke.mjs",
@@ -254,6 +335,34 @@ describe("frontend verification gate", () => {
     expect(packageJson.scripts.verify).not.toContain("lint:strict");
   });
 
+  test("frontend CI workflow runs the static verification command list on Node 20", () => {
+    expect(fs.existsSync(frontendWorkflowPath)).toBe(true);
+
+    const workflow = fs.readFileSync(frontendWorkflowPath, "utf8");
+
+    [
+      "node-version: 20",
+      "run: npm ci",
+      "run: npm run typecheck",
+      "run: npm run test:ci:no-cache -- --runInBand",
+      "run: npm run build",
+      "run: npm run lint:strict",
+    ].forEach((term) => {
+      expect(workflow).toContain(term);
+    });
+
+    const commandOrder = [
+      "run: npm ci",
+      "run: npm run typecheck",
+      "run: npm run test:ci:no-cache -- --runInBand",
+      "run: npm run build",
+      "run: npm run lint:strict",
+    ].map((term) => workflow.indexOf(term));
+
+    expect(commandOrder.every((index) => index >= 0)).toBe(true);
+    expect(commandOrder).toEqual([...commandOrder].sort((a, b) => a - b));
+  });
+
   test("frontend structure refactor docs and placeholder env example are present", () => {
     expect(fs.existsSync(architectureDocPath)).toBe(true);
     expect(fs.existsSync(envExamplePath)).toBe(true);
@@ -262,14 +371,18 @@ describe("frontend verification gate", () => {
     const envExample = fs.readFileSync(envExamplePath, "utf8");
 
     [
-      "Keep feature-first structure and thin page adapters.",
+      "Keep feature-first structure with routeConfig loading feature route containers directly.",
       "Keep CSS Modules and tokenized styling before Airbnb visual redesign.",
       "Keep TanStack Query as the server-state layer.",
       "Keep backend/API/DB/server contracts unchanged.",
       "Defer CRA-to-Vite migration until structure and smoke gates are stable.",
-      "Task 1-6 focused tests/typecheck passed",
-      "Full browser smoke remains Task 8.",
-      "Promote `lint:strict` into `verify` after existing lint debt is closed.",
+      "Route query ownership moved into `src/routes`",
+      "Presentation DTO imports are closed at the API/UI boundary",
+      "Task 1-6 focused tests/typecheck and strict lint are now actionable pre-redesign gates.",
+      "`verify:structure` now runs typecheck, the no-cache CI test suite with `--runInBand`, and `lint:strict`.",
+      "Task 7 collapsed the temporary `src/pages/**` adapter layer into feature route containers.",
+      "GitHub Actions runs Node 20",
+      "`smoke:frontend:preflight` validates smoke env names",
       "`verify` remains the default static local gate and still excludes lint and strict smoke.",
       "`verify:design-ready` remains the explicit browser-backed gate because it needs live credentials, stable reservation UIDs, gstack browse, and seeded search data.",
     ].forEach((term) => {
@@ -285,6 +398,24 @@ describe("frontend verification gate", () => {
       "AIRBOB_SMOKE_RESERVATION_UID=replace-with-stable-reservation-uid",
     ].forEach((term) => {
       expect(envExample).toContain(term);
+    });
+  });
+
+  test("frontend architecture freeze criteria are documented", () => {
+    expect(fs.existsSync(architectureFreezeDocPath)).toBe(true);
+
+    const freezeDoc = fs.readFileSync(architectureFreezeDocPath, "utf8");
+
+    [
+      "구조 freeze 기준",
+      "Production feature 파일은 다른 feature의 private surface를 직접 import하지 않는다.",
+      "Cross-feature 사용은 appShell.ts 또는 publicCache.ts를 통한다.",
+      "SearchRoute는 화면 렌더링을 담당하고 useSearchRouteController가 route orchestration을 소유한다.",
+      "Query 에러 toast 중복 방지는 useHandledQueryError가 소유한다.",
+      "AuthProvider는 provider 역할을 맡고 sessionLifecycle이 세션 side effect를 소유한다.",
+      "Airbnb 스타일 시각 리팩토링은 이 문서의 freeze gate 통과 뒤 화면 단위로 진행한다.",
+    ].forEach((term) => {
+      expect(freezeDoc).toContain(term);
     });
   });
 
@@ -308,8 +439,17 @@ describe("frontend verification gate", () => {
       "delete childEnv.AIRBOB_QA_EMAIL",
       "delete childEnv.AIRBOB_QA_PASSWORD",
       "AIRBOB_SMOKE_ACCOMMODATION_ID",
+      "AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID",
       "AIRBOB_SMOKE_RESERVATION_UID",
       "AIRBOB_SMOKE_HOST_RESERVATION_UID",
+      "AIRBOB_API_BASE_URL",
+      "isPreflightMode",
+      "runPreflight",
+      "sanitizeUrlForDisplay",
+      "sanitizeReachabilityMessage",
+      "Frontend smoke preflight failed",
+      "GSTACK_BROWSE_BIN must point to an existing executable file",
+      "response.status < 200 || response.status >= 400",
       'const strictDynamicRoutes = process.env.AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES === "true";',
       "skippedDynamicRoutes",
       "strictDynamicRoutes && skippedDynamicRoutes.length > 0",
@@ -363,6 +503,159 @@ describe("frontend verification gate", () => {
     expect(smokeScript).not.toMatch(/process\.env\.AIRBOB_QA_(?:EMAIL|PASSWORD)[^;]*console/);
   });
 
+  test("frontend smoke preflight rejects 4xx services and strips URL credentials", async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "airbob-preflight-"));
+    const fakeBrowsePath = path.join(tempDir, "fake-browse.mjs");
+    const reportRoot = path.join(tempDir, "reports");
+    const frontendServer = await startPreflightServer(204);
+    const backendServer = await startPreflightServer(404);
+
+    fs.writeFileSync(
+      fakeBrowsePath,
+      ["#!/usr/bin/env node", 'console.log("browse should not run");'].join("\n"),
+      { mode: 0o755 },
+    );
+
+    try {
+      const result = spawnSync(process.execPath, [frontendSmokePath, "--preflight"], {
+        cwd: projectRoot,
+        encoding: "utf8",
+        env: isolatedSmokeSubprocessEnv({
+          AIRBOB_API_BASE_URL: backendServer.url,
+          AIRBOB_FRONTEND_URL: frontendServer.url.replace(
+            "http://",
+            "http://frontend-user:frontend-secret@",
+          ),
+          AIRBOB_QA_EMAIL: "fake-user@example.invalid",
+          AIRBOB_QA_PASSWORD: "fake-password",
+          AIRBOB_SMOKE_ACCOMMODATION_ID: "3",
+          AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID: "3",
+          AIRBOB_SMOKE_HOST_RESERVATION_UID: "host-reservation-uid",
+          AIRBOB_SMOKE_REPORT_ROOT: reportRoot,
+          AIRBOB_SMOKE_RESERVATION_UID: "guest-reservation-uid",
+          GSTACK_BROWSE_BIN: fakeBrowsePath,
+        }),
+        maxBuffer: 10 * 1024 * 1024,
+      });
+      const output = `${result.stdout}\n${result.stderr}`;
+
+      expect(result.status).toBe(1);
+      expect(output).toContain("Frontend smoke preflight failed");
+      expect(output).toContain("Backend responded with HTTP 404");
+      expect(output).toContain(backendServer.url);
+      expect(output).not.toContain("browse should not run");
+      expect(output).not.toContain("frontend-user");
+      expect(output).not.toContain("frontend-secret");
+      expect(output).not.toContain("fake-user@example.invalid");
+      expect(output).not.toContain("fake-password");
+      expect(fs.existsSync(reportRoot)).toBe(false);
+    } finally {
+      frontendServer.stop();
+      backendServer.stop();
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test("frontend smoke preflight passes against controlled reachable services without invoking browse", async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "airbob-preflight-"));
+    const fakeBrowsePath = path.join(tempDir, "fake-browse.mjs");
+    const reportRoot = path.join(tempDir, "reports");
+    const frontendServer = await startPreflightServer(204);
+    const backendServer = await startPreflightServer(204);
+
+    fs.writeFileSync(
+      fakeBrowsePath,
+      ["#!/usr/bin/env node", 'console.log("browse should not run");'].join("\n"),
+      { mode: 0o755 },
+    );
+
+    try {
+      const result = spawnSync(process.execPath, [frontendSmokePath, "--preflight"], {
+        cwd: projectRoot,
+        encoding: "utf8",
+        env: isolatedSmokeSubprocessEnv({
+          AIRBOB_API_BASE_URL: backendServer.url,
+          AIRBOB_FRONTEND_URL: frontendServer.url,
+          AIRBOB_QA_EMAIL: "fake-user@example.invalid",
+          AIRBOB_QA_PASSWORD: "fake-password",
+          AIRBOB_SMOKE_ACCOMMODATION_ID: "3",
+          AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID: "3",
+          AIRBOB_SMOKE_HOST_RESERVATION_UID: "host-reservation-uid",
+          AIRBOB_SMOKE_REPORT_ROOT: reportRoot,
+          AIRBOB_SMOKE_RESERVATION_UID: "guest-reservation-uid",
+          GSTACK_BROWSE_BIN: fakeBrowsePath,
+        }),
+        maxBuffer: 10 * 1024 * 1024,
+      });
+      const output = `${result.stdout}\n${result.stderr}`;
+
+      expect(result.status).toBe(0);
+      expect(output).toContain("Frontend smoke preflight passed.");
+      expect(output).toContain(`Frontend reachable: ${frontendServer.url}`);
+      expect(output).toContain(`Backend reachable: ${backendServer.url}`);
+      expect(output).not.toContain("browse should not run");
+      expect(output).not.toContain("fake-user@example.invalid");
+      expect(output).not.toContain("fake-password");
+      expect(fs.existsSync(reportRoot)).toBe(false);
+    } finally {
+      frontendServer.stop();
+      backendServer.stop();
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test("frontend smoke preflight strips backend URL credentials from reachability errors", async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "airbob-preflight-"));
+    const fakeBrowsePath = path.join(tempDir, "fake-browse.mjs");
+    const reportRoot = path.join(tempDir, "reports");
+    const frontendServer = await startPreflightServer(204);
+    const backendServer = await startPreflightServer(204);
+
+    fs.writeFileSync(
+      fakeBrowsePath,
+      ["#!/usr/bin/env node", 'console.log("browse should not run");'].join("\n"),
+      { mode: 0o755 },
+    );
+
+    try {
+      const result = spawnSync(process.execPath, [frontendSmokePath, "--preflight"], {
+        cwd: projectRoot,
+        encoding: "utf8",
+        env: isolatedSmokeSubprocessEnv({
+          AIRBOB_API_BASE_URL: backendServer.url.replace(
+            "http://",
+            "http://backend-user:backend-secret@",
+          ),
+          AIRBOB_FRONTEND_URL: frontendServer.url,
+          AIRBOB_QA_EMAIL: "fake-user@example.invalid",
+          AIRBOB_QA_PASSWORD: "fake-password",
+          AIRBOB_SMOKE_ACCOMMODATION_ID: "3",
+          AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID: "3",
+          AIRBOB_SMOKE_HOST_RESERVATION_UID: "host-reservation-uid",
+          AIRBOB_SMOKE_REPORT_ROOT: reportRoot,
+          AIRBOB_SMOKE_RESERVATION_UID: "guest-reservation-uid",
+          GSTACK_BROWSE_BIN: fakeBrowsePath,
+        }),
+        maxBuffer: 10 * 1024 * 1024,
+      });
+      const output = `${result.stdout}\n${result.stderr}`;
+
+      expect(result.status).toBe(1);
+      expect(output).toContain("Frontend smoke preflight failed");
+      expect(output).toContain(`Backend is not reachable at ${backendServer.url}`);
+      expect(output).not.toContain("browse should not run");
+      expect(output).not.toContain("backend-user");
+      expect(output).not.toContain("backend-secret");
+      expect(output).not.toContain("fake-user@example.invalid");
+      expect(output).not.toContain("fake-password");
+      expect(fs.existsSync(reportRoot)).toBe(false);
+    } finally {
+      frontendServer.stop();
+      backendServer.stop();
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   test("frontend smoke writes reports under an override root during harness tests", () => {
     const tempReportRoot = fs.mkdtempSync(
       path.join(os.tmpdir(), "airbob-smoke-report-"),
@@ -393,9 +686,9 @@ describe("frontend verification gate", () => {
         ),
       ).toBe(true);
       expect(defaultReportEntriesAfter).toEqual(defaultReportEntriesBefore);
-      if (defaultReportEntriesBefore === null) {
-        expect(fs.existsSync(defaultReportRoot)).toBe(false);
-      }
+      expect(
+        defaultReportEntriesBefore !== null || !fs.existsSync(defaultReportRoot),
+      ).toBe(true);
     } finally {
       removeNewDirectoryEntries(defaultReportRoot, defaultReportEntriesBefore);
       fs.rmSync(tempReportRoot, { recursive: true, force: true });
@@ -542,7 +835,10 @@ describe("frontend verification gate", () => {
       "AIRBOB_SMOKE_REPORT_ROOT",
       "GSTACK_BROWSE_BIN",
       "AIRBOB_QA_EMAIL",
-      ': "${AIRBOB_QA_PASSWORD:?Set AIRBOB_QA_PASSWORD in the shell before running smoke}"',
+      ': "' +
+        "$" +
+        "{AIRBOB_QA_PASSWORD:?Set AIRBOB_QA_PASSWORD in the shell before running smoke}" +
+        '"',
       "AIRBOB_SMOKE_ACCOMMODATION_ID",
       "AIRBOB_SMOKE_RESERVATION_UID",
       "AIRBOB_SMOKE_HOST_RESERVATION_UID",

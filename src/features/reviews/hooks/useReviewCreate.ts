@@ -1,10 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useState } from "react";
-import { reservationApi, reviewApi } from "../../../api";
+import { useCallback, useState } from "react";
+import { reviewApi } from "../../../api";
 import { useApiError } from "../../../hooks/useApiError";
+import { useHandledQueryError } from "../../../query/useHandledQueryError";
 import { ReservationDetailInfo } from "../../../types/reservation";
-import { accommodationQueryKeys } from "../../accommodations/queryKeys";
-import { reservationQueryKeys } from "../../reservations/queryKeys";
+import { invalidateAccommodationReviewCaches } from "../../accommodations/publicCache";
+import { useReservationDetailQuery } from "../../reservations/appShell";
+import { invalidateGuestReservationCaches } from "../../reservations/publicCache";
 
 export const REVIEW_IMAGE_UPLOAD_ERROR_MESSAGE =
   "리뷰는 작성되었지만 이미지 업로드에 실패했습니다.";
@@ -27,54 +29,40 @@ export type SubmitReviewResult =
 export function useReviewCreate(reservationUid?: string) {
   const queryClient = useQueryClient();
   const { error, handleError, clearError } = useApiError();
-  const [reservation, setReservation] =
-    useState<ReservationDetailInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(Boolean(reservationUid));
+  const reservationDetailQuery = useReservationDetailQuery(reservationUid);
+  const { refetch } = reservationDetailQuery;
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const reservation =
+    reservationDetailQuery.isError ? null : reservationDetailQuery.data ?? null;
 
   const reload = useCallback(async () => {
     if (!reservationUid) {
-      setReservation(null);
-      setIsLoading(false);
       return;
     }
 
-    setIsLoading(true);
     clearError();
+    await refetch();
+  }, [clearError, refetch, reservationUid]);
 
-    try {
-      const response = await reservationApi.getMyReservationDetail(
-        reservationUid
-      );
-      setReservation(response);
-    } catch (err) {
-      setReservation(null);
-      handleError(err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [clearError, handleError, reservationUid]);
-
-  useEffect(() => {
-    reload();
-  }, [reload]);
+  useHandledQueryError({
+    error: reservationDetailQuery.error,
+    errorUpdatedAt: reservationDetailQuery.errorUpdatedAt,
+    isError: reservationDetailQuery.isError,
+    onError: handleError,
+  });
 
   const invalidateReviewCreateCaches = useCallback(
     async (reviewedReservation: ReservationDetailInfo) => {
       await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: reservationQueryKeys.guestReservationDetail(
-            reviewedReservation.reservation_uid,
-          ),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: reservationQueryKeys.guestReservationsRoot,
-        }),
-        queryClient.invalidateQueries({
-          queryKey: accommodationQueryKeys.reviewsRoot(
-            String(reviewedReservation.accommodation.id),
-          ),
-        }),
+        invalidateGuestReservationCaches(
+          queryClient,
+          reviewedReservation.reservation_uid,
+        ),
+        invalidateAccommodationReviewCaches(
+          queryClient,
+          reviewedReservation.accommodation.id,
+        ),
       ]);
     },
     [queryClient],
@@ -135,7 +123,7 @@ export function useReviewCreate(reservationUid?: string) {
     clearError,
     error,
     handleError,
-    isLoading,
+    isLoading: reservationDetailQuery.isLoading,
     isSubmitting,
     reload,
     reservation,

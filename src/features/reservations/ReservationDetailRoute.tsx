@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from "react";
-import type { NavigateFunction } from "react-router-dom";
+import {
+  useLocation,
+  useNavigate,
+  useParams,
+  type NavigateFunction,
+} from "react-router-dom";
 import { ErrorToast } from "../../components/ErrorToast";
 import { routeTo } from "../../routes/paths";
 import { StatusBadge } from "../../shared/ui";
@@ -13,8 +18,8 @@ interface ReservationDetailLocationState {
 }
 
 interface ReservationDetailRouteProps {
-  locationState: unknown;
-  navigate: NavigateFunction;
+  locationState?: unknown;
+  navigate?: NavigateFunction;
   reservationUid?: string;
 }
 
@@ -30,7 +35,14 @@ const getLocationToastMessage = (locationState: unknown) => {
   return null;
 };
 
-export const ReservationDetailRoute: React.FC<ReservationDetailRouteProps> = ({
+type ReservationDetailRouteContentProps = Required<
+  Omit<ReservationDetailRouteProps, "reservationUid">
+> &
+  Pick<ReservationDetailRouteProps, "reservationUid">;
+
+const ReservationDetailRouteContent: React.FC<
+  ReservationDetailRouteContentProps
+> = ({
   locationState,
   navigate,
   reservationUid,
@@ -327,4 +339,36 @@ export const ReservationDetailRoute: React.FC<ReservationDetailRouteProps> = ({
       )}
     </>
   );
+};
+
+const ReservationDetailRouteWithRouter: React.FC<
+  ReservationDetailRouteProps
+> = (props) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { reservationUid } = useParams<{ reservationUid: string }>();
+
+  return (
+    <ReservationDetailRouteContent
+      locationState={props.locationState ?? location.state}
+      navigate={props.navigate ?? navigate}
+      reservationUid={props.reservationUid ?? reservationUid}
+    />
+  );
+};
+
+export const ReservationDetailRoute: React.FC<ReservationDetailRouteProps> = (
+  props,
+) => {
+  if (props.locationState !== undefined && props.navigate) {
+    return (
+      <ReservationDetailRouteContent
+        locationState={props.locationState}
+        navigate={props.navigate}
+        reservationUid={props.reservationUid}
+      />
+    );
+  }
+
+  return <ReservationDetailRouteWithRouter {...props} />;
 };

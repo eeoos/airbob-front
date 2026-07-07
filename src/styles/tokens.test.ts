@@ -193,13 +193,17 @@ const strictTokenOwnedCssFiles = [
 
 const designTokenOwnedCssFiles = [
   ...sharedPrimitiveCssFiles,
+  "components/DatePicker/DatePicker.module.css",
+  "components/ErrorBoundary/ErrorBoundary.module.css",
   "features/wishlist/components/CreateWishlistModal/CreateWishlistModal.module.css",
   "features/wishlist/components/WishlistModal/WishlistModal.module.css",
   "features/reviews/components/ReviewModal/ReviewModal.module.css",
   "features/accommodations/components/AccommodationActionModal/AccommodationActionModal.module.css",
+  "features/reservations/PaymentSuccessRoute.module.css",
+  "features/reservations/PaymentFailRoute.module.css",
   "features/search/components/SearchAccommodationCard.module.css",
   "features/search/SearchRoute.module.css",
-  "pages/Wishlist/Wishlist.module.css",
+  "features/wishlist/WishlistRoute.module.css",
   "features/profile/components/ProfileShell.module.css",
   "features/profile/HostListingsPanel.module.css",
   "features/accommodations/AccommodationDetailRoute.module.css",
@@ -782,6 +786,18 @@ describe("pre-design token stylesheet contract", () => {
     expect(designTokenOwnedCssFiles).toContain(
       "features/search/components/SearchAccommodationCard.module.css",
     );
+
+    [
+      "components/DatePicker/DatePicker.module.css",
+      "components/ErrorBoundary/ErrorBoundary.module.css",
+      "features/reservations/PaymentSuccessRoute.module.css",
+      "features/reservations/PaymentFailRoute.module.css",
+      "features/reviews/components/ReviewModal/ReviewModal.module.css",
+      "features/wishlist/components/WishlistModal/WishlistModal.module.css",
+      "features/accommodations/components/AccommodationActionModal/AccommodationActionModal.module.css",
+    ].forEach((relativePath) => {
+      expect(designTokenOwnedCssFiles).toContain(relativePath);
+    });
 
     cleanedModalCssFiles.forEach((relativePath) => {
       expect(tokenMigrationAllowlist.has(`src/${relativePath}`)).toBe(false);

@@ -77,4 +77,44 @@ describe("design system entry contracts", () => {
       "100vh - var(--layout-header-mobile-height) - 60px",
     );
   });
+
+  it("keeps search map DOM helper styling behind named token constants", () => {
+    const infoWindowSource = readSource(
+      "features/search/components/SearchMap/lib/infoWindowContent.ts",
+    );
+    const expandControlSource = readSource(
+      "features/search/components/SearchMap/lib/mapExpandControl.ts",
+    );
+
+    expect(infoWindowSource).toContain("INFO_WINDOW_STYLE_TOKENS");
+    expect(infoWindowSource).toContain("cardWidth");
+    expect(infoWindowSource).toContain("buttonWishlistSize");
+    const templatePrefix = "$";
+    expect(infoWindowSource).toContain(
+      `${templatePrefix}{INFO_WINDOW_STYLE_TOKENS.cardWidth}`,
+    );
+    expect(infoWindowSource).not.toContain("const INFO_WINDOW_TOKENS");
+
+    expect(expandControlSource).toContain("MAP_EXPAND_CONTROL_STYLE_TOKENS");
+    expect(expandControlSource).toContain("iconSize");
+    expect(expandControlSource).toContain("backgroundHover");
+    expect(expandControlSource).toContain(
+      "MAP_EXPAND_CONTROL_STYLE_TOKENS.backgroundHover",
+    );
+  });
+
+  it("keeps task 5 route and boundary CSS enrolled in token ownership", () => {
+    const tokensTestSource = readSource("styles/tokens.test.ts");
+
+    [
+      "components/DatePicker/DatePicker.module.css",
+      "components/ErrorBoundary/ErrorBoundary.module.css",
+      "features/reservations/PaymentSuccessRoute.module.css",
+      "features/reservations/PaymentFailRoute.module.css",
+      "features/search/SearchRoute.module.css",
+      "features/search/components/SearchAccommodationCard.module.css",
+    ].forEach((relativePath) => {
+      expect(tokensTestSource).toContain(`"${relativePath}"`);
+    });
+  });
 });

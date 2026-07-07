@@ -1,3 +1,6 @@
+import { ROUTE_PATHS } from "./paths";
+import { getRouteShellForPathname } from "./routeMatching";
+
 jest.mock(
   "react-router",
   () => {
@@ -23,9 +26,6 @@ jest.mock(
   () => jest.requireActual("../../node_modules/react-router-dom/dist/index.js"),
   { virtual: true },
 );
-
-import { ROUTE_PATHS } from "./paths";
-import { getRouteShellForPathname } from "./routeMatching";
 
 describe("route shell matching", () => {
   it("returns search header metadata for the search route", () => {
