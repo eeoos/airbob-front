@@ -2,7 +2,6 @@ import * as fs from "fs";
 import * as path from "path";
 
 const productionUiRoots = [
-  "pages",
   "components",
   "layouts",
   "features/accommodations/components",
