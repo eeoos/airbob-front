@@ -1,28 +1,22 @@
 import React from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import {
-  MemoryRouter,
-  Route,
-  Routes,
-  type NavigateFunction,
-} from "react-router-dom";
-import { ROUTE_PATHS } from "../../routes/paths";
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import type { NavigateFunction } from "react-router-dom";
 import { PaymentFailRoute } from "./PaymentFailRoute";
-import { PaymentSuccessRoute } from "./PaymentSuccessRoute";
-import type { usePaymentConfirmation } from "./hooks/usePaymentConfirmation";
 
 const mockNavigate = jest.fn() as jest.MockedFunction<NavigateFunction>;
 const mockClearReservationCheckoutStateByReservationUid = jest.fn();
-const mockUsePaymentConfirmation = jest.fn<
-  ReturnType<typeof usePaymentConfirmation>,
-  Parameters<typeof usePaymentConfirmation>
->();
+const mockCheckPaymentStatus = jest.fn();
 
-jest.mock("./hooks/usePaymentConfirmation", () => ({
-  usePaymentConfirmation: (
-    options: Parameters<typeof usePaymentConfirmation>[0],
-  ) => mockUsePaymentConfirmation(options),
+jest.mock("./hooks/usePaymentStatus", () => ({
+  usePaymentStatus: () => ({
+    checkPaymentStatus: mockCheckPaymentStatus,
+  }),
 }));
 
 jest.mock("./lib/reservationCheckoutState", () => ({
@@ -34,11 +28,7 @@ describe("PaymentFailRoute", () => {
   beforeEach(() => {
     mockNavigate.mockReset();
     mockClearReservationCheckoutStateByReservationUid.mockReset();
-    mockUsePaymentConfirmation.mockReset();
-    mockUsePaymentConfirmation.mockReturnValue({
-      isProcessing: true,
-      result: null,
-    });
+    mockCheckPaymentStatus.mockReset();
   });
 
   it("clears checkout state when failure reason is missing", () => {
@@ -66,7 +56,9 @@ describe("PaymentFailRoute", () => {
     expect(mockClearReservationCheckoutStateByReservationUid).not.toHaveBeenCalled();
   });
 
-  it("routes a retryable confirmation failure back to the success callback with preserved values", () => {
+  it("reconciles a retryable confirmation failure and redirects only after payment is done", async () => {
+    mockCheckPaymentStatus.mockResolvedValue("done");
+
     render(
       <PaymentFailRoute
         navigate={mockNavigate}
@@ -83,50 +75,129 @@ describe("PaymentFailRoute", () => {
     );
 
     fireEvent.click(
-      screen.getByRole("button", { name: "결제 승인 다시 시도" }),
-    );
-
-    expect(mockNavigate).toHaveBeenCalledWith(
-      "/reservations/reservation-123/success?paymentKey=payment-key-1&orderId=reservation-123&amount=120000",
-    );
-    expect(mockClearReservationCheckoutStateByReservationUid).not.toHaveBeenCalled();
-  });
-
-  it("preserves retry values through the real fail-to-success router handoff", async () => {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-
-    render(
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter
-          initialEntries={[
-            "/reservations/reservation-123/fail?reason=confirm-failed&paymentKey=payment-key-1&orderId=reservation-123&amount=120000",
-          ]}
-        >
-          <Routes>
-            <Route path={ROUTE_PATHS.paymentFail} element={<PaymentFailRoute />} />
-            <Route
-              path={ROUTE_PATHS.paymentSuccess}
-              element={<PaymentSuccessRoute />}
-            />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "결제 승인 다시 시도" }),
+      screen.getByRole("button", { name: "결제 상태 확인" }),
     );
 
     await waitFor(() =>
-      expect(mockUsePaymentConfirmation).toHaveBeenCalledWith({
-        amount: "120000",
-        enabled: true,
-        orderId: "reservation-123",
-        paymentKey: "payment-key-1",
+      expect(mockNavigate).toHaveBeenCalledWith(
+        "/reservations/reservation-123",
+      ),
+    );
+    expect(mockCheckPaymentStatus).toHaveBeenCalledWith({
+      amount: 120000,
+      orderId: "reservation-123",
+      paymentKey: "payment-key-1",
+    });
+    expect(mockClearReservationCheckoutStateByReservationUid).toHaveBeenCalledWith(
+      "reservation-123",
+    );
+  });
+
+  it("keeps checkout state when payment is still processing", async () => {
+    mockCheckPaymentStatus.mockResolvedValue("pending");
+
+    render(
+      <PaymentFailRoute
+        navigate={mockNavigate}
+        reason="confirm-failed"
+        reservationUid="reservation-123"
+        searchParams={
+          new URLSearchParams({
+            amount: "120000",
+            orderId: "reservation-123",
+            paymentKey: "payment-key-1",
+          })
+        }
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "결제 상태 확인" }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText("결제가 아직 처리 중입니다. 잠시 후 다시 확인해주세요."),
+      ).toBeVisible(),
+    );
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(mockClearReservationCheckoutStateByReservationUid).not.toHaveBeenCalled();
+  });
+
+  it("keeps checkout state and reports a status lookup failure", async () => {
+    mockCheckPaymentStatus.mockRejectedValue(new Error("status lookup failed"));
+
+    render(
+      <PaymentFailRoute
+        navigate={mockNavigate}
+        reason="confirm-failed"
+        reservationUid="reservation-123"
+        searchParams={
+          new URLSearchParams({
+            amount: "120000",
+            orderId: "reservation-123",
+            paymentKey: "payment-key-1",
+          })
+        }
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "결제 상태 확인" }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText("결제 상태를 확인하지 못했습니다. 잠시 후 다시 시도해주세요."),
+      ).toBeVisible(),
+    );
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(mockClearReservationCheckoutStateByReservationUid).not.toHaveBeenCalled();
+  });
+
+  it("ignores a late status result after the callback session changes", async () => {
+    let resolveStatus: (status: "done" | "pending" | "error") => void = () => {
+      return undefined;
+    };
+    mockCheckPaymentStatus.mockReturnValue(
+      new Promise<"done" | "pending" | "error">((resolve) => {
+        resolveStatus = resolve;
       }),
     );
+
+    const view = render(
+      <PaymentFailRoute
+        navigate={mockNavigate}
+        reason="confirm-failed"
+        reservationUid="reservation-123"
+        searchParams={
+          new URLSearchParams({
+            amount: "120000",
+            orderId: "reservation-123",
+            paymentKey: "payment-key-1",
+          })
+        }
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "결제 상태 확인" }));
+    view.rerender(
+      <PaymentFailRoute
+        navigate={mockNavigate}
+        reason="confirm-failed"
+        reservationUid="reservation-456"
+        searchParams={
+          new URLSearchParams({
+            amount: "120000",
+            orderId: "reservation-456",
+            paymentKey: "payment-key-2",
+          })
+        }
+      />,
+    );
+
+    await act(async () => {
+      resolveStatus("done");
+    });
+
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(mockClearReservationCheckoutStateByReservationUid).not.toHaveBeenCalled();
   });
 
   it("does not offer confirmation retry when the preserved orderId mismatches the reservation", () => {
@@ -146,7 +217,7 @@ describe("PaymentFailRoute", () => {
     );
 
     expect(
-      screen.queryByRole("button", { name: "결제 승인 다시 시도" }),
+      screen.queryByRole("button", { name: "결제 상태 확인" }),
     ).not.toBeInTheDocument();
   });
 
@@ -167,7 +238,7 @@ describe("PaymentFailRoute", () => {
     );
 
     expect(
-      screen.queryByRole("button", { name: "결제 승인 다시 시도" }),
+      screen.queryByRole("button", { name: "결제 상태 확인" }),
     ).not.toBeInTheDocument();
   });
 

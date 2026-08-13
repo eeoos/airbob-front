@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   useNavigate,
   useParams,
@@ -11,6 +11,7 @@ import {
   type PaymentFailReason,
 } from "../../routes/routeQueryContracts";
 import { Button } from "../../shared/ui";
+import { usePaymentStatus } from "./hooks/usePaymentStatus";
 import { clearReservationCheckoutStateByReservationUid } from "./lib/reservationCheckoutState";
 import { parseTossSuccessRouteState } from "./lib/paymentRouteState";
 import styles from "./PaymentFailRoute.module.css";
@@ -27,6 +28,8 @@ type PaymentFailRouteContentProps = Required<
 > &
   Omit<PaymentFailRouteProps, "navigate">;
 
+type PaymentStatusCheckState = "idle" | "checking" | "pending" | "error";
+
 const PaymentFailRouteContent: React.FC<PaymentFailRouteContentProps> = ({
   navigate,
   reason,
@@ -37,14 +40,77 @@ const PaymentFailRouteContent: React.FC<PaymentFailRouteContentProps> = ({
     reason === "confirm-failed" && reservationUid && searchParams
       ? parseTossSuccessRouteState(reservationUid, searchParams)
       : null;
-  const retryPath =
+  const [statusCheckState, setStatusCheckState] =
+    useState<PaymentStatusCheckState>("idle");
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const { checkPaymentStatus: checkPaymentStatusFromApi } = usePaymentStatus();
+  const statusCheckTokenRef = useRef(0);
+  const sessionKey =
     retryState?.status === "valid"
-      ? routeTo.paymentSuccess(retryState.reservationUid, {
-          paymentKey: retryState.paymentKey,
-          orderId: retryState.orderId,
-          amount: retryState.amount,
-        })
-      : null;
+      ? `${retryState.reservationUid}:${retryState.paymentKey}:${retryState.orderId}:${retryState.amount}`
+      : `${reason ?? "unknown"}:${reservationUid ?? "unknown"}`;
+
+  useEffect(() => {
+    statusCheckTokenRef.current += 1;
+    setStatusCheckState("idle");
+    setStatusMessage(null);
+
+    return () => {
+      statusCheckTokenRef.current += 1;
+    };
+  }, [sessionKey]);
+
+  const checkPaymentStatus = useCallback(async () => {
+    if (
+      retryState?.status !== "valid" ||
+      statusCheckState === "checking"
+    ) {
+      return;
+    }
+
+    const requestToken = statusCheckTokenRef.current + 1;
+    statusCheckTokenRef.current = requestToken;
+    setStatusCheckState("checking");
+    setStatusMessage(null);
+
+    try {
+      const paymentStatus = await checkPaymentStatusFromApi({
+        amount: Number(retryState.amount),
+        orderId: retryState.orderId,
+        paymentKey: retryState.paymentKey,
+      });
+
+      if (requestToken !== statusCheckTokenRef.current) return;
+
+      if (paymentStatus === "done") {
+        try {
+          clearReservationCheckoutStateByReservationUid(
+            retryState.reservationUid,
+          );
+        } catch {
+          // Checkout cleanup is best-effort and must not block the status redirect.
+        }
+        navigate(routeTo.reservationDetail(retryState.reservationUid));
+        return;
+      }
+
+      if (paymentStatus === "error") {
+        throw new Error("Payment status lookup failed");
+      }
+
+      setStatusCheckState("pending");
+      setStatusMessage(
+        "결제가 아직 처리 중입니다. 잠시 후 다시 확인해주세요.",
+      );
+    } catch {
+      if (requestToken !== statusCheckTokenRef.current) return;
+
+      setStatusCheckState("error");
+      setStatusMessage(
+        "결제 상태를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.",
+      );
+    }
+  }, [checkPaymentStatusFromApi, navigate, retryState, statusCheckState]);
 
   useEffect(() => {
     if (!reservationUid || reason === "confirm-failed") return;
@@ -61,13 +127,20 @@ const PaymentFailRouteContent: React.FC<PaymentFailRouteContentProps> = ({
           <p className={styles.message}>
             결제 처리 중 문제가 발생했습니다. 다시 시도해주세요.
           </p>
+          {statusMessage && (
+            <p className={styles.message} role="status">
+              {statusMessage}
+            </p>
+          )}
           <div className={styles.actions}>
-            {retryPath && (
+            {retryState?.status === "valid" && (
               <Button
                 className={styles.button}
-                onClick={() => navigate(retryPath)}
+                isLoading={statusCheckState === "checking"}
+                loadingLabel="결제 상태 확인 중..."
+                onClick={() => void checkPaymentStatus()}
               >
-                결제 승인 다시 시도
+                결제 상태 확인
               </Button>
             )}
             <Button
