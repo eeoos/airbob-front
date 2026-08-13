@@ -22,6 +22,7 @@ const STEPS: Array<{
 
 interface EditWizardSidebarProps {
   currentStep: Step;
+  isInteractionDisabled: boolean;
   isStepCompleted: (step: Step) => boolean;
   isStepClickable: (step: Step) => boolean;
   onStepClick: (stepNumber: number) => void;
@@ -29,13 +30,15 @@ interface EditWizardSidebarProps {
 
 export const EditWizardSidebar: React.FC<EditWizardSidebarProps> = ({
   currentStep,
+  isInteractionDisabled,
   isStepCompleted,
   isStepClickable,
   onStepClick,
 }) => (
   <div className={styles.sidebar}>
     {STEPS.map((step) => {
-      const isClickable = isStepClickable(step.number);
+      const isClickable =
+        !isInteractionDisabled && isStepClickable(step.number);
       const isCurrent = currentStep === step.number;
       const isCompleted =
         isStepCompleted(step.number) && !isCurrent && step.number !== 5;

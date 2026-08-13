@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { accommodationApi } from "../../../../api";
 import { invalidateProfileHostListingCaches } from "../../../profile/publicCache";
 import { invalidateAccommodationDetailCaches } from "../../publicCache";
@@ -29,6 +29,8 @@ interface UseAccommodationEditSaveOptions {
   handleError: (error: unknown) => void;
   setIsSaving: (isSaving: boolean) => void;
   navigateToHostProfile: () => void;
+  prepareImagesForPersistence?: () => Promise<boolean>;
+  hasPendingImageChanges?: () => boolean;
   updateAccommodation?: (
     accommodationId: number,
     updateData: AccommodationEditUpdateData
@@ -44,6 +46,9 @@ const defaultUpdateAccommodation = (
 const defaultPublishAccommodation = (accommodationId: number) =>
   accommodationApi.publish(accommodationId);
 
+const defaultPrepareImagesForPersistence = async () => true;
+const defaultHasPendingImageChanges = () => false;
+
 export const useAccommodationEditSave = ({
   accommodationId,
   currentStep,
@@ -56,6 +61,8 @@ export const useAccommodationEditSave = ({
   handleError,
   setIsSaving,
   navigateToHostProfile,
+  prepareImagesForPersistence = defaultPrepareImagesForPersistence,
+  hasPendingImageChanges = defaultHasPendingImageChanges,
   updateAccommodation = defaultUpdateAccommodation,
   publishAccommodation = defaultPublishAccommodation,
 }: UseAccommodationEditSaveOptions) => {
@@ -63,6 +70,7 @@ export const useAccommodationEditSave = ({
   const [showDetailAddressConfirm, setShowDetailAddressConfirm] =
     useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const isPersistenceRunningRef = useRef(false);
 
   const invalidateAccommodationCaches = useCallback(async () => {
     await Promise.all([
@@ -99,7 +107,7 @@ export const useAccommodationEditSave = ({
   const getUpdateData = useCallback(
     () =>
       buildAccommodationUpdateData({
-        isDraft: isNewDraft,
+        isDraft: isNewDraft && initialFormData === null,
         formData,
         initialFormData,
       }),
@@ -107,12 +115,16 @@ export const useAccommodationEditSave = ({
   );
 
   const runSaveAndExit = useCallback(async () => {
-    if (!accommodationId) return;
+    if (!accommodationId || isPersistenceRunningRef.current) return;
 
+    isPersistenceRunningRef.current = true;
     setIsSaving(true);
     clearError();
 
     try {
+      const isPrepared = await prepareImagesForPersistence();
+      if (!isPrepared) return;
+
       const updateData = getUpdateData();
       const imageChanged = areImageItemsChanged({
         isNewDraft,
@@ -130,6 +142,7 @@ export const useAccommodationEditSave = ({
     } catch (err) {
       handleError(err);
     } finally {
+      isPersistenceRunningRef.current = false;
       setIsSaving(false);
     }
   }, [
@@ -142,6 +155,7 @@ export const useAccommodationEditSave = ({
     invalidateAccommodationCaches,
     isNewDraft,
     navigateToHostProfile,
+    prepareImagesForPersistence,
     setIsSaving,
     updateAccommodation,
   ]);
@@ -165,16 +179,23 @@ export const useAccommodationEditSave = ({
   ]);
 
   const runPublish = useCallback(async () => {
-    if (!accommodationId) return;
+    if (!accommodationId || isPersistenceRunningRef.current) return;
 
+    isPersistenceRunningRef.current = true;
     setIsSaving(true);
     clearError();
 
     try {
+      const hadPendingImageChanges = hasPendingImageChanges();
+      const isPrepared = await prepareImagesForPersistence();
+      if (!isPrepared) return;
+
       const updateData = getUpdateData();
 
       if (Object.keys(updateData).length > 0) {
         await updateAccommodation(Number(accommodationId), updateData);
+        await invalidateAccommodationCaches();
+      } else if (hadPendingImageChanges) {
         await invalidateAccommodationCaches();
       }
 
@@ -184,15 +205,18 @@ export const useAccommodationEditSave = ({
     } catch (err) {
       handleError(err);
     } finally {
+      isPersistenceRunningRef.current = false;
       setIsSaving(false);
     }
   }, [
     accommodationId,
     clearError,
     getUpdateData,
+    hasPendingImageChanges,
     handleError,
     invalidateAccommodationCaches,
     navigateToHostProfile,
+    prepareImagesForPersistence,
     publishAccommodation,
     setIsSaving,
     updateAccommodation,

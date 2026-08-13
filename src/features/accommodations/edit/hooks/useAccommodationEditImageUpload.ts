@@ -9,7 +9,6 @@ interface UseAccommodationEditImageUploadOptions {
   getPendingFiles: () => File[];
   handleError: (error: unknown) => void;
   resetProgressDelayMs?: number;
-  setIsSaving: (isSaving: boolean) => void;
   setUploadProgress: (progress: number) => void;
 }
 
@@ -20,7 +19,6 @@ export function useAccommodationEditImageUpload({
   getPendingFiles,
   handleError,
   resetProgressDelayMs = 500,
-  setIsSaving,
   setUploadProgress,
 }: UseAccommodationEditImageUploadOptions) {
   const uploadPendingImages = useCallback(async () => {
@@ -33,7 +31,6 @@ export function useAccommodationEditImageUpload({
       return true;
     }
 
-    setIsSaving(true);
     setUploadProgress(0);
     clearError();
 
@@ -51,11 +48,9 @@ export function useAccommodationEditImageUpload({
       return true;
     } catch (error) {
       handleError(error);
-      setIsSaving(false);
       setUploadProgress(0);
       return false;
     } finally {
-      setIsSaving(false);
       setTimeout(() => {
         setUploadProgress(0);
       }, resetProgressDelayMs);
@@ -67,7 +62,6 @@ export function useAccommodationEditImageUpload({
     getPendingFiles,
     handleError,
     resetProgressDelayMs,
-    setIsSaving,
     setUploadProgress,
   ]);
 

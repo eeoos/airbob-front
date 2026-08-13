@@ -1,8 +1,10 @@
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { accommodationApi } from "../../../api";
 import { HostAccommodationDetail } from "../../../types/accommodation";
+import { profileQueryKeys } from "../../profile/queryKeys";
+import { accommodationQueryKeys } from "../queryKeys";
 import { AccommodationEditRoute } from "./AccommodationEditRoute";
 
 const mockClearError = jest.fn();
@@ -107,7 +109,7 @@ const renderRoute = () => {
     },
   });
 
-  return render(
+  const view = render(
     <QueryClientProvider client={queryClient}>
       <AccommodationEditRoute
         accommodationId="3"
@@ -116,6 +118,8 @@ const renderRoute = () => {
       />
     </QueryClientProvider>
   );
+
+  return { ...view, queryClient };
 };
 
 beforeEach(() => {
@@ -136,6 +140,31 @@ const clickPublishStep = () => {
 };
 
 describe("AccommodationEditRoute", () => {
+  it("does not expose the editable wizard before host detail is hydrated", async () => {
+    let resolveDetail: (detail: HostAccommodationDetail) => void = () => undefined;
+    jest
+      .mocked(accommodationApi.getHostAccommodationDetail)
+      .mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveDetail = resolve;
+          })
+      );
+
+    renderRoute();
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "숙소 정보를 불러오는 중..."
+    );
+    expect(screen.queryByRole("button", { name: "저장 후 나가기" })).toBeNull();
+
+    await act(async () => {
+      resolveDetail(hostAccommodation);
+    });
+
+    expect(await screen.findByDisplayValue("ETL listing 5651579")).toBeVisible();
+  });
+
   it("keeps image file inputs uncontrolled when moving from address to photo step", async () => {
     jest
       .mocked(accommodationApi.getHostAccommodationDetail)
@@ -253,6 +282,197 @@ describe("AccommodationEditRoute", () => {
       expect.any(Function)
     );
     expect(mockNavigateToHostProfile).toHaveBeenCalledTimes(1);
+  });
+
+  it("uploads pending photo files before saving and exiting", async () => {
+    const callOrder: string[] = [];
+    jest
+      .mocked(accommodationApi.getHostAccommodationDetail)
+      .mockResolvedValue(completedHostAccommodation);
+    jest.mocked(accommodationApi.uploadImages).mockImplementation(async () => {
+      callOrder.push("upload");
+      return {
+        uploaded_images: [
+          {
+            id: 99,
+            image_url: "https://example.com/uploaded-room.jpg",
+          },
+        ],
+      };
+    });
+    mockNavigateToHostProfile.mockImplementation(() => {
+      callOrder.push("navigate");
+    });
+
+    const { queryClient } = renderRoute();
+    const invalidateQueriesSpy = jest.spyOn(queryClient, "invalidateQueries");
+
+    await screen.findByDisplayValue("ETL listing 5651579");
+    fireEvent.click(screen.getByText("숙소 사진"));
+
+    const fileInput = screen.getByLabelText("숙소 사진 추가 선택");
+    const pendingFile = new File(["room"], "room.png", { type: "image/png" });
+    fireEvent.change(fileInput, {
+      target: {
+        files: [pendingFile],
+      },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "저장 후 나가기" }));
+
+    await waitFor(() => expect(mockNavigateToHostProfile).toHaveBeenCalled());
+
+    expect(accommodationApi.uploadImages).toHaveBeenCalledWith(
+      3,
+      [pendingFile],
+      expect.any(Function)
+    );
+    expect(callOrder).toEqual(["upload", "navigate"]);
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: accommodationQueryKeys.detailRoot,
+    });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: profileQueryKeys.hostListingsRoot,
+    });
+  });
+
+  it("locks wizard mutations while save-and-exit preparation is pending", async () => {
+    let resolveUpload: (value: {
+      uploaded_images: Array<{ id: number; image_url: string }>;
+    }) => void = () => undefined;
+    jest
+      .mocked(accommodationApi.getHostAccommodationDetail)
+      .mockResolvedValue(completedHostAccommodation);
+    jest.mocked(accommodationApi.uploadImages).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveUpload = resolve;
+        })
+    );
+
+    renderRoute();
+
+    await screen.findByDisplayValue("ETL listing 5651579");
+    fireEvent.click(screen.getByText("숙소 사진"));
+
+    const fileInput = screen.getByLabelText("숙소 사진 추가 선택");
+    fireEvent.change(fileInput, {
+      target: {
+        files: [new File(["room"], "room.png", { type: "image/png" })],
+      },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "저장 후 나가기" }));
+
+    await waitFor(() => expect(accommodationApi.uploadImages).toHaveBeenCalled());
+    expect(fileInput).toBeDisabled();
+    expect(screen.getByRole("button", { name: /위치/ })).toBeDisabled();
+    expect(mockNavigateToHostProfile).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveUpload({
+        uploaded_images: [
+          { id: 99, image_url: "https://example.com/uploaded-room.jpg" },
+        ],
+      });
+    });
+
+    await waitFor(() => expect(mockNavigateToHostProfile).toHaveBeenCalled());
+  });
+
+  it("stays in the editor when save-and-exit photo upload fails", async () => {
+    const uploadError = new Error("upload failed");
+    jest
+      .mocked(accommodationApi.getHostAccommodationDetail)
+      .mockResolvedValue(completedHostAccommodation);
+    jest.mocked(accommodationApi.uploadImages).mockRejectedValue(uploadError);
+
+    renderRoute();
+
+    await screen.findByDisplayValue("ETL listing 5651579");
+    fireEvent.click(screen.getByText("숙소 사진"));
+
+    const fileInput = screen.getByLabelText("숙소 사진 추가 선택");
+    fireEvent.change(fileInput, {
+      target: {
+        files: [new File(["room"], "room.png", { type: "image/png" })],
+      },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "저장 후 나가기" }));
+
+    await waitFor(() => expect(mockHandleError).toHaveBeenCalledWith(uploadError));
+    expect(mockNavigateToHostProfile).not.toHaveBeenCalled();
+  });
+
+  it("waits for a pending image deletion and aborts navigation when it fails", async () => {
+    const deleteError = new Error("delete failed");
+    let rejectDelete: (error: Error) => void = () => undefined;
+    jest
+      .mocked(accommodationApi.getHostAccommodationDetail)
+      .mockResolvedValue(completedHostAccommodation);
+    jest.mocked(accommodationApi.deleteImage).mockImplementation(
+      () =>
+        new Promise((_, reject) => {
+          rejectDelete = reject;
+        })
+    );
+
+    renderRoute();
+
+    await screen.findByDisplayValue("ETL listing 5651579");
+    fireEvent.click(screen.getByText("숙소 사진"));
+    fireEvent.click(screen.getByRole("button", { name: "이미지 삭제" }));
+    fireEvent.click(screen.getByRole("button", { name: "저장 후 나가기" }));
+
+    expect(mockNavigateToHostProfile).not.toHaveBeenCalled();
+
+    await act(async () => {
+      rejectDelete(deleteError);
+    });
+
+    await waitFor(() => expect(mockHandleError).toHaveBeenCalledWith(deleteError));
+    expect(mockNavigateToHostProfile).not.toHaveBeenCalled();
+    expect(screen.getByAltText("커버 사진")).toBeVisible();
+  });
+
+  it("confirms a missing detail address before save-and-exit uploads photos", async () => {
+    jest
+      .mocked(accommodationApi.getHostAccommodationDetail)
+      .mockResolvedValue(missingDetailCompletedHostAccommodation);
+    jest.mocked(accommodationApi.uploadImages).mockResolvedValue({
+      uploaded_images: [
+        {
+          id: 99,
+          image_url: "https://example.com/uploaded-room.jpg",
+        },
+      ],
+    });
+
+    renderRoute();
+
+    await screen.findByDisplayValue("State Street");
+    fireEvent.click(screen.getByText("숙소 사진"));
+
+    const fileInput = screen.getByLabelText("숙소 사진 추가 선택");
+    fireEvent.change(fileInput, {
+      target: {
+        files: [new File(["room"], "room.png", { type: "image/png" })],
+      },
+    });
+    fireEvent.click(screen.getByText("위치"));
+
+    fireEvent.click(screen.getByRole("button", { name: "저장 후 나가기" }));
+
+    expect(
+      await screen.findByRole("dialog", { name: "상세 주소 확인" })
+    ).toBeInTheDocument();
+    expect(accommodationApi.uploadImages).not.toHaveBeenCalled();
+    expect(mockNavigateToHostProfile).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "진행하기" }));
+
+    await waitFor(() => expect(mockNavigateToHostProfile).toHaveBeenCalled());
+    expect(accommodationApi.uploadImages).toHaveBeenCalledTimes(1);
   });
 
   it("does not publish when pending photo upload fails on the final step", async () => {

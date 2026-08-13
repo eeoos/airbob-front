@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { accommodationApi } from "../../../../api";
 import { HostAccommodationDetail } from "../../../../types/accommodation";
 import { useAccommodationEditDetail } from "./useAccommodationEditDetail";
@@ -65,7 +65,6 @@ describe("useAccommodationEditDetail", () => {
     renderHook(() =>
       useAccommodationEditDetail({
         accommodationId: "3",
-        isNewDraft: false,
         loadAccommodation,
         loadImages,
         handleError,
@@ -80,17 +79,61 @@ describe("useAccommodationEditDetail", () => {
     expect(handleError).not.toHaveBeenCalled();
   });
 
-  it("skips loading for newly created drafts", () => {
+  it("loads persisted host detail after a draft was newly created", async () => {
+    const loadAccommodation = jest.fn();
+    const loadImages = jest.fn();
+    const handleError = jest.fn();
+    jest
+      .mocked(accommodationApi.getHostAccommodationDetail)
+      .mockResolvedValue(hostAccommodation);
+
     renderHook(() =>
       useAccommodationEditDetail({
         accommodationId: "3",
-        isNewDraft: true,
-        loadAccommodation: jest.fn(),
-        loadImages: jest.fn(),
-        handleError: jest.fn(),
+        loadAccommodation,
+        loadImages,
+        handleError,
       })
     );
 
-    expect(accommodationApi.getHostAccommodationDetail).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(accommodationApi.getHostAccommodationDetail).toHaveBeenCalledWith(3)
+    );
+    expect(loadAccommodation).toHaveBeenCalledWith(hostAccommodation);
+    expect(loadImages).toHaveBeenCalledWith(hostAccommodation.images);
+    expect(handleError).not.toHaveBeenCalled();
+  });
+
+  it("keeps the editor initializing until host detail settles", async () => {
+    const loadAccommodation = jest.fn();
+    const loadImages = jest.fn();
+    const handleError = jest.fn();
+    let resolveDetail: (detail: HostAccommodationDetail) => void = () => undefined;
+    jest
+      .mocked(accommodationApi.getHostAccommodationDetail)
+      .mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveDetail = resolve;
+          })
+      );
+
+    const { result } = renderHook(() =>
+      useAccommodationEditDetail({
+        accommodationId: "3",
+        loadAccommodation,
+        loadImages,
+        handleError,
+      })
+    );
+
+    expect(result.current.isInitializing).toBe(true);
+
+    await act(async () => {
+      resolveDetail(hostAccommodation);
+    });
+
+    await waitFor(() => expect(result.current.isInitializing).toBe(false));
+    expect(loadAccommodation).toHaveBeenCalledWith(hostAccommodation);
   });
 });

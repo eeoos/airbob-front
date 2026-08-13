@@ -46,7 +46,25 @@ export type ProfileRouteQuery =
   | { mode: "host"; tab?: ProfileHostRouteTab };
 
 export type PaymentFailReason = "confirm-failed" | "invalid-callback";
-export type PaymentFailRouteQuery = { reason?: PaymentFailReason };
+export type PaymentSuccessRouteQuery = {
+  paymentKey: RouteParamValue;
+  orderId: RouteParamValue;
+  amount: RouteParamValue;
+};
+export type PaymentFailRouteQuery =
+  | {
+      reason?: undefined;
+      paymentKey?: never;
+      orderId?: never;
+      amount?: never;
+    }
+  | {
+      reason: "invalid-callback";
+      paymentKey?: never;
+      orderId?: never;
+      amount?: never;
+    }
+  | ({ reason: "confirm-failed" } & Partial<PaymentSuccessRouteQuery>);
 
 export const parsePaymentFailReason = (
   reason: string | null,
@@ -122,6 +140,21 @@ export const buildPaymentFailRouteSearchParams = (
   const params = new URLSearchParams();
 
   appendDefinedSearchParam(params, "reason", query?.reason);
+  appendDefinedSearchParam(params, "paymentKey", query?.paymentKey);
+  appendDefinedSearchParam(params, "orderId", query?.orderId);
+  appendDefinedSearchParam(params, "amount", query?.amount);
+
+  return params;
+};
+
+export const buildPaymentSuccessRouteSearchParams = (
+  query?: PaymentSuccessRouteQuery,
+) => {
+  const params = new URLSearchParams();
+
+  appendDefinedSearchParam(params, "paymentKey", query?.paymentKey);
+  appendDefinedSearchParam(params, "orderId", query?.orderId);
+  appendDefinedSearchParam(params, "amount", query?.amount);
 
   return params;
 };

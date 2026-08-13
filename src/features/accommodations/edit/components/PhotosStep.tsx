@@ -7,6 +7,7 @@ import styles from "./PhotosStep.module.css";
 interface PhotosStepProps {
   imageItems: AccommodationEditImageItem[];
   isSaving: boolean;
+  isDeletingImage: boolean;
   uploadProgress: number;
   draggedIndex: number | null;
   dragOverIndex: number | null;
@@ -22,6 +23,7 @@ interface PhotosStepProps {
 export const PhotosStep: React.FC<PhotosStepProps> = ({
   imageItems,
   isSaving,
+  isDeletingImage,
   uploadProgress,
   draggedIndex,
   dragOverIndex,
@@ -54,8 +56,8 @@ export const PhotosStep: React.FC<PhotosStepProps> = ({
     {imageItems.length === 0 ? (
       <div
         className={styles.imageUploadBox}
-        onDrop={onDrop}
-        onDragOver={onDragOver}
+        onDrop={isSaving || isDeletingImage ? undefined : onDrop}
+        onDragOver={isSaving || isDeletingImage ? undefined : onDragOver}
       >
         <input
           key="empty-image-file-input"
@@ -64,6 +66,7 @@ export const PhotosStep: React.FC<PhotosStepProps> = ({
           aria-label="숙소 사진 선택"
           accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
           multiple
+          disabled={isSaving || isDeletingImage}
           onChange={onImageSelect}
           className={styles.imageInput}
         />
@@ -76,6 +79,7 @@ export const PhotosStep: React.FC<PhotosStepProps> = ({
           </div>
           <button
             type="button"
+            disabled={isSaving || isDeletingImage}
             className={styles.addPhotoButton}
             onClick={() => document.getElementById("imageInputEmpty")?.click()}
           >
@@ -94,6 +98,7 @@ export const PhotosStep: React.FC<PhotosStepProps> = ({
           </div>
           <button
             type="button"
+            disabled={isSaving || isDeletingImage}
             className={styles.addMoreButton}
             onClick={() => document.getElementById("imageInput")?.click()}
           >
@@ -111,6 +116,7 @@ export const PhotosStep: React.FC<PhotosStepProps> = ({
           aria-label="숙소 사진 추가 선택"
           accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
           multiple
+          disabled={isSaving || isDeletingImage}
           onChange={onImageSelect}
           className={styles.imageInput}
         />
@@ -125,7 +131,7 @@ export const PhotosStep: React.FC<PhotosStepProps> = ({
               <div
                 key={coverKey}
                 className={`${styles.uploadedImageItem} ${draggedIndex === 0 ? styles.dragging : ""} ${dragOverIndex === 0 ? styles.dragOver : ""}`}
-                draggable
+                draggable={!isSaving && !isDeletingImage}
                 onDragStart={(e) => {
                   e.stopPropagation();
                   onDragStart(0);
@@ -142,6 +148,7 @@ export const PhotosStep: React.FC<PhotosStepProps> = ({
                 />
                 <button
                   type="button"
+                  disabled={isSaving || isDeletingImage}
                   className={styles.imageMenuButton}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -168,7 +175,7 @@ export const PhotosStep: React.FC<PhotosStepProps> = ({
               <div
                 key={uniqueKey}
                 className={`${styles.uploadedImageItem} ${draggedIndex === itemIndex ? styles.dragging : ""} ${dragOverIndex === itemIndex ? styles.dragOver : ""}`}
-                draggable
+                draggable={!isSaving && !isDeletingImage}
                 onDragStart={(e) => {
                   e.stopPropagation();
                   onDragStart(itemIndex);
@@ -184,6 +191,7 @@ export const PhotosStep: React.FC<PhotosStepProps> = ({
                 />
                 <button
                   type="button"
+                  disabled={isSaving || isDeletingImage}
                   className={styles.imageMenuButton}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -202,7 +210,11 @@ export const PhotosStep: React.FC<PhotosStepProps> = ({
 
           <div
             className={styles.addImageSlot}
-            onClick={() => document.getElementById("imageInput")?.click()}
+            onClick={() => {
+              if (!isSaving && !isDeletingImage) {
+                document.getElementById("imageInput")?.click();
+              }
+            }}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M12 5v14M5 12h14" />

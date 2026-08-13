@@ -31,12 +31,29 @@ const parsePaymentAmount = (amount: string): number | null => {
   return Number.isSafeInteger(parsedAmount) ? parsedAmount : null;
 };
 
+const isAxiosError = (
+  error: unknown,
+): error is { isAxiosError: true; response?: { status?: number } } =>
+  typeof error === "object" &&
+  error !== null &&
+  "isAxiosError" in error &&
+  error.isAxiosError === true;
+
 const isPaymentConfirmationFailureRetryable = (error: unknown): boolean => {
-  if (!isApiClientError(error)) return true;
+  if (isApiClientError(error)) {
+    return (
+      error.status === 408 || error.status === 429 || error.status >= 500
+    );
+  }
 
-  if (error.status === 408 || error.status === 429) return true;
+  if (isAxiosError(error)) {
+    if (!error.response) return true;
 
-  return error.status < 400 || error.status >= 500;
+    const status = error.response.status;
+    return status === 408 || status === 429 || (status !== undefined && status >= 500);
+  }
+
+  return false;
 };
 
 export function usePaymentConfirmation({

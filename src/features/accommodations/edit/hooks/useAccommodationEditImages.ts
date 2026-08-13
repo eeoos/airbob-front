@@ -41,11 +41,20 @@ export const useAccommodationEditImages = ({
   >([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [isDeletingImage, setIsDeletingImage] = useState(false);
   const imageItemsRef = useRef<AccommodationEditImageItem[]>([]);
+  const pendingDeleteRef = useRef<Promise<boolean> | null>(null);
+  const accommodationIdRef = useRef(accommodationId);
+  accommodationIdRef.current = accommodationId;
 
   useEffect(() => {
     imageItemsRef.current = imageItems;
   }, [imageItems]);
+
+  useEffect(() => {
+    pendingDeleteRef.current = null;
+    setIsDeletingImage(false);
+  }, [accommodationId]);
 
   useEffect(() => {
     return () => {
@@ -123,6 +132,10 @@ export const useAccommodationEditImages = ({
 
   const handleImageRemove = useCallback(
     (index: number) => {
+      if (pendingDeleteRef.current) {
+        return;
+      }
+
       const { nextItems, removedItem, previewToRevoke, imageIdToDelete } =
         removeImageItem(imageItems, index);
 
@@ -135,12 +148,62 @@ export const useAccommodationEditImages = ({
       }
 
       if (imageIdToDelete && accommodationId) {
-        deleteImage(Number(accommodationId), imageIdToDelete).catch(onError);
+        const deletionAccommodationId = accommodationId;
+        setIsDeletingImage(true);
+        let deleteRequest: Promise<unknown>;
+        try {
+          deleteRequest = deleteImage(Number(accommodationId), imageIdToDelete);
+        } catch (error) {
+          deleteRequest = Promise.reject(error);
+        }
+
+        const deletion = deleteRequest
+          .then(() => true)
+          .catch((error) => {
+            if (accommodationIdRef.current !== deletionAccommodationId) {
+              return false;
+            }
+
+            setImageItems((currentItems) => {
+              const isAlreadyPresent = currentItems.some(
+                (item) => item.tempId === removedItem.tempId
+              );
+
+              if (isAlreadyPresent) {
+                return currentItems;
+              }
+
+              const restoredItems = [...currentItems];
+              restoredItems.splice(
+                Math.min(index, restoredItems.length),
+                0,
+                removedItem
+              );
+              return restoredItems;
+            });
+            onError(error);
+            return false;
+          })
+          .finally(() => {
+            if (
+              accommodationIdRef.current === deletionAccommodationId &&
+              pendingDeleteRef.current === deletion
+            ) {
+              pendingDeleteRef.current = null;
+              setIsDeletingImage(false);
+            }
+          });
+        pendingDeleteRef.current = deletion;
       }
 
       setImageItems(nextItems);
     },
     [accommodationId, deleteImage, imageItems, onError, revokeObjectURL]
+  );
+
+  const waitForPendingImageDeletes = useCallback(
+    () => pendingDeleteRef.current ?? Promise.resolve(true),
+    []
   );
 
   const handleDragStart = useCallback((index: number) => {
@@ -215,12 +278,14 @@ export const useAccommodationEditImages = ({
     setInitialImageItems,
     draggedIndex,
     dragOverIndex,
+    isDeletingImage,
     loadImages,
     addFiles,
     handleImageSelect,
     handleDrop,
     handleDragOver,
     handleImageRemove,
+    waitForPendingImageDeletes,
     handleDragStart,
     handleDragOverItem,
     handleDragEnd,

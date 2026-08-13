@@ -23,7 +23,6 @@ describe("useAccommodationEditImageUpload", () => {
     const applyUploadedImages = jest.fn();
     const clearError = jest.fn();
     const handleError = jest.fn();
-    const setIsSaving = jest.fn();
     const setUploadProgress = jest.fn();
     jest.mocked(accommodationApi.uploadImages).mockImplementation(
       async (_id, _files, onProgress) => {
@@ -40,7 +39,6 @@ describe("useAccommodationEditImageUpload", () => {
         getPendingFiles: () => [file],
         handleError,
         resetProgressDelayMs: 500,
-        setIsSaving,
         setUploadProgress,
       })
     );
@@ -69,7 +67,6 @@ describe("useAccommodationEditImageUpload", () => {
     });
 
     expect(setUploadProgress).toHaveBeenLastCalledWith(0);
-    expect(setIsSaving).toHaveBeenLastCalledWith(false);
     expect(handleError).not.toHaveBeenCalled();
   });
 });

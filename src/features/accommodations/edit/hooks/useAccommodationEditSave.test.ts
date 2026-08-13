@@ -111,6 +111,91 @@ describe("useAccommodationEditSave", () => {
     expect(navigateToHostProfile).toHaveBeenCalled();
   });
 
+  it("stays in the editor when save-and-exit preparation throws", async () => {
+    const formData = createFilledFormData();
+    const preparationError = new Error("prepare failed");
+    const prepareImagesForPersistence = jest
+      .fn<Promise<boolean>, []>()
+      .mockRejectedValue(preparationError);
+
+    const { result } = renderHook(
+      () =>
+        useAccommodationEditSave({
+          accommodationId: "3",
+          currentStep: 2,
+          isNewDraft: false,
+          formData,
+          initialFormData: formData,
+          imageItems,
+          initialImageItems: imageItems,
+          clearError,
+          handleError,
+          setIsSaving,
+          navigateToHostProfile,
+          prepareImagesForPersistence,
+          updateAccommodation,
+          publishAccommodation,
+        }),
+      { wrapper: createWrapper().wrapper },
+    );
+
+    await act(async () => {
+      await result.current.handleSaveAndExit();
+    });
+
+    expect(handleError).toHaveBeenCalledWith(preparationError);
+    expect(updateAccommodation).not.toHaveBeenCalled();
+    expect(navigateToHostProfile).not.toHaveBeenCalled();
+  });
+
+  it("holds the saving lock for the whole save-and-exit preparation", async () => {
+    const formData = createFilledFormData();
+    let finishPreparation: (prepared: boolean) => void = () => undefined;
+    const prepareImagesForPersistence = jest.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          finishPreparation = resolve;
+        })
+    );
+
+    const { result } = renderHook(
+      () =>
+        useAccommodationEditSave({
+          accommodationId: "3",
+          currentStep: 2,
+          isNewDraft: false,
+          formData,
+          initialFormData: formData,
+          imageItems,
+          initialImageItems: imageItems,
+          clearError,
+          handleError,
+          setIsSaving,
+          navigateToHostProfile,
+          prepareImagesForPersistence,
+          updateAccommodation,
+          publishAccommodation,
+        }),
+      { wrapper: createWrapper().wrapper },
+    );
+
+    let savePromise: Promise<void>;
+    act(() => {
+      savePromise = result.current.handleSaveAndExit();
+    });
+
+    expect(setIsSaving).toHaveBeenCalledWith(true);
+    expect(setIsSaving).not.toHaveBeenCalledWith(false);
+
+    await act(async () => {
+      finishPreparation(false);
+      await savePromise!;
+    });
+
+    expect(setIsSaving.mock.calls).toEqual([[true], [false]]);
+    expect(navigateToHostProfile).not.toHaveBeenCalled();
+  });
+
   it("asks for detail address confirmation before running the pending save action", async () => {
     const formData = createFilledFormData({
       addressInfo: {
@@ -224,6 +309,42 @@ describe("useAccommodationEditSave", () => {
     );
   });
 
+  it("diffs a newly created draft against its hydrated server baseline", async () => {
+    const initialFormData = createFilledFormData();
+    const formData = {
+      ...initialFormData,
+      name: "서버 초안에서 변경한 이름",
+    };
+
+    const { result } = renderHook(
+      () =>
+        useAccommodationEditSave({
+          accommodationId: "3",
+          currentStep: 3,
+          isNewDraft: true,
+          formData,
+          initialFormData,
+          imageItems,
+          initialImageItems: imageItems,
+          clearError,
+          handleError,
+          setIsSaving,
+          navigateToHostProfile,
+          updateAccommodation,
+          publishAccommodation,
+        }),
+      { wrapper: createWrapper().wrapper },
+    );
+
+    await act(async () => {
+      await result.current.saveStepData();
+    });
+
+    expect(updateAccommodation).toHaveBeenCalledWith(3, {
+      name: "서버 초안에서 변경한 이름",
+    });
+  });
+
   it("saves the current step data through the update boundary", async () => {
     const initialFormData = createFilledFormData();
     const formData = {
@@ -304,6 +425,49 @@ describe("useAccommodationEditSave", () => {
     });
   });
 
+  it("invalidates caches when save-and-exit changes only images", async () => {
+    const formData = createFilledFormData();
+    const currentImageItems: AccommodationEditImageItem[] = [
+      ...imageItems,
+      { id: 8, url: "/uploaded.jpg", tempId: "uploaded-8" },
+    ];
+    const { queryClient, wrapper } = createWrapper();
+    const invalidateQueriesSpy = jest.spyOn(queryClient, "invalidateQueries");
+
+    const { result } = renderHook(
+      () =>
+        useAccommodationEditSave({
+          accommodationId: "3",
+          currentStep: 2,
+          isNewDraft: false,
+          formData,
+          initialFormData: formData,
+          imageItems: currentImageItems,
+          initialImageItems: imageItems,
+          clearError,
+          handleError,
+          setIsSaving,
+          navigateToHostProfile,
+          updateAccommodation,
+          publishAccommodation,
+        }),
+      { wrapper },
+    );
+
+    await act(async () => {
+      await result.current.handleSaveAndExit();
+    });
+
+    expect(updateAccommodation).toHaveBeenCalledWith(3, {});
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: accommodationQueryKeys.detailRoot,
+    });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: profileQueryKeys.hostListingsRoot,
+    });
+    expect(navigateToHostProfile).toHaveBeenCalledTimes(1);
+  });
+
   it("invalidates changed accommodation caches when publish fails after a successful update", async () => {
     const initialFormData = createFilledFormData();
     const formData = {
@@ -342,6 +506,54 @@ describe("useAccommodationEditSave", () => {
     expect(updateAccommodation).toHaveBeenCalledWith(3, {
       name: "게시 실패 전 저장된 변경",
     });
+    expect(publishAccommodation).toHaveBeenCalledWith(3);
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: accommodationQueryKeys.detailRoot,
+    });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: profileQueryKeys.hostListingsRoot,
+    });
+    expect(handleError).toHaveBeenCalledWith(publishError);
+    expect(navigateToHostProfile).not.toHaveBeenCalled();
+  });
+
+  it("invalidates uploaded image caches when publish fails without a form diff", async () => {
+    const formData = createFilledFormData();
+    const publishError = new Error("publish failed");
+    const prepareImagesForPersistence = jest.fn().mockResolvedValue(true);
+    const hasPendingImageChanges = jest.fn().mockReturnValue(true);
+    publishAccommodation.mockRejectedValueOnce(publishError);
+    const { queryClient, wrapper } = createWrapper();
+    const invalidateQueriesSpy = jest.spyOn(queryClient, "invalidateQueries");
+
+    const { result } = renderHook(
+      () =>
+        useAccommodationEditSave({
+          accommodationId: "3",
+          currentStep: 5,
+          isNewDraft: false,
+          formData,
+          initialFormData: formData,
+          imageItems,
+          initialImageItems: imageItems,
+          clearError,
+          handleError,
+          setIsSaving,
+          navigateToHostProfile,
+          prepareImagesForPersistence,
+          hasPendingImageChanges,
+          updateAccommodation,
+          publishAccommodation,
+        }),
+      { wrapper },
+    );
+
+    await act(async () => {
+      await result.current.handlePublish({ preventDefault: jest.fn() });
+    });
+
+    expect(prepareImagesForPersistence).toHaveBeenCalledTimes(1);
+    expect(updateAccommodation).not.toHaveBeenCalled();
     expect(publishAccommodation).toHaveBeenCalledWith(3);
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
       queryKey: accommodationQueryKeys.detailRoot,

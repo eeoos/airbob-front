@@ -51,6 +51,7 @@ export const EditStepContent: React.FC<EditStepContentProps> = ({
         <PhotosStep
           imageItems={state.imageItems}
           isSaving={state.isSaving}
+          isDeletingImage={state.isDeletingImage}
           uploadProgress={state.uploadProgress}
           draggedIndex={state.draggedIndex}
           dragOverIndex={state.dragOverIndex}

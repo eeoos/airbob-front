@@ -80,9 +80,15 @@ const accommodation = toReservationModalAccommodationViewModel(
 
 describe("ReservationModal", () => {
   beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2026-07-10T12:00:00"));
     sessionStorage.clear();
     mockNavigate.mockReset();
     jest.mocked(reservationApi.create).mockReset();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it("renders reservation content inside the shared accessible dialog", () => {

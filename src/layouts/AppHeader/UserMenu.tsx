@@ -4,7 +4,10 @@ import { useAuth } from "../../hooks/useAuth";
 import { useCreateAccommodationDraft } from "../../features/accommodations/appShell";
 import { AuthModal } from "../../features/auth/appShell";
 import { useApiError } from "../../hooks/useApiError";
-import { routeTo } from "../../routes/paths";
+import {
+  createAccommodationEditNavigationState,
+  routeTo,
+} from "../../routes/paths";
 import { useOutsideClick } from "../../shared/ui";
 import { clientLogger } from "../../utils/clientLogger";
 import styles from "./UserMenu.module.css";
@@ -30,8 +33,9 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
   const menuItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const { createDraft } = useCreateAccommodationDraft({
     onCreated: (accommodationId) => {
-      // 숙소 초안 생성 성공 시 숙소 생성 폼 페이지로 이동 (새로 생성된 초안임을 표시)
-      navigate(routeTo.accommodationEdit(accommodationId, { mode: "create" }));
+      navigate(routeTo.accommodationEdit(accommodationId), {
+        state: createAccommodationEditNavigationState(accommodationId),
+      });
     },
     onError: handleError,
   });

@@ -2,6 +2,7 @@ import React from "react";
 import { AccommodationEditStep } from "../hooks/useAccommodationEditForm";
 import { AccommodationEditFormData } from "../lib/accommodationEditMapper";
 import { AccommodationEditImageItem } from "../lib/imageItems";
+import { LoadingState } from "../../../../shared/ui";
 import { EditStepContent } from "./EditStepContent";
 import { EditWizardActionBar } from "./EditWizardActionBar";
 import { EditWizardDialogs } from "./EditWizardDialogs";
@@ -18,7 +19,9 @@ type NestedFormFields = {
 
 export interface AccommodationEditScreenState {
   currentStep: Step;
+  isInitializing: boolean;
   isSaving: boolean;
+  isDeletingImage: boolean;
   uploadProgress: number;
   formData: AccommodationEditFormData;
   selectedAmenities: Set<string>;
@@ -106,6 +109,10 @@ export const AccommodationEditScreen: React.FC<AccommodationEditScreenProps> = (
     onPublishSubmit,
   } = actions;
 
+  if (state.isInitializing) {
+    return <LoadingState title="숙소 정보를 불러오는 중..." />;
+  }
+
   return (
     <>
       <div className={styles.container}>
@@ -117,6 +124,7 @@ export const AccommodationEditScreen: React.FC<AccommodationEditScreenProps> = (
         <div className={styles.content}>
           <EditWizardSidebar
             currentStep={currentStep}
+            isInteractionDisabled={isSaving || state.isDeletingImage}
             isStepCompleted={isStepCompleted}
             isStepClickable={isStepClickable}
             onStepClick={onStepClick}
@@ -127,15 +135,20 @@ export const AccommodationEditScreen: React.FC<AccommodationEditScreenProps> = (
               onSubmit={currentStep === 5 ? onPublishSubmit : undefined}
               className={styles.form}
             >
-              <EditStepContent state={state} actions={actions} />
+              <fieldset
+                className={styles.formFieldset}
+                disabled={isSaving || state.isDeletingImage}
+              >
+                <EditStepContent state={state} actions={actions} />
 
-              <EditWizardNavigation
-                currentStep={currentStep}
-                isSaving={isSaving}
-                canProceedToNext={canProceedToNext}
-                onBack={onBack}
-                onNext={onNext}
-              />
+                <EditWizardNavigation
+                  currentStep={currentStep}
+                  isSaving={isSaving}
+                  canProceedToNext={canProceedToNext}
+                  onBack={onBack}
+                  onNext={onNext}
+                />
+              </fieldset>
             </form>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
+import type { AxiosError } from "axios";
 import { paymentApi } from "../../../api";
 import { ApiClientError } from "../../../api/response";
 import { resetPaymentConfirmationAttemptRegistryForTests } from "../lib/paymentConfirmationAttemptRegistry";
@@ -9,6 +10,13 @@ jest.mock("../../../api", () => ({
     confirm: jest.fn(),
   },
 }));
+
+const createAxiosError = (status?: number): AxiosError =>
+  Object.assign(new Error(status ? `HTTP ${status}` : "Network Error"), {
+    isAxiosError: true,
+    response: status === undefined ? undefined : { status },
+    toJSON: () => ({}),
+  }) as AxiosError;
 
 describe("usePaymentConfirmation", () => {
   beforeEach(() => {
@@ -79,8 +87,8 @@ describe("usePaymentConfirmation", () => {
     });
   });
 
-  it("returns a retryable failed result when confirmation fails", async () => {
-    const error = new Error("confirm failed");
+  it("returns a retryable failed result for an Axios network failure", async () => {
+    const error = createAxiosError();
     jest.mocked(paymentApi.confirm).mockRejectedValue(error);
 
     const { result } = renderHook(() =>
@@ -99,6 +107,51 @@ describe("usePaymentConfirmation", () => {
       error,
     });
   });
+
+  it("returns a non-retryable failed result for a raw Axios 4xx response", async () => {
+    const error = createAxiosError(400);
+    jest.mocked(paymentApi.confirm).mockRejectedValue(error);
+
+    const { result } = renderHook(() =>
+      usePaymentConfirmation({
+        amount: "120000",
+        orderId: "order-1",
+        paymentKey: "payment-key-1",
+      })
+    );
+
+    await waitFor(() => expect(result.current.isProcessing).toBe(false));
+
+    expect(result.current.result).toEqual({
+      status: "failed",
+      retryable: false,
+      error,
+    });
+  });
+
+  it.each([408, 429, 500, 503])(
+    "returns a retryable failed result for a raw Axios %i response",
+    async (status) => {
+      const error = createAxiosError(status);
+      jest.mocked(paymentApi.confirm).mockRejectedValue(error);
+
+      const { result } = renderHook(() =>
+        usePaymentConfirmation({
+          amount: "120000",
+          orderId: "order-1",
+          paymentKey: "payment-key-1",
+        })
+      );
+
+      await waitFor(() => expect(result.current.isProcessing).toBe(false));
+
+      expect(result.current.result).toEqual({
+        status: "failed",
+        retryable: true,
+        error,
+      });
+    },
+  );
 
   it("returns a non-retryable failed result for client-side confirmation failures", async () => {
     const error = new ApiClientError({
@@ -125,12 +178,36 @@ describe("usePaymentConfirmation", () => {
     });
   });
 
-  it("keeps timeout and rate-limit confirmation failures retryable", async () => {
-    const error = new ApiClientError({
-      code: "RATE_LIMITED",
-      message: "잠시 후 다시 시도해주세요.",
-      status: 429,
-    });
+  it.each([408, 429, 500, 503])(
+    "keeps normalized API %i confirmation failures retryable",
+    async (status) => {
+      const error = new ApiClientError({
+        code: "PAYMENT_CONFIRMATION_RETRYABLE",
+        message: "잠시 후 다시 시도해주세요.",
+        status,
+      });
+      jest.mocked(paymentApi.confirm).mockRejectedValue(error);
+
+      const { result } = renderHook(() =>
+        usePaymentConfirmation({
+          amount: "120000",
+          orderId: "order-1",
+          paymentKey: "payment-key-1",
+        })
+      );
+
+      await waitFor(() => expect(result.current.isProcessing).toBe(false));
+
+      expect(result.current.result).toEqual({
+        status: "failed",
+        retryable: true,
+        error,
+      });
+    },
+  );
+
+  it("treats an unknown confirmation failure as non-retryable", async () => {
+    const error = new Error("unknown failure");
     jest.mocked(paymentApi.confirm).mockRejectedValue(error);
 
     const { result } = renderHook(() =>
@@ -145,7 +222,7 @@ describe("usePaymentConfirmation", () => {
 
     expect(result.current.result).toEqual({
       status: "failed",
-      retryable: true,
+      retryable: false,
       error,
     });
   });

@@ -61,11 +61,13 @@ export const useAccommodationEditController = ({
     initialImageItems,
     draggedIndex,
     dragOverIndex,
+    isDeletingImage,
     loadImages,
     handleImageSelect,
     handleDrop,
     handleDragOver,
     handleImageRemove,
+    waitForPendingImageDeletes,
     handleDragStart,
     handleDragOverItem,
     handleDragEnd,
@@ -75,6 +77,48 @@ export const useAccommodationEditController = ({
     accommodationId,
     onError: handleError,
   });
+
+  const handleAddressSelected = useCallback(
+    (addressInfo: AccommodationEditAddressInfo) => {
+      setFormData((prev) => ({
+        ...prev,
+        addressInfo,
+      }));
+    },
+    [setFormData]
+  );
+
+  const { openAddressSearch: handleAddressSearch } = useDaumPostcode({
+    onAddressSelected: handleAddressSelected,
+  });
+
+  const { isInitializing } = useAccommodationEditDetail({
+    accommodationId,
+    loadAccommodation,
+    loadImages,
+    handleError,
+  });
+
+  const { uploadPendingImages } = useAccommodationEditImageUpload({
+    accommodationId,
+    applyUploadedImages,
+    clearError,
+    getPendingFiles,
+    handleError,
+    setUploadProgress,
+  });
+
+  const prepareImagesForPersistence = useCallback(async () => {
+    const deletionsSucceeded = await waitForPendingImageDeletes();
+    if (!deletionsSucceeded) return false;
+
+    return uploadPendingImages();
+  }, [uploadPendingImages, waitForPendingImageDeletes]);
+
+  const hasPendingImageChanges = useCallback(
+    () => getPendingFiles().length > 0,
+    [getPendingFiles]
+  );
 
   const {
     showDetailAddressConfirm,
@@ -96,38 +140,8 @@ export const useAccommodationEditController = ({
     handleError,
     setIsSaving,
     navigateToHostProfile: onNavigateToHostProfile,
-  });
-
-  const handleAddressSelected = useCallback(
-    (addressInfo: AccommodationEditAddressInfo) => {
-      setFormData((prev) => ({
-        ...prev,
-        addressInfo,
-      }));
-    },
-    [setFormData]
-  );
-
-  const { openAddressSearch: handleAddressSearch } = useDaumPostcode({
-    onAddressSelected: handleAddressSelected,
-  });
-
-  useAccommodationEditDetail({
-    accommodationId,
-    isNewDraft,
-    loadAccommodation,
-    loadImages,
-    handleError,
-  });
-
-  const { uploadPendingImages } = useAccommodationEditImageUpload({
-    accommodationId,
-    applyUploadedImages,
-    clearError,
-    getPendingFiles,
-    handleError,
-    setIsSaving,
-    setUploadProgress,
+    prepareImagesForPersistence,
+    hasPendingImageChanges,
   });
 
   const isStepCompleted = (step: Step): boolean =>
@@ -157,8 +171,13 @@ export const useAccommodationEditController = ({
     }
 
     if (currentStep === 2) {
-      const uploaded = await uploadPendingImages();
-      if (!uploaded) return;
+      setIsSaving(true);
+      try {
+        const prepared = await prepareImagesForPersistence();
+        if (!prepared) return;
+      } finally {
+        setIsSaving(false);
+      }
     }
 
     if (currentStep === 4 && accommodationId) {
@@ -173,13 +192,6 @@ export const useAccommodationEditController = ({
     }
   };
 
-  const publishAfterUploadingPendingImages = useCallback(async () => {
-    const uploaded = await uploadPendingImages();
-    if (!uploaded) return;
-
-    await handlePublish();
-  }, [handlePublish, uploadPendingImages]);
-
   const handlePublishSubmit = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
@@ -190,17 +202,17 @@ export const useAccommodationEditController = ({
         formData.addressInfo.detail && formData.addressInfo.detail.trim() !== "";
       if (!hasDetailAddress) {
         requestDetailAddressConfirm(() => {
-          void publishAfterUploadingPendingImages();
+          void handlePublish();
         });
         return;
       }
 
-      await publishAfterUploadingPendingImages();
+      await handlePublish();
     },
     [
       currentStep,
       formData.addressInfo.detail,
-      publishAfterUploadingPendingImages,
+      handlePublish,
       requestDetailAddressConfirm,
     ]
   );
@@ -212,6 +224,10 @@ export const useAccommodationEditController = ({
   };
 
   const canNavigateToStep = (targetStep: Step): boolean => {
+    if (isSaving || isDeletingImage) {
+      return false;
+    }
+
     if (isNewDraft) {
       for (let i = 1; i < targetStep; i++) {
         if (!isStepCompleted(i as Step)) {
@@ -240,7 +256,9 @@ export const useAccommodationEditController = ({
   return {
     state: {
       currentStep,
+      isInitializing,
       isSaving,
+      isDeletingImage,
       uploadProgress,
       formData,
       selectedAmenities,

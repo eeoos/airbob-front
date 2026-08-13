@@ -35,7 +35,9 @@ const createScreenState = (
   overrides: Partial<AccommodationEditScreenState> = {}
 ): AccommodationEditScreenState => ({
   currentStep: 2,
+  isInitializing: false,
   isSaving: false,
+  isDeletingImage: false,
   uploadProgress: 0,
   formData: createFormData(),
   selectedAmenities: new Set(["WIFI"]),

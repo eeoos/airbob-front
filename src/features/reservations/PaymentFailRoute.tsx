@@ -12,12 +12,14 @@ import {
 } from "../../routes/routeQueryContracts";
 import { Button } from "../../shared/ui";
 import { clearReservationCheckoutStateByReservationUid } from "./lib/reservationCheckoutState";
+import { parseTossSuccessRouteState } from "./lib/paymentRouteState";
 import styles from "./PaymentFailRoute.module.css";
 
 interface PaymentFailRouteProps {
   navigate?: NavigateFunction;
   reason?: PaymentFailReason;
   reservationUid?: string;
+  searchParams?: URLSearchParams;
 }
 
 type PaymentFailRouteContentProps = Required<
@@ -29,7 +31,21 @@ const PaymentFailRouteContent: React.FC<PaymentFailRouteContentProps> = ({
   navigate,
   reason,
   reservationUid,
+  searchParams,
 }) => {
+  const retryState =
+    reason === "confirm-failed" && reservationUid && searchParams
+      ? parseTossSuccessRouteState(reservationUid, searchParams)
+      : null;
+  const retryPath =
+    retryState?.status === "valid"
+      ? routeTo.paymentSuccess(retryState.reservationUid, {
+          paymentKey: retryState.paymentKey,
+          orderId: retryState.orderId,
+          amount: retryState.amount,
+        })
+      : null;
+
   useEffect(() => {
     if (!reservationUid || reason === "confirm-failed") return;
 
@@ -46,6 +62,14 @@ const PaymentFailRouteContent: React.FC<PaymentFailRouteContentProps> = ({
             결제 처리 중 문제가 발생했습니다. 다시 시도해주세요.
           </p>
           <div className={styles.actions}>
+            {retryPath && (
+              <Button
+                className={styles.button}
+                onClick={() => navigate(retryPath)}
+              >
+                결제 승인 다시 시도
+              </Button>
+            )}
             <Button
               className={styles.button}
               onClick={() => navigate(routeTo.profile())}
@@ -78,6 +102,7 @@ const PaymentFailRouteWithRouter: React.FC<PaymentFailRouteProps> = (props) => {
       navigate={props.navigate ?? navigate}
       reason={props.reason ?? parsePaymentFailReason(searchParams.get("reason"))}
       reservationUid={props.reservationUid ?? reservationUid}
+      searchParams={props.searchParams ?? searchParams}
     />
   );
 };
@@ -89,6 +114,7 @@ export const PaymentFailRoute: React.FC<PaymentFailRouteProps> = (props) => {
         navigate={props.navigate}
         reason={props.reason}
         reservationUid={props.reservationUid}
+        searchParams={props.searchParams}
       />
     );
   }

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { accommodationApi } from "../../../../api";
 import {
   HostAccommodationDetail,
@@ -7,7 +7,6 @@ import {
 
 interface UseAccommodationEditDetailOptions {
   accommodationId?: string;
-  isNewDraft: boolean;
   loadAccommodation: (data: HostAccommodationDetail) => unknown;
   loadImages: (images: ImageInfo[]) => unknown;
   handleError: (error: unknown) => unknown;
@@ -15,13 +14,20 @@ interface UseAccommodationEditDetailOptions {
 
 export function useAccommodationEditDetail({
   accommodationId,
-  isNewDraft,
   loadAccommodation,
   loadImages,
   handleError,
 }: UseAccommodationEditDetailOptions) {
+  const [settledAccommodationId, setSettledAccommodationId] = useState<
+    string | null
+  >(null);
+  const hasValidAccommodationId =
+    Boolean(accommodationId) && !Number.isNaN(Number(accommodationId));
+  const isInitializing =
+    hasValidAccommodationId && settledAccommodationId !== accommodationId;
+
   useEffect(() => {
-    if (!accommodationId || isNewDraft) {
+    if (!accommodationId) {
       return;
     }
 
@@ -48,6 +54,10 @@ export function useAccommodationEditDetail({
         if (!isCancelled) {
           handleError(error);
         }
+      } finally {
+        if (!isCancelled) {
+          setSettledAccommodationId(accommodationId);
+        }
       }
     };
 
@@ -59,8 +69,9 @@ export function useAccommodationEditDetail({
   }, [
     accommodationId,
     handleError,
-    isNewDraft,
     loadAccommodation,
     loadImages,
   ]);
+
+  return { isInitializing };
 }

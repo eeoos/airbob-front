@@ -78,9 +78,17 @@ const PaymentSuccessRouteContent: React.FC<PaymentSuccessRouteContentProps> = ({
         if (result.retryable !== true) {
           clearCheckoutState(reservationUid);
         }
-        navigate(routeTo.paymentFail(reservationUid, { reason: "confirm-failed" }), {
-          replace: true,
-        });
+        const failurePath =
+          result.retryable === true && paymentKey && orderId && amount
+            ? routeTo.paymentFail(reservationUid, {
+                amount,
+                orderId,
+                paymentKey,
+                reason: "confirm-failed",
+              })
+            : routeTo.paymentFail(reservationUid, { reason: "confirm-failed" });
+
+        navigate(failurePath, { replace: true });
         return;
       }
 
@@ -108,9 +116,12 @@ const PaymentSuccessRouteContent: React.FC<PaymentSuccessRouteContentProps> = ({
       isActive = false;
     };
   }, [
+    amount,
     confirmationResult,
     isPaymentQueryIncomplete,
     navigate,
+    orderId,
+    paymentKey,
     queryClient,
     reservationUid,
   ]);
