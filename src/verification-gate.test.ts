@@ -1,7 +1,7 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { spawn, spawnSync } from "child_process";
+import { spawnSync } from "child_process";
 
 const projectRoot = process.cwd();
 const packageJsonPath = path.join(projectRoot, "package.json");
@@ -139,61 +139,34 @@ const removeNewDirectoryEntries = (
     });
 };
 
-const startPreflightServer = (statusCode: number) =>
-  new Promise<{ url: string; stop: () => void }>((resolve, reject) => {
-    const serverProcess = spawn(
-      process.execPath,
-      [
-        "-e",
-        [
-          "const http = require('http');",
-          "const statusCode = Number(process.argv[1]);",
-          "const server = http.createServer((_request, response) => {",
-          "  response.statusCode = statusCode;",
-          "  response.end('ok');",
-          "});",
-          "server.listen(0, '127.0.0.1', () => {",
-          "  process.stdout.write(String(server.address().port));",
-          "});",
-          "process.on('SIGTERM', () => server.close(() => process.exit(0)));",
-        ].join("\n"),
-        String(statusCode),
-      ],
-      {
-        stdio: ["ignore", "pipe", "pipe"],
-      },
-    );
-    let stderr = "";
-    const timeout = setTimeout(() => {
-      serverProcess.kill();
-      reject(new Error(`Timed out starting preflight server: ${stderr}`));
-    }, 5000);
+type PreflightFetchFixture = { status: number } | { error: true };
 
-    serverProcess.stderr.on("data", (chunk) => {
-      stderr += String(chunk);
-    });
-    serverProcess.once("error", (error) => {
-      clearTimeout(timeout);
-      reject(error);
-    });
-    serverProcess.stdout.once("data", (chunk) => {
-      clearTimeout(timeout);
-      const port = Number(String(chunk).trim());
+const writePreflightFetchMock = (
+  directory: string,
+  fixtures: Record<string, PreflightFetchFixture>,
+) => {
+  const fetchMockPath = path.join(directory, "fetch-mock.cjs");
 
-      if (!Number.isSafeInteger(port)) {
-        serverProcess.kill();
-        reject(new Error(`Invalid preflight server port: ${chunk}`));
-        return;
-      }
+  fs.writeFileSync(
+    fetchMockPath,
+    [
+      `const fixtures = ${JSON.stringify(fixtures)};`,
+      "global.fetch = async (input) => {",
+      "  const url = String(input);",
+      "  const fixture = fixtures[url];",
+      "  if (!fixture) {",
+      "    throw new Error('Unexpected preflight URL: ' + url);",
+      "  }",
+      "  if (fixture.error) {",
+      "    throw new Error('fetch failed for ' + url);",
+      "  }",
+      "  return new Response(null, { status: fixture.status });",
+      "};",
+    ].join("\n"),
+  );
 
-      resolve({
-        url: `http://127.0.0.1:${port}`,
-        stop: () => {
-          serverProcess.kill();
-        },
-      });
-    });
-  });
+  return fetchMockPath;
+};
 
 describe("frontend verification gate", () => {
   test("query error toast handling uses the shared query hook", () => {
@@ -503,12 +476,17 @@ describe("frontend verification gate", () => {
     expect(smokeScript).not.toMatch(/process\.env\.AIRBOB_QA_(?:EMAIL|PASSWORD)[^;]*console/);
   });
 
-  test("frontend smoke preflight rejects 4xx services and strips URL credentials", async () => {
+  test("frontend smoke preflight rejects 4xx services and strips URL credentials", () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "airbob-preflight-"));
     const fakeBrowsePath = path.join(tempDir, "fake-browse.mjs");
     const reportRoot = path.join(tempDir, "reports");
-    const frontendServer = await startPreflightServer(204);
-    const backendServer = await startPreflightServer(404);
+    const frontendUrl =
+      "http://frontend-user:frontend-secret@frontend.invalid";
+    const backendUrl = "http://backend.invalid";
+    const fetchMockPath = writePreflightFetchMock(tempDir, {
+      [frontendUrl]: { status: 204 },
+      [backendUrl]: { status: 404 },
+    });
 
     fs.writeFileSync(
       fakeBrowsePath,
@@ -517,32 +495,33 @@ describe("frontend verification gate", () => {
     );
 
     try {
-      const result = spawnSync(process.execPath, [frontendSmokePath, "--preflight"], {
-        cwd: projectRoot,
-        encoding: "utf8",
-        env: isolatedSmokeSubprocessEnv({
-          AIRBOB_API_BASE_URL: backendServer.url,
-          AIRBOB_FRONTEND_URL: frontendServer.url.replace(
-            "http://",
-            "http://frontend-user:frontend-secret@",
-          ),
-          AIRBOB_QA_EMAIL: "fake-user@example.invalid",
-          AIRBOB_QA_PASSWORD: "fake-password",
-          AIRBOB_SMOKE_ACCOMMODATION_ID: "3",
-          AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID: "3",
-          AIRBOB_SMOKE_HOST_RESERVATION_UID: "host-reservation-uid",
-          AIRBOB_SMOKE_REPORT_ROOT: reportRoot,
-          AIRBOB_SMOKE_RESERVATION_UID: "guest-reservation-uid",
-          GSTACK_BROWSE_BIN: fakeBrowsePath,
-        }),
-        maxBuffer: 10 * 1024 * 1024,
-      });
+      const result = spawnSync(
+        process.execPath,
+        ["--require", fetchMockPath, frontendSmokePath, "--preflight"],
+        {
+          cwd: projectRoot,
+          encoding: "utf8",
+          env: isolatedSmokeSubprocessEnv({
+            AIRBOB_API_BASE_URL: backendUrl,
+            AIRBOB_FRONTEND_URL: frontendUrl,
+            AIRBOB_QA_EMAIL: "fake-user@example.invalid",
+            AIRBOB_QA_PASSWORD: "fake-password",
+            AIRBOB_SMOKE_ACCOMMODATION_ID: "3",
+            AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID: "3",
+            AIRBOB_SMOKE_HOST_RESERVATION_UID: "host-reservation-uid",
+            AIRBOB_SMOKE_REPORT_ROOT: reportRoot,
+            AIRBOB_SMOKE_RESERVATION_UID: "guest-reservation-uid",
+            GSTACK_BROWSE_BIN: fakeBrowsePath,
+          }),
+          maxBuffer: 10 * 1024 * 1024,
+        },
+      );
       const output = `${result.stdout}\n${result.stderr}`;
 
       expect(result.status).toBe(1);
       expect(output).toContain("Frontend smoke preflight failed");
       expect(output).toContain("Backend responded with HTTP 404");
-      expect(output).toContain(backendServer.url);
+      expect(output).toContain(backendUrl);
       expect(output).not.toContain("browse should not run");
       expect(output).not.toContain("frontend-user");
       expect(output).not.toContain("frontend-secret");
@@ -550,18 +529,20 @@ describe("frontend verification gate", () => {
       expect(output).not.toContain("fake-password");
       expect(fs.existsSync(reportRoot)).toBe(false);
     } finally {
-      frontendServer.stop();
-      backendServer.stop();
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
   });
 
-  test("frontend smoke preflight passes against controlled reachable services without invoking browse", async () => {
+  test("frontend smoke preflight passes against controlled reachable services without invoking browse", () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "airbob-preflight-"));
     const fakeBrowsePath = path.join(tempDir, "fake-browse.mjs");
     const reportRoot = path.join(tempDir, "reports");
-    const frontendServer = await startPreflightServer(204);
-    const backendServer = await startPreflightServer(204);
+    const frontendUrl = "http://frontend.invalid";
+    const backendUrl = "http://backend.invalid";
+    const fetchMockPath = writePreflightFetchMock(tempDir, {
+      [frontendUrl]: { status: 204 },
+      [backendUrl]: { status: 204 },
+    });
 
     fs.writeFileSync(
       fakeBrowsePath,
@@ -570,46 +551,53 @@ describe("frontend verification gate", () => {
     );
 
     try {
-      const result = spawnSync(process.execPath, [frontendSmokePath, "--preflight"], {
-        cwd: projectRoot,
-        encoding: "utf8",
-        env: isolatedSmokeSubprocessEnv({
-          AIRBOB_API_BASE_URL: backendServer.url,
-          AIRBOB_FRONTEND_URL: frontendServer.url,
-          AIRBOB_QA_EMAIL: "fake-user@example.invalid",
-          AIRBOB_QA_PASSWORD: "fake-password",
-          AIRBOB_SMOKE_ACCOMMODATION_ID: "3",
-          AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID: "3",
-          AIRBOB_SMOKE_HOST_RESERVATION_UID: "host-reservation-uid",
-          AIRBOB_SMOKE_REPORT_ROOT: reportRoot,
-          AIRBOB_SMOKE_RESERVATION_UID: "guest-reservation-uid",
-          GSTACK_BROWSE_BIN: fakeBrowsePath,
-        }),
-        maxBuffer: 10 * 1024 * 1024,
-      });
+      const result = spawnSync(
+        process.execPath,
+        ["--require", fetchMockPath, frontendSmokePath, "--preflight"],
+        {
+          cwd: projectRoot,
+          encoding: "utf8",
+          env: isolatedSmokeSubprocessEnv({
+            AIRBOB_API_BASE_URL: backendUrl,
+            AIRBOB_FRONTEND_URL: frontendUrl,
+            AIRBOB_QA_EMAIL: "fake-user@example.invalid",
+            AIRBOB_QA_PASSWORD: "fake-password",
+            AIRBOB_SMOKE_ACCOMMODATION_ID: "3",
+            AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID: "3",
+            AIRBOB_SMOKE_HOST_RESERVATION_UID: "host-reservation-uid",
+            AIRBOB_SMOKE_REPORT_ROOT: reportRoot,
+            AIRBOB_SMOKE_RESERVATION_UID: "guest-reservation-uid",
+            GSTACK_BROWSE_BIN: fakeBrowsePath,
+          }),
+          maxBuffer: 10 * 1024 * 1024,
+        },
+      );
       const output = `${result.stdout}\n${result.stderr}`;
 
       expect(result.status).toBe(0);
       expect(output).toContain("Frontend smoke preflight passed.");
-      expect(output).toContain(`Frontend reachable: ${frontendServer.url}`);
-      expect(output).toContain(`Backend reachable: ${backendServer.url}`);
+      expect(output).toContain(`Frontend reachable: ${frontendUrl}`);
+      expect(output).toContain(`Backend reachable: ${backendUrl}`);
       expect(output).not.toContain("browse should not run");
       expect(output).not.toContain("fake-user@example.invalid");
       expect(output).not.toContain("fake-password");
       expect(fs.existsSync(reportRoot)).toBe(false);
     } finally {
-      frontendServer.stop();
-      backendServer.stop();
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
   });
 
-  test("frontend smoke preflight strips backend URL credentials from reachability errors", async () => {
+  test("frontend smoke preflight strips backend URL credentials from reachability errors", () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "airbob-preflight-"));
     const fakeBrowsePath = path.join(tempDir, "fake-browse.mjs");
     const reportRoot = path.join(tempDir, "reports");
-    const frontendServer = await startPreflightServer(204);
-    const backendServer = await startPreflightServer(204);
+    const frontendUrl = "http://frontend.invalid";
+    const backendUrl = "http://backend-user:backend-secret@backend.invalid";
+    const displayedBackendUrl = "http://backend.invalid";
+    const fetchMockPath = writePreflightFetchMock(tempDir, {
+      [frontendUrl]: { status: 204 },
+      [backendUrl]: { error: true },
+    });
 
     fs.writeFileSync(
       fakeBrowsePath,
@@ -618,31 +606,35 @@ describe("frontend verification gate", () => {
     );
 
     try {
-      const result = spawnSync(process.execPath, [frontendSmokePath, "--preflight"], {
-        cwd: projectRoot,
-        encoding: "utf8",
-        env: isolatedSmokeSubprocessEnv({
-          AIRBOB_API_BASE_URL: backendServer.url.replace(
-            "http://",
-            "http://backend-user:backend-secret@",
-          ),
-          AIRBOB_FRONTEND_URL: frontendServer.url,
-          AIRBOB_QA_EMAIL: "fake-user@example.invalid",
-          AIRBOB_QA_PASSWORD: "fake-password",
-          AIRBOB_SMOKE_ACCOMMODATION_ID: "3",
-          AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID: "3",
-          AIRBOB_SMOKE_HOST_RESERVATION_UID: "host-reservation-uid",
-          AIRBOB_SMOKE_REPORT_ROOT: reportRoot,
-          AIRBOB_SMOKE_RESERVATION_UID: "guest-reservation-uid",
-          GSTACK_BROWSE_BIN: fakeBrowsePath,
-        }),
-        maxBuffer: 10 * 1024 * 1024,
-      });
+      const result = spawnSync(
+        process.execPath,
+        ["--require", fetchMockPath, frontendSmokePath, "--preflight"],
+        {
+          cwd: projectRoot,
+          encoding: "utf8",
+          env: isolatedSmokeSubprocessEnv({
+            AIRBOB_API_BASE_URL: backendUrl,
+            AIRBOB_FRONTEND_URL: frontendUrl,
+            AIRBOB_QA_EMAIL: "fake-user@example.invalid",
+            AIRBOB_QA_PASSWORD: "fake-password",
+            AIRBOB_SMOKE_ACCOMMODATION_ID: "3",
+            AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID: "3",
+            AIRBOB_SMOKE_HOST_RESERVATION_UID: "host-reservation-uid",
+            AIRBOB_SMOKE_REPORT_ROOT: reportRoot,
+            AIRBOB_SMOKE_RESERVATION_UID: "guest-reservation-uid",
+            GSTACK_BROWSE_BIN: fakeBrowsePath,
+          }),
+          maxBuffer: 10 * 1024 * 1024,
+        },
+      );
       const output = `${result.stdout}\n${result.stderr}`;
 
       expect(result.status).toBe(1);
       expect(output).toContain("Frontend smoke preflight failed");
-      expect(output).toContain(`Backend is not reachable at ${backendServer.url}`);
+      expect(output).toContain(
+        `Backend is not reachable at ${displayedBackendUrl}`,
+      );
+      expect(output).toContain(`fetch failed for ${displayedBackendUrl}`);
       expect(output).not.toContain("browse should not run");
       expect(output).not.toContain("backend-user");
       expect(output).not.toContain("backend-secret");
@@ -650,8 +642,6 @@ describe("frontend verification gate", () => {
       expect(output).not.toContain("fake-password");
       expect(fs.existsSync(reportRoot)).toBe(false);
     } finally {
-      frontendServer.stop();
-      backendServer.stop();
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
   });

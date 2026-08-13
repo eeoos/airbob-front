@@ -275,7 +275,7 @@ describe("PaymentSuccessRoute", () => {
 
     await waitFor(() =>
       expect(mockNavigate).toHaveBeenCalledWith(
-        "/reservations/reservation-123/fail?reason=confirm-failed",
+        "/reservations/reservation-123/fail?reason=confirm-failed&paymentKey=payment-key-1&orderId=reservation-123&amount=120000",
         { replace: true },
       ),
     );

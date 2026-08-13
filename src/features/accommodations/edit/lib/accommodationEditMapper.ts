@@ -99,6 +99,15 @@ export const createDefaultAccommodationEditFormData =
     amenityInfos: [],
   });
 
+export const cloneAccommodationEditFormData = (
+  formData: AccommodationEditFormData
+): AccommodationEditFormData =>
+  JSON.parse(JSON.stringify(formData)) as AccommodationEditFormData;
+
+export const hasAccommodationDetailAddress = (
+  formData: AccommodationEditFormData
+) => Boolean(formData.addressInfo.detail?.trim());
+
 export const mapHostAccommodationToEditFormData = (
   data: HostAccommodationDetail
 ): AccommodationEditFormData => ({
@@ -254,6 +263,60 @@ export const toAccommodationApiUpdateData = (
       ...(addressInfo.detail !== undefined ? { detail: addressInfo.detail } : {}),
     },
   };
+};
+
+export const applyPersistedAccommodationUpdate = (
+  previousFormData: AccommodationEditFormData,
+  submittedFormData: AccommodationEditFormData,
+  persistedUpdateData: AccommodationApiUpdateData
+): AccommodationEditFormData => {
+  const nextFormData = cloneAccommodationEditFormData(previousFormData);
+
+  if (persistedUpdateData.name !== undefined) {
+    nextFormData.name = submittedFormData.name;
+  }
+  if (persistedUpdateData.description !== undefined) {
+    nextFormData.description = submittedFormData.description;
+  }
+  if (persistedUpdateData.base_price !== undefined) {
+    nextFormData.basePrice = submittedFormData.basePrice;
+  }
+  if (persistedUpdateData.type !== undefined) {
+    nextFormData.type = submittedFormData.type;
+  }
+  if (persistedUpdateData.check_in_time !== undefined) {
+    nextFormData.checkInTime = submittedFormData.checkInTime;
+  }
+  if (persistedUpdateData.check_out_time !== undefined) {
+    nextFormData.checkOutTime = submittedFormData.checkOutTime;
+  }
+  if (persistedUpdateData.occupancy_policy_info !== undefined) {
+    nextFormData.occupancyPolicyInfo = {
+      ...submittedFormData.occupancyPolicyInfo,
+    };
+  }
+  if (persistedUpdateData.amenity_infos !== undefined) {
+    nextFormData.amenityInfos = submittedFormData.amenityInfos.map(
+      (amenity) => ({ ...amenity })
+    );
+  }
+
+  const persistedAddress = persistedUpdateData.address_info;
+  if (!persistedAddress) {
+    return nextFormData;
+  }
+
+  nextFormData.addressInfo = {
+    postalCode: persistedAddress.postal_code,
+    country: persistedAddress.country,
+    state: persistedAddress.state ?? "",
+    city: persistedAddress.city,
+    district: persistedAddress.district ?? "",
+    street: persistedAddress.street,
+    detail: persistedAddress.detail ?? "",
+  };
+
+  return nextFormData;
 };
 
 export const buildAccommodationUpdateData = ({

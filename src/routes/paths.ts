@@ -1,6 +1,7 @@
 import {
   buildAccommodationBookingRouteSearchParams,
   buildPaymentFailRouteSearchParams,
+  buildPaymentSuccessRouteSearchParams,
   buildProfileRouteQuerySearchParams,
   buildSearchRouteSearchParams,
   buildWishlistRouteQuerySearchParams,
@@ -8,16 +9,17 @@ import {
 import type {
   AccommodationBookingRouteQuery,
   PaymentFailRouteQuery,
+  PaymentSuccessRouteQuery,
   ProfileRouteQuery,
   SearchRouteQuery,
   WishlistRouteQuery,
 } from "./routeQueryContracts";
-import { appendDefinedSearchParam } from "./routeQuery";
 
 export type {
   AccommodationBookingRouteQuery,
   PaymentFailReason,
   PaymentFailRouteQuery,
+  PaymentSuccessRouteQuery,
   ProfileGuestRouteTab,
   ProfileHostRouteTab,
   ProfileRouteMode,
@@ -49,6 +51,41 @@ export const ROUTE_PATHS = {
 
 export type RouteParamValue = string | number;
 
+export interface AccommodationEditNavigationState {
+  accommodationEdit: {
+    accommodationId: string;
+    source: "created-draft";
+  };
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+export const createAccommodationEditNavigationState = (
+  accommodationId: RouteParamValue,
+): AccommodationEditNavigationState => ({
+  accommodationEdit: {
+    accommodationId: String(accommodationId),
+    source: "created-draft",
+  },
+});
+
+export const isAccommodationEditDraftCreationState = (
+  state: unknown,
+  accommodationId?: RouteParamValue,
+): boolean => {
+  if (accommodationId === undefined || !isRecord(state)) {
+    return false;
+  }
+
+  const editState = state.accommodationEdit;
+  return (
+    isRecord(editState) &&
+    editState.source === "created-draft" &&
+    editState.accommodationId === String(accommodationId)
+  );
+};
+
 const buildPath = (template: string, params: Record<string, RouteParamValue>) =>
   template.replace(/:([A-Za-z0-9_]+)/g, (_, key: string) =>
     encodeURIComponent(String(params[key])),
@@ -62,20 +99,6 @@ const withRawQuery = (path: string, query?: URLSearchParams | string) => {
 
   const queryString = normalizeQueryString(query);
   return queryString ? `${path}?${queryString}` : path;
-};
-
-const withQuery = (
-  path: string,
-  entries: Record<string, string | number | undefined>,
-) => {
-  const params = new URLSearchParams();
-
-  Object.entries(entries).forEach(([key, value]) => {
-    appendDefinedSearchParam(params, key, value);
-  });
-
-  const query = params.toString();
-  return withRawQuery(path, query);
 };
 
 export const routeTo = {
@@ -98,10 +121,8 @@ export const routeTo = {
       buildPath(ROUTE_PATHS.accommodationConfirm, { id }),
       buildAccommodationBookingRouteSearchParams(query),
     ),
-  accommodationEdit: (id: string | number, query?: { mode?: "create" }) =>
-    withQuery(buildPath(ROUTE_PATHS.accommodationEdit, { id }), {
-      mode: query?.mode,
-    }),
+  accommodationEdit: (id: string | number) =>
+    buildPath(ROUTE_PATHS.accommodationEdit, { id }),
   wishlist: (query?: WishlistRouteQuery) =>
     withRawQuery(
       ROUTE_PATHS.wishlist,
@@ -115,8 +136,14 @@ export const routeTo = {
     buildPath(ROUTE_PATHS.reservationDetail, { reservationUid }),
   reviewCreate: (reservationUid: string) =>
     buildPath(ROUTE_PATHS.reviewCreate, { reservationUid }),
-  paymentSuccess: (reservationUid: string) =>
-    buildPath(ROUTE_PATHS.paymentSuccess, { reservationUid }),
+  paymentSuccess: (
+    reservationUid: string,
+    query?: PaymentSuccessRouteQuery,
+  ) =>
+    withRawQuery(
+      buildPath(ROUTE_PATHS.paymentSuccess, { reservationUid }),
+      buildPaymentSuccessRouteSearchParams(query),
+    ),
   paymentFail: (reservationUid: string, query?: PaymentFailRouteQuery) =>
     withRawQuery(
       buildPath(ROUTE_PATHS.paymentFail, { reservationUid }),

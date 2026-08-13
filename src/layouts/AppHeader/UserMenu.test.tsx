@@ -292,7 +292,14 @@ describe("UserMenu", () => {
     await waitFor(() => {
       expect(mockCreateDraft).toHaveBeenCalledTimes(1);
     });
-    expect(mockNavigate).toHaveBeenCalledWith("/accommodations/987/edit?mode=create");
+    expect(mockNavigate).toHaveBeenCalledWith("/accommodations/987/edit", {
+      state: {
+        accommodationEdit: {
+          accommodationId: "987",
+          source: "created-draft",
+        },
+      },
+    });
     expect(mockHandleError).not.toHaveBeenCalled();
   });
 });

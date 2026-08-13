@@ -1,10 +1,11 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useApiError } from "../../../../hooks/useApiError";
 import type {
   AccommodationEditScreenActions,
   AccommodationEditScreenState,
 } from "../components/AccommodationEditScreen";
 import { AccommodationEditAddressInfo } from "../lib/daumAddressMapper";
+import { hasAccommodationDetailAddress } from "../lib/accommodationEditMapper";
 import {
   AccommodationEditStep,
   useAccommodationEditForm,
@@ -39,33 +40,44 @@ export const useAccommodationEditController = ({
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
   const [isAmenityModalOpen, setIsAmenityModalOpen] = useState(false);
+  const editorSessionRef = useRef({ accommodationId });
+  const activeStepTransitionRef = useRef<symbol | null>(null);
+
+  if (editorSessionRef.current.accommodationId !== accommodationId) {
+    editorSessionRef.current = { accommodationId };
+    activeStepTransitionRef.current = null;
+  }
 
   const {
     formData,
     setFormData,
     initialFormData,
+    persistedAccommodationId,
     selectedAmenities,
     setSelectedAmenities,
     openTimePicker,
     setOpenTimePicker,
     loadAccommodation,
+    commitPersistedFormData,
     handleInputChange,
     handleNestedChange,
     handleTimeChange,
     isStepCompleted: isFormStepCompleted,
     canProceedToNext: canProceedToNextStep,
-  } = useAccommodationEditForm();
+  } = useAccommodationEditForm(accommodationId);
 
   const {
     imageItems,
     initialImageItems,
     draggedIndex,
     dragOverIndex,
+    isDeletingImage,
     loadImages,
     handleImageSelect,
     handleDrop,
     handleDragOver,
     handleImageRemove,
+    waitForPendingImageDeletes,
     handleDragStart,
     handleDragOverItem,
     handleDragEnd,
@@ -75,6 +87,62 @@ export const useAccommodationEditController = ({
     accommodationId,
     onError: handleError,
   });
+
+  const handleAddressSelected = useCallback(
+    (addressInfo: AccommodationEditAddressInfo) => {
+      setFormData((prev) => ({
+        ...prev,
+        addressInfo,
+      }));
+    },
+    [setFormData]
+  );
+
+  const { openAddressSearch: handleAddressSearch } = useDaumPostcode({
+    onAddressSelected: handleAddressSelected,
+  });
+
+  const { detailState, retry: retryDetail } = useAccommodationEditDetail({
+    accommodationId,
+    loadAccommodation,
+    loadImages,
+    handleError,
+  });
+
+  useEffect(() => {
+    setCurrentStep(1);
+    setIsSaving(false);
+    setUploadProgress(0);
+    setIsTypeModalOpen(false);
+    setIsAmenityModalOpen(false);
+    clearError();
+  }, [accommodationId, clearError]);
+
+  const isEditorReady =
+    detailState.status === "ready" &&
+    detailState.accommodationId === accommodationId &&
+    persistedAccommodationId === accommodationId;
+
+  const { uploadPendingImages } = useAccommodationEditImageUpload({
+    accommodationId,
+    applyUploadedImages,
+    clearError,
+    getPendingFiles,
+    handleError,
+    setUploadProgress,
+  });
+
+  const prepareImagesForPersistence = useCallback(async () => {
+    const deletionsSucceeded = await waitForPendingImageDeletes();
+    if (!deletionsSucceeded) return false;
+
+    return uploadPendingImages();
+  }, [uploadPendingImages, waitForPendingImageDeletes]);
+
+  const hasPendingImageChanges = useCallback(
+    () => getPendingFiles().length > 0,
+    [getPendingFiles]
+  );
 
   const {
     showDetailAddressConfirm,
@@ -96,57 +164,31 @@ export const useAccommodationEditController = ({
     handleError,
     setIsSaving,
     navigateToHostProfile: onNavigateToHostProfile,
-  });
-
-  const handleAddressSelected = useCallback(
-    (addressInfo: AccommodationEditAddressInfo) => {
-      setFormData((prev) => ({
-        ...prev,
-        addressInfo,
-      }));
-    },
-    [setFormData]
-  );
-
-  const { openAddressSearch: handleAddressSearch } = useDaumPostcode({
-    onAddressSelected: handleAddressSelected,
-  });
-
-  useAccommodationEditDetail({
-    accommodationId,
-    isNewDraft,
-    loadAccommodation,
-    loadImages,
-    handleError,
-  });
-
-  const { uploadPendingImages } = useAccommodationEditImageUpload({
-    accommodationId,
-    applyUploadedImages,
-    clearError,
-    getPendingFiles,
-    handleError,
-    setIsSaving,
-    setUploadProgress,
+    prepareImagesForPersistence,
+    hasPendingImageChanges,
+    commitPersistedFormData,
   });
 
   const isStepCompleted = (step: Step): boolean =>
+    isEditorReady &&
     isFormStepCompleted(step, {
       imageCount: imageItems.length,
       isNewDraft,
     });
 
   const canProceedToNext = (): boolean =>
+    isEditorReady &&
     canProceedToNextStep(currentStep, {
       imageCount: imageItems.length,
       isNewDraft,
     });
 
   const handleNext = async () => {
+    if (!isEditorReady) return;
+    const editorSession = editorSessionRef.current;
+
     if (currentStep === 1) {
-      const hasDetailAddress =
-        formData.addressInfo.detail && formData.addressInfo.detail.trim() !== "";
-      if (!hasDetailAddress) {
+      if (!hasAccommodationDetailAddress(formData)) {
         requestDetailAddressConfirm(() => {
           if (currentStep < 5) {
             setCurrentStep((prev) => (prev + 1) as Step);
@@ -157,13 +199,26 @@ export const useAccommodationEditController = ({
     }
 
     if (currentStep === 2) {
-      const uploaded = await uploadPendingImages();
-      if (!uploaded) return;
+      if (activeStepTransitionRef.current) return;
+      const transition = Symbol("photo-step-transition");
+      activeStepTransitionRef.current = transition;
+      setIsSaving(true);
+      try {
+        const prepared = await prepareImagesForPersistence();
+        if (!prepared || editorSessionRef.current !== editorSession) return;
+      } finally {
+        if (editorSessionRef.current === editorSession) {
+          setIsSaving(false);
+        }
+        if (activeStepTransitionRef.current === transition) {
+          activeStepTransitionRef.current = null;
+        }
+      }
     }
 
     if (currentStep === 4 && accommodationId) {
       const saved = await saveStepData();
-      if (!saved) return;
+      if (!saved || editorSessionRef.current !== editorSession) return;
       setCurrentStep((prev) => (prev + 1) as Step);
       return;
     }
@@ -173,35 +228,27 @@ export const useAccommodationEditController = ({
     }
   };
 
-  const publishAfterUploadingPendingImages = useCallback(async () => {
-    const uploaded = await uploadPendingImages();
-    if (!uploaded) return;
-
-    await handlePublish();
-  }, [handlePublish, uploadPendingImages]);
-
   const handlePublishSubmit = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
 
-      if (currentStep !== 5) return;
+      if (!isEditorReady || currentStep !== 5) return;
 
-      const hasDetailAddress =
-        formData.addressInfo.detail && formData.addressInfo.detail.trim() !== "";
-      if (!hasDetailAddress) {
+      if (!hasAccommodationDetailAddress(formData)) {
         requestDetailAddressConfirm(() => {
-          void publishAfterUploadingPendingImages();
+          void handlePublish();
         });
         return;
       }
 
-      await publishAfterUploadingPendingImages();
+      await handlePublish();
     },
     [
       currentStep,
-      formData.addressInfo.detail,
-      publishAfterUploadingPendingImages,
+      formData,
+      handlePublish,
       requestDetailAddressConfirm,
+      isEditorReady,
     ]
   );
 
@@ -212,6 +259,10 @@ export const useAccommodationEditController = ({
   };
 
   const canNavigateToStep = (targetStep: Step): boolean => {
+    if (!isEditorReady || isSaving || isDeletingImage) {
+      return false;
+    }
+
     if (isNewDraft) {
       for (let i = 1; i < targetStep; i++) {
         if (!isStepCompleted(i as Step)) {
@@ -240,7 +291,10 @@ export const useAccommodationEditController = ({
   return {
     state: {
       currentStep,
+      detailState,
+      isEditorReady,
       isSaving,
+      isDeletingImage,
       uploadProgress,
       formData,
       selectedAmenities,
@@ -284,6 +338,11 @@ export const useAccommodationEditController = ({
       onPublishSubmit: handlePublishSubmit,
       onCloseDetailAddressConfirm: closeDetailAddressConfirm,
       onConfirmDetailAddress: confirmDetailAddress,
+      onRetryDetail: () => {
+        clearError();
+        retryDetail();
+      },
+      onExitDetailError: onNavigateToHostProfile,
       onClearError: clearError,
     },
   };

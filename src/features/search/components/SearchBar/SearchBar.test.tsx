@@ -146,7 +146,13 @@ const renderExpandedSearchBarWithSuggestions = (
 
 describe("SearchBar", () => {
   beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2026-07-10T12:00:00"));
     mockUseSearchBarState.mockReturnValue(createSearchBarState());
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it("keeps icon controls at the shared touch target and resets suggestion buttons", () => {

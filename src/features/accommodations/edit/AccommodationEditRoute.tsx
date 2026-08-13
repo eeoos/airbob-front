@@ -1,6 +1,9 @@
 import React, { useCallback } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { routeTo } from "../../../routes/paths";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import {
+  isAccommodationEditDraftCreationState,
+  routeTo,
+} from "../../../routes/paths";
 import { AccommodationEditScreen } from "./components/AccommodationEditScreen";
 import { useAccommodationEditController } from "./hooks/useAccommodationEditController";
 
@@ -35,8 +38,9 @@ const AccommodationEditRouteWithRouter: React.FC<
   AccommodationEditRouteProps
 > = (props) => {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const accommodationId = props.accommodationId ?? id;
 
   const navigateToHostProfile = useCallback(() => {
     navigate(routeTo.profile({ mode: "host" }));
@@ -44,8 +48,11 @@ const AccommodationEditRouteWithRouter: React.FC<
 
   return (
     <AccommodationEditRouteContent
-      accommodationId={props.accommodationId ?? id}
-      isNewDraft={props.isNewDraft ?? searchParams.get("mode") === "create"}
+      accommodationId={accommodationId}
+      isNewDraft={
+        props.isNewDraft ??
+        isAccommodationEditDraftCreationState(location.state, accommodationId)
+      }
       onNavigateToHostProfile={
         props.onNavigateToHostProfile ?? navigateToHostProfile
       }

@@ -148,6 +148,55 @@ const collectWindowOpenCallViolations = (
   isViolation: (callExpression: ts.CallExpression) => boolean
 ): string[] => collectCallViolations(relativePath, isWindowOpenCall, isViolation);
 
+const containsPaymentRouteBuilderCall = (node: ts.Node): boolean => {
+  let found = false;
+
+  const visit = (candidate: ts.Node) => {
+    if (
+      ts.isCallExpression(candidate) &&
+      ts.isPropertyAccessExpression(candidate.expression) &&
+      ts.isIdentifier(candidate.expression.expression) &&
+      candidate.expression.expression.text === "routeTo" &&
+      (candidate.expression.name.text === "paymentSuccess" ||
+        candidate.expression.name.text === "paymentFail")
+    ) {
+      found = true;
+      return;
+    }
+
+    ts.forEachChild(candidate, visit);
+  };
+
+  visit(node);
+  return found;
+};
+
+const collectPaymentQueryOwnershipViolations = (
+  relativePath: string
+): string[] => {
+  const source = sourceFile(relativePath);
+  const violations: string[] = [];
+
+  const visit = (node: ts.Node) => {
+    const manuallyConcatenatesPaymentRoute =
+      (ts.isBinaryExpression(node) || ts.isTemplateExpression(node)) &&
+      containsPaymentRouteBuilderCall(node);
+    const manuallyCreatesSearchParams =
+      ts.isNewExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === "URLSearchParams";
+
+    if (manuallyConcatenatesPaymentRoute || manuallyCreatesSearchParams) {
+      violations.push(formatNodeLocation(source, node));
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(source);
+  return violations;
+};
+
 const isTrackedRouterLinkElement = (
   node: ts.Node
 ): node is ts.JsxOpeningElement | ts.JsxSelfClosingElement => {
@@ -270,5 +319,13 @@ describe("navigation route builder contracts", () => {
     );
 
     expect(replaceNavigations).toEqual([]);
+  });
+
+  it("keeps payment callback query construction inside typed route builders", () => {
+    const queryOwnershipViolations = paymentNavigationFiles.flatMap(
+      collectPaymentQueryOwnershipViolations
+    );
+
+    expect(queryOwnershipViolations).toEqual([]);
   });
 });

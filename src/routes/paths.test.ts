@@ -45,9 +45,28 @@ describe("route path contracts", () => {
     expect(routeTo.paymentSuccess("rsv_123")).toBe(
       "/reservations/rsv_123/success",
     );
+    expect(
+      routeTo.paymentSuccess("reservation-123", {
+        amount: 120000,
+        orderId: "reservation-123",
+        paymentKey: "payment-key-1",
+      }),
+    ).toBe(
+      "/reservations/reservation-123/success?paymentKey=payment-key-1&orderId=reservation-123&amount=120000",
+    );
     expect(routeTo.paymentFail("rsv_123")).toBe("/reservations/rsv_123/fail");
     expect(routeTo.paymentFail("reservation-123", { reason: "confirm-failed" })).toBe(
       "/reservations/reservation-123/fail?reason=confirm-failed",
+    );
+    expect(
+      routeTo.paymentFail("reservation-123", {
+        amount: 120000,
+        orderId: "reservation-123",
+        paymentKey: "payment-key-1",
+        reason: "confirm-failed",
+      }),
+    ).toBe(
+      "/reservations/reservation-123/fail?reason=confirm-failed&paymentKey=payment-key-1&orderId=reservation-123&amount=120000",
     );
     expect(routeTo.paymentFail("reservation-123", { reason: "invalid-callback" })).toBe(
       "/reservations/reservation-123/fail?reason=invalid-callback",
@@ -96,9 +115,6 @@ describe("route path contracts", () => {
   });
 
   it("builds object query routes with URLSearchParams encoding", () => {
-    expect(routeTo.accommodationEdit(12, { mode: "create" })).toBe(
-      "/accommodations/12/edit?mode=create",
-    );
     expect(routeTo.wishlist({ view: "recently-viewed" })).toBe(
       "/wishlist?view=recently-viewed",
     );
@@ -108,7 +124,13 @@ describe("route path contracts", () => {
     );
   });
 
+  it("does not encode accommodation creation provenance into the edit URL", () => {
+    expect(routeTo.accommodationEdit(12)).toBe("/accommodations/12/edit");
+  });
+
   it("rejects unsupported route-state query values at compile time", () => {
+    // @ts-expect-error accommodation creation provenance belongs in navigation state.
+    routeTo.accommodationEdit(12, { mode: "create" });
     // @ts-expect-error wishlist view must stay aligned with WishlistRouteView.
     routeTo.wishlist({ view: "grid/card" });
     // @ts-expect-error wishlist detail routes must be built with id, not view.
@@ -149,8 +171,8 @@ describe("route path contracts", () => {
     ).toBe(
       "/accommodations/room%2Fa%20b%231/confirm?checkIn=2026-07-10&adultOccupancy=2",
     );
-    expect(routeTo.accommodationEdit("room/a b#1", { mode: "create" })).toBe(
-      "/accommodations/room%2Fa%20b%231/edit?mode=create",
+    expect(routeTo.accommodationEdit("room/a b#1")).toBe(
+      "/accommodations/room%2Fa%20b%231/edit",
     );
     expect(routeTo.hostReservationDetail("host/a b#1")).toBe(
       "/profile/host/reservations/host%2Fa%20b%231",

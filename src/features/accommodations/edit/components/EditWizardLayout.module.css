@@ -176,6 +176,13 @@
   box-sizing: border-box;
 }
 
+.formFieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
 .buttonGroup {
   display: flex;
   gap: 12px;

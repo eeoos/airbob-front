@@ -1,6 +1,7 @@
 import {
   buildAccommodationBookingRouteSearchParams,
   buildPaymentFailRouteSearchParams,
+  buildPaymentSuccessRouteSearchParams,
   buildProfileRouteQuerySearchParams,
   buildSearchRouteSearchParams,
   buildWishlistRouteQuerySearchParams,
@@ -82,13 +83,30 @@ describe("route query contracts", () => {
   it("builds payment fail route reasons without changing fail URL semantics", () => {
     expect(
       buildPaymentFailRouteSearchParams({
+        amount: 120000,
+        orderId: "reservation-123",
+        paymentKey: "payment/key 1",
         reason: "confirm-failed",
       }).toString(),
-    ).toBe("reason=confirm-failed");
+    ).toBe(
+      "reason=confirm-failed&paymentKey=payment%2Fkey+1&orderId=reservation-123&amount=120000",
+    );
     expect(
       buildPaymentFailRouteSearchParams({
         reason: "invalid-callback",
       }).toString(),
     ).toBe("reason=invalid-callback");
+  });
+
+  it("builds Toss success callback query values through the route contract", () => {
+    expect(
+      buildPaymentSuccessRouteSearchParams({
+        amount: 120000,
+        orderId: "reservation-123",
+        paymentKey: "payment/key 1",
+      }).toString(),
+    ).toBe(
+      "paymentKey=payment%2Fkey+1&orderId=reservation-123&amount=120000",
+    );
   });
 });

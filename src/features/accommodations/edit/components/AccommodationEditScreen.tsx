@@ -1,4 +1,6 @@
 import React from "react";
+import { Button, ErrorState, LoadingState } from "../../../../shared/ui";
+import { AccommodationEditDetailState } from "../hooks/useAccommodationEditDetail";
 import { AccommodationEditStep } from "../hooks/useAccommodationEditForm";
 import { AccommodationEditFormData } from "../lib/accommodationEditMapper";
 import { AccommodationEditImageItem } from "../lib/imageItems";
@@ -18,7 +20,10 @@ type NestedFormFields = {
 
 export interface AccommodationEditScreenState {
   currentStep: Step;
+  detailState: AccommodationEditDetailState;
+  isEditorReady: boolean;
   isSaving: boolean;
+  isDeletingImage: boolean;
   uploadProgress: number;
   formData: AccommodationEditFormData;
   selectedAmenities: Set<string>;
@@ -79,6 +84,8 @@ export interface AccommodationEditScreenActions {
   onPublishSubmit: (event: React.FormEvent<HTMLFormElement>) => void | Promise<void>;
   onCloseDetailAddressConfirm: () => void;
   onConfirmDetailAddress: () => void;
+  onRetryDetail: () => void;
+  onExitDetailError: () => void;
   onClearError: () => void;
 }
 
@@ -106,6 +113,33 @@ export const AccommodationEditScreen: React.FC<AccommodationEditScreenProps> = (
     onPublishSubmit,
   } = actions;
 
+  if (state.detailState.status === "error") {
+    return (
+      <ErrorState
+        title="숙소 정보를 불러오지 못했어요"
+        description="다시 시도하거나 호스트 화면으로 돌아가 주세요."
+        action={
+          <>
+            <Button type="button" onClick={actions.onRetryDetail}>
+              다시 시도
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={actions.onExitDetailError}
+            >
+              호스트 화면으로 돌아가기
+            </Button>
+          </>
+        }
+      />
+    );
+  }
+
+  if (state.detailState.status === "loading" || !state.isEditorReady) {
+    return <LoadingState title="숙소 정보를 불러오는 중..." />;
+  }
+
   return (
     <>
       <div className={styles.container}>
@@ -117,6 +151,7 @@ export const AccommodationEditScreen: React.FC<AccommodationEditScreenProps> = (
         <div className={styles.content}>
           <EditWizardSidebar
             currentStep={currentStep}
+            isInteractionDisabled={isSaving || state.isDeletingImage}
             isStepCompleted={isStepCompleted}
             isStepClickable={isStepClickable}
             onStepClick={onStepClick}
@@ -127,15 +162,20 @@ export const AccommodationEditScreen: React.FC<AccommodationEditScreenProps> = (
               onSubmit={currentStep === 5 ? onPublishSubmit : undefined}
               className={styles.form}
             >
-              <EditStepContent state={state} actions={actions} />
+              <fieldset
+                className={styles.formFieldset}
+                disabled={isSaving || state.isDeletingImage}
+              >
+                <EditStepContent state={state} actions={actions} />
 
-              <EditWizardNavigation
-                currentStep={currentStep}
-                isSaving={isSaving}
-                canProceedToNext={canProceedToNext}
-                onBack={onBack}
-                onNext={onNext}
-              />
+                <EditWizardNavigation
+                  currentStep={currentStep}
+                  isSaving={isSaving}
+                  canProceedToNext={canProceedToNext}
+                  onBack={onBack}
+                  onNext={onNext}
+                />
+              </fieldset>
             </form>
           </div>
         </div>
