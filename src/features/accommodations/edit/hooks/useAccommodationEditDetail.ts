@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { accommodationApi } from "../../../../api";
 import {
   HostAccommodationDetail,
@@ -7,10 +7,25 @@ import {
 
 interface UseAccommodationEditDetailOptions {
   accommodationId?: string;
-  loadAccommodation: (data: HostAccommodationDetail) => unknown;
+  loadAccommodation: (
+    accommodationId: string,
+    data: HostAccommodationDetail
+  ) => unknown;
   loadImages: (images: ImageInfo[]) => unknown;
   handleError: (error: unknown) => unknown;
 }
+
+export type AccommodationEditDetailState =
+  | { status: "loading"; accommodationId: string }
+  | { status: "ready"; accommodationId: string }
+  | { status: "error"; accommodationId: string };
+
+const getInitialDetailState = (
+  accommodationId?: string
+): AccommodationEditDetailState => ({
+  status: accommodationId ? "loading" : "error",
+  accommodationId: accommodationId || "",
+});
 
 export function useAccommodationEditDetail({
   accommodationId,
@@ -18,25 +33,25 @@ export function useAccommodationEditDetail({
   loadImages,
   handleError,
 }: UseAccommodationEditDetailOptions) {
-  const [settledAccommodationId, setSettledAccommodationId] = useState<
-    string | null
-  >(null);
-  const hasValidAccommodationId =
-    Boolean(accommodationId) && !Number.isNaN(Number(accommodationId));
-  const isInitializing =
-    hasValidAccommodationId && settledAccommodationId !== accommodationId;
+  const [detailState, setDetailState] = useState<AccommodationEditDetailState>(
+    () => getInitialDetailState(accommodationId)
+  );
+  const [retryAttempt, setRetryAttempt] = useState(0);
 
   useEffect(() => {
     if (!accommodationId) {
+      setDetailState({ status: "error", accommodationId: "" });
       return;
     }
 
     const parsedAccommodationId = Number(accommodationId);
-    if (Number.isNaN(parsedAccommodationId)) {
+    if (!Number.isFinite(parsedAccommodationId) || parsedAccommodationId <= 0) {
+      setDetailState({ status: "error", accommodationId });
       return;
     }
 
     let isCancelled = false;
+    setDetailState({ status: "loading", accommodationId });
 
     const fetchAccommodation = async () => {
       try {
@@ -48,15 +63,17 @@ export function useAccommodationEditDetail({
           return;
         }
 
-        loadAccommodation(data);
+        if (data.id !== parsedAccommodationId) {
+          throw new Error("요청한 숙소와 다른 숙소 정보가 반환되었습니다.");
+        }
+
+        loadAccommodation(accommodationId, data);
         loadImages(data.images || []);
+        setDetailState({ status: "ready", accommodationId });
       } catch (error) {
         if (!isCancelled) {
           handleError(error);
-        }
-      } finally {
-        if (!isCancelled) {
-          setSettledAccommodationId(accommodationId);
+          setDetailState({ status: "error", accommodationId });
         }
       }
     };
@@ -71,7 +88,19 @@ export function useAccommodationEditDetail({
     handleError,
     loadAccommodation,
     loadImages,
+    retryAttempt,
   ]);
 
-  return { isInitializing };
+  const retry = useCallback(() => {
+    if (!accommodationId) return;
+    setDetailState({ status: "loading", accommodationId });
+    setRetryAttempt((attempt) => attempt + 1);
+  }, [accommodationId]);
+
+  const currentDetailState =
+    detailState.accommodationId === (accommodationId || "")
+      ? detailState
+      : getInitialDetailState(accommodationId);
+
+  return { detailState: currentDetailState, retry };
 }

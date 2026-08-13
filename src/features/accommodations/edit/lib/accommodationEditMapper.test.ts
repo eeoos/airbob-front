@@ -1,5 +1,6 @@
 import { HostAccommodationDetail } from "../../../../types/accommodation";
 import {
+  applyPersistedAccommodationUpdate,
   buildAccommodationUpdateData,
   mapHostAccommodationToEditFormData,
   toAccommodationApiUpdateData,
@@ -191,5 +192,59 @@ describe("accommodation edit mapper", () => {
         detail: "101호",
       },
     });
+  });
+
+  it("advances the whole address baseline to the replacement sent by PATCH", () => {
+    const initialFormData = mapHostAccommodationToEditFormData(
+      hostDetail({
+        address: {
+          postal_code: "12345",
+          city: "Seoul",
+          state: "Seoul",
+          country: "대한민국",
+          detail: "101호",
+          district: "Mapo",
+          street: "Worldcup-ro",
+        },
+      })
+    );
+    const submittedFormData = {
+      ...initialFormData,
+      addressInfo: {
+        ...initialFormData.addressInfo,
+        detail: "",
+      },
+    };
+    const persistedUpdateData = toAccommodationApiUpdateData(
+      buildAccommodationUpdateData({
+        isDraft: false,
+        formData: submittedFormData,
+        initialFormData,
+      })
+    );
+
+    const persistedBaseline = applyPersistedAccommodationUpdate(
+      initialFormData,
+      submittedFormData,
+      persistedUpdateData
+    );
+
+    expect(persistedUpdateData.address_info).toEqual({
+      postal_code: "12345",
+      country: "대한민국",
+      state: "Seoul",
+      city: "Seoul",
+      district: "Mapo",
+      street: "Worldcup-ro",
+    });
+    expect(persistedBaseline.addressInfo.detail).toBe("");
+
+    expect(
+      buildAccommodationUpdateData({
+        isDraft: false,
+        formData: initialFormData,
+        initialFormData: persistedBaseline,
+      })
+    ).toHaveProperty("address_info.detail", "101호");
   });
 });

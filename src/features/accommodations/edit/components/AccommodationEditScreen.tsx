@@ -1,8 +1,9 @@
 import React from "react";
+import { Button, ErrorState, LoadingState } from "../../../../shared/ui";
+import { AccommodationEditDetailState } from "../hooks/useAccommodationEditDetail";
 import { AccommodationEditStep } from "../hooks/useAccommodationEditForm";
 import { AccommodationEditFormData } from "../lib/accommodationEditMapper";
 import { AccommodationEditImageItem } from "../lib/imageItems";
-import { LoadingState } from "../../../../shared/ui";
 import { EditStepContent } from "./EditStepContent";
 import { EditWizardActionBar } from "./EditWizardActionBar";
 import { EditWizardDialogs } from "./EditWizardDialogs";
@@ -19,7 +20,8 @@ type NestedFormFields = {
 
 export interface AccommodationEditScreenState {
   currentStep: Step;
-  isInitializing: boolean;
+  detailState: AccommodationEditDetailState;
+  isEditorReady: boolean;
   isSaving: boolean;
   isDeletingImage: boolean;
   uploadProgress: number;
@@ -82,6 +84,8 @@ export interface AccommodationEditScreenActions {
   onPublishSubmit: (event: React.FormEvent<HTMLFormElement>) => void | Promise<void>;
   onCloseDetailAddressConfirm: () => void;
   onConfirmDetailAddress: () => void;
+  onRetryDetail: () => void;
+  onExitDetailError: () => void;
   onClearError: () => void;
 }
 
@@ -109,7 +113,30 @@ export const AccommodationEditScreen: React.FC<AccommodationEditScreenProps> = (
     onPublishSubmit,
   } = actions;
 
-  if (state.isInitializing) {
+  if (state.detailState.status === "error") {
+    return (
+      <ErrorState
+        title="숙소 정보를 불러오지 못했어요"
+        description="다시 시도하거나 호스트 화면으로 돌아가 주세요."
+        action={
+          <>
+            <Button type="button" onClick={actions.onRetryDetail}>
+              다시 시도
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={actions.onExitDetailError}
+            >
+              호스트 화면으로 돌아가기
+            </Button>
+          </>
+        }
+      />
+    );
+  }
+
+  if (state.detailState.status === "loading" || !state.isEditorReady) {
     return <LoadingState title="숙소 정보를 불러오는 중..." />;
   }
 

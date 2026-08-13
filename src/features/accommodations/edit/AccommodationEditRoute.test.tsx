@@ -100,7 +100,7 @@ const missingDetailCompletedHostAccommodation: HostAccommodationDetail = {
   },
 };
 
-const renderRoute = () => {
+const renderRoute = (accommodationId = "3") => {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -109,17 +109,23 @@ const renderRoute = () => {
     },
   });
 
-  const view = render(
+  const renderRouteForId = (nextAccommodationId: string) => (
     <QueryClientProvider client={queryClient}>
       <AccommodationEditRoute
-        accommodationId="3"
+        accommodationId={nextAccommodationId}
         isNewDraft={false}
         onNavigateToHostProfile={mockNavigateToHostProfile}
       />
     </QueryClientProvider>
   );
+  const view = render(renderRouteForId(accommodationId));
 
-  return { ...view, queryClient };
+  return {
+    ...view,
+    queryClient,
+    rerenderRoute: (nextAccommodationId: string) =>
+      view.rerender(renderRouteForId(nextAccommodationId)),
+  };
 };
 
 beforeEach(() => {
@@ -163,6 +169,211 @@ describe("AccommodationEditRoute", () => {
     });
 
     expect(await screen.findByDisplayValue("ETL listing 5651579")).toBeVisible();
+  });
+
+  it("keeps the wizard hidden after detail loading fails and hydrates it only after retry succeeds", async () => {
+    const detailError = new Error("detail failed");
+    jest
+      .mocked(accommodationApi.getHostAccommodationDetail)
+      .mockRejectedValueOnce(detailError)
+      .mockResolvedValueOnce(hostAccommodation);
+
+    renderRoute();
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "숙소 정보를 불러오지 못했어요",
+      })
+    ).toBeVisible();
+    expect(mockHandleError).toHaveBeenCalledWith(detailError);
+    expect(
+      screen.queryByRole("button", { name: "저장 후 나가기" })
+    ).toBeNull();
+    expect(screen.queryByText("숙소 위치를 알려주세요")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+
+    expect(await screen.findByDisplayValue("ETL listing 5651579")).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "저장 후 나가기" })
+    ).toBeVisible();
+    expect(accommodationApi.getHostAccommodationDetail).toHaveBeenNthCalledWith(
+      1,
+      3
+    );
+    expect(accommodationApi.getHostAccommodationDetail).toHaveBeenNthCalledWith(
+      2,
+      3
+    );
+  });
+
+  it("exposes only the latest accommodation when route detail responses settle in reverse order", async () => {
+    const detailResolvers = new Map<
+      number,
+      (detail: HostAccommodationDetail) => void
+    >();
+    const accommodation4: HostAccommodationDetail = {
+      ...hostAccommodation,
+      id: 4,
+      name: "Fourth accommodation",
+      address: {
+        country: "United States",
+        state: "New York",
+        city: "Albany",
+        district: "Albany",
+        street: "State Street",
+        postal_code: "",
+        detail: "Only accommodation 4",
+      },
+      images: [
+        {
+          id: 4,
+          image_url: "https://example.com/room-4.jpg",
+        },
+      ],
+    };
+    jest
+      .mocked(accommodationApi.getHostAccommodationDetail)
+      .mockImplementation(
+        (id) =>
+          new Promise((resolve) => {
+            detailResolvers.set(id, resolve);
+          })
+      );
+
+    const { rerenderRoute } = renderRoute("3");
+    await waitFor(() => expect(detailResolvers.has(3)).toBe(true));
+
+    rerenderRoute("4");
+    await waitFor(() => expect(detailResolvers.has(4)).toBe(true));
+
+    await act(async () => {
+      detailResolvers.get(4)?.(accommodation4);
+    });
+    expect(await screen.findByDisplayValue("Only accommodation 4")).toBeVisible();
+
+    await act(async () => {
+      detailResolvers.get(3)?.(hostAccommodation);
+    });
+
+    expect(screen.getByDisplayValue("Only accommodation 4")).toBeVisible();
+    expect(screen.queryByDisplayValue("ETL listing 5651579")).toBeNull();
+    fireEvent.click(screen.getByText("숙소 사진"));
+    expect(screen.getByAltText("커버 사진")).toHaveAttribute(
+      "src",
+      "https://example.com/room-4.jpg"
+    );
+  });
+
+  it("does not advance the new route when an old photo-step deletion finishes", async () => {
+    let resolveDelete: () => void = () => undefined;
+    const accommodation4: HostAccommodationDetail = {
+      ...hostAccommodation,
+      id: 4,
+      address: {
+        country: "United States",
+        state: "New York",
+        city: "Albany",
+        district: "Albany",
+        street: "State Street",
+        postal_code: "",
+        detail: "Accommodation 4 location",
+      },
+      images: [
+        {
+          id: 4,
+          image_url: "https://example.com/room-4.jpg",
+        },
+      ],
+    };
+    jest
+      .mocked(accommodationApi.getHostAccommodationDetail)
+      .mockImplementation(async (id) =>
+        id === 3 ? hostAccommodation : accommodation4
+      );
+    jest.mocked(accommodationApi.deleteImage).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveDelete = () => resolve(undefined);
+        })
+    );
+
+    const { rerenderRoute } = renderRoute("3");
+
+    await screen.findByDisplayValue("ETL listing 5651579");
+    fireEvent.click(screen.getByText("숙소 사진"));
+    expect(
+      await screen.findByRole("heading", { name: "숙소 사진을 등록하세요" })
+    ).toBeVisible();
+
+    const deleteButton = screen.getByRole("button", { name: "이미지 삭제" });
+    const nextButton = screen.getByRole("button", { name: "다음" });
+    await act(async () => {
+      deleteButton.click();
+      nextButton.click();
+    });
+    await waitFor(() =>
+      expect(accommodationApi.deleteImage).toHaveBeenCalledWith(3, 3)
+    );
+
+    rerenderRoute("4");
+    expect(
+      await screen.findByDisplayValue("Accommodation 4 location")
+    ).toBeVisible();
+
+    await act(async () => {
+      resolveDelete();
+    });
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("heading", { name: "숙소 위치를 알려주세요" })
+      ).toBeVisible()
+    );
+    expect(
+      screen.queryByRole("heading", { name: "숙소 사진을 등록하세요" })
+    ).toBeNull();
+  });
+
+  it("publishes a value restored after step-save against the committed baseline", async () => {
+    const changedName = "Changed after hydration";
+    jest
+      .mocked(accommodationApi.getHostAccommodationDetail)
+      .mockResolvedValue(completedHostAccommodation);
+    jest.mocked(accommodationApi.update).mockResolvedValue(undefined);
+    jest.mocked(accommodationApi.publish).mockResolvedValue(undefined);
+
+    renderRoute();
+
+    await screen.findByDisplayValue("ETL listing 5651579");
+    fireEvent.click(screen.getByText("숙소 정보"));
+    fireEvent.change(screen.getByDisplayValue(hostAccommodation.name ?? ""), {
+      target: { value: changedName },
+    });
+
+    fireEvent.click(screen.getByText("체크인/체크아웃"));
+    fireEvent.click(screen.getByRole("button", { name: "다음" }));
+
+    await waitFor(() =>
+      expect(accommodationApi.update).toHaveBeenNthCalledWith(1, 3, {
+        name: changedName,
+      })
+    );
+    expect(
+      await screen.findByRole("heading", { name: "숙소를 등록하세요" })
+    ).toBeVisible();
+
+    fireEvent.click(screen.getByText("숙소 정보"));
+    fireEvent.change(screen.getByDisplayValue(changedName), {
+      target: { value: hostAccommodation.name ?? "" },
+    });
+    fireEvent.click(screen.getAllByText("숙소 등록")[1]);
+    fireEvent.click(screen.getByRole("button", { name: "저장하기" }));
+
+    await waitFor(() => expect(accommodationApi.publish).toHaveBeenCalledWith(3));
+    expect(accommodationApi.update).toHaveBeenNthCalledWith(2, 3, {
+      name: hostAccommodation.name,
+    });
   });
 
   it("keeps image file inputs uncontrolled when moving from address to photo step", async () => {
@@ -234,6 +445,61 @@ describe("AccommodationEditRoute", () => {
       ).toBe("https://example.com/uploaded-room.jpg")
     );
     expect(global.URL.revokeObjectURL).toHaveBeenCalledWith("blob:pending-room");
+  });
+
+  it("runs only one photo-step transition when next is triggered twice", async () => {
+    let resolveUpload: (value: {
+      uploaded_images: Array<{ id: number; image_url: string }>;
+    }) => void = () => undefined;
+    const uploadPromise = new Promise<{
+      uploaded_images: Array<{ id: number; image_url: string }>;
+    }>((resolve) => {
+      resolveUpload = resolve;
+    });
+    jest
+      .mocked(accommodationApi.getHostAccommodationDetail)
+      .mockResolvedValue(hostAccommodation);
+    jest
+      .mocked(accommodationApi.uploadImages)
+      .mockImplementation(() => uploadPromise);
+
+    renderRoute();
+
+    await screen.findByDisplayValue("ETL listing 5651579");
+    fireEvent.click(screen.getByText("숙소 사진"));
+    fireEvent.change(screen.getByLabelText("숙소 사진 추가 선택"), {
+      target: {
+        files: [new File(["room"], "room.png", { type: "image/png" })],
+      },
+    });
+
+    const nextButton = screen.getByRole("button", { name: "다음" });
+    act(() => {
+      nextButton.click();
+      nextButton.click();
+    });
+
+    await waitFor(() =>
+      expect(accommodationApi.uploadImages).toHaveBeenCalledTimes(1)
+    );
+
+    await act(async () => {
+      resolveUpload({
+        uploaded_images: [
+          { id: 99, image_url: "https://example.com/uploaded-room.jpg" },
+        ],
+      });
+      await uploadPromise;
+    });
+
+    expect(
+      await screen.findByRole("heading", { name: "숙소 정보를 알려주세요" })
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("heading", {
+        name: "체크인/체크아웃 시간을 설정하세요",
+      })
+    ).toBeNull();
   });
 
   it("uploads pending photo files before publishing from the final step", async () => {

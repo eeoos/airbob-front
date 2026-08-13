@@ -1,7 +1,10 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { HostAccommodationDetail } from "../../../../types/accommodation";
 import {
+  applyPersistedAccommodationUpdate,
   AccommodationEditFormData,
+  AccommodationApiUpdateData,
+  cloneAccommodationEditFormData,
   createDefaultAccommodationEditFormData,
   mapHostAccommodationToEditFormData,
 } from "../lib/accommodationEditMapper";
@@ -19,29 +22,84 @@ type NestedFormFields = {
   occupancyPolicyInfo: AccommodationEditFormData["occupancyPolicyInfo"];
 };
 
-const cloneFormData = (formData: AccommodationEditFormData) =>
-  JSON.parse(JSON.stringify(formData)) as AccommodationEditFormData;
-
-export const useAccommodationEditForm = () => {
+export const useAccommodationEditForm = (accommodationId?: string) => {
   const [formData, setFormData] = useState(() =>
     createDefaultAccommodationEditFormData()
   );
   const [initialFormData, setInitialFormData] =
     useState<AccommodationEditFormData | null>(null);
+  const [persistedAccommodationId, setPersistedAccommodationId] = useState<
+    string | null
+  >(null);
   const [selectedAmenities, setSelectedAmenities] = useState<Set<string>>(
     new Set()
   );
   const [openTimePicker, setOpenTimePicker] = useState<
     "checkIn" | "checkOut" | null
   >(null);
+  const activeAccommodationIdRef = useRef(accommodationId);
+  const persistedAccommodationIdRef = useRef<string | null>(null);
 
-  const loadAccommodation = useCallback((data: HostAccommodationDetail) => {
-    const loadedFormData = mapHostAccommodationToEditFormData(data);
-    setFormData(loadedFormData);
-    setInitialFormData(cloneFormData(loadedFormData));
-    setSelectedAmenities(new Set(data.amenities?.map((amenity) => amenity.type) || []));
-    return loadedFormData;
-  }, []);
+  if (activeAccommodationIdRef.current !== accommodationId) {
+    activeAccommodationIdRef.current = accommodationId;
+    persistedAccommodationIdRef.current = null;
+  }
+
+  useEffect(() => {
+    setFormData(createDefaultAccommodationEditFormData());
+    setInitialFormData(null);
+    setPersistedAccommodationId(null);
+    setSelectedAmenities(new Set());
+    setOpenTimePicker(null);
+  }, [accommodationId]);
+
+  const loadAccommodation = useCallback(
+    (sourceAccommodationId: string, data: HostAccommodationDetail) => {
+      if (
+        activeAccommodationIdRef.current !== sourceAccommodationId ||
+        Number(sourceAccommodationId) !== data.id
+      ) {
+        return null;
+      }
+
+      const loadedFormData = mapHostAccommodationToEditFormData(data);
+      persistedAccommodationIdRef.current = sourceAccommodationId;
+      setFormData(loadedFormData);
+      setInitialFormData(cloneAccommodationEditFormData(loadedFormData));
+      setPersistedAccommodationId(sourceAccommodationId);
+      setSelectedAmenities(
+        new Set(data.amenities?.map((amenity) => amenity.type) || [])
+      );
+      return loadedFormData;
+    },
+    []
+  );
+
+  const commitPersistedFormData = useCallback(
+    (
+      sourceAccommodationId: string,
+      submittedFormData: AccommodationEditFormData,
+      persistedUpdateData: AccommodationApiUpdateData
+    ) => {
+      if (
+        activeAccommodationIdRef.current !== sourceAccommodationId ||
+        persistedAccommodationIdRef.current !== sourceAccommodationId
+      ) {
+        return;
+      }
+
+      setInitialFormData((previousFormData) =>
+        previousFormData
+          ? applyPersistedAccommodationUpdate(
+              previousFormData,
+              submittedFormData,
+              persistedUpdateData
+            )
+          : previousFormData
+      );
+    },
+    []
+  );
 
   const handleInputChange = useCallback(
     <K extends keyof AccommodationEditFormData>(
@@ -150,12 +208,13 @@ export const useAccommodationEditForm = () => {
     formData,
     setFormData,
     initialFormData,
-    setInitialFormData,
+    persistedAccommodationId,
     selectedAmenities,
     setSelectedAmenities,
     openTimePicker,
     setOpenTimePicker,
     loadAccommodation,
+    commitPersistedFormData,
     handleInputChange,
     handleNestedChange,
     handleTimeChange,

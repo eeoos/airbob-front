@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { accommodationApi } from "../../../../api";
 import { ImageInfo } from "../../../../types/accommodation";
 
@@ -21,6 +21,27 @@ export function useAccommodationEditImageUpload({
   resetProgressDelayMs = 500,
   setUploadProgress,
 }: UseAccommodationEditImageUploadOptions) {
+  const activeSessionRef = useRef({ accommodationId });
+  const mountedRef = useRef(true);
+  const resetProgressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
+
+  if (activeSessionRef.current.accommodationId !== accommodationId) {
+    activeSessionRef.current = { accommodationId };
+  }
+
+  useEffect(() => {
+    mountedRef.current = true;
+
+    return () => {
+      mountedRef.current = false;
+      if (resetProgressTimeoutRef.current) {
+        clearTimeout(resetProgressTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const uploadPendingImages = useCallback(async () => {
     if (!accommodationId) {
       return true;
@@ -31,6 +52,15 @@ export function useAccommodationEditImageUpload({
       return true;
     }
 
+    const uploadSession = activeSessionRef.current;
+    const isCurrentUpload = () =>
+      mountedRef.current && activeSessionRef.current === uploadSession;
+
+    if (resetProgressTimeoutRef.current) {
+      clearTimeout(resetProgressTimeoutRef.current);
+      resetProgressTimeoutRef.current = null;
+    }
+
     setUploadProgress(0);
     clearError();
 
@@ -39,21 +69,36 @@ export function useAccommodationEditImageUpload({
         Number(accommodationId),
         filesToUpload,
         (progress) => {
-          setUploadProgress(progress);
+          if (isCurrentUpload()) {
+            setUploadProgress(progress);
+          }
         }
       );
+
+      if (!isCurrentUpload()) {
+        return false;
+      }
 
       applyUploadedImages(response.uploaded_images);
       setUploadProgress(100);
       return true;
     } catch (error) {
+      if (!isCurrentUpload()) {
+        return false;
+      }
+
       handleError(error);
       setUploadProgress(0);
       return false;
     } finally {
-      setTimeout(() => {
-        setUploadProgress(0);
-      }, resetProgressDelayMs);
+      if (isCurrentUpload()) {
+        resetProgressTimeoutRef.current = setTimeout(() => {
+          if (isCurrentUpload()) {
+            setUploadProgress(0);
+          }
+          resetProgressTimeoutRef.current = null;
+        }, resetProgressDelayMs);
+      }
     }
   }, [
     accommodationId,

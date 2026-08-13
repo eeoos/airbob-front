@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { accommodationApi } from "../../../../api";
+import { isApiClientError } from "../../../../api/response";
 import { ImageInfo } from "../../../../types/accommodation";
 import {
   AccommodationEditImageItem,
@@ -18,12 +19,76 @@ interface UseAccommodationEditImagesOptions {
   createObjectURL?: (file: File) => string;
   revokeObjectURL?: (url: string) => void;
   deleteImage?: (accommodationId: number, imageId: number) => Promise<unknown>;
+  getAccommodationDetail?: (
+    accommodationId: number
+  ) => Promise<{ images: ImageInfo[] }>;
 }
 
 const defaultCreateObjectURL = (file: File) => URL.createObjectURL(file);
 const defaultRevokeObjectURL = (url: string) => URL.revokeObjectURL(url);
 const defaultDeleteImage = (accommodationId: number, imageId: number) =>
   accommodationApi.deleteImage(accommodationId, imageId);
+const defaultGetAccommodationDetail = (accommodationId: number) =>
+  accommodationApi.getHostAccommodationDetail(accommodationId);
+
+type DeleteFailureKind = "absent" | "rejected" | "ambiguous";
+
+interface ImageEditSession {
+  accommodationId?: string;
+}
+
+interface PendingDeleteReconciliation {
+  accommodationId: string;
+  deleteError: unknown;
+  imageId: number;
+  restoreRemovedImage: () => void;
+  session: ImageEditSession;
+}
+
+const isAxiosError = (
+  error: unknown
+): error is {
+  isAxiosError: true;
+  response?: {
+    status: number;
+    data?: { error?: { code?: string } | null };
+  };
+} =>
+  typeof error === "object" &&
+  error !== null &&
+  "isAxiosError" in error &&
+  error.isAxiosError === true;
+
+const classifyDeleteFailure = (error: unknown): DeleteFailureKind => {
+  if (isApiClientError(error)) {
+    if (error.status === 404 || error.code === "I004") {
+      return "absent";
+    }
+
+    return error.status === 0 || error.status === 408 || error.status >= 500
+      ? "ambiguous"
+      : "rejected";
+  }
+
+  if (isAxiosError(error)) {
+    if (!error.response) {
+      return "ambiguous";
+    }
+
+    if (
+      error.response.status === 404 ||
+      error.response.data?.error?.code === "I004"
+    ) {
+      return "absent";
+    }
+
+    return error.response.status === 408 || error.response.status >= 500
+      ? "ambiguous"
+      : "rejected";
+  }
+
+  return "ambiguous";
+};
 
 const cloneImageItems = (items: AccommodationEditImageItem[]) =>
   items.map((item) => ({ ...item }));
@@ -34,6 +99,7 @@ export const useAccommodationEditImages = ({
   createObjectURL = defaultCreateObjectURL,
   revokeObjectURL = defaultRevokeObjectURL,
   deleteImage = defaultDeleteImage,
+  getAccommodationDetail = defaultGetAccommodationDetail,
 }: UseAccommodationEditImagesOptions) => {
   const [imageItems, setImageItems] = useState<AccommodationEditImageItem[]>([]);
   const [initialImageItems, setInitialImageItems] = useState<
@@ -44,20 +110,46 @@ export const useAccommodationEditImages = ({
   const [isDeletingImage, setIsDeletingImage] = useState(false);
   const imageItemsRef = useRef<AccommodationEditImageItem[]>([]);
   const pendingDeleteRef = useRef<Promise<boolean> | null>(null);
-  const accommodationIdRef = useRef(accommodationId);
-  accommodationIdRef.current = accommodationId;
+  const pendingDeleteReconciliationRef =
+    useRef<PendingDeleteReconciliation | null>(null);
+  const imageSessionRef = useRef<ImageEditSession>({ accommodationId });
+  const mountedRef = useRef(true);
+
+  if (imageSessionRef.current.accommodationId !== accommodationId) {
+    imageSessionRef.current = { accommodationId };
+  }
+
+  const isCurrentImageSession = useCallback(
+    (session: ImageEditSession) =>
+      mountedRef.current && imageSessionRef.current === session,
+    []
+  );
 
   useEffect(() => {
     imageItemsRef.current = imageItems;
   }, [imageItems]);
 
   useEffect(() => {
+    imageItemsRef.current.forEach((item) => {
+      if (item.preview) {
+        revokeObjectURL(item.preview);
+      }
+    });
+    imageItemsRef.current = [];
     pendingDeleteRef.current = null;
+    pendingDeleteReconciliationRef.current = null;
+    setImageItems([]);
+    setInitialImageItems([]);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
     setIsDeletingImage(false);
-  }, [accommodationId]);
+  }, [accommodationId, revokeObjectURL]);
 
   useEffect(() => {
+    mountedRef.current = true;
+
     return () => {
+      mountedRef.current = false;
       imageItemsRef.current.forEach((item) => {
         if (item.preview) {
           revokeObjectURL(item.preview);
@@ -130,9 +222,49 @@ export const useAccommodationEditImages = ({
     e.stopPropagation();
   }, []);
 
+  const reconcileImageDeletion = useCallback(
+    async (
+      reconciliation: PendingDeleteReconciliation
+    ): Promise<boolean> => {
+      try {
+        const detail = await getAccommodationDetail(
+          Number(reconciliation.accommodationId)
+        );
+
+        if (!isCurrentImageSession(reconciliation.session)) {
+          return false;
+        }
+
+        pendingDeleteReconciliationRef.current = null;
+        const imageRemains = detail.images.some(
+          (image) => image.id === reconciliation.imageId
+        );
+        if (!imageRemains) {
+          return true;
+        }
+
+        reconciliation.restoreRemovedImage();
+        onError(reconciliation.deleteError);
+        return false;
+      } catch (reconciliationError) {
+        if (!isCurrentImageSession(reconciliation.session)) {
+          return false;
+        }
+
+        pendingDeleteReconciliationRef.current = reconciliation;
+        onError(reconciliationError);
+        return false;
+      }
+    },
+    [getAccommodationDetail, isCurrentImageSession, onError]
+  );
+
   const handleImageRemove = useCallback(
     (index: number) => {
-      if (pendingDeleteRef.current) {
+      if (
+        pendingDeleteRef.current ||
+        pendingDeleteReconciliationRef.current
+      ) {
         return;
       }
 
@@ -149,6 +281,7 @@ export const useAccommodationEditImages = ({
 
       if (imageIdToDelete && accommodationId) {
         const deletionAccommodationId = accommodationId;
+        const deletionSession = imageSessionRef.current;
         setIsDeletingImage(true);
         let deleteRequest: Promise<unknown>;
         try {
@@ -157,36 +290,59 @@ export const useAccommodationEditImages = ({
           deleteRequest = Promise.reject(error);
         }
 
+        const restoreRemovedImage = () => {
+          if (!isCurrentImageSession(deletionSession)) {
+            return;
+          }
+
+          setImageItems((currentItems) => {
+            const isAlreadyPresent = currentItems.some(
+              (item) => item.tempId === removedItem.tempId
+            );
+
+            if (isAlreadyPresent) {
+              return currentItems;
+            }
+
+            const restoredItems = [...currentItems];
+            restoredItems.splice(
+              Math.min(index, restoredItems.length),
+              0,
+              removedItem
+            );
+            return restoredItems;
+          });
+        };
+
         const deletion = deleteRequest
-          .then(() => true)
-          .catch((error) => {
-            if (accommodationIdRef.current !== deletionAccommodationId) {
+          .then(() => isCurrentImageSession(deletionSession))
+          .catch(async (error) => {
+            if (!isCurrentImageSession(deletionSession)) {
               return false;
             }
 
-            setImageItems((currentItems) => {
-              const isAlreadyPresent = currentItems.some(
-                (item) => item.tempId === removedItem.tempId
-              );
+            const failureKind = classifyDeleteFailure(error);
+            if (failureKind === "absent") {
+              return true;
+            }
 
-              if (isAlreadyPresent) {
-                return currentItems;
-              }
+            if (failureKind === "rejected") {
+              restoreRemovedImage();
+              onError(error);
+              return false;
+            }
 
-              const restoredItems = [...currentItems];
-              restoredItems.splice(
-                Math.min(index, restoredItems.length),
-                0,
-                removedItem
-              );
-              return restoredItems;
+            return reconcileImageDeletion({
+              accommodationId: deletionAccommodationId,
+              deleteError: error,
+              imageId: imageIdToDelete,
+              restoreRemovedImage,
+              session: deletionSession,
             });
-            onError(error);
-            return false;
           })
           .finally(() => {
             if (
-              accommodationIdRef.current === deletionAccommodationId &&
+              isCurrentImageSession(deletionSession) &&
               pendingDeleteRef.current === deletion
             ) {
               pendingDeleteRef.current = null;
@@ -198,13 +354,46 @@ export const useAccommodationEditImages = ({
 
       setImageItems(nextItems);
     },
-    [accommodationId, deleteImage, imageItems, onError, revokeObjectURL]
+    [
+      accommodationId,
+      deleteImage,
+      imageItems,
+      isCurrentImageSession,
+      onError,
+      reconcileImageDeletion,
+      revokeObjectURL,
+    ]
   );
 
-  const waitForPendingImageDeletes = useCallback(
-    () => pendingDeleteRef.current ?? Promise.resolve(true),
-    []
-  );
+  const waitForPendingImageDeletes = useCallback(() => {
+    if (pendingDeleteRef.current) {
+      return pendingDeleteRef.current;
+    }
+
+    const reconciliation = pendingDeleteReconciliationRef.current;
+    if (!reconciliation) {
+      return Promise.resolve(true);
+    }
+
+    if (!isCurrentImageSession(reconciliation.session)) {
+      pendingDeleteReconciliationRef.current = null;
+      return Promise.resolve(true);
+    }
+
+    setIsDeletingImage(true);
+    const retry = reconcileImageDeletion(reconciliation).finally(() => {
+      if (pendingDeleteRef.current !== retry) {
+        return;
+      }
+
+      pendingDeleteRef.current = null;
+      if (isCurrentImageSession(reconciliation.session)) {
+        setIsDeletingImage(false);
+      }
+    });
+    pendingDeleteRef.current = retry;
+    return retry;
+  }, [isCurrentImageSession, reconcileImageDeletion]);
 
   const handleDragStart = useCallback((index: number) => {
     setDraggedIndex(index);
@@ -273,9 +462,7 @@ export const useAccommodationEditImages = ({
 
   return {
     imageItems,
-    setImageItems,
     initialImageItems,
-    setInitialImageItems,
     draggedIndex,
     dragOverIndex,
     isDeletingImage,

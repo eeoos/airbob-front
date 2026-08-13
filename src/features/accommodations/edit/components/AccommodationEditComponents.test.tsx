@@ -35,7 +35,8 @@ const createScreenState = (
   overrides: Partial<AccommodationEditScreenState> = {}
 ): AccommodationEditScreenState => ({
   currentStep: 2,
-  isInitializing: false,
+  detailState: { status: "ready", accommodationId: "3" },
+  isEditorReady: true,
   isSaving: false,
   isDeletingImage: false,
   uploadProgress: 0,
@@ -84,6 +85,8 @@ const createScreenActions = (
   onPublishSubmit: jest.fn(),
   onCloseDetailAddressConfirm: jest.fn(),
   onConfirmDetailAddress: jest.fn(),
+  onRetryDetail: jest.fn(),
+  onExitDetailError: jest.fn(),
   onClearError: jest.fn(),
   ...overrides,
 });
@@ -560,6 +563,36 @@ describe("AccommodationEdit extracted components", () => {
 
     expect(onStepClick).toHaveBeenCalledTimes(1);
     expect(onStepClick).toHaveBeenCalledWith(1);
+  });
+
+  it("renders retry and back-safe actions without mounting the wizard after detail failure", () => {
+    const onRetryDetail = jest.fn();
+    const onExitDetailError = jest.fn();
+
+    render(
+      <AccommodationEditScreen
+        state={createScreenState({
+          detailState: { status: "error", accommodationId: "3" },
+        })}
+        actions={createScreenActions({
+          onRetryDetail,
+          onExitDetailError,
+        })}
+      />
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "숙소 정보를 불러오지 못했어요"
+    );
+    expect(
+      screen.queryByRole("button", { name: "저장 후 나가기" })
+    ).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    fireEvent.click(screen.getByRole("button", { name: "호스트 화면으로 돌아가기" }));
+
+    expect(onRetryDetail).toHaveBeenCalledTimes(1);
+    expect(onExitDetailError).toHaveBeenCalledTimes(1);
   });
 
   it("renders info step fields and forwards edits", () => {

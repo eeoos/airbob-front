@@ -40,10 +40,10 @@ const hostDetail = (
 
 describe("useAccommodationEditForm", () => {
   it("loads host detail into form state, initial state, and selected amenities", () => {
-    const { result } = renderHook(() => useAccommodationEditForm());
+    const { result } = renderHook(() => useAccommodationEditForm("3"));
 
     act(() => {
-      result.current.loadAccommodation(hostDetail());
+      result.current.loadAccommodation("3", hostDetail());
     });
 
     expect(result.current.formData).toMatchObject({
@@ -68,7 +68,7 @@ describe("useAccommodationEditForm", () => {
   });
 
   it("updates flat, nested, and time fields through stable handlers", () => {
-    const { result } = renderHook(() => useAccommodationEditForm());
+    const { result } = renderHook(() => useAccommodationEditForm("3"));
 
     act(() => {
       result.current.handleInputChange("name", "새 숙소");
@@ -88,7 +88,7 @@ describe("useAccommodationEditForm", () => {
   });
 
   it("calculates wizard completion with draft step gating", () => {
-    const { result } = renderHook(() => useAccommodationEditForm());
+    const { result } = renderHook(() => useAccommodationEditForm("3"));
 
     expect(
       result.current.isStepCompleted(4, {
@@ -98,7 +98,7 @@ describe("useAccommodationEditForm", () => {
     ).toBe(false);
 
     act(() => {
-      result.current.loadAccommodation(hostDetail());
+      result.current.loadAccommodation("3", hostDetail());
     });
 
     expect(
@@ -119,5 +119,83 @@ describe("useAccommodationEditForm", () => {
         isNewDraft: true,
       })
     ).toBe(true);
+  });
+
+  it("advances the persisted baseline with an exact successful-save snapshot", () => {
+    const { result } = renderHook(() => useAccommodationEditForm("3"));
+
+    act(() => {
+      result.current.loadAccommodation("3", hostDetail());
+      result.current.handleInputChange("name", "단계 저장 값");
+    });
+
+    const submittedSnapshot = result.current.formData;
+
+    act(() => {
+      result.current.commitPersistedFormData("3", submittedSnapshot, {
+        name: "단계 저장 값",
+      });
+      result.current.handleInputChange("name", "저장 대기 중 추가 변경");
+    });
+
+    expect(result.current.initialFormData?.name).toBe("단계 저장 값");
+    expect(result.current.formData.name).toBe("저장 대기 중 추가 변경");
+  });
+
+  it("does not let an old accommodation save advance the new accommodation baseline", () => {
+    const { result, rerender } = renderHook(
+      ({ accommodationId }) => useAccommodationEditForm(accommodationId),
+      { initialProps: { accommodationId: "3" } }
+    );
+
+    act(() => {
+      result.current.loadAccommodation("3", hostDetail());
+    });
+    const oldAccommodationSnapshot = result.current.formData;
+
+    rerender({ accommodationId: "4" });
+
+    act(() => {
+      result.current.commitPersistedFormData("3", oldAccommodationSnapshot, {
+        name: oldAccommodationSnapshot.name,
+      });
+    });
+
+    expect(result.current.initialFormData).toBeNull();
+
+    act(() => {
+      result.current.loadAccommodation(
+        "4",
+        hostDetail({ id: 4, name: "새 경로 숙소" })
+      );
+    });
+
+    expect(result.current.initialFormData?.name).toBe("새 경로 숙소");
+    expect(result.current.persistedAccommodationId).toBe("4");
+  });
+
+  it("advances only fields represented by the actual PATCH payload", () => {
+    const { result } = renderHook(() => useAccommodationEditForm("3"));
+
+    act(() => {
+      result.current.loadAccommodation("3", hostDetail());
+    });
+    const submittedSnapshot = {
+      ...result.current.formData,
+      name: "저장된 이름",
+      addressInfo: {
+        ...result.current.formData.addressInfo,
+        detail: "전송되지 않은 상세 주소",
+      },
+    };
+
+    act(() => {
+      result.current.commitPersistedFormData("3", submittedSnapshot, {
+        name: "저장된 이름",
+      });
+    });
+
+    expect(result.current.initialFormData?.name).toBe("저장된 이름");
+    expect(result.current.initialFormData?.addressInfo.detail).toBe("101호");
   });
 });

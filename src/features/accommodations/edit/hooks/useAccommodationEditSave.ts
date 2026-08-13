@@ -1,12 +1,15 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { accommodationApi } from "../../../../api";
 import { invalidateProfileHostListingCaches } from "../../../profile/publicCache";
 import { invalidateAccommodationDetailCaches } from "../../publicCache";
 import {
+  AccommodationApiUpdateData,
   AccommodationEditFormData,
   AccommodationEditUpdateData,
   buildAccommodationUpdateData,
+  cloneAccommodationEditFormData,
+  hasAccommodationDetailAddress,
   toAccommodationApiUpdateData,
 } from "../lib/accommodationEditMapper";
 import { areImageItemsChanged } from "../lib/accommodationEditDirty";
@@ -17,7 +20,23 @@ interface PreventableEvent {
   preventDefault: () => void;
 }
 
-interface UseAccommodationEditSaveOptions {
+interface PersistenceOperation {
+  accommodationId: string;
+}
+
+interface PersistenceSubmission {
+  submittedFormData: AccommodationEditFormData;
+  updateData: AccommodationEditUpdateData;
+  apiUpdateData: ReturnType<typeof toAccommodationApiUpdateData>;
+}
+
+type CommitPersistedFormData = (
+  accommodationId: string,
+  submittedFormData: AccommodationEditFormData,
+  persistedUpdateData: ReturnType<typeof toAccommodationApiUpdateData>
+) => void;
+
+interface AccommodationEditSaveBaseOptions {
   accommodationId?: string;
   currentStep: AccommodationEditStep;
   isNewDraft: boolean;
@@ -31,23 +50,35 @@ interface UseAccommodationEditSaveOptions {
   navigateToHostProfile: () => void;
   prepareImagesForPersistence?: () => Promise<boolean>;
   hasPendingImageChanges?: () => boolean;
-  updateAccommodation?: (
-    accommodationId: number,
-    updateData: AccommodationEditUpdateData
-  ) => Promise<unknown>;
   publishAccommodation?: (accommodationId: number) => Promise<unknown>;
 }
 
+type UseAccommodationEditSaveOptions = AccommodationEditSaveBaseOptions &
+  (
+    | {
+        updateAccommodation?: undefined;
+        commitPersistedFormData: CommitPersistedFormData;
+      }
+    | {
+        updateAccommodation: (
+          accommodationId: number,
+          updateData: AccommodationApiUpdateData
+        ) => Promise<unknown>;
+        commitPersistedFormData?: CommitPersistedFormData;
+      }
+  );
+
 const defaultUpdateAccommodation = (
   accommodationId: number,
-  updateData: AccommodationEditUpdateData
-) => accommodationApi.update(accommodationId, toAccommodationApiUpdateData(updateData));
+  updateData: AccommodationApiUpdateData
+) => accommodationApi.update(accommodationId, updateData);
 
 const defaultPublishAccommodation = (accommodationId: number) =>
   accommodationApi.publish(accommodationId);
 
 const defaultPrepareImagesForPersistence = async () => true;
 const defaultHasPendingImageChanges = () => false;
+const defaultCommitPersistedFormData = () => undefined;
 
 export const useAccommodationEditSave = ({
   accommodationId,
@@ -65,12 +96,59 @@ export const useAccommodationEditSave = ({
   hasPendingImageChanges = defaultHasPendingImageChanges,
   updateAccommodation = defaultUpdateAccommodation,
   publishAccommodation = defaultPublishAccommodation,
+  commitPersistedFormData = defaultCommitPersistedFormData,
 }: UseAccommodationEditSaveOptions) => {
   const queryClient = useQueryClient();
-  const [showDetailAddressConfirm, setShowDetailAddressConfirm] =
-    useState(false);
-  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
-  const isPersistenceRunningRef = useRef(false);
+  const [pendingAction, setPendingAction] = useState<{
+    accommodationId: string;
+    run: () => void;
+  } | null>(null);
+  const activeAccommodationIdRef = useRef(accommodationId);
+  const activePersistenceRef = useRef<PersistenceOperation | null>(null);
+  const previousAccommodationIdRef = useRef(accommodationId);
+
+  activeAccommodationIdRef.current = accommodationId;
+
+  useEffect(() => {
+    if (previousAccommodationIdRef.current === accommodationId) return;
+    previousAccommodationIdRef.current = accommodationId;
+    activePersistenceRef.current = null;
+    setPendingAction(null);
+    setIsSaving(false);
+  }, [accommodationId, setIsSaving]);
+
+  useEffect(
+    () => () => {
+      activePersistenceRef.current = null;
+    },
+    []
+  );
+
+  const beginPersistence = useCallback(() => {
+    if (!accommodationId || activePersistenceRef.current) return null;
+
+    const operation = {
+      accommodationId,
+    };
+    activePersistenceRef.current = operation;
+    return operation;
+  }, [accommodationId]);
+
+  const isCurrentPersistence = useCallback(
+    (operation: PersistenceOperation) =>
+      activeAccommodationIdRef.current === operation.accommodationId &&
+      activePersistenceRef.current === operation,
+    []
+  );
+
+  const finishPersistence = useCallback(
+    (operation: PersistenceOperation) => {
+      if (activePersistenceRef.current !== operation) return;
+      activePersistenceRef.current = null;
+      setIsSaving(false);
+    },
+    [setIsSaving]
+  );
 
   const invalidateAccommodationCaches = useCallback(async () => {
     await Promise.all([
@@ -80,84 +158,127 @@ export const useAccommodationEditSave = ({
   }, [queryClient]);
 
   const hasMissingDetailAddress = useCallback(
-    () =>
-      currentStep === 1 &&
-      (!formData.addressInfo.detail || formData.addressInfo.detail.trim() === ""),
-    [currentStep, formData.addressInfo.detail]
+    () => currentStep === 1 && !hasAccommodationDetailAddress(formData),
+    [currentStep, formData]
   );
 
-  const requestDetailAddressConfirm = useCallback((action: () => void) => {
-    setPendingAction(() => action);
-    setShowDetailAddressConfirm(true);
-  }, []);
+  const requestDetailAddressConfirm = useCallback(
+    (action: () => void) => {
+      if (!accommodationId) return;
+      setPendingAction({ accommodationId, run: action });
+    },
+    [accommodationId]
+  );
 
   const closeDetailAddressConfirm = useCallback(() => {
-    setShowDetailAddressConfirm(false);
     setPendingAction(null);
   }, []);
 
   const confirmDetailAddress = useCallback(() => {
-    if (pendingAction) {
-      pendingAction();
+    if (
+      pendingAction &&
+      pendingAction.accommodationId === activeAccommodationIdRef.current
+    ) {
+      pendingAction.run();
     }
-    setShowDetailAddressConfirm(false);
     setPendingAction(null);
   }, [pendingAction]);
 
-  const getUpdateData = useCallback(
-    () =>
-      buildAccommodationUpdateData({
-        isDraft: isNewDraft && initialFormData === null,
-        formData,
-        initialFormData,
-      }),
-    [formData, initialFormData, isNewDraft]
+  const captureSubmission = useCallback((): PersistenceSubmission => {
+    const submittedFormData = cloneAccommodationEditFormData(formData);
+    const submittedInitialFormData = initialFormData
+      ? cloneAccommodationEditFormData(initialFormData)
+      : null;
+    const updateData = buildAccommodationUpdateData({
+      isDraft: isNewDraft && submittedInitialFormData === null,
+      formData: submittedFormData,
+      initialFormData: submittedInitialFormData,
+    });
+
+    return {
+      submittedFormData,
+      updateData,
+      apiUpdateData: toAccommodationApiUpdateData(updateData),
+    };
+  }, [formData, initialFormData, isNewDraft]);
+
+  const persistSubmission = useCallback(
+    async (
+      operation: PersistenceOperation,
+      submission: PersistenceSubmission
+    ) => {
+      await updateAccommodation(
+        Number(operation.accommodationId),
+        submission.apiUpdateData
+      );
+      if (!isCurrentPersistence(operation)) return false;
+
+      commitPersistedFormData(
+        operation.accommodationId,
+        submission.submittedFormData,
+        submission.apiUpdateData
+      );
+      await invalidateAccommodationCaches();
+      return isCurrentPersistence(operation);
+    },
+    [
+      commitPersistedFormData,
+      invalidateAccommodationCaches,
+      isCurrentPersistence,
+      updateAccommodation,
+    ]
   );
 
   const runSaveAndExit = useCallback(async () => {
-    if (!accommodationId || isPersistenceRunningRef.current) return;
+    const operation = beginPersistence();
+    if (!operation) return;
+    const submission = captureSubmission();
 
-    isPersistenceRunningRef.current = true;
     setIsSaving(true);
     clearError();
 
     try {
       const isPrepared = await prepareImagesForPersistence();
-      if (!isPrepared) return;
+      if (!isPrepared || !isCurrentPersistence(operation)) return;
 
-      const updateData = getUpdateData();
       const imageChanged = areImageItemsChanged({
         isNewDraft,
         currentImageItems: imageItems,
         initialImageItems,
       });
-      const hasChanges = Object.keys(updateData).length > 0 || imageChanged;
+      const hasFormChanges = Object.keys(submission.updateData).length > 0;
 
-      if (hasChanges) {
-        await updateAccommodation(Number(accommodationId), updateData);
+      if (hasFormChanges) {
+        const persisted = await persistSubmission(operation, submission);
+        if (!persisted) return;
+      } else if (imageChanged) {
         await invalidateAccommodationCaches();
+        if (!isCurrentPersistence(operation)) return;
       }
 
       navigateToHostProfile();
     } catch (err) {
-      handleError(err);
+      if (isCurrentPersistence(operation)) {
+        handleError(err);
+      }
     } finally {
-      isPersistenceRunningRef.current = false;
-      setIsSaving(false);
+      finishPersistence(operation);
     }
   }, [
-    accommodationId,
     clearError,
-    getUpdateData,
+    beginPersistence,
+    captureSubmission,
+    finishPersistence,
     handleError,
     imageItems,
     initialImageItems,
     invalidateAccommodationCaches,
+    isCurrentPersistence,
     isNewDraft,
     navigateToHostProfile,
     prepareImagesForPersistence,
+    persistSubmission,
     setIsSaving,
-    updateAccommodation,
   ]);
 
   const handleSaveAndExit = useCallback(async () => {
@@ -179,47 +300,52 @@ export const useAccommodationEditSave = ({
   ]);
 
   const runPublish = useCallback(async () => {
-    if (!accommodationId || isPersistenceRunningRef.current) return;
+    const operation = beginPersistence();
+    if (!operation) return;
+    const submission = captureSubmission();
 
-    isPersistenceRunningRef.current = true;
     setIsSaving(true);
     clearError();
 
     try {
       const hadPendingImageChanges = hasPendingImageChanges();
       const isPrepared = await prepareImagesForPersistence();
-      if (!isPrepared) return;
+      if (!isPrepared || !isCurrentPersistence(operation)) return;
 
-      const updateData = getUpdateData();
-
-      if (Object.keys(updateData).length > 0) {
-        await updateAccommodation(Number(accommodationId), updateData);
-        await invalidateAccommodationCaches();
+      if (Object.keys(submission.updateData).length > 0) {
+        const persisted = await persistSubmission(operation, submission);
+        if (!persisted) return;
       } else if (hadPendingImageChanges) {
         await invalidateAccommodationCaches();
       }
+      if (!isCurrentPersistence(operation)) return;
 
-      await publishAccommodation(Number(accommodationId));
+      await publishAccommodation(Number(operation.accommodationId));
+      if (!isCurrentPersistence(operation)) return;
       await invalidateAccommodationCaches();
+      if (!isCurrentPersistence(operation)) return;
       navigateToHostProfile();
     } catch (err) {
-      handleError(err);
+      if (isCurrentPersistence(operation)) {
+        handleError(err);
+      }
     } finally {
-      isPersistenceRunningRef.current = false;
-      setIsSaving(false);
+      finishPersistence(operation);
     }
   }, [
-    accommodationId,
+    beginPersistence,
+    captureSubmission,
     clearError,
-    getUpdateData,
+    finishPersistence,
     hasPendingImageChanges,
     handleError,
     invalidateAccommodationCaches,
+    isCurrentPersistence,
     navigateToHostProfile,
     prepareImagesForPersistence,
+    persistSubmission,
     publishAccommodation,
     setIsSaving,
-    updateAccommodation,
   ]);
 
   const handlePublish = useCallback(
@@ -245,39 +371,41 @@ export const useAccommodationEditSave = ({
   );
 
   const saveStepData = useCallback(async () => {
-    if (!accommodationId) return false;
+    const operation = beginPersistence();
+    if (!operation) return false;
+    const submission = captureSubmission();
 
     setIsSaving(true);
     clearError();
 
     try {
-      await updateAccommodation(Number(accommodationId), getUpdateData());
-      await invalidateAccommodationCaches();
-      return true;
+      return await persistSubmission(operation, submission);
     } catch (err) {
-      handleError(err);
+      if (isCurrentPersistence(operation)) {
+        handleError(err);
+      }
       return false;
     } finally {
-      setIsSaving(false);
+      finishPersistence(operation);
     }
   }, [
-    accommodationId,
+    beginPersistence,
+    captureSubmission,
     clearError,
-    getUpdateData,
+    finishPersistence,
     handleError,
-    invalidateAccommodationCaches,
+    isCurrentPersistence,
+    persistSubmission,
     setIsSaving,
-    updateAccommodation,
   ]);
 
   return {
-    showDetailAddressConfirm,
+    showDetailAddressConfirm: pendingAction !== null,
     requestDetailAddressConfirm,
     closeDetailAddressConfirm,
     confirmDetailAddress,
     handleSaveAndExit,
     handlePublish,
     saveStepData,
-    getUpdateData,
   };
 };
