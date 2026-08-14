@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo } from "react";
-import { recentlyViewedApi, wishlistApi } from "../../../api";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { recentlyViewedApi } from "../../../api";
+import { wishlistApi } from "../../../api/wishlist";
 import { useApiError } from "../../../hooks/useApiError";
 import { useHandledQueryError } from "../../../query/useHandledQueryError";
 import {
@@ -28,6 +29,10 @@ export function useWishlistData({
 }: UseWishlistDataOptions) {
   const queryClient = useQueryClient();
   const { error, handleError, clearError } = useApiError();
+  const [pendingMutationKeys, setPendingMutationKeys] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const pendingMutationKeysRef = useRef(new Set<string>());
   const recentlyViewedQuery = useRecentlyViewedQuery();
   const wishlistsQuery = useWishlistListsQuery();
   const wishlistDetailQuery = useWishlistDetailQuery({
@@ -132,7 +137,7 @@ export function useWishlistData({
       !selectedWishlistId ||
       showRecentlyViewed ||
       !wishlistDetailQuery.hasNextPage ||
-      wishlistDetailQuery.isFetchingNextPage
+      wishlistDetailQuery.isFetching
     ) {
       return;
     }
@@ -147,7 +152,7 @@ export function useWishlistData({
   ]);
 
   const loadMoreWishlists = useCallback(async () => {
-    if (!wishlistsQuery.hasNextPage || wishlistsQuery.isFetchingNextPage) {
+    if (!wishlistsQuery.hasNextPage || wishlistsQuery.isFetching) {
       return;
     }
 
@@ -157,12 +162,27 @@ export function useWishlistData({
 
   const removeRecentlyViewed = useCallback(
     async (accommodationId: number) => {
+      const mutationKey = `recently-viewed:${accommodationId}`;
+      if (pendingMutationKeysRef.current.has(mutationKey)) {
+        return;
+      }
+
+      const nextPendingKeys = new Set(pendingMutationKeysRef.current).add(
+        mutationKey,
+      );
+      pendingMutationKeysRef.current = nextPendingKeys;
+      setPendingMutationKeys(nextPendingKeys);
       clearError();
 
       try {
         await removeRecentlyViewedMutation.mutateAsync(accommodationId);
       } catch (err) {
         handleError(err);
+      } finally {
+        const remainingPendingKeys = new Set(pendingMutationKeysRef.current);
+        remainingPendingKeys.delete(mutationKey);
+        pendingMutationKeysRef.current = remainingPendingKeys;
+        setPendingMutationKeys(remainingPendingKeys);
       }
     },
     [clearError, handleError, removeRecentlyViewedMutation]
@@ -170,6 +190,16 @@ export function useWishlistData({
 
   const deleteWishlist = useCallback(
     async (wishlistId: number) => {
+      const mutationKey = `wishlist:${wishlistId}`;
+      if (pendingMutationKeysRef.current.has(mutationKey)) {
+        return false;
+      }
+
+      const nextPendingKeys = new Set(pendingMutationKeysRef.current).add(
+        mutationKey,
+      );
+      pendingMutationKeysRef.current = nextPendingKeys;
+      setPendingMutationKeys(nextPendingKeys);
       clearError();
 
       try {
@@ -178,6 +208,11 @@ export function useWishlistData({
       } catch (err) {
         handleError(err);
         return false;
+      } finally {
+        const remainingPendingKeys = new Set(pendingMutationKeysRef.current);
+        remainingPendingKeys.delete(mutationKey);
+        pendingMutationKeysRef.current = remainingPendingKeys;
+        setPendingMutationKeys(remainingPendingKeys);
       }
     },
     [clearError, deleteWishlistMutation, handleError]
@@ -185,12 +220,27 @@ export function useWishlistData({
 
   const removeFromWishlist = useCallback(
     async (wishlistAccommodationId: number) => {
+      const mutationKey = `wishlist-accommodation:${wishlistAccommodationId}`;
+      if (pendingMutationKeysRef.current.has(mutationKey)) {
+        return;
+      }
+
+      const nextPendingKeys = new Set(pendingMutationKeysRef.current).add(
+        mutationKey,
+      );
+      pendingMutationKeysRef.current = nextPendingKeys;
+      setPendingMutationKeys(nextPendingKeys);
       clearError();
 
       try {
         await removeFromWishlistMutation.mutateAsync(wishlistAccommodationId);
       } catch (err) {
         handleError(err);
+      } finally {
+        const remainingPendingKeys = new Set(pendingMutationKeysRef.current);
+        remainingPendingKeys.delete(mutationKey);
+        pendingMutationKeysRef.current = remainingPendingKeys;
+        setPendingMutationKeys(remainingPendingKeys);
       }
     },
     [clearError, handleError, removeFromWishlistMutation]
@@ -277,6 +327,7 @@ export function useWishlistData({
     error,
     hasNext: wishlistDetailQuery.hasNextPage,
     isLoading,
+    isMutationPending: pendingMutationKeys.size > 0,
     isLoadingMore: wishlistDetailQuery.isFetchingNextPage,
     isLoadingMoreWishlists: wishlistsQuery.isFetchingNextPage,
     loadMoreWishlistAccommodations,

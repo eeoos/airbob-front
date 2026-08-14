@@ -56,6 +56,8 @@ export const usePlacesAutocomplete = ({
   const rawSuggestionsRef = useRef<Map<string, NewPlacePrediction>>(new Map());
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isInitializedRef = useRef(false);
+  const requestVersionRef = useRef(0);
+  const isMountedRef = useRef(true);
 
   // 새 세션 시작 (입력 필드 포커스 시)
   const startNewSession = useCallback(() => {
@@ -132,10 +134,15 @@ export const usePlacesAutocomplete = ({
   }, [googleMapsScriptStatus, initializeServices, isPlacesNewLoaded]);
 
   // 자동완성 검색 (Places API New)
-  const searchAutocomplete = useCallback(async (input: string) => {
+  const searchAutocomplete = useCallback(async (input: string, requestVersion: number) => {
+    if (!isMountedRef.current || requestVersion !== requestVersionRef.current) {
+      return;
+    }
+
     if (!sessionTokenRef.current || !input.trim()) {
       setSuggestions([]);
       rawSuggestionsRef.current.clear();
+      setIsLoading(false);
       return;
     }
 
@@ -182,29 +189,53 @@ export const usePlacesAutocomplete = ({
         });
       }
 
-      setSuggestions(formatted);
+      if (
+        isMountedRef.current &&
+        requestVersion === requestVersionRef.current
+      ) {
+        setSuggestions(formatted);
+      }
     } catch (err) {
+      if (
+        !isMountedRef.current ||
+        requestVersion !== requestVersionRef.current
+      ) {
+        return;
+      }
+
       clientLogger.error({
         message: "AutocompleteSuggestion 오류:",
         error: err,
       });
       setSuggestions([]);
     } finally {
-      setIsLoading(false);
+      if (
+        isMountedRef.current &&
+        requestVersion === requestVersionRef.current
+      ) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
   // Debounce 처리된 입력 핸들러
   const handleInputChange = useCallback(
     (value: string) => {
+      const requestVersion = ++requestVersionRef.current;
       setInputText(value);
 
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
 
+      if (!value.trim()) {
+        setSuggestions([]);
+        rawSuggestionsRef.current.clear();
+        setIsLoading(false);
+      }
+
       debounceTimerRef.current = setTimeout(() => {
-        searchAutocomplete(value);
+        void searchAutocomplete(value, requestVersion);
       }, debounceMs);
     },
     [debounceMs, searchAutocomplete]
@@ -245,9 +276,18 @@ export const usePlacesAutocomplete = ({
   // 장소 선택 핸들러
   const handlePlaceSelect = useCallback(
     async (prediction: PlacePrediction) => {
+      const requestVersion = ++requestVersionRef.current;
+
       try {
         setIsLoading(true);
         const place = await getPlaceDetails(prediction.placeId);
+
+        if (
+          !isMountedRef.current ||
+          requestVersion !== requestVersionRef.current
+        ) {
+          return;
+        }
 
         setSelectedPlace(place);
         setInputText(prediction.description);
@@ -261,26 +301,47 @@ export const usePlacesAutocomplete = ({
           onPlaceSelect(place);
         }
       } catch (error) {
+        if (
+          !isMountedRef.current ||
+          requestVersion !== requestVersionRef.current
+        ) {
+          return;
+        }
+
         clientLogger.error({
           message: "Place Details 오류:",
           error,
         });
       } finally {
-        setIsLoading(false);
+        if (
+          isMountedRef.current &&
+          requestVersion === requestVersionRef.current
+        ) {
+          setIsLoading(false);
+        }
       }
     },
     [getPlaceDetails, onPlaceSelect, startNewSession]
   );
 
   const clearSuggestions = useCallback(() => {
+    requestVersionRef.current += 1;
     setSuggestions([]);
     rawSuggestionsRef.current.clear();
   }, []);
 
   const reset = useCallback(() => {
+    requestVersionRef.current += 1;
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+
     setInputText("");
     setSuggestions([]);
     setSelectedPlace(null);
+    setIsLoading(false);
     rawSuggestionsRef.current.clear();
     startNewSession();
   }, [startNewSession]);
@@ -288,8 +349,12 @@ export const usePlacesAutocomplete = ({
   // cleanup
   useEffect(() => {
     return () => {
+      isMountedRef.current = false;
+      requestVersionRef.current += 1;
+
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
       }
     };
   }, []);

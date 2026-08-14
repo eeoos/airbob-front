@@ -1,33 +1,22 @@
-import { useQuery } from "@tanstack/react-query";
-import { useCallback } from "react";
-import { reservationApi } from "../../../api";
+import { useCallback, useEffect } from "react";
 import { useApiError } from "../../../hooks/useApiError";
 import { useHandledQueryError } from "../../../query/useHandledQueryError";
-import { HostDetailInfo } from "../../../types/reservation";
-import { reservationQueryKeys } from "../queryKeys";
+import { useHostReservationDetailQuery } from "./useHostReservationDetailQuery";
 
 export function useHostReservationDetail(reservationUid?: string) {
   const { error, handleError, clearError } = useApiError();
-  const detailQuery = useQuery<
-    HostDetailInfo,
-    unknown,
-    HostDetailInfo,
-    ReturnType<typeof reservationQueryKeys.hostReservationDetail>
-  >({
-    queryKey: reservationQueryKeys.hostReservationDetail(reservationUid ?? ""),
-    queryFn: () => {
-      if (!reservationUid) {
-        throw new Error("reservationUid is required");
-      }
-
-      clearError();
-      return reservationApi.getHostReservationDetail(reservationUid);
-    },
-    enabled: Boolean(reservationUid),
-    retry: false,
-    throwOnError: false,
-  });
+  const detailQuery = useHostReservationDetailQuery(reservationUid);
   const { refetch } = detailQuery;
+
+  useEffect(() => {
+    clearError();
+  }, [clearError, reservationUid]);
+
+  useEffect(() => {
+    if (detailQuery.isSuccess) {
+      clearError();
+    }
+  }, [clearError, detailQuery.isSuccess]);
 
   useHandledQueryError({
     error: detailQuery.error,
@@ -39,8 +28,9 @@ export function useHostReservationDetail(reservationUid?: string) {
   const reload = useCallback(async () => {
     if (!reservationUid) return;
 
+    clearError();
     await refetch();
-  }, [refetch, reservationUid]);
+  }, [clearError, refetch, reservationUid]);
 
   return {
     clearError,

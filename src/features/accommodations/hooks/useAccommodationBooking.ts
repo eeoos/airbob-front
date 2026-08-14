@@ -1,10 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AccommodationDetail } from "../../../types/accommodation";
 import { CouponInfo } from "../../../types/coupon";
+import { startReservationCheckoutHandoff } from "../../reservations/appShell";
 import {
-  formatCheckoutDateParam,
-  startReservationCheckoutHandoff,
-} from "../../reservations/appShell";
+  formatBookingDate,
+  parseBookingCount,
+  parseBookingDate,
+  selectBookingCoupon,
+  toBookingDateKey,
+  validateBookingDateRange,
+  validateBookingGuestCount,
+} from "../lib/accommodationBookingRules";
 
 type SetSearchParams = (
   nextParams: URLSearchParams,
@@ -40,156 +46,6 @@ interface ReserveOptions {
   skipAuthCheck?: boolean;
 }
 
-interface BookingDateRangeValidation {
-  checkIn: Date | null;
-  checkOut: Date | null;
-  unavailableDates: Array<string | Date>;
-}
-
-interface BookingGuestCountValidation {
-  adultCount: number;
-  childCount: number;
-  maxOccupancy: number;
-}
-
-interface CouponSelectionInput {
-  reserveCouponState?: ReserveCouponState;
-  selectedCoupon: CouponInfo | null;
-  selectedCouponId: number | null;
-  couponDiscount: number;
-}
-
-const clampNumber = (value: number, min: number, max: number) =>
-  Math.min(Math.max(value, min), max);
-
-const parseCountParam = (
-  searchParams: URLSearchParams,
-  key: string,
-  fallback: number,
-  min: number,
-  max: number
-) => {
-  const value = searchParams.get(key);
-  if (!value || !/^\d+$/.test(value)) {
-    return fallback;
-  }
-
-  const parsed = Number(value);
-  if (!Number.isSafeInteger(parsed)) {
-    return fallback;
-  }
-
-  return clampNumber(parsed, min, max);
-};
-
-const parseDateFromUrl = (dateString: string): Date | null => {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateString);
-  if (!match) {
-    return null;
-  }
-
-  const [, yearValue, monthValue, dayValue] = match;
-  const year = Number(yearValue);
-  const month = Number(monthValue);
-  const day = Number(dayValue);
-  const date = new Date(year, month - 1, day);
-
-  if (
-    date.getFullYear() !== year ||
-    date.getMonth() !== month - 1 ||
-    date.getDate() !== day
-  ) {
-    return null;
-  }
-
-  return date;
-};
-
-const formatDateForUrl = formatCheckoutDateParam;
-
-const toDateKey = (date: Date | string) => {
-  const parsedDate = typeof date === "string" ? parseDateFromUrl(date) : date;
-  if (!parsedDate) {
-    return null;
-  }
-
-  return formatDateForUrl(parsedDate);
-};
-
-const hasUnavailableDateInRange = (
-  checkIn: Date,
-  checkOut: Date,
-  unavailableDates: Array<string | Date>
-) => {
-  const unavailableDateKeys = new Set(
-    unavailableDates
-      .map(toDateKey)
-      .filter((dateKey): dateKey is string => dateKey !== null)
-  );
-  const cursor = new Date(checkIn);
-  cursor.setHours(0, 0, 0, 0);
-  const end = new Date(checkOut);
-  end.setHours(0, 0, 0, 0);
-
-  while (cursor < end) {
-    if (unavailableDateKeys.has(formatDateForUrl(cursor))) {
-      return true;
-    }
-    cursor.setDate(cursor.getDate() + 1);
-  }
-
-  return false;
-};
-
-const validateDateRange = ({
-  checkIn,
-  checkOut,
-  unavailableDates,
-}: BookingDateRangeValidation): Error | null => {
-  if (!checkIn || !checkOut) {
-    return new Error("체크인/체크아웃 날짜를 선택해주세요.");
-  }
-
-  if (checkOut <= checkIn) {
-    return new Error("체크아웃 날짜는 체크인 날짜 이후여야 합니다.");
-  }
-
-  if (hasUnavailableDateInRange(checkIn, checkOut, unavailableDates)) {
-    return new Error("선택한 날짜에 예약할 수 없는 날짜가 포함되어 있습니다.");
-  }
-
-  return null;
-};
-
-const validateGuestCount = ({
-  adultCount,
-  childCount,
-  maxOccupancy,
-}: BookingGuestCountValidation): Error | null => {
-  const guestCount = adultCount + childCount;
-
-  if (guestCount < 1 || guestCount > maxOccupancy) {
-    return new Error("예약 가능한 인원 수를 확인해주세요.");
-  }
-
-  return null;
-};
-
-const selectReservationCoupon = ({
-  reserveCouponState,
-  selectedCoupon,
-  selectedCouponId,
-  couponDiscount,
-}: CouponSelectionInput) => {
-  const discount = reserveCouponState?.couponDiscount ?? couponDiscount;
-
-  return {
-    discount,
-    coupon: reserveCouponState?.selectedCoupon ?? selectedCoupon,
-    couponId: reserveCouponState?.selectedCouponId ?? selectedCouponId,
-  };
-};
-
 const handoffReservationAuth = (
   isAuthenticated: boolean,
   options: ReserveOptions,
@@ -223,31 +79,36 @@ export const useAccommodationBooking = ({
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [isReserving, setIsReserving] = useState(false);
   const isReservingRef = useRef(false);
+  const isMountedRef = useRef(true);
   const maxOccupancy =
     accommodation?.policy.max_occupancy ?? Number.MAX_SAFE_INTEGER;
   const maxInfants =
     accommodation?.policy.infant_occupancy ?? Number.MAX_SAFE_INTEGER;
   const maxPets = accommodation?.policy.pet_occupancy ?? Number.MAX_SAFE_INTEGER;
   const [adultCount, setAdultCount] = useState(() =>
-    parseCountParam(searchParams, "adultOccupancy", 1, 1, maxOccupancy)
+    parseBookingCount(searchParams, "adultOccupancy", 1, 1, maxOccupancy)
   );
   const [childCount, setChildCount] = useState(() =>
-    parseCountParam(searchParams, "childOccupancy", 0, 0, maxOccupancy)
+    parseBookingCount(searchParams, "childOccupancy", 0, 0, maxOccupancy)
   );
   const [infantCount, setInfantCount] = useState(() =>
-    parseCountParam(searchParams, "infantOccupancy", 0, 0, maxInfants)
+    parseBookingCount(searchParams, "infantOccupancy", 0, 0, maxInfants)
   );
   const [petCount, setPetCount] = useState(() =>
-    parseCountParam(searchParams, "petOccupancy", 0, 0, maxPets)
+    parseBookingCount(searchParams, "petOccupancy", 0, 0, maxPets)
   );
+
+  useEffect(() => () => {
+    isMountedRef.current = false;
+  }, []);
 
   const { checkIn, checkOut, nights, totalPrice } = useMemo(() => {
     const urlCheckIn = searchParams.get("checkIn");
     const urlCheckOut = searchParams.get("checkOut");
 
     if (urlCheckIn && urlCheckOut && accommodation) {
-      const checkInDate = parseDateFromUrl(urlCheckIn);
-      const checkOutDate = parseDateFromUrl(urlCheckOut);
+      const checkInDate = parseBookingDate(urlCheckIn);
+      const checkOutDate = parseBookingDate(urlCheckOut);
 
       if (checkInDate && checkOutDate && checkOutDate > checkInDate) {
         const nightsCount = Math.ceil(
@@ -265,7 +126,7 @@ export const useAccommodationBooking = ({
     }
 
     if (urlCheckIn && accommodation) {
-      const checkInDate = parseDateFromUrl(urlCheckIn);
+      const checkInDate = parseBookingDate(urlCheckIn);
 
       if (checkInDate) {
         return {
@@ -283,12 +144,12 @@ export const useAccommodationBooking = ({
 
       const unavailableDateKeys = new Set(
         accommodation.unavailable_dates
-          .map(toDateKey)
+          .map(toBookingDateKey)
           .filter((dateKey): dateKey is string => dateKey !== null)
       );
 
       const checkInDate = new Date(today);
-      while (unavailableDateKeys.has(formatDateForUrl(checkInDate))) {
+      while (unavailableDateKeys.has(formatBookingDate(checkInDate))) {
         checkInDate.setDate(checkInDate.getDate() + 1);
       }
 
@@ -319,15 +180,15 @@ export const useAccommodationBooking = ({
     }
 
     setAdultCount(
-      parseCountParam(searchParams, "adultOccupancy", 1, 1, maxOccupancy)
+      parseBookingCount(searchParams, "adultOccupancy", 1, 1, maxOccupancy)
     );
     setChildCount(
-      parseCountParam(searchParams, "childOccupancy", 0, 0, maxOccupancy)
+      parseBookingCount(searchParams, "childOccupancy", 0, 0, maxOccupancy)
     );
     setInfantCount(
-      parseCountParam(searchParams, "infantOccupancy", 0, 0, maxInfants)
+      parseBookingCount(searchParams, "infantOccupancy", 0, 0, maxInfants)
     );
-    setPetCount(parseCountParam(searchParams, "petOccupancy", 0, 0, maxPets));
+    setPetCount(parseBookingCount(searchParams, "petOccupancy", 0, 0, maxPets));
   }, [accommodation, maxInfants, maxOccupancy, maxPets, searchParams]);
 
   const formatDate = useCallback((date: Date | null): string => {
@@ -353,13 +214,13 @@ export const useAccommodationBooking = ({
       const params = new URLSearchParams(searchParams);
 
       if (newCheckIn) {
-        params.set("checkIn", formatDateForUrl(newCheckIn));
+        params.set("checkIn", formatBookingDate(newCheckIn));
       } else {
         params.delete("checkIn");
       }
 
       if (newCheckOut) {
-        params.set("checkOut", formatDateForUrl(newCheckOut));
+        params.set("checkOut", formatBookingDate(newCheckOut));
         setIsDatePickerOpen(false);
       } else {
         params.delete("checkOut");
@@ -386,7 +247,7 @@ export const useAccommodationBooking = ({
       return;
     }
 
-    const dateRangeError = validateDateRange({
+    const dateRangeError = validateBookingDateRange({
       checkIn,
       checkOut,
       unavailableDates: accommodation.unavailable_dates,
@@ -402,7 +263,7 @@ export const useAccommodationBooking = ({
       return;
     }
 
-    const guestCountError = validateGuestCount({
+    const guestCountError = validateBookingGuestCount({
       adultCount,
       childCount,
       maxOccupancy: accommodation.policy.max_occupancy,
@@ -417,11 +278,13 @@ export const useAccommodationBooking = ({
     }
 
     isReservingRef.current = true;
-    setIsReserving(true);
+    if (isMountedRef.current) {
+      setIsReserving(true);
+    }
     clearError();
 
     try {
-      const reservationCoupon = selectReservationCoupon({
+      const reservationCoupon = selectBookingCoupon({
         reserveCouponState,
         selectedCoupon,
         selectedCouponId,
@@ -448,12 +311,17 @@ export const useAccommodationBooking = ({
         petCount,
         appliedCoupon,
         navigate,
+        isActive: () => isMountedRef.current,
       });
     } catch (error) {
-      handleError(error);
+      if (isMountedRef.current) {
+        handleError(error);
+      }
     } finally {
       isReservingRef.current = false;
-      setIsReserving(false);
+      if (isMountedRef.current) {
+        setIsReserving(false);
+      }
     }
   }, [
     accommodation,
@@ -494,7 +362,7 @@ export const useAccommodationBooking = ({
     totalPrice,
     payablePrice,
     formatDate,
-    formatDateForUrl,
+    formatDateForUrl: formatBookingDate,
     handleDateSelect,
     handleReserve,
   };

@@ -163,4 +163,33 @@ describe("useReservationPayment", () => {
     expect(mockNavigate).toHaveBeenCalledTimes(1);
     expect(handleError).not.toHaveBeenCalled();
   });
+
+  it("does not navigate when the payment owner unmounts before creation resolves", async () => {
+    const handleError = jest.fn();
+    const clearError = jest.fn();
+    const pendingReservation = createDeferred<typeof reservationResponse>();
+    jest
+      .mocked(reservationApi.create)
+      .mockReturnValue(pendingReservation.promise);
+
+    const { result, unmount } = renderHook(() =>
+      useReservationPayment({
+        clearError,
+        handleError,
+      }),
+    );
+
+    await act(async () => {
+      void result.current.startReservationPayment(paymentOptions);
+    });
+
+    unmount();
+
+    await act(async () => {
+      pendingReservation.resolve(reservationResponse);
+    });
+
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(handleError).not.toHaveBeenCalled();
+  });
 });

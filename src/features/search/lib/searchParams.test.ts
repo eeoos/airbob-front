@@ -290,6 +290,29 @@ describe("search params helpers", () => {
     });
   });
 
+  it("rejects partially valid URL values instead of sending them to the API", () => {
+    const params = new URLSearchParams(
+      "destination=Jeju&topLeftLat=38oops&topLeftLng=126&bottomRightLat=37&bottomRightLng=128&checkIn=2026-02-30&checkOut=2026-07-12&adultOccupancy=2x&childOccupancy=-1&infantOccupancy=1.5",
+    );
+
+    expect(getViewportFromSearchParams(params)).toBeNull();
+    expect(buildSearchRequestFromParams(params)).toEqual({
+      topLeftLat: undefined,
+      topLeftLng: undefined,
+      bottomRightLat: undefined,
+      bottomRightLng: undefined,
+      destination: "Jeju",
+      checkIn: undefined,
+      checkOut: "2026-07-12",
+      adultOccupancy: 1,
+      childOccupancy: 0,
+      infantOccupancy: 0,
+      petOccupancy: 0,
+      page: 0,
+      size: 18,
+    });
+  });
+
   it("reads and removes viewport params consistently", () => {
     const params = new URLSearchParams(
       "topLeftLat=38&topLeftLng=126&bottomRightLat=37&bottomRightLng=128&lat=37&lng=127",

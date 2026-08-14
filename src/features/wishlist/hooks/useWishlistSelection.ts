@@ -1,13 +1,14 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { wishlistApi } from "../../../api/wishlist";
 import { useApiError } from "../../../hooks/useApiError";
+import { useHandledQueryError } from "../../../query/useHandledQueryError";
 import { invalidateWishlistMutationCaches } from "../lib/wishlistCacheSync";
 import {
   toWishlistModalItemViewModel,
 } from "../lib/wishlistAccommodationViewModel";
 import type { WishlistModalItemViewModel } from "../lib/wishlistAccommodationViewModel";
-import { getWishlistListParams } from "../lib/wishlistListQueryParams";
+import { useWishlistListsQuery } from "./useWishlistListsQuery";
 
 interface UseWishlistSelectionOptions {
   isOpen: boolean;
@@ -21,85 +22,71 @@ export function useWishlistSelection({
   onSuccess,
 }: UseWishlistSelectionOptions) {
   const queryClient = useQueryClient();
-  const requestSequenceRef = useRef(0);
-  const [wishlists, setWishlists] = useState<WishlistModalItemViewModel[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasNext, setHasNext] = useState(false);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const { error, handleError, clearError } = useApiError();
-
-  const resetSelectionState = useCallback(() => {
-    requestSequenceRef.current += 1;
-    setWishlists([]);
-    setIsLoading(false);
-    setHasNext(false);
-    setNextCursor(null);
-    clearError();
-  }, [clearError]);
-
-  const fetchWishlists = useCallback(
-    async (cursor?: string | null) => {
-      const requestId = requestSequenceRef.current + 1;
-      requestSequenceRef.current = requestId;
-      setIsLoading(true);
-      clearError();
-
-      try {
-        const response = await wishlistApi.getWishlists(
-          getWishlistListParams({
-            cursor: cursor || undefined,
-            accommodationId,
-          }),
-        );
-        const modalWishlists = (response?.wishlists || []).map(
-          toWishlistModalItemViewModel,
-        );
-
-        if (requestId !== requestSequenceRef.current) {
-          return;
-        }
-
-        if (cursor) {
-          setWishlists((prev) => [...prev, ...modalWishlists]);
-        } else {
-          setWishlists(modalWishlists);
-        }
-
-        setHasNext(response?.page_info?.has_next || false);
-        setNextCursor(response?.page_info?.next_cursor || null);
-      } catch (error) {
-        if (requestId !== requestSequenceRef.current) {
-          return;
-        }
-
-        handleError(error);
-      } finally {
-        if (requestId === requestSequenceRef.current) {
-          setIsLoading(false);
-        }
-      }
-    },
-    [accommodationId, clearError, handleError]
+  const [pendingWishlistIds, setPendingWishlistIds] = useState<ReadonlySet<number>>(
+    () => new Set(),
   );
+  const pendingWishlistIdsRef = useRef(new Set<number>());
+  const { error, handleError, clearError } = useApiError();
+  const wishlistsQuery = useWishlistListsQuery({
+    accommodationId,
+    enabled: isOpen,
+  });
 
   useEffect(() => {
-    if (!isOpen) {
-      resetSelectionState();
-      return;
+    clearError();
+  }, [accommodationId, clearError, isOpen]);
+
+  useHandledQueryError({
+    error: wishlistsQuery.error,
+    errorUpdatedAt: wishlistsQuery.errorUpdatedAt,
+    isError: wishlistsQuery.isError,
+    onError: handleError,
+  });
+
+  const wishlists = useMemo(
+    () =>
+      isOpen
+        ? wishlistsQuery.data?.pages.flatMap((page) =>
+            page.wishlists.map(toWishlistModalItemViewModel),
+          ) ?? []
+        : [],
+    [isOpen, wishlistsQuery.data],
+  );
+  const isRefreshing = isOpen && wishlists.length > 0 && wishlistsQuery.isFetching;
+
+  const setWishlistPending = useCallback((wishlistId: number, pending: boolean) => {
+    const nextPendingIds = new Set(pendingWishlistIdsRef.current);
+
+    if (pending) {
+      nextPendingIds.add(wishlistId);
+    } else {
+      nextPendingIds.delete(wishlistId);
     }
 
-    resetSelectionState();
-    fetchWishlists();
-  }, [fetchWishlists, isOpen, resetSelectionState]);
+    pendingWishlistIdsRef.current = nextPendingIds;
+    setPendingWishlistIds(nextPendingIds);
+  }, []);
+
+  const refreshWishlists = useCallback(async () => {
+    clearError();
+    await wishlistsQuery.refetch({
+      cancelRefetch: false,
+      throwOnError: true,
+    });
+  }, [clearError, wishlistsQuery]);
 
   const loadMoreWishlists = useCallback(async () => {
-    if (!hasNext || isLoading || !nextCursor) {
+    if (
+      !wishlistsQuery.hasNextPage ||
+      wishlistsQuery.isFetching
+    ) {
       return;
     }
 
-    await fetchWishlists(nextCursor);
-  }, [fetchWishlists, hasNext, isLoading, nextCursor]);
+    clearError();
+    await wishlistsQuery.fetchNextPage({ cancelRefetch: false });
+  }, [clearError, wishlistsQuery]);
 
   const invalidateMutationCaches = useCallback(() => {
     invalidateWishlistMutationCaches(queryClient);
@@ -112,34 +99,58 @@ export function useWishlistSelection({
     ) => {
       event?.stopPropagation();
 
+      if (
+        !isOpen ||
+        isRefreshing ||
+        pendingWishlistIdsRef.current.has(wishlist.id)
+      ) {
+        return;
+      }
+
+      setWishlistPending(wishlist.id, true);
+
       try {
-        if (
-          wishlist.isContained &&
-          wishlist.wishlistAccommodationId !== null
-        ) {
-          await wishlistApi.removeAccommodation(
-            wishlist.wishlistAccommodationId
-          );
-        } else {
-          await wishlistApi.addAccommodation(wishlist.id, {
-            accommodation_id: accommodationId,
-          });
+        try {
+          if (
+            wishlist.isContained &&
+            wishlist.wishlistAccommodationId !== null
+          ) {
+            await wishlistApi.removeAccommodation(
+              wishlist.wishlistAccommodationId,
+            );
+          } else {
+            await wishlistApi.addAccommodation(wishlist.id, {
+              accommodation_id: accommodationId,
+            });
+          }
+        } catch (error) {
+          handleError(error);
+          return;
         }
 
         invalidateMutationCaches();
-        await fetchWishlists();
+
+        try {
+          await refreshWishlists();
+        } catch (error) {
+          handleError(error);
+        }
+
         onSuccess?.();
-      } catch (error) {
-        handleError(error);
+      } finally {
+        setWishlistPending(wishlist.id, false);
       }
     },
     [
       accommodationId,
-      fetchWishlists,
       handleError,
+      isOpen,
+      isRefreshing,
       invalidateMutationCaches,
       onSuccess,
-    ]
+      refreshWishlists,
+      setWishlistPending,
+    ],
   );
 
   const openCreateModal = useCallback(() => {
@@ -158,20 +169,28 @@ export function useWishlistSelection({
         await wishlistApi.addAccommodation(newWishlistId, {
           accommodation_id: accommodationId,
         });
-        invalidateMutationCaches();
-        await fetchWishlists();
-        onSuccess?.();
+      } catch (error) {
+        handleError(error);
+        return;
+      }
+
+      invalidateMutationCaches();
+
+      try {
+        await refreshWishlists();
       } catch (error) {
         handleError(error);
       }
+
+      onSuccess?.();
     },
     [
       accommodationId,
-      fetchWishlists,
       handleError,
       invalidateMutationCaches,
       onSuccess,
-    ]
+      refreshWishlists,
+    ],
   );
 
   return {
@@ -179,10 +198,15 @@ export function useWishlistSelection({
     clearError,
     error,
     handleCreateSuccess,
-    hasNext,
-    isLoading,
+    hasNext: isOpen && Boolean(wishlistsQuery.hasNextPage),
+    isRefreshing,
+    isLoading:
+      isOpen &&
+      (wishlistsQuery.isLoading ||
+        (wishlistsQuery.isFetching && wishlists.length === 0)),
     loadMoreWishlists,
     openCreateModal,
+    pendingWishlistIds,
     showCreateModal,
     toggleWishlist,
     wishlists,

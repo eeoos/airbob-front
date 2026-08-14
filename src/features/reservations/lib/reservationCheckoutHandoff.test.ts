@@ -163,4 +163,24 @@ describe("reservation checkout handoff", () => {
       state: result.checkoutState,
     });
   });
+
+  it("does not persist or navigate after the owning screen becomes inactive", async () => {
+    const navigate = jest.fn();
+    jest.mocked(reservationApi.create).mockResolvedValue(reservationResponse);
+
+    const result = await startReservationCheckoutHandoff({
+      accommodationId: 7,
+      checkIn: new Date(2026, 6, 10),
+      checkOut: new Date(2026, 6, 12),
+      adultCount: 2,
+      childCount: 0,
+      appliedCoupon: null,
+      navigate,
+      isActive: () => false,
+    });
+
+    expect(result.reservationResponse).toEqual(reservationResponse);
+    expect(navigate).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem("airbob:reservation-checkout:7")).toBeNull();
+  });
 });

@@ -1,12 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import React from "react";
-import { wishlistApi } from "../../../api";
+import { wishlistApi } from "../../../api/wishlist";
 import { getWishlistListsParamsSignature } from "../../wishlist/lib/wishlistListQueryParams";
 import { wishlistQueryKeys } from "../../wishlist/queryKeys";
 import { useSearchWishlistModal } from "./useSearchWishlistModal";
 
-jest.mock("../../../api", () => ({
+jest.mock("../../../api/wishlist", () => ({
   wishlistApi: {
     getWishlists: jest.fn(),
   },

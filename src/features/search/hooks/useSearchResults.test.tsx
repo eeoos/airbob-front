@@ -1,15 +1,22 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import React from "react";
-import { accommodationApi } from "../../../api";
+import { accommodationApi } from "../../../api/accommodations";
 import {
   AccommodationSearchInfo,
   AccommodationSearchResponse,
 } from "../../../types/accommodation";
 import { searchQueryKeys } from "../queryKeys";
 import { useSearchResults } from "./useSearchResults";
+import * as searchResultsQueryModule from "./useSearchResultsQuery";
 
 jest.mock("../../../api", () => ({
+  accommodationApi: {
+    search: jest.fn(),
+  },
+}));
+
+jest.mock("../../../api/accommodations", () => ({
   accommodationApi: {
     search: jest.fn(),
   },
@@ -117,6 +124,10 @@ describe("useSearchResults", () => {
     window.scrollTo = jest.fn();
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it("fetches the first result set from URL query params", async () => {
     const response = createSearchResponse(0, 30, 42);
     jest.mocked(accommodationApi.search).mockResolvedValue(response);
@@ -146,6 +157,32 @@ describe("useSearchResults", () => {
     expect(result.current.totalPages).toBe(15);
     expect(result.current.totalElements).toBe(42);
     expect(mockSetIsMapDragMode).toHaveBeenLastCalledWith(false);
+  });
+
+  it("delegates result fetching to the dedicated query boundary", async () => {
+    const response = createSearchResponse(0, 1, 1);
+    jest.mocked(accommodationApi.search).mockResolvedValue(response);
+    const queryHookSpy = jest.spyOn(
+      searchResultsQueryModule,
+      "useSearchResultsQuery",
+    );
+
+    const { result } = renderUseSearchResults(
+      new URLSearchParams("destination=Seoul")
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(queryHookSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        enabled: true,
+        searchParamsSignature: "destination=Seoul",
+        searchRequest: expect.objectContaining({
+          destination: "Seoul",
+          page: 0,
+        }),
+      }),
+    );
   });
 
   it("stores results under a sanitized search query signature", async () => {
@@ -297,6 +334,43 @@ describe("useSearchResults", () => {
       top: 0,
       behavior: "smooth",
     });
+  });
+
+  it("waits for the requested page response before updating map bounds", async () => {
+    let resolveSecondPage!: (response: AccommodationSearchResponse) => void;
+    const secondPage = new Promise<AccommodationSearchResponse>((resolve) => {
+      resolveSecondPage = resolve;
+    });
+
+    jest
+      .mocked(accommodationApi.search)
+      .mockResolvedValueOnce(createSearchResponse(0, 2, 36))
+      .mockReturnValueOnce(secondPage);
+
+    const { result, rerender } = renderUseSearchResults(
+      new URLSearchParams("destination=Seoul"),
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    mockRequestMapBoundsUpdate.mockReset();
+
+    act(() => {
+      result.current.handlePageChange(1);
+    });
+
+    const nextParams = mockSetSearchParams.mock.calls[0][0] as URLSearchParams;
+    rerender({ searchParams: nextParams });
+
+    await waitFor(() => expect(accommodationApi.search).toHaveBeenCalledTimes(2));
+    expect(mockRequestMapBoundsUpdate).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveSecondPage(createSearchResponse(1, 2, 36));
+      await secondPage;
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(mockRequestMapBoundsUpdate).toHaveBeenCalledTimes(1);
   });
 
   it("removes a stale destination page before fetching and ignores the old query rerun", async () => {

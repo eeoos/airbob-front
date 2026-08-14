@@ -30,8 +30,10 @@ const defaultSelection = {
   handleCreateSuccess: jest.fn(),
   hasNext: false,
   isLoading: false,
+  isRefreshing: false,
   loadMoreWishlists: jest.fn(),
   openCreateModal: jest.fn(),
+  pendingWishlistIds: new Set<number>(),
   showCreateModal: false,
   toggleWishlist: jest.fn(),
   wishlists: [] as WishlistModalItemViewModel[],
@@ -115,5 +117,23 @@ describe("WishlistModal", () => {
     await userEvent.click(screen.getByRole("button", { name: "오류 닫기" }));
 
     expect(clearError).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables a wishlist item while its mutation is pending", () => {
+    mockWishlistSelection.mockReturnValue({
+      ...defaultSelection,
+      pendingWishlistIds: new Set([defaultWishlist.id]),
+      wishlists: [defaultWishlist],
+    });
+
+    render(
+      <WishlistModal
+        isOpen
+        onClose={jest.fn()}
+        accommodationId={1}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /서울 여행/ })).toBeDisabled();
   });
 });

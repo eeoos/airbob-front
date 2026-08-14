@@ -1,10 +1,5 @@
-import {
-  keepPreviousData,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { accommodationApi } from "../../../api";
 import { useHandledQueryError } from "../../../query/useHandledQueryError";
 import {
   AccommodationSearchInfo,
@@ -12,13 +7,10 @@ import {
   AccommodationSearchResponse,
 } from "../../../types/accommodation";
 import {
-  MAX_SEARCH_PAGE,
   clampSearchPage,
   getLimitedTotalPages,
 } from "../lib/pagination";
 import {
-  SearchViewport,
-  buildMapBoundsSearchParams,
   buildSearchRequestFromParams,
   getSearchParamsSignature,
   getViewportSearchParamSignature,
@@ -28,6 +20,8 @@ import {
   toSearchAccommodationMapViewModel,
 } from "../lib/searchAccommodationViewModel";
 import { searchQueryKeys } from "../queryKeys";
+import { useSearchResultsNavigation } from "./useSearchResultsNavigation";
+import { useSearchResultsQuery } from "./useSearchResultsQuery";
 
 type SetSearchParams = (
   nextParams: URLSearchParams,
@@ -117,6 +111,7 @@ export const useSearchResults = ({
   const prevViewportRef = useRef<string | null>(null);
   const pendingPageResetRef = useRef<string | null>(null);
   const pendingScrollToTopRef = useRef<string | null>(null);
+  const pendingMapBoundsUpdateRef = useRef<string | null>(null);
   const activeSearchParamsRef = useRef<string | null>(null);
   const [placeholderWishlistOverrides, setPlaceholderWishlistOverrides] =
     useState<Record<number, boolean>>({});
@@ -174,27 +169,24 @@ export const useSearchResults = ({
     () => buildSearchRequestFromParams(searchParams, { page }),
     [page, searchParams]
   );
-  const searchResultsQueryKey = useMemo(
-    () => searchQueryKeys.results(searchParamsSignature),
-    [searchParamsSignature]
+  const handleSearchQueryStart = useCallback(() => {
+    activeSearchParamsRef.current = searchParamsString;
+    setIsMapDragMode(isMapDragMode);
+    clearError();
+  }, [clearError, isMapDragMode, searchParamsString, setIsMapDragMode]);
+
+  const scheduleMapBoundsUpdate = useCallback(
+    (targetSearchParamsString = searchParamsString) => {
+      pendingMapBoundsUpdateRef.current = targetSearchParamsString;
+    },
+    [searchParamsString],
   );
 
-  const searchResultsQuery = useQuery<
-    AccommodationSearchResponse,
-    unknown,
-    AccommodationSearchResponse,
-    ReturnType<typeof searchQueryKeys.results>
-  >({
-    queryKey: searchResultsQueryKey,
-    queryFn: ({ signal }) => {
-      activeSearchParamsRef.current = searchParamsString;
-      setIsMapDragMode(isMapDragMode);
-      clearError();
-      return accommodationApi.search(searchRequest, signal);
-    },
+  const searchResultsQuery = useSearchResultsQuery({
     enabled: queryEnabled,
-    placeholderData: keepPreviousData,
-    throwOnError: false,
+    onQueryStart: handleSearchQueryStart,
+    searchParamsSignature,
+    searchRequest,
   });
 
   useEffect(() => {
@@ -217,7 +209,7 @@ export const useSearchResults = ({
 
     if (hasViewportForMap) {
       if (prevViewportRef.current !== currentViewportString) {
-        requestMapBoundsUpdate();
+        scheduleMapBoundsUpdate(currentSearchParams);
         prevViewportRef.current = currentViewportString;
       }
     } else {
@@ -252,6 +244,7 @@ export const useSearchResults = ({
     resetParams,
     searchParamsString,
     setSearchParams,
+    scheduleMapBoundsUpdate,
     shouldFetch,
     shouldResetPage,
   ]);
@@ -259,6 +252,11 @@ export const useSearchResults = ({
   useEffect(() => {
     if (!searchResultsQuery.data || searchResultsQuery.isPlaceholderData) {
       return;
+    }
+
+    if (pendingMapBoundsUpdateRef.current === searchParamsString) {
+      pendingMapBoundsUpdateRef.current = null;
+      requestMapBoundsUpdate();
     }
 
     activeSearchParamsRef.current = searchParamsString;
@@ -277,6 +275,7 @@ export const useSearchResults = ({
     searchResultsQuery.data,
     searchResultsQuery.dataUpdatedAt,
     searchResultsQuery.isPlaceholderData,
+    requestMapBoundsUpdate,
   ]);
 
   useEffect(() => {
@@ -344,6 +343,26 @@ export const useSearchResults = ({
     ? searchResultsQuery.isFetching
     : isInitialLoadRef.current || isPendingPageReset;
 
+  const setPreviousPage = useCallback((nextPage: number) => {
+    prevPageRef.current = nextPage;
+  }, []);
+
+  const setPendingScrollToTop = useCallback((nextSearchParams: string) => {
+    pendingScrollToTopRef.current = nextSearchParams;
+  }, []);
+
+  const { handleMapBoundsChange, handlePageChange } =
+    useSearchResultsNavigation({
+      searchParams,
+      searchParamsString,
+      currentPage,
+      isLoading,
+      setSearchParams,
+      requestMapBoundsUpdate: scheduleMapBoundsUpdate,
+      setPreviousPage,
+      setPendingScrollToTop,
+    });
+
   const updateAccommodationWishlistStatus = useCallback(
     (accommodationId: number, isInWishlist: boolean) => {
       queryClient.setQueriesData<AccommodationSearchResponse>(
@@ -369,40 +388,6 @@ export const useSearchResults = ({
     },
     [queryClient, searchResultsQuery.isPlaceholderData]
   );
-
-  const handleMapBoundsChange = useCallback((bounds: SearchViewport) => {
-    const newParams = buildMapBoundsSearchParams(searchParams, bounds);
-    prevPageRef.current = 0;
-    setSearchParams(newParams, { replace: true });
-  }, [searchParams, setSearchParams]);
-
-  const handlePageChange = useCallback((page: number) => {
-    if (page === currentPage || isLoading) {
-      return;
-    }
-
-    if (page >= MAX_SEARCH_PAGE) {
-      return;
-    }
-
-    requestMapBoundsUpdate();
-
-    const newParams = new URLSearchParams(searchParamsString);
-    if (page === 0) {
-      newParams.delete("page");
-    } else {
-      newParams.set("page", page.toString());
-    }
-
-    pendingScrollToTopRef.current = newParams.toString();
-    setSearchParams(newParams, { replace: false });
-  }, [
-    currentPage,
-    isLoading,
-    requestMapBoundsUpdate,
-    searchParamsString,
-    setSearchParams,
-  ]);
 
   return {
     accommodations,

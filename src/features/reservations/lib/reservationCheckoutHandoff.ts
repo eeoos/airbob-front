@@ -33,6 +33,8 @@ export interface StartReservationCheckoutHandoffOptions {
   petCount?: number;
   appliedCoupon: AppliedReservationCheckoutCoupon | null;
   navigate: ReservationCheckoutHandoffNavigate;
+  /** Prevents a completed request from mutating UI after its owner unmounts. */
+  isActive?: () => boolean;
 }
 
 export interface ReservationCheckoutHandoffResult {
@@ -115,6 +117,14 @@ export const startReservationCheckoutHandoff = async (
     checkOut,
     reservationResponse,
   });
+
+  if (options.isActive && !options.isActive()) {
+    return {
+      reservationResponse,
+      checkoutState,
+    };
+  }
+
   const accommodationId = String(options.accommodationId);
 
   saveReservationCheckoutState(accommodationId, checkoutState);

@@ -1,6 +1,6 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import type { InfiniteData } from "@tanstack/react-query";
-import { wishlistApi } from "../../../api";
+import { wishlistApi } from "../../../api/wishlist";
 import { WishlistInfos } from "../../../types/wishlist";
 import {
   getWishlistListParams,

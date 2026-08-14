@@ -5,6 +5,7 @@ import { wishlistApi } from "../../../api/wishlist";
 import { WishlistInfo, WishlistInfos } from "../../../types/wishlist";
 import { searchQueryKeys } from "../../search/queryKeys";
 import { toWishlistModalItemViewModel } from "../lib/wishlistAccommodationViewModel";
+import { getWishlistListsParamsSignature } from "../lib/wishlistListQueryParams";
 import { wishlistQueryKeys } from "../queryKeys";
 import { useWishlistSelection } from "./useWishlistSelection";
 
@@ -131,6 +132,37 @@ describe("useWishlistSelection", () => {
     expect(result.current.hasNext).toBe(true);
   });
 
+  it("owns the opened accommodation selection in the shared wishlist query cache", async () => {
+    const wishlist = createWishlist(1);
+    jest.mocked(wishlistApi.getWishlists).mockResolvedValue({
+      wishlists: [wishlist],
+      page_info: pageInfo(false, null),
+    });
+
+    const { queryClient, result } = renderUseWishlistSelection({
+      isOpen: true,
+      accommodationId: 7,
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(
+      queryClient.getQueryData(
+        wishlistQueryKeys.lists(
+          getWishlistListsParamsSignature({ accommodationId: 7 }),
+        ),
+      ),
+    ).toEqual({
+      pageParams: [null],
+      pages: [
+        {
+          wishlists: [wishlist],
+          page_info: pageInfo(false, null),
+        },
+      ],
+    });
+  });
+
   it("appends the next wishlist page", async () => {
     const first = createWishlist(1);
     const second = createWishlist(2);
@@ -161,10 +193,12 @@ describe("useWishlistSelection", () => {
       cursor: "cursor-1",
       accommodationId: 7,
     });
-    expect(result.current.wishlists).toEqual([
-      toWishlistModalItemViewModel(first),
-      toWishlistModalItemViewModel(second),
-    ]);
+    await waitFor(() =>
+      expect(result.current.wishlists).toEqual([
+        toWishlistModalItemViewModel(first),
+        toWishlistModalItemViewModel(second),
+      ])
+    );
   });
 
   it("adds and removes an accommodation, then refreshes the list", async () => {
@@ -214,7 +248,9 @@ describe("useWishlistSelection", () => {
       accommodation_id: 7,
     });
     expect(onSuccess).toHaveBeenCalledTimes(1);
-    expect(result.current.wishlists).toEqual([containedModalWishlist]);
+    await waitFor(() =>
+      expect(result.current.wishlists).toEqual([containedModalWishlist])
+    );
     expect(invalidateQueriesSpy).toHaveBeenCalledTimes(3);
     expectWishlistMutationCacheInvalidations(invalidateQueriesSpy);
 
@@ -224,8 +260,46 @@ describe("useWishlistSelection", () => {
 
     expect(wishlistApi.removeAccommodation).toHaveBeenCalledWith(99);
     expect(onSuccess).toHaveBeenCalledTimes(2);
-    expect(result.current.wishlists).toEqual([emptyModalWishlist]);
+    await waitFor(() =>
+      expect(result.current.wishlists).toEqual([emptyModalWishlist])
+    );
     expect(invalidateQueriesSpy).toHaveBeenCalledTimes(6);
+  });
+
+  it("ignores a duplicate toggle while the same wishlist mutation is in flight", async () => {
+    const wishlist = createWishlist(1);
+    let resolveAdd!: (value: { id: number }) => void;
+    const pendingAdd = new Promise<{ id: number }>((resolve) => {
+      resolveAdd = resolve;
+    });
+    jest.mocked(wishlistApi.getWishlists).mockResolvedValue({
+      wishlists: [wishlist],
+      page_info: pageInfo(false, null),
+    });
+    jest.mocked(wishlistApi.addAccommodation).mockReturnValue(pendingAdd);
+
+    const { result } = renderUseWishlistSelection({
+      isOpen: true,
+      accommodationId: 7,
+    });
+
+    await waitFor(() => expect(result.current.wishlists).toHaveLength(1));
+    const modalWishlist = toWishlistModalItemViewModel(wishlist);
+
+    await act(async () => {
+      void result.current.toggleWishlist(modalWishlist);
+      void result.current.toggleWishlist(modalWishlist);
+    });
+
+    expect(wishlistApi.addAccommodation).toHaveBeenCalledTimes(1);
+    expect(result.current.pendingWishlistIds.has(1)).toBe(true);
+
+    await act(async () => {
+      resolveAdd({ id: 10 });
+    });
+
+    await waitFor(() => expect(result.current.pendingWishlistIds.size).toBe(0));
+    expect(wishlistApi.getWishlists).toHaveBeenCalledTimes(2);
   });
 
   it("adds the accommodation to a newly created wishlist and refreshes", async () => {

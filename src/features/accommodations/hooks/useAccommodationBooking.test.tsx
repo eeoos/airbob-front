@@ -25,6 +25,7 @@ interface MockStartReservationCheckoutHandoffOptions {
     to: string,
     options?: { replace?: boolean; state?: unknown }
   ) => void;
+  isActive?: () => boolean;
 }
 
 const formatCheckoutDateParamForTest = (date: Date): string => {
@@ -184,6 +185,13 @@ describe("useAccommodationBooking", () => {
         };
 
         try {
+          if (options.isActive && !options.isActive()) {
+            return {
+              reservationResponse,
+              checkoutState,
+            };
+          }
+
           sessionStorage.setItem(
             `airbob:reservation-checkout:${options.accommodationId}`,
             JSON.stringify(checkoutState),

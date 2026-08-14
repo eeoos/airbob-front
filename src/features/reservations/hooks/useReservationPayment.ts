@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { startReservationCheckoutHandoff } from "../lib/reservationCheckoutHandoff";
 
@@ -24,6 +24,11 @@ export function useReservationPayment({
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const isLoadingRef = useRef(false);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => () => {
+    isMountedRef.current = false;
+  }, []);
 
   const startReservationPayment = useCallback(
     async (options: StartReservationPaymentOptions) => {
@@ -32,7 +37,9 @@ export function useReservationPayment({
       }
 
       isLoadingRef.current = true;
-      setIsLoading(true);
+      if (isMountedRef.current) {
+        setIsLoading(true);
+      }
       clearError();
 
       try {
@@ -40,12 +47,17 @@ export function useReservationPayment({
           ...options,
           appliedCoupon: null,
           navigate,
+          isActive: () => isMountedRef.current,
         });
       } catch (error) {
-        handleError(error);
+        if (isMountedRef.current) {
+          handleError(error);
+        }
       } finally {
         isLoadingRef.current = false;
-        setIsLoading(false);
+        if (isMountedRef.current) {
+          setIsLoading(false);
+        }
       }
     },
     [clearError, handleError, navigate],

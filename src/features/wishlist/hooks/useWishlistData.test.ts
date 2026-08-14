@@ -2,7 +2,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { InfiniteData } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import React from "react";
-import { recentlyViewedApi, wishlistApi } from "../../../api";
+import { recentlyViewedApi } from "../../../api";
+import { wishlistApi } from "../../../api/wishlist";
 import { RecentlyViewedAccommodationInfos } from "../../../types/recentlyViewed";
 import {
   WishlistAccommodationInfos,
@@ -15,6 +16,17 @@ import { useWishlistData } from "./useWishlistData";
 
 const mockClearError = jest.fn();
 const mockHandleError = jest.fn();
+
+const createDeferred = <T,>() => {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+
+  return { promise, reject, resolve };
+};
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -51,6 +63,9 @@ jest.mock("../../../api", () => ({
     getRecentlyViewed: jest.fn(),
     remove: jest.fn(),
   },
+}));
+
+jest.mock("../../../api/wishlist", () => ({
   wishlistApi: {
     delete: jest.fn(),
     getWishlistAccommodations: jest.fn(),
@@ -691,6 +706,35 @@ describe("useWishlistData", () => {
 
     expect(isDeleted).toBe(false);
     expect(mockHandleError).toHaveBeenCalledWith(deleteError);
+  });
+
+  it("ignores duplicate wishlist deletes while the first request is pending", async () => {
+    const pendingDelete = createDeferred<void>();
+    mockInitialWishlistQueries();
+    jest.mocked(wishlistApi.delete).mockReturnValue(pendingDelete.promise);
+
+    const { result } = renderUseWishlistData({
+      selectedWishlistId: null,
+      showRecentlyViewed: false,
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    let firstDelete!: Promise<boolean>;
+    await act(async () => {
+      firstDelete = result.current.deleteWishlist(7);
+      void result.current.deleteWishlist(7);
+    });
+
+    expect(wishlistApi.delete).toHaveBeenCalledTimes(1);
+    expect(result.current.isMutationPending).toBe(true);
+
+    await act(async () => {
+      pendingDelete.resolve();
+      await firstDelete;
+    });
+
+    await waitFor(() => expect(result.current.isMutationPending).toBe(false));
   });
 
   it("handles removeFromWishlist rejection", async () => {

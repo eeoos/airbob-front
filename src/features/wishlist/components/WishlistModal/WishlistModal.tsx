@@ -26,8 +26,10 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
     handleCreateSuccess,
     hasNext,
     isLoading,
+    isRefreshing,
     loadMoreWishlists,
     openCreateModal,
+    pendingWishlistIds,
     showCreateModal,
     toggleWishlist,
     wishlists,
@@ -102,6 +104,12 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
               key={wishlist.id}
               className={styles.wishlistItem}
               aria-pressed={wishlist.isContained}
+              aria-busy={
+                isRefreshing || pendingWishlistIds.has(wishlist.id)
+                  ? true
+                  : undefined
+              }
+              disabled={isRefreshing || pendingWishlistIds.has(wishlist.id)}
               onClick={(e) => handleWishlistClick(wishlist, e)}
             >
               <div className={styles.wishlistImage}>

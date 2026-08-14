@@ -11,6 +11,7 @@ interface WishlistDetailViewProps {
   hasNext: boolean;
   isLoading: boolean;
   isLoadingMore: boolean;
+  isMutationPending?: boolean;
   onBack: () => void;
   onOpenAccommodationDetail: (accommodationId: number) => void;
   onOpenMemo: (item: WishlistAccommodationMemoTarget) => void;
@@ -35,6 +36,7 @@ export function WishlistDetailView({
   hasNext,
   isLoading,
   isLoadingMore,
+  isMutationPending = false,
   onBack,
   onOpenAccommodationDetail,
   onOpenMemo,
@@ -121,6 +123,7 @@ export function WishlistDetailView({
                     onRemoveFromWishlist(item.wishlistAccommodationId);
                   }}
                   aria-label="삭제"
+                  disabled={isMutationPending}
                   type="button"
                 >
                   ✕

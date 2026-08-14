@@ -1,4 +1,4 @@
-import { wishlistApi } from "../../../api";
+import { wishlistApi } from "../../../api/wishlist";
 import { WishlistInfos } from "../../../types/wishlist";
 import { getWishlistListParams } from "./wishlistListQueryParams";
 

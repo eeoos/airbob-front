@@ -2,6 +2,12 @@ import { AccommodationSearchRequest } from "../../../types/accommodation";
 import { toCanonicalSearchString } from "../../../shared/lib/urlSearchParams";
 import type { SearchRouteQuery } from "../../../routes/routeQueryContracts";
 import { clampSearchPage } from "./pagination";
+import {
+  parseNonNegativeSearchInt,
+  parsePositiveSearchInt,
+  parseStrictDateParam,
+  parseStrictFiniteNumber,
+} from "./searchParamParsers";
 
 export interface SearchViewport {
   north: number;
@@ -94,32 +100,6 @@ const formatDateForSearchParam = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
-const parseOptionalInt = (
-  params: URLSearchParams,
-  key: string,
-): number | undefined => {
-  const value = params.get(key);
-  if (value === null) {
-    return undefined;
-  }
-
-  const parsed = parseInt(value, 10);
-  return Number.isFinite(parsed) ? parsed : undefined;
-};
-
-const parseOptionalFloat = (
-  params: URLSearchParams,
-  key: string,
-): number | undefined => {
-  const value = params.get(key);
-  if (value === null) {
-    return undefined;
-  }
-
-  const parsed = parseFloat(value);
-  return Number.isFinite(parsed) ? parsed : undefined;
-};
-
 const setViewportParams = (
   params: URLSearchParams,
   viewport: SearchViewport,
@@ -149,10 +129,10 @@ const removeViewportAndLocationParams = (
 export const getViewportFromSearchParams = (
   params: URLSearchParams,
 ): SearchViewport | null => {
-  const north = parseOptionalFloat(params, "topLeftLat");
-  const west = parseOptionalFloat(params, "topLeftLng");
-  const south = parseOptionalFloat(params, "bottomRightLat");
-  const east = parseOptionalFloat(params, "bottomRightLng");
+  const north = parseStrictFiniteNumber(params.get("topLeftLat"));
+  const west = parseStrictFiniteNumber(params.get("topLeftLng"));
+  const south = parseStrictFiniteNumber(params.get("bottomRightLat"));
+  const east = parseStrictFiniteNumber(params.get("bottomRightLng"));
 
   if (
     north === undefined ||
@@ -250,12 +230,21 @@ export const buildSearchRequestFromParams = (
     bottomRightLat: viewport?.south,
     bottomRightLng: viewport?.east,
     destination: !viewport ? params.get("destination") || undefined : undefined,
-    checkIn: params.get("checkIn") || undefined,
-    checkOut: params.get("checkOut") || undefined,
-    adultOccupancy: parseOptionalInt(params, "adultOccupancy"),
-    childOccupancy: parseOptionalInt(params, "childOccupancy"),
-    infantOccupancy: parseOptionalInt(params, "infantOccupancy"),
-    petOccupancy: parseOptionalInt(params, "petOccupancy"),
+    checkIn: parseStrictDateParam(params.get("checkIn")),
+    checkOut: parseStrictDateParam(params.get("checkOut")),
+    adultOccupancy: parsePositiveSearchInt(
+      params.get("adultOccupancy"),
+      1,
+    ),
+    childOccupancy: parseNonNegativeSearchInt(
+      params.get("childOccupancy"),
+      0,
+    ),
+    infantOccupancy: parseNonNegativeSearchInt(
+      params.get("infantOccupancy"),
+      0,
+    ),
+    petOccupancy: parseNonNegativeSearchInt(params.get("petOccupancy"), 0),
     page,
     size: options.size ?? 18,
   };

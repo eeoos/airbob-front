@@ -190,4 +190,60 @@ describe("useHostReservationDetail", () => {
     expect(result.current.isError).toBe(true);
     expect(result.current.error).toBe("host reload failed");
   });
+
+  it("clears an earlier reservation error when a different uid succeeds", async () => {
+    const reservationB = createHostReservationDetail("host-reservation-b");
+    const error = new ApiClientError({
+      code: "R001",
+      message: "reservation A is missing",
+      status: 404,
+    });
+
+    jest
+      .mocked(reservationApi.getHostReservationDetail)
+      .mockRejectedValueOnce(error)
+      .mockResolvedValueOnce(reservationB);
+
+    const { result, rerender } = renderHook(
+      ({ reservationUid }: { reservationUid: string }) =>
+        useHostReservationDetail(reservationUid),
+      {
+        initialProps: { reservationUid: "host-reservation-a" },
+        wrapper: createWrapper(),
+      },
+    );
+
+    await waitFor(() => expect(result.current.error).toBe("존재하지 않는 예약입니다."));
+
+    rerender({ reservationUid: "host-reservation-b" });
+
+    await waitFor(() => expect(result.current.reservation).toEqual(reservationB));
+    expect(result.current.isError).toBe(false);
+    expect(result.current.error).toBeNull();
+  });
+
+  it("clears a failed reload error after the next reload succeeds", async () => {
+    const reservation = createHostReservationDetail("host-reservation-1");
+    const error = new Error("host reload failed");
+    jest
+      .mocked(reservationApi.getHostReservationDetail)
+      .mockRejectedValueOnce(error)
+      .mockResolvedValueOnce(reservation);
+
+    const { result } = renderHook(
+      () => useHostReservationDetail("host-reservation-1"),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.error).toBe("host reload failed");
+
+    await act(async () => {
+      await result.current.reload();
+    });
+
+    await waitFor(() => expect(result.current.reservation).toEqual(reservation));
+    expect(result.current.isError).toBe(false);
+    expect(result.current.error).toBeNull();
+  });
 });

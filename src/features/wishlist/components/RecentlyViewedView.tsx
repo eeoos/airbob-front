@@ -4,6 +4,7 @@ import styles from "./WishlistViews.module.css";
 
 interface RecentlyViewedViewProps {
   isEditMode: boolean;
+  isMutationPending?: boolean;
   onBack: () => void;
   onOpenAccommodationDetail: (accommodationId: number) => void;
   onRemoveRecentlyViewed: (accommodationId: number) => void;
@@ -14,6 +15,7 @@ interface RecentlyViewedViewProps {
 
 export function RecentlyViewedView({
   isEditMode,
+  isMutationPending = false,
   onBack,
   onOpenAccommodationDetail,
   onRemoveRecentlyViewed,
@@ -110,6 +112,7 @@ export function RecentlyViewedView({
                             onRemoveRecentlyViewed(item.accommodationId);
                           }}
                           aria-label="삭제"
+                          disabled={isMutationPending}
                           type="button"
                         >
                           ✕
@@ -123,6 +126,7 @@ export function RecentlyViewedView({
                             onWishlistToggle(item.accommodationId);
                           }}
                           aria-label="위시리스트"
+                          disabled={isMutationPending}
                           type="button"
                         >
                           <svg

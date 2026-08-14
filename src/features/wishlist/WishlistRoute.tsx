@@ -63,6 +63,7 @@ const WishlistRouteContent: React.FC<WishlistRouteContentProps> = ({
     isLoading,
     isLoadingMore,
     isLoadingMoreWishlists,
+    isMutationPending,
     loadMoreWishlistAccommodations,
     loadMoreWishlists,
     recentlyViewed,
@@ -174,6 +175,7 @@ const WishlistRouteContent: React.FC<WishlistRouteContentProps> = ({
       {showRecentlyViewed ? (
         <RecentlyViewedView
           isEditMode={isEditMode}
+          isMutationPending={isMutationPending}
           onBack={backToIndex}
           onOpenAccommodationDetail={handleAccommodationDetailClick}
           onRemoveRecentlyViewed={removeRecentlyViewed}
@@ -186,6 +188,7 @@ const WishlistRouteContent: React.FC<WishlistRouteContentProps> = ({
           hasNext={hasNext}
           isLoading={isLoading}
           isLoadingMore={isLoadingMore}
+          isMutationPending={isMutationPending}
           onBack={backToIndex}
           onOpenAccommodationDetail={handleAccommodationDetailClick}
           onOpenMemo={handleOpenMemoModal}
@@ -200,6 +203,7 @@ const WishlistRouteContent: React.FC<WishlistRouteContentProps> = ({
         <WishlistIndexView
           isLoading={isLoading}
           isLoadingMoreWishlists={isLoadingMoreWishlists}
+          isMutationPending={isMutationPending}
           onDeleteWishlist={handleDeleteWishlist}
           onOpenRecentlyViewed={handleRecentlyViewedClick}
           onOpenWishlist={openWishlist}
