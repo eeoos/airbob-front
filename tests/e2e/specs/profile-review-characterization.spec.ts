@@ -1,0 +1,130 @@
+import { apiFailure, apiSuccess } from "../fixtures/api";
+import { test, expect } from "../fixtures/test";
+
+const reviewableReservation = {
+  reservation_uid: "res-review",
+  reservation_code: "REVIEW-2026",
+  status: "COMPLETED",
+  created_at: "2026-06-01T00:00:00",
+  guest_count: 2,
+  check_in_date_time: "2026-06-10T15:00:00",
+  check_out_date_time: "2026-06-12T11:00:00",
+  check_in_time: "15:00",
+  check_out_time: "11:00",
+  can_write_review: true,
+  accommodation: {
+    id: 7,
+    name: "합정 테스트 숙소",
+    thumbnail_url: null,
+  },
+  address: {
+    country: "대한민국",
+    state: "서울특별시",
+    city: "서울",
+    district: "마포구",
+    street: "양화로",
+    detail: "101호",
+    postal_code: "04000",
+  },
+  coordinate: {
+    latitude: null,
+    longitude: null,
+  },
+  host: {
+    id: 202,
+    nickname: "합정 호스트",
+    thumbnail_image_url: null,
+  },
+  payment: null,
+};
+
+test("ends review creation at the explicit missing-reservation state", async ({
+  api,
+  page,
+  session,
+}) => {
+  session.authenticate();
+  api.register(
+    "GET",
+    "/api/v1/profile/guest/reservations/res-review",
+    apiFailure(404, "R404", "예약을 찾을 수 없습니다."),
+  );
+
+  await page.goto("/reservations/res-review/review");
+
+  await expect(
+    page.getByText("예약을 찾을 수 없습니다.", { exact: true }),
+  ).toBeVisible();
+  expect(
+    api.matching(
+      "GET",
+      "/api/v1/profile/guest/reservations/res-review",
+    ).length,
+  ).toBeGreaterThanOrEqual(1);
+});
+
+test("keeps the created review and surfaces terminal feedback when its image upload fails", async ({
+  api,
+  page,
+  session,
+}) => {
+  session.authenticate();
+  api.register(
+    "GET",
+    "/api/v1/profile/guest/reservations/res-review",
+    apiSuccess(reviewableReservation),
+  );
+  api.register(
+    "POST",
+    "/api/v1/accommodations/7/reviews",
+    apiSuccess({ id: 901 }, 201),
+  );
+  api.register(
+    "POST",
+    "/api/v1/reviews/901/images",
+    apiFailure(500, "I001", "이미지 업로드 중 오류가 발생했습니다."),
+  );
+
+  await page.goto("/reservations/res-review/review");
+
+  await expect(
+    page.getByRole("heading", { name: "리뷰 작성", level: 1 }),
+  ).toBeVisible();
+  await expect(page.getByText("합정 테스트 숙소에 대한 리뷰를 작성해주세요.")).toBeVisible();
+
+  await page.getByRole("button", { name: "4점" }).click();
+  await page.getByLabel("리뷰 내용").fill("청결하고 조용해서 다시 머물고 싶은 숙소였습니다.");
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "stay-review.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("synthetic-review-image"),
+  });
+  await expect(page.getByAltText("미리보기 1")).toBeVisible();
+
+  await page.getByRole("button", { name: "리뷰 작성하기" }).click();
+
+  await expect(page).toHaveURL(/\/reservations\/res-review$/);
+  await expect(page.getByRole("alert")).toHaveText(
+    "리뷰는 작성되었지만 이미지 업로드에 실패했습니다.",
+  );
+
+  const createRequests = api.matching(
+    "POST",
+    "/api/v1/accommodations/7/reviews",
+  );
+  const uploadRequests = api.matching(
+    "POST",
+    "/api/v1/reviews/901/images",
+  );
+
+  expect(createRequests).toHaveLength(1);
+  expect(uploadRequests).toHaveLength(1);
+  expect(createRequests[0].body).toEqual({
+    rating: 4,
+    content: "청결하고 조용해서 다시 머물고 싶은 숙소였습니다.",
+  });
+  expect(createRequests[0].sequence).toBeLessThan(uploadRequests[0].sequence);
+
+  await page.getByRole("button", { name: "오류 닫기" }).click();
+  await expect(page.getByRole("alert")).toHaveCount(0);
+});

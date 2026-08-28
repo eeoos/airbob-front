@@ -53,6 +53,7 @@ Current owners:
 | Domain-free UI | `src/shared/ui/**` | Tested primitives; adoption is incomplete. |
 | Shared styling values | `src/styles/tokens.css` | CSS Modules still contain feature-local literals. |
 | Browser smoke | `scripts/smoke/frontend-smoke.mjs` | Live backend, browser, credentials, and stable IDs are external prerequisites. |
+| Deterministic browser characterization | `playwright.config.ts`, `tests/e2e/**` | Production build with synthetic session/API fixtures, loopback-only server, and default-deny network. |
 
 ## Route inventory
 
@@ -171,7 +172,6 @@ status lives in [`frontend-ownership-matrix.md`](./frontend-ownership-matrix.md)
 
 | Delta | Planned owner |
 | --- | --- |
-| Deterministic browser characterization | U2 |
 | Automatic dependency, reachability, and style rules | U3 |
 | Environment, HTTP, storage, and integration adapters | U4 |
 | Explicit session subject/epoch and cache lifetime | U5 |
@@ -202,14 +202,19 @@ Current local and CI commands are defined in `package.json` and
 - `npm run test:ci:no-cache -- --runInBand`
 - `npm run lint:strict`
 - `npm run build`
+- `npm run test:e2e:artifact-policy`
+- `npm run typecheck:e2e`
+- `npm run test:e2e:characterization`
+- `npm run lint:e2e`
 - `npm run verify:structure`
 - `npm run verify:pre-redesign`
 - `npm run smoke:frontend:preflight`
 - `npm run verify:design-ready`
 
-Static commands do not prove live backend, Maps, payment sandbox, or seeded
-dynamic-route behavior. Dated smoke evidence in the QA document is historical;
-fixture omissions are unverified, not passing coverage.
+The deterministic browser suite proves the current synthetic flow matrix; it
+does not prove a live backend, Google Maps, Toss sandbox, or seeded dynamic-route
+behavior. Dated smoke evidence in the QA document is historical; fixture
+omissions are unverified, not passing coverage.
 
 ## Document authority
 

@@ -291,6 +291,18 @@ describe("frontend verification gate", () => {
     expect(packageJson.scripts["test:ci:no-cache"]).toBe(
       "react-scripts test --watchAll=false --no-cache",
     );
+    expect(packageJson.scripts["test:e2e:characterization"]).toBe(
+      "playwright test --project=chromium",
+    );
+    expect(packageJson.scripts["test:e2e:artifact-policy"]).toBe(
+      "node tests/e2e/support/scan-artifacts.mjs --self-test",
+    );
+    expect(packageJson.scripts["typecheck:e2e"]).toBe(
+      "tsc --noEmit -p tsconfig.e2e.json",
+    );
+    expect(packageJson.scripts["lint:e2e"]).toBe(
+      "eslint playwright.config.ts tests/e2e --ext .mjs,.ts --max-warnings=0",
+    );
     expect(packageJson.scripts.lint).toBe("eslint src --ext .ts,.tsx");
     expect(packageJson.scripts["lint:strict"]).toBe(
       "eslint src --ext .ts,.tsx --max-warnings=0",
@@ -320,7 +332,7 @@ describe("frontend verification gate", () => {
     expect(packageJson.scripts.verify).not.toContain("lint:strict");
   });
 
-  test("frontend CI workflow runs the static verification command list on Node 20", () => {
+  test("frontend CI runs static and deterministic browser gates on Node 20", () => {
     expect(fs.existsSync(frontendWorkflowPath)).toBe(true);
 
     const workflow = fs.readFileSync(frontendWorkflowPath, "utf8");
@@ -328,20 +340,30 @@ describe("frontend verification gate", () => {
     [
       "node-version: 20",
       "run: npm ci",
+      "run: npx playwright install --with-deps chromium",
+      "run: npm run test:e2e:artifact-policy",
       "run: npm run typecheck",
+      "run: npm run typecheck:e2e",
       "run: npm run test:ci:no-cache -- --runInBand",
       "run: npm run build",
+      "run: npm run test:e2e:characterization",
       "run: npm run lint:strict",
+      "run: npm run lint:e2e",
     ].forEach((term) => {
       expect(workflow).toContain(term);
     });
 
     const commandOrder = [
       "run: npm ci",
+      "run: npx playwright install --with-deps chromium",
+      "run: npm run test:e2e:artifact-policy",
       "run: npm run typecheck",
+      "run: npm run typecheck:e2e",
       "run: npm run test:ci:no-cache -- --runInBand",
       "run: npm run build",
+      "run: npm run test:e2e:characterization",
       "run: npm run lint:strict",
+      "run: npm run lint:e2e",
     ].map((term) => workflow.indexOf(term));
 
     expect(commandOrder.every((index) => index >= 0)).toBe(true);

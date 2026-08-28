@@ -32,8 +32,12 @@
     "test": "react-scripts test",
     "test:ci": "react-scripts test --watchAll=false",
     "test:ci:no-cache": "react-scripts test --watchAll=false --no-cache",
+    "test:e2e:artifact-policy": "node tests/e2e/support/scan-artifacts.mjs --self-test",
+    "test:e2e:characterization": "playwright test --project=chromium",
     "typecheck": "tsc --noEmit",
+    "typecheck:e2e": "tsc --noEmit -p tsconfig.e2e.json",
     "lint": "eslint src --ext .ts,.tsx",
+    "lint:e2e": "eslint playwright.config.ts tests/e2e --ext .mjs,.ts --max-warnings=0",
     "lint:strict": "eslint src --ext .ts,.tsx --max-warnings=0",
     "smoke:frontend": "node scripts/smoke/frontend-smoke.mjs",
     "smoke:frontend:preflight": "node scripts/smoke/frontend-smoke.mjs --preflight",
@@ -48,6 +52,29 @@
     "extends": [
       "react-app",
       "react-app/jest"
+    ],
+    "overrides": [
+      {
+        "files": [
+          "playwright.config.ts",
+          "tests/e2e/**/*.ts"
+        ],
+        "rules": {
+          "testing-library/prefer-screen-queries": "off"
+        }
+      },
+      {
+        "files": [
+          "tests/e2e/support/**/*.mjs"
+        ],
+        "env": {
+          "node": true
+        },
+        "parserOptions": {
+          "ecmaVersion": 2022,
+          "sourceType": "module"
+        }
+      }
     ]
   },
   "browserslist": {
@@ -64,6 +91,7 @@
   },
   "proxy": "http://localhost:8080",
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@types/google.maps": "^3.58.1"
   }
 }

@@ -9,6 +9,12 @@ npm run test:ci:no-cache
 npm run build
 ```
 
+Install the deterministic browser once before the local Playwright suite:
+
+```bash
+npx playwright install chromium
+```
+
 Required environment variables:
 
 - `REACT_APP_API_URL`
@@ -25,12 +31,20 @@ Use these commands before broad visual redesign work:
 ```bash
 npm run verify:pre-redesign
 npm run verify:structure
+npm run test:e2e:artifact-policy
+npm run typecheck:e2e
+npm run test:e2e:characterization
+npm run lint:e2e
 npm run smoke:frontend:preflight
 npm run verify:design-ready
 ```
 
 - `verify:pre-redesign`: typecheck, no-cache Jest in band, and production build.
 - `verify:structure`: typecheck, no-cache Jest in band, and `lint:strict`.
+- `test:e2e:characterization`: builds and serves a loopback-only production
+  variant, then runs the synthetic Playwright flow matrix without a live backend.
+- `test:e2e:artifact-policy`, `typecheck:e2e`, and `lint:e2e`: enforce the
+  browser harness privacy, type, and lint contracts.
 - `smoke:frontend:preflight`: validates smoke env names, dynamic route fixture IDs, browser binary path, frontend URL, and backend reachability without screenshots.
 - `verify:design-ready`: runs `verify:pre-redesign` and strict browser smoke.
 
