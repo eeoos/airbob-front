@@ -1,5 +1,11 @@
 # Frontend Architecture Smoke QA
 
+> 상태: 현재 운영 smoke 절차입니다. 구조와 소유권의 기준은
+> [`../architecture/current-frontend-architecture.md`](../architecture/current-frontend-architecture.md),
+> 브라우저 데이터·artifact 처리 기준은
+> [`../architecture/frontend-browser-data-inventory.md`](../architecture/frontend-browser-data-inventory.md)를 따릅니다.
+> 아래 날짜별 결과는 당시 실행 기록이며 현재 통과를 보장하지 않고, skip된 경로는 검증 완료가 아닙니다.
+
 ## 목적
 
 Airbnb 디자인 리팩터 전에 프론트엔드 아키텍처 변경이 주요 사용자 흐름을 깨뜨리지 않았는지 확인한다.
@@ -113,7 +119,7 @@ npm run smoke:frontend:strict
 ### components ownership boundary
 
 - Steps: inspect affected UI during Search, Wishlist, Reservation, Auth, and Accommodation detail flows after running `npm run test:ci:no-cache`.
-- Expected: shared UI primitives behave consistently across flows, and workflow containers remain under features or pages without leaking domain-specific behavior into shared components.
+- Expected: shared UI primitives behave consistently across flows, and workflow orchestration remains in its registered route/screen/workflow owner without leaking domain-specific behavior into shared components.
 - Evidence: record the component/flow checked, the interaction performed, the expected shared behavior, and any boundary violation found.
 
 ### design system entry contracts
@@ -132,7 +138,7 @@ npm run smoke:frontend:strict
 - [ ] Accommodation detail 에서 date/guest, coupon, reservation button 이 정상 동작한다.
 - [ ] Auth modal 은 dialog 로 열리고 close button, Escape, backdrop 으로 닫힌다.
 - [ ] 로그인 상태에서 Reservation confirm page 가 열린다.
-- [ ] Reservation modal 은 dialog 로 열리고 결제 진입 전 focus/scroll lock 이 깨지지 않는다.
+- [ ] ReservationConfirm 결제 진입 영역에서 키보드 focus와 page scroll 동작이 깨지지 않는다.
 - [ ] ReservationConfirm 에서 Toss 결제 진입 후 PaymentSuccess 를 거쳐 ReservationDetail 로 이동한다.
 - [ ] AccommodationEdit 에서 image upload, 저장, publish 흐름이 정상 동작한다.
 - [ ] AccommodationEdit 최종 publish 에서 상세주소가 비어 있으면 image upload 전에 확인 modal 이 먼저 열린다.
@@ -149,7 +155,7 @@ npm run smoke:frontend:strict
 - [ ] Search mobile 에서 위시리스트 modal open-close 후 card 상태가 유지된다.
 - [ ] Detail booking panel/modal 이 viewport 안에 맞는다.
 - [ ] Reservation confirm page 의 CTA 와 결제 이동 영역이 viewport 안에 맞는다.
-- [ ] Wishlist modal, auth modal, reservation modal 이 close button, Escape, backdrop 으로 닫힌다.
+- [ ] 현재 도달 가능한 Wishlist/Auth/Review/숙소 action dialog가 close button, Escape, backdrop 계약을 지킨다.
 - [ ] Profile guest tab 과 host tab 을 전환할 수 있고 내용이 viewport 안에 맞는다.
 - [ ] Host listing infinite scroll 또는 empty state 가 정상 표시된다.
 

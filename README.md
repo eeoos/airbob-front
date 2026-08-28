@@ -34,9 +34,20 @@ npm run verify:design-ready
 - `smoke:frontend:preflight`: validates smoke env names, dynamic route fixture IDs, browser binary path, frontend URL, and backend reachability without screenshots.
 - `verify:design-ready`: runs `verify:pre-redesign` and strict browser smoke.
 
-### Frontend Architecture Freeze
+### Frontend Architecture
 
-구조 리팩토링 종료 기준은 `docs/architecture/frontend-architecture-freeze.ko.md`에 기록되어 있습니다.
+현재 운영 구조의 기준 문서는
+[`docs/architecture/current-frontend-architecture.md`](docs/architecture/current-frontend-architecture.md)입니다.
+단계적 구조 전환은 아래 문서를 함께 사용합니다.
+
+- [migration rules](docs/architecture/frontend-migration-rules.md)
+- [ownership matrix](docs/architecture/frontend-ownership-matrix.md)
+- [browser data inventory](docs/architecture/frontend-browser-data-inventory.md)
+- [active overhaul plan](docs/plans/2026-08-29-001-refactor-frontend-architecture-overhaul-plan.md)
+
+기존 [architecture freeze](docs/architecture/frontend-architecture-freeze.ko.md)와
+[structure refactor report](docs/architecture/frontend-structure-refactor.md)는 2026년 7월 작업의
+역사 기록이며 현재 구조 판단이나 새 리팩토링의 완료 기준으로 사용하지 않습니다.
 
 ```bash
 npm run verify:structure
@@ -65,3 +76,6 @@ Optional smoke configuration:
 - `AIRBOB_API_BASE_URL` defaults to `http://localhost:8080`
 - `AIRBOB_SMOKE_REPORT_ROOT` defaults to `.gstack/qa-reports`
 - `AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS=true` requires a visible search result card
+
+날짜가 적힌 기존 smoke 결과는 당시 실행 증거일 뿐 현재 통과 상태를 보장하지 않습니다.
+동적 fixture나 외부 실행 환경이 없어 skip된 경로도 검증 완료로 간주하지 않습니다.

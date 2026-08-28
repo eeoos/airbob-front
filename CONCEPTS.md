@@ -8,7 +8,19 @@ Shared domain vocabulary for this project — entities, named processes, and sta
 The pre-design workflow that combines static architecture contracts, authenticated browser smoke checks, review passes, and final verification before broad styling work begins.
 
 ### Architecture Freeze
-The point in the frontend verification workflow where ownership boundaries are documented and enforced by executable tests so future audits start from known contracts instead of rediscovering the same structural problems.
+A historical July 2026 milestone that introduced executable boundary checks. It is superseded as an active architecture authority by `docs/architecture/current-frontend-architecture.md`; its tests remain useful evidence until their owning migration unit replaces them.
+
+### Canonical Frontend Architecture
+The single current-state source of truth at `docs/architecture/current-frontend-architecture.md`. Migration registries and historical reports link to it instead of restating the architecture.
+
+### Cutover Registry
+The route, workflow, and infrastructure ownership ledger at `docs/architecture/frontend-ownership-matrix.md`. Each migration slice records its old owner, target owner, active writer, compatibility path, rollback reader, and removal condition.
+
+### Active Writer
+The one implementation allowed to persist or mutate a given state slice during a migration window. Compatibility readers may translate legacy state, but they must not become a second writer.
+
+### Compatibility Reader
+A temporary read-only adapter that accepts legacy URLs, navigation state, cache entries, or browser data while the active writer emits only the target representation.
 
 ### Subagent Review Loop
 A task execution pattern where a fresh implementer is followed by independent spec and code-quality reviewers before the next task begins.
@@ -41,18 +53,34 @@ Dynamic Smoke Fixtures must be supplied through local environment variables or d
 The user-flow verification pass that exercises the app in a real browser at desktop and mobile sizes using the thread-provided QA account when authenticated data is required.
 
 ### Feature App-Shell Entry Point
-A public feature boundary that exposes only the behavior needed by application shell components, keeping layouts and headers from depending on feature internals.
+A legacy public feature seam that exposes behavior to application shell components. Existing `appShell.ts` imports remain production compatibility paths until their ownership-matrix removal conditions are met; they are not the target dependency model.
 
 ### Feature Route Barrel
-A public feature boundary that exposes route containers to page adapters without exposing the feature's workflow internals.
+A legacy public feature boundary that formerly exposed route containers to page adapters. Production routing now lazy-loads feature route modules directly, so route barrels are compatibility artifacts rather than a target abstraction.
 
-Feature Route Barrels are distinct from Feature App-Shell Entry Points: page adapters use them to mount route containers, while feature-owned containers compose hooks, panels, helpers, and CSS inside the feature boundary.
+### Route Adapter
+An app-owned route boundary that reads Router state, session, and URL codecs, then passes typed input and navigation commands to a screen controller without changing the public route. It is a permanent target-layer responsibility, not a page-style re-export adapter.
+
+### Screen Controller
+A route or workflow owner that coordinates URL state, server state, commands, and navigation, then passes serializable display state and callbacks to a props-only screen.
+
+### Props-Only Screen
+A presentation component that receives view state and events through props and does not fetch server data, parse route state, mutate browser storage, or import another feature's internals.
+
+### Workflow
+A cross-feature user journey, such as checkout/payment or accommodation editing, with one explicit orchestration owner and feature/domain ports instead of reciprocal feature imports.
+
+### Session Subject
+The stable authenticated-user identity used to scope private cache and browser state. A session epoch distinguishes successive login lifecycles for the same or different subject when identity is unavailable or changing.
+
+### Browser Data Inventory
+The registry at `docs/architecture/frontend-browser-data-inventory.md` that records browser-persisted and navigation data by purpose, field, privacy class, subject owner, reload need, TTL, cleanup event, artifact policy, and legacy compatibility.
 
 ### Route Shell Metadata
 Route-owned facts about layout, authentication, and header behavior that layouts consume instead of duplicating shell policy inside pages or components.
 
 ### Public Cache Boundary
-A feature-owned public API for cache membership, invalidation, or reconciliation that other features may call without importing private query keys or synchronization internals.
+A legacy feature-owned seam for cache invalidation and reconciliation. It remains a compatibility path during migration, but target workflows use query factories and explicit domain ports without feature-to-feature cache ownership.
 
 ### Shared UI Primitive
 A domain-free reusable UI building block whose accessibility and interaction semantics are tested independently from route or feature workflows.
