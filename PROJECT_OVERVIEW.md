@@ -23,6 +23,7 @@ TanStack Query가 서버 상태를, `AuthProvider`가 세션 상태를, URL과 `
 - 단계적 전환 규칙: [frontend migration rules](docs/architecture/frontend-migration-rules.md)
 - route/workflow 소유권과 cutover 상태: [frontend ownership matrix](docs/architecture/frontend-ownership-matrix.md)
 - 브라우저 저장 데이터와 개인정보/TTL: [frontend browser data inventory](docs/architecture/frontend-browser-data-inventory.md)
+- 의존성·미사용 코드·스타일 strict 승격: [frontend architecture ratchets](tests/architecture/dependency-rules.md)
 - 실행 계획: [frontend architecture overhaul plan](docs/plans/2026-08-29-001-refactor-frontend-architecture-overhaul-plan.md)
 - 과거 계획 색인: [frontend refactor plan index](docs/archive/frontend-refactor-plan-index.md)
 

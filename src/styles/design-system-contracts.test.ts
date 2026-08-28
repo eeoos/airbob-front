@@ -1,7 +1,13 @@
 import * as fs from "fs";
 import * as path from "path";
 
-const srcDir = path.join(process.cwd(), "src");
+const projectRoot = process.cwd();
+const srcDir = path.join(projectRoot, "src");
+const { protectedDesignLiteralStylePaths } = require(
+  "../../scripts/architecture/style-policy.cjs"
+).createStylePolicy({ projectRoot }) as {
+  protectedDesignLiteralStylePaths: readonly string[];
+};
 
 const readSource = (relativePath: string) =>
   fs.readFileSync(path.join(srcDir, relativePath), "utf8");
@@ -104,8 +110,6 @@ describe("design system entry contracts", () => {
   });
 
   it("keeps task 5 route and boundary CSS enrolled in token ownership", () => {
-    const tokensTestSource = readSource("styles/tokens.test.ts");
-
     [
       "components/DatePicker/DatePicker.module.css",
       "components/ErrorBoundary/ErrorBoundary.module.css",
@@ -114,7 +118,7 @@ describe("design system entry contracts", () => {
       "features/search/SearchRoute.module.css",
       "features/search/components/SearchAccommodationCard.module.css",
     ].forEach((relativePath) => {
-      expect(tokensTestSource).toContain(`"${relativePath}"`);
+      expect(protectedDesignLiteralStylePaths).toContain(`src/${relativePath}`);
     });
   });
 });

@@ -69,6 +69,11 @@ features -> platform, shared
 platform -> shared
 ```
 
+App composition reaches a feature only through `ui/**`, `ports/**`, or the
+feature root `public.ts`/`public.tsx`. Those are deliberate, narrow composition
+surfaces; `components`, hooks, models, API adapters, and compatibility barrels
+remain private.
+
 Forbidden target edges:
 
 - feature to feature
@@ -81,6 +86,21 @@ Forbidden target edges:
 During migration, a legacy edge is allowed only when the ownership matrix names
 the exact compatibility reader and its removal unit. Migrated slices have zero
 exceptions.
+
+`architecture-ratchet.json` is the single strict-promotion registry. Add a
+feature only in its production cutover commit and only when dependency-cruiser,
+Knip, and Stylelint all report zero target errors for it. Never add a known
+violation snapshot or file ignore to claim that a slice is migrated. The exact
+registry accepts only existing feature roots with production source, and CI
+compares it with Git history so a live feature cannot be downgraded. It is
+monotonic until U22 removes the registered feature root. The exact tool owners
+and U3 baseline live in
+[`tests/architecture/dependency-rules.md`](../../tests/architecture/dependency-rules.md).
+New or renamed feature roots must be registered in their creation/rename commit.
+A parent feature cannot claim production source owned by a declared nested
+feature, and removal of a retired nested scope must preserve historical
+comparison until the root is gone. Feature source must be a real directory tree,
+not a symbolic-link alias.
 
 ## 6. Assign state to one authority
 
@@ -124,6 +144,9 @@ browser storage when a reload can safely refetch it.
 - Dependency graph rules belong to dependency-cruiser.
 - Production reachability and unused dependencies belong to Knip.
 - CSS policy belongs to Stylelint.
+- Transition-all, z-index, focus-visible, and token-equivalent literal checks
+  that the pinned Stylelint line cannot yet express remain focused Jest owners
+  and consume the same strict feature registry.
 - Local code and import feedback belongs to ESLint.
 - User behavior belongs to unit/integration/Playwright tests.
 
@@ -136,11 +159,13 @@ Before declaring a slice complete:
 
 - focused behavior tests pass;
 - the full static gate and production build pass;
+- `npm run verify:architecture` passes with the slice in the strict registry;
 - applicable deterministic browser scenarios pass;
 - the manifest points to one active route adapter;
 - the mutable workflow has one writer;
 - the old route, writer, barrel, and compatibility export are removed;
 - the migrated slice has no boundary-rule exception;
+- Knip retains its canonical entry/project coverage and all error-level rules;
 - the ownership matrix and canonical architecture document match production;
 - residual live-backend or sandbox scope is marked unverified, not passed.
 

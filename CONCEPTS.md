@@ -33,6 +33,9 @@ A behavior-preserving frontend reorganization that makes ownership boundaries ex
 ### Verification Gate
 The automated portion of the Architecture Verification Loop that proves type safety, test coverage, production build viability, QA checklist coverage, and credential hygiene before a branch is considered ready for design work.
 
+### Architecture Ratchet
+The executable static-policy layer owned by dependency-cruiser, Knip, and Stylelint. Existing debt is measured as report-only evidence, while target directories and real production features promoted through the monotonic `architecture-ratchet.json` registry fail immediately on new dependency, reachability, or design-reference violations.
+
 ### Pre-Redesign Gate
 The static verification threshold that must pass before visual styling begins, focused on type safety, deterministic test coverage, and production build viability.
 

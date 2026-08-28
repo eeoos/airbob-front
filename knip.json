@@ -1,0 +1,42 @@
+{
+  "$schema": "./node_modules/knip/schema.json",
+  "entry": [
+    "src/index.tsx!",
+    "src/setupTests.{js,jsx,ts,tsx}",
+    "src/**/*.{test,spec}.{js,jsx,ts,tsx}",
+    "playwright.config.ts",
+    "scripts/**/*.{cjs,mjs}",
+    "tests/e2e/specs/**/*.spec.ts",
+    "tests/e2e/support/**/*.mjs",
+    "tests/architecture/**/*.mjs",
+    ".dependency-cruiser.cjs",
+    "stylelint.config.mjs"
+  ],
+  "project": [
+    "src/**/*.{js,jsx,ts,tsx}!",
+    "!src/**/__tests__/**/*.{js,jsx,ts,tsx}!",
+    "!src/**/__mocks__/**/*.{js,jsx,ts,tsx}!",
+    "!src/**/*.{test,spec}.{js,jsx,ts,tsx}!",
+    "!src/setupTests.{js,jsx,ts,tsx}!",
+    "playwright.config.ts",
+    "scripts/**/*.{cjs,mjs}",
+    "tests/**/*.{ts,mjs}",
+    ".dependency-cruiser.cjs",
+    "stylelint.config.mjs"
+  ],
+  "rules": {
+    "files": "error",
+    "dependencies": "error",
+    "devDependencies": "error",
+    "unlisted": "error",
+    "binaries": "error",
+    "unresolved": "error",
+    "exports": "error",
+    "nsExports": "error",
+    "types": "error",
+    "nsTypes": "error",
+    "enumMembers": "error",
+    "classMembers": "error",
+    "duplicates": "error"
+  }
+}

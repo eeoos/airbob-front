@@ -92,7 +92,7 @@ the active production entry.
 | Tokens/assets/primitives | `src/styles`, `src/shared/ui`, `src/components`, `src/assets` | `src/shared/styles|ui|assets` | U15 migrates actual consumers; empty/unused legacy roots U22 or U15 as assigned |
 | Build/dev | CRA `react-scripts` | Vite | U16 retains `build/`, env/proxy/assets/chunk parity; CRA test remains temporarily |
 | Unit/integration runner | CRA Jest | Vitest | U17 uses disjoint ownership inventory; removes Jest/react-scripts after last suite |
-| Compiler/lint/format | TypeScript 4.9 and CRA ESLint presets | TypeScript 5.x and explicit static-tool owners | U23 after Vitest; formatting is final mechanical pass |
+| Compiler/lint/format | TypeScript 4.9, CRA ESLint presets, dependency-cruiser 17, Knip 2 target ratchet, Stylelint 16 target ratchet | TypeScript 5.x and current explicit static-tool owners | U3 owns graph/reachability/style policy; U23 upgrades Node/TypeScript/tools together after Vitest and performs the final mechanical format pass |
 
 ## U10/U11 payment compatibility matrix
 

@@ -1,7 +1,19 @@
 import * as fs from "fs";
 import * as path from "path";
 
-const srcDir = path.join(process.cwd(), "src");
+const projectRoot = process.cwd();
+const {
+  highRiskPreRedesignStylePaths,
+  isStrictStylePath,
+  legacyDesignProtectedStylePaths,
+} = require(
+  "../../scripts/architecture/style-policy.cjs"
+).createStylePolicy({ projectRoot }) as {
+  highRiskPreRedesignStylePaths: readonly string[];
+  isStrictStylePath: (filePath: string) => boolean;
+  legacyDesignProtectedStylePaths: readonly string[];
+};
+const srcDir = path.join(projectRoot, "src");
 const tokensCssPath = path.join(srcDir, "styles", "tokens.css");
 const indexCssPath = path.join(srcDir, "index.css");
 const indexTsxPath = path.join(srcDir, "index.tsx");
@@ -154,155 +166,17 @@ const collectProductionContractFiles = (dir: string): string[] => {
   });
 };
 
+const productionContractFiles = collectProductionContractFiles(srcDir);
+const productionCssFiles = productionContractFiles.filter((filePath) =>
+  filePath.endsWith(".css")
+);
+const strictTokenOwnedCssFiles = productionCssFiles
+  .filter((filePath) => isStrictStylePath(filePath))
+  .map((filePath) => path.relative(srcDir, filePath));
+
 const cssPath = (relativePath: string) => path.join(srcDir, relativePath);
 
 const readCss = (relativePath: string) => fs.readFileSync(cssPath(relativePath), "utf8");
-
-const tokenMigrationAllowlist = new Set<string>();
-
-const newlyTokenOwnedCssFiles = [
-  "layouts/AppHeader/Header.module.css",
-  "layouts/AppHeader/UserMenu.module.css",
-  "features/wishlist/components/WishlistViews.module.css",
-  "features/auth/components/AuthModal/AuthModal.module.css",
-  "features/reservations/components/ReservationModal/ReservationModal.module.css",
-];
-
-const sharedPrimitiveCssFiles = [
-  "shared/ui/Button/Button.module.css",
-  "shared/ui/Card/Card.module.css",
-  "shared/ui/ClickableCard/ClickableCard.module.css",
-  "shared/ui/CounterStepper/CounterStepper.module.css",
-  "shared/ui/Dialog/Dialog.module.css",
-  "shared/ui/IconButton/IconButton.module.css",
-  "shared/ui/ListingCard/ListingCard.module.css",
-  "shared/ui/OverlaySurface/OverlaySurface.module.css",
-  "shared/ui/PageShell/PageShell.module.css",
-  "shared/ui/StateView/StateView.module.css",
-  "shared/ui/StatusBadge/StatusBadge.module.css",
-  "shared/ui/Tabs/Tabs.module.css",
-  "shared/ui/TextField/TextField.module.css",
-  "shared/ui/ToastHost/ToastHost.module.css",
-  "layouts/MainLayout.module.css",
-];
-
-const strictTokenOwnedCssFiles = [
-  ...sharedPrimitiveCssFiles,
-  ...newlyTokenOwnedCssFiles,
-];
-
-const designTokenOwnedCssFiles = [
-  ...sharedPrimitiveCssFiles,
-  "components/DatePicker/DatePicker.module.css",
-  "components/ErrorBoundary/ErrorBoundary.module.css",
-  "features/wishlist/components/CreateWishlistModal/CreateWishlistModal.module.css",
-  "features/wishlist/components/WishlistModal/WishlistModal.module.css",
-  "features/reviews/components/ReviewModal/ReviewModal.module.css",
-  "features/accommodations/components/AccommodationActionModal/AccommodationActionModal.module.css",
-  "features/reservations/PaymentSuccessRoute.module.css",
-  "features/reservations/PaymentFailRoute.module.css",
-  "features/search/components/SearchAccommodationCard.module.css",
-  "features/search/SearchRoute.module.css",
-  "features/wishlist/WishlistRoute.module.css",
-  "features/profile/components/ProfileShell.module.css",
-  "features/profile/HostListingsPanel.module.css",
-  "features/accommodations/AccommodationDetailRoute.module.css",
-  "features/accommodations/components/AccommodationBookingCard.module.css",
-  "features/accommodations/components/AccommodationHero.module.css",
-  "features/accommodations/components/AccommodationLocationSection.module.css",
-  "features/accommodations/components/AccommodationOverview.module.css",
-  "features/accommodations/components/AccommodationReviewsSection.module.css",
-  "features/accommodations/components/AccommodationDescriptionModal.module.css",
-  "features/accommodations/components/AccommodationImageGalleryModal.module.css",
-  "features/search/components/SearchBar/SearchBar.module.css",
-  ...newlyTokenOwnedCssFiles,
-];
-
-const highRiskPreRedesignCssFiles = [
-  "src/features/reservations/GuestTripsPanel.module.css",
-  "src/features/reservations/HostReservationsPanel.module.css",
-  "src/features/reservations/HostReservationDetailRoute.module.css",
-  "src/features/reservations/ReservationDetailRoute.module.css",
-  "src/features/reservations/ReservationConfirmRoute.module.css",
-  "src/features/reviews/ReviewCreateRoute.module.css",
-  "src/features/profile/components/ProfileShell.module.css",
-  "src/features/profile/HostListingsPanel.module.css",
-  "src/features/accommodations/edit/components/EditForm.module.css",
-  "src/features/accommodations/edit/components/EditModal.module.css",
-  "src/features/accommodations/edit/components/EditWizardLayout.module.css",
-  "src/features/accommodations/edit/components/PhotosStep.module.css",
-  "src/features/accommodations/edit/components/TimeStep.module.css",
-  "src/features/accommodations/components/AccommodationBookingCard.module.css",
-  "src/features/accommodations/components/AccommodationHero.module.css",
-  "src/features/accommodations/components/AccommodationLocationSection.module.css",
-  "src/features/accommodations/components/AccommodationOverview.module.css",
-];
-
-const allowedBreakpointValues = new Set([
-  "480px",
-  "768px",
-  "769px",
-  "1024px",
-  "1025px",
-  "1200px",
-  "1400px",
-]);
-
-const forbiddenDesignLiteralPatterns = [
-  {
-    name: "core-color-hex",
-    regex:
-      /#(?:000000|222222|717171|f7f7f7|dddddd|b0b0b0|ff385c|e61e4d|ffffff)\b/i,
-  },
-  {
-    name: "core-color-name",
-    regex: /\b(?:background|background-color|color)\s*:\s*(?:white|black)\b/i,
-  },
-  {
-    name: "core-radius",
-    regex: /border-radius\s*:\s*(?:4px|8px|12px|50%)\b/i,
-  },
-  {
-    name: "core-shadow",
-    regex: /box-shadow\s*:\s*0\s+(?:1px\s+2px|4px\s+12px)\s+rgba\(0,\s*0,\s*0,\s*(?:0\.08|0\.15)\)/i,
-  },
-  {
-    name: "card-media-ratio",
-    regex: /aspect-ratio\s*:\s*1\s*\/\s*1\b/i,
-  },
-];
-
-const findForbiddenDesignLiteral = (line: string) => {
-  for (const pattern of forbiddenDesignLiteralPatterns) {
-    if (pattern.regex.test(line)) {
-      return pattern.name;
-    }
-  }
-
-  return null;
-};
-
-const newlyOwnedForbiddenDesignLiteralPatterns = [
-  ...forbiddenDesignLiteralPatterns,
-  {
-    name: "border-subtle-color-hex",
-    regex: /#(?:ebebeb|e0e0e0)\b/i,
-  },
-  {
-    name: "raw-shadow",
-    regex: /box-shadow\s*:\s*(?!\s*(?:var\(|none\b))[^;]+/i,
-  },
-];
-
-const findForbiddenNewlyOwnedDesignLiteral = (line: string) => {
-  for (const pattern of newlyOwnedForbiddenDesignLiteralPatterns) {
-    if (pattern.regex.test(line)) {
-      return pattern.name;
-    }
-  }
-
-  return null;
-};
 
 const findRawZIndexDeclaration = (line: string) => {
   const match = line.match(/\bz-index\s*:\s*([^;]+)/i);
@@ -460,23 +334,19 @@ const collectStrictTokenOwnedCssSourceOffenders = (
     findOffenders(relativePath, readCss(relativePath)),
   );
 
-const readProjectCss = (relativePath: string) =>
-  fs.readFileSync(path.join(process.cwd(), relativePath), "utf8");
-
-const collectHighRiskPreRedesignCssLineOffenders = (
+const collectPolicyCssLineOffenders = (
+  stylePaths: readonly string[],
   findOffender: (line: string, index: number, lines: string[]) => string | null,
 ) =>
-  highRiskPreRedesignCssFiles.flatMap((relativePath) => {
-    const lines = readProjectCss(relativePath).split(/\r?\n/);
+  stylePaths.flatMap((stylePath) => {
+    const lines = fs
+      .readFileSync(path.join(projectRoot, stylePath), "utf8")
+      .split(/\r?\n/);
 
     return lines.flatMap((line, index) => {
       const offender = findOffender(line, index, lines);
 
-      if (!offender) {
-        return [];
-      }
-
-      return `${relativePath}:${index + 1}: ${offender}`;
+      return offender ? `${stylePath}:${index + 1}: ${offender}` : [];
     });
   });
 
@@ -618,36 +488,6 @@ describe("pre-design token stylesheet contract", () => {
     );
   });
 
-  it("keeps design-owned component CSS on color, radius, and shadow tokens", () => {
-    const offenders = designTokenOwnedCssFiles.flatMap((relativePath) => {
-      const source = readCss(relativePath);
-
-      return source.split(/\r?\n/).flatMap((line, index) => {
-        const patternName = findForbiddenDesignLiteral(line);
-
-        if (!patternName) {
-          return [];
-        }
-
-        return `${relativePath}:${index + 1}: [${patternName}] ${line.trim()}`;
-      });
-    });
-
-    expect(offenders).toEqual([]);
-  });
-
-  it("keeps newly token-owned CSS files enrolled in design token ownership", () => {
-    newlyTokenOwnedCssFiles.forEach((relativePath) => {
-      expect(designTokenOwnedCssFiles).toContain(relativePath);
-    });
-  });
-
-  it("keeps shared primitive CSS files enrolled in strict token ownership", () => {
-    sharedPrimitiveCssFiles.forEach((relativePath) => {
-      expect(strictTokenOwnedCssFiles).toContain(relativePath);
-    });
-  });
-
   it("keeps strict token-owned CSS off transition-all declarations", () => {
     const offenders = collectStrictTokenOwnedCssSourceOffenders((relativePath, source) =>
       findTransitionAllMatches(source).map(
@@ -676,17 +516,11 @@ describe("pre-design token stylesheet contract", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("keeps high-risk pre-redesign CSS off core design literals and raw z-index declarations", () => {
-    const offenders = collectHighRiskPreRedesignCssLineOffenders((line) => {
-      const patternName = findForbiddenDesignLiteral(line);
-      const rawZIndex = findRawZIndexDeclaration(line);
-
-      if (patternName) {
-        return `[${patternName}] ${line.trim()}`;
-      }
-
-      return rawZIndex;
-    });
+  it("keeps high-risk pre-redesign CSS z-index declarations on tokens", () => {
+    const offenders = collectPolicyCssLineOffenders(
+      highRiskPreRedesignStylePaths,
+      (line) => findRawZIndexDeclaration(line),
+    );
 
     expect(offenders).toEqual([]);
   });
@@ -729,24 +563,6 @@ describe("pre-design token stylesheet contract", () => {
     ).toEqual([]);
   });
 
-  it("keeps strict token-owned CSS free of important overrides", () => {
-    const offenders = collectStrictTokenOwnedCssLineOffenders((line) =>
-      line.includes("!important") ? line.trim() : null,
-    );
-
-    expect(offenders).toEqual([]);
-  });
-
-  it("keeps strict token-owned CSS on color, radius, and shadow tokens", () => {
-    const offenders = collectStrictTokenOwnedCssLineOffenders((line) => {
-      const patternName = findForbiddenNewlyOwnedDesignLiteral(line);
-
-      return patternName ? `[${patternName}] ${line.trim()}` : null;
-    });
-
-    expect(offenders).toEqual([]);
-  });
-
   it("keeps strict token-owned CSS off token-equivalent spacing and font literals", () => {
     const offenders = collectStrictTokenOwnedCssSourceOffenders((relativePath, source) =>
       findForbiddenTokenEquivalentLiteralMatches(source).map(
@@ -775,71 +591,15 @@ describe("pre-design token stylesheet contract", () => {
     ]);
   });
 
-  it("keeps the token migration allowlist retired", () => {
-    const cleanedModalCssFiles = [
-      "features/auth/components/AuthModal/AuthModal.module.css",
-      "features/reservations/components/ReservationModal/ReservationModal.module.css",
-      "features/search/components/SearchBar/SearchBar.module.css",
-    ];
-
-    expect(Array.from(tokenMigrationAllowlist)).toEqual([]);
-    expect(designTokenOwnedCssFiles).toContain(
-      "features/search/components/SearchAccommodationCard.module.css",
-    );
-
-    [
-      "components/DatePicker/DatePicker.module.css",
-      "components/ErrorBoundary/ErrorBoundary.module.css",
-      "features/reservations/PaymentSuccessRoute.module.css",
-      "features/reservations/PaymentFailRoute.module.css",
-      "features/reviews/components/ReviewModal/ReviewModal.module.css",
-      "features/wishlist/components/WishlistModal/WishlistModal.module.css",
-      "features/accommodations/components/AccommodationActionModal/AccommodationActionModal.module.css",
-    ].forEach((relativePath) => {
-      expect(designTokenOwnedCssFiles).toContain(relativePath);
-    });
-
-    cleanedModalCssFiles.forEach((relativePath) => {
-      expect(tokenMigrationAllowlist.has(`src/${relativePath}`)).toBe(false);
-      expect(designTokenOwnedCssFiles).toContain(relativePath);
-    });
-  });
-
-  it("keeps media query breakpoints on the agreed pre-design scale", () => {
-    const offenders = collectProductionContractFiles(srcDir)
-      .filter((filePath) => filePath.endsWith(".css"))
-      .flatMap((filePath) => {
-        const source = fs.readFileSync(filePath, "utf8");
-
-        return source.split(/\r?\n/).flatMap((line, index) => {
-          const matches = Array.from(line.matchAll(/@media[^{]*?(\d+px)/g));
-
-          return matches
-            .filter((match) => !allowedBreakpointValues.has(match[1]))
-            .map(
-              (match) =>
-                `${path.relative(process.cwd(), filePath)}:${index + 1}: ${match[1]}`
-            );
-        });
-      });
-
-    expect(offenders).toEqual([]);
-  });
-
-  it("keeps local z-index literals out of high-impact design-owned CSS", () => {
-    const offenders = designTokenOwnedCssFiles.flatMap((relativePath) => {
-      const source = readCss(relativePath);
-
-      return source.split(/\r?\n/).flatMap((line, index) => {
+  it("keeps local z-index literals out of protected design CSS", () => {
+    const offenders = collectPolicyCssLineOffenders(
+      legacyDesignProtectedStylePaths,
+      (line) => {
         const match = line.match(/z-index\s*:\s*(?:10|100)\b/);
 
-        if (!match) {
-          return [];
-        }
-
-        return `${relativePath}:${index + 1}: ${match[0]}`;
-      });
-    });
+        return match?.[0] ?? null;
+      },
+    );
 
     expect(offenders).toEqual([]);
   });

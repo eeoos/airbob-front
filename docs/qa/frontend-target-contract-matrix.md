@@ -25,7 +25,7 @@ CI의 첫 production build는 기본 배포 환경 compile gate다. Playwright �
 
 | Target gap | Current state | Owner | Activation condition | Required evidence |
 | --- | --- | --- | --- | --- |
-| Runtime DAG와 type-only cycle 0 | accommodation editor type cycle과 compatibility feature edge가 남아 있다. | U3, U7-U13, U22 | dependency rules가 도입되고 각 slice가 target owner로 이동할 때 | dependency fixture + production graph report |
+| Runtime DAG와 type-only cycle 0 | U3 rule owner와 fixture는 활성화됐다. Production graph에는 editor cycle 2개와 compatibility feature edge 16개가 warning debt로 남고 target error는 0이다. | U7-U13, U22 | 각 slice를 `architecture-ratchet.json`에 등록하는 production cutover 때 | dependency fixture + production graph report |
 | Browser storage 단일 owner | 여러 feature가 `localStorage`/`sessionStorage`를 직접 사용한다. | U4, U10 | platform adapter가 생성되고 첫 writer가 cutover될 때 | adapter contract + reload browser test |
 | Session substate와 cross-tab epoch | 현재는 React Query의 nullable user가 사실상 session state다. | U5 | safe return codec U6 완료 후 session owner cutover 시 | transient `/me`, A→logout→B, `BroadcastChannel` browser scenarios |
 | 안전한 내부 return target | current route state parser만 개별 검증하며 중앙 codec이 없다. | U6 | typed route manifest 도입 시 | open-redirect rejection + deep-link/back/forward tests |

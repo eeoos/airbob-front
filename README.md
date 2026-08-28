@@ -2,6 +2,9 @@
 
 ## Frontend Setup
 
+Use Node.js 20.12+, Node.js 22, or Node.js 24. Odd-numbered Node releases
+are outside the supported toolchain range.
+
 ```bash
 npm install
 npm run typecheck
@@ -31,6 +34,8 @@ Use these commands before broad visual redesign work:
 ```bash
 npm run verify:pre-redesign
 npm run verify:structure
+npm run verify:architecture
+npm run report:architecture
 npm run test:e2e:artifact-policy
 npm run typecheck:e2e
 npm run test:e2e:characterization
@@ -40,7 +45,13 @@ npm run verify:design-ready
 ```
 
 - `verify:pre-redesign`: typecheck, no-cache Jest in band, and production build.
-- `verify:structure`: typecheck, no-cache Jest in band, and `lint:strict`.
+- `verify:structure`: typecheck, no-cache Jest in band, strict ESLint, and the
+  architecture/reachability/style ratchets.
+- `verify:architecture`: runs forbidden-rule fixtures, the production
+  dependency graph, monotonic migration-registry checks, target-only dead-code
+  enforcement, new-unused-dependency prevention, and strict style policy.
+- `report:architecture`: prints the measured legacy dead-code and CSS debt
+  without turning it into permanent suppressions.
 - `test:e2e:characterization`: builds and serves a loopback-only production
   variant, then runs the synthetic Playwright flow matrix without a live backend.
 - `test:e2e:artifact-policy`, `typecheck:e2e`, and `lint:e2e`: enforce the
@@ -57,6 +68,7 @@ npm run verify:design-ready
 - [migration rules](docs/architecture/frontend-migration-rules.md)
 - [ownership matrix](docs/architecture/frontend-ownership-matrix.md)
 - [browser data inventory](docs/architecture/frontend-browser-data-inventory.md)
+- [executable architecture ratchets](tests/architecture/dependency-rules.md)
 - [active overhaul plan](docs/plans/2026-08-29-001-refactor-frontend-architecture-overhaul-plan.md)
 
 기존 [architecture freeze](docs/architecture/frontend-architecture-freeze.ko.md)와

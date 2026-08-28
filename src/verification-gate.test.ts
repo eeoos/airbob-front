@@ -26,6 +26,20 @@ const ownershipMatrixDocPath = path.join(
   projectRoot,
   "docs/architecture/frontend-ownership-matrix.md",
 );
+const architectureRulesDocPath = path.join(
+  projectRoot,
+  "tests/architecture/dependency-rules.md",
+);
+const dependencyCruiserConfigPath = path.join(
+  projectRoot,
+  ".dependency-cruiser.cjs",
+);
+const knipConfigPath = path.join(projectRoot, "knip.json");
+const stylelintConfigPath = path.join(projectRoot, "stylelint.config.mjs");
+const architectureRatchetPath = path.join(
+  projectRoot,
+  "architecture-ratchet.json",
+);
 const architectureFreezeDocPath = path.join(
   projectRoot,
   "docs/architecture/frontend-architecture-freeze.ko.md",
@@ -287,7 +301,9 @@ describe("frontend verification gate", () => {
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
 
     expect(packageJson.packageManager).toBe("npm@10.7.0");
-    expect(packageJson.engines?.node).toBe(">=20.0.0");
+    expect(packageJson.engines?.node).toBe(
+      "^20.12.0 || ^22.0.0 || ^24.0.0",
+    );
     expect(packageJson.scripts["test:ci:no-cache"]).toBe(
       "react-scripts test --watchAll=false --no-cache",
     );
@@ -303,12 +319,54 @@ describe("frontend verification gate", () => {
     expect(packageJson.scripts["lint:e2e"]).toBe(
       "eslint playwright.config.ts tests/e2e --ext .mjs,.ts --max-warnings=0",
     );
-    expect(packageJson.scripts.lint).toBe("eslint src --ext .ts,.tsx");
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-dependency-rules.mjs",
+    );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-architecture-ratchet.mjs",
+    );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-registry-rules.mjs",
+    );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-git-baselines.mjs",
+    );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-knip-reachability.mjs",
+    );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-style-rules.mjs",
+    );
+    expect(packageJson.scripts["lint:architecture"]).toBe(
+      "node scripts/architecture/run-dependency-cruiser.mjs",
+    );
+    expect(packageJson.scripts["lint:dead-code"]).toContain(
+      "knip-target-ratchet.mjs",
+    );
+    expect(packageJson.scripts["lint:dead-code"]).toContain(
+      "verify-unused-dependency-ratchet.mjs",
+    );
+    expect(packageJson.scripts["lint:styles"]).toBe(
+      'stylelint "src/**/*.css" --quiet',
+    );
+    expect(packageJson.scripts["verify:architecture"]).toBe(
+      "npm run test:architecture-rules && npm run lint:architecture && npm run lint:dead-code && npm run lint:styles && npm run lint:architecture-tools",
+    );
+    expect(packageJson.devDependencies).toMatchObject({
+      "dependency-cruiser": "17.4.3",
+      knip: "2.43.0",
+      stylelint: "16.23.1",
+      "stylelint-config-recommended": "17.0.0",
+      "stylelint-config-standard": "39.0.0",
+    });
+    expect(packageJson.scripts.lint).toBe(
+      "eslint src --ext .js,.jsx,.ts,.tsx",
+    );
     expect(packageJson.scripts["lint:strict"]).toBe(
-      "eslint src --ext .ts,.tsx --max-warnings=0",
+      "eslint src --ext .js,.jsx,.ts,.tsx --max-warnings=0",
     );
     expect(packageJson.scripts["verify:structure"]).toBe(
-      "npm run typecheck && npm run test:ci:no-cache -- --runInBand && npm run lint:strict",
+      "npm run typecheck && npm run verify:architecture && npm run test:ci:no-cache -- --runInBand && npm run lint:strict",
     );
     expect(packageJson.scripts["verify:pre-redesign"]).toBe(
       "npm run typecheck && npm run test:ci:no-cache -- --runInBand && npm run build",
@@ -338,12 +396,16 @@ describe("frontend verification gate", () => {
     const workflow = fs.readFileSync(frontendWorkflowPath, "utf8");
 
     [
+      "fetch-depth: 0",
       "node-version: 20",
       "run: npm ci",
       "run: npx playwright install --with-deps chromium",
       "run: npm run test:e2e:artifact-policy",
       "run: npm run typecheck",
       "run: npm run typecheck:e2e",
+      "run: npm run verify:architecture",
+      "AIRBOB_PUSH_BEFORE_SHA: $" +
+        "{{ github.event_name == 'push' && github.event.before || '' }}",
       "run: npm run test:ci:no-cache -- --runInBand",
       "run: npm run build",
       "run: npm run test:e2e:characterization",
@@ -359,6 +421,7 @@ describe("frontend verification gate", () => {
       "run: npm run test:e2e:artifact-policy",
       "run: npm run typecheck",
       "run: npm run typecheck:e2e",
+      "run: npm run verify:architecture",
       "run: npm run test:ci:no-cache -- --runInBand",
       "run: npm run build",
       "run: npm run test:e2e:characterization",
@@ -375,6 +438,11 @@ describe("frontend verification gate", () => {
     expect(fs.existsSync(currentArchitectureDocPath)).toBe(true);
     expect(fs.existsSync(migrationRulesDocPath)).toBe(true);
     expect(fs.existsSync(ownershipMatrixDocPath)).toBe(true);
+    expect(fs.existsSync(architectureRulesDocPath)).toBe(true);
+    expect(fs.existsSync(dependencyCruiserConfigPath)).toBe(true);
+    expect(fs.existsSync(knipConfigPath)).toBe(true);
+    expect(fs.existsSync(stylelintConfigPath)).toBe(true);
+    expect(fs.existsSync(architectureRatchetPath)).toBe(true);
     expect(fs.existsSync(envExamplePath)).toBe(true);
 
     const historicalArchitectureDoc = fs.readFileSync(
@@ -387,6 +455,13 @@ describe("frontend verification gate", () => {
     );
     const migrationRulesDoc = fs.readFileSync(migrationRulesDocPath, "utf8");
     const ownershipMatrixDoc = fs.readFileSync(ownershipMatrixDocPath, "utf8");
+    const architectureRulesDoc = fs.readFileSync(
+      architectureRulesDocPath,
+      "utf8",
+    );
+    const architectureRatchet = JSON.parse(
+      fs.readFileSync(architectureRatchetPath, "utf8"),
+    );
     const envExample = fs.readFileSync(envExamplePath, "utf8");
 
     [
@@ -409,6 +484,16 @@ describe("frontend verification gate", () => {
       "**Active** is the only production route entry",
     );
     expect(ownershipMatrixDoc).toContain("U10/U11 payment compatibility matrix");
+    expect(architectureRulesDoc).toContain("Single rule owners");
+    expect(architectureRulesDoc).toContain("sixteen cross-feature compatibility edges");
+    expect(architectureRulesDoc).toContain("Strict design-policy errors are zero");
+    expect(Array.isArray(architectureRatchet.migratedFeatures)).toBe(true);
+    expect(new Set(architectureRatchet.migratedFeatures).size).toBe(
+      architectureRatchet.migratedFeatures.length,
+    );
+    expect(architectureRatchet.migratedFeatures).toEqual(
+      [...architectureRatchet.migratedFeatures].sort(),
+    );
 
     [
       "REACT_APP_API_URL=http://localhost:8080",

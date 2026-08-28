@@ -54,6 +54,7 @@ Current owners:
 | Shared styling values | `src/styles/tokens.css` | CSS Modules still contain feature-local literals. |
 | Browser smoke | `scripts/smoke/frontend-smoke.mjs` | Live backend, browser, credentials, and stable IDs are external prerequisites. |
 | Deterministic browser characterization | `playwright.config.ts`, `tests/e2e/**` | Production build with synthetic session/API fixtures, loopback-only server, and default-deny network. |
+| Static architecture ratchets | `.dependency-cruiser.cjs`, `knip.json`, `stylelint.config.mjs`, `architecture-ratchet.json` | Target/migrated surfaces fail on graph, reachability, and design-policy regressions while measured legacy debt remains visible. |
 
 ## Route inventory
 
@@ -109,8 +110,8 @@ Detailed browser persistence and privacy properties are recorded in
   envelope and expose `ApiClientError`.
 - Domain wrappers under `src/api/*.ts` own current methods, URLs, query/body
   shapes, and global wire DTO imports from `src/types/**`.
-- UI components and route containers are kept away from direct API imports by
-  executable source-contract tests.
+- UI components and route containers are kept away from direct API and wire-DTO
+  imports by dependency-cruiser rules with failing fixtures.
 - Wire payload fields are TypeScript types; arbitrary domain payloads are not
   runtime-decoded today.
 
@@ -148,7 +149,27 @@ Consequences that remain open:
 - `features/accommodations/appShell.ts` exports both the header draft hook and a
   modal, which lets an app-shell consumer pull unrelated modal code and CSS into
   the initial graph.
-- Contract tests prove that public seams are used; they do not prove a DAG.
+- Public compatibility seams remain permitted, while the graph ratchet reports
+  them as legacy warnings; the current graph is not yet a DAG.
+
+U3 adds executable ownership for this graph. Dependency-cruiser reports 375
+modules, 1,035 edges, two legacy editor cycles, and sixteen legacy cross-feature
+edges with zero blocking errors. Knip records sixteen unreachable production
+files and six unused runtime packages while target reachability remains clean.
+Stylelint records 231 legacy warnings across 60 CSS files while target design
+policy has zero errors. `architecture-ratchet.json` promotes a feature to strict
+dependency, reachability, and style enforcement in its cutover commit. The
+registry rejects missing/test-only roots and live downgrades against the PR base;
+JavaScript and JSX share the same strict lint/reachability coverage as TypeScript.
+Existing unused runtime packages remain report-only, while adding a new unused
+runtime dependency is blocking. New or renamed feature roots must enter the
+registry atomically; parent features cannot borrow nested-feature source to pass
+promotion. Knip's source coverage and error-level rules are canonical, and this
+private app forbids optional/peer runtime dependency sections that Knip 2 cannot
+classify safely. Dependency declarations use registry semver only; aliases,
+tags, URLs, local paths, and Git specs are rejected. Feature ownership also
+rejects symbolic links, so a renamed slice cannot escape strict promotion by
+aliasing its old implementation.
 
 ## User flows that must survive cutover
 
@@ -172,7 +193,6 @@ status lives in [`frontend-ownership-matrix.md`](./frontend-ownership-matrix.md)
 
 | Delta | Planned owner |
 | --- | --- |
-| Automatic dependency, reachability, and style rules | U3 |
 | Environment, HTTP, storage, and integration adapters | U4 |
 | Explicit session subject/epoch and cache lifetime | U5 |
 | App route adapters, query codecs, and shells | U6 |
@@ -206,6 +226,12 @@ Current local and CI commands are defined in `package.json` and
 - `npm run typecheck:e2e`
 - `npm run test:e2e:characterization`
 - `npm run lint:e2e`
+- `npm run test:architecture-rules`
+- `npm run lint:architecture`
+- `npm run lint:dead-code`
+- `npm run lint:styles`
+- `npm run verify:architecture`
+- `npm run report:architecture`
 - `npm run verify:structure`
 - `npm run verify:pre-redesign`
 - `npm run smoke:frontend:preflight`
@@ -224,6 +250,7 @@ omissions are unverified, not passing coverage.
 | `frontend-ownership-matrix.md` | Mutable cutover owner registry. |
 | `frontend-migration-rules.md` | Execution rules for every migration slice. |
 | `frontend-browser-data-inventory.md` | Browser persistence, ownership, PII, TTL, and cleanup inventory. |
+| `tests/architecture/dependency-rules.md` | Executable static-rule owners, measured debt, strict promotion, and tool transition. |
 | Active plan under `docs/plans/` | Target architecture and implementation units. |
 | `docs/qa/frontend-architecture-smoke.ko.md` | Live smoke operation and historical evidence. |
 | `frontend-architecture-freeze.ko.md` | Superseded July snapshot. |
