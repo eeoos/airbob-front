@@ -14,6 +14,18 @@ const architectureDocPath = path.join(
   projectRoot,
   "docs/architecture/frontend-structure-refactor.md",
 );
+const currentArchitectureDocPath = path.join(
+  projectRoot,
+  "docs/architecture/current-frontend-architecture.md",
+);
+const migrationRulesDocPath = path.join(
+  projectRoot,
+  "docs/architecture/frontend-migration-rules.md",
+);
+const ownershipMatrixDocPath = path.join(
+  projectRoot,
+  "docs/architecture/frontend-ownership-matrix.md",
+);
 const architectureFreezeDocPath = path.join(
   projectRoot,
   "docs/architecture/frontend-architecture-freeze.ko.md",
@@ -336,31 +348,45 @@ describe("frontend verification gate", () => {
     expect(commandOrder).toEqual([...commandOrder].sort((a, b) => a - b));
   });
 
-  test("frontend structure refactor docs and placeholder env example are present", () => {
+  test("canonical frontend architecture docs and placeholder env example are present", () => {
     expect(fs.existsSync(architectureDocPath)).toBe(true);
+    expect(fs.existsSync(currentArchitectureDocPath)).toBe(true);
+    expect(fs.existsSync(migrationRulesDocPath)).toBe(true);
+    expect(fs.existsSync(ownershipMatrixDocPath)).toBe(true);
     expect(fs.existsSync(envExamplePath)).toBe(true);
 
-    const architectureDoc = fs.readFileSync(architectureDocPath, "utf8");
+    const historicalArchitectureDoc = fs.readFileSync(
+      architectureDocPath,
+      "utf8",
+    );
+    const currentArchitectureDoc = fs.readFileSync(
+      currentArchitectureDocPath,
+      "utf8",
+    );
+    const migrationRulesDoc = fs.readFileSync(migrationRulesDocPath, "utf8");
+    const ownershipMatrixDoc = fs.readFileSync(ownershipMatrixDocPath, "utf8");
     const envExample = fs.readFileSync(envExamplePath, "utf8");
 
     [
-      "Keep feature-first structure with routeConfig loading feature route containers directly.",
-      "Keep CSS Modules and tokenized styling before Airbnb visual redesign.",
-      "Keep TanStack Query as the server-state layer.",
-      "Keep backend/API/DB/server contracts unchanged.",
-      "Defer CRA-to-Vite migration until structure and smoke gates are stable.",
-      "Route query ownership moved into `src/routes`",
-      "Presentation DTO imports are closed at the API/UI boundary",
-      "Task 1-6 focused tests/typecheck and strict lint are now actionable pre-redesign gates.",
-      "`verify:structure` now runs typecheck, the no-cache CI test suite with `--runInBand`, and `lint:strict`.",
-      "Task 7 collapsed the temporary `src/pages/**` adapter layer into feature route containers.",
-      "GitHub Actions runs Node 20",
-      "`smoke:frontend:preflight` validates smoke env names",
-      "`verify` remains the default static local gate and still excludes lint and strict smoke.",
-      "`verify:design-ready` remains the explicit browser-backed gate because it needs live credentials, stable reservation UIDs, gstack browse, and seeded search data.",
+      "Status: canonical current-state source of truth",
+      "Backend endpoints, request/response fields, cookie semantics, database",
+      "server authorization are outside frontend ownership.",
+      "There must be one active writer for every mutable workflow.",
+      "All 15 entries are lazy.",
+      "Airbnb visual redesign begins only after the architecture design-entry gate",
+      "When documents disagree about the current frontend, this document wins.",
     ].forEach((term) => {
-      expect(architectureDoc).toContain(term);
+      expect(currentArchitectureDoc).toContain(term);
     });
+
+    expect(historicalArchitectureDoc).toContain("superseded on 2026-08-29");
+    expect(historicalArchitectureDoc).toContain("current-frontend-architecture.md");
+    expect(migrationRulesDoc).toContain("Keep one active writer");
+    expect(migrationRulesDoc).toContain("Do not weaken a gate to make a unit green.");
+    expect(ownershipMatrixDoc).toContain(
+      "**Active** is the only production route entry",
+    );
+    expect(ownershipMatrixDoc).toContain("U10/U11 payment compatibility matrix");
 
     [
       "REACT_APP_API_URL=http://localhost:8080",
@@ -374,19 +400,18 @@ describe("frontend verification gate", () => {
     });
   });
 
-  test("frontend architecture freeze criteria are documented", () => {
+  test("historical frontend freeze points to the canonical migration registry", () => {
     expect(fs.existsSync(architectureFreezeDocPath)).toBe(true);
 
     const freezeDoc = fs.readFileSync(architectureFreezeDocPath, "utf8");
 
     [
-      "구조 freeze 기준",
-      "Production feature 파일은 다른 feature의 private surface를 직접 import하지 않는다.",
-      "Cross-feature 사용은 appShell.ts 또는 publicCache.ts를 통한다.",
-      "SearchRoute는 화면 렌더링을 담당하고 useSearchRouteController가 route orchestration을 소유한다.",
-      "Query 에러 toast 중복 방지는 useHandledQueryError가 소유한다.",
-      "AuthProvider는 provider 역할을 맡고 sessionLifecycle이 세션 side effect를 소유한다.",
-      "Airbnb 스타일 시각 리팩토링은 이 문서의 freeze gate 통과 뒤 화면 단위로 진행한다.",
+      "2026-08-29 superseded",
+      "current-frontend-architecture.md",
+      "frontend-migration-rules.md",
+      "frontend-ownership-matrix.md",
+      "appShell.ts`와 `publicCache.ts`는 목표 구조가 아니라",
+      "과거 통과 기록이나 skip은 현재 검증을 대신하지 않습니다.",
     ].forEach((term) => {
       expect(freezeDoc).toContain(term);
     });
@@ -881,7 +906,8 @@ describe("frontend verification gate", () => {
       "Profile guest tab",
       "host tab",
       "Host listing",
-      "auth modal",
+      "Wishlist/Auth/Review",
+      "dialog",
     ];
     const architectureSection = getSection(qaDoc, "Architecture Checkpoints");
     const architectureCheckpoints = [
@@ -899,7 +925,7 @@ describe("frontend verification gate", () => {
       },
       {
         heading: "components ownership boundary",
-        expectedTerms: ["shared UI primitives", "workflow containers"],
+        expectedTerms: ["shared UI primitives", "route/screen/workflow owner"],
       },
       {
         heading: "design system entry contracts",
