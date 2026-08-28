@@ -58,6 +58,7 @@ const baseFiles = {
     'exports.red = (value) => value;\n',
   "tsconfig.json": JSON.stringify({
     compilerOptions: {
+      allowJs: true,
       module: "esnext",
       moduleResolution: "node",
       strict: true,
@@ -135,7 +136,14 @@ const getViolationNames = (report, severity = "error") =>
 
 const excludedProductionEntries = [
   "src/setupTests.ts",
+  "src/setupTests.mjs",
+  "src/test/helper.js",
+  "src/test/helper.jsx",
+  "src/test/helper.mjs",
+  "src/test/helper.ts",
+  "src/test/renderApp.tsx",
   "src/shared/runtime.test.ts",
+  "src/shared/runtime.test.mjs",
   "src/shared/runtime.spec.tsx",
   "src/shared/types.d.ts",
   "src/shared/__tests__/helper.ts",
@@ -154,6 +162,7 @@ for (const relativePath of [
   "src/shared/runtime.ts",
   "src/app/entry.tsx",
   "src/platform/tool.js",
+  "src/shared/runtime.mjs",
 ]) {
   if (!isProductionSourcePath(relativePath)) {
     throw new Error(
@@ -195,6 +204,15 @@ const scenarios = [
       "src/app/entry.ts": "export const app = true;\n",
       "src/shared/bad.ts":
         'import { app } from "../app/entry"; export const bad = app;\n',
+    },
+  },
+  {
+    name: "MJS shared module imports app",
+    expectedRule: "shared-is-domain-free",
+    files: {
+      "src/app/entry.mjs": "export const app = true;\n",
+      "src/shared/bad.mjs":
+        'import { app } from "../app/entry.mjs"; export const bad = app;\n',
     },
   },
   {
@@ -468,6 +486,18 @@ const scenarios = [
       "src/platform/__mocks__/client.ts": "export const mockClient = true;\n",
       "src/platform/client.ts":
         'import { mockClient } from "./__mocks__/client"; export const client = mockClient;\n',
+    },
+  },
+  {
+    name: "production imports a src test harness",
+    expectedRules: [
+      "production-does-not-import-tests",
+      "shared-is-domain-free",
+    ],
+    files: {
+      "src/test/renderApp.tsx": "export const renderApp = true;\n",
+      "src/shared/runtime.ts":
+        'import { renderApp } from "../test/renderApp"; export const runtime = renderApp;\n',
     },
   },
   {

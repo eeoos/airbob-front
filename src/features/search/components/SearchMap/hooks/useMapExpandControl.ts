@@ -1,4 +1,5 @@
 import { MutableRefObject, RefObject, useEffect } from "react";
+import { getGoogleMapsApi } from "../../../../../platform/integrations/googleMaps";
 import { renderMapExpandControl } from "../lib/mapExpandControl";
 
 interface UseMapExpandControlOptions {
@@ -39,8 +40,9 @@ export const useMapExpandControl = ({
     if (mapInstanceRef.current) {
       resizeTimer = window.setTimeout(() => {
         const map = mapInstanceRef.current;
-        if (map) {
-          google.maps.event.trigger(map, "resize");
+        const maps = getGoogleMapsApi();
+        if (map && maps) {
+          maps.event.trigger(map, "resize");
         }
       }, 100);
     }

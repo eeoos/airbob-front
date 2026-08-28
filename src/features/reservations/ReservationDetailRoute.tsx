@@ -6,9 +6,10 @@ import {
   type NavigateFunction,
 } from "react-router-dom";
 import { ErrorToast } from "../../components/ErrorToast";
+import { getPublicRuntimeConfig } from "../../platform/config/publicRuntimeConfig";
+import { buildGoogleMapsEmbedUrl } from "../../platform/integrations/googleMaps";
 import { routeTo } from "../../routes/paths";
 import { StatusBadge } from "../../shared/ui";
-import { GOOGLE_MAPS_API_KEY } from "../../utils/constants";
 import { useReservationDetail } from "./hooks";
 import { toReservationDetailViewModel } from "./lib/reservationDetailViewModel";
 import styles from "./ReservationDetailRoute.module.css";
@@ -89,6 +90,14 @@ const ReservationDetailRouteContent: React.FC<
   }
 
   const reservationView = toReservationDetailViewModel(reservation);
+  const mapEmbedUrl = reservationView.mapCoordinate
+    ? buildGoogleMapsEmbedUrl({
+        apiKey: getPublicRuntimeConfig().googleMapsBrowserKey ?? "",
+        latitude: reservationView.mapCoordinate.latitude,
+        longitude: reservationView.mapCoordinate.longitude,
+        zoom: 15,
+      })
+    : null;
 
   return (
     <>
@@ -311,15 +320,14 @@ const ReservationDetailRouteContent: React.FC<
 
           <div className={styles.rightSection}>
             <div className={styles.mapContainer}>
-              {GOOGLE_MAPS_API_KEY &&
-              reservationView.mapCoordinate ? (
+              {mapEmbedUrl ? (
                 <iframe
                   className={styles.map}
                   title="숙소 위치"
                   loading="lazy"
                   allowFullScreen
-                  referrerPolicy="no-referrer-when-downgrade"
-                  src={`https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_API_KEY}&q=${reservationView.mapCoordinate.latitude},${reservationView.mapCoordinate.longitude}&zoom=15`}
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  src={mapEmbedUrl}
                 />
               ) : (
                 <div className={styles.mapPlaceholder}>지도를 불러올 수 없습니다.</div>

@@ -8,4 +8,21 @@ describe("api client source contracts", () => {
     expect(source).not.toContain("console.log");
     expect(source).not.toContain("[axios client]");
   });
+
+  it("keeps Axios construction in the platform singleton only", () => {
+    const legacySource = readFileSync(
+      join(process.cwd(), "src/api/client.ts"),
+      "utf8",
+    );
+    const platformSource = readFileSync(
+      join(process.cwd(), "src/platform/http/client.ts"),
+      "utf8",
+    );
+
+    expect(legacySource).not.toMatch(/axios\.create\s*\(/);
+    expect(legacySource).not.toContain("clientV2");
+    expect(platformSource.match(/axios\.create\s*\(/g)).toHaveLength(1);
+    expect(platformSource).toMatch(/import axios from ["']axios["'];/);
+    expect(platformSource).not.toContain("axios/dist/");
+  });
 });

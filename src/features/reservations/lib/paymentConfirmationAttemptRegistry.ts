@@ -1,3 +1,5 @@
+import { legacySessionStorageCompatibility } from "../../../platform/storage";
+
 export type PaymentConfirmationAttemptResult =
   | "confirmed"
   | "already-confirmed";
@@ -15,27 +17,16 @@ const getConfirmedPaymentStorageKey = (key: string) =>
   `${confirmedPaymentStorageKeyPrefix}${key}`;
 
 const safeGetItem = (key: string): string | null => {
-  try {
-    return sessionStorage.getItem(key);
-  } catch {
-    return null;
-  }
+  const result = legacySessionStorageCompatibility.getItem(key);
+  return result.ok ? result.value : null;
 };
 
 const safeSetItem = (key: string, value: string) => {
-  try {
-    sessionStorage.setItem(key, value);
-  } catch {
-    // Confirmation still succeeded; storage is only a same-session optimization.
-  }
+  legacySessionStorageCompatibility.setItem(key, value);
 };
 
 const safeRemoveItem = (key: string) => {
-  try {
-    sessionStorage.removeItem(key);
-  } catch {
-    // Best-effort test cleanup.
-  }
+  legacySessionStorageCompatibility.removeItem(key);
 };
 
 const hasConfirmedPaymentMarker = (key: string) =>
@@ -83,17 +74,11 @@ export const runPaymentConfirmationAttempt = async (
 export const resetPaymentConfirmationAttemptRegistryForTests = () => {
   inFlightAttempts.clear();
 
-  let keys: string[];
-  try {
-    keys = Array.from({ length: sessionStorage.length }, (_, index) =>
-      sessionStorage.key(index)
-    ).filter(
-      (key): key is string =>
-        key !== null && key.startsWith(confirmedPaymentStorageKeyPrefix)
-    );
-  } catch {
-    return;
-  }
+  const result = legacySessionStorageCompatibility.keys();
+  if (!result.ok) return;
+  const keys = result.value.filter((key) =>
+    key.startsWith(confirmedPaymentStorageKeyPrefix)
+  );
 
   keys.forEach(safeRemoveItem);
 };

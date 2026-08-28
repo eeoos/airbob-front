@@ -24,8 +24,9 @@ const canonicalKnipConfig = Object.freeze({
   $schema: "./node_modules/knip/schema.json",
   entry: Object.freeze([
     "src/index.tsx!",
-    "src/setupTests.{js,jsx,ts,tsx}",
-    "src/**/*.{test,spec}.{js,jsx,ts,tsx}",
+    "src/setupTests.{js,jsx,mjs,ts,tsx}",
+    "src/test/**/*.{js,jsx,mjs,ts,tsx}",
+    "src/**/*.{test,spec}.{js,jsx,mjs,ts,tsx}",
     "playwright.config.ts",
     "scripts/**/*.{cjs,mjs}",
     "tests/e2e/specs/**/*.spec.ts",
@@ -35,11 +36,12 @@ const canonicalKnipConfig = Object.freeze({
     "stylelint.config.mjs",
   ]),
   project: Object.freeze([
-    "src/**/*.{js,jsx,ts,tsx}!",
-    "!src/**/__tests__/**/*.{js,jsx,ts,tsx}!",
-    "!src/**/__mocks__/**/*.{js,jsx,ts,tsx}!",
-    "!src/**/*.{test,spec}.{js,jsx,ts,tsx}!",
-    "!src/setupTests.{js,jsx,ts,tsx}!",
+    "src/**/*.{js,jsx,mjs,ts,tsx}!",
+    "!src/**/__tests__/**/*.{js,jsx,mjs,ts,tsx}!",
+    "!src/**/__mocks__/**/*.{js,jsx,mjs,ts,tsx}!",
+    "!src/**/*.{test,spec}.{js,jsx,mjs,ts,tsx}!",
+    "!src/setupTests.{js,jsx,mjs,ts,tsx}!",
+    "!src/test/**/*.{js,jsx,mjs,ts,tsx}!",
     "playwright.config.ts",
     "scripts/**/*.{cjs,mjs}",
     "tests/**/*.{ts,mjs}",
@@ -142,6 +144,17 @@ export const assertRegistryDependencySpecs = (packageData) => {
   }
 };
 
+export const findArtificialProductionEntries = (entries = []) =>
+  entries.filter(
+    (entry) =>
+      typeof entry === "string" &&
+      entry.startsWith("src/") &&
+      entry !== "src/index.tsx!" &&
+      !entry.startsWith("src/setupTests.") &&
+      !entry.startsWith("src/test/") &&
+      !entry.includes("{test,spec}"),
+  );
+
 export const assertKnipConfigIsCanonical = (knipConfig) => {
   const suppressionKeys = Object.keys(knipConfig).filter(
     (key) => key === "exclude" || key.startsWith("ignore"),
@@ -152,13 +165,8 @@ export const assertKnipConfigIsCanonical = (knipConfig) => {
     );
   }
 
-  const artificialProductionEntries = (knipConfig.entry ?? []).filter(
-    (entry) =>
-      typeof entry === "string" &&
-      entry.startsWith("src/") &&
-      entry !== "src/index.tsx!" &&
-      !entry.startsWith("src/setupTests.") &&
-      !entry.includes("{test,spec}"),
+  const artificialProductionEntries = findArtificialProductionEntries(
+    knipConfig.entry,
   );
   if (artificialProductionEntries.length > 0) {
     throw new Error(

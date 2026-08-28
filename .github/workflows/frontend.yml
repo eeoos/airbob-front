@@ -42,11 +42,16 @@ jobs:
         env:
           AIRBOB_PUSH_BEFORE_SHA: ${{ github.event_name == 'push' && github.event.before || '' }}
 
+      - name: Verify browser-public configuration allowlist
+        run: npm run test:public-config-build
+
       - name: Test
         run: npm run test:ci:no-cache -- --runInBand
 
       - name: Build
         run: npm run build
+        env:
+          REACT_APP_API_URL: https://api.example.invalid
 
       - name: Browser characterization
         run: npm run test:e2e:characterization

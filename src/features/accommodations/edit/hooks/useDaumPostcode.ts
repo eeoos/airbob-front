@@ -1,25 +1,9 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import { openDaumPostcode } from "../../../../platform/integrations/daumPostcode";
 import {
   AccommodationEditAddressInfo,
-  DaumPostcodeData,
   mapDaumPostcodeToAddressInfo,
 } from "../lib/daumAddressMapper";
-
-declare global {
-  interface Window {
-    daum?: {
-      Postcode: new (options: {
-        oncomplete: (data: DaumPostcodeData) => void;
-        width?: string;
-        height?: string;
-        maxSuggestItems?: number;
-      }) => {
-        open: () => void;
-        embed: (element: HTMLElement) => void;
-      };
-    };
-  }
-}
 
 interface UseDaumPostcodeOptions {
   onAddressSelected: (addressInfo: AccommodationEditAddressInfo) => void;
@@ -33,19 +17,43 @@ export const useDaumPostcode = ({
   onAddressSelected,
   alert: alertUser,
 }: UseDaumPostcodeOptions) => {
-  const openAddressSearch = useCallback(() => {
-    if (!window.daum || !window.daum.Postcode) {
-      (alertUser || window.alert)(DAUM_POSTCODE_UNAVAILABLE_MESSAGE);
-      return;
-    }
+  const activeOperationRef = useRef<AbortController | null>(null);
 
-    new window.daum.Postcode({
-      oncomplete: (data) => {
+  useEffect(
+    () => () => {
+      activeOperationRef.current?.abort();
+      activeOperationRef.current = null;
+    },
+    [],
+  );
+
+  const openAddressSearch = useCallback(() => {
+    activeOperationRef.current?.abort();
+    const operation = new AbortController();
+    activeOperationRef.current = operation;
+
+    const finishOperation = () => {
+      if (activeOperationRef.current === operation) {
+        activeOperationRef.current = null;
+      }
+    };
+
+    const showUnavailable = () => {
+      if (operation.signal.aborted) return;
+      finishOperation();
+      (alertUser || window.alert)(DAUM_POSTCODE_UNAVAILABLE_MESSAGE);
+    };
+
+    void openDaumPostcode(
+      (data) => {
+        if (operation.signal.aborted) return;
+        finishOperation();
         onAddressSelected(mapDaumPostcodeToAddressInfo(data));
       },
-      width: "100%",
-      height: "100%",
-    }).open();
+      showUnavailable,
+      operation.signal,
+    )
+      .catch(showUnavailable);
   }, [alertUser, onAddressSelected]);
 
   return {

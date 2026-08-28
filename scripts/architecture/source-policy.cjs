@@ -4,14 +4,16 @@ const path = require("node:path");
 const sourceExtensions = Object.freeze([
   ".js",
   ".jsx",
+  ".mjs",
   ".ts",
   ".tsx",
 ]);
 const sourceExtensionSet = new Set(sourceExtensions);
 const testModulePattern =
+  "^src/test(?:/|$)|" +
   "(?:^|/)(?:__tests__|__mocks__)(?:/|$)|" +
-  "[.](?:spec|test)[.][jt]sx?$|" +
-  "^src/setupTests[.][jt]sx?$|[.]d[.]ts$";
+  "[.](?:spec|test)[.](?:mjs|[jt]sx?)$|" +
+  "^src/setupTests[.](?:mjs|[jt]sx?)$|[.]d[.]ts$";
 const testModuleRegex = new RegExp(testModulePattern);
 
 const normalizeSourcePath = (relativePath) => relativePath.replaceAll("\\", "/");

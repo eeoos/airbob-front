@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { getGooglePlacesApi } from "../platform/integrations/googleMaps";
 import { clientLogger } from "../utils/clientLogger";
 import { useGoogleMapsScript } from "./useGoogleMapsScript";
 
@@ -61,20 +62,21 @@ export const usePlacesAutocomplete = ({
 
   // 새 세션 시작 (입력 필드 포커스 시)
   const startNewSession = useCallback(() => {
-    if (typeof window.google?.maps?.places?.AutocompleteSessionToken === "function") {
-      sessionTokenRef.current = new window.google.maps.places.AutocompleteSessionToken();
+    const places = getGooglePlacesApi();
+    if (typeof places?.AutocompleteSessionToken === "function") {
+      sessionTokenRef.current = new places.AutocompleteSessionToken();
     }
   }, []);
 
   const isPlacesNewLoaded = useCallback(() => {
-    return !!(
-      window.google &&
-      window.google.maps &&
-      window.google.maps.places &&
-      typeof window.google.maps.places.AutocompleteSessionToken === "function" &&
+    const places = getGooglePlacesApi();
+
+    return Boolean(
+      places &&
+      typeof places.AutocompleteSessionToken === "function" &&
       // Places API (New)의 진입 클래스
-      (window.google.maps.places as unknown as { AutocompleteSuggestion?: unknown })
-        .AutocompleteSuggestion
+      (places as unknown as { AutocompleteSuggestion?: unknown })
+        .AutocompleteSuggestion,
     );
   }, []);
 
@@ -82,7 +84,10 @@ export const usePlacesAutocomplete = ({
     if (isInitializedRef.current) return;
     if (!isPlacesNewLoaded()) return;
 
-    sessionTokenRef.current = new window.google.maps.places.AutocompleteSessionToken();
+    const places = getGooglePlacesApi();
+    if (!places) return;
+
+    sessionTokenRef.current = new places.AutocompleteSessionToken();
     isInitializedRef.current = true;
     setIsGoogleLoaded(true);
   }, [isPlacesNewLoaded]);
@@ -146,7 +151,7 @@ export const usePlacesAutocomplete = ({
       return;
     }
 
-    const placesNs = window.google?.maps?.places as unknown as {
+    const placesNs = getGooglePlacesApi() as unknown as {
       AutocompleteSuggestion?: {
         fetchAutocompleteSuggestions: (request: {
           input: string;
@@ -174,13 +179,13 @@ export const usePlacesAutocomplete = ({
           language: "ko",
         });
 
-      rawSuggestionsRef.current.clear();
+      const nextRawSuggestions = new Map<string, NewPlacePrediction>();
       const formatted: PlacePrediction[] = [];
 
       for (const s of rawSuggestions) {
         const p = s.placePrediction;
         if (!p) continue;
-        rawSuggestionsRef.current.set(p.placeId, p);
+        nextRawSuggestions.set(p.placeId, p);
         formatted.push({
           placeId: p.placeId,
           description: p.text.text,
@@ -193,9 +198,12 @@ export const usePlacesAutocomplete = ({
         isMountedRef.current &&
         requestVersion === requestVersionRef.current
       ) {
+        // Commit the display and its selection backing atomically. An older
+        // response must never replace the raw prediction behind a newer row.
+        rawSuggestionsRef.current = nextRawSuggestions;
         setSuggestions(formatted);
       }
-    } catch (err) {
+    } catch {
       if (
         !isMountedRef.current ||
         requestVersion !== requestVersionRef.current
@@ -205,8 +213,8 @@ export const usePlacesAutocomplete = ({
 
       clientLogger.error({
         message: "AutocompleteSuggestion 오류:",
-        error: err,
       });
+      rawSuggestionsRef.current.clear();
       setSuggestions([]);
     } finally {
       if (
@@ -300,7 +308,7 @@ export const usePlacesAutocomplete = ({
         if (onPlaceSelect) {
           onPlaceSelect(place);
         }
-      } catch (error) {
+      } catch {
         if (
           !isMountedRef.current ||
           requestVersion !== requestVersionRef.current
@@ -310,7 +318,6 @@ export const usePlacesAutocomplete = ({
 
         clientLogger.error({
           message: "Place Details 오류:",
-          error,
         });
       } finally {
         if (
@@ -348,6 +355,10 @@ export const usePlacesAutocomplete = ({
 
   // cleanup
   useEffect(() => {
+    // React StrictMode replays effect cleanup/setup in development. Restore
+    // mounted state on every setup so the replay does not disable the hook.
+    isMountedRef.current = true;
+
     return () => {
       isMountedRef.current = false;
       requestVersionRef.current += 1;

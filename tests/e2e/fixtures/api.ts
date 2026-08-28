@@ -1,4 +1,5 @@
 import type { BrowserContext, Request, Route } from "@playwright/test";
+import { E2E_API_ORIGIN } from "../support/runtimeOrigins";
 
 export type PathMatcher = string | RegExp;
 
@@ -49,9 +50,28 @@ interface UnhandledRequest {
 }
 
 const API_PATH = "/api";
+const E2E_API_ALLOWED_METHODS = new Set(["GET", "POST", "PATCH", "DELETE"]);
+const E2E_API_ALLOWED_APP_HEADERS = new Set(["accept", "content-type"]);
+const BROWSER_MANAGED_HEADERS = new Set([
+  "accept-encoding",
+  "accept-language",
+  "connection",
+  "content-length",
+  "cookie",
+  "host",
+  "origin",
+  "priority",
+  "referer",
+  "user-agent",
+]);
+const E2E_API_ALLOWED_ACCEPT_VALUES = new Set([
+  "*/*",
+  "application/json",
+  "application/json, text/plain, */*",
+]);
 const DAUM_POSTCODE_HOST = "t1.daumcdn.net";
 const DAUM_POSTCODE_PATH = "/mapjsapi/bundle/postcode/prod/postcode.v2.js";
-const DAUM_POSTCODE_ORIGIN = `http://${DAUM_POSTCODE_HOST}`;
+const DAUM_POSTCODE_ORIGIN = `https://${DAUM_POSTCODE_HOST}`;
 const SAFE_STATIC_RESOURCE_TYPES = new Set([
   "font",
   "image",
@@ -90,6 +110,9 @@ const matchesPath = (matcher: PathMatcher, pathname: string): boolean => {
   matcher.lastIndex = 0;
   return matcher.test(pathname);
 };
+
+export const isExactE2eApiUrl = (url: URL): boolean =>
+  url.origin === E2E_API_ORIGIN && !url.username && !url.password;
 
 export const apiSuccess = <T>(data: T, status = 200): ApiResponseSpec => ({
   status,
@@ -189,13 +212,39 @@ export class ApiHarness {
     const request = route.request();
     const url = new URL(request.url());
     const method = request.method().toUpperCase();
-    const isSameOrigin = url.origin === this.appOrigin;
+    const hasUrlCredentials = Boolean(url.username || url.password);
+    const isSameOrigin =
+      url.origin === this.appOrigin && !hasUrlCredentials;
+    const isE2eApiOrigin = isExactE2eApiUrl(url);
+    const isApiPath =
+      url.pathname === API_PATH || url.pathname.startsWith(`${API_PATH}/`);
 
-    if (
-      isSameOrigin &&
-      (url.pathname === API_PATH || url.pathname.startsWith(`${API_PATH}/`))
-    ) {
-      await this.handleApiRequest(route, request, method, url);
+    // Production E2E must exercise the configured cross-origin API boundary.
+    // Never let a relative /api regression fall through to registered mocks,
+    // because that would make a broken runtime API origin look healthy.
+    if (isSameOrigin && isApiPath) {
+      this.recordUnhandled(method, url, "api");
+      await route.abort("blockedbyclient");
+      return;
+    }
+
+    if (isE2eApiOrigin && isApiPath) {
+      if (
+        !this.hasExactAppOrigin(request) ||
+        !this.isAllowedExternalApiRequest(request, method)
+      ) {
+        this.recordUnhandled(method, url, "api");
+        await route.abort("blockedbyclient");
+        return;
+      }
+
+      await this.handleApiRequest(
+        route,
+        request,
+        method,
+        url,
+        true,
+      );
       return;
     }
 
@@ -207,7 +256,34 @@ export class ApiHarness {
       await route.fulfill({
         status: 200,
         contentType: "application/javascript; charset=utf-8",
-        body: "/* deterministic Daum postcode shim */",
+        body: `
+          (() => {
+            const syntheticResult = Object.freeze({
+              zonecode: "06236",
+              address: "서울특별시 강남구 테헤란로 123",
+              addressEnglish: "",
+              addressType: "R",
+              bname: "",
+              buildingName: "",
+              apartment: "",
+              sido: "서울특별시",
+              sigungu: "강남구",
+              sigunguCode: "",
+              bcode: "",
+              roadname: "테헤란로",
+              roadnameCode: "",
+              jibunAddress: "",
+              roadAddress: "서울특별시 강남구 테헤란로 123"
+            });
+
+            window.daum = {
+              Postcode: function Postcode(options) {
+                this.open = () => options.oncomplete(syntheticResult);
+                this.embed = () => undefined;
+              }
+            };
+          })();
+        `,
       });
       return;
     }
@@ -242,6 +318,7 @@ export class ApiHarness {
     request: Request,
     method: string,
     url: URL,
+    isCrossOrigin: boolean,
   ): Promise<void> {
     const record: ApiRequestRecord = {
       sequence: ++this.sequence,
@@ -261,14 +338,13 @@ export class ApiHarness {
       );
 
     if (!registration) {
-      this.unhandled.push({
-        method,
-        target: url.pathname,
-        kind: "api",
-      });
+      this.recordUnhandled(method, url, "api");
       await route.fulfill({
         status: 599,
-        contentType: "application/json; charset=utf-8",
+        headers: {
+          "content-type": "application/json; charset=utf-8",
+          ...(isCrossOrigin ? this.corsResponseHeaders() : {}),
+        },
         body: JSON.stringify(
           apiFailure(599, "UNHANDLED_E2E_REQUEST", "등록되지 않은 테스트 요청입니다.")
             .body,
@@ -283,8 +359,82 @@ export class ApiHarness {
       headers: {
         "content-type": "application/json; charset=utf-8",
         ...response.headers,
+        ...(isCrossOrigin ? this.corsResponseHeaders() : {}),
       },
       body: JSON.stringify(response.body),
+    });
+  }
+
+  private hasExactAppOrigin(request: Request): boolean {
+    return request.headers().origin === this.appOrigin;
+  }
+
+  /**
+   * Chromium's Playwright interception layer answers CORS preflights before a
+   * user route is invoked. Enforce the executable boundary on the resulting
+   * actual request so an auto-approved custom header or method can never reach
+   * a registered handler or the request journal.
+   */
+  private isAllowedExternalApiRequest(
+    request: Request,
+    method: string,
+  ): boolean {
+    if (!E2E_API_ALLOWED_METHODS.has(method)) {
+      return false;
+    }
+
+    const headers = request.headers();
+    const hasUnexpectedHeader = Object.keys(headers).some((header) => {
+      const normalizedHeader = header.toLowerCase();
+
+      return (
+        !E2E_API_ALLOWED_APP_HEADERS.has(normalizedHeader) &&
+        !BROWSER_MANAGED_HEADERS.has(normalizedHeader) &&
+        !normalizedHeader.startsWith("sec-")
+      );
+    });
+
+    if (hasUnexpectedHeader) {
+      return false;
+    }
+
+    const accept = headers.accept;
+    if (accept && !E2E_API_ALLOWED_ACCEPT_VALUES.has(accept.toLowerCase())) {
+      return false;
+    }
+
+    const contentType = headers["content-type"]?.toLowerCase();
+    if (!contentType) {
+      return true;
+    }
+
+    return (
+      /^application\/json(?:\s*;\s*charset=utf-?8)?$/.test(contentType) ||
+      /^multipart\/form-data;\s*boundary=[a-z0-9'()+_,./:=?-]+$/i.test(
+        contentType,
+      )
+    );
+  }
+
+  private corsResponseHeaders(): Record<string, string> {
+    return {
+      "access-control-allow-credentials": "true",
+      "access-control-allow-origin": this.appOrigin,
+      vary: "Origin",
+    };
+  }
+
+  private recordUnhandled(
+    method: string,
+    url: URL,
+    kind: UnhandledRequest["kind"],
+  ): void {
+    this.unhandled.push({
+      method,
+      target: url.origin === this.appOrigin
+        ? url.pathname
+        : `${url.host}${url.pathname}`,
+      kind,
     });
   }
 }

@@ -24,7 +24,7 @@ export const useMapBoundsReporter = ({
     const mapInstance = mapInstanceRef.current;
 
     if (idleListenerRef.current) {
-      google.maps.event.removeListener(idleListenerRef.current);
+      idleListenerRef.current.remove();
       idleListenerRef.current = null;
     }
 
@@ -94,7 +94,7 @@ export const useMapBoundsReporter = ({
         boundsChangeTimerRef.current = null;
       }
       if (idleListenerRef.current) {
-        google.maps.event.removeListener(idleListenerRef.current);
+        idleListenerRef.current.remove();
         idleListenerRef.current = null;
       }
       setIsLoadingBounds(false);

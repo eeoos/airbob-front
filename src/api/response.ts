@@ -1,4 +1,5 @@
 import { ApiResponse, ErrorResponse } from "../types/api";
+import { inspectApiEnvelope } from "../platform/http/envelope";
 
 const EMPTY_DATA_ERROR: ErrorResponse = {
   message: "응답 데이터가 비어 있습니다.",
@@ -53,14 +54,6 @@ export function toErrorResponse(error: ApiClientError): ErrorResponse {
   return errorResponse;
 }
 
-function isObjectEnvelope(response: unknown): response is Record<string, unknown> {
-  return typeof response === "object" && response !== null;
-}
-
-function hasOwnProperty(response: Record<string, unknown>, property: string): boolean {
-  return Object.prototype.hasOwnProperty.call(response, property);
-}
-
 function throwInvalidApiResponse(): never {
   throw new ApiClientError(INVALID_API_RESPONSE_ERROR);
 }
@@ -78,31 +71,18 @@ export function unwrapApiResponse<T>(
   response: ApiResponse<T>,
   options?: { allowNull?: boolean }
 ): T | null {
-  if (!isObjectEnvelope(response) || typeof response.success !== "boolean") {
-    throwInvalidApiResponse();
+  const inspection = inspectApiEnvelope<T>(response, options);
+
+  switch (inspection.kind) {
+    case "data":
+      return inspection.data;
+    case "backend-error":
+      throw new ApiClientError(
+        (inspection.error as ErrorResponse | null | undefined) ?? FALLBACK_ERROR
+      );
+    case "empty-data":
+      throw new ApiClientError(EMPTY_DATA_ERROR);
+    case "invalid-response":
+      throwInvalidApiResponse();
   }
-
-  if (response.success === false) {
-    throw new ApiClientError(
-      (response.error as ErrorResponse | null | undefined) ?? FALLBACK_ERROR
-    );
-  }
-
-  if (!hasOwnProperty(response, "data") || response.data === undefined) {
-    if (options?.allowNull === true) {
-      return null;
-    }
-
-    throwInvalidApiResponse();
-  }
-
-  if (response.data === null) {
-    if (options?.allowNull === true) {
-      return null;
-    }
-
-    throw new ApiClientError(EMPTY_DATA_ERROR);
-  }
-
-  return response.data;
 }

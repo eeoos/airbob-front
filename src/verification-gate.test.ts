@@ -48,7 +48,13 @@ const envExamplePath = path.join(projectRoot, ".env.example");
 const frontendSmokePath = path.join(projectRoot, "scripts/smoke/frontend-smoke.mjs");
 const sourceRoot = path.join(projectRoot, "src");
 
-const productionSourceExtensions = new Set([".js", ".jsx", ".ts", ".tsx"]);
+const productionSourceExtensions = new Set([
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".ts",
+  ".tsx",
+]);
 const rawConsoleAllowlist = new Set(["src/utils/clientLogger.ts"]);
 const dynamicInlineStyleAllowlist = [
   {
@@ -93,7 +99,7 @@ const isProductionSourceFile = (filePath: string) => {
     relativePath === "src/setupTests.ts" ||
     relativePath.includes("/__mocks__/") ||
     relativePath.includes("/__tests__/") ||
-    /\.(?:test|spec)\.[jt]sx?$/.test(relativePath)
+    /\.(?:test|spec)\.(?:mjs|[jt]sx?)$/.test(relativePath)
   );
 };
 
@@ -360,13 +366,19 @@ describe("frontend verification gate", () => {
       "stylelint-config-standard": "39.0.0",
     });
     expect(packageJson.scripts.lint).toBe(
-      "eslint src --ext .js,.jsx,.ts,.tsx",
+      "eslint src --ext .js,.jsx,.mjs,.ts,.tsx",
+    );
+    expect(packageJson.scripts.build).toBe(
+      "node scripts/architecture/validate-public-build-env.mjs && react-scripts build",
     );
     expect(packageJson.scripts["lint:strict"]).toBe(
-      "eslint src --ext .js,.jsx,.ts,.tsx --max-warnings=0",
+      "eslint src --ext .js,.jsx,.mjs,.ts,.tsx --max-warnings=0",
     );
     expect(packageJson.scripts["verify:structure"]).toBe(
-      "npm run typecheck && npm run verify:architecture && npm run test:ci:no-cache -- --runInBand && npm run lint:strict",
+      "npm run typecheck && npm run verify:architecture && npm run test:public-config-build && npm run test:ci:no-cache -- --runInBand && npm run lint:strict",
+    );
+    expect(packageJson.scripts["test:public-config-build"]).toBe(
+      "node scripts/architecture/verify-public-config-build.mjs",
     );
     expect(packageJson.scripts["verify:pre-redesign"]).toBe(
       "npm run typecheck && npm run test:ci:no-cache -- --runInBand && npm run build",
@@ -404,6 +416,7 @@ describe("frontend verification gate", () => {
       "run: npm run typecheck",
       "run: npm run typecheck:e2e",
       "run: npm run verify:architecture",
+      "run: npm run test:public-config-build",
       "AIRBOB_PUSH_BEFORE_SHA: $" +
         "{{ github.event_name == 'push' && github.event.before || '' }}",
       "run: npm run test:ci:no-cache -- --runInBand",
@@ -422,8 +435,10 @@ describe("frontend verification gate", () => {
       "run: npm run typecheck",
       "run: npm run typecheck:e2e",
       "run: npm run verify:architecture",
+      "run: npm run test:public-config-build",
       "run: npm run test:ci:no-cache -- --runInBand",
       "run: npm run build",
+      "REACT_APP_API_URL: https://api.example.invalid",
       "run: npm run test:e2e:characterization",
       "run: npm run lint:strict",
       "run: npm run lint:e2e",

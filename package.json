@@ -28,15 +28,16 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "node scripts/architecture/validate-public-build-env.mjs && react-scripts build",
     "test": "react-scripts test",
     "test:ci": "react-scripts test --watchAll=false",
     "test:ci:no-cache": "react-scripts test --watchAll=false --no-cache",
     "test:e2e:artifact-policy": "node tests/e2e/support/scan-artifacts.mjs --self-test",
     "test:e2e:characterization": "playwright test --project=chromium",
+    "test:public-config-build": "node scripts/architecture/verify-public-config-build.mjs",
     "typecheck": "tsc --noEmit",
     "typecheck:e2e": "tsc --noEmit -p tsconfig.e2e.json",
-    "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
+    "lint": "eslint src --ext .js,.jsx,.mjs,.ts,.tsx",
     "lint:architecture": "node scripts/architecture/run-dependency-cruiser.mjs",
     "lint:architecture-tools": "eslint --no-ignore .dependency-cruiser.cjs stylelint.config.mjs scripts/architecture tests/architecture --ext .cjs,.mjs --max-warnings=0",
     "lint:dead-code": "knip --production --preprocessor ./scripts/architecture/knip-target-ratchet.mjs --reporter compact --no-progress && node scripts/architecture/verify-unused-dependency-ratchet.mjs",
@@ -44,14 +45,14 @@
     "lint:e2e": "eslint playwright.config.ts tests/e2e --ext .mjs,.ts --max-warnings=0",
     "lint:styles": "stylelint \"src/**/*.css\" --quiet",
     "lint:styles:report": "stylelint \"src/**/*.css\" --formatter compact",
-    "lint:strict": "eslint src --ext .js,.jsx,.ts,.tsx --max-warnings=0",
+    "lint:strict": "eslint src --ext .js,.jsx,.mjs,.ts,.tsx --max-warnings=0",
     "smoke:frontend": "node scripts/smoke/frontend-smoke.mjs",
     "smoke:frontend:preflight": "node scripts/smoke/frontend-smoke.mjs --preflight",
     "smoke:frontend:strict": "AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES=true node scripts/smoke/frontend-smoke.mjs",
-    "test:architecture-rules": "node tests/architecture/verify-registry-rules.mjs && node tests/architecture/verify-git-baselines.mjs && node scripts/architecture/verify-architecture-ratchet.mjs && node tests/architecture/verify-dependency-rules.mjs && node tests/architecture/verify-knip-reachability.mjs && node tests/architecture/verify-style-rules.mjs",
+    "test:architecture-rules": "node tests/architecture/verify-registry-rules.mjs && node tests/architecture/verify-git-baselines.mjs && node scripts/architecture/verify-architecture-ratchet.mjs && node tests/architecture/verify-dependency-rules.mjs && node tests/architecture/verify-knip-reachability.mjs && node tests/architecture/verify-style-rules.mjs && node tests/architecture/verify-platform-boundary.mjs",
     "report:architecture": "npm run lint:dead-code:report && npm run lint:styles:report",
     "verify:architecture": "npm run test:architecture-rules && npm run lint:architecture && npm run lint:dead-code && npm run lint:styles && npm run lint:architecture-tools",
-    "verify:structure": "npm run typecheck && npm run verify:architecture && npm run test:ci:no-cache -- --runInBand && npm run lint:strict",
+    "verify:structure": "npm run typecheck && npm run verify:architecture && npm run test:public-config-build && npm run test:ci:no-cache -- --runInBand && npm run lint:strict",
     "verify:pre-redesign": "npm run typecheck && npm run test:ci:no-cache -- --runInBand && npm run build",
     "verify:design-ready": "npm run verify:pre-redesign && npm run smoke:frontend:strict",
     "verify": "npm run typecheck && npm run test:ci:no-cache && npm run build",
@@ -63,6 +64,252 @@
       "react-app/jest"
     ],
     "overrides": [
+      {
+        "files": [
+          "src/**/*.{js,jsx,mjs,ts,tsx}"
+        ],
+        "excludedFiles": [
+          "src/platform/config/env.ts",
+          "src/test/**/*.{js,jsx,mjs,ts,tsx}",
+          "src/setupTests.{js,jsx,mjs,ts,tsx}",
+          "src/**/__tests__/**/*.{js,jsx,mjs,ts,tsx}",
+          "src/**/__mocks__/**/*.{js,jsx,mjs,ts,tsx}",
+          "src/**/*.{test,spec}.{js,jsx,mjs,ts,tsx}"
+        ],
+        "rules": {
+          "no-restricted-globals": [
+            "error",
+            {
+              "name": "process",
+              "message": "Only src/platform/config/env.ts may read the browser build environment."
+            }
+          ],
+          "no-restricted-properties": [
+            "error",
+            {
+              "object": "globalThis",
+              "property": "process",
+              "message": "Browser process access belongs only in src/platform/config/env.ts."
+            },
+            {
+              "object": "window",
+              "property": "process",
+              "message": "Browser process access belongs only in src/platform/config/env.ts."
+            },
+            {
+              "object": "self",
+              "property": "process",
+              "message": "Browser process access belongs only in src/platform/config/env.ts."
+            }
+          ]
+        }
+      },
+      {
+        "files": [
+          "src/**/*.{js,jsx,mjs,ts,tsx}"
+        ],
+        "excludedFiles": [
+          "src/platform/**/*.{js,jsx,mjs,ts,tsx}",
+          "src/test/**/*.{js,jsx,mjs,ts,tsx}",
+          "src/setupTests.{js,jsx,mjs,ts,tsx}",
+          "src/**/__tests__/**/*.{js,jsx,mjs,ts,tsx}",
+          "src/**/__mocks__/**/*.{js,jsx,mjs,ts,tsx}",
+          "src/**/*.{test,spec}.{js,jsx,mjs,ts,tsx}"
+        ],
+        "rules": {
+          "no-restricted-syntax": [
+            "error",
+            {
+              "selector": "MemberExpression[object.name='window'][computed=true], MemberExpression[object.name='globalThis'][computed=true], MemberExpression[object.name='globalThis'][property.name='window'], VariableDeclarator[init.name='window'], VariableDeclarator[init.name='globalThis'], AssignmentPattern[right.name='window'], AssignmentPattern[right.name='globalThis'], AssignmentExpression[right.name='window'], AssignmentExpression[right.name='globalThis'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.0.name='window'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.0.name='globalThis'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='createElement'], CallExpression[callee.object.name='document'][callee.property.name='createElement'][arguments.0.type!='Literal'], CallExpression[callee.object.name='document'][callee.property.value='createElement'][arguments.0.type!='Literal'], ObjectPattern > Property[key.name='createElement'], ObjectPattern > Property[key.value='createElement'], VariableDeclarator[init.name='document'], AssignmentExpression[right.name='document']",
+              "message": "Computed or aliased browser capability access is forbidden; use a static owning platform adapter."
+            },
+            {
+              "selector": "Identifier[name='sessionStorage'], Identifier[name='localStorage'], MemberExpression[property.value='sessionStorage'], MemberExpression[property.value='localStorage'], ObjectPattern > Property[key.value='sessionStorage'], ObjectPattern > Property[key.value='localStorage'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='sessionStorage'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='localStorage']",
+              "message": "Direct browser storage access belongs only in src/platform/storage."
+            },
+            {
+              "selector": "MemberExpression[property.name='google'], MemberExpression[property.value='google'], MemberExpression[property.name='daum'], MemberExpression[property.value='daum'], MemberExpression[property.name='TossPayments'], MemberExpression[property.value='TossPayments'], MemberExpression[object.name='google'][property.name='maps'], MemberExpression[object.name='google'][property.value='maps'], ObjectPattern > Property[key.name='google'], ObjectPattern > Property[key.value='google'], ObjectPattern > Property[key.name='daum'], ObjectPattern > Property[key.value='daum'], ObjectPattern > Property[key.name='TossPayments'], ObjectPattern > Property[key.value='TossPayments'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='google'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='daum'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='TossPayments']",
+              "message": "Direct external SDK global access belongs only in src/platform/integrations."
+            },
+            {
+              "selector": "ImportDeclaration[source.value='react'] > ImportSpecifier[imported.name='createElement'], JSXOpeningElement[name.name='script'], CallExpression[callee.name='createElement'][arguments.0.value=/^script$/i], CallExpression[callee.type='MemberExpression'][callee.property.name='createElement'][arguments.0.value=/^script$/i], CallExpression[callee.type='MemberExpression'][callee.property.value='createElement'][arguments.0.value=/^script$/i], CallExpression[callee.type='MemberExpression'][callee.property.name='createElementNS'][arguments.0.value='http://www.w3.org/1999/xhtml'][arguments.1.value=/^script$/i], CallExpression[callee.type='MemberExpression'][callee.property.value='createElementNS'][arguments.0.value='http://www.w3.org/1999/xhtml'][arguments.1.value=/^script$/i], CallExpression[callee.type='MemberExpression'][callee.property.name='bind'][callee.object.type='MemberExpression'][callee.object.property.name='createElement'], CallExpression[callee.type='MemberExpression'][callee.property.value='bind'][callee.object.type='MemberExpression'][callee.object.property.value='createElement'], VariableDeclarator[init.type='MemberExpression'][init.property.name='createElement'], VariableDeclarator[init.type='MemberExpression'][init.property.value='createElement']",
+              "message": "External script ownership belongs only in src/platform/integrations."
+            },
+            {
+              "selector": "ImportExpression[source.value=/^axios/], CallExpression[callee.type='Import'][arguments.0.value=/^axios/], CallExpression[callee.name='require'][arguments.0.value=/^axios/], CallExpression[callee.name='require'][arguments.0.type!='Literal'], VariableDeclarator[init.name='require'], AssignmentPattern[right.name='require'], AssignmentExpression[right.name='require']",
+              "message": "Dynamic Axios loading is private to src/platform/http."
+            }
+          ]
+        }
+      },
+      {
+        "files": [
+          "src/platform/**/*.{js,jsx,mjs,ts,tsx}"
+        ],
+        "excludedFiles": [
+          "src/test/**/*.{js,jsx,mjs,ts,tsx}",
+          "src/setupTests.{js,jsx,mjs,ts,tsx}",
+          "src/**/__tests__/**/*.{js,jsx,mjs,ts,tsx}",
+          "src/**/__mocks__/**/*.{js,jsx,mjs,ts,tsx}",
+          "src/**/*.{test,spec}.{js,jsx,mjs,ts,tsx}"
+        ],
+        "rules": {
+          "no-restricted-syntax": [
+            "error",
+            {
+              "selector": "MemberExpression[object.name='window'][computed=true], MemberExpression[object.name='globalThis'][computed=true], MemberExpression[object.name='globalThis'][property.name='window'], VariableDeclarator[init.name='window'], VariableDeclarator[init.name='globalThis'], AssignmentPattern[right.name='window'], AssignmentPattern[right.name='globalThis'], AssignmentExpression[right.name='window'], AssignmentExpression[right.name='globalThis'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.0.name='window'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.0.name='globalThis'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='createElement'], CallExpression[callee.object.name='document'][callee.property.name='createElement'][arguments.0.type!='Literal'], CallExpression[callee.object.name='document'][callee.property.value='createElement'][arguments.0.type!='Literal'], ObjectPattern > Property[key.name='createElement'], ObjectPattern > Property[key.value='createElement'], VariableDeclarator[init.name='document'], AssignmentExpression[right.name='document']",
+              "message": "Computed or aliased browser capability access is forbidden; use a static owning platform adapter."
+            },
+            {
+              "selector": "Identifier[name='sessionStorage'], Identifier[name='localStorage'], MemberExpression[property.value='sessionStorage'], MemberExpression[property.value='localStorage'], ObjectPattern > Property[key.value='sessionStorage'], ObjectPattern > Property[key.value='localStorage'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='sessionStorage'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='localStorage']",
+              "message": "Direct browser storage access belongs only in src/platform/storage."
+            },
+            {
+              "selector": "MemberExpression[property.name='google'], MemberExpression[property.value='google'], MemberExpression[property.name='daum'], MemberExpression[property.value='daum'], MemberExpression[property.name='TossPayments'], MemberExpression[property.value='TossPayments'], MemberExpression[object.name='google'][property.name='maps'], MemberExpression[object.name='google'][property.value='maps'], ObjectPattern > Property[key.name='google'], ObjectPattern > Property[key.value='google'], ObjectPattern > Property[key.name='daum'], ObjectPattern > Property[key.value='daum'], ObjectPattern > Property[key.name='TossPayments'], ObjectPattern > Property[key.value='TossPayments'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='google'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='daum'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='TossPayments']",
+              "message": "Direct external SDK global access belongs only in src/platform/integrations."
+            },
+            {
+              "selector": "ImportDeclaration[source.value='react'] > ImportSpecifier[imported.name='createElement'], JSXOpeningElement[name.name='script'], CallExpression[callee.name='createElement'][arguments.0.value=/^script$/i], CallExpression[callee.type='MemberExpression'][callee.property.name='createElement'][arguments.0.value=/^script$/i], CallExpression[callee.type='MemberExpression'][callee.property.value='createElement'][arguments.0.value=/^script$/i], CallExpression[callee.type='MemberExpression'][callee.property.name='createElementNS'][arguments.0.value='http://www.w3.org/1999/xhtml'][arguments.1.value=/^script$/i], CallExpression[callee.type='MemberExpression'][callee.property.value='createElementNS'][arguments.0.value='http://www.w3.org/1999/xhtml'][arguments.1.value=/^script$/i], CallExpression[callee.type='MemberExpression'][callee.property.name='bind'][callee.object.type='MemberExpression'][callee.object.property.name='createElement'], CallExpression[callee.type='MemberExpression'][callee.property.value='bind'][callee.object.type='MemberExpression'][callee.object.property.value='createElement'], VariableDeclarator[init.type='MemberExpression'][init.property.name='createElement'], VariableDeclarator[init.type='MemberExpression'][init.property.value='createElement']",
+              "message": "External script ownership belongs only in src/platform/integrations."
+            },
+            {
+              "selector": "ImportExpression[source.value=/^axios/], CallExpression[callee.type='Import'][arguments.0.value=/^axios/], CallExpression[callee.name='require'][arguments.0.value=/^axios/], CallExpression[callee.name='require'][arguments.0.type!='Literal'], VariableDeclarator[init.name='require'], AssignmentPattern[right.name='require'], AssignmentExpression[right.name='require']",
+              "message": "Dynamic Axios loading is private to src/platform/http."
+            }
+          ]
+        }
+      },
+      {
+        "files": [
+          "src/platform/storage/**/*.{js,jsx,mjs,ts,tsx}"
+        ],
+        "excludedFiles": [
+          "src/test/**/*.{js,jsx,mjs,ts,tsx}",
+          "src/setupTests.{js,jsx,mjs,ts,tsx}",
+          "src/**/__tests__/**/*.{js,jsx,mjs,ts,tsx}",
+          "src/**/__mocks__/**/*.{js,jsx,mjs,ts,tsx}",
+          "src/**/*.{test,spec}.{js,jsx,mjs,ts,tsx}"
+        ],
+        "rules": {
+          "no-restricted-syntax": [
+            "error",
+            {
+              "selector": "MemberExpression[object.name='window'][computed=true], MemberExpression[object.name='globalThis'][computed=true], MemberExpression[object.name='globalThis'][property.name='window'], VariableDeclarator[init.name='window'], VariableDeclarator[init.name='globalThis'], AssignmentPattern[right.name='window'], AssignmentPattern[right.name='globalThis'], AssignmentExpression[right.name='window'], AssignmentExpression[right.name='globalThis'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.0.name='window'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.0.name='globalThis'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='createElement'], CallExpression[callee.object.name='document'][callee.property.name='createElement'][arguments.0.type!='Literal'], CallExpression[callee.object.name='document'][callee.property.value='createElement'][arguments.0.type!='Literal'], ObjectPattern > Property[key.name='createElement'], ObjectPattern > Property[key.value='createElement'], VariableDeclarator[init.name='document'], AssignmentExpression[right.name='document']",
+              "message": "Computed or aliased browser capability access is forbidden; use a static owning platform adapter."
+            },
+            {
+              "selector": "MemberExpression[property.name='google'], MemberExpression[property.value='google'], MemberExpression[property.name='daum'], MemberExpression[property.value='daum'], MemberExpression[property.name='TossPayments'], MemberExpression[property.value='TossPayments'], MemberExpression[object.name='google'][property.name='maps'], MemberExpression[object.name='google'][property.value='maps'], ObjectPattern > Property[key.name='google'], ObjectPattern > Property[key.value='google'], ObjectPattern > Property[key.name='daum'], ObjectPattern > Property[key.value='daum'], ObjectPattern > Property[key.name='TossPayments'], ObjectPattern > Property[key.value='TossPayments'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='google'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='daum'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='TossPayments']",
+              "message": "Direct external SDK global access belongs only in src/platform/integrations."
+            },
+            {
+              "selector": "ImportDeclaration[source.value='react'] > ImportSpecifier[imported.name='createElement'], JSXOpeningElement[name.name='script'], CallExpression[callee.name='createElement'][arguments.0.value=/^script$/i], CallExpression[callee.type='MemberExpression'][callee.property.name='createElement'][arguments.0.value=/^script$/i], CallExpression[callee.type='MemberExpression'][callee.property.value='createElement'][arguments.0.value=/^script$/i], CallExpression[callee.type='MemberExpression'][callee.property.name='createElementNS'][arguments.0.value='http://www.w3.org/1999/xhtml'][arguments.1.value=/^script$/i], CallExpression[callee.type='MemberExpression'][callee.property.value='createElementNS'][arguments.0.value='http://www.w3.org/1999/xhtml'][arguments.1.value=/^script$/i], CallExpression[callee.type='MemberExpression'][callee.property.name='bind'][callee.object.type='MemberExpression'][callee.object.property.name='createElement'], CallExpression[callee.type='MemberExpression'][callee.property.value='bind'][callee.object.type='MemberExpression'][callee.object.property.value='createElement'], VariableDeclarator[init.type='MemberExpression'][init.property.name='createElement'], VariableDeclarator[init.type='MemberExpression'][init.property.value='createElement']",
+              "message": "External script ownership belongs only in src/platform/integrations."
+            },
+            {
+              "selector": "ImportExpression[source.value=/^axios/], CallExpression[callee.type='Import'][arguments.0.value=/^axios/], CallExpression[callee.name='require'][arguments.0.value=/^axios/], CallExpression[callee.name='require'][arguments.0.type!='Literal'], VariableDeclarator[init.name='require'], AssignmentPattern[right.name='require'], AssignmentExpression[right.name='require']",
+              "message": "Dynamic Axios loading is private to src/platform/http."
+            }
+          ]
+        }
+      },
+      {
+        "files": [
+          "src/**/*.{js,jsx,mjs,ts,tsx}"
+        ],
+        "excludedFiles": [
+          "src/platform/http/**/*.{js,jsx,mjs,ts,tsx}",
+          "src/api/client.ts",
+          "src/utils/error.ts",
+          "src/test/**/*.{js,jsx,mjs,ts,tsx}",
+          "src/setupTests.{js,jsx,mjs,ts,tsx}",
+          "src/**/__tests__/**/*.{js,jsx,mjs,ts,tsx}",
+          "src/**/__mocks__/**/*.{js,jsx,mjs,ts,tsx}",
+          "src/**/*.{test,spec}.{js,jsx,mjs,ts,tsx}"
+        ],
+        "rules": {
+          "no-restricted-imports": [
+            "error",
+            {
+              "paths": [
+                {
+                  "name": "axios",
+                  "message": "Use the platform HTTP boundary instead of importing Axios in production code."
+                }
+              ],
+              "patterns": [
+                {
+                  "group": [
+                    "axios/*"
+                  ],
+                  "message": "Axios subpaths are private to src/platform/http."
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "files": [
+          "src/platform/integrations/**/*.{js,jsx,mjs,ts,tsx}"
+        ],
+        "excludedFiles": [
+          "src/test/**/*.{js,jsx,mjs,ts,tsx}",
+          "src/setupTests.{js,jsx,mjs,ts,tsx}",
+          "src/**/__tests__/**/*.{js,jsx,mjs,ts,tsx}",
+          "src/**/__mocks__/**/*.{js,jsx,mjs,ts,tsx}",
+          "src/**/*.{test,spec}.{js,jsx,mjs,ts,tsx}"
+        ],
+        "rules": {
+          "no-restricted-syntax": [
+            "error",
+            {
+              "selector": "MemberExpression[object.name='window'][computed=true], MemberExpression[object.name='globalThis'][computed=true], MemberExpression[object.name='globalThis'][property.name='window'], VariableDeclarator[init.name='window'], VariableDeclarator[init.name='globalThis'], AssignmentPattern[right.name='window'], AssignmentPattern[right.name='globalThis'], AssignmentExpression[right.name='window'], AssignmentExpression[right.name='globalThis'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.0.name='window'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.0.name='globalThis'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='createElement'], CallExpression[callee.object.name='document'][callee.property.name='createElement'][arguments.0.type!='Literal'], CallExpression[callee.object.name='document'][callee.property.value='createElement'][arguments.0.type!='Literal'], ObjectPattern > Property[key.name='createElement'], ObjectPattern > Property[key.value='createElement'], VariableDeclarator[init.name='document'], AssignmentExpression[right.name='document']",
+              "message": "Computed or aliased browser capability access is forbidden; use a static owning platform adapter."
+            },
+            {
+              "selector": "Identifier[name='sessionStorage'], Identifier[name='localStorage'], MemberExpression[property.value='sessionStorage'], MemberExpression[property.value='localStorage'], ObjectPattern > Property[key.value='sessionStorage'], ObjectPattern > Property[key.value='localStorage'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='sessionStorage'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='localStorage']",
+              "message": "Direct browser storage access belongs only in src/platform/storage."
+            },
+            {
+              "selector": "ImportExpression[source.value=/^axios/], CallExpression[callee.type='Import'][arguments.0.value=/^axios/], CallExpression[callee.name='require'][arguments.0.value=/^axios/], CallExpression[callee.name='require'][arguments.0.type!='Literal'], VariableDeclarator[init.name='require'], AssignmentPattern[right.name='require'], AssignmentExpression[right.name='require']",
+              "message": "Dynamic Axios loading is private to src/platform/http."
+            }
+          ]
+        }
+      },
+      {
+        "files": [
+          "src/platform/http/**/*.{js,jsx,mjs,ts,tsx}"
+        ],
+        "excludedFiles": [
+          "src/test/**/*.{js,jsx,mjs,ts,tsx}",
+          "src/setupTests.{js,jsx,mjs,ts,tsx}",
+          "src/**/__tests__/**/*.{js,jsx,mjs,ts,tsx}",
+          "src/**/__mocks__/**/*.{js,jsx,mjs,ts,tsx}",
+          "src/**/*.{test,spec}.{js,jsx,mjs,ts,tsx}"
+        ],
+        "rules": {
+          "no-restricted-syntax": [
+            "error",
+            {
+              "selector": "MemberExpression[object.name='window'][computed=true], MemberExpression[object.name='globalThis'][computed=true], MemberExpression[object.name='globalThis'][property.name='window'], VariableDeclarator[init.name='window'], VariableDeclarator[init.name='globalThis'], AssignmentPattern[right.name='window'], AssignmentPattern[right.name='globalThis'], AssignmentExpression[right.name='window'], AssignmentExpression[right.name='globalThis'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.0.name='window'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.0.name='globalThis'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='createElement'], CallExpression[callee.object.name='document'][callee.property.name='createElement'][arguments.0.type!='Literal'], CallExpression[callee.object.name='document'][callee.property.value='createElement'][arguments.0.type!='Literal'], ObjectPattern > Property[key.name='createElement'], ObjectPattern > Property[key.value='createElement'], VariableDeclarator[init.name='document'], AssignmentExpression[right.name='document']",
+              "message": "Computed or aliased browser capability access is forbidden; use a static owning platform adapter."
+            },
+            {
+              "selector": "Identifier[name='sessionStorage'], Identifier[name='localStorage'], MemberExpression[property.value='sessionStorage'], MemberExpression[property.value='localStorage'], ObjectPattern > Property[key.value='sessionStorage'], ObjectPattern > Property[key.value='localStorage'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='sessionStorage'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='localStorage']",
+              "message": "Direct browser storage access belongs only in src/platform/storage."
+            },
+            {
+              "selector": "MemberExpression[property.name='google'], MemberExpression[property.value='google'], MemberExpression[property.name='daum'], MemberExpression[property.value='daum'], MemberExpression[property.name='TossPayments'], MemberExpression[property.value='TossPayments'], MemberExpression[object.name='google'][property.name='maps'], MemberExpression[object.name='google'][property.value='maps'], ObjectPattern > Property[key.name='google'], ObjectPattern > Property[key.value='google'], ObjectPattern > Property[key.name='daum'], ObjectPattern > Property[key.value='daum'], ObjectPattern > Property[key.name='TossPayments'], ObjectPattern > Property[key.value='TossPayments'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='google'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='daum'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='TossPayments']",
+              "message": "Direct external SDK global access belongs only in src/platform/integrations."
+            },
+            {
+              "selector": "ImportDeclaration[source.value='react'] > ImportSpecifier[imported.name='createElement'], JSXOpeningElement[name.name='script'], CallExpression[callee.name='createElement'][arguments.0.value=/^script$/i], CallExpression[callee.type='MemberExpression'][callee.property.name='createElement'][arguments.0.value=/^script$/i], CallExpression[callee.type='MemberExpression'][callee.property.value='createElement'][arguments.0.value=/^script$/i], CallExpression[callee.type='MemberExpression'][callee.property.name='createElementNS'][arguments.0.value='http://www.w3.org/1999/xhtml'][arguments.1.value=/^script$/i], CallExpression[callee.type='MemberExpression'][callee.property.value='createElementNS'][arguments.0.value='http://www.w3.org/1999/xhtml'][arguments.1.value=/^script$/i], CallExpression[callee.type='MemberExpression'][callee.property.name='bind'][callee.object.type='MemberExpression'][callee.object.property.name='createElement'], CallExpression[callee.type='MemberExpression'][callee.property.value='bind'][callee.object.type='MemberExpression'][callee.object.property.value='createElement'], VariableDeclarator[init.type='MemberExpression'][init.property.name='createElement'], VariableDeclarator[init.type='MemberExpression'][init.property.value='createElement']",
+              "message": "External script ownership belongs only in src/platform/integrations."
+            }
+          ]
+        }
+      },
       {
         "files": [
           "playwright.config.ts",

@@ -1,4 +1,5 @@
 import { MutableRefObject, RefObject, useEffect, useRef } from "react";
+import { getGoogleMapsApi } from "../../../../../platform/integrations/googleMaps";
 import { buildInfoWindowContent } from "../lib/infoWindowContent";
 import {
   adjustInfoWindowIntoMapView,
@@ -74,7 +75,8 @@ export const useMapSelectionInfoWindow = ({
   });
 
   useEffect(() => {
-    if (!mapInstanceRef.current) return;
+    const maps = getGoogleMapsApi();
+    if (!mapInstanceRef.current || !maps) return;
 
     const currentSelectedId = selectedAccommodationId;
     const prevSelectedId = prevSelectedIdRef.current;
@@ -169,7 +171,7 @@ export const useMapSelectionInfoWindow = ({
       );
 
       if (selectedMarker) {
-        const infoWindow = new window.google.maps.InfoWindow({
+        const infoWindow = new maps.InfoWindow({
           disableAutoPan: true,
           content: buildInfoWindowContent({
             accommodation: selectedAccommodation,
@@ -199,7 +201,7 @@ export const useMapSelectionInfoWindow = ({
             resizeListener,
           ].forEach((listener) => {
             if (listener) {
-              google.maps.event.removeListener(listener);
+              maps.event.removeListener(listener);
             }
           });
 
@@ -300,7 +302,7 @@ export const useMapSelectionInfoWindow = ({
           }, 100);
         };
 
-        resizeListener = google.maps.event.addListener(
+        resizeListener = maps.event.addListener(
           mapInstanceRef.current,
           "resize",
           () => {

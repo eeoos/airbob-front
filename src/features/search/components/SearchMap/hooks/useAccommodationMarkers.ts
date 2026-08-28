@@ -1,4 +1,5 @@
 import { MutableRefObject, useEffect, useRef } from "react";
+import { getGoogleMapsApi } from "../../../../../platform/integrations/googleMaps";
 import {
   haveAccommodationIdsChanged,
   hasViewportChanged,
@@ -55,7 +56,8 @@ export const useAccommodationMarkers = ({
   const prevAccommodationsRef = useRef<SearchMapAccommodation[]>([]);
 
   useEffect(() => {
-    if (!mapInstanceRef.current || !window.google) return;
+    const maps = getGoogleMapsApi();
+    if (!mapInstanceRef.current || !maps) return;
 
     const map = mapInstanceRef.current;
 
@@ -92,7 +94,7 @@ export const useAccommodationMarkers = ({
 
     if (validAccommodations.length === 0) return;
 
-    const bounds = new window.google.maps.LatLngBounds();
+    const bounds = new maps.LatLngBounds();
 
     validAccommodations.forEach((accommodation) => {
       const lat = accommodation.coordinate.latitude!;
@@ -106,14 +108,14 @@ export const useAccommodationMarkers = ({
       const svgIcon = buildMarkerPriceSvg(markerIconModel, "default");
       const svgUrl = createIconUrl(svgIcon);
 
-      const marker = new window.google.maps.Marker({
+      const marker = new maps.Marker({
         position: { lat, lng },
         map,
         title: accommodation.name,
         icon: {
           url: svgUrl,
-          scaledSize: new window.google.maps.Size(totalWidth, bubbleHeight),
-          anchor: new window.google.maps.Point(anchor.x, anchor.y),
+          scaledSize: new maps.Size(totalWidth, bubbleHeight),
+          anchor: new maps.Point(anchor.x, anchor.y),
         },
       }) as SearchMapMarker;
 
@@ -124,8 +126,8 @@ export const useAccommodationMarkers = ({
       const selectedSvgUrl = createIconUrl(selectedSvgIcon);
       const hoveredSvgIcon = buildMarkerPriceSvg(markerIconModel, "hovered");
       const hoveredSvgUrl = createIconUrl(hoveredSvgIcon);
-      const iconSize = new window.google.maps.Size(totalWidth, bubbleHeight);
-      const iconAnchor = new window.google.maps.Point(anchor.x, anchor.y);
+      const iconSize = new maps.Size(totalWidth, bubbleHeight);
+      const iconAnchor = new maps.Point(anchor.x, anchor.y);
 
       marker.icons = {
         default: {
@@ -166,11 +168,11 @@ export const useAccommodationMarkers = ({
         if (originalIcon?.scaledSize) {
           marker.setIcon({
             url: originalIcon.url,
-            scaledSize: new window.google.maps.Size(
+            scaledSize: new maps.Size(
               originalIcon.scaledSize.width * currentScale,
               originalIcon.scaledSize.height * currentScale
             ),
-            anchor: new window.google.maps.Point(
+            anchor: new maps.Point(
               (originalIcon.scaledSize.width * currentScale) / 2,
               originalIcon.scaledSize.height * currentScale
             ),
@@ -215,7 +217,7 @@ export const useAccommodationMarkers = ({
 
       if (viewportChanged) {
         isInitialIdleRef.current = true;
-        const viewportBounds = new window.google.maps.LatLngBounds(
+        const viewportBounds = new maps.LatLngBounds(
           { lat: viewport.south, lng: viewport.west },
           { lat: viewport.north, lng: viewport.east }
         );

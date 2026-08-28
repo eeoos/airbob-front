@@ -11,6 +11,7 @@ import {
   assertRegistryDependencySpecs,
   assertNoNewUnusedDependencies,
   findNewUnusedDependencies,
+  findArtificialProductionEntries,
 } from "../../scripts/architecture/verify-unused-dependency-ratchet.mjs";
 
 const require = createRequire(import.meta.url);
@@ -341,6 +342,17 @@ try {
     throw new Error("An artificial production entry hid dead source.");
   }
 
+  const testHarnessEntries = [
+    "src/test/helper.js",
+    "src/test/helper.jsx",
+    "src/test/helper.mjs",
+    "src/test/helper.ts",
+    "src/test/renderApp.tsx",
+  ];
+  if (findArtificialProductionEntries(testHarnessEntries).length > 0) {
+    throw new Error("A src/test harness was mistaken for production source.");
+  }
+
   const canonicalKnipConfig = JSON.parse(
     await readFile(path.join(architectureDirectory, "../../knip.json"), "utf8"),
   );
@@ -368,7 +380,7 @@ try {
     assertKnipConfigIsCanonical({
       ...canonicalKnipConfig,
       project: canonicalKnipConfig.project.filter(
-        (entry) => entry !== "src/**/*.{js,jsx,ts,tsx}!",
+        (entry) => entry !== "src/**/*.{js,jsx,mjs,ts,tsx}!",
       ),
     });
   } catch (error) {

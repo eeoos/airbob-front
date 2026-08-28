@@ -21,9 +21,9 @@ const files = {
   "knip.json": JSON.stringify({
     entry: ["src/index.ts!"],
     project: [
-      "src/**/*.{js,jsx,ts,tsx}!",
-      "!src/**/__tests__/**/*.{js,jsx,ts,tsx}!",
-      "!src/**/__mocks__/**/*.{js,jsx,ts,tsx}!",
+      "src/**/*.{js,jsx,mjs,ts,tsx}!",
+      "!src/**/__tests__/**/*.{js,jsx,mjs,ts,tsx}!",
+      "!src/**/__mocks__/**/*.{js,jsx,mjs,ts,tsx}!",
     ],
   }),
   "src/index.ts":
@@ -35,10 +35,13 @@ const files = {
   "src/app/router/routes/DeadRoute.ts":
     'export default function DeadRoute() { return "dead"; }\n',
   "src/shared/Dead.js": "export const deadShared = true;\n",
+  "src/shared/DeadModule.mjs": "export const deadModule = true;\n",
   "src/shared/__tests__/helper.ts":
     "export const testHelper = true;\n",
   "src/shared/__mocks__/client.ts":
     "export const mockClient = true;\n",
+  "src/shared/__tests__/helper.mjs":
+    "export const testModuleHelper = true;\n",
   "src/features/search/DeadFeature.jsx":
     "export const DeadFeature = () => null;\n",
   "src/features/legacy/DeadLegacy.ts":
@@ -98,6 +101,7 @@ try {
 
   [
     "src/shared/__tests__/helper.ts",
+    "src/shared/__tests__/helper.mjs",
     "src/shared/__mocks__/client.ts",
   ].forEach((testOnlyPath) => {
     if (unusedFiles.has(testOnlyPath)) {
@@ -108,6 +112,7 @@ try {
   [
     "src/app/router/routes/DeadRoute.ts",
     "src/shared/Dead.js",
+    "src/shared/DeadModule.mjs",
     "src/features/search/DeadFeature.jsx",
     "src/features/legacy/DeadLegacy.ts",
   ].forEach((unusedPath) => {
@@ -147,6 +152,7 @@ try {
   [
     "src/app/router/routes/DeadRoute.ts",
     "src/shared/Dead.js",
+    "src/shared/DeadModule.mjs",
     "src/features/search/DeadFeature.jsx",
   ].forEach((unusedPath) => {
     if (!strictUnusedFiles.has(unusedPath)) {
@@ -158,6 +164,7 @@ try {
   }
   [
     "src/shared/__tests__/helper.ts",
+    "src/shared/__tests__/helper.mjs",
     "src/shared/__mocks__/client.ts",
   ].forEach((testOnlyPath) => {
     if (strictUnusedFiles.has(testOnlyPath)) {
@@ -169,5 +176,5 @@ try {
 }
 
 process.stdout.write(
-  "Knip lazy-route, JavaScript, test-support, and migrated-feature fixtures passed.\n",
+  "Knip lazy-route, JavaScript/JSX/MJS, test-support, and migrated-feature fixtures passed.\n",
 );

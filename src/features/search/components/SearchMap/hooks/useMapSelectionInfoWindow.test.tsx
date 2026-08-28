@@ -96,6 +96,7 @@ const installGoogleMapsMock = () => {
 
   (window as any).google = {
     maps: {
+      Map: function Map() {},
       InfoWindow: FakeInfoWindow,
       event: {
         addListener: addMapListener,

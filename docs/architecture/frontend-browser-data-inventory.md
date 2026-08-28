@@ -28,16 +28,29 @@ documentation, screenshots, traces, videos, console logs, or generated reports.
 | `history.state` login return target | `pathname`, `search`, `hash` | Resume an internal protected deep link after login; navigation lifetime only | Internal, potentially Personal through query values | Current auth route and `RequireAuth` | No version/TTL; browser history lifetime | Structured object checks are distributed; external-target policy is not one codec. | U6 internal-return codec accepts only normalized same-origin path/query/hash and rejects loops/external forms. |
 | `history.state` accommodation draft provenance | accommodation ID and `source: created-draft` | Distinguish newly created draft while navigating to editor; reload is not required | Internal | `src/routes/paths.ts`, edit route | Typed shape; history lifetime | ID/source matcher; disappears on refresh, then editor hydrates persisted detail. | U6/U12 keep route-state provenance as an untrusted hint; server detail remains authority. |
 | `history.state` reservation checkout handoff | Same `ReservationCheckoutState` fields described below | Primary same-navigation handoff to confirm screen | Personal | Booking hook/checkout handoff; no stable viewer owner in record | Runtime type guard only; history lifetime | Confirm route prefers valid location state. Browser/user ownership is not encoded. | U9/U10 pass a minimal owned handoff document; personal identity fields are omitted unless a gateway request demonstrably needs them. |
+| `history.state` review partial-success toast | `toastMessage` string | Carry one review-image upload warning from review create to reservation detail | Internal; arbitrary injected text could expose Personal data | Review create route writes; reservation detail route reads into local state | Unversioned; attached to one browser history entry and may reappear on reload or back/forward | Only a string check. The detail route does not consume/replace the history value after copying it, so the same toast can reappear. | U6 defines a typed internal route-state codec; U9 replaces free-form text with a result code, consumes it once, and maps the code to owned UI copy. Review creation remains successful when image upload alone fails. |
 | `airbob:reservation-checkout:<accommodationId>` | `reservationUid`, `orderName`, `amount`, `customerEmail`, `customerName`, check-in/out, adult/child/infant/pet counts, coupon name/discount | Fallback reload recovery for reservation confirm | Personal; email/name are Personal, reservation/payment tuple is Sensitive-adjacent | `reservationCheckoutState.ts`; indexed by accommodation, no viewer subject | Unversioned JSON; no created/expiry; tab/session lifetime only | Shape guard and safe storage calls. Cleared on terminal paths or logout via prefix scan; malformed data is ignored but not consistently purged on read. | U10 stores only proven reload fields with purpose, version, stable opaque subject, creation/expiry, field allowlist, purge-on-invalid, and server tuple validation. TTL must be decided in U10 before the new writer ships. |
 | `airbob:reservation-checkout-index:<reservationUid>` | accommodation ID string | Locate checkout record from payment callback route | Internal plus reservation correlation | `reservationCheckoutState.ts`; no viewer subject | Unversioned; no created/expiry | Removed with checkout record when cleanup succeeds. A stale index can remain after interrupted writes. | U10 replaces or embeds the index in an owned repository; it cannot authorize payment and expires with the checkout record. |
 | `airbob:payment-confirmed:<orderId|paymentKey|amount>` | Sensitive tuple encoded in storage key; value `"1"` | Same-tab duplicate-confirm optimization | Sensitive because the storage key contains paymentKey | `paymentConfirmationAttemptRegistry.ts`; no viewer subject | Unversioned; no timestamp/TTL; tab/session lifetime | Read before confirm and written after success. No production logout-wide cleanup for this prefix. It is not server status. | U10 removes browser marker authority. Any replacement is an owned/versioned callback record and marker hit only triggers server reconciliation; purge on terminal/logout/expiry. |
 | In-memory payment attempt `Map` | same confirmation tuple and in-flight Promise | De-duplicate concurrent confirm calls in one JS process | Sensitive | `paymentConfirmationAttemptRegistry.ts` | Process lifetime | Removed in `finally`; does not cover another tab or reload. | U10 workflow instance and operation ID enforce one active command; server confirm/status remains terminal authority. |
 | Payment success/fail URL query | `paymentKey`, `orderId`, `amount`, optional failure reason | Receive Toss redirect callback and recover ambiguous confirmation | Sensitive | payment route parser and route query builders; no verified viewer owner | URL/history lifetime; no schema version/TTL | Strict amount/query parsing and tuple comparison are partial. The value remains visible in browser history; U2 deterministic output redacts it and rejects raw callback values in text artifacts. | U10 validates owned reservation/order/amount/paymentKey/subject tuple, moves required callback material to session-owned storage, removes sensitive query with replace, and redacts artifacts. |
+| Accommodation booking URL query | `checkIn`, `checkOut`, adult/child/infant/pet occupancy | Preserve a booking draft from search to accommodation detail/confirm and across direct load/back/forward | Internal; dates and party composition describe Personal activity | Route builders plus accommodation booking hook; parse and ownership are split | URL and browser-history-entry lifetime; no version/TTL | Route builder orders and encodes known keys, while consumers independently parse/default values. Query data is untrusted and does not prove price, availability, or viewer ownership. | U6 owns one parse/normalize/serialize codec without changing current push/replace history semantics; U9 validates the draft against current accommodation/session/server data before reservation creation. |
 | Search URL query | destination, dates, guest counts, lat/lng, viewport bounds, page | Shareable/search-restorable state | Internal; destination/dates may reveal user intent | routes plus search feature parsers | URL lifetime | Strict numeric/date parsers for request construction; ownership is split. | U6/U8 single codec owns parse/normalize/serialize; deterministic artifacts use synthetic values. |
 | Wishlist URL query | wishlist ID or recently-viewed view | Direct-load and history restoration | Internal | routes plus wishlist route state | URL lifetime | Feature parser with fallback; mirrored into React state. | U6/U7 codec is source of truth; no local persisted mirror. |
 | Profile URL query | guest/host mode and tab | Direct-load and history restoration | Internal | routes plus profile route state | URL lifetime | Feature parser with fallback; mirrored into React state. | U6/U13 codec is source of truth; no local persisted mirror. |
 | TanStack Query cache | session user, search/detail/wishlist/profile/reservation/review/API results | In-memory server-state cache; reload can refetch | Public through Sensitive depending on query | Singleton QueryClient; manual user-scoped root registry | Process lifetime; Query defaults | U5-era baseline cancels/removes selected roots on identity transition; coverage depends on manual registry. | U5 subject/epoch scopes viewer-dependent options and clears the session boundary. Query data is never serialized to browser storage. |
 | React component/form state | login/signup form, search drafts, editor form/images, modal/focus state | Active interaction only; reload generally not required | Internal through Personal | Owning component/hooks | Render/component lifetime | React unmount; selected stale-result refs guard several workflows. | Keep ephemeral state local; payment/editor long transactions move to reducer; never persist by default. |
+
+### Browser history lifetime rule
+
+`history.state` and URL query values belong to a browser history entry, not to a
+React render. They can survive rerenders, back/forward traversal, and—in browser-
+dependent cases—a reload or tab restoration. They disappear only when that
+history entry is replaced or discarded, so “navigation-only” never means
+“single-render” or “already validated.” Writers must keep fields minimal;
+readers must validate every entry and explicitly consume transient commands
+such as a one-time toast. U6 owns codecs and push/replace parity. Later workflow
+units remain responsible for server/session authority.
 
 ### Checkout fallback fields at U1
 
@@ -63,10 +76,10 @@ version, creation time, or explicit TTL beyond session-storage lifetime.
 
 | Value | Current source | Exposure | Policy |
 | --- | --- | --- | --- |
-| API domain | `REACT_APP_API_URL` | Public build configuration | Allowed browser-public value; no credentials in URL. U4/U16 expose through explicit allowlist only. |
-| Google Maps browser key | `REACT_APP_GOOGLE_MAPS_API_KEY` | Public browser key delivered to Google script | Treat as public-but-restricted. Record presence only; never record the value. Domain/API restrictions are external prerequisites. |
-| Toss client key | `REACT_APP_TOSS_CLIENT_KEY` | Public browser payment client key | Allow only client-key category. Secret keys and secret-like names fail build/artifact checks. |
-| CloudFront domain | `REACT_APP_CLOUDFRONT_DOMAIN` | Public asset host | Allowed browser-public value. Validate host construction in platform/image adapter. |
+| API domain | `REACT_APP_API_URL` through `src/platform/config` | Public build configuration | Production requires one explicit HTTPS origin with no credentials, path, query, or fragment; development keeps the CRA proxy. |
+| Google Maps browser key | `REACT_APP_GOOGLE_MAPS_API_KEY` through `src/platform/config` | Public browser key delivered to Google script | Treat as public-but-restricted. Record presence only; never record the value. Percent encoding and non-browser-key characters are rejected; domain/API restrictions remain external prerequisites. |
+| Toss client key | `REACT_APP_TOSS_CLIENT_KEY` through `src/platform/config` | Public browser payment client key | Only `test_ck_`/`live_ck_` browser-client categories are accepted. Missing/invalid API origins and misplaced `*_sk_*` server-key categories fail before the production compiler; hostile build/artifact checks prove the boundary without printing the value. |
+| CloudFront domain | `REACT_APP_CLOUDFRONT_DOMAIN` through `src/platform/config` | Public asset host | Exact validated HTTPS host consumed by the platform image resolver. |
 | QA email/password and route fixture IDs | `AIRBOB_*` shell variables | Test/integration process only | Never browser build input. Never committed or printed. Use synthetic `.invalid` identities in deterministic tests. |
 
 ## Artifact and logging policy
@@ -77,7 +90,7 @@ version, creation time, or explicit TTL beyond session-storage lifetime.
 | Live smoke stdout/report | Script redacts configured credential values and records route evidence | Restricted integration job only; stable IDs and credential values remain out of docs. Missing fixture is unverified. |
 | Screenshots | Current live smoke stores route screenshots | Use synthetic data when possible. Real-account screenshots require restricted retention and PII review. |
 | Deterministic Playwright output | U2 disables trace, video, screenshot, and HTML reports; uses synthetic identities and default-deny network; redacts stdout/stderr; and scans the current text artifact directory at teardown. | Keep binary artifacts disabled until an explicit synthetic-only retention policy exists. Any future artifact type must be allowlisted and privacy-scanned before activation. |
-| Built JavaScript/source maps | CRA build exposes `REACT_APP_*` values used by code | U4/U16 explicit browser-public allowlist and secret canary scan; QA/secret values must be absent. |
+| Built HTML/JavaScript/source maps | CRA exposes four values read by the explicit app platform adapter and separately interpolates build-only `PUBLIC_URL` into HTML/asset paths | A hostile production build requires the four approved app-runtime public canaries, permits only empty or percent-free root-relative/HTTPS-path asset bases, and rejects unsafe `PUBLIC_URL`, secret, QA, cookie/token, private-key, and unpredictable unknown `REACT_APP_*` canaries. |
 
 ## Cleanup events
 
@@ -93,6 +106,16 @@ version, creation time, or explicit TTL beyond session-storage lifetime.
 
 ## Legacy and rollback compatibility
 
+- U4 introduces the safe raw-storage driver and a generic versioned repository
+  only. It does not mount a new checkout/payment writer and does not reinterpret
+  any legacy record. U5 supplies the authenticated subject/epoch boundary; U10
+  alone decides the checkout field allowlist and TTL and activates migration.
+  The generic engine refuses a legacy allowlist without an epoch provider and
+  requires every migration call to prove that its captured subject is still
+  current before verification results, writes, or cleanup can mutate storage.
+  The named `legacySessionStorageCompatibility` seam is removed in U10 only
+  after both legacy readers/writers, terminal cleanup, and server-verified
+  migration have moved to the owned repository.
 - Pre-U10 unversioned checkout records are never accepted solely because their
   TypeScript shape parses. U10 may one-way migrate only after authenticated
   server data proves the reservation/order/amount owner tuple.

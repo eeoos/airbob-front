@@ -4,6 +4,17 @@
 // learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom';
 
+// CRA's Jest 27 runtime cannot parse Axios' ESM entry. Tests use the actual
+// browser CJS distribution, while production keeps the package's browser ESM
+// resolution so webpack does not treat a deep `.cjs` import as a static asset.
+jest.mock("axios", () =>
+  jest.requireActual("axios/dist/browser/axios.cjs"),
+);
+
+afterEach(() => {
+  document.getElementById("airbob-portal-root")?.remove();
+});
+
 jest.mock(
   "react-router",
   () => {

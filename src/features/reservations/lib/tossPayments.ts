@@ -1,120 +1,17 @@
-declare global {
-  interface Window {
-    TossPayments?: (clientKey: string) => TossPaymentsClient;
-  }
-}
+import { getPublicRuntimeConfig } from "../../../platform/config/publicRuntimeConfig";
+import {
+  createTossPaymentsV1Client,
+  ensureTossPaymentsV1Script,
+  type TossPaymentsV1Client,
+} from "../../../platform/integrations/tossPaymentsV1";
 
-export interface TossPaymentsClient {
-  widgets: (options: { customerKey: string }) => {
-    renderPaymentMethods: (
-      selector: string,
-      amount: { value: number },
-      options: { variantKey: string }
-    ) => Promise<void>;
-  };
-  requestPayment: (options: {
-    orderId: string;
-    orderName: string;
-    successUrl: string;
-    failUrl: string;
-    customerEmail: string;
-    customerName: string;
-    amount: number;
-  }) => Promise<void>;
-}
+export type TossPaymentsClient = TossPaymentsV1Client;
 
-const TOSS_PAYMENTS_SCRIPT_SRC = "https://js.tosspayments.com/v1";
-
-let tossPaymentsScriptPromise: Promise<void> | null = null;
-let tossPaymentsScriptElement: HTMLScriptElement | null = null;
-
-const getTossPaymentsScripts = () =>
-  Array.from(
-    document.querySelectorAll<HTMLScriptElement>(
-      `script[src="${TOSS_PAYMENTS_SCRIPT_SRC}"]`,
-    ),
-  );
-
-const removeStaleTossPaymentsScripts = (
-  activeScript: HTMLScriptElement | null,
-) => {
-  getTossPaymentsScripts().forEach((script) => {
-    if (script !== activeScript) {
-      script.remove();
-    }
-  });
-};
-
-const resolveWhenTossPaymentsIsReady = (
-  script: HTMLScriptElement,
-): Promise<void> =>
-  new Promise((resolve, reject) => {
-    const handleLoad = () => {
-      if (window.TossPayments) {
-        resolve();
-        return;
-      }
-
-      tossPaymentsScriptPromise = null;
-      tossPaymentsScriptElement = null;
-      script.remove();
-      reject(new Error("결제 시스템을 불러올 수 없습니다."));
-    };
-    const handleError = () => {
-      tossPaymentsScriptPromise = null;
-      tossPaymentsScriptElement = null;
-      script.remove();
-      reject(new Error("결제 시스템을 불러올 수 없습니다."));
-    };
-
-    script.addEventListener("load", handleLoad, { once: true });
-    script.addEventListener("error", handleError, { once: true });
-  });
-
-export const ensureTossPaymentsScript = (): Promise<void> => {
-  if (window.TossPayments) {
-    return Promise.resolve();
-  }
-
-  const activeScript =
-    tossPaymentsScriptPromise && tossPaymentsScriptElement?.isConnected
-      ? tossPaymentsScriptElement
-      : null;
-  removeStaleTossPaymentsScripts(activeScript);
-
-  if (tossPaymentsScriptPromise) {
-    if (activeScript) {
-      return tossPaymentsScriptPromise;
-    }
-
-    tossPaymentsScriptPromise = null;
-    tossPaymentsScriptElement = null;
-  }
-
-  if (window.TossPayments) {
-    return Promise.resolve();
-  }
-
-  const script = document.createElement("script");
-  script.src = TOSS_PAYMENTS_SCRIPT_SRC;
-  script.async = true;
-
-  tossPaymentsScriptPromise = resolveWhenTossPaymentsIsReady(script).catch(
-    (error) => {
-      tossPaymentsScriptPromise = null;
-      tossPaymentsScriptElement = null;
-      throw error;
-    },
-  );
-  tossPaymentsScriptElement = script;
-
-  document.body.appendChild(script);
-
-  return tossPaymentsScriptPromise;
-};
+// Preserve the legacy feature import while the checkout workflow remains on v1.
+export const ensureTossPaymentsScript = ensureTossPaymentsV1Script;
 
 export const getTossClientKey = () => {
-  const tossClientKey = process.env.REACT_APP_TOSS_CLIENT_KEY;
+  const tossClientKey = getPublicRuntimeConfig().tossClientKey;
 
   if (!tossClientKey) {
     throw new Error("결제 설정이 올바르지 않습니다.");
@@ -124,11 +21,11 @@ export const getTossClientKey = () => {
 };
 
 export const getTossPaymentsClient = (clientKey = getTossClientKey()) => {
-  if (!window.TossPayments) {
+  try {
+    return createTossPaymentsV1Client(clientKey);
+  } catch {
     throw new Error("결제 시스템을 불러올 수 없습니다.");
   }
-
-  return window.TossPayments(clientKey);
 };
 
 const getTossErrorCode = (error: unknown): string => {
@@ -173,7 +70,7 @@ export const toReservationPaymentError = (error: unknown): Error => {
     return new Error(
       "Toss Payments 클라이언트 키 인증에 실패했습니다. " +
         "클라이언트 키가 올바른지 확인해주세요. " +
-        "샌드박스 환경에서는 'test_ck_'로 시작하는 키를 사용해야 합니다."
+        "샌드박스 환경에서는 'test_ck_'로 시작하는 키를 사용해야 합니다.",
     );
   }
 

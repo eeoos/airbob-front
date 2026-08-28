@@ -1,4 +1,5 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
+import { createElement, StrictMode, type ReactNode } from "react";
 import { usePlacesAutocomplete, type PlacePrediction } from "./usePlacesAutocomplete";
 
 jest.mock("./useGoogleMapsScript", () => ({
@@ -22,6 +23,15 @@ const createRawPrediction = (placeId: string, description: string) => ({
   mainText: { text: description },
   secondaryText: { text: "대한민국" },
   toPlace: jest.fn(),
+});
+
+const createPlace = (lat: number, lng: number) => ({
+  fetchFields: jest.fn().mockResolvedValue(undefined),
+  location: { lat: () => lat, lng: () => lng },
+  viewport: {
+    getNorthEast: () => ({ lat: () => lat + 0.1, lng: () => lng + 0.1 }),
+    getSouthWest: () => ({ lat: () => lat - 0.1, lng: () => lng - 0.1 }),
+  },
 });
 
 describe("usePlacesAutocomplete", () => {
@@ -93,6 +103,85 @@ describe("usePlacesAutocomplete", () => {
       ]),
     );
     await waitFor(() => expect(result.current.isLoading).toBe(false));
+  });
+
+  it("keeps a newer visible suggestion paired with its own raw prediction", async () => {
+    const first = createDeferred<{ suggestions: any[] }>();
+    const second = createDeferred<{ suggestions: any[] }>();
+    jest
+      .mocked(
+        (window.google.maps.places as any).AutocompleteSuggestion
+          .fetchAutocompleteSuggestions,
+      )
+      .mockReturnValueOnce(first.promise)
+      .mockReturnValueOnce(second.promise);
+    const firstPrediction = createRawPrediction("seoul", "서울");
+    const secondPrediction = createRawPrediction("busan", "부산");
+    const firstPlace = createPlace(37.5665, 126.978);
+    const secondPlace = createPlace(35.1796, 129.0756);
+    firstPrediction.toPlace.mockReturnValue(firstPlace);
+    secondPrediction.toPlace.mockReturnValue(secondPlace);
+
+    const { result } = renderHook(() => usePlacesAutocomplete());
+    await waitFor(() => expect(result.current.isGoogleLoaded).toBe(true));
+
+    act(() => {
+      result.current.handleInputChange("Seoul");
+      jest.advanceTimersByTime(250);
+      result.current.handleInputChange("Busan");
+      jest.advanceTimersByTime(250);
+    });
+
+    await act(async () => {
+      second.resolve({ suggestions: [{ placePrediction: secondPrediction }] });
+      await second.promise;
+    });
+    await waitFor(() =>
+      expect(result.current.suggestions[0]?.placeId).toBe("busan"),
+    );
+
+    await act(async () => {
+      first.resolve({ suggestions: [{ placePrediction: firstPrediction }] });
+      await first.promise;
+    });
+    await act(async () => {
+      await result.current.handlePlaceSelect(result.current.suggestions[0]);
+    });
+
+    expect(firstPrediction.toPlace).not.toHaveBeenCalled();
+    expect(secondPrediction.toPlace).toHaveBeenCalledTimes(1);
+    expect(result.current.selectedPlace).toMatchObject({
+      placeId: "busan",
+      lat: 35.1796,
+      lng: 129.0756,
+    });
+  });
+
+  it("remains mounted after React StrictMode replays effects", async () => {
+    const autocomplete = createDeferred<{ suggestions: any[] }>();
+    const rawPrediction = createRawPrediction("seoul", "서울");
+    jest
+      .mocked(
+        (window.google.maps.places as any).AutocompleteSuggestion
+          .fetchAutocompleteSuggestions,
+      )
+      .mockReturnValue(autocomplete.promise);
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      createElement(StrictMode, null, children);
+
+    const { result } = renderHook(() => usePlacesAutocomplete(), { wrapper });
+    await waitFor(() => expect(result.current.isGoogleLoaded).toBe(true));
+
+    act(() => {
+      result.current.handleInputChange("Seoul");
+      jest.advanceTimersByTime(250);
+    });
+    await act(async () => {
+      autocomplete.resolve({ suggestions: [{ placePrediction: rawPrediction }] });
+      await autocomplete.promise;
+    });
+
+    await waitFor(() => expect(result.current.suggestions).toHaveLength(1));
   });
 
   it("does not commit place details after a newer input invalidates the selection", async () => {

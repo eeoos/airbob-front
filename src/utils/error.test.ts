@@ -2,10 +2,6 @@ import { ApiClientError } from "../api/response";
 import { ErrorResponse } from "../types/api";
 import { getApiErrorMessage, isAuthError, parseApiError } from "./error";
 
-jest.mock("axios", () => ({
-  AxiosError: class AxiosError extends Error {},
-}));
-
 describe("parseApiError", () => {
   it("preserves message, status, code, and field errors from ApiClientError", () => {
     const backendError: ErrorResponse = {
@@ -22,6 +18,75 @@ describe("parseApiError", () => {
     };
 
     expect(parseApiError(new ApiClientError(backendError))).toEqual(backendError);
+  });
+
+  it("preserves a backend envelope from the platform Axios runtime", () => {
+    const backendError: ErrorResponse = {
+      message: "입력값을 확인해주세요.",
+      status: 422,
+      code: "VALIDATION_FAILED",
+      errors: [
+        {
+          field: "guestCount",
+          value: "0",
+          reason: "인원은 1명 이상이어야 합니다.",
+        },
+      ],
+    };
+    const error = {
+      isAxiosError: true,
+      message: "Request failed with status code 422",
+      response: {
+        status: 422,
+        data: { success: false, data: null, error: backendError },
+      },
+    };
+
+    expect(parseApiError(error)).toBe(backendError);
+  });
+
+  it("preserves the current no-response network error contract", () => {
+    const error = {
+      isAxiosError: true,
+      message: "Network Error",
+    };
+
+    expect(parseApiError(error)).toEqual({
+      message: "Network Error",
+      status: 0,
+      code: "NETWORK_ERROR",
+    });
+  });
+
+  it("falls back to the HTTP status when the response is not an API envelope", () => {
+    const error = {
+      isAxiosError: true,
+      message: "Request failed with status code 502",
+      response: {
+        status: 502,
+        data: "<html>Bad Gateway</html>",
+      },
+    };
+
+    expect(parseApiError(error)).toEqual({
+      message: "Request failed with status code 502",
+      status: 502,
+      code: "HTTP_502",
+    });
+  });
+
+  it("keeps a non-Axios Error on the generic error path", () => {
+    expect(parseApiError(new Error("Unexpected failure"))).toEqual({
+      message: "Unexpected failure",
+      status: 500,
+      code: "UNKNOWN_ERROR",
+    });
+    expect(
+      parseApiError({
+        message: "Untrusted lookalike",
+        response: { status: 401 },
+      }),
+    ).toBeNull();
   });
 });
 

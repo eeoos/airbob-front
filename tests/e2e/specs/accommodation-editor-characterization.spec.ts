@@ -181,6 +181,33 @@ test("hydrates an existing accommodation and saves its update before publishing"
   );
 });
 
+test("lazy-loads the exact Daum postcode integration before mapping a selection", async ({
+  api,
+  baseURL,
+  page,
+  session,
+}) => {
+  if (!baseURL) {
+    throw new Error("Playwright baseURL is required.");
+  }
+  session.authenticate();
+  api.register(
+    "GET",
+    "/api/v1/profile/host/accommodations/31",
+    apiSuccess(makeEditableAccommodation(baseURL)),
+  );
+
+  await page.goto("/accommodations/31/edit");
+  await page.getByRole("button", { name: "주소 검색" }).click();
+
+  await expect(page.getByPlaceholder("주소를 검색하세요")).toHaveValue(
+    "테헤란로 123",
+  );
+  await expect(
+    page.getByPlaceholder("101호 또는 건물명, 동/호수 등을 입력하세요"),
+  ).toHaveValue("");
+});
+
 test("does not publish after the editor unmounts while an update is still in flight", async ({
   api,
   baseURL,

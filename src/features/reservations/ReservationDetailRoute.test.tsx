@@ -21,6 +21,16 @@ jest.mock("./hooks", () => ({
   }),
 }));
 
+jest.mock("../../platform/config/publicRuntimeConfig", () => ({
+  getPublicRuntimeConfig: () => ({
+    mode: "test",
+    apiBaseUrl: "/api/v1",
+    googleMapsBrowserKey: "maps-key",
+    tossClientKey: null,
+    cloudFrontHost: "assets.example.cloudfront.net",
+  }),
+}));
+
 jest.mock("../../components/ErrorToast", () => ({
   ErrorToast: ({
     message,
@@ -273,5 +283,32 @@ describe("ReservationDetailRoute", () => {
     expect(screen.getByText("₩120,000")).toBeInTheDocument();
     expect(screen.getByText("KB국민은행")).toBeInTheDocument();
     expect(screen.getByText("123-456")).toBeInTheDocument();
+  });
+
+  it("renders the exact reservation coordinate through the hardened map embed", () => {
+    mockReservation = reservationFixture({
+      coordinate: {
+        latitude: 37.5512,
+        longitude: 126.9882,
+      },
+    });
+
+    render(
+      <ReservationDetailRoute
+        locationState={null}
+        navigate={mockNavigate}
+        reservationUid="reservation-123"
+      />,
+    );
+
+    const map = screen.getByTitle("숙소 위치");
+    const mapUrl = new URL(map.getAttribute("src")!);
+
+    expect(map).toHaveAttribute(
+      "referrerpolicy",
+      "strict-origin-when-cross-origin",
+    );
+    expect(mapUrl.searchParams.get("q")).toBe("37.5512,126.9882");
+    expect(mapUrl.searchParams.get("zoom")).toBe("15");
   });
 });

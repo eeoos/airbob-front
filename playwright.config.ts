@@ -1,6 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
+import {
+  E2E_API_ORIGIN,
+  E2E_APP_ORIGIN,
+} from "./tests/e2e/support/runtimeOrigins";
 
-const baseURL = "http://127.0.0.1:4173";
+const baseURL = E2E_APP_ORIGIN;
 const e2ePort = new URL(baseURL).port;
 
 export default defineConfig({
@@ -41,7 +45,7 @@ export default defineConfig({
       BROWSER: "none",
       CI: "false",
       AIRBOB_E2E_PORT: e2ePort,
-      REACT_APP_API_URL: baseURL,
+      REACT_APP_API_URL: E2E_API_ORIGIN,
       REACT_APP_GOOGLE_MAPS_API_KEY: "",
       REACT_APP_TOSS_CLIENT_KEY: "test_ck_synthetic_characterization",
     },

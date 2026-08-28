@@ -1,4 +1,5 @@
 import { MutableRefObject, RefObject, useEffect, useRef } from "react";
+import { getGoogleMapsApi } from "../../../../../platform/integrations/googleMaps";
 import { clientLogger } from "../../../../../utils/clientLogger";
 import { renderMapExpandControl } from "../lib/mapExpandControl";
 import { SearchMapAccommodation, SearchMapViewport } from "../types";
@@ -43,6 +44,9 @@ export const useGoogleMapInstance = ({
   useEffect(() => {
     if (!isMapLoaded || !mapRef.current) return;
 
+    const maps = getGoogleMapsApi();
+    if (!maps) return;
+
     if (mapInstanceRef.current) {
       return;
     }
@@ -72,18 +76,18 @@ export const useGoogleMapInstance = ({
       zoomControl: true,
     };
 
-    if (window.google?.maps?.ControlPosition) {
+    if (maps.ControlPosition) {
       mapOptions.zoomControlOptions = {
-        position: window.google.maps.ControlPosition.RIGHT_CENTER,
+        position: maps.ControlPosition.RIGHT_CENTER,
       };
     }
 
     try {
-      const map = new window.google.maps.Map(mapElement, mapOptions);
+      const map = new maps.Map(mapElement, mapOptions);
       mapInstanceRef.current = map;
 
       if (viewport) {
-        const initialBounds = new window.google.maps.LatLngBounds(
+        const initialBounds = new maps.LatLngBounds(
           { lat: viewport.south, lng: viewport.west },
           { lat: viewport.north, lng: viewport.east }
         );
@@ -140,10 +144,9 @@ export const useGoogleMapInstance = ({
         { event: "touchstart", listener: touchStartListener },
         { event: "mousedown", listener: mouseDownListener }
       );
-    } catch (error) {
+    } catch {
       clientLogger.error({
         message: "지도 초기화 실패:",
-        error,
       });
     }
 
@@ -153,7 +156,7 @@ export const useGoogleMapInstance = ({
       }
 
       mapListeners.forEach((listener) => {
-        google.maps.event.removeListener(listener);
+        listener.remove();
       });
       elementListeners.forEach(({ event, listener }) => {
         mapElement.removeEventListener(event, listener);

@@ -1,4 +1,5 @@
-import { GOOGLE_MAPS_API_KEY } from "../../../utils/constants";
+import { getPublicRuntimeConfig } from "../../../platform/config/publicRuntimeConfig";
+import { buildGoogleMapsEmbedUrl } from "../../../platform/integrations/googleMaps";
 import type { AccommodationDetailViewModel } from "../lib/accommodationDetailViewModel";
 import styles from "./AccommodationLocationSection.module.css";
 
@@ -9,10 +10,19 @@ interface AccommodationLocationSectionProps {
 
 export function AccommodationLocationSection({
   detailView,
-  googleMapsApiKey = GOOGLE_MAPS_API_KEY,
+  googleMapsApiKey =
+    getPublicRuntimeConfig().googleMapsBrowserKey ?? "",
 }: AccommodationLocationSectionProps) {
   const { latitude, longitude } = detailView.coordinate;
   const hasCoordinates = Boolean(latitude && longitude);
+  const mapUrl = hasCoordinates
+    ? buildGoogleMapsEmbedUrl({
+        apiKey: googleMapsApiKey,
+        latitude: latitude!,
+        longitude: longitude!,
+        zoom: 15,
+      })
+    : null;
 
   return (
     <section className={`${styles.section} ${styles.locationSectionFullWidth}`}>
@@ -22,15 +32,15 @@ export function AccommodationLocationSection({
       </p>
       {hasCoordinates && (
         <div className={styles.mapContainer}>
-          {googleMapsApiKey ? (
+          {mapUrl ? (
             <iframe
               title="숙소 위치 지도"
               width="100%"
               height="100%"
               loading="lazy"
               allowFullScreen
-              referrerPolicy="no-referrer-when-downgrade"
-              src={`https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${latitude},${longitude}&zoom=15`}
+              referrerPolicy="strict-origin-when-cross-origin"
+              src={mapUrl}
             />
           ) : (
             <div className={styles.mapPlaceholder}>

@@ -2,6 +2,7 @@
 
 > Status: canonical current-state source of truth  
 > Baseline: `07a1fdf` (`fix(frontend): harden cross-feature state boundaries`)  
+> Current migration state: U4 platform foundation cut over
 > Recorded: 2026-08-29 KST
 
 This document describes the frontend that is reachable in production at the
@@ -44,16 +45,17 @@ Current owners:
 | Concern | Current owner | Notes |
 | --- | --- | --- |
 | React root and providers | `src/index.tsx` | Provider ordering is fixed by the root. |
-| Server-state client | `src/query/QueryProvider.tsx`, `src/query/queryClient.ts` | One process-wide QueryClient. |
+| Server-state client | `src/platform/query/createQueryClient.ts`, exposed through `src/query/**` | One process-wide QueryClient; the legacy import remains a facade. |
 | Authentication | `src/contexts/AuthContext.tsx`, `src/features/auth/**` | Boolean-facing context backed by `/auth/me`. |
 | Routing and shell metadata | `src/routes/**` | Paths, auth, layout, header metadata and lazy entries are centralized. |
 | Main application shell | `src/layouts/MainLayout.tsx`, `src/layouts/AppHeader/**` | Header imports feature app-shell seams. |
-| API transport and envelope | `src/api/client.ts`, `src/api/request.ts`, `src/api/response.ts` | Axios with credentials and `/api/v1` envelope. |
+| API transport and envelope | `src/platform/http/**`, exposed through `src/api/client.ts` and `src/api/response.ts` | One credentialed Axios instance; migrated and legacy error surfaces are intentionally separate. |
+| Browser platform boundary | `src/platform/config|storage|integrations|assets/**` | Owns public environment input, browser storage access, external SDK globals/scripts, and image URL resolution. |
 | Domain server state and orchestration | `src/features/**` | TanStack Query hooks, route containers, mappers, and workflow hooks coexist. |
 | Domain-free UI | `src/shared/ui/**` | Tested primitives; adoption is incomplete. |
 | Shared styling values | `src/styles/tokens.css` | CSS Modules still contain feature-local literals. |
 | Browser smoke | `scripts/smoke/frontend-smoke.mjs` | Live backend, browser, credentials, and stable IDs are external prerequisites. |
-| Deterministic browser characterization | `playwright.config.ts`, `tests/e2e/**` | Production build with synthetic session/API fixtures, loopback-only server, and default-deny network. |
+| Deterministic browser characterization | `playwright.config.ts`, `tests/e2e/**` | Loopback production app plus an exact synthetic HTTPS `.invalid` API origin, synthetic session/API fixtures, and default-deny network. |
 | Static architecture ratchets | `.dependency-cruiser.cjs`, `knip.json`, `stylelint.config.mjs`, `architecture-ratchet.json` | Target/migrated surfaces fail on graph, reachability, and design-policy regressions while measured legacy debt remains visible. |
 
 ## Route inventory
@@ -105,9 +107,13 @@ Detailed browser persistence and privacy properties are recorded in
 
 ### API boundary
 
-- `src/api/client.ts` creates credentialed Axios v1 and unused v2 clients.
-- `src/api/request.ts` and `src/api/response.ts` validate the common response
-  envelope and expose `ApiClientError`.
+- `src/platform/http/client.ts` creates the only credentialed production Axios
+  instance. `src/api/client.ts` is the compatibility facade; the unused Axios
+  v2 instance no longer exists.
+- `src/platform/http/envelope.ts` and `errors.ts` own the migrated
+  `AppError` boundary. `src/api/request.ts` and `response.ts` preserve the
+  existing `ApiClientError`, raw Axios failure identity, nullable-command, and
+  authentication-event contracts for legacy consumers.
 - Domain wrappers under `src/api/*.ts` own current methods, URLs, query/body
   shapes, and global wire DTO imports from `src/types/**`.
 - UI components and route containers are kept away from direct API and wire-DTO
@@ -119,11 +125,18 @@ Detailed browser persistence and privacy properties are recorded in
 
 | Integration | Current owner | Runtime form |
 | --- | --- | --- |
-| Google Maps/Places | `src/hooks/useGoogleMapsScript.ts`, search map/hooks | Dynamically inserted Google script and `window.google`. |
-| Daum postcode | `public/index.html`, `useDaumPostcode.ts` | Static script and `window.daum`. |
-| Toss Payments | `src/features/reservations/lib/tossPayments.ts` | Manually loaded CDN v1 global despite npm v2 being installed. |
-| CloudFront images | `src/utils/image.ts` | `REACT_APP_CLOUDFRONT_DOMAIN` URL construction. |
-| Environment | direct `process.env.REACT_APP_*` reads | CRA build-time exposure. |
+| Google Maps/Places | `src/platform/integrations/googleMaps.ts` | Exact HTTPS script loader and validated runtime access; current hooks are compatibility facades. |
+| Daum postcode | `src/platform/integrations/daumPostcode.ts` | Lazy exact HTTPS loader, callback validation, and abortable open operation. |
+| Toss Payments | `src/platform/integrations/tossPaymentsV1.ts` | Temporary CDN v1 gateway; the feature helper preserves current user-facing error policy. |
+| CloudFront images | `src/platform/assets/imageUrl.ts` | Validated HTTPS asset host and legacy `src/utils/image.ts` facade. |
+| Environment | `src/platform/config/env.ts`, `publicRuntimeConfig.ts`, `scripts/architecture/validate-public-build-env.mjs` | The app adapter reads mode plus four browser-public runtime values. CRA separately consumes build-only `PUBLIC_URL` for HTML/asset paths; preflight permits only empty, single-slash root-relative, or absolute HTTPS asset bases with percent-free safe paths. Runtime and build validation reject percent encoding and server-secret key shapes in every public exposure; Google Maps also uses a browser-key-safe character set. |
+
+`src/platform/storage` now owns raw `sessionStorage` access and a generic
+versioned repository with purpose, version, privacy/PII classification, stable
+subject, TTL, exact field allowlists, invalid-record purge, and guarded one-way
+migration. It is not an active checkout/payment writer. The two current
+unversioned reservation helpers use a named raw compatibility seam until U10
+can activate a server-verified schema without creating a second writer.
 
 ## Current dependency boundaries
 
@@ -152,15 +165,17 @@ Consequences that remain open:
 - Public compatibility seams remain permitted, while the graph ratchet reports
   them as legacy warnings; the current graph is not yet a DAG.
 
-U3 adds executable ownership for this graph. Dependency-cruiser reports 375
-modules, 1,035 edges, two legacy editor cycles, and sixteen legacy cross-feature
-edges with zero blocking errors. Knip records sixteen unreachable production
+U3 adds executable ownership for this graph. At the U4 platform cutover,
+dependency-cruiser reports 388 modules and 1,067 edges with two legacy editor
+cycles and sixteen legacy cross-feature edges with zero blocking errors. Knip
+records sixteen unreachable production
 files and six unused runtime packages while target reachability remains clean.
 Stylelint records 231 legacy warnings across 60 CSS files while target design
 policy has zero errors. `architecture-ratchet.json` promotes a feature to strict
 dependency, reachability, and style enforcement in its cutover commit. The
 registry rejects missing/test-only roots and live downgrades against the PR base;
-JavaScript and JSX share the same strict lint/reachability coverage as TypeScript.
+JavaScript, JSX, and MJS share the same strict lint/reachability coverage as
+TypeScript, including CRA's `.web.mjs` resolution through the `.mjs` suffix.
 Existing unused runtime packages remain report-only, while adding a new unused
 runtime dependency is blocking. New or renamed feature roots must enter the
 registry atomically; parent features cannot borrow nested-feature source to pass
@@ -193,7 +208,7 @@ status lives in [`frontend-ownership-matrix.md`](./frontend-ownership-matrix.md)
 
 | Delta | Planned owner |
 | --- | --- |
-| Environment, HTTP, storage, and integration adapters | U4 |
+| Per-feature migration off legacy global API/DTO facades and activation of the owned checkout repository | U7-U13, U10, U22 |
 | Explicit session subject/epoch and cache lifetime | U5 |
 | App route adapters, query codecs, and shells | U6 |
 | Auth intent and wishlist membership workflow | U7 |
@@ -222,6 +237,7 @@ Current local and CI commands are defined in `package.json` and
 - `npm run test:ci:no-cache -- --runInBand`
 - `npm run lint:strict`
 - `npm run build`
+- `npm run test:public-config-build`
 - `npm run test:e2e:artifact-policy`
 - `npm run typecheck:e2e`
 - `npm run test:e2e:characterization`

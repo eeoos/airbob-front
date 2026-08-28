@@ -18,14 +18,35 @@ Install the deterministic browser once before the local Playwright suite:
 npx playwright install chromium
 ```
 
-Required environment variables:
+Browser-public application runtime inputs:
 
-- `REACT_APP_API_URL`
-- `REACT_APP_GOOGLE_MAPS_API_KEY`
-- `REACT_APP_TOSS_CLIENT_KEY`
-- `REACT_APP_CLOUDFRONT_DOMAIN`
+- `REACT_APP_API_URL` — required for production builds
+- `REACT_APP_GOOGLE_MAPS_API_KEY` — optional; map/Places UI uses its fallback state when absent
+- `REACT_APP_TOSS_CLIENT_KEY` — optional until checkout is used
+- `REACT_APP_CLOUDFRONT_DOMAIN` — optional; the current public asset host is the default
+
+CRA separately consumes `PUBLIC_URL` while interpolating public HTML and asset
+paths. It is a build-only public asset base, not a fifth application runtime
+config value. Leave it missing/empty for the default root, or use either a
+single-slash root-relative path such as `/airbob/assets` or an absolute HTTPS
+URL with an optional path. Dot-relative/protocol-relative paths, HTTP/data/blob
+URLs, credentials, query strings, fragments, surrounding whitespace,
+percent-encoded path characters, and HTML-unsafe characters fail before
+compilation.
 
 Local development expects the backend API to be reachable through the CRA proxy at `http://localhost:8080`.
+Production builds fail closed unless `REACT_APP_API_URL` is an explicit HTTPS
+origin with no credentials, path, query, or fragment. The deterministic CI
+build uses a synthetic `.invalid` origin; deployment must provide the real
+public API origin.
+`REACT_APP_TOSS_CLIENT_KEY`, when configured, must use the browser-public
+`test_ck_` or `live_ck_` category. `REACT_APP_CLOUDFRONT_DOMAIN` must likewise
+be an HTTPS host with no credentials, non-default port, path, query, or fragment.
+A server-secret `test_sk_` or `live_sk_` value in any of the four application
+runtime slots or in `PUBLIC_URL` fails before the production compiler runs.
+Percent encoding is rejected in every browser-public input so a reversible
+encoding cannot hide a server-key category. The optional Google Maps key also
+accepts only browser-key-safe letters, digits, `_`, and `-`.
 
 ## Verification Gates
 
@@ -36,6 +57,7 @@ npm run verify:pre-redesign
 npm run verify:structure
 npm run verify:architecture
 npm run report:architecture
+npm run test:public-config-build
 npm run test:e2e:artifact-policy
 npm run typecheck:e2e
 npm run test:e2e:characterization
@@ -45,13 +67,21 @@ npm run verify:design-ready
 ```
 
 - `verify:pre-redesign`: typecheck, no-cache Jest in band, and production build.
-- `verify:structure`: typecheck, no-cache Jest in band, strict ESLint, and the
-  architecture/reachability/style ratchets.
+- `verify:structure`: typecheck, no-cache Jest in band, strict ESLint, the
+  architecture/reachability/style ratchets, and a hostile-environment
+  production build that proves only the four approved app-runtime public
+  config categories plus a validated `PUBLIC_URL` asset base can enter built
+  source.
 - `verify:architecture`: runs forbidden-rule fixtures, the production
   dependency graph, monotonic migration-registry checks, target-only dead-code
   enforcement, new-unused-dependency prevention, and strict style policy.
 - `report:architecture`: prints the measured legacy dead-code and CSS debt
   without turning it into permanent suppressions.
+- `test:public-config-build`: injects synthetic password, secret, cookie, token,
+  private-key, and unknown-env canaries into a temporary production build and
+  fails if any forbidden value reaches generated text assets. It also runs the
+  real production build entry point against rejected `PUBLIC_URL` forms and
+  proves accepted root-relative and HTTPS-path asset bases.
 - `test:e2e:characterization`: builds and serves a loopback-only production
   variant, then runs the synthetic Playwright flow matrix without a live backend.
 - `test:e2e:artifact-policy`, `typecheck:e2e`, and `lint:e2e`: enforce the

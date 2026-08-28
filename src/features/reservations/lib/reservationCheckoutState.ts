@@ -1,3 +1,5 @@
+import { legacySessionStorageCompatibility } from "../../../platform/storage";
+
 export interface ReservationCheckoutState {
   reservationUid: string;
   orderName: string;
@@ -29,28 +31,16 @@ const isReservationCheckoutStorageKey = (key: string) =>
   checkoutStorageKeyPrefixes.some((prefix) => key.startsWith(prefix));
 
 const safeGetItem = (key: string): string | null => {
-  try {
-    return sessionStorage.getItem(key);
-  } catch {
-    return null;
-  }
+  const result = legacySessionStorageCompatibility.getItem(key);
+  return result.ok ? result.value : null;
 };
 
 const safeSetItem = (key: string, value: string): boolean => {
-  try {
-    sessionStorage.setItem(key, value);
-    return true;
-  } catch {
-    return false;
-  }
+  return legacySessionStorageCompatibility.setItem(key, value).ok;
 };
 
 const safeRemoveItem = (key: string) => {
-  try {
-    sessionStorage.removeItem(key);
-  } catch {
-    // Best-effort cleanup; storage can be unavailable or denied.
-  }
+  legacySessionStorageCompatibility.removeItem(key);
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -176,17 +166,9 @@ export const clearReservationCheckoutStateByReservationUid = (
 };
 
 export const clearAllReservationCheckoutState = () => {
-  let keys: string[];
-
-  try {
-    keys = Array.from({ length: sessionStorage.length }, (_, index) =>
-      sessionStorage.key(index)
-    ).filter((key): key is string =>
-      key !== null && isReservationCheckoutStorageKey(key)
-    );
-  } catch {
-    return;
-  }
+  const result = legacySessionStorageCompatibility.keys();
+  if (!result.ok) return;
+  const keys = result.value.filter(isReservationCheckoutStorageKey);
 
   keys.forEach(safeRemoveItem);
 };

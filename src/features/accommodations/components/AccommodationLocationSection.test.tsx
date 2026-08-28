@@ -53,10 +53,16 @@ describe("AccommodationLocationSection", () => {
 
     expect(screen.getByRole("heading", { name: "위치" })).toBeInTheDocument();
     expect(screen.getByText("서울, 대한민국")).toBeInTheDocument();
-    expect(screen.getByTitle("숙소 위치 지도")).toHaveAttribute(
-      "src",
-      expect.stringContaining("key=maps-key")
+    const map = screen.getByTitle("숙소 위치 지도");
+    const mapUrl = new URL(map.getAttribute("src")!);
+
+    expect(map).toHaveAttribute(
+      "referrerpolicy",
+      "strict-origin-when-cross-origin",
     );
+    expect(mapUrl.searchParams.get("key")).toBe("maps-key");
+    expect(mapUrl.searchParams.get("q")).toBe("37.5512,126.9882");
+    expect(mapUrl.searchParams.get("zoom")).toBe("15");
   });
 
   it("renders a coordinate placeholder when the API key is absent", () => {

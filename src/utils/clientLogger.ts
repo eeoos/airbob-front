@@ -1,3 +1,5 @@
+import { isTestEnvironment } from "../platform/config/env";
+
 type LogLevel = "warn" | "error";
 
 interface ClientLogPayload {
@@ -6,7 +8,7 @@ interface ClientLogPayload {
 }
 
 const emitLog = (level: LogLevel, payload: ClientLogPayload) => {
-  if (process.env.NODE_ENV === "test") {
+  if (isTestEnvironment()) {
     return;
   }
 

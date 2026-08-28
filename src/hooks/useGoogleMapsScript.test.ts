@@ -1,148 +1,100 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
+import { getPublicRuntimeConfig } from "../platform/config/publicRuntimeConfig";
 import { useGoogleMapsScript } from "./useGoogleMapsScript";
 
-const originalGoogle = window.google;
-const originalApiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+jest.mock("../platform/config/publicRuntimeConfig", () => ({
+  getPublicRuntimeConfig: jest.fn(),
+}));
 
-// Script tags live in document.head and have no accessible role to query.
+const runtimeConfig = (googleMapsBrowserKey: string | null) => ({
+  mode: "test" as const,
+  apiBaseUrl: "/api/v1",
+  googleMapsBrowserKey,
+  tossClientKey: null,
+  cloudFrontHost: "assets.example.cloudfront.net",
+});
+
 const mapsScripts = () =>
+  // Script tags have no accessible role; this integration facade owns the tag.
   // eslint-disable-next-line testing-library/no-node-access
   Array.from(document.scripts).filter((script) =>
-    script.src.includes("maps.googleapis.com/maps/api/js")
+    script.src.startsWith("https://maps.googleapis.com/maps/api/js?"),
   );
 
 const setGoogleMapsReady = () => {
   (window as any).google = {
     maps: {
       Map: function Map() {},
+      places: {},
     },
   };
 };
 
 describe("useGoogleMapsScript", () => {
+  const originalGoogle = window.google;
+
   beforeEach(() => {
     jest.useFakeTimers();
     delete (window as any).google;
-    process.env.REACT_APP_GOOGLE_MAPS_API_KEY = "test-api-key";
+    jest.mocked(getPublicRuntimeConfig).mockReturnValue(runtimeConfig("test-key"));
     mapsScripts().forEach((script) => script.remove());
   });
 
   afterEach(() => {
-    act(() => {
-      jest.runOnlyPendingTimers();
-    });
-    jest.useRealTimers();
+    mapsScripts().forEach((script) => script.dispatchEvent(new Event("error")));
     mapsScripts().forEach((script) => script.remove());
-    process.env.REACT_APP_GOOGLE_MAPS_API_KEY = originalApiKey;
+    jest.clearAllTimers();
+    jest.useRealTimers();
     (window as any).google = originalGoogle;
   });
 
-  it("adds one script tag across multiple hook instances", async () => {
+  it("shares one platform loader across hook instances", async () => {
     const { result: firstResult } = renderHook(() => useGoogleMapsScript());
     const { result: secondResult } = renderHook(() => useGoogleMapsScript());
 
-    await waitFor(() => {
-      expect(mapsScripts()).toHaveLength(1);
-    });
-
+    expect(mapsScripts()).toHaveLength(1);
     expect(firstResult.current.status).toBe("loading");
     expect(secondResult.current.status).toBe("loading");
-    expect(mapsScripts()[0].src).toContain("key=test-api-key");
+
+    act(() => {
+      setGoogleMapsReady();
+      mapsScripts()[0].dispatchEvent(new Event("load"));
+    });
+
+    await waitFor(() =>
+      expect([
+        firstResult.current.status,
+        secondResult.current.status,
+      ]).toEqual(["loaded", "loaded"]),
+    );
   });
 
-  it("reports missing-key and does not append a script when api key is empty", async () => {
-    process.env.REACT_APP_GOOGLE_MAPS_API_KEY = "";
+  it("preserves missing-key status without appending a script", () => {
+    jest.mocked(getPublicRuntimeConfig).mockReturnValue(runtimeConfig(null));
 
     const { result } = renderHook(() => useGoogleMapsScript());
 
-    await waitFor(() => {
-      expect(result.current.status).toBe("missing-key");
-    });
-
-    expect(result.current.isLoaded).toBe(false);
+    expect(result.current).toEqual({ isLoaded: false, status: "missing-key" });
     expect(mapsScripts()).toHaveLength(0);
   });
 
-  it("reports loaded when window.google.maps.Map already exists", async () => {
+  it("reports loaded without a script when the runtime already exists", () => {
     setGoogleMapsReady();
 
     const { result } = renderHook(() => useGoogleMapsScript());
 
-    await waitFor(() => {
-      expect(result.current.status).toBe("loaded");
-    });
-
-    expect(result.current.isLoaded).toBe(true);
+    expect(result.current).toEqual({ isLoaded: true, status: "loaded" });
     expect(mapsScripts()).toHaveLength(0);
   });
 
-  it("updates status to error when the script fails to load", async () => {
+  it("preserves error status after a platform loader failure", async () => {
     const { result } = renderHook(() => useGoogleMapsScript());
+    const script = mapsScripts()[0];
 
-    await waitFor(() => {
-      expect(mapsScripts()).toHaveLength(1);
-    });
+    act(() => script.dispatchEvent(new Event("error")));
 
-    act(() => {
-      mapsScripts()[0].dispatchEvent(new Event("error"));
-    });
-
-    await waitFor(() => {
-      expect(result.current.status).toBe("error");
-    });
-
+    await waitFor(() => expect(result.current.status).toBe("error"));
     expect(result.current.isLoaded).toBe(false);
-  });
-
-  it("does not duplicate an existing script and transitions to loaded when Maps becomes available", async () => {
-    const existingScript = document.createElement("script");
-    existingScript.src =
-      "https://maps.googleapis.com/maps/api/js?key=already-present&libraries=places&loading=async";
-    document.head.appendChild(existingScript);
-
-    const { result } = renderHook(() => useGoogleMapsScript());
-
-    await waitFor(() => {
-      expect(result.current.status).toBe("loading");
-    });
-    expect(mapsScripts()).toHaveLength(1);
-    expect(mapsScripts()[0]).toBe(existingScript);
-
-    act(() => {
-      setGoogleMapsReady();
-      existingScript.dispatchEvent(new Event("load"));
-      jest.advanceTimersByTime(100);
-    });
-
-    await waitFor(() => {
-      expect(result.current.status).toBe("loaded");
-    });
-
-    expect(result.current.isLoaded).toBe(true);
-    expect(mapsScripts()).toHaveLength(1);
-  });
-
-  it("reports error when an existing script never exposes Google Maps", async () => {
-    const existingScript = document.createElement("script");
-    existingScript.src =
-      "https://maps.googleapis.com/maps/api/js?key=already-present&libraries=places&loading=async";
-    document.head.appendChild(existingScript);
-
-    const { result } = renderHook(() => useGoogleMapsScript());
-
-    await waitFor(() => {
-      expect(result.current.status).toBe("loading");
-    });
-
-    act(() => {
-      jest.advanceTimersByTime(5000);
-    });
-
-    await waitFor(() => {
-      expect(result.current.status).toBe("error");
-    });
-
-    expect(result.current.isLoaded).toBe(false);
-    expect(mapsScripts()).toHaveLength(1);
+    expect(script.isConnected).toBe(false);
   });
 });

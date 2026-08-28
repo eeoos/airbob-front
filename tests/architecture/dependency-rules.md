@@ -12,7 +12,7 @@ baseline, and how a migrated slice becomes strict without a suppression wall.
 | Production reachability, unused files/exports/dependencies | Knip | The same target/migrated surface through a result preprocessor | Full production report is non-blocking and contains no per-file ignore list. |
 | CSS syntax and design references | Stylelint | Target/migrated CSS plus the already-clean shell/modal files named in config | Legacy design/syntax debt is warning-only; breakpoint and suppression invariants remain global errors. |
 | CSS interaction/token invariants not expressible by the pinned Stylelint line | Focused Jest contracts using the central style policy | Target/migrated CSS plus the named high-risk pre-redesign set | No duplicated raw-color, `!important`, or import scanner remains. |
-| Local TypeScript/JavaScript feedback | ESLint | Existing strict source gate and architecture-tool scripts | None for files in strict scope. |
+| Local TypeScript/JavaScript feedback | ESLint | Existing strict source gate and architecture-tool scripts, including CRA-resolved `.mjs` modules | None for files in strict scope. |
 | Runtime behavior | Jest and deterministic Playwright | Current behavior and migrated flows | Target behavior is never counted through skips. |
 
 `architecture-ratchet.json` is the single changed-surface registry. A feature
@@ -49,7 +49,8 @@ top-level features and the declared `accommodations/edit` nested scope. Target
 module and folder cycles are errors; legacy folder cycles are not reported
 because nested-folder expansion produced noisy duplicates.
 
-The fixture runner proves 32 cases, including a valid DAG, the app feature
+The fixture runner proves 34 cases, including a valid DAG, MJS graph coverage,
+the app feature
 public-surface contract, workflow/screen peer edges, screen-to-platform,
 shared-to-page, parent/editor and private feature imports, UI/API and UI/DTO
 bypasses, route/layout/page bypasses, module and folder cycles, a type-only
@@ -66,10 +67,10 @@ packages. These are deletion/classification inputs for U7-U23, not an allowlist.
 
 `npm run lint:dead-code` applies the target preprocessor and fails on any issue
 whose owning file is under a target root or registered migrated feature. The U3
-target count is zero. JavaScript and JSX are included alongside TypeScript.
+target count is zero. JavaScript, JSX, and MJS are included alongside TypeScript.
 Route modules are not registered as artificial entries: the production entry
 must reach them through literal dynamic imports. The Knip fixture proves that a
-lazy route and its screen remain reachable while dead TS, JS, JSX, and a
+lazy route and its screen remain reachable while dead TS, JS, JSX, MJS, and a
 non-empty migrated-feature entry are reported, test helpers under `__tests__`
 and `__mocks__` remain outside production, and legacy-only debt remains
 non-blocking.
