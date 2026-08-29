@@ -1,8 +1,8 @@
 # Airbob Frontend Architecture
 
 > Status: canonical current-state source of truth  
-> Baseline: U4 commit `f5222d5`, followed by the U6 Router and current U5 session cutovers
-> Current migration state: U6 app Router/shells and the U5 app session boundary are active
+> Baseline: U4 commit `f5222d5`, followed by the U6 Router, U5 session, and U19 structural UI cutovers
+> Current migration state: U6 app Router/shells, the U5 app session boundary, and the U19 overlay/responsive runtime are active
 > Recorded: 2026-08-29 KST
 
 This document describes the frontend that is reachable in production at the
@@ -33,40 +33,42 @@ src/index.tsx
   ErrorBoundary
     BrowserRouter (stable across session generations)
       AppProviders
-        SessionProvider
-          useSessionController (explicit state + transitions)
-          provider-local physical auth command queue
-          useSessionQueryLifetime (subject/epoch generations)
-          useSessionExternalSync (tab/focus/auth signals)
-          SessionContext
-            AuthIntentProvider (memory-only stable boundary)
-              keyed QueryClientProvider
-                AuthProvider (thin compatibility adapter)
-                  App
-                    U6 app route tree
-                      semantic app shell
-                        optional AppHeader
-                        one main landmark
-                          lazy app route adapter
-                            assigned legacy feature route body
+        OverlayProvider (one portal root + dialog stack)
+          SessionProvider
+            useSessionController (explicit state + transitions)
+            provider-local physical auth command queue
+            useSessionQueryLifetime (subject/epoch generations)
+            useSessionExternalSync (tab/focus/auth signals)
+            SessionContext
+              AuthIntentProvider (memory-only stable boundary)
+                keyed QueryClientProvider
+                  AuthProvider (thin compatibility adapter)
+                    App
+                      U6 app route tree
+                        semantic app shell
+                          optional AppHeader
+                          one main landmark
+                            lazy app route adapter
+                              assigned legacy feature route body
 ```
 
 Current owners:
 
 | Concern | Current owner | Notes |
 | --- | --- | --- |
-| React root and providers | `src/index.tsx`, `src/app/providers/AppProviders.tsx` | The one React root injects the reservation session-cleanup port; `AppProviders` mounts the single `SessionProvider` and no provider creates another root. |
+| React root and providers | `src/index.tsx`, `src/app/providers/AppProviders.tsx` | The one React root injects the reservation session-cleanup port; `AppProviders` mounts one `OverlayProvider` around the single `SessionProvider` and no provider creates another React root. |
 | Session and authentication lifetime | `src/app/session/**`, `src/features/auth/ports/sessionPort.ts`, `src/platform/session/**` | One explicit reducer owns bootstrap, authenticated revalidation, anonymous revocation, retryable errors, subject/epoch, provider-local auth command serialization, cancellation, focus/401 handling, and cross-tab invalidation. |
 | Resumable authentication intent | `src/workflows/auth-intent/**`, composed by `src/app/providers/AppProviders.tsx` | A memory-only provider outside the keyed Query subtree holds only the latest validated primitive intent. A new authenticated route adapter atomically claims it with a captured session scope; old-generation callbacks never resume domain work. Search and accommodation compatibility bodies consume typed data ports until their U8/U9 replacements. |
 | Server-state client | `src/app/session/SessionProvider.tsx`, `src/platform/query/createQueryClient.ts` | Each session generation receives a new QueryClient. Leaving an authenticated identity also remounts the provider subtree. `src/query/QueryProvider.tsx` and `sessionCacheBoundary.ts` are rollback/test compatibility surfaces, not production owners. |
 | Authentication compatibility | `src/contexts/AuthContext.tsx`, `src/features/auth/**` | `AuthContext` only projects session state to legacy booleans and delegates login/logout/revalidation. The legacy auth screens remain assigned route bodies until U7; the context adapter remains until its final consumers move in U22. |
 | Routing and shell metadata | `src/app/router/definitions.ts`, `manifest.ts`, `lazyRoutes.tsx`, `paths.ts` | Component-free policy and 15 literal lazy adapter entries are the active production manifest. |
-| Application shells | `src/app/shells/**` | Browse, form, transaction, editor, and bare shells render exactly one `main`; `AppHeader` remains the active header renderer. |
+| Application shells | `src/app/shells/**` | Browse, form, transaction, editor, and bare shells render exactly one `main`; `PageShell` is a labelled nested section and cannot accept a `main` role. `AppHeader` remains the active header renderer. |
+| Overlay runtime | `src/app/overlays/OverlayProvider.tsx`, `src/shared/ui/overlayRuntime.ts` | One app-owned, statically declared `#airbob-portal-root` hosts Dialog and Toast. The provider owns Dialog stack order, topmost Escape/backdrop policy, nested body lock, inactive-layer semantics, and focus restoration while preserving the existing Dialog/Toast props. |
 | API transport and envelope | `src/platform/http/**`, exposed through `src/api/client.ts` and `src/api/response.ts` | One credentialed Axios instance; migrated and legacy error surfaces are intentionally separate. |
 | Browser platform boundary | `src/platform/config/**`, `storage/**`, `integrations/**`, `assets/**`, `session/**` | Owns public environment input, browser storage access, external SDK globals/scripts, image URL resolution, auth-error signaling, and the non-PII cross-tab channel. |
 | Domain server state and orchestration | `src/features/**` | TanStack Query hooks, route containers, mappers, and workflow hooks coexist. |
 | Domain-free UI | `src/shared/ui/**` | Tested primitives; adoption is incomplete. |
-| Shared styling values | `src/styles/tokens.css` | CSS Modules still contain feature-local literals. |
+| Shared styling values | `src/styles/tokens.css`, `src/shared/styles/custom-media.css`, `src/shared/styles/responsive.ts` | A canonical responsive manifest and JS `matchMedia` policy agree at the 1024px boundary. CRA cannot transform custom media, so unresolved production alias consumers are blocked until U16; CSS Modules still contain contract-checked literals and feature-local values. |
 | Browser smoke | `scripts/smoke/frontend-smoke.mjs` | Live backend, browser, credentials, and stable IDs are external prerequisites. |
 | Deterministic browser characterization | `playwright.config.ts`, `tests/e2e/**` | Loopback production app plus an exact synthetic HTTPS `.invalid` API origin, synthetic session/API fixtures, and default-deny network. |
 | Static architecture ratchets | `.dependency-cruiser.cjs`, `knip.json`, `stylelint.config.mjs`, `architecture-ratchet.json` | Target/migrated surfaces fail on graph, reachability, and design-policy regressions while measured legacy debt remains visible. |
@@ -127,7 +129,7 @@ rollback-only would be incorrect.
 | Payment confirm dedupe | In-memory map, generation counter, and `sessionStorage` marker | `paymentConfirmationAttemptRegistry.ts` remains the pre-U10 writer. Session cleanup clears markers/in-flight entries and advances its generation so a late pre-cleanup confirmation cannot recreate a marker. |
 | Cross-tab session signal | `src/platform/session/sessionBroadcast.ts` | A same-origin BroadcastChannel exchanges only an exact non-PII transition envelope and drives invalidate-before-revalidate handling. |
 | Accommodation editor | Local state, refs, Query data, and several hooks | Explicit session/operation fences are spread across detail, image, save, and controller hooks. |
-| Ephemeral UI | Component-local state | Popovers, focus, hover, dialogs, and menu state. |
+| Ephemeral UI | Component-local state plus the app overlay stack | Popovers, hover, menu and dialog-open state stay with their interaction owner. Overlay ordering, topmost dismissal, focus restoration, and scroll locking are memory-only app runtime concerns. |
 
 Detailed browser persistence and privacy properties are recorded in
 [`frontend-browser-data-inventory.md`](./frontend-browser-data-inventory.md).
@@ -261,9 +263,9 @@ Consequences that remain open:
   the initial graph.
 - Public compatibility seams remain permitted, while the graph ratchet reports
   them as legacy warnings; the current graph is not yet a DAG.
-- `src/shared/ui/PageShell/PageShell.tsx` still renders its own `main`. It must
-  become a content section or be removed in U19 before any target screen uses it
-  inside an app shell, otherwise the active tree would gain duplicate landmarks.
+- The active shell is the sole production `main` owner. The only second source
+  owner is rollback-only `src/layouts/MainLayout.tsx`, which remains unreachable
+  from the active route tree until U22 removes it.
 
 U3 adds executable ownership for this graph. At the U6 Router cutover,
 dependency-cruiser reports 422 modules and 1,154 edges with two legacy editor
@@ -321,13 +323,11 @@ status lives in [`frontend-ownership-matrix.md`](./frontend-ownership-matrix.md)
 | Toss npm v2 runtime adapter | U11 |
 | Listing editor transaction reducer | U12 |
 | Profile, reservation, and host-management screens | U13 |
-| Interaction accessibility and responsive adoption | U14 |
-| Demote/remove the nested-`main` PageShell before target screen adoption | U19 |
+| Interaction accessibility and full responsive adoption across remaining consumers | U14 |
 | Tokens, primitives, icons, assets, and feature CSS | U15 |
 | Vite build/dev owner | U16 |
 | Vitest owner | U17 |
 | Final design-entry gate | U18 |
-| Structural overlay/responsive runtime | U19 |
 | Remaining small route entries | U21 |
 | Compatibility and runtime DAG closure | U22 |
 | TypeScript, lint, dependency, and formatting modernization | U23 |

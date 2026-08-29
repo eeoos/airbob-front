@@ -6,6 +6,7 @@ import { toSessionSubject } from "../app/session/sessionState";
 import { useAuth } from "../contexts/AuthContext";
 import type { SessionAuthPort } from "../features/auth/ports/sessionPort";
 import { authQueryKeys } from "../features/auth/queryKeys";
+import { Dialog, ToastHost } from "../shared/ui";
 import { MeInfo } from "../types/auth";
 import { createTestQueryClient } from "./createTestQueryClient";
 import { renderApp, TEST_PORTAL_ROOT_ID } from "./renderApp";
@@ -206,5 +207,25 @@ describe("renderApp", () => {
     view.unmount();
 
     expect(screen.getByTestId(TEST_PORTAL_ROOT_ID)).toBe(existingPortalRoot);
+  });
+
+  it("uses the production overlay owner for Dialog and ToastHost", () => {
+    const view = renderApp(
+      <>
+        <Dialog isOpen title="테스트 대화상자" onClose={jest.fn()}>
+          content
+        </Dialog>
+        <ToastHost message="테스트 알림" onClose={jest.fn()} />
+      </>,
+    );
+
+    expect(view.portalRoot).toContainElement(
+      screen.getByRole("dialog", { name: "테스트 대화상자" }),
+    );
+    expect(view.portalRoot).toContainElement(screen.getByRole("alert"));
+
+    view.unmount();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });

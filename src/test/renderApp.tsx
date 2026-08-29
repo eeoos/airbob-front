@@ -6,6 +6,10 @@ import {
 } from "@testing-library/react";
 import { ReactElement, ReactNode, useEffect } from "react";
 import { MemoryRouter, MemoryRouterProps } from "react-router-dom";
+import {
+  APP_OVERLAY_ROOT_ID,
+  OverlayProvider,
+} from "../app/overlays/OverlayProvider";
 import { AuthIntentStableBoundary } from "../app/providers/AppProviders";
 import { SessionProvider } from "../app/session/SessionProvider";
 import {
@@ -17,7 +21,7 @@ import type { SessionAuthPort } from "../features/auth/ports/sessionPort";
 import { MeInfo } from "../types/auth";
 import { createTestQueryClient } from "./createTestQueryClient";
 
-export const TEST_PORTAL_ROOT_ID = "airbob-portal-root";
+export const TEST_PORTAL_ROOT_ID = APP_OVERLAY_ROOT_ID;
 
 export interface RenderAppOptions
   extends Omit<RenderOptions, "wrapper"> {
@@ -183,14 +187,16 @@ export const renderApp = (
 
     return (
       <MemoryRouter initialEntries={initialEntries}>
-        <SessionProvider
-          authPort={authPort}
-          initialQueryClient={queryClient}
-          initialState={toInitialSessionState(session)}
-          stableBoundary={AuthIntentStableBoundary}
-        >
-          <AuthProvider>{children}</AuthProvider>
-        </SessionProvider>
+        <OverlayProvider portalRoot={portalRoot}>
+          <SessionProvider
+            authPort={authPort}
+            initialQueryClient={queryClient}
+            initialState={toInitialSessionState(session)}
+            stableBoundary={AuthIntentStableBoundary}
+          >
+            <AuthProvider>{children}</AuthProvider>
+          </SessionProvider>
+        </OverlayProvider>
       </MemoryRouter>
     );
   };

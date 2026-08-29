@@ -6,14 +6,6 @@
   overflow-x: hidden;
 }
 
-/* Hide bottom sheet on desktop */
-@media (min-width: 1025px) {
-  .mapLayer,
-  .bottomSheet {
-    display: none;
-  }
-}
-
 .main {
   padding: 24px 80px 0 80px;
   max-width: 1760px;
@@ -574,7 +566,7 @@
 }
 
 /* Desktop: Show desktop layout, hide bottom sheet */
-@media (min-width: 1025px) {
+@media not all and (max-width: 1024px) {
   .mapLayer,
   .bottomSheet {
     display: none !important;

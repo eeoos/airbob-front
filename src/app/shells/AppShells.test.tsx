@@ -1,6 +1,7 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 import { render, screen, within } from "@testing-library/react";
+import { PageShell } from "../../shared/ui/PageShell/PageShell";
 import {
   appShellComponents,
   BareShell,
@@ -53,6 +54,28 @@ describe("app shells", () => {
     expect(screen.getAllByRole("main")).toHaveLength(1);
     expect(screen.getByRole("main")).toHaveTextContent("Headerless content");
   });
+
+  it.each(appShellIds)(
+    "%s remains the only main owner when page structure is nested inside it",
+    (shellId) => {
+      const Shell = appShellComponents[shellId];
+
+      render(
+        <Shell>
+          <PageShell title="예약 상세">
+            <p>Page content</p>
+          </PageShell>
+        </Shell>,
+      );
+
+      const main = screen.getByRole("main");
+
+      expect(screen.getAllByRole("main")).toHaveLength(1);
+      expect(
+        within(main).getByRole("region", { name: "예약 상세" }),
+      ).toHaveTextContent("Page content");
+    },
+  );
 
   it("preserves the pre-migration layout frame without imposing content width", () => {
     const source = readFileSync(

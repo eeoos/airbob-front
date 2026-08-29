@@ -2,7 +2,7 @@ import React from "react";
 import styles from "./PageShell.module.css";
 
 export interface PageShellProps
-  extends Omit<React.HTMLAttributes<HTMLElement>, "title"> {
+  extends Omit<React.HTMLAttributes<HTMLElement>, "role" | "title"> {
   title: string;
   actions?: React.ReactNode;
   children?: React.ReactNode;
@@ -13,6 +13,7 @@ export interface PageShellProps
 const cx = (...classNames: Array<string | undefined>) =>
   classNames.filter(Boolean).join(" ");
 
+/** Page-level visual structure nested inside the route shell's main landmark. */
 export function PageShell({
   actions,
   children,
@@ -22,9 +23,13 @@ export function PageShell({
   title,
   ...shellProps
 }: PageShellProps) {
+  const { role: ignoredRole, ...regionProps } =
+    shellProps as React.HTMLAttributes<HTMLElement>;
+  void ignoredRole;
+
   return (
-    <main
-      {...shellProps}
+    <section
+      {...regionProps}
       aria-label={title}
       className={cx(styles.shell, className)}
     >
@@ -36,6 +41,6 @@ export function PageShell({
         {actions && <div className={styles.actions}>{actions}</div>}
       </header>
       <div className={cx(styles.content, contentClassName)}>{children}</div>
-    </main>
+    </section>
   );
 }

@@ -6,6 +6,7 @@ import {
   useSpring,
   useTransform,
 } from "framer-motion";
+import { RESPONSIVE_MEDIA_QUERIES } from "../../../shared/styles/responsive";
 
 export type BottomSheetState = "collapsed" | "half" | "expanded";
 
@@ -130,16 +131,24 @@ export const useSearchBottomSheet = () => {
   }, [bottomSheetState]);
 
   useEffect(() => {
-    const checkViewport = () => {
-      setIsMobileOrTablet(window.innerWidth < 1024);
+    const mobileOrTabletQuery = window.matchMedia(
+      RESPONSIVE_MEDIA_QUERIES.mobileOrTablet,
+    );
+    const handleLayoutChange = (event: MediaQueryListEvent) => {
+      setIsMobileOrTablet(event.matches);
+    };
+    const updateViewportHeight = () => {
       setViewportHeight(getViewportHeight());
     };
 
-    checkViewport();
-    window.addEventListener("resize", checkViewport);
+    setIsMobileOrTablet(mobileOrTabletQuery.matches);
+    updateViewportHeight();
+    mobileOrTabletQuery.addEventListener("change", handleLayoutChange);
+    window.addEventListener("resize", updateViewportHeight);
 
     return () => {
-      window.removeEventListener("resize", checkViewport);
+      mobileOrTabletQuery.removeEventListener("change", handleLayoutChange);
+      window.removeEventListener("resize", updateViewportHeight);
     };
   }, []);
 

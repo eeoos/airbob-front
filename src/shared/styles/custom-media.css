@@ -1,0 +1,13 @@
+/*
+ * Declaration-only responsive manifest while CRA owns the build.
+ * U14 adopts these values through contract-checked media literals.
+ * U16 must enable custom-media transformation before any production stylesheet
+ * imports this file or introduces an `@media (--viewport-*)` consumer.
+ */
+@custom-media --viewport-phone (max-width: 480px);
+@custom-media --viewport-tablet (max-width: 768px);
+@custom-media --viewport-tablet-up (min-width: 769px);
+@custom-media --viewport-mobile-tablet (max-width: 1024px);
+@custom-media --viewport-desktop not all and (max-width: 1024px);
+@custom-media --viewport-compact (max-width: 1200px);
+@custom-media --viewport-wide (max-width: 1400px);

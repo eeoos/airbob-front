@@ -1,5 +1,7 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { useBodyScrollLock } from "../useBodyScrollLock";
+import { useOverlayRegistration } from "../overlayRuntime";
 import styles from "./Dialog.module.css";
 
 export type DialogBodyPadding = "default" | "none";
@@ -59,6 +61,7 @@ export function Dialog({
   title,
 }: DialogProps) {
   const dialogRef = React.useRef<HTMLElement>(null);
+  const overlayRef = React.useRef<HTMLDivElement>(null);
   const closeButtonRef = React.useRef<HTMLButtonElement>(null);
   const previousFocusedElementRef = React.useRef<Element | null>(null);
   const wasOpenRef = React.useRef(false);
@@ -78,22 +81,38 @@ export function Dialog({
   const bodyPaddingClassName =
     bodyPadding === "none" ? styles.bodyPaddingNone : undefined;
 
-  if (isOpen && !wasOpenRef.current && previousFocusedElementRef.current === null) {
+  if (
+    isOpen &&
+    !wasOpenRef.current &&
+    previousFocusedElementRef.current === null
+  ) {
     previousFocusedElementRef.current = document.activeElement;
   }
+
+  const overlay = useOverlayRegistration({
+    elementRef: dialogRef,
+    enabled: isOpen,
+    layerRef: overlayRef,
+    onClose,
+    restoreFocusTo: previousFocusedElementRef.current,
+  });
 
   React.useEffect(() => {
     wasOpenRef.current = isOpen;
   }, [isOpen]);
 
-  useBodyScrollLock(isOpen);
+  useBodyScrollLock(isOpen && !overlay.hasRuntime);
 
   React.useEffect(() => {
     if (!isOpen) {
+      previousFocusedElementRef.current = null;
       return;
     }
 
-    if (previousFocusedElementRef.current === null) {
+    if (
+      !overlay.hasRuntime &&
+      previousFocusedElementRef.current === null
+    ) {
       previousFocusedElementRef.current = document.activeElement;
     }
 
@@ -119,6 +138,8 @@ export function Dialog({
     }
 
     return () => {
+      if (overlay.hasRuntime) return;
+
       const previousFocusedElement = previousFocusedElementRef.current;
       previousFocusedElementRef.current = null;
 
@@ -129,16 +150,22 @@ export function Dialog({
         previousFocusedElement.focus();
       }
     };
-  }, [isOpen]);
+  }, [isOpen, overlay.hasRuntime, overlay.portalRoot]);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
     if (event.key === "Escape") {
+      if (overlay.hasRuntime) return;
+
       event.preventDefault();
       onClose();
       return;
     }
 
-    if (event.key !== "Tab" || !dialogRef.current) {
+    if (
+      event.key !== "Tab" ||
+      !dialogRef.current ||
+      (overlay.hasRuntime && !overlay.isTopmost)
+    ) {
       return;
     }
 
@@ -169,11 +196,23 @@ export function Dialog({
     return null;
   }
 
-  return (
+  const isInactiveUnderOverlay =
+    overlay.hasRuntime && !overlay.isTopmost;
+
+  const content = (
     <div
+      ref={overlayRef}
+      aria-hidden={isInactiveUnderOverlay ? true : undefined}
       className={styles.overlay}
+      inert={isInactiveUnderOverlay ? true : undefined}
       role="presentation"
-      onMouseDown={closeOnBackdrop ? onClose : undefined}
+      onMouseDown={
+        closeOnBackdrop
+          ? () => {
+              if (!overlay.hasRuntime || overlay.isTopmost) onClose();
+            }
+          : undefined
+      }
     >
       <section
         ref={dialogRef}
@@ -207,4 +246,8 @@ export function Dialog({
       </section>
     </div>
   );
+
+  return overlay.portalRoot
+    ? createPortal(content, overlay.portalRoot)
+    : content;
 }
