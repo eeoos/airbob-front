@@ -19,8 +19,8 @@ const mainLayoutRouteContainers = [
 const sourceText = (relativePath: string) =>
   readFileSync(join(process.cwd(), relativePath), "utf8");
 
-describe("MainLayout ownership", () => {
-  it("keeps MainLayout owned by the router instead of individual pages", () => {
+describe("legacy MainLayout rollback compatibility", () => {
+  it("keeps the rollback layout out of active legacy route bodies", () => {
     const violations = mainLayoutRouteContainers.flatMap((relativePath) => {
       const source = sourceText(relativePath);
       const importsMainLayout =
@@ -36,7 +36,7 @@ describe("MainLayout ownership", () => {
     expect(violations).toEqual([]);
   });
 
-  it("keeps Search from nesting a main element inside MainLayout", () => {
+  it("keeps the legacy Search body safe inside the active browse shell", () => {
     const source = sourceText("src/features/search/SearchRoute.tsx");
 
     expect(source).not.toContain("<main");

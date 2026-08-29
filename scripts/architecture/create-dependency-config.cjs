@@ -8,6 +8,59 @@ const staticResourceRoots = "^src/(?:assets|styles)(?:/|$)";
 const targetRoot = "^src/(?:app|screens|workflows|platform|shared)(?:/|$)";
 const featureRoot = "^src/features(?:/|$)";
 
+const legacyRouteAdapterBridges = [
+  ["home", "HomeRoute", "home/HomeRoute"],
+  ["search", "SearchRoute", "search/SearchRoute"],
+  [
+    "accommodation-detail",
+    "AccommodationDetailRoute",
+    "accommodations/AccommodationDetailRoute",
+  ],
+  [
+    "accommodation-edit",
+    "AccommodationEditRoute",
+    "accommodations/edit/AccommodationEditRoute",
+  ],
+  ["wishlist", "WishlistRoute", "wishlist/WishlistRoute"],
+  ["profile", "ProfileRoute", "profile/ProfileRoute"],
+  [
+    "host-reservation-detail",
+    "HostReservationDetailRoute",
+    "reservations/HostReservationDetailRoute",
+  ],
+  [
+    "reservation-detail",
+    "ReservationDetailRoute",
+    "reservations/ReservationDetailRoute",
+  ],
+  [
+    "accommodation-confirm",
+    "AccommodationConfirmRoute",
+    "reservations/ReservationConfirmRoute",
+  ],
+  [
+    "reservation-review",
+    "ReservationReviewRoute",
+    "reviews/ReviewCreateRoute",
+  ],
+  [
+    "payment-success",
+    "PaymentSuccessRoute",
+    "reservations/PaymentSuccessRoute",
+  ],
+  ["payment-fail", "PaymentFailRoute", "reservations/PaymentFailRoute"],
+  ["login", "LoginRoute", "auth/LoginRoute"],
+  ["signup", "SignupRoute", "auth/SignupRoute"],
+].map(([id, adapter, target]) => ({
+  adapterPath: `^src/app/router/routes/${adapter}[.][tj]sx?$`,
+  id,
+  targetPath: `^src/features/${target}[.][tj]sx?$`,
+}));
+
+const legacyRouteAdapterPaths = legacyRouteAdapterBridges.map(
+  ({ adapterPath }) => adapterPath,
+);
+
 const scopeRuleId = (scope) => scope.replaceAll("/", "-");
 
 const createFeatureOwnershipScopes = (projectRoot) => {
@@ -194,12 +247,29 @@ const createDependencyConfig = ({ projectRoot, migratedFeatures }) => {
         severity: "error",
         comment:
           "App composition may consume a feature only through ui/, ports/, or a root public.ts(x) module.",
-        from: { path: "^src/app(?:/|$)" },
+        from: {
+          path: "^src/app(?:/|$)",
+          pathNot: legacyRouteAdapterPaths,
+        },
         to: {
           path: featureRoot,
           pathNot: appFeaturePublicSurface,
         },
       },
+      ...legacyRouteAdapterBridges.map(
+        ({ adapterPath, id, targetPath }) => ({
+          name: `app-route-adapter-${id}-uses-only-assigned-legacy-route`,
+          severity: "error",
+          comment:
+            "U6 compatibility adapters may reach exactly one legacy route container. " +
+            "Each bridge is removed when its feature slice moves to a screen/controller.",
+          from: { path: adapterPath },
+          to: {
+            path: featureRoot,
+            pathNot: targetPath,
+          },
+        }),
+      ),
       {
         name: "shared-is-domain-free",
         severity: "error",

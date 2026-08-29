@@ -1,3 +1,8 @@
+/**
+ * @deprecated Production lazy-route ownership moved to
+ * `src/app/router/lazyRoutes.tsx`. Keep this module rollback-only until U22;
+ * new route entries must be added to the app manifest, not here.
+ */
 import React from "react";
 import {
   routeDefinitions,

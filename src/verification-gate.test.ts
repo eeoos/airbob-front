@@ -485,6 +485,10 @@ describe("frontend verification gate", () => {
       "server authorization are outside frontend ownership.",
       "There must be one active writer for every mutable workflow.",
       "All 15 entries are lazy.",
+      "src/app/router/lazyRoutes.tsx",
+      "src/app/shells/**",
+      "The rollback-only route chain is",
+      "Still-active compatibility",
       "Airbnb visual redesign begins only after the architecture design-entry gate",
       "When documents disagree about the current frontend, this document wins.",
     ].forEach((term) => {
@@ -497,6 +501,12 @@ describe("frontend verification gate", () => {
     expect(migrationRulesDoc).toContain("Do not weaken a gate to make a unit green.");
     expect(ownershipMatrixDoc).toContain(
       "**Active** is the only production route entry",
+    );
+    expect(ownershipMatrixDoc).toContain(
+      "Current cutover state: U6 app Router",
+    );
+    expect(ownershipMatrixDoc).toContain(
+      "app adapter → current/old body",
     );
     expect(ownershipMatrixDoc).toContain("U10/U11 payment compatibility matrix");
     expect(architectureRulesDoc).toContain("Single rule owners");

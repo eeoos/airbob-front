@@ -33,7 +33,7 @@ jest.mock("./AppHeader", () => ({
   Header: () => <header data-testid="header" />,
 }));
 
-describe("MainLayout", () => {
+describe("legacy MainLayout rollback behavior", () => {
   it("renders nested route content inside its main landmark by default", () => {
     render(
       <MemoryRouter initialEntries={["/nested"]}>

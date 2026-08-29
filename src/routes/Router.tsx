@@ -1,3 +1,7 @@
+/**
+ * @deprecated U6 moved the production entry to `src/app/router/Router.tsx`.
+ * This complete legacy tree is retained only as a rollback artifact until U22.
+ */
 import { Suspense } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { MainLayout } from "../layouts";

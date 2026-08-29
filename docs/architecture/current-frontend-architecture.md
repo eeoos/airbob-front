@@ -1,8 +1,8 @@
 # Airbob Frontend Architecture
 
 > Status: canonical current-state source of truth  
-> Baseline: `07a1fdf` (`fix(frontend): harden cross-feature state boundaries`)  
-> Current migration state: U4 platform foundation cut over
+> Baseline: U4 commit `f5222d5` plus this U6 cutover unit
+> Current migration state: U6 app Router, route codecs, and semantic shells active
 > Recorded: 2026-08-29 KST
 
 This document describes the frontend that is reachable in production at the
@@ -34,10 +34,12 @@ src/index.tsx
     QueryProvider
       AuthProvider
         App
-          Router
-            MainLayout + Header
-              lazy feature route
-            bare lazy route
+          app Router
+            semantic app shell
+              optional AppHeader
+              one main landmark
+                lazy app route adapter
+                  assigned legacy feature route body
 ```
 
 Current owners:
@@ -47,8 +49,8 @@ Current owners:
 | React root and providers | `src/index.tsx` | Provider ordering is fixed by the root. |
 | Server-state client | `src/platform/query/createQueryClient.ts`, exposed through `src/query/**` | One process-wide QueryClient; the legacy import remains a facade. |
 | Authentication | `src/contexts/AuthContext.tsx`, `src/features/auth/**` | Boolean-facing context backed by `/auth/me`. |
-| Routing and shell metadata | `src/routes/**` | Paths, auth, layout, header metadata and lazy entries are centralized. |
-| Main application shell | `src/layouts/MainLayout.tsx`, `src/layouts/AppHeader/**` | Header imports feature app-shell seams. |
+| Routing and shell metadata | `src/app/router/definitions.ts`, `manifest.ts`, `lazyRoutes.tsx`, `paths.ts` | Component-free policy and 15 literal lazy adapter entries are the active production manifest. |
+| Application shells | `src/app/shells/**` | Browse, form, transaction, editor, and bare shells render exactly one `main`; `AppHeader` remains the active header renderer. |
 | API transport and envelope | `src/platform/http/**`, exposed through `src/api/client.ts` and `src/api/response.ts` | One credentialed Axios instance; migrated and legacy error surfaces are intentionally separate. |
 | Browser platform boundary | `src/platform/config|storage|integrations|assets/**` | Owns public environment input, browser storage access, external SDK globals/scripts, and image URL resolution. |
 | Domain server state and orchestration | `src/features/**` | TanStack Query hooks, route containers, mappers, and workflow hooks coexist. |
@@ -60,37 +62,52 @@ Current owners:
 
 ## Route inventory
 
-`src/routes/routeDefinitions.ts` owns route policy and
-`src/routes/routeConfig.tsx` owns the exhaustive direct lazy mapping.
+`src/app/router/definitions.ts` owns route policy and
+`src/app/router/lazyRoutes.tsx` owns the exhaustive direct lazy adapter mapping.
+The old `src/routes/routeDefinitions.ts` and `routeConfig.tsx` are unreachable
+rollback artifacts. `src/routes/RequireAuth.tsx`, legacy path/query helpers, and
+the assigned feature route bodies remain active compatibility seams until their
+named slice cutovers.
 
-| ID | Path | Auth | Shell | Current production module |
-| --- | --- | --- | --- | --- |
-| home | `/` | public | main | `src/features/home/HomeRoute.tsx` |
-| search | `/search` | public | main/search header | `src/features/search/SearchRoute.tsx` |
-| accommodation-detail | `/accommodations/:id` | public | main | `src/features/accommodations/AccommodationDetailRoute.tsx` |
-| accommodation-confirm | `/accommodations/:id/confirm` | protected | main | `src/features/reservations/ReservationConfirmRoute.tsx` |
-| accommodation-edit | `/accommodations/:id/edit` | protected | main | `src/features/accommodations/edit/AccommodationEditRoute.tsx` |
-| wishlist | `/wishlist` | protected | main | `src/features/wishlist/WishlistRoute.tsx` |
-| profile | `/profile` | protected | main | `src/features/profile/ProfileRoute.tsx` |
-| host-reservation-detail | `/profile/host/reservations/:reservationUid` | protected | main | `src/features/reservations/HostReservationDetailRoute.tsx` |
-| reservation-detail | `/reservations/:reservationUid` | protected | main | `src/features/reservations/ReservationDetailRoute.tsx` |
-| reservation-review | `/reservations/:reservationUid/review` | protected | main | `src/features/reviews/ReviewCreateRoute.tsx` |
-| payment-success | `/reservations/:reservationUid/success` | protected | main | `src/features/reservations/PaymentSuccessRoute.tsx` |
-| payment-fail | `/reservations/:reservationUid/fail` | protected | main | `src/features/reservations/PaymentFailRoute.tsx` |
-| login | `/login` | public | bare | `src/features/auth/LoginRoute.tsx` |
-| signup | `/signup` | public | bare | `src/features/auth/SignupRoute.tsx` |
-| not-found | `*` | public | bare | `src/routes/NotFoundRoute.tsx` |
+| ID | Path | Auth | Shell | Active adapter | Compatibility body |
+| --- | --- | --- | --- | --- | --- |
+| home | `/` | public | browse | `app/router/routes/HomeRoute.tsx` | `features/home/HomeRoute.tsx` |
+| search | `/search` | public | browse/search header | `app/router/routes/SearchRoute.tsx` | `features/search/SearchRoute.tsx` |
+| accommodation-detail | `/accommodations/:id` | public | browse | `app/router/routes/AccommodationDetailRoute.tsx` | `features/accommodations/AccommodationDetailRoute.tsx` |
+| accommodation-confirm | `/accommodations/:id/confirm` | protected | transaction | `app/router/routes/AccommodationConfirmRoute.tsx` | `features/reservations/ReservationConfirmRoute.tsx` |
+| accommodation-edit | `/accommodations/:id/edit` | protected | editor | `app/router/routes/AccommodationEditRoute.tsx` | `features/accommodations/edit/AccommodationEditRoute.tsx` |
+| wishlist | `/wishlist` | protected | browse | `app/router/routes/WishlistRoute.tsx` | `features/wishlist/WishlistRoute.tsx` |
+| profile | `/profile` | protected | browse | `app/router/routes/ProfileRoute.tsx` | `features/profile/ProfileRoute.tsx` |
+| host-reservation-detail | `/profile/host/reservations/:reservationUid` | protected | transaction | `app/router/routes/HostReservationDetailRoute.tsx` | `features/reservations/HostReservationDetailRoute.tsx` |
+| reservation-detail | `/reservations/:reservationUid` | protected | transaction | `app/router/routes/ReservationDetailRoute.tsx` | `features/reservations/ReservationDetailRoute.tsx` |
+| reservation-review | `/reservations/:reservationUid/review` | protected | form | `app/router/routes/ReservationReviewRoute.tsx` | `features/reviews/ReviewCreateRoute.tsx` |
+| payment-success | `/reservations/:reservationUid/success` | protected | transaction | `app/router/routes/PaymentSuccessRoute.tsx` | `features/reservations/PaymentSuccessRoute.tsx` |
+| payment-fail | `/reservations/:reservationUid/fail` | protected | transaction | `app/router/routes/PaymentFailRoute.tsx` | `features/reservations/PaymentFailRoute.tsx` |
+| login | `/login` | public | form/hidden header | `app/router/routes/LoginRoute.tsx` | `features/auth/LoginRoute.tsx` |
+| signup | `/signup` | public | form/hidden header | `app/router/routes/SignupRoute.tsx` | `features/auth/SignupRoute.tsx` |
+| not-found | `*` | public | bare/hidden header | `app/router/routes/NotFoundRoute.tsx` | none |
 
-All 15 entries are lazy. Route-only `src/features/*/index.ts` barrels are not
-used by production routing and remain compatibility artifacts enforced by
-historical source-contract tests.
+All 15 entries are lazy. Each is a literal import and remains a separate
+route-level adapter entry. Fourteen adapters cross one exact,
+architecture-enforced bridge to
+their assigned legacy body; NotFound is app-owned. Route-only
+`src/features/*/index.ts` barrels are not used by production routing and remain
+legacy cleanup artifacts for U22.
+
+The rollback-only route chain is `src/routes/Router.tsx`,
+`routeDefinitions.ts`, `routeConfig.tsx`, `routeMatching.ts`, `routeShell.ts`,
+the old NotFound route, and `src/layouts/MainLayout*`. Still-active compatibility
+code is deliberately narrower: `src/layouts/AppHeader/**`,
+`src/routes/RequireAuth.tsx`, legacy path/query helpers, and the fourteen
+assigned feature route bodies. Calling all of `src/routes` or `src/layouts`
+rollback-only would be incorrect.
 
 ## Current state ownership
 
 | State | Current authority | Current synchronization |
 | --- | --- | --- |
-| Route path and builder | `src/routes/paths.ts` | `routeTo` builders and Router navigation. |
-| Route query shape | `src/routes/routeQueryContracts.ts` | Builders are central; parsing/normalization remains distributed in feature `lib` modules. |
+| Route path and builder | `src/app/router/paths.ts` | Active app adapters use `routeTo`; `src/routes/paths.ts` remains an independently tested compatibility copy for legacy consumers. |
+| Route query shape | `src/app/router/codecs/**` | Canonical parse/serialize contracts now exist at the app boundary. Login return and payment-fail reason consume them now; Search/Profile/Wishlist/payment-success bodies retain their legacy parsers until U8/U10/U13. |
 | Search state | URL plus `useSearchResults`, SearchBar hooks, map refs, and bottom-sheet state | Effects and request tokens keep URL, Query, map, and UI aligned. |
 | Profile/Wishlist route view | URL plus mirrored React state | Effects copy parsed URL state into local state. |
 | Server resources | TanStack Query feature hooks | Feature `queryKeys.ts`, public cache helpers, and direct `setQueriesData`. |
@@ -164,10 +181,15 @@ Consequences that remain open:
   the initial graph.
 - Public compatibility seams remain permitted, while the graph ratchet reports
   them as legacy warnings; the current graph is not yet a DAG.
+- `src/shared/ui/PageShell/PageShell.tsx` still renders its own `main`. It must
+  become a content section or be removed in U19 before any target screen uses it
+  inside an app shell, otherwise the active tree would gain duplicate landmarks.
 
-U3 adds executable ownership for this graph. At the U4 platform cutover,
-dependency-cruiser reports 388 modules and 1,067 edges with two legacy editor
-cycles and sixteen legacy cross-feature edges with zero blocking errors. Knip
+U3 adds executable ownership for this graph. At the U6 Router cutover,
+dependency-cruiser reports 422 modules and 1,154 edges with two legacy editor
+cycles and sixteen legacy cross-feature edges with zero blocking errors. The
+fourteen app-adapter bridges are exact target-to-body exceptions and cannot
+reach a peer route or private helper. Knip
 records sixteen unreachable production
 files and six unused runtime packages while target reachability remains clean.
 Stylelint records 231 legacy warnings across 60 CSS files while target design
@@ -210,7 +232,7 @@ status lives in [`frontend-ownership-matrix.md`](./frontend-ownership-matrix.md)
 | --- | --- |
 | Per-feature migration off legacy global API/DTO facades and activation of the owned checkout repository | U7-U13, U10, U22 |
 | Explicit session subject/epoch and cache lifetime | U5 |
-| App route adapters, query codecs, and shells | U6 |
+| Per-route screen/controller cutover and removal of exact legacy adapter bridges | U7-U13, U21-U22 |
 | Auth intent and wishlist membership workflow | U7 |
 | Search/Header/Maps screen migration | U8 |
 | Accommodation detail, reservation create, and review workflow | U9 |
@@ -219,6 +241,7 @@ status lives in [`frontend-ownership-matrix.md`](./frontend-ownership-matrix.md)
 | Listing editor transaction reducer | U12 |
 | Profile, reservation, and host-management screens | U13 |
 | Interaction accessibility and responsive adoption | U14 |
+| Demote/remove the nested-`main` PageShell before target screen adoption | U19 |
 | Tokens, primitives, icons, assets, and feature CSS | U15 |
 | Vite build/dev owner | U16 |
 | Vitest owner | U17 |

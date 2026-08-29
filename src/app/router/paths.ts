@@ -1,42 +1,45 @@
-/**
- * @deprecated U6 moved active route ownership to `src/app/router/paths.ts`.
- * Legacy feature containers still consume this active compatibility copy until
- * their atomic screen/controller cutovers. Keep parity tests green;
- * do not re-export the app module here because that would create an app ↔
- * feature dependency cycle through the temporary route adapters.
- */
 import {
-  buildAccommodationBookingRouteSearchParams,
-  buildPaymentFailRouteSearchParams,
-  buildPaymentSuccessRouteSearchParams,
-  buildProfileRouteQuerySearchParams,
-  buildSearchRouteSearchParams,
-  buildWishlistRouteQuerySearchParams,
-} from "./routeQueryContracts";
-import type {
-  AccommodationBookingRouteQuery,
-  PaymentFailRouteQuery,
-  PaymentSuccessRouteQuery,
-  ProfileRouteQuery,
-  SearchRouteQuery,
-  WishlistRouteQuery,
-} from "./routeQueryContracts";
+  serializeAccommodationBookingRouteQuery,
+  serializeSearchRouteQuery,
+  type AccommodationBookingRouteQuery,
+  type SearchRouteQuery,
+} from "./codecs/searchCodec";
+import {
+  serializeProfileRouteQuery,
+  type ProfileRouteQuery,
+} from "./codecs/profileCodec";
+import {
+  serializeWishlistRouteQuery,
+  type WishlistRouteQuery,
+} from "./codecs/wishlistCodec";
+import {
+  serializePaymentFailRouteQuery,
+  serializePaymentSuccessRouteQuery,
+  type PaymentFailRouteQuery,
+  type PaymentSuccessRouteQuery,
+} from "./codecs/paymentCodec";
 
 export type {
   AccommodationBookingRouteQuery,
-  PaymentFailReason,
-  PaymentFailRouteQuery,
-  PaymentSuccessRouteQuery,
+  SearchRouteQuery,
+} from "./codecs/searchCodec";
+export type {
   ProfileGuestRouteTab,
   ProfileHostRouteTab,
   ProfileRouteMode,
   ProfileRouteQuery,
   ProfileRouteTab,
-  SearchRouteQuery,
+} from "./codecs/profileCodec";
+export type {
   WishlistRouteQuery,
   WishlistRouteView,
-} from "./routeQueryContracts";
-export { parsePaymentFailReason } from "./routeQueryContracts";
+} from "./codecs/wishlistCodec";
+export {
+  parsePaymentFailReason,
+  type PaymentFailReason,
+  type PaymentFailRouteQuery,
+  type PaymentSuccessRouteQuery,
+} from "./codecs/paymentCodec";
 
 export const ROUTE_PATHS = {
   home: "/",
@@ -93,50 +96,45 @@ export const isAccommodationEditDraftCreationState = (
   );
 };
 
-const buildPath = (template: string, params: Record<string, RouteParamValue>) =>
+const buildPath = (
+  template: string,
+  params: Record<string, RouteParamValue>,
+): string =>
   template.replace(/:([A-Za-z0-9_]+)/g, (_, key: string) =>
     encodeURIComponent(String(params[key])),
   );
 
-const normalizeQueryString = (query: URLSearchParams | string) =>
-  (typeof query === "string" ? query : query.toString()).replace(/^\?+/, "");
-
-const withRawQuery = (path: string, query?: URLSearchParams | string) => {
-  if (!query) return path;
-
-  const queryString = normalizeQueryString(query);
+const withQuery = (path: string, query: URLSearchParams): string => {
+  const queryString = query.toString();
   return queryString ? `${path}?${queryString}` : path;
 };
 
 export const routeTo = {
   home: () => ROUTE_PATHS.home,
   search: (query?: SearchRouteQuery) =>
-    withRawQuery(ROUTE_PATHS.search, buildSearchRouteSearchParams(query)),
+    withQuery(ROUTE_PATHS.search, serializeSearchRouteQuery(query)),
   accommodationDetail: (
-    id: string | number,
+    id: RouteParamValue,
     query?: AccommodationBookingRouteQuery,
   ) =>
-    withRawQuery(
+    withQuery(
       buildPath(ROUTE_PATHS.accommodationDetail, { id }),
-      buildAccommodationBookingRouteSearchParams(query),
+      serializeAccommodationBookingRouteQuery(query),
     ),
   accommodationConfirm: (
-    id: string | number,
+    id: RouteParamValue,
     query?: AccommodationBookingRouteQuery,
   ) =>
-    withRawQuery(
+    withQuery(
       buildPath(ROUTE_PATHS.accommodationConfirm, { id }),
-      buildAccommodationBookingRouteSearchParams(query),
+      serializeAccommodationBookingRouteQuery(query),
     ),
-  accommodationEdit: (id: string | number) =>
+  accommodationEdit: (id: RouteParamValue) =>
     buildPath(ROUTE_PATHS.accommodationEdit, { id }),
   wishlist: (query?: WishlistRouteQuery) =>
-    withRawQuery(
-      ROUTE_PATHS.wishlist,
-      buildWishlistRouteQuerySearchParams(query),
-    ),
+    withQuery(ROUTE_PATHS.wishlist, serializeWishlistRouteQuery(query)),
   profile: (query?: ProfileRouteQuery) =>
-    withRawQuery(ROUTE_PATHS.profile, buildProfileRouteQuerySearchParams(query)),
+    withQuery(ROUTE_PATHS.profile, serializeProfileRouteQuery(query)),
   hostReservationDetail: (reservationUid: string) =>
     buildPath(ROUTE_PATHS.hostReservationDetail, { reservationUid }),
   reservationDetail: (reservationUid: string) =>
@@ -147,15 +145,15 @@ export const routeTo = {
     reservationUid: string,
     query?: PaymentSuccessRouteQuery,
   ) =>
-    withRawQuery(
+    withQuery(
       buildPath(ROUTE_PATHS.paymentSuccess, { reservationUid }),
-      buildPaymentSuccessRouteSearchParams(query),
+      serializePaymentSuccessRouteQuery(query),
     ),
   paymentFail: (reservationUid: string, query?: PaymentFailRouteQuery) =>
-    withRawQuery(
+    withQuery(
       buildPath(ROUTE_PATHS.paymentFail, { reservationUid }),
-      buildPaymentFailRouteSearchParams(query),
+      serializePaymentFailRouteQuery(query),
     ),
   login: () => ROUTE_PATHS.login,
   signup: () => ROUTE_PATHS.signup,
-};
+} as const;

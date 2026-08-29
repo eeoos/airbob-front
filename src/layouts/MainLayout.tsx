@@ -1,3 +1,7 @@
+/**
+ * @deprecated The active app shells live in `src/app/shells/**`. MainLayout is
+ * retained only with the legacy Router rollback chain until U22.
+ */
 import React from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Header } from "./AppHeader";

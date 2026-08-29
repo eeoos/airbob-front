@@ -1,3 +1,9 @@
+/**
+ * @deprecated Active route serialization and normalization are owned by
+ * `src/app/router/codecs/**`. Legacy feature containers keep this compatibility
+ * surface until their per-route cutovers remove distributed parsers and URL
+ * mirrors.
+ */
 import { appendDefinedSearchParam } from "./routeQuery";
 
 type RouteParamValue = string | number;

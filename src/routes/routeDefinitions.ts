@@ -1,3 +1,8 @@
+/**
+ * @deprecated The production Router now consumes
+ * `src/app/router/definitions.ts`. This table is retained only as a U22
+ * rollback artifact and is behaviorally compared with the active manifest.
+ */
 import { ROUTE_PATHS } from "./paths";
 import type { RouteId, RouteShellMeta } from "./routeShell";
 

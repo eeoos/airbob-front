@@ -31,8 +31,8 @@ remain comparable after their U22 root and scope declaration are retired.
 
 ## Dependency-cruiser policy
 
-The production graph currently has 375 modules and 1,035 dependency edges.
-U3 records zero errors and 18 legacy warnings:
+The production graph at U6 has 422 modules and 1,154 dependency edges. It
+records zero errors and 18 legacy warnings:
 
 - two type-bearing module cycles in the accommodation editor;
 - sixteen cross-feature compatibility edges.
@@ -49,9 +49,15 @@ top-level features and the declared `accommodations/edit` nested scope. Target
 module and folder cycles are errors; legacy folder cycles are not reported
 because nested-folder expansion produced noisy duplicates.
 
-The fixture runner proves 34 cases, including a valid DAG, MJS graph coverage,
-the app feature
-public-surface contract, workflow/screen peer edges, screen-to-platform,
+U6 adds one temporary exact bridge per compatibility adapter under
+`src/app/router/routes/**`. Each adapter may import only its assigned legacy
+feature route container; a peer route or private helper is still an error.
+U7-U13/U21 remove each bridge with that route's screen/controller cutover, and
+U22 removes any final compatibility entry.
+
+The fixture runner proves 37 cases, including a valid DAG, MJS graph coverage,
+the app feature public-surface contract, workflow/screen peer edges,
+screen-to-platform,
 shared-to-page, parent/editor and private feature imports, UI/API and UI/DTO
 bypasses, route/layout/page bypasses, module and folder cycles, a type-only
 cycle, production-to-test/dev imports (including `__tests__` and `__mocks__`),

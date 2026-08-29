@@ -259,6 +259,37 @@ const scenarios = [
     },
   },
   {
+    name: "app route adapter imports its assigned legacy route",
+    files: {
+      "src/features/search/SearchRoute.ts":
+        "export const searchRoute = true;\n",
+      "src/app/router/routes/SearchRoute.ts":
+        'import { searchRoute } from "../../../features/search/SearchRoute"; export const route = searchRoute;\n',
+    },
+  },
+  {
+    name: "app route adapter imports another legacy route",
+    expectedRule:
+      "app-route-adapter-home-uses-only-assigned-legacy-route",
+    files: {
+      "src/features/search/SearchRoute.ts":
+        "export const searchRoute = true;\n",
+      "src/app/router/routes/HomeRoute.ts":
+        'import { searchRoute } from "../../../features/search/SearchRoute"; export const route = searchRoute;\n',
+    },
+  },
+  {
+    name: "app route adapter imports a private feature helper",
+    expectedRule:
+      "app-route-adapter-search-uses-only-assigned-legacy-route",
+    files: {
+      "src/features/search/hooks/private.ts":
+        "export const privateSearch = true;\n",
+      "src/app/router/routes/SearchRoute.ts":
+        'import { privateSearch } from "../../../features/search/hooks/private"; export const route = privateSearch;\n',
+    },
+  },
+  {
     name: "platform imports a feature",
     expectedRule: "platform-imports-only-shared",
     files: {
