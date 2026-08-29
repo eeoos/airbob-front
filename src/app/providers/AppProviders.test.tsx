@@ -9,7 +9,6 @@ jest.mock("../session/SessionProvider", () => ({
     <>{children}</>
   ),
 }));
-
 describe("AppProviders", () => {
   it("owns the canonical production portal for dialogs and toasts", () => {
     const view = render(

@@ -17,7 +17,10 @@ import { useApiError } from "../../hooks/useApiError";
 import { useAuth } from "../../hooks/useAuth";
 import { AuthModal } from "../auth/appShell";
 import { ReviewModal, toReviewViewModels } from "../reviews/appShell";
-import { WishlistModal } from "../wishlist/appShell";
+import {
+  WishlistModal,
+  type WishlistModalProps,
+} from "../wishlist/appShell";
 import { AccommodationBookingCard } from "./components/AccommodationBookingCard";
 import { AccommodationDescriptionModal } from "./components/AccommodationDescriptionModal";
 import AccommodationHero from "./components/AccommodationHero";
@@ -51,6 +54,7 @@ export interface AccommodationDetailRouteProps {
   bookingSearchParams?: URLSearchParams;
   setBookingSearchParams?: SetURLSearchParams;
   navigate?: NavigateFunction;
+  wishlistMembership?: Pick<WishlistModalProps, "commands" | "scope">;
 }
 
 export interface WishlistOpenAuthIntent {
@@ -75,9 +79,15 @@ export interface AccommodationDetailAuthIntentController {
 }
 
 type AccommodationDetailRouteContentProps = Required<
-  Omit<AccommodationDetailRouteProps, "accommodationId" | "authIntent">
+  Omit<
+    AccommodationDetailRouteProps,
+    "accommodationId" | "authIntent" | "wishlistMembership"
+  >
 > &
-  Pick<AccommodationDetailRouteProps, "accommodationId" | "authIntent">;
+  Pick<
+    AccommodationDetailRouteProps,
+    "accommodationId" | "authIntent" | "wishlistMembership"
+  >;
 
 const AccommodationDetailRouteContent: React.FC<
   AccommodationDetailRouteContentProps
@@ -87,6 +97,7 @@ const AccommodationDetailRouteContent: React.FC<
   bookingSearchParams,
   setBookingSearchParams,
   navigate,
+  wishlistMembership,
 }) => {
   const { error, handleError, clearError } = useApiError();
   const { isAuthenticated } = useAuth();
@@ -113,13 +124,12 @@ const AccommodationDetailRouteContent: React.FC<
     [authIntent],
   );
 
-  const { accommodation, isLoading, reloadAccommodation } =
-    useAccommodationDetail({
-      accommodationId,
-      isAuthenticated,
-      handleError,
-      clearError,
-    });
+  const { accommodation, isLoading } = useAccommodationDetail({
+    accommodationId,
+    isAuthenticated,
+    handleError,
+    clearError,
+  });
 
   const booking = useAccommodationBooking({
     accommodationId,
@@ -464,14 +474,15 @@ const AccommodationDetailRouteContent: React.FC<
         averageRating={detailView.rating.averageRating}
         totalCount={detailView.rating.reviewCount}
       />
-      <WishlistModal
-        isOpen={isWishlistModalOpen}
-        onClose={() => setIsWishlistModalOpen(false)}
-        accommodationId={detailView.id}
-        onSuccess={async () => {
-          await reloadAccommodation();
-        }}
-      />
+      {wishlistMembership && (
+        <WishlistModal
+          isOpen={isWishlistModalOpen}
+          onClose={() => setIsWishlistModalOpen(false)}
+          accommodationId={detailView.id}
+          commands={wishlistMembership.commands}
+          scope={wishlistMembership.scope}
+        />
+      )}
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => {
@@ -516,6 +527,7 @@ const AccommodationDetailRouteWithRouter: React.FC<
       setBookingSearchParams={
         props.setBookingSearchParams ?? routeSetSearchParams
       }
+      wishlistMembership={props.wishlistMembership}
     />
   );
 };
@@ -535,6 +547,7 @@ export const AccommodationDetailRoute: React.FC<
         bookingSearchParams={props.bookingSearchParams}
         navigate={props.navigate}
         setBookingSearchParams={props.setBookingSearchParams}
+        wishlistMembership={props.wishlistMembership}
       />
     );
   }

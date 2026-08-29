@@ -2,15 +2,16 @@ import { QueryClient } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
 import { createQueryClient } from "../../platform/query/createQueryClient";
 import {
+  createSessionQueryMeta,
+  setQueryClientSessionScope,
+  type SessionQueryScope,
+} from "../../platform/query/sessionScope";
+import {
   toAuthenticatedSessionScope,
   type SessionState,
-  type SessionSubject,
 } from "./sessionState";
 
-export interface SessionQueryScope {
-  readonly epoch: number;
-  readonly subject: SessionSubject | null;
-}
+export type { SessionQueryScope } from "../../platform/query/sessionScope";
 
 export interface SessionQueryGeneration extends SessionQueryScope {
   readonly client: QueryClient;
@@ -38,33 +39,14 @@ interface ResetSessionQueryGenerationOptions extends SessionQueryScope {
   readonly isStillCurrent: () => boolean;
 }
 
-const createSessionMeta = (scope: SessionQueryScope) =>
-  Object.freeze({
-    session: Object.freeze({
-      epoch: scope.epoch,
-      subject: scope.subject,
-    }),
-  });
-
 const defaultQueryClientFactory: SessionQueryClientFactory = (scope) => {
-  const sessionMeta = createSessionMeta(scope);
+  const sessionMeta = createSessionQueryMeta(scope);
 
   return createQueryClient({
     defaultOptions: {
       queries: { meta: sessionMeta },
       mutations: { meta: sessionMeta },
     },
-  });
-};
-
-const setSessionMeta = (client: QueryClient, scope: SessionQueryScope) => {
-  const defaults = client.getDefaultOptions();
-  const sessionMeta = createSessionMeta(scope);
-
-  client.setDefaultOptions({
-    ...defaults,
-    queries: { ...defaults.queries, meta: sessionMeta },
-    mutations: { ...defaults.mutations, meta: sessionMeta },
   });
 };
 
@@ -92,7 +74,7 @@ export const useSessionQueryLifetime = ({
     };
     const client = initialQueryClient ?? queryClientFactory(scope);
     if (initialQueryClient) {
-      setSessionMeta(client, scope);
+      setQueryClientSessionScope(client, scope);
     }
 
     initialGenerationRef.current = {
@@ -158,7 +140,7 @@ export const useSessionQueryLifetime = ({
         tainted: true,
       };
 
-      setSessionMeta(current.client, next);
+      setQueryClientSessionScope(current.client, next);
       generationRef.current = next;
       setGeneration(next);
 
@@ -199,7 +181,7 @@ export const useSessionQueryLifetime = ({
         tainted: false,
       };
 
-      setSessionMeta(current.client, next);
+      setQueryClientSessionScope(current.client, next);
       generationRef.current = next;
       setGeneration(next);
       return isStillCurrent();

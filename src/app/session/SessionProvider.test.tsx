@@ -65,7 +65,7 @@ const viewerA: SessionViewer = {
   id: 1,
   email: "user-a@example.com",
   nickname: "User A",
-  thumbnail_image_url: null,
+  thumbnailImageUrl: null,
 };
 
 const viewerAUpdated: SessionViewer = {
@@ -77,14 +77,14 @@ const viewerB: SessionViewer = {
   id: 2,
   email: "user-b@example.com",
   nickname: "User B",
-  thumbnail_image_url: null,
+  thumbnailImageUrl: null,
 };
 
 const viewerC: SessionViewer = {
   id: 3,
   email: "user-c@example.com",
   nickname: "User C",
-  thumbnail_image_url: null,
+  thumbnailImageUrl: null,
 };
 
 const credentialsA: SessionCredentials = {

@@ -16,7 +16,6 @@ jest.mock("../../../hooks/useAuth", () => ({
 const mockSelectAccommodationId = jest.fn();
 const mockSetIsMapDragMode = jest.fn();
 const mockRequestMapBoundsUpdate = jest.fn();
-const mockUpdateAccommodationWishlistStatus = jest.fn();
 const mockUseSearchResults = jest.fn();
 const mockUseSearchWishlistModal = jest.fn();
 
@@ -49,7 +48,6 @@ jest.mock("./useSearchResults", () => ({
       isLoading: false,
       totalElements: 0,
       totalPages: 0,
-      updateAccommodationWishlistStatus: mockUpdateAccommodationWishlistStatus,
     };
   },
 }));
@@ -110,7 +108,7 @@ describe("useSearchRouteController", () => {
     expect(mockSelectAccommodationId).toHaveBeenCalledWith(42);
   });
 
-  it("wires map state, auth state, and wishlist updates into child hooks", () => {
+  it("wires map state and auth state into child hooks", () => {
     const searchParams = new URLSearchParams("destination=Seoul");
     const setSearchParams = jest.fn();
 
@@ -132,7 +130,6 @@ describe("useSearchRouteController", () => {
     expect(mockUseSearchWishlistModal).toHaveBeenCalledWith({
       authIntent: undefined,
       isAuthenticated: true,
-      onWishlistStatusChange: mockUpdateAccommodationWishlistStatus,
     });
   });
 });

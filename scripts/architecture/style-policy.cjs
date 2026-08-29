@@ -51,7 +51,6 @@ const legacyDesignProtectedStylePaths = Object.freeze([
   "src/features/reservations/PaymentFailRoute.module.css",
   "src/features/search/components/SearchAccommodationCard.module.css",
   "src/features/search/SearchRoute.module.css",
-  "src/features/wishlist/WishlistRoute.module.css",
   "src/features/profile/components/ProfileShell.module.css",
   "src/features/profile/HostListingsPanel.module.css",
   "src/features/accommodations/AccommodationDetailRoute.module.css",

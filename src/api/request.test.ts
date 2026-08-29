@@ -1,6 +1,6 @@
 import { ApiResponse, ErrorResponse } from "../types/api";
 import { onAuthError } from "../utils/authEvents";
-import { sessionOwnedAuthEventPolicy } from "./authEventPolicy";
+import { sessionOwnedAuthEventPolicy } from "../platform/http/authEventPolicy";
 import { ApiClientError } from "./response";
 import { requestApi, requestApiNullable } from "./request";
 

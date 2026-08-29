@@ -45,7 +45,6 @@ export const useSearchRouteController = ({
   const wishlist = useSearchWishlistModal({
     authIntent: wishlistAuthIntent,
     isAuthenticated,
-    onWishlistStatusChange: searchResults.updateAccommodationWishlistStatus,
   });
 
   const openAccommodationDetail = useCallback(

@@ -1,8 +1,8 @@
 import { QueryClient } from "@tanstack/react-query";
-import { authQueryKeys } from "../features/auth/queryKeys";
 import { MeInfo } from "../types/auth";
 import {
   clearSessionQueryData,
+  legacyAuthMeQueryKey,
   refreshSessionQueryData,
 } from "./sessionCacheBoundary";
 
@@ -18,7 +18,7 @@ const authSiblingQueryKey = ["auth", "permissions"] as const;
 const authMeDescendantQueryKey = ["auth", "me", "history"] as const;
 
 const seedQueries = (queryClient: QueryClient) => {
-  queryClient.setQueryData(authQueryKeys.me(), meInfo);
+  queryClient.setQueryData(legacyAuthMeQueryKey, meInfo);
   queryClient.setQueryData(futureViewerQueryKey, { owner: "old-subject" });
   queryClient.setQueryData(authSiblingQueryKey, { permissions: ["host"] });
   queryClient.setQueryData(authMeDescendantQueryKey, { entries: [] });
@@ -28,7 +28,7 @@ const expectOnlyExactAuthMeRemains = (
   queryClient: QueryClient,
   expectedMeInfo: MeInfo | null,
 ) => {
-  expect(queryClient.getQueryData(authQueryKeys.me())).toEqual(expectedMeInfo);
+  expect(queryClient.getQueryData(legacyAuthMeQueryKey)).toEqual(expectedMeInfo);
   expect(queryClient.getQueryData(futureViewerQueryKey)).toBeUndefined();
   expect(queryClient.getQueryData(authSiblingQueryKey)).toBeUndefined();
   expect(queryClient.getQueryData(authMeDescendantQueryKey)).toBeUndefined();
@@ -90,7 +90,7 @@ describe("sessionCacheBoundary", () => {
     expect(cancelSpy.mock.calls[0]?.[0]?.predicate).toEqual(expect.any(Function));
     expect(cancelSpy.mock.calls[1]?.[0]).toEqual({
       exact: true,
-      queryKey: authQueryKeys.me(),
+      queryKey: legacyAuthMeQueryKey,
     });
   });
 
@@ -117,11 +117,11 @@ describe("sessionCacheBoundary", () => {
     const clearPromise = clearSessionQueryData(queryClient);
     await authCancellationStarted;
 
-    expect(queryClient.getQueryData(authQueryKeys.me())).toEqual(meInfo);
+    expect(queryClient.getQueryData(legacyAuthMeQueryKey)).toEqual(meInfo);
 
     resolveAuthCancellation();
     await clearPromise;
 
-    expect(queryClient.getQueryData(authQueryKeys.me())).toBeNull();
+    expect(queryClient.getQueryData(legacyAuthMeQueryKey)).toBeNull();
   });
 });

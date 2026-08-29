@@ -1,12 +1,13 @@
 import { QueryClient } from "@tanstack/react-query";
-import { authQueryKeys } from "../features/auth/queryKeys";
 import { MeInfo } from "../types/auth";
 
-const authMeQueryKey = authQueryKeys.me();
+export const legacyAuthMeQueryKey = ["auth", "me"] as const;
 
 const isExactAuthMeQuery = (query: { queryKey: readonly unknown[] }) =>
-  query.queryKey.length === authMeQueryKey.length &&
-  query.queryKey.every((part, index) => part === authMeQueryKey[index]);
+  query.queryKey.length === legacyAuthMeQueryKey.length &&
+  query.queryKey.every(
+    (part, index) => part === legacyAuthMeQueryKey[index],
+  );
 
 const nonAuthMeQueryFilter = {
   predicate: (query: { queryKey: readonly unknown[] }) =>
@@ -23,14 +24,14 @@ export const clearSessionQueryData = async (queryClient: QueryClient) => {
 
   await queryClient.cancelQueries({
     exact: true,
-    queryKey: authMeQueryKey,
+    queryKey: legacyAuthMeQueryKey,
   });
   queryClient.removeQueries({
     exact: true,
-    queryKey: authMeQueryKey,
+    queryKey: legacyAuthMeQueryKey,
     type: "inactive",
   });
-  queryClient.setQueryData<MeInfo | null>(authMeQueryKey, null);
+  queryClient.setQueryData<MeInfo | null>(legacyAuthMeQueryKey, null);
 };
 
 export const refreshSessionQueryData = async (
@@ -38,5 +39,5 @@ export const refreshSessionQueryData = async (
   meInfo: MeInfo,
 ) => {
   await removeNonAuthMeQueries(queryClient);
-  queryClient.setQueryData<MeInfo | null>(authMeQueryKey, meInfo);
+  queryClient.setQueryData<MeInfo | null>(legacyAuthMeQueryKey, meInfo);
 };

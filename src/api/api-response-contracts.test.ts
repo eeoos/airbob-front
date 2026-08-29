@@ -470,12 +470,12 @@ describe("migrated API response contracts", () => {
   it("discovers exported domain API wrappers from the API barrel", () => {
     expect(getExportedDomainApiFiles()).toEqual(
       expect.arrayContaining([
-        "auth.ts",
         "accommodations.ts",
         "commonCodes.ts",
         "coupons.ts",
       ]),
     );
+    expect(getExportedDomainApiFiles()).not.toContain("auth.ts");
     expect(getExportedDomainApiFiles()).not.toContain("request.ts");
   });
 

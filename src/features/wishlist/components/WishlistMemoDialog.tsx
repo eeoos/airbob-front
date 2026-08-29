@@ -2,6 +2,7 @@ import { Dialog } from "../../../shared/ui";
 import styles from "./WishlistViews.module.css";
 
 interface WishlistMemoDialogProps {
+  isPending?: boolean;
   isOpen: boolean;
   memoText: string;
   onChangeMemoText: (value: string) => void;
@@ -11,6 +12,7 @@ interface WishlistMemoDialogProps {
 }
 
 export function WishlistMemoDialog({
+  isPending = false,
   isOpen,
   memoText,
   onChangeMemoText,
@@ -43,6 +45,7 @@ export function WishlistMemoDialog({
         <button
           className={styles.memoClearButton}
           onClick={onClear}
+          disabled={isPending}
           type="button"
         >
           모두 지우기
@@ -50,7 +53,7 @@ export function WishlistMemoDialog({
         <button
           className={styles.memoSaveButton}
           onClick={onSave}
-          disabled={!memoText.trim()}
+          disabled={isPending}
           type="button"
         >
           저장

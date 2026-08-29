@@ -2,6 +2,11 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { readFileSync } from "fs";
 import path from "path";
 import type {
+  AuthenticatedSessionScope,
+  SessionSubject,
+} from "../../platform/session/sessionScope";
+import type { WishlistModalCommandPort } from "../wishlist/appShell";
+import type {
   SearchAccommodationCardViewModel,
   SearchAccommodationMapViewModel,
 } from "./lib/searchAccommodationViewModel";
@@ -13,6 +18,39 @@ const mockCloseAuthModal = jest.fn();
 const mockCloseWishlistModal = jest.fn();
 const mockHandleAuthSuccess = jest.fn();
 const mockOpenAccommodationDetail = jest.fn();
+let mockWishlistModalProps:
+  | {
+      accommodationId: number;
+      commands: WishlistModalCommandPort;
+      isOpen: boolean;
+      onClose: () => void;
+      scope: AuthenticatedSessionScope;
+    }
+  | undefined;
+
+const wishlistScope: AuthenticatedSessionScope = {
+  subject: "subject:member_7" as SessionSubject,
+  epoch: 3,
+};
+const wishlistCommands: WishlistModalCommandPort = {
+  addAccommodation: jest.fn().mockResolvedValue({
+    status: "applied",
+    isInAnyWishlist: true,
+  }),
+  removeAccommodation: jest.fn().mockResolvedValue({
+    status: "applied",
+    isInAnyWishlist: false,
+  }),
+  createAndAddAccommodation: jest.fn().mockResolvedValue({
+    status: "applied",
+    isInAnyWishlist: true,
+    wishlistId: 11,
+  }),
+};
+const wishlistMembership = {
+  commands: wishlistCommands,
+  scope: wishlistScope,
+};
 
 jest.mock("framer-motion", () => {
   const React = require("react");
@@ -79,25 +117,26 @@ jest.mock("../auth/appShell", () => ({
 }));
 
 jest.mock("../wishlist/appShell", () => ({
-  WishlistModal: ({
-    accommodationId,
-    isOpen,
-    onClose,
-  }: {
+  WishlistModal: (props: {
     accommodationId: number;
+    commands: WishlistModalCommandPort;
     isOpen: boolean;
     onClose: () => void;
-  }) => (
-    <section
-      data-testid="wishlist-modal"
-      data-accommodation-id={accommodationId}
-      data-open={String(isOpen)}
-    >
-      <button type="button" onClick={onClose}>
-        close wishlist
-      </button>
-    </section>
-  ),
+    scope: AuthenticatedSessionScope;
+  }) => {
+    mockWishlistModalProps = props;
+    return (
+      <section
+        data-testid="wishlist-modal"
+        data-accommodation-id={props.accommodationId}
+        data-open={String(props.isOpen)}
+      >
+        <button type="button" onClick={props.onClose}>
+          close wishlist
+        </button>
+      </section>
+    );
+  },
 }));
 
 jest.mock("./components/SearchMap", () => ({
@@ -112,6 +151,7 @@ jest.mock("./components/SearchMap", () => ({
       <div data-testid="search-map-count">{accommodations.length}</div>
       <button
         type="button"
+        disabled={!onWishlistToggle}
         onClick={() => {
           const firstAccommodation = accommodations[0];
           if (firstAccommodation) {
@@ -152,7 +192,7 @@ jest.mock("./components/SearchResultsList", () => ({
     accommodations: SearchAccommodationCardViewModel[];
     layout?: "desktop" | "bottomSheet";
     onAccommodationClick: (accommodationId: number) => void;
-    onWishlistToggle: (accommodationId: number) => void;
+    onWishlistToggle?: (accommodationId: number) => void;
   }) => (
     <section data-testid="search-results-list" data-layout={layout}>
       <div data-testid="search-results-count">{accommodations.length}</div>
@@ -161,7 +201,8 @@ jest.mock("./components/SearchResultsList", () => ({
           <h3>{accommodation.name}</h3>
           <button
             type="button"
-            onClick={() => onWishlistToggle(accommodation.id)}
+            disabled={!onWishlistToggle}
+            onClick={() => onWishlistToggle?.(accommodation.id)}
           >
             {`wishlist ${accommodation.id}`}
           </button>
@@ -230,7 +271,16 @@ const renderSearchRoute = (
       }
       setSearchParams={jest.fn()}
       wishlistAuthIntent={wishlistAuthIntent}
+      wishlistMembership={wishlistMembership}
     />
+  );
+
+const renderSearchRouteWithoutWishlistMembership = () =>
+  render(
+    <SearchRoute
+      searchParams={new URLSearchParams("destination=Seoul")}
+      setSearchParams={jest.fn()}
+    />,
   );
 
 describe("SearchRoute structure", () => {
@@ -250,6 +300,8 @@ describe("SearchRoute structure", () => {
 
 describe("SearchRoute", () => {
   beforeEach(() => {
+    mockUseSearchRouteController.mockClear();
+    mockWishlistModalProps = undefined;
     mockUseSearchRouteController.mockReturnValue({
       bottomSheet: {
         bottomSheetState: "expanded",
@@ -289,7 +341,7 @@ describe("SearchRoute", () => {
       searchResults: {
         accommodationCards,
         accommodationMapItems,
-        updateAccommodationWishlistStatus: jest.fn(),
+        isPlaceholderData: false,
         isLoading: false,
         currentPage: 0,
         totalPages: 3,
@@ -345,6 +397,10 @@ describe("SearchRoute", () => {
       "data-accommodation-id",
       "7"
     );
+    expect(mockWishlistModalProps).toMatchObject({
+      commands: wishlistCommands,
+      scope: wishlistScope,
+    });
 
     fireEvent.click(screen.getByRole("button", { name: "wishlist 11" }));
     fireEvent.click(screen.getByRole("button", { name: "map wishlist" }));
@@ -353,6 +409,30 @@ describe("SearchRoute", () => {
     expect(mockOpenWishlistModal).toHaveBeenNthCalledWith(1, 11);
     expect(mockOpenWishlistModal).toHaveBeenNthCalledWith(2, 7, false);
     expect(mockOpenAccommodationDetail).toHaveBeenCalledWith(11);
+  });
+
+  it("does not render wishlist UI without a current injected membership boundary", () => {
+    renderSearchRouteWithoutWishlistMembership();
+
+    expect(screen.queryByTestId("wishlist-modal")).not.toBeInTheDocument();
+    expect(mockWishlistModalProps).toBeUndefined();
+  });
+
+  it("blocks wishlist interaction while visible results are placeholder data", () => {
+    const controller = mockUseSearchRouteController();
+    mockUseSearchRouteController.mockReturnValue({
+      ...controller,
+      searchResults: {
+        ...controller.searchResults,
+        isPlaceholderData: true,
+      },
+    });
+
+    renderSearchRoute();
+
+    expect(screen.getByRole("button", { name: "wishlist 7" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "map wishlist" })).toBeDisabled();
+    expect(screen.queryByTestId("wishlist-modal")).not.toBeInTheDocument();
   });
 
   it("does not attach an old-generation auth success callback when an intent owner exists", () => {

@@ -31,11 +31,11 @@ remain comparable after their U22 root and scope declaration are retired.
 
 ## Dependency-cruiser policy
 
-The production graph at U6 has 422 modules and 1,154 dependency edges. It
-records zero errors and 18 legacy warnings:
+The production graph after U7 has 469 modules and 1,253 dependency edges. It
+records zero errors and 15 legacy warnings:
 
 - two type-bearing module cycles in the accommodation editor;
-- sixteen cross-feature compatibility edges.
+- thirteen cross-feature compatibility edges.
 
 The graph blocks unresolved imports, production imports of tests or runtime dev
 dependencies, private feature peer imports, direct UI access to global API/wire
@@ -52,8 +52,9 @@ because nested-folder expansion produced noisy duplicates.
 U6 adds one temporary exact bridge per compatibility adapter under
 `src/app/router/routes/**`. Each adapter may import only its assigned legacy
 feature route container; a peer route or private helper is still an error.
-U7-U13/U21 remove each bridge with that route's screen/controller cutover, and
-U22 removes any final compatibility entry.
+U7 removes the Login, Signup, and Wishlist bridges with their owned
+screen/controller cutovers. U8-U13/U21 remove the eleven remaining bridges,
+and U22 removes any final compatibility entry.
 
 The fixture runner proves 37 cases, including a valid DAG, MJS graph coverage,
 the app feature public-surface contract, workflow/screen peer edges,

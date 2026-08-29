@@ -17,8 +17,10 @@ import {
   type SessionState,
 } from "../app/session/sessionState";
 import { AuthProvider } from "../contexts/AuthContext";
-import type { SessionAuthPort } from "../features/auth/ports/sessionPort";
-import { MeInfo } from "../types/auth";
+import type {
+  SessionAuthPort,
+  SessionViewer,
+} from "../features/auth/ports/sessionPort";
 import { createTestQueryClient } from "./createTestQueryClient";
 
 export const TEST_PORTAL_ROOT_ID = APP_OVERLAY_ROOT_ID;
@@ -27,7 +29,7 @@ export interface RenderAppOptions
   extends Omit<RenderOptions, "wrapper"> {
   queryClient?: QueryClient;
   initialEntries?: MemoryRouterProps["initialEntries"];
-  session?: MeInfo | null;
+  session?: SessionViewer | null;
   authPort?: SessionAuthPort;
   seedQueryClient?: (queryClient: QueryClient) => void;
 }
@@ -125,7 +127,7 @@ const releaseQueryClient = (queryClient: QueryClient) => {
   if (ownership.clearWhenUnused) queryClient.clear();
 };
 
-const toInitialSessionState = (session: MeInfo | null): SessionState =>
+const toInitialSessionState = (session: SessionViewer | null): SessionState =>
   session
     ? {
         status: "authenticated",

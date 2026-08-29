@@ -6,7 +6,10 @@ import {
 import { motion } from "framer-motion";
 import type { MotionStyle } from "framer-motion";
 import { AuthModal } from "../auth/appShell";
-import { WishlistModal } from "../wishlist/appShell";
+import {
+  WishlistModal,
+  type WishlistModalProps,
+} from "../wishlist/appShell";
 import { ErrorToast } from "../../components/ErrorToast";
 import { SearchPagination } from "./components/SearchPagination";
 import { SearchResultsList } from "./components/SearchResultsList";
@@ -26,16 +29,18 @@ export interface SearchRouteProps {
   searchParams?: URLSearchParams;
   setSearchParams?: SetURLSearchParams;
   wishlistAuthIntent?: SearchWishlistAuthIntentBridge;
+  wishlistMembership?: Pick<WishlistModalProps, "commands" | "scope">;
 }
 
 type SearchRouteContentProps = Required<
   Pick<SearchRouteProps, "searchParams" | "setSearchParams">
-> & Pick<SearchRouteProps, "wishlistAuthIntent">;
+> & Pick<SearchRouteProps, "wishlistAuthIntent" | "wishlistMembership">;
 
 const SearchRouteContent: React.FC<SearchRouteContentProps> = ({
   searchParams,
   setSearchParams,
   wishlistAuthIntent,
+  wishlistMembership,
 }) => {
   const {
     bottomSheet,
@@ -69,6 +74,9 @@ const SearchRouteContent: React.FC<SearchRouteContentProps> = ({
     activeButton: styles.paginationButtonActive,
     ellipsis: styles.paginationEllipsis,
   };
+  const onWishlistToggle = searchResults.isPlaceholderData
+    ? undefined
+    : wishlist.openWishlistModal;
 
   return (
     <>
@@ -83,7 +91,7 @@ const SearchRouteContent: React.FC<SearchRouteContentProps> = ({
                 selectedAccommodationId={mapState.selectedAccommodationId}
                 hoveredAccommodationId={mapState.hoveredAccommodationId}
                 onAccommodationSelect={mapState.handleAccommodationSelect}
-                onWishlistToggle={wishlist.openWishlistModal}
+                onWishlistToggle={onWishlistToggle}
                 detailSearchParams={searchParams}
                 checkIn={checkIn}
                 checkOut={checkOut}
@@ -147,7 +155,7 @@ const SearchRouteContent: React.FC<SearchRouteContentProps> = ({
                   isLoading={searchResults.isLoading}
                   selectedAccommodationId={mapState.selectedAccommodationId}
                   onAccommodationClick={openAccommodationDetail}
-                  onWishlistToggle={wishlist.openWishlistModal}
+                  onWishlistToggle={onWishlistToggle}
                   detailSearchParams={searchParams}
                   checkIn={checkIn}
                   checkOut={checkOut}
@@ -182,7 +190,7 @@ const SearchRouteContent: React.FC<SearchRouteContentProps> = ({
                 isLoading={searchResults.isLoading}
                 selectedAccommodationId={mapState.selectedAccommodationId}
                 onAccommodationClick={openAccommodationDetail}
-                onWishlistToggle={wishlist.openWishlistModal}
+                onWishlistToggle={onWishlistToggle}
                 onHoveredAccommodationChange={mapState.setHoveredAccommodationId}
                 detailSearchParams={searchParams}
                 checkIn={checkIn}
@@ -206,7 +214,7 @@ const SearchRouteContent: React.FC<SearchRouteContentProps> = ({
                 selectedAccommodationId={mapState.selectedAccommodationId}
                 hoveredAccommodationId={mapState.hoveredAccommodationId}
                 onAccommodationSelect={mapState.handleAccommodationSelect}
-                onWishlistToggle={wishlist.openWishlistModal}
+                onWishlistToggle={onWishlistToggle}
                 detailSearchParams={searchParams}
                 checkIn={checkIn}
                 checkOut={checkOut}
@@ -229,13 +237,17 @@ const SearchRouteContent: React.FC<SearchRouteContentProps> = ({
         )}
       </div>
 
-      {wishlist.selectedAccommodationForWishlist !== null && (
-        <WishlistModal
-          isOpen={wishlist.wishlistModalOpen}
-          onClose={wishlist.closeWishlistModal}
-          accommodationId={wishlist.selectedAccommodationForWishlist}
-        />
-      )}
+      {wishlistMembership &&
+        !searchResults.isPlaceholderData &&
+        wishlist.selectedAccommodationForWishlist !== null && (
+          <WishlistModal
+            isOpen={wishlist.wishlistModalOpen}
+            onClose={wishlist.closeWishlistModal}
+            accommodationId={wishlist.selectedAccommodationForWishlist}
+            commands={wishlistMembership.commands}
+            scope={wishlistMembership.scope}
+          />
+        )}
 
       <AuthModal
         isOpen={wishlist.authModalOpen}
@@ -257,6 +269,7 @@ const SearchRouteWithRouter: React.FC<SearchRouteProps> = (props) => {
       searchParams={props.searchParams ?? routeSearchParams}
       setSearchParams={props.setSearchParams ?? routeSetSearchParams}
       wishlistAuthIntent={props.wishlistAuthIntent}
+      wishlistMembership={props.wishlistMembership}
     />
   );
 };
@@ -268,6 +281,7 @@ export const SearchRoute: React.FC<SearchRouteProps> = (props) => {
         searchParams={props.searchParams}
         setSearchParams={props.setSearchParams}
         wishlistAuthIntent={props.wishlistAuthIntent}
+        wishlistMembership={props.wishlistMembership}
       />
     );
   }

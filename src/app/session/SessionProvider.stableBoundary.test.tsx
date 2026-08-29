@@ -25,14 +25,14 @@ const viewerA: SessionViewer = {
   id: 1,
   email: "viewer-a@example.com",
   nickname: "Viewer A",
-  thumbnail_image_url: null,
+  thumbnailImageUrl: null,
 };
 
 const viewerB: SessionViewer = {
   id: 2,
   email: "viewer-b@example.com",
   nickname: "Viewer B",
-  thumbnail_image_url: null,
+  thumbnailImageUrl: null,
 };
 
 const initialState: SessionState = {

@@ -7,11 +7,19 @@ import {
   type SessionViewer,
 } from "../app/session/sessionState";
 import { useSession } from "../app/session/useSession";
+import { authApi } from "../features/auth/api/authApi";
+import { useAuthCommands } from "../features/auth/ports/AuthCommandProvider";
 import { AppError } from "../platform/http/errors";
 import { AuthProvider, useAuth } from "./AuthContext";
 
 jest.mock("../app/session/useSession", () => ({
   useSession: jest.fn(),
+}));
+
+jest.mock("../features/auth/api/authApi", () => ({
+  authApi: {
+    signup: jest.fn(),
+  },
 }));
 
 const mockUseSession = useSession as jest.MockedFunction<typeof useSession>;
@@ -20,7 +28,7 @@ const viewer: SessionViewer = {
   id: 41,
   email: "guest@example.com",
   nickname: "Guest",
-  thumbnail_image_url: null,
+  thumbnailImageUrl: null,
 };
 
 const sessionError = new AppError({
@@ -105,6 +113,7 @@ const renderUseAuth = (session: jest.Mocked<SessionContextValue>) => {
 describe("AuthProvider session compatibility projection", () => {
   beforeEach(() => {
     mockUseSession.mockReset();
+    jest.mocked(authApi.signup).mockReset();
   });
 
   it.each([
@@ -172,5 +181,34 @@ describe("AuthProvider session compatibility projection", () => {
     expect(session.revalidate).toHaveBeenCalledTimes(1);
     expect(session.retryServerLogout).not.toHaveBeenCalled();
     await act(async () => returnedPromise);
+  });
+
+  it("injects feature commands without duplicating session identity state", async () => {
+    const session = createSessionValue(states.anonymous);
+    session.captureAuthenticatedSession.mockReturnValue(null);
+    const signupCommand = {
+      nickname: "Guest",
+      email: "guest@example.com",
+      password: "password123",
+    };
+    jest.mocked(authApi.signup).mockResolvedValue(undefined);
+    mockUseSession.mockReturnValue(session);
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <AuthProvider>{children}</AuthProvider>
+    );
+    const { result } = renderHook(() => useAuthCommands(), { wrapper });
+
+    await act(async () => result.current.signup(signupCommand));
+
+    expect(authApi.signup).toHaveBeenCalledWith(signupCommand);
+    expect(result.current.shouldCompleteLoginInCurrentView()).toBe(true);
+
+    session.captureAuthenticatedSession.mockReturnValue({
+      subject: "subject:member_15" as ReturnType<
+        typeof toSessionSubject
+      >,
+      epoch: 2,
+    });
+    expect(result.current.shouldCompleteLoginInCurrentView()).toBe(false);
   });
 });

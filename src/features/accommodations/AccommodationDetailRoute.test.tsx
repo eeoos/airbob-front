@@ -1,4 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type {
+  AuthenticatedSessionScope,
+  SessionSubject,
+} from "../../platform/session/sessionScope";
 import type { AccommodationDetail } from "../../types/accommodation";
 import type { CouponInfo } from "../../types/coupon";
 import type { ReviewInfo } from "../../types/review";
@@ -15,6 +19,7 @@ import type {
   AccommodationCouponState,
 } from "./components/AccommodationBookingCard";
 import type { AccommodationBookingViewModel } from "./lib/accommodationBookingViewModel";
+import type { WishlistModalCommandPort } from "../wishlist/appShell";
 
 const mockUseApiError = jest.fn();
 const mockUseAuth = jest.fn();
@@ -35,6 +40,39 @@ let mockAuthModalProps:
       onSuccess?: () => void;
     }
   | undefined;
+let mockWishlistModalProps:
+  | {
+      accommodationId: number;
+      commands: WishlistModalCommandPort;
+      isOpen: boolean;
+      onClose: () => void;
+      scope: AuthenticatedSessionScope;
+    }
+  | undefined;
+
+const wishlistScope: AuthenticatedSessionScope = {
+  subject: "subject:member_7" as SessionSubject,
+  epoch: 3,
+};
+const wishlistCommands: WishlistModalCommandPort = {
+  addAccommodation: jest.fn().mockResolvedValue({
+    status: "applied",
+    isInAnyWishlist: true,
+  }),
+  removeAccommodation: jest.fn().mockResolvedValue({
+    status: "applied",
+    isInAnyWishlist: false,
+  }),
+  createAndAddAccommodation: jest.fn().mockResolvedValue({
+    status: "applied",
+    isInAnyWishlist: true,
+    wishlistId: 11,
+  }),
+};
+const wishlistMembership = {
+  commands: wishlistCommands,
+  scope: wishlistScope,
+};
 type MockBookingCardProps = {
   bookingView: AccommodationBookingViewModel;
   isAuthenticated: boolean;
@@ -106,34 +144,28 @@ jest.mock("../reviews/appShell", () => ({
 }));
 
 jest.mock("../wishlist/appShell", () => ({
-  WishlistModal: ({
-    accommodationId,
-    isOpen,
-    onClose,
-    onSuccess,
-  }: {
+  WishlistModal: (props: {
     accommodationId: number;
+    commands: WishlistModalCommandPort;
     isOpen: boolean;
     onClose: () => void;
-    onSuccess?: () => void | Promise<void>;
-  }) => (
-    <section
-      data-testid="wishlist-modal"
-      data-accommodation-id={accommodationId}
-      data-open={String(isOpen)}
-    >
-      {isOpen && (
-        <>
-          <button type="button" onClick={onClose}>
+    scope: AuthenticatedSessionScope;
+  }) => {
+    mockWishlistModalProps = props;
+    return (
+      <section
+        data-testid="wishlist-modal"
+        data-accommodation-id={props.accommodationId}
+        data-open={String(props.isOpen)}
+      >
+        {props.isOpen && (
+          <button type="button" onClick={props.onClose}>
             close wishlist
           </button>
-          <button type="button" onClick={onSuccess}>
-            wishlist success
-          </button>
-        </>
-      )}
-    </section>
-  ),
+        )}
+      </section>
+    );
+  },
 }));
 
 jest.mock("./components/AccommodationBookingCard", () => ({
@@ -356,6 +388,7 @@ const createAuthIntentController = (
 
 const detailRouteElement = (
   authIntent = createAuthIntentController(),
+  membership: typeof wishlistMembership | null = wishlistMembership,
 ) => (
     <AccommodationDetailRoute
       authIntent={authIntent}
@@ -367,17 +400,20 @@ const detailRouteElement = (
       }
       setBookingSearchParams={jest.fn()}
       navigate={jest.fn()}
+      wishlistMembership={membership ?? undefined}
     />
   );
 
 const renderDetailRoute = (
   authIntent = createAuthIntentController(),
-) => render(detailRouteElement(authIntent));
+  membership: typeof wishlistMembership | null = wishlistMembership,
+) => render(detailRouteElement(authIntent, membership));
 
 describe("AccommodationDetailRoute", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockAuthModalProps = undefined;
+    mockWishlistModalProps = undefined;
     mockRequestAuthIntent.mockReturnValue(true);
     mockBookingCardProps = undefined as unknown as MockBookingCardProps;
     mockUseApiError.mockReturnValue({
@@ -508,6 +544,42 @@ describe("AccommodationDetailRoute", () => {
       selectedCouponId: null,
       couponDiscount: 0,
     });
+  });
+
+  it("passes the current membership boundary and closes without reloading detail", () => {
+    renderDetailRoute();
+
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+
+    expect(screen.getByTestId("wishlist-modal")).toHaveAttribute(
+      "data-open",
+      "true",
+    );
+    expect(mockWishlistModalProps).toMatchObject({
+      accommodationId: 7,
+      commands: wishlistCommands,
+      scope: wishlistScope,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "close wishlist" }));
+
+    expect(screen.getByTestId("wishlist-modal")).toHaveAttribute(
+      "data-open",
+      "false",
+    );
+    expect(mockReloadAccommodation).not.toHaveBeenCalled();
+    expect(wishlistCommands.addAccommodation).not.toHaveBeenCalled();
+    expect(wishlistCommands.removeAccommodation).not.toHaveBeenCalled();
+    expect(wishlistCommands.createAndAddAccommodation).not.toHaveBeenCalled();
+  });
+
+  it("does not render wishlist UI without a current injected membership boundary", () => {
+    renderDetailRoute(createAuthIntentController(), null);
+
+    expect(screen.queryByTestId("wishlist-modal")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+    expect(screen.queryByTestId("wishlist-modal")).not.toBeInTheDocument();
+    expect(mockWishlistModalProps).toBeUndefined();
   });
 
   it("registers wishlist auth as data and leaves legacy AuthModal success domain-free", () => {

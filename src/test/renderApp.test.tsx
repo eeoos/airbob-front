@@ -4,33 +4,26 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useSession } from "../app/session/useSession";
 import { toSessionSubject } from "../app/session/sessionState";
 import { useAuth } from "../contexts/AuthContext";
-import type { SessionAuthPort } from "../features/auth/ports/sessionPort";
-import { authQueryKeys } from "../features/auth/queryKeys";
+import type {
+  SessionAuthPort,
+  SessionViewer,
+} from "../features/auth/ports/sessionPort";
 import { Dialog, ToastHost } from "../shared/ui";
-import { MeInfo } from "../types/auth";
 import { createTestQueryClient } from "./createTestQueryClient";
 import { renderApp, TEST_PORTAL_ROOT_ID } from "./renderApp";
 
-jest.mock("../api", () => ({
-  authApi: {
-    getMe: jest.fn(),
-    login: jest.fn(),
-    logout: jest.fn(),
-  },
-}));
-
-const session: MeInfo = {
+const session: SessionViewer = {
   id: 7,
   email: "guest@example.invalid",
   nickname: "Guest",
-  thumbnail_image_url: null,
+  thumbnailImageUrl: null,
 };
 
-const nextSession: MeInfo = {
+const nextSession: SessionViewer = {
   id: 8,
   email: "next@example.invalid",
   nickname: "Next",
-  thumbnail_image_url: null,
+  thumbnailImageUrl: null,
 };
 
 const HarnessProbe = () => {
@@ -96,7 +89,7 @@ describe("renderApp", () => {
 
     expect(screen.getByText("authenticated|/reservation/confirm|router-handoff"))
       .toBeInTheDocument();
-    expect(view.queryClient.getQueryData(authQueryKeys.me())).toBeUndefined();
+    expect(view.queryClient.getQueryData(["auth", "me"])).toBeUndefined();
     expect(view.queryClient.getDefaultOptions().queries?.meta).toEqual({
       session: { epoch: 0, subject: toSessionSubject(session) },
     });
@@ -159,7 +152,7 @@ describe("renderApp", () => {
     ).toThrow("fixture setup failed");
 
     expect(capturedQueryClient?.getQueryData(["partial-seed"])).toBeUndefined();
-    expect(capturedQueryClient?.getQueryData(authQueryKeys.me())).toBeUndefined();
+    expect(capturedQueryClient?.getQueryData(["auth", "me"])).toBeUndefined();
     expect(screen.queryByTestId(TEST_PORTAL_ROOT_ID)).not.toBeInTheDocument();
 
     const view = renderApp(<HarnessProbe />);

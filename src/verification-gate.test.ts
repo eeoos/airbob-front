@@ -487,7 +487,7 @@ describe("frontend verification gate", () => {
       "All 15 entries are lazy.",
       "src/app/router/lazyRoutes.tsx",
       "src/app/shells/**",
-      "The rollback-only route chain is",
+      "The remaining rollback-only route chain is",
       "Still-active compatibility",
       "Airbnb visual redesign begins only after the architecture design-entry gate",
       "When documents disagree about the current frontend, this document wins.",
@@ -503,14 +503,14 @@ describe("frontend verification gate", () => {
       "**Active** is the only production route entry",
     );
     expect(ownershipMatrixDoc).toContain(
-      "Current cutover state: U6 app Router",
+      "Current cutover state: app Router/session/structural UI",
     );
     expect(ownershipMatrixDoc).toContain(
       "app adapter → current/old body",
     );
     expect(ownershipMatrixDoc).toContain("U10/U11 payment compatibility matrix");
     expect(architectureRulesDoc).toContain("Single rule owners");
-    expect(architectureRulesDoc).toContain("sixteen cross-feature compatibility edges");
+    expect(architectureRulesDoc).toContain("thirteen cross-feature compatibility edges");
     expect(architectureRulesDoc).toContain("Strict design-policy errors are zero");
     expect(Array.isArray(architectureRatchet.migratedFeatures)).toBe(true);
     expect(new Set(architectureRatchet.migratedFeatures).size).toBe(

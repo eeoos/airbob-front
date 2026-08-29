@@ -1,74 +1,78 @@
-import type { RecentlyViewedAccommodationInfo } from "../../../types/recentlyViewed";
-import type { WishlistAccommodationInfo } from "../../../types/wishlist";
-import type { WishlistInfo } from "../../../types/wishlist";
+import type {
+  RecentlyViewedAccommodation,
+  WishlistAccommodation,
+  WishlistSummary,
+} from "../model";
 import {
   getRecentlyViewedSummaryLabel,
   toRecentlyViewedAccommodationCardViewModel,
   toWishlistAccommodationCardViewModel,
+  toWishlistAccommodationMemoTarget,
   toWishlistIndexCardViewModel,
   toWishlistModalItemViewModel,
-  toWishlistAccommodationMemoTarget,
 } from "./wishlistAccommodationViewModel";
 
 const wishlistAccommodationFixture = (
-  overrides: Partial<WishlistAccommodationInfo> = {},
-): WishlistAccommodationInfo => ({
-  wishlist_accommodation_id: 501,
+  overrides: Partial<WishlistAccommodation> = {},
+): WishlistAccommodation => ({
+  wishlistAccommodationId: 501,
   accommodation: {
     id: 201,
     name: "Lake cabin",
-    thumbnail_url: "/lake-cabin.jpg",
+    thumbnailUrl: "/lake-cabin.jpg",
   },
-  address_summary: {
+  addressSummary: {
     country: "대한민국",
     state: null,
     city: "춘천",
     district: "남산면",
   },
-  created_at: "2026-07-01T00:00:00Z",
-  is_in_wishlist: true,
+  createdAt: "2026-07-01T00:00:00Z",
+  isInWishlist: true,
   memo: "Bring coffee",
-  review_summary: {
-    average_rating: 4.5,
-    total_count: 8,
+  reviewSummary: {
+    averageRating: 4.5,
+    totalCount: 8,
   },
   ...overrides,
 });
 
-const wishlistFixture = (overrides: Partial<WishlistInfo> = {}): WishlistInfo => ({
+const wishlistFixture = (
+  overrides: Partial<WishlistSummary> = {},
+): WishlistSummary => ({
   id: 42,
   name: "Weekend saves",
-  created_at: "2026-07-01T00:00:00Z",
-  is_contained: null,
-  thumbnail_image_url: "/weekend.jpg",
-  wishlist_accommodation_id: null,
-  wishlist_item_count: 2,
+  createdAt: "2026-07-01T00:00:00Z",
+  containsAccommodation: null,
+  thumbnailImageUrl: "/weekend.jpg",
+  wishlistAccommodationId: null,
+  itemCount: 2,
   ...overrides,
 });
 
 const recentlyViewedFixture = (
-  overrides: Partial<RecentlyViewedAccommodationInfo> = {},
-): RecentlyViewedAccommodationInfo => ({
-  accommodation_id: 101,
-  accommodation_name: "Ocean house",
-  address_summary: {
+  overrides: Partial<RecentlyViewedAccommodation> = {},
+): RecentlyViewedAccommodation => ({
+  accommodationId: 101,
+  accommodationName: "Ocean house",
+  addressSummary: {
     country: "대한민국",
     state: null,
     city: "부산",
     district: "해운대구",
   },
-  is_in_wishlist: true,
-  review_summary: {
-    average_rating: 4.75,
-    total_count: 12,
+  isInWishlist: true,
+  reviewSummary: {
+    averageRating: 4.75,
+    totalCount: 12,
   },
-  thumbnail_url: "/ocean-house.jpg",
-  viewed_at: "2026-07-04T00:00:00+09:00",
+  thumbnailUrl: "/ocean-house.jpg",
+  viewedAt: "2026-07-04T00:00:00+09:00",
   ...overrides,
 });
 
 describe("wishlist accommodation view model", () => {
-  it("maps wishlist API fields into card display fields", () => {
+  it("maps feature domain fields into card display fields", () => {
     expect(
       toWishlistAccommodationCardViewModel(wishlistAccommodationFixture()),
     ).toEqual({
@@ -108,8 +112,8 @@ describe("wishlist accommodation view model", () => {
     expect(
       toWishlistModalItemViewModel(
         wishlistFixture({
-          is_contained: true,
-          wishlist_accommodation_id: 777,
+          containsAccommodation: true,
+          wishlistAccommodationId: 777,
         }),
       ),
     ).toEqual({
@@ -126,9 +130,9 @@ describe("wishlist accommodation view model", () => {
     expect(
       toWishlistModalItemViewModel(
         wishlistFixture({
-          thumbnail_image_url: null,
-          is_contained: false,
-          wishlist_accommodation_id: null,
+          thumbnailImageUrl: null,
+          containsAccommodation: false,
+          wishlistAccommodationId: null,
         }),
       ),
     ).toMatchObject({
@@ -138,7 +142,7 @@ describe("wishlist accommodation view model", () => {
     });
   });
 
-  it("maps recently viewed API fields into card display fields", () => {
+  it("maps recently viewed domain fields into card display fields", () => {
     expect(
       toRecentlyViewedAccommodationCardViewModel(recentlyViewedFixture()),
     ).toEqual({
@@ -156,7 +160,7 @@ describe("wishlist accommodation view model", () => {
 
   it("provides recently viewed index summary labels from display items", () => {
     const item = toRecentlyViewedAccommodationCardViewModel(
-      recentlyViewedFixture({ viewed_at: new Date().toISOString() }),
+      recentlyViewedFixture({ viewedAt: new Date().toISOString() }),
     );
 
     expect(getRecentlyViewedSummaryLabel([item])).toBe("오늘");
@@ -166,9 +170,9 @@ describe("wishlist accommodation view model", () => {
   it("keeps nullable recently viewed display fields explicit", () => {
     const viewModel = toRecentlyViewedAccommodationCardViewModel(
       recentlyViewedFixture({
-        address_summary: null,
-        review_summary: null,
-        thumbnail_url: null,
+        addressSummary: null,
+        reviewSummary: null,
+        thumbnailUrl: null,
       }),
     );
 

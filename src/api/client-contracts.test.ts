@@ -21,7 +21,9 @@ describe("api client source contracts", () => {
 
     expect(legacySource).not.toMatch(/axios\.create\s*\(/);
     expect(legacySource).not.toContain("clientV2");
+    expect(legacySource).not.toContain("interceptors.response");
     expect(platformSource.match(/axios\.create\s*\(/g)).toHaveLength(1);
+    expect(platformSource).toContain("interceptors.response.use");
     expect(platformSource).toMatch(/import axios from ["']axios["'];/);
     expect(platformSource).not.toContain("axios/dist/");
   });

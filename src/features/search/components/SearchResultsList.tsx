@@ -20,7 +20,7 @@ interface SearchResultsListProps {
   isLoading: boolean;
   selectedAccommodationId: number | null;
   onAccommodationClick: (accommodationId: number) => void;
-  onWishlistToggle: (accommodationId: number) => void;
+  onWishlistToggle?: (accommodationId: number) => void;
   onHoveredAccommodationChange?: (accommodationId: number | null) => void;
   detailSearchParams?: URLSearchParams;
   checkIn?: string | null;
@@ -74,7 +74,11 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = ({
         accommodation={accommodation}
         detailUrl={routeTo.accommodationDetail(accommodation.id, detailParams)}
         onClick={() => onAccommodationClick(accommodation.id)}
-        onWishlistToggle={() => onWishlistToggle(accommodation.id)}
+        onWishlistToggle={
+          onWishlistToggle
+            ? () => onWishlistToggle(accommodation.id)
+            : undefined
+        }
         checkIn={checkIn}
         checkOut={checkOut}
       />

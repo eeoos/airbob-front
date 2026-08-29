@@ -1,7 +1,7 @@
 import { ApiResponse } from "../types/api";
-import { triggerAuthError } from "../utils/authEvents";
-import type { AuthEventPolicyMetadata } from "./authEventPolicy";
-import { isSessionOwnedAuthEventRequest } from "./authEventPolicy";
+import type { AuthEventPolicyMetadata } from "../platform/http/authEventPolicy";
+import { isSessionOwnedAuthEventRequest } from "../platform/http/authEventPolicy";
+import { triggerAuthError } from "../platform/session/authEvents";
 import { isApiClientError, unwrapApiResponse } from "./response";
 
 type ApiRequest<T> = () => Promise<{ data: ApiResponse<T> }>;

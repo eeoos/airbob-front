@@ -1,5 +1,4 @@
-import { authApi } from "../../../api/auth";
-import { ApiClientError } from "../../../api/response";
+import { authApi } from "../api/authApi";
 import { AppError } from "../../../platform/http/errors";
 import {
   isSessionAuthenticationError,
@@ -7,9 +6,9 @@ import {
   sessionAuthPort,
 } from "./sessionPort";
 
-jest.mock("../../../api/auth", () => ({
+jest.mock("../api/authApi", () => ({
   authApi: {
-    getMe: jest.fn(),
+    getViewer: jest.fn(),
     login: jest.fn(),
     logout: jest.fn(),
   },
@@ -26,11 +25,11 @@ describe("sessionAuthPort", () => {
       email: "member@example.invalid",
       password: "synthetic-password",
     };
-    jest.mocked(authApi.getMe).mockResolvedValue({
+    jest.mocked(authApi.getViewer).mockResolvedValue({
       id: 1,
       email: credentials.email,
       nickname: "Member",
-      thumbnail_image_url: null,
+      thumbnailImageUrl: null,
     });
     jest.mocked(authApi.login).mockResolvedValue();
     jest.mocked(authApi.logout).mockResolvedValue();
@@ -39,17 +38,17 @@ describe("sessionAuthPort", () => {
     await sessionAuthPort.login(credentials, controller.signal);
     await sessionAuthPort.logout(controller.signal);
 
-    expect(authApi.getMe).toHaveBeenCalledWith(controller.signal);
+    expect(authApi.getViewer).toHaveBeenCalledWith(controller.signal);
     expect(authApi.login).toHaveBeenCalledWith(credentials, controller.signal);
     expect(authApi.logout).toHaveBeenCalledWith(controller.signal);
   });
 
   it("classifies legacy 401 and M004 envelopes as authentication errors", () => {
-    const unauthorized = new ApiClientError({
+    const unauthorized = {
       message: "Authentication required",
       status: 401,
       code: "M004",
-    });
+    };
 
     expect(isSessionAuthenticationError(unauthorized)).toBe(true);
     expect(normalizeSessionAuthError(unauthorized)).toMatchObject({
@@ -60,11 +59,11 @@ describe("sessionAuthPort", () => {
   });
 
   it("classifies retryable server and transport failures without leaking raw messages", () => {
-    const serverFailure = new ApiClientError({
+    const serverFailure = {
       message: "internal database detail",
       status: 503,
       code: "SERVER_FAILURE",
-    });
+    };
     const normalized = normalizeSessionAuthError(serverFailure);
 
     expect(normalized).toBeInstanceOf(AppError);

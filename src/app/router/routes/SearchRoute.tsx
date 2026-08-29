@@ -12,11 +12,15 @@ import {
   type ClaimedAuthIntent,
   type WishlistOpenAuthIntent,
 } from "../../../workflows/auth-intent";
+import { useWishlistMembership } from "../../../workflows/wishlist-membership";
+import { WishlistMembershipRouteBoundary } from "./WishlistMembershipRouteBoundary";
 
-export function SearchRoute() {
+function SearchRouteContent() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { isCurrentSession, state } = useSession();
+  const session = useSession();
+  const { isCurrentSession, state } = session;
   const { cancel, claim, request } = useAuthIntent();
+  const wishlistCommands = useWishlistMembership();
   const [claimedIntent, setClaimedIntent] = useState<
     ClaimedAuthIntent<WishlistOpenAuthIntent> | null
   >(null);
@@ -65,13 +69,30 @@ export function SearchRoute() {
       requestWishlistIntent,
     ],
   );
+  const wishlistScope =
+    state.status === "authenticated"
+      ? session.captureAuthenticatedSession()
+      : null;
+  const wishlistMembership =
+    wishlistScope !== null && isCurrentSession(wishlistScope)
+      ? { commands: wishlistCommands, scope: wishlistScope }
+      : undefined;
 
   return (
     <LegacySearchRoute
       searchParams={searchParams}
       setSearchParams={setSearchParams}
       wishlistAuthIntent={wishlistAuthIntent}
+      wishlistMembership={wishlistMembership}
     />
+  );
+}
+
+export function SearchRoute() {
+  return (
+    <WishlistMembershipRouteBoundary>
+      <SearchRouteContent />
+    </WishlistMembershipRouteBoundary>
   );
 }
 

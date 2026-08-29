@@ -1,11 +1,11 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
-import { RecentlyViewedAccommodationInfo } from "../../../types/recentlyViewed";
-import {
-  WishlistAccommodationInfo,
-  WishlistInfo,
-} from "../../../types/wishlist";
+import type {
+  RecentlyViewedAccommodation,
+  WishlistAccommodation,
+  WishlistSummary,
+} from "../model";
 import {
   RecentlyViewedAccommodationCardViewModel,
   toRecentlyViewedAccommodationCardViewModel,
@@ -17,77 +17,80 @@ import {
 import { RecentlyViewedView } from "./RecentlyViewedView";
 import { WishlistDetailView } from "./WishlistDetailView";
 import { WishlistIndexView } from "./WishlistIndexView";
+import { WishlistMemoDialog } from "./WishlistMemoDialog";
 
 const noopObserver = jest.fn();
 
-const makeWishlist = (overrides: Partial<WishlistInfo> = {}): WishlistInfo => ({
+const makeWishlist = (
+  overrides: Partial<WishlistSummary> = {},
+): WishlistSummary => ({
   id: 42,
   name: "Weekend saves",
-  created_at: "2026-07-01T00:00:00Z",
-  is_contained: null,
-  thumbnail_image_url: null,
-  wishlist_accommodation_id: null,
-  wishlist_item_count: 2,
+  createdAt: "2026-07-01T00:00:00Z",
+  containsAccommodation: null,
+  thumbnailImageUrl: null,
+  wishlistAccommodationId: null,
+  itemCount: 2,
   ...overrides,
 });
 
 const makeWishlistCard = (
-  overrides: Partial<WishlistInfo> = {},
+  overrides: Partial<WishlistSummary> = {},
 ): WishlistIndexCardViewModel => toWishlistIndexCardViewModel(makeWishlist(overrides));
 
 const makeRecentlyViewed = (
-  overrides: Partial<RecentlyViewedAccommodationInfo> = {}
-): RecentlyViewedAccommodationInfo => ({
-  accommodation_id: 101,
-  accommodation_name: "Ocean house",
-  address_summary: {
+  overrides: Partial<RecentlyViewedAccommodation> = {}
+): RecentlyViewedAccommodation => ({
+  accommodationId: 101,
+  accommodationName: "Ocean house",
+  addressSummary: {
     country: "대한민국",
     state: null,
     city: "부산",
     district: "해운대구",
   },
-  is_in_wishlist: false,
-  review_summary: {
-    average_rating: 4.8,
-    total_count: 12,
+  isInWishlist: false,
+  reviewSummary: {
+    averageRating: 4.8,
+    totalCount: 12,
   },
-  thumbnail_url: "/ocean-house.jpg",
-  viewed_at: "2026-07-04T00:00:00Z",
+  thumbnailUrl: "/ocean-house.jpg",
+  viewedAt: "2026-07-04T00:00:00Z",
   ...overrides,
 });
 
 const makeRecentlyViewedCard = (
-  overrides: Partial<RecentlyViewedAccommodationInfo> = {},
+  overrides: Partial<RecentlyViewedAccommodation> = {},
 ): RecentlyViewedAccommodationCardViewModel =>
   toRecentlyViewedAccommodationCardViewModel(makeRecentlyViewed(overrides));
 
 const makeWishlistAccommodation = (
-  overrides: Partial<WishlistAccommodationInfo> = {}
-): WishlistAccommodationInfo => ({
-  wishlist_accommodation_id: 501,
+  overrides: Partial<WishlistAccommodation> = {}
+): WishlistAccommodation => ({
+  wishlistAccommodationId: 501,
   accommodation: {
     id: 201,
     name: "Lake cabin",
-    thumbnail_url: "/lake-cabin.jpg",
+    thumbnailUrl: "/lake-cabin.jpg",
   },
-  address_summary: {
+  addressSummary: {
     country: "대한민국",
     state: null,
     city: "춘천",
     district: "남산면",
   },
-  created_at: "2026-07-01T00:00:00Z",
-  is_in_wishlist: true,
+  createdAt: "2026-07-01T00:00:00Z",
+  isInWishlist: true,
   memo: null,
-  review_summary: {
-    average_rating: 4.5,
-    total_count: 8,
+  reviewSummary: {
+    averageRating: 4.5,
+    totalCount: 8,
   },
   ...overrides,
 });
 
 const makeWishlistAccommodationCard = (
-  overrides: Partial<WishlistAccommodationInfo> = {},
+  overrides: Partial<WishlistAccommodation> = {},
 ): WishlistAccommodationCardViewModel =>
   toWishlistAccommodationCardViewModel(makeWishlistAccommodation(overrides));
 
@@ -315,5 +318,25 @@ describe("Wishlist view components", () => {
     });
     expect(screen.getByRole("button", { name: "위시리스트" })).toBeInTheDocument();
     expectNoNestedInteractiveControls(recentlyViewedContainer);
+  });
+
+  it("allows saving an empty memo so an existing memo can be cleared", async () => {
+    const onSave = jest.fn();
+    render(
+      <WishlistMemoDialog
+        isOpen
+        memoText=""
+        onChangeMemoText={jest.fn()}
+        onClear={jest.fn()}
+        onClose={jest.fn()}
+        onSave={onSave}
+      />,
+    );
+
+    const saveButton = screen.getByRole("button", { name: "저장" });
+    expect(saveButton).not.toBeDisabled();
+
+    await userEvent.click(saveButton);
+    expect(onSave).toHaveBeenCalledTimes(1);
   });
 });

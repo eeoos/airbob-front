@@ -209,91 +209,32 @@ describe("useSearchResults", () => {
     ).toBeUndefined();
   });
 
-  it("updates wishlist status through an explicit hook boundary", async () => {
-    const response = createSearchResponse(0, 1, 2, [
-      createAccommodation(1),
-      createAccommodation(2),
-    ]);
-    jest.mocked(accommodationApi.search).mockResolvedValue(response);
-
-    const { result, queryClient } = renderUseSearchResults(
-      new URLSearchParams("destination=Seoul")
-    );
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    const queryKey = searchQueryKeys.results("destination=Seoul");
-    expect(queryClient.getQueryData(queryKey)).toEqual(response);
-    expect(typeof (result.current as any).updateAccommodationWishlistStatus).toBe(
-      "function"
-    );
-    expect((result.current as any).setAccommodations).toBeUndefined();
-
-    act(() => {
-      (result.current as any).updateAccommodationWishlistStatus(2, true);
-    });
-
-    await waitFor(() =>
-      expect(result.current.accommodations).toEqual([
-        createAccommodation(1),
-        createAccommodation(2, true),
-      ])
-    );
-    expect(
-      queryClient.getQueryData<AccommodationSearchResponse>(queryKey)
-        ?.stay_search_result_listing
-    ).toEqual([createAccommodation(1), createAccommodation(2, true)]);
-  });
-
-  it("patches visible placeholder results while a page query is pending", async () => {
-    const firstPageKey = searchQueryKeys.results("destination=Seoul");
-    const secondPageKey = searchQueryKeys.results("destination=Seoul&page=1");
+  it("marks visible previous-page data as a non-mutable placeholder", async () => {
     const firstPageResponse = createSearchResponse(0, 2, 2, [
       createAccommodation(1, false),
     ]);
-    const pendingPageSearch = new Promise<AccommodationSearchResponse>(() => {});
-
+    const pendingPageSearch = new Promise<AccommodationSearchResponse>(
+      () => undefined,
+    );
     jest
       .mocked(accommodationApi.search)
       .mockResolvedValueOnce(firstPageResponse)
       .mockReturnValueOnce(pendingPageSearch);
 
-    const { result, rerender, queryClient } = renderUseSearchResults(
-      new URLSearchParams("destination=Seoul")
+    const { result, rerender } = renderUseSearchResults(
+      new URLSearchParams("destination=Seoul"),
     );
-
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.accommodations).toEqual([
-      createAccommodation(1, false),
-    ]);
 
-    act(() => {
-      result.current.handlePageChange(1);
-    });
-
+    act(() => result.current.handlePageChange(1));
     const nextParams = mockSetSearchParams.mock.calls[0][0] as URLSearchParams;
     rerender({ searchParams: nextParams });
 
     await waitFor(() => expect(accommodationApi.search).toHaveBeenCalledTimes(2));
+    expect(result.current.isPlaceholderData).toBe(true);
     expect(result.current.accommodations).toEqual([
       createAccommodation(1, false),
     ]);
-    expect(queryClient.getQueryData(secondPageKey)).toBeUndefined();
-
-    act(() => {
-      result.current.updateAccommodationWishlistStatus(1, true);
-    });
-
-    await waitFor(() =>
-      expect(result.current.accommodations).toEqual([
-        createAccommodation(1, true),
-      ])
-    );
-    expect(
-      queryClient.getQueryData<AccommodationSearchResponse>(firstPageKey)
-        ?.stay_search_result_listing
-    ).toEqual([createAccommodation(1, true)]);
-    expect(queryClient.getQueryData(secondPageKey)).toBeUndefined();
   });
 
   it("fetches a clicked page once and suppresses the matching URL effect fetch", async () => {

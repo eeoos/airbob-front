@@ -1,4 +1,10 @@
-import { apiSuccess, type ApiRequestRecord } from "../fixtures/api";
+import type { Page } from "@playwright/test";
+import {
+  apiSuccess,
+  type ApiRequestRecord,
+  type ApiResponseSpec,
+} from "../fixtures/api";
+import { SYNTHETIC_USER_B } from "../fixtures/session";
 import { test, expect } from "../fixtures/test";
 
 const emptySearchResponse = {
@@ -45,6 +51,24 @@ const makeSearchAccommodation = (
 
 const getRequestQuery = (request: ApiRequestRecord) =>
   Object.fromEntries(request.query);
+
+const openUserMenu = (page: Page) =>
+  page.getByRole("button", { name: "사용자 메뉴" }).click();
+
+const logout = async (page: Page) => {
+  await openUserMenu(page);
+  await page.getByRole("menuitem", { name: "로그아웃" }).click();
+  await expect(page.getByRole("button", { name: "프로필" })).toBeHidden();
+};
+
+const loginAsUserB = async (page: Page) => {
+  await openUserMenu(page);
+  await page.getByRole("menuitem", { name: "로그인" }).click();
+  const dialog = page.getByRole("dialog", { name: "로그인" });
+  await dialog.getByLabel("이메일").fill(SYNTHETIC_USER_B.email);
+  await dialog.getByLabel("비밀번호").fill("synthetic-password");
+  await dialog.getByRole("button", { name: "로그인", exact: true }).click();
+};
 
 test("keeps a URL-driven search stable across a full browser refresh", async ({
   api,
@@ -357,4 +381,144 @@ test("projects wishlist add and remove state while collapsing duplicate clicks",
 
   await wishlistDialog.getByRole("button", { name: "닫기" }).click();
   await expect(cardSaveButton).toHaveAttribute("aria-pressed", "false");
+});
+
+test("fences an in-flight A membership result before B runs the same command", async ({
+  api,
+  context,
+  page,
+  session,
+}) => {
+  await context.route(
+    /^https:\/\/images\.unsplash\.com\/photo-1566073771259-6a8506099945(?:\?.*)?$/,
+    (route) => route.fulfill({ status: 204, body: "" }),
+  );
+  session.authenticate();
+  const accommodationId = 91;
+  const wishlistId = 17;
+  const wishlistAccommodationId = 701;
+  let isContained = false;
+  let addAttempt = 0;
+  let resolveOldAdd!: (response: ApiResponseSpec) => void;
+  const oldAddResponse = new Promise<ApiResponseSpec>((resolve) => {
+    resolveOldAdd = resolve;
+  });
+
+  api.register("GET", "/api/v1/search/accommodations", () =>
+    apiSuccess({
+      stay_search_result_listing: [
+        makeSearchAccommodation(
+          accommodationId,
+          "세션 경계 테스트 숙소",
+          isContained,
+        ),
+      ],
+      page_info: {
+        page_size: 18,
+        current_page: 0,
+        total_pages: 1,
+        total_elements: 1,
+        is_first: true,
+        is_last: true,
+        has_next: false,
+        has_previous: false,
+      },
+    }),
+  );
+  api.register("GET", "/api/v1/members/wishlists", () =>
+    apiSuccess({
+      wishlists: [
+        {
+          id: wishlistId,
+          name: "세션 경계 여행",
+          created_at: "2026-08-29T00:00:00Z",
+          wishlist_item_count: isContained ? 1 : 0,
+          thumbnail_image_url: null,
+          is_contained: isContained,
+          wishlist_accommodation_id: isContained
+            ? wishlistAccommodationId
+            : null,
+        },
+      ],
+      page_info: {
+        has_next: false,
+        next_cursor: null,
+        current_size: 1,
+      },
+    }),
+  );
+  api.register(
+    "POST",
+    `/api/v1/members/wishlists/accommodations/${wishlistId}`,
+    () => {
+      addAttempt += 1;
+      if (addAttempt === 1) return oldAddResponse;
+
+      isContained = true;
+      return apiSuccess({ id: wishlistAccommodationId }, 201);
+    },
+  );
+
+  const searchUrl = "/search?destination=Seoul&adultOccupancy=2";
+  const secondPage = await context.newPage();
+  await Promise.all([page.goto(searchUrl), secondPage.goto(searchUrl)]);
+
+  await page.getByRole("button", { name: "위시리스트에 저장" }).click();
+  const oldDialog = page.getByRole("dialog", {
+    name: "위시리스트에 저장하기",
+  });
+  await oldDialog.getByRole("button", { name: /세션 경계 여행/ }).click();
+  await expect
+    .poll(
+      () =>
+        api.matching(
+          "POST",
+          `/api/v1/members/wishlists/accommodations/${wishlistId}`,
+        ).length,
+    )
+    .toBe(1);
+
+  await logout(secondPage);
+  await loginAsUserB(secondPage);
+  await expect(page.getByRole("button", { name: "프로필" })).toBeVisible();
+  await expect(secondPage.getByRole("button", { name: "프로필" })).toBeVisible();
+
+  const countAccommodationScopedWishlistReads = () =>
+    api
+      .matching("GET", "/api/v1/members/wishlists")
+      .filter(
+        (request) =>
+          getRequestQuery(request).accommodationId ===
+          String(accommodationId),
+      ).length;
+  const scopedReadsBeforeOldAddResolution =
+    countAccommodationScopedWishlistReads();
+
+  resolveOldAdd(apiSuccess({ id: wishlistAccommodationId }, 201));
+  await expect(oldDialog).toBeHidden();
+  const currentSaveButton = page.getByRole("button", {
+    name: "위시리스트에 저장",
+  });
+  await expect(currentSaveButton).toHaveAttribute("aria-pressed", "false");
+  expect(countAccommodationScopedWishlistReads()).toBe(
+    scopedReadsBeforeOldAddResolution,
+  );
+
+  await currentSaveButton.click();
+  const currentDialog = page.getByRole("dialog", {
+    name: "위시리스트에 저장하기",
+  });
+  await currentDialog
+    .getByRole("button", { name: /세션 경계 여행/ })
+    .click();
+
+  await expect(
+    currentDialog.getByRole("button", { name: /세션 경계 여행/ }),
+  ).toHaveAttribute("aria-pressed", "true");
+  expect(
+    api.matching(
+      "POST",
+      `/api/v1/members/wishlists/accommodations/${wishlistId}`,
+    ),
+  ).toHaveLength(2);
 });

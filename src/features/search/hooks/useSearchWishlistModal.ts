@@ -1,14 +1,7 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { clientLogger } from "../../../utils/clientLogger";
-import { refreshAccommodationScopedWishlistMembershipCache } from "../../wishlist/publicCache";
 
 interface UseSearchWishlistModalOptions {
   isAuthenticated: boolean;
-  onWishlistStatusChange: (
-    accommodationId: number,
-    isInWishlist: boolean
-  ) => void;
   authIntent?: SearchWishlistAuthIntentBridge;
 }
 
@@ -25,10 +18,8 @@ export interface SearchWishlistAuthIntentBridge {
 
 export function useSearchWishlistModal({
   isAuthenticated,
-  onWishlistStatusChange,
   authIntent,
 }: UseSearchWishlistModalOptions) {
-  const queryClient = useQueryClient();
   const [wishlistModalOpen, setWishlistModalOpen] = useState(false);
   const [
     selectedAccommodationForWishlist,
@@ -99,29 +90,10 @@ export function useSearchWishlistModal({
     }
   }, [authIntent, pendingAccommodationForWishlist]);
 
-  const closeWishlistModal = useCallback(async () => {
-    if (selectedAccommodationForWishlist !== null) {
-      try {
-        const membership = await refreshAccommodationScopedWishlistMembershipCache(
-          queryClient,
-          selectedAccommodationForWishlist,
-        );
-
-        onWishlistStatusChange(
-          selectedAccommodationForWishlist,
-          membership.isInAnyWishlist,
-        );
-      } catch (error) {
-        clientLogger.error({
-          message: "위시리스트 상태 확인 실패:",
-          error,
-        });
-      }
-    }
-
+  const closeWishlistModal = useCallback(() => {
     setWishlistModalOpen(false);
     setSelectedAccommodationForWishlist(null);
-  }, [onWishlistStatusChange, queryClient, selectedAccommodationForWishlist]);
+  }, []);
 
   return {
     authModalOpen,

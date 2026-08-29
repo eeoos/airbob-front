@@ -21,7 +21,6 @@ const legacyRouteAdapterBridges = [
     "AccommodationEditRoute",
     "accommodations/edit/AccommodationEditRoute",
   ],
-  ["wishlist", "WishlistRoute", "wishlist/WishlistRoute"],
   ["profile", "ProfileRoute", "profile/ProfileRoute"],
   [
     "host-reservation-detail",
@@ -49,8 +48,6 @@ const legacyRouteAdapterBridges = [
     "reservations/PaymentSuccessRoute",
   ],
   ["payment-fail", "PaymentFailRoute", "reservations/PaymentFailRoute"],
-  ["login", "LoginRoute", "auth/LoginRoute"],
-  ["signup", "SignupRoute", "auth/SignupRoute"],
 ].map(([id, adapter, target]) => ({
   adapterPath: `^src/app/router/routes/${adapter}[.][tj]sx?$`,
   id,
@@ -354,10 +351,7 @@ const createDependencyConfig = ({ projectRoot, migratedFeatures }) => {
       {
         name: "routes-compose-features-only-in-route-config",
         severity: "error",
-        from: {
-          path: "^src/routes(?:/|$)",
-          pathNot: "^src/routes/routeConfig[.]tsx$",
-        },
+        from: { path: "^src/routes(?:/|$)" },
         to: { path: featureRoot },
       },
       {

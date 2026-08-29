@@ -1,6 +1,11 @@
 // src/contexts/AuthContext.tsx
-import React, { createContext, useContext, type ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  type ReactNode,
+} from "react";
 import { useSession } from "../app/session/useSession";
+import { AuthFeatureCommandProvider } from "../features/auth/ports/AuthCommandProvider";
 import type { SessionCredentials } from "../features/auth/ports/sessionPort";
 
 interface AuthContextType {
@@ -40,7 +45,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         checkAuth: session.revalidate,
       }}
     >
-      {children}
+      <AuthFeatureCommandProvider
+        login={session.login}
+        // A real login replaces the query generation. The stable auth-intent
+        // workflow resumes that action; an old modal callback must not replay it.
+        shouldCompleteLoginInCurrentView={() =>
+          session.captureAuthenticatedSession() === null
+        }
+      >
+        {children}
+      </AuthFeatureCommandProvider>
     </AuthContext.Provider>
   );
 };

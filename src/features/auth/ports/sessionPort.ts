@@ -1,14 +1,14 @@
-import { authApi } from "../../../api/auth";
+import { authApi } from "../api/authApi";
 import {
   createHttpAppError,
+  isAppError,
   normalizeHttpError,
   type AppError,
 } from "../../../platform/http/errors";
-import { isApiClientError } from "../../../api/response";
-import type { LoginRequest, MeInfo } from "../../../types/auth";
+import type { AuthViewer, LoginCredentials } from "../model/auth";
 
-export type SessionCredentials = LoginRequest;
-export type SessionViewer = MeInfo;
+export type SessionCredentials = LoginCredentials;
+export type SessionViewer = AuthViewer;
 
 export interface SessionAuthPort {
   getViewer(signal?: AbortSignal): Promise<SessionViewer>;
@@ -17,12 +17,25 @@ export interface SessionAuthPort {
 }
 
 export const normalizeSessionAuthError = (error: unknown): AppError => {
-  if (isApiClientError(error)) {
-    return createHttpAppError({
-      status: error.status,
-      backendCode: error.code,
-      cause: error,
-    });
+  if (isAppError(error)) {
+    return error;
+  }
+
+  if (typeof error === "object" && error !== null) {
+    const status = "status" in error ? error.status : undefined;
+    const backendCode = "code" in error ? error.code : undefined;
+
+    if (
+      (typeof status === "number" && Number.isFinite(status)) ||
+      typeof backendCode === "string"
+    ) {
+      return createHttpAppError({
+        status: typeof status === "number" ? status : undefined,
+        backendCode:
+          typeof backendCode === "string" ? backendCode : undefined,
+        cause: error,
+      });
+    }
   }
 
   return normalizeHttpError(error);
@@ -32,7 +45,7 @@ export const isSessionAuthenticationError = (error: unknown): boolean =>
   normalizeSessionAuthError(error).kind === "authentication";
 
 export const sessionAuthPort: SessionAuthPort = {
-  getViewer: (signal) => authApi.getMe(signal),
+  getViewer: (signal) => authApi.getViewer(signal),
   login: (credentials, signal) => authApi.login(credentials, signal),
   logout: (signal) => authApi.logout(signal),
 };

@@ -1,5 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useHandledQueryError } from "../../../query/useHandledQueryError";
 import {
   AccommodationSearchInfo,
@@ -19,7 +18,6 @@ import {
   toSearchAccommodationCardViewModel,
   toSearchAccommodationMapViewModel,
 } from "../lib/searchAccommodationViewModel";
-import { searchQueryKeys } from "../queryKeys";
 import { useSearchResultsNavigation } from "./useSearchResultsNavigation";
 import { useSearchResultsQuery } from "./useSearchResultsQuery";
 
@@ -65,37 +63,6 @@ const getSearchPageInfo = (response?: AccommodationSearchResponse) => {
   };
 };
 
-const patchAccommodationWishlistStatus = (
-  response: AccommodationSearchResponse,
-  accommodationId: number,
-  isInWishlist: boolean
-): AccommodationSearchResponse => {
-  let didUpdate = false;
-  const staySearchResultListing = response.stay_search_result_listing.map(
-    (accommodation) => {
-      if (
-        accommodation.id !== accommodationId ||
-        accommodation.is_in_wishlist === isInWishlist
-      ) {
-        return accommodation;
-      }
-
-      didUpdate = true;
-      return {
-        ...accommodation,
-        is_in_wishlist: isInWishlist,
-      };
-    }
-  );
-
-  return didUpdate
-    ? {
-        ...response,
-        stay_search_result_listing: staySearchResultListing,
-      }
-    : response;
-};
-
 export const useSearchResults = ({
   searchParams,
   setSearchParams,
@@ -104,7 +71,6 @@ export const useSearchResults = ({
   setIsMapDragMode,
   requestMapBoundsUpdate,
 }: UseSearchResultsOptions) => {
-  const queryClient = useQueryClient();
   const isInitialLoadRef = useRef(true);
   const prevPageRef = useRef<number | null>(null);
   const prevSearchParamsRef = useRef("");
@@ -113,8 +79,6 @@ export const useSearchResults = ({
   const pendingScrollToTopRef = useRef<string | null>(null);
   const pendingMapBoundsUpdateRef = useRef<string | null>(null);
   const activeSearchParamsRef = useRef<string | null>(null);
-  const [placeholderWishlistOverrides, setPlaceholderWishlistOverrides] =
-    useState<Record<number, boolean>>({});
   const searchParamsString = searchParams.toString();
   const searchParamsSignature = useMemo(
     () => getSearchParamsSignature(new URLSearchParams(searchParamsString)),
@@ -278,16 +242,6 @@ export const useSearchResults = ({
     requestMapBoundsUpdate,
   ]);
 
-  useEffect(() => {
-    if (searchResultsQuery.isPlaceholderData) {
-      return;
-    }
-
-    setPlaceholderWishlistOverrides((prev) =>
-      Object.keys(prev).length > 0 ? {} : prev
-    );
-  }, [searchResultsQuery.dataUpdatedAt, searchResultsQuery.isPlaceholderData]);
-
   const handleSearchResultsError = useCallback((queryError: unknown) => {
     if (pendingScrollToTopRef.current === searchParamsString) {
       pendingScrollToTopRef.current = null;
@@ -305,32 +259,10 @@ export const useSearchResults = ({
   const searchResponse = searchResultsQuery.data;
   const { currentPage, totalPages, totalElements } =
     getSearchPageInfo(searchResponse);
-  const accommodations = useMemo(() => {
-    const searchResultListing: AccommodationSearchInfo[] =
-      searchResponse?.stay_search_result_listing ?? [];
-
-    if (
-      !searchResultsQuery.isPlaceholderData ||
-      Object.keys(placeholderWishlistOverrides).length === 0
-    ) {
-      return searchResultListing;
-    }
-
-    return searchResultListing.map((accommodation) => {
-      const isInWishlist = placeholderWishlistOverrides[accommodation.id];
-
-      return isInWishlist === undefined
-        ? accommodation
-        : {
-            ...accommodation,
-            is_in_wishlist: isInWishlist,
-          };
-    });
-  }, [
-    placeholderWishlistOverrides,
-    searchResponse?.stay_search_result_listing,
-    searchResultsQuery.isPlaceholderData,
-  ]);
+  const accommodations = useMemo<AccommodationSearchInfo[]>(
+    () => searchResponse?.stay_search_result_listing ?? [],
+    [searchResponse?.stay_search_result_listing],
+  );
   const accommodationCards = useMemo(
     () => accommodations.map(toSearchAccommodationCardViewModel),
     [accommodations],
@@ -363,37 +295,11 @@ export const useSearchResults = ({
       setPendingScrollToTop,
     });
 
-  const updateAccommodationWishlistStatus = useCallback(
-    (accommodationId: number, isInWishlist: boolean) => {
-      queryClient.setQueriesData<AccommodationSearchResponse>(
-        { queryKey: [...searchQueryKeys.all, "results"] },
-        (
-          prev: AccommodationSearchResponse | undefined
-        ): AccommodationSearchResponse | undefined =>
-          prev
-            ? patchAccommodationWishlistStatus(
-                prev,
-                accommodationId,
-                isInWishlist
-              )
-            : prev
-      );
-
-      if (searchResultsQuery.isPlaceholderData) {
-        setPlaceholderWishlistOverrides((prev) => ({
-          ...prev,
-          [accommodationId]: isInWishlist,
-        }));
-      }
-    },
-    [queryClient, searchResultsQuery.isPlaceholderData]
-  );
-
   return {
     accommodations,
     accommodationCards,
     accommodationMapItems,
-    updateAccommodationWishlistStatus,
+    isPlaceholderData: searchResultsQuery.isPlaceholderData,
     isLoading,
     currentPage,
     totalPages,

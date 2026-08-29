@@ -76,7 +76,11 @@ describe("shared UI boundary contracts", () => {
     const primitiveContracts = [
       {
         relativePath: "features/auth/components/AuthModal/AuthModal.tsx",
-        expected: ["Button", "Dialog", "TextField"],
+        expected: ["Button", "Dialog"],
+      },
+      {
+        relativePath: "features/auth/ui/AuthFormFields.tsx",
+        expected: ["TextField"],
       },
       {
         relativePath:

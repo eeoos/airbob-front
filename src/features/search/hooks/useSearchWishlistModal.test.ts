@@ -1,61 +1,23 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
-import React from "react";
-import { wishlistApi } from "../../../api/wishlist";
-import { getWishlistListsParamsSignature } from "../../wishlist/lib/wishlistListQueryParams";
-import { wishlistQueryKeys } from "../../wishlist/queryKeys";
+import { readFileSync } from "fs";
+import path from "path";
 import { useSearchWishlistModal } from "./useSearchWishlistModal";
-
-jest.mock("../../../api/wishlist", () => ({
-  wishlistApi: {
-    getWishlists: jest.fn(),
-  },
-}));
-
-const createWrapper = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
-      mutations: {
-        retry: false,
-      },
-    },
-  });
-
-  const Wrapper = ({ children }: { children: React.ReactNode }) =>
-    React.createElement(QueryClientProvider, { client: queryClient }, children);
-
-  return { Wrapper, queryClient };
-};
 
 const renderUseSearchWishlistModal = (
   options: Parameters<typeof useSearchWishlistModal>[0]
-) => {
-  const { Wrapper, queryClient } = createWrapper();
-  const view = renderHook(
+) =>
+  renderHook(
     (props: Parameters<typeof useSearchWishlistModal>[0]) =>
       useSearchWishlistModal(props),
     {
       initialProps: options,
-      wrapper: Wrapper,
     }
   );
 
-  return { ...view, queryClient };
-};
-
 describe("useSearchWishlistModal", () => {
-  beforeEach(() => {
-    jest.mocked(wishlistApi.getWishlists).mockReset();
-  });
-
   it("opens the auth modal instead of wishlist selection when signed out", () => {
-    const onWishlistStatusChange = jest.fn();
     const { result } = renderUseSearchWishlistModal({
       isAuthenticated: false,
-      onWishlistStatusChange,
     });
 
     act(() => {
@@ -66,14 +28,11 @@ describe("useSearchWishlistModal", () => {
     expect(result.current.wishlistModalOpen).toBe(false);
     expect(result.current.selectedAccommodationForWishlist).toBeNull();
     expect(result.current.pendingAccommodationForWishlist).toBe(7);
-    expect(onWishlistStatusChange).not.toHaveBeenCalled();
   });
 
   it("resumes the pending wishlist action after successful auth for accommodation id 0", () => {
-    const onWishlistStatusChange = jest.fn();
     const { rerender, result } = renderUseSearchWishlistModal({
       isAuthenticated: false,
-      onWishlistStatusChange,
     });
 
     act(() => {
@@ -82,7 +41,6 @@ describe("useSearchWishlistModal", () => {
 
     rerender({
       isAuthenticated: true,
-      onWishlistStatusChange,
     });
 
     act(() => {
@@ -96,10 +54,8 @@ describe("useSearchWishlistModal", () => {
   });
 
   it("clears the pending wishlist action when auth modal closes", () => {
-    const onWishlistStatusChange = jest.fn();
     const { result } = renderUseSearchWishlistModal({
       isAuthenticated: false,
-      onWishlistStatusChange,
     });
 
     act(() => {
@@ -127,7 +83,6 @@ describe("useSearchWishlistModal", () => {
         resumed: null,
       },
       isAuthenticated: false,
-      onWishlistStatusChange: jest.fn(),
     });
 
     act(() => {
@@ -156,7 +111,6 @@ describe("useSearchWishlistModal", () => {
         },
       },
       isAuthenticated: true,
-      onWishlistStatusChange: jest.fn(),
     });
 
     expect(isCurrent).toHaveBeenCalledTimes(1);
@@ -166,83 +120,38 @@ describe("useSearchWishlistModal", () => {
     expect(completeResume).toHaveBeenCalledWith(18);
   });
 
-  it("reconciles the search card wishlist state when the modal closes", async () => {
-    const onWishlistStatusChange = jest.fn();
-    const firstPage = {
-      wishlists: [
-        {
-          id: 1,
-          name: "서울",
-          created_at: "2026-07-01T00:00:00",
-          wishlist_item_count: 1,
-          thumbnail_image_url: null,
-          is_contained: false,
-          wishlist_accommodation_id: null,
-        },
-      ],
-      page_info: {
-        has_next: true,
-        next_cursor: "cursor-2",
-        current_size: 1,
-      },
-    };
-    const secondPage = {
-      wishlists: [
-        {
-          id: 2,
-          name: "부산",
-          created_at: "2026-07-01T00:00:00",
-          wishlist_item_count: 1,
-          thumbnail_image_url: null,
-          is_contained: true,
-          wishlist_accommodation_id: 11,
-        },
-      ],
-      page_info: {
-        has_next: false,
-        next_cursor: null,
-        current_size: 1,
-      },
-    };
-    jest
-      .mocked(wishlistApi.getWishlists)
-      .mockResolvedValueOnce(firstPage)
-      .mockResolvedValueOnce(secondPage);
-
-    const { queryClient, result } = renderUseSearchWishlistModal({
+  it("closes synchronously with local state cleanup only", () => {
+    const { result } = renderUseSearchWishlistModal({
       isAuthenticated: true,
-      onWishlistStatusChange,
     });
 
     act(() => {
       result.current.openWishlistModal(0);
     });
 
-    await act(async () => {
-      await result.current.closeWishlistModal();
+    let closeResult: ReturnType<typeof result.current.closeWishlistModal>;
+    act(() => {
+      closeResult = result.current.closeWishlistModal();
     });
 
-    expect(wishlistApi.getWishlists).toHaveBeenNthCalledWith(1, {
-      size: 20,
-      accommodationId: 0,
-    });
-    expect(wishlistApi.getWishlists).toHaveBeenNthCalledWith(2, {
-      size: 20,
-      accommodationId: 0,
-      cursor: "cursor-2",
-    });
-    expect(onWishlistStatusChange).toHaveBeenCalledWith(0, true);
-    expect(
-      queryClient.getQueryData(
-        wishlistQueryKeys.lists(
-          getWishlistListsParamsSignature({ accommodationId: 0 })
-        )
-      )
-    ).toEqual({
-      pageParams: [null, "cursor-2"],
-      pages: [firstPage, secondPage],
-    });
+    expect(closeResult!).toBeUndefined();
     expect(result.current.wishlistModalOpen).toBe(false);
     expect(result.current.selectedAccommodationForWishlist).toBeNull();
+  });
+
+  it("does not own query, API, logging, or cross-feature cache reconciliation", () => {
+    const source = readFileSync(
+      path.join(
+        process.cwd(),
+        "src/features/search/hooks/useSearchWishlistModal.ts",
+      ),
+      "utf8",
+    );
+
+    expect(source).not.toContain("useQueryClient");
+    expect(source).not.toContain("wishlistApi");
+    expect(source).not.toContain("clientLogger");
+    expect(source).not.toContain("publicCache");
+    expect(source).not.toContain("refreshAccommodationScopedWishlistMembershipCache");
   });
 });

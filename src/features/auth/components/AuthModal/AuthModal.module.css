@@ -98,11 +98,9 @@
   color: var(--color-brand-coral);
 }
 
-.toastContainer {
-  position: absolute;
-  top: var(--space-6);
-  right: var(--space-6);
-  z-index: var(--z-toast);
+.linkButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 @media (max-width: 768px) {

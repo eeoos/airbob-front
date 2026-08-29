@@ -1,9 +1,9 @@
-import type { RecentlyViewedAccommodationInfo } from "../../../types/recentlyViewed";
+import { resolveImageUrl } from "../../../platform/assets/imageUrl";
 import type {
-  WishlistAccommodationInfo,
-  WishlistInfo,
-} from "../../../types/wishlist";
-import { getImageUrl } from "../../../utils/image";
+  RecentlyViewedAccommodation,
+  WishlistAccommodation,
+  WishlistSummary,
+} from "../model";
 import { formatRecentlyViewedDate } from "./recentlyViewedGroups";
 
 export interface WishlistAccommodationCardViewModel {
@@ -62,67 +62,67 @@ export const toWishlistAccommodationMemoTarget = (
 });
 
 export const toWishlistAccommodationCardViewModel = (
-  item: WishlistAccommodationInfo,
+  item: WishlistAccommodation,
 ): WishlistAccommodationCardViewModel => ({
-  wishlistAccommodationId: item.wishlist_accommodation_id,
+  wishlistAccommodationId: item.wishlistAccommodationId,
   accommodationId: item.accommodation.id,
   name: item.accommodation.name,
-  thumbnailUrl: item.accommodation.thumbnail_url
-    ? getImageUrl(item.accommodation.thumbnail_url)
+  thumbnailUrl: item.accommodation.thumbnailUrl
+    ? resolveImageUrl(item.accommodation.thumbnailUrl)
     : null,
   locationLabel:
-    [item.address_summary.city, item.address_summary.district]
+    [item.addressSummary.city, item.addressSummary.district]
       .filter(Boolean)
-      .join(", ") || item.address_summary.country,
-  showReview: item.review_summary.total_count > 0,
-  reviewRatingLabel: item.review_summary.average_rating.toFixed(1),
-  reviewCountLabel: `(${item.review_summary.total_count})`,
+      .join(", ") || item.addressSummary.country,
+  showReview: item.reviewSummary.totalCount > 0,
+  reviewRatingLabel: item.reviewSummary.averageRating.toFixed(1),
+  reviewCountLabel: `(${item.reviewSummary.totalCount})`,
   memo: item.memo,
 });
 
 export const toWishlistIndexCardViewModel = (
-  wishlist: WishlistInfo,
+  wishlist: WishlistSummary,
 ): WishlistIndexCardViewModel => ({
   id: wishlist.id,
   name: wishlist.name,
-  thumbnailUrl: wishlist.thumbnail_image_url
-    ? getImageUrl(wishlist.thumbnail_image_url)
+  thumbnailUrl: wishlist.thumbnailImageUrl
+    ? resolveImageUrl(wishlist.thumbnailImageUrl)
     : null,
-  itemCountLabel: `저장된 항목 ${wishlist.wishlist_item_count}개`,
+  itemCountLabel: `저장된 항목 ${wishlist.itemCount}개`,
 });
 
 export const toWishlistModalItemViewModel = (
-  wishlist: WishlistInfo,
+  wishlist: WishlistSummary,
 ): WishlistModalItemViewModel => ({
   id: wishlist.id,
   name: wishlist.name,
-  thumbnailUrl: wishlist.thumbnail_image_url
-    ? getImageUrl(wishlist.thumbnail_image_url)
+  thumbnailUrl: wishlist.thumbnailImageUrl
+    ? resolveImageUrl(wishlist.thumbnailImageUrl)
     : null,
-  itemCountLabel: `저장된 항목 ${wishlist.wishlist_item_count}개`,
-  isContained: Boolean(wishlist.is_contained),
-  wishlistAccommodationId: wishlist.wishlist_accommodation_id,
+  itemCountLabel: `저장된 항목 ${wishlist.itemCount}개`,
+  isContained: wishlist.containsAccommodation === true,
+  wishlistAccommodationId: wishlist.wishlistAccommodationId,
 });
 
 export const toRecentlyViewedAccommodationCardViewModel = (
-  item: RecentlyViewedAccommodationInfo,
+  item: RecentlyViewedAccommodation,
 ): RecentlyViewedAccommodationCardViewModel => ({
-  accommodationId: item.accommodation_id,
-  name: item.accommodation_name,
-  thumbnailUrl: item.thumbnail_url ? getImageUrl(item.thumbnail_url) : null,
+  accommodationId: item.accommodationId,
+  name: item.accommodationName,
+  thumbnailUrl: item.thumbnailUrl ? resolveImageUrl(item.thumbnailUrl) : null,
   locationLabel:
-    [item.address_summary?.city, item.address_summary?.district]
+    [item.addressSummary?.city, item.addressSummary?.district]
       .filter(Boolean)
       .join(", ") ||
-    item.address_summary?.country ||
+    item.addressSummary?.country ||
     "",
   showReview: Boolean(
-    item.review_summary && item.review_summary.total_count > 0,
+    item.reviewSummary && item.reviewSummary.totalCount > 0,
   ),
-  reviewRatingLabel: (item.review_summary?.average_rating ?? 0).toFixed(1),
-  reviewCountLabel: `(${item.review_summary?.total_count ?? 0})`,
-  isInWishlist: item.is_in_wishlist,
-  viewedAt: item.viewed_at,
+  reviewRatingLabel: (item.reviewSummary?.averageRating ?? 0).toFixed(1),
+  reviewCountLabel: `(${item.reviewSummary?.totalCount ?? 0})`,
+  isInWishlist: item.isInWishlist,
+  viewedAt: item.viewedAt,
 });
 
 export const getRecentlyViewedSummaryLabel = (

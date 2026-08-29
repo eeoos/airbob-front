@@ -53,7 +53,7 @@ const viewer: SessionViewer = {
   id: 41,
   email: "guest@example.com",
   nickname: "Guest",
-  thumbnail_image_url: null,
+  thumbnailImageUrl: null,
 };
 
 const sessionError = new AppError({

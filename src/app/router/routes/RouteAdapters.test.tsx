@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
@@ -16,6 +16,7 @@ import { PaymentSuccessRoute } from "./PaymentSuccessRoute";
 import { ProfileRoute } from "./ProfileRoute";
 import { ReservationDetailRoute } from "./ReservationDetailRoute";
 import { SearchRoute } from "./SearchRoute";
+import { SignupRoute } from "./SignupRoute";
 import { WishlistRoute } from "./WishlistRoute";
 
 type Navigate = (target: string) => void;
@@ -50,6 +51,10 @@ type CapturedProps = {
     };
     bookingSearchParams: URLSearchParams;
     navigate: Navigate;
+    wishlistMembership?: {
+      commands: object;
+      scope: { subject: string; epoch: number };
+    };
   };
   confirm: {
     accommodationId?: string;
@@ -66,7 +71,24 @@ type CapturedProps = {
     isNewDraft: boolean;
     onNavigateToHostProfile: () => void;
   };
-  login: { locationState: unknown; navigate: Navigate };
+  login: {
+    mode: "login";
+    submitLogin: (credentials: { email: string; password: string }) => Promise<void>;
+    canComplete: () => boolean;
+    onSuccess: () => void;
+    onAlternate: () => void;
+  };
+  signup: {
+    mode: "signup";
+    submitSignup: (command: {
+      nickname: string;
+      email: string;
+      password: string;
+    }) => Promise<void>;
+    canComplete: () => boolean;
+    onSuccess: () => void;
+    onAlternate: () => void;
+  };
   paymentFail: {
     navigate: Navigate;
     reason?: string;
@@ -90,8 +112,25 @@ type CapturedProps = {
       } | null;
       completeResume(attemptId: number): void;
     };
+    wishlistMembership?: {
+      commands: object;
+      scope: { subject: string; epoch: number };
+    };
   };
-  wishlist: QueryRouteProps;
+  wishlist: {
+    navigation: {
+      openIndex(): void;
+      replaceWithIndex(): void;
+      openRecentlyViewed(): void;
+      openWishlistDetail(wishlistId: number): void;
+      openAccommodation(accommodationId: number): void;
+    };
+    scope: { subject: string; epoch: number };
+    view:
+      | { kind: "index" }
+      | { kind: "recently-viewed" }
+      | { kind: "wishlist-detail"; wishlistId: number };
+  };
 };
 
 const mockCapturedProps: Partial<CapturedProps> = {};
@@ -101,6 +140,20 @@ const mockRequestAuthIntent = jest.fn();
 const mockCancelAuthIntent = jest.fn();
 const mockClaimAuthIntent = jest.fn();
 const mockIsCurrentSession = jest.fn();
+const mockCaptureAuthenticatedSession = jest.fn();
+const mockSessionLogin = jest.fn();
+const mockSignup = jest.fn();
+const mockWishlistCommands = {
+  addAccommodation: jest.fn(),
+  createAndAddAccommodation: jest.fn(),
+  deleteWishlist: jest.fn(),
+  dispose: jest.fn(),
+  removeAccommodation: jest.fn(),
+  removeRecentlyViewed: jest.fn(),
+  saveMemo: jest.fn(),
+};
+const mockOpenInNewTab = jest.fn();
+const mockIsCurrentHistoryEntry = jest.fn();
 
 function mockRoute<Key extends keyof CapturedProps>(
   key: Key,
@@ -119,21 +172,35 @@ function mockRoute<Key extends keyof CapturedProps>(
   };
 }
 
-function mockFinishLogin(props: CapturedProps["login"]) {
-  const from = (
-    props.locationState as {
-      from?: { hash?: string; pathname?: string; search?: string };
-    } | null
-  )?.from;
-  const target = from?.pathname
-    ? `${from.pathname}${from.search ?? ""}${from.hash ?? ""}`
-    : "/";
-
-  props.navigate(target);
-}
-
-jest.mock("../../../features/auth/LoginRoute", () => ({
-  LoginRoute: mockRoute("login", "로그인 성공", mockFinishLogin),
+jest.mock("../../../screens/auth/public", () => ({
+  AuthController: (
+    props: CapturedProps["login"] | CapturedProps["signup"],
+  ) => {
+    const React = require("react");
+    mockCapturedProps[props.mode] = props as never;
+    return React.createElement(
+      "button",
+      { onClick: props.onSuccess, type: "button" },
+      props.mode === "login" ? "로그인 성공" : "회원가입 성공",
+    );
+  },
+}));
+jest.mock("../../../screens/wishlist/public", () => ({
+  WishlistController: mockRoute(
+    "wishlist",
+    "위시리스트 보기 변경",
+    (props) => props.navigation.openRecentlyViewed(),
+  ),
+}));
+jest.mock("../../../platform/browser/windowNavigation", () => ({
+  browserWindowNavigation: {
+    isCurrentHistoryEntry: (...args: unknown[]) =>
+      mockIsCurrentHistoryEntry(...args),
+    openInNewTab: (...args: unknown[]) => mockOpenInNewTab(...args),
+  },
+}));
+jest.mock("../../../features/auth/ports/AuthCommandProvider", () => ({
+  useAuthCommands: () => ({ signup: mockSignup }),
 }));
 jest.mock("../../../features/accommodations/AccommodationDetailRoute", () => ({
   AccommodationDetailRoute: mockRoute("accommodation", "숙소 상세 계속"),
@@ -141,6 +208,14 @@ jest.mock("../../../features/accommodations/AccommodationDetailRoute", () => ({
 jest.mock("../../../workflows/auth-intent", () => ({
   ...jest.requireActual("../../../workflows/auth-intent"),
   useAuthIntent: () => mockUseAuthIntent(),
+}));
+jest.mock("../../../workflows/wishlist-membership", () => ({
+  WishlistMembershipProvider: ({
+    children,
+  }: {
+    readonly children: ReactNode;
+  }) => <>{children}</>,
+  useWishlistMembership: () => mockWishlistCommands,
 }));
 jest.mock("../../session/useSession", () => ({
   useSession: () => mockUseSession(),
@@ -172,11 +247,6 @@ jest.mock(
 jest.mock("../../../features/search/SearchRoute", () => ({
   SearchRoute: mockRoute("search", "검색 조건 변경", (props) =>
     props.setSearchParams(new URLSearchParams("destination=Busan&page=2")),
-  ),
-}));
-jest.mock("../../../features/wishlist/WishlistRoute", () => ({
-  WishlistRoute: mockRoute("wishlist", "위시리스트 보기 변경", (props) =>
-    props.setSearchParams(new URLSearchParams("view=recently-viewed")),
   ),
 }));
 jest.mock("../../../features/profile/ProfileRoute", () => ({
@@ -237,6 +307,18 @@ beforeEach(() => {
   mockClaimAuthIntent.mockReset();
   mockIsCurrentSession.mockReset();
   mockIsCurrentSession.mockReturnValue(true);
+  mockCaptureAuthenticatedSession.mockReset();
+  mockCaptureAuthenticatedSession.mockReturnValue({
+    subject: "subject:member_7",
+    epoch: 3,
+  });
+  mockSessionLogin.mockReset();
+  mockSessionLogin.mockResolvedValue(undefined);
+  mockSignup.mockReset();
+  mockSignup.mockResolvedValue(undefined);
+  mockOpenInNewTab.mockReset();
+  mockIsCurrentHistoryEntry.mockReset();
+  mockIsCurrentHistoryEntry.mockReturnValue(true);
   mockUseAuthIntent.mockReturnValue({
     pending: null,
     request: mockRequestAuthIntent,
@@ -246,6 +328,8 @@ beforeEach(() => {
   mockUseSession.mockReturnValue({
     state: { status: "anonymous" },
     isCurrentSession: mockIsCurrentSession,
+    captureAuthenticatedSession: mockCaptureAuthenticatedSession,
+    login: mockSessionLogin,
   });
 });
 
@@ -302,6 +386,7 @@ describe("app route adapter contracts", () => {
     mockUseSession.mockReturnValue({
       state: { status: "authenticated" },
       isCurrentSession: mockIsCurrentSession,
+      captureAuthenticatedSession: mockCaptureAuthenticatedSession,
     });
     mockUseAuthIntent.mockReturnValue({
       pending,
@@ -330,6 +415,10 @@ describe("app route adapter contracts", () => {
       captured("accommodation").authIntent?.generation?.isCurrent(),
     ).toBe(true);
     expect(mockIsCurrentSession).toHaveBeenCalledWith(session);
+    expect(captured("accommodation").wishlistMembership).toEqual({
+      commands: mockWishlistCommands,
+      scope: { subject: "subject:member_7", epoch: 3 },
+    });
   });
 
   it.each([
@@ -361,6 +450,7 @@ describe("app route adapter contracts", () => {
     mockUseSession.mockReturnValue({
       state: { status: "authenticated" },
       isCurrentSession: mockIsCurrentSession,
+      captureAuthenticatedSession: mockCaptureAuthenticatedSession,
     });
     mockUseAuthIntent.mockReturnValue({
       pending,
@@ -389,6 +479,7 @@ describe("app route adapter contracts", () => {
     mockUseSession.mockReturnValue({
       state: { status: "error", reason: "identity-change" },
       isCurrentSession: mockIsCurrentSession,
+      captureAuthenticatedSession: mockCaptureAuthenticatedSession,
     });
     mockUseAuthIntent.mockReturnValue({
       pending,
@@ -440,6 +531,7 @@ describe("app route adapter contracts", () => {
     mockUseSession.mockReturnValue({
       state: { status: "authenticated" },
       isCurrentSession: mockIsCurrentSession,
+      captureAuthenticatedSession: mockCaptureAuthenticatedSession,
     });
     mockClaimAuthIntent.mockReturnValueOnce(claimed).mockReturnValue(null);
 
@@ -456,6 +548,10 @@ describe("app route adapter contracts", () => {
       captured("search").wishlistAuthIntent.resumed?.isCurrent(),
     ).toBe(true);
     expect(mockIsCurrentSession).toHaveBeenCalledWith(session);
+    expect(captured("search").wishlistMembership).toEqual({
+      commands: mockWishlistCommands,
+      scope: { subject: "subject:member_7", epoch: 3 },
+    });
 
     act(() => {
       captured("search").wishlistAuthIntent.completeResume(52);
@@ -477,7 +573,8 @@ describe("app route adapter contracts", () => {
       <LoginRoute />,
     );
 
-    expect(captured("login").locationState).toEqual({ from });
+    expect(captured("login").submitLogin).toBe(mockSessionLogin);
+    expect(captured("login").canComplete()).toBe(true);
     await userEvent.click(screen.getByRole("button", { name: "로그인 성공" }));
     expectLocation("/profile?mode=host&tab=reservations#calendar");
   });
@@ -494,9 +591,79 @@ describe("app route adapter contracts", () => {
       <LoginRoute />,
     );
 
-    expect(captured("login").locationState).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "로그인 성공" }));
     expectLocation("/");
+  });
+
+  it("rejects login completion after the browser leaves the captured route entry", () => {
+    mockIsCurrentHistoryEntry.mockReturnValue(false);
+    renderAdapter("/login", "/login", <LoginRoute />);
+
+    expect(captured("login").canComplete()).toBe(false);
+    expect(mockIsCurrentHistoryEntry).toHaveBeenCalledWith(
+      expect.objectContaining({ pathname: "/login" }),
+    );
+  });
+
+  it("injects the feature signup command and navigates to login", async () => {
+    renderAdapter("/signup", "/signup", <SignupRoute />);
+
+    expect(captured("signup").submitSignup).toBe(mockSignup);
+    expect(captured("signup").canComplete()).toBe(true);
+    await userEvent.click(
+      screen.getByRole("button", { name: "회원가입 성공" }),
+    );
+    expectLocation("/login");
+  });
+
+  it("parses wishlist URL state once and owns typed navigation commands", async () => {
+    mockUseSession.mockReturnValue({
+      state: { status: "authenticated" },
+      isCurrentSession: mockIsCurrentSession,
+      captureAuthenticatedSession: mockCaptureAuthenticatedSession,
+    });
+    renderAdapter(
+      "/wishlist",
+      "/wishlist?id=7#memo",
+      <WishlistRoute />,
+    );
+
+    expect(captured("wishlist")).toMatchObject({
+      scope: { subject: "subject:member_7", epoch: 3 },
+      view: { kind: "wishlist-detail", wishlistId: 7 },
+    });
+    await userEvent.click(
+      screen.getByRole("button", { name: "위시리스트 보기 변경" }),
+    );
+    expectLocation("/wishlist?view=recently-viewed#memo");
+
+    act(() => captured("wishlist").navigation.replaceWithIndex());
+    expectLocation("/wishlist#memo");
+    act(() => captured("wishlist").navigation.openAccommodation(42));
+    expect(mockOpenInNewTab).toHaveBeenCalledWith("/accommodations/42");
+  });
+
+  it("does not mount the wishlist screen without an authenticated scope", () => {
+    mockCaptureAuthenticatedSession.mockReturnValue(null);
+
+    renderAdapter("/wishlist", "/wishlist", <WishlistRoute />);
+
+    expect(mockCapturedProps.wishlist).toBeUndefined();
+    expect(
+      screen.queryByRole("button", { name: "위시리스트 보기 변경" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("does not mount the wishlist screen with a non-current scope", () => {
+    mockIsCurrentSession.mockReturnValue(false);
+
+    renderAdapter("/wishlist", "/wishlist", <WishlistRoute />);
+
+    expect(mockCapturedProps.wishlist).toBeUndefined();
+    expect(mockIsCurrentSession).toHaveBeenCalledWith({
+      subject: "subject:member_7",
+      epoch: 3,
+    });
   });
 
   it("injects confirmation params, state, and navigation", async () => {
@@ -604,15 +771,6 @@ describe("app route adapter contracts", () => {
       next: "/search?destination=Busan&page=2",
       path: "/search",
       query: "destination=Seoul&page=1",
-    },
-    {
-      action: "위시리스트 보기 변경",
-      element: <WishlistRoute />,
-      initial: "/wishlist?id=7",
-      key: "wishlist",
-      next: "/wishlist?view=recently-viewed",
-      path: "/wishlist",
-      query: "id=7",
     },
     {
       action: "프로필 보기 변경",

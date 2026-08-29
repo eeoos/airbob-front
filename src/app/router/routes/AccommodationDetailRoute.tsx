@@ -21,6 +21,8 @@ import {
   type AccommodationDetailAuthIntentController,
   type AccommodationDetailAuthIntentGeneration,
 } from "../../../features/accommodations/AccommodationDetailRoute";
+import { useWishlistMembership } from "../../../workflows/wishlist-membership";
+import { WishlistMembershipRouteBoundary } from "./WishlistMembershipRouteBoundary";
 
 const toRuntimeAuthIntent = (
   intent: AccommodationDetailAuthIntent,
@@ -44,13 +46,15 @@ const toRuntimeAuthIntent = (
   }
 };
 
-export function AccommodationDetailRoute() {
+function AccommodationDetailRouteContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams<{ id: string }>();
   const [bookingSearchParams, setBookingSearchParams] = useSearchParams();
   const { pending, request, cancel, claim } = useAuthIntent();
-  const { state: sessionState, isCurrentSession } = useSession();
+  const session = useSession();
+  const { state: sessionState, isCurrentSession } = session;
+  const wishlistCommands = useWishlistMembership();
   const requestedAttemptIdRef = useRef<AuthIntentAttemptId | null>(null);
   const [claimedIntent, setClaimedIntent] =
     useState<ClaimedAuthIntent | null>(null);
@@ -148,6 +152,14 @@ export function AccommodationDetailRoute() {
   const featureGenerationKey = `${id ?? "missing"}:${
     activeClaim?.attemptId ?? "base"
   }`;
+  const wishlistScope =
+    sessionState.status === "authenticated"
+      ? session.captureAuthenticatedSession()
+      : null;
+  const wishlistMembership =
+    wishlistScope !== null && isCurrentSession(wishlistScope)
+      ? { commands: wishlistCommands, scope: wishlistScope }
+      : undefined;
 
   return (
     <LegacyAccommodationDetailRoute
@@ -157,7 +169,16 @@ export function AccommodationDetailRoute() {
       bookingSearchParams={bookingSearchParams}
       navigate={navigate}
       setBookingSearchParams={setBookingSearchParams}
+      wishlistMembership={wishlistMembership}
     />
+  );
+}
+
+export function AccommodationDetailRoute() {
+  return (
+    <WishlistMembershipRouteBoundary>
+      <AccommodationDetailRouteContent />
+    </WishlistMembershipRouteBoundary>
   );
 }
 
