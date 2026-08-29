@@ -1,3 +1,5 @@
+import { isIdentityOwnedTransactionPath } from "../identityRouteBoundary";
+
 export interface InternalReturnTarget {
   pathname: string;
   search: string;
@@ -133,6 +135,7 @@ const normalizeTarget = (
     pathname.includes("#") ||
     decodedPathname === null ||
     isAuthLoopPath(decodedPathname) ||
+    isIdentityOwnedTransactionPath(decodedPathname) ||
     (search !== "" && !search.startsWith("?")) ||
     search.includes("#") ||
     decodeStructuredPart(search, false) === null ||
@@ -151,7 +154,8 @@ const normalizeTarget = (
       !url.pathname.startsWith("/") ||
       url.pathname.startsWith("//") ||
       decodedNormalizedPathname === null ||
-      isAuthLoopPath(decodedNormalizedPathname)
+      isAuthLoopPath(decodedNormalizedPathname) ||
+      isIdentityOwnedTransactionPath(decodedNormalizedPathname)
     ) {
       return null;
     }

@@ -1,8 +1,8 @@
 # Airbob Frontend Architecture
 
 > Status: canonical current-state source of truth  
-> Baseline: U4 commit `f5222d5` plus this U6 cutover unit
-> Current migration state: U6 app Router, route codecs, and semantic shells active
+> Baseline: U4 commit `f5222d5`, followed by the U6 Router and current U5 session cutovers
+> Current migration state: U6 app Router/shells and the U5 app session boundary are active
 > Recorded: 2026-08-29 KST
 
 This document describes the frontend that is reachable in production at the
@@ -31,28 +31,39 @@ state; older freeze and plan documents are historical evidence only.
 ```text
 src/index.tsx
   ErrorBoundary
-    QueryProvider
-      AuthProvider
-        App
-          app Router
-            semantic app shell
-              optional AppHeader
-              one main landmark
-                lazy app route adapter
-                  assigned legacy feature route body
+    BrowserRouter (stable across session generations)
+      AppProviders
+        SessionProvider
+          useSessionController (explicit state + transitions)
+          provider-local physical auth command queue
+          useSessionQueryLifetime (subject/epoch generations)
+          useSessionExternalSync (tab/focus/auth signals)
+          SessionContext
+            AuthIntentProvider (memory-only stable boundary)
+              keyed QueryClientProvider
+                AuthProvider (thin compatibility adapter)
+                  App
+                    U6 app route tree
+                      semantic app shell
+                        optional AppHeader
+                        one main landmark
+                          lazy app route adapter
+                            assigned legacy feature route body
 ```
 
 Current owners:
 
 | Concern | Current owner | Notes |
 | --- | --- | --- |
-| React root and providers | `src/index.tsx` | Provider ordering is fixed by the root. |
-| Server-state client | `src/platform/query/createQueryClient.ts`, exposed through `src/query/**` | One process-wide QueryClient; the legacy import remains a facade. |
-| Authentication | `src/contexts/AuthContext.tsx`, `src/features/auth/**` | Boolean-facing context backed by `/auth/me`. |
+| React root and providers | `src/index.tsx`, `src/app/providers/AppProviders.tsx` | The one React root injects the reservation session-cleanup port; `AppProviders` mounts the single `SessionProvider` and no provider creates another root. |
+| Session and authentication lifetime | `src/app/session/**`, `src/features/auth/ports/sessionPort.ts`, `src/platform/session/**` | One explicit reducer owns bootstrap, authenticated revalidation, anonymous revocation, retryable errors, subject/epoch, provider-local auth command serialization, cancellation, focus/401 handling, and cross-tab invalidation. |
+| Resumable authentication intent | `src/workflows/auth-intent/**`, composed by `src/app/providers/AppProviders.tsx` | A memory-only provider outside the keyed Query subtree holds only the latest validated primitive intent. A new authenticated route adapter atomically claims it with a captured session scope; old-generation callbacks never resume domain work. Search and accommodation compatibility bodies consume typed data ports until their U8/U9 replacements. |
+| Server-state client | `src/app/session/SessionProvider.tsx`, `src/platform/query/createQueryClient.ts` | Each session generation receives a new QueryClient. Leaving an authenticated identity also remounts the provider subtree. `src/query/QueryProvider.tsx` and `sessionCacheBoundary.ts` are rollback/test compatibility surfaces, not production owners. |
+| Authentication compatibility | `src/contexts/AuthContext.tsx`, `src/features/auth/**` | `AuthContext` only projects session state to legacy booleans and delegates login/logout/revalidation. The legacy auth screens remain assigned route bodies until U7; the context adapter remains until its final consumers move in U22. |
 | Routing and shell metadata | `src/app/router/definitions.ts`, `manifest.ts`, `lazyRoutes.tsx`, `paths.ts` | Component-free policy and 15 literal lazy adapter entries are the active production manifest. |
 | Application shells | `src/app/shells/**` | Browse, form, transaction, editor, and bare shells render exactly one `main`; `AppHeader` remains the active header renderer. |
 | API transport and envelope | `src/platform/http/**`, exposed through `src/api/client.ts` and `src/api/response.ts` | One credentialed Axios instance; migrated and legacy error surfaces are intentionally separate. |
-| Browser platform boundary | `src/platform/config|storage|integrations|assets/**` | Owns public environment input, browser storage access, external SDK globals/scripts, and image URL resolution. |
+| Browser platform boundary | `src/platform/config/**`, `storage/**`, `integrations/**`, `assets/**`, `session/**` | Owns public environment input, browser storage access, external SDK globals/scripts, image URL resolution, auth-error signaling, and the non-PII cross-tab channel. |
 | Domain server state and orchestration | `src/features/**` | TanStack Query hooks, route containers, mappers, and workflow hooks coexist. |
 | Domain-free UI | `src/shared/ui/**` | Tested primitives; adoption is incomplete. |
 | Shared styling values | `src/styles/tokens.css` | CSS Modules still contain feature-local literals. |
@@ -65,9 +76,9 @@ Current owners:
 `src/app/router/definitions.ts` owns route policy and
 `src/app/router/lazyRoutes.tsx` owns the exhaustive direct lazy adapter mapping.
 The old `src/routes/routeDefinitions.ts` and `routeConfig.tsx` are unreachable
-rollback artifacts. `src/routes/RequireAuth.tsx`, legacy path/query helpers, and
-the assigned feature route bodies remain active compatibility seams until their
-named slice cutovers.
+rollback artifacts. `src/routes/RequireAuth.tsx`, `AuthContext`, legacy
+path/query helpers, and the assigned feature route bodies remain active
+compatibility adapters until their named U7-U13/U21-U22 cutovers.
 
 | ID | Path | Auth | Shell | Active adapter | Compatibility body |
 | --- | --- | --- | --- | --- | --- |
@@ -110,15 +121,81 @@ rollback-only would be incorrect.
 | Route query shape | `src/app/router/codecs/**` | Canonical parse/serialize contracts now exist at the app boundary. Login return and payment-fail reason consume them now; Search/Profile/Wishlist/payment-success bodies retain their legacy parsers until U8/U10/U13. |
 | Search state | URL plus `useSearchResults`, SearchBar hooks, map refs, and bottom-sheet state | Effects and request tokens keep URL, Query, map, and UI aligned. |
 | Profile/Wishlist route view | URL plus mirrored React state | Effects copy parsed URL state into local state. |
-| Server resources | TanStack Query feature hooks | Feature `queryKeys.ts`, public cache helpers, and direct `setQueriesData`. |
-| Viewer identity | `AuthContext` and auth query | `sessionLifecycle` and auth-error events clear selected caches. |
-| Checkout recovery | Router state and `sessionStorage` | `reservationCheckoutState.ts` stores the fallback document and UID index. |
-| Payment confirm dedupe | In-memory map and `sessionStorage` marker | `paymentConfirmationAttemptRegistry.ts`. |
+| Server resources | Session generation QueryClient plus TanStack Query feature hooks | U5 physically replaces and clears the client at an identity boundary. Existing feature `queryKeys.ts`, public cache helpers, and direct `setQueriesData` remain until their slice cutovers. |
+| Viewer identity | `SessionProvider` explicit reducer state | A non-PII subject and monotonic epoch define identity lifetime. `AuthContext` is a read/delegation adapter only; the old `useSessionQuery` and `sessionLifecycle` owners are deleted. |
+| Checkout recovery | Router state and `sessionStorage` | `reservationCheckoutState.ts` remains the pre-U10 writer. The injected reservation cleanup port clears checkout documents and UID indexes on every U5 identity boundary, and app composition replaces a currently visible sensitive transaction entry. Older browser-history entries remain unowned legacy input until U9/U10. |
+| Payment confirm dedupe | In-memory map, generation counter, and `sessionStorage` marker | `paymentConfirmationAttemptRegistry.ts` remains the pre-U10 writer. Session cleanup clears markers/in-flight entries and advances its generation so a late pre-cleanup confirmation cannot recreate a marker. |
+| Cross-tab session signal | `src/platform/session/sessionBroadcast.ts` | A same-origin BroadcastChannel exchanges only an exact non-PII transition envelope and drives invalidate-before-revalidate handling. |
 | Accommodation editor | Local state, refs, Query data, and several hooks | Explicit session/operation fences are spread across detail, image, save, and controller hooks. |
 | Ephemeral UI | Component-local state | Popovers, focus, hover, dialogs, and menu state. |
 
 Detailed browser persistence and privacy properties are recorded in
 [`frontend-browser-data-inventory.md`](./frontend-browser-data-inventory.md).
+
+## Session and Query lifetime
+
+- The session reducer distinguishes bootstrap/external/identity checking,
+  authenticated idle/revalidating/revalidation-error, anonymous
+  revocation-verified/unverified, and retryable bootstrap error states. Stale
+  completions are rejected by operation ID and epoch.
+- `/me` receives the active `AbortSignal`. Login/logout callers are cancelled
+  logically when superseded, but a started cookie-mutating transport is not
+  aborted: the provider-local queue holds its physical lane until that Promise
+  settles, so a later login/logout cannot overtake it and queues never leak
+  across provider instances. Login fences the old identity before sending the
+  command and both success and failure converge through a fresh `/me` probe.
+- A network/timeout rejection cannot prove when the backend finished mutating
+  its cookie. Frontend recovery therefore fences, re-probes, and uses paired
+  cross-tab/focus recovery; absolute latest-command ordering would require a
+  backend idempotency or sequence contract and is outside the frontend-only
+  migration authority.
+- An identity boundary advances the epoch, clears checkout/index/payment-marker
+  state through the injected feature port, cancels and clears the previous
+  QueryClient, and creates a new subject/epoch generation before publishing the
+  next viewer. When an authenticated identity is fenced, a generation key
+  remounts the QueryClient subtree so late mutation callbacks from the old tree
+  cannot write into the new viewer's client. When no authenticated identity is
+  present, the anonymous/error client is instead cancelled, cleared, and
+  re-scoped in place; a failed login can therefore retain its modal intent,
+  inputs, and exact error. A successful viewer probe still replaces that client
+  and remounts before the authenticated viewer is published.
+- `BrowserRouter` and the memory-only auth-intent provider live outside the
+  keyed Query generation. An anonymous action registers one immutable,
+  primitive-only latest attempt with its exact location key/path. Login failure
+  preserves that attempt and its modal form; route departure, modal cancel,
+  logout, revocation, or an owning authenticated identity departure clears it.
+  After login, the new route adapter atomically claims the attempt together with
+  an authenticated subject/epoch scope. Search wishlist and accommodation
+  wishlist/reservation/coupon continuations revalidate resource and input data,
+  execute at most once, and reject stale session completions before UI,
+  storage, cache, error, or navigation publication. No callback, Promise,
+  credential, viewer data, or browser-persisted record enters the intent.
+- Local logout becomes anonymous immediately. A failed server logout remains
+  `revocation: unverified`, retains a safe `AppError`, and renders a security
+  notice with a retry action; it never restores the local viewer. The frontend
+  does not inspect or delete the backend session cookie.
+- Cross-tab messages have exactly `version`, `type`, random tab `sourceId`,
+  monotonic `sequence`, and `phase: invalidate|revalidate`. Viewer ID, subject,
+  epoch, email, cookie, and credentials never enter the BroadcastChannel
+  payload. Same-source, malformed, duplicated, and out-of-order messages are
+  ignored. If a newer transition or unrelated 401 arrives during an external
+  `/me` probe, that probe is aborted and one fresh checking boundary/probe is
+  replayed after the current verification releases.
+- `src/features/auth/hooks/useSessionQuery.ts` and
+  `src/features/auth/lib/sessionLifecycle.ts` are deleted. The surviving
+  `src/query/QueryProvider.tsx` and `sessionCacheBoundary.ts` have no production
+  consumer and exist only as rollback/test compatibility until U22.
+
+The U5 generation boundary is the physical bridge for current legacy feature
+hooks: there is no production `userScopedQueryRoots` registry and no singleton
+QueryClient. It is not the final R14/R15 feature cutover. Existing
+viewer-dependent query keys do not yet all carry subject/epoch, and legacy
+workflow commands do not yet all capture and re-check an authenticated scope.
+Review creation has adopted the scope guard early: after an identity change it
+does not upload images, invalidate caches, publish an error, or navigate from an
+old create result. U7-U13 must add the same feature-owned option factories with
+subject/epoch key/meta contracts and command fences to every remaining slice;
+U22 removes the rollback compatibility surfaces.
 
 ## API and external integrations
 
@@ -161,7 +238,6 @@ The current freeze prevents private cross-feature imports but permits
 `appShell.ts` and `publicCache.ts`. Production edges through those seams include:
 
 ```text
-auth -> reservations
 search -> auth, wishlist
 wishlist -> search
 accommodations -> auth, reservations, reviews, wishlist
@@ -169,6 +245,10 @@ reviews -> accommodations, reservations
 profile -> accommodations, reservations
 accommodations/edit -> profile
 ```
+
+The former AuthContext-owned `auth -> reservations` cleanup edge is gone. The
+app root now composes the session owner with the reservation cleanup public port
+without making either feature own the other.
 
 Consequences that remain open:
 
@@ -231,12 +311,13 @@ status lives in [`frontend-ownership-matrix.md`](./frontend-ownership-matrix.md)
 | Delta | Planned owner |
 | --- | --- |
 | Per-feature migration off legacy global API/DTO facades and activation of the owned checkout repository | U7-U13, U10, U22 |
-| Explicit session subject/epoch and cache lifetime | U5 |
+| Feature-owned subject/epoch Query keys/meta and workflow scope capture beyond the active U5 physical generation bridge | U7-U13, U22 (final R14/R15 cutover) |
 | Per-route screen/controller cutover and removal of exact legacy adapter bridges | U7-U13, U21-U22 |
 | Auth intent and wishlist membership workflow | U7 |
 | Search/Header/Maps screen migration | U8 |
 | Accommodation detail, reservation create, and review workflow | U9 |
 | Single checkout/payment aggregate | U10 |
+| Owner-scoped, one-shot checkout/payment history entries that reject replay after an identity transition | U9-U10 (release gate before these routes ship) |
 | Toss npm v2 runtime adapter | U11 |
 | Listing editor transaction reducer | U12 |
 | Profile, reservation, and host-management screens | U13 |

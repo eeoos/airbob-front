@@ -11,7 +11,13 @@ export interface PaymentConfirmationAttemptKeyParams {
 }
 
 const confirmedPaymentStorageKeyPrefix = "airbob:payment-confirmed:";
-const inFlightAttempts = new Map<string, Promise<void>>();
+interface InFlightPaymentConfirmation {
+  generation: number;
+  promise: Promise<void>;
+}
+
+const inFlightAttempts = new Map<string, InFlightPaymentConfirmation>();
+let paymentConfirmationGeneration = 0;
 
 const getConfirmedPaymentStorageKey = (key: string) =>
   `${confirmedPaymentStorageKeyPrefix}${key}`;
@@ -47,31 +53,45 @@ export const runPaymentConfirmationAttempt = async (
   key: string,
   confirm: () => Promise<void>
 ): Promise<PaymentConfirmationAttemptResult> => {
+  const capturedGeneration = paymentConfirmationGeneration;
+
   if (hasConfirmedPaymentMarker(key)) {
     return "already-confirmed";
   }
 
   const inFlightAttempt = inFlightAttempts.get(key);
-  if (inFlightAttempt) {
-    await inFlightAttempt;
+  if (
+    inFlightAttempt &&
+    inFlightAttempt.generation === capturedGeneration
+  ) {
+    await inFlightAttempt.promise;
     return "already-confirmed";
   }
 
   const attempt = (async () => {
     await confirm();
   })();
-  inFlightAttempts.set(key, attempt);
+  const entry: InFlightPaymentConfirmation = {
+    generation: capturedGeneration,
+    promise: attempt,
+  };
+  inFlightAttempts.set(key, entry);
 
   try {
     await attempt;
-    markPaymentConfirmed(key);
+    if (paymentConfirmationGeneration === capturedGeneration) {
+      markPaymentConfirmed(key);
+    }
     return "confirmed";
   } finally {
-    inFlightAttempts.delete(key);
+    if (inFlightAttempts.get(key) === entry) {
+      inFlightAttempts.delete(key);
+    }
   }
 };
 
-export const resetPaymentConfirmationAttemptRegistryForTests = () => {
+export const clearPaymentConfirmationAttemptRegistry = () => {
+  paymentConfirmationGeneration += 1;
   inFlightAttempts.clear();
 
   const result = legacySessionStorageCompatibility.keys();
@@ -82,3 +102,6 @@ export const resetPaymentConfirmationAttemptRegistryForTests = () => {
 
   keys.forEach(safeRemoveItem);
 };
+
+export const resetPaymentConfirmationAttemptRegistryForTests =
+  clearPaymentConfirmationAttemptRegistry;

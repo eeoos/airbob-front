@@ -1,6 +1,7 @@
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
+import { useSession } from "../app/session/useSession";
+import { Button, ErrorState, LoadingState } from "../shared/ui";
 import { routeTo } from "./paths";
 
 interface RequireAuthProps {
@@ -8,14 +9,31 @@ interface RequireAuthProps {
 }
 
 const RequireAuth = ({ children }: RequireAuthProps) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { revalidate, state } = useSession();
   const location = useLocation();
 
-  if (isLoading) {
-    return <div>로딩 중...</div>;
+  if (state.status === "checking") {
+    return <LoadingState title="로그인 상태를 확인하는 중..." />;
   }
 
-  if (!isAuthenticated) {
+  if (state.status === "error") {
+    return (
+      <ErrorState
+        title="로그인 상태를 확인하지 못했어요"
+        description="연결을 확인한 뒤 다시 시도해 주세요."
+        action={
+          <Button
+            type="button"
+            onClick={() => void revalidate().catch(() => undefined)}
+          >
+            다시 시도
+          </Button>
+        }
+      />
+    );
+  }
+
+  if (state.status === "anonymous") {
     return (
       <Navigate
         to={routeTo.login()}

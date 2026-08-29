@@ -1,8 +1,13 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { AccommodationDetail } from "../../types/accommodation";
 import type { CouponInfo } from "../../types/coupon";
 import type { ReviewInfo } from "../../types/review";
 import { AccommodationDetailRoute } from "./AccommodationDetailRoute";
+import type {
+  AccommodationDetailAuthIntent,
+  AccommodationDetailAuthIntentController,
+  AccommodationDetailAuthIntentGeneration,
+} from "./AccommodationDetailRoute";
 import type {
   AccommodationBookingActions,
   AccommodationBookingState,
@@ -19,7 +24,17 @@ const mockUseAccommodationDetail = jest.fn();
 const mockUseAccommodationImageGallery = jest.fn();
 const mockUseAccommodationReviews = jest.fn();
 const mockHandleReserve = jest.fn();
+const mockHandleIssueCoupon = jest.fn();
 const mockReloadAccommodation = jest.fn();
+const mockRequestAuthIntent = jest.fn(() => true);
+const mockCancelAuthIntent = jest.fn();
+let mockAuthModalProps:
+  | {
+      isOpen: boolean;
+      onClose: () => void;
+      onSuccess?: () => void;
+    }
+  | undefined;
 type MockBookingCardProps = {
   bookingView: AccommodationBookingViewModel;
   isAuthenticated: boolean;
@@ -50,29 +65,27 @@ jest.mock("../../hooks/useAuth", () => ({
 }));
 
 jest.mock("../auth/appShell", () => ({
-  AuthModal: ({
-    isOpen,
-    onClose,
-    onSuccess,
-  }: {
+  AuthModal: (props: {
     isOpen: boolean;
     onClose: () => void;
     onSuccess?: () => void;
-  }) => (
-    <section data-testid="auth-modal" data-open={String(isOpen)}>
-      {isOpen && (
-        <button
-          type="button"
-          onClick={() => {
-            onClose();
-            onSuccess?.();
-          }}
-        >
-          auth success
-        </button>
-      )}
-    </section>
-  ),
+  }) => {
+    mockAuthModalProps = props;
+    return (
+      <section data-testid="auth-modal" data-open={String(props.isOpen)}>
+        {props.isOpen && (
+          <>
+            <button type="button" onClick={props.onClose}>
+              close auth
+            </button>
+            <button type="button" onClick={props.onSuccess}>
+              legacy auth success
+            </button>
+          </>
+        )}
+      </section>
+    );
+  },
 }));
 
 jest.mock("../reviews/appShell", () => ({
@@ -324,9 +337,28 @@ const review: ReviewInfo = {
   images: [],
 };
 
-const renderDetailRoute = () =>
-  render(
+const createAuthIntentGeneration = (
+  intent: AccommodationDetailAuthIntent,
+  isCurrent = true,
+): AccommodationDetailAuthIntentGeneration => ({
+  generation: 23,
+  intent,
+  isCurrent: jest.fn(() => isCurrent),
+});
+
+const createAuthIntentController = (
+  generation: AccommodationDetailAuthIntentGeneration | null = null,
+): AccommodationDetailAuthIntentController => ({
+  generation,
+  request: mockRequestAuthIntent,
+  cancelPending: mockCancelAuthIntent,
+});
+
+const detailRouteElement = (
+  authIntent = createAuthIntentController(),
+) => (
     <AccommodationDetailRoute
+      authIntent={authIntent}
       accommodationId="7"
       bookingSearchParams={
         new URLSearchParams(
@@ -338,9 +370,15 @@ const renderDetailRoute = () =>
     />
   );
 
+const renderDetailRoute = (
+  authIntent = createAuthIntentController(),
+) => render(detailRouteElement(authIntent));
+
 describe("AccommodationDetailRoute", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockAuthModalProps = undefined;
+    mockRequestAuthIntent.mockReturnValue(true);
     mockBookingCardProps = undefined as unknown as MockBookingCardProps;
     mockUseApiError.mockReturnValue({
       error: null,
@@ -390,7 +428,7 @@ describe("AccommodationDetailRoute", () => {
       issuingCouponId: null,
       couponDiscount: 0,
       payablePrice: 240000,
-      handleIssueCoupon: jest.fn(),
+      handleIssueCoupon: mockHandleIssueCoupon,
     });
     mockUseAccommodationReviews.mockReturnValue({
       reviews: [review],
@@ -472,7 +510,7 @@ describe("AccommodationDetailRoute", () => {
     });
   });
 
-  it("opens auth for unauthenticated wishlist saves and resumes the pending wishlist modal after auth success", () => {
+  it("registers wishlist auth as data and leaves legacy AuthModal success domain-free", () => {
     mockUseAuth.mockReturnValue({ isAuthenticated: false });
 
     renderDetailRoute();
@@ -488,6 +526,11 @@ describe("AccommodationDetailRoute", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "저장" }));
 
+    expect(mockRequestAuthIntent).toHaveBeenCalledWith({
+      type: "wishlist.open",
+      accommodationId: 7,
+    });
+
     expect(screen.getByTestId("auth-modal")).toHaveAttribute(
       "data-open",
       "true"
@@ -497,19 +540,159 @@ describe("AccommodationDetailRoute", () => {
       "false"
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "auth success" }));
+    expect(mockAuthModalProps?.onSuccess).toBeUndefined();
+    fireEvent.click(screen.getByRole("button", { name: "legacy auth success" }));
 
     expect(screen.getByTestId("auth-modal")).toHaveAttribute(
       "data-open",
-      "false"
+      "true"
     );
     expect(screen.getByTestId("wishlist-modal")).toHaveAttribute(
       "data-open",
-      "true"
+      "false"
+    );
+  });
+
+  it("cancels the exact pending auth intent when the modal is dismissed", () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: false });
+    renderDetailRoute();
+
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+    fireEvent.click(screen.getByRole("button", { name: "close auth" }));
+
+    expect(mockCancelAuthIntent).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("auth-modal")).toHaveAttribute(
+      "data-open",
+      "false",
+    );
+    expect(screen.getByTestId("wishlist-modal")).toHaveAttribute(
+      "data-open",
+      "false",
+    );
+  });
+
+  it("opens the wishlist exactly for a current claimed generation", async () => {
+    renderDetailRoute(
+      createAuthIntentController(
+        createAuthIntentGeneration({
+          type: "wishlist.open",
+          accommodationId: 7,
+        }),
+      ),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("wishlist-modal")).toHaveAttribute(
+        "data-open",
+        "true",
+      ),
     );
     expect(screen.getByTestId("wishlist-modal")).toHaveAttribute(
       "data-accommodation-id",
-      "7"
+      "7",
+    );
+  });
+
+  it("executes a matching reservation generation once across rerenders", async () => {
+    const generation = createAuthIntentGeneration({
+      type: "reservation.start",
+      accommodationId: 7,
+      checkIn: "2026-07-10",
+      checkOut: "2026-07-12",
+      adultCount: 2,
+      childCount: 0,
+      infantCount: 0,
+      petCount: 0,
+      couponId: null,
+    });
+    const controller = createAuthIntentController(generation);
+    const view = renderDetailRoute(controller);
+
+    await waitFor(() => expect(mockHandleReserve).toHaveBeenCalledTimes(1));
+    view.rerender(detailRouteElement(controller));
+
+    expect(mockHandleReserve).toHaveBeenCalledTimes(1);
+    expect(mockHandleReserve).toHaveBeenCalledWith(
+      {
+        selectedCoupon: null,
+        selectedCouponId: null,
+        couponDiscount: 0,
+      },
+      generation,
+    );
+  });
+
+  it("executes a matching coupon issue generation with the current coupon", async () => {
+    const coupon: CouponInfo = {
+      id: 31,
+      name: "신규 쿠폰",
+      description: null,
+      discount_type: "FIXED_AMOUNT",
+      discount_value: 10000,
+      min_payment_price: null,
+      max_discount_amount: null,
+      start_date: "2026-07-01",
+      end_date: "2026-12-31",
+      total_quantity: null,
+      issued_quantity: 0,
+    };
+    const handleIssueCoupon = jest.fn();
+    mockUseAccommodationCoupons.mockReturnValue({
+      coupons: [coupon],
+      isLoadingCoupons: false,
+      selectedCoupon: null,
+      selectedCouponId: null,
+      setSelectedCouponId: jest.fn(),
+      issuingCouponId: null,
+      couponDiscount: 0,
+      payablePrice: 240000,
+      handleIssueCoupon,
+    });
+    const generation = createAuthIntentGeneration({
+      type: "coupon.issue",
+      accommodationId: 7,
+      couponId: coupon.id,
+    });
+
+    renderDetailRoute(createAuthIntentController(generation));
+
+    await waitFor(() =>
+      expect(handleIssueCoupon).toHaveBeenCalledWith(coupon, generation),
+    );
+  });
+
+  it.each([
+    [
+      "stale session",
+      createAuthIntentGeneration(
+        { type: "wishlist.open", accommodationId: 7 },
+        false,
+      ),
+    ],
+    [
+      "resource mismatch",
+      createAuthIntentGeneration({
+        type: "reservation.start",
+        accommodationId: 8,
+        checkIn: "2026-07-10",
+        checkOut: "2026-07-12",
+        adultCount: 2,
+        childCount: 0,
+        infantCount: 0,
+        petCount: 0,
+        couponId: null,
+      }),
+    ],
+  ])("does no domain work for a %s generation", async (_case, generation) => {
+    renderDetailRoute(createAuthIntentController(generation));
+
+    await Promise.resolve();
+
+    expect(mockHandleReserve).not.toHaveBeenCalled();
+    expect(mockHandleIssueCoupon).not.toHaveBeenCalled();
+    expect(screen.getByTestId("wishlist-modal")).toHaveAttribute(
+      "data-open",
+      "false",
     );
   });
 });

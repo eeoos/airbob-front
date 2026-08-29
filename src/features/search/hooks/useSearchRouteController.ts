@@ -6,7 +6,10 @@ import { toAccommodationBookingRouteQuery } from "../lib/accommodationDetailPara
 import { useSearchBottomSheet } from "./useSearchBottomSheet";
 import { useSearchMapState } from "./useSearchMapState";
 import { useSearchResults } from "./useSearchResults";
-import { useSearchWishlistModal } from "./useSearchWishlistModal";
+import {
+  useSearchWishlistModal,
+  type SearchWishlistAuthIntentBridge,
+} from "./useSearchWishlistModal";
 
 type SetSearchParams = (
   nextParams: URLSearchParams,
@@ -17,12 +20,14 @@ interface UseSearchRouteControllerOptions {
   openWindow?: (url: string, target: string) => Window | null;
   searchParams: URLSearchParams;
   setSearchParams: SetSearchParams;
+  wishlistAuthIntent?: SearchWishlistAuthIntentBridge;
 }
 
 export const useSearchRouteController = ({
   openWindow = window.open,
   searchParams,
   setSearchParams,
+  wishlistAuthIntent,
 }: UseSearchRouteControllerOptions) => {
   const { error, handleError, clearError } = useApiError();
   const { isAuthenticated } = useAuth();
@@ -38,6 +43,7 @@ export const useSearchRouteController = ({
   });
   const bottomSheet = useSearchBottomSheet();
   const wishlist = useSearchWishlistModal({
+    authIntent: wishlistAuthIntent,
     isAuthenticated,
     onWishlistStatusChange: searchResults.updateAccommodationWishlistStatus,
   });

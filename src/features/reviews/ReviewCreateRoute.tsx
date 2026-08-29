@@ -95,6 +95,10 @@ const ReviewCreateRouteContent: React.FC<ReviewCreateRouteContentProps> = ({
       rating,
     });
 
+    if (result.status === "stale") {
+      return;
+    }
+
     if (result.status === "success") {
       navigate(routeTo.reservationDetail(result.reservationUid));
       return;

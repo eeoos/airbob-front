@@ -1,7 +1,4 @@
-import {
-  QueryClient,
-  QueryClientProvider,
-} from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import {
   render,
   RenderOptions,
@@ -9,8 +6,14 @@ import {
 } from "@testing-library/react";
 import { ReactElement, ReactNode, useEffect } from "react";
 import { MemoryRouter, MemoryRouterProps } from "react-router-dom";
+import { AuthIntentStableBoundary } from "../app/providers/AppProviders";
+import { SessionProvider } from "../app/session/SessionProvider";
+import {
+  toSessionSubject,
+  type SessionState,
+} from "../app/session/sessionState";
 import { AuthProvider } from "../contexts/AuthContext";
-import { authQueryKeys } from "../features/auth/queryKeys";
+import type { SessionAuthPort } from "../features/auth/ports/sessionPort";
 import { MeInfo } from "../types/auth";
 import { createTestQueryClient } from "./createTestQueryClient";
 
@@ -21,6 +24,7 @@ export interface RenderAppOptions
   queryClient?: QueryClient;
   initialEntries?: MemoryRouterProps["initialEntries"];
   session?: MeInfo | null;
+  authPort?: SessionAuthPort;
   seedQueryClient?: (queryClient: QueryClient) => void;
 }
 
@@ -117,6 +121,23 @@ const releaseQueryClient = (queryClient: QueryClient) => {
   if (ownership.clearWhenUnused) queryClient.clear();
 };
 
+const toInitialSessionState = (session: MeInfo | null): SessionState =>
+  session
+    ? {
+        status: "authenticated",
+        viewer: session,
+        subject: toSessionSubject(session),
+        epoch: 0,
+        revalidation: { status: "idle" },
+      }
+    : {
+        status: "anonymous",
+        reason: "bootstrap",
+        revocation: "verified",
+        operationId: 0,
+        epoch: 0,
+      };
+
 export const renderApp = (
   ui: ReactElement,
   options: RenderAppOptions = {}
@@ -125,6 +146,7 @@ export const renderApp = (
     queryClient: providedQueryClient,
     initialEntries = ["/"],
     session = null,
+    authPort,
     seedQueryClient,
     ...renderOptions
   } = options;
@@ -160,20 +182,20 @@ export const renderApp = (
     }, []);
 
     return (
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
-        </AuthProvider>
-      </QueryClientProvider>
+      <MemoryRouter initialEntries={initialEntries}>
+        <SessionProvider
+          authPort={authPort}
+          initialQueryClient={queryClient}
+          initialState={toInitialSessionState(session)}
+          stableBoundary={AuthIntentStableBoundary}
+        >
+          <AuthProvider>{children}</AuthProvider>
+        </SessionProvider>
+      </MemoryRouter>
     );
   };
 
   try {
-    queryClient.setQueryDefaults(authQueryKeys.me(), {
-      retry: false,
-      staleTime: Infinity,
-    });
-    queryClient.setQueryData<MeInfo | null>(authQueryKeys.me(), session);
     seedQueryClient?.(queryClient);
 
     const rendered = render(ui, { ...renderOptions, wrapper: AppProviders });

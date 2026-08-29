@@ -5,21 +5,32 @@ import { CouponInfo, CouponInfos } from "../../../types/coupon";
 import { clientLogger } from "../../../utils/clientLogger";
 import { calculateCouponDiscount } from "../../../utils/codes";
 import { parseApiError } from "../../../utils/error";
+import { parsePositiveAccommodationId } from "../lib/accommodationId";
 import { accommodationQueryKeys } from "../queryKeys";
+import type { AccommodationAuthIntentExecutionScope } from "./useAccommodationBooking";
 
 interface UseAccommodationCouponsOptions {
+  accommodationId?: string;
   isAuthenticated: boolean;
   totalPrice: number;
   handleError: (error: unknown) => unknown;
   clearError: () => void;
-  onRequireAuth: (action: () => void | Promise<void>) => void;
+  onRequireAuth: (intent: CouponIssueAuthIntent) => void;
 }
 
-interface IssueCouponOptions {
-  skipAuthCheck?: boolean;
+export interface CouponIssueAuthIntent {
+  readonly type: "coupon.issue";
+  readonly accommodationId: number;
+  readonly couponId: number;
+}
+
+export interface CouponAuthIntentExecution
+  extends AccommodationAuthIntentExecutionScope {
+  readonly intent: CouponIssueAuthIntent;
 }
 
 export const useAccommodationCoupons = ({
+  accommodationId,
   isAuthenticated,
   totalPrice,
   handleError,
@@ -30,6 +41,17 @@ export const useAccommodationCoupons = ({
   const [selectedCouponId, setSelectedCouponId] = useState<number | null>(null);
   const [issuingCouponId, setIssuingCouponId] = useState<number | null>(null);
   const handledCouponErrorUpdatedAtRef = useRef(0);
+  const handledAuthIntentGenerationRef = useRef<number | null>(null);
+  const issuingCouponIdRef = useRef<number | null>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const couponsQuery = useQuery<
     CouponInfos,
@@ -97,20 +119,63 @@ export const useAccommodationCoupons = ({
 
   const handleIssueCoupon = useCallback(async function issueCoupon(
     coupon: CouponInfo,
-    options: IssueCouponOptions = {}
+    authIntentExecution?: CouponAuthIntentExecution,
   ) {
-    if (!options.skipAuthCheck && !isAuthenticated) {
-      onRequireAuth(() => issueCoupon(coupon, { skipAuthCheck: true }));
+    const isActionCurrent = () =>
+      isMountedRef.current &&
+      (!authIntentExecution || authIntentExecution.isCurrent());
+    const parsedAccommodationId = parsePositiveAccommodationId(accommodationId);
+
+    if (
+      !isActionCurrent() ||
+      !parsedAccommodationId ||
+      !Number.isSafeInteger(coupon.id) ||
+      coupon.id < 1
+    ) {
       return;
     }
 
+    if (authIntentExecution) {
+      if (
+        !isAuthenticated ||
+        authIntentExecution.intent.accommodationId !== parsedAccommodationId ||
+        authIntentExecution.intent.couponId !== coupon.id ||
+        !coupons.some((availableCoupon) => availableCoupon.id === coupon.id) ||
+        handledAuthIntentGenerationRef.current ===
+          authIntentExecution.generation
+      ) {
+        return;
+      }
+    } else if (!isAuthenticated) {
+      onRequireAuth({
+        type: "coupon.issue",
+        accommodationId: parsedAccommodationId,
+        couponId: coupon.id,
+      });
+      return;
+    }
+
+    if (issuingCouponIdRef.current !== null) {
+      return;
+    }
+
+    if (authIntentExecution) {
+      handledAuthIntentGenerationRef.current = authIntentExecution.generation;
+    }
+    issuingCouponIdRef.current = coupon.id;
     setIssuingCouponId(coupon.id);
     clearError();
 
     try {
       await couponApi.issue(coupon.id);
+      if (!isActionCurrent()) {
+        return;
+      }
       setSelectedCouponId(coupon.id);
     } catch (error) {
+      if (!isActionCurrent()) {
+        return;
+      }
       const apiError = parseApiError(error);
       if (apiError?.code === "CP003") {
         setSelectedCouponId(coupon.id);
@@ -118,9 +183,19 @@ export const useAccommodationCoupons = ({
         handleError(error);
       }
     } finally {
-      setIssuingCouponId(null);
+      issuingCouponIdRef.current = null;
+      if (isActionCurrent()) {
+        setIssuingCouponId(null);
+      }
     }
-  }, [clearError, handleError, isAuthenticated, onRequireAuth]);
+  }, [
+    accommodationId,
+    clearError,
+    coupons,
+    handleError,
+    isAuthenticated,
+    onRequireAuth,
+  ]);
 
   return {
     coupons,

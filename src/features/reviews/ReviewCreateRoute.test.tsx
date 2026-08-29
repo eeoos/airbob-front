@@ -131,6 +131,23 @@ describe("ReviewCreateRoute", () => {
     );
   });
 
+  it("does not navigate when the submitted review belongs to a stale session", async () => {
+    mockSubmitReview.mockResolvedValue({ status: "stale" });
+
+    render(
+      <ReviewCreateRoute
+        navigate={mockNavigate}
+        reservationUid="reservation-123"
+      />,
+    );
+
+    await userEvent.type(screen.getByLabelText("리뷰 내용"), "좋은 숙소였어요.");
+    await userEvent.click(screen.getByRole("button", { name: "리뷰 작성하기" }));
+
+    await waitFor(() => expect(mockSubmitReview).toHaveBeenCalledTimes(1));
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
   it("labels the back button for assistive technology", () => {
     render(
       <ReviewCreateRoute

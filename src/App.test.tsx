@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import App from "./App";
 
 jest.mock("./app/router/Router", () => ({
-  Router: ({
+  AppRouteTree: ({
     renderAuthenticated,
     renderHeader,
   }: {
@@ -30,7 +30,7 @@ jest.mock("./routes/RequireAuth", () => ({
 }));
 
 describe("App composition", () => {
-  it("injects the current header and authentication boundaries into the app router", () => {
+  it("injects the current header and authentication boundaries into the stable route tree", () => {
     render(<App />);
 
     const router = screen.getByTestId("app-router");

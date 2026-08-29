@@ -1,5 +1,6 @@
 import { ApiResponse, ErrorResponse } from "../types/api";
 import { onAuthError } from "../utils/authEvents";
+import { sessionOwnedAuthEventPolicy } from "./authEventPolicy";
 import { ApiClientError } from "./response";
 import { requestApi, requestApiNullable } from "./request";
 
@@ -109,4 +110,42 @@ describe("requestApi", () => {
       jest.useRealTimers();
     }
   });
+
+  it.each([
+    ["requestApi", requestApi],
+    ["requestApiNullable", requestApiNullable],
+  ])(
+    "does not publish a global auth error for a session-owned %s envelope",
+    async (_name, request) => {
+      jest.useFakeTimers();
+      const listener = jest.fn();
+      const unsubscribe = onAuthError(listener);
+      const expiredSessionResponse: ApiResponse<never> = {
+        success: false,
+        data: null,
+        error: {
+          message: "세션이 만료되었습니다.",
+          status: 403,
+          code: "M004",
+        },
+      };
+
+      try {
+        await expect(
+          request(
+            () => Promise.resolve({ data: expiredSessionResponse }),
+            sessionOwnedAuthEventPolicy,
+          ),
+        ).rejects.toMatchObject({
+          code: "M004",
+          status: 403,
+        });
+        expect(listener).not.toHaveBeenCalled();
+      } finally {
+        unsubscribe();
+        jest.runOnlyPendingTimers();
+        jest.useRealTimers();
+      }
+    },
+  );
 });

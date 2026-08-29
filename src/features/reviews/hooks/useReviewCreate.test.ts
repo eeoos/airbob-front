@@ -18,6 +18,29 @@ const mockClearError = jest.fn();
 const mockHandleError = jest.fn((error: unknown) =>
   error instanceof Error ? error.message : "error"
 );
+const mockCaptureAuthenticatedSession = jest.fn();
+const mockIsCurrentSession = jest.fn();
+
+const authenticatedScope = {
+  epoch: 4,
+  subject: "subject:member_1",
+};
+
+const deferred = <T,>() => {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((promiseResolve) => {
+    resolve = promiseResolve;
+  });
+
+  return { promise, resolve };
+};
+
+jest.mock("../../../app/session/useSession", () => ({
+  useSession: () => ({
+    captureAuthenticatedSession: mockCaptureAuthenticatedSession,
+    isCurrentSession: mockIsCurrentSession,
+  }),
+}));
 
 jest.mock("../../../api", () => ({
   reservationApi: {
@@ -108,6 +131,10 @@ describe("useReviewCreate", () => {
     jest.mocked(reservationApi.getMyReservationDetail).mockReset();
     jest.mocked(reviewApi.create).mockReset();
     jest.mocked(reviewApi.uploadImages).mockReset();
+    mockCaptureAuthenticatedSession.mockReset();
+    mockCaptureAuthenticatedSession.mockReturnValue(authenticatedScope);
+    mockIsCurrentSession.mockReset();
+    mockIsCurrentSession.mockReturnValue(true);
     mockUseReservationDetailQuery.mockReset();
     mockUseReservationDetailQuery.mockImplementation(
       (reservationUid?: string) =>
@@ -257,6 +284,48 @@ describe("useReviewCreate", () => {
       queryKey: accommodationQueryKeys.reviewsRoot("7"),
     });
     expect(result.current.isSubmitting).toBe(false);
+  });
+
+  it("stops all post-create work when the submitting session becomes stale", async () => {
+    const reservation = createReservationDetail("reservation-123");
+    const image = new File(["image"], "review.png", { type: "image/png" });
+    const createResponse = deferred<{ id: number }>();
+    jest
+      .mocked(reservationApi.getMyReservationDetail)
+      .mockResolvedValue(reservation);
+    jest.mocked(reviewApi.create).mockReturnValue(createResponse.promise);
+
+    const { queryClient, wrapper } = createWrapper();
+    const invalidateQueriesSpy = jest.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(() => useReviewCreate("reservation-123"), {
+      wrapper,
+    });
+
+    await waitFor(() => expect(result.current.reservation).toEqual(reservation));
+
+    let submitPromise!: ReturnType<typeof result.current.submitReview>;
+    act(() => {
+      submitPromise = result.current.submitReview({
+        content: "좋은 숙소였어요.",
+        images: [image],
+        rating: 5,
+      });
+    });
+    await waitFor(() => expect(reviewApi.create).toHaveBeenCalledTimes(1));
+    expect(result.current.isSubmitting).toBe(true);
+
+    mockIsCurrentSession.mockReturnValue(false);
+    let submitResult!: Awaited<typeof submitPromise>;
+    await act(async () => {
+      createResponse.resolve({ id: 55 });
+      submitResult = await submitPromise;
+    });
+
+    expect(submitResult).toEqual({ status: "stale" });
+    expect(reviewApi.uploadImages).not.toHaveBeenCalled();
+    expect(invalidateQueriesSpy).not.toHaveBeenCalled();
+    expect(mockHandleError).not.toHaveBeenCalled();
+    expect(result.current.isSubmitting).toBe(true);
   });
 
   it("does not submit when review content is blank", async () => {

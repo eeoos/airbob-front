@@ -116,6 +116,56 @@ describe("useSearchWishlistModal", () => {
     expect(result.current.selectedAccommodationForWishlist).toBeNull();
   });
 
+  it("registers and cancels a data-only auth intent", () => {
+    const cancel = jest.fn();
+    const request = jest.fn(() => 17);
+    const { result } = renderUseSearchWishlistModal({
+      authIntent: {
+        cancel,
+        completeResume: jest.fn(),
+        request,
+        resumed: null,
+      },
+      isAuthenticated: false,
+      onWishlistStatusChange: jest.fn(),
+    });
+
+    act(() => {
+      result.current.openWishlistModal(7);
+    });
+    expect(request).toHaveBeenCalledWith(7);
+
+    act(() => {
+      result.current.closeAuthModal();
+    });
+    expect(cancel).toHaveBeenCalledWith(17);
+  });
+
+  it("opens wishlist selection once from a current intent claimed by the new session", () => {
+    const completeResume = jest.fn();
+    const isCurrent = jest.fn(() => true);
+    const { result } = renderUseSearchWishlistModal({
+      authIntent: {
+        cancel: jest.fn(),
+        completeResume,
+        request: jest.fn(() => 18),
+        resumed: {
+          accommodationId: 9,
+          attemptId: 18,
+          isCurrent,
+        },
+      },
+      isAuthenticated: true,
+      onWishlistStatusChange: jest.fn(),
+    });
+
+    expect(isCurrent).toHaveBeenCalledTimes(1);
+    expect(result.current.authModalOpen).toBe(false);
+    expect(result.current.wishlistModalOpen).toBe(true);
+    expect(result.current.selectedAccommodationForWishlist).toBe(9);
+    expect(completeResume).toHaveBeenCalledWith(18);
+  });
+
   it("reconciles the search card wishlist state when the modal closes", async () => {
     const onWishlistStatusChange = jest.fn();
     const firstPage = {

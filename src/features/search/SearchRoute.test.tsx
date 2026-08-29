@@ -218,7 +218,9 @@ const accommodationMapItems: SearchAccommodationMapViewModel[] =
     },
   }));
 
-const renderSearchRoute = () =>
+const renderSearchRoute = (
+  wishlistAuthIntent?: Parameters<typeof SearchRoute>[0]["wishlistAuthIntent"],
+) =>
   render(
     <SearchRoute
       searchParams={
@@ -227,6 +229,7 @@ const renderSearchRoute = () =>
         )
       }
       setSearchParams={jest.fn()}
+      wishlistAuthIntent={wishlistAuthIntent}
     />
   );
 
@@ -350,6 +353,23 @@ describe("SearchRoute", () => {
     expect(mockOpenWishlistModal).toHaveBeenNthCalledWith(1, 11);
     expect(mockOpenWishlistModal).toHaveBeenNthCalledWith(2, 7, false);
     expect(mockOpenAccommodationDetail).toHaveBeenCalledWith(11);
+  });
+
+  it("does not attach an old-generation auth success callback when an intent owner exists", () => {
+    const wishlistAuthIntent = {
+      cancel: jest.fn(),
+      completeResume: jest.fn(),
+      request: jest.fn(() => 1),
+      resumed: null,
+    };
+
+    renderSearchRoute(wishlistAuthIntent);
+    fireEvent.click(screen.getByRole("button", { name: "auth success" }));
+
+    expect(mockHandleAuthSuccess).not.toHaveBeenCalled();
+    expect(mockUseSearchRouteController).toHaveBeenCalledWith(
+      expect.objectContaining({ wishlistAuthIntent }),
+    );
   });
 
   it("defines the selected result style with existing focus and brand tokens", () => {

@@ -1,5 +1,8 @@
 import type { ReactElement } from "react";
-import { Router, type VisibleHeaderPolicy } from "./app/router/Router";
+import {
+  AppRouteTree,
+  type VisibleHeaderPolicy,
+} from "./app/router/Router";
 import { Header } from "./layouts/AppHeader";
 import RequireAuth from "./routes/RequireAuth";
 
@@ -13,7 +16,7 @@ const renderAuthenticated = (content: ReactElement) => (
 
 function App() {
   return (
-    <Router
+    <AppRouteTree
       renderAuthenticated={renderAuthenticated}
       renderHeader={renderHeader}
     />

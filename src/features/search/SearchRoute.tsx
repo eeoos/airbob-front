@@ -12,8 +12,11 @@ import { SearchPagination } from "./components/SearchPagination";
 import { SearchResultsList } from "./components/SearchResultsList";
 import { Map } from "./components/SearchMap";
 import { useSearchRouteController } from "./hooks/useSearchRouteController";
+import type { SearchWishlistAuthIntentBridge } from "./hooks/useSearchWishlistModal";
 import { getViewportFromSearchParams } from "./lib/searchParams";
 import styles from "./SearchRoute.module.css";
+
+export type { SearchWishlistAuthIntentBridge } from "./hooks/useSearchWishlistModal";
 
 const getBottomSheetMotionStyle = (y: MotionStyle["y"]): MotionStyle => ({
   y,
@@ -22,13 +25,17 @@ const getBottomSheetMotionStyle = (y: MotionStyle["y"]): MotionStyle => ({
 export interface SearchRouteProps {
   searchParams?: URLSearchParams;
   setSearchParams?: SetURLSearchParams;
+  wishlistAuthIntent?: SearchWishlistAuthIntentBridge;
 }
 
-type SearchRouteContentProps = Required<SearchRouteProps>;
+type SearchRouteContentProps = Required<
+  Pick<SearchRouteProps, "searchParams" | "setSearchParams">
+> & Pick<SearchRouteProps, "wishlistAuthIntent">;
 
 const SearchRouteContent: React.FC<SearchRouteContentProps> = ({
   searchParams,
   setSearchParams,
+  wishlistAuthIntent,
 }) => {
   const {
     bottomSheet,
@@ -41,7 +48,11 @@ const SearchRouteContent: React.FC<SearchRouteContentProps> = ({
     openAccommodationDetail,
     searchResults,
     wishlist,
-  } = useSearchRouteController({ searchParams, setSearchParams });
+  } = useSearchRouteController({
+    searchParams,
+    setSearchParams,
+    wishlistAuthIntent,
+  });
 
   const resultsListClassNames = {
     loading: styles.loading,
@@ -229,7 +240,9 @@ const SearchRouteContent: React.FC<SearchRouteContentProps> = ({
       <AuthModal
         isOpen={wishlist.authModalOpen}
         onClose={wishlist.closeAuthModal}
-        onSuccess={wishlist.handleAuthSuccess}
+        onSuccess={
+          wishlistAuthIntent ? undefined : wishlist.handleAuthSuccess
+        }
         initialMode="login"
       />
     </>
@@ -243,6 +256,7 @@ const SearchRouteWithRouter: React.FC<SearchRouteProps> = (props) => {
     <SearchRouteContent
       searchParams={props.searchParams ?? routeSearchParams}
       setSearchParams={props.setSearchParams ?? routeSetSearchParams}
+      wishlistAuthIntent={props.wishlistAuthIntent}
     />
   );
 };
@@ -253,6 +267,7 @@ export const SearchRoute: React.FC<SearchRouteProps> = (props) => {
       <SearchRouteContent
         searchParams={props.searchParams}
         setSearchParams={props.setSearchParams}
+        wishlistAuthIntent={props.wishlistAuthIntent}
       />
     );
   }

@@ -2,7 +2,9 @@ import * as fs from "fs";
 import * as path from "path";
 import { ErrorResponse } from "../types/api";
 import { MeInfo } from "../types/auth";
+import { onAuthError } from "../utils/authEvents";
 import { authApi } from "./auth";
+import { sessionOwnedAuthEventPolicy } from "./authEventPolicy";
 import { client } from "./client";
 import { ApiClientError } from "./response";
 
@@ -38,9 +40,11 @@ const readSource = (...segments: string[]) =>
 
 describe("auth boundary contracts", () => {
   const mockClientGet = client.get as jest.Mock;
+  const mockClientPost = client.post as jest.Mock;
 
   beforeEach(() => {
     mockClientGet.mockReset();
+    mockClientPost.mockReset();
   });
 
   it("returns MeInfo from a successful getMe envelope", async () => {
@@ -63,7 +67,10 @@ describe("auth boundary contracts", () => {
     });
 
     await expect(authApi.getMe()).resolves.toEqual(meInfo);
-    expect(mockClientGet).toHaveBeenCalledWith("/auth/me");
+    expect(mockClientGet).toHaveBeenCalledWith(
+      "/auth/me",
+      sessionOwnedAuthEventPolicy,
+    );
   });
 
   it("passes an AbortSignal through to the getMe request when provided", async () => {
@@ -88,8 +95,115 @@ describe("auth boundary contracts", () => {
 
     await expect(authApi.getMe(controller.signal)).resolves.toEqual(meInfo);
     expect(mockClientGet).toHaveBeenCalledWith("/auth/me", {
+      ...sessionOwnedAuthEventPolicy,
       signal: controller.signal,
     });
+  });
+
+  it("marks login and logout as session-owned without putting policy in transport data", async () => {
+    const controller = new AbortController();
+    const credentials = {
+      email: "guest@example.com",
+      password: "password",
+    };
+    const successEnvelope = {
+      data: {
+        success: true,
+        data: null,
+        error: null,
+      },
+    };
+
+    mockClientPost.mockResolvedValue(successEnvelope);
+
+    await expect(authApi.login(credentials, controller.signal)).resolves.toBeUndefined();
+    await expect(authApi.logout(controller.signal)).resolves.toBeUndefined();
+
+    const expectedConfig = {
+      ...sessionOwnedAuthEventPolicy,
+      signal: controller.signal,
+    };
+
+    expect(mockClientPost).toHaveBeenNthCalledWith(
+      1,
+      "/auth/login",
+      credentials,
+      expectedConfig,
+    );
+    expect(mockClientPost).toHaveBeenNthCalledWith(
+      2,
+      "/auth/logout",
+      undefined,
+      expectedConfig,
+    );
+    expect(expectedConfig).not.toHaveProperty("headers");
+    expect(expectedConfig).not.toHaveProperty("params");
+    expect(credentials).not.toHaveProperty("authEventPolicy");
+  });
+
+  it("lets SessionProvider own error handling for all three session API envelopes", async () => {
+    const listener = jest.fn();
+    const unsubscribe = onAuthError(listener);
+    const expiredSessionEnvelope = {
+      data: {
+        success: false,
+        data: null,
+        error: {
+          message: "세션이 만료되었습니다.",
+          status: 403,
+          code: "M004",
+        },
+      },
+      headers: {
+        "content-type": "application/json;charset=utf-8",
+      },
+    };
+
+    mockClientGet.mockResolvedValue(expiredSessionEnvelope);
+    mockClientPost.mockResolvedValue(expiredSessionEnvelope);
+
+    try {
+      await expect(authApi.getMe()).rejects.toMatchObject({ code: "M004" });
+      await expect(
+        authApi.login({ email: "guest@example.com", password: "password" }),
+      ).rejects.toMatchObject({ code: "M004" });
+      await expect(authApi.logout()).rejects.toMatchObject({ code: "M004" });
+
+      expect(listener).not.toHaveBeenCalled();
+    } finally {
+      unsubscribe();
+    }
+  });
+
+  it("keeps non-session auth API envelopes on the global event path", async () => {
+    const listener = jest.fn();
+    const unsubscribe = onAuthError(listener);
+
+    mockClientPost.mockResolvedValue({
+      data: {
+        success: false,
+        data: null,
+        error: {
+          message: "세션이 만료되었습니다.",
+          status: 403,
+          code: "M004",
+        },
+      },
+    });
+
+    try {
+      await expect(
+        authApi.signup({
+          nickname: "Guest",
+          email: "guest@example.com",
+          password: "password",
+        }),
+      ).rejects.toMatchObject({ code: "M004" });
+
+      expect(listener).toHaveBeenCalledTimes(1);
+    } finally {
+      unsubscribe();
+    }
   });
 
   it("rejects a backend getMe error envelope as ApiClientError", async () => {
@@ -146,55 +260,74 @@ describe("auth boundary contracts", () => {
     expect(clientError.code).toBe("INVALID_API_RESPONSE");
   });
 
-  it("keeps AuthContext authentication state behind the auth query boundary", () => {
+  it("keeps AuthContext as a projection over the session owner", () => {
     const authContextSource = readSource("..", "contexts", "AuthContext.tsx");
-    const sessionLifecycleSource = readSource(
-      "..",
-      "features",
-      "auth",
-      "lib",
-      "sessionLifecycle.ts"
+    const forbiddenOwnership = [
+      "authApi",
+      "useSessionQuery",
+      "useQueryClient",
+      "QueryClient",
+      "authQueryKeys",
+      "useEffect",
+      "onAuthError",
+      "triggerAuthError",
+      "addEventListener",
+      "createSessionBroadcast",
+      "clearSession",
+      "clearAuthenticatedSession",
+      "refreshAuthenticatedSession",
+      "clearSessionQueryData",
+      "clearReservationSessionState",
+      "clearAllReservationCheckoutState",
+      "document.cookie",
+      "sessionStorage",
+      "localStorage",
+      "setTimeout",
+    ];
+
+    expect(authContextSource).toMatch(/useSession\(\s*\)/);
+    expect(authContextSource).toMatch(
+      /state\.status\s*===\s*["']authenticated["']/,
     );
-    const sessionCacheBoundarySource = readSource(
+    expect(authContextSource).toMatch(
+      /state\.status\s*===\s*["']checking["']/,
+    );
+    expect(authContextSource).toMatch(/login:\s*session\.login/);
+    expect(authContextSource).toMatch(/logout:\s*session\.logout/);
+    expect(authContextSource).toMatch(/checkAuth:\s*session\.revalidate/);
+
+    forbiddenOwnership.forEach((forbiddenSource) => {
+      expect(authContextSource).not.toContain(forbiddenSource);
+    });
+  });
+
+  it("preserves the validated internal return-target boundary", () => {
+    const requireAuthSource = readSource("..", "routes", "RequireAuth.tsx");
+    const loginRouteSource = readSource(
       "..",
-      "query",
-      "sessionCacheBoundary.ts"
+      "app",
+      "router",
+      "routes",
+      "LoginRoute.tsx",
+    );
+    const returnTargetCodecSource = readSource(
+      "..",
+      "app",
+      "router",
+      "codecs",
+      "internalReturnTargetCodec.ts",
     );
 
-    expect(authContextSource).not.toMatch(/from\s+["']\.\.\/api\/client["'];?/);
-    expect(authContextSource).not.toMatch(/client\.get\(\s*["']\/auth\/me["']\s*\)/);
-    expect(authContextSource).not.toMatch(/setIsAuthenticated/);
-    expect(authContextSource).not.toMatch(/setIsLoading/);
-    expect(authContextSource).not.toMatch(/setQueryData/);
-    expect(authContextSource).toMatch(/useSessionQuery\(\s*\)/);
-    expect(authContextSource).toMatch(/useQueryClient\(\s*\)/);
-    expect(authContextSource).toMatch(/authQueryKeys\.me\(\s*\)/);
-    expect(authContextSource).toMatch(
-      /clearAuthenticatedSession\(\s*queryClient\s*\)/
+    expect(requireAuthSource).toMatch(
+      /from:\s*{[\s\S]*pathname:\s*location\.pathname,[\s\S]*search:\s*location\.search,[\s\S]*hash:\s*location\.hash/,
     );
-    expect(authContextSource).toMatch(
-      /refreshAuthenticatedSession\(\s*queryClient\s*\)/
+    expect(loginRouteSource).toMatch(
+      /internalReturnTargetCodec\.parse\(location\.state\)/,
     );
-    expect(authContextSource).not.toMatch(/authApi\.getMe\(\s*\)/);
-    expect(authContextSource).not.toMatch(
-      /clearSessionQueryData\(\s*queryClient\s*\)/
+    expect(loginRouteSource).toMatch(
+      /locationState=\{returnTarget\s*\?\s*{\s*from:\s*returnTarget\s*}\s*:\s*null}/,
     );
-    expect(authContextSource).not.toMatch(
-      /refreshSessionQueryData\(\s*queryClient,\s*meInfo\s*\)/
-    );
-    expect(sessionLifecycleSource).toMatch(/authApi\.getMe\(\s*\)/);
-    expect(sessionLifecycleSource).toMatch(
-      /clearSessionQueryData\(\s*queryClient\s*\)/
-    );
-    expect(sessionLifecycleSource).toMatch(
-      /refreshSessionQueryData\(\s*queryClient,\s*meInfo\s*\)/
-    );
-    expect(sessionLifecycleSource).toMatch(
-      /catch\s*\([^)]*\)\s*{[\s\S]*clearAuthenticatedSession\(\s*queryClient\s*\)/
-    );
-    expect(sessionCacheBoundarySource).toMatch(/authQueryKeys\.me\(\s*\)/);
-    expect(sessionCacheBoundarySource).toMatch(
-      /setQueryData[\s\S]*authQueryKeys\.me\(\s*\)/
-    );
+    expect(returnTargetCodecSource).toMatch(/isAuthLoopPath/);
+    expect(returnTargetCodecSource).toMatch(/url\.origin\s*!==\s*INTERNAL_BASE/);
   });
 });

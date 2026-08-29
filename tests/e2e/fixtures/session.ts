@@ -8,20 +8,34 @@ export interface SyntheticUser {
   thumbnail_image_url: string | null;
 }
 
-export const SYNTHETIC_USER: SyntheticUser = {
+export const SYNTHETIC_USER_A: SyntheticUser = {
   id: 101,
   email: "person-a@example.invalid",
   nickname: "테스트 사용자",
   thumbnail_image_url: null,
 };
 
+export const SYNTHETIC_USER_B: SyntheticUser = {
+  id: 202,
+  email: "person-b@example.invalid",
+  nickname: "테스트 사용자 B",
+  thumbnail_image_url: null,
+};
+
+export const SYNTHETIC_USER = SYNTHETIC_USER_A;
+
 export interface SessionFixture {
   authenticate(user?: SyntheticUser): void;
   clear(): void;
+  failNextLogout(): void;
 }
 
 export const installSessionFixture = (api: ApiHarness): SessionFixture => {
   let currentUser: SyntheticUser | null = null;
+  let shouldFailNextLogout = false;
+  const syntheticUsersByEmail = new Map<string, SyntheticUser>(
+    [SYNTHETIC_USER_A, SYNTHETIC_USER_B].map((user) => [user.email, user]),
+  );
 
   api.register("GET", "/api/v1/auth/me", () =>
     currentUser
@@ -42,9 +56,11 @@ export const installSessionFixture = (api: ApiHarness): SessionFixture => {
         ? (request.body as { password?: unknown }).password
         : null;
 
+    const syntheticUser =
+      typeof email === "string" ? syntheticUsersByEmail.get(email) : undefined;
+
     if (
-      typeof email !== "string" ||
-      !email.endsWith(".invalid") ||
+      syntheticUser === undefined ||
       typeof password !== "string" ||
       !password.startsWith("synthetic-")
     ) {
@@ -55,10 +71,19 @@ export const installSessionFixture = (api: ApiHarness): SessionFixture => {
       );
     }
 
-    currentUser = SYNTHETIC_USER;
+    currentUser = syntheticUser;
     return apiSuccess(null);
   });
   api.register("POST", "/api/v1/auth/logout", () => {
+    if (shouldFailNextLogout) {
+      shouldFailNextLogout = false;
+      return apiFailure(
+        500,
+        "E2E_LOGOUT_FAILURE",
+        "Synthetic logout failure.",
+      );
+    }
+
     currentUser = null;
     return apiSuccess(null);
   });
@@ -79,6 +104,9 @@ export const installSessionFixture = (api: ApiHarness): SessionFixture => {
     },
     clear() {
       currentUser = null;
+    },
+    failNextLogout() {
+      shouldFailNextLogout = true;
     },
   };
 };

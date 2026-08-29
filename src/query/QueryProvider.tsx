@@ -1,11 +1,18 @@
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode } from "react";
-import { createAppQueryClient } from "./queryClient";
 
-const queryClient = createAppQueryClient();
-
-export function QueryProvider({ children }: { children: ReactNode }) {
+/**
+ * Legacy compatibility wrapper. Production session ownership now supplies a
+ * generation-scoped client from src/app/session instead of a module singleton.
+ */
+export function QueryProvider({
+  children,
+  client,
+}: {
+  children: ReactNode;
+  client: QueryClient;
+}) {
   return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
 }

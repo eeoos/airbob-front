@@ -1,53 +1,42 @@
 import { QueryClient } from "@tanstack/react-query";
-import { accommodationQueryKeys } from "../features/accommodations/queryKeys";
 import { authQueryKeys } from "../features/auth/queryKeys";
-import { profileQueryKeys } from "../features/profile/queryKeys";
-import { reservationQueryKeys } from "../features/reservations/queryKeys";
-import { searchQueryKeys } from "../features/search/queryKeys";
-import { wishlistQueryKeys } from "../features/wishlist/queryKeys";
 import { MeInfo } from "../types/auth";
 
-const userScopedQueryRoots = [
-  accommodationQueryKeys.detailRoot,
-  accommodationQueryKeys.couponsRoot,
-  wishlistQueryKeys.all,
-  profileQueryKeys.all,
-  reservationQueryKeys.all,
-  searchQueryKeys.all,
-] as const;
+const authMeQueryKey = authQueryKeys.me();
+
+const isExactAuthMeQuery = (query: { queryKey: readonly unknown[] }) =>
+  query.queryKey.length === authMeQueryKey.length &&
+  query.queryKey.every((part, index) => part === authMeQueryKey[index]);
+
+const nonAuthMeQueryFilter = {
+  predicate: (query: { queryKey: readonly unknown[] }) =>
+    !isExactAuthMeQuery(query),
+};
+
+const removeNonAuthMeQueries = async (queryClient: QueryClient) => {
+  await queryClient.cancelQueries(nonAuthMeQueryFilter);
+  queryClient.removeQueries(nonAuthMeQueryFilter);
+};
 
 export const clearSessionQueryData = async (queryClient: QueryClient) => {
-  await Promise.all(
-    userScopedQueryRoots.map((queryKey) =>
-      queryClient.cancelQueries({ queryKey })
-    )
-  );
+  await removeNonAuthMeQueries(queryClient);
 
-  userScopedQueryRoots.forEach((queryKey) => {
-    queryClient.removeQueries({ queryKey });
+  await queryClient.cancelQueries({
+    exact: true,
+    queryKey: authMeQueryKey,
   });
-
-  await queryClient.cancelQueries({ queryKey: authQueryKeys.me() });
   queryClient.removeQueries({
-    queryKey: authQueryKeys.me(),
+    exact: true,
+    queryKey: authMeQueryKey,
     type: "inactive",
   });
-  queryClient.setQueryData<MeInfo | null>(authQueryKeys.me(), null);
+  queryClient.setQueryData<MeInfo | null>(authMeQueryKey, null);
 };
 
 export const refreshSessionQueryData = async (
   queryClient: QueryClient,
-  meInfo: MeInfo
+  meInfo: MeInfo,
 ) => {
-  await Promise.all(
-    userScopedQueryRoots.map((queryKey) =>
-      queryClient.cancelQueries({ queryKey })
-    )
-  );
-
-  userScopedQueryRoots.forEach((queryKey) => {
-    queryClient.removeQueries({ queryKey });
-  });
-
-  queryClient.setQueryData<MeInfo | null>(authQueryKeys.me(), meInfo);
+  await removeNonAuthMeQueries(queryClient);
+  queryClient.setQueryData<MeInfo | null>(authMeQueryKey, meInfo);
 };

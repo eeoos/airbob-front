@@ -59,6 +59,35 @@ const mockNavigate = jest.fn();
 const mockHandleError = jest.fn();
 const mockClearError = jest.fn();
 const mockRequireAuth = jest.fn();
+const mockIsCurrentAuthIntent = jest.fn();
+
+const createReservationAuthIntentExecution = (
+  overrides: Partial<{
+    accommodationId: number;
+    adultCount: number;
+    checkIn: string;
+    checkOut: string;
+    childCount: number;
+    couponId: number | null;
+    infantCount: number;
+    petCount: number;
+  }> = {},
+) => ({
+  generation: 11,
+  intent: {
+    type: "reservation.start" as const,
+    accommodationId: 7,
+    checkIn: "2026-07-20",
+    checkOut: "2026-07-22",
+    adultCount: 1,
+    childCount: 0,
+    infantCount: 0,
+    petCount: 0,
+    couponId: null,
+    ...overrides,
+  },
+  isCurrent: mockIsCurrentAuthIntent,
+});
 
 const createAccommodation = (
   overrides: Partial<AccommodationDetail> = {}
@@ -119,7 +148,8 @@ const createCoupon = (overrides: Partial<CouponInfo> = {}): CouponInfo => ({
 
 const renderUseAccommodationBooking = (
   searchParams: URLSearchParams,
-  options: Partial<Parameters<typeof useAccommodationBooking>[0]> = {}
+  options: Partial<Parameters<typeof useAccommodationBooking>[0]> = {},
+  reactStrictMode = false,
 ) =>
   renderHook(() =>
     useAccommodationBooking({
@@ -137,7 +167,8 @@ const renderUseAccommodationBooking = (
       onRequireAuth: mockRequireAuth,
       startTransition: (callback) => callback(),
       ...options,
-    })
+    }),
+    { reactStrictMode },
   );
 
 describe("useAccommodationBooking", () => {
@@ -150,6 +181,8 @@ describe("useAccommodationBooking", () => {
     mockHandleError.mockReset();
     mockClearError.mockReset();
     mockRequireAuth.mockReset();
+    mockIsCurrentAuthIntent.mockReset();
+    mockIsCurrentAuthIntent.mockReturnValue(true);
     mockStartReservationCheckoutHandoff.mockReset();
     mockStartReservationCheckoutHandoff.mockImplementation(
       async (options: MockStartReservationCheckoutHandoffOptions) => {
@@ -416,11 +449,21 @@ describe("useAccommodationBooking", () => {
       await result.current.handleReserve();
     });
 
-    expect(mockRequireAuth).toHaveBeenCalledTimes(1);
+    expect(mockRequireAuth).toHaveBeenCalledWith({
+      type: "reservation.start",
+      accommodationId: 7,
+      checkIn: "2026-07-20",
+      checkOut: "2026-07-22",
+      adultCount: 1,
+      childCount: 0,
+      infantCount: 0,
+      petCount: 0,
+      couponId: null,
+    });
     expect(reservationApi.create).not.toHaveBeenCalled();
   });
 
-  it("replays a deferred reservation after auth success without reopening auth", async () => {
+  it("executes one claimed reservation generation exactly once", async () => {
     jest.mocked(reservationApi.create).mockResolvedValue({
       reservation_uid: "res-1",
       order_name: "주문명",
@@ -428,33 +471,155 @@ describe("useAccommodationBooking", () => {
       customer_email: "guest@example.com",
       customer_name: "게스트",
     });
-    let pendingAction: (() => void | Promise<void>) | undefined;
-    mockRequireAuth.mockImplementation((action) => {
-      pendingAction = action;
-    });
 
     const { result } = renderUseAccommodationBooking(
       new URLSearchParams("checkIn=2026-07-20&checkOut=2026-07-22"),
-      { isAuthenticated: false }
+      { isAuthenticated: true },
     );
+    const execution = createReservationAuthIntentExecution();
 
     await act(async () => {
-      await result.current.handleReserve();
-    });
-
-    mockRequireAuth.mockClear();
-
-    await act(async () => {
-      await pendingAction?.();
+      await Promise.all([
+        result.current.handleReserve(undefined, execution),
+        result.current.handleReserve(undefined, execution),
+      ]);
     });
 
     expect(mockRequireAuth).not.toHaveBeenCalled();
+    expect(reservationApi.create).toHaveBeenCalledTimes(1);
     expect(reservationApi.create).toHaveBeenCalledWith({
       accommodation_id: 7,
       check_in_date: "2026-07-20",
       check_out_date: "2026-07-22",
       guest_count: 1,
     });
+  });
+
+  it("keeps the mounted guard active through the StrictMode effect cycle", async () => {
+    jest.mocked(reservationApi.create).mockResolvedValue({
+      reservation_uid: "res-1",
+      order_name: "주문명",
+      amount: 200000,
+      customer_email: "guest@example.com",
+      customer_name: "게스트",
+    });
+    const { result } = renderUseAccommodationBooking(
+      new URLSearchParams("checkIn=2026-07-20&checkOut=2026-07-22"),
+      { isAuthenticated: true },
+      true,
+    );
+
+    await act(async () => {
+      await result.current.handleReserve(
+        undefined,
+        createReservationAuthIntentExecution(),
+      );
+    });
+
+    expect(reservationApi.create).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ["resource", { accommodationId: 8 }],
+    ["dates", { checkIn: "2026-07-21" }],
+    ["occupancy", { adultCount: 2 }],
+    ["coupon", { couponId: 3 }],
+  ] as const)(
+    "rejects a claimed reservation whose %s snapshot no longer matches",
+    async (_field, intentOverrides) => {
+      const { result } = renderUseAccommodationBooking(
+        new URLSearchParams("checkIn=2026-07-20&checkOut=2026-07-22"),
+      );
+
+      await act(async () => {
+        await result.current.handleReserve(
+          undefined,
+          createReservationAuthIntentExecution(intentOverrides),
+        );
+      });
+
+      expect(reservationApi.create).not.toHaveBeenCalled();
+      expect(mockStartReservationCheckoutHandoff).not.toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalled();
+    },
+  );
+
+  it("does not persist or navigate when the claimed session becomes stale in flight", async () => {
+    let resolveReservation!: (value: ReservationReady) => void;
+    let isCurrent = true;
+    mockIsCurrentAuthIntent.mockImplementation(() => isCurrent);
+    jest.mocked(reservationApi.create).mockReturnValue(
+      new Promise((resolve) => {
+        resolveReservation = resolve;
+      }),
+    );
+    const { result } = renderUseAccommodationBooking(
+      new URLSearchParams("checkIn=2026-07-20&checkOut=2026-07-22"),
+    );
+
+    let reservePromise: Promise<void> | undefined;
+    act(() => {
+      reservePromise = result.current.handleReserve(
+        undefined,
+        createReservationAuthIntentExecution(),
+      );
+    });
+
+    expect(reservationApi.create).toHaveBeenCalledTimes(1);
+    isCurrent = false;
+
+    await act(async () => {
+      resolveReservation({
+        reservation_uid: "res-1",
+        order_name: "주문명",
+        amount: 200000,
+        customer_email: "guest@example.com",
+        customer_name: "게스트",
+      });
+      await reservePromise;
+    });
+
+    expect(sessionStorage.getItem("airbob:reservation-checkout:7")).toBeNull();
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(mockHandleError).not.toHaveBeenCalled();
+  });
+
+  it("does not persist, navigate, or update errors after unmounting in flight", async () => {
+    let resolveReservation!: (value: ReservationReady) => void;
+    jest.mocked(reservationApi.create).mockReturnValue(
+      new Promise((resolve) => {
+        resolveReservation = resolve;
+      }),
+    );
+    const { result, unmount } = renderUseAccommodationBooking(
+      new URLSearchParams("checkIn=2026-07-20&checkOut=2026-07-22"),
+    );
+
+    let reservePromise: Promise<void> | undefined;
+    act(() => {
+      reservePromise = result.current.handleReserve(
+        undefined,
+        createReservationAuthIntentExecution(),
+      );
+    });
+    expect(reservationApi.create).toHaveBeenCalledTimes(1);
+
+    unmount();
+    await act(async () => {
+      resolveReservation({
+        reservation_uid: "res-1",
+        order_name: "주문명",
+        amount: 200000,
+        customer_email: "guest@example.com",
+        customer_name: "게스트",
+      });
+      await reservePromise;
+    });
+
+    expect(sessionStorage.getItem("airbob:reservation-checkout:7")).toBeNull();
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(mockHandleError).not.toHaveBeenCalled();
   });
 
   it("ignores duplicate reserve calls while reservation creation is in flight", async () => {

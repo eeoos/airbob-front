@@ -20,6 +20,20 @@ jest.mock("../../../api", () => ({
 const mockHandleError = jest.fn();
 const mockClearError = jest.fn();
 const mockRequireAuth = jest.fn();
+const mockIsCurrentAuthIntent = jest.fn();
+
+const createCouponAuthIntentExecution = (
+  couponId: number,
+  accommodationId = 7,
+) => ({
+  generation: 17,
+  intent: {
+    type: "coupon.issue" as const,
+    accommodationId,
+    couponId,
+  },
+  isCurrent: mockIsCurrentAuthIntent,
+});
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -66,6 +80,8 @@ describe("useAccommodationCoupons", () => {
     mockHandleError.mockReset();
     mockClearError.mockReset();
     mockRequireAuth.mockReset();
+    mockIsCurrentAuthIntent.mockReset();
+    mockIsCurrentAuthIntent.mockReturnValue(true);
     jest.mocked(couponApi.getValidCoupons).mockReset();
     jest.mocked(couponApi.issue).mockReset();
   });
@@ -79,6 +95,7 @@ describe("useAccommodationCoupons", () => {
     const { result } = renderHook(
       () =>
         useAccommodationCoupons({
+          accommodationId: "7",
           isAuthenticated: true,
           totalPrice: 50000,
           handleError: mockHandleError,
@@ -106,6 +123,7 @@ describe("useAccommodationCoupons", () => {
     const { result } = renderHook(
       () =>
         useAccommodationCoupons({
+          accommodationId: "7",
           isAuthenticated: false,
           totalPrice: 50000,
           handleError: mockHandleError,
@@ -130,6 +148,7 @@ describe("useAccommodationCoupons", () => {
     const { result } = renderHook(
       () =>
         useAccommodationCoupons({
+          accommodationId: "7",
           isAuthenticated: true,
           totalPrice: 50000,
           handleError: mockHandleError,
@@ -165,6 +184,7 @@ describe("useAccommodationCoupons", () => {
     const { result } = renderHook(
       () =>
         useAccommodationCoupons({
+          accommodationId: "7",
           isAuthenticated: true,
           totalPrice: 50000,
           handleError: mockHandleError,
@@ -189,6 +209,7 @@ describe("useAccommodationCoupons", () => {
     const { result } = renderHook(
       () =>
         useAccommodationCoupons({
+          accommodationId: "7",
           isAuthenticated: false,
           totalPrice: 50000,
           handleError: mockHandleError,
@@ -202,22 +223,24 @@ describe("useAccommodationCoupons", () => {
       await result.current.handleIssueCoupon(coupon);
     });
 
-    expect(mockRequireAuth).toHaveBeenCalledTimes(1);
+    expect(mockRequireAuth).toHaveBeenCalledWith({
+      type: "coupon.issue",
+      accommodationId: 7,
+      couponId: 4,
+    });
     expect(couponApi.issue).not.toHaveBeenCalled();
   });
 
-  it("replays a deferred coupon issue after auth success without reopening auth", async () => {
+  it("executes one claimed coupon generation exactly once", async () => {
     const coupon = createCoupon(5);
-    let pendingAction: (() => void | Promise<void>) | undefined;
-    mockRequireAuth.mockImplementation((action) => {
-      pendingAction = action;
-    });
+    jest.mocked(couponApi.getValidCoupons).mockResolvedValue({ infos: [coupon] });
     jest.mocked(couponApi.issue).mockResolvedValue(undefined);
 
     const { result } = renderHook(
       () =>
         useAccommodationCoupons({
-          isAuthenticated: false,
+          accommodationId: "7",
+          isAuthenticated: true,
           totalPrice: 50000,
           handleError: mockHandleError,
           clearError: mockClearError,
@@ -226,18 +249,139 @@ describe("useAccommodationCoupons", () => {
       { wrapper: createWrapper() },
     );
 
-    await act(async () => {
-      await result.current.handleIssueCoupon(coupon);
-    });
-
-    mockRequireAuth.mockClear();
+    await waitFor(() => expect(result.current.coupons).toEqual([coupon]));
+    const execution = createCouponAuthIntentExecution(coupon.id);
 
     await act(async () => {
-      await pendingAction?.();
+      await Promise.all([
+        result.current.handleIssueCoupon(coupon, execution),
+        result.current.handleIssueCoupon(coupon, execution),
+      ]);
     });
 
     expect(mockRequireAuth).not.toHaveBeenCalled();
+    expect(couponApi.issue).toHaveBeenCalledTimes(1);
     expect(couponApi.issue).toHaveBeenCalledWith(5);
     expect(result.current.selectedCouponId).toBe(5);
+  });
+
+  it("does not issue a coupon for a stale or mismatched claimed generation", async () => {
+    const coupon = createCoupon(6);
+    jest.mocked(couponApi.getValidCoupons).mockResolvedValue({ infos: [coupon] });
+    const { result } = renderHook(
+      () =>
+        useAccommodationCoupons({
+          accommodationId: "7",
+          isAuthenticated: true,
+          totalPrice: 50000,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+          onRequireAuth: mockRequireAuth,
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.coupons).toEqual([coupon]));
+    mockIsCurrentAuthIntent.mockReturnValue(false);
+
+    await act(async () => {
+      await result.current.handleIssueCoupon(
+        coupon,
+        createCouponAuthIntentExecution(coupon.id),
+      );
+      await result.current.handleIssueCoupon(
+        coupon,
+        createCouponAuthIntentExecution(coupon.id, 8),
+      );
+    });
+
+    expect(couponApi.issue).not.toHaveBeenCalled();
+    expect(result.current.selectedCouponId).toBeNull();
+    expect(mockHandleError).not.toHaveBeenCalled();
+  });
+
+  it("does not update coupon UI when the claimed session becomes stale in flight", async () => {
+    const coupon = createCoupon(7);
+    let resolveIssue!: () => void;
+    let isCurrent = true;
+    mockIsCurrentAuthIntent.mockImplementation(() => isCurrent);
+    jest.mocked(couponApi.getValidCoupons).mockResolvedValue({ infos: [coupon] });
+    jest.mocked(couponApi.issue).mockReturnValue(
+      new Promise<void>((resolve) => {
+        resolveIssue = resolve;
+      }),
+    );
+    const { result } = renderHook(
+      () =>
+        useAccommodationCoupons({
+          accommodationId: "7",
+          isAuthenticated: true,
+          totalPrice: 50000,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+          onRequireAuth: mockRequireAuth,
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.coupons).toEqual([coupon]));
+    let issuePromise: Promise<void> | undefined;
+    act(() => {
+      issuePromise = result.current.handleIssueCoupon(
+        coupon,
+        createCouponAuthIntentExecution(coupon.id),
+      );
+    });
+    expect(couponApi.issue).toHaveBeenCalledWith(coupon.id);
+
+    isCurrent = false;
+    await act(async () => {
+      resolveIssue();
+      await issuePromise;
+    });
+
+    expect(result.current.selectedCouponId).toBeNull();
+    expect(mockHandleError).not.toHaveBeenCalled();
+  });
+
+  it("does not update coupon UI or errors after unmounting in flight", async () => {
+    const coupon = createCoupon(8);
+    let resolveIssue!: () => void;
+    jest.mocked(couponApi.getValidCoupons).mockResolvedValue({ infos: [coupon] });
+    jest.mocked(couponApi.issue).mockReturnValue(
+      new Promise<void>((resolve) => {
+        resolveIssue = resolve;
+      }),
+    );
+    const { result, unmount } = renderHook(
+      () =>
+        useAccommodationCoupons({
+          accommodationId: "7",
+          isAuthenticated: true,
+          totalPrice: 50000,
+          handleError: mockHandleError,
+          clearError: mockClearError,
+          onRequireAuth: mockRequireAuth,
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.coupons).toEqual([coupon]));
+    let issuePromise: Promise<void> | undefined;
+    act(() => {
+      issuePromise = result.current.handleIssueCoupon(
+        coupon,
+        createCouponAuthIntentExecution(coupon.id),
+      );
+    });
+    expect(couponApi.issue).toHaveBeenCalledWith(coupon.id);
+
+    unmount();
+    await act(async () => {
+      resolveIssue();
+      await issuePromise;
+    });
+
+    expect(mockHandleError).not.toHaveBeenCalled();
   });
 });

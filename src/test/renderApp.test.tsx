@@ -1,6 +1,10 @@
-import { screen } from "@testing-library/react";
-import { useLocation } from "react-router-dom";
+import { screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useSession } from "../app/session/useSession";
+import { toSessionSubject } from "../app/session/sessionState";
 import { useAuth } from "../contexts/AuthContext";
+import type { SessionAuthPort } from "../features/auth/ports/sessionPort";
 import { authQueryKeys } from "../features/auth/queryKeys";
 import { MeInfo } from "../types/auth";
 import { createTestQueryClient } from "./createTestQueryClient";
@@ -21,6 +25,13 @@ const session: MeInfo = {
   thumbnail_image_url: null,
 };
 
+const nextSession: MeInfo = {
+  id: 8,
+  email: "next@example.invalid",
+  nickname: "Next",
+  thumbnail_image_url: null,
+};
+
 const HarnessProbe = () => {
   const auth = useAuth();
   const location = useLocation();
@@ -33,8 +44,42 @@ const HarnessProbe = () => {
   );
 };
 
+const SessionNavigationProbe = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const sessionState = useSession();
+  const viewerId =
+    sessionState.state.status === "authenticated"
+      ? sessionState.state.viewer.id
+      : "none";
+
+  return (
+    <>
+      <output data-testid="session-location">
+        {sessionState.state.status}:{viewerId}|{location.pathname}
+      </output>
+      <button type="button" onClick={() => navigate("/after-navigation")}>
+        이동
+      </button>
+      <button
+        type="button"
+        onClick={() =>
+          void sessionState
+            .login({
+              email: nextSession.email,
+              password: "synthetic-password",
+            })
+            .catch(() => undefined)
+        }
+      >
+        사용자 전환
+      </button>
+    </>
+  );
+};
+
 describe("renderApp", () => {
-  it("composes the real auth provider, seeded query cache, and memory history", () => {
+  it("composes the real session owner, query fixtures, and memory history", () => {
     const view = renderApp(<HarnessProbe />, {
       session,
       initialEntries: [
@@ -50,9 +95,43 @@ describe("renderApp", () => {
 
     expect(screen.getByText("authenticated|/reservation/confirm|router-handoff"))
       .toBeInTheDocument();
-    expect(view.queryClient.getQueryData(authQueryKeys.me())).toEqual(session);
+    expect(view.queryClient.getQueryData(authQueryKeys.me())).toBeUndefined();
+    expect(view.queryClient.getDefaultOptions().queries?.meta).toEqual({
+      session: { epoch: 0, subject: toSessionSubject(session) },
+    });
     expect(view.queryClient.getQueryData(["fixture"])).toBe("seeded");
     expect(view.portalRoot).toBe(screen.getByTestId(TEST_PORTAL_ROOT_ID));
+  });
+
+  it("keeps the current memory-history entry across a session generation remount", async () => {
+    const authPort: jest.Mocked<SessionAuthPort> = {
+      getViewer: jest.fn().mockResolvedValue(nextSession),
+      login: jest.fn().mockResolvedValue(undefined),
+      logout: jest.fn().mockResolvedValue(undefined),
+    };
+
+    renderApp(<SessionNavigationProbe />, {
+      authPort,
+      initialEntries: ["/before-navigation"],
+      session,
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "이동" }));
+    expect(screen.getByTestId("session-location")).toHaveTextContent(
+      "authenticated:7|/after-navigation",
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "사용자 전환" }),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("session-location")).toHaveTextContent(
+        "authenticated:8|/after-navigation",
+      ),
+    );
+    expect(authPort.login).toHaveBeenCalledTimes(1);
+    expect(authPort.getViewer).toHaveBeenCalledTimes(1);
   });
 
   it("owns query-cache and portal cleanup when the rendered tree unmounts", () => {

@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSession } from "../../../app/session/useSession";
 import { reviewApi } from "../../../api";
 import { useApiError } from "../../../hooks/useApiError";
 import { useHandledQueryError } from "../../../query/useHandledQueryError";
@@ -23,15 +24,29 @@ export type SubmitReviewResult =
       status: "success" | "upload_failed";
     }
   | {
-      status: "failed" | "invalid";
+      status: "failed" | "invalid" | "stale";
     };
+
+const STALE_REVIEW_RESULT: SubmitReviewResult = Object.freeze({
+  status: "stale",
+});
 
 export function useReviewCreate(reservationUid?: string) {
   const queryClient = useQueryClient();
+  const { captureAuthenticatedSession, isCurrentSession } = useSession();
   const { error, handleError, clearError } = useApiError();
   const reservationDetailQuery = useReservationDetailQuery(reservationUid);
   const { refetch } = reservationDetailQuery;
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const reservation =
     reservationDetailQuery.isError ? null : reservationDetailQuery.data ?? null;
@@ -74,49 +89,81 @@ export function useReviewCreate(reservationUid?: string) {
       images,
       rating,
     }: SubmitReviewRequest): Promise<SubmitReviewResult> => {
-      if (!reservation || !content.trim()) {
+      const capturedSession = captureAuthenticatedSession();
+      const normalizedContent = content.trim();
+      const isSubmissionCurrent = () =>
+        isMountedRef.current &&
+        capturedSession !== null &&
+        isCurrentSession(capturedSession);
+
+      if (!isSubmissionCurrent()) {
+        return STALE_REVIEW_RESULT;
+      }
+
+      if (!reservation || !normalizedContent) {
         handleError(new Error("리뷰 내용을 입력해주세요."));
         return { status: "invalid" };
       }
 
       setIsSubmitting(true);
-      clearError();
 
       try {
+        clearError();
+
         const createResponse = await reviewApi.create(
           reservation.accommodation.id,
           {
             rating,
-            content: content.trim(),
+            content: normalizedContent,
           }
         );
+        if (!isSubmissionCurrent()) return STALE_REVIEW_RESULT;
 
         if (createResponse && images.length > 0) {
           try {
             await reviewApi.uploadImages(createResponse.id, images);
           } catch {
+            if (!isSubmissionCurrent()) return STALE_REVIEW_RESULT;
+
             await invalidateReviewCreateCaches(reservation);
+            if (!isSubmissionCurrent()) return STALE_REVIEW_RESULT;
+
             handleError(new Error(REVIEW_IMAGE_UPLOAD_ERROR_MESSAGE));
             return {
               status: "upload_failed",
               reservationUid: reservation.reservation_uid,
             };
           }
+
+          if (!isSubmissionCurrent()) return STALE_REVIEW_RESULT;
         }
 
         await invalidateReviewCreateCaches(reservation);
-        return {
-          status: "success",
-          reservationUid: reservation.reservation_uid,
-        };
+        return isSubmissionCurrent()
+          ? {
+              status: "success",
+              reservationUid: reservation.reservation_uid,
+            }
+          : STALE_REVIEW_RESULT;
       } catch (err) {
+        if (!isSubmissionCurrent()) return STALE_REVIEW_RESULT;
+
         handleError(err);
         return { status: "failed" };
       } finally {
-        setIsSubmitting(false);
+        if (isSubmissionCurrent()) {
+          setIsSubmitting(false);
+        }
       }
     },
-    [clearError, handleError, invalidateReviewCreateCaches, reservation]
+    [
+      captureAuthenticatedSession,
+      clearError,
+      handleError,
+      invalidateReviewCreateCaches,
+      isCurrentSession,
+      reservation,
+    ]
   );
 
   return {

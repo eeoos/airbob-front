@@ -1,0 +1,16 @@
+.notice {
+  position: fixed;
+  bottom: var(--space-6);
+  right: var(--space-6);
+  z-index: var(--z-toast);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: min(480px, calc(100vw - var(--space-12)));
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-text-primary);
+  box-shadow: var(--shadow-lg);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-sm);
+}

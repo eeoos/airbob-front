@@ -1,4 +1,5 @@
 import React, { useCallback, useState, useEffect, useRef } from "react";
+import { useSession } from "../../../../app/session/useSession";
 import { useAuth } from "../../../../hooks/useAuth";
 import { useApiError } from "../../../../hooks/useApiError";
 import { useSignup } from "../../hooks/useSignup";
@@ -21,6 +22,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 }) => {
   const [mode, setMode] = useState<"login" | "signup">(initialMode);
   const { login } = useAuth();
+  const { captureAuthenticatedSession } = useSession();
+  const isMountedRef = useRef(true);
   const isOpenRef = useRef(isOpen);
   const { error: loginError, handleError, clearError } = useApiError();
   const {
@@ -42,6 +45,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     clearError();
     clearSignupError();
   }, [clearError, clearSignupError]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     isOpenRef.current = isOpen;
@@ -70,7 +81,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           email: formData.email,
           password: formData.password,
         });
-        if (!isOpenRef.current) {
+        if (!isMountedRef.current || !isOpenRef.current) {
+          return;
+        }
+        if (captureAuthenticatedSession() !== null) {
           return;
         }
         onClose();
@@ -78,9 +92,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           onSuccess();
         }
       } catch (err) {
-        handleError(err);
+        if (isMountedRef.current && isOpenRef.current) {
+          handleError(err);
+        }
       } finally {
-        setIsLoginLoading(false);
+        if (isMountedRef.current) {
+          setIsLoginLoading(false);
+        }
       }
       return;
     }

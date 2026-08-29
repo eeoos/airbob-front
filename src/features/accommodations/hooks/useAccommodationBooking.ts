@@ -11,6 +11,7 @@ import {
   validateBookingDateRange,
   validateBookingGuestCount,
 } from "../lib/accommodationBookingRules";
+import { parsePositiveAccommodationId } from "../lib/accommodationId";
 
 type SetSearchParams = (
   nextParams: URLSearchParams,
@@ -32,8 +33,30 @@ interface UseAccommodationBookingOptions {
   ) => void;
   handleError: (error: unknown) => unknown;
   clearError: () => void;
-  onRequireAuth: (action: () => void | Promise<void>) => void;
+  onRequireAuth: (intent: ReservationStartAuthIntent) => void;
   startTransition: (callback: () => void) => void;
+}
+
+export interface AccommodationAuthIntentExecutionScope {
+  readonly generation: number;
+  readonly isCurrent: () => boolean;
+}
+
+export interface ReservationStartAuthIntent {
+  readonly type: "reservation.start";
+  readonly accommodationId: number;
+  readonly checkIn: string;
+  readonly checkOut: string;
+  readonly adultCount: number;
+  readonly childCount: number;
+  readonly infantCount: number;
+  readonly petCount: number;
+  readonly couponId: number | null;
+}
+
+export interface ReservationAuthIntentExecution
+  extends AccommodationAuthIntentExecutionScope {
+  readonly intent: ReservationStartAuthIntent;
 }
 
 interface ReserveCouponState {
@@ -41,24 +64,6 @@ interface ReserveCouponState {
   selectedCouponId?: number | null;
   couponDiscount?: number;
 }
-
-interface ReserveOptions {
-  skipAuthCheck?: boolean;
-}
-
-const handoffReservationAuth = (
-  isAuthenticated: boolean,
-  options: ReserveOptions,
-  onRequireAuth: (action: () => void | Promise<void>) => void,
-  action: () => void | Promise<void>,
-) => {
-  if (options.skipAuthCheck || isAuthenticated) {
-    return false;
-  }
-
-  onRequireAuth(action);
-  return true;
-};
 
 export const useAccommodationBooking = ({
   accommodationId,
@@ -80,6 +85,7 @@ export const useAccommodationBooking = ({
   const [isReserving, setIsReserving] = useState(false);
   const isReservingRef = useRef(false);
   const isMountedRef = useRef(true);
+  const handledAuthIntentGenerationRef = useRef<number | null>(null);
   const maxOccupancy =
     accommodation?.policy.max_occupancy ?? Number.MAX_SAFE_INTEGER;
   const maxInfants =
@@ -98,8 +104,12 @@ export const useAccommodationBooking = ({
     parseBookingCount(searchParams, "petOccupancy", 0, 0, maxPets)
   );
 
-  useEffect(() => () => {
-    isMountedRef.current = false;
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+    };
   }, []);
 
   const { checkIn, checkOut, nights, totalPrice } = useMemo(() => {
@@ -232,18 +242,25 @@ export const useAccommodationBooking = ({
 
   const handleReserve = useCallback(async function reserve(
     reserveCouponState?: ReserveCouponState,
-    options: ReserveOptions = {}
+    authIntentExecution?: ReservationAuthIntentExecution,
   ) {
-    if (
-      handoffReservationAuth(isAuthenticated, options, onRequireAuth, () =>
-        reserve(reserveCouponState, { skipAuthCheck: true }),
-      )
-    ) {
+    const isActionCurrent = () =>
+      isMountedRef.current &&
+      (!authIntentExecution || authIntentExecution.isCurrent());
+
+    if (!isActionCurrent()) {
       return;
     }
 
-    if (!accommodationId || !accommodation) {
-      handleError(new Error("숙소 정보를 불러올 수 없습니다."));
+    const parsedAccommodationId = parsePositiveAccommodationId(accommodationId);
+    if (
+      !parsedAccommodationId ||
+      !accommodation ||
+      accommodation.id !== parsedAccommodationId
+    ) {
+      if (!authIntentExecution) {
+        handleError(new Error("숙소 정보를 불러올 수 없습니다."));
+      }
       return;
     }
 
@@ -253,7 +270,9 @@ export const useAccommodationBooking = ({
       unavailableDates: accommodation.unavailable_dates,
     });
     if (dateRangeError) {
-      handleError(dateRangeError);
+      if (!authIntentExecution) {
+        handleError(dateRangeError);
+      }
       return;
     }
 
@@ -269,7 +288,58 @@ export const useAccommodationBooking = ({
       maxOccupancy: accommodation.policy.max_occupancy,
     });
     if (guestCountError) {
-      handleError(guestCountError);
+      if (!authIntentExecution) {
+        handleError(guestCountError);
+      }
+      return;
+    }
+
+    const reservationCoupon = selectBookingCoupon({
+      reserveCouponState,
+      selectedCoupon,
+      selectedCouponId,
+      couponDiscount,
+    });
+    const hasApplicableCoupon =
+      reservationCoupon.discount > 0 &&
+      reservationCoupon.couponId !== null &&
+      reservationCoupon.coupon !== null &&
+      reservationCoupon.coupon.id === reservationCoupon.couponId;
+    const applicableCouponId = hasApplicableCoupon
+      ? reservationCoupon.couponId
+      : null;
+    const normalizedCheckIn = formatBookingDate(validCheckIn);
+    const normalizedCheckOut = formatBookingDate(validCheckOut);
+
+    if (authIntentExecution) {
+      const { intent } = authIntentExecution;
+      if (
+        !isAuthenticated ||
+        intent.accommodationId !== parsedAccommodationId ||
+        intent.checkIn !== normalizedCheckIn ||
+        intent.checkOut !== normalizedCheckOut ||
+        intent.adultCount !== adultCount ||
+        intent.childCount !== childCount ||
+        intent.infantCount !== infantCount ||
+        intent.petCount !== petCount ||
+        intent.couponId !== applicableCouponId ||
+        handledAuthIntentGenerationRef.current ===
+          authIntentExecution.generation
+      ) {
+        return;
+      }
+    } else if (!isAuthenticated) {
+      onRequireAuth({
+        type: "reservation.start",
+        accommodationId: parsedAccommodationId,
+        checkIn: normalizedCheckIn,
+        checkOut: normalizedCheckOut,
+        adultCount,
+        childCount,
+        infantCount,
+        petCount,
+        couponId: applicableCouponId,
+      });
       return;
     }
 
@@ -277,21 +347,18 @@ export const useAccommodationBooking = ({
       return;
     }
 
+    if (authIntentExecution) {
+      handledAuthIntentGenerationRef.current = authIntentExecution.generation;
+    }
     isReservingRef.current = true;
-    if (isMountedRef.current) {
+    if (isActionCurrent()) {
       setIsReserving(true);
     }
     clearError();
 
     try {
-      const reservationCoupon = selectBookingCoupon({
-        reserveCouponState,
-        selectedCoupon,
-        selectedCouponId,
-        couponDiscount,
-      });
       const appliedCoupon =
-        reservationCoupon.discount > 0 &&
+        hasApplicableCoupon &&
         reservationCoupon.couponId !== null &&
         reservationCoupon.coupon !== null
           ? {
@@ -303,23 +370,23 @@ export const useAccommodationBooking = ({
 
       await startReservationCheckoutHandoff({
         accommodationId: accommodation.id,
-        checkIn: validCheckIn,
-        checkOut: validCheckOut,
+        checkIn: normalizedCheckIn,
+        checkOut: normalizedCheckOut,
         adultCount,
         childCount,
         infantCount,
         petCount,
         appliedCoupon,
         navigate,
-        isActive: () => isMountedRef.current,
+        isActive: isActionCurrent,
       });
     } catch (error) {
-      if (isMountedRef.current) {
+      if (isActionCurrent()) {
         handleError(error);
       }
     } finally {
       isReservingRef.current = false;
-      if (isMountedRef.current) {
+      if (isActionCurrent()) {
         setIsReserving(false);
       }
     }

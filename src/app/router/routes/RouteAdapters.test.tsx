@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
   MemoryRouter,
@@ -8,6 +8,7 @@ import {
   useLocation,
 } from "react-router-dom";
 import { AccommodationConfirmRoute } from "./AccommodationConfirmRoute";
+import { AccommodationDetailRoute } from "./AccommodationDetailRoute";
 import { AccommodationEditRoute } from "./AccommodationEditRoute";
 import { LoginRoute } from "./LoginRoute";
 import { PaymentFailRoute } from "./PaymentFailRoute";
@@ -23,6 +24,33 @@ type QueryRouteProps = {
   setSearchParams: (params: URLSearchParams) => void;
 };
 type CapturedProps = {
+  accommodation: {
+    accommodationId?: string;
+    authIntent?: {
+      cancelPending(): void;
+      generation: {
+        generation: number;
+        intent: {
+          type: string;
+          accommodationId: number;
+        };
+        isCurrent(): boolean;
+      } | null;
+      request(intent: {
+        type: "reservation.start";
+        accommodationId: number;
+        checkIn: string;
+        checkOut: string;
+        adultCount: number;
+        childCount: number;
+        infantCount: number;
+        petCount: number;
+        couponId: number | null;
+      }): boolean;
+    };
+    bookingSearchParams: URLSearchParams;
+    navigate: Navigate;
+  };
   confirm: {
     accommodationId?: string;
     locationState: unknown;
@@ -51,11 +79,28 @@ type CapturedProps = {
     searchParams: URLSearchParams;
   };
   profile: QueryRouteProps;
-  search: QueryRouteProps;
+  search: QueryRouteProps & {
+    wishlistAuthIntent: {
+      request(accommodationId: number): number;
+      cancel(attemptId: number): void;
+      resumed: {
+        attemptId: number;
+        accommodationId: number;
+        isCurrent(): boolean;
+      } | null;
+      completeResume(attemptId: number): void;
+    };
+  };
   wishlist: QueryRouteProps;
 };
 
 const mockCapturedProps: Partial<CapturedProps> = {};
+const mockUseAuthIntent = jest.fn();
+const mockUseSession = jest.fn();
+const mockRequestAuthIntent = jest.fn();
+const mockCancelAuthIntent = jest.fn();
+const mockClaimAuthIntent = jest.fn();
+const mockIsCurrentSession = jest.fn();
 
 function mockRoute<Key extends keyof CapturedProps>(
   key: Key,
@@ -89,6 +134,16 @@ function mockFinishLogin(props: CapturedProps["login"]) {
 
 jest.mock("../../../features/auth/LoginRoute", () => ({
   LoginRoute: mockRoute("login", "로그인 성공", mockFinishLogin),
+}));
+jest.mock("../../../features/accommodations/AccommodationDetailRoute", () => ({
+  AccommodationDetailRoute: mockRoute("accommodation", "숙소 상세 계속"),
+}));
+jest.mock("../../../workflows/auth-intent", () => ({
+  ...jest.requireActual("../../../workflows/auth-intent"),
+  useAuthIntent: () => mockUseAuthIntent(),
+}));
+jest.mock("../../session/useSession", () => ({
+  useSession: () => mockUseSession(),
 }));
 jest.mock("../../../features/reservations/ReservationConfirmRoute", () => ({
   ReservationConfirmRoute: mockRoute("confirm", "예약 확인 계속", (props) =>
@@ -177,9 +232,239 @@ beforeEach(() => {
   for (const key of Object.keys(mockCapturedProps)) {
     delete mockCapturedProps[key as keyof CapturedProps];
   }
+  mockRequestAuthIntent.mockReset();
+  mockCancelAuthIntent.mockReset();
+  mockClaimAuthIntent.mockReset();
+  mockIsCurrentSession.mockReset();
+  mockIsCurrentSession.mockReturnValue(true);
+  mockUseAuthIntent.mockReturnValue({
+    pending: null,
+    request: mockRequestAuthIntent,
+    cancel: mockCancelAuthIntent,
+    claim: mockClaimAuthIntent,
+  });
+  mockUseSession.mockReturnValue({
+    state: { status: "anonymous" },
+    isCurrentSession: mockIsCurrentSession,
+  });
 });
 
 describe("app route adapter contracts", () => {
+  it("registers and cancels normalized accommodation auth intent data", () => {
+    mockRequestAuthIntent.mockReturnValue(41);
+    renderAdapter(
+      "/accommodations/:id",
+      "/accommodations/42?checkIn=2026-07-10&checkOut=2026-07-12",
+      <AccommodationDetailRoute />,
+    );
+    const authIntent = captured("accommodation").authIntent;
+    expect(authIntent).toBeDefined();
+
+    act(() => {
+      expect(
+        authIntent?.request({
+          type: "reservation.start",
+          accommodationId: 42,
+          checkIn: "2026-07-10",
+          checkOut: "2026-07-12",
+          adultCount: 2,
+          childCount: 1,
+          infantCount: 0,
+          petCount: 0,
+          couponId: null,
+        }),
+      ).toBe(true);
+    });
+
+    expect(mockRequestAuthIntent).toHaveBeenCalledWith({
+      type: "reservation.start",
+      accommodationId: 42,
+      checkIn: "2026-07-10",
+      checkOut: "2026-07-12",
+      adultCount: 2,
+      childCount: 1,
+      infantCount: 0,
+      petCount: 0,
+      couponId: null,
+    });
+
+    act(() => authIntent?.cancelPending());
+    expect(mockCancelAuthIntent).toHaveBeenCalledWith(41);
+  });
+
+  it("atomically claims a matching current-location accommodation intent", async () => {
+    const session = { epoch: 5, subject: "subject:member_1" };
+    const pending = {
+      attemptId: 12,
+      intent: { type: "wishlist.open", accommodationId: 42 },
+      source: { locationKey: "default", path: "/accommodations/42" },
+    };
+    mockUseSession.mockReturnValue({
+      state: { status: "authenticated" },
+      isCurrentSession: mockIsCurrentSession,
+    });
+    mockUseAuthIntent.mockReturnValue({
+      pending,
+      request: mockRequestAuthIntent,
+      cancel: mockCancelAuthIntent,
+      claim: mockClaimAuthIntent,
+    });
+    mockClaimAuthIntent.mockImplementation((predicate) =>
+      predicate(pending.intent) ? { ...pending, session } : null,
+    );
+
+    renderAdapter(
+      "/accommodations/:id",
+      "/accommodations/42",
+      <AccommodationDetailRoute />,
+    );
+
+    await waitFor(() =>
+      expect(captured("accommodation").authIntent?.generation).toMatchObject({
+        generation: 12,
+        intent: pending.intent,
+      }),
+    );
+    expect(mockClaimAuthIntent).toHaveBeenCalledTimes(1);
+    expect(
+      captured("accommodation").authIntent?.generation?.isCurrent(),
+    ).toBe(true);
+    expect(mockIsCurrentSession).toHaveBeenCalledWith(session);
+  });
+
+  it.each([
+    [
+      "source path",
+      {
+        attemptId: 13,
+        intent: { type: "wishlist.open", accommodationId: 42 },
+        source: { locationKey: "default", path: "/accommodations/41" },
+      },
+    ],
+    [
+      "source location key",
+      {
+        attemptId: 15,
+        intent: { type: "wishlist.open", accommodationId: 42 },
+        source: { locationKey: "previous", path: "/accommodations/42" },
+      },
+    ],
+    [
+      "resource id",
+      {
+        attemptId: 14,
+        intent: { type: "coupon.issue", accommodationId: 41, couponId: 3 },
+        source: { locationKey: "default", path: "/accommodations/42" },
+      },
+    ],
+  ])("does not claim a pending intent with mismatched %s", async (_case, pending) => {
+    mockUseSession.mockReturnValue({
+      state: { status: "authenticated" },
+      isCurrentSession: mockIsCurrentSession,
+    });
+    mockUseAuthIntent.mockReturnValue({
+      pending,
+      request: mockRequestAuthIntent,
+      cancel: mockCancelAuthIntent,
+      claim: mockClaimAuthIntent,
+    });
+
+    renderAdapter(
+      "/accommodations/:id",
+      "/accommodations/42",
+      <AccommodationDetailRoute />,
+    );
+    await Promise.resolve();
+
+    expect(mockClaimAuthIntent).not.toHaveBeenCalled();
+    expect(captured("accommodation").authIntent?.generation).toBeNull();
+  });
+
+  it("retains a pending accommodation intent when login fails", async () => {
+    const pending = {
+      attemptId: 16,
+      intent: { type: "wishlist.open", accommodationId: 42 },
+      source: { locationKey: "default", path: "/accommodations/42" },
+    };
+    mockUseSession.mockReturnValue({
+      state: { status: "error", reason: "identity-change" },
+      isCurrentSession: mockIsCurrentSession,
+    });
+    mockUseAuthIntent.mockReturnValue({
+      pending,
+      request: mockRequestAuthIntent,
+      cancel: mockCancelAuthIntent,
+      claim: mockClaimAuthIntent,
+    });
+
+    renderAdapter(
+      "/accommodations/:id",
+      "/accommodations/42",
+      <AccommodationDetailRoute />,
+    );
+    await Promise.resolve();
+
+    expect(mockClaimAuthIntent).not.toHaveBeenCalled();
+    expect(mockCancelAuthIntent).not.toHaveBeenCalled();
+    expect(captured("accommodation").authIntent?.generation).toBeNull();
+  });
+
+  it("registers and cancels search wishlist auth intent data", () => {
+    mockRequestAuthIntent.mockReturnValue(51);
+    renderAdapter(
+      "/search",
+      "/search?destination=Seoul",
+      <SearchRoute />,
+    );
+
+    const bridge = captured("search").wishlistAuthIntent;
+    expect(bridge.resumed).toBeNull();
+    expect(bridge.request(77)).toBe(51);
+    expect(mockRequestAuthIntent).toHaveBeenCalledWith({
+      type: "wishlist.open",
+      accommodationId: 77,
+    });
+
+    bridge.cancel(51);
+    expect(mockCancelAuthIntent).toHaveBeenCalledWith(51);
+  });
+
+  it("delivers an atomically claimed wishlist intent to the new search owner", async () => {
+    const session = { epoch: 6, subject: "subject:member_2" };
+    const claimed = {
+      attemptId: 52,
+      intent: { type: "wishlist.open", accommodationId: 88 },
+      source: { locationKey: "default", path: "/search" },
+      session,
+    };
+    mockUseSession.mockReturnValue({
+      state: { status: "authenticated" },
+      isCurrentSession: mockIsCurrentSession,
+    });
+    mockClaimAuthIntent.mockReturnValueOnce(claimed).mockReturnValue(null);
+
+    renderAdapter("/search", "/search", <SearchRoute />);
+
+    await waitFor(() =>
+      expect(captured("search").wishlistAuthIntent.resumed).toMatchObject({
+        accommodationId: 88,
+        attemptId: 52,
+      }),
+    );
+    expect(mockClaimAuthIntent).toHaveBeenCalledTimes(1);
+    expect(
+      captured("search").wishlistAuthIntent.resumed?.isCurrent(),
+    ).toBe(true);
+    expect(mockIsCurrentSession).toHaveBeenCalledWith(session);
+
+    act(() => {
+      captured("search").wishlistAuthIntent.completeResume(52);
+    });
+    await waitFor(() =>
+      expect(captured("search").wishlistAuthIntent.resumed).toBeNull(),
+    );
+  });
+
   it("restores a validated login return target", async () => {
     const from = {
       pathname: "/profile",

@@ -1,11 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
-import { AuthProvider } from './contexts/AuthContext';
+import { AppProviders } from './app/providers/AppProviders';
+import { clearIdentityOwnedFrontendState } from './app/providers/clearIdentityOwnedFrontendState';
 import { ErrorBoundary } from './components/ErrorBoundary/ErrorBoundary';
-import { QueryProvider } from './query/QueryProvider';
+import { AuthProvider } from './contexts/AuthContext';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -13,11 +15,13 @@ const root = ReactDOM.createRoot(
 root.render(
   <React.StrictMode>
     <ErrorBoundary>
-      <QueryProvider>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </QueryProvider>
+      <BrowserRouter>
+        <AppProviders clearIdentityOwnedState={clearIdentityOwnedFrontendState}>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </AppProviders>
+      </BrowserRouter>
     </ErrorBoundary>
   </React.StrictMode>
 );

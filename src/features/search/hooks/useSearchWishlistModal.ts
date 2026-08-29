@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { clientLogger } from "../../../utils/clientLogger";
 import { refreshAccommodationScopedWishlistMembershipCache } from "../../wishlist/publicCache";
 
@@ -9,11 +9,24 @@ interface UseSearchWishlistModalOptions {
     accommodationId: number,
     isInWishlist: boolean
   ) => void;
+  authIntent?: SearchWishlistAuthIntentBridge;
+}
+
+export interface SearchWishlistAuthIntentBridge {
+  request(accommodationId: number): number;
+  cancel(attemptId: number): void;
+  resumed: {
+    attemptId: number;
+    accommodationId: number;
+    isCurrent(): boolean;
+  } | null;
+  completeResume(attemptId: number): void;
 }
 
 export function useSearchWishlistModal({
   isAuthenticated,
   onWishlistStatusChange,
+  authIntent,
 }: UseSearchWishlistModalOptions) {
   const queryClient = useQueryClient();
   const [wishlistModalOpen, setWishlistModalOpen] = useState(false);
@@ -24,10 +37,33 @@ export function useSearchWishlistModal({
   const [pendingAccommodationForWishlist, setPendingAccommodationForWishlist] =
     useState<number | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const pendingAuthAttemptIdRef = useRef<number | null>(null);
+  const handledResumeAttemptRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const resumed = authIntent?.resumed;
+    if (!resumed || handledResumeAttemptRef.current === resumed.attemptId) {
+      return;
+    }
+
+    handledResumeAttemptRef.current = resumed.attemptId;
+    setAuthModalOpen(false);
+    pendingAuthAttemptIdRef.current = null;
+    setPendingAccommodationForWishlist(null);
+
+    if (isAuthenticated && resumed.isCurrent()) {
+      setSelectedAccommodationForWishlist(resumed.accommodationId);
+      setWishlistModalOpen(true);
+    }
+
+    authIntent.completeResume(resumed.attemptId);
+  }, [authIntent, isAuthenticated]);
 
   const openWishlistModal = useCallback(
     (accommodationId: number) => {
       if (!isAuthenticated) {
+        const attemptId = authIntent?.request(accommodationId) ?? null;
+        pendingAuthAttemptIdRef.current = attemptId;
         setPendingAccommodationForWishlist(accommodationId);
         setAuthModalOpen(true);
         return;
@@ -36,23 +72,32 @@ export function useSearchWishlistModal({
       setSelectedAccommodationForWishlist(accommodationId);
       setWishlistModalOpen(true);
     },
-    [isAuthenticated]
+    [authIntent, isAuthenticated]
   );
 
   const closeAuthModal = useCallback(() => {
+    const attemptId = pendingAuthAttemptIdRef.current;
+    pendingAuthAttemptIdRef.current = null;
+    if (attemptId !== null) {
+      authIntent?.cancel(attemptId);
+    }
     setAuthModalOpen(false);
     setPendingAccommodationForWishlist(null);
-  }, []);
+  }, [authIntent]);
 
   const handleAuthSuccess = useCallback(() => {
     setAuthModalOpen(false);
+
+    if (authIntent) {
+      return;
+    }
 
     if (pendingAccommodationForWishlist !== null) {
       setSelectedAccommodationForWishlist(pendingAccommodationForWishlist);
       setPendingAccommodationForWishlist(null);
       setWishlistModalOpen(true);
     }
-  }, [pendingAccommodationForWishlist]);
+  }, [authIntent, pendingAccommodationForWishlist]);
 
   const closeWishlistModal = useCallback(async () => {
     if (selectedAccommodationForWishlist !== null) {

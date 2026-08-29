@@ -130,6 +130,7 @@ describe("useSearchRouteController", () => {
       })
     );
     expect(mockUseSearchWishlistModal).toHaveBeenCalledWith({
+      authIntent: undefined,
       isAuthenticated: true,
       onWishlistStatusChange: mockUpdateAccommodationWishlistStatus,
     });

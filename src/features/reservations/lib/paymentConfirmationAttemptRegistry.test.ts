@@ -1,4 +1,5 @@
 import {
+  clearPaymentConfirmationAttemptRegistry,
   getPaymentConfirmationAttemptKey,
   resetPaymentConfirmationAttemptRegistryForTests,
   runPaymentConfirmationAttempt,
@@ -65,5 +66,81 @@ describe("payment confirmation attempt registry", () => {
 
     expect(failedConfirm).toHaveBeenCalledTimes(1);
     expect(retryConfirm).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not restore a confirmation marker when an old generation succeeds after cleanup", async () => {
+    let resolveConfirm: () => void = () => undefined;
+    const confirm = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveConfirm = resolve;
+        }),
+    );
+    const attempt = runPaymentConfirmationAttempt(attemptKey, confirm);
+
+    clearPaymentConfirmationAttemptRegistry();
+    resolveConfirm();
+
+    await expect(attempt).resolves.toBe("confirmed");
+    expect(
+      Array.from({ length: sessionStorage.length }, (_, index) =>
+        sessionStorage.key(index),
+      ).filter((key) => key?.startsWith("airbob:payment-confirmed:")),
+    ).toEqual([]);
+  });
+
+  it("keeps a newer same-key attempt registered when an old generation finishes", async () => {
+    let resolveOldConfirm: () => void = () => undefined;
+    let resolveNewConfirm: () => void = () => undefined;
+    const oldConfirm = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveOldConfirm = resolve;
+        }),
+    );
+    const newConfirm = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveNewConfirm = resolve;
+        }),
+    );
+    const unexpectedThirdConfirm = jest.fn().mockResolvedValue(undefined);
+
+    const oldAttempt = runPaymentConfirmationAttempt(attemptKey, oldConfirm);
+    clearPaymentConfirmationAttemptRegistry();
+    const newAttempt = runPaymentConfirmationAttempt(attemptKey, newConfirm);
+
+    resolveOldConfirm();
+    await expect(oldAttempt).resolves.toBe("confirmed");
+
+    const duplicateNewAttempt = runPaymentConfirmationAttempt(
+      attemptKey,
+      unexpectedThirdConfirm,
+    );
+    expect(unexpectedThirdConfirm).not.toHaveBeenCalled();
+
+    resolveNewConfirm();
+    await expect(
+      Promise.all([newAttempt, duplicateNewAttempt]),
+    ).resolves.toEqual(["confirmed", "already-confirmed"]);
+    expect(newConfirm).toHaveBeenCalledTimes(1);
+  });
+
+  it("clears payment markers idempotently without removing unrelated session data", async () => {
+    await runPaymentConfirmationAttempt(
+      attemptKey,
+      jest.fn().mockResolvedValue(undefined),
+    );
+    sessionStorage.setItem("airbob:unrelated", "keep");
+
+    clearPaymentConfirmationAttemptRegistry();
+    clearPaymentConfirmationAttemptRegistry();
+
+    expect(sessionStorage.getItem("airbob:unrelated")).toBe("keep");
+    expect(
+      Array.from({ length: sessionStorage.length }, (_, index) =>
+        sessionStorage.key(index),
+      ).filter((key) => key?.startsWith("airbob:payment-confirmed:")),
+    ).toEqual([]);
   });
 });

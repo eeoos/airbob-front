@@ -1,4 +1,10 @@
-import React, { useRef, useState, useTransition } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import {
   useNavigate,
   useParams,
@@ -20,7 +26,12 @@ import { AccommodationLocationSection } from "./components/AccommodationLocation
 import { AccommodationOverview } from "./components/AccommodationOverview";
 import { AccommodationReviewsSection } from "./components/AccommodationReviewsSection";
 import { useAccommodationBooking } from "./hooks/useAccommodationBooking";
+import type {
+  AccommodationAuthIntentExecutionScope,
+  ReservationStartAuthIntent,
+} from "./hooks/useAccommodationBooking";
 import { useAccommodationCoupons } from "./hooks/useAccommodationCoupons";
+import type { CouponIssueAuthIntent } from "./hooks/useAccommodationCoupons";
 import { useAccommodationDetail } from "./hooks/useAccommodationDetail";
 import { useAccommodationImageGallery } from "./hooks/useAccommodationImageGallery";
 import { useAccommodationReviews } from "./hooks/useAccommodationReviews";
@@ -29,25 +40,49 @@ import {
   toAccommodationBookingCouponViewModels,
 } from "./lib/accommodationBookingSectionsViewModel";
 import { toAccommodationBookingViewModel } from "./lib/accommodationBookingViewModel";
+import { parsePositiveAccommodationId } from "./lib/accommodationId";
 import { toAccommodationDetailViewModel } from "./lib/accommodationDetailViewModel";
 import { useOutsideClick } from "../../shared/ui";
 import styles from "./AccommodationDetailRoute.module.css";
 
 export interface AccommodationDetailRouteProps {
+  authIntent?: AccommodationDetailAuthIntentController;
   accommodationId?: string;
   bookingSearchParams?: URLSearchParams;
   setBookingSearchParams?: SetURLSearchParams;
   navigate?: NavigateFunction;
 }
 
+export interface WishlistOpenAuthIntent {
+  readonly type: "wishlist.open";
+  readonly accommodationId: number;
+}
+
+export type AccommodationDetailAuthIntent =
+  | WishlistOpenAuthIntent
+  | ReservationStartAuthIntent
+  | CouponIssueAuthIntent;
+
+export interface AccommodationDetailAuthIntentGeneration
+  extends AccommodationAuthIntentExecutionScope {
+  readonly intent: AccommodationDetailAuthIntent;
+}
+
+export interface AccommodationDetailAuthIntentController {
+  readonly generation: AccommodationDetailAuthIntentGeneration | null;
+  request(intent: AccommodationDetailAuthIntent): boolean;
+  cancelPending(): void;
+}
+
 type AccommodationDetailRouteContentProps = Required<
-  Omit<AccommodationDetailRouteProps, "accommodationId">
+  Omit<AccommodationDetailRouteProps, "accommodationId" | "authIntent">
 > &
-  Pick<AccommodationDetailRouteProps, "accommodationId">;
+  Pick<AccommodationDetailRouteProps, "accommodationId" | "authIntent">;
 
 const AccommodationDetailRouteContent: React.FC<
   AccommodationDetailRouteContentProps
 > = ({
+  authIntent,
   accommodationId,
   bookingSearchParams,
   setBookingSearchParams,
@@ -58,7 +93,7 @@ const AccommodationDetailRouteContent: React.FC<
   const [isWishlistModalOpen, setIsWishlistModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isDescriptionModalOpen, setIsDescriptionModalOpen] = useState(false);
-  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const handledAuthIntentGenerationRef = useRef<number | null>(null);
   const guestPickerRef = useRef<HTMLDivElement>(null);
   const datePickerRef = useRef<HTMLDivElement>(null);
   const dateSectionRef = useRef<HTMLDivElement>(null);
@@ -67,10 +102,16 @@ const AccommodationDetailRouteContent: React.FC<
   } | null>(null);
   const [, startTransition] = useTransition();
 
-  const requireAuth = (action: () => void | Promise<void>) => {
-    setPendingAction(() => action);
-    setIsAuthModalOpen(true);
-  };
+  const requireAuth = useCallback(
+    (intent: AccommodationDetailAuthIntent) => {
+      if (!authIntent?.request(intent)) {
+        return;
+      }
+
+      setIsAuthModalOpen(true);
+    },
+    [authIntent],
+  );
 
   const { accommodation, isLoading, reloadAccommodation } =
     useAccommodationDetail({
@@ -107,6 +148,7 @@ const AccommodationDetailRouteContent: React.FC<
     payablePrice,
     handleIssueCoupon,
   } = useAccommodationCoupons({
+    accommodationId,
     isAuthenticated,
     totalPrice: booking.totalPrice,
     handleError,
@@ -154,10 +196,11 @@ const AccommodationDetailRouteContent: React.FC<
     totalPrice,
     formatDate,
     handleDateSelect,
+    handleReserve: executeReservation,
   } = booking;
 
   const handleReserve = () =>
-    booking.handleReserve({
+    executeReservation({
       selectedCoupon,
       selectedCouponId,
       couponDiscount,
@@ -209,6 +252,98 @@ const AccommodationDetailRouteContent: React.FC<
     () => setIsDatePickerOpen(false),
     isDatePickerOpen
   );
+
+  useEffect(() => {
+    const generation = authIntent?.generation;
+    if (
+      !generation ||
+      handledAuthIntentGenerationRef.current === generation.generation ||
+      !generation.isCurrent()
+    ) {
+      return;
+    }
+
+    const currentAccommodationId = parsePositiveAccommodationId(accommodationId);
+    if (
+      !currentAccommodationId ||
+      !accommodation ||
+      accommodation.id !== currentAccommodationId ||
+      generation.intent.accommodationId !== currentAccommodationId
+    ) {
+      return;
+    }
+
+    const intent = generation.intent;
+    switch (intent.type) {
+      case "wishlist.open":
+        handledAuthIntentGenerationRef.current = generation.generation;
+        setIsWishlistModalOpen(true);
+        return;
+
+      case "coupon.issue": {
+        if (isLoadingCoupons) {
+          return;
+        }
+
+        const coupon = coupons.find(
+          (candidate) => candidate.id === intent.couponId,
+        );
+        handledAuthIntentGenerationRef.current = generation.generation;
+        if (coupon) {
+          void handleIssueCoupon(coupon, { ...generation, intent });
+        }
+        return;
+      }
+
+      case "reservation.start": {
+        const intendedCouponId = intent.couponId;
+        if (intendedCouponId !== null) {
+          if (isLoadingCoupons) {
+            return;
+          }
+
+          const intendedCoupon = coupons.find(
+            (candidate) => candidate.id === intendedCouponId,
+          );
+          if (!intendedCoupon) {
+            handledAuthIntentGenerationRef.current = generation.generation;
+            return;
+          }
+
+          if (selectedCouponId !== intendedCouponId) {
+            setSelectedCouponId(intendedCouponId);
+            return;
+          }
+        } else if (selectedCouponId !== null) {
+          setSelectedCouponId(null);
+          return;
+        }
+
+        handledAuthIntentGenerationRef.current = generation.generation;
+        void executeReservation(
+          {
+            selectedCoupon,
+            selectedCouponId,
+            couponDiscount,
+          },
+          { ...generation, intent },
+        );
+        return;
+      }
+    }
+  }, [
+    accommodation,
+    accommodationId,
+    authIntent?.generation,
+    couponDiscount,
+    coupons,
+    executeReservation,
+    handleIssueCoupon,
+    isLoadingCoupons,
+    selectedCoupon,
+    selectedCouponId,
+    setSelectedCouponId,
+  ]);
 
   if (isLoading) {
     return (
@@ -278,8 +413,10 @@ const AccommodationDetailRouteContent: React.FC<
           onOpenGallery={imageGallery.openGallery}
           onSave={() => {
             if (!isAuthenticated) {
-              setPendingAction(() => () => setIsWishlistModalOpen(true));
-              setIsAuthModalOpen(true);
+              requireAuth({
+                type: "wishlist.open",
+                accommodationId: detailView.id,
+              });
             } else {
               setIsWishlistModalOpen(true);
             }
@@ -339,13 +476,7 @@ const AccommodationDetailRouteContent: React.FC<
         isOpen={isAuthModalOpen}
         onClose={() => {
           setIsAuthModalOpen(false);
-          setPendingAction(null);
-        }}
-        onSuccess={() => {
-          if (pendingAction) {
-            pendingAction();
-            setPendingAction(null);
-          }
+          authIntent?.cancelPending();
         }}
       />
 
@@ -378,6 +509,7 @@ const AccommodationDetailRouteWithRouter: React.FC<
 
   return (
     <AccommodationDetailRouteContent
+      authIntent={props.authIntent}
       accommodationId={props.accommodationId ?? id}
       bookingSearchParams={props.bookingSearchParams ?? routeSearchParams}
       navigate={props.navigate ?? routeNavigate}
@@ -398,6 +530,7 @@ export const AccommodationDetailRoute: React.FC<
   ) {
     return (
       <AccommodationDetailRouteContent
+        authIntent={props.authIntent}
         accommodationId={props.accommodationId}
         bookingSearchParams={props.bookingSearchParams}
         navigate={props.navigate}

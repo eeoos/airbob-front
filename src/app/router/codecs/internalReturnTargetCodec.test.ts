@@ -71,6 +71,16 @@ describe("internalReturnTargetCodec", () => {
     expect(internalReturnTargetCodec.parse(locationState(pathname))).toBeNull();
   });
 
+  it.each([
+    "/accommodations/7/confirm",
+    "/reservations/res-7/success",
+    "/reservations/res-7/fail",
+    "/reservations/res-7/%73uccess",
+    "/RESERVATIONS/res-7/SUCCESS//",
+  ])("rejects identity-owned transaction return targets for %s", (pathname) => {
+    expect(internalReturnTargetCodec.parse(locationState(pathname))).toBeNull();
+  });
+
   it("rejects malformed structured parts and extra fields", () => {
     expect(
       internalReturnTargetCodec.parse(locationState("/search", "destination=x")),

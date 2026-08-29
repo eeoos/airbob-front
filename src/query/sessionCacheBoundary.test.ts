@@ -1,10 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
-import { accommodationQueryKeys } from "../features/accommodations/queryKeys";
 import { authQueryKeys } from "../features/auth/queryKeys";
-import { profileQueryKeys } from "../features/profile/queryKeys";
-import { reservationQueryKeys } from "../features/reservations/queryKeys";
-import { searchQueryKeys } from "../features/search/queryKeys";
-import { wishlistQueryKeys } from "../features/wishlist/queryKeys";
 import { MeInfo } from "../types/auth";
 import {
   clearSessionQueryData,
@@ -18,100 +13,115 @@ const meInfo: MeInfo = {
   thumbnail_image_url: null,
 };
 
+const futureViewerQueryKey = ["future-feature", "viewer-resource", 1] as const;
+const authSiblingQueryKey = ["auth", "permissions"] as const;
+const authMeDescendantQueryKey = ["auth", "me", "history"] as const;
+
+const seedQueries = (queryClient: QueryClient) => {
+  queryClient.setQueryData(authQueryKeys.me(), meInfo);
+  queryClient.setQueryData(futureViewerQueryKey, { owner: "old-subject" });
+  queryClient.setQueryData(authSiblingQueryKey, { permissions: ["host"] });
+  queryClient.setQueryData(authMeDescendantQueryKey, { entries: [] });
+};
+
+const expectOnlyExactAuthMeRemains = (
+  queryClient: QueryClient,
+  expectedMeInfo: MeInfo | null,
+) => {
+  expect(queryClient.getQueryData(authQueryKeys.me())).toEqual(expectedMeInfo);
+  expect(queryClient.getQueryData(futureViewerQueryKey)).toBeUndefined();
+  expect(queryClient.getQueryData(authSiblingQueryKey)).toBeUndefined();
+  expect(queryClient.getQueryData(authMeDescendantQueryKey)).toBeUndefined();
+};
+
 describe("sessionCacheBoundary", () => {
-  it("cancels user-scoped query roots before removing them on session refresh", async () => {
+  it("waits for non-session query cancellation before removing queries on refresh", async () => {
     const queryClient = new QueryClient();
-    const cancelResolvers: Array<() => void> = [];
+    seedQueries(queryClient);
+    let resolveCancellation: () => void = () => undefined;
     const cancelSpy = jest.spyOn(queryClient, "cancelQueries").mockImplementation(
       () =>
         new Promise<void>((resolve) => {
-          cancelResolvers.push(resolve);
-        })
+          resolveCancellation = resolve;
+        }),
     );
     const removeSpy = jest.spyOn(queryClient, "removeQueries");
 
     const refreshPromise = refreshSessionQueryData(queryClient, meInfo);
 
-    const cancelledRoots = cancelSpy.mock.calls.map(
-      ([options]) => options?.queryKey
-    );
-    expect(cancelledRoots).toEqual([
-      accommodationQueryKeys.detailRoot,
-      accommodationQueryKeys.couponsRoot,
-      wishlistQueryKeys.all,
-      profileQueryKeys.all,
-      reservationQueryKeys.all,
-      searchQueryKeys.all,
-    ]);
-    expect(cancelResolvers).toHaveLength(6);
+    expect(cancelSpy).toHaveBeenCalledTimes(1);
+    expect(cancelSpy.mock.calls[0]?.[0]?.predicate).toEqual(expect.any(Function));
     expect(removeSpy).not.toHaveBeenCalled();
 
-    cancelResolvers.slice(0, 5).forEach((resolve) => resolve());
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
-    expect(removeSpy).not.toHaveBeenCalled();
-
-    cancelResolvers[5]();
+    resolveCancellation();
     await refreshPromise;
 
-    const removedRoots = removeSpy.mock.calls.map(
-      ([options]) => options?.queryKey
-    );
-    expect(removedRoots).toEqual([
-      accommodationQueryKeys.detailRoot,
-      accommodationQueryKeys.couponsRoot,
-      wishlistQueryKeys.all,
-      profileQueryKeys.all,
-      reservationQueryKeys.all,
-      searchQueryKeys.all,
-    ]);
+    expect(removeSpy).toHaveBeenCalledTimes(1);
+    expect(removeSpy.mock.calls[0]?.[0]?.predicate).toEqual(expect.any(Function));
+  });
+
+  it("removes arbitrary future queries while preserving only the exact auth/me key on refresh", async () => {
+    const queryClient = new QueryClient();
+    seedQueries(queryClient);
+    const refreshedMeInfo = { ...meInfo, nickname: "Refreshed Member" };
+
+    await refreshSessionQueryData(queryClient, refreshedMeInfo);
+
+    expectOnlyExactAuthMeRemains(queryClient, refreshedMeInfo);
+  });
+
+  it("removes arbitrary future queries before setting auth/me to null on clear", async () => {
+    const queryClient = new QueryClient();
+    seedQueries(queryClient);
+
+    await clearSessionQueryData(queryClient);
+
+    expectOnlyExactAuthMeRemains(queryClient, null);
+  });
+
+  it("cancels auth/me separately without including it in the broad query predicate", async () => {
+    const queryClient = new QueryClient();
+    seedQueries(queryClient);
+    const cancelSpy = jest.spyOn(queryClient, "cancelQueries");
+
+    await clearSessionQueryData(queryClient);
+
+    expect(cancelSpy).toHaveBeenCalledTimes(2);
+    expect(cancelSpy.mock.calls[0]?.[0]?.predicate).toEqual(expect.any(Function));
+    expect(cancelSpy.mock.calls[1]?.[0]).toEqual({
+      exact: true,
+      queryKey: authQueryKeys.me(),
+    });
+  });
+
+  it("waits for exact auth/me cancellation before publishing anonymous state", async () => {
+    const queryClient = new QueryClient();
+    seedQueries(queryClient);
+    let resolveAuthCancellation: () => void = () => undefined;
+    let markAuthCancellationStarted: () => void = () => undefined;
+    const authCancellationStarted = new Promise<void>((resolve) => {
+      markAuthCancellationStarted = resolve;
+    });
+    jest
+      .spyOn(queryClient, "cancelQueries")
+      .mockResolvedValueOnce(undefined)
+      .mockImplementationOnce(
+        () => {
+          markAuthCancellationStarted();
+          return new Promise<void>((resolve) => {
+            resolveAuthCancellation = resolve;
+          });
+        },
+      );
+
+    const clearPromise = clearSessionQueryData(queryClient);
+    await authCancellationStarted;
+
     expect(queryClient.getQueryData(authQueryKeys.me())).toEqual(meInfo);
-  });
 
-  it("removes accommodation detail query data on session clear", async () => {
-    const queryClient = new QueryClient();
-    const detailQueryKey = accommodationQueryKeys.detail(7, 0);
+    resolveAuthCancellation();
+    await clearPromise;
 
-    queryClient.setQueryData(detailQueryKey, {
-      id: 7,
-      is_in_wishlist: true,
-    });
-    queryClient.setQueryData(accommodationQueryKeys.validCoupons(), {
-      infos: [{ id: 1 }],
-    });
-    queryClient.setQueryData(authQueryKeys.me(), meInfo);
-
-    await clearSessionQueryData(queryClient);
-
-    expect(queryClient.getQueryData(detailQueryKey)).toBeUndefined();
-    expect(
-      queryClient.getQueryData(accommodationQueryKeys.validCoupons()),
-    ).toBeUndefined();
     expect(queryClient.getQueryData(authQueryKeys.me())).toBeNull();
-  });
-
-  it("removes reservation confirm accommodation data on session clear and refresh", async () => {
-    const queryClient = new QueryClient();
-    const confirmAccommodationKey = reservationQueryKeys.confirmAccommodation(
-      7,
-      "res-123",
-    );
-
-    queryClient.setQueryData(confirmAccommodationKey, {
-      id: 7,
-      is_in_wishlist: true,
-    });
-
-    await clearSessionQueryData(queryClient);
-
-    expect(queryClient.getQueryData(confirmAccommodationKey)).toBeUndefined();
-
-    queryClient.setQueryData(confirmAccommodationKey, {
-      id: 7,
-      is_in_wishlist: true,
-    });
-
-    await refreshSessionQueryData(queryClient, meInfo);
-
-    expect(queryClient.getQueryData(confirmAccommodationKey)).toBeUndefined();
   });
 });
