@@ -37,6 +37,7 @@ describe("SearchResultsList", () => {
     render(
       <SearchResultsList
         accommodations={[]}
+        getAccommodationHref={(id) => `/accommodations/${id}`}
         isLoading={true}
         selectedAccommodationId={null}
         onAccommodationClick={jest.fn()}
@@ -53,6 +54,7 @@ describe("SearchResultsList", () => {
     render(
       <SearchResultsList
         accommodations={[createAccommodation(7)]}
+        getAccommodationHref={(id) => `/accommodations/${id}`}
         isLoading={false}
         selectedAccommodationId={null}
         onAccommodationClick={onAccommodationClick}
@@ -66,19 +68,17 @@ describe("SearchResultsList", () => {
     expect(onAccommodationClick).toHaveBeenCalledWith(7);
   });
 
-  it("passes only booking-safe search query to accommodation detail cards", () => {
+  it("uses the app-injected accommodation detail href", () => {
     render(
       <SearchResultsList
         accommodations={[createAccommodation(7)]}
+        getAccommodationHref={(id) =>
+          `/accommodations/${id}?checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2`
+        }
         isLoading={false}
         selectedAccommodationId={null}
         onAccommodationClick={jest.fn()}
         onWishlistToggle={jest.fn()}
-        detailSearchParams={
-          new URLSearchParams(
-            "destination=Seoul&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2&token=secret&email=a@example.com"
-          )
-        }
       />
     );
 

@@ -1,9 +1,15 @@
-import React, { useState } from "react";
-import { Link, useLocation, useSearchParams } from "react-router-dom";
+import React, { useCallback, useMemo } from "react";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 import {
   HeaderSearchBar,
   getViewportFromSearchParams,
-} from "../../features/search/appShell";
+  type SearchBarRoutePort,
+} from "../../features/search/ui/HeaderSearchBar";
 import { UserMenu } from "./UserMenu";
 import { useAuth } from "../../hooks/useAuth";
 import logoImage from "../../assets/logo/logo.png";
@@ -16,10 +22,10 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ headerMode = "default" }) => {
+  const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isAuthenticated } = useAuth();
-  const [isSearchBarExpanded, setIsSearchBarExpanded] = useState(false);
   const shouldRenderSearch =
     headerMode === "default" || headerMode === "search";
 
@@ -29,6 +35,28 @@ export const Header: React.FC<HeaderProps> = ({ headerMode = "default" }) => {
     location.pathname === ROUTE_PATHS.search &&
     !searchParams.get("destination") &&
     hasViewport;
+  const pushSearch = useCallback(
+    (nextSearchParams: URLSearchParams) => {
+      const query = nextSearchParams.toString();
+      navigate(query ? `${ROUTE_PATHS.search}?${query}` : ROUTE_PATHS.search);
+    },
+    [navigate],
+  );
+  const replaceSearch = useCallback(
+    (nextSearchParams: URLSearchParams) => {
+      setSearchParams(nextSearchParams, { replace: true });
+    },
+    [setSearchParams],
+  );
+  const searchBarRoutePort = useMemo<SearchBarRoutePort>(
+    () => ({
+      currentSearchParams: searchParams,
+      isSearchRoute: location.pathname === ROUTE_PATHS.search,
+      pushSearch,
+      replaceSearch,
+    }),
+    [location.pathname, pushSearch, replaceSearch, searchParams],
+  );
 
   return (
     <header className={styles.header}>
@@ -42,14 +70,10 @@ export const Header: React.FC<HeaderProps> = ({ headerMode = "default" }) => {
         </Link>
 
         {shouldRenderSearch && (
-          <div
-            className={`${styles.searchBar} ${
-              isSearchBarExpanded ? styles.searchBarExpanded : ""
-            }`}
-          >
+          <div className={styles.searchBar}>
             <HeaderSearchBar
-              onExpandedChange={setIsSearchBarExpanded}
               isMapDragMode={isMapDragMode}
+              routePort={searchBarRoutePort}
             />
           </div>
         )}

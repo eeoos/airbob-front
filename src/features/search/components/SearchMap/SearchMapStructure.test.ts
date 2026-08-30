@@ -25,28 +25,28 @@ describe("SearchMap structure", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("forwards detail search params into the map selection info-window hook", () => {
+  it("forwards the app-owned detail href resolver into the info-window hook", () => {
     const mapSource = readFileSync(join(searchMapRoot, "Map.tsx"), "utf8");
 
-    expect(mapSource).toContain("detailSearchParams,");
+    expect(mapSource).toContain("getAccommodationHref,");
     expect(mapSource).toMatch(
-      /useMapSelectionInfoWindow\(\{[\s\S]*detailSearchParams,[\s\S]*\}\);/,
+      /useMapSelectionInfoWindow\(\{[\s\S]*getAccommodationHref,[\s\S]*\}\);/,
     );
   });
 
-  it("filters booking-safe params for map info-window detail links", () => {
+  it("opens only the app-injected detail href from map info windows", () => {
     const eventsHookSource = readFileSync(
       join(searchMapRoot, "hooks/useMapInfoWindowEvents.ts"),
       "utf8",
     );
 
-    expect(eventsHookSource).toContain("toAccommodationBookingRouteQuery");
-    expect(eventsHookSource).toMatch(
-      /const detailParams = detailSearchParams\s*\?\s*toAccommodationBookingRouteQuery\(detailSearchParams\)\s*:\s*undefined;/,
+    expect(eventsHookSource).toContain(
+      "browserWindowNavigation.openInNewTab",
     );
-    expect(eventsHookSource).toMatch(
-      /routeTo\.accommodationDetail\(\s*accommodationId,\s*detailParams,?\s*\)/,
+    expect(eventsHookSource).toContain(
+      "getAccommodationHref(accommodationId)",
     );
+    expect(eventsHookSource).not.toContain("routeTo");
   });
 
   it("uses delegated info-window events without window globals or private Google Maps fields", () => {

@@ -77,13 +77,13 @@ const invalidCases = [
   },
   {
     name: "pre-existing protected design literal",
-    path: "src/components/DatePicker/DatePicker.module.css",
+    path: "src/shared/ui/DatePicker/DatePicker.module.css",
     code: ".fixture { color: #222222; }",
     rule: "airbob/no-protected-design-literal",
   },
   {
     name: "pre-existing protected circular radius",
-    path: "src/components/DatePicker/DatePicker.module.css",
+    path: "src/shared/ui/DatePicker/DatePicker.module.css",
     code: ".fixture { border-radius: 50%; }",
     rule: "airbob/no-protected-design-literal",
   },
@@ -113,13 +113,13 @@ const invalidCases = [
   },
   {
     name: "local custom aspect-ratio alias",
-    path: "src/components/DatePicker/DatePicker.module.css",
+    path: "src/shared/ui/DatePicker/DatePicker.module.css",
     code: ".fixture { --local-ratio: 1 / 1; aspect-ratio: var(--local-ratio); }",
     rule: "airbob/no-unknown-design-reference",
   },
   {
     name: "protected aspect-ratio fallback",
-    path: "src/components/DatePicker/DatePicker.module.css",
+    path: "src/shared/ui/DatePicker/DatePicker.module.css",
     code: ".fixture { aspect-ratio: var(--card-media-ratio, 1 / 1); }",
     rule: "airbob/no-protected-design-literal",
   },

@@ -1,12 +1,19 @@
-import { MutableRefObject, RefObject, useEffect, useRef } from "react";
-import { getGoogleMapsApi } from "../../../../../platform/integrations/googleMaps";
-import { clientLogger } from "../../../../../utils/clientLogger";
-import { renderMapExpandControl } from "../lib/mapExpandControl";
+import {
+  MutableRefObject,
+  RefObject,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import type { IntegrationError } from "../../../../../platform/integrations/errors";
+import {
+  createGoogleMapsIntegrationError,
+  getGoogleMapsApi,
+} from "../../../../../platform/integrations/googleMaps";
 import { SearchMapAccommodation, SearchMapViewport } from "../types";
 
 interface UseGoogleMapInstanceOptions {
   infoWindowRef: MutableRefObject<google.maps.InfoWindow | null>;
-  isExpanded: boolean;
   isInitialIdleRef: MutableRefObject<boolean>;
   isMapLoaded: boolean;
   mapInstanceRef: MutableRefObject<google.maps.Map | null>;
@@ -14,7 +21,6 @@ interface UseGoogleMapInstanceOptions {
   onAccommodationSelectRef: MutableRefObject<
     (accommodation: SearchMapAccommodation | null) => void
   >;
-  onExpandToggle?: () => void;
   onMapInteraction?: () => void;
   prevViewportRef: MutableRefObject<SearchMapViewport | null>;
   viewport?: SearchMapViewport | null;
@@ -23,18 +29,17 @@ interface UseGoogleMapInstanceOptions {
 
 export const useGoogleMapInstance = ({
   infoWindowRef,
-  isExpanded,
   isInitialIdleRef,
   isMapLoaded,
   mapInstanceRef,
   mapRef,
   onAccommodationSelectRef,
-  onExpandToggle,
   onMapInteraction,
   prevViewportRef,
   viewport,
   viewportJustChangedRef,
 }: UseGoogleMapInstanceOptions) => {
+  const [error, setError] = useState<IntegrationError | null>(null);
   const onMapInteractionRef = useRef(onMapInteraction);
 
   useEffect(() => {
@@ -45,7 +50,12 @@ export const useGoogleMapInstance = ({
     if (!isMapLoaded || !mapRef.current) return;
 
     const maps = getGoogleMapsApi();
-    if (!maps) return;
+    if (!maps) {
+      setError(
+        createGoogleMapsIntegrationError("INTEGRATION_INVALID_RUNTIME"),
+      );
+      return;
+    }
 
     if (mapInstanceRef.current) {
       return;
@@ -57,7 +67,7 @@ export const useGoogleMapInstance = ({
       event: keyof HTMLElementEventMap;
       listener: EventListener;
     }> = [];
-    let expandControlTimer: number | null = null;
+    let createdMap: google.maps.Map | null = null;
 
     const defaultCenter = { lat: 37.5665, lng: 126.9780 };
     const initialCenter = viewport
@@ -84,7 +94,9 @@ export const useGoogleMapInstance = ({
 
     try {
       const map = new maps.Map(mapElement, mapOptions);
+      createdMap = map;
       mapInstanceRef.current = map;
+      setError(null);
 
       if (viewport) {
         const initialBounds = new maps.LatLngBounds(
@@ -96,16 +108,6 @@ export const useGoogleMapInstance = ({
         viewportJustChangedRef.current = true;
         isInitialIdleRef.current = true;
       }
-
-      expandControlTimer = window.setTimeout(() => {
-        if (!mapRef.current || !onExpandToggle) return;
-
-        renderMapExpandControl({
-          container: mapRef.current,
-          isExpanded,
-          onToggle: onExpandToggle,
-        });
-      }, 500);
 
       mapListeners.push(
         map.addListener("click", () => {
@@ -145,24 +147,30 @@ export const useGoogleMapInstance = ({
         { event: "mousedown", listener: mouseDownListener }
       );
     } catch {
-      clientLogger.error({
-        message: "지도 초기화 실패:",
-      });
+      mapInstanceRef.current = null;
+      mapElement.replaceChildren();
+      setError(createGoogleMapsIntegrationError("INTEGRATION_INVALID_RUNTIME"));
     }
 
     return () => {
-      if (expandControlTimer !== null) {
-        window.clearTimeout(expandControlTimer);
-      }
-
       mapListeners.forEach((listener) => {
         listener.remove();
       });
       elementListeners.forEach(({ event, listener }) => {
         mapElement.removeEventListener(event, listener);
       });
+
+      if (createdMap) {
+        createdMap.unbindAll();
+      }
+
+      if (mapInstanceRef.current === createdMap) {
+        mapInstanceRef.current = null;
+      }
     };
     // The map instance is intentionally created once. Live callbacks are read from refs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMapLoaded]);
+
+  return error;
 };

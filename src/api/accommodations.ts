@@ -1,8 +1,6 @@
 import { client } from "./client";
 import { requestApi, requestApiNullable } from "./request";
 import {
-  AccommodationSearchRequest,
-  AccommodationSearchResponse,
   AccommodationDetail,
   HostAccommodationDetail,
   HostAccommodationInfos,
@@ -13,19 +11,6 @@ import { AccommodationStatus } from "../types/enums";
 import { ApiResponse } from "../types/api";
 
 export const accommodationApi = {
-  // 숙소 검색
-  search: async (
-    params: AccommodationSearchRequest,
-    signal?: AbortSignal
-  ): Promise<AccommodationSearchResponse> => {
-    return requestApi(() =>
-      client.get<ApiResponse<AccommodationSearchResponse>>("/search/accommodations", {
-        params,
-        signal,
-      })
-    );
-  },
-
   // 숙소 상세 조회 (Public)
   getDetail: async (accommodationId: number): Promise<AccommodationDetail> => {
     return requestApi(() =>

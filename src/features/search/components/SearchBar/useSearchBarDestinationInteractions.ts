@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import type { MouseEvent } from "react";
+import type { SearchActivePopover } from "../../model/searchInteractionReducer";
 
 interface SearchBarDomRef<T extends HTMLElement = HTMLElement> {
   readonly current: T | null;
@@ -11,21 +12,16 @@ interface UseSearchBarDestinationInteractionsOptions {
   datePickerRef: SearchBarDomRef;
   guestPickerRef: SearchBarDomRef;
   datePickerElementRef: SearchBarDomRef;
-  inputText: string;
   isExpanded: boolean;
   isMapDragMode: boolean;
-  showDatePicker: boolean;
-  showGuestPicker: boolean;
-  isOpeningDatePicker: boolean;
-  isOpeningGuestPicker: boolean;
+  activePopover: SearchActivePopover;
   exitMapDragMode: () => void;
-  handleInputChange: (value: string) => void;
-  setExpanded: (isExpanded: boolean) => void;
-  setShowDatePicker: (value: boolean) => void;
-  setShowGuestPicker: (value: boolean) => void;
-  setShowSuggestions: (value: boolean) => void;
-  setIsOpeningDatePicker: (value: boolean) => void;
-  startNewSession: () => void;
+  changeDestination: (value: string) => void;
+  openDestination: () => void;
+  openDatePicker: () => void;
+  closeActivePopover: () => void;
+  collapseShell: () => void;
+  startDestinationSession: () => void;
   completeCheckoutIfNeeded: () => void;
 }
 
@@ -35,6 +31,7 @@ export interface SearchBarDestinationInteractions {
   handleDestinationFocus: () => void;
   handleDestinationEnterWithoutSuggestion: () => void;
   handleDestinationBlur: () => void;
+  handleDestinationEscape: () => void;
 }
 
 export const useSearchBarDestinationInteractions = ({
@@ -43,96 +40,74 @@ export const useSearchBarDestinationInteractions = ({
   datePickerRef,
   guestPickerRef,
   datePickerElementRef,
-  inputText,
   isExpanded,
   isMapDragMode,
-  showDatePicker,
-  showGuestPicker,
-  isOpeningDatePicker,
-  isOpeningGuestPicker,
+  activePopover,
   exitMapDragMode,
-  handleInputChange,
-  setExpanded,
-  setShowDatePicker,
-  setShowGuestPicker,
-  setShowSuggestions,
-  setIsOpeningDatePicker,
-  startNewSession,
+  changeDestination,
+  openDestination,
+  openDatePicker,
+  closeActivePopover,
+  collapseShell,
+  startDestinationSession,
   completeCheckoutIfNeeded,
 }: UseSearchBarDestinationInteractionsOptions): SearchBarDestinationInteractions => {
   const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const enterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const stateRef = useRef({
-    isOpeningDatePicker,
-    isOpeningGuestPicker,
-    showDatePicker,
-    showGuestPicker,
-  });
-  stateRef.current = {
-    isOpeningDatePicker,
-    isOpeningGuestPicker,
-    showDatePicker,
-    showGuestPicker,
-  };
+  const focusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activePopoverRef = useRef(activePopover);
+  activePopoverRef.current = activePopover;
 
   const clearInteractionTimers = useCallback(() => {
     if (blurTimerRef.current) {
       clearTimeout(blurTimerRef.current);
       blurTimerRef.current = null;
     }
-    if (enterTimerRef.current) {
-      clearTimeout(enterTimerRef.current);
-      enterTimerRef.current = null;
+    if (focusTimerRef.current) {
+      clearTimeout(focusTimerRef.current);
+      focusTimerRef.current = null;
     }
   }, []);
 
   useEffect(() => clearInteractionTimers, [clearInteractionTimers]);
+
+  const focusDestination = useCallback(() => {
+    if (focusTimerRef.current) {
+      clearTimeout(focusTimerRef.current);
+    }
+
+    focusTimerRef.current = setTimeout(() => {
+      focusTimerRef.current = null;
+      destinationInputRef.current?.focus();
+    }, 0);
+  }, [destinationInputRef]);
 
   const handleDestinationClick = useCallback(
     (event: MouseEvent) => {
       clearInteractionTimers();
       event.stopPropagation();
 
-      if (showDatePicker || showGuestPicker) {
-        if (showDatePicker) {
-          completeCheckoutIfNeeded();
-        }
-        setShowDatePicker(false);
-        setShowGuestPicker(false);
+      if (activePopover === "date") {
+        completeCheckoutIfNeeded();
       }
 
       exitMapDragMode();
+      openDestination();
 
       if (!isExpanded) {
-        setExpanded(true);
-        startNewSession();
-        setTimeout(() => {
-          destinationInputRef.current?.focus();
-          if (inputText.trim()) {
-            setShowSuggestions(true);
-          }
-        }, 0);
+        focusDestination();
       } else {
         destinationInputRef.current?.focus();
-        if (inputText.trim()) {
-          setShowSuggestions(true);
-        }
       }
     },
     [
-      completeCheckoutIfNeeded,
+      activePopover,
       clearInteractionTimers,
+      completeCheckoutIfNeeded,
       destinationInputRef,
       exitMapDragMode,
-      inputText,
+      focusDestination,
       isExpanded,
-      setExpanded,
-      setShowDatePicker,
-      setShowGuestPicker,
-      setShowSuggestions,
-      showDatePicker,
-      showGuestPicker,
-      startNewSession,
+      openDestination,
     ],
   );
 
@@ -142,9 +117,9 @@ export const useSearchBarDestinationInteractions = ({
         exitMapDragMode();
       }
 
-      handleInputChange(value);
+      changeDestination(value);
     },
-    [exitMapDragMode, handleInputChange, isMapDragMode],
+    [changeDestination, exitMapDragMode, isMapDragMode],
   );
 
   const handleDestinationFocus = useCallback(() => {
@@ -152,20 +127,18 @@ export const useSearchBarDestinationInteractions = ({
 
     if (isMapDragMode) {
       exitMapDragMode();
-      handleInputChange("");
+      changeDestination("");
     }
 
-    setShowDatePicker(false);
-    setShowGuestPicker(false);
-    setShowSuggestions(true);
+    startDestinationSession();
+    openDestination();
   }, [
+    changeDestination,
     clearInteractionTimers,
     exitMapDragMode,
-    handleInputChange,
     isMapDragMode,
-    setShowDatePicker,
-    setShowGuestPicker,
-    setShowSuggestions,
+    openDestination,
+    startDestinationSession,
   ]);
 
   const handleDestinationEnterWithoutSuggestion = useCallback(() => {
@@ -175,24 +148,16 @@ export const useSearchBarDestinationInteractions = ({
       return;
     }
 
-    setIsOpeningDatePicker(true);
-    setShowDatePicker(true);
-    setShowGuestPicker(false);
-    setShowSuggestions(false);
-
-    enterTimerRef.current = setTimeout(() => {
-      enterTimerRef.current = null;
+    openDatePicker();
+    focusTimerRef.current = setTimeout(() => {
+      focusTimerRef.current = null;
       destinationInputRef.current?.blur();
-      setIsOpeningDatePicker(false);
-    }, 100);
+    }, 0);
   }, [
     clearInteractionTimers,
     destinationInputRef,
     isExpanded,
-    setIsOpeningDatePicker,
-    setShowDatePicker,
-    setShowGuestPicker,
-    setShowSuggestions,
+    openDatePicker,
   ]);
 
   const handleDestinationBlur = useCallback(() => {
@@ -203,52 +168,39 @@ export const useSearchBarDestinationInteractions = ({
     blurTimerRef.current = setTimeout(() => {
       blurTimerRef.current = null;
       const activeElement = document.activeElement;
-      if (suggestionsRef.current?.contains(activeElement as Node)) {
+      const registeredRegions = [
+        suggestionsRef.current,
+        datePickerElementRef.current,
+        datePickerRef.current,
+        guestPickerRef.current,
+      ];
+      const movedIntoRegisteredRegion = registeredRegions.some((region) =>
+        region?.contains(activeElement as Node),
+      );
+
+      if (
+        movedIntoRegisteredRegion ||
+        activePopoverRef.current !== "destination"
+      ) {
         return;
       }
 
-      const isClickingDatePicker = datePickerElementRef.current?.contains(
-        activeElement as Node,
-      );
-      const isClickingGuestPicker = guestPickerRef.current?.contains(
-        activeElement as Node,
-      );
-      const isClickingDateArea = datePickerRef.current?.contains(
-        activeElement as Node,
-      );
-      const isClickingGuestArea = guestPickerRef.current?.contains(
-        activeElement as Node,
-      );
-      const {
-        isOpeningDatePicker: isOpeningDatePickerNow,
-        isOpeningGuestPicker: isOpeningGuestPickerNow,
-        showDatePicker: showDatePickerNow,
-        showGuestPicker: showGuestPickerNow,
-      } = stateRef.current;
-
-      setShowSuggestions(false);
-
-      if (
-        !isOpeningDatePickerNow &&
-        !isOpeningGuestPickerNow &&
-        !showDatePickerNow &&
-        !showGuestPickerNow &&
-        !isClickingDatePicker &&
-        !isClickingGuestPicker &&
-        !isClickingDateArea &&
-        !isClickingGuestArea
-      ) {
-        setExpanded(false);
-      }
+      closeActivePopover();
+      collapseShell();
     }, 100);
   }, [
+    closeActivePopover,
+    collapseShell,
     datePickerElementRef,
     datePickerRef,
     guestPickerRef,
-    setExpanded,
-    setShowSuggestions,
     suggestionsRef,
   ]);
+
+  const handleDestinationEscape = useCallback(() => {
+    closeActivePopover();
+    destinationInputRef.current?.focus();
+  }, [closeActivePopover, destinationInputRef]);
 
   return {
     handleDestinationClick,
@@ -256,5 +208,6 @@ export const useSearchBarDestinationInteractions = ({
     handleDestinationFocus,
     handleDestinationEnterWithoutSuggestion,
     handleDestinationBlur,
+    handleDestinationEscape,
   };
 };

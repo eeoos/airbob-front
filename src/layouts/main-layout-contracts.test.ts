@@ -4,7 +4,7 @@ import * as ts from "typescript";
 
 const mainLayoutRouteContainers = [
   "src/features/home/HomeRoute.tsx",
-  "src/features/search/SearchRoute.tsx",
+  "src/screens/search/SearchScreen.tsx",
   "src/features/accommodations/AccommodationDetailRoute.tsx",
   "src/features/accommodations/edit/AccommodationEditRoute.tsx",
   "src/screens/wishlist/WishlistScreen.tsx",

@@ -101,7 +101,29 @@ type CapturedProps = {
     searchParams: URLSearchParams;
   };
   profile: QueryRouteProps;
-  search: QueryRouteProps & {
+  search: {
+    isAuthenticated: boolean;
+    navigation: {
+      getAccommodationHref(accommodationId: number): string;
+      openAccommodation(accommodationId: number): void;
+      openPage(page: number): void;
+      replaceMapBounds(bounds: {
+        north: number;
+        south: number;
+        east: number;
+        west: number;
+      }): void;
+      scrollResultsToTop(): void;
+    };
+    routeState: {
+      destination?: string;
+      page: number;
+      adultOccupancy: number;
+      childOccupancy: number;
+      infantOccupancy: number;
+      petOccupancy: number;
+    };
+    scope: { subject: string | null; epoch: number };
     wishlistAuthIntent: {
       request(accommodationId: number): number;
       cancel(attemptId: number): void;
@@ -192,6 +214,11 @@ jest.mock("../../../screens/wishlist/public", () => ({
     (props) => props.navigation.openRecentlyViewed(),
   ),
 }));
+jest.mock("../../../screens/search/public", () => ({
+  SearchController: mockRoute("search", "검색 페이지 변경", (props) =>
+    props.navigation.openPage(2),
+  ),
+}));
 jest.mock("../../../platform/browser/windowNavigation", () => ({
   browserWindowNavigation: {
     isCurrentHistoryEntry: (...args: unknown[]) =>
@@ -244,11 +271,6 @@ jest.mock(
     ),
   }),
 );
-jest.mock("../../../features/search/SearchRoute", () => ({
-  SearchRoute: mockRoute("search", "검색 조건 변경", (props) =>
-    props.setSearchParams(new URLSearchParams("destination=Busan&page=2")),
-  ),
-}));
 jest.mock("../../../features/profile/ProfileRoute", () => ({
   ProfileRoute: mockRoute("profile", "프로필 보기 변경", (props) =>
     props.setSearchParams(
@@ -326,7 +348,7 @@ beforeEach(() => {
     claim: mockClaimAuthIntent,
   });
   mockUseSession.mockReturnValue({
-    state: { status: "anonymous" },
+    state: { status: "anonymous", epoch: 0 },
     isCurrentSession: mockIsCurrentSession,
     captureAuthenticatedSession: mockCaptureAuthenticatedSession,
     login: mockSessionLogin,
@@ -518,6 +540,50 @@ describe("app route adapter contracts", () => {
 
     bridge.cancel(51);
     expect(mockCancelAuthIntent).toHaveBeenCalledWith(51);
+  });
+
+  it("owns normalized search state, history commands, and booking-safe detail navigation", async () => {
+    renderAdapter(
+      "/search",
+      "/search?destination=Seoul&page=1&adultOccupancy=2&token=secret",
+      <SearchRoute />,
+    );
+
+    expect(captured("search")).toMatchObject({
+      isAuthenticated: false,
+      routeState: {
+        destination: "Seoul",
+        page: 1,
+        adultOccupancy: 2,
+        childOccupancy: 0,
+        infantOccupancy: 0,
+        petOccupancy: 0,
+      },
+      scope: { subject: null, epoch: 0 },
+    });
+    act(() => captured("search").navigation.openAccommodation(42));
+    expect(mockOpenInNewTab).toHaveBeenCalledWith(
+      "/accommodations/42?adultOccupancy=2",
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "검색 페이지 변경" }),
+    );
+    expectLocation(
+      "/search?destination=Seoul&page=2&adultOccupancy=2&token=secret",
+    );
+
+    act(() =>
+      captured("search").navigation.replaceMapBounds({
+        north: 38,
+        south: 37,
+        east: 128,
+        west: 126,
+      }),
+    );
+    expectLocation(
+      "/search?adultOccupancy=2&topLeftLat=38&topLeftLng=126&bottomRightLat=37&bottomRightLng=128",
+    );
   });
 
   it("delivers an atomically claimed wishlist intent to the new search owner", async () => {
@@ -763,15 +829,6 @@ describe("app route adapter contracts", () => {
   });
 
   it.each([
-    {
-      action: "검색 조건 변경",
-      element: <SearchRoute />,
-      initial: "/search?destination=Seoul&page=1",
-      key: "search",
-      next: "/search?destination=Busan&page=2",
-      path: "/search",
-      query: "destination=Seoul&page=1",
-    },
     {
       action: "프로필 보기 변경",
       element: <ProfileRoute />,

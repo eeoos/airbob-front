@@ -3,6 +3,7 @@ import { AppError } from "../http/errors";
 export type IntegrationName =
   | "daum-postcode"
   | "google-maps"
+  | "google-places"
   | "toss-payments-v1";
 
 export type IntegrationErrorCode =

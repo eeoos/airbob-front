@@ -36,9 +36,9 @@ export const useMapBoundsReporter = ({
     const handleIdle = () => {
       if (isInitialIdleRef.current) {
         isInitialIdleRef.current = false;
+        const bounds = mapInstance.getBounds();
 
-        if (mapInstance.getBounds()) {
-          const bounds = mapInstance.getBounds()!;
+        if (bounds) {
           const ne = bounds.getNorthEast();
           const sw = bounds.getSouthWest();
           previousBoundsRef.current = {
@@ -60,12 +60,12 @@ export const useMapBoundsReporter = ({
 
       boundsChangeTimerRef.current = setTimeout(() => {
         setIsLoadingBounds(false);
+        const bounds = mapInstance.getBounds();
 
-        if (!mapInstance.getBounds()) {
+        if (!bounds) {
           return;
         }
 
-        const bounds = mapInstance.getBounds()!;
         const ne = bounds.getNorthEast();
         const sw = bounds.getSouthWest();
 
@@ -77,7 +77,6 @@ export const useMapBoundsReporter = ({
         };
 
         if (!hasBoundsChanged(previousBoundsRef.current, newBounds)) {
-          setIsLoadingBounds(false);
           return;
         }
 
@@ -97,7 +96,6 @@ export const useMapBoundsReporter = ({
         idleListenerRef.current.remove();
         idleListenerRef.current = null;
       }
-      setIsLoadingBounds(false);
     };
   }, [isInitialIdleRef, mapInstanceRef, onBoundsChange]);
 

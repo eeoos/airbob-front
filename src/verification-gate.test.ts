@@ -489,6 +489,7 @@ describe("frontend verification gate", () => {
       "src/app/shells/**",
       "The remaining rollback-only route chain is",
       "Still-active compatibility",
+      "The ten remaining app-adapter bridges",
       "Airbnb visual redesign begins only after the architecture design-entry gate",
       "When documents disagree about the current frontend, this document wins.",
     ].forEach((term) => {
@@ -508,9 +509,12 @@ describe("frontend verification gate", () => {
     expect(ownershipMatrixDoc).toContain(
       "app adapter → current/old body",
     );
+    expect(ownershipMatrixDoc).toContain(
+      "**Active:** app codec/navigation/auth composition",
+    );
     expect(ownershipMatrixDoc).toContain("U10/U11 payment compatibility matrix");
     expect(architectureRulesDoc).toContain("Single rule owners");
-    expect(architectureRulesDoc).toContain("thirteen cross-feature compatibility edges");
+    expect(architectureRulesDoc).toContain("eleven cross-feature compatibility edges");
     expect(architectureRulesDoc).toContain("Strict design-policy errors are zero");
     expect(Array.isArray(architectureRatchet.migratedFeatures)).toBe(true);
     expect(new Set(architectureRatchet.migratedFeatures).size).toBe(
@@ -519,6 +523,11 @@ describe("frontend verification gate", () => {
     expect(architectureRatchet.migratedFeatures).toEqual(
       [...architectureRatchet.migratedFeatures].sort(),
     );
+    expect(architectureRatchet.migratedFeatures).toEqual([
+      "auth",
+      "search",
+      "wishlist",
+    ]);
 
     [
       "REACT_APP_API_URL=http://localhost:8080",

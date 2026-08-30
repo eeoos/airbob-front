@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import type { SearchActivePopover } from "../../model/searchInteractionReducer";
 
 interface SearchBarDomRef {
   readonly current: HTMLElement | null;
@@ -11,13 +12,11 @@ interface UseSearchBarOutsideClickOptions {
   datePickerElementRef: SearchBarDomRef;
   destinationAreaRef: SearchBarDomRef;
   suggestionsRef: SearchBarDomRef;
-  showDatePicker: boolean;
-  showGuestPicker: boolean;
-  showSuggestions: boolean;
+  activePopover: SearchActivePopover;
   closeTransientPanels: (options?: {
     collapseWhenDateSelected?: boolean;
   }) => void;
-  setExpanded: (isExpanded: boolean) => void;
+  collapseShell: () => void;
 }
 
 export const useSearchBarOutsideClick = ({
@@ -27,14 +26,12 @@ export const useSearchBarOutsideClick = ({
   datePickerElementRef,
   destinationAreaRef,
   suggestionsRef,
-  showDatePicker,
-  showGuestPicker,
-  showSuggestions,
+  activePopover,
   closeTransientPanels,
-  setExpanded,
+  collapseShell,
 }: UseSearchBarOutsideClickOptions): void => {
   useEffect(() => {
-    if (!showDatePicker && !showGuestPicker && !showSuggestions) {
+    if (activePopover === "none") {
       return;
     }
 
@@ -57,11 +54,8 @@ export const useSearchBarOutsideClick = ({
         !isInsideDestinationArea
       ) {
         if (!isInsideSearchBar) {
-          if (showDatePicker || showGuestPicker || showSuggestions) {
-            closeTransientPanels({ collapseWhenDateSelected: true });
-          }
-
-          setExpanded(false);
+          closeTransientPanels({ collapseWhenDateSelected: true });
+          collapseShell();
         }
       }
     };
@@ -78,10 +72,8 @@ export const useSearchBarOutsideClick = ({
     destinationAreaRef,
     guestPickerRef,
     searchBarRef,
-    setExpanded,
-    showDatePicker,
-    showGuestPicker,
-    showSuggestions,
+    activePopover,
+    collapseShell,
     suggestionsRef,
   ]);
 };

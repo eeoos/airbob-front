@@ -7,7 +7,7 @@ interface SearchDateFieldsProps {
   isExpanded: boolean;
   isOpen: boolean;
   onTriggerClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
-  onTriggerMouseDown: () => void;
+  triggerRef?: React.Ref<HTMLButtonElement>;
 }
 
 const formatDisplayDate = (date: Date | null): string => {
@@ -30,13 +30,13 @@ export const SearchDateFields = ({
   isExpanded,
   isOpen,
   onTriggerClick,
-  onTriggerMouseDown,
+  triggerRef,
 }: SearchDateFieldsProps) => (
   <button
+    ref={triggerRef}
     aria-controls="search-date-picker"
     aria-expanded={isOpen}
     className={styles.searchItem}
-    onMouseDown={onTriggerMouseDown}
     onClick={onTriggerClick}
     type="button"
   >

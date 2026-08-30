@@ -12,7 +12,7 @@ interface UseMapSelectionInfoWindowOptions {
   accommodations: SearchMapAccommodation[];
   checkIn?: string | null;
   checkOut?: string | null;
-  detailSearchParams?: URLSearchParams;
+  getAccommodationHref: (accommodationId: number) => string;
   hoveredAccommodationId?: number | null;
   hoveredAccommodationIdRef: MutableRefObject<number | null>;
   infoWindowRef: MutableRefObject<google.maps.InfoWindow | null>;
@@ -47,15 +47,23 @@ const restoreMarkerForHoverState = (
 ) => {
   if (!marker.icons) return;
 
+  marker.isSelected = false;
   const isHovered = hoveredAccommodationId === accommodationId;
   marker.setIcon(isHovered ? marker.icons.hovered : marker.icons.default);
+};
+
+const selectMarker = (marker: SearchMapMarker | null) => {
+  if (!marker?.icons) return;
+
+  marker.isSelected = true;
+  marker.setIcon(marker.icons.selected);
 };
 
 export const useMapSelectionInfoWindow = ({
   accommodations,
   checkIn,
   checkOut,
-  detailSearchParams,
+  getAccommodationHref,
   hoveredAccommodationId,
   hoveredAccommodationIdRef,
   infoWindowRef,
@@ -70,13 +78,29 @@ export const useMapSelectionInfoWindow = ({
 }: UseMapSelectionInfoWindowOptions) => {
   const closeInfoWindowRef = useRef<CloseInfoWindow | null>(null);
   const bindMapInfoWindowEvents = useMapInfoWindowEvents({
-    detailSearchParams,
+    getAccommodationHref,
     onWishlistToggle,
   });
 
   useEffect(() => {
     const maps = getGoogleMapsApi();
     if (!mapInstanceRef.current || !maps) return;
+
+    let isEffectActive = true;
+    const pendingTimers = new Set<number>();
+    let disposeOwnedInfoWindow: (() => void) | null = null;
+    const schedule = (callback: () => void, delay: number) => {
+      const timer = window.setTimeout(() => {
+        pendingTimers.delete(timer);
+        if (isEffectActive) callback();
+      }, delay);
+      pendingTimers.add(timer);
+      return timer;
+    };
+    const clearPendingTimers = () => {
+      pendingTimers.forEach((timer) => window.clearTimeout(timer));
+      pendingTimers.clear();
+    };
 
     const currentSelectedId = selectedAccommodationId;
     const prevSelectedId = prevSelectedIdRef.current;
@@ -119,7 +143,7 @@ export const useMapSelectionInfoWindow = ({
         restoreMarkerForHoverState(
           prevMarker,
           prevSelectedId,
-          hoveredAccommodationId ?? null,
+          hoveredAccommodationIdRef.current,
         );
       }
     }
@@ -143,23 +167,7 @@ export const useMapSelectionInfoWindow = ({
         selectedAccommodation.id,
       );
 
-      if (targetMarker?.icons) {
-        targetMarker.setIcon(targetMarker.icons.selected);
-      }
-
-      setTimeout(() => {
-        if (selectedAccommodationId !== selectedAccommodation.id) {
-          return;
-        }
-
-        const marker = findMarkerByAccommodationId(
-          markersRef.current,
-          selectedAccommodation.id,
-        );
-        if (marker?.icons) {
-          marker.setIcon(marker.icons.selected);
-        }
-      }, 0);
+      selectMarker(targetMarker);
 
       if (infoWindowRef.current) {
         closeCurrentInfoWindowForReplacement();
@@ -191,6 +199,7 @@ export const useMapSelectionInfoWindow = ({
         let closeSelectedInfoWindow: CloseInfoWindow;
 
         const cleanupInfoWindowListeners = () => {
+          clearPendingTimers();
           unbindInfoWindowEvents?.();
           unbindInfoWindowEvents = null;
 
@@ -238,15 +247,24 @@ export const useMapSelectionInfoWindow = ({
           if (closeInfoWindowRef.current === closeSelectedInfoWindow) {
             closeInfoWindowRef.current = null;
           }
+          disposeOwnedInfoWindow = null;
         };
 
         closeSelectedInfoWindow = (options = {}) => {
+          if (didHandleInfoWindowClose) return;
+
           pendingCloseOptions = options;
-          infoWindow.close();
-          handleInfoWindowClose(options);
+          try {
+            infoWindow.close();
+          } finally {
+            handleInfoWindowClose(options);
+          }
         };
 
         closeInfoWindowRef.current = closeSelectedInfoWindow;
+        disposeOwnedInfoWindow = () => {
+          closeSelectedInfoWindow({ clearSelection: false });
+        };
 
         domReadyListener = infoWindow.addListener("domready", () => {
           const mapElement = mapRef.current;
@@ -255,12 +273,15 @@ export const useMapSelectionInfoWindow = ({
             return;
           }
 
-          setTimeout(() => {
-            adjustInfoWindowIntoMapView({ mapElement });
+          schedule(() => {
+            adjustInfoWindowIntoMapView({
+              mapElement,
+              root: mapElement,
+            });
           }, 50);
 
-          const infoWindowElement = document.getElementById(
-            `info-window-${selectedAccommodation.id}`,
+          const infoWindowElement = mapElement.querySelector<HTMLElement>(
+            `#info-window-${selectedAccommodation.id}`,
           );
           if (infoWindowElement) {
             unbindInfoWindowEvents?.();
@@ -271,7 +292,7 @@ export const useMapSelectionInfoWindow = ({
             });
           }
 
-          applyInfoWindowChromeStyles();
+          applyInfoWindowChromeStyles(mapElement);
         });
 
         closeClickListener = infoWindow.addListener(
@@ -297,8 +318,11 @@ export const useMapSelectionInfoWindow = ({
 
           const mapElement = mapRef.current;
 
-          setTimeout(() => {
-            adjustInfoWindowIntoMapView({ mapElement });
+          schedule(() => {
+            adjustInfoWindowIntoMapView({
+              mapElement,
+              root: mapElement,
+            });
           }, 100);
         };
 
@@ -313,12 +337,17 @@ export const useMapSelectionInfoWindow = ({
     }
 
     prevSelectedIdRef.current = currentSelectedId;
+
+    return () => {
+      isEffectActive = false;
+      clearPendingTimers();
+      disposeOwnedInfoWindow?.();
+    };
   }, [
     accommodations,
     bindMapInfoWindowEvents,
     checkIn,
     checkOut,
-    hoveredAccommodationId,
     hoveredAccommodationIdRef,
     infoWindowRef,
     mapInstanceRef,
@@ -326,32 +355,6 @@ export const useMapSelectionInfoWindow = ({
     markersRef,
     onAccommodationSelect,
     onWishlistToggle,
-    prevSelectedIdRef,
-    selectedAccommodationId,
-  ]);
-
-  useEffect(() => {
-    if (!mapInstanceRef.current || selectedAccommodationId !== null) return;
-
-    const prevSelectedId = prevSelectedIdRef.current;
-    if (prevSelectedId !== null) {
-      const prevMarker = findMarkerByAccommodationId(
-        markersRef.current,
-        prevSelectedId,
-      );
-
-      if (prevMarker) {
-        restoreMarkerForHoverState(
-          prevMarker,
-          prevSelectedId,
-          hoveredAccommodationId ?? null,
-        );
-      }
-    }
-  }, [
-    hoveredAccommodationId,
-    mapInstanceRef,
-    markersRef,
     prevSelectedIdRef,
     selectedAccommodationId,
   ]);
@@ -370,6 +373,7 @@ export const useMapSelectionInfoWindow = ({
         );
 
         if (prevMarker?.icons) {
+          prevMarker.isSelected = false;
           prevMarker.setIcon(prevMarker.icons.default);
         }
       }
@@ -385,6 +389,7 @@ export const useMapSelectionInfoWindow = ({
       );
 
       if (hoveredMarker?.icons) {
+        hoveredMarker.isSelected = false;
         hoveredMarker.setIcon(hoveredMarker.icons.hovered);
       }
     }
@@ -399,47 +404,4 @@ export const useMapSelectionInfoWindow = ({
     prevHoveredIdRef,
     selectedAccommodationId,
   ]);
-
-  useEffect(() => {
-    if (!mapInstanceRef.current || selectedAccommodationId === null) return;
-
-    const currentSelectedId = selectedAccommodationId;
-    const selectedMarker = findMarkerByAccommodationId(
-      markersRef.current,
-      currentSelectedId,
-    );
-
-    if (selectedMarker?.icons) {
-      selectedMarker.setIcon(selectedMarker.icons.selected);
-
-      let frameId: number | null = null;
-      let isActive = true;
-
-      const checkAndRestore = () => {
-        if (!isActive) return;
-
-        const marker = findMarkerByAccommodationId(
-          markersRef.current,
-          currentSelectedId,
-        );
-
-        if (marker?.icons) {
-          const currentIcon = marker.getIcon();
-          if (currentIcon !== marker.icons.selected) {
-            marker.setIcon(marker.icons.selected);
-          }
-          frameId = requestAnimationFrame(checkAndRestore);
-        }
-      };
-
-      frameId = requestAnimationFrame(checkAndRestore);
-
-      return () => {
-        isActive = false;
-        if (frameId !== null) {
-          cancelAnimationFrame(frameId);
-        }
-      };
-    }
-  }, [mapInstanceRef, markersRef, selectedAccommodationId]);
 };

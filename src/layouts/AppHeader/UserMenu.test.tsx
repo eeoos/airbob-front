@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { useCreateAccommodationDraft } from "../../features/accommodations/appShell";
+import { useCreateAccommodationDraft } from "../../features/accommodations/ports/draftCreate";
 import { UserMenu } from "./UserMenu";
 
 const mockNavigate = jest.fn();
@@ -28,11 +28,11 @@ jest.mock("../../hooks/useApiError", () => ({
   }),
 }));
 
-jest.mock("../../features/accommodations/appShell", () => ({
+jest.mock("../../features/accommodations/ports/draftCreate", () => ({
   useCreateAccommodationDraft: jest.fn(),
 }));
 
-jest.mock("../../features/auth/appShell", () => ({
+jest.mock("../../features/auth/public", () => ({
   AuthModal: ({
     initialMode,
     isOpen,

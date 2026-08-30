@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { WishlistMembershipProvider } from "../../../workflows/wishlist-membership";
+import { createAppWishlistProjection } from "../wishlistProjection";
 import { useSession } from "../../session/useSession";
 
 export function WishlistMembershipRouteBoundary({
@@ -10,7 +11,10 @@ export function WishlistMembershipRouteBoundary({
   const session = useSession();
 
   return (
-    <WishlistMembershipProvider session={session}>
+    <WishlistMembershipProvider
+      projectionFactory={createAppWishlistProjection}
+      session={session}
+    >
       {children}
     </WishlistMembershipProvider>
   );

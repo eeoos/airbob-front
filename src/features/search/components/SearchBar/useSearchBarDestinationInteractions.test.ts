@@ -1,4 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
+import type { SearchActivePopover } from "../../model/searchInteractionReducer";
 import { useSearchBarDestinationInteractions } from "./useSearchBarDestinationInteractions";
 
 const createRef = <T,>(element: T | null) => ({ current: element });
@@ -9,21 +10,16 @@ const createOptions = () => ({
   datePickerRef: createRef<HTMLElement>(null),
   guestPickerRef: createRef<HTMLElement>(null),
   datePickerElementRef: createRef<HTMLElement>(null),
-  inputText: "Seoul",
   isExpanded: false,
   isMapDragMode: true,
-  showDatePicker: false,
-  showGuestPicker: false,
-  isOpeningDatePicker: false,
-  isOpeningGuestPicker: false,
+  activePopover: "none" as const,
   exitMapDragMode: jest.fn(),
-  handleInputChange: jest.fn(),
-  setExpanded: jest.fn(),
-  setShowDatePicker: jest.fn(),
-  setShowGuestPicker: jest.fn(),
-  setShowSuggestions: jest.fn(),
-  setIsOpeningDatePicker: jest.fn(),
-  startNewSession: jest.fn(),
+  changeDestination: jest.fn(),
+  openDestination: jest.fn(),
+  openDatePicker: jest.fn(),
+  closeActivePopover: jest.fn(),
+  collapseShell: jest.fn(),
+  startDestinationSession: jest.fn(),
   completeCheckoutIfNeeded: jest.fn(),
 });
 
@@ -39,13 +35,12 @@ describe("useSearchBarDestinationInteractions", () => {
     jest.useRealTimers();
   });
 
-  it("expands, starts a new destination session, and focuses the input", () => {
+  it("opens the destination and focuses after compact expansion", () => {
     const input = document.createElement("input");
     document.body.appendChild(input);
     const options = {
       ...createOptions(),
       destinationInputRef: createRef(input),
-      startNewSession: jest.fn(),
     };
     const { result } = renderHook(() =>
       useSearchBarDestinationInteractions(options),
@@ -58,15 +53,27 @@ describe("useSearchBarDestinationInteractions", () => {
       jest.runOnlyPendingTimers();
     });
 
-    expect(options.setExpanded).toHaveBeenCalledWith(true);
-    expect(options.startNewSession).toHaveBeenCalledTimes(1);
+    expect(options.openDestination).toHaveBeenCalledTimes(1);
     expect(input).toHaveFocus();
-    expect(options.setShowSuggestions).toHaveBeenCalledWith(true);
 
     input.remove();
   });
 
-  it("clears map mode on input changes and focuses destination suggestions", () => {
+  it("starts Places when destination receives focus after another panel expanded the shell", () => {
+    const options = { ...createOptions(), isExpanded: true };
+    const { result } = renderHook(() =>
+      useSearchBarDestinationInteractions(options),
+    );
+
+    act(() => {
+      result.current.handleDestinationFocus();
+    });
+
+    expect(options.startDestinationSession).toHaveBeenCalledTimes(1);
+    expect(options.openDestination).toHaveBeenCalledTimes(1);
+  });
+
+  it("exits map mode for typing and clears the old map destination on focus", () => {
     const options = createOptions();
     const { result } = renderHook(() =>
       useSearchBarDestinationInteractions(options),
@@ -78,18 +85,13 @@ describe("useSearchBarDestinationInteractions", () => {
     });
 
     expect(options.exitMapDragMode).toHaveBeenCalledTimes(2);
-    expect(options.handleInputChange).toHaveBeenNthCalledWith(1, "Busan");
-    expect(options.handleInputChange).toHaveBeenNthCalledWith(2, "");
-    expect(options.setShowDatePicker).toHaveBeenCalledWith(false);
-    expect(options.setShowGuestPicker).toHaveBeenCalledWith(false);
-    expect(options.setShowSuggestions).toHaveBeenCalledWith(true);
+    expect(options.changeDestination).toHaveBeenNthCalledWith(1, "Busan");
+    expect(options.changeDestination).toHaveBeenNthCalledWith(2, "");
+    expect(options.openDestination).toHaveBeenCalledTimes(1);
   });
 
-  it("opens the date picker when Enter is pressed without a suggestion", () => {
-    const options = {
-      ...createOptions(),
-      isExpanded: true,
-    };
+  it("moves Enter without a suggestion directly to the date popover", () => {
+    const options = { ...createOptions(), isExpanded: true };
     const { result } = renderHook(() =>
       useSearchBarDestinationInteractions(options),
     );
@@ -98,44 +100,56 @@ describe("useSearchBarDestinationInteractions", () => {
       result.current.handleDestinationEnterWithoutSuggestion();
     });
 
-    expect(options.setIsOpeningDatePicker).toHaveBeenCalledWith(true);
-    expect(options.setShowDatePicker).toHaveBeenCalledWith(true);
-    expect(options.setShowGuestPicker).toHaveBeenCalledWith(false);
-    expect(options.setShowSuggestions).toHaveBeenCalledWith(false);
+    expect(options.openDatePicker).toHaveBeenCalledTimes(1);
   });
 
-  it("cancels a delayed blur when focus returns to the destination input", () => {
-    const options = createOptions();
+  it("does not collapse when a blur is followed by another popover transition", () => {
+    const options = {
+      ...createOptions(),
+      isExpanded: true,
+      activePopover: "destination" as const,
+    };
+    const { result, rerender } = renderHook(
+      ({ activePopover }: { activePopover: SearchActivePopover }) =>
+        useSearchBarDestinationInteractions({
+          ...options,
+          activePopover,
+        }),
+      {
+        initialProps: {
+          activePopover: "destination" as SearchActivePopover,
+        },
+      },
+    );
+
+    act(() => {
+      result.current.handleDestinationBlur();
+    });
+    rerender({ activePopover: "date" as const });
+    act(() => {
+      jest.advanceTimersByTime(100);
+    });
+
+    expect(options.closeActivePopover).not.toHaveBeenCalled();
+    expect(options.collapseShell).not.toHaveBeenCalled();
+  });
+
+  it("closes and collapses a destination draft after an unclaimed blur", () => {
+    const options = {
+      ...createOptions(),
+      isExpanded: true,
+      activePopover: "destination" as const,
+    };
     const { result } = renderHook(() =>
       useSearchBarDestinationInteractions(options),
     );
 
     act(() => {
       result.current.handleDestinationBlur();
-      result.current.handleDestinationFocus();
       jest.advanceTimersByTime(100);
     });
 
-    expect(options.setExpanded).not.toHaveBeenCalled();
-    expect(options.setShowSuggestions).toHaveBeenCalledWith(true);
-  });
-
-  it("cancels the delayed input blur when focus moves into the next picker", () => {
-    const options = {
-      ...createOptions(),
-      isExpanded: true,
-    };
-    const { result } = renderHook(() =>
-      useSearchBarDestinationInteractions(options),
-    );
-
-    act(() => {
-      result.current.handleDestinationEnterWithoutSuggestion();
-      result.current.handleDestinationFocus();
-      jest.advanceTimersByTime(100);
-    });
-
-    expect(options.setIsOpeningDatePicker).toHaveBeenCalledTimes(1);
-    expect(options.setIsOpeningDatePicker).not.toHaveBeenCalledWith(false);
+    expect(options.closeActivePopover).toHaveBeenCalledTimes(1);
+    expect(options.collapseShell).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,12 +1,12 @@
 import { useCallback } from "react";
 import type { MouseEvent } from "react";
+import type { SearchActivePopover } from "../../model/searchInteractionReducer";
 
 interface SearchBarDomRef<T extends HTMLElement = HTMLElement> {
   readonly current: T | null;
 }
 
 interface UseSearchBarShellInteractionsOptions {
-  searchBarRef: SearchBarDomRef<HTMLDivElement>;
   datePickerRef: SearchBarDomRef<HTMLDivElement>;
   guestPickerRef: SearchBarDomRef<HTMLDivElement>;
   datePickerElementRef: SearchBarDomRef<HTMLDivElement>;
@@ -14,15 +14,14 @@ interface UseSearchBarShellInteractionsOptions {
   suggestionsRef: SearchBarDomRef<HTMLDivElement>;
   searchButtonClassName: string;
   isExpanded: boolean;
-  showDatePicker: boolean;
-  showGuestPicker: boolean;
-  showSuggestions: boolean;
+  activePopover: SearchActivePopover;
   completeCheckoutIfNeeded: () => void;
   closeTransientPanels: (options?: {
     collapseWhenDateSelected?: boolean;
   }) => void;
-  setExpanded: (isExpanded: boolean) => void;
-  setShowDatePicker: (isOpen: boolean) => void;
+  expandShell: () => void;
+  collapseShell: () => void;
+  closeActivePopover: () => void;
   openDatePicker: () => void;
   toggleGuestPicker: () => void;
 }
@@ -35,7 +34,6 @@ export interface SearchBarShellInteractions {
 }
 
 export const useSearchBarShellInteractions = ({
-  searchBarRef,
   datePickerRef,
   guestPickerRef,
   datePickerElementRef,
@@ -43,66 +41,62 @@ export const useSearchBarShellInteractions = ({
   suggestionsRef,
   searchButtonClassName,
   isExpanded,
-  showDatePicker,
-  showGuestPicker,
-  showSuggestions,
+  activePopover,
   completeCheckoutIfNeeded,
   closeTransientPanels,
-  setExpanded,
-  setShowDatePicker,
+  expandShell,
+  collapseShell,
+  closeActivePopover,
   openDatePicker,
   toggleGuestPicker,
 }: UseSearchBarShellInteractionsOptions): SearchBarShellInteractions => {
   const closeDatePopover = useCallback(() => {
     completeCheckoutIfNeeded();
-    setShowDatePicker(false);
-  }, [completeCheckoutIfNeeded, setShowDatePicker]);
+    closeActivePopover();
+  }, [closeActivePopover, completeCheckoutIfNeeded]);
 
   const handleSearchBarClick = useCallback(
     (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      const isDatePickerElement = datePickerElementRef.current?.contains(target);
-      const isDatePickerArea = datePickerRef.current?.contains(target);
-      const isGuestPickerArea = guestPickerRef.current?.contains(target);
-      const isDestinationArea = destinationAreaRef.current?.contains(target);
-      const isSuggestionsArea = suggestionsRef.current?.contains(target);
+      const registeredRegions = [
+        datePickerElementRef.current,
+        datePickerRef.current,
+        guestPickerRef.current,
+        destinationAreaRef.current,
+        suggestionsRef.current,
+      ];
+      const isRegisteredRegion = registeredRegions.some((region) =>
+        region?.contains(target),
+      );
       const isSearchButton = target.closest(`.${searchButtonClassName}`);
 
-      if (
-        isDatePickerArea ||
-        isGuestPickerArea ||
-        isDatePickerElement ||
-        isDestinationArea ||
-        isSuggestionsArea ||
-        isSearchButton
-      ) {
+      if (isRegisteredRegion || isSearchButton) {
         if (!isExpanded) {
-          setExpanded(true);
+          expandShell();
         }
         return;
       }
 
-      if (showDatePicker || showGuestPicker || showSuggestions) {
+      if (activePopover !== "none") {
         closeTransientPanels({ collapseWhenDateSelected: true });
         event.stopPropagation();
         return;
       }
 
-      setExpanded(false);
+      collapseShell();
       event.stopPropagation();
     },
     [
+      activePopover,
       closeTransientPanels,
+      collapseShell,
       datePickerElementRef,
       datePickerRef,
       destinationAreaRef,
+      expandShell,
       guestPickerRef,
       isExpanded,
       searchButtonClassName,
-      setExpanded,
-      showDatePicker,
-      showGuestPicker,
-      showSuggestions,
       suggestionsRef,
     ],
   );

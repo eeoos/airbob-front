@@ -48,7 +48,7 @@ describe("Google Maps platform integration", () => {
     expect(mapsScripts()).toHaveLength(1);
     expect(url.origin).toBe("https://maps.googleapis.com");
     expect(url.pathname).toBe("/maps/api/js");
-    expect(url.searchParams.get("libraries")).toBe("places");
+    expect(url.searchParams.has("libraries")).toBe(false);
     expect(url.searchParams.get("loading")).toBe("async");
     expect(script.dataset.airbobIntegration).toBe("google-maps-v3");
 
@@ -60,7 +60,7 @@ describe("Google Maps platform integration", () => {
   it("adopts one exact existing script and waits for runtime readiness", async () => {
     const existing = document.createElement("script");
     existing.src =
-      "https://maps.googleapis.com/maps/api/js?key=already-public&libraries=places&loading=async";
+      "https://maps.googleapis.com/maps/api/js?key=already-public&loading=async";
     document.head.appendChild(existing);
 
     const loading = ensureGoogleMapsScript("already-public");
@@ -90,7 +90,6 @@ describe("Google Maps platform integration", () => {
     expect(ownedUrl.searchParams.get("key")).toBe("requested-key");
     expect(Array.from(ownedUrl.searchParams.keys()).sort()).toEqual([
       "key",
-      "libraries",
       "loading",
     ]);
 

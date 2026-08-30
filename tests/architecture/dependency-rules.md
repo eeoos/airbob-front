@@ -31,11 +31,11 @@ remain comparable after their U22 root and scope declaration are retired.
 
 ## Dependency-cruiser policy
 
-The production graph after U7 has 469 modules and 1,253 dependency edges. It
-records zero errors and 15 legacy warnings:
+The production graph after U8 has 476 modules and 1,271 dependency edges. It
+records zero errors and 13 legacy warnings:
 
 - two type-bearing module cycles in the accommodation editor;
-- thirteen cross-feature compatibility edges.
+- eleven cross-feature compatibility edges.
 
 The graph blocks unresolved imports, production imports of tests or runtime dev
 dependencies, private feature peer imports, direct UI access to global API/wire
@@ -53,8 +53,8 @@ U6 adds one temporary exact bridge per compatibility adapter under
 `src/app/router/routes/**`. Each adapter may import only its assigned legacy
 feature route container; a peer route or private helper is still an error.
 U7 removes the Login, Signup, and Wishlist bridges with their owned
-screen/controller cutovers. U8-U13/U21 remove the eleven remaining bridges,
-and U22 removes any final compatibility entry.
+screen/controller cutovers. U8 removes Search. U9-U13/U21 remove the ten
+remaining bridges, and U22 removes any final compatibility entry.
 
 The fixture runner proves 37 cases, including a valid DAG, MJS graph coverage,
 the app feature public-surface contract, workflow/screen peer edges,
@@ -106,6 +106,11 @@ raw color references, 34 `!important` declarations, sixteen raw radii, three
 raw shadows, two protected-literal warnings outside the already-clean scope,
 and two unknown local custom-property references.
 Strict design-policy errors are zero.
+
+U8 registers Search as strict. Its route CSS now lives with the Search screen;
+Search component/screen CSS uses canonical tokens and contains no strict
+Stylelint or focused design-contract errors. The full report retains 154 legacy
+warnings across 20 files outside strict migrated ownership.
 
 Standard CSS violations, raw colors/radii/shadows, off-scale breakpoints,
 `!important`, unknown custom properties, and unknown custom media are errors in

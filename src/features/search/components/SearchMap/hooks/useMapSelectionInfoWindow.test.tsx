@@ -50,6 +50,7 @@ const createHookOptions = (
   overrides: Partial<HookOptions> = {},
 ): HookOptions => ({
   accommodations: [],
+  getAccommodationHref: (id) => `/accommodations/${id}`,
   hoveredAccommodationId: null,
   hoveredAccommodationIdRef: ref<number | null>(null),
   infoWindowRef: ref<google.maps.InfoWindow | null>(null),
@@ -68,7 +69,11 @@ const createHookOptions = (
 const installGoogleMapsMock = () => {
   const infoWindows: FakeInfoWindowInstance[] = [];
   const removeListener = jest.fn();
-  const addMapListener = jest.fn(() => ({ remove: jest.fn() }));
+  const addMapListener = jest.fn(
+    (_target: unknown, _eventName: string, _handler: () => void) => ({
+      remove: jest.fn(),
+    }),
+  );
 
   class FakeInfoWindow implements FakeInfoWindowInstance {
     addListener = jest.fn((eventName: string, handler: () => void) => {
@@ -114,17 +119,7 @@ const installGoogleMapsMock = () => {
 };
 
 describe("useMapSelectionInfoWindow", () => {
-  const originalCancelAnimationFrame = window.cancelAnimationFrame;
-  const originalRequestAnimationFrame = window.requestAnimationFrame;
-
-  beforeEach(() => {
-    window.cancelAnimationFrame = jest.fn();
-    window.requestAnimationFrame = jest.fn(() => 1);
-  });
-
   afterEach(() => {
-    window.cancelAnimationFrame = originalCancelAnimationFrame;
-    window.requestAnimationFrame = originalRequestAnimationFrame;
     delete (window as any).google;
     delete (global as any).google;
     jest.clearAllMocks();
@@ -139,6 +134,7 @@ describe("useMapSelectionInfoWindow", () => {
 
     const options: HookOptions = {
       accommodations: [selectedAccommodation],
+      getAccommodationHref: (id) => `/accommodations/${id}`,
       hoveredAccommodationId: null,
       hoveredAccommodationIdRef: ref<number | null>(null),
       infoWindowRef,
@@ -222,6 +218,37 @@ describe("useMapSelectionInfoWindow", () => {
       baseOptions.mapInstanceRef.current,
       secondMarker,
     );
+    expect(firstMarker.isSelected).toBe(false);
+    expect(secondMarker.isSelected).toBe(true);
+  });
+
+  it("keeps the selected InfoWindow alive when only hover state changes", () => {
+    const googleMaps = installGoogleMapsMock();
+    const selectedAccommodation = createAccommodation();
+    const selectedMarker = createMarker(selectedAccommodation.id);
+    const baseOptions = createHookOptions({
+      accommodations: [selectedAccommodation],
+      markersRef: ref<SearchMapMarker[]>([selectedMarker]),
+      selectedAccommodationId: selectedAccommodation.id,
+    });
+
+    const { rerender } = renderHook(
+      ({ hoveredAccommodationId }) =>
+        useMapSelectionInfoWindow({
+          ...baseOptions,
+          hoveredAccommodationId,
+        }),
+      { initialProps: { hoveredAccommodationId: null as number | null } },
+    );
+
+    rerender({ hoveredAccommodationId: 99 });
+
+    expect(googleMaps.infoWindows).toHaveLength(1);
+    expect(googleMaps.infoWindows[0].close).not.toHaveBeenCalled();
+    expect(selectedMarker.isSelected).toBe(true);
+    expect(selectedMarker.setIcon).toHaveBeenLastCalledWith(
+      selectedMarker.icons?.selected,
+    );
   });
 
   it("opens an InfoWindow for selected accommodation id 0", () => {
@@ -247,5 +274,50 @@ describe("useMapSelectionInfoWindow", () => {
       expect.anything(),
       selectedMarker,
     );
+  });
+
+  it("closes its InfoWindow and clears DOM/resize timers on unmount", () => {
+    jest.useFakeTimers();
+    const googleMaps = installGoogleMapsMock();
+    const selectedAccommodation = createAccommodation();
+    const selectedMarker = createMarker(selectedAccommodation.id);
+    const mapElement = document.createElement("div");
+    mapElement.innerHTML = `
+      <div>
+        <div class="gm-style-iw-c">
+          <div class="gm-style-iw-d">
+            <div id="info-window-${selectedAccommodation.id}">card</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const { unmount } = renderHook(() =>
+      useMapSelectionInfoWindow(
+        createHookOptions({
+          accommodations: [selectedAccommodation],
+          mapRef: { current: mapElement },
+          markersRef: ref<SearchMapMarker[]>([selectedMarker]),
+          selectedAccommodationId: selectedAccommodation.id,
+        }),
+      ),
+    );
+    const infoWindow = googleMaps.infoWindows[0];
+
+    infoWindow.listeners.domready[0]();
+    const resizeCall = googleMaps.addMapListener.mock.calls.find(
+      ([, eventName]) => eventName === "resize",
+    );
+    expect(resizeCall).toBeDefined();
+    resizeCall?.[2]?.();
+
+    expect(jest.getTimerCount()).toBeGreaterThan(0);
+
+    unmount();
+
+    expect(infoWindow.close).toHaveBeenCalledTimes(1);
+    expect(googleMaps.removeListener).toHaveBeenCalled();
+    expect(jest.getTimerCount()).toBe(0);
+    jest.useRealTimers();
   });
 });

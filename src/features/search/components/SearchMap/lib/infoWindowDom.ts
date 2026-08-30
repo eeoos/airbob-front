@@ -16,7 +16,7 @@ const parseTranslateTransform = (transform: string) => {
 
 export const adjustInfoWindowIntoMapView = ({
   mapElement,
-  root = document,
+  root = mapElement,
   infoWindowWidth = 327,
   margin = 20,
 }: AdjustInfoWindowIntoMapViewOptions) => {
@@ -66,12 +66,13 @@ export const adjustInfoWindowIntoMapView = ({
   return true;
 };
 
-export const applyInfoWindowChromeStyles = (root: ParentNode = document) => {
+export const applyInfoWindowChromeStyles = (root: ParentNode) => {
   const infoWindowContent = root.querySelector<HTMLElement>(".gm-style-iw-d");
   if (infoWindowContent) {
     infoWindowContent.style.padding = "0";
     infoWindowContent.style.background = "transparent";
     infoWindowContent.style.boxShadow = "none";
+    infoWindowContent.style.overflow = "visible";
   }
 
   const infoWindowContainer = root.querySelector<HTMLElement>(".gm-style-iw-c");

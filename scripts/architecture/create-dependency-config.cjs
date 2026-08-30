@@ -10,7 +10,6 @@ const featureRoot = "^src/features(?:/|$)";
 
 const legacyRouteAdapterBridges = [
   ["home", "HomeRoute", "home/HomeRoute"],
-  ["search", "SearchRoute", "search/SearchRoute"],
   [
     "accommodation-detail",
     "AccommodationDetailRoute",
@@ -82,10 +81,6 @@ const createDependencyConfig = ({ projectRoot, migratedFeatures }) => {
   const featureSurface = createFeatureSurfacePathPattern(
     featureScopeNames,
     "(?:appShell|publicCache)[.]ts$",
-  );
-  const appShellSurface = createFeatureSurfacePathPattern(
-    featureScopeNames,
-    "appShell[.]ts$",
   );
   const featurePublicPortSurface = createFeatureSurfacePathPattern(
     featureScopeNames,
@@ -355,12 +350,14 @@ const createDependencyConfig = ({ projectRoot, migratedFeatures }) => {
         to: { path: featureRoot },
       },
       {
-        name: "layouts-use-feature-app-shell-surfaces",
+        name: "layouts-use-feature-public-surfaces",
+        comment:
+          "Layouts may consume feature UI and command ports through narrow public surfaces only.",
         severity: "error",
         from: { path: "^src/layouts(?:/|$)" },
         to: {
           path: featureRoot,
-          pathNot: appShellSurface,
+          pathNot: appFeaturePublicSurface,
         },
       },
       {

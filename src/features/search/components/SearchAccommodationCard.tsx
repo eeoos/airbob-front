@@ -1,5 +1,4 @@
 import React from "react";
-import { routeTo } from "../../../routes/paths";
 import {
   getSearchAccommodationPriceDisplay,
   SearchAccommodationCardViewModel,
@@ -8,7 +7,7 @@ import styles from "./SearchAccommodationCard.module.css";
 
 interface SearchAccommodationCardProps {
   accommodation: SearchAccommodationCardViewModel;
-  detailUrl?: string;
+  detailUrl: string;
   onWishlistToggle?: () => void;
   onClick?: () => void;
   checkIn?: string | null;
@@ -17,14 +16,12 @@ interface SearchAccommodationCardProps {
 
 export const SearchAccommodationCard: React.FC<SearchAccommodationCardProps> = ({
   accommodation,
-  detailUrl: providedDetailUrl,
+  detailUrl,
   onWishlistToggle,
   onClick,
   checkIn,
   checkOut,
 }) => {
-  const detailUrl =
-    providedDetailUrl ?? routeTo.accommodationDetail(accommodation.id);
   const priceDisplay = getSearchAccommodationPriceDisplay(
     accommodation,
     checkIn,

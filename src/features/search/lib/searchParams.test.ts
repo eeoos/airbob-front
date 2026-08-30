@@ -1,16 +1,10 @@
 import {
   buildMapBoundsSearchParams,
   buildSearchNavigationParams,
-  buildSearchRequestFromParams,
   getSearchParamsSignature,
   getViewportFromSearchParams,
   removeViewportParams,
-  toSearchRouteQuery,
 } from "./searchParams";
-import {
-  buildAccommodationDetailSearchParams,
-  toAccommodationBookingRouteQuery,
-} from "./accommodationDetailParams";
 
 const date = (isoDate: string) => new Date(`${isoDate}T00:00:00.000Z`);
 
@@ -196,121 +190,12 @@ describe("search params helpers", () => {
     expect(next.get("topLeftLat")).toBe("37.6");
   });
 
-  it("keeps only booking-safe query state for accommodation detail links", () => {
-    const current = new URLSearchParams(
-      "destination=Seoul&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2&childOccupancy=1&infantOccupancy=1&petOccupancy=1&token=secret&email=a@example.com",
-    );
-
-    const next = buildAccommodationDetailSearchParams(current);
-
-    expect(next.toString()).toBe(
-      "checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2&childOccupancy=1&infantOccupancy=1&petOccupancy=1",
-    );
-  });
-
-  it("converts URLSearchParams to a search route query with only search-safe keys", () => {
-    const current = new URLSearchParams(
-      "destination=Seoul&page=3&topLeftLat=38&topLeftLng=126&bottomRightLat=37&bottomRightLng=128&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2&childOccupancy=1&infantOccupancy=0&petOccupancy=1&memberId=999999&token=secret&lat=37&lng=127",
-    );
-
-    expect(toSearchRouteQuery(current)).toEqual({
-      destination: "Seoul",
-      page: "3",
-      lat: "37",
-      lng: "127",
-      topLeftLat: "38",
-      topLeftLng: "126",
-      bottomRightLat: "37",
-      bottomRightLng: "128",
-      checkIn: "2026-07-10",
-      checkOut: "2026-07-12",
-      adultOccupancy: "2",
-      childOccupancy: "1",
-      infantOccupancy: "0",
-      petOccupancy: "1",
-    });
-  });
-
   it("drops non-search params from query cache signatures", () => {
     const params = new URLSearchParams(
       "destination=Seoul&page=2&token=secret&email=a@example.com&memberId=999",
     );
 
     expect(getSearchParamsSignature(params)).toBe("destination=Seoul&page=2");
-  });
-
-  it("converts URLSearchParams to an accommodation booking route query", () => {
-    const current = new URLSearchParams(
-      "destination=Seoul&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2&childOccupancy=1&infantOccupancy=1&petOccupancy=1&memberId=999999",
-    );
-
-    expect(toAccommodationBookingRouteQuery(current)).toEqual({
-      checkIn: "2026-07-10",
-      checkOut: "2026-07-12",
-      adultOccupancy: "2",
-      childOccupancy: "1",
-      infantOccupancy: "1",
-      petOccupancy: "1",
-    });
-  });
-
-  it("builds a search API request from viewport params and ignores destination", () => {
-    const params = new URLSearchParams(
-      "destination=Seoul&topLeftLat=38&topLeftLng=126&bottomRightLat=37&bottomRightLng=128&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2&childOccupancy=1&infantOccupancy=0&petOccupancy=1&page=20",
-    );
-
-    expect(buildSearchRequestFromParams(params)).toEqual({
-      topLeftLat: 38,
-      topLeftLng: 126,
-      bottomRightLat: 37,
-      bottomRightLng: 128,
-      destination: undefined,
-      checkIn: "2026-07-10",
-      checkOut: "2026-07-12",
-      adultOccupancy: 2,
-      childOccupancy: 1,
-      infantOccupancy: 0,
-      petOccupancy: 1,
-      page: 14,
-      size: 18,
-    });
-  });
-
-  it("builds a search API request from destination when viewport is absent", () => {
-    const params = new URLSearchParams("destination=Jeju&page=2");
-
-    expect(buildSearchRequestFromParams(params)).toMatchObject({
-      destination: "Jeju",
-      topLeftLat: undefined,
-      topLeftLng: undefined,
-      bottomRightLat: undefined,
-      bottomRightLng: undefined,
-      page: 2,
-      size: 18,
-    });
-  });
-
-  it("rejects partially valid URL values instead of sending them to the API", () => {
-    const params = new URLSearchParams(
-      "destination=Jeju&topLeftLat=38oops&topLeftLng=126&bottomRightLat=37&bottomRightLng=128&checkIn=2026-02-30&checkOut=2026-07-12&adultOccupancy=2x&childOccupancy=-1&infantOccupancy=1.5",
-    );
-
-    expect(getViewportFromSearchParams(params)).toBeNull();
-    expect(buildSearchRequestFromParams(params)).toEqual({
-      topLeftLat: undefined,
-      topLeftLng: undefined,
-      bottomRightLat: undefined,
-      bottomRightLng: undefined,
-      destination: "Jeju",
-      checkIn: undefined,
-      checkOut: "2026-07-12",
-      adultOccupancy: 1,
-      childOccupancy: 0,
-      infantOccupancy: 0,
-      petOccupancy: 0,
-      page: 0,
-      size: 18,
-    });
   });
 
   it("reads and removes viewport params consistently", () => {

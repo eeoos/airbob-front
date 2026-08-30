@@ -1,12 +1,7 @@
 import { useCallback, useRef } from "react";
-import type { NavigateFunction } from "react-router-dom";
-import type { SearchPlaceSelection } from "../lib/searchParams";
-import {
-  buildSearchNavigationParams,
-  toSearchRouteQuery,
-} from "../lib/searchParams";
-import { routeTo } from "../../../routes/paths";
+import { buildSearchNavigationParams } from "../lib/searchParams";
 import type { SearchParams } from "../lib/searchBarContracts";
+import type { SearchPlaceSelection } from "../model/search";
 
 interface SearchBarSearchEvent {
   stopPropagation?: () => void;
@@ -23,7 +18,7 @@ interface UseSearchBarSearchOptions {
   petOccupancy: number;
   urlSearchParams: URLSearchParams;
   onSearch?: (searchParams: SearchParams) => void;
-  navigate: NavigateFunction;
+  pushSearch: (searchParams: URLSearchParams) => void;
   closeTransientPanels: () => void;
   isPlacesLoading?: boolean;
 }
@@ -39,7 +34,7 @@ export const useSearchBarSearch = ({
   petOccupancy,
   urlSearchParams,
   onSearch,
-  navigate,
+  pushSearch,
   closeTransientPanels,
   isPlacesLoading = false,
 }: UseSearchBarSearchOptions) => {
@@ -97,14 +92,14 @@ export const useSearchBarSearch = ({
         petOccupancy,
       });
 
-      const nextPath = routeTo.search(toSearchRouteQuery(params));
-      if (lastSearchKeyRef.current === nextPath) {
+      const nextSearchKey = params.toString();
+      if (lastSearchKeyRef.current === nextSearchKey) {
         return;
       }
 
-      lastSearchKeyRef.current = nextPath;
+      lastSearchKeyRef.current = nextSearchKey;
       closeTransientPanels();
-      navigate(nextPath);
+      pushSearch(params);
     },
     [
       adultOccupancy,
@@ -115,9 +110,9 @@ export const useSearchBarSearch = ({
       isPlacesLoading,
       infantOccupancy,
       inputText,
-      navigate,
       onSearch,
       petOccupancy,
+      pushSearch,
       selectedPlace,
       urlSearchParams,
     ],

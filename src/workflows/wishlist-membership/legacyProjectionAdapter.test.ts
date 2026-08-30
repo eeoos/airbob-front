@@ -4,9 +4,7 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../platform/session/sessionScope";
-import type { AccommodationSearchResponse } from "../../types/accommodation";
 import { accommodationQueryKeys } from "../../features/accommodations/queryKeys";
-import { searchQueryKeys } from "../../features/search/queryKeys";
 import { wishlistReadQueryKeys } from "../../features/wishlist/queries";
 import type { RecentlyViewedCollection } from "../../features/wishlist/model";
 import { createLegacyWishlistProjectionAdapter } from "./legacyProjectionAdapter";
@@ -25,36 +23,10 @@ const seedScopedQueryData = <TData,>(
   client.setQueryData(queryKey, data);
 };
 
-const searchResponse: AccommodationSearchResponse = {
-  stay_search_result_listing: [{
-    id: 7,
-    name: "stay",
-    accommodation_thumbnail_url: null,
-    base_price: 100,
-    currency: "KRW",
-    type: "HOUSE",
-    address_summary: { country: "KR", state: null, city: "Seoul", district: null },
-    coordinate: { latitude: 37.5, longitude: 127 },
-    review_summary: { total_count: 0, average_rating: 0 },
-    is_in_wishlist: false,
-  }],
-  page_info: {
-    current_page: 0,
-    page_size: 20,
-    total_elements: 1,
-    total_pages: 1,
-    is_first: true,
-    is_last: true,
-    has_next: false,
-    has_previous: false,
-  },
-};
-
 describe("legacy wishlist projection adapter", () => {
-  it("projects one confirmed membership result across current compatibility caches", () => {
+  it("projects one confirmed membership result across wishlist and detail compatibility caches", () => {
     const client = new QueryClient();
     const recentKey = wishlistReadQueryKeys.recentlyViewed(scope);
-    const searchKey = searchQueryKeys.results("destination=Seoul");
     const detailKey = accommodationQueryKeys.detail(7, 0);
     seedScopedQueryData<RecentlyViewedCollection>(client, recentKey, {
       totalCount: 1,
@@ -68,7 +40,6 @@ describe("legacy wishlist projection adapter", () => {
         isInWishlist: false,
       }],
     });
-    client.setQueryData(searchKey, searchResponse);
     client.setQueryData(detailKey, {
       id: 7,
       is_in_wishlist: false,
@@ -81,7 +52,6 @@ describe("legacy wishlist projection adapter", () => {
     });
 
     expect(client.getQueryData<RecentlyViewedCollection>(recentKey)?.accommodations[0].isInWishlist).toBe(true);
-    expect(client.getQueryData<AccommodationSearchResponse>(searchKey)?.stay_search_result_listing[0].is_in_wishlist).toBe(true);
     expect(client.getQueryData<{ is_in_wishlist: boolean }>(detailKey)?.is_in_wishlist).toBe(true);
   });
 
@@ -92,7 +62,7 @@ describe("legacy wishlist projection adapter", () => {
     expect(source).not.toMatch(/\.(post|patch|delete)\s*\(/);
   });
 
-  it("invalidates owned wishlist data and refreshes only the named legacy query roots", () => {
+  it("invalidates owned wishlist data and refreshes only the detail compatibility root", () => {
     const client = new QueryClient();
     const invalidateQueries = jest.spyOn(client, "invalidateQueries");
     const removeQueries = jest.spyOn(client, "removeQueries");
@@ -106,16 +76,8 @@ describe("legacy wishlist projection adapter", () => {
       predicate: expect.any(Function),
     });
     expect(invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["search"],
-      type: "active",
-    });
-    expect(invalidateQueries).toHaveBeenCalledWith({
       queryKey: ["accommodation", "detail"],
       type: "active",
-    });
-    expect(removeQueries).toHaveBeenCalledWith({
-      queryKey: ["search"],
-      type: "inactive",
     });
     expect(removeQueries).toHaveBeenCalledWith({
       queryKey: ["accommodation", "detail"],

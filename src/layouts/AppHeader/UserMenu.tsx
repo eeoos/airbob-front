@@ -1,8 +1,8 @@
 import React, { useEffect, useId, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
-import { useCreateAccommodationDraft } from "../../features/accommodations/appShell";
-import { AuthModal } from "../../features/auth/appShell";
+import { useCreateAccommodationDraft } from "../../features/accommodations/ports/draftCreate";
+import { AuthModal } from "../../features/auth/public";
 import { useApiError } from "../../hooks/useApiError";
 import {
   createAccommodationEditNavigationState,

@@ -1,5 +1,6 @@
 import {
   MAP_EXPAND_CONTROL_STYLE_TOKENS,
+  removeMapExpandControl,
   renderMapExpandControl,
 } from "./mapExpandControl";
 
@@ -72,5 +73,21 @@ describe("map expand control helper", () => {
     expect(
       utils.style.getPropertyValue("--map-expand-control-background")
     ).toBe("var(--color-background-page)");
+  });
+
+  it("detaches owned handlers before removing the control", () => {
+    const view = renderMapExpandControl({
+      container,
+      isExpanded: false,
+      onToggle: jest.fn(),
+    });
+
+    expect(removeMapExpandControl(container)).toBe(true);
+
+    expect(view.onclick).toBeNull();
+    expect(view.onmouseenter).toBeNull();
+    expect(view.onmouseleave).toBeNull();
+    expect(view.isConnected).toBe(false);
+    expect(removeMapExpandControl(container)).toBe(false);
   });
 });

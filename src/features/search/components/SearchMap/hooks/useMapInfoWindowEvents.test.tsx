@@ -20,9 +20,8 @@ describe("useMapInfoWindowEvents", () => {
 
     const { result } = renderHook(() =>
       useMapInfoWindowEvents({
-        detailSearchParams: new URLSearchParams(
-          "checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2&page=9",
-        ),
+        getAccommodationHref: (id) =>
+          `/accommodations/${id}?checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2`,
       }),
     );
 
@@ -37,6 +36,7 @@ describe("useMapInfoWindowEvents", () => {
     expect(openSpy).toHaveBeenCalledWith(
       "/accommodations/10?checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2",
       "_blank",
+      "noopener,noreferrer",
     );
 
     cleanup();
@@ -60,6 +60,7 @@ describe("useMapInfoWindowEvents", () => {
 
     const { result } = renderHook(() =>
       useMapInfoWindowEvents({
+        getAccommodationHref: (id) => `/accommodations/${id}`,
         onWishlistToggle,
       }),
     );

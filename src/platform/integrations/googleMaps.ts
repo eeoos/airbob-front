@@ -15,7 +15,9 @@ interface GoogleMapsLoadAttempt {
 
 let activeAttempt: GoogleMapsLoadAttempt | null = null;
 
-const unavailableError = (code: IntegrationErrorCode) =>
+export const createGoogleMapsIntegrationError = (
+  code: IntegrationErrorCode,
+) =>
   new IntegrationError({
     code,
     integration: "google-maps",
@@ -43,17 +45,16 @@ const isAdoptableGoogleMapsScript = (
   if (!url) return false;
 
   const queryKeys = Array.from(url.searchParams.keys());
-  const allowedQueryKeys = new Set(["key", "libraries", "loading"]);
+  const allowedQueryKeys = new Set(["key", "loading"]);
 
   return (
     !url.username &&
     !url.password &&
     !url.hash &&
-    queryKeys.length === 3 &&
-    new Set(queryKeys).size === 3 &&
+    queryKeys.length === 2 &&
+    new Set(queryKeys).size === 2 &&
     queryKeys.every((key) => allowedQueryKeys.has(key)) &&
     url.searchParams.get("key") === requestedApiKey &&
-    url.searchParams.get("libraries") === "places" &&
     url.searchParams.get("loading") === "async"
   );
 };
@@ -76,22 +77,15 @@ export const requireGoogleMapsApi = (): typeof google.maps => {
   const maps = getGoogleMapsApi();
 
   if (!maps) {
-    throw unavailableError("INTEGRATION_INVALID_RUNTIME");
+    throw createGoogleMapsIntegrationError("INTEGRATION_INVALID_RUNTIME");
   }
 
   return maps;
 };
 
-export const getGooglePlacesApi = (): typeof google.maps.places | null => {
-  if (typeof window === "undefined") return null;
-
-  return window.google?.maps?.places ?? null;
-};
-
 const buildGoogleMapsScriptUrl = (apiKey: string) => {
   const url = new URL(GOOGLE_MAPS_SCRIPT_URL);
   url.searchParams.set("key", apiKey);
-  url.searchParams.set("libraries", "places");
   url.searchParams.set("loading", "async");
 
   return url.toString();
@@ -147,7 +141,7 @@ const createLoadAttempt = (script: HTMLScriptElement): GoogleMapsLoadAttempt => 
   }
 
   function handleError() {
-    fail(unavailableError("INTEGRATION_LOAD_FAILED"));
+    fail(createGoogleMapsIntegrationError("INTEGRATION_LOAD_FAILED"));
   }
 
   script.addEventListener("load", handleLoad);
@@ -158,7 +152,7 @@ const createLoadAttempt = (script: HTMLScriptElement): GoogleMapsLoadAttempt => 
   );
   readinessTimeout = window.setTimeout(() => {
     if (succeedIfReady()) return;
-    fail(unavailableError("INTEGRATION_TIMEOUT"));
+    fail(createGoogleMapsIntegrationError("INTEGRATION_TIMEOUT"));
   }, GOOGLE_MAPS_READINESS_TIMEOUT_MS);
 
   return {
@@ -171,17 +165,23 @@ const createLoadAttempt = (script: HTMLScriptElement): GoogleMapsLoadAttempt => 
 export const ensureGoogleMapsScript = (apiKey: string): Promise<void> => {
   const normalizedApiKey = apiKey.trim();
   if (!normalizedApiKey) {
-    return Promise.reject(unavailableError("INTEGRATION_MISSING_CONFIG"));
+    return Promise.reject(
+      createGoogleMapsIntegrationError("INTEGRATION_MISSING_CONFIG"),
+    );
   }
   if (typeof window === "undefined" || typeof document === "undefined") {
-    return Promise.reject(unavailableError("INTEGRATION_UNAVAILABLE"));
+    return Promise.reject(
+      createGoogleMapsIntegrationError("INTEGRATION_UNAVAILABLE"),
+    );
   }
   if (getGoogleMapsApi()) return Promise.resolve();
 
   if (activeAttempt) {
     if (activeAttempt.script.isConnected) return activeAttempt.promise;
 
-    activeAttempt.fail(unavailableError("INTEGRATION_DISCONNECTED"));
+    activeAttempt.fail(
+      createGoogleMapsIntegrationError("INTEGRATION_DISCONNECTED"),
+    );
   }
 
   const scripts = getGoogleMapsScripts();

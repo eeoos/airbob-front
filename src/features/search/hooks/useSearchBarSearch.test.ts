@@ -20,7 +20,7 @@ const createOptions = () => ({
   infantOccupancy: 0,
   petOccupancy: 0,
   urlSearchParams: new URLSearchParams("page=3&destination=Busan"),
-  navigate: jest.fn(),
+  pushSearch: jest.fn(),
   closeTransientPanels: jest.fn(),
   isPlacesLoading: false,
 });
@@ -52,7 +52,7 @@ describe("useSearchBarSearch", () => {
       infantOccupancy: 0,
       petOccupancy: 0,
     });
-    expect(options.navigate).not.toHaveBeenCalled();
+    expect(options.pushSearch).not.toHaveBeenCalled();
   });
 
   it("navigates with search params and removes the stale page when onSearch is absent", () => {
@@ -63,8 +63,9 @@ describe("useSearchBarSearch", () => {
       result.current();
     });
 
-    expect(options.navigate).toHaveBeenCalledWith(
-      "/search?destination=Seoul&lat=37.5665&lng=126.978&topLeftLat=37.7&topLeftLng=126.8&bottomRightLat=37.4&bottomRightLng=127.1&adultOccupancy=2&childOccupancy=1&infantOccupancy=0&petOccupancy=0",
+    expect(options.pushSearch).toHaveBeenCalledTimes(1);
+    expect(options.pushSearch.mock.calls[0][0].toString()).toBe(
+      "destination=Seoul&lat=37.5665&lng=126.978&topLeftLat=37.7&topLeftLng=126.8&bottomRightLat=37.4&bottomRightLng=127.1&adultOccupancy=2&childOccupancy=1&infantOccupancy=0&petOccupancy=0",
     );
   });
 
@@ -80,8 +81,9 @@ describe("useSearchBarSearch", () => {
       result.current();
     });
 
-    expect(options.navigate).toHaveBeenCalledWith(
-      "/search?destination=Seoul&adultOccupancy=2&childOccupancy=1&infantOccupancy=0&petOccupancy=0",
+    expect(options.pushSearch).toHaveBeenCalledTimes(1);
+    expect(options.pushSearch.mock.calls[0][0].toString()).toBe(
+      "destination=Seoul&adultOccupancy=2&childOccupancy=1&infantOccupancy=0&petOccupancy=0",
     );
   });
 
@@ -94,7 +96,7 @@ describe("useSearchBarSearch", () => {
       result.current();
     });
 
-    expect(options.navigate).not.toHaveBeenCalled();
+    expect(options.pushSearch).not.toHaveBeenCalled();
     expect(options.closeTransientPanels).not.toHaveBeenCalled();
   });
 
@@ -107,7 +109,7 @@ describe("useSearchBarSearch", () => {
       result.current();
     });
 
-    expect(options.navigate).toHaveBeenCalledTimes(1);
+    expect(options.pushSearch).toHaveBeenCalledTimes(1);
     expect(options.closeTransientPanels).toHaveBeenCalledTimes(1);
   });
 });

@@ -16,7 +16,7 @@ export interface SearchMapProps {
   hoveredAccommodationId?: number | null;
   onAccommodationSelect: (accommodation: SearchMapAccommodation | null) => void;
   onWishlistToggle?: (accommodationId: number, isInWishlist: boolean) => void;
-  detailSearchParams?: URLSearchParams;
+  getAccommodationHref: (accommodationId: number) => string;
   checkIn?: string | null;
   checkOut?: string | null;
   isExpanded?: boolean;
@@ -38,6 +38,8 @@ export interface SearchMapMarkerIcons {
 export type SearchMapMarker = google.maps.Marker & {
   accommodation?: SearchMapAccommodation;
   accommodationId?: number;
+  dispose?: () => void;
   icons?: SearchMapMarkerIcons;
+  isSelected?: boolean;
   originalIcon?: google.maps.Icon;
 };

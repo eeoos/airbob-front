@@ -4,7 +4,7 @@
   background: var(--color-background-page);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-pill);
-  padding: 0 8px;
+  padding: 0 var(--space-2);
   box-shadow: var(--shadow-sm);
   transition:
     max-width var(--motion-duration-slow) var(--motion-ease-standard),
@@ -14,8 +14,8 @@
   cursor: pointer;
   width: 100%;
   max-width: 450px;
-  height: 48px;
-  z-index: 1; /* stacking context 생성 */
+  height: var(--control-height-lg);
+  z-index: var(--z-local-raised); /* stacking context 생성 */
 }
 
 .searchBar:hover {
@@ -36,7 +36,7 @@
   font: inherit;
   color: inherit;
   margin: 0;
-  padding: 8px 16px;
+  padding: var(--space-2) var(--space-4);
   cursor: pointer;
   flex: 1;
   min-width: 0;
@@ -60,7 +60,7 @@
 
 /* 컴팩트 모드에서 searchItem 패딩 줄이기 */
 .searchBar:not(.expanded) .searchItem {
-  padding: 0 12px;
+  padding: 0 var(--space-3);
 }
 
 .searchBar > .searchItem:first-child {
@@ -101,9 +101,13 @@
   padding: 0;
 }
 
+.input:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
 .suggestions {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + var(--space-2));
   left: 0;
   right: 0;
   min-width: 400px;
@@ -113,12 +117,12 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   max-height: 300px;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden auto;
   z-index: var(--z-dropdown);
-  margin-top: 4px;
+  margin-top: var(--space-1);
   animation: suggestionsSlideDown var(--motion-duration-slow) var(--motion-ease-standard);
   transform-origin: top;
+
   /* 스크롤바 숨기기 */
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE and Edge */
@@ -134,6 +138,7 @@
     opacity: 0;
     transform: translateY(-8px) scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -143,7 +148,7 @@
 .suggestionItem {
   appearance: none;
   width: 100%;
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   border: 0;
   border-bottom: 1px solid var(--color-border-subtle);
   background: transparent;
@@ -162,14 +167,14 @@
 }
 
 .suggestionMainText {
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   color: var(--color-text-primary);
   margin-bottom: 2px;
 }
 
 .suggestionSecondaryText {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
 }
 
@@ -194,7 +199,7 @@
 
 .dateFields {
   display: flex;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .dateField {
@@ -207,21 +212,21 @@
 
 .divider {
   width: 1px;
-  height: 20px;
+  height: var(--space-5);
   background-color: var(--color-border-default);
 }
 
 /* 컴팩트 모드에서 divider 높이 줄이기 */
 .searchBar:not(.expanded) .divider {
-  height: 16px;
+  height: var(--space-4);
 }
 
 .searchButton {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: var(--control-height-lg);
+  height: var(--control-height-lg);
   min-width: var(--control-touch-target);
   min-height: var(--control-touch-target);
   border-radius: var(--radius-pill);
@@ -235,8 +240,8 @@
 
 /* 컴팩트 모드에서 버튼 크기 줄이기 */
 .searchBar:not(.expanded) .searchButton {
-  width: 40px;
-  height: 40px;
+  width: var(--control-height-md);
+  height: var(--control-height-md);
 }
 
 .searchBar:not(.expanded) .searchButton svg {
@@ -249,27 +254,28 @@
 }
 
 .searchButton svg {
-  width: 16px;
-  height: 16px;
+  width: var(--space-4);
+  height: var(--space-4);
 }
 
 .datePickerContainer {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + var(--space-2));
   left: 50%;
   transform: translateX(-50%);
   z-index: var(--z-dropdown); /* 데스크톱 기본값 */
+
   /* 확장된 검색바 중앙에 맞춤 */
 }
 
 .guestPicker {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + var(--space-2));
   right: 0;
   background: var(--color-background-page);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
-  padding: 16px;
+  padding: var(--space-4);
   min-width: 300px;
   z-index: var(--z-dropdown);
   animation: guestPickerSlideDown var(--motion-duration-slow) var(--motion-ease-standard);
@@ -281,6 +287,7 @@
     opacity: 0;
     transform: translateY(-12px) scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -291,7 +298,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 0;
+  padding: var(--space-4) 0;
 }
 
 .guestRow:not(:last-child) {
@@ -299,41 +306,41 @@
 }
 
 .guestLabel {
-  font-size: 16px;
+  font-size: var(--font-size-md);
   font-weight: 600;
   color: var(--color-text-primary);
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 
 .guestSubLabel {
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
 }
 
 .guestControls {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .guestControls button {
   min-width: var(--control-touch-target);
   min-height: var(--control-touch-target);
   border-radius: var(--radius-pill);
-  font-size: 18px;
+  font-size: var(--font-size-lg);
 }
 
 .guestControls span {
   min-width: 20px;
   color: var(--color-text-primary);
-  font-size: 16px;
+  font-size: var(--font-size-md);
   font-weight: 600;
   text-align: center;
 }
 
 .controlButton {
-  width: 32px;
-  height: 32px;
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
   min-width: var(--control-touch-target);
   min-height: var(--control-touch-target);
   border: 1px solid var(--color-border-strong);
@@ -343,7 +350,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: var(--font-size-lg);
   color: var(--color-text-primary);
   transition: border-color var(--motion-duration-base) var(--motion-ease-standard);
 }
@@ -358,7 +365,7 @@
 }
 
 .guestCount {
-  font-size: 16px;
+  font-size: var(--font-size-md);
   font-weight: 600;
   color: var(--color-text-primary);
   min-width: 20px;
@@ -369,7 +376,7 @@
   /* 축소 모드 - 작게 표시 */
   .searchBar {
     max-width: 280px;
-    height: 48px;
+    height: var(--control-height-lg);
     border-radius: var(--radius-pill);
     padding: 0 6px;
     flex-wrap: nowrap;
@@ -381,12 +388,12 @@
     max-width: 100%;
     height: 56px;
     border-radius: var(--radius-lg);
-    padding: 0 8px;
+    padding: 0 var(--space-2);
   }
 
   /* 모바일에서 가로 레이아웃 유지 */
   .searchItem {
-    padding: 6px 8px;
+    padding: 6px var(--space-2);
     flex: 1;
     min-width: 0;
   }
@@ -403,7 +410,7 @@
 
   .divider {
     display: block;
-    height: 20px;
+    height: var(--space-5);
   }
 
   /* 축소 모드에서 divider 숨김 */
@@ -417,18 +424,18 @@
 
   .value,
   .compactValue {
-    font-size: 12px;
+    font-size: var(--font-size-xs);
   }
 
   /* iOS 자동 확대 방지: 16px 이상 필요 */
   .input {
-    font-size: 16px;
+    font-size: var(--font-size-md);
   }
 
   /* 날짜 필드 가로 유지 */
   .dateFields {
     flex-direction: row;
-    gap: 4px;
+    gap: var(--space-1);
   }
 
   .dateField {
@@ -442,8 +449,8 @@
   }
 
   .searchBar.expanded .searchButton {
-    width: 40px;
-    height: 40px;
+    width: var(--control-height-md);
+    height: var(--control-height-md);
   }
 
   .searchButton svg {
@@ -454,14 +461,11 @@
   /* 모바일에서 날짜 선택기 - 헤더 아래에 표시 */
   .datePickerContainer {
     position: fixed;
-    top: var(--layout-search-mobile-popover-top); /* 헤더 + 검색바 아래 */
-    left: 16px;
-    right: 16px;
-    bottom: auto;
+    inset: var(--layout-search-mobile-popover-top) var(--space-4) auto;
     transform: none;
     z-index: var(--z-dropdown);
     background: var(--color-background-page);
-    border-radius: 16px;
+    border-radius: var(--radius-xl);
     box-shadow: var(--shadow-lg);
     max-height: calc(100vh - 160px);
     overflow-y: auto;
@@ -470,24 +474,21 @@
   /* 모바일에서 여행자 선택기 - 헤더 아래에 표시 */
   .guestPicker {
     position: fixed;
-    top: var(--layout-search-mobile-popover-top); /* 헤더 + 검색바 아래 */
-    left: 16px;
-    right: 16px;
-    bottom: auto;
+    inset: var(--layout-search-mobile-popover-top) var(--space-4) auto;
     min-width: auto;
     width: auto;
-    border-radius: 16px;
+    border-radius: var(--radius-xl);
     box-shadow: var(--shadow-lg);
     max-height: calc(100vh - 160px);
     overflow-y: auto;
     z-index: var(--z-dropdown);
-    padding: 16px;
+    padding: var(--space-4);
   }
 
   .guestRow {
-    padding: 12px 0;
+    padding: var(--space-3) 0;
     flex-wrap: nowrap;
-    gap: 16px;
+    gap: var(--space-4);
   }
 
   .guestLabel {
@@ -502,13 +503,13 @@
 
   .guestControls {
     flex-shrink: 0;
-    gap: 12px;
+    gap: var(--space-3);
   }
 
   .controlButton {
-    width: 28px;
-    height: 28px;
-    font-size: 16px;
+    width: var(--space-7);
+    height: var(--space-7);
+    font-size: var(--font-size-md);
   }
 
   .guestCount {
@@ -519,30 +520,27 @@
   /* 모바일에서 추천 드롭다운 - 헤더 아래에 표시 */
   .suggestions {
     position: fixed;
-    top: var(--layout-search-mobile-popover-top); /* 헤더 + 검색바 아래 */
-    left: 16px;
-    right: 16px;
-    bottom: auto;
+    inset: var(--layout-search-mobile-popover-top) var(--space-4) auto;
     min-width: auto;
     max-width: none;
     width: auto;
-    border-radius: 16px;
+    border-radius: var(--radius-xl);
     box-shadow: var(--shadow-lg);
     max-height: calc(100vh - 160px);
     z-index: var(--z-dropdown);
-    padding: 8px 0;
+    padding: var(--space-2) 0;
   }
 
   .suggestionItem {
-    padding: 12px 16px;
+    padding: var(--space-3) var(--space-4);
   }
 
   .suggestionMainText {
-    font-size: 14px;
+    font-size: var(--font-size-sm);
   }
 
   .suggestionSecondaryText {
-    font-size: 12px;
+    font-size: var(--font-size-xs);
   }
 }
 

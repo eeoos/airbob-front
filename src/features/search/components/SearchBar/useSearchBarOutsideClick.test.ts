@@ -19,7 +19,7 @@ describe("useSearchBarOutsideClick", () => {
     const searchBar = document.createElement("div");
     document.body.appendChild(searchBar);
     const closeTransientPanels = jest.fn();
-    const setExpanded = jest.fn();
+    const collapseShell = jest.fn();
 
     renderHook(() =>
       useSearchBarOutsideClick({
@@ -29,11 +29,9 @@ describe("useSearchBarOutsideClick", () => {
         datePickerElementRef: createRef(null),
         destinationAreaRef: createRef(null),
         suggestionsRef: createRef(null),
-        showDatePicker: true,
-        showGuestPicker: false,
-        showSuggestions: false,
+        activePopover: "date",
         closeTransientPanels,
-        setExpanded,
+        collapseShell,
       }),
     );
 
@@ -45,7 +43,7 @@ describe("useSearchBarOutsideClick", () => {
     expect(closeTransientPanels).toHaveBeenCalledWith({
       collapseWhenDateSelected: true,
     });
-    expect(setExpanded).toHaveBeenCalledWith(false);
+    expect(collapseShell).toHaveBeenCalledTimes(1);
 
     searchBar.remove();
   });
@@ -57,7 +55,7 @@ describe("useSearchBarOutsideClick", () => {
     document.body.append(searchBar);
 
     const closeTransientPanels = jest.fn();
-    const setExpanded = jest.fn();
+    const collapseShell = jest.fn();
     renderHook(() =>
       useSearchBarOutsideClick({
         searchBarRef: createRef(searchBar),
@@ -66,11 +64,9 @@ describe("useSearchBarOutsideClick", () => {
         datePickerElementRef: createRef(null),
         destinationAreaRef: createRef(null),
         suggestionsRef: createRef(null),
-        showDatePicker: true,
-        showGuestPicker: false,
-        showSuggestions: false,
+        activePopover: "date",
         closeTransientPanels,
-        setExpanded,
+        collapseShell,
       }),
     );
 
@@ -79,7 +75,7 @@ describe("useSearchBarOutsideClick", () => {
       dateArea.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     expect(closeTransientPanels).not.toHaveBeenCalled();
-    expect(setExpanded).not.toHaveBeenCalled();
+    expect(collapseShell).not.toHaveBeenCalled();
 
     searchBar.remove();
   });

@@ -98,3 +98,16 @@ export const renderMapExpandControl = ({
 
   return controlButton;
 };
+
+export const removeMapExpandControl = (container: HTMLElement) => {
+  const button = container.querySelector<HTMLButtonElement>(
+    `.${MAP_EXPAND_BUTTON_CLASS}`,
+  );
+  if (!button) return false;
+
+  button.onclick = null;
+  button.onmouseenter = null;
+  button.onmouseleave = null;
+  button.remove();
+  return true;
+};

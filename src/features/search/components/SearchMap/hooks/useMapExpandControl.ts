@@ -1,6 +1,9 @@
 import { MutableRefObject, RefObject, useEffect } from "react";
 import { getGoogleMapsApi } from "../../../../../platform/integrations/googleMaps";
-import { renderMapExpandControl } from "../lib/mapExpandControl";
+import {
+  removeMapExpandControl,
+  renderMapExpandControl,
+} from "../lib/mapExpandControl";
 
 interface UseMapExpandControlOptions {
   isExpanded: boolean;
@@ -18,7 +21,18 @@ export const useMapExpandControl = ({
   onExpandToggle,
 }: UseMapExpandControlOptions) => {
   useEffect(() => {
-    if (!mapRef.current || !onExpandToggle || !isMapLoaded) return;
+    const container = mapRef.current;
+
+    return () => {
+      if (container) removeMapExpandControl(container);
+    };
+  }, [isMapLoaded, mapRef]);
+
+  useEffect(() => {
+    if (!mapRef.current || !onExpandToggle || !isMapLoaded) {
+      if (mapRef.current) removeMapExpandControl(mapRef.current);
+      return;
+    }
 
     let buttonTimer: number | null = null;
     let resizeTimer: number | null = null;

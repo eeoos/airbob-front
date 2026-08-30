@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import {
   PanInfo,
   animate,
@@ -6,17 +13,26 @@ import {
   useSpring,
   useTransform,
 } from "framer-motion";
-import { RESPONSIVE_MEDIA_QUERIES } from "../../../shared/styles/responsive";
+import { useResponsiveLayout } from "../../../shared/styles/useResponsiveLayout";
+import {
+  createSearchInteractionState,
+  searchInteractionReducer,
+  type SearchBottomSheetState,
+} from "../model/searchInteractionReducer";
 
-export type BottomSheetState = "collapsed" | "half" | "expanded";
+export type BottomSheetState = SearchBottomSheetState;
 
 const getViewportHeight = () =>
   typeof window === "undefined" ? 0 : window.innerHeight;
 
 export const useSearchBottomSheet = () => {
-  const [bottomSheetState, setBottomSheetState] =
-    useState<BottomSheetState>("half");
-  const [isMobileOrTablet, setIsMobileOrTablet] = useState(false);
+  const [interactionState, dispatch] = useReducer(
+    searchInteractionReducer,
+    undefined,
+    createSearchInteractionState,
+  );
+  const bottomSheetState = interactionState.bottomSheet;
+  const isMobileOrTablet = useResponsiveLayout() === "mobile-tablet";
   const [viewportHeight, setViewportHeight] = useState(getViewportHeight);
   const bottomSheetRef = useRef<HTMLDivElement | null>(null);
   const snapPositions = useMemo(() => {
@@ -46,29 +62,6 @@ export const useSearchBottomSheet = () => {
   const dragStartStateRef = useRef<BottomSheetState>(bottomSheetState);
   const dragStartYRef = useRef(0);
 
-  const getNextState = useCallback((
-    currentState: BottomSheetState,
-    dragUp: boolean
-  ): BottomSheetState => {
-    if (dragUp) {
-      if (currentState === "collapsed") {
-        return "half";
-      }
-      if (currentState === "half") {
-        return "expanded";
-      }
-      return currentState;
-    }
-
-    if (currentState === "expanded") {
-      return "half";
-    }
-    if (currentState === "half") {
-      return "collapsed";
-    }
-    return currentState;
-  }, []);
-
   const handleDragEnd = useCallback((
     event: MouseEvent | TouchEvent | PointerEvent,
     info: PanInfo
@@ -86,12 +79,18 @@ export const useSearchBottomSheet = () => {
       dragDistance > dragThreshold || velocity > velocityThreshold;
 
     if (shouldSnap) {
-      const nextState = getNextState(dragStartStateRef.current, isDraggingUp);
-      setBottomSheetState(nextState);
+      dispatch({
+        type: "bottomSheetSet",
+        state: dragStartStateRef.current,
+      });
+      dispatch({
+        type: "bottomSheetStepped",
+        direction: isDraggingUp ? "up" : "down",
+      });
     } else {
       y.set(snapPositions[dragStartStateRef.current]);
     }
-  }, [getNextState, isMobileOrTablet, snapPositions, y]);
+  }, [isMobileOrTablet, snapPositions, y]);
 
   const handleDragStart = useCallback(() => {
     if (!isMobileOrTablet) {
@@ -118,7 +117,7 @@ export const useSearchBottomSheet = () => {
   }, [isMobileOrTablet, snapPositions, y]);
 
   const handleMapInteraction = useCallback(() => {
-    setBottomSheetState("collapsed");
+    dispatch({ type: "bottomSheetMapInteracted" });
   }, []);
 
   const handleBottomSheetScroll = useCallback((
@@ -126,28 +125,19 @@ export const useSearchBottomSheet = () => {
   ) => {
     const scrollTop = event.currentTarget.scrollTop;
     if (scrollTop > 20 && bottomSheetState !== "expanded") {
-      setBottomSheetState("expanded");
+      dispatch({ type: "bottomSheetContentScrolled" });
     }
   }, [bottomSheetState]);
 
   useEffect(() => {
-    const mobileOrTabletQuery = window.matchMedia(
-      RESPONSIVE_MEDIA_QUERIES.mobileOrTablet,
-    );
-    const handleLayoutChange = (event: MediaQueryListEvent) => {
-      setIsMobileOrTablet(event.matches);
-    };
     const updateViewportHeight = () => {
       setViewportHeight(getViewportHeight());
     };
 
-    setIsMobileOrTablet(mobileOrTabletQuery.matches);
     updateViewportHeight();
-    mobileOrTabletQuery.addEventListener("change", handleLayoutChange);
     window.addEventListener("resize", updateViewportHeight);
 
     return () => {
-      mobileOrTabletQuery.removeEventListener("change", handleLayoutChange);
       window.removeEventListener("resize", updateViewportHeight);
     };
   }, []);
@@ -164,6 +154,10 @@ export const useSearchBottomSheet = () => {
       y.set(0);
     }
   }, [bottomSheetState, isMobileOrTablet, snapPositions, y]);
+
+  const setBottomSheetState = useCallback((state: BottomSheetState) => {
+    dispatch({ type: "bottomSheetSet", state });
+  }, []);
 
   return {
     bottomSheetState,

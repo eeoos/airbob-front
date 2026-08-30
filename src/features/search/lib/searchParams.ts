@@ -1,26 +1,11 @@
-import { AccommodationSearchRequest } from "../../../types/accommodation";
 import { toCanonicalSearchString } from "../../../shared/lib/urlSearchParams";
-import type { SearchRouteQuery } from "../../../routes/routeQueryContracts";
-import { clampSearchPage } from "./pagination";
-import {
-  parseNonNegativeSearchInt,
-  parsePositiveSearchInt,
-  parseStrictDateParam,
-  parseStrictFiniteNumber,
-} from "./searchParamParsers";
+import type {
+  SearchPlaceSelection,
+  SearchViewport,
+} from "../model/search";
+import { parseStrictFiniteNumber } from "./searchParamParsers";
 
-export interface SearchViewport {
-  north: number;
-  south: number;
-  east: number;
-  west: number;
-}
-
-export interface SearchPlaceSelection {
-  lat: number;
-  lng: number;
-  viewport: SearchViewport;
-}
+export type { SearchPlaceSelection, SearchViewport } from "../model/search";
 
 export interface SearchNavigationInput {
   destination?: string;
@@ -73,21 +58,6 @@ export const pickSearchParams = (params: URLSearchParams) => {
   });
 
   return nextParams;
-};
-
-export const toSearchRouteQuery = (
-  params: URLSearchParams,
-): SearchRouteQuery => {
-  const query: SearchRouteQuery = {};
-
-  SEARCH_QUERY_KEYS_TO_PRESERVE.forEach((key) => {
-    const value = params.get(key);
-    if (value !== null && value !== "") {
-      query[key] = value;
-    }
-  });
-
-  return query;
 };
 
 export const getSearchParamsSignature = (params: URLSearchParams): string =>
@@ -215,37 +185,4 @@ export const buildMapBoundsSearchParams = (
   params.delete("page");
 
   return params;
-};
-
-export const buildSearchRequestFromParams = (
-  params: URLSearchParams,
-  options: { page?: number; size?: number } = {},
-): AccommodationSearchRequest => {
-  const viewport = getViewportFromSearchParams(params);
-  const page = options.page ?? clampSearchPage(params.get("page"));
-
-  return {
-    topLeftLat: viewport?.north,
-    topLeftLng: viewport?.west,
-    bottomRightLat: viewport?.south,
-    bottomRightLng: viewport?.east,
-    destination: !viewport ? params.get("destination") || undefined : undefined,
-    checkIn: parseStrictDateParam(params.get("checkIn")),
-    checkOut: parseStrictDateParam(params.get("checkOut")),
-    adultOccupancy: parsePositiveSearchInt(
-      params.get("adultOccupancy"),
-      1,
-    ),
-    childOccupancy: parseNonNegativeSearchInt(
-      params.get("childOccupancy"),
-      0,
-    ),
-    infantOccupancy: parseNonNegativeSearchInt(
-      params.get("infantOccupancy"),
-      0,
-    ),
-    petOccupancy: parseNonNegativeSearchInt(params.get("petOccupancy"), 0),
-    page,
-    size: options.size ?? 18,
-  };
 };

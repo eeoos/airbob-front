@@ -49,6 +49,37 @@ export interface SearchRouteState {
   petOccupancy: number;
 }
 
+const SEARCH_ROUTE_QUERY_KEYS = [
+  "destination",
+  "page",
+  "lat",
+  "lng",
+  "topLeftLat",
+  "topLeftLng",
+  "bottomRightLat",
+  "bottomRightLng",
+  "checkIn",
+  "checkOut",
+  "adultOccupancy",
+  "childOccupancy",
+  "infantOccupancy",
+  "petOccupancy",
+] as const;
+
+const pickSearchRouteParams = (
+  input: SearchParamsInput,
+): URLSearchParams => {
+  const source = toSearchParams(input);
+  const picked = new URLSearchParams();
+
+  SEARCH_ROUTE_QUERY_KEYS.forEach((key) => {
+    const value = source.get(key);
+    if (value !== null && value !== "") picked.set(key, value);
+  });
+
+  return picked;
+};
+
 const clampPage = (value: string | null): number => {
   const parsed = parseInt(value ?? "", 10);
 
@@ -161,4 +192,5 @@ export const searchCodec = {
   parse: parseSearchRouteState,
   serialize: serializeSearchRouteQuery,
   canonicalize: canonicalizeSearchRoute,
+  pick: pickSearchRouteParams,
 } as const;

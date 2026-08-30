@@ -182,10 +182,10 @@ const scenarios = [
         'import { value } from "../../shared/value"; export type Search = typeof value;\n',
       "src/features/search/api/searchPort.ts":
         "export const searchPort = true;\n",
-      "src/features/search/appShell.ts":
-        'export { type Search } from "./model";\n',
+      "src/features/search/ui/header.ts":
+        'export { type Search } from "../model";\n',
       "src/layouts/Header.ts":
-        'import type { Search } from "../features/search/appShell"; export type HeaderSearch = Search;\n',
+        'import type { Search } from "../features/search/ui/header"; export type HeaderSearch = Search;\n',
       "src/workflows/search/command.ts":
         'import { searchPort } from "../../features/search/api/searchPort"; import { client } from "../../platform/client"; import { workflowValue } from "./model"; export const command = [client, searchPort, workflowValue];\n',
       "src/workflows/search/model.ts":
@@ -261,10 +261,10 @@ const scenarios = [
   {
     name: "app route adapter imports its assigned legacy route",
     files: {
-      "src/features/search/SearchRoute.ts":
-        "export const searchRoute = true;\n",
-      "src/app/router/routes/SearchRoute.ts":
-        'import { searchRoute } from "../../../features/search/SearchRoute"; export const route = searchRoute;\n',
+      "src/features/home/HomeRoute.ts":
+        "export const homeRoute = true;\n",
+      "src/app/router/routes/HomeRoute.ts":
+        'import { homeRoute } from "../../../features/home/HomeRoute"; export const route = homeRoute;\n',
     },
   },
   {
@@ -279,9 +279,8 @@ const scenarios = [
     },
   },
   {
-    name: "app route adapter imports a private feature helper",
-    expectedRule:
-      "app-route-adapter-search-uses-only-assigned-legacy-route",
+    name: "migrated search adapter imports a private feature helper",
+    expectedRule: "app-uses-feature-public-surfaces",
     files: {
       "src/features/search/hooks/private.ts":
         "export const privateSearch = true;\n",
@@ -442,7 +441,7 @@ const scenarios = [
   },
   {
     name: "layout imports a private feature module",
-    expectedRule: "layouts-use-feature-app-shell-surfaces",
+    expectedRule: "layouts-use-feature-public-surfaces",
     files: {
       "src/features/search/hooks/private.ts": "export const search = true;\n",
       "src/layouts/Header.ts":

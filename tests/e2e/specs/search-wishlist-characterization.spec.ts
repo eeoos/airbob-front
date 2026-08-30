@@ -119,6 +119,60 @@ test("keeps a URL-driven search stable across a full browser refresh", async ({
   }
 });
 
+test("restores a direct paginated search through a full browser refresh", async ({
+  api,
+  page,
+  session,
+}) => {
+  session.clear();
+  api.register("GET", "/api/v1/search/accommodations", (request) => {
+    const requestedPage = Number(getRequestQuery(request).page ?? "0");
+
+    return apiSuccess({
+      stay_search_result_listing: [
+        makeSearchAccommodation(
+          100 + requestedPage,
+          `페이지 ${requestedPage + 1} 숙소`,
+        ),
+      ],
+      page_info: {
+        page_size: 18,
+        current_page: requestedPage,
+        total_pages: 3,
+        total_elements: 3,
+        is_first: requestedPage === 0,
+        is_last: requestedPage === 2,
+        has_next: requestedPage < 2,
+        has_previous: requestedPage > 0,
+      },
+    });
+  });
+
+  const searchURL = "/search?destination=Seoul&adultOccupancy=2&page=2";
+  await page.goto(searchURL);
+
+  await expect(
+    page.getByRole("link", { name: "숙소 상세 보기: 페이지 3 숙소" }),
+  ).toBeVisible();
+  expect(`${new URL(page.url()).pathname}${new URL(page.url()).search}`).toBe(
+    searchURL,
+  );
+
+  await page.reload();
+
+  await expect(
+    page.getByRole("link", { name: "숙소 상세 보기: 페이지 3 숙소" }),
+  ).toBeVisible();
+  expect(`${new URL(page.url()).pathname}${new URL(page.url()).search}`).toBe(
+    searchURL,
+  );
+
+  const directPageRequests = api
+    .matching("GET", "/api/v1/search/accommodations")
+    .filter((request) => getRequestQuery(request).page === "2");
+  expect(directPageRequests.length).toBeGreaterThanOrEqual(2);
+});
+
 test("restores paginated search URLs and requests through browser history", async ({
   api,
   page,

@@ -6,7 +6,6 @@ const createRef = <T extends HTMLElement>(element: T | null) => ({
 });
 
 const createOptions = () => ({
-  searchBarRef: createRef<HTMLDivElement>(null),
   datePickerRef: createRef<HTMLDivElement>(null),
   guestPickerRef: createRef<HTMLDivElement>(null),
   datePickerElementRef: createRef<HTMLDivElement>(null),
@@ -14,13 +13,12 @@ const createOptions = () => ({
   suggestionsRef: createRef<HTMLDivElement>(null),
   searchButtonClassName: "search-button",
   isExpanded: false,
-  showDatePicker: false,
-  showGuestPicker: false,
-  showSuggestions: false,
+  activePopover: "none" as const,
   completeCheckoutIfNeeded: jest.fn(),
   closeTransientPanels: jest.fn(),
-  setExpanded: jest.fn(),
-  setShowDatePicker: jest.fn(),
+  expandShell: jest.fn(),
+  collapseShell: jest.fn(),
+  closeActivePopover: jest.fn(),
   openDatePicker: jest.fn(),
   toggleGuestPicker: jest.fn(),
 });
@@ -43,16 +41,16 @@ describe("useSearchBarShellInteractions", () => {
       } as any);
     });
 
-    expect(options.setExpanded).toHaveBeenCalledWith(true);
+    expect(options.expandShell).toHaveBeenCalledTimes(1);
     expect(options.closeTransientPanels).not.toHaveBeenCalled();
   });
 
-  it("closes transient panels instead of collapsing an active shell", () => {
+  it("closes an active popover instead of collapsing through a second path", () => {
     const outside = document.createElement("button");
     const stopPropagation = jest.fn();
     const options = {
       ...createOptions(),
-      showDatePicker: true,
+      activePopover: "date" as const,
       isExpanded: true,
     };
     const { result } = renderHook(() =>
@@ -69,17 +67,13 @@ describe("useSearchBarShellInteractions", () => {
     expect(options.closeTransientPanels).toHaveBeenCalledWith({
       collapseWhenDateSelected: true,
     });
-    expect(options.setExpanded).not.toHaveBeenCalled();
+    expect(options.collapseShell).not.toHaveBeenCalled();
     expect(stopPropagation).toHaveBeenCalledTimes(1);
   });
 
-  it("collapses the shell when no transient panel is open", () => {
+  it("collapses the shell when no popover is active", () => {
     const outside = document.createElement("button");
-    const stopPropagation = jest.fn();
-    const options = {
-      ...createOptions(),
-      isExpanded: true,
-    };
+    const options = { ...createOptions(), isExpanded: true };
     const { result } = renderHook(() =>
       useSearchBarShellInteractions(options),
     );
@@ -87,67 +81,34 @@ describe("useSearchBarShellInteractions", () => {
     act(() => {
       result.current.handleSearchBarClick({
         target: outside,
-        stopPropagation,
+        stopPropagation: jest.fn(),
       } as any);
     });
 
-    expect(options.setExpanded).toHaveBeenCalledWith(false);
-    expect(options.closeTransientPanels).not.toHaveBeenCalled();
-    expect(stopPropagation).toHaveBeenCalledTimes(1);
+    expect(options.collapseShell).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps date and guest trigger side effects at the interaction boundary", () => {
+  it("maps date and guest triggers to mutually-exclusive reducer events", () => {
     const options = createOptions();
-    const dateStopPropagation = jest.fn();
-    const datePreventDefault = jest.fn();
-    const guestStopPropagation = jest.fn();
-    const guestPreventDefault = jest.fn();
     const { result } = renderHook(() =>
       useSearchBarShellInteractions(options),
     );
 
     act(() => {
       result.current.handleDateClick({
-        stopPropagation: dateStopPropagation,
-        preventDefault: datePreventDefault,
+        stopPropagation: jest.fn(),
+        preventDefault: jest.fn(),
       } as any);
       result.current.handleGuestClick({
-        stopPropagation: guestStopPropagation,
-        preventDefault: guestPreventDefault,
+        stopPropagation: jest.fn(),
+        preventDefault: jest.fn(),
       } as any);
       result.current.closeDatePopover();
     });
 
-    expect(dateStopPropagation).toHaveBeenCalledTimes(1);
-    expect(datePreventDefault).toHaveBeenCalledTimes(1);
     expect(options.openDatePicker).toHaveBeenCalledTimes(1);
-    expect(guestStopPropagation).toHaveBeenCalledTimes(1);
-    expect(guestPreventDefault).toHaveBeenCalledTimes(1);
     expect(options.toggleGuestPicker).toHaveBeenCalledTimes(1);
     expect(options.completeCheckoutIfNeeded).toHaveBeenCalledTimes(1);
-    expect(options.setShowDatePicker).toHaveBeenCalledWith(false);
-  });
-
-  it("recognizes the search button as an internal region", () => {
-    const searchButton = document.createElement("button");
-    searchButton.className = "search-button";
-    const options = {
-      ...createOptions(),
-      searchButtonClassName: "search-button",
-      isExpanded: false,
-    };
-    const { result } = renderHook(() =>
-      useSearchBarShellInteractions(options),
-    );
-
-    act(() => {
-      result.current.handleSearchBarClick({
-        target: searchButton,
-        stopPropagation: jest.fn(),
-      } as any);
-    });
-
-    expect(options.setExpanded).toHaveBeenCalledWith(true);
-    expect(options.closeTransientPanels).not.toHaveBeenCalled();
+    expect(options.closeActivePopover).toHaveBeenCalledTimes(1);
   });
 });

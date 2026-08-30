@@ -1,5 +1,5 @@
 import { AccommodationStatus } from "./enums";
-import { CursorPageInfo, PageInfo } from "./api";
+import { CursorPageInfo } from "./api";
 
 // 공통 타입
 export interface Coordinate {
@@ -49,45 +49,6 @@ export interface ImageInfo {
 export interface ReviewSummary {
   total_count: number;
   average_rating: number;
-}
-
-// 검색 관련
-export interface AccommodationSearchRequest {
-  destination?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  checkIn?: string; // YYYY-MM-DD
-  checkOut?: string; // YYYY-MM-DD
-  adultOccupancy?: number;
-  childOccupancy?: number;
-  infantOccupancy?: number;
-  petOccupancy?: number;
-  amenityTypes?: string[];
-  accommodationTypes?: string[];
-  topLeftLat?: number;
-  topLeftLng?: number;
-  bottomRightLat?: number;
-  bottomRightLng?: number;
-  page?: number;
-  size?: number;
-}
-
-export interface AccommodationSearchInfo {
-  id: number;
-  name: string;
-  accommodation_thumbnail_url: string | null;
-  base_price: number;
-  currency: string;
-  type: string;
-  address_summary: AddressSummaryInfo;
-  coordinate: Coordinate;
-  review_summary: ReviewSummary;
-  is_in_wishlist: boolean;
-}
-
-export interface AccommodationSearchResponse {
-  stay_search_result_listing: AccommodationSearchInfo[];
-  page_info: PageInfo;
 }
 
 // 숙소 상세 조회 (Public)

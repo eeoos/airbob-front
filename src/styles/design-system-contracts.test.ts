@@ -35,6 +35,10 @@ const requiredInteractionTokenDeclarations = [
   "--shadow-control: 0 2px 8px rgba(0, 0, 0, 0.15);",
   "--shadow-card: 0 2px 16px rgba(0, 0, 0, 0.12);",
   "--shadow-modal: 0 4px 16px rgba(0, 0, 0, 0.15);",
+  "--shadow-bottom-sheet: 0 -4px 24px rgba(0, 0, 0, 0.15);",
+  "--radius-xs: 2px;",
+  "--radius-xl: 16px;",
+  "--radius-2xl: 24px;",
   "--color-status-warning-bg: #fff3cd;",
   "--color-status-warning-text: #856404;",
   "--overlay-scrim-strong: rgba(0, 0, 0, 0.7);",
@@ -75,7 +79,7 @@ describe("design system entry contracts", () => {
   });
 
   it("uses header height tokens for search page viewport math", () => {
-    const searchPageCss = readSource("features/search/SearchRoute.module.css");
+    const searchPageCss = readSource("screens/search/SearchScreen.module.css");
 
     expect(searchPageCss).toContain("var(--layout-header-desktop-height)");
     expect(searchPageCss).toContain("var(--layout-search-mobile-bottom-sheet-offset)");
@@ -111,11 +115,11 @@ describe("design system entry contracts", () => {
 
   it("keeps task 5 route and boundary CSS enrolled in token ownership", () => {
     [
-      "components/DatePicker/DatePicker.module.css",
+      "shared/ui/DatePicker/DatePicker.module.css",
       "components/ErrorBoundary/ErrorBoundary.module.css",
       "features/reservations/PaymentSuccessRoute.module.css",
       "features/reservations/PaymentFailRoute.module.css",
-      "features/search/SearchRoute.module.css",
+      "screens/search/SearchScreen.module.css",
       "features/search/components/SearchAccommodationCard.module.css",
     ].forEach((relativePath) => {
       expect(protectedDesignLiteralStylePaths).toContain(`src/${relativePath}`);

@@ -1,12 +1,15 @@
 import { render, screen } from "@testing-library/react";
 import { readFileSync } from "fs";
 import React from "react";
+import type { SearchBarRoutePort } from "../../features/search/ui/HeaderSearchBar";
 import { Header } from "./Header";
 
 let mockPathname = "/";
 let mockSearchParams = new URLSearchParams();
 const mockSearchBar = jest.fn();
 const mockUserMenu = jest.fn();
+const mockNavigate = jest.fn();
+const mockSetSearchParams = jest.fn();
 let mockIsAuthenticated = false;
 
 jest.mock(
@@ -27,15 +30,18 @@ jest.mock(
     useLocation: () => ({
       pathname: mockPathname,
     }),
-    useNavigate: () => jest.fn(),
-    useSearchParams: () => [mockSearchParams, jest.fn()],
+    useNavigate: () => mockNavigate,
+    useSearchParams: () => [mockSearchParams, mockSetSearchParams],
   }),
   { virtual: true }
 );
 
-jest.mock("../../features/search/appShell", () => ({
-  ...jest.requireActual("../../features/search/appShell"),
-  HeaderSearchBar: (props: { isMapDragMode?: boolean }) => {
+jest.mock("../../features/search/ui/HeaderSearchBar", () => ({
+  ...jest.requireActual("../../features/search/ui/HeaderSearchBar"),
+  HeaderSearchBar: (props: {
+    isMapDragMode?: boolean;
+    routePort: SearchBarRoutePort;
+  }) => {
     mockSearchBar(props);
     return <div data-testid="header-search-bar" />;
   },
@@ -66,6 +72,8 @@ describe("Header", () => {
     mockIsAuthenticated = false;
     mockSearchBar.mockClear();
     mockUserMenu.mockClear();
+    mockNavigate.mockReset();
+    mockSetSearchParams.mockReset();
   });
 
   it("renders the logo as an accessible home link", () => {
@@ -125,6 +133,32 @@ describe("Header", () => {
     expect(mockSearchBar).toHaveBeenCalledWith(
       expect.objectContaining({ isMapDragMode: false })
     );
+  });
+
+  it("owns push and replace commands behind the search route port", () => {
+    mockPathname = "/search";
+    mockSearchParams = new URLSearchParams("destination=Seoul&page=2");
+
+    render(<Header />);
+
+    const props = mockSearchBar.mock.calls[0][0] as {
+      routePort: SearchBarRoutePort;
+    };
+    expect(props.routePort.currentSearchParams).toBe(mockSearchParams);
+    expect(props.routePort.isSearchRoute).toBe(true);
+
+    props.routePort.pushSearch(
+      new URLSearchParams("destination=Busan&adultOccupancy=2"),
+    );
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/search?destination=Busan&adultOccupancy=2",
+    );
+
+    const replacement = new URLSearchParams("destination=Seoul");
+    props.routePort.replaceSearch(replacement);
+    expect(mockSetSearchParams).toHaveBeenCalledWith(replacement, {
+      replace: true,
+    });
   });
 
   it("passes authentication state to the user menu", () => {

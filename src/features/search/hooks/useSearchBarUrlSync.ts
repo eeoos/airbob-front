@@ -3,50 +3,47 @@ import {
   getSearchBarUrlStateSignature,
   parseSearchBarUrlState,
 } from "../lib/searchBarUrlState";
-import type { SearchBarGuestCounts } from "./useSearchBarGuests";
+import type { SearchCommittedValues } from "../model/searchInteractionReducer";
 
 interface SearchBarUrlSyncOptions {
   urlSearchParams: URLSearchParams;
   resetPlaces: () => void;
-  handleInputChange: (value: string) => void;
-  setDateRange: (checkIn: Date | null, checkOut: Date | null) => void;
-  setGuestCounts: (counts: SearchBarGuestCounts) => void;
+  syncAutocompleteInput: (value: string) => void;
+  onCommittedChanged: (values: SearchCommittedValues) => void;
 }
 
 export const useSearchBarUrlSync = ({
   urlSearchParams,
   resetPlaces,
-  handleInputChange,
-  setDateRange,
-  setGuestCounts,
+  syncAutocompleteInput,
+  onCommittedChanged,
 }: SearchBarUrlSyncOptions) => {
+  const appliedSignatureRef = useRef<string | null>(null);
   const syncedDestinationRef = useRef<string | null>(null);
   const searchBarUrlStateSignature =
     getSearchBarUrlStateSignature(urlSearchParams);
 
   useEffect(() => {
+    if (appliedSignatureRef.current === searchBarUrlStateSignature) {
+      return;
+    }
+
     const nextState = parseSearchBarUrlState(
       new URLSearchParams(searchBarUrlStateSignature),
     );
 
     if (syncedDestinationRef.current !== nextState.destination) {
       resetPlaces();
-      handleInputChange(nextState.destination);
+      syncAutocompleteInput(nextState.destination);
       syncedDestinationRef.current = nextState.destination;
     }
 
-    setDateRange(nextState.checkIn, nextState.checkOut);
-    setGuestCounts({
-      adultOccupancy: nextState.adultOccupancy,
-      childOccupancy: nextState.childOccupancy,
-      infantOccupancy: nextState.infantOccupancy,
-      petOccupancy: nextState.petOccupancy,
-    });
+    onCommittedChanged(nextState);
+    appliedSignatureRef.current = searchBarUrlStateSignature;
   }, [
-    handleInputChange,
+    onCommittedChanged,
     resetPlaces,
     searchBarUrlStateSignature,
-    setDateRange,
-    setGuestCounts,
+    syncAutocompleteInput,
   ]);
 };

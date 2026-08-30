@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { useGoogleMapsScript } from "../../../../hooks/useGoogleMapsScript";
+import { useGoogleMapsScript } from "../../../../platform/integrations/useGoogleMapsScript";
 import { useAccommodationMarkers } from "./hooks/useAccommodationMarkers";
 import { useGoogleMapInstance } from "./hooks/useGoogleMapInstance";
 import { useMapBoundsReporter } from "./hooks/useMapBoundsReporter";
@@ -14,7 +14,7 @@ export const Map: React.FC<SearchMapProps> = ({
   hoveredAccommodationId,
   onAccommodationSelect,
   onWishlistToggle,
-  detailSearchParams,
+  getAccommodationHref,
   checkIn,
   checkOut,
   isExpanded = false,
@@ -42,22 +42,23 @@ export const Map: React.FC<SearchMapProps> = ({
     west: number;
   } | null>(null);
   const viewportJustChangedRef = useRef(false);
-  const { isLoaded: isMapLoaded, status: mapScriptStatus } =
-    useGoogleMapsScript();
+  const {
+    error: mapScriptError,
+    isLoaded: isMapLoaded,
+    status: mapScriptStatus,
+  } = useGoogleMapsScript();
 
   useEffect(() => {
     onAccommodationSelectRef.current = onAccommodationSelect;
   }, [onAccommodationSelect]);
 
-  useGoogleMapInstance({
+  const mapRuntimeError = useGoogleMapInstance({
     infoWindowRef,
-    isExpanded,
     isInitialIdleRef,
     isMapLoaded,
     mapInstanceRef,
     mapRef,
     onAccommodationSelectRef,
-    onExpandToggle,
     onMapInteraction,
     prevViewportRef,
     viewport,
@@ -89,7 +90,7 @@ export const Map: React.FC<SearchMapProps> = ({
     accommodations,
     checkIn,
     checkOut,
-    detailSearchParams,
+    getAccommodationHref,
     hoveredAccommodationId,
     hoveredAccommodationIdRef,
     infoWindowRef,
@@ -111,9 +112,12 @@ export const Map: React.FC<SearchMapProps> = ({
     onExpandToggle,
   });
 
-  if (!isMapLoaded) {
+  if (!isMapLoaded || mapScriptError || mapRuntimeError) {
     const mapFallbackText =
-      mapScriptStatus === "missing-key" || mapScriptStatus === "error"
+      mapScriptError ||
+      mapRuntimeError ||
+      mapScriptStatus === "missing-key" ||
+      mapScriptStatus === "error"
         ? "지도를 불러올 수 없습니다."
         : "지도를 불러오는 중...";
 

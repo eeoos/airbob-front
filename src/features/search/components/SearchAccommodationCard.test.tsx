@@ -19,7 +19,12 @@ const accommodation: SearchAccommodationCardViewModel = {
 
 describe("SearchAccommodationCard", () => {
   it("exposes the stable smoke selector on the card wrapper", () => {
-    render(<SearchAccommodationCard accommodation={accommodation} />);
+    render(
+      <SearchAccommodationCard
+        accommodation={accommodation}
+        detailUrl="/accommodations/1"
+      />,
+    );
 
     expect(screen.getByTestId("search-result-card")).toContainElement(
       screen.getByRole("link", {
@@ -34,6 +39,7 @@ describe("SearchAccommodationCard", () => {
     render(
       <SearchAccommodationCard
         accommodation={accommodation}
+        detailUrl="/accommodations/1"
         onClick={onClick}
       />
     );
@@ -55,6 +61,7 @@ describe("SearchAccommodationCard", () => {
     render(
       <SearchAccommodationCard
         accommodation={accommodation}
+        detailUrl="/accommodations/1"
         onClick={onClick}
         onWishlistToggle={onWishlistToggle}
       />

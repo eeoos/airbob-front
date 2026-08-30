@@ -99,6 +99,16 @@ describe("searchCodec", () => {
     );
   });
 
+  it("picks only supported route parameters without injecting defaults", () => {
+    expect(
+      searchCodec
+        .pick(
+          "token=secret&adultOccupancy=2&destination=Seoul&empty=&page=3",
+        )
+        .toString(),
+    ).toBe("destination=Seoul&page=3&adultOccupancy=2");
+  });
+
   it("round-trips normalized state", () => {
     const parsed = searchCodec.parse(
       "destination=Busan&page=50&checkIn=2026-07-10&adultOccupancy=3",

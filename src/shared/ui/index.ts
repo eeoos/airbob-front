@@ -8,6 +8,8 @@ export { CounterStepper } from "./CounterStepper";
 export type { CounterStepperProps } from "./CounterStepper";
 export { Dialog } from "./Dialog";
 export type { DialogBodyPadding, DialogProps, DialogSize } from "./Dialog";
+export { DatePicker } from "./DatePicker";
+export type { DatePickerProps } from "./DatePicker";
 export { IconButton } from "./IconButton";
 export type { IconButtonProps } from "./IconButton";
 export { ListingCard } from "./ListingCard/ListingCard";
