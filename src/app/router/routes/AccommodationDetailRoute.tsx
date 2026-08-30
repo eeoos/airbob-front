@@ -4,10 +4,19 @@ import {
   useLocation,
   useNavigate,
   useParams,
-  useSearchParams,
 } from "react-router-dom";
-import { parsePositiveInteger } from "../codecs/queryCodecUtils";
-import { useSession } from "../../session/useSession";
+import {
+  saveReservationCheckoutState,
+  type ReservationCheckoutState,
+} from "../../../features/reservations/public";
+import { recentlyViewedApi } from "../../../features/wishlist/public";
+import { resolveImageUrl } from "../../../platform/assets/imageUrl";
+import { browserWindowNavigation } from "../../../platform/browser/windowNavigation";
+import {
+  AccommodationDetailController,
+  type AccommodationDetailAuthIntent,
+  type AccommodationDetailClaimedAuthIntent,
+} from "../../../screens/accommodation-detail/public";
 import {
   toAuthIntentLocalDate,
   useAuthIntent,
@@ -15,45 +24,32 @@ import {
   type AuthIntentAttemptId,
   type ClaimedAuthIntent,
 } from "../../../workflows/auth-intent";
-import {
-  AccommodationDetailRoute as LegacyAccommodationDetailRoute,
-  type AccommodationDetailAuthIntent,
-  type AccommodationDetailAuthIntentController,
-  type AccommodationDetailAuthIntentGeneration,
-} from "../../../features/accommodations/AccommodationDetailRoute";
+import type { ReservationCheckoutHandoffPort } from "../../../workflows/booking-payment/reservation-create";
 import { useWishlistMembership } from "../../../workflows/wishlist-membership";
+import { useSession } from "../../session/useSession";
+import { parsePositiveInteger } from "../codecs/queryCodecUtils";
+import { accommodationBookingCodec } from "../codecs/searchCodec";
+import { routeTo } from "../paths";
 import { WishlistMembershipRouteBoundary } from "./WishlistMembershipRouteBoundary";
 
 const toRuntimeAuthIntent = (
   intent: AccommodationDetailAuthIntent,
 ): AuthIntent => {
-  switch (intent.type) {
-    case "wishlist.open":
-    case "coupon.issue":
-      return intent;
-    case "reservation.start":
-      return {
-        type: intent.type,
-        accommodationId: intent.accommodationId,
-        checkIn: toAuthIntentLocalDate(intent.checkIn),
-        checkOut: toAuthIntentLocalDate(intent.checkOut),
-        adultCount: intent.adultCount,
-        childCount: intent.childCount,
-        infantCount: intent.infantCount,
-        petCount: intent.petCount,
-        couponId: intent.couponId,
-      };
-  }
+  if (intent.type !== "reservation.start") return intent;
+
+  return {
+    ...intent,
+    checkIn: toAuthIntentLocalDate(intent.checkIn),
+    checkOut: toAuthIntentLocalDate(intent.checkOut),
+  };
 };
 
 function AccommodationDetailRouteContent() {
-  const navigate = useNavigate();
   const location = useLocation();
+  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const [bookingSearchParams, setBookingSearchParams] = useSearchParams();
-  const { pending, request, cancel, claim } = useAuthIntent();
   const session = useSession();
-  const { state: sessionState, isCurrentSession } = session;
+  const { pending, request, cancel, claim } = useAuthIntent();
   const wishlistCommands = useWishlistMembership();
   const requestedAttemptIdRef = useRef<AuthIntentAttemptId | null>(null);
   const [claimedIntent, setClaimedIntent] =
@@ -63,6 +59,38 @@ function AccommodationDetailRouteContent() {
     ? parsedAccommodationId
     : null;
   const currentPath = createPath(location);
+  const isAuthenticated = session.state.status === "authenticated";
+  const sessionEpoch = session.state.epoch;
+  const sessionSubject = isAuthenticated ? session.state.subject : null;
+  const captureAuthenticatedSession = session.captureAuthenticatedSession;
+  const isCurrentSession = session.isCurrentSession;
+  const workflowSession = useMemo(
+    () => ({ captureAuthenticatedSession, isCurrentSession }),
+    [captureAuthenticatedSession, isCurrentSession],
+  );
+  const bookingRouteState = useMemo(
+    () => accommodationBookingCodec.parse(location.search),
+    [location.search],
+  );
+  const scope = useMemo(
+    () => ({
+      epoch: sessionEpoch,
+      subject: sessionSubject,
+    }),
+    [sessionEpoch, sessionSubject],
+  );
+  const routeLease = useMemo(
+    () => ({
+      isCurrent: () =>
+        browserWindowNavigation.isCurrentHistoryEntry({
+          hash: location.hash,
+          key: location.key,
+          pathname: location.pathname,
+          search: location.search,
+        }),
+    }),
+    [location.hash, location.key, location.pathname, location.search],
+  );
 
   const requestAuthIntent = useCallback(
     (intent: AccommodationDetailAuthIntent) => {
@@ -83,15 +111,13 @@ function AccommodationDetailRouteContent() {
   const cancelPendingAuthIntent = useCallback(() => {
     const attemptId = requestedAttemptIdRef.current;
     requestedAttemptIdRef.current = null;
-    if (attemptId !== null) {
-      cancel(attemptId);
-    }
+    if (attemptId !== null) cancel(attemptId);
   }, [cancel]);
 
   useEffect(() => {
     if (
-      sessionState.status !== "authenticated" ||
-      !accommodationId ||
+      session.state.status !== "authenticated" ||
+      accommodationId === null ||
       !pending ||
       pending.intent.accommodationId !== accommodationId ||
       pending.source.locationKey !== location.key ||
@@ -103,9 +129,7 @@ function AccommodationDetailRouteContent() {
     const claimed = claim(
       (intent) => intent.accommodationId === accommodationId,
     );
-    if (!claimed) {
-      return;
-    }
+    if (!claimed) return;
 
     if (requestedAttemptIdRef.current === claimed.attemptId) {
       requestedAttemptIdRef.current = null;
@@ -117,58 +141,133 @@ function AccommodationDetailRouteContent() {
     currentPath,
     location.key,
     pending,
-    sessionState.status,
+    session.state.status,
   ]);
 
-  const activeClaim =
-    claimedIntent &&
-    accommodationId !== null &&
-    claimedIntent.intent.accommodationId === accommodationId &&
-    claimedIntent.source.locationKey === location.key &&
-    claimedIntent.source.path === currentPath &&
-    isCurrentSession(claimedIntent.session)
-      ? claimedIntent
-      : null;
+  const claimed = useMemo<AccommodationDetailClaimedAuthIntent | null>(() => {
+    const activeClaim =
+      claimedIntent &&
+      accommodationId !== null &&
+      claimedIntent.intent.accommodationId === accommodationId &&
+      claimedIntent.source.locationKey === location.key &&
+      claimedIntent.source.path === currentPath &&
+      isCurrentSession(claimedIntent.session)
+        ? claimedIntent
+        : null;
 
-  const generation = useMemo<AccommodationDetailAuthIntentGeneration | null>(
-    () =>
-      activeClaim
-        ? {
-            generation: activeClaim.attemptId,
-            intent: activeClaim.intent,
-            isCurrent: () => isCurrentSession(activeClaim.session),
-          }
-        : null,
-    [activeClaim, isCurrentSession],
-  );
-  const authIntent = useMemo<AccommodationDetailAuthIntentController>(
-    () => ({
-      generation,
-      request: requestAuthIntent,
-      cancelPending: cancelPendingAuthIntent,
-    }),
-    [cancelPendingAuthIntent, generation, requestAuthIntent],
-  );
-  const featureGenerationKey = `${id ?? "missing"}:${
-    activeClaim?.attemptId ?? "base"
-  }`;
-  const wishlistScope =
-    sessionState.status === "authenticated"
-      ? session.captureAuthenticatedSession()
+    return activeClaim
+      ? {
+          attemptId: activeClaim.attemptId,
+          intent: activeClaim.intent,
+          isCurrent: () =>
+            routeLease.isCurrent() &&
+            isCurrentSession(activeClaim.session),
+        }
       : null;
+  }, [
+    accommodationId,
+    claimedIntent,
+    currentPath,
+    location.key,
+    routeLease,
+    isCurrentSession,
+  ]);
+
+  const authIntent = useMemo(
+    () => ({
+      claimed,
+      cancelPending: cancelPendingAuthIntent,
+      completeClaim: (attemptId: number) => {
+        setClaimedIntent((current) =>
+          current?.attemptId === attemptId ? null : current,
+        );
+      },
+      request: requestAuthIntent,
+    }),
+    [cancelPendingAuthIntent, claimed, requestAuthIntent],
+  );
+
+  const checkoutHandoff = useMemo<ReservationCheckoutHandoffPort>(
+    () => ({
+      commit(input) {
+        if (
+          accommodationId === null ||
+          input.intent.accommodationId !== accommodationId ||
+          !routeLease.isCurrent() ||
+          !isCurrentSession(input.session)
+        ) {
+          return;
+        }
+
+        const state: ReservationCheckoutState = {
+          reservationUid: input.reservation.reservationUid,
+          orderName: input.reservation.orderName,
+          amount: input.reservation.amount,
+          customerEmail: input.reservation.customerEmail,
+          customerName: input.reservation.customerName,
+          checkIn: input.intent.checkIn,
+          checkOut: input.intent.checkOut,
+          adultOccupancy: input.intent.adultCount,
+          childOccupancy: input.intent.childCount,
+          infantOccupancy: input.intent.infantCount,
+          petOccupancy: input.intent.petCount,
+          couponName: input.appliedCoupon?.name ?? null,
+          couponDiscount: input.appliedCoupon?.discount ?? null,
+        };
+
+        saveReservationCheckoutState(String(accommodationId), state);
+        navigate(routeTo.accommodationConfirm(accommodationId), { state });
+      },
+    }),
+    [accommodationId, isCurrentSession, navigate, routeLease],
+  );
+
+  const replaceBookingDates = useCallback(
+    (checkIn: string | null, checkOut: string | null) => {
+      const params = accommodationBookingCodec.pick(location.search);
+      if (checkIn) params.set("checkIn", checkIn);
+      else params.delete("checkIn");
+      if (checkOut) params.set("checkOut", checkOut);
+      else params.delete("checkOut");
+      const search = params.toString();
+
+      navigate(
+        {
+          pathname: location.pathname,
+          search: search ? `?${search}` : "",
+          hash: location.hash,
+        },
+        { replace: true },
+      );
+    },
+    [location.hash, location.pathname, location.search, navigate],
+  );
+  const recordRecentlyViewed = useCallback(
+    (recordAccommodationId: number, options: { readonly signal: AbortSignal }) =>
+      recentlyViewedApi.add(recordAccommodationId, options),
+    [],
+  );
+
+  const authenticatedScope = captureAuthenticatedSession();
   const wishlistMembership =
-    wishlistScope !== null && isCurrentSession(wishlistScope)
-      ? { commands: wishlistCommands, scope: wishlistScope }
+    authenticatedScope && isCurrentSession(authenticatedScope)
+      ? { commands: wishlistCommands, scope: authenticatedScope }
       : undefined;
 
   return (
-    <LegacyAccommodationDetailRoute
-      key={featureGenerationKey}
+    <AccommodationDetailController
+      key={accommodationId ?? "invalid"}
+      accommodationId={accommodationId}
       authIntent={authIntent}
-      accommodationId={id}
-      bookingSearchParams={bookingSearchParams}
-      navigate={navigate}
-      setBookingSearchParams={setBookingSearchParams}
+      bookingRouteState={bookingRouteState}
+      checkoutHandoff={checkoutHandoff}
+      isAuthenticated={isAuthenticated}
+      onReplaceBookingDates={replaceBookingDates}
+      recordRecentlyViewed={recordRecentlyViewed}
+      resolveImageUrl={resolveImageUrl}
+      routeLease={routeLease}
+      scope={scope}
+      session={workflowSession}
       wishlistMembership={wishlistMembership}
     />
   );

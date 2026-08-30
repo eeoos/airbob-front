@@ -20,8 +20,8 @@ const HostReservationDetailRoute = lazy(
 const ReservationDetailRoute = lazy(
   () => import("./routes/ReservationDetailRoute"),
 );
-const ReservationReviewRoute = lazy(
-  () => import("./routes/ReservationReviewRoute"),
+const ReviewCreateRoute = lazy(
+  () => import("./routes/ReviewCreateRoute"),
 );
 const PaymentSuccessRoute = lazy(
   () => import("./routes/PaymentSuccessRoute"),
@@ -41,7 +41,7 @@ export const lazyRoutes = {
   profile: ProfileRoute,
   "host-reservation-detail": HostReservationDetailRoute,
   "reservation-detail": ReservationDetailRoute,
-  "reservation-review": ReservationReviewRoute,
+  "reservation-review": ReviewCreateRoute,
   "payment-success": PaymentSuccessRoute,
   "payment-fail": PaymentFailRoute,
   login: LoginRoute,

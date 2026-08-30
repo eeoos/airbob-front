@@ -1,3 +1,9 @@
 {
-  "migratedFeatures": ["auth", "search", "wishlist"]
+  "migratedFeatures": [
+    "accommodations/detail",
+    "auth",
+    "reviews",
+    "search",
+    "wishlist"
+  ]
 }

@@ -1,0 +1,28 @@
+import {
+  requestApiData,
+  type ApiDataRequest,
+} from "../../../platform/http/request";
+import type { ReviewableReservationApiPort } from "../ports/reviewableReservationApiPort";
+import type { ReviewableReservationWire } from "./reviewableReservationContracts";
+import { toReviewableReservation } from "./reviewableReservationMapper";
+
+export type ReviewableReservationApiTransport = <T>(
+  request: ApiDataRequest,
+) => Promise<NonNullable<T>>;
+
+export const createReviewableReservationApi = (
+  request: ReviewableReservationApiTransport,
+): ReviewableReservationApiPort => ({
+  async getReviewableReservation(reservationUid, options) {
+    const wire = await request<ReviewableReservationWire>({
+      method: "GET",
+      path: `/profile/guest/reservations/${reservationUid}`,
+      signal: options?.signal,
+    });
+
+    return toReviewableReservation(wire);
+  },
+});
+
+export const reviewableReservationApi =
+  createReviewableReservationApi(requestApiData);

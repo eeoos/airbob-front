@@ -21,6 +21,15 @@ export interface AccommodationBookingRouteQuery {
   petOccupancy?: RouteQueryValue;
 }
 
+export interface AccommodationBookingRouteState {
+  checkIn?: string;
+  checkOut?: string;
+  adultOccupancy: number;
+  childOccupancy: number;
+  infantOccupancy: number;
+  petOccupancy: number;
+}
+
 export interface SearchRouteQuery extends AccommodationBookingRouteQuery {
   destination?: RouteQueryValue;
   page?: RouteQueryValue;
@@ -66,19 +75,38 @@ const SEARCH_ROUTE_QUERY_KEYS = [
   "petOccupancy",
 ] as const;
 
-const pickSearchRouteParams = (
+const ACCOMMODATION_BOOKING_ROUTE_QUERY_KEYS = [
+  "checkIn",
+  "checkOut",
+  "adultOccupancy",
+  "childOccupancy",
+  "infantOccupancy",
+  "petOccupancy",
+] as const;
+
+const pickRouteParams = (
   input: SearchParamsInput,
+  keys: readonly string[],
 ): URLSearchParams => {
   const source = toSearchParams(input);
   const picked = new URLSearchParams();
 
-  SEARCH_ROUTE_QUERY_KEYS.forEach((key) => {
+  keys.forEach((key) => {
     const value = source.get(key);
     if (value !== null && value !== "") picked.set(key, value);
   });
 
   return picked;
 };
+
+const pickSearchRouteParams = (
+  input: SearchParamsInput,
+): URLSearchParams => pickRouteParams(input, SEARCH_ROUTE_QUERY_KEYS);
+
+const pickAccommodationBookingRouteParams = (
+  input: SearchParamsInput,
+): URLSearchParams =>
+  pickRouteParams(input, ACCOMMODATION_BOOKING_ROUTE_QUERY_KEYS);
 
 const clampPage = (value: string | null): number => {
   const parsed = parseInt(value ?? "", 10);
@@ -120,11 +148,10 @@ export const parseSearchRouteState = (
   input: SearchParamsInput,
 ): SearchRouteState => {
   const params = toSearchParams(input);
+  const booking = parseAccommodationBookingRouteState(params);
   const location = parseCoordinatePair(params, "lat", "lng");
   const viewport = parseViewport(params);
   const destination = params.get("destination") || undefined;
-  const checkIn = parseStrictDate(params.get("checkIn"));
-  const checkOut = parseStrictDate(params.get("checkOut"));
 
   return {
     ...(destination ? { destination } : {}),
@@ -138,6 +165,18 @@ export const parseSearchRouteState = (
           bottomRightLng: viewport[3],
         }
       : {}),
+    ...booking,
+  };
+};
+
+export const parseAccommodationBookingRouteState = (
+  input: SearchParamsInput,
+): AccommodationBookingRouteState => {
+  const params = toSearchParams(input);
+  const checkIn = parseStrictDate(params.get("checkIn"));
+  const checkOut = parseStrictDate(params.get("checkOut"));
+
+  return {
     ...(checkIn ? { checkIn } : {}),
     ...(checkOut ? { checkOut } : {}),
     adultOccupancy: parsePositiveInteger(params.get("adultOccupancy"), 1),
@@ -193,4 +232,14 @@ export const searchCodec = {
   serialize: serializeSearchRouteQuery,
   canonicalize: canonicalizeSearchRoute,
   pick: pickSearchRouteParams,
+} as const;
+
+export const accommodationBookingCodec = {
+  parse: parseAccommodationBookingRouteState,
+  serialize: serializeAccommodationBookingRouteQuery,
+  canonicalize: (input: SearchParamsInput): string =>
+    serializeAccommodationBookingRouteQuery(
+      parseAccommodationBookingRouteState(input),
+    ).toString(),
+  pick: pickAccommodationBookingRouteParams,
 } as const;

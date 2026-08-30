@@ -472,19 +472,19 @@ describe("pre-design token stylesheet contract", () => {
   it("keeps real modal backdrops and foreground controls on overlay tokens", () => {
     const dialogCss = readCss("shared/ui/Dialog/Dialog.module.css");
     const galleryCss = readCss(
-      "features/accommodations/components/AccommodationImageGalleryModal.module.css",
+      "features/accommodations/detail/components/AccommodationImageGalleryModal.module.css",
     );
     const dialogOverlay = selectorBlock(dialogCss, overlaySelector);
     const galleryClose = selectorBlock(galleryCss, ".galleryClose");
 
     expectDeclaration(dialogOverlay, "background: var(--overlay-backdrop);");
     expectDeclaration(dialogOverlay, "z-index: var(--z-modal);");
-    expectDeclaration(galleryClose, "z-index: 1;");
+    expectDeclaration(galleryClose, "z-index: var(--z-local-raised);");
   });
 
   it("keeps date picker overlays on the dropdown z-index token", () => {
     const accommodationBookingCardCss = readCss(
-      "features/accommodations/components/AccommodationBookingCard.module.css",
+      "features/accommodations/detail/components/AccommodationBookingCard.module.css",
     );
 
     expect(accommodationBookingCardCss).toMatch(

@@ -12,6 +12,7 @@ export interface ApiDataRequest {
   readonly method: ApiRequestMethod;
   readonly path: string;
   readonly body?: unknown;
+  readonly bodyEncoding?: "multipart";
   readonly params?: object;
   readonly signal?: AbortSignal;
   readonly authEventPolicy?: AuthEventPolicy;
@@ -36,6 +37,7 @@ const isHtmlContentType = (response: AxiosResponse<unknown>): boolean => {
 const toAxiosRequestConfig = ({
   authEventPolicy,
   body,
+  bodyEncoding,
   method,
   params,
   path,
@@ -43,6 +45,9 @@ const toAxiosRequestConfig = ({
 }: ApiDataRequest): AxiosRequestConfig => ({
   ...(authEventPolicy ?? {}),
   data: body,
+  ...(bodyEncoding === "multipart"
+    ? { headers: { "Content-Type": "multipart/form-data" } }
+    : {}),
   method,
   params,
   signal,

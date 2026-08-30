@@ -472,9 +472,9 @@ describe("migrated API response contracts", () => {
       expect.arrayContaining([
         "accommodations.ts",
         "commonCodes.ts",
-        "coupons.ts",
       ]),
     );
+    expect(getExportedDomainApiFiles()).not.toContain("coupons.ts");
     expect(getExportedDomainApiFiles()).not.toContain("auth.ts");
     expect(getExportedDomainApiFiles()).not.toContain("request.ts");
   });

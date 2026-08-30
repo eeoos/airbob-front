@@ -5,14 +5,14 @@ import * as ts from "typescript";
 const mainLayoutRouteContainers = [
   "src/features/home/HomeRoute.tsx",
   "src/screens/search/SearchScreen.tsx",
-  "src/features/accommodations/AccommodationDetailRoute.tsx",
+  "src/screens/accommodation-detail/AccommodationDetailScreen.tsx",
   "src/features/accommodations/edit/AccommodationEditRoute.tsx",
   "src/screens/wishlist/WishlistScreen.tsx",
   "src/features/profile/ProfileRoute.tsx",
   "src/features/reservations/HostReservationDetailRoute.tsx",
   "src/features/reservations/ReservationConfirmRoute.tsx",
   "src/features/reservations/ReservationDetailRoute.tsx",
-  "src/features/reviews/ReviewCreateRoute.tsx",
+  "src/screens/review-create/ReviewCreateScreen.tsx",
   "src/features/reservations/PaymentSuccessRoute.tsx",
   "src/features/reservations/PaymentFailRoute.tsx",
 ];

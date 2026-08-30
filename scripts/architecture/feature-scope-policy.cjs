@@ -3,6 +3,7 @@ const path = require("node:path");
 const { assertRealSourceTree } = require("./source-policy.cjs");
 
 const configuredNestedFeatureScopes = Object.freeze([
+  "accommodations/detail",
   "accommodations/edit",
 ]);
 

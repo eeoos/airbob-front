@@ -1,0 +1,122 @@
+.section {
+  padding-bottom: var(--space-12);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.locationSectionFullWidth {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 0 var(--space-12) 80px;
+  padding: var(--space-12) 0 0 0;
+  position: relative;
+}
+
+.locationSectionFullWidth::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  max-width: 1120px;
+  height: 1px;
+  background-color: var(--color-border-subtle);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-6);
+}
+
+.address {
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-4);
+}
+
+.mapContainer {
+  width: 100%;
+  aspect-ratio: 2.3 / 1;
+  max-height: 480px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-top: var(--space-4);
+  position: relative;
+  z-index: var(--z-local-base);
+}
+
+.mapContainer iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: var(--radius-lg);
+}
+
+.mapPlaceholder {
+  width: 100%;
+  height: 100%;
+  background-color: var(--color-background-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-subtle);
+}
+
+@media (max-width: 1400px) {
+  .locationSectionFullWidth {
+    margin-left: 60px;
+    max-width: calc(100% - 120px);
+  }
+
+  .locationSectionFullWidth::before {
+    max-width: calc(100% - 120px);
+  }
+}
+
+@media (max-width: 1200px) {
+  .locationSectionFullWidth {
+    margin-left: var(--space-10);
+    max-width: calc(100% - 80px);
+  }
+
+  .locationSectionFullWidth::before {
+    max-width: calc(100% - 80px);
+  }
+}
+
+@media (max-width: 1024px) {
+  .locationSectionFullWidth {
+    margin-left: var(--space-6);
+    margin-right: var(--space-6);
+    max-width: calc(100% - 48px);
+  }
+
+  .locationSectionFullWidth::before {
+    max-width: 100%;
+  }
+
+  .mapContainer {
+    aspect-ratio: 16 / 9;
+    max-height: 350px;
+  }
+}
+
+@media (max-width: 768px) {
+  .locationSectionFullWidth {
+    margin-left: var(--space-4);
+    margin-right: var(--space-4);
+    max-width: calc(100% - 32px);
+    padding-top: var(--space-8);
+  }
+
+  .mapContainer {
+    aspect-ratio: 4 / 3;
+    max-height: 280px;
+  }
+
+  .sectionTitle {
+    font-size: 20px;
+  }
+}

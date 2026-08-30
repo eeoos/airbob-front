@@ -11,11 +11,6 @@ const featureRoot = "^src/features(?:/|$)";
 const legacyRouteAdapterBridges = [
   ["home", "HomeRoute", "home/HomeRoute"],
   [
-    "accommodation-detail",
-    "AccommodationDetailRoute",
-    "accommodations/AccommodationDetailRoute",
-  ],
-  [
     "accommodation-edit",
     "AccommodationEditRoute",
     "accommodations/edit/AccommodationEditRoute",
@@ -35,11 +30,6 @@ const legacyRouteAdapterBridges = [
     "accommodation-confirm",
     "AccommodationConfirmRoute",
     "reservations/ReservationConfirmRoute",
-  ],
-  [
-    "reservation-review",
-    "ReservationReviewRoute",
-    "reviews/ReviewCreateRoute",
   ],
   [
     "payment-success",
@@ -238,7 +228,7 @@ const createDependencyConfig = ({ projectRoot, migratedFeatures }) => {
         name: "app-uses-feature-public-surfaces",
         severity: "error",
         comment:
-          "App composition may consume a feature only through ui/, ports/, or a root public.ts(x) module.",
+          "App composition may consume a feature only through ui/, ports/, or the public.ts(x) at its ownership-scope root.",
         from: {
           path: "^src/app(?:/|$)",
           pathNot: legacyRouteAdapterPaths,
@@ -352,7 +342,7 @@ const createDependencyConfig = ({ projectRoot, migratedFeatures }) => {
       {
         name: "layouts-use-feature-public-surfaces",
         comment:
-          "Layouts may consume feature UI and command ports through narrow public surfaces only.",
+          "Layouts may consume feature UI and command ports through narrow ownership-scope public surfaces only.",
         severity: "error",
         from: { path: "^src/layouts(?:/|$)" },
         to: {

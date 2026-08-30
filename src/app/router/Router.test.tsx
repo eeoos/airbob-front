@@ -30,7 +30,7 @@ jest.mock("./routes/HostReservationDetailRoute", () =>
 jest.mock("./routes/ReservationDetailRoute", () =>
   routeModule("page-reservation-detail"),
 );
-jest.mock("./routes/ReservationReviewRoute", () =>
+jest.mock("./routes/ReviewCreateRoute", () =>
   routeModule("page-reservation-review"),
 );
 jest.mock("./routes/PaymentSuccessRoute", () =>

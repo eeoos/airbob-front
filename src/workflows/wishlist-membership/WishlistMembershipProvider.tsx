@@ -5,8 +5,10 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import type { WishlistProjectionPort } from "../../features/wishlist/public";
-import { createLegacyWishlistProjectionAdapter } from "./legacyProjectionAdapter";
+import {
+  createWishlistQueryCacheProjection,
+  type WishlistProjectionPort,
+} from "../../features/wishlist/public";
 import {
   createWishlistMembership,
   type WishlistMembershipSession,
@@ -30,7 +32,7 @@ export function WishlistMembershipProvider({
   children,
   session,
   transport = wishlistMembershipTransport,
-  projectionFactory = createLegacyWishlistProjectionAdapter,
+  projectionFactory = createWishlistQueryCacheProjection,
 }: WishlistMembershipProviderProps) {
   const queryClient = useQueryClient();
   const sessionRef = useRef(session);

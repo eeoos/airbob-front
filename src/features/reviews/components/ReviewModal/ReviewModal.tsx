@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Dialog, useOutsideClick } from "../../../../shared/ui";
 import type { ReviewViewModel } from "../../lib/reviewViewModel";
 import styles from "./ReviewModal.module.css";
@@ -12,7 +12,10 @@ const REVIEW_SORT_TYPE = {
 } as const satisfies Record<ReviewSortType, ReviewSortType>;
 
 interface ReviewModalProps {
+  hasNext: boolean;
+  isFetching: boolean;
   isOpen: boolean;
+  onLoadMore: () => void;
   onClose: () => void;
   reviews: ReviewViewModel[];
   averageRating: number;
@@ -20,7 +23,10 @@ interface ReviewModalProps {
 }
 
 export const ReviewModal: React.FC<ReviewModalProps> = ({
+  hasNext,
+  isFetching,
   isOpen,
+  onLoadMore,
   onClose,
   reviews,
   averageRating,
@@ -31,12 +37,38 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
   );
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
   const sortContainerRef = useRef<HTMLDivElement>(null);
+  const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
+  const loadMoreStateRef = useRef({ hasNext, isFetching, onLoadMore });
+
+  loadMoreStateRef.current = { hasNext, isFetching, onLoadMore };
 
   useOutsideClick(
     sortContainerRef,
     () => setIsSortDropdownOpen(false),
     isSortDropdownOpen
   );
+
+  useEffect(() => {
+    const sentinel = loadMoreSentinelRef.current;
+    if (
+      !isOpen ||
+      sentinel === null ||
+      typeof IntersectionObserver === "undefined"
+    ) {
+      return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return;
+
+      const loadMoreState = loadMoreStateRef.current;
+      if (!loadMoreState.hasNext || loadMoreState.isFetching) return;
+      loadMoreState.onLoadMore();
+    });
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -215,6 +247,17 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
             )}
           </div>
         ))}
+        <div
+          className={styles.loadMoreSentinel}
+          data-testid="review-load-more-sentinel"
+          ref={loadMoreSentinelRef}
+        >
+          {isFetching && (
+            <span className={styles.loadingMore} role="status">
+              후기 더 불러오는 중...
+            </span>
+          )}
+        </div>
       </div>
     </Dialog>
   );

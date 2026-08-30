@@ -1,11 +1,13 @@
 import type { ReactElement, ReactNode } from "react";
 import { act, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
 import {
   MemoryRouter,
   Route,
   Routes,
   useLocation,
+  useNavigate,
 } from "react-router-dom";
 import { AccommodationConfirmRoute } from "./AccommodationConfirmRoute";
 import { AccommodationDetailRoute } from "./AccommodationDetailRoute";
@@ -15,9 +17,11 @@ import { PaymentFailRoute } from "./PaymentFailRoute";
 import { PaymentSuccessRoute } from "./PaymentSuccessRoute";
 import { ProfileRoute } from "./ProfileRoute";
 import { ReservationDetailRoute } from "./ReservationDetailRoute";
+import { ReviewCreateRoute } from "./ReviewCreateRoute";
 import { SearchRoute } from "./SearchRoute";
 import { SignupRoute } from "./SignupRoute";
 import { WishlistRoute } from "./WishlistRoute";
+import { createReviewSubmissionResultState } from "../codecs/reviewSubmissionResultCodec";
 
 type Navigate = (target: string) => void;
 type QueryRouteProps = {
@@ -26,17 +30,18 @@ type QueryRouteProps = {
 };
 type CapturedProps = {
   accommodation: {
-    accommodationId?: string;
-    authIntent?: {
+    accommodationId: number | null;
+    authIntent: {
       cancelPending(): void;
-      generation: {
-        generation: number;
+      claimed: {
+        attemptId: number;
         intent: {
           type: string;
           accommodationId: number;
         };
         isCurrent(): boolean;
       } | null;
+      completeClaim(attemptId: number): void;
       request(intent: {
         type: "reservation.start";
         accommodationId: number;
@@ -49,8 +54,38 @@ type CapturedProps = {
         couponId: number | null;
       }): boolean;
     };
-    bookingSearchParams: URLSearchParams;
-    navigate: Navigate;
+    bookingRouteState: {
+      checkIn?: string;
+      checkOut?: string;
+      adultOccupancy: number;
+      childOccupancy: number;
+      infantOccupancy: number;
+      petOccupancy: number;
+    };
+    checkoutHandoff: {
+      commit(input: {
+        session: { subject: string; epoch: number };
+        reservation: {
+          reservationUid: string;
+          orderName: string;
+          amount: number;
+          customerEmail: string;
+          customerName: string;
+        };
+        intent: {
+          accommodationId: number;
+          checkIn: string;
+          checkOut: string;
+          adultCount: number;
+          childCount: number;
+          infantCount: number;
+          petCount: number;
+        };
+        appliedCoupon: null;
+      }): void;
+    };
+    onReplaceBookingDates(checkIn: string | null, checkOut: string | null): void;
+    routeLease: { isCurrent(): boolean };
     wishlistMembership?: {
       commands: object;
       scope: { subject: string; epoch: number };
@@ -65,6 +100,14 @@ type CapturedProps = {
     locationState: unknown;
     navigate: Navigate;
     reservationUid?: string;
+  };
+  reviewCreate: {
+    reservationUid: string | null;
+    routeLease: { isCurrent(): boolean };
+    onComplete(
+      reservationUid: string,
+      result: "success" | "image-upload-failed",
+    ): void;
   };
   edit: {
     accommodationId?: string;
@@ -156,6 +199,7 @@ type CapturedProps = {
 };
 
 const mockCapturedProps: Partial<CapturedProps> = {};
+const mockReservationDetailRenderProps: CapturedProps["detail"][] = [];
 const mockUseAuthIntent = jest.fn();
 const mockUseSession = jest.fn();
 const mockRequestAuthIntent = jest.fn();
@@ -219,6 +263,14 @@ jest.mock("../../../screens/search/public", () => ({
     props.navigation.openPage(2),
   ),
 }));
+jest.mock("../../../screens/review-create/public", () => ({
+  ReviewCreateController: mockRoute(
+    "reviewCreate",
+    "리뷰 작성 완료",
+    (props) =>
+      props.onComplete("reservation-42", "image-upload-failed"),
+  ),
+}));
 jest.mock("../../../platform/browser/windowNavigation", () => ({
   browserWindowNavigation: {
     isCurrentHistoryEntry: (...args: unknown[]) =>
@@ -229,8 +281,11 @@ jest.mock("../../../platform/browser/windowNavigation", () => ({
 jest.mock("../../../features/auth/ports/AuthCommandProvider", () => ({
   useAuthCommands: () => ({ signup: mockSignup }),
 }));
-jest.mock("../../../features/accommodations/AccommodationDetailRoute", () => ({
-  AccommodationDetailRoute: mockRoute("accommodation", "숙소 상세 계속"),
+jest.mock("../../../screens/accommodation-detail/public", () => ({
+  AccommodationDetailController: mockRoute(
+    "accommodation",
+    "숙소 상세 계속",
+  ),
 }));
 jest.mock("../../../workflows/auth-intent", () => ({
   ...jest.requireActual("../../../workflows/auth-intent"),
@@ -253,9 +308,30 @@ jest.mock("../../../features/reservations/ReservationConfirmRoute", () => ({
   ),
 }));
 jest.mock("../../../features/reservations/ReservationDetailRoute", () => ({
-  ReservationDetailRoute: mockRoute("detail", "예약 상세 계속", (props) =>
-    props.navigate("/reservation-next"),
-  ),
+  ReservationDetailRoute: (props: CapturedProps["detail"]) => {
+    const React = require("react");
+    const [mountedReservationUid] = React.useState(props.reservationUid);
+    mockCapturedProps.detail = props;
+    mockReservationDetailRenderProps.push(props);
+
+    return React.createElement(
+      React.Fragment,
+      null,
+      React.createElement(
+        "span",
+        { "data-testid": "mounted-reservation-uid" },
+        mountedReservationUid,
+      ),
+      React.createElement(
+        "button",
+        {
+          onClick: () => props.navigate("/reservation-next"),
+          type: "button",
+        },
+        "예약 상세 계속",
+      ),
+    );
+  },
 }));
 jest.mock("../../../features/reservations/PaymentSuccessRoute", () => ({
   PaymentSuccessRoute: mockRoute("paymentSuccess", "결제 성공 계속"),
@@ -290,9 +366,30 @@ type TestEntry =
 function LocationProbe() {
   const location = useLocation();
   return (
-    <output data-testid="current-location">
-      {`${location.pathname}${location.search}${location.hash}`}
-    </output>
+    <>
+      <output data-testid="current-location">
+        {`${location.pathname}${location.search}${location.hash}`}
+      </output>
+      <output data-testid="current-location-state">
+        {JSON.stringify(location.state)}
+      </output>
+    </>
+  );
+}
+
+function ReservationDetailTransitionHarness() {
+  const navigate = useNavigate();
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => navigate("/reservations/reservation-43")}
+      >
+        다른 예약 보기
+      </button>
+      <ReservationDetailRoute />
+    </>
   );
 }
 
@@ -300,16 +397,23 @@ const renderAdapter = (
   routePath: string,
   initialEntry: TestEntry,
   element: ReactElement,
-) =>
-  render(
-    <MemoryRouter initialEntries={[initialEntry]}>
-      <LocationProbe />
-      <Routes>
-        <Route path={routePath} element={element} />
-        <Route path="*" element={null} />
-      </Routes>
-    </MemoryRouter>,
+) => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[initialEntry]}>
+        <LocationProbe />
+        <Routes>
+          <Route path={routePath} element={element} />
+          <Route path="*" element={null} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
+};
 
 const captured = <Key extends keyof CapturedProps>(key: Key) => {
   const props = mockCapturedProps[key];
@@ -321,6 +425,7 @@ const expectLocation = (location: string) =>
   expect(screen.getByTestId("current-location")).toHaveTextContent(location);
 
 beforeEach(() => {
+  mockReservationDetailRenderProps.length = 0;
   for (const key of Object.keys(mockCapturedProps)) {
     delete mockCapturedProps[key as keyof CapturedProps];
   }
@@ -396,6 +501,66 @@ describe("app route adapter contracts", () => {
 
     act(() => authIntent?.cancelPending());
     expect(mockCancelAuthIntent).toHaveBeenCalledWith(41);
+
+    expect(captured("accommodation")).toMatchObject({
+      accommodationId: 42,
+      bookingRouteState: {
+        checkIn: "2026-07-10",
+        checkOut: "2026-07-12",
+        adultOccupancy: 1,
+        childOccupancy: 0,
+        infantOccupancy: 0,
+        petOccupancy: 0,
+      },
+    });
+
+    act(() =>
+      captured("accommodation").onReplaceBookingDates(
+        "2026-07-20",
+        "2026-07-22",
+      ),
+    );
+    expectLocation(
+      "/accommodations/42?checkIn=2026-07-20&checkOut=2026-07-22",
+    );
+  });
+
+  it("rejects checkout storage and navigation after the captured route entry is stale", () => {
+    sessionStorage.clear();
+    renderAdapter(
+      "/accommodations/:id",
+      "/accommodations/42",
+      <AccommodationDetailRoute />,
+    );
+    mockIsCurrentHistoryEntry.mockReturnValue(false);
+
+    act(() =>
+      captured("accommodation").checkoutHandoff.commit({
+        session: { subject: "subject:member_7", epoch: 3 },
+        reservation: {
+          reservationUid: "reservation-42",
+          orderName: "테스트 숙소 2박",
+          amount: 200000,
+          customerEmail: "guest@example.invalid",
+          customerName: "게스트",
+        },
+        intent: {
+          accommodationId: 42,
+          checkIn: "2026-07-20",
+          checkOut: "2026-07-22",
+          adultCount: 1,
+          childCount: 0,
+          infantCount: 0,
+          petCount: 0,
+        },
+        appliedCoupon: null,
+      }),
+    );
+
+    expectLocation("/accommodations/42");
+    expect(
+      sessionStorage.getItem("airbob:reservation-checkout:42"),
+    ).toBeNull();
   });
 
   it("atomically claims a matching current-location accommodation intent", async () => {
@@ -427,14 +592,14 @@ describe("app route adapter contracts", () => {
     );
 
     await waitFor(() =>
-      expect(captured("accommodation").authIntent?.generation).toMatchObject({
-        generation: 12,
+      expect(captured("accommodation").authIntent.claimed).toMatchObject({
+        attemptId: 12,
         intent: pending.intent,
       }),
     );
     expect(mockClaimAuthIntent).toHaveBeenCalledTimes(1);
     expect(
-      captured("accommodation").authIntent?.generation?.isCurrent(),
+      captured("accommodation").authIntent.claimed?.isCurrent(),
     ).toBe(true);
     expect(mockIsCurrentSession).toHaveBeenCalledWith(session);
     expect(captured("accommodation").wishlistMembership).toEqual({
@@ -489,7 +654,7 @@ describe("app route adapter contracts", () => {
     await Promise.resolve();
 
     expect(mockClaimAuthIntent).not.toHaveBeenCalled();
-    expect(captured("accommodation").authIntent?.generation).toBeNull();
+    expect(captured("accommodation").authIntent.claimed).toBeNull();
   });
 
   it("retains a pending accommodation intent when login fails", async () => {
@@ -519,7 +684,7 @@ describe("app route adapter contracts", () => {
 
     expect(mockClaimAuthIntent).not.toHaveBeenCalled();
     expect(mockCancelAuthIntent).not.toHaveBeenCalled();
-    expect(captured("accommodation").authIntent?.generation).toBeNull();
+    expect(captured("accommodation").authIntent.claimed).toBeNull();
   });
 
   it("registers and cancels search wishlist auth intent data", () => {
@@ -750,8 +915,27 @@ describe("app route adapter contracts", () => {
     expectLocation("/confirm-next");
   });
 
-  it("injects reservation detail params, state, and navigation", async () => {
-    const state = { toastMessage: "리뷰 이미지 업로드 실패" };
+  it("owns the review route lease and typed partial-success navigation", async () => {
+    renderAdapter(
+      "/reservations/:reservationUid/review",
+      "/reservations/reservation-42/review",
+      <ReviewCreateRoute />,
+    );
+
+    expect(captured("reviewCreate").reservationUid).toBe("reservation-42");
+    expect(captured("reviewCreate").routeLease.isCurrent()).toBe(true);
+    await userEvent.click(
+      screen.getByRole("button", { name: "리뷰 작성 완료" }),
+    );
+
+    expectLocation("/reservations/reservation-42");
+    expect(screen.getByTestId("current-location-state")).toHaveTextContent(
+      JSON.stringify(createReviewSubmissionResultState("image-upload-failed")),
+    );
+  });
+
+  it("maps and consumes the typed review partial-success state once", async () => {
+    const state = createReviewSubmissionResultState("image-upload-failed");
     renderAdapter(
       "/reservations/:reservationUid",
       { pathname: "/reservations/reservation-42", state },
@@ -759,13 +943,105 @@ describe("app route adapter contracts", () => {
     );
 
     expect(captured("detail")).toMatchObject({
-      locationState: state,
+      locationState: {
+        toastMessage: "리뷰는 작성되었지만 이미지 업로드에 실패했습니다.",
+      },
       reservationUid: "reservation-42",
     });
+    await waitFor(() =>
+      expect(screen.getByTestId("current-location-state")).toHaveTextContent(
+        "null",
+      ),
+    );
     await userEvent.click(
       screen.getByRole("button", { name: "예약 상세 계속" }),
     );
     expectLocation("/reservation-next");
+  });
+
+  it("remounts the legacy detail boundary when the route reuses a different reservation uid", async () => {
+    renderAdapter(
+      "/reservations/:reservationUid",
+      "/reservations/reservation-42",
+      <ReservationDetailTransitionHarness />,
+    );
+
+    expect(screen.getByTestId("mounted-reservation-uid")).toHaveTextContent(
+      "reservation-42",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "다른 예약 보기" }),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("mounted-reservation-uid")).toHaveTextContent(
+        "reservation-43",
+      ),
+    );
+    expect(captured("detail").reservationUid).toBe("reservation-43");
+  });
+
+  it("does not carry a consumed review warning into another reused reservation route", async () => {
+    const state = createReviewSubmissionResultState("image-upload-failed");
+    renderAdapter(
+      "/reservations/:reservationUid",
+      { pathname: "/reservations/reservation-42", state },
+      <ReservationDetailTransitionHarness />,
+    );
+
+    expect(captured("detail")).toMatchObject({
+      locationState: {
+        toastMessage: "리뷰는 작성되었지만 이미지 업로드에 실패했습니다.",
+      },
+      reservationUid: "reservation-42",
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("current-location-state")).toHaveTextContent(
+        "null",
+      ),
+    );
+    mockReservationDetailRenderProps.length = 0;
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "다른 예약 보기" }),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("mounted-reservation-uid")).toHaveTextContent(
+        "reservation-43",
+      ),
+    );
+    const reusedRouteProps = mockReservationDetailRenderProps.filter(
+      ({ reservationUid }) => reservationUid === "reservation-43",
+    );
+    expect(reusedRouteProps).not.toHaveLength(0);
+    expect(reusedRouteProps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          locationState: null,
+          reservationUid: "reservation-43",
+        }),
+      ]),
+    );
+    expect(
+      reusedRouteProps.every(({ locationState }) => locationState === null),
+    ).toBe(true);
+  });
+
+  it("rejects free-form reservation detail feedback", () => {
+    renderAdapter(
+      "/reservations/:reservationUid",
+      {
+        pathname: "/reservations/reservation-42",
+        state: { toastMessage: "injected copy" },
+      },
+      <ReservationDetailRoute />,
+    );
+
+    expect(captured("detail").locationState).toBeNull();
+    expect(screen.getByTestId("current-location-state")).toHaveTextContent(
+      '{"toastMessage":"injected copy"}',
+    );
   });
 
   it("injects payment success params and callback query", () => {

@@ -62,7 +62,7 @@ const dynamicInlineStyleAllowlist = [
     pattern: /style=\{\{\s*width:\s*`\$\{uploadProgress\}%`\s*\}\}/,
   },
   {
-    filePath: "src/features/accommodations/components/AccommodationHero.tsx",
+    filePath: "src/features/accommodations/detail/components/AccommodationHero.tsx",
     pattern:
       /style=\{\{\s*transform:\s*`translateX\(-\$\{mobileSlideIndex \* 100\}%\)`\s*\}\}/,
   },
@@ -489,7 +489,7 @@ describe("frontend verification gate", () => {
       "src/app/shells/**",
       "The remaining rollback-only route chain is",
       "Still-active compatibility",
-      "The ten remaining app-adapter bridges",
+      "The eight remaining app-adapter bridges",
       "Airbnb visual redesign begins only after the architecture design-entry gate",
       "When documents disagree about the current frontend, this document wins.",
     ].forEach((term) => {
@@ -524,7 +524,9 @@ describe("frontend verification gate", () => {
       [...architectureRatchet.migratedFeatures].sort(),
     );
     expect(architectureRatchet.migratedFeatures).toEqual([
+      "accommodations/detail",
       "auth",
+      "reviews",
       "search",
       "wishlist",
     ]);

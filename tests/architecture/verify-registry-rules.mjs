@@ -60,15 +60,24 @@ const expectFailure = async (name, fixture, expectedMessage) => {
 
 try {
   await writeFixture({
-    registry: { migratedFeatures: ["accommodations/edit", "search"] },
+    registry: {
+      migratedFeatures: [
+        "accommodations/detail",
+        "accommodations/edit",
+        "search",
+      ],
+    },
     files: {
+      "src/features/accommodations/detail/model.ts":
+        "export const detail = true;\n",
       "src/features/accommodations/edit/model.ts": "export const edit = true;\n",
       "src/features/search/model.jsx": "export const search = true;\n",
     },
   });
   const valid = readArchitectureRatchet({ projectRoot: fixtureRoot });
   if (
-    valid.migratedFeatures.join(",") !== "accommodations/edit,search"
+    valid.migratedFeatures.join(",") !==
+    "accommodations/detail,accommodations/edit,search"
   ) {
     throw new Error("Valid top-level and nested feature paths were not preserved.");
   }
@@ -76,6 +85,9 @@ try {
   if (
     !nestedPolicy.isTargetPath(
       "src/features/accommodations/edit/model.ts",
+    ) ||
+    !nestedPolicy.isTargetPath(
+      "src/features/accommodations/detail/model.ts",
     ) ||
     nestedPolicy.isTargetPath("src/features/accommodations/model.ts")
   ) {
@@ -87,6 +99,8 @@ try {
     files: {
       "src/features/accommodations/model.ts":
         "export const accommodation = true;\n",
+      "src/features/accommodations/detail/model.ts":
+        "export const detail = true;\n",
       "src/features/accommodations/edit/model.ts":
         "export const edit = true;\n",
     },
@@ -94,6 +108,9 @@ try {
   const parentPolicy = createTargetPolicy({ projectRoot: fixtureRoot });
   if (
     !parentPolicy.isTargetPath("src/features/accommodations/model.ts") ||
+    parentPolicy.isTargetPath(
+      "src/features/accommodations/detail/model.ts",
+    ) ||
     parentPolicy.isTargetPath(
       "src/features/accommodations/edit/model.ts",
     )

@@ -64,6 +64,33 @@ describe("platform API request", () => {
     ).resolves.toEqual({ id: 1, name: "Seoul stay" });
   });
 
+  it("preserves multipart bodies through the real Axios transform pipeline", async () => {
+    const image = new File(["image"], "stay.png", { type: "image/png" });
+    const body = new FormData();
+    body.append("images", image);
+    const adapter: AxiosAdapter = async (config) => {
+      expect(config.data).toBe(body);
+      expect(config.data).toBeInstanceOf(FormData);
+      expect(config.headers.getContentType()).toBe("multipart/form-data");
+
+      return response(config, {
+        success: true,
+        data: { uploaded_images: [] },
+        error: null,
+      });
+    };
+    httpClient.defaults.adapter = adapter;
+
+    await expect(
+      requestApiData({
+        method: "POST",
+        path: "/reviews/901/images",
+        body,
+        bodyEncoding: "multipart",
+      }),
+    ).resolves.toEqual({ uploaded_images: [] });
+  });
+
   it("allows an empty successful command only through the nullable helper", async () => {
     const adapter: AxiosAdapter = async (config) =>
       response(config, { success: true, data: null, error: null });

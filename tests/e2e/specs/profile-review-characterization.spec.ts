@@ -123,8 +123,49 @@ test("keeps the created review and surfaces terminal feedback when its image upl
     rating: 4,
     content: "청결하고 조용해서 다시 머물고 싶은 숙소였습니다.",
   });
+  expect(uploadRequests[0].body).toEqual(expect.any(String));
+  expect(uploadRequests[0].body as string).toContain('name="images"');
+  expect(uploadRequests[0].body as string).toContain(
+    'filename="stay-review.png"',
+  );
+  expect(uploadRequests[0].body as string).toContain(
+    "synthetic-review-image",
+  );
   expect(createRequests[0].sequence).toBeLessThan(uploadRequests[0].sequence);
 
   await page.getByRole("button", { name: "오류 닫기" }).click();
   await expect(page.getByRole("alert")).toHaveCount(0);
+});
+
+test("locks review submission when the create outcome may already have committed", async ({
+  api,
+  page,
+  session,
+}) => {
+  session.authenticate();
+  api.register(
+    "GET",
+    "/api/v1/profile/guest/reservations/res-review",
+    apiSuccess(reviewableReservation),
+  );
+  api.register(
+    "POST",
+    "/api/v1/accommodations/7/reviews",
+    apiFailure(500, "I001", "리뷰 처리 결과를 확인할 수 없습니다."),
+  );
+
+  await page.goto("/reservations/res-review/review");
+  await page.getByLabel("리뷰 내용").fill("결과 확인이 필요한 리뷰입니다.");
+  await page.getByRole("button", { name: "리뷰 작성하기" }).click();
+
+  await expect(page.getByRole("alert")).toHaveText(
+    "리뷰 처리 결과를 확인할 수 없습니다. 예약 상세에서 리뷰 작성 가능 여부를 확인해주세요.",
+  );
+  await expect(
+    page.getByRole("button", { name: "예약 상세에서 결과 확인" }),
+  ).toBeDisabled();
+  await expect(page.getByRole("button", { name: "취소" })).toBeEnabled();
+  expect(
+    api.matching("POST", "/api/v1/accommodations/7/reviews"),
+  ).toHaveLength(1);
 });

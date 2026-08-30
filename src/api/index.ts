@@ -4,10 +4,5 @@ export { requestApi, requestApiNullable } from "./request";
 export { accommodationApi } from "./accommodations";
 export { reservationApi } from "./reservations";
 export { paymentApi } from "./payments";
-export { reviewApi } from "./reviews";
-export { recentlyViewedApi } from "./recentlyViewed";
 export { commonCodeApi } from "./commonCodes";
-export { couponApi } from "./coupons";
-
-
 

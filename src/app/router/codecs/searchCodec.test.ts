@@ -1,8 +1,37 @@
 import {
+  accommodationBookingCodec,
   searchCodec,
   serializeAccommodationBookingRouteQuery,
   serializeSearchRouteQuery,
 } from "./searchCodec";
+
+describe("accommodationBookingCodec", () => {
+  it("parses only validated booking inputs with stable defaults", () => {
+    expect(
+      accommodationBookingCodec.parse(
+        "?token=secret&checkIn=2026-07-10&checkOut=2026-02-30&adultOccupancy=3&childOccupancy=-1&infantOccupancy=2&petOccupancy=invalid",
+      ),
+    ).toEqual({
+      checkIn: "2026-07-10",
+      adultOccupancy: 3,
+      childOccupancy: 0,
+      infantOccupancy: 2,
+      petOccupancy: 0,
+    });
+  });
+
+  it("picks and canonicalizes only booking-owned keys in fixed order", () => {
+    const input =
+      "petOccupancy=1&destination=Seoul&adultOccupancy=2&checkOut=2026-07-12&checkIn=2026-07-10&token=secret";
+
+    expect(accommodationBookingCodec.pick(input).toString()).toBe(
+      "checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2&petOccupancy=1",
+    );
+    expect(accommodationBookingCodec.canonicalize(input)).toBe(
+      "checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2&childOccupancy=0&infantOccupancy=0&petOccupancy=1",
+    );
+  });
+});
 
 describe("searchCodec", () => {
   it("parses the current valid search URL state", () => {
