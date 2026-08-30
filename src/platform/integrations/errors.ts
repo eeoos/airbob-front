@@ -4,7 +4,7 @@ export type IntegrationName =
   | "daum-postcode"
   | "google-maps"
   | "google-places"
-  | "toss-payments-v1";
+  | "toss-payments-v2";
 
 export type IntegrationErrorCode =
   | "INTEGRATION_DISCONNECTED"

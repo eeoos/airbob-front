@@ -418,6 +418,137 @@ test("recovers a complete versioned checkout from session storage after a full r
   );
 });
 
+test("maps one double-click to one official v2 CARD request", async ({
+  api,
+  page,
+  session,
+}) => {
+  const checkout = createCheckoutDocument("res-v2-request");
+
+  session.authenticate();
+  await installPaymentGatewayFixture(page);
+  api.register("GET", "/api/v1/accommodations/7", apiSuccess(accommodation));
+
+  await openSeedPage(page);
+  await seedBookingPaymentDocuments(page, checkout);
+  await page.goto("/accommodations/7/confirm");
+
+  const paymentButton = page.getByRole("button", { name: "확인 및 결제" });
+  await expect(paymentButton).toBeEnabled();
+  await paymentButton.evaluate((button) => {
+    const payment = button as HTMLButtonElement;
+    payment.click();
+    payment.click();
+  });
+
+  await expect
+    .poll(async () =>
+      (await readPaymentGatewayCalls(page)).filter(
+        (call) => call.kind === "request-payment",
+      ).length,
+    )
+    .toBe(1);
+  expect(await readPaymentGatewayCalls(page)).toEqual([
+    { kind: "client", payload: { clientKey: "[redacted]" } },
+    { kind: "payment", payload: { customerKey: "[redacted]" } },
+    {
+      kind: "request-payment",
+      payload: {
+        amount: { currency: "KRW", value: checkout.amount },
+        customerEmail: "[redacted]",
+        customerName: "[redacted]",
+        failUrl: "[redacted]",
+        method: "CARD",
+        orderId: "[redacted]",
+        orderName: "[redacted]",
+        successUrl: "[redacted]",
+      },
+    },
+  ]);
+});
+
+test("keeps checkout retryable after a v2 USER_CANCEL", async ({
+  api,
+  page,
+  session,
+}) => {
+  const checkout = createCheckoutDocument("res-v2-cancel");
+
+  session.authenticate();
+  await installPaymentGatewayFixture(page, {
+    outcome: "reject",
+    code: "USER_CANCEL",
+    message: "cancelled",
+  });
+  api.register("GET", "/api/v1/accommodations/7", apiSuccess(accommodation));
+
+  await openSeedPage(page);
+  const seeded = await seedBookingPaymentDocuments(page, checkout);
+  await page.goto("/accommodations/7/confirm");
+
+  const paymentButton = page.getByRole("button", { name: "확인 및 결제" });
+  await expect(paymentButton).toBeEnabled();
+  await paymentButton.click();
+
+  await expect(paymentButton).toBeEnabled();
+  expect(
+    (await readPaymentGatewayCalls(page)).filter(
+      (call) => call.kind === "request-payment",
+    ),
+  ).toHaveLength(1);
+
+  await paymentButton.click();
+  await expect(paymentButton).toBeEnabled();
+  await expect
+    .poll(async () =>
+      (await readPaymentGatewayCalls(page)).filter(
+        (call) => call.kind === "request-payment",
+      ).length,
+    )
+    .toBe(2);
+  expect(
+    await page.evaluate(
+      (key) => sessionStorage.getItem(key),
+      CHECKOUT_STORAGE_KEY,
+    ),
+  ).toBe(JSON.stringify(seeded.checkout));
+});
+
+test("destroys the route-owned v2 client only after leaving checkout", async ({
+  api,
+  page,
+  session,
+}) => {
+  const checkout = createCheckoutDocument("res-v2-dispose");
+
+  session.authenticate();
+  await installPaymentGatewayFixture(page);
+  api.register("GET", "/api/v1/accommodations/7", apiSuccess(accommodation));
+
+  await openSeedPage(page);
+  await seedBookingPaymentDocuments(page, checkout);
+  await page.goto("/accommodations/7/confirm");
+
+  await expect(
+    page.getByRole("button", { name: "확인 및 결제" }),
+  ).toBeEnabled();
+  expect(
+    (await readPaymentGatewayCalls(page)).filter(
+      (call) => call.kind === "destroy",
+    ),
+  ).toHaveLength(0);
+
+  await page.getByRole("link", { name: "Airbob 홈으로 이동" }).click();
+  await expect(page).toHaveURL("/");
+  await expect
+    .poll(async () =>
+      (await readPaymentGatewayCalls(page)).filter(
+        (call) => call.kind === "destroy",
+      ).length,
+    )
+    .toBe(1);
+});
+
 test("never re-enters payment request when a callback already exists", async ({
   page,
   session,

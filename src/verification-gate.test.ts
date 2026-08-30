@@ -343,6 +343,12 @@ describe("frontend verification gate", () => {
     expect(packageJson.scripts["test:architecture-rules"]).toContain(
       "verify-style-rules.mjs",
     );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-toss-runtime.mjs",
+    );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-toss-build-gate.mjs",
+    );
     expect(packageJson.scripts["lint:architecture"]).toBe(
       "node scripts/architecture/run-dependency-cruiser.mjs",
     );
@@ -369,7 +375,10 @@ describe("frontend verification gate", () => {
       "eslint src --ext .js,.jsx,.mjs,.ts,.tsx",
     );
     expect(packageJson.scripts.build).toBe(
-      "node scripts/architecture/validate-public-build-env.mjs && react-scripts build",
+      "node scripts/architecture/validate-public-build-env.mjs && react-scripts build && node scripts/architecture/verify-toss-production-build.mjs",
+    );
+    expect(packageJson.dependencies["@tosspayments/tosspayments-sdk"]).toBe(
+      "2.8.1",
     );
     expect(packageJson.scripts["lint:strict"]).toBe(
       "eslint src --ext .js,.jsx,.mjs,.ts,.tsx --max-warnings=0",

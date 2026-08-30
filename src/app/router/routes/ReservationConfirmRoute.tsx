@@ -8,13 +8,14 @@ import { resolveImageUrl } from "../../../platform/assets/imageUrl";
 import { browserWindowNavigation } from "../../../platform/browser/windowNavigation";
 import { ReservationConfirmController } from "../../../screens/reservation-confirm/ReservationConfirmController";
 import { ReservationConfirmScreen } from "../../../screens/reservation-confirm/ReservationConfirmScreen";
+import { useStrictModeSafeDisposable } from "../../../shared/lib/useStrictModeSafeDisposable";
 import {
   clearBookingPaymentBrowserState,
   createBookingPaymentCallbackRepository,
   createBookingPaymentCheckoutRepository,
+  createTossPaymentsV2GatewayLease,
   isCheckoutHandoffState,
   parseLegacyCheckoutCandidate,
-  tossPaymentsV1Gateway,
   type CheckoutData,
 } from "../../../workflows/booking-payment/checkout";
 import { useSession } from "../../session/useSession";
@@ -65,6 +66,11 @@ export function ReservationConfirmRoute() {
       }),
     [sessionEpoch],
   );
+  const paymentGatewayLease = useMemo(
+    () => createTossPaymentsV2GatewayLease(),
+    [],
+  );
+  useStrictModeSafeDisposable(paymentGatewayLease);
   const routeLease = useMemo(
     () => ({
       isCurrent: () =>
@@ -298,7 +304,7 @@ export function ReservationConfirmRoute() {
         name: session.state.viewer.nickname,
       }}
       failUrl={`${origin}${routeTo.paymentFail(reservationUid)}`}
-      gateway={tossPaymentsV1Gateway}
+      gateway={paymentGatewayLease.gateway}
       resolveImageUrl={resolveImageUrl}
       routeLease={routeLease}
       scope={scope}

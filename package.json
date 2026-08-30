@@ -12,7 +12,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^13.5.0",
-    "@tosspayments/tosspayments-sdk": "^2.4.0",
+    "@tosspayments/tosspayments-sdk": "2.8.1",
     "@types/jest": "^27.5.2",
     "@types/node": "^16.18.126",
     "@types/react": "^19.2.2",
@@ -28,7 +28,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "node scripts/architecture/validate-public-build-env.mjs && react-scripts build",
+    "build": "node scripts/architecture/validate-public-build-env.mjs && react-scripts build && node scripts/architecture/verify-toss-production-build.mjs",
     "test": "react-scripts test",
     "test:ci": "react-scripts test --watchAll=false",
     "test:ci:no-cache": "react-scripts test --watchAll=false --no-cache",
@@ -49,7 +49,7 @@
     "smoke:frontend": "node scripts/smoke/frontend-smoke.mjs",
     "smoke:frontend:preflight": "node scripts/smoke/frontend-smoke.mjs --preflight",
     "smoke:frontend:strict": "AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES=true node scripts/smoke/frontend-smoke.mjs",
-    "test:architecture-rules": "node tests/architecture/verify-registry-rules.mjs && node tests/architecture/verify-git-baselines.mjs && node scripts/architecture/verify-architecture-ratchet.mjs && node tests/architecture/verify-dependency-rules.mjs && node tests/architecture/verify-knip-reachability.mjs && node tests/architecture/verify-style-rules.mjs && node tests/architecture/verify-platform-boundary.mjs",
+    "test:architecture-rules": "node tests/architecture/verify-registry-rules.mjs && node tests/architecture/verify-git-baselines.mjs && node scripts/architecture/verify-architecture-ratchet.mjs && node tests/architecture/verify-dependency-rules.mjs && node tests/architecture/verify-knip-reachability.mjs && node tests/architecture/verify-style-rules.mjs && node tests/architecture/verify-platform-boundary.mjs && node tests/architecture/verify-toss-build-gate.mjs && node tests/architecture/verify-toss-runtime.mjs",
     "report:architecture": "npm run lint:dead-code:report && npm run lint:styles:report",
     "verify:architecture": "npm run test:architecture-rules && npm run lint:architecture && npm run lint:dead-code && npm run lint:styles && npm run lint:architecture-tools",
     "verify:structure": "npm run typecheck && npm run verify:architecture && npm run test:public-config-build && npm run test:ci:no-cache -- --runInBand && npm run lint:strict",
@@ -232,6 +232,10 @@
             {
               "paths": [
                 {
+                  "name": "@tosspayments/tosspayments-sdk",
+                  "message": "The official Toss SDK is private to src/platform/integrations. Consume PaymentGatewayPort elsewhere."
+                },
+                {
                   "name": "axios",
                   "message": "Use the platform HTTP boundary instead of importing Axios in production code."
                 }
@@ -260,6 +264,25 @@
           "src/**/*.{test,spec}.{js,jsx,mjs,ts,tsx}"
         ],
         "rules": {
+          "no-restricted-imports": [
+            "error",
+            {
+              "paths": [
+                {
+                  "name": "axios",
+                  "message": "Use the platform HTTP boundary instead of importing Axios in an integration adapter."
+                }
+              ],
+              "patterns": [
+                {
+                  "group": [
+                    "axios/*"
+                  ],
+                  "message": "Axios subpaths are private to src/platform/http."
+                }
+              ]
+            }
+          ],
           "no-restricted-syntax": [
             "error",
             {
@@ -273,6 +296,33 @@
             {
               "selector": "ImportExpression[source.value=/^axios/], CallExpression[callee.type='Import'][arguments.0.value=/^axios/], CallExpression[callee.name='require'][arguments.0.value=/^axios/], CallExpression[callee.name='require'][arguments.0.type!='Literal'], VariableDeclarator[init.name='require'], AssignmentPattern[right.name='require'], AssignmentExpression[right.name='require']",
               "message": "Dynamic Axios loading is private to src/platform/http."
+            }
+          ]
+        }
+      },
+      {
+        "files": [
+          "src/platform/http/**/*.{js,jsx,mjs,ts,tsx}",
+          "src/api/client.ts",
+          "src/utils/error.ts"
+        ],
+        "excludedFiles": [
+          "src/test/**/*.{js,jsx,mjs,ts,tsx}",
+          "src/setupTests.{js,jsx,mjs,ts,tsx}",
+          "src/**/__tests__/**/*.{js,jsx,mjs,ts,tsx}",
+          "src/**/__mocks__/**/*.{js,jsx,mjs,ts,tsx}",
+          "src/**/*.{test,spec}.{js,jsx,mjs,ts,tsx}"
+        ],
+        "rules": {
+          "no-restricted-imports": [
+            "error",
+            {
+              "paths": [
+                {
+                  "name": "@tosspayments/tosspayments-sdk",
+                  "message": "The official Toss SDK is private to src/platform/integrations. Consume PaymentGatewayPort elsewhere."
+                }
+              ]
             }
           ]
         }

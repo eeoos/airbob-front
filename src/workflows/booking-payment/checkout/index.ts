@@ -8,11 +8,12 @@ export {
   parseLegacyCheckoutCandidate,
 } from "./validation";
 export {
+  createTossPaymentsV2GatewayLease,
   PaymentGatewayError,
-  tossPaymentsV1Gateway,
 } from "./paymentGateway";
 export type {
   PaymentGatewayFailureKind,
+  PaymentGatewayLease,
   PaymentGatewayPort,
   PaymentGatewayRequest,
 } from "./paymentGateway";

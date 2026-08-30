@@ -5,7 +5,7 @@ export type SyntheticPaymentResult =
   | { outcome: "reject"; code: string; message: string };
 
 export interface PaymentGatewayCall {
-  kind: "client" | "request-payment" | "render-payment-methods";
+  kind: "client" | "destroy" | "payment" | "request-payment";
   payload: unknown;
 }
 
@@ -52,36 +52,31 @@ export const installPaymentGatewayFixture = async (
         });
 
         return {
-          widgets: (options: unknown) => ({
-            renderPaymentMethods: async (
-              selector: string,
-              amount: unknown,
-              widgetOptions: unknown,
-            ) => {
-              calls.push({
-                kind: "render-payment-methods",
-                payload: redactSensitivePayload({
-                  selector,
-                  amount,
-                  widgetOptions,
-                  options,
-                }),
-              });
-            },
-          }),
-          requestPayment: async (payload: unknown) => {
+          payment: (options: unknown) => {
             calls.push({
-              kind: "request-payment",
-              payload: redactSensitivePayload(payload),
+              kind: "payment",
+              payload: redactSensitivePayload(options),
             });
 
-            if (configuredResult.outcome === "reject") {
-              const paymentError = new Error(configuredResult.message) as Error & {
-                code: string;
-              };
-              paymentError.code = configuredResult.code;
-              throw paymentError;
-            }
+            return {
+              destroy: async () => {
+                calls.push({ kind: "destroy", payload: null });
+              },
+              requestPayment: async (payload: unknown) => {
+                calls.push({
+                  kind: "request-payment",
+                  payload: redactSensitivePayload(payload),
+                });
+
+                if (configuredResult.outcome === "reject") {
+                  const paymentError = new Error(
+                    configuredResult.message,
+                  ) as Error & { code: string };
+                  paymentError.code = configuredResult.code;
+                  throw paymentError;
+                }
+              },
+            };
           },
         };
       },

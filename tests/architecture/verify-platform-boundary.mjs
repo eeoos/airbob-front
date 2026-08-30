@@ -311,6 +311,20 @@ const invalidScenarios = [
     expectedMessage: "platform HTTP boundary",
   },
   {
+    name: "workflow importing the Toss SDK directly",
+    filename: "src/workflows/rogue-toss-sdk.ts",
+    source:
+      'import { loadTossPayments } from "@tosspayments/tosspayments-sdk"; export const value = loadTossPayments;',
+    expectedMessage: "src/platform/integrations",
+  },
+  {
+    name: "HTTP adapter importing the Toss SDK directly",
+    filename: "src/platform/http/rogue-toss-sdk.ts",
+    source:
+      'import { loadTossPayments } from "@tosspayments/tosspayments-sdk"; export const value = loadTossPayments;',
+    expectedMessage: "src/platform/integrations",
+  },
+  {
     name: "storage adapter crossing into dynamic HTTP ownership",
     filename: "src/platform/storage/rogue-http.ts",
     source: 'export const value = import("axios");',
@@ -380,6 +394,11 @@ const validScenarios = [
     filename: "src/platform/http/platform-boundary-fixture.ts",
     source:
       'import axios from "axios"; export const value = axios.create();',
+  },
+  {
+    filename: "src/platform/integrations/toss-platform-boundary-fixture.ts",
+    source:
+      'import { loadTossPayments } from "@tosspayments/tosspayments-sdk"; export const value = loadTossPayments;',
   },
   {
     filename: "src/features/platform-boundary-fixture.ts",

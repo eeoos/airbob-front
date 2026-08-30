@@ -89,9 +89,9 @@ outside storage.
 | --- | --- | --- | --- | --- |
 | `operationId`, `accommodationId` | Join the storage document, route, history handle, and callback operation | Yes | Internal | Persist; exact bounded opaque operation and positive accommodation ID |
 | `reservationUid` | Server lookup, Toss `orderId`, callback correlation | Yes | Sensitive-adjacent correlation ID | Persist under stable subject/TTL; owned server reservation must still prove the tuple |
-| `orderName` | Toss request display field | Yes | Internal | Persist as bounded display text because the unchanged v1 request needs it after reload |
+| `orderName` | Toss request display field | Yes | Internal | Persist as bounded display text; the v2 gateway rejects values above the provider's 100-character contract instead of truncating |
 | `amount` | Toss request amount and callback tuple comparison | Yes | Sensitive-adjacent payment value | Persist under stable subject/TTL; browser value never authorizes confirm |
-| `customerEmail`, `customerName` | Toss v1 request customer fields | No | Personal | Exclude. Derive from the currently authenticated viewer in memory immediately before the gateway request |
+| `customerEmail`, `customerName` | Toss v2 request customer fields | No | Personal | Exclude. Derive from the currently authenticated viewer in memory immediately before the gateway request and reject values above 100 characters instead of truncating |
 | `checkIn`, `checkOut` | Confirmation summary and owned reservation tuple | Yes | Personal activity | Persist as strict calendar dates; server ownership must match before confirmation/status I/O |
 | `adultOccupancy`, `childOccupancy`, `infantOccupancy`, `petOccupancy` | Confirmation guest summary and owned guest-count tuple | Yes | Personal activity | Persist exact non-negative counts; at least one adult/child is required |
 | `couponName`, `couponDiscount` | Confirmation discount display and summary | Yes when present | Personal activity / Internal price | Persist nullable bounded display fields; neither participates in callback authority |
@@ -106,7 +106,7 @@ stable subject, version, creation time, or explicit TTL.
 | --- | --- | --- | --- |
 | API domain | `REACT_APP_API_URL` through `src/platform/config` | Public build configuration | Production requires one explicit HTTPS origin with no credentials, path, query, or fragment; development keeps the CRA proxy. |
 | Google Maps browser key | `REACT_APP_GOOGLE_MAPS_API_KEY` through `src/platform/config` | Public browser key delivered to Google script | Treat as public-but-restricted. Record presence only; never record the value. Percent encoding and non-browser-key characters are rejected; domain/API restrictions remain external prerequisites. |
-| Toss client key | `REACT_APP_TOSS_CLIENT_KEY` through `src/platform/config` | Public browser payment client key | Only `test_ck_`/`live_ck_` browser-client categories are accepted. Missing/invalid API origins and misplaced `*_sk_*` server-key categories fail before the production compiler; hostile build/artifact checks prove the boundary without printing the value. |
+| Toss client key | `REACT_APP_TOSS_CLIENT_KEY` through `src/platform/config` | Public browser payment client key | Only API-individual `test_ck_`/`live_ck_` browser-client categories are accepted for the v2 direct payment window. Missing/invalid API origins and misplaced `*_sk_*` server-key categories fail before the production compiler; hostile build/artifact checks prove the boundary without printing the value. |
 | CloudFront domain | `REACT_APP_CLOUDFRONT_DOMAIN` through `src/platform/config` | Public asset host | Exact validated HTTPS host consumed by the platform image resolver. |
 | QA email/password and route fixture IDs | `AIRBOB_*` shell variables | Test/integration process only | Never browser build input. Never committed or printed. Use synthetic `.invalid` identities in deterministic tests. |
 
@@ -151,10 +151,14 @@ stable subject, version, creation time, or explicit TTL.
   data to prove reservation/accommodation ownership and payment order/amount.
 - Migration deletes the accepted legacy source. Rejected legacy records are
   purged.
-- U11 changes only the Toss gateway adapter. It does not change U10 checkout,
-  callback, or confirmation contracts.
+- U11 changes only the Toss gateway adapter. The active local candidate uses
+  pinned official npm v2, `ANONYMOUS`, `CARD`, and `KRW`; it does not change U10
+  checkout, callback, or confirmation contracts. Provider field limits are
+  rejected at the request boundary and are never silently truncated.
 - A U11 rollback uses an immutable U10 build that understands the same U10
-  records. V1 and v2 writers are not mounted together.
+  records. V1 and v2 writers are not mounted together. U10 is retained as Git
+  commit `408d303` and a separate commit-specific Vercel deployment; no v1
+  source remains in the U11 tree.
 - No compatibility reader survives the removal unit named in
   [`frontend-ownership-matrix.md`](./frontend-ownership-matrix.md).
 

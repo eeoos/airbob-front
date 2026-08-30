@@ -204,6 +204,31 @@ npm run smoke:frontend:strict
 - Route assertions poll for rendered root text and route-specific expected text before screenshots.
 - Redacted browser output containing console errors/warnings, browse `[js] ERROR`/`ERROR: evaluate` output, or API 4xx/5xx network failures fails the wrapper.
 
+## Toss npm v2 cutover gate
+
+U11은 로컬 코드 통과와 배포 승인을 분리한다. `PaymentGatewayPort`, 성공/실패 URL, callback query, checkout/callback 저장 스키마, 서버 confirm/status payload는 U10과 동일하다. 활성 로컬 런타임은 공식 npm SDK `2.8.1` 하나이며 `payment({ customerKey: ANONYMOUS })`의 `CARD`/`KRW` redirect 요청을 사용한다.
+
+배포 artifact, sandbox canary, rollback 절차와 완료 기록은 [`../operations/frontend-payment-release-runbook.md`](../operations/frontend-payment-release-runbook.md)를 따른다.
+
+PR 차단 검증:
+
+- `src/platform/integrations/tossPaymentsV2.test.ts`: 공식 SDK load, 동일 키 중복 load, 8초 readiness bound, 실패 후 local retry, runtime validation, `ANONYMOUS` 및 `CARD`/`KRW` 매핑.
+- booking-payment gateway/workflow tests: 기존 포트와 URL/customer/order/amount 값 보존, 공식 v2 error-code 분류, provider 길이/문자 제한의 fail-closed 처리, request single-flight.
+- `reservation-payment-characterization.spec.ts`: 실제 결제 버튼 double-click당 v2 요청 1회, `USER_CANCEL` 후 checkout 보존/재시도, checkout route 이탈 시 launcher 1회 정리, 기존 callback confirm/reconciliation 계약.
+- production build 검사: `/v2/standard` 존재, v1 URL/marker 0건, platform 밖 SDK import 0건.
+
+Vercel Preview에서 아래 증거가 모두 생기기 전에는 merge 또는 U11 완료로 기록하지 않는다.
+
+- sandbox: SDK load/request, 사용자 cancel, invalid key, network failure, success/fail callback을 검사하고 v1 네트워크 요청이 0건인지 확인한다.
+- success callback은 URL credential을 즉시 scrub하고 confirm POST를 정확히 한 번만 전송하며, 모호한 결과는 status reconciliation으로 이동해야 한다.
+- U11 commit-specific Preview URL과 U10 commit `408d303`의 별도 Vercel 비교 URL을 기록한다.
+- U11과 U10이 같은 저장 스키마를 읽고, retryable callback 복구가 추가 결제 요청이나 confirm POST 없이 status만 조회하는지 확인한다.
+- live canary 결과에는 코드·횟수·시간만 남기고 key, reservation UID, paymentKey, 이메일/이름, screenshot/trace/HAR를 남기지 않는다.
+
+이 프로젝트는 Toss sandbox만 사용하며 프론트는 Vercel, 백엔드는 상시 OCI에서 실행한다. 별도 production payment operator나 artifact store 대신 Git commit과 commit-specific Vercel URL을 release identity로 사용한다. AWS 성능 환경은 이 결제 cutover gate에 포함하지 않는다.
+
+U11 소스에는 v1 adapter와 `toss-payments-v1` runtime 타입이 남지 않는다. Knip을 포함한 전체 구조 gate가 green이어야 Preview 후보를 push할 수 있다. Preview 실패는 merge하지 않고 수정하며, production Instant Rollback 훈련은 sandbox 포트폴리오 범위에서 필수로 두지 않는다.
+
 ## 2026-07-05 KST Architecture Stabilization Verification
 
 - Static gate command: `npm run verify:pre-redesign`

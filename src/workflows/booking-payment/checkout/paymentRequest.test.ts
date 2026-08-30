@@ -175,6 +175,7 @@ describe("payment request workflow", () => {
     await Promise.resolve();
 
     workflow.dispose();
+    workflow.dispose();
     pending.resolve();
     await expect(result).resolves.toEqual({ status: "stale" });
   });
