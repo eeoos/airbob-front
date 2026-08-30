@@ -1,6 +1,8 @@
 export interface BrowserWindowNavigation {
+  getOrigin(): string;
   isCurrentHistoryEntry(entry: BrowserHistoryEntry): boolean;
   openInNewTab(url: string): Window | null;
+  replaceCurrentUrl(url: string): void;
 }
 
 export interface BrowserHistoryEntry {
@@ -22,6 +24,10 @@ const readCurrentHistoryKey = (): string | null => {
 };
 
 export const browserWindowNavigation: BrowserWindowNavigation = {
+  getOrigin() {
+    return window.location.origin;
+  },
+
   isCurrentHistoryEntry(entry) {
     const currentHistoryKey = readCurrentHistoryKey();
     const isSameHistoryKey =
@@ -44,5 +50,14 @@ export const browserWindowNavigation: BrowserWindowNavigation = {
     }
 
     return openedWindow;
+  },
+
+  replaceCurrentUrl(url) {
+    const currentState: unknown = window.history.state;
+    const nextState =
+      typeof currentState === "object" && currentState !== null
+        ? { ...currentState, usr: null }
+        : currentState;
+    window.history.replaceState(nextState, "", url);
   },
 };

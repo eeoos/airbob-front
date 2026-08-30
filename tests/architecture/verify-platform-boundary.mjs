@@ -514,10 +514,7 @@ const allowedLegacyAxiosTypeImports = new Set([
   "src/api/client.ts",
   "src/utils/error.ts",
 ]);
-const allowedLegacyStorageImporters = new Set([
-  "src/features/reservations/lib/paymentConfirmationAttemptRegistry.ts",
-  "src/features/reservations/lib/reservationCheckoutState.ts",
-]);
+const allowedLegacyStorageImporters = new Set();
 const isAxiosModuleSpecifier = (moduleSpecifier) =>
   ts.isStringLiteral(moduleSpecifier) && moduleSpecifier.text.startsWith("axios");
 const productionSourceFiles = ts.sys

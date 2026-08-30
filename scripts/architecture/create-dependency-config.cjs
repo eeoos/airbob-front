@@ -26,17 +26,6 @@ const legacyRouteAdapterBridges = [
     "ReservationDetailRoute",
     "reservations/ReservationDetailRoute",
   ],
-  [
-    "accommodation-confirm",
-    "AccommodationConfirmRoute",
-    "reservations/ReservationConfirmRoute",
-  ],
-  [
-    "payment-success",
-    "PaymentSuccessRoute",
-    "reservations/PaymentSuccessRoute",
-  ],
-  ["payment-fail", "PaymentFailRoute", "reservations/PaymentFailRoute"],
 ].map(([id, adapter, target]) => ({
   adapterPath: `^src/app/router/routes/${adapter}[.][tj]sx?$`,
   id,

@@ -1,0 +1,68 @@
+.container {
+  min-height: calc(var(--layout-viewport-height) - var(--layout-header-desktop-height));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+}
+
+.content {
+  width: 100%;
+  max-width: 500px;
+  text-align: center;
+}
+
+.spinner {
+  width: var(--space-16);
+  height: var(--space-16);
+  margin: 0 auto var(--space-6);
+  border: var(--space-1) solid var(--color-background-hover);
+  border-top-color: var(--color-brand-coral);
+  border-radius: var(--radius-pill);
+  animation: spin var(--motion-duration-slow) linear infinite;
+}
+
+.errorIcon {
+  margin-bottom: var(--space-6);
+  font-size: var(--space-16);
+}
+
+.title {
+  margin: 0 0 var(--space-4);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+}
+
+.message,
+.statusMessage {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-md);
+}
+
+.message {
+  margin: 0 0 var(--space-8);
+}
+
+.statusMessage {
+  margin: calc(var(--space-4) * -1) 0 var(--space-8);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: center;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}

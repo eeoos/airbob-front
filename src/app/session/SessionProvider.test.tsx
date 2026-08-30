@@ -353,6 +353,27 @@ describe("SessionProvider", () => {
     );
   });
 
+  it("fails closed when identity-owned state cannot be cleared after a bootstrap 401", async () => {
+    const authPort = createAuthPort();
+    authPort.getViewer.mockRejectedValueOnce(authenticationError());
+    const clearIdentityOwnedState = jest.fn(() => {
+      throw new Error("identity cleanup failed");
+    });
+
+    const { result } = renderSession({
+      authPort,
+      clearIdentityOwnedState,
+    });
+
+    await waitFor(() =>
+      expect(result.current.session.state).toMatchObject({
+        status: "error",
+        reason: "bootstrap",
+      }),
+    );
+    expect(clearIdentityOwnedState).toHaveBeenCalledTimes(1);
+  });
+
   it("exposes a retryable bootstrap server error and recovers through revalidate", async () => {
     const authPort = createAuthPort();
     authPort.getViewer
@@ -449,6 +470,43 @@ describe("SessionProvider", () => {
     expect(queryClients.generations).toHaveLength(1);
     expect(queryClients.generations[0].cancelQueries).not.toHaveBeenCalled();
     expect(queryClients.generations[0].clear).not.toHaveBeenCalled();
+  });
+
+  it("revokes authenticated state after a revalidation 401 even when browser cleanup fails", async () => {
+    const authPort = createAuthPort();
+    authPort.getViewer.mockRejectedValueOnce(authenticationError());
+    const cleanupError = new Error("identity cleanup failed");
+    const clearIdentityOwnedState = jest.fn(() => {
+      throw cleanupError;
+    });
+    const queryClients = createTrackedQueryClients();
+    const { result } = renderSession({
+      authPort,
+      clearIdentityOwnedState,
+      initialState: authenticatedState(viewerA),
+      queryClientFactory: queryClients.factory,
+    });
+
+    let thrown: unknown;
+    await act(async () => {
+      try {
+        await result.current.session.revalidate();
+      } catch (error) {
+        thrown = error;
+      }
+    });
+
+    expect(thrown).toBe(cleanupError);
+    expect(result.current.session.state).toMatchObject({
+      status: "anonymous",
+      reason: "server-revoked",
+      revocation: "verified",
+    });
+    expect(clearIdentityOwnedState).toHaveBeenCalledTimes(1);
+    expect(queryClients.generations[0].clear).toHaveBeenCalledTimes(1);
+    expect(result.current.queryClient).toBe(
+      queryClients.generations.at(-1)?.client,
+    );
   });
 
   it("does not publish a different viewer until the old QueryClient is cancelled and cleared", async () => {
@@ -988,6 +1046,58 @@ describe("SessionProvider", () => {
     expect(authPort.logout).toHaveBeenCalledTimes(2);
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(document.cookie).toBe(cookieBeforeLogout);
+  });
+
+  it("still logs out on the server and keeps a retry notice when browser cleanup fails", async () => {
+    const authPort = createAuthPort();
+    authPort.logout.mockResolvedValue(undefined);
+    const cleanupError = new Error("identity cleanup failed");
+    const clearIdentityOwnedState = jest
+      .fn()
+      .mockImplementationOnce(() => {
+        throw cleanupError;
+      })
+      .mockImplementationOnce(() => undefined);
+    const queryClients = createTrackedQueryClients();
+    const { result } = renderSession({
+      authPort,
+      clearIdentityOwnedState,
+      initialState: authenticatedState(viewerA),
+      queryClientFactory: queryClients.factory,
+    });
+
+    let thrown: unknown;
+    await act(async () => {
+      try {
+        await result.current.session.logout();
+      } catch (error) {
+        thrown = error;
+      }
+    });
+
+    expect(thrown).toBe(cleanupError);
+    expect(authPort.logout).toHaveBeenCalledTimes(1);
+    expect(queryClients.generations[0].clear).toHaveBeenCalledTimes(1);
+    expect(result.current.session.state).toMatchObject({
+      status: "anonymous",
+      reason: "logout",
+      revocation: "unverified",
+      revocationError: { retryable: false },
+    });
+    expect(screen.getByRole("alert")).toBeVisible();
+
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+
+    await waitFor(() =>
+      expect(result.current.session.state).toMatchObject({
+        status: "anonymous",
+        reason: "logout",
+        revocation: "verified",
+      }),
+    );
+    expect(clearIdentityOwnedState).toHaveBeenCalledTimes(2);
+    expect(authPort.logout).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("lets the active login terminal probe cover an unrelated auth error", async () => {

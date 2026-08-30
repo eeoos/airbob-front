@@ -6,6 +6,7 @@ import type {
 import type { ReservationReady } from "../../../features/reservations/public";
 import {
   createReservationCreateWorkflow,
+  type ReservationCheckoutHandoffPreflightResult,
   type ReservationCreateCommandInput,
   type ReservationCreateTransport,
 } from "./reservationCreate";
@@ -69,7 +70,12 @@ const setup = ({
   let currentScope = activeScope;
   let routeCurrent = true;
   const transport: ReservationCreateTransport = { create };
-  const handoff = { commit: jest.fn() };
+  const handoff = {
+    preflight: jest.fn(
+      (): ReservationCheckoutHandoffPreflightResult => ({ status: "ready" }),
+    ),
+    commit: jest.fn(),
+  };
   const session = {
     captureAuthenticatedSession: jest.fn(() => currentScope),
     isCurrentSession: jest.fn(
@@ -212,6 +218,35 @@ describe("reservation create workflow", () => {
     expect(handoff.commit).not.toHaveBeenCalled();
   });
 
+  it("blocks reservation creation before POST when payment recovery is active", async () => {
+    const { create, handoff, input, workflow } = setup();
+    handoff.preflight.mockReturnValue({
+      status: "payment-recovery-required",
+    });
+
+    await expect(workflow.start(input())).resolves.toEqual({
+      status: "payment-recovery-required",
+    });
+
+    expect(handoff.preflight).toHaveBeenCalledWith({
+      session: scopeA,
+      intent: expect.objectContaining({ accommodationId: 7 }),
+    });
+    expect(create).not.toHaveBeenCalled();
+    expect(handoff.commit).not.toHaveBeenCalled();
+  });
+
+  it("fails closed before POST when active payment state cannot be inspected", async () => {
+    const { create, handoff, input, workflow } = setup();
+    handoff.preflight.mockReturnValue({ status: "blocked" });
+
+    await expect(workflow.start(input())).resolves.toEqual({
+      status: "checkout-blocked",
+    });
+    expect(create).not.toHaveBeenCalled();
+    expect(handoff.commit).not.toHaveBeenCalled();
+  });
+
   it("creates once and commits the immutable checkout handoff while current", async () => {
     const { create, handoff, input, workflow } = setup();
     const initialCommand = input();
@@ -287,7 +322,12 @@ describe("reservation create workflow", () => {
 
   it("does not start a request with a captured session that is no longer current", async () => {
     const create = jest.fn().mockResolvedValue(reservationReady);
-    const handoff = { commit: jest.fn() };
+    const handoff = {
+      preflight: jest.fn(
+        (): ReservationCheckoutHandoffPreflightResult => ({ status: "ready" }),
+      ),
+      commit: jest.fn(),
+    };
     const workflow = createReservationCreateWorkflow({
       transport: { create },
       handoff,

@@ -4,6 +4,8 @@ export {
 } from "./reservationCreate";
 export type {
   AppliedReservationCoupon,
+  ReservationCheckoutHandoffPreflightInput,
+  ReservationCheckoutHandoffPreflightResult,
   ReservationCheckoutHandoffInput,
   ReservationCheckoutHandoffPort,
   ReservationCreateAccommodationSnapshot,

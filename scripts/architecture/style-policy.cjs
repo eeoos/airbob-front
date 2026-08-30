@@ -22,7 +22,6 @@ const preExistingStrictStylePaths = Object.freeze([
   "src/layouts/AppHeader/UserMenu.module.css",
   "src/features/wishlist/components/WishlistViews.module.css",
   "src/features/auth/components/AuthModal/AuthModal.module.css",
-  "src/features/reservations/components/ReservationModal/ReservationModal.module.css",
 ]);
 
 const legacyDesignProtectedStylePaths = Object.freeze([
@@ -47,8 +46,8 @@ const legacyDesignProtectedStylePaths = Object.freeze([
   "src/features/wishlist/components/WishlistModal/WishlistModal.module.css",
   "src/features/reviews/components/ReviewModal/ReviewModal.module.css",
   "src/features/accommodations/components/AccommodationActionModal/AccommodationActionModal.module.css",
-  "src/features/reservations/PaymentSuccessRoute.module.css",
-  "src/features/reservations/PaymentFailRoute.module.css",
+  "src/screens/reservation-confirm/ReservationConfirmScreen.module.css",
+  "src/screens/payment-result/PaymentResultScreen.module.css",
   "src/features/search/components/SearchAccommodationCard.module.css",
   "src/screens/search/SearchScreen.module.css",
   "src/features/profile/components/ProfileShell.module.css",
@@ -66,7 +65,6 @@ const legacyDesignProtectedStylePaths = Object.freeze([
   "src/layouts/AppHeader/UserMenu.module.css",
   "src/features/wishlist/components/WishlistViews.module.css",
   "src/features/auth/components/AuthModal/AuthModal.module.css",
-  "src/features/reservations/components/ReservationModal/ReservationModal.module.css",
 ]);
 
 const highRiskPreRedesignStylePaths = Object.freeze([
@@ -74,7 +72,6 @@ const highRiskPreRedesignStylePaths = Object.freeze([
   "src/features/reservations/HostReservationsPanel.module.css",
   "src/features/reservations/HostReservationDetailRoute.module.css",
   "src/features/reservations/ReservationDetailRoute.module.css",
-  "src/features/reservations/ReservationConfirmRoute.module.css",
   "src/screens/review-create/ReviewCreateScreen.module.css",
   "src/features/profile/components/ProfileShell.module.css",
   "src/features/profile/HostListingsPanel.module.css",

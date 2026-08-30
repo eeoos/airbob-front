@@ -29,7 +29,10 @@ const authenticatedScope = {
   subject: "subject:member_1" as SessionSubject,
   epoch: 2,
 };
-const checkoutHandoff = { commit: jest.fn() };
+const checkoutHandoff = {
+  preflight: jest.fn(() => ({ status: "ready" as const })),
+  commit: jest.fn(),
+};
 const session = {
   captureAuthenticatedSession: () => authenticatedScope,
   isCurrentSession: () => true,

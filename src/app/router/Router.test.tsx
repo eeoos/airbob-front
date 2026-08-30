@@ -16,7 +16,7 @@ jest.mock("./routes/SearchRoute", () => routeModule("page-search"));
 jest.mock("./routes/AccommodationDetailRoute", () =>
   routeModule("page-accommodation-detail"),
 );
-jest.mock("./routes/AccommodationConfirmRoute", () =>
+jest.mock("./routes/ReservationConfirmRoute", () =>
   routeModule("page-accommodation-confirm"),
 );
 jest.mock("./routes/AccommodationEditRoute", () =>
@@ -114,4 +114,5 @@ describe("app Router", () => {
 
     expect(await screen.findByTestId("page-home")).toBeInTheDocument();
   });
+
 });

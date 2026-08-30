@@ -94,7 +94,7 @@ describe("paymentCodec", () => {
     });
   });
 
-  it("keeps success and fail callback serialization order", () => {
+  it("keeps success callback order and fail routes credential-free", () => {
     expect(
       serializePaymentSuccessRouteQuery({
         amount: 120000,
@@ -106,13 +106,8 @@ describe("paymentCodec", () => {
     );
     expect(
       serializePaymentFailRouteQuery({
-        amount: 120000,
-        orderId: "reservation-123",
-        paymentKey: "payment/key 1",
         reason: "confirm-failed",
       }).toString(),
-    ).toBe(
-      "reason=confirm-failed&paymentKey=payment%2Fkey+1&orderId=reservation-123&amount=120000",
-    );
+    ).toBe("reason=confirm-failed");
   });
 });

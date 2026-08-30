@@ -29,8 +29,8 @@ const sourceText = (relativePath: string) =>
 const scopedNavigationFiles = collectProductionSourceFiles("src");
 
 const paymentNavigationFiles = [
-  "src/features/reservations/PaymentFailRoute.tsx",
-  "src/features/reservations/PaymentSuccessRoute.tsx",
+  "src/app/router/routes/PaymentFailRoute.tsx",
+  "src/app/router/routes/PaymentSuccessRoute.tsx",
 ];
 
 const sourceFile = (relativePath: string) => {
@@ -75,31 +75,6 @@ const isDirectInternalRouteString = (node: ts.Expression): boolean => {
   }
 
   return false;
-};
-
-const isReplaceTrueProperty = (
-  property: ts.ObjectLiteralElementLike
-): property is ts.PropertyAssignment => {
-  if (!ts.isPropertyAssignment(property)) {
-    return false;
-  }
-
-  const { name, initializer } = property;
-  const isReplaceProperty =
-    (ts.isIdentifier(name) && name.text === "replace") ||
-    (ts.isStringLiteral(name) && name.text === "replace");
-
-  return isReplaceProperty && initializer.kind === ts.SyntaxKind.TrueKeyword;
-};
-
-const hasReplaceTrueOption = (callExpression: ts.CallExpression): boolean => {
-  const navigationOptions = callExpression.arguments[1];
-
-  return (
-    navigationOptions !== undefined &&
-    ts.isObjectLiteralExpression(navigationOptions) &&
-    navigationOptions.properties.some(isReplaceTrueProperty)
-  );
 };
 
 const formatNodeLocation = (
@@ -308,17 +283,12 @@ describe("navigation route builder contracts", () => {
     ).toBe(true);
   });
 
-  it("keeps payment route-builder navigation as push navigation outside callback cleanup", () => {
-    const replaceAllowedFiles = new Set([
-      "src/features/reservations/PaymentSuccessRoute.tsx",
-    ]);
-    const replaceNavigations = paymentNavigationFiles.flatMap((relativePath) =>
-      replaceAllowedFiles.has(relativePath)
-        ? []
-        : collectNavigateCallViolations(relativePath, hasReplaceTrueOption)
-    );
-
-    expect(replaceNavigations).toEqual([]);
+  it("replace-scrubs payment callback routes and their history state", () => {
+    paymentNavigationFiles.forEach((relativePath) => {
+      const source = sourceText(relativePath);
+      expect(source).toContain("replace: true");
+      expect(source).toContain("state: null");
+    });
   });
 
   it("keeps payment callback query construction inside typed route builders", () => {

@@ -526,6 +526,7 @@ describe("frontend verification gate", () => {
     expect(architectureRatchet.migratedFeatures).toEqual([
       "accommodations/detail",
       "auth",
+      "reservations/payment",
       "reviews",
       "search",
       "wishlist",

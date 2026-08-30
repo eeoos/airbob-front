@@ -2,6 +2,7 @@
   "migratedFeatures": [
     "accommodations/detail",
     "auth",
+    "reservations/payment",
     "reviews",
     "search",
     "wishlist"

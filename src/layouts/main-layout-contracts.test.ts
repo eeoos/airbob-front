@@ -10,11 +10,10 @@ const mainLayoutRouteContainers = [
   "src/screens/wishlist/WishlistScreen.tsx",
   "src/features/profile/ProfileRoute.tsx",
   "src/features/reservations/HostReservationDetailRoute.tsx",
-  "src/features/reservations/ReservationConfirmRoute.tsx",
+  "src/screens/reservation-confirm/ReservationConfirmScreen.tsx",
   "src/features/reservations/ReservationDetailRoute.tsx",
   "src/screens/review-create/ReviewCreateScreen.tsx",
-  "src/features/reservations/PaymentSuccessRoute.tsx",
-  "src/features/reservations/PaymentFailRoute.tsx",
+  "src/screens/payment-result/PaymentResultScreen.tsx",
 ];
 
 const sourceText = (relativePath: string) =>

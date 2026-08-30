@@ -117,8 +117,8 @@ describe("design system entry contracts", () => {
     [
       "shared/ui/DatePicker/DatePicker.module.css",
       "components/ErrorBoundary/ErrorBoundary.module.css",
-      "features/reservations/PaymentSuccessRoute.module.css",
-      "features/reservations/PaymentFailRoute.module.css",
+      "screens/reservation-confirm/ReservationConfirmScreen.module.css",
+      "screens/payment-result/PaymentResultScreen.module.css",
       "screens/search/SearchScreen.module.css",
       "features/search/components/SearchAccommodationCard.module.css",
     ].forEach((relativePath) => {

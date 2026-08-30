@@ -272,7 +272,17 @@ export function useSessionController({
         epoch: capturedEpoch,
       });
       const nextEpoch = stateRef.current.epoch;
-      clearIdentityOwnedState();
+      try {
+        clearIdentityOwnedState();
+      } catch (error) {
+        dispatch({
+          type: "session/check-failed",
+          operationId: operation.id,
+          epoch: nextEpoch,
+          error: normalizeSessionAuthError(error),
+        });
+        throw error;
+      }
       if (canResetInPlace) {
         return resetQueryGeneration(nextEpoch, operation);
       }
@@ -344,7 +354,17 @@ export function useSessionController({
         }
 
         if (isSessionAuthenticationError(error)) {
-          clearIdentityOwnedState();
+          try {
+            clearIdentityOwnedState();
+          } catch (cleanupError) {
+            dispatch({
+              type: "session/check-failed",
+              operationId: operation.id,
+              epoch,
+              error: normalizeSessionAuthError(cleanupError),
+            });
+            throw cleanupError;
+          }
           dispatch({
             type: "session/check-anonymous",
             operationId: operation.id,
@@ -519,7 +539,17 @@ export function useSessionController({
         epoch: latest.epoch,
         viewer,
       });
-      clearIdentityOwnedState();
+      try {
+        clearIdentityOwnedState();
+      } catch (cleanupError) {
+        dispatch({
+          type: "session/check-failed",
+          operationId: operation.id,
+          epoch: stateRef.current.epoch,
+          error: normalizeSessionAuthError(cleanupError),
+        });
+        throw cleanupError;
+      }
       const didReplace = await replaceQueryGeneration(
         stateRef.current.epoch,
         null,
@@ -538,18 +568,24 @@ export function useSessionController({
       const latest = stateRef.current;
       if (isSessionAuthenticationError(error)) {
         const capturedEpoch = latest.epoch;
+        let cleanupError: unknown;
+        try {
+          clearIdentityOwnedState();
+        } catch (caughtCleanupError) {
+          cleanupError = caughtCleanupError;
+        }
         dispatch({
           type: "session/auth-revoked",
           operationId: operation.id,
           epoch: capturedEpoch,
         });
-        clearIdentityOwnedState();
         await replaceQueryGeneration(
           stateRef.current.epoch,
           null,
           operation,
         );
         publishSessionPhaseRef.current("revalidate");
+        if (cleanupError !== undefined) throw cleanupError;
       } else if (latest.status === "authenticated") {
         dispatch({
           type: "session/revalidation-failed",
@@ -641,18 +677,29 @@ export function useSessionController({
       operation: ActiveOperation,
       operationId: number,
       epoch: number,
+      cleanupError?: unknown,
     ): Promise<boolean> => {
+      let transportError: unknown;
       try {
         await commandQueueRef.current!.run(operation.controller.signal, () =>
           runCookieTransport(() => authPort.logout()),
         );
-        if (!isCurrentOperation(operation)) return false;
-        const didReplace = await replaceQueryGeneration(
-          epoch,
-          null,
-          operation,
-        );
-        if (!didReplace) return false;
+      } catch (error) {
+        transportError = error;
+      }
+      if (!isCurrentOperation(operation)) return false;
+
+      const didReplace = await replaceQueryGeneration(
+        epoch,
+        null,
+        operation,
+      );
+      if (!didReplace) return false;
+
+      const serverRevocationVerified =
+        transportError === undefined ||
+        isSessionAuthenticationError(transportError);
+      if (serverRevocationVerified && cleanupError === undefined) {
         dispatch({
           type: "session/logout-settled",
           operationId,
@@ -660,35 +707,21 @@ export function useSessionController({
           revocation: "verified",
         });
         return true;
-      } catch (error) {
-        if (!isCurrentOperation(operation)) return false;
-
-        const didReplace = await replaceQueryGeneration(
-          epoch,
-          null,
-          operation,
-        );
-        if (!didReplace) return false;
-
-        if (isSessionAuthenticationError(error)) {
-          dispatch({
-            type: "session/logout-settled",
-            operationId,
-            epoch,
-            revocation: "verified",
-          });
-          return true;
-        }
-
-        dispatch({
-          type: "session/logout-settled",
-          operationId,
-          epoch,
-          revocation: "unverified",
-          error: normalizeSessionAuthError(error),
-        });
-        throw error;
       }
+
+      const blockingError =
+        transportError !== undefined &&
+        !isSessionAuthenticationError(transportError)
+          ? transportError
+          : cleanupError;
+      dispatch({
+        type: "session/logout-settled",
+        operationId,
+        epoch,
+        revocation: "unverified",
+        error: normalizeSessionAuthError(blockingError),
+      });
+      throw blockingError;
     },
     [
       authPort,
@@ -712,8 +745,14 @@ export function useSessionController({
     });
     const logoutState = stateRef.current;
 
+    let cleanupError: unknown;
     try {
       clearIdentityOwnedState();
+    } catch (caughtCleanupError) {
+      cleanupError = caughtCleanupError;
+    }
+
+    try {
       const didReplace = await replaceQueryGeneration(
         logoutState.epoch,
         null,
@@ -725,6 +764,7 @@ export function useSessionController({
         operation,
         operation.id,
         logoutState.epoch,
+        cleanupError,
       );
       if (!didSettle) throw createStaleSessionOperationError();
     } finally {
@@ -768,10 +808,17 @@ export function useSessionController({
 
     const operation = beginCookieOperation();
     try {
+      let cleanupError: unknown;
+      try {
+        clearIdentityOwnedState();
+      } catch (caughtCleanupError) {
+        cleanupError = caughtCleanupError;
+      }
       const didSettle = await settleServerLogout(
         operation,
         current.operationId,
         current.epoch,
+        cleanupError,
       );
       if (!didSettle) throw createStaleSessionOperationError();
     } finally {
@@ -782,6 +829,7 @@ export function useSessionController({
     }
   }, [
     beginCookieOperation,
+    clearIdentityOwnedState,
     finishCookieOperation,
     isCurrentOperation,
     settleServerLogout,

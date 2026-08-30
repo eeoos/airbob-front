@@ -1,6 +1,28 @@
 import { browserWindowNavigation } from "./windowNavigation";
 
 describe("browserWindowNavigation", () => {
+  it("exposes the current browser origin without leaking window access", () => {
+    expect(browserWindowNavigation.getOrigin()).toBe(window.location.origin);
+  });
+
+  it("replace-scrubs the current URL and clears React Router user state", () => {
+    window.history.replaceState(
+      { idx: 2, key: "history-key", usr: { secret: true } },
+      "",
+      "/reservations/r-1/success?paymentKey=secret",
+    );
+
+    browserWindowNavigation.replaceCurrentUrl("/reservations/r-1/success");
+
+    expect(window.location.pathname).toBe("/reservations/r-1/success");
+    expect(window.location.search).toBe("");
+    expect(window.history.state).toEqual({
+      idx: 2,
+      key: "history-key",
+      usr: null,
+    });
+  });
+
   it("matches an exact Router history entry and rejects stale route entries", () => {
     const previousUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     const previousState = window.history.state;

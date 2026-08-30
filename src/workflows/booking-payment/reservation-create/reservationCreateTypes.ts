@@ -73,11 +73,24 @@ export interface ReservationCheckoutHandoffInput {
   readonly appliedCoupon: AppliedReservationCoupon | null;
 }
 
+export interface ReservationCheckoutHandoffPreflightInput {
+  readonly session: AuthenticatedSessionScope;
+  readonly intent: ReservationStartIntent;
+}
+
+export type ReservationCheckoutHandoffPreflightResult =
+  | { readonly status: "ready" }
+  | { readonly status: "payment-recovery-required" }
+  | { readonly status: "blocked" };
+
 /**
  * This is intentionally synchronous. The current-route and session checks and
  * the legacy storage/navigation handoff therefore form one JavaScript turn.
  */
 export interface ReservationCheckoutHandoffPort {
+  preflight(
+    input: ReservationCheckoutHandoffPreflightInput,
+  ): ReservationCheckoutHandoffPreflightResult;
   commit(input: ReservationCheckoutHandoffInput): void;
 }
 
@@ -109,6 +122,8 @@ export type ReservationCreateResult =
       readonly reservation: ReservationReady;
     }
   | { readonly status: "stale" }
+  | { readonly status: "payment-recovery-required" }
+  | { readonly status: "checkout-blocked" }
   | { readonly status: "definitive-failure"; readonly error: unknown }
   | { readonly status: "ambiguous"; readonly error: unknown }
   | { readonly status: "locked"; readonly terminal: ReservationCreateTerminal };

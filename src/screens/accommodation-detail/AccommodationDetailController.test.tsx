@@ -114,7 +114,10 @@ const createProps = (
     infantOccupancy: 0,
     petOccupancy: 0,
   },
-  checkoutHandoff: { commit: jest.fn() },
+  checkoutHandoff: {
+    preflight: jest.fn(() => ({ status: "ready" as const })),
+    commit: jest.fn(),
+  },
   isAuthenticated: true,
   onReplaceBookingDates: jest.fn(),
   recordRecentlyViewed: jest.fn().mockResolvedValue(undefined),

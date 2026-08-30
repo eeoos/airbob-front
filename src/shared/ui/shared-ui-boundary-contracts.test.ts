@@ -20,7 +20,6 @@ describe("shared UI boundary contracts", () => {
   it("keeps design-entry modals on the shared Dialog primitive", () => {
     const dialogOwnedModalFiles = [
       "features/auth/components/AuthModal/AuthModal.tsx",
-      "features/reservations/components/ReservationModal/ReservationModal.tsx",
       "features/reviews/components/ReviewModal/ReviewModal.tsx",
       "features/accommodations/components/AccommodationActionModal/AccommodationActionModal.tsx",
     ];
@@ -91,11 +90,6 @@ describe("shared UI boundary contracts", () => {
         expected: ["TextField"],
       },
       {
-        relativePath:
-          "features/reservations/components/ReservationModal/ReservationModal.tsx",
-        expected: ["Button", "Dialog"],
-      },
-      {
         relativePath: "features/wishlist/components/WishlistModal/WishlistModal.tsx",
         expected: ["Button", "Dialog"],
       },
@@ -105,7 +99,7 @@ describe("shared UI boundary contracts", () => {
         expected: ["Button", "Dialog"],
       },
       {
-        relativePath: "features/reservations/PaymentFailRoute.tsx",
+        relativePath: "screens/payment-result/PaymentResultScreen.tsx",
         expected: ["Button"],
       },
       {

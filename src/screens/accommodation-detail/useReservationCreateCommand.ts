@@ -64,6 +64,8 @@ interface UseReservationCreateCommandOptions {
 
 const ambiguousReservationMessage =
   "예약 처리 결과를 확인할 수 없습니다. 예약 내역에서 확인해주세요.";
+const activePaymentMessage =
+  "진행 중인 결제 상태를 먼저 확인해주세요.";
 
 const toAppliedCoupon = (
   coupon: AccommodationCoupon | null,
@@ -192,6 +194,11 @@ export const useReservationCreateCommand = ({
             return;
           case "definitive-failure":
             onError(toAccommodationErrorMessage(result.error));
+            return;
+          case "checkout-blocked":
+            onError(activePaymentMessage);
+            return;
+          case "payment-recovery-required":
             return;
           case "ambiguous":
             terminalLockRef.current = true;

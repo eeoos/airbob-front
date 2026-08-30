@@ -58,16 +58,6 @@ describe("route path contracts", () => {
     expect(routeTo.paymentFail("reservation-123", { reason: "confirm-failed" })).toBe(
       "/reservations/reservation-123/fail?reason=confirm-failed",
     );
-    expect(
-      routeTo.paymentFail("reservation-123", {
-        amount: 120000,
-        orderId: "reservation-123",
-        paymentKey: "payment-key-1",
-        reason: "confirm-failed",
-      }),
-    ).toBe(
-      "/reservations/reservation-123/fail?reason=confirm-failed&paymentKey=payment-key-1&orderId=reservation-123&amount=120000",
-    );
     expect(routeTo.paymentFail("reservation-123", { reason: "invalid-callback" })).toBe(
       "/reservations/reservation-123/fail?reason=invalid-callback",
     );

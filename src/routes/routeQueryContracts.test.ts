@@ -80,17 +80,12 @@ describe("route query contracts", () => {
     expect(parsePaymentFailReason("")).toBeUndefined();
   });
 
-  it("builds payment fail route reasons without changing fail URL semantics", () => {
+  it("builds payment fail reasons without callback credentials", () => {
     expect(
       buildPaymentFailRouteSearchParams({
-        amount: 120000,
-        orderId: "reservation-123",
-        paymentKey: "payment/key 1",
         reason: "confirm-failed",
       }).toString(),
-    ).toBe(
-      "reason=confirm-failed&paymentKey=payment%2Fkey+1&orderId=reservation-123&amount=120000",
-    );
+    ).toBe("reason=confirm-failed");
     expect(
       buildPaymentFailRouteSearchParams({
         reason: "invalid-callback",

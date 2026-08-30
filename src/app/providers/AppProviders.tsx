@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { AuthIntentProvider } from "../../workflows/auth-intent";
 import { OverlayProvider } from "../overlays/OverlayProvider";
+import { PaymentCallbackCredentialBoundary } from "../router/PaymentCallbackCredentialBoundary";
 import { SessionProvider } from "../session/SessionProvider";
 import { useSession } from "../session/useSession";
 
@@ -27,12 +28,14 @@ export function AppProviders({
 }: AppProvidersProps) {
   return (
     <OverlayProvider>
-      <SessionProvider
-        clearIdentityOwnedState={clearIdentityOwnedState}
-        stableBoundary={AuthIntentStableBoundary}
-      >
-        {children}
-      </SessionProvider>
+      <PaymentCallbackCredentialBoundary>
+        <SessionProvider
+          clearIdentityOwnedState={clearIdentityOwnedState}
+          stableBoundary={AuthIntentStableBoundary}
+        >
+          {children}
+        </SessionProvider>
+      </PaymentCallbackCredentialBoundary>
     </OverlayProvider>
   );
 }

@@ -90,13 +90,8 @@ describe("app router paths", () => {
     expect(
       routeTo.paymentFail("reservation-123", {
         reason: "confirm-failed",
-        paymentKey: "key",
-        orderId: "reservation-123",
-        amount: 120000,
       }),
-    ).toBe(
-      "/reservations/reservation-123/fail?reason=confirm-failed&paymentKey=key&orderId=reservation-123&amount=120000",
-    );
+    ).toBe("/reservations/reservation-123/fail?reason=confirm-failed");
   });
 
   it("keeps edit draft provenance in navigation state instead of the URL", () => {

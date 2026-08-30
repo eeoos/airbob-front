@@ -12,20 +12,9 @@ export interface PaymentSuccessRouteQuery {
   amount: string | number;
 }
 
-export type PaymentFailRouteQuery =
-  | {
-      reason?: undefined;
-      paymentKey?: never;
-      orderId?: never;
-      amount?: never;
-    }
-  | {
-      reason: "invalid-callback";
-      paymentKey?: never;
-      orderId?: never;
-      amount?: never;
-    }
-  | ({ reason: "confirm-failed" } & Partial<PaymentSuccessRouteQuery>);
+export interface PaymentFailRouteQuery {
+  reason?: PaymentFailReason;
+}
 
 export interface PaymentRouteQueryState {
   reason?: PaymentFailReason;
@@ -85,6 +74,13 @@ export const parsePaymentRouteQuery = (
   };
 };
 
+export const hasPaymentSuccessCallbackFields = (
+  input: SearchParamsInput,
+): boolean => {
+  const params = toSearchParams(input);
+  return ["paymentKey", "orderId", "amount"].some((key) => params.has(key));
+};
+
 export const parsePaymentSuccessRouteState = (
   reservationUid: string | null | undefined,
   input: SearchParamsInput,
@@ -133,9 +129,6 @@ export const serializePaymentFailRouteQuery = (
   const params = new URLSearchParams();
 
   appendDefinedSearchParam(params, "reason", query?.reason);
-  appendDefinedSearchParam(params, "paymentKey", query?.paymentKey);
-  appendDefinedSearchParam(params, "orderId", query?.orderId);
-  appendDefinedSearchParam(params, "amount", query?.amount);
 
   return params;
 };
@@ -158,6 +151,7 @@ const canonicalizePaymentRoute = (input: SearchParamsInput): string =>
 
 export const paymentCodec = {
   parse: parsePaymentRouteQuery,
+  hasSuccessCallbackFields: hasPaymentSuccessCallbackFields,
   serialize: serializePaymentRouteQueryState,
   canonicalize: canonicalizePaymentRoute,
   parseFailReason: parsePaymentFailReason,

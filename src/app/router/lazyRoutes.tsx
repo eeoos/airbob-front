@@ -6,8 +6,8 @@ const SearchRoute = lazy(() => import("./routes/SearchRoute"));
 const AccommodationDetailRoute = lazy(
   () => import("./routes/AccommodationDetailRoute"),
 );
-const AccommodationConfirmRoute = lazy(
-  () => import("./routes/AccommodationConfirmRoute"),
+const ReservationConfirmRoute = lazy(
+  () => import("./routes/ReservationConfirmRoute"),
 );
 const AccommodationEditRoute = lazy(
   () => import("./routes/AccommodationEditRoute"),
@@ -35,7 +35,7 @@ export const lazyRoutes = {
   home: HomeRoute,
   search: SearchRoute,
   "accommodation-detail": AccommodationDetailRoute,
-  "accommodation-confirm": AccommodationConfirmRoute,
+  "accommodation-confirm": ReservationConfirmRoute,
   "accommodation-edit": AccommodationEditRoute,
   wishlist: WishlistRoute,
   profile: ProfileRoute,

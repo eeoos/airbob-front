@@ -57,20 +57,9 @@ export type PaymentSuccessRouteQuery = {
   orderId: RouteParamValue;
   amount: RouteParamValue;
 };
-export type PaymentFailRouteQuery =
-  | {
-      reason?: undefined;
-      paymentKey?: never;
-      orderId?: never;
-      amount?: never;
-    }
-  | {
-      reason: "invalid-callback";
-      paymentKey?: never;
-      orderId?: never;
-      amount?: never;
-    }
-  | ({ reason: "confirm-failed" } & Partial<PaymentSuccessRouteQuery>);
+export interface PaymentFailRouteQuery {
+  reason?: PaymentFailReason;
+}
 
 export const parsePaymentFailReason = (
   reason: string | null,
@@ -146,9 +135,6 @@ export const buildPaymentFailRouteSearchParams = (
   const params = new URLSearchParams();
 
   appendDefinedSearchParam(params, "reason", query?.reason);
-  appendDefinedSearchParam(params, "paymentKey", query?.paymentKey);
-  appendDefinedSearchParam(params, "orderId", query?.orderId);
-  appendDefinedSearchParam(params, "amount", query?.amount);
 
   return params;
 };

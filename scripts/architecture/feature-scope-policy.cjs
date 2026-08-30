@@ -5,6 +5,7 @@ const { assertRealSourceTree } = require("./source-policy.cjs");
 const configuredNestedFeatureScopes = Object.freeze([
   "accommodations/detail",
   "accommodations/edit",
+  "reservations/payment",
 ]);
 
 const escapeRegex = (value) =>

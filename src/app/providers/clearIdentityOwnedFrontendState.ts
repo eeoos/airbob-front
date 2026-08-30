@@ -1,4 +1,4 @@
-import { clearReservationSessionState } from "../../features/reservations/ports/sessionCleanup";
+import { clearBookingPaymentBrowserState } from "../../workflows/booking-payment/checkout";
 import { clearIdentityOwnedTransactionRoute } from "../router/identityRouteBoundary";
 
 /**
@@ -7,7 +7,12 @@ import { clearIdentityOwnedTransactionRoute } from "../router/identityRouteBound
  */
 export const clearIdentityOwnedFrontendState = (): void => {
   try {
-    clearReservationSessionState();
+    const result = clearBookingPaymentBrowserState();
+    if (result.status !== "cleared") {
+      throw new Error(
+        "Identity-owned booking state cleanup did not complete.",
+      );
+    }
   } finally {
     clearIdentityOwnedTransactionRoute();
   }

@@ -3,6 +3,4 @@ export { client } from "./client";
 export { requestApi, requestApiNullable } from "./request";
 export { accommodationApi } from "./accommodations";
 export { reservationApi } from "./reservations";
-export { paymentApi } from "./payments";
 export { commonCodeApi } from "./commonCodes";
-

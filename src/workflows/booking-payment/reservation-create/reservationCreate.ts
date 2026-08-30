@@ -5,6 +5,7 @@ import {
   validateReservationCreateCommand,
 } from "./reservationCreateValidation";
 import type {
+  ReservationCheckoutHandoffPreflightResult,
   ReservationCreateCommandInput,
   ReservationCreateResult,
   ReservationCreateTerminal,
@@ -15,6 +16,8 @@ import type {
 
 export type {
   AppliedReservationCoupon,
+  ReservationCheckoutHandoffPreflightInput,
+  ReservationCheckoutHandoffPreflightResult,
   ReservationCheckoutHandoffInput,
   ReservationCheckoutHandoffPort,
   ReservationCreateAccommodationSnapshot,
@@ -138,6 +141,25 @@ export const createReservationCreateWorkflow = (
       safelyCheck(() => command.routeLease.isCurrent()) &&
       safelyCheck(() => dependencies.session.isCurrentSession(scope));
 
+    if (!isCurrent()) {
+      return Promise.resolve(lockAsStale());
+    }
+
+    let handoffPreflight: ReservationCheckoutHandoffPreflightResult;
+    try {
+      handoffPreflight = dependencies.handoff.preflight({
+        session: scope,
+        intent: command.intent,
+      });
+    } catch {
+      handoffPreflight = { status: "blocked" };
+    }
+    if (handoffPreflight.status === "payment-recovery-required") {
+      return Promise.resolve({ status: "payment-recovery-required" });
+    }
+    if (handoffPreflight.status === "blocked") {
+      return Promise.resolve({ status: "checkout-blocked" });
+    }
     if (!isCurrent()) {
       return Promise.resolve(lockAsStale());
     }

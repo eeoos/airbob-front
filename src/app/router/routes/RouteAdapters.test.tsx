@@ -9,12 +9,9 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
-import { AccommodationConfirmRoute } from "./AccommodationConfirmRoute";
 import { AccommodationDetailRoute } from "./AccommodationDetailRoute";
 import { AccommodationEditRoute } from "./AccommodationEditRoute";
 import { LoginRoute } from "./LoginRoute";
-import { PaymentFailRoute } from "./PaymentFailRoute";
-import { PaymentSuccessRoute } from "./PaymentSuccessRoute";
 import { ProfileRoute } from "./ProfileRoute";
 import { ReservationDetailRoute } from "./ReservationDetailRoute";
 import { ReviewCreateRoute } from "./ReviewCreateRoute";
@@ -91,11 +88,6 @@ type CapturedProps = {
       scope: { subject: string; epoch: number };
     };
   };
-  confirm: {
-    accommodationId?: string;
-    locationState: unknown;
-    navigate: Navigate;
-  };
   detail: {
     locationState: unknown;
     navigate: Navigate;
@@ -131,17 +123,6 @@ type CapturedProps = {
     canComplete: () => boolean;
     onSuccess: () => void;
     onAlternate: () => void;
-  };
-  paymentFail: {
-    navigate: Navigate;
-    reason?: string;
-    reservationUid?: string;
-    searchParams: URLSearchParams;
-  };
-  paymentSuccess: {
-    navigate: Navigate;
-    reservationUid?: string;
-    searchParams: URLSearchParams;
   };
   profile: QueryRouteProps;
   search: {
@@ -302,11 +283,6 @@ jest.mock("../../../workflows/wishlist-membership", () => ({
 jest.mock("../../session/useSession", () => ({
   useSession: () => mockUseSession(),
 }));
-jest.mock("../../../features/reservations/ReservationConfirmRoute", () => ({
-  ReservationConfirmRoute: mockRoute("confirm", "예약 확인 계속", (props) =>
-    props.navigate("/confirm-next"),
-  ),
-}));
 jest.mock("../../../features/reservations/ReservationDetailRoute", () => ({
   ReservationDetailRoute: (props: CapturedProps["detail"]) => {
     const React = require("react");
@@ -332,12 +308,6 @@ jest.mock("../../../features/reservations/ReservationDetailRoute", () => ({
       ),
     );
   },
-}));
-jest.mock("../../../features/reservations/PaymentSuccessRoute", () => ({
-  PaymentSuccessRoute: mockRoute("paymentSuccess", "결제 성공 계속"),
-}));
-jest.mock("../../../features/reservations/PaymentFailRoute", () => ({
-  PaymentFailRoute: mockRoute("paymentFail", "결제 실패 계속"),
 }));
 jest.mock(
   "../../../features/accommodations/edit/AccommodationEditRoute",
@@ -534,8 +504,9 @@ describe("app route adapter contracts", () => {
     );
     mockIsCurrentHistoryEntry.mockReturnValue(false);
 
-    act(() =>
-      captured("accommodation").checkoutHandoff.commit({
+    expect(() =>
+      act(() =>
+        captured("accommodation").checkoutHandoff.commit({
         session: { subject: "subject:member_7", epoch: 3 },
         reservation: {
           reservationUid: "reservation-42",
@@ -553,13 +524,17 @@ describe("app route adapter contracts", () => {
           infantCount: 0,
           petCount: 0,
         },
-        appliedCoupon: null,
-      }),
-    );
+          appliedCoupon: null,
+        }),
+      ),
+    ).toThrow("Checkout handoff is no longer current.");
 
     expectLocation("/accommodations/42");
     expect(
       sessionStorage.getItem("airbob:reservation-checkout:42"),
+    ).toBeNull();
+    expect(
+      sessionStorage.getItem("airbob:booking-payment-v1:checkout"),
     ).toBeNull();
   });
 
@@ -897,24 +872,6 @@ describe("app route adapter contracts", () => {
     });
   });
 
-  it("injects confirmation params, state, and navigation", async () => {
-    const state = { amount: 120000, reservationUid: "reservation-42" };
-    renderAdapter(
-      "/accommodations/:id/confirm",
-      { pathname: "/accommodations/42/confirm", state },
-      <AccommodationConfirmRoute />,
-    );
-
-    expect(captured("confirm")).toMatchObject({
-      accommodationId: "42",
-      locationState: state,
-    });
-    await userEvent.click(
-      screen.getByRole("button", { name: "예약 확인 계속" }),
-    );
-    expectLocation("/confirm-next");
-  });
-
   it("owns the review route lease and typed partial-success navigation", async () => {
     renderAdapter(
       "/reservations/:reservationUid/review",
@@ -1042,41 +999,6 @@ describe("app route adapter contracts", () => {
     expect(screen.getByTestId("current-location-state")).toHaveTextContent(
       '{"toastMessage":"injected copy"}',
     );
-  });
-
-  it("injects payment success params and callback query", () => {
-    const query =
-      "paymentKey=payment-key-1&orderId=reservation-42&amount=120000";
-    renderAdapter(
-      "/reservations/:reservationUid/success",
-      {
-        pathname: "/reservations/reservation-42/success",
-        search: `?${query}`,
-      },
-      <PaymentSuccessRoute />,
-    );
-
-    expect(captured("paymentSuccess").reservationUid).toBe("reservation-42");
-    expect(captured("paymentSuccess").searchParams.toString()).toBe(query);
-  });
-
-  it("injects payment failure params, callback query, and parsed reason", () => {
-    const query =
-      "reason=confirm-failed&paymentKey=key&orderId=reservation-42&amount=120000";
-    renderAdapter(
-      "/reservations/:reservationUid/fail",
-      {
-        pathname: "/reservations/reservation-42/fail",
-        search: `?${query}`,
-      },
-      <PaymentFailRoute />,
-    );
-
-    expect(captured("paymentFail")).toMatchObject({
-      reason: "confirm-failed",
-      reservationUid: "reservation-42",
-    });
-    expect(captured("paymentFail").searchParams.toString()).toBe(query);
   });
 
   it("validates edit draft provenance and navigates to the host profile", async () => {

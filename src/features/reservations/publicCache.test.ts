@@ -1,5 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { invalidateReservationPaymentCaches } from "./publicCache";
+import { invalidateGuestReservationCaches } from "./publicCache";
 import { reservationQueryKeys } from "./queryKeys";
 
 describe("reservation public cache", () => {
@@ -7,7 +7,7 @@ describe("reservation public cache", () => {
     const invalidateQueries = jest.fn();
     const queryClient = { invalidateQueries } as unknown as QueryClient;
 
-    await invalidateReservationPaymentCaches(queryClient, "reservation-1");
+    await invalidateGuestReservationCaches(queryClient, "reservation-1");
 
     expect(invalidateQueries).toHaveBeenCalledWith({
       queryKey: reservationQueryKeys.guestReservationDetail("reservation-1"),

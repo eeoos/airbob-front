@@ -68,9 +68,3 @@ export const createSessionStorageDriver = ({
 };
 
 export const sessionStorageDriver = createSessionStorageDriver();
-
-/**
- * Temporary raw seam for the two pre-U10 records. It preserves their current
- * schema while moving direct browser access under the platform owner.
- */
-export const legacySessionStorageCompatibility = sessionStorageDriver;
