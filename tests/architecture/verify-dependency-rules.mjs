@@ -242,20 +242,20 @@ const scenarios = [
         "export const searchPort = true;\n",
       "src/features/search/public.ts":
         "export const publicSearch = true;\n",
-      "src/features/accommodations/edit/ui/EditShell.ts":
-        "export const editShell = true;\n",
+      "src/features/accommodations/listing-editor/public.ts":
+        "export const listingEditor = true;\n",
       "src/app/entry.ts":
-        'import { searchShell } from "../features/search/ui/SearchShell"; import { searchPort } from "../features/search/ports/searchPort"; import { publicSearch } from "../features/search/public"; import { editShell } from "../features/accommodations/edit/ui/EditShell"; export const app = [searchShell, searchPort, publicSearch, editShell];\n',
+        'import { searchShell } from "../features/search/ui/SearchShell"; import { searchPort } from "../features/search/ports/searchPort"; import { publicSearch } from "../features/search/public"; import { listingEditor } from "../features/accommodations/listing-editor/public"; export const app = [searchShell, searchPort, publicSearch, listingEditor];\n',
     },
   },
   {
     name: "app imports a private feature module",
     expectedRule: "app-uses-feature-public-surfaces",
     files: {
-      "src/features/accommodations/edit/hooks/private.ts":
+      "src/features/accommodations/listing-editor/model/private.ts":
         "export const privateEditor = true;\n",
       "src/app/entry.ts":
-        'import { privateEditor } from "../features/accommodations/edit/hooks/private"; export const app = privateEditor;\n',
+        'import { privateEditor } from "../features/accommodations/listing-editor/model/private"; export const app = privateEditor;\n',
     },
   },
   {
@@ -363,24 +363,24 @@ const scenarios = [
     },
   },
   {
-    name: "accommodations parent imports edit private module",
+    name: "accommodations parent cannot bridge the listing editor public surface",
     expectedRule:
       "feature-accommodations-uses-public-cross-feature-surfaces",
     files: {
-      "src/features/accommodations/edit/private.ts":
+      "src/features/accommodations/listing-editor/public.ts":
         "export const editor = true;\n",
-      "src/features/accommodations/model.ts":
-        'import { editor } from "./edit/private"; export const accommodation = editor;\n',
+      "src/features/accommodations/public.ts":
+        'import { editor } from "./listing-editor/public"; export const accommodation = editor;\n',
     },
   },
   {
-    name: "accommodations edit imports parent private module",
+    name: "accommodations listing editor imports parent private module",
     expectedRule:
-      "feature-accommodations-edit-uses-public-cross-feature-surfaces",
+      "feature-accommodations-listing-editor-uses-public-cross-feature-surfaces",
     files: {
       "src/features/accommodations/private.ts":
         "export const accommodation = true;\n",
-      "src/features/accommodations/edit/model.ts":
+      "src/features/accommodations/listing-editor/model.ts":
         'import { accommodation } from "../private"; export const editor = accommodation;\n',
     },
   },

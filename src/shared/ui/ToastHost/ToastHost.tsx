@@ -4,14 +4,21 @@ import { useOverlayPortalRoot } from "../overlayRuntime";
 import styles from "./ToastHost.module.css";
 
 export interface ToastHostProps {
+  action?: {
+    readonly label: string;
+    readonly onClick: () => void;
+  };
   closeLabel?: string;
+  dismissible?: boolean;
   duration?: number;
   message: string;
   onClose: () => void;
 }
 
 export const ToastHost: React.FC<ToastHostProps> = ({
+  action,
   closeLabel = "닫기",
+  dismissible = true,
   duration = 5000,
   message,
   onClose,
@@ -19,12 +26,14 @@ export const ToastHost: React.FC<ToastHostProps> = ({
   const portalRoot = useOverlayPortalRoot();
 
   useEffect(() => {
+    if (!dismissible) return;
+
     const timer = window.setTimeout(() => {
       onClose();
     }, duration);
 
     return () => window.clearTimeout(timer);
-  }, [duration, onClose]);
+  }, [dismissible, duration, onClose]);
 
   const content = (
     <div className={styles.host} data-testid="toast-host">
@@ -40,16 +49,27 @@ export const ToastHost: React.FC<ToastHostProps> = ({
           </svg>
           <span className={styles.message}>{message}</span>
         </div>
-        <button
-          type="button"
-          className={styles.closeButton}
-          aria-label={closeLabel}
-          onClick={onClose}
-        >
-          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-          </svg>
-        </button>
+        {action && (
+          <button
+            type="button"
+            className={styles.actionButton}
+            onClick={action.onClick}
+          >
+            {action.label}
+          </button>
+        )}
+        {dismissible && (
+          <button
+            type="button"
+            className={styles.closeButton}
+            aria-label={closeLabel}
+            onClick={onClose}
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+            </svg>
+          </button>
+        )}
       </div>
     </div>
   );

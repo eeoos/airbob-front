@@ -4,7 +4,10 @@ const { assertRealSourceTree } = require("./source-policy.cjs");
 
 const configuredNestedFeatureScopes = Object.freeze([
   "accommodations/detail",
+  // Historical U12 scope retained for Git-baseline and synthetic-fixture
+  // classification. Discovery activates it only while a real directory exists.
   "accommodations/edit",
+  "accommodations/listing-editor",
   "reservations/payment",
 ]);
 

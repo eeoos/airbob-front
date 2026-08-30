@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ToastHost } from "./ToastHost";
 
@@ -50,6 +50,41 @@ describe("ToastHost", () => {
         jest.advanceTimersByTime(1);
       });
       expect(onClose).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("keeps a required recovery action visible without auto closing", () => {
+    jest.useFakeTimers();
+    const onAction = jest.fn();
+    const onClose = jest.fn();
+
+    try {
+      render(
+        <ToastHost
+          action={{ label: "복구 다시 시도", onClick: onAction }}
+          dismissible={false}
+          message="저장 복구가 필요합니다."
+          onClose={onClose}
+        />,
+      );
+
+      act(() => {
+        jest.advanceTimersByTime(10_000);
+      });
+      expect(onClose).not.toHaveBeenCalled();
+      expect(onAction).not.toHaveBeenCalled();
+      expect(
+        screen.queryByRole("button", { name: "닫기" }),
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(
+        screen.getByRole("button", { name: "복구 다시 시도" }),
+      );
+
+      expect(onAction).toHaveBeenCalledTimes(1);
+      expect(onClose).not.toHaveBeenCalled();
     } finally {
       jest.useRealTimers();
     }

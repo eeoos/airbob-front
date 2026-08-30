@@ -1,6 +1,7 @@
 {
   "migratedFeatures": [
     "accommodations/detail",
+    "accommodations/listing-editor",
     "auth",
     "reservations/payment",
     "reviews",

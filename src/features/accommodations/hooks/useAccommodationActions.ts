@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
-import { accommodationApi } from "../../../api/accommodations";
 import { useApiError } from "../../../hooks/useApiError";
+import { hostListingActionsApi } from "../api/hostListingActionsApi";
 
 type ConfirmDelete = (message: string) => boolean;
 
@@ -46,13 +46,13 @@ export function useAccommodationActions({
 
   const publishAccommodation = useCallback(
     (accommodationId: number) =>
-      runAction(() => accommodationApi.publish(accommodationId)),
+      runAction(() => hostListingActionsApi.publish(accommodationId)),
     [runAction]
   );
 
   const unpublishAccommodation = useCallback(
     (accommodationId: number) =>
-      runAction(() => accommodationApi.unpublish(accommodationId)),
+      runAction(() => hostListingActionsApi.unpublish(accommodationId)),
     [runAction]
   );
 
@@ -62,7 +62,7 @@ export function useAccommodationActions({
         return false;
       }
 
-      return runAction(() => accommodationApi.delete(accommodationId));
+      return runAction(() => hostListingActionsApi.delete(accommodationId));
     },
     [confirmDelete, runAction]
   );

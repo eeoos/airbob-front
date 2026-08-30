@@ -64,6 +64,7 @@ try {
       migratedFeatures: [
         "accommodations/detail",
         "accommodations/edit",
+        "accommodations/listing-editor",
         "search",
       ],
     },
@@ -71,13 +72,15 @@ try {
       "src/features/accommodations/detail/model.ts":
         "export const detail = true;\n",
       "src/features/accommodations/edit/model.ts": "export const edit = true;\n",
+      "src/features/accommodations/listing-editor/model.ts":
+        "export const listingEditor = true;\n",
       "src/features/search/model.jsx": "export const search = true;\n",
     },
   });
   const valid = readArchitectureRatchet({ projectRoot: fixtureRoot });
   if (
     valid.migratedFeatures.join(",") !==
-    "accommodations/detail,accommodations/edit,search"
+    "accommodations/detail,accommodations/edit,accommodations/listing-editor,search"
   ) {
     throw new Error("Valid top-level and nested feature paths were not preserved.");
   }
@@ -88,6 +91,9 @@ try {
     ) ||
     !nestedPolicy.isTargetPath(
       "src/features/accommodations/detail/model.ts",
+    ) ||
+    !nestedPolicy.isTargetPath(
+      "src/features/accommodations/listing-editor/model.ts",
     ) ||
     nestedPolicy.isTargetPath("src/features/accommodations/model.ts")
   ) {
@@ -103,6 +109,8 @@ try {
         "export const detail = true;\n",
       "src/features/accommodations/edit/model.ts":
         "export const edit = true;\n",
+      "src/features/accommodations/listing-editor/model.ts":
+        "export const listingEditor = true;\n",
     },
   });
   const parentPolicy = createTargetPolicy({ projectRoot: fixtureRoot });
@@ -113,6 +121,9 @@ try {
     ) ||
     parentPolicy.isTargetPath(
       "src/features/accommodations/edit/model.ts",
+    ) ||
+    parentPolicy.isTargetPath(
+      "src/features/accommodations/listing-editor/model.ts",
     )
   ) {
     throw new Error("Parent feature promotion swallowed the editor scope.");
@@ -139,8 +150,8 @@ try {
     {
       registry: { migratedFeatures: ["accommodations"] },
       files: {
-        "src/features/accommodations/edit/model.ts":
-          "export const edit = true;\n",
+        "src/features/accommodations/listing-editor/model.ts":
+          "export const listingEditor = true;\n",
       },
     },
     "no production source",

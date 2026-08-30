@@ -72,9 +72,10 @@ platform -> shared
 App composition reaches a feature only through `ui/**`, `ports/**`, or the
 `public.ts`/`public.tsx` at the root of its declared ownership scope. This also
 applies to independently ratcheted nested scopes such as
-`accommodations/detail`; parent and sibling scopes do not become public by
-proximity. Those are deliberate, narrow composition surfaces; `components`,
-hooks, models, API adapters, and compatibility barrels remain private.
+`accommodations/detail` and `accommodations/listing-editor`; parent and sibling
+scopes do not become public by proximity. Those are deliberate, narrow
+composition surfaces; `components`, hooks, models, API adapters, and
+compatibility barrels remain private.
 
 Forbidden target edges:
 

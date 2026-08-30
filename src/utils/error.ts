@@ -1,6 +1,7 @@
 import type { AxiosError } from "axios";
 import { ApiResponse, ErrorResponse, FieldError } from "../types/api";
 import { isApiClientError, toErrorResponse } from "../api/response";
+import { isAppError } from "../platform/http/errors";
 
 const isAxiosError = (error: unknown): error is AxiosError =>
   typeof error === "object" &&
@@ -14,6 +15,14 @@ const isAxiosError = (error: unknown): error is AxiosError =>
 export const parseApiError = (error: unknown): ErrorResponse | null => {
   if (isApiClientError(error)) {
     return toErrorResponse(error);
+  }
+
+  if (isAppError(error)) {
+    return {
+      message: error.message,
+      status: error.status ?? 500,
+      code: error.code,
+    };
   }
 
   if (isAxiosError(error)) {

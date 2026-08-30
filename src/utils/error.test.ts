@@ -1,4 +1,5 @@
 import { ApiClientError } from "../api/response";
+import { AppError } from "../platform/http/errors";
 import { ErrorResponse } from "../types/api";
 import { getApiErrorMessage, isAuthError, parseApiError } from "./error";
 
@@ -43,6 +44,24 @@ describe("parseApiError", () => {
     };
 
     expect(parseApiError(error)).toBe(backendError);
+  });
+
+  it("preserves the typed AppError contract before the generic Error path", () => {
+    const error = new AppError({
+      kind: "validation",
+      code: "A003",
+      message: "The request could not be validated.",
+      status: 422,
+    });
+
+    expect(parseApiError(error)).toEqual({
+      message: "The request could not be validated.",
+      status: 422,
+      code: "A003",
+    });
+    expect(getApiErrorMessage(error)).toBe(
+      "숙소 게시를 위한 필수 정보가 누락되었습니다.",
+    );
   });
 
   it("preserves the current no-response network error contract", () => {
@@ -121,6 +140,17 @@ describe("getApiErrorMessage", () => {
 });
 
 describe("isAuthError", () => {
+  it("detects a typed AppError by auth code", () => {
+    const error = new AppError({
+      kind: "authentication",
+      code: "M004",
+      message: "Authentication is required.",
+      status: 403,
+    });
+
+    expect(isAuthError(error)).toBe(true);
+  });
+
   it("detects ApiClientError by auth code", () => {
     const backendError: ErrorResponse = {
       message: "로그인이 필요합니다.",

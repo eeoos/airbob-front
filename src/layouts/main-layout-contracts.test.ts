@@ -6,7 +6,7 @@ const mainLayoutRouteContainers = [
   "src/features/home/HomeRoute.tsx",
   "src/screens/search/SearchScreen.tsx",
   "src/screens/accommodation-detail/AccommodationDetailScreen.tsx",
-  "src/features/accommodations/edit/AccommodationEditRoute.tsx",
+  "src/screens/accommodation-edit/AccommodationEditScreen.tsx",
   "src/screens/wishlist/WishlistScreen.tsx",
   "src/features/profile/ProfileRoute.tsx",
   "src/features/reservations/HostReservationDetailRoute.tsx",

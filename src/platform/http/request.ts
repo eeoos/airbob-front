@@ -15,6 +15,7 @@ export interface ApiDataRequest {
   readonly bodyEncoding?: "multipart";
   readonly params?: object;
   readonly signal?: AbortSignal;
+  readonly onUploadProgress?: (progress: number) => void;
   readonly authEventPolicy?: AuthEventPolicy;
 }
 
@@ -39,6 +40,7 @@ const toAxiosRequestConfig = ({
   body,
   bodyEncoding,
   method,
+  onUploadProgress,
   params,
   path,
   signal,
@@ -51,6 +53,17 @@ const toAxiosRequestConfig = ({
   method,
   params,
   signal,
+  ...(onUploadProgress
+    ? {
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            onUploadProgress(
+              Math.round((progressEvent.loaded * 100) / progressEvent.total),
+            );
+          }
+        },
+      }
+    : {}),
   url: path,
 });
 

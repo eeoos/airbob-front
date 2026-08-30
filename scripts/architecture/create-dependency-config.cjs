@@ -10,11 +10,6 @@ const featureRoot = "^src/features(?:/|$)";
 
 const legacyRouteAdapterBridges = [
   ["home", "HomeRoute", "home/HomeRoute"],
-  [
-    "accommodation-edit",
-    "AccommodationEditRoute",
-    "accommodations/edit/AccommodationEditRoute",
-  ],
   ["profile", "ProfileRoute", "profile/ProfileRoute"],
   [
     "host-reservation-detail",

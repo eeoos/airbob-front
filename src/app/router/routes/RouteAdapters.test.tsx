@@ -2,6 +2,11 @@ import type { ReactElement, ReactNode } from "react";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
+import type {
+  ListingEditorAccommodation,
+  ListingEditorQueryPort,
+} from "../../../features/accommodations/listing-editor/public";
+import type { SessionSubject } from "../../../platform/session/sessionScope";
 import {
   MemoryRouter,
   Route,
@@ -102,9 +107,12 @@ type CapturedProps = {
     ): void;
   };
   edit: {
-    accommodationId?: string;
+    accommodationId: number;
+    instanceId: string;
     isNewDraft: boolean;
     onNavigateToHostProfile: () => void;
+    query: ListingEditorQueryPort;
+    routeLease: { isCurrent(): boolean };
   };
   login: {
     mode: "login";
@@ -252,6 +260,13 @@ jest.mock("../../../screens/review-create/public", () => ({
       props.onComplete("reservation-42", "image-upload-failed"),
   ),
 }));
+jest.mock("../../../screens/accommodation-edit/public", () => ({
+  AccommodationEditController: mockRoute(
+    "edit",
+    "호스트 프로필로 이동",
+    (props) => props.onNavigateToHostProfile(),
+  ),
+}));
 jest.mock("../../../platform/browser/windowNavigation", () => ({
   browserWindowNavigation: {
     isCurrentHistoryEntry: (...args: unknown[]) =>
@@ -309,14 +324,6 @@ jest.mock("../../../features/reservations/ReservationDetailRoute", () => ({
     );
   },
 }));
-jest.mock(
-  "../../../features/accommodations/edit/AccommodationEditRoute",
-  () => ({
-    AccommodationEditRoute: mockRoute("edit", "호스트 프로필로 이동", (props) =>
-      props.onNavigateToHostProfile(),
-    ),
-  }),
-);
 jest.mock("../../../features/profile/ProfileRoute", () => ({
   ProfileRoute: mockRoute("profile", "프로필 보기 변경", (props) =>
     props.setSearchParams(
@@ -372,7 +379,7 @@ const renderAdapter = (
     defaultOptions: { queries: { retry: false } },
   });
 
-  return render(
+  const view = render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[initialEntry]}>
         <LocationProbe />
@@ -383,6 +390,7 @@ const renderAdapter = (
       </MemoryRouter>
     </QueryClientProvider>,
   );
+  return { ...view, queryClient };
 };
 
 const captured = <Key extends keyof CapturedProps>(key: Key) => {
@@ -1002,7 +1010,7 @@ describe("app route adapter contracts", () => {
   });
 
   it("validates edit draft provenance and navigates to the host profile", async () => {
-    renderAdapter(
+    const { queryClient } = renderAdapter(
       "/accommodations/:id/edit",
       {
         pathname: "/accommodations/42/edit",
@@ -1017,9 +1025,40 @@ describe("app route adapter contracts", () => {
     );
 
     expect(captured("edit")).toMatchObject({
-      accommodationId: "42",
+      accommodationId: 42,
       isNewDraft: true,
     });
+    expect(captured("edit").instanceId).toContain("listing-editor:");
+    expect(captured("edit").routeLease.isCurrent()).toBe(true);
+    const projected: ListingEditorAccommodation = {
+      id: 42,
+      name: "Projected listing",
+      description: null,
+      type: null,
+      basePrice: null,
+      currency: null,
+      checkInTime: null,
+      checkOutTime: null,
+      address: null,
+      occupancyPolicy: null,
+      amenities: [],
+      images: [],
+    };
+    captured("edit").query.setHostDetail({
+      accommodation: projected,
+      accommodationId: 42,
+      scope: { subject: "subject:member_7" as SessionSubject, epoch: 1 },
+    });
+    expect(
+      queryClient.getQueryData([
+        "accommodation",
+        "listing-editor",
+        42,
+        {
+          session: { subject: "subject:member_7", epoch: 1 },
+        },
+      ]),
+    ).toEqual(projected);
     await userEvent.click(
       screen.getByRole("button", { name: "호스트 프로필로 이동" }),
     );

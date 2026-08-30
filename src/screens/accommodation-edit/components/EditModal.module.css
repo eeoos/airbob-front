@@ -1,0 +1,292 @@
+.typeModalOverlay {
+  position: fixed;
+  inset: 0 0 0 0;
+  background: var(--overlay-backdrop);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal);
+  padding: var(--space-5);
+}
+
+.typeModal {
+  background: var(--color-background-page);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 900px;
+  max-height: var(--layout-modal-max-height);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.typeModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-6);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.typeModalTitle {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.typeModalClose {
+  width: var(--space-8);
+  height: var(--space-8);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-primary);
+  transition: color 0.2s ease;
+  border-radius: var(--radius-pill);
+}
+
+.typeModalClose:hover {
+  background: var(--color-background-muted);
+  color: var(--color-text-secondary);
+}
+
+.typeModalClose svg {
+  width: var(--space-5);
+  height: var(--space-5);
+}
+
+.typeModalGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-6);
+  overflow-y: auto;
+}
+
+.typeOption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: var(--space-6) var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-background-page);
+  cursor: pointer;
+  transition: background-color var(--motion-duration-base) var(--motion-ease-standard),
+    border-color var(--motion-duration-base) var(--motion-ease-standard);
+  min-height: 140px;
+  width: 100%;
+}
+
+.typeOption:hover {
+  border-color: var(--color-text-primary);
+}
+
+.typeOptionSelected {
+  border-color: var(--color-text-primary);
+  border-width: 2px;
+  background: var(--color-background-muted);
+}
+
+.typeOptionIcon {
+  width: var(--space-12);
+  height: var(--space-12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-2);
+  color: var(--color-text-primary);
+  flex-shrink: 0;
+}
+
+.typeOptionIcon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.typeOptionLabel {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  text-align: center;
+  margin-top: auto;
+  color: var(--color-text-primary);
+  line-height: 1.4;
+}
+
+.amenityOptionContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+.amenityCountControl {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin: var(--space-1) 0 var(--space-2) 0;
+  flex-shrink: 0;
+}
+
+.amenityCountButton {
+  width: var(--space-8);
+  height: var(--space-8);
+  border: 1px solid var(--color-border-default);
+  background: var(--color-background-page);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color var(--motion-duration-base) var(--motion-ease-standard),
+    border-color var(--motion-duration-base) var(--motion-ease-standard);
+}
+
+.amenityCountButton:hover:not(:disabled) {
+  border-color: var(--color-text-primary);
+  background: var(--color-background-muted);
+}
+
+.amenityCountButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.amenityCountButton svg {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.amenityCountValue {
+  min-width: 32px;
+  text-align: center;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.amenityCountControl .amenityCountButton {
+  width: var(--space-7);
+  height: var(--space-7);
+  padding: 0;
+}
+
+.amenityCountControl .amenityCountValue {
+  min-width: 24px;
+  font-size: var(--font-size-sm);
+}
+
+.amenityModalFooter {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-5) var(--space-6);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.amenityModalDoneButton {
+  padding: var(--space-3) var(--space-8);
+  background: var(--color-text-primary);
+  color: var(--color-text-inverse);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.amenityModalDoneButton:hover {
+  background: var(--color-text-primary);
+}
+
+.confirmModal {
+  background: var(--color-background-page);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--shadow-modal);
+}
+
+.confirmModalContent {
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.confirmModalTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.confirmModalMessage {
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.confirmModalButtons {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.confirmModalButtonCancel,
+.confirmModalButtonConfirm {
+  flex: 1;
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--motion-duration-base) var(--motion-ease-standard),
+    color var(--motion-duration-base) var(--motion-ease-standard),
+    border-color var(--motion-duration-base) var(--motion-ease-standard);
+  border: none;
+}
+
+.confirmModalButtonCancel {
+  background: var(--color-background-page);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-text-primary);
+}
+
+.confirmModalButtonCancel:hover {
+  background: var(--color-background-muted);
+}
+
+.confirmModalButtonConfirm {
+  background: var(--color-text-primary);
+  color: var(--color-text-inverse);
+}
+
+.confirmModalButtonConfirm:hover {
+  background: var(--color-text-primary);
+}
+
+@media (max-width: 768px) {
+  .typeModal {
+    max-width: calc(var(--layout-viewport-width) - 40px);
+  }
+
+  .typeModalGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+    padding: var(--space-4);
+  }
+
+  .typeOption {
+    padding: var(--space-4) var(--space-3);
+    min-height: 120px;
+  }
+}

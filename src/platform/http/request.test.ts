@@ -91,6 +91,32 @@ describe("platform API request", () => {
     ).resolves.toEqual({ uploaded_images: [] });
   });
 
+  it("maps Axios upload bytes to the public integer progress contract", async () => {
+    const onUploadProgress = jest.fn();
+    const adapter: AxiosAdapter = async (config) => {
+      config.onUploadProgress?.({ loaded: 1, total: 3 } as never);
+      config.onUploadProgress?.({ loaded: 2 } as never);
+
+      return response(config, {
+        success: true,
+        data: { uploaded_images: [] },
+        error: null,
+      });
+    };
+    httpClient.defaults.adapter = adapter;
+
+    await requestApiData({
+      method: "POST",
+      path: "/accommodations/31/images",
+      body: new FormData(),
+      bodyEncoding: "multipart",
+      onUploadProgress,
+    });
+
+    expect(onUploadProgress).toHaveBeenCalledTimes(1);
+    expect(onUploadProgress).toHaveBeenCalledWith(33);
+  });
+
   it("allows an empty successful command only through the nullable helper", async () => {
     const adapter: AxiosAdapter = async (config) =>
       response(config, { success: true, data: null, error: null });

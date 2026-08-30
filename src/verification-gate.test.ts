@@ -58,7 +58,7 @@ const productionSourceExtensions = new Set([
 const rawConsoleAllowlist = new Set(["src/utils/clientLogger.ts"]);
 const dynamicInlineStyleAllowlist = [
   {
-    filePath: "src/features/accommodations/edit/components/PhotosStep.tsx",
+    filePath: "src/screens/accommodation-edit/components/PhotosStep.tsx",
     pattern: /style=\{\{\s*width:\s*`\$\{uploadProgress\}%`\s*\}\}/,
   },
   {
@@ -534,6 +534,7 @@ describe("frontend verification gate", () => {
     );
     expect(architectureRatchet.migratedFeatures).toEqual([
       "accommodations/detail",
+      "accommodations/listing-editor",
       "auth",
       "reservations/payment",
       "reviews",

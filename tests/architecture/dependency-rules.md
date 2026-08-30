@@ -37,6 +37,11 @@ records zero errors and 13 legacy warnings:
 - two type-bearing module cycles in the accommodation editor;
 - eleven cross-feature compatibility edges.
 
+At the U12 cutover, the current production graph has 540 modules and 1,414
+dependency edges, zero cycles, zero blocking errors, and two legacy warnings.
+Both warnings are Profile-owned public compatibility edges into Reservations
+and Accommodations; the editor cycles and its Profile edge are gone.
+
 The graph blocks unresolved imports, production imports of tests or runtime dev
 dependencies, private feature peer imports, direct UI access to global API/wire
 DTO modules, route/layout seam bypasses, and upper-layer imports from target
@@ -44,8 +49,11 @@ layers. App composition may import a feature only through `ui/**`, `ports/**`,
 or that feature scope's root `public.ts`/`public.tsx`; hooks, components, models,
 and other implementation paths stay private. Public `ui/**` and `public.ts(x)`
 surfaces are presentation boundaries and cannot reach global API or wire DTO
-modules. The same ownership matcher handles
-top-level features and the declared `accommodations/edit` nested scope. Target
+modules. The same ownership matcher handles top-level features and declared
+nested scopes. `accommodations/edit` remains a historical/fixture classification
+for Git-baseline comparison, but discovery does not activate it after its U12
+source directory is deleted. `accommodations/listing-editor` is the active,
+strictly registered nested editor owner. Target
 module and folder cycles are errors; legacy folder cycles are not reported
 because nested-folder expansion produced noisy duplicates.
 
@@ -53,8 +61,10 @@ U6 adds one temporary exact bridge per compatibility adapter under
 `src/app/router/routes/**`. Each adapter may import only its assigned legacy
 feature route container; a peer route or private helper is still an error.
 U7 removes the Login, Signup, and Wishlist bridges with their owned
-screen/controller cutovers. U8 removes Search. U9-U13/U21 remove the ten
-remaining bridges, and U22 removes any final compatibility entry.
+screen/controller cutovers. U8 removes Search; U9 removes Detail and Review;
+U10 removes Confirm, Payment Success, and Payment Fail; U12 removes
+Accommodation Edit. Four exact bridges remain for U13/U21, and U22 removes any
+final compatibility entry.
 
 The fixture runner proves 37 cases, including a valid DAG, MJS graph coverage,
 the app feature public-surface contract, workflow/screen peer edges,

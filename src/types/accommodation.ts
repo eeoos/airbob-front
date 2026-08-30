@@ -72,25 +72,6 @@ export interface AccommodationDetail {
   review_summary: ReviewSummary;
 }
 
-// 호스트 숙소 상세 조회
-export interface HostAccommodationDetail {
-  id: number;
-  name: string | null;
-  description: string | null;
-  type: string | null;
-  base_price: number | null;
-  currency: string | null;
-  check_in_time: string | null; // HH:mm:ss
-  check_out_time: string | null; // HH:mm:ss
-  address: AddressInfo | null;
-  coordinate: Coordinate | null;
-  host: MemberInfo;
-  policy: PolicyInfo | null;
-  amenities: AmenityInfo[];
-  images: ImageInfo[];
-  review_summary: ReviewSummary;
-}
-
 // 호스트 숙소 목록
 export interface HostAccommodationInfo {
   id: number;
@@ -117,11 +98,6 @@ export interface AccommodationBasicInfo {
 // 숙소 생성 응답
 export interface CreateAccommodationResponse {
   id: number;
-}
-
-// 숙소 이미지 업로드 응답
-export interface UploadImagesResponse {
-  uploaded_images: ImageInfo[];
 }
 
 // Legacy alias (하위 호환성)
