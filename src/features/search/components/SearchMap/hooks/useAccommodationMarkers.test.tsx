@@ -123,22 +123,38 @@ describe("useAccommodationMarkers", () => {
       setZoom: vi.fn(),
     } as unknown as google.maps.Map;
     const markersRef = ref<SearchMapMarker[]>([]);
-    const { unmount } = renderHook(() =>
-      useAccommodationMarkers({
-        accommodations: [accommodation],
-        isInitialIdleRef: ref(true),
-        isMapDragMode: false,
-        isMapLoaded: true,
-        mapInstanceRef: ref(map),
-        markersRef,
-        onAccommodationSelectRef: ref(vi.fn()),
-        prevViewportRef: ref<SearchMapViewport | null>(null),
-        shouldUpdateMapBounds: false,
-        viewportJustChangedRef: ref(false),
-      }),
+    const isInitialIdleRef = ref(true);
+    const mapInstanceRef = ref(map);
+    const onAccommodationSelectRef = ref(vi.fn());
+    const prevViewportRef = ref<SearchMapViewport | null>(null);
+    const viewportJustChangedRef = ref(false);
+    const { rerender, unmount } = renderHook(
+      ({ viewport }: { viewport: SearchMapViewport | null }) =>
+        useAccommodationMarkers({
+          accommodations: [accommodation],
+          isInitialIdleRef,
+          isMapDragMode: false,
+          isMapLoaded: true,
+          mapInstanceRef,
+          markersRef,
+          onAccommodationSelectRef,
+          prevViewportRef,
+          shouldUpdateMapBounds: false,
+          viewport,
+          viewportJustChangedRef,
+        }),
+      {
+        initialProps: { viewport: null as SearchMapViewport | null },
+      },
     );
 
     expect(markersRef.current).toHaveLength(1);
+    rerender({
+      viewport: { north: 38, south: 37, east: 128, west: 126 },
+    });
+    expect(map.fitBounds).toHaveBeenCalledTimes(1);
+    expect(createObjectURL).toHaveBeenCalledTimes(3);
+
     requireDefined(handlers.mouseover, "mouseover handler")();
     expect(requestAnimationFrame).toHaveBeenCalled();
 
@@ -149,6 +165,8 @@ describe("useAccommodationMarkers", () => {
     expect(requestAnimationFrame).toHaveBeenCalledTimes(1);
     expect(marker.setIcon).toHaveBeenLastCalledWith(marker.icons?.selected);
 
+    marker.dispose?.();
+    marker.dispose?.();
     unmount();
 
     listenerHandles.forEach((listener) => {

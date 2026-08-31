@@ -166,21 +166,16 @@ export const useMapSelectionInfoWindow = ({
         return;
       }
 
-      const targetMarker = findMarkerByAccommodationId(
-        markersRef.current,
-        selectedAccommodation.id,
-      );
-
-      selectMarker(targetMarker);
-
-      if (infoWindowRef.current) {
-        closeCurrentInfoWindowForReplacement();
-      }
-
       const selectedMarker = findMarkerByAccommodationId(
         markersRef.current,
         selectedAccommodation.id,
       );
+
+      selectMarker(selectedMarker);
+
+      if (infoWindowRef.current) {
+        closeCurrentInfoWindowForReplacement();
+      }
 
       if (selectedMarker) {
         const infoWindow = new maps.InfoWindow({

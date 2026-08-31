@@ -89,41 +89,38 @@ export const useAccommodationMarkers = ({
     if (!mapInstanceRef.current || !maps) return;
 
     const map = mapInstanceRef.current;
-
-    const existingIds = new Set(
-      markersRef.current.flatMap((marker) =>
-        marker.accommodationId === undefined ? [] : [marker.accommodationId],
-      ),
+    const validAccommodations = accommodations.filter(hasCoordinate);
+    const markerAccommodations = markersRef.current.flatMap((marker) =>
+      marker.accommodationId === undefined
+        ? []
+        : [{ id: marker.accommodationId }],
     );
-    const newIds = new Set(
-      accommodations.map((accommodation) => accommodation.id),
+    const markersChanged = haveAccommodationIdsChanged(
+      markerAccommodations,
+      validAccommodations,
     );
+    const shouldRebuildMarkers =
+      markersChanged || markersRef.current.length === 0;
 
-    const hasChanged =
-      existingIds.size !== newIds.size ||
-      !Array.from(existingIds).every((id) => newIds.has(id)) ||
-      !Array.from(newIds).every((id) => existingIds.has(id));
+    if (shouldRebuildMarkers) {
+      disposeSearchMapMarkers(markersRef.current);
+      markersRef.current = [];
+    }
 
-    if (!hasChanged && markersRef.current.length > 0) {
+    if (validAccommodations.length === 0) {
+      boundsInitializedRef.current = false;
+      prevAccommodationsRef.current = [];
       return;
     }
-
-    disposeSearchMapMarkers(markersRef.current);
-    markersRef.current = [];
-
-    if (!boundsInitializedRef.current) {
-      boundsInitializedRef.current = false;
-    }
-
-    const validAccommodations = accommodations.filter(hasCoordinate);
-
-    if (validAccommodations.length === 0) return;
 
     const bounds = new maps.LatLngBounds();
 
     validAccommodations.forEach((accommodation) => {
       const lat = accommodation.coordinate.latitude;
       const lng = accommodation.coordinate.longitude;
+      bounds.extend({ lat, lng });
+
+      if (!shouldRebuildMarkers) return;
 
       const markerIconModel = getMarkerIconModel({
         basePrice: accommodation.basePrice,
@@ -278,7 +275,6 @@ export const useAccommodationMarkers = ({
         marker.dispose = disposeMarkerResources;
 
         markersRef.current.push(marker);
-        bounds.extend({ lat, lng });
       } catch {
         disposeMarkerResources();
       }

@@ -8,6 +8,23 @@ interface UseMapBoundsReporterOptions {
   onBoundsChange?: ((bounds: SearchMapBounds) => void) | undefined;
 }
 
+const readMapBounds = (
+  mapInstance: google.maps.Map,
+): SearchMapBounds | null => {
+  const bounds = mapInstance.getBounds();
+  if (!bounds) return null;
+
+  const northEast = bounds.getNorthEast();
+  const southWest = bounds.getSouthWest();
+
+  return {
+    north: northEast.lat(),
+    south: southWest.lat(),
+    east: northEast.lng(),
+    west: southWest.lng(),
+  };
+};
+
 export const useMapBoundsReporter = ({
   isInitialIdleRef,
   mapInstanceRef,
@@ -38,18 +55,7 @@ export const useMapBoundsReporter = ({
     const handleIdle = () => {
       if (isInitialIdleRef.current) {
         isInitialIdleRef.current = false;
-        const bounds = mapInstance.getBounds();
-
-        if (bounds) {
-          const ne = bounds.getNorthEast();
-          const sw = bounds.getSouthWest();
-          previousBoundsRef.current = {
-            north: ne.lat(),
-            south: sw.lat(),
-            east: ne.lng(),
-            west: sw.lng(),
-          };
-        }
+        previousBoundsRef.current = readMapBounds(mapInstance);
         return;
       }
 
@@ -62,23 +68,12 @@ export const useMapBoundsReporter = ({
 
       boundsChangeTimerRef.current = setTimeout(() => {
         setIsLoadingBounds(false);
-        const bounds = mapInstance.getBounds();
+        const newBounds = readMapBounds(mapInstance);
 
-        if (!bounds) {
-          return;
-        }
-
-        const ne = bounds.getNorthEast();
-        const sw = bounds.getSouthWest();
-
-        const newBounds = {
-          north: ne.lat(),
-          south: sw.lat(),
-          east: ne.lng(),
-          west: sw.lng(),
-        };
-
-        if (!hasBoundsChanged(previousBoundsRef.current, newBounds)) {
+        if (
+          newBounds === null ||
+          !hasBoundsChanged(previousBoundsRef.current, newBounds)
+        ) {
           return;
         }
 

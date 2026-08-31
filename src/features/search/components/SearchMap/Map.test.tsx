@@ -149,6 +149,10 @@ describe("SearchMap", () => {
       mapRuntimeError: null,
       script: { error: null, isLoaded: false, status: "missing-key" },
     },
+    {
+      mapRuntimeError: null,
+      script: { error: null, isLoaded: true, status: "error" },
+    },
   ])(
     "renders failure feedback for $script.status",
     ({ mapRuntimeError, script }) => {

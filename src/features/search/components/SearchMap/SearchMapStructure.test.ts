@@ -77,6 +77,21 @@ describe("SearchMap structure", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("keeps selection work event-driven and removes only owned SDK listeners", () => {
+    const selectionHookSource = readFileSync(
+      join(searchMapRoot, "hooks/useMapSelectionInfoWindow.ts"),
+      "utf8",
+    );
+    const mapInstanceHookSource = readFileSync(
+      join(searchMapRoot, "hooks/useGoogleMapInstance.ts"),
+      "utf8",
+    );
+
+    expect(selectionHookSource).not.toContain("requestAnimationFrame");
+    expect(selectionHookSource).not.toContain("clearInstanceListeners");
+    expect(mapInstanceHookSource).not.toContain("clearInstanceListeners");
+  });
+
   it("routes the rich accommodation adapter through the exported info-window content boundary", () => {
     const contentSource = readFileSync(
       join(searchMapRoot, "lib/infoWindowContent.ts"),

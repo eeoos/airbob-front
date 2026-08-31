@@ -42,11 +42,8 @@ export const Map: React.FC<SearchMapProps> = ({
     west: number;
   } | null>(null);
   const viewportJustChangedRef = useRef(false);
-  const {
-    error: mapScriptError,
-    isLoaded: isMapLoaded,
-    status: mapScriptStatus,
-  } = useGoogleMapsScript();
+  const { isLoaded: isMapLoaded, status: mapScriptStatus } =
+    useGoogleMapsScript();
 
   useEffect(() => {
     onAccommodationSelectRef.current = onAccommodationSelect;
@@ -112,14 +109,15 @@ export const Map: React.FC<SearchMapProps> = ({
     onExpandToggle,
   });
 
-  if (!isMapLoaded || mapScriptError || mapRuntimeError) {
-    const mapFallbackText =
-      mapScriptError ||
-      mapRuntimeError ||
-      mapScriptStatus === "missing-key" ||
-      mapScriptStatus === "error"
-        ? "지도를 불러올 수 없습니다."
-        : "지도를 불러오는 중...";
+  const hasMapError =
+    mapRuntimeError !== null ||
+    mapScriptStatus === "missing-key" ||
+    mapScriptStatus === "error";
+
+  if (!isMapLoaded || hasMapError) {
+    const mapFallbackText = hasMapError
+      ? "지도를 불러올 수 없습니다."
+      : "지도를 불러오는 중...";
 
     return (
       <div className={styles.mapContainer}>

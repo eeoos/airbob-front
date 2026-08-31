@@ -88,9 +88,6 @@ describe("usePlacesAutocomplete", () => {
       second.resolve({ suggestions: [{ placePrediction: secondPrediction }] });
       first.resolve({ suggestions: [{ placePrediction: firstPrediction }] });
       await Promise.all([second.promise, first.promise]);
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
     });
 
     await vi.waitFor(() =>
@@ -223,9 +220,6 @@ describe("usePlacesAutocomplete", () => {
         suggestions: [{ placePrediction: rawPrediction }],
       });
       await autocomplete.promise;
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
     });
 
     await vi.waitFor(() => expect(result.current.suggestions).toHaveLength(1));
@@ -264,11 +258,7 @@ describe("usePlacesAutocomplete", () => {
 
     expect(result.current.isGoogleLoaded).toBe(false);
 
-    await act(async () => {
-      result.current.startNewSession();
-      await Promise.resolve();
-    });
-
-    expect(result.current.isGoogleLoaded).toBe(true);
+    act(() => result.current.startNewSession());
+    await vi.waitFor(() => expect(result.current.isGoogleLoaded).toBe(true));
   });
 });
