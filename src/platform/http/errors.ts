@@ -1,3 +1,5 @@
+import { HttpTransportFailure } from "./transportFailure";
+
 export type AppErrorKind =
   | "cancelled"
   | "timeout"
@@ -81,34 +83,8 @@ const getSafeBackendCodeFromFailureEnvelope = (
     : undefined;
 };
 
-const getAxiosStatus = (error: unknown): number | undefined => {
-  if (!isRecord(error) || !isRecord(error.response)) {
-    return undefined;
-  }
-
-  const { status } = error.response;
-  return typeof status === "number" && Number.isFinite(status)
-    ? status
-    : undefined;
-};
-
-const getAxiosResponseData = (error: unknown): unknown =>
-  isRecord(error) && isRecord(error.response) ? error.response.data : undefined;
-
-const getErrorCode = (error: unknown): string | undefined =>
-  isRecord(error) && typeof error.code === "string" ? error.code : undefined;
-
-const isCancellation = (error: unknown): boolean => {
-  return Boolean(
-    isRecord(error) &&
-    (error.code === "ERR_CANCELED" ||
-      error.name === "AbortError" ||
-      error.__CANCEL__ === true),
-  );
-};
-
-const isAxiosFailure = (error: unknown): boolean =>
-  isRecord(error) && error.isAxiosError === true;
+const isCancellation = (error: unknown): boolean =>
+  isRecord(error) && error.name === "AbortError";
 
 export interface HttpAppErrorOptions {
   readonly status?: number;
@@ -180,10 +156,53 @@ export const createHttpAppError = ({
   });
 };
 
-/**
- * Converts transport failures for migrated boundaries. Legacy API consumers
- * intentionally continue to receive the original Axios error instance.
- */
+const normalizeTransportFailure = (error: HttpTransportFailure): AppError => {
+  switch (error.kind) {
+    case "cancelled":
+      return new AppError({
+        kind: "cancelled",
+        code: "REQUEST_CANCELLED",
+        message: "The request was cancelled.",
+        cause: error,
+      });
+    case "configuration":
+      return new AppError({
+        kind: "configuration",
+        code: "INVALID_REQUEST_CONFIGURATION",
+        message: "The request configuration is invalid.",
+        cause: error,
+      });
+    case "http": {
+      const backendCode = getSafeBackendCodeFromFailureEnvelope(
+        error.responseData,
+      );
+
+      return createHttpAppError({
+        ...(error.status === undefined ? {} : { status: error.status }),
+        ...(backendCode === undefined ? {} : { backendCode }),
+        cause: error,
+      });
+    }
+    case "network":
+      return new AppError({
+        kind: "network",
+        code: "NETWORK_ERROR",
+        message: "The network request failed.",
+        retryable: true,
+        cause: error,
+      });
+    case "timeout":
+      return new AppError({
+        kind: "timeout",
+        code: "REQUEST_TIMEOUT",
+        message: "The request timed out.",
+        retryable: true,
+        cause: error,
+      });
+  }
+};
+
+/** Converts every platform transport failure to the stable AppError surface. */
 export const normalizeHttpError = (error: unknown): AppError => {
   if (isAppError(error)) {
     return error;
@@ -198,40 +217,8 @@ export const normalizeHttpError = (error: unknown): AppError => {
     });
   }
 
-  if (isAxiosFailure(error)) {
-    const transportCode = getErrorCode(error);
-
-    if (transportCode === "ECONNABORTED" || transportCode === "ETIMEDOUT") {
-      return new AppError({
-        kind: "timeout",
-        code: "REQUEST_TIMEOUT",
-        message: "The request timed out.",
-        retryable: true,
-        cause: error,
-      });
-    }
-
-    const status = getAxiosStatus(error);
-
-    if (status === undefined) {
-      return new AppError({
-        kind: "network",
-        code: "NETWORK_ERROR",
-        message: "The network request failed.",
-        retryable: true,
-        cause: error,
-      });
-    }
-
-    const backendCode = getSafeBackendCodeFromFailureEnvelope(
-      getAxiosResponseData(error),
-    );
-
-    return createHttpAppError({
-      status,
-      ...(backendCode === undefined ? {} : { backendCode }),
-      cause: error,
-    });
+  if (error instanceof HttpTransportFailure) {
+    return normalizeTransportFailure(error);
   }
 
   return new AppError({

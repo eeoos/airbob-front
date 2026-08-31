@@ -15,7 +15,9 @@ React/TypeScript 단일 페이지 애플리케이션입니다. 브라우저에�
 현재 앱은 15개의 lazy route와 browse/form/transaction/editor/bare route frame을
 사용합니다. TanStack Query가 서버 상태를, app `SessionProvider`가 인증 수명을, URL과
 `history.state` 및 제한된 `sessionStorage` 문서가 화면·결제 전환 상태를 보유합니다.
-Axios 클라이언트는 cookie 기반 세션과 기존 응답 envelope를 유지합니다.
+플랫폼 HTTP 경계는 일반 요청에 credentialed `fetch`, 업로드 진행률이 필요한
+multipart 요청에만 `XMLHttpRequest`를 사용해 cookie 기반 세션과 기존 응답 envelope를
+유지합니다.
 
 개발 서버와 production build는 Node.js 22.13+의 22 계열 또는 Node.js 24에서 동작하는
 Vite가 소유하고 결과물 경로는 기존

@@ -294,7 +294,7 @@ const invalidScenarios = [
     filename: "src/components/rogue-axios.ts",
     source:
       'import axios from "axios/dist/browser/axios.cjs"; export const value = axios;',
-    expectedMessage: "src/platform/http",
+    expectedMessage: "retired",
   },
   {
     name: "dynamic Axios import",
@@ -341,6 +341,56 @@ const invalidScenarios = [
     filename: "src/platform/storage/rogue-http.ts",
     source: 'export const value = import("axios");',
     expectedMessage: "Dynamic Axios",
+  },
+  {
+    name: "feature direct fetch",
+    source: 'export const value = fetch("/api/v1/listings");',
+    expectedMessage: "Direct browser HTTP transport",
+  },
+  {
+    name: "feature direct XMLHttpRequest",
+    source: "export const value = new XMLHttpRequest();",
+    expectedMessage: "Direct browser HTTP transport",
+  },
+  {
+    name: "feature self fetch",
+    source: 'export const value = self.fetch("/api/v1/listings");',
+    expectedMessage: "Direct browser HTTP transport",
+  },
+  {
+    name: "feature qualified XMLHttpRequest",
+    source: "export const value = new window.XMLHttpRequest();",
+    expectedMessage: "Direct browser HTTP transport",
+  },
+  {
+    name: "feature qualified fetch alias",
+    source:
+      'const request = window.fetch; export const value = request("/api/v1/listings");',
+    expectedMessage: "Direct browser HTTP transport",
+  },
+  {
+    name: "feature qualified fetch call",
+    source:
+      'export const value = globalThis.fetch.call(globalThis, "/api/v1/listings");',
+    expectedMessage: "Direct browser HTTP transport",
+  },
+  {
+    name: "feature qualified fetch bind",
+    source:
+      'const request = self.fetch.bind(self); export const value = request("/api/v1/listings");',
+    expectedMessage: "Direct browser HTTP transport",
+  },
+  {
+    name: "feature aliased browser global",
+    source:
+      'const browserRuntime = self; export const value = browserRuntime.fetch("/api/v1/listings");',
+    expectedMessage: "Computed or aliased browser capability access",
+  },
+  {
+    name: "integration adapter crossing into browser HTTP ownership",
+    filename: "src/platform/integrations/rogue-fetch.ts",
+    source: 'export const value = globalThis.fetch("/api/v1/listings");',
+    expectedMessage: "Direct browser HTTP transport",
   },
 ];
 
@@ -405,7 +455,8 @@ const validScenarios = [
   },
   {
     filename: "src/platform/http/platform-boundary-fixture.ts",
-    source: 'import axios from "axios"; export const value = axios.create();',
+    source:
+      'export const request = () => globalThis.fetch("/api/v1/health"); export const create = () => new XMLHttpRequest();',
   },
   {
     filename: "src/platform/integrations/toss-platform-boundary-fixture.ts",
@@ -673,8 +724,6 @@ const productionSourceFiles = ts.sys
 const productionBoundaryViolations = [];
 
 const collectAxiosBoundaryViolations = ({ sourceFile, projectPath }) => {
-  if (projectPath.startsWith("src/platform/http/")) return [];
-
   return sourceFile.statements.flatMap((statement) => {
     if (
       ts.isImportDeclaration(statement) &&
@@ -727,10 +776,7 @@ const collectDynamicImportBoundaryViolations = ({
       violations.push(`${projectPath}:runtime-nonliteral-dynamic-import`);
     }
 
-    if (
-      moduleSpecifier?.startsWith("axios") &&
-      !projectPath.startsWith("src/platform/http/")
-    ) {
+    if (moduleSpecifier?.startsWith("axios")) {
       violations.push(`${projectPath}:runtime-axios-dynamic-import`);
     }
     if (

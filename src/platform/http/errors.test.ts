@@ -1,50 +1,48 @@
 import { AppError, normalizeHttpError } from "./errors";
+import { HttpTransportFailure } from "./transportFailure";
 
-const axiosFailure = ({
-  code,
-  status,
+const transportFailure = ({
   data,
-  message = "raw-secret-message",
+  kind,
+  status,
 }: {
-  code?: string;
-  status?: number;
   data?: unknown;
-  message?: string;
-}) => ({
-  isAxiosError: true,
-  code,
-  message,
-  config: {
-    headers: { Authorization: "Bearer authorization-secret-canary" },
-    data: { password: "request-password-canary" },
-  },
-  response:
-    status === undefined
-      ? undefined
-      : {
-          status,
-          data,
-          headers: { "set-cookie": "cookie-secret-canary" },
-        },
-});
+  kind: ConstructorParameters<typeof HttpTransportFailure>[0];
+  status?: number;
+}) =>
+  new HttpTransportFailure(kind, {
+    cause: {
+      headers: { Authorization: "Bearer authorization-secret-canary" },
+      message: "raw-secret-message",
+      password: "request-password-canary",
+    },
+    ...(data === undefined ? {} : { responseData: data }),
+    ...(status === undefined ? {} : { status }),
+  });
 
 describe("normalizeHttpError", () => {
   it.each([
-    ["ERR_CANCELED", undefined, "cancelled", "REQUEST_CANCELLED", false],
-    ["ECONNABORTED", undefined, "timeout", "REQUEST_TIMEOUT", true],
-    ["ETIMEDOUT", undefined, "timeout", "REQUEST_TIMEOUT", true],
-    [undefined, undefined, "network", "NETWORK_ERROR", true],
-    [undefined, 401, "authentication", "AUTHENTICATION_REQUIRED", false],
-    [undefined, 400, "validation", "VALIDATION_ERROR", false],
-    [undefined, 422, "validation", "VALIDATION_ERROR", false],
-    [undefined, 409, "conflict", "CONFLICT", false],
-    [undefined, 503, "server", "SERVER_ERROR", true],
-    [undefined, 404, "http", "HTTP_ERROR", false],
+    ["cancelled", undefined, "cancelled", "REQUEST_CANCELLED", false],
+    ["timeout", undefined, "timeout", "REQUEST_TIMEOUT", true],
+    ["network", undefined, "network", "NETWORK_ERROR", true],
+    ["http", 401, "authentication", "AUTHENTICATION_REQUIRED", false],
+    ["http", 400, "validation", "VALIDATION_ERROR", false],
+    ["http", 422, "validation", "VALIDATION_ERROR", false],
+    ["http", 409, "conflict", "CONFLICT", false],
+    ["http", 503, "server", "SERVER_ERROR", true],
+    ["http", 404, "http", "HTTP_ERROR", false],
+    [
+      "configuration",
+      undefined,
+      "configuration",
+      "INVALID_REQUEST_CONFIGURATION",
+      false,
+    ],
   ] as const)(
-    "maps transport code %p and status %p to %s",
-    (code, status, kind, appCode, retryable) => {
-      const failure = axiosFailure({
-        ...(code === undefined ? {} : { code }),
+    "maps transport kind %p and status %p to %s",
+    (transportKind, status, kind, appCode, retryable) => {
+      const failure = transportFailure({
+        kind: transportKind,
         ...(status === undefined ? {} : { status }),
       });
 
@@ -59,7 +57,8 @@ describe("normalizeHttpError", () => {
 
   it("recognizes the backend authentication code without copying the response body", () => {
     const error = normalizeHttpError(
-      axiosFailure({
+      transportFailure({
+        kind: "http",
         status: 403,
         data: {
           success: false,
@@ -88,7 +87,7 @@ describe("normalizeHttpError", () => {
     { success: true, data: null, error: { code: "M004" } },
   ])("does not trust M004 outside a failure envelope (%p)", (data) => {
     expect(
-      normalizeHttpError(axiosFailure({ status: 403, data })),
+      normalizeHttpError(transportFailure({ kind: "http", status: 403, data })),
     ).toMatchObject({
       kind: "http",
       code: "HTTP_ERROR",
@@ -96,8 +95,9 @@ describe("normalizeHttpError", () => {
     });
   });
 
-  it("keeps the raw transport cause non-enumerable and messages secret-safe", () => {
-    const rawError = axiosFailure({
+  it("keeps raw transport causes non-enumerable and messages secret-safe", () => {
+    const rawError = transportFailure({
+      kind: "http",
       status: 503,
       data: { password: "response-password-canary" },
     });
@@ -108,9 +108,18 @@ describe("normalizeHttpError", () => {
     expect(error.cause).toBe(rawError);
     expect(Object.keys(error)).not.toContain("cause");
     expect(serialized).not.toMatch(
-      /raw-secret-message|authorization-secret-canary|request-password-canary|cookie-secret-canary|response-password-canary/,
+      /raw-secret-message|authorization-secret-canary|request-password-canary|response-password-canary/,
     );
     expect(error.message).not.toContain("raw-secret-message");
+  });
+
+  it("normalizes an external AbortError without transport-specific fields", () => {
+    expect(
+      normalizeHttpError(new DOMException("cancelled", "AbortError")),
+    ).toMatchObject({
+      kind: "cancelled",
+      code: "REQUEST_CANCELLED",
+    });
   });
 
   it("passes an existing AppError through unchanged", () => {

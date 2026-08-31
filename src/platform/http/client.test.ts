@@ -1,144 +1,386 @@
-import axios from "axios";
-import type { AxiosResponse, InternalAxiosRequestConfig } from "axios";
-import { onAuthError } from "../session/authEvents";
-import { API_REQUEST_TIMEOUT_MS, getHttpClient, httpClient } from "./client";
+import { createBrowserHttpClient, type HttpClientResponse } from "./client";
+import { HttpTransportFailure } from "./transportFailure";
 
-const successfulResponse = (
-  config: InternalAxiosRequestConfig,
-): AxiosResponse => ({
-  config,
-  data: { success: true, data: null, error: null },
-  headers: {},
+const successfulEnvelope = {
+  success: true,
+  data: { id: 1 },
+  error: null,
+};
+
+const fetchResponse = ({
+  contentType = "application/json;charset=utf-8",
+  data = successfulEnvelope,
+  status = 200,
+}: {
+  contentType?: string | null;
+  data?: unknown;
+  status?: number;
+} = {}): Response =>
+  ({
+    headers: {
+      get: (name: string) =>
+        name.toLowerCase() === "content-type" ? contentType : null,
+    },
+    status,
+    text: async () => (typeof data === "string" ? data : JSON.stringify(data)),
+  }) as Response;
+
+const unusedRequestFactory = () => {
+  throw new Error("XMLHttpRequest was not expected.");
+};
+
+type ProgressListener = ((event: ProgressEvent) => void) | null;
+
+const createFakeRequest = () => ({
+  abort: vi.fn(),
+  getResponseHeader: vi.fn(() => "application/json"),
+  onabort: null as (() => void) | null,
+  onerror: null as (() => void) | null,
+  onload: null as (() => void) | null,
+  ontimeout: null as (() => void) | null,
+  open: vi.fn(),
+  responseText: JSON.stringify(successfulEnvelope),
+  send: vi.fn(),
+  setRequestHeader: vi.fn(),
   status: 200,
-  statusText: "OK",
+  timeout: 0,
+  upload: { onprogress: null as ProgressListener },
+  withCredentials: false,
 });
 
+const createClient = (fetchRequest: typeof globalThis.fetch) =>
+  createBrowserHttpClient({
+    baseUrl: "/api/v1",
+    createRequest: unusedRequestFactory,
+    fetchRequest,
+  });
+
+const createProgressClient = (request: ReturnType<typeof createFakeRequest>) =>
+  createBrowserHttpClient({
+    baseUrl: "/api/v1",
+    createRequest: () => request as unknown as XMLHttpRequest,
+    fetchRequest: unusedRequestFactory,
+  });
+
+const createMultipartBody = () => {
+  const body = new FormData();
+  body.append("images", new File(["image"], "stay.png"));
+  return body;
+};
+
 describe("platform HTTP client", () => {
-  it("constructs the singleton with the actual browser Axios factory in Vitest", () => {
-    expect(typeof axios).toBe("function");
-    expect(typeof axios.create).toBe("function");
-    expect(typeof axios.VERSION).toBe("string");
-    expect(httpClient).not.toBe(axios);
-    expect(typeof httpClient.request).toBe("function");
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
-  it("returns the platform-owned singleton from the explicit getter", () => {
-    expect(getHttpClient()).toBe(httpClient);
-  });
-
-  it("preserves credentials and applies the platform request deadline", () => {
-    expect(httpClient.defaults.baseURL).toBe("http://localhost:8080/api/v1");
-    expect(httpClient.defaults.withCredentials).toBe(true);
-    expect(httpClient.defaults.headers["Content-Type"]).toBe(
-      "application/json",
+  it("uses one credentialed JSON boundary and preserves the existing array query encoding", async () => {
+    const fetchRequest = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) => fetchResponse(),
     );
-    expect(httpClient.defaults.timeout).toBe(API_REQUEST_TIMEOUT_MS);
-  });
+    const client = createClient(fetchRequest);
 
-  it("passes an AbortSignal through by identity", async () => {
-    const controller = new AbortController();
-    let capturedSignal: unknown;
-
-    await httpClient.get("/abort-contract", {
-      signal: controller.signal,
-      adapter: async (config) => {
-        capturedSignal = config.signal;
-        return successfulResponse(config);
+    const result = await client.request({
+      method: "POST",
+      path: "/search/accommodations",
+      params: {
+        amenityTypes: ["WIFI", "PARKING"],
+        page: 2,
+        omitted: undefined,
       },
+      body: { destination: "서울" },
     });
 
-    expect(capturedSignal).toBe(controller.signal);
+    expect(result).toEqual<HttpClientResponse>({
+      contentType: "application/json;charset=utf-8",
+      data: successfulEnvelope,
+      status: 200,
+    });
+    expect(fetchRequest).toHaveBeenCalledOnce();
+    const [url, init] = fetchRequest.mock.calls[0] ?? [];
+    expect(url).toBe(
+      "/api/v1/search/accommodations?amenityTypes[]=WIFI&amenityTypes[]=PARKING&page=2",
+    );
+    expect(init).toMatchObject({
+      body: JSON.stringify({ destination: "서울" }),
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    });
+    expect(init?.signal).toBeInstanceOf(AbortSignal);
   });
 
-  it("keeps a non-authentication transport failure unchanged through the interceptor", async () => {
-    const rawError = new Error("network failure");
-    let thrownError: unknown;
+  it("rejects external paths and nested query values before network access", () => {
+    const fetchRequest = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) => fetchResponse(),
+    );
+    const client = createClient(fetchRequest);
 
-    try {
-      await httpClient.get("/raw-error-contract", {
-        adapter: async () => Promise.reject(rawError),
-      });
-    } catch (error) {
-      thrownError = error;
-    }
-
-    expect(thrownError).toBe(rawError);
+    expect(() =>
+      client.request({
+        method: "GET",
+        path: "https://external.example.invalid/listings",
+      }),
+    ).toThrow(HttpTransportFailure);
+    expect(() =>
+      client.request({
+        method: "GET",
+        path: "/listings",
+        params: { nested: { unsafe: true } },
+      }),
+    ).toThrow(HttpTransportFailure);
+    expect(fetchRequest).not.toHaveBeenCalled();
   });
 
-  it("publishes raw 401 and M004 failures while preserving their identity", async () => {
+  it("propagates caller cancellation through the owned AbortSignal", async () => {
+    const fetchRequest = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener(
+            "abort",
+            () => reject(new DOMException("cancelled", "AbortError")),
+            { once: true },
+          );
+        }),
+    );
+    const client = createClient(fetchRequest);
+    const controller = new AbortController();
+    const result = client
+      .request({
+        method: "GET",
+        path: "/slow",
+        signal: controller.signal,
+      })
+      .catch((error: unknown) => error);
+
+    controller.abort();
+
+    await expect(result).resolves.toMatchObject({
+      name: "HttpTransportFailure",
+      kind: "cancelled",
+    });
+  });
+
+  it("turns the platform deadline into a retryable timeout category", async () => {
     vi.useFakeTimers();
-    const listener = vi.fn();
-    const unsubscribe = onAuthError(listener);
-    const failures = [
-      {
-        isAxiosError: true,
-        response: { status: 401, data: null },
-      },
-      {
-        isAxiosError: true,
-        response: {
-          status: 403,
-          data: { success: false, error: { code: "M004" } },
-        },
-      },
-    ];
+    const fetchRequest = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener(
+            "abort",
+            () => reject(new DOMException("timed out", "AbortError")),
+            { once: true },
+          );
+        }),
+    );
+    const client = createClient(fetchRequest);
+    const result = client
+      .request({ method: "GET", path: "/slow" })
+      .catch((error: unknown) => error);
+
+    await vi.advanceTimersByTimeAsync(30_000);
+
+    await expect(result).resolves.toMatchObject({
+      name: "HttpTransportFailure",
+      kind: "timeout",
+    });
+  });
+
+  it("keeps non-success response data out of serialization while retaining safe classification input", async () => {
+    const responseData = {
+      success: false,
+      error: { code: "M004", token: "private-response-token" },
+    };
+    const client = createClient(
+      vi.fn(async () => fetchResponse({ data: responseData, status: 403 })),
+    );
+    let failure: unknown;
 
     try {
-      for (const failure of failures) {
-        let thrownError: unknown;
-
-        try {
-          await httpClient.get("/auth-error-contract", {
-            adapter: async () => Promise.reject(failure),
-          });
-        } catch (error) {
-          thrownError = error;
-        }
-
-        expect(thrownError).toBe(failure);
-        vi.advanceTimersByTime(1000);
-      }
-
-      expect(listener).toHaveBeenCalledTimes(2);
-    } finally {
-      unsubscribe();
-      vi.runOnlyPendingTimers();
-      vi.useRealTimers();
+      await client.request({ method: "GET", path: "/protected" });
+    } catch (error) {
+      failure = error;
     }
+
+    expect(failure).toBeInstanceOf(HttpTransportFailure);
+    expect(failure).toMatchObject({ kind: "http", status: 403 });
+    expect((failure as HttpTransportFailure).responseData).toEqual(
+      responseData,
+    );
+    expect(JSON.stringify(failure)).not.toContain("private-response-token");
+  });
+
+  it("lets fetch own a multipart boundary when progress is not requested", async () => {
+    const fetchRequest = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) => fetchResponse(),
+    );
+    const client = createClient(fetchRequest);
+    const body = new FormData();
+    body.append("images", new File(["image"], "stay.png"));
+
+    await client.request({
+      method: "POST",
+      path: "/reviews/1/images",
+      body,
+      bodyEncoding: "multipart",
+    });
+
+    const init = fetchRequest.mock.calls[0]?.[1];
+    expect(init?.body).toBe(body);
+    expect(new Headers(init?.headers).has("content-type")).toBe(false);
+  });
+
+  it("uses XMLHttpRequest only for multipart upload progress", async () => {
+    const fakeRequest = createFakeRequest();
+    fakeRequest.send.mockImplementation(() => {
+      fakeRequest.upload.onprogress?.({
+        lengthComputable: true,
+        loaded: 1,
+        total: 3,
+      } as ProgressEvent);
+      fakeRequest.upload.onprogress?.({
+        lengthComputable: false,
+        loaded: 2,
+        total: 0,
+      } as ProgressEvent);
+      fakeRequest.onload?.();
+    });
+    const client = createProgressClient(fakeRequest);
+    const body = createMultipartBody();
+    const onUploadProgress = vi.fn();
+
+    await client.request({
+      method: "POST",
+      path: "/accommodations/31/images",
+      body,
+      bodyEncoding: "multipart",
+      onUploadProgress,
+    });
+
+    expect(fakeRequest.open).toHaveBeenCalledWith(
+      "POST",
+      "/api/v1/accommodations/31/images",
+    );
+    expect(fakeRequest.withCredentials).toBe(true);
+    expect(fakeRequest.timeout).toBe(5 * 60_000);
+    expect(fakeRequest.setRequestHeader).toHaveBeenCalledExactlyOnceWith(
+      "Accept",
+      "application/json",
+    );
+    expect(fakeRequest.send).toHaveBeenCalledWith(body);
+    expect(onUploadProgress).toHaveBeenCalledExactlyOnceWith(33);
+  });
+
+  it("propagates caller cancellation through the progress-upload request and releases handlers", async () => {
+    const fakeRequest = createFakeRequest();
+    fakeRequest.abort.mockImplementation(() => fakeRequest.onabort?.());
+    const client = createProgressClient(fakeRequest);
+    const controller = new AbortController();
+    const result = client
+      .request({
+        method: "POST",
+        path: "/accommodations/31/images",
+        body: createMultipartBody(),
+        bodyEncoding: "multipart",
+        onUploadProgress: vi.fn(),
+        signal: controller.signal,
+      })
+      .catch((error: unknown) => error);
+
+    controller.abort();
+
+    await expect(result).resolves.toMatchObject({
+      name: "HttpTransportFailure",
+      kind: "cancelled",
+    });
+    expect(fakeRequest.abort).toHaveBeenCalledOnce();
+    expect(fakeRequest.onload).toBeNull();
+    expect(fakeRequest.onerror).toBeNull();
+    expect(fakeRequest.onabort).toBeNull();
+    expect(fakeRequest.ontimeout).toBeNull();
+    expect(fakeRequest.upload.onprogress).toBeNull();
   });
 
   it.each([
-    { error: { code: "M004" } },
-    { success: true, data: null, error: { code: "M004" } },
-  ])(
-    "does not publish an auth event for M004 outside a failure envelope (%p)",
-    async (data) => {
-      vi.useFakeTimers();
-      const listener = vi.fn();
-      const unsubscribe = onAuthError(listener);
-      const failure = {
-        isAxiosError: true,
-        response: { status: 403, data },
-      };
+    ["network", "error"],
+    ["timeout", "timeout"],
+  ] as const)(
+    "normalizes an XMLHttpRequest %s terminal",
+    async (expectedKind, terminal) => {
+      const fakeRequest = createFakeRequest();
+      fakeRequest.send.mockImplementation(() => {
+        if (terminal === "error") fakeRequest.onerror?.();
+        else fakeRequest.ontimeout?.();
+      });
+      const client = createProgressClient(fakeRequest);
 
-      try {
-        let thrownError: unknown;
-
-        try {
-          await httpClient.get("/untrusted-auth-code-contract", {
-            adapter: async () => Promise.reject(failure),
-          });
-        } catch (error) {
-          thrownError = error;
-        }
-
-        expect(thrownError).toBe(failure);
-        expect(listener).not.toHaveBeenCalled();
-      } finally {
-        unsubscribe();
-        vi.runOnlyPendingTimers();
-        vi.useRealTimers();
-      }
+      await expect(
+        client.request({
+          method: "POST",
+          path: "/accommodations/31/images",
+          body: createMultipartBody(),
+          bodyEncoding: "multipart",
+          onUploadProgress: vi.fn(),
+        }),
+      ).rejects.toMatchObject({
+        name: "HttpTransportFailure",
+        kind: expectedKind,
+      });
     },
   );
+
+  it("retains safe HTTP classification data from a failed progress upload", async () => {
+    const fakeRequest = createFakeRequest();
+    fakeRequest.status = 403;
+    fakeRequest.responseText = JSON.stringify({
+      success: false,
+      error: { code: "M004", token: "private-response-token" },
+    });
+    fakeRequest.send.mockImplementation(() => fakeRequest.onload?.());
+    const client = createProgressClient(fakeRequest);
+
+    let failure: unknown;
+    try {
+      await client.request({
+        method: "POST",
+        path: "/accommodations/31/images",
+        body: createMultipartBody(),
+        bodyEncoding: "multipart",
+        onUploadProgress: vi.fn(),
+      });
+    } catch (error) {
+      failure = error;
+    }
+
+    expect(failure).toMatchObject({
+      name: "HttpTransportFailure",
+      kind: "http",
+      status: 403,
+    });
+    expect(JSON.stringify(failure)).not.toContain("private-response-token");
+  });
+
+  it("normalizes synchronous XMLHttpRequest setup failures", async () => {
+    const fakeRequest = createFakeRequest();
+    fakeRequest.open.mockImplementation(() => {
+      throw new Error("private-browser-setup-detail");
+    });
+    const client = createProgressClient(fakeRequest);
+
+    await expect(
+      client.request({
+        method: "POST",
+        path: "/accommodations/31/images",
+        body: createMultipartBody(),
+        bodyEncoding: "multipart",
+        onUploadProgress: vi.fn(),
+      }),
+    ).rejects.toMatchObject({
+      name: "HttpTransportFailure",
+      kind: "network",
+    });
+  });
 });

@@ -33,7 +33,7 @@ const toolingTypeScriptFiles = ["vite.config.ts", "vitest.config.ts"];
 
 const computedBrowserCapabilityRestriction = {
   selector:
-    "MemberExpression[object.name='window'][computed=true], MemberExpression[object.name='globalThis'][computed=true], MemberExpression[object.name='globalThis'][property.name='window'], VariableDeclarator[init.name='window'], VariableDeclarator[init.name='globalThis'], AssignmentPattern[right.name='window'], AssignmentPattern[right.name='globalThis'], AssignmentExpression[right.name='window'], AssignmentExpression[right.name='globalThis'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.0.name='window'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.0.name='globalThis'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='createElement'], CallExpression[callee.object.name='document'][callee.property.name='createElement'][arguments.0.type!='Literal'], CallExpression[callee.object.name='document'][callee.property.value='createElement'][arguments.0.type!='Literal'], ObjectPattern > Property[key.name='createElement'], ObjectPattern > Property[key.value='createElement'], VariableDeclarator[init.name='document'], AssignmentExpression[right.name='document']",
+    "MemberExpression[object.name='window'][computed=true], MemberExpression[object.name='globalThis'][computed=true], MemberExpression[object.name='self'][computed=true], MemberExpression[object.name='globalThis'][property.name='window'], VariableDeclarator[init.name='window'], VariableDeclarator[init.name='globalThis'], VariableDeclarator[init.name='self'], AssignmentPattern[right.name='window'], AssignmentPattern[right.name='globalThis'], AssignmentPattern[right.name='self'], AssignmentExpression[right.name='window'], AssignmentExpression[right.name='globalThis'], AssignmentExpression[right.name='self'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.0.name='window'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.0.name='globalThis'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.0.name='self'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='createElement'], CallExpression[callee.object.name='document'][callee.property.name='createElement'][arguments.0.type!='Literal'], CallExpression[callee.object.name='document'][callee.property.value='createElement'][arguments.0.type!='Literal'], ObjectPattern > Property[key.name='createElement'], ObjectPattern > Property[key.value='createElement'], VariableDeclarator[init.name='document'], AssignmentExpression[right.name='document']",
   message:
     "Computed or aliased browser capability access is forbidden; use a static owning platform adapter.",
 };
@@ -62,7 +62,15 @@ const externalScriptRestriction = {
 const dynamicAxiosRestriction = {
   selector:
     "ImportExpression[source.value=/^axios/], CallExpression[callee.type='Import'][arguments.0.value=/^axios/], CallExpression[callee.name='require'][arguments.0.value=/^axios/], CallExpression[callee.name='require'][arguments.0.type!='Literal'], VariableDeclarator[init.name='require'], AssignmentPattern[right.name='require'], AssignmentExpression[right.name='require']",
-  message: "Dynamic Axios loading is private to src/platform/http.",
+  message:
+    "Dynamic Axios loading is forbidden; use the native platform HTTP boundary.",
+};
+
+const browserHttpTransportRestriction = {
+  selector:
+    "CallExpression[callee.name='fetch'], MemberExpression[object.name=/^(?:globalThis|window|self)$/][property.name=/^(?:fetch|XMLHttpRequest)$/], MemberExpression[object.name=/^(?:globalThis|window|self)$/][property.value=/^(?:fetch|XMLHttpRequest)$/], MemberExpression[object.name=/^(?:fetch|XMLHttpRequest)$/], NewExpression[callee.name='XMLHttpRequest'], VariableDeclarator[init.name=/^(?:fetch|XMLHttpRequest)$/], AssignmentPattern[right.name=/^(?:fetch|XMLHttpRequest)$/], AssignmentExpression[right.name=/^(?:fetch|XMLHttpRequest)$/], ObjectPattern > Property[key.name=/^(?:fetch|XMLHttpRequest)$/], ObjectPattern > Property[key.value=/^(?:fetch|XMLHttpRequest)$/]",
+  message:
+    "Direct browser HTTP transport belongs only in src/platform/http; consume the typed request boundary elsewhere.",
 };
 
 const allCapabilityRestrictions = [
@@ -70,6 +78,7 @@ const allCapabilityRestrictions = [
   browserStorageRestriction,
   externalSdkGlobalRestriction,
   externalScriptRestriction,
+  browserHttpTransportRestriction,
   dynamicAxiosRestriction,
 ];
 
@@ -80,12 +89,11 @@ const tossSdkImportRestriction = {
 };
 const axiosImportRestriction = {
   name: "axios",
-  message:
-    "Use the platform HTTP boundary instead of importing Axios in production code.",
+  message: "Axios is retired; use the native platform HTTP boundary instead.",
 };
 const axiosSubpathRestriction = {
   group: ["axios/*"],
-  message: "Axios subpaths are private to src/platform/http.",
+  message: "Axios subpaths are retired with the Axios runtime.",
 };
 
 export default defineConfig([
@@ -313,6 +321,7 @@ export default defineConfig([
         computedBrowserCapabilityRestriction,
         externalSdkGlobalRestriction,
         externalScriptRestriction,
+        browserHttpTransportRestriction,
         dynamicAxiosRestriction,
       ],
     },
@@ -343,7 +352,7 @@ export default defineConfig([
             {
               ...axiosImportRestriction,
               message:
-                "Use the platform HTTP boundary instead of importing Axios in an integration adapter.",
+                "Axios is retired; use the native platform HTTP boundary from an integration adapter.",
             },
           ],
           patterns: [axiosSubpathRestriction],
@@ -353,6 +362,7 @@ export default defineConfig([
         "error",
         computedBrowserCapabilityRestriction,
         browserStorageRestriction,
+        browserHttpTransportRestriction,
         dynamicAxiosRestriction,
       ],
     },
@@ -362,13 +372,20 @@ export default defineConfig([
     files: ["src/platform/http/**/*.{js,jsx,mjs,ts,tsx}"],
     ignores: testFiles,
     rules: {
-      "no-restricted-imports": ["error", { paths: [tossSdkImportRestriction] }],
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [tossSdkImportRestriction, axiosImportRestriction],
+          patterns: [axiosSubpathRestriction],
+        },
+      ],
       "no-restricted-syntax": [
         "error",
         computedBrowserCapabilityRestriction,
         browserStorageRestriction,
         externalSdkGlobalRestriction,
         externalScriptRestriction,
+        dynamicAxiosRestriction,
       ],
     },
   },

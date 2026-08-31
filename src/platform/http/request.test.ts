@@ -1,62 +1,48 @@
-import {
-  AxiosError,
-  type AxiosAdapter,
-  type InternalAxiosRequestConfig,
-} from "axios";
 import { onAuthError } from "../session/authEvents";
-import {
-  isSessionOwnedAuthEventRequest,
-  sessionOwnedAuthEventPolicy,
-} from "./authEventPolicy";
-import { httpClient, MULTIPART_API_REQUEST_TIMEOUT_MS } from "./client";
+import { sessionOwnedAuthEventPolicy } from "./authEventPolicy";
+import { httpClient, type HttpClientResponse } from "./client";
 import { requestApiData, requestApiDataNullable } from "./request";
+import { HttpTransportFailure } from "./transportFailure";
 
 interface ListingWire {
   readonly id: number;
   readonly name: string;
 }
 
-const jsonHeaders = { "content-type": "application/json;charset=utf-8" };
-
 const response = (
-  config: InternalAxiosRequestConfig,
   data: unknown,
-  headers: Record<string, string> = jsonHeaders,
-) => ({
-  config,
+  contentType = "application/json;charset=utf-8",
+): HttpClientResponse => ({
+  contentType,
   data,
-  headers,
   status: 200,
-  statusText: "OK",
 });
 
-describe("platform API request", () => {
-  const originalAdapter = httpClient.defaults.adapter;
-
-  afterEach(() => {
-    if (originalAdapter === undefined) {
-      delete httpClient.defaults.adapter;
-    } else {
-      httpClient.defaults.adapter = originalAdapter;
-    }
-    vi.restoreAllMocks();
+const successfulListingResponse = () =>
+  response({
+    success: true,
+    data: { id: 1, name: "Seoul stay" },
+    error: null,
   });
 
-  it("sends a plain request contract and unwraps a successful envelope", async () => {
-    const controller = new AbortController();
-    const adapter: AxiosAdapter = async (config) => {
-      expect(config.method).toBe("get");
-      expect(config.url).toBe("/listings");
-      expect(config.params).toEqual({ cursor: "next" });
-      expect(config.signal).toBe(controller.signal);
+const browserResponse = (status: number, data: unknown): Response =>
+  ({
+    headers: { get: () => "application/json;charset=utf-8" },
+    status,
+    text: async () => JSON.stringify(data),
+  }) as unknown as Response;
 
-      return response(config, {
-        success: true,
-        data: { id: 1, name: "Seoul stay" },
-        error: null,
-      });
-    };
-    httpClient.defaults.adapter = adapter;
+describe("platform API request", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("sends the native transport contract and unwraps a successful envelope", async () => {
+    const controller = new AbortController();
+    const requestSpy = vi
+      .spyOn(httpClient, "request")
+      .mockResolvedValue(successfulListingResponse());
 
     await expect(
       requestApiData<ListingWire>({
@@ -66,44 +52,42 @@ describe("platform API request", () => {
         signal: controller.signal,
       }),
     ).resolves.toEqual({ id: 1, name: "Seoul stay" });
+    expect(requestSpy).toHaveBeenCalledWith({
+      method: "GET",
+      path: "/listings",
+      params: { cursor: "next" },
+      signal: controller.signal,
+    });
   });
 
-  it("omits an explicitly undefined signal at the Axios boundary", async () => {
-    const requestSpy = vi.spyOn(httpClient, "request").mockResolvedValue(
-      response({} as InternalAxiosRequestConfig, {
-        success: true,
-        data: { id: 1, name: "Seoul stay" },
-        error: null,
-      }),
-    );
+  it("omits undefined fields and auth ownership metadata from the wire contract", async () => {
+    const requestSpy = vi
+      .spyOn(httpClient, "request")
+      .mockResolvedValue(successfulListingResponse());
 
     await requestApiData<ListingWire>({
       method: "GET",
       path: "/listings",
       signal: undefined,
+      authEventPolicy: sessionOwnedAuthEventPolicy,
     });
 
     expect(requestSpy).toHaveBeenCalledOnce();
     expect(requestSpy.mock.calls[0]?.[0]).not.toHaveProperty("signal");
+    expect(requestSpy.mock.calls[0]?.[0]).not.toHaveProperty("authEventPolicy");
   });
 
-  it("preserves multipart bodies through the real Axios transform pipeline", async () => {
-    const image = new File(["image"], "stay.png", { type: "image/png" });
+  it("preserves multipart bodies and progress callbacks by identity", async () => {
     const body = new FormData();
-    body.append("images", image);
-    const adapter: AxiosAdapter = async (config) => {
-      expect(config.data).toBe(body);
-      expect(config.data).toBeInstanceOf(FormData);
-      expect(config.headers.getContentType()).toBe("multipart/form-data");
-      expect(config.timeout).toBe(MULTIPART_API_REQUEST_TIMEOUT_MS);
-
-      return response(config, {
+    body.append("images", new File(["image"], "stay.png"));
+    const onUploadProgress = vi.fn();
+    const requestSpy = vi.spyOn(httpClient, "request").mockResolvedValue(
+      response({
         success: true,
         data: { uploaded_images: [] },
         error: null,
-      });
-    };
-    httpClient.defaults.adapter = adapter;
+      }),
+    );
 
     await expect(
       requestApiData({
@@ -111,40 +95,22 @@ describe("platform API request", () => {
         path: "/reviews/901/images",
         body,
         bodyEncoding: "multipart",
+        onUploadProgress,
       }),
     ).resolves.toEqual({ uploaded_images: [] });
-  });
-
-  it("maps Axios upload bytes to the public integer progress contract", async () => {
-    const onUploadProgress = vi.fn();
-    const adapter: AxiosAdapter = async (config) => {
-      config.onUploadProgress?.({ loaded: 1, total: 3 } as never);
-      config.onUploadProgress?.({ loaded: 2 } as never);
-
-      return response(config, {
-        success: true,
-        data: { uploaded_images: [] },
-        error: null,
-      });
-    };
-    httpClient.defaults.adapter = adapter;
-
-    await requestApiData({
+    expect(requestSpy).toHaveBeenCalledWith({
       method: "POST",
-      path: "/accommodations/31/images",
-      body: new FormData(),
+      path: "/reviews/901/images",
+      body,
       bodyEncoding: "multipart",
       onUploadProgress,
     });
-
-    expect(onUploadProgress).toHaveBeenCalledTimes(1);
-    expect(onUploadProgress).toHaveBeenCalledWith(33);
   });
 
   it("allows an empty successful command only through the nullable helper", async () => {
-    const adapter: AxiosAdapter = async (config) =>
-      response(config, { success: true, data: null, error: null });
-    httpClient.defaults.adapter = adapter;
+    vi.spyOn(httpClient, "request").mockResolvedValue(
+      response({ success: true, data: null, error: null }),
+    );
 
     await expect(
       requestApiData({ method: "DELETE", path: "/resource/1" }),
@@ -158,16 +124,11 @@ describe("platform API request", () => {
     ).resolves.toBeNull();
   });
 
-  it("normalizes raw transport failures for migrated adapters", async () => {
-    const rawFailure = {
-      isAxiosError: true,
-      code: "ETIMEDOUT",
-      config: {},
-    };
-    const adapter: AxiosAdapter = async () => {
-      throw rawFailure;
-    };
-    httpClient.defaults.adapter = adapter;
+  it("normalizes a native transport timeout", async () => {
+    const rawFailure = new HttpTransportFailure("timeout", {
+      cause: new Error("private-timeout-detail"),
+    });
+    vi.spyOn(httpClient, "request").mockRejectedValue(rawFailure);
 
     await expect(
       requestApiData({ method: "GET", path: "/slow" }),
@@ -181,11 +142,12 @@ describe("platform API request", () => {
   });
 
   it("rejects an HTML response before parsing its body as an API envelope", async () => {
-    const adapter: AxiosAdapter = async (config) =>
-      response(config, "<!doctype html><html><body>Login</body></html>", {
-        "content-type": "text/html; charset=utf-8",
-      });
-    httpClient.defaults.adapter = adapter;
+    vi.spyOn(httpClient, "request").mockResolvedValue(
+      response(
+        "<!doctype html><html><body>Login</body></html>",
+        "text/html; charset=utf-8",
+      ),
+    );
 
     await expect(
       requestApiData({ method: "GET", path: "/auth/me" }),
@@ -199,13 +161,13 @@ describe("platform API request", () => {
   it("publishes an authentication envelope once for a global request", async () => {
     const listener = vi.fn();
     const unsubscribe = onAuthError(listener);
-    const adapter: AxiosAdapter = async (config) =>
-      response(config, {
+    vi.spyOn(httpClient, "request").mockResolvedValue(
+      response({
         success: false,
         data: null,
         error: { code: "M004", message: "expired", status: 403 },
-      });
-    httpClient.defaults.adapter = adapter;
+      }),
+    );
 
     try {
       await expect(
@@ -214,37 +176,29 @@ describe("platform API request", () => {
         code: "M004",
         kind: "authentication",
       });
-      expect(listener).toHaveBeenCalledTimes(1);
+      expect(listener).toHaveBeenCalledOnce();
     } finally {
       unsubscribe();
     }
   });
 
-  it("suppresses session-owned auth signaling without leaking policy onto the wire", async () => {
+  it("suppresses session-owned envelope auth signaling", async () => {
     const listener = vi.fn();
     const unsubscribe = onAuthError(listener);
-    const body = { email: "guest@example.com", password: "password" };
-    const adapter: AxiosAdapter = async (config) => {
-      expect(isSessionOwnedAuthEventRequest(config)).toBe(true);
-      expect(config.headers).not.toHaveProperty("authEventPolicy");
-      expect(config.params).toBeUndefined();
-      expect(JSON.parse(config.data as string)).toEqual(body);
-      expect(config.data).not.toContain("authEventPolicy");
-
-      return response(config, {
+    vi.spyOn(httpClient, "request").mockResolvedValue(
+      response({
         success: false,
         data: null,
         error: { code: "M004", message: "expired", status: 403 },
-      });
-    };
-    httpClient.defaults.adapter = adapter;
+      }),
+    );
 
     try {
       await expect(
         requestApiDataNullable({
           method: "POST",
           path: "/auth/login",
-          body,
+          body: { email: "guest@example.com", password: "password" },
           authEventPolicy: sessionOwnedAuthEventPolicy,
         }),
       ).rejects.toMatchObject({ code: "M004" });
@@ -255,44 +209,73 @@ describe("platform API request", () => {
   });
 
   it.each([
-    ["raw 401", 401, null],
-    [
-      "raw M004",
-      403,
-      {
-        success: false,
-        data: null,
-        error: { code: "M004", message: "expired", status: 403 },
-      },
-    ],
-  ])(
-    "suppresses the global auth signal for a session-owned %s transport rejection",
-    async (_case, status, data) => {
+    ["global", undefined, 1],
+    ["session-owned", sessionOwnedAuthEventPolicy, 0],
+  ] as const)(
+    "applies %s auth ownership to transport failures",
+    async (_name, authEventPolicy, expectedSignals) => {
       const listener = vi.fn();
       const unsubscribe = onAuthError(listener);
-      const adapter: AxiosAdapter = async (config) => {
-        throw new AxiosError(
-          "authentication failed",
-          undefined,
-          config,
-          undefined,
-          {
-            ...response(config, data),
-            status,
+      vi.spyOn(httpClient, "request").mockRejectedValue(
+        new HttpTransportFailure("http", {
+          status: 403,
+          responseData: {
+            success: false,
+            error: { code: "M004", message: "expired" },
           },
-        );
-      };
-      httpClient.defaults.adapter = adapter;
+        }),
+      );
 
       try {
         await expect(
           requestApiData({
             method: "GET",
             path: "/auth/me",
-            authEventPolicy: sessionOwnedAuthEventPolicy,
+            ...(authEventPolicy === undefined ? {} : { authEventPolicy }),
           }),
         ).rejects.toMatchObject({ kind: "authentication" });
-        expect(listener).not.toHaveBeenCalled();
+        expect(listener).toHaveBeenCalledTimes(expectedSignals);
+      } finally {
+        unsubscribe();
+      }
+    },
+  );
+
+  it.each([
+    [401, null, "AUTHENTICATION_REQUIRED"],
+    [
+      403,
+      {
+        success: false,
+        data: null,
+        error: { code: "M004", message: "expired" },
+      },
+      "M004",
+    ],
+  ] as const)(
+    "publishes one auth event for a real native HTTP %s failure",
+    async (status, data, expectedCode) => {
+      const listener = vi.fn();
+      const unsubscribe = onAuthError(listener);
+      const fetchRequest = vi.fn(
+        async (_input: RequestInfo | URL, _init?: RequestInit) =>
+          browserResponse(status, data),
+      );
+      vi.stubGlobal("fetch", fetchRequest);
+
+      try {
+        await expect(
+          requestApiData({ method: "GET", path: "/protected" }),
+        ).rejects.toMatchObject({
+          code: expectedCode,
+          kind: "authentication",
+        });
+        expect(listener).toHaveBeenCalledOnce();
+        expect(fetchRequest).toHaveBeenCalledOnce();
+        expect(fetchRequest.mock.calls[0]?.[1]).toMatchObject({
+          credentials: "include",
+          method: "GET",
+        });
       } finally {
         unsubscribe();
       }

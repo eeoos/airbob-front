@@ -91,7 +91,7 @@ Current owners:
 | Application header | `src/app/header/**` | `Header` and `UserMenu` are app-composition owners; they consume feature public UI/ports and are injected into route frames. |
 | Application shells | `src/app/shells/**` | Browse, form, transaction, editor, and bare shells are route-frame-only owners and render exactly one `main`; nested page structure uses ordinary labelled sections instead of a second shell abstraction. |
 | Overlay runtime | `src/app/overlays/OverlayProvider.tsx`, `src/shared/ui/overlayRuntime.ts` | One app-owned `#airbob-portal-root` hosts Dialog and route Toast. Modal and local non-modal registrations share topmost Escape order; only modals lock scroll and isolate the app. Dialog owns focus containment, explicit initial focus, inactive-layer semantics, and focus-lineage restoration. |
-| API transport and envelope | `src/platform/http/**` | One credentialed Axios instance and one `AppError` envelope boundary. Feature adapters consume it directly; multipart commands declare their body encoding so the shared JSON default cannot serialize `FormData`. |
+| API transport and envelope | `src/platform/http/**` | One native browser transport and one `AppError` envelope boundary. Credentialed `fetch` owns ordinary JSON and multipart requests; progress-reporting multipart uploads alone use credentialed `XMLHttpRequest`. Feature adapters consume the boundary directly, and the browser owns every `FormData` content boundary. |
 | Browser platform boundary | `src/platform/config/**`, `storage/**`, `integrations/**`, `assets/**`, `browser/**`, `session/**` | Owns public environment input, browser storage access, external SDK globals/scripts, image URL resolution, isolated new-tab navigation, exact current-history-entry validation, auth-error signaling, and the non-PII cross-tab channel. |
 | Wishlist feature and workflow | `src/features/wishlist/**`, `src/workflows/wishlist-membership/**`, `src/screens/wishlist/**` | Feature-owned API/model/scoped read options feed a URL-prop-only screen controller. Search, Detail, and Wishlist lazy adapters mount one route-scoped provider inside the current QueryClient generation, so the writer is disposed on route departure without entering the initial app chunk. Its subject/epoch-fenced command runner owns collection/membership create, add, remove, delete, memo-save, and recently-viewed removal. App composition sends Search and Detail updates only to their owning scoped cache projections. |
 | Search feature | `src/app/router/routes/SearchRoute.tsx`, `src/screens/search/**`, `src/features/search/**` | The app adapter alone owns codec parsing, page push, map-bounds replace, booking-safe detail URLs, auth-intent claim, and workflow composition. `SearchController` derives request/map/view state; feature-owned API/wire mappers and scoped Query options own server reads, cancellation, and stale-result fencing. `SearchScreen` is props-only. SearchBar receives a typed route port and its reducer owns draft/popover/IME interaction only. |
@@ -106,9 +106,9 @@ Current owners:
 | Shared styling and brand assets | `src/shared/styles/**`, `src/shared/assets/**` | Global CSS imports primitive, semantic, then component tokens in one explicit order. The responsive manifest and JS `matchMedia` policy agree at the 1024px boundary; the production wordmark is manifest-owned and public PWA icons use real Airbob artwork. Vite transforms the owned custom-media aliases during development and production builds. |
 | Build, development, and static deployment | `vite.config.ts`, root `index.html`, `vercel.json` | Vite 8 is the sole `dev`/`build`/`preview` owner on Node 22.13+ or Node 24 and retains `build/`, `build/static/`, the `/api` development proxy, CSS Modules, custom-media transforms, public assets, production JavaScript source maps, development CSS source maps, and route-level lazy chunks. The supported browser floor is Vite 8's pinned `baseline-widely-available` target (Chrome/Edge 111, Firefox 114, Safari/iOS 16.4); the old dynamic CRA Browserslist query is removed rather than implying a legacy bundle. Native ESM TypeScript config is checked by its own Node-only compiler project and exercised through Vite's resolver, ESLint, Knip, and hostile production builds. Vercel checks real files before the SPA fallback, serves hashed `/static/*` assets with immutable caching, and forces `index.html` to revalidate. |
 | Compiler environments | `tsconfig.json`, `tsconfig.test.json`, `tsconfig.tooling.json`, `tsconfig.e2e.json` | TypeScript 5.9 gives production source only DOM/Vite types and separately grants Vitest, Node tooling, and Playwright their exact globals. `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`, `noUncheckedSideEffectImports`, and `erasableSyntaxOnly` are blocking. A local ambient declaration in the environment adapter exposes only the five compile-time properties that Vite explicitly substitutes; Node types never enter the browser project. |
-| Local source lint environments | `eslint.config.mjs`, `tests/architecture/verify-eslint-config.mjs` | ESLint 9.39 uses native flat config and current TypeScript, React, stable Hooks, accessibility, Vitest, Testing Library, jest-dom, and Playwright plugins. Browser, Vitest/DOM/Node, Playwright/Node, ESM Node, and CommonJS Node scopes receive distinct globals; Jest globals and CRA presets are absent. Local binding/import feedback and executable process/storage/SDK/script/Axios capability restrictions remain ESLint-owned, while import direction/cycles, production reachability/dependency declarations, and CSS policy remain exclusively dependency-cruiser, Knip, and Stylelint owned. Unused disable directives and unused inline configs are errors; active suppressions require a narrow, reviewable reason. React Compiler-only ref/effect/memo adoption rules are explicitly outside this cutover so they cannot silently force semantic rewrites of established overlay/session/payment runtimes. |
+| Local source lint environments | `eslint.config.mjs`, `tests/architecture/verify-eslint-config.mjs` | ESLint 9.39 uses native flat config and current TypeScript, React, stable Hooks, accessibility, Vitest, Testing Library, jest-dom, and Playwright plugins. Browser, Vitest/DOM/Node, Playwright/Node, ESM Node, and CommonJS Node scopes receive distinct globals; Jest globals and CRA presets are absent. Local binding/import feedback and executable process/storage/SDK/script/native-HTTP capability restrictions remain ESLint-owned, while import direction/cycles, production reachability/dependency declarations, and CSS policy remain exclusively dependency-cruiser, Knip, and Stylelint owned. Retired Axios imports and direct `fetch`/`XMLHttpRequest` use outside `src/platform/http/**` are executable failures. Unused disable directives and unused inline configs are errors; active suppressions require a narrow, reviewable reason. React Compiler-only ref/effect/memo adoption rules are explicitly outside this cutover so they cannot silently force semantic rewrites of established overlay/session/payment runtimes. |
 | Mechanical formatting | `.prettierrc.json`, `.editorconfig`, `.prettierignore`, `tests/architecture/verify-prettier-config.mjs` | Prettier 3.9 is the sole layout owner for active source, tests, configuration, and compact current documentation. EditorConfig fixes UTF-8, LF, final newlines, and two-space indentation. This registry, the browser-data inventory, and the ownership matrix retain compact hand-maintained tables to avoid whole-row churn; generated build/test artifacts, npm's lockfile, local tool state, binary assets, archived docs, and historical superpowers plans are also outside Prettier ownership. `format:check` is part of the canonical architecture gate. |
-| Unit and integration tests | `vitest.config.ts`, `src/test/setup.ts`, colocated `*.test.*` and `*.spec.*` files | Vitest 4 and jsdom share the Vite module graph, run files with one worker and ordered hooks, expose Vitest globals with explicit TypeScript/ESLint ownership, and use non-scoped CSS Module names only inside tests. The setup owns jest-dom matchers and portal cleanup; Axios and React Router resolve through their real package exports. Vite's test mode performs no browser-public environment substitution. The current 266-file, 1,922-test suite reports 87.25% statements, 79.29% branches, 89.69% functions, and 89.50% lines against floors of 87/79/89/89. `react-scripts`, `@types/jest`, global Jest aliases, virtual real-module mocks, and `requireActual` shims are absent. |
+| Unit and integration tests | `vitest.config.ts`, `src/test/setup.ts`, colocated `*.test.*` and `*.spec.*` files | Vitest 4 and jsdom share the Vite module graph, run files with one worker and ordered hooks, expose Vitest globals with explicit TypeScript/ESLint ownership, and use non-scoped CSS Module names only inside tests. The setup owns jest-dom matchers and portal cleanup; native `fetch`/`XMLHttpRequest` behavior and React Router use real browser/package contracts rather than virtual production-module shims. Vite's test mode performs no browser-public environment substitution. `npm run test:ci:no-cache` is the current evidence and enforces coverage floors of 87/79/89/89 for statements/branches/functions/lines without duplicating volatile suite counts here. `react-scripts`, `@types/jest`, global Jest aliases, virtual real-module mocks, and `requireActual` shims are absent. |
 | Browser smoke | `scripts/smoke/frontend-smoke.mjs` | Live backend, browser, credentials, and stable IDs are external prerequisites. |
 | Deterministic browser characterization | `playwright.config.ts`, `tests/e2e/**` | Loopback production app plus an exact synthetic HTTPS `.invalid` API origin, synthetic session/API fixtures, and default-deny network. |
 | Static architecture ratchets | `.dependency-cruiser.cjs`, `knip.json`, `stylelint.config.mjs`, `architecture-ratchet.json` | Target/migrated surfaces fail on graph, reachability, and design-policy regressions while measured legacy debt remains visible. |
@@ -233,10 +233,12 @@ function-identity scope inference, global Query facade, or rollback reader.
 
 ### API boundary
 
-- `src/platform/http/client.ts` creates the only credentialed production Axios
-  instance. Feature API adapters import this boundary directly.
+- `src/platform/http/client.ts` creates the only production browser HTTP
+  transport. It uses credentialed `fetch` for ordinary requests and reserves
+  credentialed `XMLHttpRequest` for multipart uploads that report progress.
+  Feature API adapters import this boundary directly.
 - `src/platform/http/envelope.ts` and `errors.ts` own the migrated
-  `AppError` boundary. Raw Axios error shapes do not cross into features,
+  `AppError` boundary. Raw browser transport failures do not cross into features,
   screens, or application composition.
 - Auth, Wishlist, Search, Accommodation Detail/coupons, Accommodation Editor,
   Profile host listings, reservation reads/create/payment, and Review methods, wire types, and
@@ -328,28 +330,18 @@ tags, URLs, local paths, and Git specs are rejected. Feature ownership also
 rejects symbolic links, so a renamed slice cannot escape strict promotion by
 aliasing its old implementation.
 
-The U9 fixed-environment CRA production build reported a 139.92 kB gzip main
-bundle, 0.98 kB below U8. Source-map inspection places Accommodation Detail in
-an 8.27 kB lazy route chunk, Review Create in a 5.68 kB lazy route chunk,
-Search in a 15.51 kB lazy route chunk, the Wishlist provider in a separate
-8.54 kB chunk, and `AccommodationActionModal` in another 6.28 kB chunk; none
-enters the Header-owned main chunk. This proves the U9 route/chunk boundary, but
-it does not approve the plan's
-final 131.4 kB main-budget target. U15 removed 11.9 MB of tracked unused
-source assets and all unused UI files. The final U15 CRA parity build reported a
-147.73 kB gzip main bundle. U16 measures the equivalent Vite initial JavaScript
-graph as the entry plus every document module-preload rather than reporting only
-the smaller-looking `index-*` file. Hostile root-relative and absolute-base
-builds currently top out at 144.08 kB gzip after the patched Axios and React
-Router upgrades: 3.65 kB below the U15 parity ceiling but still 12.68 kB above
-the final 131.4 kB target. All 15 lazy route chunks and
-their production JavaScript source maps remain present, development CSS source
-maps are enabled, and built CSS contains no unresolved custom-media syntax.
-Vite 8 does not emit separate production CSS map assets in this pipeline, so the
-contract states that limitation instead of claiming nonexistent parity. U18
-therefore still owns the executable final budget and
-the remaining reduction instead of hiding runtime code in an unused barrel
-export.
+The hostile production-build verifier measures the Vite initial JavaScript graph
+as the entry plus every document module-preload rather than reporting only the
+smaller-looking `index-*` file. Retiring Axios in favor of the native platform
+transport brings both root-relative and absolute-base builds below the plan's
+131.4 kB final target; the verifier prints the current measurement. The same
+command verifies all 15
+lazy route chunks and their JavaScript source maps, rejects unresolved
+custom-media syntax, and scans built JavaScript/maps for forbidden public-config
+canaries. Vite 8 does not emit separate production CSS map assets in this
+pipeline, so the contract states that limitation instead of claiming nonexistent
+parity. The executable final budget, rather than this measured snapshot, remains
+the blocking source of truth.
 
 ### Static deployment and rollback contract
 

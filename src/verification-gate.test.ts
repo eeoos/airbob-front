@@ -459,7 +459,7 @@ describe("frontend verification gate", () => {
       expect(packageJson.devDependencies[dependency]).toBeDefined();
       expect(packageJson.dependencies[dependency]).toBeUndefined();
     });
-    expect(packageJson.dependencies.axios).toBeDefined();
+    expect(packageJson.dependencies.axios).toBeUndefined();
     expect(packageJson.dependencies["react-router-dom"]).toBeDefined();
     expect(packageJson.dependencies.typescript).toBeUndefined();
     expect(packageJson.dependencies["web-vitals"]).toBeUndefined();

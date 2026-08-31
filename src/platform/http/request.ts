@@ -1,8 +1,11 @@
-import type { AxiosRequestConfig, AxiosResponse } from "axios";
 import { triggerAuthError } from "../session/authEvents";
 import type { AuthEventPolicy } from "./authEventPolicy";
 import { isSessionOwnedAuthEventRequest } from "./authEventPolicy";
-import { httpClient, MULTIPART_API_REQUEST_TIMEOUT_MS } from "./client";
+import {
+  httpClient,
+  type HttpClientRequest,
+  type HttpClientResponse,
+} from "./client";
 import { parseApiEnvelope } from "./envelope";
 import { AppError, normalizeHttpError } from "./errors";
 
@@ -26,17 +29,10 @@ const INVALID_API_RESPONSE = Object.freeze({
   status: 500,
 });
 
-const isHtmlContentType = (response: AxiosResponse<unknown>): boolean => {
-  const contentType = response.headers?.["content-type"];
+const isHtmlContentType = (response: HttpClientResponse): boolean =>
+  response.contentType?.toLowerCase().includes("text/html") ?? false;
 
-  return (
-    typeof contentType === "string" &&
-    contentType.toLowerCase().includes("text/html")
-  );
-};
-
-const toAxiosRequestConfig = ({
-  authEventPolicy,
+const toHttpClientRequest = ({
   body,
   bodyEncoding,
   method,
@@ -44,46 +40,17 @@ const toAxiosRequestConfig = ({
   params,
   path,
   signal,
-}: ApiDataRequest): AxiosRequestConfig => ({
-  ...(authEventPolicy ?? {}),
-  ...(body === undefined ? {} : { data: body }),
-  ...(bodyEncoding === "multipart"
-    ? {
-        headers: { "Content-Type": "multipart/form-data" },
-        timeout: MULTIPART_API_REQUEST_TIMEOUT_MS,
-      }
-    : {}),
+}: ApiDataRequest): HttpClientRequest => ({
   method,
+  path,
+  ...(body === undefined ? {} : { body }),
+  ...(bodyEncoding === undefined ? {} : { bodyEncoding }),
   ...(params === undefined ? {} : { params }),
   ...(signal === undefined ? {} : { signal }),
-  ...(onUploadProgress
-    ? {
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total) {
-            onUploadProgress(
-              Math.round((progressEvent.loaded * 100) / progressEvent.total),
-            );
-          }
-        },
-      }
-    : {}),
-  url: path,
+  ...(onUploadProgress === undefined ? {} : { onUploadProgress }),
 });
 
-const executeRequest = async (
-  request: ApiDataRequest,
-): Promise<AxiosResponse<unknown>> => {
-  try {
-    return await httpClient.request(toAxiosRequestConfig(request));
-  } catch (error) {
-    throw normalizeHttpError(error);
-  }
-};
-
-const publishEnvelopeAuthErrorIfNeeded = (
-  error: AppError,
-  request: ApiDataRequest,
-) => {
+const publishAuthErrorIfNeeded = (error: AppError, request: ApiDataRequest) => {
   if (
     error.kind === "authentication" &&
     !isSessionOwnedAuthEventRequest(request.authEventPolicy)
@@ -92,8 +59,20 @@ const publishEnvelopeAuthErrorIfNeeded = (
   }
 };
 
+const executeRequest = async (
+  request: ApiDataRequest,
+): Promise<HttpClientResponse> => {
+  try {
+    return await httpClient.request(toHttpClientRequest(request));
+  } catch (error) {
+    const appError = normalizeHttpError(error);
+    publishAuthErrorIfNeeded(appError, request);
+    throw appError;
+  }
+};
+
 const parseResponse = <T>(
-  response: AxiosResponse<unknown>,
+  response: HttpClientResponse,
   request: ApiDataRequest,
   allowNull: boolean,
 ): T | null => {
@@ -107,14 +86,14 @@ const parseResponse = <T>(
       : parseApiEnvelope<T>(response.data);
   } catch (error) {
     const appError = normalizeHttpError(error);
-    publishEnvelopeAuthErrorIfNeeded(appError, request);
+    publishAuthErrorIfNeeded(appError, request);
     throw appError;
   }
 };
 
 /**
- * Canonical migrated API boundary. Feature adapters provide only transport
- * data and receive validated, non-null envelope data or a normalized AppError.
+ * Canonical API boundary. Feature adapters provide only transport data and
+ * receive validated, non-null envelope data or a normalized AppError.
  */
 export const requestApiData = async <T>(
   request: ApiDataRequest,

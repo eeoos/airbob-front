@@ -32,7 +32,8 @@ defaults.
 
 ESLint owns local binding correctness, React and Hooks feedback, accessibility,
 test API usage, and direct browser-capability boundaries such as `process`,
-storage, SDK globals, script insertion, Axios, and Toss imports. It does not own
+storage, SDK globals, script insertion, native HTTP access, retired Axios, and
+Toss imports. It does not own
 module direction or cycles, production reachability, unused dependencies, or
 CSS policy; those remain with dependency-cruiser, Knip, and Stylelint/contracts.
 The semantic verifier evaluates the resolved flat configuration through
@@ -222,9 +223,12 @@ stylelint-config-recommended 18.0.0, and stylelint-config-standard 40.0.0. The
 runtime/compiler floor is Node `^22.13 || ^24`, TypeScript 5.9.3, and ESLint
 9.39.5 with native flat configuration. TypeScript and PostCSS are direct
 development dependencies; the no-op `web-vitals` runtime package is removed.
-Axios 1.20 and React Router 7.18 replace advisory-affected runtime versions;
-the full locked install graph reports zero known vulnerabilities as of the U23
-cutover. Their measured bundle increase remains visible under the U16 parity
-ceiling and is explicit U18 reduction work rather than a hidden exception.
+React Router 7.18 replaces the advisory-affected routing runtime. U18 retires
+Axios in favor of the platform-owned browser transport, while keeping its
+cookie, timeout, cancellation, envelope, multipart, upload-progress, and safe
+error contracts executable. The full locked install graph reports zero known
+vulnerabilities as of the U23/U18 cutover, and the removed runtime dependency
+provides the final initial-graph reduction instead of hiding code behind an
+unused export.
 Prettier 3.9.6 and EditorConfig complete U23 with one independent mechanical
 formatter-owned pass and a CI-reachable drift gate.

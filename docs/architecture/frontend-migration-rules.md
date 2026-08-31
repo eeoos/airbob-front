@@ -132,12 +132,14 @@ browser storage when a reload can safely refetch it.
 
 ## 8. Migrate API and integration access through ports
 
-- Platform owns environment exposure, Axios transport, envelope normalization,
-  browser storage access, and Google/Daum/Toss global integration.
+- Platform owns environment exposure, the native browser HTTP transport,
+  envelope normalization, browser storage access, and Google/Daum/Toss global
+  integration.
 - A feature adapter owns the backend method/path/query/body and wire mapper for
   its capability.
-- Screens and shared UI do not import Axios, QueryClient mutation APIs,
-  `process.env`, `sessionStorage`, or browser SDK globals.
+- Screens and shared UI do not call `fetch`/`XMLHttpRequest`, import retired
+  Axios or QueryClient mutation APIs, or access `process.env`, `sessionStorage`,
+  or browser SDK globals.
 - SDK replacement is separate from workflow replacement. Specifically, payment
   behavior moves behind the current Toss v1 adapter before the npm v2 adapter is
   installed as the sole runtime.
