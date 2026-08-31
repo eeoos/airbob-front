@@ -1,3 +1,4 @@
+import type { Mock } from "vitest";
 import { AppError } from "../../../platform/http/errors";
 import type {
   AuthenticatedSessionScope,
@@ -36,7 +37,7 @@ const command = (): PaymentConfirmationCommand => ({
     guestCount: 2,
   },
   routeLease: { isCurrent: () => true },
-  markConfirming: jest.fn(() => true),
+  markConfirming: vi.fn(() => true),
 });
 
 const payment = (
@@ -79,26 +80,26 @@ const flushMicrotasks = async () => {
 };
 
 const setup = ({
-  confirm = jest.fn().mockResolvedValue(undefined),
-  getByPaymentKey = jest.fn().mockResolvedValue(payment()),
-  getCheckoutOwnership = jest.fn().mockResolvedValue(ownership()),
+  confirm = vi.fn().mockResolvedValue(undefined),
+  getByPaymentKey = vi.fn().mockResolvedValue(payment()),
+  getCheckoutOwnership = vi.fn().mockResolvedValue(ownership()),
 }: {
-  confirm?: jest.Mock;
-  getByPaymentKey?: jest.Mock;
-  getCheckoutOwnership?: jest.Mock;
+  confirm?: Mock;
+  getByPaymentKey?: Mock;
+  getCheckoutOwnership?: Mock;
 } = {}) => {
   let currentScope: AuthenticatedSessionScope | null = scopeA;
   const api: PaymentApiPort = {
     confirm,
-    getByOrderId: jest.fn(),
+    getByOrderId: vi.fn(),
     getByPaymentKey,
   };
   const ownershipApi: CheckoutOwnershipApiPort = {
     getCheckoutOwnership,
   };
   const session = {
-    captureAuthenticatedSession: jest.fn(() => currentScope),
-    isCurrentSession: jest.fn(
+    captureAuthenticatedSession: vi.fn(() => currentScope),
+    isCurrentSession: vi.fn(
       (scope: AuthenticatedSessionScope) =>
         currentScope?.subject === scope.subject &&
         currentScope.epoch === scope.epoch,
@@ -156,7 +157,7 @@ describe("payment confirmation workflow", () => {
     "rejects an ownership $label mismatch before payment I/O",
     async (_label, override) => {
       const { api, ownershipApi, workflow } = setup({
-        getCheckoutOwnership: jest
+        getCheckoutOwnership: vi
           .fn()
           .mockResolvedValue(ownership(override)),
       });
@@ -177,7 +178,7 @@ describe("payment confirmation workflow", () => {
       message: "ownership unavailable",
       retryable: true,
     });
-    const getCheckoutOwnership = jest
+    const getCheckoutOwnership = vi
       .fn()
       .mockRejectedValueOnce(preflightError)
       .mockResolvedValueOnce(ownership());
@@ -201,16 +202,16 @@ describe("payment confirmation workflow", () => {
 
   it("persists confirming after ownership and before the confirm POST", async () => {
     const events: string[] = [];
-    const confirm = jest.fn().mockImplementation(async () => {
+    const confirm = vi.fn().mockImplementation(async () => {
       events.push("confirm");
     });
-    const getCheckoutOwnership = jest.fn().mockImplementation(async () => {
+    const getCheckoutOwnership = vi.fn().mockImplementation(async () => {
       events.push("ownership");
       return ownership();
     });
     const input: PaymentConfirmationCommand = {
       ...command(),
-      markConfirming: jest.fn(() => {
+      markConfirming: vi.fn(() => {
         events.push("mark-confirming");
         expect(confirm).not.toHaveBeenCalled();
         return true;
@@ -227,7 +228,7 @@ describe("payment confirmation workflow", () => {
   it("fails closed before POST when confirming cannot be persisted", async () => {
     const input: PaymentConfirmationCommand = {
       ...command(),
-      markConfirming: jest.fn(() => false),
+      markConfirming: vi.fn(() => false),
     };
     const { api, workflow } = setup();
 
@@ -247,7 +248,7 @@ describe("payment confirmation workflow", () => {
     async (_label, status, expectedStatus) => {
       const input = command();
       const { api, workflow } = setup({
-        getCheckoutOwnership: jest.fn().mockResolvedValue(
+        getCheckoutOwnership: vi.fn().mockResolvedValue(
           ownership({ payment: payment({ status }) }),
         ),
       });
@@ -263,7 +264,7 @@ describe("payment confirmation workflow", () => {
 
   it("shares one active confirmation Promise and terminal-locks success", async () => {
     const pending = deferred<void>();
-    const confirm = jest.fn().mockReturnValue(pending.promise);
+    const confirm = vi.fn().mockReturnValue(pending.promise);
     const { api, workflow } = setup({ confirm });
 
     const first = workflow.confirm(command());
@@ -283,7 +284,7 @@ describe("payment confirmation workflow", () => {
   it("does not share an active result with a different payment tuple", async () => {
     const pending = deferred<void>();
     const { api, workflow } = setup({
-      confirm: jest.fn().mockReturnValue(pending.promise),
+      confirm: vi.fn().mockReturnValue(pending.promise),
     });
 
     const first = workflow.confirm(command());
@@ -305,7 +306,7 @@ describe("payment confirmation workflow", () => {
       retryable: true,
     });
     const { api, workflow } = setup({
-      confirm: jest.fn().mockRejectedValue(confirmError),
+      confirm: vi.fn().mockRejectedValue(confirmError),
     });
 
     await expect(workflow.confirm(command())).resolves.toEqual({
@@ -322,12 +323,12 @@ describe("payment confirmation workflow", () => {
       message: "server failed",
       retryable: true,
     });
-    const getByPaymentKey = jest
+    const getByPaymentKey = vi
       .fn()
       .mockResolvedValueOnce(payment({ status: "IN_PROGRESS" }))
       .mockResolvedValueOnce(payment({ status: "DONE" }));
     const { workflow } = setup({
-      confirm: jest.fn().mockRejectedValue(confirmError),
+      confirm: vi.fn().mockRejectedValue(confirmError),
       getByPaymentKey,
     });
 
@@ -353,8 +354,8 @@ describe("payment confirmation workflow", () => {
       retryable: true,
     });
     const { api, workflow } = setup({
-      confirm: jest.fn().mockRejectedValue(confirmError),
-      getByPaymentKey: jest
+      confirm: vi.fn().mockRejectedValue(confirmError),
+      getByPaymentKey: vi
         .fn()
         .mockRejectedValueOnce(lookupError)
         .mockResolvedValueOnce(payment({ status: "DONE" })),
@@ -382,7 +383,7 @@ describe("payment confirmation workflow", () => {
       status: 409,
     });
     const { api, workflow } = setup({
-      confirm: jest.fn().mockRejectedValue(conflict),
+      confirm: vi.fn().mockRejectedValue(conflict),
     });
 
     await expect(workflow.confirm(command())).resolves.toEqual({
@@ -399,11 +400,11 @@ describe("payment confirmation workflow", () => {
       message: "already processed",
       status: 409,
     });
-    const confirm = jest
+    const confirm = vi
       .fn()
       .mockReturnValueOnce(firstConfirmation.promise)
       .mockRejectedValueOnce(conflict);
-    const getByPaymentKey = jest.fn().mockResolvedValue(payment());
+    const getByPaymentKey = vi.fn().mockResolvedValue(payment());
     const firstTab = setup({ confirm, getByPaymentKey });
     const secondTab = setup({ confirm, getByPaymentKey });
 
@@ -426,7 +427,7 @@ describe("payment confirmation workflow", () => {
       status: 400,
     });
     const { api, workflow } = setup({
-      confirm: jest.fn().mockRejectedValue(error),
+      confirm: vi.fn().mockRejectedValue(error),
     });
 
     await expect(workflow.confirm(command())).resolves.toEqual({
@@ -445,7 +446,7 @@ describe("payment confirmation workflow", () => {
     override,
   }) => {
     const { workflow } = setup({
-      getByPaymentKey: jest.fn().mockResolvedValue(payment(override)),
+      getByPaymentKey: vi.fn().mockResolvedValue(payment(override)),
     });
 
     await expect(workflow.reconcile(command())).resolves.toEqual({
@@ -457,7 +458,7 @@ describe("payment confirmation workflow", () => {
     "maps server %s to terminal failure",
     async (status) => {
       const { workflow } = setup({
-        getByPaymentKey: jest.fn().mockResolvedValue(payment({ status })),
+        getByPaymentKey: vi.fn().mockResolvedValue(payment({ status })),
       });
 
       await expect(workflow.reconcile(command())).resolves.toEqual({
@@ -474,7 +475,7 @@ describe("payment confirmation workflow", () => {
       retryable: true,
     });
     const { workflow } = setup({
-      getByPaymentKey: jest.fn().mockRejectedValue(error),
+      getByPaymentKey: vi.fn().mockRejectedValue(error),
     });
 
     await expect(workflow.reconcile(command())).resolves.toEqual({
@@ -486,7 +487,7 @@ describe("payment confirmation workflow", () => {
   it("terminal-locks a malformed server payment response", async () => {
     const contractError = new TypeError("invalid payment wire");
     const { workflow } = setup({
-      getByPaymentKey: jest.fn().mockRejectedValue(contractError),
+      getByPaymentKey: vi.fn().mockRejectedValue(contractError),
     });
 
     await expect(workflow.reconcile(command())).resolves.toEqual({
@@ -498,7 +499,7 @@ describe("payment confirmation workflow", () => {
   it("fences a late result after the authenticated session changes", async () => {
     const pending = deferred<PaymentRecord>();
     const { setScope, workflow } = setup({
-      getByPaymentKey: jest.fn().mockReturnValue(pending.promise),
+      getByPaymentKey: vi.fn().mockReturnValue(pending.promise),
     });
     const result = workflow.reconcile(command());
     await flushMicrotasks();
@@ -511,7 +512,7 @@ describe("payment confirmation workflow", () => {
   it("aborts and stale-locks an active operation on disposal", async () => {
     let signal: AbortSignal | undefined;
     const pending = deferred<PaymentRecord>();
-    const getByPaymentKey = jest.fn(
+    const getByPaymentKey = vi.fn(
       (_key, options: { readonly signal?: AbortSignal }) => {
         signal = options.signal;
         return pending.promise;

@@ -54,10 +54,10 @@ describe("OverlayProvider", () => {
     render(
       <OverlayProvider>
         <div data-testid="route-owner">
-          <Dialog isOpen title="확인" onClose={jest.fn()}>
+          <Dialog isOpen title="확인" onClose={vi.fn()}>
             dialog content
           </Dialog>
-          <ToastHost message="저장 완료" onClose={jest.fn()} />
+          <ToastHost message="저장 완료" onClose={vi.fn()} />
         </div>
       </OverlayProvider>,
     );
@@ -78,13 +78,13 @@ describe("OverlayProvider", () => {
   it("keeps an interactive dialog Toast inside the dialog focus scope", async () => {
     render(
       <OverlayProvider>
-        <Dialog isOpen title="저장 확인" onClose={jest.fn()}>
+        <Dialog isOpen title="저장 확인" onClose={vi.fn()}>
           <button type="button">본문 작업</button>
           <ToastHost
-            action={{ label: "다시 시도", onClick: jest.fn() }}
+            action={{ label: "다시 시도", onClick: vi.fn() }}
             closeLabel="알림 닫기"
             message="저장에 실패했습니다."
-            onClose={jest.fn()}
+            onClose={vi.fn()}
           />
         </Dialog>
       </OverlayProvider>,
@@ -115,7 +115,7 @@ describe("OverlayProvider", () => {
     const portalRoot = document.createElement("div");
     document.body.appendChild(portalRoot);
     const browserFocus = HTMLElement.prototype.focus;
-    const focusSpy = jest
+    const focusSpy = vi
       .spyOn(HTMLElement.prototype, "focus")
       .mockImplementation(function inertAwareFocus(this: HTMLElement) {
         // Browser focus ignores descendants of an inert layer; JSDOM does not.
@@ -134,7 +134,7 @@ describe("OverlayProvider", () => {
             initialFocusRef={initialFocusRef}
             isOpen
             title="브라우저 포커스"
-            onClose={jest.fn()}
+            onClose={vi.fn()}
           >
             <input ref={initialFocusRef} autoFocus aria-label="이름" />
           </Dialog>
@@ -167,7 +167,7 @@ describe("OverlayProvider", () => {
 
     const view = render(
       <OverlayProvider applicationRoot={applicationRoot}>
-        <RegisteredOverlay modality="non-modal" onClose={jest.fn()} />
+        <RegisteredOverlay modality="non-modal" onClose={vi.fn()} />
       </OverlayProvider>,
     );
 
@@ -180,8 +180,8 @@ describe("OverlayProvider", () => {
   });
 
   it("keeps Dialog topmost state modal-only while Escape follows the whole stack", async () => {
-    const closeDialog = jest.fn();
-    const closeNonModal = jest.fn();
+    const closeDialog = vi.fn();
+    const closeNonModal = vi.fn();
 
     render(
       <OverlayProvider>
@@ -201,8 +201,8 @@ describe("OverlayProvider", () => {
   });
 
   it("lets only the topmost dialog handle Escape and backdrop dismissal", async () => {
-    const closeFirst = jest.fn();
-    const closeSecond = jest.fn();
+    const closeFirst = vi.fn();
+    const closeSecond = vi.fn();
 
     render(
       <OverlayProvider>
@@ -234,8 +234,8 @@ describe("OverlayProvider", () => {
   });
 
   it("leaves Escape to a child control that prevents its default behavior", () => {
-    const closeDialog = jest.fn();
-    const handleChildEscape = jest.fn();
+    const closeDialog = vi.fn();
+    const handleChildEscape = vi.fn();
 
     render(
       <OverlayProvider>
@@ -265,10 +265,10 @@ describe("OverlayProvider", () => {
   it("keeps portal DOM order aligned when an earlier dialog opens last", () => {
     const view = render(
       <OverlayProvider>
-        <Dialog isOpen={false} title="첫 번째" onClose={jest.fn()}>
+        <Dialog isOpen={false} title="첫 번째" onClose={vi.fn()}>
           first content
         </Dialog>
-        <Dialog isOpen title="두 번째" onClose={jest.fn()}>
+        <Dialog isOpen title="두 번째" onClose={vi.fn()}>
           second content
         </Dialog>
       </OverlayProvider>,
@@ -276,10 +276,10 @@ describe("OverlayProvider", () => {
 
     view.rerender(
       <OverlayProvider>
-        <Dialog isOpen title="첫 번째" onClose={jest.fn()}>
+        <Dialog isOpen title="첫 번째" onClose={vi.fn()}>
           first content
         </Dialog>
-        <Dialog isOpen title="두 번째" onClose={jest.fn()}>
+        <Dialog isOpen title="두 번째" onClose={vi.fn()}>
           second content
         </Dialog>
       </OverlayProvider>,
@@ -429,7 +429,7 @@ describe("OverlayProvider", () => {
 
       return (
         <>
-          <Dialog isOpen title="첫 번째" onClose={jest.fn()}>
+          <Dialog isOpen title="첫 번째" onClose={vi.fn()}>
             first content
           </Dialog>
           <Dialog
@@ -498,13 +498,13 @@ describe("OverlayProvider", () => {
     document.body.style.overflow = "auto";
     const view = render(
       <OverlayProvider>
-        <Dialog isOpen title="첫 번째" onClose={jest.fn()}>
+        <Dialog isOpen title="첫 번째" onClose={vi.fn()}>
           first
         </Dialog>
-        <Dialog isOpen title="두 번째" onClose={jest.fn()}>
+        <Dialog isOpen title="두 번째" onClose={vi.fn()}>
           second
         </Dialog>
-        <ToastHost message="route toast" onClose={jest.fn()} />
+        <ToastHost message="route toast" onClose={vi.fn()} />
       </OverlayProvider>,
     );
     const portalRoot = screen.getByTestId(APP_OVERLAY_ROOT_ID);
@@ -623,7 +623,7 @@ describe("OverlayProvider", () => {
     expect(applicationRoot).toHaveAttribute("inert");
 
     const focusTrigger = trigger.focus.bind(trigger);
-    const focusSpy = jest.spyOn(trigger, "focus").mockImplementation(() => {
+    const focusSpy = vi.spyOn(trigger, "focus").mockImplementation(() => {
       expect(applicationRoot).not.toHaveAttribute("aria-hidden");
       expect(applicationRoot).not.toHaveAttribute("inert");
       focusTrigger();
@@ -640,8 +640,8 @@ describe("OverlayProvider", () => {
   });
 
   it("clears toast timers and removes a provider-owned root on unmount", () => {
-    jest.useFakeTimers();
-    const onClose = jest.fn();
+    vi.useFakeTimers();
+    const onClose = vi.fn();
 
     try {
       const view = render(
@@ -654,12 +654,12 @@ describe("OverlayProvider", () => {
       view.unmount();
 
       act(() => {
-        jest.advanceTimersByTime(1000);
+        vi.advanceTimersByTime(1000);
       });
       expect(onClose).not.toHaveBeenCalled();
       expect(screen.queryByTestId(APP_OVERLAY_ROOT_ID)).not.toBeInTheDocument();
     } finally {
-      jest.useRealTimers();
+      vi.useRealTimers();
     }
   });
 
@@ -671,11 +671,11 @@ describe("OverlayProvider", () => {
     const opener = document.createElement("button");
     document.body.appendChild(opener);
     opener.focus();
-    const focusOpener = jest.spyOn(opener, "focus");
+    const focusOpener = vi.spyOn(opener, "focus");
 
     const view = render(
       <OverlayProvider applicationRoot={applicationRoot}>
-        <Dialog isOpen title="Strict 대화상자" onClose={jest.fn()}>
+        <Dialog isOpen title="Strict 대화상자" onClose={vi.fn()}>
           content
         </Dialog>
       </OverlayProvider>,

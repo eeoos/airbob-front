@@ -1,4 +1,5 @@
 import React from "react";
+import type { Mocked } from "vitest";
 import {
   act,
   fireEvent,
@@ -15,11 +16,11 @@ import {
 import { AuthModal } from "./AuthModal";
 
 const createCommands = (
-  overrides: Partial<jest.Mocked<AuthCommandPort>> = {},
-): jest.Mocked<AuthCommandPort> => ({
-  login: jest.fn().mockResolvedValue(undefined),
-  signup: jest.fn().mockResolvedValue(undefined),
-  shouldCompleteLoginInCurrentView: jest.fn(() => true),
+  overrides: Partial<Mocked<AuthCommandPort>> = {},
+): Mocked<AuthCommandPort> => ({
+  login: vi.fn().mockResolvedValue(undefined),
+  signup: vi.fn().mockResolvedValue(undefined),
+  shouldCompleteLoginInCurrentView: vi.fn(() => true),
   ...overrides,
 });
 
@@ -38,7 +39,7 @@ const renderAuthModal = (
 describe("AuthModal", () => {
   it("renders the login form inside the shared accessible dialog", () => {
     renderAuthModal(
-      <AuthModal isOpen={true} onClose={jest.fn()} initialMode="login" />,
+      <AuthModal isOpen={true} onClose={vi.fn()} initialMode="login" />,
     );
 
     expect(screen.getByRole("dialog", { name: "로그인" })).toBeInTheDocument();
@@ -47,7 +48,7 @@ describe("AuthModal", () => {
 
   it("validates signup locally and dismisses the error toast", async () => {
     const { commands } = renderAuthModal(
-      <AuthModal isOpen={true} onClose={jest.fn()} initialMode="signup" />,
+      <AuthModal isOpen={true} onClose={vi.fn()} initialMode="signup" />,
     );
 
     await userEvent.type(screen.getByLabelText("닉네임"), "airbob");
@@ -73,8 +74,8 @@ describe("AuthModal", () => {
   });
 
   it("closes and runs the success callback after a current login", async () => {
-    const onClose = jest.fn();
-    const onSuccess = jest.fn();
+    const onClose = vi.fn();
+    const onSuccess = vi.fn();
     const { commands } = renderAuthModal(
       <AuthModal
         isOpen={true}
@@ -101,18 +102,15 @@ describe("AuthModal", () => {
   it("does not replay success when the modal closes before login resolves", async () => {
     let resolveLogin!: () => void;
     const commands = createCommands({
-      login: jest.fn<
-        Promise<void>,
-        Parameters<AuthCommandPort["login"]>
-      >(
+      login: vi.fn<AuthCommandPort["login"]>(
         (_credentials) =>
           new Promise<void>((resolve) => {
             resolveLogin = resolve;
           }),
       ),
     });
-    const onClose = jest.fn();
-    const onSuccess = jest.fn();
+    const onClose = vi.fn();
+    const onSuccess = vi.fn();
     const { rerender } = renderAuthModal(
       <AuthModal
         isOpen={true}
@@ -148,11 +146,11 @@ describe("AuthModal", () => {
   it("retains the exact form and error after a failed login", async () => {
     const failure = new Error("이메일 또는 비밀번호가 올바르지 않습니다.");
     const commands = createCommands({
-      login: jest.fn().mockRejectedValue(failure),
+      login: vi.fn().mockRejectedValue(failure),
     });
 
     renderAuthModal(
-      <AuthModal isOpen={true} onClose={jest.fn()} />,
+      <AuthModal isOpen={true} onClose={vi.fn()} />,
       commands,
     );
 
@@ -166,10 +164,10 @@ describe("AuthModal", () => {
   });
 
   it("does not execute a callback rejected by the current-view guard", async () => {
-    const onClose = jest.fn();
-    const onSuccess = jest.fn();
+    const onClose = vi.fn();
+    const onSuccess = vi.fn();
     const commands = createCommands({
-      shouldCompleteLoginInCurrentView: jest.fn(() => false),
+      shouldCompleteLoginInCurrentView: vi.fn(() => false),
     });
 
     renderAuthModal(
@@ -196,18 +194,15 @@ describe("AuthModal", () => {
   it("sends one command and completion for duplicate form submissions", async () => {
     let resolveLogin!: () => void;
     const commands = createCommands({
-      login: jest.fn<
-        Promise<void>,
-        Parameters<AuthCommandPort["login"]>
-      >(
+      login: vi.fn<AuthCommandPort["login"]>(
         (_credentials) =>
           new Promise<void>((resolve) => {
             resolveLogin = resolve;
           }),
       ),
     });
-    const onClose = jest.fn();
-    const onSuccess = jest.fn();
+    const onClose = vi.fn();
+    const onSuccess = vi.fn();
 
     renderAuthModal(
       <AuthModal isOpen={true} onClose={onClose} onSuccess={onSuccess} />,

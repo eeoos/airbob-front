@@ -1,6 +1,7 @@
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useLocation, useNavigate } from "react-router-dom";
+import type { Mocked } from "vitest";
 import { useSession } from "../app/session/useSession";
 import { toSessionSubject } from "../app/session/sessionState";
 import type {
@@ -100,10 +101,10 @@ describe("renderApp", () => {
   });
 
   it("keeps the current memory-history entry across a session generation remount", async () => {
-    const authPort: jest.Mocked<SessionAuthPort> = {
-      getViewer: jest.fn().mockResolvedValue(nextSession),
-      login: jest.fn().mockResolvedValue(undefined),
-      logout: jest.fn().mockResolvedValue(undefined),
+    const authPort: Mocked<SessionAuthPort> = {
+      getViewer: vi.fn().mockResolvedValue(nextSession),
+      login: vi.fn().mockResolvedValue(undefined),
+      logout: vi.fn().mockResolvedValue(undefined),
     };
 
     renderApp(<SessionNavigationProbe />, {
@@ -207,10 +208,10 @@ describe("renderApp", () => {
   it("uses the production overlay owner for Dialog and ToastHost", () => {
     const view = renderApp(
       <>
-        <Dialog isOpen title="테스트 대화상자" onClose={jest.fn()}>
+        <Dialog isOpen title="테스트 대화상자" onClose={vi.fn()}>
           content
         </Dialog>
-        <ToastHost message="테스트 알림" onClose={jest.fn()} />
+        <ToastHost message="테스트 알림" onClose={vi.fn()} />
       </>,
     );
 

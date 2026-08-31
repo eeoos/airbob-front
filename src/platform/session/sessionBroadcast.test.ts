@@ -65,7 +65,7 @@ const message = (
 describe("createSessionBroadcast", () => {
   it("publishes an exact non-PII message with a monotonic local sequence", () => {
     const channel = new FakeBroadcastChannel();
-    const channelFactory = jest.fn(() => channel);
+    const channelFactory = vi.fn(() => channel);
     const broadcast = createSessionBroadcast({
       sourceId: SOURCE_A,
       channelFactory,
@@ -109,7 +109,7 @@ describe("createSessionBroadcast", () => {
       sourceId: SOURCE_A,
       channelFactory: () => channel,
     });
-    const listener = jest.fn();
+    const listener = vi.fn();
     broadcast.subscribe(listener);
 
     channel.emit(message({ sourceId: SOURCE_A }));
@@ -144,7 +144,7 @@ describe("createSessionBroadcast", () => {
       sourceId: SOURCE_A,
       channelFactory: () => channel,
     });
-    const listener = jest.fn();
+    const listener = vi.fn();
     broadcast.subscribe(listener);
 
     channel.emit(malformed);
@@ -160,7 +160,7 @@ describe("createSessionBroadcast", () => {
       sourceId: SOURCE_A,
       channelFactory: () => channel,
     });
-    const healthyListener = jest.fn();
+    const healthyListener = vi.fn();
 
     broadcast.subscribe(() => {
       throw new Error("private listener failure");
@@ -177,7 +177,7 @@ describe("createSessionBroadcast", () => {
       sourceId: SOURCE_A,
       channelFactory: () => channel,
     });
-    const listener = jest.fn();
+    const listener = vi.fn();
     const unsubscribe = broadcast.subscribe(listener);
 
     unsubscribe();
@@ -204,7 +204,7 @@ describe("createSessionBroadcast", () => {
         throw new Error("private constructor failure");
       },
     });
-    const channelFactory = jest.fn(() => new FakeBroadcastChannel());
+    const channelFactory = vi.fn(() => new FakeBroadcastChannel());
     const invalidSource = createSessionBroadcast({
       sourceId: "person@example.invalid",
       channelFactory,
@@ -212,7 +212,7 @@ describe("createSessionBroadcast", () => {
 
     [unsupported, constructionFailure, invalidSource].forEach((broadcast) => {
       expect(() => broadcast.publish("invalidate")).not.toThrow();
-      expect(() => broadcast.subscribe(jest.fn())()).not.toThrow();
+      expect(() => broadcast.subscribe(vi.fn())()).not.toThrow();
       expect(() => broadcast.close()).not.toThrow();
     });
     expect(channelFactory).not.toHaveBeenCalled();
@@ -241,7 +241,7 @@ describe("createSessionBroadcast", () => {
       sourceId: SOURCE_A,
       channelFactory: () => firstChannel,
     });
-    const firstListener = jest.fn();
+    const firstListener = vi.fn();
     firstBroadcast.subscribe(firstListener);
     firstBroadcast.close();
 
@@ -250,7 +250,7 @@ describe("createSessionBroadcast", () => {
       sourceId: SOURCE_A,
       channelFactory: () => secondChannel,
     });
-    const secondListener = jest.fn();
+    const secondListener = vi.fn();
     secondBroadcast.subscribe(secondListener);
 
     firstChannel.emit(message());

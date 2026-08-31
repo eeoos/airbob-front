@@ -2,24 +2,24 @@ import { clearIdentityOwnedTransactionRoute } from "../router/identityRouteBound
 import { clearBookingPaymentBrowserState } from "../../workflows/booking-payment/checkout";
 import { clearIdentityOwnedFrontendState } from "./clearIdentityOwnedFrontendState";
 
-jest.mock("../router/identityRouteBoundary", () => ({
-  clearIdentityOwnedTransactionRoute: jest.fn(),
+vi.mock("../router/identityRouteBoundary", () => ({
+  clearIdentityOwnedTransactionRoute: vi.fn(),
 }));
 
-jest.mock("../../workflows/booking-payment/checkout", () => ({
-  clearBookingPaymentBrowserState: jest.fn(),
+vi.mock("../../workflows/booking-payment/checkout", () => ({
+  clearBookingPaymentBrowserState: vi.fn(),
 }));
 
-const mockClearBookingPaymentBrowserState = jest.mocked(
+const mockClearBookingPaymentBrowserState = vi.mocked(
   clearBookingPaymentBrowserState,
 );
-const mockClearIdentityOwnedTransactionRoute = jest.mocked(
+const mockClearIdentityOwnedTransactionRoute = vi.mocked(
   clearIdentityOwnedTransactionRoute,
 );
 
 describe("clearIdentityOwnedFrontendState", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockClearBookingPaymentBrowserState.mockReturnValue({
       status: "cleared",
       removed: 0,

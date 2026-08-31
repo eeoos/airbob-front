@@ -2,13 +2,16 @@ import * as fs from "fs";
 import * as path from "path";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { Mock } from "vitest";
 import { DatePicker } from "./DatePicker";
 import styles from "./DatePicker.module.css";
 
 type DatePickerProps = React.ComponentProps<typeof DatePicker>;
 type DatePickerTestProps = DatePickerProps & {
-  onClose: jest.Mock<void, []>;
-  onDateSelect: jest.Mock<void, [Date | null, Date | null]>;
+  onClose: Mock<() => void>;
+  onDateSelect: Mock<
+    (checkIn: Date | null, checkOut: Date | null) => void
+  >;
 };
 type DatePickerOverrides = Partial<
   Omit<DatePickerProps, "onClose" | "onDateSelect">
@@ -24,8 +27,10 @@ const readProjectFile = (relativePath: string) =>
 const createDefaultProps = (): DatePickerTestProps => ({
   checkIn: null,
   checkOut: null,
-  onClose: jest.fn<void, []>(),
-  onDateSelect: jest.fn<void, [Date | null, Date | null]>(),
+  onClose: vi.fn<() => void>(),
+  onDateSelect: vi.fn<
+    (checkIn: Date | null, checkOut: Date | null) => void
+  >(),
 });
 
 const renderDatePicker = (overrides: DatePickerOverrides = {}) => {
@@ -41,12 +46,12 @@ const renderDatePicker = (overrides: DatePickerOverrides = {}) => {
 
 describe("DatePicker", () => {
   beforeEach(() => {
-    jest.useFakeTimers();
-    jest.setSystemTime(new Date("2026-07-10T12:00:00"));
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-10T12:00:00"));
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it("renders two named month grids with Korean weekday headers", () => {
@@ -84,8 +89,8 @@ describe("DatePicker", () => {
       <DatePicker
         checkIn={null}
         checkOut={null}
-        onClose={jest.fn()}
-        onDateSelect={jest.fn()}
+        onClose={vi.fn()}
+        onDateSelect={vi.fn()}
         unavailableDates={[]}
       />,
     );
@@ -374,7 +379,7 @@ describe("DatePicker", () => {
   });
 
   it("closes with Escape through the dedicated consumer callback", async () => {
-    const onEscape = jest.fn();
+    const onEscape = vi.fn();
     const { props } = renderDatePicker({ onEscape });
 
     await userEvent.keyboard("{Escape}");

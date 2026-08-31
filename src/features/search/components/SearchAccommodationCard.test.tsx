@@ -34,7 +34,7 @@ describe("SearchAccommodationCard", () => {
   });
 
   it("opens the card action from keyboard Enter", async () => {
-    const onClick = jest.fn();
+    const onClick = vi.fn();
 
     render(
       <SearchAccommodationCard
@@ -55,8 +55,8 @@ describe("SearchAccommodationCard", () => {
   });
 
   it("labels wishlist toggle state without triggering the card action", async () => {
-    const onClick = jest.fn();
-    const onWishlistToggle = jest.fn();
+    const onClick = vi.fn();
+    const onWishlistToggle = vi.fn();
 
     render(
       <SearchAccommodationCard

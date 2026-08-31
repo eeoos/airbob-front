@@ -13,7 +13,7 @@ const testModulePattern =
   "^src/test(?:/|$)|" +
   "(?:^|/)(?:__tests__|__mocks__)(?:/|$)|" +
   "[.](?:spec|test)[.](?:mjs|[jt]sx?)$|" +
-  "^src/setupTests[.](?:mjs|[jt]sx?)$|[.]d[.]ts$";
+  "[.]d[.]ts$";
 const testModuleRegex = new RegExp(testModulePattern);
 
 const normalizeSourcePath = (relativePath) => relativePath.replaceAll("\\", "/");

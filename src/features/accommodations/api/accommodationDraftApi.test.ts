@@ -7,7 +7,7 @@ import {
 describe("accommodation draft API", () => {
   it("posts an empty draft command and returns the envelope data id", async () => {
     const draft = { id: 88 };
-    const request = jest.fn().mockResolvedValue(draft);
+    const request = vi.fn().mockResolvedValue(draft);
     const api = createAccommodationDraftApi(
       request as AccommodationDraftApiTransport,
     );

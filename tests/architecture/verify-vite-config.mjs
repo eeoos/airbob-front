@@ -79,6 +79,17 @@ try {
     ["postcss-global-data", "postcss-custom-media"],
   );
   assert.equal(developmentConfig.css.devSourcemap, true);
+  const testConfig = await resolveConfig(
+    { configFile, logLevel: "silent" },
+    "serve",
+    "test",
+    "test",
+  );
+
+  assert.equal(testConfig.mode, "test");
+  assert.equal(testConfig.base, "/");
+  assert.equal(testConfig.define, undefined);
+
   const defaultBuildDirectory = path.join(projectRoot, "build");
   const productionConfig = await resolveConfig(
     { configFile, logLevel: "silent" },
@@ -105,7 +116,7 @@ try {
   );
 
   process.stdout.write(
-    "Vite config preserves the exact env, proxy, CSS, output, and sourcemap contracts.\n",
+    "Vite config preserves the exact env, test isolation, proxy, CSS, output, and sourcemap contracts.\n",
   );
 } finally {
   restoreEnvironment();

@@ -26,11 +26,11 @@ const createProps = (
   checkInSortDirection: "descending",
   errorMessage: null,
   filterType: "UPCOMING",
-  loadMoreRef: jest.fn(),
-  onCheckInSort: jest.fn(),
-  onDismissError: jest.fn(),
-  onFilterChange: jest.fn(),
-  onOpenReservation: jest.fn(),
+  loadMoreRef: vi.fn(),
+  onCheckInSort: vi.fn(),
+  onDismissError: vi.fn(),
+  onFilterChange: vi.fn(),
+  onOpenReservation: vi.fn(),
   state: {
     status: "ready",
     rows: [],
@@ -53,8 +53,8 @@ describe("HostReservationsPanel", () => {
   });
 
   it("preserves filters, empty copy, and dismissible error toast", async () => {
-    const onDismissError = jest.fn();
-    const onFilterChange = jest.fn();
+    const onDismissError = vi.fn();
+    const onFilterChange = vi.fn();
 
     render(
       <HostReservationsPanel
@@ -82,7 +82,7 @@ describe("HostReservationsPanel", () => {
   });
 
   it("renders mapped rows and delegates detail navigation", async () => {
-    const onOpenReservation = jest.fn();
+    const onOpenReservation = vi.fn();
 
     render(
       <HostReservationsPanel
@@ -117,7 +117,7 @@ describe("HostReservationsPanel", () => {
   });
 
   it("keeps check-in sorting controlled and keyboard accessible", async () => {
-    const onCheckInSort = jest.fn();
+    const onCheckInSort = vi.fn();
     const props = createProps({
       onCheckInSort,
       state: {
@@ -152,7 +152,7 @@ describe("HostReservationsPanel", () => {
   });
 
   it("attaches the injected load-more ref for nonempty paginated tables", () => {
-    const loadMoreRef = jest.fn();
+    const loadMoreRef = vi.fn();
 
     render(
       <HostReservationsPanel

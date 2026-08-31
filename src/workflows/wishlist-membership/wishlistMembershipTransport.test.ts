@@ -1,23 +1,23 @@
 import { recentlyViewedApi, wishlistApi } from "../../features/wishlist/api";
 import { wishlistMembershipTransport } from "./wishlistMembershipTransport";
 
-jest.mock("../../features/wishlist/api", () => ({
-  recentlyViewedApi: { remove: jest.fn() },
+vi.mock("../../features/wishlist/api", () => ({
+  recentlyViewedApi: { remove: vi.fn() },
   wishlistApi: {
-    addAccommodation: jest.fn(),
-    create: jest.fn(),
-    delete: jest.fn(),
-    getWishlists: jest.fn(),
-    removeAccommodation: jest.fn(),
-    updateAccommodationMemo: jest.fn(),
+    addAccommodation: vi.fn(),
+    create: vi.fn(),
+    delete: vi.fn(),
+    getWishlists: vi.fn(),
+    removeAccommodation: vi.fn(),
+    updateAccommodationMemo: vi.fn(),
   },
 }));
 
 describe("wishlistMembershipTransport", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => vi.clearAllMocks());
 
   it("maps the feature collection into the workflow membership page", async () => {
-    jest.mocked(wishlistApi.getWishlists).mockResolvedValue({
+    vi.mocked(wishlistApi.getWishlists).mockResolvedValue({
       wishlists: [
         {
           id: 11,
@@ -49,12 +49,12 @@ describe("wishlistMembershipTransport", () => {
   });
 
   it("passes AbortSignal through every mutation adapter", async () => {
-    jest.mocked(wishlistApi.create).mockResolvedValue({ id: 11 });
-    jest.mocked(wishlistApi.addAccommodation).mockResolvedValue({ id: 31 });
-    jest.mocked(wishlistApi.removeAccommodation).mockResolvedValue();
-    jest.mocked(wishlistApi.delete).mockResolvedValue();
-    jest.mocked(wishlistApi.updateAccommodationMemo).mockResolvedValue({ id: 31 });
-    jest.mocked(recentlyViewedApi.remove).mockResolvedValue();
+    vi.mocked(wishlistApi.create).mockResolvedValue({ id: 11 });
+    vi.mocked(wishlistApi.addAccommodation).mockResolvedValue({ id: 31 });
+    vi.mocked(wishlistApi.removeAccommodation).mockResolvedValue();
+    vi.mocked(wishlistApi.delete).mockResolvedValue();
+    vi.mocked(wishlistApi.updateAccommodationMemo).mockResolvedValue({ id: 31 });
+    vi.mocked(recentlyViewedApi.remove).mockResolvedValue();
     const signal = new AbortController().signal;
 
     await wishlistMembershipTransport.createWishlist({ name: "여행" }, signal);

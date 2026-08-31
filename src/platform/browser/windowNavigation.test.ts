@@ -91,7 +91,7 @@ describe("browserWindowNavigation", () => {
 
   it("opens a new isolated tab without exposing the opener", () => {
     const openedWindow = { opener: {} } as Window;
-    const open = jest.spyOn(window, "open").mockReturnValue(openedWindow);
+    const open = vi.spyOn(window, "open").mockReturnValue(openedWindow);
 
     expect(browserWindowNavigation.openInNewTab("/accommodations/7")).toBe(
       openedWindow,

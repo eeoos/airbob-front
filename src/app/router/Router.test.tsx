@@ -11,37 +11,37 @@ const routeModule = (testId: string) => ({
   default: () => <div data-testid={testId}>{testId}</div>,
 });
 
-jest.mock("./routes/HomeRoute", () => routeModule("page-home"));
-jest.mock("./routes/SearchRoute", () => routeModule("page-search"));
-jest.mock("./routes/AccommodationDetailRoute", () =>
+vi.mock("./routes/HomeRoute", () => routeModule("page-home"));
+vi.mock("./routes/SearchRoute", () => routeModule("page-search"));
+vi.mock("./routes/AccommodationDetailRoute", () =>
   routeModule("page-accommodation-detail"),
 );
-jest.mock("./routes/ReservationConfirmRoute", () =>
+vi.mock("./routes/ReservationConfirmRoute", () =>
   routeModule("page-accommodation-confirm"),
 );
-jest.mock("./routes/AccommodationEditRoute", () =>
+vi.mock("./routes/AccommodationEditRoute", () =>
   routeModule("page-accommodation-edit"),
 );
-jest.mock("./routes/WishlistRoute", () => routeModule("page-wishlist"));
-jest.mock("./routes/ProfileRoute", () => routeModule("page-profile"));
-jest.mock("./routes/HostReservationDetailRoute", () =>
+vi.mock("./routes/WishlistRoute", () => routeModule("page-wishlist"));
+vi.mock("./routes/ProfileRoute", () => routeModule("page-profile"));
+vi.mock("./routes/HostReservationDetailRoute", () =>
   routeModule("page-host-reservation-detail"),
 );
-jest.mock("./routes/ReservationDetailRoute", () =>
+vi.mock("./routes/ReservationDetailRoute", () =>
   routeModule("page-reservation-detail"),
 );
-jest.mock("./routes/ReviewCreateRoute", () =>
+vi.mock("./routes/ReviewCreateRoute", () =>
   routeModule("page-reservation-review"),
 );
-jest.mock("./routes/PaymentSuccessRoute", () =>
+vi.mock("./routes/PaymentSuccessRoute", () =>
   routeModule("page-payment-success"),
 );
-jest.mock("./routes/PaymentFailRoute", () =>
+vi.mock("./routes/PaymentFailRoute", () =>
   routeModule("page-payment-fail"),
 );
-jest.mock("./routes/LoginRoute", () => routeModule("page-login"));
-jest.mock("./routes/SignupRoute", () => routeModule("page-signup"));
-jest.mock("./routes/NotFoundRoute", () => routeModule("page-not-found"));
+vi.mock("./routes/LoginRoute", () => routeModule("page-login"));
+vi.mock("./routes/SignupRoute", () => routeModule("page-signup"));
+vi.mock("./routes/NotFoundRoute", () => routeModule("page-not-found"));
 
 const pageTestIds: Record<AppRouteDefinition["id"], string> = {
   home: "page-home",

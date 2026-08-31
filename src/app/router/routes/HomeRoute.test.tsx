@@ -2,9 +2,9 @@ import { render, screen } from "@testing-library/react";
 import type { HomeScreenProps } from "../../../screens/home/public";
 import { HomeRoute } from "./HomeRoute";
 
-const mockHomeScreen = jest.fn();
+const mockHomeScreen = vi.fn();
 
-jest.mock("../../../screens/home/public", () => ({
+vi.mock("../../../screens/home/public", () => ({
   HomeScreen: (props: HomeScreenProps) => {
     mockHomeScreen(props);
     return <div data-testid="home-screen" />;

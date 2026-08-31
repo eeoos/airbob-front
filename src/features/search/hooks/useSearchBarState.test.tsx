@@ -9,16 +9,16 @@ import {
   useSearchBarState,
 } from "./useSearchBarState";
 
-jest.mock("./usePlacesAutocomplete", () => ({
-  usePlacesAutocomplete: jest.fn(),
+vi.mock("./usePlacesAutocomplete", () => ({
+  usePlacesAutocomplete: vi.fn(),
 }));
 
-const mockPushSearch = jest.fn();
-const mockReplaceSearch = jest.fn();
-const mockHandleInputChange = jest.fn();
-const mockHandlePlaceSelect = jest.fn();
-const mockResetPlaces = jest.fn();
-const mockStartNewSession = jest.fn();
+const mockPushSearch = vi.fn();
+const mockReplaceSearch = vi.fn();
+const mockHandleInputChange = vi.fn();
+const mockHandlePlaceSelect = vi.fn();
+const mockResetPlaces = vi.fn();
+const mockStartNewSession = vi.fn();
 
 const seoulPrediction: PlacePrediction = {
   placeId: "place-1",
@@ -74,7 +74,7 @@ describe("useSearchBarState", () => {
     placesState = { suggestions: [], isLoading: false };
     placesOptions = undefined;
 
-    jest.mocked(usePlacesAutocomplete).mockImplementation((options = {}) => {
+    vi.mocked(usePlacesAutocomplete).mockImplementation((options = {}) => {
       placesOptions = options;
       return {
         inputText: "integration-owned-text-is-ignored",
@@ -220,7 +220,7 @@ describe("useSearchBarState", () => {
   });
 
   it("commits selected place details into the reducer before submission", async () => {
-    const onSearch = jest.fn();
+    const onSearch = vi.fn();
     const { result } = renderHook(() =>
       useSearchBarState({ onSearch, routePort: createRoutePort() }),
     );

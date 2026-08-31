@@ -24,6 +24,13 @@ const normalizePublicAssetBase = (value) => {
 const publicBuildConfigPlugin = () => ({
   name: "airbob-public-build-config",
   config: (_config, { command, mode }) => {
+    // Vitest owns NODE_ENV and lets individual tests override public values.
+    // Production and development builds still use the exact public allowlist
+    // below, while the test runner receives no compile-time substitutions.
+    if (mode === "test") {
+      return {};
+    }
+
     const publicEnvironment = loadPublicBuildEnvironment({
       mode,
       root: projectRoot,

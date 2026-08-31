@@ -14,13 +14,13 @@ const createOptions = () => ({
   searchButtonClassName: "search-button",
   isExpanded: false,
   activePopover: "none" as const,
-  completeCheckoutIfNeeded: jest.fn(),
-  closeTransientPanels: jest.fn(),
-  expandShell: jest.fn(),
-  collapseShell: jest.fn(),
-  closeActivePopover: jest.fn(),
-  openDatePicker: jest.fn(),
-  toggleGuestPicker: jest.fn(),
+  completeCheckoutIfNeeded: vi.fn(),
+  closeTransientPanels: vi.fn(),
+  expandShell: vi.fn(),
+  collapseShell: vi.fn(),
+  closeActivePopover: vi.fn(),
+  openDatePicker: vi.fn(),
+  toggleGuestPicker: vi.fn(),
 });
 
 describe("useSearchBarShellInteractions", () => {
@@ -37,7 +37,7 @@ describe("useSearchBarShellInteractions", () => {
     act(() => {
       result.current.handleSearchBarClick({
         target: destinationArea,
-        stopPropagation: jest.fn(),
+        stopPropagation: vi.fn(),
       } as any);
     });
 
@@ -47,7 +47,7 @@ describe("useSearchBarShellInteractions", () => {
 
   it("closes an active popover instead of collapsing through a second path", () => {
     const outside = document.createElement("button");
-    const stopPropagation = jest.fn();
+    const stopPropagation = vi.fn();
     const options = {
       ...createOptions(),
       activePopover: "date" as const,
@@ -81,7 +81,7 @@ describe("useSearchBarShellInteractions", () => {
     act(() => {
       result.current.handleSearchBarClick({
         target: outside,
-        stopPropagation: jest.fn(),
+        stopPropagation: vi.fn(),
       } as any);
     });
 
@@ -96,12 +96,12 @@ describe("useSearchBarShellInteractions", () => {
 
     act(() => {
       result.current.handleDateClick({
-        stopPropagation: jest.fn(),
-        preventDefault: jest.fn(),
+        stopPropagation: vi.fn(),
+        preventDefault: vi.fn(),
       } as any);
       result.current.handleGuestClick({
-        stopPropagation: jest.fn(),
-        preventDefault: jest.fn(),
+        stopPropagation: vi.fn(),
+        preventDefault: vi.fn(),
       } as any);
       result.current.closeDatePopover();
     });

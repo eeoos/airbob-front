@@ -18,8 +18,8 @@ const renderGalleryModal = (
     accommodationName: "남산 전망 숙소",
     images,
     currentImageIndex: 1,
-    onCurrentImageIndexChange: jest.fn(),
-    onClose: jest.fn(),
+    onCurrentImageIndexChange: vi.fn(),
+    onClose: vi.fn(),
     ...overrides,
   };
 
@@ -58,7 +58,7 @@ describe("AccommodationImageGalleryModal", () => {
   });
 
   it("changes images from previous, next, and thumbnail controls", () => {
-    const onCurrentImageIndexChange = jest.fn();
+    const onCurrentImageIndexChange = vi.fn();
     renderGalleryModal({ onCurrentImageIndexChange });
 
     fireEvent.click(screen.getByRole("button", { name: "이전 사진" }));
@@ -71,7 +71,7 @@ describe("AccommodationImageGalleryModal", () => {
   });
 
   it("wraps previous and next navigation at the image edges", () => {
-    const onCurrentImageIndexChange = jest.fn();
+    const onCurrentImageIndexChange = vi.fn();
     const { rerender } = renderGalleryModal({
       currentImageIndex: 0,
       onCurrentImageIndexChange,
@@ -86,7 +86,7 @@ describe("AccommodationImageGalleryModal", () => {
         images={images}
         currentImageIndex={2}
         onCurrentImageIndexChange={onCurrentImageIndexChange}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
       />
     );
     fireEvent.click(screen.getByRole("button", { name: "다음 사진" }));
@@ -119,8 +119,8 @@ describe("AccommodationImageGalleryModal", () => {
         accommodationName="남산 전망 숙소"
         images={[]}
         currentImageIndex={0}
-        onCurrentImageIndexChange={jest.fn()}
-        onClose={jest.fn()}
+        onCurrentImageIndexChange={vi.fn()}
+        onClose={vi.fn()}
       />
     );
 

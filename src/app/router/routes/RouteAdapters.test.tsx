@@ -194,28 +194,28 @@ type CapturedProps = {
 
 const mockCapturedProps: Partial<CapturedProps> = {};
 const mockReservationDetailRenderProps: CapturedProps["detail"][] = [];
-const mockUseAuthIntent = jest.fn();
-const mockUseSession = jest.fn();
-const mockRequestAuthIntent = jest.fn();
-const mockCancelAuthIntent = jest.fn();
-const mockClaimAuthIntent = jest.fn();
-const mockIsCurrentSession = jest.fn();
-const mockCaptureAuthenticatedSession = jest.fn();
-const mockSessionLogin = jest.fn();
-const mockSignup = jest.fn();
+const mockUseAuthIntent = vi.fn();
+const mockUseSession = vi.fn();
+const mockRequestAuthIntent = vi.fn();
+const mockCancelAuthIntent = vi.fn();
+const mockClaimAuthIntent = vi.fn();
+const mockIsCurrentSession = vi.fn();
+const mockCaptureAuthenticatedSession = vi.fn();
+const mockSessionLogin = vi.fn();
+const mockSignup = vi.fn();
 const mockWishlistCommands = {
-  addAccommodation: jest.fn(),
-  createAndAddAccommodation: jest.fn(),
-  deleteWishlist: jest.fn(),
-  dispose: jest.fn(),
-  removeAccommodation: jest.fn(),
-  removeRecentlyViewed: jest.fn(),
-  saveMemo: jest.fn(),
+  addAccommodation: vi.fn(),
+  createAndAddAccommodation: vi.fn(),
+  deleteWishlist: vi.fn(),
+  dispose: vi.fn(),
+  removeAccommodation: vi.fn(),
+  removeRecentlyViewed: vi.fn(),
+  saveMemo: vi.fn(),
 };
-const mockOpenInNewTab = jest.fn();
-const mockIsCurrentHistoryEntry = jest.fn();
-const mockRefreshAccommodationDetail = jest.fn();
-const mockRefreshHostListings = jest.fn();
+const mockOpenInNewTab = vi.fn();
+const mockIsCurrentHistoryEntry = vi.fn();
+const mockRefreshAccommodationDetail = vi.fn();
+const mockRefreshHostListings = vi.fn();
 
 function mockRoute<Key extends keyof CapturedProps>(
   key: Key,
@@ -234,7 +234,7 @@ function mockRoute<Key extends keyof CapturedProps>(
   };
 }
 
-jest.mock("../../../screens/auth/public", () => ({
+vi.mock("../../../screens/auth/public", () => ({
   AuthController: (
     props: CapturedProps["login"] | CapturedProps["signup"],
   ) => {
@@ -247,19 +247,19 @@ jest.mock("../../../screens/auth/public", () => ({
     );
   },
 }));
-jest.mock("../../../screens/wishlist/public", () => ({
+vi.mock("../../../screens/wishlist/public", () => ({
   WishlistController: mockRoute(
     "wishlist",
     "위시리스트 보기 변경",
     (props) => props.navigation.openRecentlyViewed(),
   ),
 }));
-jest.mock("../../../screens/search/public", () => ({
+vi.mock("../../../screens/search/public", () => ({
   SearchController: mockRoute("search", "검색 페이지 변경", (props) =>
     props.navigation.openPage(2),
   ),
 }));
-jest.mock("../../../screens/review-create/public", () => ({
+vi.mock("../../../screens/review-create/public", () => ({
   ReviewCreateController: mockRoute(
     "reviewCreate",
     "리뷰 작성 완료",
@@ -267,47 +267,51 @@ jest.mock("../../../screens/review-create/public", () => ({
       props.onComplete("reservation-42", "image-upload-failed"),
   ),
 }));
-jest.mock("../../../screens/accommodation-edit/public", () => ({
+vi.mock("../../../screens/accommodation-edit/public", () => ({
   AccommodationEditController: mockRoute(
     "edit",
     "호스트 프로필로 이동",
     (props) => props.onNavigateToHostProfile(),
   ),
 }));
-jest.mock("../../../platform/browser/windowNavigation", () => ({
+vi.mock("../../../platform/browser/windowNavigation", () => ({
   browserWindowNavigation: {
     isCurrentHistoryEntry: (...args: unknown[]) =>
       mockIsCurrentHistoryEntry(...args),
     openInNewTab: (...args: unknown[]) => mockOpenInNewTab(...args),
   },
 }));
-jest.mock("../../../features/auth/ports/AuthCommandProvider", () => ({
+vi.mock("../../../features/auth/ports/AuthCommandProvider", () => ({
   useAuthCommands: () => ({ signup: mockSignup }),
 }));
-jest.mock("../../../screens/accommodation-detail/public", () => ({
+vi.mock("../../../screens/accommodation-detail/public", () => ({
   AccommodationDetailController: mockRoute(
     "accommodation",
     "숙소 상세 계속",
   ),
 }));
-jest.mock("../../../features/accommodations/detail/public", () => ({
-  ...jest.requireActual("../../../features/accommodations/detail/public"),
+vi.mock("../../../features/accommodations/detail/public", async () => ({
+  ...(await vi.importActual<
+    typeof import("../../../features/accommodations/detail/public")
+  >("../../../features/accommodations/detail/public")),
   createAccommodationDetailQueryCacheProjection: () => ({
     detailRefreshRequired: (...args: unknown[]) =>
       mockRefreshAccommodationDetail(...args),
   }),
 }));
-jest.mock("../../../features/profile/public", () => ({
+vi.mock("../../../features/profile/public", () => ({
   createHostListingQueryCacheProjection: () => ({
     refreshRequired: (...args: unknown[]) =>
       mockRefreshHostListings(...args),
   }),
 }));
-jest.mock("../../../workflows/auth-intent", () => ({
-  ...jest.requireActual("../../../workflows/auth-intent"),
+vi.mock("../../../workflows/auth-intent", async () => ({
+  ...(await vi.importActual<typeof import("../../../workflows/auth-intent")>(
+    "../../../workflows/auth-intent",
+  )),
   useAuthIntent: () => mockUseAuthIntent(),
 }));
-jest.mock("../../../workflows/wishlist-membership", () => ({
+vi.mock("../../../workflows/wishlist-membership", () => ({
   WishlistMembershipProvider: ({
     children,
   }: {
@@ -315,10 +319,10 @@ jest.mock("../../../workflows/wishlist-membership", () => ({
   }) => <>{children}</>,
   useWishlistMembership: () => mockWishlistCommands,
 }));
-jest.mock("../../session/useSession", () => ({
+vi.mock("../../session/useSession", () => ({
   useSession: () => mockUseSession(),
 }));
-jest.mock("../../../screens/reservation-detail/public", () => ({
+vi.mock("../../../screens/reservation-detail/public", () => ({
   ReservationDetailController: (props: CapturedProps["detail"]) => {
     const React = require("react");
     const [mountedReservationUid] = React.useState(props.reservationUid);
@@ -344,7 +348,7 @@ jest.mock("../../../screens/reservation-detail/public", () => ({
     );
   },
 }));
-jest.mock("../../../screens/profile/public", () => ({
+vi.mock("../../../screens/profile/public", () => ({
   ProfileController: mockRoute("profile", "프로필 보기 변경", (props) =>
     props.navigation.changeHostSection("reservations"),
   ),

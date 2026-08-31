@@ -3,11 +3,11 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import type { SearchScreenProps } from "./SearchScreen";
 import { SearchScreen } from "./SearchScreen";
 
-const mockMap = jest.fn();
-const mockResultsList = jest.fn();
-const mockPagination = jest.fn();
+const mockMap = vi.fn();
+const mockResultsList = vi.fn();
+const mockPagination = vi.fn();
 
-jest.mock("framer-motion", () => {
+vi.mock("framer-motion", () => {
   const React = require("react");
 
   return {
@@ -56,14 +56,14 @@ jest.mock("framer-motion", () => {
   };
 });
 
-jest.mock("../../features/search/components/SearchMap", () => ({
+vi.mock("../../features/search/components/SearchMap", () => ({
   Map: (props: unknown) => {
     mockMap(props);
     return <section data-testid="search-map" />;
   },
 }));
 
-jest.mock("../../features/search/components/SearchResultsList", () => ({
+vi.mock("../../features/search/components/SearchResultsList", () => ({
   SearchResultsList: (props: {
     layout: string;
     onAccommodationClick: (accommodationId: number) => void;
@@ -83,7 +83,7 @@ jest.mock("../../features/search/components/SearchResultsList", () => ({
   },
 }));
 
-jest.mock("../../features/search/components/SearchPagination", () => ({
+vi.mock("../../features/search/components/SearchPagination", () => ({
   SearchPagination: (props: {
     currentPage: number;
     onPageChange: (page: number) => void;
@@ -102,13 +102,13 @@ jest.mock("../../features/search/components/SearchPagination", () => ({
   },
 }));
 
-jest.mock("../../features/auth/components/AuthModal", () => ({
+vi.mock("../../features/auth/components/AuthModal", () => ({
   AuthModal: ({ isOpen }: { isOpen: boolean }) => (
     <section data-testid="auth-modal" data-open={String(isOpen)} />
   ),
 }));
 
-jest.mock("../../features/wishlist/components/WishlistModal", () => ({
+vi.mock("../../features/wishlist/components/WishlistModal", () => ({
   WishlistModal: ({ accommodationId }: { accommodationId: number }) => (
     <section data-testid="wishlist-modal">{accommodationId}</section>
   ),
@@ -117,18 +117,18 @@ jest.mock("../../features/wishlist/components/WishlistModal", () => ({
 const createProps = (
   overrides: Partial<SearchScreenProps> = {},
 ): SearchScreenProps => ({
-  authModal: { isOpen: false, onClose: jest.fn() },
+  authModal: { isOpen: false, onClose: vi.fn() },
   bottomSheet: {
     bottomSheetRef: createRef<HTMLDivElement>(),
     bottomSheetHandleRef: createRef<HTMLButtonElement>(),
     bottomSheetState: "collapsed",
-    handleBottomSheetScroll: jest.fn(),
-    handleBottomSheetKeyDown: jest.fn(),
-    handleBottomSheetToggle: jest.fn(),
-    handleDrag: jest.fn(),
-    handleDragEnd: jest.fn(),
-    handleDragStart: jest.fn(),
-    handleMapInteraction: jest.fn(),
+    handleBottomSheetScroll: vi.fn(),
+    handleBottomSheetKeyDown: vi.fn(),
+    handleBottomSheetToggle: vi.fn(),
+    handleDrag: vi.fn(),
+    handleDragEnd: vi.fn(),
+    handleDragStart: vi.fn(),
+    handleMapInteraction: vi.fn(),
     isMobileOrTablet: false,
     snapPositions: { collapsed: 0, half: 250, expanded: 500 },
     translateY: 0,
@@ -138,22 +138,22 @@ const createProps = (
   errorMessage: null,
   getAccommodationHref: (id) => `/accommodations/${id}`,
   map: {
-    handleAccommodationSelect: jest.fn(),
+    handleAccommodationSelect: vi.fn(),
     hoveredAccommodationId: null,
     isMapDragMode: false,
     isMapExpanded: false,
-    onMapBoundsUpdated: jest.fn(),
-    requestBounds: jest.fn(),
+    onMapBoundsUpdated: vi.fn(),
+    requestBounds: vi.fn(),
     selectedAccommodationId: null,
-    setHoveredAccommodationId: jest.fn(),
+    setHoveredAccommodationId: vi.fn(),
     shouldUpdateMapBounds: false,
-    toggleMapExpanded: jest.fn(),
+    toggleMapExpanded: vi.fn(),
     viewport: null,
   },
-  onAccommodationOpen: jest.fn(),
-  onClearError: jest.fn(),
-  onPageChange: jest.fn(),
-  onWishlistToggle: jest.fn(),
+  onAccommodationOpen: vi.fn(),
+  onClearError: vi.fn(),
+  onPageChange: vi.fn(),
+  onWishlistToggle: vi.fn(),
   results: {
     accommodationCards: [
       {
@@ -196,7 +196,7 @@ const createProps = (
 
 describe("SearchScreen", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("preserves the desktop results/map structure and delegates commands", () => {
@@ -240,7 +240,7 @@ describe("SearchScreen", () => {
         commands: {} as NonNullable<
           SearchScreenProps["wishlistModal"]
         >["commands"],
-        onClose: jest.fn(),
+        onClose: vi.fn(),
         scope: { subject: "subject:7", epoch: 3 } as NonNullable<
           SearchScreenProps["wishlistModal"]
         >["scope"],
@@ -263,8 +263,8 @@ describe("SearchScreen", () => {
   });
 
   it("connects a named keyboard handle to the mobile result region", () => {
-    const handleBottomSheetKeyDown = jest.fn();
-    const handleBottomSheetToggle = jest.fn();
+    const handleBottomSheetKeyDown = vi.fn();
+    const handleBottomSheetToggle = vi.fn();
     const props = createProps({
       bottomSheet: {
         ...createProps().bottomSheet,

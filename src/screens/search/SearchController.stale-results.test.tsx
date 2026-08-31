@@ -5,46 +5,46 @@ import type { SearchRequest, SearchResultPage } from "../../features/search/mode
 import type { SearchControllerProps } from "./SearchController";
 import { SearchController } from "./SearchController";
 
-const mockSearch = jest.fn();
+const mockSearch = vi.fn();
 
-jest.mock("../../features/search/api/searchApi", () => ({
+vi.mock("../../features/search/api/searchApi", () => ({
   searchApi: {
     search: (...args: unknown[]) => mockSearch(...args),
   },
 }));
 
-jest.mock("../../features/search/hooks/useSearchBottomSheet", () => ({
+vi.mock("../../features/search/hooks/useSearchBottomSheet", () => ({
   useSearchBottomSheet: () => ({
     bottomSheetRef: { current: null },
     bottomSheetState: "collapsed",
-    handleBottomSheetScroll: jest.fn(),
-    handleDrag: jest.fn(),
-    handleDragEnd: jest.fn(),
-    handleDragStart: jest.fn(),
-    handleMapInteraction: jest.fn(),
+    handleBottomSheetScroll: vi.fn(),
+    handleDrag: vi.fn(),
+    handleDragEnd: vi.fn(),
+    handleDragStart: vi.fn(),
+    handleMapInteraction: vi.fn(),
     isMobileOrTablet: false,
-    setBottomSheetState: jest.fn(),
+    setBottomSheetState: vi.fn(),
     snapPositions: { collapsed: 0, half: 0, expanded: 0 },
     translateY: 0,
   }),
 }));
 
-jest.mock("../../features/search/hooks/useSearchMapState", () => ({
+vi.mock("../../features/search/hooks/useSearchMapState", () => ({
   useSearchMapState: () => ({
-    handleAccommodationSelect: jest.fn(),
+    handleAccommodationSelect: vi.fn(),
     hoveredAccommodationId: null,
     isMapExpanded: false,
-    onMapBoundsUpdated: jest.fn(),
-    requestMapBoundsUpdate: jest.fn(),
-    selectAccommodationId: jest.fn(),
+    onMapBoundsUpdated: vi.fn(),
+    requestMapBoundsUpdate: vi.fn(),
+    selectAccommodationId: vi.fn(),
     selectedAccommodationId: null,
-    setHoveredAccommodationId: jest.fn(),
+    setHoveredAccommodationId: vi.fn(),
     shouldUpdateMapBounds: false,
-    toggleMapExpanded: jest.fn(),
+    toggleMapExpanded: vi.fn(),
   }),
 }));
 
-jest.mock("./SearchScreen", () => ({
+vi.mock("./SearchScreen", () => ({
   SearchScreen: ({ results }: { results: { accommodationCards: Array<{ name: string }> } }) => (
     <div>{results.accommodationCards[0]?.name ?? "empty"}</div>
   ),
@@ -100,10 +100,10 @@ const createProps = (destination: string): SearchControllerProps => ({
   isAuthenticated: true,
   navigation: {
     getAccommodationHref: (id) => `/accommodations/${id}`,
-    openAccommodation: jest.fn(),
-    openPage: jest.fn(),
-    replaceMapBounds: jest.fn(),
-    scrollResultsToTop: jest.fn(),
+    openAccommodation: vi.fn(),
+    openPage: vi.fn(),
+    replaceMapBounds: vi.fn(),
+    scrollResultsToTop: vi.fn(),
   },
   routeState: {
     destination,

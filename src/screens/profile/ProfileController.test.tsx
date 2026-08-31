@@ -1,3 +1,4 @@
+import type { Mocked } from "vitest";
 import type { ReactElement } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -150,8 +151,8 @@ const listingPage = (
 });
 
 const createReservationApi = () => {
-  const getDetail = jest.fn();
-  const getList = jest.fn();
+  const getDetail = vi.fn();
+  const getList = vi.fn();
 
   return {
     api: { getDetail, getList } as unknown as ReservationReadApiPort,
@@ -160,7 +161,7 @@ const createReservationApi = () => {
 };
 
 const createHostListingsApi = () => {
-  const getHostListings = jest.fn().mockResolvedValue(listingPage());
+  const getHostListings = vi.fn().mockResolvedValue(listingPage());
 
   return {
     api: { getHostListings } as HostListingsApiPort,
@@ -169,26 +170,26 @@ const createHostListingsApi = () => {
 };
 
 const createWorkflow = () => {
-  const dispose = jest.fn();
-  const execute = jest.fn();
+  const dispose = vi.fn();
+  const execute = vi.fn();
 
   return {
     dispose,
     execute,
-    workflow: { dispose, execute } as unknown as jest.Mocked<HostListingManagementWorkflow>,
+    workflow: { dispose, execute } as unknown as Mocked<HostListingManagementWorkflow>,
   };
 };
 
-const createNavigation = (): jest.Mocked<ProfileNavigationCommands> => ({
-  changeGuestTab: jest.fn(),
-  changeHostListingStatus: jest.fn(),
-  changeHostReservationFilter: jest.fn(),
-  changeHostSection: jest.fn(),
-  changeMode: jest.fn(),
-  editAccommodation: jest.fn(),
-  openAccommodation: jest.fn(),
-  openGuestReservation: jest.fn(),
-  openHostReservation: jest.fn(),
+const createNavigation = (): Mocked<ProfileNavigationCommands> => ({
+  changeGuestTab: vi.fn(),
+  changeHostListingStatus: vi.fn(),
+  changeHostReservationFilter: vi.fn(),
+  changeHostSection: vi.fn(),
+  changeMode: vi.fn(),
+  editAccommodation: vi.fn(),
+  openAccommodation: vi.fn(),
+  openGuestReservation: vi.fn(),
+  openHostReservation: vi.fn(),
 });
 
 interface RenderControllerOptions {
@@ -202,7 +203,7 @@ interface RenderControllerOptions {
 }
 
 const renderController = ({
-  confirmDelete = jest.fn(() => true),
+  confirmDelete = vi.fn(() => true),
   hrefs = profileHrefs,
   hostListingsApi,
   hostListingWorkflow = createWorkflow().workflow,
@@ -440,7 +441,7 @@ describe("ProfileController", () => {
   it("keeps the listing dialog open when delete confirmation is cancelled", async () => {
     const hostListings = createHostListingsApi();
     const workflow = createWorkflow();
-    const confirmDelete = jest.fn(() => false);
+    const confirmDelete = vi.fn(() => false);
     renderController({
       confirmDelete,
       hostListingsApi: hostListings.api,
@@ -508,7 +509,7 @@ describe("ProfileController", () => {
     const renderWithWorkflow = (workflow: HostListingManagementWorkflow) => (
       <QueryClientProvider client={queryClient}>
         <ProfileController
-          confirmDelete={jest.fn(() => true)}
+          confirmDelete={vi.fn(() => true)}
           hrefs={profileHrefs}
           hostListingsApi={hostListings.api}
           hostListingWorkflow={workflow}

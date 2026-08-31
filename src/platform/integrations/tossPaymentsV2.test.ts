@@ -10,10 +10,10 @@ import {
   type TossPaymentsV2Request,
 } from "./tossPaymentsV2";
 
-jest.mock("@tosspayments/tosspayments-sdk", () => ({
+vi.mock("@tosspayments/tosspayments-sdk", () => ({
   ANONYMOUS: "@@ANONYMOUS",
-  clearTossPayments: jest.fn(),
-  loadTossPayments: jest.fn(),
+  clearTossPayments: vi.fn(),
+  loadTossPayments: vi.fn(),
 }));
 
 const request: TossPaymentsV2Request = {
@@ -30,19 +30,19 @@ let keySequence = 0;
 const nextClientKey = () => `test_ck_v2_${++keySequence}`;
 
 const setupSdk = () => {
-  const destroy = jest.fn().mockResolvedValue(undefined);
-  const requestPayment = jest.fn().mockResolvedValue(undefined);
-  const payment = jest.fn(() => ({ destroy, requestPayment }));
+  const destroy = vi.fn().mockResolvedValue(undefined);
+  const requestPayment = vi.fn().mockResolvedValue(undefined);
+  const payment = vi.fn(() => ({ destroy, requestPayment }));
 
-  jest.mocked(loadTossPayments).mockResolvedValue({ payment } as never);
+  vi.mocked(loadTossPayments).mockResolvedValue({ payment } as never);
 
   return { destroy, payment, requestPayment };
 };
 
 describe("Toss Payments v2 integration", () => {
   beforeEach(() => {
-    jest.mocked(clearTossPayments).mockReset();
-    jest.mocked(loadTossPayments).mockReset();
+    vi.mocked(clearTossPayments).mockReset();
+    vi.mocked(loadTossPayments).mockReset();
   });
 
   it("loads the official SDK and maps the existing request to CARD/KRW", async () => {
@@ -93,7 +93,7 @@ describe("Toss Payments v2 integration", () => {
     const loadFailure = Object.assign(new Error("provider URL omitted"), {
       name: "ScriptLoadFailedError",
     });
-    jest.mocked(loadTossPayments).mockRejectedValueOnce(loadFailure);
+    vi.mocked(loadTossPayments).mockRejectedValueOnce(loadFailure);
 
     await expect(loadTossPaymentsV2Client(clientKey)).rejects.toMatchObject({
       code: "INTEGRATION_LOAD_FAILED",
@@ -107,15 +107,15 @@ describe("Toss Payments v2 integration", () => {
   });
 
   it("bounds an SDK load that never settles and releases the local cache", async () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     try {
       const clientKey = nextClientKey();
-      jest
+      vi
         .mocked(loadTossPayments)
         .mockReturnValue(new Promise(() => undefined) as never);
 
       const readiness = loadTossPaymentsV2Client(clientKey);
-      jest.advanceTimersByTime(TOSS_PAYMENTS_V2_READINESS_TIMEOUT_MS);
+      vi.advanceTimersByTime(TOSS_PAYMENTS_V2_READINESS_TIMEOUT_MS);
 
       await expect(readiness).rejects.toMatchObject({
         code: "INTEGRATION_TIMEOUT",
@@ -128,39 +128,39 @@ describe("Toss Payments v2 integration", () => {
       await expect(loadTossPaymentsV2Client(clientKey)).resolves.toBeDefined();
       expect(loadTossPayments).toHaveBeenCalledTimes(2);
     } finally {
-      jest.useRealTimers();
+      vi.useRealTimers();
     }
   });
 
   it("still times out and releases the cache when provider cleanup throws", async () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     try {
       const clientKey = nextClientKey();
-      jest.mocked(clearTossPayments).mockImplementation(() => {
+      vi.mocked(clearTossPayments).mockImplementation(() => {
         throw new Error("cleanup unavailable");
       });
-      jest
+      vi
         .mocked(loadTossPayments)
         .mockReturnValue(new Promise(() => undefined) as never);
 
       const readiness = loadTossPaymentsV2Client(clientKey);
-      jest.advanceTimersByTime(TOSS_PAYMENTS_V2_READINESS_TIMEOUT_MS);
+      vi.advanceTimersByTime(TOSS_PAYMENTS_V2_READINESS_TIMEOUT_MS);
       await expect(readiness).rejects.toMatchObject({
         code: "INTEGRATION_TIMEOUT",
       });
 
-      jest.mocked(clearTossPayments).mockReset();
+      vi.mocked(clearTossPayments).mockReset();
       setupSdk();
       await expect(loadTossPaymentsV2Client(clientKey)).resolves.toBeDefined();
       expect(loadTossPayments).toHaveBeenCalledTimes(2);
     } finally {
-      jest.useRealTimers();
+      vi.useRealTimers();
     }
   });
 
   it("rejects an invalid SDK namespace with a typed safe error", async () => {
     const clientKey = nextClientKey();
-    jest.mocked(loadTossPayments).mockResolvedValue({} as never);
+    vi.mocked(loadTossPayments).mockResolvedValue({} as never);
 
     await expect(loadTossPaymentsV2Client(clientKey)).rejects.toEqual(
       expect.objectContaining({
@@ -173,7 +173,7 @@ describe("Toss Payments v2 integration", () => {
 
   it("can reload the same key after resetting an invalid SDK namespace", async () => {
     const clientKey = nextClientKey();
-    jest.mocked(loadTossPayments).mockResolvedValueOnce({} as never);
+    vi.mocked(loadTossPayments).mockResolvedValueOnce({} as never);
 
     await expect(loadTossPaymentsV2Client(clientKey)).rejects.toMatchObject({
       code: "INTEGRATION_INVALID_RUNTIME",
@@ -185,8 +185,8 @@ describe("Toss Payments v2 integration", () => {
   });
 
   it("rejects and resets a malformed payment runtime", async () => {
-    const payment = jest.fn(() => ({}));
-    jest.mocked(loadTossPayments).mockResolvedValue({ payment } as never);
+    const payment = vi.fn(() => ({}));
+    vi.mocked(loadTossPayments).mockResolvedValue({ payment } as never);
 
     await expect(
       loadTossPaymentsV2Client(nextClientKey()),
@@ -202,10 +202,10 @@ describe("Toss Payments v2 integration", () => {
       code: "INVALID_CLIENT_KEY",
       message: "provider details",
     };
-    const payment = jest.fn(() => {
+    const payment = vi.fn(() => {
       throw providerError;
     });
-    jest.mocked(loadTossPayments).mockResolvedValue({ payment } as never);
+    vi.mocked(loadTossPayments).mockResolvedValue({ payment } as never);
 
     await expect(
       loadTossPaymentsV2Client(nextClientKey()),

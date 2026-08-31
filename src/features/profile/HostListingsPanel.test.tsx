@@ -4,6 +4,7 @@ import {
   HostListingsPanel,
   type HostListingsPanelProps,
 } from "./HostListingsPanel";
+import styles from "./HostListingsPanel.module.css";
 
 const listing = {
   id: 7,
@@ -19,10 +20,10 @@ const createProps = (
   overrides: Partial<HostListingsPanelProps> = {},
 ): HostListingsPanelProps => ({
   errorMessage: null,
-  loadMoreRef: jest.fn(),
-  onDismissError: jest.fn(),
-  onOpenListingActions: jest.fn(),
-  onStatusChange: jest.fn(),
+  loadMoreRef: vi.fn(),
+  onDismissError: vi.fn(),
+  onOpenListingActions: vi.fn(),
+  onStatusChange: vi.fn(),
   state: {
     status: "ready",
     listings: [],
@@ -46,8 +47,8 @@ describe("HostListingsPanel", () => {
   });
 
   it("preserves the empty state, filters, and dismissible error toast", async () => {
-    const onDismissError = jest.fn();
-    const onStatusChange = jest.fn();
+    const onDismissError = vi.fn();
+    const onStatusChange = vi.fn();
 
     render(
       <HostListingsPanel
@@ -75,7 +76,7 @@ describe("HostListingsPanel", () => {
   });
 
   it("renders semantic listing cards and delegates selection by id", () => {
-    const onOpenListingActions = jest.fn();
+    const onOpenListingActions = vi.fn();
 
     render(
       <HostListingsPanel
@@ -96,7 +97,7 @@ describe("HostListingsPanel", () => {
     });
     const article = screen.getByRole("article");
 
-    expect(article).toHaveClass("accommodationCard");
+    expect(article).toHaveClass(styles.accommodationCard);
     expect(card).not.toContainElement(screen.getByText("바다 숙소"));
     expect(screen.getByText("🏠")).toBeInTheDocument();
     expect(screen.getByText("부산, 해운대구")).toBeInTheDocument();
@@ -108,7 +109,7 @@ describe("HostListingsPanel", () => {
   });
 
   it("attaches the injected load-more ref and preserves loading copy", () => {
-    const loadMoreRef = jest.fn();
+    const loadMoreRef = vi.fn();
 
     render(
       <HostListingsPanel

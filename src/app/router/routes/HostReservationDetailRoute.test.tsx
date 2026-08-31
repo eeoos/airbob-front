@@ -16,14 +16,14 @@ const scope = {
 };
 const capturedProps: Record<string, unknown> = {};
 
-jest.mock("../../session/useSession", () => ({
+vi.mock("../../session/useSession", () => ({
   useSession: () => ({
     captureAuthenticatedSession: () => scope,
     isCurrentSession: (candidate: unknown) => candidate === scope,
   }),
 }));
 
-jest.mock("../../../screens/reservation-detail/public", () => ({
+vi.mock("../../../screens/reservation-detail/public", () => ({
   ReservationDetailController: (props: {
     navigation: { openAccommodation(id: number): void };
   } & Record<string, unknown>) => {

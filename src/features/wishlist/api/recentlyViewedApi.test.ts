@@ -3,11 +3,11 @@ import { createRecentlyViewedApi } from "./recentlyViewedApi";
 
 describe("recently viewed API adapter", () => {
   it("preserves get/add/remove paths and forwards AbortSignal", async () => {
-    const request = jest.fn().mockResolvedValue({
+    const request = vi.fn().mockResolvedValue({
       accommodations: [],
       total_count: 0,
     });
-    const requestNullable = jest.fn().mockResolvedValue(null);
+    const requestNullable = vi.fn().mockResolvedValue(null);
     const api = createRecentlyViewedApi({
       request,
       requestNullable,

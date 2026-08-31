@@ -14,8 +14,8 @@ const paymentWire: PaymentRecordWire = {
 };
 
 const createTransports = () => {
-  const request = jest.fn();
-  const requestNullable = jest.fn();
+  const request = vi.fn();
+  const requestNullable = vi.fn();
 
   return {
     request,

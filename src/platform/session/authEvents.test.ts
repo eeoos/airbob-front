@@ -2,7 +2,7 @@ import { onAuthError, triggerAuthError } from "./authEvents";
 
 describe("authEvents", () => {
   it("delivers consecutive events without a time-based suppression window", () => {
-    const listener = jest.fn();
+    const listener = vi.fn();
     const unsubscribe = onAuthError(listener);
 
     triggerAuthError();
@@ -16,10 +16,10 @@ describe("authEvents", () => {
   });
 
   it("isolates listener failures and supports idempotent unsubscription", () => {
-    const throwingListener = jest.fn(() => {
+    const throwingListener = vi.fn(() => {
       throw new Error("listener failed");
     });
-    const survivingListener = jest.fn();
+    const survivingListener = vi.fn();
     const unsubscribeThrowing = onAuthError(throwingListener);
     const unsubscribeSurviving = onAuthError(survivingListener);
 

@@ -13,7 +13,7 @@ describe("useRecentlyViewedRecording", () => {
     const pending = new Promise<void>((resolve) => {
       resolveRecord = resolve;
     });
-    const record = jest.fn().mockReturnValue(pending);
+    const record = vi.fn().mockReturnValue(pending);
     const { rerender } = renderHook(
       ({ canRecord }) =>
         useRecentlyViewedRecording({
@@ -41,7 +41,7 @@ describe("useRecentlyViewedRecording", () => {
   });
 
   it("records the key only after success so a later eligible lifecycle can retry", async () => {
-    const record = jest
+    const record = vi
       .fn()
       .mockRejectedValueOnce(new Error("offline"))
       .mockResolvedValueOnce(undefined);

@@ -75,8 +75,8 @@ describe("useNonModalOverlayRegistration", () => {
   });
 
   it("lets the shared stack close only the topmost non-modal popover", async () => {
-    const closeFirst = jest.fn();
-    const closeSecond = jest.fn();
+    const closeFirst = vi.fn();
+    const closeSecond = vi.fn();
 
     render(
       <OverlayProvider>

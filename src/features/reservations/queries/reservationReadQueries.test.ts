@@ -77,8 +77,8 @@ const guestDetail = (reservationUid: string): GuestReservationDetail => ({
 });
 
 const createApi = () => {
-  const getList = jest.fn();
-  const getDetail = jest.fn();
+  const getList = vi.fn();
+  const getDetail = vi.fn();
   return {
     api: {
       getList: getList as ReservationReadApiPort["getList"],

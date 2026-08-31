@@ -74,36 +74,36 @@ const createScreenActions = (
 ): AccommodationEditScreenActions => ({
   isStepCompleted: (step) => step < 2,
   isStepClickable: (step) => step <= 2,
-  setFormData: jest.fn(),
-  setOpenTimePicker: jest.fn(),
+  setFormData: vi.fn(),
+  setOpenTimePicker: vi.fn(),
   resolveImageUrl: (imagePath) => imagePath || "",
-  onAddressSearch: jest.fn(),
-  onDetailChange: jest.fn(),
-  onImageSelect: jest.fn(),
-  onDrop: jest.fn(),
-  onDragOver: jest.fn(),
-  onImageRemove: jest.fn(),
-  onDragStart: jest.fn(),
-  onDragOverItem: jest.fn(),
-  onDragEnd: jest.fn(),
-  onInputChange: jest.fn(),
-  onNestedChange: jest.fn(),
-  onTimeChange: jest.fn(),
-  onOpenTypeModal: jest.fn(),
-  onCloseTypeModal: jest.fn(),
-  onOpenAmenityModal: jest.fn(),
-  onCloseAmenityModal: jest.fn(),
-  onSaveAndExit: jest.fn(),
-  onNext: jest.fn(),
-  onBack: jest.fn(),
-  onStepClick: jest.fn(),
-  onPublishSubmit: jest.fn(),
-  onCloseDetailAddressConfirm: jest.fn(),
-  onConfirmDetailAddress: jest.fn(),
-  onRetryDetail: jest.fn(),
-  onRetryRecovery: jest.fn(),
-  onExitDetailError: jest.fn(),
-  onClearError: jest.fn(),
+  onAddressSearch: vi.fn(),
+  onDetailChange: vi.fn(),
+  onImageSelect: vi.fn(),
+  onDrop: vi.fn(),
+  onDragOver: vi.fn(),
+  onImageRemove: vi.fn(),
+  onDragStart: vi.fn(),
+  onDragOverItem: vi.fn(),
+  onDragEnd: vi.fn(),
+  onInputChange: vi.fn(),
+  onNestedChange: vi.fn(),
+  onTimeChange: vi.fn(),
+  onOpenTypeModal: vi.fn(),
+  onCloseTypeModal: vi.fn(),
+  onOpenAmenityModal: vi.fn(),
+  onCloseAmenityModal: vi.fn(),
+  onSaveAndExit: vi.fn(),
+  onNext: vi.fn(),
+  onBack: vi.fn(),
+  onStepClick: vi.fn(),
+  onPublishSubmit: vi.fn(),
+  onCloseDetailAddressConfirm: vi.fn(),
+  onConfirmDetailAddress: vi.fn(),
+  onRetryDetail: vi.fn(),
+  onRetryRecovery: vi.fn(),
+  onExitDetailError: vi.fn(),
+  onClearError: vi.fn(),
   ...overrides,
 });
 
@@ -545,7 +545,7 @@ describe("AccommodationEdit extracted components", () => {
   });
 
   it("renders wizard sidebar steps as semantic buttons", () => {
-    const onStepClick = jest.fn();
+    const onStepClick = vi.fn();
 
     render(
       <AccommodationEditScreen
@@ -576,8 +576,8 @@ describe("AccommodationEdit extracted components", () => {
   });
 
   it("renders retry and back-safe actions without mounting the wizard after detail failure", () => {
-    const onRetryDetail = jest.fn();
-    const onExitDetailError = jest.fn();
+    const onRetryDetail = vi.fn();
+    const onExitDetailError = vi.fn();
 
     render(
       <AccommodationEditScreen
@@ -629,7 +629,7 @@ describe("AccommodationEdit extracted components", () => {
   });
 
   it("renders editor errors through the shared toast host", () => {
-    const onClearError = jest.fn();
+    const onClearError = vi.fn();
 
     render(
       <AccommodationEditScreen
@@ -648,7 +648,7 @@ describe("AccommodationEdit extracted components", () => {
   });
 
   it("renders a persistent protected-recovery action and locks ordinary edits", () => {
-    const onRetryRecovery = jest.fn();
+    const onRetryRecovery = vi.fn();
 
     render(
       <AccommodationEditScreen
@@ -693,7 +693,7 @@ describe("AccommodationEdit extracted components", () => {
   });
 
   it("resolves persisted photo paths through the injected view dependency", () => {
-    const resolveImageUrl = jest.fn(
+    const resolveImageUrl = vi.fn(
       (imagePath: string | null | undefined) =>
         imagePath ? `https://images.example/${imagePath}` : ""
     );
@@ -709,13 +709,13 @@ describe("AccommodationEdit extracted components", () => {
         draggedIndex={null}
         dragOverIndex={null}
         resolveImageUrl={resolveImageUrl}
-        onImageSelect={jest.fn()}
-        onDrop={jest.fn()}
-        onDragOver={jest.fn()}
-        onImageRemove={jest.fn()}
-        onDragStart={jest.fn()}
-        onDragOverItem={jest.fn()}
-        onDragEnd={jest.fn()}
+        onImageSelect={vi.fn()}
+        onDrop={vi.fn()}
+        onDragOver={vi.fn()}
+        onImageRemove={vi.fn()}
+        onDragStart={vi.fn()}
+        onDragOverItem={vi.fn()}
+        onDragEnd={vi.fn()}
       />
     );
 
@@ -727,11 +727,11 @@ describe("AccommodationEdit extracted components", () => {
   });
 
   it("renders info step fields and forwards edits", () => {
-    const onInputChange = jest.fn();
-    const onNestedChange = jest.fn();
-    const setFormData = jest.fn();
-    const onOpenTypeModal = jest.fn();
-    const onOpenAmenityModal = jest.fn();
+    const onInputChange = vi.fn();
+    const onNestedChange = vi.fn();
+    const setFormData = vi.fn();
+    const onOpenTypeModal = vi.fn();
+    const onOpenAmenityModal = vi.fn();
 
     render(
       <InfoStep
@@ -756,8 +756,8 @@ describe("AccommodationEdit extracted components", () => {
   });
 
   it("selects accommodation type from the extracted modal", () => {
-    const onSelect = jest.fn();
-    const onClose = jest.fn();
+    const onSelect = vi.fn();
+    const onClose = vi.fn();
 
     render(
       <AccommodationTypeModal
@@ -777,8 +777,8 @@ describe("AccommodationEdit extracted components", () => {
     const { unmount } = render(
       <AccommodationTypeModal
         selectedType="ENTIRE_PLACE"
-        onSelect={jest.fn()}
-        onClose={jest.fn()}
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
       />
     );
 
@@ -792,7 +792,7 @@ describe("AccommodationEdit extracted components", () => {
     unmount();
 
     render(
-      <DetailAddressConfirmModal onClose={jest.fn()} onConfirm={jest.fn()} />
+      <DetailAddressConfirmModal onClose={vi.fn()} onConfirm={vi.fn()} />
     );
 
     expect(
@@ -802,12 +802,12 @@ describe("AccommodationEdit extracted components", () => {
   });
 
   it("closes edit modals with the Escape key", () => {
-    const onClose = jest.fn();
+    const onClose = vi.fn();
 
     render(
       <AmenityModal
         amenityInfos={[]}
-        setFormData={jest.fn()}
+        setFormData={vi.fn()}
         onClose={onClose}
       />
     );
@@ -820,8 +820,8 @@ describe("AccommodationEdit extracted components", () => {
   });
 
   it("selects and increments amenities from the extracted modal", () => {
-    const setFormData = jest.fn();
-    const onClose = jest.fn();
+    const setFormData = vi.fn();
+    const onClose = vi.fn();
 
     render(
       <AmenityModal
@@ -842,8 +842,8 @@ describe("AccommodationEdit extracted components", () => {
     render(
       <AmenityModal
         amenityInfos={[{ name: "WIFI", count: 1 }]}
-        setFormData={jest.fn()}
-        onClose={jest.fn()}
+        setFormData={vi.fn()}
+        onClose={vi.fn()}
       />
     );
 
@@ -859,13 +859,13 @@ describe("AccommodationEdit extracted components", () => {
   });
 
   it("does not toggle amenity selection when count buttons receive keyboard events", () => {
-    const setFormData = jest.fn();
+    const setFormData = vi.fn();
 
     render(
       <AmenityModal
         amenityInfos={[{ name: "WIFI", count: 1 }]}
         setFormData={setFormData}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
       />
     );
 
@@ -882,8 +882,8 @@ describe("AccommodationEdit extracted components", () => {
   });
 
   it("renders time step and delegates time picker changes", () => {
-    const onTimeChange = jest.fn();
-    const setOpenTimePicker = jest.fn();
+    const onTimeChange = vi.fn();
+    const setOpenTimePicker = vi.fn();
 
     render(
       <TimeStep
@@ -902,7 +902,7 @@ describe("AccommodationEdit extracted components", () => {
   });
 
   it("renders standalone time picker controls", () => {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
 
     render(
       <TimePicker
@@ -930,7 +930,7 @@ describe("AccommodationEdit extracted components", () => {
           checkOutTime="11:00:00"
           openTimePicker={openTimePicker}
           setOpenTimePicker={setOpenTimePicker}
-          onTimeChange={jest.fn()}
+          onTimeChange={vi.fn()}
         />
       );
     }
@@ -956,8 +956,8 @@ describe("AccommodationEdit extracted components", () => {
   });
 
   it("renders publish and detail-address confirmation components", () => {
-    const onClose = jest.fn();
-    const onConfirm = jest.fn();
+    const onClose = vi.fn();
+    const onConfirm = vi.fn();
 
     render(
       <>

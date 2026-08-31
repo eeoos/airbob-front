@@ -30,13 +30,13 @@ const scope: AuthenticatedSessionScope = {
 };
 const mockPaymentControllerProps: Array<Record<string, unknown>> = [];
 const mockConfirmControllerProps: Array<Record<string, unknown>> = [];
-const mockGetCheckoutOwnership = jest.fn();
-const mockGetPaymentByOrderId = jest.fn();
+const mockGetCheckoutOwnership = vi.fn();
+const mockGetPaymentByOrderId = vi.fn();
 
-jest.mock("../../../features/reservations/payment/public", () => {
-  const actual = jest.requireActual(
-    "../../../features/reservations/payment/public",
-  );
+vi.mock("../../../features/reservations/payment/public", async () => {
+  const actual = await vi.importActual<
+    typeof import("../../../features/reservations/payment/public")
+  >("../../../features/reservations/payment/public");
 
   return {
     ...actual,
@@ -52,23 +52,23 @@ jest.mock("../../../features/reservations/payment/public", () => {
   };
 });
 
-jest.mock("../../../platform/browser/windowNavigation", () => ({
+vi.mock("../../../platform/browser/windowNavigation", () => ({
   browserWindowNavigation: {
     getOrigin: () => "https://airbob.test",
     isCurrentHistoryEntry: () => true,
-    openInNewTab: jest.fn(),
-    replaceCurrentUrl: jest.fn(),
+    openInNewTab: vi.fn(),
+    replaceCurrentUrl: vi.fn(),
   },
 }));
 
-jest.mock("../../../screens/payment-result/PaymentResultController", () => ({
+vi.mock("../../../screens/payment-result/PaymentResultController", () => ({
   PaymentResultController: (props: Record<string, unknown>) => {
     mockPaymentControllerProps.push(props);
     return <div data-testid="payment-result-controller" />;
   },
 }));
 
-jest.mock(
+vi.mock(
   "../../../screens/reservation-confirm/ReservationConfirmController",
   () => ({
     ReservationConfirmController: (props: Record<string, unknown>) => {
@@ -94,13 +94,13 @@ const mockSession = {
   captureAuthenticatedSession: () => scope,
   isCurrentSession: (candidate: AuthenticatedSessionScope) =>
     candidate.subject === scope.subject && candidate.epoch === scope.epoch,
-  login: jest.fn(),
-  logout: jest.fn(),
-  revalidate: jest.fn(),
-  retryServerLogout: jest.fn(),
+  login: vi.fn(),
+  logout: vi.fn(),
+  revalidate: vi.fn(),
+  retryServerLogout: vi.fn(),
 };
 
-jest.mock("../../session/useSession", () => ({
+vi.mock("../../session/useSession", () => ({
   useSession: () => mockSession,
 }));
 

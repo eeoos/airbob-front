@@ -1,3 +1,4 @@
+import type { Mocked } from "vitest";
 import type { HostListingActionsApiPort } from "../../features/accommodations/ports/hostListingActionsApiPort";
 import { AppError } from "../../platform/http/errors";
 import type { AuthenticatedSessionScope } from "../../platform/session/sessionScope";
@@ -21,13 +22,13 @@ const deferred = <T,>() => {
 };
 
 const createHarness = () => {
-  const api: jest.Mocked<HostListingActionsApiPort> = {
-    delete: jest.fn().mockResolvedValue(undefined),
-    publish: jest.fn().mockResolvedValue(undefined),
-    unpublish: jest.fn().mockResolvedValue(undefined),
+  const api: Mocked<HostListingActionsApiPort> = {
+    delete: vi.fn().mockResolvedValue(undefined),
+    publish: vi.fn().mockResolvedValue(undefined),
+    unpublish: vi.fn().mockResolvedValue(undefined),
   };
-  const publication: jest.Mocked<HostListingManagementPublicationPort> = {
-    publishHostListingChanged: jest.fn().mockResolvedValue(undefined),
+  const publication: Mocked<HostListingManagementPublicationPort> = {
+    publishHostListingChanged: vi.fn().mockResolvedValue(undefined),
   };
   let routeCurrent = true;
   let sessionCurrent = true;
@@ -298,7 +299,7 @@ describe("host listing management workflow", () => {
   });
 
   it("aborts and releases a command that exceeds the route deadline", async () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     const harness = createHarness();
     harness.api.publish.mockImplementationOnce(
       () => new Promise<void>(() => undefined),
@@ -311,7 +312,7 @@ describe("host listing management workflow", () => {
       });
       const signal = harness.api.publish.mock.calls[0][1]?.signal;
 
-      jest.advanceTimersByTime(HOST_LISTING_COMMAND_DEADLINE_MS);
+      vi.advanceTimersByTime(HOST_LISTING_COMMAND_DEADLINE_MS);
 
       await expect(command).resolves.toMatchObject({
         status: "ambiguous",
@@ -334,8 +335,8 @@ describe("host listing management workflow", () => {
         status: "applied",
       });
     } finally {
-      jest.runOnlyPendingTimers();
-      jest.useRealTimers();
+      vi.runOnlyPendingTimers();
+      vi.useRealTimers();
     }
   });
 

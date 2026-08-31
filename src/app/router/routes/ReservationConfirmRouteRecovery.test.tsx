@@ -23,16 +23,16 @@ const scope: AuthenticatedSessionScope = {
 };
 const mockConfirmControllerProps: Array<Record<string, unknown>> = [];
 
-jest.mock("../../../platform/browser/windowNavigation", () => ({
+vi.mock("../../../platform/browser/windowNavigation", () => ({
   browserWindowNavigation: {
     getOrigin: () => "https://airbob.test",
     isCurrentHistoryEntry: () => true,
-    openInNewTab: jest.fn(),
-    replaceCurrentUrl: jest.fn(),
+    openInNewTab: vi.fn(),
+    replaceCurrentUrl: vi.fn(),
   },
 }));
 
-jest.mock(
+vi.mock(
   "../../../screens/reservation-confirm/ReservationConfirmController",
   () => ({
     ReservationConfirmController: (props: Record<string, unknown>) => {
@@ -58,13 +58,13 @@ const mockSession = {
   captureAuthenticatedSession: () => scope,
   isCurrentSession: (candidate: AuthenticatedSessionScope) =>
     candidate.subject === scope.subject && candidate.epoch === scope.epoch,
-  login: jest.fn(),
-  logout: jest.fn(),
-  revalidate: jest.fn(),
-  retryServerLogout: jest.fn(),
+  login: vi.fn(),
+  logout: vi.fn(),
+  revalidate: vi.fn(),
+  retryServerLogout: vi.fn(),
 };
 
-jest.mock("../../session/useSession", () => ({
+vi.mock("../../session/useSession", () => ({
   useSession: () => mockSession,
 }));
 

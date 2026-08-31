@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import App from "./App";
 
-jest.mock("./app/router/Router", () => ({
+vi.mock("./app/router/Router", () => ({
   AppRouteTree: ({
     renderAuthenticated,
     renderHeader,
@@ -16,13 +16,13 @@ jest.mock("./app/router/Router", () => ({
   ),
 }));
 
-jest.mock("./app/header", () => ({
+vi.mock("./app/header", () => ({
   Header: ({ headerMode }: { headerMode: string }) => (
     <header data-testid="app-header">{headerMode}</header>
   ),
 }));
 
-jest.mock("./app/router/RequireAuthenticatedRoute", () => ({
+vi.mock("./app/router/RequireAuthenticatedRoute", () => ({
   RequireAuthenticatedRoute: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="auth-boundary">{children}</div>
   ),

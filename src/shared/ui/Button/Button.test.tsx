@@ -4,7 +4,7 @@ import { Button } from "./Button";
 
 describe("Button", () => {
   it("renders native button content and forwards button props", () => {
-    const handleClick = jest.fn();
+    const handleClick = vi.fn();
 
     render(
       <Button type="submit" variant="secondary" onClick={handleClick}>

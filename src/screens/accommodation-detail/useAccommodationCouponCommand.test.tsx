@@ -2,10 +2,12 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import type { SessionSubject } from "../../platform/session/sessionScope";
 import { useAccommodationCouponCommand } from "./useAccommodationCouponCommand";
 
-const mockIssueCoupon = jest.fn();
+const mockIssueCoupon = vi.fn();
 
-jest.mock("../../features/accommodations/detail/public", () => ({
-  ...jest.requireActual("../../features/accommodations/detail/public"),
+vi.mock("../../features/accommodations/detail/public", async () => ({
+  ...(await vi.importActual<
+    typeof import("../../features/accommodations/detail/public")
+  >("../../features/accommodations/detail/public")),
   accommodationCouponApi: {
     issue: (...args: unknown[]) => mockIssueCoupon(...args),
   },
@@ -43,8 +45,8 @@ describe("useAccommodationCouponCommand", () => {
       captureAuthenticatedSession: () => authenticatedScope,
       isCurrentSession: () => true,
     };
-    const onError = jest.fn();
-    const requestAuthentication = jest.fn();
+    const onError = vi.fn();
+    const requestAuthentication = vi.fn();
     const { result, rerender } = renderHook(
       ({ routeLease }) =>
         useAccommodationCouponCommand({
@@ -82,8 +84,8 @@ describe("useAccommodationCouponCommand", () => {
 
   it("selects a coupon after a successful authenticated issue", async () => {
     mockIssueCoupon.mockResolvedValue(undefined);
-    const onError = jest.fn();
-    const requestAuthentication = jest.fn();
+    const onError = vi.fn();
+    const requestAuthentication = vi.fn();
     const routeLease = { isCurrent: () => true };
     const session = {
       captureAuthenticatedSession: () => authenticatedScope,
@@ -112,9 +114,11 @@ describe("useAccommodationCouponCommand", () => {
   });
 
   it("treats CP003 as an already-issued coupon without surfacing an error", async () => {
-    mockIssueCoupon.mockRejectedValue({ code: "CP003" });
-    const onError = jest.fn();
-    const requestAuthentication = jest.fn();
+    mockIssueCoupon.mockRejectedValueOnce(
+      Object.assign(new Error("already issued"), { code: "CP003" }),
+    );
+    const onError = vi.fn();
+    const requestAuthentication = vi.fn();
     const routeLease = { isCurrent: () => true };
     const session = {
       captureAuthenticatedSession: () => authenticatedScope,
@@ -135,6 +139,7 @@ describe("useAccommodationCouponCommand", () => {
       await result.current.issueCoupon(coupon);
     });
 
+    expect(mockIssueCoupon).toHaveBeenCalledTimes(1);
     expect(result.current.selectedCouponId).toBe(31);
     expect(result.current.issuingCouponId).toBeNull();
     expect(onError).toHaveBeenCalledTimes(1);
@@ -148,8 +153,8 @@ describe("useAccommodationCouponCommand", () => {
     });
     mockIssueCoupon.mockReturnValue(pending);
     let isSessionCurrent = true;
-    const onError = jest.fn();
-    const requestAuthentication = jest.fn();
+    const onError = vi.fn();
+    const requestAuthentication = vi.fn();
     const routeLease = { isCurrent: () => true };
     const session = {
       captureAuthenticatedSession: () => authenticatedScope,

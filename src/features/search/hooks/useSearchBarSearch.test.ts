@@ -20,16 +20,16 @@ const createOptions = () => ({
   infantOccupancy: 0,
   petOccupancy: 0,
   urlSearchParams: new URLSearchParams("page=3&destination=Busan"),
-  pushSearch: jest.fn(),
-  closeTransientPanels: jest.fn(),
+  pushSearch: vi.fn(),
+  closeTransientPanels: vi.fn(),
   isPlacesLoading: false,
 });
 
 describe("useSearchBarSearch", () => {
   it("closes transient panels and sends selected-place search to onSearch", () => {
     const options = createOptions();
-    const onSearch = jest.fn();
-    const stopPropagation = jest.fn();
+    const onSearch = vi.fn();
+    const stopPropagation = vi.fn();
     const { result } = renderHook(() =>
       useSearchBarSearch({ ...options, onSearch }),
     );

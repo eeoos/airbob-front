@@ -25,7 +25,7 @@ describe("Google Maps platform integration", () => {
   const originalGoogle = window.google;
 
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     delete (window as any).google;
     mapsScripts().forEach((script) => script.remove());
   });
@@ -33,8 +33,8 @@ describe("Google Maps platform integration", () => {
   afterEach(() => {
     mapsScripts().forEach((script) => script.dispatchEvent(new Event("error")));
     mapsScripts().forEach((script) => script.remove());
-    jest.clearAllTimers();
-    jest.useRealTimers();
+    vi.clearAllTimers();
+    vi.useRealTimers();
     (window as any).google = originalGoogle;
   });
 
@@ -67,7 +67,7 @@ describe("Google Maps platform integration", () => {
 
     expect(mapsScripts()).toEqual([existing]);
     setGoogleMapsReady();
-    jest.advanceTimersByTime(50);
+    vi.advanceTimersByTime(50);
     await expect(loading).resolves.toBeUndefined();
   });
 
@@ -121,7 +121,7 @@ describe("Google Maps platform integration", () => {
   it("times out with safe typed metadata and removes its script", async () => {
     const loading = ensureGoogleMapsScript("never-include-this-key-in-errors");
 
-    jest.advanceTimersByTime(GOOGLE_MAPS_READINESS_TIMEOUT_MS);
+    vi.advanceTimersByTime(GOOGLE_MAPS_READINESS_TIMEOUT_MS);
 
     await expect(loading).rejects.toEqual(
       expect.objectContaining({

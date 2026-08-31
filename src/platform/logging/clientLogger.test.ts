@@ -1,21 +1,22 @@
+import type { MockedFunction, MockInstance } from "vitest";
 import { isTestEnvironment } from "../config/env";
 import { clientLogger } from "./clientLogger";
 
-jest.mock("../config/env", () => ({
-  isTestEnvironment: jest.fn(),
+vi.mock("../config/env", () => ({
+  isTestEnvironment: vi.fn(),
 }));
 
-const mockIsTestEnvironment = isTestEnvironment as jest.MockedFunction<
+const mockIsTestEnvironment = isTestEnvironment as MockedFunction<
   typeof isTestEnvironment
 >;
 
 describe("clientLogger", () => {
-  let warnSpy: jest.SpyInstance;
-  let errorSpy: jest.SpyInstance;
+  let warnSpy: MockInstance;
+  let errorSpy: MockInstance;
 
   beforeEach(() => {
-    warnSpy = jest.spyOn(console, "warn").mockImplementation(() => undefined);
-    errorSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
+    warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
   });
 
   afterEach(() => {

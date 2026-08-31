@@ -59,7 +59,7 @@ describe("reservation read API adapter", () => {
   ] as const)(
     "preserves the %s list path, params, and AbortSignal",
     async (audience, path) => {
-      const transport = jest.fn();
+      const transport = vi.fn();
       const wire: GuestReservationPageWire | HostReservationPageWire = {
         page_info: pageInfo,
         reservations: [],
@@ -118,7 +118,7 @@ describe("reservation read API adapter", () => {
   ] as const)(
     "preserves the %s detail path and maps its audience",
     async (audience, path, wire) => {
-      const transport = jest.fn().mockResolvedValue(wire);
+      const transport = vi.fn().mockResolvedValue(wire);
       const api = createReservationReadApi(
         transport as ReservationReadApiTransport,
       );
@@ -137,7 +137,7 @@ describe("reservation read API adapter", () => {
   );
 
   it("rejects a path-shaped UID before transport", async () => {
-    const transport = jest.fn();
+    const transport = vi.fn();
     const api = createReservationReadApi(
       transport as ReservationReadApiTransport,
     );

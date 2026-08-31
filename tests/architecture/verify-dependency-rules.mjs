@@ -135,8 +135,7 @@ const getViolationNames = (report, severity = "error") =>
     .map((violation) => violation.rule.name);
 
 const excludedProductionEntries = [
-  "src/setupTests.ts",
-  "src/setupTests.mjs",
+  "src/test/setup.ts",
   "src/test/helper.js",
   "src/test/helper.jsx",
   "src/test/helper.mjs",

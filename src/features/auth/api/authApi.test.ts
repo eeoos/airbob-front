@@ -5,13 +5,13 @@ import {
 import { sessionOwnedAuthEventPolicy } from "../../../platform/http/authEventPolicy";
 import { authApi } from "./authApi";
 
-jest.mock("../../../platform/http/request", () => ({
-  requestApiData: jest.fn(),
-  requestApiDataNullable: jest.fn(),
+vi.mock("../../../platform/http/request", () => ({
+  requestApiData: vi.fn(),
+  requestApiDataNullable: vi.fn(),
 }));
 
-const mockRequestApiData = jest.mocked(requestApiData);
-const mockRequestApiDataNullable = jest.mocked(requestApiDataNullable);
+const mockRequestApiData = vi.mocked(requestApiData);
+const mockRequestApiDataNullable = vi.mocked(requestApiDataNullable);
 
 describe("feature auth API contract", () => {
   beforeEach(() => {

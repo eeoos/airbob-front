@@ -46,7 +46,7 @@ jobs:
         run: npm run test:public-config-build
 
       - name: Test
-        run: npm run test:ci:no-cache -- --runInBand
+        run: npm run test:ci:no-cache
 
       - name: Build
         run: npm run build

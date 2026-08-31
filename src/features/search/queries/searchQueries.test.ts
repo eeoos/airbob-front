@@ -9,7 +9,7 @@ describe("search read query contracts", () => {
   it("keys and tags the normalized request, keeps prior data and forwards AbortSignal", async () => {
     const signal = new AbortController().signal;
     const api: SearchApiPort = {
-      search: jest.fn().mockResolvedValue({
+      search: vi.fn().mockResolvedValue({
         accommodations: [],
         pageInfo: {
           pageSize: 18,
@@ -66,7 +66,7 @@ describe("search read query contracts", () => {
   });
 
   it("preserves explicit disabled policy without changing the semantic key", () => {
-    const api = { search: jest.fn() } as unknown as SearchApiPort;
+    const api = { search: vi.fn() } as unknown as SearchApiPort;
     const request = { destination: "Seoul", page: 2, size: 18 };
 
     const enabled = createSearchResultsQueryOptions(
@@ -88,7 +88,7 @@ describe("search read query contracts", () => {
         scope,
         request: { page: 0, size: 18 },
       },
-      { search: jest.fn() } as unknown as SearchApiPort,
+      { search: vi.fn() } as unknown as SearchApiPort,
     );
 
     expect(options).not.toHaveProperty("onSuccess");

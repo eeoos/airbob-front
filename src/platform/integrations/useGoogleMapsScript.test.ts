@@ -1,9 +1,9 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { getPublicRuntimeConfig } from "../config/publicRuntimeConfig";
 import { useGoogleMapsScript } from "./useGoogleMapsScript";
 
-jest.mock("../config/publicRuntimeConfig", () => ({
-  getPublicRuntimeConfig: jest.fn(),
+vi.mock("../config/publicRuntimeConfig", () => ({
+  getPublicRuntimeConfig: vi.fn(),
 }));
 
 const runtimeConfig = (googleMapsBrowserKey: string | null) => ({
@@ -34,9 +34,9 @@ describe("useGoogleMapsScript", () => {
   const originalGoogle = window.google;
 
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     delete (window as any).google;
-    jest.mocked(getPublicRuntimeConfig).mockReturnValue(runtimeConfig("test-key"));
+    vi.mocked(getPublicRuntimeConfig).mockReturnValue(runtimeConfig("test-key"));
     mapsScripts().forEach((script) => script.remove());
   });
 
@@ -48,8 +48,8 @@ describe("useGoogleMapsScript", () => {
       await Promise.resolve();
     });
     mapsScripts().forEach((script) => script.remove());
-    jest.clearAllTimers();
-    jest.useRealTimers();
+    vi.clearAllTimers();
+    vi.useRealTimers();
     (window as any).google = originalGoogle;
   });
 
@@ -61,21 +61,20 @@ describe("useGoogleMapsScript", () => {
     expect(firstResult.current.status).toBe("loading");
     expect(secondResult.current.status).toBe("loading");
 
-    act(() => {
+    await act(async () => {
       setGoogleMapsReady();
       mapsScripts()[0].dispatchEvent(new Event("load"));
+      await Promise.resolve();
     });
 
-    await waitFor(() =>
-      expect([
-        firstResult.current.status,
-        secondResult.current.status,
-      ]).toEqual(["loaded", "loaded"]),
-    );
+    expect([
+      firstResult.current.status,
+      secondResult.current.status,
+    ]).toEqual(["loaded", "loaded"]);
   });
 
   it("preserves missing-key status without appending a script", () => {
-    jest.mocked(getPublicRuntimeConfig).mockReturnValue(runtimeConfig(null));
+    vi.mocked(getPublicRuntimeConfig).mockReturnValue(runtimeConfig(null));
 
     const { result } = renderHook(() => useGoogleMapsScript());
 
@@ -107,9 +106,12 @@ describe("useGoogleMapsScript", () => {
     const { result } = renderHook(() => useGoogleMapsScript());
     const script = mapsScripts()[0];
 
-    act(() => script.dispatchEvent(new Event("error")));
+    await act(async () => {
+      script.dispatchEvent(new Event("error"));
+      await Promise.resolve();
+    });
 
-    await waitFor(() => expect(result.current.status).toBe("error"));
+    expect(result.current.status).toBe("error");
     expect(result.current.isLoaded).toBe(false);
     expect(result.current.error).toMatchObject({
       code: "INTEGRATION_LOAD_FAILED",

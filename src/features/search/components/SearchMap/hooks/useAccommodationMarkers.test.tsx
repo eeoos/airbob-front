@@ -46,29 +46,29 @@ describe("useAccommodationMarkers", () => {
 
   it("disposes marker listeners, animation frame, object URLs, and owned bindings", () => {
     const listenerHandles = Array.from({ length: 3 }, () => ({
-      remove: jest.fn(),
+      remove: vi.fn(),
     }));
     const handlers: Record<string, (...args: any[]) => void> = {};
-    const setMap = jest.fn();
-    const unbindAll = jest.fn();
-    const revokeObjectURL = jest.fn();
-    const createObjectURL = jest
+    const setMap = vi.fn();
+    const unbindAll = vi.fn();
+    const revokeObjectURL = vi.fn();
+    const createObjectURL = vi
       .fn()
       .mockReturnValueOnce("blob:default")
       .mockReturnValueOnce("blob:selected")
       .mockReturnValueOnce("blob:hovered");
-    const cancelAnimationFrame = jest.fn();
-    const requestAnimationFrame = jest.fn(() => 41);
+    const cancelAnimationFrame = vi.fn();
+    const requestAnimationFrame = vi.fn(() => 41);
     let nextListenerIndex = 0;
 
     class FakeMarker {
-      addListener = jest.fn(
+      addListener = vi.fn(
         (eventName: string, handler: (...args: any[]) => void) => {
           handlers[eventName] = handler;
           return listenerHandles[nextListenerIndex++];
         },
       );
-      setIcon = jest.fn();
+      setIcon = vi.fn();
       setMap = setMap;
       unbindAll = unbindAll;
     }
@@ -94,7 +94,7 @@ describe("useAccommodationMarkers", () => {
         Size: FakeSize,
         Point: FakePoint,
         LatLngBounds: class LatLngBounds {
-          extend = jest.fn();
+          extend = vi.fn();
         },
         event: {},
       },
@@ -111,9 +111,9 @@ describe("useAccommodationMarkers", () => {
     });
 
     const map = {
-      fitBounds: jest.fn(),
-      setCenter: jest.fn(),
-      setZoom: jest.fn(),
+      fitBounds: vi.fn(),
+      setCenter: vi.fn(),
+      setZoom: vi.fn(),
     } as unknown as google.maps.Map;
     const markersRef = ref<SearchMapMarker[]>([]);
     const { unmount } = renderHook(() =>
@@ -124,7 +124,7 @@ describe("useAccommodationMarkers", () => {
         isMapLoaded: true,
         mapInstanceRef: ref(map),
         markersRef,
-        onAccommodationSelectRef: ref(jest.fn()),
+        onAccommodationSelectRef: ref(vi.fn()),
         prevViewportRef: ref<SearchMapViewport | null>(null),
         shouldUpdateMapBounds: false,
         viewportJustChangedRef: ref(false),

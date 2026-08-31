@@ -10,7 +10,7 @@ describe("Dialog", () => {
 
   it("does not render content when closed", () => {
     render(
-      <Dialog isOpen={false} title="위시리스트" onClose={jest.fn()}>
+      <Dialog isOpen={false} title="위시리스트" onClose={vi.fn()}>
         content
       </Dialog>
     );
@@ -20,7 +20,7 @@ describe("Dialog", () => {
 
   it("renders an accessible modal dialog when open", () => {
     render(
-      <Dialog isOpen title="위시리스트" onClose={jest.fn()}>
+      <Dialog isOpen title="위시리스트" onClose={vi.fn()}>
         content
       </Dialog>
     );
@@ -32,7 +32,7 @@ describe("Dialog", () => {
   });
 
   it("calls onClose when the close button is clicked", async () => {
-    const onClose = jest.fn();
+    const onClose = vi.fn();
     render(
       <Dialog isOpen title="위시리스트" onClose={onClose}>
         content
@@ -46,7 +46,7 @@ describe("Dialog", () => {
 
   it("moves focus to the close button when opened", () => {
     render(
-      <Dialog isOpen title="위시리스트" onClose={jest.fn()}>
+      <Dialog isOpen title="위시리스트" onClose={vi.fn()}>
         <button type="button">담기</button>
       </Dialog>
     );
@@ -56,7 +56,7 @@ describe("Dialog", () => {
 
   it("respects an autofocus child as the initial focus target", () => {
     render(
-      <Dialog isOpen title="위시리스트 만들기" onClose={jest.fn()}>
+      <Dialog isOpen title="위시리스트 만들기" onClose={vi.fn()}>
         <input aria-label="이름" autoFocus />
       </Dialog>
     );
@@ -65,7 +65,7 @@ describe("Dialog", () => {
   });
 
   it("calls onClose when Escape is pressed", async () => {
-    const onClose = jest.fn();
+    const onClose = vi.fn();
     render(
       <Dialog isOpen title="위시리스트" onClose={onClose}>
         content
@@ -143,7 +143,7 @@ describe("Dialog", () => {
 
   it("keeps Tab focus within the dialog", async () => {
     render(
-      <Dialog isOpen title="위시리스트" onClose={jest.fn()}>
+      <Dialog isOpen title="위시리스트" onClose={vi.fn()}>
         <button type="button">첫 번째</button>
         <button type="button">마지막</button>
       </Dialog>
@@ -169,7 +169,7 @@ describe("Dialog", () => {
   });
 
   it("calls onClose when the backdrop is pressed", async () => {
-    const onClose = jest.fn();
+    const onClose = vi.fn();
     render(
       <Dialog isOpen title="위시리스트" onClose={onClose}>
         content
@@ -183,7 +183,7 @@ describe("Dialog", () => {
 
   it("supports headerless dialogs with an accessible aria-label", () => {
     render(
-      <Dialog isOpen title="후기 2개" onClose={jest.fn()} showHeader={false}>
+      <Dialog isOpen title="후기 2개" onClose={vi.fn()} showHeader={false}>
         <button type="button" autoFocus>
           후기 닫기
         </button>
@@ -200,7 +200,7 @@ describe("Dialog", () => {
 
   it("moves focus to the first focusable child in a headerless dialog", () => {
     render(
-      <Dialog isOpen title="상세 주소 확인" onClose={jest.fn()} showHeader={false}>
+      <Dialog isOpen title="상세 주소 확인" onClose={vi.fn()} showHeader={false}>
         <button type="button">취소</button>
         <button type="button">진행하기</button>
       </Dialog>
@@ -210,7 +210,7 @@ describe("Dialog", () => {
   });
 
   it("can disable backdrop close for modal workflows that require explicit actions", async () => {
-    const onClose = jest.fn();
+    const onClose = vi.fn();
     render(
       <Dialog isOpen title="예약 확인" onClose={onClose} closeOnBackdrop={false}>
         content
@@ -227,7 +227,7 @@ describe("Dialog", () => {
       <Dialog
         isOpen
         title="후기"
-        onClose={jest.fn()}
+        onClose={vi.fn()}
         size="xl"
         bodyPadding="none"
       >
@@ -240,7 +240,7 @@ describe("Dialog", () => {
   });
 
   it("does not close when the inner dialog is pressed", async () => {
-    const onClose = jest.fn();
+    const onClose = vi.fn();
     render(
       <Dialog isOpen title="위시리스트" onClose={onClose}>
         content
@@ -257,10 +257,10 @@ describe("Dialog", () => {
 
     const { rerender, unmount } = render(
       <>
-        <Dialog isOpen title="첫 번째" onClose={jest.fn()}>
+        <Dialog isOpen title="첫 번째" onClose={vi.fn()}>
           content
         </Dialog>
-        <Dialog isOpen title="두 번째" onClose={jest.fn()}>
+        <Dialog isOpen title="두 번째" onClose={vi.fn()}>
           content
         </Dialog>
       </>
@@ -270,10 +270,10 @@ describe("Dialog", () => {
 
     rerender(
       <>
-        <Dialog isOpen={false} title="첫 번째" onClose={jest.fn()}>
+        <Dialog isOpen={false} title="첫 번째" onClose={vi.fn()}>
           content
         </Dialog>
-        <Dialog isOpen title="두 번째" onClose={jest.fn()}>
+        <Dialog isOpen title="두 번째" onClose={vi.fn()}>
           content
         </Dialog>
       </>

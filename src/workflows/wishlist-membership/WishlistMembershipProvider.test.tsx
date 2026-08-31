@@ -1,3 +1,4 @@
+import type { Mocked } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -17,26 +18,26 @@ const scope: AuthenticatedSessionScope = {
   epoch: 3,
 };
 
-const transport: jest.Mocked<WishlistMembershipTransport> = {
-  addAccommodation: jest.fn().mockResolvedValue({ id: 31 }),
-  createWishlist: jest.fn().mockResolvedValue({ id: 11 }),
-  deleteWishlist: jest.fn().mockResolvedValue(undefined),
-  getAccommodationMembership: jest.fn().mockResolvedValue({
+const transport: Mocked<WishlistMembershipTransport> = {
+  addAccommodation: vi.fn().mockResolvedValue({ id: 31 }),
+  createWishlist: vi.fn().mockResolvedValue({ id: 11 }),
+  deleteWishlist: vi.fn().mockResolvedValue(undefined),
+  getAccommodationMembership: vi.fn().mockResolvedValue({
     wishlists: [{ id: 11, isContained: true }],
     pageInfo: { hasNext: false, nextCursor: null },
   }),
-  removeAccommodation: jest.fn().mockResolvedValue(undefined),
-  removeRecentlyViewed: jest.fn().mockResolvedValue(undefined),
-  saveMemo: jest.fn().mockResolvedValue(undefined),
+  removeAccommodation: vi.fn().mockResolvedValue(undefined),
+  removeRecentlyViewed: vi.fn().mockResolvedValue(undefined),
+  saveMemo: vi.fn().mockResolvedValue(undefined),
 };
 
-const projection: jest.Mocked<WishlistMembershipProjection> = {
-  membershipReconciled: jest.fn(),
-  membershipRefreshRequired: jest.fn(),
-  memoSaved: jest.fn(),
-  recentlyViewedRemoved: jest.fn(),
-  wishlistCreated: jest.fn(),
-  wishlistDeleted: jest.fn(),
+const projection: Mocked<WishlistMembershipProjection> = {
+  membershipReconciled: vi.fn(),
+  membershipRefreshRequired: vi.fn(),
+  memoSaved: vi.fn(),
+  recentlyViewedRemoved: vi.fn(),
+  wishlistCreated: vi.fn(),
+  wishlistDeleted: vi.fn(),
 };
 
 const wrapper = ({ children }: { readonly children: ReactNode }) => (
@@ -57,7 +58,7 @@ const wrapper = ({ children }: { readonly children: ReactNode }) => (
 
 describe("WishlistMembershipProvider", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     transport.addAccommodation.mockResolvedValue({ id: 31 });
     transport.getAccommodationMembership.mockResolvedValue({
       wishlists: [{ id: 11, isContained: true }],

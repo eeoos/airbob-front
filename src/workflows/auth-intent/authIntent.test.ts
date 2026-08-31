@@ -36,7 +36,7 @@ describe("authIntent", () => {
       type: "wishlist.open",
       accommodationId: 7,
       email: "must-not-enter-runtime@example.com",
-      resume: jest.fn(),
+      resume: vi.fn(),
       completion: Promise.resolve(),
     };
 

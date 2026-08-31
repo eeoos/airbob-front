@@ -4,17 +4,19 @@ import type { SessionSubject } from "../../platform/session/sessionScope";
 import { AccommodationDetailController } from "./AccommodationDetailController";
 import type { AccommodationDetailScreenProps } from "./AccommodationDetailScreen";
 
-const mockDetailQuery = jest.fn();
-const mockCouponsQuery = jest.fn();
-const mockReviewsQuery = jest.fn();
-const mockIssueCoupon = jest.fn();
-const mockCreateReservationWorkflow = jest.fn();
-const mockStartReservation = jest.fn();
-const mockDisposeReservation = jest.fn();
+const mockDetailQuery = vi.fn();
+const mockCouponsQuery = vi.fn();
+const mockReviewsQuery = vi.fn();
+const mockIssueCoupon = vi.fn();
+const mockCreateReservationWorkflow = vi.fn();
+const mockStartReservation = vi.fn();
+const mockDisposeReservation = vi.fn();
 let capturedScreenProps: AccommodationDetailScreenProps | null = null;
 
-jest.mock("../../features/accommodations/detail/public", () => ({
-  ...jest.requireActual("../../features/accommodations/detail/public"),
+vi.mock("../../features/accommodations/detail/public", async () => ({
+  ...(await vi.importActual<
+    typeof import("../../features/accommodations/detail/public")
+  >("../../features/accommodations/detail/public")),
   accommodationCouponApi: {
     issue: (...args: unknown[]) => mockIssueCoupon(...args),
   },
@@ -23,22 +25,24 @@ jest.mock("../../features/accommodations/detail/public", () => ({
   useValidCouponsReadQuery: (...args: unknown[]) => mockCouponsQuery(...args),
 }));
 
-jest.mock("../../features/reviews/public", () => ({
-  ...jest.requireActual("../../features/reviews/public"),
+vi.mock("../../features/reviews/public", async () => ({
+  ...(await vi.importActual<typeof import("../../features/reviews/public")>(
+    "../../features/reviews/public",
+  )),
   useAccommodationReviewsReadQuery: (...args: unknown[]) =>
     mockReviewsQuery(...args),
 }));
 
-jest.mock("../../workflows/booking-payment/reservation-create", () => ({
-  ...jest.requireActual(
-    "../../workflows/booking-payment/reservation-create",
-  ),
+vi.mock("../../workflows/booking-payment/reservation-create", async () => ({
+  ...(await vi.importActual<
+    typeof import("../../workflows/booking-payment/reservation-create")
+  >("../../workflows/booking-payment/reservation-create")),
   createReservationCreateWorkflow: (...args: unknown[]) =>
     mockCreateReservationWorkflow(...args),
   reservationCreateTransport: {},
 }));
 
-jest.mock("./AccommodationDetailScreen", () => ({
+vi.mock("./AccommodationDetailScreen", () => ({
   AccommodationDetailScreen: (props: AccommodationDetailScreenProps) => {
     capturedScreenProps = props;
     return <div data-testid="accommodation-detail-screen" />;
@@ -76,8 +80,8 @@ const authenticatedScope = {
 };
 
 const session = {
-  captureAuthenticatedSession: jest.fn(() => authenticatedScope),
-  isCurrentSession: jest.fn(() => true),
+  captureAuthenticatedSession: vi.fn(() => authenticatedScope),
+  isCurrentSession: vi.fn(() => true),
 };
 
 const coupon = {
@@ -102,9 +106,9 @@ const createProps = (
   accommodationId: 7,
   authIntent: {
     claimed: null,
-    cancelPending: jest.fn(),
-    completeClaim: jest.fn(),
-    request: jest.fn(() => true),
+    cancelPending: vi.fn(),
+    completeClaim: vi.fn(),
+    request: vi.fn(() => true),
   },
   bookingRouteState: {
     checkIn: "2026-07-20",
@@ -115,12 +119,12 @@ const createProps = (
     petOccupancy: 0,
   },
   checkoutHandoff: {
-    preflight: jest.fn(() => ({ status: "ready" as const })),
-    commit: jest.fn(),
+    preflight: vi.fn(() => ({ status: "ready" as const })),
+    commit: vi.fn(),
   },
   isAuthenticated: true,
-  onReplaceBookingDates: jest.fn(),
-  recordRecentlyViewed: jest.fn().mockResolvedValue(undefined),
+  onReplaceBookingDates: vi.fn(),
+  recordRecentlyViewed: vi.fn().mockResolvedValue(undefined),
   resolveImageUrl: (path: string | null) => path ?? "",
   routeLease: { isCurrent: () => true },
   scope: authenticatedScope,
@@ -159,7 +163,7 @@ describe("AccommodationDetailController", () => {
       dataUpdatedAt: 0,
       error: null,
       errorUpdatedAt: 0,
-      fetchNextPage: jest.fn(),
+      fetchNextPage: vi.fn(),
       hasNextPage: false,
       isError: false,
       isFetchingNextPage: false,
@@ -220,7 +224,7 @@ describe("AccommodationDetailController", () => {
   });
 
   it("resumes the claimed immutable booking instead of remounted UI counts", async () => {
-    const completeClaim = jest.fn();
+    const completeClaim = vi.fn();
     const claimedIntent = {
       type: "reservation.start" as const,
       accommodationId: 7,
@@ -241,9 +245,9 @@ describe("AccommodationDetailController", () => {
               intent: claimedIntent,
               isCurrent: () => true,
             },
-            cancelPending: jest.fn(),
+            cancelPending: vi.fn(),
             completeClaim,
-            request: jest.fn(() => true),
+            request: vi.fn(() => true),
           },
           bookingRouteState: {
             adultOccupancy: 1,
@@ -278,14 +282,14 @@ describe("AccommodationDetailController", () => {
       status: "auth-required",
       intent: requestedIntent,
     });
-    const request = jest.fn(() => true);
+    const request = vi.fn(() => true);
     render(
       <AccommodationDetailController
         {...createProps({
           authIntent: {
             claimed: null,
-            cancelPending: jest.fn(),
-            completeClaim: jest.fn(),
+            cancelPending: vi.fn(),
+            completeClaim: vi.fn(),
             request,
           },
           isAuthenticated: false,
@@ -324,7 +328,7 @@ describe("AccommodationDetailController", () => {
   });
 
   it("requests authentication with the exact coupon intent before issuing", () => {
-    const request = jest.fn(() => true);
+    const request = vi.fn(() => true);
     mockCouponsQuery.mockReturnValue({
       data: { coupons: [coupon] },
       isFetching: false,
@@ -334,8 +338,8 @@ describe("AccommodationDetailController", () => {
         {...createProps({
           authIntent: {
             claimed: null,
-            cancelPending: jest.fn(),
-            completeClaim: jest.fn(),
+            cancelPending: vi.fn(),
+            completeClaim: vi.fn(),
             request,
           },
           isAuthenticated: false,
@@ -452,7 +456,7 @@ describe("AccommodationDetailController", () => {
   });
 
   it("renders a coupon query failure and deliberately settles a claimed coupon intent", async () => {
-    const completeClaim = jest.fn();
+    const completeClaim = vi.fn();
     mockCouponsQuery.mockReturnValue({
       data: undefined,
       error: { kind: "network" },
@@ -474,9 +478,9 @@ describe("AccommodationDetailController", () => {
               },
               isCurrent: () => true,
             },
-            cancelPending: jest.fn(),
+            cancelPending: vi.fn(),
             completeClaim,
-            request: jest.fn(() => true),
+            request: vi.fn(() => true),
           },
         })}
       />,
@@ -494,7 +498,7 @@ describe("AccommodationDetailController", () => {
     const recordPending = new Promise<void>((resolve) => {
       resolveRecord = resolve;
     });
-    const recordRecentlyViewed = jest.fn().mockReturnValue(recordPending);
+    const recordRecentlyViewed = vi.fn().mockReturnValue(recordPending);
     const initialProps = createProps({ recordRecentlyViewed });
     const view = render(
       <AccommodationDetailController {...initialProps} />,
@@ -521,7 +525,7 @@ describe("AccommodationDetailController", () => {
   });
 
   it("loads one review cursor at a time without retrying a failed cursor loop", async () => {
-    const fetchNextPage = jest
+    const fetchNextPage = vi
       .fn()
       .mockRejectedValue(new Error("page failed"));
     mockReviewsQuery.mockReturnValue({

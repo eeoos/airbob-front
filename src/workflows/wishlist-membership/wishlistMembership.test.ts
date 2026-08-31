@@ -1,3 +1,4 @@
+import type { Mocked } from "vitest";
 import type {
   AuthenticatedSessionScope,
   SessionSubject,
@@ -44,25 +45,25 @@ const membershipPage = ({
   pageInfo: { hasNext, nextCursor },
 });
 
-const createTransport = (): jest.Mocked<WishlistMembershipTransport> => ({
-  addAccommodation: jest.fn().mockResolvedValue({ id: 101 }),
-  createWishlist: jest.fn().mockResolvedValue({ id: 11 }),
-  deleteWishlist: jest.fn().mockResolvedValue(undefined),
-  getAccommodationMembership: jest
+const createTransport = (): Mocked<WishlistMembershipTransport> => ({
+  addAccommodation: vi.fn().mockResolvedValue({ id: 101 }),
+  createWishlist: vi.fn().mockResolvedValue({ id: 11 }),
+  deleteWishlist: vi.fn().mockResolvedValue(undefined),
+  getAccommodationMembership: vi
     .fn()
     .mockResolvedValue(membershipPage({ contained: true })),
-  removeAccommodation: jest.fn().mockResolvedValue(undefined),
-  removeRecentlyViewed: jest.fn().mockResolvedValue(undefined),
-  saveMemo: jest.fn().mockResolvedValue(undefined),
+  removeAccommodation: vi.fn().mockResolvedValue(undefined),
+  removeRecentlyViewed: vi.fn().mockResolvedValue(undefined),
+  saveMemo: vi.fn().mockResolvedValue(undefined),
 });
 
-const createProjection = (): jest.Mocked<WishlistMembershipProjection> => ({
-  membershipReconciled: jest.fn(),
-  membershipRefreshRequired: jest.fn(),
-  memoSaved: jest.fn(),
-  recentlyViewedRemoved: jest.fn(),
-  wishlistCreated: jest.fn(),
-  wishlistDeleted: jest.fn(),
+const createProjection = (): Mocked<WishlistMembershipProjection> => ({
+  membershipReconciled: vi.fn(),
+  membershipRefreshRequired: vi.fn(),
+  memoSaved: vi.fn(),
+  recentlyViewedRemoved: vi.fn(),
+  wishlistCreated: vi.fn(),
+  wishlistDeleted: vi.fn(),
 });
 
 const setup = (initialScope: AuthenticatedSessionScope | null = scopeA) => {

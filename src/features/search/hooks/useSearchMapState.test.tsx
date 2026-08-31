@@ -3,7 +3,7 @@ import { useSearchMapState } from "./useSearchMapState";
 
 describe("useSearchMapState", () => {
   it("tracks selected and hovered accommodations for list/map sync", () => {
-    const scrollIntoView = jest.fn();
+    const scrollIntoView = vi.fn();
     const element = document.createElement("div");
     element.id = "accommodation-10";
     element.scrollIntoView = scrollIntoView;

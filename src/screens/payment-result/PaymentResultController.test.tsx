@@ -1,3 +1,4 @@
+import type { Mock } from "vitest";
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 import type {
   CheckoutOwnership,
@@ -90,34 +91,34 @@ const setup = ({
   shouldConfirm = true,
   documentData = documentFromCheckout(),
   callbackData = callback(),
-  confirm = jest.fn().mockResolvedValue(undefined),
-  getByPaymentKey = jest.fn().mockResolvedValue(payment()),
-  getCheckoutOwnership = jest.fn().mockResolvedValue(ownership()),
+  confirm = vi.fn().mockResolvedValue(undefined),
+  getByPaymentKey = vi.fn().mockResolvedValue(payment()),
+  getCheckoutOwnership = vi.fn().mockResolvedValue(ownership()),
 }: {
   mode?: "success" | "failure";
   shouldConfirm?: boolean;
   documentData?: PaymentCallbackDocument | null;
   callbackData?: CallbackData | null;
-  confirm?: jest.Mock;
-  getByPaymentKey?: jest.Mock;
-  getCheckoutOwnership?: jest.Mock;
+  confirm?: Mock;
+  getByPaymentKey?: Mock;
+  getCheckoutOwnership?: Mock;
 } = {}) => {
   const paymentApi: PaymentApiPort = {
     confirm,
-    getByOrderId: jest.fn(),
+    getByOrderId: vi.fn(),
     getByPaymentKey,
   };
   const ownershipApi: CheckoutOwnershipApiPort = {
     getCheckoutOwnership,
   };
   const callbacks = {
-    onCallbackPhaseChange: jest.fn().mockReturnValue(true),
-    onConfirmed: jest.fn(),
-    onInvalid: jest.fn(),
-    onOpenProfile: jest.fn(),
-    onOpenReservation: jest.fn(),
-    onRecoverable: jest.fn(),
-    onTerminalFailure: jest.fn(),
+    onCallbackPhaseChange: vi.fn().mockReturnValue(true),
+    onConfirmed: vi.fn(),
+    onInvalid: vi.fn(),
+    onOpenProfile: vi.fn(),
+    onOpenReservation: vi.fn(),
+    onRecoverable: vi.fn(),
+    onTerminalFailure: vi.fn(),
   };
   const routeLease = { isCurrent: () => true };
   const sessionMethods = {
@@ -195,7 +196,7 @@ describe("PaymentResultController", () => {
       retryable: true,
     });
     const { callbacks, paymentApi } = setup({
-      getCheckoutOwnership: jest.fn().mockRejectedValue(preflightError),
+      getCheckoutOwnership: vi.fn().mockRejectedValue(preflightError),
     });
 
     await waitFor(() => expect(callbacks.onRecoverable).toHaveBeenCalledTimes(1));
@@ -211,7 +212,7 @@ describe("PaymentResultController", () => {
       message: "ownership unavailable",
       retryable: true,
     });
-    const getCheckoutOwnership = jest
+    const getCheckoutOwnership = vi
       .fn()
       .mockRejectedValueOnce(preflightError)
       .mockResolvedValueOnce(ownership());
@@ -243,13 +244,13 @@ describe("PaymentResultController", () => {
       message: "confirm timed out",
       retryable: true,
     });
-    const getByPaymentKey = jest
+    const getByPaymentKey = vi
       .fn()
       .mockResolvedValue(payment({ status: "IN_PROGRESS" }));
     const { callbacks, paymentApi } = setup({
       mode: "failure",
       shouldConfirm: true,
-      confirm: jest.fn().mockRejectedValue(confirmError),
+      confirm: vi.fn().mockRejectedValue(confirmError),
       getByPaymentKey,
     });
     const recheck = screen.getByRole("button", { name: "결제 상태 확인" });
@@ -270,7 +271,7 @@ describe("PaymentResultController", () => {
 
   it("keeps an in-flight confirmation alive when only the session facade identity changes", async () => {
     const pendingOwnership = deferred<CheckoutOwnership>();
-    const getCheckoutOwnership = jest
+    const getCheckoutOwnership = vi
       .fn()
       .mockReturnValue(pendingOwnership.promise);
     const {
@@ -345,8 +346,8 @@ describe("PaymentResultController", () => {
       retryable: true,
     });
     const { callbacks } = setup({
-      confirm: jest.fn().mockRejectedValue(confirmError),
-      getByPaymentKey: jest.fn().mockRejectedValue(lookupError),
+      confirm: vi.fn().mockRejectedValue(confirmError),
+      getByPaymentKey: vi.fn().mockRejectedValue(lookupError),
     });
 
     await waitFor(() => expect(callbacks.onRecoverable).toHaveBeenCalledTimes(1));
@@ -366,7 +367,7 @@ describe("PaymentResultController", () => {
     const { callbacks } = setup({
       mode: "failure",
       shouldConfirm: false,
-      getByPaymentKey: jest.fn().mockResolvedValue(payment({ status: "IN_PROGRESS" })),
+      getByPaymentKey: vi.fn().mockResolvedValue(payment({ status: "IN_PROGRESS" })),
     });
 
     fireEvent.click(screen.getByRole("button", { name: "결제 상태 확인" }));

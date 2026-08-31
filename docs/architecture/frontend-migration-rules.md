@@ -148,7 +148,7 @@ browser storage when a reload can safely refetch it.
 - Production reachability and unused dependencies belong to Knip.
 - CSS policy belongs to Stylelint.
 - Transition-all, z-index, focus-visible, and token-equivalent literal checks
-  that the pinned Stylelint line cannot yet express remain focused Jest owners
+  that the pinned Stylelint line cannot yet express remain focused Vitest owners
   and consume the same strict feature registry.
 - Local code and import feedback belongs to ESLint.
 - User behavior belongs to unit/integration/Playwright tests.

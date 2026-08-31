@@ -43,8 +43,8 @@ const hostDetailWire = {
 };
 
 const createTransport = () => {
-  const request = jest.fn();
-  const requestNullable = jest.fn();
+  const request = vi.fn();
+  const requestNullable = vi.fn();
 
   return {
     request,
@@ -218,7 +218,7 @@ describe("listing editor API adapter", () => {
     const { request, transport } = createTransport();
     const api = createListingEditorApi(transport);
     const signal = new AbortController().signal;
-    const onProgress = jest.fn();
+    const onProgress = vi.fn();
     const first = new File(["first"], "first.png", { type: "image/png" });
     const second = new File(["second"], "second.jpg", {
       type: "image/jpeg",

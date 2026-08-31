@@ -55,7 +55,7 @@ const renderOverview = (
       accommodation,
       resolveImageUrl,
     ),
-    onOpenDescription: jest.fn(),
+    onOpenDescription: vi.fn(),
     ...overrides,
   };
 
@@ -78,7 +78,7 @@ describe("AccommodationOverview", () => {
   });
 
   it("opens the full description when the summary is truncated", () => {
-    const onOpenDescription = jest.fn();
+    const onOpenDescription = vi.fn();
     renderOverview({
       maxDescriptionLength: 5,
       onOpenDescription,

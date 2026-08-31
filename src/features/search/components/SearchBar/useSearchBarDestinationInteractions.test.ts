@@ -13,26 +13,26 @@ const createOptions = () => ({
   isExpanded: false,
   isMapDragMode: true,
   activePopover: "none" as const,
-  exitMapDragMode: jest.fn(),
-  changeDestination: jest.fn(),
-  openDestination: jest.fn(),
-  openDatePicker: jest.fn(),
-  closeActivePopover: jest.fn(),
-  collapseShell: jest.fn(),
-  startDestinationSession: jest.fn(),
-  completeCheckoutIfNeeded: jest.fn(),
+  exitMapDragMode: vi.fn(),
+  changeDestination: vi.fn(),
+  openDestination: vi.fn(),
+  openDatePicker: vi.fn(),
+  closeActivePopover: vi.fn(),
+  collapseShell: vi.fn(),
+  startDestinationSession: vi.fn(),
+  completeCheckoutIfNeeded: vi.fn(),
 });
 
 describe("useSearchBarDestinationInteractions", () => {
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
     act(() => {
-      jest.runOnlyPendingTimers();
+      vi.runOnlyPendingTimers();
     });
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it("opens the destination and focuses after compact expansion", () => {
@@ -48,9 +48,9 @@ describe("useSearchBarDestinationInteractions", () => {
 
     act(() => {
       result.current.handleDestinationClick({
-        stopPropagation: jest.fn(),
+        stopPropagation: vi.fn(),
       } as any);
-      jest.runOnlyPendingTimers();
+      vi.runOnlyPendingTimers();
     });
 
     expect(options.openDestination).toHaveBeenCalledTimes(1);
@@ -127,7 +127,7 @@ describe("useSearchBarDestinationInteractions", () => {
     });
     rerender({ activePopover: "date" as const });
     act(() => {
-      jest.advanceTimersByTime(100);
+      vi.advanceTimersByTime(100);
     });
 
     expect(options.closeActivePopover).not.toHaveBeenCalled();
@@ -146,7 +146,7 @@ describe("useSearchBarDestinationInteractions", () => {
 
     act(() => {
       result.current.handleDestinationBlur();
-      jest.advanceTimersByTime(100);
+      vi.advanceTimersByTime(100);
     });
 
     expect(options.closeActivePopover).toHaveBeenCalledTimes(1);

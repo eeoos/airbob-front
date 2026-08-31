@@ -1,5 +1,6 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { Mocked } from "vitest";
 import type {
   AuthenticatedSessionScope,
   SessionSubject,
@@ -10,11 +11,11 @@ import { WISHLIST_REFRESH_WARNING_MESSAGE } from "../wishlistErrorMessage";
 import type { WishlistMembershipCommandPort } from "../../ports/wishlistMembershipCommandPort";
 import { WishlistModal } from "./WishlistModal";
 
-jest.mock("../../queries", () => ({
-  useWishlistListsReadQuery: jest.fn(),
+vi.mock("../../queries", () => ({
+  useWishlistListsReadQuery: vi.fn(),
 }));
 
-const mockUseWishlistListsReadQuery = jest.mocked(
+const mockUseWishlistListsReadQuery = vi.mocked(
   useWishlistListsReadQuery,
 );
 const scope: AuthenticatedSessionScope = {
@@ -36,17 +37,17 @@ const wishlistPage: WishlistCollection = {
   pageInfo: { currentSize: 1, hasNext: false, nextCursor: null },
 };
 
-const createCommands = (): jest.Mocked<WishlistMembershipCommandPort> => ({
-  addAccommodation: jest.fn().mockResolvedValue({
+const createCommands = (): Mocked<WishlistMembershipCommandPort> => ({
+  addAccommodation: vi.fn().mockResolvedValue({
     status: "applied",
     isInAnyWishlist: true,
   }),
-  createAndAddAccommodation: jest.fn().mockResolvedValue({
+  createAndAddAccommodation: vi.fn().mockResolvedValue({
     status: "applied",
     isInAnyWishlist: true,
     wishlistId: 12,
   }),
-  removeAccommodation: jest.fn().mockResolvedValue({
+  removeAccommodation: vi.fn().mockResolvedValue({
     status: "applied",
     isInAnyWishlist: false,
   }),
@@ -55,7 +56,7 @@ const createCommands = (): jest.Mocked<WishlistMembershipCommandPort> => ({
 const mockQuery = (
   overrides: Record<string, unknown> = {},
 ) => {
-  const fetchNextPage = jest.fn().mockResolvedValue(undefined);
+  const fetchNextPage = vi.fn().mockResolvedValue(undefined);
   mockUseWishlistListsReadQuery.mockReturnValue({
     data: { pageParams: [null], pages: [wishlistPage] },
     error: null,
@@ -74,7 +75,7 @@ const renderModal = (
   overrides: Partial<React.ComponentProps<typeof WishlistModal>> = {},
 ) => {
   const commands = createCommands();
-  const onClose = jest.fn();
+  const onClose = vi.fn();
   const view = render(
     <WishlistModal
       accommodationId={7}
@@ -91,7 +92,7 @@ const renderModal = (
 
 describe("WishlistModal", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockQuery();
   });
 

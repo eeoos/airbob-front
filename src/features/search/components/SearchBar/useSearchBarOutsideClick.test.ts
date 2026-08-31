@@ -5,21 +5,21 @@ const createRef = (element: HTMLElement | null) => ({ current: element });
 
 describe("useSearchBarOutsideClick", () => {
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
     act(() => {
-      jest.runOnlyPendingTimers();
+      vi.runOnlyPendingTimers();
     });
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it("closes transient panels and collapses the search bar for an outside click", () => {
     const searchBar = document.createElement("div");
     document.body.appendChild(searchBar);
-    const closeTransientPanels = jest.fn();
-    const collapseShell = jest.fn();
+    const closeTransientPanels = vi.fn();
+    const collapseShell = vi.fn();
 
     renderHook(() =>
       useSearchBarOutsideClick({
@@ -36,7 +36,7 @@ describe("useSearchBarOutsideClick", () => {
     );
 
     act(() => {
-      jest.advanceTimersByTime(100);
+      vi.advanceTimersByTime(100);
       document.body.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
@@ -54,8 +54,8 @@ describe("useSearchBarOutsideClick", () => {
     searchBar.appendChild(dateArea);
     document.body.append(searchBar);
 
-    const closeTransientPanels = jest.fn();
-    const collapseShell = jest.fn();
+    const closeTransientPanels = vi.fn();
+    const collapseShell = vi.fn();
     renderHook(() =>
       useSearchBarOutsideClick({
         searchBarRef: createRef(searchBar),
@@ -71,7 +71,7 @@ describe("useSearchBarOutsideClick", () => {
     );
 
     act(() => {
-      jest.advanceTimersByTime(100);
+      vi.advanceTimersByTime(100);
       dateArea.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     expect(closeTransientPanels).not.toHaveBeenCalled();

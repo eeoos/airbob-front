@@ -63,7 +63,7 @@ describe("IconButton", () => {
   });
 
   it("forwards native button props", async () => {
-    const handleClick = jest.fn();
+    const handleClick = vi.fn();
 
     render(
       <IconButton label="저장" type="submit" onClick={handleClick}>
@@ -79,7 +79,7 @@ describe("IconButton", () => {
   });
 
   it("keeps disabled buttons from firing click handlers", async () => {
-    const handleClick = jest.fn();
+    const handleClick = vi.fn();
 
     render(
       <IconButton label="삭제" disabled onClick={handleClick}>

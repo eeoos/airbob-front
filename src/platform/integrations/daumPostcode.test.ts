@@ -11,12 +11,12 @@ const daumScripts = () =>
   );
 
 const installDaumRuntime = () => {
-  const open = jest.fn();
+  const open = vi.fn();
   let oncomplete: ((value: unknown) => void) | null = null;
-  const Postcode = jest.fn().mockImplementation((options) => {
+  const Postcode = vi.fn(function Postcode(options) {
     oncomplete = options.oncomplete;
     return {
-      embed: jest.fn(),
+      embed: vi.fn(),
       open,
     };
   });
@@ -45,7 +45,7 @@ const validPostcodeResult = {
 
 describe("Daum postcode platform integration", () => {
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     delete window.daum;
     daumScripts().forEach((script) => script.remove());
   });
@@ -54,8 +54,8 @@ describe("Daum postcode platform integration", () => {
     daumScripts().forEach((script) => script.dispatchEvent(new Event("error")));
     daumScripts().forEach((script) => script.remove());
     delete window.daum;
-    jest.clearAllTimers();
-    jest.useRealTimers();
+    vi.clearAllTimers();
+    vi.useRealTimers();
   });
 
   it("loads one exact marked HTTPS script and shares the pending promise", async () => {
@@ -111,7 +111,7 @@ describe("Daum postcode platform integration", () => {
   it("bounds readiness and returns only safe typed failure metadata", async () => {
     const loading = ensureDaumPostcodeScript();
 
-    jest.advanceTimersByTime(DAUM_POSTCODE_READINESS_TIMEOUT_MS);
+    vi.advanceTimersByTime(DAUM_POSTCODE_READINESS_TIMEOUT_MS);
 
     await expect(loading).rejects.toEqual(
       expect.objectContaining({
@@ -125,7 +125,7 @@ describe("Daum postcode platform integration", () => {
 
   it("opens the provider at full size with a typed completion callback", async () => {
     const { getOncomplete, open, Postcode } = installDaumRuntime();
-    const onComplete = jest.fn();
+    const onComplete = vi.fn();
 
     await openDaumPostcode(onComplete);
 
@@ -144,7 +144,7 @@ describe("Daum postcode platform integration", () => {
 
   it("does not construct or open the provider after a pending load is aborted", async () => {
     const controller = new AbortController();
-    const opening = openDaumPostcode(jest.fn(), jest.fn(), controller.signal);
+    const opening = openDaumPostcode(vi.fn(), vi.fn(), controller.signal);
     const script = daumScripts()[0];
     controller.abort();
     const { open, Postcode } = installDaumRuntime();
@@ -158,8 +158,8 @@ describe("Daum postcode platform integration", () => {
 
   it("routes an invalid callback payload to typed onError without exposing it", async () => {
     const { getOncomplete } = installDaumRuntime();
-    const onComplete = jest.fn();
-    const onError = jest.fn();
+    const onComplete = vi.fn();
+    const onError = vi.fn();
 
     await openDaumPostcode(onComplete, onError);
     getOncomplete()?.({ zonecode: 6236, rawSecret: "must-not-propagate" });
@@ -177,12 +177,12 @@ describe("Daum postcode platform integration", () => {
 
   it("normalizes a throwing provider constructor without exposing its payload", async () => {
     window.daum = {
-      Postcode: jest.fn(() => {
+      Postcode: vi.fn(function Postcode() {
         throw new Error("raw provider payload must not escape");
       }) as any,
     };
 
-    await expect(openDaumPostcode(jest.fn())).rejects.toEqual(
+    await expect(openDaumPostcode(vi.fn())).rejects.toEqual(
       expect.objectContaining({
         kind: "integration",
         code: "INTEGRATION_INVALID_RUNTIME",

@@ -17,52 +17,52 @@ let mockQueryResult: {
   isPlaceholderData: boolean;
 };
 
-const mockUseSearchResultsReadQuery = jest.fn();
-const mockSelectAccommodationId = jest.fn();
-const mockSetIsMapDragMode = jest.fn();
-const mockRequestMapBoundsUpdate = jest.fn();
+const mockUseSearchResultsReadQuery = vi.fn();
+const mockSelectAccommodationId = vi.fn();
+const mockSetIsMapDragMode = vi.fn();
+const mockRequestMapBoundsUpdate = vi.fn();
 
-jest.mock("../../features/search/queries/searchQueries", () => ({
+vi.mock("../../features/search/queries/searchQueries", () => ({
   useSearchResultsReadQuery: (options: unknown) => {
     mockUseSearchResultsReadQuery(options);
     return mockQueryResult;
   },
 }));
 
-jest.mock("../../features/search/hooks/useSearchBottomSheet", () => ({
+vi.mock("../../features/search/hooks/useSearchBottomSheet", () => ({
   useSearchBottomSheet: () => ({
     bottomSheetRef: { current: null },
     bottomSheetState: "collapsed",
-    handleBottomSheetScroll: jest.fn(),
-    handleDrag: jest.fn(),
-    handleDragEnd: jest.fn(),
-    handleDragStart: jest.fn(),
-    handleMapInteraction: jest.fn(),
+    handleBottomSheetScroll: vi.fn(),
+    handleDrag: vi.fn(),
+    handleDragEnd: vi.fn(),
+    handleDragStart: vi.fn(),
+    handleMapInteraction: vi.fn(),
     isMobileOrTablet: false,
-    setBottomSheetState: jest.fn(),
+    setBottomSheetState: vi.fn(),
     snapPositions: { collapsed: 0, half: 0, expanded: 0 },
     translateY: 0,
   }),
 }));
 
-jest.mock("../../features/search/hooks/useSearchMapState", () => ({
+vi.mock("../../features/search/hooks/useSearchMapState", () => ({
   useSearchMapState: () => ({
-    handleAccommodationSelect: jest.fn(),
+    handleAccommodationSelect: vi.fn(),
     hoveredAccommodationId: null,
     isMapDragMode: false,
     isMapExpanded: false,
-    onMapBoundsUpdated: jest.fn(),
+    onMapBoundsUpdated: vi.fn(),
     requestMapBoundsUpdate: mockRequestMapBoundsUpdate,
     selectAccommodationId: mockSelectAccommodationId,
     selectedAccommodationId: null,
-    setHoveredAccommodationId: jest.fn(),
+    setHoveredAccommodationId: vi.fn(),
     setIsMapDragMode: mockSetIsMapDragMode,
     shouldUpdateMapBounds: false,
-    toggleMapExpanded: jest.fn(),
+    toggleMapExpanded: vi.fn(),
   }),
 }));
 
-jest.mock("./SearchScreen", () => ({
+vi.mock("./SearchScreen", () => ({
   SearchScreen: (props: SearchScreenProps) => {
     mockCapturedScreenProps = props;
     return <div data-testid="search-screen" />;
@@ -102,13 +102,13 @@ const resultPage: SearchResultPage = {
 };
 
 const navigation = () => ({
-  getAccommodationHref: jest.fn(
+  getAccommodationHref: vi.fn(
     (id: number) => `/accommodations/${id}?adultOccupancy=2`,
   ),
-  openAccommodation: jest.fn(),
-  openPage: jest.fn(),
-  replaceMapBounds: jest.fn(),
-  scrollResultsToTop: jest.fn(),
+  openAccommodation: vi.fn(),
+  openPage: vi.fn(),
+  replaceMapBounds: vi.fn(),
+  scrollResultsToTop: vi.fn(),
 });
 
 const baseProps = (
@@ -139,7 +139,7 @@ const currentScreenProps = (): SearchScreenProps => {
 
 describe("SearchController", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockCapturedScreenProps = null;
     mockQueryResult = {
       data: resultPage,
@@ -303,10 +303,10 @@ describe("SearchController", () => {
 
   it("gates wishlist intent behind auth and cancels the active attempt", () => {
     const authIntent = {
-      request: jest.fn().mockReturnValue(41),
-      cancel: jest.fn(),
+      request: vi.fn().mockReturnValue(41),
+      cancel: vi.fn(),
       resumed: null,
-      completeResume: jest.fn(),
+      completeResume: vi.fn(),
     };
     render(
       <SearchController

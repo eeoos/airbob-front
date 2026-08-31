@@ -94,8 +94,8 @@ const hostReservation = (
 });
 
 const createApi = () => {
-  const getDetail = jest.fn();
-  const getList = jest.fn();
+  const getDetail = vi.fn();
+  const getList = vi.fn();
 
   return {
     api: { getDetail, getList } as unknown as ReservationReadApiPort,
@@ -118,10 +118,10 @@ describe("ReservationDetailController", () => {
     const { api, getDetail } = createApi();
     getDetail.mockResolvedValue(guestReservation());
     const navigation = {
-      back: jest.fn(),
-      backToProfile: jest.fn(),
-      openAccommodation: jest.fn(),
-      openReview: jest.fn(),
+      back: vi.fn(),
+      backToProfile: vi.fn(),
+      openAccommodation: vi.fn(),
+      openReview: vi.fn(),
     };
 
     renderController(
@@ -175,10 +175,10 @@ describe("ReservationDetailController", () => {
       )
       .mockResolvedValueOnce(guestReservation("reservation-2"));
     const navigation = {
-      back: jest.fn(),
-      backToProfile: jest.fn(),
-      openAccommodation: jest.fn(),
-      openReview: jest.fn(),
+      back: vi.fn(),
+      backToProfile: vi.fn(),
+      openAccommodation: vi.fn(),
+      openReview: vi.fn(),
     };
     const view = renderController(
       <ReservationDetailController
@@ -228,8 +228,8 @@ describe("ReservationDetailController", () => {
     const { api, getDetail } = createApi();
     getDetail.mockResolvedValue(hostReservation());
     const navigation = {
-      back: jest.fn(),
-      openAccommodation: jest.fn(),
+      back: vi.fn(),
+      openAccommodation: vi.fn(),
     };
 
     renderController(

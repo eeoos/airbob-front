@@ -2,10 +2,12 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import type { SessionSubject } from "../../platform/session/sessionScope";
 import { useAccommodationReviewFeed } from "./useAccommodationReviewFeed";
 
-const mockReviewsQuery = jest.fn();
+const mockReviewsQuery = vi.fn();
 
-jest.mock("../../features/reviews/public", () => ({
-  ...jest.requireActual("../../features/reviews/public"),
+vi.mock("../../features/reviews/public", async () => ({
+  ...(await vi.importActual<typeof import("../../features/reviews/public")>(
+    "../../features/reviews/public",
+  )),
   useAccommodationReviewsReadQuery: (...args: unknown[]) =>
     mockReviewsQuery(...args),
 }));
@@ -14,7 +16,7 @@ describe("useAccommodationReviewFeed", () => {
   beforeEach(() => mockReviewsQuery.mockReset());
 
   it("waits for an explicit visibility event before requesting each new cursor", async () => {
-    const fetchNextPage = jest.fn().mockResolvedValue(undefined);
+    const fetchNextPage = vi.fn().mockResolvedValue(undefined);
     let queryResult = {
       data: {
         pages: [
@@ -36,7 +38,7 @@ describe("useAccommodationReviewFeed", () => {
       useAccommodationReviewFeed({
         accommodationId: 7,
         enabled: true,
-        onError: jest.fn(),
+        onError: vi.fn(),
         scope: {
           subject: "subject:member_1" as SessionSubject,
           epoch: 2,
@@ -73,7 +75,7 @@ describe("useAccommodationReviewFeed", () => {
   });
 
   it("reports a failed cursor once until the modal lifecycle restarts", async () => {
-    const fetchNextPage = jest.fn().mockRejectedValue(new Error("failed"));
+    const fetchNextPage = vi.fn().mockRejectedValue(new Error("failed"));
     mockReviewsQuery.mockReturnValue({
       data: {
         pages: [
@@ -90,7 +92,7 @@ describe("useAccommodationReviewFeed", () => {
       isError: false,
       isFetchingNextPage: false,
     });
-    const onError = jest.fn();
+    const onError = vi.fn();
     const { result } = renderHook(() =>
       useAccommodationReviewFeed({
         accommodationId: 7,

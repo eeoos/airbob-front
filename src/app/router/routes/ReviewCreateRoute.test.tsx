@@ -17,7 +17,7 @@ import { ReviewCreateRoute } from "./ReviewCreateRoute";
 
 let mockCapturedPublication: ReviewSubmissionPublicationPort | null = null;
 
-jest.mock("../../../screens/review-create/public", () => ({
+vi.mock("../../../screens/review-create/public", () => ({
   ReviewCreateController: ({
     publication,
   }: {
@@ -28,7 +28,7 @@ jest.mock("../../../screens/review-create/public", () => ({
   },
 }));
 
-jest.mock("../../session/useSession", () => ({
+vi.mock("../../session/useSession", () => ({
   useSession: () => ({
     captureAuthenticatedSession: () => ({
       subject: "subject:member_7",
@@ -51,7 +51,7 @@ describe("ReviewCreateRoute", () => {
 
   it("reports an active accommodation detail refetch failure as a publication failure", async () => {
     const refetchError = new Error("active accommodation refetch failed");
-    const queryFn = jest
+    const queryFn = vi
       .fn()
       .mockResolvedValueOnce({ id: 42 })
       .mockRejectedValueOnce(refetchError);

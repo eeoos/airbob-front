@@ -1,3 +1,4 @@
+import type { MockInstance } from "vitest";
 import { QueryClient } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { SessionState, SessionViewer } from "./sessionState";
@@ -46,13 +47,13 @@ const anonymousState = (epoch = 4): SessionState => ({
 
 interface TrackedClient {
   readonly client: QueryClient;
-  readonly cancelQueries: jest.SpyInstance;
-  readonly clear: jest.SpyInstance;
+  readonly cancelQueries: MockInstance;
+  readonly clear: MockInstance;
 }
 
 const createTrackedFactory = () => {
   const clients: TrackedClient[] = [];
-  const factory: SessionQueryClientFactory = jest.fn(() => {
+  const factory: SessionQueryClientFactory = vi.fn(() => {
     const client = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
@@ -61,8 +62,8 @@ const createTrackedFactory = () => {
     });
     clients.push({
       client,
-      cancelQueries: jest.spyOn(client, "cancelQueries"),
-      clear: jest.spyOn(client, "clear"),
+      cancelQueries: vi.spyOn(client, "cancelQueries"),
+      clear: vi.spyOn(client, "clear"),
     });
     return client;
   });
@@ -72,7 +73,7 @@ const createTrackedFactory = () => {
 
 describe("useSessionQueryLifetime", () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it.each([
@@ -106,7 +107,7 @@ describe("useSessionQueryLifetime", () => {
   it("publishes the next fence before cancelling and clearing the previous generation once", async () => {
     const { clients, factory } = createTrackedFactory();
     const cancelGate = deferred<void>();
-    const isStillCurrent = jest.fn(() => true);
+    const isStillCurrent = vi.fn(() => true);
     const { result } = renderHook(() =>
       useSessionQueryLifetime({
         initialState: authenticatedState(),
@@ -158,7 +159,7 @@ describe("useSessionQueryLifetime", () => {
   it("clears after a cancellation rejection and returns the current-operation verdict", async () => {
     const { clients, factory } = createTrackedFactory();
     const cancellationFailure = new Error("cancel failed");
-    const isStillCurrent = jest.fn(() => false);
+    const isStillCurrent = vi.fn(() => false);
     const { result } = renderHook(() =>
       useSessionQueryLifetime({
         initialState: authenticatedState(),
@@ -194,7 +195,7 @@ describe("useSessionQueryLifetime", () => {
   it("resets an anonymous generation in place before stabilizing it", async () => {
     const { clients, factory } = createTrackedFactory();
     const cancelGate = deferred<void>();
-    const isStillCurrent = jest.fn(() => true);
+    const isStillCurrent = vi.fn(() => true);
     const { result } = renderHook(() =>
       useSessionQueryLifetime({
         initialState: anonymousState(),
@@ -305,8 +306,8 @@ describe("useSessionQueryLifetime", () => {
 
   it("does not dispose an injected initial client it does not own", async () => {
     const initialQueryClient = new QueryClient();
-    const cancelQueries = jest.spyOn(initialQueryClient, "cancelQueries");
-    const clear = jest.spyOn(initialQueryClient, "clear");
+    const cancelQueries = vi.spyOn(initialQueryClient, "cancelQueries");
+    const clear = vi.spyOn(initialQueryClient, "clear");
     const { result } = renderHook(() =>
       useSessionQueryLifetime({
         initialQueryClient,

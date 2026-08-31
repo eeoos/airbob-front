@@ -10,10 +10,10 @@ import { useCreateAccommodationDraft } from "../../features/accommodations/ports
 import { AppError } from "../../platform/http/errors";
 import { UserMenu } from "./UserMenu";
 
-const mockNavigate = jest.fn();
-const mockLogout = jest.fn();
-const mockCreateDraft = jest.fn();
-const mockClientLogError = jest.fn();
+const mockNavigate = vi.fn();
+const mockLogout = vi.fn();
+const mockCreateDraft = vi.fn();
+const mockClientLogError = vi.fn();
 const mockLocation = {
   hash: "",
   key: "user-menu-entry",
@@ -22,32 +22,31 @@ const mockLocation = {
 };
 let capturedDraftError: ((error: unknown) => void) | null = null;
 
-jest.mock(
+vi.mock(
   "react-router-dom",
   () => ({
     useLocation: () => mockLocation,
     useNavigate: () => mockNavigate,
   }),
-  { virtual: true }
 );
 
-jest.mock("../session/useSession", () => ({
+vi.mock("../session/useSession", () => ({
   useSession: () => ({
     logout: mockLogout,
   }),
 }));
 
-jest.mock("../../features/accommodations/ports/draftCreate", () => ({
-  useCreateAccommodationDraft: jest.fn(),
+vi.mock("../../features/accommodations/ports/draftCreate", () => ({
+  useCreateAccommodationDraft: vi.fn(),
 }));
 
-jest.mock("../../platform/logging/clientLogger", () => ({
+vi.mock("../../platform/logging/clientLogger", () => ({
   clientLogger: {
     error: (...args: unknown[]) => mockClientLogError(...args),
   },
 }));
 
-jest.mock("../../features/auth/public", () => ({
+vi.mock("../../features/auth/public", () => ({
   AuthModal: ({
     initialMode,
     isOpen,
@@ -62,7 +61,7 @@ jest.mock("../../features/auth/public", () => ({
     ) : null,
 }));
 
-const mockUseCreateAccommodationDraft = jest.mocked(useCreateAccommodationDraft);
+const mockUseCreateAccommodationDraft = vi.mocked(useCreateAccommodationDraft);
 
 const openMenu = async () => {
   await userEvent.click(screen.getByRole("button", { name: "사용자 메뉴" }));
@@ -79,7 +78,7 @@ const expectMenuItemsToBeButtonElements = (itemNames: string[]) => {
 
 describe("UserMenu", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     window.history.replaceState({ key: mockLocation.key }, "", "/");
     capturedDraftError = null;
     mockLogout.mockResolvedValue(undefined);

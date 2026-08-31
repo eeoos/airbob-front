@@ -1,3 +1,4 @@
+import type { Mocked } from "vitest";
 import { act, render, waitFor } from "@testing-library/react";
 import { StrictMode } from "react";
 import { AppError } from "../../platform/http/errors";
@@ -14,7 +15,7 @@ import { AccommodationEditController } from "./AccommodationEditController";
 
 let latestScreenProps: AccommodationEditScreenProps | null = null;
 
-jest.mock("./AccommodationEditScreen", () => ({
+vi.mock("./AccommodationEditScreen", () => ({
   AccommodationEditScreen: (props: AccommodationEditScreenProps) => {
     latestScreenProps = props;
     return null;
@@ -78,28 +79,28 @@ const networkError = () =>
 
 const createProps = () => {
   const api = {
-    getHostDetail: jest.fn().mockResolvedValue(accommodation),
-    update: jest.fn().mockResolvedValue(undefined),
-    uploadImages: jest.fn().mockResolvedValue([]),
-    deleteImage: jest.fn().mockResolvedValue(undefined),
-    publish: jest.fn().mockResolvedValue(undefined),
+    getHostDetail: vi.fn().mockResolvedValue(accommodation),
+    update: vi.fn().mockResolvedValue(undefined),
+    uploadImages: vi.fn().mockResolvedValue([]),
+    deleteImage: vi.fn().mockResolvedValue(undefined),
+    publish: vi.fn().mockResolvedValue(undefined),
   };
   const publication = {
-    publishEditorChanged: jest.fn().mockResolvedValue(undefined),
+    publishEditorChanged: vi.fn().mockResolvedValue(undefined),
   };
-  const query: jest.Mocked<ListingEditorQueryPort> = {
-    getHostDetail: jest.fn((accommodationId, options) =>
+  const query: Mocked<ListingEditorQueryPort> = {
+    getHostDetail: vi.fn((accommodationId, options) =>
       api.getHostDetail(accommodationId, { signal: options.signal }),
     ),
-    projectHostDetail: jest.fn(),
-    setHostDetail: jest.fn(),
+    projectHostDetail: vi.fn(),
+    setHostDetail: vi.fn(),
   };
-  const onNavigateToHostProfile = jest.fn();
+  const onNavigateToHostProfile = vi.fn();
 
   return {
     accommodationId: 3,
     addressSearch: {
-      search: jest.fn(),
+      search: vi.fn(),
     },
     api,
     instanceId: "editor:test:3:epoch-1",
@@ -141,11 +142,11 @@ beforeEach(() => {
   latestScreenProps = null;
   Object.defineProperty(URL, "createObjectURL", {
     configurable: true,
-    value: jest.fn((file: File) => `blob:${file.name}`),
+    value: vi.fn((file: File) => `blob:${file.name}`),
   });
   Object.defineProperty(URL, "revokeObjectURL", {
     configurable: true,
-    value: jest.fn(),
+    value: vi.fn(),
   });
 });
 
@@ -240,7 +241,7 @@ describe("AccommodationEditController", () => {
     });
     await waitFor(() => expect(currentScreen().state.currentStep).toBe(5));
 
-    const event = { preventDefault: jest.fn() } as never;
+    const event = { preventDefault: vi.fn() } as never;
     act(() => {
       void currentScreen().actions.onPublishSubmit(event);
       void currentScreen().actions.onPublishSubmit(event);
@@ -566,7 +567,7 @@ describe("AccommodationEditController", () => {
     expect(currentScreen().state.isDeletingImage).toBe(true);
     expect(currentScreen().state.isSaving).toBe(true);
 
-    const publishEvent = { preventDefault: jest.fn() } as never;
+    const publishEvent = { preventDefault: vi.fn() } as never;
     act(() => {
       currentScreen().actions.onNext();
       currentScreen().actions.onSaveAndExit();

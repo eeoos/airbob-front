@@ -1,10 +1,11 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
+import type { Mocked } from "vitest";
 import { AppError } from "../../../platform/http/errors";
 import type { AccommodationDraftApiPort } from "../ports/accommodationDraftApiPort";
 import { useCreateAccommodationDraft } from "./useCreateAccommodationDraft";
 
-const createApi = (): jest.Mocked<AccommodationDraftApiPort> => ({
-  create: jest.fn(),
+const createApi = (): Mocked<AccommodationDraftApiPort> => ({
+  create: vi.fn(),
 });
 
 const deferred = <T,>() => {
@@ -18,8 +19,8 @@ const deferred = <T,>() => {
 describe("useCreateAccommodationDraft", () => {
   it("creates a host draft and returns its id to the caller", async () => {
     const api = createApi();
-    const onCreated = jest.fn();
-    const onError = jest.fn();
+    const onCreated = vi.fn();
+    const onError = vi.fn();
     api.create.mockResolvedValue({ id: 88 });
 
     const { result } = renderHook(() =>
@@ -49,8 +50,8 @@ describe("useCreateAccommodationDraft", () => {
       message: "The draft could not be created.",
       retryable: true,
     });
-    const onCreated = jest.fn();
-    const onError = jest.fn();
+    const onCreated = vi.fn();
+    const onError = vi.fn();
     api.create.mockRejectedValue(error);
 
     const { result } = renderHook(() =>
@@ -68,8 +69,8 @@ describe("useCreateAccommodationDraft", () => {
 
   it("publishes a successful draft after the StrictMode effect replay", async () => {
     const api = createApi();
-    const onCreated = jest.fn();
-    const onError = jest.fn();
+    const onCreated = vi.fn();
+    const onError = vi.fn();
     api.create.mockResolvedValue({ id: 88 });
 
     const { result } = renderHook(
@@ -94,8 +95,8 @@ describe("useCreateAccommodationDraft", () => {
       message: "The draft could not be created.",
       retryable: true,
     });
-    const onCreated = jest.fn();
-    const onError = jest.fn();
+    const onCreated = vi.fn();
+    const onError = vi.fn();
     api.create.mockRejectedValue(error);
 
     const { result } = renderHook(
@@ -119,8 +120,8 @@ describe("useCreateAccommodationDraft", () => {
     const { result } = renderHook(() =>
       useCreateAccommodationDraft({
         api,
-        onCreated: jest.fn(),
-        onError: jest.fn(),
+        onCreated: vi.fn(),
+        onError: vi.fn(),
       }),
     );
 
@@ -147,8 +148,8 @@ describe("useCreateAccommodationDraft", () => {
   it("does not publish a late result after its owner unmounts", async () => {
     const api = createApi();
     const pending = deferred<{ id: number }>();
-    const onCreated = jest.fn();
-    const onError = jest.fn();
+    const onCreated = vi.fn();
+    const onError = vi.fn();
     api.create.mockReturnValue(pending.promise);
     const view = renderHook(() =>
       useCreateAccommodationDraft({ api, onCreated, onError }),

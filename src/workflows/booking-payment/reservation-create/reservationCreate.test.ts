@@ -65,20 +65,20 @@ const createDeferred = <T,>() => {
 
 const setup = ({
   activeScope = scopeA as AuthenticatedSessionScope | null,
-  create = jest.fn().mockResolvedValue(reservationReady),
+  create = vi.fn().mockResolvedValue(reservationReady),
 } = {}) => {
   let currentScope = activeScope;
   let routeCurrent = true;
   const transport: ReservationCreateTransport = { create };
   const handoff = {
-    preflight: jest.fn(
+    preflight: vi.fn(
       (): ReservationCheckoutHandoffPreflightResult => ({ status: "ready" }),
     ),
-    commit: jest.fn(),
+    commit: vi.fn(),
   };
   const session = {
-    captureAuthenticatedSession: jest.fn(() => currentScope),
-    isCurrentSession: jest.fn(
+    captureAuthenticatedSession: vi.fn(() => currentScope),
+    isCurrentSession: vi.fn(
       (scope: AuthenticatedSessionScope) =>
         currentScope?.subject === scope.subject &&
         currentScope.epoch === scope.epoch,
@@ -321,12 +321,12 @@ describe("reservation create workflow", () => {
   });
 
   it("does not start a request with a captured session that is no longer current", async () => {
-    const create = jest.fn().mockResolvedValue(reservationReady);
+    const create = vi.fn().mockResolvedValue(reservationReady);
     const handoff = {
-      preflight: jest.fn(
+      preflight: vi.fn(
         (): ReservationCheckoutHandoffPreflightResult => ({ status: "ready" }),
       ),
-      commit: jest.fn(),
+      commit: vi.fn(),
     };
     const workflow = createReservationCreateWorkflow({
       transport: { create },
@@ -347,7 +347,7 @@ describe("reservation create workflow", () => {
 
   it("shares the same active promise for same-tick duplicate starts", async () => {
     const deferred = createDeferred<ReservationReady>();
-    const create = jest.fn().mockReturnValue(deferred.promise);
+    const create = vi.fn().mockReturnValue(deferred.promise);
     const { handoff, input, workflow } = setup({ create });
 
     const first = workflow.start(input());
@@ -378,7 +378,7 @@ describe("reservation create workflow", () => {
   it("discards a late success after the exact route lease becomes stale", async () => {
     const deferred = createDeferred<ReservationReady>();
     const { handoff, input, setRouteCurrent, workflow } = setup({
-      create: jest.fn().mockReturnValue(deferred.promise),
+      create: vi.fn().mockReturnValue(deferred.promise),
     });
     const pending = workflow.start(input());
     await Promise.resolve();
@@ -407,7 +407,7 @@ describe("reservation create workflow", () => {
   it("discards a late success after the authenticated session changes", async () => {
     const deferred = createDeferred<ReservationReady>();
     const { handoff, input, setCurrentScope, workflow } = setup({
-      create: jest.fn().mockReturnValue(deferred.promise),
+      create: vi.fn().mockReturnValue(deferred.promise),
     });
     const pending = workflow.start(input());
     await Promise.resolve();
@@ -422,7 +422,7 @@ describe("reservation create workflow", () => {
   it("aborts and discards an active request when disposed", async () => {
     let capturedSignal: AbortSignal | undefined;
     const deferred = createDeferred<ReservationReady>();
-    const create = jest.fn(
+    const create = vi.fn(
       (_input, options: { readonly signal: AbortSignal }) => {
         capturedSignal = options.signal;
         return deferred.promise;
@@ -445,7 +445,7 @@ describe("reservation create workflow", () => {
   });
 
   it("unlocks after an authoritative definitive failure", async () => {
-    const create = jest
+    const create = vi
       .fn()
       .mockRejectedValueOnce(
         new AppError({
@@ -477,7 +477,7 @@ describe("reservation create workflow", () => {
       message: "The network request failed.",
       retryable: true,
     });
-    const create = jest.fn().mockRejectedValue(networkError);
+    const create = vi.fn().mockRejectedValue(networkError);
     const { handoff, input, workflow } = setup({ create });
 
     await expect(workflow.start(input())).resolves.toEqual({
@@ -496,7 +496,7 @@ describe("reservation create workflow", () => {
   it.each(["", "../admin"])(
     "terminal-locks a malformed response UID after the reservation POST succeeds: %s",
     async (reservationUid) => {
-      const create = jest.fn().mockResolvedValue({
+      const create = vi.fn().mockResolvedValue({
         ...reservationReady,
         reservationUid,
       });
@@ -539,7 +539,7 @@ describe("reservation create workflow", () => {
   it("does not publish even a definitive failure after route departure", async () => {
     const deferred = createDeferred<ReservationReady>();
     const { input, setRouteCurrent, workflow } = setup({
-      create: jest.fn().mockReturnValue(deferred.promise),
+      create: vi.fn().mockReturnValue(deferred.promise),
     });
     const pending = workflow.start(input());
     await Promise.resolve();

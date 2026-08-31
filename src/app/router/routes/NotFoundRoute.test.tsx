@@ -2,9 +2,9 @@ import { render, screen } from "@testing-library/react";
 import type { NotFoundScreenProps } from "../../../screens/not-found/public";
 import { NotFoundRoute } from "./NotFoundRoute";
 
-const mockNotFoundScreen = jest.fn();
+const mockNotFoundScreen = vi.fn();
 
-jest.mock("../../../screens/not-found/public", () => ({
+vi.mock("../../../screens/not-found/public", () => ({
   NotFoundScreen: (props: NotFoundScreenProps) => {
     mockNotFoundScreen(props);
     return <div data-testid="not-found-screen" />;

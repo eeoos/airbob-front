@@ -8,8 +8,8 @@ const renderController = (element: React.ReactElement) =>
 
 describe("AuthController", () => {
   it("submits login credentials and completes the safe continuation", async () => {
-    const login = jest.fn().mockResolvedValue(undefined);
-    const onSuccess = jest.fn();
+    const login = vi.fn().mockResolvedValue(undefined);
+    const onSuccess = vi.fn();
 
     renderController(
       <AuthController
@@ -17,7 +17,7 @@ describe("AuthController", () => {
         submitLogin={login}
         canComplete={() => true}
         onSuccess={onSuccess}
-        onAlternate={jest.fn()}
+        onAlternate={vi.fn()}
       />,
     );
 
@@ -36,14 +36,14 @@ describe("AuthController", () => {
 
   it("does not run a stale continuation after the completion guard changes", async () => {
     let resolveLogin!: () => void;
-    const login = jest.fn(
+    const login = vi.fn(
       () =>
         new Promise<void>((resolve) => {
           resolveLogin = resolve;
         }),
     );
-    const onSuccess = jest.fn();
-    const canComplete = jest.fn(() => false);
+    const onSuccess = vi.fn();
+    const canComplete = vi.fn(() => false);
 
     renderController(
       <AuthController
@@ -51,7 +51,7 @@ describe("AuthController", () => {
         submitLogin={login}
         canComplete={canComplete}
         onSuccess={onSuccess}
-        onAlternate={jest.fn()}
+        onAlternate={vi.fn()}
       />,
     );
 
@@ -66,10 +66,10 @@ describe("AuthController", () => {
   });
 
   it("retains a failed signup form and navigates only after success", async () => {
-    const signup = jest
+    const signup = vi
       .fn()
       .mockRejectedValueOnce(new Error("이미 존재하는 이메일입니다."));
-    const onSuccess = jest.fn();
+    const onSuccess = vi.fn();
 
     renderController(
       <AuthController
@@ -77,7 +77,7 @@ describe("AuthController", () => {
         submitSignup={signup}
         canComplete={() => true}
         onSuccess={onSuccess}
-        onAlternate={jest.fn()}
+        onAlternate={vi.fn()}
       />,
     );
 
@@ -99,14 +99,14 @@ describe("AuthController", () => {
 
   it("invalidates an in-flight completion before alternate navigation", async () => {
     let resolveLogin!: () => void;
-    const login = jest.fn(
+    const login = vi.fn(
       () =>
         new Promise<void>((resolve) => {
           resolveLogin = resolve;
         }),
     );
-    const onAlternate = jest.fn();
-    const onSuccess = jest.fn();
+    const onAlternate = vi.fn();
+    const onSuccess = vi.fn();
 
     renderController(
       <AuthController
@@ -129,21 +129,21 @@ describe("AuthController", () => {
 
   it("invalidates an in-flight completion when the controller unmounts", async () => {
     let resolveLogin!: () => void;
-    const login = jest.fn(
+    const login = vi.fn(
       () =>
         new Promise<void>((resolve) => {
           resolveLogin = resolve;
         }),
     );
-    const canComplete = jest.fn(() => true);
-    const onSuccess = jest.fn();
+    const canComplete = vi.fn(() => true);
+    const onSuccess = vi.fn();
     const { unmount } = renderController(
       <AuthController
         mode="login"
         submitLogin={login}
         canComplete={canComplete}
         onSuccess={onSuccess}
-        onAlternate={jest.fn()}
+        onAlternate={vi.fn()}
       />,
     );
 

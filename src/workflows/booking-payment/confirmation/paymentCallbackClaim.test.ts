@@ -54,21 +54,19 @@ const callback: CallbackData = {
 };
 
 const setupClaim = () => {
-  const readForCallback = jest.fn<
-    ReturnType<CheckoutRepository["readForCallback"]>,
-    Parameters<CheckoutRepository["readForCallback"]>
-  >(() => ({ status: "found", data: checkout }));
-  const readCallback = jest.fn<
-    ReturnType<CallbackRepository["read"]>,
-    Parameters<CallbackRepository["read"]>
-  >(() => ({ status: "missing" }));
-  const writeCallback = jest.fn<
-    ReturnType<CallbackRepository["write"]>,
-    Parameters<CallbackRepository["write"]>
-  >(({ data }) => ({ status: "written", data }));
-  const consumeLegacyHint = jest.fn<
-    ReturnType<CallbackRepository["consumeLegacyConfirmedPaymentHint"]>,
-    Parameters<CallbackRepository["consumeLegacyConfirmedPaymentHint"]>
+  const readForCallback = vi.fn<CheckoutRepository["readForCallback"]>(() => ({
+    status: "found",
+    data: checkout,
+  }));
+  const readCallback = vi.fn<CallbackRepository["read"]>(() => ({
+    status: "missing",
+  }));
+  const writeCallback = vi.fn<CallbackRepository["write"]>(({ data }) => ({
+    status: "written",
+    data,
+  }));
+  const consumeLegacyHint = vi.fn<
+    CallbackRepository["consumeLegacyConfirmedPaymentHint"]
   >(() => ({ status: "hint", shouldReconcile: false }));
   const dependencies: PaymentCallbackClaimDependencies = {
     checkout: { readForCallback },
@@ -326,7 +324,7 @@ describe("claimPaymentCallback", () => {
 
   it("returns stale when currentness changes after the checkout read", () => {
     const harness = setupClaim();
-    const isCurrent = jest
+    const isCurrent = vi
       .fn()
       .mockReturnValueOnce(true)
       .mockReturnValueOnce(false);
@@ -372,9 +370,8 @@ const ownership: CheckoutOwnership = {
 };
 
 const setupReplay = () => {
-  const getCheckoutOwnership = jest.fn<
-    ReturnType<CheckoutOwnershipApiPort["getCheckoutOwnership"]>,
-    Parameters<CheckoutOwnershipApiPort["getCheckoutOwnership"]>
+  const getCheckoutOwnership = vi.fn<
+    CheckoutOwnershipApiPort["getCheckoutOwnership"]
   >(() => Promise.resolve(ownership));
 
   return { getCheckoutOwnership };
@@ -504,7 +501,7 @@ describe("resolveServerPaymentCallbackReplay", () => {
 
   it("discards ownership returned after the route becomes stale", async () => {
     const harness = setupReplay();
-    const isCurrent = jest
+    const isCurrent = vi
       .fn()
       .mockReturnValueOnce(true)
       .mockReturnValueOnce(false);

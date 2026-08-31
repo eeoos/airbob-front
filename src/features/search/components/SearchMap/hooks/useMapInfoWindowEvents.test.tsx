@@ -1,11 +1,12 @@
 import { fireEvent, renderHook, screen } from "@testing-library/react";
+import type { MockInstance } from "vitest";
 import { useMapInfoWindowEvents } from "./useMapInfoWindowEvents";
 
 describe("useMapInfoWindowEvents", () => {
-  let openSpy: jest.SpyInstance;
+  let openSpy: MockInstance<typeof window.open>;
 
   beforeEach(() => {
-    openSpy = jest.spyOn(window, "open").mockImplementation(() => null);
+    openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
   });
 
   afterEach(() => {
@@ -28,7 +29,7 @@ describe("useMapInfoWindowEvents", () => {
     const cleanup = result.current({
       root,
       accommodationId: 10,
-      onClose: jest.fn(),
+      onClose: vi.fn(),
     });
 
     fireEvent.click(screen.getByText("card body"));
@@ -55,8 +56,8 @@ describe("useMapInfoWindowEvents", () => {
       </button>
     `;
     document.body.appendChild(root);
-    const onClose = jest.fn();
-    const onWishlistToggle = jest.fn();
+    const onClose = vi.fn();
+    const onWishlistToggle = vi.fn();
 
     const { result } = renderHook(() =>
       useMapInfoWindowEvents({

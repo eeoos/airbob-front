@@ -1,3 +1,4 @@
+import type { Mocked, MockInstance } from "vitest";
 import {
   QueryClient,
   useMutation,
@@ -145,12 +146,14 @@ const serverError = (message = "Server unavailable") =>
     retryable: true,
   });
 
-const createAuthPort = (): jest.Mocked<SessionAuthPort> => ({
-  getViewer: jest.fn<Promise<SessionViewer>, [AbortSignal?]>(),
-  login: jest.fn<Promise<void>, [SessionCredentials, AbortSignal?]>(() =>
+const createAuthPort = (): Mocked<SessionAuthPort> => ({
+  getViewer: vi.fn<(signal?: AbortSignal) => Promise<SessionViewer>>(),
+  login: vi.fn<
+    (credentials: SessionCredentials, signal?: AbortSignal) => Promise<void>
+  >(() => Promise.resolve()),
+  logout: vi.fn<(signal?: AbortSignal) => Promise<void>>(() =>
     Promise.resolve(),
   ),
-  logout: jest.fn<Promise<void>, [AbortSignal?]>(() => Promise.resolve()),
 });
 
 type QueryScope = Parameters<SessionQueryClientFactory>[0];
@@ -158,19 +161,13 @@ type QueryScope = Parameters<SessionQueryClientFactory>[0];
 interface TrackedQueryClient {
   readonly scope: QueryScope;
   readonly client: QueryClient;
-  readonly cancelQueries: jest.SpyInstance<
-    ReturnType<QueryClient["cancelQueries"]>,
-    Parameters<QueryClient["cancelQueries"]>
-  >;
-  readonly clear: jest.SpyInstance<
-    ReturnType<QueryClient["clear"]>,
-    Parameters<QueryClient["clear"]>
-  >;
+  readonly cancelQueries: MockInstance<QueryClient["cancelQueries"]>;
+  readonly clear: MockInstance<QueryClient["clear"]>;
 }
 
 const createTrackedQueryClients = () => {
   const generations: TrackedQueryClient[] = [];
-  const factory: SessionQueryClientFactory = jest.fn((scope) => {
+  const factory: SessionQueryClientFactory = vi.fn((scope) => {
     const sessionMeta = { session: { ...scope } };
     const client = new QueryClient({
       defaultOptions: {
@@ -185,8 +182,8 @@ const createTrackedQueryClients = () => {
     const record: TrackedQueryClient = {
       scope,
       client,
-      cancelQueries: jest.spyOn(client, "cancelQueries"),
-      clear: jest.spyOn(client, "clear"),
+      cancelQueries: vi.spyOn(client, "cancelQueries"),
+      clear: vi.spyOn(client, "clear"),
     };
     generations.push(record);
     return client;
@@ -198,10 +195,10 @@ const createTrackedQueryClients = () => {
 class FakeSessionBroadcast implements SessionBroadcast {
   readonly published: SessionBroadcastPhase[] = [];
   readonly listeners = new Set<SessionBroadcastListener>();
-  readonly publish = jest.fn((phase: SessionBroadcastPhase) => {
+  readonly publish = vi.fn((phase: SessionBroadcastPhase) => {
     if (!this.closed) this.published.push(phase);
   });
-  readonly subscribe = jest.fn((listener: SessionBroadcastListener) => {
+  readonly subscribe = vi.fn((listener: SessionBroadcastListener) => {
     if (!this.closed) this.listeners.add(listener);
     let subscribed = true;
 
@@ -211,7 +208,7 @@ class FakeSessionBroadcast implements SessionBroadcast {
       this.listeners.delete(listener);
     };
   });
-  readonly close = jest.fn(() => {
+  readonly close = vi.fn(() => {
     if (this.closed) return;
     this.closed = true;
     this.listeners.clear();
@@ -310,7 +307,7 @@ describe("SessionProvider", () => {
 
   afterEach(() => {
     document.cookie = "SESSION_ID=; Max-Age=0; path=/";
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it("publishes bootstrap checking while the viewer probe is pending", async () => {
@@ -357,7 +354,7 @@ describe("SessionProvider", () => {
   it("fails closed when identity-owned state cannot be cleared after a bootstrap 401", async () => {
     const authPort = createAuthPort();
     authPort.getViewer.mockRejectedValueOnce(authenticationError());
-    const clearIdentityOwnedState = jest.fn(() => {
+    const clearIdentityOwnedState = vi.fn(() => {
       throw new Error("identity cleanup failed");
     });
 
@@ -446,7 +443,7 @@ describe("SessionProvider", () => {
     const authPort = createAuthPort();
     authPort.getViewer.mockRejectedValueOnce(authenticationError());
     const cleanupError = new Error("identity cleanup failed");
-    const clearIdentityOwnedState = jest.fn(() => {
+    const clearIdentityOwnedState = vi.fn(() => {
       throw cleanupError;
     });
     const queryClients = createTrackedQueryClients();
@@ -1022,7 +1019,7 @@ describe("SessionProvider", () => {
     const authPort = createAuthPort();
     authPort.logout.mockResolvedValue(undefined);
     const cleanupError = new Error("identity cleanup failed");
-    const clearIdentityOwnedState = jest
+    const clearIdentityOwnedState = vi
       .fn()
       .mockImplementationOnce(() => {
         throw cleanupError;
@@ -1220,7 +1217,7 @@ describe("SessionProvider", () => {
       .mockReturnValueOnce(staleProbe.promise)
       .mockReturnValueOnce(freshProbe.promise);
     const broadcast = new FakeSessionBroadcast();
-    const clearIdentityOwnedState = jest.fn();
+    const clearIdentityOwnedState = vi.fn();
     const { result } = renderSession({
       authPort,
       broadcastFactory: () => broadcast,
@@ -1640,13 +1637,13 @@ describe("SessionProvider", () => {
 
   describe("remote invalidate recovery timer", () => {
     beforeEach(() => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
     });
 
     afterEach(() => {
-      jest.clearAllTimers();
-      jest.restoreAllMocks();
-      jest.useRealTimers();
+      vi.clearAllTimers();
+      vi.restoreAllMocks();
+      vi.useRealTimers();
     });
 
     it("waits 1500ms and the cleanup gate before probing", async () => {
@@ -1671,13 +1668,13 @@ describe("SessionProvider", () => {
       expect(authPort.getViewer).not.toHaveBeenCalled();
 
       await act(async () => {
-        jest.advanceTimersByTime(1_499);
+        vi.advanceTimersByTime(1_499);
         await flushMicrotasks();
       });
       expect(authPort.getViewer).not.toHaveBeenCalled();
 
       await act(async () => {
-        jest.advanceTimersByTime(1);
+        vi.advanceTimersByTime(1);
         await flushMicrotasks();
       });
       expect(authPort.getViewer).not.toHaveBeenCalled();
@@ -1712,7 +1709,7 @@ describe("SessionProvider", () => {
       expectAuthenticatedAs(result.current.session.state, viewerAUpdated);
 
       await act(async () => {
-        jest.advanceTimersByTime(1_500);
+        vi.advanceTimersByTime(1_500);
         await flushMicrotasks();
       });
       expect(authPort.getViewer).toHaveBeenCalledTimes(1);
@@ -1723,7 +1720,7 @@ describe("SessionProvider", () => {
       authPort.getViewer.mockResolvedValueOnce(viewerAUpdated);
       const queryClients = createTrackedQueryClients();
       const cleanupGate = deferred<void>();
-      const clearIdentityOwnedState = jest.fn();
+      const clearIdentityOwnedState = vi.fn();
       const broadcast = new FakeSessionBroadcast();
       const { result } = renderSession({
         authPort,
@@ -1735,7 +1732,7 @@ describe("SessionProvider", () => {
       queryClients.generations[0].cancelQueries.mockImplementation(
         () => cleanupGate.promise,
       );
-      const setTimeoutSpy = jest.spyOn(window, "setTimeout");
+      const setTimeoutSpy = vi.spyOn(window, "setTimeout");
 
       act(() => {
         broadcast.emit("invalidate");
@@ -1749,7 +1746,7 @@ describe("SessionProvider", () => {
       ).toHaveLength(1);
 
       await act(async () => {
-        jest.advanceTimersByTime(1_500);
+        vi.advanceTimersByTime(1_500);
         await flushMicrotasks();
       });
       expect(authPort.getViewer).not.toHaveBeenCalled();
@@ -1763,7 +1760,7 @@ describe("SessionProvider", () => {
       expect(authPort.getViewer).toHaveBeenCalledTimes(1);
       expectAuthenticatedAs(result.current.session.state, viewerAUpdated);
       await act(async () => {
-        jest.advanceTimersByTime(1_500);
+        vi.advanceTimersByTime(1_500);
         await flushMicrotasks();
       });
       expect(authPort.getViewer).toHaveBeenCalledTimes(1);
@@ -1778,8 +1775,8 @@ describe("SessionProvider", () => {
         broadcastFactory: () => broadcast,
         initialState: authenticatedState(viewerA),
       });
-      const setTimeoutSpy = jest.spyOn(window, "setTimeout");
-      const clearTimeoutSpy = jest.spyOn(window, "clearTimeout");
+      const setTimeoutSpy = vi.spyOn(window, "setTimeout");
+      const clearTimeoutSpy = vi.spyOn(window, "clearTimeout");
 
       act(() => {
         broadcast.emit("invalidate");
@@ -1799,7 +1796,7 @@ describe("SessionProvider", () => {
       );
 
       await act(async () => {
-        jest.advanceTimersByTime(1_500);
+        vi.advanceTimersByTime(1_500);
         await flushMicrotasks();
       });
       expect(authPort.getViewer).not.toHaveBeenCalled();
@@ -1848,7 +1845,7 @@ describe("SessionProvider", () => {
     const authPort = createAuthPort();
     authPort.getViewer.mockResolvedValueOnce(viewerAUpdated);
     const broadcasts: FakeSessionBroadcast[] = [];
-    const broadcastFactory = jest.fn(() => {
+    const broadcastFactory = vi.fn(() => {
       const broadcast = new FakeSessionBroadcast();
       broadcasts.push(broadcast);
       return broadcast;

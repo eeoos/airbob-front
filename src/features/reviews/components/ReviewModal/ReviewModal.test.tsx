@@ -5,7 +5,7 @@ import type { Review } from "../../model";
 import { toReviewViewModels } from "../../lib/reviewViewModel";
 import { ReviewModal } from "./ReviewModal";
 
-jest.mock("../../../../platform/assets/imageUrl", () => ({
+vi.mock("../../../../platform/assets/imageUrl", () => ({
   resolveImageUrl: (url: string) => url,
 }));
 
@@ -48,15 +48,17 @@ const originalIntersectionObserver = globalThis.IntersectionObserver;
 const installIntersectionObserver = () => {
   Object.defineProperty(globalThis, "IntersectionObserver", {
     configurable: true,
-    value: jest.fn((callback: IntersectionObserverCallback) => {
+    value: vi.fn(function IntersectionObserverMock(
+      callback: IntersectionObserverCallback,
+    ) {
       const observer = {
-        disconnect: jest.fn(),
-        observe: jest.fn(),
+        disconnect: vi.fn(),
+        observe: vi.fn(),
         root: null,
         rootMargin: "0px",
-        takeRecords: jest.fn(() => []),
+        takeRecords: vi.fn(() => []),
         thresholds: [0],
-        unobserve: jest.fn(),
+        unobserve: vi.fn(),
       } as IntersectionObserver;
       activeIntersectionObserver = { callback, observer };
       return observer;
@@ -84,8 +86,8 @@ const renderReviewModal = (
     hasNext: false,
     isFetching: false,
     isOpen: true,
-    onClose: jest.fn(),
-    onLoadMore: jest.fn(),
+    onClose: vi.fn(),
+    onLoadMore: vi.fn(),
     reviews: toReviewViewModels(reviews),
     totalCount: 2,
     ...overrides,
@@ -152,7 +154,7 @@ describe("ReviewModal", () => {
   });
 
   it("closes the sort popover before its dialog and restores trigger focus", async () => {
-    const onClose = jest.fn();
+    const onClose = vi.fn();
 
     render(
       <OverlayProvider>
@@ -162,7 +164,7 @@ describe("ReviewModal", () => {
           isFetching={false}
           isOpen
           onClose={onClose}
-          onLoadMore={jest.fn()}
+          onLoadMore={vi.fn()}
           reviews={toReviewViewModels(reviews)}
           totalCount={2}
         />

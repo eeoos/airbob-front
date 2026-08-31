@@ -74,8 +74,8 @@ npm run smoke:frontend:preflight
 npm run verify:design-ready
 ```
 
-- `verify:pre-redesign`: typecheck, no-cache Jest in band, and production build.
-- `verify:structure`: typecheck, no-cache Jest in band, strict ESLint, the
+- `verify:pre-redesign`: typecheck, deterministic single-worker Vitest, and production build.
+- `verify:structure`: typecheck, deterministic single-worker Vitest, strict ESLint, the
   architecture/reachability/style ratchets, and a hostile-environment
   production build that proves only the four approved app-runtime public
   config categories plus a validated `PUBLIC_URL` asset base can enter built
@@ -102,9 +102,13 @@ npm run verify:design-ready
 Vite is the only build/dev owner (`start`, `dev`, `build`, and `preview`) and
 keeps the production output at `build/` with production JavaScript source maps,
 development CSS source maps, and hashed files under `build/static/`.
-The unit/integration suite still runs through Jest via `react-scripts` until the
-separate U17 test-runner cutover; `react-scripts` no longer owns development or
-production compilation.
+Vitest 4 is the sole unit/integration runner. It shares Vite's module graph,
+runs the jsdom suite in deterministic file order, and keeps CSS Module test
+names stable without a CRA compatibility shim. `react-scripts` and Jest types
+are absent from both the manifest and lockfile. `npm run test:coverage` enforces
+the measured U17 global floor: 87% statements, 79% branches, 89% functions, and
+89% lines. The canonical `test:ci:no-cache` command and CI gate enforce the
+same floors with Vitest caching disabled.
 
 The checked-in `vercel.json` points Vercel at `build/` and applies the official
 Vite SPA fallback. Vercel checks the deployment filesystem before the fallback,
@@ -139,7 +143,7 @@ build success is not evidence for those live checks.
 
 ```bash
 npm run verify:structure
-npm run test:ci:no-cache -- --runInBand src/verification-gate.test.ts
+npm run test:ci:no-cache -- src/verification-gate.test.ts
 ```
 
 브라우저 기반 smoke까지 확인하려면 QA 계정, 안정적인 reservation UID, 프론트/백엔드 서버, `GSTACK_BROWSE_BIN`을 준비한 뒤 실행합니다.

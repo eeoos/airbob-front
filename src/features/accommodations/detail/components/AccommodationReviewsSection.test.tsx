@@ -31,7 +31,7 @@ const setupReviews = (
     },
     reviews: [review],
     expandedReviews: {},
-    onOpenReviews: jest.fn(),
+    onOpenReviews: vi.fn(),
     ...overrides,
   };
 
@@ -62,7 +62,7 @@ describe("AccommodationReviewsSection", () => {
   });
 
   it("opens all reviews from a truncated review", () => {
-    const onOpenReviews = jest.fn();
+    const onOpenReviews = vi.fn();
     setupReviews({
       maxReviewContentLength: 5,
       onOpenReviews,
@@ -87,7 +87,7 @@ describe("AccommodationReviewsSection", () => {
         }}
         reviews={[]}
         expandedReviews={{}}
-        onOpenReviews={jest.fn()}
+        onOpenReviews={vi.fn()}
       />
     );
 

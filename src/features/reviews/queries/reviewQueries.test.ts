@@ -1,3 +1,4 @@
+import type { Mocked } from "vitest";
 import type { SessionQueryScope } from "../../../platform/query/sessionScope";
 import type { SessionSubject } from "../../../platform/session/sessionScope";
 import type { ReviewReadApiPort } from "../ports/reviewApiPort";
@@ -11,13 +12,13 @@ const scope = {
   epoch: 4,
 } satisfies SessionQueryScope;
 
-const api = {
-  getReviews: jest.fn(),
-} as unknown as ReviewReadApiPort;
+const api: Mocked<ReviewReadApiPort> = {
+  getReviews: vi.fn(),
+};
 
 describe("review read query contracts", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("owns a session-scoped list key/meta and forwards the current read contract", async () => {
@@ -26,7 +27,7 @@ describe("review read query contracts", () => {
       { accommodationId: 31, scope },
       api,
     );
-    (api.getReviews as jest.Mock).mockResolvedValue({
+    api.getReviews.mockResolvedValue({
       reviews: [],
       pageInfo: { currentSize: 0, hasNext: false, nextCursor: null },
     });
@@ -82,7 +83,7 @@ describe("review read query contracts", () => {
         nextCursor: "cursor-1",
       },
     };
-    (api.getReviews as jest.Mock).mockResolvedValue(page);
+    api.getReviews.mockResolvedValue(page);
 
     await options.queryFn({ pageParam: null, signal });
 

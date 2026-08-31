@@ -19,7 +19,7 @@ import { WishlistDetailView } from "./WishlistDetailView";
 import { WishlistIndexView } from "./WishlistIndexView";
 import { WishlistMemoDialog } from "./WishlistMemoDialog";
 
-const noopObserver = jest.fn();
+const noopObserver = vi.fn();
 
 const makeWishlist = (
   overrides: Partial<WishlistSummary> = {},
@@ -110,9 +110,9 @@ const renderWishlistIndex = (
     <WishlistIndexView
       isLoading={false}
       isLoadingMoreWishlists={false}
-      onDeleteWishlist={jest.fn()}
-      onOpenRecentlyViewed={jest.fn()}
-      onOpenWishlist={jest.fn()}
+      onDeleteWishlist={vi.fn()}
+      onOpenRecentlyViewed={vi.fn()}
+      onOpenWishlist={vi.fn()}
       recentlyViewedSummaryLabel="항목 없음"
       setWishlistsObserverTarget={noopObserver}
       wishlists={[]}
@@ -129,10 +129,10 @@ const renderWishlistDetail = (
       hasNext={false}
       isLoading={false}
       isLoadingMore={false}
-      onBack={jest.fn()}
-      onOpenAccommodationDetail={jest.fn()}
-      onOpenMemo={jest.fn()}
-      onRemoveFromWishlist={jest.fn()}
+      onBack={vi.fn()}
+      onOpenAccommodationDetail={vi.fn()}
+      onOpenMemo={vi.fn()}
+      onRemoveFromWishlist={vi.fn()}
       selectedWishlistName="Weekend saves"
       setWishlistAccommodationsObserverTarget={noopObserver}
       wishlistAccommodations={[]}
@@ -146,11 +146,11 @@ const renderRecentlyViewed = (
   render(
     <RecentlyViewedView
       isEditMode={false}
-      onBack={jest.fn()}
-      onOpenAccommodationDetail={jest.fn()}
-      onRemoveRecentlyViewed={jest.fn()}
-      onToggleEditMode={jest.fn()}
-      onWishlistToggle={jest.fn()}
+      onBack={vi.fn()}
+      onOpenAccommodationDetail={vi.fn()}
+      onRemoveRecentlyViewed={vi.fn()}
+      onToggleEditMode={vi.fn()}
+      onWishlistToggle={vi.fn()}
       recentlyViewed={[]}
       {...props}
     />
@@ -158,7 +158,7 @@ const renderRecentlyViewed = (
 
 describe("Wishlist view components", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("renders loading and empty states", () => {
@@ -173,12 +173,12 @@ describe("Wishlist view components", () => {
   });
 
   it("does not open a wishlist card when deleting the wishlist", async () => {
-    const onDeleteWishlist = jest.fn(
+    const onDeleteWishlist = vi.fn(
       (_wishlistId: number, event: React.MouseEvent<HTMLButtonElement>) => {
         event.stopPropagation();
       }
     );
-    const onOpenWishlist = jest.fn();
+    const onOpenWishlist = vi.fn();
 
     renderWishlistIndex({
       onDeleteWishlist,
@@ -193,8 +193,8 @@ describe("Wishlist view components", () => {
   });
 
   it("does not open an accommodation card when deleting a wishlist accommodation", async () => {
-    const onOpenAccommodationDetail = jest.fn();
-    const onRemoveFromWishlist = jest.fn();
+    const onOpenAccommodationDetail = vi.fn();
+    const onRemoveFromWishlist = vi.fn();
 
     renderWishlistDetail({
       onOpenAccommodationDetail,
@@ -248,8 +248,8 @@ describe("Wishlist view components", () => {
 
   it("opens the memo dialog from a wishlist detail memo button", async () => {
     const item = makeWishlistAccommodationCard({ memo: "Bring coffee" });
-    const onOpenAccommodationDetail = jest.fn();
-    const onOpenMemo = jest.fn();
+    const onOpenAccommodationDetail = vi.fn();
+    const onOpenMemo = vi.fn();
 
     renderWishlistDetail({
       onOpenAccommodationDetail,
@@ -267,8 +267,8 @@ describe("Wishlist view components", () => {
   });
 
   it("does not open a recently viewed card when deleting in edit mode", async () => {
-    const onOpenAccommodationDetail = jest.fn();
-    const onRemoveRecentlyViewed = jest.fn();
+    const onOpenAccommodationDetail = vi.fn();
+    const onRemoveRecentlyViewed = vi.fn();
 
     renderRecentlyViewed({
       isEditMode: true,
@@ -284,8 +284,8 @@ describe("Wishlist view components", () => {
   });
 
   it("does not open a recently viewed card when toggling wishlist state", async () => {
-    const onOpenAccommodationDetail = jest.fn();
-    const onWishlistToggle = jest.fn();
+    const onOpenAccommodationDetail = vi.fn();
+    const onWishlistToggle = vi.fn();
 
     renderRecentlyViewed({
       onOpenAccommodationDetail,
@@ -321,14 +321,14 @@ describe("Wishlist view components", () => {
   });
 
   it("allows saving an empty memo so an existing memo can be cleared", async () => {
-    const onSave = jest.fn();
+    const onSave = vi.fn();
     render(
       <WishlistMemoDialog
         isOpen
         memoText=""
-        onChangeMemoText={jest.fn()}
-        onClear={jest.fn()}
-        onClose={jest.fn()}
+        onChangeMemoText={vi.fn()}
+        onClear={vi.fn()}
+        onClose={vi.fn()}
         onSave={onSave}
       />,
     );

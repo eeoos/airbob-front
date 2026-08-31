@@ -1,4 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
+import type { Mocked } from "vitest";
 import type { AuthenticatedSessionScope } from "../../../../platform/session/sessionScope";
 import type { ListingEditorApiPort } from "../ports/listingEditorApiPort";
 import type { ListingEditorAccommodation } from "../model/listingEditor";
@@ -48,12 +49,12 @@ const accommodation = (
   images: [{ id: id * 10, imageUrl: `/${id}.jpg` }],
 });
 
-const createApi = (): jest.Mocked<ListingEditorApiPort> => ({
-  deleteImage: jest.fn().mockResolvedValue(undefined),
-  getHostDetail: jest.fn(),
-  publish: jest.fn().mockResolvedValue(undefined),
-  update: jest.fn().mockResolvedValue(undefined),
-  uploadImages: jest.fn().mockResolvedValue([]),
+const createApi = (): Mocked<ListingEditorApiPort> => ({
+  deleteImage: vi.fn().mockResolvedValue(undefined),
+  getHostDetail: vi.fn(),
+  publish: vi.fn().mockResolvedValue(undefined),
+  update: vi.fn().mockResolvedValue(undefined),
+  uploadImages: vi.fn().mockResolvedValue([]),
 });
 
 const createClient = () =>
@@ -121,7 +122,7 @@ describe("listing editor query boundary", () => {
     const pending = deferred<ListingEditorAccommodation>();
     const oldController = new AbortController();
     const liveController = new AbortController();
-    const oldRemove = jest.spyOn(
+    const oldRemove = vi.spyOn(
       oldController.signal,
       "removeEventListener",
     );

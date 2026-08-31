@@ -25,7 +25,7 @@ const emptyPage: HostListingPage = {
 describe("host listing cache projection", () => {
   it("invalidates every status only inside the captured authenticated scope", async () => {
     const api: HostListingsApiPort = {
-      getHostListings: jest.fn().mockResolvedValue(emptyPage),
+      getHostListings: vi.fn().mockResolvedValue(emptyPage),
     };
     const client = new QueryClient({
       defaultOptions: { queries: { gcTime: Infinity, retry: false } },
@@ -75,7 +75,7 @@ describe("host listing cache projection", () => {
 
   it("rejects publication when an active listing refetch fails", async () => {
     const refetchError = new Error("active listing refetch failed");
-    const getHostListings = jest
+    const getHostListings = vi
       .fn()
       .mockResolvedValueOnce(emptyPage)
       .mockRejectedValueOnce(refetchError);

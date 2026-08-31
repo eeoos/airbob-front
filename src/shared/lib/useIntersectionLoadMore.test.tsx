@@ -2,8 +2,8 @@ import { act, render, screen } from "@testing-library/react";
 import { useIntersectionLoadMore } from "./useIntersectionLoadMore";
 
 let intersectionCallback: IntersectionObserverCallback;
-const disconnect = jest.fn();
-const observe = jest.fn();
+const disconnect = vi.fn();
+const observe = vi.fn();
 
 const ObserverHarness = ({
   disabled = false,
@@ -31,8 +31,11 @@ const ObserverHarness = ({
 
 describe("useIntersectionLoadMore", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    global.IntersectionObserver = jest.fn((callback, options) => {
+    vi.clearAllMocks();
+    global.IntersectionObserver = vi.fn(function IntersectionObserverMock(
+      callback,
+      options,
+    ) {
       intersectionCallback = callback;
       expect(options).toMatchObject({ threshold: 0.1 });
       return {
@@ -42,13 +45,13 @@ describe("useIntersectionLoadMore", () => {
         rootMargin: "",
         takeRecords: () => [],
         thresholds: [],
-        unobserve: jest.fn(),
+        unobserve: vi.fn(),
       };
     });
   });
 
   it("loads only while enabled and disconnects when loading starts", () => {
-    const onLoadMore = jest.fn();
+    const onLoadMore = vi.fn();
     const { rerender } = render(
       <ObserverHarness onLoadMore={onLoadMore} rootMargin="100px" />,
     );
@@ -75,11 +78,11 @@ describe("useIntersectionLoadMore", () => {
     global.IntersectionObserver = undefined as unknown as typeof IntersectionObserver;
 
     const { rerender } = render(
-      <ObserverHarness hasNext={false} onLoadMore={jest.fn()} />,
+      <ObserverHarness hasNext={false} onLoadMore={vi.fn()} />,
     );
     expect(observe).not.toHaveBeenCalled();
 
-    rerender(<ObserverHarness onLoadMore={jest.fn()} />);
+    rerender(<ObserverHarness onLoadMore={vi.fn()} />);
     expect(observe).not.toHaveBeenCalled();
     global.IntersectionObserver = originalObserver;
   });

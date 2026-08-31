@@ -14,18 +14,22 @@ const scope = {
   epoch: 4,
 } as AuthenticatedSessionScope;
 
+const getWishlists = vi.fn<WishlistApiPort["getWishlists"]>();
+const getWishlistAccommodations =
+  vi.fn<WishlistApiPort["getWishlistAccommodations"]>();
 const wishlistApi = {
-  getWishlists: jest.fn(),
-  getWishlistAccommodations: jest.fn(),
+  getWishlists,
+  getWishlistAccommodations,
 } as unknown as WishlistApiPort;
 
+const getRecentlyViewed = vi.fn<RecentlyViewedApiPort["getRecentlyViewed"]>();
 const recentlyViewedApi = {
-  getRecentlyViewed: jest.fn(),
+  getRecentlyViewed,
 } as unknown as RecentlyViewedApiPort;
 
 describe("wishlist read query contracts", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("puts explicit identity scope in both list key and meta and forwards pagination signal", async () => {
@@ -37,7 +41,7 @@ describe("wishlist read query contracts", () => {
       },
       wishlistApi,
     );
-    (wishlistApi.getWishlists as jest.Mock).mockResolvedValue({
+    getWishlists.mockResolvedValue({
       wishlists: [],
       pageInfo: { hasNext: false, nextCursor: null, currentSize: 0 },
     });
@@ -104,7 +108,7 @@ describe("wishlist read query contracts", () => {
       { scope, wishlistId: 7 },
       wishlistApi,
     );
-    (wishlistApi.getWishlistAccommodations as jest.Mock).mockResolvedValue({
+    getWishlistAccommodations.mockResolvedValue({
       accommodations: [],
       pageInfo: { hasNext: false, nextCursor: null, currentSize: 0 },
     });
@@ -168,7 +172,7 @@ describe("wishlist read query contracts", () => {
       { scope },
       recentlyViewedApi,
     );
-    (recentlyViewedApi.getRecentlyViewed as jest.Mock).mockResolvedValue({
+    getRecentlyViewed.mockResolvedValue({
       accommodations: [],
       totalCount: 0,
     });

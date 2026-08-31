@@ -31,7 +31,7 @@ const detailWire: AccommodationDetailWire = {
 
 describe("accommodation detail API adapter", () => {
   it("preserves GET path, omits query/body, forwards AbortSignal, and maps the wire result", async () => {
-    const transport = jest.fn().mockResolvedValue(detailWire);
+    const transport = vi.fn().mockResolvedValue(detailWire);
     const api = createAccommodationDetailApi(
       transport as AccommodationDetailApiTransport,
     );

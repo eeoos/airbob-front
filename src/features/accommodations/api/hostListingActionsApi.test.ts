@@ -6,7 +6,7 @@ import {
 
 describe("host listing actions API", () => {
   it("preserves publish, unpublish, and delete as nullable commands", async () => {
-    const requestNullable = jest.fn().mockResolvedValue(null);
+    const requestNullable = vi.fn().mockResolvedValue(null);
     const api = createHostListingActionsApi(
       requestNullable as HostListingActionsApiTransport,
     );
@@ -30,7 +30,7 @@ describe("host listing actions API", () => {
   });
 
   it("forwards workflow cancellation without changing method, path, or body", async () => {
-    const requestNullable = jest.fn().mockResolvedValue(null);
+    const requestNullable = vi.fn().mockResolvedValue(null);
     const api = createHostListingActionsApi(
       requestNullable as HostListingActionsApiTransport,
     );

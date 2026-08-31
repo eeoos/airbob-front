@@ -42,9 +42,10 @@ describe("sessionCommandQueue", () => {
     const firstController = new AbortController();
     const secondController = new AbortController();
     const firstRun = queue.run(firstController.signal, () => hung.promise);
-    const secondCommand = jest.fn().mockResolvedValue(undefined);
+    const secondCommand = vi.fn().mockResolvedValue(undefined);
     const secondRun = queue.run(secondController.signal, secondCommand);
 
+    await Promise.resolve();
     firstController.abort();
 
     await expect(firstRun).rejects.toMatchObject({ name: "AbortError" });
@@ -59,7 +60,7 @@ describe("sessionCommandQueue", () => {
   it("does not start a command aborted before its physical slot begins", async () => {
     const queue = createSessionCommandQueue();
     const controller = new AbortController();
-    const command = jest.fn().mockResolvedValue(undefined);
+    const command = vi.fn().mockResolvedValue(undefined);
     const run = queue.run(controller.signal, command);
 
     controller.abort();
@@ -89,7 +90,7 @@ describe("sessionCommandQueue", () => {
     const first = deferred<void>();
     const firstRun = queue.run(new AbortController().signal, () => first.promise);
     const queuedController = new AbortController();
-    const queuedCommand = jest.fn().mockResolvedValue(undefined);
+    const queuedCommand = vi.fn().mockResolvedValue(undefined);
     const queuedRun = queue.run(queuedController.signal, queuedCommand);
     queuedController.abort();
     first.resolve();
@@ -107,7 +108,7 @@ describe("sessionCommandQueue", () => {
       new AbortController().signal,
       () => firstProviderTransport.promise,
     );
-    const secondProviderCommand = jest.fn().mockResolvedValue(undefined);
+    const secondProviderCommand = vi.fn().mockResolvedValue(undefined);
 
     await secondProviderQueue.run(
       new AbortController().signal,

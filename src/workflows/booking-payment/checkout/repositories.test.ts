@@ -567,7 +567,7 @@ describe("booking-payment callback repository", () => {
 describe("legacy checkout migration", () => {
   it("migrates a verified legacy location candidate without customer fields", async () => {
     const harness = setup();
-    const verify = jest.fn().mockResolvedValue({ status: "verified" });
+    const verify = vi.fn().mockResolvedValue({ status: "verified" });
 
     await expect(
       harness.checkoutRepository.migrateLegacy({
@@ -618,7 +618,7 @@ describe("legacy checkout migration", () => {
         scope: scopeA,
         accommodationId: 7,
         rawLegacyLocationCandidate: legacyCheckout,
-        verify: jest.fn().mockResolvedValue({ status: "verified" }),
+        verify: vi.fn().mockResolvedValue({ status: "verified" }),
         isCurrent: harness.isCurrent,
       }),
     ).resolves.toEqual(expect.objectContaining({ status: "migrated" }));
@@ -634,7 +634,7 @@ describe("legacy checkout migration", () => {
       JSON.stringify(legacyCheckout),
     );
     mismatched.storage.setItem(legacyIndexKey, "8");
-    const verify = jest.fn().mockResolvedValue({ status: "verified" });
+    const verify = vi.fn().mockResolvedValue({ status: "verified" });
 
     await expect(
       mismatched.checkoutRepository.migrateLegacy({
@@ -671,7 +671,7 @@ describe("legacy checkout migration", () => {
       malformed.checkoutRepository.migrateLegacy({
         scope: scopeA,
         accommodationId: 7,
-        verify: jest.fn().mockResolvedValue({ status: "verified" }),
+        verify: vi.fn().mockResolvedValue({ status: "verified" }),
         isCurrent: malformed.isCurrent,
       }),
     ).resolves.toEqual({
@@ -687,7 +687,7 @@ describe("legacy checkout migration", () => {
       rejected.checkoutRepository.migrateLegacy({
         scope: scopeA,
         accommodationId: 7,
-        verify: jest.fn().mockResolvedValue({ status: "mismatch" }),
+        verify: vi.fn().mockResolvedValue({ status: "mismatch" }),
         isCurrent: rejected.isCurrent,
       }),
     ).resolves.toEqual({
@@ -731,7 +731,7 @@ describe("legacy checkout migration", () => {
 
   it("surfaces fail-closed cleanup errors on every legacy rejection path", async () => {
     const malformedStorage = createStorage({ [legacyPrimaryKey]: "{" });
-    jest.spyOn(malformedStorage, "removeItem").mockImplementation(() => {
+    vi.spyOn(malformedStorage, "removeItem").mockImplementation(() => {
       throw new Error("cleanup blocked");
     });
     const malformed = setup({ storage: malformedStorage });
@@ -739,7 +739,7 @@ describe("legacy checkout migration", () => {
       malformed.checkoutRepository.migrateLegacy({
         scope: scopeA,
         accommodationId: 7,
-        verify: jest.fn().mockResolvedValue({ status: "verified" }),
+        verify: vi.fn().mockResolvedValue({ status: "verified" }),
         isCurrent: malformed.isCurrent,
       }),
     ).resolves.toEqual({ status: "rejected", reason: "cleanup-failed" });
@@ -749,7 +749,7 @@ describe("legacy checkout migration", () => {
       [legacyIndexKey]: "8",
     });
     const originalIndexRemove = indexStorage.removeItem.bind(indexStorage);
-    jest.spyOn(indexStorage, "removeItem").mockImplementation((key) => {
+    vi.spyOn(indexStorage, "removeItem").mockImplementation((key) => {
       if (key === legacyIndexKey) throw new Error("cleanup blocked");
       originalIndexRemove(key);
     });
@@ -758,7 +758,7 @@ describe("legacy checkout migration", () => {
       indexMismatch.checkoutRepository.migrateLegacy({
         scope: scopeA,
         accommodationId: 7,
-        verify: jest.fn().mockResolvedValue({ status: "verified" }),
+        verify: vi.fn().mockResolvedValue({ status: "verified" }),
         isCurrent: indexMismatch.isCurrent,
       }),
     ).resolves.toEqual({ status: "rejected", reason: "cleanup-failed" });
@@ -769,7 +769,7 @@ describe("legacy checkout migration", () => {
     });
     const originalVerificationRemove =
       verificationStorage.removeItem.bind(verificationStorage);
-    jest.spyOn(verificationStorage, "removeItem").mockImplementation((key) => {
+    vi.spyOn(verificationStorage, "removeItem").mockImplementation((key) => {
       if (key === legacyIndexKey) throw new Error("cleanup blocked");
       originalVerificationRemove(key);
     });
@@ -778,7 +778,7 @@ describe("legacy checkout migration", () => {
       verificationFailed.checkoutRepository.migrateLegacy({
         scope: scopeA,
         accommodationId: 7,
-        verify: jest.fn().mockResolvedValue({ status: "mismatch" }),
+        verify: vi.fn().mockResolvedValue({ status: "mismatch" }),
         isCurrent: verificationFailed.isCurrent,
       }),
     ).resolves.toEqual({ status: "rejected", reason: "cleanup-failed" });
@@ -790,7 +790,7 @@ describe("legacy checkout migration", () => {
     if (target.status !== "written") throw new Error("fixture failed");
     harness.storage.setItem(legacyPrimaryKey, JSON.stringify(legacyCheckout));
     harness.storage.setItem(legacyIndexKey, "7");
-    const verify = jest.fn().mockResolvedValue({ status: "verified" });
+    const verify = vi.fn().mockResolvedValue({ status: "verified" });
 
     await expect(
       harness.checkoutRepository.migrateLegacy({
@@ -812,7 +812,7 @@ describe("legacy checkout migration", () => {
   it("does not let a malformed location handoff fall through to an owned target", async () => {
     const harness = setup();
     writeCheckout(harness);
-    const verify = jest.fn().mockResolvedValue({ status: "verified" });
+    const verify = vi.fn().mockResolvedValue({ status: "verified" });
 
     await expect(
       harness.checkoutRepository.migrateLegacy({
@@ -854,7 +854,7 @@ describe("legacy checkout migration", () => {
       harness.checkoutRepository.migrateLegacy({
         scope: scopeA,
         accommodationId: 7,
-        verify: jest.fn().mockResolvedValue({ status: "verified" }),
+        verify: vi.fn().mockResolvedValue({ status: "verified" }),
         isCurrent: harness.isCurrent,
       }),
     ).resolves.toEqual(expect.objectContaining({ status: "target-wins" }));
@@ -882,7 +882,7 @@ describe("legacy checkout migration", () => {
       harness.checkoutRepository.migrateLegacy({
         scope: scopeA,
         accommodationId: 7,
-        verify: jest.fn().mockResolvedValue({ status: "verified" }),
+        verify: vi.fn().mockResolvedValue({ status: "verified" }),
         isCurrent: harness.isCurrent,
       }),
     ).resolves.toEqual({
@@ -929,7 +929,7 @@ describe("legacy checkout migration", () => {
       [legacyIndexKey]: "7",
     });
     const originalRemove = storage.removeItem.bind(storage);
-    jest.spyOn(storage, "removeItem").mockImplementation((key) => {
+    vi.spyOn(storage, "removeItem").mockImplementation((key) => {
       if (key === legacyIndexKey) throw new Error("legacy cleanup blocked");
       originalRemove(key);
     });
@@ -939,7 +939,7 @@ describe("legacy checkout migration", () => {
       harness.checkoutRepository.migrateLegacy({
         scope: scopeA,
         accommodationId: 7,
-        verify: jest.fn().mockResolvedValue({ status: "verified" }),
+        verify: vi.fn().mockResolvedValue({ status: "verified" }),
         isCurrent: harness.isCurrent,
       }),
     ).resolves.toEqual({ status: "rejected", reason: "cleanup-failed" });
@@ -981,7 +981,7 @@ describe("booking-payment browser cleanup and failures", () => {
     });
     const originalRemove = storage.removeItem.bind(storage);
     const failedOnce = new Set<string>();
-    jest.spyOn(storage, "removeItem").mockImplementation((key) => {
+    vi.spyOn(storage, "removeItem").mockImplementation((key) => {
       if (
         (key === callbackKey || key === legacyIndexKey) &&
         !failedOnce.has(key)
@@ -1008,7 +1008,7 @@ describe("booking-payment browser cleanup and failures", () => {
     const storage = createStorage({ [checkoutKey]: "checkout" });
     const originalKey = storage.key.bind(storage);
     let failedOnce = false;
-    jest.spyOn(storage, "key").mockImplementation((index) => {
+    vi.spyOn(storage, "key").mockImplementation((index) => {
       if (!failedOnce) {
         failedOnce = true;
         throw new Error("transient key enumeration failure");
@@ -1030,7 +1030,7 @@ describe("booking-payment browser cleanup and failures", () => {
       [callbackKey]: "callback",
     });
     const originalRemove = storage.removeItem.bind(storage);
-    const remove = jest
+    const remove = vi
       .spyOn(storage, "removeItem")
       .mockImplementation((key) => {
         if (key === callbackKey) throw new Error("persistent cleanup failure");
@@ -1051,7 +1051,7 @@ describe("booking-payment browser cleanup and failures", () => {
 
   it("returns typed storage errors from reads and writes", () => {
     const getFailureStorage = createStorage();
-    jest.spyOn(getFailureStorage, "getItem").mockImplementation(() => {
+    vi.spyOn(getFailureStorage, "getItem").mockImplementation(() => {
       throw new Error("secret read body");
     });
     const readHarness = setup({ storage: getFailureStorage });
@@ -1067,7 +1067,7 @@ describe("booking-payment browser cleanup and failures", () => {
     });
 
     const setFailureStorage = createStorage();
-    jest.spyOn(setFailureStorage, "setItem").mockImplementation(() => {
+    vi.spyOn(setFailureStorage, "setItem").mockImplementation(() => {
       throw new Error("secret write body");
     });
     const writeHarness = setup({ storage: setFailureStorage });

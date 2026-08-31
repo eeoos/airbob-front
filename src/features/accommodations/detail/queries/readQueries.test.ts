@@ -1,3 +1,4 @@
+import type { Mocked } from "vitest";
 import type { AuthenticatedSessionScope } from "../../../../platform/session/sessionScope";
 import type { SessionQueryScope } from "../../../../platform/query/sessionScope";
 import type { AccommodationDetail } from "../model/accommodationDetail";
@@ -41,16 +42,16 @@ const detail = (id: number): AccommodationDetail => ({
 });
 
 describe("accommodation read query contracts", () => {
-  const detailApi = {
-    getDetail: jest.fn(),
-  } as unknown as AccommodationDetailApiPort;
-  const couponApi = {
-    getValidCoupons: jest.fn(),
-    issue: jest.fn(),
-  } as unknown as AccommodationCouponApiPort;
+  const detailApi: Mocked<AccommodationDetailApiPort> = {
+    getDetail: vi.fn(),
+  };
+  const couponApi: Mocked<AccommodationCouponApiPort> = {
+    getValidCoupons: vi.fn(),
+    issue: vi.fn(),
+  };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("scopes detail reads, exposes matching meta, and forwards cancellation", async () => {
@@ -59,7 +60,7 @@ describe("accommodation read query contracts", () => {
       { scope: anonymousScope, accommodationId: 31 },
       detailApi,
     );
-    (detailApi.getDetail as jest.Mock).mockResolvedValue(detail(31));
+    detailApi.getDetail.mockResolvedValue(detail(31));
 
     await options.queryFn({ signal });
 
@@ -133,7 +134,7 @@ describe("accommodation read query contracts", () => {
       { scope: authenticatedScope },
       couponApi,
     );
-    (couponApi.getValidCoupons as jest.Mock).mockResolvedValue({ coupons: [] });
+    couponApi.getValidCoupons.mockResolvedValue({ coupons: [] });
 
     await options.queryFn({ signal });
 

@@ -47,7 +47,7 @@ describe("Tabs", () => {
         ariaLabel="예약 필터"
         items={items}
         value="past"
-        onValueChange={jest.fn()}
+        onValueChange={vi.fn()}
       />
     );
 
@@ -63,7 +63,7 @@ describe("Tabs", () => {
   });
 
   it("delegates click changes", async () => {
-    const onValueChange = jest.fn();
+    const onValueChange = vi.fn();
 
     render(
       <Tabs
@@ -126,7 +126,7 @@ describe("Tabs", () => {
         ariaLabel="예약 필터"
         items={items}
         value="missing"
-        onValueChange={jest.fn()}
+        onValueChange={vi.fn()}
       />
     );
 
@@ -150,7 +150,7 @@ describe("Tabs", () => {
           { value: "cancelled", label: "취소된 여행" },
         ]}
         value="past"
-        onValueChange={jest.fn()}
+        onValueChange={vi.fn()}
       />
     );
 

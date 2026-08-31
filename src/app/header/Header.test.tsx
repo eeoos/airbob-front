@@ -6,13 +6,13 @@ import { Header } from "./Header";
 
 let mockPathname = "/";
 let mockSearchParams = new URLSearchParams();
-const mockSearchBar = jest.fn();
-const mockUserMenu = jest.fn();
-const mockNavigate = jest.fn();
-const mockSetSearchParams = jest.fn();
+const mockSearchBar = vi.fn();
+const mockUserMenu = vi.fn();
+const mockNavigate = vi.fn();
+const mockSetSearchParams = vi.fn();
 let mockIsAuthenticated = false;
 
-jest.mock(
+vi.mock(
   "react-router-dom",
   () => ({
     Link: ({
@@ -33,11 +33,12 @@ jest.mock(
     useNavigate: () => mockNavigate,
     useSearchParams: () => [mockSearchParams, mockSetSearchParams],
   }),
-  { virtual: true }
 );
 
-jest.mock("../../features/search/ui/HeaderSearchBar", () => ({
-  ...jest.requireActual("../../features/search/ui/HeaderSearchBar"),
+vi.mock("../../features/search/ui/HeaderSearchBar", async () => ({
+  ...(await vi.importActual<
+    typeof import("../../features/search/ui/HeaderSearchBar")
+  >("../../features/search/ui/HeaderSearchBar")),
   HeaderSearchBar: (props: {
     isMapDragMode?: boolean;
     routePort: SearchBarRoutePort;
@@ -47,7 +48,7 @@ jest.mock("../../features/search/ui/HeaderSearchBar", () => ({
   },
 }));
 
-jest.mock("./UserMenu", () => ({
+vi.mock("./UserMenu", () => ({
   UserMenu: (props: { isLoggedIn: boolean }) => {
     mockUserMenu(props);
     return (
@@ -59,7 +60,7 @@ jest.mock("./UserMenu", () => ({
   },
 }));
 
-jest.mock("../session/useSession", () => ({
+vi.mock("../session/useSession", () => ({
   useSession: () => ({
     state: {
       status: mockIsAuthenticated ? "authenticated" : "anonymous",
@@ -87,7 +88,7 @@ describe("Header", () => {
     const logoImage = within(homeLink).getByRole("presentation");
 
     expect(homeLink).toHaveAttribute("href", "/");
-    expect(logoImage).toHaveAttribute("src", "airbob-wordmark.png");
+    expect(logoImage.getAttribute("src")).toMatch(/airbob-wordmark\.png$/);
     expect(logoImage).toHaveAttribute("alt", "");
   });
 

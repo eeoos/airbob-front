@@ -8,7 +8,7 @@ describe("CounterStepper", () => {
       <CounterStepper
         decrementLabel="게스트 줄이기"
         incrementLabel="게스트 늘리기"
-        onChange={jest.fn()}
+        onChange={vi.fn()}
         value={2}
       />
     );
@@ -17,7 +17,7 @@ describe("CounterStepper", () => {
   });
 
   it("calls onChange with the next lower value", async () => {
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
 
     render(
       <CounterStepper
@@ -36,7 +36,7 @@ describe("CounterStepper", () => {
   });
 
   it("calls onChange with the next higher value", async () => {
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
 
     render(
       <CounterStepper
@@ -55,7 +55,7 @@ describe("CounterStepper", () => {
   });
 
   it("disables decrement at the minimum value", async () => {
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
 
     render(
       <CounterStepper
@@ -81,7 +81,7 @@ describe("CounterStepper", () => {
       <CounterStepper
         decrementLabel="게스트 줄이기"
         incrementLabel="게스트 늘리기"
-        onChange={jest.fn()}
+        onChange={vi.fn()}
         value={0}
       />
     );
@@ -92,7 +92,7 @@ describe("CounterStepper", () => {
   });
 
   it("disables increment at the maximum value", async () => {
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
 
     render(
       <CounterStepper

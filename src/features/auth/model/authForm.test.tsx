@@ -24,7 +24,7 @@ const fillForm = (
 
 describe("useAuthForm", () => {
   it("validates confirmation before invoking the signup command", async () => {
-    const signup = jest.fn();
+    const signup = vi.fn();
     const { result } = renderHook(() =>
       useAuthForm({ mode: "signup", signup }),
     );
@@ -45,7 +45,7 @@ describe("useAuthForm", () => {
   });
 
   it("retains form values and maps an exact auth error after failure", async () => {
-    const login = jest
+    const login = vi
       .fn()
       .mockRejectedValue(new Error("이메일 또는 비밀번호가 올바르지 않습니다."));
     const { result } = renderHook(() => useAuthForm({ mode: "login", login }));
@@ -71,7 +71,7 @@ describe("useAuthForm", () => {
 
   it("shares one in-flight command across duplicate submissions", async () => {
     let resolveLogin!: () => void;
-    const login = jest.fn(
+    const login = vi.fn(
       () =>
         new Promise<void>((resolve) => {
           resolveLogin = resolve;
@@ -101,7 +101,7 @@ describe("useAuthForm", () => {
   });
 
   it("maps backend auth codes without exposing transport details", async () => {
-    const login = jest.fn().mockRejectedValue({
+    const login = vi.fn().mockRejectedValue({
       code: "M001",
       message: "raw backend message",
     });
@@ -118,8 +118,10 @@ describe("useAuthForm", () => {
   });
 
   it("allows retry when a command adapter throws before returning a promise", async () => {
-    const login = jest
-      .fn<Promise<void>, [{ email: string; password: string }]>()
+    const login = vi
+      .fn<
+        (credentials: { email: string; password: string }) => Promise<void>
+      >()
       .mockImplementationOnce(() => {
         throw new Error("동기 어댑터 실패");
       })

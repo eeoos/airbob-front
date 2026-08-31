@@ -1,3 +1,4 @@
+import type { Mocked } from "vitest";
 import {
   act,
   fireEvent,
@@ -62,20 +63,22 @@ const deferred = <T,>(): Deferred<T> => {
   return { promise, resolve: resolvePromise };
 };
 
-const createAuthPort = (): jest.Mocked<SessionAuthPort> => ({
-  getViewer: jest.fn<Promise<SessionViewer>, [AbortSignal?]>(() =>
+const createAuthPort = (): Mocked<SessionAuthPort> => ({
+  getViewer: vi.fn<(signal?: AbortSignal) => Promise<SessionViewer>>(() =>
     Promise.resolve(viewerB),
   ),
-  login: jest.fn<Promise<void>, [SessionCredentials, AbortSignal?]>(() =>
+  login: vi.fn<
+    (credentials: SessionCredentials, signal?: AbortSignal) => Promise<void>
+  >(() => Promise.resolve()),
+  logout: vi.fn<(signal?: AbortSignal) => Promise<void>>(() =>
     Promise.resolve(),
   ),
-  logout: jest.fn<Promise<void>, [AbortSignal?]>(() => Promise.resolve()),
 });
 
 const createBroadcast = (): SessionBroadcast => ({
-  publish: jest.fn(),
-  subscribe: jest.fn(() => () => undefined),
-  close: jest.fn(),
+  publish: vi.fn(),
+  subscribe: vi.fn(() => () => undefined),
+  close: vi.fn(),
 });
 
 describe("SessionProvider stable boundary", () => {

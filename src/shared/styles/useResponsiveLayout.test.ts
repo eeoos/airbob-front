@@ -12,7 +12,7 @@ describe("useResponsiveLayout", () => {
     listeners.clear();
     Object.defineProperty(window, "matchMedia", {
       configurable: true,
-      value: jest.fn((query: string): MediaQueryList => ({
+      value: vi.fn((query: string): MediaQueryList => ({
         matches: width <= 1024,
         media: query,
         onchange: null,

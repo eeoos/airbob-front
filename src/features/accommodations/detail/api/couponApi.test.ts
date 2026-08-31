@@ -24,10 +24,11 @@ const couponWire: CouponCollectionWire = {
 
 describe("coupon API adapter", () => {
   it("preserves the valid-coupon GET contract and forwards AbortSignal", async () => {
-    const transport: CouponApiTransport = {
-      request: jest.fn().mockResolvedValue(couponWire),
-      requestNullable: jest.fn(),
-    };
+    const request = vi.fn().mockResolvedValue(couponWire);
+    const transport = {
+      request,
+      requestNullable: vi.fn(),
+    } as unknown as CouponApiTransport;
     const signal = new AbortController().signal;
     const api = createCouponApi(transport);
 
@@ -35,39 +36,32 @@ describe("coupon API adapter", () => {
       coupons: [expect.objectContaining({ id: 3, discountValue: 10000 })],
     });
 
-    expect(transport.request).toHaveBeenCalledWith({
+    expect(request).toHaveBeenCalledWith({
       method: "GET",
       path: "/coupons",
       signal,
     });
-    expect((transport.request as jest.Mock).mock.calls[0][0]).not.toHaveProperty(
-      "body",
-    );
-    expect((transport.request as jest.Mock).mock.calls[0][0]).not.toHaveProperty(
-      "params",
-    );
+    expect(request.mock.calls[0][0]).not.toHaveProperty("body");
+    expect(request.mock.calls[0][0]).not.toHaveProperty("params");
   });
 
   it("preserves the coupon-issue POST contract with no body", async () => {
-    const transport: CouponApiTransport = {
-      request: jest.fn(),
-      requestNullable: jest.fn().mockResolvedValue(null),
-    };
+    const requestNullable = vi.fn().mockResolvedValue(null);
+    const transport = {
+      request: vi.fn(),
+      requestNullable,
+    } as unknown as CouponApiTransport;
     const signal = new AbortController().signal;
     const api = createCouponApi(transport);
 
     await expect(api.issue(3, { signal })).resolves.toBeUndefined();
 
-    expect(transport.requestNullable).toHaveBeenCalledWith({
+    expect(requestNullable).toHaveBeenCalledWith({
       method: "POST",
       path: "/coupons/3/issue",
       signal,
     });
-    expect(
-      (transport.requestNullable as jest.Mock).mock.calls[0][0],
-    ).not.toHaveProperty("body");
-    expect(
-      (transport.requestNullable as jest.Mock).mock.calls[0][0],
-    ).not.toHaveProperty("params");
+    expect(requestNullable.mock.calls[0][0]).not.toHaveProperty("body");
+    expect(requestNullable.mock.calls[0][0]).not.toHaveProperty("params");
   });
 });

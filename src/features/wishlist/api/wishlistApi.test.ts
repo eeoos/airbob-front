@@ -2,8 +2,8 @@ import type { ApiTransport } from "./transport";
 import { createWishlistApi } from "./wishlistApi";
 
 const createTransport = () => {
-  const request = jest.fn();
-  const requestNullable = jest.fn();
+  const request = vi.fn();
+  const requestNullable = vi.fn();
 
   return {
     transport: { request, requestNullable } as ApiTransport,

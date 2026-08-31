@@ -11,12 +11,12 @@ import {
   type PaymentGatewayPort,
 } from "./paymentGateway";
 
-jest.mock("../../../platform/config/publicRuntimeConfig", () => ({
-  requireTossClientKey: jest.fn(),
+vi.mock("../../../platform/config/publicRuntimeConfig", () => ({
+  requireTossClientKey: vi.fn(),
 }));
 
-jest.mock("../../../platform/integrations/tossPaymentsV2", () => ({
-  loadTossPaymentsV2Client: jest.fn(),
+vi.mock("../../../platform/integrations/tossPaymentsV2", () => ({
+  loadTossPaymentsV2Client: vi.fn(),
 }));
 
 const request = {
@@ -42,13 +42,13 @@ describe("Toss Payments v2 gateway", () => {
   let lease: PaymentGatewayLease;
 
   beforeEach(() => {
-    jest.mocked(loadTossPaymentsV2Client).mockReset();
-    jest.mocked(requireTossClientKey).mockReset();
-    jest.mocked(loadTossPaymentsV2Client).mockResolvedValue({
-      dispose: jest.fn().mockResolvedValue(undefined),
-      requestPayment: jest.fn().mockResolvedValue(undefined),
+    vi.mocked(loadTossPaymentsV2Client).mockReset();
+    vi.mocked(requireTossClientKey).mockReset();
+    vi.mocked(loadTossPaymentsV2Client).mockResolvedValue({
+      dispose: vi.fn().mockResolvedValue(undefined),
+      requestPayment: vi.fn().mockResolvedValue(undefined),
     });
-    jest.mocked(requireTossClientKey).mockReturnValue("test_ck_public");
+    vi.mocked(requireTossClientKey).mockReturnValue("test_ck_public");
     lease = createTossPaymentsV2GatewayLease();
     gateway = lease.gateway;
   });
@@ -57,15 +57,15 @@ describe("Toss Payments v2 gateway", () => {
     await expect(gateway.prepare()).resolves.toBeUndefined();
 
     expect(loadTossPaymentsV2Client).toHaveBeenCalledWith("test_ck_public");
-    const client = await jest.mocked(loadTossPaymentsV2Client).mock.results[0]
+    const client = await vi.mocked(loadTossPaymentsV2Client).mock.results[0]
       .value;
     expect(client.requestPayment).not.toHaveBeenCalled();
   });
 
   it("forwards the exact current gateway request contract", async () => {
-    const requestPayment = jest.fn().mockResolvedValue(undefined);
-    jest.mocked(loadTossPaymentsV2Client).mockResolvedValue({
-      dispose: jest.fn().mockResolvedValue(undefined),
+    const requestPayment = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(loadTossPaymentsV2Client).mockResolvedValue({
+      dispose: vi.fn().mockResolvedValue(undefined),
       requestPayment,
     });
 
@@ -87,9 +87,9 @@ describe("Toss Payments v2 gateway", () => {
   ] as const)(
     "normalizes provider failures without exposing their object",
     async (providerError, kind, silent) => {
-      jest.mocked(loadTossPaymentsV2Client).mockResolvedValue({
-        dispose: jest.fn().mockResolvedValue(undefined),
-        requestPayment: jest.fn().mockRejectedValue(providerError),
+      vi.mocked(loadTossPaymentsV2Client).mockResolvedValue({
+        dispose: vi.fn().mockResolvedValue(undefined),
+        requestPayment: vi.fn().mockRejectedValue(providerError),
       });
 
       await expect(
@@ -99,7 +99,7 @@ describe("Toss Payments v2 gateway", () => {
   );
 
   it("keeps an SDK load failure recoverable", async () => {
-    jest.mocked(loadTossPaymentsV2Client).mockRejectedValue(
+    vi.mocked(loadTossPaymentsV2Client).mockRejectedValue(
       new IntegrationError({
         code: "INTEGRATION_LOAD_FAILED",
         integration: "toss-payments-v2",
@@ -117,7 +117,7 @@ describe("Toss Payments v2 gateway", () => {
   });
 
   it("maps missing public configuration to a safe terminal error", async () => {
-    jest
+    vi
       .mocked(requireTossClientKey)
       .mockImplementation(() => {
         throw new ConfigError("missing", "REACT_APP_TOSS_CLIENT_KEY");
@@ -134,17 +134,17 @@ describe("Toss Payments v2 gateway", () => {
   });
 
   it("releases its route-owned client and can prepare a new one", async () => {
-    const firstDispose = jest.fn().mockResolvedValue(undefined);
-    const secondDispose = jest.fn().mockResolvedValue(undefined);
-    jest
+    const firstDispose = vi.fn().mockResolvedValue(undefined);
+    const secondDispose = vi.fn().mockResolvedValue(undefined);
+    vi
       .mocked(loadTossPaymentsV2Client)
       .mockResolvedValueOnce({
         dispose: firstDispose,
-        requestPayment: jest.fn().mockResolvedValue(undefined),
+        requestPayment: vi.fn().mockResolvedValue(undefined),
       })
       .mockResolvedValueOnce({
         dispose: secondDispose,
-        requestPayment: jest.fn().mockResolvedValue(undefined),
+        requestPayment: vi.fn().mockResolvedValue(undefined),
       });
 
     await gateway.prepare();
@@ -160,16 +160,16 @@ describe("Toss Payments v2 gateway", () => {
 
   it("retires only the old generation when disposed during a pending load", async () => {
     const firstClient = {
-      dispose: jest.fn().mockResolvedValue(undefined),
-      requestPayment: jest.fn().mockResolvedValue(undefined),
+      dispose: vi.fn().mockResolvedValue(undefined),
+      requestPayment: vi.fn().mockResolvedValue(undefined),
     };
     const secondClient = {
-      dispose: jest.fn().mockResolvedValue(undefined),
-      requestPayment: jest.fn().mockResolvedValue(undefined),
+      dispose: vi.fn().mockResolvedValue(undefined),
+      requestPayment: vi.fn().mockResolvedValue(undefined),
     };
     const firstLoad = deferred<typeof firstClient>();
     const secondLoad = deferred<typeof secondClient>();
-    jest
+    vi
       .mocked(loadTossPaymentsV2Client)
       .mockReturnValueOnce(firstLoad.promise)
       .mockReturnValueOnce(secondLoad.promise);
@@ -197,7 +197,7 @@ describe("Toss Payments v2 gateway", () => {
   });
 
   it("releases a failed client load so prepare can retry", async () => {
-    jest
+    vi
       .mocked(loadTossPaymentsV2Client)
       .mockRejectedValueOnce(
         new IntegrationError({
@@ -208,8 +208,8 @@ describe("Toss Payments v2 gateway", () => {
         }),
       )
       .mockResolvedValueOnce({
-        dispose: jest.fn().mockResolvedValue(undefined),
-        requestPayment: jest.fn().mockResolvedValue(undefined),
+        dispose: vi.fn().mockResolvedValue(undefined),
+        requestPayment: vi.fn().mockResolvedValue(undefined),
       });
 
     await expect(gateway.prepare()).rejects.toMatchObject({

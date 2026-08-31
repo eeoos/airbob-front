@@ -1,3 +1,4 @@
+import type { Mocked } from "vitest";
 import { act, render, renderHook, screen } from "@testing-library/react";
 import type { ComponentType, ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
@@ -10,15 +11,15 @@ import { toSessionSubject } from "../session/sessionState";
 import { useSession } from "../session/useSession";
 import { AppProviders, AuthIntentStableBoundary } from "./AppProviders";
 
-jest.mock("../session/useSession", () => ({
-  useSession: jest.fn(),
+vi.mock("../session/useSession", () => ({
+  useSession: vi.fn(),
 }));
 
-jest.mock("../../features/auth/api/authApi", () => ({
-  authApi: { signup: jest.fn() },
+vi.mock("../../features/auth/api/authApi", () => ({
+  authApi: { signup: vi.fn() },
 }));
 
-jest.mock("../session/SessionProvider", () => ({
+vi.mock("../session/SessionProvider", () => ({
   SessionProvider: ({
     children,
     stableBoundary: StableBoundary,
@@ -33,9 +34,9 @@ jest.mock("../session/SessionProvider", () => ({
     ),
 }));
 
-const mockUseSession = jest.mocked(useSession);
+const mockUseSession = vi.mocked(useSession);
 
-const createAnonymousSession = (): jest.Mocked<SessionContextValue> =>
+const createAnonymousSession = (): Mocked<SessionContextValue> =>
   ({
     state: {
       status: "anonymous",
@@ -44,19 +45,19 @@ const createAnonymousSession = (): jest.Mocked<SessionContextValue> =>
       operationId: 0,
       epoch: 0,
     },
-    login: jest.fn().mockResolvedValue(undefined),
-    logout: jest.fn().mockResolvedValue(undefined),
-    revalidate: jest.fn().mockResolvedValue(undefined),
-    retryServerLogout: jest.fn().mockResolvedValue(undefined),
-    captureAuthenticatedSession: jest.fn().mockReturnValue(null),
-    isCurrentSession: jest.fn().mockReturnValue(false),
-  }) as jest.Mocked<SessionContextValue>;
+    login: vi.fn().mockResolvedValue(undefined),
+    logout: vi.fn().mockResolvedValue(undefined),
+    revalidate: vi.fn().mockResolvedValue(undefined),
+    retryServerLogout: vi.fn().mockResolvedValue(undefined),
+    captureAuthenticatedSession: vi.fn().mockReturnValue(null),
+    isCurrentSession: vi.fn().mockReturnValue(false),
+  }) as Mocked<SessionContextValue>;
 
 describe("AppProviders", () => {
   beforeEach(() => {
     mockUseSession.mockReset();
     mockUseSession.mockReturnValue(createAnonymousSession());
-    jest.mocked(authApi.signup).mockReset().mockResolvedValue(undefined);
+    vi.mocked(authApi.signup).mockReset().mockResolvedValue(undefined);
   });
 
   it("owns the canonical production portal for dialogs and toasts", () => {
@@ -64,10 +65,10 @@ describe("AppProviders", () => {
       <MemoryRouter>
         <AppProviders>
           <main data-testid="app-content">
-            <Dialog isOpen title="프로덕션 대화상자" onClose={jest.fn()}>
+            <Dialog isOpen title="프로덕션 대화상자" onClose={vi.fn()}>
               dialog content
             </Dialog>
-            <ToastHost message="프로덕션 알림" onClose={jest.fn()} />
+            <ToastHost message="프로덕션 알림" onClose={vi.fn()} />
           </main>
         </AppProviders>
       </MemoryRouter>,

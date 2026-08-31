@@ -11,9 +11,9 @@ baseline, and how a migrated slice becomes strict without a suppression wall.
 | Import direction, resolvability, production-to-test/dev edges, module/folder cycles | dependency-cruiser | `src/app`, `screens`, `workflows`, `platform`, `shared`, plus features registered as migrated | Legacy cycles remain warnings. Every feature-to-peer production import is an error. |
 | Production reachability, unused files/exports/dependencies | Knip | The same target/migrated surface through a result preprocessor | Full production report is non-blocking and contains no per-file ignore list. |
 | CSS syntax and design references | Stylelint | Target/migrated CSS plus the already-clean shell/modal files named in config | Legacy design/syntax debt is warning-only; breakpoint and suppression invariants remain global errors. |
-| CSS interaction/token invariants not expressible by the pinned Stylelint line | Focused Jest contracts using the central style policy | Target/migrated CSS plus the named high-risk pre-redesign set | No duplicated raw-color, `!important`, or import scanner remains. |
+| CSS interaction/token invariants not expressible by the pinned Stylelint line | Focused Vitest contracts using the central style policy | Target/migrated CSS plus the named high-risk pre-redesign set | No duplicated raw-color, `!important`, or import scanner remains. |
 | Local TypeScript/JavaScript feedback | ESLint | Existing strict source gate and architecture-tool scripts, including CRA-resolved `.mjs` modules | None for files in strict scope. |
-| Runtime behavior | Jest and deterministic Playwright | Current behavior and migrated flows | Target behavior is never counted through skips. |
+| Runtime behavior | Vitest and deterministic Playwright | Current behavior and migrated flows | Target behavior is never counted through skips. |
 
 `architecture-ratchet.json` is the single changed-surface registry. A feature
 may be added to `migratedFeatures` only in the same atomic cutover that leaves
@@ -136,7 +136,7 @@ files. The agreed breakpoint scale is a pre-existing global invariant, so an
 off-scale media value is an error even in otherwise warning-only legacy CSS.
 
 Stylelint does not yet own the focused transition-all, raw z-index,
-focus-visible pairing, or token-equivalent spacing/font checks. Their Jest
+focus-visible pairing, or token-equivalent spacing/font checks. Their Vitest
 contracts consume the same `isStrictStylePath` policy, so registering a feature
 also makes those checks blocking. U15/U23 may move them into a supported lint
 rule only after equivalent failing fixtures exist.

@@ -28,7 +28,7 @@ const reservationWire: ReviewableReservationWire = {
 
 describe("reviewable reservation API adapter", () => {
   it("preserves the guest-detail endpoint and signal while mapping only review fields", async () => {
-    const transport = jest.fn().mockResolvedValue(reservationWire);
+    const transport = vi.fn().mockResolvedValue(reservationWire);
     const api = createReviewableReservationApi(
       transport as ReviewableReservationApiTransport,
     );
@@ -65,7 +65,7 @@ describe("reviewable reservation API adapter", () => {
   });
 
   it("rejects an encoded separator before transport", async () => {
-    const transport = jest.fn();
+    const transport = vi.fn();
     const api = createReviewableReservationApi(
       transport as ReviewableReservationApiTransport,
     );

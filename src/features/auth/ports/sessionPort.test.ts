@@ -6,17 +6,17 @@ import {
   sessionAuthPort,
 } from "./sessionPort";
 
-jest.mock("../api/authApi", () => ({
+vi.mock("../api/authApi", () => ({
   authApi: {
-    getViewer: jest.fn(),
-    login: jest.fn(),
-    logout: jest.fn(),
+    getViewer: vi.fn(),
+    login: vi.fn(),
+    logout: vi.fn(),
   },
 }));
 
 describe("sessionAuthPort", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("forwards the caller AbortSignal to every session endpoint", async () => {
@@ -25,14 +25,14 @@ describe("sessionAuthPort", () => {
       email: "member@example.invalid",
       password: "synthetic-password",
     };
-    jest.mocked(authApi.getViewer).mockResolvedValue({
+    vi.mocked(authApi.getViewer).mockResolvedValue({
       id: 1,
       email: credentials.email,
       nickname: "Member",
       thumbnailImageUrl: null,
     });
-    jest.mocked(authApi.login).mockResolvedValue();
-    jest.mocked(authApi.logout).mockResolvedValue();
+    vi.mocked(authApi.login).mockResolvedValue();
+    vi.mocked(authApi.logout).mockResolvedValue();
 
     await sessionAuthPort.getViewer(controller.signal);
     await sessionAuthPort.login(credentials, controller.signal);

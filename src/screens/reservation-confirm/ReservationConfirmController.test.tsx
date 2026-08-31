@@ -7,9 +7,9 @@ import type {
 } from "../../workflows/booking-payment/checkout";
 import { ReservationConfirmController } from "./ReservationConfirmController";
 
-const mockUseAccommodationDetailReadQuery = jest.fn();
+const mockUseAccommodationDetailReadQuery = vi.fn();
 
-jest.mock("../../features/accommodations/detail/public", () => ({
+vi.mock("../../features/accommodations/detail/public", () => ({
   useAccommodationDetailReadQuery: (...args: unknown[]) =>
     mockUseAccommodationDetailReadQuery(...args),
 }));
@@ -61,8 +61,8 @@ describe("ReservationConfirmController", () => {
   it("keeps an accepted gateway request locked when only the session facade identity changes", async () => {
     const pendingRequest = deferred<void>();
     const gateway: PaymentGatewayPort = {
-      prepare: jest.fn().mockResolvedValue(undefined),
-      requestPayment: jest.fn().mockReturnValue(pendingRequest.promise),
+      prepare: vi.fn().mockResolvedValue(undefined),
+      requestPayment: vi.fn().mockReturnValue(pendingRequest.promise),
     };
     const routeLease = { isCurrent: () => true };
     const sessionMethods = {

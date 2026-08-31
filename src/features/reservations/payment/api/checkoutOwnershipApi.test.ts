@@ -27,7 +27,7 @@ const ownershipWire: CheckoutOwnershipWire = {
 
 describe("checkout ownership API adapter", () => {
   it("preserves the guest-detail endpoint and maps only checkout ownership fields", async () => {
-    const request = jest.fn().mockResolvedValue(ownershipWire);
+    const request = vi.fn().mockResolvedValue(ownershipWire);
     const api = createCheckoutOwnershipApi(
       request as CheckoutOwnershipApiTransport,
     );
@@ -58,7 +58,7 @@ describe("checkout ownership API adapter", () => {
   });
 
   it("accepts the guest-detail contract before a payment exists", async () => {
-    const request = jest.fn().mockResolvedValue({
+    const request = vi.fn().mockResolvedValue({
       ...ownershipWire,
       payment: null,
     });
@@ -80,7 +80,7 @@ describe("checkout ownership API adapter", () => {
   });
 
   it("rejects a dot-segment UID before credentialed transport", async () => {
-    const request = jest.fn();
+    const request = vi.fn();
     const api = createCheckoutOwnershipApi(
       request as CheckoutOwnershipApiTransport,
     );

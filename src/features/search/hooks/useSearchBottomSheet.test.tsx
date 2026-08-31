@@ -3,16 +3,18 @@ import userEvent from "@testing-library/user-event";
 import { animate, PanInfo } from "framer-motion";
 import { useSearchBottomSheet } from "./useSearchBottomSheet";
 
-jest.mock("framer-motion", () => {
-  const actual = jest.requireActual("framer-motion");
+vi.mock("framer-motion", async () => {
+  const actual = await vi.importActual<typeof import("framer-motion")>(
+    "framer-motion",
+  );
 
   return {
     ...actual,
-    animate: jest.fn(() => ({ stop: jest.fn() })),
+    animate: vi.fn(() => ({ stop: vi.fn() })),
   };
 });
 
-const mockAnimate = jest.mocked(animate);
+const mockAnimate = vi.mocked(animate);
 
 type MediaQueryChangeListener = (event: MediaQueryListEvent) => void;
 
@@ -40,7 +42,7 @@ const matchesMediaQuery = (query: string, width: number) => {
 const installMatchMedia = () => {
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
-    value: jest.fn((query: string): MediaQueryList => {
+    value: vi.fn((query: string): MediaQueryList => {
       const record = {
         media: query,
         matches: matchesMediaQuery(query, window.innerWidth),
@@ -137,7 +139,7 @@ describe("useSearchBottomSheet", () => {
     prefersReducedMotion = false;
     mockAnimate.mockClear();
     mockAnimate.mockReturnValue({
-      stop: jest.fn(),
+      stop: vi.fn(),
     } as unknown as ReturnType<typeof animate>);
     installMatchMedia();
     resizeWindow(390);
@@ -262,7 +264,7 @@ describe("useSearchBottomSheet", () => {
   it("moves between all snap states with the keyboard contract", () => {
     const { result } = renderHook(() => useSearchBottomSheet());
     const press = (key: string) => {
-      const preventDefault = jest.fn();
+      const preventDefault = vi.fn();
 
       act(() => {
         result.current.handleBottomSheetKeyDown({

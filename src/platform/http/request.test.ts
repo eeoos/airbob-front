@@ -38,7 +38,7 @@ describe("platform API request", () => {
 
   afterEach(() => {
     httpClient.defaults.adapter = originalAdapter;
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it("sends a plain request contract and unwraps a successful envelope", async () => {
@@ -96,7 +96,7 @@ describe("platform API request", () => {
   });
 
   it("maps Axios upload bytes to the public integer progress contract", async () => {
-    const onUploadProgress = jest.fn();
+    const onUploadProgress = vi.fn();
     const adapter: AxiosAdapter = async (config) => {
       config.onUploadProgress?.({ loaded: 1, total: 3 } as never);
       config.onUploadProgress?.({ loaded: 2 } as never);
@@ -179,7 +179,7 @@ describe("platform API request", () => {
   });
 
   it("publishes an authentication envelope once for a global request", async () => {
-    const listener = jest.fn();
+    const listener = vi.fn();
     const unsubscribe = onAuthError(listener);
     const adapter: AxiosAdapter = async (config) =>
       response(config, {
@@ -203,7 +203,7 @@ describe("platform API request", () => {
   });
 
   it("suppresses session-owned auth signaling without leaking policy onto the wire", async () => {
-    const listener = jest.fn();
+    const listener = vi.fn();
     const unsubscribe = onAuthError(listener);
     const body = { email: "guest@example.com", password: "password" };
     const adapter: AxiosAdapter = async (config) => {
@@ -250,7 +250,7 @@ describe("platform API request", () => {
   ])(
     "suppresses the global auth signal for a session-owned %s transport rejection",
     async (_case, status, data) => {
-      const listener = jest.fn();
+      const listener = vi.fn();
       const unsubscribe = onAuthError(listener);
       const adapter: AxiosAdapter = async (config) => {
         throw new AxiosError(

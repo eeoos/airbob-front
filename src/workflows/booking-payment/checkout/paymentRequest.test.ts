@@ -43,13 +43,13 @@ const deferred = <T,>() => {
 const setup = (gatewayOverrides: Partial<PaymentGatewayPort> = {}) => {
   let currentScope: AuthenticatedSessionScope | null = scopeA;
   const gateway: PaymentGatewayPort = {
-    prepare: jest.fn().mockResolvedValue(undefined),
-    requestPayment: jest.fn().mockResolvedValue(undefined),
+    prepare: vi.fn().mockResolvedValue(undefined),
+    requestPayment: vi.fn().mockResolvedValue(undefined),
     ...gatewayOverrides,
   };
   const session = {
-    captureAuthenticatedSession: jest.fn(() => currentScope),
-    isCurrentSession: jest.fn(
+    captureAuthenticatedSession: vi.fn(() => currentScope),
+    isCurrentSession: vi.fn(
       (scope: AuthenticatedSessionScope) =>
         currentScope?.subject === scope.subject &&
         currentScope.epoch === scope.epoch,
@@ -97,7 +97,7 @@ describe("payment request workflow", () => {
 
   it("shares one active request Promise and terminal-locks an accepted request", async () => {
     const pending = deferred<void>();
-    const requestPayment = jest.fn().mockReturnValue(pending.promise);
+    const requestPayment = vi.fn().mockReturnValue(pending.promise);
     const { workflow } = setup({ requestPayment });
 
     const first = workflow.request(command());
@@ -123,7 +123,7 @@ describe("payment request workflow", () => {
         silent: kind === "cancelled",
       });
       const { workflow } = setup({
-        requestPayment: jest
+        requestPayment: vi
           .fn()
           .mockRejectedValueOnce(error)
           .mockResolvedValueOnce(undefined),
@@ -145,7 +145,7 @@ describe("payment request workflow", () => {
       message: "safe",
     });
     const { workflow } = setup({
-      requestPayment: jest.fn().mockRejectedValue(error),
+      requestPayment: vi.fn().mockRejectedValue(error),
     });
 
     await expect(workflow.request(command())).resolves.toEqual({
@@ -161,7 +161,7 @@ describe("payment request workflow", () => {
   it("ignores a late gateway result after the session changes", async () => {
     const pending = deferred<void>();
     const { setScope, workflow } = setup({
-      requestPayment: jest.fn().mockReturnValue(pending.promise),
+      requestPayment: vi.fn().mockReturnValue(pending.promise),
     });
     const result = workflow.request(command());
     await Promise.resolve();
@@ -174,7 +174,7 @@ describe("payment request workflow", () => {
   it("disposes without allowing a late result to publish", async () => {
     const pending = deferred<void>();
     const { workflow } = setup({
-      requestPayment: jest.fn().mockReturnValue(pending.promise),
+      requestPayment: vi.fn().mockReturnValue(pending.promise),
     });
     const result = workflow.request(command());
     await Promise.resolve();

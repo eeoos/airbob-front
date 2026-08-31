@@ -30,7 +30,7 @@ const wirePage: HostListingPageWire = {
 
 describe("host listings API adapter", () => {
   it("preserves the first-page method, path, size/status query, signal and wire mapping", async () => {
-    const transport = jest.fn().mockResolvedValue(wirePage);
+    const transport = vi.fn().mockResolvedValue(wirePage);
     const api = createHostListingsApi(transport as HostListingsApiTransport);
     const signal = new AbortController().signal;
 
@@ -73,7 +73,7 @@ describe("host listings API adapter", () => {
   });
 
   it("forwards an exact cursor without changing the selected status", async () => {
-    const transport = jest.fn().mockResolvedValue({
+    const transport = vi.fn().mockResolvedValue({
       accommodations: [],
       page_info: { current_size: 0, has_next: false, next_cursor: null },
     } satisfies HostListingPageWire);

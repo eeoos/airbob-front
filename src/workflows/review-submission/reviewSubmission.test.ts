@@ -1,3 +1,4 @@
+import type { Mocked } from "vitest";
 import { waitFor } from "@testing-library/react";
 import type { ReviewSubmissionApiPort } from "../../features/reviews/public";
 import type {
@@ -34,11 +35,11 @@ const createHarness = () => {
   let isRouteCurrent = true;
   let isSessionCurrent = true;
   let capturedScope: AuthenticatedSessionScope | null = scope;
-  const api: jest.Mocked<ReviewSubmissionApiPort> = {
-    createReview: jest.fn(),
-    uploadReviewImages: jest.fn(),
+  const api: Mocked<ReviewSubmissionApiPort> = {
+    createReview: vi.fn(),
+    uploadReviewImages: vi.fn(),
   };
-  const publishReviewCreated = jest.fn().mockResolvedValue(undefined);
+  const publishReviewCreated = vi.fn().mockResolvedValue(undefined);
   const workflow = createReviewSubmissionWorkflow({
     api,
     publication: { publishReviewCreated },

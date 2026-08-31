@@ -27,8 +27,8 @@ describe("map expand control helper", () => {
   });
 
   it("creates a map expand button that calls the toggle handler without bubbling", () => {
-    const onToggle = jest.fn();
-    const onContainerClick = jest.fn();
+    const onToggle = vi.fn();
+    const onContainerClick = vi.fn();
     container.addEventListener("click", onContainerClick);
 
     const view = renderMapExpandControl({
@@ -47,7 +47,7 @@ describe("map expand control helper", () => {
   });
 
   it("updates the existing button instead of appending duplicates", () => {
-    const onToggle = jest.fn();
+    const onToggle = vi.fn();
     const view = renderMapExpandControl({
       container,
       isExpanded: false,
@@ -79,7 +79,7 @@ describe("map expand control helper", () => {
     const view = renderMapExpandControl({
       container,
       isExpanded: false,
-      onToggle: jest.fn(),
+      onToggle: vi.fn(),
     });
 
     expect(removeMapExpandControl(container)).toBe(true);

@@ -107,7 +107,7 @@ describe("createLegacyBookingPaymentStorage", () => {
       keep: "keep",
     });
     const originalRemove = storage.removeItem.bind(storage);
-    jest.spyOn(storage, "removeItem").mockImplementation((key) => {
+    vi.spyOn(storage, "removeItem").mockImplementation((key) => {
       if (key.includes("checkout-index")) throw new Error("blocked");
       originalRemove(key);
     });
@@ -123,7 +123,7 @@ describe("createLegacyBookingPaymentStorage", () => {
 
   it("returns redacted typed storage errors", () => {
     const storage = createStorage();
-    jest.spyOn(storage, "getItem").mockImplementation(() => {
+    vi.spyOn(storage, "getItem").mockImplementation(() => {
       throw new Error("raw checkout secret");
     });
     const { repository } = createRepository(storage);

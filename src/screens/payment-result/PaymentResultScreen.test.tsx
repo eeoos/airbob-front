@@ -14,8 +14,8 @@ describe("PaymentResultScreen", () => {
   });
 
   it("renders the failure state and delegates navigation actions", () => {
-    const onOpenProfile = jest.fn();
-    const onOpenReservation = jest.fn();
+    const onOpenProfile = vi.fn();
+    const onOpenReservation = vi.fn();
 
     render(
       <PaymentResultScreen
@@ -33,7 +33,7 @@ describe("PaymentResultScreen", () => {
   });
 
   it("renders a retryable status message and delegates reconciliation", () => {
-    const onReconcile = jest.fn();
+    const onReconcile = vi.fn();
 
     render(
       <PaymentResultScreen

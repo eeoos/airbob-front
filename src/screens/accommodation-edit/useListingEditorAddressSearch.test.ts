@@ -25,15 +25,15 @@ describe("useListingEditorAddressSearch", () => {
   it("applies only the latest address search completion", async () => {
     const first = deferred<typeof address>();
     const second = deferred<typeof address>();
-    const search = jest
+    const search = vi
       .fn()
       .mockReturnValueOnce(first.promise)
       .mockReturnValueOnce(second.promise);
-    const onAddressSelected = jest.fn();
+    const onAddressSelected = vi.fn();
     const { result } = renderHook(() =>
       useListingEditorAddressSearch({
         onAddressSelected,
-        onError: jest.fn(),
+        onError: vi.fn(),
         port: { search },
       }),
     );
@@ -57,10 +57,10 @@ describe("useListingEditorAddressSearch", () => {
 
   it("suppresses a failed search after unmount", async () => {
     const pending = deferred<typeof address>();
-    const onError = jest.fn();
+    const onError = vi.fn();
     const { result, unmount } = renderHook(() =>
       useListingEditorAddressSearch({
-        onAddressSelected: jest.fn(),
+        onAddressSelected: vi.fn(),
         onError,
         port: { search: () => pending.promise },
       }),

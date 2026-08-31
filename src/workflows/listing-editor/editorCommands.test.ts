@@ -1,3 +1,4 @@
+import type { Mocked } from "vitest";
 import { QueryClient } from "@tanstack/react-query";
 import type {
   ListingEditorAccommodation,
@@ -104,12 +105,12 @@ const emptyDataError = () =>
     message: "empty",
   });
 
-const createApi = (): jest.Mocked<ListingEditorApiPort> => ({
-  deleteImage: jest.fn().mockResolvedValue(undefined),
-  getHostDetail: jest.fn().mockResolvedValue(accommodation),
-  publish: jest.fn().mockResolvedValue(undefined),
-  update: jest.fn().mockResolvedValue(undefined),
-  uploadImages: jest.fn().mockResolvedValue([]),
+const createApi = (): Mocked<ListingEditorApiPort> => ({
+  deleteImage: vi.fn().mockResolvedValue(undefined),
+  getHostDetail: vi.fn().mockResolvedValue(accommodation),
+  publish: vi.fn().mockResolvedValue(undefined),
+  update: vi.fn().mockResolvedValue(undefined),
+  uploadImages: vi.fn().mockResolvedValue([]),
 });
 
 const createHarness = () => {
@@ -117,18 +118,18 @@ const createHarness = () => {
   let sessionCurrent = true;
   let sessionScope = scope;
   const api = createApi();
-  const query: jest.Mocked<ListingEditorQueryPort> = {
-    getHostDetail: jest.fn((accommodationId, options) =>
+  const query: Mocked<ListingEditorQueryPort> = {
+    getHostDetail: vi.fn((accommodationId, options) =>
       api.getHostDetail(accommodationId, { signal: options.signal }),
     ),
-    projectHostDetail: jest.fn(),
-    setHostDetail: jest.fn(),
+    projectHostDetail: vi.fn(),
+    setHostDetail: vi.fn(),
   };
-  const publication: jest.Mocked<ListingEditorPublicationPort> = {
-    publishEditorChanged: jest.fn().mockResolvedValue(undefined),
+  const publication: Mocked<ListingEditorPublicationPort> = {
+    publishEditorChanged: vi.fn().mockResolvedValue(undefined),
   };
-  const continuation: jest.Mocked<ListingEditorContinuationPort> = {
-    complete: jest.fn().mockResolvedValue(undefined),
+  const continuation: Mocked<ListingEditorContinuationPort> = {
+    complete: vi.fn().mockResolvedValue(undefined),
   };
   const routeLease: ListingEditorRouteLease = {
     isCurrent: () => routeCurrent,
@@ -175,11 +176,11 @@ const createQueryBackedHarness = () => {
     defaultOptions: { queries: { gcTime: Infinity, retry: false } },
   });
   const query = createListingEditorQueryPort(queryClient, api);
-  const publication: jest.Mocked<ListingEditorPublicationPort> = {
-    publishEditorChanged: jest.fn().mockResolvedValue(undefined),
+  const publication: Mocked<ListingEditorPublicationPort> = {
+    publishEditorChanged: vi.fn().mockResolvedValue(undefined),
   };
-  const continuation: jest.Mocked<ListingEditorContinuationPort> = {
-    complete: jest.fn().mockResolvedValue(undefined),
+  const continuation: Mocked<ListingEditorContinuationPort> = {
+    complete: vi.fn().mockResolvedValue(undefined),
   };
   const workflow = createListingEditorWorkflow({
     accommodationId: 31,
@@ -440,7 +441,7 @@ describe("createListingEditorWorkflow", () => {
         listingEditorQueryKeys.detail(scope, 31),
       ),
     ).toMatchObject(concurrentDetail);
-    const projectionSpy = jest.spyOn(harness.query, "projectHostDetail");
+    const projectionSpy = vi.spyOn(harness.query, "projectHostDetail");
 
     const file = new File(["image"], "room.png", { type: "image/png" });
     harness.api.uploadImages.mockResolvedValueOnce([
@@ -833,7 +834,7 @@ describe("createListingEditorWorkflow", () => {
     const harness = createHarness();
     await harness.workflow.hydrate();
     const file = new File(["image"], "room.png", { type: "image/png" });
-    const onUploadProgress = jest.fn();
+    const onUploadProgress = vi.fn();
     harness.api.uploadImages.mockResolvedValueOnce([
       { id: 401, imageUrl: "/uploaded.jpg" },
     ]);
@@ -878,7 +879,7 @@ describe("createListingEditorWorkflow", () => {
     await expect(
       harness.workflow.execute({
         intent: "advance",
-        onUploadProgress: jest.fn(),
+        onUploadProgress: vi.fn(),
         pendingFiles: [file],
         update: {},
       }),

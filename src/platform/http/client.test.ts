@@ -18,7 +18,7 @@ const successfulResponse = (
 });
 
 describe("platform HTTP client", () => {
-  it("constructs the singleton with the actual browser Axios factory in Jest", () => {
+  it("constructs the singleton with the actual browser Axios factory in Vitest", () => {
     expect(typeof axios).toBe("function");
     expect(typeof axios.create).toBe("function");
     expect(typeof axios.VERSION).toBe("string");
@@ -68,8 +68,8 @@ describe("platform HTTP client", () => {
   });
 
   it("publishes raw 401 and M004 failures while preserving their identity", async () => {
-    jest.useFakeTimers();
-    const listener = jest.fn();
+    vi.useFakeTimers();
+    const listener = vi.fn();
     const unsubscribe = onAuthError(listener);
     const failures = [
       {
@@ -98,14 +98,14 @@ describe("platform HTTP client", () => {
         }
 
         expect(thrownError).toBe(failure);
-        jest.advanceTimersByTime(1000);
+        vi.advanceTimersByTime(1000);
       }
 
       expect(listener).toHaveBeenCalledTimes(2);
     } finally {
       unsubscribe();
-      jest.runOnlyPendingTimers();
-      jest.useRealTimers();
+      vi.runOnlyPendingTimers();
+      vi.useRealTimers();
     }
   });
 
@@ -115,8 +115,8 @@ describe("platform HTTP client", () => {
   ])(
     "does not publish an auth event for M004 outside a failure envelope (%p)",
     async (data) => {
-      jest.useFakeTimers();
-      const listener = jest.fn();
+      vi.useFakeTimers();
+      const listener = vi.fn();
       const unsubscribe = onAuthError(listener);
       const failure = {
         isAxiosError: true,
@@ -138,8 +138,8 @@ describe("platform HTTP client", () => {
         expect(listener).not.toHaveBeenCalled();
       } finally {
         unsubscribe();
-        jest.runOnlyPendingTimers();
-        jest.useRealTimers();
+        vi.runOnlyPendingTimers();
+        vi.useRealTimers();
       }
     },
   );

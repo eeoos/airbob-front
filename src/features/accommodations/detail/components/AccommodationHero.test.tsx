@@ -60,10 +60,10 @@ const renderHero = (
       resolveImageUrl,
     ),
     mobileSlideIndex: 0,
-    onMobileSlideIndexChange: jest.fn(),
-    onOpenGallery: jest.fn(),
-    onSave: jest.fn(),
-    onShare: jest.fn(),
+    onMobileSlideIndexChange: vi.fn(),
+    onOpenGallery: vi.fn(),
+    onSave: vi.fn(),
+    onShare: vi.fn(),
     ...overrides,
   };
 
@@ -93,8 +93,8 @@ describe("AccommodationHero", () => {
   });
 
   it("runs the save and share actions", () => {
-    const onSave = jest.fn();
-    const onShare = jest.fn();
+    const onSave = vi.fn();
+    const onShare = vi.fn();
     renderHero({ onSave, onShare });
 
     fireEvent.click(screen.getByRole("button", { name: /저장/ }));
@@ -105,7 +105,7 @@ describe("AccommodationHero", () => {
   });
 
   it("opens the gallery from named desktop thumbnail buttons", () => {
-    const onOpenGallery = jest.fn();
+    const onOpenGallery = vi.fn();
     renderHero({ onOpenGallery });
 
     fireEvent.click(
@@ -118,7 +118,7 @@ describe("AccommodationHero", () => {
   });
 
   it("opens the full gallery from a single named overlay thumbnail button", () => {
-    const onOpenGallery = jest.fn();
+    const onOpenGallery = vi.fn();
     renderHero({ onOpenGallery });
 
     const viewAllButton = screen.getByRole("button", {
@@ -137,7 +137,7 @@ describe("AccommodationHero", () => {
   });
 
   it("opens the gallery from semantic main and mobile image triggers", () => {
-    const onOpenGallery = jest.fn();
+    const onOpenGallery = vi.fn();
     renderHero({ mobileSlideIndex: 2, onOpenGallery });
 
     fireEvent.click(
@@ -156,8 +156,8 @@ describe("AccommodationHero", () => {
   });
 
   it("changes mobile pagination without opening the gallery", () => {
-    const onMobileSlideIndexChange = jest.fn();
-    const onOpenGallery = jest.fn();
+    const onMobileSlideIndexChange = vi.fn();
+    const onOpenGallery = vi.fn();
     renderHero({
       detailView: toAccommodationDetailViewModel(
         {

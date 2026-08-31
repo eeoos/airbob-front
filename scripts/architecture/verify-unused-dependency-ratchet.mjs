@@ -24,10 +24,10 @@ const canonicalKnipConfig = Object.freeze({
   $schema: "./node_modules/knip/schema.json",
   entry: Object.freeze([
     "src/index.tsx!",
-    "src/setupTests.{js,jsx,mjs,ts,tsx}",
     "src/test/**/*.{js,jsx,mjs,ts,tsx}",
     "src/**/*.{test,spec}.{js,jsx,mjs,ts,tsx}",
     "vite.config.mjs",
+    "vitest.config.mjs",
     "playwright.config.ts",
     "scripts/**/*.{cjs,mjs}",
     "tests/e2e/specs/**/*.spec.ts",
@@ -41,9 +41,9 @@ const canonicalKnipConfig = Object.freeze({
     "!src/**/__tests__/**/*.{js,jsx,mjs,ts,tsx}!",
     "!src/**/__mocks__/**/*.{js,jsx,mjs,ts,tsx}!",
     "!src/**/*.{test,spec}.{js,jsx,mjs,ts,tsx}!",
-    "!src/setupTests.{js,jsx,mjs,ts,tsx}!",
     "!src/test/**/*.{js,jsx,mjs,ts,tsx}!",
     "vite.config.mjs",
+    "vitest.config.mjs",
     "playwright.config.ts",
     "scripts/**/*.{cjs,mjs}",
     "tests/**/*.{ts,mjs}",
@@ -152,7 +152,6 @@ export const findArtificialProductionEntries = (entries = []) =>
       typeof entry === "string" &&
       entry.startsWith("src/") &&
       entry !== "src/index.tsx!" &&
-      !entry.startsWith("src/setupTests.") &&
       !entry.startsWith("src/test/") &&
       !entry.includes("{test,spec}"),
   );

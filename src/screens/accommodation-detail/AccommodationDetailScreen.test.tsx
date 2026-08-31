@@ -6,7 +6,7 @@ describe("AccommodationDetailScreen", () => {
     const { rerender } = render(
       <AccommodationDetailScreen
         errorMessage={null}
-        onClearError={jest.fn()}
+        onClearError={vi.fn()}
         state={{ status: "loading" }}
       />,
     );
@@ -15,7 +15,7 @@ describe("AccommodationDetailScreen", () => {
     rerender(
       <AccommodationDetailScreen
         errorMessage={null}
-        onClearError={jest.fn()}
+        onClearError={vi.fn()}
         state={{ status: "error", message: "숙소를 찾을 수 없습니다." }}
       />,
     );

@@ -30,25 +30,25 @@ const scope: AuthenticatedSessionScope = {
   epoch: 11,
 };
 const mockCapturedProfileProps: ProfileControllerProps[] = [];
-const mockUseSession = jest.fn();
-const mockIsCurrentSession = jest.fn();
-const mockCaptureAuthenticatedSession = jest.fn();
-const mockIsCurrentHistoryEntry = jest.fn();
-const mockCreateHostListingManagementWorkflow = jest.fn();
-const mockRefreshHostListings = jest.fn();
-const mockRefreshAccommodationDetail = jest.fn();
-const mockConfirm = jest.fn();
-const mockResolveImageUrl = jest.fn();
+const mockUseSession = vi.fn();
+const mockIsCurrentSession = vi.fn();
+const mockCaptureAuthenticatedSession = vi.fn();
+const mockIsCurrentHistoryEntry = vi.fn();
+const mockCreateHostListingManagementWorkflow = vi.fn();
+const mockRefreshHostListings = vi.fn();
+const mockRefreshAccommodationDetail = vi.fn();
+const mockConfirm = vi.fn();
+const mockResolveImageUrl = vi.fn();
 const mockHostListingWorkflow: HostListingManagementWorkflow = {
-  dispose: jest.fn(),
-  execute: jest.fn().mockResolvedValue({ status: "stale" }),
+  dispose: vi.fn(),
+  execute: vi.fn().mockResolvedValue({ status: "stale" }),
 };
 
-jest.mock("../../session/useSession", () => ({
+vi.mock("../../session/useSession", () => ({
   useSession: () => mockUseSession(),
 }));
 
-jest.mock("../../../screens/profile/public", () => ({
+vi.mock("../../../screens/profile/public", () => ({
   ProfileController: (props: ProfileControllerProps) => {
     const React = require("react") as typeof import("react");
     mockCapturedProfileProps.push(props);
@@ -61,47 +61,47 @@ jest.mock("../../../screens/profile/public", () => ({
   },
 }));
 
-jest.mock("../../../workflows/host-listing-management", () => ({
+vi.mock("../../../workflows/host-listing-management", () => ({
   createHostListingManagementWorkflow: (
     dependencies: HostListingManagementDependencies,
   ) => mockCreateHostListingManagementWorkflow(dependencies),
 }));
 
-jest.mock("../../../features/profile/public", () => ({
+vi.mock("../../../features/profile/public", () => ({
   createHostListingQueryCacheProjection: () => ({
     refreshRequired: (...args: unknown[]) => mockRefreshHostListings(...args),
   }),
 }));
 
-jest.mock("../../../features/accommodations/detail/public", () => ({
+vi.mock("../../../features/accommodations/detail/public", () => ({
   createAccommodationDetailQueryCacheProjection: () => ({
     detailRefreshRequired: (...args: unknown[]) =>
       mockRefreshAccommodationDetail(...args),
   }),
 }));
 
-jest.mock("../../../features/accommodations/api/hostListingActionsApi", () => ({
+vi.mock("../../../features/accommodations/api/hostListingActionsApi", () => ({
   hostListingActionsApi: {
-    delete: jest.fn(),
-    publish: jest.fn(),
-    unpublish: jest.fn(),
+    delete: vi.fn(),
+    publish: vi.fn(),
+    unpublish: vi.fn(),
   },
 }));
 
-jest.mock("../../../platform/browser/windowNavigation", () => ({
+vi.mock("../../../platform/browser/windowNavigation", () => ({
   browserWindowNavigation: {
     isCurrentHistoryEntry: (...args: unknown[]) =>
       mockIsCurrentHistoryEntry(...args),
   },
 }));
 
-jest.mock("../../../platform/browser/confirmation", () => ({
+vi.mock("../../../platform/browser/confirmation", () => ({
   browserConfirmation: {
     confirm: (...args: unknown[]) => mockConfirm(...args),
   },
 }));
 
-jest.mock("../../../platform/assets/imageUrl", () => ({
+vi.mock("../../../platform/assets/imageUrl", () => ({
   resolveImageUrl: (...args: unknown[]) => mockResolveImageUrl(...args),
 }));
 
@@ -204,8 +204,8 @@ beforeEach(() => {
   mockCreateHostListingManagementWorkflow.mockReturnValue(
     mockHostListingWorkflow,
   );
-  jest.mocked(mockHostListingWorkflow.dispose).mockClear();
-  jest.mocked(mockHostListingWorkflow.execute).mockClear();
+  vi.mocked(mockHostListingWorkflow.dispose).mockClear();
+  vi.mocked(mockHostListingWorkflow.execute).mockClear();
   mockRefreshHostListings.mockReset();
   mockRefreshHostListings.mockResolvedValue(undefined);
   mockRefreshAccommodationDetail.mockReset();
@@ -572,12 +572,12 @@ describe("ProfileRoute authority gates", () => {
       epoch: scope.epoch + 1,
     };
     const firstWorkflow = {
-      dispose: jest.fn(),
-      execute: jest.fn().mockResolvedValue({ status: "stale" }),
+      dispose: vi.fn(),
+      execute: vi.fn().mockResolvedValue({ status: "stale" }),
     } satisfies HostListingManagementWorkflow;
     const nextWorkflow = {
-      dispose: jest.fn(),
-      execute: jest.fn().mockResolvedValue({ status: "stale" }),
+      dispose: vi.fn(),
+      execute: vi.fn().mockResolvedValue({ status: "stale" }),
     } satisfies HostListingManagementWorkflow;
     mockCreateHostListingManagementWorkflow
       .mockReturnValueOnce(firstWorkflow)

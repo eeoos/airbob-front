@@ -3,8 +3,8 @@ import { ActionCard, NavigationCard } from "./InteractiveCard";
 
 describe("interactive card semantics", () => {
   it("renders navigation content and optional actions outside the primary anchor", () => {
-    const onNavigate = jest.fn((event) => event.preventDefault());
-    const onSave = jest.fn();
+    const onNavigate = vi.fn((event) => event.preventDefault());
+    const onSave = vi.fn();
 
     render(
       <NavigationCard
@@ -41,7 +41,7 @@ describe("interactive card semantics", () => {
   });
 
   it("renders action content and optional actions outside the primary button", () => {
-    const onPrimaryAction = jest.fn();
+    const onPrimaryAction = vi.fn();
 
     render(
       <ActionCard

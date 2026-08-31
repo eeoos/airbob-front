@@ -3,7 +3,7 @@ import { encodeOpaquePathSegment } from "../../../platform/http/opaquePathSegmen
 import { createReservationCreateApi } from "./reservationCreateApi";
 
 const createTransport = () => {
-  const request = jest.fn();
+  const request = vi.fn();
 
   return {
     request,

@@ -6,7 +6,7 @@ const imageFile = () => new File(["room"], "room.png", { type: "image/png" });
 describe("useListingEditorImages", () => {
   it("hydrates, optimistically removes, and restores a server image", () => {
     const { result } = renderHook(() =>
-      useListingEditorImages({ onError: jest.fn() }),
+      useListingEditorImages({ onError: vi.fn() }),
     );
 
     act(() =>
@@ -26,11 +26,11 @@ describe("useListingEditorImages", () => {
   });
 
   it("binds pending files to uploaded images and revokes previews", () => {
-    const revokeObjectUrl = jest.fn();
+    const revokeObjectUrl = vi.fn();
     const file = imageFile();
     const { result } = renderHook(() =>
       useListingEditorImages({
-        onError: jest.fn(),
+        onError: vi.fn(),
         createClientId: () => "local:1",
         createObjectUrl: () => "blob:1",
         revokeObjectUrl,
@@ -52,10 +52,10 @@ describe("useListingEditorImages", () => {
   });
 
   it("revokes retained local previews on unmount", () => {
-    const revokeObjectUrl = jest.fn();
+    const revokeObjectUrl = vi.fn();
     const { result, unmount } = renderHook(() =>
       useListingEditorImages({
-        onError: jest.fn(),
+        onError: vi.fn(),
         createClientId: () => "local:1",
         createObjectUrl: () => "blob:1",
         revokeObjectUrl,

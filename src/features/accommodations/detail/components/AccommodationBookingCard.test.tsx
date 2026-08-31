@@ -4,31 +4,37 @@ import type { AccommodationBookingCouponViewModel } from "../lib/accommodationBo
 import type { AccommodationBookingViewModel } from "../lib/accommodationBookingViewModel";
 import { AccommodationBookingCard } from "./AccommodationBookingCard";
 
-jest.mock("../../../../shared/ui", () => ({
-  ...jest.requireActual("../../../../shared/ui"),
-  DatePicker: ({
-    onClose,
-    onEscape,
-  }: {
-    onClose: () => void;
-    onEscape?: () => void;
-  }) => (
-    <div
-      data-testid="date-picker"
-      onKeyDown={(event) => {
-        if (event.key === "Escape") {
-          event.stopPropagation();
-          (onEscape ?? onClose)();
-        }
-      }}
-    >
-      <button type="button">date picker focus target</button>
-      <button type="button" onClick={onClose}>
-        close date picker
-      </button>
-    </div>
-  ),
-}));
+vi.mock("../../../../shared/ui", async () => {
+  const actual = await vi.importActual<typeof import("../../../../shared/ui")>(
+    "../../../../shared/ui",
+  );
+
+  return {
+    ...actual,
+    DatePicker: ({
+      onClose,
+      onEscape,
+    }: {
+      onClose: () => void;
+      onEscape?: () => void;
+    }) => (
+      <div
+        data-testid="date-picker"
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.stopPropagation();
+            (onEscape ?? onClose)();
+          }
+        }}
+      >
+        <button type="button">date picker focus target</button>
+        <button type="button" onClick={onClose}>
+          close date picker
+        </button>
+      </div>
+    ),
+  };
+});
 
 const bookingView: AccommodationBookingViewModel = {
   basePrice: 100000,
@@ -94,14 +100,14 @@ const createBookingCardProps = (): BookingCardProps => ({
               "0"
             )}. ${String(date.getDate()).padStart(2, "0")}.`
           : "",
-      handleDateSelect: jest.fn(),
-      setIsDatePickerOpen: jest.fn(),
-      setIsGuestPickerOpen: jest.fn(),
-      setAdultCount: jest.fn(),
-      setChildCount: jest.fn(),
-      setInfantCount: jest.fn(),
-      setPetCount: jest.fn(),
-      onReserve: jest.fn(),
+      handleDateSelect: vi.fn(),
+      setIsDatePickerOpen: vi.fn(),
+      setIsGuestPickerOpen: vi.fn(),
+      setAdultCount: vi.fn(),
+      setChildCount: vi.fn(),
+      setInfantCount: vi.fn(),
+      setPetCount: vi.fn(),
+      onReserve: vi.fn(),
     },
     couponState: {
       coupons: [coupon],
@@ -111,8 +117,8 @@ const createBookingCardProps = (): BookingCardProps => ({
       couponDiscount: 10000,
     },
     couponActions: {
-      setSelectedCouponId: jest.fn(),
-      handleIssueCoupon: jest.fn(),
+      setSelectedCouponId: vi.fn(),
+      handleIssueCoupon: vi.fn(),
     },
 });
 
@@ -188,7 +194,7 @@ describe("AccommodationBookingCard", () => {
   });
 
   it("opens date picker through controlled state and closes via DatePicker callback", () => {
-    const setIsDatePickerOpen = jest.fn();
+    const setIsDatePickerOpen = vi.fn();
     setupBookingCard({
       bookingState: { isDatePickerOpen: true },
       bookingActions: { setIsDatePickerOpen },
@@ -202,8 +208,8 @@ describe("AccommodationBookingCard", () => {
   });
 
   it("closes the guest picker before opening the date picker", () => {
-    const setIsDatePickerOpen = jest.fn();
-    const setIsGuestPickerOpen = jest.fn();
+    const setIsDatePickerOpen = vi.fn();
+    const setIsGuestPickerOpen = vi.fn();
     setupBookingCard({
       bookingState: {
         isDatePickerOpen: false,
@@ -219,7 +225,7 @@ describe("AccommodationBookingCard", () => {
   });
 
   it("closes the date picker with Escape and restores focus to its trigger", () => {
-    const setIsDatePickerOpen = jest.fn();
+    const setIsDatePickerOpen = vi.fn();
     setupBookingCard({
       bookingState: { isDatePickerOpen: true },
       bookingActions: { setIsDatePickerOpen },
@@ -237,7 +243,7 @@ describe("AccommodationBookingCard", () => {
   });
 
   it("updates guest counts through guest picker controls", () => {
-    const setAdultCount = jest.fn();
+    const setAdultCount = vi.fn();
     setupBookingCard({
       bookingState: { isGuestPickerOpen: true },
       bookingActions: { setAdultCount },
@@ -253,7 +259,7 @@ describe("AccommodationBookingCard", () => {
   });
 
   it("closes the guest picker with Escape and restores focus to its trigger", () => {
-    const setIsGuestPickerOpen = jest.fn();
+    const setIsGuestPickerOpen = vi.fn();
     setupBookingCard({
       bookingState: { isGuestPickerOpen: true },
       bookingActions: { setIsGuestPickerOpen },
@@ -296,8 +302,8 @@ describe("AccommodationBookingCard", () => {
   });
 
   it("clears and applies coupons from the booking card", () => {
-    const setSelectedCouponId = jest.fn();
-    const handleIssueCoupon = jest.fn();
+    const setSelectedCouponId = vi.fn();
+    const handleIssueCoupon = vi.fn();
     setupBookingCard({
       couponState: {
         selectedCoupon: coupon,

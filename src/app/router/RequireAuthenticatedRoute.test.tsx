@@ -1,3 +1,4 @@
+import type { Mocked, MockedFunction } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
 import type { SessionContextValue } from "../session/SessionProvider";
@@ -11,8 +12,8 @@ import { AppError } from "../../platform/http/errors";
 import { RequireAuthenticatedRoute } from "./RequireAuthenticatedRoute";
 import { routeTo } from "./paths";
 
-jest.mock("../session/useSession", () => ({
-  useSession: jest.fn(),
+vi.mock("../session/useSession", () => ({
+  useSession: vi.fn(),
 }));
 
 const mockLocation = {
@@ -23,7 +24,7 @@ const mockLocation = {
   key: "test-location",
 };
 
-jest.mock(
+vi.mock(
   "react-router-dom",
   () => ({
     Navigate: ({
@@ -44,10 +45,9 @@ jest.mock(
     ),
     useLocation: () => mockLocation,
   }),
-  { virtual: true },
 );
 
-const mockUseSession = useSession as jest.MockedFunction<typeof useSession>;
+const mockUseSession = useSession as MockedFunction<typeof useSession>;
 
 const viewer: SessionViewer = {
   id: 41,
@@ -78,16 +78,16 @@ const authenticatedState = (
 
 const createSessionValue = (
   state: SessionState,
-): jest.Mocked<SessionContextValue> =>
+): Mocked<SessionContextValue> =>
   ({
     state,
-    login: jest.fn(),
-    logout: jest.fn(),
-    revalidate: jest.fn().mockResolvedValue(undefined),
-    retryServerLogout: jest.fn(),
-    captureAuthenticatedSession: jest.fn(),
-    isCurrentSession: jest.fn(),
-  }) as jest.Mocked<SessionContextValue>;
+    login: vi.fn(),
+    logout: vi.fn(),
+    revalidate: vi.fn().mockResolvedValue(undefined),
+    retryServerLogout: vi.fn(),
+    captureAuthenticatedSession: vi.fn(),
+    isCurrentSession: vi.fn(),
+  }) as Mocked<SessionContextValue>;
 
 const renderRequireAuthenticatedRoute = (state: SessionState) => {
   const session = createSessionValue(state);

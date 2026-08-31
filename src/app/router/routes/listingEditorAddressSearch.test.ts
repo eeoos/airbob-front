@@ -34,8 +34,7 @@ const mappedAddress = {
   detail: "",
 };
 
-const createOpenPostcode = () =>
-  jest.fn<ReturnType<OpenPostcode>, Parameters<OpenPostcode>>();
+const createOpenPostcode = () => vi.fn<OpenPostcode>();
 
 describe("listing editor address search adapter", () => {
   it("rejects an already-aborted search without opening the integration", async () => {
@@ -52,7 +51,7 @@ describe("listing editor address search adapter", () => {
 
   it("settles and cleans up when a pending search is aborted", async () => {
     const controller = new AbortController();
-    const removeEventListener = jest.spyOn(
+    const removeEventListener = vi.spyOn(
       controller.signal,
       "removeEventListener",
     );
@@ -73,7 +72,7 @@ describe("listing editor address search adapter", () => {
 
   it("resolves once, removes the abort listener, and ignores a later abort", async () => {
     const controller = new AbortController();
-    const removeEventListener = jest.spyOn(
+    const removeEventListener = vi.spyOn(
       controller.signal,
       "removeEventListener",
     );
@@ -84,7 +83,7 @@ describe("listing editor address search adapter", () => {
         return new Promise(() => undefined);
       },
     );
-    const mapAddressSelection = jest.fn(() => mappedAddress);
+    const mapAddressSelection = vi.fn(() => mappedAddress);
     const search = createListingEditorAddressSearch({
       mapAddressSelection,
       openPostcode,
@@ -103,7 +102,7 @@ describe("listing editor address search adapter", () => {
 
   it("rejects once and cleans up when the integration reports an error", async () => {
     const controller = new AbortController();
-    const removeEventListener = jest.spyOn(
+    const removeEventListener = vi.spyOn(
       controller.signal,
       "removeEventListener",
     );
@@ -116,7 +115,7 @@ describe("listing editor address search adapter", () => {
         return new Promise(() => undefined);
       },
     );
-    const mapAddressSelection = jest.fn(() => mappedAddress);
+    const mapAddressSelection = vi.fn(() => mappedAddress);
     const search = createListingEditorAddressSearch({
       mapAddressSelection,
       openPostcode,

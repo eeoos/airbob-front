@@ -22,19 +22,19 @@ const createProps = (
   accommodation,
   errorMessage: null,
   isPending: false,
-  onClose: jest.fn(),
-  onDelete: jest.fn(),
-  onDismissError: jest.fn(),
-  onEdit: jest.fn(),
-  onOpenDetail: jest.fn(),
-  onPublish: jest.fn(),
-  onUnpublish: jest.fn(),
+  onClose: vi.fn(),
+  onDelete: vi.fn(),
+  onDismissError: vi.fn(),
+  onEdit: vi.fn(),
+  onOpenDetail: vi.fn(),
+  onPublish: vi.fn(),
+  onUnpublish: vi.fn(),
   ...overrides,
 });
 
 describe("AccommodationActionModal", () => {
   it("renders as a Dialog and closes from explicit close, Escape, and backdrop", async () => {
-    const onClose = jest.fn();
+    const onClose = vi.fn();
 
     render(<AccommodationActionModal {...createProps({ onClose })} />);
 
@@ -50,9 +50,9 @@ describe("AccommodationActionModal", () => {
   });
 
   it("delegates detail and edit navigation before closing", async () => {
-    const onClose = jest.fn();
-    const onEdit = jest.fn();
-    const onOpenDetail = jest.fn();
+    const onClose = vi.fn();
+    const onEdit = vi.fn();
+    const onOpenDetail = vi.fn();
 
     render(
       <AccommodationActionModal
@@ -72,9 +72,9 @@ describe("AccommodationActionModal", () => {
   });
 
   it("delegates publish, unpublish, and delete actions by accommodation id", async () => {
-    const onDelete = jest.fn();
-    const onPublish = jest.fn();
-    const onUnpublish = jest.fn();
+    const onDelete = vi.fn();
+    const onPublish = vi.fn();
+    const onUnpublish = vi.fn();
     const props = createProps({ onDelete, onPublish, onUnpublish });
     const { rerender } = render(<AccommodationActionModal {...props} />);
 
@@ -109,7 +109,7 @@ describe("AccommodationActionModal", () => {
   });
 
   it("injects pending and error state without disabling dismissal or detail", async () => {
-    const onDismissError = jest.fn();
+    const onDismissError = vi.fn();
 
     render(
       <AccommodationActionModal

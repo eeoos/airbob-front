@@ -172,7 +172,7 @@ describe("accommodation detail cache projection", () => {
   it("returns the exact detail invalidation promise to publication owners", () => {
     const client = new QueryClient();
     const invalidation = Promise.resolve();
-    jest.spyOn(client, "invalidateQueries").mockReturnValue(invalidation);
+    vi.spyOn(client, "invalidateQueries").mockReturnValue(invalidation);
 
     const result = createAccommodationDetailQueryCacheProjection(
       client,

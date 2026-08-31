@@ -1,6 +1,7 @@
 import { createSessionStorageDriver } from "./sessionStorageDriver";
 import {
   createVersionedSessionStorage,
+  LegacyMigrationContext,
   LegacyMigrationVerification,
 } from "./versionedSessionStorage";
 
@@ -199,7 +200,7 @@ describe("createVersionedSessionStorage", () => {
 
   it("returns a typed failure without exposing storage values", () => {
     const storage = createStorage();
-    jest.spyOn(storage, "setItem").mockImplementation(() => {
+    vi.spyOn(storage, "setItem").mockImplementation(() => {
       throw new Error("secret storage body");
     });
     const { repository } = createRepository({ storage });
@@ -233,19 +234,21 @@ describe("createVersionedSessionStorage", () => {
     const order: string[] = [];
     const originalSetItem = storage.setItem.bind(storage);
     const originalRemoveItem = storage.removeItem.bind(storage);
-    jest.spyOn(storage, "setItem").mockImplementation((key, value) => {
+    vi.spyOn(storage, "setItem").mockImplementation((key, value) => {
       order.push(`write:${key}`);
       originalSetItem(key, value);
     });
-    jest.spyOn(storage, "removeItem").mockImplementation((key) => {
+    vi.spyOn(storage, "removeItem").mockImplementation((key) => {
       order.push(`remove:${key}`);
       originalRemoveItem(key);
     });
     const { repository } = createRepository({ storage });
-    const verifyAndMap = jest
+    const verifyAndMap = vi
       .fn<
-        Promise<LegacyMigrationVerification<CheckoutRecord>>,
-        [string, { authenticatedOwner: string; currentOwner: string }]
+        (
+          raw: string,
+          context: LegacyMigrationContext,
+        ) => Promise<LegacyMigrationVerification<CheckoutRecord>>
       >()
       .mockResolvedValue({
         verified: true,
@@ -378,7 +381,7 @@ describe("createVersionedSessionStorage", () => {
     const storage = createStorage({ [legacyKey]: "legacy-document" });
     const { repository } = createRepository({ storage });
     repository.write({ owner: ownerA, data: checkout });
-    const verifyAndMap = jest.fn();
+    const verifyAndMap = vi.fn();
 
     await expect(
       repository.migrateLegacy({
@@ -559,7 +562,7 @@ describe("createVersionedSessionStorage", () => {
     });
     repository.write({ owner: ownerA, data: checkout });
     const originalGetItem = storage.getItem.bind(storage);
-    jest.spyOn(storage, "getItem").mockImplementation((key) => {
+    vi.spyOn(storage, "getItem").mockImplementation((key) => {
       const value = originalGetItem(key);
       if (key === repository.storageKey) {
         activeOwner = null;
@@ -567,7 +570,7 @@ describe("createVersionedSessionStorage", () => {
       }
       return value;
     });
-    const verifyAndMap = jest.fn();
+    const verifyAndMap = vi.fn();
 
     await expect(
       repository.migrateLegacy({
@@ -585,7 +588,7 @@ describe("createVersionedSessionStorage", () => {
   it("does not delete the legacy source when the new write fails", async () => {
     const storage = createStorage({ [legacyKey]: "legacy-document" });
     const originalSetItem = storage.setItem.bind(storage);
-    jest.spyOn(storage, "setItem").mockImplementation((key, value) => {
+    vi.spyOn(storage, "setItem").mockImplementation((key, value) => {
       if (key === "airbob:checkout-v1:handoff") {
         throw new Error("quota denied");
       }
@@ -619,7 +622,7 @@ describe("createVersionedSessionStorage", () => {
   it("reports a distinct incomplete outcome when legacy cleanup is denied", async () => {
     const storage = createStorage({ [legacyKey]: "legacy-document" });
     const originalRemoveItem = storage.removeItem.bind(storage);
-    jest.spyOn(storage, "removeItem").mockImplementation((key) => {
+    vi.spyOn(storage, "removeItem").mockImplementation((key) => {
       if (key === legacyKey) throw new Error("cleanup denied");
       originalRemoveItem(key);
     });

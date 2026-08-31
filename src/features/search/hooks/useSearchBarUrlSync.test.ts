@@ -3,9 +3,9 @@ import { useSearchBarUrlSync } from "./useSearchBarUrlSync";
 
 describe("useSearchBarUrlSync", () => {
   it("applies destination, dates, and guest counts from URL params", () => {
-    const resetPlaces = jest.fn();
-    const syncAutocompleteInput = jest.fn();
-    const onCommittedChanged = jest.fn();
+    const resetPlaces = vi.fn();
+    const syncAutocompleteInput = vi.fn();
+    const onCommittedChanged = vi.fn();
 
     renderHook(() =>
       useSearchBarUrlSync({
@@ -32,9 +32,9 @@ describe("useSearchBarUrlSync", () => {
   });
 
   it("does not reset the destination when unrelated params change", () => {
-    const resetPlaces = jest.fn();
-    const syncAutocompleteInput = jest.fn();
-    const onCommittedChanged = jest.fn();
+    const resetPlaces = vi.fn();
+    const syncAutocompleteInput = vi.fn();
+    const onCommittedChanged = vi.fn();
     const { rerender } = renderHook(
       ({ urlSearchParams }: { urlSearchParams: URLSearchParams }) =>
         useSearchBarUrlSync({
@@ -64,13 +64,13 @@ describe("useSearchBarUrlSync", () => {
   });
 
   it("hydrates the whole draft once when a committed field changes", () => {
-    const onCommittedChanged = jest.fn();
+    const onCommittedChanged = vi.fn();
     const { rerender } = renderHook(
       ({ urlSearchParams }: { urlSearchParams: URLSearchParams }) =>
         useSearchBarUrlSync({
           urlSearchParams,
-          resetPlaces: jest.fn(),
-          syncAutocompleteInput: jest.fn(),
+          resetPlaces: vi.fn(),
+          syncAutocompleteInput: vi.fn(),
           onCommittedChanged,
         }),
       {

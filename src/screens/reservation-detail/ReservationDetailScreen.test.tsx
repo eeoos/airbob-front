@@ -1,3 +1,4 @@
+import type { Mocked } from "vitest";
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import {
@@ -8,19 +9,19 @@ import {
   type HostReservationDetailView,
 } from "./ReservationDetailScreen";
 
-const guestActions: jest.Mocked<GuestReservationDetailActions> = {
-  onBack: jest.fn(),
-  onBackToProfile: jest.fn(),
-  onDismissError: jest.fn(),
-  onDismissFeedback: jest.fn(),
-  onOpenAccommodation: jest.fn(),
-  onOpenReview: jest.fn(),
+const guestActions: Mocked<GuestReservationDetailActions> = {
+  onBack: vi.fn(),
+  onBackToProfile: vi.fn(),
+  onDismissError: vi.fn(),
+  onDismissFeedback: vi.fn(),
+  onOpenAccommodation: vi.fn(),
+  onOpenReview: vi.fn(),
 };
 
-const hostActions: jest.Mocked<HostReservationDetailActions> = {
-  onBack: jest.fn(),
-  onDismissError: jest.fn(),
-  onOpenAccommodation: jest.fn(),
+const hostActions: Mocked<HostReservationDetailActions> = {
+  onBack: vi.fn(),
+  onDismissError: vi.fn(),
+  onOpenAccommodation: vi.fn(),
 };
 
 const guestView: GuestReservationDetailView = {
@@ -98,7 +99,7 @@ const hostView: HostReservationDetailView = {
 
 describe("ReservationDetailScreen", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("preserves loading, missing, and dismissible error terminals", () => {

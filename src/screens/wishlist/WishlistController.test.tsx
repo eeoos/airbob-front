@@ -1,3 +1,4 @@
+import type { Mocked } from "vitest";
 import type { InfiniteData } from "@tanstack/react-query";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -24,21 +25,21 @@ import type {
   WishlistControllerProps,
 } from "./WishlistController";
 
-jest.mock("../../features/wishlist/queries", () => ({
-  useRecentlyViewedReadQuery: jest.fn(),
-  useWishlistDetailReadQuery: jest.fn(),
-  useWishlistListsReadQuery: jest.fn(),
+vi.mock("../../features/wishlist/queries", () => ({
+  useRecentlyViewedReadQuery: vi.fn(),
+  useWishlistDetailReadQuery: vi.fn(),
+  useWishlistListsReadQuery: vi.fn(),
 }));
 
-jest.mock("../../workflows/wishlist-membership", () => ({
-  useWishlistMembership: jest.fn(),
+vi.mock("../../workflows/wishlist-membership", () => ({
+  useWishlistMembership: vi.fn(),
 }));
 
-jest.mock("../../shared/lib/useIntersectionLoadMore", () => ({
-  useIntersectionLoadMore: jest.fn(() => jest.fn()),
+vi.mock("../../shared/lib/useIntersectionLoadMore", () => ({
+  useIntersectionLoadMore: vi.fn(() => vi.fn()),
 }));
 
-jest.mock("../../features/wishlist/components/WishlistModal", () => ({
+vi.mock("../../features/wishlist/components/WishlistModal", () => ({
   WishlistModal: ({
     accommodationId,
     isOpen,
@@ -58,17 +59,17 @@ jest.mock("../../features/wishlist/components/WishlistModal", () => ({
     ) : null,
 }));
 
-const mockUseRecentlyViewedReadQuery = jest.mocked(
+const mockUseRecentlyViewedReadQuery = vi.mocked(
   useRecentlyViewedReadQuery,
 );
-const mockUseWishlistDetailReadQuery = jest.mocked(
+const mockUseWishlistDetailReadQuery = vi.mocked(
   useWishlistDetailReadQuery,
 );
-const mockUseWishlistListsReadQuery = jest.mocked(
+const mockUseWishlistListsReadQuery = vi.mocked(
   useWishlistListsReadQuery,
 );
-const mockUseIntersectionLoadMore = jest.mocked(useIntersectionLoadMore);
-const mockUseWishlistMembership = jest.mocked(useWishlistMembership);
+const mockUseIntersectionLoadMore = vi.mocked(useIntersectionLoadMore);
+const mockUseWishlistMembership = vi.mocked(useWishlistMembership);
 
 const scope = {
   epoch: 3,
@@ -156,7 +157,7 @@ const recentlyViewed: RecentlyViewedCollection = {
 const queryBase = {
   error: null,
   errorUpdatedAt: 0,
-  fetchNextPage: jest.fn(),
+  fetchNextPage: vi.fn(),
   hasNextPage: false,
   isError: false,
   isFetchingNextPage: false,
@@ -164,31 +165,31 @@ const queryBase = {
 };
 
 const navigation = () => ({
-  openAccommodation: jest.fn(),
-  openIndex: jest.fn(),
-  openRecentlyViewed: jest.fn(),
-  openWishlistDetail: jest.fn(),
-  replaceWithIndex: jest.fn(),
+  openAccommodation: vi.fn(),
+  openIndex: vi.fn(),
+  openRecentlyViewed: vi.fn(),
+  openWishlistDetail: vi.fn(),
+  replaceWithIndex: vi.fn(),
 });
 
-const commands = (): jest.Mocked<WishlistMembershipCommands> => ({
-  addAccommodation: jest.fn().mockResolvedValue({
+const commands = (): Mocked<WishlistMembershipCommands> => ({
+  addAccommodation: vi.fn().mockResolvedValue({
     isInAnyWishlist: true,
     status: "applied",
   }),
-  createAndAddAccommodation: jest.fn().mockResolvedValue({
+  createAndAddAccommodation: vi.fn().mockResolvedValue({
     isInAnyWishlist: true,
     status: "applied",
     wishlistId: 42,
   }),
-  deleteWishlist: jest.fn().mockResolvedValue({ status: "applied" }),
-  dispose: jest.fn(),
-  removeAccommodation: jest.fn().mockResolvedValue({
+  deleteWishlist: vi.fn().mockResolvedValue({ status: "applied" }),
+  dispose: vi.fn(),
+  removeAccommodation: vi.fn().mockResolvedValue({
     isInAnyWishlist: false,
     status: "applied",
   }),
-  removeRecentlyViewed: jest.fn().mockResolvedValue({ status: "applied" }),
-  saveMemo: jest.fn().mockResolvedValue({ status: "applied" }),
+  removeRecentlyViewed: vi.fn().mockResolvedValue({ status: "applied" }),
+  saveMemo: vi.fn().mockResolvedValue({ status: "applied" }),
 });
 
 const renderController = (
@@ -201,10 +202,10 @@ const renderController = (
   );
 
 describe("WishlistController", () => {
-  let membershipCommands: jest.Mocked<WishlistMembershipCommands>;
+  let membershipCommands: Mocked<WishlistMembershipCommands>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     membershipCommands = commands();
     mockUseWishlistMembership.mockReturnValue(membershipCommands);
     mockUseWishlistListsReadQuery.mockReturnValue({
@@ -410,7 +411,7 @@ describe("WishlistController", () => {
   });
 
   it("keeps repeated index intersection loads on the active next-page request", () => {
-    const fetchNextPage = jest.fn().mockResolvedValue(undefined);
+    const fetchNextPage = vi.fn().mockResolvedValue(undefined);
     mockUseWishlistListsReadQuery.mockReturnValue({
       ...queryBase,
       data: wishlistPages([[wishlist(1, "First page")]]),
@@ -437,7 +438,7 @@ describe("WishlistController", () => {
   });
 
   it("keeps repeated detail intersection loads on the active next-page request", () => {
-    const fetchNextPage = jest.fn().mockResolvedValue(undefined);
+    const fetchNextPage = vi.fn().mockResolvedValue(undefined);
     mockUseWishlistDetailReadQuery.mockReturnValue({
       ...queryBase,
       data: detailPages,
@@ -467,7 +468,7 @@ describe("WishlistController", () => {
   });
 
   it("continues collection pagination until a direct detail route name is recovered", async () => {
-    const fetchNextPage = jest.fn().mockResolvedValue(undefined);
+    const fetchNextPage = vi.fn().mockResolvedValue(undefined);
     const firstPage = wishlistPages([[wishlist(1, "First page")]]);
     mockUseWishlistListsReadQuery.mockReturnValue({
       ...queryBase,
@@ -509,7 +510,7 @@ describe("WishlistController", () => {
   });
 
   it("surfaces a direct detail name-recovery pagination failure", async () => {
-    const fetchNextPage = jest.fn().mockRejectedValue({ code: "W002" });
+    const fetchNextPage = vi.fn().mockRejectedValue({ code: "W002" });
     mockUseWishlistListsReadQuery.mockReturnValue({
       ...queryBase,
       data: wishlistPages([[wishlist(1, "First page")]]),

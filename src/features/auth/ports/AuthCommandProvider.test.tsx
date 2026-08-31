@@ -6,9 +6,9 @@ import {
 } from "./AuthCommandProvider";
 
 const commands: AuthCommandPort = {
-  login: jest.fn(),
-  signup: jest.fn(),
-  shouldCompleteLoginInCurrentView: jest.fn(() => true),
+  login: vi.fn(),
+  signup: vi.fn(),
+  shouldCompleteLoginInCurrentView: vi.fn(() => true),
 };
 
 describe("AuthCommandProvider", () => {

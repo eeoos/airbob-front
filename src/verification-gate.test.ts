@@ -6,6 +6,8 @@ import { spawnSync } from "child_process";
 const projectRoot = process.cwd();
 const packageJsonPath = path.join(projectRoot, "package.json");
 const vercelConfigPath = path.join(projectRoot, "vercel.json");
+const vitestConfigPath = path.join(projectRoot, "vitest.config.mjs");
+const testSetupPath = path.join(projectRoot, "src/test/setup.ts");
 const frontendWorkflowPath = path.join(
   projectRoot,
   ".github/workflows/frontend.yml",
@@ -113,7 +115,7 @@ const isProductionSourceFile = (filePath: string) => {
 
   return !(
     relativePath.endsWith(".d.ts") ||
-    relativePath === "src/setupTests.ts" ||
+    relativePath.startsWith("src/test/") ||
     relativePath.includes("/__mocks__/") ||
     relativePath.includes("/__tests__/") ||
     /\.(?:test|spec)\.(?:mjs|[jt]sx?)$/.test(relativePath)
@@ -348,8 +350,13 @@ describe("frontend verification gate", () => {
     expect(packageJson.scripts.start).toBe("vite");
     expect(packageJson.scripts.dev).toBe("vite");
     expect(packageJson.scripts.preview).toBe("vite preview");
+    expect(packageJson.scripts.test).toBe("vitest");
+    expect(packageJson.scripts["test:ci"]).toBe("vitest run");
     expect(packageJson.scripts["test:ci:no-cache"]).toBe(
-      "react-scripts test --watchAll=false --no-cache",
+      "vitest run --coverage --no-cache",
+    );
+    expect(packageJson.scripts["test:coverage"]).toBe(
+      "vitest run --coverage",
     );
     expect(packageJson.scripts["test:e2e:characterization"]).toBe(
       "playwright test --project=chromium",
@@ -362,7 +369,7 @@ describe("frontend verification gate", () => {
     );
     expect(packageJson.scripts["typecheck:tooling"]).toBeUndefined();
     expect(packageJson.scripts["lint:e2e"]).toBe(
-      "eslint vite.config.mjs playwright.config.ts tests/e2e --ext .mjs,.ts --max-warnings=0",
+      "eslint vite.config.mjs vitest.config.mjs playwright.config.ts tests/e2e --ext .mjs,.ts --max-warnings=0",
     );
     expect(packageJson.scripts["test:architecture-rules"]).toContain(
       "verify-dependency-rules.mjs",
@@ -387,6 +394,9 @@ describe("frontend verification gate", () => {
     );
     expect(packageJson.scripts["test:architecture-rules"]).toContain(
       "verify-vite-config.mjs",
+    );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-vitest-config.mjs",
     );
     expect(packageJson.scripts["test:architecture-rules"]).toContain(
       "verify-toss-build-gate.mjs",
@@ -414,9 +424,36 @@ describe("frontend verification gate", () => {
       "stylelint-config-standard": "39.0.0",
       "@csstools/postcss-global-data": "4.0.0",
       "@vitejs/plugin-react": "5.2.0",
+      "@vitest/coverage-v8": "4.1.11",
+      eslint: "8.57.1",
+      "eslint-config-react-app": "7.0.1",
+      jsdom: "28.1.0",
       "postcss-custom-media": "12.0.1",
       vite: "8.2.2",
+      vitest: "4.1.11",
     });
+    expect(packageJson.dependencies["react-scripts"]).toBeUndefined();
+    expect(packageJson.dependencies["@types/jest"]).toBeUndefined();
+    [
+      "@testing-library/dom",
+      "@testing-library/jest-dom",
+      "@testing-library/react",
+      "@testing-library/user-event",
+      "@types/react",
+      "@types/react-dom",
+    ].forEach((dependency) => {
+      expect(packageJson.dependencies[dependency]).toBeUndefined();
+      expect(packageJson.devDependencies[dependency]).toBeDefined();
+    });
+    expect(packageJson.eslintConfig.extends).toEqual([
+      "react-app",
+      "react-app/jest",
+    ]);
+    expect(fs.existsSync(vitestConfigPath)).toBe(true);
+    expect(fs.existsSync(testSetupPath)).toBe(true);
+    expect(fs.readFileSync(testSetupPath, "utf8")).toContain(
+      'import "@testing-library/jest-dom/vitest";',
+    );
     expect(packageJson.scripts.lint).toBe(
       "eslint src --ext .js,.jsx,.mjs,.ts,.tsx",
     );
@@ -430,13 +467,13 @@ describe("frontend verification gate", () => {
       "eslint src --ext .js,.jsx,.mjs,.ts,.tsx --max-warnings=0",
     );
     expect(packageJson.scripts["verify:structure"]).toBe(
-      "npm run typecheck && npm run verify:architecture && npm run test:public-config-build && npm run test:ci:no-cache -- --runInBand && npm run lint:strict",
+      "npm run typecheck && npm run verify:architecture && npm run test:public-config-build && npm run test:ci:no-cache && npm run lint:strict",
     );
     expect(packageJson.scripts["test:public-config-build"]).toBe(
       "node scripts/architecture/verify-public-config-build.mjs",
     );
     expect(packageJson.scripts["verify:pre-redesign"]).toBe(
-      "npm run typecheck && npm run test:ci:no-cache -- --runInBand && npm run build",
+      "npm run typecheck && npm run test:ci:no-cache && npm run build",
     );
     expect(packageJson.scripts["smoke:frontend"]).toBe(
       "node scripts/smoke/frontend-smoke.mjs",
@@ -478,7 +515,7 @@ describe("frontend verification gate", () => {
       "run: npm run test:public-config-build",
       "AIRBOB_PUSH_BEFORE_SHA: $" +
         "{{ github.event_name == 'push' && github.event.before || '' }}",
-      "run: npm run test:ci:no-cache -- --runInBand",
+      "run: npm run test:ci:no-cache",
       "run: npm run build",
       "run: npm run test:e2e:characterization",
       "run: npm run lint:strict",
@@ -495,7 +532,7 @@ describe("frontend verification gate", () => {
       "run: npm run typecheck:e2e",
       "run: npm run verify:architecture",
       "run: npm run test:public-config-build",
-      "run: npm run test:ci:no-cache -- --runInBand",
+      "run: npm run test:ci:no-cache",
       "run: npm run build",
       "REACT_APP_API_URL: https://api.example.invalid",
       "run: npm run test:e2e:characterization",

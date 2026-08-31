@@ -10,7 +10,7 @@ const renderDescriptionModal = (
   const props: React.ComponentProps<typeof AccommodationDescriptionModal> = {
     isOpen: true,
     description: "첫 번째 줄\n두 번째 줄",
-    onClose: jest.fn(),
+    onClose: vi.fn(),
     ...overrides,
   };
 

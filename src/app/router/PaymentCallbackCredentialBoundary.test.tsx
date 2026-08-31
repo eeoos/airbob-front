@@ -14,10 +14,10 @@ import {
   usePaymentCallbackCredentialClaim,
 } from "./PaymentCallbackCredentialBoundary";
 
-const mockUseSession = jest.fn();
-const mockAuthenticatedBoundaryRender = jest.fn();
+const mockUseSession = vi.fn();
+const mockAuthenticatedBoundaryRender = vi.fn();
 
-jest.mock("../session/useSession", () => ({
+vi.mock("../session/useSession", () => ({
   useSession: () => mockUseSession(),
 }));
 
@@ -140,7 +140,7 @@ describe("PaymentCallbackCredentialBoundary", () => {
   it("scrubs credentials before rendering a checking auth boundary", async () => {
     mockUseSession.mockReturnValue({
       state: { status: "checking" },
-      revalidate: jest.fn(),
+      revalidate: vi.fn(),
     });
     setBrowserCallbackEntry(callbackSearch);
 
@@ -169,7 +169,7 @@ describe("PaymentCallbackCredentialBoundary", () => {
   it("sends an anonymous user to login with a credential-free return path", async () => {
     mockUseSession.mockReturnValue({
       state: { status: "anonymous" },
-      revalidate: jest.fn(),
+      revalidate: vi.fn(),
     });
     setBrowserCallbackEntry(callbackSearch);
 
@@ -193,7 +193,7 @@ describe("PaymentCallbackCredentialBoundary", () => {
   it("keeps a valid callback tuple only in memory after authentication", async () => {
     mockUseSession.mockReturnValue({
       state: { status: "authenticated" },
-      revalidate: jest.fn(),
+      revalidate: vi.fn(),
     });
     setBrowserCallbackEntry(callbackSearch);
 
@@ -216,7 +216,7 @@ describe("PaymentCallbackCredentialBoundary", () => {
   it("fails a partial callback closed after removing it from both histories", async () => {
     mockUseSession.mockReturnValue({
       state: { status: "authenticated" },
-      revalidate: jest.fn(),
+      revalidate: vi.fn(),
     });
     const partialSearch = "?paymentKey=partial-payment-key";
     setBrowserCallbackEntry(partialSearch);
@@ -239,8 +239,8 @@ describe("PaymentCallbackCredentialBoundary", () => {
   });
 
   it("keeps the application runtime mounted while clean payment routes change", async () => {
-    const onMount = jest.fn();
-    const onUnmount = jest.fn();
+    const onMount = vi.fn();
+    const onUnmount = vi.fn();
     setBrowserCallbackEntry(callbackSearch);
 
     const view = render(

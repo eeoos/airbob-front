@@ -4,7 +4,7 @@ import { SearchPagination } from "./SearchPagination";
 
 describe("SearchPagination", () => {
   it("selects a zero-based page index from a visible page button", async () => {
-    const onPageChange = jest.fn();
+    const onPageChange = vi.fn();
 
     render(
       <SearchPagination
@@ -27,7 +27,7 @@ describe("SearchPagination", () => {
         currentPage={0}
         totalPages={4}
         isLoading={false}
-        onPageChange={jest.fn()}
+        onPageChange={vi.fn()}
       />
     );
 
@@ -40,7 +40,7 @@ describe("SearchPagination", () => {
         currentPage={1}
         totalPages={4}
         isLoading={false}
-        onPageChange={jest.fn()}
+        onPageChange={vi.fn()}
       />
     );
 
@@ -54,7 +54,7 @@ describe("SearchPagination", () => {
   });
 
   it("keeps only previous, current, and next controls in compact mode", async () => {
-    const onPageChange = jest.fn();
+    const onPageChange = vi.fn();
 
     render(
       <SearchPagination
@@ -86,7 +86,7 @@ describe("SearchPagination", () => {
         currentPage={currentPage as number}
         totalPages={4}
         isLoading={false}
-        onPageChange={jest.fn()}
+        onPageChange={vi.fn()}
         variant="compact"
       />,
     );

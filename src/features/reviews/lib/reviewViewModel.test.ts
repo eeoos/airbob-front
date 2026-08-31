@@ -1,7 +1,7 @@
 import type { Review } from "../model";
 import { toReviewViewModel } from "./reviewViewModel";
 
-jest.mock("../../../platform/assets/imageUrl", () => ({
+vi.mock("../../../platform/assets/imageUrl", () => ({
   resolveImageUrl: (url: string | null) => url ?? "",
 }));
 

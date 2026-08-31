@@ -4,8 +4,8 @@ import { ProfileShell } from "./ProfileShell";
 
 describe("ProfileShell", () => {
   it("renders guest navigation and delegates mode and tab changes", async () => {
-    const onModeChange = jest.fn();
-    const onTabChange = jest.fn();
+    const onModeChange = vi.fn();
+    const onTabChange = vi.fn();
 
     render(
       <ProfileShell
@@ -32,13 +32,13 @@ describe("ProfileShell", () => {
   });
 
   it("renders host navigation and delegates section changes", async () => {
-    const onTabChange = jest.fn();
+    const onTabChange = vi.fn();
 
     render(
       <ProfileShell
         mode="host"
         activeTab="listings"
-        onModeChange={jest.fn()}
+        onModeChange={vi.fn()}
         onTabChange={onTabChange}
       >
         <div>host content</div>

@@ -48,7 +48,7 @@ describe("sessionStorageDriver", () => {
             : operation === "remove"
               ? "removeItem"
               : "key";
-      jest.spyOn(storage, method).mockImplementation(() => {
+      vi.spyOn(storage, method).mockImplementation(() => {
         throw new Error("private storage detail");
       });
       const driver = createSessionStorageDriver({ getStorage: () => storage });

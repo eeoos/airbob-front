@@ -1,3 +1,4 @@
+import type { Mock } from "vitest";
 import { IntegrationError } from "./errors";
 import {
   ensureGooglePlacesReady,
@@ -8,11 +9,11 @@ import {
 const createPlacesRuntime = () => ({
   AutocompleteSessionToken: function AutocompleteSessionToken() {},
   AutocompleteSuggestion: {
-    fetchAutocompleteSuggestions: jest.fn(),
+    fetchAutocompleteSuggestions: vi.fn(),
   },
 });
 
-const installMapsRuntime = (importLibrary?: jest.Mock) => {
+const installMapsRuntime = (importLibrary?: Mock) => {
   (window as any).google = {
     maps: {
       Map: function Map() {},
@@ -25,18 +26,18 @@ describe("Google Places platform integration", () => {
   const originalGoogle = window.google;
 
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     delete (window as any).google;
   });
 
   afterEach(() => {
-    jest.clearAllTimers();
-    jest.useRealTimers();
+    vi.clearAllTimers();
+    vi.useRealTimers();
     (window as any).google = originalGoogle;
   });
 
   it("returns an already validated runtime without importing again", async () => {
-    const importLibrary = jest.fn();
+    const importLibrary = vi.fn();
     const places = createPlacesRuntime();
     installMapsRuntime(importLibrary);
     (window as any).google.maps.places = places;
@@ -56,7 +57,7 @@ describe("Google Places platform integration", () => {
 
   it("shares one lazy import across concurrent readiness callers", async () => {
     let resolveImport!: () => void;
-    const importLibrary = jest.fn(
+    const importLibrary = vi.fn(
       () =>
         new Promise<void>((resolve) => {
           resolveImport = resolve;
@@ -79,27 +80,27 @@ describe("Google Places platform integration", () => {
   });
 
   it("waits for the namespace after import resolution and clears readiness timers", async () => {
-    const importLibrary = jest.fn().mockResolvedValue(undefined);
+    const importLibrary = vi.fn().mockResolvedValue(undefined);
     installMapsRuntime(importLibrary);
 
     const readiness = ensureGooglePlacesReady();
     await Promise.resolve();
-    expect(jest.getTimerCount()).toBe(2);
+    expect(vi.getTimerCount()).toBe(2);
 
     const places = createPlacesRuntime();
     (window as any).google.maps.places = places;
-    jest.advanceTimersByTime(50);
+    vi.advanceTimersByTime(50);
 
     await expect(readiness).resolves.toBe(places);
-    expect(jest.getTimerCount()).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it("returns a safe typed timeout without provider payloads", async () => {
-    installMapsRuntime(jest.fn().mockResolvedValue(undefined));
+    installMapsRuntime(vi.fn().mockResolvedValue(undefined));
 
     const readiness = ensureGooglePlacesReady();
     await Promise.resolve();
-    jest.advanceTimersByTime(GOOGLE_PLACES_READINESS_TIMEOUT_MS);
+    vi.advanceTimersByTime(GOOGLE_PLACES_READINESS_TIMEOUT_MS);
 
     await expect(readiness).rejects.toEqual(
       expect.objectContaining({
@@ -109,12 +110,12 @@ describe("Google Places platform integration", () => {
       }),
     );
     await expect(readiness).rejects.toBeInstanceOf(IntegrationError);
-    expect(jest.getTimerCount()).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it("times out a stalled import and allows the next caller to retry", async () => {
     const places = createPlacesRuntime();
-    const importLibrary = jest
+    const importLibrary = vi
       .fn()
       .mockImplementationOnce(() => new Promise<void>(() => {}))
       .mockImplementationOnce(() => {
@@ -124,21 +125,21 @@ describe("Google Places platform integration", () => {
     installMapsRuntime(importLibrary);
 
     const stalledReadiness = ensureGooglePlacesReady();
-    jest.advanceTimersByTime(GOOGLE_PLACES_READINESS_TIMEOUT_MS);
+    vi.advanceTimersByTime(GOOGLE_PLACES_READINESS_TIMEOUT_MS);
 
     await expect(stalledReadiness).rejects.toMatchObject({
       code: "INTEGRATION_TIMEOUT",
       integration: "google-places",
     });
-    expect(jest.getTimerCount()).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
 
     await expect(ensureGooglePlacesReady()).resolves.toBe(places);
     expect(importLibrary).toHaveBeenCalledTimes(2);
-    expect(jest.getTimerCount()).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it("normalizes import rejection to a retryable integration error", async () => {
-    installMapsRuntime(jest.fn().mockRejectedValue({ apiKey: "secret" }));
+    installMapsRuntime(vi.fn().mockRejectedValue({ apiKey: "secret" }));
 
     await expect(ensureGooglePlacesReady()).rejects.toMatchObject({
       code: "INTEGRATION_LOAD_FAILED",

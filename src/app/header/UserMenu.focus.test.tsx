@@ -1,3 +1,4 @@
+import type { Mocked } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { OverlayProvider } from "../overlays/OverlayProvider";
@@ -7,39 +8,38 @@ import {
 } from "../../features/auth/ports/AuthCommandProvider";
 import { UserMenu } from "./UserMenu";
 
-const mockNavigate = jest.fn();
-const mockLogout = jest.fn().mockResolvedValue(undefined);
-const mockCreateDraft = jest.fn().mockResolvedValue(undefined);
+const mockNavigate = vi.fn();
+const mockLogout = vi.fn().mockResolvedValue(undefined);
+const mockCreateDraft = vi.fn().mockResolvedValue(undefined);
 
-jest.mock(
+vi.mock(
   "react-router-dom",
   () => ({
     useLocation: () => ({ hash: "", key: "default", pathname: "/", search: "" }),
     useNavigate: () => mockNavigate,
   }),
-  { virtual: true },
 );
 
-jest.mock("../session/useSession", () => ({
+vi.mock("../session/useSession", () => ({
   useSession: () => ({ logout: mockLogout }),
 }));
 
-jest.mock("../../features/accommodations/ports/draftCreate", () => ({
+vi.mock("../../features/accommodations/ports/draftCreate", () => ({
   useCreateAccommodationDraft: () => ({
     createDraft: mockCreateDraft,
     isCreating: false,
   }),
 }));
 
-const commands: jest.Mocked<AuthCommandPort> = {
-  login: jest.fn().mockResolvedValue(undefined),
-  signup: jest.fn().mockResolvedValue(undefined),
-  shouldCompleteLoginInCurrentView: jest.fn(() => true),
+const commands: Mocked<AuthCommandPort> = {
+  login: vi.fn().mockResolvedValue(undefined),
+  signup: vi.fn().mockResolvedValue(undefined),
+  shouldCompleteLoginInCurrentView: vi.fn(() => true),
 };
 
 describe("UserMenu auth modal focus return", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it.each(["로그인", "회원가입"] as const)(

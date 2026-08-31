@@ -6,7 +6,7 @@ import { ToastHost } from "./ToastHost";
 
 describe("ToastHost", () => {
   it("announces a message inside the fixed host", () => {
-    render(<ToastHost message="저장에 실패했습니다." onClose={jest.fn()} />);
+    render(<ToastHost message="저장에 실패했습니다." onClose={vi.fn()} />);
 
     const alert = screen.getByRole("alert");
 
@@ -15,7 +15,7 @@ describe("ToastHost", () => {
   });
 
   it("delegates close clicks", async () => {
-    const onClose = jest.fn();
+    const onClose = vi.fn();
 
     render(
       <ToastHost
@@ -31,8 +31,8 @@ describe("ToastHost", () => {
   });
 
   it("auto closes after the configured duration", () => {
-    jest.useFakeTimers();
-    const onClose = jest.fn();
+    vi.useFakeTimers();
+    const onClose = vi.fn();
 
     try {
       render(
@@ -44,22 +44,22 @@ describe("ToastHost", () => {
       );
 
       act(() => {
-        jest.advanceTimersByTime(1499);
+        vi.advanceTimersByTime(1499);
       });
       expect(onClose).not.toHaveBeenCalled();
 
       act(() => {
-        jest.advanceTimersByTime(1);
+        vi.advanceTimersByTime(1);
       });
       expect(onClose).toHaveBeenCalledTimes(1);
     } finally {
-      jest.useRealTimers();
+      vi.useRealTimers();
     }
   });
 
   it("restarts the dismiss timer when the message changes", () => {
-    jest.useFakeTimers();
-    const onClose = jest.fn();
+    vi.useFakeTimers();
+    const onClose = vi.fn();
 
     try {
       const view = render(
@@ -67,30 +67,30 @@ describe("ToastHost", () => {
       );
 
       act(() => {
-        jest.advanceTimersByTime(1000);
+        vi.advanceTimersByTime(1000);
       });
       view.rerender(
         <ToastHost message="두 번째 메시지" onClose={onClose} duration={1500} />,
       );
 
       act(() => {
-        jest.advanceTimersByTime(1499);
+        vi.advanceTimersByTime(1499);
       });
       expect(onClose).not.toHaveBeenCalled();
 
       act(() => {
-        jest.advanceTimersByTime(1);
+        vi.advanceTimersByTime(1);
       });
       expect(onClose).toHaveBeenCalledTimes(1);
     } finally {
-      jest.useRealTimers();
+      vi.useRealTimers();
     }
   });
 
   it("uses the latest onClose without restarting the active timer", () => {
-    jest.useFakeTimers();
-    const firstOnClose = jest.fn();
-    const latestOnClose = jest.fn();
+    vi.useFakeTimers();
+    const firstOnClose = vi.fn();
+    const latestOnClose = vi.fn();
 
     try {
       const view = render(
@@ -102,7 +102,7 @@ describe("ToastHost", () => {
       );
 
       act(() => {
-        jest.advanceTimersByTime(1000);
+        vi.advanceTimersByTime(1000);
       });
       view.rerender(
         <ToastHost
@@ -113,25 +113,25 @@ describe("ToastHost", () => {
       );
 
       act(() => {
-        jest.advanceTimersByTime(499);
+        vi.advanceTimersByTime(499);
       });
       expect(firstOnClose).not.toHaveBeenCalled();
       expect(latestOnClose).not.toHaveBeenCalled();
 
       act(() => {
-        jest.advanceTimersByTime(1);
+        vi.advanceTimersByTime(1);
       });
       expect(firstOnClose).not.toHaveBeenCalled();
       expect(latestOnClose).toHaveBeenCalledTimes(1);
     } finally {
-      jest.useRealTimers();
+      vi.useRealTimers();
     }
   });
 
   it("keeps a required recovery action visible without auto closing", () => {
-    jest.useFakeTimers();
-    const onAction = jest.fn();
-    const onClose = jest.fn();
+    vi.useFakeTimers();
+    const onAction = vi.fn();
+    const onClose = vi.fn();
 
     try {
       render(
@@ -144,7 +144,7 @@ describe("ToastHost", () => {
       );
 
       act(() => {
-        jest.advanceTimersByTime(10_000);
+        vi.advanceTimersByTime(10_000);
       });
       expect(onClose).not.toHaveBeenCalled();
       expect(onAction).not.toHaveBeenCalled();
@@ -159,7 +159,7 @@ describe("ToastHost", () => {
       expect(onAction).toHaveBeenCalledTimes(1);
       expect(onClose).not.toHaveBeenCalled();
     } finally {
-      jest.useRealTimers();
+      vi.useRealTimers();
     }
   });
 

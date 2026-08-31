@@ -1,15 +1,16 @@
 import { renderHook } from "@testing-library/react";
 import type { MutableRefObject, RefObject } from "react";
+import type { Mock } from "vitest";
 import type { SearchMapAccommodation, SearchMapMarker } from "../types";
 import { useMapSelectionInfoWindow } from "./useMapSelectionInfoWindow";
 
 type HookOptions = Parameters<typeof useMapSelectionInfoWindow>[0];
 
 interface FakeInfoWindowInstance {
-  addListener: jest.Mock;
-  close: jest.Mock;
+  addListener: Mock;
+  close: Mock;
   listeners: Record<string, Array<() => void>>;
-  open: jest.Mock;
+  open: Mock;
 }
 
 const ref = <T,>(current: T): MutableRefObject<T> => ({ current });
@@ -37,13 +38,13 @@ const createAccommodation = (
 const createMarker = (accommodationId: number): SearchMapMarker =>
   ({
     accommodationId,
-    getIcon: jest.fn(),
+    getIcon: vi.fn(),
     icons: {
       default: "default-icon",
       hovered: "hovered-icon",
       selected: "selected-icon",
     },
-    setIcon: jest.fn(),
+    setIcon: vi.fn(),
   }) as unknown as SearchMapMarker;
 
 const createHookOptions = (
@@ -59,7 +60,7 @@ const createHookOptions = (
     current: document.createElement("div"),
   } as RefObject<HTMLDivElement | null>,
   markersRef: ref<SearchMapMarker[]>([]),
-  onAccommodationSelect: jest.fn(),
+  onAccommodationSelect: vi.fn(),
   prevHoveredIdRef: ref<number | null>(null),
   prevSelectedIdRef: ref<number | null>(null),
   selectedAccommodationId: null,
@@ -68,31 +69,31 @@ const createHookOptions = (
 
 const installGoogleMapsMock = () => {
   const infoWindows: FakeInfoWindowInstance[] = [];
-  const removeListener = jest.fn();
-  const addMapListener = jest.fn(
+  const removeListener = vi.fn();
+  const addMapListener = vi.fn(
     (_target: unknown, _eventName: string, _handler: () => void) => ({
-      remove: jest.fn(),
+      remove: vi.fn(),
     }),
   );
 
   class FakeInfoWindow implements FakeInfoWindowInstance {
-    addListener = jest.fn((eventName: string, handler: () => void) => {
+    addListener = vi.fn((eventName: string, handler: () => void) => {
       this.listeners[eventName] = [
         ...(this.listeners[eventName] ?? []),
         handler,
       ];
 
-      return { remove: jest.fn() };
+      return { remove: vi.fn() };
     });
 
-    close = jest.fn(() => {
+    close = vi.fn(() => {
       this.listeners.close?.forEach((handler) => {
         handler();
       });
     });
 
     listeners: Record<string, Array<() => void>> = {};
-    open = jest.fn();
+    open = vi.fn();
 
     constructor() {
       infoWindows.push(this);
@@ -122,7 +123,7 @@ describe("useMapSelectionInfoWindow", () => {
   afterEach(() => {
     delete (window as any).google;
     delete (global as any).google;
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("closes and clears the current InfoWindow when the selected accommodation disappears", () => {
@@ -130,7 +131,7 @@ describe("useMapSelectionInfoWindow", () => {
     const selectedAccommodation = createAccommodation();
     const selectedMarker = createMarker(selectedAccommodation.id);
     const infoWindowRef = ref<google.maps.InfoWindow | null>(null);
-    const onAccommodationSelect = jest.fn();
+    const onAccommodationSelect = vi.fn();
 
     const options: HookOptions = {
       accommodations: [selectedAccommodation],
@@ -184,7 +185,7 @@ describe("useMapSelectionInfoWindow", () => {
     const firstMarker = createMarker(firstAccommodation.id);
     const secondMarker = createMarker(secondAccommodation.id);
     const infoWindowRef = ref<google.maps.InfoWindow | null>(null);
-    const onAccommodationSelect = jest.fn();
+    const onAccommodationSelect = vi.fn();
     const baseOptions = createHookOptions({
       accommodations: [firstAccommodation, secondAccommodation],
       infoWindowRef,
@@ -277,7 +278,7 @@ describe("useMapSelectionInfoWindow", () => {
   });
 
   it("closes its InfoWindow and clears DOM/resize timers on unmount", () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     const googleMaps = installGoogleMapsMock();
     const selectedAccommodation = createAccommodation();
     const selectedMarker = createMarker(selectedAccommodation.id);
@@ -311,13 +312,13 @@ describe("useMapSelectionInfoWindow", () => {
     expect(resizeCall).toBeDefined();
     resizeCall?.[2]?.();
 
-    expect(jest.getTimerCount()).toBeGreaterThan(0);
+    expect(vi.getTimerCount()).toBeGreaterThan(0);
 
     unmount();
 
     expect(infoWindow.close).toHaveBeenCalledTimes(1);
     expect(googleMaps.removeListener).toHaveBeenCalled();
-    expect(jest.getTimerCount()).toBe(0);
-    jest.useRealTimers();
+    expect(vi.getTimerCount()).toBe(0);
+    vi.useRealTimers();
   });
 });

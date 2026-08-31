@@ -13,9 +13,9 @@ const guestTrips = (
   filterType: "UPCOMING",
   getReservationHref: (reservationUid) =>
     `/reservations/${reservationUid}`,
-  loadMoreRef: jest.fn(),
-  onDismissError: jest.fn(),
-  onOpenReservation: jest.fn(),
+  loadMoreRef: vi.fn(),
+  onDismissError: vi.fn(),
+  onOpenReservation: vi.fn(),
   state: {
     status: "ready",
     hasNext: false,
@@ -41,10 +41,10 @@ const hostListings = (
   overrides: Partial<HostListingsPanelProps> = {},
 ): HostListingsPanelProps => ({
   errorMessage: null,
-  loadMoreRef: jest.fn(),
-  onDismissError: jest.fn(),
-  onOpenListingActions: jest.fn(),
-  onStatusChange: jest.fn(),
+  loadMoreRef: vi.fn(),
+  onDismissError: vi.fn(),
+  onOpenListingActions: vi.fn(),
+  onStatusChange: vi.fn(),
   state: {
     status: "ready",
     hasNext: false,
@@ -79,13 +79,13 @@ const accommodationAction = (
   },
   errorMessage: null,
   isPending: false,
-  onClose: jest.fn(),
-  onDelete: jest.fn(),
-  onDismissError: jest.fn(),
-  onEdit: jest.fn(),
-  onOpenDetail: jest.fn(),
-  onPublish: jest.fn(),
-  onUnpublish: jest.fn(),
+  onClose: vi.fn(),
+  onDelete: vi.fn(),
+  onDismissError: vi.fn(),
+  onEdit: vi.fn(),
+  onOpenDetail: vi.fn(),
+  onPublish: vi.fn(),
+  onUnpublish: vi.fn(),
   ...overrides,
 });
 
@@ -95,11 +95,11 @@ const hostReservations = (
   checkInSortDirection: "descending",
   errorMessage: null,
   filterType: "UPCOMING",
-  loadMoreRef: jest.fn(),
-  onCheckInSort: jest.fn(),
-  onDismissError: jest.fn(),
-  onFilterChange: jest.fn(),
-  onOpenReservation: jest.fn(),
+  loadMoreRef: vi.fn(),
+  onCheckInSort: vi.fn(),
+  onDismissError: vi.fn(),
+  onFilterChange: vi.fn(),
+  onOpenReservation: vi.fn(),
   state: {
     status: "ready",
     hasNext: false,
@@ -125,9 +125,9 @@ const hostReservations = (
 
 describe("ProfileScreen", () => {
   it("composes the guest shell and mapped trip callbacks", async () => {
-    const onModeChange = jest.fn();
-    const onOpenReservation = jest.fn();
-    const onTabChange = jest.fn();
+    const onModeChange = vi.fn();
+    const onOpenReservation = vi.fn();
+    const onTabChange = vi.fn();
 
     render(
       <ProfileScreen
@@ -158,9 +158,9 @@ describe("ProfileScreen", () => {
   });
 
   it("composes host listings with controller-owned selection and action state", async () => {
-    const onDelete = jest.fn();
-    const onOpenListingActions = jest.fn();
-    const onSectionChange = jest.fn();
+    const onDelete = vi.fn();
+    const onOpenListingActions = vi.fn();
+    const onSectionChange = vi.fn();
 
     render(
       <ProfileScreen
@@ -170,7 +170,7 @@ describe("ProfileScreen", () => {
           onDelete,
         })}
         hostListings={hostListings({ onOpenListingActions })}
-        onModeChange={jest.fn()}
+        onModeChange={vi.fn()}
         onSectionChange={onSectionChange}
       />,
     );
@@ -191,14 +191,14 @@ describe("ProfileScreen", () => {
   });
 
   it("composes host reservations and delegates row navigation", async () => {
-    const onOpenReservation = jest.fn();
+    const onOpenReservation = vi.fn();
 
     render(
       <ProfileScreen
         variant="host-reservations"
         hostReservations={hostReservations({ onOpenReservation })}
-        onModeChange={jest.fn()}
-        onSectionChange={jest.fn()}
+        onModeChange={vi.fn()}
+        onSectionChange={vi.fn()}
       />,
     );
 

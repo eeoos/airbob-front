@@ -2,14 +2,14 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import type { SessionSubject } from "../../platform/session/sessionScope";
 import { useReservationCreateCommand } from "./useReservationCreateCommand";
 
-const mockCreateWorkflow = jest.fn();
-const mockStartReservation = jest.fn();
-const mockDisposeWorkflow = jest.fn();
+const mockCreateWorkflow = vi.fn();
+const mockStartReservation = vi.fn();
+const mockDisposeWorkflow = vi.fn();
 
-jest.mock("../../workflows/booking-payment/reservation-create", () => ({
-  ...jest.requireActual(
-    "../../workflows/booking-payment/reservation-create",
-  ),
+vi.mock("../../workflows/booking-payment/reservation-create", async () => ({
+  ...(await vi.importActual<
+    typeof import("../../workflows/booking-payment/reservation-create")
+  >("../../workflows/booking-payment/reservation-create")),
   createReservationCreateWorkflow: (...args: unknown[]) =>
     mockCreateWorkflow(...args),
   reservationCreateTransport: {},
@@ -30,8 +30,8 @@ const authenticatedScope = {
   epoch: 2,
 };
 const checkoutHandoff = {
-  preflight: jest.fn(() => ({ status: "ready" as const })),
-  commit: jest.fn(),
+  preflight: vi.fn(() => ({ status: "ready" as const })),
+  commit: vi.fn(),
 };
 const session = {
   captureAuthenticatedSession: () => authenticatedScope,
@@ -56,8 +56,8 @@ describe("useReservationCreateCommand", () => {
     });
     mockStartReservation.mockReturnValue(pending);
     let firstRouteIsCurrent = true;
-    const onError = jest.fn();
-    const requestAuthentication = jest.fn();
+    const onError = vi.fn();
+    const requestAuthentication = vi.fn();
     const { result, rerender } = renderHook(
       ({ routeLease }) =>
         useReservationCreateCommand({
@@ -121,8 +121,8 @@ describe("useReservationCreateCommand", () => {
     "keeps %s locked across workflow generation changes",
     async (_case, workflowResult) => {
       mockStartReservation.mockResolvedValue(workflowResult);
-      const onError = jest.fn();
-      const requestAuthentication = jest.fn();
+      const onError = vi.fn();
+      const requestAuthentication = vi.fn();
       const { result, rerender } = renderHook(
         ({ routeLease }) =>
           useReservationCreateCommand({

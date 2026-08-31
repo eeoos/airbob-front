@@ -1,20 +1,21 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { Mocked } from "vitest";
 import type { WishlistMembershipCommandPort } from "../../ports/wishlistMembershipCommandPort";
 import { WISHLIST_CREATED_ONLY_MESSAGE } from "../wishlistErrorMessage";
 import { CreateWishlistModal } from "./CreateWishlistModal";
 
-const createCommands = (): jest.Mocked<WishlistMembershipCommandPort> => ({
-  addAccommodation: jest.fn().mockResolvedValue({
+const createCommands = (): Mocked<WishlistMembershipCommandPort> => ({
+  addAccommodation: vi.fn().mockResolvedValue({
     status: "applied",
     isInAnyWishlist: true,
   }),
-  createAndAddAccommodation: jest.fn().mockResolvedValue({
+  createAndAddAccommodation: vi.fn().mockResolvedValue({
     status: "applied",
     isInAnyWishlist: true,
     wishlistId: 12,
   }),
-  removeAccommodation: jest.fn().mockResolvedValue({
+  removeAccommodation: vi.fn().mockResolvedValue({
     status: "applied",
     isInAnyWishlist: false,
   }),
@@ -24,8 +25,8 @@ const renderCreateModal = (
   overrides: Partial<React.ComponentProps<typeof CreateWishlistModal>> = {},
 ) => {
   const commands = createCommands();
-  const onClose = jest.fn();
-  const onComplete = jest.fn();
+  const onClose = vi.fn();
+  const onComplete = vi.fn();
   const view = render(
     <CreateWishlistModal
       accommodationId={7}
@@ -41,7 +42,7 @@ const renderCreateModal = (
 };
 
 describe("CreateWishlistModal", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => vi.clearAllMocks());
 
   it("submits a trimmed name through the injected command port", async () => {
     const { commands, onComplete } = renderCreateModal();
@@ -76,7 +77,7 @@ describe("CreateWishlistModal", () => {
         isInAnyWishlist: true,
         wishlistId: 12,
       });
-    const onComplete = jest.fn();
+    const onComplete = vi.fn();
     renderCreateModal({ commands, onComplete });
     const input = screen.getByRole("textbox", { name: "이름" });
 

@@ -2,7 +2,7 @@ import type { ReviewApiTransport } from "./reviewApi";
 import { createReviewApi } from "./reviewApi";
 
 const createTransport = () => {
-  const request = jest.fn();
+  const request = vi.fn();
 
   return {
     request,

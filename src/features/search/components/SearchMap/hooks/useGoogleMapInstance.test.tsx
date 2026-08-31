@@ -17,7 +17,7 @@ const createOptions = (
   mapInstanceRef: ref<google.maps.Map | null>(null),
   mapRef: { current: mapElement } as RefObject<HTMLDivElement | null>,
   onAccommodationSelectRef: ref(
-    jest.fn() as (accommodation: SearchMapAccommodation | null) => void,
+    vi.fn() as (accommodation: SearchMapAccommodation | null) => void,
   ),
   prevViewportRef: ref<SearchMapViewport | null>(null),
   viewportJustChangedRef: ref(false),
@@ -58,16 +58,16 @@ describe("useGoogleMapInstance", () => {
 
   it("removes every owned listener and SDK instance resource on unmount", () => {
     const listenerHandles = Array.from({ length: 3 }, () => ({
-      remove: jest.fn(),
+      remove: vi.fn(),
     }));
-    const unbindAll = jest.fn();
+    const unbindAll = vi.fn();
     let nextListenerIndex = 0;
-    const addListener = jest.fn(
+    const addListener = vi.fn(
       () => listenerHandles[nextListenerIndex++],
     );
     const map = { addListener, unbindAll };
     const mapElement = document.createElement("div");
-    const removeEventListener = jest.spyOn(mapElement, "removeEventListener");
+    const removeEventListener = vi.spyOn(mapElement, "removeEventListener");
     const mapInstanceRef = ref<google.maps.Map | null>(null);
 
     (window as any).google = {

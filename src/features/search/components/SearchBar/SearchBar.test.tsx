@@ -2,6 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { MockedFunction } from "vitest";
 import { OverlayProvider } from "../../../../app/overlays/OverlayProvider";
 import { SearchBar } from "./SearchBar";
 import {
@@ -9,8 +10,8 @@ import {
   useSearchBarState,
 } from "../../hooks/useSearchBarState";
 
-jest.mock("../../hooks/useSearchBarState", () => ({
-  useSearchBarState: jest.fn(),
+vi.mock("../../hooks/useSearchBarState", () => ({
+  useSearchBarState: vi.fn(),
 }));
 
 type SearchBarState = ReturnType<typeof useSearchBarState>;
@@ -23,15 +24,15 @@ type SearchBarStateOverrides = {
   status?: Partial<SearchBarState["status"]>;
 };
 
-const mockUseSearchBarState = useSearchBarState as jest.MockedFunction<
+const mockUseSearchBarState = useSearchBarState as MockedFunction<
   typeof useSearchBarState
 >;
 
 const routePort: SearchBarRoutePort = {
   currentSearchParams: new URLSearchParams(),
   isSearchRoute: false,
-  pushSearch: jest.fn(),
-  replaceSearch: jest.fn(),
+  pushSearch: vi.fn(),
+  replaceSearch: vi.fn(),
 };
 
 const readProjectFile = (relativePath: string) =>
@@ -81,27 +82,27 @@ const createSearchBarState = (
       ...overrides.popover,
     },
     actions: {
-      changeAdultOccupancy: jest.fn(),
-      changeChildOccupancy: jest.fn(),
-      changeInfantOccupancy: jest.fn(),
-      changePetOccupancy: jest.fn(),
-      expandShell: jest.fn(),
-      collapseShell: jest.fn(),
-      openDestination: jest.fn(),
-      openDatePicker: jest.fn(),
-      toggleGuestPicker: jest.fn(),
-      closeActivePopover: jest.fn(),
-      startComposition: jest.fn(),
-      endComposition: jest.fn(),
-      changeDestination: jest.fn(),
-      selectDestination: jest.fn(),
-      clearDestinationSelection: jest.fn(),
-      startDestinationSession: jest.fn(),
-      handleSearch: jest.fn(),
-      exitMapDragMode: jest.fn(),
-      completeCheckoutIfNeeded: jest.fn(),
-      closeTransientPanels: jest.fn(),
-      handleDateSelect: jest.fn(),
+      changeAdultOccupancy: vi.fn(),
+      changeChildOccupancy: vi.fn(),
+      changeInfantOccupancy: vi.fn(),
+      changePetOccupancy: vi.fn(),
+      expandShell: vi.fn(),
+      collapseShell: vi.fn(),
+      openDestination: vi.fn(),
+      openDatePicker: vi.fn(),
+      toggleGuestPicker: vi.fn(),
+      closeActivePopover: vi.fn(),
+      startComposition: vi.fn(),
+      endComposition: vi.fn(),
+      changeDestination: vi.fn(),
+      selectDestination: vi.fn(),
+      clearDestinationSelection: vi.fn(),
+      startDestinationSession: vi.fn(),
+      handleSearch: vi.fn(),
+      exitMapDragMode: vi.fn(),
+      completeCheckoutIfNeeded: vi.fn(),
+      closeTransientPanels: vi.fn(),
+      handleDateSelect: vi.fn(),
       ...overrides.actions,
     },
     status: {
@@ -123,7 +124,7 @@ const seoulSuggestion = {
 const renderExpandedSearchBarWithSuggestions = (
   overrides: SearchBarStateOverrides = {}
 ) => {
-  const selectDestination = jest.fn();
+  const selectDestination = vi.fn();
 
   mockUseSearchBarState.mockReturnValue(
     createSearchBarState({
@@ -156,13 +157,13 @@ const renderExpandedSearchBarWithSuggestions = (
 
 describe("SearchBar", () => {
   beforeEach(() => {
-    jest.useFakeTimers();
-    jest.setSystemTime(new Date("2026-07-10T12:00:00"));
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-10T12:00:00"));
     mockUseSearchBarState.mockReturnValue(createSearchBarState());
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it("keeps icon controls at the shared touch target and resets suggestion buttons", () => {
@@ -311,9 +312,9 @@ describe("SearchBar", () => {
   });
 
   it("updates destination input state, resets stale place selection, and opens suggestions while typing", async () => {
-    const changeDestination = jest.fn();
-    const clearDestinationSelection = jest.fn();
-    const openDestination = jest.fn();
+    const changeDestination = vi.fn();
+    const clearDestinationSelection = vi.fn();
+    const openDestination = vi.fn();
 
     mockUseSearchBarState.mockReturnValue(
       createSearchBarState({
@@ -354,10 +355,10 @@ describe("SearchBar", () => {
   });
 
   it("clamps guest counter decrements at their minimum values", async () => {
-    const changeAdultOccupancy = jest.fn();
-    const changeChildOccupancy = jest.fn();
-    const changeInfantOccupancy = jest.fn();
-    const changePetOccupancy = jest.fn();
+    const changeAdultOccupancy = vi.fn();
+    const changeChildOccupancy = vi.fn();
+    const changeInfantOccupancy = vi.fn();
+    const changePetOccupancy = vi.fn();
 
     mockUseSearchBarState.mockReturnValue(
       createSearchBarState({
@@ -405,8 +406,8 @@ describe("SearchBar", () => {
   });
 
   it("submits through the current search handler and closes open filters", async () => {
-    const closeTransientPanels = jest.fn();
-    const handleSearch = jest.fn();
+    const closeTransientPanels = vi.fn();
+    const handleSearch = vi.fn();
 
     mockUseSearchBarState.mockReturnValue(
       createSearchBarState({
@@ -433,7 +434,7 @@ describe("SearchBar", () => {
   });
 
   it("closes the active guest popover on Escape", async () => {
-    const closeActivePopover = jest.fn();
+    const closeActivePopover = vi.fn();
 
     mockUseSearchBarState.mockReturnValue(
       createSearchBarState({
@@ -466,8 +467,8 @@ describe("SearchBar", () => {
   });
 
   it("closes the active date popover from its trigger and restores focus", async () => {
-    const closeActivePopover = jest.fn();
-    const completeCheckoutIfNeeded = jest.fn();
+    const closeActivePopover = vi.fn();
+    const completeCheckoutIfNeeded = vi.fn();
 
     mockUseSearchBarState.mockReturnValue(
       createSearchBarState({
@@ -505,9 +506,9 @@ describe("SearchBar", () => {
   });
 
   it("closes the date picker from an active date cell and restores trigger focus", async () => {
-    const closeActivePopover = jest.fn();
-    const completeCheckoutIfNeeded = jest.fn();
-    const collapseShell = jest.fn();
+    const closeActivePopover = vi.fn();
+    const completeCheckoutIfNeeded = vi.fn();
+    const collapseShell = vi.fn();
 
     mockUseSearchBarState.mockReturnValue(
       createSearchBarState({

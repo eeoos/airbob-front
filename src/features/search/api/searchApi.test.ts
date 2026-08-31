@@ -17,7 +17,7 @@ const emptyWirePage: SearchResultPageWire = {
 
 describe("search API adapter", () => {
   it("preserves method, path, query keys, signal and omits a request body", async () => {
-    const transport = jest.fn().mockResolvedValue(emptyWirePage);
+    const transport = vi.fn().mockResolvedValue(emptyWirePage);
     const api = createSearchApi(transport as SearchApiTransport);
     const signal = new AbortController().signal;
 

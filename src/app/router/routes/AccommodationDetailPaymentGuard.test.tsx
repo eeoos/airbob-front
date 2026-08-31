@@ -25,16 +25,16 @@ const scope: AuthenticatedSessionScope = {
 };
 let capturedHandoff: ReservationCheckoutHandoffPort | null = null;
 
-jest.mock("../../../platform/browser/windowNavigation", () => ({
+vi.mock("../../../platform/browser/windowNavigation", () => ({
   browserWindowNavigation: {
     getOrigin: () => "https://airbob.test",
     isCurrentHistoryEntry: () => true,
-    openInNewTab: jest.fn(),
-    replaceCurrentUrl: jest.fn(),
+    openInNewTab: vi.fn(),
+    replaceCurrentUrl: vi.fn(),
   },
 }));
 
-jest.mock("../../../screens/accommodation-detail/public", () => ({
+vi.mock("../../../screens/accommodation-detail/public", () => ({
   AccommodationDetailController: (props: {
     checkoutHandoff: ReservationCheckoutHandoffPort;
   }) => {
@@ -43,21 +43,21 @@ jest.mock("../../../screens/accommodation-detail/public", () => ({
   },
 }));
 
-jest.mock("../../../workflows/auth-intent", () => ({
+vi.mock("../../../workflows/auth-intent", () => ({
   toAuthIntentLocalDate: (value: string) => value,
   useAuthIntent: () => ({
     pending: null,
-    request: jest.fn(),
-    cancel: jest.fn(),
-    claim: jest.fn(),
+    request: vi.fn(),
+    cancel: vi.fn(),
+    claim: vi.fn(),
   }),
 }));
 
-jest.mock("../../../workflows/wishlist-membership", () => ({
+vi.mock("../../../workflows/wishlist-membership", () => ({
   useWishlistMembership: () => ({}),
 }));
 
-jest.mock("./WishlistMembershipRouteBoundary", () => ({
+vi.mock("./WishlistMembershipRouteBoundary", () => ({
   WishlistMembershipRouteBoundary: ({
     children,
   }: {
@@ -81,13 +81,13 @@ const mockSession = {
   captureAuthenticatedSession: () => scope,
   isCurrentSession: (candidate: AuthenticatedSessionScope) =>
     candidate.subject === scope.subject && candidate.epoch === scope.epoch,
-  login: jest.fn(),
-  logout: jest.fn(),
-  revalidate: jest.fn(),
-  retryServerLogout: jest.fn(),
+  login: vi.fn(),
+  logout: vi.fn(),
+  revalidate: vi.fn(),
+  retryServerLogout: vi.fn(),
 };
 
-jest.mock("../../session/useSession", () => ({
+vi.mock("../../session/useSession", () => ({
   useSession: () => mockSession,
 }));
 

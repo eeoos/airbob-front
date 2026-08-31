@@ -1,4 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
+import type { Mocked } from "vitest";
 import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
 import type {
   HostListingPage,
@@ -53,8 +54,8 @@ const deferred = <T,>() => {
 
 describe("host listing query boundary", () => {
   it("keys and tags the authenticated subject, epoch and status while forwarding page cursor and signal", async () => {
-    const api: jest.Mocked<HostListingsApiPort> = {
-      getHostListings: jest.fn().mockResolvedValue(page(31, "cursor-2")),
+    const api: Mocked<HostListingsApiPort> = {
+      getHostListings: vi.fn().mockResolvedValue(page(31, "cursor-2")),
     };
     const options = createHostListingInfiniteQueryOptions(
       { scope: scopeA, status: "PUBLISHED" },
@@ -104,7 +105,7 @@ describe("host listing query boundary", () => {
     const published = deferred<HostListingPage>();
     const draft = deferred<HostListingPage>();
     const api: HostListingsApiPort = {
-      getHostListings: jest.fn((request: HostListingsRequest) =>
+      getHostListings: vi.fn((request: HostListingsRequest) =>
         request.status === "PUBLISHED" ? published.promise : draft.promise,
       ),
     };

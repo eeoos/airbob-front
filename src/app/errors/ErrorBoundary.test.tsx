@@ -1,3 +1,4 @@
+import type { MockInstance } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { readFileSync } from "fs";
@@ -12,12 +13,12 @@ const MaybeThrowingChild = () => {
 };
 
 describe("ErrorBoundary", () => {
-  let consoleErrorSpy: jest.SpyInstance;
+  let consoleErrorSpy: MockInstance;
 
   beforeEach(() => {
     shouldThrow = true;
     errorMessage = "테스트 오류";
-    consoleErrorSpy = jest
+    consoleErrorSpy = vi
       .spyOn(console, "error")
       .mockImplementation(() => undefined);
   });

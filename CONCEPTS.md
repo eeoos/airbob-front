@@ -31,7 +31,10 @@ In this workflow, reviewer findings become new regression tests rather than note
 A behavior-preserving frontend reorganization that makes ownership boundaries executable before visual redesign, framework migration, or broad product styling begins.
 
 ### Vite Build Cutover
-The U16 ownership switch where Vite becomes the only development and production compiler while preserving the `build/` output, public environment allowlist, development API proxy, public assets, CSS Modules, production JavaScript and development CSS source maps, and lazy-route graph. Jest continues through `react-scripts` only as a temporary test-runner dependency until U17.
+The U16 ownership switch where Vite becomes the only development and production compiler while preserving the `build/` output, public environment allowlist, development API proxy, public assets, CSS Modules, production JavaScript and development CSS source maps, and lazy-route graph.
+
+### Vitest Test Cutover
+The U17 ownership switch where Vitest 4 becomes the sole unit/integration runner over Vite's module graph. The jsdom suite preserves Jest-era behavior without Axios/router shims, uses deterministic file execution and ordered hooks, and removes `react-scripts` and Jest types from the install graph.
 
 ### Immutable Deployment Rollback
 A frontend rollback that restores one recorded Git commit and its commit-specific Vercel deployment, including that deployment's own HTML and hashed assets. The previous deployment is retained rather than rebuilt or mixed with a candidate's files; live deep-link and already-open-tab asset checks remain required deployment evidence.

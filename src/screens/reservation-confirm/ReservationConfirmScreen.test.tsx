@@ -8,8 +8,8 @@ import {
 
 const createProps = (): ReservationConfirmScreenProps => ({
   errorMessage: null,
-  onClearError: jest.fn(),
-  onConfirmPayment: jest.fn(),
+  onClearError: vi.fn(),
+  onConfirmPayment: vi.fn(),
   paymentStatus: "ready",
   state: {
     status: "ready",

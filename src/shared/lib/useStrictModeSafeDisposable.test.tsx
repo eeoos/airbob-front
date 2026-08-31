@@ -9,7 +9,7 @@ const Harness = ({ resource }: { resource: { dispose(): void } }) => {
 
 describe("useStrictModeSafeDisposable", () => {
   it("keeps the committed resource alive through StrictMode effect replay", async () => {
-    const resource = { dispose: jest.fn() };
+    const resource = { dispose: vi.fn() };
     const view = render(
       <StrictMode>
         <Harness resource={resource} />
@@ -25,8 +25,8 @@ describe("useStrictModeSafeDisposable", () => {
   });
 
   it("disposes the replaced generation but not its replacement", async () => {
-    const previous = { dispose: jest.fn() };
-    const current = { dispose: jest.fn() };
+    const previous = { dispose: vi.fn() };
+    const current = { dispose: vi.fn() };
     const view = render(<Harness resource={previous} />);
 
     view.rerender(<Harness resource={current} />);

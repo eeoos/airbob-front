@@ -10,6 +10,7 @@ import {
   type GuestTripsFilterType,
   type GuestTripsPanelProps,
 } from "./GuestTripsPanel";
+import styles from "./GuestTripsPanel.module.css";
 
 const trip = {
   reservationUid: "reservation-11",
@@ -25,9 +26,9 @@ const createProps = (
   filterType: "UPCOMING",
   getReservationHref: (reservationUid) =>
     `/reservations/${reservationUid}`,
-  loadMoreRef: jest.fn(),
-  onDismissError: jest.fn(),
-  onOpenReservation: jest.fn(),
+  loadMoreRef: vi.fn(),
+  onDismissError: vi.fn(),
+  onOpenReservation: vi.fn(),
   state: {
     status: "ready",
     groups: [],
@@ -61,7 +62,7 @@ describe("GuestTripsPanel", () => {
   });
 
   it("renders grouped navigation cards and delegates plain primary clicks", () => {
-    const onOpenReservation = jest.fn();
+    const onOpenReservation = vi.fn();
 
     render(
       <GuestTripsPanel
@@ -87,7 +88,7 @@ describe("GuestTripsPanel", () => {
     const article = screen.getByRole("article");
 
     expect(card).toHaveAttribute("href", "/reservations/reservation-11");
-    expect(article).toHaveClass("reservationCard");
+    expect(article).toHaveClass(styles.reservationCard);
     expect(card).not.toContainElement(screen.getByText("산장 숙소"));
 
     const click = createEvent.click(card, { button: 0 });
@@ -98,7 +99,7 @@ describe("GuestTripsPanel", () => {
   });
 
   it("preserves browser navigation for modified and new-tab clicks", () => {
-    const onOpenReservation = jest.fn();
+    const onOpenReservation = vi.fn();
 
     render(
       <GuestTripsPanel
@@ -131,8 +132,8 @@ describe("GuestTripsPanel", () => {
   });
 
   it("preserves infinite-load and dismissible error behavior", async () => {
-    const loadMoreRef = jest.fn();
-    const onDismissError = jest.fn();
+    const loadMoreRef = vi.fn();
+    const onDismissError = vi.fn();
 
     render(
       <GuestTripsPanel

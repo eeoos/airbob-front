@@ -5,21 +5,21 @@ import { renderApp } from "../../test/renderApp";
 import type { SessionSubject } from "../../platform/session/sessionScope";
 import { ReviewCreateController } from "./ReviewCreateController";
 
-const mockUseReviewableReservationReadQuery = jest.fn();
-const mockCreateWorkflow = jest.fn();
-const mockSubmit = jest.fn();
-const mockDispose = jest.fn();
+const mockUseReviewableReservationReadQuery = vi.fn();
+const mockCreateWorkflow = vi.fn();
+const mockSubmit = vi.fn();
+const mockDispose = vi.fn();
 
-jest.mock("../../features/reservations/public", () => ({
+vi.mock("../../features/reservations/public", () => ({
   useReviewableReservationReadQuery: (...args: unknown[]) =>
     mockUseReviewableReservationReadQuery(...args),
 }));
 
-jest.mock("../../features/reviews/public", () => ({
+vi.mock("../../features/reviews/public", () => ({
   reviewApi: {},
 }));
 
-jest.mock("../../workflows/review-submission", () => ({
+vi.mock("../../workflows/review-submission", () => ({
   createReviewSubmissionWorkflow: (...args: unknown[]) =>
     mockCreateWorkflow(...args),
 }));
@@ -45,11 +45,11 @@ const reservation = {
 };
 
 const session = {
-  captureAuthenticatedSession: jest.fn(() => ({
+  captureAuthenticatedSession: vi.fn(() => ({
     subject: "subject:member_1" as SessionSubject,
     epoch: 3,
   })),
-  isCurrentSession: jest.fn(() => true),
+  isCurrentSession: vi.fn(() => true),
 };
 const authenticatedScope = {
   subject: "subject:member_1" as SessionSubject,
@@ -60,9 +60,9 @@ const renderController = (
   overrides: Partial<React.ComponentProps<typeof ReviewCreateController>> = {},
 ) => {
   const props: React.ComponentProps<typeof ReviewCreateController> = {
-    onBack: jest.fn(),
-    onComplete: jest.fn(),
-    publication: { publishReviewCreated: jest.fn() },
+    onBack: vi.fn(),
+    onComplete: vi.fn(),
+    publication: { publishReviewCreated: vi.fn() },
     reservationUid: "reservation-123",
     resolveImageUrl: (path) => `https://cdn.example.com${path ?? ""}`,
     routeLease: { isCurrent: () => true },
@@ -77,8 +77,8 @@ const renderController = (
 
 describe("ReviewCreateController", () => {
   beforeEach(() => {
-    URL.createObjectURL = jest.fn(() => "blob:review-image");
-    URL.revokeObjectURL = jest.fn();
+    URL.createObjectURL = vi.fn(() => "blob:review-image");
+    URL.revokeObjectURL = vi.fn();
     session.captureAuthenticatedSession.mockReturnValue({
       subject: "subject:member_1" as SessionSubject,
       epoch: 3,
@@ -119,9 +119,9 @@ describe("ReviewCreateController", () => {
 
   it("keeps the committed submission workflow live through StrictMode replay", async () => {
     const props: React.ComponentProps<typeof ReviewCreateController> = {
-      onBack: jest.fn(),
-      onComplete: jest.fn(),
-      publication: { publishReviewCreated: jest.fn() },
+      onBack: vi.fn(),
+      onComplete: vi.fn(),
+      publication: { publishReviewCreated: vi.fn() },
       reservationUid: "reservation-123",
       resolveImageUrl: (path) => path ?? "",
       routeLease: { isCurrent: () => true },
@@ -302,9 +302,9 @@ describe("ReviewCreateController", () => {
       submit: mockSubmit,
     }));
     const props: React.ComponentProps<typeof ReviewCreateController> = {
-      onBack: jest.fn(),
-      onComplete: jest.fn(),
-      publication: { publishReviewCreated: jest.fn() },
+      onBack: vi.fn(),
+      onComplete: vi.fn(),
+      publication: { publishReviewCreated: vi.fn() },
       reservationUid: "reservation-123",
       resolveImageUrl: (path) => path ?? "",
       routeLease: { isCurrent: () => true },

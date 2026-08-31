@@ -1,4 +1,4 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { createElement, StrictMode, type ReactNode } from "react";
 import {
   type PlacePrediction,
@@ -21,11 +21,11 @@ const createRawPrediction = (placeId: string, description: string) => ({
   text: { text: description },
   mainText: { text: description },
   secondaryText: { text: "대한민국" },
-  toPlace: jest.fn(),
+  toPlace: vi.fn(),
 });
 
 const createPlace = (lat: number, lng: number) => ({
-  fetchFields: jest.fn().mockResolvedValue(undefined),
+  fetchFields: vi.fn().mockResolvedValue(undefined),
   location: { lat: () => lat, lng: () => lng },
   viewport: {
     getNorthEast: () => ({ lat: () => lat + 0.1, lng: () => lng + 0.1 }),
@@ -37,9 +37,9 @@ describe("usePlacesAutocomplete", () => {
   const originalGoogle = window.google;
 
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
 
-    const fetchAutocompleteSuggestions = jest.fn();
+    const fetchAutocompleteSuggestions = vi.fn();
     (window as any).google = {
       maps: {
         Map: function Map() {},
@@ -52,15 +52,15 @@ describe("usePlacesAutocomplete", () => {
   });
 
   afterEach(() => {
-    jest.clearAllTimers();
-    jest.useRealTimers();
+    vi.clearAllTimers();
+    vi.useRealTimers();
     (window as any).google = originalGoogle;
   });
 
   it("ignores an older autocomplete response after newer input is submitted", async () => {
     const first = createDeferred<{ suggestions: any[] }>();
     const second = createDeferred<{ suggestions: any[] }>();
-    jest
+    vi
       .mocked(
         (window.google.maps.places as any).AutocompleteSuggestion
           .fetchAutocompleteSuggestions,
@@ -73,15 +73,15 @@ describe("usePlacesAutocomplete", () => {
     const { result } = renderHook(() => usePlacesAutocomplete());
 
     act(() => result.current.startNewSession());
-    await waitFor(() => expect(result.current.isGoogleLoaded).toBe(true));
+    await vi.waitFor(() => expect(result.current.isGoogleLoaded).toBe(true));
 
     act(() => {
       result.current.handleInputChange("Seoul");
-      jest.advanceTimersByTime(250);
+      vi.advanceTimersByTime(250);
     });
     act(() => {
       result.current.handleInputChange("Busan");
-      jest.advanceTimersByTime(250);
+      vi.advanceTimersByTime(250);
     });
 
     await act(async () => {
@@ -93,7 +93,7 @@ describe("usePlacesAutocomplete", () => {
       await Promise.resolve();
     });
 
-    await waitFor(() =>
+    await vi.waitFor(() =>
       expect(result.current.suggestions).toEqual([
         {
           placeId: "busan",
@@ -103,13 +103,13 @@ describe("usePlacesAutocomplete", () => {
         },
       ]),
     );
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await vi.waitFor(() => expect(result.current.isLoading).toBe(false));
   });
 
   it("keeps a newer visible suggestion paired with its own raw prediction", async () => {
     const first = createDeferred<{ suggestions: any[] }>();
     const second = createDeferred<{ suggestions: any[] }>();
-    jest
+    vi
       .mocked(
         (window.google.maps.places as any).AutocompleteSuggestion
           .fetchAutocompleteSuggestions,
@@ -125,20 +125,20 @@ describe("usePlacesAutocomplete", () => {
 
     const { result } = renderHook(() => usePlacesAutocomplete());
     act(() => result.current.startNewSession());
-    await waitFor(() => expect(result.current.isGoogleLoaded).toBe(true));
+    await vi.waitFor(() => expect(result.current.isGoogleLoaded).toBe(true));
 
     act(() => {
       result.current.handleInputChange("Seoul");
-      jest.advanceTimersByTime(250);
+      vi.advanceTimersByTime(250);
       result.current.handleInputChange("Busan");
-      jest.advanceTimersByTime(250);
+      vi.advanceTimersByTime(250);
     });
 
     await act(async () => {
       second.resolve({ suggestions: [{ placePrediction: secondPrediction }] });
       await second.promise;
     });
-    await waitFor(() =>
+    await vi.waitFor(() =>
       expect(result.current.suggestions[0]?.placeId).toBe("busan"),
     );
 
@@ -162,7 +162,7 @@ describe("usePlacesAutocomplete", () => {
   it("remains mounted after React StrictMode replays effects", async () => {
     const autocomplete = createDeferred<{ suggestions: any[] }>();
     const rawPrediction = createRawPrediction("seoul", "서울");
-    jest
+    vi
       .mocked(
         (window.google.maps.places as any).AutocompleteSuggestion
           .fetchAutocompleteSuggestions,
@@ -173,25 +173,25 @@ describe("usePlacesAutocomplete", () => {
 
     const { result } = renderHook(() => usePlacesAutocomplete(), { wrapper });
     act(() => result.current.startNewSession());
-    await waitFor(() => expect(result.current.isGoogleLoaded).toBe(true));
+    await vi.waitFor(() => expect(result.current.isGoogleLoaded).toBe(true));
 
     act(() => {
       result.current.handleInputChange("Seoul");
-      jest.advanceTimersByTime(250);
+      vi.advanceTimersByTime(250);
     });
     await act(async () => {
       autocomplete.resolve({ suggestions: [{ placePrediction: rawPrediction }] });
       await autocomplete.promise;
     });
 
-    await waitFor(() => expect(result.current.suggestions).toHaveLength(1));
+    await vi.waitFor(() => expect(result.current.suggestions).toHaveLength(1));
   });
 
   it("does not commit place details after a newer input invalidates the selection", async () => {
     const autocomplete = createDeferred<{ suggestions: any[] }>();
     const details = createDeferred<void>();
     const place = {
-      fetchFields: jest.fn(() => details.promise),
+      fetchFields: vi.fn(() => details.promise),
       location: { lat: () => 37.5, lng: () => 127 },
       viewport: {
         getNorthEast: () => ({ lat: () => 37.7, lng: () => 127.1 }),
@@ -200,22 +200,22 @@ describe("usePlacesAutocomplete", () => {
     };
     const rawPrediction = createRawPrediction("seoul", "서울");
     rawPrediction.toPlace.mockReturnValue(place);
-    const fetchAutocompleteSuggestions = jest.mocked(
+    const fetchAutocompleteSuggestions = vi.mocked(
       (window.google.maps.places as any).AutocompleteSuggestion
         .fetchAutocompleteSuggestions,
     );
     fetchAutocompleteSuggestions.mockReturnValue(autocomplete.promise);
-    const onPlaceSelect = jest.fn();
+    const onPlaceSelect = vi.fn();
 
     const { result } = renderHook(() =>
       usePlacesAutocomplete({ onPlaceSelect }),
     );
 
     act(() => result.current.startNewSession());
-    await waitFor(() => expect(result.current.isGoogleLoaded).toBe(true));
+    await vi.waitFor(() => expect(result.current.isGoogleLoaded).toBe(true));
     act(() => {
       result.current.handleInputChange("Seoul");
-      jest.advanceTimersByTime(250);
+      vi.advanceTimersByTime(250);
     });
     await act(async () => {
       autocomplete.resolve({ suggestions: [{ placePrediction: rawPrediction }] });
@@ -225,8 +225,8 @@ describe("usePlacesAutocomplete", () => {
       await Promise.resolve();
     });
 
-    await waitFor(() => expect(result.current.suggestions).toHaveLength(1));
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await vi.waitFor(() => expect(result.current.suggestions).toHaveLength(1));
+    await vi.waitFor(() => expect(result.current.isLoading).toBe(false));
 
     const prediction: PlacePrediction = {
       placeId: "seoul",
@@ -255,7 +255,7 @@ describe("usePlacesAutocomplete", () => {
 
     act(() => {
       result.current.handleInputChange("서울");
-      jest.advanceTimersByTime(250);
+      vi.advanceTimersByTime(250);
       result.current.reset();
     });
 

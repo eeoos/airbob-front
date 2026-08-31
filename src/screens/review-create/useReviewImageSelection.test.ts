@@ -5,8 +5,8 @@ describe("useReviewImageSelection", () => {
   const file = new File(["image"], "review.png", { type: "image/png" });
 
   beforeEach(() => {
-    URL.createObjectURL = jest.fn(() => "blob:review-image");
-    URL.revokeObjectURL = jest.fn();
+    URL.createObjectURL = vi.fn(() => "blob:review-image");
+    URL.revokeObjectURL = vi.fn();
   });
 
   it("adds image files and revokes preview URLs when removed", () => {

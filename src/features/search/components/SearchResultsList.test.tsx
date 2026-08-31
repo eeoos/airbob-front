@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { SearchAccommodationCardViewModel } from "../lib/searchAccommodationViewModel";
 import { SearchResultsList } from "./SearchResultsList";
 
-jest.mock("./SearchAccommodationCard", () => ({
+vi.mock("./SearchAccommodationCard", () => ({
   SearchAccommodationCard: ({
     accommodation,
     detailUrl,
@@ -40,8 +40,8 @@ describe("SearchResultsList", () => {
         getAccommodationHref={(id) => `/accommodations/${id}`}
         isLoading={true}
         selectedAccommodationId={null}
-        onAccommodationClick={jest.fn()}
-        onWishlistToggle={jest.fn()}
+        onAccommodationClick={vi.fn()}
+        onWishlistToggle={vi.fn()}
       />
     );
 
@@ -49,7 +49,7 @@ describe("SearchResultsList", () => {
   });
 
   it("delegates card clicks with the accommodation id", async () => {
-    const onAccommodationClick = jest.fn();
+    const onAccommodationClick = vi.fn();
 
     render(
       <SearchResultsList
@@ -58,7 +58,7 @@ describe("SearchResultsList", () => {
         isLoading={false}
         selectedAccommodationId={null}
         onAccommodationClick={onAccommodationClick}
-        onWishlistToggle={jest.fn()}
+        onWishlistToggle={vi.fn()}
       />
     );
 
@@ -77,8 +77,8 @@ describe("SearchResultsList", () => {
         }
         isLoading={false}
         selectedAccommodationId={null}
-        onAccommodationClick={jest.fn()}
-        onWishlistToggle={jest.fn()}
+        onAccommodationClick={vi.fn()}
+        onWishlistToggle={vi.fn()}
       />
     );
 

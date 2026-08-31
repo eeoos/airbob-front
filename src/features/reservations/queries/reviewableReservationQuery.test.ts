@@ -1,3 +1,4 @@
+import type { Mocked } from "vitest";
 import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
 import type { ReviewableReservation } from "../model/reviewableReservation";
 import type { ReviewableReservationApiPort } from "../ports/reviewableReservationApiPort";
@@ -29,12 +30,12 @@ const reservation = (reservationUid: string): ReviewableReservation => ({
 });
 
 describe("reviewable reservation read query", () => {
-  const api = {
-    getReviewableReservation: jest.fn(),
-  } as unknown as ReviewableReservationApiPort;
+  const api: Mocked<ReviewableReservationApiPort> = {
+    getReviewableReservation: vi.fn(),
+  };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("scopes the protected detail read and forwards query cancellation", async () => {
@@ -43,7 +44,7 @@ describe("reviewable reservation read query", () => {
       { reservationUid: "reservation-123", scope },
       api,
     );
-    (api.getReviewableReservation as jest.Mock).mockResolvedValue(
+    api.getReviewableReservation.mockResolvedValue(
       reservation("reservation-123"),
     );
 
