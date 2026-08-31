@@ -144,7 +144,7 @@ OCI, Vercel, AWS와 실제 Airbnb visual restyling은 이번 계획의 완료 �
 - KTD15. **Use PageContainer for width and gutter:** Shell은 route surface, header policy와 main landmark를 유지하고 shared `PageContainer` recipe가 screen별 width/gutter variant를 소유한다.
 - KTD16. **Keep domain catalog above subfeatures without violating the DAG:** Parent accommodation feature가 semantic catalog를 export하고 screen/controller composition이 detail/editor에 전달한다. Nested feature끼리 import하지 않는다.
 - KTD17. **Prepare design boundaries without restyling:** Editor commands, state/image recipes, layout, responsive/runtime tokens와 stable view sections까지만 이 계획에 포함한다.
-- KTD18. **Stage inert capabilities, then make only the owner switch atomic:** Reservation read parity와 adapter/storage/schema/callback hardening은 독립된 작은 green commit으로 land한다. 각 commit은 아직 active writer가 아닌 capability를 추가하거나 한 read boundary만 바꾼다. Quote→checkout→attempt→callback→Accepted/polling production composition과 retired-writer 삭제만 마지막 작은 owner-switch commit에서 함께 수행하며, 전체 transaction matrix가 green이 되기 전 merge/deploy하지 않는다.
+- KTD18. **Stage reachable capabilities, then make only the owner switch atomic:** Strict-production Knip은 test-only production adapter/export를 허용하지 않는다. Narrow HTTP idempotency primitive와 active reservation read parity는 독립된 작은 green commit으로 land할 수 있지만 quote/checkout adapter는 최초 production v2 workflow consumer와 같은 commit에 들어간다. Storage/callback hardening도 current production graph에서 실제 소비되는 단위만 따로 land한다. Quote→checkout→attempt→callback→Accepted/polling production composition과 retired-writer 삭제만 마지막 작은 owner-switch commit에서 함께 수행하며, 전체 transaction matrix가 green이 되기 전 merge/deploy하지 않는다.
 - KTD19. **Make transaction identity immutable and phases monotonic:** One subject-owned document는 `flowId + subject + epoch + expected prior phase`가 일치할 때만 full-record replacement를 허용한다. Accommodation/date/guest/quote/key/reservation/amount/currency/attempt/operation tuple은 이후 단계에서 변경할 수 없고 terminal/purge 뒤 stale completion이 record를 되살릴 수 없다.
 - KTD20. **Durably observe server terminal before UI publication:** Complimentary Ready와 payment `SUCCEEDED`는 먼저 terminal marker로 기록하고 cache refresh/navigation을 수행한다. Publication이나 cleanup 실패는 server terminal을 되돌리거나 mutation replay를 유발하지 않는다.
 - KTD21. **Do not invent frontend CSRF:** Cookie-session mutation은 backend의 documented CSRF/Origin policy를 따른다. Policy 부재나 arbitrary Origin 허용은 backend 변경 요청이 아니라 Vercel/OCI integration blocker로 남긴다.
@@ -336,7 +336,7 @@ flowchart LR
   U15 --> U16
 ```
 
-U2와 독립 read-side/capability commit은 U1 뒤 진행한다. U3는 작은 inert capability/read-side commit과 마지막 owner-switch commit으로 나눈다. U11 뒤 U12를 UI 정리보다 먼저 실제로 시도한다. Backend-owned fixture/reset 또는 local infrastructure가 없으면 근거를 `BLOCKED/UNVERIFIED`로 기록한 뒤 그 기록을 U12의 현 단계 산출물로 삼고 U13–U15로 진행한다. U12가 block됐다는 사실을 local integration pass로 표현해서는 안 된다.
+U2와 production-reachable HTTP/read-side capability commit은 U1 뒤 진행한다. U3는 작은 reachable capability/read-side commit과 마지막 owner-switch commit으로 나눈다. Test-only adapter/export를 임시로 production source에 두지 않는다. U11 뒤 U12를 UI 정리보다 먼저 실제로 시도한다. Backend-owned fixture/reset 또는 local infrastructure가 없으면 근거를 `BLOCKED/UNVERIFIED`로 기록한 뒤 그 기록을 U12의 현 단계 산출물로 삼고 U13–U15로 진행한다. U12가 block됐다는 사실을 local integration pass로 표현해서는 안 된다.
 
 ### U1. Close contract authority and architecture registry gaps
 
@@ -374,19 +374,19 @@ U2와 독립 read-side/capability commit은 U1 뒤 진행한다. U3는 작은 in
 
 ### U3. Stage and activate the booking and payment critical section
 
-- Outcome: Small verified commits establish quote, read parity, v2 journal, idempotent checkout, payment-attempt, scrubbed callback and async operation recovery; one final owner-switch commit replaces direct-create/immediate-success composition.
+- Outcome: Small verified, production-reachable commits establish the HTTP primitive, read parity, v2 workflow capabilities, journal, payment-attempt, scrubbed callback and async operation recovery; one final owner-switch commit replaces direct-create/immediate-success composition.
 - Dependencies: U1 and U2. Backend public V1 snapshot must still match the audit before composition switches.
 - Requirements: R9–R37, R45–R50.
-- Landing boundary: Adapter, storage schema, read-side and callback hardening land as independently green commits without activating an incomplete writer. Obsolete adapters, storage readers and route composition remain active until every new capability and matching deterministic browser scenario is ready. The final owner switch removes the old writer and retired v1 surface in the same small revision.
+- Landing boundary: HTTP primitive and read-side work may land independently. New quote/checkout adapters land only with their first production workflow consumer; storage schema and callback hardening land separately only when they remain production-reachable and green under Knip. Obsolete adapters, storage readers and route composition remain active until every new capability and matching deterministic browser scenario is ready. The final owner switch removes the old writer and retired v1 surface in the same small revision.
 - Overall verification: No intermediate build can create a paid hold without a working attempt/callback/operation path. Architecture, structure and browser gates pass at the final switch, and rollback targets only a previously complete v2-compatible build.
 
-#### Checkpoint A — Reservation contracts and narrow HTTP idempotency
+#### Checkpoint A — Narrow HTTP idempotency, then reachable reservation contracts
 
-- Checkpoint outcome: Feature adapters match current V1 quote/checkout Ready contracts and can send only a validated `Idempotency-Key` header.
+- Checkpoint outcome: A1 independently adds the production-reachable validated `Idempotency-Key` HTTP primitive. A2 adds current V1 quote/checkout Ready adapters in the same commit as their first production v2 workflow consumer so strict Knip never needs a test-only production entry/export.
 - Files:
-  - Add parallel quote/checkout capability files and tests while retaining active `src/features/reservations/api/reservationCreate*`, `model/reservationCreate.ts` and `ports/reservationCreateApiPort.ts` until the final owner switch.
-  - Modify `src/features/reservations/public.ts`.
-  - Modify `src/platform/http/request.ts`, `clientCore.ts` and their tests.
+  - A1 modifies `src/platform/http/request.ts`, `clientCore.ts` and their tests without adding an arbitrary header map.
+  - A2 adds quote/checkout capability files and tests together with the first v2 workflow consumer while retaining active `src/features/reservations/api/reservationCreate*`, `model/reservationCreate.ts` and `ports/reservationCreateApiPort.ts` until the final owner switch.
+  - Modify `src/features/reservations/public.ts` only for types/ports that a production consumer imports in the same commit.
   - Modify `tests/e2e/fixtures/api.ts` and harness security tests.
 - Approach: Model Quote and Ready as separate validated domain responses. Keep wire types, mappers and concrete HTTP adapters private; workflows consume narrow ports and validated domain results only. A platform cryptographic factory creates the key once, the workflow binds it to method/endpoint/subject/quote/exact-body fingerprint, the feature validates the backend 8–128 contract and HTTP core emits the header. Preserve `requestMessage` as `null` and discard returned request/failure text in this plan.
 - Test scenarios:
@@ -397,7 +397,7 @@ U2와 독립 read-side/capability commit은 U1 뒤 진행한다. U3는 작은 in
   - StrictMode, double click, reload and ambiguous replay reuse the same in-memory key/fingerprint without printing the key.
   - A canary key is absent from console, error cause, trace/report and request-dump artifacts while the harness still proves first/replay equality.
   - Feature public-surface tests reject wire contracts, mapper, concrete API and query-key exports.
-- Verification: No production caller retains the direct-create accommodation/date payload for `POST /reservations`, and root public surfaces expose only composition ports/domain types.
+- Verification: A1 is green with no reservation adapter added. A2 has a real production workflow consumer, while the old direct-create caller remains the sole active writer until the final owner switch. Root public surfaces expose only production-consumed composition ports/domain types; no test-only production entry or export is introduced.
 
 #### Checkpoint B — Subject-owned booking journal v2
 
@@ -785,7 +785,7 @@ Implementation depends on the repository-declared Node version, the backend docu
 - Pre-auth callback credential is memory-only; same-subject claimed credential uses a dedicated session record capped at nine minutes from first capture and the known hold/attempt expiry so exact replay can survive a same-tab reload before Accepted.
 - Hold release covers pre-confirm abandonment only; general cancellation stays out of scope.
 - Same-tab recovery is guaranteed; cross-tab/device operation lookup is not.
-- Booking/payment capability and read-side changes land as small green commits; only the final composition switch and retired-writer deletion are atomic.
+- Booking/payment HTTP/read-side and production-reachable capability changes land as small green commits; quote/checkout adapters join their first v2 workflow consumer, and only the final composition switch plus retired-writer deletion are atomic.
 - CARD/KRW 100원 is the current provider minimum. Amount 0 is complimentary; 1–99원 and non-KRW fail closed before checkout.
 - Long-running REQUIRES_REVIEW retains credential-free identifiers for at most the 24-hour same-tab receipt window, then converges to reservation detail without re-confirm. A real support address/route is deferred rather than invented.
 - Frontend does not add a CSRF token scheme; backend Origin/session verification remains a later deployment requirement.
