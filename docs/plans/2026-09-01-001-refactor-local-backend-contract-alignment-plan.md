@@ -405,25 +405,25 @@ U2와 production-reachable HTTP/read-side capability commit은 U1 뒤 진행한�
 - Dependencies: Checkpoint D is green. Checkpoint A1 is already production-reachable; A2 has not been introduced.
 - Requirements: R12–R13, R20, R25, R28, R30–R34.
 - Commit sequence:
-  - **B0 — verified retired cleanup:** add a dedicated retired-state owner, make current v1 terminal cleanup verify removal by re-enumeration, and split identity cleanup so it owns v1, v2 and pre-U10 state without letting a v1 terminal route erase unresolved v2 recovery.
+  - **B0 — verified retired cleanup:** add a dedicated retired-state owner, make current v1 terminal cleanup verify removal by re-enumeration, and split generic identity precheck cleanup from verified logout/revocation/different-subject cleanup. Generic prechecks preserve v2 for same-subject recovery; only verified destructive boundaries own v1, v2 and pre-U10 state.
   - **B1 — subject-owned journal fence:** add exact v2 journal types/validation/repository, wire a narrow `inspectNewerRecovery` into the existing synchronous v1 reservation preflight, and document the staged/no-writer state.
   - **B2 — credential and receipt records:** add exact callback credential and operation receipt validation/storage plus identity cleanup/inspection for all v2 slots. Keep the active v1 callback schema and 512-character v1 validator unchanged until the final owner switch; v2 credentials enforce 200.
 - Files:
   - Add `src/workflows/booking-payment/journal/retiredState.ts` and focused tests; delegate existing cleanup in `src/workflows/booking-payment/checkout/repositories.ts` to it.
-  - Split terminal versus identity cleanup through `src/app/providers/clearIdentityOwnedFrontendState.ts` and its tests.
+  - Split generic versus verified-destructive identity cleanup through `src/app/providers/clearIdentityOwnedFrontendState.ts`, `src/app/session/useSessionController.ts`, `AppProviders` composition and their tests.
   - Add `journal/types.ts`, `validation.ts`, `repository.ts` and focused tests under `src/workflows/booking-payment`.
   - Connect only the v2 recovery inspector to the current `ReservationCheckoutHandoffPort.preflight`; clean storage preserves the existing v1 path.
   - Modify auth/session and booking browser tests plus `docs/architecture/frontend-browser-data-inventory.md`.
   - Do not change `src/platform/storage/bookingPaymentStorageDriver.ts` or the generic `versionedSessionStorage.ts`; v2 needs workflow-owned read-back, phase and hard-TTL semantics that the generic v1 engine does not provide.
 - Approach:
-  - Purge only `airbob:booking-payment-v1:`, `airbob:reservation-checkout:`, `airbob:reservation-checkout-index:` and `airbob:payment-confirmed:` prefixes. Never read or migrate v1 payloads. Enumerate, remove exact prefix matches, re-enumerate, retry remaining targets once and fail closed if the final enumeration is not clean. Preserve near-collision and unrelated keys.
+  - Purge only `airbob:booking-payment-v1:`, `airbob:reservation-checkout:`, `airbob:reservation-checkout-index:` and `airbob:payment-confirmed:` prefixes at terminal/generic precheck boundaries. Verified logout/revocation/different-subject cleanup additionally owns `airbob:booking-payment-v2:`. Never read or migrate v1 payloads. Run an enumerate→remove→verify pass; on removal, partial or enumeration failure retry one complete pass, then fail closed unless the final successful enumeration proves no targets remain. Preserve near-collision and unrelated keys.
   - Store exact-key v2 envelopes for `journal`, `callback-credential` and `operation-receipt`. The repository validates schema, owner, epoch, route/flow, expected phase and immutable identity before full-record replacement; after `setItem`, it immediately `getItem`s and verifies raw equality plus parsed identity before any external command may proceed.
   - Normal transitions keep epoch immutable. A same-subject reload receives a new recovery lease only after exact route/resource and joined-record validation; another subject purges, and stale callers may not inspect or clear a newer session.
   - Quote is recorded after its safe response. `checkout-prepared`, `attempt-requesting`, `hold-release-requesting` and `confirm-submitting` are persisted before their replay-sensitive mutations. Exact duplicate transitions do not rewrite or extend TTL; illegal/lower/different-flow/terminal-resurrection transitions fail closed.
   - V2 callback credential TTL is `min(first capture + 9 minutes, known ready/attempt expiry)` with paymentKey length 1–200. Credential-free operation receipt has a non-sliding 24-hour hard TTL. Receipt write/read-back precedes journal repair and credential purge; purge failure cannot authorize re-confirm.
-  - Production reachability is explicit: current v1 preflight performs zero reservation POSTs when valid/malformed/unreadable v2 state cannot be safely cleared, and identity publication remains blocked until the full owned-state cleanup verifies success.
+  - Production reachability is explicit: current v1 preflight performs zero reservation POSTs when valid/malformed/unreadable v2 state cannot be safely cleared, and destructive identity publication remains blocked until the full owned-state cleanup verifies success. Pre-login/external probes do not destroy v2 before a candidate subject is known; explicit logout, auth revocation and verified different-subject transitions do.
 - Test scenarios:
-  - Transient/persistent remove failure, success-returning no-op removal, first/final enumeration failure and partial retry are detected; v1 payload `getItem` count remains zero.
+  - Transient/persistent remove failure, success-returning no-op removal, transient/persistent first/verification enumeration failure and partial retry are detected; v1 payload `getItem` count remains zero.
   - Prefix collisions such as `airbob:booking-payment-v10:`, `airbob:booking-payment-v20:`, `airbob:reservation-checkouts:` and unrelated storage survive.
   - Clean storage preserves the current v1 browser matrix; any unresolved v2 record makes current v1 reservation POST count zero.
   - A prepared/submitting write failure before checkout, attempt, release, Toss or confirm blocks the external command.
@@ -431,6 +431,7 @@ U2와 production-reachable HTTP/read-side capability commit은 U1 뒤 진행한�
   - Complimentary records allow amount 0 only with the matching confirmed invariant.
   - Lower-phase, different-flow and terminal-resurrection writes are rejected; StrictMode exact duplicates are no-op and do not slide TTL.
   - Same-subject reload requires an explicit recovery lease; joined journal/credential/receipt must all move to the current epoch before API/Toss calls.
+  - Same-subject login/external revalidation preserves v2 state until B1 can issue that lease; logout, auth revocation and a verified different subject remove it before publication.
   - V2 callback paymentKey accepts 200 characters and rejects 201; credential hard expiry chooses the earliest configured bound.
   - Receipt write/read-back failure preserves the callback credential; credential purge failure after receipt leaves polling authoritative and triggers opportunistic purge without re-confirm.
   - V1+v2 coexistence, prefix collision, partial remove failure and retry never expose or migrate the v1 payload.
