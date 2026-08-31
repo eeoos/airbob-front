@@ -145,10 +145,11 @@ browser storage when a reload can safely refetch it.
 ## 9. Replace tests only after equivalent protection exists
 
 - Dependency graph rules belong to dependency-cruiser.
-- Production reachability and unused dependencies belong to Knip.
+- Production reachability and runtime/development dependency classification
+  belong to Knip.
 - CSS policy belongs to Stylelint.
 - Transition-all, z-index, focus-visible, and token-equivalent literal checks
-  that the pinned Stylelint line cannot yet express remain focused Vitest owners
+  that the current Stylelint contract does not yet express remain focused Vitest owners
   and consume the same strict feature registry.
 - Local code and import feedback belongs to ESLint.
 - ESLint environments are explicit: browser production, Vitest, Playwright,
@@ -171,7 +172,9 @@ Before declaring a slice complete:
 - the mutable workflow has one writer;
 - the old route, writer, barrel, and compatibility export are removed;
 - the migrated slice has no boundary-rule exception;
-- Knip retains its canonical entry/project coverage and all error-level rules;
+- Knip retains its canonical entry/project coverage, explicit plugin ownership,
+  global dependency scans, and every error-level rule except cycles, which
+  remain dependency-cruiser-owned;
 - the ownership matrix and canonical architecture document match production;
 - residual live-backend or sandbox scope is marked unverified, not passed.
 

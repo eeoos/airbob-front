@@ -1,18 +1,18 @@
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import recommendedConfig from "stylelint-config-recommended";
+import standardConfig from "stylelint-config-standard";
 import { createDesignContractPlugins } from "./tests/architecture/support/stylelint-design-contract.mjs";
 
 const require = createRequire(import.meta.url);
-const recommendedConfig = require("stylelint-config-recommended");
-const standardConfig = require("stylelint-config-standard");
 const {
   createStylePolicy,
 } = require("./scripts/architecture/style-policy.cjs");
 const defaultProjectRoot = path.dirname(fileURLToPath(import.meta.url));
 
 const disallowedColorFunctions = [
-  "/^(?:rgb|rgba|hsl|hsla|hwb|lab|lch|oklab|oklch|color)$/",
+  "/^(?:rgb|rgba|hsl|hsla|hwb|lab|lch|oklab|oklch|color)$/i",
 ];
 const projectRules = {
   "airbob/media-breakpoint-scale": [

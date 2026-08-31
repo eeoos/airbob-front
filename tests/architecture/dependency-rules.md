@@ -1,15 +1,17 @@
 # Frontend Architecture Ratchets
 
 This document is the executable-policy companion to the canonical frontend
-architecture. It records which tool owns each static rule, the measured U3
-baseline, and how a migrated slice becomes strict without a suppression wall.
+architecture. It records which tool owns each static rule, how a migrated slice
+becomes strict without a suppression wall, and which global checks no longer
+permit historical dependency debt.
 
 ## Single rule owners
 
 | Concern | Owner | Blocking scope at U3 | Legacy signal |
 | --- | --- | --- | --- |
 | Import direction, resolvability, production-to-test/dev edges, module/folder cycles | dependency-cruiser | `src/app`, `screens`, `workflows`, `platform`, `shared`, plus features registered as migrated | Legacy cycles remain warnings. Every feature-to-peer production import is an error. |
-| Production reachability, unused files/exports/dependencies | Knip | The same target/migrated surface through a result preprocessor | Full production report is non-blocking and contains no per-file ignore list. |
+| Production reachability | Knip production file scan | The target/migrated surface through a result preprocessor | The complete report remains visible without per-file ignores; export cleanup is a separate U18 closure gate. |
+| Runtime/development dependency classification, unlisted imports, and package binaries | Knip full-graph plus strict-production scans | Global | No baseline, Git delta, package ignore, or dependency suppression is permitted. |
 | CSS syntax and design references | Stylelint | Target/migrated CSS plus the already-clean shell/modal files named in config | Legacy design/syntax debt is warning-only; breakpoint and suppression invariants remain global errors. |
 | CSS interaction/token invariants not expressible by the pinned Stylelint line | Focused Vitest contracts using the central style policy | Target/migrated CSS plus the named high-risk pre-redesign set | No duplicated raw-color, `!important`, or import scanner remains. |
 | Local TypeScript/JavaScript feedback | ESLint | Existing strict source gate and architecture-tool scripts, including CRA-resolved `.mjs` modules | None for files in strict scope. |
@@ -37,10 +39,10 @@ ESLint's public API. Unused disable directives and unused inline configuration
 entries are errors; active suppressions remain visible and require a narrow,
 reviewable reason.
 
-Knip reaches Vite and Vitest configuration through the canonical explicit
-`entry`/`project` globs. Its framework plugins are disabled so the pinned Knip
-line does not execute TypeScript config; resolved Vite/Vitest semantics belong
-to the dedicated architecture config tests instead.
+Knip reaches Vite, Vitest, Stylelint, and the other tool configuration through
+canonical explicit `entry`/`project` globs. Those framework plugins are
+disabled because the explicit graph owns reachability while the dedicated
+architecture tests own resolved config semantics.
 
 `architecture-ratchet.json` is the single changed-surface registry. A feature
 may be added to `migratedFeatures` only in the same atomic cutover that leaves
@@ -100,8 +102,7 @@ each fixture root rather than borrowing the production repository inventory.
 ## Knip reachability policy
 
 `npm run lint:dead-code:report` is the complete production report and always
-exits successfully. At U3 it records sixteen unused files and six unused runtime
-packages. These are deletion/classification inputs for U7-U23, not an allowlist.
+exits successfully. It is deletion input for U18, not an allowlist.
 
 `npm run lint:dead-code` applies the target preprocessor and fails on any issue
 whose owning file is under a target root or registered migrated feature. The U3
@@ -113,22 +114,28 @@ non-empty migrated-feature entry are reported, test helpers under `__tests__`
 and `__mocks__` remain outside production, and legacy-only debt remains
 non-blocking.
 
-Package-owned findings cannot be scoped to a feature in Knip 2. The six existing
-unused runtime packages therefore stay visible in the full report, while a Git
-delta gate rejects any newly added runtime dependency that Knip reports unused.
-This private app forbids root `optionalDependencies` and `peerDependencies`,
-which Knip 2 cannot classify safely. Root install redirection/bundling sections
-(`overrides`, `resolutions`, and bundled-dependency metadata) are also forbidden.
-Non-empty npm `workspaces` are forbidden, and `package-lock.json` remains the
-sole install-graph lock owner; `npm-shrinkwrap.json` is rejected.
-CI validates the exact Knip schema,
-entry roots, project coverage, and error-level rule set; ignore/exclude keys,
-artificial production entries, narrowed source globs, and disabled rules fail
-the fixture before Knip runs. Runtime and development dependencies must use
-registry semver declarations: npm aliases, tags, URLs, and local/git specs are
-rejected. A changed version declaration is compared against Git history, and a
-version change to existing unused debt is treated as new debt.
-U23 replaces this bridge with global strict dependency classification.
+`npm run lint:dependencies` runs two complementary Knip 6 passes. The full
+development graph checks runtime and development declarations, unlisted
+imports, and binaries. The strict production graph then excludes test/tool
+reachability and proves that browser runtime imports come only from
+`dependencies`, while build/test-only packages do not hide there. The fixture
+suite proves misplaced runtime and test-only packages, unused runtime packages,
+unlisted imports, and unlisted binaries. The old new-debt/Git-delta bridge and
+its baseline are deleted.
+
+This private app forbids root `optionalDependencies`, `peerDependencies`,
+install redirection/bundling sections (`overrides`, `resolutions`, and bundled
+dependency metadata), and non-empty npm `workspaces`. `package-lock.json` is the
+sole install-graph lock owner; `npm-shrinkwrap.json` is rejected. The lockfile
+root declarations must exactly match the manifest. Runtime and development
+dependencies use registry semver declarations only: npm aliases, tags, URLs,
+and local/Git specs are rejected.
+
+CI validates the exact Knip schema, entry roots, project coverage, explicit
+plugin ownership, and rule severities. `cycles` is intentionally off because
+dependency-cruiser is the sole cycle owner; every other configured Knip issue
+is an error. Ignore/exclude keys, artificial production entries, narrowed
+source globs, and weakened rules fail before Knip runs.
 
 ## Stylelint owner
 
@@ -153,7 +160,7 @@ policy lists every token's exact owner, so moving a semantic `--color-*` or
 component `--layout-*` token into another file is an error even when its value
 would otherwise be valid. Primitive private tokens use neutral palette,
 elevation, stack, size, environment, and ratio scales rather than app concepts.
-Stylelint 16 cannot resolve global custom properties across files, so the local
+Stylelint's built-in rules do not resolve this cross-file token ownership, so the local
 design-contract plugin reads that policy. Component-local custom properties
 remain available for runtime and component-token composition, but radius,
 shadow, color/background, and aspect ratio aliases must resolve directly to
@@ -162,7 +169,7 @@ declarations have one owner and are forbidden outside canonical custom-media
 files. The agreed breakpoint scale is a pre-existing global invariant, so an
 off-scale media value is an error even in otherwise warning-only legacy CSS.
 
-Stylelint does not yet own the focused transition-all, raw z-index,
+The custom Stylelint contract does not yet own the focused transition-all, raw z-index,
 focus-visible pairing, or token-equivalent spacing/font checks. Their Vitest
 contracts consume the same `isStrictStylePath` policy, so registering a feature
 also makes those checks blocking. U15/U23 may move them into a supported lint
@@ -182,6 +189,7 @@ warning-only legacy debt.
 npm run test:architecture-rules
 npm run lint:architecture
 npm run lint:dead-code
+npm run lint:dependencies
 npm run lint:styles
 npm run lint:architecture-tools
 npm run verify:architecture
@@ -194,10 +202,13 @@ work without converting those inventories into permanent suppressions.
 
 ## Toolchain transition
 
-U3 intentionally pinned dependency-cruiser 17.4.3, Knip 2.43.0, Stylelint
-16.23.1, stylelint-config-recommended 17.0.0, and
-stylelint-config-standard 39.0.0. U23 has moved the runtime and compiler floor
-to Node `^22.12 || ^24`, TypeScript 5.9.3, and ESLint 9.39.5 with native flat
-configuration. The remaining U23 static-tool work revalidates dependency
-classification and formatting ownership while preserving every
-graph/reachability/style fixture.
+U23 pins dependency-cruiser 18.2.0, Knip 6.33.0, Stylelint 17.14.1,
+stylelint-config-recommended 18.0.0, and stylelint-config-standard 40.0.0. The
+runtime/compiler floor is Node `^22.13 || ^24`, TypeScript 5.9.3, and ESLint
+9.39.5 with native flat configuration. TypeScript and PostCSS are direct
+development dependencies; the no-op `web-vitals` runtime package is removed.
+Axios 1.20 and React Router 7.18 replace advisory-affected runtime versions;
+the full locked install graph reports zero known vulnerabilities as of the U23
+cutover. Their measured bundle increase remains visible under the U16 parity
+ceiling and is explicit U18 reduction work rather than a hidden exception.
+Formatting remains the final independent U23 mechanical pass.

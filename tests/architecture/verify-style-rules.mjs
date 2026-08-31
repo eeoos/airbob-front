@@ -58,6 +58,12 @@ const invalidCases = [
     rule: "color-no-hex",
   },
   {
+    name: "uppercase raw color function",
+    path: strictFixturePath("uppercase-raw-color-function"),
+    code: ".fixture { color: RGB(0 0 0); }",
+    rule: "function-disallowed-list",
+  },
+  {
     name: "raw radius",
     path: strictFixturePath("raw-radius"),
     code: ".fixture { border-radius: 8px; }",

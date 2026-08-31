@@ -1,17 +1,19 @@
 import { spawnSync } from "node:child_process";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const architectureDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(architectureDirectory, "../..");
-const knipBinary = path.join(projectRoot, "node_modules/knip/dist/cli.js");
+const knipBinary = path.join(projectRoot, "node_modules/knip/bin/knip.js");
 const targetPreprocessor = path.join(
   projectRoot,
   "scripts/architecture/knip-target-ratchet.mjs",
 );
-const fixtureRoot = await mkdtemp(path.join(os.tmpdir(), "airbob-knip-lazy-"));
+const fixtureRoot = await realpath(
+  await mkdtemp(path.join(os.tmpdir(), "airbob-knip-lazy-")),
+);
 
 const files = {
   "package.json": JSON.stringify({ private: true, type: "module" }),
@@ -27,7 +29,7 @@ const files = {
     ],
   }),
   "src/index.ts":
-    'export const loadSearch = () => import("./app/router/routes/SearchRoute");\n',
+    'const lazy = (loader: () => Promise<unknown>) => loader; export const loadSearch = lazy(() => import("./app/router/routes/SearchRoute"));\n',
   "src/app/router/routes/SearchRoute.ts":
     'import { SearchScreen } from "../../../screens/search/SearchScreen"; export default SearchScreen;\n',
   "src/screens/search/SearchScreen.ts":
@@ -66,6 +68,7 @@ try {
       fixtureRoot,
       "--config",
       "knip.json",
+      "--production",
       "--reporter",
       "json",
       "--no-exit-code",
@@ -79,9 +82,9 @@ try {
     throw new Error(`Knip fixture failed to execute.\n${result.stderr}`);
   }
 
-  const rows = JSON.parse(result.stdout);
+  const { issues: rows } = JSON.parse(result.stdout);
   const unusedFiles = new Set(
-    rows.filter((row) => row.files).map((row) => row.file),
+    rows.filter((row) => row.files.length > 0).map((row) => row.file),
   );
 
   if (!unusedFiles.has("src/app/router/routes/DeadRoute.ts")) {
@@ -131,7 +134,7 @@ try {
       "knip.json",
       "--production",
       "--preprocessor",
-      "./knip-preprocessor.mjs",
+      path.join(fixtureRoot, "knip-preprocessor.mjs"),
       "--reporter",
       "json",
       "--no-progress",
@@ -144,9 +147,16 @@ try {
       `Target Knip fixture did not fail on unreachable target files.\nstdout: ${strictResult.stdout}\nstderr: ${strictResult.stderr}`,
     );
   }
-  const strictRows = JSON.parse(strictResult.stdout);
+  let strictRows;
+  try {
+    ({ issues: strictRows } = JSON.parse(strictResult.stdout));
+  } catch {
+    throw new Error(
+      `Target Knip fixture did not return JSON.\nstdout: ${strictResult.stdout}\nstderr: ${strictResult.stderr}`,
+    );
+  }
   const strictUnusedFiles = new Set(
-    strictRows.filter((row) => row.files).map((row) => row.file),
+    strictRows.filter((row) => row.files.length > 0).map((row) => row.file),
   );
 
   [

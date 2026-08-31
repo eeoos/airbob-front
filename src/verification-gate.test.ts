@@ -345,8 +345,8 @@ describe("frontend verification gate", () => {
   test("package scripts and lint ownership exceptions match the active architecture", () => {
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
     expect(packageJson.packageManager).toBe("npm@10.7.0");
-    expect(packageJson.engines?.node).toBe("^22.12.0 || ^24.0.0");
-    expect(packageJson.scripts.start).toBe("vite");
+    expect(packageJson.engines?.node).toBe("^22.13.0 || ^24.0.0");
+    expect(packageJson.scripts.start).toBeUndefined();
     expect(packageJson.scripts.dev).toBe("vite");
     expect(packageJson.scripts.preview).toBe("vite preview");
     expect(packageJson.scripts.test).toBe("vitest");
@@ -379,6 +379,9 @@ describe("frontend verification gate", () => {
       "verify-knip-reachability.mjs",
     );
     expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "tests/architecture/verify-dependency-classification.mjs",
+    );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
       "verify-style-rules.mjs",
     );
     expect(packageJson.scripts["test:architecture-rules"]).toContain(
@@ -405,29 +408,50 @@ describe("frontend verification gate", () => {
     expect(packageJson.scripts["lint:dead-code"]).toContain(
       "knip-target-ratchet.mjs",
     );
-    expect(packageJson.scripts["lint:dead-code"]).toContain(
-      "verify-unused-dependency-ratchet.mjs",
+    expect(packageJson.scripts["lint:dead-code"]).toContain("--include files");
+    expect(packageJson.scripts["lint:dependencies"]).toBe(
+      "node scripts/architecture/verify-dependency-classification.mjs",
     );
     expect(packageJson.scripts["lint:styles"]).toBe(
       'stylelint "src/**/*.css" --quiet',
     );
-    expect(packageJson.scripts["verify:architecture"]).toBe(
-      "npm run test:architecture-rules && npm run lint:architecture && npm run lint:dead-code && npm run lint:styles && npm run lint:architecture-tools",
-    );
-    expect(packageJson.devDependencies).toMatchObject({
-      "dependency-cruiser": "17.4.3",
-      knip: "2.43.0",
-      stylelint: "16.23.1",
-      "stylelint-config-recommended": "17.0.0",
-      "stylelint-config-standard": "39.0.0",
-      "@csstools/postcss-global-data": "4.0.0",
-      "@vitejs/plugin-react": "5.2.0",
-      "@vitest/coverage-v8": "4.1.11",
-      jsdom: "28.1.0",
-      "postcss-custom-media": "12.0.1",
-      vite: "8.2.2",
-      vitest: "4.1.11",
+    [
+      "npm run test:architecture-rules",
+      "npm run lint:architecture",
+      "npm run lint:dead-code",
+      "npm run lint:dependencies",
+      "npm run lint:styles",
+      "npm run lint:architecture-tools",
+    ].forEach((command) => {
+      expect(packageJson.scripts["verify:architecture"]).toContain(command);
     });
+    [
+      "@csstools/postcss-global-data",
+      "@types/node",
+      "@vitejs/plugin-react",
+      "@vitest/coverage-v8",
+      "dependency-cruiser",
+      "jsdom",
+      "knip",
+      "postcss",
+      "postcss-custom-media",
+      "stylelint",
+      "stylelint-config-recommended",
+      "stylelint-config-standard",
+      "typescript",
+      "vite",
+      "vitest",
+    ].forEach((dependency) => {
+      expect(packageJson.devDependencies[dependency]).toBeDefined();
+      expect(packageJson.dependencies[dependency]).toBeUndefined();
+    });
+    expect(packageJson.dependencies.axios).toBeDefined();
+    expect(packageJson.dependencies["react-router-dom"]).toBeDefined();
+    expect(packageJson.dependencies.typescript).toBeUndefined();
+    expect(packageJson.dependencies["web-vitals"]).toBeUndefined();
+    expect(fs.existsSync(path.join(sourceRoot, "reportWebVitals.ts"))).toBe(
+      false,
+    );
     expect(packageJson.dependencies["react-scripts"]).toBeUndefined();
     expect(packageJson.dependencies["@types/jest"]).toBeUndefined();
     [

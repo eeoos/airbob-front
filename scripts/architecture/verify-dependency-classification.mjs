@@ -2,21 +2,10 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  getArchitectureComparisonRevisions,
-  readFileAtRevision,
-} from "./git-baselines.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(scriptDirectory, "../..");
 
-const dependencyDeclarations = (packageData) =>
-  Object.fromEntries(
-    Object.entries(packageData.dependencies ?? {}).sort(([left], [right]) =>
-      left.localeCompare(right),
-    ),
-  );
-const dependencyNames = (declarations) => Object.keys(declarations);
 const registrySemverRangePattern =
   /^(?:\^|~)?(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 
@@ -54,6 +43,7 @@ const canonicalKnipConfig = Object.freeze({
   ]),
   vite: false,
   vitest: false,
+  stylelint: false,
   rules: Object.freeze([
     "files",
     "dependencies",
@@ -66,8 +56,9 @@ const canonicalKnipConfig = Object.freeze({
     "types",
     "nsTypes",
     "enumMembers",
-    "classMembers",
+    "namespaceMembers",
     "duplicates",
+    "cycles",
   ]),
 });
 
@@ -185,6 +176,7 @@ export const assertKnipConfigIsCanonical = (knipConfig) => {
     "entry",
     "project",
     "rules",
+    "stylelint",
     "vite",
     "vitest",
   ];
@@ -196,7 +188,7 @@ export const assertKnipConfigIsCanonical = (knipConfig) => {
     )
   ) {
     throw new Error(
-      "Knip config may contain only the canonical schema, entry, project, explicit Vite/Vitest ownership, and rules keys.",
+      "Knip config may contain only the canonical schema, entry, project, explicit tool-plugin ownership, and rules keys.",
     );
   }
 
@@ -208,78 +200,67 @@ export const assertKnipConfigIsCanonical = (knipConfig) => {
   assertExactSequence("project", knipConfig.project, canonicalKnipConfig.project);
   if (
     knipConfig.vite !== canonicalKnipConfig.vite ||
-    knipConfig.vitest !== canonicalKnipConfig.vitest
+    knipConfig.vitest !== canonicalKnipConfig.vitest ||
+    knipConfig.stylelint !== canonicalKnipConfig.stylelint
   ) {
     throw new Error(
-      "Knip Vite/Vitest plugins must remain disabled; explicit entry/project globs own reachability while dedicated config tests own semantics.",
+      "Knip Vite/Vitest/Stylelint plugins must remain disabled; explicit entry/project globs own reachability while dedicated config tests own semantics.",
     );
   }
 
   const actualRuleNames = Object.keys(knipConfig.rules ?? {});
   assertExactSequence("rule set", actualRuleNames, canonicalKnipConfig.rules);
-  const weakenedRules = actualRuleNames.filter(
-    (ruleName) => knipConfig.rules[ruleName] !== "error",
+  const invalidRules = actualRuleNames.filter(
+    (ruleName) =>
+      knipConfig.rules[ruleName] !==
+      (ruleName === "cycles" ? "off" : "error"),
   );
-  if (weakenedRules.length > 0) {
+  if (invalidRules.length > 0) {
     throw new Error(
-      `Knip rules must remain error-level: ${weakenedRules.join(", ")}`,
+      `Knip rules must keep their canonical severities: ${invalidRules.join(", ")}`,
     );
   }
 };
 
-const equalDeclarations = (left, right) =>
-  JSON.stringify(left) === JSON.stringify(right);
+export const assertPackageLockMatchesManifest = ({ packageData, lockData }) => {
+  const lockRoot = lockData.packages?.[""];
 
-export const findNewUnusedDependencies = ({
-  currentDependencies,
-  baselineDependencies,
-  changedDependencies = [],
-  unusedDependencies,
-}) => {
-  const current = new Set(currentDependencies);
-  const baseline = new Set(baselineDependencies);
-  const changed = new Set(changedDependencies);
+  if (!lockRoot) {
+    throw new Error("package-lock.json must contain the root package record.");
+  }
 
-  return unusedDependencies
-    .filter(
-      (name) =>
-        current.has(name) && (!baseline.has(name) || changed.has(name)),
-    )
-    .sort();
-};
-
-export const assertNoNewUnusedDependencies = ({
-  baselineLabel,
-  currentDependencies,
-  baselineDependencies,
-  changedDependencies,
-  unusedDependencies,
-}) => {
-  const newUnusedDependencies = findNewUnusedDependencies({
-    currentDependencies,
-    baselineDependencies,
-    changedDependencies,
-    unusedDependencies,
-  });
-
-  if (newUnusedDependencies.length > 0) {
-    throw new Error(
-      `New unused runtime dependencies relative to ${baselineLabel}: ${newUnusedDependencies.join(", ")}`,
+  for (const section of ["dependencies", "devDependencies"]) {
+    const manifestDeclarations = packageData[section] ?? {};
+    const lockDeclarations = lockRoot[section] ?? {};
+    const normalizedManifestDeclarations = Object.entries(
+      manifestDeclarations,
+    ).sort(([left], [right]) => left.localeCompare(right));
+    const normalizedLockDeclarations = Object.entries(lockDeclarations).sort(
+      ([left], [right]) => left.localeCompare(right),
     );
+
+    if (
+      JSON.stringify(normalizedManifestDeclarations) !==
+      JSON.stringify(normalizedLockDeclarations)
+    ) {
+      throw new Error(
+        `package-lock.json root ${section} must exactly match package.json.`,
+      );
+    }
   }
 };
 
-const readCurrentUnusedDependencies = () => {
-  const knipBinary = path.join(projectRoot, "node_modules/knip/dist/cli.js");
+const runKnipClassification = ({ label, args }) => {
+  const knipBinary = path.join(projectRoot, "node_modules/knip/bin/knip.js");
   const result = spawnSync(
     process.execPath,
     [
       knipBinary,
-      "--production",
+      ...args,
       "--reporter",
-      "json",
+      "compact",
       "--no-progress",
-      "--no-exit-code",
+      "--no-config-hints",
     ],
     {
       cwd: projectRoot,
@@ -293,76 +274,51 @@ const readCurrentUnusedDependencies = () => {
   }
 
   if (result.status !== 0) {
-    throw new Error(`Knip dependency ratchet failed to execute.\n${result.stderr}`);
+    throw new Error(
+      `${label} dependency classification failed.\n${result.stdout}${result.stderr}`,
+    );
   }
-
-  const rows = JSON.parse(result.stdout);
-  const packageRow = rows.find((row) => row.file === "package.json");
-
-  return [...(packageRow?.dependencies ?? [])].sort();
 };
 
-export const verifyUnusedDependencyRatchet = () => {
+export const verifyDependencyClassification = () => {
   const currentPackage = JSON.parse(
     fs.readFileSync(path.join(projectRoot, "package.json"), "utf8"),
+  );
+  const currentLock = JSON.parse(
+    fs.readFileSync(path.join(projectRoot, "package-lock.json"), "utf8"),
   );
   assertNoUnsupportedRuntimeDependencySections(currentPackage);
   assertRegistryDependencySpecs(currentPackage);
   assertPackageLockIsSoleNpmLockOwner(projectRoot);
+  assertPackageLockMatchesManifest({
+    packageData: currentPackage,
+    lockData: currentLock,
+  });
   assertKnipConfigIsCanonical(
     JSON.parse(fs.readFileSync(path.join(projectRoot, "knip.json"), "utf8")),
   );
-  const currentDeclarations = dependencyDeclarations(currentPackage);
-  const currentDependencies = dependencyNames(currentDeclarations);
-  const comparisons = getArchitectureComparisonRevisions(projectRoot);
-  const baseline = comparisons
-    .map((comparison) => {
-      const source = readFileAtRevision(
-        projectRoot,
-        comparison.revision,
-        "package.json",
-      );
-
-      if (source === null) {
-        return null;
-      }
-
-      const declarations = dependencyDeclarations(JSON.parse(source));
-
-      return {
-        ...comparison,
-        declarations,
-        dependencies: dependencyNames(declarations),
-      };
-    })
-    .find(
-      (comparison) =>
-        comparison !== null &&
-        !equalDeclarations(comparison.declarations, currentDeclarations),
-    );
-
-  if (!baseline) {
-    process.stdout.write(
-      "Unused dependency ratchet passed (runtime dependency declarations unchanged).\n",
-    );
-    return;
-  }
-
-  assertNoNewUnusedDependencies({
-    baselineLabel: baseline.label,
-    currentDependencies,
-    baselineDependencies: baseline.dependencies,
-    changedDependencies: currentDependencies.filter(
-      (name) => baseline.declarations[name] !== currentDeclarations[name],
-    ),
-    unusedDependencies: readCurrentUnusedDependencies(),
+  runKnipClassification({
+    label: "Full development graph",
+    args: [
+      "--include",
+      "dependencies,devDependencies,unlisted,binaries",
+    ],
+  });
+  runKnipClassification({
+    label: "Production runtime graph",
+    args: [
+      "--production",
+      "--strict",
+      "--include",
+      "dependencies,unlisted,binaries",
+    ],
   });
 
   process.stdout.write(
-    `Unused dependency ratchet passed relative to ${baseline.label}.\n`,
+    "Knip 6 dependency classification passed for the full development graph and strict production runtime graph.\n",
   );
 };
 
 if (path.resolve(process.argv[1] ?? "") === fileURLToPath(import.meta.url)) {
-  verifyUnusedDependencyRatchet();
+  verifyDependencyClassification();
 }

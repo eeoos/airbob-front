@@ -35,12 +35,6 @@ export const createTargetRatchet = ({ projectRoot }) => {
     const issues = { ...data.issues };
 
     for (const [issueType, issueCollection] of Object.entries(issues)) {
-      if (issueType === "files") {
-        issues.files = new Set([...issueCollection].filter(isTargetPath));
-        data.counters.files = issues.files.size;
-        continue;
-      }
-
       issues[issueType] = filterIssueRecords(issueCollection, isTargetPath);
       data.counters[issueType] = countIssueRecords(issues[issueType]);
     }
@@ -48,7 +42,7 @@ export const createTargetRatchet = ({ projectRoot }) => {
     return {
       ...data,
       issues,
-      configurationHints: new Set(),
+      configurationHints: [],
     };
   };
 };

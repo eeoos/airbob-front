@@ -32,6 +32,7 @@
   ],
   "vite": false,
   "vitest": false,
+  "stylelint": false,
   "rules": {
     "files": "error",
     "dependencies": "error",
@@ -44,7 +45,8 @@
     "types": "error",
     "nsTypes": "error",
     "enumMembers": "error",
-    "classMembers": "error",
-    "duplicates": "error"
+    "namespaceMembers": "error",
+    "duplicates": "error",
+    "cycles": "off"
   }
 }

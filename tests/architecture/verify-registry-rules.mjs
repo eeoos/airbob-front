@@ -7,12 +7,11 @@ import { findLiveRemovedFeatures } from "../../scripts/architecture/verify-archi
 import {
   assertKnipConfigIsCanonical,
   assertNoUnsupportedRuntimeDependencySections,
+  assertPackageLockMatchesManifest,
   assertPackageLockIsSoleNpmLockOwner,
   assertRegistryDependencySpecs,
-  assertNoNewUnusedDependencies,
-  findNewUnusedDependencies,
   findArtificialProductionEntries,
-} from "../../scripts/architecture/verify-unused-dependency-ratchet.mjs";
+} from "../../scripts/architecture/verify-dependency-classification.mjs";
 
 const require = createRequire(import.meta.url);
 const { readArchitectureRatchet, validateArchitectureRatchetData } = require(
@@ -226,32 +225,6 @@ try {
     throw new Error("A removed U22 feature root could not leave the registry.");
   }
 
-  const newUnused = findNewUnusedDependencies({
-    currentDependencies: ["existing-debt", "new-unused", "used-package"],
-    baselineDependencies: ["existing-debt"],
-    unusedDependencies: ["existing-debt", "new-unused"],
-  });
-  if (newUnused.join(",") !== "new-unused") {
-    throw new Error("The changed unused-dependency ratchet did not isolate new debt.");
-  }
-  let newUnusedWasRejected = false;
-  try {
-    assertNoNewUnusedDependencies({
-      baselineLabel: "fixture base",
-      currentDependencies: ["new-unused"],
-      baselineDependencies: [],
-      unusedDependencies: ["new-unused"],
-    });
-  } catch (error) {
-    if (!String(error.message).includes("new-unused")) {
-      throw error;
-    }
-
-    newUnusedWasRejected = true;
-  }
-  if (!newUnusedWasRejected) {
-    throw new Error("A newly introduced unused runtime dependency passed.");
-  }
   let unsupportedRuntimeSectionWasRejected = false;
   try {
     assertNoUnsupportedRuntimeDependencySections({
@@ -265,7 +238,7 @@ try {
     unsupportedRuntimeSectionWasRejected = true;
   }
   if (!unsupportedRuntimeSectionWasRejected) {
-    throw new Error("An optional runtime dependency bypassed the Knip ratchet.");
+    throw new Error("An optional runtime dependency bypassed strict classification.");
   }
   let installOverrideWasRejected = false;
   try {
@@ -328,15 +301,35 @@ try {
   if (!dependencyAliasWasRejected) {
     throw new Error("An npm alias hid behind an existing dependency name.");
   }
-
-  const changedUnused = findNewUnusedDependencies({
-    currentDependencies: ["existing-debt"],
-    baselineDependencies: ["existing-debt"],
-    changedDependencies: ["existing-debt"],
-    unusedDependencies: ["existing-debt"],
+  assertPackageLockMatchesManifest({
+    packageData: {
+      dependencies: { "runtime-a": "1.0.0", "runtime-b": "2.0.0" },
+      devDependencies: { "tooling-a": "3.0.0", "tooling-b": "4.0.0" },
+    },
+    lockData: {
+      packages: {
+        "": {
+          dependencies: { "runtime-b": "2.0.0", "runtime-a": "1.0.0" },
+          devDependencies: { "tooling-b": "4.0.0", "tooling-a": "3.0.0" },
+        },
+      },
+    },
   });
-  if (changedUnused.join(",") !== "existing-debt") {
-    throw new Error("A changed spec for existing unused debt escaped the ratchet.");
+  let lockManifestDriftWasRejected = false;
+  try {
+    assertPackageLockMatchesManifest({
+      packageData: { dependencies: { runtime: "1.0.0" } },
+      lockData: { packages: { "": { dependencies: {} } } },
+    });
+  } catch (error) {
+    if (!String(error.message).includes("dependencies")) {
+      throw error;
+    }
+
+    lockManifestDriftWasRejected = true;
+  }
+  if (!lockManifestDriftWasRejected) {
+    throw new Error("A package-lock root drifted from package.json.");
   }
   let knipSuppressionWasRejected = false;
   try {

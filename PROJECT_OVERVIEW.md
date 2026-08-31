@@ -17,7 +17,7 @@ React/TypeScript 단일 페이지 애플리케이션입니다. 브라우저에�
 `history.state` 및 제한된 `sessionStorage` 문서가 화면·결제 전환 상태를 보유합니다.
 Axios 클라이언트는 cookie 기반 세션과 기존 응답 envelope를 유지합니다.
 
-개발 서버와 production build는 Node.js 22.12+의 22 계열 또는 Node.js 24에서 동작하는
+개발 서버와 production build는 Node.js 22.13+의 22 계열 또는 Node.js 24에서 동작하는
 Vite가 소유하고 결과물 경로는 기존
 배포 계약과 같은 `build/`입니다. 단위·통합 테스트는 같은 모듈 그래프를 사용하는
 Vitest 4와 jsdom이 소유하며 CRA/Jest 실행 의존성은 제거되었습니다. TypeScript 5.9는

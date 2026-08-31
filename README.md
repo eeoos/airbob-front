@@ -2,7 +2,7 @@
 
 ## Frontend Setup
 
-Use Node.js 22.12+ on the Node 22 line, or Node.js 24. CI uses Node.js 22;
+Use Node.js 22.13+ on the Node 22 line, or Node.js 24. CI uses Node.js 22;
 other major versions are outside the supported Vite toolchain range.
 
 The browser build targets Vite 8's pinned `baseline-widely-available` set
@@ -28,8 +28,8 @@ npm run test:ci:no-cache
 npm run build
 ```
 
-Start the Vite development server with `npm run dev` (or the `npm start`
-alias). Use `npm run preview` to inspect an existing production build.
+Start the Vite development server with `npm run dev`. Use `npm run preview`
+to inspect an existing production build.
 
 Install the deterministic browser once before the local Playwright suite:
 
@@ -94,7 +94,8 @@ npm run verify:design-ready
   source.
 - `verify:architecture`: runs forbidden-rule fixtures, the production
   dependency graph, monotonic migration-registry checks, target-only dead-code
-  enforcement, new-unused-dependency prevention, and strict style policy.
+  enforcement, full development and strict production dependency
+  classification, and strict style policy.
 - `report:architecture`: prints the measured legacy dead-code and CSS debt
   without turning it into permanent suppressions.
 - `test:public-config-build`: injects synthetic password, secret, cookie, token,
@@ -114,7 +115,7 @@ npm run verify:design-ready
 
 ## Vite and Vercel deployment
 
-Vite is the only build/dev owner (`start`, `dev`, `build`, and `preview`) and
+Vite is the only build/dev owner (`dev`, `build`, and `preview`) and
 keeps the production output at `build/` with production JavaScript source maps,
 development CSS source maps, and hashed files under `build/static/`.
 Vitest 4 is the sole unit/integration runner. It shares Vite's module graph,
