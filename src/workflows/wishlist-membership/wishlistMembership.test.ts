@@ -6,10 +6,14 @@ import type {
 import {
   createWishlistMembership,
   type WishlistMembershipDependencies,
-  type WishlistMembershipPage,
-  type WishlistMembershipProjection,
   type WishlistMembershipTransport,
 } from "./wishlistMembership";
+
+type WishlistMembershipPage = Awaited<
+  ReturnType<WishlistMembershipTransport["getAccommodationMembership"]>
+>;
+type WishlistMembershipProjection =
+  WishlistMembershipDependencies["projection"];
 
 const scopeA: AuthenticatedSessionScope = {
   subject: "subject:member_a" as SessionSubject,

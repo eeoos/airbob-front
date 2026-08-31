@@ -1,4 +1,5 @@
-import { createBrowserHttpClient, type HttpClientResponse } from "./client";
+import type { HttpClientResponse } from "./client";
+import { createBrowserHttpClient } from "./clientCore";
 import { HttpTransportFailure } from "./transportFailure";
 
 const successfulEnvelope = {

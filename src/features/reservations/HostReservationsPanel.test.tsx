@@ -2,11 +2,10 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
   HostReservationsPanel,
-  type HostReservationRowView,
   type HostReservationsPanelProps,
 } from "./HostReservationsPanel";
 
-const reservationRow: HostReservationRowView = {
+const reservationRow = {
   reservationUid: "host-1",
   statusLabel: "결제 완료",
   statusTone: "success",
@@ -18,7 +17,7 @@ const reservationRow: HostReservationRowView = {
   accommodationName: "숙소 1",
   reservationCodeLabel: "CODE-1",
   totalPriceLabel: "₩100,001",
-};
+} as const;
 
 const createProps = (
   overrides: Partial<HostReservationsPanelProps> = {},

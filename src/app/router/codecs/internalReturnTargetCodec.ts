@@ -1,12 +1,12 @@
 import { isIdentityOwnedTransactionPath } from "../identityRouteBoundary";
 
-export interface InternalReturnTarget {
+interface InternalReturnTarget {
   pathname: string;
   search: string;
   hash: string;
 }
 
-export interface InternalReturnLocationState {
+interface InternalReturnLocationState {
   from: InternalReturnTarget;
 }
 
@@ -166,7 +166,7 @@ const normalizeTarget = (
   }
 };
 
-export const parseInternalReturnTarget = (
+const parseInternalReturnTarget = (
   value: unknown,
 ): InternalReturnTarget | null => {
   if (!hasOnlyExpectedDataProperties(value, EXPECTED_TARGET_KEYS)) {
@@ -184,7 +184,7 @@ export const parseInternalReturnTarget = (
     : null;
 };
 
-export const parseInternalReturnLocationState = (
+const parseInternalReturnLocationState = (
   value: unknown,
 ): InternalReturnTarget | null => {
   if (!hasOnlyExpectedDataProperties(value, EXPECTED_LOCATION_STATE_KEYS)) {
@@ -194,7 +194,7 @@ export const parseInternalReturnLocationState = (
   return parseInternalReturnTarget(readDataProperty(value, "from"));
 };
 
-export const serializeInternalReturnTarget = (
+const serializeInternalReturnTarget = (
   target: InternalReturnTarget,
 ): string | null => {
   const normalized = parseInternalReturnTarget(target);
@@ -203,7 +203,7 @@ export const serializeInternalReturnTarget = (
     : null;
 };
 
-export const createInternalReturnLocationState = (
+const createInternalReturnLocationState = (
   target: InternalReturnTarget,
 ): InternalReturnLocationState | null => {
   const normalized = parseInternalReturnTarget(target);

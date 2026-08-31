@@ -36,21 +36,21 @@ export interface ReviewSubmissionCreatedStale {
   readonly cachePublication: ReviewSubmissionCachePublication;
 }
 
-export interface ReviewSubmissionDefinitiveFailure {
+interface ReviewSubmissionDefinitiveFailure {
   readonly status: "definitive-failure";
   readonly error: unknown;
 }
 
-export interface ReviewSubmissionAmbiguous {
+interface ReviewSubmissionAmbiguous {
   readonly status: "ambiguous";
   readonly error: unknown;
 }
 
-export interface InvalidReviewSubmission {
+interface InvalidReviewSubmission {
   readonly status: "invalid";
 }
 
-export interface StaleReviewSubmission {
+interface StaleReviewSubmission {
   readonly status: "stale";
 }
 
@@ -75,10 +75,9 @@ export interface ReviewSubmissionRouteLease {
   isCurrent(): boolean;
 }
 
-export type ReviewSubmissionPublicationOutcome =
-  "success" | "created_without_images";
+type ReviewSubmissionPublicationOutcome = "success" | "created_without_images";
 
-export interface ReviewCreatedPublicationInput {
+interface ReviewCreatedPublicationInput {
   readonly accommodationId: number;
   readonly outcome: ReviewSubmissionPublicationOutcome;
   readonly reservationUid: string;

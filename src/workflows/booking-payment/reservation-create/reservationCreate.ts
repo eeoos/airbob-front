@@ -17,24 +17,11 @@ import type {
 
 export type {
   AppliedReservationCoupon,
-  ReservationCheckoutHandoffPreflightInput,
-  ReservationCheckoutHandoffPreflightResult,
-  ReservationCheckoutHandoffInput,
   ReservationCheckoutHandoffPort,
-  ReservationCreateAccommodationSnapshot,
-  ReservationCreateCommandInput,
-  ReservationCreateResult,
   ReservationCreateRouteLease,
   ReservationCreateSessionPort,
-  ReservationCreateTerminal,
-  ReservationCreateTransport,
-  ReservationCreateValidationCode,
-  ReservationCreateValidationFailure,
-  ReservationCreateWorkflow,
-  ReservationCreateWorkflowDependencies,
   ReservationStartIntent,
 } from "./reservationCreateTypes";
-export { ReservationCreateValidationError } from "./reservationCreateValidation";
 
 const isDefinitiveFailure = (error: unknown): boolean => {
   if (!isAppError(error)) return false;

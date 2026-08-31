@@ -1,6 +1,6 @@
 export type HostListingAction = "delete" | "publish" | "unpublish";
 
-export interface HostListingActionRequestOptions {
+interface HostListingActionRequestOptions {
   readonly signal?: AbortSignal;
 }
 

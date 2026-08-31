@@ -432,10 +432,9 @@ describe("frontend verification gate", () => {
     expect(packageJson.scripts["lint:architecture"]).toBe(
       "node scripts/architecture/run-dependency-cruiser.mjs",
     );
-    expect(packageJson.scripts["lint:dead-code"]).toContain(
-      "knip-target-ratchet.mjs",
+    expect(packageJson.scripts["lint:dead-code"]).toBe(
+      "knip --production --reporter compact --no-progress",
     );
-    expect(packageJson.scripts["lint:dead-code"]).toContain("--include files");
     expect(packageJson.scripts["lint:dependencies"]).toBe(
       "node scripts/architecture/verify-dependency-classification.mjs",
     );
@@ -1269,8 +1268,9 @@ describe("frontend verification gate", () => {
       "npm run verify:structure",
       "npm run verify:browser",
       "npm run verify:live-integration",
-      "PENDING (offline closure)",
-      "global unused value/type export와 duplicate export",
+      "READY (offline)",
+      "Global unused file/value/type export와 duplicate export",
+      "Production Knip은 target preprocessor 없이 전체 production graph",
       "frontend-bundle-budgets.json",
       "DEFERRED / UNVERIFIED (live)",
       "Vercel → OCI",
@@ -1280,6 +1280,7 @@ describe("frontend verification gate", () => {
     ].forEach((term) => {
       expect(matrix).toContain(term);
     });
+    expect(matrix).not.toContain("PENDING (offline closure)");
     expect(matrix).not.toContain("2026-07-04");
     expect(matrix).not.toContain("react-scripts");
     expect(matrix).not.toContain("Jest");

@@ -44,7 +44,7 @@ import { useReservationCreateCommand } from "./useReservationCreateCommand";
 
 type DetailScope = AccommodationDetailQueryOptions["scope"];
 
-export interface AccommodationDetailBookingRouteState {
+interface AccommodationDetailBookingRouteState {
   readonly checkIn?: string;
   readonly checkOut?: string;
   readonly adultOccupancy: number;
@@ -68,7 +68,7 @@ export interface AccommodationDetailClaimedAuthIntent {
   isCurrent(): boolean;
 }
 
-export interface AccommodationDetailAuthIntentPort {
+interface AccommodationDetailAuthIntentPort {
   readonly claimed: AccommodationDetailClaimedAuthIntent | null;
   cancelPending(): void;
   completeClaim(attemptId: number): void;

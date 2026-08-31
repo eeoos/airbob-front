@@ -7,11 +7,10 @@ import {
   type OverlayModality,
   useOverlayRegistration,
 } from "../../shared/ui/overlayRuntime";
-import {
-  APP_ROOT_ID,
-  APP_OVERLAY_ROOT_ID,
-  OverlayProvider,
-} from "./OverlayProvider";
+import { OverlayProvider } from "./OverlayProvider";
+
+const APP_OVERLAY_ROOT_ID = "airbob-portal-root";
+const APP_ROOT_ID = "root";
 
 function RegisteredOverlay({
   modality,

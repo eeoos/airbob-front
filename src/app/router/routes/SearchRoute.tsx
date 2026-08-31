@@ -170,7 +170,7 @@ function SearchRouteContent() {
   );
 }
 
-export function SearchRoute() {
+function SearchRoute() {
   return (
     <WishlistMembershipRouteBoundary>
       <SearchRouteContent />

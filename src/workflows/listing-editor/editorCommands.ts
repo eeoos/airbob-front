@@ -33,9 +33,9 @@ export interface ListingEditorSessionPort {
   isCurrentSession(scope: AuthenticatedSessionScope): boolean;
 }
 
-export type ListingEditorPublicationOutcome = "saved" | "published";
+type ListingEditorPublicationOutcome = "saved" | "published";
 
-export interface ListingEditorPublicationInput {
+interface ListingEditorPublicationInput {
   readonly accommodationId: number;
   readonly outcome: ListingEditorPublicationOutcome;
   readonly scope: AuthenticatedSessionScope;
@@ -45,13 +45,13 @@ export interface ListingEditorPublicationPort {
   publishEditorChanged(input: ListingEditorPublicationInput): Promise<void>;
 }
 
-export interface ListingEditorContinuationInput {
+interface ListingEditorContinuationInput {
   readonly accommodationId: number;
   readonly intent: EditorPersistenceIntent;
   readonly scope: AuthenticatedSessionScope;
 }
 
-export interface ListingEditorContinuationPort {
+interface ListingEditorContinuationPort {
   complete(input: ListingEditorContinuationInput): void | Promise<void>;
 }
 
@@ -66,12 +66,12 @@ export interface ListingEditorWorkflowDependencies {
   readonly session: ListingEditorSessionPort;
 }
 
-export interface ListingEditorDeleteCommand {
+interface ListingEditorDeleteCommand {
   readonly imageId: number;
   readonly originalIndex: number;
 }
 
-export interface ListingEditorPersistenceCommand {
+interface ListingEditorPersistenceCommand {
   readonly intent: EditorPersistenceIntent;
   readonly pendingFiles: readonly File[];
   readonly update: ListingEditorUpdateInput;

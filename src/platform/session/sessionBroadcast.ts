@@ -1,6 +1,6 @@
 export type SessionBroadcastPhase = "invalidate" | "revalidate";
 
-export interface SessionBroadcastMessage {
+interface SessionBroadcastMessage {
   version: 1;
   type: "session-transition";
   sourceId: string;
@@ -8,11 +8,9 @@ export interface SessionBroadcastMessage {
   phase: SessionBroadcastPhase;
 }
 
-export type SessionBroadcastListener = (
-  message: SessionBroadcastMessage,
-) => void;
+type SessionBroadcastListener = (message: SessionBroadcastMessage) => void;
 
-export interface SessionBroadcastChannel {
+interface SessionBroadcastChannel {
   postMessage(message: unknown): void;
   addEventListener(
     type: "message",
@@ -25,7 +23,7 @@ export interface SessionBroadcastChannel {
   close(): void;
 }
 
-export type SessionBroadcastChannelFactory = (
+type SessionBroadcastChannelFactory = (
   channelName: string,
 ) => SessionBroadcastChannel | null;
 

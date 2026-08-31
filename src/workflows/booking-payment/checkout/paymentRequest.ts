@@ -15,15 +15,15 @@ export interface PaymentRequestSessionPort {
   isCurrentSession(scope: AuthenticatedSessionScope): boolean;
 }
 
-export interface PaymentRequestCommand extends PaymentGatewayRequest {
+interface PaymentRequestCommand extends PaymentGatewayRequest {
   readonly reservationUid: string;
   readonly routeLease: PaymentRequestRouteLease;
 }
 
-export type PaymentRequestTerminal =
+type PaymentRequestTerminal =
   "requested" | "terminal-failure" | "stale" | "disposed";
 
-export type PaymentRequestResult =
+type PaymentRequestResult =
   | { readonly status: "ready" }
   | { readonly status: "requested" }
   | { readonly status: "invalid" }

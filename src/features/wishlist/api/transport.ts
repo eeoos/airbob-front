@@ -3,7 +3,7 @@ import {
   requestApiDataNullable,
 } from "../../../platform/http/request";
 
-export type ApiTransportRequest = Parameters<typeof requestApiData>[0];
+type ApiTransportRequest = Parameters<typeof requestApiData>[0];
 
 export interface ApiTransport {
   request<T>(request: ApiTransportRequest): Promise<NonNullable<T>>;

@@ -58,7 +58,7 @@ const isSameCallbackTuple = (
   current.paymentKey === expected.paymentKey &&
   current.amount === expected.amount;
 
-export function PaymentFailRoute() {
+function PaymentFailRoute() {
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();

@@ -8,9 +8,12 @@ import {
   createBookingPaymentCallbackRepository,
   createBookingPaymentCheckoutRepository,
   type CallbackData,
-  type CheckoutWriteData,
 } from "../../../workflows/booking-payment/checkout";
-import { ReservationConfirmRoute } from "./ReservationConfirmRoute";
+import ReservationConfirmRoute from "./ReservationConfirmRoute";
+
+type CheckoutWriteData = Parameters<
+  ReturnType<typeof createBookingPaymentCheckoutRepository>["write"]
+>[0]["data"];
 
 const scope: AuthenticatedSessionScope = {
   epoch: 5,

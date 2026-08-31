@@ -8,9 +8,9 @@ import {
   toSearchParams,
 } from "./queryCodecUtils";
 
-export const MAX_SEARCH_PAGE = 15;
+const MAX_SEARCH_PAGE = 15;
 
-export type RouteQueryValue = string | number;
+type RouteQueryValue = string | number;
 
 export interface AccommodationBookingRouteQuery {
   checkIn?: RouteQueryValue;
@@ -41,7 +41,7 @@ export interface SearchRouteQuery extends AccommodationBookingRouteQuery {
   bottomRightLng?: RouteQueryValue;
 }
 
-export interface SearchRouteState {
+interface SearchRouteState {
   destination?: string;
   page: number;
   lat?: number;
@@ -143,9 +143,7 @@ const parseViewport = (
     : null;
 };
 
-export const parseSearchRouteState = (
-  input: SearchParamsInput,
-): SearchRouteState => {
+const parseSearchRouteState = (input: SearchParamsInput): SearchRouteState => {
   const params = toSearchParams(input);
   const booking = parseAccommodationBookingRouteState(params);
   const location = parseCoordinatePair(params, "lat", "lng");
@@ -168,7 +166,7 @@ export const parseSearchRouteState = (
   };
 };
 
-export const parseAccommodationBookingRouteState = (
+const parseAccommodationBookingRouteState = (
   input: SearchParamsInput,
 ): AccommodationBookingRouteState => {
   const params = toSearchParams(input);

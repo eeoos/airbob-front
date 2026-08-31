@@ -3,7 +3,7 @@ import { platformApiTransport, type ApiTransport } from "./transport";
 import { toRecentlyViewedCollection } from "./mappers";
 import type { RecentlyViewedApiPort } from "../ports/recentlyViewedApiPort";
 
-export const createRecentlyViewedApi = (
+const createRecentlyViewedApi = (
   transport: ApiTransport,
 ): RecentlyViewedApiPort => ({
   async getRecentlyViewed(options) {

@@ -17,7 +17,7 @@ const accommodationTypeLabels: Readonly<Record<string, string>> = {
   CASTLE: "성 같은 특이한 숙소",
 };
 
-export const accommodationAmenityLabels = {
+const accommodationAmenityLabels = {
   WIFI: "무선 인터넷",
   AIR_CONDITIONER: "에어컨",
   HEATING: "난방",

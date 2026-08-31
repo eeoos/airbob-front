@@ -7,8 +7,8 @@ import {
 } from "../overlayRuntime";
 import styles from "./Dialog.module.css";
 
-export type DialogBodyPadding = "default" | "none";
-export type DialogSize = "sm" | "md" | "lg" | "xl" | "fullscreen" | "custom";
+type DialogBodyPadding = "default" | "none";
+type DialogSize = "sm" | "md" | "lg" | "xl" | "fullscreen" | "custom";
 
 export interface DialogProps {
   children: React.ReactNode;

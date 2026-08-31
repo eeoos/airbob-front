@@ -9,7 +9,7 @@ import type {
   WishlistCollection,
   WishlistDetail,
 } from "../model";
-import { wishlistReadQueryKeys } from "../queries";
+import { wishlistReadQueryKeys } from "../queries/queryKeys";
 import { createWishlistQueryCacheProjection } from "./queryCacheProjection";
 
 const scopeA: AuthenticatedSessionScope = {

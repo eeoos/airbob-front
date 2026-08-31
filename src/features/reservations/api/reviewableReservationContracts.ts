@@ -1,10 +1,10 @@
-export interface ReviewableReservationAccommodationWire {
+interface ReviewableReservationAccommodationWire {
   readonly id: number;
   readonly name: string;
   readonly thumbnail_url: string | null;
 }
 
-export interface ReviewableReservationAddressWire {
+interface ReviewableReservationAddressWire {
   readonly country: string;
   readonly state: string | null;
   readonly city: string;

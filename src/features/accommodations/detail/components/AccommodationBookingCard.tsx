@@ -15,7 +15,7 @@ type NumberSetter = React.Dispatch<React.SetStateAction<number>>;
 type BooleanSetter = React.Dispatch<React.SetStateAction<boolean>>;
 type BookingCoupon = AccommodationBookingCouponViewModel;
 
-export interface AccommodationBookingState {
+interface AccommodationBookingState {
   payablePrice: number;
   nights: number;
   totalPrice: number;
@@ -34,7 +34,7 @@ export interface AccommodationBookingState {
   isReserving: boolean;
 }
 
-export interface AccommodationBookingActions {
+interface AccommodationBookingActions {
   formatDate: (date: Date | null) => string;
   handleDateSelect: (checkIn: Date | null, checkOut: Date | null) => void;
   setIsDatePickerOpen: BooleanSetter;
@@ -46,7 +46,7 @@ export interface AccommodationBookingActions {
   onReserve: () => void;
 }
 
-export interface AccommodationCouponState {
+interface AccommodationCouponState {
   coupons: BookingCoupon[];
   errorMessage: string | null;
   isLoadingCoupons: boolean;
@@ -54,7 +54,7 @@ export interface AccommodationCouponState {
   couponDiscount: number;
 }
 
-export interface AccommodationCouponActions {
+interface AccommodationCouponActions {
   setSelectedCouponId: (couponId: number | null) => void;
   handleIssueCoupon: (coupon: BookingCoupon) => void | Promise<void>;
 }

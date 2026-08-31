@@ -25,7 +25,7 @@ import {
   type PendingAuthIntent,
 } from "./authIntentContext";
 
-export interface AuthIntentSessionSnapshot {
+interface AuthIntentSessionSnapshot {
   readonly status: "checking" | "authenticated" | "anonymous" | "error";
   readonly reason?:
     | "bootstrap"
@@ -35,7 +35,7 @@ export interface AuthIntentSessionSnapshot {
     | "server-revoked";
 }
 
-export interface AuthIntentSessionPort {
+interface AuthIntentSessionPort {
   readonly state: AuthIntentSessionSnapshot;
   captureAuthenticatedSession(): AuthenticatedSessionScope | null;
   isCurrentSession(scope: AuthenticatedSessionScope): boolean;

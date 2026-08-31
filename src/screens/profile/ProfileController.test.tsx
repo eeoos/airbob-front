@@ -19,11 +19,6 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../platform/session/sessionScope";
-import type {
-  HostListingManagementCommand,
-  HostListingManagementResult,
-  HostListingManagementWorkflow,
-} from "../../workflows/host-listing-management";
 import {
   ProfileController,
   type ProfileControllerProps,
@@ -31,6 +26,15 @@ import {
   type ProfileNavigationCommands,
   type ProfileRouteView,
 } from "./ProfileController";
+
+type HostListingManagementWorkflow =
+  ProfileControllerProps["hostListingWorkflow"];
+type HostListingManagementCommand = Parameters<
+  HostListingManagementWorkflow["execute"]
+>[0];
+type HostListingManagementResult = Awaited<
+  ReturnType<HostListingManagementWorkflow["execute"]>
+>;
 
 const scope: AuthenticatedSessionScope = {
   epoch: 4,

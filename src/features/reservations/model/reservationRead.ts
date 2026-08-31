@@ -42,18 +42,18 @@ export interface ReservationAddress {
   readonly postalCode: string;
 }
 
-export interface ReservationCoordinate {
+interface ReservationCoordinate {
   readonly latitude: number | null;
   readonly longitude: number | null;
 }
 
-export interface ReservationPaymentCancel {
+interface ReservationPaymentCancel {
   readonly cancelAmount: number;
   readonly cancelReason: string;
   readonly canceledAt: string;
 }
 
-export interface ReservationVirtualAccount {
+interface ReservationVirtualAccount {
   readonly accountNumber: string;
   readonly bankCode: string;
   readonly customerName: string;
@@ -104,11 +104,10 @@ export interface HostReservationListItem {
   readonly accommodation: ReservationAccommodation;
 }
 
-export type ReservationListItemByAudience<
-  TAudience extends ReservationReadAudience,
-> = TAudience extends "guest"
-  ? GuestReservationListItem
-  : HostReservationListItem;
+type ReservationListItemByAudience<TAudience extends ReservationReadAudience> =
+  TAudience extends "guest"
+    ? GuestReservationListItem
+    : HostReservationListItem;
 
 export interface ReservationListPage<
   TAudience extends ReservationReadAudience = ReservationReadAudience,

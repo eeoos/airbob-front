@@ -87,19 +87,21 @@ npm run report:architecture
 - `verify:design-ready` and `verify:pre-redesign`: the same canonical,
   backend-independent design-entry gate. They combine the structure and
   deterministic browser gates and do not contact OCI, Toss, or Google Maps.
-- `verify:structure`: typecheck, deterministic single-worker Vitest, strict ESLint, the
-  architecture/reachability/style ratchets, and a hostile-environment
-  production build that proves only the four approved app-runtime public
-  config categories plus a validated `PUBLIC_URL` asset base can enter built
-  source.
+- `verify:structure`: typecheck, deterministic single-worker Vitest, strict
+  ESLint, the architecture, global production reachability/export, and strict
+  style gates, plus a hostile-environment production build that proves only the
+  four approved app-runtime public config categories plus a validated
+  `PUBLIC_URL` asset base can enter built source.
 - `verify:browser`: runs Playwright type/lint and artifact policy checks, then
   the synthetic same-origin browser characterization without a live backend.
 - `verify:architecture`: runs forbidden-rule fixtures, the production
-  dependency graph, monotonic migration-registry checks, target-only dead-code
-  enforcement, full development and strict production dependency
-  classification, strict style policy, and formatting drift detection.
-- `report:architecture`: prints the measured legacy dead-code and CSS debt
-  without turning it into permanent suppressions.
+  dependency graph, monotonic migration-registry checks, global strict
+  production dead-code/export enforcement, full development and strict
+  production dependency classification, strict style policy, and formatting
+  drift detection.
+- `report:architecture`: prints the complete production Knip report (expected to
+  remain empty) and measured legacy CSS debt without turning either into a
+  permanent suppression.
 - `test:public-config-build`: injects synthetic password, secret, cookie, token,
   private-key, and unknown-env canaries into a temporary production build and
   fails if any forbidden value reaches generated text assets. It also runs the

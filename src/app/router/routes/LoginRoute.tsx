@@ -5,7 +5,7 @@ import { useSession } from "../../session/useSession";
 import { internalReturnTargetCodec } from "../codecs/internalReturnTargetCodec";
 import { routeTo } from "../paths";
 
-export function LoginRoute() {
+function LoginRoute() {
   const location = useLocation();
   const navigate = useNavigate();
   const session = useSession();

@@ -3,9 +3,7 @@ import {
   requestApiDataNullable,
 } from "../../../../platform/http/request";
 
-export type AccommodationApiTransportRequest = Parameters<
-  typeof requestApiData
->[0];
+type AccommodationApiTransportRequest = Parameters<typeof requestApiData>[0];
 
 export interface AccommodationApiTransport {
   request<T>(

@@ -7,15 +7,15 @@ import type { PaymentApiPort } from "../ports/paymentApiPort";
 import type { PaymentRecordWire } from "./contracts";
 import { toPaymentConfirmationWireRequest, toPaymentRecord } from "./mappers";
 
-export type PaymentApiTransport = <T>(
+type PaymentApiTransport = <T>(
   request: ApiDataRequest,
 ) => Promise<NonNullable<T>>;
 
-export type NullablePaymentApiTransport = <T = null>(
+type NullablePaymentApiTransport = <T = null>(
   request: ApiDataRequest,
 ) => Promise<T | null>;
 
-export const createPaymentApi = (
+const createPaymentApi = (
   request: PaymentApiTransport,
   requestNullable: NullablePaymentApiTransport,
 ): PaymentApiPort => ({

@@ -9,8 +9,8 @@ import type { ReviewPage } from "../model";
 import type { ReviewReadApiPort } from "../ports/reviewApiPort";
 import { reviewReadQueryKeys } from "./queryKeys";
 
-export const REVIEW_PAGE_SIZE = 6;
-export const REVIEW_LIST_SORT_TYPE = "LATEST" as const;
+const REVIEW_PAGE_SIZE = 6;
+const REVIEW_LIST_SORT_TYPE = "LATEST" as const;
 
 export interface AccommodationReviewsQueryOptions {
   readonly accommodationId: number | null;
@@ -33,7 +33,7 @@ const getNextReviewCursor = (
     : undefined;
 };
 
-export const createAccommodationReviewsQueryOptions = (
+const createAccommodationReviewsQueryOptions = (
   { accommodationId, scope, enabled = true }: AccommodationReviewsQueryOptions,
   api: ReviewReadApiPort = defaultReviewApi,
 ) => ({

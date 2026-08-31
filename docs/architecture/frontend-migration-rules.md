@@ -90,14 +90,17 @@ During migration, a legacy edge is allowed only when the ownership matrix names
 the exact compatibility reader and its removal unit. Migrated slices have zero
 exceptions.
 
-`architecture-ratchet.json` is the single strict-promotion registry. Add a
-feature only in its production cutover commit and only when dependency-cruiser,
-Knip, and Stylelint all report zero target errors for it. Never add a known
-violation snapshot or file ignore to claim that a slice is migrated. The exact
-registry accepts only existing feature roots with production source, and CI
-compares it with Git history so a live feature cannot be downgraded. It is
-monotonic until U22 removes the registered feature root. The exact tool owners
-and U3 baseline live in
+`architecture-ratchet.json` is the single feature strict-promotion registry.
+Add a feature only in its production cutover commit and only when
+dependency-cruiser and Stylelint report zero target errors and the global
+production Knip gate remains green. The registry does not narrow Knip:
+production-unused files, value exports, type exports, and duplicate exports are
+blocking across the complete production project. Never add a known violation
+snapshot or file ignore to claim that a slice is migrated. The exact registry
+accepts only existing feature roots with production source, and CI compares it
+with Git history so a live feature cannot be downgraded. It is monotonic until
+U22 removes the registered feature root. The exact tool owners and U3 baseline
+live in
 [`tests/architecture/dependency-rules.md`](../../tests/architecture/dependency-rules.md).
 New or renamed feature roots must be registered in their creation/rename commit.
 A parent feature cannot claim production source owned by a declared nested
@@ -180,8 +183,11 @@ Before declaring a slice complete:
 - the old route, writer, barrel, and compatibility export are removed;
 - the migrated slice has no boundary-rule exception;
 - Knip retains its canonical entry/project coverage, explicit plugin ownership,
-  global dependency scans, and every error-level rule except cycles, which
-  remain dependency-cruiser-owned;
+  global production reachability/export scan, global dependency scans, and
+  every error-level rule except cycles, which remain dependency-cruiser-owned;
+- production Knip reports zero unused files, value exports, type exports, and
+  duplicate exports without ignores, artificial entries, or test-only
+  production consumers;
 - `npm run format:check` passes without formatting excluded owners;
 - the ownership matrix and canonical architecture document match production;
 - residual live-backend or sandbox scope is marked unverified, not passed.

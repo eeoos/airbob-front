@@ -12,7 +12,7 @@ export type ReservationCreateValidationCode =
   | "INVALID_OCCUPANCY"
   | "INVALID_COUPON";
 
-export interface ReservationCreateValidationFailure extends Error {
+interface ReservationCreateValidationFailure extends Error {
   readonly code: ReservationCreateValidationCode;
 }
 
@@ -28,7 +28,7 @@ export interface ReservationStartIntent {
   readonly couponId: number | null;
 }
 
-export interface ReservationCreateAccommodationSnapshot {
+interface ReservationCreateAccommodationSnapshot {
   readonly id: number;
   readonly maxOccupancy: number;
   readonly maxInfants: number;
@@ -64,14 +64,14 @@ export interface ReservationCreateSessionPort {
   isCurrentSession(scope: AuthenticatedSessionScope): boolean;
 }
 
-export interface ReservationCheckoutHandoffInput {
+interface ReservationCheckoutHandoffInput {
   readonly session: AuthenticatedSessionScope;
   readonly reservation: ReservationReady;
   readonly intent: ReservationStartIntent;
   readonly appliedCoupon: AppliedReservationCoupon | null;
 }
 
-export interface ReservationCheckoutHandoffPreflightInput {
+interface ReservationCheckoutHandoffPreflightInput {
   readonly session: AuthenticatedSessionScope;
   readonly intent: ReservationStartIntent;
 }

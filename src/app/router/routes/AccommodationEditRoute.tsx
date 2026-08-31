@@ -20,7 +20,7 @@ const toAccommodationId = (value: string | undefined): number => {
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : 0;
 };
 
-export function AccommodationEditRoute() {
+function AccommodationEditRoute() {
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();

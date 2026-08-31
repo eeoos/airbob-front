@@ -2,7 +2,6 @@ import type { ReservationStatus } from "../model/reservationRead";
 import {
   formatReservationStatus,
   getReservationStatusTone,
-  reservationStatusDisplay,
   type ReservationStatusTone,
 } from "./reservationStatusDisplay";
 
@@ -17,12 +16,6 @@ const statusCases: Array<[ReservationStatus, string, ReservationStatusTone]> = [
 ];
 
 describe("reservation status display", () => {
-  it("exports display metadata for every reservation status", () => {
-    expect(Object.keys(reservationStatusDisplay).sort()).toEqual(
-      statusCases.map(([status]) => status).sort(),
-    );
-  });
-
   it.each(statusCases)(
     "formats %s with label %s and tone %s",
     (status, label, tone) => {

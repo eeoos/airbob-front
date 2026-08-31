@@ -59,7 +59,7 @@ function WishlistRouteContent() {
   );
 }
 
-export function WishlistRoute() {
+function WishlistRoute() {
   return (
     <WishlistMembershipRouteBoundary>
       <WishlistRouteContent />

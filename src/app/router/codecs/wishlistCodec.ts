@@ -4,14 +4,12 @@ import {
   toSearchParams,
 } from "./queryCodecUtils";
 
-export type WishlistRouteView = "index" | "recently-viewed" | "wishlist-detail";
-
 export type WishlistRouteQuery =
   | { id: string | number; view?: never }
   | { id?: never; view: "recently-viewed" }
   | { id?: undefined; view?: undefined };
 
-export type WishlistRouteState =
+type WishlistRouteState =
   | { view: "index"; wishlistId: null }
   | { view: "recently-viewed"; wishlistId: null }
   | { view: "wishlist-detail"; wishlistId: number };
@@ -25,7 +23,7 @@ const parseWishlistId = (value: string | null): number | null => {
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 };
 
-export const parseWishlistRouteState = (
+const parseWishlistRouteState = (
   input: SearchParamsInput,
 ): WishlistRouteState => {
   const params = toSearchParams(input);
@@ -53,7 +51,7 @@ export const serializeWishlistRouteQuery = (
   return params;
 };
 
-export const serializeWishlistRouteState = (
+const serializeWishlistRouteState = (
   state: WishlistRouteState,
 ): URLSearchParams => {
   if (state.view === "wishlist-detail") {

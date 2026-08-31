@@ -25,18 +25,18 @@ export interface ReservationAddressWire {
   readonly postal_code: string;
 }
 
-export interface ReservationCoordinateWire {
+interface ReservationCoordinateWire {
   readonly latitude: number | null;
   readonly longitude: number | null;
 }
 
-export interface ReservationPaymentCancelWire {
+interface ReservationPaymentCancelWire {
   readonly cancel_amount: number;
   readonly cancel_reason: string;
   readonly canceled_at: string;
 }
 
-export interface ReservationVirtualAccountWire {
+interface ReservationVirtualAccountWire {
   readonly account_number: string;
   readonly bank_code: string;
   readonly customer_name: string;

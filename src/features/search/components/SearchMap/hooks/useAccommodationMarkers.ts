@@ -48,7 +48,7 @@ const createIconUrl = (svgIcon: string) => {
   return URL.createObjectURL(svgBlob);
 };
 
-export const disposeSearchMapMarkers = (markers: SearchMapMarker[]) => {
+const disposeSearchMapMarkers = (markers: SearchMapMarker[]) => {
   markers.forEach((marker) => {
     if (marker.dispose) {
       marker.dispose();

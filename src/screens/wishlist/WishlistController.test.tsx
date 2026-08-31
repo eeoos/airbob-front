@@ -17,12 +17,11 @@ import {
 import { OverlayProvider } from "../../app/overlays/OverlayProvider";
 import { requireDefined } from "../../test/assertions";
 import { useIntersectionLoadMore } from "../../shared/lib/useIntersectionLoadMore";
-import {
-  useWishlistMembership,
-  type WishlistMembershipCommands,
-} from "../../workflows/wishlist-membership";
+import { useWishlistMembership } from "../../workflows/wishlist-membership";
 import { WishlistController } from "./WishlistController";
 import type { WishlistControllerProps } from "./WishlistController";
+
+type WishlistMembershipCommands = ReturnType<typeof useWishlistMembership>;
 
 vi.mock("../../features/wishlist/queries", () => ({
   useRecentlyViewedReadQuery: vi.fn(),

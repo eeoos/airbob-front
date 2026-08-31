@@ -2,10 +2,7 @@ import { QueryClient } from "@tanstack/react-query";
 import type { Mocked } from "vitest";
 import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
 import type { HostListingPage, HostListingStatus } from "../model/hostListing";
-import type {
-  HostListingsApiPort,
-  HostListingsRequest,
-} from "../ports/hostListingsApiPort";
+import type { HostListingsApiPort } from "../ports/hostListingsApiPort";
 import { hostListingQueryKeys } from "./hostListingQueryKeys";
 import { createHostListingInfiniteQueryOptions } from "./hostListingQueries";
 
@@ -102,7 +99,7 @@ describe("host listing query boundary", () => {
     const published = deferred<HostListingPage>();
     const draft = deferred<HostListingPage>();
     const api: HostListingsApiPort = {
-      getHostListings: vi.fn((request: HostListingsRequest) =>
+      getHostListings: vi.fn((request) =>
         request.status === "PUBLISHED" ? published.promise : draft.promise,
       ),
     };

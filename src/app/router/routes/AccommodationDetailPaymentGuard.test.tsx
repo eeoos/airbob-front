@@ -12,7 +12,7 @@ import type {
   ReservationCheckoutHandoffPort,
   ReservationStartIntent,
 } from "../../../workflows/booking-payment/reservation-create";
-import { AccommodationDetailRoute } from "./AccommodationDetailRoute";
+import AccommodationDetailRoute from "./AccommodationDetailRoute";
 
 const scope: AuthenticatedSessionScope = {
   epoch: 9,

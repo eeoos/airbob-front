@@ -7,7 +7,7 @@ import type {
   SessionSubject,
 } from "../../platform/session/sessionScope";
 import type {
-  WishlistMembershipProjection,
+  WishlistMembershipDependencies,
   WishlistMembershipTransport,
 } from "./wishlistMembership";
 import { WishlistMembershipProvider } from "./WishlistMembershipProvider";
@@ -17,6 +17,9 @@ const scope: AuthenticatedSessionScope = {
   subject: "subject:member_7" as SessionSubject,
   epoch: 3,
 };
+
+type WishlistMembershipProjection =
+  WishlistMembershipDependencies["projection"];
 
 const transport: Mocked<WishlistMembershipTransport> = {
   addAccommodation: vi.fn().mockResolvedValue({ id: 31 }),

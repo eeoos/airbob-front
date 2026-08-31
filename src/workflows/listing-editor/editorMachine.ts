@@ -1,5 +1,5 @@
 export type EditorPersistenceIntent = "advance" | "save-exit" | "publish";
-export type EditorOperationIntent = EditorPersistenceIntent | "delete-image";
+type EditorOperationIntent = EditorPersistenceIntent | "delete-image";
 
 export type EditorOperationPhase =
   | "delete"
@@ -10,9 +10,9 @@ export type EditorOperationPhase =
   | "publish"
   | "continuation";
 
-export type EditorOperationRetry = "allowed" | "locked";
+type EditorOperationRetry = "allowed" | "locked";
 
-export interface EditorDeletionContext {
+interface EditorDeletionContext {
   readonly imageId: number;
   readonly originalIndex: number;
 }
@@ -43,35 +43,33 @@ interface EditorStateIdentity {
   readonly accommodationId: number;
 }
 
-export interface EditorHydratingState extends EditorStateIdentity {
+interface EditorHydratingState extends EditorStateIdentity {
   readonly status: "hydrating";
   readonly operationId: number;
 }
 
-export interface EditorInvalidResourceState extends EditorStateIdentity {
+interface EditorInvalidResourceState extends EditorStateIdentity {
   readonly status: "invalid-resource";
   readonly error: unknown;
 }
 
-export interface EditorDeniedState extends EditorStateIdentity {
+interface EditorDeniedState extends EditorStateIdentity {
   readonly status: "denied";
   readonly error: unknown;
 }
 
-export interface EditorRetryableLoadErrorState extends EditorStateIdentity {
+interface EditorRetryableLoadErrorState extends EditorStateIdentity {
   readonly status: "retryable-load-error";
   readonly error: unknown;
 }
 
-export interface EditorReadyState<
-  TBaseline = unknown,
-> extends EditorStateIdentity {
+interface EditorReadyState<TBaseline = unknown> extends EditorStateIdentity {
   readonly status: "ready";
   readonly baseline: TBaseline;
   readonly baselineRevision: number;
 }
 
-export type EditorProcessingStatus =
+type EditorProcessingStatus =
   | "deleting-image"
   | "reconciling-delete"
   | "preparing"
@@ -87,7 +85,7 @@ export interface EditorProcessingState<
   readonly operation: EditorOperationContext<TBaseline, TImage>;
 }
 
-export interface EditorRecoverableErrorState<
+interface EditorRecoverableErrorState<
   TBaseline = unknown,
   TImage = unknown,
 > extends EditorStateIdentity {
@@ -98,7 +96,7 @@ export interface EditorRecoverableErrorState<
   readonly operation: EditorOperationContext<TBaseline, TImage>;
 }
 
-export interface EditorCompletedState<
+interface EditorCompletedState<
   TBaseline = unknown,
   TImage = unknown,
 > extends EditorStateIdentity {
@@ -108,7 +106,7 @@ export interface EditorCompletedState<
   readonly operation: EditorOperationContext<TBaseline, TImage>;
 }
 
-export interface EditorStaleState extends EditorStateIdentity {
+interface EditorStaleState extends EditorStateIdentity {
   readonly status: "stale";
 }
 

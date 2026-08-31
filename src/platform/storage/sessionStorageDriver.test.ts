@@ -1,4 +1,4 @@
-import { createSessionStorageDriver } from "./sessionStorageDriver";
+import { createSessionStorageDriver } from "./sessionStorageDriverCore";
 
 const createStorage = (entries: Record<string, string> = {}): Storage => {
   const values = new Map(Object.entries(entries));

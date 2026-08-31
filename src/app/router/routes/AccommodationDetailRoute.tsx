@@ -358,7 +358,7 @@ function AccommodationDetailRouteContent() {
   );
 }
 
-export function AccommodationDetailRoute() {
+function AccommodationDetailRoute() {
   return (
     <WishlistMembershipRouteBoundary>
       <AccommodationDetailRouteContent />

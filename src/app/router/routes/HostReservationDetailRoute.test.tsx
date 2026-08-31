@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import type { SessionSubject } from "../../../platform/session/sessionScope";
-import { HostReservationDetailRoute } from "./HostReservationDetailRoute";
+import HostReservationDetailRoute from "./HostReservationDetailRoute";
 
 const scope = {
   subject: "subject:host-detail" as SessionSubject,

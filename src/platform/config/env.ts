@@ -93,6 +93,6 @@ export const readBrowserEnvironment = (
   };
 };
 
-export const getRuntimeMode = (): RuntimeMode => readBrowserEnvironment().mode;
+const getRuntimeMode = (): RuntimeMode => readBrowserEnvironment().mode;
 
 export const isTestEnvironment = (): boolean => getRuntimeMode() === "test";

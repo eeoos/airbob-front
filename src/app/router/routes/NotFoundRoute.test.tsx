@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import type { NotFoundScreenProps } from "../../../screens/not-found/public";
-import { NotFoundRoute } from "./NotFoundRoute";
+import type { NotFoundScreenProps } from "../../../screens/not-found/NotFoundScreen";
+import NotFoundRoute from "./NotFoundRoute";
 
 const mockNotFoundScreen = vi.fn();
 

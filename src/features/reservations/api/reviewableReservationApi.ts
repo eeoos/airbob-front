@@ -7,11 +7,11 @@ import { encodeOpaquePathSegment } from "../../../platform/http/opaquePathSegmen
 import type { ReviewableReservationWire } from "./reviewableReservationContracts";
 import { toReviewableReservation } from "./reviewableReservationMapper";
 
-export type ReviewableReservationApiTransport = <T>(
+type ReviewableReservationApiTransport = <T>(
   request: ApiDataRequest,
 ) => Promise<NonNullable<T>>;
 
-export const createReviewableReservationApi = (
+const createReviewableReservationApi = (
   request: ReviewableReservationApiTransport,
 ): ReviewableReservationApiPort => ({
   async getReviewableReservation(reservationUid, options) {

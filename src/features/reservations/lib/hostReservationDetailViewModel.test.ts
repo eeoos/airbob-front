@@ -1,8 +1,5 @@
 import type { HostReservationDetail } from "../model/reservationRead";
-import {
-  calculateHostReservationNights,
-  toHostReservationDetailViewModel,
-} from "./hostReservationDetailViewModel";
+import { toHostReservationDetailViewModel } from "./hostReservationDetailViewModel";
 
 const hostReservationDetailFixture = (
   overrides: Partial<HostReservationDetail> = {},
@@ -106,11 +103,13 @@ describe("host reservation detail view model", () => {
   });
 
   it("keeps same-day or reversed stays at one display night", () => {
-    expect(
-      calculateHostReservationNights(
-        "2026-07-10T15:00:00",
-        "2026-07-10T11:00:00",
-      ),
-    ).toBe(1);
+    const viewModel = toHostReservationDetailViewModel(
+      hostReservationDetailFixture({
+        checkInDateTime: "2026-07-10T15:00:00",
+        checkOutDateTime: "2026-07-10T11:00:00",
+      }),
+    );
+
+    expect(viewModel.payment?.nights).toBe(1);
   });
 });

@@ -1,1 +1,1 @@
-export { NotFoundScreen, type NotFoundScreenProps } from "./NotFoundScreen";
+export { NotFoundScreen } from "./NotFoundScreen";

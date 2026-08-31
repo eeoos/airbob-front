@@ -4,7 +4,7 @@ import {
   toSearchParams,
 } from "./queryCodecUtils";
 
-export type PaymentFailReason = "confirm-failed" | "invalid-callback";
+type PaymentFailReason = "confirm-failed" | "invalid-callback";
 
 export interface PaymentSuccessRouteQuery {
   paymentKey: string | number;
@@ -16,19 +16,19 @@ export interface PaymentFailRouteQuery {
   reason?: PaymentFailReason;
 }
 
-export interface PaymentRouteQueryState {
+interface PaymentRouteQueryState {
   reason?: PaymentFailReason;
   paymentKey?: string;
   orderId?: string;
   amount?: string;
 }
 
-export type PaymentSuccessRouteInvalidReason =
+type PaymentSuccessRouteInvalidReason =
   | "MISSING_TOSS_SUCCESS_QUERY"
   | "INVALID_TOSS_SUCCESS_AMOUNT"
   | "MISMATCHED_TOSS_ORDER";
 
-export type PaymentSuccessRouteState =
+type PaymentSuccessRouteState =
   | {
       status: "valid";
       reservationUid: string;
@@ -41,7 +41,7 @@ export type PaymentSuccessRouteState =
       reason: PaymentSuccessRouteInvalidReason;
     };
 
-export const parsePaymentFailReason = (
+const parsePaymentFailReason = (
   value: string | null,
 ): PaymentFailReason | undefined =>
   value === "confirm-failed" || value === "invalid-callback"
@@ -57,7 +57,7 @@ const parseSafeIntegerString = (value: string | null): string | undefined => {
   return Number.isSafeInteger(parsed) ? value : undefined;
 };
 
-export const parsePaymentRouteQuery = (
+const parsePaymentRouteQuery = (
   input: SearchParamsInput,
 ): PaymentRouteQueryState => {
   const params = toSearchParams(input);
@@ -74,14 +74,12 @@ export const parsePaymentRouteQuery = (
   };
 };
 
-export const hasPaymentSuccessCallbackFields = (
-  input: SearchParamsInput,
-): boolean => {
+const hasPaymentSuccessCallbackFields = (input: SearchParamsInput): boolean => {
   const params = toSearchParams(input);
   return ["paymentKey", "orderId", "amount"].some((key) => params.has(key));
 };
 
-export const parsePaymentSuccessRouteState = (
+const parsePaymentSuccessRouteState = (
   reservationUid: string | null | undefined,
   input: SearchParamsInput,
 ): PaymentSuccessRouteState => {
@@ -133,7 +131,7 @@ export const serializePaymentFailRouteQuery = (
   return params;
 };
 
-export const serializePaymentRouteQueryState = (
+const serializePaymentRouteQueryState = (
   state: PaymentRouteQueryState,
 ): URLSearchParams => {
   const params = new URLSearchParams();

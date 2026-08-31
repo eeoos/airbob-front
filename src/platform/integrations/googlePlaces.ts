@@ -2,7 +2,7 @@ import { IntegrationError, type IntegrationErrorCode } from "./errors";
 import { getGoogleMapsApi } from "./googleMaps";
 
 const READINESS_INTERVAL_MS = 50;
-export const GOOGLE_PLACES_READINESS_TIMEOUT_MS = 5000;
+const GOOGLE_PLACES_READINESS_TIMEOUT_MS = 5000;
 
 export interface GooglePlacesPredictionRuntime {
   mainText?: { text: string };

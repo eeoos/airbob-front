@@ -3,7 +3,3 @@ export { WishlistDetailView } from "./WishlistDetailView";
 export { WishlistIndexView } from "./WishlistIndexView";
 export { WishlistMemoDialog } from "./WishlistMemoDialog";
 export { WishlistModal } from "./WishlistModal";
-export type {
-  WishlistModalCommandPort,
-  WishlistModalProps,
-} from "./WishlistModal";

@@ -30,7 +30,7 @@ export interface SearchMapProps {
   onMapInteraction?: (() => void) | undefined;
 }
 
-export interface SearchMapMarkerIcons {
+interface SearchMapMarkerIcons {
   default: google.maps.Icon;
   selected: google.maps.Icon;
   hovered: google.maps.Icon;

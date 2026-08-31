@@ -1,7 +1,7 @@
 import { getHomeHeroViewModel } from "../../../features/home/public";
 import { HomeScreen } from "../../../screens/home/public";
 
-export function HomeRoute() {
+function HomeRoute() {
   return <HomeScreen {...getHomeHeroViewModel()} />;
 }
 

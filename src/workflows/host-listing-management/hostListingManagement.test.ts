@@ -4,7 +4,6 @@ import { AppError } from "../../platform/http/errors";
 import type { AuthenticatedSessionScope } from "../../platform/session/sessionScope";
 import {
   createHostListingManagementWorkflow,
-  HOST_LISTING_COMMAND_DEADLINE_MS,
   type HostListingManagementPublicationPort,
 } from "./hostListingManagement";
 
@@ -318,7 +317,7 @@ describe("host listing management workflow", () => {
       });
       const signal = harness.api.publish.mock.calls.at(0)?.[1]?.signal;
 
-      vi.advanceTimersByTime(HOST_LISTING_COMMAND_DEADLINE_MS);
+      vi.advanceTimersByTime(15_000);
 
       await expect(command).resolves.toMatchObject({
         status: "ambiguous",

@@ -1,9 +1,5 @@
 import { ConfigError } from "./env";
-import {
-  createPublicRuntimeConfig,
-  serializePublicRuntimeConfig,
-  toSerializablePublicRuntimeConfig,
-} from "./publicRuntimeConfig";
+import { createPublicRuntimeConfig } from "./publicRuntimeConfigCore";
 
 describe("public runtime configuration", () => {
   it("uses the development proxy API path regardless of the configured origin", () => {
@@ -277,49 +273,4 @@ describe("public runtime configuration", () => {
       expect(JSON.stringify(thrownError)).not.toContain(misplacedSecret);
     },
   );
-
-  it("serializes only the four browser-public configuration values", () => {
-    const config = createPublicRuntimeConfig({
-      mode: "production",
-      apiUrl: "https://api.airbob.test",
-      googleMapsApiKey: "maps-public-key",
-      tossClientKey: "test_ck_toss_public_key",
-      cloudFrontDomain: "assets.airbob.test",
-    });
-    const serializedConfig = serializePublicRuntimeConfig(config);
-
-    expect(Object.keys(toSerializablePublicRuntimeConfig(config))).toEqual([
-      "apiBaseUrl",
-      "googleMapsBrowserKey",
-      "tossClientKey",
-      "cloudFrontHost",
-    ]);
-    expect(serializedConfig).toBe(
-      JSON.stringify({
-        apiBaseUrl: "https://api.airbob.test/api/v1",
-        googleMapsBrowserKey: "maps-public-key",
-        tossClientKey: "test_ck_toss_public_key",
-        cloudFrontHost: "assets.airbob.test",
-      }),
-    );
-    expect(serializedConfig).not.toContain("mode");
-  });
-
-  it("escapes script-breaking characters in serialized public values", () => {
-    const config = {
-      mode: "production" as const,
-      apiBaseUrl: "https://api.airbob.test/api/v1",
-      googleMapsBrowserKey:
-        "</script><script>alert(1)</script>line\u2028separator\u2029canary",
-      tossClientKey: "test_ck_serialization_canary",
-      cloudFrontHost: "d1wivnghydqg7i.cloudfront.net",
-    };
-    const serializedConfig = serializePublicRuntimeConfig(config);
-
-    expect(serializedConfig).not.toContain("<");
-    expect(serializedConfig).not.toContain("\u2028");
-    expect(serializedConfig).not.toContain("\u2029");
-    expect(serializedConfig).toContain("\\u003c/script>");
-    expect(serializedConfig).toContain("line\\u2028separator\\u2029canary");
-  });
 });

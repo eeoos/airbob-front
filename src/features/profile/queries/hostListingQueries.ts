@@ -5,7 +5,7 @@ import type { HostListingFilterStatus } from "../model/hostListing";
 import type { HostListingsApiPort } from "../ports/hostListingsApiPort";
 import { hostListingQueryKeys } from "./hostListingQueryKeys";
 
-export const HOST_LISTINGS_PAGE_SIZE = 20;
+const HOST_LISTINGS_PAGE_SIZE = 20;
 
 export interface HostListingInfiniteQueryOptions {
   readonly enabled?: boolean;

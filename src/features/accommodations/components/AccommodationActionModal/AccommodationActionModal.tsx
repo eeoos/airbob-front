@@ -3,7 +3,7 @@ import { requireCssModuleClass } from "../../../../shared/styles/requireCssModul
 import { Button, Dialog, ToastHost } from "../../../../shared/ui";
 import styles from "./AccommodationActionModal.module.css";
 
-export interface AccommodationActionViewModel {
+interface AccommodationActionViewModel {
   readonly canOpenDetail: boolean;
   readonly canPublish: boolean;
   readonly canUnpublish: boolean;

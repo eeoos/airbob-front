@@ -16,8 +16,6 @@ import {
 import { useSearchBarSearch } from "./useSearchBarSearch";
 import { useSearchBarUrlSync } from "./useSearchBarUrlSync";
 
-export type { SearchParams } from "../lib/searchBarContracts";
-
 export interface SearchBarRoutePort {
   readonly currentSearchParams: URLSearchParams;
   readonly isSearchRoute: boolean;

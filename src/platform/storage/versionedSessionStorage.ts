@@ -4,10 +4,9 @@ import {
   type StorageAccessError,
 } from "./sessionStorageDriver";
 
-export type BrowserDataPrivacyClass =
-  "public" | "internal" | "personal" | "sensitive";
+type BrowserDataPrivacyClass = "public" | "internal" | "personal" | "sensitive";
 
-export interface VersionedStorageEnvelope<T> {
+interface VersionedStorageEnvelope<T> {
   purpose: string;
   version: number;
   privacyClass: BrowserDataPrivacyClass;
@@ -30,7 +29,7 @@ export type VersionedStorageRejectionReason =
   | "expired"
   | "invalid-data";
 
-export type StorageCleanupStatus = "purged" | "storage-error";
+type StorageCleanupStatus = "purged" | "storage-error";
 
 export type VersionedStorageReadResult<T> =
   | { status: "found"; record: VersionedStorageEnvelope<T> }
@@ -53,11 +52,11 @@ export type VersionedStorageWriteResult =
   | { status: "serialization-error" }
   | { status: "storage-error"; error: StorageAccessError };
 
-export type VersionedStorageClearResult =
+type VersionedStorageClearResult =
   | { status: "cleared" }
   | { status: "storage-error"; error: StorageAccessError };
 
-export type VersionedStorageNamespaceClearResult =
+type VersionedStorageNamespaceClearResult =
   | { status: "cleared"; removed: number }
   | { status: "partial"; removed: number; failed: number }
   | { status: "storage-error"; error: StorageAccessError };
@@ -76,7 +75,7 @@ export interface CreateVersionedSessionStorageOptions<T extends object> {
   now?: () => number;
 }
 
-export interface VersionedStorageWriteOptions<T> {
+interface VersionedStorageWriteOptions<T> {
   owner: string;
   data: T;
   isCurrent?: () => boolean;

@@ -56,9 +56,7 @@ export const toAccommodationDetail = (
   },
 });
 
-export const toAccommodationCoupon = (
-  wire: CouponWire,
-): AccommodationCoupon => ({
+const toAccommodationCoupon = (wire: CouponWire): AccommodationCoupon => ({
   id: wire.id,
   name: wire.name,
   description: wire.description,

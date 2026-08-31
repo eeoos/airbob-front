@@ -8,12 +8,12 @@ import type {
 export const LISTING_EDITOR_RESOURCE_MISMATCH_CODE =
   "MISMATCHED_LISTING_EDITOR_RESOURCE";
 
-export interface ListingEditorQueryRequestOptions {
+interface ListingEditorQueryRequestOptions {
   readonly scope: AuthenticatedSessionScope;
   readonly signal?: AbortSignal;
 }
 
-export interface ListingEditorQuerySnapshotInput {
+interface ListingEditorQuerySnapshotInput {
   readonly accommodation: ListingEditorAccommodation;
   readonly accommodationId: number;
   readonly scope: AuthenticatedSessionScope;
@@ -33,7 +33,7 @@ export type ListingEditorQueryProjection =
       readonly update: ListingEditorUpdateInput;
     };
 
-export interface ListingEditorQueryProjectionInput {
+interface ListingEditorQueryProjectionInput {
   readonly accommodationId: number;
   readonly fallback: ListingEditorAccommodation;
   readonly projection: ListingEditorQueryProjection;

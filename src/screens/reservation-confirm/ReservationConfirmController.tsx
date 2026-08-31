@@ -18,7 +18,7 @@ import {
 } from "./ReservationConfirmScreen";
 import { toReservationConfirmCheckoutView } from "./reservationConfirmViewModel";
 
-export interface ReservationConfirmCustomer {
+interface ReservationConfirmCustomer {
   readonly email: string;
   readonly name: string;
 }

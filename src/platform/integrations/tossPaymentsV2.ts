@@ -6,7 +6,7 @@ import {
 } from "@tosspayments/tosspayments-sdk";
 import { IntegrationError, type IntegrationErrorCode } from "./errors";
 
-export interface TossPaymentsV2Request {
+interface TossPaymentsV2Request {
   readonly orderId: string;
   readonly orderName: string;
   readonly successUrl: string;
@@ -21,7 +21,7 @@ export interface TossPaymentsV2Client {
   dispose(): Promise<void>;
 }
 
-export const TOSS_PAYMENTS_V2_READINESS_TIMEOUT_MS = 8000;
+const TOSS_PAYMENTS_V2_READINESS_TIMEOUT_MS = 8000;
 
 const sdkLoads = new Map<string, Promise<TossPaymentsSDK>>();
 

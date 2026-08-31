@@ -13,7 +13,7 @@ import {
   toUploadedReviewImages,
 } from "./mappers";
 
-export type ReviewApiTransport = typeof requestApiData;
+type ReviewApiTransport = typeof requestApiData;
 
 const toReviewListWireParams = ({
   cursor,
@@ -25,9 +25,7 @@ const toReviewListWireParams = ({
   sortType,
 });
 
-export const createReviewApi = (
-  request: ReviewApiTransport,
-): ReviewApiPort => ({
+const createReviewApi = (request: ReviewApiTransport): ReviewApiPort => ({
   async getReviews(accommodationId, params, options) {
     const wire = await request<ReviewPageWire>({
       method: "GET",

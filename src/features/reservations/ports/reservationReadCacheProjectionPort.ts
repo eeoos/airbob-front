@@ -1,6 +1,6 @@
 import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
 
-export interface GuestReservationChangedInput {
+interface GuestReservationChangedInput {
   readonly reservationUid: string;
   readonly scope: AuthenticatedSessionScope;
 }

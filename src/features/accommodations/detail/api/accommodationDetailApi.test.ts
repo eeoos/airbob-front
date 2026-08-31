@@ -2,7 +2,7 @@ import type { AccommodationDetailWire } from "./contracts";
 import {
   createAccommodationDetailApi,
   type AccommodationDetailApiTransport,
-} from "./accommodationDetailApi";
+} from "./accommodationDetailApiFactory";
 
 const detailWire: AccommodationDetailWire = {
   id: 7,

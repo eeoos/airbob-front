@@ -26,9 +26,9 @@ import {
   type CheckoutData,
 } from "../../../workflows/booking-payment/checkout";
 import { PaymentCallbackCredentialBoundary } from "../PaymentCallbackCredentialBoundary";
-import { PaymentFailRoute } from "./PaymentFailRoute";
-import { PaymentSuccessRoute } from "./PaymentSuccessRoute";
-import { ReservationConfirmRoute } from "./ReservationConfirmRoute";
+import PaymentFailRoute from "./PaymentFailRoute";
+import PaymentSuccessRoute from "./PaymentSuccessRoute";
+import ReservationConfirmRoute from "./ReservationConfirmRoute";
 
 const scope: AuthenticatedSessionScope = {
   epoch: 3,

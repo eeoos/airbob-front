@@ -16,13 +16,13 @@ export interface ReviewSummaryWire {
   readonly average_rating: number;
 }
 
-export interface AccommodationSummaryWire {
+interface AccommodationSummaryWire {
   readonly id: number;
   readonly name: string;
   readonly thumbnail_url: string | null;
 }
 
-export interface WishlistSummaryWire {
+interface WishlistSummaryWire {
   readonly id: number;
   readonly name: string;
   readonly created_at: string;
@@ -37,7 +37,7 @@ export interface WishlistCollectionWire {
   readonly page_info: CursorPageInfoWire;
 }
 
-export interface WishlistAccommodationWire {
+interface WishlistAccommodationWire {
   readonly wishlist_accommodation_id: number;
   readonly memo: string | null;
   readonly created_at: string;
@@ -52,7 +52,7 @@ export interface WishlistDetailWire {
   readonly page_info: CursorPageInfoWire;
 }
 
-export interface RecentlyViewedAccommodationWire {
+interface RecentlyViewedAccommodationWire {
   readonly viewed_at: string;
   readonly accommodation_id: number;
   readonly accommodation_name: string;

@@ -10,7 +10,7 @@ export interface HostListingManagementCommand {
   readonly action: HostListingAction;
 }
 
-export interface HostListingManagementPublicationInput extends HostListingManagementCommand {
+interface HostListingManagementPublicationInput extends HostListingManagementCommand {
   readonly scope: AuthenticatedSessionScope;
 }
 
@@ -20,16 +20,16 @@ export interface HostListingManagementPublicationPort {
   ): Promise<void>;
 }
 
-export interface HostListingManagementRouteLease {
+interface HostListingManagementRouteLease {
   isCurrent(): boolean;
 }
 
-export interface HostListingManagementSessionPort {
+interface HostListingManagementSessionPort {
   captureAuthenticatedSession(): AuthenticatedSessionScope | null;
   isCurrentSession(scope: AuthenticatedSessionScope): boolean;
 }
 
-export interface HostListingManagementDependencies {
+interface HostListingManagementDependencies {
   readonly api: HostListingActionsApiPort;
   readonly publication: HostListingManagementPublicationPort;
   readonly routeLease: HostListingManagementRouteLease;
@@ -51,7 +51,7 @@ interface HostListingAppliedStaleResult extends HostListingManagementCommand {
     | { readonly status: "failed"; readonly error: AppError };
 }
 
-export type HostListingManagementResult =
+type HostListingManagementResult =
   | HostListingAppliedResult
   | HostListingAppliedStaleResult
   | {
@@ -68,13 +68,13 @@ export interface HostListingManagementCommandPort {
   ): Promise<HostListingManagementResult>;
 }
 
-export interface HostListingManagementWorkflow extends HostListingManagementCommandPort {
+interface HostListingManagementWorkflow extends HostListingManagementCommandPort {
   dispose(): void;
 }
 
 const STALE_RESULT = Object.freeze({ status: "stale" as const });
 
-export const HOST_LISTING_COMMAND_DEADLINE_MS = 15_000;
+const HOST_LISTING_COMMAND_DEADLINE_MS = 15_000;
 
 const invalidCommandResult = (): HostListingManagementResult => ({
   status: "invalid",

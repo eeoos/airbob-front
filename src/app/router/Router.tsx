@@ -1,5 +1,5 @@
 import { Suspense, type ReactElement, type ReactNode } from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import { appShellComponents } from "../shells";
 import { LoadingState } from "../../shared/ui";
 import type { RouteHeaderPolicy } from "./definitions";
@@ -50,13 +50,3 @@ export function AppRouteTree(composition: AppRouterComposition) {
     </Routes>
   );
 }
-
-export function Router(composition: AppRouterComposition) {
-  return (
-    <BrowserRouter>
-      <AppRouteTree {...composition} />
-    </BrowserRouter>
-  );
-}
-
-export default Router;

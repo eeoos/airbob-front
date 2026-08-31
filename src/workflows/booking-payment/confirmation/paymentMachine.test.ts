@@ -1,8 +1,9 @@
 import {
   createInitialPaymentMachineState,
   paymentMachineReducer,
-  type PaymentMachineState,
 } from "./paymentMachine";
+
+type PaymentMachineState = ReturnType<typeof paymentMachineReducer>;
 
 describe("payment confirmation machine", () => {
   it("starts one confirmation operation and ignores competing starts", () => {

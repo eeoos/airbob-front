@@ -1,8 +1,37 @@
-import type { Mocked } from "vitest";
+import { useQuery } from "@tanstack/react-query";
 import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
+import { requireDefined } from "../../../test/assertions";
+import { reviewableReservationApi } from "../api/reviewableReservationApi";
 import type { ReviewableReservation } from "../model/reviewableReservation";
-import type { ReviewableReservationApiPort } from "../ports/reviewableReservationApiPort";
-import { createReviewableReservationQueryOptions } from "./reviewableReservationQuery";
+import { useReviewableReservationReadQuery } from "./reviewableReservationQuery";
+
+vi.mock("@tanstack/react-query", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@tanstack/react-query")>();
+
+  return { ...actual, useQuery: vi.fn() };
+});
+
+interface CapturedQueryOptions {
+  readonly queryKey: readonly unknown[];
+  readonly queryFn: (context: {
+    readonly signal: AbortSignal;
+  }) => Promise<unknown>;
+  readonly enabled: boolean;
+  readonly select: (
+    resource: ReviewableReservation,
+  ) => ReviewableReservation | null;
+  readonly meta?: unknown;
+  readonly retry: false;
+  readonly throwOnError: false;
+}
+
+const mockUseQuery = vi.mocked(useQuery);
+
+const getCapturedOptions = (): CapturedQueryOptions =>
+  requireDefined(
+    mockUseQuery.mock.calls.at(-1),
+    "useQuery call",
+  )[0] as unknown as CapturedQueryOptions;
 
 const scope = {
   subject: "subject:member_7",
@@ -30,23 +59,22 @@ const reservation = (reservationUid: string): ReviewableReservation => ({
 });
 
 describe("reviewable reservation read query", () => {
-  const api: Mocked<ReviewableReservationApiPort> = {
-    getReviewableReservation: vi.fn(),
-  };
-
   beforeEach(() => {
-    vi.clearAllMocks();
+    mockUseQuery.mockReset();
+    mockUseQuery.mockReturnValue({} as ReturnType<typeof useQuery>);
+    vi.restoreAllMocks();
   });
 
   it("scopes the protected detail read and forwards query cancellation", async () => {
     const signal = new AbortController().signal;
-    const options = createReviewableReservationQueryOptions(
-      { reservationUid: "reservation-123", scope },
-      api,
-    );
-    api.getReviewableReservation.mockResolvedValue(
-      reservation("reservation-123"),
-    );
+    const getReviewableReservation = vi
+      .spyOn(reviewableReservationApi, "getReviewableReservation")
+      .mockResolvedValue(reservation("reservation-123"));
+    useReviewableReservationReadQuery({
+      reservationUid: "reservation-123",
+      scope,
+    });
+    const options = getCapturedOptions();
 
     await options.queryFn({ signal });
 
@@ -58,23 +86,25 @@ describe("reviewable reservation read query", () => {
       { session: { subject: scope.subject, epoch: 4 } },
     ]);
     expect(options.meta).toEqual({ session: scope });
-    expect(api.getReviewableReservation).toHaveBeenCalledWith(
-      "reservation-123",
-      { signal },
-    );
+    expect(getReviewableReservation).toHaveBeenCalledWith("reservation-123", {
+      signal,
+    });
     expect(options.retry).toBe(false);
     expect(options.throwOnError).toBe(false);
   });
 
   it("stays network-inert without both the resource id and an authenticated session", () => {
-    const missingId = createReviewableReservationQueryOptions(
-      { reservationUid: null, scope },
-      api,
+    const getReviewableReservation = vi.spyOn(
+      reviewableReservationApi,
+      "getReviewableReservation",
     );
-    const anonymous = createReviewableReservationQueryOptions(
-      { reservationUid: "reservation-123", scope: null },
-      api,
-    );
+    useReviewableReservationReadQuery({ reservationUid: null, scope });
+    const missingId = getCapturedOptions();
+    useReviewableReservationReadQuery({
+      reservationUid: "reservation-123",
+      scope: null,
+    });
+    const anonymous = getCapturedOptions();
 
     expect(missingId.enabled).toBe(false);
     expect(anonymous.enabled).toBe(false);
@@ -89,14 +119,15 @@ describe("reviewable reservation read query", () => {
     expect(() =>
       anonymous.queryFn({ signal: new AbortController().signal }),
     ).toThrow("authenticated session is required");
-    expect(api.getReviewableReservation).not.toHaveBeenCalled();
+    expect(getReviewableReservation).not.toHaveBeenCalled();
   });
 
   it("suppresses a response for a different reservation identity", () => {
-    const options = createReviewableReservationQueryOptions(
-      { reservationUid: "reservation-123", scope },
-      api,
-    );
+    useReviewableReservationReadQuery({
+      reservationUid: "reservation-123",
+      scope,
+    });
+    const options = getCapturedOptions();
 
     expect(options.select(reservation("reservation-123"))).toEqual(
       reservation("reservation-123"),
@@ -105,24 +136,24 @@ describe("reviewable reservation read query", () => {
   });
 
   it("changes cache identity when either the subject or epoch changes", () => {
-    const current = createReviewableReservationQueryOptions(
-      { reservationUid: "reservation-123", scope },
-      api,
-    );
-    const nextEpoch = createReviewableReservationQueryOptions(
-      { reservationUid: "reservation-123", scope: { ...scope, epoch: 5 } },
-      api,
-    );
-    const nextSubject = createReviewableReservationQueryOptions(
-      {
-        reservationUid: "reservation-123",
-        scope: {
-          ...scope,
-          subject: "subject:member_8" as AuthenticatedSessionScope["subject"],
-        },
+    useReviewableReservationReadQuery({
+      reservationUid: "reservation-123",
+      scope,
+    });
+    const current = getCapturedOptions();
+    useReviewableReservationReadQuery({
+      reservationUid: "reservation-123",
+      scope: { ...scope, epoch: 5 },
+    });
+    const nextEpoch = getCapturedOptions();
+    useReviewableReservationReadQuery({
+      reservationUid: "reservation-123",
+      scope: {
+        ...scope,
+        subject: "subject:member_8" as AuthenticatedSessionScope["subject"],
       },
-      api,
-    );
+    });
+    const nextSubject = getCapturedOptions();
 
     expect(nextEpoch.queryKey).not.toEqual(current.queryKey);
     expect(nextSubject.queryKey).not.toEqual(current.queryKey);

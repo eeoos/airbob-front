@@ -15,7 +15,7 @@ import type { RecentlyViewedApiPort } from "../ports/recentlyViewedApiPort";
 import type { WishlistApiPort } from "../ports/wishlistApiPort";
 import { wishlistReadQueryKeys } from "./queryKeys";
 
-export const WISHLIST_PAGE_SIZE = 20;
+const WISHLIST_PAGE_SIZE = 20;
 
 interface WishlistListQueryParams {
   readonly accommodationId?: number;
@@ -69,7 +69,7 @@ export interface WishlistListsQueryOptions {
   readonly enabled?: boolean;
 }
 
-export const createWishlistListsQueryOptions = (
+const createWishlistListsQueryOptions = (
   { scope, accommodationId, enabled = true }: WishlistListsQueryOptions,
   api: WishlistApiPort = defaultWishlistApi,
 ) => ({
@@ -110,7 +110,7 @@ export interface WishlistDetailQueryOptions {
   readonly wishlistId: number | null;
 }
 
-export const createWishlistDetailQueryOptions = (
+const createWishlistDetailQueryOptions = (
   { scope, enabled = true, wishlistId }: WishlistDetailQueryOptions,
   api: WishlistApiPort = defaultWishlistApi,
 ) => {
@@ -157,7 +157,7 @@ export interface RecentlyViewedQueryOptions {
   readonly enabled?: boolean;
 }
 
-export const createRecentlyViewedQueryOptions = (
+const createRecentlyViewedQueryOptions = (
   { scope, enabled = true }: RecentlyViewedQueryOptions,
   api: RecentlyViewedApiPort = defaultRecentlyViewedApi,
 ) => ({

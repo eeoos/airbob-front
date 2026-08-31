@@ -1,8 +1,8 @@
 import React from "react";
 import styles from "./Card.module.css";
 
-export type CardPadding = "none" | "sm" | "md" | "lg";
-export type CardElement = "section" | "article" | "div" | "li";
+type CardPadding = "none" | "sm" | "md" | "lg";
+type CardElement = "section" | "article" | "div" | "li";
 
 export interface CardProps extends Omit<
   React.HTMLAttributes<HTMLElement>,

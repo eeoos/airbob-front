@@ -58,7 +58,7 @@ export interface SearchAccommodationPriceDisplay {
   unitLabel: string;
 }
 
-export const formatAccommodationPrice = (
+const formatAccommodationPrice = (
   basePrice: number,
   currency: string,
 ): string => {
@@ -69,7 +69,7 @@ export const formatAccommodationPrice = (
   return `${currency} ${basePrice.toLocaleString()}`;
 };
 
-export const calculateStayNights = (
+const calculateStayNights = (
   checkIn: string | null | undefined,
   checkOut: string | null | undefined,
 ): number => {

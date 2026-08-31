@@ -21,7 +21,7 @@ interface ListingEditorAddressSearchDependencies {
 const createAbortError = () =>
   new DOMException("The address search was aborted.", "AbortError");
 
-export const createListingEditorAddressSearch = ({
+const createListingEditorAddressSearch = ({
   mapAddressSelection = toListingEditorAddressSelection,
   openPostcode = openDaumPostcode,
 }: ListingEditorAddressSearchDependencies = {}): ListingEditorAddressSearchPort => ({

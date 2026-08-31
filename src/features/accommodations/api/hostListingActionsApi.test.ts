@@ -2,7 +2,7 @@ import type { ApiDataRequest } from "../../../platform/http/request";
 import {
   createHostListingActionsApi,
   type HostListingActionsApiTransport,
-} from "./hostListingActionsApi";
+} from "./hostListingActionsApiFactory";
 
 describe("host listing actions API", () => {
   it("preserves publish, unpublish, and delete as nullable commands", async () => {

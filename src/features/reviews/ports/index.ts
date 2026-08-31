@@ -1,9 +1,1 @@
-export type {
-  ReviewApiPort,
-  ReviewReadApiPort,
-  ReviewSubmissionApiPort,
-} from "./reviewApiPort";
-export type {
-  ReviewCachePort,
-  ReviewCreatedCacheInput,
-} from "./reviewCachePort";
+export type { ReviewSubmissionApiPort } from "./reviewApiPort";

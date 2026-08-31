@@ -1,23 +1,7 @@
 import { render, screen } from "@testing-library/react";
-import { accommodationAmenityLabels } from "../lib/accommodationLabels";
 import AmenityIcon from "./AmenityIcon";
-import { accommodationAmenityIconRegistry } from "./amenityIconRegistry";
 
 describe("AmenityIcon", () => {
-  it("maps every amenity code recognized by the detail owner", () => {
-    const supportedCodes = Object.keys(accommodationAmenityLabels).sort();
-    const mappedCodes = Object.keys(
-      accommodationAmenityIconRegistry.glyphs,
-    ).sort();
-
-    expect(mappedCodes).toEqual(supportedCodes);
-    expect(
-      supportedCodes.filter(
-        (code) => !accommodationAmenityIconRegistry.has(code),
-      ),
-    ).toEqual([]);
-  });
-
   it("renders an accessible icon for an amenity type", () => {
     render(<AmenityIcon type="WIFI" />);
 

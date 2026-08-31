@@ -1,9 +1,5 @@
 import type { SearchMapAccommodation } from "../types";
-import {
-  buildInfoWindowContent,
-  buildSearchMapInfoWindowContent,
-  INFO_WINDOW_STYLE_TOKENS,
-} from "./infoWindowContent";
+import { buildInfoWindowContent } from "./infoWindowContent";
 
 const createAccommodation = (
   overrides: Partial<SearchMapAccommodation> = {},
@@ -26,54 +22,6 @@ const createAccommodation = (
 });
 
 describe("info window content helper", () => {
-  it("keeps repeated inline style values behind named constants", () => {
-    expect(INFO_WINDOW_STYLE_TOKENS).toMatchObject({
-      cardWidth: "327px",
-      imageHeight: "211.94px",
-      buttonWishlistSize: "28px",
-      closeButtonFontSize: "20px",
-      lineHeightCompact: "1.2",
-      semiboldFontWeight: "600",
-      textFontSize: "14px",
-      brand: "var(--color-brand-coral)",
-      textPrimary: "var(--color-text-primary)",
-    });
-    expect(INFO_WINDOW_STYLE_TOKENS).not.toHaveProperty("fullSize");
-    expect(INFO_WINDOW_STYLE_TOKENS).not.toHaveProperty("noMargin");
-    expect(INFO_WINDOW_STYLE_TOKENS).not.toHaveProperty("textEllipsis");
-  });
-
-  it("builds planned info-window content from the vendor-neutral content model", () => {
-    const html = buildSearchMapInfoWindowContent({
-      accommodationId: `map-10" data-unsafe="true`,
-      title: `<Ocean & Mountain "Suite">`,
-      priceLabel: `USD"><script>alert(1)</script> 100`,
-      imageUrl: `https://cdn.example.com/thumb.jpg" onerror="alert(1)`,
-      ratingLabel: `4.9 <script>alert(1)</script>`,
-      isWishlisted: false,
-    });
-
-    expect(html).toContain(
-      'id="info-window-map-10&quot; data-unsafe=&quot;true"',
-    );
-    expect(html).toContain(
-      'data-accommodation-id="map-10&quot; data-unsafe=&quot;true"',
-    );
-    expect(html).toContain("&lt;Ocean &amp; Mountain &quot;Suite&quot;&gt;");
-    expect(html).toContain(
-      "USD&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt; 100",
-    );
-    expect(html).toContain(
-      `src="https://cdn.example.com/thumb.jpg&quot; onerror=&quot;alert(1)"`,
-    );
-    expect(html).toContain("4.9 &lt;script&gt;alert(1)&lt;/script&gt;");
-    expect(html).toContain('aria-pressed="false"');
-    expect(html).toContain('fill="none"');
-    expect(html).not.toContain(`<script>alert(1)</script>`);
-    expect(html).not.toContain(`onclick=`);
-    expect(html).not.toContain("window.closeInfoWindow");
-  });
-
   it("renders fallback image, location, name, and nightly price without dates", () => {
     const html = buildInfoWindowContent({
       accommodation: createAccommodation(),

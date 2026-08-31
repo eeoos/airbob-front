@@ -15,12 +15,12 @@ import type {
   UploadedReviewImagesWire,
 } from "./contracts";
 
-export const toReviewImage = (wire: ReviewImageWire): ReviewImage => ({
+const toReviewImage = (wire: ReviewImageWire): ReviewImage => ({
   id: wire.id,
   imageUrl: wire.image_url,
 });
 
-export const toReview = (wire: ReviewWire): Review => ({
+const toReview = (wire: ReviewWire): Review => ({
   id: wire.id,
   rating: wire.rating,
   content: wire.content,

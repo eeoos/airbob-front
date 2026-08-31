@@ -3,7 +3,7 @@ import type { SearchPlacePrediction } from "../../model/search";
 import styles from "./SearchBar.module.css";
 import { SearchBarPopover } from "./SearchBarPopover";
 
-export interface SearchDestinationFieldProps {
+interface SearchDestinationFieldProps {
   value: string;
   suggestions: string[];
   isLoading: boolean;

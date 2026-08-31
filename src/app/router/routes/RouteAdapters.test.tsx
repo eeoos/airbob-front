@@ -2,12 +2,10 @@ import { useState, type ReactElement, type ReactNode } from "react";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
-import type {
-  ListingEditorAccommodation,
-  ListingEditorQueryPort,
-} from "../../../features/accommodations/listing-editor/public";
+import type { ListingEditorAccommodation } from "../../../features/accommodations/listing-editor/model/listingEditor";
+import type { ListingEditorQueryPort } from "../../../features/accommodations/listing-editor/public";
 import type { ListingEditorPublicationPort } from "../../../workflows/listing-editor";
-import type { ProfileControllerProps } from "../../../screens/profile/public";
+import type { ProfileControllerProps } from "../../../screens/profile/ProfileController";
 import type { SessionSubject } from "../../../platform/session/sessionScope";
 import {
   MemoryRouter,
@@ -16,15 +14,15 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
-import { AccommodationDetailRoute } from "./AccommodationDetailRoute";
-import { AccommodationEditRoute } from "./AccommodationEditRoute";
-import { LoginRoute } from "./LoginRoute";
-import { ProfileRoute } from "./ProfileRoute";
-import { ReservationDetailRoute } from "./ReservationDetailRoute";
-import { ReviewCreateRoute } from "./ReviewCreateRoute";
-import { SearchRoute } from "./SearchRoute";
-import { SignupRoute } from "./SignupRoute";
-import { WishlistRoute } from "./WishlistRoute";
+import AccommodationDetailRoute from "./AccommodationDetailRoute";
+import AccommodationEditRoute from "./AccommodationEditRoute";
+import LoginRoute from "./LoginRoute";
+import ProfileRoute from "./ProfileRoute";
+import ReservationDetailRoute from "./ReservationDetailRoute";
+import ReviewCreateRoute from "./ReviewCreateRoute";
+import SearchRoute from "./SearchRoute";
+import SignupRoute from "./SignupRoute";
+import WishlistRoute from "./WishlistRoute";
 import { createReviewSubmissionResultState } from "../codecs/reviewSubmissionResultCodec";
 
 type CapturedProps = {

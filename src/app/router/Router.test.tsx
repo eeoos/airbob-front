@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { routeDefinitions, type AppRouteDefinition } from "./definitions";
-import { AppRouteTree, Router } from "./Router";
+import { AppRouteTree } from "./Router";
 
 const routeModule = (testId: string) => ({
   __esModule: true,
@@ -96,17 +96,4 @@ describe("app Router", () => {
       );
     },
   );
-
-  it("keeps the BrowserRouter compatibility wrapper available outside production composition", async () => {
-    window.history.replaceState(null, "", "/");
-
-    render(
-      <Router
-        renderAuthenticated={(content) => content}
-        renderHeader={(mode) => <header>{mode}</header>}
-      />,
-    );
-
-    expect(await screen.findByTestId("page-home")).toBeInTheDocument();
-  });
 });

@@ -1,7 +1,7 @@
-export type PaymentMachineTerminalStatus =
+type PaymentMachineTerminalStatus =
   "confirmed" | "invalid" | "terminal-failure" | "stale";
 
-export type PaymentMachineState =
+type PaymentMachineState =
   | { readonly status: "idle" }
   | { readonly status: "confirming"; readonly operationId: number }
   | { readonly status: "reconciling"; readonly operationId: number }
@@ -9,7 +9,7 @@ export type PaymentMachineState =
   | { readonly status: "retryable-error" }
   | { readonly status: PaymentMachineTerminalStatus };
 
-export type PaymentMachineEvent =
+type PaymentMachineEvent =
   | { readonly type: "CONFIRM_STARTED"; readonly operationId: number }
   | {
       readonly type: "RECONCILIATION_STARTED";

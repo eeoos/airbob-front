@@ -14,11 +14,11 @@ export type {
 export type SessionCheckingReason =
   "bootstrap" | "external-change" | "identity-change";
 
-export type SessionAnonymousReason = "bootstrap" | "logout" | "server-revoked";
+type SessionAnonymousReason = "bootstrap" | "logout" | "server-revoked";
 
 export type SessionRevocation = "verified" | "unverified";
 
-export type SessionRevalidation =
+type SessionRevalidation =
   | { readonly status: "idle" }
   | {
       readonly status: "checking";
@@ -54,7 +54,7 @@ export interface SessionAnonymousState {
   readonly revocationError?: AppError;
 }
 
-export interface SessionErrorState {
+interface SessionErrorState {
   readonly status: "error";
   readonly reason: SessionCheckingReason;
   readonly operationId: number;

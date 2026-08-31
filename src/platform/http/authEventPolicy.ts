@@ -1,8 +1,8 @@
 type UnknownRecord = Record<string, unknown>;
 
-export const SESSION_OWNED_AUTH_EVENT_POLICY = "session-owned" as const;
+const SESSION_OWNED_AUTH_EVENT_POLICY = "session-owned" as const;
 
-export interface AuthEventPolicyMetadata {
+interface AuthEventPolicyMetadata {
   readonly authEventPolicy?: typeof SESSION_OWNED_AUTH_EVENT_POLICY;
 }
 

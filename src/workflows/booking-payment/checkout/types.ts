@@ -27,7 +27,7 @@ export interface CheckoutData {
   readonly couponDiscount: number | null;
 }
 
-export type CheckoutWriteData = Omit<CheckoutData, "operationId">;
+type CheckoutWriteData = Omit<CheckoutData, "operationId">;
 
 export interface CheckoutHandoffState {
   readonly checkoutHandoff: {
@@ -55,7 +55,7 @@ export interface BookingPaymentRepositoryDependencies {
   readonly createOperationId?: () => string;
 }
 
-export interface SubjectOwnedWriteInput<T> {
+interface SubjectOwnedWriteInput<T> {
   readonly scope: AuthenticatedSessionScope;
   readonly data: T;
   readonly isCurrent: () => boolean;
@@ -75,7 +75,7 @@ export type SubjectOwnedWriteResult<T, Extra extends object = object> =
     }
   | { readonly status: "storage-error"; readonly error: StorageAccessError };
 
-export type SubjectOwnedReadRejectionReason =
+type SubjectOwnedReadRejectionReason =
   | VersionedStorageRejectionReason
   | "invalid-owner"
   | "clock-error"

@@ -42,7 +42,7 @@ export interface HostReservationDetailViewModel {
   payment: HostReservationPaymentViewModel | null;
 }
 
-export const calculateHostReservationNights = (
+const calculateHostReservationNights = (
   checkIn: string,
   checkOut: string,
 ): number => {

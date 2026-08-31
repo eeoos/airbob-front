@@ -1,9 +1,5 @@
 import type { SearchCommittedRouteState } from "../model/search";
-import {
-  normalizeSearchRequest,
-  SEARCH_PAGE_SIZE,
-  toSearchRequest,
-} from "./searchRequest";
+import { normalizeSearchRequest, toSearchRequest } from "./searchRequest";
 
 const committedState = (
   overrides: Partial<SearchCommittedRouteState> = {},
@@ -30,7 +26,7 @@ describe("search request mapping", () => {
       infantOccupancy: 0,
       petOccupancy: 0,
       page: 2,
-      size: SEARCH_PAGE_SIZE,
+      size: 18,
     });
   });
 

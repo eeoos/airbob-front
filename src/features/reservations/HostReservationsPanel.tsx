@@ -13,11 +13,11 @@ import {
 } from "../../shared/ui";
 import styles from "./HostReservationsPanel.module.css";
 
-export type HostReservationFilterType = ReservationFilterType;
-export type CheckInSortDirection = HostReservationCheckInSortDirection;
-export type HostReservationStatusTone = StatusBadgeTone;
+type HostReservationFilterType = ReservationFilterType;
+type CheckInSortDirection = HostReservationCheckInSortDirection;
+type HostReservationStatusTone = StatusBadgeTone;
 
-export interface HostReservationRowView {
+interface HostReservationRowView {
   readonly reservationUid: string;
   readonly statusLabel: string;
   readonly statusTone: HostReservationStatusTone;
@@ -31,7 +31,7 @@ export interface HostReservationRowView {
   readonly totalPriceLabel: string;
 }
 
-export type HostReservationsPanelState =
+type HostReservationsPanelState =
   | { readonly status: "loading" }
   | {
       readonly status: "ready";

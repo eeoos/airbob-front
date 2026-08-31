@@ -1,38 +1,38 @@
-export interface AccommodationDetailAddressSummary {
+interface AccommodationDetailAddressSummary {
   readonly country: string;
   readonly state: string | null;
   readonly city: string;
   readonly district: string | null;
 }
 
-export interface AccommodationDetailCoordinate {
+interface AccommodationDetailCoordinate {
   readonly latitude: number | null;
   readonly longitude: number | null;
 }
 
-export interface AccommodationDetailHost {
+interface AccommodationDetailHost {
   readonly id: number;
   readonly nickname: string;
   readonly thumbnailImageUrl: string | null;
 }
 
-export interface AccommodationDetailPolicy {
+interface AccommodationDetailPolicy {
   readonly maxOccupancy: number;
   readonly infantOccupancy: number;
   readonly petOccupancy: number;
 }
 
-export interface AccommodationDetailAmenity {
+interface AccommodationDetailAmenity {
   readonly type: string;
   readonly count: number;
 }
 
-export interface AccommodationDetailImage {
+interface AccommodationDetailImage {
   readonly id: number;
   readonly imageUrl: string;
 }
 
-export interface AccommodationDetailReviewSummary {
+interface AccommodationDetailReviewSummary {
   readonly totalCount: number;
   readonly averageRating: number;
 }

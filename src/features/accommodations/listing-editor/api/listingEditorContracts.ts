@@ -1,4 +1,4 @@
-export interface ListingEditorAddressWire {
+interface ListingEditorAddressWire {
   readonly postal_code: string;
   readonly country: string;
   readonly state: string | null;
@@ -8,13 +8,13 @@ export interface ListingEditorAddressWire {
   readonly detail: string | null;
 }
 
-export interface ListingEditorPolicyWire {
+interface ListingEditorPolicyWire {
   readonly max_occupancy: number;
   readonly infant_occupancy: number;
   readonly pet_occupancy: number;
 }
 
-export interface ListingEditorAmenityWire {
+interface ListingEditorAmenityWire {
   readonly type: string;
   readonly count: number;
 }
@@ -39,7 +39,7 @@ export interface ListingEditorAccommodationWire {
   readonly images: readonly ListingEditorImageWire[];
 }
 
-export interface ListingEditorUpdateAddressWire {
+interface ListingEditorUpdateAddressWire {
   readonly postal_code: string;
   readonly country: string;
   readonly state?: string;

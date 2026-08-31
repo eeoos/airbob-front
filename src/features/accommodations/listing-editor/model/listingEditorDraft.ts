@@ -117,10 +117,6 @@ export const getListingEditorFallbackProvenance = (
   occupancyPolicy: accommodation.occupancyPolicy === null,
 });
 
-export const hasListingEditorDetailAddress = (
-  formData: ListingEditorFormData,
-): boolean => Boolean(formData.addressInfo.detail.trim());
-
 const sortedAmenities = (amenities: ListingEditorFormData["amenityInfos"]) =>
   [...amenities]
     .map((amenity) => ({ ...amenity }))

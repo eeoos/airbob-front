@@ -1,19 +1,17 @@
 import type { HostListingStatus } from "../model/hostListing";
 
-export type HostListingStatusWire = HostListingStatus;
-
-export interface HostListingAddressSummaryWire {
+interface HostListingAddressSummaryWire {
   readonly country: string;
   readonly state: string | null;
   readonly city: string;
   readonly district: string | null;
 }
 
-export interface HostListingWire {
+interface HostListingWire {
   readonly id: number;
   readonly name: string | null;
   readonly thumbnail_url: string | null;
-  readonly status: HostListingStatusWire;
+  readonly status: HostListingStatus;
   readonly type: string | null;
   readonly address_summary: HostListingAddressSummaryWire | null;
   readonly created_at: string;

@@ -1,5 +1,4 @@
 import {
-  MAP_EXPAND_CONTROL_STYLE_TOKENS,
   removeMapExpandControl,
   renderMapExpandControl,
 } from "./mapExpandControl";
@@ -16,16 +15,6 @@ describe("map expand control helper", () => {
     document.body.innerHTML = "";
   });
 
-  it("keeps inline DOM style values behind named constants", () => {
-    expect(MAP_EXPAND_CONTROL_STYLE_TOKENS).toMatchObject({
-      background: "var(--color-background-page)",
-      backgroundHover: "var(--color-background-muted)",
-      iconSize: "20px",
-      size: "40px",
-      zIndex: "var(--z-popover)",
-    });
-  });
-
   it("creates a map expand button that calls the toggle handler without bubbling", () => {
     const onToggle = vi.fn();
     const onContainerClick = vi.fn();
@@ -39,6 +28,12 @@ describe("map expand control helper", () => {
 
     expect(container.querySelectorAll(".map-expand-button")).toHaveLength(1);
     expect(view.innerHTML).toContain("M7 14H5v5h5v-2H7v-3");
+    expect(view).toHaveStyle({
+      width: "40px",
+      height: "40px",
+      zIndex: "var(--z-popover)",
+    });
+    expect(view.querySelector("svg")).toHaveStyle({ width: "20px" });
 
     view.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 

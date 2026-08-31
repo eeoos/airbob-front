@@ -4,12 +4,12 @@ import type {
   SessionSubject,
 } from "../../../platform/session/sessionScope";
 import type { ReservationReady } from "../../../features/reservations/public";
-import {
-  createReservationCreateWorkflow,
-  type ReservationCheckoutHandoffPreflightResult,
-  type ReservationCreateCommandInput,
-  type ReservationCreateTransport,
-} from "./reservationCreate";
+import { createReservationCreateWorkflow } from "./reservationCreate";
+import type {
+  ReservationCheckoutHandoffPreflightResult,
+  ReservationCreateCommandInput,
+  ReservationCreateTransport,
+} from "./reservationCreateTypes";
 
 const scopeA: AuthenticatedSessionScope = {
   subject: "subject:reservation_a" as SessionSubject,

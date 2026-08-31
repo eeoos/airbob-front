@@ -15,12 +15,12 @@ interface AuthControllerBaseProps {
   readonly onSuccess: () => void;
 }
 
-export interface LoginAuthControllerProps extends AuthControllerBaseProps {
+interface LoginAuthControllerProps extends AuthControllerBaseProps {
   readonly mode: "login";
   readonly submitLogin: (credentials: LoginCredentials) => Promise<void>;
 }
 
-export interface SignupAuthControllerProps extends AuthControllerBaseProps {
+interface SignupAuthControllerProps extends AuthControllerBaseProps {
   readonly mode: "signup";
   readonly submitSignup: (command: SignupCommand) => Promise<void>;
 }

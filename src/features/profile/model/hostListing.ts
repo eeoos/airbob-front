@@ -20,13 +20,11 @@ export interface HostListing {
   readonly createdAt: string;
 }
 
-export interface HostListingPageInfo {
-  readonly currentSize: number;
-  readonly hasNext: boolean;
-  readonly nextCursor: string | null;
-}
-
 export interface HostListingPage {
   readonly listings: readonly HostListing[];
-  readonly pageInfo: HostListingPageInfo;
+  readonly pageInfo: {
+    readonly currentSize: number;
+    readonly hasNext: boolean;
+    readonly nextCursor: string | null;
+  };
 }

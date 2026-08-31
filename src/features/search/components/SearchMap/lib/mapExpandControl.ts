@@ -6,7 +6,7 @@ interface RenderMapExpandControlOptions {
 
 const MAP_EXPAND_BUTTON_CLASS = "map-expand-button";
 
-export const MAP_EXPAND_CONTROL_STYLE_TOKENS = {
+const MAP_EXPAND_CONTROL_STYLE_TOKENS = {
   background: "var(--color-background-page)",
   backgroundHover: "var(--color-background-muted)",
   color: "var(--color-text-primary)",

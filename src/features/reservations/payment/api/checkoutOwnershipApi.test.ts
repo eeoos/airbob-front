@@ -1,8 +1,12 @@
+import { requestApiData } from "../../../../platform/http/request";
 import type { CheckoutOwnershipWire } from "./contracts";
-import {
-  createCheckoutOwnershipApi,
-  type CheckoutOwnershipApiTransport,
-} from "./checkoutOwnershipApi";
+import { checkoutOwnershipApi } from "./checkoutOwnershipApi";
+
+vi.mock("../../../../platform/http/request", () => ({
+  requestApiData: vi.fn(),
+}));
+
+const mockRequestApiData = vi.mocked(requestApiData);
 
 const RESERVATION_UID = "reservation-123";
 
@@ -26,15 +30,16 @@ const ownershipWire: CheckoutOwnershipWire = {
 };
 
 describe("checkout ownership API adapter", () => {
+  beforeEach(() => {
+    mockRequestApiData.mockReset();
+  });
+
   it("preserves the guest-detail endpoint and maps only checkout ownership fields", async () => {
-    const request = vi.fn().mockResolvedValue(ownershipWire);
-    const api = createCheckoutOwnershipApi(
-      request as CheckoutOwnershipApiTransport,
-    );
+    mockRequestApiData.mockResolvedValue(ownershipWire);
     const signal = new AbortController().signal;
 
     await expect(
-      api.getCheckoutOwnership(RESERVATION_UID, { signal }),
+      checkoutOwnershipApi.getCheckoutOwnership(RESERVATION_UID, { signal }),
     ).resolves.toEqual({
       reservationUid: RESERVATION_UID,
       accommodationId: 7,
@@ -48,42 +53,42 @@ describe("checkout ownership API adapter", () => {
         status: "IN_PROGRESS",
       },
     });
-    expect(request).toHaveBeenCalledWith({
+    expect(mockRequestApiData).toHaveBeenCalledWith({
       method: "GET",
       path: `/profile/guest/reservations/${RESERVATION_UID}`,
       signal,
     });
-    expect(request.mock.calls.at(0)?.at(0)).not.toHaveProperty("body");
-    expect(request.mock.calls.at(0)?.at(0)).not.toHaveProperty("params");
+    expect(mockRequestApiData.mock.calls.at(0)?.at(0)).not.toHaveProperty(
+      "body",
+    );
+    expect(mockRequestApiData.mock.calls.at(0)?.at(0)).not.toHaveProperty(
+      "params",
+    );
   });
 
   it("accepts the guest-detail contract before a payment exists", async () => {
-    const request = vi.fn().mockResolvedValue({
+    mockRequestApiData.mockResolvedValue({
       ...ownershipWire,
       payment: null,
     });
-    const api = createCheckoutOwnershipApi(
-      request as CheckoutOwnershipApiTransport,
-    );
-
-    await expect(api.getCheckoutOwnership(RESERVATION_UID)).resolves.toEqual(
+    await expect(
+      checkoutOwnershipApi.getCheckoutOwnership(RESERVATION_UID),
+    ).resolves.toEqual(
       expect.objectContaining({
         reservationUid: RESERVATION_UID,
         payment: null,
       }),
     );
-    expect(request.mock.calls[0]?.[0]).toHaveProperty("signal", undefined);
+    expect(mockRequestApiData.mock.calls[0]?.[0]).toHaveProperty(
+      "signal",
+      undefined,
+    );
   });
 
   it("rejects a dot-segment UID before credentialed transport", async () => {
-    const request = vi.fn();
-    const api = createCheckoutOwnershipApi(
-      request as CheckoutOwnershipApiTransport,
-    );
-
     await expect(
-      api.getCheckoutOwnership("../../payments"),
+      checkoutOwnershipApi.getCheckoutOwnership("../../payments"),
     ).rejects.toMatchObject({ code: "INVALID_OPAQUE_PATH_SEGMENT" });
-    expect(request).not.toHaveBeenCalled();
+    expect(mockRequestApiData).not.toHaveBeenCalled();
   });
 });

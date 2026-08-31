@@ -1,4 +1,4 @@
-export type ReviewSortType = "LATEST" | "HIGHEST_RATING" | "LOWEST_RATING";
+type ReviewSortType = "LATEST" | "HIGHEST_RATING" | "LOWEST_RATING";
 
 export interface ReviewApiRequestOptions {
   readonly signal?: AbortSignal;
@@ -9,7 +9,7 @@ export interface ReviewImage {
   readonly imageUrl: string;
 }
 
-export interface ReviewAuthor {
+interface ReviewAuthor {
   readonly id: number;
   readonly nickname: string;
   readonly thumbnailImageUrl: string | null;
@@ -24,7 +24,7 @@ export interface Review {
   readonly images: readonly ReviewImage[];
 }
 
-export interface ReviewPageInfo {
+interface ReviewPageInfo {
   readonly hasNext: boolean;
   readonly nextCursor: string | null;
   readonly currentSize: number;

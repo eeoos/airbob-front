@@ -15,8 +15,6 @@ import { useSearchBarOutsideClick } from "./useSearchBarOutsideClick";
 import { useSearchBarShellInteractions } from "./useSearchBarShellInteractions";
 import styles from "./SearchBar.module.css";
 
-export type { SearchParams } from "../../lib/searchBarContracts";
-
 interface SearchBarProps {
   routePort: SearchBarRoutePort;
   onSearch?: (searchParams: SearchParams) => void;

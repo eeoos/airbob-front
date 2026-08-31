@@ -1,21 +1,20 @@
-import type { ReviewApiTransport } from "./reviewApi";
-import { createReviewApi } from "./reviewApi";
+import { requestApiData } from "../../../platform/http/request";
+import { reviewApi } from "./reviewApi";
 
-const createTransport = () => {
-  const request = vi.fn();
+vi.mock("../../../platform/http/request", () => ({
+  requestApiData: vi.fn(),
+}));
 
-  return {
-    request,
-    transport: request as ReviewApiTransport,
-  };
-};
+const mockRequestApiData = vi.mocked(requestApiData);
 
 describe("review API adapter", () => {
+  beforeEach(() => {
+    mockRequestApiData.mockReset();
+  });
+
   it("preserves the review-list request and maps wire fields to the owned model", async () => {
-    const { request, transport } = createTransport();
-    const api = createReviewApi(transport);
     const signal = new AbortController().signal;
-    request.mockResolvedValue({
+    mockRequestApiData.mockResolvedValue({
       reviews: [
         {
           id: 91,
@@ -38,7 +37,7 @@ describe("review API adapter", () => {
     });
 
     await expect(
-      api.getReviews(
+      reviewApi.getReviews(
         31,
         { cursor: "cursor-1", size: 6, sortType: "LATEST" },
         { signal },
@@ -64,7 +63,7 @@ describe("review API adapter", () => {
         nextCursor: "cursor-2",
       },
     });
-    expect(request).toHaveBeenCalledWith({
+    expect(mockRequestApiData).toHaveBeenCalledWith({
       method: "GET",
       path: "/accommodations/31/reviews",
       params: { cursor: "cursor-1", size: 6, sortType: "LATEST" },
@@ -73,16 +72,14 @@ describe("review API adapter", () => {
   });
 
   it("omits an absent cursor without changing the current list contract", async () => {
-    const { request, transport } = createTransport();
-    const api = createReviewApi(transport);
-    request.mockResolvedValue({
+    mockRequestApiData.mockResolvedValue({
       reviews: [],
       page_info: { current_size: 0, has_next: false, next_cursor: null },
     });
 
-    await api.getReviews(31, { size: 6, sortType: "LATEST" });
+    await reviewApi.getReviews(31, { size: 6, sortType: "LATEST" });
 
-    expect(request).toHaveBeenCalledWith({
+    expect(mockRequestApiData).toHaveBeenCalledWith({
       method: "GET",
       path: "/accommodations/31/reviews",
       params: { size: 6, sortType: "LATEST" },
@@ -91,19 +88,17 @@ describe("review API adapter", () => {
   });
 
   it("trims review content and preserves the create path and JSON body", async () => {
-    const { request, transport } = createTransport();
-    const api = createReviewApi(transport);
     const signal = new AbortController().signal;
-    request.mockResolvedValue({ id: 901 });
+    mockRequestApiData.mockResolvedValue({ id: 901 });
 
     await expect(
-      api.createReview(
+      reviewApi.createReview(
         31,
         { content: "  clean and quiet  ", rating: 5 },
         { signal },
       ),
     ).resolves.toEqual({ reviewId: 901 });
-    expect(request).toHaveBeenCalledWith({
+    expect(mockRequestApiData).toHaveBeenCalledWith({
       method: "POST",
       path: "/accommodations/31/reviews",
       body: { content: "clean and quiet", rating: 5 },
@@ -112,14 +107,12 @@ describe("review API adapter", () => {
   });
 
   it("uploads files as repeated images fields in selection order and maps the result", async () => {
-    const { request, transport } = createTransport();
-    const api = createReviewApi(transport);
     const signal = new AbortController().signal;
     const first = new File(["first"], "first.png", { type: "image/png" });
     const second = new File(["second"], "second.jpg", {
       type: "image/jpeg",
     });
-    request.mockResolvedValue({
+    mockRequestApiData.mockResolvedValue({
       uploaded_images: [
         { id: 1, image_url: "/first.png" },
         { id: 2, image_url: "/second.jpg" },
@@ -127,7 +120,7 @@ describe("review API adapter", () => {
     });
 
     await expect(
-      api.uploadReviewImages(901, [first, second], { signal }),
+      reviewApi.uploadReviewImages(901, [first, second], { signal }),
     ).resolves.toEqual({
       uploadedImages: [
         { id: 1, imageUrl: "/first.png" },
@@ -135,7 +128,7 @@ describe("review API adapter", () => {
       ],
     });
 
-    const requestInput = request.mock.calls.at(0)?.at(0);
+    const requestInput = mockRequestApiData.mock.calls.at(0)?.at(0);
     if (!requestInput)
       throw new Error("Expected a review image upload request");
     expect(requestInput).toMatchObject({

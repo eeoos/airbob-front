@@ -10,11 +10,11 @@ export type {
   ListingEditorUpdateInput,
 } from "../model/listingEditor";
 
-export interface ListingEditorRequestOptions {
+interface ListingEditorRequestOptions {
   readonly signal?: AbortSignal;
 }
 
-export interface ListingEditorUploadOptions extends ListingEditorRequestOptions {
+interface ListingEditorUploadOptions extends ListingEditorRequestOptions {
   readonly onProgress?: (progress: number) => void;
 }
 

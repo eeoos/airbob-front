@@ -23,24 +23,24 @@ export interface SearchWireRequest {
   readonly size?: number;
 }
 
-export interface SearchAddressSummaryWire {
+interface SearchAddressSummaryWire {
   readonly country: string;
   readonly state: string | null;
   readonly city: string;
   readonly district: string | null;
 }
 
-export interface SearchCoordinateWire {
+interface SearchCoordinateWire {
   readonly latitude: number | null;
   readonly longitude: number | null;
 }
 
-export interface SearchReviewSummaryWire {
+interface SearchReviewSummaryWire {
   readonly total_count: number;
   readonly average_rating: number;
 }
 
-export interface SearchAccommodationWire {
+interface SearchAccommodationWire {
   readonly id: number;
   readonly name: string;
   readonly accommodation_thumbnail_url: string | null;
@@ -53,7 +53,7 @@ export interface SearchAccommodationWire {
   readonly is_in_wishlist: boolean;
 }
 
-export interface SearchPageInfoWire {
+interface SearchPageInfoWire {
   readonly page_size: number;
   readonly current_page: number;
   readonly total_pages: number;

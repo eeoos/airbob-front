@@ -33,7 +33,7 @@ type IconSvgProps = Omit<
   | "width"
 >;
 
-export type IconSize = number | string;
+type IconSize = number | string;
 
 export type IconProps = IconSvgProps &
   IconAccessibilityProps & {

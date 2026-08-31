@@ -1,37 +1,51 @@
-import type { ApiTransport } from "./transport";
-import { createRecentlyViewedApi } from "./recentlyViewedApi";
+import {
+  requestApiData,
+  requestApiDataNullable,
+} from "../../../platform/http/request";
+import { recentlyViewedApi } from "./recentlyViewedApi";
+
+vi.mock("../../../platform/http/request", () => ({
+  requestApiData: vi.fn(),
+  requestApiDataNullable: vi.fn(),
+}));
+
+const mockRequestApiData = vi.mocked(requestApiData);
+const mockRequestApiDataNullable = vi.mocked(requestApiDataNullable);
 
 describe("recently viewed API adapter", () => {
+  beforeEach(() => {
+    mockRequestApiData.mockReset();
+    mockRequestApiDataNullable.mockReset();
+  });
+
   it("preserves get/add/remove paths and forwards AbortSignal", async () => {
-    const request = vi.fn().mockResolvedValue({
+    mockRequestApiData.mockResolvedValue({
       accommodations: [],
       total_count: 0,
     });
-    const requestNullable = vi.fn().mockResolvedValue(null);
-    const api = createRecentlyViewedApi({
-      request,
-      requestNullable,
-    } as ApiTransport);
+    mockRequestApiDataNullable.mockResolvedValue(null);
     const signal = new AbortController().signal;
 
-    await expect(api.getRecentlyViewed({ signal })).resolves.toEqual({
+    await expect(
+      recentlyViewedApi.getRecentlyViewed({ signal }),
+    ).resolves.toEqual({
       accommodations: [],
       totalCount: 0,
     });
-    await api.add(31, { signal });
-    await api.remove(31, { signal });
+    await recentlyViewedApi.add(31, { signal });
+    await recentlyViewedApi.remove(31, { signal });
 
-    expect(request).toHaveBeenCalledWith({
+    expect(mockRequestApiData).toHaveBeenCalledWith({
       method: "GET",
       path: "/members/recently-viewed",
       signal,
     });
-    expect(requestNullable).toHaveBeenNthCalledWith(1, {
+    expect(mockRequestApiDataNullable).toHaveBeenNthCalledWith(1, {
       method: "POST",
       path: "/members/recently-viewed/31",
       signal,
     });
-    expect(requestNullable).toHaveBeenNthCalledWith(2, {
+    expect(mockRequestApiDataNullable).toHaveBeenNthCalledWith(2, {
       method: "DELETE",
       path: "/members/recently-viewed/31",
       signal,

@@ -12,11 +12,14 @@ import { AppError } from "../../platform/http/errors";
 import type { AuthenticatedSessionScope } from "../../platform/session/sessionScope";
 import {
   createListingEditorWorkflow,
-  type ListingEditorContinuationPort,
   type ListingEditorPublicationPort,
   type ListingEditorRouteLease,
   type ListingEditorSessionPort,
 } from "./editorCommands";
+
+type ListingEditorContinuationPort = Parameters<
+  typeof createListingEditorWorkflow
+>[0]["continuation"];
 
 const scope = {
   epoch: 4,

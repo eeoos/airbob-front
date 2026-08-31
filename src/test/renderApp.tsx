@@ -6,11 +6,8 @@ import {
 } from "@testing-library/react";
 import { useEffect, type ReactElement, type ReactNode } from "react";
 import { MemoryRouter, type MemoryRouterProps } from "react-router-dom";
-import {
-  APP_OVERLAY_ROOT_ID,
-  OverlayProvider,
-} from "../app/overlays/OverlayProvider";
-import { AuthIntentStableBoundary } from "../app/providers/AppProviders";
+import { OverlayProvider } from "../app/overlays/OverlayProvider";
+import { AuthIntentStableBoundary } from "../app/providers/AuthIntentStableBoundary";
 import { SessionProvider } from "../app/session/SessionProvider";
 import {
   toSessionSubject,
@@ -22,7 +19,7 @@ import type {
 } from "../features/auth/ports/sessionPort";
 import { createTestQueryClient } from "./createTestQueryClient";
 
-export const TEST_PORTAL_ROOT_ID = APP_OVERLAY_ROOT_ID;
+export const TEST_PORTAL_ROOT_ID = "airbob-test-portal-root";
 
 export interface RenderAppOptions extends Omit<RenderOptions, "wrapper"> {
   queryClient?: QueryClient;

@@ -1,4 +1,4 @@
-import { createSessionStorageDriver } from "./sessionStorageDriver";
+import { createSessionStorageDriver } from "./sessionStorageDriverCore";
 import { createVersionedSessionStorage } from "./versionedSessionStorage";
 
 interface CheckoutRecord {

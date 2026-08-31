@@ -30,7 +30,7 @@ const formatReviewDateLabel = (isoDate: string) => {
   return `${date.getFullYear()}년 ${date.getMonth() + 1}월`;
 };
 
-export const toReviewViewModel = (review: Review): ReviewViewModel => {
+const toReviewViewModel = (review: Review): ReviewViewModel => {
   return {
     id: review.id,
     rating: review.rating,

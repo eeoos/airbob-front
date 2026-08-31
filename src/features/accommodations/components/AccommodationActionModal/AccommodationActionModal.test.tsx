@@ -3,10 +3,11 @@ import userEvent from "@testing-library/user-event";
 import {
   AccommodationActionModal,
   type AccommodationActionModalProps,
-  type AccommodationActionViewModel,
 } from "./AccommodationActionModal";
 
-const accommodation: AccommodationActionViewModel = {
+const accommodation: NonNullable<
+  AccommodationActionModalProps["accommodation"]
+> = {
   canOpenDetail: true,
   canPublish: false,
   canUnpublish: true,

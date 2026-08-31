@@ -3,7 +3,7 @@ import { StatusBadge, ToastHost, type StatusBadgeTone } from "../../shared/ui";
 import guestStyles from "./GuestReservationDetailScreen.module.css";
 import hostStyles from "./HostReservationDetailScreen.module.css";
 
-export type ReservationDetailStatusTone = StatusBadgeTone;
+type ReservationDetailStatusTone = StatusBadgeTone;
 
 export type ReservationDetailState<TView> =
   | { readonly status: "loading" }

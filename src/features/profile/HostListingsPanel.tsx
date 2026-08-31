@@ -11,9 +11,7 @@ import {
 } from "../../shared/ui";
 import styles from "./HostListingsPanel.module.css";
 
-export type HostListingStatusType = HostListingFilterStatus;
-
-export interface HostListingCardView {
+interface HostListingCardView {
   readonly id: number;
   readonly imageAlt: string;
   readonly locationLabel: string;
@@ -23,7 +21,7 @@ export interface HostListingCardView {
   readonly thumbnailUrl: string | null;
 }
 
-export type HostListingsPanelState =
+type HostListingsPanelState =
   | { readonly status: "loading" }
   | {
       readonly status: "ready";
@@ -37,9 +35,9 @@ export interface HostListingsPanelProps {
   readonly loadMoreRef: RefCallback<HTMLDivElement>;
   readonly onDismissError: () => void;
   readonly onOpenListingActions: (accommodationId: number) => void;
-  readonly onStatusChange: (statusType: HostListingStatusType) => void;
+  readonly onStatusChange: (statusType: HostListingFilterStatus) => void;
   readonly state: HostListingsPanelState;
-  readonly statusType: HostListingStatusType;
+  readonly statusType: HostListingFilterStatus;
 }
 
 const statusFilterItems = [
@@ -47,7 +45,7 @@ const statusFilterItems = [
   { value: "DRAFT", label: "작성 중" },
   { value: "UNPUBLISHED", label: "비공개" },
 ] satisfies ReadonlyArray<{
-  value: HostListingStatusType;
+  value: HostListingFilterStatus;
   label: string;
 }>;
 

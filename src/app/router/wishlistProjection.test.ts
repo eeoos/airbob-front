@@ -3,7 +3,7 @@ import type { AccommodationDetail } from "../../features/accommodations/detail/m
 import { accommodationReadQueryKeys } from "../../features/accommodations/detail/queries/queryKeys";
 import type { SearchResultPage } from "../../features/search/model/search";
 import { searchReadQueryKeys } from "../../features/search/queries/queryKeys";
-import { wishlistReadQueryKeys } from "../../features/wishlist/queries";
+import { wishlistReadQueryKeys } from "../../features/wishlist/queries/queryKeys";
 import type { RecentlyViewedCollection } from "../../features/wishlist/model";
 import { createSessionQueryMeta } from "../../platform/query/sessionScope";
 import type {

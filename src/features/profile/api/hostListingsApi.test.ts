@@ -2,7 +2,7 @@ import type { HostListingPageWire } from "./hostListingsContracts";
 import {
   createHostListingsApi,
   type HostListingsApiTransport,
-} from "./hostListingsApi";
+} from "./hostListingsApiFactory";
 
 const wirePage: HostListingPageWire = {
   accommodations: [

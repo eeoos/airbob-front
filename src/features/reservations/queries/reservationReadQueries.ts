@@ -25,7 +25,7 @@ export interface ReservationListReadQueryOptions<
   readonly enabled?: boolean;
 }
 
-export const createReservationListQueryOptions = <
+const createReservationListQueryOptions = <
   TAudience extends ReservationReadAudience,
 >(
   {
@@ -93,7 +93,7 @@ export interface ReservationDetailReadQueryOptions<
 
 type ReservationDetail = GuestReservationDetail | HostReservationDetail;
 
-export const createReservationDetailQueryOptions = <
+const createReservationDetailQueryOptions = <
   TAudience extends ReservationReadAudience,
 >(
   {

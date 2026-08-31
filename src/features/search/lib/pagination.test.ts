@@ -1,23 +1,30 @@
-import {
-  MAX_SEARCH_PAGE,
-  clampSearchPage,
-  getLimitedTotalPages,
-  getPaginationItems,
-} from "./pagination";
+import { getLimitedTotalPages, getPaginationItems } from "./pagination";
 
 describe("search pagination helpers", () => {
   it("limits API total pages to the product maximum", () => {
-    expect(MAX_SEARCH_PAGE).toBe(15);
     expect(getLimitedTotalPages(3)).toBe(3);
     expect(getLimitedTotalPages(40)).toBe(15);
   });
 
-  it("clamps page query values to zero-based page bounds", () => {
-    expect(clampSearchPage(null)).toBe(0);
-    expect(clampSearchPage("2")).toBe(2);
-    expect(clampSearchPage("99")).toBe(14);
-    expect(clampSearchPage("-1")).toBe(0);
-    expect(clampSearchPage("not-a-page")).toBe(0);
+  it("clamps the selected page to zero-based page bounds", () => {
+    expect(getPaginationItems({ currentPage: -1, totalPages: 20 })).toEqual([
+      0,
+      1,
+      2,
+      3,
+      4,
+      "ellipsis",
+      14,
+    ]);
+    expect(getPaginationItems({ currentPage: 99, totalPages: 20 })).toEqual([
+      0,
+      "ellipsis",
+      10,
+      11,
+      12,
+      13,
+      14,
+    ]);
   });
 
   it("returns every page when seven or fewer pages are available", () => {

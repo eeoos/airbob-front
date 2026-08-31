@@ -19,23 +19,21 @@ import type {
 } from "../../features/auth/ports/sessionPort";
 import type {
   SessionBroadcast,
-  SessionBroadcastListener,
-  SessionBroadcastMessage,
   SessionBroadcastPhase,
 } from "../../platform/session/sessionBroadcast";
 import { AppError } from "../../platform/http/errors";
 import { triggerAuthError } from "../../platform/session/authEvents";
-import {
-  SessionProvider,
-  type SessionProviderProps,
-  type SessionQueryClientFactory,
-} from "./SessionProvider";
+import { SessionProvider, type SessionProviderProps } from "./SessionProvider";
+import type { SessionQueryClientFactory } from "./useSessionQueryLifetime";
 import {
   toSessionSubject,
   type SessionState,
   type SessionViewer,
 } from "./sessionState";
 import { useSession } from "./useSession";
+
+type SessionBroadcastListener = Parameters<SessionBroadcast["subscribe"]>[0];
+type SessionBroadcastMessage = Parameters<SessionBroadcastListener>[0];
 
 interface Deferred<T> {
   readonly promise: Promise<T>;

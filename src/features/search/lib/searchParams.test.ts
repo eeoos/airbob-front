@@ -1,7 +1,5 @@
 import {
-  buildMapBoundsSearchParams,
   buildSearchNavigationParams,
-  getSearchParamsSignature,
   getViewportFromSearchParams,
   removeViewportParams,
 } from "./searchParams";
@@ -144,58 +142,6 @@ describe("search params helpers", () => {
 
     expect(params.get("checkIn")).toBe("2026-07-10");
     expect(params.get("checkOut")).toBe("2026-07-12");
-  });
-
-  it("builds map bounds params by clearing destination, coordinates, and page", () => {
-    const existing = new URLSearchParams(
-      "destination=Seoul&lat=37&lng=127&page=2&checkIn=2026-07-10&adultOccupancy=2",
-    );
-
-    const params = buildMapBoundsSearchParams(existing, {
-      north: 38,
-      south: 37,
-      east: 128,
-      west: 126,
-    });
-
-    expect(params.get("topLeftLat")).toBe("38");
-    expect(params.get("topLeftLng")).toBe("126");
-    expect(params.get("bottomRightLat")).toBe("37");
-    expect(params.get("bottomRightLng")).toBe("128");
-    expect(params.has("destination")).toBe(false);
-    expect(params.has("lat")).toBe(false);
-    expect(params.has("lng")).toBe(false);
-    expect(params.has("page")).toBe(false);
-    expect(params.get("checkIn")).toBe("2026-07-10");
-    expect(params.get("adultOccupancy")).toBe("2");
-  });
-
-  it("drops non-search route state when building map-bounds params", () => {
-    const current = new URLSearchParams(
-      "destination=Seoul&id=1001&view=recently-viewed&mode=host&tab=listings&page=2",
-    );
-
-    const next = buildMapBoundsSearchParams(current, {
-      north: 37.6,
-      south: 37.5,
-      east: 127.1,
-      west: 127.0,
-    });
-
-    expect(next.get("id")).toBeNull();
-    expect(next.get("view")).toBeNull();
-    expect(next.get("mode")).toBeNull();
-    expect(next.get("tab")).toBeNull();
-    expect(next.get("page")).toBeNull();
-    expect(next.get("topLeftLat")).toBe("37.6");
-  });
-
-  it("drops non-search params from query cache signatures", () => {
-    const params = new URLSearchParams(
-      "destination=Seoul&page=2&token=secret&email=a@example.com&memberId=999",
-    );
-
-    expect(getSearchParamsSignature(params)).toBe("destination=Seoul&page=2");
   });
 
   it("reads and removes viewport params consistently", () => {

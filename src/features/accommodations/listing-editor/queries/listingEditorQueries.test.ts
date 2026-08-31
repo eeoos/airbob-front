@@ -4,10 +4,8 @@ import type { AuthenticatedSessionScope } from "../../../../platform/session/ses
 import type { ListingEditorApiPort } from "../ports/listingEditorApiPort";
 import type { ListingEditorAccommodation } from "../model/listingEditor";
 import { listingEditorQueryKeys } from "./listingEditorQueryKeys";
-import {
-  createListingEditorQueryOptions,
-  createListingEditorQueryPort,
-} from "./listingEditorQueries";
+import { createListingEditorQueryPort } from "./listingEditorQueries";
+import { createListingEditorQueryOptions } from "./listingEditorQueryOptions";
 
 const scopeA = {
   epoch: 4,

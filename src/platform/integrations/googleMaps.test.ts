@@ -3,9 +3,9 @@ import {
   buildGoogleMapsEmbedUrl,
   ensureGoogleMapsScript,
   getGoogleMapsApi,
-  GOOGLE_MAPS_READINESS_TIMEOUT_MS,
-  requireGoogleMapsApi,
 } from "./googleMaps";
+
+const GOOGLE_MAPS_READINESS_TIMEOUT_MS = 5000;
 
 const mapsScripts = () =>
   Array.from(document.scripts).filter((script) =>
@@ -150,15 +150,8 @@ describe("Google Maps platform integration", () => {
 
   it("exposes the validated runtime and builds an encoded embed URL", () => {
     expect(getGoogleMapsApi()).toBeNull();
-    expect(() => requireGoogleMapsApi()).toThrow(
-      expect.objectContaining({
-        code: "INTEGRATION_INVALID_RUNTIME",
-        integration: "google-maps",
-      }),
-    );
     setGoogleMapsReady();
     expect(getGoogleMapsApi()).toBe(window.google.maps);
-    expect(requireGoogleMapsApi()).toBe(window.google.maps);
 
     const embedUrl = buildGoogleMapsEmbedUrl({
       apiKey: "maps key",

@@ -7,7 +7,7 @@ import type { AccommodationCouponApiPort } from "../ports/couponApiPort";
 import {
   createAccommodationDetailQueryOptions,
   createValidCouponsQueryOptions,
-} from "./readQueries";
+} from "./readQueryOptions";
 
 const authenticatedScope = {
   subject: "subject:member_7",

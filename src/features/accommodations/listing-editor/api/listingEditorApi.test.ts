@@ -1,6 +1,8 @@
 import type { ApiDataRequest } from "../../../../platform/http/request";
-import type { ListingEditorApiTransport } from "./listingEditorApi";
-import { createListingEditorApi } from "./listingEditorApi";
+import {
+  createListingEditorApi,
+  type ListingEditorApiTransport,
+} from "./listingEditorApiFactory";
 
 const hostDetailWire = {
   id: 31,

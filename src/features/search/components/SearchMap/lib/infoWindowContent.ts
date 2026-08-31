@@ -1,6 +1,6 @@
 import type { SearchMapAccommodation } from "../types";
 
-export interface SearchMapInfoWindowContent {
+interface SearchMapInfoWindowContent {
   accommodationId: string;
   title: string;
   priceLabel: string;
@@ -35,7 +35,7 @@ const escapeHtml = (value: string | number) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
-export const INFO_WINDOW_STYLE_TOKENS = {
+const INFO_WINDOW_STYLE_TOKENS = {
   actionGap: "8px",
   actionInset: "12px",
   actionLayerZIndex: "10",
@@ -217,9 +217,7 @@ const buildSearchMapInfoWindowContentView = ({
         `;
 };
 
-export const buildSearchMapInfoWindowContent = (
-  content: SearchMapInfoWindowContent,
-) =>
+const buildSearchMapInfoWindowContent = (content: SearchMapInfoWindowContent) =>
   buildSearchMapInfoWindowContentView({
     ...content,
     canToggleWishlist: content.canToggleWishlist ?? true,

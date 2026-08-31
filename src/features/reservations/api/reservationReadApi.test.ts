@@ -1,13 +1,17 @@
+import { requestApiData } from "../../../platform/http/request";
 import type {
   GuestReservationDetailWire,
   GuestReservationPageWire,
   HostReservationDetailWire,
   HostReservationPageWire,
 } from "./reservationReadContracts";
-import {
-  createReservationReadApi,
-  type ReservationReadApiTransport,
-} from "./reservationReadApi";
+import { reservationReadApi } from "./reservationReadApi";
+
+vi.mock("../../../platform/http/request", () => ({
+  requestApiData: vi.fn(),
+}));
+
+const mockRequestApiData = vi.mocked(requestApiData);
 
 const RESERVATION_UID = "reservation-123";
 
@@ -53,25 +57,25 @@ const detailBase = {
 } as const;
 
 describe("reservation read API adapter", () => {
+  beforeEach(() => {
+    mockRequestApiData.mockReset();
+  });
+
   it.each([
     ["guest", "/profile/guest/reservations"],
     ["host", "/profile/host/reservations"],
   ] as const)(
     "preserves the %s list path, params, and AbortSignal",
     async (audience, path) => {
-      const transport = vi.fn();
       const wire: GuestReservationPageWire | HostReservationPageWire = {
         page_info: pageInfo,
         reservations: [],
       };
-      transport.mockResolvedValue(wire);
-      const api = createReservationReadApi(
-        transport as ReservationReadApiTransport,
-      );
+      mockRequestApiData.mockResolvedValue(wire);
       const signal = new AbortController().signal;
 
       await expect(
-        api.getList(
+        reservationReadApi.getList(
           audience,
           {
             cursor: "cursor-1",
@@ -81,7 +85,7 @@ describe("reservation read API adapter", () => {
           { signal },
         ),
       ).resolves.toMatchObject({ audience });
-      expect(transport).toHaveBeenCalledWith({
+      expect(mockRequestApiData).toHaveBeenCalledWith({
         method: "GET",
         path,
         params: {
@@ -118,33 +122,27 @@ describe("reservation read API adapter", () => {
   ] as const)(
     "preserves the %s detail path and maps its audience",
     async (audience, path, wire) => {
-      const transport = vi.fn().mockResolvedValue(wire);
-      const api = createReservationReadApi(
-        transport as ReservationReadApiTransport,
-      );
+      mockRequestApiData.mockResolvedValue(wire);
       const signal = new AbortController().signal;
 
       await expect(
-        api.getDetail(audience, RESERVATION_UID, { signal }),
+        reservationReadApi.getDetail(audience, RESERVATION_UID, { signal }),
       ).resolves.toMatchObject({ audience, reservationUid: RESERVATION_UID });
-      expect(transport).toHaveBeenCalledWith({
+      expect(mockRequestApiData).toHaveBeenCalledWith({
         method: "GET",
         path,
         signal,
       });
-      expect(transport.mock.calls.at(0)?.at(0)).not.toHaveProperty("params");
+      expect(mockRequestApiData.mock.calls.at(0)?.at(0)).not.toHaveProperty(
+        "params",
+      );
     },
   );
 
   it("rejects a path-shaped UID before transport", async () => {
-    const transport = vi.fn();
-    const api = createReservationReadApi(
-      transport as ReservationReadApiTransport,
-    );
-
     await expect(
-      api.getDetail("guest", "..%2F..%2Fadmin"),
+      reservationReadApi.getDetail("guest", "..%2F..%2Fadmin"),
     ).rejects.toMatchObject({ code: "INVALID_OPAQUE_PATH_SEGMENT" });
-    expect(transport).not.toHaveBeenCalled();
+    expect(mockRequestApiData).not.toHaveBeenCalled();
   });
 });

@@ -33,7 +33,7 @@
     "lint": "eslint src",
     "lint:architecture": "node scripts/architecture/run-dependency-cruiser.mjs",
     "lint:architecture-tools": "eslint --no-ignore eslint.config.mjs .dependency-cruiser.cjs stylelint.config.mjs scripts tests/architecture --max-warnings=0",
-    "lint:dead-code": "knip --production --include files --preprocessor ./scripts/architecture/knip-target-ratchet.mjs --reporter compact --no-progress",
+    "lint:dead-code": "knip --production --reporter compact --no-progress",
     "lint:dead-code:report": "knip --production --reporter compact --no-progress --no-exit-code",
     "lint:dependencies": "node scripts/architecture/verify-dependency-classification.mjs",
     "lint:e2e": "eslint vite.config.ts vitest.config.ts playwright.config.ts tests/e2e --max-warnings=0",

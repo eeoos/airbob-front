@@ -1,6 +1,6 @@
 import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
 
-export interface ReviewCreatedCacheInput {
+interface ReviewCreatedCacheInput {
   readonly accommodationId: number;
   readonly scope: AuthenticatedSessionScope;
 }

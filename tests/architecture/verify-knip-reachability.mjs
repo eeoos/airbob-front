@@ -1,25 +1,36 @@
 import { spawnSync } from "node:child_process";
-import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  realpath,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 const architectureDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(architectureDirectory, "../..");
 const knipBinary = path.join(projectRoot, "node_modules/knip/bin/knip.js");
-const targetPreprocessor = path.join(
-  projectRoot,
-  "scripts/architecture/knip-target-ratchet.mjs",
+const packageData = JSON.parse(
+  await readFile(path.join(projectRoot, "package.json"), "utf8"),
 );
+const strictProductionCommand =
+  "knip --production --reporter compact --no-progress";
+
+if (packageData.scripts["lint:dead-code"] !== strictProductionCommand) {
+  throw new Error(
+    `lint:dead-code must remain the global strict production scan: ${strictProductionCommand}`,
+  );
+}
 const fixtureRoot = await realpath(
   await mkdtemp(path.join(os.tmpdir(), "airbob-knip-lazy-")),
 );
 
 const files = {
   "package.json": JSON.stringify({ private: true, type: "module" }),
-  "architecture-ratchet.json": JSON.stringify({
-    migratedFeatures: ["search"],
-  }),
   "knip.json": JSON.stringify({
     entry: ["src/index.ts!"],
     project: [
@@ -44,9 +55,6 @@ const files = {
   "src/features/search/DeadFeature.jsx":
     "export const DeadFeature = () => null;\n",
   "src/features/legacy/DeadLegacy.ts": "export const deadLegacy = true;\n",
-  "knip-preprocessor.mjs": `import { createTargetRatchet } from ${JSON.stringify(
-    pathToFileURL(targetPreprocessor).href,
-  )};\nexport default createTargetRatchet({ projectRoot: new URL('.', import.meta.url).pathname });\n`,
 };
 
 try {
@@ -131,8 +139,6 @@ try {
       "--config",
       "knip.json",
       "--production",
-      "--preprocessor",
-      path.join(fixtureRoot, "knip-preprocessor.mjs"),
       "--reporter",
       "json",
       "--no-progress",
@@ -142,7 +148,7 @@ try {
   );
   if (strictResult.status === 0) {
     throw new Error(
-      `Target Knip fixture did not fail on unreachable target files.\nstdout: ${strictResult.stdout}\nstderr: ${strictResult.stderr}`,
+      `Global strict Knip fixture did not fail on unreachable production files.\nstdout: ${strictResult.stdout}\nstderr: ${strictResult.stderr}`,
     );
   }
   let strictRows;
@@ -150,7 +156,7 @@ try {
     ({ issues: strictRows } = JSON.parse(strictResult.stdout));
   } catch {
     throw new Error(
-      `Target Knip fixture did not return JSON.\nstdout: ${strictResult.stdout}\nstderr: ${strictResult.stderr}`,
+      `Global strict Knip fixture did not return JSON.\nstdout: ${strictResult.stdout}\nstderr: ${strictResult.stderr}`,
     );
   }
   const strictUnusedFiles = new Set(
@@ -162,16 +168,12 @@ try {
     "src/shared/Dead.js",
     "src/shared/DeadModule.mjs",
     "src/features/search/DeadFeature.jsx",
+    "src/features/legacy/DeadLegacy.ts",
   ].forEach((unusedPath) => {
     if (!strictUnusedFiles.has(unusedPath)) {
-      throw new Error(`Target Knip ratchet missed ${unusedPath}.`);
+      throw new Error(`Global strict Knip missed ${unusedPath}.`);
     }
   });
-  if (strictUnusedFiles.has("src/features/legacy/DeadLegacy.ts")) {
-    throw new Error(
-      "Target Knip ratchet blocked unchanged legacy reachability debt.",
-    );
-  }
   [
     "src/shared/__tests__/helper.ts",
     "src/shared/__tests__/helper.mjs",
@@ -179,7 +181,7 @@ try {
   ].forEach((testOnlyPath) => {
     if (strictUnusedFiles.has(testOnlyPath)) {
       throw new Error(
-        `Target Knip ratchet included test-only support: ${testOnlyPath}`,
+        `Global strict Knip included test-only support: ${testOnlyPath}`,
       );
     }
   });
@@ -188,5 +190,5 @@ try {
 }
 
 process.stdout.write(
-  "Knip lazy-route, JavaScript/JSX/MJS, test-support, and migrated-feature fixtures passed.\n",
+  "Global strict Knip lazy-route, JavaScript/JSX/MJS, and test-support fixtures passed.\n",
 );

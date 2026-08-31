@@ -49,7 +49,7 @@ type SuccessResolution =
     }
   | { readonly status: "stale" };
 
-export function PaymentSuccessRoute() {
+function PaymentSuccessRoute() {
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();

@@ -10,9 +10,7 @@ import { platformApiTransport, type ApiTransport } from "./transport";
 import { toWishlistCollection, toWishlistDetail } from "./mappers";
 import type { WishlistApiPort } from "../ports/wishlistApiPort";
 
-export const createWishlistApi = (
-  transport: ApiTransport,
-): WishlistApiPort => ({
+const createWishlistApi = (transport: ApiTransport): WishlistApiPort => ({
   async create(input, options) {
     const body: CreateWishlistWireRequest = { name: input.name };
     return transport.request<IdentifierWire>({

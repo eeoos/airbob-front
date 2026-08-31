@@ -6,10 +6,8 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../platform/session/sessionScope";
-import type {
-  ListingEditorAccommodation,
-  ListingEditorQueryPort,
-} from "../../features/accommodations/listing-editor/public";
+import type { ListingEditorAccommodation } from "../../features/accommodations/listing-editor/model/listingEditor";
+import type { ListingEditorQueryPort } from "../../features/accommodations/listing-editor/public";
 import type { AccommodationEditScreenProps } from "./editorViewContract";
 import { AccommodationEditController } from "./AccommodationEditController";
 

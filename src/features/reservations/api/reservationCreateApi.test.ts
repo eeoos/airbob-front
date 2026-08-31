@@ -1,22 +1,21 @@
-import type { ApiDataRequest } from "../../../platform/http/request";
+import { requestApiData } from "../../../platform/http/request";
 import { encodeOpaquePathSegment } from "../../../platform/http/opaquePathSegment";
-import { createReservationCreateApi } from "./reservationCreateApi";
+import { reservationCreateApi } from "./reservationCreateApi";
 
-const createTransport = () => {
-  const request = vi.fn();
+vi.mock("../../../platform/http/request", () => ({
+  requestApiData: vi.fn(),
+}));
 
-  return {
-    request,
-    transport: request as <T>(input: ApiDataRequest) => Promise<NonNullable<T>>,
-  };
-};
+const mockRequestApiData = vi.mocked(requestApiData);
 
 describe("reservation create API adapter", () => {
+  beforeEach(() => {
+    mockRequestApiData.mockReset();
+  });
+
   it("preserves the exact POST body and maps the ready response", async () => {
-    const { request, transport } = createTransport();
-    const api = createReservationCreateApi(transport);
     const signal = new AbortController().signal;
-    request.mockResolvedValue({
+    mockRequestApiData.mockResolvedValue({
       reservation_uid: "reservation-123",
       order_name: "합정 테스트 숙소 2박",
       amount: 190000,
@@ -24,7 +23,7 @@ describe("reservation create API adapter", () => {
       customer_name: "테스트 게스트",
     });
 
-    const created = await api.create(
+    const created = await reservationCreateApi.create(
       {
         accommodationId: 7,
         checkIn: "2026-07-10",
@@ -46,7 +45,7 @@ describe("reservation create API adapter", () => {
       "reservation-123",
     );
 
-    expect(request).toHaveBeenCalledWith({
+    expect(mockRequestApiData).toHaveBeenCalledWith({
       method: "POST",
       path: "/reservations",
       body: {
@@ -61,9 +60,7 @@ describe("reservation create API adapter", () => {
   });
 
   it("omits coupon_id rather than serializing a null coupon", async () => {
-    const { request, transport } = createTransport();
-    const api = createReservationCreateApi(transport);
-    request.mockResolvedValue({
+    mockRequestApiData.mockResolvedValue({
       reservation_uid: "reservation-124",
       order_name: "합정 테스트 숙소 1박",
       amount: 100000,
@@ -71,7 +68,7 @@ describe("reservation create API adapter", () => {
       customer_name: "테스트 게스트",
     });
 
-    await api.create({
+    await reservationCreateApi.create({
       accommodationId: 7,
       checkIn: "2026-07-10",
       checkOut: "2026-07-11",
@@ -79,7 +76,7 @@ describe("reservation create API adapter", () => {
       couponId: null,
     });
 
-    expect(request).toHaveBeenCalledWith({
+    expect(mockRequestApiData).toHaveBeenCalledWith({
       method: "POST",
       path: "/reservations",
       body: {
@@ -93,9 +90,7 @@ describe("reservation create API adapter", () => {
   });
 
   it("rejects a response UID that cannot cross a downstream path boundary", async () => {
-    const { request, transport } = createTransport();
-    const api = createReservationCreateApi(transport);
-    request.mockResolvedValue({
+    mockRequestApiData.mockResolvedValue({
       reservation_uid: "../admin",
       order_name: "잘못된 예약",
       amount: 100000,
@@ -104,7 +99,7 @@ describe("reservation create API adapter", () => {
     });
 
     await expect(
-      api.create({
+      reservationCreateApi.create({
         accommodationId: 7,
         checkIn: "2026-07-10",
         checkOut: "2026-07-11",

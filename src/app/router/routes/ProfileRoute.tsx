@@ -79,7 +79,7 @@ const profileHrefs = {
   guestReservation: routeTo.reservationDetail,
 } satisfies ProfileHrefPort;
 
-export function ProfileRoute() {
+function ProfileRoute() {
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();

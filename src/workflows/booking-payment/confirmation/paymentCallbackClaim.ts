@@ -45,7 +45,7 @@ export type PaymentCallbackClaimInvalidReason =
   | "missing-callback"
   | "callback-write-failed";
 
-export type PaymentCallbackClaimResult =
+type PaymentCallbackClaimResult =
   | PaymentCallbackReady
   | {
       readonly status: "server-replay-required";
@@ -57,19 +57,19 @@ export type PaymentCallbackClaimResult =
     }
   | { readonly status: "stale" };
 
-export interface PaymentCallbackClaimDependencies {
+interface PaymentCallbackClaimDependencies {
   readonly checkout: Pick<CheckoutRepository, "readForCallback">;
   readonly callback: Pick<CallbackRepository, "read" | "write">;
 }
 
-export interface ClaimPaymentCallbackInput {
+interface ClaimPaymentCallbackInput {
   readonly scope: AuthenticatedSessionScope;
   readonly reservationUid: string;
   readonly fresh?: PaymentCallbackFreshTuple;
   readonly isCurrent: () => boolean;
 }
 
-export type ServerPaymentCallbackReplayResult =
+type ServerPaymentCallbackReplayResult =
   | PaymentCallbackReady
   | {
       readonly status: "server-replay-retryable";
@@ -82,11 +82,11 @@ export type ServerPaymentCallbackReplayResult =
     }
   | { readonly status: "stale" };
 
-export interface ServerPaymentCallbackReplayDependencies {
+interface ServerPaymentCallbackReplayDependencies {
   readonly ownershipApi: CheckoutOwnershipApiPort;
 }
 
-export interface ResolveServerPaymentCallbackReplayInput {
+interface ResolveServerPaymentCallbackReplayInput {
   readonly fresh: PaymentCallbackFreshTuple;
   readonly signal: AbortSignal;
   readonly isCurrent: () => boolean;

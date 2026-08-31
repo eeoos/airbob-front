@@ -8,7 +8,7 @@ import {
 import { useSession } from "../../session/useSession";
 import { routeTo } from "../paths";
 
-export function HostReservationDetailRoute() {
+function HostReservationDetailRoute() {
   const navigate = useNavigate();
   const session = useSession();
   const { reservationUid: routeReservationUid } = useParams<{

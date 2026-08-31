@@ -1,11 +1,11 @@
-export interface SearchAddressSummary {
+interface SearchAddressSummary {
   readonly country: string;
   readonly state: string | null;
   readonly city: string;
   readonly district: string | null;
 }
 
-export interface SearchCoordinate {
+interface SearchCoordinate {
   readonly latitude: number | null;
   readonly longitude: number | null;
 }
@@ -34,7 +34,7 @@ export interface SearchSelectedPlace extends SearchPlaceSelection {
   readonly placeId: string;
 }
 
-export interface SearchReviewSummary {
+interface SearchReviewSummary {
   readonly totalCount: number;
   readonly averageRating: number;
 }
@@ -52,7 +52,7 @@ export interface SearchAccommodation {
   readonly isInWishlist: boolean;
 }
 
-export interface SearchPageInfo {
+interface SearchPageInfo {
   readonly pageSize: number;
   readonly currentPage: number;
   readonly totalPages: number;

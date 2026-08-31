@@ -8,8 +8,6 @@ import {
 } from "../../platform/query/sessionScope";
 import { toAuthenticatedSessionScope, type SessionState } from "./sessionState";
 
-export type { SessionQueryScope } from "../../platform/query/sessionScope";
-
 export interface SessionQueryGeneration extends SessionQueryScope {
   readonly client: QueryClient;
   readonly fenceId: number;

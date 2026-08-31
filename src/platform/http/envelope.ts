@@ -2,7 +2,7 @@ import { AppError, createHttpAppError } from "./errors";
 
 type UnknownRecord = Record<string, unknown>;
 
-export type EnvelopeInspection<T> =
+type EnvelopeInspection<T> =
   | { readonly kind: "data"; readonly data: T | null }
   | { readonly kind: "backend-error"; readonly error: unknown }
   | { readonly kind: "invalid-response" }
@@ -22,7 +22,7 @@ const hasOwnProperty = (response: UnknownRecord, property: string): boolean =>
  * Classifies an API envelope without choosing an application error surface.
  * Feature adapters use the result through the canonical AppError boundary.
  */
-export const inspectApiEnvelope = <T>(
+const inspectApiEnvelope = <T>(
   response: unknown,
   options: InspectEnvelopeOptions = {},
 ): EnvelopeInspection<T> => {

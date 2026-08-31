@@ -572,6 +572,7 @@ U2와 U3는 병렬 준비가 가능하다. Safe return-target codec과 route con
   - Google/Daum/Toss loader가 중복 호출되지 않고 failure를 typed error로 반환한다.
   - Shared render harness가 Router, Query, session, portal root를 동일하게 구성한다.
 - **Verification:** feature/screen이 Axios, `process.env`, storage, external global script를 새로 직접 사용할 수 없고 legacy consumers의 current error behavior와 migrated consumers의 `AppError` behavior가 각각 통과한다.
+- **Completion (2026-08-31 strict closure):** `publicRuntimeConfigCore.ts`의 pure config factory와 thin browser adapter, `clientCore.ts`의 injectable transport factory와 thin production singleton adapter, `sessionStorageDriverCore.ts`의 injectable factory와 thin browser singleton adapter로 platform construction boundary를 닫았다. Axios와 Toss v1 runtime은 이후 atomic cutover에서 제거됐고 current feature adapters는 이 platform boundary만 소비한다.
 
 ### U5. Replace Auth Boolean State with an Explicit Session Boundary
 
@@ -1183,7 +1184,7 @@ U2와 U3는 병렬 준비가 가능하다. Safe return-target codec과 route con
   - Covers AE1-AE13. 모든 핵심 user flow가 deterministic browser와 focused transition test에서 통과한다.
   - 모든 15 route direct refresh와 protected return target이 통과한다.
   - Dependency graph cycle, feature-to-feature import, legacy root import, platform integration adapter 밖의 direct external global access가 0이다.
-  - Knip production strict에 unused file/export/dependency가 0이다.
+  - Knip production strict에 unused file, value/type export, duplicate export, dependency가 0이다.
   - Stylelint strict에 undocumented exception이 0이다.
   - Main bundle과 route chunk가 approved baseline/budget을 만족한다.
   - 320~1440 responsive, Dialog, bottom sheet, form, date picker 접근성 baseline이 통과한다.
@@ -1192,6 +1193,7 @@ U2와 U3는 병렬 준비가 가능하다. Safe return-target codec과 route con
   - Immutable previous build assets가 유지되고 current build failure에서 timed rollback smoke가 통과한다.
   - Live smoke fixture 누락은 explicit skipped/unverified이고 green으로 집계되지 않는다.
 - **Verification:** design-entry checklist가 executable evidence를 링크하고 current architecture 문서와 production graph가 일치한다.
+- **Completion (2026-08-31):** `npm run lint:dead-code`를 target preprocessor 없는 global strict production Knip scan으로 승격했고 production-unused file, value export, type export, duplicate export를 모두 0으로 닫았다. 우회 ignore, artificial entry, test-only production consumer는 추가하지 않았다. Backend-independent 구조/디자인 계약은 `READY (offline)`이며 `npm run verify:design-ready`가 revision별 실행 증거를 소유한다. Vercel/OCI/Maps/Toss sandbox는 계속 별도 `DEFERRED / UNVERIFIED (live)` 범위다.
 
 ---
 

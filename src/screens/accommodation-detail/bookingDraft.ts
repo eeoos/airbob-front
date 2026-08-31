@@ -8,7 +8,7 @@ interface BookingRouteCounts {
 const LOCAL_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 const DAY_MILLISECONDS = 24 * 60 * 60 * 1000;
 
-export const parseBookingLocalDate = (value: string): Date | null => {
+const parseBookingLocalDate = (value: string): Date | null => {
   const match = LOCAL_DATE_PATTERN.exec(value);
   if (!match) return null;
 

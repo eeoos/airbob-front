@@ -7,11 +7,11 @@ import { encodeOpaquePathSegment } from "../../../../platform/http/opaquePathSeg
 import type { CheckoutOwnershipWire } from "./contracts";
 import { toCheckoutOwnership } from "./mappers";
 
-export type CheckoutOwnershipApiTransport = <T>(
+type CheckoutOwnershipApiTransport = <T>(
   request: ApiDataRequest,
 ) => Promise<NonNullable<T>>;
 
-export const createCheckoutOwnershipApi = (
+const createCheckoutOwnershipApi = (
   request: CheckoutOwnershipApiTransport,
 ): CheckoutOwnershipApiPort => ({
   async getCheckoutOwnership(reservationUid, options) {

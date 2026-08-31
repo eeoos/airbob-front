@@ -1,5 +1,5 @@
 import type { CouponCollectionWire } from "./contracts";
-import { createCouponApi, type CouponApiTransport } from "./couponApi";
+import { createCouponApi, type CouponApiTransport } from "./couponApiFactory";
 
 const couponWire: CouponCollectionWire = {
   infos: [

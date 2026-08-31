@@ -4,9 +4,8 @@ import {
   toSearchParams,
 } from "./queryCodecUtils";
 
-export type ProfileRouteMode = "guest" | "host";
-export type ProfileGuestRouteTab = "trips" | "upcoming" | "past" | "cancelled";
-export type ProfileHostRouteTab =
+type ProfileGuestRouteTab = "trips" | "upcoming" | "past" | "cancelled";
+type ProfileHostRouteTab =
   | "listings"
   | "listings-published"
   | "listings-draft"
@@ -15,8 +14,6 @@ export type ProfileHostRouteTab =
   | "reservations-upcoming"
   | "reservations-past"
   | "reservations-cancelled";
-export type ProfileRouteTab = ProfileGuestRouteTab | ProfileHostRouteTab;
-
 export type ProfileRouteQuery =
   | { mode?: "guest"; tab?: ProfileGuestRouteTab }
   | { mode: "host"; tab?: ProfileHostRouteTab };
@@ -43,7 +40,7 @@ const HOST_TABS = new Set<ProfileHostRouteTab>([
   "reservations-cancelled",
 ]);
 
-export const parseProfileRouteState = (
+const parseProfileRouteState = (
   input: SearchParamsInput,
 ): ProfileRouteState => {
   const params = toSearchParams(input);

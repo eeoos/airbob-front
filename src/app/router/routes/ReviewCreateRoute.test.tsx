@@ -9,7 +9,7 @@ import { accommodationReadQueryKeys } from "../../../features/accommodations/det
 import { createSessionQueryMeta } from "../../../platform/query/sessionScope";
 import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
 import type { ReviewSubmissionPublicationPort } from "../../../workflows/review-submission";
-import { ReviewCreateRoute } from "./ReviewCreateRoute";
+import ReviewCreateRoute from "./ReviewCreateRoute";
 
 let mockCapturedPublication: ReviewSubmissionPublicationPort | null = null;
 

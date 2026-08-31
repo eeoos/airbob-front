@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import type { HomeScreenProps } from "../../../screens/home/public";
-import { HomeRoute } from "./HomeRoute";
+import type { HomeScreenProps } from "../../../screens/home/HomeScreen";
+import HomeRoute from "./HomeRoute";
 
 const mockHomeScreen = vi.fn();
 

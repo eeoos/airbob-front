@@ -1,7 +1,9 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 import { render, screen, within } from "@testing-library/react";
-import { appShellComponents, BareShell, FormShell } from ".";
+import { appShellComponents } from ".";
+import { BareShell } from "./BareShell";
+import { FormShell } from "./FormShell";
 
 const appShellIds = [
   "browse",

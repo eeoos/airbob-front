@@ -1,8 +1,5 @@
-import { toCanonicalSearchString } from "../../../shared/lib/urlSearchParams";
 import type { SearchPlaceSelection, SearchViewport } from "../model/search";
 import { parseStrictFiniteNumber } from "./searchParamParsers";
-
-export type { SearchPlaceSelection, SearchViewport } from "../model/search";
 
 export interface SearchNavigationInput {
   destination?: string;
@@ -44,7 +41,7 @@ const SEARCH_QUERY_KEYS_TO_PRESERVE = [
   "petOccupancy",
 ] as const;
 
-export const pickSearchParams = (params: URLSearchParams) => {
+const pickSearchParams = (params: URLSearchParams) => {
   const nextParams = new URLSearchParams();
 
   SEARCH_QUERY_KEYS_TO_PRESERVE.forEach((key) => {
@@ -56,9 +53,6 @@ export const pickSearchParams = (params: URLSearchParams) => {
 
   return nextParams;
 };
-
-export const getSearchParamsSignature = (params: URLSearchParams): string =>
-  toCanonicalSearchString(pickSearchParams(params));
 
 const formatDateForSearchParam = (date: Date): string => {
   const year = date.getFullYear();
@@ -85,14 +79,6 @@ export const removeViewportParams = (
   return nextParams;
 };
 
-const removeViewportAndLocationParams = (
-  params: URLSearchParams,
-): URLSearchParams => {
-  const nextParams = removeViewportParams(params);
-  LOCATION_KEYS.forEach((key) => nextParams.delete(key));
-  return nextParams;
-};
-
 export const getViewportFromSearchParams = (
   params: URLSearchParams,
 ): SearchViewport | null => {
@@ -111,18 +97,6 @@ export const getViewportFromSearchParams = (
   }
 
   return { north, west, south, east };
-};
-
-export const getViewportSearchParamSignature = (
-  params: URLSearchParams,
-): string | null => {
-  const viewport = getViewportFromSearchParams(params);
-
-  if (!viewport) {
-    return null;
-  }
-
-  return `${viewport.north},${viewport.west},${viewport.south},${viewport.east}`;
 };
 
 export const buildSearchNavigationParams = (
@@ -165,21 +139,6 @@ export const buildSearchNavigationParams = (
   params.set("childOccupancy", input.childOccupancy.toString());
   params.set("infantOccupancy", input.infantOccupancy.toString());
   params.set("petOccupancy", input.petOccupancy.toString());
-
-  return params;
-};
-
-export const buildMapBoundsSearchParams = (
-  currentParams: URLSearchParams,
-  bounds: SearchViewport,
-): URLSearchParams => {
-  const params = removeViewportAndLocationParams(
-    pickSearchParams(currentParams),
-  );
-
-  setViewportParams(params, bounds);
-  params.delete("destination");
-  params.delete("page");
 
   return params;
 };

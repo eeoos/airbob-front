@@ -1,8 +1,17 @@
-import {
-  createSessionBroadcast,
-  type SessionBroadcastChannel,
-  type SessionBroadcastMessage,
-} from "./sessionBroadcast";
+import { createSessionBroadcast } from "./sessionBroadcast";
+
+type SessionBroadcast = ReturnType<typeof createSessionBroadcast>;
+type SessionBroadcastListener = Parameters<SessionBroadcast["subscribe"]>[0];
+type SessionBroadcastMessage = Parameters<SessionBroadcastListener>[0];
+type SessionBroadcastOptions = NonNullable<
+  Parameters<typeof createSessionBroadcast>[0]
+>;
+type SessionBroadcastChannelFactory = NonNullable<
+  SessionBroadcastOptions["channelFactory"]
+>;
+type SessionBroadcastChannel = NonNullable<
+  ReturnType<SessionBroadcastChannelFactory>
+>;
 
 const SOURCE_A = "tab_source_a001";
 const SOURCE_B = "tab_source_b001";

@@ -1,10 +1,14 @@
-import type {
-  DaumPostcodeResult,
-  openDaumPostcode,
-} from "../../../platform/integrations/daumPostcode";
-import { createListingEditorAddressSearch } from "./listingEditorAddressSearch";
+import { toListingEditorAddressSelection } from "../../../features/accommodations/listing-editor/public";
+import type { DaumPostcodeResult } from "../../../platform/integrations/daumPostcode";
+import { openDaumPostcode } from "../../../platform/integrations/daumPostcode";
+import { listingEditorAddressSearch } from "./listingEditorAddressSearch";
 
-type OpenPostcode = typeof openDaumPostcode;
+vi.mock("../../../features/accommodations/listing-editor/public", () => ({
+  toListingEditorAddressSelection: vi.fn(),
+}));
+vi.mock("../../../platform/integrations/daumPostcode", () => ({
+  openDaumPostcode: vi.fn(),
+}));
 
 const rawAddress: DaumPostcodeResult = {
   zonecode: "06236",
@@ -34,21 +38,26 @@ const mappedAddress = {
   detail: "",
 };
 
-const createOpenPostcode = () => vi.fn<OpenPostcode>();
+const mockedOpenPostcode = vi.mocked(openDaumPostcode);
+const mockedMapAddressSelection = vi.mocked(toListingEditorAddressSelection);
 
 describe("listing editor address search adapter", () => {
+  beforeEach(() => {
+    mockedOpenPostcode.mockReset();
+    mockedMapAddressSelection.mockReset();
+    mockedMapAddressSelection.mockReturnValue(mappedAddress);
+  });
+
   it("rejects an already-aborted search without opening the integration", async () => {
     const controller = new AbortController();
     controller.abort();
-    const openPostcode = createOpenPostcode();
-    const search = createListingEditorAddressSearch({ openPostcode });
 
     await expect(
-      search.search({ signal: controller.signal }),
+      listingEditorAddressSearch.search({ signal: controller.signal }),
     ).rejects.toMatchObject({
       name: "AbortError",
     });
-    expect(openPostcode).not.toHaveBeenCalled();
+    expect(mockedOpenPostcode).not.toHaveBeenCalled();
   });
 
   it("settles and cleans up when a pending search is aborted", async () => {
@@ -57,11 +66,10 @@ describe("listing editor address search adapter", () => {
       controller.signal,
       "removeEventListener",
     );
-    const openPostcode = createOpenPostcode().mockImplementation(
-      () => new Promise(() => undefined),
-    );
-    const search = createListingEditorAddressSearch({ openPostcode });
-    const result = search.search({ signal: controller.signal });
+    mockedOpenPostcode.mockImplementation(() => new Promise(() => undefined));
+    const result = listingEditorAddressSearch.search({
+      signal: controller.signal,
+    });
 
     controller.abort();
 
@@ -79,18 +87,13 @@ describe("listing editor address search adapter", () => {
       "removeEventListener",
     );
     let complete!: (result: DaumPostcodeResult) => void;
-    const openPostcode = createOpenPostcode().mockImplementation(
-      (onComplete) => {
-        complete = onComplete;
-        return new Promise(() => undefined);
-      },
-    );
-    const mapAddressSelection = vi.fn(() => mappedAddress);
-    const search = createListingEditorAddressSearch({
-      mapAddressSelection,
-      openPostcode,
+    mockedOpenPostcode.mockImplementation((onComplete) => {
+      complete = onComplete;
+      return new Promise(() => undefined);
     });
-    const result = search.search({ signal: controller.signal });
+    const result = listingEditorAddressSearch.search({
+      signal: controller.signal,
+    });
 
     complete(rawAddress);
 
@@ -99,7 +102,7 @@ describe("listing editor address search adapter", () => {
     controller.abort();
     await Promise.resolve();
     expect(removeEventListener).toHaveBeenCalledTimes(1);
-    expect(mapAddressSelection).toHaveBeenCalledTimes(1);
+    expect(mockedMapAddressSelection).toHaveBeenCalledTimes(1);
   });
 
   it("rejects once and cleans up when the integration reports an error", async () => {
@@ -110,19 +113,14 @@ describe("listing editor address search adapter", () => {
     );
     let complete!: (result: DaumPostcodeResult) => void;
     let fail!: (error: Error) => void;
-    const openPostcode = createOpenPostcode().mockImplementation(
-      (onComplete, onError) => {
-        complete = onComplete;
-        fail = onError as (error: Error) => void;
-        return new Promise(() => undefined);
-      },
-    );
-    const mapAddressSelection = vi.fn(() => mappedAddress);
-    const search = createListingEditorAddressSearch({
-      mapAddressSelection,
-      openPostcode,
+    mockedOpenPostcode.mockImplementation((onComplete, onError) => {
+      complete = onComplete;
+      fail = onError as (error: Error) => void;
+      return new Promise(() => undefined);
     });
-    const result = search.search({ signal: controller.signal });
+    const result = listingEditorAddressSearch.search({
+      signal: controller.signal,
+    });
     const integrationError = new Error("postcode unavailable");
 
     fail(integrationError);
@@ -130,6 +128,6 @@ describe("listing editor address search adapter", () => {
 
     await expect(result).rejects.toBe(integrationError);
     expect(removeEventListener).toHaveBeenCalledTimes(1);
-    expect(mapAddressSelection).not.toHaveBeenCalled();
+    expect(mockedMapAddressSelection).not.toHaveBeenCalled();
   });
 });

@@ -12,7 +12,7 @@ export interface ReviewableReservationQueryOptions {
   readonly enabled?: boolean;
 }
 
-export const createReviewableReservationQueryOptions = (
+const createReviewableReservationQueryOptions = (
   { reservationUid, scope, enabled = true }: ReviewableReservationQueryOptions,
   api: ReviewableReservationApiPort = defaultReviewableReservationApi,
 ) => ({

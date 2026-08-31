@@ -2,7 +2,7 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../../platform/session/sessionScope";
-import { createSessionStorageDriver } from "../../../platform/storage/sessionStorageDriver";
+import { createSessionStorageDriver } from "../../../platform/storage/sessionStorageDriverCore";
 import {
   clearBookingPaymentBrowserState,
   createBookingPaymentCallbackRepository,
@@ -12,8 +12,11 @@ import type {
   BookingPaymentOperationId,
   CallbackData,
   CheckoutHandoffState,
-  CheckoutWriteData,
 } from "./types";
+
+type CheckoutWriteData = Parameters<
+  ReturnType<typeof createBookingPaymentCheckoutRepository>["write"]
+>[0]["data"];
 
 const scopeA = {
   subject: "subject:viewer_a" as SessionSubject,

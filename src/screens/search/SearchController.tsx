@@ -40,7 +40,7 @@ export interface SearchWishlistAuthIntent {
   readonly completeResume: (attemptId: number) => void;
 }
 
-export interface SearchWishlistMembership {
+interface SearchWishlistMembership {
   readonly commands: WishlistMembershipCommandPort;
   readonly scope: WishlistModalProps["scope"];
 }

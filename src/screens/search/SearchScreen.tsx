@@ -19,7 +19,7 @@ import styles from "./SearchScreen.module.css";
 
 type MotionSectionProps = ComponentProps<typeof motion.section>;
 
-export interface SearchScreenBottomSheetProps {
+interface SearchScreenBottomSheetProps {
   readonly bottomSheetHandleRef: RefObject<HTMLButtonElement | null>;
   readonly bottomSheetRef: RefObject<HTMLElement | null>;
   readonly bottomSheetState: "collapsed" | "half" | "expanded";
@@ -43,7 +43,7 @@ export interface SearchScreenBottomSheetProps {
   readonly translateY: NonNullable<MotionStyle["y"]>;
 }
 
-export interface SearchScreenMapProps {
+interface SearchScreenMapProps {
   readonly handleAccommodationSelect: (
     accommodation: SearchAccommodationMapViewModel | null,
   ) => void;
@@ -59,7 +59,7 @@ export interface SearchScreenMapProps {
   readonly viewport: SearchMapViewport | null;
 }
 
-export interface SearchScreenResultsProps {
+interface SearchScreenResultsProps {
   readonly accommodationCards: SearchAccommodationCardViewModel[];
   readonly accommodationMapItems: SearchAccommodationMapViewModel[];
   readonly currentPage: number;

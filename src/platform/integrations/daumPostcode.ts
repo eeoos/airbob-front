@@ -41,9 +41,9 @@ declare global {
 
 const DAUM_POSTCODE_ORIGIN = "https://t1.daumcdn.net";
 const DAUM_POSTCODE_PATH = "/mapjsapi/bundle/postcode/prod/postcode.v2.js";
-export const DAUM_POSTCODE_SCRIPT_SRC = `${DAUM_POSTCODE_ORIGIN}${DAUM_POSTCODE_PATH}`;
+const DAUM_POSTCODE_SCRIPT_SRC = `${DAUM_POSTCODE_ORIGIN}${DAUM_POSTCODE_PATH}`;
 const DAUM_POSTCODE_SCRIPT_MARKER = "daum-postcode-v2";
-export const DAUM_POSTCODE_READINESS_TIMEOUT_MS = 8000;
+const DAUM_POSTCODE_READINESS_TIMEOUT_MS = 8000;
 
 interface DaumLoadAttempt {
   fail: (error: IntegrationError) => void;
@@ -194,7 +194,7 @@ const createLoadAttempt = (script: HTMLScriptElement): DaumLoadAttempt => {
   return { fail, promise, script };
 };
 
-export const ensureDaumPostcodeScript = (): Promise<void> => {
+const ensureDaumPostcodeScript = (): Promise<void> => {
   if (typeof window === "undefined" || typeof document === "undefined") {
     return Promise.reject(unavailableError("INTEGRATION_UNAVAILABLE"));
   }

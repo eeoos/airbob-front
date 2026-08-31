@@ -2,7 +2,7 @@ import type { ApiDataRequest } from "../../../platform/http/request";
 import {
   createAccommodationDraftApi,
   type AccommodationDraftApiTransport,
-} from "./accommodationDraftApi";
+} from "./accommodationDraftApiFactory";
 
 describe("accommodation draft API", () => {
   it("posts an empty draft command and returns the envelope data id", async () => {

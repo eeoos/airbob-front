@@ -19,7 +19,7 @@ export interface WishlistOpenAuthIntent {
   readonly accommodationId: number;
 }
 
-export interface ReservationStartAuthIntent {
+interface ReservationStartAuthIntent {
   readonly type: "reservation.start";
   readonly accommodationId: number;
   readonly checkIn: AuthIntentLocalDate;
@@ -31,7 +31,7 @@ export interface ReservationStartAuthIntent {
   readonly couponId: number | null;
 }
 
-export interface CouponIssueAuthIntent {
+interface CouponIssueAuthIntent {
   readonly type: "coupon.issue";
   readonly accommodationId: number;
   readonly couponId: number;
@@ -51,7 +51,7 @@ const daysInMonth = (year: number, month: number) => {
   return 31;
 };
 
-export const isAuthIntentLocalDate = (
+const isAuthIntentLocalDate = (
   value: unknown,
 ): value is AuthIntentLocalDate => {
   if (typeof value !== "string") return false;

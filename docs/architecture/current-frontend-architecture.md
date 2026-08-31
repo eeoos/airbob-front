@@ -2,7 +2,7 @@
 
 > Status: canonical current-state source of truth  
 > Baseline: U4 commit `f5222d5`, followed by the U6 Router, U5 session, U19 structural UI, U7-U13 feature/workflow cutovers, U21 small routes, U22 compatibility closure, U14 interaction adoption, U15 design-foundation closure, the U16 Vite build/dev cutover, U17 Vitest cutover, and the U23 TypeScript 5.9/ESLint 9/dependency-classification/formatting boundaries
-> Current migration state: app routing/session/overlay ownership, every feature-owned API/model boundary, and every current route screen are active; legacy global roots are retired; Vite owns build/dev, Vitest owns unit/integration execution, TypeScript owns explicit browser/test/tooling/Playwright environments, native flat-config ESLint owns local source feedback, Knip 6 globally proves dependency placement, and Prettier 3.9 owns formatter-scoped active-tree layout without CRA runtime or lint dependencies
+> Current migration state: app routing/session/overlay ownership, every feature-owned API/model boundary, and every current route screen are active; legacy global roots are retired; Vite owns build/dev, Vitest owns unit/integration execution, TypeScript owns explicit browser/test/tooling/Playwright environments, native flat-config ESLint owns local source feedback, Knip 6 globally blocks production-unused files/value exports/type exports/duplicate exports and proves dependency placement, and Prettier 3.9 owns formatter-scoped active-tree layout without CRA runtime or lint dependencies
 > Recorded: 2026-08-31 KST
 
 This document describes the frontend that is reachable in production at the
@@ -112,7 +112,7 @@ Current owners:
 | Unit and integration tests | `vitest.config.ts`, `src/test/setup.ts`, colocated `*.test.*` and `*.spec.*` files | Vitest 4 and jsdom share the Vite module graph, run files with one worker and ordered hooks, expose Vitest globals with explicit TypeScript/ESLint ownership, and use non-scoped CSS Module names only inside tests. The setup owns jest-dom matchers and portal cleanup; native `fetch`/`XMLHttpRequest` behavior and React Router use real browser/package contracts rather than virtual production-module shims. Vite's test mode performs no browser-public environment substitution. `npm run test:ci:no-cache` is the current evidence and enforces coverage floors of 87/79/89/89 for statements/branches/functions/lines without duplicating volatile suite counts here. `react-scripts`, `@types/jest`, global Jest aliases, virtual real-module mocks, and `requireActual` shims are absent. |
 | Browser smoke | `scripts/smoke/frontend-smoke.mjs` | Live backend, browser, credentials, and stable IDs are external prerequisites. |
 | Deterministic browser characterization | `playwright.config.ts`, `tests/e2e/**` | Loopback production app plus an exact synthetic HTTPS `.invalid` API origin, synthetic session/API fixtures, and default-deny network. |
-| Static architecture ratchets | `.dependency-cruiser.cjs`, `knip.json`, `stylelint.config.mjs`, `architecture-ratchet.json` | Target/migrated surfaces fail on graph, reachability, and design-policy regressions while measured legacy debt remains visible. |
+| Static architecture gates | `.dependency-cruiser.cjs`, `knip.json`, `stylelint.config.mjs`, `architecture-ratchet.json` | The production graph and Knip reachability/export surface are globally strict. The feature registry remains the monotonic owner for migrated dependency/style policy while measured legacy CSS debt stays visible. |
 
 ## Route inventory
 
@@ -235,10 +235,12 @@ function-identity scope inference, global Query facade, or rollback reader.
 
 ### API boundary
 
-- `src/platform/http/client.ts` creates the only production browser HTTP
-  transport. It uses credentialed `fetch` for ordinary requests and reserves
-  credentialed `XMLHttpRequest` for multipart uploads that report progress.
-  Feature API adapters import this boundary directly.
+- `src/platform/http/clientCore.ts` owns the transport factory and native
+  request mechanics. The thin `src/platform/http/client.ts` browser adapter
+  injects the public API base URL, `fetch`, and `XMLHttpRequest`, and exposes the
+  only production singleton. Ordinary requests use credentialed `fetch`;
+  multipart uploads that report progress alone use credentialed
+  `XMLHttpRequest`. Feature API adapters import the singleton boundary directly.
 - `src/platform/http/envelope.ts` and `errors.ts` own the migrated
   `AppError` boundary. Raw browser transport failures do not cross into features,
   screens, or application composition.
@@ -270,13 +272,16 @@ function-identity scope inference, global Query facade, or rollback reader.
 | Daum postcode | `src/platform/integrations/daumPostcode.ts`, injected into the editor by `src/app/router/routes/AccommodationEditRoute.tsx` | Lazy exact HTTPS loader, callback validation, and abortable open operation; the props-only screen never imports the browser integration. |
 | Toss Payments | `src/platform/integrations/tossPaymentsV2.ts`, adapted by `src/workflows/booking-payment/checkout/paymentGateway.ts` | Pinned official npm SDK v2 behind the unchanged `PaymentGatewayPort`. The adapter owns one bounded, client-key-scoped load, initializes the direct payment window with `ANONYMOUS`, and maps the existing request to `CARD`/`KRW`; a route-owned gateway lease reuses that client and destroys its launcher on route departure. The workflow adapter owns safe error policy and duplicate-request fencing. The retired v1 source is removed; immutable Git commit `408d303` and its Vercel deployment are the U10 comparison/rollback target. |
 | CloudFront images | `src/platform/assets/imageUrl.ts` | Validated HTTPS asset host; consumers import the platform owner or receive a narrow injected resolver. |
-| Environment | `src/platform/config/env.ts`, `publicRuntimeConfig.ts`, `vite.config.ts`, `scripts/architecture/validate-public-build-env.mjs` | The app adapter reads mode plus four explicitly mapped browser-public values while preserving the existing `REACT_APP_*` deployment names. Vite consumes validated build-only `PUBLIC_URL` as its asset base; preflight permits only empty, single-slash root-relative, or absolute HTTPS asset bases with percent-free safe paths. Runtime and build validation reject percent encoding and server-secret key shapes in every public exposure; Google Maps also uses a browser-key-safe character set. |
+| Environment | `src/platform/config/env.ts`, `publicRuntimeConfigCore.ts`, `publicRuntimeConfig.ts`, `vite.config.ts`, `scripts/architecture/validate-public-build-env.mjs` | `publicRuntimeConfigCore.ts` owns pure validation and config creation from an injected browser-environment value. The thin `publicRuntimeConfig.ts` browser adapter reads mode plus four explicitly mapped browser-public values while preserving the existing `REACT_APP_*` deployment names. Vite consumes validated build-only `PUBLIC_URL` as its asset base; preflight permits only empty, single-slash root-relative, or absolute HTTPS asset bases with percent-free safe paths. Runtime and build validation reject percent encoding and server-secret key shapes in every public exposure; Google Maps also uses a browser-key-safe character set. |
 
-`src/platform/storage` owns raw `sessionStorage` access and the generic
-versioned envelope engine. The booking-payment aggregate is its active domain
-writer through a named storage driver: static checkout/callback slots carry
-purpose, version, privacy/PII classification, stable subject, creation/expiry,
-exact field allowlists, invalid-record purge, and session/route fences.
+`src/platform/storage/sessionStorageDriverCore.ts` owns the injectable storage
+driver factory, while the thin `sessionStorageDriver.ts` browser adapter exposes
+the only production `sessionStorage` singleton. The platform storage boundary
+also owns the generic versioned envelope engine. The booking-payment aggregate
+is its active domain writer through that named storage driver: static
+checkout/callback slots carry purpose, version, privacy/PII classification,
+stable subject, creation/expiry, exact field allowlists, invalid-record purge,
+and session/route fences.
 The active aggregate has no pre-U10 reader, migration branch, or
 confirmed-marker consumer. Residual retired values are ignored for recovery;
 exact retired-prefix keys are purge-deleted without reading their contents at
@@ -315,12 +320,16 @@ Consequences:
 
 U3 supplies executable ownership for this graph. Every declared feature scope is in the migrated registry;
 feature-to-peer imports and reintroduced global API/DTO roots fail fixtures.
-Target-ratcheted production Knip reachability, global full-development and
-strict-production dependency classification, strict Stylelint, architecture tools, strict
-ESLint, typecheck, and deterministic interaction/browser coverage pass.
+Global strict-production Knip reachability/export enforcement, global
+full-development and strict-production dependency classification, strict
+Stylelint, architecture tools, strict ESLint, typecheck, and deterministic
+interaction/browser coverage pass. Production-unused files, value exports, type
+exports, and duplicate exports are all zero without a target preprocessor,
+per-file ignore, artificial entry, or test-only production consumer.
 `architecture-ratchet.json` promotes a feature scope to strict
-dependency, reachability, and style enforcement in its cutover commit. The
-registry rejects missing/test-only roots and live downgrades against the PR base;
+dependency and style enforcement in its cutover commit; it does not narrow the
+global Knip gate. The registry rejects missing/test-only roots and live
+downgrades against the PR base;
 JavaScript, JSX, and MJS share the same strict lint/reachability coverage as
 TypeScript, including production `.web.mjs` modules through the `.mjs` suffix.
 Unused, unlisted, or misclassified runtime/development packages are globally
@@ -391,7 +400,6 @@ status lives in [`frontend-ownership-matrix.md`](./frontend-ownership-matrix.md)
 | Delta | Planned owner |
 | --------------------------------------------------------------------------------------- | ------------- |
 | Toss npm v2 runtime adapter (source cutover complete; live sandbox/OCI parity deferred) | U11 |
-| Global unused/duplicate export cleanup and final design-entry gate | U18 |
 
 ## Verification contracts
 
@@ -437,7 +445,7 @@ unavailable external services remain deferred and unverified.
 | `frontend-ownership-matrix.md` | Mutable cutover owner registry. |
 | `frontend-migration-rules.md` | Execution rules for every migration slice. |
 | `frontend-browser-data-inventory.md` | Browser persistence, ownership, PII, TTL, and cleanup inventory. |
-| `tests/architecture/dependency-rules.md` | Executable static-rule owners, measured debt, strict promotion, and tool transition. |
+| `tests/architecture/dependency-rules.md` | Executable static-rule owners, global production reachability/export policy, strict feature promotion, and tool transition. |
 | Active plan under `docs/plans/` | Target architecture and implementation units. |
 | `docs/qa/frontend-architecture-smoke.ko.md` | Live-only Vercel/OCI/Maps/Toss sandbox runbook. |
 | `frontend-architecture-freeze.ko.md` | Superseded July snapshot. |

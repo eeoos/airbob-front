@@ -4,7 +4,7 @@ import { browserWindowNavigation } from "../../../platform/browser/windowNavigat
 import { AuthController } from "../../../screens/auth/public";
 import { routeTo } from "../paths";
 
-export function SignupRoute() {
+function SignupRoute() {
   const location = useLocation();
   const navigate = useNavigate();
   const commands = useAuthCommands();

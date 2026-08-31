@@ -17,7 +17,7 @@ export type ReviewCreateScreenState =
       readonly reservation: ReviewCreateReservationView;
     };
 
-export interface ReviewCreateImageView {
+interface ReviewCreateImageView {
   readonly id: string;
   readonly previewUrl: string;
 }

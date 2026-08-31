@@ -7,10 +7,10 @@ permit historical dependency debt.
 
 ## Single rule owners
 
-| Concern                                                                               | Owner                                                   | Blocking scope at U3                                                                             | Legacy signal                                                                                                                                                                         |
+| Concern                                                                               | Owner                                                   | Current blocking scope                                                                           | Legacy signal                                                                                                                                                                         |
 | ------------------------------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Import direction, resolvability, production-to-test/dev edges, module/folder cycles   | dependency-cruiser                                      | `src/app`, `screens`, `workflows`, `platform`, `shared`, plus features registered as migrated    | Legacy cycles remain warnings. Every feature-to-peer production import is an error.                                                                                                   |
-| Production reachability                                                               | Knip production file scan                               | The target/migrated surface through a result preprocessor                                        | The complete report remains visible without per-file ignores; export cleanup is a separate U18 closure gate.                                                                          |
+| Production reachability and export surface                                            | Knip strict production scan                             | Global production project                                                                        | Zero unused files, value/type exports, and duplicate exports; no target preprocessor, per-file ignore, artificial entry, or test-only production consumer.                            |
 | Runtime/development dependency classification, unlisted imports, and package binaries | Knip full-graph plus strict-production scans            | Global                                                                                           | No baseline, Git delta, package ignore, or dependency suppression is permitted.                                                                                                       |
 | CSS syntax and design references                                                      | Stylelint                                               | Target/migrated CSS plus the already-clean shell/modal files named in config                     | Legacy design/syntax debt is warning-only; breakpoint and suppression invariants remain global errors.                                                                                |
 | CSS interaction/token invariants not expressible by the pinned Stylelint line         | Focused Vitest contracts using the central style policy | Target/migrated CSS plus the named high-risk pre-redesign set                                    | No duplicated raw-color, `!important`, or import scanner remains.                                                                                                                     |
@@ -48,8 +48,9 @@ architecture tests own resolved config semantics.
 
 `architecture-ratchet.json` is the single changed-surface registry. A feature
 may be added to `migratedFeatures` only in the same atomic cutover that leaves
-that feature with zero dependency, reachability, and strict design-policy
-errors. Every entry must resolve to a real feature directory containing
+that feature with zero dependency-direction and strict design-policy errors
+while the global production Knip gate remains green. Knip is not scoped by this
+registry. Every entry must resolve to a real feature directory containing
 production source; symbolic links are forbidden throughout `src` so fixed or
 feature target layers cannot be relocated behind legacy paths.
 Full-history CI and the local Git comparison gate make the
@@ -62,8 +63,9 @@ remain comparable after their root and scope declaration are retired.
 
 ## Dependency-cruiser policy
 
-After U15 the production graph has 511 modules and 1,367 dependency edges,
-zero cycles, zero warnings, and zero errors. Production contains no
+The production graph has zero cycles, zero warnings, and zero errors.
+Volatile module and edge totals belong to executable command output rather than
+this hand-maintained contract. Production contains no
 feature-owned `appShell.ts` or `publicCache.ts`, no feature-to-peer edge, and no
 retired global API/DTO root. Feature-to-peer production imports are errors regardless of filename;
 production imports of `src/api/**` or `src/types/**` are rejected
@@ -103,18 +105,20 @@ each fixture root rather than borrowing the production repository inventory.
 
 ## Knip reachability policy
 
-`npm run lint:dead-code:report` is the complete production report and always
-exits successfully. It is deletion input for U18, not an allowlist.
+`npm run lint:dead-code` is the complete, blocking production Knip scan. It has
+no target preprocessor or debt baseline: every production-unused file, value
+export, type export, namespace export/type, enum or namespace member, and
+duplicate export is a repository-wide error. JavaScript, JSX, and MJS are
+included alongside TypeScript. Route modules are not registered as artificial
+entries; the production entry must reach them through literal dynamic imports.
+The Knip fixture proves that a lazy route and its screen remain reachable while
+dead TS, JS, JSX, and MJS files in target and former legacy roots fail the same
+global command. Test helpers under `__tests__` and `__mocks__` remain outside
+production and cannot be added as fake production consumers.
 
-`npm run lint:dead-code` applies the target preprocessor and fails on any issue
-whose owning file is under a target root or registered migrated feature. The U3
-target count is zero. JavaScript, JSX, and MJS are included alongside TypeScript.
-Route modules are not registered as artificial entries: the production entry
-must reach them through literal dynamic imports. The Knip fixture proves that a
-lazy route and its screen remain reachable while dead TS, JS, JSX, MJS, and a
-non-empty migrated-feature entry are reported, test helpers under `__tests__`
-and `__mocks__` remain outside production, and legacy-only debt remains
-non-blocking.
+`npm run lint:dead-code:report` runs the same complete production analysis with
+a non-blocking exit code for diagnosis. A clean revision produces an empty issue
+report; the report command is not an allowlist or an alternate acceptance gate.
 
 `npm run lint:dependencies` runs two complementary Knip 6 passes. The full
 development graph checks runtime and development declarations, unlisted
@@ -213,8 +217,9 @@ npm run report:architecture
 ```
 
 `verify:structure` and CI run the blocking commands. `report:architecture`
-prints the complete legacy Knip and Stylelint inventories for debt-reduction
-work without converting those inventories into permanent suppressions.
+prints the complete production Knip report (expected empty) and the remaining
+legacy Stylelint inventory without converting either into a permanent
+suppression.
 
 ## Toolchain transition
 
@@ -232,3 +237,6 @@ provides the final initial-graph reduction instead of hiding code behind an
 unused export.
 Prettier 3.9.6 and EditorConfig complete U23 with one independent mechanical
 formatter-owned pass and a CI-reachable drift gate.
+U18 closes production reachability globally: the strict production Knip command
+has no result preprocessor and the current production graph has zero unused
+files, value/type exports, or duplicate exports.

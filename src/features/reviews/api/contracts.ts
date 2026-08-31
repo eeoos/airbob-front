@@ -3,7 +3,7 @@ export interface ReviewImageWire {
   readonly image_url: string;
 }
 
-export interface ReviewAuthorWire {
+interface ReviewAuthorWire {
   readonly id: number;
   readonly nickname: string;
   readonly thumbnail_image_url: string | null;
@@ -18,7 +18,7 @@ export interface ReviewWire {
   readonly images: readonly ReviewImageWire[];
 }
 
-export interface CursorPageInfoWire {
+interface CursorPageInfoWire {
   readonly has_next: boolean;
   readonly next_cursor: string | null;
   readonly current_size: number;

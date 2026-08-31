@@ -9,7 +9,7 @@ import {
 import { parseApiEnvelope } from "./envelope";
 import { AppError, normalizeHttpError } from "./errors";
 
-export type ApiRequestMethod = "GET" | "POST" | "PATCH" | "DELETE";
+type ApiRequestMethod = "GET" | "POST" | "PATCH" | "DELETE";
 
 export interface ApiDataRequest {
   readonly method: ApiRequestMethod;

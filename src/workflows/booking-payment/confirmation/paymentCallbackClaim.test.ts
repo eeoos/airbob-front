@@ -14,9 +14,12 @@ import {
   claimPaymentCallback,
   resolveServerPaymentCallbackReplay,
   toPaymentCallbackDocument,
-  type PaymentCallbackClaimDependencies,
   type PaymentCallbackFreshTuple,
 } from "./paymentCallbackClaim";
+
+type PaymentCallbackClaimDependencies = Parameters<
+  typeof claimPaymentCallback
+>[0];
 
 const operationId = "operation_1" as BookingPaymentOperationId;
 const scope = {

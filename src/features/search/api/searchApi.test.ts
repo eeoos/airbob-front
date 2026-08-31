@@ -1,6 +1,13 @@
+import { requestApiData } from "../../../platform/http/request";
 import { requireDefined } from "../../../test/assertions";
 import type { SearchResultPageWire } from "./contracts";
-import { createSearchApi, type SearchApiTransport } from "./searchApi";
+import { searchApi } from "./searchApi";
+
+vi.mock("../../../platform/http/request", () => ({
+  requestApiData: vi.fn(),
+}));
+
+const mockRequestApiData = vi.mocked(requestApiData);
 
 const emptyWirePage: SearchResultPageWire = {
   stay_search_result_listing: [],
@@ -17,13 +24,16 @@ const emptyWirePage: SearchResultPageWire = {
 };
 
 describe("search API adapter", () => {
+  beforeEach(() => {
+    mockRequestApiData.mockReset();
+  });
+
   it("preserves method, path, query keys, signal and omits a request body", async () => {
-    const transport = vi.fn().mockResolvedValue(emptyWirePage);
-    const api = createSearchApi(transport as SearchApiTransport);
+    mockRequestApiData.mockResolvedValue(emptyWirePage);
     const signal = new AbortController().signal;
 
     await expect(
-      api.search(
+      searchApi.search(
         {
           destination: "Seoul",
           checkIn: "2026-09-10",
@@ -51,8 +61,8 @@ describe("search API adapter", () => {
       },
     });
 
-    expect(transport).toHaveBeenCalledTimes(1);
-    expect(transport).toHaveBeenCalledWith({
+    expect(mockRequestApiData).toHaveBeenCalledTimes(1);
+    expect(mockRequestApiData).toHaveBeenCalledWith({
       method: "GET",
       path: "/search/accommodations",
       params: {
@@ -68,7 +78,10 @@ describe("search API adapter", () => {
       },
       signal,
     });
-    const firstCall = requireDefined(transport.mock.calls[0], "transport call");
+    const firstCall = requireDefined(
+      mockRequestApiData.mock.calls[0],
+      "transport call",
+    );
     expect(
       requireDefined(firstCall[0], "transport request"),
     ).not.toHaveProperty("body");

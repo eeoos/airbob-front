@@ -1,9 +1,8 @@
-import {
-  DAUM_POSTCODE_READINESS_TIMEOUT_MS,
-  DAUM_POSTCODE_SCRIPT_SRC,
-  ensureDaumPostcodeScript,
-  openDaumPostcode,
-} from "./daumPostcode";
+import { openDaumPostcode } from "./daumPostcode";
+
+const DAUM_POSTCODE_SCRIPT_SRC =
+  "https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
+const DAUM_POSTCODE_READINESS_TIMEOUT_MS = 8000;
 
 const daumScripts = () =>
   Array.from(document.scripts).filter(
@@ -65,29 +64,33 @@ describe("Daum postcode platform integration", () => {
   });
 
   it("loads one exact marked HTTPS script and shares the pending promise", async () => {
-    const first = ensureDaumPostcodeScript();
-    const second = ensureDaumPostcodeScript();
+    const first = openDaumPostcode(vi.fn());
+    const second = openDaumPostcode(vi.fn());
     const script = requireDaumScript();
 
-    expect(second).toBe(first);
     expect(daumScripts()).toHaveLength(1);
     expect(script.src).toBe(DAUM_POSTCODE_SCRIPT_SRC);
     expect(script.dataset.airbobIntegration).toBe("daum-postcode-v2");
 
-    installDaumRuntime();
+    const { open } = installDaumRuntime();
     script.dispatchEvent(new Event("load"));
-    await expect(first).resolves.toBeUndefined();
+    await expect(Promise.all([first, second])).resolves.toEqual([
+      undefined,
+      undefined,
+    ]);
+    expect(open).toHaveBeenCalledTimes(2);
   });
 
   it("resolves without loading when the minimum runtime already exists", async () => {
-    installDaumRuntime();
+    const { open } = installDaumRuntime();
 
-    await expect(ensureDaumPostcodeScript()).resolves.toBeUndefined();
+    await expect(openDaumPostcode(vi.fn())).resolves.toBeUndefined();
     expect(daumScripts()).toHaveLength(0);
+    expect(open).toHaveBeenCalledOnce();
   });
 
   it("rejects an invalid runtime and retries with a fresh script", async () => {
-    const invalidLoad = ensureDaumPostcodeScript();
+    const invalidLoad = openDaumPostcode(vi.fn());
     const invalidScript = requireDaumScript();
     invalidScript.dispatchEvent(new Event("load"));
 
@@ -96,15 +99,16 @@ describe("Daum postcode platform integration", () => {
     });
     expect(invalidScript.isConnected).toBe(false);
 
-    const retry = ensureDaumPostcodeScript();
+    const retry = openDaumPostcode(vi.fn());
     const retryScript = requireDaumScript();
-    installDaumRuntime();
+    const { open } = installDaumRuntime();
     retryScript.dispatchEvent(new Event("load"));
     await expect(retry).resolves.toBeUndefined();
+    expect(open).toHaveBeenCalledOnce();
   });
 
   it("removes a failed script and permits retry", async () => {
-    const failedLoad = ensureDaumPostcodeScript();
+    const failedLoad = openDaumPostcode(vi.fn());
     const failedScript = requireDaumScript();
     failedScript.dispatchEvent(new Event("error"));
 
@@ -115,7 +119,7 @@ describe("Daum postcode platform integration", () => {
   });
 
   it("bounds readiness and returns only safe typed failure metadata", async () => {
-    const loading = ensureDaumPostcodeScript();
+    const loading = openDaumPostcode(vi.fn());
 
     vi.advanceTimersByTime(DAUM_POSTCODE_READINESS_TIMEOUT_MS);
 

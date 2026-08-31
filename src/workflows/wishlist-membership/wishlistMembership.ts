@@ -9,7 +9,7 @@ import type {
 
 const MEMBERSHIP_PAGE_SIZE = 20;
 
-export interface WishlistMembershipPage {
+interface WishlistMembershipPage {
   readonly wishlists: ReadonlyArray<{
     readonly id: number;
     readonly isContained: boolean | null;
@@ -60,19 +60,19 @@ export interface WishlistMembershipTransport {
   ): Promise<WishlistMembershipPage>;
 }
 
-export type WishlistMembershipProjection = WishlistProjectionPort;
+type WishlistMembershipProjection = WishlistProjectionPort;
 
 export interface WishlistMembershipSession {
   captureAuthenticatedSession(): AuthenticatedSessionScope | null;
   isCurrentSession(scope: AuthenticatedSessionScope): boolean;
 }
 
-export type WishlistMembershipMutationResult = WishlistMembershipCommandResult;
+type WishlistMembershipMutationResult = WishlistMembershipCommandResult;
 
-export type WishlistCommandResult =
+type WishlistCommandResult =
   { readonly status: "applied" } | { readonly status: "stale" };
 
-export type CreateAndAddWishlistResult = CreateAndAddWishlistCommandResult;
+type CreateAndAddWishlistResult = CreateAndAddWishlistCommandResult;
 
 export interface WishlistMembershipCommands extends WishlistMembershipCommandPort {
   deleteWishlist(input: {

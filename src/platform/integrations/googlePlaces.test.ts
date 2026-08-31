@@ -1,10 +1,8 @@
 import type { Mock } from "vitest";
 import { IntegrationError } from "./errors";
-import {
-  ensureGooglePlacesReady,
-  getGooglePlacesApi,
-  GOOGLE_PLACES_READINESS_TIMEOUT_MS,
-} from "./googlePlaces";
+import { ensureGooglePlacesReady, getGooglePlacesApi } from "./googlePlaces";
+
+const GOOGLE_PLACES_READINESS_TIMEOUT_MS = 5000;
 
 const createPlacesRuntime = () => ({
   AutocompleteSessionToken: function AutocompleteSessionToken() {},

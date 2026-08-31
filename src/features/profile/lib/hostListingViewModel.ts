@@ -47,7 +47,7 @@ const getHostListingStatusLabel = (status: HostListing["status"]): string => {
   }
 };
 
-export const toHostListingViewModel = (
+const toHostListingViewModel = (
   accommodation: HostListing,
   resolveImageUrl: (path: string | null) => string = defaultResolveImageUrl,
 ): HostListingViewModel => {

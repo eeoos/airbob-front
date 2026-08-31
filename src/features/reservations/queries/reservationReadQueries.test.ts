@@ -1,7 +1,13 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useInfiniteQuery,
+  useQuery,
+} from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import React from "react";
 import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
+import { requireDefined } from "../../../test/assertions";
 import type {
   GuestReservationDetail,
   ReservationListPage,
@@ -9,10 +15,61 @@ import type {
 import type { ReservationReadApiPort } from "../ports/reservationReadApiPort";
 import { reservationReadQueryKeys } from "./reservationReadQueryKeys";
 import {
-  createReservationDetailQueryOptions,
-  createReservationListQueryOptions,
+  useReservationDetailReadQuery,
   useReservationListReadQuery,
 } from "./reservationReadQueries";
+
+vi.mock("@tanstack/react-query", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@tanstack/react-query")>();
+
+  return {
+    ...actual,
+    useInfiniteQuery: vi.fn(),
+    useQuery: vi.fn(),
+  };
+});
+
+interface CapturedListQueryOptions {
+  readonly queryKey: readonly unknown[];
+  readonly queryFn: (context: {
+    readonly pageParam: string | undefined;
+    readonly signal: AbortSignal;
+  }) => Promise<unknown>;
+  readonly enabled: boolean;
+  readonly getNextPageParam: (
+    page: ReservationListPage<"guest">,
+  ) => string | undefined;
+  readonly meta?: unknown;
+  readonly retry: false;
+  readonly throwOnError: false;
+}
+
+interface CapturedDetailQueryOptions {
+  readonly queryKey: readonly unknown[];
+  readonly queryFn: (context: {
+    readonly signal: AbortSignal;
+  }) => Promise<unknown>;
+  readonly enabled: boolean;
+  readonly select: (
+    resource: GuestReservationDetail,
+  ) => GuestReservationDetail | null;
+  readonly meta?: unknown;
+}
+
+const mockUseInfiniteQuery = vi.mocked(useInfiniteQuery);
+const mockUseQuery = vi.mocked(useQuery);
+
+const getCapturedListOptions = (): CapturedListQueryOptions =>
+  requireDefined(
+    mockUseInfiniteQuery.mock.calls.at(-1),
+    "useInfiniteQuery call",
+  )[0] as unknown as CapturedListQueryOptions;
+
+const getCapturedDetailOptions = (): CapturedDetailQueryOptions =>
+  requireDefined(
+    mockUseQuery.mock.calls.at(-1),
+    "useQuery call",
+  )[0] as unknown as CapturedDetailQueryOptions;
 
 const scope = {
   epoch: 4,
@@ -106,6 +163,15 @@ const createWrapper = (queryClient: QueryClient) =>
   };
 
 describe("reservation read query boundary", () => {
+  beforeEach(() => {
+    mockUseInfiniteQuery.mockReset();
+    mockUseInfiniteQuery.mockReturnValue(
+      {} as ReturnType<typeof useInfiniteQuery>,
+    );
+    mockUseQuery.mockReset();
+    mockUseQuery.mockReturnValue({} as ReturnType<typeof useQuery>);
+  });
+
   it("uses explicit audience/session/filter keys even when one wrapped API owns both reads", async () => {
     const { api, getList } = createApi();
     getList.mockResolvedValue(guestPage("guest-1"));
@@ -114,7 +180,7 @@ describe("reservation read query boundary", () => {
       getList: (...args) => api.getList(...args),
       getDetail: (...args) => api.getDetail(...args),
     };
-    const guestOptions = createReservationListQueryOptions(
+    useReservationListReadQuery(
       {
         audience: "guest",
         filterType: "UPCOMING",
@@ -122,7 +188,8 @@ describe("reservation read query boundary", () => {
       },
       wrappedApi,
     );
-    const hostOptions = createReservationListQueryOptions(
+    const guestOptions = getCapturedListOptions();
+    useReservationListReadQuery(
       {
         audience: "host",
         filterType: "UPCOMING",
@@ -130,6 +197,7 @@ describe("reservation read query boundary", () => {
       },
       wrappedApi,
     );
+    const hostOptions = getCapturedListOptions();
 
     await guestOptions.queryFn({ pageParam: undefined, signal });
 
@@ -168,7 +236,7 @@ describe("reservation read query boundary", () => {
 
   it("forwards the page cursor and derives only a server-confirmed next cursor", async () => {
     const { api, getList } = createApi();
-    const options = createReservationListQueryOptions(
+    useReservationListReadQuery(
       {
         audience: "guest",
         filterType: "PAST",
@@ -177,6 +245,7 @@ describe("reservation read query boundary", () => {
       },
       api,
     );
+    const options = getCapturedListOptions();
     const signal = new AbortController().signal;
     const page = guestPage("guest-1", "cursor-2");
     getList.mockResolvedValue(page);
@@ -199,7 +268,7 @@ describe("reservation read query boundary", () => {
 
   it("keeps missing authenticated scope network-inert", () => {
     const { api, getList } = createApi();
-    const options = createReservationListQueryOptions(
+    useReservationListReadQuery(
       {
         audience: "guest",
         filterType: "UPCOMING",
@@ -207,6 +276,7 @@ describe("reservation read query boundary", () => {
       },
       api,
     );
+    const options = getCapturedListOptions();
 
     expect(options.enabled).toBe(false);
     expect(options.queryKey.at(-1)).toEqual({ session: null });
@@ -223,10 +293,11 @@ describe("reservation read query boundary", () => {
   it("disables a missing detail UID and selects only the matching audience/resource", async () => {
     const { api, getDetail } = createApi();
     const signal = new AbortController().signal;
-    const options = createReservationDetailQueryOptions(
+    useReservationDetailReadQuery(
       { audience: "guest", reservationUid: "reservation-1", scope },
       api,
     );
+    const options = getCapturedDetailOptions();
     getDetail.mockResolvedValue(guestDetail("reservation-1"));
 
     await options.queryFn({ signal });
@@ -253,15 +324,20 @@ describe("reservation read query boundary", () => {
       } as never),
     ).toBeNull();
 
-    const missing = createReservationDetailQueryOptions(
+    useReservationDetailReadQuery(
       { audience: "guest", reservationUid: null, scope },
       api,
     );
+    const missing = getCapturedDetailOptions();
     expect(missing.enabled).toBe(false);
     expect(() => missing.queryFn({ signal })).toThrow("reservationUid");
   });
 
   it("does not surface an old filter page after the active list changes", async () => {
+    const actualReactQuery = await vi.importActual<
+      typeof import("@tanstack/react-query")
+    >("@tanstack/react-query");
+    mockUseInfiniteQuery.mockImplementation(actualReactQuery.useInfiniteQuery);
     const { api, getList } = createApi();
     const queryClient = new QueryClient({
       defaultOptions: { queries: { gcTime: Infinity, retry: false } },

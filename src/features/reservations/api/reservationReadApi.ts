@@ -23,7 +23,7 @@ import {
   toHostReservationPage,
 } from "./reservationReadMappers";
 
-export type ReservationReadApiTransport = typeof requestApiData;
+type ReservationReadApiTransport = typeof requestApiData;
 
 const listPath = (audience: ReservationReadAudience) =>
   `/profile/${audience}/reservations`;
@@ -43,7 +43,7 @@ const toListParams = ({
   ...(size === undefined ? {} : { size }),
 });
 
-export const createReservationReadApi = (
+const createReservationReadApi = (
   request: ReservationReadApiTransport,
 ): ReservationReadApiPort => {
   const getList = async <TAudience extends ReservationReadAudience>(

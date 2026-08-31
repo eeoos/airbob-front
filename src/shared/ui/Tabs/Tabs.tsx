@@ -1,7 +1,7 @@
 import React from "react";
 import styles from "./Tabs.module.css";
 
-export interface TabItem<TValue extends string = string> {
+interface TabItem<TValue extends string = string> {
   disabled?: boolean;
   id?: string;
   label: React.ReactNode;

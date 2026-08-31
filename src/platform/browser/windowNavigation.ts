@@ -5,7 +5,7 @@ export interface BrowserWindowNavigation {
   replaceCurrentUrl(url: string): void;
 }
 
-export interface BrowserHistoryEntry {
+interface BrowserHistoryEntry {
   readonly hash: string;
   readonly key: string;
   readonly pathname: string;

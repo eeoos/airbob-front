@@ -5,11 +5,13 @@ import { MemoryRouter } from "react-router-dom";
 import { authApi } from "../../features/auth/api/authApi";
 import { useAuthCommands } from "../../features/auth/ports/AuthCommandProvider";
 import { Dialog, ToastHost } from "../../shared/ui";
-import { APP_OVERLAY_ROOT_ID } from "../overlays/OverlayProvider";
 import type { SessionContextValue } from "../session/SessionProvider";
 import { toSessionSubject } from "../session/sessionState";
 import { useSession } from "../session/useSession";
-import { AppProviders, AuthIntentStableBoundary } from "./AppProviders";
+import { AppProviders } from "./AppProviders";
+import { AuthIntentStableBoundary } from "./AuthIntentStableBoundary";
+
+const APP_OVERLAY_ROOT_ID = "airbob-portal-root";
 
 vi.mock("../session/useSession", () => ({
   useSession: vi.fn(),

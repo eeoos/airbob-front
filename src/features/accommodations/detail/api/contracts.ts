@@ -1,38 +1,38 @@
-export interface AccommodationDetailAddressSummaryWire {
+interface AccommodationDetailAddressSummaryWire {
   readonly country: string;
   readonly state: string | null;
   readonly city: string;
   readonly district: string | null;
 }
 
-export interface AccommodationDetailCoordinateWire {
+interface AccommodationDetailCoordinateWire {
   readonly latitude: number | null;
   readonly longitude: number | null;
 }
 
-export interface AccommodationDetailHostWire {
+interface AccommodationDetailHostWire {
   readonly id: number;
   readonly nickname: string;
   readonly thumbnail_image_url: string | null;
 }
 
-export interface AccommodationDetailPolicyWire {
+interface AccommodationDetailPolicyWire {
   readonly max_occupancy: number;
   readonly infant_occupancy: number;
   readonly pet_occupancy: number;
 }
 
-export interface AccommodationDetailAmenityWire {
+interface AccommodationDetailAmenityWire {
   readonly type: string;
   readonly count: number;
 }
 
-export interface AccommodationDetailImageWire {
+interface AccommodationDetailImageWire {
   readonly id: number;
   readonly image_url: string;
 }
 
-export interface AccommodationDetailReviewSummaryWire {
+interface AccommodationDetailReviewSummaryWire {
   readonly total_count: number;
   readonly average_rating: number;
 }
@@ -57,7 +57,7 @@ export interface AccommodationDetailWire {
   readonly review_summary: AccommodationDetailReviewSummaryWire;
 }
 
-export type CouponDiscountTypeWire = "PERCENTAGE" | "FIXED_AMOUNT";
+type CouponDiscountTypeWire = "PERCENTAGE" | "FIXED_AMOUNT";
 
 export interface CouponWire {
   readonly id: number;

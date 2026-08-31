@@ -1,4 +1,4 @@
-export interface AuthErrorEvent {
+interface AuthErrorEvent {
   readonly sequence: number;
 }
 

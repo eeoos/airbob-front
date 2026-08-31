@@ -7,9 +7,7 @@ import {
   type SessionControllerOptions,
 } from "./useSessionController";
 
-export { SessionContext } from "./sessionContext";
 export type { SessionContextValue } from "./sessionContext";
-export type { SessionQueryClientFactory } from "./useSessionQueryLifetime";
 
 export interface SessionProviderProps extends SessionControllerOptions {
   readonly children: ReactNode;

@@ -1,6 +1,6 @@
 import type { AccommodationApiRequestOptions } from "./accommodationDetail";
 
-export type CouponDiscountType = "PERCENTAGE" | "FIXED_AMOUNT";
+type CouponDiscountType = "PERCENTAGE" | "FIXED_AMOUNT";
 
 export interface AccommodationCoupon {
   readonly id: number;

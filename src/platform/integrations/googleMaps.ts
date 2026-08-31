@@ -5,7 +5,7 @@ const GOOGLE_MAPS_PATH = "/maps/api/js";
 const GOOGLE_MAPS_SCRIPT_URL = `${GOOGLE_MAPS_ORIGIN}${GOOGLE_MAPS_PATH}`;
 const GOOGLE_MAPS_SCRIPT_MARKER = "google-maps-v3";
 const READINESS_INTERVAL_MS = 50;
-export const GOOGLE_MAPS_READINESS_TIMEOUT_MS = 5000;
+const GOOGLE_MAPS_READINESS_TIMEOUT_MS = 5000;
 
 interface GoogleMapsLoadAttempt {
   fail: (error: IntegrationError) => void;
@@ -70,16 +70,6 @@ export const getGoogleMapsApi = (): typeof google.maps | null => {
 
   const maps = window.google?.maps;
   return maps && typeof maps.Map === "function" ? maps : null;
-};
-
-export const requireGoogleMapsApi = (): typeof google.maps => {
-  const maps = getGoogleMapsApi();
-
-  if (!maps) {
-    throw createGoogleMapsIntegrationError("INTEGRATION_INVALID_RUNTIME");
-  }
-
-  return maps;
 };
 
 const buildGoogleMapsScriptUrl = (apiKey: string) => {

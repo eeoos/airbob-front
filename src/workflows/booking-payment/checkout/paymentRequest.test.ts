@@ -3,10 +3,11 @@ import type {
   SessionSubject,
 } from "../../../platform/session/sessionScope";
 import { PaymentGatewayError, type PaymentGatewayPort } from "./paymentGateway";
-import {
-  createPaymentRequestWorkflow,
-  type PaymentRequestCommand,
-} from "./paymentRequest";
+import { createPaymentRequestWorkflow } from "./paymentRequest";
+
+type PaymentRequestCommand = Parameters<
+  ReturnType<typeof createPaymentRequestWorkflow>["request"]
+>[0];
 
 const scopeA: AuthenticatedSessionScope = {
   epoch: 3,

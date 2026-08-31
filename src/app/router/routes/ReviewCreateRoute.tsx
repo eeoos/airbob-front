@@ -15,7 +15,7 @@ import { useSession } from "../../session/useSession";
 import { createReviewSubmissionResultState } from "../codecs/reviewSubmissionResultCodec";
 import { routeTo } from "../paths";
 
-export function ReviewCreateRoute() {
+function ReviewCreateRoute() {
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();

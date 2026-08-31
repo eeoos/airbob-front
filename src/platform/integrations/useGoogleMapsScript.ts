@@ -7,7 +7,7 @@ import {
   getGoogleMapsApi,
 } from "./googleMaps";
 
-export type GoogleMapsScriptStatus =
+type GoogleMapsScriptStatus =
   "idle" | "loading" | "loaded" | "error" | "missing-key";
 
 export interface GoogleMapsScriptState {

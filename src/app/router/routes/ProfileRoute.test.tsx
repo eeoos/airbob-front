@@ -15,15 +15,18 @@ import type {
   SessionSubject,
 } from "../../../platform/session/sessionScope";
 import type {
-  ProfileControllerProps,
   ProfileNavigationCommands,
   ProfileRouteView,
 } from "../../../screens/profile/public";
-import type {
-  HostListingManagementDependencies,
-  HostListingManagementWorkflow,
-} from "../../../workflows/host-listing-management";
-import { ProfileRoute } from "./ProfileRoute";
+import type { ProfileControllerProps } from "../../../screens/profile/ProfileController";
+import ProfileRoute from "./ProfileRoute";
+
+type CreateHostListingManagementWorkflow =
+  (typeof import("../../../workflows/host-listing-management"))["createHostListingManagementWorkflow"];
+type HostListingManagementDependencies =
+  Parameters<CreateHostListingManagementWorkflow>[0];
+type HostListingManagementWorkflow =
+  ReturnType<CreateHostListingManagementWorkflow>;
 
 const scope: AuthenticatedSessionScope = {
   subject: "subject:profile-route" as SessionSubject,

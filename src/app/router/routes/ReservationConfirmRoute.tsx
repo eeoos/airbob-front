@@ -21,7 +21,7 @@ type CheckoutResolution =
   | { readonly status: "ready"; readonly checkout: CheckoutData }
   | { readonly status: "invalid" };
 
-export function ReservationConfirmRoute() {
+function ReservationConfirmRoute() {
   const location = useLocation();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();

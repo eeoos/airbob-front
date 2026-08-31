@@ -16,8 +16,8 @@ import {
 } from "../../shared/ui/overlayRuntime";
 import { useBodyScrollLock } from "../../shared/ui/useBodyScrollLock";
 
-export const APP_OVERLAY_ROOT_ID = "airbob-portal-root";
-export const APP_ROOT_ID = "root";
+const APP_OVERLAY_ROOT_ID = "airbob-portal-root";
+const APP_ROOT_ID = "root";
 
 export interface OverlayProviderProps {
   readonly applicationRoot?: HTMLElement;

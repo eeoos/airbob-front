@@ -18,7 +18,7 @@ export interface PaymentConfirmationSessionPort {
   isCurrentSession(scope: AuthenticatedSessionScope): boolean;
 }
 
-export interface PaymentConfirmationOwnershipClaim {
+interface PaymentConfirmationOwnershipClaim {
   readonly operationId: string;
   readonly accommodationId: number;
   readonly checkIn: string;
@@ -40,7 +40,7 @@ export interface PaymentConfirmationCommand {
   readonly markConfirming: () => boolean;
 }
 
-export type PaymentConfirmationTerminal =
+type PaymentConfirmationTerminal =
   "confirmed" | "invalid" | "terminal-failure" | "stale" | "disposed";
 
 export type PaymentConfirmationResult =

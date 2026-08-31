@@ -1,6 +1,8 @@
 import { readFileSync } from "fs";
 import { join } from "path";
-import { APP_OVERLAY_ROOT_ID, APP_ROOT_ID } from "./OverlayProvider";
+
+const APP_OVERLAY_ROOT_ID = "airbob-portal-root";
+const APP_ROOT_ID = "root";
 
 describe("overlay document contract", () => {
   it("declares Korean metadata and both app mount roots in the HTML document", () => {

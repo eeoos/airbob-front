@@ -4,11 +4,15 @@ import {
   loadTossPayments,
 } from "@tosspayments/tosspayments-sdk";
 import { IntegrationError } from "./errors";
-import {
-  loadTossPaymentsV2Client,
-  TOSS_PAYMENTS_V2_READINESS_TIMEOUT_MS,
-  type TossPaymentsV2Request,
-} from "./tossPaymentsV2";
+import { loadTossPaymentsV2Client } from "./tossPaymentsV2";
+
+type TossPaymentsV2Client = Awaited<
+  ReturnType<typeof loadTossPaymentsV2Client>
+>;
+type TossPaymentsV2Request = Parameters<
+  TossPaymentsV2Client["requestPayment"]
+>[0];
+const TOSS_PAYMENTS_V2_READINESS_TIMEOUT_MS = 8000;
 
 vi.mock("@tosspayments/tosspayments-sdk", () => ({
   ANONYMOUS: "@@ANONYMOUS",

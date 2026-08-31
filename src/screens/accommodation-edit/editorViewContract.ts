@@ -13,7 +13,7 @@ export type AccommodationEditTimePeriod = "AM" | "PM";
 export type AccommodationEditRecoveryState =
   "none" | "protected-command" | "protected-delete";
 
-export interface AccommodationEditAmenityInfo {
+interface AccommodationEditAmenityInfo {
   name: string;
   count: number;
 }

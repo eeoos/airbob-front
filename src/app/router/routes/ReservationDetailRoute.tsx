@@ -14,7 +14,7 @@ import { routeTo } from "../paths";
 const REVIEW_IMAGE_UPLOAD_WARNING =
   "리뷰는 작성되었지만 이미지 업로드에 실패했습니다.";
 
-export function ReservationDetailRoute() {
+function ReservationDetailRoute() {
   const location = useLocation();
   const navigate = useNavigate();
   const session = useSession();

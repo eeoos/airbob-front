@@ -16,7 +16,7 @@ export interface ReviewSummary {
   readonly averageRating: number;
 }
 
-export interface AccommodationSummary {
+interface AccommodationSummary {
   readonly id: number;
   readonly name: string;
   readonly thumbnailUrl: string | null;

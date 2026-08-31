@@ -4,7 +4,7 @@
  * contract-checked literals; U16 must enable custom-media transformation before
  * any runtime stylesheet consumes the canonical aliases.
  */
-export const RESPONSIVE_BREAKPOINTS = Object.freeze({
+const RESPONSIVE_BREAKPOINTS = Object.freeze({
   mobileOrTabletMaxWidthPx: 1024,
 });
 

@@ -1,40 +1,67 @@
-import type { Mocked } from "vitest";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import type { SessionQueryScope } from "../../../platform/query/sessionScope";
 import type { SessionSubject } from "../../../platform/session/sessionScope";
-import type { ReviewReadApiPort } from "../ports/reviewApiPort";
-import {
-  createAccommodationReviewsQueryOptions,
-  REVIEW_PAGE_SIZE,
-} from "./reviewQueries";
+import { requireDefined } from "../../../test/assertions";
+import { reviewApi } from "../api/reviewApi";
+import type { ReviewPage } from "../model";
+import { useAccommodationReviewsReadQuery } from "./reviewQueries";
+
+vi.mock("@tanstack/react-query", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@tanstack/react-query")>();
+
+  return { ...actual, useInfiniteQuery: vi.fn() };
+});
+
+interface CapturedQueryOptions {
+  readonly queryKey: readonly unknown[];
+  readonly queryFn: (context: {
+    readonly pageParam: string | null;
+    readonly signal: AbortSignal;
+  }) => Promise<unknown>;
+  readonly enabled: boolean;
+  readonly getNextPageParam: (
+    page: ReviewPage,
+    allPages: ReviewPage[],
+    lastPageParam: string | null,
+    allPageParams: (string | null)[],
+  ) => string | undefined;
+  readonly meta: unknown;
+}
+
+const mockUseInfiniteQuery = vi.mocked(useInfiniteQuery);
+
+const getCapturedOptions = (): CapturedQueryOptions =>
+  requireDefined(
+    mockUseInfiniteQuery.mock.calls.at(-1),
+    "useInfiniteQuery call",
+  )[0] as unknown as CapturedQueryOptions;
 
 const scope = {
   subject: "subject:member_7" as SessionSubject,
   epoch: 4,
 } satisfies SessionQueryScope;
 
-const api: Mocked<ReviewReadApiPort> = {
-  getReviews: vi.fn(),
-};
-
 describe("review read query contracts", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    mockUseInfiniteQuery.mockReset();
+    mockUseInfiniteQuery.mockReturnValue(
+      {} as ReturnType<typeof useInfiniteQuery>,
+    );
+    vi.restoreAllMocks();
   });
 
   it("owns a session-scoped list key/meta and forwards the current read contract", async () => {
     const signal = new AbortController().signal;
-    const options = createAccommodationReviewsQueryOptions(
-      { accommodationId: 31, scope },
-      api,
-    );
-    api.getReviews.mockResolvedValue({
+    const getReviews = vi.spyOn(reviewApi, "getReviews").mockResolvedValue({
       reviews: [],
       pageInfo: { currentSize: 0, hasNext: false, nextCursor: null },
     });
 
+    useAccommodationReviewsReadQuery({ accommodationId: 31, scope });
+    const options = getCapturedOptions();
+
     await options.queryFn({ pageParam: "cursor-1", signal });
 
-    expect(REVIEW_PAGE_SIZE).toBe(6);
     expect(options.queryKey).toEqual([
       "reviews",
       "accommodation",
@@ -44,7 +71,7 @@ describe("review read query contracts", () => {
       { session: { subject: scope.subject, epoch: 4 } },
     ]);
     expect(options.meta).toEqual({ session: scope });
-    expect(api.getReviews).toHaveBeenCalledWith(
+    expect(getReviews).toHaveBeenCalledWith(
       31,
       { cursor: "cursor-1", size: 6, sortType: "LATEST" },
       { signal },
@@ -52,10 +79,8 @@ describe("review read query contracts", () => {
   });
 
   it("disables a missing accommodation without collapsing its scoped key", () => {
-    const options = createAccommodationReviewsQueryOptions(
-      { accommodationId: null, scope },
-      api,
-    );
+    useAccommodationReviewsReadQuery({ accommodationId: null, scope });
+    const options = getCapturedOptions();
 
     expect(options.enabled).toBe(false);
     expect(options.queryKey).toEqual([
@@ -71,11 +96,7 @@ describe("review read query contracts", () => {
 
   it("omits an absent cursor and stops a repeated backend cursor", async () => {
     const signal = new AbortController().signal;
-    const options = createAccommodationReviewsQueryOptions(
-      { accommodationId: 31, scope },
-      api,
-    );
-    const page = {
+    const page: ReviewPage = {
       reviews: [],
       pageInfo: {
         currentSize: 0,
@@ -83,11 +104,16 @@ describe("review read query contracts", () => {
         nextCursor: "cursor-1",
       },
     };
-    api.getReviews.mockResolvedValue(page);
+    const getReviews = vi
+      .spyOn(reviewApi, "getReviews")
+      .mockResolvedValue(page);
+
+    useAccommodationReviewsReadQuery({ accommodationId: 31, scope });
+    const options = getCapturedOptions();
 
     await options.queryFn({ pageParam: null, signal });
 
-    expect(api.getReviews).toHaveBeenCalledWith(
+    expect(getReviews).toHaveBeenCalledWith(
       31,
       { size: 6, sortType: "LATEST" },
       { signal },
@@ -98,24 +124,21 @@ describe("review read query contracts", () => {
   });
 
   it("produces a distinct key when either subject or epoch changes", () => {
-    const base = createAccommodationReviewsQueryOptions(
-      { accommodationId: 31, scope },
-      api,
-    );
-    const nextEpoch = createAccommodationReviewsQueryOptions(
-      { accommodationId: 31, scope: { ...scope, epoch: 5 } },
-      api,
-    );
-    const nextSubject = createAccommodationReviewsQueryOptions(
-      {
-        accommodationId: 31,
-        scope: {
-          ...scope,
-          subject: "subject:member_8" as SessionSubject,
-        },
+    useAccommodationReviewsReadQuery({ accommodationId: 31, scope });
+    const base = getCapturedOptions();
+    useAccommodationReviewsReadQuery({
+      accommodationId: 31,
+      scope: { ...scope, epoch: 5 },
+    });
+    const nextEpoch = getCapturedOptions();
+    useAccommodationReviewsReadQuery({
+      accommodationId: 31,
+      scope: {
+        ...scope,
+        subject: "subject:member_8" as SessionSubject,
       },
-      api,
-    );
+    });
+    const nextSubject = getCapturedOptions();
 
     expect(base.queryKey).not.toEqual(nextEpoch.queryKey);
     expect(base.queryKey).not.toEqual(nextSubject.queryKey);
@@ -126,10 +149,12 @@ describe("review read query contracts", () => {
       epoch: 6,
       subject: null,
     } satisfies SessionQueryScope;
-    const options = createAccommodationReviewsQueryOptions(
-      { accommodationId: 31, scope: anonymousScope },
-      api,
-    );
+
+    useAccommodationReviewsReadQuery({
+      accommodationId: 31,
+      scope: anonymousScope,
+    });
+    const options = getCapturedOptions();
 
     expect(options.queryKey).toEqual([
       "reviews",

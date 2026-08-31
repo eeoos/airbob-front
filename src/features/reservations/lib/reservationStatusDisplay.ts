@@ -8,7 +8,7 @@ type ReservationStatusDisplay = {
   tone: ReservationStatusTone;
 };
 
-export const reservationStatusDisplay = {
+const reservationStatusDisplay = {
   PAYMENT_PENDING: {
     label: "결제 대기",
     tone: "warning",

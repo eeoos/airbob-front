@@ -1,8 +1,8 @@
 import type { AppShellId } from "../shells";
 import { ROUTE_PATHS } from "./paths";
 
-export type RouteAuthPolicy = "public" | "authenticated";
-export type RouteShell = AppShellId;
+type RouteAuthPolicy = "public" | "authenticated";
+type RouteShell = AppShellId;
 export type RouteHeaderPolicy = "default" | "search" | "hidden";
 
 interface RouteDefinitionShape {

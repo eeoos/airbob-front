@@ -1,7 +1,7 @@
 import { ToastHost } from "../../shared/ui";
 import styles from "./ReservationConfirmScreen.module.css";
 
-export interface ReservationConfirmAccommodationView {
+interface ReservationConfirmAccommodationView {
   readonly averageRating: number;
   readonly name: string;
   readonly nightlyPrice: number;
@@ -9,7 +9,7 @@ export interface ReservationConfirmAccommodationView {
   readonly thumbnailUrl: string | null;
 }
 
-export interface ReservationConfirmCouponView {
+interface ReservationConfirmCouponView {
   readonly discountAmount: number;
   readonly name: string | null;
 }

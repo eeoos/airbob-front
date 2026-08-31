@@ -11,19 +11,19 @@ import styles from "./GuestTripsPanel.module.css";
 
 export type GuestTripsFilterType = ReservationFilterType;
 
-export interface GuestTripCardView {
+interface GuestTripCardView {
   readonly reservationUid: string;
   readonly accommodationName: string;
   readonly thumbnailUrl: string | null;
   readonly dateRangeLabel: string;
 }
 
-export interface GuestTripYearGroupView {
+interface GuestTripYearGroupView {
   readonly year: number;
   readonly trips: readonly GuestTripCardView[];
 }
 
-export type GuestTripsPanelState =
+type GuestTripsPanelState =
   | { readonly status: "loading" }
   | {
       readonly status: "ready";

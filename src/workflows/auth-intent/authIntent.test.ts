@@ -1,14 +1,9 @@
-import {
-  isAuthIntentLocalDate,
-  snapshotAuthIntent,
-  toAuthIntentLocalDate,
-} from "./authIntent";
+import { snapshotAuthIntent, toAuthIntentLocalDate } from "./authIntent";
 
 describe("authIntent", () => {
   it.each(["2026-01-01", "2028-02-29", "9999-12-31"])(
     "accepts a strict calendar date: %s",
     (value) => {
-      expect(isAuthIntentLocalDate(value)).toBe(true);
       expect(toAuthIntentLocalDate(value)).toBe(value);
     },
   );
@@ -21,7 +16,6 @@ describe("authIntent", () => {
     "0000-01-01",
     "not-a-date",
   ])("rejects a non-calendar date: %s", (value) => {
-    expect(isAuthIntentLocalDate(value)).toBe(false);
     expect(() => toAuthIntentLocalDate(value)).toThrow(TypeError);
   });
 

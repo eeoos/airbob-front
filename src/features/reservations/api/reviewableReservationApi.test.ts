@@ -1,8 +1,12 @@
+import { requestApiData } from "../../../platform/http/request";
 import type { ReviewableReservationWire } from "./reviewableReservationContracts";
-import {
-  createReviewableReservationApi,
-  type ReviewableReservationApiTransport,
-} from "./reviewableReservationApi";
+import { reviewableReservationApi } from "./reviewableReservationApi";
+
+vi.mock("../../../platform/http/request", () => ({
+  requestApiData: vi.fn(),
+}));
+
+const mockRequestApiData = vi.mocked(requestApiData);
 
 const RESERVATION_UID = "reservation-123";
 
@@ -27,15 +31,18 @@ const reservationWire: ReviewableReservationWire = {
 };
 
 describe("reviewable reservation API adapter", () => {
+  beforeEach(() => {
+    mockRequestApiData.mockReset();
+  });
+
   it("preserves the guest-detail endpoint and signal while mapping only review fields", async () => {
-    const transport = vi.fn().mockResolvedValue(reservationWire);
-    const api = createReviewableReservationApi(
-      transport as ReviewableReservationApiTransport,
-    );
+    mockRequestApiData.mockResolvedValue(reservationWire);
     const signal = new AbortController().signal;
 
     await expect(
-      api.getReviewableReservation(RESERVATION_UID, { signal }),
+      reviewableReservationApi.getReviewableReservation(RESERVATION_UID, {
+        signal,
+      }),
     ).resolves.toEqual({
       reservationUid: RESERVATION_UID,
       canWriteReview: true,
@@ -55,24 +62,23 @@ describe("reviewable reservation API adapter", () => {
         detail: null,
       },
     });
-    expect(transport).toHaveBeenCalledWith({
+    expect(mockRequestApiData).toHaveBeenCalledWith({
       method: "GET",
       path: `/profile/guest/reservations/${RESERVATION_UID}`,
       signal,
     });
-    expect(transport.mock.calls.at(0)?.at(0)).not.toHaveProperty("body");
-    expect(transport.mock.calls.at(0)?.at(0)).not.toHaveProperty("params");
+    expect(mockRequestApiData.mock.calls.at(0)?.at(0)).not.toHaveProperty(
+      "body",
+    );
+    expect(mockRequestApiData.mock.calls.at(0)?.at(0)).not.toHaveProperty(
+      "params",
+    );
   });
 
   it("rejects an encoded separator before transport", async () => {
-    const transport = vi.fn();
-    const api = createReviewableReservationApi(
-      transport as ReviewableReservationApiTransport,
-    );
-
     await expect(
-      api.getReviewableReservation("..%2Fadmin"),
+      reviewableReservationApi.getReviewableReservation("..%2Fadmin"),
     ).rejects.toMatchObject({ code: "INVALID_OPAQUE_PATH_SEGMENT" });
-    expect(transport).not.toHaveBeenCalled();
+    expect(mockRequestApiData).not.toHaveBeenCalled();
   });
 });

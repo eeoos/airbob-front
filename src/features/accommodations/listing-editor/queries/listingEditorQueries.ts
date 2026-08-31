@@ -1,41 +1,19 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { createSessionQueryMeta } from "../../../../platform/query/sessionScope";
-import type { AuthenticatedSessionScope } from "../../../../platform/session/sessionScope";
 import { AppError } from "../../../../platform/http/errors";
+import { createSessionQueryMeta } from "../../../../platform/query/sessionScope";
 import { listingEditorApi as defaultListingEditorApi } from "../api/listingEditorApi";
 import type { ListingEditorAccommodation } from "../model/listingEditor";
 import type { ListingEditorApiPort } from "../ports/listingEditorApiPort";
 import {
-  LISTING_EDITOR_RESOURCE_MISMATCH_CODE,
   type ListingEditorQueryProjection,
   type ListingEditorQueryPort,
 } from "../ports/listingEditorQueryPort";
+import {
+  cloneListingEditorAccommodation,
+  createListingEditorMismatchError,
+  createListingEditorQueryOptions,
+} from "./listingEditorQueryOptions";
 import { listingEditorQueryKeys } from "./listingEditorQueryKeys";
-
-export interface ListingEditorQueryOptions {
-  readonly accommodationId: number;
-  readonly scope: AuthenticatedSessionScope;
-}
-
-const cloneAccommodation = (
-  value: ListingEditorAccommodation,
-): ListingEditorAccommodation => ({
-  ...value,
-  address: value.address ? { ...value.address } : null,
-  amenities: value.amenities.map((amenity) => ({ ...amenity })),
-  images: value.images.map((image) => ({ ...image })),
-  occupancyPolicy: value.occupancyPolicy ? { ...value.occupancyPolicy } : null,
-});
-
-const createMismatchError = (
-  accommodationId: number,
-  receivedId: number,
-): AppError =>
-  new AppError({
-    code: LISTING_EDITOR_RESOURCE_MISMATCH_CODE,
-    kind: "invalid-response",
-    message: `Listing editor resource ${receivedId} does not match ${accommodationId}.`,
-  });
 
 const createCancellationError = (): AppError =>
   new AppError({
@@ -144,23 +122,6 @@ const settleForConsumer = <T>(
   });
 };
 
-export const createListingEditorQueryOptions = (
-  { accommodationId, scope }: ListingEditorQueryOptions,
-  api: ListingEditorApiPort = defaultListingEditorApi,
-) => ({
-  queryKey: listingEditorQueryKeys.detail(scope, accommodationId),
-  queryFn: async ({ signal }: { readonly signal: AbortSignal }) => {
-    const resource = await api.getHostDetail(accommodationId, { signal });
-    if (resource.id !== accommodationId) {
-      throw createMismatchError(accommodationId, resource.id);
-    }
-    return cloneAccommodation(resource);
-  },
-  meta: createSessionQueryMeta(scope),
-  retry: false as const,
-  staleTime: 0,
-});
-
 export const createListingEditorQueryPort = (
   queryClient: QueryClient,
   api: ListingEditorApiPort = defaultListingEditorApi,
@@ -175,7 +136,7 @@ export const createListingEditorQueryPort = (
 
   projectHostDetail({ accommodationId, fallback, projection, scope }) {
     if (fallback.id !== accommodationId) {
-      throw createMismatchError(accommodationId, fallback.id);
+      throw createListingEditorMismatchError(accommodationId, fallback.id);
     }
     const queryKey = listingEditorQueryKeys.detail(scope, accommodationId);
     queryClient.setQueryDefaults(queryKey, {
@@ -186,10 +147,10 @@ export const createListingEditorQueryPort = (
       (current: ListingEditorAccommodation | undefined) => {
         const source = current ?? fallback;
         if (source.id !== accommodationId) {
-          throw createMismatchError(accommodationId, source.id);
+          throw createListingEditorMismatchError(accommodationId, source.id);
         }
-        return cloneAccommodation(
-          applyProjection(cloneAccommodation(source), projection),
+        return cloneListingEditorAccommodation(
+          applyProjection(cloneListingEditorAccommodation(source), projection),
         );
       },
     );
@@ -197,12 +158,15 @@ export const createListingEditorQueryPort = (
 
   setHostDetail({ accommodation, accommodationId, scope }) {
     if (accommodation.id !== accommodationId) {
-      throw createMismatchError(accommodationId, accommodation.id);
+      throw createListingEditorMismatchError(accommodationId, accommodation.id);
     }
     const queryKey = listingEditorQueryKeys.detail(scope, accommodationId);
     queryClient.setQueryDefaults(queryKey, {
       meta: createSessionQueryMeta(scope),
     });
-    queryClient.setQueryData(queryKey, cloneAccommodation(accommodation));
+    queryClient.setQueryData(
+      queryKey,
+      cloneListingEditorAccommodation(accommodation),
+    );
   },
 });

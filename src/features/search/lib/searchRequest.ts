@@ -1,6 +1,6 @@
 import type { SearchCommittedRouteState, SearchRequest } from "../model/search";
 
-export const SEARCH_PAGE_SIZE = 18;
+const SEARCH_PAGE_SIZE = 18;
 export const SEARCH_PAGE_LIMIT = 15;
 
 const SEARCH_PAGE_MAX_INDEX = SEARCH_PAGE_LIMIT - 1;

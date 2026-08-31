@@ -15,7 +15,7 @@ export interface SearchResultsQueryOptions {
   readonly enabled?: boolean;
 }
 
-export const createSearchResultsQueryOptions = (
+const createSearchResultsQueryOptions = (
   { scope, request, enabled = true }: SearchResultsQueryOptions,
   api: SearchApiPort = defaultSearchApi,
 ) => {

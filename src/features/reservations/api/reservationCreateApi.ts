@@ -13,7 +13,7 @@ import type {
   ReservationReadyWire,
 } from "./reservationCreateContracts";
 
-export type ReservationCreateApiTransport = <T>(
+type ReservationCreateApiTransport = <T>(
   request: ApiDataRequest,
 ) => Promise<NonNullable<T>>;
 
@@ -41,7 +41,7 @@ const toReservationReady = (wire: ReservationReadyWire): ReservationReady => {
   };
 };
 
-export const createReservationCreateApi = (
+const createReservationCreateApi = (
   request: ReservationCreateApiTransport,
 ): ReservationCreateApiPort => ({
   async create(input, options) {

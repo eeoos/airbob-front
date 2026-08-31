@@ -4,11 +4,9 @@ import type { SearchApiPort } from "../ports/searchApiPort";
 import type { SearchResultPageWire } from "./contracts";
 import { toSearchResultPage, toSearchWireRequest } from "./mappers";
 
-export type SearchApiTransport = typeof requestApiData;
+type SearchApiTransport = typeof requestApiData;
 
-export const createSearchApi = (
-  request: SearchApiTransport,
-): SearchApiPort => ({
+const createSearchApi = (request: SearchApiTransport): SearchApiPort => ({
   async search(searchRequest, options) {
     const params = toSearchWireRequest(normalizeSearchRequest(searchRequest));
     const wire = await request<SearchResultPageWire>({

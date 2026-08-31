@@ -3,7 +3,7 @@ export interface ListingEditorImage {
   readonly imageUrl: string;
 }
 
-export interface ListingEditorAddress {
+interface ListingEditorAddress {
   readonly postalCode: string;
   readonly country: string;
   readonly state: string | null;
@@ -13,13 +13,13 @@ export interface ListingEditorAddress {
   readonly detail: string | null;
 }
 
-export interface ListingEditorOccupancyPolicy {
+interface ListingEditorOccupancyPolicy {
   readonly maxOccupancy: number;
   readonly infantOccupancy: number;
   readonly petOccupancy: number;
 }
 
-export interface ListingEditorAmenity {
+interface ListingEditorAmenity {
   readonly name: string;
   readonly count: number;
 }
@@ -39,7 +39,7 @@ export interface ListingEditorAccommodation {
   readonly images: readonly ListingEditorImage[];
 }
 
-export interface ListingEditorUpdateAddress {
+interface ListingEditorUpdateAddress {
   readonly postalCode: string;
   readonly country: string;
   readonly state?: string;
