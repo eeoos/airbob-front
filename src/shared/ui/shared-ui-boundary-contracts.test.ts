@@ -1,56 +1,35 @@
-import { readdirSync, readFileSync } from "fs";
-import { join, relative } from "path";
+import { readFileSync } from "fs";
+import { join } from "path";
 
-const sharedUiRoot = join(process.cwd(), "src/shared/ui");
 const srcRoot = join(process.cwd(), "src");
-const productionSourceExtensions = [".ts", ".tsx"];
-const forbiddenBoundaryImportPattern =
-  /from\s+["'](?:\.\.\/)+(?:api|features|pages|routes|types)(?:\/[^"']*)?["']/;
 const sharedUiImportPattern =
   /^[ \t]*import\s+\{([^{}]*?)\}\s+from\s+["'][^"']*shared\/ui["'];?/gm;
 
-const collectProductionSourceFiles = (directory: string): string[] =>
-  readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-    const entryPath = join(directory, entry.name);
-
-    if (entry.isDirectory()) {
-      return collectProductionSourceFiles(entryPath);
-    }
-
-    const isProductionSource =
-      productionSourceExtensions.some((extension) => entry.name.endsWith(extension)) &&
-      !entry.name.includes(".test.") &&
-      !entry.name.endsWith(".d.ts");
-
-    return isProductionSource ? [entryPath] : [];
-  });
-
 const collectSharedUiNamedImports = (source: string) =>
-  Array.from(source.matchAll(sharedUiImportPattern)).flatMap((match) =>
-    match[1]
+  Array.from(source.matchAll(sharedUiImportPattern)).flatMap((match) => {
+    const importList = match.at(1);
+    if (!importList) return [];
+
+    return importList
       .split(",")
-      .map((importName) => importName.trim().split(/\s+as\s+/)[0].trim())
-      .filter(Boolean)
-  );
+      .map(
+        (importName) =>
+          importName
+            .trim()
+            .split(/\s+as\s+/)
+            .at(0)
+            ?.trim() ?? "",
+      )
+      .filter(Boolean);
+  });
 
 const usesJsxTag = (source: string, componentName: string) =>
   new RegExp(`<${componentName}(?:\\s|>|/)`).test(source);
 
 describe("shared UI boundary contracts", () => {
-  it("keeps shared UI primitives independent from app domains", () => {
-    const violations = collectProductionSourceFiles(sharedUiRoot)
-      .filter((filePath) =>
-        forbiddenBoundaryImportPattern.test(readFileSync(filePath, "utf8"))
-      )
-      .map((filePath) => relative(process.cwd(), filePath));
-
-    expect(violations).toEqual([]);
-  });
-
   it("keeps design-entry modals on the shared Dialog primitive", () => {
     const dialogOwnedModalFiles = [
       "features/auth/components/AuthModal/AuthModal.tsx",
-      "features/reservations/components/ReservationModal/ReservationModal.tsx",
       "features/reviews/components/ReviewModal/ReviewModal.tsx",
       "features/accommodations/components/AccommodationActionModal/AccommodationActionModal.tsx",
     ];
@@ -77,61 +56,34 @@ describe("shared UI boundary contracts", () => {
     expect(violations).toEqual([]);
   });
 
-  it("records src/components carve-outs for date picking and toast compatibility", () => {
+  it("owns date picking and toast rendering directly in shared UI", () => {
     const datePickerSource = readFileSync(
-      join(srcRoot, "components/DatePicker/DatePicker.tsx"),
-      "utf8"
+      join(srcRoot, "shared/ui/DatePicker/DatePicker.tsx"),
+      "utf8",
     );
-    const errorToastSource = readFileSync(
-      join(srcRoot, "components/ErrorToast/ErrorToast.tsx"),
-      "utf8"
+    const toastHostSource = readFileSync(
+      join(srcRoot, "shared/ui/ToastHost/ToastHost.tsx"),
+      "utf8",
     );
 
     expect(datePickerSource).toContain("const DatePicker");
     expect(datePickerSource).toContain("renderCalendar");
-    expect(errorToastSource).toContain("ToastHost");
-    expect(errorToastSource).toContain('from "../../shared/ui"');
-  });
-
-  it("keeps shared status and toast styles on design tokens", () => {
-    const sharedStyleFiles = [
-      "shared/ui/ListingCard/ListingCard.module.css",
-      "shared/ui/OverlaySurface/OverlaySurface.module.css",
-      "shared/ui/PageShell/PageShell.module.css",
-      "shared/ui/StatusBadge/StatusBadge.module.css",
-      "shared/ui/ToastHost/ToastHost.module.css",
-    ];
-
-    const violations = sharedStyleFiles.flatMap((relativePath) => {
-      const source = readFileSync(join(srcRoot, relativePath), "utf8");
-      return /#[0-9a-fA-F]{3,8}\b/.test(source) ? [relativePath] : [];
-    });
-
-    expect(violations).toEqual([]);
-  });
-
-  it("keeps ErrorToast as a thin wrapper without a dead local stylesheet", () => {
-    const errorToastStylePath = join(
-      srcRoot,
-      "components/ErrorToast/ErrorToast.module.css"
-    );
-
-    expect(() => readFileSync(errorToastStylePath, "utf8")).toThrow();
+    expect(toastHostSource).toContain("createPortal");
   });
 
   it("keeps direct-fit task 5 surfaces on shared form and action primitives", () => {
     const primitiveContracts = [
       {
         relativePath: "features/auth/components/AuthModal/AuthModal.tsx",
-        expected: ["Button", "Dialog", "TextField"],
-      },
-      {
-        relativePath:
-          "features/reservations/components/ReservationModal/ReservationModal.tsx",
         expected: ["Button", "Dialog"],
       },
       {
-        relativePath: "features/wishlist/components/WishlistModal/WishlistModal.tsx",
+        relativePath: "features/auth/ui/AuthFormFields.tsx",
+        expected: ["TextField"],
+      },
+      {
+        relativePath:
+          "features/wishlist/components/WishlistModal/WishlistModal.tsx",
         expected: ["Button", "Dialog"],
       },
       {
@@ -140,37 +92,39 @@ describe("shared UI boundary contracts", () => {
         expected: ["Button", "Dialog"],
       },
       {
-        relativePath: "features/reservations/PaymentFailRoute.tsx",
+        relativePath: "screens/payment-result/PaymentResultScreen.tsx",
         expected: ["Button"],
       },
       {
-        relativePath: "components/ErrorBoundary/ErrorBoundary.tsx",
+        relativePath: "app/errors/ErrorBoundary.tsx",
         expected: ["Button"],
       },
     ];
 
-    const violations = primitiveContracts.flatMap(({ relativePath, expected }) => {
-      const source = readFileSync(join(srcRoot, relativePath), "utf8");
-      const sharedUiImports = new Set(collectSharedUiNamedImports(source));
+    const violations = primitiveContracts.flatMap(
+      ({ relativePath, expected }) => {
+        const source = readFileSync(join(srcRoot, relativePath), "utf8");
+        const sharedUiImports = new Set(collectSharedUiNamedImports(source));
 
-      return expected.flatMap((primitive) => {
-        const primitiveViolations: string[] = [];
+        return expected.flatMap((primitive) => {
+          const primitiveViolations: string[] = [];
 
-        if (!sharedUiImports.has(primitive)) {
-          primitiveViolations.push(
-            `${relativePath}: missing ${primitive} import from shared/ui`,
-          );
-        }
+          if (!sharedUiImports.has(primitive)) {
+            primitiveViolations.push(
+              `${relativePath}: missing ${primitive} import from shared/ui`,
+            );
+          }
 
-        if (!usesJsxTag(source, primitive)) {
-          primitiveViolations.push(
-            `${relativePath}: missing <${primitive}> JSX usage`,
-          );
-        }
+          if (!usesJsxTag(source, primitive)) {
+            primitiveViolations.push(
+              `${relativePath}: missing <${primitive}> JSX usage`,
+            );
+          }
 
-        return primitiveViolations;
-      });
-    });
+          return primitiveViolations;
+        });
+      },
+    );
 
     expect(violations).toEqual([]);
   });

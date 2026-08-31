@@ -1,30 +1,29 @@
 import React from "react";
-import { routeTo } from "../../../routes/paths";
 import {
   getSearchAccommodationPriceDisplay,
-  SearchAccommodationCardViewModel,
+  type SearchAccommodationCardViewModel,
 } from "../lib/searchAccommodationViewModel";
 import styles from "./SearchAccommodationCard.module.css";
 
 interface SearchAccommodationCardProps {
   accommodation: SearchAccommodationCardViewModel;
-  detailUrl?: string;
-  onWishlistToggle?: () => void;
-  onClick?: () => void;
-  checkIn?: string | null;
-  checkOut?: string | null;
+  detailUrl: string;
+  onWishlistToggle?: (() => void) | undefined;
+  onClick?: (() => void) | undefined;
+  checkIn?: string | null | undefined;
+  checkOut?: string | null | undefined;
 }
 
-export const SearchAccommodationCard: React.FC<SearchAccommodationCardProps> = ({
+export const SearchAccommodationCard: React.FC<
+  SearchAccommodationCardProps
+> = ({
   accommodation,
-  detailUrl: providedDetailUrl,
+  detailUrl,
   onWishlistToggle,
   onClick,
   checkIn,
   checkOut,
 }) => {
-  const detailUrl =
-    providedDetailUrl ?? routeTo.accommodationDetail(accommodation.id);
   const priceDisplay = getSearchAccommodationPriceDisplay(
     accommodation,
     checkIn,
@@ -65,7 +64,12 @@ export const SearchAccommodationCard: React.FC<SearchAccommodationCardProps> = (
                   const target = e.target as HTMLImageElement;
                   target.style.display = "none";
                   const placeholder = target.nextElementSibling as HTMLElement;
-                  if (placeholder && placeholder.classList.contains(styles.placeholderImage)) {
+                  const placeholderClassName = styles.placeholderImage;
+                  if (
+                    placeholder &&
+                    placeholderClassName &&
+                    placeholder.classList.contains(placeholderClassName)
+                  ) {
                     placeholder.hidden = false;
                     placeholder.style.display = "flex";
                   }
@@ -84,9 +88,7 @@ export const SearchAccommodationCard: React.FC<SearchAccommodationCardProps> = (
         </div>
         <div className={styles.wishlistCardInfo}>
           <div className={styles.locationRow}>
-            <div className={styles.location}>
-              {accommodation.locationLabel}
-            </div>
+            <div className={styles.location}>{accommodation.locationLabel}</div>
             {accommodation.showReview && (
               <div className={styles.review}>
                 <span className={styles.star}>★</span>

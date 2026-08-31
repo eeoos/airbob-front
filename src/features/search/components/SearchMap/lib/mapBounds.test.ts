@@ -20,7 +20,7 @@ describe("map bounds helpers", () => {
         south: 36.9995,
         east: 128.0005,
         west: 125.9995,
-      })
+      }),
     ).toBe(false);
   });
 
@@ -38,7 +38,7 @@ describe("map bounds helpers", () => {
         south: 37,
         east: 128,
         west: 126,
-      })
+      }),
     ).toBe(false);
   });
 
@@ -56,7 +56,7 @@ describe("map bounds helpers", () => {
         south: 37,
         east: 128,
         west: 126,
-      })
+      }),
     ).toBe(true);
   });
 
@@ -70,16 +70,24 @@ describe("map bounds helpers", () => {
 
     expect(hasViewportChanged(null, viewport)).toBe(true);
     expect(hasViewportChanged(viewport, { ...viewport })).toBe(false);
-    expect(hasViewportChanged(viewport, { ...viewport, west: 126.1 })).toBe(true);
+    expect(hasViewportChanged(viewport, { ...viewport, west: 126.1 })).toBe(
+      true,
+    );
   });
 
   it("detects accommodation id changes using the current order-sensitive behavior", () => {
     expect(haveAccommodationIdsChanged([], [{ id: 1 }])).toBe(true);
     expect(
-      haveAccommodationIdsChanged([{ id: 1 }, { id: 2 }], [{ id: 1 }, { id: 2 }])
+      haveAccommodationIdsChanged(
+        [{ id: 1 }, { id: 2 }],
+        [{ id: 1 }, { id: 2 }],
+      ),
     ).toBe(false);
     expect(
-      haveAccommodationIdsChanged([{ id: 1 }, { id: 2 }], [{ id: 2 }, { id: 1 }])
+      haveAccommodationIdsChanged(
+        [{ id: 1 }, { id: 2 }],
+        [{ id: 2 }, { id: 1 }],
+      ),
     ).toBe(true);
   });
 
@@ -92,7 +100,7 @@ describe("map bounds helpers", () => {
         shouldUpdateMapBounds: true,
         boundsInitialized: false,
         accommodationsChanged: true,
-      })
+      }),
     ).toBe(false);
   });
 
@@ -105,7 +113,7 @@ describe("map bounds helpers", () => {
         shouldUpdateMapBounds: false,
         boundsInitialized: false,
         accommodationsChanged: false,
-      })
+      }),
     ).toBe(true);
 
     expect(
@@ -116,7 +124,7 @@ describe("map bounds helpers", () => {
         shouldUpdateMapBounds: false,
         boundsInitialized: true,
         accommodationsChanged: false,
-      })
+      }),
     ).toBe(true);
 
     expect(
@@ -127,7 +135,7 @@ describe("map bounds helpers", () => {
         shouldUpdateMapBounds: true,
         boundsInitialized: true,
         accommodationsChanged: false,
-      })
+      }),
     ).toBe(true);
 
     expect(
@@ -138,7 +146,7 @@ describe("map bounds helpers", () => {
         shouldUpdateMapBounds: false,
         boundsInitialized: true,
         accommodationsChanged: true,
-      })
+      }),
     ).toBe(true);
   });
 
@@ -151,7 +159,7 @@ describe("map bounds helpers", () => {
         shouldUpdateMapBounds: true,
         boundsInitialized: false,
         accommodationsChanged: true,
-      })
+      }),
     ).toBe(false);
 
     expect(
@@ -162,7 +170,7 @@ describe("map bounds helpers", () => {
         shouldUpdateMapBounds: false,
         boundsInitialized: true,
         accommodationsChanged: false,
-      })
+      }),
     ).toBe(false);
   });
 });

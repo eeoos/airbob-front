@@ -25,26 +25,26 @@ describe("info window delegated events", () => {
   });
 
   it("calls the card click handler for regular root clicks", () => {
-    const onCardClick = jest.fn();
+    const onCardClick = vi.fn();
 
     bindInfoWindowEvents({
       root,
       onCardClick,
-      onClose: jest.fn(),
-      onWishlistToggle: jest.fn(),
+      onClose: vi.fn(),
+      onWishlistToggle: vi.fn(),
     });
 
-    root.querySelector("p")?.dispatchEvent(
-      new MouseEvent("click", { bubbles: true }),
-    );
+    root
+      .querySelector("p")
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
     expect(onCardClick).toHaveBeenCalledTimes(1);
   });
 
   it("stops propagation and calls wishlist toggle with data attributes", () => {
-    const onCardClick = jest.fn();
-    const onWishlistToggle = jest.fn();
-    const onContainerClick = jest.fn();
+    const onCardClick = vi.fn();
+    const onWishlistToggle = vi.fn();
+    const onContainerClick = vi.fn();
     const container = document.createElement("div");
     container.appendChild(root);
     document.body.appendChild(container);
@@ -53,13 +53,13 @@ describe("info window delegated events", () => {
     bindInfoWindowEvents({
       root,
       onCardClick,
-      onClose: jest.fn(),
+      onClose: vi.fn(),
       onWishlistToggle,
     });
 
-    root.querySelector("span")?.dispatchEvent(
-      new MouseEvent("click", { bubbles: true }),
-    );
+    root
+      .querySelector("span")
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
     expect(onWishlistToggle).toHaveBeenCalledWith(10, true);
     expect(onCardClick).not.toHaveBeenCalled();
@@ -67,7 +67,7 @@ describe("info window delegated events", () => {
   });
 
   it("ignores wishlist clicks with unsafe ids", () => {
-    const onWishlistToggle = jest.fn();
+    const onWishlistToggle = vi.fn();
     const wishlistButton = root.querySelector<HTMLElement>(
       '[data-info-window-action="wishlist"]',
     );
@@ -75,8 +75,8 @@ describe("info window delegated events", () => {
 
     bindInfoWindowEvents({
       root,
-      onCardClick: jest.fn(),
-      onClose: jest.fn(),
+      onCardClick: vi.fn(),
+      onClose: vi.fn(),
       onWishlistToggle,
     });
 
@@ -86,9 +86,9 @@ describe("info window delegated events", () => {
   });
 
   it("stops propagation and calls close for close clicks", () => {
-    const onClose = jest.fn();
-    const onCardClick = jest.fn();
-    const onContainerClick = jest.fn();
+    const onClose = vi.fn();
+    const onCardClick = vi.fn();
+    const onContainerClick = vi.fn();
     const container = document.createElement("div");
     container.appendChild(root);
     document.body.appendChild(container);
@@ -98,7 +98,7 @@ describe("info window delegated events", () => {
       root,
       onCardClick,
       onClose,
-      onWishlistToggle: jest.fn(),
+      onWishlistToggle: vi.fn(),
     });
 
     root
@@ -111,12 +111,12 @@ describe("info window delegated events", () => {
   });
 
   it("removes the delegated click listener during cleanup", () => {
-    const onCardClick = jest.fn();
+    const onCardClick = vi.fn();
     const cleanup = bindInfoWindowEvents({
       root,
       onCardClick,
-      onClose: jest.fn(),
-      onWishlistToggle: jest.fn(),
+      onClose: vi.fn(),
+      onWishlistToggle: vi.fn(),
     });
 
     cleanup();

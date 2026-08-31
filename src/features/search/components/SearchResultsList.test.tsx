@@ -1,9 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { SearchAccommodationCardViewModel } from "../lib/searchAccommodationViewModel";
+import type { SearchAccommodationCardViewModel } from "../lib/searchAccommodationViewModel";
 import { SearchResultsList } from "./SearchResultsList";
 
-jest.mock("./SearchAccommodationCard", () => ({
+vi.mock("./SearchAccommodationCard", () => ({
   SearchAccommodationCard: ({
     accommodation,
     detailUrl,
@@ -37,27 +37,29 @@ describe("SearchResultsList", () => {
     render(
       <SearchResultsList
         accommodations={[]}
+        getAccommodationHref={(id) => `/accommodations/${id}`}
         isLoading={true}
         selectedAccommodationId={null}
-        onAccommodationClick={jest.fn()}
-        onWishlistToggle={jest.fn()}
-      />
+        onAccommodationClick={vi.fn()}
+        onWishlistToggle={vi.fn()}
+      />,
     );
 
     expect(screen.getByText("로딩 중...")).toBeInTheDocument();
   });
 
   it("delegates card clicks with the accommodation id", async () => {
-    const onAccommodationClick = jest.fn();
+    const onAccommodationClick = vi.fn();
 
     render(
       <SearchResultsList
         accommodations={[createAccommodation(7)]}
+        getAccommodationHref={(id) => `/accommodations/${id}`}
         isLoading={false}
         selectedAccommodationId={null}
         onAccommodationClick={onAccommodationClick}
-        onWishlistToggle={jest.fn()}
-      />
+        onWishlistToggle={vi.fn()}
+      />,
     );
 
     await userEvent.click(screen.getByRole("button", { name: "숙소 카드 7" }));
@@ -66,25 +68,23 @@ describe("SearchResultsList", () => {
     expect(onAccommodationClick).toHaveBeenCalledWith(7);
   });
 
-  it("passes only booking-safe search query to accommodation detail cards", () => {
+  it("uses the app-injected accommodation detail href", () => {
     render(
       <SearchResultsList
         accommodations={[createAccommodation(7)]}
+        getAccommodationHref={(id) =>
+          `/accommodations/${id}?checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2`
+        }
         isLoading={false}
         selectedAccommodationId={null}
-        onAccommodationClick={jest.fn()}
-        onWishlistToggle={jest.fn()}
-        detailSearchParams={
-          new URLSearchParams(
-            "destination=Seoul&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2&token=secret&email=a@example.com"
-          )
-        }
-      />
+        onAccommodationClick={vi.fn()}
+        onWishlistToggle={vi.fn()}
+      />,
     );
 
     expect(screen.getByRole("button", { name: "숙소 카드 7" })).toHaveAttribute(
       "data-detail-url",
-      "/accommodations/7?checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2"
+      "/accommodations/7?checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2",
     );
   });
 });

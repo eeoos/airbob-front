@@ -1,111 +1,94 @@
-import React from "react";
-import { ErrorToast } from "../../components/ErrorToast";
-import { AccommodationActionModal } from "../accommodations/appShell";
-import { useHostListings } from "./hooks";
-import { getImageUrl } from "../../utils/image";
-import { useIntersectionLoadMore } from "../../hooks/useIntersectionLoadMore";
+import type { RefCallback } from "react";
+import { requireCssModuleClass } from "../../shared/styles/requireCssModuleClass";
+import type { HostListingFilterStatus } from "./model/hostListing";
 import {
-  toHostListingViewModels,
-  type HostListingViewModel,
-} from "./lib/hostListingViewModel";
-import {
-  ClickableCard,
+  ActionCard,
   EmptyState,
   LoadingState,
   StatusBadge,
   Tabs,
+  ToastHost,
 } from "../../shared/ui";
 import styles from "./HostListingsPanel.module.css";
 
-type HostListingStatusType = "PUBLISHED" | "DRAFT" | "UNPUBLISHED";
+interface HostListingCardView {
+  readonly id: number;
+  readonly imageAlt: string;
+  readonly locationLabel: string;
+  readonly managementLabel: string;
+  readonly name: string;
+  readonly statusLabel: string;
+  readonly thumbnailUrl: string | null;
+}
+
+type HostListingsPanelState =
+  | { readonly status: "loading" }
+  | {
+      readonly status: "ready";
+      readonly listings: readonly HostListingCardView[];
+      readonly hasNext: boolean;
+      readonly isLoadingMore: boolean;
+    };
 
 export interface HostListingsPanelProps {
-  statusType?: HostListingStatusType;
-  onStatusChange: (statusType: HostListingStatusType) => void;
+  readonly errorMessage: string | null;
+  readonly loadMoreRef: RefCallback<HTMLDivElement>;
+  readonly onDismissError: () => void;
+  readonly onOpenListingActions: (accommodationId: number) => void;
+  readonly onStatusChange: (statusType: HostListingFilterStatus) => void;
+  readonly state: HostListingsPanelState;
+  readonly statusType: HostListingFilterStatus;
 }
 
 const statusFilterItems = [
   { value: "PUBLISHED", label: "공개" },
   { value: "DRAFT", label: "작성 중" },
   { value: "UNPUBLISHED", label: "비공개" },
-] satisfies ReadonlyArray<{ value: HostListingStatusType; label: string }>;
+] satisfies ReadonlyArray<{
+  value: HostListingFilterStatus;
+  label: string;
+}>;
 
-export const HostListingsPanel: React.FC<HostListingsPanelProps> = ({
-  statusType = "PUBLISHED",
+export function HostListingsPanel({
+  errorMessage,
+  loadMoreRef,
+  onDismissError,
+  onOpenListingActions,
   onStatusChange,
-}) => {
-  const [selectedAccommodation, setSelectedAccommodation] =
-    React.useState<HostListingViewModel | null>(null);
-  const [isModalOpen, setIsModalOpen] = React.useState(false);
-  const {
-    accommodations,
-    clearError,
-    error,
-    hasNext,
-    isLoading,
-    isLoadingMore,
-    loadMore,
-    reload,
-  } = useHostListings(statusType);
-  const observerTarget = useIntersectionLoadMore({
-    hasNext,
-    isLoading: isLoadingMore,
-    onLoadMore: loadMore,
-  });
-  const listingViews = React.useMemo(
-    () => toHostListingViewModels(accommodations),
-    [accommodations],
-  );
-
-  const getTitle = () => {
-    return "숙소 관리";
-  };
-
-  const handleCardClick = (accommodation: HostListingViewModel) => {
-    setSelectedAccommodation(accommodation);
-    setIsModalOpen(true);
-  };
-
-  const handleModalClose = () => {
-    setIsModalOpen(false);
-    setSelectedAccommodation(null);
-  };
-
-  const handleModalSuccess = () => {
-    reload();
-  };
-
-  if (isLoading) {
+  state,
+  statusType,
+}: HostListingsPanelProps) {
+  if (state.status === "loading") {
     return <LoadingState title="로딩 중..." />;
   }
 
   return (
     <div className={styles.container}>
-      <h2 className={styles.title}>{getTitle()}</h2>
+      <h2 className={styles.title}>숙소 관리</h2>
       <Tabs
         ariaLabel="숙소 상태 필터"
-        className={styles.filterTabs}
+        className={requireCssModuleClass(styles.filterTabs)}
         items={statusFilterItems}
         value={statusType}
         onValueChange={onStatusChange}
       />
 
-      {listingViews.length === 0 ? (
+      {state.listings.length === 0 ? (
         <EmptyState title="아직 숙소가 없습니다." />
       ) : (
         <>
           <div className={styles.accommodationsGrid}>
-            {listingViews.map((accommodation) => (
-              <ClickableCard
+            {state.listings.map((accommodation) => (
+              <ActionCard
                 key={accommodation.id}
-                className={styles.accommodationCard}
+                className={requireCssModuleClass(styles.accommodationCard)}
                 ariaLabel={accommodation.managementLabel}
-                onClick={() => handleCardClick(accommodation)}
+                onClick={() => onOpenListingActions(accommodation.id)}
               >
                 <div className={styles.image}>
                   {accommodation.thumbnailUrl ? (
                     <img
-                      src={getImageUrl(accommodation.thumbnailUrl)}
+                      src={accommodation.thumbnailUrl}
                       alt={accommodation.imageAlt}
                     />
                   ) : (
@@ -113,9 +96,7 @@ export const HostListingsPanel: React.FC<HostListingsPanelProps> = ({
                   )}
                 </div>
                 <div className={styles.content}>
-                  <div className={styles.name}>
-                    {accommodation.name}
-                  </div>
+                  <div className={styles.name}>{accommodation.name}</div>
                   <div className={styles.location}>
                     {accommodation.locationLabel}
                   </div>
@@ -123,13 +104,13 @@ export const HostListingsPanel: React.FC<HostListingsPanelProps> = ({
                     {accommodation.statusLabel}
                   </StatusBadge>
                 </div>
-              </ClickableCard>
+              </ActionCard>
             ))}
           </div>
 
-          {hasNext && (
-            <div ref={observerTarget} className={styles.loadMoreContainer}>
-              {isLoadingMore && (
+          {state.hasNext && (
+            <div ref={loadMoreRef} className={styles.loadMoreContainer}>
+              {state.isLoadingMore && (
                 <div className={styles.loadingMore}>로딩 중...</div>
               )}
             </div>
@@ -137,14 +118,13 @@ export const HostListingsPanel: React.FC<HostListingsPanelProps> = ({
         </>
       )}
 
-      {error && <ErrorToast message={error} onClose={clearError} />}
-
-      <AccommodationActionModal
-        isOpen={isModalOpen}
-        onClose={handleModalClose}
-        accommodation={selectedAccommodation}
-        onSuccess={handleModalSuccess}
-      />
+      {errorMessage && (
+        <ToastHost
+          closeLabel="오류 닫기"
+          message={errorMessage}
+          onClose={onDismissError}
+        />
+      )}
     </div>
   );
-};
+}

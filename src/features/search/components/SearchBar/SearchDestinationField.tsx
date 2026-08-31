@@ -1,9 +1,9 @@
 import React from "react";
-import type { PlacePrediction } from "../../../../hooks/usePlacesAutocomplete";
+import type { SearchPlacePrediction } from "../../model/search";
 import styles from "./SearchBar.module.css";
 import { SearchBarPopover } from "./SearchBarPopover";
 
-export interface SearchDestinationFieldProps {
+interface SearchDestinationFieldProps {
   value: string;
   suggestions: string[];
   isLoading: boolean;
@@ -14,11 +14,13 @@ export interface SearchDestinationFieldProps {
   onClear: () => void;
 }
 
-type SearchDestinationSuggestion = PlacePrediction | string;
+type SearchDestinationSuggestion = SearchPlacePrediction | string;
 
-interface SearchDestinationFieldInternalProps
-  extends Omit<SearchDestinationFieldProps, "onSelect" | "suggestions"> {
-  inputRef?: React.Ref<HTMLInputElement>;
+interface SearchDestinationFieldInternalProps extends Omit<
+  SearchDestinationFieldProps,
+  "onSelect" | "suggestions"
+> {
+  inputRef: React.RefObject<HTMLInputElement | null>;
   isComposing?: boolean;
   onBlur?: React.FocusEventHandler<HTMLInputElement>;
   onCompositionEnd?: () => void;
@@ -34,8 +36,8 @@ interface SearchDestinationFieldInternalProps
 }
 
 const isPlacePrediction = (
-  suggestion: SearchDestinationSuggestion
-): suggestion is PlacePrediction => typeof suggestion !== "string";
+  suggestion: SearchDestinationSuggestion,
+): suggestion is SearchPlacePrediction => typeof suggestion !== "string";
 
 const getSuggestionKey = (suggestion: SearchDestinationSuggestion) =>
   isPlacePrediction(suggestion) ? suggestion.placeId : suggestion;
@@ -83,8 +85,9 @@ export const SearchDestinationField = ({
       event.preventDefault();
       event.stopPropagation();
 
-      if (isActive && suggestions.length > 0) {
-        onSelect(suggestions[0]);
+      const firstSuggestion = suggestions[0];
+      if (isActive && firstSuggestion) {
+        onSelect(firstSuggestion);
         return;
       }
 
@@ -93,6 +96,8 @@ export const SearchDestinationField = ({
     }
 
     if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
       onEscape?.();
     }
   };
@@ -118,6 +123,7 @@ export const SearchDestinationField = ({
         {isActive && (suggestions.length > 0 || isLoading) && (
           <SearchBarPopover
             ref={suggestionsRef}
+            triggerRef={inputRef}
             variant="suggestions"
             onClose={() => onEscape?.()}
           >

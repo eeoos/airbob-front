@@ -1,24 +1,21 @@
-import { PaymentStatus, ReservationStatus } from "../../../types/enums";
-import type { HostReservationDetail } from "../../../types/reservation";
-import {
-  calculateHostReservationNights,
-  toHostReservationDetailViewModel,
-} from "./hostReservationDetailViewModel";
+import type { HostReservationDetail } from "../model/reservationRead";
+import { toHostReservationDetailViewModel } from "./hostReservationDetailViewModel";
 
 const hostReservationDetailFixture = (
   overrides: Partial<HostReservationDetail> = {},
 ): HostReservationDetail => ({
-  reservation_uid: "host-reservation-1",
-  reservation_code: "HOST-CODE-1",
-  status: ReservationStatus.CONFIRMED,
-  created_at: "2026-07-01T00:00:00",
-  guest_count: 2,
-  check_in_date_time: "2026-07-10T15:00:00",
-  check_out_date_time: "2026-07-12T11:00:00",
+  audience: "host",
+  reservationUid: "host-reservation-1",
+  reservationCode: "HOST-CODE-1",
+  status: "CONFIRMED",
+  createdAt: "2026-07-01T00:00:00",
+  guestCount: 2,
+  checkInDateTime: "2026-07-10T15:00:00",
+  checkOutDateTime: "2026-07-12T11:00:00",
   accommodation: {
     id: 7,
     name: "테스트 숙소",
-    thumbnail_url: "/rooms/7.jpg",
+    thumbnailUrl: "/rooms/7.jpg",
   },
   address: {
     country: "KR",
@@ -27,18 +24,24 @@ const hostReservationDetailFixture = (
     district: "Mapo",
     street: "와우산로",
     detail: null,
-    postal_code: "04000",
+    postalCode: "04000",
   },
   guest: {
     id: 2,
     nickname: "게스트",
-    thumbnail_image_url: "/guests/2.jpg",
+    thumbnailImageUrl: "/guests/2.jpg",
   },
   payment: {
-    order_id: "order-1",
-    total_amount: 240000,
-    status: PaymentStatus.DONE,
-    requested_at: "2026-07-01T00:00:00",
+    orderId: "order-1",
+    paymentKey: null,
+    method: null,
+    totalAmount: 240000,
+    balanceAmount: null,
+    status: "DONE",
+    requestedAt: "2026-07-01T00:00:00",
+    approvedAt: null,
+    cancels: [],
+    virtualAccount: null,
   },
   ...overrides,
 });
@@ -81,12 +84,12 @@ describe("host reservation detail view model", () => {
         accommodation: {
           id: 7,
           name: "테스트 숙소",
-          thumbnail_url: null,
+          thumbnailUrl: null,
         },
         guest: {
           id: 2,
           nickname: "Guest",
-          thumbnail_image_url: null,
+          thumbnailImageUrl: null,
         },
         payment: null,
       }),
@@ -100,11 +103,13 @@ describe("host reservation detail view model", () => {
   });
 
   it("keeps same-day or reversed stays at one display night", () => {
-    expect(
-      calculateHostReservationNights(
-        "2026-07-10T15:00:00",
-        "2026-07-10T11:00:00",
-      ),
-    ).toBe(1);
+    const viewModel = toHostReservationDetailViewModel(
+      hostReservationDetailFixture({
+        checkInDateTime: "2026-07-10T15:00:00",
+        checkOutDateTime: "2026-07-10T11:00:00",
+      }),
+    );
+
+    expect(viewModel.payment?.nights).toBe(1);
   });
 });

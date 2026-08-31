@@ -1,6 +1,5 @@
 import * as fs from "fs";
 import * as path from "path";
-import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { IconButton } from "./IconButton";
@@ -22,7 +21,7 @@ const getCssBlock = (source: string, selector: string) => {
 describe("IconButton", () => {
   it("keeps compact visuals while exposing the shared touch target", () => {
     const css = readProjectFile(
-      "src/shared/ui/IconButton/IconButton.module.css"
+      "src/shared/ui/IconButton/IconButton.module.css",
     );
     const baseStyles = getCssBlock(css, ".iconButton");
     const touchTargetStyles = getCssBlock(css, ".iconButton::before");
@@ -30,7 +29,9 @@ describe("IconButton", () => {
     const mediumStyles = getCssBlock(css, ".md");
 
     expect(baseStyles).not.toContain("min-width: var(--control-touch-target);");
-    expect(baseStyles).not.toContain("min-height: var(--control-touch-target);");
+    expect(baseStyles).not.toContain(
+      "min-height: var(--control-touch-target);",
+    );
     expect(baseStyles).toContain("position: relative;");
     expect(touchTargetStyles).toContain("width: var(--control-touch-target);");
     expect(touchTargetStyles).toContain("height: var(--control-touch-target);");
@@ -54,7 +55,7 @@ describe("IconButton", () => {
     render(
       <IconButton label="필터 열기" title="필터">
         F
-      </IconButton>
+      </IconButton>,
     );
 
     const button = screen.getByRole("button", { name: "필터 열기" });
@@ -63,12 +64,12 @@ describe("IconButton", () => {
   });
 
   it("forwards native button props", async () => {
-    const handleClick = jest.fn();
+    const handleClick = vi.fn();
 
     render(
       <IconButton label="저장" type="submit" onClick={handleClick}>
         S
-      </IconButton>
+      </IconButton>,
     );
 
     const button = screen.getByRole("button", { name: "저장" });
@@ -79,12 +80,12 @@ describe("IconButton", () => {
   });
 
   it("keeps disabled buttons from firing click handlers", async () => {
-    const handleClick = jest.fn();
+    const handleClick = vi.fn();
 
     render(
       <IconButton label="삭제" disabled onClick={handleClick}>
         D
-      </IconButton>
+      </IconButton>,
     );
 
     const button = screen.getByRole("button", { name: "삭제" });
@@ -103,14 +104,14 @@ describe("IconButton", () => {
         className="custom-icon"
       >
         +
-      </IconButton>
+      </IconButton>,
     );
 
     expect(screen.getByRole("button", { name: "더보기" })).toHaveClass(
       "iconButton",
       "sm",
       "secondary",
-      "custom-icon"
+      "custom-icon",
     );
   });
 });

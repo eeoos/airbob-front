@@ -3,28 +3,28 @@
 }
 
 .title {
-  font-size: 32px;
+  font-size: var(--font-size-2xl);
   font-weight: 600;
   color: var(--color-text-primary);
   line-height: 1.2;
-  margin: 0 0 24px 0;
+  margin: 0 0 var(--space-6) 0;
 }
 
 .filterTabs {
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .accommodationsGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .accommodationCard {
   display: flex;
   flex-direction: column;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: transform var(--motion-duration-base) var(--motion-ease-standard);
 }
 
 .accommodationCard:hover {
@@ -36,7 +36,7 @@
   aspect-ratio: 1;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .image img {
@@ -58,7 +58,7 @@
 .content {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .name {
@@ -68,7 +68,7 @@
 }
 
 .location {
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
 }
 
@@ -76,13 +76,13 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: 32px;
+  margin-top: var(--space-8);
   min-height: 60px;
 }
 
 .loadingMore {
   color: var(--color-text-secondary);
-  font-size: 14px;
+  font-size: var(--font-size-sm);
 }
 
 @media (max-width: 768px) {

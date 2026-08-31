@@ -1,5 +1,5 @@
 import {
-  MAP_EXPAND_CONTROL_STYLE_TOKENS,
+  removeMapExpandControl,
   renderMapExpandControl,
 } from "./mapExpandControl";
 
@@ -15,19 +15,9 @@ describe("map expand control helper", () => {
     document.body.innerHTML = "";
   });
 
-  it("keeps inline DOM style values behind named constants", () => {
-    expect(MAP_EXPAND_CONTROL_STYLE_TOKENS).toMatchObject({
-      background: "var(--color-background-page)",
-      backgroundHover: "var(--color-background-muted)",
-      iconSize: "20px",
-      size: "40px",
-      zIndex: "var(--z-popover)",
-    });
-  });
-
   it("creates a map expand button that calls the toggle handler without bubbling", () => {
-    const onToggle = jest.fn();
-    const onContainerClick = jest.fn();
+    const onToggle = vi.fn();
+    const onContainerClick = vi.fn();
     container.addEventListener("click", onContainerClick);
 
     const view = renderMapExpandControl({
@@ -38,6 +28,12 @@ describe("map expand control helper", () => {
 
     expect(container.querySelectorAll(".map-expand-button")).toHaveLength(1);
     expect(view.innerHTML).toContain("M7 14H5v5h5v-2H7v-3");
+    expect(view).toHaveStyle({
+      width: "40px",
+      height: "40px",
+      zIndex: "var(--z-popover)",
+    });
+    expect(view.querySelector("svg")).toHaveStyle({ width: "20px" });
 
     view.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
@@ -46,7 +42,7 @@ describe("map expand control helper", () => {
   });
 
   it("updates the existing button instead of appending duplicates", () => {
-    const onToggle = jest.fn();
+    const onToggle = vi.fn();
     const view = renderMapExpandControl({
       container,
       isExpanded: false,
@@ -65,12 +61,28 @@ describe("map expand control helper", () => {
 
     utils.dispatchEvent(new MouseEvent("mouseenter"));
     expect(
-      utils.style.getPropertyValue("--map-expand-control-background")
+      utils.style.getPropertyValue("--map-expand-control-background"),
     ).toBe("var(--color-background-muted)");
 
     utils.dispatchEvent(new MouseEvent("mouseleave"));
     expect(
-      utils.style.getPropertyValue("--map-expand-control-background")
+      utils.style.getPropertyValue("--map-expand-control-background"),
     ).toBe("var(--color-background-page)");
+  });
+
+  it("detaches owned handlers before removing the control", () => {
+    const view = renderMapExpandControl({
+      container,
+      isExpanded: false,
+      onToggle: vi.fn(),
+    });
+
+    expect(removeMapExpandControl(container)).toBe(true);
+
+    expect(view.onclick).toBeNull();
+    expect(view.onmouseenter).toBeNull();
+    expect(view.onmouseleave).toBeNull();
+    expect(view.isConnected).toBe(false);
+    expect(removeMapExpandControl(container)).toBe(false);
   });
 });

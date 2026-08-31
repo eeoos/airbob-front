@@ -1,12 +1,29 @@
-import { MutableRefObject, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { hasBoundsChanged } from "../lib/mapBounds";
-import { SearchMapBounds } from "../types";
+import type { SearchMapBounds } from "../types";
 
 interface UseMapBoundsReporterOptions {
   isInitialIdleRef: MutableRefObject<boolean>;
   mapInstanceRef: MutableRefObject<google.maps.Map | null>;
-  onBoundsChange?: (bounds: SearchMapBounds) => void;
+  onBoundsChange?: ((bounds: SearchMapBounds) => void) | undefined;
 }
+
+const readMapBounds = (
+  mapInstance: google.maps.Map,
+): SearchMapBounds | null => {
+  const bounds = mapInstance.getBounds();
+  if (!bounds) return null;
+
+  const northEast = bounds.getNorthEast();
+  const southWest = bounds.getSouthWest();
+
+  return {
+    north: northEast.lat(),
+    south: southWest.lat(),
+    east: northEast.lng(),
+    west: southWest.lng(),
+  };
+};
 
 export const useMapBoundsReporter = ({
   isInitialIdleRef,
@@ -14,7 +31,9 @@ export const useMapBoundsReporter = ({
   onBoundsChange,
 }: UseMapBoundsReporterOptions) => {
   const [isLoadingBounds, setIsLoadingBounds] = useState(false);
-  const boundsChangeTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const boundsChangeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const idleListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   const previousBoundsRef = useRef<SearchMapBounds | null>(null);
 
@@ -24,7 +43,7 @@ export const useMapBoundsReporter = ({
     const mapInstance = mapInstanceRef.current;
 
     if (idleListenerRef.current) {
-      google.maps.event.removeListener(idleListenerRef.current);
+      idleListenerRef.current.remove();
       idleListenerRef.current = null;
     }
 
@@ -36,18 +55,7 @@ export const useMapBoundsReporter = ({
     const handleIdle = () => {
       if (isInitialIdleRef.current) {
         isInitialIdleRef.current = false;
-
-        if (mapInstance.getBounds()) {
-          const bounds = mapInstance.getBounds()!;
-          const ne = bounds.getNorthEast();
-          const sw = bounds.getSouthWest();
-          previousBoundsRef.current = {
-            north: ne.lat(),
-            south: sw.lat(),
-            east: ne.lng(),
-            west: sw.lng(),
-          };
-        }
+        previousBoundsRef.current = readMapBounds(mapInstance);
         return;
       }
 
@@ -60,24 +68,12 @@ export const useMapBoundsReporter = ({
 
       boundsChangeTimerRef.current = setTimeout(() => {
         setIsLoadingBounds(false);
+        const newBounds = readMapBounds(mapInstance);
 
-        if (!mapInstance.getBounds()) {
-          return;
-        }
-
-        const bounds = mapInstance.getBounds()!;
-        const ne = bounds.getNorthEast();
-        const sw = bounds.getSouthWest();
-
-        const newBounds = {
-          north: ne.lat(),
-          south: sw.lat(),
-          east: ne.lng(),
-          west: sw.lng(),
-        };
-
-        if (!hasBoundsChanged(previousBoundsRef.current, newBounds)) {
-          setIsLoadingBounds(false);
+        if (
+          newBounds === null ||
+          !hasBoundsChanged(previousBoundsRef.current, newBounds)
+        ) {
           return;
         }
 
@@ -94,10 +90,9 @@ export const useMapBoundsReporter = ({
         boundsChangeTimerRef.current = null;
       }
       if (idleListenerRef.current) {
-        google.maps.event.removeListener(idleListenerRef.current);
+        idleListenerRef.current.remove();
         idleListenerRef.current = null;
       }
-      setIsLoadingBounds(false);
     };
   }, [isInitialIdleRef, mapInstanceRef, onBoundsChange]);
 

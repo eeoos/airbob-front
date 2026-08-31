@@ -1,4 +1,26 @@
-.button {
+.card {
+  position: relative;
+}
+
+.primaryAction {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-local-raised);
+  border-radius: inherit;
+  cursor: pointer;
+}
+
+.primaryAction:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.navigationAction {
+  color: inherit;
+  text-decoration: none;
+}
+
+.buttonAction {
   appearance: none;
   background: transparent;
   border: 0;
@@ -7,4 +29,9 @@
   margin: 0;
   padding: 0;
   text-align: inherit;
+}
+
+.actions {
+  position: relative;
+  z-index: var(--z-local-overlay);
 }

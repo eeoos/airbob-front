@@ -1,0 +1,52 @@
+{
+  "$schema": "./node_modules/knip/schema.json",
+  "entry": [
+    "src/index.tsx!",
+    "src/test/**/*.{js,jsx,mjs,ts,tsx}",
+    "src/**/*.{test,spec}.{js,jsx,mjs,ts,tsx}",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "playwright.config.ts",
+    "scripts/**/*.{cjs,mjs}",
+    "tests/e2e/specs/**/*.spec.ts",
+    "tests/e2e/support/**/*.mjs",
+    "tests/architecture/**/*.mjs",
+    "eslint.config.mjs",
+    ".dependency-cruiser.cjs",
+    "stylelint.config.mjs"
+  ],
+  "project": [
+    "src/**/*.{js,jsx,mjs,ts,tsx}!",
+    "!src/**/__tests__/**/*.{js,jsx,mjs,ts,tsx}!",
+    "!src/**/__mocks__/**/*.{js,jsx,mjs,ts,tsx}!",
+    "!src/**/*.{test,spec}.{js,jsx,mjs,ts,tsx}!",
+    "!src/test/**/*.{js,jsx,mjs,ts,tsx}!",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "playwright.config.ts",
+    "scripts/**/*.{cjs,mjs}",
+    "tests/**/*.{ts,mjs}",
+    "eslint.config.mjs",
+    ".dependency-cruiser.cjs",
+    "stylelint.config.mjs"
+  ],
+  "vite": false,
+  "vitest": false,
+  "stylelint": false,
+  "rules": {
+    "files": "error",
+    "dependencies": "error",
+    "devDependencies": "error",
+    "unlisted": "error",
+    "binaries": "error",
+    "unresolved": "error",
+    "exports": "error",
+    "nsExports": "error",
+    "types": "error",
+    "nsTypes": "error",
+    "enumMembers": "error",
+    "namespaceMembers": "error",
+    "duplicates": "error",
+    "cycles": "off"
+  }
+}

@@ -1,364 +1,175 @@
-import React, { useEffect, useRef } from "react";
-import { DatePicker } from "../../../../components/DatePicker";
+import React, { useCallback, useRef } from "react";
+import { requireCssModuleClass } from "../../../../shared/styles/requireCssModuleClass";
+import { DatePicker } from "../../../../shared/ui/DatePicker";
 import {
-  type SearchParams,
+  type SearchBarRoutePort,
   useSearchBarState,
 } from "../../hooks/useSearchBarState";
+import type { SearchParams } from "../../lib/searchBarContracts";
 import { SearchBarPopover } from "./SearchBarPopover";
 import { SearchDateFields } from "./SearchDateFields";
 import { SearchDestinationField } from "./SearchDestinationField";
 import { SearchGuestSelector } from "./SearchGuestSelector";
+import { useSearchBarDestinationInteractions } from "./useSearchBarDestinationInteractions";
+import { useSearchBarOutsideClick } from "./useSearchBarOutsideClick";
+import { useSearchBarShellInteractions } from "./useSearchBarShellInteractions";
 import styles from "./SearchBar.module.css";
 
-export type { SearchParams } from "../../hooks/useSearchBarState";
-
 interface SearchBarProps {
+  routePort: SearchBarRoutePort;
   onSearch?: (searchParams: SearchParams) => void;
-  onExpandedChange?: (isExpanded: boolean) => void;
-  isMapDragMode?: boolean; // 지도 드래그 모드 여부
+  isMapDragMode?: boolean;
 }
 
 export const SearchBar: React.FC<SearchBarProps> = ({
+  routePort,
   onSearch,
-  onExpandedChange,
   isMapDragMode = false,
 }) => {
   const searchBarRef = useRef<HTMLDivElement>(null);
   const datePickerRef = useRef<HTMLDivElement>(null);
   const guestPickerRef = useRef<HTMLDivElement>(null);
   const destinationInputRef = useRef<HTMLInputElement>(null);
-  const destinationAreaRef = useRef<HTMLDivElement>(null);
+  const destinationAreaRef = useRef<HTMLElement>(null);
   const datePickerElementRef = useRef<HTMLDivElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+  const dateTriggerRef = useRef<HTMLButtonElement>(null);
+  const guestTriggerRef = useRef<HTMLButtonElement>(null);
+  const setDestinationAreaRef = useCallback((element: HTMLElement | null) => {
+    destinationAreaRef.current = element;
+  }, []);
 
   const { destination, dates, guests, popover, actions, status } =
     useSearchBarState({
-      onSearch,
-      onExpandedChange,
+      routePort,
       isMapDragMode,
+      ...(onSearch === undefined ? {} : { onSearch }),
     });
 
-  const {
-    inputText,
-    suggestions,
-    selectedPlace,
-  } = destination;
+  const { inputText, suggestions, selectedPlace } = destination;
   const { checkIn, checkOut } = dates;
   const {
     adultOccupancy,
     childOccupancy,
     infantOccupancy,
     petOccupancy,
-    getTotalGuests,
+    totalGuests,
   } = guests;
   const {
+    activePopover,
     isExpanded,
     showGuestPicker,
     showDatePicker,
     isComposing,
-    isOpeningDatePicker,
-    isOpeningGuestPicker,
     showSuggestions,
   } = popover;
   const { isPlacesLoading } = status;
   const {
-    setAdultOccupancy,
-    setChildOccupancy,
-    setInfantOccupancy,
-    setPetOccupancy,
-    setExpanded,
-    setShowGuestPicker,
-    setShowDatePicker,
-    setIsComposing,
-    setIsOpeningDatePicker,
-    setIsOpeningGuestPicker,
-    setShowSuggestions,
-    handleInputChange,
-    handlePlaceSelect,
-    resetPlaces,
-    startNewSession,
+    changeAdultOccupancy,
+    changeChildOccupancy,
+    changeInfantOccupancy,
+    changePetOccupancy,
+    expandShell,
+    collapseShell,
+    openDestination,
+    openDatePicker,
+    toggleGuestPicker,
+    closeActivePopover,
+    startComposition,
+    endComposition,
+    changeDestination,
+    selectDestination,
+    clearDestinationSelection,
+    startDestinationSession,
     handleSearch,
     exitMapDragMode,
     completeCheckoutIfNeeded,
     closeTransientPanels,
-    openDatePicker,
-    toggleGuestPicker,
     handleDateSelect,
   } = actions;
 
-  const closeDatePopover = () => {
-    completeCheckoutIfNeeded();
-    setShowDatePicker(false);
-  };
+  const {
+    handleDestinationClick,
+    handleDestinationChange,
+    handleDestinationFocus,
+    handleDestinationEnterWithoutSuggestion,
+    handleDestinationBlur,
+    handleDestinationEscape,
+  } = useSearchBarDestinationInteractions({
+    destinationInputRef,
+    suggestionsRef,
+    datePickerRef,
+    guestPickerRef,
+    datePickerElementRef,
+    isExpanded,
+    isMapDragMode,
+    activePopover,
+    exitMapDragMode,
+    changeDestination,
+    openDestination,
+    openDatePicker,
+    closeActivePopover,
+    collapseShell,
+    startDestinationSession,
+    completeCheckoutIfNeeded,
+  });
 
-  const handleSearchBarClick = (event: React.MouseEvent) => {
-    const target = event.target as HTMLElement;
-
-    // DatePicker의 실제 DOM 요소 확인
-    const isDatePickerElement =
-      datePickerElementRef.current?.contains(target);
-
-    // 달력 영역 확인 (datePickerRef는 날짜 필드 영역)
-    const isDatePickerArea = datePickerRef.current?.contains(target);
-
-    // 여행자 필터 영역 확인
-    const isGuestPickerArea = guestPickerRef.current?.contains(target);
-
-    // 여행지 영역 확인
-    const isDestinationArea = destinationAreaRef.current?.contains(target);
-
-    // 추천 리스트 영역 확인
-    const isSuggestionsArea = suggestionsRef.current?.contains(target);
-
-    // 검색 버튼 확인
-    const isSearchButton = target.closest(`.${styles.searchButton}`);
-
-    // 달력이나 여행자 필터, 여행지 영역, 추천 리스트 영역을 클릭한 경우 아무것도 하지 않음
-    // (각각의 핸들러가 처리함)
-    if (
-      isDatePickerArea ||
-      isGuestPickerArea ||
-      isDatePickerElement ||
-      isDestinationArea ||
-      isSuggestionsArea ||
-      isSearchButton
-    ) {
-      // 확장되지 않은 상태에서 이 영역들을 클릭하면 확장만 함
-      if (!isExpanded) {
-        setExpanded(true);
-      }
-      return;
-    }
-
-    // 달력이나 여행자 필터, 여행지 영역, 추천 리스트 영역이 아닌 다른 부분을 클릭한 경우
-    // 달력이나 여행자 필터, 추천 리스트가 열려있으면 닫기
-    if (showDatePicker || showGuestPicker || showSuggestions) {
-      // 체크인만 선택된 경우 체크아웃을 다음 날로 자동 설정
-      closeTransientPanels({ collapseWhenDateSelected: true });
-      event.stopPropagation();
-      return;
-    }
-
-    // 달력이나 여행자 필터, 추천 리스트가 열려있지 않으면 검색바 축소 (목적지 입력 여부와 관계없이)
-    setExpanded(false);
-    event.stopPropagation();
-  };
-
-  const handleDestinationClick = (event: React.MouseEvent) => {
-    event.stopPropagation();
-
-    // 다른 필터가 열려있으면 닫기 (검색바는 확장 상태 유지)
-    if (showDatePicker || showGuestPicker) {
-      // 체크인만 선택된 경우 체크아웃을 다음 날로 자동 설정
-      if (showDatePicker) {
-        completeCheckoutIfNeeded();
-      }
-      setShowDatePicker(false);
-      setShowGuestPicker(false);
-      // 필터 간 전환 시에는 검색바를 축소하지 않음 (확장 상태 유지)
-    }
-
-    // 지도 드래그 모드 해제
-    exitMapDragMode();
-
-    if (!isExpanded) {
-      setExpanded(true);
-      // 새 세션 시작
-      startNewSession();
-      // 확장 후 입력 필드에 포커스
-      setTimeout(() => {
-        destinationInputRef.current?.focus();
-        // 입력값이 있으면 추천 리스트 표시
-        if (inputText.trim()) {
-          setShowSuggestions(true);
-        }
-      }, 0);
-    } else {
-      destinationInputRef.current?.focus();
-      // 입력값이 있으면 추천 리스트 표시
-      if (inputText.trim()) {
-        setShowSuggestions(true);
-      }
-    }
-  };
-
-  const handleDestinationChange = (value: string) => {
-    // 입력 시작 시 지도 드래그 모드 해제
-    if (isMapDragMode) {
-      exitMapDragMode();
-    }
-
-    handleInputChange(value);
-  };
-
-  const handleDestinationFocus = () => {
-    // 포커스 시 지도 드래그 모드 해제
-    if (isMapDragMode) {
-      exitMapDragMode();
-      // 지도 드래그 모드 해제 후 input 텍스트 초기화
-      handleInputChange("");
-    }
-
-    // 여행지 입력 필드 포커스 시 달력 및 여행자 선택 닫기 (Bug fix: z-index 겹침 문제)
-    setShowDatePicker(false);
-    setShowGuestPicker(false);
-    setShowSuggestions(true);
-  };
-
-  const handleDestinationEnterWithoutSuggestion = () => {
-    if (!isExpanded) {
-      return;
-    }
-
-    // 달력을 열기 전에 플래그 설정 (onBlur가 검색바를 축소하지 않도록)
-    setIsOpeningDatePicker(true);
-    setShowDatePicker(true);
-    setShowGuestPicker(false);
-    setShowSuggestions(false);
-
-    // 약간의 지연을 두어 상태 업데이트가 완료된 후 포커스 제거 및 플래그 해제
-    setTimeout(() => {
-      destinationInputRef.current?.blur();
-      setIsOpeningDatePicker(false);
-    }, 100);
-  };
-
-  const handleDestinationBlur = () => {
-    // 추천 리스트를 클릭한 경우를 제외하기 위해 약간의 지연
-    // onMouseDown이 먼저 실행되므로 플래그가 설정되었을 수 있음
-    setTimeout(() => {
-      // 클릭한 요소가 추천 리스트 내부인지 확인
-      const activeElement = document.activeElement;
-      if (suggestionsRef.current?.contains(activeElement as Node)) {
-        return;
-      }
-
-      // 클릭한 요소가 달력이나 여행자 필터 내부인지 확인
-      const isClickingDatePicker = datePickerElementRef.current?.contains(
-        activeElement as Node
-      );
-      const isClickingGuestPicker = guestPickerRef.current?.contains(
-        activeElement as Node
-      );
-      const isClickingDateArea = datePickerRef.current?.contains(
-        activeElement as Node
-      );
-      const isClickingGuestArea = guestPickerRef.current?.contains(
-        activeElement as Node
-      );
-
-      setShowSuggestions(false);
-
-      // 달력이나 여행자 필터가 열리는 중이거나 이미 열려있으면 검색바를 축소하지 않음
-      // onMouseDown에서 플래그가 설정되었을 수 있으므로 확인
-      if (
-        !isOpeningDatePicker &&
-        !isOpeningGuestPicker &&
-        !showDatePicker &&
-        !showGuestPicker &&
-        !isClickingDatePicker &&
-        !isClickingGuestPicker &&
-        !isClickingDateArea &&
-        !isClickingGuestArea
-      ) {
-        // 목적지 입력 필드에서 포커스를 잃을 때 검색바 축소 (목적지 입력 여부와 관계없이)
-        setExpanded(false);
-      }
-    }, 100);
-  };
-
-  const handleDateClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
-    event.preventDefault();
-    openDatePicker();
-  };
-
-  const handleGuestClick = (event: React.MouseEvent) => {
-    event.stopPropagation();
-    event.preventDefault();
-    toggleGuestPicker();
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-
-      // DatePicker의 실제 DOM 요소 확인 (달력 컴포넌트 자체)
-      const isInsideDatePicker =
-        datePickerElementRef.current?.contains(target);
-
-      // 달력 영역 확인 (datePickerRef는 날짜 필드 영역)
-      const isInsideDateArea = datePickerRef.current?.contains(target);
-
-      // GuestPicker의 실제 DOM 요소 확인 (여행자 필터 컴포넌트 자체)
-      const isInsideGuestPicker = guestPickerRef.current?.contains(target);
-
-      // 여행지 영역 확인
-      const isInsideDestinationArea =
-        destinationAreaRef.current?.contains(target);
-
-      // Suggestions 영역 확인
-      const isInsideSuggestions = suggestionsRef.current?.contains(target);
-
-      // 검색바 내부 확인
-      const isInsideSearchBar = searchBarRef.current?.contains(target);
-
-      // 달력이나 여행자 필터, 여행지 영역, 추천 리스트 영역 내부가 아닌 경우
-      if (
-        !isInsideDatePicker &&
-        !isInsideDateArea &&
-        !isInsideGuestPicker &&
-        !isInsideSuggestions &&
-        !isInsideDestinationArea
-      ) {
-        // 검색바 외부를 클릭한 경우
-        if (!isInsideSearchBar) {
-          // 검색바 외부 클릭 시 항상 닫기
-          if (showDatePicker || showGuestPicker || showSuggestions) {
-            closeTransientPanels({ collapseWhenDateSelected: true });
-          }
-
-          // 검색바 외부 클릭 시 항상 축소 (목적지 입력 여부와 관계없이)
-          setExpanded(false);
-        }
-      }
-    };
-
-    // click 이벤트로 변경하여 mousedown보다 늦게 실행되도록 함
-    // 이렇게 하면 달력이나 여행자 필터를 클릭할 때 먼저 열린 후에 외부 클릭 체크가 됨
-    if (showDatePicker || showGuestPicker || showSuggestions) {
-      // 약간의 지연을 두어 상태 업데이트가 완료된 후 이벤트 리스너 추가
-      const timeoutId = setTimeout(() => {
-        document.addEventListener("click", handleClickOutside, true);
-      }, 100);
-
-      return () => {
-        clearTimeout(timeoutId);
-        document.removeEventListener("click", handleClickOutside, true);
-      };
-    }
-  }, [
-    showDatePicker,
-    showGuestPicker,
-    showSuggestions,
-    checkIn,
-    checkOut,
+  const {
+    closeDatePopover,
+    handleDateClick,
+    handleGuestClick,
+    handleSearchBarClick,
+  } = useSearchBarShellInteractions({
+    datePickerRef,
+    guestPickerRef,
+    datePickerElementRef,
+    destinationAreaRef,
+    suggestionsRef,
+    searchButtonClassName: requireCssModuleClass(styles.searchButton),
+    isExpanded,
+    activePopover,
+    completeCheckoutIfNeeded,
     closeTransientPanels,
-    setExpanded,
-  ]);
+    expandShell,
+    collapseShell,
+    closeActivePopover,
+    openDatePicker,
+    toggleGuestPicker,
+  });
+
+  useSearchBarOutsideClick({
+    searchBarRef,
+    datePickerRef,
+    guestPickerRef,
+    datePickerElementRef,
+    destinationAreaRef,
+    suggestionsRef,
+    activePopover,
+    closeTransientPanels,
+    collapseShell,
+  });
+
+  const closeDateAndRestoreFocus = useCallback(() => {
+    closeDatePopover();
+    dateTriggerRef.current?.focus();
+  }, [closeDatePopover]);
+
+  const closeGuestAndRestoreFocus = useCallback(() => {
+    closeActivePopover();
+    guestTriggerRef.current?.focus();
+  }, [closeActivePopover]);
 
   return (
     <div
       ref={searchBarRef}
+      aria-label="숙소 검색"
       className={`${styles.searchBar} ${isExpanded ? styles.expanded : ""}`}
-      onClick={handleSearchBarClick}
+      data-search-shell={isExpanded ? "expanded" : "compact"}
+      onClickCapture={handleSearchBarClick}
+      role="search"
     >
-      <div
-        ref={destinationAreaRef}
-        className={styles.searchItem}
-        onClick={handleDestinationClick}
-      >
-        {isExpanded ? (
+      {isExpanded ? (
+        <div ref={setDestinationAreaRef} className={styles.searchItem}>
           <SearchDestinationField
             inputRef={destinationInputRef}
             isActive={showSuggestions}
@@ -366,36 +177,43 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             isLoading={isPlacesLoading}
             onBlur={handleDestinationBlur}
             onChange={handleDestinationChange}
-            onClear={resetPlaces}
-            onCompositionEnd={() => setIsComposing(false)}
-            onCompositionStart={() => setIsComposing(true)}
+            onClear={clearDestinationSelection}
+            onCompositionEnd={endComposition}
+            onCompositionStart={startComposition}
             onEnterWithoutSuggestion={handleDestinationEnterWithoutSuggestion}
-            onEscape={() => setShowSuggestions(false)}
+            onEscape={handleDestinationEscape}
             onFocus={handleDestinationFocus}
             onInputClick={(event) => event.stopPropagation()}
-            onRequestSuggestions={() => setShowSuggestions(true)}
+            onRequestSuggestions={openDestination}
             onSelect={(suggestion) => {
               if (typeof suggestion === "string") {
-                handleInputChange(suggestion);
-                setShowSuggestions(false);
+                changeDestination(suggestion);
+                closeActivePopover();
                 return;
               }
 
-              handlePlaceSelect(suggestion);
+              selectDestination(suggestion);
             }}
             shouldClearOnValueChange={!!selectedPlace}
             suggestions={suggestions}
             suggestionsRef={suggestionsRef}
             value={inputText}
           />
-        ) : (
+        </div>
+      ) : (
+        <button
+          ref={setDestinationAreaRef}
+          className={styles.searchItem}
+          onClick={handleDestinationClick}
+          type="button"
+        >
           <div className={styles.compactValue}>
             {isMapDragMode
               ? "지도에 표시된 지역의 숙소"
               : inputText || "어디든지"}
           </div>
-        )}
-      </div>
+        </button>
+      )}
 
       <div className={styles.divider} />
 
@@ -405,28 +223,26 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           checkOut={checkOut}
           isExpanded={isExpanded}
           isOpen={showDatePicker}
-          onTriggerMouseDown={() => {
-            // onBlur보다 먼저 실행되도록 onMouseDown에서 플래그 설정
-            setIsOpeningDatePicker(true);
-          }}
           onTriggerClick={handleDateClick}
+          triggerRef={dateTriggerRef}
         />
         {isExpanded && showDatePicker && (
           <SearchBarPopover
             id="search-date-picker"
+            triggerRef={dateTriggerRef}
             variant="date"
-            onClose={closeDatePopover}
+            onClose={closeDateAndRestoreFocus}
           >
             <DatePicker
               checkIn={checkIn}
               checkOut={checkOut}
               onDateSelect={handleDateSelect}
+              onEscape={closeDateAndRestoreFocus}
               onClose={() => {
-                // 체크인만 선택된 경우 체크아웃을 다음 날로 자동 설정
                 completeCheckoutIfNeeded();
-                setShowDatePicker(false);
-                // 닫기 버튼 클릭 시 검색바를 축소 모드로 변경
-                setExpanded(false);
+                closeActivePopover();
+                collapseShell();
+                dateTriggerRef.current?.focus();
               }}
               datePickerRef={datePickerElementRef}
             />
@@ -438,13 +254,10 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
       <div className={styles.searchItemHost} ref={guestPickerRef}>
         <button
+          ref={guestTriggerRef}
           aria-controls="search-guest-picker"
           aria-expanded={showGuestPicker}
           className={styles.searchItem}
-          onMouseDown={() => {
-            // onBlur보다 먼저 실행되도록 onMouseDown에서 플래그 설정
-            setIsOpeningGuestPicker(true);
-          }}
           onClick={handleGuestClick}
           type="button"
         >
@@ -452,34 +265,31 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             <>
               <div className={styles.label}>여행자</div>
               <div className={styles.value}>
-                {getTotalGuests() > 0
-                  ? `게스트 ${getTotalGuests()}명`
-                  : "게스트 추가"}
+                {totalGuests > 0 ? `게스트 ${totalGuests}명` : "게스트 추가"}
               </div>
             </>
           ) : (
             <div className={styles.compactValue}>
-              {getTotalGuests() > 0
-                ? `게스트 ${getTotalGuests()}명`
-                : "게스트 추가"}
+              {totalGuests > 0 ? `게스트 ${totalGuests}명` : "게스트 추가"}
             </div>
           )}
         </button>
         {isExpanded && showGuestPicker && (
           <SearchBarPopover
             id="search-guest-picker"
+            triggerRef={guestTriggerRef}
             variant="guest"
-            onClose={() => setShowGuestPicker(false)}
+            onClose={closeGuestAndRestoreFocus}
           >
             <SearchGuestSelector
               adultOccupancy={adultOccupancy}
               childOccupancy={childOccupancy}
               infantOccupancy={infantOccupancy}
               petOccupancy={petOccupancy}
-              onAdultChange={setAdultOccupancy}
-              onChildChange={setChildOccupancy}
-              onInfantChange={setInfantOccupancy}
-              onPetChange={setPetOccupancy}
+              onAdultChange={changeAdultOccupancy}
+              onChildChange={changeChildOccupancy}
+              onInfantChange={changeInfantOccupancy}
+              onPetChange={changePetOccupancy}
             />
           </SearchBarPopover>
         )}
@@ -491,8 +301,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         onClick={(event) => {
           event.stopPropagation();
 
-          // 검색 버튼 클릭 시 열려있는 필터 닫기
-          if (showDatePicker || showGuestPicker) {
+          if (activePopover === "date" || activePopover === "guests") {
             closeTransientPanels({ collapseWhenDateSelected: true });
           }
 

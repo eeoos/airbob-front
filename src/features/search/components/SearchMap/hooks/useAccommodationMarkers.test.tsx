@@ -1,0 +1,185 @@
+import { renderHook } from "@testing-library/react";
+import type { MutableRefObject } from "react";
+import { requireDefined } from "../../../../../test/assertions";
+import type {
+  SearchMapAccommodation,
+  SearchMapMarker,
+  SearchMapViewport,
+} from "../types";
+import { useAccommodationMarkers } from "./useAccommodationMarkers";
+
+const ref = <T,>(current: T): MutableRefObject<T> => ({ current });
+
+const accommodation: SearchMapAccommodation = {
+  id: 10,
+  name: "Cleanup stay",
+  thumbnailUrl: null,
+  locationLabel: "Seoul",
+  showReview: false,
+  reviewRatingLabel: "0.0",
+  reviewCountLabel: "(0)",
+  basePrice: 100000,
+  currency: "KRW",
+  isInWishlist: false,
+  coordinate: { latitude: 37.5, longitude: 127 },
+};
+
+describe("useAccommodationMarkers", () => {
+  const originalCancelAnimationFrame = window.cancelAnimationFrame;
+  const originalCreateObjectURL = URL.createObjectURL;
+  const originalGoogle = window.google;
+  const originalRequestAnimationFrame = window.requestAnimationFrame;
+  const originalRevokeObjectURL = URL.revokeObjectURL;
+
+  afterEach(() => {
+    window.cancelAnimationFrame = originalCancelAnimationFrame;
+    window.requestAnimationFrame = originalRequestAnimationFrame;
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: originalCreateObjectURL,
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      value: originalRevokeObjectURL,
+    });
+    (window as any).google = originalGoogle;
+  });
+
+  it("disposes marker listeners, animation frame, object URLs, and owned bindings", () => {
+    const listenerHandles = Array.from({ length: 3 }, () => ({
+      remove: vi.fn(),
+    }));
+    const handlers: Record<string, (...args: any[]) => void> = {};
+    const setMap = vi.fn();
+    const unbindAll = vi.fn();
+    const revokeObjectURL = vi.fn();
+    const createObjectURL = vi
+      .fn()
+      .mockReturnValueOnce("blob:default")
+      .mockReturnValueOnce("blob:selected")
+      .mockReturnValueOnce("blob:hovered");
+    const cancelAnimationFrame = vi.fn();
+    const requestAnimationFrame = vi.fn(() => 41);
+    let nextListenerIndex = 0;
+
+    class FakeMarker {
+      addListener = vi.fn(
+        (eventName: string, handler: (...args: any[]) => void) => {
+          handlers[eventName] = handler;
+          return listenerHandles[nextListenerIndex++];
+        },
+      );
+      setIcon = vi.fn();
+      setMap = setMap;
+      unbindAll = unbindAll;
+    }
+
+    class FakeSize {
+      readonly width: number;
+      readonly height: number;
+
+      constructor(width: number, height: number) {
+        this.width = width;
+        this.height = height;
+      }
+    }
+
+    class FakePoint {
+      readonly x: number;
+      readonly y: number;
+
+      constructor(x: number, y: number) {
+        this.x = x;
+        this.y = y;
+      }
+    }
+
+    (window as any).google = {
+      maps: {
+        Map: function Map() {},
+        Marker: FakeMarker,
+        Size: FakeSize,
+        Point: FakePoint,
+        LatLngBounds: class LatLngBounds {
+          extend = vi.fn();
+        },
+        event: {},
+      },
+    };
+    window.cancelAnimationFrame = cancelAnimationFrame;
+    window.requestAnimationFrame = requestAnimationFrame;
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: createObjectURL,
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      value: revokeObjectURL,
+    });
+
+    const map = {
+      fitBounds: vi.fn(),
+      setCenter: vi.fn(),
+      setZoom: vi.fn(),
+    } as unknown as google.maps.Map;
+    const markersRef = ref<SearchMapMarker[]>([]);
+    const isInitialIdleRef = ref(true);
+    const mapInstanceRef = ref(map);
+    const onAccommodationSelectRef = ref(vi.fn());
+    const prevViewportRef = ref<SearchMapViewport | null>(null);
+    const viewportJustChangedRef = ref(false);
+    const { rerender, unmount } = renderHook(
+      ({ viewport }: { viewport: SearchMapViewport | null }) =>
+        useAccommodationMarkers({
+          accommodations: [accommodation],
+          isInitialIdleRef,
+          isMapDragMode: false,
+          isMapLoaded: true,
+          mapInstanceRef,
+          markersRef,
+          onAccommodationSelectRef,
+          prevViewportRef,
+          shouldUpdateMapBounds: false,
+          viewport,
+          viewportJustChangedRef,
+        }),
+      {
+        initialProps: { viewport: null as SearchMapViewport | null },
+      },
+    );
+
+    expect(markersRef.current).toHaveLength(1);
+    rerender({
+      viewport: { north: 38, south: 37, east: 128, west: 126 },
+    });
+    expect(map.fitBounds).toHaveBeenCalledTimes(1);
+    expect(createObjectURL).toHaveBeenCalledTimes(3);
+
+    requireDefined(handlers.mouseover, "mouseover handler")();
+    expect(requestAnimationFrame).toHaveBeenCalled();
+
+    const marker = requireDefined(markersRef.current[0], "map marker");
+    marker.isSelected = true;
+    requireDefined(handlers.mouseout, "mouseout handler")();
+
+    expect(requestAnimationFrame).toHaveBeenCalledTimes(1);
+    expect(marker.setIcon).toHaveBeenLastCalledWith(marker.icons?.selected);
+
+    marker.dispose?.();
+    marker.dispose?.();
+    unmount();
+
+    listenerHandles.forEach((listener) => {
+      expect(listener.remove).toHaveBeenCalledTimes(1);
+    });
+    expect(cancelAnimationFrame).toHaveBeenCalledWith(41);
+    expect(setMap).toHaveBeenCalledWith(null);
+    expect(unbindAll).toHaveBeenCalledTimes(1);
+    expect(revokeObjectURL.mock.calls.map(([url]) => url)).toEqual([
+      "blob:default",
+      "blob:selected",
+      "blob:hovered",
+    ]);
+    expect(markersRef.current).toEqual([]);
+  });
+});

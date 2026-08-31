@@ -1,24 +1,24 @@
-import { PaymentStatus, ReservationStatus } from "../../../types/enums";
-import type { GuestReservationDetail } from "../../../types/reservation";
+import type { GuestReservationDetail } from "../model/reservationRead";
 import { toReservationDetailViewModel } from "./reservationDetailViewModel";
 
 const reservationFixture = (
   overrides: Partial<GuestReservationDetail> = {},
 ): GuestReservationDetail => ({
-  reservation_uid: "reservation-123",
-  reservation_code: "CODE-123",
-  status: ReservationStatus.CONFIRMED,
-  created_at: "2026-07-01T00:00:00",
-  guest_count: 2,
-  check_in_date_time: "2020-07-10T15:00:00",
-  check_out_date_time: "2020-07-12T11:00:00",
-  check_in_time: "15:00",
-  check_out_time: "11:00",
-  can_write_review: true,
+  audience: "guest",
+  reservationUid: "reservation-123",
+  reservationCode: "CODE-123",
+  status: "CONFIRMED",
+  createdAt: "2026-07-01T00:00:00",
+  guestCount: 2,
+  checkInDateTime: "2020-07-10T15:00:00",
+  checkOutDateTime: "2020-07-12T11:00:00",
+  checkInTime: "15:00",
+  checkOutTime: "11:00",
+  canWriteReview: true,
   accommodation: {
     id: 7,
     name: "테스트 숙소",
-    thumbnail_url: "/rooms/7.jpg",
+    thumbnailUrl: "/rooms/7.jpg",
   },
   address: {
     country: "KR",
@@ -27,7 +27,7 @@ const reservationFixture = (
     district: "Mapo",
     street: "와우산로",
     detail: null,
-    postal_code: "04000",
+    postalCode: "04000",
   },
   coordinate: {
     latitude: 37.5,
@@ -36,7 +36,7 @@ const reservationFixture = (
   host: {
     id: 1,
     nickname: "호스트",
-    thumbnail_image_url: "/hosts/1.jpg",
+    thumbnailImageUrl: "/hosts/1.jpg",
   },
   payment: null,
   ...overrides,
@@ -85,17 +85,20 @@ describe("reservation detail view model", () => {
     const viewModel = toReservationDetailViewModel(
       reservationFixture({
         payment: {
-          order_id: "order-123",
+          orderId: "order-123",
+          paymentKey: null,
           method: "가상계좌",
-          total_amount: 120000,
-          status: PaymentStatus.WAITING_FOR_DEPOSIT,
-          requested_at: "2026-07-01T00:00:00",
-          approved_at: null,
-          virtual_account: {
-            account_number: "123-456",
-            bank_code: "04",
-            customer_name: "홍길동",
-            due_date: "2026-07-02T23:59:00",
+          totalAmount: 120000,
+          balanceAmount: null,
+          status: "WAITING_FOR_DEPOSIT",
+          requestedAt: "2026-07-01T00:00:00",
+          approvedAt: null,
+          cancels: [],
+          virtualAccount: {
+            accountNumber: "123-456",
+            bankCode: "04",
+            customerName: "홍길동",
+            dueDate: "2026-07-02T23:59:00",
           },
         },
       }),

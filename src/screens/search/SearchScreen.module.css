@@ -1,0 +1,633 @@
+.container {
+  width: 100%;
+  max-width: 100vw;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.main {
+  padding: var(--space-6) 80px 0 80px;
+  max-width: 1760px;
+  margin: 0 auto 0 auto;
+  margin-bottom: 0;
+  position: relative;
+  display: flex;
+  gap: var(--space-12);
+  height: calc(100vh - var(--layout-header-desktop-height));
+  min-height: calc(100vh - var(--layout-header-desktop-height));
+  align-items: flex-start;
+  overflow: visible;
+}
+
+.results {
+  flex: 1;
+  overflow: hidden auto;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  border: none;
+  place-content: flex-start;
+  align-items: stretch;
+  box-sizing: border-box;
+}
+
+.results:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 2px;
+  box-shadow: var(--focus-ring);
+}
+
+.results > *:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.results > .paginationContainer {
+  padding-bottom: var(--space-4);
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.results > * {
+  margin-bottom: 0;
+}
+
+.results > *:not(:last-child) {
+  margin-bottom: 0;
+}
+
+.results > * > *:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.results > *:last-child > *:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.results > * > * {
+  margin-bottom: 0;
+}
+
+.results::-webkit-scrollbar {
+  display: none;
+}
+
+.mapSection {
+  flex: 0 0 clamp(400px, 38%, 600px);
+  width: clamp(400px, 38%, 600px);
+  position: sticky;
+  top: var(--space-6);
+  height: calc(100vh - 120px);
+  min-height: 500px;
+  max-height: calc(100vh - 120px);
+  align-self: flex-start;
+  overflow: visible;
+}
+
+.title {
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-6) 0;
+}
+
+.loading,
+.empty {
+  text-align: center;
+  padding: 80px var(--space-6);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-md);
+}
+
+.paginationContainer {
+  display: flex;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  margin-top: var(--space-8);
+  margin-bottom: 0;
+  padding: 0 0 var(--space-4);
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pagination[data-variant="compact"] {
+  width: 100%;
+  max-width: 320px;
+  min-width: 0;
+  justify-content: center;
+}
+
+.pagination[data-variant="compact"] .paginationButton {
+  box-sizing: border-box;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 96px;
+  padding-inline: var(--space-2);
+}
+
+.paginationButton {
+  min-width: 40px;
+  height: var(--control-height-md);
+  padding: 0 var(--space-3);
+  background-color: var(--color-background-page);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-duration-base) var(--motion-ease-standard),
+    border-color var(--motion-duration-base) var(--motion-ease-standard),
+    color var(--motion-duration-base) var(--motion-ease-standard);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.paginationButton:hover:not(:disabled) {
+  border-color: var(--color-text-primary);
+  background-color: var(--color-background-muted);
+}
+
+.paginationButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.paginationButtonActive {
+  background-color: var(--color-text-primary);
+  color: var(--color-text-inverse);
+  border-color: var(--color-text-primary);
+}
+
+.paginationButtonActive:hover {
+  background-color: var(--color-text-primary);
+  border-color: var(--color-text-primary);
+}
+
+.paginationEllipsis {
+  padding: 0 var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  user-select: none;
+}
+
+.paginationStatus {
+  flex: 0 0 auto;
+  min-width: 72px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-align: center;
+}
+
+.toastContainer {
+  position: fixed;
+  top: var(--space-6);
+  right: var(--space-6);
+  z-index: var(--z-toast);
+}
+
+.cardWrapper {
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.selected {
+  outline: 2px solid var(--color-brand-coral);
+  outline-offset: 2px;
+  box-shadow: var(--focus-ring);
+}
+
+/* ---- Mid-Desktop (1200-1400px) ---- */
+@media (max-width: 1400px) {
+  .main {
+    padding: var(--space-6) 60px 0 60px;
+    gap: var(--space-10);
+  }
+
+  .mapSection {
+    flex: 0 0 clamp(350px, 35%, 500px);
+    width: clamp(350px, 35%, 500px);
+  }
+
+  .main.mapExpanded {
+    left: 60px;
+    right: 60px;
+    width: calc(100% - 120px);
+    padding: var(--space-6) 0;
+  }
+
+  .main.mapExpanded .mapSection {
+    flex: 1;
+  }
+}
+
+/* ---- Small-Desktop (1024-1200px) ---- */
+@media (max-width: 1200px) {
+  .main {
+    padding: var(--space-6) var(--space-10) 0 var(--space-10);
+    gap: var(--space-8);
+  }
+
+  .mapSection {
+    flex: 0 0 clamp(300px, 35%, 450px);
+    width: clamp(300px, 35%, 450px);
+    min-height: 450px;
+  }
+
+  .main.mapExpanded {
+    left: var(--space-10);
+    right: var(--space-10);
+    width: calc(100% - 80px);
+    padding: var(--space-6) 0;
+  }
+
+  .main.mapExpanded .mapSection {
+    flex: 1;
+  }
+}
+
+/* ---- Tablet (768-1024px) ---- */
+@media (max-width: 1024px) {
+  /* Hide desktop layout on tablet/mobile */
+  .main {
+    display: none;
+  }
+
+  /* Bottom Sheet Layout for Mobile/Tablet */
+  .mapLayer {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100vh;
+    z-index: var(--z-local-raised);
+    overflow: hidden;
+  }
+
+  .mapLayer > * {
+    width: 100%;
+    height: 100%;
+  }
+
+  .bottomSheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--color-background-page);
+    border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+    box-shadow: var(--shadow-bottom-sheet);
+    z-index: var(--z-bottom-sheet);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    touch-action: pan-y;
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-font-smoothing: antialiased;
+
+    /* transform is controlled by Framer Motion; touch handling stays in CSS. */
+  }
+
+  /* Collapsed State - Pure Peek (Header Only) - Tablet */
+  .bottomSheet.collapsed {
+    /* transform is controlled by framer-motion */
+    height: 80px;
+    max-height: 80px;
+    min-height: 80px;
+    overflow: hidden;
+  }
+
+  /* Half State - Tablet: 화면 높이의 50% */
+  .bottomSheet.half {
+    /* transform is controlled by framer-motion */
+
+    /* 시트가 거의 올라가지 않으므로 높이는 50vh만 */
+    height: 45vh;
+    min-height: 45vh;
+    max-height: 45vh;
+  }
+
+  .bottomSheet.half.emptyResults {
+    /* transform is controlled by framer-motion */
+    height: 45vh;
+    min-height: 45vh;
+    max-height: 45vh;
+  }
+
+  /* Expanded State - Tablet: 헤더 바로 아래부터 시작 */
+  .bottomSheet.expanded {
+    /* transform is controlled by framer-motion */
+
+    /* 시트가 거의 올라가지 않으므로 높이는 헤더 아래 높이만 */
+    height: calc(100vh - var(--layout-header-desktop-height) - var(--space-5));
+    max-height: calc(
+      100vh - var(--layout-header-desktop-height) - var(--space-5)
+    );
+    min-height: calc(
+      100vh - var(--layout-header-desktop-height) - var(--space-5)
+    );
+  }
+
+  /* Bottom Sheet Header - Always Visible */
+  .bottomSheetHeader {
+    flex-shrink: 0;
+    padding: 0 var(--space-4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .dragHandle {
+    appearance: none;
+    width: 100%;
+    margin: 0;
+    padding: var(--space-3) 0 var(--space-2) 0;
+    color: inherit;
+    background: transparent;
+    border: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font: inherit;
+    cursor: grab;
+    flex-shrink: 0;
+    touch-action: none;
+  }
+
+  .dragHandle:focus-visible {
+    border-radius: var(--radius-md);
+    outline: 2px solid var(--color-text-primary);
+    outline-offset: -2px;
+    box-shadow: var(--focus-ring);
+  }
+
+  .dragHandle:active {
+    cursor: grabbing;
+  }
+
+  .dragHandleBar {
+    width: var(--space-10);
+    height: var(--space-1);
+    background: var(--color-border-default);
+    border-radius: var(--radius-xs);
+  }
+
+  /* Title in Header */
+  .bottomSheetHeader .title {
+    font-size: var(--font-size-sm);
+    font-weight: 400;
+    color: var(--color-text-primary);
+    margin: 0;
+    padding: 0 0 var(--space-3) 0;
+    text-align: center;
+  }
+
+  /* Content Section - Hidden in Collapsed */
+  .bottomSheetContent {
+    flex: 1;
+    overflow: hidden auto;
+    padding: 0 var(--space-4) var(--space-4) var(--space-4);
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    box-sizing: border-box;
+    transition:
+      opacity 0.3s ease,
+      visibility 0.3s ease;
+  }
+
+  .bottomSheetContent.hidden {
+    display: none;
+  }
+
+  .bottomSheetContent::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide ALL content in collapsed state - Pure peek mode */
+  .bottomSheet.collapsed .bottomSheetContent {
+    display: none;
+    visibility: hidden;
+    opacity: 0;
+    height: 0;
+    overflow: hidden;
+  }
+
+  .bottomSheet.collapsed .bottomSheetHeader {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+  }
+
+  /* Card Grid - Tablet: 2 columns */
+  .cardGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+    margin-bottom: var(--space-4);
+    width: 100%;
+    box-sizing: border-box;
+    transition:
+      opacity 0.3s ease,
+      transform 0.3s ease;
+  }
+
+  /* Collapsed state: show ~1 row (2 cards) on tablet */
+  .bottomSheet.collapsed .cardGrid {
+    overflow: hidden;
+    max-height: 120px;
+  }
+
+  .cardWrapper {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+/* ---- Mobile (<768px) ---- */
+@media (max-width: 768px) {
+  /* Hide desktop layout on mobile */
+  .main {
+    display: none;
+  }
+
+  .bottomSheet.collapsed {
+    /* transform is controlled by framer-motion */
+    height: 60px;
+    max-height: 60px;
+    min-height: 60px;
+  }
+
+  /* Mobile collapsed state - ensure only header visible */
+  .bottomSheet.collapsed .bottomSheetHeader {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+  }
+
+  .bottomSheet.half {
+    /* transform is controlled by framer-motion */
+
+    /* 시트가 거의 올라가지 않으므로 높이는 50vh만 */
+    height: 35vh;
+    min-height: 35vh;
+    max-height: 35vh;
+  }
+
+  .bottomSheet.half.emptyResults {
+    /* transform is controlled by framer-motion */
+    height: 35vh;
+    min-height: 35vh;
+    max-height: 35vh;
+  }
+
+  .bottomSheet.expanded {
+    /* transform is controlled by framer-motion */
+
+    /* 시트가 거의 올라가지 않으므로 높이는 헤더 아래 높이만 */
+    height: calc(
+      100vh - var(--layout-search-mobile-bottom-sheet-offset) - 60px
+    );
+    max-height: calc(
+      100vh - var(--layout-search-mobile-bottom-sheet-offset) - 60px
+    );
+    min-height: calc(
+      100vh - var(--layout-search-mobile-bottom-sheet-offset) - 60px
+    );
+  }
+
+  /* Mobile Header adjustments */
+  .bottomSheetHeader {
+    padding: 0 var(--space-3);
+  }
+
+  .bottomSheetHeader .title {
+    font-size: 13px;
+    padding: 0 0 var(--space-2) 0;
+  }
+
+  .dragHandle {
+    padding: 10px 0 6px 0;
+  }
+
+  /* Card Grid - Mobile: 1 column */
+  .cardGrid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+    margin-bottom: var(--space-4);
+    width: 100%;
+    box-sizing: border-box;
+    transition:
+      opacity 0.3s ease,
+      transform 0.3s ease;
+  }
+
+  /* Collapsed state: show ~1 card on mobile */
+  .bottomSheet.collapsed .cardGrid {
+    overflow: hidden;
+    max-height: 100px;
+  }
+
+  .bottomSheetContent {
+    padding: 0 var(--space-3) var(--space-3) var(--space-3);
+    width: 100%;
+    box-sizing: border-box;
+    transition:
+      opacity 0.3s ease,
+      visibility 0.3s ease;
+  }
+
+  .paginationButton {
+    min-width: 36px;
+    height: 36px;
+    padding: 0 10px;
+    font-size: 13px;
+  }
+
+  /* 카드 래퍼 오버플로우 방지 */
+  .cardWrapper {
+    max-width: 100%;
+    overflow: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bottomSheet,
+  .bottomSheetContent,
+  .cardGrid,
+  .cardWrapper {
+    transition: none;
+  }
+
+  .bottomSheet {
+    will-change: auto;
+  }
+}
+
+/* 지도 확장 모드 */
+.main.mapExpanded {
+  position: absolute;
+  inset: var(--layout-header-desktop-height) 80px auto;
+  z-index: var(--z-bottom-sheet);
+  background: var(--color-background-page);
+  padding: var(--space-6) 0;
+  margin: 0;
+  height: calc(100vh - var(--layout-header-desktop-height));
+  min-height: calc(100vh - var(--layout-header-desktop-height));
+  box-sizing: border-box;
+  width: calc(100% - 160px);
+  gap: 0;
+}
+
+.main.mapExpanded .results {
+  display: none;
+}
+
+.main.mapExpanded .mapSection {
+  flex: 1;
+  position: relative;
+  top: 0;
+  height: calc(100vh - var(--layout-header-desktop-height) - var(--space-12));
+  min-height: calc(
+    100vh - var(--layout-header-desktop-height) - var(--space-12)
+  );
+  max-height: none;
+  margin: 0;
+  width: 100%;
+}
+
+/* Desktop: Show desktop layout, hide bottom sheet */
+@media not all and (max-width: 1024px) {
+  .mapLayer,
+  .bottomSheet {
+    display: none;
+  }
+}

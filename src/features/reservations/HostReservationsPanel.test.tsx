@@ -1,187 +1,173 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { reservationApi } from "../../api";
-import { ReservationStatus } from "../../types/enums";
-import { HostReservationsPanel } from "./HostReservationsPanel";
+import {
+  HostReservationsPanel,
+  type HostReservationsPanelProps,
+} from "./HostReservationsPanel";
 
-const mockClearError = jest.fn();
-const mockHandleError = jest.fn();
+const reservationRow = {
+  reservationUid: "host-1",
+  statusLabel: "결제 완료",
+  statusTone: "success",
+  guestName: "게스트 1",
+  guestCountLabel: "2명",
+  checkInLabel: "2026년 7월 11일 (토)",
+  checkOutLabel: "2026년 7월 13일 (월)",
+  createdAtLabel: "2026년 7월 1일 (수)",
+  accommodationName: "숙소 1",
+  reservationCodeLabel: "CODE-1",
+  totalPriceLabel: "₩100,001",
+} as const;
 
-jest.mock("react-router-dom", () => ({
-  useNavigate: () => jest.fn(),
-}), { virtual: true });
-
-jest.mock("../../api", () => ({
-  reservationApi: {
-    getHostReservations: jest.fn(),
+const createProps = (
+  overrides: Partial<HostReservationsPanelProps> = {},
+): HostReservationsPanelProps => ({
+  checkInSortDirection: "descending",
+  errorMessage: null,
+  filterType: "UPCOMING",
+  loadMoreRef: vi.fn(),
+  onCheckInSort: vi.fn(),
+  onDismissError: vi.fn(),
+  onFilterChange: vi.fn(),
+  onOpenReservation: vi.fn(),
+  state: {
+    status: "ready",
+    rows: [],
+    hasNext: false,
+    isLoadingMore: false,
   },
-}));
-
-jest.mock("../../hooks/useApiError", () => ({
-  useApiError: () => ({
-    error: null,
-    clearError: mockClearError,
-    handleError: mockHandleError,
-  }),
-}));
-
-jest.mock("../../components/ErrorToast", () => ({
-  ErrorToast: ({ message }: { message: string }) => (
-    <div role="alert">{message}</div>
-  ),
-}));
-
-jest.mock("../../shared/ui", () => {
-  const React = require("react");
-  const actual = jest.requireActual("../../shared/ui");
-
-  return {
-    ...actual,
-    EmptyState: ({ title }: { title: React.ReactNode }) =>
-      React.createElement("div", { "data-testid": "shared-empty-state" }, title),
-    LoadingState: ({ title }: { title: React.ReactNode }) =>
-      React.createElement(
-        "div",
-        { "data-testid": "shared-loading-state", role: "status" },
-        title
-      ),
-  };
-});
-
-const createHostReservation = (
-  reservationId: number,
-  status: ReservationStatus
-) =>
-  ({
-    reservation_uid: `host-${reservationId}`,
-    reservation_code: `CODE-${reservationId}`,
-    total_price: 100000 + reservationId,
-    currency: "KRW",
-    guest_count: 2,
-    check_in_date: `2026-07-${10 + reservationId}`,
-    check_out_date: `2026-07-${12 + reservationId}`,
-    created_at: "2026-07-01",
-    status,
-    guest: {
-      id: reservationId,
-      nickname: `게스트 ${reservationId}`,
-    },
-    accommodation: {
-      id: reservationId,
-      name: `숙소 ${reservationId}`,
-    },
-  } as any);
-
-const createQueryClient = () =>
-  new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
-    },
-  });
-
-const renderHostReservationsPanel = (
-  filterType: "UPCOMING" | "PAST" | "CANCELLED",
-) =>
-  render(
-    <QueryClientProvider client={createQueryClient()}>
-      <HostReservationsPanel
-        filterType={filterType}
-        onFilterChange={jest.fn()}
-      />
-    </QueryClientProvider>
-  );
-
-beforeEach(() => {
-  mockClearError.mockReset();
-  mockHandleError.mockReset();
-  jest.mocked(reservationApi.getHostReservations).mockReset();
-  window.IntersectionObserver = jest.fn().mockImplementation(() => ({
-    disconnect: jest.fn(),
-    observe: jest.fn(),
-    unobserve: jest.fn(),
-  }));
+  ...overrides,
 });
 
 describe("HostReservationsPanel", () => {
-  it("renders shared loading state while fetching reservations", async () => {
-    jest.mocked(reservationApi.getHostReservations).mockResolvedValue({
-      page_info: {
-        has_next: false,
-        next_cursor: null,
-      },
-      reservations: [],
-    } as any);
-
-    renderHostReservationsPanel("UPCOMING");
-
-    expect(screen.getByTestId("shared-loading-state")).toHaveTextContent(
-      "로딩 중..."
+  it("renders only the shared loading state while loading", () => {
+    render(
+      <HostReservationsPanel
+        {...createProps({ state: { status: "loading" } })}
+      />,
     );
-    await screen.findByTestId("shared-empty-state");
+
+    expect(screen.getByText("로딩 중...")).toBeInTheDocument();
+    expect(screen.queryByText("예약 관리")).not.toBeInTheDocument();
   });
 
-  it("renders shared empty state when the host has no reservations", async () => {
-    jest.mocked(reservationApi.getHostReservations).mockResolvedValue({
-      page_info: {
-        has_next: false,
-        next_cursor: null,
-      },
-      reservations: [],
-    } as any);
+  it("preserves filters, empty copy, and dismissible error toast", async () => {
+    const onDismissError = vi.fn();
+    const onFilterChange = vi.fn();
 
-    renderHostReservationsPanel("UPCOMING");
-
-    expect(await screen.findByTestId("shared-empty-state")).toHaveTextContent(
-      "아직 예약이 없습니다."
+    render(
+      <HostReservationsPanel
+        {...createProps({
+          errorMessage: "예약을 불러오지 못했습니다.",
+          onDismissError,
+          onFilterChange,
+        })}
+      />,
     );
+
+    expect(screen.getByText("예약 관리")).toBeInTheDocument();
+    expect(screen.getByText("아직 예약이 없습니다.")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("tab", { name: "취소된 예약" }));
+    expect(onFilterChange).toHaveBeenCalledWith("CANCELLED");
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "예약을 불러오지 못했습니다.",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "오류 닫기" }));
+    expect(onDismissError).toHaveBeenCalledTimes(1);
   });
 
-  it("renders labels for payment-completed and completed reservations", async () => {
-    jest.mocked(reservationApi.getHostReservations).mockResolvedValue({
-      page_info: {
-        has_next: false,
-        next_cursor: null,
-      },
-      reservations: [
-        createHostReservation(1, ReservationStatus.PAYMENT_COMPLETED),
-        createHostReservation(2, ReservationStatus.COMPLETED),
-      ],
-    } as any);
+  it("renders mapped rows and delegates detail navigation", async () => {
+    const onOpenReservation = vi.fn();
 
-    renderHostReservationsPanel("UPCOMING");
+    render(
+      <HostReservationsPanel
+        {...createProps({
+          onOpenReservation,
+          state: {
+            status: "ready",
+            hasNext: false,
+            isLoadingMore: false,
+            rows: [
+              reservationRow,
+              {
+                ...reservationRow,
+                reservationUid: "host-2",
+                reservationCodeLabel: "CODE-2",
+                statusLabel: "이용 완료",
+              },
+            ],
+          },
+        })}
+      />,
+    );
 
-    expect(await screen.findByText("결제 완료")).toBeInTheDocument();
+    expect(screen.getByText("결제 완료")).toBeInTheDocument();
     expect(screen.getByText("이용 완료")).toBeInTheDocument();
+    expect(screen.getAllByText("게스트 1")).toHaveLength(2);
+    expect(screen.getAllByText("₩100,001")).toHaveLength(2);
+
+    const firstDetailButton = screen
+      .getAllByRole("button", { name: "상세" })
+      .at(0);
+    if (!firstDetailButton)
+      throw new Error("Expected a reservation detail button");
+    await userEvent.click(firstDetailButton);
+
+    expect(onOpenReservation).toHaveBeenCalledWith("host-1");
   });
 
-  it("exposes keyboard-accessible check-in sorting metadata", async () => {
-    jest.mocked(reservationApi.getHostReservations).mockResolvedValue({
-      page_info: {
-        has_next: false,
-        next_cursor: null,
+  it("keeps check-in sorting controlled and keyboard accessible", async () => {
+    const onCheckInSort = vi.fn();
+    const props = createProps({
+      onCheckInSort,
+      state: {
+        status: "ready",
+        rows: [reservationRow],
+        hasNext: false,
+        isLoadingMore: false,
       },
-      reservations: [
-        createHostReservation(1, ReservationStatus.PAYMENT_COMPLETED),
-        createHostReservation(2, ReservationStatus.CONFIRMED),
-      ],
-    } as any);
+    });
+    const { rerender } = render(<HostReservationsPanel {...props} />);
 
-    renderHostReservationsPanel("UPCOMING");
-
-    const sortButton = await screen.findByRole("button", { name: /체크인/ });
+    const sortButton = screen.getByRole("button", { name: /체크인/ });
     const checkInHeader = screen.getByRole("columnheader", { name: /체크인/ });
 
     expect(checkInHeader).toHaveAttribute("aria-sort", "descending");
+    expect(sortButton).toHaveTextContent("↓");
 
     sortButton.focus();
-    expect(sortButton).toHaveFocus();
-
     await userEvent.keyboard("{Enter}");
 
+    expect(onCheckInSort).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <HostReservationsPanel {...props} checkInSortDirection="ascending" />,
+    );
+
     expect(checkInHeader).toHaveAttribute("aria-sort", "ascending");
+    expect(sortButton).toHaveTextContent("↑");
+  });
+
+  it("attaches the injected load-more ref for nonempty paginated tables", () => {
+    const loadMoreRef = vi.fn();
+
+    render(
+      <HostReservationsPanel
+        {...createProps({
+          loadMoreRef,
+          state: {
+            status: "ready",
+            rows: [reservationRow],
+            hasNext: true,
+            isLoadingMore: true,
+          },
+        })}
+      />,
+    );
+
+    expect(loadMoreRef).toHaveBeenCalledWith(expect.any(HTMLDivElement));
+    expect(screen.getByText("로딩 중...")).toBeInTheDocument();
   });
 });

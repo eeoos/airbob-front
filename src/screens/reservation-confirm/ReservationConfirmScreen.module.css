@@ -1,0 +1,210 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-6) var(--space-10);
+}
+
+.content {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.title {
+  margin-bottom: var(--space-6);
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: var(--font-size-2xl);
+}
+
+.loading,
+.error {
+  padding: 80px var(--space-6);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-md);
+  text-align: center;
+}
+
+.accommodationInfo {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-6) 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.accommodationImage {
+  flex-shrink: 0;
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+}
+
+.accommodationDetails {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.accommodationTitle {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: var(--font-size-md);
+  line-height: 1.4;
+}
+
+.accommodationRating {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+}
+
+.star {
+  color: var(--color-brand-coral);
+  font-size: var(--font-size-sm);
+}
+
+.reviewCount {
+  color: var(--color-text-secondary);
+}
+
+.cancellationPolicy {
+  padding: var(--space-6) 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.policyTitle {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: var(--font-size-md);
+}
+
+.policyText {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.infoList {
+  margin: 0;
+}
+
+.infoRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-6) 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.infoLabel {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: var(--font-size-md);
+}
+
+.infoValue {
+  flex: 1;
+  margin: 0 var(--space-4) 0 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-md);
+  text-align: right;
+}
+
+.priceDetails {
+  padding: var(--space-6) 0;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.priceDetailsTitle {
+  margin: 0 0 var(--space-4);
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: var(--font-size-md);
+}
+
+.priceRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-md);
+}
+
+.priceRow:last-of-type {
+  margin-bottom: 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.totalLabel,
+.totalPrice {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: var(--font-size-lg);
+}
+
+.reserveButton {
+  width: 100%;
+  margin-top: var(--space-6);
+  padding: var(--space-4);
+  color: var(--color-text-inverse);
+  font-weight: 600;
+  font-size: var(--font-size-md);
+  cursor: pointer;
+  background: linear-gradient(
+    to right,
+    var(--color-brand-coral),
+    var(--color-brand-coral-hover)
+  );
+  border: none;
+  border-radius: var(--radius-md);
+  transition: opacity var(--motion-duration-base) var(--motion-ease-standard);
+}
+
+.reserveButton:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.reserveButton:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.reserveButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .title {
+    margin-bottom: var(--space-6);
+    font-size: var(--font-size-xl);
+  }
+
+  .infoRow {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .infoValue {
+    margin: 0;
+    text-align: left;
+  }
+
+  .priceRow {
+    gap: var(--space-4);
+  }
+}

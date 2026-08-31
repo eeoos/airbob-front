@@ -1,0 +1,427 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-6);
+}
+
+.loading,
+.error {
+  text-align: center;
+  padding: 80px var(--space-6);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-md);
+}
+
+.toastContainer {
+  position: fixed;
+  top: var(--space-6);
+  right: var(--space-6);
+  z-index: var(--z-toast);
+}
+
+.backButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 20px;
+  color: var(--color-text-primary);
+  border-radius: var(--radius-pill);
+  transition: background-color var(--motion-duration-base)
+    var(--motion-ease-standard);
+  margin-bottom: var(--space-6);
+}
+
+.backButton:hover {
+  background-color: var(--color-background-muted);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+}
+
+.headerLeft {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+}
+
+.statusBadge {
+  text-transform: uppercase;
+  align-self: flex-start;
+}
+
+.guestNights {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.accommodationName {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.profileImage,
+.profileImagePlaceholder {
+  width: var(--space-12);
+  height: var(--space-12);
+  border-radius: var(--radius-pill);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.profileImagePlaceholder {
+  background-color: var(--color-background-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.section {
+  margin-bottom: var(--space-8);
+  padding-bottom: var(--space-8);
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.section:last-child {
+  border-bottom: none;
+}
+
+.reservationSection {
+  border-top: 1px solid var(--color-border-default);
+  padding-top: var(--space-8);
+}
+
+.accommodationInfo {
+  display: flex;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  gap: var(--space-4);
+  align-items: flex-start;
+  cursor: pointer;
+  transition: opacity var(--motion-duration-base) var(--motion-ease-standard);
+  position: relative;
+}
+
+.accommodationInfo:hover {
+  opacity: 0.8;
+}
+
+.accommodationThumbnail,
+.accommodationThumbnailPlaceholder {
+  width: 120px;
+  height: 120px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.accommodationThumbnailPlaceholder {
+  background-color: var(--color-background-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+}
+
+.accommodationDetails {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+}
+
+.accommodationInfoName {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.accommodationInfoAddress {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.accommodationArrow {
+  font-size: 20px;
+  color: var(--color-text-primary);
+  margin-left: auto;
+  align-self: center;
+  flex-shrink: 0;
+}
+
+.guestInfoSection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.guestProfileImage,
+.guestProfileImagePlaceholder {
+  width: var(--space-16);
+  height: var(--space-16);
+  border-radius: var(--radius-pill);
+  object-fit: cover;
+  margin-left: auto;
+}
+
+.guestProfileImagePlaceholder {
+  background-color: var(--color-background-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.guestName {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-4);
+}
+
+.ratingSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.stars {
+  display: flex;
+  gap: 2px;
+}
+
+.star {
+  color: var(--color-success);
+  font-size: var(--font-size-lg);
+}
+
+.ratingComment {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  line-height: 1.5;
+}
+
+.viewDetailsLink {
+  font-size: var(--font-size-sm);
+  color: var(--color-success);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.viewDetailsLink:hover {
+  color: var(--color-success-hover);
+}
+
+.guestInfoCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.guestInfoRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.guestInfoIcon {
+  font-size: var(--font-size-md);
+  width: var(--space-5);
+  text-align: center;
+}
+
+.guestInfoText {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+}
+
+.viewProfileLink {
+  font-size: var(--font-size-sm);
+  color: var(--color-success);
+  text-decoration: underline;
+  cursor: pointer;
+  margin-top: var(--space-1);
+}
+
+.viewProfileLink:hover {
+  color: var(--color-success-hover);
+}
+
+.contactSection {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.messageButton,
+.callButton {
+  padding: var(--space-3) var(--space-6);
+  border: 1px solid var(--color-text-primary);
+  border-radius: var(--radius-md);
+  background: var(--color-background-page);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition:
+    background-color var(--motion-duration-base) var(--motion-ease-standard),
+    color var(--motion-duration-base) var(--motion-ease-standard);
+}
+
+.messageButton:hover,
+.callButton:hover {
+  background-color: var(--color-text-primary);
+  color: var(--color-text-inverse);
+}
+
+.phoneNumber {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.detailsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.detailItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.detailLabel {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  min-width: 120px;
+  line-height: 1.5;
+}
+
+.detailValue {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  text-align: right;
+  flex: 1;
+}
+
+.feeDetails {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.feeItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.feeLabel {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+}
+
+.feeValue {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.feeSeparator {
+  height: 1px;
+  background-color: var(--color-border-default);
+  margin: var(--space-2) 0;
+}
+
+.feeTotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.feeTotalLabel {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  min-width: 120px;
+  line-height: 1.5;
+}
+
+.feeTotalValue {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: var(--space-4);
+  }
+
+  .header {
+    flex-wrap: wrap;
+  }
+
+  .profileImage,
+  .profileImagePlaceholder {
+    position: static;
+    margin-top: var(--space-2);
+  }
+
+  .contactSection {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .messageButton,
+  .callButton {
+    width: 100%;
+  }
+
+  .phoneNumber {
+    text-align: center;
+  }
+
+  .detailItem {
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .detailValue {
+    text-align: left;
+  }
+}

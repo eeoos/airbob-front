@@ -8,16 +8,16 @@ describe("CounterStepper", () => {
       <CounterStepper
         decrementLabel="게스트 줄이기"
         incrementLabel="게스트 늘리기"
-        onChange={jest.fn()}
+        onChange={vi.fn()}
         value={2}
-      />
+      />,
     );
 
     expect(screen.getByText("2")).toBeInTheDocument();
   });
 
   it("calls onChange with the next lower value", async () => {
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
 
     render(
       <CounterStepper
@@ -25,18 +25,18 @@ describe("CounterStepper", () => {
         incrementLabel="게스트 늘리기"
         onChange={handleChange}
         value={2}
-      />
+      />,
     );
 
     await userEvent.click(
-      screen.getByRole("button", { name: "게스트 줄이기" })
+      screen.getByRole("button", { name: "게스트 줄이기" }),
     );
 
     expect(handleChange).toHaveBeenCalledWith(1);
   });
 
   it("calls onChange with the next higher value", async () => {
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
 
     render(
       <CounterStepper
@@ -44,18 +44,18 @@ describe("CounterStepper", () => {
         incrementLabel="게스트 늘리기"
         onChange={handleChange}
         value={2}
-      />
+      />,
     );
 
     await userEvent.click(
-      screen.getByRole("button", { name: "게스트 늘리기" })
+      screen.getByRole("button", { name: "게스트 늘리기" }),
     );
 
     expect(handleChange).toHaveBeenCalledWith(3);
   });
 
   it("disables decrement at the minimum value", async () => {
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
 
     render(
       <CounterStepper
@@ -64,7 +64,7 @@ describe("CounterStepper", () => {
         min={1}
         onChange={handleChange}
         value={1}
-      />
+      />,
     );
 
     const decrementButton = screen.getByRole("button", {
@@ -81,18 +81,18 @@ describe("CounterStepper", () => {
       <CounterStepper
         decrementLabel="게스트 줄이기"
         incrementLabel="게스트 늘리기"
-        onChange={jest.fn()}
+        onChange={vi.fn()}
         value={0}
-      />
+      />,
     );
 
     expect(
-      screen.getByRole("button", { name: "게스트 줄이기" })
+      screen.getByRole("button", { name: "게스트 줄이기" }),
     ).toBeDisabled();
   });
 
   it("disables increment at the maximum value", async () => {
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
 
     render(
       <CounterStepper
@@ -101,7 +101,7 @@ describe("CounterStepper", () => {
         max={3}
         onChange={handleChange}
         value={3}
-      />
+      />,
     );
 
     const incrementButton = screen.getByRole("button", {

@@ -1,12 +1,16 @@
-import { MutableRefObject, RefObject, useEffect } from "react";
-import { renderMapExpandControl } from "../lib/mapExpandControl";
+import { useEffect, type MutableRefObject, type RefObject } from "react";
+import { getGoogleMapsApi } from "../../../../../platform/integrations/googleMaps";
+import {
+  removeMapExpandControl,
+  renderMapExpandControl,
+} from "../lib/mapExpandControl";
 
 interface UseMapExpandControlOptions {
   isExpanded: boolean;
   isMapLoaded: boolean;
   mapInstanceRef: MutableRefObject<google.maps.Map | null>;
   mapRef: RefObject<HTMLDivElement | null>;
-  onExpandToggle?: () => void;
+  onExpandToggle?: (() => void) | undefined;
 }
 
 export const useMapExpandControl = ({
@@ -17,7 +21,18 @@ export const useMapExpandControl = ({
   onExpandToggle,
 }: UseMapExpandControlOptions) => {
   useEffect(() => {
-    if (!mapRef.current || !onExpandToggle || !isMapLoaded) return;
+    const container = mapRef.current;
+
+    return () => {
+      if (container) removeMapExpandControl(container);
+    };
+  }, [isMapLoaded, mapRef]);
+
+  useEffect(() => {
+    if (!mapRef.current || !onExpandToggle || !isMapLoaded) {
+      if (mapRef.current) removeMapExpandControl(mapRef.current);
+      return;
+    }
 
     let buttonTimer: number | null = null;
     let resizeTimer: number | null = null;
@@ -39,8 +54,9 @@ export const useMapExpandControl = ({
     if (mapInstanceRef.current) {
       resizeTimer = window.setTimeout(() => {
         const map = mapInstanceRef.current;
-        if (map) {
-          google.maps.event.trigger(map, "resize");
+        const maps = getGoogleMapsApi();
+        if (map && maps) {
+          maps.event.trigger(map, "resize");
         }
       }, 100);
     }

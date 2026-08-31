@@ -1,8 +1,7 @@
 import React from "react";
 import styles from "./IconButton.module.css";
 
-export interface IconButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface IconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   label: string;
   size?: "sm" | "md";
   variant?: "ghost" | "secondary";
@@ -23,7 +22,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
       variant = "ghost",
       ...buttonProps
     },
-    ref
+    ref,
   ) => (
     <button
       ref={ref}
@@ -32,7 +31,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
         styles.iconButton,
         styles[size],
         styles[variant],
-        className
+        className,
       )}
       title={title ?? label}
       {...buttonProps}
@@ -40,7 +39,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
     >
       {children}
     </button>
-  )
+  ),
 );
 
 IconButton.displayName = "IconButton";

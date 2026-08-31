@@ -14,7 +14,7 @@ const DEFAULT_BOUNDS_CHANGE_THRESHOLD = 0.001;
 export const hasBoundsChanged = (
   previousBounds: MapBoundsLiteral | null,
   nextBounds: MapBoundsLiteral,
-  threshold = DEFAULT_BOUNDS_CHANGE_THRESHOLD
+  threshold = DEFAULT_BOUNDS_CHANGE_THRESHOLD,
 ) => {
   if (!previousBounds) {
     return true;
@@ -30,7 +30,7 @@ export const hasBoundsChanged = (
 
 export const hasViewportChanged = (
   previousViewport: MapBoundsLiteral | null,
-  nextViewport: MapBoundsLiteral
+  nextViewport: MapBoundsLiteral,
 ) => {
   if (!previousViewport) {
     return true;
@@ -46,11 +46,12 @@ export const hasViewportChanged = (
 
 export const haveAccommodationIdsChanged = (
   previousAccommodations: IdentifiedAccommodation[],
-  nextAccommodations: IdentifiedAccommodation[]
+  nextAccommodations: IdentifiedAccommodation[],
 ) =>
   previousAccommodations.length !== nextAccommodations.length ||
   previousAccommodations.some(
-    (accommodation, index) => accommodation.id !== nextAccommodations[index]?.id
+    (accommodation, index) =>
+      accommodation.id !== nextAccommodations[index]?.id,
   );
 
 interface ShouldFitAccommodationBoundsInput {

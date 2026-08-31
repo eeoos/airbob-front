@@ -1,4 +1,4 @@
-import { RefObject, useEffect, useRef } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 
 type OutsideClickBoundary = {
   contains: (target: Node) => boolean;
@@ -7,7 +7,7 @@ type OutsideClickBoundary = {
 export const useOutsideClick = <T extends OutsideClickBoundary>(
   ref: RefObject<T | null>,
   onOutsideClick: (event: PointerEvent) => void,
-  enabled = true
+  enabled = true,
 ) => {
   const onOutsideClickRef = useRef(onOutsideClick);
 

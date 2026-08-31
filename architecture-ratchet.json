@@ -1,0 +1,14 @@
+{
+  "migratedFeatures": [
+    "accommodations/detail",
+    "accommodations/listing-editor",
+    "auth",
+    "home",
+    "profile",
+    "reservations",
+    "reservations/payment",
+    "reviews",
+    "search",
+    "wishlist"
+  ]
+}

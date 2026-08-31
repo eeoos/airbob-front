@@ -5,9 +5,10 @@ import styles from "./WishlistViews.module.css";
 interface WishlistIndexViewProps {
   isLoading: boolean;
   isLoadingMoreWishlists: boolean;
+  isMutationPending?: boolean;
   onDeleteWishlist: (
     wishlistId: number,
-    event: React.MouseEvent<HTMLButtonElement>
+    event: React.MouseEvent<HTMLButtonElement>,
   ) => void;
   onOpenRecentlyViewed: () => void;
   onOpenWishlist: (wishlistId: number) => void;
@@ -20,6 +21,7 @@ interface WishlistIndexViewProps {
 export function WishlistIndexView({
   isLoading,
   isLoadingMoreWishlists,
+  isMutationPending = false,
   onDeleteWishlist,
   onOpenRecentlyViewed,
   onOpenWishlist,
@@ -94,6 +96,7 @@ export function WishlistIndexView({
                 className={styles.wishlistDeleteButton}
                 onClick={(event) => onDeleteWishlist(wishlist.id, event)}
                 aria-label="위시리스트 삭제"
+                disabled={isMutationPending}
                 type="button"
               >
                 ✕

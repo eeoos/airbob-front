@@ -10,9 +10,9 @@ describe("Dialog", () => {
 
   it("does not render content when closed", () => {
     render(
-      <Dialog isOpen={false} title="위시리스트" onClose={jest.fn()}>
+      <Dialog isOpen={false} title="위시리스트" onClose={vi.fn()}>
         content
-      </Dialog>
+      </Dialog>,
     );
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -20,23 +20,23 @@ describe("Dialog", () => {
 
   it("renders an accessible modal dialog when open", () => {
     render(
-      <Dialog isOpen title="위시리스트" onClose={jest.fn()}>
+      <Dialog isOpen title="위시리스트" onClose={vi.fn()}>
         content
-      </Dialog>
+      </Dialog>,
     );
 
     expect(
-      screen.getByRole("dialog", { name: "위시리스트" })
+      screen.getByRole("dialog", { name: "위시리스트" }),
     ).toBeInTheDocument();
     expect(screen.getByText("content")).toBeInTheDocument();
   });
 
   it("calls onClose when the close button is clicked", async () => {
-    const onClose = jest.fn();
+    const onClose = vi.fn();
     render(
       <Dialog isOpen title="위시리스트" onClose={onClose}>
         content
-      </Dialog>
+      </Dialog>,
     );
 
     await userEvent.click(screen.getByRole("button", { name: "닫기" }));
@@ -46,9 +46,9 @@ describe("Dialog", () => {
 
   it("moves focus to the close button when opened", () => {
     render(
-      <Dialog isOpen title="위시리스트" onClose={jest.fn()}>
+      <Dialog isOpen title="위시리스트" onClose={vi.fn()}>
         <button type="button">담기</button>
-      </Dialog>
+      </Dialog>,
     );
 
     expect(screen.getByRole("button", { name: "닫기" })).toHaveFocus();
@@ -56,20 +56,20 @@ describe("Dialog", () => {
 
   it("respects an autofocus child as the initial focus target", () => {
     render(
-      <Dialog isOpen title="위시리스트 만들기" onClose={jest.fn()}>
+      <Dialog isOpen title="위시리스트 만들기" onClose={vi.fn()}>
         <input aria-label="이름" autoFocus />
-      </Dialog>
+      </Dialog>,
     );
 
     expect(screen.getByLabelText("이름")).toHaveFocus();
   });
 
   it("calls onClose when Escape is pressed", async () => {
-    const onClose = jest.fn();
+    const onClose = vi.fn();
     render(
       <Dialog isOpen title="위시리스트" onClose={onClose}>
         content
-      </Dialog>
+      </Dialog>,
     );
 
     await userEvent.keyboard("{Escape}");
@@ -143,10 +143,10 @@ describe("Dialog", () => {
 
   it("keeps Tab focus within the dialog", async () => {
     render(
-      <Dialog isOpen title="위시리스트" onClose={jest.fn()}>
+      <Dialog isOpen title="위시리스트" onClose={vi.fn()}>
         <button type="button">첫 번째</button>
         <button type="button">마지막</button>
-      </Dialog>
+      </Dialog>,
     );
 
     const closeButton = screen.getByRole("button", { name: "닫기" });
@@ -169,11 +169,11 @@ describe("Dialog", () => {
   });
 
   it("calls onClose when the backdrop is pressed", async () => {
-    const onClose = jest.fn();
+    const onClose = vi.fn();
     render(
       <Dialog isOpen title="위시리스트" onClose={onClose}>
         content
-      </Dialog>
+      </Dialog>,
     );
 
     await userEvent.click(screen.getByRole("presentation"));
@@ -183,38 +183,50 @@ describe("Dialog", () => {
 
   it("supports headerless dialogs with an accessible aria-label", () => {
     render(
-      <Dialog isOpen title="후기 2개" onClose={jest.fn()} showHeader={false}>
+      <Dialog isOpen title="후기 2개" onClose={vi.fn()} showHeader={false}>
         <button type="button" autoFocus>
           후기 닫기
         </button>
         content
-      </Dialog>
+      </Dialog>,
     );
 
-    expect(screen.getByRole("dialog", { name: "후기 2개" })).toBeInTheDocument();
     expect(
-      screen.queryByRole("heading", { name: "후기 2개" })
+      screen.getByRole("dialog", { name: "후기 2개" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "후기 2개" }),
     ).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "후기 닫기" })).toHaveFocus();
   });
 
   it("moves focus to the first focusable child in a headerless dialog", () => {
     render(
-      <Dialog isOpen title="상세 주소 확인" onClose={jest.fn()} showHeader={false}>
+      <Dialog
+        isOpen
+        title="상세 주소 확인"
+        onClose={vi.fn()}
+        showHeader={false}
+      >
         <button type="button">취소</button>
         <button type="button">진행하기</button>
-      </Dialog>
+      </Dialog>,
     );
 
     expect(screen.getByRole("button", { name: "취소" })).toHaveFocus();
   });
 
   it("can disable backdrop close for modal workflows that require explicit actions", async () => {
-    const onClose = jest.fn();
+    const onClose = vi.fn();
     render(
-      <Dialog isOpen title="예약 확인" onClose={onClose} closeOnBackdrop={false}>
+      <Dialog
+        isOpen
+        title="예약 확인"
+        onClose={onClose}
+        closeOnBackdrop={false}
+      >
         content
-      </Dialog>
+      </Dialog>,
     );
 
     await userEvent.click(screen.getByRole("presentation"));
@@ -227,12 +239,12 @@ describe("Dialog", () => {
       <Dialog
         isOpen
         title="후기"
-        onClose={jest.fn()}
+        onClose={vi.fn()}
         size="xl"
         bodyPadding="none"
       >
         content
-      </Dialog>
+      </Dialog>,
     );
 
     expect(screen.getByRole("dialog", { name: "후기" })).toBeInTheDocument();
@@ -240,11 +252,11 @@ describe("Dialog", () => {
   });
 
   it("does not close when the inner dialog is pressed", async () => {
-    const onClose = jest.fn();
+    const onClose = vi.fn();
     render(
       <Dialog isOpen title="위시리스트" onClose={onClose}>
         content
-      </Dialog>
+      </Dialog>,
     );
 
     await userEvent.click(screen.getByRole("dialog", { name: "위시리스트" }));
@@ -257,32 +269,32 @@ describe("Dialog", () => {
 
     const { rerender, unmount } = render(
       <>
-        <Dialog isOpen title="첫 번째" onClose={jest.fn()}>
+        <Dialog isOpen title="첫 번째" onClose={vi.fn()}>
           content
         </Dialog>
-        <Dialog isOpen title="두 번째" onClose={jest.fn()}>
+        <Dialog isOpen title="두 번째" onClose={vi.fn()}>
           content
         </Dialog>
-      </>
+      </>,
     );
 
-    expect(document.body.style.overflow).toBe("hidden");
+    expect(document.body).toHaveStyle({ overflow: "hidden" });
 
     rerender(
       <>
-        <Dialog isOpen={false} title="첫 번째" onClose={jest.fn()}>
+        <Dialog isOpen={false} title="첫 번째" onClose={vi.fn()}>
           content
         </Dialog>
-        <Dialog isOpen title="두 번째" onClose={jest.fn()}>
+        <Dialog isOpen title="두 번째" onClose={vi.fn()}>
           content
         </Dialog>
-      </>
+      </>,
     );
 
-    expect(document.body.style.overflow).toBe("hidden");
+    expect(document.body).toHaveStyle({ overflow: "hidden" });
 
     unmount();
 
-    expect(document.body.style.overflow).toBe("auto");
+    expect(document.body).toHaveStyle({ overflow: "auto" });
   });
 });

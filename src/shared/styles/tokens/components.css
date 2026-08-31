@@ -1,0 +1,23 @@
+:root {
+  --control-height-sm: var(--space-8);
+  --control-height-md: var(--space-10);
+  --control-height-lg: var(--space-12);
+  --control-touch-target: var(--space-11);
+  --radius-control: var(--radius-6);
+  --shadow-control: var(--elevation-2);
+  --shadow-card: var(--elevation-3);
+  --shadow-modal: var(--elevation-5);
+  --shadow-bottom-sheet: var(--elevation-7);
+  --layout-viewport-width: var(--size-vw-100);
+  --layout-viewport-height: var(--size-vh-100);
+  --layout-page-max-width: var(--size-px-1120);
+  --layout-page-padding-x: var(--space-6);
+  --layout-header-desktop-height: var(--size-px-80);
+  --layout-header-mobile-height: var(--size-px-130);
+  --layout-edit-header-height: var(--size-px-89);
+  --layout-modal-max-height: var(--size-vh-90);
+  --layout-search-mobile-popover-top: var(--size-px-130);
+  --layout-search-mobile-bottom-sheet-offset: var(--size-px-144);
+  --layout-mobile-safe-bottom: var(--environment-safe-area-bottom);
+  --card-media-ratio: var(--ratio-square);
+}

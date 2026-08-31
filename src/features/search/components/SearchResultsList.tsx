@@ -1,8 +1,6 @@
 import React from "react";
-import { ListContainer } from "../../../components/ListContainer";
-import { routeTo } from "../../../routes/paths";
-import { toAccommodationBookingRouteQuery } from "../lib/accommodationDetailParams";
-import { SearchAccommodationCardViewModel } from "../lib/searchAccommodationViewModel";
+import { ListContainer } from "../../../shared/ui/ListContainer";
+import type { SearchAccommodationCardViewModel } from "../lib/searchAccommodationViewModel";
 import { SearchAccommodationCard } from "./SearchAccommodationCard";
 
 type SearchResultsLayout = "desktop" | "bottomSheet";
@@ -20,13 +18,14 @@ interface SearchResultsListProps {
   isLoading: boolean;
   selectedAccommodationId: number | null;
   onAccommodationClick: (accommodationId: number) => void;
-  onWishlistToggle: (accommodationId: number) => void;
-  onHoveredAccommodationChange?: (accommodationId: number | null) => void;
-  detailSearchParams?: URLSearchParams;
-  checkIn?: string | null;
-  checkOut?: string | null;
-  layout?: SearchResultsLayout;
-  classNames?: SearchResultsListClassNames;
+  onWishlistToggle?: ((accommodationId: number) => void) | undefined;
+  onHoveredAccommodationChange?:
+    ((accommodationId: number | null) => void) | undefined;
+  getAccommodationHref: (accommodationId: number) => string;
+  checkIn?: string | null | undefined;
+  checkOut?: string | null | undefined;
+  layout?: SearchResultsLayout | undefined;
+  classNames?: SearchResultsListClassNames | undefined;
 }
 
 const classNamesFor = (...classNames: Array<string | undefined>): string =>
@@ -39,7 +38,7 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = ({
   onAccommodationClick,
   onWishlistToggle,
   onHoveredAccommodationChange,
-  detailSearchParams,
+  getAccommodationHref,
   checkIn,
   checkOut,
   layout = "desktop",
@@ -52,10 +51,6 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = ({
   if (accommodations.length === 0) {
     return <div className={classNames?.empty}>검색 결과가 없습니다.</div>;
   }
-
-  const detailParams = detailSearchParams
-    ? toAccommodationBookingRouteQuery(detailSearchParams)
-    : undefined;
 
   const cards = accommodations.map((accommodation) => (
     <div
@@ -72,11 +67,15 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = ({
     >
       <SearchAccommodationCard
         accommodation={accommodation}
-        detailUrl={routeTo.accommodationDetail(accommodation.id, detailParams)}
-        onClick={() => onAccommodationClick(accommodation.id)}
-        onWishlistToggle={() => onWishlistToggle(accommodation.id)}
         checkIn={checkIn}
         checkOut={checkOut}
+        detailUrl={getAccommodationHref(accommodation.id)}
+        onClick={() => onAccommodationClick(accommodation.id)}
+        onWishlistToggle={
+          onWishlistToggle
+            ? () => onWishlistToggle(accommodation.id)
+            : undefined
+        }
       />
     </div>
   ));

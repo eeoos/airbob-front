@@ -3,20 +3,20 @@
 
   max-width: 1760px;
   margin: 0 auto;
-  padding: 24px;
+  padding: var(--space-6);
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 32px;
+  margin-bottom: var(--space-8);
   position: relative;
   z-index: var(--profile-content-layer);
 }
 
 .title {
-  font-size: 32px;
+  font-size: var(--font-size-2xl);
   font-weight: 600;
   color: var(--color-text-primary);
   line-height: 1.2;
@@ -25,25 +25,27 @@
 
 .modeToggle {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-md);
-  padding: 4px;
+  padding: var(--space-1);
   background: var(--color-background-page);
   position: relative;
   z-index: var(--profile-content-layer);
 }
 
 .toggleButton {
-  padding: 8px 16px;
+  padding: var(--space-2) var(--space-4);
   border: none;
   background: transparent;
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: var(--radius-control);
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition:
+    background-color var(--motion-duration-base) var(--motion-ease-standard),
+    color var(--motion-duration-base) var(--motion-ease-standard);
   position: relative;
   z-index: var(--profile-content-layer);
   pointer-events: auto;
@@ -61,7 +63,7 @@
 .content {
   display: grid;
   grid-template-columns: 300px 1fr;
-  gap: 48px;
+  gap: var(--space-12);
   position: relative;
   min-height: calc(100vh - 200px);
   align-items: start;
@@ -71,13 +73,13 @@
   position: sticky;
   top: 100px;
   height: fit-content;
-  padding-right: 48px;
+  padding-right: var(--space-12);
   border-right: 1px solid var(--color-border-subtle);
   align-self: start;
 }
 
 .sidebar::after {
-  content: '';
+  content: "";
   position: absolute;
   top: -80px;
   right: -1px;
@@ -90,20 +92,23 @@
 .nav {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .navItem {
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   border: none;
   background: transparent;
   text-align: left;
-  font-size: 16px;
+  font-size: var(--font-size-md);
   font-weight: 500;
   color: var(--color-text-secondary);
   cursor: pointer;
   border-radius: var(--radius-md);
-  transition: all 0.2s ease;
+  transition:
+    background-color var(--motion-duration-base) var(--motion-ease-standard),
+    color var(--motion-duration-base) var(--motion-ease-standard),
+    font-weight var(--motion-duration-base) var(--motion-ease-standard);
 }
 
 .navItem:hover {
@@ -125,7 +130,7 @@
 /* 타이틀이 탭/사이드바와 겹치지 않도록 안정적인 상단 마진 추가 */
 @media (max-width: 1024px) {
   .main {
-    padding-top: 24px;
+    padding-top: var(--space-6);
     width: 100%;
   }
 
@@ -149,7 +154,7 @@
   .nav {
     flex-direction: row;
     overflow-x: auto;
-    padding-bottom: 8px;
+    padding-bottom: var(--space-2);
   }
 
   .navItem {
@@ -159,13 +164,13 @@
 
 @media (max-width: 768px) {
   .container {
-    padding: 16px;
+    padding: var(--space-4);
   }
 
   .header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 16px;
+    gap: var(--space-4);
   }
 
   .modeToggle {
@@ -176,4 +181,3 @@
     flex: 1;
   }
 }
-

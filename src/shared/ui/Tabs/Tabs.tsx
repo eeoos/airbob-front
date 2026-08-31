@@ -1,7 +1,7 @@
 import React from "react";
 import styles from "./Tabs.module.css";
 
-export interface TabItem<TValue extends string = string> {
+interface TabItem<TValue extends string = string> {
   disabled?: boolean;
   id?: string;
   label: React.ReactNode;
@@ -60,7 +60,7 @@ export function Tabs<TValue extends string = string>({
     }
 
     const activeIndex = tabRefs.current.findIndex(
-      (element) => element === document.activeElement
+      (element) => element === document.activeElement,
     );
     const startIndex =
       activeIndex >= 0 ? activeIndex : Math.max(focusableIndex, 0);
@@ -91,20 +91,14 @@ export function Tabs<TValue extends string = string>({
     }
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (
-      orientation === "horizontal" &&
-      event.key === "ArrowRight"
-    ) {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (orientation === "horizontal" && event.key === "ArrowRight") {
       event.preventDefault();
       moveSelection(1);
       return;
     }
 
-    if (
-      orientation === "horizontal" &&
-      event.key === "ArrowLeft"
-    ) {
+    if (orientation === "horizontal" && event.key === "ArrowLeft") {
       event.preventDefault();
       moveSelection(-1);
       return;
@@ -140,7 +134,6 @@ export function Tabs<TValue extends string = string>({
       aria-orientation={orientation}
       className={cx(styles.tabList, styles[variant], className)}
       role="tablist"
-      onKeyDown={handleKeyDown}
     >
       {items.map((item, index) => {
         const isSelected = item.value === value;
@@ -159,7 +152,7 @@ export function Tabs<TValue extends string = string>({
               styles[`${variant}Tab`],
               isSelected && styles[`${variant}Selected`],
               tabClassName,
-              isSelected && selectedTabClassName
+              isSelected && selectedTabClassName,
             )}
             disabled={item.disabled}
             id={item.id}
@@ -167,6 +160,7 @@ export function Tabs<TValue extends string = string>({
             tabIndex={index === focusableIndex ? 0 : -1}
             type="button"
             onClick={() => onValueChange(item.value)}
+            onKeyDown={handleKeyDown}
           >
             {item.label}
           </button>

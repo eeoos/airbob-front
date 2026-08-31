@@ -1,0 +1,389 @@
+.stepContent {
+  margin-bottom: var(--space-10);
+}
+
+.stepTitle {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.stepDescription {
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-8);
+  line-height: 1.5;
+}
+
+.formGroup {
+  margin-bottom: var(--space-6);
+}
+
+.formGroup:last-child {
+  margin-bottom: 0;
+}
+
+.label {
+  display: block;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.required {
+  color: var(--color-brand-coral);
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.checkboxTextLabel {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.checkbox {
+  width: var(--space-5);
+  height: var(--space-5);
+  cursor: pointer;
+  accent-color: var(--color-text-primary);
+}
+
+.quantityRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.quantityLabel {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.quantitySelector {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.quantityButton {
+  width: var(--space-10);
+  height: var(--space-10);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-background-page);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-duration-base) var(--motion-ease-standard),
+    border-color var(--motion-duration-base) var(--motion-ease-standard);
+  padding: 0;
+}
+
+.quantityButton:hover:not(:disabled) {
+  border-color: var(--color-text-primary);
+  background: var(--color-background-muted);
+}
+
+.quantityButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.quantityButton svg {
+  width: var(--space-4);
+  height: var(--space-4);
+  stroke: var(--color-text-primary);
+}
+
+.quantityButton:disabled svg {
+  stroke: var(--color-border-strong);
+}
+
+.quantityValue {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  min-width: 40px;
+  text-align: center;
+}
+
+.input,
+.textarea {
+  width: 100%;
+  padding: 14px var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+  transition: border-color 0.2s ease;
+  font-family: inherit;
+}
+
+.input:focus,
+.textarea:focus {
+  outline: none;
+  border-color: var(--color-text-primary);
+}
+
+.input:focus-visible,
+.textarea:focus-visible {
+  outline: none;
+  border-color: var(--color-text-primary);
+  box-shadow: var(--focus-ring);
+}
+
+.input:disabled {
+  background: var(--color-background-muted);
+  cursor: not-allowed;
+}
+
+.priceInput::-webkit-inner-spin-button,
+.priceInput::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.priceInput {
+  appearance: textfield;
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 120px;
+  line-height: 1.5;
+}
+
+.helperText {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-2);
+  line-height: 1.4;
+}
+
+.addressSearchContainer {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.addressSearchContainer .input {
+  flex: 1;
+}
+
+.addressSearchButton {
+  padding: 14px var(--space-6);
+  background: var(--color-text-primary);
+  color: var(--color-text-inverse);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  white-space: nowrap;
+}
+
+.addressSearchButton:hover {
+  background: var(--color-text-primary);
+}
+
+.section {
+  margin-top: var(--space-8);
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.sectionTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-6);
+}
+
+.typeSelectButton {
+  width: 100%;
+  padding: 14px var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+  background: var(--color-background-page);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: border-color 0.2s ease;
+  font-family: inherit;
+}
+
+.typeSelectButton:hover {
+  border-color: var(--color-text-primary);
+}
+
+.typeSelectButton svg {
+  width: var(--space-4);
+  height: var(--space-4);
+  color: var(--color-text-secondary);
+}
+
+.selectedAmenitiesList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.selectedAmenityItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-background-muted);
+  border-radius: var(--radius-md);
+  gap: var(--space-3);
+}
+
+.selectedAmenityName {
+  flex: 1;
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.amenityCountSelector {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.amenityCountButton {
+  width: var(--space-8);
+  height: var(--space-8);
+  border: 1px solid var(--color-border-default);
+  background: var(--color-background-page);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-duration-base) var(--motion-ease-standard),
+    border-color var(--motion-duration-base) var(--motion-ease-standard);
+}
+
+.amenityCountButton:hover:not(:disabled) {
+  border-color: var(--color-text-primary);
+  background: var(--color-background-muted);
+}
+
+.amenityCountButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.amenityCountButton svg {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.amenityCountValue {
+  min-width: 32px;
+  text-align: center;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.amenityRemoveButton {
+  width: var(--space-8);
+  height: var(--space-8);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  transition:
+    background-color var(--motion-duration-base) var(--motion-ease-standard),
+    color var(--motion-duration-base) var(--motion-ease-standard);
+  border-radius: var(--radius-sm);
+}
+
+.amenityRemoveButton:hover {
+  background: var(--color-border-subtle);
+  color: var(--color-text-primary);
+}
+
+.amenityRemoveButton svg {
+  width: 18px;
+  height: 18px;
+}
+
+.addAmenityButton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  border: 1px dashed var(--color-border-default);
+  background: var(--color-background-page);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition:
+    background-color var(--motion-duration-base) var(--motion-ease-standard),
+    border-color var(--motion-duration-base) var(--motion-ease-standard);
+}
+
+.addAmenityButton:hover {
+  border-color: var(--color-text-primary);
+  background: var(--color-background-muted);
+}
+
+.addAmenityButton svg {
+  width: var(--space-5);
+  height: var(--space-5);
+}
+
+@media (max-width: 768px) {
+  .stepTitle {
+    font-size: 24px;
+  }
+
+  .stepDescription {
+    font-size: var(--font-size-sm);
+  }
+
+  .input,
+  .textarea {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .addressSearchContainer {
+    flex-direction: column;
+  }
+
+  .addressSearchButton {
+    width: 100%;
+  }
+}

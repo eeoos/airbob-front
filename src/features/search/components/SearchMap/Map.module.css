@@ -25,47 +25,49 @@
 
 /* Vendor boundary: Google Maps InfoWindow chrome.
    Google renders these .gm-* nodes and some inline styles outside React.
-   Keep .gm-* selectors here; !important is limited to Google-owned chrome. */
-.mapContainer :global(.gm-style-iw-c) {
-  padding: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  border-radius: var(--radius-lg) !important;
-  overflow: hidden !important;
+   Runtime normalization owns inline values; this direct map-canvas scope
+   gives the stylesheet fallback greater specificity than vendor rules. */
+.mapContainer > .mapCanvas :global(.gm-style-iw-c) {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
 }
 
-.mapContainer :global(.gm-style-iw-d) {
-  padding: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  overflow: visible !important;
+.mapContainer > .mapCanvas :global(.gm-style-iw-d) {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
 }
 
 /* InfoWindow 꼬리 부분의 가상 요소만 제거 (요소는 유지) */
-.mapContainer :global(.gm-style-iw-t::after),
-.mapContainer :global(.gm-style-iw-t::before),
-.mapContainer :global(.gm-style-iw-tc::after),
-.mapContainer :global(.gm-style-iw-tc::before) {
-  display: none !important;
-  content: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
+.mapContainer > .mapCanvas :global(.gm-style-iw-t::after),
+.mapContainer > .mapCanvas :global(.gm-style-iw-t::before),
+.mapContainer > .mapCanvas :global(.gm-style-iw-tc::after),
+.mapContainer > .mapCanvas :global(.gm-style-iw-tc::before) {
+  display: none;
+  content: none;
+  visibility: hidden;
+  opacity: 0;
 }
 
 /* 꼬리 요소의 배경과 테두리만 투명하게 (요소는 유지하여 InfoWindow 정상 작동) */
-.mapContainer :global(.gm-style-iw-t),
-.mapContainer :global(.gm-style-iw-tc) {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  padding: 0 !important;
-  margin: 0 !important;
+.mapContainer > .mapCanvas :global(.gm-style-iw-t),
+.mapContainer > .mapCanvas :global(.gm-style-iw-tc) {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
 }
 
 /* Google Maps InfoWindow 기본 닫기 버튼 숨기기 */
-.mapContainer :global(.gm-ui-hover-effect) {
-  display: none !important;
+.mapContainer > .mapCanvas :global(.gm-ui-hover-effect) {
+  display: none;
 }
+
 /* End vendor boundary: Google Maps InfoWindow chrome. */
 
 /* 지도 드래그 로딩 오버레이 */
@@ -75,8 +77,8 @@
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: var(--z-popover);
-  background: rgba(255, 255, 255, 0.95);
-  padding: 16px 24px;
+  isolation: isolate;
+  padding: var(--space-4) var(--space-6);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   display: flex;
@@ -84,16 +86,28 @@
   justify-content: center;
 }
 
+.boundsLoadingOverlay::before {
+  position: absolute;
+  z-index: var(--z-local-base);
+  inset: 0;
+  border-radius: inherit;
+  background: var(--color-background-page);
+  content: "";
+  opacity: 0.95;
+}
+
 /* 점 세 개 가로 애니메이션 */
 .loadingDots {
+  position: relative;
+  z-index: var(--z-local-raised);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .loadingDots span {
-  width: 8px;
-  height: 8px;
+  width: var(--space-2);
+  height: var(--space-2);
   border-radius: var(--radius-pill);
   background-color: var(--color-text-primary);
   animation: loadingDotsBounce 1.4s ease-in-out infinite both;
@@ -118,6 +132,7 @@
     transform: scale(0);
     opacity: 0.5;
   }
+
   40% {
     transform: scale(1);
     opacity: 1;

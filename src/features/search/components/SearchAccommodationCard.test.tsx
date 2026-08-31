@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { readFileSync } from "fs";
-import { SearchAccommodationCardViewModel } from "../lib/searchAccommodationViewModel";
+import type { SearchAccommodationCardViewModel } from "../lib/searchAccommodationViewModel";
 import { SearchAccommodationCard } from "./SearchAccommodationCard";
 
 const accommodation: SearchAccommodationCardViewModel = {
@@ -19,7 +19,12 @@ const accommodation: SearchAccommodationCardViewModel = {
 
 describe("SearchAccommodationCard", () => {
   it("exposes the stable smoke selector on the card wrapper", () => {
-    render(<SearchAccommodationCard accommodation={accommodation} />);
+    render(
+      <SearchAccommodationCard
+        accommodation={accommodation}
+        detailUrl="/accommodations/1"
+      />,
+    );
 
     expect(screen.getByTestId("search-result-card")).toContainElement(
       screen.getByRole("link", {
@@ -29,13 +34,14 @@ describe("SearchAccommodationCard", () => {
   });
 
   it("opens the card action from keyboard Enter", async () => {
-    const onClick = jest.fn();
+    const onClick = vi.fn();
 
     render(
       <SearchAccommodationCard
         accommodation={accommodation}
+        detailUrl="/accommodations/1"
         onClick={onClick}
-      />
+      />,
     );
 
     const cardLink = screen.getByRole("link", {
@@ -49,15 +55,16 @@ describe("SearchAccommodationCard", () => {
   });
 
   it("labels wishlist toggle state without triggering the card action", async () => {
-    const onClick = jest.fn();
-    const onWishlistToggle = jest.fn();
+    const onClick = vi.fn();
+    const onWishlistToggle = vi.fn();
 
     render(
       <SearchAccommodationCard
         accommodation={accommodation}
+        detailUrl="/accommodations/1"
         onClick={onClick}
         onWishlistToggle={onWishlistToggle}
-      />
+      />,
     );
 
     const wishlistButton = screen.getByRole("button", {
@@ -77,21 +84,21 @@ describe("SearchAccommodationCard", () => {
       <SearchAccommodationCard
         accommodation={accommodation}
         detailUrl="/accommodations/1?checkIn=2026-07-10&checkOut=2026-07-12"
-      />
+      />,
     );
 
     expect(
-      screen.getByRole("link", { name: "숙소 상세 보기: 성수 숙소" })
+      screen.getByRole("link", { name: "숙소 상세 보기: 성수 숙소" }),
     ).toHaveAttribute(
       "href",
-      "/accommodations/1?checkIn=2026-07-10&checkOut=2026-07-12"
+      "/accommodations/1?checkIn=2026-07-10&checkOut=2026-07-12",
     );
   });
 
   it("keeps wishlist icon color state in token-backed CSS", () => {
     const css = readFileSync(
       `${__dirname}/SearchAccommodationCard.module.css`,
-      "utf8"
+      "utf8",
     );
 
     expect(css).toContain("fill: var(--color-brand-coral);");

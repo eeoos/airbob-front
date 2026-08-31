@@ -30,7 +30,7 @@
 .cardLink:focus-visible {
   border-radius: var(--radius-md);
   outline: 2px solid var(--color-text-primary);
-  outline-offset: 4px;
+  outline-offset: var(--space-1);
 }
 
 .wishlistCardImage {
@@ -59,7 +59,7 @@
   justify-content: center;
   background-color: var(--color-background-muted);
   color: var(--color-text-secondary);
-  font-size: 14px;
+  font-size: var(--font-size-sm);
 }
 
 .placeholderImageHidden {
@@ -68,12 +68,12 @@
 
 .wishlistCardInfo {
   width: 100%;
-  padding: 12px 0 0 0;
+  padding: var(--space-3) 0 0 0;
   display: flex;
   flex-direction: column;
   min-height: 0;
   flex-shrink: 0;
-  gap: 4px; /* 요소들 사이 간격 줄이기 */
+  gap: var(--space-1); /* 요소들 사이 간격 줄이기 */
 }
 
 .locationRow {
@@ -81,80 +81,77 @@
   align-items: flex-start;
   justify-content: space-between;
   margin-bottom: 0;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .location {
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text-primary);
   line-height: 1.3;
   overflow: hidden;
   flex: 1;
-  word-wrap: break-word;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .review {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-left: 8px;
+  gap: var(--space-1);
+  margin-left: var(--space-2);
   flex-shrink: 0;
 }
 
 .star {
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-primary);
 }
 
 .rating {
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text-primary);
 }
 
 .reviewCount {
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
 }
 
 .name {
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   font-weight: 400;
   color: var(--color-text-primary);
   line-height: 1.3;
   margin: 0; /* margin 제거 */
-  margin-top: 0; /* 상단 마진 제거 */
   overflow: hidden;
   flex: 1;
   min-height: 0;
-  word-wrap: break-word;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .price {
   display: flex;
   align-items: baseline;
-  gap: 4px;
+  gap: var(--space-1);
   margin-top: 0; /* 상단 마진 제거 */
 }
 
 .priceAmount {
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text-primary);
 }
 
 .priceUnit {
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
 }
 
 .wishlistButton {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: var(--space-3);
+  right: var(--space-3);
   background: none;
   border: none;
   border-radius: 0;
@@ -166,8 +163,10 @@
   cursor: pointer;
   padding: 0;
   color: var(--color-text-primary);
-  transition: transform 0.2s ease, color 0.2s ease;
-  z-index: 1;
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease;
+  z-index: var(--z-local-raised);
   box-shadow: none;
 }
 
@@ -181,8 +180,8 @@
 }
 
 .wishlistIcon {
-  width: 20px;
-  height: 20px;
+  width: var(--space-5);
+  height: var(--space-5);
   fill: none;
   stroke: var(--color-text-primary);
 }

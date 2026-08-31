@@ -15,20 +15,23 @@ export const useSearchMapState = () => {
   const [isMapDragMode, setIsMapDragMode] = useState(false);
   const [shouldUpdateMapBounds, setShouldUpdateMapBounds] = useState(false);
 
-  const handleAccommodationSelect = useCallback((
-    accommodation: SearchMapSelectionTarget | null
-  ) => {
-    if (!accommodation) {
-      setSelectedAccommodationId(null);
-      return;
-    }
+  const handleAccommodationSelect = useCallback(
+    (accommodation: SearchMapSelectionTarget | null) => {
+      if (!accommodation) {
+        setSelectedAccommodationId(null);
+        return;
+      }
 
-    setSelectedAccommodationId(accommodation.id);
-    const element = document.getElementById(`accommodation-${accommodation.id}`);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  }, []);
+      setSelectedAccommodationId(accommodation.id);
+      const element = document.getElementById(
+        `accommodation-${accommodation.id}`,
+      );
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    },
+    [],
+  );
 
   const selectAccommodationId = useCallback((accommodationId: number) => {
     setSelectedAccommodationId(accommodationId);

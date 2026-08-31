@@ -1,13 +1,1 @@
-@import "./styles/tokens.css";
-
-body {
-  margin: 0;
-  font-family: var(--font-family-base);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
-}
+@import url("./shared/styles/globals.css");

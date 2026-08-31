@@ -1,15 +1,15 @@
-export const MAX_SEARCH_PAGE = 15;
+const MAX_SEARCH_PAGE = 15;
 
 export type PaginationItem = number | "ellipsis";
 
 export const getLimitedTotalPages = (
   totalPages: number,
-  maxPages = MAX_SEARCH_PAGE
+  maxPages = MAX_SEARCH_PAGE,
 ): number => Math.max(0, Math.min(totalPages, maxPages));
 
-export const clampSearchPage = (
+const clampSearchPage = (
   pageParam: string | number | null | undefined,
-  maxPages = MAX_SEARCH_PAGE
+  maxPages = MAX_SEARCH_PAGE,
 ): number => {
   const parsed =
     typeof pageParam === "number" ? pageParam : parseInt(pageParam ?? "", 10);

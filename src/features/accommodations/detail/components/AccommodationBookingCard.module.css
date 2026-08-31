@@ -1,0 +1,435 @@
+.bookingCard {
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-card);
+  position: relative;
+  z-index: var(--z-local-raised);
+  background-color: var(--color-background-page);
+}
+
+.priceSection {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  margin-bottom: var(--space-6);
+}
+
+.totalPrice {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.priceInfo {
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+}
+
+.dateSection {
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  overflow: visible;
+  margin-bottom: 0;
+  background-color: var(--color-background-page);
+  position: relative;
+}
+
+.datePickerContainer {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: var(--space-2);
+  z-index: var(--z-dropdown);
+  width: fit-content;
+  max-width: calc(var(--layout-viewport-width) - 40px);
+  transform-origin: top right;
+}
+
+.dateRow {
+  display: flex;
+  align-items: stretch;
+  padding: 0;
+  width: 100%;
+  height: 56px;
+  box-sizing: border-box;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dateColumn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--space-4);
+  background-color: var(--color-background-page);
+  height: 56px;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.dateDivider {
+  width: 1px;
+  background-color: var(--color-border-strong);
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.horizontalDivider {
+  height: 1px;
+  background-color: var(--color-border-strong);
+  width: 100%;
+  margin: 0;
+}
+
+.dateLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+
+.dateValue {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.guestRowContainer {
+  position: relative;
+  border: 1px solid var(--color-border-strong);
+  border-top: 1px solid var(--color-border-strong);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  margin-bottom: var(--space-6);
+  margin-top: -1px;
+  background-color: var(--color-background-page);
+  z-index: var(--z-dropdown);
+}
+
+.hidden {
+  display: none;
+}
+
+.guestRow {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-4);
+  width: 100%;
+  background-color: var(--color-background-page);
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  height: 56px;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.guestColumn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  background-color: var(--color-background-page);
+  height: 56px;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.guestValue {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.guestArrow {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  margin-left: var(--space-2);
+  line-height: 1;
+}
+
+.guestPicker {
+  position: absolute;
+  top: 100%;
+  left: -1px;
+  right: -1px;
+  background-color: var(--color-background-page);
+  border: 1px solid var(--color-border-strong);
+  border-top: none;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  padding: var(--space-2) var(--space-4);
+  z-index: var(--z-dropdown-raised);
+  box-shadow: var(--shadow-lg);
+  margin-top: 0;
+  isolation: isolate;
+}
+
+.guestPickerItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3) 0;
+}
+
+.guestPickerLabel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.guestPickerTitle {
+  font-size: var(--font-size-md);
+  font-weight: 400;
+  color: var(--color-text-primary);
+}
+
+.guestPickerSubtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.guestPickerLink {
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.guestPickerControls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.guestPickerButton {
+  width: var(--space-8);
+  height: var(--space-8);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  background-color: var(--color-background-page);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-lg);
+  font-weight: 300;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.guestPickerButton:hover:not(.guestPickerButtonDisabled) {
+  border-color: var(--color-text-primary);
+}
+
+.guestPickerButtonDisabled {
+  border-color: var(--color-border-subtle);
+  color: var(--color-border-subtle);
+  cursor: not-allowed;
+}
+
+.guestPickerCount {
+  font-size: var(--font-size-md);
+  font-weight: 400;
+  color: var(--color-text-primary);
+  min-width: 20px;
+  text-align: center;
+}
+
+.guestPickerNote {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.guestPickerClose {
+  margin-top: var(--space-4);
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  text-align: right;
+  width: 100%;
+}
+
+.couponSection {
+  margin-bottom: var(--space-5);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.couponHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.couponTitle {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.couponClearButton {
+  background: none;
+  border: none;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+
+.couponEmpty {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.couponList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.couponItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-background-page);
+}
+
+.couponItemSelected {
+  border-color: var(--color-text-primary);
+  background-color: var(--color-background-muted);
+}
+
+.couponInfo {
+  min-width: 0;
+}
+
+.couponName {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-1);
+}
+
+.couponMeta {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.couponApplyButton {
+  flex-shrink: 0;
+  border: 1px solid var(--color-text-primary);
+  border-radius: var(--radius-md);
+  background-color: var(--color-text-primary);
+  color: var(--color-text-inverse);
+  padding: var(--space-2) 10px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.couponApplyButton:hover:not(:disabled) {
+  background-color: var(--color-text-primary);
+}
+
+.couponApplyButton:disabled {
+  border-color: var(--color-border-default);
+  background-color: var(--color-background-muted);
+  color: var(--color-border-strong);
+  cursor: not-allowed;
+}
+
+.priceBreakdown {
+  margin-bottom: var(--space-5);
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--color-border-subtle);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.priceBreakdownRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.priceBreakdownRow + .priceBreakdownRow {
+  margin-top: var(--space-2);
+}
+
+.reserveButton {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(
+    to right,
+    var(--color-brand-coral),
+    var(--color-brand-coral-hover)
+  );
+  color: var(--color-text-inverse);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  margin-bottom: var(--space-4);
+}
+
+.reserveButton:hover {
+  opacity: 0.9;
+}
+
+.bookingNote {
+  text-align: center;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+  .datePickerContainer {
+    position: fixed;
+    top: var(--layout-search-mobile-popover-top);
+    left: var(--space-1);
+    right: var(--space-1);
+    width: auto;
+    max-width: none;
+    transform-origin: top center;
+    z-index: var(--z-dropdown);
+  }
+}

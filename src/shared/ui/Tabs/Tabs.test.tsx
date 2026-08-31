@@ -10,9 +10,8 @@ const items = [
 ] as const;
 
 function TabsFixture() {
-  const [value, setValue] = React.useState<(typeof items)[number]["value"]>(
-    "upcoming"
-  );
+  const [value, setValue] =
+    React.useState<(typeof items)[number]["value"]>("upcoming");
 
   return (
     <Tabs
@@ -25,9 +24,8 @@ function TabsFixture() {
 }
 
 function VerticalTabsFixture() {
-  const [value, setValue] = React.useState<(typeof items)[number]["value"]>(
-    "upcoming"
-  );
+  const [value, setValue] =
+    React.useState<(typeof items)[number]["value"]>("upcoming");
 
   return (
     <Tabs
@@ -47,23 +45,25 @@ describe("Tabs", () => {
         ariaLabel="예약 필터"
         items={items}
         value="past"
-        onValueChange={jest.fn()}
-      />
+        onValueChange={vi.fn()}
+      />,
     );
 
-    expect(screen.getByRole("tablist", { name: "예약 필터" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("tablist", { name: "예약 필터" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "이전 여행" })).toHaveAttribute(
       "aria-selected",
-      "true"
+      "true",
     );
     expect(screen.getByRole("tab", { name: "다가올 여행" })).toHaveAttribute(
       "aria-selected",
-      "false"
+      "false",
     );
   });
 
   it("delegates click changes", async () => {
-    const onValueChange = jest.fn();
+    const onValueChange = vi.fn();
 
     render(
       <Tabs
@@ -71,7 +71,7 @@ describe("Tabs", () => {
         items={items}
         value="upcoming"
         onValueChange={onValueChange}
-      />
+      />,
     );
 
     await userEvent.click(screen.getByRole("tab", { name: "이전 여행" }));
@@ -89,7 +89,7 @@ describe("Tabs", () => {
     expect(screen.getByRole("tab", { name: "이전 여행" })).toHaveFocus();
     expect(screen.getByRole("tab", { name: "이전 여행" })).toHaveAttribute(
       "aria-selected",
-      "true"
+      "true",
     );
 
     await userEvent.keyboard("{End}");
@@ -113,7 +113,7 @@ describe("Tabs", () => {
     expect(screen.getByRole("tab", { name: "이전 여행" })).toHaveFocus();
     expect(screen.getByRole("tab", { name: "이전 여행" })).toHaveAttribute(
       "aria-selected",
-      "true"
+      "true",
     );
 
     await userEvent.keyboard("{ArrowUp}");
@@ -126,17 +126,17 @@ describe("Tabs", () => {
         ariaLabel="예약 필터"
         items={items}
         value="missing"
-        onValueChange={jest.fn()}
-      />
+        onValueChange={vi.fn()}
+      />,
     );
 
     expect(screen.getByRole("tab", { name: "다가올 여행" })).toHaveAttribute(
       "tabindex",
-      "0"
+      "0",
     );
     expect(screen.getByRole("tab", { name: "다가올 여행" })).toHaveAttribute(
       "aria-selected",
-      "false"
+      "false",
     );
   });
 
@@ -150,21 +150,21 @@ describe("Tabs", () => {
           { value: "cancelled", label: "취소된 여행" },
         ]}
         value="past"
-        onValueChange={jest.fn()}
-      />
+        onValueChange={vi.fn()}
+      />,
     );
 
     expect(screen.getByRole("tab", { name: "다가올 여행" })).toHaveAttribute(
       "tabindex",
-      "0"
+      "0",
     );
     expect(screen.getByRole("tab", { name: "이전 여행" })).toHaveAttribute(
       "aria-selected",
-      "true"
+      "true",
     );
     expect(screen.getByRole("tab", { name: "이전 여행" })).toHaveAttribute(
       "tabindex",
-      "-1"
+      "-1",
     );
   });
 });

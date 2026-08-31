@@ -1,11 +1,11 @@
 import { useCallback } from "react";
-import { routeTo } from "../../../../../routes/paths";
-import { toAccommodationBookingRouteQuery } from "../../../lib/accommodationDetailParams";
+import { browserWindowNavigation } from "../../../../../platform/browser/windowNavigation";
 import { bindInfoWindowEvents } from "../lib/infoWindowEvents";
 
 interface UseMapInfoWindowEventsOptions {
-  detailSearchParams?: URLSearchParams;
-  onWishlistToggle?: (accommodationId: number, isInWishlist: boolean) => void;
+  getAccommodationHref: (accommodationId: number) => string;
+  onWishlistToggle?:
+    ((accommodationId: number, isInWishlist: boolean) => void) | undefined;
 }
 
 interface BindMapInfoWindowEventsOptions {
@@ -15,21 +15,16 @@ interface BindMapInfoWindowEventsOptions {
 }
 
 export const useMapInfoWindowEvents = ({
-  detailSearchParams,
+  getAccommodationHref,
   onWishlistToggle,
 }: UseMapInfoWindowEventsOptions) =>
   useCallback(
     ({ root, accommodationId, onClose }: BindMapInfoWindowEventsOptions) => {
-      const detailParams = detailSearchParams
-        ? toAccommodationBookingRouteQuery(detailSearchParams)
-        : undefined;
-
       return bindInfoWindowEvents({
         root,
         onCardClick: () => {
-          window.open(
-            routeTo.accommodationDetail(accommodationId, detailParams),
-            "_blank",
+          browserWindowNavigation.openInNewTab(
+            getAccommodationHref(accommodationId),
           );
         },
         onClose,
@@ -43,5 +38,5 @@ export const useMapInfoWindowEvents = ({
         },
       });
     },
-    [detailSearchParams, onWishlistToggle],
+    [getAccommodationHref, onWishlistToggle],
   );

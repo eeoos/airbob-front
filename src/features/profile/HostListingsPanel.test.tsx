@@ -1,152 +1,127 @@
-import React from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react";
-import { accommodationApi } from "../../api";
-import { HostListingsPanel } from "./HostListingsPanel";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import {
+  HostListingsPanel,
+  type HostListingsPanelProps,
+} from "./HostListingsPanel";
+import styles from "./HostListingsPanel.module.css";
 
-const mockClearError = jest.fn();
-const mockHandleError = jest.fn();
+const listing = {
+  id: 7,
+  imageAlt: "바다 숙소",
+  locationLabel: "부산, 해운대구",
+  managementLabel: "바다 숙소 숙소 관리 열기",
+  name: "바다 숙소",
+  statusLabel: "공개",
+  thumbnailUrl: null,
+} as const;
 
-jest.mock("../../api", () => ({
-  accommodationApi: {
-    getMyAccommodations: jest.fn(),
+const createProps = (
+  overrides: Partial<HostListingsPanelProps> = {},
+): HostListingsPanelProps => ({
+  errorMessage: null,
+  loadMoreRef: vi.fn(),
+  onDismissError: vi.fn(),
+  onOpenListingActions: vi.fn(),
+  onStatusChange: vi.fn(),
+  state: {
+    status: "ready",
+    listings: [],
+    hasNext: false,
+    isLoadingMore: false,
   },
-}));
-
-jest.mock("../../hooks/useApiError", () => ({
-  useApiError: () => ({
-    error: null,
-    clearError: mockClearError,
-    handleError: mockHandleError,
-  }),
-}));
-
-jest.mock("../../components/ErrorToast", () => ({
-  ErrorToast: ({ message }: { message: string }) => (
-    <div role="alert">{message}</div>
-  ),
-}));
-
-jest.mock("../accommodations/appShell", () => ({
-  AccommodationActionModal: (props: any) => {
-    return props.isOpen ? (
-      <div role="dialog">{props.accommodation?.name}</div>
-    ) : null;
-  },
-}));
-
-jest.mock("../../shared/ui", () => {
-  const React = require("react");
-  const actual = jest.requireActual("../../shared/ui");
-
-  return {
-    ...actual,
-    EmptyState: ({ title }: { title: React.ReactNode }) =>
-      React.createElement("div", { "data-testid": "shared-empty-state" }, title),
-    LoadingState: ({ title }: { title: React.ReactNode }) =>
-      React.createElement(
-        "div",
-        { "data-testid": "shared-loading-state", role: "status" },
-        title
-      ),
-  };
-});
-
-const renderPanel = (onStatusChange = jest.fn()) => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
-    },
-  });
-
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <HostListingsPanel onStatusChange={onStatusChange} />
-    </QueryClientProvider>
-  );
-};
-
-beforeEach(() => {
-  mockClearError.mockReset();
-  mockHandleError.mockReset();
-  jest.mocked(accommodationApi.getMyAccommodations).mockReset();
-  window.IntersectionObserver = jest.fn().mockImplementation(() => ({
-    disconnect: jest.fn(),
-    observe: jest.fn(),
-    unobserve: jest.fn(),
-  }));
+  statusType: "PUBLISHED",
+  ...overrides,
 });
 
 describe("HostListingsPanel", () => {
-  it("renders shared loading state while fetching accommodations", async () => {
-    jest.mocked(accommodationApi.getMyAccommodations).mockResolvedValue({
-      accommodations: [],
-      page_info: {
-        has_next: false,
-        next_cursor: null,
-      },
-    } as any);
-
-    renderPanel();
-
-    expect(screen.getByTestId("shared-loading-state")).toHaveTextContent(
-      "로딩 중..."
+  it("renders only the shared loading state while loading", () => {
+    render(
+      <HostListingsPanel {...createProps({ state: { status: "loading" } })} />,
     );
-    await screen.findByTestId("shared-empty-state");
+
+    expect(screen.getByText("로딩 중...")).toBeInTheDocument();
+    expect(screen.queryByText("숙소 관리")).not.toBeInTheDocument();
   });
 
-  it("renders shared empty state when the host has no accommodations", async () => {
-    jest.mocked(accommodationApi.getMyAccommodations).mockResolvedValue({
-      accommodations: [],
-      page_info: {
-        has_next: false,
-        next_cursor: null,
-      },
-    } as any);
+  it("preserves the empty state, filters, and dismissible error toast", async () => {
+    const onDismissError = vi.fn();
+    const onStatusChange = vi.fn();
 
-    renderPanel();
-
-    expect(await screen.findByTestId("shared-empty-state")).toHaveTextContent(
-      "아직 숙소가 없습니다."
+    render(
+      <HostListingsPanel
+        {...createProps({
+          errorMessage: "숙소를 불러오지 못했습니다.",
+          onDismissError,
+          onStatusChange,
+        })}
+      />,
     );
+
+    expect(screen.getByText("숙소 관리")).toBeInTheDocument();
+    expect(screen.getByText("아직 숙소가 없습니다.")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("tab", { name: "작성 중" }));
+    expect(onStatusChange).toHaveBeenCalledWith("DRAFT");
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "숙소를 불러오지 못했습니다.",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "오류 닫기" }));
+    expect(onDismissError).toHaveBeenCalledTimes(1);
   });
 
-  it("opens accommodation management from a semantic listing card button", async () => {
-    jest.mocked(accommodationApi.getMyAccommodations).mockResolvedValue({
-      accommodations: [
-        {
-          id: 7,
-          name: "바다 숙소",
-          thumbnail_url: null,
-          status: "PUBLISHED",
-          type: "ENTIRE_PLACE",
-          address_summary: {
-            country: "대한민국",
-            state: null,
-            city: "부산",
-            district: "해운대구",
+  it("renders semantic listing cards and delegates selection by id", () => {
+    const onOpenListingActions = vi.fn();
+
+    render(
+      <HostListingsPanel
+        {...createProps({
+          onOpenListingActions,
+          state: {
+            status: "ready",
+            listings: [listing],
+            hasNext: false,
+            isLoadingMore: false,
           },
-          created_at: "2026-07-01T00:00:00Z",
-        },
-      ],
-      page_info: {
-        has_next: false,
-        next_cursor: null,
-      },
-    } as any);
+        })}
+      />,
+    );
 
-    renderPanel();
-
-    const card = await screen.findByRole("button", {
+    const card = screen.getByRole("button", {
       name: "바다 숙소 숙소 관리 열기",
     });
+    const article = screen.getByRole("article");
 
-    expect(card).toHaveClass("accommodationCard");
+    expect(article).toHaveClass(styles.accommodationCard ?? "");
+    expect(card).not.toContainElement(screen.getByText("바다 숙소"));
+    expect(screen.getByText("🏠")).toBeInTheDocument();
+    expect(screen.getByText("부산, 해운대구")).toBeInTheDocument();
+    expect(within(article).getByText("공개")).toBeInTheDocument();
 
     fireEvent.click(card);
 
-    expect(screen.getByRole("dialog")).toHaveTextContent("바다 숙소");
+    expect(onOpenListingActions).toHaveBeenCalledWith(7);
+  });
+
+  it("attaches the injected load-more ref and preserves loading copy", () => {
+    const loadMoreRef = vi.fn();
+
+    render(
+      <HostListingsPanel
+        {...createProps({
+          loadMoreRef,
+          state: {
+            status: "ready",
+            listings: [listing],
+            hasNext: true,
+            isLoadingMore: true,
+          },
+        })}
+      />,
+    );
+
+    expect(loadMoreRef).toHaveBeenCalledWith(expect.any(HTMLDivElement));
+    expect(screen.getByText("로딩 중...")).toBeInTheDocument();
   });
 });

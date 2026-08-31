@@ -1,50 +1,51 @@
-import { ReservationStatus } from "../../../types/enums";
 import type {
-  HostReservationInfo,
-  MyReservationInfo,
-} from "../../../types/reservation";
+  GuestReservationListItem,
+  HostReservationListItem,
+} from "../model/reservationRead";
 import {
   toGuestTripCardViewModel,
   toHostReservationRowViewModel,
 } from "./reservationListViewModel";
 
 const guestReservationFixture = (
-  overrides: Partial<MyReservationInfo> = {},
-): MyReservationInfo => ({
-  reservation_id: 11,
-  reservation_uid: "guest-reservation-11",
-  check_in_date: "2026-07-10",
-  check_out_date: "2026-07-12",
-  created_at: "2026-07-01T00:00:00",
+  overrides: Partial<GuestReservationListItem> = {},
+): GuestReservationListItem => ({
+  audience: "guest",
+  reservationId: 11,
+  reservationUid: "guest-reservation-11",
+  checkInDate: "2026-07-10",
+  checkOutDate: "2026-07-12",
+  createdAt: "2026-07-01T00:00:00",
   accommodation: {
     id: 7,
     name: "게스트 숙소",
-    thumbnail_url: "/rooms/7.jpg",
+    thumbnailUrl: "/rooms/7.jpg",
   },
   ...overrides,
 });
 
 const hostReservationFixture = (
-  overrides: Partial<HostReservationInfo> = {},
-): HostReservationInfo => ({
-  reservation_uid: "host-reservation-7",
-  reservation_code: "HOST-CODE-7",
-  total_price: 240000,
+  overrides: Partial<HostReservationListItem> = {},
+): HostReservationListItem => ({
+  audience: "host",
+  reservationUid: "host-reservation-7",
+  reservationCode: "HOST-CODE-7",
+  totalPrice: 240000,
   currency: "KRW",
-  guest_count: 3,
-  check_in_date: "2026-07-10",
-  check_out_date: "2026-07-12",
-  status: ReservationStatus.PAYMENT_COMPLETED,
-  created_at: "2026-07-01",
+  guestCount: 3,
+  checkInDate: "2026-07-10",
+  checkOutDate: "2026-07-12",
+  status: "PAYMENT_COMPLETED",
+  createdAt: "2026-07-01",
   guest: {
     id: 2,
     nickname: "예약 게스트",
-    thumbnail_image_url: null,
+    thumbnailImageUrl: null,
   },
   accommodation: {
     id: 7,
     name: "호스트 숙소",
-    thumbnail_url: null,
+    thumbnailUrl: null,
   },
   ...overrides,
 });
@@ -52,7 +53,6 @@ const hostReservationFixture = (
 describe("reservation list view model", () => {
   it("maps guest trip DTO fields into card display fields", () => {
     expect(toGuestTripCardViewModel(guestReservationFixture())).toEqual({
-      id: 11,
       reservationUid: "guest-reservation-11",
       accommodationName: "게스트 숙소",
       thumbnailUrl: "https://d1wivnghydqg7i.cloudfront.net/rooms/7.jpg",

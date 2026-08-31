@@ -1,4 +1,4 @@
-import type { AccommodationSearchInfo } from "../../../types/accommodation";
+import type { SearchAccommodation } from "../model/search";
 import {
   getSearchAccommodationPriceDisplay,
   toSearchAccommodationCardViewModel,
@@ -6,15 +6,15 @@ import {
 } from "./searchAccommodationViewModel";
 
 const searchAccommodationFixture = (
-  overrides: Partial<AccommodationSearchInfo> = {},
-): AccommodationSearchInfo => ({
+  overrides: Partial<SearchAccommodation> = {},
+): SearchAccommodation => ({
   id: 7,
   name: "성수 숙소",
-  accommodation_thumbnail_url: "/rooms/7.jpg",
-  base_price: 100000,
+  thumbnailUrl: "/rooms/7.jpg",
+  basePrice: 100000,
   currency: "KRW",
   type: "APARTMENT",
-  address_summary: {
+  addressSummary: {
     country: "KR",
     state: null,
     city: "Seoul",
@@ -24,16 +24,16 @@ const searchAccommodationFixture = (
     latitude: 37.5,
     longitude: 127,
   },
-  review_summary: {
-    total_count: 12,
-    average_rating: 4.75,
+  reviewSummary: {
+    totalCount: 12,
+    averageRating: 4.75,
   },
-  is_in_wishlist: true,
+  isInWishlist: true,
   ...overrides,
 });
 
 describe("search accommodation view model", () => {
-  it("maps API field names into card display fields", () => {
+  it("maps the search model into card display fields", () => {
     expect(
       toSearchAccommodationCardViewModel(searchAccommodationFixture()),
     ).toEqual({
@@ -71,7 +71,7 @@ describe("search accommodation view model", () => {
     });
   });
 
-  it("maps API field names into map display fields", () => {
+  it("maps the search model into map display fields", () => {
     expect(
       toSearchAccommodationMapViewModel(searchAccommodationFixture()),
     ).toEqual({

@@ -13,7 +13,17 @@ applies_when:
   - QA credentials are needed for smoke testing but must not be committed or documented
   - Structure-first refactors need route, feature cache, Query, and shared UI primitive boundaries locked before broad styling
   - Architecture freeze work needs executable public-surface contracts and a documented restart point for future audits
-tags: [frontend-architecture, verification-loop, browser-qa, contract-tests, credential-hygiene, responsive-qa, route-boundaries, dto-boundaries]
+tags:
+  [
+    frontend-architecture,
+    verification-loop,
+    browser-qa,
+    contract-tests,
+    credential-hygiene,
+    responsive-qa,
+    route-boundaries,
+    dto-boundaries,
+  ]
 related_components: [testing_framework, documentation, tooling]
 ---
 
@@ -96,7 +106,13 @@ When the freeze contract changes, update existing source-contract tests in the s
 
 Keep tests aligned with production public surfaces. If production imports `features/reservations/appShell`, the test should mock `features/reservations/appShell`, not the private files that app-shell happens to re-export. This prevents full-suite-only failures where a focused test accidentally bypasses the real dependency path.
 
-Document the freeze point as a restart point. A future "frontend audit" should begin with `docs/architecture/frontend-architecture-freeze.ko.md`, `src/routes/route-boundary-contracts.test.ts`, and `src/verification-gate.test.ts` rather than re-reading the whole app and rediscovering already-closed ownership problems.
+Document the active cutover as a restart point. A future frontend audit should
+begin with `docs/architecture/current-frontend-architecture.md`,
+`docs/architecture/frontend-ownership-matrix.md`,
+`src/app/router/manifest.test.tsx`, `tests/architecture/dependency-rules.md`, and
+`src/verification-gate.test.ts` rather than re-reading the whole app and
+rediscovering already-closed ownership problems. The 2026-07 freeze remains
+historical evidence, not the current owner registry.
 
 Tenth, treat CSS ownership as part of the architecture boundary. A route container that lives under `features/*` should not import a CSS module from `pages/**`; the stylesheet moves with the route container or into a shared UI primitive. When moving CSS, update token and high-risk fixtures at the same time. Otherwise the design refactor can lose coverage over the exact shell that now owns the route.
 
@@ -409,18 +425,17 @@ The design handoff should preserve known limitations:
 - `docs/superpowers/plans/2026-07-02-airbob-pre-design-architecture.md` describes the pre-design architecture plan and the reason design work was deferred.
 - `docs/superpowers/plans/2026-07-04-airbob-profile-reservation-boundary-refactor.ko.md` describes the profile, reservation, payment, and review route-boundary refactor that produced the route-only barrel and feature-owned CSS rules.
 - `docs/superpowers/plans/2026-07-06-airbob-frontend-architecture-freeze.ko.md` documents the task-by-task architecture freeze execution plan.
-- `docs/architecture/frontend-architecture-freeze.ko.md` is the freeze restart point for future frontend structure audits.
+- `docs/architecture/current-frontend-architecture.md` and `docs/architecture/frontend-ownership-matrix.md` are the current restart point and cutover registry; the freeze document is historical evidence.
 - `docs/qa/frontend-architecture-smoke.ko.md` is the browser smoke checklist for desktop and mobile verification with the thread-provided QA account.
 - `scripts/smoke/frontend-smoke.mjs` implements the authenticated smoke wrapper, route-specific assertions, credential redaction, and skipped dynamic route reporting.
 - `src/verification-gate.test.ts` locks the verification scripts, QA checklist coverage, and credential-safety checks.
-- `src/routes/routeConfig.test.tsx` locks route/auth/layout ownership in `routes/*`.
-- `src/routes/routeDefinitions.ts` and `src/routes/routeMatching.ts` keep shell metadata component-free and consumable by layouts.
-- `src/routes/route-boundary-contracts.test.ts` locks route, layout, shared UI, and feature-to-feature imports against feature-internal coupling.
+- `src/app/router/definitions.test.ts`, `manifest.test.tsx`, and `Router.test.tsx` lock the active 15-route policy, literal lazy adapters, semantic shells, authentication, and headers. `src/routes/routeConfig.test.tsx` now protects rollback parity only.
+- `tests/architecture/verify-dependency-rules.mjs` and dependency-cruiser own import-direction and exact temporary route-adapter bridge enforcement; the old source-scanner route boundary test was removed to keep one executable owner.
 - `src/features/search/publicCache.ts`, `src/features/wishlist/publicCache.ts`, `src/features/accommodations/publicCache.ts`, `src/features/profile/publicCache.ts`, and `src/features/reservations/publicCache.ts` are the public seams for cross-feature cache and session cleanup coordination.
 - `src/query/useHandledQueryError.ts` centralizes Query error toast de-duplication by `errorUpdatedAt`.
 - `src/features/search/hooks/useSearchRouteController.ts` owns Search route orchestration outside the render route.
 - `src/features/auth/lib/sessionLifecycle.ts` owns authenticated session refresh and clear side effects outside `AuthContext`.
-- `src/shared/ui/PageShell/*`, `src/shared/ui/ListingCard/*`, and `src/shared/ui/OverlaySurface/*` are the pre-redesign product UI primitives that should stay domain-free.
+- `src/shared/ui/ListingCard/*` and `src/shared/ui/OverlaySurface/*` are pre-redesign product UI primitives that should stay domain-free. `PageShell` still renders a nested `main` and must be demoted or removed in U19 before target screens use it inside an app shell.
 - `src/styles/tokens.test.ts` locks global token import order, overlay z-index tokens, and legacy z-index literal prevention.
 - `src/pages/Profile/profile-responsive-contracts.test.ts` locks the Profile mobile overflow fix.
 - `src/features/profile/index.ts`, `src/features/reservations/index.ts`, and `src/features/reviews/index.ts` are route-only public barrels for page adapters.

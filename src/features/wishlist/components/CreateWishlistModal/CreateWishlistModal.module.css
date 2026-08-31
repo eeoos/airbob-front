@@ -3,50 +3,52 @@
 }
 
 .content {
-  padding-top: 8px;
+  padding-top: var(--space-2);
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .inputGroup {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .label {
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text-primary);
 }
 
 .input {
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
-  font-size: 16px;
-  transition: border-color 0.2s ease;
+  font-size: var(--font-size-md);
+  transition: border-color var(--motion-duration-base)
+    var(--motion-ease-standard);
 }
 
-.input:focus {
+.input:focus-visible {
   outline: none;
   border-color: var(--color-text-primary);
+  box-shadow: var(--focus-ring);
 }
 
 .charCount {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
   text-align: right;
 }
 
 .buttonGroup {
   display: flex;
-  gap: 12px;
-  margin-top: 8px;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
 }
 
 .cancelButton {
@@ -56,10 +58,12 @@
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
-  font-size: 16px;
+  font-size: var(--font-size-md);
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition:
+    background-color var(--motion-duration-base) var(--motion-ease-standard),
+    border-color var(--motion-duration-base) var(--motion-ease-standard);
 }
 
 .cancelButton:hover {
@@ -74,10 +78,11 @@
   color: var(--color-text-inverse);
   border: none;
   border-radius: var(--radius-md);
-  font-size: 16px;
+  font-size: var(--font-size-md);
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color var(--motion-duration-base)
+    var(--motion-ease-standard);
 }
 
 .submitButton:hover:not(:disabled) {
@@ -91,7 +96,7 @@
 
 .toastContainer {
   position: absolute;
-  top: 16px;
+  top: var(--space-4);
   left: 50%;
   transform: translateX(-50%);
   z-index: var(--z-toast);

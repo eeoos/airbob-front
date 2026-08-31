@@ -1,17 +1,15 @@
-import { MutableRefObject, useEffect, useRef } from "react";
+import { useEffect, useRef, type MutableRefObject } from "react";
+import { getGoogleMapsApi } from "../../../../../platform/integrations/googleMaps";
 import {
   haveAccommodationIdsChanged,
   hasViewportChanged,
   shouldFitAccommodationBounds,
 } from "../lib/mapBounds";
+import { buildMarkerPriceSvg, getMarkerIconModel } from "../lib/markerIcon";
 import {
-  buildMarkerPriceSvg,
-  getMarkerIconModel,
-} from "../lib/markerIcon";
-import {
-  SearchMapAccommodation,
-  SearchMapMarker,
-  SearchMapViewport,
+  type SearchMapAccommodation,
+  type SearchMapMarker,
+  type SearchMapViewport,
 } from "../types";
 
 interface UseAccommodationMarkersOptions {
@@ -24,17 +22,41 @@ interface UseAccommodationMarkersOptions {
   onAccommodationSelectRef: MutableRefObject<
     (accommodation: SearchMapAccommodation | null) => void
   >;
-  onMapBoundsUpdated?: () => void;
+  onMapBoundsUpdated?: (() => void) | undefined;
   prevViewportRef: MutableRefObject<SearchMapViewport | null>;
   shouldUpdateMapBounds: boolean;
-  viewport?: SearchMapViewport | null;
+  viewport?: SearchMapViewport | null | undefined;
   viewportJustChangedRef: MutableRefObject<boolean>;
 }
+
+type SearchMapAccommodationWithCoordinate = SearchMapAccommodation & {
+  coordinate: {
+    latitude: number;
+    longitude: number;
+  };
+};
+
+const hasCoordinate = (
+  accommodation: SearchMapAccommodation,
+): accommodation is SearchMapAccommodationWithCoordinate =>
+  accommodation.coordinate.latitude !== null &&
+  accommodation.coordinate.longitude !== null;
 
 const createIconUrl = (svgIcon: string) => {
   const svgBlob = new Blob([svgIcon], { type: "image/svg+xml" });
 
   return URL.createObjectURL(svgBlob);
+};
+
+const disposeSearchMapMarkers = (markers: SearchMapMarker[]) => {
+  markers.forEach((marker) => {
+    if (marker.dispose) {
+      marker.dispose();
+      return;
+    }
+
+    marker.setMap(null);
+  });
 };
 
 export const useAccommodationMarkers = ({
@@ -54,108 +76,100 @@ export const useAccommodationMarkers = ({
   const boundsInitializedRef = useRef(false);
   const prevAccommodationsRef = useRef<SearchMapAccommodation[]>([]);
 
+  useEffect(
+    () => () => {
+      disposeSearchMapMarkers(markersRef.current);
+      markersRef.current = [];
+    },
+    [markersRef],
+  );
+
   useEffect(() => {
-    if (!mapInstanceRef.current || !window.google) return;
+    const maps = getGoogleMapsApi();
+    if (!mapInstanceRef.current || !maps) return;
 
     const map = mapInstanceRef.current;
-
-    const existingIds = new Set(
-      markersRef.current.flatMap((marker) =>
-        marker.accommodationId === undefined ? [] : [marker.accommodationId]
-      )
+    const validAccommodations = accommodations.filter(hasCoordinate);
+    const markerAccommodations = markersRef.current.flatMap((marker) =>
+      marker.accommodationId === undefined
+        ? []
+        : [{ id: marker.accommodationId }],
     );
-    const newIds = new Set(accommodations.map((accommodation) => accommodation.id));
+    const markersChanged = haveAccommodationIdsChanged(
+      markerAccommodations,
+      validAccommodations,
+    );
+    const shouldRebuildMarkers =
+      markersChanged || markersRef.current.length === 0;
 
-    const hasChanged =
-      existingIds.size !== newIds.size ||
-      !Array.from(existingIds).every((id) => newIds.has(id)) ||
-      !Array.from(newIds).every((id) => existingIds.has(id));
+    if (shouldRebuildMarkers) {
+      disposeSearchMapMarkers(markersRef.current);
+      markersRef.current = [];
+    }
 
-    if (!hasChanged && markersRef.current.length > 0) {
+    if (validAccommodations.length === 0) {
+      boundsInitializedRef.current = false;
+      prevAccommodationsRef.current = [];
       return;
     }
 
-    markersRef.current.forEach((marker) => {
-      marker.setMap(null);
-    });
-    markersRef.current = [];
-
-    if (!boundsInitializedRef.current) {
-      boundsInitializedRef.current = false;
-    }
-
-    const validAccommodations = accommodations.filter(
-      (accommodation) =>
-        accommodation.coordinate.latitude !== null &&
-        accommodation.coordinate.longitude !== null
-    );
-
-    if (validAccommodations.length === 0) return;
-
-    const bounds = new window.google.maps.LatLngBounds();
+    const bounds = new maps.LatLngBounds();
 
     validAccommodations.forEach((accommodation) => {
-      const lat = accommodation.coordinate.latitude!;
-      const lng = accommodation.coordinate.longitude!;
+      const lat = accommodation.coordinate.latitude;
+      const lng = accommodation.coordinate.longitude;
+      bounds.extend({ lat, lng });
+
+      if (!shouldRebuildMarkers) return;
 
       const markerIconModel = getMarkerIconModel({
         basePrice: accommodation.basePrice,
         currency: accommodation.currency,
       });
       const { totalWidth, bubbleHeight, anchor } = markerIconModel;
-      const svgIcon = buildMarkerPriceSvg(markerIconModel, "default");
-      const svgUrl = createIconUrl(svgIcon);
-
-      const marker = new window.google.maps.Marker({
-        position: { lat, lng },
-        map,
-        title: accommodation.name,
-        icon: {
-          url: svgUrl,
-          scaledSize: new window.google.maps.Size(totalWidth, bubbleHeight),
-          anchor: new window.google.maps.Point(anchor.x, anchor.y),
-        },
-      }) as SearchMapMarker;
-
-      marker.accommodationId = accommodation.id;
-      marker.accommodation = accommodation;
-
-      const selectedSvgIcon = buildMarkerPriceSvg(markerIconModel, "selected");
-      const selectedSvgUrl = createIconUrl(selectedSvgIcon);
-      const hoveredSvgIcon = buildMarkerPriceSvg(markerIconModel, "hovered");
-      const hoveredSvgUrl = createIconUrl(hoveredSvgIcon);
-      const iconSize = new window.google.maps.Size(totalWidth, bubbleHeight);
-      const iconAnchor = new window.google.maps.Point(anchor.x, anchor.y);
-
-      marker.icons = {
-        default: {
-          url: svgUrl,
-          scaledSize: iconSize,
-          anchor: iconAnchor,
-        },
-        selected: {
-          url: selectedSvgUrl,
-          scaledSize: iconSize,
-          anchor: iconAnchor,
-        },
-        hovered: {
-          url: hoveredSvgUrl,
-          scaledSize: iconSize,
-          anchor: iconAnchor,
-        },
-      };
-      marker.originalIcon = marker.icons.default;
-
+      const objectUrls: string[] = [];
+      const markerListeners: google.maps.MapsEventListener[] = [];
+      let marker: SearchMapMarker | null = null;
       let animationFrameId: number | null = null;
       let currentScale = 1.0;
+      let isDisposed = false;
       const targetScale = 1.1;
       const animationDuration = 200;
+
+      const preserveSelectedIcon = () => {
+        if (!marker?.isSelected || !marker.icons) return false;
+
+        if (animationFrameId !== null) {
+          window.cancelAnimationFrame(animationFrameId);
+          animationFrameId = null;
+        }
+        currentScale = 1.0;
+        marker.setIcon(marker.icons.selected);
+        return true;
+      };
+
+      const disposeMarkerResources = () => {
+        if (isDisposed) return;
+
+        isDisposed = true;
+        if (animationFrameId !== null) {
+          window.cancelAnimationFrame(animationFrameId);
+          animationFrameId = null;
+        }
+        markerListeners.forEach((listener) => listener.remove());
+        marker?.setMap(null);
+        marker?.unbindAll();
+        objectUrls.forEach((url) => URL.revokeObjectURL(url));
+      };
 
       const animateScale = (
         startScale: number,
         endScale: number,
-        startTime: number
+        startTime: number,
       ) => {
+        if (isDisposed || !marker) return;
+        if (preserveSelectedIcon()) return;
+
         const now = Date.now();
         const elapsed = now - startTime;
         const progress = Math.min(elapsed / animationDuration, 1);
@@ -166,58 +180,117 @@ export const useAccommodationMarkers = ({
         if (originalIcon?.scaledSize) {
           marker.setIcon({
             url: originalIcon.url,
-            scaledSize: new window.google.maps.Size(
+            scaledSize: new maps.Size(
               originalIcon.scaledSize.width * currentScale,
-              originalIcon.scaledSize.height * currentScale
+              originalIcon.scaledSize.height * currentScale,
             ),
-            anchor: new window.google.maps.Point(
+            anchor: new maps.Point(
               (originalIcon.scaledSize.width * currentScale) / 2,
-              originalIcon.scaledSize.height * currentScale
+              originalIcon.scaledSize.height * currentScale,
             ),
           });
         }
 
         if (progress < 1) {
-          animationFrameId = requestAnimationFrame(() =>
-            animateScale(startScale, endScale, startTime)
+          animationFrameId = window.requestAnimationFrame(() =>
+            animateScale(startScale, endScale, startTime),
           );
+        } else {
+          animationFrameId = null;
         }
       };
 
-      marker.addListener("mouseover", () => {
-        if (animationFrameId) {
-          cancelAnimationFrame(animationFrameId);
-        }
-        animateScale(currentScale, targetScale, Date.now());
-      });
+      try {
+        const svgUrl = createIconUrl(
+          buildMarkerPriceSvg(markerIconModel, "default"),
+        );
+        objectUrls.push(svgUrl);
+        const selectedSvgUrl = createIconUrl(
+          buildMarkerPriceSvg(markerIconModel, "selected"),
+        );
+        objectUrls.push(selectedSvgUrl);
+        const hoveredSvgUrl = createIconUrl(
+          buildMarkerPriceSvg(markerIconModel, "hovered"),
+        );
+        objectUrls.push(hoveredSvgUrl);
+        const iconSize = new maps.Size(totalWidth, bubbleHeight);
+        const iconAnchor = new maps.Point(anchor.x, anchor.y);
 
-      marker.addListener("mouseout", () => {
-        if (animationFrameId) {
-          cancelAnimationFrame(animationFrameId);
-        }
-        animateScale(currentScale, 1.0, Date.now());
-      });
+        marker = new maps.Marker({
+          position: { lat, lng },
+          map,
+          title: accommodation.name,
+          icon: {
+            url: svgUrl,
+            scaledSize: iconSize,
+            anchor: iconAnchor,
+          },
+        }) as SearchMapMarker;
 
-      marker.addListener("click", (event: google.maps.MapMouseEvent) => {
-        event.domEvent?.stopPropagation();
-        onAccommodationSelectRef.current(accommodation);
-      });
+        marker.accommodationId = accommodation.id;
+        marker.accommodation = accommodation;
+        marker.icons = {
+          default: {
+            url: svgUrl,
+            scaledSize: iconSize,
+            anchor: iconAnchor,
+          },
+          selected: {
+            url: selectedSvgUrl,
+            scaledSize: iconSize,
+            anchor: iconAnchor,
+          },
+          hovered: {
+            url: hoveredSvgUrl,
+            scaledSize: iconSize,
+            anchor: iconAnchor,
+          },
+        };
+        marker.originalIcon = marker.icons.default;
+        marker.isSelected = false;
 
-      markersRef.current.push(marker);
-      bounds.extend({ lat, lng });
+        markerListeners.push(
+          marker.addListener("mouseover", () => {
+            if (preserveSelectedIcon()) return;
+
+            if (animationFrameId !== null) {
+              window.cancelAnimationFrame(animationFrameId);
+            }
+            animateScale(currentScale, targetScale, Date.now());
+          }),
+          marker.addListener("mouseout", () => {
+            if (preserveSelectedIcon()) return;
+
+            if (animationFrameId !== null) {
+              window.cancelAnimationFrame(animationFrameId);
+            }
+            animateScale(currentScale, 1.0, Date.now());
+          }),
+          marker.addListener("click", (event: google.maps.MapMouseEvent) => {
+            event.domEvent?.stopPropagation();
+            onAccommodationSelectRef.current(accommodation);
+          }),
+        );
+
+        marker.dispose = disposeMarkerResources;
+
+        markersRef.current.push(marker);
+      } catch {
+        disposeMarkerResources();
+      }
     });
 
     if (viewport && !isMapDragMode) {
       const viewportChanged = hasViewportChanged(
         prevViewportRef.current,
-        viewport
+        viewport,
       );
 
       if (viewportChanged) {
         isInitialIdleRef.current = true;
-        const viewportBounds = new window.google.maps.LatLngBounds(
+        const viewportBounds = new maps.LatLngBounds(
           { lat: viewport.south, lng: viewport.west },
-          { lat: viewport.north, lng: viewport.east }
+          { lat: viewport.north, lng: viewport.east },
         );
         map.fitBounds(viewportBounds, 50);
         prevViewportRef.current = viewport;
@@ -227,7 +300,7 @@ export const useAccommodationMarkers = ({
 
     const accommodationsChanged = haveAccommodationIdsChanged(
       prevAccommodationsRef.current,
-      validAccommodations
+      validAccommodations,
     );
 
     if (
@@ -245,12 +318,14 @@ export const useAccommodationMarkers = ({
       if (validAccommodations.length > 1) {
         map.fitBounds(bounds, 50);
       } else if (validAccommodations.length === 1) {
-        const firstAccommodation = validAccommodations[0];
-        map.setCenter({
-          lat: firstAccommodation.coordinate.latitude!,
-          lng: firstAccommodation.coordinate.longitude!,
-        });
-        map.setZoom(12);
+        const [firstAccommodation] = validAccommodations;
+        if (firstAccommodation) {
+          map.setCenter({
+            lat: firstAccommodation.coordinate.latitude,
+            lng: firstAccommodation.coordinate.longitude,
+          });
+          map.setZoom(12);
+        }
       }
 
       boundsInitializedRef.current = true;

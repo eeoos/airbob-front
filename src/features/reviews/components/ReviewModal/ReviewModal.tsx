@@ -1,5 +1,10 @@
-import React, { useRef, useState } from "react";
-import { Dialog, useOutsideClick } from "../../../../shared/ui";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { requireCssModuleClass } from "../../../../shared/styles/requireCssModuleClass";
+import {
+  Dialog,
+  useNonModalOverlayRegistration,
+  useOutsideClick,
+} from "../../../../shared/ui";
 import type { ReviewViewModel } from "../../lib/reviewViewModel";
 import styles from "./ReviewModal.module.css";
 
@@ -12,7 +17,10 @@ const REVIEW_SORT_TYPE = {
 } as const satisfies Record<ReviewSortType, ReviewSortType>;
 
 interface ReviewModalProps {
+  hasNext: boolean;
+  isFetching: boolean;
   isOpen: boolean;
+  onLoadMore: () => void;
   onClose: () => void;
   reviews: ReviewViewModel[];
   averageRating: number;
@@ -20,23 +28,58 @@ interface ReviewModalProps {
 }
 
 export const ReviewModal: React.FC<ReviewModalProps> = ({
+  hasNext,
+  isFetching,
   isOpen,
+  onLoadMore,
   onClose,
   reviews,
   averageRating,
   totalCount,
 }) => {
   const [sortType, setSortType] = useState<ReviewSortType>(
-    REVIEW_SORT_TYPE.LATEST
+    REVIEW_SORT_TYPE.LATEST,
   );
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
   const sortContainerRef = useRef<HTMLDivElement>(null);
+  const sortDropdownRef = useRef<HTMLDivElement>(null);
+  const sortTriggerRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
+  const loadMoreStateRef = useRef({ hasNext, isFetching, onLoadMore });
+  const closeSortDropdown = useCallback(() => setIsSortDropdownOpen(false), []);
+  const sortOverlay = useNonModalOverlayRegistration({
+    enabled: isOpen && isSortDropdownOpen,
+    onClose: closeSortDropdown,
+    overlayRef: sortDropdownRef,
+    triggerRef: sortTriggerRef,
+  });
 
-  useOutsideClick(
-    sortContainerRef,
-    () => setIsSortDropdownOpen(false),
-    isSortDropdownOpen
-  );
+  loadMoreStateRef.current = { hasNext, isFetching, onLoadMore };
+
+  useOutsideClick(sortContainerRef, closeSortDropdown, isSortDropdownOpen);
+
+  useEffect(() => {
+    const sentinel = loadMoreSentinelRef.current;
+    if (
+      !isOpen ||
+      sentinel === null ||
+      typeof IntersectionObserver === "undefined"
+    ) {
+      return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return;
+
+      const loadMoreState = loadMoreStateRef.current;
+      if (!loadMoreState.hasNext || loadMoreState.isFetching) return;
+      loadMoreState.onLoadMore();
+    });
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -70,9 +113,10 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
 
   return (
     <Dialog
-      bodyClassName={styles.modalContent}
+      bodyClassName={requireCssModuleClass(styles.modalContent)}
       bodyPadding="none"
-      className={styles.dialog}
+      className={requireCssModuleClass(styles.dialog)}
+      initialFocusRef={closeButtonRef}
       isOpen={isOpen}
       onClose={onClose}
       showHeader={false}
@@ -80,8 +124,8 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
       title={`후기 ${totalCount}개`}
     >
       <button
+        ref={closeButtonRef}
         aria-label="후기 모달 닫기"
-        autoFocus
         className={styles.closeButton}
         type="button"
         onClick={onClose}
@@ -98,6 +142,9 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
         </div>
         <div className={styles.sortContainer} ref={sortContainerRef}>
           <button
+            ref={sortTriggerRef}
+            aria-controls="review-sort-options"
+            aria-expanded={isSortDropdownOpen}
             className={styles.sortButton}
             type="button"
             onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
@@ -114,7 +161,14 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
             </svg>
           </button>
           {isSortDropdownOpen && (
-            <div className={styles.sortDropdown}>
+            <div
+              ref={sortDropdownRef}
+              aria-label="후기 정렬 옵션"
+              className={styles.sortDropdown}
+              id="review-sort-options"
+              onKeyDownCapture={sortOverlay.onKeyDown}
+              role="group"
+            >
               <button
                 className={
                   sortType === REVIEW_SORT_TYPE.LATEST
@@ -188,16 +242,16 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
                   key={i}
                   aria-hidden="true"
                   viewBox="0 0 24 24"
-                  className={i < review.rating ? styles.starIconFilled : styles.starIcon}
+                  className={
+                    i < review.rating ? styles.starIconFilled : styles.starIcon
+                  }
                 >
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                 </svg>
               ))}
             </div>
 
-            <div className={styles.reviewDate}>
-              {review.date.label}
-            </div>
+            <div className={styles.reviewDate}>{review.date.label}</div>
 
             <div className={styles.reviewContent}>{review.content}</div>
 
@@ -215,6 +269,17 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
             )}
           </div>
         ))}
+        <div
+          className={styles.loadMoreSentinel}
+          data-testid="review-load-more-sentinel"
+          ref={loadMoreSentinelRef}
+        >
+          {isFetching && (
+            <span className={styles.loadingMore} role="status">
+              후기 더 불러오는 중...
+            </span>
+          )}
+        </div>
       </div>
     </Dialog>
   );

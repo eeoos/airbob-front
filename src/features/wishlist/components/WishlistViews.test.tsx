@@ -1,161 +1,165 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
-import { RecentlyViewedAccommodationInfo } from "../../../types/recentlyViewed";
+import type {
+  RecentlyViewedAccommodation,
+  WishlistAccommodation,
+  WishlistSummary,
+} from "../model";
 import {
-  WishlistAccommodationInfo,
-  WishlistInfo,
-} from "../../../types/wishlist";
-import {
-  RecentlyViewedAccommodationCardViewModel,
   toRecentlyViewedAccommodationCardViewModel,
   toWishlistAccommodationCardViewModel,
   toWishlistIndexCardViewModel,
-  WishlistAccommodationCardViewModel,
-  WishlistIndexCardViewModel,
+  type RecentlyViewedAccommodationCardViewModel,
+  type WishlistAccommodationCardViewModel,
+  type WishlistIndexCardViewModel,
 } from "../lib/wishlistAccommodationViewModel";
 import { RecentlyViewedView } from "./RecentlyViewedView";
 import { WishlistDetailView } from "./WishlistDetailView";
 import { WishlistIndexView } from "./WishlistIndexView";
+import { WishlistMemoDialog } from "./WishlistMemoDialog";
 
-const noopObserver = jest.fn();
+const noopObserver = vi.fn();
 
-const makeWishlist = (overrides: Partial<WishlistInfo> = {}): WishlistInfo => ({
+const makeWishlist = (
+  overrides: Partial<WishlistSummary> = {},
+): WishlistSummary => ({
   id: 42,
   name: "Weekend saves",
-  created_at: "2026-07-01T00:00:00Z",
-  is_contained: null,
-  thumbnail_image_url: null,
-  wishlist_accommodation_id: null,
-  wishlist_item_count: 2,
+  createdAt: "2026-07-01T00:00:00Z",
+  containsAccommodation: null,
+  thumbnailImageUrl: null,
+  wishlistAccommodationId: null,
+  itemCount: 2,
   ...overrides,
 });
 
 const makeWishlistCard = (
-  overrides: Partial<WishlistInfo> = {},
-): WishlistIndexCardViewModel => toWishlistIndexCardViewModel(makeWishlist(overrides));
+  overrides: Partial<WishlistSummary> = {},
+): WishlistIndexCardViewModel =>
+  toWishlistIndexCardViewModel(makeWishlist(overrides));
 
 const makeRecentlyViewed = (
-  overrides: Partial<RecentlyViewedAccommodationInfo> = {}
-): RecentlyViewedAccommodationInfo => ({
-  accommodation_id: 101,
-  accommodation_name: "Ocean house",
-  address_summary: {
+  overrides: Partial<RecentlyViewedAccommodation> = {},
+): RecentlyViewedAccommodation => ({
+  accommodationId: 101,
+  accommodationName: "Ocean house",
+  addressSummary: {
     country: "대한민국",
     state: null,
     city: "부산",
     district: "해운대구",
   },
-  is_in_wishlist: false,
-  review_summary: {
-    average_rating: 4.8,
-    total_count: 12,
+  isInWishlist: false,
+  reviewSummary: {
+    averageRating: 4.8,
+    totalCount: 12,
   },
-  thumbnail_url: "/ocean-house.jpg",
-  viewed_at: "2026-07-04T00:00:00Z",
+  thumbnailUrl: "/ocean-house.jpg",
+  viewedAt: "2026-07-04T00:00:00Z",
   ...overrides,
 });
 
 const makeRecentlyViewedCard = (
-  overrides: Partial<RecentlyViewedAccommodationInfo> = {},
+  overrides: Partial<RecentlyViewedAccommodation> = {},
 ): RecentlyViewedAccommodationCardViewModel =>
   toRecentlyViewedAccommodationCardViewModel(makeRecentlyViewed(overrides));
 
 const makeWishlistAccommodation = (
-  overrides: Partial<WishlistAccommodationInfo> = {}
-): WishlistAccommodationInfo => ({
-  wishlist_accommodation_id: 501,
+  overrides: Partial<WishlistAccommodation> = {},
+): WishlistAccommodation => ({
+  wishlistAccommodationId: 501,
   accommodation: {
     id: 201,
     name: "Lake cabin",
-    thumbnail_url: "/lake-cabin.jpg",
+    thumbnailUrl: "/lake-cabin.jpg",
   },
-  address_summary: {
+  addressSummary: {
     country: "대한민국",
     state: null,
     city: "춘천",
     district: "남산면",
   },
-  created_at: "2026-07-01T00:00:00Z",
-  is_in_wishlist: true,
+  createdAt: "2026-07-01T00:00:00Z",
+  isInWishlist: true,
   memo: null,
-  review_summary: {
-    average_rating: 4.5,
-    total_count: 8,
+  reviewSummary: {
+    averageRating: 4.5,
+    totalCount: 8,
   },
   ...overrides,
 });
 
 const makeWishlistAccommodationCard = (
-  overrides: Partial<WishlistAccommodationInfo> = {},
+  overrides: Partial<WishlistAccommodation> = {},
 ): WishlistAccommodationCardViewModel =>
   toWishlistAccommodationCardViewModel(makeWishlistAccommodation(overrides));
 
 const expectNoNestedInteractiveControls = (container: HTMLElement) => {
   // This is a DOM-structure regression guard: nested buttons are invalid even
   // when each control still has an accessible role.
-  // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
+  // eslint-disable-next-line testing-library/no-node-access
   expect(container.querySelectorAll("button button")).toHaveLength(0);
-  // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
+  // eslint-disable-next-line testing-library/no-node-access
   expect(container.querySelectorAll('[role="button"] button')).toHaveLength(0);
 };
 
 const renderWishlistIndex = (
-  props: Partial<React.ComponentProps<typeof WishlistIndexView>> = {}
+  props: Partial<React.ComponentProps<typeof WishlistIndexView>> = {},
 ) =>
   render(
     <WishlistIndexView
       isLoading={false}
       isLoadingMoreWishlists={false}
-      onDeleteWishlist={jest.fn()}
-      onOpenRecentlyViewed={jest.fn()}
-      onOpenWishlist={jest.fn()}
+      onDeleteWishlist={vi.fn()}
+      onOpenRecentlyViewed={vi.fn()}
+      onOpenWishlist={vi.fn()}
       recentlyViewedSummaryLabel="항목 없음"
       setWishlistsObserverTarget={noopObserver}
       wishlists={[]}
       wishlistsHasNext={false}
       {...props}
-    />
+    />,
   );
 
 const renderWishlistDetail = (
-  props: Partial<React.ComponentProps<typeof WishlistDetailView>> = {}
+  props: Partial<React.ComponentProps<typeof WishlistDetailView>> = {},
 ) =>
   render(
     <WishlistDetailView
       hasNext={false}
       isLoading={false}
       isLoadingMore={false}
-      onBack={jest.fn()}
-      onOpenAccommodationDetail={jest.fn()}
-      onOpenMemo={jest.fn()}
-      onRemoveFromWishlist={jest.fn()}
+      onBack={vi.fn()}
+      onOpenAccommodationDetail={vi.fn()}
+      onOpenMemo={vi.fn()}
+      onRemoveFromWishlist={vi.fn()}
       selectedWishlistName="Weekend saves"
       setWishlistAccommodationsObserverTarget={noopObserver}
       wishlistAccommodations={[]}
       {...props}
-    />
+    />,
   );
 
 const renderRecentlyViewed = (
-  props: Partial<React.ComponentProps<typeof RecentlyViewedView>> = {}
+  props: Partial<React.ComponentProps<typeof RecentlyViewedView>> = {},
 ) =>
   render(
     <RecentlyViewedView
       isEditMode={false}
-      onBack={jest.fn()}
-      onOpenAccommodationDetail={jest.fn()}
-      onRemoveRecentlyViewed={jest.fn()}
-      onToggleEditMode={jest.fn()}
-      onWishlistToggle={jest.fn()}
+      onBack={vi.fn()}
+      onOpenAccommodationDetail={vi.fn()}
+      onRemoveRecentlyViewed={vi.fn()}
+      onToggleEditMode={vi.fn()}
+      onWishlistToggle={vi.fn()}
       recentlyViewed={[]}
       {...props}
-    />
+    />,
   );
 
 describe("Wishlist view components", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("renders loading and empty states", () => {
@@ -166,16 +170,18 @@ describe("Wishlist view components", () => {
     expect(screen.getByText("위시리스트가 비어있습니다.")).toBeInTheDocument();
 
     renderRecentlyViewed();
-    expect(screen.getByText("최근 조회한 숙소가 없습니다.")).toBeInTheDocument();
+    expect(
+      screen.getByText("최근 조회한 숙소가 없습니다."),
+    ).toBeInTheDocument();
   });
 
   it("does not open a wishlist card when deleting the wishlist", async () => {
-    const onDeleteWishlist = jest.fn(
+    const onDeleteWishlist = vi.fn(
       (_wishlistId: number, event: React.MouseEvent<HTMLButtonElement>) => {
         event.stopPropagation();
-      }
+      },
     );
-    const onOpenWishlist = jest.fn();
+    const onOpenWishlist = vi.fn();
 
     renderWishlistIndex({
       onDeleteWishlist,
@@ -183,15 +189,17 @@ describe("Wishlist view components", () => {
       wishlists: [makeWishlistCard()],
     });
 
-    await userEvent.click(screen.getByRole("button", { name: "위시리스트 삭제" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "위시리스트 삭제" }),
+    );
 
     expect(onDeleteWishlist).toHaveBeenCalledWith(42, expect.any(Object));
     expect(onOpenWishlist).not.toHaveBeenCalled();
   });
 
   it("does not open an accommodation card when deleting a wishlist accommodation", async () => {
-    const onOpenAccommodationDetail = jest.fn();
-    const onRemoveFromWishlist = jest.fn();
+    const onOpenAccommodationDetail = vi.fn();
+    const onRemoveFromWishlist = vi.fn();
 
     renderWishlistDetail({
       onOpenAccommodationDetail,
@@ -245,8 +253,8 @@ describe("Wishlist view components", () => {
 
   it("opens the memo dialog from a wishlist detail memo button", async () => {
     const item = makeWishlistAccommodationCard({ memo: "Bring coffee" });
-    const onOpenAccommodationDetail = jest.fn();
-    const onOpenMemo = jest.fn();
+    const onOpenAccommodationDetail = vi.fn();
+    const onOpenMemo = vi.fn();
 
     renderWishlistDetail({
       onOpenAccommodationDetail,
@@ -264,8 +272,8 @@ describe("Wishlist view components", () => {
   });
 
   it("does not open a recently viewed card when deleting in edit mode", async () => {
-    const onOpenAccommodationDetail = jest.fn();
-    const onRemoveRecentlyViewed = jest.fn();
+    const onOpenAccommodationDetail = vi.fn();
+    const onRemoveRecentlyViewed = vi.fn();
 
     renderRecentlyViewed({
       isEditMode: true,
@@ -281,8 +289,8 @@ describe("Wishlist view components", () => {
   });
 
   it("does not open a recently viewed card when toggling wishlist state", async () => {
-    const onOpenAccommodationDetail = jest.fn();
-    const onWishlistToggle = jest.fn();
+    const onOpenAccommodationDetail = vi.fn();
+    const onWishlistToggle = vi.fn();
 
     renderRecentlyViewed({
       onOpenAccommodationDetail,
@@ -301,7 +309,9 @@ describe("Wishlist view components", () => {
       recentlyViewedSummaryLabel: "오늘",
       wishlists: [makeWishlistCard()],
     });
-    expect(screen.getByRole("button", { name: "위시리스트 삭제" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "위시리스트 삭제" }),
+    ).toBeInTheDocument();
     expectNoNestedInteractiveControls(indexContainer);
 
     const { container: detailContainer } = renderWishlistDetail({
@@ -313,7 +323,29 @@ describe("Wishlist view components", () => {
     const { container: recentlyViewedContainer } = renderRecentlyViewed({
       recentlyViewed: [makeRecentlyViewedCard()],
     });
-    expect(screen.getByRole("button", { name: "위시리스트" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "위시리스트" }),
+    ).toBeInTheDocument();
     expectNoNestedInteractiveControls(recentlyViewedContainer);
+  });
+
+  it("allows saving an empty memo so an existing memo can be cleared", async () => {
+    const onSave = vi.fn();
+    render(
+      <WishlistMemoDialog
+        isOpen
+        memoText=""
+        onChangeMemoText={vi.fn()}
+        onClear={vi.fn()}
+        onClose={vi.fn()}
+        onSave={onSave}
+      />,
+    );
+
+    const saveButton = screen.getByRole("button", { name: "저장" });
+    expect(saveButton).toBeEnabled();
+
+    await userEvent.click(saveButton);
+    expect(onSave).toHaveBeenCalledTimes(1);
   });
 });

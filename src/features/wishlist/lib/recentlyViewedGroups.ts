@@ -9,7 +9,7 @@ export type RecentlyViewedGroups<T extends RecentlyViewedGroupable> = Record<
 
 export const formatRecentlyViewedDate = (
   viewedAt: string,
-  now = new Date()
+  now = new Date(),
 ): string => {
   const viewedDate = new Date(viewedAt);
   const diffTime = now.getTime() - viewedDate.getTime();
@@ -34,9 +34,7 @@ export const formatRecentlyViewedDate = (
   });
 };
 
-export const groupRecentlyViewedByDate = <
-  T extends RecentlyViewedGroupable,
->(
+export const groupRecentlyViewedByDate = <T extends RecentlyViewedGroupable>(
   items: T[],
   now = new Date(),
 ) =>

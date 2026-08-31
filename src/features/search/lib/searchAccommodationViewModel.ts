@@ -1,6 +1,27 @@
-import type { AccommodationSearchInfo } from "../../../types/accommodation";
-import { getAccommodationTypeLabel } from "../../../utils/codes";
-import { getImageUrl } from "../../../utils/image";
+import { resolveImageUrl } from "../../../platform/assets/imageUrl";
+import type { SearchAccommodation } from "../model/search";
+
+const ACCOMMODATION_TYPE_LABELS: Readonly<Record<string, string>> = {
+  ENTIRE_PLACE: "전체 숙소",
+  PRIVATE_ROOM: "개인실",
+  SHARED_ROOM: "다인실",
+  HOTEL_ROOM: "호텔 객실",
+  HOSTEL: "호스텔",
+  VILLA: "빌라",
+  GUESTHOUSE: "게스트하우스",
+  BNB: "B&B",
+  RESORT: "리조트",
+  APARTMENT: "아파트",
+  HOUSE: "일반 주택",
+  TENT: "텐트",
+  BOAT: "보트",
+  TREEHOUSE: "트리하우스",
+  CAMPER_VAN: "캠핑카",
+  CASTLE: "성 같은 특이한 숙소",
+};
+
+const getAccommodationTypeLabel = (type: string) =>
+  ACCOMMODATION_TYPE_LABELS[type] ?? type;
 
 export interface SearchAccommodationCardViewModel {
   id: number;
@@ -37,7 +58,7 @@ export interface SearchAccommodationPriceDisplay {
   unitLabel: string;
 }
 
-export const formatAccommodationPrice = (
+const formatAccommodationPrice = (
   basePrice: number,
   currency: string,
 ): string => {
@@ -48,7 +69,7 @@ export const formatAccommodationPrice = (
   return `${currency} ${basePrice.toLocaleString()}`;
 };
 
-export const calculateStayNights = (
+const calculateStayNights = (
   checkIn: string | null | undefined,
   checkOut: string | null | undefined,
 ): number => {
@@ -63,7 +84,10 @@ export const calculateStayNights = (
 };
 
 export const getSearchAccommodationPriceDisplay = (
-  accommodation: Pick<SearchAccommodationCardViewModel, "basePrice" | "currency">,
+  accommodation: Pick<
+    SearchAccommodationCardViewModel,
+    "basePrice" | "currency"
+  >,
   checkIn?: string | null,
   checkOut?: string | null,
 ): SearchAccommodationPriceDisplay => {
@@ -80,42 +104,42 @@ export const getSearchAccommodationPriceDisplay = (
 };
 
 export const toSearchAccommodationCardViewModel = (
-  accommodation: AccommodationSearchInfo,
+  accommodation: SearchAccommodation,
 ): SearchAccommodationCardViewModel => ({
   id: accommodation.id,
   name: accommodation.name,
-  thumbnailUrl: accommodation.accommodation_thumbnail_url
-    ? getImageUrl(accommodation.accommodation_thumbnail_url)
+  thumbnailUrl: accommodation.thumbnailUrl
+    ? resolveImageUrl(accommodation.thumbnailUrl)
     : null,
   locationLabel: `${
-    accommodation.address_summary.city || accommodation.address_summary.country
+    accommodation.addressSummary.city || accommodation.addressSummary.country
   }의 ${getAccommodationTypeLabel(accommodation.type)}`,
-  showReview: accommodation.review_summary.total_count > 0,
-  reviewRatingLabel: accommodation.review_summary.average_rating.toFixed(1),
-  reviewCountLabel: `(${accommodation.review_summary.total_count})`,
-  basePrice: accommodation.base_price,
+  showReview: accommodation.reviewSummary.totalCount > 0,
+  reviewRatingLabel: accommodation.reviewSummary.averageRating.toFixed(1),
+  reviewCountLabel: `(${accommodation.reviewSummary.totalCount})`,
+  basePrice: accommodation.basePrice,
   currency: accommodation.currency,
-  isInWishlist: accommodation.is_in_wishlist,
+  isInWishlist: accommodation.isInWishlist,
 });
 
 export const toSearchAccommodationMapViewModel = (
-  accommodation: AccommodationSearchInfo,
+  accommodation: SearchAccommodation,
 ): SearchAccommodationMapViewModel => ({
   id: accommodation.id,
   name: accommodation.name,
-  thumbnailUrl: accommodation.accommodation_thumbnail_url
-    ? getImageUrl(accommodation.accommodation_thumbnail_url)
+  thumbnailUrl: accommodation.thumbnailUrl
+    ? resolveImageUrl(accommodation.thumbnailUrl)
     : null,
   locationLabel:
-    [accommodation.address_summary.city, accommodation.address_summary.district]
+    [accommodation.addressSummary.city, accommodation.addressSummary.district]
       .filter(Boolean)
-      .join(", ") || accommodation.address_summary.country,
-  showReview: accommodation.review_summary.total_count > 0,
-  reviewRatingLabel: accommodation.review_summary.average_rating.toFixed(1),
-  reviewCountLabel: `(${accommodation.review_summary.total_count})`,
-  basePrice: accommodation.base_price,
+      .join(", ") || accommodation.addressSummary.country,
+  showReview: accommodation.reviewSummary.totalCount > 0,
+  reviewRatingLabel: accommodation.reviewSummary.averageRating.toFixed(1),
+  reviewCountLabel: `(${accommodation.reviewSummary.totalCount})`,
+  basePrice: accommodation.basePrice,
   currency: accommodation.currency,
-  isInWishlist: accommodation.is_in_wishlist,
+  isInWishlist: accommodation.isInWishlist,
   coordinate: {
     latitude: accommodation.coordinate.latitude,
     longitude: accommodation.coordinate.longitude,

@@ -5,32 +5,103 @@ import { spawnSync } from "child_process";
 
 const projectRoot = process.cwd();
 const packageJsonPath = path.join(projectRoot, "package.json");
+const vercelConfigPath = path.join(projectRoot, "vercel.json");
+const eslintConfigPath = path.join(projectRoot, "eslint.config.mjs");
+const vitestConfigPath = path.join(projectRoot, "vitest.config.ts");
+const testSetupPath = path.join(projectRoot, "src/test/setup.ts");
 const frontendWorkflowPath = path.join(
   projectRoot,
   ".github/workflows/frontend.yml",
 );
-const qaDocPath = path.join(projectRoot, "docs/qa/frontend-architecture-smoke.ko.md");
+const qaDocPath = path.join(
+  projectRoot,
+  "docs/qa/frontend-architecture-smoke.ko.md",
+);
+const targetContractMatrixPath = path.join(
+  projectRoot,
+  "docs/qa/frontend-target-contract-matrix.md",
+);
 const architectureDocPath = path.join(
   projectRoot,
   "docs/architecture/frontend-structure-refactor.md",
+);
+const currentArchitectureDocPath = path.join(
+  projectRoot,
+  "docs/architecture/current-frontend-architecture.md",
+);
+const migrationRulesDocPath = path.join(
+  projectRoot,
+  "docs/architecture/frontend-migration-rules.md",
+);
+const ownershipMatrixDocPath = path.join(
+  projectRoot,
+  "docs/architecture/frontend-ownership-matrix.md",
+);
+const architectureRulesDocPath = path.join(
+  projectRoot,
+  "tests/architecture/dependency-rules.md",
+);
+const dependencyCruiserConfigPath = path.join(
+  projectRoot,
+  ".dependency-cruiser.cjs",
+);
+const knipConfigPath = path.join(projectRoot, "knip.json");
+const stylelintConfigPath = path.join(projectRoot, "stylelint.config.mjs");
+const architectureRatchetPath = path.join(
+  projectRoot,
+  "architecture-ratchet.json",
+);
+const frontendBundleBudgetPath = path.join(
+  projectRoot,
+  "frontend-bundle-budgets.json",
+);
+const publicConfigBuildVerifierPath = path.join(
+  projectRoot,
+  "scripts/architecture/verify-public-config-build.mjs",
 );
 const architectureFreezeDocPath = path.join(
   projectRoot,
   "docs/architecture/frontend-architecture-freeze.ko.md",
 );
 const envExamplePath = path.join(projectRoot, ".env.example");
-const frontendSmokePath = path.join(projectRoot, "scripts/smoke/frontend-smoke.mjs");
+const frontendSmokePath = path.join(
+  projectRoot,
+  "scripts/smoke/frontend-smoke.mjs",
+);
 const sourceRoot = path.join(projectRoot, "src");
+const retiredSourceRoots = [
+  "api",
+  "components",
+  "contexts",
+  "hooks",
+  "layouts",
+  "query",
+  "routes",
+  "styles",
+  "types",
+  "utils",
+] as const;
+const googleMapsGlobalDeclarationPath = path.join(
+  sourceRoot,
+  "platform/integrations/googleMaps.global.d.ts",
+);
 
-const productionSourceExtensions = new Set([".js", ".jsx", ".ts", ".tsx"]);
-const rawConsoleAllowlist = new Set(["src/utils/clientLogger.ts"]);
+const productionSourceExtensions = new Set([
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".ts",
+  ".tsx",
+]);
+const rawConsoleAllowlist = new Set(["src/platform/logging/clientLogger.ts"]);
 const dynamicInlineStyleAllowlist = [
   {
-    filePath: "src/features/accommodations/edit/components/PhotosStep.tsx",
+    filePath: "src/screens/accommodation-edit/components/PhotosStep.tsx",
     pattern: /style=\{\{\s*width:\s*`\$\{uploadProgress\}%`\s*\}\}/,
   },
   {
-    filePath: "src/features/accommodations/components/AccommodationHero.tsx",
+    filePath:
+      "src/features/accommodations/detail/components/AccommodationHero.tsx",
     pattern:
       /style=\{\{\s*transform:\s*`translateX\(-\$\{mobileSlideIndex \* 100\}%\)`\s*\}\}/,
   },
@@ -64,10 +135,10 @@ const isProductionSourceFile = (filePath: string) => {
 
   return !(
     relativePath.endsWith(".d.ts") ||
-    relativePath === "src/setupTests.ts" ||
+    relativePath.startsWith("src/test/") ||
     relativePath.includes("/__mocks__/") ||
     relativePath.includes("/__tests__/") ||
-    /\.(?:test|spec)\.[jt]sx?$/.test(relativePath)
+    /\.(?:test|spec)\.(?:mjs|[jt]sx?)$/.test(relativePath)
   );
 };
 
@@ -169,13 +240,35 @@ const writePreflightFetchMock = (
 };
 
 describe("frontend verification gate", () => {
+  test("retired legacy source roots remain absent", () => {
+    const existingRetiredRoots = retiredSourceRoots.filter((root) =>
+      fs.existsSync(path.join(sourceRoot, root)),
+    );
+
+    expect(existingRetiredRoots).toEqual([]);
+  });
+
+  test("the platform integration owns only the live Google Window declaration", () => {
+    const declaration = fs.readFileSync(
+      googleMapsGlobalDeclarationPath,
+      "utf8",
+    );
+
+    expect(declaration).toContain("google: typeof google;");
+    expect(declaration).not.toContain("toggleWishlist");
+    expect(declaration).not.toContain("closeInfoWindow");
+  });
+
   test("query error toast handling uses the shared query hook", () => {
     const productionFiles = getProductionSourceFiles()
       .map(toProjectPath)
       .filter((relativePath) => relativePath.startsWith("src/features/"));
 
     const violations = productionFiles.filter((relativePath) => {
-      const source = fs.readFileSync(path.join(projectRoot, relativePath), "utf8");
+      const source = fs.readFileSync(
+        path.join(projectRoot, relativePath),
+        "utf8",
+      );
       return /handledErrorUpdatedAtRef/.test(source);
     });
 
@@ -193,9 +286,7 @@ describe("frontend verification gate", () => {
     try {
       const defaultEnv = isolatedSmokeSubprocessEnv();
 
-      expect(
-        defaultEnv.AIRBOB_SMOKE_REPORT_ROOT,
-      ).toBeUndefined();
+      expect(defaultEnv.AIRBOB_SMOKE_REPORT_ROOT).toBeUndefined();
       expect(defaultEnv.AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID).toBeUndefined();
 
       const overrideEnv = isolatedSmokeSubprocessEnv({
@@ -206,7 +297,9 @@ describe("frontend verification gate", () => {
       expect(overrideEnv.AIRBOB_SMOKE_REPORT_ROOT).toBe(
         "/tmp/airbob-override-smoke",
       );
-      expect(overrideEnv.AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID).toBe("override-id");
+      expect(overrideEnv.AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID).toBe(
+        "override-id",
+      );
     } finally {
       if (previousReportRoot === undefined) {
         delete process.env.AIRBOB_SMOKE_REPORT_ROOT;
@@ -244,7 +337,8 @@ describe("frontend verification gate", () => {
           const styleSource = match[0].replace(/\s+/g, " ").trim();
           const isAllowedDynamicStyle = dynamicInlineStyleAllowlist.some(
             (allowed) =>
-              allowed.filePath === relativePath && allowed.pattern.test(match[0]),
+              allowed.filePath === relativePath &&
+              allowed.pattern.test(match[0]),
           );
 
           if (isAllowedDynamicStyle) {
@@ -271,23 +365,158 @@ describe("frontend verification gate", () => {
     expect(staticInlineStyleViolations).toEqual([]);
   });
 
-  test("package scripts run typecheck, no-cache CI tests, and build", () => {
+  test("package scripts and lint ownership exceptions match the active architecture", () => {
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
-
     expect(packageJson.packageManager).toBe("npm@10.7.0");
-    expect(packageJson.engines?.node).toBe(">=20.0.0");
+    expect(packageJson.engines?.node).toBe("^22.13.0 || ^24.0.0");
+    expect(packageJson.scripts.start).toBeUndefined();
+    expect(packageJson.scripts.dev).toBe("vite");
+    expect(packageJson.scripts.preview).toBe("vite preview");
+    expect(packageJson.scripts.test).toBe("vitest");
+    expect(packageJson.scripts["test:ci"]).toBe("vitest run");
     expect(packageJson.scripts["test:ci:no-cache"]).toBe(
-      "react-scripts test --watchAll=false --no-cache",
+      "vitest run --coverage --no-cache",
     );
-    expect(packageJson.scripts.lint).toBe("eslint src --ext .ts,.tsx");
-    expect(packageJson.scripts["lint:strict"]).toBe(
-      "eslint src --ext .ts,.tsx --max-warnings=0",
+    expect(packageJson.scripts["test:coverage"]).toBe("vitest run --coverage");
+    expect(packageJson.scripts["test:e2e:characterization"]).toBe(
+      "playwright test --project=chromium",
+    );
+    expect(packageJson.scripts["test:e2e:artifact-policy"]).toBe(
+      "node tests/e2e/support/scan-artifacts.mjs --self-test",
+    );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-dependency-rules.mjs",
+    );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-architecture-ratchet.mjs",
+    );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-registry-rules.mjs",
+    );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-git-baselines.mjs",
+    );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-knip-reachability.mjs",
+    );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "tests/architecture/verify-dependency-classification.mjs",
+    );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-style-rules.mjs",
+    );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-prettier-config.mjs",
+    );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-typescript-config.mjs",
+    );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-eslint-config.mjs",
+    );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-toss-runtime.mjs",
+    );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-vite-config.mjs",
+    );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-vitest-config.mjs",
+    );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-toss-build-gate.mjs",
+    );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-frontend-bundle-budgets.mjs",
+    );
+    expect(packageJson.scripts["lint:architecture"]).toBe(
+      "node scripts/architecture/run-dependency-cruiser.mjs",
+    );
+    expect(packageJson.scripts["lint:dead-code"]).toBe(
+      "knip --production --reporter compact --no-progress",
+    );
+    expect(packageJson.scripts["lint:dependencies"]).toBe(
+      "node scripts/architecture/verify-dependency-classification.mjs",
+    );
+    expect(packageJson.scripts["lint:styles"]).toBe(
+      'stylelint "src/**/*.css" --quiet',
+    );
+    [
+      "npm run test:architecture-rules",
+      "npm run lint:architecture",
+      "npm run lint:dead-code",
+      "npm run lint:dependencies",
+      "npm run lint:styles",
+      "npm run lint:architecture-tools",
+      "npm run format:check",
+    ].forEach((command) => {
+      expect(packageJson.scripts["verify:architecture"]).toContain(command);
+    });
+    [
+      "@csstools/postcss-global-data",
+      "@types/node",
+      "@vitejs/plugin-react",
+      "@vitest/coverage-v8",
+      "dependency-cruiser",
+      "jsdom",
+      "knip",
+      "postcss",
+      "postcss-custom-media",
+      "prettier",
+      "stylelint",
+      "stylelint-config-recommended",
+      "stylelint-config-standard",
+      "typescript",
+      "vite",
+      "vitest",
+    ].forEach((dependency) => {
+      expect(packageJson.devDependencies[dependency]).toBeDefined();
+      expect(packageJson.dependencies[dependency]).toBeUndefined();
+    });
+    expect(packageJson.dependencies.axios).toBeUndefined();
+    expect(packageJson.dependencies["react-router-dom"]).toBeDefined();
+    expect(packageJson.dependencies.typescript).toBeUndefined();
+    expect(packageJson.dependencies["web-vitals"]).toBeUndefined();
+    expect(fs.existsSync(path.join(sourceRoot, "reportWebVitals.ts"))).toBe(
+      false,
+    );
+    expect(packageJson.dependencies["react-scripts"]).toBeUndefined();
+    expect(packageJson.dependencies["@types/jest"]).toBeUndefined();
+    [
+      "@testing-library/dom",
+      "@testing-library/jest-dom",
+      "@testing-library/react",
+      "@testing-library/user-event",
+      "@types/react",
+      "@types/react-dom",
+    ].forEach((dependency) => {
+      expect(packageJson.dependencies[dependency]).toBeUndefined();
+      expect(packageJson.devDependencies[dependency]).toBeDefined();
+    });
+    expect(packageJson.eslintConfig).toBeUndefined();
+    expect(fs.existsSync(eslintConfigPath)).toBe(true);
+    expect(fs.existsSync(vitestConfigPath)).toBe(true);
+    expect(fs.existsSync(testSetupPath)).toBe(true);
+    expect(fs.readFileSync(testSetupPath, "utf8")).toContain(
+      'import "@testing-library/jest-dom/vitest";',
+    );
+    expect(packageJson.scripts.build).toBe(
+      "node scripts/architecture/validate-public-build-env.mjs && vite build && node scripts/architecture/verify-toss-production-build.mjs",
+    );
+    expect(packageJson.dependencies["@tosspayments/tosspayments-sdk"]).toBe(
+      "2.8.1",
     );
     expect(packageJson.scripts["verify:structure"]).toBe(
-      "npm run typecheck && npm run test:ci:no-cache -- --runInBand && npm run lint:strict",
+      "npm run typecheck && npm run typecheck:tooling && npm run verify:architecture && npm run test:public-config-build && npm run test:ci:no-cache && npm run lint:strict",
     );
-    expect(packageJson.scripts["verify:pre-redesign"]).toBe(
-      "npm run typecheck && npm run test:ci:no-cache -- --runInBand && npm run build",
+    expect(packageJson.scripts["test:public-config-build"]).toBe(
+      "node scripts/architecture/verify-public-config-build.mjs",
+    );
+    expect(packageJson.scripts["audit:production"]).toBe(
+      "npm audit --omit=dev --audit-level=high",
+    );
+    expect(packageJson.scripts["verify:browser"]).toBe(
+      "npm run typecheck:e2e && npm run lint:e2e && npm run test:e2e:artifact-policy && npm run test:e2e:characterization",
     );
     expect(packageJson.scripts["smoke:frontend"]).toBe(
       "node scripts/smoke/frontend-smoke.mjs",
@@ -299,70 +528,207 @@ describe("frontend verification gate", () => {
       "AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES=true node scripts/smoke/frontend-smoke.mjs",
     );
     expect(packageJson.scripts["verify:design-ready"]).toBe(
-      "npm run verify:pre-redesign && npm run smoke:frontend:strict",
+      "npm run audit:production && npm run verify:structure && npm run verify:browser",
     );
-    expect(packageJson.scripts.verify).toContain("npm run typecheck");
-    expect(packageJson.scripts.verify).toContain("npm run test:ci:no-cache");
-    expect(packageJson.scripts.verify).toContain("npm run build");
-    expect(packageJson.scripts.verify).not.toContain("npm run lint");
-    expect(packageJson.scripts.verify).not.toContain("lint:strict");
+    expect(packageJson.scripts["verify:pre-redesign"]).toBe(
+      "npm run verify:design-ready",
+    );
+    expect(packageJson.scripts["verify:live-integration"]).toBe(
+      "npm run smoke:frontend:strict",
+    );
+    expect(packageJson.scripts.verify).toBe("npm run verify:design-ready");
+    expect(packageJson.scripts["verify:design-ready"]).not.toContain("smoke");
+    expect(packageJson.proxy).toBeUndefined();
+    expect(packageJson.browserslist).toBeUndefined();
   });
 
-  test("frontend CI workflow runs the static verification command list on Node 20", () => {
+  test("frontend CI runs one canonical offline gate on exact supported Node versions", () => {
     expect(fs.existsSync(frontendWorkflowPath)).toBe(true);
 
     const workflow = fs.readFileSync(frontendWorkflowPath, "utf8");
 
     [
-      "node-version: 20",
+      "fetch-depth: 0",
+      'node-version: ["22.13.0", "24.0.0"]',
+      "node-version: $" + "{{ matrix.node-version }}",
       "run: npm ci",
-      "run: npm run typecheck",
-      "run: npm run test:ci:no-cache -- --runInBand",
-      "run: npm run build",
-      "run: npm run lint:strict",
+      "run: npx --no-install playwright install --with-deps chromium",
+      "run: npm run verify:design-ready",
+      "AIRBOB_PUSH_BEFORE_SHA: $" +
+        "{{ github.event_name == 'push' && github.event.before || '' }}",
     ].forEach((term) => {
       expect(workflow).toContain(term);
     });
 
     const commandOrder = [
       "run: npm ci",
-      "run: npm run typecheck",
-      "run: npm run test:ci:no-cache -- --runInBand",
-      "run: npm run build",
-      "run: npm run lint:strict",
+      "run: npx --no-install playwright install --with-deps chromium",
+      "run: npm run verify:design-ready",
     ].map((term) => workflow.indexOf(term));
 
     expect(commandOrder.every((index) => index >= 0)).toBe(true);
     expect(commandOrder).toEqual([...commandOrder].sort((a, b) => a - b));
+    expect(workflow.match(/run: npm run verify:design-ready/g)).toHaveLength(1);
+    expect(workflow).not.toContain("run: npm run audit:production");
+    expect(workflow).not.toContain("verify:live-integration");
+    expect(workflow).not.toContain("smoke:frontend");
   });
 
-  test("frontend structure refactor docs and placeholder env example are present", () => {
+  test("hostile public builds enforce fixed initial and lazy-route graph budgets", () => {
+    const budgets = JSON.parse(
+      fs.readFileSync(frontendBundleBudgetPath, "utf8"),
+    );
+    const verifier = fs.readFileSync(publicConfigBuildVerifierPath, "utf8");
+
+    expect(budgets).toEqual({
+      initialJavaScriptGzipBytes: 131_400,
+      lazyRouteIncrementalJavaScriptGzipBytes: 80_000,
+    });
+    [
+      "readFrontendBundleBudgets",
+      "enforceFrontendBundleBudgets",
+      "measureFrontendBundleGraphs",
+      "lazyRouteIncrementalJavaScriptGzipMeasurements",
+      "VITE_MANIFEST_PATH",
+      "collectTextFiles",
+      "css|html|js|json|map|txt",
+      "forbiddenCanaries",
+      "missingSourceMaps",
+    ].forEach((term) => {
+      expect(verifier).toContain(term);
+    });
+    expect(verifier).not.toContain("147_730");
+    expect(verifier).not.toContain("U16_INITIAL_JAVASCRIPT");
+  });
+
+  test("Vercel preserves static assets, SPA refreshes, and cache ownership", () => {
+    const vercelConfig = JSON.parse(fs.readFileSync(vercelConfigPath, "utf8"));
+
+    expect(vercelConfig.buildCommand).toBe("npm run build");
+    expect(vercelConfig.outputDirectory).toBe("build");
+    expect(vercelConfig.rewrites).toEqual([
+      { source: "/(.*)", destination: "/index.html" },
+    ]);
+    expect(vercelConfig.headers).toEqual([
+      {
+        source: "/static/(.*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        source: "/index.html",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=0, must-revalidate",
+          },
+        ],
+      },
+    ]);
+  });
+
+  test("canonical frontend architecture docs and placeholder env example are present", () => {
     expect(fs.existsSync(architectureDocPath)).toBe(true);
+    expect(fs.existsSync(currentArchitectureDocPath)).toBe(true);
+    expect(fs.existsSync(migrationRulesDocPath)).toBe(true);
+    expect(fs.existsSync(ownershipMatrixDocPath)).toBe(true);
+    expect(fs.existsSync(architectureRulesDocPath)).toBe(true);
+    expect(fs.existsSync(dependencyCruiserConfigPath)).toBe(true);
+    expect(fs.existsSync(knipConfigPath)).toBe(true);
+    expect(fs.existsSync(stylelintConfigPath)).toBe(true);
+    expect(fs.existsSync(architectureRatchetPath)).toBe(true);
     expect(fs.existsSync(envExamplePath)).toBe(true);
 
-    const architectureDoc = fs.readFileSync(architectureDocPath, "utf8");
+    const historicalArchitectureDoc = fs.readFileSync(
+      architectureDocPath,
+      "utf8",
+    );
+    const currentArchitectureDoc = fs.readFileSync(
+      currentArchitectureDocPath,
+      "utf8",
+    );
+    const migrationRulesDoc = fs.readFileSync(migrationRulesDocPath, "utf8");
+    const ownershipMatrixDoc = fs.readFileSync(ownershipMatrixDocPath, "utf8");
+    const architectureRulesDoc = fs.readFileSync(
+      architectureRulesDocPath,
+      "utf8",
+    );
+    const architectureRatchet = JSON.parse(
+      fs.readFileSync(architectureRatchetPath, "utf8"),
+    );
     const envExample = fs.readFileSync(envExamplePath, "utf8");
 
     [
-      "Keep feature-first structure with routeConfig loading feature route containers directly.",
-      "Keep CSS Modules and tokenized styling before Airbnb visual redesign.",
-      "Keep TanStack Query as the server-state layer.",
-      "Keep backend/API/DB/server contracts unchanged.",
-      "Defer CRA-to-Vite migration until structure and smoke gates are stable.",
-      "Route query ownership moved into `src/routes`",
-      "Presentation DTO imports are closed at the API/UI boundary",
-      "Task 1-6 focused tests/typecheck and strict lint are now actionable pre-redesign gates.",
-      "`verify:structure` now runs typecheck, the no-cache CI test suite with `--runInBand`, and `lint:strict`.",
-      "Task 7 collapsed the temporary `src/pages/**` adapter layer into feature route containers.",
-      "GitHub Actions runs Node 20",
-      "`smoke:frontend:preflight` validates smoke env names",
-      "`verify` remains the default static local gate and still excludes lint and strict smoke.",
-      "`verify:design-ready` remains the explicit browser-backed gate because it needs live credentials, stable reservation UIDs, gstack browse, and seeded search data.",
+      "Status: canonical current-state source of truth",
+      "Backend endpoints, request/response fields, cookie semantics, database",
+      "server authorization are outside frontend ownership.",
+      "There must be one active writer for every mutable workflow.",
+      "All 15 entries are lazy.",
+      "src/app/router/lazyRoutes.tsx",
+      "src/app/header/**",
+      "src/app/shells/**",
+      "The retired legacy source roots are absent from src.",
+      "Feature ownership boundaries are closed.",
+      "Airbnb visual redesign begins only after the architecture design-entry gate",
+      "When documents disagree about the current frontend, this document wins.",
     ].forEach((term) => {
-      expect(architectureDoc).toContain(term);
+      expect(currentArchitectureDoc).toContain(term);
     });
 
+    expect(historicalArchitectureDoc).toContain("superseded on 2026-08-29");
+    expect(historicalArchitectureDoc).toContain(
+      "current-frontend-architecture.md",
+    );
+    expect(migrationRulesDoc).toContain("Keep one active writer");
+    expect(migrationRulesDoc).toContain(
+      "Do not weaken a gate to make a unit green.",
+    );
+    expect(ownershipMatrixDoc).toContain(
+      "**Active** is the only production route entry",
+    );
+    expect(ownershipMatrixDoc).toContain(
+      "Current cutover state: app Router/session/structural UI",
+    );
+    expect(ownershipMatrixDoc).toContain(
+      "All 15 lazy routes resolve to app/screen-owned bodies",
+    );
+    expect(ownershipMatrixDoc).toContain(
+      "**Active:** app codec/navigation/auth composition",
+    );
+    expect(ownershipMatrixDoc).toContain("Payment storage and rollback matrix");
+    expect(architectureRulesDoc).toContain("Single rule owners");
+    expect(architectureRulesDoc).toContain(
+      "Feature-to-peer production imports are errors regardless of filename",
+    );
+    expect(architectureRulesDoc).toContain(
+      "Strict design-policy errors are zero",
+    );
+    expect(Array.isArray(architectureRatchet.migratedFeatures)).toBe(true);
+    expect(new Set(architectureRatchet.migratedFeatures).size).toBe(
+      architectureRatchet.migratedFeatures.length,
+    );
+    expect(architectureRatchet.migratedFeatures).toEqual(
+      [...architectureRatchet.migratedFeatures].sort(),
+    );
+    expect(architectureRatchet.migratedFeatures).toEqual([
+      "accommodations/detail",
+      "accommodations/listing-editor",
+      "auth",
+      "home",
+      "profile",
+      "reservations",
+      "reservations/payment",
+      "reviews",
+      "search",
+      "wishlist",
+    ]);
+
     [
+      "PUBLIC_URL=",
       "REACT_APP_API_URL=http://localhost:8080",
       "REACT_APP_GOOGLE_MAPS_API_KEY=replace-with-local-dev-key",
       "AIRBOB_QA_EMAIL=qa@example.com",
@@ -374,19 +740,19 @@ describe("frontend verification gate", () => {
     });
   });
 
-  test("frontend architecture freeze criteria are documented", () => {
+  test("historical frontend freeze points to the canonical migration registry", () => {
     expect(fs.existsSync(architectureFreezeDocPath)).toBe(true);
 
     const freezeDoc = fs.readFileSync(architectureFreezeDocPath, "utf8");
 
     [
-      "구조 freeze 기준",
-      "Production feature 파일은 다른 feature의 private surface를 직접 import하지 않는다.",
-      "Cross-feature 사용은 appShell.ts 또는 publicCache.ts를 통한다.",
-      "SearchRoute는 화면 렌더링을 담당하고 useSearchRouteController가 route orchestration을 소유한다.",
-      "Query 에러 toast 중복 방지는 useHandledQueryError가 소유한다.",
-      "AuthProvider는 provider 역할을 맡고 sessionLifecycle이 세션 side effect를 소유한다.",
-      "Airbnb 스타일 시각 리팩토링은 이 문서의 freeze gate 통과 뒤 화면 단위로 진행한다.",
+      "2026-08-29 superseded",
+      "current-frontend-architecture.md",
+      "frontend-migration-rules.md",
+      "frontend-ownership-matrix.md",
+      "appShell.ts`와 `publicCache.ts`는 목표 구조가 아니라",
+      "과거 통과 기록이나 skip은 현재",
+      "검증을 대신하지 않습니다.",
     ].forEach((term) => {
       expect(freezeDoc).toContain(term);
     });
@@ -423,9 +789,7 @@ describe("frontend verification gate", () => {
       "Frontend smoke preflight failed",
       "GSTACK_BROWSE_BIN must point to an existing executable file",
       "response.status < 200 || response.status >= 400",
-      'const strictDynamicRoutes = process.env.AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES === "true";',
       "skippedDynamicRoutes",
-      "strictDynamicRoutes && skippedDynamicRoutes.length > 0",
       "Strict dynamic route smoke mode requires stable route ids",
       "Skipped Dynamic Routes",
       "Skipped dynamic smoke routes",
@@ -439,6 +803,13 @@ describe("frontend verification gate", () => {
     ].forEach((term) => {
       expect(smokeScript).toContain(term);
     });
+
+    expect(smokeScript).toMatch(
+      /const strictDynamicRoutes\s*=\s*process\.env\.AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES\s*===\s*"true";/,
+    );
+    expect(smokeScript).toMatch(
+      /strictDynamicRoutes\s*&&\s*skippedDynamicRoutes\.length\s*>\s*0/,
+    );
 
     [
       "rawGoogleMapsApiKey",
@@ -473,15 +844,16 @@ describe("frontend verification gate", () => {
     );
     expect(accommodationDetailRoute?.[0]).toContain('expectedText: "예약하기"');
 
-    expect(smokeScript).not.toMatch(/process\.env\.AIRBOB_QA_(?:EMAIL|PASSWORD)[^;]*console/);
+    expect(smokeScript).not.toMatch(
+      /process\.env\.AIRBOB_QA_(?:EMAIL|PASSWORD)[^;]*console/,
+    );
   });
 
   test("frontend smoke preflight rejects 4xx services and strips URL credentials", () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "airbob-preflight-"));
     const fakeBrowsePath = path.join(tempDir, "fake-browse.mjs");
     const reportRoot = path.join(tempDir, "reports");
-    const frontendUrl =
-      "http://frontend-user:frontend-secret@frontend.invalid";
+    const frontendUrl = "http://frontend-user:frontend-secret@frontend.invalid";
     const backendUrl = "http://backend.invalid";
     const fetchMockPath = writePreflightFetchMock(tempDir, {
       [frontendUrl]: { status: 204 },
@@ -490,7 +862,9 @@ describe("frontend verification gate", () => {
 
     fs.writeFileSync(
       fakeBrowsePath,
-      ["#!/usr/bin/env node", 'console.log("browse should not run");'].join("\n"),
+      ["#!/usr/bin/env node", 'console.log("browse should not run");'].join(
+        "\n",
+      ),
       { mode: 0o755 },
     );
 
@@ -546,7 +920,9 @@ describe("frontend verification gate", () => {
 
     fs.writeFileSync(
       fakeBrowsePath,
-      ["#!/usr/bin/env node", 'console.log("browse should not run");'].join("\n"),
+      ["#!/usr/bin/env node", 'console.log("browse should not run");'].join(
+        "\n",
+      ),
       { mode: 0o755 },
     );
 
@@ -601,7 +977,9 @@ describe("frontend verification gate", () => {
 
     fs.writeFileSync(
       fakeBrowsePath,
-      ["#!/usr/bin/env node", 'console.log("browse should not run");'].join("\n"),
+      ["#!/usr/bin/env node", 'console.log("browse should not run");'].join(
+        "\n",
+      ),
       { mode: 0o755 },
     );
 
@@ -677,7 +1055,8 @@ describe("frontend verification gate", () => {
       ).toBe(true);
       expect(defaultReportEntriesAfter).toEqual(defaultReportEntriesBefore);
       expect(
-        defaultReportEntriesBefore !== null || !fs.existsSync(defaultReportRoot),
+        defaultReportEntriesBefore !== null ||
+          !fs.existsSync(defaultReportRoot),
       ).toBe(true);
     } finally {
       removeNewDirectoryEntries(defaultReportRoot, defaultReportEntriesBefore);
@@ -720,9 +1099,8 @@ describe("frontend verification gate", () => {
       });
       const output = `${result.stdout}\n${result.stderr}`;
       const reportPathMatch = output.match(/Smoke report written to (.+\.md)/);
-      const reportPath = reportPathMatch
-        ? toSmokeReportPath(reportPathMatch[1])
-        : "";
+      const reportedPath = reportPathMatch?.[1];
+      const reportPath = reportedPath ? toSmokeReportPath(reportedPath) : "";
       const report = reportPath ? fs.readFileSync(reportPath, "utf8") : "";
 
       if (reportPath) {
@@ -798,141 +1176,113 @@ describe("frontend verification gate", () => {
     }
   });
 
-  test("QA smoke document covers required browser checkpoints without credentials", () => {
+  test("QA smoke document owns only deferred live-integration evidence", () => {
     expect(fs.existsSync(qaDocPath)).toBe(true);
 
     const qaDoc = fs.readFileSync(qaDocPath, "utf8");
     const requiredTerms = [
-      "목적",
-      "Airbnb 디자인 리팩터",
-      "환경",
-      "http://localhost:3000",
-      "http://localhost:8080",
-      "QA 계정",
-      "Recording",
-      "failed step",
-      "console error",
-      "network failed request",
-      "screenshot path",
-      "verify:pre-redesign",
-      "verify:design-ready",
-      "smoke:frontend:strict",
-      "ES Search Fixture Gate",
-      "AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS",
-      "Google Maps API key: present",
+      "# Frontend Live Integration Smoke",
+      "DEFERRED / UNVERIFIED",
+      "backend-independent `npm run verify:design-ready`",
+      "live smoke는 그 명령에",
+      "포함되지 않고 디자인 작업을 차단하지 않는다",
+      "commit-specific Vercel deployment",
+      "OCI `/api/v1`",
+      "Google Maps/Places SDK",
+      "Toss sandbox",
+      "AWS 성능 환경",
+      "npm run verify:design-ready",
+      "npm run smoke:frontend:preflight",
+      "npm run verify:live-integration",
+      "AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS=true",
+      "strict dynamic-route smoke",
+      "Google Maps API key:",
+      "present` 표시는",
       "AIRBOB_API_BASE_URL",
       "AIRBOB_FRONTEND_URL",
       "AIRBOB_SMOKE_REPORT_ROOT",
       "GSTACK_BROWSE_BIN",
       "AIRBOB_QA_EMAIL",
-      ': "' +
-        "$" +
-        "{AIRBOB_QA_PASSWORD:?Set AIRBOB_QA_PASSWORD in the shell before running smoke}" +
-        '"',
+      "AIRBOB_QA_PASSWORD",
       "AIRBOB_SMOKE_ACCOMMODATION_ID",
+      "AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID",
       "AIRBOB_SMOKE_RESERVATION_UID",
       "AIRBOB_SMOKE_HOST_RESERVATION_UID",
-      "curl -fsS",
-      "profile/guest/reservations?filterType=PAST&size=1",
-      "profile/host/reservations?filterType=PAST&size=1",
-      "guest_reservation_uid",
-      "host_reservation_uid",
-      "npm run smoke:frontend:strict",
-      "Skipped Dynamic Routes",
-      "Smoke report evidence",
-      "2026-07-04 KST Redesign Readiness Smoke Gate",
+      "failed step",
+      "console error",
+      "network failed request",
+      "DEFERRED / UNVERIFIED`를 유지",
     ];
-    const desktopSection = getSection(qaDoc, "Desktop 1280px 체크리스트");
-    const desktopTerms = [
-      "Home search",
-      "/search",
-      "Search list",
-      "page query",
-      "map marker",
-      "bounds",
-      "Accommodation detail",
-      "coupon",
-      "reservation button",
-      "Reservation confirm",
-      "AccommodationEdit",
-      "image upload",
-      "publish",
-      "Toss",
-      "PaymentSuccess",
-      "ReservationDetail",
-      "Host reservation detail",
-      "Wishlist",
-      "Profile guest tab",
-      "host tab",
-      "Host listing",
+    const requiredSections = [
+      "목적과 경계",
+      "실행 전 조건",
+      "Smoke 환경 변수",
+      "실행",
+      "자동 route evidence",
+      "수동 live checklist",
+      "실패와 증거 기록",
     ];
-    const mobileSection = getSection(qaDoc, "Mobile 375px 체크리스트");
-    const mobileTerms = [
-      "Home search",
-      "Search mobile bottom sheet",
-      "bottom sheet",
-      "closed",
-      "half",
-      "full",
-      "Detail booking panel",
-      "booking panel",
-      "Reservation confirm",
-      "Wishlist",
-      "Profile guest tab",
-      "host tab",
-      "Host listing",
-      "auth modal",
-    ];
-    const architectureSection = getSection(qaDoc, "Architecture Checkpoints");
-    const architectureCheckpoints = [
-      {
-        heading: "query route contract",
-        expectedTerms: [
-          "/profile?mode=host&tab=reservations",
-          "/wishlist?view=recently-viewed",
-          "browser back/forward",
-        ],
-      },
-      {
-        heading: "server-state auth boundary",
-        expectedTerms: ["login", "logout", "401 handling"],
-      },
-      {
-        heading: "components ownership boundary",
-        expectedTerms: ["shared UI primitives", "workflow containers"],
-      },
-      {
-        heading: "design system entry contracts",
-        expectedTerms: ["src/styles/design-system-contracts.test.ts", "screenshot path"],
-      },
-    ];
+    const liveChecklist = getSection(qaDoc, "수동 live checklist");
 
     requiredTerms.forEach((term) => {
       expect(qaDoc).toContain(term);
     });
-    desktopTerms.forEach((term) => {
-      expect(desktopSection).toContain(term);
+    requiredSections.forEach((heading) => {
+      expect(getSection(qaDoc, heading)).not.toBe("");
     });
-    mobileTerms.forEach((term) => {
-      expect(mobileSection).toContain(term);
-    });
-    architectureCheckpoints.forEach(({ heading, expectedTerms }) => {
-      const checkpoint = getSection(architectureSection, heading, 3);
-
-      expect(checkpoint).toContain("Steps:");
-      expect(checkpoint).toContain("Expected:");
-      expect(checkpoint).toContain("Evidence:");
-      expectedTerms.forEach((term) => {
-        expect(checkpoint).toContain(term);
-      });
-    });
+    ["Vercel과 OCI", "Google Maps와 Places", "Toss sandbox"].forEach(
+      (heading) => {
+        expect(getSection(liveChecklist, heading, 3)).not.toBe("");
+      },
+    );
 
     expect(qaDoc).not.toMatch(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
-    expect(qaDoc).not.toMatch(
-      /(?:^|[^A-Z_])(?:email|password|nickname|member[_ -]?id)\s*[:=]/i,
-    );
-    expect(qaDoc).not.toMatch(/(?:이메일|비밀번호)\s*[:=：]/);
-    expect(qaDoc).not.toContain("Final Verification");
-    expect(qaDoc).not.toContain("PASS in final verification");
+    [
+      "Desktop 1280px 체크리스트",
+      "Mobile 375px 체크리스트",
+      "Architecture Checkpoints",
+      "2026-07-04",
+      "Final Verification",
+      "PASS in final verification",
+      "react-scripts",
+      "Jest",
+      "http://localhost:3000",
+      "http://localhost:8080",
+    ].forEach((obsoleteTerm) => {
+      expect(qaDoc).not.toContain(obsoleteTerm);
+    });
+  });
+
+  test("target contract matrix keeps offline closure separate from live evidence", () => {
+    expect(fs.existsSync(targetContractMatrixPath)).toBe(true);
+
+    const matrix = fs.readFileSync(targetContractMatrixPath, "utf8");
+    [
+      "판정 기준",
+      "구조 계약",
+      "보존해야 하는 사용자 흐름",
+      "외부 통합 상태",
+      "디자인 진입 판정",
+      "npm run verify:design-ready",
+      "npm run verify:pre-redesign",
+      "npm run verify:structure",
+      "npm run verify:browser",
+      "npm run verify:live-integration",
+      "READY (offline)",
+      "Global unused file/value/type export와 duplicate export",
+      "Production Knip은 target preprocessor 없이 전체 production graph",
+      "frontend-bundle-budgets.json",
+      "DEFERRED / UNVERIFIED (live)",
+      "Vercel → OCI",
+      "Google Maps/Places",
+      "Toss sandbox",
+      "AWS performance environment",
+    ].forEach((term) => {
+      expect(matrix).toContain(term);
+    });
+    expect(matrix).not.toContain("PENDING (offline closure)");
+    expect(matrix).not.toContain("2026-07-04");
+    expect(matrix).not.toContain("react-scripts");
+    expect(matrix).not.toContain("Jest");
   });
 });

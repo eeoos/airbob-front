@@ -5,7 +5,7 @@ import {
 
 const mockRect = (
   element: HTMLElement,
-  rect: Partial<DOMRect> & Pick<DOMRect, "left" | "top" | "width" | "height">
+  rect: Partial<DOMRect> & Pick<DOMRect, "left" | "top" | "width" | "height">,
 ) => {
   Object.defineProperty(element, "getBoundingClientRect", {
     configurable: true,
@@ -35,7 +35,8 @@ describe("info window DOM helpers", () => {
     infoWindow.className = "gm-style-iw-c";
     parent.style.transform = "translate(10px, 5px)";
     parent.appendChild(infoWindow);
-    document.body.append(mapElement, parent);
+    mapElement.appendChild(parent);
+    document.body.append(mapElement);
 
     mockRect(mapElement, { left: 0, top: 0, width: 300, height: 240 });
     mockRect(infoWindow, { left: 280, top: 220, width: 327, height: 80 });
@@ -43,7 +44,7 @@ describe("info window DOM helpers", () => {
     const didAdjust = adjustInfoWindowIntoMapView({ mapElement });
 
     expect(didAdjust).toBe(true);
-    expect(parent.style.transform).toBe("translate(-317px, -75px)");
+    expect(parent).toHaveStyle({ transform: "translate(-317px, -75px)" });
   });
 
   it("leaves an in-bounds info window transform unchanged", () => {
@@ -53,7 +54,8 @@ describe("info window DOM helpers", () => {
     infoWindow.className = "gm-style-iw-c";
     parent.style.transform = "translate(4px, 8px)";
     parent.appendChild(infoWindow);
-    document.body.append(mapElement, parent);
+    mapElement.appendChild(parent);
+    document.body.append(mapElement);
 
     mockRect(mapElement, { left: 0, top: 0, width: 500, height: 320 });
     mockRect(infoWindow, { left: 80, top: 40, width: 327, height: 100 });
@@ -61,10 +63,11 @@ describe("info window DOM helpers", () => {
     const didAdjust = adjustInfoWindowIntoMapView({ mapElement });
 
     expect(didAdjust).toBe(false);
-    expect(parent.style.transform).toBe("translate(4px, 8px)");
+    expect(parent).toHaveStyle({ transform: "translate(4px, 8px)" });
   });
 
   it("applies Google Maps info window chrome overrides and removes default close controls", () => {
+    const mapElement = document.createElement("div");
     const content = document.createElement("div");
     content.className = "gm-style-iw-d";
     const container = document.createElement("div");
@@ -75,16 +78,49 @@ describe("info window DOM helpers", () => {
     closeButton.className = "gm-ui-hover-effect";
     const emptyCloseWrapper = document.createElement("div");
     emptyCloseWrapper.className = "gm-style-iw-ch";
-    document.body.append(content, container, closeContainer, closeButton, emptyCloseWrapper);
+    mapElement.append(
+      content,
+      container,
+      closeContainer,
+      closeButton,
+      emptyCloseWrapper,
+    );
+    document.body.append(mapElement);
 
-    applyInfoWindowChromeStyles();
+    applyInfoWindowChromeStyles(mapElement);
 
-    expect(content.style.padding).toBe("0px");
-    expect(content.style.background).toBe("transparent");
-    expect(container.style.borderRadius).toBe("12px");
-    expect(container.style.overflow).toBe("hidden");
+    expect(content).toHaveStyle({ padding: "0px" });
+    expect(content).toHaveStyle({ background: "transparent" });
+    expect(content).toHaveStyle({ overflow: "visible" });
+    expect(container).toHaveStyle({ borderRadius: "12px" });
+    expect(container).toHaveStyle({ overflow: "hidden" });
     expect(document.querySelector(".gm-style-iw-chr")).toBeNull();
     expect(document.querySelector(".gm-ui-hover-effect")).toBeNull();
     expect(document.querySelector(".gm-style-iw-ch")).toBeNull();
+  });
+
+  it("never mutates Google Maps chrome outside the provided map root", () => {
+    const ownedMap = document.createElement("div");
+    const unrelatedMap = document.createElement("div");
+    ownedMap.innerHTML = `
+      <div class="gm-style-iw-d"></div>
+      <div class="gm-style-iw-c"></div>
+      <button class="gm-ui-hover-effect"></button>
+    `;
+    unrelatedMap.innerHTML = `
+      <div class="gm-style-iw-d"></div>
+      <div class="gm-style-iw-c"></div>
+      <button class="gm-ui-hover-effect"></button>
+    `;
+    document.body.append(ownedMap, unrelatedMap);
+
+    applyInfoWindowChromeStyles(ownedMap);
+
+    expect(ownedMap.querySelector(".gm-ui-hover-effect")).toBeNull();
+    expect(unrelatedMap.querySelector(".gm-ui-hover-effect")).not.toBeNull();
+    expect(
+      unrelatedMap.querySelector<HTMLElement>(".gm-style-iw-c")?.style
+        .borderRadius,
+    ).toBe("");
   });
 });

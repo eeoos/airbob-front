@@ -7,16 +7,18 @@ interface AdjustInfoWindowIntoMapViewOptions {
 
 const parseTranslateTransform = (transform: string) => {
   const translateMatch = transform.match(/translate\(([^,]+),\s*([^)]+)\)/);
+  const rawX = translateMatch?.[1];
+  const rawY = translateMatch?.[2];
 
   return {
-    x: translateMatch ? parseFloat(translateMatch[1]) : 0,
-    y: translateMatch ? parseFloat(translateMatch[2]) : 0,
+    x: rawX === undefined ? 0 : parseFloat(rawX),
+    y: rawY === undefined ? 0 : parseFloat(rawY),
   };
 };
 
 export const adjustInfoWindowIntoMapView = ({
   mapElement,
-  root = document,
+  root = mapElement,
   infoWindowWidth = 327,
   margin = 20,
 }: AdjustInfoWindowIntoMapViewOptions) => {
@@ -59,19 +61,20 @@ export const adjustInfoWindowIntoMapView = ({
   }
 
   const currentTransform = parseTranslateTransform(
-    infoWindowParent.style.transform || ""
+    infoWindowParent.style.transform || "",
   );
   infoWindowParent.style.transform = `translate(${currentTransform.x + adjustX}px, ${currentTransform.y + adjustY}px)`;
 
   return true;
 };
 
-export const applyInfoWindowChromeStyles = (root: ParentNode = document) => {
+export const applyInfoWindowChromeStyles = (root: ParentNode) => {
   const infoWindowContent = root.querySelector<HTMLElement>(".gm-style-iw-d");
   if (infoWindowContent) {
     infoWindowContent.style.padding = "0";
     infoWindowContent.style.background = "transparent";
     infoWindowContent.style.boxShadow = "none";
+    infoWindowContent.style.overflow = "visible";
   }
 
   const infoWindowContainer = root.querySelector<HTMLElement>(".gm-style-iw-c");

@@ -3,7 +3,10 @@ import { join } from "path";
 
 const readProfileCss = () =>
   readFileSync(
-    join(process.cwd(), "src/features/profile/components/ProfileShell.module.css"),
+    join(
+      process.cwd(),
+      "src/features/profile/components/ProfileShell.module.css",
+    ),
     "utf8",
   );
 

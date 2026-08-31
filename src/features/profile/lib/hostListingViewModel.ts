@@ -1,5 +1,8 @@
-import type { AddressSummaryInfo, HostAccommodationInfo } from "../../../types/accommodation";
-import { AccommodationStatus } from "../../../types/enums";
+import { resolveImageUrl as defaultResolveImageUrl } from "../../../platform/assets/imageUrl";
+import type {
+  HostListing,
+  HostListingAddressSummary,
+} from "../model/hostListing";
 
 export interface HostListingViewModel {
   canOpenDetail: boolean;
@@ -19,7 +22,7 @@ const getHostListingName = (name: string | null): string => name || "이름 없�
 const getHostListingImageAlt = (name: string | null): string => name || "숙소";
 
 const getHostListingLocationLabel = (
-  addressSummary: AddressSummaryInfo | null,
+  addressSummary: HostListingAddressSummary | null,
 ): string => {
   if (!addressSummary) {
     return "위치 정보 없음";
@@ -31,40 +34,45 @@ const getHostListingLocationLabel = (
   );
 };
 
-const getHostListingStatusLabel = (
-  status: HostAccommodationInfo["status"],
-): string => {
+const getHostListingStatusLabel = (status: HostListing["status"]): string => {
   switch (status) {
-    case AccommodationStatus.PUBLISHED:
+    case "PUBLISHED":
       return "공개";
-    case AccommodationStatus.DRAFT:
+    case "DRAFT":
       return "작성 중";
-    case AccommodationStatus.UNPUBLISHED:
+    case "UNPUBLISHED":
       return "비공개";
     default:
       return status;
   }
 };
 
-export const toHostListingViewModel = (
-  accommodation: HostAccommodationInfo,
+const toHostListingViewModel = (
+  accommodation: HostListing,
+  resolveImageUrl: (path: string | null) => string = defaultResolveImageUrl,
 ): HostListingViewModel => {
   const name = getHostListingName(accommodation.name);
 
   return {
-    canOpenDetail: accommodation.status === AccommodationStatus.PUBLISHED,
-    canPublish: accommodation.status === AccommodationStatus.UNPUBLISHED,
-    canUnpublish: accommodation.status === AccommodationStatus.PUBLISHED,
+    canOpenDetail: accommodation.status === "PUBLISHED",
+    canPublish: accommodation.status === "UNPUBLISHED",
+    canUnpublish: accommodation.status === "PUBLISHED",
     id: accommodation.id,
     imageAlt: getHostListingImageAlt(accommodation.name),
-    locationLabel: getHostListingLocationLabel(accommodation.address_summary),
+    locationLabel: getHostListingLocationLabel(accommodation.addressSummary),
     managementLabel: `${name} 숙소 관리 열기`,
     name,
     statusLabel: getHostListingStatusLabel(accommodation.status),
-    thumbnailUrl: accommodation.thumbnail_url,
+    thumbnailUrl: accommodation.thumbnailUrl
+      ? resolveImageUrl(accommodation.thumbnailUrl)
+      : null,
   };
 };
 
 export const toHostListingViewModels = (
-  accommodations: HostAccommodationInfo[],
-): HostListingViewModel[] => accommodations.map(toHostListingViewModel);
+  accommodations: readonly HostListing[],
+  resolveImageUrl: (path: string | null) => string = defaultResolveImageUrl,
+): HostListingViewModel[] =>
+  accommodations.map((accommodation) =>
+    toHostListingViewModel(accommodation, resolveImageUrl),
+  );

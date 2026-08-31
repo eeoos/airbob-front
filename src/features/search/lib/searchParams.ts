@@ -1,20 +1,5 @@
-import { AccommodationSearchRequest } from "../../../types/accommodation";
-import { toCanonicalSearchString } from "../../../shared/lib/urlSearchParams";
-import type { SearchRouteQuery } from "../../../routes/routeQueryContracts";
-import { clampSearchPage } from "./pagination";
-
-export interface SearchViewport {
-  north: number;
-  south: number;
-  east: number;
-  west: number;
-}
-
-export interface SearchPlaceSelection {
-  lat: number;
-  lng: number;
-  viewport: SearchViewport;
-}
+import type { SearchPlaceSelection, SearchViewport } from "../model/search";
+import { parseStrictFiniteNumber } from "./searchParamParsers";
 
 export interface SearchNavigationInput {
   destination?: string;
@@ -56,7 +41,7 @@ const SEARCH_QUERY_KEYS_TO_PRESERVE = [
   "petOccupancy",
 ] as const;
 
-export const pickSearchParams = (params: URLSearchParams) => {
+const pickSearchParams = (params: URLSearchParams) => {
   const nextParams = new URLSearchParams();
 
   SEARCH_QUERY_KEYS_TO_PRESERVE.forEach((key) => {
@@ -69,55 +54,11 @@ export const pickSearchParams = (params: URLSearchParams) => {
   return nextParams;
 };
 
-export const toSearchRouteQuery = (
-  params: URLSearchParams,
-): SearchRouteQuery => {
-  const query: SearchRouteQuery = {};
-
-  SEARCH_QUERY_KEYS_TO_PRESERVE.forEach((key) => {
-    const value = params.get(key);
-    if (value !== null && value !== "") {
-      query[key] = value;
-    }
-  });
-
-  return query;
-};
-
-export const getSearchParamsSignature = (params: URLSearchParams): string =>
-  toCanonicalSearchString(pickSearchParams(params));
-
 const formatDateForSearchParam = (date: Date): string => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
-};
-
-const parseOptionalInt = (
-  params: URLSearchParams,
-  key: string,
-): number | undefined => {
-  const value = params.get(key);
-  if (value === null) {
-    return undefined;
-  }
-
-  const parsed = parseInt(value, 10);
-  return Number.isFinite(parsed) ? parsed : undefined;
-};
-
-const parseOptionalFloat = (
-  params: URLSearchParams,
-  key: string,
-): number | undefined => {
-  const value = params.get(key);
-  if (value === null) {
-    return undefined;
-  }
-
-  const parsed = parseFloat(value);
-  return Number.isFinite(parsed) ? parsed : undefined;
 };
 
 const setViewportParams = (
@@ -138,21 +79,13 @@ export const removeViewportParams = (
   return nextParams;
 };
 
-const removeViewportAndLocationParams = (
-  params: URLSearchParams,
-): URLSearchParams => {
-  const nextParams = removeViewportParams(params);
-  LOCATION_KEYS.forEach((key) => nextParams.delete(key));
-  return nextParams;
-};
-
 export const getViewportFromSearchParams = (
   params: URLSearchParams,
 ): SearchViewport | null => {
-  const north = parseOptionalFloat(params, "topLeftLat");
-  const west = parseOptionalFloat(params, "topLeftLng");
-  const south = parseOptionalFloat(params, "bottomRightLat");
-  const east = parseOptionalFloat(params, "bottomRightLng");
+  const north = parseStrictFiniteNumber(params.get("topLeftLat"));
+  const west = parseStrictFiniteNumber(params.get("topLeftLng"));
+  const south = parseStrictFiniteNumber(params.get("bottomRightLat"));
+  const east = parseStrictFiniteNumber(params.get("bottomRightLng"));
 
   if (
     north === undefined ||
@@ -164,18 +97,6 @@ export const getViewportFromSearchParams = (
   }
 
   return { north, west, south, east };
-};
-
-export const getViewportSearchParamSignature = (
-  params: URLSearchParams,
-): string | null => {
-  const viewport = getViewportFromSearchParams(params);
-
-  if (!viewport) {
-    return null;
-  }
-
-  return `${viewport.north},${viewport.west},${viewport.south},${viewport.east}`;
 };
 
 export const buildSearchNavigationParams = (
@@ -220,43 +141,4 @@ export const buildSearchNavigationParams = (
   params.set("petOccupancy", input.petOccupancy.toString());
 
   return params;
-};
-
-export const buildMapBoundsSearchParams = (
-  currentParams: URLSearchParams,
-  bounds: SearchViewport,
-): URLSearchParams => {
-  const params = removeViewportAndLocationParams(
-    pickSearchParams(currentParams),
-  );
-
-  setViewportParams(params, bounds);
-  params.delete("destination");
-  params.delete("page");
-
-  return params;
-};
-
-export const buildSearchRequestFromParams = (
-  params: URLSearchParams,
-  options: { page?: number; size?: number } = {},
-): AccommodationSearchRequest => {
-  const viewport = getViewportFromSearchParams(params);
-  const page = options.page ?? clampSearchPage(params.get("page"));
-
-  return {
-    topLeftLat: viewport?.north,
-    topLeftLng: viewport?.west,
-    bottomRightLat: viewport?.south,
-    bottomRightLng: viewport?.east,
-    destination: !viewport ? params.get("destination") || undefined : undefined,
-    checkIn: params.get("checkIn") || undefined,
-    checkOut: params.get("checkOut") || undefined,
-    adultOccupancy: parseOptionalInt(params, "adultOccupancy"),
-    childOccupancy: parseOptionalInt(params, "childOccupancy"),
-    infantOccupancy: parseOptionalInt(params, "infantOccupancy"),
-    petOccupancy: parseOptionalInt(params, "petOccupancy"),
-    page,
-    size: options.size ?? 18,
-  };
 };

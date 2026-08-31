@@ -2,11 +2,16 @@ import * as fs from "fs";
 import * as path from "path";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { MockedFunction } from "vitest";
+import { OverlayProvider } from "../../../../app/overlays/OverlayProvider";
 import { SearchBar } from "./SearchBar";
-import { useSearchBarState } from "../../hooks/useSearchBarState";
+import {
+  type SearchBarRoutePort,
+  useSearchBarState,
+} from "../../hooks/useSearchBarState";
 
-jest.mock("../../hooks/useSearchBarState", () => ({
-  useSearchBarState: jest.fn(),
+vi.mock("../../hooks/useSearchBarState", () => ({
+  useSearchBarState: vi.fn(),
 }));
 
 type SearchBarState = ReturnType<typeof useSearchBarState>;
@@ -19,9 +24,16 @@ type SearchBarStateOverrides = {
   status?: Partial<SearchBarState["status"]>;
 };
 
-const mockUseSearchBarState = useSearchBarState as jest.MockedFunction<
+const mockUseSearchBarState = useSearchBarState as MockedFunction<
   typeof useSearchBarState
 >;
+
+const routePort: SearchBarRoutePort = {
+  currentSearchParams: new URLSearchParams(),
+  isSearchRoute: false,
+  pushSearch: vi.fn(),
+  replaceSearch: vi.fn(),
+};
 
 const readProjectFile = (relativePath: string) =>
   fs.readFileSync(path.join(process.cwd(), relativePath), "utf8");
@@ -38,7 +50,7 @@ const getCssBlock = (source: string, selector: string) => {
 };
 
 const createSearchBarState = (
-  overrides: SearchBarStateOverrides = {}
+  overrides: SearchBarStateOverrides = {},
 ): SearchBarState => {
   const state = {
     destination: {
@@ -57,42 +69,40 @@ const createSearchBarState = (
       childOccupancy: 0,
       infantOccupancy: 0,
       petOccupancy: 0,
-      getTotalGuests: jest.fn(() => 1),
+      totalGuests: 1,
       ...overrides.guests,
     },
     popover: {
+      activePopover: "none",
       isExpanded: false,
       showGuestPicker: false,
       showDatePicker: false,
       isComposing: false,
-      isOpeningDatePicker: false,
-      isOpeningGuestPicker: false,
       showSuggestions: false,
       ...overrides.popover,
     },
     actions: {
-      setAdultOccupancy: jest.fn(),
-      setChildOccupancy: jest.fn(),
-      setInfantOccupancy: jest.fn(),
-      setPetOccupancy: jest.fn(),
-      setExpanded: jest.fn(),
-      setShowGuestPicker: jest.fn(),
-      setShowDatePicker: jest.fn(),
-      setIsComposing: jest.fn(),
-      setIsOpeningDatePicker: jest.fn(),
-      setIsOpeningGuestPicker: jest.fn(),
-      setShowSuggestions: jest.fn(),
-      handleInputChange: jest.fn(),
-      handlePlaceSelect: jest.fn(),
-      resetPlaces: jest.fn(),
-      startNewSession: jest.fn(),
-      handleSearch: jest.fn(),
-      exitMapDragMode: jest.fn(),
-      completeCheckoutIfNeeded: jest.fn(),
-      closeTransientPanels: jest.fn(),
-      openDatePicker: jest.fn(),
-      toggleGuestPicker: jest.fn(),
-      handleDateSelect: jest.fn(),
+      changeAdultOccupancy: vi.fn(),
+      changeChildOccupancy: vi.fn(),
+      changeInfantOccupancy: vi.fn(),
+      changePetOccupancy: vi.fn(),
+      expandShell: vi.fn(),
+      collapseShell: vi.fn(),
+      openDestination: vi.fn(),
+      openDatePicker: vi.fn(),
+      toggleGuestPicker: vi.fn(),
+      closeActivePopover: vi.fn(),
+      startComposition: vi.fn(),
+      endComposition: vi.fn(),
+      changeDestination: vi.fn(),
+      selectDestination: vi.fn(),
+      clearDestinationSelection: vi.fn(),
+      startDestinationSession: vi.fn(),
+      handleSearch: vi.fn(),
+      exitMapDragMode: vi.fn(),
+      completeCheckoutIfNeeded: vi.fn(),
+      closeTransientPanels: vi.fn(),
+      handleDateSelect: vi.fn(),
       ...overrides.actions,
     },
     status: {
@@ -112,9 +122,9 @@ const seoulSuggestion = {
 };
 
 const renderExpandedSearchBarWithSuggestions = (
-  overrides: SearchBarStateOverrides = {}
+  overrides: SearchBarStateOverrides = {},
 ) => {
-  const handlePlaceSelect = jest.fn();
+  const selectDestination = vi.fn();
 
   mockUseSearchBarState.mockReturnValue(
     createSearchBarState({
@@ -125,39 +135,40 @@ const renderExpandedSearchBarWithSuggestions = (
         ...overrides.destination,
       },
       popover: {
+        activePopover: "destination",
         isExpanded: true,
         showSuggestions: true,
         ...overrides.popover,
       },
       actions: {
-        handlePlaceSelect,
+        selectDestination,
         ...overrides.actions,
       },
-    })
+    }),
   );
 
-  render(<SearchBar />);
+  render(<SearchBar routePort={routePort} />);
 
   return {
-    handlePlaceSelect,
+    selectDestination,
     suggestionButton: screen.getByRole("button", { name: /서울/ }),
   };
 };
 
 describe("SearchBar", () => {
   beforeEach(() => {
-    jest.useFakeTimers();
-    jest.setSystemTime(new Date("2026-07-10T12:00:00"));
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-10T12:00:00"));
     mockUseSearchBarState.mockReturnValue(createSearchBarState());
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it("keeps icon controls at the shared touch target and resets suggestion buttons", () => {
     const css = readProjectFile(
-      "src/features/search/components/SearchBar/SearchBar.module.css"
+      "src/features/search/components/SearchBar/SearchBar.module.css",
     );
     const searchItemStyles = getCssBlock(css, ".searchItem");
     const searchButtonStyles = getCssBlock(css, ".searchButton");
@@ -169,16 +180,16 @@ describe("SearchBar", () => {
     expect(searchItemStyles).toContain("background: transparent;");
     expect(searchItemStyles).toContain("font: inherit;");
     expect(searchButtonStyles).toContain(
-      "min-width: var(--control-touch-target);"
+      "min-width: var(--control-touch-target);",
     );
     expect(searchButtonStyles).toContain(
-      "min-height: var(--control-touch-target);"
+      "min-height: var(--control-touch-target);",
     );
     expect(controlButtonStyles).toContain(
-      "min-width: var(--control-touch-target);"
+      "min-width: var(--control-touch-target);",
     );
     expect(controlButtonStyles).toContain(
-      "min-height: var(--control-touch-target);"
+      "min-height: var(--control-touch-target);",
     );
     expect(suggestionItemStyles).toContain("appearance: none;");
     expect(suggestionItemStyles).toContain("border: 0;");
@@ -186,20 +197,34 @@ describe("SearchBar", () => {
     expect(suggestionItemStyles).toContain("text-align: left;");
   });
 
-  it("names the search icon button and keeps it out of form submission", () => {
-    render(<SearchBar />);
+  it("names the search icon button and keeps it out of form submission", async () => {
+    const state = createSearchBarState();
+    mockUseSearchBarState.mockReturnValue(state);
+
+    render(<SearchBar routePort={routePort} />);
 
     const searchButton = screen.getByRole("button", { name: "검색" });
+    const destinationButton = screen.getByRole("button", { name: "어디든지" });
 
     expect(searchButton).toHaveAttribute("type", "button");
+    expect(destinationButton).toHaveAttribute("type", "button");
+    expect(screen.getByRole("search", { name: "숙소 검색" })).toHaveAttribute(
+      "data-search-shell",
+      "compact",
+    );
+
+    await userEvent.click(destinationButton);
+
+    expect(state.actions.expandShell).toHaveBeenCalledTimes(1);
+    expect(state.actions.openDestination).toHaveBeenCalledTimes(1);
   });
 
   it("renders date and guest segments as disclosure buttons", () => {
     mockUseSearchBarState.mockReturnValue(
-      createSearchBarState({ popover: { isExpanded: true } })
+      createSearchBarState({ popover: { isExpanded: true } }),
     );
 
-    render(<SearchBar />);
+    render(<SearchBar routePort={routePort} />);
 
     const dateTrigger = screen.getByRole("button", {
       name: /체크인[\s\S]*체크아웃/,
@@ -211,29 +236,47 @@ describe("SearchBar", () => {
     expect(dateTrigger).toHaveAttribute("aria-controls", "search-date-picker");
     expect(guestTrigger).toHaveAttribute("type", "button");
     expect(guestTrigger).toHaveAttribute("aria-expanded", "false");
-    expect(guestTrigger).toHaveAttribute("aria-controls", "search-guest-picker");
+    expect(guestTrigger).toHaveAttribute(
+      "aria-controls",
+      "search-guest-picker",
+    );
   });
 
-  it("links expanded date and guest panels to their triggers", () => {
+  it("links the active date panel to its trigger", () => {
     mockUseSearchBarState.mockReturnValue(
       createSearchBarState({
         popover: {
+          activePopover: "date",
           isExpanded: true,
           showDatePicker: true,
-          showGuestPicker: true,
         },
-      })
+      }),
     );
 
-    render(<SearchBar />);
+    render(<SearchBar routePort={routePort} />);
 
     const dateTrigger = screen.getByRole("button", {
       name: /체크인[\s\S]*체크아웃/,
     });
-    const guestTrigger = screen.getByRole("button", { name: /여행자/ });
-
     expect(dateTrigger).toHaveAttribute("aria-expanded", "true");
     expect(screen.getAllByText("2026년 7월").length).toBeGreaterThan(0);
+  });
+
+  it("links the active guest panel to its trigger", () => {
+    mockUseSearchBarState.mockReturnValue(
+      createSearchBarState({
+        popover: {
+          activePopover: "guests",
+          isExpanded: true,
+          showGuestPicker: true,
+        },
+      }),
+    );
+
+    render(<SearchBar routePort={routePort} />);
+
+    const guestTrigger = screen.getByRole("button", { name: /여행자/ });
+
     expect(guestTrigger).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByText("성인")).toBeInTheDocument();
   });
@@ -251,17 +294,18 @@ describe("SearchBar", () => {
     mockUseSearchBarState.mockReturnValue(
       createSearchBarState({
         popover: {
+          activePopover: "guests",
           isExpanded: true,
           showGuestPicker: true,
         },
-      })
+      }),
     );
 
-    render(<SearchBar />);
+    render(<SearchBar routePort={routePort} />);
 
     expect(screen.getByRole("button", { name: label })).toHaveAttribute(
       "type",
-      "button"
+      "button",
     );
   });
 
@@ -272,25 +316,24 @@ describe("SearchBar", () => {
   });
 
   it("selects a place suggestion with pointer activation", async () => {
-    const { handlePlaceSelect, suggestionButton } =
+    const { selectDestination, suggestionButton } =
       renderExpandedSearchBarWithSuggestions();
 
     await userEvent.click(suggestionButton);
 
-    expect(handlePlaceSelect).toHaveBeenCalledWith(seoulSuggestion);
+    expect(selectDestination).toHaveBeenCalledWith(seoulSuggestion);
   });
 
   it("updates destination input state, resets stale place selection, and opens suggestions while typing", async () => {
-    const handleInputChange = jest.fn();
-    const resetPlaces = jest.fn();
-    const setShowSuggestions = jest.fn();
+    const changeDestination = vi.fn();
+    const clearDestinationSelection = vi.fn();
+    const openDestination = vi.fn();
 
     mockUseSearchBarState.mockReturnValue(
       createSearchBarState({
         destination: {
           inputText: "서",
           selectedPlace: {
-            placeId: "stale-place",
             lat: 37.5665,
             lng: 126.978,
             viewport: {
@@ -305,30 +348,30 @@ describe("SearchBar", () => {
           isExpanded: true,
         },
         actions: {
-          handleInputChange,
-          resetPlaces,
-          setShowSuggestions,
+          changeDestination,
+          clearDestinationSelection,
+          openDestination,
         },
-      })
+      }),
     );
 
-    render(<SearchBar />);
+    render(<SearchBar routePort={routePort} />);
 
     await userEvent.type(
       screen.getByPlaceholderText("어디로 여행가세요?"),
-      "울"
+      "울",
     );
 
-    expect(resetPlaces).toHaveBeenCalledTimes(1);
-    expect(handleInputChange).toHaveBeenCalledWith("서울");
-    expect(setShowSuggestions).toHaveBeenCalledWith(true);
+    expect(clearDestinationSelection).toHaveBeenCalledTimes(1);
+    expect(changeDestination).toHaveBeenCalledWith("서울");
+    expect(openDestination).toHaveBeenCalled();
   });
 
   it("clamps guest counter decrements at their minimum values", async () => {
-    const setAdultOccupancy = jest.fn();
-    const setChildOccupancy = jest.fn();
-    const setInfantOccupancy = jest.fn();
-    const setPetOccupancy = jest.fn();
+    const changeAdultOccupancy = vi.fn();
+    const changeChildOccupancy = vi.fn();
+    const changeInfantOccupancy = vi.fn();
+    const changePetOccupancy = vi.fn();
 
     mockUseSearchBarState.mockReturnValue(
       createSearchBarState({
@@ -339,19 +382,20 @@ describe("SearchBar", () => {
           petOccupancy: 0,
         },
         popover: {
+          activePopover: "guests",
           isExpanded: true,
           showGuestPicker: true,
         },
         actions: {
-          setAdultOccupancy,
-          setChildOccupancy,
-          setInfantOccupancy,
-          setPetOccupancy,
+          changeAdultOccupancy,
+          changeChildOccupancy,
+          changeInfantOccupancy,
+          changePetOccupancy,
         },
-      })
+      }),
     );
 
-    render(<SearchBar />);
+    render(<SearchBar routePort={routePort} />);
 
     const decrementLabels = [
       "성인 인원 줄이기",
@@ -368,19 +412,20 @@ describe("SearchBar", () => {
       await userEvent.click(screen.getByRole("button", { name: label }));
     }
 
-    expect(setAdultOccupancy).not.toHaveBeenCalled();
-    expect(setChildOccupancy).not.toHaveBeenCalled();
-    expect(setInfantOccupancy).not.toHaveBeenCalled();
-    expect(setPetOccupancy).not.toHaveBeenCalled();
+    expect(changeAdultOccupancy).not.toHaveBeenCalled();
+    expect(changeChildOccupancy).not.toHaveBeenCalled();
+    expect(changeInfantOccupancy).not.toHaveBeenCalled();
+    expect(changePetOccupancy).not.toHaveBeenCalled();
   });
 
   it("submits through the current search handler and closes open filters", async () => {
-    const closeTransientPanels = jest.fn();
-    const handleSearch = jest.fn();
+    const closeTransientPanels = vi.fn();
+    const handleSearch = vi.fn();
 
     mockUseSearchBarState.mockReturnValue(
       createSearchBarState({
         popover: {
+          activePopover: "date",
           isExpanded: true,
           showDatePicker: true,
         },
@@ -388,10 +433,10 @@ describe("SearchBar", () => {
           closeTransientPanels,
           handleSearch,
         },
-      })
+      }),
     );
 
-    render(<SearchBar />);
+    render(<SearchBar routePort={routePort} />);
 
     await userEvent.click(screen.getByRole("button", { name: "검색" }));
 
@@ -402,38 +447,124 @@ describe("SearchBar", () => {
   });
 
   it("closes the active guest popover on Escape", async () => {
-    const setShowGuestPicker = jest.fn();
+    const closeActivePopover = vi.fn();
 
     mockUseSearchBarState.mockReturnValue(
       createSearchBarState({
         popover: {
+          activePopover: "guests",
           isExpanded: true,
           showGuestPicker: true,
         },
         actions: {
-          setShowGuestPicker,
+          closeActivePopover,
         },
-      })
+      }),
     );
 
-    render(<SearchBar />);
+    render(
+      <OverlayProvider>
+        <SearchBar routePort={routePort} />
+      </OverlayProvider>,
+    );
 
     screen.getByRole("button", { name: "성인 인원 늘리기" }).focus();
+    expect(screen.getByRole("search", { name: "숙소 검색" })).toContainElement(
+      screen.getByText("성인"),
+    );
+    expect(document.body).toHaveStyle({ overflow: "" });
     await userEvent.keyboard("{Escape}");
 
-    expect(setShowGuestPicker).toHaveBeenCalledWith(false);
+    expect(closeActivePopover).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: /여행자/ })).toHaveFocus();
+  });
+
+  it("closes the active date popover from its trigger and restores focus", async () => {
+    const closeActivePopover = vi.fn();
+    const completeCheckoutIfNeeded = vi.fn();
+
+    mockUseSearchBarState.mockReturnValue(
+      createSearchBarState({
+        popover: {
+          activePopover: "date",
+          isExpanded: true,
+          showDatePicker: true,
+        },
+        actions: {
+          closeActivePopover,
+          completeCheckoutIfNeeded,
+        },
+      }),
+    );
+
+    render(
+      <OverlayProvider>
+        <SearchBar routePort={routePort} />
+      </OverlayProvider>,
+    );
+    const dateTrigger = screen.getByRole("button", {
+      name: /체크인[\s\S]*체크아웃/,
+    });
+
+    expect(screen.getByRole("search", { name: "숙소 검색" })).toHaveAttribute(
+      "data-search-shell",
+      "expanded",
+    );
+    dateTrigger.focus();
+    await userEvent.keyboard("{Escape}");
+
+    expect(completeCheckoutIfNeeded).toHaveBeenCalledTimes(1);
+    expect(closeActivePopover).toHaveBeenCalledTimes(1);
+    expect(dateTrigger).toHaveFocus();
+  });
+
+  it("closes the date picker from an active date cell and restores trigger focus", async () => {
+    const closeActivePopover = vi.fn();
+    const completeCheckoutIfNeeded = vi.fn();
+    const collapseShell = vi.fn();
+
+    mockUseSearchBarState.mockReturnValue(
+      createSearchBarState({
+        popover: {
+          activePopover: "date",
+          isExpanded: true,
+          showDatePicker: true,
+        },
+        actions: {
+          closeActivePopover,
+          completeCheckoutIfNeeded,
+          collapseShell,
+        },
+      }),
+    );
+
+    render(<SearchBar routePort={routePort} />);
+    const dateTrigger = screen.getByRole("button", {
+      name: /체크인[\s\S]*체크아웃/,
+    });
+    const activeDate = screen.getByRole("gridcell", {
+      name: "2026년 7월 10일 금요일",
+    });
+
+    activeDate.focus();
+    await userEvent.keyboard("{Escape}");
+
+    expect(completeCheckoutIfNeeded).toHaveBeenCalledTimes(1);
+    expect(closeActivePopover).toHaveBeenCalledTimes(1);
+    expect(collapseShell).not.toHaveBeenCalled();
+    expect(dateTrigger).toHaveFocus();
   });
 
   it.each([
     ["Enter", "{Enter}"],
     ["Space", " "],
   ])("selects a place suggestion with %s", async (_keyName, key) => {
-    const { handlePlaceSelect, suggestionButton } =
+    const { selectDestination, suggestionButton } =
       renderExpandedSearchBarWithSuggestions();
 
     suggestionButton.focus();
     await userEvent.keyboard(key);
 
-    expect(handlePlaceSelect).toHaveBeenCalledWith(seoulSuggestion);
+    expect(selectDestination).toHaveBeenCalledWith(seoulSuggestion);
   });
 });
