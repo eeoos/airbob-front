@@ -9,12 +9,14 @@ import {
 import {
   calculateAccommodationCouponDiscount,
   type AccommodationCoupon,
+  type AccommodationAvailability,
   type AccommodationDetailQueryOptions,
   toAccommodationBookingCouponViewModel,
   toAccommodationBookingCouponViewModels,
   toAccommodationBookingViewModel,
   toAccommodationDetailViewModel,
   useAccommodationDetailReadQuery,
+  useAccommodationAvailabilityReadQuery,
   useValidCouponsReadQuery,
 } from "../../features/accommodations/detail/public";
 import { useOutsideClick } from "../../shared/ui";
@@ -119,11 +121,25 @@ export function AccommodationDetailController({
     accommodationId,
     scope,
   });
+  const availabilityQuery = useAccommodationAvailabilityReadQuery({
+    accommodationId,
+    scope,
+  });
   const couponsQuery = useValidCouponsReadQuery({
     enabled: isAuthenticated,
     scope,
   });
   const accommodation = detailQuery.data ?? null;
+  const availability: AccommodationAvailability | null =
+    availabilityQuery.isError || availabilityQuery.isFetching
+      ? null
+      : (availabilityQuery.data ?? null);
+  const availabilityStatus =
+    availabilityQuery.isLoading || availabilityQuery.isFetching
+      ? "loading"
+      : availability
+        ? "ready"
+        : "error";
   const accommodationIdentity = accommodation?.id ?? null;
   const maxOccupancy = accommodation?.policy.maxOccupancy ?? 0;
   const maxInfants = accommodation?.policy.infantOccupancy ?? 0;
@@ -152,6 +168,12 @@ export function AccommodationDetailController({
     contains(target: Node): boolean;
   } | null>(null);
   const handledAuthAttemptRef = useRef<number | null>(null);
+  const availabilityInteractionReadyRef = useRef(false);
+  availabilityInteractionReadyRef.current = Boolean(
+    availabilityStatus === "ready" &&
+    availability &&
+    accommodationIdentity === availability.accommodationId,
+  );
   const reviewFeed = useAccommodationReviewFeed({
     accommodationId,
     enabled: Boolean(accommodation?.reviewSummary.totalCount),
@@ -188,6 +210,12 @@ export function AccommodationDetailController({
     maxOccupancy,
     maxPets,
   ]);
+
+  useEffect(() => {
+    if (availabilityStatus !== "ready") {
+      setIsDatePickerOpen(false);
+    }
+  }, [availabilityStatus]);
 
   useRecentlyViewedRecording({
     accommodationId: accommodation?.id ?? null,
@@ -233,7 +261,7 @@ export function AccommodationDetailController({
     () =>
       deriveBookingDates({
         basePrice: accommodation?.basePrice ?? 0,
-        unavailableDates: accommodation?.unavailableDates ?? [],
+        availability,
         ...(bookingRouteState.checkIn === undefined
           ? {}
           : { checkIn: bookingRouteState.checkIn }),
@@ -241,7 +269,12 @@ export function AccommodationDetailController({
           ? {}
           : { checkOut: bookingRouteState.checkOut }),
       }),
-    [accommodation, bookingRouteState.checkIn, bookingRouteState.checkOut],
+    [
+      accommodation?.basePrice,
+      availability,
+      bookingRouteState.checkIn,
+      bookingRouteState.checkOut,
+    ],
   );
   const coupons = useMemo<readonly AccommodationCoupon[]>(
     () => couponsQuery.data?.coupons ?? [],
@@ -259,9 +292,20 @@ export function AccommodationDetailController({
     bookingDates.totalPrice - selectedCouponDiscount,
     0,
   );
+  const isStayReady = Boolean(
+    availabilityStatus === "ready" &&
+    availability &&
+    accommodation &&
+    availability.accommodationId === accommodation.id &&
+    bookingDates.isStayReady &&
+    bookingDates.checkIn &&
+    bookingDates.checkOut &&
+    bookingDates.nights > 0,
+  );
   const { isReservationLocked, isReserving, startReservation } =
     useReservationCreateCommand({
       accommodation,
+      availability,
       bookingDates,
       checkoutHandoff,
       guestCounts: { adultCount, childCount, infantCount, petCount },
@@ -319,6 +363,7 @@ export function AccommodationDetailController({
         return;
       }
       case "reservation.start": {
+        if (availabilityStatus !== "ready") return;
         if (claimedIntent.couponId !== null && couponsQuery.isFetching) return;
         if (claimedIntent.couponId !== null && couponsQuery.isError) {
           complete();
@@ -341,6 +386,7 @@ export function AccommodationDetailController({
     }
   }, [
     accommodation,
+    availabilityStatus,
     authIntent,
     coupons,
     couponsQuery.isError,
@@ -409,11 +455,17 @@ export function AccommodationDetailController({
         },
       },
       bookingCard: {
-        bookingView: toAccommodationBookingViewModel(accommodation),
+        bookingView: toAccommodationBookingViewModel(
+          accommodation,
+          availability,
+        ),
         isAuthenticated,
         bookingState: {
           payablePrice,
+          availabilityStatus,
+          isStayReady,
           nights: bookingDates.nights,
+          selectionState: bookingDates.selectionState,
           totalPrice: bookingDates.totalPrice,
           checkIn: bookingDates.checkIn,
           checkOut: bookingDates.checkOut,
@@ -432,6 +484,7 @@ export function AccommodationDetailController({
         bookingActions: {
           formatDate: formatBookingDisplayDate,
           handleDateSelect: (checkIn, checkOut) => {
+            if (!availabilityInteractionReadyRef.current) return;
             startTransition(() => {
               onReplaceBookingDates(
                 checkIn ? formatBookingLocalDate(checkIn) : null,
@@ -446,7 +499,13 @@ export function AccommodationDetailController({
           setChildCount,
           setInfantCount,
           setPetCount,
-          onReserve: () => void startReservation(),
+          onReserve: () => {
+            if (!availabilityInteractionReadyRef.current || !isStayReady) {
+              return;
+            }
+            void startReservation();
+          },
+          retryAvailability: () => void availabilityQuery.refetch(),
         },
         couponState: {
           coupons: couponViews,

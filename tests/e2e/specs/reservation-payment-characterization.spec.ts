@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import {
+  apiFailure,
   apiSuccess,
   requireApiRequest,
   type ApiResponseSpec,
@@ -39,7 +40,7 @@ const accommodation = {
   currency: "KRW",
   check_in_time: "15:00:00",
   check_out_time: "11:00:00",
-  unavailable_dates: [],
+  time_zone_id: "Asia/Seoul",
   is_in_wishlist: false,
   address_summary: {
     country: "KR",
@@ -67,6 +68,12 @@ const accommodation = {
     total_count: 0,
     average_rating: 0,
   },
+};
+
+const accommodationAvailability = {
+  booking_window_start_inclusive: "2026-01-01",
+  booking_window_end_exclusive: "2027-01-01",
+  unavailable_ranges: [],
 };
 
 interface CheckoutDocument {
@@ -269,6 +276,45 @@ const openSeedPage = async (page: Page): Promise<void> => {
   );
 };
 
+test("keeps detail readable and retries availability before enabling reservation", async ({
+  api,
+  page,
+  session,
+}) => {
+  let availabilityAttempts = 0;
+  session.clear();
+  api.register("GET", "/api/v1/accommodations/7", apiSuccess(accommodation));
+  api.register("GET", "/api/v1/accommodations/7/availability", () => {
+    availabilityAttempts += 1;
+    return availabilityAttempts === 1
+      ? apiFailure(503, "R026", "예약 가능 정보를 잠시 조회할 수 없습니다.")
+      : apiSuccess(accommodationAvailability);
+  });
+
+  await page.goto(
+    "/accommodations/7?checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2",
+  );
+
+  await expect(
+    page.getByRole("heading", { name: "합정 테스트 숙소", level: 1 }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("예약 가능한 날짜를 불러오지 못했습니다."),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: /체크인/ })).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "예약 가능 날짜 확인 필요" }),
+  ).toBeDisabled();
+
+  await page.getByRole("button", { name: "다시 시도" }).click();
+
+  await expect(page.getByRole("button", { name: /체크인/ })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "예약하기" })).toBeEnabled();
+  expect(
+    api.matching("GET", "/api/v1/accommodations/7/availability"),
+  ).toHaveLength(2);
+});
+
 test("submits one reservation and performs one PII-free checkout handoff on a double click", async ({
   api,
   page,
@@ -293,6 +339,11 @@ test("submits one reservation and performs one PII-free checkout handoff on a do
   });
 
   api.register("GET", "/api/v1/accommodations/7", apiSuccess(accommodation));
+  api.register(
+    "GET",
+    "/api/v1/accommodations/7/availability",
+    apiSuccess(accommodationAvailability),
+  );
   api.register("GET", "/api/v1/coupons", apiSuccess({ infos: [] }));
   api.register(
     "POST",
@@ -634,6 +685,11 @@ test("blocks a new reservation while an earlier payment needs recovery", async (
     "POST",
     "/api/v1/members/recently-viewed/7",
     apiSuccess(null, 201),
+  );
+  api.register(
+    "GET",
+    "/api/v1/accommodations/7/availability",
+    apiSuccess(accommodationAvailability),
   );
   await openSeedPage(page);
   const seeded = await seedBookingPaymentDocuments(

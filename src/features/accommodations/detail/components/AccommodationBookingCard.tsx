@@ -16,6 +16,8 @@ type BooleanSetter = React.Dispatch<React.SetStateAction<boolean>>;
 type BookingCoupon = AccommodationBookingCouponViewModel;
 
 interface AccommodationBookingState {
+  availabilityStatus: "loading" | "error" | "ready";
+  isStayReady: boolean;
   payablePrice: number;
   nights: number;
   totalPrice: number;
@@ -32,6 +34,14 @@ interface AccommodationBookingState {
   petCount: number;
   isReservationLocked: boolean;
   isReserving: boolean;
+  selectionState:
+    | "availability-unavailable"
+    | "fully-booked"
+    | "incomplete"
+    | "invalid"
+    | "outside-window"
+    | "ready"
+    | "unavailable";
 }
 
 interface AccommodationBookingActions {
@@ -44,6 +54,7 @@ interface AccommodationBookingActions {
   setInfantCount: NumberSetter;
   setPetCount: NumberSetter;
   onReserve: () => void;
+  retryAvailability: () => void;
 }
 
 interface AccommodationCouponState {
@@ -93,6 +104,9 @@ export function AccommodationBookingCard({
     petCount,
     isReservationLocked,
     isReserving,
+    availabilityStatus,
+    isStayReady,
+    selectionState,
   } = bookingState;
   const {
     formatDate,
@@ -104,6 +118,7 @@ export function AccommodationBookingCard({
     setIsGuestPickerOpen,
     setPetCount,
     onReserve,
+    retryAvailability,
   } = bookingActions;
   const {
     coupons,
@@ -115,9 +130,11 @@ export function AccommodationBookingCard({
   const { setSelectedCouponId, handleIssueCoupon } = couponActions;
   const {
     basePrice,
-    unavailableDates,
+    availability,
     guestLimits: { maxAdultsAndChildren, maxInfants, maxPets },
   } = bookingView;
+  const isDatePickerAvailableOpen =
+    availabilityStatus === "ready" && isDatePickerOpen;
 
   return (
     <div className={styles.bookingCard}>
@@ -130,10 +147,13 @@ export function AccommodationBookingCard({
         dateSectionRef={dateSectionRef}
         formatDate={formatDate}
         handleDateSelect={handleDateSelect}
-        isDatePickerOpen={isDatePickerOpen}
+        isDatePickerOpen={isDatePickerAvailableOpen}
         setIsDatePickerOpen={setIsDatePickerOpen}
         setIsGuestPickerOpen={setIsGuestPickerOpen}
-        unavailableDates={unavailableDates}
+        availabilityStatus={availabilityStatus}
+        disabledRanges={availability.disabledRanges}
+        retryAvailability={retryAvailability}
+        selectionWindow={availability.selectionWindow}
       />
 
       <BookingGuestSection
@@ -141,7 +161,7 @@ export function AccommodationBookingCard({
         childCount={childCount}
         guestPickerRef={guestPickerRef}
         infantCount={infantCount}
-        isDatePickerOpen={isDatePickerOpen}
+        isDatePickerOpen={isDatePickerAvailableOpen}
         isGuestPickerOpen={isGuestPickerOpen}
         maxInfants={maxInfants}
         maxOccupancy={maxAdultsAndChildren}
@@ -175,9 +195,13 @@ export function AccommodationBookingCard({
       />
 
       <BookingReserveAction
+        availabilityStatus={availabilityStatus}
+        hasCompleteStay={Boolean(checkIn && checkOut && nights > 0)}
         isReservationLocked={isReservationLocked}
         isReserving={isReserving}
+        isStayReady={isStayReady}
         onReserve={onReserve}
+        selectionState={selectionState}
       />
     </div>
   );

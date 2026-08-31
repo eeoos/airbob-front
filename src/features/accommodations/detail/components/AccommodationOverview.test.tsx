@@ -14,7 +14,7 @@ const accommodation: AccommodationDetail = {
   currency: "KRW",
   checkInTime: "15:00:00",
   checkOutTime: "11:00:00",
-  unavailableDates: [],
+  timeZoneId: "Asia/Seoul",
   isInWishlist: false,
   addressSummary: {
     country: "대한민국",

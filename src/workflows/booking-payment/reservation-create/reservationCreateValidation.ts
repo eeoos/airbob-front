@@ -5,6 +5,7 @@ import type {
   ReservationStartIntent,
   ValidatedReservationCreateCommand,
 } from "./reservationCreateTypes";
+import { parseCalendarLocalDateOrdinal } from "../../../shared/lib/calendarLocalDate";
 
 const validationMessages: Readonly<
   Record<ReservationCreateValidationCode, string>
@@ -12,6 +13,8 @@ const validationMessages: Readonly<
   INVALID_ACCOMMODATION: "숙소 정보를 불러올 수 없습니다.",
   INVALID_DATE: "체크인/체크아웃 날짜를 선택해주세요.",
   INVALID_DATE_RANGE: "체크아웃 날짜는 체크인 날짜 이후여야 합니다.",
+  INVALID_AVAILABILITY: "예약 가능한 날짜를 다시 불러와주세요.",
+  OUTSIDE_BOOKING_WINDOW: "선택한 날짜는 현재 예약 가능한 기간이 아닙니다.",
   UNAVAILABLE_DATE: "선택한 날짜에 예약할 수 없는 날짜가 포함되어 있습니다.",
   INVALID_OCCUPANCY: "예약 가능한 인원 수를 확인해주세요.",
   INVALID_COUPON: "적용할 수 없는 쿠폰입니다.",
@@ -38,35 +41,19 @@ const isPositiveSafeInteger = (value: number) =>
 const isNonNegativeSafeInteger = (value: number) =>
   Number.isSafeInteger(value) && value >= 0;
 
-const localDatePattern = /^(\d{4})-(\d{2})-(\d{2})$/;
-const dayMilliseconds = 24 * 60 * 60 * 1000;
-
-const parseLocalDateOrdinal = (value: string): number | null => {
-  const match = localDatePattern.exec(value);
-  if (!match) return null;
-
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  if (year < 1) return null;
-
-  const timestamp = Date.UTC(year, month - 1, day);
-  const date = new Date(timestamp);
-  if (
-    date.getUTCFullYear() !== year ||
-    date.getUTCMonth() !== month - 1 ||
-    date.getUTCDate() !== day
-  ) {
-    return null;
-  }
-
-  return timestamp / dayMilliseconds;
-};
-
 const requireLocalDateOrdinal = (value: string): number => {
-  const ordinal = parseLocalDateOrdinal(value);
+  const ordinal = parseCalendarLocalDateOrdinal(value);
   if (ordinal === null) {
     throw new ReservationCreateValidationError("INVALID_DATE");
+  }
+
+  return ordinal;
+};
+
+const requireAvailabilityDateOrdinal = (value: unknown): number => {
+  const ordinal = parseCalendarLocalDateOrdinal(value);
+  if (ordinal === null) {
+    throw new ReservationCreateValidationError("INVALID_AVAILABILITY");
   }
 
   return ordinal;
@@ -117,13 +104,55 @@ export const validateReservationCreateCommand = (
     fail("INVALID_DATE_RANGE");
   }
 
-  const unavailableOrdinals = accommodation.unavailableDates
-    .map(parseLocalDateOrdinal)
-    .filter((value): value is number => value !== null);
-  for (const unavailableDay of unavailableOrdinals) {
-    if (unavailableDay >= checkInOrdinal && unavailableDay < checkOutOrdinal) {
+  const availability = accommodation.availability;
+  if (
+    !availability ||
+    !isPositiveSafeInteger(availability.accommodationId) ||
+    availability.accommodationId !== accommodation.id ||
+    !Array.isArray(availability.unavailableRanges)
+  ) {
+    fail("INVALID_AVAILABILITY");
+  }
+  const windowStartOrdinal = requireAvailabilityDateOrdinal(
+    availability.bookingWindowStartInclusive,
+  );
+  const windowEndOrdinal = requireAvailabilityDateOrdinal(
+    availability.bookingWindowEndExclusive,
+  );
+  if (windowStartOrdinal >= windowEndOrdinal) {
+    fail("INVALID_AVAILABILITY");
+  }
+
+  let previousRangeEndOrdinal = windowStartOrdinal;
+  for (const range of availability.unavailableRanges) {
+    const rangeStartOrdinal = requireAvailabilityDateOrdinal(range?.startDate);
+    const rangeEndOrdinal = requireAvailabilityDateOrdinal(
+      range?.endDateExclusive,
+    );
+    if (
+      rangeStartOrdinal >= rangeEndOrdinal ||
+      rangeStartOrdinal < windowStartOrdinal ||
+      rangeEndOrdinal > windowEndOrdinal ||
+      rangeStartOrdinal < previousRangeEndOrdinal
+    ) {
+      fail("INVALID_AVAILABILITY");
+    }
+    previousRangeEndOrdinal = rangeEndOrdinal;
+
+    if (
+      rangeStartOrdinal < checkOutOrdinal &&
+      rangeEndOrdinal > checkInOrdinal
+    ) {
       fail("UNAVAILABLE_DATE");
     }
+  }
+
+  if (
+    checkInOrdinal < windowStartOrdinal ||
+    checkInOrdinal >= windowEndOrdinal ||
+    checkOutOrdinal > windowEndOrdinal
+  ) {
+    fail("OUTSIDE_BOOKING_WINDOW");
   }
 
   if (

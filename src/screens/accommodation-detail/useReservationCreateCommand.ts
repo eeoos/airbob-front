@@ -1,6 +1,7 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   calculateAccommodationCouponDiscount,
+  type AccommodationAvailability,
   type AccommodationCoupon,
 } from "../../features/accommodations/detail/public";
 import { useStrictModeSafeDisposable } from "../../shared/lib/useStrictModeSafeDisposable";
@@ -24,7 +25,6 @@ interface ReservationAccommodationSnapshot {
     readonly maxOccupancy: number;
     readonly petOccupancy: number;
   };
-  readonly unavailableDates: readonly string[];
 }
 
 interface ReservationBookingDates {
@@ -42,6 +42,7 @@ interface ReservationGuestCounts {
 
 interface UseReservationCreateCommandOptions {
   readonly accommodation: ReservationAccommodationSnapshot | null;
+  readonly availability: AccommodationAvailability | null;
   readonly bookingDates: ReservationBookingDates;
   readonly checkoutHandoff: ReservationCheckoutHandoffPort;
   readonly guestCounts: ReservationGuestCounts;
@@ -68,6 +69,7 @@ const toAppliedCoupon = (
 
 export const useReservationCreateCommand = ({
   accommodation,
+  availability,
   bookingDates,
   checkoutHandoff,
   guestCounts,
@@ -125,6 +127,10 @@ export const useReservationCreateCommand = ({
         onError(ambiguousReservationMessage);
         return;
       }
+      if (!availability || availability.accommodationId !== accommodation.id) {
+        onError("예약 가능한 날짜를 다시 불러와주세요.");
+        return;
+      }
 
       const intent: ReservationStartIntent = resumeIntent ?? {
         type: "reservation.start",
@@ -141,9 +147,9 @@ export const useReservationCreateCommand = ({
       };
       const intendedDates = deriveBookingDates({
         basePrice: accommodation.basePrice,
+        availability,
         checkIn: intent.checkIn,
         checkOut: intent.checkOut,
-        unavailableDates: accommodation.unavailableDates,
       });
       const coupon = resumeIntent ? (resumedCoupon ?? null) : selectedCoupon;
       const appliedCoupon = toAppliedCoupon(coupon, intendedDates.totalPrice);
@@ -153,7 +159,16 @@ export const useReservationCreateCommand = ({
           maxOccupancy: accommodation.policy.maxOccupancy,
           maxInfants: accommodation.policy.infantOccupancy,
           maxPets: accommodation.policy.petOccupancy,
-          unavailableDates: accommodation.unavailableDates,
+          availability: {
+            accommodationId: availability.accommodationId,
+            bookingWindowStartInclusive:
+              availability.bookingWindowStartInclusive,
+            bookingWindowEndExclusive: availability.bookingWindowEndExclusive,
+            unavailableRanges: availability.unavailableRanges.map((range) => ({
+              startDate: range.startDate,
+              endDateExclusive: range.endDateExclusive,
+            })),
+          },
         },
         appliedCoupon,
         intent,
@@ -212,6 +227,7 @@ export const useReservationCreateCommand = ({
     },
     [
       accommodation,
+      availability,
       bookingDates,
       guestCounts,
       onError,

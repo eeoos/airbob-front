@@ -17,6 +17,7 @@ interface BookingPriceHeaderProps {
 }
 
 interface BookingDateSectionProps {
+  availabilityStatus: "loading" | "error" | "ready";
   checkIn: Date | null;
   checkOut: Date | null;
   datePickerRef: React.RefObject<HTMLDivElement | null>;
@@ -26,7 +27,15 @@ interface BookingDateSectionProps {
   isDatePickerOpen: boolean;
   setIsDatePickerOpen: BooleanSetter;
   setIsGuestPickerOpen: BooleanSetter;
-  unavailableDates: Array<string | Date>;
+  disabledRanges: readonly {
+    readonly startInclusive: string;
+    readonly endExclusive: string;
+  }[];
+  retryAvailability: () => void;
+  selectionWindow: {
+    readonly startInclusive: string;
+    readonly endExclusive: string;
+  } | null;
 }
 
 interface BookingGuestSectionProps {
@@ -68,9 +77,20 @@ interface BookingPriceBreakdownProps {
 }
 
 interface BookingReserveActionProps {
+  availabilityStatus: "loading" | "error" | "ready";
+  hasCompleteStay: boolean;
   isReservationLocked: boolean;
   isReserving: boolean;
+  isStayReady: boolean;
   onReserve: () => void;
+  selectionState:
+    | "availability-unavailable"
+    | "fully-booked"
+    | "incomplete"
+    | "invalid"
+    | "outside-window"
+    | "ready"
+    | "unavailable";
 }
 
 interface GuestCounterRowProps {
@@ -83,17 +103,6 @@ interface GuestCounterRowProps {
   title: string;
   value: number;
 }
-
-const toUnavailableDate = (date: string | Date) => {
-  if (typeof date === "string") {
-    return date;
-  }
-
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
 
 const buildGuestSummary = ({
   adultCount,
@@ -163,6 +172,7 @@ export function BookingPriceHeader({
 }
 
 export function BookingDateSection({
+  availabilityStatus,
   checkIn,
   checkOut,
   datePickerRef,
@@ -172,34 +182,123 @@ export function BookingDateSection({
   isDatePickerOpen,
   setIsDatePickerOpen,
   setIsGuestPickerOpen,
-  unavailableDates,
+  disabledRanges,
+  retryAvailability,
+  selectionWindow,
 }: BookingDateSectionProps) {
   const dateTriggerRef = React.useRef<HTMLButtonElement>(null);
   const datePopoverRef = React.useRef<HTMLDivElement>(null);
+  const availabilityStatusRef = React.useRef<HTMLDivElement>(null);
+  const availabilityFocusOwnedRef = React.useRef(false);
+  const previousAvailabilityStatusRef = React.useRef(availabilityStatus);
+  const wasDatePickerOpenRef = React.useRef(isDatePickerOpen);
   const closeDatePicker = React.useCallback(() => {
     setIsDatePickerOpen(false);
     dateTriggerRef.current?.focus();
   }, [setIsDatePickerOpen]);
   const dateOverlay = useNonModalOverlayRegistration({
-    enabled: isDatePickerOpen,
+    enabled: availabilityStatus === "ready" && isDatePickerOpen,
     onClose: closeDatePicker,
     overlayRef: datePopoverRef,
     triggerRef: dateTriggerRef,
   });
   const toggleDatePicker = React.useCallback(() => {
+    if (availabilityStatus !== "ready") return;
     const willOpen = !isDatePickerOpen;
     if (willOpen) setIsGuestPickerOpen(false);
     setIsDatePickerOpen(willOpen);
-  }, [isDatePickerOpen, setIsDatePickerOpen, setIsGuestPickerOpen]);
+  }, [
+    availabilityStatus,
+    isDatePickerOpen,
+    setIsDatePickerOpen,
+    setIsGuestPickerOpen,
+  ]);
+  const focusAvailabilityStatus = React.useCallback(() => {
+    const statusTarget = availabilityStatusRef.current;
+    if (!statusTarget) return;
+
+    availabilityFocusOwnedRef.current = true;
+    statusTarget.focus();
+  }, []);
+  const handleAvailabilityBoundaryFocus = React.useCallback(() => {
+    availabilityFocusOwnedRef.current = true;
+  }, []);
+  const handleAvailabilityBoundaryBlur = React.useCallback(
+    (event: React.FocusEvent<HTMLDivElement>) => {
+      const nextTarget = event.relatedTarget;
+      if (
+        nextTarget instanceof Node &&
+        event.currentTarget.contains(nextTarget)
+      ) {
+        return;
+      }
+
+      availabilityFocusOwnedRef.current = false;
+    },
+    [],
+  );
+  const handleRetryAvailability = React.useCallback(() => {
+    focusAvailabilityStatus();
+    retryAvailability();
+  }, [focusAvailabilityStatus, retryAvailability]);
+
+  React.useLayoutEffect(() => {
+    const previousAvailabilityStatus = previousAvailabilityStatusRef.current;
+    const wasDatePickerOpen = wasDatePickerOpenRef.current;
+    previousAvailabilityStatusRef.current = availabilityStatus;
+    wasDatePickerOpenRef.current = isDatePickerOpen;
+    const activeElement = document.activeElement;
+    const dateSection = dateSectionRef.current;
+    const focusIsExplicitlyOutside = Boolean(
+      activeElement &&
+      activeElement !== document.body &&
+      dateSection &&
+      !dateSection.contains(activeElement),
+    );
+
+    if (focusIsExplicitlyOutside) {
+      availabilityFocusOwnedRef.current = false;
+    }
+
+    if (availabilityStatus !== "ready") {
+      if (wasDatePickerOpen && !isDatePickerOpen && !focusIsExplicitlyOutside) {
+        availabilityFocusOwnedRef.current = true;
+      }
+      if (availabilityFocusOwnedRef.current) {
+        focusAvailabilityStatus();
+      }
+      return;
+    }
+
+    if (
+      previousAvailabilityStatus !== "ready" &&
+      availabilityFocusOwnedRef.current
+    ) {
+      dateTriggerRef.current?.focus();
+      availabilityFocusOwnedRef.current = false;
+    }
+  }, [
+    availabilityStatus,
+    dateSectionRef,
+    focusAvailabilityStatus,
+    isDatePickerOpen,
+  ]);
 
   return (
-    <div className={styles.dateSection} ref={dateSectionRef}>
+    <div
+      className={styles.dateSection}
+      ref={dateSectionRef}
+      onBlurCapture={handleAvailabilityBoundaryBlur}
+      onFocusCapture={handleAvailabilityBoundaryFocus}
+    >
       <button
         ref={dateTriggerRef}
         type="button"
         className={styles.dateRow}
         aria-expanded={isDatePickerOpen}
         aria-controls="booking-date-picker"
+        aria-busy={availabilityStatus === "loading"}
+        disabled={availabilityStatus !== "ready"}
         onClick={toggleDatePicker}
       >
         <div className={styles.dateColumn}>
@@ -213,6 +312,31 @@ export function BookingDateSection({
         </div>
       </button>
       <div className={styles.horizontalDivider} />
+
+      {availabilityStatus !== "ready" && (
+        <div
+          ref={availabilityStatusRef}
+          className={styles.availabilityStatus}
+          aria-label="예약 가능 여부"
+          role={availabilityStatus === "error" ? "alert" : "status"}
+          tabIndex={-1}
+        >
+          <span>
+            {availabilityStatus === "loading"
+              ? "예약 가능한 날짜를 확인하고 있습니다."
+              : "예약 가능한 날짜를 불러오지 못했습니다."}
+          </span>
+          {availabilityStatus === "error" && (
+            <button
+              className={styles.availabilityRetryButton}
+              type="button"
+              onClick={handleRetryAvailability}
+            >
+              다시 시도
+            </button>
+          )}
+        </div>
+      )}
 
       {isDatePickerOpen && (
         <div
@@ -233,7 +357,8 @@ export function BookingDateSection({
               dateOverlay.requestCloseOnEscape();
             }}
             datePickerRef={datePickerRef}
-            unavailableDates={unavailableDates.map(toUnavailableDate)}
+            disabledRanges={disabledRanges}
+            {...(selectionWindow ? { selectionWindow } : {})}
           />
         </div>
       )}
@@ -474,22 +599,52 @@ export function BookingPriceBreakdown({
 }
 
 export function BookingReserveAction({
+  availabilityStatus,
+  hasCompleteStay,
   isReservationLocked,
   isReserving,
+  isStayReady,
   onReserve,
+  selectionState,
 }: BookingReserveActionProps) {
+  const actionLabel = (() => {
+    if (isReservationLocked) return "예약 내역 확인 필요";
+    if (availabilityStatus === "loading") return "예약 가능 날짜 확인 중";
+    if (availabilityStatus === "error") return "예약 가능 날짜 확인 필요";
+
+    switch (selectionState) {
+      case "fully-booked":
+        return "예약 가능한 날짜 없음";
+      case "incomplete":
+        return "체크인·체크아웃 선택";
+      case "invalid":
+      case "outside-window":
+      case "unavailable":
+        return "예약 날짜 다시 선택";
+      case "availability-unavailable":
+        return "예약 가능 날짜 확인 필요";
+      case "ready":
+        return hasCompleteStay ? "예약하기" : "체크인·체크아웃 선택";
+    }
+  })();
+
   return (
     <>
       <Button
         fullWidth
         size="lg"
         className={styles.reserveButton}
-        disabled={isReservationLocked}
+        disabled={
+          isReservationLocked ||
+          availabilityStatus !== "ready" ||
+          !isStayReady ||
+          !hasCompleteStay
+        }
         onClick={onReserve}
         isLoading={isReserving}
         loadingLabel="예약 중..."
       >
-        {isReservationLocked ? "예약 내역 확인 필요" : "예약하기"}
+        {actionLabel}
       </Button>
 
       <div className={styles.bookingNote}>

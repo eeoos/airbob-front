@@ -46,7 +46,7 @@ export interface AccommodationDetailWire {
   readonly currency: string;
   readonly check_in_time: string;
   readonly check_out_time: string;
-  readonly unavailable_dates: readonly string[];
+  readonly time_zone_id: string;
   readonly is_in_wishlist: boolean;
   readonly address_summary: AccommodationDetailAddressSummaryWire;
   readonly coordinate: AccommodationDetailCoordinateWire;
@@ -55,6 +55,17 @@ export interface AccommodationDetailWire {
   readonly amenities: readonly AccommodationDetailAmenityWire[];
   readonly images: readonly AccommodationDetailImageWire[];
   readonly review_summary: AccommodationDetailReviewSummaryWire;
+}
+
+interface AccommodationUnavailableDateRangeWire {
+  readonly start_date: string;
+  readonly end_date_exclusive: string;
+}
+
+export interface AccommodationAvailabilityWire {
+  readonly booking_window_start_inclusive: string;
+  readonly booking_window_end_exclusive: string;
+  readonly unavailable_ranges: readonly AccommodationUnavailableDateRangeWire[];
 }
 
 type CouponDiscountTypeWire = "PERCENTAGE" | "FIXED_AMOUNT";

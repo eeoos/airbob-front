@@ -46,7 +46,7 @@ export interface AccommodationDetail {
   readonly currency: string;
   readonly checkInTime: string;
   readonly checkOutTime: string;
-  readonly unavailableDates: readonly string[];
+  readonly timeZoneId: string;
   readonly isInWishlist: boolean;
   readonly addressSummary: AccommodationDetailAddressSummary;
   readonly coordinate: AccommodationDetailCoordinate;

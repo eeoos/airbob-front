@@ -8,6 +8,8 @@ export type ReservationCreateValidationCode =
   | "INVALID_ACCOMMODATION"
   | "INVALID_DATE"
   | "INVALID_DATE_RANGE"
+  | "INVALID_AVAILABILITY"
+  | "OUTSIDE_BOOKING_WINDOW"
   | "UNAVAILABLE_DATE"
   | "INVALID_OCCUPANCY"
   | "INVALID_COUPON";
@@ -33,7 +35,15 @@ interface ReservationCreateAccommodationSnapshot {
   readonly maxOccupancy: number;
   readonly maxInfants: number;
   readonly maxPets: number;
-  readonly unavailableDates: readonly string[];
+  readonly availability: {
+    readonly accommodationId: number;
+    readonly bookingWindowStartInclusive: string;
+    readonly bookingWindowEndExclusive: string;
+    readonly unavailableRanges: readonly {
+      readonly startDate: string;
+      readonly endDateExclusive: string;
+    }[];
+  };
 }
 
 export interface AppliedReservationCoupon {

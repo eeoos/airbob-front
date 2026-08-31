@@ -61,7 +61,7 @@ const detailAccommodation = {
   currency: "KRW",
   check_in_time: "15:00:00",
   check_out_time: "11:00:00",
-  unavailable_dates: [],
+  time_zone_id: "Asia/Seoul",
   is_in_wishlist: false,
   address_summary: {
     country: "대한민국",
@@ -94,6 +94,12 @@ const detailAccommodation = {
     total_count: 0,
     average_rating: 0,
   },
+};
+
+const detailAvailability = {
+  booking_window_start_inclusive: "2026-01-01",
+  booking_window_end_exclusive: "2027-01-01",
+  unavailable_ranges: [],
 };
 
 const editableAccommodation = {
@@ -197,6 +203,11 @@ test("keeps the accommodation detail foundation visually stable", async ({
     "GET",
     "/api/v1/accommodations/7",
     apiSuccess(detailAccommodation),
+  );
+  api.register(
+    "GET",
+    "/api/v1/accommodations/7/availability",
+    apiSuccess(detailAvailability),
   );
 
   await page.goto(

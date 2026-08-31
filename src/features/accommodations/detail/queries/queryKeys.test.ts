@@ -51,6 +51,31 @@ describe("accommodation read query keys", () => {
     );
   });
 
+  it("keeps availability identity scoped by route id, subject, and epoch", () => {
+    const key = accommodationReadQueryKeys.availability(authenticatedScope, 31);
+
+    expect(key).toEqual([
+      "accommodation",
+      "availability",
+      31,
+      {
+        session: {
+          subject: authenticatedScope.subject,
+          epoch: authenticatedScope.epoch,
+        },
+      },
+    ]);
+    expect(
+      accommodationReadQueryKeys.availability(
+        { ...authenticatedScope, epoch: 5 },
+        31,
+      ),
+    ).not.toEqual(key);
+    expect(
+      accommodationReadQueryKeys.availability(authenticatedScope, 32),
+    ).not.toEqual(key);
+  });
+
   it("scopes authenticated coupon reads", () => {
     expect(accommodationReadQueryKeys.validCoupons(authenticatedScope)).toEqual(
       [

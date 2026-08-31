@@ -46,7 +46,12 @@ const baseInput = (): ReservationCreateCommandInput => ({
     maxOccupancy: 4,
     maxInfants: 1,
     maxPets: 1,
-    unavailableDates: [],
+    availability: {
+      accommodationId: 7,
+      bookingWindowStartInclusive: "2026-07-10",
+      bookingWindowEndExclusive: "2027-07-10",
+      unavailableRanges: [],
+    },
   },
   appliedCoupon: null,
   routeLease: { isCurrent: () => true },
@@ -132,10 +137,41 @@ describe("reservation create workflow", () => {
         ...input,
         accommodation: {
           ...input.accommodation,
-          unavailableDates: ["2026-07-11"],
+          availability: {
+            ...input.accommodation.availability,
+            unavailableRanges: [
+              {
+                startDate: "2026-07-11",
+                endDateExclusive: "2026-07-12",
+              },
+            ],
+          },
         },
       }),
       "UNAVAILABLE_DATE",
+    ],
+    [
+      "missing availability snapshot",
+      (input: ReservationCreateCommandInput) => ({
+        ...input,
+        accommodation: {
+          ...input.accommodation,
+          availability: undefined,
+        } as unknown as ReservationCreateCommandInput["accommodation"],
+      }),
+      "INVALID_AVAILABILITY",
+    ],
+    [
+      "booking window",
+      (input: ReservationCreateCommandInput) => ({
+        ...input,
+        intent: {
+          ...input.intent,
+          checkIn: "2027-07-10",
+          checkOut: "2027-07-11",
+        },
+      }),
+      "OUTSIDE_BOOKING_WINDOW",
     ],
     [
       "accommodation identity",

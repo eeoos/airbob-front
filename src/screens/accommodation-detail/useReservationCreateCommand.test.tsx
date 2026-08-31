@@ -23,7 +23,12 @@ const accommodation = {
     infantOccupancy: 1,
     petOccupancy: 1,
   },
-  unavailableDates: [],
+};
+const availability = {
+  accommodationId: 7,
+  bookingWindowStartInclusive: "2026-07-10",
+  bookingWindowEndExclusive: "2027-07-10",
+  unavailableRanges: [],
 };
 const authenticatedScope = {
   subject: "subject:member_1" as SessionSubject,
@@ -49,6 +54,41 @@ describe("useReservationCreateCommand", () => {
     });
   });
 
+  it("fails closed before the workflow when no matching availability snapshot exists", async () => {
+    const onError = vi.fn();
+    const { result } = renderHook(() =>
+      useReservationCreateCommand({
+        accommodation,
+        availability: null,
+        bookingDates: {
+          checkIn: new Date("2026-07-20T00:00:00"),
+          checkOut: new Date("2026-07-22T00:00:00"),
+          totalPrice: 200000,
+        },
+        checkoutHandoff,
+        guestCounts: {
+          adultCount: 2,
+          childCount: 0,
+          infantCount: 0,
+          petCount: 0,
+        },
+        onError,
+        requestAuthentication: vi.fn(),
+        routeLease: { isCurrent: () => true },
+        scope: authenticatedScope,
+        selectedCoupon: null,
+        session,
+      }),
+    );
+
+    await act(async () => void (await result.current.startReservation()));
+
+    expect(mockStartReservation).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledWith(
+      "예약 가능한 날짜를 다시 불러와주세요.",
+    );
+  });
+
   it("terminal-locks an in-flight reservation across an exact route replacement", async () => {
     let resolveReservation!: (result: { status: "stale" }) => void;
     const pending = new Promise<{ status: "stale" }>((resolve) => {
@@ -62,6 +102,7 @@ describe("useReservationCreateCommand", () => {
       ({ routeLease }) =>
         useReservationCreateCommand({
           accommodation,
+          availability,
           bookingDates: {
             checkIn: new Date("2026-07-20T00:00:00"),
             checkOut: new Date("2026-07-22T00:00:00"),
@@ -127,6 +168,7 @@ describe("useReservationCreateCommand", () => {
         ({ routeLease }) =>
           useReservationCreateCommand({
             accommodation,
+            availability,
             bookingDates: {
               checkIn: new Date("2026-07-20T00:00:00"),
               checkOut: new Date("2026-07-22T00:00:00"),
