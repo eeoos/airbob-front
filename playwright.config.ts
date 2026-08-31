@@ -17,6 +17,9 @@ export default defineConfig({
   timeout: 30_000,
   expect: {
     timeout: 10_000,
+    toHaveScreenshot: {
+      pathTemplate: "{testDir}/{testFilePath}-snapshots/{arg}{ext}",
+    },
   },
   globalTeardown: "./tests/e2e/support/scan-artifacts.mjs",
   reporter: [["./tests/e2e/support/redacted-line-reporter.mjs"]],

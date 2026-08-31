@@ -31,7 +31,7 @@ remain comparable after their root and scope declaration are retired.
 
 ## Dependency-cruiser policy
 
-After U22/U14 the production graph has 515 modules and 1,357 dependency edges,
+After U15 the production graph has 511 modules and 1,367 dependency edges,
 zero cycles, zero warnings, and zero errors. Production contains no
 feature-owned `appShell.ts` or `publicCache.ts`, no feature-to-peer edge, and no
 retired global API/DTO root. Feature-to-peer production imports are errors regardless of filename;
@@ -119,11 +119,18 @@ warnings across 20 files outside strict migrated ownership.
 Standard CSS violations, raw colors/radii/shadows, off-scale breakpoints,
 `!important`, unknown custom properties, and unknown custom media are errors in
 target and migrated styles. Raw token declarations are allowed only in the
-canonical token files. Stylelint 16 cannot resolve global custom properties
-across files, so the local design-contract plugin reads the centralized token
-policy. Component-local custom properties remain available for runtime and
-component-token composition, but radius, shadow, color/background, and aspect
-ratio aliases must resolve directly to canonical tokens. Custom-media
+primitive token file. Semantic and component token files must contain direct
+aliases, and token references may only point to the same or an earlier layer;
+same-layer references must point to an earlier declaration. The centralized
+policy lists every token's exact owner, so moving a semantic `--color-*` or
+component `--layout-*` token into another file is an error even when its value
+would otherwise be valid. Primitive private tokens use neutral palette,
+elevation, stack, size, environment, and ratio scales rather than app concepts.
+Stylelint 16 cannot resolve global custom properties across files, so the local
+design-contract plugin reads that policy. Component-local custom properties
+remain available for runtime and component-token composition, but radius,
+shadow, color/background, and aspect ratio aliases must resolve directly to
+canonical tokens. Custom-media
 declarations have one owner and are forbidden outside canonical custom-media
 files. The agreed breakpoint scale is a pre-existing global invariant, so an
 off-scale media value is an error even in otherwise warning-only legacy CSS.

@@ -46,37 +46,19 @@ describe("shared UI boundary contracts", () => {
     expect(violations).toEqual([]);
   });
 
-  it("owns date picking in shared UI while retaining a thin compatibility facade", () => {
+  it("owns date picking and toast rendering directly in shared UI", () => {
     const datePickerSource = readFileSync(
       join(srcRoot, "shared/ui/DatePicker/DatePicker.tsx"),
       "utf8",
     );
-    const datePickerCompatibilitySource = readFileSync(
-      join(srcRoot, "components/DatePicker/DatePicker.tsx"),
-      "utf8",
-    );
-    const errorToastSource = readFileSync(
-      join(srcRoot, "components/ErrorToast/ErrorToast.tsx"),
+    const toastHostSource = readFileSync(
+      join(srcRoot, "shared/ui/ToastHost/ToastHost.tsx"),
       "utf8",
     );
 
     expect(datePickerSource).toContain("const DatePicker");
     expect(datePickerSource).toContain("renderCalendar");
-    expect(datePickerCompatibilitySource).toContain(
-      'from "../../shared/ui/DatePicker"',
-    );
-    expect(datePickerCompatibilitySource).not.toContain("renderCalendar");
-    expect(errorToastSource).toContain("ToastHost");
-    expect(errorToastSource).toContain('from "../../shared/ui"');
-  });
-
-  it("keeps ErrorToast as a thin wrapper without a dead local stylesheet", () => {
-    const errorToastStylePath = join(
-      srcRoot,
-      "components/ErrorToast/ErrorToast.module.css"
-    );
-
-    expect(() => readFileSync(errorToastStylePath, "utf8")).toThrow();
+    expect(toastHostSource).toContain("createPortal");
   });
 
   it("keeps direct-fit task 5 surfaces on shared form and action primitives", () => {
@@ -103,7 +85,7 @@ describe("shared UI boundary contracts", () => {
         expected: ["Button"],
       },
       {
-        relativePath: "components/ErrorBoundary/ErrorBoundary.tsx",
+        relativePath: "app/errors/ErrorBoundary.tsx",
         expected: ["Button"],
       },
     ];

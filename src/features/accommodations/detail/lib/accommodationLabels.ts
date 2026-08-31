@@ -17,7 +17,7 @@ const accommodationTypeLabels: Readonly<Record<string, string>> = {
   CASTLE: "성 같은 특이한 숙소",
 };
 
-const amenityLabels: Readonly<Record<string, string>> = {
+export const accommodationAmenityLabels = {
   WIFI: "무선 인터넷",
   AIR_CONDITIONER: "에어컨",
   HEATING: "난방",
@@ -48,10 +48,15 @@ const amenityLabels: Readonly<Record<string, string>> = {
   OUTDOOR_SPACE: "야외 공간",
   BBQ_GRILL: "바베큐 그릴",
   BALCONY: "발코니",
-};
+} as const;
+
+export type AccommodationAmenityCode =
+  keyof typeof accommodationAmenityLabels;
 
 export const getAccommodationTypeLabel = (code: string): string =>
   accommodationTypeLabels[code] ?? code ?? "숙소";
 
 export const getAccommodationAmenityLabel = (code: string): string =>
-  amenityLabels[code] ?? code;
+  Object.prototype.hasOwnProperty.call(accommodationAmenityLabels, code)
+    ? accommodationAmenityLabels[code as AccommodationAmenityCode]
+    : code;

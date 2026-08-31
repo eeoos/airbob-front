@@ -70,6 +70,66 @@ const invalidCases = [
     rule: "airbob/no-raw-box-shadow",
   },
   {
+    name: "semantic raw color token",
+    path: "src/shared/styles/tokens/semantic.css",
+    code: ":root { --color-text-primary: #fff; }",
+    rule: "airbob/token-layer-contract",
+  },
+  {
+    name: "component raw shadow token",
+    path: "src/shared/styles/tokens/components.css",
+    code: ":root { --shadow-control: 0 2px 8px var(--palette-black-a15); }",
+    rule: "airbob/token-layer-contract",
+  },
+  {
+    name: "primitive backward token reference",
+    path: "src/shared/styles/tokens/primitive.css",
+    code: ":root { --palette-neutral-0: var(--color-text-primary); }",
+    rule: "airbob/token-layer-contract",
+  },
+  {
+    name: "semantic backward token reference",
+    path: "src/shared/styles/tokens/semantic.css",
+    code: ":root { --color-text-primary: var(--control-height-sm); }",
+    rule: "airbob/token-layer-contract",
+  },
+  {
+    name: "same-layer forward token reference",
+    path: "src/shared/styles/tokens/primitive.css",
+    code: ":root { --palette-neutral-1000: var(--palette-neutral-950); --palette-neutral-950: #222; }",
+    rule: "airbob/token-layer-contract",
+  },
+  {
+    name: "unknown canonical token reference",
+    path: "src/shared/styles/tokens/semantic.css",
+    code: ":root { --color-text-primary: var(--palette-does-not-exist); }",
+    rule: "airbob/token-layer-contract",
+  },
+  {
+    name: "semantic color swapped into primitive owner",
+    path: "src/shared/styles/tokens/primitive.css",
+    code: ":root { --color-text-primary: #222; }",
+    rule: "airbob/token-layer-contract",
+  },
+  {
+    name: "semantic color swapped into component owner",
+    path: "src/shared/styles/tokens/components.css",
+    code: ":root { --color-text-primary: var(--palette-neutral-950); }",
+    rule: "airbob/token-layer-contract",
+  },
+  {
+    name: "component layout swapped into primitive owner",
+    path: "src/shared/styles/tokens/primitive.css",
+    code: ":root { --layout-page-max-width: 1120px; }",
+    rule: "airbob/token-layer-contract",
+  },
+  {
+    name: "component layout swapped into semantic owner",
+    path: "src/shared/styles/tokens/semantic.css",
+    code: ":root { --layout-page-max-width: var(--size-px-1120); }",
+    rule: "airbob/token-layer-contract",
+  },
+  {
     name: "raw breakpoint",
     path: "src/features/legacy/RawBreakpoint.module.css",
     code: "@media (max-width: 900px) { .fixture { display: block; } }",
@@ -370,17 +430,18 @@ if (vendorWarnings.some((warning) => warning.severity === "error")) {
 }
 
 const canonicalTokenWarnings = await lint(
-  "src/styles/tokens.css",
-  ":root { --color-fixture: #fff; --radius-fixture: 8px; }",
+  "src/shared/styles/tokens/primitive.css",
+  `:root {
+    --palette-neutral-0: #fff;
+    --elevation-2: 0 2px 8px rgb(0 0 0 / 15%);
+  }`,
 );
-if (
-  canonicalTokenWarnings.some(
-    (warning) =>
-      warning.rule === "airbob/no-protected-design-literal" ||
-      warning.rule === "color-no-hex",
-  )
-) {
-  throw new Error("Canonical token declarations were reported as consumer debt.");
+if (canonicalTokenWarnings.some((warning) => warning.severity === "error")) {
+  throw new Error(
+    `Primitive token values were reported as consumer debt: ${canonicalTokenWarnings
+      .map((warning) => warning.text)
+      .join(", ")}`,
+  );
 }
 
 const legacyWarnings = await lint(

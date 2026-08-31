@@ -1,7 +1,7 @@
 # Frontend Ownership and Cutover Matrix
 
 > Operational registry for the migration described by the active plan.  
-> Baseline state: U4 commit `f5222d5`, followed by U5-U13, U19, U21, U22, and U14 cutovers.
+> Baseline state: U4 commit `f5222d5`, followed by U5-U13, U19, U21, U22, U14, and U15 cutovers.
 > Current cutover state: app Router/session/structural UI, every feature-owned data/workflow boundary, all route screens, and interaction accessibility are active; legacy global roots are retired.
 > Current architecture meaning comes from
 > [`current-frontend-architecture.md`](./current-frontend-architecture.md).
@@ -97,7 +97,7 @@ auth feature commands have no compatibility context.
 | Shared React test harness | `src/test/renderApp.tsx`, `createTestQueryClient.ts` | same test-only boundary | U4/U19 active; production imports are blocked, tests use the production OverlayProvider, and caller-owned QueryClients/portal roots retain caller lifetime |
 | Cross-feature seams | No production feature compatibility seam remains | App composition and workflows/reconciliation ports | Every feature-to-peer production import is forbidden, including files named `appShell.ts` or `publicCache.ts`; app composition joins only feature-owned public ports and scoped cache projections | Complete U22; feature compatibility filenames and graph exceptions are zero |
 | UI structural runtime | `src/app/header/**`, five app route frames, app overlays, shared interaction primitives | same plus shared responsive policy | U19/U14 active: sole-main shell, one ordered overlay stack, keyboard DatePicker, semantic cards, bottom-sheet controls, and deterministic reflow contracts | Complete U14; U16 may enable transformed custom-media aliases without changing ownership |
-| Tokens/assets/primitives | `src/styles`, `src/shared/ui`, remaining `src/components`, and `src/assets` | `src/shared/{styles,ui,assets}` | Interaction primitives are active; legacy UI re-exports, token layering, icon ownership, and unused assets remain U15 work | U15 closes the design-foundation surface before visual redesign |
+| Tokens/assets/primitives | `src/shared/{styles,ui,assets}` and `src/app/errors/**` | same | Primitive → semantic → component token references, exact layer ownership, global CSS, a domain-free Icon/pictogram catalog, accommodation-owned amenity mappings, manifest-owned wordmark/PWA assets, the app ErrorBoundary, and four deterministic visual baselines are active. `src/components`, `src/styles`, test-only shared abstractions, unused logo variants, and tracked tier exports are absent | Complete U15; visual redesign must extend the owned tokens and real primitives and intentionally update visual baselines without recreating compatibility roots |
 | Build/dev | CRA `react-scripts` after fail-closed validation for API/asset origins, Toss browser keys, build-only `PUBLIC_URL`, and misplaced server-secret shapes | Vite | U16 retains `build/`, env/proxy/assets/chunk parity and the asset-base allowlist; CRA test remains temporarily |
 | Unit/integration runner | CRA Jest | Vitest | U17 uses disjoint ownership inventory; removes Jest/react-scripts after last suite |
 | Compiler/lint/format | TypeScript 4.9, CRA ESLint presets, dependency-cruiser 17, Knip 2 target ratchet, Stylelint 16 target ratchet | TypeScript 5.x and current explicit static-tool owners | U3 owns graph/reachability/style policy; U23 upgrades Node/TypeScript/tools together after Vitest and performs the final mechanical format pass |

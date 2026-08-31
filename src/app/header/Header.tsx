@@ -12,7 +12,7 @@ import {
 } from "../../features/search/ui/HeaderSearchBar";
 import { UserMenu } from "./UserMenu";
 import { useSession } from "../session/useSession";
-import logoImage from "../../assets/logo/logo.png";
+import { brandAssets } from "../../shared/assets/manifest";
 import type { RouteHeaderPolicy } from "../router/definitions";
 import { ROUTE_PATHS, routeTo } from "../router/paths";
 import styles from "./Header.module.css";
@@ -67,7 +67,11 @@ export const Header: React.FC<HeaderProps> = ({ headerMode = "default" }) => {
           className={styles.logo}
           aria-label="Airbob 홈으로 이동"
         >
-          <img src={logoImage} alt="" className={styles.logoImage} />
+          <img
+            src={brandAssets.wordmark}
+            alt=""
+            className={styles.logoImage}
+          />
         </Link>
 
         {shouldRenderSearch && (

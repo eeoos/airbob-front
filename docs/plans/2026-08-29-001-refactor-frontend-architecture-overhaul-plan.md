@@ -517,7 +517,7 @@ U2와 U3는 병렬 준비가 가능하다. Safe return-target codec과 route con
   - Modify `src/routes/route-boundary-contracts.test.ts`
   - Modify `src/api/ui-api-boundary-contracts.test.ts`
   - Modify `src/shared/ui/shared-ui-boundary-contracts.test.ts`
-  - Modify `src/styles/tokens.test.ts`
+  - Modify `src/shared/styles/tokens.test.ts`
   - Modify `src/verification-gate.test.ts`
 - **Approach:** dependency-cruiser가 layer direction, cycle, unresolvable, devDependency import를 소유한다. Knip은 lazy route, test, script entry를 모두 등록하고 report-only → changed-surface ratchet → global strict 순서로 전환한다. Stylelint는 token reference와 vendor override를 구분한다. 새 도구가 동일 위반을 잡는 fixture evidence가 생긴 뒤 기존 source-string test를 제거한다.
 - **Execution note:** tool을 global error로 켜기 전에 current violations와 삭제 milestone을 기록한다.
@@ -1301,7 +1301,7 @@ U2와 U3는 병렬 준비가 가능하다. Safe return-target codec과 route con
 - `src/features/reservations/lib/reservationCheckoutState.ts`
 - `src/features/reservations/lib/paymentConfirmationAttemptRegistry.ts`
 - `src/features/accommodations/edit/hooks/useAccommodationEditController.ts`
-- `src/styles/tokens.test.ts`
+- `src/shared/styles/tokens.test.ts`
 - `src/verification-gate.test.ts`
 - `scripts/smoke/frontend-smoke.mjs`
 - Historical diagnosis and plan at git commit `2d1c2d9`

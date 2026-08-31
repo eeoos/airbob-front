@@ -124,7 +124,7 @@ npm run smoke:frontend:strict
 
 ### design system entry contracts
 
-- Steps: run `npm run test:ci -- --runTestsByPath src/styles/design-system-contracts.test.ts src/styles/tokens.test.ts`, then smoke Header, mobile Search popovers, Search bottom sheet, cards, and modal overlays at desktop and mobile widths.
+- Steps: run `npm run test:ci -- --runTestsByPath src/shared/styles/design-system-contracts.test.ts src/shared/styles/tokens.test.ts`, then smoke Header, mobile Search popovers, Search bottom sheet, cards, and modal overlays at desktop and mobile widths.
 - Expected: header height, mobile search popover position, page width, card media ratio, modal z-index, and bottom-sheet z-index follow shared tokens without visual overlap or clipped controls.
 - Evidence: record the command result, viewport size, screen/flow checked, screenshot path, and any token/layout mismatch.
 

@@ -1,7 +1,7 @@
 # Airbob Frontend Architecture
 
 > Status: canonical current-state source of truth  
-> Baseline: U4 commit `f5222d5`, followed by the U6 Router, U5 session, U19 structural UI, U7-U13 feature/workflow cutovers, U21 small routes, U22 compatibility closure, and U14 interaction adoption
+> Baseline: U4 commit `f5222d5`, followed by the U6 Router, U5 session, U19 structural UI, U7-U13 feature/workflow cutovers, U21 small routes, U22 compatibility closure, U14 interaction adoption, and U15 design-foundation closure
 > Current migration state: app routing/session/overlay ownership, every feature-owned API/model boundary, and every current route screen are active; legacy global roots are retired
 > Recorded: 2026-08-31 KST
 
@@ -89,7 +89,7 @@ Current owners:
 | Authentication feature | `src/features/auth/{api,model,ports,ui}/**`, `src/screens/auth/**` | Login and signup routes render the owned controller/screen. Session owns login identity transitions; the feature owns signup transport and form behavior through the injected auth-command boundary. |
 | Routing and shell metadata | `src/app/router/definitions.ts`, `manifest.ts`, `lazyRoutes.tsx`, `paths.ts` | Component-free policy and 15 literal lazy adapter entries are the active production manifest. |
 | Application header | `src/app/header/**` | `Header` and `UserMenu` are app-composition owners; they consume feature public UI/ports and are injected into route frames. |
-| Application shells | `src/app/shells/**` | Browse, form, transaction, editor, and bare shells are route-frame-only owners and render exactly one `main`; `PageShell` is a labelled nested section and cannot accept a `main` role. |
+| Application shells | `src/app/shells/**` | Browse, form, transaction, editor, and bare shells are route-frame-only owners and render exactly one `main`; nested page structure uses ordinary labelled sections instead of a second shell abstraction. |
 | Overlay runtime | `src/app/overlays/OverlayProvider.tsx`, `src/shared/ui/overlayRuntime.ts` | One app-owned `#airbob-portal-root` hosts Dialog and route Toast. Modal and local non-modal registrations share topmost Escape order; only modals lock scroll and isolate the app. Dialog owns focus containment, explicit initial focus, inactive-layer semantics, and focus-lineage restoration. |
 | API transport and envelope | `src/platform/http/**` | One credentialed Axios instance and one `AppError` envelope boundary. Feature adapters consume it directly; multipart commands declare their body encoding so the shared JSON default cannot serialize `FormData`. |
 | Browser platform boundary | `src/platform/config/**`, `storage/**`, `integrations/**`, `assets/**`, `browser/**`, `session/**` | Owns public environment input, browser storage access, external SDK globals/scripts, image URL resolution, isolated new-tab navigation, exact current-history-entry validation, auth-error signaling, and the non-PII cross-tab channel. |
@@ -101,9 +101,9 @@ Current owners:
 | Accommodation Editor | `src/app/router/routes/AccommodationEditRoute.tsx`, `src/screens/accommodation-edit/**`, `src/features/accommodations/listing-editor/**`, `src/workflows/listing-editor/**` | The independently ratcheted `accommodations/listing-editor` scope owns the editor API, camelCase models, ports, and scoped Query projection. The app adapter owns resource/session/route provenance and injects profile publication, Daum postcode, and image URL ports. The controller hydrates one typed workflow instance and supplies only view data and callbacks to the props-only screen. The workflow owns single-flight save/publish, stale completion fences, immediate delete reconciliation, ordered upload/update/publish phases, and terminal uncertainty locks. The deleted `features/accommodations/edit/**` tree and global editor API methods cannot become a second writer. |
 | Profile and reservation reads | `src/app/router/routes/{ProfileRoute,ReservationDetailRoute,HostReservationDetailRoute}.tsx`, `src/screens/{profile,reservation-detail}/**`, `src/features/{profile,reservations}/**` | App codecs are the sole Profile URL authority. Controllers consume subject/epoch-scoped Query options with explicit guest/host audience keys, cancellation, camelCase models, and props-only screens. Listing editor and host actions publish through scoped Profile/reservation cache projections. |
 | Host listing management | `src/workflows/host-listing-management/**`, composed by `src/app/router/routes/ProfileRoute.tsx` | One route/session-leased writer owns publish, unpublish, and delete. API success and cache-publication failure are represented separately so the UI never repeats a possibly applied exact command. |
-| Legacy global roots | none | `src/{api,contexts,hooks,layouts,query,routes,types,utils}` are absent and executable gates prevent reintroduction. |
-| Domain-free UI | `src/shared/ui/**` | Tested primitives now own Dialog, Toast, DatePicker, semantic navigation/action cards, and shared non-modal overlay registration. Visual-system consolidation remains U15. |
-| Shared styling values | `src/styles/tokens.css`, `src/shared/styles/custom-media.css`, `src/shared/styles/responsive.ts` | A canonical responsive manifest and JS `matchMedia` policy agree at the 1024px boundary. CRA cannot transform custom media, so unresolved production alias consumers are blocked until U16; CSS Modules still contain contract-checked literals and feature-local values. |
+| Legacy global roots | none | `src/{api,components,contexts,hooks,layouts,query,routes,types,utils}` are absent and executable gates prevent reintroduction. |
+| Domain-free UI | `src/shared/ui/**` | Tested primitives own Dialog, Toast, DatePicker, semantic navigation/action cards, shared non-modal overlay registration, and a typed `Icon`/glyph registry. Test-only `PageShell`, `ListingCard`, and `OverlaySurface` abstractions and all compatibility wrappers are removed. |
+| Shared styling and brand assets | `src/shared/styles/**`, `src/shared/assets/**` | Global CSS imports primitive, semantic, then component tokens in one explicit order. The responsive manifest and JS `matchMedia` policy agree at the 1024px boundary; the production wordmark is manifest-owned and public PWA icons use real Airbob artwork. CRA cannot transform custom media, so unresolved production alias consumers remain blocked until U16. |
 | Browser smoke | `scripts/smoke/frontend-smoke.mjs` | Live backend, browser, credentials, and stable IDs are external prerequisites. |
 | Deterministic browser characterization | `playwright.config.ts`, `tests/e2e/**` | Loopback production app plus an exact synthetic HTTPS `.invalid` API origin, synthetic session/API fixtures, and default-deny network. |
 | Static architecture ratchets | `.dependency-cruiser.cjs`, `knip.json`, `stylelint.config.mjs`, `architecture-ratchet.json` | Target/migrated surfaces fail on graph, reachability, and design-policy regressions while measured legacy debt remains visible. |
@@ -301,8 +301,8 @@ Consequences:
   and the current source graph is acyclic with no dependency warnings or errors.
 - The active `src/app/shells/ShellFrame.tsx` is the sole production `main` owner.
 
-U3 supplies executable ownership for this graph. After U22/U14,
-dependency-cruiser reports 515 modules and 1,357 dependencies with zero cycles,
+U3 supplies executable ownership for this graph. After U15,
+dependency-cruiser reports 511 modules and 1,367 dependencies with zero cycles,
 warnings, or errors. Every declared feature scope is in the migrated registry;
 feature-to-peer imports and reintroduced global API/DTO roots fail fixtures.
 Target-ratcheted production Knip, strict Stylelint, architecture tools, strict
@@ -329,8 +329,11 @@ Search in a 15.51 kB lazy route chunk, the Wishlist provider in a separate
 8.54 kB chunk, and `AccommodationActionModal` in another 6.28 kB chunk; none
 enters the Header-owned main chunk. This proves the U9 route/chunk boundary, but
 it does not approve the plan's
-final 131.4 kB main-budget target; U15/U18 still own measured global reduction
-and the executable bundle budget.
+final 131.4 kB main-budget target. U15 removed 11.9 MB of tracked unused
+source assets and all unused UI files. The final U15 CRA parity build reports a
+147.73 kB gzip main bundle, so it is explicitly over the target rather than
+silently approved; U18 still owns the executable main-bundle reduction and gate
+instead of hiding runtime code in an unused barrel export.
 
 ## User flows that must survive cutover
 
@@ -357,7 +360,6 @@ status lives in [`frontend-ownership-matrix.md`](./frontend-ownership-matrix.md)
 | Delta | Planned owner |
 | --- | --- |
 | Toss npm v2 runtime adapter (source cutover complete; live sandbox/OCI parity deferred) | U11 |
-| Tokens, primitives, icons, assets, and feature CSS | U15 |
 | Vite build/dev owner | U16 |
 | Vitest owner | U17 |
 | Final design-entry gate | U18 |

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { readFileSync } from "fs";
 import React from "react";
 import type { SearchBarRoutePort } from "../../features/search/ui/HeaderSearchBar";
@@ -81,9 +81,14 @@ describe("Header", () => {
   it("renders the logo as an accessible home link", () => {
     render(<Header />);
 
-    expect(
-      screen.getByRole("link", { name: "Airbob 홈으로 이동" })
-    ).toHaveAttribute("href", "/");
+    const homeLink = screen.getByRole("link", {
+      name: "Airbob 홈으로 이동",
+    });
+    const logoImage = within(homeLink).getByRole("presentation");
+
+    expect(homeLink).toHaveAttribute("href", "/");
+    expect(logoImage).toHaveAttribute("src", "airbob-wordmark.png");
+    expect(logoImage).toHaveAttribute("alt", "");
   });
 
   it("renders one logical search bar for searchable header modes", () => {

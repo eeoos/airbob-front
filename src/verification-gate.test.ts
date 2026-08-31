@@ -49,11 +49,13 @@ const frontendSmokePath = path.join(projectRoot, "scripts/smoke/frontend-smoke.m
 const sourceRoot = path.join(projectRoot, "src");
 const retiredSourceRoots = [
   "api",
+  "components",
   "contexts",
   "hooks",
   "layouts",
   "query",
   "routes",
+  "styles",
   "types",
   "utils",
 ] as const;
@@ -1124,7 +1126,10 @@ describe("frontend verification gate", () => {
       },
       {
         heading: "design system entry contracts",
-        expectedTerms: ["src/styles/design-system-contracts.test.ts", "screenshot path"],
+        expectedTerms: [
+          "src/shared/styles/design-system-contracts.test.ts",
+          "screenshot path",
+        ],
       },
     ];
 

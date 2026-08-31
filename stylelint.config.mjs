@@ -22,6 +22,7 @@ const projectRules = {
   "airbob/no-protected-design-literal": true,
   "airbob/no-raw-border-radius": true,
   "airbob/no-raw-box-shadow": true,
+  "airbob/token-layer-contract": true,
   "airbob/no-unknown-design-reference": true,
   "airbob/vendor-important-disable-scope": [
     true,
@@ -102,6 +103,7 @@ export const createStylelintConfig = ({
 } = {}) => {
   const {
     canonicalTokenStylePaths,
+    primitiveTokenStylePaths,
     protectedDesignLiteralStylePaths,
     strictStyleGlobs,
     vendorImportantOverrideGlobs,
@@ -144,11 +146,17 @@ export const createStylelintConfig = ({
         },
       },
       {
-        name: "canonical token declarations own raw design values",
+        name: "canonical token declarations own design references",
         files: absoluteGlobs(canonicalTokenStylePaths),
         rules: {
           "airbob/no-protected-design-literal": null,
           "airbob/no-unknown-design-reference": null,
+        },
+      },
+      {
+        name: "primitive tokens alone own raw design values",
+        files: absoluteGlobs(primitiveTokenStylePaths),
+        rules: {
           "color-no-hex": null,
           "color-named": null,
           "function-disallowed-list": null,

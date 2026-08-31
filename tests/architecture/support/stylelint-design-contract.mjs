@@ -9,6 +9,7 @@ const {
   allowedBreakpointValues,
   canonicalTokenStylePaths,
   isVendorImportantOverridePath,
+  tokenLayerPolicies,
 } = require("../../../scripts/architecture/style-policy.cjs");
 
 const supportDirectory = path.dirname(fileURLToPath(import.meta.url));
@@ -402,6 +403,181 @@ breakpointRule.meta = {
   url: "tests/architecture/dependency-rules.md#stylelint-owner",
 };
 
+const tokenLayerRuleName = "airbob/token-layer-contract";
+const tokenLayerMessages = stylelint.utils.ruleMessages(tokenLayerRuleName, {
+  backwardReference: (consumer, reference) =>
+    `${consumer} may not reference later-layer token ${reference}`,
+  derivedLiteral: (name) =>
+    `${name} must be a direct alias; only primitive tokens may own raw values`,
+  forwardReference: (consumer, reference) =>
+    `${consumer} may only reference tokens declared earlier in the same layer (${reference})`,
+  missingOwner: (name) =>
+    `${name} is not registered in the centralized token layer policy`,
+  unknownReference: (consumer, reference) =>
+    `${consumer} references unknown canonical token ${reference}`,
+  wrongOwner: (name, expected, actual) =>
+    `${name} belongs to the ${expected} token layer, not ${actual}`,
+});
+const directTokenAliasPattern = /^var\(\s*--[a-z0-9-]+\s*\)$/;
+const tokenReferencePattern = /var\(\s*(--[a-z0-9-]+)\s*\)/g;
+
+const createTokenLayerRule = ({ projectRoot }) => {
+  const layerRankByPath = new Map(
+    tokenLayerPolicies.map(({ path: relativePath }, rank) => [relativePath, rank]),
+  );
+  const expectedOwnerByToken = new Map();
+  const canonicalOwners = new Map();
+
+  tokenLayerPolicies.forEach((layerPolicy, rank) => {
+    layerPolicy.tokenNames.forEach((tokenName) => {
+      if (expectedOwnerByToken.has(tokenName)) {
+        throw new Error(`Duplicate token layer policy owner: ${tokenName}`);
+      }
+
+      expectedOwnerByToken.set(tokenName, {
+        name: layerPolicy.name,
+        rank,
+      });
+    });
+
+    const relativePath = layerPolicy.path;
+    const filePath = path.join(projectRoot, relativePath);
+
+    if (!fs.existsSync(filePath)) {
+      return;
+    }
+
+    Array.from(
+      fs.readFileSync(filePath, "utf8").matchAll(
+        /^\s*(--[a-z0-9-]+)\s*:\s*([^;]+);/gm,
+      ),
+    ).forEach((match, order) => {
+      canonicalOwners.set(match[1], { order, rank });
+    });
+  });
+
+  const rule = (primary) => (root, result) => {
+    if (!primary) {
+      return;
+    }
+
+    const sourcePath = root.source?.input.file;
+    const projectPath = sourcePath
+      ? path.relative(projectRoot, sourcePath).replaceAll("\\", "/")
+      : "";
+    const consumerRank = layerRankByPath.get(projectPath);
+
+    if (consumerRank === undefined) {
+      return;
+    }
+
+    const declarations = [];
+    root.walkDecls(/^--[a-z0-9-]+$/, (declaration) => {
+      declarations.push(declaration);
+    });
+    const localOwners = new Map(
+      declarations.map((declaration, order) => [
+        declaration.prop,
+        { order, rank: consumerRank },
+      ]),
+    );
+
+    declarations.forEach((declaration, consumerOrder) => {
+      const expectedOwner = expectedOwnerByToken.get(declaration.prop);
+      const actualOwnerName = tokenLayerPolicies[consumerRank].name;
+
+      if (!expectedOwner) {
+        stylelint.utils.report({
+          message: tokenLayerMessages.missingOwner(declaration.prop),
+          node: declaration,
+          result,
+          ruleName: tokenLayerRuleName,
+          word: declaration.prop,
+        });
+      } else if (expectedOwner.rank !== consumerRank) {
+        stylelint.utils.report({
+          message: tokenLayerMessages.wrongOwner(
+            declaration.prop,
+            expectedOwner.name,
+            actualOwnerName,
+          ),
+          node: declaration,
+          result,
+          ruleName: tokenLayerRuleName,
+          word: declaration.prop,
+        });
+      }
+
+      if (
+        consumerRank > 0 &&
+        !directTokenAliasPattern.test(declaration.value.trim())
+      ) {
+        stylelint.utils.report({
+          message: tokenLayerMessages.derivedLiteral(declaration.prop),
+          node: declaration,
+          result,
+          ruleName: tokenLayerRuleName,
+          word: declaration.value,
+        });
+      }
+
+      for (const match of declaration.value.matchAll(tokenReferencePattern)) {
+        const reference = match[1];
+        const owner = localOwners.get(reference) ?? canonicalOwners.get(reference);
+
+        if (!owner) {
+          stylelint.utils.report({
+            message: tokenLayerMessages.unknownReference(
+              declaration.prop,
+              reference,
+            ),
+            node: declaration,
+            result,
+            ruleName: tokenLayerRuleName,
+            word: reference,
+          });
+          continue;
+        }
+
+        if (owner.rank > consumerRank) {
+          stylelint.utils.report({
+            message: tokenLayerMessages.backwardReference(
+              declaration.prop,
+              reference,
+            ),
+            node: declaration,
+            result,
+            ruleName: tokenLayerRuleName,
+            word: reference,
+          });
+          continue;
+        }
+
+        if (owner.rank === consumerRank && owner.order >= consumerOrder) {
+          stylelint.utils.report({
+            message: tokenLayerMessages.forwardReference(
+              declaration.prop,
+              reference,
+            ),
+            node: declaration,
+            result,
+            ruleName: tokenLayerRuleName,
+            word: reference,
+          });
+        }
+      }
+    });
+  };
+
+  rule.ruleName = tokenLayerRuleName;
+  rule.messages = tokenLayerMessages;
+  rule.meta = {
+    url: "tests/architecture/dependency-rules.md#stylelint-owner",
+  };
+
+  return rule;
+};
+
 const vendorDisableScopeRuleName =
   "airbob/vendor-important-disable-scope";
 const vendorDisableScopeMessages = stylelint.utils.ruleMessages(
@@ -501,6 +677,10 @@ export const createDesignContractPlugins = ({ projectRoot }) => [
   stylelint.createPlugin(rawRadiusRuleName, rawRadiusRule),
   stylelint.createPlugin(rawShadowRuleName, rawShadowRule),
   stylelint.createPlugin(breakpointRuleName, breakpointRule),
+  stylelint.createPlugin(
+    tokenLayerRuleName,
+    createTokenLayerRule({ projectRoot }),
+  ),
   stylelint.createPlugin(
     vendorDisableScopeRuleName,
     Object.assign(createVendorDisableScopeRule({ projectRoot }), {

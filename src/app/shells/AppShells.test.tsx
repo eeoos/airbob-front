@@ -1,7 +1,6 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 import { render, screen, within } from "@testing-library/react";
-import { PageShell } from "../../shared/ui/PageShell/PageShell";
 import {
   appShellComponents,
   BareShell,
@@ -62,9 +61,9 @@ describe("app shells", () => {
 
       render(
         <Shell>
-          <PageShell title="예약 상세">
+          <section aria-label="예약 상세">
             <p>Page content</p>
-          </PageShell>
+          </section>
         </Shell>,
       );
 

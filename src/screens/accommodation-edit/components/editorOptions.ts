@@ -22,7 +22,7 @@ export const ACCOMMODATION_TYPE_OPTIONS: readonly EditorSelectOption[] = [
   { value: "CASTLE", label: "성 같은 특이한 숙소" },
 ];
 
-export const AMENITY_OPTIONS: readonly EditorSelectOption[] = [
+export const AMENITY_OPTIONS = [
   { value: "WIFI", label: "무선 인터넷" },
   { value: "AIR_CONDITIONER", label: "에어컨" },
   { value: "HEATING", label: "난방" },
@@ -53,4 +53,7 @@ export const AMENITY_OPTIONS: readonly EditorSelectOption[] = [
   { value: "OUTDOOR_SPACE", label: "야외 공간" },
   { value: "BBQ_GRILL", label: "바베큐 그릴" },
   { value: "BALCONY", label: "발코니" },
-];
+] as const satisfies readonly EditorSelectOption[];
+
+export type AccommodationEditAmenityCode =
+  (typeof AMENITY_OPTIONS)[number]["value"];

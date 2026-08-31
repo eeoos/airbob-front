@@ -4,7 +4,7 @@ const {
   createFeatureSurfacePathPattern,
   discoverFeatureOwnershipScopes,
 } = require("./feature-scope-policy.cjs");
-const staticResourceRoots = "^src/(?:assets|styles)(?:/|$)";
+const staticResourceRoots = "^src/assets(?:/|$)";
 const targetRoot = "^src/(?:app|screens|workflows|platform|shared)(?:/|$)";
 const featureRoot = "^src/features(?:/|$)";
 

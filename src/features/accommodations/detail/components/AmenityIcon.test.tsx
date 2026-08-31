@@ -1,7 +1,23 @@
 import { render, screen } from "@testing-library/react";
+import { accommodationAmenityLabels } from "../lib/accommodationLabels";
 import AmenityIcon from "./AmenityIcon";
+import { accommodationAmenityIconRegistry } from "./amenityIconRegistry";
 
 describe("AmenityIcon", () => {
+  it("maps every amenity code recognized by the detail owner", () => {
+    const supportedCodes = Object.keys(accommodationAmenityLabels).sort();
+    const mappedCodes = Object.keys(
+      accommodationAmenityIconRegistry.glyphs
+    ).sort();
+
+    expect(mappedCodes).toEqual(supportedCodes);
+    expect(
+      supportedCodes.filter(
+        (code) => !accommodationAmenityIconRegistry.has(code)
+      )
+    ).toEqual([]);
+  });
+
   it("renders an accessible icon for an amenity type", () => {
     render(<AmenityIcon type="WIFI" />);
 
@@ -9,6 +25,16 @@ describe("AmenityIcon", () => {
 
     expect(icon).toHaveAttribute("viewBox", "0 0 24 24");
     expect(icon).toHaveAttribute("stroke", "currentColor");
+    expect(icon).toHaveStyle({ width: "24px", height: "24px" });
+  });
+
+  it("preserves fill-based pictograms alongside stroke-based pictograms", () => {
+    render(<AmenityIcon type="HEATING" />);
+
+    const icon = screen.getByRole("img", { name: "HEATING" });
+
+    expect(icon).toHaveAttribute("fill", "currentColor");
+    expect(icon).toHaveAttribute("stroke", "none");
   });
 
   it("renders the fallback icon for unknown amenity types", () => {

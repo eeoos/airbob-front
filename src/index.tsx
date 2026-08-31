@@ -6,7 +6,7 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { AppProviders } from './app/providers/AppProviders';
 import { clearIdentityOwnedFrontendState } from './app/providers/clearIdentityOwnedFrontendState';
-import { ErrorBoundary } from './components/ErrorBoundary/ErrorBoundary';
+import { ErrorBoundary } from './app/errors/ErrorBoundary';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
