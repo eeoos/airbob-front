@@ -136,8 +136,8 @@ OCI, Vercel, AWS와 실제 Airbnb visual restyling은 이번 계획의 완료 �
 - KTD7. **Classify mutation recovery by backend guarantee:** Quote는 inventory를 잡지 않아 response loss 뒤 fresh request가 가능하다. Checkout은 exact body/key, attempt와 release는 exact reservation resource command, confirm은 exact four-field tuple만 replay한다. Replay-sensitive mutation은 request 전에 prepared/submitting phase를 기록한다.
 - KTD8. **Model zero-won checkout as a terminal reservation branch:** Amount가 0인 정상 Ready는 payment workflow에 들어가지 않으며 amount-positive storage validation을 우회하는 예외가 아니다.
 - KTD9. **Issue the attempt after SDK preparation but before gateway launch:** SDK loading 때문에 hold 시간을 소비하지 않되, attempt tuple 저장 뒤에는 다른 network await 없이 Toss를 호출한다.
-- KTD10. **Separate callback credential from the subject-owned transaction receipt:** Pre-auth credential은 memory-only다. Matching subject/journal claim 뒤에는 exact-replay를 위해 `min(firstCapturedAt + 9 minutes, attempt response hold expiry)` hard-TTL의 dedicated immutable session record로만 저장하고 Accepted receipt write/read-back이 성공한 뒤에만 삭제한다. Credential에는 lease를 복제하지 않고 pre-Accepted mutable authority를 journal 하나로 유지한다. Credential-free operation/reservation receipt는 자체 runtime lease를 가진 personal transaction data이며 24시간 hard TTL 또는 final UI acknowledgment까지 유일한 post-Accepted authority로 보존한다. 24시간 이후에는 reservation detail로만 수렴하며 confirm 또는 operation-specific recovery를 추측해 재시작하지 않는다.
-- KTD11. **Backend operation ID is payment authority and transport text is untrusted:** Payment adapter는 `statusUrl`, provider/backend message, request message와 internal failure detail을 폐기한다. Validated UUID와 known enum/code만 workflow에 넘기고 frontend allowlist가 사용자 문구를 만든다. `SUCCEEDED`만 durable success marker를 허용한다.
+- KTD10. **Separate callback credential from the subject-owned transaction receipt:** Pre-auth credential은 memory-only다. Matching subject/journal claim 뒤에는 exact-replay를 위해 `min(firstCapturedAt + 9 minutes, attempt response hold expiry)` hard-TTL의 dedicated immutable session record로만 저장한다. 정상 same-flow handoff에서는 Accepted receipt write/read-back 전에 credential을 삭제하지 않는다. Hard expiry, foreign/orphan identity cleanup은 confirm 권한을 부여하지 않는 별도 예외다. Credential에는 lease를 복제하지 않고 pre-Accepted mutable authority를 journal 하나로 유지한다. Credential-free operation/reservation receipt는 자체 runtime lease를 가진 personal transaction data이며 24시간 hard TTL 또는 final UI acknowledgment까지 유일한 post-Accepted authority로 보존한다. 24시간 이후에는 reservation detail로만 수렴하며 confirm 또는 operation-specific recovery를 추측해 재시작하지 않는다.
+- KTD11. **The receipt is payment authority; operation ID is only its locator:** Payment adapter는 `statusUrl`, provider/backend message, request message와 internal failure detail을 폐기한다. Validated UUID와 known enum/code만 workflow에 넘기고 frontend allowlist가 사용자 문구를 만든다. `SUCCEEDED`와 `FAILED`만 durable terminal receipt observation을 허용한다.
 - KTD12. **Guarantee same-tab recovery, not impossible cross-device recovery:** Session storage와 subject/runtime-lease/epoch fence를 유지하고 duplicated/opener tab에 record가 복제될 수 있음을 threat model에 포함한다. 다른 tab/device는 backend conflict와 reservation final state로 수렴하며 operation-specific next action은 약속하지 않는다.
 - KTD13. **Hold release stops at the confirm boundary:** Quote-only cleanup은 local이고 paid hold는 사용자가 포기할 때만 release한다. Callback 수신 또는 confirm submission 뒤에는 release하지 않는다.
 - KTD14. **Keep three verification tiers honest:** Deterministic browser, real local-backend/sandbox, Vercel/OCI deployment evidence를 별도 gate로 유지한다.
@@ -146,7 +146,7 @@ OCI, Vercel, AWS와 실제 Airbnb visual restyling은 이번 계획의 완료 �
 - KTD17. **Prepare design boundaries without restyling:** Editor commands, state/image recipes, layout, responsive/runtime tokens와 stable view sections까지만 이 계획에 포함한다.
 - KTD18. **Stage reachable capabilities behind the durable journal, then make only the owner switch atomic:** Strict-production Knip은 test-only production adapter/export를 허용하지 않는다. Narrow HTTP idempotency primitive와 active reservation read parity는 독립된 작은 green commit으로 land할 수 있다. Quote/checkout adapter의 첫 실제 소비자는 checkout 전 exact body/key 영속화를 요구하므로 subject-owned v2 journal과 retired-key purge gate가 먼저 production-reachable해야 한다. Journal staging은 current v1 preflight가 unresolved v2 state를 발견하면 direct-create를 막는 downgrade fence와 identity-boundary verified cleanup으로 실제 production 가치를 가진다. Journal 뒤에도 paid checkout activation은 attempt/callback/Accepted/polling continuation이 모두 준비될 때까지 금지한다. Quote/checkout adapter와 실제 workflow consumer는 그 continuation과 함께 최종 owner switch에 들어가며, 별도 제품 결정 없이 quote/0원-only 부분 전환으로 paid booking을 닫지 않는다. Callback hardening도 current production graph에서 실제로 validate/inspect/clear되는 단위만 land하고 전체 transaction matrix가 green이 되기 전 merge/deploy하지 않는다.
 - KTD19. **Separate transaction identity from a durable recovery lease:** One subject-owned document는 immutable `flowId + subject`, mutable cryptographic `{runtimeLeaseId, sessionEpoch}`, exact route/resource와 expected prior phase가 일치할 때만 full-record replacement를 허용한다. Generic recovery claim은 current subject, caller가 이미 소유한 exact `flowId`, phase-compatible accommodation/reservation locator를 모두 요구하고, lease replacement read-back 뒤에만 record를 반환한다. Accommodation 또는 reservation ID만 같은 다른 unresolved flow를 claim할 수 없으며 owner-only discovery API를 두지 않는다. Checkpoint C는 pre-callback navigation/history에 credential-free exact flow reference를 전달하고, Checkpoint F callback은 scrubbed reservation/attempt/amount tuple을 검증하는 specialized claim을 추가한다. Numeric epoch는 문서 재시작마다 다시 0이 될 수 있으므로 단독 lease identity가 아니다. Accommodation/date/guest/quote/key/reservation/amount/currency/attempt/operation tuple은 이후 단계에서 변경할 수 없고 terminal/purge 뒤 stale completion이 record를 되살릴 수 없다.
-- KTD20. **Durably observe server terminal before UI publication:** Complimentary Ready는 journal terminal로, payment `SUCCEEDED`는 sole-authority operation receipt observation으로 먼저 기록하고 cache refresh/navigation을 수행한다. Publication이나 cleanup 실패는 server terminal을 되돌리거나 mutation replay를 유발하지 않는다. `REQUIRES_REVIEW`는 backend operator reconciliation 뒤 다시 `PENDING`/`PROCESSING`이 될 수 있으므로 terminal marker가 아니다.
+- KTD20. **Durably observe server terminal before UI publication:** Complimentary Ready는 journal terminal로, payment `SUCCEEDED`와 `FAILED`는 sole-authority operation receipt observation으로 먼저 기록하고 cache refresh/navigation을 수행한다. Publication이나 cleanup 실패는 server terminal을 되돌리거나 mutation replay를 유발하지 않는다. `REQUIRES_REVIEW`는 backend operator reconciliation 뒤 다시 `PENDING`/`PROCESSING`이 될 수 있으므로 terminal marker가 아니다.
 - KTD21. **Do not invent frontend CSRF:** Cookie-session mutation은 backend의 documented CSRF/Origin policy를 따른다. Policy 부재나 arbitrary Origin 허용은 backend 변경 요청이 아니라 Vercel/OCI integration blocker로 남긴다.
 - KTD22. **Keep runtime token data pure:** Canonical token names/values는 `shared/styles`가 소유한다. DOM/CSSOM reader가 필요하면 `platform/browser`가 좁은 port로 제공하며 shared/screens가 `document` 또는 `getComputedStyle`을 직접 읽지 않는다.
 - KTD23. **Respect the current provider capability before creating a hold:** CARD/KRW 100원 미만 또는 Java confirm `Integer` 상한 초과의 유료 quote는 checkout action을 차단하고 coupon/조건 변경 뒤 새 quote를 요구한다. Complimentary 0원만 Toss를 건너뛴다. Recovery 중 이미 존재하는 unsupported amount/currency hold에는 payment attempt를 만들지 않고 explicit release 또는 reservation detail을 제공한다.
@@ -192,6 +192,8 @@ sequenceDiagram
   participant Booking as Booking workflow
   participant Reservation as Reservation feature API
   participant Journal as Subject-owned journal v2
+  participant Credential as Callback credential slot
+  participant Receipt as Operation receipt slot
   participant Confirm as Confirmation screen/workflow
   participant Toss as Toss sandbox SDK
   participant Payment as Payment feature API
@@ -220,19 +222,25 @@ sequenceDiagram
     Booking->>Toss: Request sandbox payment
     alt Success callback
       Toss-->>Confirm: Redirect authorization tuple
-      Confirm->>Journal: Scrub URL and claim short-lived credential
+      Confirm->>Confirm: Scrub URL and hold credential in memory
+      Confirm->>Journal: Claim exact flow lease
+      Confirm->>Credential: Persist/read-back joined credential
       Confirm->>Booking: Resume matching flow
       Booking->>Payment: POST confirm with attempt ID
-      Payment-->>Booking: 202 operation receipt
-      Booking->>Journal: Write/read-back receipt, then purge credential
-      loop PENDING or PROCESSING
+      Payment-->>Booking: 202 operation identity
+      Booking->>Receipt: Write/read-back receipt with null observation
+      Booking->>Credential: Verified purge after authority handoff
+      Booking->>Journal: Verified purge after credential
+      loop PENDING, PROCESSING or REQUIRES_REVIEW
         Booking->>Payment: GET validated operation ID
         Payment-->>Booking: Status, nextAction and retry hint
+        Booking->>Receipt: Replace newer observation
       end
       Booking-->>Guest: Succeed, restart, reservation status or support state
     else Fail or user cancel callback
       Toss-->>Confirm: Redirect fail/cancel data
-      Confirm->>Journal: Scrub URL; keep attempt-ready flow
+      Confirm->>Confirm: Scrub URL
+      Confirm->>Journal: Keep attempt-ready flow
       Confirm-->>Guest: Offer same-attempt retry or explicit hold release
     end
   end
@@ -264,8 +272,11 @@ stateDiagram-v2
   ConfirmSubmitting --> ReceiptUnresolved: verified 202 receipt write/read-back
   ReceiptUnresolved --> ReceiptUnresolved: newer PENDING / PROCESSING / REQUIRES_REVIEW observation
   ReceiptUnresolved --> ReceiptSucceeded: SUCCEEDED durable observation
-  ReceiptSucceeded --> Finalized: cache/navigation publication
   ReceiptUnresolved --> ReceiptFailed: FAILED durable observation
+  ReceiptSucceeded --> SuccessPublished: cache/navigation publication
+  SuccessPublished --> Finalized: success UI acknowledgment
+  ReceiptFailed --> FailurePublished: failure UI publication
+  FailurePublished --> Finalized: failure UI acknowledgment
   ReservationReady --> HoldReleaseRequesting: explicit abandon
   AttemptReady --> HoldReleaseRequesting: explicit abandon before callback
   HoldReleaseRequesting --> HoldReleaseRequesting: ambiguous response / exact DELETE replay
@@ -273,7 +284,7 @@ stateDiagram-v2
   HoldReleased --> Finalized: publication and leave-flow complete
 ```
 
-`Finalized`만 normal cleanup을 수행한다. `ReceiptSucceeded`에서 publication이 실패하면 receipt를 보존하고 confirm을 다시 보내지 않는다. `ReceiptFailed`는 receipt를 결과와 next action 표시까지 보존한다. `REQUIRES_REVIEW`는 receipt 안의 unresolved observation이며 더 최신 `PENDING`, `PROCESSING`, `SUCCEEDED` 또는 `FAILED` observation으로 교체될 수 있다. 202 이후 journal은 어떤 operation phase로도 전이하지 않으며 verified receipt가 credential과 journal을 순서대로 정리한다.
+`Finalized`만 normal cleanup을 수행하며 성공과 실패 모두 UI acknowledgment 뒤에 도달한다. `ReceiptSucceeded` 또는 `ReceiptFailed` publication이 실패하면 receipt를 보존하고 confirm을 다시 보내지 않는다. `REQUIRES_REVIEW`는 receipt 안의 unresolved observation이며 더 최신 `PENDING`, `PROCESSING`, `REQUIRES_REVIEW`, `SUCCEEDED` 또는 `FAILED` observation으로 교체될 수 있다. 202 이후 journal은 어떤 operation phase로도 전이하지 않으며 verified receipt가 credential과 journal을 순서대로 정리한다.
 
 ### Immutable transaction identity
 
@@ -290,14 +301,14 @@ stateDiagram-v2
 
 ### Browser-state retention and replacement
 
-| Record                       | Retention                                                                   | Transition rule                                                                 |
-| ---------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Pre-auth callback claim      | Current document memory only                                                | URL scrub 뒤 보관; stable same-subject journal 확인 전 API 호출 금지            |
-| Claimed callback credential  | `min(first capture + 9m, attempt response hold expiry)` in same-tab storage | Accepted receipt write/read-back 전 삭제 금지                                   |
-| Booking transaction document | Server expiry-aware with 60-minute hard cap before operation receipt        | Full-record forward-only replacement; new flow cannot overwrite unresolved flow |
-| Operation receipt            | 24-hour hard TTL or final UI acknowledgment                                 | Credential-free sole authority; nonterminal review도 newer observation으로 교체 |
+| Record                       | Retention                                                                   | Transition rule                                                                                            |
+| ---------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Pre-auth callback claim      | Current document memory only                                                | URL scrub 뒤 보관; stable same-subject journal 확인 전 API 호출 금지                                       |
+| Claimed callback credential  | `min(first capture + 9m, attempt response hold expiry)` in same-tab storage | 정상 same-flow handoff에서는 receipt 검증 전 삭제 금지; expiry/foreign/orphan cleanup은 권한을 만들지 않음 |
+| Booking transaction document | Server expiry-aware with 60-minute hard cap before operation receipt        | Full-record forward-only replacement; new flow cannot overwrite unresolved flow                            |
+| Operation receipt            | 24-hour hard TTL or final UI acknowledgment                                 | Credential-free sole authority; nonterminal review도 newer observation으로 교체                            |
 
-Session storage가 duplicated/opener tab에 복제될 수 있으므로 record 자체를 신뢰하지 않는다. 모든 read에서 schema, tuple, subject, cryptographic runtime lease, numeric epoch, TTL과 expected phase를 다시 검증하고 backend conflict를 cross-tab authority로 사용한다.
+Session storage가 duplicated/opener tab에 복제될 수 있으므로 record 자체를 신뢰하지 않는다. Command-authorizing journal/receipt read는 schema, tuple, subject, cryptographic runtime lease, numeric epoch, TTL과 expected phase를 모두 검증한다. Lease가 없는 credential join과 data-less candidate inspection은 각 exact schema/identity/TTL 또는 namespace 정합성만 검증하며 어떤 command authority도 부여하지 않는다. Backend conflict는 cross-tab authority로 사용한다.
 
 ### Error-to-action contract
 
@@ -434,10 +445,10 @@ U2와 production-reachable HTTP/read-side capability commit은 U1 뒤 진행한�
   - Journal `hardExpiresAt` is `createdAt + 60 minutes`. `quoted` and unsent `checkout-prepared` use the server-relative quote lifetime; `checkout-submitting` extends only to the hard cap so response-loss replay survives quote expiry; `reservation-ready` and attempt phases use `min(hard cap, local transition time + (holdExpiresAt - serverTime))`; verified receipt write/read-back from `confirm-submitting` hands authority directly to the 24-hour receipt. Default backend 5m/15m/90s values are not frontend constants. Attempt `remainingSeconds` accepts zero on a valid replay.
   - The callback credential key is exactly `airbob:booking-payment-v2:callback-credential`. Its exact envelope is `{purpose:"booking-payment-callback-credential",version:2,privacyClass:"sensitive",containsPii:false,owner,createdAt,hardExpiresAt,data}` with no lease. `createdAt` is first URL capture time and `hardExpiresAt = min(createdAt + 9 minutes, joined journal recovery expiry)`; exact duplicate/repair never slides either value. Exact data is `{flowId,reservationUid,orderId,paymentAttemptId,paymentKey,amount,currency}`. It requires `reservationUid === orderId === journal.ready.reservationUid`, exact journal attempt/flow/amount/currency join, KRW 100–2,147,483,647 and an unmodified paymentKey whose UTF-16 length is 1–200 and whose trimmed length is nonzero. It stores no provider fail code/message. Before Accepted, the journal lease remains the sole mutable recovery authority.
   - The operation receipt key is exactly `airbob:booking-payment-v2:operation-receipt`. Its exact envelope is `{purpose:"booking-payment-operation-receipt",version:2,privacyClass:"personal",containsPii:false,owner,createdAt,hardExpiresAt,lease,data}` with `hardExpiresAt === createdAt + 24 hours` and no sliding update. Exact data is `{flowId,operation,observation}`; operation is immutable `{operationId,reservationUid,orderId,paymentAttemptId,amount,currency}` with `reservationUid === orderId`, and observation is initially `null` after 202 because Accepted lacks a full Detail observation. A detail observation is exact `{status,updatedAt,nextAction,retryAfterSeconds,userFailureCode,serverTime}`. Raw `statusUrl`, `failureCode`, `userMessage`, provider/backend text, paymentKey and invented support data are forbidden.
-  - Receipt observations accept only current confirmation combinations: `PENDING|PROCESSING + POLL + clamped 2–30 seconds + null failure`; `SUCCEEDED + NONE + null retry/failure`; `FAILED + START_NEW_CHECKOUT|NONE + null retry + PAYMENT_DECLINED`; `REQUIRES_REVIEW + CONTACT_SUPPORT + clamped 2–30 seconds + PAYMENT_REVIEW_REQUIRED`. `updatedAt <= serverTime`. Replacement is ordered by `updatedAt`, not a status ordinal: older observations reject, same timestamp allows exact duplicates only, and newer known observations may move between `PENDING`/`PROCESSING`, from `REQUIRES_REVIEW` back to either, or to `SUCCEEDED|FAILED`. Only `SUCCEEDED` and `FAILED` are terminal. Receipt runtime-lease claim requires a caller-owned exact flow/operation/reservation handle; candidate reconciliation never exposes it.
-  - Accepted receipt write/read-back transfers sole authority atomically. The handoff is exactly `confirm-submitting journal + joined credential → receipt write → raw equality/full parsed join read-back → credential verified purge → journal verified purge`. Receipt write/read-back failure leaves the pre-Accepted pair authoritative. After verified receipt, confirm replay is forbidden even when extras cannot be purged or the 60-minute journal expires.
+  - Receipt observations accept only current confirmation combinations: `PENDING|PROCESSING + POLL + clamped 2–30 seconds + null failure`; `SUCCEEDED + NONE + null retry/failure`; `FAILED + START_NEW_CHECKOUT|NONE + null retry + PAYMENT_DECLINED`; `REQUIRES_REVIEW + CONTACT_SUPPORT + clamped 2–30 seconds + PAYMENT_REVIEW_REQUIRED`. `updatedAt <= serverTime`. Replacement is ordered by `updatedAt`, not a status ordinal: older observations reject, same timestamp allows exact duplicates only, and any newer known unresolved observation may move among `PENDING`, `PROCESSING` and `REQUIRES_REVIEW`, or to `SUCCEEDED|FAILED`. Only `SUCCEEDED` and `FAILED` are terminal. Receipt runtime-lease claim requires a caller-owned exact flow/operation/reservation handle; candidate reconciliation never exposes it.
+  - Accepted receipt write/read-back transfers sole authority atomically. The handoff is exactly `confirm-submitting journal + joined credential → receipt write → raw equality/full parsed join read-back → credential verified purge → journal verified purge`. If failure is followed by a verified-absent receipt slot, the preserved pre-Accepted pair remains authoritative for exact replay. If any receipt key exists but cannot be fully verified, the pair is only preserved as quarantined repair data and authorizes zero confirm calls. After verified receipt, confirm replay is forbidden even when extras cannot be purged or the 60-minute journal expires.
   - Receipt key presence is itself a no-fallback barrier before any parser/TTL decision. Legal combinations are: no slots; journal alone; journal plus exact credential (including `attempt-ready + credential` transition-repair); receipt alone; and receipt plus leftovers as a repair state. Credential alone is an invalid orphan with confirm count zero. Any receipt key—valid, expired, malformed or newer—prevents journal/credential fallback. Current valid same-owner receipt is sole authority. Expired/exact-v2-malformed cleanup removes credential, then journal, then receipt and verifies the final namespace before reservation-only fallback; unknown-version/newer receipt is preserved fail closed. Final acknowledgment uses the same receipt-last order, so leftover credentials can never regain confirm authority.
-  - Candidate reconciliation whole-namespace classifies the three known slots together and returns status only. Same-owner active receipt or valid journal/joined credential yields `recovery-required` without lease/data exposure. Foreign known records must be fully verified-cleaned before publication. Expired same-owner receipt cleans extras receipt-last and yields `recovery-unavailable`, never pre-Accepted fallback. Receipt-adjacent extra cleanup failure preserves receipt authority for later repair; orphan cleanup failure, unknown/newer slot, read/enumeration failure or incomplete foreign cleanup blocks publication.
+  - Candidate reconciliation whole-namespace classifies the three known slots together and returns status only. Same-owner active receipt or valid journal/joined credential yields `recovery-required` without lease/data exposure. Foreign known records must be fully verified-cleaned before publication. Expired same-owner receipt cleans extras receipt-last and yields `recovery-unavailable`, never pre-Accepted fallback. Receipt-adjacent extra cleanup failure preserves receipt authority for later repair; orphan cleanup failure, unknown/newer slot, read/enumeration failure or incomplete foreign cleanup blocks publication. Every multi-slot cleanup—including expiry, malformed-v2 repair, foreign owner, logout/revocation/account switch and final acknowledgment—uses verified `credential → journal → receipt-last` removal with a final namespace proof.
   - Repository surface is capability-shaped: `inspectNamespaceForLegacyWriter` is enumerate-only; `reconcileCandidateOwner` may perform only the verified candidate cleanup above; `claimRecoveryLease` requires a caller-owned exact `flowId` plus a phase-compatible accommodation or reservation locator; `closeUnheldFlow` is restricted to explicit quote abandon or definitive `R017`/`R018`/`R019`; and future `createQuoted`, `replaceExpectedPhase`, `acknowledgeTerminal` require a current flow/lease plus read-back. `setItem` success is never trusted without raw equality and full parsed identity verification. Failed/ambiguous writes do not attempt speculative rollback.
   - Production reachability is explicit: current v1 preflight and just-before-send guard perform zero reservation POSTs whenever any v2 exact-prefix key exists or enumeration fails. Candidate identity publication remains blocked until owner reconciliation verifies success. Pre-login/external probes do not destroy v2 before a candidate subject is known; explicit logout, auth revocation and verified different-subject transitions do.
 - Test scenarios:
@@ -452,7 +463,7 @@ U2와 production-reachable HTTP/read-side capability commit은 U1 뒤 진행한�
   - Same-subject reload requires a caller-owned exact flow reference and phase-compatible route/resource claim to replace `{runtimeLeaseId,sessionEpoch}`; same owner/locator, a coincident numeric epoch or an owner-only read never grants transaction access, and stale-document completion writes nothing.
   - Same-subject login/external revalidation preserves v2 state until B1 can issue that lease; logout, auth revocation and a verified different subject remove it before publication.
   - V2 callback paymentKey accepts 200 characters and rejects 201; credential hard expiry chooses the earliest configured bound.
-  - Receipt write/read-back failure preserves the callback credential; credential purge failure after receipt leaves polling authoritative and triggers opportunistic purge without re-confirm.
+  - Receipt write/read-back failure preserves the callback credential; replay requires a separately verified-absent receipt slot, while any unresolved receipt key quarantines the pair with confirm count zero. Credential purge failure after a verified receipt leaves polling authoritative and triggers opportunistic purge without re-confirm.
   - Any existing receipt key makes confirm count zero before parser/TTL evaluation; expired or exact-v2-malformed receipt cleanup removes credential, journal and receipt in that order and never revives the pre-Accepted pair.
   - Receipt observation accepts `REQUIRES_REVIEW → PENDING → PROCESSING → SUCCEEDED|FAILED` when `updatedAt` advances, rejects same-timestamp disagreement and never slides the 24-hour TTL.
   - V1+v2 coexistence, prefix collision, partial remove failure and retry never expose or migrate the v1 payload.
@@ -563,17 +574,17 @@ U2와 production-reachable HTTP/read-side capability commit은 U1 뒤 진행한�
 
 #### Checkpoint H — Async operation state machine and route recovery
 
-- Checkpoint outcome: Payment routes survive response loss, reload, polling failure and backend review states while cleaning up only after proven success.
+- Checkpoint outcome: Payment routes survive response loss, reload, polling failure and backend review states while cleaning up only after a proven terminal observation is published and the success/failure UI is acknowledged.
 - Requirements: R24–R29, R33–R36, R49.
 - Files:
   - Rewrite `src/workflows/booking-payment/confirmation/paymentMachine.ts`, `paymentConfirmation.ts`, `paymentCallbackClaim.ts` and tests.
   - Modify `src/app/router/routes/PaymentSuccessRoute.tsx`, `PaymentFailRoute.tsx`, booking-payment route tests and recovery tests.
   - Modify payment result/confirmation screen state and accessibility tests.
-- Approach: Persist confirm-submitting before POST. Before every confirm/recovery decision, enumerate the receipt slot first so even a malformed/expired receipt key prevents fallback. If the confirm response is ambiguous, exact replay is allowed only after the receipt slot is proven absent. Write and raw-equal read back the separate operation receipt with `observation: null`; that verified receipt atomically becomes the sole recovery authority, after which credential then journal are verified-purged. Poll with one cancellable receipt lease and replace observations by monotonic `updatedAt`, not status ordering. `REQUIRES_REVIEW` remains unresolved and may later return to pending/processing. Persist `SUCCEEDED` or `FAILED` in the receipt before publication and retain it until success/failure acknowledgment; cleanup always deletes receipt last. Route other next actions without resubmitting payment.
+- Approach: Persist confirm-submitting before POST. Before every confirm/recovery decision, enumerate the receipt slot first so even a malformed/expired receipt key prevents fallback. If the confirm response is ambiguous, exact replay is allowed only after the receipt slot is proven absent. Write and raw-equal read back the separate operation receipt with `observation: null`; that verified receipt atomically becomes the sole recovery authority, after which credential then journal are verified-purged. Poll with one cancellable receipt lease and replace observations by monotonic `updatedAt`, not status ordering. `PENDING`, `PROCESSING` and `REQUIRES_REVIEW` are all unresolved and may transition among one another only with a newer observation. Persist `SUCCEEDED` or `FAILED` in the receipt before publication and retain it through publication until success/failure UI acknowledgment; every multi-slot cleanup deletes receipt last. Route other next actions without resubmitting payment.
 - Test scenarios:
   - Confirm timeout followed by exact replay returns one backend operation and one eventual provider execution.
-  - Receipt write failure preserves credential for replay; credential purge failure prioritizes receipt and makes zero new confirm calls.
-  - PENDING→PROCESSING→SUCCEEDED writes a durable receipt terminal observation before reservation refresh and clears only after successful publication/acknowledgment.
+  - Receipt write/read-back failure preserves credential; exact replay is allowed only after the receipt slot is verified absent, while any unresolved receipt key makes zero new confirm calls. Credential purge failure prioritizes a verified receipt.
+  - PENDING→PROCESSING→SUCCEEDED writes a durable receipt terminal observation before reservation refresh and clears only after successful publication plus UI acknowledgment.
   - REQUIRES_REVIEW→PENDING→PROCESSING→SUCCEEDED/FAILED remains pollable while a same-timestamp contradictory observation is rejected.
   - SUCCEEDED followed by cache or navigation failure resumes terminal publication without replaying confirm.
   - Poll network error keeps processing/retry UI and receipt.
@@ -715,14 +726,14 @@ U2와 production-reachable HTTP/read-side capability commit은 U1 뒤 진행한�
 - AE8. Given the guest cancels Toss before callback, the screen offers same-attempt retry or explicit hold release and does not auto-release.
 - AE9. Given a success/fail callback, credentials disappear from URL/history before auth child render and another signed-in subject cannot claim them.
 - AE10. Given confirm response is lost after same-subject credential claim, the current document or same-tab reload exact-replays the four-field command, receives the same operation ID and creates no second provider command.
-- AE11. Given PENDING→PROCESSING→SUCCEEDED, monotonic receipt observations persist across same-tab reload and cleanup happens only after SUCCEEDED and reservation refresh; no post-Accepted journal phase is written.
+- AE11. Given PENDING→PROCESSING→SUCCEEDED, monotonic receipt observations persist across same-tab reload and cleanup happens only after SUCCEEDED, reservation refresh, success publication and UI acknowledgment; no post-Accepted journal phase is written.
 - AE12. Given FAILED+START_NEW_CHECKOUT, no old quote/key/attempt/paymentKey is reused; given REQUIRES_REVIEW→PENDING→PROCESSING→SUCCEEDED|FAILED, the nonterminal receipt continues from newer observations while identifiers remain available and no support contact is invented.
 - AE13. Given poll network failure, the UI remains unresolved/retryable and never labels the payment failed or successful.
 - AE14. Given logout or account switch during any async step, the late result changes no storage, cache, route or other user screen.
 - AE15. Given an unregistered feature folder, architecture verification fails with the exact scope before design work can merge.
 - AE16. Given local integration passes, documentation still marks Vercel/OCI cookie/CORS, Maps production and AWS performance as unverified.
 - AE17. Given design-entry closure, a visual slice can change a screen section without importing Router, QueryClient, storage, payment workflow or React setters into the view.
-- AE18. Given operation receipt write/read-back fails, callback credential remains for exact replay; given only credential purge fails, the receipt remains authoritative and confirm is not repeated.
+- AE18. Given operation receipt write/read-back fails, callback credential remains but exact replay occurs only after the receipt slot is proven absent; any unresolved receipt key makes zero confirm calls. Given only credential purge fails after verified handoff, the receipt remains authoritative and confirm is not repeated.
 - AE19. Given retired v1 key removal partially fails, v2 checkout/attempt/confirm sends zero mutations and unrelated storage prefixes remain untouched.
 - AE20. Given malformed or duplicate callback parameters, the entire search/hash is scrubbed before parsing and no app-controlled artifact records the original credential URL.
 - AE21. Given two pages inherit the same session state, they share no credential channel and conflicting checkout/release/confirm attempts converge through backend idempotency, conflict and reservation reads.
@@ -749,7 +760,7 @@ U2와 production-reachable HTTP/read-side capability commit은 U1 뒤 진행한�
 ### Data lifecycle
 
 - Quote and checkout identity exist only for the authenticated subject and bounded server/client expiry.
-- Pre-auth callback paymentKey is memory-only; after same-subject claim it exists only in the dedicated credential record until Accepted receipt recovery completes and no later than nine minutes from first capture or the attempt response's hold expiry.
+- Pre-auth callback paymentKey is memory-only; after same-subject claim it exists only in the dedicated credential record until normal Accepted receipt recovery completes and no later than nine minutes from first capture or the attempt response's hold expiry. Expiry, foreign-owner and orphan cleanup may remove it earlier but never grant confirm authority.
 - Payment operation receipt contains no paymentKey but remains subject-owned personal transaction data and survives same-tab reload for at most 24 hours or final acknowledgment. After expiry, reservation detail is the only public recovery authority and confirm/poll are not reconstructed.
 - Logout/account switch purges subject-owned data and does not send speculative hold release after confirm might have reached the server.
 - Old v1 records are purge-only before activation because they cannot prove current transaction identity; purge failure blocks v2 mutation.
@@ -757,14 +768,15 @@ U2와 production-reachable HTTP/read-side capability commit은 U1 뒤 진행한�
 
 ### Cache and consistency
 
-| Server fact                   | Durable phase first             | Publication                                                   | Navigation and cleanup                                                           |
-| ----------------------------- | ------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| Quote conflict/stale          | Keep quoted intent nonterminal  | Refresh availability and quote                                | Require explicit re-approval; no mutation cleanup                                |
-| Paid Ready                    | `reservation-ready`             | Invalidate availability, coupon, trips and reservation detail | Stay in payment flow; retain journal                                             |
-| Checkout replay current state | `reservation-status-observed`   | Refresh trips/detail                                          | Open authoritative recovery/status; no new attempt                               |
-| Complimentary Ready           | `complimentary-observed`        | Refresh trips/detail and invalidate availability/coupon       | Open detail, then bounded cleanup                                                |
-| Released/already expired hold | `hold-released`                 | Invalidate availability, coupon, trips and detail             | Leave payment flow, then cleanup                                                 |
-| Payment SUCCEEDED             | Receipt `SUCCEEDED` observation | Refresh reservation detail/trips                              | Publish success/detail, then receipt-last cleanup or retain until acknowledgment |
+| Server fact                   | Durable phase first             | Publication                                                   | Navigation and cleanup                                                                          |
+| ----------------------------- | ------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Quote conflict/stale          | Keep quoted intent nonterminal  | Refresh availability and quote                                | Require explicit re-approval; no mutation cleanup                                               |
+| Paid Ready                    | `reservation-ready`             | Invalidate availability, coupon, trips and reservation detail | Stay in payment flow; retain journal                                                            |
+| Checkout replay current state | `reservation-status-observed`   | Refresh trips/detail                                          | Open authoritative recovery/status; no new attempt                                              |
+| Complimentary Ready           | `complimentary-observed`        | Refresh trips/detail and invalidate availability/coupon       | Open detail, then bounded cleanup                                                               |
+| Released/already expired hold | `hold-released`                 | Invalidate availability, coupon, trips and detail             | Leave payment flow, then cleanup                                                                |
+| Payment SUCCEEDED             | Receipt `SUCCEEDED` observation | Refresh reservation detail/trips                              | Publish success/detail, retain through UI acknowledgment, then receipt-last cleanup             |
+| Payment FAILED                | Receipt `FAILED` observation    | Refresh reservation detail/trips                              | Publish allowlisted failure action, retain through UI acknowledgment, then receipt-last cleanup |
 
 Publication failure never calls the server mutation again. Reload resumes publication from the durable phase. Client availability never overrides quote/checkout authority.
 
@@ -798,7 +810,7 @@ Publication failure never calls the server mutation again. Reload resumes public
 | Backend HEAD changes during implementation                 | Contract work can target stale fields                                 | Record revision at unit start and diff only public V1 DTO/controller/error changes before adapter work                                           |
 | Checkout replay uses a changed body/key                    | Duplicate or conflict risk                                            | Persist exact body/fingerprint and key before POST; R016 fails closed                                                                            |
 | Journal write succeeds but navigation fails                | User can be stranded mid-flow                                         | Confirmation direct-load reads same-subject journal and offers explicit resume                                                                   |
-| Journal/receipt write or namespace cleanup partially fails | Command state can become ambiguous or retired data can coexist        | Preserve the previous replayable record, block new flow overwrite/mutation, and retry the exact transition                                       |
+| Journal/receipt write or namespace cleanup partially fails | Command state can become ambiguous or retired data can coexist        | Preserve prior bytes, but authorize replay only after the receipt slot is proven absent; otherwise quarantine and retry exact verification       |
 | Server terminal is known but cache/navigation fails        | UI can lag behind payment truth                                       | Persist terminal first, retry publication only, and never replay checkout/confirm                                                                |
 | Callback arrives after session expiry                      | Credential could be attached to wrong user                            | Scrub first, short in-memory claim, same-subject reauthentication only                                                                           |
 | Callback query reaches static hosting before SPA scrub     | Access/referrer logs may contain paymentKey                           | Pre-bootstrap no-referrer policy, artifact-isolated tests, and a deployment security review of host log retention                                |
