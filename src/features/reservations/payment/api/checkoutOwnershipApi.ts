@@ -26,5 +26,4 @@ export const createCheckoutOwnershipApi = (
   },
 });
 
-export const checkoutOwnershipApi =
-  createCheckoutOwnershipApi(requestApiData);
+export const checkoutOwnershipApi = createCheckoutOwnershipApi(requestApiData);

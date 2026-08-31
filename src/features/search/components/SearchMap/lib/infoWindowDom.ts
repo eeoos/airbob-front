@@ -61,7 +61,7 @@ export const adjustInfoWindowIntoMapView = ({
   }
 
   const currentTransform = parseTranslateTransform(
-    infoWindowParent.style.transform || ""
+    infoWindowParent.style.transform || "",
   );
   infoWindowParent.style.transform = `translate(${currentTransform.x + adjustX}px, ${currentTransform.y + adjustY}px)`;
 

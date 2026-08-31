@@ -27,8 +27,8 @@ describe("test assertions", () => {
     expect(requireFixtureItem(["first"], 0, "tracked query client")).toBe(
       "first",
     );
-    expect(() =>
-      requireFixtureItem([], 2, "tracked query client"),
-    ).toThrow("Missing tracked query client at index 2.");
+    expect(() => requireFixtureItem([], 2, "tracked query client")).toThrow(
+      "Missing tracked query client at index 2.",
+    );
   });
 });

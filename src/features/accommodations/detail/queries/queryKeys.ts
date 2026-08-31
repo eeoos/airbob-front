@@ -11,11 +11,7 @@ export const accommodationReadQueryKeys = {
   root,
   detailRoot,
   detail: (scope: SessionQueryScope, accommodationId: number | null) =>
-    [
-      ...detailRoot,
-      accommodationId,
-      createSessionQueryMeta(scope),
-    ] as const,
+    [...detailRoot, accommodationId, createSessionQueryMeta(scope)] as const,
   couponsRoot,
   validCoupons: (scope: SessionQueryScope) =>
     [...couponsRoot, "valid", createSessionQueryMeta(scope)] as const,

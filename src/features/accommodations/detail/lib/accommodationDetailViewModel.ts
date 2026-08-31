@@ -62,8 +62,7 @@ export interface AccommodationDetailViewModel {
 
 const formatTimeLabel = (time: string) => time.split(":").slice(0, 2).join(":");
 
-const getAvatarInitial = (name: string) =>
-  name.trim().charAt(0).toUpperCase();
+const getAvatarInitial = (name: string) => name.trim().charAt(0).toUpperCase();
 
 const getLocationLabel = (accommodation: AccommodationDetail) =>
   [accommodation.addressSummary.city, accommodation.addressSummary.country]

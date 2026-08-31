@@ -12,9 +12,7 @@ export interface ReviewSubmissionInput {
 }
 
 export type ReviewSubmissionCachePublication =
-  | "succeeded"
-  | "failed"
-  | "skipped";
+  "succeeded" | "failed" | "skipped";
 
 export interface ReviewSubmissionSuccess {
   readonly status: "success";
@@ -78,8 +76,7 @@ export interface ReviewSubmissionRouteLease {
 }
 
 export type ReviewSubmissionPublicationOutcome =
-  | "success"
-  | "created_without_images";
+  "success" | "created_without_images";
 
 export interface ReviewCreatedPublicationInput {
   readonly accommodationId: number;

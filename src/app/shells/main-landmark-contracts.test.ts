@@ -69,8 +69,7 @@ const hasStaticMainRole = (
   const role = staticJsxAttributeValue(roleAttribute?.initializer);
 
   return (
-    role?.split(/\s+/).some((value) => value.toLowerCase() === "main") ??
-    false
+    role?.split(/\s+/).some((value) => value.toLowerCase() === "main") ?? false
   );
 };
 
@@ -106,9 +105,7 @@ const collectMainLandmarkOwners = (
 
 describe("app shell main landmark ownership", () => {
   it("keeps the active ShellFrame as the single production main owner", () => {
-    const mainOwners = productionComponentFiles(
-      join(process.cwd(), "src"),
-    )
+    const mainOwners = productionComponentFiles(join(process.cwd(), "src"))
       .flatMap((relativePath) => collectMainLandmarkOwners(relativePath))
       .sort();
 

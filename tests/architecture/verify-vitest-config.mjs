@@ -18,7 +18,10 @@ const loadedVitestConfig = await loadConfigFromFile(
   projectRoot,
 );
 
-assert.ok(loadedVitestConfig, "Vitest TypeScript config must load through Vite.");
+assert.ok(
+  loadedVitestConfig,
+  "Vitest TypeScript config must load through Vite.",
+);
 const vitestConfig = loadedVitestConfig.config;
 
 const collectTestFiles = (directory) =>
@@ -29,7 +32,8 @@ const collectTestFiles = (directory) =>
       return collectTestFiles(entryPath);
     }
 
-    return entry.isFile() && /[.](?:test|spec)[.](?:mjs|[jt]sx?)$/.test(entry.name)
+    return entry.isFile() &&
+      /[.](?:test|spec)[.](?:mjs|[jt]sx?)$/.test(entry.name)
       ? [entryPath]
       : [];
   });
@@ -56,7 +60,10 @@ assert.doesNotMatch(setupSource, /vi[.]mock|axios|react-router/);
 assert.equal(vitestConfig.test.name, "unit");
 assert.equal(vitestConfig.test.globals, true);
 assert.equal(vitestConfig.test.environment, "jsdom");
-assert.equal(vitestConfig.test.environmentOptions.jsdom.url, "http://localhost/");
+assert.equal(
+  vitestConfig.test.environmentOptions.jsdom.url,
+  "http://localhost/",
+);
 assert.deepEqual(vitestConfig.test.setupFiles, ["./src/test/setup.ts"]);
 assert.deepEqual(vitestConfig.test.include, [
   "src/**/*.{test,spec}.{js,jsx,mjs,ts,tsx}",
@@ -83,7 +90,9 @@ const forbiddenPatterns = [
 ];
 const violations = collectTestFiles(sourceRoot).flatMap((filePath) => {
   const source = fs.readFileSync(filePath, "utf8");
-  const relativePath = path.relative(projectRoot, filePath).replaceAll("\\", "/");
+  const relativePath = path
+    .relative(projectRoot, filePath)
+    .replaceAll("\\", "/");
 
   return forbiddenPatterns
     .filter((pattern) => pattern.test(source))

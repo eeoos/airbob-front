@@ -8,7 +8,7 @@ const createApi = (): Mocked<AccommodationDraftApiPort> => ({
   create: vi.fn(),
 });
 
-const deferred = <T,>() => {
+const deferred = <T>() => {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>((resolvePromise) => {
     resolve = resolvePromise;
@@ -28,7 +28,7 @@ describe("useCreateAccommodationDraft", () => {
         api,
         onCreated,
         onError,
-      })
+      }),
     );
 
     await act(async () => {

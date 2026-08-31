@@ -30,7 +30,10 @@ export interface WishlistScreenProps {
   readonly memoDialog: ComponentProps<typeof WishlistMemoDialog>;
   readonly onClearError: () => void;
   readonly recentlyViewed: ComponentProps<typeof RecentlyViewedView>;
-  readonly saveModal: Omit<ComponentProps<typeof WishlistModal>, "isOpen"> | null;
+  readonly saveModal: Omit<
+    ComponentProps<typeof WishlistModal>,
+    "isOpen"
+  > | null;
   readonly view: WishlistRouteView;
 }
 

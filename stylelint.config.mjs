@@ -39,8 +39,7 @@ const projectRules = {
   // CSS Modules state selectors make source-order specificity reports noisy.
   "no-descending-specificity": null,
   "property-no-unknown": [true, { ignoreProperties: ["composes"] }],
-  "selector-class-pattern":
-    "^[a-z][a-zA-Z0-9]*(?:-[a-zA-Z0-9]+)*$",
+  "selector-class-pattern": "^[a-z][a-zA-Z0-9]*(?:-[a-zA-Z0-9]+)*$",
   "selector-pseudo-class-no-unknown": [
     true,
     { ignorePseudoClasses: ["global"] },
@@ -93,7 +92,9 @@ const errorDisableReports = [true, { severity: "error" }];
 const absoluteStyleGlob = (projectRoot, styleGlob) => {
   const isNegated = styleGlob.startsWith("!");
   const relativeGlob = isNegated ? styleGlob.slice(1) : styleGlob;
-  const absoluteGlob = path.resolve(projectRoot, relativeGlob).replaceAll("\\", "/");
+  const absoluteGlob = path
+    .resolve(projectRoot, relativeGlob)
+    .replaceAll("\\", "/");
 
   return isNegated ? `!${absoluteGlob}` : absoluteGlob;
 };

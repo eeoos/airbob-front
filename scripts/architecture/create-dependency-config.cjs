@@ -53,10 +53,7 @@ const createDependencyConfig = ({ projectRoot, migratedFeatures }) => {
   );
   const strictModuleRoots = [targetRoot, ...migratedFeaturePaths];
   const migratedFeatureRules = migratedFeatures.map((name) => {
-    const ownPath = createFeatureOwnershipPathPattern(
-      name,
-      featureScopeNames,
-    );
+    const ownPath = createFeatureOwnershipPathPattern(name, featureScopeNames);
     const ruleId = scopeRuleId(name);
 
     return {

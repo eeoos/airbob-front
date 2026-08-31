@@ -1,10 +1,7 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import type { ComponentType, ReactNode } from "react";
 import { LogoutRevocationNotice } from "./LogoutRevocationNotice";
-import {
-  SessionContext,
-  type SessionContextValue,
-} from "./sessionContext";
+import { SessionContext, type SessionContextValue } from "./sessionContext";
 import {
   useSessionController,
   type SessionControllerOptions,
@@ -48,9 +45,7 @@ export function SessionProvider({
       </StableBoundary>
       <LogoutRevocationNotice
         visible={shouldShowRevocationNotice(session)}
-        onRetry={() =>
-          void session.retryServerLogout().catch(() => undefined)
-        }
+        onRetry={() => void session.retryServerLogout().catch(() => undefined)}
       />
     </SessionContext.Provider>
   );

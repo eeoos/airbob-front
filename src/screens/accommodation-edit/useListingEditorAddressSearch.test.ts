@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { useListingEditorAddressSearch } from "./useListingEditorAddressSearch";
 
-const deferred = <Value,>() => {
+const deferred = <Value>() => {
   let resolve!: (value: Value) => void;
   let reject!: (reason?: unknown) => void;
   const promise = new Promise<Value>((promiseResolve, promiseReject) => {

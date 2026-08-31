@@ -1,8 +1,4 @@
-import {
-  apiFailure,
-  apiSuccess,
-  requireApiRequest,
-} from "../fixtures/api";
+import { apiFailure, apiSuccess, requireApiRequest } from "../fixtures/api";
 import { test, expect } from "../fixtures/test";
 
 const REVIEW_RESERVATION_UID = "10000000-0000-4000-8000-000000000001";
@@ -104,10 +100,14 @@ test("keeps the created review and surfaces terminal feedback when its image upl
   await expect(
     page.getByRole("heading", { name: "리뷰 작성", level: 1 }),
   ).toBeVisible();
-  await expect(page.getByText("합정 테스트 숙소에 대한 리뷰를 작성해주세요.")).toBeVisible();
+  await expect(
+    page.getByText("합정 테스트 숙소에 대한 리뷰를 작성해주세요."),
+  ).toBeVisible();
 
   await page.getByRole("button", { name: "4점" }).click();
-  await page.getByLabel("리뷰 내용").fill("청결하고 조용해서 다시 머물고 싶은 숙소였습니다.");
+  await page
+    .getByLabel("리뷰 내용")
+    .fill("청결하고 조용해서 다시 머물고 싶은 숙소였습니다.");
   await page.locator('input[type="file"]').setInputFiles({
     name: "stay-review.png",
     mimeType: "image/png",
@@ -128,10 +128,7 @@ test("keeps the created review and surfaces terminal feedback when its image upl
     "POST",
     "/api/v1/accommodations/7/reviews",
   );
-  const uploadRequests = api.matching(
-    "POST",
-    "/api/v1/reviews/901/images",
-  );
+  const uploadRequests = api.matching("POST", "/api/v1/reviews/901/images");
 
   expect(createRequests).toHaveLength(1);
   expect(uploadRequests).toHaveLength(1);
@@ -143,9 +140,7 @@ test("keeps the created review and surfaces terminal feedback when its image upl
     content: "청결하고 조용해서 다시 머물고 싶은 숙소였습니다.",
   });
   expect(uploadRequest.body).toEqual(expect.any(String));
-  const serializedUploadBody = requireSerializedRequestBody(
-    uploadRequest.body,
-  );
+  const serializedUploadBody = requireSerializedRequestBody(uploadRequest.body);
   expect(serializedUploadBody).toContain('name="images"');
   expect(serializedUploadBody).toContain('filename="stay-review.png"');
   expect(serializedUploadBody).toContain("synthetic-review-image");
@@ -183,7 +178,7 @@ test("locks review submission when the create outcome may already have committed
     page.getByRole("button", { name: "예약 상세에서 결과 확인" }),
   ).toBeDisabled();
   await expect(page.getByRole("button", { name: "취소" })).toBeEnabled();
-  expect(
-    api.matching("POST", "/api/v1/accommodations/7/reviews"),
-  ).toHaveLength(1);
+  expect(api.matching("POST", "/api/v1/accommodations/7/reviews")).toHaveLength(
+    1,
+  );
 });

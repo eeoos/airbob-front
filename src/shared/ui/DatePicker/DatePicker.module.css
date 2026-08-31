@@ -63,7 +63,9 @@
   cursor: pointer;
   padding: 10px;
   border-radius: var(--radius-pill);
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
   align-self: flex-start;
   margin-top: 6px;
   flex-shrink: 0;
@@ -78,8 +80,6 @@
   background-color: var(--color-background-muted);
   color: var(--color-text-primary);
 }
-
-
 
 .calendarWrapper {
   flex: 1;
@@ -327,7 +327,9 @@
     display: flex;
     flex-direction: column;
     max-height: calc(100vh - 180px); /* 헤더 + 검색바 아래 공간 */
-    z-index: var(--z-local-raised); /* datePickerContainer의 z-index가 더 높으므로 상대적으로 낮게 설정 */
+    z-index: var(
+      --z-local-raised
+    ); /* datePickerContainer의 z-index가 더 높으므로 상대적으로 낮게 설정 */
   }
 
   /* 네비게이션 헤더 - 고정 */

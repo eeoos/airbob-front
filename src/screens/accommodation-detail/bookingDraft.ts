@@ -106,10 +106,7 @@ export interface BookingCounts {
 export const normalizeBookingCounts = (
   routeState: Pick<
     BookingRouteCounts,
-    | "adultOccupancy"
-    | "childOccupancy"
-    | "infantOccupancy"
-    | "petOccupancy"
+    "adultOccupancy" | "childOccupancy" | "infantOccupancy" | "petOccupancy"
   >,
   limits: {
     readonly maxOccupancy: number;

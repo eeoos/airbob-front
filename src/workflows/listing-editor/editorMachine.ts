@@ -1,7 +1,5 @@
 export type EditorPersistenceIntent = "advance" | "save-exit" | "publish";
-export type EditorOperationIntent =
-  | EditorPersistenceIntent
-  | "delete-image";
+export type EditorOperationIntent = EditorPersistenceIntent | "delete-image";
 
 export type EditorOperationPhase =
   | "delete"
@@ -65,8 +63,9 @@ export interface EditorRetryableLoadErrorState extends EditorStateIdentity {
   readonly error: unknown;
 }
 
-export interface EditorReadyState<TBaseline = unknown>
-  extends EditorStateIdentity {
+export interface EditorReadyState<
+  TBaseline = unknown,
+> extends EditorStateIdentity {
   readonly status: "ready";
   readonly baseline: TBaseline;
   readonly baselineRevision: number;
@@ -80,8 +79,10 @@ export type EditorProcessingStatus =
   | "saving"
   | "publishing";
 
-export interface EditorProcessingState<TBaseline = unknown, TImage = unknown>
-  extends EditorStateIdentity {
+export interface EditorProcessingState<
+  TBaseline = unknown,
+  TImage = unknown,
+> extends EditorStateIdentity {
   readonly status: EditorProcessingStatus;
   readonly operation: EditorOperationContext<TBaseline, TImage>;
 }
@@ -97,8 +98,10 @@ export interface EditorRecoverableErrorState<
   readonly operation: EditorOperationContext<TBaseline, TImage>;
 }
 
-export interface EditorCompletedState<TBaseline = unknown, TImage = unknown>
-  extends EditorStateIdentity {
+export interface EditorCompletedState<
+  TBaseline = unknown,
+  TImage = unknown,
+> extends EditorStateIdentity {
   readonly status: "completed";
   readonly baseline: TBaseline;
   readonly baselineRevision: number;
@@ -197,9 +200,7 @@ export type EditorMachineEvent<TBaseline = unknown, TImage = unknown> =
   | ({
       readonly type: "OPERATION_RETRY_STARTED";
       readonly resumeStatus:
-        | "deleting-image"
-        | "preparing"
-        | "reconciling-delete";
+        "deleting-image" | "preparing" | "reconciling-delete";
     } & EditorOperationEventIdentity)
   | ({
       readonly type: "ERROR_DISMISSED";
@@ -242,10 +243,10 @@ export const createEditorOperation = <TBaseline, TImage>({
   journal,
   operationId,
   uploadedImages = [],
-}: CreateEditorOperationInput<
+}: CreateEditorOperationInput<TBaseline, TImage>): EditorOperationContext<
   TBaseline,
   TImage
->): EditorOperationContext<TBaseline, TImage> => ({
+> => ({
   committedBaseline,
   baselineRevision,
   deletion: deletion ?? null,
@@ -468,10 +469,7 @@ export const editorMachineReducer = <TBaseline, TImage>(
   }
 
   if (event.type === "OPERATION_RETRY_STARTED") {
-    if (
-      state.status !== "recoverable-error" ||
-      state.retry !== "allowed"
-    ) {
+    if (state.status !== "recoverable-error" || state.retry !== "allowed") {
       return state;
     }
 
@@ -562,9 +560,8 @@ export const editorMachineReducer = <TBaseline, TImage>(
       return updateOperation(
         state,
         journalOperation(state.operation, {
-          [event.stage === "save"
-            ? "savePublication"
-            : "finalPublication"]: true,
+          [event.stage === "save" ? "savePublication" : "finalPublication"]:
+            true,
         }),
       );
 

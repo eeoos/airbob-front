@@ -22,11 +22,7 @@ describe("search pagination helpers", () => {
 
   it("returns every page when seven or fewer pages are available", () => {
     expect(getPaginationItems({ currentPage: 2, totalPages: 5 })).toEqual([
-      0,
-      1,
-      2,
-      3,
-      4,
+      0, 1, 2, 3, 4,
     ]);
   });
 

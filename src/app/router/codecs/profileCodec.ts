@@ -5,11 +5,7 @@ import {
 } from "./queryCodecUtils";
 
 export type ProfileRouteMode = "guest" | "host";
-export type ProfileGuestRouteTab =
-  | "trips"
-  | "upcoming"
-  | "past"
-  | "cancelled";
+export type ProfileGuestRouteTab = "trips" | "upcoming" | "past" | "cancelled";
 export type ProfileHostRouteTab =
   | "listings"
   | "listings-published"

@@ -153,12 +153,7 @@ export const useSearchBarDestinationInteractions = ({
       focusTimerRef.current = null;
       destinationInputRef.current?.blur();
     }, 0);
-  }, [
-    clearInteractionTimers,
-    destinationInputRef,
-    isExpanded,
-    openDatePicker,
-  ]);
+  }, [clearInteractionTimers, destinationInputRef, isExpanded, openDatePicker]);
 
   const handleDestinationBlur = useCallback(() => {
     if (blurTimerRef.current) {

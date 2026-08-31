@@ -1,7 +1,4 @@
-import {
-  InfiniteQueryObserver,
-  QueryClient,
-} from "@tanstack/react-query";
+import { InfiniteQueryObserver, QueryClient } from "@tanstack/react-query";
 import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
 import type { HostListingPage } from "../model/hostListing";
 import type { HostListingsApiPort } from "../ports/hostListingsApiPort";

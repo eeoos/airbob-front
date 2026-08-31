@@ -34,9 +34,7 @@ export type ReservationConfirmScreenState =
     };
 
 export type ReservationConfirmPaymentStatus =
-  | "loading"
-  | "ready"
-  | "processing";
+  "loading" | "ready" | "processing";
 
 export interface ReservationConfirmScreenProps {
   readonly errorMessage: string | null;
@@ -131,8 +129,8 @@ export function ReservationConfirmScreen({
             <h2 className={styles.policyTitle}>취소 수수료 없음</h2>
             {checkout.cancellationDeadlineLabel && (
               <p className={styles.policyText}>
-                {checkout.cancellationDeadlineLabel}까지 예약을 취소하면 요금 전액이
-                환불됩니다.
+                {checkout.cancellationDeadlineLabel}까지 예약을 취소하면 요금
+                전액이 환불됩니다.
               </p>
             )}
           </section>

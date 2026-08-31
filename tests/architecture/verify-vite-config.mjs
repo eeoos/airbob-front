@@ -110,10 +110,7 @@ try {
     "safari16.4",
     "ios16.4",
   ]);
-  assert.equal(
-    productionConfig.define["process.env.NODE_ENV"],
-    '"production"',
-  );
+  assert.equal(productionConfig.define["process.env.NODE_ENV"], '"production"');
 
   process.stdout.write(
     "Vite config preserves the exact env, test isolation, proxy, CSS, output, and sourcemap contracts.\n",

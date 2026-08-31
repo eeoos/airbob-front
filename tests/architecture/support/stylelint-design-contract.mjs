@@ -170,8 +170,7 @@ const createDesignReferenceRule = ({ projectRoot }) => {
   return rule;
 };
 
-const protectedDesignLiteralRuleName =
-  "airbob/no-protected-design-literal";
+const protectedDesignLiteralRuleName = "airbob/no-protected-design-literal";
 const protectedDesignLiteralMessages = stylelint.utils.ruleMessages(
   protectedDesignLiteralRuleName,
   {
@@ -215,9 +214,7 @@ const protectedDesignContractFor = (declaration) => {
       declaration.parent?.type === "rule" &&
       declaration.parent.selector
         .split(",")
-        .every((selector) =>
-          existingCircularSelectors.has(selector.trim()),
-        );
+        .every((selector) => existingCircularSelectors.has(selector.trim()));
 
     if (
       !isExistingCircularControl &&
@@ -274,8 +271,7 @@ const rawRadiusMessages = stylelint.utils.ruleMessages(rawRadiusRuleName, {
   rejected: (value) =>
     `Expected border radius "${value}" to use a canonical radius token`,
 });
-const rawDimensionPattern =
-  /(?<![A-Za-z0-9_-])-?(?:\d*\.)?\d+(?:[A-Za-z%]+)?/g;
+const rawDimensionPattern = /(?<![A-Za-z0-9_-])-?(?:\d*\.)?\d+(?:[A-Za-z%]+)?/g;
 
 const containsNonZeroRawDimension = (value) =>
   Array.from(value.matchAll(rawDimensionPattern)).some((match) => {
@@ -331,9 +327,10 @@ const isTokenOwnedShadow = (value) => {
     return true;
   }
 
-  return value
-    .replace(/var\(\s*--[A-Za-z0-9-]+\s*\)/g, "")
-    .replace(/[\s,]/g, "") === "";
+  return (
+    value.replace(/var\(\s*--[A-Za-z0-9-]+\s*\)/g, "").replace(/[\s,]/g, "") ===
+    ""
+  );
 };
 
 const rawShadowRule = (primary) => (root, result) => {
@@ -423,7 +420,10 @@ const tokenReferencePattern = /var\(\s*(--[a-z0-9-]+)\s*\)/g;
 
 const createTokenLayerRule = ({ projectRoot }) => {
   const layerRankByPath = new Map(
-    tokenLayerPolicies.map(({ path: relativePath }, rank) => [relativePath, rank]),
+    tokenLayerPolicies.map(({ path: relativePath }, rank) => [
+      relativePath,
+      rank,
+    ]),
   );
   const expectedOwnerByToken = new Map();
   const canonicalOwners = new Map();
@@ -448,9 +448,9 @@ const createTokenLayerRule = ({ projectRoot }) => {
     }
 
     Array.from(
-      fs.readFileSync(filePath, "utf8").matchAll(
-        /^\s*(--[a-z0-9-]+)\s*:\s*([^;]+);/gm,
-      ),
+      fs
+        .readFileSync(filePath, "utf8")
+        .matchAll(/^\s*(--[a-z0-9-]+)\s*:\s*([^;]+);/gm),
     ).forEach((match, order) => {
       canonicalOwners.set(match[1], { order, rank });
     });
@@ -523,7 +523,8 @@ const createTokenLayerRule = ({ projectRoot }) => {
 
       for (const match of declaration.value.matchAll(tokenReferencePattern)) {
         const reference = match[1];
-        const owner = localOwners.get(reference) ?? canonicalOwners.get(reference);
+        const owner =
+          localOwners.get(reference) ?? canonicalOwners.get(reference);
 
         if (!owner) {
           stylelint.utils.report({
@@ -578,8 +579,7 @@ const createTokenLayerRule = ({ projectRoot }) => {
   return rule;
 };
 
-const vendorDisableScopeRuleName =
-  "airbob/vendor-important-disable-scope";
+const vendorDisableScopeRuleName = "airbob/vendor-important-disable-scope";
 const vendorDisableScopeMessages = stylelint.utils.ruleMessages(
   vendorDisableScopeRuleName,
   {
@@ -590,8 +590,10 @@ const vendorDisableScopeMessages = stylelint.utils.ruleMessages(
 const allowedVendorDisablePattern =
   /^stylelint-disable-next-line\s+declaration-no-important\s+--\s+\S(?:.*\S)?$/;
 
-const createVendorDisableScopeRule = ({ projectRoot }) =>
-  (primary) => (root, result) => {
+const createVendorDisableScopeRule =
+  ({ projectRoot }) =>
+  (primary) =>
+  (root, result) => {
     if (!primary) {
       return;
     }
@@ -600,8 +602,7 @@ const createVendorDisableScopeRule = ({ projectRoot }) =>
     const projectPath = sourcePath
       ? path.relative(projectRoot, sourcePath).replaceAll("\\", "/")
       : "";
-    const isVendorIntegrationStyle =
-      isVendorImportantOverridePath(projectPath);
+    const isVendorIntegrationStyle = isVendorImportantOverridePath(projectPath);
 
     root.walkComments((comment) => {
       const command = comment.text.trim();

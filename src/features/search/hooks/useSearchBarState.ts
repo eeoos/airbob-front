@@ -1,7 +1,5 @@
 import { useCallback, useMemo, useReducer } from "react";
-import {
-  usePlacesAutocomplete,
-} from "./usePlacesAutocomplete";
+import { usePlacesAutocomplete } from "./usePlacesAutocomplete";
 import type { SearchParams } from "../lib/searchBarContracts";
 import { parseSearchBarUrlState } from "../lib/searchBarUrlState";
 import { removeViewportParams } from "../lib/searchParams";
@@ -95,16 +93,13 @@ export const useSearchBarState = ({
     [requestPlaceSelection],
   );
 
-  const setGuestCount = useCallback(
-    (guest: SearchGuestKey, value: number) => {
-      dispatch({
-        type: "guestCountChanged",
-        guest,
-        value,
-      });
-    },
-    [],
-  );
+  const setGuestCount = useCallback((guest: SearchGuestKey, value: number) => {
+    dispatch({
+      type: "guestCountChanged",
+      guest,
+      value,
+    });
+  }, []);
 
   const changeAdultOccupancy = useCallback(
     (value: number) => setGuestCount("adultOccupancy", value),
@@ -302,10 +297,7 @@ export const useSearchBarState = ({
     ],
   );
 
-  const status = useMemo(
-    () => ({ isPlacesLoading }),
-    [isPlacesLoading],
-  );
+  const status = useMemo(() => ({ isPlacesLoading }), [isPlacesLoading]);
 
   return { destination, dates, guests, popover, actions, status };
 };

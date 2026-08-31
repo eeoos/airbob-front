@@ -65,8 +65,7 @@ const readErrorCode = (error: unknown): string => {
 const isSdkBootstrapFailure = (error: unknown): boolean => {
   const name = readErrorName(error);
   return (
-    name === "ScriptLoadFailedError" ||
-    name === "NamespaceNotAvailableError"
+    name === "ScriptLoadFailedError" || name === "NamespaceNotAvailableError"
   );
 };
 
@@ -80,7 +79,9 @@ const isAbsoluteRedirectUrl = (value: string): boolean => {
       url.hostname === "localhost" ||
       url.hostname === "127.0.0.1" ||
       url.hostname === "[::1]";
-    return url.protocol === "https:" || (url.protocol === "http:" && isLoopback);
+    return (
+      url.protocol === "https:" || (url.protocol === "http:" && isLoopback)
+    );
   } catch {
     return false;
   }
@@ -105,7 +106,7 @@ const resetSdkRuntime = (): void => {
   }
 };
 
-const withReadinessTimeout = <T,>(operation: Promise<T>): Promise<T> =>
+const withReadinessTimeout = <T>(operation: Promise<T>): Promise<T> =>
   new Promise((resolve, reject) => {
     let settled = false;
     const timeout = window.setTimeout(() => {
@@ -150,7 +151,9 @@ const loadSdk = (clientKey: string): Promise<TossPaymentsSDK> => {
   return pending;
 };
 
-const createClient = async (clientKey: string): Promise<TossPaymentsV2Client> => {
+const createClient = async (
+  clientKey: string,
+): Promise<TossPaymentsV2Client> => {
   try {
     if (typeof window === "undefined" || typeof document === "undefined") {
       throw unavailableError("INTEGRATION_UNAVAILABLE");

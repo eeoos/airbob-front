@@ -79,7 +79,7 @@ const emitIntersection = (isIntersecting: boolean) => {
 };
 
 const renderReviewModal = (
-  overrides: Partial<React.ComponentProps<typeof ReviewModal>> = {}
+  overrides: Partial<React.ComponentProps<typeof ReviewModal>> = {},
 ) => {
   const props: React.ComponentProps<typeof ReviewModal> = {
     averageRating: 4.25,
@@ -99,9 +99,7 @@ const renderReviewModal = (
 };
 
 const reviewContents = () =>
-  screen
-    .getAllByText(/후기$/)
-    .map((element) => element.textContent);
+  screen.getAllByText(/후기$/).map((element) => element.textContent);
 
 describe("ReviewModal", () => {
   beforeEach(() => {
@@ -120,7 +118,9 @@ describe("ReviewModal", () => {
   it("renders as a Dialog with review summary content", () => {
     renderReviewModal();
 
-    expect(screen.getByRole("dialog", { name: "후기 2개" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", { name: "후기 2개" }),
+    ).toBeInTheDocument();
     expect(screen.getByText("★ 4.25")).toBeInTheDocument();
     expect(screen.getByText("후기 2개")).toBeInTheDocument();
     expect(screen.getByText("가장 좋은 후기")).toBeInTheDocument();
@@ -130,7 +130,9 @@ describe("ReviewModal", () => {
   it("closes from explicit close control, Escape, and backdrop", async () => {
     const { props } = renderReviewModal();
 
-    await userEvent.click(screen.getByRole("button", { name: "후기 모달 닫기" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "후기 모달 닫기" }),
+    );
     await userEvent.keyboard("{Escape}");
     await userEvent.click(screen.getByRole("presentation"));
 
@@ -149,7 +151,7 @@ describe("ReviewModal", () => {
     expect(
       within(dialog)
         .getAllByText(/후기$/)
-        .map((element) => element.textContent)
+        .map((element) => element.textContent),
     ).toEqual(["낮은 평점 후기", "가장 좋은 후기"]);
   });
 

@@ -16,8 +16,10 @@ export interface SearchDestinationFieldProps {
 
 type SearchDestinationSuggestion = SearchPlacePrediction | string;
 
-interface SearchDestinationFieldInternalProps
-  extends Omit<SearchDestinationFieldProps, "onSelect" | "suggestions"> {
+interface SearchDestinationFieldInternalProps extends Omit<
+  SearchDestinationFieldProps,
+  "onSelect" | "suggestions"
+> {
   inputRef: React.RefObject<HTMLInputElement | null>;
   isComposing?: boolean;
   onBlur?: React.FocusEventHandler<HTMLInputElement>;
@@ -34,7 +36,7 @@ interface SearchDestinationFieldInternalProps
 }
 
 const isPlacePrediction = (
-  suggestion: SearchDestinationSuggestion
+  suggestion: SearchDestinationSuggestion,
 ): suggestion is SearchPlacePrediction => typeof suggestion !== "string";
 
 const getSuggestionKey = (suggestion: SearchDestinationSuggestion) =>

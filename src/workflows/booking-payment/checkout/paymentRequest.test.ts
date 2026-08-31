@@ -2,10 +2,7 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../../platform/session/sessionScope";
-import {
-  PaymentGatewayError,
-  type PaymentGatewayPort,
-} from "./paymentGateway";
+import { PaymentGatewayError, type PaymentGatewayPort } from "./paymentGateway";
 import {
   createPaymentRequestWorkflow,
   type PaymentRequestCommand,
@@ -32,7 +29,7 @@ const command = (): PaymentRequestCommand => ({
   successUrl: "https://airbob.test/reservations/r-1/success",
 });
 
-const deferred = <T,>() => {
+const deferred = <T>() => {
   let resolve!: (value: T | PromiseLike<T>) => void;
   const promise = new Promise<T>((resolvePromise) => {
     resolve = resolvePromise;

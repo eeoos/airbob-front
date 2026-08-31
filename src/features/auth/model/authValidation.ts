@@ -1,8 +1,6 @@
 import type { SignupFormData } from "./auth";
 
-export const validateSignupForm = (
-  formData: SignupFormData,
-): string | null => {
+export const validateSignupForm = (formData: SignupFormData): string | null => {
   if (formData.password !== formData.confirmPassword) {
     return "비밀번호가 일치하지 않습니다.";
   }

@@ -82,11 +82,9 @@ export const getArchitectureComparisonRevisions = (projectRoot) => {
       }),
     );
   } else {
-    const currentBranch = runGit(
-      projectRoot,
-      ["branch", "--show-current"],
-      { optional: true },
-    );
+    const currentBranch = runGit(projectRoot, ["branch", "--show-current"], {
+      optional: true,
+    });
     const mainRevision = resolveRevision(projectRoot, "main^{commit}");
 
     if (mainRevision && currentBranch && currentBranch !== "main") {
@@ -97,8 +95,14 @@ export const getArchitectureComparisonRevisions = (projectRoot) => {
     }
   }
 
-  addRevision("working-tree base HEAD", resolveRevision(projectRoot, "HEAD^{commit}"));
-  addRevision("previous commit", resolveRevision(projectRoot, "HEAD^1^{commit}"));
+  addRevision(
+    "working-tree base HEAD",
+    resolveRevision(projectRoot, "HEAD^{commit}"),
+  );
+  addRevision(
+    "previous commit",
+    resolveRevision(projectRoot, "HEAD^1^{commit}"),
+  );
 
   if (revisions.length === 0) {
     throw new Error("Architecture ratchets require a readable Git baseline.");

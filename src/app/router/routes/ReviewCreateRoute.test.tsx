@@ -4,11 +4,7 @@ import {
   QueryClientProvider,
   QueryObserver,
 } from "@tanstack/react-query";
-import {
-  MemoryRouter,
-  Route,
-  Routes,
-} from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { accommodationReadQueryKeys } from "../../../features/accommodations/detail/queries/queryKeys";
 import { createSessionQueryMeta } from "../../../platform/query/sessionScope";
 import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";

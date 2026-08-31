@@ -31,9 +31,7 @@ export interface AuthFormController {
   submit(): Promise<boolean>;
 }
 
-export const useAuthForm = (
-  options: AuthFormOptions,
-): AuthFormController => {
+export const useAuthForm = (options: AuthFormOptions): AuthFormController => {
   const [values, setValues] = useState<AuthFormValues>(createEmptyAuthForm);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);

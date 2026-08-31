@@ -1,10 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  type ReactNode,
-} from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import {
   createWishlistQueryCacheProjection,
   type WishlistProjectionPort,
@@ -42,8 +37,7 @@ export function WishlistMembershipProvider({
     () => ({
       captureAuthenticatedSession: () =>
         sessionRef.current.captureAuthenticatedSession(),
-      isCurrentSession: (scope) =>
-        sessionRef.current.isCurrentSession(scope),
+      isCurrentSession: (scope) => sessionRef.current.isCurrentSession(scope),
     }),
     [],
   );

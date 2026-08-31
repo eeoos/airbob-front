@@ -180,9 +180,7 @@ const tokenLayerPolicies = Object.freeze([
   }),
 ]);
 
-const primitiveTokenStylePaths = Object.freeze([
-  tokenLayerPolicies[0].path,
-]);
+const primitiveTokenStylePaths = Object.freeze([tokenLayerPolicies[0].path]);
 
 const derivedTokenStylePaths = Object.freeze(
   tokenLayerPolicies.slice(1).map(({ path: tokenPath }) => tokenPath),

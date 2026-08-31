@@ -91,30 +91,29 @@ describe("useSessionQueryLifetime", () => {
   it.each([
     ["authenticated", authenticatedState(7), toSessionSubject(viewerA)],
     ["anonymous", anonymousState(7), null],
-  ] as const)("publishes %s initial scope metadata", (
-    _name,
-    initialState,
-    subject,
-  ) => {
-    const { result } = renderHook(() =>
-      useSessionQueryLifetime({ initialState }),
-    );
-    const expectedMeta = { session: { epoch: 7, subject } };
+  ] as const)(
+    "publishes %s initial scope metadata",
+    (_name, initialState, subject) => {
+      const { result } = renderHook(() =>
+        useSessionQueryLifetime({ initialState }),
+      );
+      const expectedMeta = { session: { epoch: 7, subject } };
 
-    expect(result.current.generation).toMatchObject({
-      epoch: 7,
-      fenceId: 0,
-      owned: true,
-      subject,
-      tainted: false,
-    });
-    expect(
-      result.current.generation.client.getDefaultOptions().queries?.meta,
-    ).toEqual(expectedMeta);
-    expect(
-      result.current.generation.client.getDefaultOptions().mutations?.meta,
-    ).toEqual(expectedMeta);
-  });
+      expect(result.current.generation).toMatchObject({
+        epoch: 7,
+        fenceId: 0,
+        owned: true,
+        subject,
+        tainted: false,
+      });
+      expect(
+        result.current.generation.client.getDefaultOptions().queries?.meta,
+      ).toEqual(expectedMeta);
+      expect(
+        result.current.generation.client.getDefaultOptions().mutations?.meta,
+      ).toEqual(expectedMeta);
+    },
+  );
 
   it("publishes the next fence before cancelling and clearing the previous generation once", async () => {
     const { clients, factory } = createTrackedFactory();
@@ -126,7 +125,9 @@ describe("useSessionQueryLifetime", () => {
         queryClientFactory: factory,
       }),
     );
-    requireTrackedClient(clients, 0).cancelQueries.mockReturnValueOnce(cancelGate.promise);
+    requireTrackedClient(clients, 0).cancelQueries.mockReturnValueOnce(
+      cancelGate.promise,
+    );
 
     let replacement!: Promise<boolean>;
     act(() => {
@@ -149,7 +150,9 @@ describe("useSessionQueryLifetime", () => {
         tainted: true,
       }),
     );
-    expect(requireTrackedClient(clients, 0).cancelQueries).toHaveBeenCalledTimes(1);
+    expect(
+      requireTrackedClient(clients, 0).cancelQueries,
+    ).toHaveBeenCalledTimes(1);
     expect(requireTrackedClient(clients, 0).clear).not.toHaveBeenCalled();
     expect(isStillCurrent).not.toHaveBeenCalled();
 
@@ -160,7 +163,9 @@ describe("useSessionQueryLifetime", () => {
     });
 
     expect(didRemainCurrent).toBe(true);
-    expect(requireTrackedClient(clients, 0).cancelQueries).toHaveBeenCalledTimes(1);
+    expect(
+      requireTrackedClient(clients, 0).cancelQueries,
+    ).toHaveBeenCalledTimes(1);
     expect(requireTrackedClient(clients, 0).clear).toHaveBeenCalledTimes(1);
     expect(
       requireFirstInvocationOrder(
@@ -186,7 +191,9 @@ describe("useSessionQueryLifetime", () => {
         queryClientFactory: factory,
       }),
     );
-    requireTrackedClient(clients, 0).cancelQueries.mockRejectedValueOnce(cancellationFailure);
+    requireTrackedClient(clients, 0).cancelQueries.mockRejectedValueOnce(
+      cancellationFailure,
+    );
 
     let didRemainCurrent!: boolean;
     await act(async () => {
@@ -198,7 +205,9 @@ describe("useSessionQueryLifetime", () => {
     });
 
     expect(didRemainCurrent).toBe(false);
-    expect(requireTrackedClient(clients, 0).cancelQueries).toHaveBeenCalledTimes(1);
+    expect(
+      requireTrackedClient(clients, 0).cancelQueries,
+    ).toHaveBeenCalledTimes(1);
     expect(requireTrackedClient(clients, 0).clear).toHaveBeenCalledTimes(1);
     expect(
       requireFirstInvocationOrder(
@@ -231,7 +240,9 @@ describe("useSessionQueryLifetime", () => {
       }),
     );
     const initialClient = result.current.generation.client;
-    requireTrackedClient(clients, 0).cancelQueries.mockReturnValueOnce(cancelGate.promise);
+    requireTrackedClient(clients, 0).cancelQueries.mockReturnValueOnce(
+      cancelGate.promise,
+    );
     initialClient.setQueryData(["stale"], "anonymous data");
 
     let reset!: Promise<boolean>;
@@ -279,7 +290,9 @@ describe("useSessionQueryLifetime", () => {
       session: { epoch: 5, subject: null },
     });
     expect(clients).toHaveLength(1);
-    expect(requireTrackedClient(clients, 0).cancelQueries).toHaveBeenCalledTimes(1);
+    expect(
+      requireTrackedClient(clients, 0).cancelQueries,
+    ).toHaveBeenCalledTimes(1);
     expect(requireTrackedClient(clients, 0).clear).toHaveBeenCalledTimes(1);
   });
 
@@ -293,8 +306,8 @@ describe("useSessionQueryLifetime", () => {
       }),
     );
     const client = result.current.generation.client;
-    requireTrackedClient(clients, 0).cancelQueries
-      .mockReturnValueOnce(firstCancel.promise)
+    requireTrackedClient(clients, 0)
+      .cancelQueries.mockReturnValueOnce(firstCancel.promise)
       .mockResolvedValueOnce(undefined);
 
     let staleReset!: Promise<boolean>;
@@ -394,7 +407,9 @@ describe("useSessionQueryLifetime", () => {
     });
 
     expect(result.current.generation.owned).toBe(true);
-    expect(requireTrackedClient(clients, 0).cancelQueries).toHaveBeenCalledTimes(1);
+    expect(
+      requireTrackedClient(clients, 0).cancelQueries,
+    ).toHaveBeenCalledTimes(1);
     expect(requireTrackedClient(clients, 0).clear).toHaveBeenCalledTimes(1);
     expect(
       requireFirstInvocationOrder(

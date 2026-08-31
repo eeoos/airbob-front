@@ -92,8 +92,12 @@ describe("OverlayProvider", () => {
 
     const dialog = screen.getByRole("dialog", { name: "저장 확인" });
     const dialogClose = within(dialog).getByRole("button", { name: "닫기" });
-    const bodyAction = within(dialog).getByRole("button", { name: "본문 작업" });
-    const toastAction = within(dialog).getByRole("button", { name: "다시 시도" });
+    const bodyAction = within(dialog).getByRole("button", {
+      name: "본문 작업",
+    });
+    const toastAction = within(dialog).getByRole("button", {
+      name: "다시 시도",
+    });
     const toastClose = within(dialog).getByRole("button", {
       name: "알림 닫기",
     });
@@ -173,7 +177,7 @@ describe("OverlayProvider", () => {
 
     expect(applicationRoot).toHaveAttribute("aria-hidden", "false");
     expect(applicationRoot).toHaveAttribute("inert", "existing");
-    expect(document.body).toHaveStyle({overflow:"scroll"});
+    expect(document.body).toHaveStyle({ overflow: "scroll" });
 
     view.unmount();
     applicationRoot.remove();
@@ -296,7 +300,9 @@ describe("OverlayProvider", () => {
     if (!firstBackdrop || !secondBackdrop) {
       throw new Error("Expected two dialog backdrops");
     }
-    expect(within(secondBackdrop).getByText("first content")).toBeInTheDocument();
+    expect(
+      within(secondBackdrop).getByText("first content"),
+    ).toBeInTheDocument();
     expect(secondBackdrop).not.toHaveAttribute("inert");
     expect(firstBackdrop).toHaveAttribute("inert");
   });
@@ -344,7 +350,9 @@ describe("OverlayProvider", () => {
     await userEvent.click(innerTrigger);
 
     const innerDialog = screen.getByRole("dialog", { name: "안쪽" });
-    const innerClose = within(innerDialog).getByRole("button", { name: "닫기" });
+    const innerClose = within(innerDialog).getByRole("button", {
+      name: "닫기",
+    });
     const first = within(innerDialog).getByRole("button", { name: "첫 번째" });
     const last = within(innerDialog).getByRole("button", { name: "마지막" });
 
@@ -519,7 +527,7 @@ describe("OverlayProvider", () => {
     );
     const portalRoot = screen.getByTestId(APP_OVERLAY_ROOT_ID);
 
-    expect(document.body).toHaveStyle({overflow:"hidden"});
+    expect(document.body).toHaveStyle({ overflow: "hidden" });
     expect(
       within(portalRoot).getAllByRole("presentation", { hidden: true }),
     ).toHaveLength(2);
@@ -527,7 +535,7 @@ describe("OverlayProvider", () => {
 
     view.rerender(<OverlayProvider>{null}</OverlayProvider>);
 
-    expect(document.body).toHaveStyle({overflow:"auto"});
+    expect(document.body).toHaveStyle({ overflow: "auto" });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
@@ -568,7 +576,7 @@ describe("OverlayProvider", () => {
       </OverlayProvider>,
     );
 
-    expect(document.body).toHaveStyle({overflow:"hidden"});
+    expect(document.body).toHaveStyle({ overflow: "hidden" });
     expect(applicationRoot).toHaveAttribute("aria-hidden", "true");
     expect(applicationRoot).toHaveAttribute("inert", "");
 
@@ -579,7 +587,7 @@ describe("OverlayProvider", () => {
       ),
     );
     expect(screen.getByRole("dialog", { name: "첫 번째" })).toBeInTheDocument();
-    expect(document.body).toHaveStyle({overflow:"hidden"});
+    expect(document.body).toHaveStyle({ overflow: "hidden" });
     expect(applicationRoot).toHaveAttribute("aria-hidden", "true");
     expect(applicationRoot).toHaveAttribute("inert", "");
 
@@ -590,7 +598,7 @@ describe("OverlayProvider", () => {
       ),
     );
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(document.body).toHaveStyle({overflow:"scroll"});
+    expect(document.body).toHaveStyle({ overflow: "scroll" });
     expect(applicationRoot).toHaveAttribute("aria-hidden", "false");
     expect(applicationRoot).toHaveAttribute("inert", "existing");
 
@@ -607,11 +615,7 @@ describe("OverlayProvider", () => {
           <button type="button" onClick={() => setIsOpen(true)}>
             열기
           </button>
-          <Dialog
-            isOpen={isOpen}
-            title="확인"
-            onClose={() => setIsOpen(false)}
-          >
+          <Dialog isOpen={isOpen} title="확인" onClose={() => setIsOpen(false)}>
             content
           </Dialog>
         </>
@@ -697,7 +701,7 @@ describe("OverlayProvider", () => {
       screen.getByRole("dialog", { name: "Strict 대화상자" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("presentation")).not.toHaveAttribute("inert");
-    expect(document.body).toHaveStyle({overflow:"hidden"});
+    expect(document.body).toHaveStyle({ overflow: "hidden" });
     expect(applicationRoot).toHaveAttribute("aria-hidden", "true");
     expect(applicationRoot).toHaveAttribute("inert", "");
 
@@ -713,7 +717,7 @@ describe("OverlayProvider", () => {
     });
     expect(focusOpener).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId(APP_OVERLAY_ROOT_ID)).not.toBeInTheDocument();
-    expect(document.body).toHaveStyle({overflow:""});
+    expect(document.body).toHaveStyle({ overflow: "" });
     expect(applicationRoot).toHaveAttribute("aria-hidden", "false");
     expect(applicationRoot).toHaveAttribute("inert", "existing");
 

@@ -20,10 +20,10 @@ describe("searchInteractionReducer", () => {
   ] as const)(
     "replaces %s with %s so only one popover can be active",
     (currentPopover, nextPopover) => {
-      const current = searchInteractionReducer(
-        createSearchInteractionState(),
-        { type: "popoverOpened", popover: currentPopover },
-      );
+      const current = searchInteractionReducer(createSearchInteractionState(), {
+        type: "popoverOpened",
+        popover: currentPopover,
+      });
       const next = searchInteractionReducer(current, {
         type: "popoverOpened",
         popover: nextPopover,
@@ -37,10 +37,10 @@ describe("searchInteractionReducer", () => {
   it.each(["destination", "date", "guests"] as const)(
     "toggles the %s popover without affecting the expanded shell",
     (popover) => {
-      const opened = searchInteractionReducer(
-        createSearchInteractionState(),
-        { type: "popoverToggled", popover },
-      );
+      const opened = searchInteractionReducer(createSearchInteractionState(), {
+        type: "popoverToggled",
+        popover,
+      });
       const closed = searchInteractionReducer(opened, {
         type: "popoverToggled",
         popover,
@@ -91,17 +91,14 @@ describe("searchInteractionReducer", () => {
   });
 
   it("clears a selected place whenever destination text becomes a draft again", () => {
-    const selected = searchInteractionReducer(
-      createSearchInteractionState(),
-      {
-        type: "destinationSelected",
-        place: {
-          lat: 37.5,
-          lng: 127,
-          viewport: { north: 38, south: 37, east: 128, west: 126 },
-        },
+    const selected = searchInteractionReducer(createSearchInteractionState(), {
+      type: "destinationSelected",
+      place: {
+        lat: 37.5,
+        lng: 127,
+        viewport: { north: 38, south: 37, east: 128, west: 126 },
       },
-    );
+    });
 
     const changed = searchInteractionReducer(selected, {
       type: "destinationTextChanged",
@@ -113,14 +110,11 @@ describe("searchInteractionReducer", () => {
   });
 
   it("normalizes reversed dates and completes an unfinished checkout", () => {
-    const selected = searchInteractionReducer(
-      createSearchInteractionState(),
-      {
-        type: "dateRangeChanged",
-        checkIn: new Date(2026, 6, 12),
-        checkOut: new Date(2026, 6, 10),
-      },
-    );
+    const selected = searchInteractionReducer(createSearchInteractionState(), {
+      type: "dateRangeChanged",
+      checkIn: new Date(2026, 6, 12),
+      checkOut: new Date(2026, 6, 10),
+    });
 
     expect(dateKey(selected.draft.checkIn)).toBe("2026-7-10");
     expect(dateKey(selected.draft.checkOut)).toBe("2026-7-12");

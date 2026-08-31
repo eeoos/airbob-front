@@ -5,8 +5,7 @@ import { bindInfoWindowEvents } from "../lib/infoWindowEvents";
 interface UseMapInfoWindowEventsOptions {
   getAccommodationHref: (accommodationId: number) => string;
   onWishlistToggle?:
-    | ((accommodationId: number, isInWishlist: boolean) => void)
-    | undefined;
+    ((accommodationId: number, isInWishlist: boolean) => void) | undefined;
 }
 
 interface BindMapInfoWindowEventsOptions {

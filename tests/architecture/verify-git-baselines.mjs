@@ -122,10 +122,7 @@ try {
     `${JSON.stringify({ migratedFeatures: ["search-v2"] }, null, 2)}\n`,
   );
   commitAll("register renamed feature");
-  await symlink(
-    "search-v2",
-    path.join(fixtureRoot, "src/features/search-v3"),
-  );
+  await symlink("search-v2", path.join(fixtureRoot, "src/features/search-v3"));
   commitAll("alias strict feature through a symlink");
 
   let symlinkDemotionWasRejected = false;
@@ -154,7 +151,9 @@ try {
   try {
     verifyArchitectureRatchet({ root: fixtureRoot });
   } catch (error) {
-    if (!String(error.message).includes("src/features must be a real directory")) {
+    if (
+      !String(error.message).includes("src/features must be a real directory")
+    ) {
       throw error;
     }
 

@@ -77,10 +77,12 @@ function GuestReservationDetailController({
     query.errorUpdatedAt,
   );
   const feedbackIdentity = `${reservationUid}:${feedbackMessage ?? ""}`;
-  const [dismissedErrorIdentity, setDismissedErrorIdentity] =
-    useState<string | null>(null);
-  const [dismissedFeedbackIdentity, setDismissedFeedbackIdentity] =
-    useState<string | null>(null);
+  const [dismissedErrorIdentity, setDismissedErrorIdentity] = useState<
+    string | null
+  >(null);
+  const [dismissedFeedbackIdentity, setDismissedFeedbackIdentity] = useState<
+    string | null
+  >(null);
 
   let state: ReservationDetailState<GuestReservationDetailView>;
   if (query.isLoading) {
@@ -113,8 +115,7 @@ function GuestReservationDetailController({
     onBack: navigation.back,
     onBackToProfile: navigation.backToProfile,
     onDismissError: () => setDismissedErrorIdentity(currentErrorIdentity),
-    onDismissFeedback: () =>
-      setDismissedFeedbackIdentity(feedbackIdentity),
+    onDismissFeedback: () => setDismissedFeedbackIdentity(feedbackIdentity),
     onOpenAccommodation: navigation.openAccommodation,
     onOpenReview: navigation.openReview,
   };
@@ -124,9 +125,7 @@ function GuestReservationDetailController({
       variant="guest"
       actions={actions}
       feedbackMessage={
-        dismissedFeedbackIdentity === feedbackIdentity
-          ? null
-          : feedbackMessage
+        dismissedFeedbackIdentity === feedbackIdentity ? null : feedbackMessage
       }
       state={state}
     />
@@ -148,8 +147,9 @@ function HostReservationDetailController({
     reservationUid,
     query.errorUpdatedAt,
   );
-  const [dismissedErrorIdentity, setDismissedErrorIdentity] =
-    useState<string | null>(null);
+  const [dismissedErrorIdentity, setDismissedErrorIdentity] = useState<
+    string | null
+  >(null);
 
   let state: ReservationDetailState<HostReservationDetailView>;
   if (query.isLoading) {
@@ -177,11 +177,7 @@ function HostReservationDetailController({
   };
 
   return (
-    <ReservationDetailScreen
-      variant="host"
-      actions={actions}
-      state={state}
-    />
+    <ReservationDetailScreen variant="host" actions={actions} state={state} />
   );
 }
 

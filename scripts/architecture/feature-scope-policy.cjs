@@ -11,13 +11,11 @@ const configuredNestedFeatureScopes = Object.freeze([
   "reservations/payment",
 ]);
 
-const escapeRegex = (value) =>
-  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const getNestedFeatureScopes = (scope, featureScopes) =>
   featureScopes.filter(
-    (candidate) =>
-      candidate !== scope && candidate.startsWith(`${scope}/`),
+    (candidate) => candidate !== scope && candidate.startsWith(`${scope}/`),
   );
 
 const createFeatureOwnershipPathPattern = (scope, featureScopes) => {
@@ -26,16 +24,10 @@ const createFeatureOwnershipPathPattern = (scope, featureScopes) => {
     nestedScopes.length === 0
       ? ""
       : `(?!(?:${nestedScopes
-          .map(
-            (child) =>
-              `/${escapeRegex(child.slice(scope.length + 1))}`,
-          )
+          .map((child) => `/${escapeRegex(child.slice(scope.length + 1))}`)
           .join("|")})(?:/|$))`;
 
-  return (
-    `^src/features/${escapeRegex(scope)}` +
-    `${childExclusion}(?:/|$)`
-  );
+  return `^src/features/${escapeRegex(scope)}` + `${childExclusion}(?:/|$)`;
 };
 
 const createFeatureSurfacePathPattern = (featureScopes, surfacePattern) => {
@@ -49,7 +41,9 @@ const createFeatureSurfacePathPattern = (featureScopes, surfacePattern) => {
 
 const getFeatureOwnershipScope = (projectPath) => {
   const normalizedPath = String(projectPath).replaceAll("\\", "/");
-  const featurePath = normalizedPath.match(/^src\/features\/([^/]+)(?:\/(.*))?$/);
+  const featurePath = normalizedPath.match(
+    /^src\/features\/([^/]+)(?:\/(.*))?$/,
+  );
 
   if (!featurePath) {
     return null;

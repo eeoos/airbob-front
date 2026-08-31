@@ -66,12 +66,12 @@ describe("map expand control helper", () => {
 
     utils.dispatchEvent(new MouseEvent("mouseenter"));
     expect(
-      utils.style.getPropertyValue("--map-expand-control-background")
+      utils.style.getPropertyValue("--map-expand-control-background"),
     ).toBe("var(--color-background-muted)");
 
     utils.dispatchEvent(new MouseEvent("mouseleave"));
     expect(
-      utils.style.getPropertyValue("--map-expand-control-background")
+      utils.style.getPropertyValue("--map-expand-control-background"),
     ).toBe("var(--color-background-page)");
   });
 

@@ -13,7 +13,10 @@ const frontendWorkflowPath = path.join(
   projectRoot,
   ".github/workflows/frontend.yml",
 );
-const qaDocPath = path.join(projectRoot, "docs/qa/frontend-architecture-smoke.ko.md");
+const qaDocPath = path.join(
+  projectRoot,
+  "docs/qa/frontend-architecture-smoke.ko.md",
+);
 const architectureDocPath = path.join(
   projectRoot,
   "docs/architecture/frontend-structure-refactor.md",
@@ -49,7 +52,10 @@ const architectureFreezeDocPath = path.join(
   "docs/architecture/frontend-architecture-freeze.ko.md",
 );
 const envExamplePath = path.join(projectRoot, ".env.example");
-const frontendSmokePath = path.join(projectRoot, "scripts/smoke/frontend-smoke.mjs");
+const frontendSmokePath = path.join(
+  projectRoot,
+  "scripts/smoke/frontend-smoke.mjs",
+);
 const sourceRoot = path.join(projectRoot, "src");
 const retiredSourceRoots = [
   "api",
@@ -82,7 +88,8 @@ const dynamicInlineStyleAllowlist = [
     pattern: /style=\{\{\s*width:\s*`\$\{uploadProgress\}%`\s*\}\}/,
   },
   {
-    filePath: "src/features/accommodations/detail/components/AccommodationHero.tsx",
+    filePath:
+      "src/features/accommodations/detail/components/AccommodationHero.tsx",
     pattern:
       /style=\{\{\s*transform:\s*`translateX\(-\$\{mobileSlideIndex \* 100\}%\)`\s*\}\}/,
   },
@@ -246,7 +253,10 @@ describe("frontend verification gate", () => {
       .filter((relativePath) => relativePath.startsWith("src/features/"));
 
     const violations = productionFiles.filter((relativePath) => {
-      const source = fs.readFileSync(path.join(projectRoot, relativePath), "utf8");
+      const source = fs.readFileSync(
+        path.join(projectRoot, relativePath),
+        "utf8",
+      );
       return /handledErrorUpdatedAtRef/.test(source);
     });
 
@@ -264,9 +274,7 @@ describe("frontend verification gate", () => {
     try {
       const defaultEnv = isolatedSmokeSubprocessEnv();
 
-      expect(
-        defaultEnv.AIRBOB_SMOKE_REPORT_ROOT,
-      ).toBeUndefined();
+      expect(defaultEnv.AIRBOB_SMOKE_REPORT_ROOT).toBeUndefined();
       expect(defaultEnv.AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID).toBeUndefined();
 
       const overrideEnv = isolatedSmokeSubprocessEnv({
@@ -277,7 +285,9 @@ describe("frontend verification gate", () => {
       expect(overrideEnv.AIRBOB_SMOKE_REPORT_ROOT).toBe(
         "/tmp/airbob-override-smoke",
       );
-      expect(overrideEnv.AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID).toBe("override-id");
+      expect(overrideEnv.AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID).toBe(
+        "override-id",
+      );
     } finally {
       if (previousReportRoot === undefined) {
         delete process.env.AIRBOB_SMOKE_REPORT_ROOT;
@@ -315,7 +325,8 @@ describe("frontend verification gate", () => {
           const styleSource = match[0].replace(/\s+/g, " ").trim();
           const isAllowedDynamicStyle = dynamicInlineStyleAllowlist.some(
             (allowed) =>
-              allowed.filePath === relativePath && allowed.pattern.test(match[0]),
+              allowed.filePath === relativePath &&
+              allowed.pattern.test(match[0]),
           );
 
           if (isAllowedDynamicStyle) {
@@ -354,9 +365,7 @@ describe("frontend verification gate", () => {
     expect(packageJson.scripts["test:ci:no-cache"]).toBe(
       "vitest run --coverage --no-cache",
     );
-    expect(packageJson.scripts["test:coverage"]).toBe(
-      "vitest run --coverage",
-    );
+    expect(packageJson.scripts["test:coverage"]).toBe("vitest run --coverage");
     expect(packageJson.scripts["test:e2e:characterization"]).toBe(
       "playwright test --project=chromium",
     );
@@ -383,6 +392,9 @@ describe("frontend verification gate", () => {
     );
     expect(packageJson.scripts["test:architecture-rules"]).toContain(
       "verify-style-rules.mjs",
+    );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-prettier-config.mjs",
     );
     expect(packageJson.scripts["test:architecture-rules"]).toContain(
       "verify-typescript-config.mjs",
@@ -422,6 +434,7 @@ describe("frontend verification gate", () => {
       "npm run lint:dependencies",
       "npm run lint:styles",
       "npm run lint:architecture-tools",
+      "npm run format:check",
     ].forEach((command) => {
       expect(packageJson.scripts["verify:architecture"]).toContain(command);
     });
@@ -435,6 +448,7 @@ describe("frontend verification gate", () => {
       "knip",
       "postcss",
       "postcss-custom-media",
+      "prettier",
       "stylelint",
       "stylelint-config-recommended",
       "stylelint-config-standard",
@@ -557,9 +571,7 @@ describe("frontend verification gate", () => {
   });
 
   test("Vercel preserves static assets, SPA refreshes, and cache ownership", () => {
-    const vercelConfig = JSON.parse(
-      fs.readFileSync(vercelConfigPath, "utf8"),
-    );
+    const vercelConfig = JSON.parse(fs.readFileSync(vercelConfigPath, "utf8"));
 
     expect(vercelConfig.buildCommand).toBe("npm run build");
     expect(vercelConfig.outputDirectory).toBe("build");
@@ -637,9 +649,13 @@ describe("frontend verification gate", () => {
     });
 
     expect(historicalArchitectureDoc).toContain("superseded on 2026-08-29");
-    expect(historicalArchitectureDoc).toContain("current-frontend-architecture.md");
+    expect(historicalArchitectureDoc).toContain(
+      "current-frontend-architecture.md",
+    );
     expect(migrationRulesDoc).toContain("Keep one active writer");
-    expect(migrationRulesDoc).toContain("Do not weaken a gate to make a unit green.");
+    expect(migrationRulesDoc).toContain(
+      "Do not weaken a gate to make a unit green.",
+    );
     expect(ownershipMatrixDoc).toContain(
       "**Active** is the only production route entry",
     );
@@ -652,12 +668,16 @@ describe("frontend verification gate", () => {
     expect(ownershipMatrixDoc).toContain(
       "**Active:** app codec/navigation/auth composition",
     );
-    expect(ownershipMatrixDoc).toContain("U10/U11 payment compatibility matrix");
+    expect(ownershipMatrixDoc).toContain(
+      "U10/U11 payment compatibility matrix",
+    );
     expect(architectureRulesDoc).toContain("Single rule owners");
     expect(architectureRulesDoc).toContain(
       "Feature-to-peer production imports are errors regardless of filename",
     );
-    expect(architectureRulesDoc).toContain("Strict design-policy errors are zero");
+    expect(architectureRulesDoc).toContain(
+      "Strict design-policy errors are zero",
+    );
     expect(Array.isArray(architectureRatchet.migratedFeatures)).toBe(true);
     expect(new Set(architectureRatchet.migratedFeatures).size).toBe(
       architectureRatchet.migratedFeatures.length,
@@ -739,9 +759,7 @@ describe("frontend verification gate", () => {
       "Frontend smoke preflight failed",
       "GSTACK_BROWSE_BIN must point to an existing executable file",
       "response.status < 200 || response.status >= 400",
-      'const strictDynamicRoutes = process.env.AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES === "true";',
       "skippedDynamicRoutes",
-      "strictDynamicRoutes && skippedDynamicRoutes.length > 0",
       "Strict dynamic route smoke mode requires stable route ids",
       "Skipped Dynamic Routes",
       "Skipped dynamic smoke routes",
@@ -755,6 +773,13 @@ describe("frontend verification gate", () => {
     ].forEach((term) => {
       expect(smokeScript).toContain(term);
     });
+
+    expect(smokeScript).toMatch(
+      /const strictDynamicRoutes\s*=\s*process\.env\.AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES\s*===\s*"true";/,
+    );
+    expect(smokeScript).toMatch(
+      /strictDynamicRoutes\s*&&\s*skippedDynamicRoutes\.length\s*>\s*0/,
+    );
 
     [
       "rawGoogleMapsApiKey",
@@ -789,15 +814,16 @@ describe("frontend verification gate", () => {
     );
     expect(accommodationDetailRoute?.[0]).toContain('expectedText: "예약하기"');
 
-    expect(smokeScript).not.toMatch(/process\.env\.AIRBOB_QA_(?:EMAIL|PASSWORD)[^;]*console/);
+    expect(smokeScript).not.toMatch(
+      /process\.env\.AIRBOB_QA_(?:EMAIL|PASSWORD)[^;]*console/,
+    );
   });
 
   test("frontend smoke preflight rejects 4xx services and strips URL credentials", () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "airbob-preflight-"));
     const fakeBrowsePath = path.join(tempDir, "fake-browse.mjs");
     const reportRoot = path.join(tempDir, "reports");
-    const frontendUrl =
-      "http://frontend-user:frontend-secret@frontend.invalid";
+    const frontendUrl = "http://frontend-user:frontend-secret@frontend.invalid";
     const backendUrl = "http://backend.invalid";
     const fetchMockPath = writePreflightFetchMock(tempDir, {
       [frontendUrl]: { status: 204 },
@@ -806,7 +832,9 @@ describe("frontend verification gate", () => {
 
     fs.writeFileSync(
       fakeBrowsePath,
-      ["#!/usr/bin/env node", 'console.log("browse should not run");'].join("\n"),
+      ["#!/usr/bin/env node", 'console.log("browse should not run");'].join(
+        "\n",
+      ),
       { mode: 0o755 },
     );
 
@@ -862,7 +890,9 @@ describe("frontend verification gate", () => {
 
     fs.writeFileSync(
       fakeBrowsePath,
-      ["#!/usr/bin/env node", 'console.log("browse should not run");'].join("\n"),
+      ["#!/usr/bin/env node", 'console.log("browse should not run");'].join(
+        "\n",
+      ),
       { mode: 0o755 },
     );
 
@@ -917,7 +947,9 @@ describe("frontend verification gate", () => {
 
     fs.writeFileSync(
       fakeBrowsePath,
-      ["#!/usr/bin/env node", 'console.log("browse should not run");'].join("\n"),
+      ["#!/usr/bin/env node", 'console.log("browse should not run");'].join(
+        "\n",
+      ),
       { mode: 0o755 },
     );
 
@@ -993,7 +1025,8 @@ describe("frontend verification gate", () => {
       ).toBe(true);
       expect(defaultReportEntriesAfter).toEqual(defaultReportEntriesBefore);
       expect(
-        defaultReportEntriesBefore !== null || !fs.existsSync(defaultReportRoot),
+        defaultReportEntriesBefore !== null ||
+          !fs.existsSync(defaultReportRoot),
       ).toBe(true);
     } finally {
       removeNewDirectoryEntries(defaultReportRoot, defaultReportEntriesBefore);

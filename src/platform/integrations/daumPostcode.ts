@@ -40,10 +40,8 @@ declare global {
 }
 
 const DAUM_POSTCODE_ORIGIN = "https://t1.daumcdn.net";
-const DAUM_POSTCODE_PATH =
-  "/mapjsapi/bundle/postcode/prod/postcode.v2.js";
-export const DAUM_POSTCODE_SCRIPT_SRC =
-  `${DAUM_POSTCODE_ORIGIN}${DAUM_POSTCODE_PATH}`;
+const DAUM_POSTCODE_PATH = "/mapjsapi/bundle/postcode/prod/postcode.v2.js";
+export const DAUM_POSTCODE_SCRIPT_SRC = `${DAUM_POSTCODE_ORIGIN}${DAUM_POSTCODE_PATH}`;
 const DAUM_POSTCODE_SCRIPT_MARKER = "daum-postcode-v2";
 export const DAUM_POSTCODE_READINESS_TIMEOUT_MS = 8000;
 
@@ -64,8 +62,7 @@ const unavailableError = (code: IntegrationErrorCode) =>
   });
 
 const isDaumPostcodeReady = () =>
-  typeof window !== "undefined" &&
-  typeof window.daum?.Postcode === "function";
+  typeof window !== "undefined" && typeof window.daum?.Postcode === "function";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -87,9 +84,7 @@ const requiredResultFields = [
   "jibunAddress",
 ] as const;
 
-const parseDaumPostcodeResult = (
-  value: unknown,
-): DaumPostcodeResult | null => {
+const parseDaumPostcodeResult = (value: unknown): DaumPostcodeResult | null => {
   if (
     !isRecord(value) ||
     requiredResultFields.some((field) => typeof value[field] !== "string") ||
@@ -137,9 +132,9 @@ const isExactDaumScript = (script: HTMLScriptElement) => {
 const getDaumPostcodeScripts = () =>
   typeof document === "undefined"
     ? []
-    : Array.from(document.querySelectorAll<HTMLScriptElement>("script[src]")).filter(
-        isExactDaumScript,
-      );
+    : Array.from(
+        document.querySelectorAll<HTMLScriptElement>("script[src]"),
+      ).filter(isExactDaumScript);
 
 const createLoadAttempt = (script: HTMLScriptElement): DaumLoadAttempt => {
   let resolvePromise!: () => void;
@@ -204,7 +199,9 @@ export const ensureDaumPostcodeScript = (): Promise<void> => {
     return Promise.reject(unavailableError("INTEGRATION_UNAVAILABLE"));
   }
   if (isDaumPostcodeReady()) {
-    getDaumPostcodeScripts().slice(1).forEach((script) => script.remove());
+    getDaumPostcodeScripts()
+      .slice(1)
+      .forEach((script) => script.remove());
     return Promise.resolve();
   }
 

@@ -4,9 +4,8 @@ import { animate, type PanInfo } from "framer-motion";
 import { useSearchBottomSheet } from "./useSearchBottomSheet";
 
 vi.mock("framer-motion", async () => {
-  const actual = await vi.importActual<typeof import("framer-motion")>(
-    "framer-motion",
-  );
+  const actual =
+    await vi.importActual<typeof import("framer-motion")>("framer-motion");
 
   return {
     ...actual,
@@ -108,7 +107,7 @@ const panInfo = (offsetY: number, velocityY = 0): PanInfo =>
   ({
     offset: { x: 0, y: offsetY },
     velocity: { x: 0, y: velocityY },
-  } as PanInfo);
+  }) as PanInfo;
 
 const BottomSheetFocusHarness = () => {
   const bottomSheet = useSearchBottomSheet();
@@ -164,9 +163,7 @@ describe("useSearchBottomSheet", () => {
 
       const { result } = renderHook(() => useSearchBottomSheet());
 
-      expect(result.current.isMobileOrTablet).toBe(
-        expectedIsMobileOrTablet,
-      );
+      expect(result.current.isMobileOrTablet).toBe(expectedIsMobileOrTablet);
       expect(window.matchMedia).toHaveBeenCalledWith("(max-width: 1024px)");
     },
   );
@@ -343,10 +340,10 @@ describe("useSearchBottomSheet", () => {
 
     expect(result.current.snapPositions.collapsed).toBe(0);
     expect(result.current.snapPositions.half).toBeGreaterThan(
-      result.current.snapPositions.collapsed
+      result.current.snapPositions.collapsed,
     );
     expect(result.current.snapPositions.expanded).toBeGreaterThan(
-      result.current.snapPositions.half
+      result.current.snapPositions.half,
     );
   });
 

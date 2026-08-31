@@ -39,7 +39,9 @@ export const getMarkerPriceText = ({
   return `${currency} ${basePrice.toLocaleString()}`;
 };
 
-export const getMarkerIconModel = (input: MarkerPriceInput): MarkerIconModel => {
+export const getMarkerIconModel = (
+  input: MarkerPriceInput,
+): MarkerIconModel => {
   const priceText = getMarkerPriceText(input);
   const textWidth = priceText.length * 8 + 20;
   const bubbleWidth = Math.max(textWidth, MARKER_MIN_BUBBLE_WIDTH);
@@ -58,7 +60,7 @@ export const getMarkerIconModel = (input: MarkerPriceInput): MarkerIconModel => 
 
 export const buildMarkerPriceSvg = (
   model: MarkerIconModel,
-  state: MarkerIconState
+  state: MarkerIconState,
 ) => {
   const isActive = state === "selected" || state === "hovered";
   const bubbleFill = isActive

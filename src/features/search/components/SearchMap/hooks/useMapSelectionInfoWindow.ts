@@ -24,12 +24,9 @@ interface UseMapSelectionInfoWindowOptions {
   mapInstanceRef: MutableRefObject<google.maps.Map | null>;
   mapRef: RefObject<HTMLDivElement | null>;
   markersRef: MutableRefObject<SearchMapMarker[]>;
-  onAccommodationSelect: (
-    accommodation: SearchMapAccommodation | null,
-  ) => void;
+  onAccommodationSelect: (accommodation: SearchMapAccommodation | null) => void;
   onWishlistToggle?:
-    | ((accommodationId: number, isInWishlist: boolean) => void)
-    | undefined;
+    ((accommodationId: number, isInWishlist: boolean) => void) | undefined;
   prevHoveredIdRef: MutableRefObject<number | null>;
   prevSelectedIdRef: MutableRefObject<number | null>;
   selectedAccommodationId: number | null;
@@ -300,18 +297,12 @@ export const useMapSelectionInfoWindow = ({
           applyInfoWindowChromeStyles(mapElement);
         });
 
-        closeClickListener = infoWindow.addListener(
-          "closeclick",
-          () => {
-            handleInfoWindowClose();
-          },
-        );
-        closeListener = infoWindow.addListener(
-          "close",
-          () => {
-            handleInfoWindowClose();
-          },
-        );
+        closeClickListener = infoWindow.addListener("closeclick", () => {
+          handleInfoWindowClose();
+        });
+        closeListener = infoWindow.addListener("close", () => {
+          handleInfoWindowClose();
+        });
 
         infoWindow.open(mapInstanceRef.current, selectedMarker);
         infoWindowRef.current = infoWindow;

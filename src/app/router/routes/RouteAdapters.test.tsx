@@ -83,7 +83,10 @@ type CapturedProps = {
         appliedCoupon: null;
       }): void;
     };
-    onReplaceBookingDates(checkIn: string | null, checkOut: string | null): void;
+    onReplaceBookingDates(
+      checkIn: string | null,
+      checkOut: string | null,
+    ): void;
     routeLease: { isCurrent(): boolean };
     wishlistMembership?: {
       commands: object;
@@ -121,7 +124,10 @@ type CapturedProps = {
   };
   login: {
     mode: "login";
-    submitLogin: (credentials: { email: string; password: string }) => Promise<void>;
+    submitLogin: (credentials: {
+      email: string;
+      password: string;
+    }) => Promise<void>;
     canComplete: () => boolean;
     onSuccess: () => void;
     onAlternate: () => void;
@@ -234,9 +240,7 @@ function mockRoute<Key extends keyof CapturedProps>(
 }
 
 vi.mock("../../../screens/auth/public", () => ({
-  AuthController: (
-    props: CapturedProps["login"] | CapturedProps["signup"],
-  ) => {
+  AuthController: (props: CapturedProps["login"] | CapturedProps["signup"]) => {
     mockCapturedProps[props.mode] = props as never;
     return (
       <button type="button" onClick={props.onSuccess}>
@@ -246,10 +250,8 @@ vi.mock("../../../screens/auth/public", () => ({
   },
 }));
 vi.mock("../../../screens/wishlist/public", () => ({
-  WishlistController: mockRoute(
-    "wishlist",
-    "위시리스트 보기 변경",
-    (props) => props.navigation.openRecentlyViewed(),
+  WishlistController: mockRoute("wishlist", "위시리스트 보기 변경", (props) =>
+    props.navigation.openRecentlyViewed(),
   ),
 }));
 vi.mock("../../../screens/search/public", () => ({
@@ -258,11 +260,8 @@ vi.mock("../../../screens/search/public", () => ({
   ),
 }));
 vi.mock("../../../screens/review-create/public", () => ({
-  ReviewCreateController: mockRoute(
-    "reviewCreate",
-    "리뷰 작성 완료",
-    (props) =>
-      props.onComplete("reservation-42", "image-upload-failed"),
+  ReviewCreateController: mockRoute("reviewCreate", "리뷰 작성 완료", (props) =>
+    props.onComplete("reservation-42", "image-upload-failed"),
   ),
 }));
 vi.mock("../../../screens/accommodation-edit/public", () => ({
@@ -283,10 +282,7 @@ vi.mock("../../../features/auth/ports/AuthCommandProvider", () => ({
   useAuthCommands: () => ({ signup: mockSignup }),
 }));
 vi.mock("../../../screens/accommodation-detail/public", () => ({
-  AccommodationDetailController: mockRoute(
-    "accommodation",
-    "숙소 상세 계속",
-  ),
+  AccommodationDetailController: mockRoute("accommodation", "숙소 상세 계속"),
 }));
 vi.mock("../../../features/accommodations/detail/public", async () => ({
   ...(await vi.importActual<
@@ -299,8 +295,7 @@ vi.mock("../../../features/accommodations/detail/public", async () => ({
 }));
 vi.mock("../../../features/profile/public", () => ({
   createHostListingQueryCacheProjection: () => ({
-    refreshRequired: (...args: unknown[]) =>
-      mockRefreshHostListings(...args),
+    refreshRequired: (...args: unknown[]) => mockRefreshHostListings(...args),
   }),
 }));
 vi.mock("../../../workflows/auth-intent", async () => ({
@@ -517,9 +512,7 @@ describe("app route adapter contracts", () => {
         "2026-07-22",
       ),
     );
-    expectLocation(
-      "/accommodations/42?checkIn=2026-07-20&checkOut=2026-07-22",
-    );
+    expectLocation("/accommodations/42?checkIn=2026-07-20&checkOut=2026-07-22");
   });
 
   it("rejects checkout storage and navigation after the captured route entry is stale", () => {
@@ -534,32 +527,30 @@ describe("app route adapter contracts", () => {
     expect(() =>
       act(() =>
         captured("accommodation").checkoutHandoff.commit({
-        session: { subject: "subject:member_7", epoch: 3 },
-        reservation: {
-          reservationUid: "reservation-42",
-          orderName: "테스트 숙소 2박",
-          amount: 200000,
-          customerEmail: "guest@example.invalid",
-          customerName: "게스트",
-        },
-        intent: {
-          accommodationId: 42,
-          checkIn: "2026-07-20",
-          checkOut: "2026-07-22",
-          adultCount: 1,
-          childCount: 0,
-          infantCount: 0,
-          petCount: 0,
-        },
+          session: { subject: "subject:member_7", epoch: 3 },
+          reservation: {
+            reservationUid: "reservation-42",
+            orderName: "테스트 숙소 2박",
+            amount: 200000,
+            customerEmail: "guest@example.invalid",
+            customerName: "게스트",
+          },
+          intent: {
+            accommodationId: 42,
+            checkIn: "2026-07-20",
+            checkOut: "2026-07-22",
+            adultCount: 1,
+            childCount: 0,
+            infantCount: 0,
+            petCount: 0,
+          },
           appliedCoupon: null,
         }),
       ),
     ).toThrow("Checkout handoff is no longer current.");
 
     expectLocation("/accommodations/42");
-    expect(
-      sessionStorage.getItem("airbob:reservation-checkout:42"),
-    ).toBeNull();
+    expect(sessionStorage.getItem("airbob:reservation-checkout:42")).toBeNull();
     expect(
       sessionStorage.getItem("airbob:booking-payment-v1:checkout"),
     ).toBeNull();
@@ -600,9 +591,9 @@ describe("app route adapter contracts", () => {
       }),
     );
     expect(mockClaimAuthIntent).toHaveBeenCalledTimes(1);
-    expect(
-      captured("accommodation").authIntent.claimed?.isCurrent(),
-    ).toBe(true);
+    expect(captured("accommodation").authIntent.claimed?.isCurrent()).toBe(
+      true,
+    );
     expect(mockIsCurrentSession).toHaveBeenCalledWith(session);
     expect(captured("accommodation").wishlistMembership).toEqual({
       commands: mockWishlistCommands,
@@ -635,29 +626,32 @@ describe("app route adapter contracts", () => {
         source: { locationKey: "default", path: "/accommodations/42" },
       },
     ],
-  ])("does not claim a pending intent with mismatched %s", async (_case, pending) => {
-    mockUseSession.mockReturnValue({
-      state: { status: "authenticated" },
-      isCurrentSession: mockIsCurrentSession,
-      captureAuthenticatedSession: mockCaptureAuthenticatedSession,
-    });
-    mockUseAuthIntent.mockReturnValue({
-      pending,
-      request: mockRequestAuthIntent,
-      cancel: mockCancelAuthIntent,
-      claim: mockClaimAuthIntent,
-    });
+  ])(
+    "does not claim a pending intent with mismatched %s",
+    async (_case, pending) => {
+      mockUseSession.mockReturnValue({
+        state: { status: "authenticated" },
+        isCurrentSession: mockIsCurrentSession,
+        captureAuthenticatedSession: mockCaptureAuthenticatedSession,
+      });
+      mockUseAuthIntent.mockReturnValue({
+        pending,
+        request: mockRequestAuthIntent,
+        cancel: mockCancelAuthIntent,
+        claim: mockClaimAuthIntent,
+      });
 
-    renderAdapter(
-      "/accommodations/:id",
-      "/accommodations/42",
-      <AccommodationDetailRoute />,
-    );
-    await Promise.resolve();
+      renderAdapter(
+        "/accommodations/:id",
+        "/accommodations/42",
+        <AccommodationDetailRoute />,
+      );
+      await Promise.resolve();
 
-    expect(mockClaimAuthIntent).not.toHaveBeenCalled();
-    expect(captured("accommodation").authIntent.claimed).toBeNull();
-  });
+      expect(mockClaimAuthIntent).not.toHaveBeenCalled();
+      expect(captured("accommodation").authIntent.claimed).toBeNull();
+    },
+  );
 
   it("retains a pending accommodation intent when login fails", async () => {
     const pending = {
@@ -691,11 +685,7 @@ describe("app route adapter contracts", () => {
 
   it("registers and cancels search wishlist auth intent data", () => {
     mockRequestAuthIntent.mockReturnValue(51);
-    renderAdapter(
-      "/search",
-      "/search?destination=Seoul",
-      <SearchRoute />,
-    );
+    renderAdapter("/search", "/search?destination=Seoul", <SearchRoute />);
 
     const bridge = captured("search").wishlistAuthIntent;
     expect(bridge.resumed).toBeNull();
@@ -777,9 +767,9 @@ describe("app route adapter contracts", () => {
       }),
     );
     expect(mockClaimAuthIntent).toHaveBeenCalledTimes(1);
-    expect(
-      captured("search").wishlistAuthIntent.resumed?.isCurrent(),
-    ).toBe(true);
+    expect(captured("search").wishlistAuthIntent.resumed?.isCurrent()).toBe(
+      true,
+    );
     expect(mockIsCurrentSession).toHaveBeenCalledWith(session);
     expect(captured("search").wishlistMembership).toEqual({
       commands: mockWishlistCommands,
@@ -855,11 +845,7 @@ describe("app route adapter contracts", () => {
       isCurrentSession: mockIsCurrentSession,
       captureAuthenticatedSession: mockCaptureAuthenticatedSession,
     });
-    renderAdapter(
-      "/wishlist",
-      "/wishlist?id=7#memo",
-      <WishlistRoute />,
-    );
+    renderAdapter("/wishlist", "/wishlist?id=7#memo", <WishlistRoute />);
 
     expect(captured("wishlist")).toMatchObject({
       scope: { subject: "subject:member_7", epoch: 3 },
@@ -1005,9 +991,7 @@ describe("app route adapter contracts", () => {
       ]),
     );
     expect(
-      reusedRouteProps.every(
-        ({ feedbackMessage }) => feedbackMessage === null,
-      ),
+      reusedRouteProps.every(({ feedbackMessage }) => feedbackMessage === null),
     ).toBe(true);
   });
 

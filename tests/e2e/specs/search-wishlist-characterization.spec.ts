@@ -84,8 +84,7 @@ test("keeps a URL-driven search stable across a full browser refresh", async ({
   );
 
   const searchURL = "/search?destination=Seoul&adultOccupancy=2";
-  const expectedSearchURL =
-    /\/search\?destination=Seoul&adultOccupancy=2$/;
+  const expectedSearchURL = /\/search\?destination=Seoul&adultOccupancy=2$/;
   await page.goto(searchURL);
 
   await expect(
@@ -101,10 +100,7 @@ test("keeps a URL-driven search stable across a full browser refresh", async ({
   ).toBeVisible();
   await expect(page).toHaveURL(expectedSearchURL);
 
-  const searchRequests = api.matching(
-    "GET",
-    "/api/v1/search/accommodations",
-  );
+  const searchRequests = api.matching("GET", "/api/v1/search/accommodations");
   expect(searchRequests.length).toBeGreaterThanOrEqual(2);
 
   for (const request of searchRequests) {
@@ -228,10 +224,9 @@ test("restores paginated search URLs and requests through browser history", asyn
   ).toBeVisible();
   expect(new URL(page.url()).searchParams.get("page")).toBe("2");
 
-  const pageTwoRequestsBeforeBack = api.matching(
-    "GET",
-    "/api/v1/search/accommodations",
-  ).filter((request) => getRequestQuery(request).page === "1").length;
+  const pageTwoRequestsBeforeBack = api
+    .matching("GET", "/api/v1/search/accommodations")
+    .filter((request) => getRequestQuery(request).page === "1").length;
   await page.goBack();
   await expect(
     page.getByRole("link", { name: "숙소 상세 보기: 페이지 2 숙소" }),
@@ -246,10 +241,9 @@ test("restores paginated search URLs and requests through browser history", asyn
     )
     .toBeGreaterThan(pageTwoRequestsBeforeBack);
 
-  const pageThreeRequestsBeforeForward = api.matching(
-    "GET",
-    "/api/v1/search/accommodations",
-  ).filter((request) => getRequestQuery(request).page === "2").length;
+  const pageThreeRequestsBeforeForward = api
+    .matching("GET", "/api/v1/search/accommodations")
+    .filter((request) => getRequestQuery(request).page === "2").length;
   await page.goForward();
   await expect(
     page.getByRole("link", { name: "숙소 상세 보기: 페이지 3 숙소" }),
@@ -287,10 +281,7 @@ test("maps viewport URL coordinates to the search request without loading Google
     viewportURL,
   );
 
-  const viewportRequests = api.matching(
-    "GET",
-    "/api/v1/search/accommodations",
-  );
+  const viewportRequests = api.matching("GET", "/api/v1/search/accommodations");
   expect(viewportRequests.length).toBeGreaterThanOrEqual(1);
   const viewportRequest = requireApiRequest(
     viewportRequests,
@@ -307,9 +298,7 @@ test("maps viewport URL coordinates to the search request without loading Google
     page: "0",
     size: "18",
   });
-  expect(getRequestQuery(viewportRequest)).not.toHaveProperty(
-    "destination",
-  );
+  expect(getRequestQuery(viewportRequest)).not.toHaveProperty("destination");
 });
 
 test("projects wishlist add and remove state while collapsing duplicate clicks", async ({
@@ -424,10 +413,7 @@ test("projects wishlist add and remove state while collapsing duplicate clicks",
   const containedWishlistButton = wishlistDialog.getByRole("button", {
     name: /여름 여행/,
   });
-  await expect(containedWishlistButton).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  await expect(containedWishlistButton).toHaveAttribute("aria-pressed", "true");
   await expect(containedWishlistButton).toBeEnabled();
   await containedWishlistButton.click();
 
@@ -544,15 +530,16 @@ test("fences an in-flight A membership result before B runs the same command", a
   await logout(secondPage);
   await loginAsUserB(secondPage);
   await expect(page.getByRole("button", { name: "프로필" })).toBeVisible();
-  await expect(secondPage.getByRole("button", { name: "프로필" })).toBeVisible();
+  await expect(
+    secondPage.getByRole("button", { name: "프로필" }),
+  ).toBeVisible();
 
   const countAccommodationScopedWishlistReads = () =>
     api
       .matching("GET", "/api/v1/members/wishlists")
       .filter(
         (request) =>
-          getRequestQuery(request).accommodationId ===
-          String(accommodationId),
+          getRequestQuery(request).accommodationId === String(accommodationId),
       ).length;
   const scopedReadsBeforeOldAddResolution =
     countAccommodationScopedWishlistReads();
@@ -571,9 +558,7 @@ test("fences an in-flight A membership result before B runs the same command", a
   const currentDialog = page.getByRole("dialog", {
     name: "위시리스트에 저장하기",
   });
-  await currentDialog
-    .getByRole("button", { name: /세션 경계 여행/ })
-    .click();
+  await currentDialog.getByRole("button", { name: /세션 경계 여행/ }).click();
 
   await expect(
     currentDialog.getByRole("button", { name: /세션 경계 여행/ }),

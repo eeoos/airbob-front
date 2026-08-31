@@ -70,11 +70,7 @@ const isRecord = (value: unknown): value is UnknownRecord =>
 const getSafeBackendCodeFromFailureEnvelope = (
   data: unknown,
 ): string | undefined => {
-  if (
-    !isRecord(data) ||
-    data.success !== false ||
-    !isRecord(data.error)
-  ) {
+  if (!isRecord(data) || data.success !== false || !isRecord(data.error)) {
     return undefined;
   }
 
@@ -97,9 +93,7 @@ const getAxiosStatus = (error: unknown): number | undefined => {
 };
 
 const getAxiosResponseData = (error: unknown): unknown =>
-  isRecord(error) && isRecord(error.response)
-    ? error.response.data
-    : undefined;
+  isRecord(error) && isRecord(error.response) ? error.response.data : undefined;
 
 const getErrorCode = (error: unknown): string | undefined =>
   isRecord(error) && typeof error.code === "string" ? error.code : undefined;
@@ -107,9 +101,9 @@ const getErrorCode = (error: unknown): string | undefined =>
 const isCancellation = (error: unknown): boolean => {
   return Boolean(
     isRecord(error) &&
-      (error.code === "ERR_CANCELED" ||
-        error.name === "AbortError" ||
-        error.__CANCEL__ === true),
+    (error.code === "ERR_CANCELED" ||
+      error.name === "AbortError" ||
+      error.__CANCEL__ === true),
   );
 };
 

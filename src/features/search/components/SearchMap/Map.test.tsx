@@ -110,9 +110,7 @@ describe("SearchMap", () => {
       />,
     );
 
-    expect(
-      screen.getByRole("region", { name: "숙소 지도" }),
-    ).toBeVisible();
+    expect(screen.getByRole("region", { name: "숙소 지도" })).toBeVisible();
     expect(
       screen.getByRole("status", { name: "지도 범위 검색 중" }),
     ).toBeVisible();
@@ -151,15 +149,15 @@ describe("SearchMap", () => {
       mapRuntimeError: null,
       script: { error: null, isLoaded: false, status: "missing-key" },
     },
-  ])("renders failure feedback for $script.status", ({
-    mapRuntimeError,
-    script,
-  }) => {
-    hookMocks.useGoogleMapsScript.mockReturnValue(script);
-    hookMocks.useGoogleMapInstance.mockReturnValue(mapRuntimeError);
+  ])(
+    "renders failure feedback for $script.status",
+    ({ mapRuntimeError, script }) => {
+      hookMocks.useGoogleMapsScript.mockReturnValue(script);
+      hookMocks.useGoogleMapInstance.mockReturnValue(mapRuntimeError);
 
-    render(<Map {...baseProps} />);
+      render(<Map {...baseProps} />);
 
-    expect(screen.getByText("지도를 불러올 수 없습니다.")).toBeVisible();
-  });
+      expect(screen.getByText("지도를 불러올 수 없습니다.")).toBeVisible();
+    },
+  );
 });

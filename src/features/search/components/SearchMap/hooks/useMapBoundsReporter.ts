@@ -1,9 +1,4 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  type MutableRefObject,
-} from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { hasBoundsChanged } from "../lib/mapBounds";
 import type { SearchMapBounds } from "../types";
 

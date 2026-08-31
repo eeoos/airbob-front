@@ -6,7 +6,7 @@ import {
 } from "./infoWindowContent";
 
 const createAccommodation = (
-  overrides: Partial<SearchMapAccommodation> = {}
+  overrides: Partial<SearchMapAccommodation> = {},
 ): SearchMapAccommodation => ({
   id: 10,
   name: "테스트 숙소",
@@ -53,7 +53,9 @@ describe("info window content helper", () => {
       isWishlisted: false,
     });
 
-    expect(html).toContain('id="info-window-map-10&quot; data-unsafe=&quot;true"');
+    expect(html).toContain(
+      'id="info-window-map-10&quot; data-unsafe=&quot;true"',
+    );
     expect(html).toContain(
       'data-accommodation-id="map-10&quot; data-unsafe=&quot;true"',
     );
@@ -104,7 +106,7 @@ describe("info window content helper", () => {
     });
 
     expect(html).toContain(
-      '<img src="https://cdn.example.com/accommodations/10/thumb.jpg"'
+      '<img src="https://cdn.example.com/accommodations/10/thumb.jpg"',
     );
     expect(html).toContain('data-info-window-action="wishlist"');
     expect(html).toContain('data-accommodation-id="10"');
@@ -187,7 +189,7 @@ describe("info window content helper", () => {
     expect(html).toContain("&lt;img src=x onerror=&quot;alert(1)&quot;&gt;");
     expect(html).toContain("&lt;Seoul&gt;, Mapo &amp; Hongdae");
     expect(html).toContain(
-      `src="https://cdn.example.com/thumb.jpg&quot; onerror=&quot;alert(1)"`
+      `src="https://cdn.example.com/thumb.jpg&quot; onerror=&quot;alert(1)"`,
     );
     expect(html).not.toContain(`<img src=x onerror="alert(1)">`);
     expect(html).not.toContain(`<script>alert(1)</script>`);
@@ -206,7 +208,7 @@ describe("info window content helper", () => {
 
     expect(html).toContain("&lt;Country &amp; Region&gt;");
     expect(html).toContain(
-      "USD&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt; 100,000"
+      "USD&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt; 100,000",
     );
     expect(html).not.toContain(`<Country & Region>`);
     expect(html).not.toContain(`<script>alert(1)</script>`);

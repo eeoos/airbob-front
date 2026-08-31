@@ -5,10 +5,7 @@ import {
   hasViewportChanged,
   shouldFitAccommodationBounds,
 } from "../lib/mapBounds";
-import {
-  buildMarkerPriceSvg,
-  getMarkerIconModel,
-} from "../lib/markerIcon";
+import { buildMarkerPriceSvg, getMarkerIconModel } from "../lib/markerIcon";
 import {
   type SearchMapAccommodation,
   type SearchMapMarker,
@@ -95,10 +92,12 @@ export const useAccommodationMarkers = ({
 
     const existingIds = new Set(
       markersRef.current.flatMap((marker) =>
-        marker.accommodationId === undefined ? [] : [marker.accommodationId]
-      )
+        marker.accommodationId === undefined ? [] : [marker.accommodationId],
+      ),
     );
-    const newIds = new Set(accommodations.map((accommodation) => accommodation.id));
+    const newIds = new Set(
+      accommodations.map((accommodation) => accommodation.id),
+    );
 
     const hasChanged =
       existingIds.size !== newIds.size ||
@@ -169,7 +168,7 @@ export const useAccommodationMarkers = ({
       const animateScale = (
         startScale: number,
         endScale: number,
-        startTime: number
+        startTime: number,
       ) => {
         if (isDisposed || !marker) return;
         if (preserveSelectedIcon()) return;
@@ -186,18 +185,18 @@ export const useAccommodationMarkers = ({
             url: originalIcon.url,
             scaledSize: new maps.Size(
               originalIcon.scaledSize.width * currentScale,
-              originalIcon.scaledSize.height * currentScale
+              originalIcon.scaledSize.height * currentScale,
             ),
             anchor: new maps.Point(
               (originalIcon.scaledSize.width * currentScale) / 2,
-              originalIcon.scaledSize.height * currentScale
+              originalIcon.scaledSize.height * currentScale,
             ),
           });
         }
 
         if (progress < 1) {
           animationFrameId = window.requestAnimationFrame(() =>
-            animateScale(startScale, endScale, startTime)
+            animateScale(startScale, endScale, startTime),
           );
         } else {
           animationFrameId = null;
@@ -270,13 +269,10 @@ export const useAccommodationMarkers = ({
             }
             animateScale(currentScale, 1.0, Date.now());
           }),
-          marker.addListener(
-            "click",
-            (event: google.maps.MapMouseEvent) => {
-              event.domEvent?.stopPropagation();
-              onAccommodationSelectRef.current(accommodation);
-            },
-          ),
+          marker.addListener("click", (event: google.maps.MapMouseEvent) => {
+            event.domEvent?.stopPropagation();
+            onAccommodationSelectRef.current(accommodation);
+          }),
         );
 
         marker.dispose = disposeMarkerResources;
@@ -291,14 +287,14 @@ export const useAccommodationMarkers = ({
     if (viewport && !isMapDragMode) {
       const viewportChanged = hasViewportChanged(
         prevViewportRef.current,
-        viewport
+        viewport,
       );
 
       if (viewportChanged) {
         isInitialIdleRef.current = true;
         const viewportBounds = new maps.LatLngBounds(
           { lat: viewport.south, lng: viewport.west },
-          { lat: viewport.north, lng: viewport.east }
+          { lat: viewport.north, lng: viewport.east },
         );
         map.fitBounds(viewportBounds, 50);
         prevViewportRef.current = viewport;
@@ -308,7 +304,7 @@ export const useAccommodationMarkers = ({
 
     const accommodationsChanged = haveAccommodationIdsChanged(
       prevAccommodationsRef.current,
-      validAccommodations
+      validAccommodations,
     );
 
     if (

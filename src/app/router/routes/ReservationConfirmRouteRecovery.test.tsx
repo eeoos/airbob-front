@@ -1,10 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import {
-  MemoryRouter,
-  Route,
-  Routes,
-  useLocation,
-} from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import type {
   AuthenticatedSessionScope,
   SessionSubject,
@@ -159,11 +154,7 @@ describe("ReservationConfirmRoute payment recovery boundary", () => {
     mockConfirmControllerProps.length = 0;
   });
 
-  it.each<CallbackData["phase"]>([
-    "received",
-    "confirming",
-    "reconciling",
-  ])(
+  it.each<CallbackData["phase"]>(["received", "confirming", "reconciling"])(
     "routes a %s callback to reconciliation without requesting payment again",
     async (phase) => {
       const { checkout } = seedCheckout();
@@ -176,10 +167,12 @@ describe("ReservationConfirmRoute payment recovery boundary", () => {
         "/reservations/reservation-1/fail?reason=confirm-failed",
       );
       expect(mockConfirmControllerProps).toHaveLength(0);
-      expect(window.sessionStorage.getItem("airbob:booking-payment-v1:checkout"))
-        .not.toBeNull();
-      expect(window.sessionStorage.getItem("airbob:booking-payment-v1:callback"))
-        .not.toBeNull();
+      expect(
+        window.sessionStorage.getItem("airbob:booking-payment-v1:checkout"),
+      ).not.toBeNull();
+      expect(
+        window.sessionStorage.getItem("airbob:booking-payment-v1:callback"),
+      ).not.toBeNull();
     },
   );
 
@@ -228,8 +221,9 @@ describe("ReservationConfirmRoute payment recovery boundary", () => {
       "/accommodations/42",
     );
     expect(mockConfirmControllerProps).toHaveLength(0);
-    expect(window.sessionStorage.getItem("airbob:booking-payment-v1:checkout"))
-      .toContain("reservation-41");
+    expect(
+      window.sessionStorage.getItem("airbob:booking-payment-v1:checkout"),
+    ).toContain("reservation-41");
   });
 
   it("preserves current and legacy documents for a stale current-format handoff", async () => {
@@ -261,8 +255,9 @@ describe("ReservationConfirmRoute payment recovery boundary", () => {
       "/accommodations/42",
     );
     expect(mockConfirmControllerProps).toHaveLength(0);
-    expect(window.sessionStorage.getItem("airbob:booking-payment-v1:checkout"))
-      .toContain(checkout.operationId);
+    expect(
+      window.sessionStorage.getItem("airbob:booking-payment-v1:checkout"),
+    ).toContain(checkout.operationId);
     expect(
       window.sessionStorage.getItem("airbob:reservation-checkout:42"),
     ).toBe(legacyPrimary);
@@ -350,8 +345,9 @@ describe("ReservationConfirmRoute payment recovery boundary", () => {
 
     await screen.findByTestId("fallback-route");
     expect(mockConfirmControllerProps).toHaveLength(0);
-    expect(window.sessionStorage.getItem("airbob:booking-payment-v1:checkout"))
-      .toContain(checkout.operationId);
+    expect(
+      window.sessionStorage.getItem("airbob:booking-payment-v1:checkout"),
+    ).toContain(checkout.operationId);
     expect(
       window.sessionStorage.getItem("airbob:reservation-checkout:42"),
     ).toBe(legacyPrimary);

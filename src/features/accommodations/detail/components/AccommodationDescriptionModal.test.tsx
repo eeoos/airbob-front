@@ -5,7 +5,7 @@ import { AccommodationDescriptionModal } from "./AccommodationDescriptionModal";
 const renderDescriptionModal = (
   overrides: Partial<
     React.ComponentProps<typeof AccommodationDescriptionModal>
-  > = {}
+  > = {},
 ) => {
   const props: React.ComponentProps<typeof AccommodationDescriptionModal> = {
     isOpen: true,
@@ -24,9 +24,11 @@ describe("AccommodationDescriptionModal", () => {
     renderDescriptionModal();
 
     expect(
-      screen.getByRole("dialog", { name: "숙소 설명" })
+      screen.getByRole("dialog", { name: "숙소 설명" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "숙소 설명" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "숙소 설명" }),
+    ).toBeInTheDocument();
     expect(screen.getByText("첫 번째 줄")).toBeInTheDocument();
     expect(screen.getByText("두 번째 줄")).toBeInTheDocument();
   });
@@ -43,7 +45,7 @@ describe("AccommodationDescriptionModal", () => {
     const { props } = renderDescriptionModal();
 
     await userEvent.click(
-      screen.getByRole("button", { name: "숙소 설명 닫기" })
+      screen.getByRole("button", { name: "숙소 설명 닫기" }),
     );
     await userEvent.click(screen.getByRole("presentation"));
 

@@ -5,7 +5,7 @@ import {
 
 const mockRect = (
   element: HTMLElement,
-  rect: Partial<DOMRect> & Pick<DOMRect, "left" | "top" | "width" | "height">
+  rect: Partial<DOMRect> & Pick<DOMRect, "left" | "top" | "width" | "height">,
 ) => {
   Object.defineProperty(element, "getBoundingClientRect", {
     configurable: true,
@@ -44,7 +44,7 @@ describe("info window DOM helpers", () => {
     const didAdjust = adjustInfoWindowIntoMapView({ mapElement });
 
     expect(didAdjust).toBe(true);
-    expect(parent).toHaveStyle({transform:"translate(-317px, -75px)"});
+    expect(parent).toHaveStyle({ transform: "translate(-317px, -75px)" });
   });
 
   it("leaves an in-bounds info window transform unchanged", () => {
@@ -63,7 +63,7 @@ describe("info window DOM helpers", () => {
     const didAdjust = adjustInfoWindowIntoMapView({ mapElement });
 
     expect(didAdjust).toBe(false);
-    expect(parent).toHaveStyle({transform:"translate(4px, 8px)"});
+    expect(parent).toHaveStyle({ transform: "translate(4px, 8px)" });
   });
 
   it("applies Google Maps info window chrome overrides and removes default close controls", () => {
@@ -89,11 +89,11 @@ describe("info window DOM helpers", () => {
 
     applyInfoWindowChromeStyles(mapElement);
 
-    expect(content).toHaveStyle({padding:"0px"});
-    expect(content).toHaveStyle({background:"transparent"});
-    expect(content).toHaveStyle({overflow:"visible"});
-    expect(container).toHaveStyle({borderRadius:"12px"});
-    expect(container).toHaveStyle({overflow:"hidden"});
+    expect(content).toHaveStyle({ padding: "0px" });
+    expect(content).toHaveStyle({ background: "transparent" });
+    expect(content).toHaveStyle({ overflow: "visible" });
+    expect(container).toHaveStyle({ borderRadius: "12px" });
+    expect(container).toHaveStyle({ overflow: "hidden" });
     expect(document.querySelector(".gm-style-iw-chr")).toBeNull();
     expect(document.querySelector(".gm-ui-hover-effect")).toBeNull();
     expect(document.querySelector(".gm-style-iw-ch")).toBeNull();

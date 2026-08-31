@@ -40,10 +40,7 @@ export const useAccommodationCouponCommand = ({
     setIssuingCouponId(null);
   }, [routeLease]);
 
-  useEffect(
-    () => () => activeControllerRef.current?.abort(),
-    [],
-  );
+  useEffect(() => () => activeControllerRef.current?.abort(), []);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -94,13 +91,7 @@ export const useAccommodationCouponCommand = ({
         }
       }
     },
-    [
-      accommodationId,
-      onError,
-      requestAuthentication,
-      routeLease,
-      session,
-    ],
+    [accommodationId, onError, requestAuthentication, routeLease, session],
   );
 
   return {

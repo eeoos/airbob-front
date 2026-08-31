@@ -166,9 +166,7 @@ describe("ReservationDetailScreen", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /돌아가기/ }));
     fireEvent.click(screen.getByRole("button", { name: "뒤로 가기" }));
-    fireEvent.click(
-      screen.getByRole("button", { name: "숙소로 이동하기" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "숙소로 이동하기" }));
     fireEvent.click(screen.getByRole("button", { name: "리뷰 작성하기" }));
 
     expect(guestActions.onBackToProfile).toHaveBeenCalledTimes(1);
@@ -237,9 +235,7 @@ describe("ReservationDetailScreen", () => {
     expect(screen.getAllByText("₩240,000")).toHaveLength(2);
 
     fireEvent.click(screen.getByRole("button", { name: "뒤로 가기" }));
-    fireEvent.click(
-      screen.getByRole("button", { name: "숙소로 이동하기" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "숙소로 이동하기" }));
 
     expect(hostActions.onBack).toHaveBeenCalledTimes(1);
     expect(hostActions.onOpenAccommodation).toHaveBeenCalledWith(7);

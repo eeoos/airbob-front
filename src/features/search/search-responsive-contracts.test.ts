@@ -4,7 +4,10 @@ import postcss from "postcss";
 import { RESPONSIVE_MEDIA_QUERIES } from "../../shared/styles/responsive";
 
 const readSearchSource = (relativePath: string) =>
-  readFileSync(join(process.cwd(), "src/features/search", relativePath), "utf8");
+  readFileSync(
+    join(process.cwd(), "src/features/search", relativePath),
+    "utf8",
+  );
 const readSharedStylesSource = (relativePath: string) =>
   readFileSync(join(process.cwd(), "src/shared/styles", relativePath), "utf8");
 
@@ -13,7 +16,8 @@ const getMediaBlocks = (source: string, query: string) => {
   const root = postcss.parse(source);
 
   root.walkAtRules((atRule) => {
-    if (atRule.name.toLowerCase() !== "media" || atRule.params !== query) return;
+    if (atRule.name.toLowerCase() !== "media" || atRule.params !== query)
+      return;
     blocks.push(atRule.nodes?.map((node) => node.toString()).join("\n") ?? "");
   });
 

@@ -29,7 +29,9 @@ const collectTextArtifacts = async (directory) => {
 
 const textArtifacts = await collectTextArtifacts(buildDirectory);
 if (textArtifacts.length === 0) {
-  throw new Error("The production build contains no text artifacts to inspect.");
+  throw new Error(
+    "The production build contains no text artifacts to inspect.",
+  );
 }
 
 let hasOfficialV2Runtime = false;

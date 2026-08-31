@@ -29,5 +29,4 @@ export interface ReviewSubmissionApiPort {
 }
 
 export interface ReviewApiPort
-  extends ReviewReadApiPort,
-    ReviewSubmissionApiPort {}
+  extends ReviewReadApiPort, ReviewSubmissionApiPort {}

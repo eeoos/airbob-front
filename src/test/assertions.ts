@@ -3,10 +3,9 @@ type MissingValueMessage = (label: string) => string;
 const expectedDefinedMessage: MissingValueMessage = (label) =>
   `Expected ${label} to be defined`;
 
-export const createRequireDefined = (
-  missingValueMessage: MissingValueMessage = expectedDefinedMessage,
-) =>
-  <Value,>(value: Value | null | undefined, label: string): Value => {
+export const createRequireDefined =
+  (missingValueMessage: MissingValueMessage = expectedDefinedMessage) =>
+  <Value>(value: Value | null | undefined, label: string): Value => {
     if (value == null) {
       throw new Error(missingValueMessage(label));
     }
@@ -16,7 +15,7 @@ export const createRequireDefined = (
 
 export const requireDefined = createRequireDefined();
 
-export const requireFixtureItem = <Value,>(
+export const requireFixtureItem = <Value>(
   items: readonly Value[],
   index: number,
   label: string,

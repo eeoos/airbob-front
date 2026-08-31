@@ -1,18 +1,11 @@
 import type { SearchPlaceSelection } from "./search";
 
-export type SearchActivePopover =
-  | "none"
-  | "destination"
-  | "date"
-  | "guests";
+export type SearchActivePopover = "none" | "destination" | "date" | "guests";
 export type SearchShellState = "compact" | "expanded";
 export type SearchCompositionPhase = "idle" | "composing";
 export type SearchBottomSheetState = "collapsed" | "half" | "expanded";
 export type SearchGuestKey =
-  | "adultOccupancy"
-  | "childOccupancy"
-  | "infantOccupancy"
-  | "petOccupancy";
+  "adultOccupancy" | "childOccupancy" | "infantOccupancy" | "petOccupancy";
 
 export interface SearchGuestCounts {
   adultOccupancy: number;
@@ -131,10 +124,7 @@ const normalizeCommittedValues = (
       "infantOccupancy",
       values.infantOccupancy,
     ),
-    petOccupancy: normalizeGuestCount(
-      "petOccupancy",
-      values.petOccupancy,
-    ),
+    petOccupancy: normalizeGuestCount("petOccupancy", values.petOccupancy),
   };
 };
 

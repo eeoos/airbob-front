@@ -38,7 +38,9 @@ describe("AccommodationActionModal", () => {
 
     render(<AccommodationActionModal {...createProps({ onClose })} />);
 
-    expect(screen.getByRole("dialog", { name: "숙소 관리" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", { name: "숙소 관리" }),
+    ).toBeInTheDocument();
 
     await userEvent.click(
       screen.getByRole("button", { name: "숙소 관리 닫기" }),
@@ -81,9 +83,7 @@ describe("AccommodationActionModal", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "리스팅 비공개" }),
     );
-    await userEvent.click(
-      screen.getByRole("button", { name: "리스팅 삭제" }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: "리스팅 삭제" }));
 
     expect(onUnpublish).toHaveBeenCalledWith(7);
     expect(onDelete).toHaveBeenCalledWith(7);
@@ -134,9 +134,7 @@ describe("AccommodationActionModal", () => {
     ).toBeEnabled();
 
     expect(screen.getByRole("alert")).toHaveTextContent("처리에 실패했습니다.");
-    await userEvent.click(
-      screen.getByRole("button", { name: "오류 닫기" }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: "오류 닫기" }));
     expect(onDismissError).toHaveBeenCalledTimes(1);
   });
 

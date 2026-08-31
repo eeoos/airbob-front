@@ -31,7 +31,8 @@
   font-size: 20px;
   color: var(--color-text-primary);
   border-radius: var(--radius-pill);
-  transition: background-color var(--motion-duration-base) var(--motion-ease-standard);
+  transition: background-color var(--motion-duration-base)
+    var(--motion-ease-standard);
   margin-bottom: var(--space-6);
 }
 
@@ -385,7 +386,6 @@
   color: var(--color-text-primary);
   line-height: 1.5;
 }
-
 
 @media (max-width: 768px) {
   .container {

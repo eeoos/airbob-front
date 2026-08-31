@@ -1,9 +1,4 @@
-import {
-  createEvent,
-  fireEvent,
-  render,
-  screen,
-} from "@testing-library/react";
+import { createEvent, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
   GuestTripsPanel,
@@ -24,8 +19,7 @@ const createProps = (
 ): GuestTripsPanelProps => ({
   errorMessage: null,
   filterType: "UPCOMING",
-  getReservationHref: (reservationUid) =>
-    `/reservations/${reservationUid}`,
+  getReservationHref: (reservationUid) => `/reservations/${reservationUid}`,
   loadMoreRef: vi.fn(),
   onDismissError: vi.fn(),
   onOpenReservation: vi.fn(),
@@ -41,9 +35,7 @@ const createProps = (
 describe("GuestTripsPanel", () => {
   it("renders only the shared loading state while loading", () => {
     render(
-      <GuestTripsPanel
-        {...createProps({ state: { status: "loading" } })}
-      />,
+      <GuestTripsPanel {...createProps({ state: { status: "loading" } })} />,
     );
 
     expect(screen.getByText("로딩 중...")).toBeInTheDocument();
@@ -58,7 +50,9 @@ describe("GuestTripsPanel", () => {
     render(<GuestTripsPanel {...createProps({ filterType })} />);
 
     expect(screen.getByText(title)).toBeInTheDocument();
-    expect(screen.getByText("아직 예약한 여행이 없습니다.")).toBeInTheDocument();
+    expect(
+      screen.getByText("아직 예약한 여행이 없습니다."),
+    ).toBeInTheDocument();
   });
 
   it("renders grouped navigation cards and delegates plain primary clicks", () => {
@@ -157,9 +151,7 @@ describe("GuestTripsPanel", () => {
       "예약을 불러오지 못했습니다.",
     );
 
-    await userEvent.click(
-      screen.getByRole("button", { name: "오류 닫기" }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: "오류 닫기" }));
     expect(onDismissError).toHaveBeenCalledTimes(1);
   });
 });

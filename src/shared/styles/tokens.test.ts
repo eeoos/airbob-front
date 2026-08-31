@@ -14,10 +14,9 @@ const {
   legacyDesignProtectedStylePaths,
   primitiveTokenStylePaths,
   tokenLayerPolicies,
-} = loadCommonJsModule(path.join(
-  projectRoot,
-  "scripts/architecture/style-policy.cjs",
-)).createStylePolicy({ projectRoot }) as {
+} = loadCommonJsModule(
+  path.join(projectRoot, "scripts/architecture/style-policy.cjs"),
+).createStylePolicy({ projectRoot }) as {
   canonicalTokenStylePaths: readonly string[];
   derivedTokenStylePaths: readonly string[];
   highRiskPreRedesignStylePaths: readonly string[];
@@ -39,7 +38,9 @@ const tokenCssPaths = canonicalTokenStylePaths
   .filter((stylePath) => stylePath.includes("/styles/tokens/"))
   .map((stylePath) => path.join(projectRoot, stylePath));
 const canonicalTokenCssPaths = new Set(
-  canonicalTokenStylePaths.map((stylePath) => path.join(projectRoot, stylePath)),
+  canonicalTokenStylePaths.map((stylePath) =>
+    path.join(projectRoot, stylePath),
+  ),
 );
 const tokenIndexCssPath = path.join(
   srcDir,
@@ -169,6 +170,9 @@ type TokenLayer = {
   readonly rank: number;
 };
 
+const normalizeCssValueWhitespace = (value: string) =>
+  value.replace(/\s+/gu, " ").trim();
+
 const parseTokenDeclarations = (source: string): readonly TokenDeclaration[] =>
   Array.from(
     source.matchAll(/^\s*(--[a-z0-9-]+)\s*:\s*([^;]+);/gm),
@@ -182,7 +186,7 @@ const parseTokenDeclarations = (source: string): readonly TokenDeclaration[] =>
         `${name} declaration value`,
       );
 
-      return { name, order, value: value.trim() };
+      return { name, order, value: normalizeCssValueWhitespace(value) };
     },
   );
 
@@ -211,10 +215,9 @@ const tokenLayers: readonly TokenLayer[] = [
 ];
 const tokenOwnerByName = new Map(
   tokenLayers.flatMap((layer) =>
-    layer.declarations.map((declaration) => [
-      declaration.name,
-      { declaration, layer },
-    ] as const),
+    layer.declarations.map(
+      (declaration) => [declaration.name, { declaration, layer }] as const,
+    ),
   ),
 );
 const tokenReferencePattern = /var\(\s*(--[a-z0-9-]+)\s*\)/g;
@@ -222,9 +225,14 @@ const tokenReferences = (value: string) =>
   Array.from(value.matchAll(tokenReferencePattern), (match) =>
     requireDesignTokenFixtureValue(match[1], "token reference"),
   );
-const resolveTokenValue = (name: string, ancestry: readonly string[] = []): string => {
+const resolveTokenValue = (
+  name: string,
+  ancestry: readonly string[] = [],
+): string => {
   if (ancestry.includes(name)) {
-    throw new Error(`Circular design token reference: ${[...ancestry, name].join(" -> ")}`);
+    throw new Error(
+      `Circular design token reference: ${[...ancestry, name].join(" -> ")}`,
+    );
   }
 
   const owner = tokenOwnerByName.get(name);
@@ -265,10 +273,7 @@ const findLegacyAppOverlayZIndexMatch = (line: string) => {
     if (match) {
       return {
         pattern: pattern.name,
-        text: requireDesignTokenFixtureValue(
-          match[0],
-          `${pattern.name} match`,
-        ),
+        text: requireDesignTokenFixtureValue(match[0], `${pattern.name} match`),
       };
     }
   }
@@ -282,7 +287,9 @@ const isProductionContractFile = (filePath: string) => {
   const fileName = path.basename(filePath);
 
   return (
-    productionContractExtensions.some((extension) => filePath.endsWith(extension)) &&
+    productionContractExtensions.some((extension) =>
+      filePath.endsWith(extension),
+    ) &&
     !fileName.includes(".test.") &&
     fileName !== "setupTests.ts" &&
     !canonicalTokenCssPaths.has(filePath)
@@ -307,7 +314,7 @@ const collectProductionContractFiles = (dir: string): string[] => {
 
 const productionContractFiles = collectProductionContractFiles(srcDir);
 const productionCssFiles = productionContractFiles.filter((filePath) =>
-  filePath.endsWith(".css")
+  filePath.endsWith(".css"),
 );
 const strictTokenOwnedCssFiles = productionCssFiles
   .filter((filePath) => isStrictStylePath(filePath))
@@ -315,7 +322,8 @@ const strictTokenOwnedCssFiles = productionCssFiles
 
 const cssPath = (relativePath: string) => path.join(srcDir, relativePath);
 
-const readCss = (relativePath: string) => fs.readFileSync(cssPath(relativePath), "utf8");
+const readCss = (relativePath: string) =>
+  fs.readFileSync(cssPath(relativePath), "utf8");
 
 const findRawZIndexDeclaration = (line: string) => {
   const match = line.match(/\bz-index\s*:\s*([^;]+)/i);
@@ -371,41 +379,46 @@ const tokenEquivalentLengthRegex = (values: string[]) =>
   new RegExp(`\\b(?:${values.join("|")})\\b`, "i");
 
 const findForbiddenTokenEquivalentLiteralMatches = (source: string) =>
-  Array.from(source.matchAll(tokenEquivalentDeclarationRegex)).flatMap((match) => {
-    const prefix = requireDesignTokenFixtureValue(
-      match[1],
-      "token literal prefix",
-    );
-    const property = requireDesignTokenFixtureValue(
-      match[2],
-      "token literal property",
-    ).toLowerCase();
-    const value = requireDesignTokenFixtureValue(
-      match[3],
-      `${property} literal value`,
-    );
-    const isFontSizeDeclaration = property === "font-size";
-    const tokenEquivalentValues = isFontSizeDeclaration
-      ? tokenEquivalentFontSizeLiteralValues
-      : tokenEquivalentSpaceLiteralValues;
+  Array.from(source.matchAll(tokenEquivalentDeclarationRegex)).flatMap(
+    (match) => {
+      const prefix = requireDesignTokenFixtureValue(
+        match[1],
+        "token literal prefix",
+      );
+      const property = requireDesignTokenFixtureValue(
+        match[2],
+        "token literal property",
+      ).toLowerCase();
+      const value = requireDesignTokenFixtureValue(
+        match[3],
+        `${property} literal value`,
+      );
+      const isFontSizeDeclaration = property === "font-size";
+      const tokenEquivalentValues = isFontSizeDeclaration
+        ? tokenEquivalentFontSizeLiteralValues
+        : tokenEquivalentSpaceLiteralValues;
 
-    if (!tokenEquivalentLengthRegex(tokenEquivalentValues).test(value)) {
-      return [];
-    }
+      if (!tokenEquivalentLengthRegex(tokenEquivalentValues).test(value)) {
+        return [];
+      }
 
-    return [
-      {
-        index: (match.index ?? 0) + prefix.length,
-        name: isFontSizeDeclaration ? "font-size-token-literal" : "space-token-literal",
-        text: `${property}: ${compactCssSnippet(value)}`,
-      },
-    ];
-  });
+      return [
+        {
+          index: (match.index ?? 0) + prefix.length,
+          name: isFontSizeDeclaration
+            ? "font-size-token-literal"
+            : "space-token-literal",
+          text: `${property}: ${compactCssSnippet(value)}`,
+        },
+      ];
+    },
+  );
 
 const sourceLineNumberAt = (source: string, offset: number) =>
   source.slice(0, offset).split(/\r?\n/).length;
 
-const compactCssSnippet = (snippet: string) => snippet.replace(/\s+/g, " ").trim();
+const compactCssSnippet = (snippet: string) =>
+  snippet.replace(/\s+/g, " ").trim();
 
 const findTransitionAllMatches = (source: string) =>
   Array.from(source.matchAll(/\btransition\s*:\s*all\b/gi)).map((match) => ({
@@ -415,7 +428,8 @@ const findTransitionAllMatches = (source: string) =>
     ),
   }));
 
-const normalizeSelector = (selector: string) => selector.trim().replace(/\s+/g, " ");
+const normalizeSelector = (selector: string) =>
+  selector.trim().replace(/\s+/g, " ");
 
 const cssRuleBlocks = (source: string) =>
   Array.from(source.matchAll(/([^{}]+)\{([^{}]*)\}/g))
@@ -431,12 +445,18 @@ const cssRuleBlocks = (source: string) =>
 
       return {
         selectorText,
-        selectors: selectorText.split(",").map(normalizeSelector).filter(Boolean),
+        selectors: selectorText
+          .split(",")
+          .map(normalizeSelector)
+          .filter(Boolean),
         declarations,
         lineNumber: sourceLineNumberAt(source, match.index ?? 0),
       };
     })
-    .filter((block) => block.selectors.length > 0 && !block.selectorText.startsWith("@"));
+    .filter(
+      (block) =>
+        block.selectors.length > 0 && !block.selectorText.startsWith("@"),
+    );
 
 const focusVisibleSelectorFor = (selector: string) => {
   if (selector.includes(":focus-visible")) {
@@ -453,7 +473,9 @@ const focusVisibleSelectorFor = (selector: string) => {
 const collectOutlineResetOffenders = (relativePath: string, source: string) => {
   const blocks = cssRuleBlocks(source);
   const focusVisibleSelectors = new Set(
-    blocks.flatMap((block) => block.selectors.filter((selector) => selector.includes(":focus-visible"))),
+    blocks.flatMap((block) =>
+      block.selectors.filter((selector) => selector.includes(":focus-visible")),
+    ),
   );
 
   return blocks.flatMap((block) => {
@@ -571,9 +593,11 @@ describe("design token stylesheet contract", () => {
   });
 
   it("preserves every pre-hierarchy public token's rendered default value", () => {
-    Object.entries(expectedPublicTokenValues).forEach(([name, expectedValue]) => {
-      expect(resolveTokenValue(name)).toBe(expectedValue);
-    });
+    Object.entries(expectedPublicTokenValues).forEach(
+      ([name, expectedValue]) => {
+        expect(resolveTokenValue(name)).toBe(expectedValue);
+      },
+    );
   });
 
   it("assigns every current token to exactly one explicit layer owner", () => {
@@ -659,8 +683,8 @@ describe("design token stylesheet contract", () => {
   });
 
   it("keeps legacy app-level overlay z-index literals out of production source files", () => {
-    const offenders = collectProductionContractFiles(srcDir)
-      .flatMap((filePath) => {
+    const offenders = collectProductionContractFiles(srcDir).flatMap(
+      (filePath) => {
         const source = fs.readFileSync(filePath, "utf8");
 
         return source.split(/\r?\n/).flatMap((line, index) => {
@@ -672,7 +696,8 @@ describe("design token stylesheet contract", () => {
 
           return `${path.relative(process.cwd(), filePath)}:${index + 1}: [${match.pattern}] ${match.text}`;
         });
-      });
+      },
+    );
 
     expect(offenders).toEqual([]);
   });
@@ -682,19 +707,25 @@ describe("design token stylesheet contract", () => {
       pattern: "css-z-index",
       text: "z-index: 1000",
     });
-    expect(findLegacyAppOverlayZIndexMatch("z-index: 100000 !important;")).toMatchObject({
+    expect(
+      findLegacyAppOverlayZIndexMatch("z-index: 100000 !important;"),
+    ).toMatchObject({
       pattern: "css-z-index",
       text: "z-index: 100000 !important",
     });
-    expect(findLegacyAppOverlayZIndexMatch("style={{ zIndex: 1000 }}")).toMatchObject({
+    expect(
+      findLegacyAppOverlayZIndexMatch("style={{ zIndex: 1000 }}"),
+    ).toMatchObject({
       pattern: "react-zIndex",
       text: "zIndex: 1000",
     });
-    expect(findLegacyAppOverlayZIndexMatch("{ zIndex: '99999' }")).toMatchObject({
+    expect(
+      findLegacyAppOverlayZIndexMatch("{ zIndex: '99999' }"),
+    ).toMatchObject({
       pattern: "react-zIndex",
       text: "zIndex: '99999",
     });
-    expect(findLegacyAppOverlayZIndexMatch("zIndex = \"10000\"")).toMatchObject({
+    expect(findLegacyAppOverlayZIndexMatch('zIndex = "10000"')).toMatchObject({
       pattern: "react-zIndex",
       text: 'zIndex = "10000',
     });
@@ -702,14 +733,16 @@ describe("design token stylesheet contract", () => {
       pattern: "css-z-index",
       text: "z-index: 5000",
     });
-    expect(findLegacyAppOverlayZIndexMatch('zIndex: "var(--z-popover)"')).toBeNull();
+    expect(
+      findLegacyAppOverlayZIndexMatch('zIndex: "var(--z-popover)"'),
+    ).toBeNull();
   });
 
   it("keeps app toast containers on the toast z-index token", () => {
     const toastContainerFiles = collectProductionContractFiles(srcDir).filter(
       (filePath) =>
         filePath.endsWith(".css") &&
-        fs.readFileSync(filePath, "utf8").includes(".toastContainer")
+        fs.readFileSync(filePath, "utf8").includes(".toastContainer"),
     );
 
     expect(toastContainerFiles.length).toBeGreaterThan(0);
@@ -717,7 +750,7 @@ describe("design token stylesheet contract", () => {
     toastContainerFiles.forEach((filePath) => {
       const block = selectorBlock(
         fs.readFileSync(filePath, "utf8"),
-        ".toastContainer"
+        ".toastContainer",
       );
       expectDeclaration(block, "z-index: var(--z-toast);");
     });
@@ -747,11 +780,12 @@ describe("design token stylesheet contract", () => {
   });
 
   it("keeps strict token-owned CSS off transition-all declarations", () => {
-    const offenders = collectStrictTokenOwnedCssSourceOffenders((relativePath, source) =>
-      findTransitionAllMatches(source).map(
-        (match) =>
-          `${relativePath}:${sourceLineNumberAt(source, match.index)}: ${match.text}`,
-      ),
+    const offenders = collectStrictTokenOwnedCssSourceOffenders(
+      (relativePath, source) =>
+        findTransitionAllMatches(source).map(
+          (match) =>
+            `${relativePath}:${sourceLineNumberAt(source, match.index)}: ${match.text}`,
+        ),
     );
 
     expect(offenders).toEqual([]);
@@ -784,8 +818,9 @@ describe("design token stylesheet contract", () => {
   });
 
   it("keeps strict token-owned CSS outline resets paired with focus-visible styles", () => {
-    const offenders = collectStrictTokenOwnedCssSourceOffenders((relativePath, source) =>
-      collectOutlineResetOffenders(relativePath, source),
+    const offenders = collectStrictTokenOwnedCssSourceOffenders(
+      (relativePath, source) =>
+        collectOutlineResetOffenders(relativePath, source),
     );
 
     expect(offenders).toEqual([]);
@@ -822,11 +857,12 @@ describe("design token stylesheet contract", () => {
   });
 
   it("keeps strict token-owned CSS off token-equivalent spacing and font literals", () => {
-    const offenders = collectStrictTokenOwnedCssSourceOffenders((relativePath, source) =>
-      findForbiddenTokenEquivalentLiteralMatches(source).map(
-        (match) =>
-          `${relativePath}:${sourceLineNumberAt(source, match.index)}: [${match.name}] ${match.text}`,
-      ),
+    const offenders = collectStrictTokenOwnedCssSourceOffenders(
+      (relativePath, source) =>
+        findForbiddenTokenEquivalentLiteralMatches(source).map(
+          (match) =>
+            `${relativePath}:${sourceLineNumberAt(source, match.index)}: [${match.name}] ${match.text}`,
+        ),
     );
 
     expect(offenders).toEqual([]);

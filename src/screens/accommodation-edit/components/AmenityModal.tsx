@@ -22,7 +22,7 @@ export const AmenityModal: React.FC<AmenityModalProps> = ({
       setFormData((prev) => ({
         ...prev,
         amenityInfos: prev.amenityInfos.filter(
-          (item) => item.name !== amenityValue
+          (item) => item.name !== amenityValue,
         ),
       }));
       return;
@@ -30,16 +30,17 @@ export const AmenityModal: React.FC<AmenityModalProps> = ({
 
     setFormData((prev) => ({
       ...prev,
-      amenityInfos: [
-        ...prev.amenityInfos,
-        { name: amenityValue, count: 1 },
-      ],
+      amenityInfos: [...prev.amenityInfos, { name: amenityValue, count: 1 }],
     }));
   };
   const title = "편의시설을 선택하세요";
 
   return (
-    <EditModalShell title={title} modalClassName={requireCssModuleClass(styles.typeModal)} onClose={onClose}>
+    <EditModalShell
+      title={title}
+      modalClassName={requireCssModuleClass(styles.typeModal)}
+      onClose={onClose}
+    >
       <div className={styles.typeModalHeader}>
         <h2 className={styles.typeModalTitle}>{title}</h2>
         <button
@@ -48,7 +49,12 @@ export const AmenityModal: React.FC<AmenityModalProps> = ({
           onClick={onClose}
           aria-label="모달 닫기"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
             <line x1="18" y1="6" x2="6" y2="18" />
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
@@ -56,7 +62,9 @@ export const AmenityModal: React.FC<AmenityModalProps> = ({
       </div>
       <div className={styles.typeModalGrid}>
         {AMENITY_OPTIONS.map((amenity) => {
-          const currentAmenity = amenityInfos.find((item) => item.name === amenity.value);
+          const currentAmenity = amenityInfos.find(
+            (item) => item.name === amenity.value,
+          );
           const isSelected = currentAmenity !== undefined;
           const count = currentAmenity?.count || 0;
 
@@ -86,14 +94,19 @@ export const AmenityModal: React.FC<AmenityModalProps> = ({
                           amenityInfos: prev.amenityInfos.map((item) =>
                             item.name === amenity.value
                               ? { ...item, count: count - 1 }
-                              : item
+                              : item,
                           ),
                         }));
                       }
                     }}
                     disabled={count <= 1}
                   >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
                       <line x1="5" y1="12" x2="19" y2="12" />
                     </svg>
                   </button>
@@ -108,12 +121,17 @@ export const AmenityModal: React.FC<AmenityModalProps> = ({
                         amenityInfos: prev.amenityInfos.map((item) =>
                           item.name === amenity.value
                             ? { ...item, count: count + 1 }
-                            : item
+                            : item,
                         ),
                       }));
                     }}
                   >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
                       <line x1="12" y1="5" x2="12" y2="19" />
                       <line x1="5" y1="12" x2="19" y2="12" />
                     </svg>

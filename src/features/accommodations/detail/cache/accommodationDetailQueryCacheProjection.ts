@@ -9,17 +9,16 @@ import { accommodationReadQueryKeys } from "../queries/queryKeys";
 
 type QueryPredicate = NonNullable<QueryFilters["predicate"]>;
 
-const exactScopedDetailPredicate = (
-  scope: SessionQueryScope,
-  accommodationId: number,
-): QueryPredicate =>
+const exactScopedDetailPredicate =
+  (scope: SessionQueryScope, accommodationId: number): QueryPredicate =>
   (query) =>
     query.queryKey[0] === accommodationReadQueryKeys.detailRoot[0] &&
     query.queryKey[1] === accommodationReadQueryKeys.detailRoot[1] &&
     query.queryKey[2] === accommodationId &&
     matchesSessionQueryScope(query.meta, scope);
 
-const scopedDetailPredicate = (scope: SessionQueryScope): QueryPredicate =>
+const scopedDetailPredicate =
+  (scope: SessionQueryScope): QueryPredicate =>
   (query) =>
     query.queryKey[0] === accommodationReadQueryKeys.detailRoot[0] &&
     query.queryKey[1] === accommodationReadQueryKeys.detailRoot[1] &&
@@ -45,16 +44,15 @@ export const createAccommodationDetailQueryCacheProjection = (
   queryClient: QueryClient,
 ): AccommodationDetailCacheProjectionPort => ({
   detailRefreshRequired({ scope, accommodationId }) {
-    return queryClient.invalidateQueries({
-      predicate: exactScopedDetailPredicate(scope, accommodationId),
-    }, { throwOnError: true });
+    return queryClient.invalidateQueries(
+      {
+        predicate: exactScopedDetailPredicate(scope, accommodationId),
+      },
+      { throwOnError: true },
+    );
   },
 
-  membershipReconciled({
-    scope,
-    accommodationId,
-    isInAnyWishlist,
-  }) {
+  membershipReconciled({ scope, accommodationId, isInAnyWishlist }) {
     queryClient.setQueriesData<AccommodationDetail>(
       { predicate: exactScopedDetailPredicate(scope, accommodationId) },
       (previous: AccommodationDetail | undefined) =>

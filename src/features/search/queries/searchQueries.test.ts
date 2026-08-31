@@ -69,10 +69,7 @@ describe("search read query contracts", () => {
     const api = { search: vi.fn() } as unknown as SearchApiPort;
     const request = { destination: "Seoul", page: 2, size: 18 };
 
-    const enabled = createSearchResultsQueryOptions(
-      { scope, request },
-      api,
-    );
+    const enabled = createSearchResultsQueryOptions({ scope, request }, api);
     const disabled = createSearchResultsQueryOptions(
       { scope, request, enabled: false },
       api,

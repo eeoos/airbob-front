@@ -13,7 +13,7 @@ const scope: AuthenticatedSessionScope = {
   epoch: 4,
 };
 
-const deferred = <T,>() => {
+const deferred = <T>() => {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>((resolvePromise) => {
     resolve = resolvePromise;
@@ -114,7 +114,9 @@ describe("host listing management workflow", () => {
       accommodationId: 31,
       status: "applied",
     });
-    expect(harness.publication.publishHostListingChanged).toHaveBeenCalledTimes(1);
+    expect(harness.publication.publishHostListingChanged).toHaveBeenCalledTimes(
+      1,
+    );
   });
 
   it("does not publish or grant UI authority after disposal during an active request", async () => {
@@ -137,7 +139,9 @@ describe("host listing management workflow", () => {
       status: "applied-stale",
       publication: { status: "skipped" },
     });
-    expect(harness.publication.publishHostListingChanged).not.toHaveBeenCalled();
+    expect(
+      harness.publication.publishHostListingChanged,
+    ).not.toHaveBeenCalled();
     expect(
       harness.workflow.execute({ action: "publish", accommodationId: 42 }),
     ).toBe(command);
@@ -179,7 +183,9 @@ describe("host listing management workflow", () => {
       status: "applied-stale",
       publication: { status: "skipped" },
     });
-    expect(harness.publication.publishHostListingChanged).not.toHaveBeenCalled();
+    expect(
+      harness.publication.publishHostListingChanged,
+    ).not.toHaveBeenCalled();
 
     harness.setSessionCurrent(true);
     expect(
@@ -368,6 +374,8 @@ describe("host listing management workflow", () => {
       harness.workflow.execute({ action: "publish", accommodationId: 31 }),
     ).resolves.toEqual({ status: "stale" });
     expect(harness.api.publish).not.toHaveBeenCalled();
-    expect(harness.publication.publishHostListingChanged).not.toHaveBeenCalled();
+    expect(
+      harness.publication.publishHostListingChanged,
+    ).not.toHaveBeenCalled();
   });
 });

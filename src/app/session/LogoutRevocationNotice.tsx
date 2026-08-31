@@ -15,12 +15,7 @@ export function LogoutRevocationNotice({
   return (
     <div className={styles.notice} role="alert" aria-live="assertive">
       <span>서버에서 로그아웃을 확인하지 못했습니다.</span>
-      <Button
-        size="sm"
-        type="button"
-        variant="secondary"
-        onClick={onRetry}
-      >
+      <Button size="sm" type="button" variant="secondary" onClick={onRetry}>
         다시 시도
       </Button>
     </div>

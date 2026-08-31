@@ -107,13 +107,13 @@ not a symbolic-link alias.
 
 ## 6. Assign state to one authority
 
-| State kind | Authority |
-| --- | --- |
-| Direct-load/history state | Route codec and URL |
-| Server resources | TanStack Query |
-| Viewer identity and async lifetime | App session subject/epoch |
-| Payment/editor transaction | Typed reducer and workflow command runner |
-| Draft focus/popover/hover state | Local component or narrow interaction reducer |
+| State kind                         | Authority                                     |
+| ---------------------------------- | --------------------------------------------- |
+| Direct-load/history state          | Route codec and URL                           |
+| Server resources                   | TanStack Query                                |
+| Viewer identity and async lifetime | App session subject/epoch                     |
+| Payment/editor transaction         | Typed reducer and workflow command runner     |
+| Draft focus/popover/hover state    | Local component or narrow interaction reducer |
 
 Do not mirror Query or URL values into React state. Do not store server data in
 browser storage when a reload can safely refetch it.
@@ -152,6 +152,11 @@ browser storage when a reload can safely refetch it.
   that the current Stylelint contract does not yet express remain focused Vitest owners
   and consume the same strict feature registry.
 - Local code and import feedback belongs to ESLint.
+- Mechanical layout of active source, tests, configuration, and compact current
+  documentation belongs to Prettier plus EditorConfig. The three wide
+  architecture registries remain hand-maintained to prevent whole-row churn;
+  generated artifacts, npm's lockfile, local tool state, binary assets, and
+  historical plans keep their existing owners.
 - ESLint environments are explicit: browser production, Vitest, Playwright,
   Node ESM, and Node CommonJS scopes may not inherit each other's globals.
   CRA/Jest presets and graph/reachability/CSS duplicates are forbidden.
@@ -175,6 +180,7 @@ Before declaring a slice complete:
 - Knip retains its canonical entry/project coverage, explicit plugin ownership,
   global dependency scans, and every error-level rule except cycles, which
   remain dependency-cruiser-owned;
+- `npm run format:check` passes without formatting excluded owners;
 - the ownership matrix and canonical architecture document match production;
 - residual live-backend or sandbox scope is marked unverified, not passed.
 

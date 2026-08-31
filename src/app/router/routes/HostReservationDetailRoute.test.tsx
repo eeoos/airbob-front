@@ -1,11 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import {
-  MemoryRouter,
-  Route,
-  Routes,
-  useLocation,
-} from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import type { SessionSubject } from "../../../platform/session/sessionScope";
 import { HostReservationDetailRoute } from "./HostReservationDetailRoute";
 
@@ -23,9 +18,11 @@ vi.mock("../../session/useSession", () => ({
 }));
 
 vi.mock("../../../screens/reservation-detail/public", () => ({
-  ReservationDetailController: (props: {
-    navigation: { openAccommodation(id: number): void };
-  } & Record<string, unknown>) => {
+  ReservationDetailController: (
+    props: {
+      navigation: { openAccommodation(id: number): void };
+    } & Record<string, unknown>,
+  ) => {
     Object.assign(capturedProps, props);
     return (
       <button

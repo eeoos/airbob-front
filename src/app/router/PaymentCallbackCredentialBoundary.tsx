@@ -9,9 +9,7 @@ import {
 } from "react";
 import { matchPath, useLocation, useNavigate } from "react-router-dom";
 import { browserWindowNavigation } from "../../platform/browser/windowNavigation";
-import type {
-  PaymentCallbackFreshTuple,
-} from "../../workflows/booking-payment/confirmation";
+import type { PaymentCallbackFreshTuple } from "../../workflows/booking-payment/confirmation";
 import { paymentCodec } from "./codecs/paymentCodec";
 import { ROUTE_PATHS, routeTo } from "./paths";
 

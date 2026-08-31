@@ -101,9 +101,7 @@ describe("paymentCodec", () => {
         orderId: "reservation-123",
         paymentKey: "payment/key 1",
       }).toString(),
-    ).toBe(
-      "paymentKey=payment%2Fkey+1&orderId=reservation-123&amount=120000",
-    );
+    ).toBe("paymentKey=payment%2Fkey+1&orderId=reservation-123&amount=120000");
     expect(
       serializePaymentFailRouteQuery({
         reason: "confirm-failed",

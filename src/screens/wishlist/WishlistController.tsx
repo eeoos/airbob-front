@@ -1,11 +1,5 @@
 import type { InfiniteData } from "@tanstack/react-query";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   getRecentlyViewedSummaryLabel,
   toRecentlyViewedAccommodationCardViewModel,
@@ -213,7 +207,8 @@ export function WishlistController({
     [recentlyViewedQuery.data],
   );
   const selectedWishlistName = useMemo(
-    () => wishlists.find((wishlist) => wishlist.id === selectedWishlistId)?.name,
+    () =>
+      wishlists.find((wishlist) => wishlist.id === selectedWishlistId)?.name,
     [selectedWishlistId, wishlists],
   );
 
@@ -291,10 +286,7 @@ export function WishlistController({
   });
 
   const handleDeleteWishlist = useCallback(
-    async (
-      wishlistId: number,
-      event: React.MouseEvent<HTMLButtonElement>,
-    ) => {
+    async (wishlistId: number, event: React.MouseEvent<HTMLButtonElement>) => {
       event.stopPropagation();
       const result = await runCommand(`delete:${wishlistId}`, () =>
         commands.deleteWishlist({ wishlistId }),
@@ -320,13 +312,11 @@ export function WishlistController({
       );
       if (!item) return;
 
-      const result = await runCommand(
-        `remove:${wishlistAccommodationId}`,
-        () =>
-          commands.removeAccommodation({
-            accommodationId: item.accommodation.id,
-            wishlistAccommodationId,
-          }),
+      const result = await runCommand(`remove:${wishlistAccommodationId}`, () =>
+        commands.removeAccommodation({
+          accommodationId: item.accommodation.id,
+          wishlistAccommodationId,
+        }),
       );
 
       if (result?.status === "applied-unconfirmed") {
@@ -366,13 +356,11 @@ export function WishlistController({
     const generation = memoState.generation;
     const wishlistAccommodationId = memoState.wishlistAccommodationId;
     const memo = memoState.text.trim();
-    const result = await runCommand(
-      `memo:${wishlistAccommodationId}`,
-      () =>
-        commands.saveMemo({
-          memo,
-          wishlistAccommodationId,
-        }),
+    const result = await runCommand(`memo:${wishlistAccommodationId}`, () =>
+      commands.saveMemo({
+        memo,
+        wishlistAccommodationId,
+      }),
     );
 
     if (result?.status === "applied") {
@@ -413,9 +401,8 @@ export function WishlistController({
         onDeleteWishlist: handleDeleteWishlist,
         onOpenRecentlyViewed: navigation.openRecentlyViewed,
         onOpenWishlist: navigation.openWishlistDetail,
-        recentlyViewedSummaryLabel: getRecentlyViewedSummaryLabel(
-          recentlyViewedCards,
-        ),
+        recentlyViewedSummaryLabel:
+          getRecentlyViewedSummaryLabel(recentlyViewedCards),
         setWishlistsObserverTarget,
         wishlists: wishlistIndexCards,
         wishlistsHasNext: wishlistsHaveNextPage,

@@ -25,7 +25,7 @@ const getNextReviewCursor = (
   allPageParams: (string | null)[],
 ) => {
   const nextCursor = page.pageInfo.hasNext
-    ? page.pageInfo.nextCursor ?? undefined
+    ? (page.pageInfo.nextCursor ?? undefined)
     : undefined;
 
   return nextCursor !== undefined && !allPageParams.includes(nextCursor)
@@ -34,11 +34,7 @@ const getNextReviewCursor = (
 };
 
 export const createAccommodationReviewsQueryOptions = (
-  {
-    accommodationId,
-    scope,
-    enabled = true,
-  }: AccommodationReviewsQueryOptions,
+  { accommodationId, scope, enabled = true }: AccommodationReviewsQueryOptions,
   api: ReviewReadApiPort = defaultReviewApi,
 ) => ({
   queryKey: reviewReadQueryKeys.accommodation(

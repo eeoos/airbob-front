@@ -12,10 +12,7 @@ import { browserWindowNavigation } from "../../../platform/browser/windowNavigat
 import { AccommodationEditController } from "../../../screens/accommodation-edit/public";
 import type { ListingEditorPublicationPort } from "../../../workflows/listing-editor";
 import { useSession } from "../../session/useSession";
-import {
-  isAccommodationEditDraftCreationState,
-  routeTo,
-} from "../paths";
+import { isAccommodationEditDraftCreationState, routeTo } from "../paths";
 import { listingEditorAddressSearch } from "./listingEditorAddressSearch";
 
 const toAccommodationId = (value: string | undefined): number => {
@@ -55,32 +52,28 @@ export function AccommodationEditRoute() {
     [location.hash, location.key, location.pathname, location.search],
   );
 
-  const publication = useMemo<ListingEditorPublicationPort>(
-    () => {
-      const accommodationDetails =
-        createAccommodationDetailQueryCacheProjection(queryClient);
-      const hostListings =
-        createHostListingQueryCacheProjection(queryClient);
+  const publication = useMemo<ListingEditorPublicationPort>(() => {
+    const accommodationDetails =
+      createAccommodationDetailQueryCacheProjection(queryClient);
+    const hostListings = createHostListingQueryCacheProjection(queryClient);
 
-      return {
-        async publishEditorChanged({
-          accommodationId: changedAccommodationId,
-          scope: changedScope,
-        }) {
-          await Promise.all([
-            accommodationDetails.detailRefreshRequired({
-              accommodationId: changedAccommodationId,
-              scope: changedScope,
-            }),
-            hostListings.refreshRequired({
-              scope: changedScope,
-            }),
-          ]);
-        },
-      };
-    },
-    [queryClient],
-  );
+    return {
+      async publishEditorChanged({
+        accommodationId: changedAccommodationId,
+        scope: changedScope,
+      }) {
+        await Promise.all([
+          accommodationDetails.detailRefreshRequired({
+            accommodationId: changedAccommodationId,
+            scope: changedScope,
+          }),
+          hostListings.refreshRequired({
+            scope: changedScope,
+          }),
+        ]);
+      },
+    };
+  }, [queryClient]);
 
   const navigateToHostProfile = useCallback(() => {
     navigate(routeTo.profile({ mode: "host" }));

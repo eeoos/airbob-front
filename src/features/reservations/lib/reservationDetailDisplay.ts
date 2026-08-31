@@ -26,16 +26,15 @@ const BANK_NAMES: Record<string, string> = {
   "92": "토스뱅크",
 };
 
-const PAYMENT_STATUS_LABELS: Partial<
-  Record<ReservationPaymentStatus, string>
-> = {
-  READY: "결제 대기",
-  IN_PROGRESS: "결제 진행 중",
-  WAITING_FOR_DEPOSIT: "입금 대기",
-  DONE: "결제 완료",
-  CANCELED: "결제 취소",
-  EXPIRED: "결제 만료",
-};
+const PAYMENT_STATUS_LABELS: Partial<Record<ReservationPaymentStatus, string>> =
+  {
+    READY: "결제 대기",
+    IN_PROGRESS: "결제 진행 중",
+    WAITING_FOR_DEPOSIT: "입금 대기",
+    DONE: "결제 완료",
+    CANCELED: "결제 취소",
+    EXPIRED: "결제 만료",
+  };
 
 const PAYMENT_STATUSES = new Set<ReservationPaymentStatus>([
   "READY",
@@ -48,9 +47,7 @@ const PAYMENT_STATUSES = new Set<ReservationPaymentStatus>([
   "EXPIRED",
 ]);
 
-const isPaymentStatus = (
-  status: string,
-): status is ReservationPaymentStatus =>
+const isPaymentStatus = (status: string): status is ReservationPaymentStatus =>
   PAYMENT_STATUSES.has(status as ReservationPaymentStatus);
 
 const isCheckoutCompleted = (
@@ -113,7 +110,9 @@ export const formatReservationDetailTime = (timeString: string): string => {
   if (separatorIndex <= 0) return timeString;
 
   const hours = Number(timeString.slice(0, separatorIndex));
-  const minutes = Number(timeString.slice(separatorIndex + 1, separatorIndex + 3));
+  const minutes = Number(
+    timeString.slice(separatorIndex + 1, separatorIndex + 3),
+  );
   if (
     !Number.isInteger(hours) ||
     !Number.isInteger(minutes) ||

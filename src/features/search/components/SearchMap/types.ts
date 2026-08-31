@@ -16,8 +16,7 @@ export interface SearchMapProps {
   hoveredAccommodationId?: number | null | undefined;
   onAccommodationSelect: (accommodation: SearchMapAccommodation | null) => void;
   onWishlistToggle?:
-    | ((accommodationId: number, isInWishlist: boolean) => void)
-    | undefined;
+    ((accommodationId: number, isInWishlist: boolean) => void) | undefined;
   getAccommodationHref: (accommodationId: number) => string;
   checkIn?: string | null | undefined;
   checkOut?: string | null | undefined;

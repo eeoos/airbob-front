@@ -421,10 +421,7 @@ describe("resolveServerPaymentCallbackReplay", () => {
 
   it.each([
     ["reservation", { reservationUid: "another-reservation" }],
-    [
-      "accommodation",
-      { accommodationId: 0 },
-    ],
+    ["accommodation", { accommodationId: 0 }],
     ["check-in normalization", { checkIn: "2026-09-01T15:00:00" }],
     ["date order", { checkOut: "2026-08-31" }],
     ["guest count", { guestCount: 0 }],

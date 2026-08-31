@@ -120,7 +120,8 @@
   overflow: hidden auto;
   z-index: var(--z-dropdown);
   margin-top: var(--space-1);
-  animation: suggestionsSlideDown var(--motion-duration-slow) var(--motion-ease-standard);
+  animation: suggestionsSlideDown var(--motion-duration-slow)
+    var(--motion-ease-standard);
   transform-origin: top;
 
   /* 스크롤바 숨기기 */
@@ -155,7 +156,8 @@
   cursor: pointer;
   font-family: inherit;
   text-align: left;
-  transition: background-color var(--motion-duration-base) var(--motion-ease-standard);
+  transition: background-color var(--motion-duration-base)
+    var(--motion-ease-standard);
 }
 
 .suggestionItem:last-child {
@@ -235,7 +237,8 @@
   cursor: pointer;
   color: var(--color-text-inverse);
   flex-shrink: 0;
-  transition: background-color var(--motion-duration-base) var(--motion-ease-standard);
+  transition: background-color var(--motion-duration-base)
+    var(--motion-ease-standard);
 }
 
 /* 컴팩트 모드에서 버튼 크기 줄이기 */
@@ -278,7 +281,8 @@
   padding: var(--space-4);
   min-width: 300px;
   z-index: var(--z-dropdown);
-  animation: guestPickerSlideDown var(--motion-duration-slow) var(--motion-ease-standard);
+  animation: guestPickerSlideDown var(--motion-duration-slow)
+    var(--motion-ease-standard);
   transform-origin: top right;
 }
 
@@ -352,7 +356,8 @@
   justify-content: center;
   font-size: var(--font-size-lg);
   color: var(--color-text-primary);
-  transition: border-color var(--motion-duration-base) var(--motion-ease-standard);
+  transition: border-color var(--motion-duration-base)
+    var(--motion-ease-standard);
 }
 
 .controlButton:hover:not(:disabled) {

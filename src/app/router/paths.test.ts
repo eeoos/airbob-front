@@ -69,9 +69,7 @@ describe("app router paths", () => {
         checkIn: "2026-07-10",
         adultOccupancy: 2,
       }),
-    ).toBe(
-      "/accommodations/12?checkIn=2026-07-10&adultOccupancy=2",
-    );
+    ).toBe("/accommodations/12?checkIn=2026-07-10&adultOccupancy=2");
     expect(routeTo.wishlist({ view: "recently-viewed" })).toBe(
       "/wishlist?view=recently-viewed",
     );

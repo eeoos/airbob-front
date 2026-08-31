@@ -158,7 +158,9 @@ describe("ReservationConfirmScreen", () => {
       />,
     );
 
-    expect(screen.getByText("결제 정보를 다시 확인해주세요.")).toBeInTheDocument();
+    expect(
+      screen.getByText("결제 정보를 다시 확인해주세요."),
+    ).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "오류 닫기" }));
     expect(props.onClearError).toHaveBeenCalledTimes(1);
   });

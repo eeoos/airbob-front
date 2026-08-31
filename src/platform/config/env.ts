@@ -53,19 +53,13 @@ export class ConfigError extends Error {
 const readProcessEnvironment = (): BrowserEnvironmentSource => ({
   NODE_ENV: process.env.NODE_ENV,
   REACT_APP_API_URL: process.env.REACT_APP_API_URL,
-  REACT_APP_GOOGLE_MAPS_API_KEY:
-    process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
+  REACT_APP_GOOGLE_MAPS_API_KEY: process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
   REACT_APP_TOSS_CLIENT_KEY: process.env.REACT_APP_TOSS_CLIENT_KEY,
-  REACT_APP_CLOUDFRONT_DOMAIN:
-    process.env.REACT_APP_CLOUDFRONT_DOMAIN,
+  REACT_APP_CLOUDFRONT_DOMAIN: process.env.REACT_APP_CLOUDFRONT_DOMAIN,
 });
 
 const parseRuntimeMode = (value: string | undefined): RuntimeMode => {
-  if (
-    value === "development" ||
-    value === "test" ||
-    value === "production"
-  ) {
+  if (value === "development" || value === "test" || value === "production") {
     return value;
   }
 

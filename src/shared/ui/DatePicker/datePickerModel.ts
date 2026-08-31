@@ -38,10 +38,7 @@ export const addDays = (date: Date, amount: number): Date =>
 export const addMonths = (date: Date, amount: number): Date =>
   new Date(date.getFullYear(), date.getMonth() + amount, 1);
 
-export const addMonthsPreservingDay = (
-  date: Date,
-  amount: number,
-): Date => {
+export const addMonthsPreservingDay = (date: Date, amount: number): Date => {
   const targetMonth = addMonths(date, amount);
   const lastDay = new Date(
     targetMonth.getFullYear(),

@@ -41,7 +41,7 @@ const getNextCursor = (
   allPageParams: readonly (string | null)[],
 ) => {
   const nextCursor = page.pageInfo.hasNext
-    ? page.pageInfo.nextCursor ?? undefined
+    ? (page.pageInfo.nextCursor ?? undefined)
     : undefined;
 
   return nextCursor !== undefined && !allPageParams.includes(nextCursor)
@@ -70,11 +70,7 @@ export interface WishlistListsQueryOptions {
 }
 
 export const createWishlistListsQueryOptions = (
-  {
-    scope,
-    accommodationId,
-    enabled = true,
-  }: WishlistListsQueryOptions,
+  { scope, accommodationId, enabled = true }: WishlistListsQueryOptions,
   api: WishlistApiPort = defaultWishlistApi,
 ) => ({
   queryKey: wishlistReadQueryKeys.lists(scope, accommodationId ?? null),
@@ -99,9 +95,7 @@ export const createWishlistListsQueryOptions = (
   throwOnError: false as const,
 });
 
-export const useWishlistListsReadQuery = (
-  options: WishlistListsQueryOptions,
-) =>
+export const useWishlistListsReadQuery = (options: WishlistListsQueryOptions) =>
   useInfiniteQuery<
     WishlistCollection,
     Error,
@@ -117,11 +111,7 @@ export interface WishlistDetailQueryOptions {
 }
 
 export const createWishlistDetailQueryOptions = (
-  {
-    scope,
-    enabled = true,
-    wishlistId,
-  }: WishlistDetailQueryOptions,
+  { scope, enabled = true, wishlistId }: WishlistDetailQueryOptions,
   api: WishlistApiPort = defaultWishlistApi,
 ) => {
   return {

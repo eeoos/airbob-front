@@ -8,13 +8,13 @@ import {
 describe("marker icon helpers", () => {
   it("formats KRW marker prices with the won symbol", () => {
     expect(getMarkerPriceText({ basePrice: 123456, currency: "KRW" })).toBe(
-      "₩123,456"
+      "₩123,456",
     );
   });
 
   it("formats non-KRW marker prices with the currency code", () => {
     expect(getMarkerPriceText({ basePrice: 250, currency: "USD" })).toBe(
-      "USD 250"
+      "USD 250",
     );
   });
 

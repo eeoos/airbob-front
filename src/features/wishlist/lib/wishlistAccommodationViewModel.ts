@@ -116,9 +116,7 @@ export const toRecentlyViewedAccommodationCardViewModel = (
       .join(", ") ||
     item.addressSummary?.country ||
     "",
-  showReview: Boolean(
-    item.reviewSummary && item.reviewSummary.totalCount > 0,
-  ),
+  showReview: Boolean(item.reviewSummary && item.reviewSummary.totalCount > 0),
   reviewRatingLabel: (item.reviewSummary?.averageRating ?? 0).toFixed(1),
   reviewCountLabel: `(${item.reviewSummary?.totalCount ?? 0})`,
   isInWishlist: item.isInWishlist,

@@ -1,10 +1,7 @@
 import { QueryClient } from "@tanstack/react-query";
 import type { Mocked } from "vitest";
 import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
-import type {
-  HostListingPage,
-  HostListingStatus,
-} from "../model/hostListing";
+import type { HostListingPage, HostListingStatus } from "../model/hostListing";
 import type {
   HostListingsApiPort,
   HostListingsRequest,
@@ -44,7 +41,7 @@ const page = (
   },
 });
 
-const deferred = <T,>() => {
+const deferred = <T>() => {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>((resolvePromise) => {
     resolve = resolvePromise;

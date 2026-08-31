@@ -1,8 +1,5 @@
 import React from "react";
-import {
-  getLimitedTotalPages,
-  getPaginationItems,
-} from "../lib/pagination";
+import { getLimitedTotalPages, getPaginationItems } from "../lib/pagination";
 
 interface SearchPaginationClassNames {
   container?: string;
@@ -93,7 +90,7 @@ export const SearchPagination: React.FC<SearchPaginationProps> = ({
                 aria-current={page === currentPage ? "page" : undefined}
                 className={classNamesFor(
                   classNames?.button,
-                  page === currentPage ? classNames?.activeButton : undefined
+                  page === currentPage ? classNames?.activeButton : undefined,
                 )}
                 onClick={() => onPageChange(page)}
                 disabled={isLoading}

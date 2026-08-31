@@ -75,9 +75,9 @@ export function WishlistModal({
   const wishlists = useMemo(
     () =>
       isOpen
-        ? wishlistsQuery.data?.pages.flatMap((page) =>
+        ? (wishlistsQuery.data?.pages.flatMap((page) =>
             page.wishlists.map(toWishlistModalItemViewModel),
-          ) ?? []
+          ) ?? [])
         : [],
     [isOpen, wishlistsQuery.data],
   );

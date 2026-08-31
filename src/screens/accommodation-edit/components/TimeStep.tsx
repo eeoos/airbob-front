@@ -22,7 +22,7 @@ interface TimeStepProps {
     type: AccommodationEditTimeField,
     hour: number,
     minute: number,
-    period: AccommodationEditTimePeriod
+    period: AccommodationEditTimePeriod,
   ) => void;
 }
 
@@ -58,8 +58,12 @@ export const TimeStep: React.FC<TimeStepProps> = ({
 
   return (
     <div className={formStyles.stepContent}>
-      <h2 className={formStyles.stepTitle}>체크인/체크아웃 시간을 설정하세요</h2>
-      <p className={formStyles.stepDescription}>게스트가 체크인하고 체크아웃할 수 있는 시간을 설정해주세요.</p>
+      <h2 className={formStyles.stepTitle}>
+        체크인/체크아웃 시간을 설정하세요
+      </h2>
+      <p className={formStyles.stepDescription}>
+        게스트가 체크인하고 체크아웃할 수 있는 시간을 설정해주세요.
+      </p>
 
       <div className={styles.formRow}>
         <div className={formStyles.formGroup}>
@@ -74,11 +78,15 @@ export const TimeStep: React.FC<TimeStepProps> = ({
               type="button"
               className={styles.timeInputButton}
               onClick={() =>
-                setOpenTimePicker(openTimePicker === "checkIn" ? null : "checkIn")
+                setOpenTimePicker(
+                  openTimePicker === "checkIn" ? null : "checkIn",
+                )
               }
             >
               <span className={styles.timeDisplay}>
-                {checkInParsed.period === "AM" ? "오전" : "오후"} {String(checkInParsed.hour).padStart(2, "0")}:{String(checkInParsed.minute).padStart(2, "0")}
+                {checkInParsed.period === "AM" ? "오전" : "오후"}{" "}
+                {String(checkInParsed.hour).padStart(2, "0")}:
+                {String(checkInParsed.minute).padStart(2, "0")}
               </span>
               <TimeIcon />
             </button>
@@ -94,7 +102,9 @@ export const TimeStep: React.FC<TimeStepProps> = ({
               />
             )}
           </div>
-          <p className={formStyles.helperText}>게스트가 체크인할 수 있는 시간입니다.</p>
+          <p className={formStyles.helperText}>
+            게스트가 체크인할 수 있는 시간입니다.
+          </p>
         </div>
 
         <div className={formStyles.formGroup}>
@@ -109,11 +119,15 @@ export const TimeStep: React.FC<TimeStepProps> = ({
               type="button"
               className={styles.timeInputButton}
               onClick={() =>
-                setOpenTimePicker(openTimePicker === "checkOut" ? null : "checkOut")
+                setOpenTimePicker(
+                  openTimePicker === "checkOut" ? null : "checkOut",
+                )
               }
             >
               <span className={styles.timeDisplay}>
-                {checkOutParsed.period === "AM" ? "오전" : "오후"} {String(checkOutParsed.hour).padStart(2, "0")}:{String(checkOutParsed.minute).padStart(2, "0")}
+                {checkOutParsed.period === "AM" ? "오전" : "오후"}{" "}
+                {String(checkOutParsed.hour).padStart(2, "0")}:
+                {String(checkOutParsed.minute).padStart(2, "0")}
               </span>
               <TimeIcon />
             </button>
@@ -129,7 +143,9 @@ export const TimeStep: React.FC<TimeStepProps> = ({
               />
             )}
           </div>
-          <p className={formStyles.helperText}>게스트가 체크아웃해야 하는 시간입니다.</p>
+          <p className={formStyles.helperText}>
+            게스트가 체크아웃해야 하는 시간입니다.
+          </p>
         </div>
       </div>
     </div>

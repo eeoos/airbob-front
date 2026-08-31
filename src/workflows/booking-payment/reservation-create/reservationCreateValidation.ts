@@ -121,10 +121,7 @@ export const validateReservationCreateCommand = (
     .map(parseLocalDateOrdinal)
     .filter((value): value is number => value !== null);
   for (const unavailableDay of unavailableOrdinals) {
-    if (
-      unavailableDay >= checkInOrdinal &&
-      unavailableDay < checkOutOrdinal
-    ) {
+    if (unavailableDay >= checkInOrdinal && unavailableDay < checkOutOrdinal) {
       fail("UNAVAILABLE_DATE");
     }
   }

@@ -7,7 +7,7 @@ type OutsideClickBoundary = {
 export const useOutsideClick = <T extends OutsideClickBoundary>(
   ref: RefObject<T | null>,
   onOutsideClick: (event: PointerEvent) => void,
-  enabled = true
+  enabled = true,
 ) => {
   const onOutsideClickRef = useRef(onOutsideClick);
 

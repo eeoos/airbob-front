@@ -60,7 +60,7 @@ export function Tabs<TValue extends string = string>({
     }
 
     const activeIndex = tabRefs.current.findIndex(
-      (element) => element === document.activeElement
+      (element) => element === document.activeElement,
     );
     const startIndex =
       activeIndex >= 0 ? activeIndex : Math.max(focusableIndex, 0);
@@ -92,19 +92,13 @@ export function Tabs<TValue extends string = string>({
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
-    if (
-      orientation === "horizontal" &&
-      event.key === "ArrowRight"
-    ) {
+    if (orientation === "horizontal" && event.key === "ArrowRight") {
       event.preventDefault();
       moveSelection(1);
       return;
     }
 
-    if (
-      orientation === "horizontal" &&
-      event.key === "ArrowLeft"
-    ) {
+    if (orientation === "horizontal" && event.key === "ArrowLeft") {
       event.preventDefault();
       moveSelection(-1);
       return;
@@ -158,7 +152,7 @@ export function Tabs<TValue extends string = string>({
               styles[`${variant}Tab`],
               isSelected && styles[`${variant}Selected`],
               tabClassName,
-              isSelected && selectedTabClassName
+              isSelected && selectedTabClassName,
             )}
             disabled={item.disabled}
             id={item.id}

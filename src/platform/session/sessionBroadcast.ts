@@ -58,7 +58,9 @@ const hasExactMessageKeys = (value: Record<string, unknown>) => {
 
   return (
     keys.length === MESSAGE_KEYS.length &&
-    MESSAGE_KEYS.every((key) => Object.prototype.hasOwnProperty.call(value, key))
+    MESSAGE_KEYS.every((key) =>
+      Object.prototype.hasOwnProperty.call(value, key),
+    )
   );
 };
 
@@ -73,7 +75,10 @@ const parseMessage = (value: unknown): SessionBroadcastMessage | null => {
     if (!isRecord(value) || !hasExactMessageKeys(value)) return null;
     if (value.version !== 1 || value.type !== "session-transition") return null;
     if (!isSourceId(value.sourceId)) return null;
-    if (!Number.isSafeInteger(value.sequence) || (value.sequence as number) < 1) {
+    if (
+      !Number.isSafeInteger(value.sequence) ||
+      (value.sequence as number) < 1
+    ) {
       return null;
     }
     if (!isPhase(value.phase)) return null;

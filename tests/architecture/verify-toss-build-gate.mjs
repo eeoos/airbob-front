@@ -29,7 +29,7 @@ const runVerifier = () =>
 
 try {
   await mkdir(staticDirectory, { recursive: true });
-  await writeFile(indexPath, "<!doctype html><div id=\"root\"></div>");
+  await writeFile(indexPath, '<!doctype html><div id="root"></div>');
   await writeFile(
     mainScriptPath,
     'export const src = "https://js.tosspayments.com/v2/standard";',
@@ -48,10 +48,12 @@ try {
   );
   const legacyHtmlResult = runVerifier();
   if (legacyHtmlResult.status === 0) {
-    throw new Error("A legacy Toss script in BUILD_PATH HTML bypassed the gate.");
+    throw new Error(
+      "A legacy Toss script in BUILD_PATH HTML bypassed the gate.",
+    );
   }
 
-  await writeFile(indexPath, "<!doctype html><div id=\"root\"></div>");
+  await writeFile(indexPath, '<!doctype html><div id="root"></div>');
   await writeFile(mainScriptPath, "export const runtime = 'missing';");
   const missingV2Result = runVerifier();
   if (missingV2Result.status === 0) {
@@ -61,4 +63,6 @@ try {
   await rm(fixtureRoot, { recursive: true, force: true });
 }
 
-process.stdout.write("Toss production BUILD_PATH fixtures passed (3 scenarios).\n");
+process.stdout.write(
+  "Toss production BUILD_PATH fixtures passed (3 scenarios).\n",
+);

@@ -69,8 +69,8 @@ describe("search API adapter", () => {
       signal,
     });
     const firstCall = requireDefined(transport.mock.calls[0], "transport call");
-    expect(requireDefined(firstCall[0], "transport request")).not.toHaveProperty(
-      "body",
-    );
+    expect(
+      requireDefined(firstCall[0], "transport request"),
+    ).not.toHaveProperty("body");
   });
 });

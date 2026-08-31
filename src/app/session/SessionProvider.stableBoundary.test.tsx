@@ -14,10 +14,7 @@ import type {
   SessionViewer,
 } from "../../features/auth/ports/sessionPort";
 import type { SessionBroadcast } from "../../platform/session/sessionBroadcast";
-import {
-  AuthIntentProvider,
-  useAuthIntent,
-} from "../../workflows/auth-intent";
+import { AuthIntentProvider, useAuthIntent } from "../../workflows/auth-intent";
 import { SessionProvider } from "./SessionProvider";
 import { toSessionSubject, type SessionState } from "./sessionState";
 import { useSession } from "./useSession";

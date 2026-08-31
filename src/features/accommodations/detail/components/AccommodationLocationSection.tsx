@@ -10,8 +10,7 @@ interface AccommodationLocationSectionProps {
 
 export function AccommodationLocationSection({
   detailView,
-  googleMapsApiKey =
-    getPublicRuntimeConfig().googleMapsBrowserKey ?? "",
+  googleMapsApiKey = getPublicRuntimeConfig().googleMapsBrowserKey ?? "",
 }: AccommodationLocationSectionProps) {
   const { latitude, longitude } = detailView.coordinate;
   const hasCoordinates = Boolean(latitude && longitude);
@@ -27,9 +26,7 @@ export function AccommodationLocationSection({
   return (
     <section className={`${styles.section} ${styles.locationSectionFullWidth}`}>
       <h2 className={styles.sectionTitle}>위치</h2>
-      <p className={styles.address}>
-        {detailView.locationLabel}
-      </p>
+      <p className={styles.address}>{detailView.locationLabel}</p>
       {hasCoordinates && (
         <div className={styles.mapContainer}>
           {mapUrl ? (

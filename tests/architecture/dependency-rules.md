@@ -7,15 +7,16 @@ permit historical dependency debt.
 
 ## Single rule owners
 
-| Concern | Owner | Blocking scope at U3 | Legacy signal |
-| --- | --- | --- | --- |
-| Import direction, resolvability, production-to-test/dev edges, module/folder cycles | dependency-cruiser | `src/app`, `screens`, `workflows`, `platform`, `shared`, plus features registered as migrated | Legacy cycles remain warnings. Every feature-to-peer production import is an error. |
-| Production reachability | Knip production file scan | The target/migrated surface through a result preprocessor | The complete report remains visible without per-file ignores; export cleanup is a separate U18 closure gate. |
-| Runtime/development dependency classification, unlisted imports, and package binaries | Knip full-graph plus strict-production scans | Global | No baseline, Git delta, package ignore, or dependency suppression is permitted. |
-| CSS syntax and design references | Stylelint | Target/migrated CSS plus the already-clean shell/modal files named in config | Legacy design/syntax debt is warning-only; breakpoint and suppression invariants remain global errors. |
-| CSS interaction/token invariants not expressible by the pinned Stylelint line | Focused Vitest contracts using the central style policy | Target/migrated CSS plus the named high-risk pre-redesign set | No duplicated raw-color, `!important`, or import scanner remains. |
-| Local TypeScript/JavaScript feedback | ESLint | Existing strict source gate and architecture-tool scripts, including CRA-resolved `.mjs` modules | None for files in strict scope. |
-| Runtime behavior | Vitest and deterministic Playwright | Current behavior and migrated flows | Target behavior is never counted through skips. |
+| Concern                                                                               | Owner                                                   | Blocking scope at U3                                                                             | Legacy signal                                                                                                                                                                         |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Import direction, resolvability, production-to-test/dev edges, module/folder cycles   | dependency-cruiser                                      | `src/app`, `screens`, `workflows`, `platform`, `shared`, plus features registered as migrated    | Legacy cycles remain warnings. Every feature-to-peer production import is an error.                                                                                                   |
+| Production reachability                                                               | Knip production file scan                               | The target/migrated surface through a result preprocessor                                        | The complete report remains visible without per-file ignores; export cleanup is a separate U18 closure gate.                                                                          |
+| Runtime/development dependency classification, unlisted imports, and package binaries | Knip full-graph plus strict-production scans            | Global                                                                                           | No baseline, Git delta, package ignore, or dependency suppression is permitted.                                                                                                       |
+| CSS syntax and design references                                                      | Stylelint                                               | Target/migrated CSS plus the already-clean shell/modal files named in config                     | Legacy design/syntax debt is warning-only; breakpoint and suppression invariants remain global errors.                                                                                |
+| CSS interaction/token invariants not expressible by the pinned Stylelint line         | Focused Vitest contracts using the central style policy | Target/migrated CSS plus the named high-risk pre-redesign set                                    | No duplicated raw-color, `!important`, or import scanner remains.                                                                                                                     |
+| Local TypeScript/JavaScript feedback                                                  | ESLint                                                  | Existing strict source gate and architecture-tool scripts, including CRA-resolved `.mjs` modules | None for files in strict scope.                                                                                                                                                       |
+| Runtime behavior                                                                      | Vitest and deterministic Playwright                     | Current behavior and migrated flows                                                              | Target behavior is never counted through skips.                                                                                                                                       |
+| Mechanical formatting                                                                 | Prettier 3.9 plus EditorConfig                          | Active source, tests, configuration, and compact current documentation                           | Wide hand-maintained architecture registries, generated artifacts, npm's lockfile, local tool state, binary assets, archived docs, and historical plans retain their existing owners. |
 
 TypeScript 5.9 separately owns browser application, Vitest, Node tooling, and
 Playwright environments. It proves local type contracts; it does not duplicate
@@ -183,6 +184,19 @@ non-vendor, or unrelated vendor disables fail. The style fixtures prove both
 the design-value rules and the suppression boundary while preserving
 warning-only legacy debt.
 
+## Prettier owner
+
+Prettier owns layout only; it does not sort imports, rewrite architecture, or
+replace ESLint/Stylelint correctness rules. `.editorconfig` fixes UTF-8, LF,
+final newlines, two-space indentation, and trailing-whitespace behavior.
+`.prettierignore` is the executable ownership boundary for build/test output,
+local tool state, npm's generated lockfile, binary assets, archived documents,
+historical plans, and three paragraph-heavy architecture registries whose wide
+tables stay compact and hand-maintained. The public API fixture proves config
+resolution, actual TypeScript formatting, EditorConfig inheritance, and every
+important ignore class. `format:check` runs inside the canonical architecture
+gate.
+
 ## Commands
 
 ```bash
@@ -191,6 +205,7 @@ npm run lint:architecture
 npm run lint:dead-code
 npm run lint:dependencies
 npm run lint:styles
+npm run format:check
 npm run lint:architecture-tools
 npm run verify:architecture
 npm run report:architecture
@@ -211,4 +226,5 @@ Axios 1.20 and React Router 7.18 replace advisory-affected runtime versions;
 the full locked install graph reports zero known vulnerabilities as of the U23
 cutover. Their measured bundle increase remains visible under the U16 parity
 ceiling and is explicit U18 reduction work rather than a hidden exception.
-Formatting remains the final independent U23 mechanical pass.
+Prettier 3.9.6 and EditorConfig complete U23 with one independent mechanical
+formatter-owned pass and a CI-reachable drift gate.

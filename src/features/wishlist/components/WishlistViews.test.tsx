@@ -36,10 +36,11 @@ const makeWishlist = (
 
 const makeWishlistCard = (
   overrides: Partial<WishlistSummary> = {},
-): WishlistIndexCardViewModel => toWishlistIndexCardViewModel(makeWishlist(overrides));
+): WishlistIndexCardViewModel =>
+  toWishlistIndexCardViewModel(makeWishlist(overrides));
 
 const makeRecentlyViewed = (
-  overrides: Partial<RecentlyViewedAccommodation> = {}
+  overrides: Partial<RecentlyViewedAccommodation> = {},
 ): RecentlyViewedAccommodation => ({
   accommodationId: 101,
   accommodationName: "Ocean house",
@@ -65,7 +66,7 @@ const makeRecentlyViewedCard = (
   toRecentlyViewedAccommodationCardViewModel(makeRecentlyViewed(overrides));
 
 const makeWishlistAccommodation = (
-  overrides: Partial<WishlistAccommodation> = {}
+  overrides: Partial<WishlistAccommodation> = {},
 ): WishlistAccommodation => ({
   wishlistAccommodationId: 501,
   accommodation: {
@@ -104,7 +105,7 @@ const expectNoNestedInteractiveControls = (container: HTMLElement) => {
 };
 
 const renderWishlistIndex = (
-  props: Partial<React.ComponentProps<typeof WishlistIndexView>> = {}
+  props: Partial<React.ComponentProps<typeof WishlistIndexView>> = {},
 ) =>
   render(
     <WishlistIndexView
@@ -118,11 +119,11 @@ const renderWishlistIndex = (
       wishlists={[]}
       wishlistsHasNext={false}
       {...props}
-    />
+    />,
   );
 
 const renderWishlistDetail = (
-  props: Partial<React.ComponentProps<typeof WishlistDetailView>> = {}
+  props: Partial<React.ComponentProps<typeof WishlistDetailView>> = {},
 ) =>
   render(
     <WishlistDetailView
@@ -137,11 +138,11 @@ const renderWishlistDetail = (
       setWishlistAccommodationsObserverTarget={noopObserver}
       wishlistAccommodations={[]}
       {...props}
-    />
+    />,
   );
 
 const renderRecentlyViewed = (
-  props: Partial<React.ComponentProps<typeof RecentlyViewedView>> = {}
+  props: Partial<React.ComponentProps<typeof RecentlyViewedView>> = {},
 ) =>
   render(
     <RecentlyViewedView
@@ -153,7 +154,7 @@ const renderRecentlyViewed = (
       onWishlistToggle={vi.fn()}
       recentlyViewed={[]}
       {...props}
-    />
+    />,
   );
 
 describe("Wishlist view components", () => {
@@ -169,14 +170,16 @@ describe("Wishlist view components", () => {
     expect(screen.getByText("위시리스트가 비어있습니다.")).toBeInTheDocument();
 
     renderRecentlyViewed();
-    expect(screen.getByText("최근 조회한 숙소가 없습니다.")).toBeInTheDocument();
+    expect(
+      screen.getByText("최근 조회한 숙소가 없습니다."),
+    ).toBeInTheDocument();
   });
 
   it("does not open a wishlist card when deleting the wishlist", async () => {
     const onDeleteWishlist = vi.fn(
       (_wishlistId: number, event: React.MouseEvent<HTMLButtonElement>) => {
         event.stopPropagation();
-      }
+      },
     );
     const onOpenWishlist = vi.fn();
 
@@ -186,7 +189,9 @@ describe("Wishlist view components", () => {
       wishlists: [makeWishlistCard()],
     });
 
-    await userEvent.click(screen.getByRole("button", { name: "위시리스트 삭제" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "위시리스트 삭제" }),
+    );
 
     expect(onDeleteWishlist).toHaveBeenCalledWith(42, expect.any(Object));
     expect(onOpenWishlist).not.toHaveBeenCalled();
@@ -304,7 +309,9 @@ describe("Wishlist view components", () => {
       recentlyViewedSummaryLabel: "오늘",
       wishlists: [makeWishlistCard()],
     });
-    expect(screen.getByRole("button", { name: "위시리스트 삭제" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "위시리스트 삭제" }),
+    ).toBeInTheDocument();
     expectNoNestedInteractiveControls(indexContainer);
 
     const { container: detailContainer } = renderWishlistDetail({
@@ -316,7 +323,9 @@ describe("Wishlist view components", () => {
     const { container: recentlyViewedContainer } = renderRecentlyViewed({
       recentlyViewed: [makeRecentlyViewedCard()],
     });
-    expect(screen.getByRole("button", { name: "위시리스트" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "위시리스트" }),
+    ).toBeInTheDocument();
     expectNoNestedInteractiveControls(recentlyViewedContainer);
   });
 

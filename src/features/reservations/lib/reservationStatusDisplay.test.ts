@@ -28,6 +28,6 @@ describe("reservation status display", () => {
     (status, label, tone) => {
       expect(formatReservationStatus(status)).toBe(label);
       expect(getReservationStatusTone(status)).toBe(tone);
-    }
+    },
   );
 });

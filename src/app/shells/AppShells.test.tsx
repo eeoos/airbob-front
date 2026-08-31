@@ -1,11 +1,7 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 import { render, screen, within } from "@testing-library/react";
-import {
-  appShellComponents,
-  BareShell,
-  FormShell,
-} from ".";
+import { appShellComponents, BareShell, FormShell } from ".";
 
 const appShellIds = [
   "browse",
@@ -27,7 +23,7 @@ describe("app shells", () => {
       render(
         <Shell header={<header data-testid="app-header">Header</header>}>
           <p>Shell content</p>
-        </Shell>
+        </Shell>,
       );
 
       const main = screen.getByRole("main");
@@ -36,7 +32,7 @@ describe("app shells", () => {
       expect(screen.getAllByRole("main")).toHaveLength(1);
       expect(header).toAppearBefore(main);
       expect(within(main).getByText("Shell content")).toBeInTheDocument();
-    }
+    },
   );
 
   it.each([
@@ -46,7 +42,7 @@ describe("app shells", () => {
     render(
       <Shell header={null}>
         <p>Headerless content</p>
-      </Shell>
+      </Shell>,
     );
 
     expect(screen.queryByRole("banner")).not.toBeInTheDocument();
@@ -82,12 +78,8 @@ describe("app shells", () => {
       "utf8",
     );
 
-    expect(source).toContain(
-      "min-height: var(--layout-viewport-height);",
-    );
-    expect(source).toContain(
-      "background-color: var(--color-background-page);",
-    );
+    expect(source).toContain("min-height: var(--layout-viewport-height);");
+    expect(source).toContain("background-color: var(--color-background-page);");
     expect(source).toMatch(/\.main\s*\{[^}]*width:\s*100%;/s);
     expect(source).not.toContain("max-width");
   });

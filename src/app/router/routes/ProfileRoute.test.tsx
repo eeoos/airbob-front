@@ -170,17 +170,19 @@ const renderRoute = (
 
 const latestProfileProps = (): ProfileControllerProps => {
   const props = mockCapturedProfileProps.at(-1);
-  if (!props) throw new Error("Expected ProfileController props to be captured");
+  if (!props)
+    throw new Error("Expected ProfileController props to be captured");
   return props;
 };
 
 const latestWorkflowDependencies = (): HostListingManagementDependencies => {
   const calls = mockCreateHostListingManagementWorkflow.mock.calls;
   const dependencies = calls.at(-1)?.at(0) as
-    | HostListingManagementDependencies
-    | undefined;
+    HostListingManagementDependencies | undefined;
   if (!dependencies) {
-    throw new Error("Expected host-listing workflow dependencies to be captured");
+    throw new Error(
+      "Expected host-listing workflow dependencies to be captured",
+    );
   }
   return dependencies;
 };
@@ -359,10 +361,7 @@ describe("ProfileRoute direct-load ownership", () => {
 
   it("re-derives the view from browser back and forward URLs", async () => {
     renderRoute(
-      [
-        "/profile?mode=guest&tab=past",
-        "/profile?mode=host&tab=listings-draft",
-      ],
+      ["/profile?mode=guest&tab=past", "/profile?mode=host&tab=listings-draft"],
       1,
     );
     expect(latestProfileProps().routeView).toEqual({
@@ -395,9 +394,9 @@ describe("ProfileRoute navigation commands", () => {
   it("projects an encoded guest-reservation href without navigating", () => {
     renderRoute(["/profile?mode=guest&tab=upcoming"]);
 
-    expect(
-      latestProfileProps().hrefs.guestReservation("guest/rsv #7"),
-    ).toBe("/reservations/guest%2Frsv%20%237");
+    expect(latestProfileProps().hrefs.guestReservation("guest/rsv #7")).toBe(
+      "/reservations/guest%2Frsv%20%237",
+    );
     expect(screen.getByTestId("current-location")).toHaveTextContent(
       "/profile?mode=guest&tab=upcoming",
     );
@@ -454,8 +453,7 @@ describe("ProfileRoute navigation commands", () => {
     {
       label: "unpublished listing status",
       initialEntry: "/profile?mode=host&tab=listings-draft",
-      invoke: (navigation) =>
-        navigation.changeHostListingStatus("UNPUBLISHED"),
+      invoke: (navigation) => navigation.changeHostListingStatus("UNPUBLISHED"),
       expected: "/profile?mode=host&tab=listings-unpublished",
     },
     {
@@ -523,17 +521,14 @@ describe("ProfileRoute navigation commands", () => {
     },
   ];
 
-  it.each(destinationCases)(
-    "opens $label",
-    async ({ expected, invoke }) => {
-      renderRoute(["/profile?mode=guest&tab=upcoming"]);
+  it.each(destinationCases)("opens $label", async ({ expected, invoke }) => {
+    renderRoute(["/profile?mode=guest&tab=upcoming"]);
 
-      act(() => invoke(latestProfileProps().navigation));
+    act(() => invoke(latestProfileProps().navigation));
 
-      await expectLocation(expected);
-      expect(screen.getByTestId("navigation-type")).toHaveTextContent("PUSH");
-    },
-  );
+    await expectLocation(expected);
+    expect(screen.getByTestId("navigation-type")).toHaveTextContent("PUSH");
+  });
 });
 
 describe("ProfileRoute publication ownership", () => {

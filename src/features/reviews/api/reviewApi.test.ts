@@ -136,7 +136,8 @@ describe("review API adapter", () => {
     });
 
     const requestInput = request.mock.calls.at(0)?.at(0);
-    if (!requestInput) throw new Error("Expected a review image upload request");
+    if (!requestInput)
+      throw new Error("Expected a review image upload request");
     expect(requestInput).toMatchObject({
       bodyEncoding: "multipart",
       method: "POST",

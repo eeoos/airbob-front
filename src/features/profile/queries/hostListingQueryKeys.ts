@@ -11,8 +11,6 @@ export interface HostListingQueryFilter {
 
 export const hostListingQueryKeys = {
   root,
-  list: (
-    scope: AuthenticatedSessionScope,
-    filter: HostListingQueryFilter,
-  ) => withSessionScopeKey(scope, [...root, { ...filter }] as const),
+  list: (scope: AuthenticatedSessionScope, filter: HostListingQueryFilter) =>
+    withSessionScopeKey(scope, [...root, { ...filter }] as const),
 };

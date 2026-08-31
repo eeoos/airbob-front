@@ -32,21 +32,20 @@ const ObserverHarness = ({
 describe("useIntersectionLoadMore", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    global.IntersectionObserver = vi.fn(function IntersectionObserverMock(
-      callback,
-      _options,
-    ) {
-      intersectionCallback = callback;
-      return {
-        disconnect,
-        observe,
-        root: null,
-        rootMargin: "",
-        takeRecords: () => [],
-        thresholds: [],
-        unobserve: vi.fn(),
-      };
-    });
+    global.IntersectionObserver = vi.fn(
+      function IntersectionObserverMock(callback, _options) {
+        intersectionCallback = callback;
+        return {
+          disconnect,
+          observe,
+          root: null,
+          rootMargin: "",
+          takeRecords: () => [],
+          thresholds: [],
+          unobserve: vi.fn(),
+        };
+      },
+    );
   });
 
   it("loads only while enabled and disconnects when loading starts", () => {
@@ -74,7 +73,8 @@ describe("useIntersectionLoadMore", () => {
 
   it("does not observe without more pages or browser observer support", () => {
     const originalObserver = global.IntersectionObserver;
-    global.IntersectionObserver = undefined as unknown as typeof IntersectionObserver;
+    global.IntersectionObserver =
+      undefined as unknown as typeof IntersectionObserver;
 
     const { rerender } = render(
       <ObserverHarness hasNext={false} onLoadMore={vi.fn()} />,

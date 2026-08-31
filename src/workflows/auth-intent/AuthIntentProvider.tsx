@@ -66,10 +66,7 @@ export function AuthIntentProvider({
   session,
 }: AuthIntentProviderProps) {
   const location = useLocation();
-  const currentSource = useMemo(
-    () => toLocationSource(location),
-    [location],
-  );
+  const currentSource = useMemo(() => toLocationSource(location), [location]);
   const currentSourceRef = useRef(currentSource);
   currentSourceRef.current = currentSource;
 
@@ -81,10 +78,13 @@ export function AuthIntentProvider({
   const pendingRecordRef = useRef<PendingAuthIntentRecord | null>(null);
   const [pending, setPending] = useState<PendingAuthIntent | null>(null);
 
-  const replacePending = useCallback((record: PendingAuthIntentRecord | null) => {
-    pendingRecordRef.current = record;
-    setPending(record?.value ?? null);
-  }, []);
+  const replacePending = useCallback(
+    (record: PendingAuthIntentRecord | null) => {
+      pendingRecordRef.current = record;
+      setPending(record?.value ?? null);
+    },
+    [],
+  );
 
   const request = useCallback(
     (intent: AuthIntent): AuthIntentAttemptId => {

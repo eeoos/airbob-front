@@ -1,8 +1,10 @@
 import React from "react";
 import styles from "./StateView.module.css";
 
-export interface StateViewProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
+export interface StateViewProps extends Omit<
+  React.HTMLAttributes<HTMLDivElement>,
+  "title"
+> {
   action?: React.ReactNode;
   description?: React.ReactNode;
   title: React.ReactNode;

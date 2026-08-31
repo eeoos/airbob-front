@@ -4,8 +4,10 @@ import styles from "./Card.module.css";
 export type CardPadding = "none" | "sm" | "md" | "lg";
 export type CardElement = "section" | "article" | "div" | "li";
 
-export interface CardProps
-  extends Omit<React.HTMLAttributes<HTMLElement>, "onClick"> {
+export interface CardProps extends Omit<
+  React.HTMLAttributes<HTMLElement>,
+  "onClick"
+> {
   as?: CardElement;
   /**
    * Visual hover treatment only. Use a real button or link inside the card for actions.
@@ -31,7 +33,7 @@ export function Card({
         styles.card,
         styles[padding],
         interactive && styles.interactive,
-        className
+        className,
       )}
       {...cardProps}
     >

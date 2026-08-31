@@ -5,19 +5,22 @@ import * as path from "path";
 const projectRoot = process.cwd();
 const srcDir = path.join(projectRoot, "src");
 const loadCommonJsModule = createRequire(import.meta.url);
-const { canonicalTokenStylePaths, protectedDesignLiteralStylePaths } = loadCommonJsModule(
-  "../../../scripts/architecture/style-policy.cjs"
-).createStylePolicy({ projectRoot }) as {
-  canonicalTokenStylePaths: readonly string[];
-  protectedDesignLiteralStylePaths: readonly string[];
-};
+const { canonicalTokenStylePaths, protectedDesignLiteralStylePaths } =
+  loadCommonJsModule(
+    "../../../scripts/architecture/style-policy.cjs",
+  ).createStylePolicy({ projectRoot }) as {
+    canonicalTokenStylePaths: readonly string[];
+    protectedDesignLiteralStylePaths: readonly string[];
+  };
 
 const readSource = (relativePath: string) =>
   fs.readFileSync(path.join(srcDir, relativePath), "utf8");
 const readTokenLayers = () =>
   canonicalTokenStylePaths
     .filter((stylePath) => stylePath.includes("/styles/tokens/"))
-    .map((stylePath) => fs.readFileSync(path.join(projectRoot, stylePath), "utf8"))
+    .map((stylePath) =>
+      fs.readFileSync(path.join(projectRoot, stylePath), "utf8"),
+    )
     .join("\n");
 
 const requiredLayoutTokenDeclarations = [
@@ -90,7 +93,9 @@ describe("design system entry contracts", () => {
     const searchPageCss = readSource("screens/search/SearchScreen.module.css");
 
     expect(searchPageCss).toContain("var(--layout-header-desktop-height)");
-    expect(searchPageCss).toContain("var(--layout-search-mobile-bottom-sheet-offset)");
+    expect(searchPageCss).toContain(
+      "var(--layout-search-mobile-bottom-sheet-offset)",
+    );
     expect(searchPageCss).not.toContain(
       "100vh - var(--layout-header-mobile-height) - 60px",
     );

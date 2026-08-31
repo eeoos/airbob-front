@@ -20,7 +20,7 @@ const scopeB: AuthenticatedSessionScope = {
   epoch: 4,
 };
 
-const deferred = <T,>() => {
+const deferred = <T>() => {
   let resolve!: (value: T | PromiseLike<T>) => void;
   let reject!: (reason?: unknown) => void;
   const promise = new Promise<T>((resolvePromise, rejectPromise) => {
@@ -388,9 +388,9 @@ describe("wishlistMembership", () => {
   it("routes list deletion and recently-viewed removal through their scoped projections", async () => {
     const { commands, projection, transport } = setup();
 
-    await expect(
-      commands.deleteWishlist({ wishlistId: 11 }),
-    ).resolves.toEqual({ status: "applied" });
+    await expect(commands.deleteWishlist({ wishlistId: 11 })).resolves.toEqual({
+      status: "applied",
+    });
     await expect(
       commands.removeRecentlyViewed({ accommodationId: 7 }),
     ).resolves.toEqual({ status: "applied" });
@@ -461,13 +461,53 @@ describe("wishlistMembership", () => {
   });
 
   it.each([
-    ["add accommodation id", () => setup().commands.addAccommodation({ accommodationId: 0, wishlistId: 11 })],
-    ["add wishlist id", () => setup().commands.addAccommodation({ accommodationId: 7, wishlistId: -1 })],
-    ["remove item id", () => setup().commands.removeAccommodation({ accommodationId: 7, wishlistAccommodationId: Number.NaN })],
-    ["delete wishlist id", () => setup().commands.deleteWishlist({ wishlistId: Number.MAX_SAFE_INTEGER + 1 })],
-    ["memo item id", () => setup().commands.saveMemo({ wishlistAccommodationId: 0, memo: "" })],
-    ["recently viewed id", () => setup().commands.removeRecentlyViewed({ accommodationId: -1 })],
-    ["empty wishlist name", () => setup().commands.createAndAddAccommodation({ accommodationId: 7, name: "   " })],
+    [
+      "add accommodation id",
+      () =>
+        setup().commands.addAccommodation({
+          accommodationId: 0,
+          wishlistId: 11,
+        }),
+    ],
+    [
+      "add wishlist id",
+      () =>
+        setup().commands.addAccommodation({
+          accommodationId: 7,
+          wishlistId: -1,
+        }),
+    ],
+    [
+      "remove item id",
+      () =>
+        setup().commands.removeAccommodation({
+          accommodationId: 7,
+          wishlistAccommodationId: Number.NaN,
+        }),
+    ],
+    [
+      "delete wishlist id",
+      () =>
+        setup().commands.deleteWishlist({
+          wishlistId: Number.MAX_SAFE_INTEGER + 1,
+        }),
+    ],
+    [
+      "memo item id",
+      () => setup().commands.saveMemo({ wishlistAccommodationId: 0, memo: "" }),
+    ],
+    [
+      "recently viewed id",
+      () => setup().commands.removeRecentlyViewed({ accommodationId: -1 }),
+    ],
+    [
+      "empty wishlist name",
+      () =>
+        setup().commands.createAndAddAccommodation({
+          accommodationId: 7,
+          name: "   ",
+        }),
+    ],
   ])("rejects invalid %s before creating transport work", (_case, command) => {
     expect(command).toThrow(TypeError);
   });

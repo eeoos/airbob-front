@@ -84,7 +84,10 @@ export const calculateStayNights = (
 };
 
 export const getSearchAccommodationPriceDisplay = (
-  accommodation: Pick<SearchAccommodationCardViewModel, "basePrice" | "currency">,
+  accommodation: Pick<
+    SearchAccommodationCardViewModel,
+    "basePrice" | "currency"
+  >,
   checkIn?: string | null,
   checkOut?: string | null,
 ): SearchAccommodationPriceDisplay => {

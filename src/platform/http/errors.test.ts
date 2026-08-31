@@ -86,18 +86,15 @@ describe("normalizeHttpError", () => {
   it.each([
     { error: { code: "M004" } },
     { success: true, data: null, error: { code: "M004" } },
-  ])(
-    "does not trust M004 outside a failure envelope (%p)",
-    (data) => {
-      expect(
-        normalizeHttpError(axiosFailure({ status: 403, data })),
-      ).toMatchObject({
-        kind: "http",
-        code: "HTTP_ERROR",
-        status: 403,
-      });
-    },
-  );
+  ])("does not trust M004 outside a failure envelope (%p)", (data) => {
+    expect(
+      normalizeHttpError(axiosFailure({ status: 403, data })),
+    ).toMatchObject({
+      kind: "http",
+      code: "HTTP_ERROR",
+      status: 403,
+    });
+  });
 
   it("keeps the raw transport cause non-enumerable and messages secret-safe", () => {
     const rawError = axiosFailure({

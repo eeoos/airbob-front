@@ -1,13 +1,9 @@
-import type {
-  AuthenticatedSessionScope,
-} from "../../../platform/session/sessionScope";
+import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
 import type {
   SessionStorageDriver,
   StorageAccessError,
 } from "../../../platform/storage/sessionStorageDriver";
-import type {
-  VersionedStorageRejectionReason,
-} from "../../../platform/storage/versionedSessionStorage";
+import type { VersionedStorageRejectionReason } from "../../../platform/storage/versionedSessionStorage";
 
 declare const bookingPaymentOperationIdBrand: unique symbol;
 
@@ -159,7 +155,10 @@ export type LegacyCheckoutMigrationResult =
 export interface CheckoutRepository {
   write(
     input: SubjectOwnedWriteInput<CheckoutWriteData>,
-  ): SubjectOwnedWriteResult<CheckoutData, { readonly handle: CheckoutHandoffState }>;
+  ): SubjectOwnedWriteResult<
+    CheckoutData,
+    { readonly handle: CheckoutHandoffState }
+  >;
   read(input: {
     readonly scope: AuthenticatedSessionScope;
     readonly accommodationId: number;

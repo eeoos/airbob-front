@@ -11,7 +11,7 @@ interface TimePickerProps {
   onChange: (
     hour: number,
     minute: number,
-    period: AccommodationEditTimePeriod
+    period: AccommodationEditTimePeriod,
   ) => void;
   onEscape?: () => boolean | void;
 }
@@ -40,14 +40,14 @@ export const TimePicker: React.FC<TimePickerProps> = ({
 
   useEffect(() => {
     const selectedButton = hourListRef.current?.querySelector(
-      `.${styles.timePickerOptionSelected}`
+      `.${styles.timePickerOptionSelected}`,
     ) as HTMLElement | null;
     selectedButton?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
   }, [localHour]);
 
   useEffect(() => {
     const selectedButton = minuteListRef.current?.querySelector(
-      `.${styles.timePickerOptionSelected}`
+      `.${styles.timePickerOptionSelected}`,
     ) as HTMLElement | null;
     selectedButton?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
   }, [localMinute]);
@@ -85,15 +85,23 @@ export const TimePicker: React.FC<TimePickerProps> = ({
       if (type === "hour") {
         const nextHour =
           e.key === "ArrowUp"
-            ? localHour >= 12 ? 1 : localHour + 1
-            : localHour <= 1 ? 12 : localHour - 1;
+            ? localHour >= 12
+              ? 1
+              : localHour + 1
+            : localHour <= 1
+              ? 12
+              : localHour - 1;
         handleHourChange(nextHour);
       } else {
         const currentIndex = minutes.findIndex((m) => m === localMinute);
         const nextIndex =
           e.key === "ArrowUp"
-            ? currentIndex >= minutes.length - 1 ? 0 : currentIndex + 1
-            : currentIndex <= 0 ? minutes.length - 1 : currentIndex - 1;
+            ? currentIndex >= minutes.length - 1
+              ? 0
+              : currentIndex + 1
+            : currentIndex <= 0
+              ? minutes.length - 1
+              : currentIndex - 1;
         const nextMinute = minutes[nextIndex];
         if (nextMinute !== undefined) {
           handleMinuteChange(nextMinute);
@@ -121,7 +129,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
 
   const hours = Array.from({ length: 12 }, (_, i) => i + 1);
   const minutes = Array.from({ length: 60 }, (_, i) => i).filter(
-    (m) => m % 5 === 0
+    (m) => m % 5 === 0,
   );
 
   return (

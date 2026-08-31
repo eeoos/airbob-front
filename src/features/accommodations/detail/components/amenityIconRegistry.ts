@@ -40,5 +40,5 @@ const accommodationAmenityGlyphs = {
 
 export const accommodationAmenityIconRegistry = defineIconRegistry(
   accommodationAmenityGlyphs,
-  pictogramGlyphs.alertCircle
+  pictogramGlyphs.alertCircle,
 );

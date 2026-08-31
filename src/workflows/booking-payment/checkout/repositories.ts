@@ -1,13 +1,9 @@
-import type {
-  AuthenticatedSessionScope,
-} from "../../../platform/session/sessionScope";
+import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
 import {
   createLegacyBookingPaymentStorage,
   type LegacyBookingPaymentCleanupResult,
 } from "../../../platform/storage/legacyBookingPaymentStorage";
-import {
-  type SessionStorageDriver,
-} from "../../../platform/storage/sessionStorageDriver";
+import { type SessionStorageDriver } from "../../../platform/storage/sessionStorageDriver";
 import { bookingPaymentStorageDriver } from "../../../platform/storage/bookingPaymentStorageDriver";
 import {
   createVersionedSessionStorage,
@@ -344,9 +340,7 @@ export const createBookingPaymentCheckoutRepository = ({
           legacy.clearCheckout(accommodationId, candidate.reservationUid),
         ];
         if (candidate.reservationUid !== targetReservationUid) {
-          cleanupResults.push(
-            legacy.clearCheckoutIndex(targetReservationUid),
-          );
+          cleanupResults.push(legacy.clearCheckoutIndex(targetReservationUid));
         }
       } else {
         cleanupResults = [
@@ -471,8 +465,7 @@ export const createBookingPaymentCheckoutRepository = ({
         amount: candidate.amount,
         checkIn: candidate.checkIn,
         checkOut: candidate.checkOut,
-        guestCount:
-          candidate.adultOccupancy + candidate.childOccupancy,
+        guestCount: candidate.adultOccupancy + candidate.childOccupancy,
       });
     } catch {
       verification = { status: "retryable-error" };
@@ -677,7 +670,10 @@ export const createBookingPaymentCallbackRepository = ({
 
 export const clearBookingPaymentBrowserState = ({
   driver = bookingPaymentStorageDriver,
-}: Pick<BookingPaymentRepositoryDependencies, "driver"> = {}): ClearBookingPaymentBrowserStateResult => {
+}: Pick<
+  BookingPaymentRepositoryDependencies,
+  "driver"
+> = {}): ClearBookingPaymentBrowserStateResult => {
   const currentStorage = createVersionedSessionStorage<CheckoutData>({
     namespace,
     slot: checkoutSlot,
@@ -691,9 +687,7 @@ export const clearBookingPaymentBrowserState = ({
     driver,
   });
 
-  const current = retryNamespaceCleanup(() =>
-    currentStorage.clearNamespace(),
-  );
+  const current = retryNamespaceCleanup(() => currentStorage.clearNamespace());
 
   const legacyStorage = createLegacyBookingPaymentStorage(driver);
   const legacy = retryNamespaceCleanup(() => {

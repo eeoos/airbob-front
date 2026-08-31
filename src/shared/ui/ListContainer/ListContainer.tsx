@@ -1,8 +1,10 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import styles from "./ListContainer.module.css";
 
-export interface ListContainerProps
-  extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
+export interface ListContainerProps extends Omit<
+  HTMLAttributes<HTMLDivElement>,
+  "children"
+> {
   readonly children: ReactNode;
   readonly columns?: 1 | 2 | 3 | 4;
   readonly gap?: 10 | 24 | 40;

@@ -15,9 +15,7 @@ vi.mock("../../queries", () => ({
   useWishlistListsReadQuery: vi.fn(),
 }));
 
-const mockUseWishlistListsReadQuery = vi.mocked(
-  useWishlistListsReadQuery,
-);
+const mockUseWishlistListsReadQuery = vi.mocked(useWishlistListsReadQuery);
 const scope: AuthenticatedSessionScope = {
   subject: "subject:member_a" as SessionSubject,
   epoch: 3,
@@ -53,9 +51,7 @@ const createCommands = (): Mocked<WishlistMembershipCommandPort> => ({
   }),
 });
 
-const mockQuery = (
-  overrides: Record<string, unknown> = {},
-) => {
+const mockQuery = (overrides: Record<string, unknown> = {}) => {
   const fetchNextPage = vi.fn().mockResolvedValue(undefined);
   mockUseWishlistListsReadQuery.mockReturnValue({
     data: { pageParams: [null], pages: [wishlistPage] },

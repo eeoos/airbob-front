@@ -6,9 +6,9 @@ import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
 const require = createRequire(import.meta.url);
-const { isProductionSourcePath } = require(
-  "../../scripts/architecture/source-policy.cjs",
-);
+const {
+  isProductionSourcePath,
+} = require("../../scripts/architecture/source-policy.cjs");
 const architectureDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(architectureDirectory, "../..");
 const eslintBinary = path.join(projectRoot, "node_modules/.bin/eslint");
@@ -95,14 +95,13 @@ const invalidScenarios = [
   {
     name: "integration adapter crossing into storage",
     filename: "src/platform/integrations/rogue-storage.ts",
-    source:
-      'export const value = window.sessionStorage.getItem("owned-key");',
+    source: 'export const value = window.sessionStorage.getItem("owned-key");',
     expectedMessage: "src/platform/storage",
   },
   {
     name: "configuration adapter crossing into storage",
     filename: "src/platform/config/rogue-storage.ts",
-    source: 'export const value = window.localStorage.length;',
+    source: "export const value = window.localStorage.length;",
     expectedMessage: "src/platform/storage",
   },
   {
@@ -162,7 +161,8 @@ const invalidScenarios = [
   },
   {
     name: "destructured Daum SDK global access",
-    source: "const { daum: postal } = self; export const value = postal.Postcode;",
+    source:
+      "const { daum: postal } = self; export const value = postal.Postcode;",
     expectedMessage: "src/platform/integrations",
   },
   {
@@ -182,7 +182,8 @@ const invalidScenarios = [
   },
   {
     name: "computed defaultView local storage access",
-    source: 'export const value = document.defaultView?.["localStorage"].length;',
+    source:
+      'export const value = document.defaultView?.["localStorage"].length;',
     expectedMessage: "src/platform/storage",
   },
   {
@@ -284,7 +285,8 @@ const invalidScenarios = [
   {
     name: "retired utils root Axios type import",
     filename: "src/utils/error.ts",
-    source: 'import type { AxiosError } from "axios"; export type Failure = AxiosError;',
+    source:
+      'import type { AxiosError } from "axios"; export type Failure = AxiosError;',
     expectedMessage: "platform HTTP boundary",
   },
   {
@@ -301,8 +303,7 @@ const invalidScenarios = [
   },
   {
     name: "Axios require",
-    source:
-      'export const value = require("axios/dist/browser/axios.cjs");',
+    source: 'export const value = require("axios/dist/browser/axios.cjs");',
     expectedMessage: "Dynamic Axios",
   },
   {
@@ -312,8 +313,7 @@ const invalidScenarios = [
   },
   {
     name: "aliased Axios require",
-    source:
-      'const load = require; export const value = load("axios");',
+    source: 'const load = require; export const value = load("axios");',
     expectedMessage: "Dynamic Axios",
   },
   {
@@ -346,8 +346,7 @@ const invalidScenarios = [
 
 for (const scenario of invalidScenarios) {
   const result = lintSource({
-    filename:
-      scenario.filename ?? "src/features/platform-boundary-fixture.ts",
+    filename: scenario.filename ?? "src/features/platform-boundary-fixture.ts",
     source: scenario.source,
   });
   const expectedFinding = result.messages.some(
@@ -373,12 +372,14 @@ const validScenarios = [
       'export const values = [window.google, document.createElement("script")];',
   },
   {
-    filename: "src/platform/integrations/alternate-platform-boundary-fixture.ts",
+    filename:
+      "src/platform/integrations/alternate-platform-boundary-fixture.ts",
     source:
       'export const values = [self.google, document.createElement.bind(document)("script")];',
   },
   {
-    filename: "src/platform/integrations/declarative-platform-boundary-fixture.tsx",
+    filename:
+      "src/platform/integrations/declarative-platform-boundary-fixture.tsx",
     source:
       'export const value = <script src="https://maps.googleapis.com/maps/api/js" />;',
   },
@@ -388,7 +389,8 @@ const validScenarios = [
       'import { createElement } from "react"; export const value = createElement("script", { src: "https://maps.googleapis.com/maps/api/js" });',
   },
   {
-    filename: "src/platform/integrations/react-alias-platform-boundary-fixture.tsx",
+    filename:
+      "src/platform/integrations/react-alias-platform-boundary-fixture.tsx",
     source:
       'import { createElement as h } from "react"; export const values = [h("script", { src: "https://maps.googleapis.com/maps/api/js" }), document.createElementNS("http://www.w3.org/1999/xhtml", "script")];',
   },
@@ -399,13 +401,11 @@ const validScenarios = [
   },
   {
     filename: "src/platform/config/env.ts",
-    source:
-      "export const value = process.env.REACT_APP_API_URL;",
+    source: "export const value = process.env.REACT_APP_API_URL;",
   },
   {
     filename: "src/platform/http/platform-boundary-fixture.ts",
-    source:
-      'import axios from "axios"; export const value = axios.create();',
+    source: 'import axios from "axios"; export const value = axios.create();',
   },
   {
     filename: "src/platform/integrations/toss-platform-boundary-fixture.ts",
@@ -493,7 +493,8 @@ const validateDocumentScriptOwnership = (html) => {
 };
 
 const rootIndexSource = await readFile(rootIndexPath, "utf8");
-const rootDocumentScriptViolation = validateDocumentScriptOwnership(rootIndexSource);
+const rootDocumentScriptViolation =
+  validateDocumentScriptOwnership(rootIndexSource);
 if (rootDocumentScriptViolation !== null) {
   throw new Error(
     `index.html bypassed platform script ownership: ${rootDocumentScriptViolation}.`,
@@ -536,18 +537,23 @@ if (
   );
 }
 [
-  '%BASE_URL%favicon.ico',
-  '%BASE_URL%logo192.png',
-  '%BASE_URL%manifest.json',
+  "%BASE_URL%favicon.ico",
+  "%BASE_URL%logo192.png",
+  "%BASE_URL%manifest.json",
 ].forEach((assetReference) => {
   if (!rootIndexSource.includes(assetReference)) {
-    throw new Error(`index.html lost its owned public asset reference: ${assetReference}.`);
+    throw new Error(
+      `index.html lost its owned public asset reference: ${assetReference}.`,
+    );
   }
 });
 if (
-  collectHtmlPlaceholders('<meta content="%React_App_New_Secret%" />').length !== 1
+  collectHtmlPlaceholders('<meta content="%React_App_New_Secret%" />')
+    .length !== 1
 ) {
-  throw new Error("The public HTML environment-placeholder fixture is invalid.");
+  throw new Error(
+    "The public HTML environment-placeholder fixture is invalid.",
+  );
 }
 
 const environmentSource = await readFile(environmentAdapterPath, "utf8");
@@ -650,7 +656,8 @@ if (
 }
 
 const isAxiosModuleSpecifier = (moduleSpecifier) =>
-  ts.isStringLiteral(moduleSpecifier) && moduleSpecifier.text.startsWith("axios");
+  ts.isStringLiteral(moduleSpecifier) &&
+  moduleSpecifier.text.startsWith("axios");
 const productionSourceFiles = ts.sys
   .readDirectory(
     path.join(projectRoot, "src"),
@@ -693,10 +700,7 @@ const isDynamicImportCall = (node) =>
   node.expression.kind === ts.SyntaxKind.ImportKeyword;
 
 const getStaticDynamicImportSpecifier = (node) => {
-  if (
-    !isDynamicImportCall(node) ||
-    node.arguments.length !== 1
-  ) {
+  if (!isDynamicImportCall(node) || node.arguments.length !== 1) {
     return null;
   }
 
@@ -707,7 +711,10 @@ const getStaticDynamicImportSpecifier = (node) => {
     : null;
 };
 
-const collectDynamicImportBoundaryViolations = ({ sourceFile, projectPath }) => {
+const collectDynamicImportBoundaryViolations = ({
+  sourceFile,
+  projectPath,
+}) => {
   const violations = [];
   const inspectNode = (node) => {
     const moduleSpecifier = getStaticDynamicImportSpecifier(node);
@@ -789,7 +796,9 @@ if (
     ts.ScriptKind.TS,
   );
   if (collectImportMetaViolations({ sourceFile, projectPath }).length > 0) {
-    throw new Error("The canonical Vite import.meta.url asset pattern was rejected.");
+    throw new Error(
+      "The canonical Vite import.meta.url asset pattern was rejected.",
+    );
   }
 }
 
@@ -846,7 +855,9 @@ for (const fixture of dynamicBoundaryFixtures) {
       projectPath: fixture.projectPath,
     }).includes(expectedViolation)
   ) {
-    throw new Error(`Dynamic import escaped the platform boundary: ${fixture.projectPath}`);
+    throw new Error(
+      `Dynamic import escaped the platform boundary: ${fixture.projectPath}`,
+    );
   }
 }
 
@@ -870,7 +881,9 @@ for (const source of [
       `${projectPath}:runtime-import-meta`,
     )
   ) {
-    throw new Error("import.meta.env escaped the exact browser environment owner.");
+    throw new Error(
+      "import.meta.env escaped the exact browser environment owner.",
+    );
   }
 }
 

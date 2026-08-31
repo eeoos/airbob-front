@@ -124,9 +124,7 @@ export const toHostReservationDetailViewModel = (
     },
     addressLabel: getAddressLabel(reservation),
     guestCountLabel: `${reservation.guestCount}명`,
-    checkInDateLabel: formatKoreanDateWithWeekday(
-      reservation.checkInDateTime,
-    ),
+    checkInDateLabel: formatKoreanDateWithWeekday(reservation.checkInDateTime),
     checkOutDateLabel: formatKoreanDateWithWeekday(
       reservation.checkOutDateTime,
     ),

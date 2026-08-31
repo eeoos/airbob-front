@@ -1,13 +1,8 @@
 import type { HostReservationListItem } from "../model/reservationRead";
 
-export type HostReservationCheckInSortDirection =
-  | "ascending"
-  | "descending";
+export type HostReservationCheckInSortDirection = "ascending" | "descending";
 
-type HostReservationWithCheckIn = Pick<
-  HostReservationListItem,
-  "checkInDate"
->;
+type HostReservationWithCheckIn = Pick<HostReservationListItem, "checkInDate">;
 
 export const sortHostReservationsByCheckIn = <
   TReservation extends HostReservationWithCheckIn,

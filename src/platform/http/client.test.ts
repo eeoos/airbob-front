@@ -1,11 +1,7 @@
 import axios from "axios";
 import type { AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import { onAuthError } from "../session/authEvents";
-import {
-  API_REQUEST_TIMEOUT_MS,
-  getHttpClient,
-  httpClient,
-} from "./client";
+import { API_REQUEST_TIMEOUT_MS, getHttpClient, httpClient } from "./client";
 
 const successfulResponse = (
   config: InternalAxiosRequestConfig,
@@ -33,7 +29,9 @@ describe("platform HTTP client", () => {
   it("preserves credentials and applies the platform request deadline", () => {
     expect(httpClient.defaults.baseURL).toBe("http://localhost:8080/api/v1");
     expect(httpClient.defaults.withCredentials).toBe(true);
-    expect(httpClient.defaults.headers["Content-Type"]).toBe("application/json");
+    expect(httpClient.defaults.headers["Content-Type"]).toBe(
+      "application/json",
+    );
     expect(httpClient.defaults.timeout).toBe(API_REQUEST_TIMEOUT_MS);
   });
 

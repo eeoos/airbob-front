@@ -220,8 +220,7 @@ export const serializePublicRuntimeConfig = (
     .replace(/\u2028/g, "\\u2028")
     .replace(/\u2029/g, "\\u2029");
 
-export const getApiBaseUrl = (): string =>
-  getPublicRuntimeConfig().apiBaseUrl;
+export const getApiBaseUrl = (): string => getPublicRuntimeConfig().apiBaseUrl;
 
 export const getGoogleMapsApiKey = (): string =>
   getPublicRuntimeConfig().googleMapsBrowserKey ?? "";
@@ -241,7 +240,10 @@ const requireConfiguredValue = (value: string | null, key: string): string => {
 };
 
 export const requireGoogleMapsApiKey = (): string =>
-  requireConfiguredValue(getGoogleMapsApiKey(), PUBLIC_ENV_KEYS.googleMapsApiKey);
+  requireConfiguredValue(
+    getGoogleMapsApiKey(),
+    PUBLIC_ENV_KEYS.googleMapsApiKey,
+  );
 
 export const requireTossClientKey = (): string =>
   requireConfiguredValue(getTossClientKey(), PUBLIC_ENV_KEYS.tossClientKey);

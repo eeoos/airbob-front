@@ -48,13 +48,10 @@ const accommodation: AccommodationDetail = {
 };
 
 const renderOverview = (
-  overrides: Partial<React.ComponentProps<typeof AccommodationOverview>> = {}
+  overrides: Partial<React.ComponentProps<typeof AccommodationOverview>> = {},
 ) => {
   const props: React.ComponentProps<typeof AccommodationOverview> = {
-    detailView: toAccommodationDetailViewModel(
-      accommodation,
-      resolveImageUrl,
-    ),
+    detailView: toAccommodationDetailViewModel(accommodation, resolveImageUrl),
     onOpenDescription: vi.fn(),
     ...overrides,
   };

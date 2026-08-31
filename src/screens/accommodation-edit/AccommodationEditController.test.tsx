@@ -181,7 +181,9 @@ describe("AccommodationEditController", () => {
         <AccommodationEditController {...props} />
       </StrictMode>,
     );
-    await waitFor(() => expect(props.api.getHostDetail).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(props.api.getHostDetail).toHaveBeenCalledTimes(1),
+    );
 
     await act(async () => {
       hydration.resolve(accommodation);
@@ -312,9 +314,11 @@ describe("AccommodationEditController", () => {
     props.api.update.mockImplementation(async () => {
       order.push("update");
     });
-    props.publication.publishEditorChanged.mockImplementation(async ({ outcome }) => {
-      order.push(`publication:${outcome}`);
-    });
+    props.publication.publishEditorChanged.mockImplementation(
+      async ({ outcome }) => {
+        order.push(`publication:${outcome}`);
+      },
+    );
     props.onNavigateToHostProfile.mockImplementation(() => {
       order.push("navigate");
     });
@@ -355,7 +359,9 @@ describe("AccommodationEditController", () => {
     await renderReadyController(props);
 
     selectPendingImage("broken.png");
-    act(() => currentScreen().actions.onInputChange("name", "저장하지 못할 숙소"));
+    act(() =>
+      currentScreen().actions.onInputChange("name", "저장하지 못할 숙소"),
+    );
     act(() => currentScreen().actions.onSaveAndExit());
     act(() => currentScreen().actions.onConfirmDetailAddress());
 
@@ -418,7 +424,9 @@ describe("AccommodationEditController", () => {
       .mockResolvedValueOnce(undefined);
     await renderReadyController(props);
 
-    act(() => currentScreen().actions.onInputChange("name", "서버에 저장된 이름"));
+    act(() =>
+      currentScreen().actions.onInputChange("name", "서버에 저장된 이름"),
+    );
     act(() => currentScreen().actions.onSaveAndExit());
     await waitFor(() =>
       expect(currentScreen().state.recoveryState).toBe("protected-command"),
@@ -471,7 +479,9 @@ describe("AccommodationEditController", () => {
     props.api.deleteImage.mockRejectedValueOnce(networkError());
     await renderReadyController(props);
 
-    act(() => currentScreen().actions.onInputChange("name", "삭제 후 저장할 이름"));
+    act(() =>
+      currentScreen().actions.onInputChange("name", "삭제 후 저장할 이름"),
+    );
     act(() => currentScreen().actions.onImageRemove(0));
     await waitFor(() =>
       expect(currentScreen().state.recoveryState).toBe("protected-delete"),
@@ -535,9 +545,9 @@ describe("AccommodationEditController", () => {
 
     act(() => currentScreen().actions.onImageRemove(1));
     await waitFor(() =>
-      expect(currentScreen().state.imageItems.map((image) => image.id)).toEqual([
-        31, 32, 33,
-      ]),
+      expect(currentScreen().state.imageItems.map((image) => image.id)).toEqual(
+        [31, 32, 33],
+      ),
     );
 
     expect(props.api.deleteImage).toHaveBeenCalledTimes(1);
@@ -582,9 +592,9 @@ describe("AccommodationEditController", () => {
       await reconciliation.promise;
     });
     await waitFor(() =>
-      expect(currentScreen().state.imageItems.map((image) => image.id)).toEqual([
-        31, 32, 33,
-      ]),
+      expect(currentScreen().state.imageItems.map((image) => image.id)).toEqual(
+        [31, 32, 33],
+      ),
     );
     expect(props.api.update).not.toHaveBeenCalled();
     expect(props.api.publish).not.toHaveBeenCalled();

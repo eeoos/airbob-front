@@ -42,7 +42,9 @@ describe("useGoogleMapsScript", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     delete (window as any).google;
-    vi.mocked(getPublicRuntimeConfig).mockReturnValue(runtimeConfig("test-key"));
+    vi.mocked(getPublicRuntimeConfig).mockReturnValue(
+      runtimeConfig("test-key"),
+    );
     mapsScripts().forEach((script) => script.remove());
   });
 
@@ -73,10 +75,10 @@ describe("useGoogleMapsScript", () => {
       await Promise.resolve();
     });
 
-    expect([
-      firstResult.current.status,
-      secondResult.current.status,
-    ]).toEqual(["loaded", "loaded"]);
+    expect([firstResult.current.status, secondResult.current.status]).toEqual([
+      "loaded",
+      "loaded",
+    ]);
   });
 
   it("preserves missing-key status without appending a script", () => {

@@ -93,10 +93,7 @@ const toAccommodationId = (wire: unknown): number => {
   }
 
   const accommodation = wire as unknown as CheckoutOwnershipAccommodationWire;
-  return requirePositiveSafeInteger(
-    accommodation.id,
-    "accommodationId",
-  );
+  return requirePositiveSafeInteger(accommodation.id, "accommodationId");
 };
 
 const toOptionalPaymentRecord = (wire: unknown): PaymentRecord | null => {
@@ -121,7 +118,9 @@ export const toCheckoutOwnership = (
   );
 
   if (reservationUid !== expectedReservationUid) {
-    throw new TypeError("reservationUid does not match the requested reservation.");
+    throw new TypeError(
+      "reservationUid does not match the requested reservation.",
+    );
   }
 
   const payment = toOptionalPaymentRecord(wire.payment);

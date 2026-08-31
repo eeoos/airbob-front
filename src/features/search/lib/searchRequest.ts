@@ -1,7 +1,4 @@
-import type {
-  SearchCommittedRouteState,
-  SearchRequest,
-} from "../model/search";
+import type { SearchCommittedRouteState, SearchRequest } from "../model/search";
 
 export const SEARCH_PAGE_SIZE = 18;
 export const SEARCH_PAGE_LIMIT = 15;
@@ -27,8 +24,9 @@ const hasCompleteViewport = (
     state.topLeftLng,
     state.bottomRightLat,
     state.bottomRightLng,
-  ].every((coordinate) =>
-    typeof coordinate === "number" && Number.isFinite(coordinate)
+  ].every(
+    (coordinate) =>
+      typeof coordinate === "number" && Number.isFinite(coordinate),
   );
 
 export const toSearchRequest = (
@@ -58,9 +56,9 @@ export const toSearchRequest = (
   };
 };
 
-const normalizeStringArray = (
-  values: readonly string[],
-): readonly string[] => [...values];
+const normalizeStringArray = (values: readonly string[]): readonly string[] => [
+  ...values,
+];
 
 /**
  * Produces the stable semantic value used by both the transport and query key.

@@ -62,9 +62,7 @@ describe("useGoogleMapInstance", () => {
     }));
     const unbindAll = vi.fn();
     let nextListenerIndex = 0;
-    const addListener = vi.fn(
-      () => listenerHandles[nextListenerIndex++],
-    );
+    const addListener = vi.fn(() => listenerHandles[nextListenerIndex++]);
     const map = { addListener, unbindAll };
     const mapElement = document.createElement("div");
     const removeEventListener = vi.spyOn(mapElement, "removeEventListener");
@@ -80,9 +78,7 @@ describe("useGoogleMapInstance", () => {
     };
 
     const { unmount } = renderHook(() =>
-      useGoogleMapInstance(
-        createOptions(mapElement, { mapInstanceRef }),
-      ),
+      useGoogleMapInstance(createOptions(mapElement, { mapInstanceRef })),
     );
 
     expect(mapInstanceRef.current).toBe(map);

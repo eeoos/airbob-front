@@ -24,19 +24,19 @@ Airbnb 디자인 리팩터 전에 프론트엔드 아키텍처 변경이 주요 
 
 `npm run smoke:frontend:preflight`는 스크린샷이나 리포트를 쓰지 않고 smoke 필수 환경 변수, dynamic route UID, accommodation fixture ID, `GSTACK_BROWSE_BIN` 실행 가능 여부, frontend URL, backend URL reachability를 먼저 검증한다. `AIRBOB_SMOKE_REPORT_ROOT` can point smoke artifacts at a temporary directory during harness tests. Normal manual QA can leave it unset so reports continue under `.gstack/qa-reports`.
 
-| 환경 변수 | 필수 여부 | 값 |
-| --- | --- | --- |
-| `AIRBOB_API_BASE_URL` | UID 추출 시 필수 | `http://localhost:8080/api/v1` 예시 |
-| `AIRBOB_FRONTEND_URL` | 선택 | `http://localhost:3000` 기본값 |
-| `AIRBOB_SMOKE_REPORT_ROOT` | 선택 | harness test 전용 artifact root override |
-| `AIRBOB_QA_EMAIL` | 필수 | `[provided out-of-band]` |
-| `AIRBOB_QA_PASSWORD` | 필수 | `[provided out-of-band]` |
-| `GSTACK_BROWSE_BIN` | 필수 | `/absolute/path/to/browse` |
-| `AIRBOB_SMOKE_ACCOMMODATION_ID` | preflight 필수 | accommodation detail 전용 stable fixture ID |
-| `AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID` | preflight 필수 | accommodation edit 전용 stable fixture ID |
-| `AIRBOB_SMOKE_RESERVATION_UID` | strict 필수 | guest reservation detail route UID |
-| `AIRBOB_SMOKE_HOST_RESERVATION_UID` | strict 필수 | host reservation detail route UID |
-| `AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS` | ES seed 후 선택 | `true`면 `/search`에서 result card가 보여야 함 |
+| 환경 변수                            | 필수 여부        | 값                                             |
+| ------------------------------------ | ---------------- | ---------------------------------------------- |
+| `AIRBOB_API_BASE_URL`                | UID 추출 시 필수 | `http://localhost:8080/api/v1` 예시            |
+| `AIRBOB_FRONTEND_URL`                | 선택             | `http://localhost:3000` 기본값                 |
+| `AIRBOB_SMOKE_REPORT_ROOT`           | 선택             | harness test 전용 artifact root override       |
+| `AIRBOB_QA_EMAIL`                    | 필수             | `[provided out-of-band]`                       |
+| `AIRBOB_QA_PASSWORD`                 | 필수             | `[provided out-of-band]`                       |
+| `GSTACK_BROWSE_BIN`                  | 필수             | `/absolute/path/to/browse`                     |
+| `AIRBOB_SMOKE_ACCOMMODATION_ID`      | preflight 필수   | accommodation detail 전용 stable fixture ID    |
+| `AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID` | preflight 필수   | accommodation edit 전용 stable fixture ID      |
+| `AIRBOB_SMOKE_RESERVATION_UID`       | strict 필수      | guest reservation detail route UID             |
+| `AIRBOB_SMOKE_HOST_RESERVATION_UID`  | strict 필수      | host reservation detail route UID              |
+| `AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS` | ES seed 후 선택  | `true`면 `/search`에서 result card가 보여야 함 |
 
 ## ES Search Fixture Gate
 

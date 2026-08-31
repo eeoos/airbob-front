@@ -78,9 +78,8 @@ export const assertNoUnsupportedRuntimeDependencySections = (packageData) => {
   const unsupportedDependencies = [
     "optionalDependencies",
     "peerDependencies",
-  ].flatMap(
-    (section) =>
-      Object.keys(packageData[section] ?? {}).map((name) => `${section}:${name}`),
+  ].flatMap((section) =>
+    Object.keys(packageData[section] ?? {}).map((name) => `${section}:${name}`),
   );
   const unsupportedInstallGraphSections = [
     "overrides",
@@ -127,8 +126,7 @@ export const assertRegistryDependencySpecs = (packageData) => {
       Object.entries(packageData[section] ?? {})
         .filter(
           ([, spec]) =>
-            typeof spec !== "string" ||
-            !registrySemverRangePattern.test(spec),
+            typeof spec !== "string" || !registrySemverRangePattern.test(spec),
         )
         .map(([name, spec]) => `${section}:${name}@${String(spec)}`),
   );
@@ -167,7 +165,7 @@ export const assertKnipConfigIsCanonical = (knipConfig) => {
   if (artificialProductionEntries.length > 0) {
     throw new Error(
       "Knip production modules must be reached from src/index.tsx, not artificial entries: " +
-      artificialProductionEntries.join(", "),
+        artificialProductionEntries.join(", "),
     );
   }
 
@@ -197,7 +195,11 @@ export const assertKnipConfigIsCanonical = (knipConfig) => {
   }
 
   assertExactSequence("entry", knipConfig.entry, canonicalKnipConfig.entry);
-  assertExactSequence("project", knipConfig.project, canonicalKnipConfig.project);
+  assertExactSequence(
+    "project",
+    knipConfig.project,
+    canonicalKnipConfig.project,
+  );
   if (
     knipConfig.vite !== canonicalKnipConfig.vite ||
     knipConfig.vitest !== canonicalKnipConfig.vitest ||
@@ -212,8 +214,7 @@ export const assertKnipConfigIsCanonical = (knipConfig) => {
   assertExactSequence("rule set", actualRuleNames, canonicalKnipConfig.rules);
   const invalidRules = actualRuleNames.filter(
     (ruleName) =>
-      knipConfig.rules[ruleName] !==
-      (ruleName === "cycles" ? "off" : "error"),
+      knipConfig.rules[ruleName] !== (ruleName === "cycles" ? "off" : "error"),
   );
   if (invalidRules.length > 0) {
     throw new Error(
@@ -299,10 +300,7 @@ export const verifyDependencyClassification = () => {
   );
   runKnipClassification({
     label: "Full development graph",
-    args: [
-      "--include",
-      "dependencies,devDependencies,unlisted,binaries",
-    ],
+    args: ["--include", "dependencies,devDependencies,unlisted,binaries"],
   });
   runKnipClassification({
     label: "Production runtime graph",

@@ -38,16 +38,12 @@ const files = {
     'export default function DeadRoute() { return "dead"; }\n',
   "src/shared/Dead.js": "export const deadShared = true;\n",
   "src/shared/DeadModule.mjs": "export const deadModule = true;\n",
-  "src/shared/__tests__/helper.ts":
-    "export const testHelper = true;\n",
-  "src/shared/__mocks__/client.ts":
-    "export const mockClient = true;\n",
-  "src/shared/__tests__/helper.mjs":
-    "export const testModuleHelper = true;\n",
+  "src/shared/__tests__/helper.ts": "export const testHelper = true;\n",
+  "src/shared/__mocks__/client.ts": "export const mockClient = true;\n",
+  "src/shared/__tests__/helper.mjs": "export const testModuleHelper = true;\n",
   "src/features/search/DeadFeature.jsx":
     "export const DeadFeature = () => null;\n",
-  "src/features/legacy/DeadLegacy.ts":
-    "export const deadLegacy = true;\n",
+  "src/features/legacy/DeadLegacy.ts": "export const deadLegacy = true;\n",
   "knip-preprocessor.mjs": `import { createTargetRatchet } from ${JSON.stringify(
     pathToFileURL(targetPreprocessor).href,
   )};\nexport default createTargetRatchet({ projectRoot: new URL('.', import.meta.url).pathname });\n`,
@@ -108,7 +104,9 @@ try {
     "src/shared/__mocks__/client.ts",
   ].forEach((testOnlyPath) => {
     if (unusedFiles.has(testOnlyPath)) {
-      throw new Error(`Knip treated test-only support as production: ${testOnlyPath}`);
+      throw new Error(
+        `Knip treated test-only support as production: ${testOnlyPath}`,
+      );
     }
   });
 
@@ -170,7 +168,9 @@ try {
     }
   });
   if (strictUnusedFiles.has("src/features/legacy/DeadLegacy.ts")) {
-    throw new Error("Target Knip ratchet blocked unchanged legacy reachability debt.");
+    throw new Error(
+      "Target Knip ratchet blocked unchanged legacy reachability debt.",
+    );
   }
   [
     "src/shared/__tests__/helper.ts",
@@ -178,7 +178,9 @@ try {
     "src/shared/__mocks__/client.ts",
   ].forEach((testOnlyPath) => {
     if (strictUnusedFiles.has(testOnlyPath)) {
-      throw new Error(`Target Knip ratchet included test-only support: ${testOnlyPath}`);
+      throw new Error(
+        `Target Knip ratchet included test-only support: ${testOnlyPath}`,
+      );
     }
   });
 } finally {

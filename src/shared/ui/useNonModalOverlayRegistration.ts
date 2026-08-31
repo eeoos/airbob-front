@@ -56,12 +56,7 @@ export const useNonModalOverlayRegistration = ({
     onCloseRef.current();
     if (restoreFocusOnClose) restoreFocus(triggerRef);
     return true;
-  }, [
-    enabled,
-    registration.isTopmostOverall,
-    restoreFocusOnClose,
-    triggerRef,
-  ]);
+  }, [enabled, registration.isTopmostOverall, restoreFocusOnClose, triggerRef]);
 
   const onKeyDown = useCallback<KeyboardEventHandler<HTMLElement>>(
     (event) => {

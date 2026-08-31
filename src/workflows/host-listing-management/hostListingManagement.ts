@@ -2,10 +2,7 @@ import type {
   HostListingAction,
   HostListingActionsApiPort,
 } from "../../features/accommodations/ports/hostListingActionsApiPort";
-import {
-  AppError,
-  normalizeHttpError,
-} from "../../platform/http/errors";
+import { AppError, normalizeHttpError } from "../../platform/http/errors";
 import type { AuthenticatedSessionScope } from "../../platform/session/sessionScope";
 
 export interface HostListingManagementCommand {
@@ -13,8 +10,7 @@ export interface HostListingManagementCommand {
   readonly action: HostListingAction;
 }
 
-export interface HostListingManagementPublicationInput
-  extends HostListingManagementCommand {
+export interface HostListingManagementPublicationInput extends HostListingManagementCommand {
   readonly scope: AuthenticatedSessionScope;
 }
 
@@ -72,8 +68,7 @@ export interface HostListingManagementCommandPort {
   ): Promise<HostListingManagementResult>;
 }
 
-export interface HostListingManagementWorkflow
-  extends HostListingManagementCommandPort {
+export interface HostListingManagementWorkflow extends HostListingManagementCommandPort {
   dispose(): void;
 }
 
@@ -133,9 +128,8 @@ export const createHostListingManagementWorkflow = ({
     string,
     Promise<HostListingManagementResult>
   >();
-  let disposedPromise = Promise.resolve<HostListingManagementResult>(
-    STALE_RESULT,
-  );
+  let disposedPromise =
+    Promise.resolve<HostListingManagementResult>(STALE_RESULT);
   let disposed = false;
 
   const isCurrent = (scope: AuthenticatedSessionScope): boolean => {
@@ -182,10 +176,7 @@ export const createHostListingManagementWorkflow = ({
     });
 
     try {
-      await Promise.race([
-        runApiCommand(command, controller.signal),
-        deadline,
-      ]);
+      await Promise.race([runApiCommand(command, controller.signal), deadline]);
     } finally {
       if (timeoutId !== null) clearTimeout(timeoutId);
     }
@@ -210,7 +201,11 @@ export const createHostListingManagementWorkflow = ({
     }
 
     if (!isCurrent(scope)) {
-      return { ...command, status: "applied-stale", publication: { status: "skipped" } };
+      return {
+        ...command,
+        status: "applied-stale",
+        publication: { status: "skipped" },
+      };
     }
 
     let publicationResult:
@@ -248,8 +243,7 @@ export const createHostListingManagementWorkflow = ({
       if (
         result.status === "ambiguous" ||
         result.status === "applied-stale" ||
-        (result.status === "applied" &&
-          result.publication.status === "failed")
+        (result.status === "applied" && result.publication.status === "failed")
       ) {
         terminalPromises.set(commandKey(command), promise);
       }

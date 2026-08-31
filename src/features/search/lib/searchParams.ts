@@ -1,8 +1,5 @@
 import { toCanonicalSearchString } from "../../../shared/lib/urlSearchParams";
-import type {
-  SearchPlaceSelection,
-  SearchViewport,
-} from "../model/search";
+import type { SearchPlaceSelection, SearchViewport } from "../model/search";
 import { parseStrictFiniteNumber } from "./searchParamParsers";
 
 export type { SearchPlaceSelection, SearchViewport } from "../model/search";

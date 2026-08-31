@@ -60,7 +60,7 @@ export const renderMapExpandControl = ({
   onToggle,
 }: RenderMapExpandControlOptions) => {
   let button = container.querySelector<HTMLButtonElement>(
-    `.${MAP_EXPAND_BUTTON_CLASS}`
+    `.${MAP_EXPAND_BUTTON_CLASS}`,
   );
 
   if (!button) {
@@ -76,19 +76,19 @@ export const renderMapExpandControl = ({
   controlButton.innerHTML = isExpanded ? collapseIconSvg : expandIconSvg;
   controlButton.setAttribute(
     "aria-label",
-    isExpanded ? "지도 축소" : "지도 확대"
+    isExpanded ? "지도 축소" : "지도 확대",
   );
 
   controlButton.onmouseenter = () => {
     controlButton.style.setProperty(
       "--map-expand-control-background",
-      MAP_EXPAND_CONTROL_STYLE_TOKENS.backgroundHover
+      MAP_EXPAND_CONTROL_STYLE_TOKENS.backgroundHover,
     );
   };
   controlButton.onmouseleave = () => {
     controlButton.style.setProperty(
       "--map-expand-control-background",
-      MAP_EXPAND_CONTROL_STYLE_TOKENS.background
+      MAP_EXPAND_CONTROL_STYLE_TOKENS.background,
     );
   };
   controlButton.onclick = (event) => {

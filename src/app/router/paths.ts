@@ -141,10 +141,7 @@ export const routeTo = {
     buildPath(ROUTE_PATHS.reservationDetail, { reservationUid }),
   reviewCreate: (reservationUid: string) =>
     buildPath(ROUTE_PATHS.reviewCreate, { reservationUid }),
-  paymentSuccess: (
-    reservationUid: string,
-    query?: PaymentSuccessRouteQuery,
-  ) =>
+  paymentSuccess: (reservationUid: string, query?: PaymentSuccessRouteQuery) =>
     withQuery(
       buildPath(ROUTE_PATHS.paymentSuccess, { reservationUid }),
       serializePaymentSuccessRouteQuery(query),

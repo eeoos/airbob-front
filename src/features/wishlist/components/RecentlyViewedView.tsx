@@ -143,7 +143,7 @@ export function RecentlyViewedView({
                   ))}
                 </div>
               </div>
-            )
+            ),
           )}
         </>
       )}

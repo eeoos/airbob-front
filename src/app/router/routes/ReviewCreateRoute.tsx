@@ -2,9 +2,7 @@ import { useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { createAccommodationDetailQueryCacheProjection } from "../../../features/accommodations/detail/public";
-import {
-  createReservationReadQueryCacheProjection,
-} from "../../../features/reservations/public";
+import { createReservationReadQueryCacheProjection } from "../../../features/reservations/public";
 import { createReviewCache } from "../../../features/reviews/public";
 import { resolveImageUrl } from "../../../platform/assets/imageUrl";
 import { browserWindowNavigation } from "../../../platform/browser/windowNavigation";

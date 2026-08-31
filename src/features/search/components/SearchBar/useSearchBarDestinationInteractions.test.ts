@@ -2,7 +2,7 @@ import { act, renderHook } from "@testing-library/react";
 import type { SearchActivePopover } from "../../model/searchInteractionReducer";
 import { useSearchBarDestinationInteractions } from "./useSearchBarDestinationInteractions";
 
-const createRef = <T,>(element: T | null) => ({ current: element });
+const createRef = <T>(element: T | null) => ({ current: element });
 
 const createOptions = () => ({
   destinationInputRef: createRef<HTMLInputElement>(null),

@@ -1,10 +1,8 @@
 import { internalReturnTargetCodec } from "./internalReturnTargetCodec";
 
-const locationState = (
-  pathname: string,
-  search = "",
-  hash = "",
-): unknown => ({ from: { pathname, search, hash } });
+const locationState = (pathname: string, search = "", hash = ""): unknown => ({
+  from: { pathname, search, hash },
+});
 
 describe("internalReturnTargetCodec", () => {
   it("preserves a structured internal pathname, query, and hash", () => {
@@ -38,10 +36,7 @@ describe("internalReturnTargetCodec", () => {
     ["encoded slash", "/%2f%2fevil.example/steal"],
     ["encoded backslash", "/%5c%5cevil.example/steal"],
     ["double-encoded slash", "/%252f%252fevil.example/steal"],
-    [
-      "split double-encoded slash",
-      "/%25%32%66%25%32%66evil.example",
-    ],
+    ["split double-encoded slash", "/%25%32%66%25%32%66evil.example"],
   ])("rejects %s targets", (_label, pathname) => {
     expect(internalReturnTargetCodec.parse(locationState(pathname))).toBeNull();
   });
@@ -83,7 +78,9 @@ describe("internalReturnTargetCodec", () => {
 
   it("rejects malformed structured parts and extra fields", () => {
     expect(
-      internalReturnTargetCodec.parse(locationState("/search", "destination=x")),
+      internalReturnTargetCodec.parse(
+        locationState("/search", "destination=x"),
+      ),
     ).toBeNull();
     expect(
       internalReturnTargetCodec.parse(locationState("/search", "?q=x#escape")),

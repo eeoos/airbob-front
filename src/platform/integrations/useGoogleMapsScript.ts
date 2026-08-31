@@ -8,11 +8,7 @@ import {
 } from "./googleMaps";
 
 export type GoogleMapsScriptStatus =
-  | "idle"
-  | "loading"
-  | "loaded"
-  | "error"
-  | "missing-key";
+  "idle" | "loading" | "loaded" | "error" | "missing-key";
 
 export interface GoogleMapsScriptState {
   error: IntegrationError | null;
@@ -37,9 +33,7 @@ const getInitialState = (enabled: boolean): GoogleMapsScriptState => {
   return hasKey
     ? { error: null, isLoaded: false, status: "idle" }
     : {
-        error: createGoogleMapsIntegrationError(
-          "INTEGRATION_MISSING_CONFIG",
-        ),
+        error: createGoogleMapsIntegrationError("INTEGRATION_MISSING_CONFIG"),
         isLoaded: false,
         status: "missing-key",
       };
@@ -73,9 +67,7 @@ export const useGoogleMapsScript = ({
     const apiKey = getPublicRuntimeConfig().googleMapsBrowserKey;
     if (!apiKey) {
       setState({
-        error: createGoogleMapsIntegrationError(
-          "INTEGRATION_MISSING_CONFIG",
-        ),
+        error: createGoogleMapsIntegrationError("INTEGRATION_MISSING_CONFIG"),
         isLoaded: false,
         status: "missing-key",
       });

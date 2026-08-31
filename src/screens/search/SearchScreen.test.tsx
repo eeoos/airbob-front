@@ -1,9 +1,4 @@
-import {
-  createRef,
-  forwardRef,
-  type HTMLAttributes,
-  type Ref,
-} from "react";
+import { createRef, forwardRef, type HTMLAttributes, type Ref } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { SearchScreenProps } from "./SearchScreen";
 import { SearchScreen } from "./SearchScreen";
@@ -15,50 +10,46 @@ const mockPagination = vi.fn();
 vi.mock("framer-motion", () => {
   return {
     motion: {
-      div: forwardRef(
-        function MotionDiv(
-          {
-            children,
-            drag,
-            dragConstraints,
-            dragElastic,
-            dragMomentum,
-            onDrag,
-            onDragEnd,
-            onDragStart,
-            ...props
-          }: HTMLAttributes<HTMLDivElement> & Record<string, unknown>,
-          ref: Ref<HTMLDivElement>,
-        ) {
-          return (
-            <div ref={ref} {...props}>
-              {children}
-            </div>
-          );
-        },
-      ),
-      section: forwardRef(
-        function MotionSection(
-          {
-            children,
-            drag,
-            dragConstraints,
-            dragElastic,
-            dragMomentum,
-            onDrag,
-            onDragEnd,
-            onDragStart,
-            ...props
-          }: HTMLAttributes<HTMLElement> & Record<string, unknown>,
-          ref: Ref<HTMLElement>,
-        ) {
-          return (
-            <section ref={ref} {...props}>
-              {children}
-            </section>
-          );
-        },
-      ),
+      div: forwardRef(function MotionDiv(
+        {
+          children,
+          drag,
+          dragConstraints,
+          dragElastic,
+          dragMomentum,
+          onDrag,
+          onDragEnd,
+          onDragStart,
+          ...props
+        }: HTMLAttributes<HTMLDivElement> & Record<string, unknown>,
+        ref: Ref<HTMLDivElement>,
+      ) {
+        return (
+          <div ref={ref} {...props}>
+            {children}
+          </div>
+        );
+      }),
+      section: forwardRef(function MotionSection(
+        {
+          children,
+          drag,
+          dragConstraints,
+          dragElastic,
+          dragMomentum,
+          onDrag,
+          onDragEnd,
+          onDragStart,
+          ...props
+        }: HTMLAttributes<HTMLElement> & Record<string, unknown>,
+        ref: Ref<HTMLElement>,
+      ) {
+        return (
+          <section ref={ref} {...props}>
+            {children}
+          </section>
+        );
+      }),
     },
   };
 });
@@ -256,7 +247,9 @@ describe("SearchScreen", () => {
 
     render(<SearchScreen {...props} />);
 
-    expect(screen.getByRole("heading", { name: "숙소 1,000개 이상" })).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "숙소 1,000개 이상" }),
+    ).toBeVisible();
     expect(screen.getByTestId("search-results")).toHaveAttribute(
       "data-layout",
       "bottomSheet",

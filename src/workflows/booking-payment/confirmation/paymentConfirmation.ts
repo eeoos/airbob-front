@@ -41,11 +41,7 @@ export interface PaymentConfirmationCommand {
 }
 
 export type PaymentConfirmationTerminal =
-  | "confirmed"
-  | "invalid"
-  | "terminal-failure"
-  | "stale"
-  | "disposed";
+  "confirmed" | "invalid" | "terminal-failure" | "stale" | "disposed";
 
 export type PaymentConfirmationResult =
   | { readonly status: "confirmed" }
@@ -61,7 +57,9 @@ export type PaymentConfirmationResult =
     };
 
 export interface PaymentConfirmationWorkflow {
-  confirm(input: PaymentConfirmationCommand): Promise<PaymentConfirmationResult>;
+  confirm(
+    input: PaymentConfirmationCommand,
+  ): Promise<PaymentConfirmationResult>;
   reconcile(
     input: PaymentConfirmationCommand,
   ): Promise<PaymentConfirmationResult>;
@@ -103,7 +101,8 @@ const isBoundedText = (value: string, maximumLength: number): boolean => {
   return length > 0 && length <= maximumLength && value.trim() === value;
 };
 
-const isCalendarDate = (value: string): boolean => /^\d{4}-\d{2}-\d{2}$/.test(value);
+const isCalendarDate = (value: string): boolean =>
+  /^\d{4}-\d{2}-\d{2}$/.test(value);
 
 const isValidCommand = (input: PaymentConfirmationCommand): boolean =>
   isOpaqueIdentifier(input.reservationUid) &&
@@ -184,7 +183,8 @@ const ownershipMatches = (
   ownership.checkIn === input.ownership.checkIn &&
   ownership.checkOut === input.ownership.checkOut &&
   ownership.guestCount === input.ownership.guestCount &&
-  (ownership.payment === null || paymentOrderMatches(ownership.payment, input)) &&
+  (ownership.payment === null ||
+    paymentOrderMatches(ownership.payment, input)) &&
   (ownership.payment?.paymentKey === null ||
     ownership.payment?.paymentKey === undefined ||
     ownership.payment.paymentKey === input.paymentKey);

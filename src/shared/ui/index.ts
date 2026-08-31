@@ -3,10 +3,7 @@ export type { ButtonProps, ButtonSize, ButtonVariant } from "./Button";
 export { Card } from "./Card";
 export type { CardElement, CardPadding, CardProps } from "./Card";
 export { ActionCard, NavigationCard } from "./ClickableCard";
-export type {
-  ActionCardProps,
-  NavigationCardProps,
-} from "./ClickableCard";
+export type { ActionCardProps, NavigationCardProps } from "./ClickableCard";
 export { CounterStepper } from "./CounterStepper";
 export type { CounterStepperProps } from "./CounterStepper";
 export { Dialog } from "./Dialog";

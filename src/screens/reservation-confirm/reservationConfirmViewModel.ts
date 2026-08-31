@@ -21,18 +21,10 @@ const formatKoreanDate = (date: Date): string =>
 
 const guestLabel = (checkout: CheckoutData): string => {
   const parts = [
-    checkout.adultOccupancy > 0
-      ? `성인 ${checkout.adultOccupancy}명`
-      : null,
-    checkout.childOccupancy > 0
-      ? `어린이 ${checkout.childOccupancy}명`
-      : null,
-    checkout.infantOccupancy > 0
-      ? `유아 ${checkout.infantOccupancy}명`
-      : null,
-    checkout.petOccupancy > 0
-      ? `반려동물 ${checkout.petOccupancy}마리`
-      : null,
+    checkout.adultOccupancy > 0 ? `성인 ${checkout.adultOccupancy}명` : null,
+    checkout.childOccupancy > 0 ? `어린이 ${checkout.childOccupancy}명` : null,
+    checkout.infantOccupancy > 0 ? `유아 ${checkout.infantOccupancy}명` : null,
+    checkout.petOccupancy > 0 ? `반려동물 ${checkout.petOccupancy}마리` : null,
   ];
 
   return parts.filter((part): part is string => part !== null).join(", ");
@@ -51,7 +43,7 @@ export const toReservationConfirmCheckoutView = (
   const totalPrice = nightlyPrice * Math.max(nights, 0);
   const derivedDiscount = Math.max(totalPrice - checkout.amount, 0);
   const discountAmount =
-    derivedDiscount > 0 ? derivedDiscount : checkout.couponDiscount ?? 0;
+    derivedDiscount > 0 ? derivedDiscount : (checkout.couponDiscount ?? 0);
   const cancellationDeadline = checkIn
     ? new Date(checkIn.getFullYear(), checkIn.getMonth(), checkIn.getDate() - 1)
     : null;
@@ -64,9 +56,7 @@ export const toReservationConfirmCheckoutView = (
         })
       : null,
     coupon:
-      discountAmount > 0
-        ? { discountAmount, name: checkout.couponName }
-        : null,
+      discountAmount > 0 ? { discountAmount, name: checkout.couponName } : null,
     dateLabel:
       checkIn && checkOut
         ? `${formatKoreanDate(checkIn)}~${formatKoreanDate(checkOut)}`

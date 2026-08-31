@@ -22,9 +22,7 @@ import {
   type WishlistMembershipCommands,
 } from "../../workflows/wishlist-membership";
 import { WishlistController } from "./WishlistController";
-import type {
-  WishlistControllerProps,
-} from "./WishlistController";
+import type { WishlistControllerProps } from "./WishlistController";
 
 vi.mock("../../features/wishlist/queries", () => ({
   useRecentlyViewedReadQuery: vi.fn(),
@@ -60,15 +58,9 @@ vi.mock("../../features/wishlist/components/WishlistModal", () => ({
     ) : null,
 }));
 
-const mockUseRecentlyViewedReadQuery = vi.mocked(
-  useRecentlyViewedReadQuery,
-);
-const mockUseWishlistDetailReadQuery = vi.mocked(
-  useWishlistDetailReadQuery,
-);
-const mockUseWishlistListsReadQuery = vi.mocked(
-  useWishlistListsReadQuery,
-);
+const mockUseRecentlyViewedReadQuery = vi.mocked(useRecentlyViewedReadQuery);
+const mockUseWishlistDetailReadQuery = vi.mocked(useWishlistDetailReadQuery);
+const mockUseWishlistListsReadQuery = vi.mocked(useWishlistListsReadQuery);
 const mockUseIntersectionLoadMore = vi.mocked(useIntersectionLoadMore);
 const mockUseWishlistMembership = vi.mocked(useWishlistMembership);
 
@@ -83,10 +75,7 @@ const pageInfo = {
   nextCursor: null,
 } as const;
 
-const wishlist = (
-  id: number,
-  name: string,
-): WishlistSummary => ({
+const wishlist = (id: number, name: string): WishlistSummary => ({
   containsAccommodation: null,
   createdAt: "2026-08-01T00:00:00Z",
   id,
@@ -598,7 +587,9 @@ describe("WishlistController", () => {
       view: { kind: "wishlist-detail", wishlistId: 42 },
     });
 
-    await userEvent.click(screen.getByRole("button", { name: /Pack sunscreen/ }));
+    await userEvent.click(
+      screen.getByRole("button", { name: /Pack sunscreen/ }),
+    );
     const memo = screen.getByRole("textbox", { name: "메모" });
     await userEvent.clear(memo);
     await userEvent.click(screen.getByRole("button", { name: "저장" }));
@@ -629,7 +620,9 @@ describe("WishlistController", () => {
       view: { kind: "wishlist-detail", wishlistId: 42 },
     });
 
-    await userEvent.click(screen.getByRole("button", { name: /Pack sunscreen/ }));
+    await userEvent.click(
+      screen.getByRole("button", { name: /Pack sunscreen/ }),
+    );
     const memo = screen.getByRole("textbox", { name: "메모" });
     await userEvent.clear(memo);
     await userEvent.type(memo, "제출한 메모");
@@ -732,8 +725,8 @@ describe("WishlistController", () => {
 
     renderController({ navigation: navigation(), view: { kind: "index" } });
 
-    expect(
-      await screen.findByRole("alert"),
-    ).toHaveTextContent("존재하지 않는 위시리스트입니다.");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "존재하지 않는 위시리스트입니다.",
+    );
   });
 });

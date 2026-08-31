@@ -7,8 +7,7 @@ const {
 const { isProductionSourcePath } = require("./source-policy.cjs");
 
 const defaultProjectRoot = path.resolve(__dirname, "../..");
-const featurePathPattern =
-  /^[a-z][a-z0-9-]*(?:\/[a-z][a-z0-9-]*)*$/;
+const featurePathPattern = /^[a-z][a-z0-9-]*(?:\/[a-z][a-z0-9-]*)*$/;
 
 const freezeRatchet = (migratedFeatures) =>
   Object.freeze({

@@ -21,10 +21,7 @@ const scopeB = {
 } satisfies AuthenticatedSessionScope;
 const anonymousScope: SessionQueryScope = { subject: null, epoch: 3 };
 
-const detail = (
-  id: number,
-  isInWishlist: boolean,
-): AccommodationDetail => ({
+const detail = (id: number, isInWishlist: boolean): AccommodationDetail => ({
   id,
   name: `stay-${id}`,
   description: "description",
@@ -74,9 +71,7 @@ describe("accommodation detail cache projection", () => {
       detail(7, false),
     );
 
-    createAccommodationDetailQueryCacheProjection(
-      client,
-    ).membershipReconciled({
+    createAccommodationDetailQueryCacheProjection(client).membershipReconciled({
       scope: scopeA,
       accommodationId: 7,
       isInAnyWishlist: true,
@@ -101,9 +96,7 @@ describe("accommodation detail cache projection", () => {
     const stale = detail(99, false);
     const key = seedDetail(client, scopeA, 7, stale);
 
-    createAccommodationDetailQueryCacheProjection(
-      client,
-    ).membershipReconciled({
+    createAccommodationDetailQueryCacheProjection(client).membershipReconciled({
       scope: scopeA,
       accommodationId: 7,
       isInAnyWishlist: true,
@@ -157,12 +150,12 @@ describe("accommodation detail cache projection", () => {
     const keyA8 = seedDetail(client, scopeA, 8, detail(8, false));
     const keyB7 = seedDetail(client, scopeB, 7, detail(7, false));
 
-    createAccommodationDetailQueryCacheProjection(
-      client,
-    ).detailRefreshRequired({
-      scope: scopeA,
-      accommodationId: 7,
-    });
+    createAccommodationDetailQueryCacheProjection(client).detailRefreshRequired(
+      {
+        scope: scopeA,
+        accommodationId: 7,
+      },
+    );
 
     expect(client.getQueryState(keyA7)?.isInvalidated).toBe(true);
     expect(client.getQueryState(keyA8)?.isInvalidated).toBe(false);

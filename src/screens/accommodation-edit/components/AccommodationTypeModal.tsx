@@ -19,7 +19,11 @@ export const AccommodationTypeModal: React.FC<AccommodationTypeModalProps> = ({
   const title = "다음 중 숙소를 가장 잘 설명하는 것은 무엇인가요?";
 
   return (
-    <EditModalShell title={title} modalClassName={requireCssModuleClass(styles.typeModal)} onClose={onClose}>
+    <EditModalShell
+      title={title}
+      modalClassName={requireCssModuleClass(styles.typeModal)}
+      onClose={onClose}
+    >
       <div className={styles.typeModalHeader}>
         <h2 className={styles.typeModalTitle}>{title}</h2>
         <button
@@ -28,7 +32,12 @@ export const AccommodationTypeModal: React.FC<AccommodationTypeModalProps> = ({
           onClick={onClose}
           aria-label="모달 닫기"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
             <line x1="18" y1="6" x2="6" y2="18" />
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>

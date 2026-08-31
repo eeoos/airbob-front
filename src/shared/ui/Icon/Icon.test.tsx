@@ -18,12 +18,7 @@ const fallbackGlyph = {
 describe("Icon", () => {
   it("uses currentColor, an explicit size, and an accessible name", () => {
     render(
-      <Icon
-        decorative={false}
-        glyph={dotGlyph}
-        label="현재 위치"
-        size={32}
-      />
+      <Icon decorative={false} glyph={dotGlyph} label="현재 위치" size={32} />,
     );
 
     const icon = screen.getByRole("img", { name: "현재 위치" });
@@ -36,7 +31,7 @@ describe("Icon", () => {
 
   it("keeps decorative icons out of the accessibility tree", () => {
     const { container } = render(
-      <Icon decorative glyph={fallbackGlyph} size="100%" />
+      <Icon decorative glyph={fallbackGlyph} size="100%" />,
     );
 
     // Decorative SVGs intentionally have no semantic role or accessible name.

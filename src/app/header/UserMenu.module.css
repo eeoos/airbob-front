@@ -55,7 +55,8 @@
   cursor: pointer;
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
-  transition: background-color var(--motion-duration-base) var(--motion-ease-standard);
+  transition: background-color var(--motion-duration-base)
+    var(--motion-ease-standard);
 }
 
 .menuItem:hover {

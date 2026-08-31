@@ -229,8 +229,7 @@ export class ApiHarness {
     const url = new URL(request.url());
     const method = request.method().toUpperCase();
     const hasUrlCredentials = Boolean(url.username || url.password);
-    const isSameOrigin =
-      url.origin === this.appOrigin && !hasUrlCredentials;
+    const isSameOrigin = url.origin === this.appOrigin && !hasUrlCredentials;
     const isE2eApiOrigin = isExactE2eApiUrl(url);
     const isApiPath =
       url.pathname === API_PATH || url.pathname.startsWith(`${API_PATH}/`);
@@ -254,13 +253,7 @@ export class ApiHarness {
         return;
       }
 
-      await this.handleApiRequest(
-        route,
-        request,
-        method,
-        url,
-        true,
-      );
+      await this.handleApiRequest(route, request, method, url, true);
       return;
     }
 
@@ -321,9 +314,7 @@ export class ApiHarness {
 
     this.unhandled.push({
       method,
-      target: isSameOrigin
-        ? url.pathname
-        : `${url.host}${url.pathname}`,
+      target: isSameOrigin ? url.pathname : `${url.host}${url.pathname}`,
       kind: isSameOrigin ? "same-origin-data" : "external",
     });
     await route.abort("blockedbyclient");
@@ -362,8 +353,11 @@ export class ApiHarness {
           ...(isCrossOrigin ? this.corsResponseHeaders() : {}),
         },
         body: JSON.stringify(
-          apiFailure(599, "UNHANDLED_E2E_REQUEST", "등록되지 않은 테스트 요청입니다.")
-            .body,
+          apiFailure(
+            599,
+            "UNHANDLED_E2E_REQUEST",
+            "등록되지 않은 테스트 요청입니다.",
+          ).body,
         ),
       });
       return;
@@ -447,9 +441,10 @@ export class ApiHarness {
   ): void {
     this.unhandled.push({
       method,
-      target: url.origin === this.appOrigin
-        ? url.pathname
-        : `${url.host}${url.pathname}`,
+      target:
+        url.origin === this.appOrigin
+          ? url.pathname
+          : `${url.host}${url.pathname}`,
       kind,
     });
   }

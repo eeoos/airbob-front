@@ -79,7 +79,7 @@
 }
 
 .sidebar::after {
-  content: '';
+  content: "";
   position: absolute;
   top: -80px;
   right: -1px;

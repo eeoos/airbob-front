@@ -40,9 +40,7 @@ const command = (): PaymentConfirmationCommand => ({
   markConfirming: vi.fn(() => true),
 });
 
-const payment = (
-  overrides: Partial<PaymentRecord> = {},
-): PaymentRecord => ({
+const payment = (overrides: Partial<PaymentRecord> = {}): PaymentRecord => ({
   orderId: "reservation-123",
   paymentKey: "payment-key-1",
   status: "DONE",
@@ -62,7 +60,7 @@ const ownership = (
   ...overrides,
 });
 
-const deferred = <T,>() => {
+const deferred = <T>() => {
   let resolve!: (value: T | PromiseLike<T>) => void;
   let reject!: (reason?: unknown) => void;
   const promise = new Promise<T>((resolvePromise, rejectPromise) => {
@@ -151,15 +149,11 @@ describe("payment confirmation workflow", () => {
     ["payment order", { payment: payment({ orderId: "reservation-other" }) }],
     ["payment amount", { payment: payment({ totalAmount: 1 }) }],
     ["payment key", { payment: payment({ paymentKey: "payment-key-other" }) }],
-  ] satisfies ReadonlyArray<
-    readonly [string, Partial<CheckoutOwnership>]
-  >)(
+  ] satisfies ReadonlyArray<readonly [string, Partial<CheckoutOwnership>]>)(
     "rejects an ownership $label mismatch before payment I/O",
     async (_label, override) => {
       const { api, ownershipApi, workflow } = setup({
-        getCheckoutOwnership: vi
-          .fn()
-          .mockResolvedValue(ownership(override)),
+        getCheckoutOwnership: vi.fn().mockResolvedValue(ownership(override)),
       });
 
       await expect(workflow.confirm(command())).resolves.toEqual({
@@ -248,9 +242,9 @@ describe("payment confirmation workflow", () => {
     async (_label, status, expectedStatus) => {
       const input = command();
       const { api, workflow } = setup({
-        getCheckoutOwnership: vi.fn().mockResolvedValue(
-          ownership({ payment: payment({ status }) }),
-        ),
+        getCheckoutOwnership: vi
+          .fn()
+          .mockResolvedValue(ownership({ payment: payment({ status }) })),
       });
 
       await expect(workflow.confirm(input)).resolves.toEqual({
@@ -442,17 +436,18 @@ describe("payment confirmation workflow", () => {
     { label: "order", override: { orderId: "another-order" } },
     { label: "payment key", override: { paymentKey: "another-key" } },
     { label: "missing payment key", override: { paymentKey: null } },
-  ])("rejects a reconciled payment whose server $label differs", async ({
-    override,
-  }) => {
-    const { workflow } = setup({
-      getByPaymentKey: vi.fn().mockResolvedValue(payment(override)),
-    });
+  ])(
+    "rejects a reconciled payment whose server $label differs",
+    async ({ override }) => {
+      const { workflow } = setup({
+        getByPaymentKey: vi.fn().mockResolvedValue(payment(override)),
+      });
 
-    await expect(workflow.reconcile(command())).resolves.toEqual({
-      status: "invalid",
-    });
-  });
+      await expect(workflow.reconcile(command())).resolves.toEqual({
+        status: "invalid",
+      });
+    },
+  );
 
   it.each(["CANCELED", "PARTIAL_CANCELED", "ABORTED", "EXPIRED"] as const)(
     "maps server %s to terminal failure",

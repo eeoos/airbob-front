@@ -1,10 +1,4 @@
-import {
-  mkdtemp,
-  readdir,
-  readFile,
-  rm,
-  writeFile,
-} from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -139,7 +133,9 @@ const runSelfTest = async () => {
   const allowedSyntheticText =
     "person-a@example.invalid synthetic-password [redacted] test_ck_synthetic";
   if (findTextViolations(allowedSyntheticText).length > 0) {
-    throw new Error("Artifact scanner rejected the synthetic fixture allowlist.");
+    throw new Error(
+      "Artifact scanner rejected the synthetic fixture allowlist.",
+    );
   }
 
   const detectorCases = [
@@ -170,10 +166,7 @@ const runSelfTest = async () => {
       'authorization: {\n  credential: "PRIVATE-CREDENTIAL"\n}',
       "structured-sensitive-value",
     ],
-    [
-      'cookie: [\n  "PRIVATE-COOKIE"\n]',
-      "structured-sensitive-value",
-    ],
+    ['cookie: [\n  "PRIVATE-COOKIE"\n]', "structured-sensitive-value"],
     ["password=`PRIVATE-BACKTICK`", "structured-sensitive-value"],
     [
       String.raw`error={\"password\":\"PRIVATE-PASSWORD\"}`,
@@ -296,10 +289,8 @@ const runSelfTest = async () => {
     },
     {
       channel: "stdout",
-      input:
-        'event password="private first\nprivate second"\nstatus=ok\n',
-      expected:
-        'event password="[redacted]\n"\nstatus=ok\n',
+      input: 'event password="private first\nprivate second"\nstatus=ok\n',
+      expected: 'event password="[redacted]\n"\nstatus=ok\n',
       name: "multiline quoted password",
       forbiddenFragments: ["private first", "private second"],
     },
@@ -311,8 +302,7 @@ const runSelfTest = async () => {
           "private-middle",
           String.raw`private-suffix" next=synthetic`,
         ].join("\n") + "\n",
-      expected:
-        'event token="[redacted]\n\n" next=synthetic\n',
+      expected: 'event token="[redacted]\n\n" next=synthetic\n',
       name: "multiline escaped quotes and backslashes",
       forbiddenFragments: [
         "private-prefix",
@@ -325,17 +315,14 @@ const runSelfTest = async () => {
       channel: "stdout",
       input:
         'event accessToken=\n  "private access\ncontinued access" status=failed\n',
-      expected:
-        "event accessToken=[redacted]\n\n status=failed\n",
+      expected: "event accessToken=[redacted]\n\n status=failed\n",
       name: "quoted assignment value beginning on the next line",
       forbiddenFragments: ["private access", "continued access"],
     },
     {
       channel: "stderr",
-      input:
-        "event cookie:\nprivate session value; status=failed\n",
-      expected:
-        "event cookie:[redacted]\n; status=failed\n",
+      input: "event cookie:\nprivate session value; status=failed\n",
+      expected: "event cookie:[redacted]\n; status=failed\n",
       name: "unquoted assignment value beginning on the next line",
       forbiddenFragments: ["private session value"],
     },
@@ -343,8 +330,7 @@ const runSelfTest = async () => {
       channel: "stdout",
       input:
         'authorization: {\n  credential: "PRIVATE-CREDENTIAL",\n  nested: [{value: "PRIVATE-NESTED"}]\n}\nstatus=ok\n',
-      expected:
-        "authorization: [redacted]\n\n\n\nstatus=ok\n",
+      expected: "authorization: [redacted]\n\n\n\nstatus=ok\n",
       name: "nested multiline authorization object",
       forbiddenFragments: ["PRIVATE-CREDENTIAL", "PRIVATE-NESTED"],
     },
@@ -352,8 +338,7 @@ const runSelfTest = async () => {
       channel: "stderr",
       input:
         'cookie: [\n  "PRIVATE-COOKIE",\n  {nested: ["PRIVATE-ARRAY"]}\n]\nstatus=ok\n',
-      expected:
-        "cookie: [redacted]\n\n\n\nstatus=ok\n",
+      expected: "cookie: [redacted]\n\n\n\nstatus=ok\n",
       name: "nested multiline cookie array",
       forbiddenFragments: ["PRIVATE-COOKIE", "PRIVATE-ARRAY"],
     },
@@ -361,8 +346,7 @@ const runSelfTest = async () => {
       channel: "stdout",
       input:
         "password=`PRIVATE-BACKTICK-FIRST\\`STILL-PRIVATE\nPRIVATE-BACKTICK-SECOND` status=ok\n",
-      expected:
-        "password=`[redacted]\n` status=ok\n",
+      expected: "password=`[redacted]\n` status=ok\n",
       name: "multiline backtick password",
       forbiddenFragments: [
         "PRIVATE-BACKTICK-FIRST",
@@ -372,8 +356,7 @@ const runSelfTest = async () => {
     },
     {
       channel: "stderr",
-      input:
-        `\u001b[31m${String.raw`error={\"password\":\"PRIVATE-PASSWORD\",\"paymentKey\":\"PRIVATE-PAYMENT-KEY\"}`}\u001b[39m\n`,
+      input: `\u001b[31m${String.raw`error={\"password\":\"PRIVATE-PASSWORD\",\"paymentKey\":\"PRIVATE-PAYMENT-KEY\"}`}\u001b[39m\n`,
       expected:
         String.raw`error={\"password\":\"[redacted]\",\"paymentKey\":\"[redacted]\"}` +
         "\n",
@@ -384,8 +367,7 @@ const runSelfTest = async () => {
       channel: "stdout",
       input:
         'auth\u001b[7mo\u001b[27mrization: \u001b[31m{\u001b[39m\n  credential: "PRIVATE-ANSI-CREDENTIAL"\n}\nstatus=ok\n',
-      expected:
-        "authorization: [redacted]\n\n\nstatus=ok\n",
+      expected: "authorization: [redacted]\n\n\nstatus=ok\n",
       name: "ANSI transparent sensitive key and structured opener",
       forbiddenFragments: ["PRIVATE-ANSI-CREDENTIAL"],
     },
@@ -413,62 +395,60 @@ const runSelfTest = async () => {
         String.raw`\"}` +
         "\n",
       name: "multiline escaped serialized JSON value",
-      forbiddenFragments: [
-        "PRIVATE-PREFIX",
-        "STILL-PRIVATE",
-        "PRIVATE-SUFFIX",
-      ],
+      forbiddenFragments: ["PRIVATE-PREFIX", "STILL-PRIVATE", "PRIVATE-SUFFIX"],
     },
     {
       channel: "stdout",
-      input:
-        'configuration: {\n  credential: "VISIBLE-CONFIGURATION"\n}\n',
-      expected:
-        'configuration: {\n  credential: "VISIBLE-CONFIGURATION"\n}\n',
+      input: 'configuration: {\n  credential: "VISIBLE-CONFIGURATION"\n}\n',
+      expected: 'configuration: {\n  credential: "VISIBLE-CONFIGURATION"\n}\n',
       name: "non-sensitive multiline configuration",
       forbiddenFragments: [],
     },
   ];
-  streamingRedactionCases.forEach(({
-    channel,
-    input,
-    expected,
-    name,
-    forbiddenFragments,
-  }) => {
-    for (let offset = 0; offset <= input.length; offset += 1) {
-      let stdout = "";
-      let stderr = "";
-      const writer = createRedactedLineWriter({
-        stdout: { write: (value) => { stdout += String(value); } },
-        stderr: { write: (value) => { stderr += String(value); } },
-      });
+  streamingRedactionCases.forEach(
+    ({ channel, input, expected, name, forbiddenFragments }) => {
+      for (let offset = 0; offset <= input.length; offset += 1) {
+        let stdout = "";
+        let stderr = "";
+        const writer = createRedactedLineWriter({
+          stdout: {
+            write: (value) => {
+              stdout += String(value);
+            },
+          },
+          stderr: {
+            write: (value) => {
+              stderr += String(value);
+            },
+          },
+        });
 
-      writer[channel](input.slice(0, offset));
-      writer[channel](input.slice(offset));
+        writer[channel](input.slice(0, offset));
+        writer[channel](input.slice(offset));
 
-      if (!input.endsWith("\n") && (stdout || stderr)) {
-        throw new Error(`Streaming reporter emitted an incomplete ${name}.`);
+        if (!input.endsWith("\n") && (stdout || stderr)) {
+          throw new Error(`Streaming reporter emitted an incomplete ${name}.`);
+        }
+
+        writer.flush();
+        const output = channel === "stdout" ? stdout : stderr;
+
+        if (output !== expected) {
+          throw new Error(
+            `Streaming reporter mishandled ${name} split offset ${offset}.`,
+          );
+        }
+        if (
+          forbiddenFragments.some((fragment) => output.includes(fragment)) ||
+          findTextViolations(output).length > 0
+        ) {
+          throw new Error(
+            `Streaming reporter exposed ${name} split offset ${offset}.`,
+          );
+        }
       }
-
-      writer.flush();
-      const output = channel === "stdout" ? stdout : stderr;
-
-      if (output !== expected) {
-        throw new Error(
-          `Streaming reporter mishandled ${name} split offset ${offset}.`,
-        );
-      }
-      if (
-        forbiddenFragments.some((fragment) => output.includes(fragment)) ||
-        findTextViolations(output).length > 0
-      ) {
-        throw new Error(
-          `Streaming reporter exposed ${name} split offset ${offset}.`,
-        );
-      }
-    }
-  });
+    },
+  );
 
   const previousForceColor = process.env.FORCE_COLOR;
   const previousNoColor = process.env.NO_COLOR;
@@ -528,7 +508,11 @@ const runSelfTest = async () => {
     for (let offset = 0; offset <= input.length; offset += 1) {
       let output = "";
       const writer = createRedactedLineWriter({
-        stdout: { write: (value) => { output += String(value); } },
+        stdout: {
+          write: (value) => {
+            output += String(value);
+          },
+        },
         stderr: { write: () => {} },
       });
       writer.stdout(input.slice(0, offset));
@@ -561,16 +545,11 @@ const runSelfTest = async () => {
   assertPlaywrightStackRedaction({
     input: `${coloredPlaywrightStack}\n`,
     name: "actual FORCE_COLOR Playwright diff",
-    forbiddenFragments: [
-      "PRIVATE-COLORED-PASSWORD",
-      "PRIVATE-COLORED-PAYMENT",
-    ],
+    forbiddenFragments: ["PRIVATE-COLORED-PASSWORD", "PRIVATE-COLORED-PAYMENT"],
   });
 
   nestedPlaywrightStacks.forEach(({ depth, stack }) => {
-    if (
-      !findTextViolations(stack).includes("structured-sensitive-value")
-    ) {
+    if (!findTextViolations(stack).includes("structured-sensitive-value")) {
       throw new Error(
         `Artifact detector missed nested JSON serialization depth ${depth}.`,
       );
@@ -589,8 +568,16 @@ const runSelfTest = async () => {
   let interleavedStdout = "";
   let interleavedStderr = "";
   const interleavedWriter = createRedactedLineWriter({
-    stdout: { write: (value) => { interleavedStdout += String(value); } },
-    stderr: { write: (value) => { interleavedStderr += String(value); } },
+    stdout: {
+      write: (value) => {
+        interleavedStdout += String(value);
+      },
+    },
+    stderr: {
+      write: (value) => {
+        interleavedStderr += String(value);
+      },
+    },
   });
   interleavedWriter.stdout("pass");
   interleavedWriter.stderr("to");
@@ -608,10 +595,18 @@ const runSelfTest = async () => {
   let multilineStdout = "";
   let multilineStderr = "";
   const multilineInterleavedWriter = createRedactedLineWriter({
-    stdout: { write: (value) => { multilineStdout += String(value); } },
-    stderr: { write: (value) => { multilineStderr += String(value); } },
+    stdout: {
+      write: (value) => {
+        multilineStdout += String(value);
+      },
+    },
+    stderr: {
+      write: (value) => {
+        multilineStderr += String(value);
+      },
+    },
   });
-  multilineInterleavedWriter.stdout('pass');
+  multilineInterleavedWriter.stdout("pass");
   multilineInterleavedWriter.stderr("to");
   multilineInterleavedWriter.stdout('word="stdout-private\n');
   multilineInterleavedWriter.stderr("ken='stderr-private\n");
@@ -620,10 +615,8 @@ const runSelfTest = async () => {
   multilineInterleavedWriter.flush();
 
   if (
-    multilineStdout !==
-      'password="[redacted]\n" stdout=safe\n' ||
-    multilineStderr !==
-      "token='[redacted]\n' stderr=safe\n" ||
+    multilineStdout !== 'password="[redacted]\n" stdout=safe\n' ||
+    multilineStderr !== "token='[redacted]\n' stderr=safe\n" ||
     multilineStdout.includes("stdout-private") ||
     multilineStdout.includes("stdout-continuation") ||
     multilineStderr.includes("stderr-private") ||
@@ -636,7 +629,11 @@ const runSelfTest = async () => {
 
   let oversizedOutput = "";
   const oversizedWriter = createRedactedLineWriter({
-    stdout: { write: (value) => { oversizedOutput += String(value); } },
+    stdout: {
+      write: (value) => {
+        oversizedOutput += String(value);
+      },
+    },
     stderr: { write: () => {} },
   });
   oversizedWriter.stdout(`message=${"x".repeat(70 * 1024)}`);
@@ -657,8 +654,16 @@ const runSelfTest = async () => {
   let reporterStdout = "";
   let reporterStderr = "";
   const reporter = new RedactedLineReporter({
-    stdout: { write: (value) => { reporterStdout += String(value); } },
-    stderr: { write: (value) => { reporterStderr += String(value); } },
+    stdout: {
+      write: (value) => {
+        reporterStdout += String(value);
+      },
+    },
+    stderr: {
+      write: (value) => {
+        reporterStderr += String(value);
+      },
+    },
   });
   reporter.onStdOut("password=`PRIVATE-BACKTICK-FIRST\n");
   reporter.onStdOut("PRIVATE-BACKTICK-UNTERMINATED");
@@ -687,7 +692,10 @@ const runSelfTest = async () => {
       COMMITTED_PRIVACY_CANARIES.join("\n"),
       "utf8",
     );
-    await writeFile(path.join(temporaryRoot, "unsafe-screenshot.png"), "binary");
+    await writeFile(
+      path.join(temporaryRoot, "unsafe-screenshot.png"),
+      "binary",
+    );
 
     let rejectedUnsafeTree = false;
     try {
@@ -713,7 +721,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   try {
     if (process.argv.includes("--self-test")) {
       await runSelfTest();
-      process.stdout.write("Playwright artifact privacy scanner self-test passed.\n");
+      process.stdout.write(
+        "Playwright artifact privacy scanner self-test passed.\n",
+      );
     } else {
       await scanPlaywrightArtifacts();
       process.stdout.write("Playwright artifacts passed the privacy scan.\n");

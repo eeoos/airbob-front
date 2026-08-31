@@ -57,7 +57,7 @@ const accommodation = {
   ],
 } as const;
 
-const deferred = <T,>() => {
+const deferred = <T>() => {
   let resolve!: (value: T | PromiseLike<T>) => void;
   let reject!: (reason?: unknown) => void;
   const promise = new Promise<T>((resolvePromise, rejectPromise) => {
@@ -609,9 +609,11 @@ describe("createListingEditorWorkflow", () => {
     harness.api.update.mockImplementationOnce(async () => {
       order.push("update");
     });
-    harness.publication.publishEditorChanged.mockImplementation(async (input) => {
-      order.push(`publication:${input.outcome}`);
-    });
+    harness.publication.publishEditorChanged.mockImplementation(
+      async (input) => {
+        order.push(`publication:${input.outcome}`);
+      },
+    );
     harness.api.publish.mockImplementationOnce(async () => {
       order.push("publish");
     });
@@ -1125,7 +1127,9 @@ describe("createListingEditorWorkflow", () => {
     });
     harness.setSessionScope(replacementScope);
 
-    await expect(harness.workflow.retry()).resolves.toEqual({ status: "stale" });
+    await expect(harness.workflow.retry()).resolves.toEqual({
+      status: "stale",
+    });
     expect(harness.api.update).toHaveBeenCalledTimes(1);
     expect(harness.query.projectHostDetail).toHaveBeenCalledWith(
       expect.objectContaining({ scope }),

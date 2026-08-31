@@ -30,9 +30,7 @@ describe("useSearchBarShellInteractions", () => {
       ...createOptions(),
       destinationAreaRef: createRef(destinationArea),
     };
-    const { result } = renderHook(() =>
-      useSearchBarShellInteractions(options),
-    );
+    const { result } = renderHook(() => useSearchBarShellInteractions(options));
 
     act(() => {
       result.current.handleSearchBarClick({
@@ -53,9 +51,7 @@ describe("useSearchBarShellInteractions", () => {
       activePopover: "date" as const,
       isExpanded: true,
     };
-    const { result } = renderHook(() =>
-      useSearchBarShellInteractions(options),
-    );
+    const { result } = renderHook(() => useSearchBarShellInteractions(options));
 
     act(() => {
       result.current.handleSearchBarClick({
@@ -74,9 +70,7 @@ describe("useSearchBarShellInteractions", () => {
   it("collapses the shell when no popover is active", () => {
     const outside = document.createElement("button");
     const options = { ...createOptions(), isExpanded: true };
-    const { result } = renderHook(() =>
-      useSearchBarShellInteractions(options),
-    );
+    const { result } = renderHook(() => useSearchBarShellInteractions(options));
 
     act(() => {
       result.current.handleSearchBarClick({
@@ -90,9 +84,7 @@ describe("useSearchBarShellInteractions", () => {
 
   it("maps date and guest triggers to mutually-exclusive reducer events", () => {
     const options = createOptions();
-    const { result } = renderHook(() =>
-      useSearchBarShellInteractions(options),
-    );
+    const { result } = renderHook(() => useSearchBarShellInteractions(options));
 
     act(() => {
       result.current.handleDateClick({

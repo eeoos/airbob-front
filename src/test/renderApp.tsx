@@ -24,8 +24,7 @@ import { createTestQueryClient } from "./createTestQueryClient";
 
 export const TEST_PORTAL_ROOT_ID = APP_OVERLAY_ROOT_ID;
 
-export interface RenderAppOptions
-  extends Omit<RenderOptions, "wrapper"> {
+export interface RenderAppOptions extends Omit<RenderOptions, "wrapper"> {
   queryClient?: QueryClient;
   initialEntries?: MemoryRouterProps["initialEntries"];
   session?: SessionViewer | null;
@@ -103,7 +102,7 @@ const releasePortalRoot = (portalRoot: HTMLElement) => {
 
 const retainQueryClient = (
   queryClient: QueryClient,
-  createdByHarness: boolean
+  createdByHarness: boolean,
 ) => {
   const ownership = queryClientOwnership.get(queryClient) ?? {
     clearWhenUnused: createdByHarness,
@@ -145,7 +144,7 @@ const toInitialSessionState = (session: SessionViewer | null): SessionState =>
 
 export const renderApp = (
   ui: ReactElement,
-  options: RenderAppOptions = {}
+  options: RenderAppOptions = {},
 ): RenderAppResult => {
   const {
     queryClient: providedQueryClient,

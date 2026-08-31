@@ -6,9 +6,8 @@ import { hostListingQueryKeys } from "../queries/hostListingQueryKeys";
 
 type QueryPredicate = NonNullable<QueryFilters["predicate"]>;
 
-const scopedHostListingPredicate = (
-  scope: AuthenticatedSessionScope,
-): QueryPredicate =>
+const scopedHostListingPredicate =
+  (scope: AuthenticatedSessionScope): QueryPredicate =>
   (query) =>
     query.queryKey[0] === hostListingQueryKeys.root[0] &&
     query.queryKey[1] === hostListingQueryKeys.root[1] &&
@@ -18,8 +17,11 @@ export const createHostListingQueryCacheProjection = (
   queryClient: QueryClient,
 ): HostListingCacheProjectionPort => ({
   async refreshRequired({ scope }) {
-    await queryClient.invalidateQueries({
-      predicate: scopedHostListingPredicate(scope),
-    }, { throwOnError: true });
+    await queryClient.invalidateQueries(
+      {
+        predicate: scopedHostListingPredicate(scope),
+      },
+      { throwOnError: true },
+    );
   },
 });

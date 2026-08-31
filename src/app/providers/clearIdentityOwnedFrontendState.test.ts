@@ -60,7 +60,10 @@ describe("clearIdentityOwnedFrontendState", () => {
     },
     {
       status: "storage-error" as const,
-      error: { kind: "storage-unavailable" as const, operation: "remove" as const },
+      error: {
+        kind: "storage-unavailable" as const,
+        operation: "remove" as const,
+      },
     },
   ])("fails closed when booking cleanup returns $status", (result) => {
     mockClearBookingPaymentBrowserState.mockReturnValueOnce(result);

@@ -144,7 +144,10 @@ describe("Daum postcode platform integration", () => {
     );
     expect(open).toHaveBeenCalledTimes(1);
 
-    getOncomplete()?.({ ...validPostcodeResult, ignoredProviderField: "drop-me" });
+    getOncomplete()?.({
+      ...validPostcodeResult,
+      ignoredProviderField: "drop-me",
+    });
     expect(onComplete).toHaveBeenCalledWith(validPostcodeResult);
   });
 
@@ -178,7 +181,9 @@ describe("Daum postcode platform integration", () => {
         integration: "daum-postcode",
       }),
     );
-    expect(JSON.stringify(onError.mock.calls)).not.toContain("must-not-propagate");
+    expect(JSON.stringify(onError.mock.calls)).not.toContain(
+      "must-not-propagate",
+    );
   });
 
   it("normalizes a throwing provider constructor without exposing its payload", async () => {

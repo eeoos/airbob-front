@@ -4,10 +4,7 @@ import { join } from "path";
 describe("Search Places integration boundary", () => {
   it("keeps Search Places loading on platform-owned integrations", () => {
     const featureSource = readFileSync(
-      join(
-        process.cwd(),
-        "src/features/search/hooks/usePlacesAutocomplete.ts",
-      ),
+      join(process.cwd(), "src/features/search/hooks/usePlacesAutocomplete.ts"),
       "utf8",
     );
 

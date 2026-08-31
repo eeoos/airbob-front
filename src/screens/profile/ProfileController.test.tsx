@@ -1,13 +1,7 @@
 import type { Mocked } from "vitest";
 import type { ReactElement } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import {
-  act,
-  render,
-  screen,
-  waitFor,
-  within,
-} from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { HostListingsApiPort } from "../../features/profile/ports/hostListingsApiPort";
 import type {
@@ -176,7 +170,10 @@ const createWorkflow = () => {
   return {
     dispose,
     execute,
-    workflow: { dispose, execute } as unknown as Mocked<HostListingManagementWorkflow>,
+    workflow: {
+      dispose,
+      execute,
+    } as unknown as Mocked<HostListingManagementWorkflow>,
   };
 };
 
@@ -361,9 +358,7 @@ describe("ProfileController", () => {
       screen
         .getAllByRole("row")
         .slice(1)
-        .map((row) =>
-          within(row).getByText(/HOST-(?:EARLY|LATE)/).textContent,
-        );
+        .map((row) => within(row).getByText(/HOST-(?:EARLY|LATE)/).textContent);
 
     expect(reservationCodes()).toEqual(["HOST-LATE", "HOST-EARLY"]);
     expect(
@@ -456,7 +451,9 @@ describe("ProfileController", () => {
       "정말 이 리스팅을 삭제하시겠습니까?",
     );
     expect(workflow.execute).not.toHaveBeenCalled();
-    expect(screen.getByRole("dialog", { name: "숙소 관리" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", { name: "숙소 관리" }),
+    ).toBeInTheDocument();
   });
 
   it("allows only one workflow execution for rapid duplicate action clicks", async () => {
@@ -533,7 +530,9 @@ describe("ProfileController", () => {
       await pending.promise;
     });
 
-    expect(screen.getByRole("dialog", { name: "숙소 관리" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", { name: "숙소 관리" }),
+    ).toBeInTheDocument();
     await userEvent.click(
       screen.getByRole("button", { name: "리스팅 비공개" }),
     );
@@ -549,10 +548,7 @@ describe("ProfileController", () => {
   it("does not apply listing A's late failure to a newly opened listing B", async () => {
     const hostListings = createHostListingsApi();
     hostListings.getHostListings.mockResolvedValue(
-      listingPage([
-        listing(),
-        listing({ id: 42, name: "북촌 숙소" }),
-      ]),
+      listingPage([listing(), listing({ id: 42, name: "북촌 숙소" })]),
     );
     const workflow = createWorkflow();
     const pending = deferred<HostListingManagementResult>();
@@ -615,7 +611,9 @@ describe("ProfileController", () => {
       screen.getByRole("button", { name: "리스팅 비공개" }),
     );
 
-    expect(screen.getByRole("dialog", { name: "숙소 관리" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", { name: "숙소 관리" }),
+    ).toBeInTheDocument();
     await waitFor(() =>
       expect(
         screen.getByRole("button", { name: "리스팅 비공개" }),
@@ -653,7 +651,9 @@ describe("ProfileController", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "숙소에 대한 접근 권한이 없습니다.",
     );
-    expect(screen.getByRole("dialog", { name: "숙소 관리" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", { name: "숙소 관리" }),
+    ).toBeInTheDocument();
 
     await userEvent.click(
       screen.getByRole("button", { name: "리스팅 비공개" }),
@@ -698,6 +698,8 @@ describe("ProfileController", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "요청은 처리됐지만 목록을 갱신하지 못했습니다. 페이지를 다시 열어 확인해주세요.",
     );
-    expect(screen.getByRole("dialog", { name: "숙소 관리" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", { name: "숙소 관리" }),
+    ).toBeInTheDocument();
   });
 });

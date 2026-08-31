@@ -44,7 +44,8 @@ type SuccessResolution =
     }
   | {
       readonly status: "invalid";
-      readonly reason?: PaymentCallbackClaimInvalidReason | "ownership-mismatch";
+      readonly reason?:
+        PaymentCallbackClaimInvalidReason | "ownership-mismatch";
     }
   | { readonly status: "stale" };
 
@@ -57,9 +58,7 @@ export function PaymentSuccessRoute() {
   const session = useSession();
   const sessionEpoch = session.state.epoch;
   const sessionSubject =
-    session.state.status === "authenticated"
-      ? session.state.subject
-      : null;
+    session.state.status === "authenticated" ? session.state.subject : null;
   const { isCurrentSession } = session;
   const [resolution, setResolution] = useState<SuccessResolution>({
     status: "resolving",
@@ -104,25 +103,18 @@ export function PaymentSuccessRoute() {
   );
 
   useLayoutEffect(() => {
-    if (
-      claimedRef.current ||
-      scope === null ||
-      location.search !== ""
-    ) {
+    if (claimedRef.current || scope === null || location.search !== "") {
       return;
     }
     claimedRef.current = true;
-    const isCurrent = () =>
-      routeLease.isCurrent() && isCurrentSession(scope);
+    const isCurrent = () => routeLease.isCurrent() && isCurrentSession(scope);
 
     if (!reservationUid || credentialClaim.status === "invalid") {
       setResolution({ status: "invalid" });
       return;
     }
     const fresh =
-      credentialClaim.status === "fresh"
-        ? credentialClaim.fresh
-        : undefined;
+      credentialClaim.status === "fresh" ? credentialClaim.fresh : undefined;
     const claimed = claimPaymentCallback(repositories, {
       scope,
       reservationUid,
@@ -154,9 +146,7 @@ export function PaymentSuccessRoute() {
     const controller = new AbortController();
     let active = true;
     const isCurrent = () =>
-      active &&
-      routeLease.isCurrent() &&
-      isCurrentSession(scope);
+      active && routeLease.isCurrent() && isCurrentSession(scope);
 
     void resolveServerPaymentCallbackReplay(
       { ownershipApi: checkoutOwnershipApi },
@@ -183,17 +173,20 @@ export function PaymentSuccessRoute() {
     }
   }, [isCurrentSession, routeLease, scope]);
 
-  const handleInvalid = useCallback((clearJoinedDocuments = false) => {
-    if (!reservationUid) {
-      navigate(routeTo.profile(), { replace: true, state: null });
-      return;
-    }
-    if (clearJoinedDocuments) clearDocuments();
-    navigate(
-      routeTo.paymentFail(reservationUid, { reason: "invalid-callback" }),
-      { replace: true, state: null },
-    );
-  }, [clearDocuments, navigate, reservationUid]);
+  const handleInvalid = useCallback(
+    (clearJoinedDocuments = false) => {
+      if (!reservationUid) {
+        navigate(routeTo.profile(), { replace: true, state: null });
+        return;
+      }
+      if (clearJoinedDocuments) clearDocuments();
+      navigate(
+        routeTo.paymentFail(reservationUid, { reason: "invalid-callback" }),
+        { replace: true, state: null },
+      );
+    },
+    [clearDocuments, navigate, reservationUid],
+  );
 
   useEffect(() => {
     if (
@@ -244,8 +237,7 @@ export function PaymentSuccessRoute() {
       ? repositories.callback.write({
           scope,
           data: { ...resolution.callback, phase },
-          isCurrent: () =>
-            routeLease.isCurrent() && isCurrentSession(scope),
+          isCurrent: () => routeLease.isCurrent() && isCurrentSession(scope),
         }).status === "written"
       : routeLease.isCurrent() && isCurrentSession(scope);
 

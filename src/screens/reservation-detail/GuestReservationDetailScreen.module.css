@@ -381,7 +381,8 @@
   font-size: var(--font-size-md);
   font-weight: 600;
   cursor: pointer;
-  transition: background-color var(--motion-duration-base) var(--motion-ease-standard);
+  transition: background-color var(--motion-duration-base)
+    var(--motion-ease-standard);
 }
 
 .reviewButton {

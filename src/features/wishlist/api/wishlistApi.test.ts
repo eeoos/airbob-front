@@ -19,7 +19,9 @@ describe("wishlist API adapter", () => {
     const signal = new AbortController().signal;
     request.mockResolvedValue({ id: 7 });
 
-    await expect(api.create({ name: "여름 여행" }, { signal })).resolves.toEqual({
+    await expect(
+      api.create({ name: "여름 여행" }, { signal }),
+    ).resolves.toEqual({
       id: 7,
     });
     expect(request).toHaveBeenCalledWith({

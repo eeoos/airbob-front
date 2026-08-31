@@ -415,7 +415,9 @@ test("recovers a complete versioned checkout from session storage after a full r
   await expect(
     page.getByRole("heading", { name: "확인 및 결제" }),
   ).toBeVisible();
-  await expect(page.getByText("합정 테스트 숙소", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("합정 테스트 숙소", { exact: true }),
+  ).toBeVisible();
 
   await page.reload();
 
@@ -466,10 +468,11 @@ test("maps one double-click to one official v2 CARD request", async ({
   });
 
   await expect
-    .poll(async () =>
-      (await readPaymentGatewayCalls(page)).filter(
-        (call) => call.kind === "request-payment",
-      ).length,
+    .poll(
+      async () =>
+        (await readPaymentGatewayCalls(page)).filter(
+          (call) => call.kind === "request-payment",
+        ).length,
     )
     .toBe(1);
   expect(await readPaymentGatewayCalls(page)).toEqual([
@@ -524,10 +527,11 @@ test("keeps checkout retryable after a v2 USER_CANCEL", async ({
   await paymentButton.click();
   await expect(paymentButton).toBeEnabled();
   await expect
-    .poll(async () =>
-      (await readPaymentGatewayCalls(page)).filter(
-        (call) => call.kind === "request-payment",
-      ).length,
+    .poll(
+      async () =>
+        (await readPaymentGatewayCalls(page)).filter(
+          (call) => call.kind === "request-payment",
+        ).length,
     )
     .toBe(2);
   expect(
@@ -565,10 +569,11 @@ test("destroys the route-owned v2 client only after leaving checkout", async ({
   await page.getByRole("link", { name: "Airbob 홈으로 이동" }).click();
   await expect(page).toHaveURL("/");
   await expect
-    .poll(async () =>
-      (await readPaymentGatewayCalls(page)).filter(
-        (call) => call.kind === "destroy",
-      ).length,
+    .poll(
+      async () =>
+        (await readPaymentGatewayCalls(page)).filter(
+          (call) => call.kind === "destroy",
+        ).length,
     )
     .toBe(1);
 });
@@ -577,10 +582,7 @@ test("never re-enters payment request when a callback already exists", async ({
   page,
   session,
 }) => {
-  const checkout = createCheckoutDocument(
-    RESERVATION_UIDS.recoveryOnly,
-    1_000,
-  );
+  const checkout = createCheckoutDocument(RESERVATION_UIDS.recoveryOnly, 1_000);
   const callback = createCallbackDocument(checkout, "pk_recovery_only");
 
   session.authenticate();
@@ -739,9 +741,10 @@ test("confirms once, clears owned documents, and server-reconciles a replay with
   );
 
   await page.goto(callbackPath);
-  await page.waitForURL((url) =>
-    url.pathname === `/reservations/${checkout.reservationUid}` ||
-    url.pathname.endsWith("/fail"),
+  await page.waitForURL(
+    (url) =>
+      url.pathname === `/reservations/${checkout.reservationUid}` ||
+      url.pathname.endsWith("/fail"),
   );
   await expect(page).toHaveURL(
     new RegExp(`/reservations/${checkout.reservationUid}$`),
@@ -762,9 +765,10 @@ test("confirms once, clears owned documents, and server-reconciles a replay with
   ).toEqual({ checkout: null, callback: null });
 
   await page.goto(callbackPath);
-  await page.waitForURL((url) =>
-    url.pathname === `/reservations/${checkout.reservationUid}` ||
-    url.pathname.endsWith("/fail"),
+  await page.waitForURL(
+    (url) =>
+      url.pathname === `/reservations/${checkout.reservationUid}` ||
+      url.pathname.endsWith("/fail"),
   );
   await expect(page).toHaveURL(
     new RegExp(`/reservations/${checkout.reservationUid}$`),

@@ -163,7 +163,9 @@
   cursor: pointer;
   padding: 0;
   color: var(--color-text-primary);
-  transition: transform 0.2s ease, color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease;
   z-index: var(--z-local-raised);
   box-shadow: none;
 }

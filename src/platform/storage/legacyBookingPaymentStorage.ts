@@ -56,9 +56,7 @@ export interface LegacyBookingPaymentStorage {
   clearCheckoutPrimary(
     accommodationId: number,
   ): LegacyBookingPaymentCleanupResult;
-  clearCheckoutIndex(
-    reservationUid: string,
-  ): LegacyBookingPaymentCleanupResult;
+  clearCheckoutIndex(reservationUid: string): LegacyBookingPaymentCleanupResult;
   clearCheckout(
     accommodationId: number,
     reservationUid: string,

@@ -65,7 +65,7 @@ describe("useNonModalOverlayRegistration", () => {
     const popover = screen.getByTestId("여행자-popover");
     expect(owner).toContainElement(popover);
     expect(view.container).toContainElement(popover);
-    expect(document.body).toHaveStyle({overflow:""});
+    expect(document.body).toHaveStyle({ overflow: "" });
 
     screen.getByRole("button", { name: "여행자 작업" }).focus();
     await userEvent.keyboard("{Escape}");
@@ -85,12 +85,8 @@ describe("useNonModalOverlayRegistration", () => {
       </OverlayProvider>,
     );
 
-    await userEvent.click(
-      screen.getByRole("button", { name: "첫 번째 열기" }),
-    );
-    await userEvent.click(
-      screen.getByRole("button", { name: "두 번째 열기" }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: "첫 번째 열기" }));
+    await userEvent.click(screen.getByRole("button", { name: "두 번째 열기" }));
 
     screen.getByRole("button", { name: "첫 번째 작업" }).focus();
     await userEvent.keyboard("{Escape}");

@@ -12,7 +12,11 @@ export const formatListingEditorTime = (
 
 export const parseListingEditorTime = (
   time: string,
-): { readonly hour: number; readonly minute: number; readonly period: "AM" | "PM" } => {
+): {
+  readonly hour: number;
+  readonly minute: number;
+  readonly period: "AM" | "PM";
+} => {
   const [rawHour = "0", rawMinute = "0"] = time.split(":");
   const hour24 = Number.parseInt(rawHour, 10);
   const minute = Number.parseInt(rawMinute, 10);

@@ -102,10 +102,7 @@ const getPaymentStatusTone = (
     return "success";
   }
 
-  if (
-    payment.virtualAccount &&
-    payment.status === "WAITING_FOR_DEPOSIT"
-  ) {
+  if (payment.virtualAccount && payment.status === "WAITING_FOR_DEPOSIT") {
     return "warning";
   }
 

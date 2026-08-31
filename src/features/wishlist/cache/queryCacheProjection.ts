@@ -15,10 +15,11 @@ import type { WishlistProjectionPort } from "../ports/wishlistProjectionPort";
 
 type QueryPredicate = NonNullable<QueryFilters["predicate"]>;
 
-const scopedWishlistPredicate = (
-  scope: AuthenticatedSessionScope,
-  resource?: "lists" | "detail" | "recentlyViewed",
-): QueryPredicate =>
+const scopedWishlistPredicate =
+  (
+    scope: AuthenticatedSessionScope,
+    resource?: "lists" | "detail" | "recentlyViewed",
+  ): QueryPredicate =>
   (query) =>
     query.queryKey[0] === wishlistReadQueryKeys.root[0] &&
     (resource === undefined || query.queryKey[1] === resource) &&
@@ -129,11 +130,8 @@ export const createWishlistQueryCacheProjection = (
   wishlistDeleted({ scope, wishlistId }) {
     queryClient.setQueriesData<InfiniteData<WishlistCollection, string | null>>(
       { predicate: scopedWishlistPredicate(scope, "lists") },
-      (
-        previous:
-          | InfiniteData<WishlistCollection, string | null>
-          | undefined,
-      ) => removeWishlistFromCollection(previous, wishlistId),
+      (previous: InfiniteData<WishlistCollection, string | null> | undefined) =>
+        removeWishlistFromCollection(previous, wishlistId),
     );
     queryClient.removeQueries({
       predicate: (query) =>
@@ -142,17 +140,15 @@ export const createWishlistQueryCacheProjection = (
     });
     void queryClient.invalidateQueries({
       predicate: (query) =>
-        scopedWishlistPredicate(scope)(query) &&
-        query.queryKey[1] !== "detail",
+        scopedWishlistPredicate(scope)(query) && query.queryKey[1] !== "detail",
     });
   },
 
   memoSaved({ scope, wishlistAccommodationId, memo }) {
     queryClient.setQueriesData<InfiniteData<WishlistDetail, string | null>>(
       { predicate: scopedWishlistPredicate(scope, "detail") },
-      (
-        previous: InfiniteData<WishlistDetail, string | null> | undefined,
-      ) => patchMemo(previous, wishlistAccommodationId, memo),
+      (previous: InfiniteData<WishlistDetail, string | null> | undefined) =>
+        patchMemo(previous, wishlistAccommodationId, memo),
     );
   },
 

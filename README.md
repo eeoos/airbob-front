@@ -21,6 +21,12 @@ jest-dom, and Playwright feedback is blocking without CRA/Jest presets. ESLint
 owns local code and capability-import feedback only; dependency-cruiser, Knip,
 and Stylelint remain the sole graph, reachability, and CSS-policy owners.
 
+Prettier 3.9 and EditorConfig own mechanical layout for active source, tests,
+configuration, and compact current documentation. Three paragraph-heavy
+architecture registries remain hand-maintained so a cell edit does not rewrite
+an entire wide table row. Generated artifacts, npm's lockfile, local tool state,
+binary assets, and archived plans retain their existing owners.
+
 ```bash
 npm install
 npm run typecheck
@@ -76,6 +82,7 @@ Use these commands before broad visual redesign work:
 npm run verify:pre-redesign
 npm run verify:structure
 npm run verify:architecture
+npm run format:check
 npm run report:architecture
 npm run test:public-config-build
 npm run test:e2e:artifact-policy
@@ -95,7 +102,7 @@ npm run verify:design-ready
 - `verify:architecture`: runs forbidden-rule fixtures, the production
   dependency graph, monotonic migration-registry checks, target-only dead-code
   enforcement, full development and strict production dependency
-  classification, and strict style policy.
+  classification, strict style policy, and formatting drift detection.
 - `report:architecture`: prints the measured legacy dead-code and CSS debt
   without turning it into permanent suppressions.
 - `test:public-config-build`: injects synthetic password, secret, cookie, token,

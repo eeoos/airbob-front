@@ -82,9 +82,10 @@ export interface SearchScreenProps {
   readonly onPageChange: (page: number) => void;
   readonly onWishlistToggle?: ((accommodationId: number) => void) | undefined;
   readonly results: SearchScreenResultsProps;
-  readonly wishlistModal:
-    | Omit<ComponentProps<typeof WishlistModal>, "isOpen">
-    | null;
+  readonly wishlistModal: Omit<
+    ComponentProps<typeof WishlistModal>,
+    "isOpen"
+  > | null;
 }
 
 const getBottomSheetMotionStyle = (
@@ -319,9 +320,9 @@ export function SearchScreen({
         )}
       </div>
 
-      {wishlistModal &&
-        !results.isPlaceholderData &&
-        <WishlistModal {...wishlistModal} isOpen />}
+      {wishlistModal && !results.isPlaceholderData && (
+        <WishlistModal {...wishlistModal} isOpen />
+      )}
 
       <AuthModal {...authModal} />
     </>

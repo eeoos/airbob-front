@@ -43,7 +43,9 @@ describe("listing editor address search adapter", () => {
     const openPostcode = createOpenPostcode();
     const search = createListingEditorAddressSearch({ openPostcode });
 
-    await expect(search.search({ signal: controller.signal })).rejects.toMatchObject({
+    await expect(
+      search.search({ signal: controller.signal }),
+    ).rejects.toMatchObject({
       name: "AbortError",
     });
     expect(openPostcode).not.toHaveBeenCalled();

@@ -1,10 +1,7 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 import postcss from "postcss";
-import {
-  RESPONSIVE_BREAKPOINTS,
-  RESPONSIVE_MEDIA_QUERIES,
-} from "./responsive";
+import { RESPONSIVE_BREAKPOINTS, RESPONSIVE_MEDIA_QUERIES } from "./responsive";
 
 const customMediaSource = () =>
   readFileSync(

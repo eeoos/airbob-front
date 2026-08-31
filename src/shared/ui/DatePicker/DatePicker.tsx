@@ -59,9 +59,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     if (!checkInKey || checkOutKey) return null;
 
     return (
-      unavailableDates
-        .filter((dateKey) => dateKey > checkInKey)
-        .sort()[0] ?? null
+      unavailableDates.filter((dateKey) => dateKey > checkInKey).sort()[0] ??
+      null
     );
   }, [checkInKey, checkOutKey, unavailableDates]);
   const isDateDisabled = useCallback(
@@ -91,8 +90,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     ],
   );
   const initialFocusedDate = useMemo(
-    () =>
-      findClosestEnabledDate(checkIn ?? today, 1, isDateDisabled) ?? today,
+    () => findClosestEnabledDate(checkIn ?? today, 1, isDateDisabled) ?? today,
     [checkIn, isDateDisabled, today],
   );
   const [currentMonth, setCurrentMonth] = useState<Date>(() =>
@@ -359,8 +357,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                   const isInHoverRange = isDateInHoverRange(date);
                   const isDisabled = isDateDisabled(date);
                   const isPast = isPastDate(date);
-                  const isUnavailable =
-                    isDisabled && isUnavailableDate(date);
+                  const isUnavailable = isDisabled && isUnavailableDate(date);
                   const isStart = dateKey === checkInKey;
                   const isEnd = dateKey === checkOutKey;
 
@@ -487,7 +484,11 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           >
             날짜 지우기
           </button>
-          <button className={styles.closeButton} type="button" onClick={onClose}>
+          <button
+            className={styles.closeButton}
+            type="button"
+            onClick={onClose}
+          >
             닫기
           </button>
         </div>

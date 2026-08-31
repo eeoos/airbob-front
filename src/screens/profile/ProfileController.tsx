@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import type { HostListingsApiPort } from "../../features/profile/ports/hostListingsApiPort";
 import {
@@ -62,9 +56,7 @@ type ProfileSessionScope = HostListingInfiniteQueryOptions["scope"];
 export interface ProfileNavigationCommands {
   readonly changeGuestTab: (tab: GuestProfileTab) => void;
   readonly changeHostListingStatus: (status: HostListingFilterStatus) => void;
-  readonly changeHostReservationFilter: (
-    filter: ReservationFilterType,
-  ) => void;
+  readonly changeHostReservationFilter: (filter: ReservationFilterType) => void;
   readonly changeHostSection: (section: HostProfileSection) => void;
   readonly changeMode: (mode: ProfileMode) => void;
   readonly editAccommodation: (accommodationId: number) => void;

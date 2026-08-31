@@ -26,8 +26,7 @@ export interface SignupAuthControllerProps extends AuthControllerBaseProps {
 }
 
 export type AuthControllerProps =
-  | LoginAuthControllerProps
-  | SignupAuthControllerProps;
+  LoginAuthControllerProps | SignupAuthControllerProps;
 
 type CompletionState = "active" | "completed" | "invalidated";
 

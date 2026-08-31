@@ -108,8 +108,7 @@ interface ReservationDetailWireBase {
   readonly payment: ReservationPaymentWire | null;
 }
 
-export interface GuestReservationDetailWire
-  extends ReservationDetailWireBase {
+export interface GuestReservationDetailWire extends ReservationDetailWireBase {
   readonly check_in_time: string;
   readonly check_out_time: string;
   readonly can_write_review: boolean;

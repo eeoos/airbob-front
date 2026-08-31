@@ -52,13 +52,10 @@ const accommodation: AccommodationDetail = {
 };
 
 const renderHero = (
-  overrides: Partial<React.ComponentProps<typeof AccommodationHero>> = {}
+  overrides: Partial<React.ComponentProps<typeof AccommodationHero>> = {},
 ) => {
   const props: React.ComponentProps<typeof AccommodationHero> = {
-    detailView: toAccommodationDetailViewModel(
-      accommodation,
-      resolveImageUrl,
-    ),
+    detailView: toAccommodationDetailViewModel(accommodation, resolveImageUrl),
     mobileSlideIndex: 0,
     onMobileSlideIndexChange: vi.fn(),
     onOpenGallery: vi.fn(),
@@ -77,18 +74,18 @@ describe("AccommodationHero", () => {
     renderHero();
 
     expect(
-      screen.getByRole("heading", { name: "남산 전망 숙소" })
+      screen.getByRole("heading", { name: "남산 전망 숙소" }),
     ).toBeInTheDocument();
     expect(screen.getByText("4.8")).toBeInTheDocument();
     expect(screen.getByText("(12)")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /저장/ })).toBeInTheDocument();
     expect(screen.getByAltText("남산 전망 숙소")).toHaveAttribute(
       "src",
-      "/images/hero-1.jpg"
+      "/images/hero-1.jpg",
     );
     expect(screen.getAllByAltText("남산 전망 숙소 2")[0]).toHaveAttribute(
       "src",
-      "/images/hero-2.jpg"
+      "/images/hero-2.jpg",
     );
   });
 
@@ -111,7 +108,7 @@ describe("AccommodationHero", () => {
     fireEvent.click(
       screen.getByRole("button", {
         name: "남산 전망 숙소 사진 3 크게 보기",
-      })
+      }),
     );
 
     expect(onOpenGallery).toHaveBeenCalledWith(2);
@@ -127,7 +124,7 @@ describe("AccommodationHero", () => {
 
     expect(viewAllButton).toHaveTextContent("사진 모두 보기");
     expect(
-      screen.queryByRole("button", { name: "사진 모두 보기" })
+      screen.queryByRole("button", { name: "사진 모두 보기" }),
     ).not.toBeInTheDocument();
 
     fireEvent.click(viewAllButton);
@@ -143,12 +140,12 @@ describe("AccommodationHero", () => {
     fireEvent.click(
       screen.getByRole("button", {
         name: "남산 전망 숙소 대표 사진 크게 보기",
-      })
+      }),
     );
     fireEvent.click(
       screen.getByRole("button", {
         name: "남산 전망 숙소 모바일 사진 3 크게 보기",
-      })
+      }),
     );
 
     expect(onOpenGallery).toHaveBeenNthCalledWith(1, 0);
@@ -171,7 +168,7 @@ describe("AccommodationHero", () => {
     });
 
     fireEvent.click(
-      screen.getByRole("button", { name: "남산 전망 숙소 사진 3 보기" })
+      screen.getByRole("button", { name: "남산 전망 숙소 사진 3 보기" }),
     );
 
     expect(onMobileSlideIndexChange).toHaveBeenCalledWith(2);

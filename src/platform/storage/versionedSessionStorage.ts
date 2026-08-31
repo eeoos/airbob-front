@@ -5,10 +5,7 @@ import {
 } from "./sessionStorageDriver";
 
 export type BrowserDataPrivacyClass =
-  | "public"
-  | "internal"
-  | "personal"
-  | "sensitive";
+  "public" | "internal" | "personal" | "sensitive";
 
 export interface VersionedStorageEnvelope<T> {
   purpose: string;
@@ -131,7 +128,7 @@ export interface LegacyMigrationOptions<T> {
   currentOwner: string;
   verifyAndMap: (
     raw: string,
-    context: LegacyMigrationContext
+    context: LegacyMigrationContext,
   ) => Promise<LegacyMigrationVerification<T>>;
   isCurrent: (expectedOwner: string) => boolean;
 }
@@ -143,7 +140,9 @@ export interface VersionedSessionStorage<T extends object> {
   clear(): VersionedStorageClearResult;
   clearNamespace(): VersionedStorageNamespaceClearResult;
   invalidatePendingOperations(): void;
-  migrateLegacy(options: LegacyMigrationOptions<T>): Promise<LegacyMigrationResult<T>>;
+  migrateLegacy(
+    options: LegacyMigrationOptions<T>,
+  ): Promise<LegacyMigrationResult<T>>;
 }
 
 const envelopeKeys = [
@@ -174,7 +173,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const hasExactKeys = (
   value: Record<string, unknown>,
-  allowedKeys: readonly string[]
+  allowedKeys: readonly string[],
 ) => {
   const actualKeys = Object.keys(value).sort();
   const expectedKeys = [...allowedKeys].sort();
@@ -212,28 +211,36 @@ const assertStaticStorageConfiguration = ({
 }: StaticStorageConfiguration) => {
   if (!safeNamespacePattern.test(namespace)) {
     throw new TypeError(
-      "Versioned browser storage requires a static, namespaced public key."
+      "Versioned browser storage requires a static, namespaced public key.",
     );
   }
   if (!safeSlotPattern.test(slot)) {
     throw new TypeError(
-      "Versioned browser storage slots must be static slugs, never runtime identifiers."
+      "Versioned browser storage slots must be static slugs, never runtime identifiers.",
     );
   }
   if (!safeSlotPattern.test(purpose)) {
-    throw new TypeError("Versioned browser storage purpose must be a static slug.");
+    throw new TypeError(
+      "Versioned browser storage purpose must be a static slug.",
+    );
   }
   if (!Number.isSafeInteger(version) || version < 1) {
-    throw new TypeError("Versioned browser storage version must be a positive integer.");
+    throw new TypeError(
+      "Versioned browser storage version must be a positive integer.",
+    );
   }
   if (!Number.isSafeInteger(ttlMs) || ttlMs < 1) {
-    throw new TypeError("Versioned browser storage TTL must be a positive integer.");
+    throw new TypeError(
+      "Versioned browser storage TTL must be a positive integer.",
+    );
   }
   if (!privacyClasses.has(privacyClass as BrowserDataPrivacyClass)) {
     throw new TypeError("Versioned browser storage privacy class is invalid.");
   }
   if (typeof containsPii !== "boolean") {
-    throw new TypeError("Versioned browser storage PII classification is required.");
+    throw new TypeError(
+      "Versioned browser storage PII classification is required.",
+    );
   }
   if (
     dataKeys.length === 0 ||
@@ -242,21 +249,25 @@ const assertStaticStorageConfiguration = ({
       (key) =>
         typeof key !== "string" ||
         !safeDataKeyPattern.test(key) ||
-        dangerousDataKeys.has(key)
+        dangerousDataKeys.has(key),
     )
   ) {
-    throw new TypeError("Versioned browser storage needs a unique data allowlist.");
+    throw new TypeError(
+      "Versioned browser storage needs a unique data allowlist.",
+    );
   }
   if (
     !Array.isArray(legacyKeys) ||
     new Set(legacyKeys).size !== legacyKeys.length ||
     legacyKeys.some((key) => typeof key !== "string" || key.length === 0)
   ) {
-    throw new TypeError("Legacy storage keys must be an explicit unique allowlist.");
+    throw new TypeError(
+      "Legacy storage keys must be an explicit unique allowlist.",
+    );
   }
   if (legacyKeys.length > 0 && typeof getEpoch !== "function") {
     throw new TypeError(
-      "Legacy migration requires an authenticated session epoch provider."
+      "Legacy migration requires an authenticated session epoch provider.",
     );
   }
 };
@@ -264,7 +275,7 @@ const assertStaticStorageConfiguration = ({
 const isStableOwner = (owner: string) => stableOwnerPattern.test(owner);
 
 export const createVersionedSessionStorage = <T extends object>(
-  options: CreateVersionedSessionStorageOptions<T>
+  options: CreateVersionedSessionStorageOptions<T>,
 ): VersionedSessionStorage<T> => {
   assertStaticStorageConfiguration(options);
 
@@ -316,16 +327,14 @@ export const createVersionedSessionStorage = <T extends object>(
           value >= 0) ||
         (typeof value === "string" && value.length > 0 && value.length <= 128);
 
-      return isValid
-        ? { ok: true as const, value }
-        : { ok: false as const };
+      return isValid ? { ok: true as const, value } : { ok: false as const };
     } catch {
       return { ok: false as const };
     }
   };
 
   const purgeRejected = (
-    reason: VersionedStorageRejectionReason
+    reason: VersionedStorageRejectionReason,
   ): VersionedStorageReadResult<T> => {
     const cleanup = driver.removeItem(storageKey);
     if (cleanup.ok) operationRevision += 1;
@@ -339,7 +348,7 @@ export const createVersionedSessionStorage = <T extends object>(
 
   const parseCurrentRecord = (
     raw: string,
-    owner: string
+    owner: string,
   ): VersionedStorageReadResult<T> => {
     let parsed: unknown;
     try {
@@ -403,16 +412,17 @@ export const createVersionedSessionStorage = <T extends object>(
     isCurrent = () => true,
   }: VersionedStorageWriteOptions<T>): VersionedStorageWriteResult => {
     if (!isStableOwner(owner)) return { status: "invalid-owner" };
-    if (!isRecord(data) || !hasExactKeys(data, dataKeys) || !validateData(data)) {
+    if (
+      !isRecord(data) ||
+      !hasExactKeys(data, dataKeys) ||
+      !validateData(data)
+    ) {
       return { status: "invalid-data" };
     }
     if (!remainsCurrent(isCurrent)) return { status: "stale" };
 
     const createdAt = currentTime();
-    if (
-      createdAt === null ||
-      !Number.isSafeInteger(createdAt + ttlMs)
-    ) {
+    if (createdAt === null || !Number.isSafeInteger(createdAt + ttlMs)) {
       return { status: "invalid-clock" };
     }
     const record: VersionedStorageEnvelope<T> = {
@@ -470,7 +480,7 @@ export const createVersionedSessionStorage = <T extends object>(
     }
 
     const ownedKeys = keyResult.value.filter((key) =>
-      key.startsWith(namespacePrefix)
+      key.startsWith(namespacePrefix),
     );
     const results = ownedKeys.map((key) => driver.removeItem(key));
     const removed = results.filter((result) => result.ok).length;
@@ -481,9 +491,7 @@ export const createVersionedSessionStorage = <T extends object>(
       : { status: "partial", removed, failed };
   };
 
-  const purgeLegacy = (
-    legacyKey: string
-  ): StorageCleanupStatus => {
+  const purgeLegacy = (legacyKey: string): StorageCleanupStatus => {
     operationRevision += 1;
     return driver.removeItem(legacyKey).ok ? "purged" : "storage-error";
   };
@@ -492,7 +500,7 @@ export const createVersionedSessionStorage = <T extends object>(
     outcome: "migrated" | "target-wins",
     record: VersionedStorageEnvelope<T>,
     legacyKey: string,
-    isMigrationCurrent: () => boolean
+    isMigrationCurrent: () => boolean,
   ): LegacyMigrationResult<T> => {
     if (!isMigrationCurrent()) return { status: "stale" };
 
@@ -517,11 +525,13 @@ export const createVersionedSessionStorage = <T extends object>(
     isCurrent,
   }: LegacyMigrationOptions<T>): Promise<LegacyMigrationResult<T>> => {
     if (!allowedLegacyKeys.has(legacyKey)) {
-      throw new TypeError("Legacy migration key is not explicitly allowlisted.");
+      throw new TypeError(
+        "Legacy migration key is not explicitly allowlisted.",
+      );
     }
     if (typeof isCurrent !== "function") {
       throw new TypeError(
-        "Legacy migration requires a current authenticated owner guard."
+        "Legacy migration requires a current authenticated owner guard.",
       );
     }
 
@@ -538,12 +548,9 @@ export const createVersionedSessionStorage = <T extends object>(
     };
     const checkLegacySnapshot = (
       expectedRevision: number,
-      expectedRaw: string
+      expectedRaw: string,
     ): LegacyMigrationResult<T> | null => {
-      if (
-        operationRevision !== expectedRevision ||
-        !isMigrationCurrent()
-      ) {
+      if (operationRevision !== expectedRevision || !isMigrationCurrent()) {
         return { status: "stale" };
       }
 
@@ -567,12 +574,12 @@ export const createVersionedSessionStorage = <T extends object>(
         | "owner-mismatch"
         | "verification-failed"
         | "invalid-data",
-      expectedSnapshot?: { revision: number; raw: string }
+      expectedSnapshot?: { revision: number; raw: string },
     ): LegacyMigrationResult<T> => {
       if (expectedSnapshot) {
         const snapshotFailure = checkLegacySnapshot(
           expectedSnapshot.revision,
-          expectedSnapshot.raw
+          expectedSnapshot.raw,
         );
         if (snapshotFailure) return snapshotFailure;
       } else if (!isMigrationCurrent()) {
@@ -590,10 +597,7 @@ export const createVersionedSessionStorage = <T extends object>(
     if (!authenticatedOwner || !isStableOwner(authenticatedOwner)) {
       return rejectAndPurgeLegacy("unauthenticated");
     }
-    if (
-      authenticatedOwner !== currentOwner ||
-      !isStableOwner(currentOwner)
-    ) {
+    if (authenticatedOwner !== currentOwner || !isStableOwner(currentOwner)) {
       return rejectAndPurgeLegacy("owner-mismatch");
     }
 
@@ -603,7 +607,7 @@ export const createVersionedSessionStorage = <T extends object>(
         "target-wins",
         current.record,
         legacyKey,
-        isMigrationCurrent
+        isMigrationCurrent,
       );
     }
     if (current.status === "storage-error") return current;
@@ -630,7 +634,7 @@ export const createVersionedSessionStorage = <T extends object>(
 
     const snapshotAfterVerification = checkLegacySnapshot(
       capturedRevision,
-      capturedLegacyRaw
+      capturedLegacyRaw,
     );
     if (snapshotAfterVerification) return snapshotAfterVerification;
     if (
@@ -656,7 +660,7 @@ export const createVersionedSessionStorage = <T extends object>(
 
     const snapshotAfterValidation = checkLegacySnapshot(
       capturedRevision,
-      capturedLegacyRaw
+      capturedLegacyRaw,
     );
     if (snapshotAfterValidation) return snapshotAfterValidation;
 
@@ -672,7 +676,7 @@ export const createVersionedSessionStorage = <T extends object>(
       if (winningRecord.status === "found") {
         const snapshotBeforeTargetCleanup = checkLegacySnapshot(
           capturedRevision,
-          capturedLegacyRaw
+          capturedLegacyRaw,
         );
         if (snapshotBeforeTargetCleanup) return snapshotBeforeTargetCleanup;
 
@@ -680,7 +684,7 @@ export const createVersionedSessionStorage = <T extends object>(
           "target-wins",
           winningRecord.record,
           legacyKey,
-          isMigrationCurrent
+          isMigrationCurrent,
         );
       }
       if (winningRecord.status === "storage-error") return winningRecord;
@@ -690,7 +694,7 @@ export const createVersionedSessionStorage = <T extends object>(
 
     const snapshotBeforeWrite = checkLegacySnapshot(
       capturedRevision,
-      capturedLegacyRaw
+      capturedLegacyRaw,
     );
     if (snapshotBeforeWrite) return snapshotBeforeWrite;
     const writeResult = write({
@@ -706,13 +710,14 @@ export const createVersionedSessionStorage = <T extends object>(
     const writtenRevision = operationRevision;
     const migrated = read(currentOwner);
     if (migrated.status !== "found") {
-      return migrated.status === "storage-error" || migrated.status === "clock-error"
+      return migrated.status === "storage-error" ||
+        migrated.status === "clock-error"
         ? migrated
         : { status: "stale" };
     }
     const snapshotBeforeLegacyCleanup = checkLegacySnapshot(
       writtenRevision,
-      capturedLegacyRaw
+      capturedLegacyRaw,
     );
     if (snapshotBeforeLegacyCleanup) return snapshotBeforeLegacyCleanup;
 
@@ -720,7 +725,7 @@ export const createVersionedSessionStorage = <T extends object>(
       "migrated",
       migrated.record,
       legacyKey,
-      isMigrationCurrent
+      isMigrationCurrent,
     );
   };
 

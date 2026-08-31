@@ -70,13 +70,11 @@ export interface WishlistMembershipSession {
 export type WishlistMembershipMutationResult = WishlistMembershipCommandResult;
 
 export type WishlistCommandResult =
-  | { readonly status: "applied" }
-  | { readonly status: "stale" };
+  { readonly status: "applied" } | { readonly status: "stale" };
 
 export type CreateAndAddWishlistResult = CreateAndAddWishlistCommandResult;
 
-export interface WishlistMembershipCommands
-  extends WishlistMembershipCommandPort {
+export interface WishlistMembershipCommands extends WishlistMembershipCommandPort {
   deleteWishlist(input: {
     readonly wishlistId: number;
   }): Promise<WishlistCommandResult>;
@@ -106,10 +104,8 @@ const createAuthenticationRequiredError = () =>
     message: "An authenticated session is required.",
   });
 
-const commandKey = (
-  scope: AuthenticatedSessionScope,
-  operation: string,
-) => `${scope.subject}:${scope.epoch}:${operation}`;
+const commandKey = (scope: AuthenticatedSessionScope, operation: string) =>
+  `${scope.subject}:${scope.epoch}:${operation}`;
 
 const isPositiveSafeInteger = (value: number) =>
   Number.isSafeInteger(value) && value > 0;
@@ -132,7 +128,7 @@ export function createWishlistMembership(
   const isCurrent = (scope: AuthenticatedSessionScope) =>
     !disposed && dependencies.session.isCurrentSession(scope);
 
-  const run = <T,>(
+  const run = <T>(
     operation: string,
     execute: (
       scope: AuthenticatedSessionScope,
@@ -150,9 +146,8 @@ export function createWishlistMembership(
     }
 
     const key = commandKey(scope, operation);
-    const existing = pending.get(key) as Promise<
-      T | { readonly status: "stale" }
-    > | undefined;
+    const existing = pending.get(key) as
+      Promise<T | { readonly status: "stale" }> | undefined;
     if (existing) return existing;
 
     const controller = new AbortController();

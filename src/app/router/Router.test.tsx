@@ -1,9 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import {
-  routeDefinitions,
-  type AppRouteDefinition,
-} from "./definitions";
+import { routeDefinitions, type AppRouteDefinition } from "./definitions";
 import { AppRouteTree, Router } from "./Router";
 
 const routeModule = (testId: string) => ({
@@ -36,9 +33,7 @@ vi.mock("./routes/ReviewCreateRoute", () =>
 vi.mock("./routes/PaymentSuccessRoute", () =>
   routeModule("page-payment-success"),
 );
-vi.mock("./routes/PaymentFailRoute", () =>
-  routeModule("page-payment-fail"),
-);
+vi.mock("./routes/PaymentFailRoute", () => routeModule("page-payment-fail"));
 vi.mock("./routes/LoginRoute", () => routeModule("page-login"));
 vi.mock("./routes/SignupRoute", () => routeModule("page-signup"));
 vi.mock("./routes/NotFoundRoute", () => routeModule("page-not-found"));
@@ -114,5 +109,4 @@ describe("app Router", () => {
 
     expect(await screen.findByTestId("page-home")).toBeInTheDocument();
   });
-
 });

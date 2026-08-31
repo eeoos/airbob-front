@@ -37,9 +37,7 @@ const createProps = (
 describe("HostListingsPanel", () => {
   it("renders only the shared loading state while loading", () => {
     render(
-      <HostListingsPanel
-        {...createProps({ state: { status: "loading" } })}
-      />,
+      <HostListingsPanel {...createProps({ state: { status: "loading" } })} />,
     );
 
     expect(screen.getByText("로딩 중...")).toBeInTheDocument();
@@ -69,9 +67,7 @@ describe("HostListingsPanel", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "숙소를 불러오지 못했습니다.",
     );
-    await userEvent.click(
-      screen.getByRole("button", { name: "오류 닫기" }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: "오류 닫기" }));
     expect(onDismissError).toHaveBeenCalledTimes(1);
   });
 

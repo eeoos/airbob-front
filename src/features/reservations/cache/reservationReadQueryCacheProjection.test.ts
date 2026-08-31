@@ -29,11 +29,10 @@ describe("reservation read cache projection", () => {
       filterType: "UPCOMING",
       size: 20,
     });
-    const oldSessionList = reservationReadQueryKeys.list(
-      otherScope,
-      "guest",
-      { filterType: "UPCOMING", size: 20 },
-    );
+    const oldSessionList = reservationReadQueryKeys.list(otherScope, "guest", {
+      filterType: "UPCOMING",
+      size: 20,
+    });
 
     for (const [key, queryScope] of [
       [guestList, scope],

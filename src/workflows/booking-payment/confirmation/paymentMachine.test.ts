@@ -45,9 +45,9 @@ describe("payment confirmation machine", () => {
       operationId: 8,
     };
 
-    expect(
-      paymentMachineReducer(processing, { type, operationId: 8 }),
-    ).toEqual({ status });
+    expect(paymentMachineReducer(processing, { type, operationId: 8 })).toEqual(
+      { status },
+    );
   });
 
   it.each(["pending", "retryable-error"] as const)(
@@ -81,19 +81,17 @@ describe("payment confirmation machine", () => {
     },
   );
 
-  it.each([
-    "confirmed",
-    "invalid",
-    "terminal-failure",
-    "stale",
-  ] as const)("does not leave the %s terminal", (status) => {
-    const terminal: PaymentMachineState = { status };
+  it.each(["confirmed", "invalid", "terminal-failure", "stale"] as const)(
+    "does not leave the %s terminal",
+    (status) => {
+      const terminal: PaymentMachineState = { status };
 
-    expect(
-      paymentMachineReducer(terminal, {
-        type: "CONFIRM_STARTED",
-        operationId: 9,
-      }),
-    ).toBe(terminal);
-  });
+      expect(
+        paymentMachineReducer(terminal, {
+          type: "CONFIRM_STARTED",
+          operationId: 9,
+        }),
+      ).toBe(terminal);
+    },
+  );
 });

@@ -34,9 +34,9 @@ describe("info window delegated events", () => {
       onWishlistToggle: vi.fn(),
     });
 
-    root.querySelector("p")?.dispatchEvent(
-      new MouseEvent("click", { bubbles: true }),
-    );
+    root
+      .querySelector("p")
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
     expect(onCardClick).toHaveBeenCalledTimes(1);
   });
@@ -57,9 +57,9 @@ describe("info window delegated events", () => {
       onWishlistToggle,
     });
 
-    root.querySelector("span")?.dispatchEvent(
-      new MouseEvent("click", { bubbles: true }),
-    );
+    root
+      .querySelector("span")
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
     expect(onWishlistToggle).toHaveBeenCalledWith(10, true);
     expect(onCardClick).not.toHaveBeenCalled();

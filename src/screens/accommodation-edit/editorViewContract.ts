@@ -11,9 +11,7 @@ export type AccommodationEditTimeField = "checkIn" | "checkOut";
 export type AccommodationEditTimePicker = AccommodationEditTimeField | null;
 export type AccommodationEditTimePeriod = "AM" | "PM";
 export type AccommodationEditRecoveryState =
-  | "none"
-  | "protected-command"
-  | "protected-delete";
+  "none" | "protected-command" | "protected-delete";
 
 export interface AccommodationEditAmenityInfo {
   name: string;
@@ -101,7 +99,7 @@ export interface AccommodationEditScreenActions {
   onDragEnd: (event: DragEvent) => void;
   onInputChange: <K extends keyof AccommodationEditFormData>(
     field: K,
-    value: AccommodationEditFormData[K]
+    value: AccommodationEditFormData[K],
   ) => void;
   onNestedChange: <
     P extends keyof NestedFormFields,
@@ -109,13 +107,13 @@ export interface AccommodationEditScreenActions {
   >(
     parent: P,
     field: K,
-    value: NestedFormFields[P][K]
+    value: NestedFormFields[P][K],
   ) => void;
   onTimeChange: (
     type: AccommodationEditTimeField,
     hour: number,
     minute: number,
-    period: AccommodationEditTimePeriod
+    period: AccommodationEditTimePeriod,
   ) => void;
   onOpenTypeModal: () => void;
   onCloseTypeModal: () => void;

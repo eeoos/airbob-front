@@ -34,9 +34,7 @@ export type {
   ReservationCreateWorkflowDependencies,
   ReservationStartIntent,
 } from "./reservationCreateTypes";
-export {
-  ReservationCreateValidationError,
-} from "./reservationCreateValidation";
+export { ReservationCreateValidationError } from "./reservationCreateValidation";
 
 const isDefinitiveFailure = (error: unknown): boolean => {
   if (!isAppError(error)) return false;
@@ -178,8 +176,7 @@ export const createReservationCreateWorkflow = (
             accommodationId: command.intent.accommodationId,
             checkIn: command.intent.checkIn,
             checkOut: command.intent.checkOut,
-            guestCount:
-              command.intent.adultCount + command.intent.childCount,
+            guestCount: command.intent.adultCount + command.intent.childCount,
             couponId: command.intent.couponId,
           },
           { signal: controller.signal },

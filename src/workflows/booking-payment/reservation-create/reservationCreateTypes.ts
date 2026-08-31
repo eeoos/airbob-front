@@ -2,9 +2,7 @@ import type {
   ReservationCreateApiPort,
   ReservationReady,
 } from "../../../features/reservations/public";
-import type {
-  AuthenticatedSessionScope,
-} from "../../../platform/session/sessionScope";
+import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
 
 export type ReservationCreateValidationCode =
   | "INVALID_ACCOMMODATION"
@@ -103,10 +101,7 @@ export interface ReservationCreateWorkflowDependencies {
 }
 
 export type ReservationCreateTerminal =
-  | "handed-off"
-  | "ambiguous"
-  | "stale"
-  | "disposed";
+  "handed-off" | "ambiguous" | "stale" | "disposed";
 
 export type ReservationCreateResult =
   | {

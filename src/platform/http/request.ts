@@ -2,10 +2,7 @@ import type { AxiosRequestConfig, AxiosResponse } from "axios";
 import { triggerAuthError } from "../session/authEvents";
 import type { AuthEventPolicy } from "./authEventPolicy";
 import { isSessionOwnedAuthEventRequest } from "./authEventPolicy";
-import {
-  httpClient,
-  MULTIPART_API_REQUEST_TIMEOUT_MS,
-} from "./client";
+import { httpClient, MULTIPART_API_REQUEST_TIMEOUT_MS } from "./client";
 import { parseApiEnvelope } from "./envelope";
 import { AppError, normalizeHttpError } from "./errors";
 

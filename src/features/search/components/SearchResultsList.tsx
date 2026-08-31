@@ -20,8 +20,7 @@ interface SearchResultsListProps {
   onAccommodationClick: (accommodationId: number) => void;
   onWishlistToggle?: ((accommodationId: number) => void) | undefined;
   onHoveredAccommodationChange?:
-    | ((accommodationId: number | null) => void)
-    | undefined;
+    ((accommodationId: number | null) => void) | undefined;
   getAccommodationHref: (accommodationId: number) => string;
   checkIn?: string | null | undefined;
   checkOut?: string | null | undefined;

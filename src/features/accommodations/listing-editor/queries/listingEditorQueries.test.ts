@@ -64,7 +64,7 @@ const createClient = () =>
     },
   });
 
-const deferred = <T,>() => {
+const deferred = <T>() => {
   let resolve!: (value: T | PromiseLike<T>) => void;
   const promise = new Promise<T>((resolvePromise) => {
     resolve = resolvePromise;
@@ -122,10 +122,7 @@ describe("listing editor query boundary", () => {
     const pending = deferred<ListingEditorAccommodation>();
     const oldController = new AbortController();
     const liveController = new AbortController();
-    const oldRemove = vi.spyOn(
-      oldController.signal,
-      "removeEventListener",
-    );
+    const oldRemove = vi.spyOn(oldController.signal, "removeEventListener");
     let transportSignal: AbortSignal | undefined;
     api.getHostDetail.mockImplementation((_id, options) => {
       transportSignal = options?.signal;
@@ -199,9 +196,9 @@ describe("listing editor query boundary", () => {
 
     pending.resolve(accommodation(31));
     await expect(transportCompletion).resolves.toEqual(accommodation(31));
-    expect(
-      client.getQueryData<ListingEditorAccommodation>(queryKey),
-    ).toEqual(accommodation(31));
+    expect(client.getQueryData<ListingEditorAccommodation>(queryKey)).toEqual(
+      accommodation(31),
+    );
     client.clear();
   });
 
@@ -379,12 +376,12 @@ describe("listing editor query boundary", () => {
     api.getHostDetail.mockResolvedValue(accommodation(32));
     const port = createListingEditorQueryPort(client, api);
 
-    await expect(port.getHostDetail(31, { scope: scopeA })).rejects.toMatchObject(
-      {
-        code: "MISMATCHED_LISTING_EDITOR_RESOURCE",
-        kind: "invalid-response",
-      },
-    );
+    await expect(
+      port.getHostDetail(31, { scope: scopeA }),
+    ).rejects.toMatchObject({
+      code: "MISMATCHED_LISTING_EDITOR_RESOURCE",
+      kind: "invalid-response",
+    });
     expect(
       client.getQueryData(listingEditorQueryKeys.detail(scopeA, 31)),
     ).toBeUndefined();

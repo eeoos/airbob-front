@@ -13,8 +13,9 @@ export interface PendingAuthIntent<TIntent extends AuthIntent = AuthIntent> {
   readonly source: AuthIntentSource;
 }
 
-export interface ClaimedAuthIntent<TIntent extends AuthIntent = AuthIntent>
-  extends PendingAuthIntent<TIntent> {
+export interface ClaimedAuthIntent<
+  TIntent extends AuthIntent = AuthIntent,
+> extends PendingAuthIntent<TIntent> {
   readonly session: AuthenticatedSessionScope;
 }
 
@@ -22,9 +23,7 @@ export interface ClaimAuthIntent {
   <TIntent extends AuthIntent>(
     predicate: (intent: AuthIntent) => intent is TIntent,
   ): ClaimedAuthIntent<TIntent> | null;
-  (
-    predicate: (intent: AuthIntent) => boolean,
-  ): ClaimedAuthIntent | null;
+  (predicate: (intent: AuthIntent) => boolean): ClaimedAuthIntent | null;
 }
 
 export interface AuthIntentContextValue {

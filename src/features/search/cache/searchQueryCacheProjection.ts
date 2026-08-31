@@ -8,9 +8,8 @@ import { searchReadQueryKeys } from "../queries/queryKeys";
 
 type QueryPredicate = NonNullable<QueryFilters["predicate"]>;
 
-const scopedSearchResultsPredicate = (
-  scope: SessionQueryScope,
-): QueryPredicate =>
+const scopedSearchResultsPredicate =
+  (scope: SessionQueryScope): QueryPredicate =>
   (query) =>
     query.queryKey[0] === searchReadQueryKeys.root[0] &&
     query.queryKey[1] === "results" &&
@@ -45,9 +44,7 @@ export interface SearchMembershipProjection {
     readonly accommodationId: number;
     readonly isInWishlist: boolean;
   }): void;
-  membershipRefreshRequired(input: {
-    readonly scope: SessionQueryScope;
-  }): void;
+  membershipRefreshRequired(input: { readonly scope: SessionQueryScope }): void;
 }
 
 export const createSearchQueryCacheProjection = (

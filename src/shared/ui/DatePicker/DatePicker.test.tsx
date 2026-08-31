@@ -9,9 +9,7 @@ import styles from "./DatePicker.module.css";
 type DatePickerProps = React.ComponentProps<typeof DatePicker>;
 type DatePickerTestProps = DatePickerProps & {
   onClose: Mock<() => void>;
-  onDateSelect: Mock<
-    (checkIn: Date | null, checkOut: Date | null) => void
-  >;
+  onDateSelect: Mock<(checkIn: Date | null, checkOut: Date | null) => void>;
 };
 type DatePickerOverrides = Partial<
   Omit<DatePickerProps, "onClose" | "onDateSelect">
@@ -28,9 +26,7 @@ const createDefaultProps = (): DatePickerTestProps => ({
   checkIn: null,
   checkOut: null,
   onClose: vi.fn<() => void>(),
-  onDateSelect: vi.fn<
-    (checkIn: Date | null, checkOut: Date | null) => void
-  >(),
+  onDateSelect: vi.fn<(checkIn: Date | null, checkOut: Date | null) => void>(),
 });
 
 const renderDatePicker = (overrides: DatePickerOverrides = {}) => {
@@ -77,10 +73,7 @@ describe("DatePicker", () => {
       name: "2026년 7월 15일 수요일",
     });
 
-    expect(dateCell).toHaveAttribute(
-      "type",
-      "button",
-    );
+    expect(dateCell).toHaveAttribute("type", "button");
     expect(dateCell.tagName).toBe("BUTTON");
   });
 
@@ -131,7 +124,9 @@ describe("DatePicker", () => {
 
     expect(screen.getByRole("grid", { name: "2026년 6월" })).toBeVisible();
     expect(screen.getByRole("grid", { name: "2026년 7월" })).toBeVisible();
-    expect(screen.queryByRole("grid", { name: "2026년 5월" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("grid", { name: "2026년 5월" }),
+    ).not.toBeInTheDocument();
     expect(previousMonthButton).toHaveFocus();
 
     const tabStops = screen
@@ -399,16 +394,18 @@ describe("DatePicker", () => {
   });
 
   it("keeps mobile date buttons at the shared touch target size", () => {
-    const css = readProjectFile("src/shared/ui/DatePicker/DatePicker.module.css");
+    const css = readProjectFile(
+      "src/shared/ui/DatePicker/DatePicker.module.css",
+    );
 
     expect(css).toMatch(
-      /@media \(max-width: 768px\)[\s\S]*\.days\s*\{[\s\S]*grid-auto-rows:\s*minmax\(var\(--control-touch-target\), auto\)/
+      /@media \(max-width: 768px\)[\s\S]*\.days\s*\{[\s\S]*grid-auto-rows:\s*minmax\(var\(--control-touch-target\), auto\)/,
     );
     expect(css).toMatch(
-      /@media \(max-width: 768px\)[\s\S]*\.day\s*\{[\s\S]*min-height:\s*var\(--control-touch-target\)/
+      /@media \(max-width: 768px\)[\s\S]*\.day\s*\{[\s\S]*min-height:\s*var\(--control-touch-target\)/,
     );
     expect(css).toMatch(
-      /@media \(max-width: 480px\)[\s\S]*\.day\s*\{[\s\S]*min-height:\s*var\(--control-touch-target\)/
+      /@media \(max-width: 480px\)[\s\S]*\.day\s*\{[\s\S]*min-height:\s*var\(--control-touch-target\)/,
     );
   });
 });

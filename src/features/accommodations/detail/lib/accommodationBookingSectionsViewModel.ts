@@ -50,10 +50,7 @@ const getCouponMetadataLabel = (coupon: AccommodationCoupon): string => {
   }
 
   if (coupon.totalQuantity !== null) {
-    const remaining = Math.max(
-      coupon.totalQuantity - coupon.issuedQuantity,
-      0,
-    );
+    const remaining = Math.max(coupon.totalQuantity - coupon.issuedQuantity, 0);
     metadata.push(`남은 수량 ${remaining.toLocaleString()}장`);
   }
 
@@ -62,7 +59,11 @@ const getCouponMetadataLabel = (coupon: AccommodationCoupon): string => {
 
 export const toAccommodationBookingCouponViewModel = (
   coupon: AccommodationCoupon,
-  { issuingCouponId, selectedCouponId, totalPrice }: BookingCouponViewModelOptions,
+  {
+    issuingCouponId,
+    selectedCouponId,
+    totalPrice,
+  }: BookingCouponViewModelOptions,
 ): AccommodationBookingCouponViewModel => {
   const discount = calculateAccommodationCouponDiscount(coupon, totalPrice);
   const isApplicable = discount > 0;
@@ -89,4 +90,6 @@ export const toAccommodationBookingCouponViewModels = (
   coupons: readonly AccommodationCoupon[],
   options: BookingCouponViewModelOptions,
 ): AccommodationBookingCouponViewModel[] =>
-  coupons.map((coupon) => toAccommodationBookingCouponViewModel(coupon, options));
+  coupons.map((coupon) =>
+    toAccommodationBookingCouponViewModel(coupon, options),
+  );

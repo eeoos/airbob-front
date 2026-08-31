@@ -66,9 +66,7 @@ describe("checkout ownership API adapter", () => {
       request as CheckoutOwnershipApiTransport,
     );
 
-    await expect(
-      api.getCheckoutOwnership(RESERVATION_UID),
-    ).resolves.toEqual(
+    await expect(api.getCheckoutOwnership(RESERVATION_UID)).resolves.toEqual(
       expect.objectContaining({
         reservationUid: RESERVATION_UID,
         payment: null,

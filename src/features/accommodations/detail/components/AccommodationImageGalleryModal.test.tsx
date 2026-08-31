@@ -11,7 +11,7 @@ const images: AccommodationDetailImageViewModel[] = [
 const renderGalleryModal = (
   overrides: Partial<
     React.ComponentProps<typeof AccommodationImageGalleryModal>
-  > = {}
+  > = {},
 ) => {
   const props: React.ComponentProps<typeof AccommodationImageGalleryModal> = {
     isOpen: true,
@@ -33,19 +33,19 @@ describe("AccommodationImageGalleryModal", () => {
     renderGalleryModal();
 
     expect(
-      screen.getByRole("dialog", { name: "남산 전망 숙소 사진 갤러리" })
+      screen.getByRole("dialog", { name: "남산 전망 숙소 사진 갤러리" }),
     ).toBeInTheDocument();
     expect(screen.getAllByAltText("남산 전망 숙소 2")[0]).toHaveAttribute(
       "src",
-      "/two.jpg"
+      "/two.jpg",
     );
     expect(screen.getByAltText("남산 전망 숙소 1")).toHaveAttribute(
       "src",
-      "/one.jpg"
+      "/one.jpg",
     );
     expect(screen.getByAltText("남산 전망 숙소 3")).toHaveAttribute(
       "src",
-      "/three.jpg"
+      "/three.jpg",
     );
   });
 
@@ -53,7 +53,7 @@ describe("AccommodationImageGalleryModal", () => {
     renderGalleryModal();
 
     expect(
-      screen.getByRole("button", { name: "사진 갤러리 닫기" })
+      screen.getByRole("button", { name: "사진 갤러리 닫기" }),
     ).toHaveFocus();
   });
 
@@ -87,7 +87,7 @@ describe("AccommodationImageGalleryModal", () => {
         currentImageIndex={2}
         onCurrentImageIndexChange={onCurrentImageIndexChange}
         onClose={vi.fn()}
-      />
+      />,
     );
     fireEvent.click(screen.getByRole("button", { name: "다음 사진" }));
 
@@ -101,7 +101,7 @@ describe("AccommodationImageGalleryModal", () => {
     fireEvent.click(screen.getByRole("button", { name: "사진 갤러리 닫기" }));
     fireEvent.keyDown(
       screen.getByRole("dialog", { name: "남산 전망 숙소 사진 갤러리" }),
-      { key: "Escape" }
+      { key: "Escape" },
     );
     fireEvent.mouseDown(screen.getByRole("presentation"));
 
@@ -121,7 +121,7 @@ describe("AccommodationImageGalleryModal", () => {
         currentImageIndex={0}
         onCurrentImageIndexChange={vi.fn()}
         onClose={vi.fn()}
-      />
+      />,
     );
 
     expect(container).toBeEmptyDOMElement();

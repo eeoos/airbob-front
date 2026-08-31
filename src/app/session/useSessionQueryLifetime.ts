@@ -6,10 +6,7 @@ import {
   setQueryClientSessionScope,
   type SessionQueryScope,
 } from "../../platform/query/sessionScope";
-import {
-  toAuthenticatedSessionScope,
-  type SessionState,
-} from "./sessionState";
+import { toAuthenticatedSessionScope, type SessionState } from "./sessionState";
 
 export type { SessionQueryScope } from "../../platform/query/sessionScope";
 
@@ -92,10 +89,7 @@ export const useSessionQueryLifetime = ({
   const lifetimeTokenRef = useRef(0);
   generationRef.current = generation;
 
-  const getCurrentGeneration = useCallback(
-    () => generationRef.current,
-    [],
-  );
+  const getCurrentGeneration = useCallback(() => generationRef.current, []);
 
   const replaceQueryGeneration = useCallback(
     async ({

@@ -20,12 +20,8 @@ const HostReservationDetailRoute = lazy(
 const ReservationDetailRoute = lazy(
   () => import("./routes/ReservationDetailRoute"),
 );
-const ReviewCreateRoute = lazy(
-  () => import("./routes/ReviewCreateRoute"),
-);
-const PaymentSuccessRoute = lazy(
-  () => import("./routes/PaymentSuccessRoute"),
-);
+const ReviewCreateRoute = lazy(() => import("./routes/ReviewCreateRoute"));
+const PaymentSuccessRoute = lazy(() => import("./routes/PaymentSuccessRoute"));
 const PaymentFailRoute = lazy(() => import("./routes/PaymentFailRoute"));
 const LoginRoute = lazy(() => import("./routes/LoginRoute"));
 const SignupRoute = lazy(() => import("./routes/SignupRoute"));

@@ -56,10 +56,7 @@ assert.deepEqual(toolingConfig.compilerOptions.lib, ["ES2022"]);
 assert.deepEqual(toolingConfig.compilerOptions.types, ["node"]);
 assert.deepEqual(toolingConfig.include, ["vite.config.ts", "vitest.config.ts"]);
 assert.equal(e2eConfig.extends, "./tsconfig.json");
-assert.deepEqual(e2eConfig.compilerOptions.types, [
-  "node",
-  "@playwright/test",
-]);
+assert.deepEqual(e2eConfig.compilerOptions.types, ["node", "@playwright/test"]);
 
 assert.equal(
   packageData.scripts.typecheck,

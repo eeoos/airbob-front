@@ -72,10 +72,7 @@ const isPositiveSafeInteger = (value: unknown): value is number =>
 const isNonNegativeSafeInteger = (value: unknown): value is number =>
   typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 
-const isBoundedString = (
-  value: unknown,
-  maxLength: number,
-): value is string =>
+const isBoundedString = (value: unknown, maxLength: number): value is string =>
   typeof value === "string" &&
   value.length > 0 &&
   value.length <= maxLength &&
@@ -110,9 +107,7 @@ const isStrictCalendarDate = (value: unknown): value is string => {
 const isNullableBoundedString = (value: unknown, maxLength: number) =>
   value === null || isBoundedString(value, maxLength);
 
-const hasValidCheckoutValues = (
-  value: Record<string, unknown>,
-): boolean =>
+const hasValidCheckoutValues = (value: Record<string, unknown>): boolean =>
   isBookingPaymentOperationId(value.operationId) &&
   isPositiveSafeInteger(value.accommodationId) &&
   isOpaqueIdentifier(value.reservationUid) &&
@@ -125,7 +120,7 @@ const hasValidCheckoutValues = (
   isNonNegativeSafeInteger(value.childOccupancy) &&
   isNonNegativeSafeInteger(value.infantOccupancy) &&
   isNonNegativeSafeInteger(value.petOccupancy) &&
-  ((value.adultOccupancy as number) + (value.childOccupancy as number) >= 1) &&
+  (value.adultOccupancy as number) + (value.childOccupancy as number) >= 1 &&
   isNullableBoundedString(value.couponName, 128) &&
   (value.couponDiscount === null ||
     isNonNegativeSafeInteger(value.couponDiscount));
@@ -189,7 +184,8 @@ export interface LegacyCheckoutCandidate extends LegacyCheckoutRecord {
 const isLegacyCheckoutRecord = (
   value: unknown,
 ): value is LegacyCheckoutRecord => {
-  if (!isRecord(value) || !hasExactKeys(value, legacyCheckoutKeys)) return false;
+  if (!isRecord(value) || !hasExactKeys(value, legacyCheckoutKeys))
+    return false;
 
   return (
     isOpaqueIdentifier(value.reservationUid) &&

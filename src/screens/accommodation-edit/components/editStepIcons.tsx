@@ -5,8 +5,16 @@ interface IconFrameProps {
   strokeWidth?: string;
 }
 
-export const IconFrame = ({ children, strokeWidth = "1.5" }: IconFrameProps) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth}>
+export const IconFrame = ({
+  children,
+  strokeWidth = "1.5",
+}: IconFrameProps) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={strokeWidth}
+  >
     {children}
   </svg>
 );

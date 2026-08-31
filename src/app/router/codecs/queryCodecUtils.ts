@@ -31,9 +31,7 @@ export const parseStrictFiniteNumber = (
   return Number.isFinite(parsed) ? parsed : undefined;
 };
 
-export const parseStrictDate = (
-  value: string | null,
-): string | undefined => {
+export const parseStrictDate = (value: string | null): string | undefined => {
   if (value === null) {
     return undefined;
   }

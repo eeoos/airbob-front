@@ -19,7 +19,7 @@ const review = {
 const setupReviews = (
   overrides: Partial<
     React.ComponentProps<typeof AccommodationReviewsSection>
-  > = {}
+  > = {},
 ) => {
   const props: React.ComponentProps<typeof AccommodationReviewsSection> = {
     reviewSummary: {
@@ -45,7 +45,7 @@ describe("AccommodationReviewsSection", () => {
     const reviewsProps = setupReviews();
 
     expect(
-      screen.getByRole("heading", { name: "★ 4.75 · 후기 7개" })
+      screen.getByRole("heading", { name: "★ 4.75 · 후기 7개" }),
     ).toBeInTheDocument();
     expect(screen.getByAltText("게스트")).toHaveAttribute("src", "/guest.jpg");
     expect(screen.getByText("게스트")).toBeInTheDocument();
@@ -53,7 +53,7 @@ describe("AccommodationReviewsSection", () => {
     expect(screen.getByText(review.content)).toBeInTheDocument();
     expect(screen.getByAltText("리뷰 이미지")).toHaveAttribute(
       "src",
-      "/review.jpg"
+      "/review.jpg",
     );
 
     fireEvent.click(screen.getByRole("button", { name: "후기 7개 모두 보기" }));
@@ -88,7 +88,7 @@ describe("AccommodationReviewsSection", () => {
         reviews={[]}
         expandedReviews={{}}
         onOpenReviews={vi.fn()}
-      />
+      />,
     );
 
     expect(container).toBeEmptyDOMElement();

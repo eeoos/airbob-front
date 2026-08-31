@@ -53,7 +53,9 @@ describe("wishlistMembershipTransport", () => {
     vi.mocked(wishlistApi.addAccommodation).mockResolvedValue({ id: 31 });
     vi.mocked(wishlistApi.removeAccommodation).mockResolvedValue();
     vi.mocked(wishlistApi.delete).mockResolvedValue();
-    vi.mocked(wishlistApi.updateAccommodationMemo).mockResolvedValue({ id: 31 });
+    vi.mocked(wishlistApi.updateAccommodationMemo).mockResolvedValue({
+      id: 31,
+    });
     vi.mocked(recentlyViewedApi.remove).mockResolvedValue();
     const signal = new AbortController().signal;
 
@@ -77,7 +79,9 @@ describe("wishlistMembershipTransport", () => {
       { accommodationId: 7 },
       { signal },
     );
-    expect(wishlistApi.removeAccommodation).toHaveBeenCalledWith(31, { signal });
+    expect(wishlistApi.removeAccommodation).toHaveBeenCalledWith(31, {
+      signal,
+    });
     expect(wishlistApi.delete).toHaveBeenCalledWith(11, { signal });
     expect(wishlistApi.updateAccommodationMemo).toHaveBeenCalledWith(
       31,

@@ -1,8 +1,4 @@
-import {
-  ApiHarness,
-  apiSuccess,
-  isExactE2eApiUrl,
-} from "../fixtures/api";
+import { ApiHarness, apiSuccess, isExactE2eApiUrl } from "../fixtures/api";
 import { test, expect } from "../fixtures/test";
 import { E2E_API_ORIGIN } from "../support/runtimeOrigins";
 
@@ -133,32 +129,52 @@ test("the harness records and blocks every non-allowlisted data channel", async 
       };
 
       const webSocketOutcome = await new Promise<string>((resolve) => {
-        const socket = new WebSocket("wss://example.invalid/should-not-connect");
-        socket.addEventListener("close", () => resolve("blocked"), { once: true });
-        socket.addEventListener("error", () => resolve("blocked"), { once: true });
+        const socket = new WebSocket(
+          "wss://example.invalid/should-not-connect",
+        );
+        socket.addEventListener("close", () => resolve("blocked"), {
+          once: true,
+        });
+        socket.addEventListener("error", () => resolve("blocked"), {
+          once: true,
+        });
       });
       const daumQueryScriptOutcome = await new Promise<string>((resolve) => {
         const script = document.createElement("script");
         script.src =
           "https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js?synthetic=1";
-        script.addEventListener("load", () => resolve("loaded"), { once: true });
-        script.addEventListener("error", () => resolve("blocked"), { once: true });
+        script.addEventListener("load", () => resolve("loaded"), {
+          once: true,
+        });
+        script.addEventListener("error", () => resolve("blocked"), {
+          once: true,
+        });
         document.head.appendChild(script);
       });
-      const daumCredentialScriptOutcome = await new Promise<string>((resolve) => {
-        const script = document.createElement("script");
-        script.src =
-          "https://user:password@t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
-        script.addEventListener("load", () => resolve("loaded"), { once: true });
-        script.addEventListener("error", () => resolve("blocked"), { once: true });
-        document.head.appendChild(script);
-      });
+      const daumCredentialScriptOutcome = await new Promise<string>(
+        (resolve) => {
+          const script = document.createElement("script");
+          script.src =
+            "https://user:password@t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
+          script.addEventListener("load", () => resolve("loaded"), {
+            once: true,
+          });
+          script.addEventListener("error", () => resolve("blocked"), {
+            once: true,
+          });
+          document.head.appendChild(script);
+        },
+      );
       const daumHttpScriptOutcome = await new Promise<string>((resolve) => {
         const script = document.createElement("script");
         script.src =
           "http://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
-        script.addEventListener("load", () => resolve("loaded"), { once: true });
-        script.addEventListener("error", () => resolve("blocked"), { once: true });
+        script.addEventListener("load", () => resolve("loaded"), {
+          once: true,
+        });
+        script.addEventListener("error", () => resolve("blocked"), {
+          once: true,
+        });
         document.head.appendChild(script);
       });
       return {
@@ -177,7 +193,9 @@ test("the harness records and blocks every non-allowlisted data channel", async 
         daumWrongResourceType: await request(
           "https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js",
         ),
-        externalFetch: await request("https://example.invalid/should-not-connect"),
+        externalFetch: await request(
+          "https://example.invalid/should-not-connect",
+        ),
         nearMissApiHost: await request(
           "https://api.airbob-e2e.invalid.attacker.invalid/api/v1/should-not-connect",
         ),
@@ -240,7 +258,9 @@ test("the harness records and blocks every non-allowlisted data channel", async 
     expect(isolationError).toContain(
       "GET /api/v2/registered-same-origin (api)",
     );
-    expect(isolationError).toContain("GET /unregistered-data (same-origin-data)");
+    expect(isolationError).toContain(
+      "GET /unregistered-data (same-origin-data)",
+    );
     expect(isolationError).toContain("POST t1.daumcdn.net/mapjsapi");
     expect(isolationError).toContain("GET example.invalid/should-not-connect");
     expect(isolationError).toContain(

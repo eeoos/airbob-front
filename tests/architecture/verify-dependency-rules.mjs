@@ -1,11 +1,5 @@
 import { spawnSync } from "node:child_process";
-import {
-  mkdir,
-  mkdtemp,
-  rm,
-  symlink,
-  writeFile,
-} from "node:fs/promises";
+import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -54,8 +48,7 @@ const baseFiles = {
     version: "1.1.1",
     main: "index.js",
   }),
-  "node_modules/picocolors/index.js":
-    'exports.red = (value) => value;\n',
+  "node_modules/picocolors/index.js": "exports.red = (value) => value;\n",
   "tsconfig.json": JSON.stringify({
     compilerOptions: {
       allowJs: true,
@@ -187,8 +180,7 @@ const scenarios = [
         'import type { Search } from "../../features/search/ui/header"; export type HeaderSearch = Search;\n',
       "src/workflows/search/command.ts":
         'import { searchPort } from "../../features/search/api/searchPort"; import { client } from "../../platform/client"; import { workflowValue } from "./model"; export const command = [client, searchPort, workflowValue];\n',
-      "src/workflows/search/model.ts":
-        "export const workflowValue = 1;\n",
+      "src/workflows/search/model.ts": "export const workflowValue = 1;\n",
       "src/screens/search/SearchScreen.ts":
         'import type { Search } from "../../features/search/model"; import { view } from "./SearchView"; export const screen = (value: Search) => [value, view];\n',
       "src/screens/search/SearchView.ts": "export const view = true;\n",
@@ -239,8 +231,7 @@ const scenarios = [
         "export const searchShell = true;\n",
       "src/features/search/ports/searchPort.ts":
         "export const searchPort = true;\n",
-      "src/features/search/public.ts":
-        "export const publicSearch = true;\n",
+      "src/features/search/public.ts": "export const publicSearch = true;\n",
       "src/features/accommodations/listing-editor/public.ts":
         "export const listingEditor = true;\n",
       "src/app/entry.ts":
@@ -572,14 +563,18 @@ try {
       sourceRoot,
     });
   } catch (error) {
-    if (!String(error.message).includes("Symbolic links are forbidden under src")) {
+    if (
+      !String(error.message).includes("Symbolic links are forbidden under src")
+    ) {
       throw error;
     }
 
     fixedTargetSymlinkWasRejected = true;
   }
   if (!fixedTargetSymlinkWasRejected) {
-    throw new Error("A fixed target symlink escaped production graph collection.");
+    throw new Error(
+      "A fixed target symlink escaped production graph collection.",
+    );
   }
 } finally {
   await rm(symlinkFixtureRoot, { recursive: true, force: true });
@@ -591,11 +586,7 @@ for (const scenario of scenarios) {
   );
 
   try {
-    await writeFixture(
-      fixtureRoot,
-      scenario.files,
-      scenario.migratedFeatures,
-    );
+    await writeFixture(fixtureRoot, scenario.files, scenario.migratedFeatures);
     const { report, status, stderr } = cruise(fixtureRoot);
     const errors = getViolationNames(report);
     const errorSet = new Set(errors);

@@ -1,8 +1,5 @@
 export interface SessionCommandQueue {
-  run<T>(
-    signal: AbortSignal,
-    command: () => Promise<T>,
-  ): Promise<T>;
+  run<T>(signal: AbortSignal, command: () => Promise<T>): Promise<T>;
 }
 
 const createAbortError = () =>
@@ -26,10 +23,12 @@ const runAbortable = <T>(
     const handleAbort = () => settle(() => reject(createAbortError()));
     signal.addEventListener("abort", handleAbort, { once: true });
 
-    Promise.resolve().then(command).then(
-      (value) => settle(() => resolve(value)),
-      (error) => settle(() => reject(error)),
-    );
+    Promise.resolve()
+      .then(command)
+      .then(
+        (value) => settle(() => resolve(value)),
+        (error) => settle(() => reject(error)),
+      );
   });
 };
 
@@ -42,10 +41,7 @@ export const createSessionCommandQueue = (): SessionCommandQueue => {
   let tail: Promise<void> = Promise.resolve();
 
   return {
-    run: <T,>(
-      signal: AbortSignal,
-      command: () => Promise<T>,
-    ) => {
+    run: <T>(signal: AbortSignal, command: () => Promise<T>) => {
       const physicalExecution = tail.then(
         () => {
           if (signal.aborted) throw createAbortError();

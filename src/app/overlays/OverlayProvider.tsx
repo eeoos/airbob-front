@@ -25,8 +25,10 @@ export interface OverlayProviderProps {
   readonly portalRoot?: HTMLElement;
 }
 
-interface OverlayStackEntry
-  extends Omit<OverlayStackRegistration, "modality" | "restoreFocusTo"> {
+interface OverlayStackEntry extends Omit<
+  OverlayStackRegistration,
+  "modality" | "restoreFocusTo"
+> {
   modality: OverlayModality;
   restoreFocusTo: Element | null;
 }
@@ -214,9 +216,7 @@ const findDocumentPortalRoot = () =>
     : document.getElementById(APP_OVERLAY_ROOT_ID);
 
 const findDocumentApplicationRoot = () =>
-  typeof document === "undefined"
-    ? null
-    : document.getElementById(APP_ROOT_ID);
+  typeof document === "undefined" ? null : document.getElementById(APP_ROOT_ID);
 
 export function OverlayProvider({
   applicationRoot: providedApplicationRoot,
@@ -317,10 +317,7 @@ export function OverlayProvider({
     [stack],
   );
 
-  const value = useMemo(
-    () => ({ portalRoot, stack }),
-    [portalRoot, stack],
-  );
+  const value = useMemo(() => ({ portalRoot, stack }), [portalRoot, stack]);
 
   return (
     <OverlayRuntimeContext.Provider value={value}>

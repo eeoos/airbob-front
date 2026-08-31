@@ -12,14 +12,9 @@ export type {
 } from "../../platform/session/sessionScope";
 
 export type SessionCheckingReason =
-  | "bootstrap"
-  | "external-change"
-  | "identity-change";
+  "bootstrap" | "external-change" | "identity-change";
 
-export type SessionAnonymousReason =
-  | "bootstrap"
-  | "logout"
-  | "server-revoked";
+export type SessionAnonymousReason = "bootstrap" | "logout" | "server-revoked";
 
 export type SessionRevocation = "verified" | "unverified";
 

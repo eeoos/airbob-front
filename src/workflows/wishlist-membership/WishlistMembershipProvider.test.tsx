@@ -46,7 +46,8 @@ const wrapper = ({ children }: { readonly children: ReactNode }) => (
       session={{
         captureAuthenticatedSession: () => scope,
         isCurrentSession: (candidate) =>
-          candidate.subject === scope.subject && candidate.epoch === scope.epoch,
+          candidate.subject === scope.subject &&
+          candidate.epoch === scope.epoch,
       }}
       transport={transport}
       projectionFactory={() => projection}

@@ -52,7 +52,7 @@ const baseInput = (): ReservationCreateCommandInput => ({
   routeLease: { isCurrent: () => true },
 });
 
-const createDeferred = <T,>() => {
+const createDeferred = <T>() => {
   let resolve!: (value: T | PromiseLike<T>) => void;
   let reject!: (reason?: unknown) => void;
   const promise = new Promise<T>((promiseResolve, promiseReject) => {
@@ -71,9 +71,9 @@ const setup = ({
   let routeCurrent = true;
   const transport: ReservationCreateTransport = { create };
   const handoff = {
-    preflight: vi.fn(
-      (): ReservationCheckoutHandoffPreflightResult => ({ status: "ready" }),
-    ),
+    preflight: vi.fn((): ReservationCheckoutHandoffPreflightResult => ({
+      status: "ready",
+    })),
     commit: vi.fn(),
   };
   const session = {
@@ -178,16 +178,19 @@ describe("reservation create workflow", () => {
       }),
       "INVALID_COUPON",
     ],
-  ])("rejects invalid %s without sending a POST", async (_name, mutate, code) => {
-    const { create, handoff, input, workflow } = setup();
+  ])(
+    "rejects invalid %s without sending a POST",
+    async (_name, mutate, code) => {
+      const { create, handoff, input, workflow } = setup();
 
-    await expect(workflow.start(mutate(input()))).resolves.toMatchObject({
-      status: "invalid",
-      error: { code },
-    });
-    expect(create).not.toHaveBeenCalled();
-    expect(handoff.commit).not.toHaveBeenCalled();
-  });
+      await expect(workflow.start(mutate(input()))).resolves.toMatchObject({
+        status: "invalid",
+        error: { code },
+      });
+      expect(create).not.toHaveBeenCalled();
+      expect(handoff.commit).not.toHaveBeenCalled();
+    },
+  );
 
   it("returns an exact immutable auth intent when no session is authenticated", async () => {
     const { create, handoff, input, workflow } = setup({ activeScope: null });
@@ -323,9 +326,9 @@ describe("reservation create workflow", () => {
   it("does not start a request with a captured session that is no longer current", async () => {
     const create = vi.fn().mockResolvedValue(reservationReady);
     const handoff = {
-      preflight: vi.fn(
-        (): ReservationCheckoutHandoffPreflightResult => ({ status: "ready" }),
-      ),
+      preflight: vi.fn((): ReservationCheckoutHandoffPreflightResult => ({
+        status: "ready",
+      })),
       commit: vi.fn(),
     };
     const workflow = createReservationCreateWorkflow({

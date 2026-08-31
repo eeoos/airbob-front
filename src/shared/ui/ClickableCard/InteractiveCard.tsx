@@ -13,7 +13,8 @@ interface InteractiveCardLayoutProps {
 }
 
 export interface NavigationCardProps
-  extends InteractiveCardLayoutProps,
+  extends
+    InteractiveCardLayoutProps,
     Omit<
       AnchorHTMLAttributes<HTMLAnchorElement>,
       "aria-label" | "children" | "className"
@@ -22,7 +23,8 @@ export interface NavigationCardProps
 }
 
 export interface ActionCardProps
-  extends InteractiveCardLayoutProps,
+  extends
+    InteractiveCardLayoutProps,
     Omit<
       ButtonHTMLAttributes<HTMLButtonElement>,
       "aria-label" | "children" | "className" | "type"

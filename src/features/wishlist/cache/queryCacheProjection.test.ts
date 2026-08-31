@@ -21,7 +21,7 @@ const scopeB: AuthenticatedSessionScope = {
   epoch: 4,
 };
 
-const seedScopedQueryData = <TData,>(
+const seedScopedQueryData = <TData>(
   client: QueryClient,
   queryKey: readonly unknown[],
   scope: AuthenticatedSessionScope,
@@ -31,49 +31,66 @@ const seedScopedQueryData = <TData,>(
   client.setQueryData(queryKey, data);
 };
 
-const collection = (id: number): InfiniteData<WishlistCollection, string | null> => ({
+const collection = (
+  id: number,
+): InfiniteData<WishlistCollection, string | null> => ({
   pageParams: [null],
-  pages: [{
-    wishlists: [{
-      id,
-      name: `list ${id}`,
-      createdAt: "2026-08-29T00:00:00Z",
-      itemCount: 1,
-      thumbnailImageUrl: null,
-      containsAccommodation: null,
-      wishlistAccommodationId: null,
-    }],
-    pageInfo: { hasNext: false, nextCursor: null, currentSize: 1 },
-  }],
+  pages: [
+    {
+      wishlists: [
+        {
+          id,
+          name: `list ${id}`,
+          createdAt: "2026-08-29T00:00:00Z",
+          itemCount: 1,
+          thumbnailImageUrl: null,
+          containsAccommodation: null,
+          wishlistAccommodationId: null,
+        },
+      ],
+      pageInfo: { hasNext: false, nextCursor: null, currentSize: 1 },
+    },
+  ],
 });
 
 const recentlyViewed = (isInWishlist: boolean): RecentlyViewedCollection => ({
   totalCount: 1,
-  accommodations: [{
-    accommodationId: 7,
-    accommodationName: "stay",
-    viewedAt: "2026-08-29T00:00:00Z",
-    thumbnailUrl: null,
-    addressSummary: null,
-    reviewSummary: null,
-    isInWishlist,
-  }],
+  accommodations: [
+    {
+      accommodationId: 7,
+      accommodationName: "stay",
+      viewedAt: "2026-08-29T00:00:00Z",
+      thumbnailUrl: null,
+      addressSummary: null,
+      reviewSummary: null,
+      isInWishlist,
+    },
+  ],
 });
 
 const detail = (memo: string): InfiniteData<WishlistDetail, string | null> => ({
   pageParams: [null],
-  pages: [{
-    accommodations: [{
-      wishlistAccommodationId: 31,
-      memo,
-      createdAt: "2026-08-29T00:00:00Z",
-      accommodation: { id: 7, name: "stay", thumbnailUrl: null },
-      addressSummary: { country: "KR", state: null, city: "Seoul", district: null },
-      reviewSummary: { totalCount: 0, averageRating: 0 },
-      isInWishlist: true,
-    }],
-    pageInfo: { hasNext: false, nextCursor: null, currentSize: 1 },
-  }],
+  pages: [
+    {
+      accommodations: [
+        {
+          wishlistAccommodationId: 31,
+          memo,
+          createdAt: "2026-08-29T00:00:00Z",
+          accommodation: { id: 7, name: "stay", thumbnailUrl: null },
+          addressSummary: {
+            country: "KR",
+            state: null,
+            city: "Seoul",
+            district: null,
+          },
+          reviewSummary: { totalCount: 0, averageRating: 0 },
+          isInWishlist: true,
+        },
+      ],
+      pageInfo: { hasNext: false, nextCursor: null, currentSize: 1 },
+    },
+  ],
 });
 
 describe("wishlist query cache projection", () => {
@@ -90,12 +107,12 @@ describe("wishlist query cache projection", () => {
       isInAnyWishlist: true,
     });
 
-    expect(client.getQueryData<RecentlyViewedCollection>(recentA)?.accommodations).toEqual([
-      expect.objectContaining({ isInWishlist: true }),
-    ]);
-    expect(client.getQueryData<RecentlyViewedCollection>(recentB)?.accommodations).toEqual([
-      expect.objectContaining({ isInWishlist: false }),
-    ]);
+    expect(
+      client.getQueryData<RecentlyViewedCollection>(recentA)?.accommodations,
+    ).toEqual([expect.objectContaining({ isInWishlist: true })]);
+    expect(
+      client.getQueryData<RecentlyViewedCollection>(recentB)?.accommodations,
+    ).toEqual([expect.objectContaining({ isInWishlist: false })]);
   });
 
   it("invalidates refresh-required resources only for the captured scope", () => {
@@ -147,9 +164,9 @@ describe("wishlist query cache projection", () => {
       wishlistId: 11,
     });
 
-    expect(client.getQueryData<InfiniteData<WishlistCollection>>(listsA)?.pages).toEqual([
-      expect.objectContaining({ wishlists: [] }),
-    ]);
+    expect(
+      client.getQueryData<InfiniteData<WishlistCollection>>(listsA)?.pages,
+    ).toEqual([expect.objectContaining({ wishlists: [] })]);
     expect(client.getQueryData(detailA)).toBeUndefined();
     expect(
       client

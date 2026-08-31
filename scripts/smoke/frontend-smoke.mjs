@@ -6,8 +6,7 @@ import { join } from "path";
 
 const args = process.argv.slice(2);
 const isPreflightMode =
-  args.includes("--preflight") ||
-  process.env.AIRBOB_SMOKE_PREFLIGHT === "true";
+  args.includes("--preflight") || process.env.AIRBOB_SMOKE_PREFLIGHT === "true";
 
 const REQUIRED_ENV = [
   "AIRBOB_QA_EMAIL",
@@ -33,10 +32,10 @@ const missingEnv = REQUIRED_ENV.filter((name) => !process.env[name]);
 
 if (missingEnv.length > 0) {
   console.error(
-    `Missing required environment variables: ${missingEnv.join(", ")}`
+    `Missing required environment variables: ${missingEnv.join(", ")}`,
   );
   console.error(
-    "Set AIRBOB_QA_EMAIL, AIRBOB_QA_PASSWORD, and GSTACK_BROWSE_BIN before running smoke:frontend."
+    "Set AIRBOB_QA_EMAIL, AIRBOB_QA_PASSWORD, and GSTACK_BROWSE_BIN before running smoke:frontend.",
   );
   process.exit(1);
 }
@@ -46,7 +45,8 @@ const qaPassword = process.env.AIRBOB_QA_PASSWORD;
 const browseBin = process.env.GSTACK_BROWSE_BIN;
 const frontendUrl = process.env.AIRBOB_FRONTEND_URL ?? DEFAULT_FRONTEND_URL;
 const backendUrl = process.env.AIRBOB_API_BASE_URL ?? DEFAULT_BACKEND_URL;
-const strictDynamicRoutes = process.env.AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES === "true";
+const strictDynamicRoutes =
+  process.env.AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES === "true";
 const rawGoogleMapsApiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 const googleMapsApiKey = rawGoogleMapsApiKey?.trim() ?? "";
 const googleMapsApiKeyReady = Boolean(googleMapsApiKey);
@@ -191,30 +191,36 @@ const registeredRouteNames = new Set([
   ...skippedDynamicRoutes.map((route) => route.name),
 ]);
 const missingKnownRouteNames = KNOWN_ROUTE_NAMES.filter(
-  (name) => !registeredRouteNames.has(name)
+  (name) => !registeredRouteNames.has(name),
 );
 
 if (missingKnownRouteNames.length > 0) {
   console.error(
     `Smoke route registry is missing known routes: ${missingKnownRouteNames.join(
-      ", "
-    )}`
+      ", ",
+    )}`,
   );
   process.exit(1);
 }
 
 const skippedDynamicRouteLines = skippedDynamicRoutes.map(
   ({ name, pathTemplate, envName }) =>
-    `- ${name} (${pathTemplate}): skipped; set ${envName} to cover this route.`
+    `- ${name} (${pathTemplate}): skipped; set ${envName} to cover this route.`,
 );
 
-if (!isPreflightMode && strictDynamicRoutes && skippedDynamicRoutes.length > 0) {
-  const missingDynamicEnvNames = skippedDynamicRoutes.map(({ envName }) => envName);
+if (
+  !isPreflightMode &&
+  strictDynamicRoutes &&
+  skippedDynamicRoutes.length > 0
+) {
+  const missingDynamicEnvNames = skippedDynamicRoutes.map(
+    ({ envName }) => envName,
+  );
 
   console.error(
     `Strict dynamic route smoke mode requires stable route ids. Set ${missingDynamicEnvNames.join(
-      ", "
-    )} before running smoke:frontend:strict.`
+      ", ",
+    )} before running smoke:frontend:strict.`,
   );
   skippedDynamicRoutes.forEach(({ name, pathTemplate, envName }) => {
     console.error(`- ${envName} is required for ${name} (${pathTemplate}).`);
@@ -226,7 +232,7 @@ if (skippedDynamicRoutes.length > 0) {
   console.warn(
     `Skipped dynamic smoke routes: ${skippedDynamicRoutes
       .map(({ name, envName }) => `${name} (set ${envName})`)
-      .join(", ")}`
+      .join(", ")}`,
   );
 }
 
@@ -259,7 +265,7 @@ const redactionEntries = [
 const redact = (value) =>
   redactionEntries.reduce(
     (output, entry) => output.replace(entry.pattern, entry.replacement),
-    String(value ?? "")
+    String(value ?? ""),
   );
 
 const normalizeBaseUrl = (url) => {
@@ -271,10 +277,7 @@ const normalizeBaseUrl = (url) => {
 };
 
 const stripUrlUserinfo = (value) =>
-  String(value ?? "").replace(
-    /\b([a-z][a-z0-9+.-]*:\/\/)([^/@\s]+)@/gi,
-    "$1",
-  );
+  String(value ?? "").replace(/\b([a-z][a-z0-9+.-]*:\/\/)([^/@\s]+)@/gi, "$1");
 
 const sanitizeUrlForDisplay = (url) => {
   try {
@@ -291,7 +294,8 @@ const sanitizeReachabilityMessage = (message) =>
   redact(stripUrlUserinfo(message));
 
 const baseUrl = normalizeBaseUrl(frontendUrl);
-const toAbsoluteUrl = (routePath) => new URL(routePath, `${baseUrl}/`).toString();
+const toAbsoluteUrl = (routePath) =>
+  new URL(routePath, `${baseUrl}/`).toString();
 
 const validateBrowserBinaryPath = (binaryPath) => {
   if (!binaryPath?.trim()) {
@@ -600,7 +604,7 @@ for (const viewport of VIEWPORTS) {
   for (const route of ROUTES) {
     const screenshotPath = join(
       SCREENSHOT_ROOT,
-      `frontend-smoke-${timestamp}-${viewport.name}-${route.name}.png`
+      `frontend-smoke-${timestamp}-${viewport.name}-${route.name}.png`,
     );
     const url = toAbsoluteUrl(route.path);
 
@@ -617,7 +621,7 @@ for (const viewport of VIEWPORTS) {
       ["network", "--clear"],
       ["goto", url],
       ["wait", "--load"],
-      ["js", routeAssertion(route)]
+      ["js", routeAssertion(route)],
     );
 
     const interactionAssertion = routeInteractionAssertion(route);
@@ -629,7 +633,7 @@ for (const viewport of VIEWPORTS) {
       ["screenshot", screenshotPath],
       ["console", "--errors"],
       ["console", "--warnings"],
-      ["network"]
+      ["network"],
     );
   }
 }
@@ -660,11 +664,13 @@ const isEmptyConsoleSummary = (line) =>
   /\bconsole\b/i.test(line) &&
   /\b(?:error|warning)s?\b/i.test(line) &&
   /(?:\[\s*\]|\(\s*empty\s*\)|\bnone\b|\bno\s+(?:new\s+)?console\b|\b0\b)/i.test(
-    line
+    line,
   );
 const hasConsoleFailure = combinedOutput
   .split(/\r?\n/)
-  .some((line) => consoleFailurePattern.test(line) && !isEmptyConsoleSummary(line));
+  .some(
+    (line) => consoleFailurePattern.test(line) && !isEmptyConsoleSummary(line),
+  );
 const smokeSignalFailure = [
   hasConsoleFailure && "console error/warning output",
   apiFailurePattern.test(combinedOutput) && "API 4xx/5xx network output",
@@ -694,8 +700,8 @@ if (result.error) {
 if (smokeSignalFailure.length > 0) {
   console.error(
     `Smoke failed because redacted browse output contained: ${smokeSignalFailure.join(
-      ", "
-    )}`
+      ", ",
+    )}`,
   );
 }
 
@@ -721,7 +727,7 @@ const report = [
   "",
   ...screenshotEntries.map(
     (entry) =>
-      `- ${entry.viewport} ${entry.size} ${entry.routeName} ${entry.route} -> ${entry.screenshotPath}`
+      `- ${entry.viewport} ${entry.size} ${entry.routeName} ${entry.route} -> ${entry.screenshotPath}`,
   ),
   "",
   "## Skipped Dynamic Routes",

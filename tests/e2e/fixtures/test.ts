@@ -1,9 +1,6 @@
 import { test as base, expect } from "@playwright/test";
 import { ApiHarness } from "./api";
-import {
-  installSessionFixture,
-  type SessionFixture,
-} from "./session";
+import { installSessionFixture, type SessionFixture } from "./session";
 
 interface CharacterizationFixtures {
   appBaseURL: string;

@@ -29,8 +29,7 @@ const forbiddenCanaries = Object.freeze({
   REACT_APP_ACCESS_TOKEN: "forbidden_access_token_canary",
   REACT_APP_PRIVATE_SIGNING_KEY: "forbidden_private_key_canary",
   REACT_APP_UNKNOWN_RUNTIME_VALUE: "forbidden_unknown_runtime_canary",
-  [`REACT_APP_UNPREDICTABLE_${unpredictableCanaryId}`]:
-    `forbidden_unpredictable_runtime_${unpredictableCanaryId}`,
+  [`REACT_APP_UNPREDICTABLE_${unpredictableCanaryId}`]: `forbidden_unpredictable_runtime_${unpredictableCanaryId}`,
   AIRBOB_QA_PASSWORD: "forbidden_server_qa_password_canary",
 });
 
@@ -212,7 +211,9 @@ const readLazyRouteChunkPrefixes = async () => {
     uniqueRouteModuleNames.length === 0 ||
     uniqueRouteModuleNames.length !== routeModuleNames.length
   ) {
-    throw new Error("The lazy-route manifest is empty or contains duplicate modules.");
+    throw new Error(
+      "The lazy-route manifest is empty or contains duplicate modules.",
+    );
   }
 
   return uniqueRouteModuleNames.map((moduleName) => `${moduleName}-`);
@@ -237,7 +238,8 @@ const verifyViteBuildContract = async ({
   const staticDirectory = path.join(directory, "static");
   const staticEntries = await readdir(staticDirectory);
   const unhashedStaticAssets = staticEntries.filter(
-    (fileName) => !/-[A-Za-z0-9_-]{8,64}\.[A-Za-z0-9]+(?:\.map)?$/.test(fileName),
+    (fileName) =>
+      !/-[A-Za-z0-9_-]{8,64}\.[A-Za-z0-9]+(?:\.map)?$/.test(fileName),
   );
   if (unhashedStaticAssets.length > 0) {
     throw new Error(
@@ -247,18 +249,23 @@ const verifyViteBuildContract = async ({
   const javascriptFiles = staticEntries.filter((fileName) =>
     fileName.endsWith(".js"),
   );
-  const cssFiles = staticEntries.filter((fileName) => fileName.endsWith(".css"));
+  const cssFiles = staticEntries.filter((fileName) =>
+    fileName.endsWith(".css"),
+  );
   const staticEntrySet = new Set(staticEntries);
 
   if (
     javascriptFiles.length < requiredLazyRouteChunks.length + 1 ||
     cssFiles.length === 0
   ) {
-    throw new Error("Production build did not retain split JavaScript and CSS assets.");
+    throw new Error(
+      "Production build did not retain split JavaScript and CSS assets.",
+    );
   }
 
   const missingRouteChunks = requiredLazyRouteChunks.filter(
-    (prefix) => !javascriptFiles.some((fileName) => fileName.startsWith(prefix)),
+    (prefix) =>
+      !javascriptFiles.some((fileName) => fileName.startsWith(prefix)),
   );
   if (missingRouteChunks.length > 0) {
     throw new Error(
@@ -277,7 +284,9 @@ const verifyViteBuildContract = async ({
 
   const cssSource = (
     await Promise.all(
-      cssFiles.map((fileName) => readFile(path.join(staticDirectory, fileName), "utf8")),
+      cssFiles.map((fileName) =>
+        readFile(path.join(staticDirectory, fileName), "utf8"),
+      ),
     )
   ).join("\n");
   if (/@custom-media\b|@media\s*\(\s*--/i.test(cssSource)) {
@@ -285,7 +294,10 @@ const verifyViteBuildContract = async ({
   }
 
   const normalizedBase = `${publicAssetBase.replace(/\/+$/, "")}/`;
-  const indexSource = await readFile(path.join(directory, "index.html"), "utf8");
+  const indexSource = await readFile(
+    path.join(directory, "index.html"),
+    "utf8",
+  );
   const requiredBuiltReferences = [
     `${normalizedBase}favicon.ico`,
     `${normalizedBase}logo192.png`,
@@ -293,32 +305,48 @@ const verifyViteBuildContract = async ({
     `${normalizedBase}static/`,
   ];
   if (
-    requiredBuiltReferences.some((reference) => !indexSource.includes(reference)) ||
+    requiredBuiltReferences.some(
+      (reference) => !indexSource.includes(reference),
+    ) ||
     indexSource.includes("%BASE_URL%") ||
     !/<script\b[^>]*\btype=["']module["'][^>]*>/i.test(indexSource)
   ) {
-    throw new Error("Production HTML did not preserve the validated Vite base contract.");
+    throw new Error(
+      "Production HTML did not preserve the validated Vite base contract.",
+    );
   }
 
   const initialJavascriptReferences = new Set(
-    [...indexSource.matchAll(/<(?:script|link)\b[^>]*(?:src|href)=["']([^"']+\.js)["'][^>]*>/gi)]
+    [
+      ...indexSource.matchAll(
+        /<(?:script|link)\b[^>]*(?:src|href)=["']([^"']+\.js)["'][^>]*>/gi,
+      ),
+    ]
       .map((match) => match[1])
       .filter((reference) => reference.includes("/static/")),
   );
   if (initialJavascriptReferences.size === 0) {
-    throw new Error("Production HTML did not declare its initial JavaScript graph.");
+    throw new Error(
+      "Production HTML did not declare its initial JavaScript graph.",
+    );
   }
 
   const initialJavascriptGzipBytes = (
     await Promise.all(
       [...initialJavascriptReferences].map(async (reference) => {
-        const fileName = new URL(reference, "https://airbob-build.invalid").pathname
+        const fileName = new URL(
+          reference,
+          "https://airbob-build.invalid",
+        ).pathname
           .split("/")
           .at(-1);
         if (!fileName || !staticEntrySet.has(fileName)) {
-          throw new Error("Production HTML references a missing initial JavaScript asset.");
+          throw new Error(
+            "Production HTML references a missing initial JavaScript asset.",
+          );
         }
-        return gzipSync(await readFile(path.join(staticDirectory, fileName))).byteLength;
+        return gzipSync(await readFile(path.join(staticDirectory, fileName)))
+          .byteLength;
       }),
     )
   ).reduce((total, bytes) => total + bytes, 0);
@@ -471,9 +499,7 @@ try {
     }
 
     if (!(failure instanceof Error)) {
-      throw new Error(
-        `Public build validation accepted ${name}.`,
-      );
+      throw new Error(`Public build validation accepted ${name}.`);
     }
     if (!failure.message.includes(expectedCategory)) {
       throw new Error(`Public build validation misclassified ${name}.`);
@@ -526,7 +552,9 @@ try {
       throw new Error(`Production build accepted unsafe PUBLIC_URL ${name}.`);
     }
     if (!rawOutput.includes("public asset-base")) {
-      throw new Error(`Production build misclassified unsafe PUBLIC_URL ${name}.`);
+      throw new Error(
+        `Production build misclassified unsafe PUBLIC_URL ${name}.`,
+      );
     }
     if (value.length >= 12 && rawOutput.includes(value)) {
       throw new Error(`Production build exposed unsafe PUBLIC_URL ${name}.`);
@@ -567,7 +595,9 @@ try {
 
     const rejectedFiles = await collectTextFilesIfPresent(rejectedBuildPath);
     if (rejectedFiles.length > 0) {
-      throw new Error(`Production build emitted assets for ${invalidInput.name}.`);
+      throw new Error(
+        `Production build emitted assets for ${invalidInput.name}.`,
+      );
     }
   }
 
@@ -622,11 +652,13 @@ try {
       );
     }
 
-    initialJavascriptGzipMeasurements.push(await verifyViteBuildContract({
-      directory: acceptedBuildPath,
-      publicAssetBase,
-      requiredLazyRouteChunks,
-    }));
+    initialJavascriptGzipMeasurements.push(
+      await verifyViteBuildContract({
+        directory: acceptedBuildPath,
+        publicAssetBase,
+        requiredLazyRouteChunks,
+      }),
+    );
   }
 
   const maximumInitialJavascriptGzipBytes = Math.max(

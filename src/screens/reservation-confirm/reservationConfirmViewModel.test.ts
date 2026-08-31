@@ -36,7 +36,12 @@ describe("reservation confirm view model", () => {
   it("uses the server create amount to derive a missing coupon discount", () => {
     expect(
       toReservationConfirmCheckoutView(
-        { ...checkout(), couponName: null, couponDiscount: null, amount: 180_000 },
+        {
+          ...checkout(),
+          couponName: null,
+          couponDiscount: null,
+          amount: 180_000,
+        },
         100_000,
       ).coupon,
     ).toEqual({ discountAmount: 20_000, name: null });

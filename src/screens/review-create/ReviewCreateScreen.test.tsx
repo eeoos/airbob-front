@@ -1,7 +1,10 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderApp } from "../../test/renderApp";
-import { ReviewCreateScreen, type ReviewCreateScreenProps } from "./ReviewCreateScreen";
+import {
+  ReviewCreateScreen,
+  type ReviewCreateScreenProps,
+} from "./ReviewCreateScreen";
 
 const createProps = (): ReviewCreateScreenProps => ({
   comment: "좋은 숙소였어요.",

@@ -1,9 +1,5 @@
 import { TextField } from "../../../shared/ui";
-import type {
-  AuthFormField,
-  AuthFormValues,
-  AuthMode,
-} from "../model/auth";
+import type { AuthFormField, AuthFormValues, AuthMode } from "../model/auth";
 
 export interface AuthFormFieldsProps {
   readonly idPrefix: string;

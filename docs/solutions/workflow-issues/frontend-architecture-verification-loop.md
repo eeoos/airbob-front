@@ -13,7 +13,17 @@ applies_when:
   - QA credentials are needed for smoke testing but must not be committed or documented
   - Structure-first refactors need route, feature cache, Query, and shared UI primitive boundaries locked before broad styling
   - Architecture freeze work needs executable public-surface contracts and a documented restart point for future audits
-tags: [frontend-architecture, verification-loop, browser-qa, contract-tests, credential-hygiene, responsive-qa, route-boundaries, dto-boundaries]
+tags:
+  [
+    frontend-architecture,
+    verification-loop,
+    browser-qa,
+    contract-tests,
+    credential-hygiene,
+    responsive-qa,
+    route-boundaries,
+    dto-boundaries,
+  ]
 related_components: [testing_framework, documentation, tooling]
 ---
 

@@ -4,7 +4,7 @@ type GlyphMap = Readonly<Record<string, IconGlyph>>;
 
 export const defineIconRegistry = <Glyphs extends GlyphMap>(
   glyphs: Glyphs,
-  fallback: IconGlyph
+  fallback: IconGlyph,
 ) => {
   const has = (name: string): name is Extract<keyof Glyphs, string> =>
     Object.prototype.hasOwnProperty.call(glyphs, name);

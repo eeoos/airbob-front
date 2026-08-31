@@ -82,9 +82,7 @@ export const useOverlayRegistration = ({
   );
   const isRegistered = useSyncExternalStore(
     runtime?.stack.subscribe ?? subscribeToNothing,
-    runtime
-      ? () => runtime.stack.has(registrationIdRef.current)
-      : getFalse,
+    runtime ? () => runtime.stack.has(registrationIdRef.current) : getFalse,
     getFalse,
   );
 

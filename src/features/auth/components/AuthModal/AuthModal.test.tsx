@@ -30,9 +30,7 @@ const renderAuthModal = (
 ) => ({
   commands,
   ...render(
-    <AuthCommandProvider commands={commands}>
-      {element}
-    </AuthCommandProvider>,
+    <AuthCommandProvider commands={commands}>{element}</AuthCommandProvider>,
   ),
 });
 
@@ -149,10 +147,7 @@ describe("AuthModal", () => {
       login: vi.fn().mockRejectedValue(failure),
     });
 
-    renderAuthModal(
-      <AuthModal isOpen={true} onClose={vi.fn()} />,
-      commands,
-    );
+    renderAuthModal(<AuthModal isOpen={true} onClose={vi.fn()} />, commands);
 
     await userEvent.type(screen.getByLabelText("이메일"), "guest@example.com");
     await userEvent.type(screen.getByLabelText("비밀번호"), "wrong-password");
@@ -171,11 +166,7 @@ describe("AuthModal", () => {
     });
 
     renderAuthModal(
-      <AuthModal
-        isOpen={true}
-        onClose={onClose}
-        onSuccess={onSuccess}
-      />,
+      <AuthModal isOpen={true} onClose={onClose} onSuccess={onSuccess} />,
       commands,
     );
 

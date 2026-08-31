@@ -1,8 +1,5 @@
 import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
-import type {
-  RecentlyViewedApiPort,
-  WishlistApiPort,
-} from "../ports";
+import type { RecentlyViewedApiPort, WishlistApiPort } from "../ports";
 import {
   createRecentlyViewedQueryOptions,
   createWishlistDetailQueryOptions,
@@ -123,10 +120,7 @@ describe("wishlist read query contracts", () => {
   });
 
   it("stops list and detail pagination when the backend repeats an earlier cursor", () => {
-    const listOptions = createWishlistListsQueryOptions(
-      { scope },
-      wishlistApi,
-    );
+    const listOptions = createWishlistListsQueryOptions({ scope }, wishlistApi);
     const detailOptions = createWishlistDetailQueryOptions(
       { scope, wishlistId: 7 },
       wishlistApi,
@@ -149,20 +143,16 @@ describe("wishlist read query contracts", () => {
     };
 
     expect(
-      listOptions.getNextPageParam(
-        listPage,
-        [listPage],
+      listOptions.getNextPageParam(listPage, [listPage], "cursor-1", [
+        null,
         "cursor-1",
-        [null, "cursor-1"],
-      ),
+      ]),
     ).toBeUndefined();
     expect(
-      detailOptions.getNextPageParam(
-        detailPage,
-        [detailPage],
+      detailOptions.getNextPageParam(detailPage, [detailPage], "cursor-1", [
+        null,
         "cursor-1",
-        [null, "cursor-1"],
-      ),
+      ]),
     ).toBeUndefined();
   });
 
@@ -186,14 +176,13 @@ describe("wishlist read query contracts", () => {
     ]);
     expect(options.enabled).toBe(true);
     expect(options.meta).toEqual({ session: scope });
-    expect(recentlyViewedApi.getRecentlyViewed).toHaveBeenCalledWith({ signal });
+    expect(recentlyViewedApi.getRecentlyViewed).toHaveBeenCalledWith({
+      signal,
+    });
   });
 
   it("produces distinct keys when either subject or epoch changes", () => {
-    const base = createRecentlyViewedQueryOptions(
-      { scope },
-      recentlyViewedApi,
-    );
+    const base = createRecentlyViewedQueryOptions({ scope }, recentlyViewedApi);
     const nextEpoch = createRecentlyViewedQueryOptions(
       { scope: { ...scope, epoch: 5 } },
       recentlyViewedApi,

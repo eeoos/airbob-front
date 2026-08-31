@@ -14,7 +14,11 @@ const collectSharedUiNamedImports = (source: string) =>
       .split(",")
       .map(
         (importName) =>
-          importName.trim().split(/\s+as\s+/).at(0)?.trim() ?? "",
+          importName
+            .trim()
+            .split(/\s+as\s+/)
+            .at(0)
+            ?.trim() ?? "",
       )
       .filter(Boolean);
   });
@@ -78,7 +82,8 @@ describe("shared UI boundary contracts", () => {
         expected: ["TextField"],
       },
       {
-        relativePath: "features/wishlist/components/WishlistModal/WishlistModal.tsx",
+        relativePath:
+          "features/wishlist/components/WishlistModal/WishlistModal.tsx",
         expected: ["Button", "Dialog"],
       },
       {
@@ -96,28 +101,30 @@ describe("shared UI boundary contracts", () => {
       },
     ];
 
-    const violations = primitiveContracts.flatMap(({ relativePath, expected }) => {
-      const source = readFileSync(join(srcRoot, relativePath), "utf8");
-      const sharedUiImports = new Set(collectSharedUiNamedImports(source));
+    const violations = primitiveContracts.flatMap(
+      ({ relativePath, expected }) => {
+        const source = readFileSync(join(srcRoot, relativePath), "utf8");
+        const sharedUiImports = new Set(collectSharedUiNamedImports(source));
 
-      return expected.flatMap((primitive) => {
-        const primitiveViolations: string[] = [];
+        return expected.flatMap((primitive) => {
+          const primitiveViolations: string[] = [];
 
-        if (!sharedUiImports.has(primitive)) {
-          primitiveViolations.push(
-            `${relativePath}: missing ${primitive} import from shared/ui`,
-          );
-        }
+          if (!sharedUiImports.has(primitive)) {
+            primitiveViolations.push(
+              `${relativePath}: missing ${primitive} import from shared/ui`,
+            );
+          }
 
-        if (!usesJsxTag(source, primitive)) {
-          primitiveViolations.push(
-            `${relativePath}: missing <${primitive}> JSX usage`,
-          );
-        }
+          if (!usesJsxTag(source, primitive)) {
+            primitiveViolations.push(
+              `${relativePath}: missing <${primitive}> JSX usage`,
+            );
+          }
 
-        return primitiveViolations;
-      });
-    });
+          return primitiveViolations;
+        });
+      },
+    );
 
     expect(violations).toEqual([]);
   });

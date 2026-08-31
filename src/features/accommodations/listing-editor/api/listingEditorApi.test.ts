@@ -238,8 +238,7 @@ describe("listing editor API adapter", () => {
     ]);
 
     const requestInput = request.mock.calls.at(0)?.at(0) as
-      | ApiDataRequest
-      | undefined;
+      ApiDataRequest | undefined;
     if (!requestInput) throw new Error("Expected an image upload request");
     expect(requestInput).toMatchObject({
       bodyEncoding: "multipart",
@@ -265,9 +264,7 @@ describe("listing editor API adapter", () => {
     const signal = new AbortController().signal;
     requestNullable.mockResolvedValue(null);
 
-    await expect(
-      api.deleteImage(31, 301, { signal }),
-    ).resolves.toBeUndefined();
+    await expect(api.deleteImage(31, 301, { signal })).resolves.toBeUndefined();
     await expect(api.publish(31, { signal })).resolves.toBeUndefined();
 
     expect(requestNullable).toHaveBeenNthCalledWith(1, {

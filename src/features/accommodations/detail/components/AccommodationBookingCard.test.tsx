@@ -72,54 +72,54 @@ type BookingCardOverrides = Partial<
 };
 
 const createBookingCardProps = (): BookingCardProps => ({
-    bookingView,
-    isAuthenticated: true,
-    bookingState: {
-      payablePrice: 190000,
-      nights: 2,
-      totalPrice: 200000,
-      checkIn: new Date(2026, 6, 10),
-      checkOut: new Date(2026, 6, 12),
-      dateSectionRef: React.createRef<HTMLDivElement>(),
-      datePickerRef: React.createRef<HTMLDivElement>(),
-      guestPickerRef: React.createRef<HTMLDivElement>(),
-      isDatePickerOpen: false,
-      isGuestPickerOpen: false,
-      adultCount: 2,
-      childCount: 1,
-      infantCount: 0,
-      petCount: 0,
-      isReservationLocked: false,
-      isReserving: false,
-    },
-    bookingActions: {
-      formatDate: (date) =>
-        date
-          ? `${date.getFullYear()}. ${String(date.getMonth() + 1).padStart(
-              2,
-              "0"
-            )}. ${String(date.getDate()).padStart(2, "0")}.`
-          : "",
-      handleDateSelect: vi.fn(),
-      setIsDatePickerOpen: vi.fn(),
-      setIsGuestPickerOpen: vi.fn(),
-      setAdultCount: vi.fn(),
-      setChildCount: vi.fn(),
-      setInfantCount: vi.fn(),
-      setPetCount: vi.fn(),
-      onReserve: vi.fn(),
-    },
-    couponState: {
-      coupons: [coupon],
-      errorMessage: null,
-      isLoadingCoupons: false,
-      selectedCoupon: coupon,
-      couponDiscount: 10000,
-    },
-    couponActions: {
-      setSelectedCouponId: vi.fn(),
-      handleIssueCoupon: vi.fn(),
-    },
+  bookingView,
+  isAuthenticated: true,
+  bookingState: {
+    payablePrice: 190000,
+    nights: 2,
+    totalPrice: 200000,
+    checkIn: new Date(2026, 6, 10),
+    checkOut: new Date(2026, 6, 12),
+    dateSectionRef: React.createRef<HTMLDivElement>(),
+    datePickerRef: React.createRef<HTMLDivElement>(),
+    guestPickerRef: React.createRef<HTMLDivElement>(),
+    isDatePickerOpen: false,
+    isGuestPickerOpen: false,
+    adultCount: 2,
+    childCount: 1,
+    infantCount: 0,
+    petCount: 0,
+    isReservationLocked: false,
+    isReserving: false,
+  },
+  bookingActions: {
+    formatDate: (date) =>
+      date
+        ? `${date.getFullYear()}. ${String(date.getMonth() + 1).padStart(
+            2,
+            "0",
+          )}. ${String(date.getDate()).padStart(2, "0")}.`
+        : "",
+    handleDateSelect: vi.fn(),
+    setIsDatePickerOpen: vi.fn(),
+    setIsGuestPickerOpen: vi.fn(),
+    setAdultCount: vi.fn(),
+    setChildCount: vi.fn(),
+    setInfantCount: vi.fn(),
+    setPetCount: vi.fn(),
+    onReserve: vi.fn(),
+  },
+  couponState: {
+    coupons: [coupon],
+    errorMessage: null,
+    isLoadingCoupons: false,
+    selectedCoupon: coupon,
+    couponDiscount: 10000,
+  },
+  couponActions: {
+    setSelectedCouponId: vi.fn(),
+    handleIssueCoupon: vi.fn(),
+  },
 });
 
 const setupBookingCard = (overrides: BookingCardOverrides = {}) => {
@@ -188,7 +188,7 @@ describe("AccommodationBookingCard", () => {
     expect(guestButton).toHaveAttribute("aria-expanded", "true");
     expect(guestButton).toHaveAttribute(
       "aria-controls",
-      "booking-guest-picker"
+      "booking-guest-picker",
     );
     expect(screen.getByText("성인")).toBeInTheDocument();
   });
@@ -250,7 +250,7 @@ describe("AccommodationBookingCard", () => {
     });
 
     expect(
-      screen.getByRole("button", { name: "성인 줄이기" })
+      screen.getByRole("button", { name: "성인 줄이기" }),
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "성인 늘리기" }));
@@ -293,11 +293,11 @@ describe("AccommodationBookingCard", () => {
 
     expect(screen.getByRole("button", { name: "성인 늘리기" })).toBeDisabled();
     expect(
-      screen.getByRole("button", { name: "어린이 늘리기" })
+      screen.getByRole("button", { name: "어린이 늘리기" }),
     ).toBeDisabled();
     expect(screen.getByRole("button", { name: "유아 늘리기" })).toBeDisabled();
     expect(
-      screen.getByRole("button", { name: "반려동물 늘리기" })
+      screen.getByRole("button", { name: "반려동물 늘리기" }),
     ).toBeDisabled();
   });
 
@@ -322,7 +322,9 @@ describe("AccommodationBookingCard", () => {
   });
 
   it("disables the reserve button while a reservation is being created", () => {
-    const bookingProps = setupBookingCard({ bookingState: { isReserving: true } });
+    const bookingProps = setupBookingCard({
+      bookingState: { isReserving: true },
+    });
 
     const reserveButton = screen.getByRole("button", { name: "예약 중..." });
 

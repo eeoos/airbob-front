@@ -16,11 +16,7 @@ export interface SearchResultsQueryOptions {
 }
 
 export const createSearchResultsQueryOptions = (
-  {
-    scope,
-    request,
-    enabled = true,
-  }: SearchResultsQueryOptions,
+  { scope, request, enabled = true }: SearchResultsQueryOptions,
   api: SearchApiPort = defaultSearchApi,
 ) => {
   const normalizedRequest = normalizeSearchRequest(request);
@@ -36,9 +32,7 @@ export const createSearchResultsQueryOptions = (
   };
 };
 
-export const useSearchResultsReadQuery = (
-  options: SearchResultsQueryOptions,
-) =>
+export const useSearchResultsReadQuery = (options: SearchResultsQueryOptions) =>
   useQuery<
     SearchResultPage,
     Error,

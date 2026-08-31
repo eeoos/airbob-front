@@ -55,8 +55,7 @@ const searchResponse = {
 const detailAccommodation = {
   id: 7,
   name: "합정 디자인 테스트 숙소",
-  description:
-    "머무는 동안 편안하게 쉴 수 있도록 정돈한 합성 숙소입니다.",
+  description: "머무는 동안 편안하게 쉴 수 있도록 정돈한 합성 숙소입니다.",
   type: "ENTIRE_PLACE",
   base_price: 150_000,
   currency: "KRW",

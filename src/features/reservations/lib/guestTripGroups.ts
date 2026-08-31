@@ -49,10 +49,16 @@ export const formatGuestTripDateRange = (
   checkIn: string,
   checkOut: string,
 ): string => {
-  const { year: checkInYear, month: checkInMonth, day: checkInDay } =
-    getDateOnlyParts(checkIn);
-  const { year: checkOutYear, month: checkOutMonth, day: checkOutDay } =
-    getDateOnlyParts(checkOut);
+  const {
+    year: checkInYear,
+    month: checkInMonth,
+    day: checkInDay,
+  } = getDateOnlyParts(checkIn);
+  const {
+    year: checkOutYear,
+    month: checkOutMonth,
+    day: checkOutDay,
+  } = getDateOnlyParts(checkOut);
 
   if (checkInYear === checkOutYear && checkInMonth === checkOutMonth) {
     return `${checkInYear}년 ${checkInMonth}월 ${checkInDay}일 ~ ${checkOutDay}일`;

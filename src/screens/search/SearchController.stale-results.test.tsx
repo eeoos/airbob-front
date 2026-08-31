@@ -1,7 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { SearchRequest, SearchResultPage } from "../../features/search/model/search";
+import type {
+  SearchRequest,
+  SearchResultPage,
+} from "../../features/search/model/search";
 import type { SearchControllerProps } from "./SearchController";
 import { SearchController } from "./SearchController";
 
@@ -45,9 +48,11 @@ vi.mock("../../features/search/hooks/useSearchMapState", () => ({
 }));
 
 vi.mock("./SearchScreen", () => ({
-  SearchScreen: ({ results }: { results: { accommodationCards: Array<{ name: string }> } }) => (
-    <div>{results.accommodationCards[0]?.name ?? "empty"}</div>
-  ),
+  SearchScreen: ({
+    results,
+  }: {
+    results: { accommodationCards: Array<{ name: string }> };
+  }) => <div>{results.accommodationCards[0]?.name ?? "empty"}</div>,
 }));
 
 interface Deferred<T> {

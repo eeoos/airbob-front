@@ -63,8 +63,9 @@ describe("active app route manifest", () => {
 
     expect(lazyImportTargets).toHaveLength(routeDefinitions.length);
     expect(new Set(lazyImportTargets).size).toBe(lazyImportTargets.length);
-    expect(lazyImportTargets.every((target) => target.startsWith("./routes/")))
-      .toBe(true);
+    expect(
+      lazyImportTargets.every((target) => target.startsWith("./routes/")),
+    ).toBe(true);
     expect(source).not.toMatch(/\.\.\/(?:features|pages)\//);
     expect(lazyImportTargets).not.toContain("./routes");
     expect(lazyImportTargets).toEqual(

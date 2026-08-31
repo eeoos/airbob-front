@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   calculateAccommodationCouponDiscount,
   type AccommodationCoupon,
@@ -20,10 +14,7 @@ import {
   type ReservationStartIntent,
 } from "../../workflows/booking-payment/reservation-create";
 import { toAccommodationErrorMessage } from "./accommodationDetailErrors";
-import {
-  deriveBookingDates,
-  formatBookingLocalDate,
-} from "./bookingDraft";
+import { deriveBookingDates, formatBookingLocalDate } from "./bookingDraft";
 
 interface ReservationAccommodationSnapshot {
   readonly basePrice: number;
@@ -64,8 +55,7 @@ interface UseReservationCreateCommandOptions {
 
 const ambiguousReservationMessage =
   "예약 처리 결과를 확인할 수 없습니다. 예약 내역에서 확인해주세요.";
-const activePaymentMessage =
-  "진행 중인 결제 상태를 먼저 확인해주세요.";
+const activePaymentMessage = "진행 중인 결제 상태를 먼저 확인해주세요.";
 
 const toAppliedCoupon = (
   coupon: AccommodationCoupon | null,
@@ -73,9 +63,7 @@ const toAppliedCoupon = (
 ): AppliedReservationCoupon | null => {
   if (!coupon) return null;
   const discount = calculateAccommodationCouponDiscount(coupon, totalPrice);
-  return discount > 0
-    ? { id: coupon.id, name: coupon.name, discount }
-    : null;
+  return discount > 0 ? { id: coupon.id, name: coupon.name, discount } : null;
 };
 
 export const useReservationCreateCommand = ({
@@ -138,27 +126,26 @@ export const useReservationCreateCommand = ({
         return;
       }
 
-      const intent: ReservationStartIntent =
-        resumeIntent ?? {
-          type: "reservation.start",
-          accommodationId: accommodation.id,
-          checkIn: bookingDates.checkIn
-            ? formatBookingLocalDate(bookingDates.checkIn)
-            : "",
-          checkOut: bookingDates.checkOut
-            ? formatBookingLocalDate(bookingDates.checkOut)
-            : "",
-          ...guestCounts,
-          couponId:
-            toAppliedCoupon(selectedCoupon, bookingDates.totalPrice)?.id ?? null,
-        };
+      const intent: ReservationStartIntent = resumeIntent ?? {
+        type: "reservation.start",
+        accommodationId: accommodation.id,
+        checkIn: bookingDates.checkIn
+          ? formatBookingLocalDate(bookingDates.checkIn)
+          : "",
+        checkOut: bookingDates.checkOut
+          ? formatBookingLocalDate(bookingDates.checkOut)
+          : "",
+        ...guestCounts,
+        couponId:
+          toAppliedCoupon(selectedCoupon, bookingDates.totalPrice)?.id ?? null,
+      };
       const intendedDates = deriveBookingDates({
         basePrice: accommodation.basePrice,
         checkIn: intent.checkIn,
         checkOut: intent.checkOut,
         unavailableDates: accommodation.unavailableDates,
       });
-      const coupon = resumeIntent ? resumedCoupon ?? null : selectedCoupon;
+      const coupon = resumeIntent ? (resumedCoupon ?? null) : selectedCoupon;
       const appliedCoupon = toAppliedCoupon(coupon, intendedDates.totalPrice);
       const pending = workflow.start({
         accommodation: {

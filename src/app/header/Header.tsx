@@ -32,7 +32,7 @@ export const Header: React.FC<HeaderProps> = ({ headerMode = "default" }) => {
 
   // Search 페이지이고 destination 파라미터가 없고 viewport 파라미터가 있으면 지도 드래그 모드
   const hasViewport = getViewportFromSearchParams(searchParams) !== null;
-  const isMapDragMode = 
+  const isMapDragMode =
     location.pathname === ROUTE_PATHS.search &&
     !searchParams.get("destination") &&
     hasViewport;
@@ -67,11 +67,7 @@ export const Header: React.FC<HeaderProps> = ({ headerMode = "default" }) => {
           className={styles.logo}
           aria-label="Airbob 홈으로 이동"
         >
-          <img
-            src={brandAssets.wordmark}
-            alt=""
-            className={styles.logoImage}
-          />
+          <img src={brandAssets.wordmark} alt="" className={styles.logoImage} />
         </Link>
 
         {shouldRenderSearch && (

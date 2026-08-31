@@ -40,7 +40,8 @@
   font-size: var(--font-size-md);
   font-weight: 600;
   cursor: pointer;
-  transition: background-color var(--motion-duration-base) var(--motion-ease-standard),
+  transition:
+    background-color var(--motion-duration-base) var(--motion-ease-standard),
     color var(--motion-duration-base) var(--motion-ease-standard);
 }
 
@@ -58,7 +59,9 @@
   display: flex;
   max-width: 1400px;
   margin: 0 auto;
-  min-height: calc(var(--layout-viewport-height) - var(--layout-edit-header-height));
+  min-height: calc(
+    var(--layout-viewport-height) - var(--layout-edit-header-height)
+  );
 }
 
 .sidebar {
@@ -82,7 +85,8 @@
   color: inherit;
   font: inherit;
   text-align: left;
-  transition: opacity var(--motion-duration-base) var(--motion-ease-standard),
+  transition:
+    opacity var(--motion-duration-base) var(--motion-ease-standard),
     background-color var(--motion-duration-base) var(--motion-ease-standard);
 }
 
@@ -119,7 +123,8 @@
   font-size: var(--font-size-sm);
   font-weight: 600;
   flex-shrink: 0;
-  transition: background-color var(--motion-duration-base) var(--motion-ease-standard),
+  transition:
+    background-color var(--motion-duration-base) var(--motion-ease-standard),
     color var(--motion-duration-base) var(--motion-ease-standard);
 }
 
@@ -199,7 +204,8 @@
   font-size: var(--font-size-md);
   font-weight: 600;
   cursor: pointer;
-  transition: background-color var(--motion-duration-base) var(--motion-ease-standard),
+  transition:
+    background-color var(--motion-duration-base) var(--motion-ease-standard),
     color var(--motion-duration-base) var(--motion-ease-standard),
     border-color var(--motion-duration-base) var(--motion-ease-standard);
   border: none;

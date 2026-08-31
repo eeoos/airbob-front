@@ -1,8 +1,7 @@
 import React from "react";
 import styles from "./TextField.module.css";
 
-export interface TextFieldProps
-  extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface TextFieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label: React.ReactNode;
   error?: React.ReactNode;
   hint?: React.ReactNode;
@@ -22,7 +21,7 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
       "aria-describedby": ariaDescribedBy,
       ...inputProps
     },
-    ref
+    ref,
   ) => {
     const generatedId = React.useId();
     const inputId = id ?? `text-field-${generatedId}`;
@@ -43,7 +42,7 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
           className={cx(
             styles.input,
             Boolean(error) && styles.inputError,
-            className
+            className,
           )}
           aria-describedby={describedBy || undefined}
           aria-invalid={error ? true : undefined}
@@ -61,7 +60,7 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
         )}
       </div>
     );
-  }
+  },
 );
 
 TextField.displayName = "TextField";

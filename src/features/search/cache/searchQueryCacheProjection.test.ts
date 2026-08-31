@@ -74,12 +74,12 @@ describe("search query cache membership projection", () => {
       isInWishlist: true,
     });
 
-    expect(client.getQueryData<SearchResultPage>(keyA)?.accommodations).toEqual([
-      expect.objectContaining({ isInWishlist: true }),
-    ]);
-    expect(client.getQueryData<SearchResultPage>(keyB)?.accommodations).toEqual([
-      expect.objectContaining({ isInWishlist: false }),
-    ]);
+    expect(client.getQueryData<SearchResultPage>(keyA)?.accommodations).toEqual(
+      [expect.objectContaining({ isInWishlist: true })],
+    );
+    expect(client.getQueryData<SearchResultPage>(keyB)?.accommodations).toEqual(
+      [expect.objectContaining({ isInWishlist: false })],
+    );
   });
 
   it("preserves references when the accommodation or value does not change", () => {

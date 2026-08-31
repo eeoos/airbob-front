@@ -8,18 +8,21 @@ import { reviewReadQueryKeys } from "../queries/queryKeys";
 
 type QueryPredicate = NonNullable<QueryFilters["predicate"]>;
 
-const accommodationReviewsPredicate = (
-  scope: SessionQueryScope,
-): QueryPredicate =>
-  (query) => matchesSessionQueryScope(query.meta, scope);
+const accommodationReviewsPredicate =
+  (scope: SessionQueryScope): QueryPredicate =>
+  (query) =>
+    matchesSessionQueryScope(query.meta, scope);
 
 export const createReviewCache = (
   queryClient: QueryClient,
 ): ReviewCachePort => ({
   reviewCreated({ accommodationId, scope }) {
-    return queryClient.invalidateQueries({
-      queryKey: reviewReadQueryKeys.accommodationRoot(accommodationId),
-      predicate: accommodationReviewsPredicate(scope),
-    }, { throwOnError: true });
+    return queryClient.invalidateQueries(
+      {
+        queryKey: reviewReadQueryKeys.accommodationRoot(accommodationId),
+        predicate: accommodationReviewsPredicate(scope),
+      },
+      { throwOnError: true },
+    );
   },
 });

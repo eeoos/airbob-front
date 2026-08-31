@@ -6,7 +6,7 @@ import {
   usePlacesAutocomplete,
 } from "./usePlacesAutocomplete";
 
-const createDeferred = <T,>() => {
+const createDeferred = <T>() => {
   let resolve!: (value: T | PromiseLike<T>) => void;
   let reject!: (reason?: unknown) => void;
   const promise = new Promise<T>((promiseResolve, promiseReject) => {
@@ -61,11 +61,10 @@ describe("usePlacesAutocomplete", () => {
   it("ignores an older autocomplete response after newer input is submitted", async () => {
     const first = createDeferred<{ suggestions: any[] }>();
     const second = createDeferred<{ suggestions: any[] }>();
-    vi
-      .mocked(
-        (window.google.maps.places as any).AutocompleteSuggestion
-          .fetchAutocompleteSuggestions,
-      )
+    vi.mocked(
+      (window.google.maps.places as any).AutocompleteSuggestion
+        .fetchAutocompleteSuggestions,
+    )
       .mockReturnValueOnce(first.promise)
       .mockReturnValueOnce(second.promise);
     const firstPrediction = createRawPrediction("seoul", "서울");
@@ -110,11 +109,10 @@ describe("usePlacesAutocomplete", () => {
   it("keeps a newer visible suggestion paired with its own raw prediction", async () => {
     const first = createDeferred<{ suggestions: any[] }>();
     const second = createDeferred<{ suggestions: any[] }>();
-    vi
-      .mocked(
-        (window.google.maps.places as any).AutocompleteSuggestion
-          .fetchAutocompleteSuggestions,
-      )
+    vi.mocked(
+      (window.google.maps.places as any).AutocompleteSuggestion
+        .fetchAutocompleteSuggestions,
+    )
       .mockReturnValueOnce(first.promise)
       .mockReturnValueOnce(second.promise);
     const firstPrediction = createRawPrediction("seoul", "서울");
@@ -165,12 +163,10 @@ describe("usePlacesAutocomplete", () => {
   it("remains mounted after React StrictMode replays effects", async () => {
     const autocomplete = createDeferred<{ suggestions: any[] }>();
     const rawPrediction = createRawPrediction("seoul", "서울");
-    vi
-      .mocked(
-        (window.google.maps.places as any).AutocompleteSuggestion
-          .fetchAutocompleteSuggestions,
-      )
-      .mockReturnValue(autocomplete.promise);
+    vi.mocked(
+      (window.google.maps.places as any).AutocompleteSuggestion
+        .fetchAutocompleteSuggestions,
+    ).mockReturnValue(autocomplete.promise);
     const wrapper = ({ children }: { children: ReactNode }) =>
       createElement(StrictMode, null, children);
 
@@ -183,7 +179,9 @@ describe("usePlacesAutocomplete", () => {
       vi.advanceTimersByTime(250);
     });
     await act(async () => {
-      autocomplete.resolve({ suggestions: [{ placePrediction: rawPrediction }] });
+      autocomplete.resolve({
+        suggestions: [{ placePrediction: rawPrediction }],
+      });
       await autocomplete.promise;
     });
 
@@ -221,7 +219,9 @@ describe("usePlacesAutocomplete", () => {
       vi.advanceTimersByTime(250);
     });
     await act(async () => {
-      autocomplete.resolve({ suggestions: [{ placePrediction: rawPrediction }] });
+      autocomplete.resolve({
+        suggestions: [{ placePrediction: rawPrediction }],
+      });
       await autocomplete.promise;
       await Promise.resolve();
       await Promise.resolve();

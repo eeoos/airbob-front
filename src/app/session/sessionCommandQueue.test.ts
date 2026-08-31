@@ -1,6 +1,6 @@
 import { createSessionCommandQueue } from "./sessionCommandQueue";
 
-const deferred = <T,>() => {
+const deferred = <T>() => {
   let resolve!: (value: T) => void;
   let reject!: (error: unknown) => void;
   const promise = new Promise<T>((promiseResolve, promiseReject) => {
@@ -88,7 +88,10 @@ describe("sessionCommandQueue", () => {
   it("does not invoke a command whose signal was aborted while queued", async () => {
     const queue = createSessionCommandQueue();
     const first = deferred<void>();
-    const firstRun = queue.run(new AbortController().signal, () => first.promise);
+    const firstRun = queue.run(
+      new AbortController().signal,
+      () => first.promise,
+    );
     const queuedController = new AbortController();
     const queuedCommand = vi.fn().mockResolvedValue(undefined);
     const queuedRun = queue.run(queuedController.signal, queuedCommand);

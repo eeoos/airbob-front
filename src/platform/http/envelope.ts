@@ -70,7 +70,9 @@ const getSafeBackendErrorCode = (error: unknown): string | undefined => {
     : undefined;
 };
 
-const toEnvelopeAppError = (inspection: Exclude<EnvelopeInspection<never>, { kind: "data" }>) => {
+const toEnvelopeAppError = (
+  inspection: Exclude<EnvelopeInspection<never>, { kind: "data" }>,
+) => {
   switch (inspection.kind) {
     case "backend-error":
       return createHttpAppError({

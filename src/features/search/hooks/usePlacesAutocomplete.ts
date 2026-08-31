@@ -50,7 +50,9 @@ export const usePlacesAutocomplete = ({
   const [inputText, setInputText] = useState("");
   const [suggestions, setSuggestions] = useState<PlacePrediction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
+  const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(
+    null,
+  );
   const [isGoogleLoaded, setIsGoogleLoaded] = useState(false);
   const [error, setError] = useState<IntegrationError | null>(null);
   const [placesRequested, setPlacesRequested] = useState(false);
@@ -59,9 +61,9 @@ export const usePlacesAutocomplete = ({
   const sessionTokenRef =
     useRef<google.maps.places.AutocompleteSessionToken | null>(null);
   const placesRuntimeRef = useRef<GooglePlacesRuntime | null>(null);
-  const rawSuggestionsRef = useRef<
-    Map<string, GooglePlacesPredictionRuntime>
-  >(new Map());
+  const rawSuggestionsRef = useRef<Map<string, GooglePlacesPredictionRuntime>>(
+    new Map(),
+  );
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputTextRef = useRef("");
   const placesRequestedRef = useRef(false);
@@ -203,11 +205,7 @@ export const usePlacesAutocomplete = ({
           clearTimeout(debounceTimerRef.current);
           debounceTimerRef.current = null;
         }
-        void searchAutocomplete(
-          latestInput,
-          requestVersionRef.current,
-          places,
-        );
+        void searchAutocomplete(latestInput, requestVersionRef.current, places);
       },
       (cause: unknown) => {
         if (!isActive || !isMountedRef.current) return;
@@ -251,9 +249,7 @@ export const usePlacesAutocomplete = ({
     async (placeId: string): Promise<SelectedPlace> => {
       const raw = rawSuggestionsRef.current.get(placeId);
       if (!raw) {
-        throw createGooglePlacesIntegrationError(
-          "INTEGRATION_INVALID_RUNTIME",
-        );
+        throw createGooglePlacesIntegrationError("INTEGRATION_INVALID_RUNTIME");
       }
 
       try {

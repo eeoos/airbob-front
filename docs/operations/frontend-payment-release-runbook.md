@@ -8,11 +8,11 @@ The merge gate is therefore proportional: keep production untouched while the br
 
 ## Release identities
 
-| Release | Git identity | Role |
-| --- | --- | --- |
-| Pre-U10 | `02a5228f11236e8ba3394fa4ba8fa550c856bc5b` | Legacy migration input producer only; never use after U10 records exist. |
-| U10 | `408d3030e3250365ae5dfac0ff258ddddefbb7c0` | Minimum rollback/comparison target with the versioned checkout/callback schema and v1 gateway. |
-| U11 | Reviewed branch commit and its commit-specific Vercel URL | Same U10 browser/server contracts with the official npm v2 gateway only. |
+| Release | Git identity                                              | Role                                                                                           |
+| ------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Pre-U10 | `02a5228f11236e8ba3394fa4ba8fa550c856bc5b`                | Legacy migration input producer only; never use after U10 records exist.                       |
+| U10     | `408d3030e3250365ae5dfac0ff258ddddefbb7c0`                | Minimum rollback/comparison target with the versioned checkout/callback schema and v1 gateway. |
+| U11     | Reviewed branch commit and its commit-specific Vercel URL | Same U10 browser/server contracts with the official npm v2 gateway only.                       |
 
 Vercel creates Preview deployments for non-production Git branches and commit-specific URLs remain tied to one commit. Record the U11 commit URL from the deployment. If U10 needs a fresh comparison URL, create a targeted deployment from its SHA in the Vercel dashboard or push a temporary comparison branch pointing at that commit.
 

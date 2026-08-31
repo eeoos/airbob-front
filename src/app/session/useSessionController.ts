@@ -1,11 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useReducer,
-  useRef,
-} from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import {
   isSessionAuthenticationError,
   normalizeSessionAuthError,
@@ -103,19 +97,21 @@ export function useSessionController({
   const activeCookieTransportCountRef = useRef(0);
   const cookieCommandOperationsRef = useRef(new Set<ActiveOperation>());
   const deferredRemotePhaseRef = useRef<SessionBroadcastPhase | null>(null);
-  const replayRemotePhaseRef = useRef<
-    (phase: SessionBroadcastPhase) => void
-  >(() => undefined);
+  const replayRemotePhaseRef = useRef<(phase: SessionBroadcastPhase) => void>(
+    () => undefined,
+  );
   const commandQueueRef = useRef<SessionCommandQueue | null>(null);
   if (commandQueueRef.current === null) {
     commandQueueRef.current = createSessionCommandQueue();
   }
   const cancelExternalRecoveryRef = useRef<() => void>(() => undefined);
-  const publishSessionPhaseRef = useRef<
-    (phase: SessionBroadcastPhase) => void
-  >(() => undefined);
+  const publishSessionPhaseRef = useRef<(phase: SessionBroadcastPhase) => void>(
+    () => undefined,
+  );
   const logoutPromiseRef = useRef<Promise<void> | null>(null);
-  const pendingExternalBoundaryRef = useRef<PendingExternalBoundary | null>(null);
+  const pendingExternalBoundaryRef = useRef<PendingExternalBoundary | null>(
+    null,
+  );
   const externalProbeOperationRef = useRef<ActiveOperation | null>(null);
   const externalVerificationRef = useRef<Promise<void> | null>(null);
   const {
@@ -144,10 +140,7 @@ export function useSessionController({
   );
 
   const replayDeferredRemotePhaseIfIdle = useCallback(() => {
-    if (
-      hasActiveCookieCommand() ||
-      externalVerificationRef.current !== null
-    ) {
+    if (hasActiveCookieCommand() || externalVerificationRef.current !== null) {
       return;
     }
 
@@ -246,7 +239,7 @@ export function useSessionController({
   );
 
   const runCookieTransport = useCallback(
-    async <T,>(transport: () => Promise<T>): Promise<T> => {
+    async <T>(transport: () => Promise<T>): Promise<T> => {
       activeCookieTransportCountRef.current += 1;
       try {
         return await transport();
@@ -431,12 +424,8 @@ export function useSessionController({
           stateRef.current.status === "checking"
         ) {
           if (getCurrentGeneration().tainted) {
-            if (
-              !stabilizeQueryGeneration(
-                stateRef.current.epoch,
-                operation,
-              )
-            ) return;
+            if (!stabilizeQueryGeneration(stateRef.current.epoch, operation))
+              return;
           }
 
           dispatch({
@@ -579,11 +568,7 @@ export function useSessionController({
           operationId: operation.id,
           epoch: capturedEpoch,
         });
-        await replaceQueryGeneration(
-          stateRef.current.epoch,
-          null,
-          operation,
-        );
+        await replaceQueryGeneration(stateRef.current.epoch, null, operation);
         publishSessionPhaseRef.current("revalidate");
         if (cleanupError !== undefined) throw cleanupError;
       } else if (latest.status === "authenticated") {
@@ -634,10 +619,7 @@ export function useSessionController({
           }
 
           try {
-            await settleCheckingProbe(
-              operation,
-              "session/identity-published",
-            );
+            await settleCheckingProbe(operation, "session/identity-published");
           } catch {
             // The session probe owns the visible terminal state; the login
             // error remains the caller-facing command result.
@@ -689,11 +671,7 @@ export function useSessionController({
       }
       if (!isCurrentOperation(operation)) return false;
 
-      const didReplace = await replaceQueryGeneration(
-        epoch,
-        null,
-        operation,
-      );
+      const didReplace = await replaceQueryGeneration(epoch, null, operation);
       if (!didReplace) return false;
 
       const serverRevocationVerified =
@@ -840,16 +818,10 @@ export function useSessionController({
     [],
   );
 
-  const isCurrentSession = useCallback(
-    (scope: AuthenticatedSessionScope) => {
-      const current = toAuthenticatedSessionScope(stateRef.current);
-      return (
-        current !== null &&
-        isSameAuthenticatedSessionScope(current, scope)
-      );
-    },
-    [],
-  );
+  const isCurrentSession = useCallback((scope: AuthenticatedSessionScope) => {
+    const current = toAuthenticatedSessionScope(stateRef.current);
+    return current !== null && isSameAuthenticatedSessionScope(current, scope);
+  }, []);
 
   const deferRemotePhase = useCallback(
     (phase: SessionBroadcastPhase) => {
@@ -863,8 +835,7 @@ export function useSessionController({
 
   const shouldDeferInboundRemotePhase = useCallback(
     () =>
-      hasActiveCookieCommand() ||
-      externalProbeOperationRef.current !== null,
+      hasActiveCookieCommand() || externalProbeOperationRef.current !== null,
     [hasActiveCookieCommand],
   );
 
@@ -950,8 +921,8 @@ export function useSessionController({
     };
   }, [disposeCurrentGeneration, runBootstrap]);
 
-  const { cancelRecovery, publish, replayRemotePhase } =
-    useSessionExternalSync({
+  const { cancelRecovery, publish, replayRemotePhase } = useSessionExternalSync(
+    {
       broadcastFactory,
       isBoundaryCurrent: isExternalBoundaryCurrent,
       onAuthError: handleExternalAuthError,
@@ -960,7 +931,8 @@ export function useSessionController({
       onRemoteInvalidate: invalidateForExternalChange,
       onRemoteVerify: scheduleExternalVerification,
       shouldDeferRemotePhase: shouldDeferInboundRemotePhase,
-    });
+    },
+  );
   cancelExternalRecoveryRef.current = cancelRecovery;
   publishSessionPhaseRef.current = publish;
   replayRemotePhaseRef.current = replayRemotePhase;

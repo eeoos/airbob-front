@@ -42,15 +42,7 @@ export const useIntersectionLoadMore = ({
 
     observer.observe(target);
     return () => observer.disconnect();
-  }, [
-    disabled,
-    hasNext,
-    isLoading,
-    onLoadMore,
-    rootMargin,
-    target,
-    threshold,
-  ]);
+  }, [disabled, hasNext, isLoading, onLoadMore, rootMargin, target, threshold]);
 
   return setObserverTarget;
 };

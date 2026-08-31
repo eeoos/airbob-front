@@ -5,23 +5,24 @@ import * as ts from "typescript";
 const productionSourceExtensions = [".ts", ".tsx"];
 
 const collectProductionSourceFiles = (relativeDirectory: string): string[] =>
-  readdirSync(join(process.cwd(), relativeDirectory), { withFileTypes: true })
-    .flatMap((entry) => {
-      const relativePath = `${relativeDirectory}/${entry.name}`;
+  readdirSync(join(process.cwd(), relativeDirectory), {
+    withFileTypes: true,
+  }).flatMap((entry) => {
+    const relativePath = `${relativeDirectory}/${entry.name}`;
 
-      if (entry.isDirectory()) {
-        return collectProductionSourceFiles(relativePath);
-      }
+    if (entry.isDirectory()) {
+      return collectProductionSourceFiles(relativePath);
+    }
 
-      const isProductionSource =
-        productionSourceExtensions.some((extension) =>
-          entry.name.endsWith(extension)
-        ) &&
-        !entry.name.includes(".test.") &&
-        !entry.name.endsWith(".d.ts");
+    const isProductionSource =
+      productionSourceExtensions.some((extension) =>
+        entry.name.endsWith(extension),
+      ) &&
+      !entry.name.includes(".test.") &&
+      !entry.name.endsWith(".d.ts");
 
-      return isProductionSource ? [relativePath] : [];
-    });
+    return isProductionSource ? [relativePath] : [];
+  });
 
 const sourceText = (relativePath: string) =>
   readFileSync(join(process.cwd(), relativePath), "utf8");
@@ -41,7 +42,7 @@ const sourceFile = (relativePath: string) => {
     source,
     ts.ScriptTarget.Latest,
     true,
-    ts.ScriptKind.TSX
+    ts.ScriptKind.TSX,
   );
 };
 
@@ -77,12 +78,9 @@ const isDirectInternalRouteString = (node: ts.Expression): boolean => {
   return false;
 };
 
-const formatNodeLocation = (
-  source: ts.SourceFile,
-  node: ts.Node
-): string => {
+const formatNodeLocation = (source: ts.SourceFile, node: ts.Node): string => {
   const { line, character } = source.getLineAndCharacterOfPosition(
-    node.getStart(source)
+    node.getStart(source),
   );
 
   return `${source.fileName}:${line + 1}:${character + 1} ${node.getText(source)}`;
@@ -91,17 +89,13 @@ const formatNodeLocation = (
 const collectCallViolations = (
   relativePath: string,
   isTrackedCall: (callExpression: ts.CallExpression) => boolean,
-  isViolation: (callExpression: ts.CallExpression) => boolean
+  isViolation: (callExpression: ts.CallExpression) => boolean,
 ): string[] => {
   const source = sourceFile(relativePath);
   const violations: string[] = [];
 
   const visit = (node: ts.Node) => {
-    if (
-      ts.isCallExpression(node) &&
-      isTrackedCall(node) &&
-      isViolation(node)
-    ) {
+    if (ts.isCallExpression(node) && isTrackedCall(node) && isViolation(node)) {
       violations.push(formatNodeLocation(source, node));
     }
 
@@ -115,13 +109,14 @@ const collectCallViolations = (
 
 const collectNavigateCallViolations = (
   relativePath: string,
-  isViolation: (callExpression: ts.CallExpression) => boolean
+  isViolation: (callExpression: ts.CallExpression) => boolean,
 ): string[] => collectCallViolations(relativePath, isNavigateCall, isViolation);
 
 const collectWindowOpenCallViolations = (
   relativePath: string,
-  isViolation: (callExpression: ts.CallExpression) => boolean
-): string[] => collectCallViolations(relativePath, isWindowOpenCall, isViolation);
+  isViolation: (callExpression: ts.CallExpression) => boolean,
+): string[] =>
+  collectCallViolations(relativePath, isWindowOpenCall, isViolation);
 
 const containsPaymentRouteBuilderCall = (node: ts.Node): boolean => {
   let found = false;
@@ -147,7 +142,7 @@ const containsPaymentRouteBuilderCall = (node: ts.Node): boolean => {
 };
 
 const collectPaymentQueryOwnershipViolations = (
-  relativePath: string
+  relativePath: string,
 ): string[] => {
   const source = sourceFile(relativePath);
   const violations: string[] = [];
@@ -173,7 +168,7 @@ const collectPaymentQueryOwnershipViolations = (
 };
 
 const isTrackedRouterLinkElement = (
-  node: ts.Node
+  node: ts.Node,
 ): node is ts.JsxOpeningElement | ts.JsxSelfClosingElement => {
   if (!ts.isJsxOpeningElement(node) && !ts.isJsxSelfClosingElement(node)) {
     return false;
@@ -186,7 +181,7 @@ const isTrackedRouterLinkElement = (
 };
 
 const isDirectInternalRouteJsxValue = (
-  initializer: ts.JsxAttributeValue | undefined
+  initializer: ts.JsxAttributeValue | undefined,
 ): boolean => {
   if (!initializer) {
     return false;
@@ -213,7 +208,7 @@ const collectRouterLinkViolations = (relativePath: string): string[] => {
         (property): property is ts.JsxAttribute =>
           ts.isJsxAttribute(property) &&
           ts.isIdentifier(property.name) &&
-          property.name.text === "to"
+          property.name.text === "to",
       );
 
       if (isDirectInternalRouteJsxValue(toAttribute?.initializer)) {
@@ -231,38 +226,41 @@ const collectRouterLinkViolations = (relativePath: string): string[] => {
 
 describe("navigation route builder contracts", () => {
   it("keeps scoped pages from navigating with direct route strings", () => {
-    const directStringNavigations = scopedNavigationFiles.flatMap((relativePath) =>
-      collectNavigateCallViolations(relativePath, (callExpression) => {
-        const navigationTarget = callExpression.arguments[0];
+    const directStringNavigations = scopedNavigationFiles.flatMap(
+      (relativePath) =>
+        collectNavigateCallViolations(relativePath, (callExpression) => {
+          const navigationTarget = callExpression.arguments[0];
 
-        return (
-          navigationTarget !== undefined &&
-          isStringNavigationTarget(navigationTarget)
-        );
-      })
+          return (
+            navigationTarget !== undefined &&
+            isStringNavigationTarget(navigationTarget)
+          );
+        }),
     );
 
     expect(directStringNavigations).toEqual([]);
   });
 
   it("keeps scoped pages from opening internal routes with direct route strings", () => {
-    const directStringWindowOpens = scopedNavigationFiles.flatMap((relativePath) =>
-      collectWindowOpenCallViolations(relativePath, (callExpression) => {
-        const navigationTarget = callExpression.arguments[0];
+    const directStringWindowOpens = scopedNavigationFiles.flatMap(
+      (relativePath) =>
+        collectWindowOpenCallViolations(relativePath, (callExpression) => {
+          const navigationTarget = callExpression.arguments[0];
 
-        return (
-          navigationTarget !== undefined &&
-          isDirectInternalRouteString(navigationTarget)
-        );
-      })
+          return (
+            navigationTarget !== undefined &&
+            isDirectInternalRouteString(navigationTarget)
+          );
+        }),
     );
 
     expect(directStringWindowOpens).toEqual([]);
   });
 
   it("keeps router links from using direct internal route strings", () => {
-    const directStringRouterLinks =
-      scopedNavigationFiles.flatMap(collectRouterLinkViolations);
+    const directStringRouterLinks = scopedNavigationFiles.flatMap(
+      collectRouterLinkViolations,
+    );
 
     expect(directStringRouterLinks).toEqual([]);
   });
@@ -270,18 +268,18 @@ describe("navigation route builder contracts", () => {
   it("allows external URLs in window.open targets", () => {
     expect(
       isDirectInternalRouteString(
-        ts.factory.createStringLiteral("https://www.google.com/maps")
-      )
+        ts.factory.createStringLiteral("https://www.google.com/maps"),
+      ),
     ).toBe(false);
     expect(
       isDirectInternalRouteString(
-        ts.factory.createStringLiteral("//www.google.com/maps")
-      )
+        ts.factory.createStringLiteral("//www.google.com/maps"),
+      ),
     ).toBe(false);
     expect(
       isDirectInternalRouteString(
-        ts.factory.createStringLiteral("/accommodations/1")
-      )
+        ts.factory.createStringLiteral("/accommodations/1"),
+      ),
     ).toBe(true);
   });
 
@@ -295,7 +293,7 @@ describe("navigation route builder contracts", () => {
 
   it("keeps payment callback query construction inside typed route builders", () => {
     const queryOwnershipViolations = paymentNavigationFiles.flatMap(
-      collectPaymentQueryOwnershipViolations
+      collectPaymentQueryOwnershipViolations,
     );
 
     expect(queryOwnershipViolations).toEqual([]);

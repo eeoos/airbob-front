@@ -50,7 +50,7 @@ const getCssBlock = (source: string, selector: string) => {
 };
 
 const createSearchBarState = (
-  overrides: SearchBarStateOverrides = {}
+  overrides: SearchBarStateOverrides = {},
 ): SearchBarState => {
   const state = {
     destination: {
@@ -122,7 +122,7 @@ const seoulSuggestion = {
 };
 
 const renderExpandedSearchBarWithSuggestions = (
-  overrides: SearchBarStateOverrides = {}
+  overrides: SearchBarStateOverrides = {},
 ) => {
   const selectDestination = vi.fn();
 
@@ -144,7 +144,7 @@ const renderExpandedSearchBarWithSuggestions = (
         selectDestination,
         ...overrides.actions,
       },
-    })
+    }),
   );
 
   render(<SearchBar routePort={routePort} />);
@@ -168,7 +168,7 @@ describe("SearchBar", () => {
 
   it("keeps icon controls at the shared touch target and resets suggestion buttons", () => {
     const css = readProjectFile(
-      "src/features/search/components/SearchBar/SearchBar.module.css"
+      "src/features/search/components/SearchBar/SearchBar.module.css",
     );
     const searchItemStyles = getCssBlock(css, ".searchItem");
     const searchButtonStyles = getCssBlock(css, ".searchButton");
@@ -180,16 +180,16 @@ describe("SearchBar", () => {
     expect(searchItemStyles).toContain("background: transparent;");
     expect(searchItemStyles).toContain("font: inherit;");
     expect(searchButtonStyles).toContain(
-      "min-width: var(--control-touch-target);"
+      "min-width: var(--control-touch-target);",
     );
     expect(searchButtonStyles).toContain(
-      "min-height: var(--control-touch-target);"
+      "min-height: var(--control-touch-target);",
     );
     expect(controlButtonStyles).toContain(
-      "min-width: var(--control-touch-target);"
+      "min-width: var(--control-touch-target);",
     );
     expect(controlButtonStyles).toContain(
-      "min-height: var(--control-touch-target);"
+      "min-height: var(--control-touch-target);",
     );
     expect(suggestionItemStyles).toContain("appearance: none;");
     expect(suggestionItemStyles).toContain("border: 0;");
@@ -221,7 +221,7 @@ describe("SearchBar", () => {
 
   it("renders date and guest segments as disclosure buttons", () => {
     mockUseSearchBarState.mockReturnValue(
-      createSearchBarState({ popover: { isExpanded: true } })
+      createSearchBarState({ popover: { isExpanded: true } }),
     );
 
     render(<SearchBar routePort={routePort} />);
@@ -236,7 +236,10 @@ describe("SearchBar", () => {
     expect(dateTrigger).toHaveAttribute("aria-controls", "search-date-picker");
     expect(guestTrigger).toHaveAttribute("type", "button");
     expect(guestTrigger).toHaveAttribute("aria-expanded", "false");
-    expect(guestTrigger).toHaveAttribute("aria-controls", "search-guest-picker");
+    expect(guestTrigger).toHaveAttribute(
+      "aria-controls",
+      "search-guest-picker",
+    );
   });
 
   it("links the active date panel to its trigger", () => {
@@ -247,7 +250,7 @@ describe("SearchBar", () => {
           isExpanded: true,
           showDatePicker: true,
         },
-      })
+      }),
     );
 
     render(<SearchBar routePort={routePort} />);
@@ -267,7 +270,7 @@ describe("SearchBar", () => {
           isExpanded: true,
           showGuestPicker: true,
         },
-      })
+      }),
     );
 
     render(<SearchBar routePort={routePort} />);
@@ -295,14 +298,14 @@ describe("SearchBar", () => {
           isExpanded: true,
           showGuestPicker: true,
         },
-      })
+      }),
     );
 
     render(<SearchBar routePort={routePort} />);
 
     expect(screen.getByRole("button", { name: label })).toHaveAttribute(
       "type",
-      "button"
+      "button",
     );
   });
 
@@ -349,14 +352,14 @@ describe("SearchBar", () => {
           clearDestinationSelection,
           openDestination,
         },
-      })
+      }),
     );
 
     render(<SearchBar routePort={routePort} />);
 
     await userEvent.type(
       screen.getByPlaceholderText("어디로 여행가세요?"),
-      "울"
+      "울",
     );
 
     expect(clearDestinationSelection).toHaveBeenCalledTimes(1);
@@ -389,7 +392,7 @@ describe("SearchBar", () => {
           changeInfantOccupancy,
           changePetOccupancy,
         },
-      })
+      }),
     );
 
     render(<SearchBar routePort={routePort} />);
@@ -430,7 +433,7 @@ describe("SearchBar", () => {
           closeTransientPanels,
           handleSearch,
         },
-      })
+      }),
     );
 
     render(<SearchBar routePort={routePort} />);
@@ -456,7 +459,7 @@ describe("SearchBar", () => {
         actions: {
           closeActivePopover,
         },
-      })
+      }),
     );
 
     render(
@@ -469,7 +472,7 @@ describe("SearchBar", () => {
     expect(screen.getByRole("search", { name: "숙소 검색" })).toContainElement(
       screen.getByText("성인"),
     );
-    expect(document.body).toHaveStyle({overflow:""});
+    expect(document.body).toHaveStyle({ overflow: "" });
     await userEvent.keyboard("{Escape}");
 
     expect(closeActivePopover).toHaveBeenCalledTimes(1);

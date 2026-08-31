@@ -34,9 +34,7 @@ export function ReservationConfirmRoute() {
   const session = useSession();
   const sessionEpoch = session.state.epoch;
   const sessionSubject =
-    session.state.status === "authenticated"
-      ? session.state.subject
-      : null;
+    session.state.status === "authenticated" ? session.state.subject : null;
   const { isCurrentSession } = session;
   const accommodationId = parsePositiveInteger(id ?? null, 0) || null;
   const [resolution, setResolution] = useState<CheckoutResolution>({
@@ -94,9 +92,7 @@ export function ReservationConfirmRoute() {
     const controller = new AbortController();
     let active = true;
     const isCurrent = () =>
-      active &&
-      routeLease.isCurrent() &&
-      isCurrentSession(scope);
+      active && routeLease.isCurrent() && isCurrentSession(scope);
     const consumeHistoryState = () => {
       if (location.state === null || location.state === undefined) return;
       navigate(

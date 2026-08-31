@@ -146,10 +146,7 @@ export interface ListingEditorWorkflow {
   retry(): Promise<ListingEditorCommandResult>;
   subscribe(
     listener: (
-      state: EditorMachineState<
-        ListingEditorAccommodation,
-        ListingEditorImage
-      >,
+      state: EditorMachineState<ListingEditorAccommodation, ListingEditorImage>,
     ) => void,
   ): () => void;
 }
@@ -201,8 +198,7 @@ const isDeniedError = (error: unknown): boolean =>
   (error.kind === "authentication" || error.status === 403);
 
 const isInvalidResourceError = (error: unknown): boolean =>
-  isAppError(error) &&
-  (isAbsentError(error) || error.kind === "empty-data");
+  isAppError(error) && (isAbsentError(error) || error.kind === "empty-data");
 
 const isMismatchedResourceError = (error: unknown): boolean =>
   isAppError(error) && error.code === LISTING_EDITOR_RESOURCE_MISMATCH_CODE;
@@ -255,9 +251,7 @@ const cloneAccommodation = (
   address: value.address ? { ...value.address } : null,
   amenities: value.amenities.map((amenity) => ({ ...amenity })),
   images: value.images.map((image) => ({ ...image })),
-  occupancyPolicy: value.occupancyPolicy
-    ? { ...value.occupancyPolicy }
-    : null,
+  occupancyPolicy: value.occupancyPolicy ? { ...value.occupancyPolicy } : null,
 });
 
 const applyUpdate = (
@@ -332,10 +326,7 @@ const withReconciledImages = (
 const hasUpdate = (update: ListingEditorUpdateInput): boolean =>
   Object.keys(update).length > 0;
 
-const createInvalidResourceError = (
-  code: string,
-  message: string,
-): AppError =>
+const createInvalidResourceError = (code: string, message: string): AppError =>
   new AppError({
     code,
     kind: "invalid-response",
@@ -367,10 +358,7 @@ export const createListingEditorWorkflow = ({
   const listeners = new Set<(state: EditorState) => void>();
 
   const dispatch = (
-    event: EditorMachineEvent<
-      ListingEditorAccommodation,
-      ListingEditorImage
-    >,
+    event: EditorMachineEvent<ListingEditorAccommodation, ListingEditorImage>,
   ) => {
     const next = editorMachineReducer(state, event);
     if (next === state) return;
@@ -401,9 +389,7 @@ export const createListingEditorWorkflow = ({
       return null;
     }
 
-    return state.operation.operationId === operationId
-      ? state.operation
-      : null;
+    return state.operation.operationId === operationId ? state.operation : null;
   };
 
   const currentSnapshot = (): ListingEditorResultSnapshot | null => {
@@ -621,8 +607,7 @@ export const createListingEditorWorkflow = ({
       }
       return {
         error,
-        status:
-          type === "HYDRATION_DENIED" ? "denied" : "invalid-resource",
+        status: type === "HYDRATION_DENIED" ? "denied" : "invalid-resource",
       };
     }
   };
@@ -682,12 +667,7 @@ export const createListingEditorWorkflow = ({
       }
       const operation = currentOperation(operationId);
       if (!operation) return STALE_RESULT;
-      operationFailure(
-        operationId,
-        "publication",
-        error,
-        "allowed",
-      );
+      operationFailure(operationId, "publication", error, "allowed");
       retryPlan = { command, kind: "delete-publication" };
       return toOperationFailureResult(
         operation,
@@ -812,12 +792,7 @@ export const createListingEditorWorkflow = ({
         retryPlan = null;
         return { error, status: "invalid-resource" };
       }
-      operationFailure(
-        operationId,
-        "reconcile-delete",
-        error,
-        "allowed",
-      );
+      operationFailure(operationId, "reconcile-delete", error, "allowed");
       retryPlan = {
         command,
         deleteError,
@@ -1183,11 +1158,7 @@ export const createListingEditorWorkflow = ({
           operationId,
         });
       }
-      return runHydration(
-        operationId,
-        captured.scope,
-        captured.controller,
-      );
+      return runHydration(operationId, captured.scope, captured.controller);
     });
   };
 
@@ -1226,7 +1197,10 @@ export const createListingEditorWorkflow = ({
     return true;
   };
 
-  const prepareReadyState = (): Extract<EditorState, { status: "ready" }> | null => {
+  const prepareReadyState = (): Extract<
+    EditorState,
+    { status: "ready" }
+  > | null => {
     if (state.status === "recoverable-error" && state.retry === "allowed") {
       dismissRecoverableError();
     }
@@ -1452,10 +1426,7 @@ export const createListingEditorWorkflow = ({
       const operationId = nextOperationId();
       const plan = retryPlan;
       const resumeOperation = (
-        resumeStatus:
-          | "deleting-image"
-          | "preparing"
-          | "reconciling-delete",
+        resumeStatus: "deleting-image" | "preparing" | "reconciling-delete",
       ) => {
         dispatch({
           type: "OPERATION_RETRY_STARTED",

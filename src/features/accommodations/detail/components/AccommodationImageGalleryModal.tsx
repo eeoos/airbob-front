@@ -36,13 +36,13 @@ export function AccommodationImageGalleryModal({
 
   const goToPreviousImage = () => {
     onCurrentImageIndexChange(
-      displayIndex === 0 ? images.length - 1 : displayIndex - 1
+      displayIndex === 0 ? images.length - 1 : displayIndex - 1,
     );
   };
 
   const goToNextImage = () => {
     onCurrentImageIndexChange(
-      displayIndex === images.length - 1 ? 0 : displayIndex + 1
+      displayIndex === images.length - 1 ? 0 : displayIndex + 1,
     );
   };
 
@@ -106,10 +106,7 @@ export function AccommodationImageGalleryModal({
             }`}
             onClick={() => onCurrentImageIndexChange(index)}
           >
-            <img
-              src={image.url}
-              alt={image.alt}
-            />
+            <img src={image.url} alt={image.alt} />
           </button>
         ))}
       </div>

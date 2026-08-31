@@ -61,9 +61,9 @@ describe("listing editor image draft", () => {
     expect(
       restoreListingEditorImage(removed.items, removed.tombstone!),
     ).toEqual(items);
-    expect(reorderListingEditorImages(items, 0, 2).map((item) => item.id)).toEqual([
-      2, 3, 1,
-    ]);
+    expect(
+      reorderListingEditorImages(items, 0, 2).map((item) => item.id),
+    ).toEqual([2, 3, 1]);
   });
 
   it("binds a batch upload in retained client order", () => {

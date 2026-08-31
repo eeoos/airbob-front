@@ -68,7 +68,7 @@ export const createReservationListQueryOptions = <
   initialPageParam: undefined as string | undefined,
   getNextPageParam: (lastPage: ReservationListPage<TAudience>) =>
     lastPage.pageInfo.hasNext
-      ? lastPage.pageInfo.nextCursor ?? undefined
+      ? (lastPage.pageInfo.nextCursor ?? undefined)
       : undefined,
   ...(scope === null ? {} : { meta: createSessionQueryMeta(scope) }),
   retry: false as const,
@@ -104,11 +104,7 @@ export const createReservationDetailQueryOptions = <
   }: ReservationDetailReadQueryOptions<TAudience>,
   api: ReservationReadApiPort = defaultReservationReadApi,
 ) => ({
-  queryKey: reservationReadQueryKeys.detail(
-    scope,
-    audience,
-    reservationUid,
-  ),
+  queryKey: reservationReadQueryKeys.detail(scope, audience, reservationUid),
   queryFn: ({ signal }: { readonly signal: AbortSignal }) => {
     if (reservationUid === null) {
       throw new TypeError(

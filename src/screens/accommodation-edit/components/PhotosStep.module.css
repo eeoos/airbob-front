@@ -49,7 +49,8 @@
   border: 2px dashed var(--color-border-strong);
   border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: background-color var(--motion-duration-base) var(--motion-ease-standard),
+  transition:
+    background-color var(--motion-duration-base) var(--motion-ease-standard),
     border-color var(--motion-duration-base) var(--motion-ease-standard);
   box-sizing: border-box;
   max-width: 100%;
@@ -91,7 +92,8 @@
   font-weight: 600;
   color: var(--color-text-primary);
   cursor: pointer;
-  transition: background-color var(--motion-duration-base) var(--motion-ease-standard),
+  transition:
+    background-color var(--motion-duration-base) var(--motion-ease-standard),
     color var(--motion-duration-base) var(--motion-ease-standard);
 }
 
@@ -282,7 +284,8 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color var(--motion-duration-base) var(--motion-ease-standard),
+  transition:
+    background-color var(--motion-duration-base) var(--motion-ease-standard),
     border-color var(--motion-duration-base) var(--motion-ease-standard),
     color var(--motion-duration-base) var(--motion-ease-standard);
   color: var(--color-text-secondary);

@@ -22,13 +22,10 @@ const mockLocation = {
 };
 let capturedDraftError: ((error: unknown) => void) | null = null;
 
-vi.mock(
-  "react-router-dom",
-  () => ({
-    useLocation: () => mockLocation,
-    useNavigate: () => mockNavigate,
-  }),
-);
+vi.mock("react-router-dom", () => ({
+  useLocation: () => mockLocation,
+  useNavigate: () => mockNavigate,
+}));
 
 vi.mock("../session/useSession", () => ({
   useSession: () => ({
@@ -82,17 +79,19 @@ describe("UserMenu", () => {
     window.history.replaceState({ key: mockLocation.key }, "", "/");
     capturedDraftError = null;
     mockLogout.mockResolvedValue(undefined);
-    mockUseCreateAccommodationDraft.mockImplementation(({ onCreated, onError }) => {
-      capturedDraftError = onError;
-      mockCreateDraft.mockImplementation(async () => {
-        onCreated(987);
-      });
+    mockUseCreateAccommodationDraft.mockImplementation(
+      ({ onCreated, onError }) => {
+        capturedDraftError = onError;
+        mockCreateDraft.mockImplementation(async () => {
+          onCreated(987);
+        });
 
-      return {
-        createDraft: mockCreateDraft,
-        isCreating: false,
-      };
-    });
+        return {
+          createDraft: mockCreateDraft,
+          isCreating: false,
+        };
+      },
+    );
   });
 
   it("opens the login modal from the unauthenticated menu", async () => {
@@ -103,7 +102,7 @@ describe("UserMenu", () => {
 
     expect(screen.getByRole("dialog", { name: "login" })).toBeInTheDocument();
     expect(
-      screen.queryByRole("menuitem", { name: "로그인" })
+      screen.queryByRole("menuitem", { name: "로그인" }),
     ).not.toBeInTheDocument();
   });
 
@@ -115,7 +114,7 @@ describe("UserMenu", () => {
 
     expect(screen.getByRole("dialog", { name: "signup" })).toBeInTheDocument();
     expect(
-      screen.queryByRole("menuitem", { name: "회원가입" })
+      screen.queryByRole("menuitem", { name: "회원가입" }),
     ).not.toBeInTheDocument();
   });
 
@@ -134,11 +133,19 @@ describe("UserMenu", () => {
 
     await openMenu();
 
-    expect(screen.getByRole("menuitem", { name: "위시리스트" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: "위시리스트" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "프로필" })).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: "프로필" })).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: "호스팅 하기" })).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: "로그아웃" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: "프로필" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: "호스팅 하기" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: "로그아웃" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("separator")).toBeInTheDocument();
   });
 
@@ -168,7 +175,9 @@ describe("UserMenu", () => {
 
     fireEvent.keyDown(menuButton, { key: "Escape" });
 
-    expect(screen.queryByRole("menu", { name: "사용자 메뉴" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("menu", { name: "사용자 메뉴" }),
+    ).not.toBeInTheDocument();
     expect(menuButton).toHaveAttribute("aria-expanded", "false");
   });
 
@@ -186,7 +195,9 @@ describe("UserMenu", () => {
 
     fireEvent.keyDown(menuButton, { key });
 
-    expect(screen.getByRole("menu", { name: "사용자 메뉴" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("menu", { name: "사용자 메뉴" }),
+    ).toBeInTheDocument();
     await waitFor(() => {
       expect(
         screen.getByRole("menuitem", { name: focusedItemName }),
@@ -236,7 +247,9 @@ describe("UserMenu", () => {
 
     fireEvent.keyDown(loginItem, { key: "Escape" });
 
-    expect(screen.queryByRole("menu", { name: "사용자 메뉴" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("menu", { name: "사용자 메뉴" }),
+    ).not.toBeInTheDocument();
     expect(menuButton).toHaveFocus();
   });
 
@@ -253,7 +266,9 @@ describe("UserMenu", () => {
     const tabWasNotCanceled = fireEvent.keyDown(loginItem, { key: "Tab" });
 
     expect(tabWasNotCanceled).toBe(true);
-    expect(screen.queryByRole("menu", { name: "사용자 메뉴" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("menu", { name: "사용자 메뉴" }),
+    ).not.toBeInTheDocument();
     expect(menuButton).toHaveAttribute("aria-expanded", "false");
     expect(menuButton).not.toHaveFocus();
   });
@@ -264,12 +279,16 @@ describe("UserMenu", () => {
     const menuButton = screen.getByRole("button", { name: "사용자 메뉴" });
     await userEvent.click(menuButton);
     expect(menuButton).toHaveFocus();
-    expect(screen.getByRole("menu", { name: "사용자 메뉴" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("menu", { name: "사용자 메뉴" }),
+    ).toBeInTheDocument();
 
     const tabWasNotCanceled = fireEvent.keyDown(menuButton, { key: "Tab" });
 
     expect(tabWasNotCanceled).toBe(true);
-    expect(screen.queryByRole("menu", { name: "사용자 메뉴" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("menu", { name: "사용자 메뉴" }),
+    ).not.toBeInTheDocument();
     expect(menuButton).toHaveAttribute("aria-expanded", "false");
   });
 
@@ -277,13 +296,15 @@ describe("UserMenu", () => {
     render(<UserMenu isLoggedIn />);
 
     await openMenu();
-    expect(screen.getByRole("menuitem", { name: "로그아웃" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: "로그아웃" }),
+    ).toBeInTheDocument();
 
     fireEvent.pointerDown(document.body);
 
     await waitFor(() => {
       expect(
-        screen.queryByRole("menuitem", { name: "로그아웃" })
+        screen.queryByRole("menuitem", { name: "로그아웃" }),
       ).not.toBeInTheDocument();
     });
   });
@@ -324,7 +345,9 @@ describe("UserMenu", () => {
     render(<UserMenu isLoggedIn />);
 
     await openMenu();
-    await userEvent.click(screen.getByRole("menuitem", { name: "호스팅 하기" }));
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: "호스팅 하기" }),
+    );
 
     await waitFor(() => {
       expect(mockCreateDraft).toHaveBeenCalledTimes(1);
@@ -355,7 +378,9 @@ describe("UserMenu", () => {
     render(<UserMenu isLoggedIn />);
 
     await openMenu();
-    await userEvent.click(screen.getByRole("menuitem", { name: "호스팅 하기" }));
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: "호스팅 하기" }),
+    );
     window.history.pushState({ key: "new-entry" }, "", "/search");
     await act(async () => {
       resolveDraft();

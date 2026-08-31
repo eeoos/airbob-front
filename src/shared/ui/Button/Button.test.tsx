@@ -8,7 +8,7 @@ describe("Button", () => {
     render(
       <Button type="submit" variant="secondary" onClick={handleClick}>
         저장
-      </Button>
+      </Button>,
     );
 
     const button = screen.getByRole("button", { name: "저장" });
@@ -23,7 +23,7 @@ describe("Button", () => {
 
     expect(screen.getByRole("button", { name: "닫기" })).toHaveAttribute(
       "type",
-      "button"
+      "button",
     );
   });
 
@@ -31,7 +31,7 @@ describe("Button", () => {
     render(
       <Button isLoading loadingLabel="처리 중">
         예약하기
-      </Button>
+      </Button>,
     );
 
     const button = screen.getByRole("button", { name: "처리 중" });
@@ -50,11 +50,11 @@ describe("Button", () => {
     render(
       <Button fullWidth className="custom-action">
         계속
-      </Button>
+      </Button>,
     );
 
     expect(screen.getByRole("button", { name: "계속" })).toHaveClass(
-      "custom-action"
+      "custom-action",
     );
   });
 });

@@ -77,11 +77,7 @@ export const installSessionFixture = (api: ApiHarness): SessionFixture => {
   api.register("POST", "/api/v1/auth/logout", () => {
     if (shouldFailNextLogout) {
       shouldFailNextLogout = false;
-      return apiFailure(
-        500,
-        "E2E_LOGOUT_FAILURE",
-        "Synthetic logout failure.",
-      );
+      return apiFailure(500, "E2E_LOGOUT_FAILURE", "Synthetic logout failure.");
     }
 
     currentUser = null;

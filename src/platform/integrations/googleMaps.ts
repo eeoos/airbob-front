@@ -15,9 +15,7 @@ interface GoogleMapsLoadAttempt {
 
 let activeAttempt: GoogleMapsLoadAttempt | null = null;
 
-export const createGoogleMapsIntegrationError = (
-  code: IntegrationErrorCode,
-) =>
+export const createGoogleMapsIntegrationError = (code: IntegrationErrorCode) =>
   new IntegrationError({
     code,
     integration: "google-maps",
@@ -29,7 +27,8 @@ const parseGoogleMapsScriptUrl = (script: HTMLScriptElement): URL | null => {
   try {
     const url = new URL(script.src);
 
-    return url.origin === GOOGLE_MAPS_ORIGIN && url.pathname === GOOGLE_MAPS_PATH
+    return url.origin === GOOGLE_MAPS_ORIGIN &&
+      url.pathname === GOOGLE_MAPS_PATH
       ? url
       : null;
   } catch {
@@ -62,9 +61,9 @@ const isAdoptableGoogleMapsScript = (
 const getGoogleMapsScripts = () =>
   typeof document === "undefined"
     ? []
-    : Array.from(document.querySelectorAll<HTMLScriptElement>("script[src]")).filter(
-        (script) => parseGoogleMapsScriptUrl(script) !== null,
-      );
+    : Array.from(
+        document.querySelectorAll<HTMLScriptElement>("script[src]"),
+      ).filter((script) => parseGoogleMapsScriptUrl(script) !== null);
 
 export const getGoogleMapsApi = (): typeof google.maps | null => {
   if (typeof window === "undefined") return null;
@@ -91,7 +90,9 @@ const buildGoogleMapsScriptUrl = (apiKey: string) => {
   return url.toString();
 };
 
-const createLoadAttempt = (script: HTMLScriptElement): GoogleMapsLoadAttempt => {
+const createLoadAttempt = (
+  script: HTMLScriptElement,
+): GoogleMapsLoadAttempt => {
   let resolvePromise!: () => void;
   let rejectPromise!: (error: IntegrationError) => void;
   let settled = false;
@@ -146,10 +147,7 @@ const createLoadAttempt = (script: HTMLScriptElement): GoogleMapsLoadAttempt => 
 
   script.addEventListener("load", handleLoad);
   script.addEventListener("error", handleError);
-  readinessInterval = window.setInterval(
-    succeedIfReady,
-    READINESS_INTERVAL_MS,
-  );
+  readinessInterval = window.setInterval(succeedIfReady, READINESS_INTERVAL_MS);
   readinessTimeout = window.setTimeout(() => {
     if (succeedIfReady()) return;
     fail(createGoogleMapsIntegrationError("INTEGRATION_TIMEOUT"));

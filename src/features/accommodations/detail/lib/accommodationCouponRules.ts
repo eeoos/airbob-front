@@ -13,8 +13,7 @@ export const calculateAccommodationCouponDiscount = (
       ? Math.floor((amount * coupon.discountValue) / 100)
       : coupon.discountValue;
   const capped =
-    coupon.discountType === "PERCENTAGE" &&
-    coupon.maxDiscountAmount !== null
+    coupon.discountType === "PERCENTAGE" && coupon.maxDiscountAmount !== null
       ? Math.min(discount, coupon.maxDiscountAmount)
       : discount;
 

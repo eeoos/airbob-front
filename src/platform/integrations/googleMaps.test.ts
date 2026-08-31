@@ -176,10 +176,32 @@ describe("Google Maps platform integration", () => {
   });
 
   it.each([
-    ["an empty browser key", { apiKey: " ", latitude: 37.5, longitude: 127, zoom: 15 }],
-    ["a non-finite latitude", { apiKey: "maps-key", latitude: Number.NaN, longitude: 127, zoom: 15 }],
-    ["a non-finite longitude", { apiKey: "maps-key", latitude: 37.5, longitude: Number.POSITIVE_INFINITY, zoom: 15 }],
-    ["a non-finite zoom", { apiKey: "maps-key", latitude: 37.5, longitude: 127, zoom: Number.NEGATIVE_INFINITY }],
+    [
+      "an empty browser key",
+      { apiKey: " ", latitude: 37.5, longitude: 127, zoom: 15 },
+    ],
+    [
+      "a non-finite latitude",
+      { apiKey: "maps-key", latitude: Number.NaN, longitude: 127, zoom: 15 },
+    ],
+    [
+      "a non-finite longitude",
+      {
+        apiKey: "maps-key",
+        latitude: 37.5,
+        longitude: Number.POSITIVE_INFINITY,
+        zoom: 15,
+      },
+    ],
+    [
+      "a non-finite zoom",
+      {
+        apiKey: "maps-key",
+        latitude: 37.5,
+        longitude: 127,
+        zoom: Number.NEGATIVE_INFINITY,
+      },
+    ],
   ])("fails closed when an embed receives %s", (_description, options) => {
     expect(buildGoogleMapsEmbedUrl(options)).toBeNull();
   });

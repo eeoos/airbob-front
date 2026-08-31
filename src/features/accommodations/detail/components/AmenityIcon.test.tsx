@@ -7,14 +7,14 @@ describe("AmenityIcon", () => {
   it("maps every amenity code recognized by the detail owner", () => {
     const supportedCodes = Object.keys(accommodationAmenityLabels).sort();
     const mappedCodes = Object.keys(
-      accommodationAmenityIconRegistry.glyphs
+      accommodationAmenityIconRegistry.glyphs,
     ).sort();
 
     expect(mappedCodes).toEqual(supportedCodes);
     expect(
       supportedCodes.filter(
-        (code) => !accommodationAmenityIconRegistry.has(code)
-      )
+        (code) => !accommodationAmenityIconRegistry.has(code),
+      ),
     ).toEqual([]);
   });
 

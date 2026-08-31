@@ -1,6 +1,4 @@
-const {
-  readArchitectureRatchet,
-} = require("./read-architecture-ratchet.cjs");
+const { readArchitectureRatchet } = require("./read-architecture-ratchet.cjs");
 const {
   discoverFeatureOwnershipScopes,
   getFeatureOwnershipScope,
@@ -43,9 +41,7 @@ const createTargetPolicy = ({ projectRoot }) => {
     const projectPath = toProjectPath(filePath, projectRoot);
 
     if (
-      fixedTargetLayers.some((layer) =>
-        isWithin(projectPath, `src/${layer}`),
-      )
+      fixedTargetLayers.some((layer) => isWithin(projectPath, `src/${layer}`))
     ) {
       return true;
     }

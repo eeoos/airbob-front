@@ -1,8 +1,5 @@
 import type { ReactElement } from "react";
-import {
-  AppRouteTree,
-  type VisibleHeaderPolicy,
-} from "./app/router/Router";
+import { AppRouteTree, type VisibleHeaderPolicy } from "./app/router/Router";
 import { RequireAuthenticatedRoute } from "./app/router/RequireAuthenticatedRoute";
 import { Header } from "./app/header";
 

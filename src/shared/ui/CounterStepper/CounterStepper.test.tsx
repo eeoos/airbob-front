@@ -10,7 +10,7 @@ describe("CounterStepper", () => {
         incrementLabel="게스트 늘리기"
         onChange={vi.fn()}
         value={2}
-      />
+      />,
     );
 
     expect(screen.getByText("2")).toBeInTheDocument();
@@ -25,11 +25,11 @@ describe("CounterStepper", () => {
         incrementLabel="게스트 늘리기"
         onChange={handleChange}
         value={2}
-      />
+      />,
     );
 
     await userEvent.click(
-      screen.getByRole("button", { name: "게스트 줄이기" })
+      screen.getByRole("button", { name: "게스트 줄이기" }),
     );
 
     expect(handleChange).toHaveBeenCalledWith(1);
@@ -44,11 +44,11 @@ describe("CounterStepper", () => {
         incrementLabel="게스트 늘리기"
         onChange={handleChange}
         value={2}
-      />
+      />,
     );
 
     await userEvent.click(
-      screen.getByRole("button", { name: "게스트 늘리기" })
+      screen.getByRole("button", { name: "게스트 늘리기" }),
     );
 
     expect(handleChange).toHaveBeenCalledWith(3);
@@ -64,7 +64,7 @@ describe("CounterStepper", () => {
         min={1}
         onChange={handleChange}
         value={1}
-      />
+      />,
     );
 
     const decrementButton = screen.getByRole("button", {
@@ -83,11 +83,11 @@ describe("CounterStepper", () => {
         incrementLabel="게스트 늘리기"
         onChange={vi.fn()}
         value={0}
-      />
+      />,
     );
 
     expect(
-      screen.getByRole("button", { name: "게스트 줄이기" })
+      screen.getByRole("button", { name: "게스트 줄이기" }),
     ).toBeDisabled();
   });
 
@@ -101,7 +101,7 @@ describe("CounterStepper", () => {
         max={3}
         onChange={handleChange}
         value={3}
-      />
+      />,
     );
 
     const incrementButton = screen.getByRole("button", {

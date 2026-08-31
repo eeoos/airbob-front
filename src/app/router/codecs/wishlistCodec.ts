@@ -4,10 +4,7 @@ import {
   toSearchParams,
 } from "./queryCodecUtils";
 
-export type WishlistRouteView =
-  | "index"
-  | "recently-viewed"
-  | "wishlist-detail";
+export type WishlistRouteView = "index" | "recently-viewed" | "wishlist-detail";
 
 export type WishlistRouteQuery =
   | { id: string | number; view?: never }

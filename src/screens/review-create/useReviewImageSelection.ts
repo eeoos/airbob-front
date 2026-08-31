@@ -30,10 +30,7 @@ export const useReviewImageSelection = () => {
   const removeImage = useCallback((id: string) => {
     setImages((current) => {
       const removed = current.find((item) => item.id === id);
-      if (
-        removed &&
-        activePreviewUrlsRef.current.delete(removed.previewUrl)
-      ) {
+      if (removed && activePreviewUrlsRef.current.delete(removed.previewUrl)) {
         URL.revokeObjectURL(removed.previewUrl);
       }
 

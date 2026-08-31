@@ -278,17 +278,14 @@ const createWrapper = ({
   }: {
     readonly children: ReactNode;
   }) {
-    return (
-      <SessionProvider {...props}>{children}</SessionProvider>
-    );
+    return <SessionProvider {...props}>{children}</SessionProvider>;
   };
 };
 
 const renderSession = (options: RenderSessionOptions) =>
-  renderHook(
-    () => ({ session: useSession(), queryClient: useQueryClient() }),
-    { wrapper: createWrapper(options) },
-  );
+  renderHook(() => ({ session: useSession(), queryClient: useQueryClient() }), {
+    wrapper: createWrapper(options),
+  });
 
 const expectAuthenticatedAs = (
   state: SessionState,
@@ -346,7 +343,9 @@ describe("SessionProvider", () => {
       epoch: 0,
     });
     await waitFor(() => expect(authPort.getViewer).toHaveBeenCalledTimes(1));
-    expect(requireMockCall(authPort.getViewer.mock.calls, 0, "getViewer")[0]).toBeInstanceOf(AbortSignal);
+    expect(
+      requireMockCall(authPort.getViewer.mock.calls, 0, "getViewer")[0],
+    ).toBeInstanceOf(AbortSignal);
 
     await act(async () => {
       viewerProbe.resolve(viewerA);
@@ -458,8 +457,12 @@ describe("SessionProvider", () => {
     });
     expect(result.current.queryClient).toBe(originalClient);
     expect(queryClients.generations).toHaveLength(1);
-    expect(requireQueryGeneration(queryClients.generations, 0).cancelQueries).not.toHaveBeenCalled();
-    expect(requireQueryGeneration(queryClients.generations, 0).clear).not.toHaveBeenCalled();
+    expect(
+      requireQueryGeneration(queryClients.generations, 0).cancelQueries,
+    ).not.toHaveBeenCalled();
+    expect(
+      requireQueryGeneration(queryClients.generations, 0).clear,
+    ).not.toHaveBeenCalled();
   });
 
   it("revokes authenticated state after a revalidation 401 even when browser cleanup fails", async () => {
@@ -493,7 +496,9 @@ describe("SessionProvider", () => {
       revocation: "verified",
     });
     expect(clearIdentityOwnedState).toHaveBeenCalledTimes(1);
-    expect(requireQueryGeneration(queryClients.generations, 0).clear).toHaveBeenCalledTimes(1);
+    expect(
+      requireQueryGeneration(queryClients.generations, 0).clear,
+    ).toHaveBeenCalledTimes(1);
     expect(result.current.queryClient).toBe(
       queryClients.generations.at(-1)?.client,
     );
@@ -517,7 +522,9 @@ describe("SessionProvider", () => {
       revalidation = result.current.session.revalidate();
     });
 
-    await waitFor(() => expect(original.cancelQueries).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(original.cancelQueries).toHaveBeenCalledTimes(1),
+    );
     expect(original.clear).not.toHaveBeenCalled();
     expect(result.current.session.state).toMatchObject({
       status: "checking",
@@ -574,7 +581,9 @@ describe("SessionProvider", () => {
       staleCompletionError = await observedOldOperation;
     });
     expect(authPort.login).toHaveBeenCalledTimes(1);
-    expect(requireMockCall(authPort.login.mock.calls, 0, "first login")[1]).toBeUndefined();
+    expect(
+      requireMockCall(authPort.login.mock.calls, 0, "first login")[1],
+    ).toBeUndefined();
     expect(staleCompletionError).toMatchObject({
       kind: "cancelled",
       code: "STALE_SESSION_OPERATION",
@@ -585,7 +594,9 @@ describe("SessionProvider", () => {
       await oldLogin.promise;
     });
     await waitFor(() => expect(authPort.login).toHaveBeenCalledTimes(2));
-    expect(requireMockCall(authPort.login.mock.calls, 1, "second login")[1]).toBeUndefined();
+    expect(
+      requireMockCall(authPort.login.mock.calls, 1, "second login")[1],
+    ).toBeUndefined();
 
     await act(async () => {
       currentLogin.resolve();
@@ -634,7 +645,9 @@ describe("SessionProvider", () => {
       epoch: 5,
       subject: null,
     });
-    expect(result.current.queryClient).toBe(requireQueryGeneration(queryClients.generations, 1).client);
+    expect(result.current.queryClient).toBe(
+      requireQueryGeneration(queryClients.generations, 1).client,
+    );
     expect(clientA.clear).not.toHaveBeenCalled();
     expect(authPort.login).not.toHaveBeenCalled();
 
@@ -648,11 +661,11 @@ describe("SessionProvider", () => {
     expect(clientA.clear).toHaveBeenCalledTimes(1);
     expect(
       requireFirstInvocationOrder(clientA.clear, "query clear"),
-    ).toBeLessThan(
-      requireFirstInvocationOrder(authPort.login, "login"),
-    );
+    ).toBeLessThan(requireFirstInvocationOrder(authPort.login, "login"));
     expect(counts).toEqual({ mounts: 2, unmounts: 1 });
-    expect(result.current.queryClient).toBe(requireQueryGeneration(queryClients.generations, 1).client);
+    expect(result.current.queryClient).toBe(
+      requireQueryGeneration(queryClients.generations, 1).client,
+    );
 
     await act(async () => {
       loginRequest.resolve();
@@ -711,7 +724,10 @@ describe("SessionProvider", () => {
       queryClientFactory: queryClients.factory,
     });
     const staleKey = ["session-test", "stale-a"] as const;
-    requireQueryGeneration(queryClients.generations, 0).client.setQueryData(staleKey, "old A data");
+    requireQueryGeneration(queryClients.generations, 0).client.setQueryData(
+      staleKey,
+      "old A data",
+    );
 
     let thrown: unknown;
     await act(async () => {
@@ -729,11 +745,17 @@ describe("SessionProvider", () => {
       { epoch: 5, subject: null },
       { epoch: 5, subject: toSessionSubject(viewerA) },
     ]);
-    expect(requireQueryGeneration(queryClients.generations, 0).clear).toHaveBeenCalledTimes(1);
-    expect(requireQueryGeneration(queryClients.generations, 1).clear).toHaveBeenCalledTimes(1);
+    expect(
+      requireQueryGeneration(queryClients.generations, 0).clear,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      requireQueryGeneration(queryClients.generations, 1).clear,
+    ).toHaveBeenCalledTimes(1);
     const freshA = requireQueryGeneration(queryClients.generations, 2).client;
     expect(result.current.queryClient).toBe(freshA);
-    expect(freshA).not.toBe(requireQueryGeneration(queryClients.generations, 0).client);
+    expect(freshA).not.toBe(
+      requireQueryGeneration(queryClients.generations, 0).client,
+    );
     expect(freshA.getQueryData(staleKey)).toBeUndefined();
   });
 
@@ -755,10 +777,16 @@ describe("SessionProvider", () => {
     });
 
     expect(authPort.login).toHaveBeenCalledWith(credentialsB);
-    expect(requireMockCall(authPort.login.mock.calls, 0, "first login")[1]).toBeUndefined();
+    expect(
+      requireMockCall(authPort.login.mock.calls, 0, "first login")[1],
+    ).toBeUndefined();
     expect(authPort.logout).toHaveBeenCalledWith();
-    expect(requireMockCall(authPort.logout.mock.calls, 0, "logout")[0]).toBeUndefined();
-    expect(requireMockCall(authPort.getViewer.mock.calls, 0, "getViewer")[0]).toBeInstanceOf(AbortSignal);
+    expect(
+      requireMockCall(authPort.logout.mock.calls, 0, "logout")[0],
+    ).toBeUndefined();
+    expect(
+      requireMockCall(authPort.getViewer.mock.calls, 0, "getViewer")[0],
+    ).toBeInstanceOf(AbortSignal);
   });
 
   it("fences anonymous cache and in-flight work before publishing B", async () => {
@@ -782,18 +810,21 @@ describe("SessionProvider", () => {
     const cachedKey = ["session-test", "anonymous-cache"] as const;
     const queryKey = ["session-test", "anonymous-query"] as const;
     const mutationKey = ["session-test", "anonymous-mutation"] as const;
-    const { result } = renderHook(() => {
-      const session = useSession();
-      const queryClient = useQueryClient();
-      const mutation = useMutation<string, Error, void>({
-        mutationFn: () => anonymousMutation.promise,
-        onSuccess: (value) => {
-          queryClient.setQueryData(mutationKey, value);
-        },
-      });
+    const { result } = renderHook(
+      () => {
+        const session = useSession();
+        const queryClient = useQueryClient();
+        const mutation = useMutation<string, Error, void>({
+          mutationFn: () => anonymousMutation.promise,
+          onSuccess: (value) => {
+            queryClient.setQueryData(mutationKey, value);
+          },
+        });
 
-      return { mutation, queryClient, session };
-    }, { wrapper: Wrapper });
+        return { mutation, queryClient, session };
+      },
+      { wrapper: Wrapper },
+    );
     const anonymousClient = result.current.queryClient;
     anonymousClient.setQueryData(cachedKey, "anonymous cached data");
     const anonymousQueryCompletion = anonymousClient
@@ -923,7 +954,9 @@ describe("SessionProvider", () => {
     await waitFor(() => expect(authPort.logout).toHaveBeenCalledTimes(1));
     expect(queryClients.generations).toHaveLength(2);
     const quarantine = result.current.queryClient;
-    expect(quarantine).toBe(requireQueryGeneration(queryClients.generations, 1).client);
+    expect(quarantine).toBe(
+      requireQueryGeneration(queryClients.generations, 1).client,
+    );
 
     await quarantine.fetchQuery({
       queryKey: serverAKey,
@@ -942,10 +975,14 @@ describe("SessionProvider", () => {
       { epoch: 5, subject: null },
     ]);
     const settledClient = result.current.queryClient;
-    expect(settledClient).toBe(requireQueryGeneration(queryClients.generations, 2).client);
+    expect(settledClient).toBe(
+      requireQueryGeneration(queryClients.generations, 2).client,
+    );
     expect(settledClient).not.toBe(quarantine);
     expect(settledClient.getQueryData(serverAKey)).toBeUndefined();
-    expect(requireQueryGeneration(queryClients.generations, 1).clear).toHaveBeenCalledTimes(1);
+    expect(
+      requireQueryGeneration(queryClients.generations, 1).clear,
+    ).toHaveBeenCalledTimes(1);
     expect(result.current.session.state).toMatchObject({
       status: "anonymous",
       reason: "logout",
@@ -1069,7 +1106,9 @@ describe("SessionProvider", () => {
 
     expect(thrown).toBe(cleanupError);
     expect(authPort.logout).toHaveBeenCalledTimes(1);
-    expect(requireQueryGeneration(queryClients.generations, 0).clear).toHaveBeenCalledTimes(1);
+    expect(
+      requireQueryGeneration(queryClients.generations, 0).clear,
+    ).toHaveBeenCalledTimes(1);
     expect(result.current.session.state).toMatchObject({
       status: "anonymous",
       reason: "logout",
@@ -1142,7 +1181,9 @@ describe("SessionProvider", () => {
     expect(queryClients.generations.map(({ scope }) => scope)).toEqual([
       { epoch: 4, subject: null },
     ]);
-    expect(result.current.queryClient.getDefaultOptions().queries?.meta).toEqual({
+    expect(
+      result.current.queryClient.getDefaultOptions().queries?.meta,
+    ).toEqual({
       session: { epoch: 5, subject: null },
     });
   });
@@ -1254,7 +1295,11 @@ describe("SessionProvider", () => {
       broadcast.emit("revalidate");
     });
     await waitFor(() => expect(authPort.getViewer).toHaveBeenCalledTimes(1));
-    const staleSignal = requireMockCall(authPort.getViewer.mock.calls, 0, "getViewer")[0];
+    const staleSignal = requireMockCall(
+      authPort.getViewer.mock.calls,
+      0,
+      "getViewer",
+    )[0];
 
     act(() => {
       broadcast.emit("invalidate");
@@ -1302,7 +1347,11 @@ describe("SessionProvider", () => {
       triggerAuthError();
     });
     await waitFor(() => expect(authPort.getViewer).toHaveBeenCalledTimes(1));
-    const staleSignal = requireMockCall(authPort.getViewer.mock.calls, 0, "getViewer")[0];
+    const staleSignal = requireMockCall(
+      authPort.getViewer.mock.calls,
+      0,
+      "getViewer",
+    )[0];
 
     act(() => {
       triggerAuthError();
@@ -1343,15 +1392,18 @@ describe("SessionProvider", () => {
       initialState: authenticatedState(viewerA),
       queryClientFactory: queryClients.factory,
     });
-    requireQueryGeneration(queryClients.generations, 0).cancelQueries.mockImplementation(
-      () => cleanupGate.promise,
-    );
+    requireQueryGeneration(
+      queryClients.generations,
+      0,
+    ).cancelQueries.mockImplementation(() => cleanupGate.promise);
 
     act(() => {
       triggerAuthError();
       triggerAuthError();
     });
-    expect(requireQueryGeneration(queryClients.generations, 0).cancelQueries).toHaveBeenCalledTimes(1);
+    expect(
+      requireQueryGeneration(queryClients.generations, 0).cancelQueries,
+    ).toHaveBeenCalledTimes(1);
 
     await act(async () => {
       cleanupGate.resolve();
@@ -1418,18 +1470,21 @@ describe("SessionProvider", () => {
     const oldQueryKey = ["session-test", "old-query"] as const;
     const sharedMutationKey = ["session-test", "mutation-owner"] as const;
 
-    const { result } = renderHook(() => {
-      const session = useSession();
-      const queryClient = useQueryClient();
-      const mutation = useMutation<string, Error, void>({
-        mutationFn: () => oldMutation.promise,
-        onSuccess: (value) => {
-          queryClient.setQueryData(sharedMutationKey, value);
-        },
-      });
+    const { result } = renderHook(
+      () => {
+        const session = useSession();
+        const queryClient = useQueryClient();
+        const mutation = useMutation<string, Error, void>({
+          mutationFn: () => oldMutation.promise,
+          onSuccess: (value) => {
+            queryClient.setQueryData(sharedMutationKey, value);
+          },
+        });
 
-      return { session, queryClient, mutation };
-    }, { wrapper: Wrapper });
+        return { session, queryClient, mutation };
+      },
+      { wrapper: Wrapper },
+    );
     const clientA = result.current.queryClient;
     const oldQueryCompletion = clientA
       .fetchQuery({
@@ -1480,18 +1535,21 @@ describe("SessionProvider", () => {
     });
     const queryKey = ["session-test", "interim-public-query"] as const;
     const mutationKey = ["session-test", "interim-public-mutation"] as const;
-    const { result } = renderHook(() => {
-      const session = useSession();
-      const queryClient = useQueryClient();
-      const mutation = useMutation<string, Error, void>({
-        mutationFn: () => interimMutation.promise,
-        onSuccess: (value) => {
-          queryClient.setQueryData(mutationKey, value);
-        },
-      });
+    const { result } = renderHook(
+      () => {
+        const session = useSession();
+        const queryClient = useQueryClient();
+        const mutation = useMutation<string, Error, void>({
+          mutationFn: () => interimMutation.promise,
+          onSuccess: (value) => {
+            queryClient.setQueryData(mutationKey, value);
+          },
+        });
 
-      return { mutation, queryClient, session };
-    }, { wrapper: Wrapper });
+        return { mutation, queryClient, session };
+      },
+      { wrapper: Wrapper },
+    );
     const clientA = result.current.queryClient;
 
     act(() => {
@@ -1506,7 +1564,9 @@ describe("SessionProvider", () => {
     );
     const interimClient = result.current.queryClient;
     expect(interimClient).not.toBe(clientA);
-    expect(interimClient).toBe(requireQueryGeneration(queryClients.generations, 1).client);
+    expect(interimClient).toBe(
+      requireQueryGeneration(queryClients.generations, 1).client,
+    );
     expect(requireQueryGeneration(queryClients.generations, 1).scope).toEqual({
       epoch: 5,
       subject: null,
@@ -1532,7 +1592,9 @@ describe("SessionProvider", () => {
       expectAuthenticatedAs(result.current.session.state, viewerB),
     );
     const clientB = result.current.queryClient;
-    expect(clientB).toBe(requireQueryGeneration(queryClients.generations, 2).client);
+    expect(clientB).toBe(
+      requireQueryGeneration(queryClients.generations, 2).client,
+    );
     expect(queryClients.generations.map(({ scope }) => scope)).toEqual([
       { epoch: 4, subject: toSessionSubject(viewerA) },
       { epoch: 5, subject: null },
@@ -1544,10 +1606,7 @@ describe("SessionProvider", () => {
     await act(async () => {
       interimQuery.resolve("late interim query");
       interimMutation.resolve("late interim mutation");
-      await Promise.all([
-        interimQueryCompletion,
-        interimMutationCompletion,
-      ]);
+      await Promise.all([interimQueryCompletion, interimMutationCompletion]);
     });
 
     expect(result.current.queryClient).toBe(clientB);
@@ -1558,23 +1617,23 @@ describe("SessionProvider", () => {
   it.each([
     ["anonymous", anonymousState()],
     ["error", retryableErrorState()],
-  ] as const)("rechecks a %s session when the window regains focus", async (
-    _name,
-    initialState,
-  ) => {
-    const authPort = createAuthPort();
-    authPort.getViewer.mockResolvedValueOnce(viewerA);
-    const { result } = renderSession({ authPort, initialState });
+  ] as const)(
+    "rechecks a %s session when the window regains focus",
+    async (_name, initialState) => {
+      const authPort = createAuthPort();
+      authPort.getViewer.mockResolvedValueOnce(viewerA);
+      const { result } = renderSession({ authPort, initialState });
 
-    act(() => {
-      window.dispatchEvent(new Event("focus"));
-    });
+      act(() => {
+        window.dispatchEvent(new Event("focus"));
+      });
 
-    await waitFor(() => expect(authPort.getViewer).toHaveBeenCalledTimes(1));
-    await waitFor(() =>
-      expectAuthenticatedAs(result.current.session.state, viewerA),
-    );
-  });
+      await waitFor(() => expect(authPort.getViewer).toHaveBeenCalledTimes(1));
+      await waitFor(() =>
+        expectAuthenticatedAs(result.current.session.state, viewerA),
+      );
+    },
+  );
 
   it("does not start a focus probe during an active login", async () => {
     const authPort = createAuthPort();
@@ -1683,9 +1742,10 @@ describe("SessionProvider", () => {
         initialState: authenticatedState(viewerA),
         queryClientFactory: queryClients.factory,
       });
-      requireQueryGeneration(queryClients.generations, 0).cancelQueries.mockImplementation(
-        () => cleanupGate.promise,
-      );
+      requireQueryGeneration(
+        queryClients.generations,
+        0,
+      ).cancelQueries.mockImplementation(() => cleanupGate.promise);
 
       act(() => {
         broadcast.emit("invalidate");
@@ -1754,9 +1814,10 @@ describe("SessionProvider", () => {
         initialState: authenticatedState(viewerA),
         queryClientFactory: queryClients.factory,
       });
-      requireQueryGeneration(queryClients.generations, 0).cancelQueries.mockImplementation(
-        () => cleanupGate.promise,
-      );
+      requireQueryGeneration(
+        queryClients.generations,
+        0,
+      ).cancelQueries.mockImplementation(() => cleanupGate.promise);
       const setTimeoutSpy = vi.spyOn(window, "setTimeout");
 
       act(() => {
@@ -1765,7 +1826,9 @@ describe("SessionProvider", () => {
       });
 
       expect(clearIdentityOwnedState).toHaveBeenCalledTimes(1);
-      expect(requireQueryGeneration(queryClients.generations, 0).cancelQueries).toHaveBeenCalledTimes(1);
+      expect(
+        requireQueryGeneration(queryClients.generations, 0).cancelQueries,
+      ).toHaveBeenCalledTimes(1);
       expect(
         setTimeoutSpy.mock.calls.filter(([, delay]) => delay === 1_500),
       ).toHaveLength(1);
@@ -1890,11 +1953,17 @@ describe("SessionProvider", () => {
     );
 
     await waitFor(() => expect(broadcastFactory).toHaveBeenCalledTimes(2));
-    expect(requireFixtureItem(broadcasts, 0, "first session broadcast").close).toHaveBeenCalledTimes(1);
-    expect(requireFixtureItem(broadcasts, 1, "second session broadcast").close).not.toHaveBeenCalled();
+    expect(
+      requireFixtureItem(broadcasts, 0, "first session broadcast").close,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      requireFixtureItem(broadcasts, 1, "second session broadcast").close,
+    ).not.toHaveBeenCalled();
 
     act(() => {
-      requireFixtureItem(broadcasts, 1, "second session broadcast").emit("revalidate");
+      requireFixtureItem(broadcasts, 1, "second session broadcast").emit(
+        "revalidate",
+      );
     });
     await waitFor(() => expect(authPort.getViewer).toHaveBeenCalledTimes(1));
     await waitFor(() =>
@@ -1905,6 +1974,8 @@ describe("SessionProvider", () => {
     await act(async () => {
       await Promise.resolve();
     });
-    expect(requireFixtureItem(broadcasts, 1, "second session broadcast").close).toHaveBeenCalledTimes(1);
+    expect(
+      requireFixtureItem(broadcasts, 1, "second session broadcast").close,
+    ).toHaveBeenCalledTimes(1);
   });
 });

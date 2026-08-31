@@ -44,11 +44,7 @@ describe("review cache publication", () => {
     const target = seed(client, scopeA, 31);
     const otherAccommodation = seed(client, scopeA, 32);
     const otherSession = seed(client, scopeB, 31);
-    const anonymousSession = seed(
-      client,
-      { epoch: 5, subject: null },
-      31,
-    );
+    const anonymousSession = seed(client, { epoch: 5, subject: null }, 31);
 
     await createReviewCache(client).reviewCreated({
       accommodationId: 31,

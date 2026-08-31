@@ -190,16 +190,8 @@ test("hydrates an existing accommodation and saves its update before publishing"
     "/api/v1/profile/host/accommodations/31",
     apiSuccess(makeEditableAccommodation(baseURL)),
   );
-  api.register(
-    "PATCH",
-    "/api/v1/accommodations/31",
-    apiSuccess(null),
-  );
-  api.register(
-    "PATCH",
-    "/api/v1/accommodations/31/publish",
-    apiSuccess(null),
-  );
+  api.register("PATCH", "/api/v1/accommodations/31", apiSuccess(null));
+  api.register("PATCH", "/api/v1/accommodations/31/publish", apiSuccess(null));
   api.register(
     "GET",
     "/api/v1/profile/host/accommodations",
@@ -219,7 +211,9 @@ test("hydrates an existing accommodation and saves its update before publishing"
   ).toHaveValue("101호");
 
   await openInfoStep(page);
-  await page.getByPlaceholder("예: 편안한 아파트").fill("정돈된 합정 테스트 숙소");
+  await page
+    .getByPlaceholder("예: 편안한 아파트")
+    .fill("정돈된 합정 테스트 숙소");
   await openPublishStep(page);
   await page.getByRole("button", { name: "저장하기" }).click();
 
@@ -228,10 +222,7 @@ test("hydrates an existing accommodation and saves its update before publishing"
     page.getByRole("heading", { name: "숙소 관리", level: 2 }),
   ).toBeVisible();
 
-  const updateRequests = api.matching(
-    "PATCH",
-    "/api/v1/accommodations/31",
-  );
+  const updateRequests = api.matching("PATCH", "/api/v1/accommodations/31");
   const publishRequests = api.matching(
     "PATCH",
     "/api/v1/accommodations/31/publish",
@@ -293,11 +284,7 @@ test("finishes a pending image upload before save-and-exit navigation", async ({
     "/api/v1/profile/host/accommodations/31",
     apiSuccess(makeEditableAccommodation(baseURL)),
   );
-  api.register(
-    "POST",
-    "/api/v1/accommodations/31/images",
-    () => pendingUpload,
-  );
+  api.register("POST", "/api/v1/accommodations/31/images", () => pendingUpload);
   api.register(
     "GET",
     "/api/v1/profile/host/accommodations",
@@ -311,9 +298,7 @@ test("finishes a pending image upload before save-and-exit navigation", async ({
   await page.getByRole("button", { name: "저장 후 나가기" }).click();
 
   await expect
-    .poll(
-      () => api.matching("POST", "/api/v1/accommodations/31/images").length,
-    )
+    .poll(() => api.matching("POST", "/api/v1/accommodations/31/images").length)
     .toBe(1);
   await expect(page).toHaveURL(/\/accommodations\/31\/edit$/);
   await expect(
@@ -393,12 +378,10 @@ test("keeps the editor mounted when a pending image upload fails", async ({
   await expect(
     page.getByRole("button", { name: "저장 후 나가기" }),
   ).toBeDisabled();
-  expect(
-    api.matching("POST", "/api/v1/accommodations/31/images"),
-  ).toHaveLength(1);
-  expect(
-    api.matching("PATCH", "/api/v1/accommodations/31"),
-  ).toHaveLength(0);
+  expect(api.matching("POST", "/api/v1/accommodations/31/images")).toHaveLength(
+    1,
+  );
+  expect(api.matching("PATCH", "/api/v1/accommodations/31")).toHaveLength(0);
   expect(
     api.matching("PATCH", "/api/v1/accommodations/31/publish"),
   ).toHaveLength(0);
@@ -430,19 +413,13 @@ test("blocks editor commands while an ambiguous image deletion is reconciled onc
     releaseReconciliation = resolve;
   });
 
-  api.register(
-    "GET",
-    "/api/v1/profile/host/accommodations/31",
-    () => (deleteStarted ? pendingReconciliation : apiSuccess(detail)),
+  api.register("GET", "/api/v1/profile/host/accommodations/31", () =>
+    deleteStarted ? pendingReconciliation : apiSuccess(detail),
   );
-  api.register(
-    "DELETE",
-    "/api/v1/accommodations/31/images/301",
-    () => {
-      deleteStarted = true;
-      return apiFailure(500, "C003", "이미지 삭제 결과를 확인할 수 없습니다.");
-    },
-  );
+  api.register("DELETE", "/api/v1/accommodations/31/images/301", () => {
+    deleteStarted = true;
+    return apiFailure(500, "C003", "이미지 삭제 결과를 확인할 수 없습니다.");
+  });
   await installSyntheticEditorImageAssets(page, baseURL);
 
   await page.goto("/accommodations/31/edit");
@@ -471,9 +448,7 @@ test("blocks editor commands while an ambiguous image deletion is reconciled onc
   expect(
     api.matching("DELETE", "/api/v1/accommodations/31/images/301"),
   ).toHaveLength(1);
-  expect(
-    api.matching("PATCH", "/api/v1/accommodations/31"),
-  ).toHaveLength(0);
+  expect(api.matching("PATCH", "/api/v1/accommodations/31")).toHaveLength(0);
   expect(
     api.matching("PATCH", "/api/v1/accommodations/31/publish"),
   ).toHaveLength(0);
@@ -490,9 +465,7 @@ test("blocks editor commands while an ambiguous image deletion is reconciled onc
   expect(
     api.matching("GET", "/api/v1/profile/host/accommodations/31"),
   ).toHaveLength(initialDetailReads + 1);
-  expect(
-    api.matching("PATCH", "/api/v1/accommodations/31"),
-  ).toHaveLength(0);
+  expect(api.matching("PATCH", "/api/v1/accommodations/31")).toHaveLength(0);
   expect(
     api.matching("PATCH", "/api/v1/accommodations/31/publish"),
   ).toHaveLength(0);
@@ -516,16 +489,8 @@ test("does not publish after the editor unmounts while an update is still in fli
     "/api/v1/profile/host/accommodations/31",
     apiSuccess(makeEditableAccommodation(baseURL)),
   );
-  api.register(
-    "PATCH",
-    "/api/v1/accommodations/31",
-    () => pendingUpdate,
-  );
-  api.register(
-    "PATCH",
-    "/api/v1/accommodations/31/publish",
-    apiSuccess(null),
-  );
+  api.register("PATCH", "/api/v1/accommodations/31", () => pendingUpdate);
+  api.register("PATCH", "/api/v1/accommodations/31/publish", apiSuccess(null));
   api.register(
     "GET",
     "/api/v1/profile/guest/reservations",
@@ -534,7 +499,9 @@ test("does not publish after the editor unmounts while an update is still in fli
 
   await page.goto("/accommodations/31/edit");
   await openInfoStep(page);
-  await page.getByPlaceholder("예: 편안한 아파트").fill("늦은 응답 테스트 숙소");
+  await page
+    .getByPlaceholder("예: 편안한 아파트")
+    .fill("늦은 응답 테스트 숙소");
   await openPublishStep(page);
 
   await page.getByRole("button", { name: "저장하기" }).click();

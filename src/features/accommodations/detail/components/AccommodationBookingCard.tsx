@@ -155,10 +155,10 @@ export function AccommodationBookingCard({
       />
 
       {isAuthenticated && (
-      <BookingCouponSection
-        couponDiscount={couponDiscount}
-        coupons={coupons}
-        errorMessage={couponErrorMessage}
+        <BookingCouponSection
+          couponDiscount={couponDiscount}
+          coupons={coupons}
+          errorMessage={couponErrorMessage}
           handleIssueCoupon={handleIssueCoupon}
           isLoadingCoupons={isLoadingCoupons}
           selectedCoupon={selectedCoupon}

@@ -31,8 +31,7 @@ const parseReviewSubmissionResult = (
     return null;
   }
 
-  return submission.version === 1 &&
-    submission.result === "image-upload-failed"
+  return submission.version === 1 && submission.result === "image-upload-failed"
     ? submission.result
     : null;
 };

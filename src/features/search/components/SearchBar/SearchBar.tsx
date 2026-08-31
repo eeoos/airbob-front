@@ -267,16 +267,12 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             <>
               <div className={styles.label}>여행자</div>
               <div className={styles.value}>
-                {totalGuests > 0
-                  ? `게스트 ${totalGuests}명`
-                  : "게스트 추가"}
+                {totalGuests > 0 ? `게스트 ${totalGuests}명` : "게스트 추가"}
               </div>
             </>
           ) : (
             <div className={styles.compactValue}>
-              {totalGuests > 0
-                ? `게스트 ${totalGuests}명`
-                : "게스트 추가"}
+              {totalGuests > 0 ? `게스트 ${totalGuests}명` : "게스트 추가"}
             </div>
           )}
         </button>

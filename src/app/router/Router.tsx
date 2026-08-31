@@ -1,16 +1,9 @@
-import {
-  Suspense,
-  type ReactElement,
-  type ReactNode,
-} from "react";
+import { Suspense, type ReactElement, type ReactNode } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { appShellComponents } from "../shells";
 import { LoadingState } from "../../shared/ui";
 import type { RouteHeaderPolicy } from "./definitions";
-import {
-  routeManifest,
-  type AppRouteManifestEntry,
-} from "./manifest";
+import { routeManifest, type AppRouteManifestEntry } from "./manifest";
 
 export type VisibleHeaderPolicy = Exclude<RouteHeaderPolicy, "hidden">;
 

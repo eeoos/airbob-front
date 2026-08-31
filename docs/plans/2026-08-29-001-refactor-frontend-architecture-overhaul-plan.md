@@ -1156,6 +1156,7 @@ U2와 U3는 병렬 준비가 가능하다. Safe return-target codec과 route con
   - Runtime dependency가 devDependencies로, test/build-only dependency가 production dependencies로 잘못 분류된 항목이 0이다.
   - Formatter pass 전후 AST/behavior test 결과와 built route graph가 같다.
 - **Verification:** TypeScript 5.x, ESLint, dependency classification and formatting have one documented owner each, all configs are current, and the canonical static gate is green.
+- **Completion (2026-08-31):** TypeScript 5.9, native ESLint 9, dependency-cruiser 18/Knip 6/Stylelint 17 classification, and Prettier 3.9 plus EditorConfig now have separate commits and executable owners. Active code and formatter-owned documents are mechanically formatted; three wide hand-maintained architecture registries, generated artifacts, npm's lockfile, local tool state, binary assets, and historical plans remain explicit non-formatter owners.
 
 ### U18. Close the Architecture and Open the Design Gate
 
@@ -1225,28 +1226,28 @@ U2와 U3는 병렬 준비가 가능하다. Safe return-target codec과 route con
 
 ## Risks and Mitigations
 
-| Risk | Impact | Mitigation |
-|---|---|---|
-| Old/new mutable owner가 동시에 실행됨 | 중복 예약, 결제 confirm, 리뷰, 이미지 삭제 | Ownership matrix와 route/workflow atomic cutover; shadow write 금지 |
-| Session transition 중 stale completion | 사용자 간 cache/storage 노출 | Identity epoch, cancellation, whole-boundary cleanup, A→B browser scenario |
-| Server logout 실패를 local logout 성공으로 숨김 | 폐기되지 않은 server session의 재사용 | Local anonymous + revocation-unverified substate, retry/security feedback, server revalidation |
-| Same-origin tab이 서로 다른 identity를 유지 | old tab의 stale mutation과 storage 재생 | BroadcastChannel session event, subject/epoch reset, multi-tab A→B scenario |
-| URL codec가 history를 바꿈 | deep link/back/forward regression | Current push/replace characterization; parity release에서 canonical rewrite 금지 |
-| Payment workflow와 SDK 변경이 섞임 | 장애 원인과 rollback 불명확 | U10과 U11 분리; gateway contract와 Toss sandbox evidence |
-| Browser marker/callback/storage를 성공 근거로 신뢰 | forged 또는 replay callback이 결제로 오인 | Untrusted hint로만 취급; owned tuple 검증과 server confirm/status authority |
-| Editor reducer가 기존 operation order를 잃음 | 데이터 손실 또는 중복 publish | Transition table first; command ordering and stale-session tests |
-| Graph/lint tool을 즉시 strict 적용 | 대규모 suppression과 signal 상실 | Report-only baseline, changed-surface ratchet, migrated-slice exception zero |
-| Source tests를 너무 빨리 삭제 | architecture protection gap | Replacement tool fixture가 같은 violation을 잡은 뒤 제거 |
-| Portal migration이 focus/stack을 바꿈 | keyboard와 modal regression | Browser focus/stack characterization before DOM relocation |
-| UI primitive 일괄 교체 | semantics와 visual regression | Production variant inventory, screen-by-screen adoption, representative snapshots |
-| Vite env/output/proxy drift | production deploy/API failure | Env adapter first, `build/` preservation, direct-route/build parity matrix |
-| Secret-like env가 client bundle에 포함 | credential disclosure | Explicit browser-public allowlist, forbidden-name build failure, built JS/source-map canary scan |
-| 새 배포가 이전 hashed asset을 즉시 제거 | open tab chunk failure와 rollback 불가 | Immutable previous build, asset retention window, timed rollback drill |
-| Jest/Vitest semantic difference | silent test loss 또는 false green | Disjoint suite ownership, Jest baseline 후 Vitest 원자 전환, explicit mock/timer/async parity, discovery audit |
-| Playwright trace/screenshot에 credential/PII 기록 | CI artifact privacy leak | Synthetic invalid users, redaction, restricted retention, artifact canary scan |
-| External live smoke instability | PR false negative | Deterministic PR suite와 live integration job 분리 |
-| 장기 migration이 새 혼합 구조를 만듦 | 유지보수 부채 재발 | Slice 종료 시 legacy removal과 boundary ratchet을 완료 조건으로 강제 |
-| Historical plan이 다시 실행 기준으로 오인됨 | 중복 계획과 scope drift | Canonical plan/architecture links와 supersession index |
+| Risk                                               | Impact                                     | Mitigation                                                                                                     |
+| -------------------------------------------------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| Old/new mutable owner가 동시에 실행됨              | 중복 예약, 결제 confirm, 리뷰, 이미지 삭제 | Ownership matrix와 route/workflow atomic cutover; shadow write 금지                                            |
+| Session transition 중 stale completion             | 사용자 간 cache/storage 노출               | Identity epoch, cancellation, whole-boundary cleanup, A→B browser scenario                                     |
+| Server logout 실패를 local logout 성공으로 숨김    | 폐기되지 않은 server session의 재사용      | Local anonymous + revocation-unverified substate, retry/security feedback, server revalidation                 |
+| Same-origin tab이 서로 다른 identity를 유지        | old tab의 stale mutation과 storage 재생    | BroadcastChannel session event, subject/epoch reset, multi-tab A→B scenario                                    |
+| URL codec가 history를 바꿈                         | deep link/back/forward regression          | Current push/replace characterization; parity release에서 canonical rewrite 금지                               |
+| Payment workflow와 SDK 변경이 섞임                 | 장애 원인과 rollback 불명확                | U10과 U11 분리; gateway contract와 Toss sandbox evidence                                                       |
+| Browser marker/callback/storage를 성공 근거로 신뢰 | forged 또는 replay callback이 결제로 오인  | Untrusted hint로만 취급; owned tuple 검증과 server confirm/status authority                                    |
+| Editor reducer가 기존 operation order를 잃음       | 데이터 손실 또는 중복 publish              | Transition table first; command ordering and stale-session tests                                               |
+| Graph/lint tool을 즉시 strict 적용                 | 대규모 suppression과 signal 상실           | Report-only baseline, changed-surface ratchet, migrated-slice exception zero                                   |
+| Source tests를 너무 빨리 삭제                      | architecture protection gap                | Replacement tool fixture가 같은 violation을 잡은 뒤 제거                                                       |
+| Portal migration이 focus/stack을 바꿈              | keyboard와 modal regression                | Browser focus/stack characterization before DOM relocation                                                     |
+| UI primitive 일괄 교체                             | semantics와 visual regression              | Production variant inventory, screen-by-screen adoption, representative snapshots                              |
+| Vite env/output/proxy drift                        | production deploy/API failure              | Env adapter first, `build/` preservation, direct-route/build parity matrix                                     |
+| Secret-like env가 client bundle에 포함             | credential disclosure                      | Explicit browser-public allowlist, forbidden-name build failure, built JS/source-map canary scan               |
+| 새 배포가 이전 hashed asset을 즉시 제거            | open tab chunk failure와 rollback 불가     | Immutable previous build, asset retention window, timed rollback drill                                         |
+| Jest/Vitest semantic difference                    | silent test loss 또는 false green          | Disjoint suite ownership, Jest baseline 후 Vitest 원자 전환, explicit mock/timer/async parity, discovery audit |
+| Playwright trace/screenshot에 credential/PII 기록  | CI artifact privacy leak                   | Synthetic invalid users, redaction, restricted retention, artifact canary scan                                 |
+| External live smoke instability                    | PR false negative                          | Deterministic PR suite와 live integration job 분리                                                             |
+| 장기 migration이 새 혼합 구조를 만듦               | 유지보수 부채 재발                         | Slice 종료 시 legacy removal과 boundary ratchet을 완료 조건으로 강제                                           |
+| Historical plan이 다시 실행 기준으로 오인됨        | 중복 계획과 scope drift                    | Canonical plan/architecture links와 supersession index                                                         |
 
 ---
 

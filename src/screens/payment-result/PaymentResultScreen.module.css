@@ -1,5 +1,7 @@
 .container {
-  min-height: calc(var(--layout-viewport-height) - var(--layout-header-desktop-height));
+  min-height: calc(
+    var(--layout-viewport-height) - var(--layout-header-desktop-height)
+  );
   display: flex;
   align-items: center;
   justify-content: center;

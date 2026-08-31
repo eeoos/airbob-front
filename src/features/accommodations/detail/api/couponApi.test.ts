@@ -1,8 +1,5 @@
 import type { CouponCollectionWire } from "./contracts";
-import {
-  createCouponApi,
-  type CouponApiTransport,
-} from "./couponApi";
+import { createCouponApi, type CouponApiTransport } from "./couponApi";
 
 const couponWire: CouponCollectionWire = {
   infos: [
@@ -62,6 +59,8 @@ describe("coupon API adapter", () => {
       signal,
     });
     expect(requestNullable.mock.calls.at(0)?.at(0)).not.toHaveProperty("body");
-    expect(requestNullable.mock.calls.at(0)?.at(0)).not.toHaveProperty("params");
+    expect(requestNullable.mock.calls.at(0)?.at(0)).not.toHaveProperty(
+      "params",
+    );
   });
 });

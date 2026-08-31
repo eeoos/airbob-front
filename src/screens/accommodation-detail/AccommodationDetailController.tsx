@@ -144,9 +144,7 @@ export function AccommodationDetailController({
   const [infantCount, setInfantCount] = useState(
     bookingRouteState.infantOccupancy,
   );
-  const [petCount, setPetCount] = useState(
-    bookingRouteState.petOccupancy,
-  );
+  const [petCount, setPetCount] = useState(bookingRouteState.petOccupancy);
   const guestPickerRef = useRef<HTMLDivElement>(null);
   const datePickerRef = useRef<HTMLDivElement>(null);
   const dateSectionRef = useRef<HTMLDivElement>(null);
@@ -163,16 +161,19 @@ export function AccommodationDetailController({
 
   useEffect(() => {
     if (accommodationIdentity === null) return;
-    const counts = normalizeBookingCounts({
-      adultOccupancy: bookingRouteState.adultOccupancy,
-      childOccupancy: bookingRouteState.childOccupancy,
-      infantOccupancy: bookingRouteState.infantOccupancy,
-      petOccupancy: bookingRouteState.petOccupancy,
-    }, {
-      maxOccupancy,
-      maxInfants,
-      maxPets,
-    });
+    const counts = normalizeBookingCounts(
+      {
+        adultOccupancy: bookingRouteState.adultOccupancy,
+        childOccupancy: bookingRouteState.childOccupancy,
+        infantOccupancy: bookingRouteState.infantOccupancy,
+        petOccupancy: bookingRouteState.petOccupancy,
+      },
+      {
+        maxOccupancy,
+        maxInfants,
+        maxPets,
+      },
+    );
     setAdultCount(counts.adultCount);
     setChildCount(counts.childCount);
     setInfantCount(counts.infantCount);
@@ -258,22 +259,19 @@ export function AccommodationDetailController({
     bookingDates.totalPrice - selectedCouponDiscount,
     0,
   );
-  const {
-    isReservationLocked,
-    isReserving,
-    startReservation,
-  } = useReservationCreateCommand({
-    accommodation,
-    bookingDates,
-    checkoutHandoff,
-    guestCounts: { adultCount, childCount, infantCount, petCount },
-    onError: setErrorMessage,
-    requestAuthentication: requireAuthentication,
-    routeLease,
-    scope,
-    selectedCoupon,
-    session,
-  });
+  const { isReservationLocked, isReserving, startReservation } =
+    useReservationCreateCommand({
+      accommodation,
+      bookingDates,
+      checkoutHandoff,
+      guestCounts: { adultCount, childCount, infantCount, petCount },
+      onError: setErrorMessage,
+      requestAuthentication: requireAuthentication,
+      routeLease,
+      scope,
+      selectedCoupon,
+      session,
+    });
 
   useEffect(() => {
     const claimed = authIntent.claimed;
@@ -329,9 +327,9 @@ export function AccommodationDetailController({
         const coupon =
           claimedIntent.couponId === null
             ? null
-            : coupons.find(
+            : (coupons.find(
                 (candidate) => candidate.id === claimedIntent.couponId,
-              ) ?? null;
+              ) ?? null);
         complete();
         if (claimedIntent.couponId !== null && !coupon) {
           setErrorMessage("선택한 쿠폰 정보를 확인할 수 없습니다.");
@@ -356,7 +354,7 @@ export function AccommodationDetailController({
     contains: (target: Node) =>
       Boolean(
         datePickerRef.current?.contains(target) ||
-          dateSectionRef.current?.contains(target),
+        dateSectionRef.current?.contains(target),
       ),
   };
   useOutsideClick(
@@ -400,10 +398,7 @@ export function AccommodationDetailController({
       couponViewOptions,
     );
     const selectedCouponView = selectedCoupon
-      ? toAccommodationBookingCouponViewModel(
-          selectedCoupon,
-          couponViewOptions,
-        )
+      ? toAccommodationBookingCouponViewModel(selectedCoupon, couponViewOptions)
       : null;
     const readyView: AccommodationDetailReadyView = {
       authModal: {

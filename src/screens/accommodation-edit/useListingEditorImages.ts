@@ -39,8 +39,9 @@ export const useListingEditorImages = ({
   revokeObjectUrl = defaultRevokeObjectUrl,
   createClientId = defaultCreateClientId,
 }: UseListingEditorImagesOptions) => {
-  const [imageItems, setImageItems] =
-    useState<AccommodationEditImageItem[]>([]);
+  const [imageItems, setImageItems] = useState<AccommodationEditImageItem[]>(
+    [],
+  );
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -110,9 +111,11 @@ export const useListingEditorImages = ({
 
   const restore = useCallback((tombstone: ListingEditorImageTombstone) => {
     setImageItems((current) => {
-      const next = restoreListingEditorImage(current, tombstone).map((item) => ({
-        ...item,
-      }));
+      const next = restoreListingEditorImage(current, tombstone).map(
+        (item) => ({
+          ...item,
+        }),
+      );
       imageItemsRef.current = next;
       return next;
     });

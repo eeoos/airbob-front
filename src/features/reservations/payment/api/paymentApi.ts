@@ -5,10 +5,7 @@ import {
 } from "../../../../platform/http/request";
 import type { PaymentApiPort } from "../ports/paymentApiPort";
 import type { PaymentRecordWire } from "./contracts";
-import {
-  toPaymentConfirmationWireRequest,
-  toPaymentRecord,
-} from "./mappers";
+import { toPaymentConfirmationWireRequest, toPaymentRecord } from "./mappers";
 
 export type PaymentApiTransport = <T>(
   request: ApiDataRequest,

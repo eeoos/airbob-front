@@ -1,8 +1,4 @@
-import {
-  ConfigError,
-  PUBLIC_ENV_KEYS,
-  readBrowserEnvironment,
-} from "./env";
+import { ConfigError, PUBLIC_ENV_KEYS, readBrowserEnvironment } from "./env";
 
 describe("readBrowserEnvironment", () => {
   it("reads only the explicit browser-public allowlist", () => {

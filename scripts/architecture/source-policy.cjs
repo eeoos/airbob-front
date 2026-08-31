@@ -1,13 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
-const sourceExtensions = Object.freeze([
-  ".js",
-  ".jsx",
-  ".mjs",
-  ".ts",
-  ".tsx",
-]);
+const sourceExtensions = Object.freeze([".js", ".jsx", ".mjs", ".ts", ".tsx"]);
 const sourceExtensionSet = new Set(sourceExtensions);
 const testModulePattern =
   "^src/test(?:/|$)|" +
@@ -16,12 +10,15 @@ const testModulePattern =
   "[.]d[.]ts$";
 const testModuleRegex = new RegExp(testModulePattern);
 
-const normalizeSourcePath = (relativePath) => relativePath.replaceAll("\\", "/");
+const normalizeSourcePath = (relativePath) =>
+  relativePath.replaceAll("\\", "/");
 
 const assertRealSourceTree = (directory, label = "source tree") => {
   const rootStat = fs.lstatSync(directory);
   if (rootStat.isSymbolicLink() || !rootStat.isDirectory()) {
-    throw new TypeError(`${label} must be a real directory, not a symbolic link.`);
+    throw new TypeError(
+      `${label} must be a real directory, not a symbolic link.`,
+    );
   }
 
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {

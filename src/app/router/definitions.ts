@@ -123,7 +123,6 @@ export const routeDefinitions = [
 
 export type AppRouteId = (typeof routeDefinitions)[number]["id"];
 
-export interface AppRouteDefinition
-  extends Omit<RouteDefinitionShape, "id"> {
+export interface AppRouteDefinition extends Omit<RouteDefinitionShape, "id"> {
   id: AppRouteId;
 }

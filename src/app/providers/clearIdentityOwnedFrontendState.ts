@@ -9,9 +9,7 @@ export const clearIdentityOwnedFrontendState = (): void => {
   try {
     const result = clearBookingPaymentBrowserState();
     if (result.status !== "cleared") {
-      throw new Error(
-        "Identity-owned booking state cleanup did not complete.",
-      );
+      throw new Error("Identity-owned booking state cleanup did not complete.");
     }
   } finally {
     clearIdentityOwnedTransactionRoute();

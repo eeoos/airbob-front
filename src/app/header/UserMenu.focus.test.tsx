@@ -12,13 +12,10 @@ const mockNavigate = vi.fn();
 const mockLogout = vi.fn().mockResolvedValue(undefined);
 const mockCreateDraft = vi.fn().mockResolvedValue(undefined);
 
-vi.mock(
-  "react-router-dom",
-  () => ({
-    useLocation: () => ({ hash: "", key: "default", pathname: "/", search: "" }),
-    useNavigate: () => mockNavigate,
-  }),
-);
+vi.mock("react-router-dom", () => ({
+  useLocation: () => ({ hash: "", key: "default", pathname: "/", search: "" }),
+  useNavigate: () => mockNavigate,
+}));
 
 vi.mock("../session/useSession", () => ({
   useSession: () => ({ logout: mockLogout }),
@@ -61,7 +58,9 @@ describe("UserMenu auth modal focus return", () => {
       fireEvent.keyDown(document, { key: "Escape" });
 
       await waitFor(() => {
-        expect(screen.queryByRole("dialog", { name: mode })).not.toBeInTheDocument();
+        expect(
+          screen.queryByRole("dialog", { name: mode }),
+        ).not.toBeInTheDocument();
       });
       await waitFor(() => expect(menuButton).toHaveFocus());
     },

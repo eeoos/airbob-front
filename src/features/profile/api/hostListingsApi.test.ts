@@ -35,10 +35,7 @@ describe("host listings API adapter", () => {
     const signal = new AbortController().signal;
 
     await expect(
-      api.getHostListings(
-        { size: 20, status: "PUBLISHED" },
-        { signal },
-      ),
+      api.getHostListings({ size: 20, status: "PUBLISHED" }, { signal }),
     ).resolves.toEqual({
       listings: [
         {

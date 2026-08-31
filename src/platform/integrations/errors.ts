@@ -1,10 +1,7 @@
 import { AppError } from "../http/errors";
 
 export type IntegrationName =
-  | "daum-postcode"
-  | "google-maps"
-  | "google-places"
-  | "toss-payments-v2";
+  "daum-postcode" | "google-maps" | "google-places" | "toss-payments-v2";
 
 export type IntegrationErrorCode =
   | "INTEGRATION_DISCONNECTED"

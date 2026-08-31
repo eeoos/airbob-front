@@ -1,7 +1,4 @@
-import type {
-  CheckoutOwnershipWire,
-  PaymentRecordWire,
-} from "./contracts";
+import type { CheckoutOwnershipWire, PaymentRecordWire } from "./contracts";
 import {
   toCheckoutOwnership,
   toPaymentConfirmationWireRequest,
@@ -72,11 +69,7 @@ describe("payment contract mappers", () => {
   });
 
   it.each([
-    [
-      "response reservation mismatch",
-      validOwnershipWire,
-      "reservation-other",
-    ],
+    ["response reservation mismatch", validOwnershipWire, "reservation-other"],
     [
       "invalid accommodation identity",
       { ...validOwnershipWire, accommodation: { id: 0 } },

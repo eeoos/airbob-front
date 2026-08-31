@@ -157,26 +157,29 @@ describe("public runtime configuration", () => {
     "https://user:password@assets.airbob.test",
     "assets.airbob.test:8443",
     "https://assets.airbob.test:8443",
-  ])("rejects an invalid asset domain without exposing its value", (cloudFrontDomain) => {
-    let thrownError: unknown;
+  ])(
+    "rejects an invalid asset domain without exposing its value",
+    (cloudFrontDomain) => {
+      let thrownError: unknown;
 
-    try {
-      createPublicRuntimeConfig({
-        mode: "production",
-        apiUrl: "https://api.airbob.test",
-        cloudFrontDomain,
+      try {
+        createPublicRuntimeConfig({
+          mode: "production",
+          apiUrl: "https://api.airbob.test",
+          cloudFrontDomain,
+        });
+      } catch (error) {
+        thrownError = error;
+      }
+
+      expect(thrownError).toBeInstanceOf(ConfigError);
+      expect(thrownError).toMatchObject({
+        kind: "invalid",
+        key: "REACT_APP_CLOUDFRONT_DOMAIN",
       });
-    } catch (error) {
-      thrownError = error;
-    }
-
-    expect(thrownError).toBeInstanceOf(ConfigError);
-    expect(thrownError).toMatchObject({
-      kind: "invalid",
-      key: "REACT_APP_CLOUDFRONT_DOMAIN",
-    });
-    expect((thrownError as Error).message).not.toContain(cloudFrontDomain);
-  });
+      expect((thrownError as Error).message).not.toContain(cloudFrontDomain);
+    },
+  );
 
   it("normalizes the explicit default HTTPS asset port", () => {
     const config = createPublicRuntimeConfig({

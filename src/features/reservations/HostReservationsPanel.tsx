@@ -97,10 +97,7 @@ export function HostReservationsPanel({
                 <tr>
                   <th className={styles.th}>상태</th>
                   <th className={styles.th}>게스트</th>
-                  <th
-                    aria-sort={checkInSortDirection}
-                    className={styles.th}
-                  >
+                  <th aria-sort={checkInSortDirection} className={styles.th}>
                     <button
                       type="button"
                       className={styles.sortButton}
@@ -150,9 +147,7 @@ export function HostReservationsPanel({
                     <td className={styles.td}>
                       {reservation.reservationCodeLabel}
                     </td>
-                    <td className={styles.td}>
-                      {reservation.totalPriceLabel}
-                    </td>
+                    <td className={styles.td}>{reservation.totalPriceLabel}</td>
                     <td className={styles.td}>
                       <Button
                         size="sm"

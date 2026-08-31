@@ -47,8 +47,9 @@ const createMutableDefault = (): AccommodationEditFormData => {
 export const useListingEditorDraft = () => {
   const [formData, setFormData] =
     useState<AccommodationEditFormData>(createMutableDefault);
-  const [baseline, setBaseline] =
-    useState<AccommodationEditFormData | null>(null);
+  const [baseline, setBaseline] = useState<AccommodationEditFormData | null>(
+    null,
+  );
   const [fallbackProvenance, setFallbackProvenance] =
     useState<ListingEditorFallbackProvenance>({
       checkInTime: false,

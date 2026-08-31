@@ -17,10 +17,9 @@ const INVALID_RESULT = Object.freeze({ status: "invalid" as const });
 
 const isTerminalResult = (
   result: ReviewSubmissionResult,
-): result is CreatedReviewSubmissionResult | Extract<
-  ReviewSubmissionResult,
-  { readonly status: "ambiguous" }
-> =>
+): result is
+  | CreatedReviewSubmissionResult
+  | Extract<ReviewSubmissionResult, { readonly status: "ambiguous" }> =>
   result.status === "success" ||
   result.status === "created_without_images" ||
   result.status === "created_stale" ||
@@ -85,9 +84,7 @@ export const createReviewSubmissionWorkflow = ({
   let terminalPromise: Promise<ReviewSubmissionResult> | null = null;
 
   const isContinuationCurrent = (scope: AuthenticatedSessionScope): boolean =>
-    !disposed &&
-    routeLease.isCurrent() &&
-    session.isCurrentSession(scope);
+    !disposed && routeLease.isCurrent() && session.isCurrentSession(scope);
 
   const publishCreatedReview = async (
     input: ReviewSubmissionInput,

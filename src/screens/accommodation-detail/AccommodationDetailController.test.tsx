@@ -409,9 +409,7 @@ describe("AccommodationDetailController", () => {
         isCurrentSession: () => true,
       },
     });
-    const view = render(
-      <AccommodationDetailController {...initialProps} />,
-    );
+    const view = render(<AccommodationDetailController {...initialProps} />);
     const couponView = getFirstCoupon();
 
     act(() => {
@@ -419,9 +417,7 @@ describe("AccommodationDetailController", () => {
       getReadyView().bookingCard.couponActions.handleIssueCoupon(couponView);
     });
     expect(mockIssueCoupon).toHaveBeenCalledTimes(1);
-    expect(
-      getFirstCoupon().isIssuing,
-    ).toBe(true);
+    expect(getFirstCoupon().isIssuing).toBe(true);
 
     isRouteCurrent = false;
     view.rerender(
@@ -430,11 +426,7 @@ describe("AccommodationDetailController", () => {
         routeLease={{ isCurrent: () => true }}
       />,
     );
-    await waitFor(() =>
-      expect(
-        getFirstCoupon().isIssuing,
-      ).toBe(false),
-    );
+    await waitFor(() => expect(getFirstCoupon().isIssuing).toBe(false));
 
     await act(async () => {
       resolveIssue();
@@ -453,9 +445,7 @@ describe("AccommodationDetailController", () => {
       routeLease: { isCurrent: () => firstRouteCurrent },
     });
     mockStartReservation.mockReturnValue(reservationPending);
-    const view = render(
-      <AccommodationDetailController {...initialProps} />,
-    );
+    const view = render(<AccommodationDetailController {...initialProps} />);
 
     act(() => getReadyView().bookingCard.bookingActions.onReserve());
     expect(getReadyView().bookingCard.bookingState.isReserving).toBe(true);
@@ -524,9 +514,7 @@ describe("AccommodationDetailController", () => {
     });
     const recordRecentlyViewed = vi.fn().mockReturnValue(recordPending);
     const initialProps = createProps({ recordRecentlyViewed });
-    const view = render(
-      <AccommodationDetailController {...initialProps} />,
-    );
+    const view = render(<AccommodationDetailController {...initialProps} />);
 
     await waitFor(() => expect(recordRecentlyViewed).toHaveBeenCalledTimes(1));
     const [, recordOptions] = getMockCall(
@@ -535,7 +523,9 @@ describe("AccommodationDetailController", () => {
       "recordRecentlyViewed",
     );
     if (!(recordOptions?.signal instanceof AbortSignal)) {
-      throw new Error("Expected recordRecentlyViewed to receive an AbortSignal");
+      throw new Error(
+        "Expected recordRecentlyViewed to receive an AbortSignal",
+      );
     }
     const signal = recordOptions.signal;
 
@@ -557,9 +547,7 @@ describe("AccommodationDetailController", () => {
   });
 
   it("loads one review cursor at a time without retrying a failed cursor loop", async () => {
-    const fetchNextPage = vi
-      .fn()
-      .mockRejectedValue(new Error("page failed"));
+    const fetchNextPage = vi.fn().mockRejectedValue(new Error("page failed"));
     mockReviewsQuery.mockReturnValue({
       data: {
         pages: [
@@ -616,9 +604,7 @@ describe("AccommodationDetailController", () => {
 
   it("records a current authenticated detail at most once per controller scope", async () => {
     const props = createProps();
-    const { rerender } = render(
-      <AccommodationDetailController {...props} />,
-    );
+    const { rerender } = render(<AccommodationDetailController {...props} />);
 
     await waitFor(() =>
       expect(props.recordRecentlyViewed).toHaveBeenCalledTimes(1),

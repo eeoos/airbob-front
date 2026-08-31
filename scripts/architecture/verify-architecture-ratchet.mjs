@@ -42,11 +42,7 @@ export const verifyArchitectureRatchet = ({ root = projectRoot } = {}) => {
 
   for (const comparison of comparisons) {
     const historicalFeatureScopes = new Set(
-      listFilesAtRevision(
-        root,
-        comparison.revision,
-        "src/features",
-      )
+      listFilesAtRevision(root, comparison.revision, "src/features")
         .map(getFeatureOwnershipScope)
         .filter(Boolean),
     );
@@ -63,11 +59,7 @@ export const verifyArchitectureRatchet = ({ root = projectRoot } = {}) => {
       );
     }
 
-    const source = readFileAtRevision(
-      root,
-      comparison.revision,
-      registryPath,
-    );
+    const source = readFileAtRevision(root, comparison.revision, registryPath);
 
     if (source === null) {
       continue;

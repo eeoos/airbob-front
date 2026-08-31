@@ -8,10 +8,7 @@ import {
   isSessionOwnedAuthEventRequest,
   sessionOwnedAuthEventPolicy,
 } from "./authEventPolicy";
-import {
-  httpClient,
-  MULTIPART_API_REQUEST_TIMEOUT_MS,
-} from "./client";
+import { httpClient, MULTIPART_API_REQUEST_TIMEOUT_MS } from "./client";
 import { requestApiData, requestApiDataNullable } from "./request";
 
 interface ListingWire {
@@ -185,11 +182,9 @@ describe("platform API request", () => {
 
   it("rejects an HTML response before parsing its body as an API envelope", async () => {
     const adapter: AxiosAdapter = async (config) =>
-      response(
-        config,
-        "<!doctype html><html><body>Login</body></html>",
-        { "content-type": "text/html; charset=utf-8" },
-      );
+      response(config, "<!doctype html><html><body>Login</body></html>", {
+        "content-type": "text/html; charset=utf-8",
+      });
     httpClient.defaults.adapter = adapter;
 
     await expect(

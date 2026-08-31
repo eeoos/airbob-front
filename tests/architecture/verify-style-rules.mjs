@@ -6,9 +6,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import stylelint from "stylelint";
 
 const require = createRequire(import.meta.url);
-const { protectedDesignLiteralStylePaths, strictStyleGlobs } = require(
-  "../../scripts/architecture/style-policy.cjs",
-);
+const {
+  protectedDesignLiteralStylePaths,
+  strictStyleGlobs,
+} = require("../../scripts/architecture/style-policy.cjs");
 const architectureDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(architectureDirectory, "../..");
 const configFile = path.join(projectRoot, "stylelint.config.mjs");
@@ -466,14 +467,8 @@ const temporaryProjectRoot = fs.mkdtempSync(
 );
 
 try {
-  const searchRoot = path.join(
-    temporaryProjectRoot,
-    "src/features/search",
-  );
-  const legacyRoot = path.join(
-    temporaryProjectRoot,
-    "src/features/legacy",
-  );
+  const searchRoot = path.join(temporaryProjectRoot, "src/features/search");
+  const legacyRoot = path.join(temporaryProjectRoot, "src/features/legacy");
   const accommodationsRoot = path.join(
     temporaryProjectRoot,
     "src/features/accommodations",
@@ -556,7 +551,9 @@ try {
     editorWarnings.some(({ severity }) => severity === "error") ||
     !editorWarnings.some(({ severity }) => severity === "warning")
   ) {
-    throw new Error("Parent feature promotion swallowed its nested editor scope.");
+    throw new Error(
+      "Parent feature promotion swallowed its nested editor scope.",
+    );
   }
 } finally {
   fs.rmSync(temporaryProjectRoot, { force: true, recursive: true });

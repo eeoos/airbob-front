@@ -73,7 +73,10 @@ describe("Toss Payments v2 integration", () => {
     const first = loadTossPaymentsV2Client(clientKey);
     const duplicate = loadTossPaymentsV2Client(clientKey);
 
-    const [firstClient, duplicateClient] = await Promise.all([first, duplicate]);
+    const [firstClient, duplicateClient] = await Promise.all([
+      first,
+      duplicate,
+    ]);
     expect(duplicateClient).not.toBe(firstClient);
     expect(loadTossPayments).toHaveBeenCalledTimes(1);
     expect(payment).toHaveBeenCalledTimes(2);
@@ -110,9 +113,9 @@ describe("Toss Payments v2 integration", () => {
     vi.useFakeTimers();
     try {
       const clientKey = nextClientKey();
-      vi
-        .mocked(loadTossPayments)
-        .mockReturnValue(new Promise(() => undefined) as never);
+      vi.mocked(loadTossPayments).mockReturnValue(
+        new Promise(() => undefined) as never,
+      );
 
       const readiness = loadTossPaymentsV2Client(clientKey);
       vi.advanceTimersByTime(TOSS_PAYMENTS_V2_READINESS_TIMEOUT_MS);
@@ -139,9 +142,9 @@ describe("Toss Payments v2 integration", () => {
       vi.mocked(clearTossPayments).mockImplementation(() => {
         throw new Error("cleanup unavailable");
       });
-      vi
-        .mocked(loadTossPayments)
-        .mockReturnValue(new Promise(() => undefined) as never);
+      vi.mocked(loadTossPayments).mockReturnValue(
+        new Promise(() => undefined) as never,
+      );
 
       const readiness = loadTossPaymentsV2Client(clientKey);
       vi.advanceTimersByTime(TOSS_PAYMENTS_V2_READINESS_TIMEOUT_MS);
@@ -207,9 +210,9 @@ describe("Toss Payments v2 integration", () => {
     });
     vi.mocked(loadTossPayments).mockResolvedValue({ payment } as never);
 
-    await expect(
-      loadTossPaymentsV2Client(nextClientKey()),
-    ).rejects.toBe(providerError);
+    await expect(loadTossPaymentsV2Client(nextClientKey())).rejects.toBe(
+      providerError,
+    );
   });
 
   it("rejects an empty client key before loading the SDK", async () => {
@@ -248,13 +251,16 @@ describe("Toss Payments v2 integration", () => {
     ["zero amount", { amount: 0 }],
     ["relative success URL", { successUrl: "/success" }],
     ["relative fail URL", { failUrl: "/fail" }],
-  ] as const)("rejects a %s before provider request I/O", async (_, override) => {
-    const { requestPayment } = setupSdk();
-    const client = await loadTossPaymentsV2Client(nextClientKey());
+  ] as const)(
+    "rejects a %s before provider request I/O",
+    async (_, override) => {
+      const { requestPayment } = setupSdk();
+      const client = await loadTossPaymentsV2Client(nextClientKey());
 
-    await expect(
-      client.requestPayment({ ...request, ...override }),
-    ).rejects.toMatchObject({ code: "INVALID_PARAMETERS" });
-    expect(requestPayment).not.toHaveBeenCalled();
-  });
+      await expect(
+        client.requestPayment({ ...request, ...override }),
+      ).rejects.toMatchObject({ code: "INVALID_PARAMETERS" });
+      expect(requestPayment).not.toHaveBeenCalled();
+    },
+  );
 });

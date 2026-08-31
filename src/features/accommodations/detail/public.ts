@@ -1,8 +1,6 @@
 export { accommodationCouponApi } from "./api/couponApi";
 export { calculateAccommodationCouponDiscount } from "./lib/accommodationCouponRules";
-export {
-  createAccommodationDetailQueryCacheProjection,
-} from "./cache/accommodationDetailQueryCacheProjection";
+export { createAccommodationDetailQueryCacheProjection } from "./cache/accommodationDetailQueryCacheProjection";
 export type { AccommodationCoupon } from "./model/coupon";
 export {
   useAccommodationDetailReadQuery,

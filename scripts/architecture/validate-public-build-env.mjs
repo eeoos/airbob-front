@@ -13,15 +13,15 @@ export const PUBLIC_BUILD_ENV_KEYS = Object.freeze([
 ]);
 const TOSS_CLIENT_KEY_PATTERN = /^(?:test|live)_ck_[A-Za-z0-9_-]{1,256}$/;
 const GOOGLE_MAPS_BROWSER_KEY_PATTERN = /^[A-Za-z0-9_-]{1,256}$/;
-const KNOWN_SERVER_SECRET_PATTERN = /(?:^|[^A-Za-z0-9])(?:test|live)_sk_[A-Za-z0-9_-]{1,256}(?:$|[^A-Za-z0-9_-])/i;
+const KNOWN_SERVER_SECRET_PATTERN =
+  /(?:^|[^A-Za-z0-9])(?:test|live)_sk_[A-Za-z0-9_-]{1,256}(?:$|[^A-Za-z0-9_-])/i;
 const SAFE_PUBLIC_ASSET_BASE_PATTERN = /^[A-Za-z0-9._~:/-]+$/;
 const DEFAULT_CLOUDFRONT_DOMAIN = "d1wivnghydqg7i.cloudfront.net";
 
 const invalidBuildConfiguration = (category) =>
   new Error(`Production build ${category} configuration is invalid.`);
 
-const trimOptional = (value) =>
-  typeof value === "string" ? value.trim() : "";
+const trimOptional = (value) => (typeof value === "string" ? value.trim() : "");
 
 const rejectKnownServerSecret = (value, category) => {
   const candidate = trimOptional(value);

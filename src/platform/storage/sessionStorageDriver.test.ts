@@ -68,7 +68,7 @@ describe("sessionStorageDriver", () => {
       });
       expect(JSON.stringify(result)).not.toContain("sensitive");
       expect(JSON.stringify(result)).not.toContain("private storage detail");
-    }
+    },
   );
 
   it("handles access to the sessionStorage property itself being denied", () => {

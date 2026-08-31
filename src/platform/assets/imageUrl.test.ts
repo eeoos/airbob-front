@@ -31,9 +31,7 @@ describe("resolveImageUrl", () => {
         "assets.example.cloudfront.net/accommodations/4/image.jpg",
         cloudFrontHost,
       ),
-    ).toBe(
-      "https://assets.example.cloudfront.net/accommodations/4/image.jpg",
-    );
+    ).toBe("https://assets.example.cloudfront.net/accommodations/4/image.jpg");
     expect(
       resolveImageUrl(
         "attacker.invalid/assets.example.cloudfront.net/image.jpg",
@@ -46,7 +44,10 @@ describe("resolveImageUrl", () => {
 
   it("preserves absolute HTTPS image URLs", () => {
     expect(
-      resolveImageUrl("https://images.example.com/room.jpg?size=large", cloudFrontHost),
+      resolveImageUrl(
+        "https://images.example.com/room.jpg?size=large",
+        cloudFrontHost,
+      ),
     ).toBe("https://images.example.com/room.jpg?size=large");
   });
 
@@ -58,7 +59,10 @@ describe("resolveImageUrl", () => {
 
   it("rejects credential-bearing absolute image URLs", () => {
     expect(
-      resolveImageUrl("https://user:password@images.example.com/room.jpg", cloudFrontHost),
+      resolveImageUrl(
+        "https://user:password@images.example.com/room.jpg",
+        cloudFrontHost,
+      ),
     ).toBe("");
   });
 
@@ -66,8 +70,8 @@ describe("resolveImageUrl", () => {
     expect(() => resolveImageUrl("image.jpg", "bad.example/path")).toThrow(
       "Public image host configuration is invalid.",
     );
-    expect(() => resolveImageUrl("image.jpg", `${cloudFrontHost}:8443`)).toThrow(
-      "Public image host configuration is invalid.",
-    );
+    expect(() =>
+      resolveImageUrl("image.jpg", `${cloudFrontHost}:8443`),
+    ).toThrow("Public image host configuration is invalid.");
   });
 });

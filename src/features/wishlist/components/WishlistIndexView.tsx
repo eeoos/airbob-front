@@ -8,7 +8,7 @@ interface WishlistIndexViewProps {
   isMutationPending?: boolean;
   onDeleteWishlist: (
     wishlistId: number,
-    event: React.MouseEvent<HTMLButtonElement>
+    event: React.MouseEvent<HTMLButtonElement>,
   ) => void;
   onOpenRecentlyViewed: () => void;
   onOpenWishlist: (wishlistId: number) => void;

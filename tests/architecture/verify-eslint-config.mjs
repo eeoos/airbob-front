@@ -26,16 +26,14 @@ assert.deepEqual(
     "@vitest/eslint-plugin":
       packageData.devDependencies["@vitest/eslint-plugin"],
     eslint: packageData.devDependencies.eslint,
-    "eslint-plugin-import":
-      packageData.devDependencies["eslint-plugin-import"],
+    "eslint-plugin-import": packageData.devDependencies["eslint-plugin-import"],
     "eslint-plugin-jest-dom":
       packageData.devDependencies["eslint-plugin-jest-dom"],
     "eslint-plugin-jsx-a11y":
       packageData.devDependencies["eslint-plugin-jsx-a11y"],
     "eslint-plugin-playwright":
       packageData.devDependencies["eslint-plugin-playwright"],
-    "eslint-plugin-react":
-      packageData.devDependencies["eslint-plugin-react"],
+    "eslint-plugin-react": packageData.devDependencies["eslint-plugin-react"],
     "eslint-plugin-react-hooks":
       packageData.devDependencies["eslint-plugin-react-hooks"],
     "eslint-plugin-testing-library":
@@ -83,22 +81,36 @@ const playwrightConfig = await calculateConfig(
   "tests/e2e/specs/example.spec.ts",
 );
 const nodeEsmConfig = await calculateConfig("tests/architecture/example.mjs");
-const smokeToolConfig = await calculateConfig("scripts/smoke/frontend-smoke.mjs");
+const smokeToolConfig = await calculateConfig(
+  "scripts/smoke/frontend-smoke.mjs",
+);
 const nodeCommonJsConfig = await calculateConfig(".dependency-cruiser.cjs");
 
 assert.equal(productionConfig.languageOptions.globals.window, false);
 assert.equal(productionConfig.languageOptions.globals.process, undefined);
-assert.equal(productionConfig.languageOptions.parser.meta.name, "typescript-eslint/parser");
+assert.equal(
+  productionConfig.languageOptions.parser.meta.name,
+  "typescript-eslint/parser",
+);
 assert.equal(ruleSeverity(productionConfig, "react-hooks/rules-of-hooks"), 2);
 assert.equal(ruleSeverity(productionConfig, "react-hooks/exhaustive-deps"), 1);
-assert.equal(javascriptReactConfig.languageOptions.parserOptions.ecmaFeatures.jsx, true);
-assert.equal(ruleSeverity(javascriptReactConfig, "react-hooks/rules-of-hooks"), 2);
+assert.equal(
+  javascriptReactConfig.languageOptions.parserOptions.ecmaFeatures.jsx,
+  true,
+);
+assert.equal(
+  ruleSeverity(javascriptReactConfig, "react-hooks/rules-of-hooks"),
+  2,
+);
 assert.equal(ruleSeverity(javascriptReactConfig, "jsx-a11y/alt-text"), 2);
 assert.equal(ruleSeverity(productionConfig, "no-restricted-globals"), 2);
 assert.equal(ruleSeverity(productionConfig, "no-restricted-properties"), 2);
 assert.equal(ruleSeverity(productionConfig, "no-restricted-syntax"), 2);
 assert.equal(ruleSeverity(productionConfig, "no-restricted-imports"), 2);
-assert.equal(ruleSeverity(environmentOwnerConfig, "no-restricted-globals"), undefined);
+assert.equal(
+  ruleSeverity(environmentOwnerConfig, "no-restricted-globals"),
+  undefined,
+);
 
 assert.equal(vitestConfig.languageOptions.globals.vi, true);
 assert.equal(vitestConfig.languageOptions.globals.test, true);

@@ -34,9 +34,7 @@ const getHostListingLocationLabel = (
   );
 };
 
-const getHostListingStatusLabel = (
-  status: HostListing["status"],
-): string => {
+const getHostListingStatusLabel = (status: HostListing["status"]): string => {
   switch (status) {
     case "PUBLISHED":
       return "공개";

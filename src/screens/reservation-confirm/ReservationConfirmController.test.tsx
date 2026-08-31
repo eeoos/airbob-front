@@ -1,5 +1,8 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
-import type { AuthenticatedSessionScope, SessionSubject } from "../../platform/session/sessionScope";
+import type {
+  AuthenticatedSessionScope,
+  SessionSubject,
+} from "../../platform/session/sessionScope";
 import { renderApp } from "../../test/renderApp";
 import type {
   CheckoutData,
@@ -90,7 +93,9 @@ describe("ReservationConfirmController", () => {
     });
     await waitFor(() => expect(paymentButton).toBeEnabled());
     fireEvent.click(paymentButton);
-    await waitFor(() => expect(gateway.requestPayment).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(gateway.requestPayment).toHaveBeenCalledTimes(1),
+    );
     expect(
       screen.getByRole("button", { name: "결제 진행 중..." }),
     ).toBeDisabled();

@@ -6,8 +6,7 @@ export interface StorageAccessError {
 }
 
 export type StorageAccessResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; error: StorageAccessError };
+  { ok: true; value: T } | { ok: false; error: StorageAccessError };
 
 export interface SessionStorageDriver {
   getItem(key: string): StorageAccessResult<string | null>;
@@ -20,7 +19,9 @@ export interface CreateSessionStorageDriverOptions {
   getStorage?: () => Storage | null;
 }
 
-const storageFailure = <T>(operation: StorageOperation): StorageAccessResult<T> => ({
+const storageFailure = <T>(
+  operation: StorageOperation,
+): StorageAccessResult<T> => ({
   ok: false,
   error: { kind: "storage-unavailable", operation },
 });
@@ -36,7 +37,7 @@ export const createSessionStorageDriver = ({
 }: CreateSessionStorageDriverOptions = {}): SessionStorageDriver => {
   const withStorage = <T>(
     operation: StorageOperation,
-    action: (storage: Storage) => T
+    action: (storage: Storage) => T,
   ): StorageAccessResult<T> => {
     try {
       const storage = getStorage();
@@ -60,9 +61,9 @@ export const createSessionStorageDriver = ({
       }),
     keys: () =>
       withStorage("keys", (storage) =>
-        Array.from({ length: storage.length }, (_, index) => storage.key(index)).filter(
-          (key): key is string => key !== null
-        )
+        Array.from({ length: storage.length }, (_, index) =>
+          storage.key(index),
+        ).filter((key): key is string => key !== null),
       ),
   };
 };

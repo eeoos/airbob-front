@@ -1,8 +1,5 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import {
-  useAuthForm,
-  type AuthFormController,
-} from "./authForm";
+import { useAuthForm, type AuthFormController } from "./authForm";
 import type { AuthFormValues } from "./auth";
 
 const validSignup = {
@@ -12,10 +9,7 @@ const validSignup = {
   confirmPassword: "password123",
 };
 
-const fillForm = (
-  controller: AuthFormController,
-  values: AuthFormValues,
-) => {
+const fillForm = (controller: AuthFormController, values: AuthFormValues) => {
   controller.setField("nickname", values.nickname);
   controller.setField("email", values.email);
   controller.setField("password", values.password);
@@ -47,7 +41,9 @@ describe("useAuthForm", () => {
   it("retains form values and maps an exact auth error after failure", async () => {
     const login = vi
       .fn()
-      .mockRejectedValue(new Error("이메일 또는 비밀번호가 올바르지 않습니다."));
+      .mockRejectedValue(
+        new Error("이메일 또는 비밀번호가 올바르지 않습니다."),
+      );
     const { result } = renderHook(() => useAuthForm({ mode: "login", login }));
 
     act(() => {
@@ -119,9 +115,7 @@ describe("useAuthForm", () => {
 
   it("allows retry when a command adapter throws before returning a promise", async () => {
     const login = vi
-      .fn<
-        (credentials: { email: string; password: string }) => Promise<void>
-      >()
+      .fn<(credentials: { email: string; password: string }) => Promise<void>>()
       .mockImplementationOnce(() => {
         throw new Error("동기 어댑터 실패");
       })

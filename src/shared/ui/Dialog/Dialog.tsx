@@ -41,14 +41,14 @@ const getFocusableElements = (element: HTMLElement) =>
   Array.from(element.querySelectorAll<HTMLElement>(focusableSelector)).filter(
     (focusableElement) =>
       !focusableElement.hasAttribute("disabled") &&
-      focusableElement.getAttribute("aria-hidden") !== "true"
+      focusableElement.getAttribute("aria-hidden") !== "true",
   );
 
 const getAutofocusElement = (element: HTMLElement) =>
   getFocusableElements(element).find(
     (focusableElement) =>
       (focusableElement as HTMLInputElement).autofocus ||
-      focusableElement.hasAttribute("autofocus")
+      focusableElement.hasAttribute("autofocus"),
   ) ?? null;
 
 const getInitialFocusElement = (
@@ -127,10 +127,7 @@ export function Dialog({
       return;
     }
 
-    if (
-      !overlay.hasRuntime &&
-      previousFocusedElementRef.current === null
-    ) {
+    if (!overlay.hasRuntime && previousFocusedElementRef.current === null) {
       previousFocusedElementRef.current = document.activeElement;
     }
 
@@ -151,7 +148,7 @@ export function Dialog({
         ? getInitialFocusElement(dialogRef.current, initialFocusRef)
         : null;
       const firstFocusableElement = dialogRef.current
-        ? getFocusableElements(dialogRef.current)[0] ?? null
+        ? (getFocusableElements(dialogRef.current)[0] ?? null)
         : null;
       if (initialFocusElement) {
         initialFocusElement.focus();
@@ -237,8 +234,7 @@ export function Dialog({
     return null;
   }
 
-  const isInactiveUnderOverlay =
-    overlay.hasRuntime && !overlay.isTopmostModal;
+  const isInactiveUnderOverlay = overlay.hasRuntime && !overlay.isTopmostModal;
 
   const content = (
     <div

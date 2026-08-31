@@ -50,8 +50,7 @@ export const accommodationAmenityLabels = {
   BALCONY: "발코니",
 } as const;
 
-export type AccommodationAmenityCode =
-  keyof typeof accommodationAmenityLabels;
+export type AccommodationAmenityCode = keyof typeof accommodationAmenityLabels;
 
 export const getAccommodationTypeLabel = (code: string): string =>
   accommodationTypeLabels[code] ?? code ?? "숙소";

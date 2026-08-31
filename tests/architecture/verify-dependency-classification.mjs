@@ -9,7 +9,9 @@ const projectRoot = path.resolve(architectureDirectory, "../..");
 const knipBinary = path.join(projectRoot, "node_modules/knip/bin/knip.js");
 
 const fixtureRoot = await realpath(
-  await mkdtemp(path.join(os.tmpdir(), "airbob-knip-dependency-classification-")),
+  await mkdtemp(
+    path.join(os.tmpdir(), "airbob-knip-dependency-classification-"),
+  ),
 );
 
 const writeFixtureFile = async (relativePath, source) => {
@@ -169,7 +171,10 @@ try {
   for (const scenario of scenarios) {
     await writeFixtureFile(
       "package.json",
-      JSON.stringify({ ...createPackage("knip-classification-fixture"), ...scenario.packageData }),
+      JSON.stringify({
+        ...createPackage("knip-classification-fixture"),
+        ...scenario.packageData,
+      }),
     );
     await writeFixtureFile("knip.json", baseKnipConfig);
 
@@ -178,7 +183,9 @@ try {
     }
 
     const issues = runKnip(scenario);
-    if (!hasExpectedIssue(issues, scenario.expectedIssue, scenario.expectedValue)) {
+    if (
+      !hasExpectedIssue(issues, scenario.expectedIssue, scenario.expectedValue)
+    ) {
       throw new Error(
         `Knip did not flag ${scenario.name} as ${scenario.expectedIssue}:${scenario.expectedValue}.\n` +
           JSON.stringify(issues, null, 2),

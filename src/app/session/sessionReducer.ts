@@ -141,10 +141,7 @@ export const sessionReducer = (
 
       return {
         status: "anonymous",
-        reason:
-          state.reason === "bootstrap"
-            ? "bootstrap"
-            : "server-revoked",
+        reason: state.reason === "bootstrap" ? "bootstrap" : "server-revoked",
         revocation: "verified",
         operationId: action.operationId,
         epoch: action.epoch,

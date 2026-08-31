@@ -23,28 +23,25 @@ const mockLocation = {
   key: "test-location",
 };
 
-vi.mock(
-  "react-router-dom",
-  () => ({
-    Navigate: ({
-      to,
-      replace,
-      state,
-    }: {
-      to: string;
-      replace?: boolean;
-      state?: unknown;
-    }) => (
-      <div
-        data-testid="navigate"
-        data-replace={String(replace)}
-        data-state={JSON.stringify(state)}
-        data-to={to}
-      />
-    ),
-    useLocation: () => mockLocation,
-  }),
-);
+vi.mock("react-router-dom", () => ({
+  Navigate: ({
+    to,
+    replace,
+    state,
+  }: {
+    to: string;
+    replace?: boolean;
+    state?: unknown;
+  }) => (
+    <div
+      data-testid="navigate"
+      data-replace={String(replace)}
+      data-state={JSON.stringify(state)}
+      data-to={to}
+    />
+  ),
+  useLocation: () => mockLocation,
+}));
 
 const mockUseSession = useSession as MockedFunction<typeof useSession>;
 
@@ -75,9 +72,7 @@ const authenticatedState = (
   revalidation,
 });
 
-const createSessionValue = (
-  state: SessionState,
-): Mocked<SessionContextValue> =>
+const createSessionValue = (state: SessionState): Mocked<SessionContextValue> =>
   ({
     state,
     login: vi.fn(),

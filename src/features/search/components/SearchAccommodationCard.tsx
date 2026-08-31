@@ -14,7 +14,9 @@ interface SearchAccommodationCardProps {
   checkOut?: string | null | undefined;
 }
 
-export const SearchAccommodationCard: React.FC<SearchAccommodationCardProps> = ({
+export const SearchAccommodationCard: React.FC<
+  SearchAccommodationCardProps
+> = ({
   accommodation,
   detailUrl,
   onWishlistToggle,
@@ -86,9 +88,7 @@ export const SearchAccommodationCard: React.FC<SearchAccommodationCardProps> = (
         </div>
         <div className={styles.wishlistCardInfo}>
           <div className={styles.locationRow}>
-            <div className={styles.location}>
-              {accommodation.locationLabel}
-            </div>
+            <div className={styles.location}>{accommodation.locationLabel}</div>
             {accommodation.showReview && (
               <div className={styles.review}>
                 <span className={styles.star}>★</span>

@@ -91,7 +91,8 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color var(--motion-duration-base) var(--motion-ease-standard),
+  transition:
+    background-color var(--motion-duration-base) var(--motion-ease-standard),
     border-color var(--motion-duration-base) var(--motion-ease-standard);
   padding: 0;
 }
@@ -282,7 +283,8 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color var(--motion-duration-base) var(--motion-ease-standard),
+  transition:
+    background-color var(--motion-duration-base) var(--motion-ease-standard),
     border-color var(--motion-duration-base) var(--motion-ease-standard);
 }
 
@@ -319,7 +321,8 @@
   align-items: center;
   justify-content: center;
   color: var(--color-text-secondary);
-  transition: background-color var(--motion-duration-base) var(--motion-ease-standard),
+  transition:
+    background-color var(--motion-duration-base) var(--motion-ease-standard),
     color var(--motion-duration-base) var(--motion-ease-standard);
   border-radius: var(--radius-sm);
 }
@@ -346,7 +349,8 @@
   font-weight: 600;
   color: var(--color-text-primary);
   cursor: pointer;
-  transition: background-color var(--motion-duration-base) var(--motion-ease-standard),
+  transition:
+    background-color var(--motion-duration-base) var(--motion-ease-standard),
     border-color var(--motion-duration-base) var(--motion-ease-standard);
 }
 

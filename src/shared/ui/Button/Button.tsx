@@ -4,8 +4,7 @@ import styles from "./Button.module.css";
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 export type ButtonSize = "sm" | "md" | "lg";
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   fullWidth?: boolean;
@@ -30,7 +29,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       variant = "primary",
       ...buttonProps
     },
-    ref
+    ref,
   ) => (
     <button
       ref={ref}
@@ -40,7 +39,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         styles[variant],
         styles[size],
         fullWidth && styles.fullWidth,
-        className
+        className,
       )}
       disabled={disabled || isLoading}
       aria-busy={isLoading ? true : undefined}
@@ -48,7 +47,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     >
       {isLoading ? loadingLabel : children}
     </button>
-  )
+  ),
 );
 
 Button.displayName = "Button";

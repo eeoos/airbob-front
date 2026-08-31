@@ -52,8 +52,7 @@ export function AccommodationReviewsSection({
         <div className={styles.reviewsGrid}>
           {reviews.map((review) => {
             const isExpanded = expandedReviews[review.id];
-            const isLongReview =
-              review.content.length > maxReviewContentLength;
+            const isLongReview = review.content.length > maxReviewContentLength;
             const visibleContent =
               isExpanded || !isLongReview
                 ? review.content
@@ -95,9 +94,7 @@ export function AccommodationReviewsSection({
                   ))}
                 </div>
 
-                <div className={styles.reviewDate}>
-                  {review.date.label}
-                </div>
+                <div className={styles.reviewDate}>{review.date.label}</div>
 
                 <div className={styles.reviewContent}>{visibleContent}</div>
 

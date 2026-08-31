@@ -12,28 +12,25 @@ const mockNavigate = vi.fn();
 const mockSetSearchParams = vi.fn();
 let mockIsAuthenticated = false;
 
-vi.mock(
-  "react-router-dom",
-  () => ({
-    Link: ({
-      children,
-      to,
-      ...props
-    }: {
-      children: React.ReactNode;
-      to: string;
-    }) => (
-      <a href={to} {...props}>
-        {children}
-      </a>
-    ),
-    useLocation: () => ({
-      pathname: mockPathname,
-    }),
-    useNavigate: () => mockNavigate,
-    useSearchParams: () => [mockSearchParams, mockSetSearchParams],
+vi.mock("react-router-dom", () => ({
+  Link: ({
+    children,
+    to,
+    ...props
+  }: {
+    children: React.ReactNode;
+    to: string;
+  }) => (
+    <a href={to} {...props}>
+      {children}
+    </a>
+  ),
+  useLocation: () => ({
+    pathname: mockPathname,
   }),
-);
+  useNavigate: () => mockNavigate,
+  useSearchParams: () => [mockSearchParams, mockSetSearchParams],
+}));
 
 vi.mock("../../features/search/ui/HeaderSearchBar", async () => ({
   ...(await vi.importActual<
@@ -88,7 +85,10 @@ describe("Header", () => {
     const logoImage = within(homeLink).getByRole("presentation");
 
     expect(homeLink).toHaveAttribute("href", "/");
-    expect(logoImage).toHaveAttribute("src", expect.stringMatching(/airbob-wordmark\.png$/));
+    expect(logoImage).toHaveAttribute(
+      "src",
+      expect.stringMatching(/airbob-wordmark\.png$/),
+    );
     expect(logoImage).toHaveAttribute("alt", "");
   });
 
@@ -115,20 +115,20 @@ describe("Header", () => {
         "    display: flex;",
         "    align-items: center;",
         "  }",
-      ].join("\n")
+      ].join("\n"),
     );
   });
 
   it("passes map drag mode only when all viewport params are valid", () => {
     mockPathname = "/search";
     mockSearchParams = new URLSearchParams(
-      "topLeftLat=38&topLeftLng=126&bottomRightLat=37&bottomRightLng=128"
+      "topLeftLat=38&topLeftLng=126&bottomRightLat=37&bottomRightLng=128",
     );
 
     render(<Header />);
 
     expect(mockSearchBar).toHaveBeenCalledWith(
-      expect.objectContaining({ isMapDragMode: true })
+      expect.objectContaining({ isMapDragMode: true }),
     );
   });
 
@@ -139,7 +139,7 @@ describe("Header", () => {
     render(<Header />);
 
     expect(mockSearchBar).toHaveBeenCalledWith(
-      expect.objectContaining({ isMapDragMode: false })
+      expect.objectContaining({ isMapDragMode: false }),
     );
   });
 
@@ -150,9 +150,9 @@ describe("Header", () => {
     render(<Header />);
 
     const props = mockSearchBar.mock.calls.at(0)?.at(0) as
-      | { routePort: SearchBarRoutePort }
-      | undefined;
-    if (!props) throw new Error("Expected HeaderSearchBar props to be captured");
+      { routePort: SearchBarRoutePort } | undefined;
+    if (!props)
+      throw new Error("Expected HeaderSearchBar props to be captured");
     expect(props.routePort.currentSearchParams).toBe(mockSearchParams);
     expect(props.routePort.isSearchRoute).toBe(true);
 
@@ -178,7 +178,7 @@ describe("Header", () => {
     expect(mockUserMenu).toHaveBeenCalledWith({ isLoggedIn: true });
     expect(screen.getByTestId("user-menu")).toHaveAttribute(
       "data-is-logged-in",
-      "true"
+      "true",
     );
   });
 });

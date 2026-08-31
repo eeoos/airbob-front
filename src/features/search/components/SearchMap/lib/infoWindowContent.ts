@@ -170,28 +170,44 @@ const buildSearchMapInfoWindowContentView = ({
   return `
           <div id="info-window-${escapedAccommodationId}" style="width: ${INFO_WINDOW_STYLE_TOKENS.cardWidth}; font-family: ${INFO_WINDOW_FONT}; border-radius: ${INFO_WINDOW_STYLE_TOKENS.borderRadiusLg}; overflow: hidden; box-shadow: ${INFO_WINDOW_STYLE_TOKENS.shadowMd}; background: ${INFO_WINDOW_STYLE_TOKENS.background}; margin: 0; padding: 0; cursor: pointer; display: flex; flex-direction: column;">
             <div style="position: relative; width: ${INFO_WINDOW_STYLE_TOKENS.cardWidth}; height: ${INFO_WINDOW_STYLE_TOKENS.imageHeight}; overflow: hidden; background-color: ${INFO_WINDOW_STYLE_TOKENS.backgroundMuted};">
-              ${escapedImageUrl ? `<img src="${escapedImageUrl}" alt="${escapedTitle}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
-              <div style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; background-color: ${INFO_WINDOW_STYLE_TOKENS.backgroundMuted}; color: ${INFO_WINDOW_STYLE_TOKENS.textSecondary}; font-size: ${INFO_WINDOW_STYLE_TOKENS.textFontSize};">이미지 없음</div>` : `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background-color: ${INFO_WINDOW_STYLE_TOKENS.backgroundMuted}; color: ${INFO_WINDOW_STYLE_TOKENS.textSecondary}; font-size: ${INFO_WINDOW_STYLE_TOKENS.textFontSize};">이미지 없음</div>`}
+              ${
+                escapedImageUrl
+                  ? `<img src="${escapedImageUrl}" alt="${escapedTitle}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+              <div style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; background-color: ${INFO_WINDOW_STYLE_TOKENS.backgroundMuted}; color: ${INFO_WINDOW_STYLE_TOKENS.textSecondary}; font-size: ${INFO_WINDOW_STYLE_TOKENS.textFontSize};">이미지 없음</div>`
+                  : `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background-color: ${INFO_WINDOW_STYLE_TOKENS.backgroundMuted}; color: ${INFO_WINDOW_STYLE_TOKENS.textSecondary}; font-size: ${INFO_WINDOW_STYLE_TOKENS.textFontSize};">이미지 없음</div>`
+              }
               <div style="position: absolute; top: ${INFO_WINDOW_STYLE_TOKENS.actionInset}; right: ${INFO_WINDOW_STYLE_TOKENS.actionInset}; display: flex; gap: ${INFO_WINDOW_STYLE_TOKENS.actionGap}; z-index: ${INFO_WINDOW_STYLE_TOKENS.actionLayerZIndex};">
-                ${canToggleWishlist ? `
+                ${
+                  canToggleWishlist
+                    ? `
                   <button type="button" aria-label="${wishlistLabel}" aria-pressed="${isWishlisted}" data-info-window-action="wishlist" data-accommodation-id="${escapedAccommodationId}" data-is-in-wishlist="${isWishlisted}" style="width: ${INFO_WINDOW_STYLE_TOKENS.buttonWishlistSize}; height: ${INFO_WINDOW_STYLE_TOKENS.buttonWishlistSize}; border-radius: ${INFO_WINDOW_STYLE_TOKENS.borderRadiusPill}; border: none; background: ${INFO_WINDOW_STYLE_TOKENS.buttonBackground}; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; box-shadow: ${INFO_WINDOW_STYLE_TOKENS.shadowSm};">
                     <svg viewBox="0 0 24 24" fill="${wishlistIconFill}" stroke="${wishlistIconColor}" stroke-width="1.5" style="width: ${INFO_WINDOW_STYLE_TOKENS.buttonIconSize}; height: ${INFO_WINDOW_STYLE_TOKENS.buttonIconSize}; color: ${wishlistIconColor};">
                       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                     </svg>
                   </button>
-                ` : ""}
+                `
+                    : ""
+                }
                 <button type="button" aria-label="지도 숙소 카드 닫기" data-info-window-action="close" style="width: ${INFO_WINDOW_STYLE_TOKENS.buttonCloseSize}; height: ${INFO_WINDOW_STYLE_TOKENS.buttonCloseSize}; border-radius: ${INFO_WINDOW_STYLE_TOKENS.borderRadiusPill}; border: none; background: ${INFO_WINDOW_STYLE_TOKENS.buttonBackground}; cursor: pointer; display: flex; align-items: center; justify-content: center; color: ${INFO_WINDOW_STYLE_TOKENS.textPrimary}; font-size: ${INFO_WINDOW_STYLE_TOKENS.closeButtonFontSize}; line-height: ${INFO_WINDOW_STYLE_TOKENS.lineHeightTight}; box-shadow: ${INFO_WINDOW_STYLE_TOKENS.shadowSm};">×</button>
               </div>
             </div>
             <div style="width: ${INFO_WINDOW_STYLE_TOKENS.cardWidth}; padding: ${INFO_WINDOW_STYLE_TOKENS.contentPadding}; background: ${INFO_WINDOW_STYLE_TOKENS.background}; box-sizing: border-box; display: flex; flex-direction: column;">
-              ${escapedLocationLabel || escapedRatingLabel ? `<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: ${INFO_WINDOW_STYLE_TOKENS.locationMarginBottom};">
+              ${
+                escapedLocationLabel || escapedRatingLabel
+                  ? `<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: ${INFO_WINDOW_STYLE_TOKENS.locationMarginBottom};">
                 ${escapedLocationLabel ? `<p style="margin: 0; font-size: ${INFO_WINDOW_STYLE_TOKENS.textFontSize}; color: ${INFO_WINDOW_STYLE_TOKENS.textPrimary}; font-weight: ${INFO_WINDOW_STYLE_TOKENS.semiboldFontWeight}; line-height: ${INFO_WINDOW_STYLE_TOKENS.lineHeightCompact}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">${escapedLocationLabel}</p>` : `<span style="flex: 1;"></span>`}
-                ${escapedRatingLabel ? `<div style="display: flex; align-items: center; gap: ${INFO_WINDOW_STYLE_TOKENS.ratingGap}; margin-left: ${INFO_WINDOW_STYLE_TOKENS.ratingMarginLeft}; flex-shrink: 0;">
+                ${
+                  escapedRatingLabel
+                    ? `<div style="display: flex; align-items: center; gap: ${INFO_WINDOW_STYLE_TOKENS.ratingGap}; margin-left: ${INFO_WINDOW_STYLE_TOKENS.ratingMarginLeft}; flex-shrink: 0;">
                   <span style="font-size: ${INFO_WINDOW_STYLE_TOKENS.textFontSize}; color: ${INFO_WINDOW_STYLE_TOKENS.textPrimary};">★</span>
                   <span style="font-size: ${INFO_WINDOW_STYLE_TOKENS.textFontSize}; color: ${INFO_WINDOW_STYLE_TOKENS.textPrimary}; font-weight: ${INFO_WINDOW_STYLE_TOKENS.semiboldFontWeight};">${escapedRatingLabel}</span>
                   ${escapedRatingSecondaryLabel ? `<span style="font-size: ${INFO_WINDOW_STYLE_TOKENS.textFontSize}; color: ${INFO_WINDOW_STYLE_TOKENS.textSecondary};">${escapedRatingSecondaryLabel}</span>` : ""}
-                </div>` : ""}
-              </div>` : ""}
+                </div>`
+                    : ""
+                }
+              </div>`
+                  : ""
+              }
               <h3 style="margin: 0 0 ${INFO_WINDOW_STYLE_TOKENS.locationMarginBottom} 0; font-size: ${INFO_WINDOW_STYLE_TOKENS.textFontSize}; font-weight: ${INFO_WINDOW_STYLE_TOKENS.normalFontWeight}; color: ${INFO_WINDOW_STYLE_TOKENS.textPrimary}; line-height: ${INFO_WINDOW_STYLE_TOKENS.lineHeightCompact}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapedTitle}</h3>
               <p style="margin: 0; font-size: ${INFO_WINDOW_STYLE_TOKENS.textFontSize}; font-weight: ${INFO_WINDOW_STYLE_TOKENS.semiboldFontWeight}; color: ${INFO_WINDOW_STYLE_TOKENS.textPrimary};">
                 <span>${escapedPriceLabel}</span>${escapedPriceSuffixLabel ? `<span style="font-size: ${INFO_WINDOW_STYLE_TOKENS.textFontSize}; font-weight: ${INFO_WINDOW_STYLE_TOKENS.normalFontWeight}; color: ${INFO_WINDOW_STYLE_TOKENS.textSecondary};"> ${escapedPriceSuffixLabel}</span>` : ""}

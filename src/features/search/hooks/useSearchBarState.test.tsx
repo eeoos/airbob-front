@@ -227,7 +227,9 @@ describe("useSearchBarState", () => {
     });
 
     expect(mockPushSearch).toHaveBeenCalledTimes(1);
-    expect(getSearchParamsFromCall(mockPushSearch, "pushSearch").toString()).toBe(
+    expect(
+      getSearchParamsFromCall(mockPushSearch, "pushSearch").toString(),
+    ).toBe(
       "destination=Busan&adultOccupancy=1&childOccupancy=0&infantOccupancy=0&petOccupancy=0",
     );
   });
@@ -329,7 +331,10 @@ describe("useSearchBarState", () => {
       result.current.actions.exitMapDragMode();
     });
 
-    const nextParams = getSearchParamsFromCall(mockReplaceSearch, "replaceSearch");
+    const nextParams = getSearchParamsFromCall(
+      mockReplaceSearch,
+      "replaceSearch",
+    );
     expect(nextParams.get("destination")).toBe("Seoul");
     expect(nextParams.get("lat")).toBe("37");
     expect(nextParams.get("lng")).toBe("127");

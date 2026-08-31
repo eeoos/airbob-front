@@ -12,10 +12,7 @@ import { toAuthViewer } from "./authMapper";
 import type { AuthViewerWire } from "./wire";
 
 export interface AuthApi {
-  login(
-    credentials: LoginCredentials,
-    signal?: AbortSignal,
-  ): Promise<void>;
+  login(credentials: LoginCredentials, signal?: AbortSignal): Promise<void>;
   signup(command: SignupCommand, signal?: AbortSignal): Promise<void>;
   logout(signal?: AbortSignal): Promise<void>;
   getViewer(signal?: AbortSignal): Promise<AuthViewer>;

@@ -590,10 +590,12 @@ describe("session state contracts", () => {
   });
 
   it("captures only an authenticated subject and epoch", () => {
-    expect(toAuthenticatedSessionScope(authenticatedState(viewerA, 7))).toEqual({
-      subject: toSessionSubject(viewerA),
-      epoch: 7,
-    });
+    expect(toAuthenticatedSessionScope(authenticatedState(viewerA, 7))).toEqual(
+      {
+        subject: toSessionSubject(viewerA),
+        epoch: 7,
+      },
+    );
     expect(
       toAuthenticatedSessionScope(
         createInitialSessionState({ epoch: 7, operationId: 1 }),

@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSession } from "../session/useSession";
 import { useCreateAccommodationDraft } from "../../features/accommodations/ports/draftCreate";
@@ -50,7 +44,9 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
   const [pendingMenuFocus, setPendingMenuFocus] =
     useState<PendingMenuFocus>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authModalMode, setAuthModalMode] = useState<"login" | "signup">("login");
+  const [authModalMode, setAuthModalMode] = useState<"login" | "signup">(
+    "login",
+  );
   const menuRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const menuDropdownRef = useRef<HTMLDivElement>(null);
@@ -162,7 +158,9 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
         break;
       case "ArrowUp":
         event.preventDefault();
-        focusMenuItem(currentIndex >= 0 ? currentIndex - 1 : menuItems.length - 1);
+        focusMenuItem(
+          currentIndex >= 0 ? currentIndex - 1 : menuItems.length - 1,
+        );
         break;
       case "Home":
         event.preventDefault();
@@ -239,7 +237,11 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
             onClick={handleProfile}
             type="button"
           >
-            <svg viewBox="0 0 32 32" fill="currentColor" className={styles.icon}>
+            <svg
+              viewBox="0 0 32 32"
+              fill="currentColor"
+              className={styles.icon}
+            >
               <path d="M16 15.503A5.041 5.041 0 1016 5.42a5.041 5.041 0 000 10.083zm0 2.215c-6.703 0-11 3.699-11 5.5V24h22v-1.782c0-1.801-4.297-5.5-11-5.5z" />
             </svg>
           </button>
@@ -258,7 +260,11 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
             onKeyDown={handleMenuKeyDown}
             type="button"
           >
-            <svg viewBox="0 0 16 16" fill="currentColor" className={styles.icon}>
+            <svg
+              viewBox="0 0 16 16"
+              fill="currentColor"
+              className={styles.icon}
+            >
               <path d="M1 2.75A.75.75 0 011.75 2h12.5a.75.75 0 010 1.5H1.75A.75.75 0 011 2.75zm0 5A.75.75 0 011.75 7h12.5a.75.75 0 010 1.5H1.75A.75.75 0 011 7.75zM1.75 12a.75.75 0 000 1.5h12.5a.75.75 0 000-1.5H1.75z" />
             </svg>
           </button>

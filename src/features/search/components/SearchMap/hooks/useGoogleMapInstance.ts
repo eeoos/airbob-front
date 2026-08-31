@@ -51,9 +51,7 @@ export const useGoogleMapInstance = ({
 
     const maps = getGoogleMapsApi();
     if (!maps) {
-      setError(
-        createGoogleMapsIntegrationError("INTEGRATION_INVALID_RUNTIME"),
-      );
+      setError(createGoogleMapsIntegrationError("INTEGRATION_INVALID_RUNTIME"));
       return;
     }
 
@@ -69,7 +67,7 @@ export const useGoogleMapInstance = ({
     }> = [];
     let createdMap: google.maps.Map | null = null;
 
-    const defaultCenter = { lat: 37.5665, lng: 126.9780 };
+    const defaultCenter = { lat: 37.5665, lng: 126.978 };
     const initialCenter = viewport
       ? {
           lat: (viewport.north + viewport.south) / 2,
@@ -101,7 +99,7 @@ export const useGoogleMapInstance = ({
       if (viewport) {
         const initialBounds = new maps.LatLngBounds(
           { lat: viewport.south, lng: viewport.west },
-          { lat: viewport.north, lng: viewport.east }
+          { lat: viewport.north, lng: viewport.east },
         );
         map.fitBounds(initialBounds, 50);
         prevViewportRef.current = viewport;
@@ -117,18 +115,18 @@ export const useGoogleMapInstance = ({
           }
 
           onMapInteractionRef.current?.();
-        })
+        }),
       );
 
       mapListeners.push(
         map.addListener("dragstart", () => {
           onMapInteractionRef.current?.();
-        })
+        }),
       );
       mapListeners.push(
         map.addListener("zoomstart", () => {
           onMapInteractionRef.current?.();
-        })
+        }),
       );
 
       const touchStartListener = () => {
@@ -144,7 +142,7 @@ export const useGoogleMapInstance = ({
       mapElement.addEventListener("mousedown", mouseDownListener);
       elementListeners.push(
         { event: "touchstart", listener: touchStartListener },
-        { event: "mousedown", listener: mouseDownListener }
+        { event: "mousedown", listener: mouseDownListener },
       );
     } catch {
       mapInstanceRef.current = null;

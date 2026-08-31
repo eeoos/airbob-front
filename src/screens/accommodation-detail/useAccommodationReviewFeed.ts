@@ -37,11 +37,7 @@ export const useAccommodationReviewFeed = ({
     reviewsQuery.isError,
   ]);
 
-  const {
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = reviewsQuery;
+  const { fetchNextPage, hasNextPage, isFetchingNextPage } = reviewsQuery;
   const nextCursor =
     reviewsQuery.data?.pages.at(-1)?.pageInfo.nextCursor ?? null;
 
@@ -88,8 +84,7 @@ export const useAccommodationReviewFeed = ({
     [reviewPages],
   );
   const allReviews = useMemo(
-    () =>
-      toReviewViewModels(reviewPages.flatMap((page) => page.reviews)),
+    () => toReviewViewModels(reviewPages.flatMap((page) => page.reviews)),
     [reviewPages],
   );
 

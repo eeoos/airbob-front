@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import {
   checkoutOwnershipApi as defaultCheckoutOwnershipApi,
   paymentApi as defaultPaymentApi,
@@ -194,10 +201,7 @@ export function PaymentResultController({
         onInvalid();
         return;
       }
-      if (
-        kind === "reconcile" &&
-        !onCallbackPhaseChange("reconciling")
-      ) {
+      if (kind === "reconcile" && !onCallbackPhaseChange("reconciling")) {
         onInvalid();
         return;
       }
@@ -205,18 +209,12 @@ export function PaymentResultController({
       const operationId = ++operationCounterRef.current;
       activeOperationRef.current = operationId;
       dispatch({
-        type:
-          kind === "confirm"
-            ? "CONFIRM_STARTED"
-            : "RECONCILIATION_STARTED",
+        type: kind === "confirm" ? "CONFIRM_STARTED" : "RECONCILIATION_STARTED",
         operationId,
       });
       setStatusMessage(null);
-      const command = toCommand(
-        document,
-        callback,
-        routeLease,
-        () => onCallbackPhaseChange("confirming"),
+      const command = toCommand(document, callback, routeLease, () =>
+        onCallbackPhaseChange("confirming"),
       );
       const pending =
         kind === "confirm"
@@ -277,10 +275,7 @@ export function PaymentResultController({
       {...(document && callback && joinedDocuments(document, callback)
         ? {
             onReconcile: () =>
-              run(
-                shouldConfirm ? "confirm" : "reconcile",
-                "failure",
-              ),
+              run(shouldConfirm ? "confirm" : "reconcile", "failure"),
           }
         : {})}
     />

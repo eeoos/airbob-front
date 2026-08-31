@@ -1,17 +1,11 @@
-import {
-  serializeWishlistRouteQuery,
-  wishlistCodec,
-} from "./wishlistCodec";
+import { serializeWishlistRouteQuery, wishlistCodec } from "./wishlistCodec";
 
 describe("wishlistCodec", () => {
   it.each([
     ["", { view: "index", wishlistId: null }],
     ["view=recently-viewed", { view: "recently-viewed", wishlistId: null }],
     ["id=42", { view: "wishlist-detail", wishlistId: 42 }],
-    [
-      "view=recently-viewed&id=42",
-      { view: "wishlist-detail", wishlistId: 42 },
-    ],
+    ["view=recently-viewed&id=42", { view: "wishlist-detail", wishlistId: 42 }],
     ["id=0", { view: "index", wishlistId: null }],
     ["id=-1", { view: "index", wishlistId: null }],
     ["id=abc&view=unknown", { view: "index", wishlistId: null }],
@@ -22,7 +16,9 @@ describe("wishlistCodec", () => {
   it("round-trips each valid state", () => {
     ["", "view=recently-viewed", "id=42"].forEach((query) => {
       const state = wishlistCodec.parse(query);
-      expect(wishlistCodec.parse(wishlistCodec.serialize(state))).toEqual(state);
+      expect(wishlistCodec.parse(wishlistCodec.serialize(state))).toEqual(
+        state,
+      );
     });
   });
 
@@ -36,7 +32,9 @@ describe("wishlistCodec", () => {
   });
 
   it("keeps route-builder serialization stable", () => {
-    expect(serializeWishlistRouteQuery({ id: 1001 }).toString()).toBe("id=1001");
+    expect(serializeWishlistRouteQuery({ id: 1001 }).toString()).toBe(
+      "id=1001",
+    );
     expect(
       serializeWishlistRouteQuery({ view: "recently-viewed" }).toString(),
     ).toBe("view=recently-viewed");

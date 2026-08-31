@@ -84,10 +84,7 @@ describe("AuthController", () => {
     await userEvent.type(screen.getByLabelText("닉네임"), "airbob");
     await userEvent.type(screen.getByLabelText("이메일"), "used@example.com");
     await userEvent.type(screen.getByLabelText("비밀번호"), "password123");
-    await userEvent.type(
-      screen.getByLabelText("비밀번호 확인"),
-      "password123",
-    );
+    await userEvent.type(screen.getByLabelText("비밀번호 확인"), "password123");
     await userEvent.click(screen.getByRole("button", { name: "회원가입" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(

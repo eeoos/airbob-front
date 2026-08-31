@@ -257,9 +257,7 @@ describe("ReviewCreateController", () => {
     );
     expect(screen.getByLabelText("리뷰 내용")).toHaveValue("좋은 숙소예요");
     expect(onComplete).not.toHaveBeenCalled();
-    expect(
-      screen.getByRole("button", { name: "리뷰 작성하기" }),
-    ).toBeEnabled();
+    expect(screen.getByRole("button", { name: "리뷰 작성하기" })).toBeEnabled();
   });
 
   it("locks repeat submission when the create outcome is ambiguous", async () => {
@@ -367,10 +365,7 @@ describe("ReviewCreateController", () => {
     });
 
     await waitFor(() =>
-      expect(onComplete).toHaveBeenCalledWith(
-        "reservation-123",
-        "success",
-      ),
+      expect(onComplete).toHaveBeenCalledWith("reservation-123", "success"),
     );
     expect(onComplete).toHaveBeenCalledTimes(1);
   });

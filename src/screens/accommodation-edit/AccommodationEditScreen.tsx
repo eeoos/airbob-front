@@ -8,15 +8,10 @@ import { EditWizardNavigation } from "./components/EditWizardNavigation";
 import { EditWizardSidebar } from "./components/EditWizardSidebar";
 import type { AccommodationEditScreenProps } from "./editorViewContract";
 
-export const AccommodationEditScreen: React.FC<AccommodationEditScreenProps> = ({
-  state,
-  actions,
-}) => {
-  const {
-    currentStep,
-    isSaving,
-    canProceedToNext,
-  } = state;
+export const AccommodationEditScreen: React.FC<
+  AccommodationEditScreenProps
+> = ({ state, actions }) => {
+  const { currentStep, isSaving, canProceedToNext } = state;
   const {
     isStepCompleted,
     isStepClickable,

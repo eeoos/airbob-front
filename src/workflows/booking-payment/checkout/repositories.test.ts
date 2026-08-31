@@ -94,7 +94,8 @@ const setup = ({
       const operationId = operationIds.at(
         Math.min(operationIndex++, operationIds.length - 1),
       );
-      if (!operationId) throw new Error("Expected a booking operation id fixture");
+      if (!operationId)
+        throw new Error("Expected a booking operation id fixture");
       return operationId;
     },
   };
@@ -337,13 +338,25 @@ describe("booking-payment checkout repository", () => {
   });
 
   it.each([
-    ["unknown-fields", (record: Record<string, unknown>) => ({ ...record, extra: 1 })],
-    ["wrong-version", (record: Record<string, unknown>) => ({ ...record, version: 2 })],
-    ["wrong-purpose", (record: Record<string, unknown>) => ({ ...record, purpose: "other" })],
-    ["invalid-data", (record: Record<string, unknown>) => ({
-      ...record,
-      data: { ...(record.data as object), amount: 0 },
-    })],
+    [
+      "unknown-fields",
+      (record: Record<string, unknown>) => ({ ...record, extra: 1 }),
+    ],
+    [
+      "wrong-version",
+      (record: Record<string, unknown>) => ({ ...record, version: 2 }),
+    ],
+    [
+      "wrong-purpose",
+      (record: Record<string, unknown>) => ({ ...record, purpose: "other" }),
+    ],
+    [
+      "invalid-data",
+      (record: Record<string, unknown>) => ({
+        ...record,
+        data: { ...(record.data as object), amount: 0 },
+      }),
+    ],
   ])("purges a %s envelope", (reason, mutate) => {
     const harness = setup();
     writeCheckout(harness);
@@ -708,10 +721,7 @@ describe("legacy checkout migration", () => {
       "a classified retryable result",
       () => Promise.resolve({ status: "retryable-error" as const }),
     ],
-    [
-      "a thrown transport error",
-      () => Promise.reject(new Error("offline")),
-    ],
+    ["a thrown transport error", () => Promise.reject(new Error("offline"))],
   ])(
     "preserves the exact legacy primary and index after %s",
     async (_case, verify) => {
@@ -964,9 +974,9 @@ describe("booking-payment browser cleanup and failures", () => {
     harness.storage.setItem("airbob:reservation-checkouts:7", "keep");
     harness.storage.setItem("third-party", "keep");
 
-    expect(
-      clearBookingPaymentBrowserState({ driver: harness.driver }),
-    ).toEqual({ status: "cleared", removed: 5 });
+    expect(clearBookingPaymentBrowserState({ driver: harness.driver })).toEqual(
+      { status: "cleared", removed: 5 },
+    );
     expect(harness.storage.getItem("airbob:booking-payment-v10:checkout")).toBe(
       "keep",
     );
@@ -1035,12 +1045,10 @@ describe("booking-payment browser cleanup and failures", () => {
       [callbackKey]: "callback",
     });
     const originalRemove = storage.removeItem.bind(storage);
-    const remove = vi
-      .spyOn(storage, "removeItem")
-      .mockImplementation((key) => {
-        if (key === callbackKey) throw new Error("persistent cleanup failure");
-        originalRemove(key);
-      });
+    const remove = vi.spyOn(storage, "removeItem").mockImplementation((key) => {
+      if (key === callbackKey) throw new Error("persistent cleanup failure");
+      originalRemove(key);
+    });
     const driver = createSessionStorageDriver({ getStorage: () => storage });
 
     expect(clearBookingPaymentBrowserState({ driver })).toEqual({

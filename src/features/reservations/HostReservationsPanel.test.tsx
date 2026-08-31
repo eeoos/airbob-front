@@ -75,9 +75,7 @@ describe("HostReservationsPanel", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "예약을 불러오지 못했습니다.",
     );
-    await userEvent.click(
-      screen.getByRole("button", { name: "오류 닫기" }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: "오류 닫기" }));
     expect(onDismissError).toHaveBeenCalledTimes(1);
   });
 
@@ -114,7 +112,8 @@ describe("HostReservationsPanel", () => {
     const firstDetailButton = screen
       .getAllByRole("button", { name: "상세" })
       .at(0);
-    if (!firstDetailButton) throw new Error("Expected a reservation detail button");
+    if (!firstDetailButton)
+      throw new Error("Expected a reservation detail button");
     await userEvent.click(firstDetailButton);
 
     expect(onOpenReservation).toHaveBeenCalledWith("host-1");
@@ -145,10 +144,7 @@ describe("HostReservationsPanel", () => {
     expect(onCheckInSort).toHaveBeenCalledTimes(1);
 
     rerender(
-      <HostReservationsPanel
-        {...props}
-        checkInSortDirection="ascending"
-      />,
+      <HostReservationsPanel {...props} checkInSortDirection="ascending" />,
     );
 
     expect(checkInHeader).toHaveAttribute("aria-sort", "ascending");

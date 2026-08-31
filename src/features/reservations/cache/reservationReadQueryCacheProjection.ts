@@ -6,10 +6,8 @@ import { reservationReadQueryKeys } from "../queries/reservationReadQueryKeys";
 
 type QueryPredicate = NonNullable<QueryFilters["predicate"]>;
 
-const isGuestReadForScope = (
-  scope: AuthenticatedSessionScope,
-  reservationUid: string,
-): QueryPredicate =>
+const isGuestReadForScope =
+  (scope: AuthenticatedSessionScope, reservationUid: string): QueryPredicate =>
   (query) => {
     if (!matchesSessionQueryScope(query.meta, scope)) return false;
 
@@ -33,8 +31,11 @@ export const createReservationReadQueryCacheProjection = (
   queryClient: QueryClient,
 ): ReservationReadCacheProjectionPort => ({
   async guestReservationChanged({ reservationUid, scope }) {
-    await queryClient.invalidateQueries({
-      predicate: isGuestReadForScope(scope, reservationUid),
-    }, { throwOnError: true });
+    await queryClient.invalidateQueries(
+      {
+        predicate: isGuestReadForScope(scope, reservationUid),
+      },
+      { throwOnError: true },
+    );
   },
 });

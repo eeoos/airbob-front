@@ -8,7 +8,11 @@ describe("inspectApiEnvelope", () => {
     const listing: Listing = { id: 1, name: "Seoul stay" };
 
     expect(
-      inspectApiEnvelope<Listing>({ success: true, data: listing, error: null }),
+      inspectApiEnvelope<Listing>({
+        success: true,
+        data: listing,
+        error: null,
+      }),
     ).toEqual({ kind: "data", data: listing });
   });
 
@@ -27,15 +31,21 @@ describe("inspectApiEnvelope", () => {
 
     expect(inspection).toEqual({ kind: "backend-error", error: backendError });
     expect(
-      (inspection as { readonly kind: "backend-error"; readonly error: unknown })
-        .error,
+      (
+        inspection as {
+          readonly kind: "backend-error";
+          readonly error: unknown;
+        }
+      ).error,
     ).toBe(backendError);
   });
 
   it.each([undefined, null, "<html>login</html>", {}, { success: "true" }])(
     "classifies malformed response %p as invalid",
     (response) => {
-      expect(inspectApiEnvelope(response)).toEqual({ kind: "invalid-response" });
+      expect(inspectApiEnvelope(response)).toEqual({
+        kind: "invalid-response",
+      });
     },
   );
 
@@ -91,22 +101,25 @@ describe("parseApiEnvelope", () => {
       "conflict",
       "RESERVATION_CONFLICT",
     ],
-  ])("maps an envelope failure to a secret-safe AppError", (response, kind, code) => {
-    let thrownError: unknown;
+  ])(
+    "maps an envelope failure to a secret-safe AppError",
+    (response, kind, code) => {
+      let thrownError: unknown;
 
-    try {
-      parseApiEnvelope(response);
-    } catch (error) {
-      thrownError = error;
-    }
+      try {
+        parseApiEnvelope(response);
+      } catch (error) {
+        thrownError = error;
+      }
 
-    expect(thrownError).toBeInstanceOf(AppError);
-    expect(thrownError).toMatchObject({ kind, code });
-    expect((thrownError as Error).message).not.toContain(
-      "backend-secret-message-canary",
-    );
-    expect(JSON.stringify(thrownError)).not.toContain(
-      "backend-secret-message-canary",
-    );
-  });
+      expect(thrownError).toBeInstanceOf(AppError);
+      expect(thrownError).toMatchObject({ kind, code });
+      expect((thrownError as Error).message).not.toContain(
+        "backend-secret-message-canary",
+      );
+      expect(JSON.stringify(thrownError)).not.toContain(
+        "backend-secret-message-canary",
+      );
+    },
+  );
 });

@@ -1,9 +1,7 @@
 import { ConfigError } from "../../../platform/config/env";
 import { requireTossClientKey } from "../../../platform/config/publicRuntimeConfig";
 import { IntegrationError } from "../../../platform/integrations/errors";
-import {
-  loadTossPaymentsV2Client,
-} from "../../../platform/integrations/tossPaymentsV2";
+import { loadTossPaymentsV2Client } from "../../../platform/integrations/tossPaymentsV2";
 import {
   createTossPaymentsV2GatewayLease,
   PaymentGatewayError,
@@ -29,7 +27,7 @@ const request = {
   successUrl: "https://airbob.test/reservations/r-1/success",
 };
 
-const deferred = <T,>() => {
+const deferred = <T>() => {
   let resolve!: (value: T | PromiseLike<T>) => void;
   const promise = new Promise<T>((resolvePromise) => {
     resolve = resolvePromise;
@@ -93,9 +91,10 @@ describe("Toss Payments v2 gateway", () => {
         requestPayment: vi.fn().mockRejectedValue(providerError),
       });
 
-      await expect(
-        gateway.requestPayment(request),
-      ).rejects.toMatchObject({ kind, silent });
+      await expect(gateway.requestPayment(request)).rejects.toMatchObject({
+        kind,
+        silent,
+      });
     },
   );
 
@@ -118,15 +117,11 @@ describe("Toss Payments v2 gateway", () => {
   });
 
   it("maps missing public configuration to a safe terminal error", async () => {
-    vi
-      .mocked(requireTossClientKey)
-      .mockImplementation(() => {
-        throw new ConfigError("missing", "REACT_APP_TOSS_CLIENT_KEY");
-      });
+    vi.mocked(requireTossClientKey).mockImplementation(() => {
+      throw new ConfigError("missing", "REACT_APP_TOSS_CLIENT_KEY");
+    });
 
-    await expect(
-      gateway.requestPayment(request),
-    ).rejects.toEqual(
+    await expect(gateway.requestPayment(request)).rejects.toEqual(
       expect.objectContaining({
         kind: "terminal",
         message: "결제 설정이 올바르지 않습니다.",
@@ -137,8 +132,7 @@ describe("Toss Payments v2 gateway", () => {
   it("releases its route-owned client and can prepare a new one", async () => {
     const firstDispose = vi.fn().mockResolvedValue(undefined);
     const secondDispose = vi.fn().mockResolvedValue(undefined);
-    vi
-      .mocked(loadTossPaymentsV2Client)
+    vi.mocked(loadTossPaymentsV2Client)
       .mockResolvedValueOnce({
         dispose: firstDispose,
         requestPayment: vi.fn().mockResolvedValue(undefined),
@@ -170,8 +164,7 @@ describe("Toss Payments v2 gateway", () => {
     };
     const firstLoad = deferred<typeof firstClient>();
     const secondLoad = deferred<typeof secondClient>();
-    vi
-      .mocked(loadTossPaymentsV2Client)
+    vi.mocked(loadTossPaymentsV2Client)
       .mockReturnValueOnce(firstLoad.promise)
       .mockReturnValueOnce(secondLoad.promise);
 
@@ -198,8 +191,7 @@ describe("Toss Payments v2 gateway", () => {
   });
 
   it("releases a failed client load so prepare can retry", async () => {
-    vi
-      .mocked(loadTossPaymentsV2Client)
+    vi.mocked(loadTossPaymentsV2Client)
       .mockRejectedValueOnce(
         new IntegrationError({
           code: "INTEGRATION_LOAD_FAILED",

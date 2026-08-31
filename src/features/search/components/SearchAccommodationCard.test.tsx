@@ -41,7 +41,7 @@ describe("SearchAccommodationCard", () => {
         accommodation={accommodation}
         detailUrl="/accommodations/1"
         onClick={onClick}
-      />
+      />,
     );
 
     const cardLink = screen.getByRole("link", {
@@ -64,7 +64,7 @@ describe("SearchAccommodationCard", () => {
         detailUrl="/accommodations/1"
         onClick={onClick}
         onWishlistToggle={onWishlistToggle}
-      />
+      />,
     );
 
     const wishlistButton = screen.getByRole("button", {
@@ -84,21 +84,21 @@ describe("SearchAccommodationCard", () => {
       <SearchAccommodationCard
         accommodation={accommodation}
         detailUrl="/accommodations/1?checkIn=2026-07-10&checkOut=2026-07-12"
-      />
+      />,
     );
 
     expect(
-      screen.getByRole("link", { name: "숙소 상세 보기: 성수 숙소" })
+      screen.getByRole("link", { name: "숙소 상세 보기: 성수 숙소" }),
     ).toHaveAttribute(
       "href",
-      "/accommodations/1?checkIn=2026-07-10&checkOut=2026-07-12"
+      "/accommodations/1?checkIn=2026-07-10&checkOut=2026-07-12",
     );
   });
 
   it("keeps wishlist icon color state in token-backed CSS", () => {
     const css = readFileSync(
       `${__dirname}/SearchAccommodationCard.module.css`,
-      "utf8"
+      "utf8",
     );
 
     expect(css).toContain("fill: var(--color-brand-coral);");

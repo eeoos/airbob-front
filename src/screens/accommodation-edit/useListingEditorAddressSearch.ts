@@ -15,9 +15,7 @@ export const useListingEditorAddressSearch = ({
   onError,
   port,
 }: {
-  readonly onAddressSelected: (
-    address: ListingEditorAddressSelection,
-  ) => void;
+  readonly onAddressSelected: (address: ListingEditorAddressSelection) => void;
   readonly onError: (message: string) => void;
   readonly port: ListingEditorAddressSearchPort;
 }) => {

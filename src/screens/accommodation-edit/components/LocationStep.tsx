@@ -38,7 +38,9 @@ export const LocationStep: React.FC<LocationStepProps> = ({
           주소 검색
         </button>
       </div>
-      <p className={styles.helperText}>주소 검색 버튼을 클릭하여 주소를 검색하세요.</p>
+      <p className={styles.helperText}>
+        주소 검색 버튼을 클릭하여 주소를 검색하세요.
+      </p>
     </div>
 
     <div className={styles.formGroup}>
@@ -53,7 +55,9 @@ export const LocationStep: React.FC<LocationStepProps> = ({
         className={styles.input}
         placeholder="101호 또는 건물명, 동/호수 등을 입력하세요"
       />
-      <p className={styles.helperText}>상세 주소(동/호수 등)를 입력해주세요. (선택사항)</p>
+      <p className={styles.helperText}>
+        상세 주소(동/호수 등)를 입력해주세요. (선택사항)
+      </p>
     </div>
   </div>
 );

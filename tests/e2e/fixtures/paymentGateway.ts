@@ -1,8 +1,7 @@
 import type { Page } from "@playwright/test";
 
 export type SyntheticPaymentResult =
-  | { outcome: "resolve" }
-  | { outcome: "reject"; code: string; message: string };
+  { outcome: "resolve" } | { outcome: "reject"; code: string; message: string };
 
 export interface PaymentGatewayCall {
   kind: "client" | "destroy" | "payment" | "request-payment";

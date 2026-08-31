@@ -1,9 +1,5 @@
 import { requireCssModuleClass } from "../../shared/styles/requireCssModuleClass";
-import {
-  StatusBadge,
-  ToastHost,
-  type StatusBadgeTone,
-} from "../../shared/ui";
+import { StatusBadge, ToastHost, type StatusBadgeTone } from "../../shared/ui";
 import guestStyles from "./GuestReservationDetailScreen.module.css";
 import hostStyles from "./HostReservationDetailScreen.module.css";
 

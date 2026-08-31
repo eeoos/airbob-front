@@ -83,7 +83,7 @@ const accommodationDetail = (
   reviewSummary: { totalCount: 0, averageRating: 0 },
 });
 
-const seedScoped = <TData,>(
+const seedScoped = <TData>(
   client: QueryClient,
   key: readonly unknown[],
   scope: AuthenticatedSessionScope,
@@ -136,7 +136,8 @@ describe("app router wishlist projection composition", () => {
         ?.isInWishlist,
     ).toBe(false);
     expect(
-      client.getQueryData<RecentlyViewedCollection>(recentKey)
+      client
+        .getQueryData<RecentlyViewedCollection>(recentKey)
         ?.accommodations.at(0)?.isInWishlist,
     ).toBe(true);
     expect(

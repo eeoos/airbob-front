@@ -99,9 +99,8 @@ const pickRouteParams = (
   return picked;
 };
 
-const pickSearchRouteParams = (
-  input: SearchParamsInput,
-): URLSearchParams => pickRouteParams(input, SEARCH_ROUTE_QUERY_KEYS);
+const pickSearchRouteParams = (input: SearchParamsInput): URLSearchParams =>
+  pickRouteParams(input, SEARCH_ROUTE_QUERY_KEYS);
 
 const pickAccommodationBookingRouteParams = (
   input: SearchParamsInput,

@@ -42,7 +42,7 @@ describe("SearchResultsList", () => {
         selectedAccommodationId={null}
         onAccommodationClick={vi.fn()}
         onWishlistToggle={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.getByText("로딩 중...")).toBeInTheDocument();
@@ -59,7 +59,7 @@ describe("SearchResultsList", () => {
         selectedAccommodationId={null}
         onAccommodationClick={onAccommodationClick}
         onWishlistToggle={vi.fn()}
-      />
+      />,
     );
 
     await userEvent.click(screen.getByRole("button", { name: "숙소 카드 7" }));
@@ -79,12 +79,12 @@ describe("SearchResultsList", () => {
         selectedAccommodationId={null}
         onAccommodationClick={vi.fn()}
         onWishlistToggle={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.getByRole("button", { name: "숙소 카드 7" })).toHaveAttribute(
       "data-detail-url",
-      "/accommodations/7?checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2"
+      "/accommodations/7?checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2",
     );
   });
 });

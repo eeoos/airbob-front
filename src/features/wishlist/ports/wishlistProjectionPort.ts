@@ -9,8 +9,7 @@ interface MembershipReconciledProjection extends ScopedProjectionOperation {
   readonly isInAnyWishlist: boolean;
 }
 
-interface MembershipRefreshRequiredProjection
-  extends ScopedProjectionOperation {
+interface MembershipRefreshRequiredProjection extends ScopedProjectionOperation {
   readonly accommodationId: number;
 }
 

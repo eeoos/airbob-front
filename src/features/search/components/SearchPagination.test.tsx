@@ -12,7 +12,7 @@ describe("SearchPagination", () => {
         totalPages={4}
         isLoading={false}
         onPageChange={onPageChange}
-      />
+      />,
     );
 
     await userEvent.click(screen.getByRole("button", { name: "3" }));
@@ -28,7 +28,7 @@ describe("SearchPagination", () => {
         totalPages={4}
         isLoading={false}
         onPageChange={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.getByRole("button", { name: "이전" })).toBeDisabled();
@@ -41,15 +41,15 @@ describe("SearchPagination", () => {
         totalPages={4}
         isLoading={false}
         onPageChange={vi.fn()}
-      />
+      />,
     );
 
     expect(
-      screen.getByRole("navigation", { name: "검색 결과 페이지" })
+      screen.getByRole("navigation", { name: "검색 결과 페이지" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "2" })).toHaveAttribute(
       "aria-current",
-      "page"
+      "page",
     );
   });
 
@@ -66,9 +66,9 @@ describe("SearchPagination", () => {
       />,
     );
 
-    expect(screen.getByRole("status", { name: "현재 8 / 15 페이지" })).toHaveTextContent(
-      "8 / 15",
-    );
+    expect(
+      screen.getByRole("status", { name: "현재 8 / 15 페이지" }),
+    ).toHaveTextContent("8 / 15");
     expect(screen.queryByRole("button", { name: "8" })).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "이전" }));
@@ -80,17 +80,22 @@ describe("SearchPagination", () => {
   it.each([
     [0, "이전"],
     [3, "다음"],
-  ])("disables %s boundary navigation in compact mode", (currentPage, label) => {
-    render(
-      <SearchPagination
-        currentPage={currentPage as number}
-        totalPages={4}
-        isLoading={false}
-        onPageChange={vi.fn()}
-        variant="compact"
-      />,
-    );
+  ])(
+    "disables %s boundary navigation in compact mode",
+    (currentPage, label) => {
+      render(
+        <SearchPagination
+          currentPage={currentPage as number}
+          totalPages={4}
+          isLoading={false}
+          onPageChange={vi.fn()}
+          variant="compact"
+        />,
+      );
 
-    expect(screen.getByRole("button", { name: label as string })).toBeDisabled();
-  });
+      expect(
+        screen.getByRole("button", { name: label as string }),
+      ).toBeDisabled();
+    },
+  );
 });

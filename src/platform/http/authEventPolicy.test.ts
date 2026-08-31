@@ -18,9 +18,9 @@ describe("platform auth event policy", () => {
     expect(isSessionOwnedAuthEventRequest(sessionOwnedAuthEventPolicy)).toBe(
       true,
     );
-    expect(
-      isSessionOwnedAuthEventRequest({ authEventPolicy: "global" }),
-    ).toBe(false);
+    expect(isSessionOwnedAuthEventRequest({ authEventPolicy: "global" })).toBe(
+      false,
+    );
     expect(isSessionOwnedAuthEventRequest(null)).toBe(false);
   });
 });

@@ -104,7 +104,10 @@ const server = createServer(async (request, response) => {
   }
 
   const requestedPath = path.resolve(buildRoot, `.${pathname}`);
-  if (requestedPath !== buildRoot && !requestedPath.startsWith(buildRootPrefix)) {
+  if (
+    requestedPath !== buildRoot &&
+    !requestedPath.startsWith(buildRootPrefix)
+  ) {
     sendText(response, 403, "Request path is outside the build root");
     return;
   }
@@ -146,7 +149,9 @@ const server = createServer(async (request, response) => {
 });
 
 server.listen(PORT, HOST, () => {
-  process.stdout.write(`Deterministic E2E server listening on http://${EXPECTED_HOST}\n`);
+  process.stdout.write(
+    `Deterministic E2E server listening on http://${EXPECTED_HOST}\n`,
+  );
 });
 
 const closeServer = () => {

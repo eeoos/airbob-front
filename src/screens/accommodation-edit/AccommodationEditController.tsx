@@ -46,9 +46,7 @@ export interface AccommodationEditControllerProps {
   readonly isNewDraft: boolean;
   readonly publication: ListingEditorPublicationPort;
   readonly query: ListingEditorQueryPort;
-  readonly resolveImageUrl: (
-    imagePath: string | null | undefined,
-  ) => string;
+  readonly resolveImageUrl: (imagePath: string | null | undefined) => string;
   readonly routeLease: ListingEditorRouteLease;
   readonly session: ListingEditorSessionPort;
   readonly onNavigateToHostProfile: () => void;
@@ -124,8 +122,7 @@ export function AccommodationEditController({
   routeLease,
   session,
 }: AccommodationEditControllerProps) {
-  const [currentStep, setCurrentStep] =
-    useState<AccommodationEditStep>(1);
+  const [currentStep, setCurrentStep] = useState<AccommodationEditStep>(1);
   const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
   const [isAmenityModalOpen, setIsAmenityModalOpen] = useState(false);
   const [pendingIntent, setPendingIntent] =
@@ -136,10 +133,7 @@ export function AccommodationEditController({
   }, []);
   const draft = useListingEditorDraft();
   const images = useListingEditorImages({ onError: handleLocalError });
-  const {
-    commitBaseline: commitDraftBaseline,
-    hydrate: hydrateDraft,
-  } = draft;
+  const { commitBaseline: commitDraftBaseline, hydrate: hydrateDraft } = draft;
   const {
     applyUploaded: applyUploadedImages,
     hydrate: hydrateImages,
@@ -218,7 +212,9 @@ export function AccommodationEditController({
       if (!hasSnapshot(result)) return;
 
       pendingDeleteTombstonesRef.current.forEach((_, imageId) => {
-        if (!result.accommodation.images.some((image) => image.id === imageId)) {
+        if (
+          !result.accommodation.images.some((image) => image.id === imageId)
+        ) {
           pendingDeleteTombstonesRef.current.delete(imageId);
         }
       });
@@ -232,10 +228,7 @@ export function AccommodationEditController({
         hydrateDraft(result.accommodation);
         hydrateImages(result.accommodation.images);
       } else {
-        if (
-          "uploadedImages" in result &&
-          result.uploadedImages.length > 0
-        ) {
+        if ("uploadedImages" in result && result.uploadedImages.length > 0) {
           const unconsumedImages = result.uploadedImages.filter(
             (image) => !consumedUploadedImageIdsRef.current.has(image.id),
           );
@@ -317,9 +310,7 @@ export function AccommodationEditController({
               ? []
               : images.getPendingFiles(),
           update:
-            intent === "advance" && currentStep !== 4
-              ? {}
-              : captured.update,
+            intent === "advance" && currentStep !== 4 ? {} : captured.update,
           onUploadProgress: images.setUploadProgress,
         });
       }
@@ -342,8 +333,7 @@ export function AccommodationEditController({
           state.status === "recoverable-error" &&
           state.retry === "allowed" &&
           (recoveryState === "none" ||
-            (recoveryState === "protected-delete" &&
-              intent === "save-exit"))
+            (recoveryState === "protected-delete" && intent === "save-exit"))
         )
       ) {
         return;
@@ -360,12 +350,7 @@ export function AccommodationEditController({
       }
       void runPersistence(intent);
     },
-    [
-      currentStep,
-      draft.formData.addressInfo.detail,
-      runPersistence,
-      workflow,
-    ],
+    [currentStep, draft.formData.addressInfo.detail, runPersistence, workflow],
   );
 
   const handleImageRemove = useCallback(
@@ -373,10 +358,7 @@ export function AccommodationEditController({
       if (workflow.getState().status !== "ready") return;
       const tombstone = images.removeAt(index);
       if (!tombstone?.image.id) return;
-      pendingDeleteTombstonesRef.current.set(
-        tombstone.image.id,
-        tombstone,
-      );
+      pendingDeleteTombstonesRef.current.set(tombstone.image.id, tombstone);
       void workflow
         .deleteImage({
           imageId: tombstone.image.id,
@@ -454,9 +436,7 @@ export function AccommodationEditController({
 
   const retryRecovery = useCallback(() => {
     const state = workflow.getState();
-    if (
-      toRecoveryState(state, workflow.canAcknowledgeError()) === "none"
-    ) {
+    if (toRecoveryState(state, workflow.canAcknowledgeError()) === "none") {
       return;
     }
     void workflow.retry().then((result) => {

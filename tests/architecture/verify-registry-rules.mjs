@@ -14,12 +14,13 @@ import {
 } from "../../scripts/architecture/verify-dependency-classification.mjs";
 
 const require = createRequire(import.meta.url);
-const { readArchitectureRatchet, validateArchitectureRatchetData } = require(
-  "../../scripts/architecture/read-architecture-ratchet.cjs",
-);
-const { createTargetPolicy } = require(
-  "../../scripts/architecture/target-policy.cjs",
-);
+const {
+  readArchitectureRatchet,
+  validateArchitectureRatchetData,
+} = require("../../scripts/architecture/read-architecture-ratchet.cjs");
+const {
+  createTargetPolicy,
+} = require("../../scripts/architecture/target-policy.cjs");
 const architectureDirectory = path.dirname(fileURLToPath(import.meta.url));
 const fixtureRoot = await mkdtemp(
   path.join(os.tmpdir(), "airbob-architecture-registry-"),
@@ -70,7 +71,8 @@ try {
     files: {
       "src/features/accommodations/detail/model.ts":
         "export const detail = true;\n",
-      "src/features/accommodations/edit/model.ts": "export const edit = true;\n",
+      "src/features/accommodations/edit/model.ts":
+        "export const edit = true;\n",
       "src/features/accommodations/listing-editor/model.ts":
         "export const listingEditor = true;\n",
       "src/features/search/model.jsx": "export const search = true;\n",
@@ -81,16 +83,14 @@ try {
     valid.migratedFeatures.join(",") !==
     "accommodations/detail,accommodations/edit,accommodations/listing-editor,search"
   ) {
-    throw new Error("Valid top-level and nested feature paths were not preserved.");
+    throw new Error(
+      "Valid top-level and nested feature paths were not preserved.",
+    );
   }
   const nestedPolicy = createTargetPolicy({ projectRoot: fixtureRoot });
   if (
-    !nestedPolicy.isTargetPath(
-      "src/features/accommodations/edit/model.ts",
-    ) ||
-    !nestedPolicy.isTargetPath(
-      "src/features/accommodations/detail/model.ts",
-    ) ||
+    !nestedPolicy.isTargetPath("src/features/accommodations/edit/model.ts") ||
+    !nestedPolicy.isTargetPath("src/features/accommodations/detail/model.ts") ||
     !nestedPolicy.isTargetPath(
       "src/features/accommodations/listing-editor/model.ts",
     ) ||
@@ -115,12 +115,8 @@ try {
   const parentPolicy = createTargetPolicy({ projectRoot: fixtureRoot });
   if (
     !parentPolicy.isTargetPath("src/features/accommodations/model.ts") ||
-    parentPolicy.isTargetPath(
-      "src/features/accommodations/detail/model.ts",
-    ) ||
-    parentPolicy.isTargetPath(
-      "src/features/accommodations/edit/model.ts",
-    ) ||
+    parentPolicy.isTargetPath("src/features/accommodations/detail/model.ts") ||
+    parentPolicy.isTargetPath("src/features/accommodations/edit/model.ts") ||
     parentPolicy.isTargetPath(
       "src/features/accommodations/listing-editor/model.ts",
     )
@@ -159,7 +155,9 @@ try {
     "duplicate feature",
     {
       registry: { migratedFeatures: ["search", "search"] },
-      files: { "src/features/search/model.ts": "export const search = true;\n" },
+      files: {
+        "src/features/search/model.ts": "export const search = true;\n",
+      },
     },
     "must not contain duplicates",
   );
@@ -238,7 +236,9 @@ try {
     unsupportedRuntimeSectionWasRejected = true;
   }
   if (!unsupportedRuntimeSectionWasRejected) {
-    throw new Error("An optional runtime dependency bypassed strict classification.");
+    throw new Error(
+      "An optional runtime dependency bypassed strict classification.",
+    );
   }
   let installOverrideWasRejected = false;
   try {

@@ -131,9 +131,7 @@ describe("searchCodec", () => {
   it("picks only supported route parameters without injecting defaults", () => {
     expect(
       searchCodec
-        .pick(
-          "token=secret&adultOccupancy=2&destination=Seoul&empty=&page=3",
-        )
+        .pick("token=secret&adultOccupancy=2&destination=Seoul&empty=&page=3")
         .toString(),
     ).toBe("destination=Seoul&page=3&adultOccupancy=2");
   });

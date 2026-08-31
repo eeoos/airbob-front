@@ -5,13 +5,12 @@ import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
 const require = createRequire(import.meta.url);
-const { isProductionSourcePath } = require(
-  "../../scripts/architecture/source-policy.cjs",
-);
+const {
+  isProductionSourcePath,
+} = require("../../scripts/architecture/source-policy.cjs");
 const architectureDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(architectureDirectory, "../..");
-const legacyAdapterProjectPath =
-  "src/platform/integrations/tossPaymentsV1.ts";
+const legacyAdapterProjectPath = "src/platform/integrations/tossPaymentsV1.ts";
 const v2AdapterProjectPath = "src/platform/integrations/tossPaymentsV2.ts";
 const v2GatewayProjectPath =
   "src/workflows/booking-payment/checkout/paymentGateway.ts";

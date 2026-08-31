@@ -39,7 +39,8 @@ export const PhotosStep: React.FC<PhotosStepProps> = ({
   <div className={formStyles.stepContent}>
     <h2 className={formStyles.stepTitle}>숙소 사진을 등록하세요</h2>
     <p className={formStyles.stepDescription}>
-      숙소 등록을 시작하려면 사진 1장을 제출하셔야 합니다. 나중에 추가하거나 변경하실 수 있습니다.
+      숙소 등록을 시작하려면 사진 1장을 제출하셔야 합니다. 나중에 추가하거나
+      변경하실 수 있습니다.
     </p>
 
     {isSaving && uploadProgress > 0 && (
@@ -50,7 +51,9 @@ export const PhotosStep: React.FC<PhotosStepProps> = ({
             style={{ width: `${uploadProgress}%` }}
           />
         </div>
-        <p className={styles.uploadProgressText}>{uploadProgress}% 업로드 중...</p>
+        <p className={styles.uploadProgressText}>
+          {uploadProgress}% 업로드 중...
+        </p>
       </div>
     )}
 
@@ -73,7 +76,12 @@ export const PhotosStep: React.FC<PhotosStepProps> = ({
         />
         <div className={styles.imageUploadBoxLabel}>
           <div className={styles.cameraIcon}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
               <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
               <circle cx="12" cy="13" r="4" />
             </svg>
@@ -95,7 +103,9 @@ export const PhotosStep: React.FC<PhotosStepProps> = ({
             <p className={styles.uploadedImagesTitle}>
               1개 이상의 사진을 선택하세요.
             </p>
-            <p className={styles.uploadedImagesSubtitle}>드래그하여 순서 변경</p>
+            <p className={styles.uploadedImagesSubtitle}>
+              드래그하여 순서 변경
+            </p>
           </div>
           <button
             type="button"
@@ -103,7 +113,12 @@ export const PhotosStep: React.FC<PhotosStepProps> = ({
             className={styles.addMoreButton}
             onClick={() => document.getElementById("imageInput")?.click()}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
@@ -122,55 +137,61 @@ export const PhotosStep: React.FC<PhotosStepProps> = ({
           className={styles.imageInput}
         />
 
-        {imageItems.length > 0 && (() => {
-          const [coverItem] = imageItems;
-          if (!coverItem) {
-            return null;
-          }
+        {imageItems.length > 0 &&
+          (() => {
+            const [coverItem] = imageItems;
+            if (!coverItem) {
+              return null;
+            }
 
-          const coverImageUrl =
-            coverItem.preview || resolveImageUrl(coverItem.url);
-          const coverKey = coverItem.id || coverItem.clientId;
+            const coverImageUrl =
+              coverItem.preview || resolveImageUrl(coverItem.url);
+            const coverKey = coverItem.id || coverItem.clientId;
 
-          return (
-            <div className={styles.coverPhotoContainer}>
-              <div
-                key={coverKey}
-                className={`${styles.uploadedImageItem} ${draggedIndex === 0 ? styles.dragging : ""} ${dragOverIndex === 0 ? styles.dragOver : ""}`}
-                draggable={!isSaving && !isDeletingImage}
-                onDragStart={(e) => {
-                  e.stopPropagation();
-                  onDragStart(0);
-                }}
-                onDragOver={(e) => onDragOverItem(e, 0)}
-                onDragEnd={onDragEnd}
-              >
-                <div className={styles.coverPhotoLabel}>커버 사진</div>
-                <img
-                  key={`img-${coverKey}`}
-                  src={coverImageUrl}
-                  alt="커버 사진"
-                  className={styles.uploadedImage}
-                />
-                <button
-                  type="button"
-                  disabled={isSaving || isDeletingImage}
-                  className={styles.imageMenuButton}
-                  onClick={(e) => {
+            return (
+              <div className={styles.coverPhotoContainer}>
+                <div
+                  key={coverKey}
+                  className={`${styles.uploadedImageItem} ${draggedIndex === 0 ? styles.dragging : ""} ${dragOverIndex === 0 ? styles.dragOver : ""}`}
+                  draggable={!isSaving && !isDeletingImage}
+                  onDragStart={(e) => {
                     e.stopPropagation();
-                    onImageRemove(0);
+                    onDragStart(0);
                   }}
-                  aria-label="이미지 삭제"
+                  onDragOver={(e) => onDragOverItem(e, 0)}
+                  onDragEnd={onDragEnd}
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
+                  <div className={styles.coverPhotoLabel}>커버 사진</div>
+                  <img
+                    key={`img-${coverKey}`}
+                    src={coverImageUrl}
+                    alt="커버 사진"
+                    className={styles.uploadedImage}
+                  />
+                  <button
+                    type="button"
+                    disabled={isSaving || isDeletingImage}
+                    className={styles.imageMenuButton}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onImageRemove(0);
+                    }}
+                    aria-label="이미지 삭제"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
               </div>
-            </div>
-          );
-        })()}
+            );
+          })()}
 
         <div className={styles.thumbnailGrid}>
           {imageItems.slice(1).map((item, index) => {
@@ -205,7 +226,12 @@ export const PhotosStep: React.FC<PhotosStepProps> = ({
                   }}
                   aria-label="이미지 삭제"
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
                     <line x1="18" y1="6" x2="6" y2="18" />
                     <line x1="6" y1="6" x2="18" y2="18" />
                   </svg>
@@ -220,7 +246,12 @@ export const PhotosStep: React.FC<PhotosStepProps> = ({
             disabled={isSaving || isDeletingImage}
             onClick={() => document.getElementById("imageInput")?.click()}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
               <path d="M12 5v14M5 12h14" />
             </svg>
             <span>추가</span>

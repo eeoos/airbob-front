@@ -21,10 +21,7 @@ export interface PaymentRequestCommand extends PaymentGatewayRequest {
 }
 
 export type PaymentRequestTerminal =
-  | "requested"
-  | "terminal-failure"
-  | "stale"
-  | "disposed";
+  "requested" | "terminal-failure" | "stale" | "disposed";
 
 export type PaymentRequestResult =
   | { readonly status: "ready" }
@@ -61,7 +58,9 @@ const isHttpsUrl = (value: string): boolean => {
       url.hostname === "localhost" ||
       url.hostname === "127.0.0.1" ||
       url.hostname === "[::1]";
-    return url.protocol === "https:" || (url.protocol === "http:" && isLoopback);
+    return (
+      url.protocol === "https:" || (url.protocol === "http:" && isLoopback)
+    );
   } catch {
     return false;
   }
@@ -105,7 +104,8 @@ export const createPaymentRequestWorkflow = ({
 
   const execute = (
     kind: "prepare" | "request",
-    input: { readonly routeLease: PaymentRequestRouteLease } | PaymentRequestCommand,
+    input:
+      { readonly routeLease: PaymentRequestRouteLease } | PaymentRequestCommand,
   ): Promise<PaymentRequestResult> => {
     if (disposed) {
       return Promise.resolve({ status: "locked", terminal: "disposed" });

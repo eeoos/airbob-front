@@ -4,10 +4,7 @@ import {
   requireApiRequest,
   type ApiHarness,
 } from "../fixtures/api";
-import {
-  SYNTHETIC_USER_B,
-  type SyntheticUser,
-} from "../fixtures/session";
+import { SYNTHETIC_USER_B, type SyntheticUser } from "../fixtures/session";
 import { test, expect } from "../fixtures/test";
 
 const emptyPage = {
@@ -46,8 +43,7 @@ const sessionStoragePrefixes = [
   "airbob:payment-confirmed:",
 ] as const;
 
-const deterministicSessionRoute =
-  "/search?destination=Seoul&adultOccupancy=2";
+const deterministicSessionRoute = "/search?destination=Seoul&adultOccupancy=2";
 
 const stubHomeHeroImage = (context: BrowserContext) =>
   context.route(
@@ -81,26 +77,20 @@ const openUserMenu = async (page: Page) => {
 
 const closeUserMenu = async (page: Page) => {
   await page.keyboard.press("Escape");
-  await expect(
-    page.getByRole("menu", { name: "사용자 메뉴" }),
-  ).toBeHidden();
+  await expect(page.getByRole("menu", { name: "사용자 메뉴" })).toBeHidden();
 };
 
 const expectAuthenticatedHeader = async (page: Page) => {
   await expect(page.getByRole("button", { name: "프로필" })).toBeVisible();
   await openUserMenu(page);
-  await expect(
-    page.getByRole("menuitem", { name: "로그아웃" }),
-  ).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "로그아웃" })).toBeVisible();
   await closeUserMenu(page);
 };
 
 const expectAnonymousHeader = async (page: Page) => {
   await expect(page.getByRole("button", { name: "프로필" })).toBeHidden();
   await openUserMenu(page);
-  await expect(
-    page.getByRole("menuitem", { name: "로그인" }),
-  ).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "로그인" })).toBeVisible();
   await closeUserMenu(page);
 };
 
@@ -140,9 +130,8 @@ const seedOwnedSessionStorage = async (page: Page, tabId: string) => {
 
 const readOwnedSessionStorage = (page: Page) =>
   page.evaluate((prefixes) => {
-    const keys = Array.from(
-      { length: sessionStorage.length },
-      (_, index) => sessionStorage.key(index),
+    const keys = Array.from({ length: sessionStorage.length }, (_, index) =>
+      sessionStorage.key(index),
     ).filter((key): key is string => key !== null);
 
     return {
@@ -153,14 +142,13 @@ const readOwnedSessionStorage = (page: Page) =>
     };
   }, sessionStoragePrefixes);
 
-const expectOwnedSessionStorageCleared = async (
-  page: Page,
-  tabId: string,
-) => {
-  await expect.poll(() => readOwnedSessionStorage(page)).toEqual({
-    ownedKeys: [],
-    unrelated: `keep-${tabId}`,
-  });
+const expectOwnedSessionStorageCleared = async (page: Page, tabId: string) => {
+  await expect
+    .poll(() => readOwnedSessionStorage(page))
+    .toEqual({
+      ownedKeys: [],
+      unrelated: `keep-${tabId}`,
+    });
 };
 
 test("returns an anonymous user to the complete protected URL after login", async ({
@@ -348,9 +336,7 @@ test("resumes an anonymous wishlist intent once in the authenticated session gen
   const authDialog = page.getByRole("dialog", { name: "로그인" });
   await authDialog.getByLabel("이메일").fill(SYNTHETIC_USER_B.email);
   await authDialog.getByLabel("비밀번호").fill("synthetic-password");
-  await authDialog
-    .getByRole("button", { name: "로그인", exact: true })
-    .click();
+  await authDialog.getByRole("button", { name: "로그인", exact: true }).click();
 
   await expect(authDialog).toBeHidden();
   await expect(
@@ -404,10 +390,7 @@ test("synchronizes a successful logout and clears each same-origin tab", async (
     seedOwnedSessionStorage(secondPage, "tab-b"),
   ]);
 
-  const meRequestsBeforeLogout = api.matching(
-    "GET",
-    "/api/v1/auth/me",
-  ).length;
+  const meRequestsBeforeLogout = api.matching("GET", "/api/v1/auth/me").length;
   await logoutFromSessionRoute(page);
 
   await Promise.all([
@@ -418,11 +401,10 @@ test("synchronizes a successful logout and clears each same-origin tab", async (
   ]);
 
   expect(api.matching("POST", "/api/v1/auth/logout")).toHaveLength(1);
-  const meRequestsAfterLogout = api.matching(
-    "GET",
-    "/api/v1/auth/me",
-  ).length;
-  expect(meRequestsAfterLogout - meRequestsBeforeLogout).toBeGreaterThanOrEqual(1);
+  const meRequestsAfterLogout = api.matching("GET", "/api/v1/auth/me").length;
+  expect(meRequestsAfterLogout - meRequestsBeforeLogout).toBeGreaterThanOrEqual(
+    1,
+  );
   expect(meRequestsAfterLogout - meRequestsBeforeLogout).toBeLessThanOrEqual(2);
 });
 
@@ -460,7 +442,9 @@ test("publishes a B login to another page through remote session revalidation", 
     password: "synthetic-password",
   });
   const meRequestsAfterLogin = api.matching("GET", "/api/v1/auth/me").length;
-  expect(meRequestsAfterLogin - meRequestsBeforeLogin).toBeGreaterThanOrEqual(2);
+  expect(meRequestsAfterLogin - meRequestsBeforeLogin).toBeGreaterThanOrEqual(
+    2,
+  );
   expect(meRequestsAfterLogin - meRequestsBeforeLogin).toBeLessThanOrEqual(3);
 });
 
@@ -484,10 +468,7 @@ test("keeps the sender locally anonymous when logout fails while the remote page
     expectAuthenticatedHeader(secondPage),
   ]);
 
-  const meRequestsBeforeLogout = api.matching(
-    "GET",
-    "/api/v1/auth/me",
-  ).length;
+  const meRequestsBeforeLogout = api.matching("GET", "/api/v1/auth/me").length;
   await logoutFromSessionRoute(page);
 
   await expect(page.getByRole("button", { name: "프로필" })).toBeHidden();
@@ -500,10 +481,9 @@ test("keeps the sender locally anonymous when logout fails while the remote page
   await expectAuthenticatedHeader(secondPage);
 
   expect(api.matching("POST", "/api/v1/auth/logout")).toHaveLength(1);
-  const meRequestsAfterLogout = api.matching(
-    "GET",
-    "/api/v1/auth/me",
-  ).length;
-  expect(meRequestsAfterLogout - meRequestsBeforeLogout).toBeGreaterThanOrEqual(1);
+  const meRequestsAfterLogout = api.matching("GET", "/api/v1/auth/me").length;
+  expect(meRequestsAfterLogout - meRequestsBeforeLogout).toBeGreaterThanOrEqual(
+    1,
+  );
   expect(meRequestsAfterLogout - meRequestsBeforeLogout).toBeLessThanOrEqual(2);
 });

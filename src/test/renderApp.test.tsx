@@ -35,8 +35,8 @@ const HarnessProbe = () => {
       {sessionState.state.status === "authenticated"
         ? "authenticated"
         : "anonymous"}
-      |
-      {location.pathname}|{String((location.state as { source?: string })?.source)}
+      |{location.pathname}|
+      {String((location.state as { source?: string })?.source)}
     </output>
   );
 };
@@ -90,8 +90,9 @@ describe("renderApp", () => {
       },
     });
 
-    expect(screen.getByText("authenticated|/reservation/confirm|router-handoff"))
-      .toBeInTheDocument();
+    expect(
+      screen.getByText("authenticated|/reservation/confirm|router-handoff"),
+    ).toBeInTheDocument();
     expect(view.queryClient.getQueryData(["auth", "me"])).toBeUndefined();
     expect(view.queryClient.getDefaultOptions().queries?.meta).toEqual({
       session: { epoch: 0, subject: toSessionSubject(session) },
@@ -118,9 +119,7 @@ describe("renderApp", () => {
       "authenticated:7|/after-navigation",
     );
 
-    await userEvent.click(
-      screen.getByRole("button", { name: "사용자 전환" }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: "사용자 전환" }));
 
     await waitFor(() =>
       expect(screen.getByTestId("session-location")).toHaveTextContent(
@@ -142,7 +141,8 @@ describe("renderApp", () => {
   });
 
   it("releases harness-owned resources when query seeding throws", () => {
-    let capturedQueryClient: ReturnType<typeof createTestQueryClient> | undefined;
+    let capturedQueryClient:
+      ReturnType<typeof createTestQueryClient> | undefined;
 
     expect(() =>
       renderApp(<HarnessProbe />, {

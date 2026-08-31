@@ -24,9 +24,7 @@ const cloneAccommodation = (
   address: value.address ? { ...value.address } : null,
   amenities: value.amenities.map((amenity) => ({ ...amenity })),
   images: value.images.map((image) => ({ ...image })),
-  occupancyPolicy: value.occupancyPolicy
-    ? { ...value.occupancyPolicy }
-    : null,
+  occupancyPolicy: value.occupancyPolicy ? { ...value.occupancyPolicy } : null,
 });
 
 const createMismatchError = (
@@ -57,9 +55,7 @@ const applyUpdateProjection = (
     ...(update.description !== undefined
       ? { description: update.description }
       : {}),
-    ...(update.basePrice !== undefined
-      ? { basePrice: update.basePrice }
-      : {}),
+    ...(update.basePrice !== undefined ? { basePrice: update.basePrice } : {}),
     ...(update.currency !== undefined ? { currency: update.currency } : {}),
     ...(update.type !== undefined ? { type: update.type } : {}),
     ...(update.checkInTime !== undefined

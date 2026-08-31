@@ -4,7 +4,13 @@ import { routeDefinitions } from "./definitions";
 
 const expectedRouteDefinitions = [
   { id: "home", path: "/", auth: "public", shell: "browse", header: "default" },
-  { id: "search", path: "/search", auth: "public", shell: "browse", header: "search" },
+  {
+    id: "search",
+    path: "/search",
+    auth: "public",
+    shell: "browse",
+    header: "search",
+  },
   {
     id: "accommodation-detail",
     path: "/accommodations/:id",
@@ -26,8 +32,20 @@ const expectedRouteDefinitions = [
     shell: "editor",
     header: "default",
   },
-  { id: "wishlist", path: "/wishlist", auth: "authenticated", shell: "browse", header: "default" },
-  { id: "profile", path: "/profile", auth: "authenticated", shell: "browse", header: "default" },
+  {
+    id: "wishlist",
+    path: "/wishlist",
+    auth: "authenticated",
+    shell: "browse",
+    header: "default",
+  },
+  {
+    id: "profile",
+    path: "/profile",
+    auth: "authenticated",
+    shell: "browse",
+    header: "default",
+  },
   {
     id: "host-reservation-detail",
     path: "/profile/host/reservations/:reservationUid",
@@ -63,9 +81,27 @@ const expectedRouteDefinitions = [
     shell: "transaction",
     header: "default",
   },
-  { id: "login", path: "/login", auth: "public", shell: "form", header: "hidden" },
-  { id: "signup", path: "/signup", auth: "public", shell: "form", header: "hidden" },
-  { id: "not-found", path: "*", auth: "public", shell: "bare", header: "hidden" },
+  {
+    id: "login",
+    path: "/login",
+    auth: "public",
+    shell: "form",
+    header: "hidden",
+  },
+  {
+    id: "signup",
+    path: "/signup",
+    auth: "public",
+    shell: "form",
+    header: "hidden",
+  },
+  {
+    id: "not-found",
+    path: "*",
+    auth: "public",
+    shell: "bare",
+    header: "hidden",
+  },
 ] as const;
 
 describe("app route definitions", () => {

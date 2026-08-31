@@ -42,7 +42,9 @@ function LocationProbe() {
 function CredentialProbe() {
   const claim = usePaymentCallbackCredentialClaim();
 
-  return <output data-testid="credential-claim">{JSON.stringify(claim)}</output>;
+  return (
+    <output data-testid="credential-claim">{JSON.stringify(claim)}</output>
+  );
 }
 
 function AuthenticatedBoundaryProbe() {
@@ -152,9 +154,7 @@ describe("PaymentCallbackCredentialBoundary", () => {
 
     await screen.findByText("로그인 상태를 확인하는 중...");
     await waitFor(() =>
-      expect(screen.getByTestId("location")).toHaveTextContent(
-        '"search":""',
-      ),
+      expect(screen.getByTestId("location")).toHaveTextContent('"search":""'),
     );
 
     expect(mockAuthenticatedBoundaryRender).toHaveBeenCalledWith("");
@@ -244,9 +244,7 @@ describe("PaymentCallbackCredentialBoundary", () => {
     setBrowserCallbackEntry(callbackSearch);
 
     const view = render(
-      <MemoryRouter
-        initialEntries={[`${callbackPath}${callbackSearch}`]}
-      >
+      <MemoryRouter initialEntries={[`${callbackPath}${callbackSearch}`]}>
         <PaymentCallbackCredentialBoundary>
           <StableRuntimeProbe onMount={onMount} onUnmount={onUnmount} />
         </PaymentCallbackCredentialBoundary>

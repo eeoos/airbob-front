@@ -40,12 +40,8 @@ describe("SearchMap structure", () => {
       "utf8",
     );
 
-    expect(eventsHookSource).toContain(
-      "browserWindowNavigation.openInNewTab",
-    );
-    expect(eventsHookSource).toContain(
-      "getAccommodationHref(accommodationId)",
-    );
+    expect(eventsHookSource).toContain("browserWindowNavigation.openInNewTab");
+    expect(eventsHookSource).toContain("getAccommodationHref(accommodationId)");
     expect(eventsHookSource).not.toContain("routeTo");
   });
 

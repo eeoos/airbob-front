@@ -93,12 +93,7 @@ describe("review read query contracts", () => {
       { signal },
     );
     expect(
-      options.getNextPageParam(
-        page,
-        [page],
-        "cursor-1",
-        [null, "cursor-1"],
-      ),
+      options.getNextPageParam(page, [page], "cursor-1", [null, "cursor-1"]),
     ).toBeUndefined();
   });
 

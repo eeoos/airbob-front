@@ -14,7 +14,11 @@ export const DetailAddressConfirmModal: React.FC<
   const title = "상세 주소 확인";
 
   return (
-    <EditModalShell title={title} modalClassName={requireCssModuleClass(styles.confirmModal)} onClose={onClose}>
+    <EditModalShell
+      title={title}
+      modalClassName={requireCssModuleClass(styles.confirmModal)}
+      onClose={onClose}
+    >
       <div className={styles.confirmModalContent}>
         <h2 className={styles.confirmModalTitle}>{title}</h2>
         <p className={styles.confirmModalMessage}>

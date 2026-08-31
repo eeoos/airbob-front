@@ -19,7 +19,7 @@ interface UseSessionExternalSyncOptions<Boundary> {
 
 const DEFAULT_RECOVERY_MS = 1_500;
 
-export const useSessionExternalSync = <Boundary,>({
+export const useSessionExternalSync = <Boundary>({
   broadcastFactory,
   isBoundaryCurrent,
   onAuthError: handleAuthError,

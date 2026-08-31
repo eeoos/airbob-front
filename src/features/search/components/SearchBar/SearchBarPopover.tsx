@@ -5,8 +5,7 @@ import styles from "./SearchBar.module.css";
 
 type SearchBarPopoverVariant = "date" | "guest" | "suggestions";
 
-export interface SearchBarPopoverProps
-  extends React.HTMLAttributes<HTMLDivElement> {
+export interface SearchBarPopoverProps extends React.HTMLAttributes<HTMLDivElement> {
   onClose: () => void;
   triggerRef: React.RefObject<HTMLElement | null>;
   variant: SearchBarPopoverVariant;
@@ -42,7 +41,7 @@ export const SearchBarPopover = React.forwardRef<
       variant,
       ...popoverProps
     },
-    ref
+    ref,
   ) => {
     const popoverRef = React.useRef<HTMLDivElement>(null);
     const setPopoverRef = React.useCallback(
@@ -87,7 +86,7 @@ export const SearchBarPopover = React.forwardRef<
         {children}
       </div>
     );
-  }
+  },
 );
 
 SearchBarPopover.displayName = "SearchBarPopover";

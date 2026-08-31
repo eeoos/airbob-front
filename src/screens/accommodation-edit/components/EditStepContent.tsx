@@ -67,7 +67,7 @@ export const EditStepContent: React.FC<EditStepContentProps> = ({
   useOutsideClick(
     timePickerBoundaryRef,
     () => actions.setOpenTimePicker(null),
-    Boolean(state.openTimePicker)
+    Boolean(state.openTimePicker),
   );
 
   switch (state.currentStep) {

@@ -19,13 +19,11 @@ describe("useResponsiveLayout", () => {
         addEventListener: (
           _type: string,
           listener: EventListenerOrEventListenerObject,
-        ) =>
-          listeners.add(listener as Listener),
+        ) => listeners.add(listener as Listener),
         removeEventListener: (
           _type: string,
           listener: EventListenerOrEventListenerObject,
-        ) =>
-          listeners.delete(listener as Listener),
+        ) => listeners.delete(listener as Listener),
         addListener: (listener) => listener && listeners.add(listener),
         removeListener: (listener) => listener && listeners.delete(listener),
         dispatchEvent: () => true,
@@ -37,13 +35,16 @@ describe("useResponsiveLayout", () => {
     [1023, "mobile-tablet"],
     [1024, "mobile-tablet"],
     [1025, "desktop"],
-  ] as const)("returns the %s initial layout synchronously", (nextWidth, layout) => {
-    width = nextWidth;
+  ] as const)(
+    "returns the %s initial layout synchronously",
+    (nextWidth, layout) => {
+      width = nextWidth;
 
-    const { result } = renderHook(() => useResponsiveLayout());
+      const { result } = renderHook(() => useResponsiveLayout());
 
-    expect(result.current).toBe(layout);
-  });
+      expect(result.current).toBe(layout);
+    },
+  );
 
   it("updates from the same media-query subscription on resize", () => {
     const { result } = renderHook(() => useResponsiveLayout());

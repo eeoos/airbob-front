@@ -53,7 +53,7 @@ describe("AccommodationLocationSection", () => {
           resolveImageUrl,
         )}
         googleMapsApiKey="maps-key"
-      />
+      />,
     );
 
     expect(screen.getByRole("heading", { name: "위치" })).toBeInTheDocument();
@@ -78,11 +78,11 @@ describe("AccommodationLocationSection", () => {
           resolveImageUrl,
         )}
         googleMapsApiKey=""
-      />
+      />,
     );
 
     expect(
-      screen.getByText("지도 (위도: 37.5512, 경도: 126.9882)")
+      screen.getByText("지도 (위도: 37.5512, 경도: 126.9882)"),
     ).toBeInTheDocument();
   });
 });

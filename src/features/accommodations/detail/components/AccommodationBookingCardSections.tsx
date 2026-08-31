@@ -154,7 +154,9 @@ export function BookingPriceHeader({
 }: BookingPriceHeaderProps) {
   return (
     <div className={styles.priceSection}>
-      <span className={styles.totalPrice}>₩{payablePrice.toLocaleString()}</span>
+      <span className={styles.totalPrice}>
+        ₩{payablePrice.toLocaleString()}
+      </span>
       <span className={styles.priceInfo}>· {nights}박</span>
     </div>
   );
@@ -296,9 +298,7 @@ export function BookingGuestSection({
             })}
           </div>
         </div>
-        <div className={styles.guestArrow}>
-          {isGuestPickerOpen ? "⌃" : "⌄"}
-        </div>
+        <div className={styles.guestArrow}>{isGuestPickerOpen ? "⌃" : "⌄"}</div>
       </button>
 
       {isGuestPickerOpen && (

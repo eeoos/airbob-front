@@ -3,7 +3,7 @@ import type { AccommodationDetailViewModel } from "../lib/accommodationDetailVie
 import styles from "./AccommodationHero.module.css";
 
 const adaptDivTouchHandler = (
-  handler: React.TouchEventHandler<HTMLDivElement> | undefined
+  handler: React.TouchEventHandler<HTMLDivElement> | undefined,
 ): React.TouchEventHandler<HTMLButtonElement> | undefined => {
   if (!handler) {
     return undefined;
@@ -51,7 +51,11 @@ const AccommodationHero: React.FC<AccommodationHeroProps> = ({
             <div className={styles.meta}>
               {rating.hasReviews && (
                 <div className={styles.review}>
-                  <svg viewBox="0 0 24 24" fill="currentColor" className={styles.star}>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    className={styles.star}
+                  >
                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                   </svg>
                   <span>{rating.averageRatingLabel}</span>
@@ -64,7 +68,14 @@ const AccommodationHero: React.FC<AccommodationHeroProps> = ({
           </div>
           <div className={styles.actionButtons}>
             <button className={styles.shareButton} onClick={onShare}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <circle cx="18" cy="5" r="3"></circle>
                 <circle cx="6" cy="12" r="3"></circle>
                 <circle cx="18" cy="19" r="3"></circle>
@@ -114,7 +125,8 @@ const AccommodationHero: React.FC<AccommodationHeroProps> = ({
                 const image = heroImages[imageIndex];
 
                 if (image) {
-                  const isViewAllThumbnail = index === 3 && heroImages.length > 5;
+                  const isViewAllThumbnail =
+                    index === 3 && heroImages.length > 5;
 
                   return (
                     <button
@@ -136,16 +148,94 @@ const AccommodationHero: React.FC<AccommodationHeroProps> = ({
                           className={styles.viewAllButton}
                           aria-hidden="true"
                         >
-                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect x="1" y="1" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                            <rect x="6" y="1" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                            <rect x="11" y="1" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                            <rect x="1" y="6" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                            <rect x="6" y="6" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                            <rect x="11" y="6" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                            <rect x="1" y="11" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                            <rect x="6" y="11" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                            <rect x="11" y="11" width="4" height="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <rect
+                              x="1"
+                              y="1"
+                              width="4"
+                              height="4"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              fill="none"
+                            />
+                            <rect
+                              x="6"
+                              y="1"
+                              width="4"
+                              height="4"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              fill="none"
+                            />
+                            <rect
+                              x="11"
+                              y="1"
+                              width="4"
+                              height="4"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              fill="none"
+                            />
+                            <rect
+                              x="1"
+                              y="6"
+                              width="4"
+                              height="4"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              fill="none"
+                            />
+                            <rect
+                              x="6"
+                              y="6"
+                              width="4"
+                              height="4"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              fill="none"
+                            />
+                            <rect
+                              x="11"
+                              y="6"
+                              width="4"
+                              height="4"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              fill="none"
+                            />
+                            <rect
+                              x="1"
+                              y="11"
+                              width="4"
+                              height="4"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              fill="none"
+                            />
+                            <rect
+                              x="6"
+                              y="11"
+                              width="4"
+                              height="4"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              fill="none"
+                            />
+                            <rect
+                              x="11"
+                              y="11"
+                              width="4"
+                              height="4"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              fill="none"
+                            />
                           </svg>
                           <span>사진 모두 보기</span>
                         </div>
@@ -155,11 +245,23 @@ const AccommodationHero: React.FC<AccommodationHeroProps> = ({
                 }
 
                 return (
-                  <div key={`placeholder-${index}`} className={styles.thumbnailPlaceholder}>
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                      <circle cx="8.5" cy="8.5" r="1.5"/>
-                      <polyline points="21 15 16 10 5 21"/>
+                  <div
+                    key={`placeholder-${index}`}
+                    className={styles.thumbnailPlaceholder}
+                  >
+                    <svg
+                      width="48"
+                      height="48"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                      <circle cx="8.5" cy="8.5" r="1.5" />
+                      <polyline points="21 15 16 10 5 21" />
                     </svg>
                   </div>
                 );

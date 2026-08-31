@@ -18,11 +18,7 @@ export interface AccommodationDetailQueryOptions {
 }
 
 export const createAccommodationDetailQueryOptions = (
-  {
-    scope,
-    accommodationId,
-    enabled = true,
-  }: AccommodationDetailQueryOptions,
+  { scope, accommodationId, enabled = true }: AccommodationDetailQueryOptions,
   api: AccommodationDetailApiPort = defaultAccommodationDetailApi,
 ) => ({
   queryKey: accommodationReadQueryKeys.detail(scope, accommodationId),

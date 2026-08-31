@@ -41,9 +41,11 @@ export const createHostListingInfiniteQueryOptions = (
     ),
   initialPageParam: undefined as string | undefined,
   enabled,
-  getNextPageParam: (lastPage: Awaited<ReturnType<HostListingsApiPort["getHostListings"]>>) =>
+  getNextPageParam: (
+    lastPage: Awaited<ReturnType<HostListingsApiPort["getHostListings"]>>,
+  ) =>
     lastPage.pageInfo.hasNext
-      ? lastPage.pageInfo.nextCursor ?? undefined
+      ? (lastPage.pageInfo.nextCursor ?? undefined)
       : undefined,
   meta: createSessionQueryMeta(scope),
   retry: false as const,

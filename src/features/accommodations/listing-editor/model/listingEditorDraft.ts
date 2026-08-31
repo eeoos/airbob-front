@@ -103,8 +103,7 @@ export const toListingEditorFormData = (
   },
   occupancyPolicyInfo: {
     maxOccupancy: String(accommodation.occupancyPolicy?.maxOccupancy ?? 1),
-    infantOccupancy:
-      (accommodation.occupancyPolicy?.infantOccupancy ?? 0) > 0,
+    infantOccupancy: (accommodation.occupancyPolicy?.infantOccupancy ?? 0) > 0,
     petOccupancy: (accommodation.occupancyPolicy?.petOccupancy ?? 0) > 0,
   },
   amenityInfos: cloneAmenities(accommodation.amenities),
@@ -122,9 +121,7 @@ export const hasListingEditorDetailAddress = (
   formData: ListingEditorFormData,
 ): boolean => Boolean(formData.addressInfo.detail.trim());
 
-const sortedAmenities = (
-  amenities: ListingEditorFormData["amenityInfos"],
-) =>
+const sortedAmenities = (amenities: ListingEditorFormData["amenityInfos"]) =>
   [...amenities]
     .map((amenity) => ({ ...amenity }))
     .sort((left, right) => left.name.localeCompare(right.name));
@@ -199,7 +196,9 @@ export const buildListingEditorUpdate = ({
   readonly fallbackProvenance?: ListingEditorFallbackProvenance;
 }): ListingEditorUpdateInput => {
   const update: {
-    -readonly [Key in keyof ListingEditorUpdateInput]?: ListingEditorUpdateInput[Key];
+    -readonly [
+      Key in keyof ListingEditorUpdateInput
+    ]?: ListingEditorUpdateInput[Key];
   } = {};
 
   if (formData.name !== baseline.name) update.name = formData.name;
@@ -229,14 +228,9 @@ export const buildListingEditorUpdate = ({
   }
   if (
     fallbackProvenance.occupancyPolicy ||
-    occupancyChanged(
-      formData.occupancyPolicyInfo,
-      baseline.occupancyPolicyInfo,
-    )
+    occupancyChanged(formData.occupancyPolicyInfo, baseline.occupancyPolicyInfo)
   ) {
-    update.occupancyPolicy = toOccupancyPolicy(
-      formData.occupancyPolicyInfo,
-    );
+    update.occupancyPolicy = toOccupancyPolicy(formData.occupancyPolicyInfo);
   }
   if (amenitiesChanged(formData.amenityInfos, baseline.amenityInfos)) {
     update.amenities = sortedAmenities(formData.amenityInfos);
@@ -254,14 +248,12 @@ export const isListingEditorStepCompleted = (
   const photosComplete = imageCount >= 1;
   const infoComplete = Boolean(
     formData.name &&
-      formData.description &&
-      formData.basePrice &&
-      formData.type &&
-      formData.occupancyPolicyInfo.maxOccupancy,
+    formData.description &&
+    formData.basePrice &&
+    formData.type &&
+    formData.occupancyPolicyInfo.maxOccupancy,
   );
-  const timeComplete = Boolean(
-    formData.checkInTime && formData.checkOutTime,
-  );
+  const timeComplete = Boolean(formData.checkInTime && formData.checkOutTime);
   const draftTimeComplete = isNewDraft
     ? locationComplete && photosComplete && infoComplete && timeComplete
     : timeComplete;
@@ -276,8 +268,6 @@ export const isListingEditorStepCompleted = (
     case 4:
       return draftTimeComplete;
     case 5:
-      return (
-        locationComplete && photosComplete && infoComplete && timeComplete
-      );
+      return locationComplete && photosComplete && infoComplete && timeComplete;
   }
 };

@@ -13,7 +13,7 @@ const scope: AuthenticatedSessionScope = {
   epoch: 4,
 };
 
-const deferred = <T,>() => {
+const deferred = <T>() => {
   let resolve!: (value: T) => void;
   let reject!: (reason?: unknown) => void;
   const promise = new Promise<T>((promiseResolve, promiseReject) => {
@@ -164,7 +164,9 @@ describe("review submission workflow", () => {
     const image = new File(["image"], "stay.png", { type: "image/png" });
     const harness = createHarness();
     harness.api.createReview.mockResolvedValue({ reviewId: 903 });
-    harness.api.uploadReviewImages.mockRejectedValue(new Error("upload failed"));
+    harness.api.uploadReviewImages.mockRejectedValue(
+      new Error("upload failed"),
+    );
 
     const result = harness.workflow.submit(input([image]));
 

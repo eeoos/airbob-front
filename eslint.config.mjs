@@ -41,7 +41,8 @@ const computedBrowserCapabilityRestriction = {
 const browserStorageRestriction = {
   selector:
     "Identifier[name='sessionStorage'], Identifier[name='localStorage'], MemberExpression[property.value='sessionStorage'], MemberExpression[property.value='localStorage'], ObjectPattern > Property[key.value='sessionStorage'], ObjectPattern > Property[key.value='localStorage'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='sessionStorage'], CallExpression[callee.object.name='Reflect'][callee.property.name='get'][arguments.1.value='localStorage']",
-  message: "Direct browser storage access belongs only in src/platform/storage.",
+  message:
+    "Direct browser storage access belongs only in src/platform/storage.",
 };
 
 const externalSdkGlobalRestriction = {
@@ -54,7 +55,8 @@ const externalSdkGlobalRestriction = {
 const externalScriptRestriction = {
   selector:
     "ImportDeclaration[source.value='react'] > ImportSpecifier[imported.name='createElement'], JSXOpeningElement[name.name='script'], CallExpression[callee.name='createElement'][arguments.0.value=/^script$/i], CallExpression[callee.type='MemberExpression'][callee.property.name='createElement'][arguments.0.value=/^script$/i], CallExpression[callee.type='MemberExpression'][callee.property.value='createElement'][arguments.0.value=/^script$/i], CallExpression[callee.type='MemberExpression'][callee.property.name='createElementNS'][arguments.0.value='http://www.w3.org/1999/xhtml'][arguments.1.value=/^script$/i], CallExpression[callee.type='MemberExpression'][callee.property.value='createElementNS'][arguments.0.value='http://www.w3.org/1999/xhtml'][arguments.1.value=/^script$/i], CallExpression[callee.type='MemberExpression'][callee.property.name='bind'][callee.object.type='MemberExpression'][callee.object.property.name='createElement'], CallExpression[callee.type='MemberExpression'][callee.property.value='bind'][callee.object.type='MemberExpression'][callee.object.property.value='createElement'], VariableDeclarator[init.type='MemberExpression'][init.property.name='createElement'], VariableDeclarator[init.type='MemberExpression'][init.property.value='createElement']",
-  message: "External script ownership belongs only in src/platform/integrations.",
+  message:
+    "External script ownership belongs only in src/platform/integrations.",
 };
 
 const dynamicAxiosRestriction = {
@@ -360,10 +362,7 @@ export default defineConfig([
     files: ["src/platform/http/**/*.{js,jsx,mjs,ts,tsx}"],
     ignores: testFiles,
     rules: {
-      "no-restricted-imports": [
-        "error",
-        { paths: [tossSdkImportRestriction] },
-      ],
+      "no-restricted-imports": ["error", { paths: [tossSdkImportRestriction] }],
       "no-restricted-syntax": [
         "error",
         computedBrowserCapabilityRestriction,

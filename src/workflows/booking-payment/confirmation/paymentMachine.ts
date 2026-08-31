@@ -1,8 +1,5 @@
 export type PaymentMachineTerminalStatus =
-  | "confirmed"
-  | "invalid"
-  | "terminal-failure"
-  | "stale";
+  "confirmed" | "invalid" | "terminal-failure" | "stale";
 
 export type PaymentMachineState =
   | { readonly status: "idle" }
@@ -68,8 +65,7 @@ export const paymentMachineReducer = (
     }
 
     return {
-      status:
-        event.type === "CONFIRM_STARTED" ? "confirming" : "reconciling",
+      status: event.type === "CONFIRM_STARTED" ? "confirming" : "reconciling",
       operationId: event.operationId,
     };
   }

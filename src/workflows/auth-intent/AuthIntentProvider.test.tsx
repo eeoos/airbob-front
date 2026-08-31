@@ -1,9 +1,5 @@
 import { act, render, waitFor } from "@testing-library/react";
-import {
-  StrictMode,
-  useEffect,
-  type ReactNode,
-} from "react";
+import { StrictMode, useEffect, type ReactNode } from "react";
 import {
   MemoryRouter,
   useNavigate,
@@ -62,7 +58,9 @@ const wishlistIntent = (accommodationId: number): WishlistOpenAuthIntent => ({
   accommodationId,
 });
 
-type SessionSnapshot = Parameters<typeof AuthIntentProvider>[0]["session"]["state"];
+type SessionSnapshot = Parameters<
+  typeof AuthIntentProvider
+>[0]["session"]["state"];
 
 interface RuntimeHarnessProps {
   readonly children: ReactNode;
@@ -83,9 +81,7 @@ function RuntimeHarness({
       sessionScope.epoch === candidate.epoch,
   };
 
-  return (
-    <AuthIntentProvider session={session}>{children}</AuthIntentProvider>
-  );
+  return <AuthIntentProvider session={session}>{children}</AuthIntentProvider>;
 }
 
 let runtime: AuthIntentContextValue;
@@ -114,10 +110,7 @@ const renderRuntime = ({
 }: RenderRuntimeOptions = {}) => {
   const tree = (
     <MemoryRouter initialEntries={[initialEntry]}>
-      <RuntimeHarness
-        sessionState={sessionState}
-        sessionScope={sessionScope}
-      >
+      <RuntimeHarness sessionState={sessionState} sessionScope={sessionScope}>
         {child}
       </RuntimeHarness>
     </MemoryRouter>
@@ -296,10 +289,7 @@ describe("AuthIntentProvider", () => {
 
     view.rerender(
       <MemoryRouter>
-        <RuntimeHarness
-          sessionState={authenticatedState}
-          sessionScope={scopeA}
-        >
+        <RuntimeHarness sessionState={authenticatedState} sessionScope={scopeA}>
           <RuntimeProbe />
         </RuntimeHarness>
       </MemoryRouter>,
@@ -309,10 +299,7 @@ describe("AuthIntentProvider", () => {
     });
     view.rerender(
       <MemoryRouter>
-        <RuntimeHarness
-          sessionState={authenticatedState}
-          sessionScope={scopeB}
-        >
+        <RuntimeHarness sessionState={authenticatedState} sessionScope={scopeB}>
           <RuntimeProbe />
         </RuntimeHarness>
       </MemoryRouter>,
@@ -339,10 +326,7 @@ describe("AuthIntentProvider", () => {
 
     view.rerender(
       <MemoryRouter initialEntries={["/accommodations/7"]}>
-        <RuntimeHarness
-          sessionState={authenticatedState}
-          sessionScope={scopeA}
-        >
+        <RuntimeHarness sessionState={authenticatedState} sessionScope={scopeA}>
           <RuntimeProbe />
         </RuntimeHarness>
       </MemoryRouter>,

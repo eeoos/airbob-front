@@ -1,5 +1,11 @@
 import type { ReactElement } from "react";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   MemoryRouter,
@@ -46,8 +52,7 @@ vi.mock("../../../features/reservations/payment/public", async () => {
     },
     paymentApi: {
       ...actual.paymentApi,
-      getByOrderId: (...args: unknown[]) =>
-        mockGetPaymentByOrderId(...args),
+      getByOrderId: (...args: unknown[]) => mockGetPaymentByOrderId(...args),
     },
   };
 });
@@ -210,27 +215,21 @@ function FailureRouteTransitionControls() {
       <button
         data-testid="navigate-failure-reservation-1"
         onClick={() =>
-          navigate(
-            "/reservations/reservation-1/fail?reason=confirm-failed",
-          )
+          navigate("/reservations/reservation-1/fail?reason=confirm-failed")
         }
         type="button"
       />
       <button
         data-testid="navigate-failure-reservation-2"
         onClick={() =>
-          navigate(
-            "/reservations/reservation-2/fail?reason=confirm-failed",
-          )
+          navigate("/reservations/reservation-2/fail?reason=confirm-failed")
         }
         type="button"
       />
       <button
         data-testid="navigate-failure-invalid-callback"
         onClick={() =>
-          navigate(
-            "/reservations/reservation-1/fail?reason=invalid-callback",
-          )
+          navigate("/reservations/reservation-1/fail?reason=invalid-callback")
         }
         type="button"
       />
@@ -296,8 +295,9 @@ describe("booking payment app routes", () => {
       checkout: written.data,
       customer: { email: "viewer@example.com", name: "뷰어" },
     });
-    expect(window.sessionStorage.getItem("airbob:booking-payment-v1:checkout"))
-      .not.toContain("viewer@example.com");
+    expect(
+      window.sessionStorage.getItem("airbob:booking-payment-v1:checkout"),
+    ).not.toContain("viewer@example.com");
   });
 
   it("purges a legacy checkout when server dates or guest count do not match", async () => {
@@ -337,7 +337,9 @@ describe("booking payment app routes", () => {
     const rawPrimary = window.sessionStorage.getItem(
       "airbob:reservation-checkout:42",
     );
-    mockGetCheckoutOwnership.mockRejectedValue(new Error("network unavailable"));
+    mockGetCheckoutOwnership.mockRejectedValue(
+      new Error("network unavailable"),
+    );
 
     renderRoute(
       "/accommodations/42/confirm",
@@ -463,7 +465,9 @@ describe("booking payment app routes", () => {
     await waitFor(() =>
       expect(screen.getByTestId("location")).toHaveTextContent('"search":""'),
     );
-    expect(screen.getByTestId("location")).not.toHaveTextContent("payment-key-1");
+    expect(screen.getByTestId("location")).not.toHaveTextContent(
+      "payment-key-1",
+    );
     expect(mockPaymentControllerProps.at(-1)).toMatchObject({
       document: {
         operationId: written.data.operationId,
@@ -681,7 +685,9 @@ describe("booking payment app routes", () => {
     expect(screen.getByTestId("location")).toHaveTextContent(
       "/reservations/reservation-1/fail",
     );
-    expect(screen.getByTestId("location")).not.toHaveTextContent("payment-key-1");
+    expect(screen.getByTestId("location")).not.toHaveTextContent(
+      "payment-key-1",
+    );
     expect(mockPaymentControllerProps).toHaveLength(0);
     expect(window.sessionStorage.length).toBe(0);
   });
@@ -749,7 +755,9 @@ describe("booking payment app routes", () => {
         '"search":"?reason=confirm-failed"',
       ),
     );
-    expect(screen.getByTestId("location")).not.toHaveTextContent("payment-key-1");
+    expect(screen.getByTestId("location")).not.toHaveTextContent(
+      "payment-key-1",
+    );
     expect(mockPaymentControllerProps.at(-1)).toMatchObject({
       mode: "failure",
       shouldConfirm: false,
@@ -829,9 +837,7 @@ describe("booking payment app routes", () => {
     });
     const reservationAController = mockPaymentControllerProps.at(-1);
 
-    fireEvent.click(
-      screen.getByTestId("navigate-failure-reservation-2"),
-    );
+    fireEvent.click(screen.getByTestId("navigate-failure-reservation-2"));
 
     await waitFor(() =>
       expect(
@@ -848,8 +854,7 @@ describe("booking payment app routes", () => {
       window.sessionStorage.getItem("airbob:booking-payment-v1:callback"),
     ).toContain("reservation-1");
 
-    const staleTerminalFailure =
-      reservationAController?.onTerminalFailure;
+    const staleTerminalFailure = reservationAController?.onTerminalFailure;
     const staleConfirmed = reservationAController?.onConfirmed;
     if (
       typeof staleTerminalFailure !== "function" ||
@@ -869,14 +874,10 @@ describe("booking payment app routes", () => {
       window.sessionStorage.getItem("airbob:booking-payment-v1:callback"),
     ).toContain("reservation-1");
 
-    fireEvent.click(
-      screen.getByTestId("navigate-failure-reservation-1"),
-    );
+    fireEvent.click(screen.getByTestId("navigate-failure-reservation-1"));
     await screen.findByTestId("payment-result-controller");
 
-    fireEvent.click(
-      screen.getByTestId("navigate-failure-invalid-callback"),
-    );
+    fireEvent.click(screen.getByTestId("navigate-failure-invalid-callback"));
 
     await waitFor(() =>
       expect(

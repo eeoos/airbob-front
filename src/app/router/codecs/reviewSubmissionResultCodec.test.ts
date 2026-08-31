@@ -18,7 +18,13 @@ describe("reviewSubmissionResultCodec", () => {
     { toastMessage: "injected copy" },
     { reviewSubmission: { version: 2, result: "image-upload-failed" } },
     { reviewSubmission: { version: 1, result: "unknown" } },
-    { reviewSubmission: { version: 1, result: "image-upload-failed", extra: true } },
+    {
+      reviewSubmission: {
+        version: 1,
+        result: "image-upload-failed",
+        extra: true,
+      },
+    },
   ])("rejects unknown or free-form history state %#", (state) => {
     expect(reviewSubmissionResultCodec.parse(state)).toBeNull();
   });

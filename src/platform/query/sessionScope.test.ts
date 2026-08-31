@@ -44,9 +44,9 @@ describe("session-scoped query contracts", () => {
 
     expect(matchesSessionQueryScope(meta, scope)).toBe(true);
     expect(matchesSessionQueryScope(meta, { ...scope, epoch: 8 })).toBe(false);
-    expect(
-      matchesSessionQueryScope(meta, { ...scope, subject: null }),
-    ).toBe(false);
+    expect(matchesSessionQueryScope(meta, { ...scope, subject: null })).toBe(
+      false,
+    );
     expect(matchesSessionQueryScope(null, scope)).toBe(false);
     expect(matchesSessionQueryScope({ session: null }, scope)).toBe(false);
   });

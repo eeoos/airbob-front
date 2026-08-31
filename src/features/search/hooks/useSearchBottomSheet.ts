@@ -86,7 +86,7 @@ export const useSearchBottomSheet = () => {
     };
   }, [isMobileOrTablet, viewportHeight]);
   const y = useMotionValue(
-    isMobileOrTablet ? snapPositions[bottomSheetState] : 0
+    isMobileOrTablet ? snapPositions[bottomSheetState] : 0,
   );
   const immediateTranslateY = useMotionValue(
     isMobileOrTablet ? -snapPositions[bottomSheetState] : 0,
@@ -124,10 +124,10 @@ export const useSearchBottomSheet = () => {
 
     pendingHandleFocusRef.current = Boolean(
       sheet &&
-        handle &&
-        activeElement instanceof HTMLElement &&
-        activeElement !== handle &&
-        sheet.contains(activeElement),
+      handle &&
+      activeElement instanceof HTMLElement &&
+      activeElement !== handle &&
+      sheet.contains(activeElement),
     );
   }, []);
 
@@ -161,86 +161,90 @@ export const useSearchBottomSheet = () => {
     );
   }, [clearHandleClickSuppression]);
 
-  const handleDragEnd = useCallback((
-    event: MouseEvent | TouchEvent | PointerEvent,
-    info: PanInfo
-  ) => {
-    if (!isMobileOrTablet) {
-      return;
-    }
+  const handleDragEnd = useCallback(
+    (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+      if (!isMobileOrTablet) {
+        return;
+      }
 
-    const dragThreshold = 50;
-    const velocityThreshold = 0.5;
-    const dragDistance = Math.abs(info.offset.y);
-    const isDraggingUp = info.offset.y < 0;
-    const velocity = Math.abs(info.velocity.y);
-    const shouldSnap =
-      dragDistance > dragThreshold || velocity > velocityThreshold;
+      const dragThreshold = 50;
+      const velocityThreshold = 0.5;
+      const dragDistance = Math.abs(info.offset.y);
+      const isDraggingUp = info.offset.y < 0;
+      const velocity = Math.abs(info.velocity.y);
+      const shouldSnap =
+        dragDistance > dragThreshold || velocity > velocityThreshold;
 
-    suppressClickAfterHandleDrag();
-    draggedFromHandleRef.current = false;
+      suppressClickAfterHandleDrag();
+      draggedFromHandleRef.current = false;
 
-    if (shouldSnap) {
-      setBottomSheetState(
-        getNextSearchBottomSheetState(
-          dragStartStateRef.current,
-          isDraggingUp ? "up" : "down",
-        ),
+      if (shouldSnap) {
+        setBottomSheetState(
+          getNextSearchBottomSheetState(
+            dragStartStateRef.current,
+            isDraggingUp ? "up" : "down",
+          ),
+        );
+      } else {
+        setYPosition(snapPositions[dragStartStateRef.current]);
+      }
+    },
+    [
+      isMobileOrTablet,
+      setBottomSheetState,
+      setYPosition,
+      snapPositions,
+      suppressClickAfterHandleDrag,
+    ],
+  );
+
+  const handleDragStart = useCallback(
+    (event?: MouseEvent | TouchEvent | PointerEvent) => {
+      if (!isMobileOrTablet) {
+        return;
+      }
+
+      const handle = bottomSheetHandleRef.current;
+      draggedFromHandleRef.current = Boolean(
+        handle &&
+        event?.target instanceof Node &&
+        handle.contains(event.target),
       );
-    } else {
-      setYPosition(snapPositions[dragStartStateRef.current]);
-    }
-  }, [
-    isMobileOrTablet,
-    setBottomSheetState,
-    setYPosition,
-    snapPositions,
-    suppressClickAfterHandleDrag,
-  ]);
+      dragStartStateRef.current = bottomSheetState;
+      dragStartYRef.current = y.get();
+    },
+    [bottomSheetState, isMobileOrTablet, y],
+  );
 
-  const handleDragStart = useCallback((
-    event?: MouseEvent | TouchEvent | PointerEvent,
-  ) => {
-    if (!isMobileOrTablet) {
-      return;
-    }
+  const handleDrag = useCallback(
+    (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+      if (!isMobileOrTablet) {
+        return;
+      }
 
-    const handle = bottomSheetHandleRef.current;
-    draggedFromHandleRef.current = Boolean(
-      handle && event?.target instanceof Node && handle.contains(event.target),
-    );
-    dragStartStateRef.current = bottomSheetState;
-    dragStartYRef.current = y.get();
-  }, [bottomSheetState, isMobileOrTablet, y]);
-
-  const handleDrag = useCallback((
-    event: MouseEvent | TouchEvent | PointerEvent,
-    info: PanInfo
-  ) => {
-    if (!isMobileOrTablet) {
-      return;
-    }
-
-    let nextY = dragStartYRef.current - info.offset.y;
-    nextY = Math.max(
-      snapPositions.collapsed,
-      Math.min(snapPositions.expanded, nextY)
-    );
-    setYPosition(nextY);
-  }, [isMobileOrTablet, setYPosition, snapPositions]);
+      let nextY = dragStartYRef.current - info.offset.y;
+      nextY = Math.max(
+        snapPositions.collapsed,
+        Math.min(snapPositions.expanded, nextY),
+      );
+      setYPosition(nextY);
+    },
+    [isMobileOrTablet, setYPosition, snapPositions],
+  );
 
   const handleMapInteraction = useCallback(() => {
     setBottomSheetState("collapsed");
   }, [setBottomSheetState]);
 
-  const handleBottomSheetScroll = useCallback((
-    event: React.UIEvent<HTMLDivElement>
-  ) => {
-    const scrollTop = event.currentTarget.scrollTop;
-    if (scrollTop > 20 && bottomSheetState !== "expanded") {
-      setBottomSheetState("expanded");
-    }
-  }, [bottomSheetState, setBottomSheetState]);
+  const handleBottomSheetScroll = useCallback(
+    (event: React.UIEvent<HTMLDivElement>) => {
+      const scrollTop = event.currentTarget.scrollTop;
+      if (scrollTop > 20 && bottomSheetState !== "expanded") {
+        setBottomSheetState("expanded");
+      }
+    },
+    [bottomSheetState, setBottomSheetState],
+  );
 
   const handleBottomSheetKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLButtonElement>) => {
@@ -283,14 +287,8 @@ export const useSearchBottomSheet = () => {
       return;
     }
 
-    setBottomSheetState(
-      getNextSearchBottomSheetState(bottomSheetState, "up"),
-    );
-  }, [
-    bottomSheetState,
-    clearHandleClickSuppression,
-    setBottomSheetState,
-  ]);
+    setBottomSheetState(getNextSearchBottomSheetState(bottomSheetState, "up"));
+  }, [bottomSheetState, clearHandleClickSuppression, setBottomSheetState]);
 
   useLayoutEffect(() => {
     if (bottomSheetState !== "collapsed") return;

@@ -63,11 +63,7 @@ export function ReservationConfirmController({
           isCurrentSession: session.isCurrentSession,
         },
       }),
-    [
-      gateway,
-      session.captureAuthenticatedSession,
-      session.isCurrentSession,
-    ],
+    [gateway, session.captureAuthenticatedSession, session.isCurrentSession],
   );
   useStrictModeSafeDisposable(workflow);
 
@@ -196,7 +192,13 @@ export function ReservationConfirmController({
         accommodation.basePrice,
       ),
     };
-  }, [checkout, detailQuery.data, detailQuery.isError, detailQuery.isLoading, resolveImageUrl]);
+  }, [
+    checkout,
+    detailQuery.data,
+    detailQuery.isError,
+    detailQuery.isLoading,
+    resolveImageUrl,
+  ]);
 
   return (
     <ReservationConfirmScreen

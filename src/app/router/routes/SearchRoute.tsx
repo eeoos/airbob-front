@@ -45,17 +45,15 @@ function SearchRouteContent() {
   const { isCurrentSession, state } = session;
   const { cancel, claim, request } = useAuthIntent();
   const wishlistCommands = useWishlistMembership();
-  const [claimedIntent, setClaimedIntent] = useState<
-    ClaimedAuthIntent<WishlistOpenAuthIntent> | null
-  >(null);
+  const [claimedIntent, setClaimedIntent] =
+    useState<ClaimedAuthIntent<WishlistOpenAuthIntent> | null>(null);
   const searchParamsString = searchParams.toString();
   const routeState = useMemo(
     () => searchCodec.parse(new URLSearchParams(searchParamsString)),
     [searchParamsString],
   );
   const detailSearchParams = useMemo(
-    () =>
-      toBookingSafeSearchParams(new URLSearchParams(searchParamsString)),
+    () => toBookingSafeSearchParams(new URLSearchParams(searchParamsString)),
     [searchParamsString],
   );
   const detailSearchString = detailSearchParams.toString();
@@ -111,49 +109,46 @@ function SearchRouteContent() {
       requestWishlistIntent,
     ],
   );
-  const navigation = useMemo<SearchNavigationCommands>(
-    () => {
-      const getAccommodationHref = (accommodationId: number) => {
-        const basePath = routeTo.accommodationDetail(accommodationId);
-        return detailSearchString
-          ? `${basePath}?${detailSearchString}`
-          : basePath;
-      };
+  const navigation = useMemo<SearchNavigationCommands>(() => {
+    const getAccommodationHref = (accommodationId: number) => {
+      const basePath = routeTo.accommodationDetail(accommodationId);
+      return detailSearchString
+        ? `${basePath}?${detailSearchString}`
+        : basePath;
+    };
 
-      return {
-        getAccommodationHref,
-        openAccommodation(accommodationId) {
-          browserWindowNavigation.openInNewTab(
-            getAccommodationHref(accommodationId),
-          );
-        },
-        openPage(page) {
-          const nextParams = new URLSearchParams(searchParamsString);
-          if (page === 0) nextParams.delete("page");
-          else nextParams.set("page", String(page));
-          setSearchParams(nextParams, { replace: false });
-        },
-        replaceMapBounds(bounds) {
-          const nextParams = searchCodec.pick(
-            new URLSearchParams(searchParamsString),
-          );
-          nextParams.delete("destination");
-          nextParams.delete("page");
-          nextParams.delete("lat");
-          nextParams.delete("lng");
-          nextParams.set("topLeftLat", String(bounds.north));
-          nextParams.set("topLeftLng", String(bounds.west));
-          nextParams.set("bottomRightLat", String(bounds.south));
-          nextParams.set("bottomRightLng", String(bounds.east));
-          setSearchParams(nextParams, { replace: true });
-        },
-        scrollResultsToTop() {
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        },
-      };
-    },
-    [detailSearchString, searchParamsString, setSearchParams],
-  );
+    return {
+      getAccommodationHref,
+      openAccommodation(accommodationId) {
+        browserWindowNavigation.openInNewTab(
+          getAccommodationHref(accommodationId),
+        );
+      },
+      openPage(page) {
+        const nextParams = new URLSearchParams(searchParamsString);
+        if (page === 0) nextParams.delete("page");
+        else nextParams.set("page", String(page));
+        setSearchParams(nextParams, { replace: false });
+      },
+      replaceMapBounds(bounds) {
+        const nextParams = searchCodec.pick(
+          new URLSearchParams(searchParamsString),
+        );
+        nextParams.delete("destination");
+        nextParams.delete("page");
+        nextParams.delete("lat");
+        nextParams.delete("lng");
+        nextParams.set("topLeftLat", String(bounds.north));
+        nextParams.set("topLeftLng", String(bounds.west));
+        nextParams.set("bottomRightLat", String(bounds.south));
+        nextParams.set("bottomRightLng", String(bounds.east));
+        setSearchParams(nextParams, { replace: true });
+      },
+      scrollResultsToTop() {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      },
+    };
+  }, [detailSearchString, searchParamsString, setSearchParams]);
   const wishlistScope =
     state.status === "authenticated"
       ? session.captureAuthenticatedSession()

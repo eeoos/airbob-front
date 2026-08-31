@@ -1,8 +1,5 @@
 export type HostListingStatus =
-  | "PUBLISHED"
-  | "DRAFT"
-  | "UNPUBLISHED"
-  | "DELETED";
+  "PUBLISHED" | "DRAFT" | "UNPUBLISHED" | "DELETED";
 
 export type HostListingFilterStatus = Exclude<HostListingStatus, "DELETED">;
 

@@ -47,5 +47,6 @@ export const formatKoreanDateTime = (dateString: string): string =>
     minute: "2-digit",
   });
 
-export const formatNullablePrice = (price: number | null | undefined): string =>
-  price == null ? "-" : `₩${price.toLocaleString()}`;
+export const formatNullablePrice = (
+  price: number | null | undefined,
+): string => (price == null ? "-" : `₩${price.toLocaleString()}`);

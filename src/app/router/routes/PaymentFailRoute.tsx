@@ -66,16 +66,11 @@ export function PaymentFailRoute() {
   const session = useSession();
   const sessionEpoch = session.state.epoch;
   const sessionSubject =
-    session.state.status === "authenticated"
-      ? session.state.subject
-      : null;
+    session.state.status === "authenticated" ? session.state.subject : null;
   const { isCurrentSession } = session;
   const reason = paymentCodec.parse(location.search).reason;
   const canonicalPath = reservationUid
-    ? routeTo.paymentFail(
-        reservationUid,
-        reason ? { reason } : undefined,
-      )
+    ? routeTo.paymentFail(reservationUid, reason ? { reason } : undefined)
     : routeTo.profile();
   const [resolution, setResolution] = useState<FailureResolution>({
     status: "resolving",
@@ -124,10 +119,7 @@ export function PaymentFailRoute() {
   );
 
   useLayoutEffect(() => {
-    if (
-      scope === null ||
-      claimedLeaseRef.current === resolutionLeaseKey
-    ) {
+    if (scope === null || claimedLeaseRef.current === resolutionLeaseKey) {
       return;
     }
     claimedLeaseRef.current = resolutionLeaseKey;
@@ -308,7 +300,8 @@ export function PaymentFailRoute() {
       data: { ...resolution.callback, phase },
       isCurrent: () =>
         claimedLeaseRef.current === resolution.leaseKey &&
-        routeLease.isCurrent() && isCurrentSession(scope),
+        routeLease.isCurrent() &&
+        isCurrentSession(scope),
     }).status === "written";
 
   return (

@@ -223,7 +223,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: border-color 0.2s ease, color 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .guestPickerButton:hover:not(.guestPickerButtonDisabled) {
@@ -352,7 +354,10 @@
   font-size: var(--font-size-xs);
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .couponApplyButton:hover:not(:disabled) {
@@ -390,7 +395,11 @@
 .reserveButton {
   width: 100%;
   padding: 14px;
-  background: linear-gradient(to right, var(--color-brand-coral), var(--color-brand-coral-hover));
+  background: linear-gradient(
+    to right,
+    var(--color-brand-coral),
+    var(--color-brand-coral-hover)
+  );
   color: var(--color-text-inverse);
   border: none;
   border-radius: var(--radius-md);

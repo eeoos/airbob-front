@@ -114,7 +114,7 @@ describe("createVersionedSessionStorage", () => {
         ttlMs: 100,
         dataKeys: ["reservationUid", "amount"],
         validateData: isCheckoutRecord,
-      })
+      }),
     ).toThrow("static slugs");
   });
 
@@ -136,7 +136,10 @@ describe("createVersionedSessionStorage", () => {
     },
     {
       name: "foreign owner",
-      mutate: (record: Record<string, unknown>) => ({ ...record, owner: ownerB }),
+      mutate: (record: Record<string, unknown>) => ({
+        ...record,
+        owner: ownerB,
+      }),
       reason: "foreign-owner",
     },
     {
@@ -187,7 +190,7 @@ describe("createVersionedSessionStorage", () => {
     const valid = JSON.parse(storage.getItem(repository.storageKey) ?? "{}");
     storage.setItem(
       repository.storageKey,
-      raw ?? JSON.stringify(mutate?.(valid) ?? valid)
+      raw ?? JSON.stringify(mutate?.(valid) ?? valid),
     );
 
     expect(repository.read(ownerA)).toEqual({
@@ -222,7 +225,10 @@ describe("createVersionedSessionStorage", () => {
     storage.setItem("airbob:checkout-v10:handoff", "keep");
     storage.setItem("third-party", "keep");
 
-    expect(repository.clearNamespace()).toEqual({ status: "cleared", removed: 2 });
+    expect(repository.clearNamespace()).toEqual({
+      status: "cleared",
+      removed: 2,
+    });
     expect(storage.getItem(repository.storageKey)).toBeNull();
     expect(storage.getItem("airbob:checkout-v1:index")).toBeNull();
     expect(storage.getItem("airbob:checkout-v10:handoff")).toBe("keep");
@@ -264,7 +270,7 @@ describe("createVersionedSessionStorage", () => {
         currentOwner: ownerA,
         verifyAndMap,
         isCurrent: (expectedOwner) => expectedOwner === ownerA,
-      })
+      }),
     ).resolves.toEqual({
       status: "migrated",
       record: expect.objectContaining({ data: checkout, owner: ownerA }),
@@ -294,7 +300,7 @@ describe("createVersionedSessionStorage", () => {
         dataKeys: ["reservationUid", "amount"],
         validateData: isCheckoutRecord,
         legacyKeys: [legacyKey],
-      })
+      }),
     ).toThrow("epoch provider");
 
     const storage = createStorage({ [legacyKey]: "legacy-document" });
@@ -303,12 +309,12 @@ describe("createVersionedSessionStorage", () => {
       legacyKey,
       authenticatedOwner: ownerA,
       currentOwner: ownerA,
-      verifyAndMap: async () => ({ verified: false } as const),
+      verifyAndMap: async () => ({ verified: false }) as const,
     } as unknown as Parameters<typeof repository.migrateLegacy>[0];
 
-    await expect(
-      repository.migrateLegacy(missingGuardOptions)
-    ).rejects.toThrow("current authenticated owner guard");
+    await expect(repository.migrateLegacy(missingGuardOptions)).rejects.toThrow(
+      "current authenticated owner guard",
+    );
     expect(storage.getItem(legacyKey)).toBe("legacy-document");
   });
 
@@ -367,7 +373,7 @@ describe("createVersionedSessionStorage", () => {
         currentOwner: fixture.currentOwner,
         verifyAndMap: async () => fixture.verification,
         isCurrent: () => true,
-      })
+      }),
     ).resolves.toEqual({
       status: "rejected",
       reason: fixture.reason,
@@ -390,7 +396,7 @@ describe("createVersionedSessionStorage", () => {
         currentOwner: ownerA,
         verifyAndMap,
         isCurrent: (expectedOwner) => expectedOwner === ownerA,
-      })
+      }),
     ).resolves.toEqual({
       status: "target-wins",
       record: expect.objectContaining({ data: checkout }),
@@ -403,13 +409,13 @@ describe("createVersionedSessionStorage", () => {
     let epoch = 1;
     let activeOwner: string | null = ownerA;
     let resolveVerification: (
-      result: LegacyMigrationVerification<CheckoutRecord>
+      result: LegacyMigrationVerification<CheckoutRecord>,
     ) => void = () => undefined;
-    const verification = new Promise<LegacyMigrationVerification<CheckoutRecord>>(
-      (resolve) => {
-        resolveVerification = resolve;
-      }
-    );
+    const verification = new Promise<
+      LegacyMigrationVerification<CheckoutRecord>
+    >((resolve) => {
+      resolveVerification = resolve;
+    });
     const storage = createStorage({ [legacyKey]: "legacy-document" });
     const { repository } = createRepository({
       storage,
@@ -441,13 +447,13 @@ describe("createVersionedSessionStorage", () => {
     let epoch = 1;
     let activeOwner: string | null = ownerA;
     let resolveVerification: (
-      result: LegacyMigrationVerification<CheckoutRecord>
+      result: LegacyMigrationVerification<CheckoutRecord>,
     ) => void = () => undefined;
-    const verification = new Promise<LegacyMigrationVerification<CheckoutRecord>>(
-      (resolve) => {
-        resolveVerification = resolve;
-      }
-    );
+    const verification = new Promise<
+      LegacyMigrationVerification<CheckoutRecord>
+    >((resolve) => {
+      resolveVerification = resolve;
+    });
     const storage = createStorage({ [legacyKey]: "legacy-document" });
     const { repository } = createRepository({
       storage,
@@ -477,12 +483,13 @@ describe("createVersionedSessionStorage", () => {
 
   it("does not revive a target after a concurrent verifier rejects and purges the legacy source", async () => {
     let resolveSlowVerification: (
-      result: LegacyMigrationVerification<CheckoutRecord>
+      result: LegacyMigrationVerification<CheckoutRecord>,
     ) => void = () => undefined;
-    const slowVerification =
-      new Promise<LegacyMigrationVerification<CheckoutRecord>>((resolve) => {
-        resolveSlowVerification = resolve;
-      });
+    const slowVerification = new Promise<
+      LegacyMigrationVerification<CheckoutRecord>
+    >((resolve) => {
+      resolveSlowVerification = resolve;
+    });
     const storage = createStorage({ [legacyKey]: "legacy-document" });
     const { repository } = createRepository({ storage });
 
@@ -522,13 +529,13 @@ describe("createVersionedSessionStorage", () => {
 
   it("drops a verified result when the legacy source is replaced in place", async () => {
     let resolveVerification: (
-      result: LegacyMigrationVerification<CheckoutRecord>
+      result: LegacyMigrationVerification<CheckoutRecord>,
     ) => void = () => undefined;
-    const verification = new Promise<LegacyMigrationVerification<CheckoutRecord>>(
-      (resolve) => {
-        resolveVerification = resolve;
-      }
-    );
+    const verification = new Promise<
+      LegacyMigrationVerification<CheckoutRecord>
+    >((resolve) => {
+      resolveVerification = resolve;
+    });
     const storage = createStorage({ [legacyKey]: "legacy-document" });
     const { repository } = createRepository({ storage });
 
@@ -579,7 +586,7 @@ describe("createVersionedSessionStorage", () => {
         currentOwner: ownerA,
         verifyAndMap,
         isCurrent: (expectedOwner) => activeOwner === expectedOwner,
-      })
+      }),
     ).resolves.toEqual({ status: "stale" });
     expect(verifyAndMap).not.toHaveBeenCalled();
     expect(storage.getItem(legacyKey)).toBe("legacy-document");
@@ -640,7 +647,7 @@ describe("createVersionedSessionStorage", () => {
           data: checkout,
         }),
         isCurrent: (expectedOwner) => expectedOwner === ownerA,
-      })
+      }),
     ).resolves.toEqual({
       status: "legacy-cleanup-failed",
       outcome: "migrated",
@@ -663,7 +670,7 @@ describe("createVersionedSessionStorage", () => {
         ttlMs: 5_000,
         dataKeys: ["reservationUid", "amount"],
         validateData: isCheckoutRecord,
-      })
+      }),
     ).toThrow("privacy class");
 
     const { repository } = createRepository({

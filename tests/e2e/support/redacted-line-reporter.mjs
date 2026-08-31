@@ -95,9 +95,7 @@ export class RedactedLineReporter {
 
   onBegin(_config, suite) {
     this.total = suite.allTests().length;
-    this.output.stdout(
-      `Running ${this.total} deterministic browser tests\n`,
-    );
+    this.output.stdout(`Running ${this.total} deterministic browser tests\n`);
   }
 
   onTestEnd(test, result) {

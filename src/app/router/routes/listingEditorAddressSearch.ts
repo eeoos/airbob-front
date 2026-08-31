@@ -77,5 +77,4 @@ export const createListingEditorAddressSearch = ({
   },
 });
 
-export const listingEditorAddressSearch =
-  createListingEditorAddressSearch();
+export const listingEditorAddressSearch = createListingEditorAddressSearch();

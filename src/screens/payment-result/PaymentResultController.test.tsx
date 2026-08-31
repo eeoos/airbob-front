@@ -56,9 +56,7 @@ const callback = (): CallbackData => ({
   phase: "received",
 });
 
-const payment = (
-  overrides: Partial<PaymentRecord> = {},
-): PaymentRecord => ({
+const payment = (overrides: Partial<PaymentRecord> = {}): PaymentRecord => ({
   orderId: "reservation-1",
   paymentKey: "payment-key-1",
   totalAmount: 120_000,
@@ -126,9 +124,7 @@ const setup = ({
     isCurrentSession: (candidate: AuthenticatedSessionScope) =>
       candidate.subject === scope.subject && candidate.epoch === scope.epoch,
   };
-  const controller = (
-    session: typeof sessionMethods = sessionMethods,
-  ) => (
+  const controller = (session: typeof sessionMethods = sessionMethods) => (
     <PaymentResultController
       callback={callbackData}
       document={documentData}
@@ -199,7 +195,9 @@ describe("PaymentResultController", () => {
       getCheckoutOwnership: vi.fn().mockRejectedValue(preflightError),
     });
 
-    await waitFor(() => expect(callbacks.onRecoverable).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(callbacks.onRecoverable).toHaveBeenCalledTimes(1),
+    );
     expect(callbacks.onCallbackPhaseChange).not.toHaveBeenCalled();
     expect(paymentApi.confirm).not.toHaveBeenCalled();
     expect(paymentApi.getByPaymentKey).not.toHaveBeenCalled();
@@ -274,11 +272,9 @@ describe("PaymentResultController", () => {
     const getCheckoutOwnership = vi
       .fn()
       .mockReturnValue(pendingOwnership.promise);
-    const {
-      callbacks,
-      paymentApi,
-      rerenderWithFreshSessionFacade,
-    } = setup({ getCheckoutOwnership });
+    const { callbacks, paymentApi, rerenderWithFreshSessionFacade } = setup({
+      getCheckoutOwnership,
+    });
 
     await waitFor(() => expect(getCheckoutOwnership).toHaveBeenCalledTimes(1));
     rerenderWithFreshSessionFacade();
@@ -350,7 +346,9 @@ describe("PaymentResultController", () => {
       getByPaymentKey: vi.fn().mockRejectedValue(lookupError),
     });
 
-    await waitFor(() => expect(callbacks.onRecoverable).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(callbacks.onRecoverable).toHaveBeenCalledTimes(1),
+    );
     expect(callbacks.onCallbackPhaseChange).toHaveBeenNthCalledWith(
       1,
       "confirming",
@@ -367,7 +365,9 @@ describe("PaymentResultController", () => {
     const { callbacks } = setup({
       mode: "failure",
       shouldConfirm: false,
-      getByPaymentKey: vi.fn().mockResolvedValue(payment({ status: "IN_PROGRESS" })),
+      getByPaymentKey: vi
+        .fn()
+        .mockResolvedValue(payment({ status: "IN_PROGRESS" })),
     });
 
     fireEvent.click(screen.getByRole("button", { name: "결제 상태 확인" }));

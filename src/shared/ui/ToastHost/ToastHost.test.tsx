@@ -22,7 +22,7 @@ describe("ToastHost", () => {
         message="저장에 실패했습니다."
         onClose={onClose}
         closeLabel="오류 닫기"
-      />
+      />,
     );
 
     await userEvent.click(screen.getByRole("button", { name: "오류 닫기" }));
@@ -40,7 +40,7 @@ describe("ToastHost", () => {
           message="저장에 실패했습니다."
           onClose={onClose}
           duration={1500}
-        />
+        />,
       );
 
       act(() => {
@@ -63,14 +63,22 @@ describe("ToastHost", () => {
 
     try {
       const view = render(
-        <ToastHost message="첫 번째 메시지" onClose={onClose} duration={1500} />,
+        <ToastHost
+          message="첫 번째 메시지"
+          onClose={onClose}
+          duration={1500}
+        />,
       );
 
       act(() => {
         vi.advanceTimersByTime(1000);
       });
       view.rerender(
-        <ToastHost message="두 번째 메시지" onClose={onClose} duration={1500} />,
+        <ToastHost
+          message="두 번째 메시지"
+          onClose={onClose}
+          duration={1500}
+        />,
       );
 
       act(() => {
@@ -152,9 +160,7 @@ describe("ToastHost", () => {
         screen.queryByRole("button", { name: "닫기" }),
       ).not.toBeInTheDocument();
 
-      fireEvent.click(
-        screen.getByRole("button", { name: "복구 다시 시도" }),
-      );
+      fireEvent.click(screen.getByRole("button", { name: "복구 다시 시도" }));
 
       expect(onAction).toHaveBeenCalledTimes(1);
       expect(onClose).not.toHaveBeenCalled();

@@ -124,17 +124,14 @@ test("keeps stacked dialogs modal, focus-contained, and Escape ordered", async (
 
   await expect(createDialog).toBeVisible();
   await expect(nameInput).toBeFocused();
-  await expect(
-    page.locator('#airbob-portal-root [role="dialog"]'),
-  ).toHaveCount(2);
+  await expect(page.locator('#airbob-portal-root [role="dialog"]')).toHaveCount(
+    2,
+  );
   await expect(wishlistDialog.locator("xpath=..")).toHaveAttribute(
     "aria-hidden",
     "true",
   );
-  await expect(wishlistDialog.locator("xpath=..")).toHaveAttribute(
-    "inert",
-    "",
-  );
+  await expect(wishlistDialog.locator("xpath=..")).toHaveAttribute("inert", "");
 
   await page.keyboard.press("Shift+Tab");
   await expect(createCloseButton).toBeFocused();
@@ -185,21 +182,21 @@ test("moves and selects dates through the calendar grid, then restores trigger f
 
   const datePicker = page.locator("#search-date-picker");
   await expect(datePicker).toBeVisible();
-  await expect(datePicker.getByRole("grid", { name: "2026년 7월" })).toBeVisible();
-  await expect(datePicker.getByRole("grid", { name: "2026년 8월" })).toBeVisible();
+  await expect(
+    datePicker.getByRole("grid", { name: "2026년 7월" }),
+  ).toBeVisible();
+  await expect(
+    datePicker.getByRole("grid", { name: "2026년 8월" }),
+  ).toBeVisible();
 
   const rovingTabStop = () =>
     datePicker.locator('[role="gridcell"][tabindex="0"]');
   await expect(rovingTabStop()).toHaveCount(1);
-  await expect(rovingTabStop()).toHaveAccessibleName(
-    "2026년 7월 1일 수요일",
-  );
+  await expect(rovingTabStop()).toHaveAccessibleName("2026년 7월 1일 수요일");
   await expect(rovingTabStop()).toBeFocused();
 
   await page.keyboard.press("ArrowRight");
-  await expect(rovingTabStop()).toHaveAccessibleName(
-    "2026년 7월 2일 목요일",
-  );
+  await expect(rovingTabStop()).toHaveAccessibleName("2026년 7월 2일 목요일");
   await expect(rovingTabStop()).toBeFocused();
 
   await page.keyboard.press("Enter");
@@ -208,14 +205,10 @@ test("moves and selects dates through the calendar grid, then restores trigger f
       name: "2026년 7월 2일 목요일",
     }),
   ).toHaveAttribute("aria-selected", "true");
-  await expect(rovingTabStop()).toHaveAccessibleName(
-    "2026년 7월 3일 금요일",
-  );
+  await expect(rovingTabStop()).toHaveAccessibleName("2026년 7월 3일 금요일");
 
   await page.keyboard.press("ArrowRight");
-  await expect(rovingTabStop()).toHaveAccessibleName(
-    "2026년 7월 4일 토요일",
-  );
+  await expect(rovingTabStop()).toHaveAccessibleName("2026년 7월 4일 토요일");
   await page.keyboard.press("Space");
 
   await expect(
@@ -247,9 +240,7 @@ test("keeps mobile calendar date targets at least 44 by 44 pixels", async ({
 
   await page.goto(searchURL);
   const search = page.getByRole("search", { name: "숙소 검색" });
-  await search
-    .locator('button[aria-controls="search-date-picker"]')
-    .click();
+  await search.locator('button[aria-controls="search-date-picker"]').click();
 
   const enabledDate = page
     .locator('#search-date-picker [role="gridcell"]:not([disabled])')
@@ -286,8 +277,8 @@ test("honors reduced motion while keyboard controls move the mobile results shee
   await handle.focus();
   await expect(handle).toBeFocused();
   expect(
-    await page.evaluate(() =>
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    await page.evaluate(
+      () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     ),
   ).toBe(true);
   const halfTransform = await sheet.evaluate(
@@ -307,11 +298,15 @@ test("honors reduced motion while keyboard controls move the mobile results shee
   await page.keyboard.press("Home");
   await expect(handle).toHaveAttribute("data-state", "collapsed");
   await expect(handle).toHaveAttribute("aria-expanded", "false");
-  await expect(page.getByRole("group", { name: "검색 결과 목록" })).toBeHidden();
+  await expect(
+    page.getByRole("group", { name: "검색 결과 목록" }),
+  ).toBeHidden();
 
   await page.keyboard.press("End");
   await expect(handle).toHaveAttribute("data-state", "expanded");
-  await expect(page.getByRole("group", { name: "검색 결과 목록" })).toBeVisible();
+  await expect(
+    page.getByRole("group", { name: "검색 결과 목록" }),
+  ).toBeVisible();
   await expect(handle).toBeFocused();
 
   const motion = await sheet.evaluate((element) => {

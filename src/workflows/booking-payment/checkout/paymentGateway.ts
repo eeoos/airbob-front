@@ -1,9 +1,7 @@
 import { ConfigError } from "../../../platform/config/env";
 import { requireTossClientKey } from "../../../platform/config/publicRuntimeConfig";
 import { IntegrationError } from "../../../platform/integrations/errors";
-import {
-  loadTossPaymentsV2Client,
-} from "../../../platform/integrations/tossPaymentsV2";
+import { loadTossPaymentsV2Client } from "../../../platform/integrations/tossPaymentsV2";
 
 export interface PaymentGatewayRequest {
   readonly orderId: string;
@@ -26,9 +24,7 @@ export interface PaymentGatewayLease {
 }
 
 export type PaymentGatewayFailureKind =
-  | "cancelled"
-  | "recoverable"
-  | "terminal";
+  "cancelled" | "recoverable" | "terminal";
 
 export class PaymentGatewayError extends Error {
   readonly kind: PaymentGatewayFailureKind;
@@ -98,10 +94,7 @@ const normalizeGatewayFailure = (error: unknown): PaymentGatewayError => {
       silent: true,
     });
   }
-  if (
-    code === "BAD_REQUEST" ||
-    message.includes("계약 후 테스트")
-  ) {
+  if (code === "BAD_REQUEST" || message.includes("계약 후 테스트")) {
     return new PaymentGatewayError({
       kind: "recoverable",
       message: "결제 요청을 다시 시도해주세요.",

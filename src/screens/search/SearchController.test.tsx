@@ -181,9 +181,7 @@ describe("SearchController", () => {
 
   it("delegates detail, page and map navigation without browser access", () => {
     const commands = navigation();
-    render(
-      <SearchController {...baseProps({ navigation: commands })} />,
-    );
+    render(<SearchController {...baseProps({ navigation: commands })} />);
 
     act(() => currentScreenProps().onAccommodationOpen(7));
     expect(commands.openAccommodation).toHaveBeenCalledWith(7);
@@ -310,7 +308,10 @@ describe("SearchController", () => {
     };
     render(
       <SearchController
-        {...baseProps({ isAuthenticated: false, wishlistAuthIntent: authIntent })}
+        {...baseProps({
+          isAuthenticated: false,
+          wishlistAuthIntent: authIntent,
+        })}
       />,
     );
 

@@ -1,9 +1,6 @@
 import { createContext } from "react";
 import type { SessionCredentials } from "../../features/auth/ports/sessionPort";
-import type {
-  AuthenticatedSessionScope,
-  SessionState,
-} from "./sessionState";
+import type { AuthenticatedSessionScope, SessionState } from "./sessionState";
 
 export interface SessionContextValue {
   readonly state: SessionState;

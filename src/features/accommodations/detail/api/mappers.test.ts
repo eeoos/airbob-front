@@ -2,10 +2,7 @@ import type {
   AccommodationDetailWire,
   CouponCollectionWire,
 } from "./contracts";
-import {
-  toAccommodationDetail,
-  toCouponCollection,
-} from "./mappers";
+import { toAccommodationDetail, toCouponCollection } from "./mappers";
 
 describe("accommodation API mappers", () => {
   it("maps every accommodation-detail wire field into the owned model", () => {

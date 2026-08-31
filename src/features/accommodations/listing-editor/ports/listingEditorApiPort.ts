@@ -14,8 +14,7 @@ export interface ListingEditorRequestOptions {
   readonly signal?: AbortSignal;
 }
 
-export interface ListingEditorUploadOptions
-  extends ListingEditorRequestOptions {
+export interface ListingEditorUploadOptions extends ListingEditorRequestOptions {
   readonly onProgress?: (progress: number) => void;
 }
 

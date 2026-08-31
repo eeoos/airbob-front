@@ -92,7 +92,10 @@ export function CreateWishlistModal({
           return;
         }
 
-        if (result.status === "applied" || result.status === "applied-unconfirmed") {
+        if (
+          result.status === "applied" ||
+          result.status === "applied-unconfirmed"
+        ) {
           setName("");
           onComplete(result);
         }

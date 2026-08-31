@@ -53,12 +53,12 @@ function AccommodationDetailRouteContent() {
   const { pending, request, cancel, claim } = useAuthIntent();
   const wishlistCommands = useWishlistMembership();
   const requestedAttemptIdRef = useRef<AuthIntentAttemptId | null>(null);
-  const [claimedIntent, setClaimedIntent] =
-    useState<ClaimedAuthIntent | null>(null);
+  const [claimedIntent, setClaimedIntent] = useState<ClaimedAuthIntent | null>(
+    null,
+  );
   const parsedAccommodationId = parsePositiveInteger(id ?? null, 0);
-  const accommodationId = parsedAccommodationId > 0
-    ? parsedAccommodationId
-    : null;
+  const accommodationId =
+    parsedAccommodationId > 0 ? parsedAccommodationId : null;
   const currentPath = createPath(location);
   const isAuthenticated = session.state.status === "authenticated";
   const sessionEpoch = session.state.epoch;
@@ -175,8 +175,7 @@ function AccommodationDetailRouteContent() {
           attemptId: activeClaim.attemptId,
           intent: activeClaim.intent,
           isCurrent: () =>
-            routeLease.isCurrent() &&
-            isCurrentSession(activeClaim.session),
+            routeLease.isCurrent() && isCurrentSession(activeClaim.session),
         }
       : null;
   }, [
@@ -202,112 +201,109 @@ function AccommodationDetailRouteContent() {
     [cancelPendingAuthIntent, claimed, requestAuthIntent],
   );
 
-  const checkoutHandoff = useMemo<ReservationCheckoutHandoffPort>(
-    () => {
-      const inspectActivePayment = (
-        session: AuthenticatedSessionScope,
-        navigateToRecovery: boolean,
-      ) => {
-        if (!routeLease.isCurrent() || !isCurrentSession(session)) {
-          return { status: "blocked" } as const;
-        }
+  const checkoutHandoff = useMemo<ReservationCheckoutHandoffPort>(() => {
+    const inspectActivePayment = (
+      session: AuthenticatedSessionScope,
+      navigateToRecovery: boolean,
+    ) => {
+      if (!routeLease.isCurrent() || !isCurrentSession(session)) {
+        return { status: "blocked" } as const;
+      }
 
-        const callback = callbackRepository.read({ scope: session });
-        if (callback.status === "missing") {
-          return { status: "ready" } as const;
-        }
-        if (callback.status !== "found") {
-          return { status: "blocked" } as const;
-        }
+      const callback = callbackRepository.read({ scope: session });
+      if (callback.status === "missing") {
+        return { status: "ready" } as const;
+      }
+      if (callback.status !== "found") {
+        return { status: "blocked" } as const;
+      }
 
-        const checkout = checkoutRepository.readForCallback({
-          scope: session,
-          reservationUid: callback.data.reservationUid,
-        });
+      const checkout = checkoutRepository.readForCallback({
+        scope: session,
+        reservationUid: callback.data.reservationUid,
+      });
+      if (
+        checkout.status !== "found" ||
+        checkout.data.operationId !== callback.data.operationId ||
+        checkout.data.reservationUid !== callback.data.orderId ||
+        checkout.data.amount !== callback.data.amount
+      ) {
+        return { status: "blocked" } as const;
+      }
+
+      if (navigateToRecovery) {
+        navigate(
+          routeTo.paymentFail(callback.data.reservationUid, {
+            reason: "confirm-failed",
+          }),
+          { replace: true, state: null },
+        );
+      }
+      return { status: "payment-recovery-required" } as const;
+    };
+
+    return {
+      preflight(input) {
         if (
-          checkout.status !== "found" ||
-          checkout.data.operationId !== callback.data.operationId ||
-          checkout.data.reservationUid !== callback.data.orderId ||
-          checkout.data.amount !== callback.data.amount
+          accommodationId === null ||
+          input.intent.accommodationId !== accommodationId
         ) {
-          return { status: "blocked" } as const;
+          return { status: "blocked" };
         }
 
-        if (navigateToRecovery) {
-          navigate(
-            routeTo.paymentFail(callback.data.reservationUid, {
-              reason: "confirm-failed",
-            }),
-            { replace: true, state: null },
-          );
+        return inspectActivePayment(input.session, true);
+      },
+      commit(input) {
+        if (
+          accommodationId === null ||
+          input.intent.accommodationId !== accommodationId ||
+          !routeLease.isCurrent() ||
+          !isCurrentSession(input.session)
+        ) {
+          throw new Error("Checkout handoff is no longer current.");
         }
-        return { status: "payment-recovery-required" } as const;
-      };
 
-      return {
-        preflight(input) {
-          if (
-            accommodationId === null ||
-            input.intent.accommodationId !== accommodationId
-          ) {
-            return { status: "blocked" };
-          }
+        if (inspectActivePayment(input.session, false).status !== "ready") {
+          throw new Error("An earlier payment still requires recovery.");
+        }
 
-          return inspectActivePayment(input.session, true);
-        },
-        commit(input) {
-          if (
-            accommodationId === null ||
-            input.intent.accommodationId !== accommodationId ||
-            !routeLease.isCurrent() ||
-            !isCurrentSession(input.session)
-          ) {
-            throw new Error("Checkout handoff is no longer current.");
-          }
+        const writeResult = checkoutRepository.write({
+          scope: input.session,
+          isCurrent: () =>
+            routeLease.isCurrent() && isCurrentSession(input.session),
+          data: {
+            accommodationId,
+            reservationUid: input.reservation.reservationUid,
+            orderName: input.reservation.orderName,
+            amount: input.reservation.amount,
+            checkIn: input.intent.checkIn,
+            checkOut: input.intent.checkOut,
+            adultOccupancy: input.intent.adultCount,
+            childOccupancy: input.intent.childCount,
+            infantOccupancy: input.intent.infantCount,
+            petOccupancy: input.intent.petCount,
+            couponName: input.appliedCoupon?.name ?? null,
+            couponDiscount: input.appliedCoupon?.discount ?? null,
+          },
+        });
 
-          if (inspectActivePayment(input.session, false).status !== "ready") {
-            throw new Error("An earlier payment still requires recovery.");
-          }
+        if (writeResult.status !== "written") {
+          throw new Error("Checkout handoff could not be persisted.");
+        }
 
-          const writeResult = checkoutRepository.write({
-            scope: input.session,
-            isCurrent: () =>
-              routeLease.isCurrent() && isCurrentSession(input.session),
-            data: {
-              accommodationId,
-              reservationUid: input.reservation.reservationUid,
-              orderName: input.reservation.orderName,
-              amount: input.reservation.amount,
-              checkIn: input.intent.checkIn,
-              checkOut: input.intent.checkOut,
-              adultOccupancy: input.intent.adultCount,
-              childOccupancy: input.intent.childCount,
-              infantOccupancy: input.intent.infantCount,
-              petOccupancy: input.intent.petCount,
-              couponName: input.appliedCoupon?.name ?? null,
-              couponDiscount: input.appliedCoupon?.discount ?? null,
-            },
-          });
-
-          if (writeResult.status !== "written") {
-            throw new Error("Checkout handoff could not be persisted.");
-          }
-
-          navigate(routeTo.accommodationConfirm(accommodationId), {
-            state: writeResult.handle,
-          });
-        },
-      };
-    },
-    [
-      accommodationId,
-      callbackRepository,
-      checkoutRepository,
-      isCurrentSession,
-      navigate,
-      routeLease,
-    ],
-  );
+        navigate(routeTo.accommodationConfirm(accommodationId), {
+          state: writeResult.handle,
+        });
+      },
+    };
+  }, [
+    accommodationId,
+    callbackRepository,
+    checkoutRepository,
+    isCurrentSession,
+    navigate,
+    routeLease,
+  ]);
 
   const replaceBookingDates = useCallback(
     (checkIn: string | null, checkOut: string | null) => {
@@ -330,8 +326,10 @@ function AccommodationDetailRouteContent() {
     [location.hash, location.pathname, location.search, navigate],
   );
   const recordRecentlyViewed = useCallback(
-    (recordAccommodationId: number, options: { readonly signal: AbortSignal }) =>
-      recentlyViewedApi.add(recordAccommodationId, options),
+    (
+      recordAccommodationId: number,
+      options: { readonly signal: AbortSignal },
+    ) => recentlyViewedApi.add(recordAccommodationId, options),
     [],
   );
 

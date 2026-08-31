@@ -16,8 +16,7 @@ import {
 
 const scope = {
   epoch: 4,
-  subject:
-    "subject:member_7" as AuthenticatedSessionScope["subject"],
+  subject: "subject:member_7" as AuthenticatedSessionScope["subject"],
 };
 
 const nextEpochScope = { ...scope, epoch: 5 };
@@ -89,7 +88,7 @@ const createApi = () => {
   };
 };
 
-const deferred = <T,>() => {
+const deferred = <T>() => {
   let resolve!: (value: T | PromiseLike<T>) => void;
   const promise = new Promise<T>((resolvePromise) => {
     resolve = resolvePromise;
@@ -99,7 +98,11 @@ const deferred = <T,>() => {
 
 const createWrapper = (queryClient: QueryClient) =>
   function QueryWrapper({ children }: { readonly children: React.ReactNode }) {
-    return React.createElement(QueryClientProvider, { client: queryClient }, children);
+    return React.createElement(
+      QueryClientProvider,
+      { client: queryClient },
+      children,
+    );
   };
 
 describe("reservation read query boundary", () => {
@@ -295,9 +298,7 @@ describe("reservation read query boundary", () => {
     await waitFor(() =>
       expect(
         result.current.data?.pages.at(0)?.reservations.at(0)?.reservationUid,
-      ).toBe(
-        "upcoming-1",
-      ),
+      ).toBe("upcoming-1"),
     );
     let oldNextRequest!: ReturnType<typeof result.current.fetchNextPage>;
     act(() => {
@@ -309,9 +310,7 @@ describe("reservation read query boundary", () => {
     await waitFor(() =>
       expect(
         result.current.data?.pages.at(0)?.reservations.at(0)?.reservationUid,
-      ).toBe(
-        "past-1",
-      ),
+      ).toBe("past-1"),
     );
 
     await act(async () => {
@@ -322,9 +321,7 @@ describe("reservation read query boundary", () => {
     expect(result.current.data?.pages).toHaveLength(1);
     expect(
       result.current.data?.pages.at(0)?.reservations.at(0)?.reservationUid,
-    ).toBe(
-      "past-1",
-    );
+    ).toBe("past-1");
     queryClient.clear();
   });
 });

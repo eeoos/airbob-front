@@ -38,9 +38,7 @@ export interface CouponIssueAuthIntent {
 }
 
 export type AuthIntent =
-  | WishlistOpenAuthIntent
-  | ReservationStartAuthIntent
-  | CouponIssueAuthIntent;
+  WishlistOpenAuthIntent | ReservationStartAuthIntent | CouponIssueAuthIntent;
 
 const localDatePattern = /^(\d{4})-(\d{2})-(\d{2})$/;
 

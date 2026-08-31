@@ -9,8 +9,7 @@ export const COMMITTED_PRIVACY_CANARIES = [
 
 const sensitiveFieldNames =
   "customer[-_]?email|customer[-_]?name|email|nickname|order[-_]?id|password|payment[-_]?key|access[-_]?token|refresh[-_]?token|session[-_]?token|token|authorization|cookie|api[-_]?key|client[-_]?secret|secret";
-const sensitiveFieldReference =
-  `(?:\\b(?:${sensitiveFieldNames})\\b|["'\\x60](?:${sensitiveFieldNames})["'\\x60]|\\\\+["'](?:${sensitiveFieldNames})\\\\+["'])`;
+const sensitiveFieldReference = `(?:\\b(?:${sensitiveFieldNames})\\b|["'\\x60](?:${sensitiveFieldNames})["'\\x60]|\\\\+["'](?:${sensitiveFieldNames})\\\\+["'])`;
 const horizontalWhitespace = "[^\\S\\r\\n]*";
 const MAX_STRUCTURED_VALUE_DEPTH = 64;
 const structuredValueClosingDelimiter = { "{": "}", "[": "]" };
@@ -362,10 +361,7 @@ export const redactSensitiveText = (input) => {
     /\b(?:live|test)_sk_[A-Za-z0-9_-]+\b/g,
     "[redacted-server-key]",
   );
-  text = text.replace(
-    /\bBearer\s+[A-Za-z0-9._~+/=-]+/gi,
-    "Bearer [redacted]",
-  );
+  text = text.replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [redacted]");
   text = text.replace(
     /(https?:\/\/[^\s"'<>]+\/reservations\/)[^/?#\s"'<>]+/gi,
     "$1[redacted]",
@@ -517,9 +513,7 @@ const consumeQuotedContinuation = (text, continuation) => {
   return {
     redacted:
       extractLineBreaks(suppressedValue) +
-      (continuation.preserveClosingQuote
-        ? continuation.closingDelimiter
-        : "") +
+      (continuation.preserveClosingQuote ? continuation.closingDelimiter : "") +
       next.redacted,
     continuation: next.continuation,
   };
@@ -547,9 +541,7 @@ const consumeEscapedQuotedContinuation = (text, continuation) => {
   return {
     redacted:
       extractLineBreaks(suppressedValue) +
-      (continuation.preserveClosingQuote
-        ? continuation.closingDelimiter
-        : "") +
+      (continuation.preserveClosingQuote ? continuation.closingDelimiter : "") +
       next.redacted,
     continuation: next.continuation,
   };
@@ -587,10 +579,7 @@ const consumeBlockedContinuation = (text) => ({
 
 const consumeUnquotedContinuation = (text) => {
   let valueEnd = 0;
-  while (
-    valueEnd < text.length &&
-    !isUnquotedValueDelimiter(text[valueEnd])
-  ) {
+  while (valueEnd < text.length && !isUnquotedValueDelimiter(text[valueEnd])) {
     valueEnd += 1;
   }
 

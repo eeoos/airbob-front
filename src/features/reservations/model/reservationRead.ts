@@ -118,9 +118,7 @@ export interface ReservationListPage<
   readonly pageInfo: ReservationPageInfo;
 }
 
-interface ReservationDetailBase<
-  TAudience extends ReservationReadAudience,
-> {
+interface ReservationDetailBase<TAudience extends ReservationReadAudience> {
   readonly audience: TAudience;
   readonly reservationUid: string;
   readonly reservationCode: string;
@@ -134,8 +132,7 @@ interface ReservationDetailBase<
   readonly payment: ReservationPayment | null;
 }
 
-export interface GuestReservationDetail
-  extends ReservationDetailBase<"guest"> {
+export interface GuestReservationDetail extends ReservationDetailBase<"guest"> {
   readonly checkInTime: string;
   readonly checkOutTime: string;
   readonly canWriteReview: boolean;
@@ -149,6 +146,4 @@ export interface HostReservationDetail extends ReservationDetailBase<"host"> {
 
 export type ReservationDetailByAudience<
   TAudience extends ReservationReadAudience,
-> = TAudience extends "guest"
-  ? GuestReservationDetail
-  : HostReservationDetail;
+> = TAudience extends "guest" ? GuestReservationDetail : HostReservationDetail;

@@ -1,9 +1,6 @@
 import React from "react";
 import type { AccommodationEditFormData } from "../editorViewContract";
-import {
-  ACCOMMODATION_TYPE_OPTIONS,
-  AMENITY_OPTIONS,
-} from "./editorOptions";
+import { ACCOMMODATION_TYPE_OPTIONS, AMENITY_OPTIONS } from "./editorOptions";
 import styles from "./EditForm.module.css";
 
 type NestedFormFields = {
@@ -15,15 +12,15 @@ interface InfoStepProps {
   formData: AccommodationEditFormData;
   onInputChange: <K extends keyof AccommodationEditFormData>(
     field: K,
-    value: AccommodationEditFormData[K]
+    value: AccommodationEditFormData[K],
   ) => void;
   onNestedChange: <
     P extends keyof NestedFormFields,
-    K extends keyof NestedFormFields[P]
+    K extends keyof NestedFormFields[P],
   >(
     parent: P,
     field: K,
-    value: NestedFormFields[P][K]
+    value: NestedFormFields[P][K],
   ) => void;
   setFormData: React.Dispatch<React.SetStateAction<AccommodationEditFormData>>;
   onOpenTypeModal: () => void;
@@ -85,7 +82,12 @@ export const InfoStep: React.FC<InfoStepProps> = ({
       >
         {ACCOMMODATION_TYPE_OPTIONS.find((t) => t.value === formData.type)
           ?.label || "숙소 유형 선택"}
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
           <polyline points="6 9 12 15 18 9" />
         </svg>
       </button>
@@ -121,18 +123,24 @@ export const InfoStep: React.FC<InfoStepProps> = ({
               aria-label="최대 게스트 수 줄이기"
               className={styles.quantityButton}
               onClick={() => {
-                const current = Number(formData.occupancyPolicyInfo.maxOccupancy) || 1;
+                const current =
+                  Number(formData.occupancyPolicyInfo.maxOccupancy) || 1;
                 if (current > 1) {
                   onNestedChange(
                     "occupancyPolicyInfo",
                     "maxOccupancy",
-                    String(current - 1)
+                    String(current - 1),
                   );
                 }
               }}
               disabled={Number(formData.occupancyPolicyInfo.maxOccupancy) <= 1}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
             </button>
@@ -144,15 +152,21 @@ export const InfoStep: React.FC<InfoStepProps> = ({
               aria-label="최대 게스트 수 늘리기"
               className={styles.quantityButton}
               onClick={() => {
-                const current = Number(formData.occupancyPolicyInfo.maxOccupancy) || 1;
+                const current =
+                  Number(formData.occupancyPolicyInfo.maxOccupancy) || 1;
                 onNestedChange(
                   "occupancyPolicyInfo",
                   "maxOccupancy",
-                  String(current + 1)
+                  String(current + 1),
                 );
               }}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
@@ -174,7 +188,7 @@ export const InfoStep: React.FC<InfoStepProps> = ({
                 onNestedChange(
                   "occupancyPolicyInfo",
                   "infantOccupancy",
-                  e.target.checked
+                  e.target.checked,
                 )
               }
               className={styles.checkbox}
@@ -196,7 +210,7 @@ export const InfoStep: React.FC<InfoStepProps> = ({
                 onNestedChange(
                   "occupancyPolicyInfo",
                   "petOccupancy",
-                  e.target.checked
+                  e.target.checked,
                 )
               }
               className={styles.checkbox}
@@ -212,10 +226,13 @@ export const InfoStep: React.FC<InfoStepProps> = ({
       {formData.amenityInfos.length > 0 && (
         <div className={styles.selectedAmenitiesList}>
           {formData.amenityInfos.map((amenity, index) => (
-            <div key={`${amenity.name}-${index}`} className={styles.selectedAmenityItem}>
+            <div
+              key={`${amenity.name}-${index}`}
+              className={styles.selectedAmenityItem}
+            >
               <span className={styles.selectedAmenityName}>
-                {AMENITY_OPTIONS.find((a) => a.value === amenity.name)
-                  ?.label || amenity.name}
+                {AMENITY_OPTIONS.find((a) => a.value === amenity.name)?.label ||
+                  amenity.name}
               </span>
               <div className={styles.amenityCountSelector}>
                 <button
@@ -224,30 +241,54 @@ export const InfoStep: React.FC<InfoStepProps> = ({
                   onClick={() => {
                     const newAmenities = [...formData.amenityInfos];
                     if (amenity.count > 0) {
-                      newAmenities[index] = { ...amenity, count: amenity.count - 1 };
+                      newAmenities[index] = {
+                        ...amenity,
+                        count: amenity.count - 1,
+                      };
                       if (newAmenities[index].count === 0) {
                         newAmenities.splice(index, 1);
                       }
-                      setFormData((prev) => ({ ...prev, amenityInfos: newAmenities }));
+                      setFormData((prev) => ({
+                        ...prev,
+                        amenityInfos: newAmenities,
+                      }));
                     }
                   }}
                   disabled={amenity.count <= 0}
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
                     <line x1="5" y1="12" x2="19" y2="12" />
                   </svg>
                 </button>
-                <span className={styles.amenityCountValue}>{amenity.count}</span>
+                <span className={styles.amenityCountValue}>
+                  {amenity.count}
+                </span>
                 <button
                   type="button"
                   className={styles.amenityCountButton}
                   onClick={() => {
                     const newAmenities = [...formData.amenityInfos];
-                    newAmenities[index] = { ...amenity, count: amenity.count + 1 };
-                    setFormData((prev) => ({ ...prev, amenityInfos: newAmenities }));
+                    newAmenities[index] = {
+                      ...amenity,
+                      count: amenity.count + 1,
+                    };
+                    setFormData((prev) => ({
+                      ...prev,
+                      amenityInfos: newAmenities,
+                    }));
                   }}
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
                     <line x1="12" y1="5" x2="12" y2="19" />
                     <line x1="5" y1="12" x2="19" y2="12" />
                   </svg>
@@ -258,12 +299,20 @@ export const InfoStep: React.FC<InfoStepProps> = ({
                 className={styles.amenityRemoveButton}
                 onClick={() => {
                   const newAmenities = formData.amenityInfos.filter(
-                    (_, itemIndex) => itemIndex !== index
+                    (_, itemIndex) => itemIndex !== index,
                   );
-                  setFormData((prev) => ({ ...prev, amenityInfos: newAmenities }));
+                  setFormData((prev) => ({
+                    ...prev,
+                    amenityInfos: newAmenities,
+                  }));
                 }}
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
                   <line x1="18" y1="6" x2="6" y2="18" />
                   <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
@@ -277,7 +326,12 @@ export const InfoStep: React.FC<InfoStepProps> = ({
         className={styles.addAmenityButton}
         onClick={onOpenAmenityModal}
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
           <line x1="12" y1="5" x2="12" y2="19" />
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>

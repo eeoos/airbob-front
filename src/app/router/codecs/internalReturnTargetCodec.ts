@@ -20,8 +20,7 @@ const EXPECTED_LOCATION_STATE_KEYS = new Set<PropertyKey>(["from"]);
 const MALFORMED_PERCENT_PATTERN = /%(?![0-9a-f]{2})/i;
 const PERCENT_ESCAPE_PATTERN = /%[0-9a-f]{2}/i;
 const ENCODED_PATH_SEPARATOR_PATTERN = /%(?:25)*(?:2f|5c)/i;
-const ENCODED_CONTROL_CHARACTER_PATTERN =
-  /%(?:25)*(?:0[0-9a-f]|1[0-9a-f]|7f)/i;
+const ENCODED_CONTROL_CHARACTER_PATTERN = /%(?:25)*(?:0[0-9a-f]|1[0-9a-f]|7f)/i;
 const MAX_PERCENT_DECODE_LAYERS = 8;
 
 type DataRecord = Record<PropertyKey, unknown>;
@@ -55,10 +54,7 @@ const hasOnlyExpectedDataProperties = (
   }
 };
 
-const readDataProperty = (
-  value: DataRecord,
-  key: PropertyKey,
-): unknown => {
+const readDataProperty = (value: DataRecord, key: PropertyKey): unknown => {
   try {
     const descriptor = Object.getOwnPropertyDescriptor(value, key);
     return descriptor && "value" in descriptor ? descriptor.value : undefined;

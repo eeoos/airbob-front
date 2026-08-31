@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   useReviewableReservationReadQuery,
   type ReviewableReservation,
@@ -35,9 +29,7 @@ const REVIEW_IMAGE_TYPES = new Set([
   "image/webp",
 ]);
 
-export type ReviewCreateCompletionResult =
-  | "success"
-  | "image-upload-failed";
+export type ReviewCreateCompletionResult = "success" | "image-upload-failed";
 
 export interface ReviewCreateControllerProps {
   readonly publication: ReviewSubmissionPublicationPort;
@@ -192,10 +184,7 @@ export function ReviewCreateController({
 
     try {
       const result = await pending;
-      if (
-        activeSubmissionRef.current !== pending ||
-        !routeLease.isCurrent()
-      ) {
+      if (activeSubmissionRef.current !== pending || !routeLease.isCurrent()) {
         return;
       }
 
@@ -265,10 +254,7 @@ export function ReviewCreateController({
   } else {
     state = {
       status: "ready",
-      reservation: toReservationView(
-        reservationQuery.data,
-        resolveImageUrl,
-      ),
+      reservation: toReservationView(reservationQuery.data, resolveImageUrl),
     };
   }
 

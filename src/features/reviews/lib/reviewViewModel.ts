@@ -23,17 +23,14 @@ export interface ReviewViewModel {
   }>;
 }
 
-const getAvatarInitial = (name: string) =>
-  name.trim().charAt(0).toUpperCase();
+const getAvatarInitial = (name: string) => name.trim().charAt(0).toUpperCase();
 
 const formatReviewDateLabel = (isoDate: string) => {
   const date = new Date(isoDate);
   return `${date.getFullYear()}년 ${date.getMonth() + 1}월`;
 };
 
-export const toReviewViewModel = (
-  review: Review,
-): ReviewViewModel => {
+export const toReviewViewModel = (review: Review): ReviewViewModel => {
   return {
     id: review.id,
     rating: review.rating,

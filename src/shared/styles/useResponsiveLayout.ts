@@ -26,10 +26,7 @@ const subscribeToMediaQuery = (query: string, onChange: () => void) => {
 export const useResponsiveLayout = (): ResponsiveLayout => {
   const subscribe = useCallback(
     (onChange: () => void) =>
-      subscribeToMediaQuery(
-        RESPONSIVE_MEDIA_QUERIES.mobileOrTablet,
-        onChange,
-      ),
+      subscribeToMediaQuery(RESPONSIVE_MEDIA_QUERIES.mobileOrTablet, onChange),
     [],
   );
   const getSnapshot = useCallback(

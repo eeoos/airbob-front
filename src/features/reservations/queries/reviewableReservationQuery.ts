@@ -13,11 +13,7 @@ export interface ReviewableReservationQueryOptions {
 }
 
 export const createReviewableReservationQueryOptions = (
-  {
-    reservationUid,
-    scope,
-    enabled = true,
-  }: ReviewableReservationQueryOptions,
+  { reservationUid, scope, enabled = true }: ReviewableReservationQueryOptions,
   api: ReviewableReservationApiPort = defaultReviewableReservationApi,
 ) => ({
   queryKey: reviewableReservationQueryKeys.detail(scope, reservationUid),

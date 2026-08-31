@@ -58,9 +58,7 @@ export const createReservationReadApi = (
         params: toListParams(params),
         signal: options?.signal,
       });
-      return toGuestReservationPage(
-        wire,
-      ) as ReservationListPage<TAudience>;
+      return toGuestReservationPage(wire) as ReservationListPage<TAudience>;
     }
 
     const wire = await request<HostReservationPageWire>({

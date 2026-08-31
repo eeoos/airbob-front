@@ -11,8 +11,7 @@ const guestTrips = (
 ): GuestTripsPanelProps => ({
   errorMessage: null,
   filterType: "UPCOMING",
-  getReservationHref: (reservationUid) =>
-    `/reservations/${reservationUid}`,
+  getReservationHref: (reservationUid) => `/reservations/${reservationUid}`,
   loadMoreRef: vi.fn(),
   onDismissError: vi.fn(),
   onOpenReservation: vi.fn(),
@@ -182,7 +181,9 @@ describe("ProfileScreen", () => {
     );
     expect(onOpenListingActions).toHaveBeenCalledWith(7);
 
-    expect(screen.getByRole("dialog", { name: "숙소 관리" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", { name: "숙소 관리" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "리스팅 삭제" })).toBeDisabled();
 
     await userEvent.click(screen.getByRole("tab", { name: "예약 관리" }));

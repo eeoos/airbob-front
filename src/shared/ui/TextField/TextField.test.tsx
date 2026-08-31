@@ -13,7 +13,7 @@ describe("TextField", () => {
 
     expect(screen.getByLabelText("비밀번호")).toHaveAttribute(
       "id",
-      "login-password"
+      "login-password",
     );
   });
 
@@ -45,7 +45,7 @@ describe("TextField", () => {
           hint="예약 안내를 받을 번호입니다."
           aria-describedby="external-help"
         />
-      </>
+      </>,
     );
 
     const input = screen.getByLabelText("전화번호");
@@ -53,7 +53,7 @@ describe("TextField", () => {
 
     expect(input).toHaveAttribute(
       "aria-describedby",
-      `external-help ${hint.id}`
+      `external-help ${hint.id}`,
     );
   });
 });

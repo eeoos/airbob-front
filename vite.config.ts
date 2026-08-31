@@ -42,7 +42,10 @@ const publicBuildConfigPlugin = (): Plugin => ({
     }
 
     const configuredBuildPath = process.env.BUILD_PATH?.trim() || "build";
-    const resolvedBuildDirectory = path.resolve(projectRoot, configuredBuildPath);
+    const resolvedBuildDirectory = path.resolve(
+      projectRoot,
+      configuredBuildPath,
+    );
     const runtimeMode = command === "build" ? "production" : "development";
 
     return {

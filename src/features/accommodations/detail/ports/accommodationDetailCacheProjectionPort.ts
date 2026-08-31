@@ -5,8 +5,7 @@ interface AccommodationDetailScopedProjection {
   readonly accommodationId: number;
 }
 
-interface AccommodationDetailMembershipReconciled
-  extends AccommodationDetailScopedProjection {
+interface AccommodationDetailMembershipReconciled extends AccommodationDetailScopedProjection {
   readonly isInAnyWishlist: boolean;
 }
 
@@ -22,7 +21,5 @@ export interface AccommodationDetailCacheProjectionPort {
   membershipScopeRefreshRequired(
     input: Pick<AccommodationDetailScopedProjection, "scope">,
   ): void;
-  membershipRefreshRequired(
-    input: AccommodationDetailScopedProjection,
-  ): void;
+  membershipRefreshRequired(input: AccommodationDetailScopedProjection): void;
 }

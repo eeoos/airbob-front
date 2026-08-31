@@ -1,10 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  useLocation,
-  useNavigate,
-  useSearchParams,
-} from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { createAccommodationDetailQueryCacheProjection } from "../../../features/accommodations/detail/public";
 import { hostListingActionsApi } from "../../../features/accommodations/public";
 import { createHostListingQueryCacheProjection } from "../../../features/profile/public";
@@ -23,10 +19,7 @@ import {
   type HostListingManagementPublicationPort,
 } from "../../../workflows/host-listing-management";
 import { useSession } from "../../session/useSession";
-import {
-  profileCodec,
-  type ProfileRouteState,
-} from "../codecs/profileCodec";
+import { profileCodec, type ProfileRouteState } from "../codecs/profileCodec";
 import { routeTo } from "../paths";
 
 const toProfileRouteView = (
@@ -93,14 +86,8 @@ export function ProfileRoute() {
   const [searchParams, setSearchParams] = useSearchParams();
   const session = useSession();
   const searchKey = searchParams.toString();
-  const routeState = useMemo(
-    () => profileCodec.parse(searchKey),
-    [searchKey],
-  );
-  const routeView = useMemo(
-    () => toProfileRouteView(routeState),
-    [routeState],
-  );
+  const routeState = useMemo(() => profileCodec.parse(searchKey), [searchKey]);
+  const routeView = useMemo(() => toProfileRouteView(routeState), [routeState]);
   const captureAuthenticatedSession = session.captureAuthenticatedSession;
   const isCurrentSession = session.isCurrentSession;
   const scope = captureAuthenticatedSession();
@@ -139,8 +126,7 @@ export function ProfileRoute() {
 
   const navigation = useMemo<ProfileNavigationCommands>(
     () => ({
-      changeGuestTab: (tab) =>
-        replaceRouteState({ mode: "guest", tab }),
+      changeGuestTab: (tab) => replaceRouteState({ mode: "guest", tab }),
       changeHostListingStatus: (status) =>
         replaceRouteState({ mode: "host", tab: listingStatusTabs[status] }),
       changeHostReservationFilter: (filter) =>
@@ -186,32 +172,28 @@ export function ProfileRoute() {
     }),
     [location.hash, location.key, location.pathname, location.search],
   );
-  const publication = useMemo<HostListingManagementPublicationPort>(
-    () => {
-      const accommodationDetails =
-        createAccommodationDetailQueryCacheProjection(queryClient);
-      const hostListings =
-        createHostListingQueryCacheProjection(queryClient);
+  const publication = useMemo<HostListingManagementPublicationPort>(() => {
+    const accommodationDetails =
+      createAccommodationDetailQueryCacheProjection(queryClient);
+    const hostListings = createHostListingQueryCacheProjection(queryClient);
 
-      return {
-        async publishHostListingChanged({
-          accommodationId,
-          scope: commandScope,
-        }) {
-          await Promise.all([
-            hostListings.refreshRequired({
-              scope: commandScope,
-            }),
-            accommodationDetails.detailRefreshRequired({
-              accommodationId,
-              scope: commandScope,
-            }),
-          ]);
-        },
-      };
-    },
-    [queryClient],
-  );
+    return {
+      async publishHostListingChanged({
+        accommodationId,
+        scope: commandScope,
+      }) {
+        await Promise.all([
+          hostListings.refreshRequired({
+            scope: commandScope,
+          }),
+          accommodationDetails.detailRefreshRequired({
+            accommodationId,
+            scope: commandScope,
+          }),
+        ]);
+      },
+    };
+  }, [queryClient]);
   const hostListingWorkflow = useMemo(
     () =>
       createHostListingManagementWorkflow({

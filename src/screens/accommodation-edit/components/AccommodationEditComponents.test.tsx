@@ -20,7 +20,7 @@ import { TimePicker } from "./TimePicker";
 import { TimeStep } from "./TimeStep";
 
 const createFormData = (
-  overrides: Partial<AccommodationEditFormData> = {}
+  overrides: Partial<AccommodationEditFormData> = {},
 ): AccommodationEditFormData => ({
   name: "기존 숙소",
   description: "기존 설명",
@@ -47,7 +47,7 @@ const createFormData = (
 });
 
 const createScreenState = (
-  overrides: Partial<AccommodationEditScreenState> = {}
+  overrides: Partial<AccommodationEditScreenState> = {},
 ): AccommodationEditScreenState => ({
   currentStep: 2,
   detailState: { status: "ready", accommodationId: "3" },
@@ -70,7 +70,7 @@ const createScreenState = (
 });
 
 const createScreenActions = (
-  overrides: Partial<AccommodationEditScreenActions> = {}
+  overrides: Partial<AccommodationEditScreenActions> = {},
 ): AccommodationEditScreenActions => ({
   isStepCompleted: (step) => step < 2,
   isStepClickable: (step) => step <= 2,
@@ -110,8 +110,7 @@ const createScreenActions = (
 const readProjectFile = (relativePath: string) =>
   fs.readFileSync(path.join(process.cwd(), relativePath), "utf8");
 
-const FEATURE_COMPONENTS_DIR =
-  "src/screens/accommodation-edit/components";
+const FEATURE_COMPONENTS_DIR = "src/screens/accommodation-edit/components";
 const SCREEN_ROOT_DIR = "src/screens/accommodation-edit";
 
 const getCssBlocks = (source: string, selector: string) => {
@@ -187,18 +186,22 @@ describe("AccommodationEdit extracted components", () => {
 
     featureComponentFiles.forEach((file) => {
       expect(
-        fs.existsSync(path.join(process.cwd(), FEATURE_COMPONENTS_DIR, file))
+        fs.existsSync(path.join(process.cwd(), FEATURE_COMPONENTS_DIR, file)),
       ).toBe(true);
     });
     expect(
       fs.existsSync(
-        path.join(process.cwd(), SCREEN_ROOT_DIR, "AccommodationEditScreen.tsx")
-      )
+        path.join(
+          process.cwd(),
+          SCREEN_ROOT_DIR,
+          "AccommodationEditScreen.tsx",
+        ),
+      ),
     ).toBe(true);
     expect(
       fs.existsSync(
-        path.join(process.cwd(), SCREEN_ROOT_DIR, "editorViewContract.ts")
-      )
+        path.join(process.cwd(), SCREEN_ROOT_DIR, "editorViewContract.ts"),
+      ),
     ).toBe(true);
 
     const extractedComponentFiles = [
@@ -218,7 +221,7 @@ describe("AccommodationEdit extracted components", () => {
     });
 
     const screenSource = readProjectFile(
-      `${SCREEN_ROOT_DIR}/AccommodationEditScreen.tsx`
+      `${SCREEN_ROOT_DIR}/AccommodationEditScreen.tsx`,
     );
     expect(screenSource).not.toContain("const STEPS");
     expect(screenSource).not.toContain("stepButtonStyle");
@@ -227,14 +230,14 @@ describe("AccommodationEdit extracted components", () => {
     expect(screenSource).not.toMatch(/from\s+["'][^"']*platform\//);
 
     const photosSource = readProjectFile(
-      `${FEATURE_COMPONENTS_DIR}/PhotosStep.tsx`
+      `${FEATURE_COMPONENTS_DIR}/PhotosStep.tsx`,
     );
     expect(photosSource).toContain("resolveImageUrl");
     expect(photosSource).not.toContain("getImageUrl");
     expect(photosSource).not.toMatch(/from\s+["'][^"']*platform\//);
 
     const dialogsSource = readProjectFile(
-      `${FEATURE_COMPONENTS_DIR}/EditWizardDialogs.tsx`
+      `${FEATURE_COMPONENTS_DIR}/EditWizardDialogs.tsx`,
     );
     expect(dialogsSource).toContain("ToastHost");
     expect(dialogsSource).not.toContain("ErrorToast");
@@ -243,11 +246,11 @@ describe("AccommodationEdit extracted components", () => {
   it("keeps wizard layout and edit form styles in dedicated CSS modules", () => {
     const formCssPath = path.join(
       process.cwd(),
-      `${FEATURE_COMPONENTS_DIR}/EditForm.module.css`
+      `${FEATURE_COMPONENTS_DIR}/EditForm.module.css`,
     );
     const layoutCssPath = path.join(
       process.cwd(),
-      `${FEATURE_COMPONENTS_DIR}/EditWizardLayout.module.css`
+      `${FEATURE_COMPONENTS_DIR}/EditWizardLayout.module.css`,
     );
     const formClasses = [
       "stepContent",
@@ -314,10 +317,10 @@ describe("AccommodationEdit extracted components", () => {
     }
 
     const formCss = readProjectFile(
-      `${FEATURE_COMPONENTS_DIR}/EditForm.module.css`
+      `${FEATURE_COMPONENTS_DIR}/EditForm.module.css`,
     );
     const layoutCss = readProjectFile(
-      `${FEATURE_COMPONENTS_DIR}/EditWizardLayout.module.css`
+      `${FEATURE_COMPONENTS_DIR}/EditWizardLayout.module.css`,
     );
     const formFiles = [
       `${FEATURE_COMPONENTS_DIR}/LocationStep.tsx`,
@@ -347,11 +350,11 @@ describe("AccommodationEdit extracted components", () => {
   it("keeps photo and time styles in step-local CSS modules", () => {
     const photosCssPath = path.join(
       process.cwd(),
-      `${FEATURE_COMPONENTS_DIR}/PhotosStep.module.css`
+      `${FEATURE_COMPONENTS_DIR}/PhotosStep.module.css`,
     );
     const timeCssPath = path.join(
       process.cwd(),
-      `${FEATURE_COMPONENTS_DIR}/TimeStep.module.css`
+      `${FEATURE_COMPONENTS_DIR}/TimeStep.module.css`,
     );
     const photoClasses = [
       "uploadProgressContainer",
@@ -391,7 +394,11 @@ describe("AccommodationEdit extracted components", () => {
       "timePickerOption",
       "timePickerOptionSelected",
     ];
-    const stalePhotoClasses = ["imagePlaceholder", "coverPhoto", "thumbnailPhoto"];
+    const stalePhotoClasses = [
+      "imagePlaceholder",
+      "coverPhoto",
+      "thumbnailPhoto",
+    ];
     const staleTimeClasses = ["timePickerInput", "timePickerOptionEditable"];
 
     expect(fs.existsSync(photosCssPath)).toBe(true);
@@ -401,19 +408,19 @@ describe("AccommodationEdit extracted components", () => {
     }
 
     const photosCss = readProjectFile(
-      `${FEATURE_COMPONENTS_DIR}/PhotosStep.module.css`
+      `${FEATURE_COMPONENTS_DIR}/PhotosStep.module.css`,
     );
     const timeCss = readProjectFile(
-      `${FEATURE_COMPONENTS_DIR}/TimeStep.module.css`
+      `${FEATURE_COMPONENTS_DIR}/TimeStep.module.css`,
     );
     const photosStepSource = readProjectFile(
-      `${FEATURE_COMPONENTS_DIR}/PhotosStep.tsx`
+      `${FEATURE_COMPONENTS_DIR}/PhotosStep.tsx`,
     );
     const timeStepSource = readProjectFile(
-      `${FEATURE_COMPONENTS_DIR}/TimeStep.tsx`
+      `${FEATURE_COMPONENTS_DIR}/TimeStep.tsx`,
     );
     const timePickerSource = readProjectFile(
-      `${FEATURE_COMPONENTS_DIR}/TimePicker.tsx`
+      `${FEATURE_COMPONENTS_DIR}/TimePicker.tsx`,
     );
     expect(photosStepSource).toContain("./PhotosStep.module.css");
     expect(timeStepSource).toContain("./TimeStep.module.css");
@@ -445,11 +452,11 @@ describe("AccommodationEdit extracted components", () => {
   it("keeps modal styles in the feature-local modal CSS module", () => {
     const modalCssPath = path.join(
       process.cwd(),
-      `${FEATURE_COMPONENTS_DIR}/EditModal.module.css`
+      `${FEATURE_COMPONENTS_DIR}/EditModal.module.css`,
     );
     const formCssPath = path.join(
       process.cwd(),
-      `${FEATURE_COMPONENTS_DIR}/EditForm.module.css`
+      `${FEATURE_COMPONENTS_DIR}/EditForm.module.css`,
     );
     const modalStyleFiles = [
       `${FEATURE_COMPONENTS_DIR}/AccommodationTypeModal.tsx`,
@@ -491,10 +498,10 @@ describe("AccommodationEdit extracted components", () => {
     }
 
     const modalCss = readProjectFile(
-      `${FEATURE_COMPONENTS_DIR}/EditModal.module.css`
+      `${FEATURE_COMPONENTS_DIR}/EditModal.module.css`,
     );
     const formCss = readProjectFile(
-      `${FEATURE_COMPONENTS_DIR}/EditForm.module.css`
+      `${FEATURE_COMPONENTS_DIR}/EditForm.module.css`,
     );
 
     modalStyleFiles.forEach((file) => {
@@ -504,7 +511,7 @@ describe("AccommodationEdit extracted components", () => {
     });
 
     const modalShellSource = readProjectFile(
-      `${FEATURE_COMPONENTS_DIR}/EditModalShell.tsx`
+      `${FEATURE_COMPONENTS_DIR}/EditModalShell.tsx`,
     );
     expect(modalShellSource).toContain("../../../shared/ui");
     expect(modalShellSource).toContain("Dialog");
@@ -524,10 +531,10 @@ describe("AccommodationEdit extracted components", () => {
     });
 
     const amenityModalSource = readProjectFile(
-      `${FEATURE_COMPONENTS_DIR}/AmenityModal.tsx`
+      `${FEATURE_COMPONENTS_DIR}/AmenityModal.tsx`,
     );
     const infoStepSource = readProjectFile(
-      `${FEATURE_COMPONENTS_DIR}/InfoStep.tsx`
+      `${FEATURE_COMPONENTS_DIR}/InfoStep.tsx`,
     );
 
     sharedAmenityCountClasses.forEach((className) => {
@@ -535,8 +542,10 @@ describe("AccommodationEdit extracted components", () => {
       expect(infoStepSource).toContain(`styles.${className}`);
     });
 
-    const modalMobileRules = getCssBlocks(modalCss, "@media (max-width: 768px)")
-      .join("\n");
+    const modalMobileRules = getCssBlocks(
+      modalCss,
+      "@media (max-width: 768px)",
+    ).join("\n");
 
     mobileModalClasses.forEach((className) => {
       const classSelector = new RegExp(`\\.${className}(?![A-Za-z0-9_-])`);
@@ -551,7 +560,7 @@ describe("AccommodationEdit extracted components", () => {
       <AccommodationEditScreen
         state={createScreenState()}
         actions={createScreenActions({ onStepClick })}
-      />
+      />,
     );
 
     const completedStep = screen.getByRole("button", {
@@ -591,18 +600,20 @@ describe("AccommodationEdit extracted components", () => {
           onRetryDetail,
           onExitDetailError,
         })}
-      />
+      />,
     );
 
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "숙소 정보를 불러오지 못했어요"
+      "숙소 정보를 불러오지 못했어요",
     );
     expect(
-      screen.queryByRole("button", { name: "저장 후 나가기" })
+      screen.queryByRole("button", { name: "저장 후 나가기" }),
     ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
-    fireEvent.click(screen.getByRole("button", { name: "호스트 화면으로 돌아가기" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "호스트 화면으로 돌아가기" }),
+    );
 
     expect(onRetryDetail).toHaveBeenCalledTimes(1);
     expect(onExitDetailError).toHaveBeenCalledTimes(1);
@@ -611,22 +622,27 @@ describe("AccommodationEdit extracted components", () => {
   it.each([
     ["invalid-resource", "숙소 정보를 확인할 수 없어요"],
     ["denied", "이 숙소를 수정할 권한이 없어요"],
-  ] as const)("renders the %s terminal without a retry action", (status, title) => {
-    render(
-      <AccommodationEditScreen
-        state={createScreenState({
-          detailState: { status, accommodationId: "3" },
-        })}
-        actions={createScreenActions()}
-      />,
-    );
+  ] as const)(
+    "renders the %s terminal without a retry action",
+    (status, title) => {
+      render(
+        <AccommodationEditScreen
+          state={createScreenState({
+            detailState: { status, accommodationId: "3" },
+          })}
+          actions={createScreenActions()}
+        />,
+      );
 
-    expect(screen.getByRole("alert")).toHaveTextContent(title);
-    expect(screen.queryByRole("button", { name: "다시 시도" })).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "호스트 화면으로 돌아가기" }),
-    ).toBeVisible();
-  });
+      expect(screen.getByRole("alert")).toHaveTextContent(title);
+      expect(
+        screen.queryByRole("button", { name: "다시 시도" }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "호스트 화면으로 돌아가기" }),
+      ).toBeVisible();
+    },
+  );
 
   it("renders editor errors through the shared toast host", () => {
     const onClearError = vi.fn();
@@ -635,12 +651,10 @@ describe("AccommodationEdit extracted components", () => {
       <AccommodationEditScreen
         state={createScreenState({ error: "저장에 실패했습니다." })}
         actions={createScreenActions({ onClearError })}
-      />
+      />,
     );
 
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "저장에 실패했습니다."
-    );
+    expect(screen.getByRole("alert")).toHaveTextContent("저장에 실패했습니다.");
 
     fireEvent.click(screen.getByRole("button", { name: "오류 닫기" }));
 
@@ -668,9 +682,7 @@ describe("AccommodationEdit extracted components", () => {
       screen.queryByRole("button", { name: "오류 닫기" }),
     ).not.toBeInTheDocument();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "복구 다시 시도" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "복구 다시 시도" }));
 
     expect(onRetryRecovery).toHaveBeenCalledTimes(1);
   });
@@ -693,14 +705,11 @@ describe("AccommodationEdit extracted components", () => {
   });
 
   it("resolves persisted photo paths through the injected view dependency", () => {
-    const resolveImageUrl = vi.fn(
-      (imagePath: string | null | undefined) =>
-        imagePath ? `https://images.example/${imagePath}` : ""
+    const resolveImageUrl = vi.fn((imagePath: string | null | undefined) =>
+      imagePath ? `https://images.example/${imagePath}` : "",
     );
     const photosStepProps = {
-      imageItems: [
-        { clientId: "server:1", id: 1, url: "listing/cover.jpg" },
-      ],
+      imageItems: [{ clientId: "server:1", id: 1, url: "listing/cover.jpg" }],
       isSaving: false,
       isDeletingImage: false,
       uploadProgress: 0,
@@ -721,7 +730,7 @@ describe("AccommodationEdit extracted components", () => {
     expect(resolveImageUrl).toHaveBeenCalledWith("listing/cover.jpg");
     expect(screen.getByAltText("커버 사진")).toHaveAttribute(
       "src",
-      "https://images.example/listing/cover.jpg"
+      "https://images.example/listing/cover.jpg",
     );
 
     const fileInput = screen.getByLabelText("숙소 사진 추가 선택");
@@ -758,7 +767,7 @@ describe("AccommodationEdit extracted components", () => {
         setFormData={setFormData}
         onOpenTypeModal={onOpenTypeModal}
         onOpenAmenityModal={onOpenAmenityModal}
-      />
+      />,
     );
 
     fireEvent.change(screen.getByDisplayValue("기존 숙소"), {
@@ -781,7 +790,7 @@ describe("AccommodationEdit extracted components", () => {
         selectedType="ENTIRE_PLACE"
         onSelect={onSelect}
         onClose={onClose}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByText("개인실"));
@@ -796,24 +805,22 @@ describe("AccommodationEdit extracted components", () => {
         selectedType="ENTIRE_PLACE"
         onSelect={vi.fn()}
         onClose={vi.fn()}
-      />
+      />,
     );
 
     expect(
       screen.getByRole("dialog", {
         name: "다음 중 숙소를 가장 잘 설명하는 것은 무엇인가요?",
-      })
+      }),
     ).toHaveAttribute("aria-modal", "true");
     expect(screen.getByLabelText("모달 닫기")).toHaveFocus();
 
     unmount();
 
-    render(
-      <DetailAddressConfirmModal onClose={vi.fn()} onConfirm={vi.fn()} />
-    );
+    render(<DetailAddressConfirmModal onClose={vi.fn()} onConfirm={vi.fn()} />);
 
     expect(
-      screen.getByRole("dialog", { name: "상세 주소 확인" })
+      screen.getByRole("dialog", { name: "상세 주소 확인" }),
     ).toHaveAttribute("aria-modal", "true");
     expect(screen.getByText("취소")).toHaveFocus();
   });
@@ -826,12 +833,15 @@ describe("AccommodationEdit extracted components", () => {
         amenityInfos={[]}
         setFormData={vi.fn()}
         onClose={onClose}
-      />
+      />,
     );
 
-    fireEvent.keyDown(screen.getByRole("dialog", { name: "편의시설을 선택하세요" }), {
-      key: "Escape",
-    });
+    fireEvent.keyDown(
+      screen.getByRole("dialog", { name: "편의시설을 선택하세요" }),
+      {
+        key: "Escape",
+      },
+    );
 
     expect(onClose).toHaveBeenCalled();
   });
@@ -845,7 +855,7 @@ describe("AccommodationEdit extracted components", () => {
         amenityInfos={[]}
         setFormData={setFormData}
         onClose={onClose}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByText("무선 인터넷"));
@@ -861,17 +871,18 @@ describe("AccommodationEdit extracted components", () => {
         amenityInfos={[{ name: "WIFI", count: 1 }]}
         setFormData={vi.fn()}
         onClose={vi.fn()}
-      />
+      />,
     );
 
+    expect(screen.getByRole("button", { name: "무선 인터넷" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     expect(
-      screen.getByRole("button", { name: "무선 인터넷" })
-    ).toHaveAttribute("aria-pressed", "true");
-    expect(
-      screen.getByRole("button", { name: "무선 인터넷 수량 감소" })
+      screen.getByRole("button", { name: "무선 인터넷 수량 감소" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "무선 인터넷 수량 증가" })
+      screen.getByRole("button", { name: "무선 인터넷 수량 증가" }),
     ).toBeInTheDocument();
   });
 
@@ -883,14 +894,14 @@ describe("AccommodationEdit extracted components", () => {
         amenityInfos={[{ name: "WIFI", count: 1 }]}
         setFormData={setFormData}
         onClose={vi.fn()}
-      />
+      />,
     );
 
     const incrementButton = screen.getByRole("button", {
       name: "무선 인터넷 수량 증가",
     });
     expect(
-      screen.getByRole("button", { name: "무선 인터넷 수량 감소" })
+      screen.getByRole("button", { name: "무선 인터넷 수량 감소" }),
     ).toBeDisabled();
 
     fireEvent.keyDown(incrementButton, { key: "Enter" });
@@ -909,7 +920,7 @@ describe("AccommodationEdit extracted components", () => {
         openTimePicker="checkIn"
         setOpenTimePicker={setOpenTimePicker}
         onTimeChange={onTimeChange}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByText("오후"));
@@ -921,14 +932,7 @@ describe("AccommodationEdit extracted components", () => {
   it("renders standalone time picker controls", () => {
     const onChange = vi.fn();
 
-    render(
-      <TimePicker
-        hour={3}
-        minute={0}
-        period="PM"
-        onChange={onChange}
-      />
-    );
+    render(<TimePicker hour={3} minute={0} period="PM" onChange={onChange} />);
 
     fireEvent.click(screen.getByText("30"));
 
@@ -967,9 +971,11 @@ describe("AccommodationEdit extracted components", () => {
 
     await userEvent.keyboard("{Escape}");
 
-    expect(screen.queryByRole("button", { name: "04" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "04" }),
+    ).not.toBeInTheDocument();
     await waitFor(() => expect(checkInTrigger).toHaveFocus());
-    expect(document.body).toHaveStyle({overflow:""});
+    expect(document.body).toHaveStyle({ overflow: "" });
   });
 
   it("renders publish and detail-address confirmation components", () => {
@@ -980,7 +986,7 @@ describe("AccommodationEdit extracted components", () => {
       <>
         <PublishStep />
         <DetailAddressConfirmModal onClose={onClose} onConfirm={onConfirm} />
-      </>
+      </>,
     );
 
     expect(screen.getByText("숙소를 등록하세요")).toBeInTheDocument();
