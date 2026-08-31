@@ -216,8 +216,11 @@ export function BookingDateSection({
         <div
           ref={datePopoverRef}
           id="booking-date-picker"
+          aria-label="예약 날짜 선택"
           className={styles.datePickerContainer}
-          onKeyDown={dateOverlay.onKeyDown}
+          onKeyDownCapture={dateOverlay.onKeyDown}
+          role="dialog"
+          tabIndex={-1}
         >
           <DatePicker
             checkIn={checkIn}
@@ -272,7 +275,6 @@ export function BookingGuestSection({
       className={`${styles.guestRowContainer} ${
         isDatePickerOpen ? styles.hidden : ""
       }`}
-      onKeyDown={guestOverlay.onKeyDown}
       ref={guestPickerRef}
     >
       <button
@@ -303,7 +305,11 @@ export function BookingGuestSection({
         <div
           ref={guestPopoverRef}
           id="booking-guest-picker"
+          aria-label="예약 인원 선택"
           className={styles.guestPicker}
+          onKeyDownCapture={guestOverlay.onKeyDown}
+          role="dialog"
+          tabIndex={-1}
         >
           <GuestCounterRow
             title="성인"

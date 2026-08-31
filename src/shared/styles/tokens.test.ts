@@ -1,9 +1,11 @@
 import * as fs from "fs";
+import { createRequire } from "module";
 import * as path from "path";
 import { createRequireDefined } from "../../test/assertions";
 
 // Resolve contracts from the repository root, independent of test placement.
 const projectRoot = process.cwd();
+const loadCommonJsModule = createRequire(import.meta.url);
 const {
   canonicalTokenStylePaths,
   derivedTokenStylePaths,
@@ -12,7 +14,7 @@ const {
   legacyDesignProtectedStylePaths,
   primitiveTokenStylePaths,
   tokenLayerPolicies,
-} = require(path.join(
+} = loadCommonJsModule(path.join(
   projectRoot,
   "scripts/architecture/style-policy.cjs",
 )).createStylePolicy({ projectRoot }) as {

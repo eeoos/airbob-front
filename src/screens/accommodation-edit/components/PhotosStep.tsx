@@ -214,19 +214,17 @@ export const PhotosStep: React.FC<PhotosStepProps> = ({
             );
           })}
 
-          <div
+          <button
+            type="button"
             className={styles.addImageSlot}
-            onClick={() => {
-              if (!isSaving && !isDeletingImage) {
-                document.getElementById("imageInput")?.click();
-              }
-            }}
+            disabled={isSaving || isDeletingImage}
+            onClick={() => document.getElementById("imageInput")?.click()}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M12 5v14M5 12h14" />
             </svg>
             <span>추가</span>
-          </div>
+          </button>
         </div>
       </div>
     )}

@@ -88,7 +88,7 @@ describe("Header", () => {
     const logoImage = within(homeLink).getByRole("presentation");
 
     expect(homeLink).toHaveAttribute("href", "/");
-    expect(logoImage.getAttribute("src")).toMatch(/airbob-wordmark\.png$/);
+    expect(logoImage).toHaveAttribute("src", expect.stringMatching(/airbob-wordmark\.png$/));
     expect(logoImage).toHaveAttribute("alt", "");
   });
 

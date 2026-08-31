@@ -7,6 +7,14 @@ import { test, expect } from "../fixtures/test";
 
 const REVIEW_RESERVATION_UID = "10000000-0000-4000-8000-000000000001";
 
+const requireSerializedRequestBody = (body: unknown): string => {
+  if (typeof body !== "string") {
+    throw new Error("Review upload request body must be serialized text.");
+  }
+
+  return body;
+};
+
 const reviewableReservation = {
   reservation_uid: REVIEW_RESERVATION_UID,
   reservation_code: "REVIEW-2026",
@@ -135,12 +143,12 @@ test("keeps the created review and surfaces terminal feedback when its image upl
     content: "청결하고 조용해서 다시 머물고 싶은 숙소였습니다.",
   });
   expect(uploadRequest.body).toEqual(expect.any(String));
-  if (typeof uploadRequest.body !== "string") {
-    throw new Error("Review upload request body must be serialized text.");
-  }
-  expect(uploadRequest.body).toContain('name="images"');
-  expect(uploadRequest.body).toContain('filename="stay-review.png"');
-  expect(uploadRequest.body).toContain("synthetic-review-image");
+  const serializedUploadBody = requireSerializedRequestBody(
+    uploadRequest.body,
+  );
+  expect(serializedUploadBody).toContain('name="images"');
+  expect(serializedUploadBody).toContain('filename="stay-review.png"');
+  expect(serializedUploadBody).toContain("synthetic-review-image");
   expect(createRequest.sequence).toBeLessThan(uploadRequest.sequence);
 
   await page.getByRole("button", { name: "오류 닫기" }).click();

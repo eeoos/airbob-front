@@ -1,4 +1,4 @@
-import type { ReactElement, ReactNode } from "react";
+import { useState, type ReactElement, type ReactNode } from "react";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
@@ -222,14 +222,13 @@ function mockRoute<Key extends keyof CapturedProps>(
   actionName: string,
   action?: (props: CapturedProps[Key]) => void,
 ) {
-  return (props: CapturedProps[Key]) => {
-    const React = require("react");
+  return function MockRoute(props: CapturedProps[Key]) {
     mockCapturedProps[key] = props;
 
-    return React.createElement(
-      "button",
-      { onClick: () => action?.(props), type: "button" },
-      actionName,
+    return (
+      <button type="button" onClick={() => action?.(props)}>
+        {actionName}
+      </button>
     );
   };
 }
@@ -238,12 +237,11 @@ vi.mock("../../../screens/auth/public", () => ({
   AuthController: (
     props: CapturedProps["login"] | CapturedProps["signup"],
   ) => {
-    const React = require("react");
     mockCapturedProps[props.mode] = props as never;
-    return React.createElement(
-      "button",
-      { onClick: props.onSuccess, type: "button" },
-      props.mode === "login" ? "로그인 성공" : "회원가입 성공",
+    return (
+      <button type="button" onClick={props.onSuccess}>
+        {props.mode === "login" ? "로그인 성공" : "회원가입 성공"}
+      </button>
     );
   },
 }));
@@ -324,27 +322,22 @@ vi.mock("../../session/useSession", () => ({
 }));
 vi.mock("../../../screens/reservation-detail/public", () => ({
   ReservationDetailController: (props: CapturedProps["detail"]) => {
-    const React = require("react");
-    const [mountedReservationUid] = React.useState(props.reservationUid);
+    const [mountedReservationUid] = useState(props.reservationUid);
     mockCapturedProps.detail = props;
     mockReservationDetailRenderProps.push(props);
 
-    return React.createElement(
-      React.Fragment,
-      null,
-      React.createElement(
-        "span",
-        { "data-testid": "mounted-reservation-uid" },
-        mountedReservationUid,
-      ),
-      React.createElement(
-        "button",
-        {
-          onClick: () => props.navigation.openAccommodation(42),
-          type: "button",
-        },
-        "예약 상세 계속",
-      ),
+    return (
+      <>
+        <span data-testid="mounted-reservation-uid">
+          {mountedReservationUid}
+        </span>
+        <button
+          type="button"
+          onClick={() => props.navigation.openAccommodation(42)}
+        >
+          예약 상세 계속
+        </button>
+      </>
     );
   },
 }));

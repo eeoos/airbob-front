@@ -62,7 +62,6 @@ export function AccommodationImageGalleryModal({
         ref={closeButtonRef}
         type="button"
         aria-label="사진 갤러리 닫기"
-        autoFocus
         className={styles.galleryClose}
         onClick={onClose}
       >

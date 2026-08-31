@@ -187,6 +187,8 @@ export function Dialog({
   ]);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (event.defaultPrevented) return;
+
     if (event.key === "Escape") {
       if (overlay.hasRuntime) return;
 
@@ -247,12 +249,14 @@ export function Dialog({
       role="presentation"
       onMouseDown={
         closeOnBackdrop
-          ? () => {
+          ? (event) => {
+              if (event.target !== event.currentTarget) return;
               if (!overlay.hasRuntime || overlay.isTopmostModal) onClose();
             }
           : undefined
       }
     >
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Dialog delegates Escape and focus trapping from its descendants. */}
       <section
         ref={dialogRef}
         aria-modal="true"
@@ -262,7 +266,6 @@ export function Dialog({
         role="dialog"
         tabIndex={-1}
         onKeyDown={handleKeyDown}
-        onMouseDown={(event) => event.stopPropagation()}
       >
         {showHeader && (
           <header className={styles.header}>

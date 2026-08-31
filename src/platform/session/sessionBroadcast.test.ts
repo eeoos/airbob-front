@@ -26,7 +26,7 @@ class FakeBroadcastChannel implements SessionBroadcastChannel {
     type: "message",
     listener: (event: { data: unknown }) => void,
   ) {
-    expect(type).toBe("message");
+    if (type !== "message") throw new Error(`Unexpected event type: ${type}`);
     this.addCalls += 1;
     this.listeners.add(listener);
   }
@@ -35,7 +35,7 @@ class FakeBroadcastChannel implements SessionBroadcastChannel {
     type: "message",
     listener: (event: { data: unknown }) => void,
   ) {
-    expect(type).toBe("message");
+    if (type !== "message") throw new Error(`Unexpected event type: ${type}`);
     this.removeCalls += 1;
     if (this.throwOnRemove) throw new Error("private remove failure");
     this.listeners.delete(listener);

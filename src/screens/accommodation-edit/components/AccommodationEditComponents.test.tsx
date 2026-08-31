@@ -565,7 +565,7 @@ describe("AccommodationEdit extracted components", () => {
     });
 
     expect(currentStep).toHaveAttribute("aria-current", "step");
-    expect(completedStep).not.toBeDisabled();
+    expect(completedStep).toBeEnabled();
     expect(lockedStep).toBeDisabled();
 
     fireEvent.click(completedStep);
@@ -599,7 +599,7 @@ describe("AccommodationEdit extracted components", () => {
     );
     expect(
       screen.queryByRole("button", { name: "저장 후 나가기" })
-    ).toBeNull();
+    ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
     fireEvent.click(screen.getByRole("button", { name: "호스트 화면으로 돌아가기" }));
@@ -622,7 +622,7 @@ describe("AccommodationEdit extracted components", () => {
     );
 
     expect(screen.getByRole("alert")).toHaveTextContent(title);
-    expect(screen.queryByRole("button", { name: "다시 시도" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "다시 시도" })).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "호스트 화면으로 돌아가기" }),
     ).toBeVisible();
@@ -689,7 +689,7 @@ describe("AccommodationEdit extracted components", () => {
     expect(screen.getByLabelText("숙소 사진 선택")).toBeDisabled();
     expect(
       screen.getByRole("button", { name: "저장 후 나가기" }),
-    ).not.toBeDisabled();
+    ).toBeEnabled();
   });
 
   it("resolves persisted photo paths through the injected view dependency", () => {
@@ -697,33 +697,50 @@ describe("AccommodationEdit extracted components", () => {
       (imagePath: string | null | undefined) =>
         imagePath ? `https://images.example/${imagePath}` : ""
     );
+    const photosStepProps = {
+      imageItems: [
+        { clientId: "server:1", id: 1, url: "listing/cover.jpg" },
+      ],
+      isSaving: false,
+      isDeletingImage: false,
+      uploadProgress: 0,
+      draggedIndex: null,
+      dragOverIndex: null,
+      resolveImageUrl,
+      onImageSelect: vi.fn(),
+      onDrop: vi.fn(),
+      onDragOver: vi.fn(),
+      onImageRemove: vi.fn(),
+      onDragStart: vi.fn(),
+      onDragOverItem: vi.fn(),
+      onDragEnd: vi.fn(),
+    } satisfies React.ComponentProps<typeof PhotosStep>;
 
-    render(
-      <PhotosStep
-        imageItems={[
-          { clientId: "server:1", id: 1, url: "listing/cover.jpg" },
-        ]}
-        isSaving={false}
-        isDeletingImage={false}
-        uploadProgress={0}
-        draggedIndex={null}
-        dragOverIndex={null}
-        resolveImageUrl={resolveImageUrl}
-        onImageSelect={vi.fn()}
-        onDrop={vi.fn()}
-        onDragOver={vi.fn()}
-        onImageRemove={vi.fn()}
-        onDragStart={vi.fn()}
-        onDragOverItem={vi.fn()}
-        onDragEnd={vi.fn()}
-      />
-    );
+    const { rerender } = render(<PhotosStep {...photosStepProps} />);
 
     expect(resolveImageUrl).toHaveBeenCalledWith("listing/cover.jpg");
     expect(screen.getByAltText("커버 사진")).toHaveAttribute(
       "src",
       "https://images.example/listing/cover.jpg"
     );
+
+    const fileInput = screen.getByLabelText("숙소 사진 추가 선택");
+    const onFileInputClick = vi.fn();
+    fileInput.addEventListener("click", onFileInputClick);
+
+    const addImageButton = screen.getByRole("button", { name: "추가" });
+    expect(addImageButton).toBeEnabled();
+    expect(addImageButton).toHaveAttribute("type", "button");
+    fireEvent.click(addImageButton);
+    expect(onFileInputClick).toHaveBeenCalledTimes(1);
+
+    for (const lockedState of [
+      { isSaving: true, isDeletingImage: false },
+      { isSaving: false, isDeletingImage: true },
+    ]) {
+      rerender(<PhotosStep {...photosStepProps} {...lockedState} />);
+      expect(screen.getByRole("button", { name: "추가" })).toBeDisabled();
+    }
   });
 
   it("renders info step fields and forwards edits", () => {
@@ -952,7 +969,7 @@ describe("AccommodationEdit extracted components", () => {
 
     expect(screen.queryByRole("button", { name: "04" })).not.toBeInTheDocument();
     await waitFor(() => expect(checkInTrigger).toHaveFocus());
-    expect(document.body.style.overflow).toBe("");
+    expect(document.body).toHaveStyle({overflow:""});
   });
 
   it("renders publish and detail-address confirmation components", () => {

@@ -18,6 +18,12 @@ const variantClassNames: Record<SearchBarPopoverVariant, string> = {
   suggestions: requireCssModuleClass(styles.suggestions),
 };
 
+const variantLabels: Record<SearchBarPopoverVariant, string> = {
+  date: "검색 날짜 선택",
+  guest: "검색 인원 선택",
+  suggestions: "검색 지역 추천",
+};
+
 const cx = (...classNames: Array<string | undefined>) =>
   classNames.filter(Boolean).join(" ");
 
@@ -71,8 +77,10 @@ export const SearchBarPopover = React.forwardRef<
     return (
       <div
         ref={setPopoverRef}
+        aria-label={variantLabels[variant]}
         className={cx(variantClassNames[variant], className)}
-        onKeyDown={handleKeyDown}
+        onKeyDownCapture={handleKeyDown}
+        role="dialog"
         tabIndex={tabIndex}
         {...popoverProps}
       >

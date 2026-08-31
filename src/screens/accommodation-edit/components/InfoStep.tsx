@@ -43,10 +43,11 @@ export const InfoStep: React.FC<InfoStepProps> = ({
     <p className={styles.stepDescription}>숙소의 기본 정보를 입력해주세요.</p>
 
     <div className={styles.formGroup}>
-      <label className={styles.label}>
+      <label className={styles.label} htmlFor="accommodation-name">
         숙소 이름 <span className={styles.required}>*</span>
       </label>
       <input
+        id="accommodation-name"
         type="text"
         value={formData.name}
         onChange={(e) => onInputChange("name", e.target.value)}
@@ -58,10 +59,11 @@ export const InfoStep: React.FC<InfoStepProps> = ({
     </div>
 
     <div className={styles.formGroup}>
-      <label className={styles.label}>
+      <label className={styles.label} htmlFor="accommodation-description">
         숙소 설명 <span className={styles.required}>*</span>
       </label>
       <textarea
+        id="accommodation-description"
         value={formData.description}
         onChange={(e) => onInputChange("description", e.target.value)}
         className={styles.textarea}
@@ -73,9 +75,9 @@ export const InfoStep: React.FC<InfoStepProps> = ({
     </div>
 
     <div className={styles.formGroup}>
-      <label className={styles.label}>
+      <span className={styles.label}>
         숙소 유형 <span className={styles.required}>*</span>
-      </label>
+      </span>
       <button
         type="button"
         className={styles.typeSelectButton}
@@ -90,10 +92,11 @@ export const InfoStep: React.FC<InfoStepProps> = ({
     </div>
 
     <div className={styles.formGroup}>
-      <label className={styles.label}>
+      <label className={styles.label} htmlFor="accommodation-base-price">
         기본 가격 (원) <span className={styles.required}>*</span>
       </label>
       <input
+        id="accommodation-base-price"
         type="number"
         value={formData.basePrice}
         onChange={(e) => onInputChange("basePrice", e.target.value)}
@@ -109,12 +112,13 @@ export const InfoStep: React.FC<InfoStepProps> = ({
       <h3 className={styles.sectionTitle}>수용 인원</h3>
       <div className={styles.formGroup}>
         <div className={styles.quantityRow}>
-          <label className={styles.quantityLabel}>
+          <span className={styles.quantityLabel}>
             게스트 <span className={styles.required}>*</span>
-          </label>
+          </span>
           <div className={styles.quantitySelector}>
             <button
               type="button"
+              aria-label="최대 게스트 수 줄이기"
               className={styles.quantityButton}
               onClick={() => {
                 const current = Number(formData.occupancyPolicyInfo.maxOccupancy) || 1;
@@ -137,6 +141,7 @@ export const InfoStep: React.FC<InfoStepProps> = ({
             </span>
             <button
               type="button"
+              aria-label="최대 게스트 수 늘리기"
               className={styles.quantityButton}
               onClick={() => {
                 const current = Number(formData.occupancyPolicyInfo.maxOccupancy) || 1;
@@ -159,9 +164,10 @@ export const InfoStep: React.FC<InfoStepProps> = ({
 
       <div className={styles.formGroup}>
         <div className={styles.checkboxRow}>
-          <label className={styles.checkboxTextLabel}>유아</label>
-          <label className={styles.checkboxLabel}>
+          <span className={styles.checkboxTextLabel}>유아</span>
+          <div className={styles.checkboxLabel}>
             <input
+              aria-label="유아 수용 가능"
               type="checkbox"
               checked={formData.occupancyPolicyInfo.infantOccupancy}
               onChange={(e) =>
@@ -173,16 +179,17 @@ export const InfoStep: React.FC<InfoStepProps> = ({
               }
               className={styles.checkbox}
             />
-          </label>
+          </div>
         </div>
         <p className={styles.helperText}>유아 수용 가능 여부입니다.</p>
       </div>
 
       <div className={styles.formGroup}>
         <div className={styles.checkboxRow}>
-          <label className={styles.checkboxTextLabel}>반려동물</label>
-          <label className={styles.checkboxLabel}>
+          <span className={styles.checkboxTextLabel}>반려동물</span>
+          <div className={styles.checkboxLabel}>
             <input
+              aria-label="반려동물 수용 가능"
               type="checkbox"
               checked={formData.occupancyPolicyInfo.petOccupancy}
               onChange={(e) =>
@@ -194,7 +201,7 @@ export const InfoStep: React.FC<InfoStepProps> = ({
               }
               className={styles.checkbox}
             />
-          </label>
+          </div>
         </div>
         <p className={styles.helperText}>반려동물 수용 가능 여부입니다.</p>
       </div>

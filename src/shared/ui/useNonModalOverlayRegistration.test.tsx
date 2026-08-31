@@ -65,7 +65,7 @@ describe("useNonModalOverlayRegistration", () => {
     const popover = screen.getByTestId("여행자-popover");
     expect(owner).toContainElement(popover);
     expect(view.container).toContainElement(popover);
-    expect(document.body.style.overflow).toBe("");
+    expect(document.body).toHaveStyle({overflow:""});
 
     screen.getByRole("button", { name: "여행자 작업" }).focus();
     await userEvent.keyboard("{Escape}");

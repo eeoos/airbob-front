@@ -1,8 +1,8 @@
 # Airbob Frontend Architecture
 
 > Status: canonical current-state source of truth  
-> Baseline: U4 commit `f5222d5`, followed by the U6 Router, U5 session, U19 structural UI, U7-U13 feature/workflow cutovers, U21 small routes, U22 compatibility closure, U14 interaction adoption, U15 design-foundation closure, the U16 Vite build/dev cutover, U17 Vitest cutover, and the U23 TypeScript 5.9 boundary
-> Current migration state: app routing/session/overlay ownership, every feature-owned API/model boundary, and every current route screen are active; legacy global roots are retired; Vite owns build/dev, Vitest owns unit/integration execution, and TypeScript owns explicit browser/test/tooling/Playwright environments without CRA runtime dependencies
+> Baseline: U4 commit `f5222d5`, followed by the U6 Router, U5 session, U19 structural UI, U7-U13 feature/workflow cutovers, U21 small routes, U22 compatibility closure, U14 interaction adoption, U15 design-foundation closure, the U16 Vite build/dev cutover, U17 Vitest cutover, and the U23 TypeScript 5.9/ESLint 9 boundaries
+> Current migration state: app routing/session/overlay ownership, every feature-owned API/model boundary, and every current route screen are active; legacy global roots are retired; Vite owns build/dev, Vitest owns unit/integration execution, TypeScript owns explicit browser/test/tooling/Playwright environments, and native flat-config ESLint owns local source feedback without CRA runtime or lint dependencies
 > Recorded: 2026-08-31 KST
 
 This document describes the frontend that is reachable in production at the
@@ -106,7 +106,8 @@ Current owners:
 | Shared styling and brand assets | `src/shared/styles/**`, `src/shared/assets/**` | Global CSS imports primitive, semantic, then component tokens in one explicit order. The responsive manifest and JS `matchMedia` policy agree at the 1024px boundary; the production wordmark is manifest-owned and public PWA icons use real Airbob artwork. Vite transforms the owned custom-media aliases during development and production builds. |
 | Build, development, and static deployment | `vite.config.ts`, root `index.html`, `vercel.json` | Vite 8 is the sole `start`/`dev`/`build`/`preview` owner on Node `^22.12 || ^24` and retains `build/`, `build/static/`, the `/api` development proxy, CSS Modules, custom-media transforms, public assets, production JavaScript source maps, development CSS source maps, and route-level lazy chunks. The supported browser floor is Vite 8's pinned `baseline-widely-available` target (Chrome/Edge 111, Firefox 114, Safari/iOS 16.4); the old dynamic CRA Browserslist query is removed rather than implying a legacy bundle. Native ESM TypeScript config is checked by its own Node-only compiler project and exercised through Vite's resolver, ESLint, Knip, and hostile production builds. Vercel checks real files before the SPA fallback, serves hashed `/static/*` assets with immutable caching, and forces `index.html` to revalidate. |
 | Compiler environments | `tsconfig.json`, `tsconfig.test.json`, `tsconfig.tooling.json`, `tsconfig.e2e.json` | TypeScript 5.9 gives production source only DOM/Vite types and separately grants Vitest, Node tooling, and Playwright their exact globals. `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`, `noUncheckedSideEffectImports`, and `erasableSyntaxOnly` are blocking. A local ambient declaration in the environment adapter exposes only the five compile-time properties that Vite explicitly substitutes; Node types never enter the browser project. |
-| Unit and integration tests | `vitest.config.ts`, `src/test/setup.ts`, colocated `*.test.*` and `*.spec.*` files | Vitest 4 and jsdom share the Vite module graph, run files with one worker and ordered hooks, expose Vitest globals with explicit TypeScript/ESLint ownership, and use non-scoped CSS Module names only inside tests. The setup owns jest-dom matchers and portal cleanup; Axios and React Router resolve through their real package exports. Vite's test mode performs no browser-public environment substitution. The current 266-file, 1,922-test suite reports 87.17% statements, 79.18% branches, 89.62% functions, and 89.42% lines against floors of 87/79/89/89. `react-scripts`, `@types/jest`, global Jest aliases, virtual real-module mocks, and `requireActual` shims are absent. |
+| Local source lint environments | `eslint.config.mjs`, `tests/architecture/verify-eslint-config.mjs` | ESLint 9.39 uses native flat config and current TypeScript, React, stable Hooks, accessibility, Vitest, Testing Library, jest-dom, and Playwright plugins. Browser, Vitest/DOM/Node, Playwright/Node, ESM Node, and CommonJS Node scopes receive distinct globals; Jest globals and CRA presets are absent. Local binding/import feedback and executable process/storage/SDK/script/Axios capability restrictions remain ESLint-owned, while import direction/cycles, production reachability/dependency declarations, and CSS policy remain exclusively dependency-cruiser, Knip, and Stylelint owned. Unused disable directives and unused inline configs are errors; active suppressions require a narrow, reviewable reason. React Compiler-only ref/effect/memo adoption rules are explicitly outside this cutover so they cannot silently force semantic rewrites of established overlay/session/payment runtimes. |
+| Unit and integration tests | `vitest.config.ts`, `src/test/setup.ts`, colocated `*.test.*` and `*.spec.*` files | Vitest 4 and jsdom share the Vite module graph, run files with one worker and ordered hooks, expose Vitest globals with explicit TypeScript/ESLint ownership, and use non-scoped CSS Module names only inside tests. The setup owns jest-dom matchers and portal cleanup; Axios and React Router resolve through their real package exports. Vite's test mode performs no browser-public environment substitution. The current 266-file, 1,922-test suite reports 87.18% statements, 79.25% branches, 89.62% functions, and 89.43% lines against floors of 87/79/89/89. `react-scripts`, `@types/jest`, global Jest aliases, virtual real-module mocks, and `requireActual` shims are absent. |
 | Browser smoke | `scripts/smoke/frontend-smoke.mjs` | Live backend, browser, credentials, and stable IDs are external prerequisites. |
 | Deterministic browser characterization | `playwright.config.ts`, `tests/e2e/**` | Loopback production app plus an exact synthetic HTTPS `.invalid` API origin, synthetic session/API fixtures, and default-deny network. |
 | Static architecture ratchets | `.dependency-cruiser.cjs`, `knip.json`, `stylelint.config.mjs`, `architecture-ratchet.json` | Target/migrated surfaces fail on graph, reachability, and design-policy regressions while measured legacy debt remains visible. |
@@ -305,7 +306,7 @@ Consequences:
 - The active `src/app/shells/ShellFrame.tsx` is the sole production `main` owner.
 
 U3 supplies executable ownership for this graph. After U15,
-dependency-cruiser reports 513 modules and 1,387 dependencies with zero cycles,
+dependency-cruiser reports 513 modules and 1,386 dependencies with zero cycles,
 warnings, or errors. Every declared feature scope is in the migrated registry;
 feature-to-peer imports and reintroduced global API/DTO roots fail fixtures.
 Target-ratcheted production Knip, strict Stylelint, architecture tools, strict
@@ -337,8 +338,8 @@ source assets and all unused UI files. The final U15 CRA parity build reported a
 147.73 kB gzip main bundle. U16 measures the equivalent Vite initial JavaScript
 graph as the entry plus every document module-preload rather than reporting only
 the smaller-looking `index-*` file. Hostile root-relative and absolute-base
-builds currently top out at 137.30 kB gzip: 10.43 kB below the U15 parity ceiling
-but still 5.90 kB above the final 131.4 kB target. All 15 lazy route chunks and
+builds currently top out at 137.88 kB gzip: 9.85 kB below the U15 parity ceiling
+but still 6.48 kB above the final 131.4 kB target. All 15 lazy route chunks and
 their production JavaScript source maps remain present, development CSS source
 maps are enabled, and built CSS contains no unresolved custom-media syntax.
 Vite 8 does not emit separate production CSS map assets in this pipeline, so the
@@ -392,7 +393,7 @@ status lives in [`frontend-ownership-matrix.md`](./frontend-ownership-matrix.md)
 | --- | --- |
 | Toss npm v2 runtime adapter (source cutover complete; live sandbox/OCI parity deferred) | U11 |
 | Final design-entry gate | U18 |
-| ESLint, dependency classification, and formatting modernization | U23 |
+| Dependency classification and formatting modernization | U23 |
 
 ## Verification contracts
 

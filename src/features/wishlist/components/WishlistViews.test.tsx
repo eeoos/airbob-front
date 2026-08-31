@@ -97,9 +97,9 @@ const makeWishlistAccommodationCard = (
 const expectNoNestedInteractiveControls = (container: HTMLElement) => {
   // This is a DOM-structure regression guard: nested buttons are invalid even
   // when each control still has an accessible role.
-  // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
+  // eslint-disable-next-line testing-library/no-node-access
   expect(container.querySelectorAll("button button")).toHaveLength(0);
-  // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
+  // eslint-disable-next-line testing-library/no-node-access
   expect(container.querySelectorAll('[role="button"] button')).toHaveLength(0);
 };
 
@@ -334,7 +334,7 @@ describe("Wishlist view components", () => {
     );
 
     const saveButton = screen.getByRole("button", { name: "저장" });
-    expect(saveButton).not.toBeDisabled();
+    expect(saveButton).toBeEnabled();
 
     await userEvent.click(saveButton);
     expect(onSave).toHaveBeenCalledTimes(1);

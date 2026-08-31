@@ -197,16 +197,26 @@ describe("SearchBar", () => {
     expect(suggestionItemStyles).toContain("text-align: left;");
   });
 
-  it("names the search icon button and keeps it out of form submission", () => {
+  it("names the search icon button and keeps it out of form submission", async () => {
+    const state = createSearchBarState();
+    mockUseSearchBarState.mockReturnValue(state);
+
     render(<SearchBar routePort={routePort} />);
 
     const searchButton = screen.getByRole("button", { name: "검색" });
+    const destinationButton = screen.getByRole("button", { name: "어디든지" });
 
     expect(searchButton).toHaveAttribute("type", "button");
+    expect(destinationButton).toHaveAttribute("type", "button");
     expect(screen.getByRole("search", { name: "숙소 검색" })).toHaveAttribute(
       "data-search-shell",
       "compact",
     );
+
+    await userEvent.click(destinationButton);
+
+    expect(state.actions.expandShell).toHaveBeenCalledTimes(1);
+    expect(state.actions.openDestination).toHaveBeenCalledTimes(1);
   });
 
   it("renders date and guest segments as disclosure buttons", () => {
@@ -459,7 +469,7 @@ describe("SearchBar", () => {
     expect(screen.getByRole("search", { name: "숙소 검색" })).toContainElement(
       screen.getByText("성인"),
     );
-    expect(document.body.style.overflow).toBe("");
+    expect(document.body).toHaveStyle({overflow:""});
     await userEvent.keyboard("{Escape}");
 
     expect(closeActivePopover).toHaveBeenCalledTimes(1);

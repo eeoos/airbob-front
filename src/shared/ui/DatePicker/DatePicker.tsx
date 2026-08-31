@@ -429,9 +429,11 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
   return (
     <div
+      aria-label="날짜 선택"
       className={styles.datePicker}
       ref={pickerRef}
-      onKeyDown={handlePickerKeyDown}
+      onKeyDownCapture={handlePickerKeyDown}
+      role="group"
     >
       <div className={styles.navHeader}>
         <button

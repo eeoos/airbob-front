@@ -15,6 +15,12 @@ does not receive Node globals. Exact optional properties, unchecked indexed
 access, type-only module syntax, side-effect import checking, and erasable-only
 syntax are blocking compiler contracts.
 
+ESLint 9 uses one native flat config with separate browser, Vitest, Playwright,
+and Node-tool environments. React, Hooks, accessibility, Testing Library,
+jest-dom, and Playwright feedback is blocking without CRA/Jest presets. ESLint
+owns local code and capability-import feedback only; dependency-cruiser, Knip,
+and Stylelint remain the sole graph, reachability, and CSS-policy owners.
+
 ```bash
 npm install
 npm run typecheck

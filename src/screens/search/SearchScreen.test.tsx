@@ -1,4 +1,9 @@
-import { createRef } from "react";
+import {
+  createRef,
+  forwardRef,
+  type HTMLAttributes,
+  type Ref,
+} from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { SearchScreenProps } from "./SearchScreen";
 import { SearchScreen } from "./SearchScreen";
@@ -8,12 +13,10 @@ const mockResultsList = vi.fn();
 const mockPagination = vi.fn();
 
 vi.mock("framer-motion", () => {
-  const React = require("react");
-
   return {
     motion: {
-      div: React.forwardRef(
-        (
+      div: forwardRef(
+        function MotionDiv(
           {
             children,
             drag,
@@ -24,16 +27,18 @@ vi.mock("framer-motion", () => {
             onDragEnd,
             onDragStart,
             ...props
-          }: React.HTMLAttributes<HTMLDivElement> & Record<string, unknown>,
-          ref: React.Ref<HTMLDivElement>,
-        ) => (
-          <div ref={ref} {...props}>
-            {children}
-          </div>
-        ),
+          }: HTMLAttributes<HTMLDivElement> & Record<string, unknown>,
+          ref: Ref<HTMLDivElement>,
+        ) {
+          return (
+            <div ref={ref} {...props}>
+              {children}
+            </div>
+          );
+        },
       ),
-      section: React.forwardRef(
-        (
+      section: forwardRef(
+        function MotionSection(
           {
             children,
             drag,
@@ -44,13 +49,15 @@ vi.mock("framer-motion", () => {
             onDragEnd,
             onDragStart,
             ...props
-          }: React.HTMLAttributes<HTMLElement> & Record<string, unknown>,
-          ref: React.Ref<HTMLElement>,
-        ) => (
-          <section ref={ref} {...props}>
-            {children}
-          </section>
-        ),
+          }: HTMLAttributes<HTMLElement> & Record<string, unknown>,
+          ref: Ref<HTMLElement>,
+        ) {
+          return (
+            <section ref={ref} {...props}>
+              {children}
+            </section>
+          );
+        },
       ),
     },
   };

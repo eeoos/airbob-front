@@ -271,6 +271,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
               onKeyDown={handleMenuKeyDown}
               ref={menuDropdownRef}
               role="menu"
+              tabIndex={-1}
             >
               {!isLoggedIn ? (
                 <>

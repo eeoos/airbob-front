@@ -91,7 +91,7 @@ export function Tabs<TValue extends string = string>({
     }
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
     if (
       orientation === "horizontal" &&
       event.key === "ArrowRight"
@@ -140,7 +140,6 @@ export function Tabs<TValue extends string = string>({
       aria-orientation={orientation}
       className={cx(styles.tabList, styles[variant], className)}
       role="tablist"
-      onKeyDown={handleKeyDown}
     >
       {items.map((item, index) => {
         const isSelected = item.value === value;
@@ -167,6 +166,7 @@ export function Tabs<TValue extends string = string>({
             tabIndex={index === focusableIndex ? 0 : -1}
             type="button"
             onClick={() => onValueChange(item.value)}
+            onKeyDown={handleKeyDown}
           >
             {item.label}
           </button>

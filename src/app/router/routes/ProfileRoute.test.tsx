@@ -50,13 +50,12 @@ vi.mock("../../session/useSession", () => ({
 
 vi.mock("../../../screens/profile/public", () => ({
   ProfileController: (props: ProfileControllerProps) => {
-    const React = require("react") as typeof import("react");
     mockCapturedProfileProps.push(props);
 
-    return React.createElement(
-      "output",
-      { "data-testid": "profile-controller" },
-      JSON.stringify(props.routeView),
+    return (
+      <output data-testid="profile-controller">
+        {JSON.stringify(props.routeView)}
+      </output>
     );
   },
 }));

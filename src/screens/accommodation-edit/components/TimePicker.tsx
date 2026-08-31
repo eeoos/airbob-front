@@ -128,10 +128,11 @@ export const TimePicker: React.FC<TimePickerProps> = ({
     <div
       ref={pickerRef}
       id={id}
+      aria-label="시간 선택"
       className={styles.timePickerDropdown}
-      onClick={(e) => e.stopPropagation()}
-      onKeyDown={handlePickerKeyDown}
-      tabIndex={0}
+      onKeyDownCapture={handlePickerKeyDown}
+      role="dialog"
+      tabIndex={-1}
     >
       <div className={styles.timePickerContent}>
         <div className={styles.timePickerColumn}>

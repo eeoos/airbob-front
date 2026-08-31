@@ -203,8 +203,6 @@ export const useMapSelectionInfoWindow = ({
         let resizeListener: google.maps.MapsEventListener | null = null;
         let didHandleInfoWindowClose = false;
         let pendingCloseOptions: CloseInfoWindowOptions | null = null;
-        let closeSelectedInfoWindow: CloseInfoWindow;
-
         const cleanupInfoWindowListeners = () => {
           clearPendingTimers();
           unbindInfoWindowEvents?.();
@@ -257,7 +255,7 @@ export const useMapSelectionInfoWindow = ({
           disposeOwnedInfoWindow = null;
         };
 
-        closeSelectedInfoWindow = (options = {}) => {
+        const closeSelectedInfoWindow: CloseInfoWindow = (options = {}) => {
           if (didHandleInfoWindowClose) return;
 
           pendingCloseOptions = options;

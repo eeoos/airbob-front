@@ -1,4 +1,5 @@
 import { readFileSync, readdirSync } from "fs";
+import { createRequire } from "module";
 import { join, relative } from "path";
 import postcss from "postcss";
 
@@ -25,7 +26,8 @@ const requireCapture = (
   return value;
 };
 
-const { allowedBreakpointValues, isStrictStylePath } = require(
+const loadCommonJsModule = createRequire(import.meta.url);
+const { allowedBreakpointValues, isStrictStylePath } = loadCommonJsModule(
   "../../../scripts/architecture/style-policy.cjs",
 ) as {
   allowedBreakpointValues: readonly string[];

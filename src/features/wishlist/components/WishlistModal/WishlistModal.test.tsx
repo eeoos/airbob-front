@@ -150,7 +150,7 @@ describe("WishlistModal", () => {
       resolve({ status: "applied", isInAnyWishlist: false });
       await pending;
     });
-    expect(itemButton).not.toBeDisabled();
+    expect(itemButton).toBeEnabled();
   });
 
   it("renders command failures with the shared toast primitive", async () => {

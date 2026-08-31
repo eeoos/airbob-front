@@ -18,11 +18,12 @@ export const LocationStep: React.FC<LocationStepProps> = ({
     <p className={styles.stepDescription}>숙소의 정확한 위치를 입력해주세요.</p>
 
     <div className={styles.formGroup}>
-      <label className={styles.label}>
+      <label className={styles.label} htmlFor="accommodation-street-address">
         주소 검색 <span className={styles.required}>*</span>
       </label>
       <div className={styles.addressSearchContainer}>
         <input
+          id="accommodation-street-address"
           type="text"
           value={addressInfo.street || ""}
           className={styles.input}
@@ -41,8 +42,11 @@ export const LocationStep: React.FC<LocationStepProps> = ({
     </div>
 
     <div className={styles.formGroup}>
-      <label className={styles.label}>상세 주소</label>
+      <label className={styles.label} htmlFor="accommodation-detail-address">
+        상세 주소
+      </label>
       <input
+        id="accommodation-detail-address"
         type="text"
         value={addressInfo.detail}
         onChange={(e) => onDetailChange(e.target.value)}

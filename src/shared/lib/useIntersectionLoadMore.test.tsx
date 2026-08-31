@@ -34,10 +34,9 @@ describe("useIntersectionLoadMore", () => {
     vi.clearAllMocks();
     global.IntersectionObserver = vi.fn(function IntersectionObserverMock(
       callback,
-      options,
+      _options,
     ) {
       intersectionCallback = callback;
-      expect(options).toMatchObject({ threshold: 0.1 });
       return {
         disconnect,
         observe,

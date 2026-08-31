@@ -6,6 +6,9 @@ import {
 import { test, expect } from "../fixtures/test";
 import { E2E_API_ORIGIN } from "../support/runtimeOrigins";
 
+const toErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
 test("network isolation is active for tests that request only a page", async ({
   page,
 }) => {
@@ -24,13 +27,9 @@ test("network isolation is active for tests that request only a page", async ({
 });
 
 test("the production-build server rejects an unexpected Host header", async ({
-  baseURL,
+  appBaseURL: baseURL,
   request,
 }) => {
-  if (!baseURL) {
-    throw new Error("Playwright baseURL is required.");
-  }
-
   const response = await request.get(baseURL, {
     headers: { host: "attacker.invalid" },
   });
@@ -39,13 +38,9 @@ test("the production-build server rejects an unexpected Host header", async ({
 });
 
 test("the exact synthetic API origin handles CORS without journaling its preflight", async ({
-  baseURL,
+  appBaseURL: baseURL,
   browser,
 }) => {
-  if (!baseURL) {
-    throw new Error("Playwright baseURL is required.");
-  }
-
   expect(
     isExactE2eApiUrl(
       new URL(
@@ -111,13 +106,9 @@ test("the exact synthetic API origin handles CORS without journaling its preflig
 });
 
 test("the harness records and blocks every non-allowlisted data channel", async ({
-  baseURL,
+  appBaseURL: baseURL,
   browser,
 }) => {
-  if (!baseURL) {
-    throw new Error("Playwright baseURL is required.");
-  }
-
   const context = await browser.newContext({ baseURL });
   const harness = new ApiHarness(context, new URL(baseURL).origin);
   harness.register(
@@ -241,7 +232,7 @@ test("the harness records and blocks every non-allowlisted data channel", async 
     try {
       harness.assertNoUnhandledRequests();
     } catch (error) {
-      isolationError = error instanceof Error ? error.message : String(error);
+      isolationError = toErrorMessage(error);
     }
 
     expect(isolationError).toContain("GET /api (api)");

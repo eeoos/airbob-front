@@ -134,7 +134,6 @@ export function CreateWishlistModal({
             placeholder="위시리스트 이름을 입력하세요"
             maxLength={50}
             required
-            autoFocus
           />
           <div className={styles.charCount}>{name.length}/50자</div>
         </div>

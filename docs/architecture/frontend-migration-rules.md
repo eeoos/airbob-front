@@ -151,6 +151,9 @@ browser storage when a reload can safely refetch it.
   that the pinned Stylelint line cannot yet express remain focused Vitest owners
   and consume the same strict feature registry.
 - Local code and import feedback belongs to ESLint.
+- ESLint environments are explicit: browser production, Vitest, Playwright,
+  Node ESM, and Node CommonJS scopes may not inherit each other's globals.
+  CRA/Jest presets and graph/reachability/CSS duplicates are forbidden.
 - User behavior belongs to unit/integration/Playwright tests.
 
 A source-string contract can be deleted only after the replacement tool fails

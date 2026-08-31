@@ -30,8 +30,7 @@ export function useCreateAccommodationDraft({
     if (activePromise) return activePromise;
 
     setIsCreating(true);
-    let operation!: Promise<void>;
-    operation = (async () => {
+    const operation = (async () => {
       await Promise.resolve();
 
       try {
@@ -39,14 +38,16 @@ export function useCreateAccommodationDraft({
         if (isMountedRef.current) onCreated(response.id);
       } catch (error) {
         if (isMountedRef.current) onError(error);
-      } finally {
-        if (activePromiseRef.current === operation) {
-          activePromiseRef.current = null;
-          if (isMountedRef.current) setIsCreating(false);
-        }
       }
     })();
     activePromiseRef.current = operation;
+    const releaseOperation = () => {
+      if (activePromiseRef.current === operation) {
+        activePromiseRef.current = null;
+        if (isMountedRef.current) setIsCreating(false);
+      }
+    };
+    void operation.then(releaseOperation, releaseOperation);
     return operation;
   }, [api, onCreated, onError]);
 

@@ -96,11 +96,26 @@ test("keeps the 320px search route free of horizontal overflow with core actions
   expect(widths.document).toBeLessThanOrEqual(widths.viewport);
 });
 
+const responsiveBoundary = (
+  width: number,
+  layout: "bottom-sheet" | "desktop",
+) => {
+  const hasBottomSheet = layout === "bottom-sheet";
+
+  return {
+    width,
+    layout,
+    bottomSheetCount: hasBottomSheet ? 1 : 0,
+    controlledRegions: hasBottomSheet ? [true] : [],
+    bottomSheetVisible: hasBottomSheet,
+  };
+};
+
 for (const boundary of [
-  { width: 1023, layout: "bottom-sheet" },
-  { width: 1024, layout: "bottom-sheet" },
-  { width: 1025, layout: "desktop" },
-] as const) {
+  responsiveBoundary(1023, "bottom-sheet"),
+  responsiveBoundary(1024, "bottom-sheet"),
+  responsiveBoundary(1025, "desktop"),
+]) {
   test(`renders only the ${boundary.layout} result layout at ${boundary.width}px`, async ({
     api,
     page,
@@ -125,15 +140,16 @@ for (const boundary of [
     const bottomSheetResults = page.getByRole("group", {
       name: "검색 결과 목록",
     });
-    const isBottomSheet = boundary.layout === "bottom-sheet";
-    const expectedBottomSheetCount = isBottomSheet ? 1 : 0;
-
     await expect(resultLink).toHaveCount(1);
     await expect(resultLink).toBeVisible();
-    await expect(bottomSheetHandle).toHaveCount(expectedBottomSheetCount);
-    await expect(bottomSheetResults).toHaveCount(expectedBottomSheetCount);
-    expect(await bottomSheetHandle.isVisible()).toBe(isBottomSheet);
-    expect(await bottomSheetResults.isVisible()).toBe(isBottomSheet);
+    await expect(bottomSheetHandle).toHaveCount(boundary.bottomSheetCount);
+    await expect(bottomSheetResults).toHaveCount(boundary.bottomSheetCount);
+    await expect(bottomSheetHandle).toBeVisible({
+      visible: boundary.bottomSheetVisible,
+    });
+    await expect(bottomSheetResults).toBeVisible({
+      visible: boundary.bottomSheetVisible,
+    });
 
     const controlledRegions = await bottomSheetHandle.evaluateAll((handles) =>
       handles.map((handle) => {
@@ -141,6 +157,6 @@ for (const boundary of [
         return Boolean(controlledId && document.getElementById(controlledId));
       }),
     );
-    expect(controlledRegions).toEqual(isBottomSheet ? [true] : []);
+    expect(controlledRegions).toEqual(boundary.controlledRegions);
   });
 }

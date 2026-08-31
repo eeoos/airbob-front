@@ -1,6 +1,5 @@
 import type { Mocked, MockedFunction } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import React from "react";
 import type { SessionContextValue } from "../session/SessionProvider";
 import {
   toSessionSubject,

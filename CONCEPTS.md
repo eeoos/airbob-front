@@ -39,6 +39,9 @@ The U17 ownership switch where Vitest 4 becomes the sole unit/integration runner
 ### TypeScript Environment Boundary
 The U23 compiler contract where TypeScript 5.9 checks browser application, Vitest, Vite/Vitest configuration, and Playwright source through separate projects. Browser code receives only Vite/DOM types, while exact optional properties and unchecked indexed access force missing keys, array bounds, and external-input parsers to be handled explicitly.
 
+### ESLint Environment Boundary
+The U23 native flat-config contract where ESLint 9 gives browser source, Vitest, Playwright, ESM tooling, and CommonJS tooling only their intended globals and plugins. It owns local code, React, accessibility, and platform-capability feedback without duplicating dependency-cruiser graph rules, Knip reachability, or Stylelint CSS policy.
+
 ### Immutable Deployment Rollback
 A frontend rollback that restores one recorded Git commit and its commit-specific Vercel deployment, including that deployment's own HTML and hashed assets. The previous deployment is retained rather than rebuilt or mixed with a candidate's files; live deep-link and already-open-tab asset checks remain required deployment evidence.
 

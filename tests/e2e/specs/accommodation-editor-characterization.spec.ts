@@ -180,13 +180,10 @@ test("renders a retryable editor state when host hydration fails transiently", a
 
 test("hydrates an existing accommodation and saves its update before publishing", async ({
   api,
-  baseURL,
+  appBaseURL: baseURL,
   page,
   session,
 }) => {
-  if (!baseURL) {
-    throw new Error("Playwright baseURL is required.");
-  }
   session.authenticate();
   api.register(
     "GET",
@@ -257,13 +254,10 @@ test("hydrates an existing accommodation and saves its update before publishing"
 
 test("lazy-loads the exact Daum postcode integration before mapping a selection", async ({
   api,
-  baseURL,
+  appBaseURL: baseURL,
   page,
   session,
 }) => {
-  if (!baseURL) {
-    throw new Error("Playwright baseURL is required.");
-  }
   session.authenticate();
   api.register(
     "GET",
@@ -284,13 +278,10 @@ test("lazy-loads the exact Daum postcode integration before mapping a selection"
 
 test("finishes a pending image upload before save-and-exit navigation", async ({
   api,
-  baseURL,
+  appBaseURL: baseURL,
   page,
   session,
 }) => {
-  if (!baseURL) {
-    throw new Error("Playwright baseURL is required.");
-  }
   session.authenticate();
   let releaseUpload!: (response: ApiResponseSpec) => void;
   const pendingUpload = new Promise<ApiResponseSpec>((resolve) => {
@@ -368,13 +359,10 @@ test("finishes a pending image upload before save-and-exit navigation", async ({
 
 test("keeps the editor mounted when a pending image upload fails", async ({
   api,
-  baseURL,
+  appBaseURL: baseURL,
   page,
   session,
 }) => {
-  if (!baseURL) {
-    throw new Error("Playwright baseURL is required.");
-  }
   session.authenticate();
   api.register(
     "GET",
@@ -421,13 +409,10 @@ test("keeps the editor mounted when a pending image upload fails", async ({
 
 test("blocks editor commands while an ambiguous image deletion is reconciled once", async ({
   api,
-  baseURL,
+  appBaseURL: baseURL,
   page,
   session,
 }) => {
-  if (!baseURL) {
-    throw new Error("Playwright baseURL is required.");
-  }
   session.authenticate();
   const detail = {
     ...makeEditableAccommodation(baseURL),
@@ -516,13 +501,10 @@ test("blocks editor commands while an ambiguous image deletion is reconciled onc
 
 test("does not publish after the editor unmounts while an update is still in flight", async ({
   api,
-  baseURL,
+  appBaseURL: baseURL,
   page,
   session,
 }) => {
-  if (!baseURL) {
-    throw new Error("Playwright baseURL is required.");
-  }
   session.authenticate();
   let releaseUpdate!: (response: ApiResponseSpec) => void;
   const pendingUpdate = new Promise<ApiResponseSpec>((resolve) => {
@@ -575,7 +557,6 @@ test("does not publish after the editor unmounts while an update is still in fli
 
   releaseUpdate(apiSuccess(null));
   await pendingUpdate;
-  await page.waitForLoadState("networkidle");
 
   expect(
     api.matching("PATCH", "/api/v1/accommodations/31/publish"),

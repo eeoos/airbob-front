@@ -266,7 +266,7 @@ describe("Dialog", () => {
       </>
     );
 
-    expect(document.body.style.overflow).toBe("hidden");
+    expect(document.body).toHaveStyle({overflow:"hidden"});
 
     rerender(
       <>
@@ -279,10 +279,10 @@ describe("Dialog", () => {
       </>
     );
 
-    expect(document.body.style.overflow).toBe("hidden");
+    expect(document.body).toHaveStyle({overflow:"hidden"});
 
     unmount();
 
-    expect(document.body.style.overflow).toBe("auto");
+    expect(document.body).toHaveStyle({overflow:"auto"});
   });
 });

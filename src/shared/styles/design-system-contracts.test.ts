@@ -1,9 +1,11 @@
 import * as fs from "fs";
+import { createRequire } from "module";
 import * as path from "path";
 
 const projectRoot = process.cwd();
 const srcDir = path.join(projectRoot, "src");
-const { canonicalTokenStylePaths, protectedDesignLiteralStylePaths } = require(
+const loadCommonJsModule = createRequire(import.meta.url);
+const { canonicalTokenStylePaths, protectedDesignLiteralStylePaths } = loadCommonJsModule(
   "../../../scripts/architecture/style-policy.cjs"
 ).createStylePolicy({ projectRoot }) as {
   canonicalTokenStylePaths: readonly string[];

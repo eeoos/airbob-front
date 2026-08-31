@@ -19,6 +19,24 @@ TypeScript 5.9 separately owns browser application, Vitest, Node tooling, and
 Playwright environments. It proves local type contracts; it does not duplicate
 dependency direction, reachability, or CSS policy.
 
+## ESLint owner
+
+ESLint 9 is the sole JavaScript and TypeScript lint owner and uses one native
+flat configuration. Browser source, Vitest, Playwright, Node ESM tooling, and
+Node CommonJS configuration receive explicit, non-overlapping globals. The
+configuration does not inherit Create React App, Jest, or hidden environment
+defaults.
+
+ESLint owns local binding correctness, React and Hooks feedback, accessibility,
+test API usage, and direct browser-capability boundaries such as `process`,
+storage, SDK globals, script insertion, Axios, and Toss imports. It does not own
+module direction or cycles, production reachability, unused dependencies, or
+CSS policy; those remain with dependency-cruiser, Knip, and Stylelint/contracts.
+The semantic verifier evaluates the resolved flat configuration through
+ESLint's public API. Unused disable directives and unused inline configuration
+entries are errors; active suppressions remain visible and require a narrow,
+reviewable reason.
+
 Knip reaches Vite and Vitest configuration through the canonical explicit
 `entry`/`project` globs. Its framework plugins are disabled so the pinned Knip
 line does not execute TypeScript config; resolved Vite/Vitest semantics belong
@@ -179,7 +197,7 @@ work without converting those inventories into permanent suppressions.
 U3 intentionally pinned dependency-cruiser 17.4.3, Knip 2.43.0, Stylelint
 16.23.1, stylelint-config-recommended 17.0.0, and
 stylelint-config-standard 39.0.0. U23 has moved the runtime and compiler floor
-to Node `^22.12 || ^24` and TypeScript 5.9.3. The remaining U23 static-tool
-work replaces CRA ESLint ownership, revalidates dependency classification, and
-preserves every graph/reachability/style fixture before changing an adapter or
-version.
+to Node `^22.12 || ^24`, TypeScript 5.9.3, and ESLint 9.39.5 with native flat
+configuration. The remaining U23 static-tool work revalidates dependency
+classification and formatting ownership while preserving every
+graph/reachability/style fixture.

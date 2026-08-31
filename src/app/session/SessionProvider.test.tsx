@@ -11,7 +11,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import React, { type ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect } from "react";
 import { requireFixtureItem } from "../../test/assertions";
 import type {
   SessionAuthPort,
@@ -273,7 +273,11 @@ const createWrapper = ({
     ...(queryClientFactory ? { queryClientFactory } : {}),
   };
 
-  return ({ children }: { readonly children: ReactNode }) => {
+  return function SessionWrapper({
+    children,
+  }: {
+    readonly children: ReactNode;
+  }) {
     return (
       <SessionProvider {...props}>{children}</SessionProvider>
     );

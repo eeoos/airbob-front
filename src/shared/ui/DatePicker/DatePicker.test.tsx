@@ -131,7 +131,7 @@ describe("DatePicker", () => {
 
     expect(screen.getByRole("grid", { name: "2026년 6월" })).toBeVisible();
     expect(screen.getByRole("grid", { name: "2026년 7월" })).toBeVisible();
-    expect(screen.queryByRole("grid", { name: "2026년 5월" })).toBeNull();
+    expect(screen.queryByRole("grid", { name: "2026년 5월" })).not.toBeInTheDocument();
     expect(previousMonthButton).toHaveFocus();
 
     const tabStops = screen
@@ -252,7 +252,7 @@ describe("DatePicker", () => {
     );
 
     expect(tabStops).toHaveLength(1);
-    expect(tabStops[0]).not.toBeDisabled();
+    expect(tabStops[0]).toBeEnabled();
     expect(tabStops[0]).toHaveAccessibleName("2026년 7월 11일 토요일");
   });
 

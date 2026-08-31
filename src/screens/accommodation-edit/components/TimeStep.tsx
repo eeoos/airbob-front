@@ -63,9 +63,9 @@ export const TimeStep: React.FC<TimeStepProps> = ({
 
       <div className={styles.formRow}>
         <div className={formStyles.formGroup}>
-          <label className={formStyles.label}>
+          <span className={formStyles.label}>
             체크인 시간 <span className={formStyles.required}>*</span>
-          </label>
+          </span>
           <div className={styles.timeInputContainer}>
             <button
               ref={checkInTriggerRef}
@@ -98,9 +98,9 @@ export const TimeStep: React.FC<TimeStepProps> = ({
         </div>
 
         <div className={formStyles.formGroup}>
-          <label className={formStyles.label}>
+          <span className={formStyles.label}>
             체크아웃 시간 <span className={formStyles.required}>*</span>
-          </label>
+          </span>
           <div className={styles.timeInputContainer}>
             <button
               ref={checkOutTriggerRef}

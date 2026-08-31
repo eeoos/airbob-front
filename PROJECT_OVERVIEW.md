@@ -22,7 +22,9 @@ Vite가 소유하고 결과물 경로는 기존
 배포 계약과 같은 `build/`입니다. 단위·통합 테스트는 같은 모듈 그래프를 사용하는
 Vitest 4와 jsdom이 소유하며 CRA/Jest 실행 의존성은 제거되었습니다. TypeScript 5.9는
 브라우저 앱, Vitest, Vite/Vitest 설정, Playwright를 별도 프로젝트로 검사하고 앱에는
-Node 전역 타입을 노출하지 않습니다. Vercel은 실제 정적 파일을 우선 제공한 뒤 SPA deep-link를 `index.html`로
+Node 전역 타입을 노출하지 않습니다. ESLint 9 flat config도 브라우저, Vitest,
+Playwright, Node 도구 환경을 분리하고 CRA/Jest preset 없이 로컬 코드·접근성·플랫폼
+capability 경계를 검사합니다. Vercel은 실제 정적 파일을 우선 제공한 뒤 SPA deep-link를 `index.html`로
 보내며, OCI/Toss sandbox가 필요한 live 검증은 backend 준비 전까지 완료로 간주하지
 않습니다.
 

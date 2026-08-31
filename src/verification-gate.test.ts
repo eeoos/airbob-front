@@ -6,6 +6,7 @@ import { spawnSync } from "child_process";
 const projectRoot = process.cwd();
 const packageJsonPath = path.join(projectRoot, "package.json");
 const vercelConfigPath = path.join(projectRoot, "vercel.json");
+const eslintConfigPath = path.join(projectRoot, "eslint.config.mjs");
 const vitestConfigPath = path.join(projectRoot, "vitest.config.ts");
 const testSetupPath = path.join(projectRoot, "src/test/setup.ts");
 const frontendWorkflowPath = path.join(
@@ -343,8 +344,6 @@ describe("frontend verification gate", () => {
 
   test("package scripts and lint ownership exceptions match the active architecture", () => {
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
-    const eslintConfig = JSON.stringify(packageJson.eslintConfig);
-
     expect(packageJson.packageManager).toBe("npm@10.7.0");
     expect(packageJson.engines?.node).toBe("^22.12.0 || ^24.0.0");
     expect(packageJson.scripts.start).toBe("vite");
@@ -363,9 +362,6 @@ describe("frontend verification gate", () => {
     );
     expect(packageJson.scripts["test:e2e:artifact-policy"]).toBe(
       "node tests/e2e/support/scan-artifacts.mjs --self-test",
-    );
-    expect(packageJson.scripts["lint:e2e"]).toBe(
-      "eslint vite.config.ts vitest.config.ts playwright.config.ts tests/e2e --ext .mjs,.ts --max-warnings=0",
     );
     expect(packageJson.scripts["test:architecture-rules"]).toContain(
       "verify-dependency-rules.mjs",
@@ -387,6 +383,9 @@ describe("frontend verification gate", () => {
     );
     expect(packageJson.scripts["test:architecture-rules"]).toContain(
       "verify-typescript-config.mjs",
+    );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-eslint-config.mjs",
     );
     expect(packageJson.scripts["test:architecture-rules"]).toContain(
       "verify-toss-runtime.mjs",
@@ -424,8 +423,6 @@ describe("frontend verification gate", () => {
       "@csstools/postcss-global-data": "4.0.0",
       "@vitejs/plugin-react": "5.2.0",
       "@vitest/coverage-v8": "4.1.11",
-      eslint: "8.57.1",
-      "eslint-config-react-app": "7.0.1",
       jsdom: "28.1.0",
       "postcss-custom-media": "12.0.1",
       vite: "8.2.2",
@@ -444,26 +441,18 @@ describe("frontend verification gate", () => {
       expect(packageJson.dependencies[dependency]).toBeUndefined();
       expect(packageJson.devDependencies[dependency]).toBeDefined();
     });
-    expect(packageJson.eslintConfig.extends).toEqual([
-      "react-app",
-      "react-app/jest",
-    ]);
+    expect(packageJson.eslintConfig).toBeUndefined();
+    expect(fs.existsSync(eslintConfigPath)).toBe(true);
     expect(fs.existsSync(vitestConfigPath)).toBe(true);
     expect(fs.existsSync(testSetupPath)).toBe(true);
     expect(fs.readFileSync(testSetupPath, "utf8")).toContain(
       'import "@testing-library/jest-dom/vitest";',
-    );
-    expect(packageJson.scripts.lint).toBe(
-      "eslint src --ext .js,.jsx,.mjs,.ts,.tsx",
     );
     expect(packageJson.scripts.build).toBe(
       "node scripts/architecture/validate-public-build-env.mjs && vite build && node scripts/architecture/verify-toss-production-build.mjs",
     );
     expect(packageJson.dependencies["@tosspayments/tosspayments-sdk"]).toBe(
       "2.8.1",
-    );
-    expect(packageJson.scripts["lint:strict"]).toBe(
-      "eslint src --ext .js,.jsx,.mjs,.ts,.tsx --max-warnings=0",
     );
     expect(packageJson.scripts["verify:structure"]).toBe(
       "npm run typecheck && npm run typecheck:tooling && npm run verify:architecture && npm run test:public-config-build && npm run test:ci:no-cache && npm run lint:strict",
@@ -493,8 +482,6 @@ describe("frontend verification gate", () => {
     expect(packageJson.scripts.verify).not.toContain("lint:strict");
     expect(packageJson.proxy).toBeUndefined();
     expect(packageJson.browserslist).toBeUndefined();
-    expect(eslintConfig).not.toContain("src/api/client.ts");
-    expect(eslintConfig).not.toContain("src/utils/error.ts");
   });
 
   test("frontend CI runs static and deterministic browser gates on Node 22", () => {

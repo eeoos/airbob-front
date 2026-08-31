@@ -15,7 +15,7 @@ export interface SignupFormData extends SignupCommand {
   readonly confirmPassword: string;
 }
 
-export interface AuthFormValues extends SignupFormData {}
+export type AuthFormValues = SignupFormData;
 
 export type AuthFormField = keyof AuthFormValues;
 

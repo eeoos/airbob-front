@@ -11,6 +11,7 @@
     "tests/e2e/specs/**/*.spec.ts",
     "tests/e2e/support/**/*.mjs",
     "tests/architecture/**/*.mjs",
+    "eslint.config.mjs",
     ".dependency-cruiser.cjs",
     "stylelint.config.mjs"
   ],
@@ -25,6 +26,7 @@
     "playwright.config.ts",
     "scripts/**/*.{cjs,mjs}",
     "tests/**/*.{ts,mjs}",
+    "eslint.config.mjs",
     ".dependency-cruiser.cjs",
     "stylelint.config.mjs"
   ],

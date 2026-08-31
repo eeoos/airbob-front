@@ -18,15 +18,15 @@ describe("useBodyScrollLock", () => {
       { initialProps: { isLocked: true } }
     );
 
-    expect(document.body.style.overflow).toBe("hidden");
+    expect(document.body).toHaveStyle({overflow:"hidden"});
 
     rerender({ isLocked: false });
 
-    expect(document.body.style.overflow).toBe("auto");
+    expect(document.body).toHaveStyle({overflow:"auto"});
 
     unmount();
 
-    expect(document.body.style.overflow).toBe("auto");
+    expect(document.body).toHaveStyle({overflow:"auto"});
   });
 
   it("keeps body locked until the last nested lock is released", () => {
@@ -43,14 +43,14 @@ describe("useBodyScrollLock", () => {
       }
     );
 
-    expect(document.body.style.overflow).toBe("hidden");
+    expect(document.body).toHaveStyle({overflow:"hidden"});
 
     unmountFirst();
 
-    expect(document.body.style.overflow).toBe("hidden");
+    expect(document.body).toHaveStyle({overflow:"hidden"});
 
     unmountSecond();
 
-    expect(document.body.style.overflow).toBe("");
+    expect(document.body).toHaveStyle({overflow:""});
   });
 });

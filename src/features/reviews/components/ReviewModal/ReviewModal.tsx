@@ -133,7 +133,6 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
       <button
         ref={closeButtonRef}
         aria-label="후기 모달 닫기"
-        autoFocus
         className={styles.closeButton}
         type="button"
         onClick={onClose}
@@ -171,9 +170,11 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
           {isSortDropdownOpen && (
             <div
               ref={sortDropdownRef}
+              aria-label="후기 정렬 옵션"
               className={styles.sortDropdown}
               id="review-sort-options"
-              onKeyDown={sortOverlay.onKeyDown}
+              onKeyDownCapture={sortOverlay.onKeyDown}
+              role="group"
             >
               <button
                 className={

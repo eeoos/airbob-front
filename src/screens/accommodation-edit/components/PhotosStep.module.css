@@ -270,6 +270,7 @@
 }
 
 .addImageSlot {
+  padding: 0;
   position: relative;
   width: 100%;
   aspect-ratio: 1;

@@ -79,7 +79,6 @@ export function AccommodationActionModal({
       <button
         ref={closeButtonRef}
         aria-label="숙소 관리 닫기"
-        autoFocus
         className={styles.closeButton}
         type="button"
         onClick={onClose}

@@ -10,7 +10,7 @@ interface UseSearchBarShellInteractionsOptions {
   datePickerRef: SearchBarDomRef<HTMLDivElement>;
   guestPickerRef: SearchBarDomRef<HTMLDivElement>;
   datePickerElementRef: SearchBarDomRef<HTMLDivElement>;
-  destinationAreaRef: SearchBarDomRef<HTMLDivElement>;
+  destinationAreaRef: SearchBarDomRef;
   suggestionsRef: SearchBarDomRef<HTMLDivElement>;
   searchButtonClassName: string;
   isExpanded: boolean;

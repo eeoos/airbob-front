@@ -32,11 +32,14 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   const datePickerRef = useRef<HTMLDivElement>(null);
   const guestPickerRef = useRef<HTMLDivElement>(null);
   const destinationInputRef = useRef<HTMLInputElement>(null);
-  const destinationAreaRef = useRef<HTMLDivElement>(null);
+  const destinationAreaRef = useRef<HTMLElement>(null);
   const datePickerElementRef = useRef<HTMLDivElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const dateTriggerRef = useRef<HTMLButtonElement>(null);
   const guestTriggerRef = useRef<HTMLButtonElement>(null);
+  const setDestinationAreaRef = useCallback((element: HTMLElement | null) => {
+    destinationAreaRef.current = element;
+  }, []);
 
   const { destination, dates, guests, popover, actions, status } =
     useSearchBarState({
@@ -164,15 +167,11 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       aria-label="숙소 검색"
       className={`${styles.searchBar} ${isExpanded ? styles.expanded : ""}`}
       data-search-shell={isExpanded ? "expanded" : "compact"}
-      onClick={handleSearchBarClick}
+      onClickCapture={handleSearchBarClick}
       role="search"
     >
-      <div
-        ref={destinationAreaRef}
-        className={styles.searchItem}
-        onClick={handleDestinationClick}
-      >
-        {isExpanded ? (
+      {isExpanded ? (
+        <div ref={setDestinationAreaRef} className={styles.searchItem}>
           <SearchDestinationField
             inputRef={destinationInputRef}
             isActive={showSuggestions}
@@ -202,14 +201,21 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             suggestionsRef={suggestionsRef}
             value={inputText}
           />
-        ) : (
+        </div>
+      ) : (
+        <button
+          ref={setDestinationAreaRef}
+          className={styles.searchItem}
+          onClick={handleDestinationClick}
+          type="button"
+        >
           <div className={styles.compactValue}>
             {isMapDragMode
               ? "지도에 표시된 지역의 숙소"
               : inputText || "어디든지"}
           </div>
-        )}
-      </div>
+        </button>
+      )}
 
       <div className={styles.divider} />
 
