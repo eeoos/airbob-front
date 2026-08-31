@@ -61,6 +61,8 @@ const guestReservation = (
   audience: "guest",
   checkInDate,
   checkOutDate: "2027-08-05",
+  timeZoneId: "Asia/Seoul",
+  status: "CONFIRMED",
   createdAt: "2027-07-01T00:00:00Z",
   reservationId: 101,
   reservationUid,
@@ -83,6 +85,7 @@ const hostReservation = ({
   audience: "host",
   checkInDate,
   checkOutDate: "2027-09-15",
+  timeZoneId: "Asia/Seoul",
   createdAt: "2027-07-01T00:00:00Z",
   currency: "KRW",
   guest: {

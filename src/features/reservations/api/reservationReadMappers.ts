@@ -9,6 +9,7 @@ import type {
   ReservationMember,
   ReservationPageInfo,
   ReservationPayment,
+  ReservationStatus,
 } from "../model/reservationRead";
 import type {
   GuestReservationDetailWire,
@@ -23,6 +24,93 @@ import type {
   ReservationPageInfoWire,
   ReservationPaymentWire,
 } from "./reservationReadContracts";
+
+const RESERVATION_STATUSES = new Set<ReservationStatus>([
+  "PAYMENT_PENDING",
+  "PAYMENT_PROCESSING",
+  "CONFIRMED",
+  "CANCELLATION_PENDING",
+  "CANCELLED",
+  "CANCELLATION_FAILED",
+  "EXPIRED",
+]);
+
+const UTC_INSTANT_PATTERN =
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,9})?Z$/;
+
+const invalidField = (field: string): never => {
+  throw new TypeError(`Reservation read ${field} is invalid.`);
+};
+
+const toReservationStatus = (value: unknown): ReservationStatus => {
+  if (
+    typeof value !== "string" ||
+    !RESERVATION_STATUSES.has(value as ReservationStatus)
+  ) {
+    return invalidField("status");
+  }
+
+  return value as ReservationStatus;
+};
+
+const toTimeZoneId = (value: unknown): string => {
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    value.trim() !== value
+  ) {
+    return invalidField("timeZoneId");
+  }
+
+  return value;
+};
+
+const toBoolean = (value: unknown, field: string): boolean => {
+  if (typeof value !== "boolean") return invalidField(field);
+  return value;
+};
+
+const isValidCalendarParts = (
+  year: number,
+  month: number,
+  day: number,
+): boolean => {
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+};
+
+const toInstant = (value: unknown, field: string): string => {
+  if (typeof value !== "string") return invalidField(field);
+
+  const match = UTC_INSTANT_PATTERN.exec(value);
+  if (!match) return invalidField(field);
+
+  const [, yearText, monthText, dayText, hourText, minuteText, secondText] =
+    match;
+  if (
+    !isValidCalendarParts(
+      Number(yearText),
+      Number(monthText),
+      Number(dayText),
+    ) ||
+    Number(hourText) > 23 ||
+    Number(minuteText) > 59 ||
+    Number(secondText) > 59
+  ) {
+    return invalidField(field);
+  }
+
+  return value;
+};
+
+const toNullableInstant = (value: unknown, field: string): string | null => {
+  if (value === null) return null;
+  return toInstant(value, field);
+};
 
 const toAccommodation = (
   wire: ReservationAccommodationWire,
@@ -55,7 +143,6 @@ const toPayment = (
     ? null
     : {
         orderId: wire.order_id,
-        paymentKey: wire.payment_key ?? null,
         method: wire.method ?? null,
         totalAmount: wire.total_amount,
         balanceAmount: wire.balance_amount ?? null,
@@ -91,6 +178,8 @@ const toGuestListItem = (
   reservationUid: wire.reservation_uid,
   checkInDate: wire.check_in_date,
   checkOutDate: wire.check_out_date,
+  timeZoneId: toTimeZoneId(wire.time_zone_id),
+  status: toReservationStatus(wire.status),
   createdAt: wire.created_at,
   accommodation: toAccommodation(wire.accommodation),
 });
@@ -106,11 +195,51 @@ const toHostListItem = (
   guestCount: wire.guest_count,
   checkInDate: wire.check_in_date,
   checkOutDate: wire.check_out_date,
-  status: wire.status,
+  timeZoneId: toTimeZoneId(wire.time_zone_id),
+  status: toReservationStatus(wire.status),
   createdAt: wire.created_at,
   guest: toMember(wire.guest),
   accommodation: toAccommodation(wire.accommodation),
 });
+
+const assertGuestRecoveryInvariant = ({
+  holdExpiresAt,
+  paymentAllowed,
+  serverTime,
+  status,
+}: Pick<
+  GuestReservationDetail,
+  "holdExpiresAt" | "paymentAllowed" | "serverTime" | "status"
+>): void => {
+  const holdTimestamp =
+    holdExpiresAt === null ? null : Date.parse(holdExpiresAt);
+  const serverTimestamp = Date.parse(serverTime);
+
+  if (status === "PAYMENT_PENDING") {
+    if (
+      !paymentAllowed ||
+      holdTimestamp === null ||
+      holdTimestamp <= serverTimestamp
+    ) {
+      invalidField("payment recovery state");
+    }
+    return;
+  }
+
+  if (status === "EXPIRED") {
+    if (
+      paymentAllowed ||
+      (holdTimestamp !== null && holdTimestamp > serverTimestamp)
+    ) {
+      invalidField("payment recovery state");
+    }
+    return;
+  }
+
+  if (paymentAllowed || holdExpiresAt !== null) {
+    invalidField("payment recovery state");
+  }
+};
 
 export const toGuestReservationPage = (
   wire: GuestReservationPageWire,
@@ -130,27 +259,36 @@ export const toHostReservationPage = (
 
 export const toGuestReservationDetail = (
   wire: GuestReservationDetailWire,
-): GuestReservationDetail => ({
-  audience: "guest",
-  reservationUid: wire.reservation_uid,
-  reservationCode: wire.reservation_code,
-  status: wire.status,
-  createdAt: wire.created_at,
-  guestCount: wire.guest_count,
-  checkInDateTime: wire.check_in_date_time,
-  checkOutDateTime: wire.check_out_date_time,
-  checkInTime: wire.check_in_time,
-  checkOutTime: wire.check_out_time,
-  canWriteReview: wire.can_write_review,
-  accommodation: toAccommodation(wire.accommodation),
-  address: toAddress(wire.address),
-  coordinate: {
-    latitude: wire.coordinate.latitude,
-    longitude: wire.coordinate.longitude,
-  },
-  host: toMember(wire.host),
-  payment: toPayment(wire.payment),
-});
+): GuestReservationDetail => {
+  const detail: GuestReservationDetail = {
+    audience: "guest",
+    reservationUid: wire.reservation_uid,
+    reservationCode: wire.reservation_code,
+    status: toReservationStatus(wire.status),
+    paymentAllowed: toBoolean(wire.payment_allowed, "paymentAllowed"),
+    holdExpiresAt: toNullableInstant(wire.hold_expires_at, "holdExpiresAt"),
+    serverTime: toInstant(wire.server_time, "serverTime"),
+    createdAt: wire.created_at,
+    guestCount: wire.guest_count,
+    checkInDateTime: wire.check_in_date_time,
+    checkOutDateTime: wire.check_out_date_time,
+    timeZoneId: toTimeZoneId(wire.time_zone_id),
+    checkInTime: wire.check_in_time,
+    checkOutTime: wire.check_out_time,
+    canWriteReview: wire.can_write_review,
+    accommodation: toAccommodation(wire.accommodation),
+    address: toAddress(wire.address),
+    coordinate: {
+      latitude: wire.coordinate.latitude,
+      longitude: wire.coordinate.longitude,
+    },
+    host: toMember(wire.host),
+    payment: toPayment(wire.payment),
+  };
+
+  assertGuestRecoveryInvariant(detail);
+  return detail;
+};
 
 export const toHostReservationDetail = (
   wire: HostReservationDetailWire,
@@ -158,11 +296,12 @@ export const toHostReservationDetail = (
   audience: "host",
   reservationUid: wire.reservation_uid,
   reservationCode: wire.reservation_code,
-  status: wire.status,
+  status: toReservationStatus(wire.status),
   createdAt: wire.created_at,
   guestCount: wire.guest_count,
   checkInDateTime: wire.check_in_date_time,
   checkOutDateTime: wire.check_out_date_time,
+  timeZoneId: toTimeZoneId(wire.time_zone_id),
   accommodation: toAccommodation(wire.accommodation),
   address: toAddress(wire.address),
   guest: toMember(wire.guest),

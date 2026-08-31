@@ -176,35 +176,50 @@ const paymentWire = (
 const reservationDetail = (
   reservationUid: string,
   payment: PaymentWire | null = null,
-) => ({
-  reservation_uid: reservationUid,
-  reservation_code: "SYNTHETIC-RESERVATION",
-  status: "PAYMENT_COMPLETED",
-  created_at: "2026-07-01T00:00:00Z",
-  guest_count: 3,
-  check_in_date_time: "2026-07-10T15:00:00",
-  check_out_date_time: "2026-07-12T11:00:00",
-  check_in_time: "15:00:00",
-  check_out_time: "11:00:00",
-  can_write_review: false,
-  accommodation: {
-    id: accommodation.id,
-    name: accommodation.name,
-    thumbnail_url: null,
-  },
-  address: {
-    country: "KR",
-    state: null,
-    city: "Seoul",
-    district: "Mapo-gu",
-    street: "Synthetic-ro 1",
-    detail: null,
-    postal_code: "00000",
-  },
-  coordinate: accommodation.coordinate,
-  host: accommodation.host,
-  payment,
-});
+) => {
+  const status =
+    payment === null
+      ? "PAYMENT_PENDING"
+      : payment.status === "DONE"
+        ? "CONFIRMED"
+        : "PAYMENT_PROCESSING";
+  const isPaymentPending = status === "PAYMENT_PENDING";
+
+  return {
+    reservation_uid: reservationUid,
+    reservation_code: "SYNTHETIC-RESERVATION",
+    status,
+    payment_allowed: isPaymentPending,
+    hold_expires_at: isPaymentPending ? "2026-07-01T00:15:00Z" : null,
+    server_time: "2026-07-01T00:00:00Z",
+    created_at: "2026-07-01T00:00:00Z",
+    guest_count: 3,
+    check_in_date_time: "2026-07-10T15:00:00",
+    check_out_date_time: "2026-07-12T11:00:00",
+    time_zone_id: "Asia/Seoul",
+    check_in_time: "15:00:00",
+    check_out_time: "11:00:00",
+    request_message: null,
+    can_write_review: false,
+    accommodation: {
+      id: accommodation.id,
+      name: accommodation.name,
+      thumbnail_url: null,
+    },
+    address: {
+      country: "KR",
+      state: null,
+      city: "Seoul",
+      district: "Mapo-gu",
+      street: "Synthetic-ro 1",
+      detail: null,
+      postal_code: "00000",
+    },
+    coordinate: accommodation.coordinate,
+    host: accommodation.host,
+    payment,
+  };
+};
 
 const seedBookingPaymentDocuments = async (
   page: Page,

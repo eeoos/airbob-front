@@ -46,7 +46,7 @@ describe("reservation detail display", () => {
         checkOutDateTime: "2026-07-12T11:00:00",
         checkOutTime: "11:00",
         now,
-        status: "COMPLETED",
+        status: "CANCELLATION_PENDING",
       }),
     ).toBe(false);
     expect(

@@ -3,11 +3,11 @@ export type ReservationFilterType = "UPCOMING" | "PAST" | "CANCELLED";
 
 export type ReservationStatus =
   | "PAYMENT_PENDING"
-  | "PAYMENT_COMPLETED"
+  | "PAYMENT_PROCESSING"
   | "CONFIRMED"
+  | "CANCELLATION_PENDING"
   | "CANCELLED"
   | "CANCELLATION_FAILED"
-  | "COMPLETED"
   | "EXPIRED";
 
 export type ReservationPaymentStatus =
@@ -62,7 +62,6 @@ interface ReservationVirtualAccount {
 
 export interface ReservationPayment {
   readonly orderId: string;
-  readonly paymentKey: string | null;
   readonly method: string | null;
   readonly totalAmount: number;
   readonly balanceAmount: number | null;
@@ -85,6 +84,8 @@ export interface GuestReservationListItem {
   readonly reservationUid: string;
   readonly checkInDate: string;
   readonly checkOutDate: string;
+  readonly timeZoneId: string;
+  readonly status: ReservationStatus;
   readonly createdAt: string;
   readonly accommodation: ReservationAccommodation;
 }
@@ -98,6 +99,7 @@ export interface HostReservationListItem {
   readonly guestCount: number;
   readonly checkInDate: string;
   readonly checkOutDate: string;
+  readonly timeZoneId: string;
   readonly status: ReservationStatus;
   readonly createdAt: string;
   readonly guest: ReservationMember;
@@ -126,12 +128,16 @@ interface ReservationDetailBase<TAudience extends ReservationReadAudience> {
   readonly guestCount: number;
   readonly checkInDateTime: string;
   readonly checkOutDateTime: string;
+  readonly timeZoneId: string;
   readonly accommodation: ReservationAccommodation;
   readonly address: ReservationAddress;
   readonly payment: ReservationPayment | null;
 }
 
 export interface GuestReservationDetail extends ReservationDetailBase<"guest"> {
+  readonly paymentAllowed: boolean;
+  readonly holdExpiresAt: string | null;
+  readonly serverTime: string;
   readonly checkInTime: string;
   readonly checkOutTime: string;
   readonly canWriteReview: boolean;

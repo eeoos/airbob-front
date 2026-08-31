@@ -33,7 +33,6 @@ const hostReservationDetailFixture = (
   },
   payment: {
     orderId: "order-1",
-    paymentKey: null,
     method: null,
     totalAmount: 240000,
     balanceAmount: null,
@@ -43,6 +42,7 @@ const hostReservationDetailFixture = (
     cancels: [],
     virtualAccount: null,
   },
+  timeZoneId: "Asia/Seoul",
   ...overrides,
 });
 
@@ -111,5 +111,16 @@ describe("host reservation detail view model", () => {
     );
 
     expect(viewModel.payment?.nights).toBe(1);
+  });
+
+  it("renders cancellation processing as a current backend status", () => {
+    expect(
+      toHostReservationDetailViewModel(
+        hostReservationDetailFixture({ status: "CANCELLATION_PENDING" }),
+      ),
+    ).toMatchObject({
+      statusLabel: "취소 처리 중",
+      statusTone: "warning",
+    });
   });
 });

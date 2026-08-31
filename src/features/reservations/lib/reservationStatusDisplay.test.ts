@@ -7,11 +7,11 @@ import {
 
 const statusCases: Array<[ReservationStatus, string, ReservationStatusTone]> = [
   ["PAYMENT_PENDING", "결제 대기", "warning"],
-  ["PAYMENT_COMPLETED", "결제 완료", "success"],
+  ["PAYMENT_PROCESSING", "결제 처리 중", "warning"],
   ["CONFIRMED", "확정됨", "success"],
+  ["CANCELLATION_PENDING", "취소 처리 중", "warning"],
   ["CANCELLED", "취소됨", "danger"],
   ["CANCELLATION_FAILED", "취소 실패", "danger"],
-  ["COMPLETED", "이용 완료", "neutral"],
   ["EXPIRED", "만료됨", "neutral"],
 ];
 
