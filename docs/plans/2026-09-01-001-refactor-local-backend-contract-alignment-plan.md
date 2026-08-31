@@ -144,7 +144,7 @@ OCI, Vercel, AWS와 실제 Airbnb visual restyling은 이번 계획의 완료 �
 - KTD15. **Use PageContainer for width and gutter:** Shell은 route surface, header policy와 main landmark를 유지하고 shared `PageContainer` recipe가 screen별 width/gutter variant를 소유한다.
 - KTD16. **Keep domain catalog above subfeatures without violating the DAG:** Parent accommodation feature가 semantic catalog를 export하고 screen/controller composition이 detail/editor에 전달한다. Nested feature끼리 import하지 않는다.
 - KTD17. **Prepare design boundaries without restyling:** Editor commands, state/image recipes, layout, responsive/runtime tokens와 stable view sections까지만 이 계획에 포함한다.
-- KTD18. **Stage reachable capabilities behind the durable journal, then make only the owner switch atomic:** Strict-production Knip은 test-only production adapter/export를 허용하지 않는다. Narrow HTTP idempotency primitive와 active reservation read parity는 독립된 작은 green commit으로 land할 수 있다. 그러나 quote/checkout adapter의 첫 실제 소비자는 checkout 전 exact body/key 영속화를 요구하므로 subject-owned v2 journal과 retired-key purge gate가 먼저 production-reachable해야 한다. Journal 뒤에도 paid checkout activation은 attempt/callback/Accepted/polling continuation이 모두 준비될 때까지 금지한다. Quote/checkout adapter와 실제 workflow consumer는 그 continuation과 함께 최종 owner switch에 들어가며, 별도 제품 결정 없이 quote/0원-only 부분 전환으로 paid booking을 닫지 않는다. Callback hardening도 current production graph에서 실제 소비되는 단위만 land하고 전체 transaction matrix가 green이 되기 전 merge/deploy하지 않는다.
+- KTD18. **Stage reachable capabilities behind the durable journal, then make only the owner switch atomic:** Strict-production Knip은 test-only production adapter/export를 허용하지 않는다. Narrow HTTP idempotency primitive와 active reservation read parity는 독립된 작은 green commit으로 land할 수 있다. Quote/checkout adapter의 첫 실제 소비자는 checkout 전 exact body/key 영속화를 요구하므로 subject-owned v2 journal과 retired-key purge gate가 먼저 production-reachable해야 한다. Journal staging은 current v1 preflight가 unresolved v2 state를 발견하면 direct-create를 막는 downgrade fence와 identity-boundary verified cleanup으로 실제 production 가치를 가진다. Journal 뒤에도 paid checkout activation은 attempt/callback/Accepted/polling continuation이 모두 준비될 때까지 금지한다. Quote/checkout adapter와 실제 workflow consumer는 그 continuation과 함께 최종 owner switch에 들어가며, 별도 제품 결정 없이 quote/0원-only 부분 전환으로 paid booking을 닫지 않는다. Callback hardening도 current production graph에서 실제로 validate/inspect/clear되는 단위만 land하고 전체 transaction matrix가 green이 되기 전 merge/deploy하지 않는다.
 - KTD19. **Make transaction identity immutable and phases monotonic:** One subject-owned document는 `flowId + subject + epoch + expected prior phase`가 일치할 때만 full-record replacement를 허용한다. Accommodation/date/guest/quote/key/reservation/amount/currency/attempt/operation tuple은 이후 단계에서 변경할 수 없고 terminal/purge 뒤 stale completion이 record를 되살릴 수 없다.
 - KTD20. **Durably observe server terminal before UI publication:** Complimentary Ready와 payment `SUCCEEDED`는 먼저 terminal marker로 기록하고 cache refresh/navigation을 수행한다. Publication이나 cleanup 실패는 server terminal을 되돌리거나 mutation replay를 유발하지 않는다.
 - KTD21. **Do not invent frontend CSRF:** Cookie-session mutation은 backend의 documented CSRF/Origin policy를 따른다. Policy 부재나 arbitrary Origin 허용은 backend 변경 요청이 아니라 Vercel/OCI integration blocker로 남긴다.
@@ -401,24 +401,41 @@ U2와 production-reachable HTTP/read-side capability commit은 U1 뒤 진행한�
 
 #### Checkpoint B — Subject-owned booking journal v2
 
-- Checkpoint outcome: Every replay-sensitive booking command has durable same-tab recovery data before it is sent, while callback credentials remain short-lived.
+- Checkpoint outcome: Verified retired-state cleanup, a downgrade-safe v2 journal and separate callback/receipt records become production-reachable before any v2 writer activation. Every later replay-sensitive booking command can then require durable same-tab recovery data before it is sent.
 - Dependencies: Checkpoint D is green. Checkpoint A1 is already production-reachable; A2 has not been introduced.
 - Requirements: R12–R13, R20, R25, R28, R30–R34.
+- Commit sequence:
+  - **B0 — verified retired cleanup:** add a dedicated retired-state owner, make current v1 terminal cleanup verify removal by re-enumeration, and split identity cleanup so it owns v1, v2 and pre-U10 state without letting a v1 terminal route erase unresolved v2 recovery.
+  - **B1 — subject-owned journal fence:** add exact v2 journal types/validation/repository, wire a narrow `inspectNewerRecovery` into the existing synchronous v1 reservation preflight, and document the staged/no-writer state.
+  - **B2 — credential and receipt records:** add exact callback credential and operation receipt validation/storage plus identity cleanup/inspection for all v2 slots. Keep the active v1 callback schema and 512-character v1 validator unchanged until the final owner switch; v2 credentials enforce 200.
 - Files:
-  - Rework `src/workflows/booking-payment/checkout/types.ts`, `repositories.ts`, `validation.ts` and their tests.
-  - Modify `src/platform/storage/bookingPaymentStorageDriver.ts` and booking cleanup/session tests.
-  - Add explicit journal, callback credential and operation receipt contracts under `src/workflows/booking-payment`.
-  - Modify `docs/architecture/frontend-browser-data-inventory.md`.
-- Approach: Create one full-record, forward-only transaction document plus a separate callback credential record. Quote is safe to record after response; checkout-prepared, attempt-requesting, release-requesting and confirm-submitting are persisted before replay-sensitive mutation. Every replacement checks flow, subject, epoch and expected prior phase. V1 exact keys are purged and verified before v2 activation; unrelated prefixes remain untouched.
+  - Add `src/workflows/booking-payment/journal/retiredState.ts` and focused tests; delegate existing cleanup in `src/workflows/booking-payment/checkout/repositories.ts` to it.
+  - Split terminal versus identity cleanup through `src/app/providers/clearIdentityOwnedFrontendState.ts` and its tests.
+  - Add `journal/types.ts`, `validation.ts`, `repository.ts` and focused tests under `src/workflows/booking-payment`.
+  - Connect only the v2 recovery inspector to the current `ReservationCheckoutHandoffPort.preflight`; clean storage preserves the existing v1 path.
+  - Modify auth/session and booking browser tests plus `docs/architecture/frontend-browser-data-inventory.md`.
+  - Do not change `src/platform/storage/bookingPaymentStorageDriver.ts` or the generic `versionedSessionStorage.ts`; v2 needs workflow-owned read-back, phase and hard-TTL semantics that the generic v1 engine does not provide.
+- Approach:
+  - Purge only `airbob:booking-payment-v1:`, `airbob:reservation-checkout:`, `airbob:reservation-checkout-index:` and `airbob:payment-confirmed:` prefixes. Never read or migrate v1 payloads. Enumerate, remove exact prefix matches, re-enumerate, retry remaining targets once and fail closed if the final enumeration is not clean. Preserve near-collision and unrelated keys.
+  - Store exact-key v2 envelopes for `journal`, `callback-credential` and `operation-receipt`. The repository validates schema, owner, epoch, route/flow, expected phase and immutable identity before full-record replacement; after `setItem`, it immediately `getItem`s and verifies raw equality plus parsed identity before any external command may proceed.
+  - Normal transitions keep epoch immutable. A same-subject reload receives a new recovery lease only after exact route/resource and joined-record validation; another subject purges, and stale callers may not inspect or clear a newer session.
+  - Quote is recorded after its safe response. `checkout-prepared`, `attempt-requesting`, `hold-release-requesting` and `confirm-submitting` are persisted before their replay-sensitive mutations. Exact duplicate transitions do not rewrite or extend TTL; illegal/lower/different-flow/terminal-resurrection transitions fail closed.
+  - V2 callback credential TTL is `min(first capture + 9 minutes, known ready/attempt expiry)` with paymentKey length 1–200. Credential-free operation receipt has a non-sliding 24-hour hard TTL. Receipt write/read-back precedes journal repair and credential purge; purge failure cannot authorize re-confirm.
+  - Production reachability is explicit: current v1 preflight performs zero reservation POSTs when valid/malformed/unreadable v2 state cannot be safely cleared, and identity publication remains blocked until the full owned-state cleanup verifies success.
 - Test scenarios:
+  - Transient/persistent remove failure, success-returning no-op removal, first/final enumeration failure and partial retry are detected; v1 payload `getItem` count remains zero.
+  - Prefix collisions such as `airbob:booking-payment-v10:`, `airbob:booking-payment-v20:`, `airbob:reservation-checkouts:` and unrelated storage survive.
+  - Clean storage preserves the current v1 browser matrix; any unresolved v2 record makes current v1 reservation POST count zero.
   - A prepared/submitting write failure before checkout, attempt, release, Toss or confirm blocks the external command.
-  - Expired, malformed, wrong-subject and wrong-epoch records are purged without publication.
+  - Expired, malformed, wrong-subject and wrong-epoch records are purged only after verified removal and never published.
   - Complimentary records allow amount 0 only with the matching confirmed invariant.
-  - Lower-phase, different-flow, terminal-resurrection and StrictMode duplicate writes are rejected.
+  - Lower-phase, different-flow and terminal-resurrection writes are rejected; StrictMode exact duplicates are no-op and do not slide TTL.
+  - Same-subject reload requires an explicit recovery lease; joined journal/credential/receipt must all move to the current epoch before API/Toss calls.
+  - V2 callback paymentKey accepts 200 characters and rejects 201; credential hard expiry chooses the earliest configured bound.
   - Receipt write/read-back failure preserves the callback credential; credential purge failure after receipt leaves polling authoritative and triggers opportunistic purge without re-confirm.
   - V1+v2 coexistence, prefix collision, partial remove failure and retry never expose or migrate the v1 payload.
   - Account switch removes the old subject record and late completion writes nothing.
-- Verification: Browser-data inventory names purpose, exact fields, sensitivity, hard TTL, owner, legal transitions and terminal cleanup for every record. V2 activation is impossible while retired-key cleanup is incomplete.
+- Verification: Browser-data inventory names purpose, exact fields, sensitivity, hard TTL, owner, legal transitions and terminal cleanup for every record. B0–B2 remain reachable through real downgrade/identity fences, not dead routes or flags. V2 activation is impossible while retired-key cleanup is incomplete, while clean storage leaves current v1 behavior unchanged.
 
 #### Checkpoint C — Quote review, idempotent checkout and the zero-won branch
 
