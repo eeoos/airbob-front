@@ -16,6 +16,7 @@ export interface ApiDataRequest {
   readonly path: string;
   readonly body?: unknown;
   readonly bodyEncoding?: "multipart";
+  readonly idempotencyKey?: string;
   readonly params?: object;
   readonly signal?: AbortSignal | undefined;
   readonly onUploadProgress?: (progress: number) => void;
@@ -35,6 +36,7 @@ const isHtmlContentType = (response: HttpClientResponse): boolean =>
 const toHttpClientRequest = ({
   body,
   bodyEncoding,
+  idempotencyKey,
   method,
   onUploadProgress,
   params,
@@ -45,6 +47,7 @@ const toHttpClientRequest = ({
   path,
   ...(body === undefined ? {} : { body }),
   ...(bodyEncoding === undefined ? {} : { bodyEncoding }),
+  ...(idempotencyKey === undefined ? {} : { idempotencyKey }),
   ...(params === undefined ? {} : { params }),
   ...(signal === undefined ? {} : { signal }),
   ...(onUploadProgress === undefined ? {} : { onUploadProgress }),

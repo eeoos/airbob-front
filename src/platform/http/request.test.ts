@@ -60,6 +60,27 @@ describe("platform API request", () => {
     });
   });
 
+  it("passes only the narrow idempotency capability to the native transport", async () => {
+    const requestSpy = vi
+      .spyOn(httpClient, "request")
+      .mockResolvedValue(successfulListingResponse());
+
+    await requestApiData<ListingWire>({
+      method: "POST",
+      path: "/reservations",
+      body: { quote_uid: "5f54b9c2-5b9e-45a3-a4f4-7a119227c01a" },
+      idempotencyKey: "checkout:flow_01",
+    });
+
+    expect(requestSpy).toHaveBeenCalledWith({
+      method: "POST",
+      path: "/reservations",
+      body: { quote_uid: "5f54b9c2-5b9e-45a3-a4f4-7a119227c01a" },
+      idempotencyKey: "checkout:flow_01",
+    });
+    expect(requestSpy.mock.calls[0]?.[0]).not.toHaveProperty("headers");
+  });
+
   it("omits undefined fields and auth ownership metadata from the wire contract", async () => {
     const requestSpy = vi
       .spyOn(httpClient, "request")
@@ -75,6 +96,7 @@ describe("platform API request", () => {
     expect(requestSpy).toHaveBeenCalledOnce();
     expect(requestSpy.mock.calls[0]?.[0]).not.toHaveProperty("signal");
     expect(requestSpy.mock.calls[0]?.[0]).not.toHaveProperty("authEventPolicy");
+    expect(requestSpy.mock.calls[0]?.[0]).not.toHaveProperty("idempotencyKey");
   });
 
   it("preserves multipart bodies and progress callbacks by identity", async () => {
