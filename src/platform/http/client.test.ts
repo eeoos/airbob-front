@@ -154,6 +154,30 @@ describe("platform HTTP client", () => {
   });
 
   it.each([
+    [8, "key00001"],
+    [128, "a".repeat(128)],
+  ] as const)(
+    "accepts the inclusive %i-character idempotency length boundary",
+    async (_length, key) => {
+      const fetchRequest = vi.fn(
+        async (_input: RequestInfo | URL, _init?: RequestInit) =>
+          fetchResponse(),
+      );
+      const client = createClient(fetchRequest);
+
+      await client.request({
+        method: "POST",
+        path: "/reservations",
+        body: { quote_uid: "5f54b9c2-5b9e-45a3-a4f4-7a119227c01a" },
+        idempotencyKey: key,
+      });
+
+      const headers = new Headers(fetchRequest.mock.calls[0]?.[1]?.headers);
+      expect(headers.get("Idempotency-Key")).toBe(key);
+    },
+  );
+
+  it.each([
     "short_1",
     "a".repeat(129),
     " leading-space",
@@ -344,6 +368,25 @@ describe("platform HTTP client", () => {
       ["Accept", "application/json"],
       ["Idempotency-Key", "upload.test:01"],
     ]);
+  });
+
+  it("rejects a malformed progress-request idempotency key before browser I/O", () => {
+    const fakeRequest = createFakeRequest();
+    const client = createProgressClient(fakeRequest);
+
+    expect(() =>
+      client.request({
+        method: "POST",
+        path: "/accommodations/31/images",
+        body: createMultipartBody(),
+        bodyEncoding: "multipart",
+        idempotencyKey: "bad/key",
+        onUploadProgress: vi.fn(),
+      }),
+    ).toThrow(HttpTransportFailure);
+    expect(fakeRequest.open).not.toHaveBeenCalled();
+    expect(fakeRequest.setRequestHeader).not.toHaveBeenCalled();
+    expect(fakeRequest.send).not.toHaveBeenCalled();
   });
 
   it("propagates caller cancellation through the progress-upload request and releases handlers", async () => {
