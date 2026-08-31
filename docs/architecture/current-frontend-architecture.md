@@ -32,8 +32,9 @@ state; older freeze and plan documents are historical evidence only.
   results use an exact typed one-shot history-state codec.
 - `src/workflows/booking-payment/**` is the sole checkout, payment-request,
   confirmation, and reconciliation writer. Browser checkout/callback records and
-  legacy marker hits are correlation or recovery inputs only; owned reservation
-  detail plus backend confirmation/payment status are the terminal authority.
+  the scrubbed in-memory callback claim are correlation or recovery inputs only;
+  owned reservation detail plus backend confirmation/payment status are the
+  terminal authority.
 - `src/workflows/listing-editor/**` is the sole Accommodation Editor mutation
   writer. It captures one route/session lease, shares one exact active Promise,
   journals committed phases, and locks uncertain mutations instead of blindly
@@ -155,8 +156,8 @@ The retired legacy source roots are absent from src.
 | Profile route view | App `profileCodec` output passed by the app adapter | The URL is the sole durable guest/host tab and filter authority; the controller owns only transient sort, dialog, pending, and dismissed-error state. |
 | Server resources | Session generation QueryClient plus feature-owned TanStack Query options | U5 physically replaces and clears the client at an identity boundary. Wishlist, Search, Accommodation Detail/coupons, Reviews, Profile host listings, and guest/host reservation reads include subject/epoch keys/meta and forward cancellation. Guest/host audience and filter identity are explicit key inputs, and app composition reconciles only the captured scope through owning projections. |
 | Viewer identity | `SessionProvider` explicit reducer state | A non-PII subject and monotonic epoch define identity lifetime. Consumers use `useSession` or narrow injected feature-command ports; no mirrored auth context exists. |
-| Checkout recovery | `airbob:booking-payment-v1:checkout` plus a typed history handle | One static, subject-owned versioned record retains the exact checkout allowlist for 60 minutes; the history entry carries only purpose/version/operation ID and is replace-consumed. Foreign, expired, malformed, wrong-purpose/version, unknown-field, route-mismatched, and operation-mismatched inputs fail closed. A stale or malformed current-format handle redirects without deleting the newer stored checkout or entering legacy migration. Name and email never enter the record. Server-verified legacy input may be migrated once, then is deleted; retryable verification failures preserve the unchanged legacy pair. |
-| Payment callback and confirm dedupe | stable-lifetime in-memory pre-auth claim, `airbob:booking-payment-v1:callback`, and the confirmation workflow instance | The pre-auth claim exists only for the scrubbed success-route lifetime but survives the session QueryClient generation switch. A subject-owned sensitive callback record with a sliding 15-minute TTL then retains the exact tuple and the `received`, `confirming`, or `reconciling` phase; every successful callback write first refreshes the joined checkout's longer 60-minute lifetime. `received` is confirm-capable, while `confirming` and `reconciling` are reconciliation-only. Exact concurrent commands share one active Promise; a possibly sent confirm is never repeated and later attempts reconcile. Reopening confirm while any joined callback exists routes to reason-only recovery without mounting the gateway. A consumed legacy confirmed marker is persisted as `reconciling` and cannot publish success. |
+| Checkout recovery | `airbob:booking-payment-v1:checkout` plus a typed history handle | One static, subject-owned versioned record retains the exact checkout allowlist for 60 minutes; the history entry carries only purpose/version/operation ID and is replace-consumed. Foreign, expired, malformed, wrong-purpose/version, unknown-field, route-mismatched, and operation-mismatched inputs fail closed. A handoff mismatch that may reference another current checkout preserves it. Missing or unusable state is cleared and opens guest trips rather than inviting another reservation command. Retired input never triggers migration or backend recovery. Name and email never enter the record. |
+| Payment callback and confirm dedupe | stable-lifetime in-memory pre-auth claim, `airbob:booking-payment-v1:callback`, and the confirmation workflow instance | The pre-auth claim exists only for the scrubbed success-route lifetime but survives the session QueryClient generation switch. A subject-owned sensitive callback record with a sliding 15-minute TTL then retains the exact tuple and the `received`, `confirming`, or `reconciling` phase; every successful callback write first refreshes the joined checkout's longer 60-minute lifetime. A fresh callback joined to the current checkout starts at confirm-capable `received`; existing `confirming` and `reconciling` records are reconciliation-only. Exact concurrent commands share one active Promise; a possibly sent confirm is never repeated and later attempts reconcile. Reopening confirm while any joined callback exists routes to reason-only recovery without mounting the gateway. Retired browser markers are ignored. |
 | Cross-tab session signal | `src/platform/session/sessionBroadcast.ts` | A same-origin BroadcastChannel exchanges only an exact non-PII transition envelope and drives invalidate-before-revalidate handling. |
 | Accommodation editor | One `listing-editor` workflow instance with an explicit state machine, operation journal, committed baseline revision, and route/session lease | The app route composes external ports; the controller owns React view derivation; the workflow serializes delete/save/publish commands, rejects stale completions, and exposes typed hydration, retryable, denied, invalid, and uncertainty-locked terminals. |
 | Ephemeral UI | Component-local state plus the app overlay stack | Popovers, hover, menu and dialog-open state stay with their interaction owner. Overlay ordering, topmost dismissal, focus restoration, and scroll locking are memory-only app runtime concerns. |
@@ -181,9 +182,10 @@ Detailed browser persistence and privacy properties are recorded in
   cross-tab/focus recovery; absolute latest-command ordering would require a
   backend idempotency or sequence contract and is outside the frontend-only
   migration authority.
-- An identity boundary advances the epoch, clears the owned checkout/callback
-  namespace plus exact legacy checkout/index/payment-marker prefixes through the
-  injected booking-payment cleanup port, cancels and clears the previous
+- An identity boundary advances the epoch, clears the current owned
+  `airbob:booking-payment-v1:` checkout/callback namespace and purge-deletes
+  exact retired payment-prefix keys without reading them through the injected
+  booking-payment cleanup port, cancels and clears the previous
   QueryClient, and creates a new subject/epoch generation before publishing the
   next viewer. When an authenticated identity is fenced, a generation key
   remounts the QueryClient subtree so late mutation callbacks from the old tree
@@ -191,8 +193,8 @@ Detailed browser persistence and privacy properties are recorded in
   present, the anonymous/error client is instead cancelled, cleared, and
   re-scoped in place; a failed login can therefore retain its modal intent,
   inputs, and exact error. A successful viewer probe replaces and remounts that
-  client only after payment cleanup completes. Current and legacy namespaces each retry
-  one partial/storage-failed cleanup pass; a final non-cleared result is
+  client only after payment cleanup completes. Current-namespace and retired-key
+  cleanup each retry one partial/storage-failed pass; a final non-cleared result is
   propagated and leaves the session transition fail-closed instead of publishing
   a new identity over residual payment state.
 - `BrowserRouter` and the memory-only auth-intent provider live outside the
@@ -274,9 +276,12 @@ function-identity scope inference, global Query facade, or rollback reader.
 versioned envelope engine. The booking-payment aggregate is its active domain
 writer through a named storage driver: static checkout/callback slots carry
 purpose, version, privacy/PII classification, stable subject, creation/expiry,
-exact field allowlists, invalid-record purge, and guarded one-way migration.
-Only the dedicated read/cleanup adapter for exact pre-U10 checkout/index/marker
-prefixes remains; it cannot write a legacy record or authorize payment.
+exact field allowlists, invalid-record purge, and session/route fences.
+The active aggregate has no pre-U10 reader, migration branch, or
+confirmed-marker consumer. Residual retired values are ignored for recovery;
+exact retired-prefix keys are purge-deleted without reading their contents at
+identity and terminal cleanup boundaries. Only the current versioned namespace
+participates in checkout and callback recovery.
 
 ## Current dependency boundaries
 

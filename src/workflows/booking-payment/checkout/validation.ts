@@ -31,22 +31,6 @@ const callbackKeys = [
   "phase",
 ] as const;
 
-const legacyCheckoutKeys = [
-  "reservationUid",
-  "orderName",
-  "amount",
-  "customerEmail",
-  "customerName",
-  "checkIn",
-  "checkOut",
-  "adultOccupancy",
-  "childOccupancy",
-  "infantOccupancy",
-  "petOccupancy",
-  "couponName",
-  "couponDiscount",
-] as const;
-
 export const checkoutDataKeys = checkoutKeys;
 export const callbackDataKeys = callbackKeys;
 
@@ -159,73 +143,4 @@ export const isCheckoutHandoffState = (
     handoff.version === 1 &&
     isBookingPaymentOperationId(handoff.operationId)
   );
-};
-
-interface LegacyCheckoutRecord {
-  readonly reservationUid: string;
-  readonly orderName: string;
-  readonly amount: number;
-  readonly customerEmail: string;
-  readonly customerName: string;
-  readonly checkIn: string;
-  readonly checkOut: string;
-  readonly adultOccupancy: number;
-  readonly childOccupancy: number;
-  readonly infantOccupancy: number;
-  readonly petOccupancy: number;
-  readonly couponName: string | null;
-  readonly couponDiscount: number | null;
-}
-
-export interface LegacyCheckoutCandidate extends LegacyCheckoutRecord {
-  readonly accommodationId: number;
-}
-
-const isLegacyCheckoutRecord = (
-  value: unknown,
-): value is LegacyCheckoutRecord => {
-  if (!isRecord(value) || !hasExactKeys(value, legacyCheckoutKeys))
-    return false;
-
-  return (
-    isOpaqueIdentifier(value.reservationUid) &&
-    isBoundedString(value.orderName, 256) &&
-    isPositiveSafeInteger(value.amount) &&
-    isBoundedString(value.customerEmail, 320) &&
-    isBoundedString(value.customerName, 128) &&
-    isStrictCalendarDate(value.checkIn) &&
-    isStrictCalendarDate(value.checkOut) &&
-    value.checkIn < value.checkOut &&
-    isNonNegativeSafeInteger(value.adultOccupancy) &&
-    isNonNegativeSafeInteger(value.childOccupancy) &&
-    isNonNegativeSafeInteger(value.infantOccupancy) &&
-    isNonNegativeSafeInteger(value.petOccupancy) &&
-    value.adultOccupancy + value.childOccupancy >= 1 &&
-    isNullableBoundedString(value.couponName, 128) &&
-    (value.couponDiscount === null ||
-      isNonNegativeSafeInteger(value.couponDiscount))
-  );
-};
-
-export const parseLegacyCheckoutCandidate = (
-  value: unknown,
-  accommodationId: number,
-): LegacyCheckoutCandidate | null => {
-  if (!isPositiveSafeInteger(accommodationId)) return null;
-
-  let parsed = value;
-  if (typeof value === "string") {
-    try {
-      parsed = JSON.parse(value);
-    } catch {
-      return null;
-    }
-  }
-
-  if (!isLegacyCheckoutRecord(parsed)) return null;
-
-  // The route-key accommodation ID is the fourteenth legacy field. Keeping it
-  // outside the old JSON shape preserves compatibility while giving migration
-  // verification an exact, complete candidate.
-  return Object.freeze({ accommodationId, ...parsed });
 };

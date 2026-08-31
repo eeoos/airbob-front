@@ -3,10 +3,7 @@ export {
   createBookingPaymentCallbackRepository,
   createBookingPaymentCheckoutRepository,
 } from "./repositories";
-export {
-  isCheckoutHandoffState,
-  parseLegacyCheckoutCandidate,
-} from "./validation";
+export { isCheckoutHandoffState } from "./validation";
 export {
   createTossPaymentsV2GatewayLease,
   PaymentGatewayError,
@@ -38,13 +35,8 @@ export type {
   CheckoutRepository,
   CheckoutWriteData,
   ClearBookingPaymentBrowserStateResult,
-  LegacyCheckoutMigrationInput,
-  LegacyCheckoutMigrationResult,
-  LegacyCheckoutVerificationInput,
-  LegacyCheckoutVerificationResult,
   SubjectOwnedClearResult,
   SubjectOwnedReadResult,
   SubjectOwnedWriteInput,
   SubjectOwnedWriteResult,
-  VerifyLegacyCheckout,
 } from "./types";

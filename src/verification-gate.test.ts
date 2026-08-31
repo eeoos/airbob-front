@@ -700,9 +700,7 @@ describe("frontend verification gate", () => {
     expect(ownershipMatrixDoc).toContain(
       "**Active:** app codec/navigation/auth composition",
     );
-    expect(ownershipMatrixDoc).toContain(
-      "U10/U11 payment compatibility matrix",
-    );
+    expect(ownershipMatrixDoc).toContain("Payment storage and rollback matrix");
     expect(architectureRulesDoc).toContain("Single rule owners");
     expect(architectureRulesDoc).toContain(
       "Feature-to-peer production imports are errors regardless of filename",

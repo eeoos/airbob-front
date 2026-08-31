@@ -83,7 +83,7 @@ export type ReservationCheckoutHandoffPreflightResult =
 
 /**
  * This is intentionally synchronous. The current-route and session checks and
- * the legacy storage/navigation handoff therefore form one JavaScript turn.
+ * the versioned storage/navigation handoff therefore form one JavaScript turn.
  */
 export interface ReservationCheckoutHandoffPort {
   preflight(

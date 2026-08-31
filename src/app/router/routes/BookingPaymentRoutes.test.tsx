@@ -37,7 +37,6 @@ const scope: AuthenticatedSessionScope = {
 const mockPaymentControllerProps: Array<Record<string, unknown>> = [];
 const mockConfirmControllerProps: Array<Record<string, unknown>> = [];
 const mockGetCheckoutOwnership = vi.fn();
-const mockGetPaymentByOrderId = vi.fn();
 
 vi.mock("../../../features/reservations/payment/public", async () => {
   const actual = await vi.importActual<
@@ -49,10 +48,6 @@ vi.mock("../../../features/reservations/payment/public", async () => {
     checkoutOwnershipApi: {
       getCheckoutOwnership: (...args: unknown[]) =>
         mockGetCheckoutOwnership(...args),
-    },
-    paymentApi: {
-      ...actual.paymentApi,
-      getByOrderId: (...args: unknown[]) => mockGetPaymentByOrderId(...args),
     },
   };
 });
@@ -123,33 +118,6 @@ const checkoutWriteData = {
   couponName: null,
   couponDiscount: null,
 } as const;
-
-const legacyCheckoutData = {
-  reservationUid: "reservation-1",
-  orderName: "테스트 숙소 예약",
-  amount: 120_000,
-  customerEmail: "legacy@example.com",
-  customerName: "레거시 사용자",
-  checkIn: "2026-09-10",
-  checkOut: "2026-09-12",
-  adultOccupancy: 2,
-  childOccupancy: 0,
-  infantOccupancy: 0,
-  petOccupancy: 0,
-  couponName: null,
-  couponDiscount: null,
-} as const;
-
-const seedLegacyCheckout = () => {
-  window.sessionStorage.setItem(
-    "airbob:reservation-checkout:42",
-    JSON.stringify(legacyCheckoutData),
-  );
-  window.sessionStorage.setItem(
-    "airbob:reservation-checkout-index:reservation-1",
-    "42",
-  );
-};
 
 const createRepositories = () => ({
   checkout: createBookingPaymentCheckoutRepository({
@@ -272,7 +240,6 @@ describe("booking payment app routes", () => {
     mockPaymentControllerProps.length = 0;
     mockConfirmControllerProps.length = 0;
     mockGetCheckoutOwnership.mockReset();
-    mockGetPaymentByOrderId.mockReset();
   });
 
   it("consumes the checkout handle before mounting the confirm controller", async () => {
@@ -300,45 +267,14 @@ describe("booking payment app routes", () => {
     ).not.toContain("viewer@example.com");
   });
 
-  it("purges a legacy checkout when server dates or guest count do not match", async () => {
-    seedLegacyCheckout();
-    mockGetCheckoutOwnership.mockResolvedValue({
-      reservationUid: "reservation-1",
-      accommodationId: 42,
-      checkIn: "2026-09-11",
-      checkOut: "2026-09-13",
-      guestCount: 2,
-      payment: null,
-    });
-
-    renderRoute(
-      "/accommodations/42/confirm",
-      "/accommodations/:id/confirm",
-      <ReservationConfirmRoute />,
-    );
-
-    await screen.findByTestId("fallback-route");
-    expect(mockConfirmControllerProps).toHaveLength(0);
-    expect(
-      window.sessionStorage.getItem("airbob:reservation-checkout:42"),
-    ).toBeNull();
-    expect(
-      window.sessionStorage.getItem(
-        "airbob:reservation-checkout-index:reservation-1",
-      ),
-    ).toBeNull();
-    expect(
-      window.sessionStorage.getItem("airbob:booking-payment-v1:checkout"),
-    ).toBeNull();
-  });
-
-  it("preserves a legacy checkout when ownership verification is retryable", async () => {
-    seedLegacyCheckout();
-    const rawPrimary = window.sessionStorage.getItem(
+  it("purges retired checkout documents and opens trips without backend recovery", async () => {
+    window.sessionStorage.setItem(
       "airbob:reservation-checkout:42",
+      "retired-checkout-document",
     );
-    mockGetCheckoutOwnership.mockRejectedValue(
-      new Error("network unavailable"),
+    window.sessionStorage.setItem(
+      "airbob:reservation-checkout-index:reservation-1",
+      "42",
     );
 
     renderRoute(
@@ -349,56 +285,10 @@ describe("booking payment app routes", () => {
 
     await screen.findByTestId("fallback-route");
     expect(screen.getByTestId("location")).toHaveTextContent(
-      '"pathname":"/accommodations/42"',
+      '"pathname":"/profile"',
     );
     expect(mockConfirmControllerProps).toHaveLength(0);
-    expect(
-      window.sessionStorage.getItem("airbob:reservation-checkout:42"),
-    ).toBe(rawPrimary);
-    expect(
-      window.sessionStorage.getItem(
-        "airbob:reservation-checkout-index:reservation-1",
-      ),
-    ).toBe("42");
-    expect(
-      window.sessionStorage.getItem("airbob:booking-payment-v1:checkout"),
-    ).toBeNull();
-  });
-
-  it("migrates a server-verified legacy checkout without retaining customer fields", async () => {
-    seedLegacyCheckout();
-    mockGetCheckoutOwnership.mockResolvedValue({
-      reservationUid: "reservation-1",
-      accommodationId: 42,
-      checkIn: "2026-09-10",
-      checkOut: "2026-09-12",
-      guestCount: 2,
-      payment: {
-        orderId: "reservation-1",
-        paymentKey: null,
-        totalAmount: 120_000,
-        status: "READY",
-      },
-    });
-
-    renderRoute(
-      "/accommodations/42/confirm",
-      "/accommodations/:id/confirm",
-      <ReservationConfirmRoute />,
-    );
-
-    await screen.findByTestId("reservation-confirm-controller");
-    expect(mockGetCheckoutOwnership).toHaveBeenCalledWith(
-      "reservation-1",
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
-    );
-    expect(mockConfirmControllerProps.at(-1)).toMatchObject({
-      checkout: expect.objectContaining({
-        accommodationId: 42,
-        reservationUid: "reservation-1",
-        amount: 120_000,
-      }),
-    });
+    expect(mockGetCheckoutOwnership).not.toHaveBeenCalled();
     expect(
       window.sessionStorage.getItem("airbob:reservation-checkout:42"),
     ).toBeNull();
@@ -407,49 +297,9 @@ describe("booking payment app routes", () => {
         "airbob:reservation-checkout-index:reservation-1",
       ),
     ).toBeNull();
-    const migrated = window.sessionStorage.getItem(
-      "airbob:booking-payment-v1:checkout",
-    );
-    expect(migrated).toContain('"owner":"subject:route_payment"');
-    expect(migrated).not.toContain("legacy@example.com");
-    expect(migrated).not.toContain("customerEmail");
-    expect(migrated).not.toContain("customerName");
-  });
-
-  it("uses the payment order fallback to verify a legacy checkout", async () => {
-    seedLegacyCheckout();
-    mockGetCheckoutOwnership.mockResolvedValue({
-      reservationUid: "reservation-1",
-      accommodationId: 42,
-      checkIn: "2026-09-10",
-      checkOut: "2026-09-12",
-      guestCount: 2,
-      payment: null,
-    });
-    mockGetPaymentByOrderId.mockResolvedValue({
-      orderId: "reservation-1",
-      paymentKey: null,
-      totalAmount: 120_000,
-      status: "READY",
-    });
-
-    renderRoute(
-      "/accommodations/42/confirm",
-      "/accommodations/:id/confirm",
-      <ReservationConfirmRoute />,
-    );
-
-    await screen.findByTestId("reservation-confirm-controller");
-    expect(mockGetPaymentByOrderId).toHaveBeenCalledWith(
-      "reservation-1",
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
-    );
-    expect(
-      window.sessionStorage.getItem("airbob:reservation-checkout:42"),
-    ).toBeNull();
     expect(
       window.sessionStorage.getItem("airbob:booking-payment-v1:checkout"),
-    ).not.toContain("legacy@example.com");
+    ).toBeNull();
   });
 
   it("moves a fresh callback into owned storage and scrubs paymentKey from the URL", async () => {
@@ -533,7 +383,7 @@ describe("booking payment app routes", () => {
     });
   });
 
-  it("turns a legacy confirmed marker into reconciliation only", async () => {
+  it("ignores a retired marker and starts a fresh callback at received", async () => {
     seedCheckout();
     const markerTuple = ["reservation-1", "payment-key-1", "120000"]
       .map(encodeURIComponent)
@@ -549,10 +399,10 @@ describe("booking payment app routes", () => {
 
     await screen.findByTestId("payment-result-controller");
     expect(mockPaymentControllerProps.at(-1)).toMatchObject({
-      callback: { phase: "reconciling" },
-      shouldConfirm: false,
+      callback: { phase: "received" },
+      shouldConfirm: true,
     });
-    expect(window.sessionStorage.getItem(markerKey)).toBeNull();
+    expect(window.sessionStorage.getItem(markerKey)).toBe("1");
   });
 
   it("re-enters a cleared callback through server reconciliation without recreating browser documents", async () => {

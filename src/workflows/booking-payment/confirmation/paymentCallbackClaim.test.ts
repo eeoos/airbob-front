@@ -65,20 +65,15 @@ const setupClaim = () => {
     status: "written",
     data,
   }));
-  const consumeLegacyHint = vi.fn<
-    CallbackRepository["consumeLegacyConfirmedPaymentHint"]
-  >(() => ({ status: "hint", shouldReconcile: false }));
   const dependencies: PaymentCallbackClaimDependencies = {
     checkout: { readForCallback },
     callback: {
       read: readCallback,
       write: writeCallback,
-      consumeLegacyConfirmedPaymentHint: consumeLegacyHint,
     },
   };
 
   return {
-    consumeLegacyHint,
     dependencies,
     readCallback,
     readForCallback,
@@ -128,31 +123,6 @@ describe("claimPaymentCallback", () => {
     });
   });
 
-  it("turns an exact legacy marker into a reconcile-only hint", () => {
-    const harness = setupClaim();
-    harness.consumeLegacyHint.mockReturnValue({
-      status: "hint",
-      shouldReconcile: true,
-    });
-
-    expect(claim(harness.dependencies)).toMatchObject({
-      status: "ready",
-      callback: { phase: "reconciling" },
-      persistCallback: true,
-      shouldConfirm: false,
-    });
-    expect(harness.consumeLegacyHint).toHaveBeenCalledWith({
-      orderId: fresh.orderId,
-      paymentKey: fresh.paymentKey,
-      amount: fresh.amount,
-    });
-    expect(harness.writeCallback).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ phase: "reconciling" }),
-      }),
-    );
-  });
-
   it("keeps a persisted received callback eligible for its first confirmation", () => {
     const harness = setupClaim();
     harness.readCallback.mockReturnValue({ status: "found", data: callback });
@@ -169,7 +139,6 @@ describe("claimPaymentCallback", () => {
       persistCallback: true,
       shouldConfirm: true,
     });
-    expect(harness.consumeLegacyHint).not.toHaveBeenCalled();
     expect(harness.writeCallback).not.toHaveBeenCalled();
   });
 
@@ -279,15 +248,6 @@ describe("claimPaymentCallback", () => {
       "callback-unavailable",
       (harness: ReturnType<typeof setupClaim>) =>
         harness.readCallback.mockReturnValue({
-          status: "storage-error",
-          error: { kind: "storage-unavailable", operation: "get" },
-        }),
-    ],
-    [
-      "legacy marker",
-      "marker-unavailable",
-      (harness: ReturnType<typeof setupClaim>) =>
-        harness.consumeLegacyHint.mockReturnValue({
           status: "storage-error",
           error: { kind: "storage-unavailable", operation: "get" },
         }),

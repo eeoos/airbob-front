@@ -43,7 +43,6 @@ export type PaymentCallbackClaimInvalidReason =
   | "callback-unavailable"
   | "callback-mismatch"
   | "missing-callback"
-  | "marker-unavailable"
   | "callback-write-failed";
 
 export type PaymentCallbackClaimResult =
@@ -60,10 +59,7 @@ export type PaymentCallbackClaimResult =
 
 export interface PaymentCallbackClaimDependencies {
   readonly checkout: Pick<CheckoutRepository, "readForCallback">;
-  readonly callback: Pick<
-    CallbackRepository,
-    "consumeLegacyConfirmedPaymentHint" | "read" | "write"
-  >;
+  readonly callback: Pick<CallbackRepository, "read" | "write">;
 }
 
 export interface ClaimPaymentCallbackInput {
@@ -294,23 +290,13 @@ export const claimPaymentCallback = (
     return { status: "invalid", reason: "callback-mismatch" };
   }
 
-  const marker = dependencies.callback.consumeLegacyConfirmedPaymentHint({
-    orderId: fresh.orderId,
-    paymentKey: fresh.paymentKey,
-    amount: fresh.amount,
-  });
-  if (!safelyCheck(input.isCurrent)) return { status: "stale" };
-  if (marker.status !== "hint") {
-    return { status: "invalid", reason: "marker-unavailable" };
-  }
-
   const callback: CallbackData = Object.freeze({
     operationId: checkout.operationId,
     reservationUid: fresh.reservationUid,
     orderId: fresh.orderId,
     paymentKey: fresh.paymentKey,
     amount: fresh.amount,
-    phase: marker.shouldReconcile ? "reconciling" : "received",
+    phase: "received",
   });
   const write = dependencies.callback.write({
     scope,
@@ -329,7 +315,7 @@ export const claimPaymentCallback = (
     callback,
     document: toPaymentCallbackDocument(checkout),
     persistCallback: true,
-    shouldConfirm: !marker.shouldReconcile,
+    shouldConfirm: true,
   };
 };
 

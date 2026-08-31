@@ -201,9 +201,7 @@ describe("ReservationConfirmRoute payment recovery boundary", () => {
     renderConfirmRoute();
 
     await screen.findByTestId("fallback-route");
-    expect(screen.getByTestId("location")).toHaveTextContent(
-      "/accommodations/42",
-    );
+    expect(screen.getByTestId("location")).toHaveTextContent("/profile");
     expect(mockConfirmControllerProps).toHaveLength(0);
     await waitFor(() => expect(window.sessionStorage.length).toBe(0));
   });
@@ -226,16 +224,16 @@ describe("ReservationConfirmRoute payment recovery boundary", () => {
     ).toContain("reservation-41");
   });
 
-  it("preserves current and legacy documents for a stale current-format handoff", async () => {
+  it("preserves current data and ignores retired documents for a stale handoff", async () => {
     const { checkout } = seedCheckout();
-    const legacyPrimary = JSON.stringify({
+    const retiredPrimary = JSON.stringify({
       ...checkoutData,
-      customerEmail: "legacy@example.invalid",
+      customerEmail: "retired@example.invalid",
       customerName: "레거시 사용자",
     });
     window.sessionStorage.setItem(
       "airbob:reservation-checkout:42",
-      legacyPrimary,
+      retiredPrimary,
     );
     window.sessionStorage.setItem(
       "airbob:reservation-checkout-index:reservation-1",
@@ -260,7 +258,7 @@ describe("ReservationConfirmRoute payment recovery boundary", () => {
     ).toContain(checkout.operationId);
     expect(
       window.sessionStorage.getItem("airbob:reservation-checkout:42"),
-    ).toBe(legacyPrimary);
+    ).toBe(retiredPrimary);
     expect(
       window.sessionStorage.getItem(
         "airbob:reservation-checkout-index:reservation-1",
@@ -268,12 +266,12 @@ describe("ReservationConfirmRoute payment recovery boundary", () => {
     ).toBe("42");
   });
 
-  it("never migrates a current-format handoff whose target is missing", async () => {
-    const legacyPrimary = JSON.stringify({
+  it("purges retired data and opens trips when the versioned target is missing", async () => {
+    const retiredPrimary = JSON.stringify({
       reservationUid: "reservation-1",
       orderName: checkoutData.orderName,
       amount: checkoutData.amount,
-      customerEmail: "legacy@example.invalid",
+      customerEmail: "retired@example.invalid",
       customerName: "레거시 사용자",
       checkIn: checkoutData.checkIn,
       checkOut: checkoutData.checkOut,
@@ -286,7 +284,7 @@ describe("ReservationConfirmRoute payment recovery boundary", () => {
     });
     window.sessionStorage.setItem(
       "airbob:reservation-checkout:42",
-      legacyPrimary,
+      retiredPrimary,
     );
     window.sessionStorage.setItem(
       "airbob:reservation-checkout-index:reservation-1",
@@ -302,33 +300,31 @@ describe("ReservationConfirmRoute payment recovery boundary", () => {
     });
 
     await screen.findByTestId("fallback-route");
-    expect(screen.getByTestId("location")).toHaveTextContent(
-      "/accommodations/42",
-    );
+    expect(screen.getByTestId("location")).toHaveTextContent("/profile");
     expect(mockConfirmControllerProps).toHaveLength(0);
     expect(
       window.sessionStorage.getItem("airbob:reservation-checkout:42"),
-    ).toBe(legacyPrimary);
+    ).toBeNull();
     expect(
       window.sessionStorage.getItem(
         "airbob:reservation-checkout-index:reservation-1",
       ),
-    ).toBe("42");
+    ).toBeNull();
     expect(
       window.sessionStorage.getItem("airbob:booking-payment-v1:checkout"),
     ).toBeNull();
   });
 
-  it("preserves current and legacy documents for a malformed handoff-like state", async () => {
+  it("preserves current data and ignores retired documents for malformed state", async () => {
     const { checkout } = seedCheckout();
-    const legacyPrimary = JSON.stringify({
+    const retiredPrimary = JSON.stringify({
       ...checkoutData,
-      customerEmail: "legacy@example.invalid",
+      customerEmail: "retired@example.invalid",
       customerName: "레거시 사용자",
     });
     window.sessionStorage.setItem(
       "airbob:reservation-checkout:42",
-      legacyPrimary,
+      retiredPrimary,
     );
     window.sessionStorage.setItem(
       "airbob:reservation-checkout-index:reservation-1",
@@ -350,7 +346,7 @@ describe("ReservationConfirmRoute payment recovery boundary", () => {
     ).toContain(checkout.operationId);
     expect(
       window.sessionStorage.getItem("airbob:reservation-checkout:42"),
-    ).toBe(legacyPrimary);
+    ).toBe(retiredPrimary);
     expect(
       window.sessionStorage.getItem(
         "airbob:reservation-checkout-index:reservation-1",

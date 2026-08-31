@@ -39,22 +39,6 @@ const checkout: CheckoutWriteData = {
   couponDiscount: 10_000,
 };
 
-const legacyCheckout = {
-  reservationUid: checkout.reservationUid,
-  orderName: checkout.orderName,
-  amount: checkout.amount,
-  customerEmail: "must-not-persist@example.invalid",
-  customerName: "저장하면 안 되는 이름",
-  checkIn: checkout.checkIn,
-  checkOut: checkout.checkOut,
-  adultOccupancy: checkout.adultOccupancy,
-  childOccupancy: checkout.childOccupancy,
-  infantOccupancy: checkout.infantOccupancy,
-  petOccupancy: checkout.petOccupancy,
-  couponName: checkout.couponName,
-  couponDiscount: checkout.couponDiscount,
-};
-
 const createStorage = (entries: Record<string, string> = {}): Storage => {
   const values = new Map(Object.entries(entries));
 
@@ -136,8 +120,9 @@ const callbackFor = (operationId: BookingPaymentOperationId): CallbackData => ({
 
 const checkoutKey = "airbob:booking-payment-v1:checkout";
 const callbackKey = "airbob:booking-payment-v1:callback";
-const legacyPrimaryKey = "airbob:reservation-checkout:7";
-const legacyIndexKey = "airbob:reservation-checkout-index:reservation-7";
+const retiredPrimaryKey = "airbob:reservation-checkout:7";
+const retiredIndexKey = "airbob:reservation-checkout-index:reservation-7";
+const retiredMarkerKey = "airbob:payment-confirmed:tuple";
 
 describe("booking-payment checkout repository", () => {
   it("writes the exact subject-owned allowlisted envelope and handoff", () => {
@@ -541,22 +526,6 @@ describe("booking-payment callback repository", () => {
     );
   });
 
-  it("purges the old confirmed marker and returns only a reconcile hint", () => {
-    const harness = setup();
-    const marker =
-      "airbob:payment-confirmed:reservation-7|payment_key_7|120000";
-    harness.storage.setItem(marker, "1");
-
-    expect(
-      harness.callbackRepository.consumeLegacyConfirmedPaymentHint({
-        orderId: "reservation-7",
-        paymentKey: "payment_key_7",
-        amount: 120_000,
-      }),
-    ).toEqual({ status: "hint", shouldReconcile: true });
-    expect(harness.storage.getItem(marker)).toBeNull();
-  });
-
   it("a stale epoch callback read cannot purge the next session record", () => {
     const harness = setup();
     const checkoutResult = writeCheckout(harness);
@@ -582,394 +551,14 @@ describe("booking-payment callback repository", () => {
   });
 });
 
-describe("legacy checkout migration", () => {
-  it("migrates a verified legacy location candidate without customer fields", async () => {
-    const harness = setup();
-    const verify = vi.fn().mockResolvedValue({ status: "verified" });
-
-    await expect(
-      harness.checkoutRepository.migrateLegacy({
-        scope: scopeA,
-        accommodationId: 7,
-        rawLegacyLocationCandidate: legacyCheckout,
-        verify,
-        isCurrent: harness.isCurrent,
-      }),
-    ).resolves.toEqual({
-      status: "migrated",
-      data: { operationId: "operation_1", ...checkout },
-      handle: expect.any(Object),
-    });
-    expect(verify).toHaveBeenCalledWith({
-      accommodationId: 7,
-      reservationUid: checkout.reservationUid,
-      orderName: checkout.orderName,
-      amount: checkout.amount,
-      checkIn: checkout.checkIn,
-      checkOut: checkout.checkOut,
-      guestCount: checkout.adultOccupancy + checkout.childOccupancy,
-    });
-    expect(harness.storage.getItem(legacyPrimaryKey)).toBeNull();
-    expect(harness.storage.getItem(legacyIndexKey)).toBeNull();
-    expect(harness.storage.getItem(checkoutKey)).not.toContain(
-      legacyCheckout.customerEmail,
-    );
-    expect(harness.storage.getItem(checkoutKey)).not.toContain(
-      legacyCheckout.customerName,
-    );
-  });
-
-  it("location migration wins but also removes a different stored legacy index", async () => {
-    const harness = setup();
-    const storedLegacy = {
-      ...legacyCheckout,
-      reservationUid: "reservation-stored-other",
-    };
-    const storedIndex =
-      "airbob:reservation-checkout-index:reservation-stored-other";
-    harness.storage.setItem(legacyPrimaryKey, JSON.stringify(storedLegacy));
-    harness.storage.setItem(storedIndex, "7");
-    harness.storage.setItem(legacyIndexKey, "7");
-
-    await expect(
-      harness.checkoutRepository.migrateLegacy({
-        scope: scopeA,
-        accommodationId: 7,
-        rawLegacyLocationCandidate: legacyCheckout,
-        verify: vi.fn().mockResolvedValue({ status: "verified" }),
-        isCurrent: harness.isCurrent,
-      }),
-    ).resolves.toEqual(expect.objectContaining({ status: "migrated" }));
-    expect(harness.storage.getItem(legacyPrimaryKey)).toBeNull();
-    expect(harness.storage.getItem(storedIndex)).toBeNull();
-    expect(harness.storage.getItem(legacyIndexKey)).toBeNull();
-  });
-
-  it("requires the exact stored primary and matching reservation index", async () => {
-    const mismatched = setup();
-    mismatched.storage.setItem(
-      legacyPrimaryKey,
-      JSON.stringify(legacyCheckout),
-    );
-    mismatched.storage.setItem(legacyIndexKey, "8");
-    const verify = vi.fn().mockResolvedValue({ status: "verified" });
-
-    await expect(
-      mismatched.checkoutRepository.migrateLegacy({
-        scope: scopeA,
-        accommodationId: 7,
-        verify,
-        isCurrent: mismatched.isCurrent,
-      }),
-    ).resolves.toEqual({ status: "rejected", reason: "index-mismatch" });
-    expect(verify).not.toHaveBeenCalled();
-    expect(mismatched.storage.getItem(legacyPrimaryKey)).toBeNull();
-    expect(mismatched.storage.getItem(legacyIndexKey)).toBeNull();
-
-    const accepted = setup();
-    accepted.storage.setItem(legacyPrimaryKey, JSON.stringify(legacyCheckout));
-    accepted.storage.setItem(legacyIndexKey, "7");
-    await expect(
-      accepted.checkoutRepository.migrateLegacy({
-        scope: scopeA,
-        accommodationId: 7,
-        verify,
-        isCurrent: accepted.isCurrent,
-      }),
-    ).resolves.toEqual(expect.objectContaining({ status: "migrated" }));
-  });
-
-  it("rejects unknown legacy fields and failed server verification", async () => {
-    const malformed = setup();
-    malformed.storage.setItem(
-      legacyPrimaryKey,
-      JSON.stringify({ ...legacyCheckout, extra: "reject" }),
-    );
-    await expect(
-      malformed.checkoutRepository.migrateLegacy({
-        scope: scopeA,
-        accommodationId: 7,
-        verify: vi.fn().mockResolvedValue({ status: "verified" }),
-        isCurrent: malformed.isCurrent,
-      }),
-    ).resolves.toEqual({
-      status: "rejected",
-      reason: "invalid-legacy-data",
-    });
-    expect(malformed.storage.getItem(legacyPrimaryKey)).toBeNull();
-
-    const rejected = setup();
-    rejected.storage.setItem(legacyPrimaryKey, JSON.stringify(legacyCheckout));
-    rejected.storage.setItem(legacyIndexKey, "7");
-    await expect(
-      rejected.checkoutRepository.migrateLegacy({
-        scope: scopeA,
-        accommodationId: 7,
-        verify: vi.fn().mockResolvedValue({ status: "mismatch" }),
-        isCurrent: rejected.isCurrent,
-      }),
-    ).resolves.toEqual({
-      status: "rejected",
-      reason: "verification-failed",
-    });
-    expect(rejected.storage.getItem(legacyPrimaryKey)).toBeNull();
-    expect(rejected.storage.getItem(legacyIndexKey)).toBeNull();
-  });
-
-  it.each([
-    [
-      "a classified retryable result",
-      () => Promise.resolve({ status: "retryable-error" as const }),
-    ],
-    ["a thrown transport error", () => Promise.reject(new Error("offline"))],
-  ])(
-    "preserves the exact legacy primary and index after %s",
-    async (_case, verify) => {
-      const harness = setup();
-      const rawPrimary = JSON.stringify(legacyCheckout);
-      harness.storage.setItem(legacyPrimaryKey, rawPrimary);
-      harness.storage.setItem(legacyIndexKey, "7");
-
-      await expect(
-        harness.checkoutRepository.migrateLegacy({
-          scope: scopeA,
-          accommodationId: 7,
-          verify,
-          isCurrent: harness.isCurrent,
-        }),
-      ).resolves.toEqual({ status: "verification-retryable" });
-      expect(harness.storage.getItem(legacyPrimaryKey)).toBe(rawPrimary);
-      expect(harness.storage.getItem(legacyIndexKey)).toBe("7");
-      expect(harness.storage.getItem(checkoutKey)).toBeNull();
-    },
-  );
-
-  it("surfaces fail-closed cleanup errors on every legacy rejection path", async () => {
-    const malformedStorage = createStorage({ [legacyPrimaryKey]: "{" });
-    vi.spyOn(malformedStorage, "removeItem").mockImplementation(() => {
-      throw new Error("cleanup blocked");
-    });
-    const malformed = setup({ storage: malformedStorage });
-    await expect(
-      malformed.checkoutRepository.migrateLegacy({
-        scope: scopeA,
-        accommodationId: 7,
-        verify: vi.fn().mockResolvedValue({ status: "verified" }),
-        isCurrent: malformed.isCurrent,
-      }),
-    ).resolves.toEqual({ status: "rejected", reason: "cleanup-failed" });
-
-    const indexStorage = createStorage({
-      [legacyPrimaryKey]: JSON.stringify(legacyCheckout),
-      [legacyIndexKey]: "8",
-    });
-    const originalIndexRemove = indexStorage.removeItem.bind(indexStorage);
-    vi.spyOn(indexStorage, "removeItem").mockImplementation((key) => {
-      if (key === legacyIndexKey) throw new Error("cleanup blocked");
-      originalIndexRemove(key);
-    });
-    const indexMismatch = setup({ storage: indexStorage });
-    await expect(
-      indexMismatch.checkoutRepository.migrateLegacy({
-        scope: scopeA,
-        accommodationId: 7,
-        verify: vi.fn().mockResolvedValue({ status: "verified" }),
-        isCurrent: indexMismatch.isCurrent,
-      }),
-    ).resolves.toEqual({ status: "rejected", reason: "cleanup-failed" });
-
-    const verificationStorage = createStorage({
-      [legacyPrimaryKey]: JSON.stringify(legacyCheckout),
-      [legacyIndexKey]: "7",
-    });
-    const originalVerificationRemove =
-      verificationStorage.removeItem.bind(verificationStorage);
-    vi.spyOn(verificationStorage, "removeItem").mockImplementation((key) => {
-      if (key === legacyIndexKey) throw new Error("cleanup blocked");
-      originalVerificationRemove(key);
-    });
-    const verificationFailed = setup({ storage: verificationStorage });
-    await expect(
-      verificationFailed.checkoutRepository.migrateLegacy({
-        scope: scopeA,
-        accommodationId: 7,
-        verify: vi.fn().mockResolvedValue({ status: "mismatch" }),
-        isCurrent: verificationFailed.isCurrent,
-      }),
-    ).resolves.toEqual({ status: "rejected", reason: "cleanup-failed" });
-  });
-
-  it("lets an existing owned target win without invoking legacy verification", async () => {
-    const harness = setup();
-    const target = writeCheckout(harness);
-    if (target.status !== "written") throw new Error("fixture failed");
-    harness.storage.setItem(legacyPrimaryKey, JSON.stringify(legacyCheckout));
-    harness.storage.setItem(legacyIndexKey, "7");
-    const verify = vi.fn().mockResolvedValue({ status: "verified" });
-
-    await expect(
-      harness.checkoutRepository.migrateLegacy({
-        scope: scopeA,
-        accommodationId: 7,
-        verify,
-        isCurrent: harness.isCurrent,
-      }),
-    ).resolves.toEqual({
-      status: "target-wins",
-      data: target.data,
-      handle: target.handle,
-    });
-    expect(verify).not.toHaveBeenCalled();
-    expect(harness.storage.getItem(legacyPrimaryKey)).toBeNull();
-    expect(harness.storage.getItem(legacyIndexKey)).toBeNull();
-  });
-
-  it("does not let a malformed location handoff fall through to an owned target", async () => {
-    const harness = setup();
-    writeCheckout(harness);
-    const verify = vi.fn().mockResolvedValue({ status: "verified" });
-
-    await expect(
-      harness.checkoutRepository.migrateLegacy({
-        scope: scopeA,
-        accommodationId: 7,
-        rawLegacyLocationCandidate: { forged: true },
-        verify,
-        isCurrent: harness.isCurrent,
-      }),
-    ).resolves.toEqual({
-      status: "rejected",
-      reason: "invalid-legacy-data",
-    });
-    expect(verify).not.toHaveBeenCalled();
-    expect(
-      harness.checkoutRepository.read({
-        scope: scopeA,
-        accommodationId: 7,
-        locationState: null,
-      }),
-    ).toEqual(expect.objectContaining({ status: "found" }));
-  });
-
-  it("target-wins cleanup removes the index named by the actual legacy record", async () => {
-    const harness = setup();
-    const target = writeCheckout(harness);
-    if (target.status !== "written") throw new Error("fixture failed");
-    const otherLegacy = {
-      ...legacyCheckout,
-      reservationUid: "reservation-legacy-other",
-    };
-    const otherIndex =
-      "airbob:reservation-checkout-index:reservation-legacy-other";
-    harness.storage.setItem(legacyPrimaryKey, JSON.stringify(otherLegacy));
-    harness.storage.setItem(otherIndex, "7");
-    harness.storage.setItem(legacyIndexKey, "7");
-
-    await expect(
-      harness.checkoutRepository.migrateLegacy({
-        scope: scopeA,
-        accommodationId: 7,
-        verify: vi.fn().mockResolvedValue({ status: "verified" }),
-        isCurrent: harness.isCurrent,
-      }),
-    ).resolves.toEqual(expect.objectContaining({ status: "target-wins" }));
-    expect(harness.storage.getItem(legacyPrimaryKey)).toBeNull();
-    expect(harness.storage.getItem(otherIndex)).toBeNull();
-    expect(harness.storage.getItem(legacyIndexKey)).toBeNull();
-  });
-
-  it("never overwrites a valid owned target for another accommodation", async () => {
-    const harness = setup();
-    const target = harness.checkoutRepository.write({
-      scope: scopeA,
-      data: {
-        ...checkout,
-        accommodationId: 8,
-        reservationUid: "reservation-8",
-      },
-      isCurrent: harness.isCurrent,
-    });
-    if (target.status !== "written") throw new Error("fixture failed");
-    harness.storage.setItem(legacyPrimaryKey, JSON.stringify(legacyCheckout));
-    harness.storage.setItem(legacyIndexKey, "7");
-
-    await expect(
-      harness.checkoutRepository.migrateLegacy({
-        scope: scopeA,
-        accommodationId: 7,
-        verify: vi.fn().mockResolvedValue({ status: "verified" }),
-        isCurrent: harness.isCurrent,
-      }),
-    ).resolves.toEqual({
-      status: "target-wins",
-      data: target.data,
-      handle: target.handle,
-    });
-    expect(
-      JSON.parse(harness.storage.getItem(checkoutKey) ?? "{}").data,
-    ).toEqual(target.data);
-    expect(harness.storage.getItem(legacyPrimaryKey)).toBeNull();
-    expect(harness.storage.getItem(legacyIndexKey)).toBeNull();
-  });
-
-  it("does not write or clean legacy data after an epoch fence changes", async () => {
-    const harness = setup();
-    harness.storage.setItem(legacyPrimaryKey, JSON.stringify(legacyCheckout));
-    harness.storage.setItem(legacyIndexKey, "7");
-    let resolveVerification!: (value: { status: "verified" }) => void;
-    const verify = () =>
-      new Promise<{ status: "verified" }>((resolve) => {
-        resolveVerification = resolve;
-      });
-
-    const migration = harness.checkoutRepository.migrateLegacy({
-      scope: scopeA,
-      accommodationId: 7,
-      verify,
-      isCurrent: harness.isCurrent,
-    });
-    await Promise.resolve();
-    harness.setEpoch(8);
-    resolveVerification({ status: "verified" });
-
-    await expect(migration).resolves.toEqual({ status: "stale" });
-    expect(harness.storage.getItem(checkoutKey)).toBeNull();
-    expect(harness.storage.getItem(legacyPrimaryKey)).not.toBeNull();
-    expect(harness.storage.getItem(legacyIndexKey)).toBe("7");
-  });
-
-  it("fails closed and removes the new target when legacy cleanup is partial", async () => {
-    const storage = createStorage({
-      [legacyPrimaryKey]: JSON.stringify(legacyCheckout),
-      [legacyIndexKey]: "7",
-    });
-    const originalRemove = storage.removeItem.bind(storage);
-    vi.spyOn(storage, "removeItem").mockImplementation((key) => {
-      if (key === legacyIndexKey) throw new Error("legacy cleanup blocked");
-      originalRemove(key);
-    });
-    const harness = setup({ storage });
-
-    await expect(
-      harness.checkoutRepository.migrateLegacy({
-        scope: scopeA,
-        accommodationId: 7,
-        verify: vi.fn().mockResolvedValue({ status: "verified" }),
-        isCurrent: harness.isCurrent,
-      }),
-    ).resolves.toEqual({ status: "rejected", reason: "cleanup-failed" });
-    expect(harness.storage.getItem(checkoutKey)).toBeNull();
-  });
-});
-
 describe("booking-payment browser cleanup and failures", () => {
-  it("clears only the new namespace plus exact legacy prefixes", () => {
+  it("clears the current namespace and purge-only retired payment prefixes", () => {
     const harness = setup();
     writeCheckout(harness);
     harness.storage.setItem(callbackKey, "callback");
-    harness.storage.setItem(legacyPrimaryKey, "legacy");
-    harness.storage.setItem(legacyIndexKey, "7");
-    harness.storage.setItem("airbob:payment-confirmed:tuple", "1");
+    harness.storage.setItem(retiredPrimaryKey, "retired");
+    harness.storage.setItem(retiredIndexKey, "7");
+    harness.storage.setItem(retiredMarkerKey, "1");
     harness.storage.setItem("airbob:booking-payment-v10:checkout", "keep");
     harness.storage.setItem("airbob:reservation-checkouts:7", "keep");
     harness.storage.setItem("third-party", "keep");
@@ -977,6 +566,9 @@ describe("booking-payment browser cleanup and failures", () => {
     expect(clearBookingPaymentBrowserState({ driver: harness.driver })).toEqual(
       { status: "cleared", removed: 5 },
     );
+    expect(harness.storage.getItem(retiredPrimaryKey)).toBeNull();
+    expect(harness.storage.getItem(retiredIndexKey)).toBeNull();
+    expect(harness.storage.getItem(retiredMarkerKey)).toBeNull();
     expect(harness.storage.getItem("airbob:booking-payment-v10:checkout")).toBe(
       "keep",
     );
@@ -986,21 +578,16 @@ describe("booking-payment browser cleanup and failures", () => {
     expect(harness.storage.getItem("third-party")).toBe("keep");
   });
 
-  it("retries partial current and legacy namespace cleanup once", () => {
+  it("retries a partial current namespace cleanup once", () => {
     const storage = createStorage({
       [checkoutKey]: "checkout",
       [callbackKey]: "callback",
-      [legacyPrimaryKey]: "legacy",
-      [legacyIndexKey]: "7",
       keep: "keep",
     });
     const originalRemove = storage.removeItem.bind(storage);
     const failedOnce = new Set<string>();
     vi.spyOn(storage, "removeItem").mockImplementation((key) => {
-      if (
-        (key === callbackKey || key === legacyIndexKey) &&
-        !failedOnce.has(key)
-      ) {
+      if (key === callbackKey && !failedOnce.has(key)) {
         failedOnce.add(key);
         throw new Error("transient cleanup failure");
       }
@@ -1010,12 +597,10 @@ describe("booking-payment browser cleanup and failures", () => {
 
     expect(clearBookingPaymentBrowserState({ driver })).toEqual({
       status: "cleared",
-      removed: 4,
+      removed: 2,
     });
     expect(storage.getItem(checkoutKey)).toBeNull();
     expect(storage.getItem(callbackKey)).toBeNull();
-    expect(storage.getItem(legacyPrimaryKey)).toBeNull();
-    expect(storage.getItem(legacyIndexKey)).toBeNull();
     expect(storage.getItem("keep")).toBe("keep");
   });
 
@@ -1060,6 +645,32 @@ describe("booking-payment browser cleanup and failures", () => {
       remove.mock.calls.filter(([key]) => key === callbackKey),
     ).toHaveLength(2);
     expect(storage.getItem(callbackKey)).toBe("callback");
+  });
+
+  it("fails closed when purge-only retired payment cleanup cannot complete", () => {
+    const storage = createStorage({
+      [retiredPrimaryKey]: "retired-checkout-with-personal-data",
+      keep: "keep",
+    });
+    const originalRemove = storage.removeItem.bind(storage);
+    const remove = vi.spyOn(storage, "removeItem").mockImplementation((key) => {
+      if (key === retiredPrimaryKey) {
+        throw new Error("persistent retired cleanup failure");
+      }
+      originalRemove(key);
+    });
+    const driver = createSessionStorageDriver({ getStorage: () => storage });
+
+    expect(clearBookingPaymentBrowserState({ driver })).toEqual({
+      status: "partial",
+      removed: 0,
+      failed: 1,
+    });
+    expect(
+      remove.mock.calls.filter(([key]) => key === retiredPrimaryKey),
+    ).toHaveLength(2);
+    expect(storage.getItem(retiredPrimaryKey)).not.toBeNull();
+    expect(storage.getItem("keep")).toBe("keep");
   });
 
   it("returns typed storage errors from reads and writes", () => {

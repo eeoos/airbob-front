@@ -1,9 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import {
-  checkoutOwnershipApi,
-  paymentApi,
-} from "../../../features/reservations/payment/public";
 import { resolveImageUrl } from "../../../platform/assets/imageUrl";
 import { browserWindowNavigation } from "../../../platform/browser/windowNavigation";
 import { ReservationConfirmController } from "../../../screens/reservation-confirm/ReservationConfirmController";
@@ -14,8 +10,6 @@ import {
   createBookingPaymentCallbackRepository,
   createBookingPaymentCheckoutRepository,
   createTossPaymentsV2GatewayLease,
-  isCheckoutHandoffState,
-  parseLegacyCheckoutCandidate,
   type CheckoutData,
 } from "../../../workflows/booking-payment/checkout";
 import { useSession } from "../../session/useSession";
@@ -89,7 +83,6 @@ export function ReservationConfirmRoute() {
     }
     if (scope === null) return;
 
-    const controller = new AbortController();
     let active = true;
     const isCurrent = () =>
       active && routeLease.isCurrent() && isCurrentSession(scope);
@@ -113,9 +106,10 @@ export function ReservationConfirmRoute() {
       if (!isCurrent()) return;
       clearBookingPaymentBrowserState();
       setResolution({ status: "invalid" });
-      navigate(routeTo.accommodationDetail(accommodationId), {
-        replace: true,
-      });
+      // Reservation creation precedes the checkout handoff. When that handoff
+      // is missing or unusable, send the guest to their server-owned trips
+      // instead of inviting a second reservation command from the detail page.
+      navigate(routeTo.profile(), { replace: true });
     };
     const rejectRouteMismatch = () => {
       if (!isCurrent()) return;
@@ -179,85 +173,26 @@ export function ReservationConfirmRoute() {
       resolveCheckout(owned.data);
       return () => {
         active = false;
-        controller.abort();
-      };
-    }
-    if (isCheckoutHandoffState(location.state)) {
-      // A valid current-format handoff always belongs to the current
-      // repository. A missing target, stale operation, or another
-      // accommodation must never be reinterpreted as legacy data or delete
-      // active checkout documents.
-      rejectRouteMismatch();
-      return () => {
-        active = false;
-        controller.abort();
       };
     }
     if (
-      location.state !== null &&
-      location.state !== undefined &&
-      parseLegacyCheckoutCandidate(location.state, accommodationId) === null
+      owned.status === "rejected" &&
+      (owned.reason === "invalid-handoff" ||
+        owned.reason === "operation-mismatch" ||
+        owned.reason === "accommodation-mismatch")
     ) {
-      // Unknown or malformed history state is neither a current handoff nor a
-      // legacy checkout. It must not be allowed to purge either namespace.
+      // A current checkout may belong to another route or newer history entry.
+      // Preserve it while rejecting only this navigation.
       rejectRouteMismatch();
-      return () => {
-        active = false;
-        controller.abort();
-      };
+    } else {
+      // Confirmation accepts only the current versioned document, optionally
+      // joined to its exact handoff. Missing, unreadable, or retired state is
+      // never upgraded and never triggers a backend ownership/payment lookup.
+      rejectCheckout();
     }
-
-    void checkoutRepository
-      .migrateLegacy({
-        scope,
-        accommodationId,
-        ...(location.state !== null && location.state !== undefined
-          ? { rawLegacyLocationCandidate: location.state }
-          : {}),
-        isCurrent,
-        verify: async (candidate) => {
-          const ownership = await checkoutOwnershipApi.getCheckoutOwnership(
-            candidate.reservationUid,
-            { signal: controller.signal },
-          );
-          if (
-            !isCurrent() ||
-            ownership.reservationUid !== candidate.reservationUid ||
-            ownership.accommodationId !== candidate.accommodationId ||
-            ownership.checkIn !== candidate.checkIn ||
-            ownership.checkOut !== candidate.checkOut ||
-            ownership.guestCount !== candidate.guestCount
-          ) {
-            return { status: "mismatch" as const };
-          }
-
-          const serverPayment =
-            ownership.payment ??
-            (await paymentApi.getByOrderId(candidate.reservationUid, {
-              signal: controller.signal,
-            }));
-          return isCurrent() &&
-            serverPayment.orderId === candidate.reservationUid &&
-            serverPayment.totalAmount === candidate.amount
-            ? { status: "verified" as const }
-            : { status: "mismatch" as const };
-        },
-      })
-      .then((result) => {
-        if (result.status === "migrated" || result.status === "target-wins") {
-          resolveCheckout(result.data);
-          return;
-        }
-        if (result.status === "verification-retryable") {
-          rejectRouteMismatch();
-          return;
-        }
-        rejectCheckout();
-      });
 
     return () => {
       active = false;
-      controller.abort();
     };
   }, [
     accommodationId,

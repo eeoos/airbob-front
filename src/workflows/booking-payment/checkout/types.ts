@@ -105,53 +105,6 @@ export type SubjectOwnedClearResult =
     }
   | { readonly status: "storage-error"; readonly error: StorageAccessError };
 
-export interface LegacyCheckoutVerificationInput {
-  readonly accommodationId: number;
-  readonly reservationUid: string;
-  readonly orderName: string;
-  readonly amount: number;
-  readonly checkIn: string;
-  readonly checkOut: string;
-  readonly guestCount: number;
-}
-
-export type LegacyCheckoutVerificationResult =
-  | { readonly status: "verified" }
-  | { readonly status: "mismatch" }
-  | { readonly status: "retryable-error" };
-
-export type VerifyLegacyCheckout = (
-  candidate: LegacyCheckoutVerificationInput,
-) => Promise<LegacyCheckoutVerificationResult>;
-
-export interface LegacyCheckoutMigrationInput {
-  readonly scope: AuthenticatedSessionScope;
-  readonly accommodationId: number;
-  readonly rawLegacyLocationCandidate?: unknown;
-  readonly verify: VerifyLegacyCheckout;
-  readonly isCurrent: () => boolean;
-}
-
-export type LegacyCheckoutMigrationResult =
-  | {
-      readonly status: "migrated" | "target-wins";
-      readonly data: CheckoutData;
-      readonly handle: CheckoutHandoffState;
-    }
-  | { readonly status: "missing" }
-  | { readonly status: "stale" }
-  | { readonly status: "verification-retryable" }
-  | {
-      readonly status: "rejected";
-      readonly reason:
-        | "invalid-route"
-        | "invalid-legacy-data"
-        | "index-mismatch"
-        | "verification-failed"
-        | "cleanup-failed";
-    }
-  | { readonly status: "storage-error"; readonly error: StorageAccessError };
-
 export interface CheckoutRepository {
   write(
     input: SubjectOwnedWriteInput<CheckoutWriteData>,
@@ -172,9 +125,6 @@ export interface CheckoutRepository {
     readonly scope: AuthenticatedSessionScope;
     readonly isCurrent?: () => boolean;
   }): SubjectOwnedClearResult;
-  migrateLegacy(
-    input: LegacyCheckoutMigrationInput,
-  ): Promise<LegacyCheckoutMigrationResult>;
 }
 
 export interface CallbackRepository {
@@ -189,14 +139,6 @@ export interface CallbackRepository {
     readonly scope: AuthenticatedSessionScope;
     readonly isCurrent?: () => boolean;
   }): SubjectOwnedClearResult;
-  consumeLegacyConfirmedPaymentHint(input: {
-    readonly orderId: string;
-    readonly paymentKey: string;
-    readonly amount: number;
-  }):
-    | { readonly status: "hint"; readonly shouldReconcile: boolean }
-    | { readonly status: "rejected" }
-    | { readonly status: "storage-error"; readonly error: StorageAccessError };
 }
 
 export type ClearBookingPaymentBrowserStateResult =

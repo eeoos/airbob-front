@@ -37,7 +37,8 @@ const searchableAccommodation = {
   is_in_wishlist: false,
 };
 
-const sessionStoragePrefixes = [
+const identityOwnedSessionStoragePrefixes = [
+  "airbob:booking-payment-v1:",
   "airbob:reservation-checkout:",
   "airbob:reservation-checkout-index:",
   "airbob:payment-confirmed:",
@@ -113,8 +114,16 @@ const logoutFromSessionRoute = async (page: Page) => {
 const seedOwnedSessionStorage = async (page: Page, tabId: string) => {
   await page.evaluate((syntheticTabId) => {
     sessionStorage.setItem(
+      "airbob:booking-payment-v1:checkout",
+      `synthetic-checkout-${syntheticTabId}`,
+    );
+    sessionStorage.setItem(
+      "airbob:booking-payment-v1:callback",
+      `synthetic-callback-${syntheticTabId}`,
+    );
+    sessionStorage.setItem(
       `airbob:reservation-checkout:${syntheticTabId}`,
-      "synthetic-checkout",
+      `retired-checkout-${syntheticTabId}`,
     );
     sessionStorage.setItem(
       `airbob:reservation-checkout-index:synthetic-${syntheticTabId}`,
@@ -140,7 +149,7 @@ const readOwnedSessionStorage = (page: Page) =>
       ),
       unrelated: sessionStorage.getItem("airbob:unrelated"),
     };
-  }, sessionStoragePrefixes);
+  }, identityOwnedSessionStoragePrefixes);
 
 const expectOwnedSessionStorageCleared = async (page: Page, tabId: string) => {
   await expect

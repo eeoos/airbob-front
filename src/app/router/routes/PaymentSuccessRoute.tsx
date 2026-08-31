@@ -199,7 +199,6 @@ export function PaymentSuccessRoute() {
     invalidHandledRef.current = true;
     const clearJoinedDocuments =
       resolution.reason === "callback-mismatch" ||
-      resolution.reason === "marker-unavailable" ||
       resolution.reason === "callback-write-failed";
     handleInvalid(clearJoinedDocuments);
   }, [handleInvalid, location.search, resolution]);
