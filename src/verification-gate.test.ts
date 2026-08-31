@@ -47,6 +47,20 @@ const architectureFreezeDocPath = path.join(
 const envExamplePath = path.join(projectRoot, ".env.example");
 const frontendSmokePath = path.join(projectRoot, "scripts/smoke/frontend-smoke.mjs");
 const sourceRoot = path.join(projectRoot, "src");
+const retiredSourceRoots = [
+  "api",
+  "contexts",
+  "hooks",
+  "layouts",
+  "query",
+  "routes",
+  "types",
+  "utils",
+] as const;
+const googleMapsGlobalDeclarationPath = path.join(
+  sourceRoot,
+  "platform/integrations/googleMaps.global.d.ts",
+);
 
 const productionSourceExtensions = new Set([
   ".js",
@@ -55,7 +69,7 @@ const productionSourceExtensions = new Set([
   ".ts",
   ".tsx",
 ]);
-const rawConsoleAllowlist = new Set(["src/utils/clientLogger.ts"]);
+const rawConsoleAllowlist = new Set(["src/platform/logging/clientLogger.ts"]);
 const dynamicInlineStyleAllowlist = [
   {
     filePath: "src/screens/accommodation-edit/components/PhotosStep.tsx",
@@ -201,6 +215,25 @@ const writePreflightFetchMock = (
 };
 
 describe("frontend verification gate", () => {
+  test("retired legacy source roots remain absent", () => {
+    const existingRetiredRoots = retiredSourceRoots.filter((root) =>
+      fs.existsSync(path.join(sourceRoot, root)),
+    );
+
+    expect(existingRetiredRoots).toEqual([]);
+  });
+
+  test("the platform integration owns only the live Google Window declaration", () => {
+    const declaration = fs.readFileSync(
+      googleMapsGlobalDeclarationPath,
+      "utf8",
+    );
+
+    expect(declaration).toContain("google: typeof google;");
+    expect(declaration).not.toContain("toggleWishlist");
+    expect(declaration).not.toContain("closeInfoWindow");
+  });
+
   test("query error toast handling uses the shared query hook", () => {
     const productionFiles = getProductionSourceFiles()
       .map(toProjectPath)
@@ -303,8 +336,9 @@ describe("frontend verification gate", () => {
     expect(staticInlineStyleViolations).toEqual([]);
   });
 
-  test("package scripts run typecheck, no-cache CI tests, and build", () => {
+  test("package scripts and lint ownership exceptions match the active architecture", () => {
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+    const eslintConfig = JSON.stringify(packageJson.eslintConfig);
 
     expect(packageJson.packageManager).toBe("npm@10.7.0");
     expect(packageJson.engines?.node).toBe(
@@ -409,6 +443,8 @@ describe("frontend verification gate", () => {
     expect(packageJson.scripts.verify).toContain("npm run build");
     expect(packageJson.scripts.verify).not.toContain("npm run lint");
     expect(packageJson.scripts.verify).not.toContain("lint:strict");
+    expect(eslintConfig).not.toContain("src/api/client.ts");
+    expect(eslintConfig).not.toContain("src/utils/error.ts");
   });
 
   test("frontend CI runs static and deterministic browser gates on Node 20", () => {
@@ -495,10 +531,10 @@ describe("frontend verification gate", () => {
       "There must be one active writer for every mutable workflow.",
       "All 15 entries are lazy.",
       "src/app/router/lazyRoutes.tsx",
+      "src/app/header/**",
       "src/app/shells/**",
-      "The remaining rollback-only route chain is",
-      "Still-active compatibility",
-      "The eight remaining app-adapter bridges",
+      "The retired legacy source roots are absent from src.",
+      "Feature ownership boundaries are closed.",
       "Airbnb visual redesign begins only after the architecture design-entry gate",
       "When documents disagree about the current frontend, this document wins.",
     ].forEach((term) => {
@@ -516,14 +552,16 @@ describe("frontend verification gate", () => {
       "Current cutover state: app Router/session/structural UI",
     );
     expect(ownershipMatrixDoc).toContain(
-      "app adapter → current/old body",
+      "All 15 lazy routes resolve to app/screen-owned bodies",
     );
     expect(ownershipMatrixDoc).toContain(
       "**Active:** app codec/navigation/auth composition",
     );
     expect(ownershipMatrixDoc).toContain("U10/U11 payment compatibility matrix");
     expect(architectureRulesDoc).toContain("Single rule owners");
-    expect(architectureRulesDoc).toContain("eleven cross-feature compatibility edges");
+    expect(architectureRulesDoc).toContain(
+      "Feature-to-peer production imports are errors regardless of filename",
+    );
     expect(architectureRulesDoc).toContain("Strict design-policy errors are zero");
     expect(Array.isArray(architectureRatchet.migratedFeatures)).toBe(true);
     expect(new Set(architectureRatchet.migratedFeatures).size).toBe(
@@ -536,6 +574,9 @@ describe("frontend verification gate", () => {
       "accommodations/detail",
       "accommodations/listing-editor",
       "auth",
+      "home",
+      "profile",
+      "reservations",
       "reservations/payment",
       "reviews",
       "search",

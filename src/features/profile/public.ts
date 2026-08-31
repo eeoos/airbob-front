@@ -1,1 +1,1 @@
-export { invalidateProfileHostListingCaches } from "./publicCache";
+export { createHostListingQueryCacheProjection } from "./cache/hostListingQueryCacheProjection";

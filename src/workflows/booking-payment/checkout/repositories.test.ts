@@ -179,6 +179,7 @@ describe("booking-payment checkout repository", () => {
     ["no paying guests", { adultOccupancy: 0, childOccupancy: 0 }],
     ["unsafe discount", { couponDiscount: Number.MAX_SAFE_INTEGER + 1 }],
     ["blank reservation", { reservationUid: "" }],
+    ["path-shaped reservation", { reservationUid: "../admin" }],
   ])("rejects %s", (_name, override) => {
     const harness = setup();
 

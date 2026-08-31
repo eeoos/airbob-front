@@ -7,7 +7,6 @@ import reportWebVitals from './reportWebVitals';
 import { AppProviders } from './app/providers/AppProviders';
 import { clearIdentityOwnedFrontendState } from './app/providers/clearIdentityOwnedFrontendState';
 import { ErrorBoundary } from './components/ErrorBoundary/ErrorBoundary';
-import { AuthProvider } from './contexts/AuthContext';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -17,9 +16,7 @@ root.render(
     <ErrorBoundary>
       <BrowserRouter>
         <AppProviders clearIdentityOwnedState={clearIdentityOwnedFrontendState}>
-          <AuthProvider>
-            <App />
-          </AuthProvider>
+          <App />
         </AppProviders>
       </BrowserRouter>
     </ErrorBoundary>

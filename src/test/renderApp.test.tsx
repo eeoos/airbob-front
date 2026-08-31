@@ -3,7 +3,6 @@ import userEvent from "@testing-library/user-event";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSession } from "../app/session/useSession";
 import { toSessionSubject } from "../app/session/sessionState";
-import { useAuth } from "../contexts/AuthContext";
 import type {
   SessionAuthPort,
   SessionViewer,
@@ -27,12 +26,15 @@ const nextSession: SessionViewer = {
 };
 
 const HarnessProbe = () => {
-  const auth = useAuth();
+  const sessionState = useSession();
   const location = useLocation();
 
   return (
     <output>
-      {auth.isAuthenticated ? "authenticated" : "anonymous"}|
+      {sessionState.state.status === "authenticated"
+        ? "authenticated"
+        : "anonymous"}
+      |
       {location.pathname}|{String((location.state as { source?: string })?.source)}
     </output>
   );

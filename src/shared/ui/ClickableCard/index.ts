@@ -1,2 +1,5 @@
-export { ClickableCard } from "./ClickableCard";
-export type { ClickableCardProps } from "./ClickableCard";
+export { ActionCard, NavigationCard } from "./InteractiveCard";
+export type {
+  ActionCardProps,
+  NavigationCardProps,
+} from "./InteractiveCard";

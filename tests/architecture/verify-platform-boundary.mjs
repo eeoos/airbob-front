@@ -276,6 +276,18 @@ const invalidScenarios = [
     expectedMessage: "platform HTTP boundary",
   },
   {
+    name: "retired API root Axios import",
+    filename: "src/api/client.ts",
+    source: 'import axios from "axios"; export const value = axios;',
+    expectedMessage: "platform HTTP boundary",
+  },
+  {
+    name: "retired utils root Axios type import",
+    filename: "src/utils/error.ts",
+    source: 'import type { AxiosError } from "axios"; export type Failure = AxiosError;',
+    expectedMessage: "platform HTTP boundary",
+  },
+  {
     name: "Axios subpath import",
     filename: "src/components/rogue-axios.ts",
     source:
@@ -529,11 +541,6 @@ if (
   );
 }
 
-const allowedLegacyAxiosTypeImports = new Set([
-  "src/api/client.ts",
-  "src/utils/error.ts",
-]);
-const allowedLegacyStorageImporters = new Set();
 const isAxiosModuleSpecifier = (moduleSpecifier) =>
   ts.isStringLiteral(moduleSpecifier) && moduleSpecifier.text.startsWith("axios");
 const productionSourceFiles = ts.sys
@@ -550,29 +557,13 @@ const productionSourceFiles = ts.sys
   .filter(({ projectPath }) => isProductionSourcePath(projectPath));
 const productionBoundaryViolations = [];
 
-const isTypeOnlyImport = (statement) => {
-  const importClause = statement.importClause;
-  if (!importClause) return false;
-  if (importClause.isTypeOnly) return true;
-  if (importClause.name) return false;
-
-  return (
-    importClause.namedBindings &&
-    ts.isNamedImports(importClause.namedBindings) &&
-    importClause.namedBindings.elements.length > 0 &&
-    importClause.namedBindings.elements.every((element) => element.isTypeOnly)
-  );
-};
-
 const collectAxiosBoundaryViolations = ({ sourceFile, projectPath }) => {
   if (projectPath.startsWith("src/platform/http/")) return [];
 
   return sourceFile.statements.flatMap((statement) => {
     if (
       ts.isImportDeclaration(statement) &&
-      isAxiosModuleSpecifier(statement.moduleSpecifier) &&
-      (!allowedLegacyAxiosTypeImports.has(projectPath) ||
-        !isTypeOnlyImport(statement))
+      isAxiosModuleSpecifier(statement.moduleSpecifier)
     ) {
       return [`${projectPath}:runtime-axios-import`];
     }
@@ -655,7 +646,7 @@ if (
     projectPath: axiosReExportFixturePath,
   }).includes(`${axiosReExportFixturePath}:runtime-axios-export`)
 ) {
-  throw new Error("A legacy Axios type-only seam allowed a runtime re-export.");
+  throw new Error("A retired global root allowed an Axios runtime re-export.");
 }
 
 const dynamicBoundaryFixtures = [
@@ -753,8 +744,7 @@ for (const { absolutePath, projectPath } of productionSourceFiles) {
       node.argumentExpression.text === "legacySessionStorageCompatibility";
     if (
       (isLegacyStorageIdentifier || isComputedLegacyStorageAccess) &&
-      !projectPath.startsWith("src/platform/storage/") &&
-      !allowedLegacyStorageImporters.has(projectPath)
+      !projectPath.startsWith("src/platform/storage/")
     ) {
       productionBoundaryViolations.push(
         `${projectPath}:unowned-legacy-storage-import`,

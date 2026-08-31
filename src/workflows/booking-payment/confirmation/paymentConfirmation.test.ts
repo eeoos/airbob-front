@@ -124,6 +124,11 @@ describe("payment confirmation workflow", () => {
   it.each([
     { paymentKey: "", label: "missing payment key" },
     { orderId: "other", label: "mismatched order" },
+    {
+      reservationUid: "../admin",
+      orderId: "../admin",
+      label: "path-shaped reservation",
+    },
     { amount: 0, label: "unsafe amount" },
   ])("rejects $label without server I/O", async (override) => {
     const { api, ownershipApi, workflow } = setup();

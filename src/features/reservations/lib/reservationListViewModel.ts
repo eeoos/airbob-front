@@ -1,8 +1,8 @@
+import { resolveImageUrl as defaultResolveImageUrl } from "../../../platform/assets/imageUrl";
 import type {
-  HostReservationInfo,
-  MyReservationInfo,
-} from "../../../types/reservation";
-import { getImageUrl } from "../../../utils/image";
+  GuestReservationListItem,
+  HostReservationListItem,
+} from "../model/reservationRead";
 import { formatGuestTripDateRange } from "./guestTripGroups";
 import { formatKoreanDate, formatNullablePrice } from "./reservationDateDisplay";
 import type { ReservationStatusTone } from "./reservationStatusDisplay";
@@ -12,7 +12,6 @@ import {
 } from "./reservationStatusDisplay";
 
 export interface GuestTripCardViewModel {
-  id: number;
   reservationUid: string;
   accommodationName: string;
   thumbnailUrl: string | null;
@@ -34,32 +33,32 @@ export interface HostReservationRowViewModel {
 }
 
 export const toGuestTripCardViewModel = (
-  reservation: MyReservationInfo,
+  reservation: GuestReservationListItem,
+  resolveImageUrl: (path: string | null) => string = defaultResolveImageUrl,
 ): GuestTripCardViewModel => ({
-  id: reservation.reservation_id,
-  reservationUid: reservation.reservation_uid,
+  reservationUid: reservation.reservationUid,
   accommodationName: reservation.accommodation.name,
-  thumbnailUrl: reservation.accommodation.thumbnail_url
-    ? getImageUrl(reservation.accommodation.thumbnail_url)
+  thumbnailUrl: reservation.accommodation.thumbnailUrl
+    ? resolveImageUrl(reservation.accommodation.thumbnailUrl)
     : null,
   dateRangeLabel: formatGuestTripDateRange(
-    reservation.check_in_date,
-    reservation.check_out_date,
+    reservation.checkInDate,
+    reservation.checkOutDate,
   ),
 });
 
 export const toHostReservationRowViewModel = (
-  reservation: HostReservationInfo,
+  reservation: HostReservationListItem,
 ): HostReservationRowViewModel => ({
-  reservationUid: reservation.reservation_uid,
+  reservationUid: reservation.reservationUid,
   statusLabel: formatReservationStatus(reservation.status),
   statusTone: getReservationStatusTone(reservation.status),
   guestName: reservation.guest.nickname,
-  guestCountLabel: `${reservation.guest_count}명`,
-  checkInLabel: formatKoreanDate(reservation.check_in_date),
-  checkOutLabel: formatKoreanDate(reservation.check_out_date),
-  createdAtLabel: formatKoreanDate(reservation.created_at),
+  guestCountLabel: `${reservation.guestCount}명`,
+  checkInLabel: formatKoreanDate(reservation.checkInDate),
+  checkOutLabel: formatKoreanDate(reservation.checkOutDate),
+  createdAtLabel: formatKoreanDate(reservation.createdAt),
   accommodationName: reservation.accommodation.name,
-  reservationCodeLabel: reservation.reservation_code || "-",
-  totalPriceLabel: formatNullablePrice(reservation.total_price),
+  reservationCodeLabel: reservation.reservationCode || "-",
+  totalPriceLabel: formatNullablePrice(reservation.totalPrice),
 });

@@ -4,20 +4,26 @@ import styles from "./TimeStep.module.css";
 
 interface TimePickerProps {
   hour: number;
+  id?: string;
   minute: number;
+  pickerRef?: React.Ref<HTMLDivElement>;
   period: AccommodationEditTimePeriod;
   onChange: (
     hour: number,
     minute: number,
     period: AccommodationEditTimePeriod
   ) => void;
+  onEscape?: () => boolean | void;
 }
 
 export const TimePicker: React.FC<TimePickerProps> = ({
   hour,
+  id,
   minute,
+  pickerRef,
   period,
   onChange,
+  onEscape,
 }) => {
   const [localHour, setLocalHour] = useState(hour);
   const [localMinute, setLocalMinute] = useState(minute);
@@ -93,6 +99,23 @@ export const TimePicker: React.FC<TimePickerProps> = ({
     }
   };
 
+  const handlePickerKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape" && onEscape) {
+      if (onEscape() !== false) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      return;
+    }
+
+    const target = event.target as HTMLElement;
+    if (target.closest(`.${styles.timePickerColumn}:nth-child(2)`)) {
+      handleKeyDown(event, "hour");
+    } else if (target.closest(`.${styles.timePickerColumn}:nth-child(3)`)) {
+      handleKeyDown(event, "minute");
+    }
+  };
+
   const hours = Array.from({ length: 12 }, (_, i) => i + 1);
   const minutes = Array.from({ length: 60 }, (_, i) => i).filter(
     (m) => m % 5 === 0
@@ -100,16 +123,11 @@ export const TimePicker: React.FC<TimePickerProps> = ({
 
   return (
     <div
+      ref={pickerRef}
+      id={id}
       className={styles.timePickerDropdown}
       onClick={(e) => e.stopPropagation()}
-      onKeyDown={(e) => {
-        const target = e.target as HTMLElement;
-        if (target.closest(`.${styles.timePickerColumn}:nth-child(2)`)) {
-          handleKeyDown(e, "hour");
-        } else if (target.closest(`.${styles.timePickerColumn}:nth-child(3)`)) {
-          handleKeyDown(e, "minute");
-        }
-      }}
+      onKeyDown={handlePickerKeyDown}
       tabIndex={0}
     >
       <div className={styles.timePickerContent}>

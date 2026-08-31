@@ -4,8 +4,10 @@ import {
   type CheckoutOwnershipApiTransport,
 } from "./checkoutOwnershipApi";
 
+const RESERVATION_UID = "reservation-123";
+
 const ownershipWire: CheckoutOwnershipWire = {
-  reservation_uid: "reservation-123",
+  reservation_uid: RESERVATION_UID,
   check_in_date_time: "2026-07-10T15:00:00",
   check_out_date_time: "2026-07-12T11:00:00",
   guest_count: 3,
@@ -15,7 +17,7 @@ const ownershipWire: CheckoutOwnershipWire = {
     thumbnail_url: "/room.jpg",
   },
   payment: {
-    order_id: "reservation-123",
+    order_id: RESERVATION_UID,
     payment_key: "payment-key-1",
     total_amount: 120000,
     status: "IN_PROGRESS",
@@ -32,15 +34,15 @@ describe("checkout ownership API adapter", () => {
     const signal = new AbortController().signal;
 
     await expect(
-      api.getCheckoutOwnership("reservation-123", { signal }),
+      api.getCheckoutOwnership(RESERVATION_UID, { signal }),
     ).resolves.toEqual({
-      reservationUid: "reservation-123",
+      reservationUid: RESERVATION_UID,
       accommodationId: 7,
       checkIn: "2026-07-10",
       checkOut: "2026-07-12",
       guestCount: 3,
       payment: {
-        orderId: "reservation-123",
+        orderId: RESERVATION_UID,
         paymentKey: "payment-key-1",
         totalAmount: 120000,
         status: "IN_PROGRESS",
@@ -48,7 +50,7 @@ describe("checkout ownership API adapter", () => {
     });
     expect(request).toHaveBeenCalledWith({
       method: "GET",
-      path: "/profile/guest/reservations/reservation-123",
+      path: `/profile/guest/reservations/${RESERVATION_UID}`,
       signal,
     });
     expect(request.mock.calls[0][0]).not.toHaveProperty("body");
@@ -65,15 +67,27 @@ describe("checkout ownership API adapter", () => {
     );
 
     await expect(
-      api.getCheckoutOwnership("reservation-123"),
+      api.getCheckoutOwnership(RESERVATION_UID),
     ).resolves.toEqual(
       expect.objectContaining({
-        reservationUid: "reservation-123",
+        reservationUid: RESERVATION_UID,
         payment: null,
       }),
     );
     expect(request).toHaveBeenCalledWith(
       expect.objectContaining({ signal: undefined }),
     );
+  });
+
+  it("rejects a dot-segment UID before credentialed transport", async () => {
+    const request = jest.fn();
+    const api = createCheckoutOwnershipApi(
+      request as CheckoutOwnershipApiTransport,
+    );
+
+    await expect(
+      api.getCheckoutOwnership("../../payments"),
+    ).rejects.toMatchObject({ code: "INVALID_OPAQUE_PATH_SEGMENT" });
+    expect(request).not.toHaveBeenCalled();
   });
 });

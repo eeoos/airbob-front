@@ -1,4 +1,5 @@
-import { createAppQueryClient } from "../../query/queryClient";
+import { readFileSync } from "fs";
+import { join } from "path";
 import { createQueryClient } from "./createQueryClient";
 
 describe("createQueryClient", () => {
@@ -27,13 +28,15 @@ describe("createQueryClient", () => {
     expect(defaults.mutations).toMatchObject({ retry: false });
   });
 
-  it("connects the legacy production factory to the platform implementation", () => {
-    const defaults = createAppQueryClient().getDefaultOptions();
+  it("keeps the session runtime bound to the platform-owned factory", () => {
+    const sessionRuntimeSource = readFileSync(
+      join(process.cwd(), "src/app/session/useSessionQueryLifetime.ts"),
+      "utf8",
+    );
 
-    expect(defaults.queries).toMatchObject({
-      retry: 1,
-      refetchOnWindowFocus: false,
-    });
-    expect(defaults.mutations).toMatchObject({ retry: false });
+    expect(sessionRuntimeSource).toMatch(
+      /from ["']\.\.\/\.\.\/platform\/query\/createQueryClient["'];/,
+    );
+    expect(sessionRuntimeSource).not.toContain("src/query");
   });
 });

@@ -1,6 +1,18 @@
-import { act, renderHook } from "@testing-library/react";
-import { PanInfo } from "framer-motion";
+import { act, render, renderHook, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { animate, PanInfo } from "framer-motion";
 import { useSearchBottomSheet } from "./useSearchBottomSheet";
+
+jest.mock("framer-motion", () => {
+  const actual = jest.requireActual("framer-motion");
+
+  return {
+    ...actual,
+    animate: jest.fn(() => ({ stop: jest.fn() })),
+  };
+});
+
+const mockAnimate = jest.mocked(animate);
 
 type MediaQueryChangeListener = (event: MediaQueryListEvent) => void;
 
@@ -9,8 +21,13 @@ const mediaQueryLists = new Set<{
   matches: boolean;
   readonly listeners: Set<MediaQueryChangeListener>;
 }>();
+let prefersReducedMotion = false;
 
 const matchesMediaQuery = (query: string, width: number) => {
+  if (query === "(prefers-reduced-motion: reduce)") {
+    return prefersReducedMotion;
+  }
+
   const maxWidth = /\(max-width:\s*(\d+)px\)/.exec(query);
   if (maxWidth) return width <= Number(maxWidth[1]);
 
@@ -91,9 +108,37 @@ const panInfo = (offsetY: number, velocityY = 0): PanInfo =>
     velocity: { x: 0, y: velocityY },
   } as PanInfo);
 
+const BottomSheetFocusHarness = () => {
+  const bottomSheet = useSearchBottomSheet();
+
+  return (
+    <section ref={bottomSheet.bottomSheetRef}>
+      <button ref={bottomSheet.bottomSheetHandleRef} type="button">
+        패널 조절
+      </button>
+      <div hidden={bottomSheet.bottomSheetState === "collapsed"}>
+        <button
+          type="button"
+          onClick={(event) => {
+            bottomSheet.handleMapInteraction();
+            event.currentTarget.blur();
+          }}
+        >
+          패널 접기
+        </button>
+      </div>
+    </section>
+  );
+};
+
 describe("useSearchBottomSheet", () => {
   beforeEach(() => {
     mediaQueryLists.clear();
+    prefersReducedMotion = false;
+    mockAnimate.mockClear();
+    mockAnimate.mockReturnValue({
+      stop: jest.fn(),
+    } as unknown as ReturnType<typeof animate>);
     installMatchMedia();
     resizeWindow(390);
   });
@@ -171,6 +216,123 @@ describe("useSearchBottomSheet", () => {
     });
 
     expect(result.current.bottomSheetState).toBe("half");
+  });
+
+  it("moves with the pointer while clamping drag translation to the snap range", () => {
+    prefersReducedMotion = true;
+    const { result } = renderHook(() => useSearchBottomSheet());
+
+    act(() => {
+      result.current.handleDragStart();
+      result.current.handleDrag({} as PointerEvent, panInfo(-10_000));
+    });
+    expect(result.current.translateY.get()).toBe(
+      -result.current.snapPositions.expanded,
+    );
+
+    act(() => {
+      result.current.handleDrag({} as PointerEvent, panInfo(10_000));
+    });
+    expect(result.current.translateY.get()).toBe(
+      -result.current.snapPositions.collapsed,
+    );
+  });
+
+  it("does not treat a completed handle drag as a button click", () => {
+    const { result } = renderHook(() => useSearchBottomSheet());
+    const handle = document.createElement("button");
+
+    act(() => {
+      result.current.bottomSheetHandleRef.current = handle;
+      result.current.handleDragStart({
+        target: handle,
+      } as unknown as PointerEvent);
+      result.current.handleDragEnd({} as PointerEvent, panInfo(-80));
+    });
+
+    expect(result.current.bottomSheetState).toBe("expanded");
+
+    act(() => result.current.handleBottomSheetToggle());
+    expect(result.current.bottomSheetState).toBe("expanded");
+
+    act(() => result.current.handleBottomSheetToggle());
+    expect(result.current.bottomSheetState).toBe("collapsed");
+  });
+
+  it("moves between all snap states with the keyboard contract", () => {
+    const { result } = renderHook(() => useSearchBottomSheet());
+    const press = (key: string) => {
+      const preventDefault = jest.fn();
+
+      act(() => {
+        result.current.handleBottomSheetKeyDown({
+          key,
+          preventDefault,
+        } as unknown as React.KeyboardEvent<HTMLButtonElement>);
+      });
+
+      expect(preventDefault).toHaveBeenCalledTimes(1);
+    };
+
+    press("ArrowUp");
+    expect(result.current.bottomSheetState).toBe("expanded");
+
+    press("ArrowDown");
+    expect(result.current.bottomSheetState).toBe("half");
+
+    press("Home");
+    expect(result.current.bottomSheetState).toBe("collapsed");
+
+    press("End");
+    expect(result.current.bottomSheetState).toBe("expanded");
+  });
+
+  it("cycles the button action through half, expanded, and collapsed", () => {
+    const { result } = renderHook(() => useSearchBottomSheet());
+
+    act(() => result.current.handleBottomSheetToggle());
+    expect(result.current.bottomSheetState).toBe("expanded");
+
+    act(() => result.current.handleBottomSheetToggle());
+    expect(result.current.bottomSheetState).toBe("collapsed");
+
+    act(() => result.current.handleBottomSheetToggle());
+    expect(result.current.bottomSheetState).toBe("half");
+  });
+
+  it("returns focus to the handle when focused content is collapsed", async () => {
+    render(<BottomSheetFocusHarness />);
+
+    await userEvent.click(screen.getByRole("button", { name: "패널 접기" }));
+
+    expect(screen.getByRole("button", { name: "패널 조절" })).toHaveFocus();
+  });
+
+  it("bypasses spring animation when reduced motion is requested", () => {
+    prefersReducedMotion = true;
+    const { result } = renderHook(() => useSearchBottomSheet());
+
+    expect(mockAnimate).not.toHaveBeenCalled();
+
+    act(() => result.current.setBottomSheetState("expanded"));
+
+    expect(mockAnimate).not.toHaveBeenCalled();
+    expect(result.current.translateY.get()).toBe(
+      -result.current.snapPositions.expanded,
+    );
+  });
+
+  it("keeps spring animation when reduced motion is not requested", () => {
+    const { result } = renderHook(() => useSearchBottomSheet());
+    mockAnimate.mockClear();
+
+    act(() => result.current.setBottomSheetState("expanded"));
+
+    expect(mockAnimate).toHaveBeenCalledWith(
+      expect.anything(),
+      result.current.snapPositions.expanded,
+      expect.objectContaining({ type: "spring" }),
+    );
   });
 
   it("computes distinct mobile snap positions from the viewport", () => {

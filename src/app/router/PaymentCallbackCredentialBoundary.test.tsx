@@ -8,7 +8,7 @@ import {
   useNavigate,
   type InitialEntry,
 } from "react-router-dom";
-import RequireAuth from "../../routes/RequireAuth";
+import { RequireAuthenticatedRoute } from "./RequireAuthenticatedRoute";
 import {
   PaymentCallbackCredentialBoundary,
   usePaymentCallbackCredentialClaim,
@@ -50,9 +50,9 @@ function AuthenticatedBoundaryProbe() {
   mockAuthenticatedBoundaryRender(location.search);
 
   return (
-    <RequireAuth>
+    <RequireAuthenticatedRoute>
       <CredentialProbe />
-    </RequireAuth>
+    </RequireAuthenticatedRoute>
   );
 }
 

@@ -30,6 +30,7 @@ import type {
   SubjectOwnedReadResult,
   SubjectOwnedWriteResult,
 } from "./types";
+import { isOpaqueIdentifier } from "../../../shared/lib/opaqueIdentifier";
 import {
   callbackDataKeys,
   checkoutDataKeys,
@@ -289,12 +290,7 @@ export const createBookingPaymentCheckoutRepository = ({
     if (!isReadScopeCurrent(scope, getEpoch)) {
       return { status: "rejected", reason: "stale-session" };
     }
-    if (
-      typeof reservationUid !== "string" ||
-      reservationUid.length === 0 ||
-      reservationUid.length > 128 ||
-      reservationUid.trim() !== reservationUid
-    ) {
+    if (!isOpaqueIdentifier(reservationUid)) {
       return { status: "rejected", reason: "invalid-route" };
     }
 

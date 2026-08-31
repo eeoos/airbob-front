@@ -8,29 +8,6 @@ const staticResourceRoots = "^src/(?:assets|styles)(?:/|$)";
 const targetRoot = "^src/(?:app|screens|workflows|platform|shared)(?:/|$)";
 const featureRoot = "^src/features(?:/|$)";
 
-const legacyRouteAdapterBridges = [
-  ["home", "HomeRoute", "home/HomeRoute"],
-  ["profile", "ProfileRoute", "profile/ProfileRoute"],
-  [
-    "host-reservation-detail",
-    "HostReservationDetailRoute",
-    "reservations/HostReservationDetailRoute",
-  ],
-  [
-    "reservation-detail",
-    "ReservationDetailRoute",
-    "reservations/ReservationDetailRoute",
-  ],
-].map(([id, adapter, target]) => ({
-  adapterPath: `^src/app/router/routes/${adapter}[.][tj]sx?$`,
-  id,
-  targetPath: `^src/features/${target}[.][tj]sx?$`,
-}));
-
-const legacyRouteAdapterPaths = legacyRouteAdapterBridges.map(
-  ({ adapterPath }) => adapterPath,
-);
-
 const scopeRuleId = (scope) => scope.replaceAll("/", "-");
 
 const createFeatureOwnershipScopes = (projectRoot) => {
@@ -52,10 +29,6 @@ const createDependencyConfig = ({ projectRoot, migratedFeatures }) => {
 
   const featureScopes = createFeatureOwnershipScopes(projectRoot);
   const featureScopeNames = featureScopes.map(({ name }) => name);
-  const featureSurface = createFeatureSurfacePathPattern(
-    featureScopeNames,
-    "(?:appShell|publicCache)[.]ts$",
-  );
   const featurePublicPortSurface = createFeatureSurfacePathPattern(
     featureScopeNames,
     "(?:(?:api|ports)(?:/|$)|public[.][tj]sx?$)",
@@ -64,68 +37,42 @@ const createDependencyConfig = ({ projectRoot, migratedFeatures }) => {
     featureScopeNames,
     "(?:(?:ui|ports)(?:/|$)|public[.]tsx?$)",
   );
-  const featureUiModulePaths = featureScopeNames.flatMap((scope) => [
-    createFeatureSurfacePathPattern([scope], "(?:components|ui)(?:/|$)"),
-    createFeatureSurfacePathPattern([scope], "public[.][tj]sx?$"),
-    createFeatureSurfacePathPattern(
-      [scope],
-      "[^/]*(?:Route|Panel)[.][tj]sx?$",
-    ),
-  ]);
-  const uiModulePaths = [
-    "^src/components(?:/|$)",
-    "^src/layouts(?:/|$)",
-    "^src/shared/ui(?:/|$)",
-    ...featureUiModulePaths,
-  ];
-  const crossFeatureRules = featureScopes.map(({ ownPath, ruleId }) => ({
-    name: `feature-${ruleId}-uses-public-cross-feature-surfaces`,
+  const featurePeerRules = featureScopes.map(({ ownPath, ruleId }) => ({
+    name: `feature-${ruleId}-has-no-peer-imports`,
     severity: "error",
     comment:
-      "Legacy feature peers may cross only through the named appShell/publicCache compatibility surfaces. " +
-      "Migrated slices remove these edges instead of adding new exceptions.",
+      "Feature owners never import peer features. App composition and workflows join feature-owned public ports instead.",
     from: { path: ownPath },
     to: {
       path: featureRoot,
-      pathNot: [ownPath, featureSurface],
+      pathNot: ownPath,
     },
   }));
   const migratedFeaturePaths = migratedFeatures.map((name) =>
     createFeatureOwnershipPathPattern(name, featureScopeNames),
   );
   const strictModuleRoots = [targetRoot, ...migratedFeaturePaths];
-  const migratedFeatureRules = migratedFeatures.flatMap((name) => {
+  const migratedFeatureRules = migratedFeatures.map((name) => {
     const ownPath = createFeatureOwnershipPathPattern(
       name,
       featureScopeNames,
     );
     const ruleId = scopeRuleId(name);
 
-    return [
-      {
-        name: `migrated-feature-${ruleId}-has-no-peer-imports`,
-        severity: "error",
-        from: { path: ownPath },
-        to: {
-          path: featureRoot,
-          pathNot: ownPath,
-        },
+    return {
+      name: `migrated-feature-${ruleId}-uses-target-layers`,
+      severity: "error",
+      from: { path: ownPath },
+      to: {
+        path: "^src(?:/|$)",
+        pathNot: [
+          ownPath,
+          "^src/platform(?:/|$)",
+          "^src/shared(?:/|$)",
+          staticResourceRoots,
+        ],
       },
-      {
-        name: `migrated-feature-${ruleId}-uses-target-layers`,
-        severity: "error",
-        from: { path: ownPath },
-        to: {
-          path: "^src(?:/|$)",
-          pathNot: [
-            ownPath,
-            "^src/platform(?:/|$)",
-            "^src/shared(?:/|$)",
-            staticResourceRoots,
-          ],
-        },
-      },
-    ];
+    };
   });
 
   return {
@@ -180,18 +127,6 @@ const createDependencyConfig = ({ projectRoot, migratedFeatures }) => {
         to: { circular: true },
       },
       {
-        name: "legacy-cross-feature-debt",
-        severity: "warn",
-        from: {
-          path: "^src/features/([^/]+)(?:/|$)",
-          pathNot: testModulePattern,
-        },
-        to: {
-          path: featureRoot,
-          pathNot: "^src/features/$1(?:/|$)",
-        },
-      },
-      {
         name: "app-imports-only-target-layers",
         severity: "error",
         from: { path: "^src/app(?:/|$)" },
@@ -213,29 +148,12 @@ const createDependencyConfig = ({ projectRoot, migratedFeatures }) => {
         severity: "error",
         comment:
           "App composition may consume a feature only through ui/, ports/, or the public.ts(x) at its ownership-scope root.",
-        from: {
-          path: "^src/app(?:/|$)",
-          pathNot: legacyRouteAdapterPaths,
-        },
+        from: { path: "^src/app(?:/|$)" },
         to: {
           path: featureRoot,
           pathNot: appFeaturePublicSurface,
         },
       },
-      ...legacyRouteAdapterBridges.map(
-        ({ adapterPath, id, targetPath }) => ({
-          name: `app-route-adapter-${id}-uses-only-assigned-legacy-route`,
-          severity: "error",
-          comment:
-            "U6 compatibility adapters may reach exactly one legacy route container. " +
-            "Each bridge is removed when its feature slice moves to a screen/controller.",
-          from: { path: adapterPath },
-          to: {
-            path: featureRoot,
-            pathNot: targetPath,
-          },
-        }),
-      ),
       {
         name: "shared-is-domain-free",
         severity: "error",
@@ -315,42 +233,25 @@ const createDependencyConfig = ({ projectRoot, migratedFeatures }) => {
           pathNot: "^src/screens/$1(?:/|$)",
         },
       },
-      ...crossFeatureRules,
+      ...featurePeerRules,
       ...migratedFeatureRules,
       {
-        name: "routes-compose-features-only-in-route-config",
+        name: "production-does-not-import-retired-global-api",
         severity: "error",
-        from: { path: "^src/routes(?:/|$)" },
-        to: { path: featureRoot },
+        from: { path: "^src(?:/|$)" },
+        to: { path: "^src/api(?:/|$)" },
       },
       {
-        name: "layouts-use-feature-public-surfaces",
-        comment:
-          "Layouts may consume feature UI and command ports through narrow ownership-scope public surfaces only.",
+        name: "production-does-not-import-retired-global-wire-dtos",
         severity: "error",
-        from: { path: "^src/layouts(?:/|$)" },
-        to: {
-          path: featureRoot,
-          pathNot: appFeaturePublicSurface,
-        },
+        from: { path: "^src(?:/|$)" },
+        to: { path: "^src/types(?:/|$)" },
       },
       {
         name: "features-do-not-import-removed-pages",
         severity: "error",
         from: { path: featureRoot },
         to: { path: "^src/pages(?:/|$)" },
-      },
-      {
-        name: "ui-does-not-import-global-api",
-        severity: "error",
-        from: { path: uiModulePaths },
-        to: { path: "^src/api(?:/|$)" },
-      },
-      {
-        name: "ui-does-not-import-wire-dtos",
-        severity: "error",
-        from: { path: uiModulePaths },
-        to: { path: "^src/types(?:/|$)" },
       },
     ],
     options: {

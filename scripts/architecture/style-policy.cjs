@@ -17,9 +17,8 @@ const architectureLayerStyleGlobs = Object.freeze([
 ]);
 
 const preExistingStrictStylePaths = Object.freeze([
-  "src/layouts/MainLayout.module.css",
-  "src/layouts/AppHeader/Header.module.css",
-  "src/layouts/AppHeader/UserMenu.module.css",
+  "src/app/header/Header.module.css",
+  "src/app/header/UserMenu.module.css",
   "src/features/wishlist/components/WishlistViews.module.css",
   "src/features/auth/components/AuthModal/AuthModal.module.css",
 ]);
@@ -39,7 +38,6 @@ const legacyDesignProtectedStylePaths = Object.freeze([
   "src/shared/ui/Tabs/Tabs.module.css",
   "src/shared/ui/TextField/TextField.module.css",
   "src/shared/ui/ToastHost/ToastHost.module.css",
-  "src/layouts/MainLayout.module.css",
   "src/shared/ui/DatePicker/DatePicker.module.css",
   "src/components/ErrorBoundary/ErrorBoundary.module.css",
   "src/features/wishlist/components/CreateWishlistModal/CreateWishlistModal.module.css",
@@ -61,8 +59,8 @@ const legacyDesignProtectedStylePaths = Object.freeze([
   "src/features/accommodations/detail/components/AccommodationDescriptionModal.module.css",
   "src/features/accommodations/detail/components/AccommodationImageGalleryModal.module.css",
   "src/features/search/components/SearchBar/SearchBar.module.css",
-  "src/layouts/AppHeader/Header.module.css",
-  "src/layouts/AppHeader/UserMenu.module.css",
+  "src/app/header/Header.module.css",
+  "src/app/header/UserMenu.module.css",
   "src/features/wishlist/components/WishlistViews.module.css",
   "src/features/auth/components/AuthModal/AuthModal.module.css",
 ]);
@@ -70,8 +68,8 @@ const legacyDesignProtectedStylePaths = Object.freeze([
 const highRiskPreRedesignStylePaths = Object.freeze([
   "src/features/reservations/GuestTripsPanel.module.css",
   "src/features/reservations/HostReservationsPanel.module.css",
-  "src/features/reservations/HostReservationDetailRoute.module.css",
-  "src/features/reservations/ReservationDetailRoute.module.css",
+  "src/screens/reservation-detail/GuestReservationDetailScreen.module.css",
+  "src/screens/reservation-detail/HostReservationDetailScreen.module.css",
   "src/screens/review-create/ReviewCreateScreen.module.css",
   "src/features/profile/components/ProfileShell.module.css",
   "src/features/profile/HostListingsPanel.module.css",

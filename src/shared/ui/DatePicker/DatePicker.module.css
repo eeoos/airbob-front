@@ -112,6 +112,12 @@
   text-align: center;
 }
 
+.calendarGrid {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 .weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -129,11 +135,17 @@
 
 .days {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
   grid-template-rows: repeat(6, 1fr);
   gap: var(--space-1);
   flex: 1;
   min-height: 300px;
+}
+
+.week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--space-1);
+  min-height: 0;
 }
 
 .day {
@@ -243,6 +255,18 @@
 
 .day.start.end {
   border-radius: var(--radius-md);
+}
+
+.liveRegion {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 .clearButton {
@@ -378,11 +402,18 @@
   /* 7열 그리드 강제 적용 */
   .days {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
     grid-auto-rows: minmax(var(--control-touch-target), auto);
     gap: 2px;
     width: 100%;
     min-height: auto;
+  }
+
+  .week {
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    width: 100%;
   }
 
   .day {

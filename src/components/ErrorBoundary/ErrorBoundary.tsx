@@ -1,6 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
+import { clientLogger } from "../../platform/logging/clientLogger";
 import { Button } from "../../shared/ui";
-import { clientLogger } from "../../utils/clientLogger";
 import styles from "./ErrorBoundary.module.css";
 
 interface Props {
@@ -67,7 +67,6 @@ export class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
-
 
 
 

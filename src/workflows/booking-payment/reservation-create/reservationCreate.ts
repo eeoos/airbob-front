@@ -1,5 +1,6 @@
 import { isAppError } from "../../../platform/http/errors";
 import type { ReservationReady } from "../../../features/reservations/public";
+import { isOpaqueIdentifier } from "../../../shared/lib/opaqueIdentifier";
 import {
   ReservationCreateValidationError,
   validateReservationCreateCommand,
@@ -53,8 +54,7 @@ const isDefinitiveFailure = (error: unknown): boolean => {
 };
 
 const isReady = (value: ReservationReady): boolean =>
-  typeof value.reservationUid === "string" &&
-  value.reservationUid.length > 0 &&
+  isOpaqueIdentifier(value.reservationUid) &&
   typeof value.orderName === "string" &&
   value.orderName.length > 0 &&
   Number.isFinite(value.amount) &&

@@ -1,111 +1,136 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
-import { ErrorToast } from "../../components/ErrorToast";
-import { routeTo } from "../../routes/paths";
-import { ClickableCard, EmptyState, LoadingState } from "../../shared/ui";
-import { useIntersectionLoadMore } from "../../hooks/useIntersectionLoadMore";
-import { useGuestTrips } from "./hooks";
-import { groupGuestTripsByYear } from "./lib/guestTripGroups";
-import { toGuestTripCardViewModel } from "./lib/reservationListViewModel";
+import type { MouseEvent, RefCallback } from "react";
+import type { ReservationFilterType } from "./model/reservationRead";
+import {
+  EmptyState,
+  LoadingState,
+  NavigationCard,
+  ToastHost,
+} from "../../shared/ui";
 import styles from "./GuestTripsPanel.module.css";
 
-export interface GuestTripsPanelProps {
-  filterType: "UPCOMING" | "PAST" | "CANCELLED";
+export type GuestTripsFilterType = ReservationFilterType;
+
+export interface GuestTripCardView {
+  readonly reservationUid: string;
+  readonly accommodationName: string;
+  readonly thumbnailUrl: string | null;
+  readonly dateRangeLabel: string;
 }
 
-export const GuestTripsPanel: React.FC<GuestTripsPanelProps> = ({ filterType }) => {
-  const navigate = useNavigate();
-  const {
-    clearError,
-    error,
-    hasNext,
-    isLoading,
-    isLoadingMore,
-    loadMore,
-    reservations,
-  } = useGuestTrips(filterType);
-  const observerTarget = useIntersectionLoadMore({
-    hasNext,
-    isLoading: isLoadingMore,
-    onLoadMore: loadMore,
-  });
+export interface GuestTripYearGroupView {
+  readonly year: number;
+  readonly trips: readonly GuestTripCardView[];
+}
 
-  if (isLoading) {
+export type GuestTripsPanelState =
+  | { readonly status: "loading" }
+  | {
+      readonly status: "ready";
+      readonly groups: readonly GuestTripYearGroupView[];
+      readonly hasNext: boolean;
+      readonly isLoadingMore: boolean;
+    };
+
+export interface GuestTripsPanelProps {
+  readonly errorMessage: string | null;
+  readonly filterType: GuestTripsFilterType;
+  readonly getReservationHref: (reservationUid: string) => string;
+  readonly loadMoreRef: RefCallback<HTMLDivElement>;
+  readonly onDismissError: () => void;
+  readonly onOpenReservation: (reservationUid: string) => void;
+  readonly state: GuestTripsPanelState;
+}
+
+const isPlainPrimaryClick = (event: MouseEvent<HTMLAnchorElement>) =>
+  event.button === 0 &&
+  !event.altKey &&
+  !event.ctrlKey &&
+  !event.metaKey &&
+  !event.shiftKey;
+
+const getTitle = (filterType: GuestTripsFilterType) => {
+  switch (filterType) {
+    case "UPCOMING":
+      return "다가올 여행";
+    case "PAST":
+      return "이전 여행";
+    case "CANCELLED":
+      return "취소된 여행";
+  }
+};
+
+export function GuestTripsPanel({
+  errorMessage,
+  filterType,
+  getReservationHref,
+  loadMoreRef,
+  onDismissError,
+  onOpenReservation,
+  state,
+}: GuestTripsPanelProps) {
+  if (state.status === "loading") {
     return <LoadingState title="로딩 중..." />;
   }
 
-  const getTitle = () => {
-    switch (filterType) {
-      case "UPCOMING":
-        return "다가올 여행";
-      case "PAST":
-        return "이전 여행";
-      case "CANCELLED":
-        return "취소된 여행";
-      default:
-        return "이전 여행";
-    }
-  };
-
-  const groupedReservations = groupGuestTripsByYear(reservations).map(
-    ({ year, reservations: yearReservations }) => ({
-      year,
-      reservations: yearReservations.map(toGuestTripCardViewModel),
-    }),
-  );
-
   return (
     <div className={styles.container}>
-      <h2 className={styles.title}>{getTitle()}</h2>
+      <h2 className={styles.title}>{getTitle(filterType)}</h2>
 
-      {reservations.length === 0 ? (
+      {state.groups.length === 0 ? (
         <EmptyState title="아직 예약한 여행이 없습니다." />
       ) : (
         <>
           <div className={styles.reservationsByYear}>
-            {groupedReservations.map(({ year, reservations: yearReservations }) => (
+            {state.groups.map(({ year, trips }) => (
               <div key={year} className={styles.yearSection}>
                 <h3 className={styles.yearTitle}>{year}</h3>
                 <div className={styles.reservationsGrid}>
-                  {yearReservations.map((reservation) => {
-                    return (
-                      <ClickableCard
-                        key={reservation.id}
-                        className={styles.reservationCard}
-                        ariaLabel={`${reservation.accommodationName} 예약 상세 보기`}
-                        onClick={() =>
-                          navigate(routeTo.reservationDetail(reservation.reservationUid))
+                  {trips.map((trip) => (
+                    <NavigationCard
+                      key={trip.reservationUid}
+                      className={styles.reservationCard}
+                      ariaLabel={`${trip.accommodationName} 예약 상세 보기`}
+                      href={getReservationHref(trip.reservationUid)}
+                      onClick={(event) => {
+                        if (
+                          event.defaultPrevented ||
+                          !isPlainPrimaryClick(event)
+                        ) {
+                          return;
                         }
-                      >
-                        <div className={styles.image}>
-                          {reservation.thumbnailUrl ? (
-                            <img
-                              src={reservation.thumbnailUrl}
-                              alt={reservation.accommodationName}
-                            />
-                          ) : (
-                            <div className={styles.placeholder}>🏠</div>
-                          )}
+
+                        event.preventDefault();
+                        onOpenReservation(trip.reservationUid);
+                      }}
+                    >
+                      <div className={styles.image}>
+                        {trip.thumbnailUrl ? (
+                          <img
+                            src={trip.thumbnailUrl}
+                            alt={trip.accommodationName}
+                          />
+                        ) : (
+                          <div className={styles.placeholder}>🏠</div>
+                        )}
+                      </div>
+                      <div className={styles.content}>
+                        <div className={styles.location}>
+                          {trip.accommodationName}
                         </div>
-                        <div className={styles.content}>
-                          <div className={styles.location}>
-                            {reservation.accommodationName}
-                          </div>
-                          <div className={styles.dateRange}>
-                            {reservation.dateRangeLabel}
-                          </div>
+                        <div className={styles.dateRange}>
+                          {trip.dateRangeLabel}
                         </div>
-                      </ClickableCard>
-                    );
-                  })}
+                      </div>
+                    </NavigationCard>
+                  ))}
                 </div>
               </div>
             ))}
           </div>
 
-          {hasNext && (
-            <div ref={observerTarget} className={styles.loadMoreContainer}>
-              {isLoadingMore && (
+          {state.hasNext && (
+            <div ref={loadMoreRef} className={styles.loadMoreContainer}>
+              {state.isLoadingMore && (
                 <div className={styles.loadingMore}>로딩 중...</div>
               )}
             </div>
@@ -113,11 +138,15 @@ export const GuestTripsPanel: React.FC<GuestTripsPanelProps> = ({ filterType }) 
         </>
       )}
 
-      {error && (
+      {errorMessage && (
         <div className={styles.toastContainer}>
-          <ErrorToast message={error} onClose={clearError} />
+          <ToastHost
+            closeLabel="오류 닫기"
+            message={errorMessage}
+            onClose={onDismissError}
+          />
         </div>
       )}
     </div>
   );
-};
+}

@@ -1,9 +1,12 @@
-import type { MyReservationInfo } from "../../../types/reservation";
+import type { GuestReservationListItem } from "../model/reservationRead";
 
-export type GuestTripGroupReservation = Pick<MyReservationInfo, "check_in_date">;
+export type GuestTripGroupReservation = Pick<
+  GuestReservationListItem,
+  "checkInDate"
+>;
 
 export interface GuestTripsYearGroup<
-  TReservation extends GuestTripGroupReservation = MyReservationInfo
+  TReservation extends GuestTripGroupReservation = GuestReservationListItem,
 > {
   year: number;
   reservations: TReservation[];
@@ -15,33 +18,39 @@ const getDateOnlyParts = (dateString: string) => {
 };
 
 export const groupGuestTripsByYear = <
-  TReservation extends GuestTripGroupReservation
+  TReservation extends GuestTripGroupReservation,
 >(
-  reservations: TReservation[]
+  reservations: readonly TReservation[],
 ): GuestTripsYearGroup<TReservation>[] => {
-  const grouped = reservations.reduce<Record<number, TReservation[]>>(
-    (groups, reservation) => {
-      const { year } = getDateOnlyParts(reservation.check_in_date);
-      return {
-        ...groups,
-        [year]: [...(groups[year] ?? []), reservation],
-      };
-    },
-    {}
-  );
+  const grouped = new Map<number, TReservation[]>();
 
-  return Object.keys(grouped)
-    .map(Number)
-    .sort((a, b) => b - a)
-    .map((year) => ({ year, reservations: grouped[year] }));
+  reservations.forEach((reservation) => {
+    const { year } = getDateOnlyParts(reservation.checkInDate);
+    const yearReservations = grouped.get(year);
+
+    if (yearReservations) {
+      yearReservations.push(reservation);
+    } else {
+      grouped.set(year, [reservation]);
+    }
+  });
+
+  return Array.from(grouped.entries())
+    .sort(([leftYear], [rightYear]) => rightYear - leftYear)
+    .map(([year, yearReservations]) => ({
+      year,
+      reservations: yearReservations,
+    }));
 };
 
 export const formatGuestTripDateRange = (
   checkIn: string,
-  checkOut: string
+  checkOut: string,
 ): string => {
-  const { year: checkInYear, month: checkInMonth, day: checkInDay } = getDateOnlyParts(checkIn);
-  const { year: checkOutYear, month: checkOutMonth, day: checkOutDay } = getDateOnlyParts(checkOut);
+  const { year: checkInYear, month: checkInMonth, day: checkInDay } =
+    getDateOnlyParts(checkIn);
+  const { year: checkOutYear, month: checkOutMonth, day: checkOutDay } =
+    getDateOnlyParts(checkOut);
 
   if (checkInYear === checkOutYear && checkInMonth === checkOutMonth) {
     return `${checkInYear}년 ${checkInMonth}월 ${checkInDay}일 ~ ${checkOutDay}일`;

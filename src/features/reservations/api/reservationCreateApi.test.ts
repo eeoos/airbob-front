@@ -1,4 +1,5 @@
 import type { ApiDataRequest } from "../../../platform/http/request";
+import { encodeOpaquePathSegment } from "../../../platform/http/opaquePathSegment";
 import { createReservationCreateApi } from "./reservationCreateApi";
 
 const createTransport = () => {
@@ -23,24 +24,27 @@ describe("reservation create API adapter", () => {
       customer_name: "테스트 게스트",
     });
 
-    await expect(
-      api.create(
-        {
-          accommodationId: 7,
-          checkIn: "2026-07-10",
-          checkOut: "2026-07-12",
-          guestCount: 3,
-          couponId: 31,
-        },
-        { signal },
-      ),
-    ).resolves.toEqual({
+    const created = await api.create(
+      {
+        accommodationId: 7,
+        checkIn: "2026-07-10",
+        checkOut: "2026-07-12",
+        guestCount: 3,
+        couponId: 31,
+      },
+      { signal },
+    );
+
+    expect(created).toEqual({
       reservationUid: "reservation-123",
       orderName: "합정 테스트 숙소 2박",
       amount: 190000,
       customerEmail: "guest@example.invalid",
       customerName: "테스트 게스트",
     });
+    expect(encodeOpaquePathSegment(created.reservationUid)).toBe(
+      "reservation-123",
+    );
 
     expect(request).toHaveBeenCalledWith({
       method: "POST",
@@ -86,5 +90,27 @@ describe("reservation create API adapter", () => {
       },
       signal: undefined,
     });
+  });
+
+  it("rejects a response UID that cannot cross a downstream path boundary", async () => {
+    const { request, transport } = createTransport();
+    const api = createReservationCreateApi(transport);
+    request.mockResolvedValue({
+      reservation_uid: "../admin",
+      order_name: "잘못된 예약",
+      amount: 100000,
+      customer_email: "guest@example.invalid",
+      customer_name: "테스트 게스트",
+    });
+
+    await expect(
+      api.create({
+        accommodationId: 7,
+        checkIn: "2026-07-10",
+        checkOut: "2026-07-11",
+        guestCount: 1,
+        couponId: null,
+      }),
+    ).rejects.toThrow("reservation_uid is not a safe opaque identifier");
   });
 });

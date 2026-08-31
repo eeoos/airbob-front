@@ -59,4 +59,37 @@ describe("Search responsive contracts", () => {
       ]),
     );
   });
+
+  it("gives the compact paginator a bounded single-row layout", () => {
+    const css = readFileSync(
+      join(process.cwd(), "src/screens/search/SearchScreen.module.css"),
+      "utf8",
+    );
+
+    expect(css).toMatch(
+      /\.pagination\[data-variant="compact"\]\s*{[^}]*width:\s*100%;[^}]*max-width:\s*320px;/s,
+    );
+    expect(css).toMatch(
+      /\.pagination\[data-variant="compact"\]\s+\.paginationButton\s*{[^}]*box-sizing:\s*border-box;[^}]*min-width:\s*0;/s,
+    );
+  });
+
+  it("removes bottom-sheet opacity and transform transitions for reduced motion", () => {
+    const css = readFileSync(
+      join(process.cwd(), "src/screens/search/SearchScreen.module.css"),
+      "utf8",
+    );
+    const reducedMotionBlocks = getMediaBlocks(
+      css,
+      "(prefers-reduced-motion: reduce)",
+    );
+
+    expect(reducedMotionBlocks).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(
+          /\.bottomSheet[\s\S]*\.bottomSheetContent[\s\S]*\.cardGrid[\s\S]*transition:\s*none;/,
+        ),
+      ]),
+    );
+  });
 });

@@ -2,8 +2,11 @@ export { Button } from "./Button";
 export type { ButtonProps, ButtonSize, ButtonVariant } from "./Button";
 export { Card } from "./Card";
 export type { CardElement, CardPadding, CardProps } from "./Card";
-export { ClickableCard } from "./ClickableCard";
-export type { ClickableCardProps } from "./ClickableCard";
+export { ActionCard, NavigationCard } from "./ClickableCard";
+export type {
+  ActionCardProps,
+  NavigationCardProps,
+} from "./ClickableCard";
 export { CounterStepper } from "./CounterStepper";
 export type { CounterStepperProps } from "./CounterStepper";
 export { Dialog } from "./Dialog";
@@ -39,3 +42,5 @@ export { ToastHost } from "./ToastHost/ToastHost";
 export type { ToastHostProps } from "./ToastHost/ToastHost";
 export { useBodyScrollLock } from "./useBodyScrollLock";
 export { useOutsideClick } from "./useOutsideClick";
+export { useNonModalOverlayRegistration } from "./useNonModalOverlayRegistration";
+export type { NonModalOverlayRegistration } from "./useNonModalOverlayRegistration";

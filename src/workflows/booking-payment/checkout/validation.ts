@@ -4,6 +4,7 @@ import type {
   CheckoutData,
   CheckoutHandoffState,
 } from "./types";
+import { isOpaqueIdentifier } from "../../../shared/lib/opaqueIdentifier";
 
 const checkoutKeys = [
   "operationId",
@@ -114,7 +115,7 @@ const hasValidCheckoutValues = (
 ): boolean =>
   isBookingPaymentOperationId(value.operationId) &&
   isPositiveSafeInteger(value.accommodationId) &&
-  isBoundedString(value.reservationUid, 128) &&
+  isOpaqueIdentifier(value.reservationUid) &&
   isBoundedString(value.orderName, 256) &&
   isPositiveSafeInteger(value.amount) &&
   isStrictCalendarDate(value.checkIn) &&
@@ -140,8 +141,8 @@ export const isCallbackData = (value: unknown): value is CallbackData =>
   isRecord(value) &&
   hasExactKeys(value, callbackKeys) &&
   isBookingPaymentOperationId(value.operationId) &&
-  isBoundedString(value.reservationUid, 128) &&
-  isBoundedString(value.orderId, 128) &&
+  isOpaqueIdentifier(value.reservationUid) &&
+  isOpaqueIdentifier(value.orderId) &&
   value.orderId === value.reservationUid &&
   isBoundedString(value.paymentKey, 512) &&
   isPositiveSafeInteger(value.amount) &&
@@ -191,7 +192,7 @@ const isLegacyCheckoutRecord = (
   if (!isRecord(value) || !hasExactKeys(value, legacyCheckoutKeys)) return false;
 
   return (
-    isBoundedString(value.reservationUid, 128) &&
+    isOpaqueIdentifier(value.reservationUid) &&
     isBoundedString(value.orderName, 256) &&
     isPositiveSafeInteger(value.amount) &&
     isBoundedString(value.customerEmail, 320) &&

@@ -1,5 +1,5 @@
-import type { HostReservationDetail } from "../../../types/reservation";
-import { getImageUrl } from "../../../utils/image";
+import { resolveImageUrl as defaultResolveImageUrl } from "../../../platform/assets/imageUrl";
+import type { HostReservationDetail } from "../model/reservationRead";
 import {
   formatKoreanDateWithWeekday,
   formatNullablePrice,
@@ -74,7 +74,7 @@ const toPaymentViewModel = (
     return null;
   }
 
-  const totalAmount = reservation.payment.total_amount || 0;
+  const totalAmount = reservation.payment.totalAmount || 0;
   const pricePerNight = Math.floor(totalAmount / nights);
 
   return {
@@ -86,27 +86,28 @@ const toPaymentViewModel = (
 
 export const toHostReservationDetailViewModel = (
   reservation: HostReservationDetail,
+  resolveImageUrl: (path: string | null) => string = defaultResolveImageUrl,
 ): HostReservationDetailViewModel => {
   const nights = calculateHostReservationNights(
-    reservation.check_in_date_time,
-    reservation.check_out_date_time,
+    reservation.checkInDateTime,
+    reservation.checkOutDateTime,
   );
   const payment = toPaymentViewModel(reservation, nights);
-  const totalAmount = reservation.payment?.total_amount || 0;
+  const totalAmount = reservation.payment?.totalAmount || 0;
 
   return {
-    reservationCode: reservation.reservation_code,
+    reservationCode: reservation.reservationCode,
     statusLabel: formatReservationStatus(reservation.status),
     statusTone: getReservationStatusTone(reservation.status),
     guest: {
       nickname: reservation.guest.nickname,
-      avatarUrl: reservation.guest.thumbnail_image_url
-        ? getImageUrl(reservation.guest.thumbnail_image_url)
+      avatarUrl: reservation.guest.thumbnailImageUrl
+        ? resolveImageUrl(reservation.guest.thumbnailImageUrl)
         : null,
       avatarInitial: reservation.guest.nickname.charAt(0).toUpperCase(),
     },
     guestStaySummaryLabel: [
-      `${reservation.guest_count}게스트`,
+      `${reservation.guestCount}게스트`,
       `${nights}박`,
       reservation.payment && totalAmount > 0
         ? formatNullablePrice(totalAmount)
@@ -117,19 +118,19 @@ export const toHostReservationDetailViewModel = (
     accommodation: {
       id: reservation.accommodation.id,
       name: reservation.accommodation.name,
-      thumbnailUrl: reservation.accommodation.thumbnail_url
-        ? getImageUrl(reservation.accommodation.thumbnail_url)
+      thumbnailUrl: reservation.accommodation.thumbnailUrl
+        ? resolveImageUrl(reservation.accommodation.thumbnailUrl)
         : null,
     },
     addressLabel: getAddressLabel(reservation),
-    guestCountLabel: `${reservation.guest_count}명`,
+    guestCountLabel: `${reservation.guestCount}명`,
     checkInDateLabel: formatKoreanDateWithWeekday(
-      reservation.check_in_date_time,
+      reservation.checkInDateTime,
     ),
     checkOutDateLabel: formatKoreanDateWithWeekday(
-      reservation.check_out_date_time,
+      reservation.checkOutDateTime,
     ),
-    createdAtDateLabel: formatKoreanDateWithWeekday(reservation.created_at),
+    createdAtDateLabel: formatKoreanDateWithWeekday(reservation.createdAt),
     payment,
   };
 };

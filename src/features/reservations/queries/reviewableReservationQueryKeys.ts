@@ -1,10 +1,10 @@
 import { createSessionQueryMeta } from "../../../platform/query/sessionScope";
 import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
-import { reservationQueryKeys } from "../queryKeys";
+import { reservationReadQueryKeys } from "./reservationReadQueryKeys";
 
 const unavailableSession = Object.freeze({ session: null });
 const reviewableRoot = [
-  ...reservationQueryKeys.guestReservationsRoot,
+  ...reservationReadQueryKeys.root,
   "reviewable",
 ] as const;
 

@@ -3,15 +3,15 @@ import {
   AppRouteTree,
   type VisibleHeaderPolicy,
 } from "./app/router/Router";
-import { Header } from "./layouts/AppHeader";
-import RequireAuth from "./routes/RequireAuth";
+import { RequireAuthenticatedRoute } from "./app/router/RequireAuthenticatedRoute";
+import { Header } from "./app/header";
 
 const renderHeader = (mode: VisibleHeaderPolicy) => (
   <Header headerMode={mode} />
 );
 
 const renderAuthenticated = (content: ReactElement) => (
-  <RequireAuth>{content}</RequireAuth>
+  <RequireAuthenticatedRoute>{content}</RequireAuthenticatedRoute>
 );
 
 function App() {

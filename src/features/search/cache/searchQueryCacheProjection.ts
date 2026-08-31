@@ -1,24 +1,12 @@
 import type { QueryClient, QueryFilters } from "@tanstack/react-query";
-import type { SessionQueryScope } from "../../../platform/query/sessionScope";
+import {
+  matchesSessionQueryScope,
+  type SessionQueryScope,
+} from "../../../platform/query/sessionScope";
 import type { SearchResultPage } from "../model/search";
 import { searchReadQueryKeys } from "../queries/queryKeys";
 
 type QueryPredicate = NonNullable<QueryFilters["predicate"]>;
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
-
-const hasSessionScope = (
-  meta: unknown,
-  scope: SessionQueryScope,
-): boolean => {
-  if (!isRecord(meta) || !isRecord(meta.session)) return false;
-
-  return (
-    meta.session.subject === scope.subject &&
-    meta.session.epoch === scope.epoch
-  );
-};
 
 const scopedSearchResultsPredicate = (
   scope: SessionQueryScope,
@@ -26,7 +14,7 @@ const scopedSearchResultsPredicate = (
   (query) =>
     query.queryKey[0] === searchReadQueryKeys.root[0] &&
     query.queryKey[1] === "results" &&
-    hasSessionScope(query.meta, scope);
+    matchesSessionQueryScope(query.meta, scope);
 
 const patchMembership = (
   page: SearchResultPage | undefined,

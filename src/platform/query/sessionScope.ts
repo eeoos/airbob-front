@@ -19,6 +19,18 @@ export const createSessionQueryMeta = (scope: SessionQueryScope) =>
 
 export type SessionQueryMeta = ReturnType<typeof createSessionQueryMeta>;
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+export const matchesSessionQueryScope = (
+  meta: unknown,
+  scope: SessionQueryScope,
+): boolean =>
+  isRecord(meta) &&
+  isRecord(meta.session) &&
+  meta.session.subject === scope.subject &&
+  meta.session.epoch === scope.epoch;
+
 export const withSessionScopeKey = <TBaseParts extends readonly unknown[]>(
   scope: AuthenticatedSessionScope,
   baseParts: TBaseParts,

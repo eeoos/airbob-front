@@ -184,8 +184,8 @@ const scenarios = [
         "export const searchPort = true;\n",
       "src/features/search/ui/header.ts":
         'export { type Search } from "../model";\n',
-      "src/layouts/Header.ts":
-        'import type { Search } from "../features/search/ui/header"; export type HeaderSearch = Search;\n',
+      "src/app/header/Header.ts":
+        'import type { Search } from "../../features/search/ui/header"; export type HeaderSearch = Search;\n',
       "src/workflows/search/command.ts":
         'import { searchPort } from "../../features/search/api/searchPort"; import { client } from "../../platform/client"; import { workflowValue } from "./model"; export const command = [client, searchPort, workflowValue];\n',
       "src/workflows/search/model.ts":
@@ -259,26 +259,6 @@ const scenarios = [
     },
   },
   {
-    name: "app route adapter imports its assigned legacy route",
-    files: {
-      "src/features/home/HomeRoute.ts":
-        "export const homeRoute = true;\n",
-      "src/app/router/routes/HomeRoute.ts":
-        'import { homeRoute } from "../../../features/home/HomeRoute"; export const route = homeRoute;\n',
-    },
-  },
-  {
-    name: "app route adapter imports another legacy route",
-    expectedRule:
-      "app-route-adapter-home-uses-only-assigned-legacy-route",
-    files: {
-      "src/features/search/SearchRoute.ts":
-        "export const searchRoute = true;\n",
-      "src/app/router/routes/HomeRoute.ts":
-        'import { searchRoute } from "../../../features/search/SearchRoute"; export const route = searchRoute;\n',
-    },
-  },
-  {
     name: "migrated search adapter imports a private feature helper",
     expectedRule: "app-uses-feature-public-surfaces",
     files: {
@@ -336,7 +316,10 @@ const scenarios = [
   },
   {
     name: "screen imports a legacy global root",
-    expectedRule: "screens-use-only-allowed-layers",
+    expectedRules: [
+      "screens-use-only-allowed-layers",
+      "production-does-not-import-retired-global-api",
+    ],
     files: {
       "src/api/client.ts": "export const client = true;\n",
       "src/screens/search/SearchController.ts":
@@ -354,7 +337,7 @@ const scenarios = [
   },
   {
     name: "private cross-feature import",
-    expectedRule: "feature-catalog-uses-public-cross-feature-surfaces",
+    expectedRule: "feature-catalog-has-no-peer-imports",
     files: {
       "src/features/loyalty/hooks/private.ts":
         "export const privateLoyalty = true;\n",
@@ -363,9 +346,28 @@ const scenarios = [
     },
   },
   {
+    name: "feature imports a peer appShell compatibility filename",
+    expectedRule: "feature-catalog-has-no-peer-imports",
+    files: {
+      "src/features/loyalty/appShell.ts":
+        "export const legacyLoyaltyShell = true;\n",
+      "src/features/catalog/model.ts":
+        'import { legacyLoyaltyShell } from "../loyalty/appShell"; export const catalog = legacyLoyaltyShell;\n',
+    },
+  },
+  {
+    name: "feature imports a peer publicCache compatibility filename",
+    expectedRule: "feature-catalog-has-no-peer-imports",
+    files: {
+      "src/features/loyalty/publicCache.ts":
+        "export const legacyLoyaltyCache = true;\n",
+      "src/features/catalog/model.ts":
+        'import { legacyLoyaltyCache } from "../loyalty/publicCache"; export const catalog = legacyLoyaltyCache;\n',
+    },
+  },
+  {
     name: "accommodations parent cannot bridge the listing editor public surface",
-    expectedRule:
-      "feature-accommodations-uses-public-cross-feature-surfaces",
+    expectedRule: "feature-accommodations-has-no-peer-imports",
     files: {
       "src/features/accommodations/listing-editor/public.ts":
         "export const editor = true;\n",
@@ -375,8 +377,7 @@ const scenarios = [
   },
   {
     name: "accommodations listing editor imports parent private module",
-    expectedRule:
-      "feature-accommodations-listing-editor-uses-public-cross-feature-surfaces",
+    expectedRule: "feature-accommodations-listing-editor-has-no-peer-imports",
     files: {
       "src/features/accommodations/private.ts":
         "export const accommodation = true;\n",
@@ -387,7 +388,10 @@ const scenarios = [
   {
     name: "migrated feature imports a legacy global root",
     migratedFeatures: ["catalog"],
-    expectedRule: "migrated-feature-catalog-uses-target-layers",
+    expectedRules: [
+      "migrated-feature-catalog-uses-target-layers",
+      "production-does-not-import-retired-global-api",
+    ],
     files: {
       "src/api/catalog.ts": "export const request = true;\n",
       "src/features/catalog/model.ts":
@@ -396,7 +400,7 @@ const scenarios = [
   },
   {
     name: "UI imports the global API",
-    expectedRule: "ui-does-not-import-global-api",
+    expectedRule: "production-does-not-import-retired-global-api",
     files: {
       "src/api/client.ts": "export const request = true;\n",
       "src/components/Card.ts":
@@ -405,7 +409,7 @@ const scenarios = [
   },
   {
     name: "feature public UI imports the global API",
-    expectedRule: "ui-does-not-import-global-api",
+    expectedRule: "production-does-not-import-retired-global-api",
     files: {
       "src/api/client.ts": "export const request = true;\n",
       "src/features/search/ui/PublicWidget.ts":
@@ -414,7 +418,7 @@ const scenarios = [
   },
   {
     name: "UI imports a wire DTO",
-    expectedRule: "ui-does-not-import-wire-dtos",
+    expectedRule: "production-does-not-import-retired-global-wire-dtos",
     files: {
       "src/types/wire.ts": "export type Wire = { id: number };\n",
       "src/components/Card.ts":
@@ -423,7 +427,7 @@ const scenarios = [
   },
   {
     name: "feature root public UI imports a wire DTO",
-    expectedRule: "ui-does-not-import-wire-dtos",
+    expectedRule: "production-does-not-import-retired-global-wire-dtos",
     files: {
       "src/types/wire.ts": "export type Wire = { id: number };\n",
       "src/features/search/public.tsx":
@@ -431,21 +435,21 @@ const scenarios = [
     },
   },
   {
-    name: "route bypasses route config composition",
-    expectedRule: "routes-compose-features-only-in-route-config",
+    name: "non-UI feature module imports the retired global API",
+    expectedRule: "production-does-not-import-retired-global-api",
     files: {
-      "src/features/search/appShell.ts": "export const search = true;\n",
-      "src/routes/Router.ts":
-        'import { search } from "../features/search/appShell"; export const router = search;\n',
+      "src/api/catalog.ts": "export const request = true;\n",
+      "src/features/catalog/model.ts":
+        'import { request } from "../../api/catalog"; export const catalog = request;\n',
     },
   },
   {
-    name: "layout imports a private feature module",
-    expectedRule: "layouts-use-feature-public-surfaces",
+    name: "non-UI feature module imports a retired global wire DTO",
+    expectedRule: "production-does-not-import-retired-global-wire-dtos",
     files: {
-      "src/features/search/hooks/private.ts": "export const search = true;\n",
-      "src/layouts/Header.ts":
-        'import { search } from "../features/search/hooks/private"; export const header = search;\n',
+      "src/types/wire.ts": "export type Wire = { id: number };\n",
+      "src/features/catalog/model.ts":
+        'import type { Wire } from "../../types/wire"; export type Catalog = Wire;\n',
     },
   },
   {

@@ -6,6 +6,8 @@ import type {
   ListingEditorAccommodation,
   ListingEditorQueryPort,
 } from "../../../features/accommodations/listing-editor/public";
+import type { ListingEditorPublicationPort } from "../../../workflows/listing-editor";
+import type { ProfileControllerProps } from "../../../screens/profile/public";
 import type { SessionSubject } from "../../../platform/session/sessionScope";
 import {
   MemoryRouter,
@@ -25,11 +27,6 @@ import { SignupRoute } from "./SignupRoute";
 import { WishlistRoute } from "./WishlistRoute";
 import { createReviewSubmissionResultState } from "../codecs/reviewSubmissionResultCodec";
 
-type Navigate = (target: string) => void;
-type QueryRouteProps = {
-  searchParams: URLSearchParams;
-  setSearchParams: (params: URLSearchParams) => void;
-};
 type CapturedProps = {
   accommodation: {
     accommodationId: number | null;
@@ -94,9 +91,16 @@ type CapturedProps = {
     };
   };
   detail: {
-    locationState: unknown;
-    navigate: Navigate;
-    reservationUid?: string;
+    variant: "guest";
+    feedbackMessage: string | null;
+    navigation: {
+      back(): void;
+      backToProfile(): void;
+      openAccommodation(accommodationId: number): void;
+      openReview(reservationUid: string): void;
+    };
+    reservationUid: string;
+    scope: { subject: string; epoch: number };
   };
   reviewCreate: {
     reservationUid: string | null;
@@ -111,6 +115,7 @@ type CapturedProps = {
     instanceId: string;
     isNewDraft: boolean;
     onNavigateToHostProfile: () => void;
+    publication: ListingEditorPublicationPort;
     query: ListingEditorQueryPort;
     routeLease: { isCurrent(): boolean };
   };
@@ -132,7 +137,7 @@ type CapturedProps = {
     onSuccess: () => void;
     onAlternate: () => void;
   };
-  profile: QueryRouteProps;
+  profile: ProfileControllerProps;
   search: {
     isAuthenticated: boolean;
     navigation: {
@@ -209,6 +214,8 @@ const mockWishlistCommands = {
 };
 const mockOpenInNewTab = jest.fn();
 const mockIsCurrentHistoryEntry = jest.fn();
+const mockRefreshAccommodationDetail = jest.fn();
+const mockRefreshHostListings = jest.fn();
 
 function mockRoute<Key extends keyof CapturedProps>(
   key: Key,
@@ -283,6 +290,19 @@ jest.mock("../../../screens/accommodation-detail/public", () => ({
     "숙소 상세 계속",
   ),
 }));
+jest.mock("../../../features/accommodations/detail/public", () => ({
+  ...jest.requireActual("../../../features/accommodations/detail/public"),
+  createAccommodationDetailQueryCacheProjection: () => ({
+    detailRefreshRequired: (...args: unknown[]) =>
+      mockRefreshAccommodationDetail(...args),
+  }),
+}));
+jest.mock("../../../features/profile/public", () => ({
+  createHostListingQueryCacheProjection: () => ({
+    refreshRequired: (...args: unknown[]) =>
+      mockRefreshHostListings(...args),
+  }),
+}));
 jest.mock("../../../workflows/auth-intent", () => ({
   ...jest.requireActual("../../../workflows/auth-intent"),
   useAuthIntent: () => mockUseAuthIntent(),
@@ -298,8 +318,8 @@ jest.mock("../../../workflows/wishlist-membership", () => ({
 jest.mock("../../session/useSession", () => ({
   useSession: () => mockUseSession(),
 }));
-jest.mock("../../../features/reservations/ReservationDetailRoute", () => ({
-  ReservationDetailRoute: (props: CapturedProps["detail"]) => {
+jest.mock("../../../screens/reservation-detail/public", () => ({
+  ReservationDetailController: (props: CapturedProps["detail"]) => {
     const React = require("react");
     const [mountedReservationUid] = React.useState(props.reservationUid);
     mockCapturedProps.detail = props;
@@ -316,7 +336,7 @@ jest.mock("../../../features/reservations/ReservationDetailRoute", () => ({
       React.createElement(
         "button",
         {
-          onClick: () => props.navigate("/reservation-next"),
+          onClick: () => props.navigation.openAccommodation(42),
           type: "button",
         },
         "예약 상세 계속",
@@ -324,11 +344,9 @@ jest.mock("../../../features/reservations/ReservationDetailRoute", () => ({
     );
   },
 }));
-jest.mock("../../../features/profile/ProfileRoute", () => ({
-  ProfileRoute: mockRoute("profile", "프로필 보기 변경", (props) =>
-    props.setSearchParams(
-      new URLSearchParams("mode=host&tab=reservations-upcoming"),
-    ),
+jest.mock("../../../screens/profile/public", () => ({
+  ProfileController: mockRoute("profile", "프로필 보기 변경", (props) =>
+    props.navigation.changeHostSection("reservations"),
   ),
 }));
 
@@ -424,6 +442,10 @@ beforeEach(() => {
   mockOpenInNewTab.mockReset();
   mockIsCurrentHistoryEntry.mockReset();
   mockIsCurrentHistoryEntry.mockReturnValue(true);
+  mockRefreshAccommodationDetail.mockReset();
+  mockRefreshAccommodationDetail.mockResolvedValue(undefined);
+  mockRefreshHostListings.mockReset();
+  mockRefreshHostListings.mockResolvedValue(undefined);
   mockUseAuthIntent.mockReturnValue({
     pending: null,
     request: mockRequestAuthIntent,
@@ -908,10 +930,9 @@ describe("app route adapter contracts", () => {
     );
 
     expect(captured("detail")).toMatchObject({
-      locationState: {
-        toastMessage: "리뷰는 작성되었지만 이미지 업로드에 실패했습니다.",
-      },
+      feedbackMessage: "리뷰는 작성되었지만 이미지 업로드에 실패했습니다.",
       reservationUid: "reservation-42",
+      variant: "guest",
     });
     await waitFor(() =>
       expect(screen.getByTestId("current-location-state")).toHaveTextContent(
@@ -921,7 +942,7 @@ describe("app route adapter contracts", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "예약 상세 계속" }),
     );
-    expectLocation("/reservation-next");
+    expectLocation("/accommodations/42");
   });
 
   it("remounts the legacy detail boundary when the route reuses a different reservation uid", async () => {
@@ -955,9 +976,7 @@ describe("app route adapter contracts", () => {
     );
 
     expect(captured("detail")).toMatchObject({
-      locationState: {
-        toastMessage: "리뷰는 작성되었지만 이미지 업로드에 실패했습니다.",
-      },
+      feedbackMessage: "리뷰는 작성되었지만 이미지 업로드에 실패했습니다.",
       reservationUid: "reservation-42",
     });
     await waitFor(() =>
@@ -983,13 +1002,15 @@ describe("app route adapter contracts", () => {
     expect(reusedRouteProps).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          locationState: null,
+          feedbackMessage: null,
           reservationUid: "reservation-43",
         }),
       ]),
     );
     expect(
-      reusedRouteProps.every(({ locationState }) => locationState === null),
+      reusedRouteProps.every(
+        ({ feedbackMessage }) => feedbackMessage === null,
+      ),
     ).toBe(true);
   });
 
@@ -1003,7 +1024,7 @@ describe("app route adapter contracts", () => {
       <ReservationDetailRoute />,
     );
 
-    expect(captured("detail").locationState).toBeNull();
+    expect(captured("detail").feedbackMessage).toBeNull();
     expect(screen.getByTestId("current-location-state")).toHaveTextContent(
       '{"toastMessage":"injected copy"}',
     );
@@ -1065,23 +1086,50 @@ describe("app route adapter contracts", () => {
     expectLocation("/profile?mode=host");
   });
 
-  it.each([
-    {
-      action: "프로필 보기 변경",
-      element: <ProfileRoute />,
-      initial: "/profile?mode=guest&tab=upcoming",
-      key: "profile",
-      next: "/profile?mode=host&tab=reservations-upcoming",
-      path: "/profile",
-      query: "mode=guest&tab=upcoming",
-    },
-  ] as const)("passes and mutates $key URL state", async (testCase) => {
-    renderAdapter(testCase.path, testCase.initial, testCase.element);
-
-    expect(captured(testCase.key).searchParams.toString()).toBe(testCase.query);
-    await userEvent.click(
-      screen.getByRole("button", { name: testCase.action }),
+  it("awaits the editor input's exact scoped cache refresh", async () => {
+    const failure = new Error("detail invalidation failed");
+    const changedScope = {
+      subject: "subject:editor-publication" as SessionSubject,
+      epoch: 9,
+    };
+    mockRefreshAccommodationDetail.mockRejectedValueOnce(failure);
+    renderAdapter(
+      "/accommodations/:id/edit",
+      "/accommodations/42/edit",
+      <AccommodationEditRoute />,
     );
-    expectLocation(testCase.next);
+
+    await expect(
+      captured("edit").publication.publishEditorChanged({
+        accommodationId: 84,
+        outcome: "saved",
+        scope: changedScope,
+      }),
+    ).rejects.toBe(failure);
+    expect(mockRefreshAccommodationDetail).toHaveBeenCalledWith({
+      accommodationId: 84,
+      scope: changedScope,
+    });
+    expect(mockRefreshHostListings).toHaveBeenCalledWith({
+      scope: changedScope,
+    });
+  });
+
+  it("maps profile URL state and replaces it through typed navigation", async () => {
+    renderAdapter(
+      "/profile",
+      "/profile?mode=guest&tab=upcoming",
+      <ProfileRoute />,
+    );
+
+    expect(captured("profile").routeView).toEqual({
+      variant: "guest",
+      activeTab: "upcoming",
+      filterType: "UPCOMING",
+    });
+    await userEvent.click(
+      screen.getByRole("button", { name: "프로필 보기 변경" }),
+    );
+    expectLocation("/profile?mode=host&tab=reservations-upcoming");
   });
 });

@@ -1,9 +1,9 @@
 # Airbob Frontend Architecture
 
 > Status: canonical current-state source of truth  
-> Baseline: U4 commit `f5222d5`, followed by the U6 Router, U5 session, U19 structural UI, U7 auth/wishlist, U8 Search, U9 Detail/Review, U10 booking-payment, U11 Toss v2, and U12 Accommodation Editor cutovers
-> Current migration state: the app Router/session/overlay runtime and the feature-owned auth, wishlist, Search, Accommodation Detail, reservation-create, Review, booking-payment, and Accommodation Editor slices are active
-> Recorded: 2026-08-30 KST
+> Baseline: U4 commit `f5222d5`, followed by the U6 Router, U5 session, U19 structural UI, U7-U13 feature/workflow cutovers, U21 small routes, U22 compatibility closure, and U14 interaction adoption
+> Current migration state: app routing/session/overlay ownership, every feature-owned API/model boundary, and every current route screen are active; legacy global roots are retired
+> Recorded: 2026-08-31 KST
 
 This document describes the frontend that is reachable in production at the
 baseline above. It is the only document that defines the current architecture.
@@ -16,17 +16,16 @@ state; older freeze and plan documents are historical evidence only.
   contract.
 - Backend endpoints, request/response fields, cookie semantics, database, and
   server authorization are outside frontend ownership.
-- Current route paths and user-visible flows are compatibility contracts during
-  the architecture migration.
+- Current route paths and user-visible flows remain behavior contracts during
+  the remaining toolchain and design-foundation migration.
 - There must be one active writer for every mutable workflow.
 - A migrated slice switches to one new writer and removes the old writer in the
-  same atomic cutover before the slice is considered complete. A read-only
-  compatibility surface may remain only when the ownership matrix names its
-  rollback purpose and later removal unit.
+  same atomic cutover before the slice is considered complete. Rollback uses an
+  immutable build or Git commit, never a second live source owner.
 - Wishlist collection/membership create, add, remove, delete, memo-save, and
   recently-viewed removal have exactly one mutation writer under
-  `src/workflows/wishlist-membership/**`; compatibility adapters may project
-  cache reads but cannot issue network mutations.
+  `src/workflows/wishlist-membership/**`; app composition may project scoped
+  cache results but cannot issue a second network mutation.
 - App route codecs are the durable authority for migrated route views. Wishlist,
   Search, and Accommodation Detail controllers receive decoded URL props and do
   not mirror committed route state into local durable state. Transient review
@@ -39,11 +38,15 @@ state; older freeze and plan documents are historical evidence only.
   writer. It captures one route/session lease, shares one exact active Promise,
   journals committed phases, and locks uncertain mutations instead of blindly
   repeating a possibly committed request.
+- `src/workflows/host-listing-management/**` is the sole host listing
+  publish/unpublish/delete writer. Concurrent intents share the first active
+  Promise, uncertain exact commands remain terminal, and a different command
+  may proceed only after the active command settles.
 - The payment-success credential boundary lives in the stable app-provider
   lifetime above session authentication and the keyed QueryClient subtree. It
   captures a valid Toss tuple in route-lifetime memory only and removes every
   success query from native and React Router history before session bootstrap or
-  `RequireAuth` may inspect the location.
+  `RequireAuthenticatedRoute` may inspect the location.
 - Airbnb visual redesign begins only after the architecture design-entry gate;
   it is not part of the structure migration.
 
@@ -61,17 +64,18 @@ src/index.tsx
             useSessionQueryLifetime (subject/epoch generations)
             useSessionExternalSync (tab/focus/auth signals)
             SessionContext
-              AuthIntentProvider (memory-only stable boundary)
-                keyed QueryClientProvider
-                  AuthProvider (thin compatibility adapter + auth command injection)
-                    App
+              AuthIntentStableBoundary
+                AuthIntentProvider (memory-only stable boundary)
+                  AuthFeatureCommandProvider (session command injection)
+                    keyed QueryClientProvider
+                      App
                       U6 app route tree
-                        semantic app shell
-                          optional AppHeader
+                        semantic route-frame shell
+                          optional header from app/header
                           one main landmark
                             lazy app route adapter
                               WishlistMembershipProvider on Search/Detail/Wishlist only
-                              owned controller/screen or assigned legacy route body
+                              owned controller/screen
 ```
 
 Current owners:
@@ -81,12 +85,13 @@ Current owners:
 | React root and providers | `src/index.tsx`, `src/app/providers/AppProviders.tsx` | The one React root injects the reservation session-cleanup port; `AppProviders` mounts one `OverlayProvider` around the single `SessionProvider` and no provider creates another React root. |
 | Session and authentication lifetime | `src/app/session/**`, `src/features/auth/ports/sessionPort.ts`, `src/platform/session/**` | One explicit reducer owns bootstrap, authenticated revalidation, anonymous revocation, retryable errors, subject/epoch, provider-local auth command serialization, cancellation, focus/401 handling, and cross-tab invalidation. |
 | Resumable authentication intent | `src/workflows/auth-intent/**`, composed by `src/app/providers/AppProviders.tsx` | A memory-only provider outside the keyed Query subtree holds only the latest validated primitive intent. Search and Accommodation adapters atomically claim it with a captured session scope; old-generation callbacks never resume Wishlist, reservation, or coupon work. |
-| Server-state client | `src/app/session/SessionProvider.tsx`, `src/platform/query/createQueryClient.ts` | Each session generation receives a new QueryClient. Leaving an authenticated identity also remounts the provider subtree. `src/query/QueryProvider.tsx` and `sessionCacheBoundary.ts` are rollback/test compatibility surfaces, not production owners. |
-| Authentication feature | `src/features/auth/{api,model,ports,ui}/**`, `src/screens/auth/**` | Login and signup routes render the owned controller/screen. Session owns login identity transitions; the feature owns signup transport and form behavior through injected commands. `AuthContext` remains only as a compatibility projection/delegation boundary until its final consumers move in U22. |
+| Server-state client | `src/app/session/SessionProvider.tsx`, `src/platform/query/createQueryClient.ts` | Each session generation receives a new QueryClient. Leaving an authenticated identity remounts the provider subtree; feature Query options carry explicit subject/epoch scopes. |
+| Authentication feature | `src/features/auth/{api,model,ports,ui}/**`, `src/screens/auth/**` | Login and signup routes render the owned controller/screen. Session owns login identity transitions; the feature owns signup transport and form behavior through the injected auth-command boundary. |
 | Routing and shell metadata | `src/app/router/definitions.ts`, `manifest.ts`, `lazyRoutes.tsx`, `paths.ts` | Component-free policy and 15 literal lazy adapter entries are the active production manifest. |
-| Application shells | `src/app/shells/**` | Browse, form, transaction, editor, and bare shells render exactly one `main`; `PageShell` is a labelled nested section and cannot accept a `main` role. `AppHeader` remains the active header renderer. |
-| Overlay runtime | `src/app/overlays/OverlayProvider.tsx`, `src/shared/ui/overlayRuntime.ts` | One app-owned, statically declared `#airbob-portal-root` hosts Dialog and Toast. The provider owns Dialog stack order, topmost Escape/backdrop policy, nested body lock, inactive-layer semantics, and focus restoration while preserving the existing Dialog/Toast props. |
-| API transport and envelope | `src/platform/http/**`, exposed through `src/api/client.ts` and `src/api/response.ts` | One credentialed Axios instance; migrated and legacy error surfaces are intentionally separate. Migrated multipart commands declare their body encoding so the shared JSON default cannot serialize `FormData`. |
+| Application header | `src/app/header/**` | `Header` and `UserMenu` are app-composition owners; they consume feature public UI/ports and are injected into route frames. |
+| Application shells | `src/app/shells/**` | Browse, form, transaction, editor, and bare shells are route-frame-only owners and render exactly one `main`; `PageShell` is a labelled nested section and cannot accept a `main` role. |
+| Overlay runtime | `src/app/overlays/OverlayProvider.tsx`, `src/shared/ui/overlayRuntime.ts` | One app-owned `#airbob-portal-root` hosts Dialog and route Toast. Modal and local non-modal registrations share topmost Escape order; only modals lock scroll and isolate the app. Dialog owns focus containment, explicit initial focus, inactive-layer semantics, and focus-lineage restoration. |
+| API transport and envelope | `src/platform/http/**` | One credentialed Axios instance and one `AppError` envelope boundary. Feature adapters consume it directly; multipart commands declare their body encoding so the shared JSON default cannot serialize `FormData`. |
 | Browser platform boundary | `src/platform/config/**`, `storage/**`, `integrations/**`, `assets/**`, `browser/**`, `session/**` | Owns public environment input, browser storage access, external SDK globals/scripts, image URL resolution, isolated new-tab navigation, exact current-history-entry validation, auth-error signaling, and the non-PII cross-tab channel. |
 | Wishlist feature and workflow | `src/features/wishlist/**`, `src/workflows/wishlist-membership/**`, `src/screens/wishlist/**` | Feature-owned API/model/scoped read options feed a URL-prop-only screen controller. Search, Detail, and Wishlist lazy adapters mount one route-scoped provider inside the current QueryClient generation, so the writer is disposed on route departure without entering the initial app chunk. Its subject/epoch-fenced command runner owns collection/membership create, add, remove, delete, memo-save, and recently-viewed removal. App composition sends Search and Detail updates only to their owning scoped cache projections. |
 | Search feature | `src/app/router/routes/SearchRoute.tsx`, `src/screens/search/**`, `src/features/search/**` | The app adapter alone owns codec parsing, page push, map-bounds replace, booking-safe detail URLs, auth-intent claim, and workflow composition. `SearchController` derives request/map/view state; feature-owned API/wire mappers and scoped Query options own server reads, cancellation, and stale-result fencing. `SearchScreen` is props-only. SearchBar receives a typed route port and its reducer owns draft/popover/IME interaction only. |
@@ -94,8 +99,10 @@ Current owners:
 | Booking checkout and payment | `src/app/router/PaymentCallbackCredentialBoundary.tsx`, `src/app/router/routes/{ReservationConfirmRoute,PaymentSuccessRoute,PaymentFailRoute}.tsx`, `src/screens/{reservation-confirm,payment-result}/**`, `src/features/reservations/payment/**`, `src/workflows/booking-payment/{checkout,confirmation}/**` | One aggregate owns the versioned checkout/callback repositories, callback claim/replay bootstrap, Toss request policy, confirmation, and status reconciliation. A payment-success-specific boundary in the stable app-provider lifetime parses the external tuple into route-lifetime memory, blocks session/auth children until both histories are credential-free, survives the authenticated QueryClient generation replacement, and releases its claim on route departure without remounting the session/query runtime. App adapters claim exact route/session generations, consume the minimal history handle, and compose props-only screens. Gateway request requires a current subject-owned checkout with no persisted callback; any callback phase returns to confirmation/reconciliation recovery and can never remount payment request. `received` proves no confirm POST boundary was crossed; ownership preflight runs first, `confirming` is durably written immediately before the sole POST, and later phases reconcile only. Document-free server replay retains its scrubbed tuple in the success route when ownership lookup is temporarily unavailable, retries preflight in place, and starts reconciliation only after exact server ownership is verified. Confirmation/reconciliation additionally verifies the authenticated guest reservation and exact reservation/order/amount/resource tuple before confirm/status I/O. Only backend confirm or exact payment status can publish success. Retryable or pending results retain owned records for reconciliation, while only exact joined invalid/terminal/session boundaries purge them. |
 | Review read and submission | `src/app/router/routes/ReviewCreateRoute.tsx`, `src/screens/review-create/**`, `src/features/reservations/{api,model,queries}/reviewableReservation*`, `src/features/reviews/**`, `src/workflows/review-submission/**` | A minimal camelCase reservation read model prevents legacy reservation DTOs from reaching the screen. One create/upload workflow makes post-create terminals irreversible, preserves real multipart `FormData`, suppresses stale navigation/publication, and terminal-locks ambiguous create outcomes rather than repeating a possible committed POST. Image-only upload failure remains typed partial success. Reviews is a strict architecture root. |
 | Accommodation Editor | `src/app/router/routes/AccommodationEditRoute.tsx`, `src/screens/accommodation-edit/**`, `src/features/accommodations/listing-editor/**`, `src/workflows/listing-editor/**` | The independently ratcheted `accommodations/listing-editor` scope owns the editor API, camelCase models, ports, and scoped Query projection. The app adapter owns resource/session/route provenance and injects profile publication, Daum postcode, and image URL ports. The controller hydrates one typed workflow instance and supplies only view data and callbacks to the props-only screen. The workflow owns single-flight save/publish, stale completion fences, immediate delete reconciliation, ordered upload/update/publish phases, and terminal uncertainty locks. The deleted `features/accommodations/edit/**` tree and global editor API methods cannot become a second writer. |
-| Remaining domain state and orchestration | unmigrated `src/features/**` slices | Legacy TanStack Query hooks, route containers, global API/DTO facades, and workflow hooks coexist until their named U13/U21 cutovers. |
-| Domain-free UI | `src/shared/ui/**` | Tested primitives; adoption is incomplete. |
+| Profile and reservation reads | `src/app/router/routes/{ProfileRoute,ReservationDetailRoute,HostReservationDetailRoute}.tsx`, `src/screens/{profile,reservation-detail}/**`, `src/features/{profile,reservations}/**` | App codecs are the sole Profile URL authority. Controllers consume subject/epoch-scoped Query options with explicit guest/host audience keys, cancellation, camelCase models, and props-only screens. Listing editor and host actions publish through scoped Profile/reservation cache projections. |
+| Host listing management | `src/workflows/host-listing-management/**`, composed by `src/app/router/routes/ProfileRoute.tsx` | One route/session-leased writer owns publish, unpublish, and delete. API success and cache-publication failure are represented separately so the UI never repeats a possibly applied exact command. |
+| Legacy global roots | none | `src/{api,contexts,hooks,layouts,query,routes,types,utils}` are absent and executable gates prevent reintroduction. |
+| Domain-free UI | `src/shared/ui/**` | Tested primitives now own Dialog, Toast, DatePicker, semantic navigation/action cards, and shared non-modal overlay registration. Visual-system consolidation remains U15. |
 | Shared styling values | `src/styles/tokens.css`, `src/shared/styles/custom-media.css`, `src/shared/styles/responsive.ts` | A canonical responsive manifest and JS `matchMedia` policy agree at the 1024px boundary. CRA cannot transform custom media, so unresolved production alias consumers are blocked until U16; CSS Modules still contain contract-checked literals and feature-local values. |
 | Browser smoke | `scripts/smoke/frontend-smoke.mjs` | Live backend, browser, credentials, and stable IDs are external prerequisites. |
 | Deterministic browser characterization | `playwright.config.ts`, `tests/e2e/**` | Loopback production app plus an exact synthetic HTTPS `.invalid` API origin, synthetic session/API fixtures, and default-deny network. |
@@ -105,58 +112,44 @@ Current owners:
 
 `src/app/router/definitions.ts` owns route policy and
 `src/app/router/lazyRoutes.tsx` owns the exhaustive direct lazy adapter mapping.
-The former `src/routes/Router.tsx` and `routeConfig.tsx` composition roots are
-deleted. `src/routes/routeDefinitions.ts`, matching/shell metadata, and
-`MainLayout` are unreachable rollback artifacts. `src/routes/RequireAuth.tsx`,
-`AuthContext`, legacy path/query helpers, and four assigned feature route
-bodies remain active compatibility adapters until their named U13/U21-U22
-cutovers.
+`src/app/router/RequireAuthenticatedRoute.tsx` owns protected-route state and
+safe return targets. Every route adapter delegates to an app/screen-owned body;
+there is no legacy route manifest, path/query copy, layout, or route body.
 
 | ID | Path | Auth | Shell | Active adapter | Active body |
 | --- | --- | --- | --- | --- | --- |
-| home | `/` | public | browse | `app/router/routes/HomeRoute.tsx` | `features/home/HomeRoute.tsx` |
+| home | `/` | public | browse | `app/router/routes/HomeRoute.tsx` | `screens/home/HomeScreen.tsx` |
 | search | `/search` | public | browse/search header | `app/router/routes/SearchRoute.tsx` | `screens/search/SearchController.tsx` → `SearchScreen.tsx` |
 | accommodation-detail | `/accommodations/:id` | public | browse | `app/router/routes/AccommodationDetailRoute.tsx` | `screens/accommodation-detail/AccommodationDetailController.tsx` → `AccommodationDetailScreen.tsx` |
 | accommodation-confirm | `/accommodations/:id/confirm` | protected | transaction | `app/router/routes/ReservationConfirmRoute.tsx` | `screens/reservation-confirm/ReservationConfirmController.tsx` → `ReservationConfirmScreen.tsx` |
 | accommodation-edit | `/accommodations/:id/edit` | protected | editor | `app/router/routes/AccommodationEditRoute.tsx` | `screens/accommodation-edit/AccommodationEditController.tsx` → `AccommodationEditScreen.tsx` |
 | wishlist | `/wishlist` | protected | browse | `app/router/routes/WishlistRoute.tsx` | `screens/wishlist/WishlistController.tsx` |
-| profile | `/profile` | protected | browse | `app/router/routes/ProfileRoute.tsx` | `features/profile/ProfileRoute.tsx` |
-| host-reservation-detail | `/profile/host/reservations/:reservationUid` | protected | transaction | `app/router/routes/HostReservationDetailRoute.tsx` | `features/reservations/HostReservationDetailRoute.tsx` |
-| reservation-detail | `/reservations/:reservationUid` | protected | transaction | `app/router/routes/ReservationDetailRoute.tsx` | `features/reservations/ReservationDetailRoute.tsx` |
+| profile | `/profile` | protected | browse | `app/router/routes/ProfileRoute.tsx` | `screens/profile/ProfileController.tsx` → `ProfileScreen.tsx` |
+| host-reservation-detail | `/profile/host/reservations/:reservationUid` | protected | transaction | `app/router/routes/HostReservationDetailRoute.tsx` | `screens/reservation-detail/ReservationDetailController.tsx` → `ReservationDetailScreen.tsx` |
+| reservation-detail | `/reservations/:reservationUid` | protected | transaction | `app/router/routes/ReservationDetailRoute.tsx` | `screens/reservation-detail/ReservationDetailController.tsx` → `ReservationDetailScreen.tsx` |
 | reservation-review | `/reservations/:reservationUid/review` | protected | form | `app/router/routes/ReviewCreateRoute.tsx` | `screens/review-create/ReviewCreateController.tsx` → `ReviewCreateScreen.tsx` |
 | payment-success | `/reservations/:reservationUid/success` | protected | transaction | `app/router/routes/PaymentSuccessRoute.tsx` | `screens/payment-result/PaymentResultController.tsx` → `PaymentResultScreen.tsx` |
 | payment-fail | `/reservations/:reservationUid/fail` | protected | transaction | `app/router/routes/PaymentFailRoute.tsx` | `screens/payment-result/PaymentResultController.tsx` → `PaymentResultScreen.tsx` |
 | login | `/login` | public | form/hidden header | `app/router/routes/LoginRoute.tsx` | `screens/auth/AuthController.tsx` |
 | signup | `/signup` | public | form/hidden header | `app/router/routes/SignupRoute.tsx` | `screens/auth/AuthController.tsx` |
-| not-found | `*` | public | bare/hidden header | `app/router/routes/NotFoundRoute.tsx` | none |
+| not-found | `*` | public | bare/hidden header | `app/router/routes/NotFoundRoute.tsx` | `screens/not-found/NotFoundScreen.tsx` |
 
 All 15 entries are lazy. Each is a literal import and remains a separate
-route-level adapter entry. Four adapters cross one exact,
-architecture-enforced bridge to their assigned legacy body; Login, Signup,
-Wishlist, Search, Accommodation Detail, Accommodation Edit, Reservation Confirm,
-Review, Payment Success, Payment Fail, and NotFound are
-app/screen-owned. Remaining route-only `src/features/*/index.ts` barrels are
-not used by production routing and remain cleanup artifacts for U22.
-
-The remaining rollback-only route chain is `src/routes/routeDefinitions.ts`,
-`routeMatching.ts`, `routeShell.ts`, the old NotFound route, and
-`src/layouts/MainLayout*`; the former Router and routeConfig roots are gone.
-Still-active compatibility code is deliberately narrower:
-`src/layouts/AppHeader/**`, `src/routes/RequireAuth.tsx`, legacy path/query
-helpers, and the four assigned feature route bodies. Calling all of
-`src/routes` or `src/layouts` rollback-only would be incorrect.
+route-level adapter entry. `src/app/header/**` owns Header/UserMenu composition, while
+`src/app/shells/**` owns route framing and the sole `main` landmark contract.
+The retired legacy source roots are absent from src.
 
 ## Current state ownership
 
 | State | Current authority | Current synchronization |
 | --- | --- | --- |
-| Route path and builder | `src/app/router/paths.ts` | Active app adapters use `routeTo`; `src/routes/paths.ts` remains an independently tested compatibility copy for legacy consumers. |
-| Route query shape | `src/app/router/codecs/**` | Canonical parse/serialize contracts exist at the app boundary. Login return, Wishlist, Search, Accommodation booking, typed review completion, Payment Success callback, and Payment Fail reason consume them now; Profile retains its legacy parser until U13. Before authentication renders, the payment credential boundary parses the external tuple, replace-scrubs native history, synchronizes React Router with null state, and retains the claim in memory only. The success adapter delegates exact claim/replay policy to the booking-payment workflow; the fail route serializes only a typed reason. |
+| Route path and builder | `src/app/router/paths.ts` | Every route and card URL is built through `routeTo`; no second path table exists. |
+| Route query shape | `src/app/router/codecs/**` | Canonical parse/serialize contracts exist at the app boundary. Login return, Wishlist, Search, Profile, Accommodation booking, typed review completion, Payment Success callback, and Payment Fail reason consume them now. Profile direct loads and back/forward navigation derive their view directly from the codec without mirrored durable state. Before authentication renders, the payment credential boundary parses the external tuple, replace-scrubs native history, synchronizes React Router with null state, and retains the claim in memory only. The success adapter delegates exact claim/replay policy to the booking-payment workflow; the fail route serializes only a typed reason. |
 | Search state | App `searchCodec` output, feature Query state, SearchBar interaction reducer, bottom-sheet state, and map instance refs | The URL is the committed destination/date/guest/bounds/page authority. Query owns result/loading/error/cancellation, the reducer owns input draft/active overlay/IME state only, and map/SDK objects remain integration-local and disposable. |
 | Wishlist route view | `wishlistCodec` output passed by the app adapter | The URL is the sole durable view authority; `WishlistController` derives index/detail/recently-viewed state without mirroring it into React state. |
-| Profile route view | URL plus mirrored React state | Effects still copy parsed URL state into local state until U13. |
-| Server resources | Session generation QueryClient plus feature-owned TanStack Query options | U5 physically replaces and clears the client at an identity boundary. Wishlist, Search, Accommodation Detail/coupons, and Reviews include subject/epoch keys/meta and forward cancellation; app composition reconciles Wishlist membership through each owning projection. Unmigrated feature keys/public cache helpers remain until their slice cutovers. |
-| Viewer identity | `SessionProvider` explicit reducer state | A non-PII subject and monotonic epoch define identity lifetime. `AuthContext` is a read/delegation adapter only; the old `useSessionQuery` and `sessionLifecycle` owners are deleted. |
+| Profile route view | App `profileCodec` output passed by the app adapter | The URL is the sole durable guest/host tab and filter authority; the controller owns only transient sort, dialog, pending, and dismissed-error state. |
+| Server resources | Session generation QueryClient plus feature-owned TanStack Query options | U5 physically replaces and clears the client at an identity boundary. Wishlist, Search, Accommodation Detail/coupons, Reviews, Profile host listings, and guest/host reservation reads include subject/epoch keys/meta and forward cancellation. Guest/host audience and filter identity are explicit key inputs, and app composition reconciles only the captured scope through owning projections. |
+| Viewer identity | `SessionProvider` explicit reducer state | A non-PII subject and monotonic epoch define identity lifetime. Consumers use `useSession` or narrow injected feature-command ports; no mirrored auth context exists. |
 | Checkout recovery | `airbob:booking-payment-v1:checkout` plus a typed history handle | One static, subject-owned versioned record retains the exact checkout allowlist for 60 minutes; the history entry carries only purpose/version/operation ID and is replace-consumed. Foreign, expired, malformed, wrong-purpose/version, unknown-field, route-mismatched, and operation-mismatched inputs fail closed. A stale or malformed current-format handle redirects without deleting the newer stored checkout or entering legacy migration. Name and email never enter the record. Server-verified legacy input may be migrated once, then is deleted; retryable verification failures preserve the unchanged legacy pair. |
 | Payment callback and confirm dedupe | stable-lifetime in-memory pre-auth claim, `airbob:booking-payment-v1:callback`, and the confirmation workflow instance | The pre-auth claim exists only for the scrubbed success-route lifetime but survives the session QueryClient generation switch. A subject-owned sensitive callback record with a sliding 15-minute TTL then retains the exact tuple and `received|confirming|reconciling` phase; every successful callback write first refreshes the joined checkout's longer 60-minute lifetime. `received` is confirm-capable, while `confirming` and `reconciling` are reconciliation-only. Exact concurrent commands share one active Promise; a possibly sent confirm is never repeated and later attempts reconcile. Reopening confirm while any joined callback exists routes to reason-only recovery without mounting the gateway. A consumed legacy confirmed marker is persisted as `reconciling` and cannot publish success. |
 | Cross-tab session signal | `src/platform/session/sessionBroadcast.ts` | A same-origin BroadcastChannel exchanges only an exact non-PII transition envelope and drives invalidate-before-revalidate handling. |
@@ -219,42 +212,29 @@ Detailed browser persistence and privacy properties are recorded in
   ignored. If a newer transition or unrelated 401 arrives during an external
   `/me` probe, that probe is aborted and one fresh checking boundary/probe is
   replayed after the current verification releases.
-- `src/features/auth/hooks/useSessionQuery.ts` and
-  `src/features/auth/lib/sessionLifecycle.ts` are deleted. The surviving
-  `src/query/QueryProvider.tsx` and `sessionCacheBoundary.ts` have no production
-  consumer and exist only as rollback/test compatibility until U22.
+- The former feature session hook/lifecycle and global Query roots are deleted.
+  `SessionProvider` plus `createQueryClient` are the only client-lifetime owners.
 
-The U5 generation boundary remains the physical bridge for unmigrated feature
-hooks: there is no production `userScopedQueryRoots` registry and no singleton
-QueryClient. U7 completes the final R14/R15 pattern for Wishlist: its read keys
-and meta carry subject/epoch, every command captures and re-checks that scope,
-old-session completions cannot publish cache/UI effects, and one workflow owns
-collection/membership create/add/remove/delete, memo-save, and recently-viewed
-removal. U8 adds normalized Search request keys, scope meta, AbortSignal
-propagation, owned membership projection, and a mounted A→B late-response
-fence. U9 adds scoped Accommodation Detail/coupon/review reads plus
-route/session-fenced reservation and review command workflows. U10 adds exact
-route/session leases and abortable ownership/payment reads to the booking-payment
-aggregate. U12 adds a subject/epoch-scoped feature Query projection for
-Accommodation Editor hydration/reconciliation, while its route-leased command
-workflow owns the mutation journal, captured transaction snapshot, and
-stale-publication fences. U13 must add owned Query options or
-command fences to the remaining profile/reservation slices; U22 removes the
-rollback compatibility surfaces.
+The U5 generation boundary is the physical owner for every feature Query. Each
+feature now supplies scoped keys/meta, cancellation, read adapters, and narrow
+cache projections. Wishlist, Search, Accommodation Detail/coupons/Reviews,
+booking-payment, Accommodation Editor, Profile, and guest/host reservation reads
+capture explicit subject/epoch/resource identity. Every command workflow checks
+its route/session lease before UI, cache, storage, or navigation publication.
+There is no production `userScopedQueryRoots` registry, singleton QueryClient,
+function-identity scope inference, global Query facade, or rollback reader.
 
 ## API and external integrations
 
 ### API boundary
 
 - `src/platform/http/client.ts` creates the only credentialed production Axios
-  instance. `src/api/client.ts` is the compatibility facade; the unused Axios
-  v2 instance no longer exists.
+  instance. Feature API adapters import this boundary directly.
 - `src/platform/http/envelope.ts` and `errors.ts` own the migrated
-  `AppError` boundary. `src/api/request.ts` and `response.ts` preserve the
-  existing `ApiClientError`, raw Axios failure identity, nullable-command, and
-  authentication-event contracts for legacy consumers.
+  `AppError` boundary. Raw Axios error shapes do not cross into features,
+  screens, or application composition.
 - Auth, Wishlist, Search, Accommodation Detail/coupons, Accommodation Editor,
-  reservation-create, booking-payment, and Review methods, wire types, and
+  Profile host listings, reservation reads/create/payment, and Review methods, wire types, and
   mappers are owned by
   `src/features/auth/{api,model}/**`,
   `src/features/wishlist/{api,model}/**`,
@@ -263,16 +243,11 @@ rollback compatibility surfaces.
   `src/features/accommodations/listing-editor/**`,
   `src/features/reservations/{api,model}/**`,
   `src/features/reservations/payment/{api,model,ports}/**`, and
-  `src/features/reviews/{api,model}/**`. The former global Auth/Wishlist/Review/
-  recently-viewed wrappers and their migrated DTOs are deleted; unused
-  `src/types/auth.ts` remains rollback debt until U22. Search also removed the
-  global accommodation search method and search response DTOs; U10 removes the
-  global payment wrapper, and U12 removes the global editor methods and shared
-  editor DTOs. The legacy host-listing modal uses the separate parent-owned
-  `src/features/accommodations/api/hostListingActionsApi.ts` transport and does
-  not import the nested editor owner. Other domain
-  wrappers under `src/api/*.ts` stay compatibility owners until their consumer
-  slices move.
+  `src/features/reviews/{api,model}/**`. The global API and DTO roots are
+  deleted. Host listing commands use the parent-owned
+  `src/features/accommodations/api/hostListingActionsApi.ts` transport only
+  through the host-listing-management workflow and never import the nested
+  editor owner.
 - UI components and route containers are kept away from direct API and wire-DTO
   imports by dependency-cruiser rules with failing fixtures.
 - Wire payload fields are TypeScript types; arbitrary domain payloads are not
@@ -285,7 +260,7 @@ rollback compatibility surfaces.
 | Google Maps/Places | `src/platform/integrations/{googleMaps,googlePlaces,useGoogleMapsScript}.ts` plus Search-owned Places hook | Exact HTTPS singleton loader, typed terminal states, validated runtime access, lazy Places activation, and bounded SDK/DOM resource cleanup. The unused global hook facades are deleted. |
 | Daum postcode | `src/platform/integrations/daumPostcode.ts`, injected into the editor by `src/app/router/routes/AccommodationEditRoute.tsx` | Lazy exact HTTPS loader, callback validation, and abortable open operation; the props-only screen never imports the browser integration. |
 | Toss Payments | `src/platform/integrations/tossPaymentsV2.ts`, adapted by `src/workflows/booking-payment/checkout/paymentGateway.ts` | Pinned official npm SDK v2 behind the unchanged `PaymentGatewayPort`. The adapter owns one bounded, client-key-scoped load, initializes the direct payment window with `ANONYMOUS`, and maps the existing request to `CARD`/`KRW`; a route-owned gateway lease reuses that client and destroys its launcher on route departure. The workflow adapter owns safe error policy and duplicate-request fencing. The retired v1 source is removed; immutable Git commit `408d303` and its Vercel deployment are the U10 comparison/rollback target. |
-| CloudFront images | `src/platform/assets/imageUrl.ts` | Validated HTTPS asset host and legacy `src/utils/image.ts` facade. |
+| CloudFront images | `src/platform/assets/imageUrl.ts` | Validated HTTPS asset host; consumers import the platform owner or receive a narrow injected resolver. |
 | Environment | `src/platform/config/env.ts`, `publicRuntimeConfig.ts`, `scripts/architecture/validate-public-build-env.mjs` | The app adapter reads mode plus four browser-public runtime values. CRA separately consumes build-only `PUBLIC_URL` for HTML/asset paths; preflight permits only empty, single-slash root-relative, or absolute HTTPS asset bases with percent-free safe paths. Runtime and build validation reject percent encoding and server-secret key shapes in every public exposure; Google Maps also uses a browser-key-safe character set. |
 
 `src/platform/storage` owns raw `sessionStorage` access and the generic
@@ -298,19 +273,17 @@ prefixes remains; it cannot write a legacy record or authorize payment.
 
 ## Current dependency boundaries
 
-The current freeze prevents private cross-feature imports but permits named
-legacy `appShell.ts` and `publicCache.ts` seams for unmigrated slices. After U12,
-the remaining production edges through those seams are:
-
-```text
-profile -> accommodations, reservations
-```
+Feature ownership boundaries are closed. Production contains no feature-owned
+`appShell.ts` or `publicCache.ts` files, and dependency-cruiser rejects every
+feature-to-peer production import regardless of its filename. Cross-feature
+composition belongs to app adapters and workflows consuming feature-owned
+public ports and scoped cache projections.
 
 The former AuthContext-owned `auth -> reservations` cleanup edge is gone. The
 app root now composes the session owner with the reservation cleanup public port
 without making either feature own the other.
 
-Consequences that remain open:
+Consequences:
 
 - Search and Accommodation Detail receive Wishlist commands at app composition
   and own their cache projections; neither screen imports a private peer surface.
@@ -321,25 +294,19 @@ Consequences that remain open:
   the nested `accommodations/detail` and `accommodations/listing-editor`
   ownership scopes. The editor publishes reconciled listing results to Profile
   only through an app-injected public port.
-- Header imports Search only through `features/search/ui/**`, Auth through its
+- `src/app/header/**` imports Search only through `features/search/ui/**`, Auth through its
   public surface, and accommodation draft creation through a narrow port; it no
   longer pulls the accommodation action modal through a broad app-shell seam.
-- Public compatibility seams remain permitted, while the graph ratchet reports
-  two Profile-owned cross-feature edges as legacy warnings. The current source
-  graph is acyclic, but those edges still violate the target ownership DAG.
-- The active shell is the sole production `main` owner. The only second source
-  owner is rollback-only `src/layouts/MainLayout.tsx`, which remains unreachable
-  from the active route tree until U22 removes it.
+- Every top-level and declared nested feature scope has no feature-peer imports,
+  and the current source graph is acyclic with no dependency warnings or errors.
+- The active `src/app/shells/ShellFrame.tsx` is the sole production `main` owner.
 
-U3 adds executable ownership for this graph. At the U12 cutover,
-dependency-cruiser reports 540 modules and 1,414 dependencies with zero cycles
-and two legacy Profile cross-feature edges: two known warnings and zero blocking
-errors. The eight remaining app-adapter bridges recorded at U9 are now four
-exact target-to-body exceptions and cannot reach a peer route or private
-helper. Target-ratcheted production Knip, strict Stylelint, architecture tools,
-and strict ESLint pass; the report-only inventory contains 19 unused rollback/
-compatibility files. The new Accommodation Editor screen introduces no strict
-style error; the report-only legacy style inventory remains separately measured.
+U3 supplies executable ownership for this graph. After U22/U14,
+dependency-cruiser reports 515 modules and 1,357 dependencies with zero cycles,
+warnings, or errors. Every declared feature scope is in the migrated registry;
+feature-to-peer imports and reintroduced global API/DTO roots fail fixtures.
+Target-ratcheted production Knip, strict Stylelint, architecture tools, strict
+ESLint, typecheck, and deterministic interaction/browser coverage pass.
 `architecture-ratchet.json` promotes a feature scope to strict
 dependency, reachability, and style enforcement in its cutover commit. The
 registry rejects missing/test-only roots and live downgrades against the PR base;
@@ -378,7 +345,9 @@ and the executable bundle budget.
 - Retryable or ambiguous confirmation preserved for status reconciliation.
 - Review creation with image-upload partial failure.
 - Accommodation draft hydration, image reconciliation, save, and publish order.
-- Profile guest/host modes and wishlist views restored from their URLs.
+- Profile guest/host modes, filters, and wishlist views restored from their URLs.
+- Guest and host reservation list/detail navigation, pagination, status display,
+  cancellation/review actions, and host listing publish/unpublish/delete flows.
 
 ## Remaining migration delta and target owner
 
@@ -387,19 +356,11 @@ status lives in [`frontend-ownership-matrix.md`](./frontend-ownership-matrix.md)
 
 | Delta | Planned owner |
 | --- | --- |
-| Remaining feature migration off legacy global API/DTO facades | U13, U22 |
-| Remaining feature-owned subject/epoch Query keys/meta and workflow scope capture beyond the active U5 physical generation bridge | U13, U22 |
-| Remaining route controller/screen cutover and removal of four exact legacy adapter bridges | U13, U21-U22 |
 | Toss npm v2 runtime adapter (source cutover complete; live sandbox/OCI parity deferred) | U11 |
-| Listing editor transaction reducer, feature API, app controller, and props-only screen (complete) | U12 |
-| Profile, reservation, and host-management screens | U13 |
-| Interaction accessibility and full responsive adoption across remaining consumers | U14 |
 | Tokens, primitives, icons, assets, and feature CSS | U15 |
 | Vite build/dev owner | U16 |
 | Vitest owner | U17 |
 | Final design-entry gate | U18 |
-| Remaining small route entries | U21 |
-| Compatibility and runtime DAG closure | U22 |
 | TypeScript, lint, dependency, and formatting modernization | U23 |
 
 ## Verification contracts

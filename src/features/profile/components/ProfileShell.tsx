@@ -1,18 +1,16 @@
-import React from "react";
+import type { ReactNode } from "react";
 import { Tabs } from "../../../shared/ui";
-import type { ProfileRouteMode } from "../lib/profileRouteState";
-import type { ProfileActiveTab } from "../lib/profileTabs";
 import styles from "./ProfileShell.module.css";
 
-type GuestProfileTab = "upcoming" | "past" | "cancelled";
+export type GuestProfileTab = "upcoming" | "past" | "cancelled";
+export type HostProfileSection = "listings" | "reservations";
+export type ProfileMode = "guest" | "host";
 
 const guestNavItems = [
   { value: "upcoming", label: "다가올 여행" },
   { value: "past", label: "이전 여행" },
   { value: "cancelled", label: "취소된 여행" },
 ] satisfies ReadonlyArray<{ value: GuestProfileTab; label: string }>;
-
-type HostProfileSection = "listings" | "reservations";
 
 const hostNavItems = [
   { value: "listings", label: "숙소 관리" },
@@ -22,44 +20,28 @@ const hostNavItems = [
 const modeItems = [
   { value: "guest", label: "게스트" },
   { value: "host", label: "호스트" },
-] satisfies ReadonlyArray<{ value: ProfileRouteMode; label: string }>;
+] satisfies ReadonlyArray<{ value: ProfileMode; label: string }>;
 
-const isGuestProfileTab = (tab: ProfileActiveTab): tab is GuestProfileTab =>
-  guestNavItems.some((item) => item.value === tab);
-
-interface ProfileShellProps {
-  mode: ProfileRouteMode;
-  activeTab: ProfileActiveTab;
-  onModeChange: (mode: ProfileRouteMode) => void;
-  onGuestTabChange: (tab: GuestProfileTab) => void;
-  onHostListingsClick: () => void;
-  onHostReservationsClick: () => void;
-  children: React.ReactNode;
+interface ProfileShellBaseProps {
+  readonly children: ReactNode;
+  readonly onModeChange: (mode: ProfileMode) => void;
 }
 
-export const ProfileShell: React.FC<ProfileShellProps> = ({
-  activeTab,
-  children,
-  mode,
-  onGuestTabChange,
-  onHostListingsClick,
-  onHostReservationsClick,
-  onModeChange,
-}) => {
-  const activeHostSection: HostProfileSection = activeTab.startsWith("listings")
-    ? "listings"
-    : "reservations";
-  const activeGuestTab = isGuestProfileTab(activeTab) ? activeTab : "upcoming";
+export type ProfileShellProps = ProfileShellBaseProps &
+  (
+    | {
+        readonly mode: "guest";
+        readonly activeTab: GuestProfileTab;
+        readonly onTabChange: (tab: GuestProfileTab) => void;
+      }
+    | {
+        readonly mode: "host";
+        readonly activeTab: HostProfileSection;
+        readonly onTabChange: (section: HostProfileSection) => void;
+      }
+  );
 
-  const handleHostSectionChange = (section: HostProfileSection) => {
-    if (section === "listings") {
-      onHostListingsClick();
-      return;
-    }
-
-    onHostReservationsClick();
-  };
-
+export function ProfileShell(props: ProfileShellProps) {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -70,24 +52,24 @@ export const ProfileShell: React.FC<ProfileShellProps> = ({
           items={modeItems}
           selectedTabClassName={styles.active}
           tabClassName={styles.toggleButton}
-          value={mode}
+          value={props.mode}
           variant="plain"
-          onValueChange={onModeChange}
+          onValueChange={props.onModeChange}
         />
       </div>
       <div className={styles.content}>
         <div className={styles.sidebar}>
-          {mode === "guest" ? (
+          {props.mode === "guest" ? (
             <Tabs
               ariaLabel="게스트 프로필"
               className={styles.nav}
               items={guestNavItems}
               selectedTabClassName={styles.active}
               tabClassName={styles.navItem}
-              value={activeGuestTab}
+              value={props.activeTab}
               orientation="vertical"
               variant="plain"
-              onValueChange={onGuestTabChange}
+              onValueChange={props.onTabChange}
             />
           ) : (
             <Tabs
@@ -96,15 +78,15 @@ export const ProfileShell: React.FC<ProfileShellProps> = ({
               items={hostNavItems}
               selectedTabClassName={styles.active}
               tabClassName={styles.navItem}
-              value={activeHostSection}
+              value={props.activeTab}
               orientation="vertical"
               variant="plain"
-              onValueChange={handleHostSectionChange}
+              onValueChange={props.onTabChange}
             />
           )}
         </div>
-        <div className={styles.main}>{children}</div>
+        <div className={styles.main}>{props.children}</div>
       </div>
     </div>
   );
-};
+}

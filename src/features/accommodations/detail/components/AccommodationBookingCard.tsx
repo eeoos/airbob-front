@@ -132,6 +132,7 @@ export function AccommodationBookingCard({
         handleDateSelect={handleDateSelect}
         isDatePickerOpen={isDatePickerOpen}
         setIsDatePickerOpen={setIsDatePickerOpen}
+        setIsGuestPickerOpen={setIsGuestPickerOpen}
         unavailableDates={unavailableDates}
       />
 

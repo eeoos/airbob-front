@@ -51,7 +51,7 @@ describe("reviewable reservation read query", () => {
 
     expect(options.queryKey).toEqual([
       "reservations",
-      "guest",
+      "read",
       "reviewable",
       "reservation-123",
       { session: { subject: scope.subject, epoch: 4 } },
@@ -79,7 +79,7 @@ describe("reviewable reservation read query", () => {
     expect(anonymous.enabled).toBe(false);
     expect(anonymous.queryKey).toEqual([
       "reservations",
-      "guest",
+      "read",
       "reviewable",
       "reservation-123",
       { session: null },

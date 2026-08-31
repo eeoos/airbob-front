@@ -1,7 +1,9 @@
 import * as fs from "fs";
 import * as path from "path";
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { OverlayProvider } from "../../../app/overlays/OverlayProvider";
 import { AccommodationEditScreen } from "../AccommodationEditScreen";
 import type {
   AccommodationEditFormData,
@@ -914,6 +916,43 @@ describe("AccommodationEdit extracted components", () => {
     fireEvent.click(screen.getByText("30"));
 
     expect(onChange).toHaveBeenCalledWith(3, 30, "PM");
+  });
+
+  it("closes the time popover on Escape and restores its trigger focus", async () => {
+    function TimeStepFixture() {
+      const [openTimePicker, setOpenTimePicker] = React.useState<
+        "checkIn" | "checkOut" | null
+      >(null);
+
+      return (
+        <TimeStep
+          checkInTime="15:00:00"
+          checkOutTime="11:00:00"
+          openTimePicker={openTimePicker}
+          setOpenTimePicker={setOpenTimePicker}
+          onTimeChange={jest.fn()}
+        />
+      );
+    }
+
+    render(
+      <OverlayProvider>
+        <TimeStepFixture />
+      </OverlayProvider>,
+    );
+
+    const checkInTrigger = screen.getByRole("button", {
+      name: /오후 03:00/,
+    });
+    await userEvent.click(checkInTrigger);
+    const hourOption = screen.getByRole("button", { name: "04" });
+    hourOption.focus();
+
+    await userEvent.keyboard("{Escape}");
+
+    expect(screen.queryByRole("button", { name: "04" })).not.toBeInTheDocument();
+    await waitFor(() => expect(checkInTrigger).toHaveFocus());
+    expect(document.body.style.overflow).toBe("");
   });
 
   it("renders publish and detail-address confirmation components", () => {

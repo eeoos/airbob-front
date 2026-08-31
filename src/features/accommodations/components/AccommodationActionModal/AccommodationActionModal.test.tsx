@@ -1,47 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { routeTo } from "../../../../routes/paths";
 import {
   AccommodationActionModal,
+  type AccommodationActionModalProps,
   type AccommodationActionViewModel,
 } from "./AccommodationActionModal";
-
-const mockNavigate = jest.fn();
-const mockClearError = jest.fn();
-const mockDeleteAccommodation = jest.fn();
-const mockPublishAccommodation = jest.fn();
-const mockUnpublishAccommodation = jest.fn();
-let mockActionState = {
-  error: null as string | null,
-  isProcessing: false,
-};
-
-jest.mock("react-router-dom", () => ({
-  useNavigate: () => mockNavigate,
-}), { virtual: true });
-
-jest.mock("../../hooks/useAccommodationActions", () => ({
-  useAccommodationActions: () => ({
-    clearError: mockClearError,
-    deleteAccommodation: mockDeleteAccommodation,
-    error: mockActionState.error,
-    isProcessing: mockActionState.isProcessing,
-    publishAccommodation: mockPublishAccommodation,
-    unpublishAccommodation: mockUnpublishAccommodation,
-  }),
-}));
-
-jest.mock("../../../../components/ErrorToast", () => ({
-  ErrorToast: ({ message, onClose }: { message: string; onClose: () => void }) => (
-    <button type="button" onClick={onClose}>
-      {message}
-    </button>
-  ),
-}));
-
-jest.mock("../../../../utils/image", () => ({
-  getImageUrl: (url: string) => url,
-}));
 
 const accommodation: AccommodationActionViewModel = {
   canOpenDetail: true,
@@ -53,108 +16,133 @@ const accommodation: AccommodationActionViewModel = {
   thumbnailUrl: "/stay.jpg",
 };
 
-const renderActionModal = (
-  overrides: Partial<React.ComponentProps<typeof AccommodationActionModal>> = {},
-) => {
-  const props: React.ComponentProps<typeof AccommodationActionModal> = {
-    accommodation,
-    isOpen: true,
-    onClose: jest.fn(),
-    onSuccess: jest.fn(),
-    ...overrides,
-  };
-
-  const view = render(<AccommodationActionModal {...props} />);
-
-  return { props, ...view };
-};
+const createProps = (
+  overrides: Partial<AccommodationActionModalProps> = {},
+): AccommodationActionModalProps => ({
+  accommodation,
+  errorMessage: null,
+  isPending: false,
+  onClose: jest.fn(),
+  onDelete: jest.fn(),
+  onDismissError: jest.fn(),
+  onEdit: jest.fn(),
+  onOpenDetail: jest.fn(),
+  onPublish: jest.fn(),
+  onUnpublish: jest.fn(),
+  ...overrides,
+});
 
 describe("AccommodationActionModal", () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockActionState = {
-      error: null,
-      isProcessing: false,
-    };
-  });
-
   it("renders as a Dialog and closes from explicit close, Escape, and backdrop", async () => {
-    const { props } = renderActionModal();
+    const onClose = jest.fn();
+
+    render(<AccommodationActionModal {...createProps({ onClose })} />);
 
     expect(screen.getByRole("dialog", { name: "숙소 관리" })).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "숙소 관리 닫기" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "숙소 관리 닫기" }),
+    );
     await userEvent.keyboard("{Escape}");
     await userEvent.click(screen.getByRole("presentation"));
 
-    expect(props.onClose).toHaveBeenCalledTimes(3);
+    expect(onClose).toHaveBeenCalledTimes(3);
   });
 
-  it("keeps existing navigation flows", async () => {
-    const { props } = renderActionModal();
+  it("delegates detail and edit navigation before closing", async () => {
+    const onClose = jest.fn();
+    const onEdit = jest.fn();
+    const onOpenDetail = jest.fn();
 
-    await userEvent.click(screen.getByRole("button", { name: "남산 숙소 상세 보기" }));
+    render(
+      <AccommodationActionModal
+        {...createProps({ onClose, onEdit, onOpenDetail })}
+      />,
+    );
 
-    expect(mockNavigate).toHaveBeenCalledWith(routeTo.accommodationDetail(7));
-    expect(props.onClose).toHaveBeenCalledTimes(1);
+    await userEvent.click(
+      screen.getByRole("button", { name: "남산 숙소 상세 보기" }),
+    );
+    expect(onOpenDetail).toHaveBeenCalledWith(7);
+    expect(onClose).toHaveBeenCalledTimes(1);
 
     await userEvent.click(screen.getByRole("button", { name: "리스팅 수정" }));
-
-    expect(mockNavigate).toHaveBeenCalledWith(routeTo.accommodationEdit(7));
-    expect(props.onClose).toHaveBeenCalledTimes(2);
+    expect(onEdit).toHaveBeenCalledWith(7);
+    expect(onClose).toHaveBeenCalledTimes(2);
   });
 
-  it("keeps publish, unpublish, and delete actions wired", async () => {
-    const { rerender } = renderActionModal();
+  it("delegates publish, unpublish, and delete actions by accommodation id", async () => {
+    const onDelete = jest.fn();
+    const onPublish = jest.fn();
+    const onUnpublish = jest.fn();
+    const props = createProps({ onDelete, onPublish, onUnpublish });
+    const { rerender } = render(<AccommodationActionModal {...props} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "리스팅 비공개" }));
-    await userEvent.click(screen.getByRole("button", { name: "리스팅 삭제" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "리스팅 비공개" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "리스팅 삭제" }),
+    );
 
-    expect(mockUnpublishAccommodation).toHaveBeenCalledWith(7);
-    expect(mockDeleteAccommodation).toHaveBeenCalledWith(7);
+    expect(onUnpublish).toHaveBeenCalledWith(7);
+    expect(onDelete).toHaveBeenCalledWith(7);
 
     rerender(
       <AccommodationActionModal
+        {...props}
         accommodation={{
           ...accommodation,
           canOpenDetail: false,
           canPublish: true,
           canUnpublish: false,
         }}
-        isOpen
-        onClose={jest.fn()}
       />,
     );
 
     await userEvent.click(screen.getByRole("button", { name: "리스팅 공개" }));
 
-    expect(mockPublishAccommodation).toHaveBeenCalledWith(7);
+    expect(onPublish).toHaveBeenCalledWith(7);
+    expect(
+      screen.queryByRole("button", { name: "남산 숙소 상세 보기" }),
+    ).not.toBeInTheDocument();
   });
 
-  it("shows hook errors through the existing toast boundary", async () => {
-    mockActionState = {
-      error: "처리에 실패했습니다.",
-      isProcessing: false,
-    };
+  it("injects pending and error state without disabling dismissal or detail", async () => {
+    const onDismissError = jest.fn();
 
-    renderActionModal();
-
-    await userEvent.click(screen.getByRole("button", { name: "처리에 실패했습니다." }));
-
-    expect(mockClearError).toHaveBeenCalledTimes(1);
-  });
-
-  it("renders nothing while closed or missing accommodation data", () => {
-    const { container, rerender } = renderActionModal({ isOpen: false });
-
-    expect(container).toBeEmptyDOMElement();
-
-    rerender(
+    render(
       <AccommodationActionModal
-        accommodation={null}
-        isOpen
-        onClose={jest.fn()}
+        {...createProps({
+          errorMessage: "처리에 실패했습니다.",
+          isPending: true,
+          onDismissError,
+        })}
       />,
+    );
+
+    expect(screen.getByRole("button", { name: "리스팅 수정" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "리스팅 비공개" }),
+    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "리스팅 삭제" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "숙소 관리 닫기" }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "남산 숙소 상세 보기" }),
+    ).toBeEnabled();
+
+    expect(screen.getByRole("alert")).toHaveTextContent("처리에 실패했습니다.");
+    await userEvent.click(
+      screen.getByRole("button", { name: "오류 닫기" }),
+    );
+    expect(onDismissError).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders nothing without a selected accommodation", () => {
+    const { container } = render(
+      <AccommodationActionModal {...createProps({ accommodation: null })} />,
     );
 
     expect(container).toBeEmptyDOMElement();

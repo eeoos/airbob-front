@@ -1,5 +1,6 @@
 import React from "react";
 import { parseListingEditorTime } from "../../../features/accommodations/listing-editor/public";
+import { useNonModalOverlayRegistration } from "../../../shared/ui";
 import type {
   AccommodationEditTimeField,
   AccommodationEditTimePeriod,
@@ -34,6 +35,26 @@ export const TimeStep: React.FC<TimeStepProps> = ({
 }) => {
   const checkInParsed = parseListingEditorTime(checkInTime);
   const checkOutParsed = parseListingEditorTime(checkOutTime);
+  const checkInTriggerRef = React.useRef<HTMLButtonElement>(null);
+  const checkOutTriggerRef = React.useRef<HTMLButtonElement>(null);
+  const checkInPickerRef = React.useRef<HTMLDivElement>(null);
+  const checkOutPickerRef = React.useRef<HTMLDivElement>(null);
+  const closeTimePicker = React.useCallback(
+    () => setOpenTimePicker(null),
+    [setOpenTimePicker],
+  );
+  const checkInOverlay = useNonModalOverlayRegistration({
+    enabled: openTimePicker === "checkIn",
+    onClose: closeTimePicker,
+    overlayRef: checkInPickerRef,
+    triggerRef: checkInTriggerRef,
+  });
+  const checkOutOverlay = useNonModalOverlayRegistration({
+    enabled: openTimePicker === "checkOut",
+    onClose: closeTimePicker,
+    overlayRef: checkOutPickerRef,
+    triggerRef: checkOutTriggerRef,
+  });
 
   return (
     <div className={formStyles.stepContent}>
@@ -47,6 +68,9 @@ export const TimeStep: React.FC<TimeStepProps> = ({
           </label>
           <div className={styles.timeInputContainer}>
             <button
+              ref={checkInTriggerRef}
+              aria-controls="check-in-time-picker"
+              aria-expanded={openTimePicker === "checkIn"}
               type="button"
               className={styles.timeInputButton}
               onClick={() =>
@@ -61,7 +85,10 @@ export const TimeStep: React.FC<TimeStepProps> = ({
             {openTimePicker === "checkIn" && (
               <TimePicker
                 hour={checkInParsed.hour}
+                id="check-in-time-picker"
+                onEscape={checkInOverlay.requestCloseOnEscape}
                 minute={checkInParsed.minute}
+                pickerRef={checkInPickerRef}
                 period={checkInParsed.period}
                 onChange={(h, m, p) => onTimeChange("checkIn", h, m, p)}
               />
@@ -76,6 +103,9 @@ export const TimeStep: React.FC<TimeStepProps> = ({
           </label>
           <div className={styles.timeInputContainer}>
             <button
+              ref={checkOutTriggerRef}
+              aria-controls="check-out-time-picker"
+              aria-expanded={openTimePicker === "checkOut"}
               type="button"
               className={styles.timeInputButton}
               onClick={() =>
@@ -90,7 +120,10 @@ export const TimeStep: React.FC<TimeStepProps> = ({
             {openTimePicker === "checkOut" && (
               <TimePicker
                 hour={checkOutParsed.hour}
+                id="check-out-time-picker"
+                onEscape={checkOutOverlay.requestCloseOnEscape}
                 minute={checkOutParsed.minute}
+                pickerRef={checkOutPickerRef}
                 period={checkOutParsed.period}
                 onChange={(h, m, p) => onTimeChange("checkOut", h, m, p)}
               />

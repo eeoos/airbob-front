@@ -1,46 +1,39 @@
-import { ReservationStatus } from "../../../types/enums";
+import type { ReservationStatus } from "../model/reservationRead";
+import type { StatusBadgeTone } from "../../../shared/ui";
 
-export type ReservationStatusTone = "success" | "warning" | "danger" | "neutral";
+export type ReservationStatusTone = StatusBadgeTone;
 
 type ReservationStatusDisplay = {
-  classKey: string;
   label: string;
   tone: ReservationStatusTone;
 };
 
 export const reservationStatusDisplay = {
-  [ReservationStatus.PAYMENT_PENDING]: {
-    classKey: "payment_pending",
+  PAYMENT_PENDING: {
     label: "결제 대기",
     tone: "warning",
   },
-  [ReservationStatus.PAYMENT_COMPLETED]: {
-    classKey: "payment_completed",
+  PAYMENT_COMPLETED: {
     label: "결제 완료",
     tone: "success",
   },
-  [ReservationStatus.CONFIRMED]: {
-    classKey: "confirmed",
+  CONFIRMED: {
     label: "확정됨",
     tone: "success",
   },
-  [ReservationStatus.CANCELLED]: {
-    classKey: "cancelled",
+  CANCELLED: {
     label: "취소됨",
     tone: "danger",
   },
-  [ReservationStatus.CANCELLATION_FAILED]: {
-    classKey: "cancellation_failed",
+  CANCELLATION_FAILED: {
     label: "취소 실패",
     tone: "danger",
   },
-  [ReservationStatus.COMPLETED]: {
-    classKey: "completed",
+  COMPLETED: {
     label: "이용 완료",
     tone: "neutral",
   },
-  [ReservationStatus.EXPIRED]: {
-    classKey: "expired",
+  EXPIRED: {
     label: "만료됨",
     tone: "neutral",
   },
@@ -51,6 +44,3 @@ export const formatReservationStatus = (status: ReservationStatus) =>
 
 export const getReservationStatusTone = (status: ReservationStatus) =>
   reservationStatusDisplay[status].tone;
-
-export const getReservationStatusClassKey = (status: ReservationStatus) =>
-  reservationStatusDisplay[status].classKey;

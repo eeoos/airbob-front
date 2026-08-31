@@ -1,34 +1,32 @@
 import { requestApiDataNullable } from "../../../platform/http/request";
+import type { HostListingActionsApiPort } from "../ports/hostListingActionsApiPort";
 
 export type HostListingActionsApiTransport = typeof requestApiDataNullable;
 
-export interface HostListingActionsApi {
-  delete(accommodationId: number): Promise<void>;
-  publish(accommodationId: number): Promise<void>;
-  unpublish(accommodationId: number): Promise<void>;
-}
-
 export const createHostListingActionsApi = (
   requestNullable: HostListingActionsApiTransport = requestApiDataNullable,
-): HostListingActionsApi => ({
-  async delete(accommodationId) {
+): HostListingActionsApiPort => ({
+  async delete(accommodationId, options) {
     await requestNullable({
       method: "DELETE",
       path: `/accommodations/${accommodationId}`,
+      ...(options?.signal ? { signal: options.signal } : {}),
     });
   },
 
-  async publish(accommodationId) {
+  async publish(accommodationId, options) {
     await requestNullable({
       method: "PATCH",
       path: `/accommodations/${accommodationId}/publish`,
+      ...(options?.signal ? { signal: options.signal } : {}),
     });
   },
 
-  async unpublish(accommodationId) {
+  async unpublish(accommodationId, options) {
     await requestNullable({
       method: "PATCH",
       path: `/accommodations/${accommodationId}/unpublish`,
+      ...(options?.signal ? { signal: options.signal } : {}),
     });
   },
 });

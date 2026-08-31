@@ -3,6 +3,7 @@ import type {
   CheckoutOwnershipApiPort,
 } from "../../../features/reservations/payment/public";
 import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
+import { isOpaqueIdentifier } from "../../../shared/lib/opaqueIdentifier";
 import type {
   BookingPaymentOperationId,
   CallbackData,
@@ -126,8 +127,8 @@ const isCalendarDate = (value: string): boolean => {
 };
 
 const isValidFreshTuple = (fresh: PaymentCallbackFreshTuple): boolean =>
-  isBoundedText(fresh.reservationUid, 128) &&
-  isBoundedText(fresh.orderId, 128) &&
+  isOpaqueIdentifier(fresh.reservationUid) &&
+  isOpaqueIdentifier(fresh.orderId) &&
   fresh.orderId === fresh.reservationUid &&
   isBoundedText(fresh.paymentKey, 512) &&
   Number.isSafeInteger(fresh.amount) &&
@@ -224,7 +225,7 @@ export const claimPaymentCallback = (
 
   if (!safelyCheck(input.isCurrent)) return { status: "stale" };
   if (
-    !isBoundedText(reservationUid, 128) ||
+    !isOpaqueIdentifier(reservationUid) ||
     (fresh !== undefined &&
       (!isValidFreshTuple(fresh) || fresh.reservationUid !== reservationUid))
   ) {

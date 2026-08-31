@@ -8,7 +8,7 @@ import {
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { invalidateGuestReservationCaches } from "../../../features/reservations/public";
+import { createReservationReadQueryCacheProjection } from "../../../features/reservations/public";
 import { browserWindowNavigation } from "../../../platform/browser/windowNavigation";
 import { PaymentResultController } from "../../../screens/payment-result/PaymentResultController";
 import { PaymentResultScreen } from "../../../screens/payment-result/PaymentResultScreen";
@@ -88,6 +88,10 @@ export function PaymentFailRoute() {
         ? { epoch: sessionEpoch, subject: sessionSubject }
         : null,
     [sessionEpoch, sessionSubject],
+  );
+  const reservationCache = useMemo(
+    () => createReservationReadQueryCacheProjection(queryClient),
+    [queryClient],
   );
   const repositories = useMemo(
     () => ({
@@ -326,10 +330,10 @@ export function PaymentFailRoute() {
         }
         clearDocuments();
         try {
-          await invalidateGuestReservationCaches(
-            queryClient,
-            confirmedReservationUid,
-          );
+          await reservationCache.guestReservationChanged({
+            reservationUid: confirmedReservationUid,
+            scope,
+          });
         } catch {
           // Cache freshness is best-effort; server payment authority already won.
         }

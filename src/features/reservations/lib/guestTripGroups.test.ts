@@ -1,9 +1,9 @@
-import type { MyReservationInfo } from "../../../types/reservation";
+import type { GuestReservationListItem } from "../model/reservationRead";
 import { formatGuestTripDateRange, groupGuestTripsByYear } from "./guestTripGroups";
 
 type GuestTripGroupFixture = Pick<
-  MyReservationInfo,
-  "reservation_id" | "reservation_uid" | "check_in_date" | "check_out_date"
+  GuestReservationListItem,
+  "reservationId" | "reservationUid" | "checkInDate" | "checkOutDate"
 >;
 
 const makeTrip = (
@@ -12,10 +12,10 @@ const makeTrip = (
   checkOutDate: string
 ): GuestTripGroupFixture =>
   ({
-    reservation_id: reservationId,
-    reservation_uid: `guest-${reservationId}`,
-    check_in_date: checkInDate,
-    check_out_date: checkOutDate,
+    reservationId,
+    reservationUid: `guest-${reservationId}`,
+    checkInDate,
+    checkOutDate,
   });
 
 describe("guest trip display helpers", () => {
@@ -27,7 +27,7 @@ describe("guest trip display helpers", () => {
     ]);
 
     expect(groups.map((group) => group.year)).toEqual([2026, 2025]);
-    expect(groups[1].reservations.map((trip) => trip.reservation_uid)).toEqual([
+    expect(groups[1].reservations.map((trip) => trip.reservationUid)).toEqual([
       "guest-1",
       "guest-3",
     ]);
@@ -41,7 +41,7 @@ describe("guest trip display helpers", () => {
     ]);
 
     expect(groups.map((group) => group.year)).toEqual([2027, 2026]);
-    expect(groups[1].reservations.map((trip) => trip.reservation_uid)).toEqual([
+    expect(groups[1].reservations.map((trip) => trip.reservationUid)).toEqual([
       "guest-1",
       "guest-2",
     ]);

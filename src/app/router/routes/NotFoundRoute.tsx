@@ -1,5 +1,7 @@
+import { NotFoundScreen } from "../../../screens/not-found/public";
+
 export function NotFoundRoute() {
-  return <h1>404 Not Found</h1>;
+  return <NotFoundScreen title="404 Not Found" />;
 }
 
 export default NotFoundRoute;

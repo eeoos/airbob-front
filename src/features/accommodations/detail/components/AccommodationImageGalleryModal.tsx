@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Dialog } from "../../../../shared/ui";
 import type { AccommodationDetailImageViewModel } from "../lib/accommodationDetailViewModel";
 import styles from "./AccommodationImageGalleryModal.module.css";
@@ -19,6 +20,8 @@ export function AccommodationImageGalleryModal({
   onCurrentImageIndexChange,
   onClose,
 }: AccommodationImageGalleryModalProps) {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
   if (!isOpen || images.length === 0) {
     return null;
   }
@@ -46,6 +49,7 @@ export function AccommodationImageGalleryModal({
       bodyClassName={styles.galleryBody}
       bodyPadding="none"
       className={styles.galleryDialog}
+      initialFocusRef={closeButtonRef}
       isOpen={isOpen}
       onClose={onClose}
       showHeader={false}
@@ -53,6 +57,7 @@ export function AccommodationImageGalleryModal({
       title={`${accommodationName} 사진 갤러리`}
     >
       <button
+        ref={closeButtonRef}
         type="button"
         aria-label="사진 갤러리 닫기"
         autoFocus

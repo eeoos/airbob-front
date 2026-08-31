@@ -2,7 +2,10 @@ import type { AxiosRequestConfig, AxiosResponse } from "axios";
 import { triggerAuthError } from "../session/authEvents";
 import type { AuthEventPolicy } from "./authEventPolicy";
 import { isSessionOwnedAuthEventRequest } from "./authEventPolicy";
-import { httpClient } from "./client";
+import {
+  httpClient,
+  MULTIPART_API_REQUEST_TIMEOUT_MS,
+} from "./client";
 import { parseApiEnvelope } from "./envelope";
 import { AppError, normalizeHttpError } from "./errors";
 
@@ -48,7 +51,10 @@ const toAxiosRequestConfig = ({
   ...(authEventPolicy ?? {}),
   data: body,
   ...(bodyEncoding === "multipart"
-    ? { headers: { "Content-Type": "multipart/form-data" } }
+    ? {
+        headers: { "Content-Type": "multipart/form-data" },
+        timeout: MULTIPART_API_REQUEST_TIMEOUT_MS,
+      }
     : {}),
   method,
   params,

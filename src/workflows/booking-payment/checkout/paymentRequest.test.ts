@@ -79,6 +79,11 @@ describe("payment request workflow", () => {
   it.each([
     { amount: 0, label: "amount" },
     { orderId: "another-order", label: "order" },
+    {
+      reservationUid: "../admin",
+      orderId: "../admin",
+      label: "path-shaped reservation",
+    },
     { customerEmail: "", label: "email" },
     { successUrl: "ftp://airbob.test/callback", label: "success URL" },
   ])("rejects an invalid $label before gateway I/O", async (override) => {

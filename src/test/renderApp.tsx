@@ -16,7 +16,6 @@ import {
   toSessionSubject,
   type SessionState,
 } from "../app/session/sessionState";
-import { AuthProvider } from "../contexts/AuthContext";
 import type {
   SessionAuthPort,
   SessionViewer,
@@ -196,7 +195,7 @@ export const renderApp = (
             initialState={toInitialSessionState(session)}
             stableBoundary={AuthIntentStableBoundary}
           >
-            <AuthProvider>{children}</AuthProvider>
+            {children}
           </SessionProvider>
         </OverlayProvider>
       </MemoryRouter>

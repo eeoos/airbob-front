@@ -493,25 +493,28 @@ describe("reservation create workflow", () => {
     expect(handoff.commit).not.toHaveBeenCalled();
   });
 
-  it("terminal-locks a malformed response after the reservation POST succeeds", async () => {
-    const create = jest.fn().mockResolvedValue({
-      ...reservationReady,
-      reservationUid: "",
-    });
-    const { handoff, input, workflow } = setup({ create });
+  it.each(["", "../admin"])(
+    "terminal-locks a malformed response UID after the reservation POST succeeds: %s",
+    async (reservationUid) => {
+      const create = jest.fn().mockResolvedValue({
+        ...reservationReady,
+        reservationUid,
+      });
+      const { handoff, input, workflow } = setup({ create });
 
-    await expect(workflow.start(input())).resolves.toMatchObject({
-      status: "ambiguous",
-      error: expect.any(TypeError),
-    });
-    await expect(workflow.start(input())).resolves.toEqual({
-      status: "locked",
-      terminal: "ambiguous",
-    });
+      await expect(workflow.start(input())).resolves.toMatchObject({
+        status: "ambiguous",
+        error: expect.any(TypeError),
+      });
+      await expect(workflow.start(input())).resolves.toEqual({
+        status: "locked",
+        terminal: "ambiguous",
+      });
 
-    expect(create).toHaveBeenCalledTimes(1);
-    expect(handoff.commit).not.toHaveBeenCalled();
-  });
+      expect(create).toHaveBeenCalledTimes(1);
+      expect(handoff.commit).not.toHaveBeenCalled();
+    },
+  );
 
   it("terminal-locks a throwing checkout handoff after one successful POST", async () => {
     const handoffError = new Error("checkout handoff failed");

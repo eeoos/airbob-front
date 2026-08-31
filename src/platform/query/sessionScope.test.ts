@@ -5,6 +5,7 @@ import type {
 } from "../session/sessionScope";
 import {
   createSessionQueryMeta,
+  matchesSessionQueryScope,
   setQueryClientSessionScope,
   withSessionScopeKey,
 } from "./sessionScope";
@@ -36,6 +37,18 @@ describe("session-scoped query contracts", () => {
     expect(Object.isFrozen(key)).toBe(true);
     expect(Object.isFrozen(key[2])).toBe(true);
     expect(Object.isFrozen(key[2].session)).toBe(true);
+  });
+
+  it("matches only exact session query metadata", () => {
+    const meta = createSessionQueryMeta(scope);
+
+    expect(matchesSessionQueryScope(meta, scope)).toBe(true);
+    expect(matchesSessionQueryScope(meta, { ...scope, epoch: 8 })).toBe(false);
+    expect(
+      matchesSessionQueryScope(meta, { ...scope, subject: null }),
+    ).toBe(false);
+    expect(matchesSessionQueryScope(null, scope)).toBe(false);
+    expect(matchesSessionQueryScope({ session: null }, scope)).toBe(false);
   });
 
   it("updates query and mutation defaults without dropping existing policy", () => {

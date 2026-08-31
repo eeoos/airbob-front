@@ -11,8 +11,6 @@ import {
   waitFor,
 } from "@testing-library/react";
 import React, { type ReactNode, useEffect } from "react";
-import { ApiClientError } from "../../api/response";
-import { AuthProvider, useAuth } from "../../contexts/AuthContext";
 import type {
   SessionAuthPort,
   SessionCredentials,
@@ -24,7 +22,7 @@ import type {
   SessionBroadcastPhase,
 } from "../../platform/session/sessionBroadcast";
 import { AppError } from "../../platform/http/errors";
-import { triggerAuthError } from "../../utils/authEvents";
+import { triggerAuthError } from "../../platform/session/authEvents";
 import {
   SessionProvider,
   type SessionProviderProps,
@@ -131,17 +129,20 @@ const retryableErrorState = (epoch = 4): SessionState => ({
 });
 
 const authenticationError = () =>
-  new ApiClientError({
-    status: 401,
+  new AppError({
+    kind: "authentication",
     code: "M004",
     message: "Authentication is required.",
+    status: 401,
   });
 
 const serverError = (message = "Server unavailable") =>
-  new ApiClientError({
-    status: 503,
+  new AppError({
+    kind: "server",
     code: "SERVICE_UNAVAILABLE",
     message,
+    status: 503,
+    retryable: true,
   });
 
 const createAuthPort = (): jest.Mocked<SessionAuthPort> => ({
@@ -399,37 +400,6 @@ describe("SessionProvider", () => {
 
     await act(async () => {
       await result.current.session.revalidate();
-    });
-
-    expect(authPort.getViewer).toHaveBeenCalledTimes(2);
-    expectAuthenticatedAs(result.current.session.state, viewerA);
-  });
-
-  it("keeps SessionProvider as the single viewer owner with the legacy AuthProvider adapter", async () => {
-    const authPort = createAuthPort();
-    authPort.getViewer.mockResolvedValue(viewerA);
-    const queryClients = createTrackedQueryClients();
-    const Wrapper = createWrapper({
-      authPort,
-      queryClientFactory: queryClients.factory,
-    });
-    const legacyWrapper = ({ children }: { readonly children: ReactNode }) => (
-      <Wrapper>
-        <AuthProvider>{children}</AuthProvider>
-      </Wrapper>
-    );
-
-    const { result } = renderHook(
-      () => ({ session: useSession(), legacy: useAuth() }),
-      { wrapper: legacyWrapper },
-    );
-
-    await waitFor(() => expect(result.current.legacy.isLoading).toBe(false));
-    expect(result.current.legacy.isAuthenticated).toBe(true);
-    expect(authPort.getViewer).toHaveBeenCalledTimes(1);
-
-    await act(async () => {
-      await result.current.legacy.checkAuth();
     });
 
     expect(authPort.getViewer).toHaveBeenCalledTimes(2);

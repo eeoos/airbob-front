@@ -1,25 +1,13 @@
 import type { QueryClient, QueryFilters } from "@tanstack/react-query";
-import type { SessionQueryScope } from "../../../../platform/query/sessionScope";
+import {
+  matchesSessionQueryScope,
+  type SessionQueryScope,
+} from "../../../../platform/query/sessionScope";
 import type { AccommodationDetail } from "../model/accommodationDetail";
 import type { AccommodationDetailCacheProjectionPort } from "../ports/accommodationDetailCacheProjectionPort";
 import { accommodationReadQueryKeys } from "../queries/queryKeys";
 
 type QueryPredicate = NonNullable<QueryFilters["predicate"]>;
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
-
-const hasSessionScope = (
-  meta: unknown,
-  scope: SessionQueryScope,
-): boolean => {
-  if (!isRecord(meta) || !isRecord(meta.session)) return false;
-
-  return (
-    meta.session.subject === scope.subject &&
-    meta.session.epoch === scope.epoch
-  );
-};
 
 const exactScopedDetailPredicate = (
   scope: SessionQueryScope,
@@ -29,13 +17,13 @@ const exactScopedDetailPredicate = (
     query.queryKey[0] === accommodationReadQueryKeys.detailRoot[0] &&
     query.queryKey[1] === accommodationReadQueryKeys.detailRoot[1] &&
     query.queryKey[2] === accommodationId &&
-    hasSessionScope(query.meta, scope);
+    matchesSessionQueryScope(query.meta, scope);
 
 const scopedDetailPredicate = (scope: SessionQueryScope): QueryPredicate =>
   (query) =>
     query.queryKey[0] === accommodationReadQueryKeys.detailRoot[0] &&
     query.queryKey[1] === accommodationReadQueryKeys.detailRoot[1] &&
-    hasSessionScope(query.meta, scope);
+    matchesSessionQueryScope(query.meta, scope);
 
 const patchMembership = (
   detail: AccommodationDetail | undefined,
@@ -57,9 +45,9 @@ export const createAccommodationDetailQueryCacheProjection = (
   queryClient: QueryClient,
 ): AccommodationDetailCacheProjectionPort => ({
   detailRefreshRequired({ scope, accommodationId }) {
-    void queryClient.invalidateQueries({
+    return queryClient.invalidateQueries({
       predicate: exactScopedDetailPredicate(scope, accommodationId),
-    });
+    }, { throwOnError: true });
   },
 
   membershipReconciled({

@@ -1,6 +1,5 @@
-import { PaymentStatus } from "../../../types/enums";
-import type { GuestReservationDetail } from "../../../types/reservation";
-import { getImageUrl } from "../../../utils/image";
+import { resolveImageUrl as defaultResolveImageUrl } from "../../../platform/assets/imageUrl";
+import type { GuestReservationDetail } from "../model/reservationRead";
 import {
   canCreateReview,
   formatBankName,
@@ -99,13 +98,13 @@ const getMapCoordinate = (
 const getPaymentStatusTone = (
   payment: NonNullable<GuestReservationDetail["payment"]>,
 ): PaymentStatusTone => {
-  if (payment.status === PaymentStatus.DONE) {
+  if (payment.status === "DONE") {
     return "success";
   }
 
   if (
-    payment.virtual_account &&
-    payment.status === PaymentStatus.WAITING_FOR_DEPOSIT
+    payment.virtualAccount &&
+    payment.status === "WAITING_FOR_DEPOSIT"
   ) {
     return "warning";
   }
@@ -119,24 +118,23 @@ const toReservationPaymentViewModel = (
   if (!payment) return null;
 
   const isVirtualAccountPending =
-    payment.virtual_account &&
-    payment.status === PaymentStatus.WAITING_FOR_DEPOSIT;
+    payment.virtualAccount && payment.status === "WAITING_FOR_DEPOSIT";
 
   return {
     methodLabel: payment.method ?? "-",
-    amountLabel: formatNullablePrice(payment.total_amount),
-    approvedAtLabel: payment.approved_at
-      ? formatKoreanDateTime(payment.approved_at)
+    amountLabel: formatNullablePrice(payment.totalAmount),
+    approvedAtLabel: payment.approvedAt
+      ? formatKoreanDateTime(payment.approvedAt)
       : null,
     statusLabel: formatPaymentStatus(payment.status),
     statusTone: getPaymentStatusTone(payment),
     virtualAccount: isVirtualAccountPending
       ? {
-          bankName: formatBankName(payment.virtual_account?.bank_code),
-          accountNumber: payment.virtual_account?.account_number ?? "-",
-          customerName: payment.virtual_account?.customer_name ?? "-",
-          dueDateLabel: payment.virtual_account?.due_date
-            ? formatKoreanDateTime(payment.virtual_account.due_date)
+          bankName: formatBankName(payment.virtualAccount?.bankCode),
+          accountNumber: payment.virtualAccount?.accountNumber ?? "-",
+          customerName: payment.virtualAccount?.customerName ?? "-",
+          dueDateLabel: payment.virtualAccount?.dueDate
+            ? formatKoreanDateTime(payment.virtualAccount.dueDate)
             : "-",
         }
       : null,
@@ -145,31 +143,32 @@ const toReservationPaymentViewModel = (
 
 export const toReservationDetailViewModel = (
   reservation: GuestReservationDetail,
+  resolveImageUrl: (path: string | null) => string = defaultResolveImageUrl,
 ): ReservationDetailViewModel => ({
-  reservationUid: reservation.reservation_uid,
-  reservationCode: reservation.reservation_code,
-  guestCountLabel: `게스트 ${reservation.guest_count}명`,
+  reservationUid: reservation.reservationUid,
+  reservationCode: reservation.reservationCode,
+  guestCountLabel: `게스트 ${reservation.guestCount}명`,
   accommodation: {
     id: reservation.accommodation.id,
     name: reservation.accommodation.name,
-    thumbnailUrl: reservation.accommodation.thumbnail_url
-      ? getImageUrl(reservation.accommodation.thumbnail_url)
+    thumbnailUrl: reservation.accommodation.thumbnailUrl
+      ? resolveImageUrl(reservation.accommodation.thumbnailUrl)
       : null,
   },
   addressLabel: getAddressLabel(reservation),
   checkIn: {
-    dateLabel: formatReservationDetailDate(reservation.check_in_date_time),
-    timeLabel: formatReservationDetailTime(reservation.check_in_time),
+    dateLabel: formatReservationDetailDate(reservation.checkInDateTime),
+    timeLabel: formatReservationDetailTime(reservation.checkInTime),
   },
   checkOut: {
-    dateLabel: formatReservationDetailDate(reservation.check_out_date_time),
-    timeLabel: formatReservationDetailTime(reservation.check_out_time),
+    dateLabel: formatReservationDetailDate(reservation.checkOutDateTime),
+    timeLabel: formatReservationDetailTime(reservation.checkOutTime),
   },
   host: {
     nickname: reservation.host.nickname,
     displayName: `${reservation.host.nickname} 님`,
-    avatarUrl: reservation.host.thumbnail_image_url
-      ? getImageUrl(reservation.host.thumbnail_image_url)
+    avatarUrl: reservation.host.thumbnailImageUrl
+      ? resolveImageUrl(reservation.host.thumbnailImageUrl)
       : null,
     avatarInitial: reservation.host.nickname.charAt(0).toUpperCase(),
   },
@@ -178,9 +177,9 @@ export const toReservationDetailViewModel = (
     tone: getReservationStatusTone(reservation.status),
   },
   canReview: canCreateReview({
-    can_write_review: reservation.can_write_review,
-    check_out_date_time: reservation.check_out_date_time,
-    check_out_time: reservation.check_out_time,
+    canWriteReview: reservation.canWriteReview,
+    checkOutDateTime: reservation.checkOutDateTime,
+    checkOutTime: reservation.checkOutTime,
     status: reservation.status,
   }),
   payment: toReservationPaymentViewModel(reservation.payment),

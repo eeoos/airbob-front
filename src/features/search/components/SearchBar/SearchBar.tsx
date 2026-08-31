@@ -5,7 +5,6 @@ import {
   useSearchBarState,
 } from "../../hooks/useSearchBarState";
 import type { SearchParams } from "../../lib/searchBarContracts";
-import type { SearchActivePopover } from "../../model/searchInteractionReducer";
 import { SearchBarPopover } from "./SearchBarPopover";
 import { SearchDateFields } from "./SearchDateFields";
 import { SearchDestinationField } from "./SearchDestinationField";
@@ -148,19 +147,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     collapseShell,
   });
 
-  const restorePopoverFocus = useCallback(
-    (popoverToRestore: SearchActivePopover) => {
-      if (popoverToRestore === "destination") {
-        destinationInputRef.current?.focus();
-      } else if (popoverToRestore === "date") {
-        dateTriggerRef.current?.focus();
-      } else if (popoverToRestore === "guests") {
-        guestTriggerRef.current?.focus();
-      }
-    },
-    [],
-  );
-
   const closeDateAndRestoreFocus = useCallback(() => {
     closeDatePopover();
     dateTriggerRef.current?.focus();
@@ -171,30 +157,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     guestTriggerRef.current?.focus();
   }, [closeActivePopover]);
 
-  const handleRootEscape = useCallback(
-    (event: React.KeyboardEvent<HTMLDivElement>) => {
-      if (event.key !== "Escape" || activePopover === "none") {
-        return;
-      }
-
-      event.preventDefault();
-      event.stopPropagation();
-      const popoverToRestore = activePopover;
-
-      if (activePopover === "date") {
-        completeCheckoutIfNeeded();
-      }
-      closeActivePopover();
-      restorePopoverFocus(popoverToRestore);
-    },
-    [
-      activePopover,
-      closeActivePopover,
-      completeCheckoutIfNeeded,
-      restorePopoverFocus,
-    ],
-  );
-
   return (
     <div
       ref={searchBarRef}
@@ -202,7 +164,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       className={`${styles.searchBar} ${isExpanded ? styles.expanded : ""}`}
       data-search-shell={isExpanded ? "expanded" : "compact"}
       onClick={handleSearchBarClick}
-      onKeyDown={handleRootEscape}
       role="search"
     >
       <div
@@ -263,6 +224,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         {isExpanded && showDatePicker && (
           <SearchBarPopover
             id="search-date-picker"
+            triggerRef={dateTriggerRef}
             variant="date"
             onClose={closeDateAndRestoreFocus}
           >
@@ -270,6 +232,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
               checkIn={checkIn}
               checkOut={checkOut}
               onDateSelect={handleDateSelect}
+              onEscape={closeDateAndRestoreFocus}
               onClose={() => {
                 completeCheckoutIfNeeded();
                 closeActivePopover();
@@ -313,6 +276,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         {isExpanded && showGuestPicker && (
           <SearchBarPopover
             id="search-guest-picker"
+            triggerRef={guestTriggerRef}
             variant="guest"
             onClose={closeGuestAndRestoreFocus}
           >

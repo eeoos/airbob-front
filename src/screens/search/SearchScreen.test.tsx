@@ -32,6 +32,26 @@ jest.mock("framer-motion", () => {
           </div>
         ),
       ),
+      section: React.forwardRef(
+        (
+          {
+            children,
+            drag,
+            dragConstraints,
+            dragElastic,
+            dragMomentum,
+            onDrag,
+            onDragEnd,
+            onDragStart,
+            ...props
+          }: React.HTMLAttributes<HTMLElement> & Record<string, unknown>,
+          ref: React.Ref<HTMLElement>,
+        ) => (
+          <section ref={ref} {...props}>
+            {children}
+          </section>
+        ),
+      ),
     },
   };
 });
@@ -67,10 +87,15 @@ jest.mock("../../features/search/components/SearchPagination", () => ({
   SearchPagination: (props: {
     currentPage: number;
     onPageChange: (page: number) => void;
+    variant?: "compact" | "full";
   }) => {
     mockPagination(props);
     return (
-      <button type="button" onClick={() => props.onPageChange(2)}>
+      <button
+        data-pagination-variant={props.variant ?? "full"}
+        type="button"
+        onClick={() => props.onPageChange(2)}
+      >
         next page
       </button>
     );
@@ -95,8 +120,11 @@ const createProps = (
   authModal: { isOpen: false, onClose: jest.fn() },
   bottomSheet: {
     bottomSheetRef: createRef<HTMLDivElement>(),
+    bottomSheetHandleRef: createRef<HTMLButtonElement>(),
     bottomSheetState: "collapsed",
     handleBottomSheetScroll: jest.fn(),
+    handleBottomSheetKeyDown: jest.fn(),
+    handleBottomSheetToggle: jest.fn(),
     handleDrag: jest.fn(),
     handleDragEnd: jest.fn(),
     handleDragStart: jest.fn(),
@@ -189,6 +217,10 @@ describe("SearchScreen", () => {
     expect(props.onAccommodationOpen).toHaveBeenCalledWith(7);
     expect(props.onWishlistToggle).toHaveBeenCalledWith(7);
     expect(props.onPageChange).toHaveBeenCalledWith(2);
+    expect(screen.getByRole("button", { name: "next page" })).toHaveAttribute(
+      "data-pagination-variant",
+      "full",
+    );
   });
 
   it("preserves the mobile map/bottom-sheet structure and modal/error hosts", () => {
@@ -224,5 +256,61 @@ describe("SearchScreen", () => {
     );
     expect(screen.getByText("검색 요청 실패")).toBeVisible();
     expect(screen.getByTestId("wishlist-modal")).toHaveTextContent("7");
+    expect(screen.getByRole("button", { name: "next page" })).toHaveAttribute(
+      "data-pagination-variant",
+      "compact",
+    );
+  });
+
+  it("connects a named keyboard handle to the mobile result region", () => {
+    const handleBottomSheetKeyDown = jest.fn();
+    const handleBottomSheetToggle = jest.fn();
+    const props = createProps({
+      bottomSheet: {
+        ...createProps().bottomSheet,
+        bottomSheetState: "half",
+        handleBottomSheetKeyDown,
+        handleBottomSheetToggle,
+        isMobileOrTablet: true,
+      },
+    });
+
+    const view = render(<SearchScreen {...props} />);
+    const region = screen.getByRole("region", { name: "숙소 42개" });
+    const handle = screen.getByRole("button", {
+      name: "검색 결과 패널 조절, 현재 중간",
+    });
+    const content = screen.getByRole("group", { name: "검색 결과 목록" });
+    const contentId = handle.getAttribute("aria-controls");
+
+    expect(region).toContainElement(handle);
+    expect(handle).toHaveAttribute("aria-expanded", "true");
+    expect(handle).toHaveAttribute(
+      "aria-keyshortcuts",
+      "ArrowUp ArrowDown Home End",
+    );
+    expect(contentId).toBeTruthy();
+    expect(content).toHaveAttribute("id", contentId as string);
+    expect(content).not.toHaveAttribute("hidden");
+
+    fireEvent.keyDown(handle, { key: "ArrowUp" });
+    fireEvent.click(handle);
+
+    expect(handleBottomSheetKeyDown).toHaveBeenCalledTimes(1);
+    expect(handleBottomSheetToggle).toHaveBeenCalledTimes(1);
+
+    view.rerender(
+      <SearchScreen
+        {...props}
+        bottomSheet={{ ...props.bottomSheet, bottomSheetState: "collapsed" }}
+      />,
+    );
+
+    const collapsedHandle = screen.getByRole("button", {
+      name: "검색 결과 패널 조절, 현재 접힘",
+    });
+    expect(collapsedHandle).toHaveAttribute("aria-expanded", "false");
+    expect(collapsedHandle).toHaveAttribute("aria-controls", contentId);
+    expect(content).toHaveAttribute("hidden");
   });
 });

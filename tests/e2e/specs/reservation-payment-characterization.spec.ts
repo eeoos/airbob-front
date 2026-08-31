@@ -11,6 +11,20 @@ const CALLBACK_STORAGE_KEY = "airbob:booking-payment-v1:callback";
 const AUTHENTICATED_OWNER = "subject:member_2t";
 const CHECKOUT_TTL_MS = 60 * 60 * 1000;
 const CALLBACK_TTL_MS = 15 * 60 * 1000;
+const RESERVATION_UIDS = {
+  activeRecovery: "00000000-0000-4000-8000-000000000007",
+  checkout: "00000000-0000-4000-8000-000000000001",
+  confirmed: "00000000-0000-4000-8000-000000000008",
+  done: "00000000-0000-4000-8000-000000000011",
+  expected: "00000000-0000-4000-8000-000000000009",
+  other: "00000000-0000-4000-8000-000000000012",
+  pending: "00000000-0000-4000-8000-000000000010",
+  recoveryOnly: "00000000-0000-4000-8000-000000000006",
+  reload: "00000000-0000-4000-8000-000000000002",
+  v2Cancel: "00000000-0000-4000-8000-000000000004",
+  v2Dispose: "00000000-0000-4000-8000-000000000005",
+  v2Request: "00000000-0000-4000-8000-000000000003",
+} as const;
 
 const accommodation = {
   id: 7,
@@ -256,7 +270,7 @@ test("submits one reservation and performs one PII-free checkout handoff on a do
   page,
   session,
 }) => {
-  const checkout = createCheckoutDocument("res-checkout");
+  const checkout = createCheckoutDocument(RESERVATION_UIDS.checkout);
 
   session.authenticate();
   await installPaymentGatewayFixture(page);
@@ -367,8 +381,12 @@ test("submits one reservation and performs one PII-free checkout handoff on a do
     CHECKOUT_TTL_MS,
   );
   expect(
-    await page.evaluate(() =>
-      sessionStorage.getItem("airbob:reservation-checkout-index:res-checkout"),
+    await page.evaluate(
+      (reservationUid) =>
+        sessionStorage.getItem(
+          `airbob:reservation-checkout-index:${reservationUid}`,
+        ),
+      RESERVATION_UIDS.checkout,
     ),
   ).toBeNull();
 });
@@ -378,7 +396,7 @@ test("recovers a complete versioned checkout from session storage after a full r
   page,
   session,
 }) => {
-  const checkout = createCheckoutDocument("res-reload");
+  const checkout = createCheckoutDocument(RESERVATION_UIDS.reload);
 
   session.authenticate();
   await installPaymentGatewayFixture(page);
@@ -423,7 +441,7 @@ test("maps one double-click to one official v2 CARD request", async ({
   page,
   session,
 }) => {
-  const checkout = createCheckoutDocument("res-v2-request");
+  const checkout = createCheckoutDocument(RESERVATION_UIDS.v2Request);
 
   session.authenticate();
   await installPaymentGatewayFixture(page);
@@ -472,7 +490,7 @@ test("keeps checkout retryable after a v2 USER_CANCEL", async ({
   page,
   session,
 }) => {
-  const checkout = createCheckoutDocument("res-v2-cancel");
+  const checkout = createCheckoutDocument(RESERVATION_UIDS.v2Cancel);
 
   session.authenticate();
   await installPaymentGatewayFixture(page, {
@@ -519,7 +537,7 @@ test("destroys the route-owned v2 client only after leaving checkout", async ({
   page,
   session,
 }) => {
-  const checkout = createCheckoutDocument("res-v2-dispose");
+  const checkout = createCheckoutDocument(RESERVATION_UIDS.v2Dispose);
 
   session.authenticate();
   await installPaymentGatewayFixture(page);
@@ -553,7 +571,10 @@ test("never re-enters payment request when a callback already exists", async ({
   page,
   session,
 }) => {
-  const checkout = createCheckoutDocument("res-recovery-only", 1_000);
+  const checkout = createCheckoutDocument(
+    RESERVATION_UIDS.recoveryOnly,
+    1_000,
+  );
   const callback = createCallbackDocument(checkout, "pk_recovery_only");
 
   session.authenticate();
@@ -589,7 +610,10 @@ test("blocks a new reservation while an earlier payment needs recovery", async (
   page,
   session,
 }) => {
-  const activeCheckout = createCheckoutDocument("res-active-recovery", 1_000);
+  const activeCheckout = createCheckoutDocument(
+    RESERVATION_UIDS.activeRecovery,
+    1_000,
+  );
   const activeCallback = createCallbackDocument(
     activeCheckout,
     "pk_active_recovery",
@@ -618,7 +642,7 @@ test("blocks a new reservation while an earlier payment needs recovery", async (
   await reserveButton.click();
 
   await expect(page).toHaveURL(
-    "/reservations/res-active-recovery/fail?reason=confirm-failed",
+    `/reservations/${RESERVATION_UIDS.activeRecovery}/fail?reason=confirm-failed`,
   );
   expect(api.matching("POST", "/api/v1/reservations")).toHaveLength(0);
   expect(
@@ -681,7 +705,7 @@ test("confirms once, clears owned documents, and server-reconciles a replay with
   page,
   session,
 }) => {
-  const checkout = createCheckoutDocument("res-confirmed", 1_000);
+  const checkout = createCheckoutDocument(RESERVATION_UIDS.confirmed, 1_000);
   const paymentKey = "pk_confirmed";
   const callbackPath =
     `/reservations/${checkout.reservationUid}/success` +
@@ -757,18 +781,20 @@ test("rejects a mismatched callback without sending payment confirmation", async
   page,
   session,
 }) => {
-  const checkout = createCheckoutDocument("res-expected", 1_000);
+  const checkout = createCheckoutDocument(RESERVATION_UIDS.expected, 1_000);
 
   session.authenticate();
   await openSeedPage(page);
   await seedBookingPaymentDocuments(page, checkout);
 
   await page.goto(
-    "/reservations/res-expected/success?paymentKey=pk_invalid&orderId=res-other&amount=1000",
+    `/reservations/${RESERVATION_UIDS.expected}/success?paymentKey=pk_invalid&orderId=${RESERVATION_UIDS.other}&amount=1000`,
   );
 
   await expect(page).toHaveURL(
-    /\/reservations\/res-expected\/fail\?reason=invalid-callback$/,
+    new RegExp(
+      `/reservations/${RESERVATION_UIDS.expected}/fail\\?reason=invalid-callback$`,
+    ),
   );
   await expect(
     page.getByRole("heading", { name: "결제에 실패했습니다" }),
@@ -784,7 +810,7 @@ test("reconciles owned failure documents with a pending server payment", async (
   page,
   session,
 }) => {
-  const checkout = createCheckoutDocument("res-pending", 1_000);
+  const checkout = createCheckoutDocument(RESERVATION_UIDS.pending, 1_000);
   const paymentKey = "pk_pending";
   const callback = createCallbackDocument(checkout, paymentKey);
 
@@ -844,7 +870,7 @@ test("reconciles a terminal paid status, clears owned documents, and opens the r
   page,
   session,
 }) => {
-  const checkout = createCheckoutDocument("res-done", 1_000);
+  const checkout = createCheckoutDocument(RESERVATION_UIDS.done, 1_000);
   const paymentKey = "pk_done";
   const callback = createCallbackDocument(checkout, paymentKey);
 

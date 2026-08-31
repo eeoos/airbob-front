@@ -5,8 +5,8 @@ import {
   createListingEditorQueryPort,
   listingEditorApi,
 } from "../../../features/accommodations/listing-editor/public";
-import { invalidateAccommodationDetailCaches } from "../../../features/accommodations/public";
-import { invalidateProfileHostListingCaches } from "../../../features/profile/public";
+import { createAccommodationDetailQueryCacheProjection } from "../../../features/accommodations/detail/public";
+import { createHostListingQueryCacheProjection } from "../../../features/profile/public";
 import { resolveImageUrl } from "../../../platform/assets/imageUrl";
 import { browserWindowNavigation } from "../../../platform/browser/windowNavigation";
 import { AccommodationEditController } from "../../../screens/accommodation-edit/public";
@@ -56,14 +56,29 @@ export function AccommodationEditRoute() {
   );
 
   const publication = useMemo<ListingEditorPublicationPort>(
-    () => ({
-      async publishEditorChanged() {
-        await Promise.all([
-          invalidateAccommodationDetailCaches(queryClient),
-          invalidateProfileHostListingCaches(queryClient),
-        ]);
-      },
-    }),
+    () => {
+      const accommodationDetails =
+        createAccommodationDetailQueryCacheProjection(queryClient);
+      const hostListings =
+        createHostListingQueryCacheProjection(queryClient);
+
+      return {
+        async publishEditorChanged({
+          accommodationId: changedAccommodationId,
+          scope: changedScope,
+        }) {
+          await Promise.all([
+            accommodationDetails.detailRefreshRequired({
+              accommodationId: changedAccommodationId,
+              scope: changedScope,
+            }),
+            hostListings.refreshRequired({
+              scope: changedScope,
+            }),
+          ]);
+        },
+      };
+    },
     [queryClient],
   );
 

@@ -114,6 +114,9 @@
 .paginationContainer {
   display: flex;
   justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
   margin-top: var(--space-8);
   margin-bottom: 0;
   padding: 0 0 var(--space-4);
@@ -123,6 +126,21 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
+}
+
+.pagination[data-variant="compact"] {
+  width: 100%;
+  max-width: 320px;
+  min-width: 0;
+  justify-content: center;
+}
+
+.pagination[data-variant="compact"] .paginationButton {
+  box-sizing: border-box;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 96px;
+  padding-inline: var(--space-2);
 }
 
 .paginationButton {
@@ -171,6 +189,15 @@
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
   user-select: none;
+}
+
+.paginationStatus {
+  flex: 0 0 auto;
+  min-width: 72px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-align: center;
 }
 
 .toastContainer {
@@ -331,14 +358,27 @@
   }
 
   .dragHandle {
+    appearance: none;
     width: 100%;
+    margin: 0;
     padding: var(--space-3) 0 var(--space-2) 0;
+    color: inherit;
+    background: transparent;
+    border: 0;
     display: flex;
     justify-content: center;
     align-items: center;
+    font: inherit;
     cursor: grab;
     flex-shrink: 0;
     touch-action: none;
+  }
+
+  .dragHandle:focus-visible {
+    border-radius: var(--radius-md);
+    outline: 2px solid var(--color-text-primary);
+    outline-offset: -2px;
+    box-shadow: var(--focus-ring);
   }
 
   .dragHandle:active {
@@ -521,6 +561,19 @@
     overflow: hidden;
   }
 
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bottomSheet,
+  .bottomSheetContent,
+  .cardGrid,
+  .cardWrapper {
+    transition: none;
+  }
+
+  .bottomSheet {
+    will-change: auto;
+  }
 }
 
 /* 지도 확장 모드 */

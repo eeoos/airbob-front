@@ -1,5 +1,6 @@
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { OverlayProvider } from "../../../../app/overlays/OverlayProvider";
 import type { Review } from "../../model";
 import { toReviewViewModels } from "../../lib/reviewViewModel";
 import { ReviewModal } from "./ReviewModal";
@@ -148,6 +149,41 @@ describe("ReviewModal", () => {
         .getAllByText(/후기$/)
         .map((element) => element.textContent)
     ).toEqual(["낮은 평점 후기", "가장 좋은 후기"]);
+  });
+
+  it("closes the sort popover before its dialog and restores trigger focus", async () => {
+    const onClose = jest.fn();
+
+    render(
+      <OverlayProvider>
+        <ReviewModal
+          averageRating={4.25}
+          hasNext={false}
+          isFetching={false}
+          isOpen
+          onClose={onClose}
+          onLoadMore={jest.fn()}
+          reviews={toReviewViewModels(reviews)}
+          totalCount={2}
+        />
+      </OverlayProvider>,
+    );
+
+    const sortTrigger = screen.getByRole("button", { name: "최신순" });
+    await userEvent.click(sortTrigger);
+    screen.getByRole("button", { name: "낮은 평점순" }).focus();
+
+    await userEvent.keyboard("{Escape}");
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole("button", { name: "낮은 평점순" }),
+    ).not.toBeInTheDocument();
+    await act(async () => undefined);
+    expect(sortTrigger).toHaveFocus();
+
+    await userEvent.keyboard("{Escape}");
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it("renders nothing while closed", () => {

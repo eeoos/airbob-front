@@ -1,6 +1,6 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { useOverlayPortalRoot } from "../overlayRuntime";
+import { useOverlayPortalTarget } from "../overlayRuntime";
 import styles from "./ToastHost.module.css";
 
 export interface ToastHostProps {
@@ -23,17 +23,19 @@ export const ToastHost: React.FC<ToastHostProps> = ({
   message,
   onClose,
 }) => {
-  const portalRoot = useOverlayPortalRoot();
+  const portalTarget = useOverlayPortalTarget();
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!dismissible) return;
 
     const timer = window.setTimeout(() => {
-      onClose();
+      onCloseRef.current();
     }, duration);
 
     return () => window.clearTimeout(timer);
-  }, [dismissible, duration, onClose]);
+  }, [dismissible, duration, message]);
 
   const content = (
     <div className={styles.host} data-testid="toast-host">
@@ -74,5 +76,5 @@ export const ToastHost: React.FC<ToastHostProps> = ({
     </div>
   );
 
-  return portalRoot ? createPortal(content, portalRoot) : content;
+  return portalTarget ? createPortal(content, portalTarget) : content;
 };

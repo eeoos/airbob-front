@@ -2,6 +2,7 @@ import {
   requestApiData,
   type ApiDataRequest,
 } from "../../../platform/http/request";
+import { isOpaqueIdentifier } from "../../../shared/lib/opaqueIdentifier";
 import type {
   ReservationCreateInput,
   ReservationReady,
@@ -26,13 +27,19 @@ const toReservationCreateWireRequest = (
   ...(input.couponId === null ? {} : { coupon_id: input.couponId }),
 });
 
-const toReservationReady = (wire: ReservationReadyWire): ReservationReady => ({
-  reservationUid: wire.reservation_uid,
-  orderName: wire.order_name,
-  amount: wire.amount,
-  customerEmail: wire.customer_email,
-  customerName: wire.customer_name,
-});
+const toReservationReady = (wire: ReservationReadyWire): ReservationReady => {
+  if (!isOpaqueIdentifier(wire.reservation_uid)) {
+    throw new TypeError("reservation_uid is not a safe opaque identifier.");
+  }
+
+  return {
+    reservationUid: wire.reservation_uid,
+    orderName: wire.order_name,
+    amount: wire.amount,
+    customerEmail: wire.customer_email,
+    customerName: wire.customer_name,
+  };
+};
 
 export const createReservationCreateApi = (
   request: ReservationCreateApiTransport,

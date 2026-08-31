@@ -218,8 +218,6 @@
         ],
         "excludedFiles": [
           "src/platform/http/**/*.{js,jsx,mjs,ts,tsx}",
-          "src/api/client.ts",
-          "src/utils/error.ts",
           "src/test/**/*.{js,jsx,mjs,ts,tsx}",
           "src/setupTests.{js,jsx,mjs,ts,tsx}",
           "src/**/__tests__/**/*.{js,jsx,mjs,ts,tsx}",
@@ -302,9 +300,7 @@
       },
       {
         "files": [
-          "src/platform/http/**/*.{js,jsx,mjs,ts,tsx}",
-          "src/api/client.ts",
-          "src/utils/error.ts"
+          "src/platform/http/**/*.{js,jsx,mjs,ts,tsx}"
         ],
         "excludedFiles": [
           "src/test/**/*.{js,jsx,mjs,ts,tsx}",

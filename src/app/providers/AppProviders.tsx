@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { AuthFeatureCommandProvider } from "../../features/auth/ports/AuthCommandProvider";
 import { AuthIntentProvider } from "../../workflows/auth-intent";
 import { OverlayProvider } from "../overlays/OverlayProvider";
 import { PaymentCallbackCredentialBoundary } from "../router/PaymentCallbackCredentialBoundary";
@@ -18,7 +19,16 @@ export function AuthIntentStableBoundary({
   const session = useSession();
 
   return (
-    <AuthIntentProvider session={session}>{children}</AuthIntentProvider>
+    <AuthIntentProvider session={session}>
+      <AuthFeatureCommandProvider
+        login={session.login}
+        shouldCompleteLoginInCurrentView={() =>
+          session.captureAuthenticatedSession() === null
+        }
+      >
+        {children}
+      </AuthFeatureCommandProvider>
+    </AuthIntentProvider>
   );
 }
 

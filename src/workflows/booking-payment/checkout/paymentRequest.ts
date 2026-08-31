@@ -1,4 +1,5 @@
 import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
+import { isOpaqueIdentifier } from "../../../shared/lib/opaqueIdentifier";
 import {
   PaymentGatewayError,
   type PaymentGatewayPort,
@@ -67,8 +68,8 @@ const isHttpsUrl = (value: string): boolean => {
 };
 
 const isValidCommand = (input: PaymentRequestCommand): boolean =>
-  isBoundedText(input.reservationUid, 128) &&
-  isBoundedText(input.orderId, 128) &&
+  isOpaqueIdentifier(input.reservationUid) &&
+  isOpaqueIdentifier(input.orderId) &&
   input.orderId === input.reservationUid &&
   isBoundedText(input.orderName, 256) &&
   Number.isSafeInteger(input.amount) &&

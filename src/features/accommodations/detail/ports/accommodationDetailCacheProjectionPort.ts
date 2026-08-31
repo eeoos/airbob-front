@@ -11,11 +11,13 @@ interface AccommodationDetailMembershipReconciled
 }
 
 /**
- * Cache-only projection boundary for membership writes that affect the public
+ * Cache-only projection boundary for writes that affect the public
  * accommodation detail resource. Implementations never issue mutation I/O.
  */
 export interface AccommodationDetailCacheProjectionPort {
-  detailRefreshRequired(input: AccommodationDetailScopedProjection): void;
+  detailRefreshRequired(
+    input: AccommodationDetailScopedProjection,
+  ): Promise<void>;
   membershipReconciled(input: AccommodationDetailMembershipReconciled): void;
   membershipScopeRefreshRequired(
     input: Pick<AccommodationDetailScopedProjection, "scope">,

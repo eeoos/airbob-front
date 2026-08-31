@@ -1,4 +1,7 @@
-import { PaymentStatus, ReservationStatus } from "../../../types/enums";
+import type {
+  ReservationPaymentStatus,
+  ReservationStatus,
+} from "../model/reservationRead";
 
 const BANK_NAMES: Record<string, string> = {
   "20": "우리은행",
@@ -23,17 +26,32 @@ const BANK_NAMES: Record<string, string> = {
   "92": "토스뱅크",
 };
 
-const PAYMENT_STATUS_LABELS: Partial<Record<PaymentStatus, string>> = {
-  [PaymentStatus.READY]: "결제 대기",
-  [PaymentStatus.IN_PROGRESS]: "결제 진행 중",
-  [PaymentStatus.WAITING_FOR_DEPOSIT]: "입금 대기",
-  [PaymentStatus.DONE]: "결제 완료",
-  [PaymentStatus.CANCELED]: "결제 취소",
-  [PaymentStatus.EXPIRED]: "결제 만료",
+const PAYMENT_STATUS_LABELS: Partial<
+  Record<ReservationPaymentStatus, string>
+> = {
+  READY: "결제 대기",
+  IN_PROGRESS: "결제 진행 중",
+  WAITING_FOR_DEPOSIT: "입금 대기",
+  DONE: "결제 완료",
+  CANCELED: "결제 취소",
+  EXPIRED: "결제 만료",
 };
 
-const isPaymentStatus = (status: string): status is PaymentStatus =>
-  Object.values(PaymentStatus).includes(status as PaymentStatus);
+const PAYMENT_STATUSES = new Set<ReservationPaymentStatus>([
+  "READY",
+  "IN_PROGRESS",
+  "WAITING_FOR_DEPOSIT",
+  "DONE",
+  "CANCELED",
+  "PARTIAL_CANCELED",
+  "ABORTED",
+  "EXPIRED",
+]);
+
+const isPaymentStatus = (
+  status: string,
+): status is ReservationPaymentStatus =>
+  PAYMENT_STATUSES.has(status as ReservationPaymentStatus);
 
 const isCheckoutCompleted = (
   checkOutDateTime: string,
@@ -73,7 +91,7 @@ export const formatBankName = (bankCode?: string | null) => {
 };
 
 export const formatPaymentStatus = (
-  status?: PaymentStatus | string | null,
+  status?: ReservationPaymentStatus | string | null,
 ) => {
   if (!status) return "-";
   if (!isPaymentStatus(status)) return status;
@@ -99,18 +117,18 @@ export const formatReservationDetailTime = (timeString: string): string => {
 };
 
 export const canCreateReview = ({
-  can_write_review,
-  check_out_date_time,
-  check_out_time,
+  canWriteReview,
+  checkOutDateTime,
+  checkOutTime,
   now,
   status,
 }: {
-  can_write_review?: boolean | null;
-  check_out_date_time: string;
-  check_out_time: string;
+  canWriteReview?: boolean | null;
+  checkOutDateTime: string;
+  checkOutTime: string;
   now?: Date;
   status: ReservationStatus;
 }) =>
-  isCheckoutCompleted(check_out_date_time, check_out_time, now) &&
-  status === ReservationStatus.CONFIRMED &&
-  Boolean(can_write_review);
+  isCheckoutCompleted(checkOutDateTime, checkOutTime, now) &&
+  status === "CONFIRMED" &&
+  Boolean(canWriteReview);

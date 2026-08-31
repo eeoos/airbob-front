@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { createAccommodationDetailQueryCacheProjection } from "../../../features/accommodations/detail/public";
 import {
-  invalidateGuestReservationCaches,
+  createReservationReadQueryCacheProjection,
 } from "../../../features/reservations/public";
 import { createReviewCache } from "../../../features/reviews/public";
 import { resolveImageUrl } from "../../../platform/assets/imageUrl";
@@ -49,21 +49,23 @@ export function ReviewCreateRoute() {
 
   const publication = useMemo<ReviewSubmissionPublicationPort>(() => {
     const reviewCache = createReviewCache(queryClient);
+    const reservationCache =
+      createReservationReadQueryCacheProjection(queryClient);
     const accommodationCache =
       createAccommodationDetailQueryCacheProjection(queryClient);
 
     return {
       async publishReviewCreated(input) {
-        accommodationCache.detailRefreshRequired({
-          accommodationId: input.accommodationId,
-          scope: input.scope,
-        });
         await Promise.all([
+          accommodationCache.detailRefreshRequired({
+            accommodationId: input.accommodationId,
+            scope: input.scope,
+          }),
           reviewCache.reviewCreated(input),
-          invalidateGuestReservationCaches(
-            queryClient,
-            input.reservationUid,
-          ),
+          reservationCache.guestReservationChanged({
+            reservationUid: input.reservationUid,
+            scope: input.scope,
+          }),
         ]);
       },
     };

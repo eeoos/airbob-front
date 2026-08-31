@@ -8,18 +8,22 @@ import {
 } from "react";
 
 export type OverlayRegistrationId = symbol;
+export type OverlayModality = "modal" | "non-modal";
 
 export interface OverlayStackRegistration {
   readonly element: HTMLElement;
   readonly id: OverlayRegistrationId;
   readonly layerElement: HTMLElement;
+  readonly modality?: OverlayModality;
   readonly requestClose: () => void;
   readonly restoreFocusTo: Element | null;
 }
 
 export interface OverlayStackRuntime {
-  readonly getSize: () => number;
+  readonly getModalSize: () => number;
+  readonly getTopmostModalId: () => OverlayRegistrationId | null;
   readonly getTopmostId: () => OverlayRegistrationId | null;
+  readonly has: (id: OverlayRegistrationId) => boolean;
   readonly register: (registration: OverlayStackRegistration) => () => void;
   readonly requestCloseTopmost: () => boolean;
   readonly subscribe: (listener: () => void) => () => void;
@@ -35,13 +39,20 @@ export const OverlayRuntimeContext = createContext<OverlayRuntimeValue | null>(
 );
 
 const subscribeToNothing = () => () => undefined;
+const getFalse = () => false;
 const getNoTopmostOverlay = () => null;
+const OverlayPortalTargetContext = createContext<
+  HTMLElement | null | undefined
+>(undefined);
+export const OverlayPortalTargetProvider = OverlayPortalTargetContext.Provider;
 
 interface UseOverlayRegistrationOptions {
   readonly elementRef: RefObject<HTMLElement | null>;
   readonly enabled: boolean;
   readonly layerRef: RefObject<HTMLElement | null>;
+  readonly modality?: OverlayModality;
   readonly onClose: () => void;
+  readonly restoreFocusRef?: RefObject<Element | null>;
   readonly restoreFocusTo: Element | null;
 }
 
@@ -49,7 +60,9 @@ export const useOverlayRegistration = ({
   elementRef,
   enabled,
   layerRef,
+  modality = "modal",
   onClose,
+  restoreFocusRef,
   restoreFocusTo,
 }: UseOverlayRegistrationOptions) => {
   const runtime = useContext(OverlayRuntimeContext);
@@ -62,6 +75,18 @@ export const useOverlayRegistration = ({
     runtime?.stack.getTopmostId ?? getNoTopmostOverlay,
     getNoTopmostOverlay,
   );
+  const topmostModalId = useSyncExternalStore(
+    runtime?.stack.subscribe ?? subscribeToNothing,
+    runtime?.stack.getTopmostModalId ?? getNoTopmostOverlay,
+    getNoTopmostOverlay,
+  );
+  const isRegistered = useSyncExternalStore(
+    runtime?.stack.subscribe ?? subscribeToNothing,
+    runtime
+      ? () => runtime.stack.has(registrationIdRef.current)
+      : getFalse,
+    getFalse,
+  );
 
   useLayoutEffect(() => {
     const element = elementRef.current;
@@ -72,18 +97,34 @@ export const useOverlayRegistration = ({
       element,
       id: registrationIdRef.current,
       layerElement,
+      modality,
       requestClose: () => onCloseRef.current(),
-      restoreFocusTo,
+      restoreFocusTo: restoreFocusRef?.current ?? restoreFocusTo,
     });
-  }, [elementRef, enabled, layerRef, restoreFocusTo, runtime]);
+  }, [
+    elementRef,
+    enabled,
+    layerRef,
+    modality,
+    restoreFocusRef,
+    restoreFocusTo,
+    runtime,
+  ]);
 
   return {
     hasRuntime: runtime !== null,
-    isTopmost:
+    isRegistered,
+    isTopmostOverall:
       runtime === null || topmostId === registrationIdRef.current,
+    isTopmostModal:
+      runtime === null || topmostModalId === registrationIdRef.current,
     portalRoot: runtime?.portalRoot ?? null,
   };
 };
 
-export const useOverlayPortalRoot = () =>
-  useContext(OverlayRuntimeContext)?.portalRoot ?? null;
+export const useOverlayPortalTarget = () => {
+  const scopedTarget = useContext(OverlayPortalTargetContext);
+  const sharedTarget = useContext(OverlayRuntimeContext)?.portalRoot ?? null;
+
+  return scopedTarget === undefined ? sharedTarget : scopedTarget;
+};

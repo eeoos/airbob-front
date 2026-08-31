@@ -4,8 +4,10 @@ import {
   type ReviewableReservationApiTransport,
 } from "./reviewableReservationApi";
 
+const RESERVATION_UID = "reservation-123";
+
 const reservationWire: ReviewableReservationWire = {
-  reservation_uid: "reservation-123",
+  reservation_uid: RESERVATION_UID,
   can_write_review: true,
   check_in_date_time: "2026-07-10T15:00:00",
   check_out_date_time: "2026-07-12T11:00:00",
@@ -33,9 +35,9 @@ describe("reviewable reservation API adapter", () => {
     const signal = new AbortController().signal;
 
     await expect(
-      api.getReviewableReservation("reservation-123", { signal }),
+      api.getReviewableReservation(RESERVATION_UID, { signal }),
     ).resolves.toEqual({
-      reservationUid: "reservation-123",
+      reservationUid: RESERVATION_UID,
       canWriteReview: true,
       checkInDateTime: "2026-07-10T15:00:00",
       checkOutDateTime: "2026-07-12T11:00:00",
@@ -55,10 +57,22 @@ describe("reviewable reservation API adapter", () => {
     });
     expect(transport).toHaveBeenCalledWith({
       method: "GET",
-      path: "/profile/guest/reservations/reservation-123",
+      path: `/profile/guest/reservations/${RESERVATION_UID}`,
       signal,
     });
     expect(transport.mock.calls[0][0]).not.toHaveProperty("body");
     expect(transport.mock.calls[0][0]).not.toHaveProperty("params");
+  });
+
+  it("rejects an encoded separator before transport", async () => {
+    const transport = jest.fn();
+    const api = createReviewableReservationApi(
+      transport as ReviewableReservationApiTransport,
+    );
+
+    await expect(
+      api.getReviewableReservation("..%2Fadmin"),
+    ).rejects.toMatchObject({ code: "INVALID_OPAQUE_PATH_SEGMENT" });
+    expect(transport).not.toHaveBeenCalled();
   });
 });

@@ -18,7 +18,7 @@ type SearchDestinationSuggestion = SearchPlacePrediction | string;
 
 interface SearchDestinationFieldInternalProps
   extends Omit<SearchDestinationFieldProps, "onSelect" | "suggestions"> {
-  inputRef?: React.Ref<HTMLInputElement>;
+  inputRef: React.RefObject<HTMLInputElement | null>;
   isComposing?: boolean;
   onBlur?: React.FocusEventHandler<HTMLInputElement>;
   onCompositionEnd?: () => void;
@@ -120,6 +120,7 @@ export const SearchDestinationField = ({
         {isActive && (suggestions.length > 0 || isLoading) && (
           <SearchBarPopover
             ref={suggestionsRef}
+            triggerRef={inputRef}
             variant="suggestions"
             onClose={() => onEscape?.()}
           >

@@ -8,7 +8,7 @@ baseline, and how a migrated slice becomes strict without a suppression wall.
 
 | Concern | Owner | Blocking scope at U3 | Legacy signal |
 | --- | --- | --- | --- |
-| Import direction, resolvability, production-to-test/dev edges, module/folder cycles | dependency-cruiser | `src/app`, `screens`, `workflows`, `platform`, `shared`, plus features registered as migrated | Existing feature cycles and peer edges are warnings. Private peer imports remain errors. |
+| Import direction, resolvability, production-to-test/dev edges, module/folder cycles | dependency-cruiser | `src/app`, `screens`, `workflows`, `platform`, `shared`, plus features registered as migrated | Legacy cycles remain warnings. Every feature-to-peer production import is an error. |
 | Production reachability, unused files/exports/dependencies | Knip | The same target/migrated surface through a result preprocessor | Full production report is non-blocking and contains no per-file ignore list. |
 | CSS syntax and design references | Stylelint | Target/migrated CSS plus the already-clean shell/modal files named in config | Legacy design/syntax debt is warning-only; breakpoint and suppression invariants remain global errors. |
 | CSS interaction/token invariants not expressible by the pinned Stylelint line | Focused Jest contracts using the central style policy | Target/migrated CSS plus the named high-risk pre-redesign set | No duplicated raw-color, `!important`, or import scanner remains. |
@@ -22,30 +22,25 @@ errors. Every entry must resolve to a real feature directory containing
 production source; symbolic links are forbidden throughout `src` so fixed or
 feature target layers cannot be relocated behind legacy paths.
 Full-history CI and the local Git comparison gate make the
-list monotonic: an entry is removed only when U22 removes that feature root
-itself. Adding an ignore, known-violation snapshot, or blanket file exception is
+list monotonic: an entry is removed only when its owning production feature root
+is intentionally deleted. Adding an ignore, known-violation snapshot, or blanket file exception is
 not a cutover. A new or renamed feature root must enter the registry in the same
 commit, and a parent registration counts only production source owned by that
 parent, never source owned by a declared nested scope. Historical nested entries
-remain comparable after their U22 root and scope declaration are retired.
+remain comparable after their root and scope declaration are retired.
 
 ## Dependency-cruiser policy
 
-The production graph after U8 has 476 modules and 1,271 dependency edges. It
-records zero errors and 13 legacy warnings:
-
-- two type-bearing module cycles in the accommodation editor;
-- eleven cross-feature compatibility edges.
-
-At the U12 cutover, the current production graph has 540 modules and 1,414
-dependency edges, zero cycles, zero blocking errors, and two legacy warnings.
-Both warnings are Profile-owned public compatibility edges into Reservations
-and Accommodations; the editor cycles and its Profile edge are gone.
+After U22/U14 the production graph has 515 modules and 1,357 dependency edges,
+zero cycles, zero warnings, and zero errors. Production contains no
+feature-owned `appShell.ts` or `publicCache.ts`, no feature-to-peer edge, and no
+retired global API/DTO root. Feature-to-peer production imports are errors regardless of filename;
+production imports of `src/api/**` or `src/types/**` are rejected
+across every layer, including non-UI feature modules.
 
 The graph blocks unresolved imports, production imports of tests or runtime dev
-dependencies, private feature peer imports, direct UI access to global API/wire
-DTO modules, route/layout seam bypasses, and upper-layer imports from target
-layers. App composition may import a feature only through `ui/**`, `ports/**`,
+dependencies, every feature peer import, retired global API/DTO imports, and
+upper-layer imports from target layers. App composition may import a feature only through `ui/**`, `ports/**`,
 or that feature scope's root `public.ts`/`public.tsx`; hooks, components, models,
 and other implementation paths stay private. Public `ui/**` and `public.ts(x)`
 surfaces are presentation boundaries and cannot reach global API or wire DTO
@@ -57,24 +52,23 @@ strictly registered nested editor owner. Target
 module and folder cycles are errors; legacy folder cycles are not reported
 because nested-folder expansion produced noisy duplicates.
 
-U6 adds one temporary exact bridge per compatibility adapter under
-`src/app/router/routes/**`. Each adapter may import only its assigned legacy
-feature route container; a peer route or private helper is still an error.
-U7 removes the Login, Signup, and Wishlist bridges with their owned
-screen/controller cutovers. U8 removes Search; U9 removes Detail and Review;
-U10 removes Confirm, Payment Success, and Payment Fail; U12 removes
-Accommodation Edit. Four exact bridges remain for U13/U21, and U22 removes any
-final compatibility entry.
+U6 added one temporary exact bridge per compatibility adapter under
+`src/app/router/routes/**`. U7 removed Login, Signup, and Wishlist; U8 removed
+Search; U9 removed Detail and Review; U10 removed Confirm, Payment Success, and
+Payment Fail; U12 removed Accommodation Edit; U13 removed Profile and both
+reservation-detail bridges; U21 removed the final Home bridge. App route
+adapters now follow the ordinary feature public-surface rule without bridge
+exceptions.
 
 The fixture runner proves 37 cases, including a valid DAG, MJS graph coverage,
 the app feature public-surface contract, workflow/screen peer edges,
-screen-to-platform,
-shared-to-page, parent/editor and private feature imports, UI/API and UI/DTO
-bypasses, route/layout/page bypasses, module and folder cycles, a type-only
-cycle, production-to-test/dev imports (including `__tests__` and `__mocks__`),
-and an unresolvable edge. It checks the exact rule set, not only the process exit
-code. Feature discovery runs against each fixture root rather than borrowing the
-production repository inventory.
+screen-to-platform, shared-to-page, parent/editor and private feature imports,
+explicit rejection of peer `appShell.ts`/`publicCache.ts` filenames,
+production-wide retired API/DTO imports from both UI and non-UI features,
+module and folder cycles, a type-only cycle, production-to-test/dev imports
+(including `__tests__` and `__mocks__`), and an unresolvable edge. It checks the
+exact rule set, not only the process exit code. Feature discovery runs against
+each fixture root rather than borrowing the production repository inventory.
 
 ## Knip reachability policy
 

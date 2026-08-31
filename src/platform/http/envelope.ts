@@ -20,8 +20,7 @@ const hasOwnProperty = (response: UnknownRecord, property: string): boolean =>
 
 /**
  * Classifies an API envelope without choosing an application error surface.
- * This lets migrated adapters use AppError while the legacy facade preserves
- * its existing ApiClientError identity and payload mapping.
+ * Feature adapters use the result through the canonical AppError boundary.
  */
 export const inspectApiEnvelope = <T>(
   response: unknown,

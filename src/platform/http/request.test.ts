@@ -8,7 +8,10 @@ import {
   isSessionOwnedAuthEventRequest,
   sessionOwnedAuthEventPolicy,
 } from "./authEventPolicy";
-import { httpClient } from "./client";
+import {
+  httpClient,
+  MULTIPART_API_REQUEST_TIMEOUT_MS,
+} from "./client";
 import { requestApiData, requestApiDataNullable } from "./request";
 
 interface ListingWire {
@@ -72,6 +75,7 @@ describe("platform API request", () => {
       expect(config.data).toBe(body);
       expect(config.data).toBeInstanceOf(FormData);
       expect(config.headers.getContentType()).toBe("multipart/form-data");
+      expect(config.timeout).toBe(MULTIPART_API_REQUEST_TIMEOUT_MS);
 
       return response(config, {
         success: true,

@@ -1,4 +1,4 @@
-import type { ComponentProps, RefObject } from "react";
+import { useId, type ComponentProps, type RefObject } from "react";
 import { motion, type MotionStyle } from "framer-motion";
 import { AuthModal } from "../../features/auth/components/AuthModal";
 import type {
@@ -16,17 +16,22 @@ import { WishlistModal } from "../../features/wishlist/components/WishlistModal"
 import { ToastHost } from "../../shared/ui";
 import styles from "./SearchScreen.module.css";
 
-type MotionDivProps = ComponentProps<typeof motion.div>;
+type MotionSectionProps = ComponentProps<typeof motion.section>;
 
 export interface SearchScreenBottomSheetProps {
-  readonly bottomSheetRef: RefObject<HTMLDivElement | null>;
+  readonly bottomSheetHandleRef: RefObject<HTMLButtonElement | null>;
+  readonly bottomSheetRef: RefObject<HTMLElement | null>;
   readonly bottomSheetState: "collapsed" | "half" | "expanded";
+  readonly handleBottomSheetKeyDown: NonNullable<
+    ComponentProps<"button">["onKeyDown"]
+  >;
   readonly handleBottomSheetScroll: NonNullable<
     ComponentProps<"div">["onScroll"]
   >;
-  readonly handleDrag: MotionDivProps["onDrag"];
-  readonly handleDragEnd: MotionDivProps["onDragEnd"];
-  readonly handleDragStart: MotionDivProps["onDragStart"];
+  readonly handleBottomSheetToggle: () => void;
+  readonly handleDrag: MotionSectionProps["onDrag"];
+  readonly handleDragEnd: MotionSectionProps["onDragEnd"];
+  readonly handleDragStart: MotionSectionProps["onDragStart"];
   readonly handleMapInteraction: () => void;
   readonly isMobileOrTablet: boolean;
   readonly snapPositions: Readonly<{
@@ -99,6 +104,16 @@ const paginationClassNames = {
   button: styles.paginationButton,
   activeButton: styles.paginationButtonActive,
   ellipsis: styles.paginationEllipsis,
+  status: styles.paginationStatus,
+};
+
+const bottomSheetStateLabels: Record<
+  SearchScreenBottomSheetProps["bottomSheetState"],
+  string
+> = {
+  collapsed: "접힘",
+  half: "중간",
+  expanded: "펼침",
 };
 
 export function SearchScreen({
@@ -117,6 +132,10 @@ export function SearchScreen({
   wishlistModal,
 }: SearchScreenProps) {
   const hasResults = results.accommodationCards.length > 0;
+  const bottomSheetContentId = useId();
+  const bottomSheetTitleId = useId();
+  const bottomSheetStateLabel =
+    bottomSheetStateLabels[bottomSheet.bottomSheetState];
 
   return (
     <>
@@ -144,8 +163,9 @@ export function SearchScreen({
               />
             </div>
 
-            <motion.div
+            <motion.section
               ref={bottomSheet.bottomSheetRef}
+              aria-labelledby={bottomSheetTitleId}
               className={`${styles.bottomSheet} ${
                 styles[bottomSheet.bottomSheetState]
               } ${
@@ -170,11 +190,22 @@ export function SearchScreen({
               onDragEnd={bottomSheet.handleDragEnd}
             >
               <div className={styles.bottomSheetHeader}>
-                <div className={styles.dragHandle}>
-                  <div className={styles.dragHandleBar} />
-                </div>
+                <button
+                  ref={bottomSheet.bottomSheetHandleRef}
+                  type="button"
+                  className={styles.dragHandle}
+                  aria-controls={bottomSheetContentId}
+                  aria-expanded={bottomSheet.bottomSheetState !== "collapsed"}
+                  aria-keyshortcuts="ArrowUp ArrowDown Home End"
+                  aria-label={`검색 결과 패널 조절, 현재 ${bottomSheetStateLabel}`}
+                  data-state={bottomSheet.bottomSheetState}
+                  onClick={bottomSheet.handleBottomSheetToggle}
+                  onKeyDown={bottomSheet.handleBottomSheetKeyDown}
+                >
+                  <span className={styles.dragHandleBar} aria-hidden="true" />
+                </button>
 
-                <h2 className={styles.title}>
+                <h2 id={bottomSheetTitleId} className={styles.title}>
                   {results.totalElements >= 1000
                     ? "숙소 1,000개 이상"
                     : `숙소 ${results.totalElements.toLocaleString()}개`}
@@ -182,11 +213,15 @@ export function SearchScreen({
               </div>
 
               <div
+                id={bottomSheetContentId}
+                role="group"
+                aria-label="검색 결과 목록"
                 className={`${styles.bottomSheetContent} ${
                   bottomSheet.bottomSheetState === "collapsed"
                     ? styles.hidden
                     : ""
                 }`}
+                hidden={bottomSheet.bottomSheetState === "collapsed"}
                 onScroll={bottomSheet.handleBottomSheetScroll}
               >
                 <SearchResultsList
@@ -208,10 +243,11 @@ export function SearchScreen({
                     isLoading={results.isLoading}
                     onPageChange={onPageChange}
                     classNames={paginationClassNames}
+                    variant="compact"
                   />
                 )}
               </div>
-            </motion.div>
+            </motion.section>
           </>
         ) : (
           <div

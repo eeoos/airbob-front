@@ -4,6 +4,7 @@ import type {
   QueryFilters,
 } from "@tanstack/react-query";
 import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
+import { matchesSessionQueryScope } from "../../../platform/query/sessionScope";
 import type {
   RecentlyViewedCollection,
   WishlistCollection,
@@ -14,21 +15,6 @@ import type { WishlistProjectionPort } from "../ports/wishlistProjectionPort";
 
 type QueryPredicate = NonNullable<QueryFilters["predicate"]>;
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
-
-const hasSessionScope = (
-  meta: unknown,
-  scope: AuthenticatedSessionScope,
-) => {
-  if (!isRecord(meta) || !isRecord(meta.session)) return false;
-
-  return (
-    meta.session.subject === scope.subject &&
-    meta.session.epoch === scope.epoch
-  );
-};
-
 const scopedWishlistPredicate = (
   scope: AuthenticatedSessionScope,
   resource?: "lists" | "detail" | "recentlyViewed",
@@ -36,7 +22,7 @@ const scopedWishlistPredicate = (
   (query) =>
     query.queryKey[0] === wishlistReadQueryKeys.root[0] &&
     (resource === undefined || query.queryKey[1] === resource) &&
-    hasSessionScope(query.meta, scope);
+    matchesSessionQueryScope(query.meta, scope);
 
 const removeWishlistFromCollection = (
   data: InfiniteData<WishlistCollection, string | null> | undefined,

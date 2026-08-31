@@ -1,6 +1,11 @@
 import React from "react";
 import type { AccommodationBookingCouponViewModel } from "../lib/accommodationBookingSectionsViewModel";
-import { Button, CounterStepper, DatePicker } from "../../../../shared/ui";
+import {
+  Button,
+  CounterStepper,
+  DatePicker,
+  useNonModalOverlayRegistration,
+} from "../../../../shared/ui";
 import styles from "./AccommodationBookingCard.module.css";
 
 type NumberSetter = React.Dispatch<React.SetStateAction<number>>;
@@ -20,6 +25,7 @@ interface BookingDateSectionProps {
   handleDateSelect: (checkIn: Date | null, checkOut: Date | null) => void;
   isDatePickerOpen: boolean;
   setIsDatePickerOpen: BooleanSetter;
+  setIsGuestPickerOpen: BooleanSetter;
   unavailableDates: Array<string | Date>;
 }
 
@@ -163,16 +169,36 @@ export function BookingDateSection({
   handleDateSelect,
   isDatePickerOpen,
   setIsDatePickerOpen,
+  setIsGuestPickerOpen,
   unavailableDates,
 }: BookingDateSectionProps) {
+  const dateTriggerRef = React.useRef<HTMLButtonElement>(null);
+  const datePopoverRef = React.useRef<HTMLDivElement>(null);
+  const closeDatePicker = React.useCallback(() => {
+    setIsDatePickerOpen(false);
+    dateTriggerRef.current?.focus();
+  }, [setIsDatePickerOpen]);
+  const dateOverlay = useNonModalOverlayRegistration({
+    enabled: isDatePickerOpen,
+    onClose: closeDatePicker,
+    overlayRef: datePopoverRef,
+    triggerRef: dateTriggerRef,
+  });
+  const toggleDatePicker = React.useCallback(() => {
+    const willOpen = !isDatePickerOpen;
+    if (willOpen) setIsGuestPickerOpen(false);
+    setIsDatePickerOpen(willOpen);
+  }, [isDatePickerOpen, setIsDatePickerOpen, setIsGuestPickerOpen]);
+
   return (
     <div className={styles.dateSection} ref={dateSectionRef}>
       <button
+        ref={dateTriggerRef}
         type="button"
         className={styles.dateRow}
         aria-expanded={isDatePickerOpen}
         aria-controls="booking-date-picker"
-        onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
+        onClick={toggleDatePicker}
       >
         <div className={styles.dateColumn}>
           <div className={styles.dateLabel}>체크인</div>
@@ -187,12 +213,20 @@ export function BookingDateSection({
       <div className={styles.horizontalDivider} />
 
       {isDatePickerOpen && (
-        <div id="booking-date-picker" className={styles.datePickerContainer}>
+        <div
+          ref={datePopoverRef}
+          id="booking-date-picker"
+          className={styles.datePickerContainer}
+          onKeyDown={dateOverlay.onKeyDown}
+        >
           <DatePicker
             checkIn={checkIn}
             checkOut={checkOut}
             onDateSelect={handleDateSelect}
-            onClose={() => setIsDatePickerOpen(false)}
+            onClose={closeDatePicker}
+            onEscape={() => {
+              dateOverlay.requestCloseOnEscape();
+            }}
             datePickerRef={datePickerRef}
             unavailableDates={unavailableDates.map(toUnavailableDate)}
           />
@@ -220,15 +254,29 @@ export function BookingGuestSection({
   setPetCount,
 }: BookingGuestSectionProps) {
   const guestCount = adultCount + childCount;
+  const guestTriggerRef = React.useRef<HTMLButtonElement>(null);
+  const guestPopoverRef = React.useRef<HTMLDivElement>(null);
+  const closeGuestPicker = React.useCallback(() => {
+    setIsGuestPickerOpen(false);
+    guestTriggerRef.current?.focus();
+  }, [setIsGuestPickerOpen]);
+  const guestOverlay = useNonModalOverlayRegistration({
+    enabled: isGuestPickerOpen && !isDatePickerOpen,
+    onClose: closeGuestPicker,
+    overlayRef: guestPopoverRef,
+    triggerRef: guestTriggerRef,
+  });
 
   return (
     <div
       className={`${styles.guestRowContainer} ${
         isDatePickerOpen ? styles.hidden : ""
       }`}
+      onKeyDown={guestOverlay.onKeyDown}
       ref={guestPickerRef}
     >
       <button
+        ref={guestTriggerRef}
         type="button"
         className={styles.guestRow}
         aria-expanded={isGuestPickerOpen}
@@ -252,7 +300,11 @@ export function BookingGuestSection({
       </button>
 
       {isGuestPickerOpen && (
-        <div id="booking-guest-picker" className={styles.guestPicker}>
+        <div
+          ref={guestPopoverRef}
+          id="booking-guest-picker"
+          className={styles.guestPicker}
+        >
           <GuestCounterRow
             title="성인"
             subtitle="13세 이상"
@@ -313,7 +365,7 @@ export function BookingGuestSection({
             className={styles.guestPickerClose}
             onClick={(event) => {
               event.stopPropagation();
-              setIsGuestPickerOpen(false);
+              closeGuestPicker();
             }}
           >
             닫기

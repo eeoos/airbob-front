@@ -16,15 +16,14 @@ jest.mock("./app/router/Router", () => ({
   ),
 }));
 
-jest.mock("./layouts/AppHeader", () => ({
+jest.mock("./app/header", () => ({
   Header: ({ headerMode }: { headerMode: string }) => (
     <header data-testid="app-header">{headerMode}</header>
   ),
 }));
 
-jest.mock("./routes/RequireAuth", () => ({
-  __esModule: true,
-  default: ({ children }: { children: React.ReactNode }) => (
+jest.mock("./app/router/RequireAuthenticatedRoute", () => ({
+  RequireAuthenticatedRoute: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="auth-boundary">{children}</div>
   ),
 }));

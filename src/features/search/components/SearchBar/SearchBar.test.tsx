@@ -2,6 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { OverlayProvider } from "../../../../app/overlays/OverlayProvider";
 import { SearchBar } from "./SearchBar";
 import {
   type SearchBarRoutePort,
@@ -447,9 +448,17 @@ describe("SearchBar", () => {
       })
     );
 
-    render(<SearchBar routePort={routePort} />);
+    render(
+      <OverlayProvider>
+        <SearchBar routePort={routePort} />
+      </OverlayProvider>,
+    );
 
     screen.getByRole("button", { name: "성인 인원 늘리기" }).focus();
+    expect(screen.getByRole("search", { name: "숙소 검색" })).toContainElement(
+      screen.getByText("성인"),
+    );
+    expect(document.body.style.overflow).toBe("");
     await userEvent.keyboard("{Escape}");
 
     expect(closeActivePopover).toHaveBeenCalledTimes(1);
@@ -474,7 +483,11 @@ describe("SearchBar", () => {
       }),
     );
 
-    render(<SearchBar routePort={routePort} />);
+    render(
+      <OverlayProvider>
+        <SearchBar routePort={routePort} />
+      </OverlayProvider>,
+    );
     const dateTrigger = screen.getByRole("button", {
       name: /체크인[\s\S]*체크아웃/,
     });
@@ -488,6 +501,43 @@ describe("SearchBar", () => {
 
     expect(completeCheckoutIfNeeded).toHaveBeenCalledTimes(1);
     expect(closeActivePopover).toHaveBeenCalledTimes(1);
+    expect(dateTrigger).toHaveFocus();
+  });
+
+  it("closes the date picker from an active date cell and restores trigger focus", async () => {
+    const closeActivePopover = jest.fn();
+    const completeCheckoutIfNeeded = jest.fn();
+    const collapseShell = jest.fn();
+
+    mockUseSearchBarState.mockReturnValue(
+      createSearchBarState({
+        popover: {
+          activePopover: "date",
+          isExpanded: true,
+          showDatePicker: true,
+        },
+        actions: {
+          closeActivePopover,
+          completeCheckoutIfNeeded,
+          collapseShell,
+        },
+      }),
+    );
+
+    render(<SearchBar routePort={routePort} />);
+    const dateTrigger = screen.getByRole("button", {
+      name: /체크인[\s\S]*체크아웃/,
+    });
+    const activeDate = screen.getByRole("gridcell", {
+      name: "2026년 7월 10일 금요일",
+    });
+
+    activeDate.focus();
+    await userEvent.keyboard("{Escape}");
+
+    expect(completeCheckoutIfNeeded).toHaveBeenCalledTimes(1);
+    expect(closeActivePopover).toHaveBeenCalledTimes(1);
+    expect(collapseShell).not.toHaveBeenCalled();
     expect(dateTrigger).toHaveFocus();
   });
 

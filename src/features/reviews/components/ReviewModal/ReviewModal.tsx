@@ -1,5 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Dialog, useOutsideClick } from "../../../../shared/ui";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Dialog,
+  useNonModalOverlayRegistration,
+  useOutsideClick,
+} from "../../../../shared/ui";
 import type { ReviewViewModel } from "../../lib/reviewViewModel";
 import styles from "./ReviewModal.module.css";
 
@@ -37,14 +41,27 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
   );
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
   const sortContainerRef = useRef<HTMLDivElement>(null);
+  const sortDropdownRef = useRef<HTMLDivElement>(null);
+  const sortTriggerRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
   const loadMoreStateRef = useRef({ hasNext, isFetching, onLoadMore });
+  const closeSortDropdown = useCallback(
+    () => setIsSortDropdownOpen(false),
+    [],
+  );
+  const sortOverlay = useNonModalOverlayRegistration({
+    enabled: isOpen && isSortDropdownOpen,
+    onClose: closeSortDropdown,
+    overlayRef: sortDropdownRef,
+    triggerRef: sortTriggerRef,
+  });
 
   loadMoreStateRef.current = { hasNext, isFetching, onLoadMore };
 
   useOutsideClick(
     sortContainerRef,
-    () => setIsSortDropdownOpen(false),
+    closeSortDropdown,
     isSortDropdownOpen
   );
 
@@ -105,6 +122,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
       bodyClassName={styles.modalContent}
       bodyPadding="none"
       className={styles.dialog}
+      initialFocusRef={closeButtonRef}
       isOpen={isOpen}
       onClose={onClose}
       showHeader={false}
@@ -112,6 +130,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
       title={`후기 ${totalCount}개`}
     >
       <button
+        ref={closeButtonRef}
         aria-label="후기 모달 닫기"
         autoFocus
         className={styles.closeButton}
@@ -130,6 +149,9 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
         </div>
         <div className={styles.sortContainer} ref={sortContainerRef}>
           <button
+            ref={sortTriggerRef}
+            aria-controls="review-sort-options"
+            aria-expanded={isSortDropdownOpen}
             className={styles.sortButton}
             type="button"
             onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
@@ -146,7 +168,12 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
             </svg>
           </button>
           {isSortDropdownOpen && (
-            <div className={styles.sortDropdown}>
+            <div
+              ref={sortDropdownRef}
+              className={styles.sortDropdown}
+              id="review-sort-options"
+              onKeyDown={sortOverlay.onKeyDown}
+            >
               <button
                 className={
                   sortType === REVIEW_SORT_TYPE.LATEST

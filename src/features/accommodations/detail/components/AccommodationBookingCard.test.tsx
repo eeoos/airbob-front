@@ -6,8 +6,23 @@ import { AccommodationBookingCard } from "./AccommodationBookingCard";
 
 jest.mock("../../../../shared/ui", () => ({
   ...jest.requireActual("../../../../shared/ui"),
-  DatePicker: ({ onClose }: { onClose: () => void }) => (
-    <div data-testid="date-picker">
+  DatePicker: ({
+    onClose,
+    onEscape,
+  }: {
+    onClose: () => void;
+    onEscape?: () => void;
+  }) => (
+    <div
+      data-testid="date-picker"
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.stopPropagation();
+          (onEscape ?? onClose)();
+        }
+      }}
+    >
+      <button type="button">date picker focus target</button>
       <button type="button" onClick={onClose}>
         close date picker
       </button>
@@ -186,6 +201,41 @@ describe("AccommodationBookingCard", () => {
     expect(setIsDatePickerOpen).toHaveBeenCalledWith(false);
   });
 
+  it("closes the guest picker before opening the date picker", () => {
+    const setIsDatePickerOpen = jest.fn();
+    const setIsGuestPickerOpen = jest.fn();
+    setupBookingCard({
+      bookingState: {
+        isDatePickerOpen: false,
+        isGuestPickerOpen: true,
+      },
+      bookingActions: { setIsDatePickerOpen, setIsGuestPickerOpen },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /체크인/ }));
+
+    expect(setIsGuestPickerOpen).toHaveBeenCalledWith(false);
+    expect(setIsDatePickerOpen).toHaveBeenCalledWith(true);
+  });
+
+  it("closes the date picker with Escape and restores focus to its trigger", () => {
+    const setIsDatePickerOpen = jest.fn();
+    setupBookingCard({
+      bookingState: { isDatePickerOpen: true },
+      bookingActions: { setIsDatePickerOpen },
+    });
+    const dateTrigger = screen.getByRole("button", { name: /체크인/ });
+    const datePickerTarget = screen.getByRole("button", {
+      name: "date picker focus target",
+    });
+
+    datePickerTarget.focus();
+    fireEvent.keyDown(datePickerTarget, { key: "Escape" });
+
+    expect(setIsDatePickerOpen).toHaveBeenCalledWith(false);
+    expect(dateTrigger).toHaveFocus();
+  });
+
   it("updates guest counts through guest picker controls", () => {
     const setAdultCount = jest.fn();
     setupBookingCard({
@@ -200,6 +250,22 @@ describe("AccommodationBookingCard", () => {
     fireEvent.click(screen.getByRole("button", { name: "성인 늘리기" }));
 
     expect(setAdultCount).toHaveBeenCalledWith(3);
+  });
+
+  it("closes the guest picker with Escape and restores focus to its trigger", () => {
+    const setIsGuestPickerOpen = jest.fn();
+    setupBookingCard({
+      bookingState: { isGuestPickerOpen: true },
+      bookingActions: { setIsGuestPickerOpen },
+    });
+    const guestTrigger = screen.getByRole("button", { name: /인원/ });
+    const guestControl = screen.getByRole("button", { name: "성인 늘리기" });
+
+    guestControl.focus();
+    fireEvent.keyDown(guestControl, { key: "Escape" });
+
+    expect(setIsGuestPickerOpen).toHaveBeenCalledWith(false);
+    expect(guestTrigger).toHaveFocus();
   });
 
   it("uses booking view guest limits to bound guest picker controls", () => {

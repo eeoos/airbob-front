@@ -37,6 +37,7 @@ export function CreateWishlistModal({
   const [isPending, setIsPending] = useState(false);
   const [name, setName] = useState("");
   const interactionGenerationRef = useRef(0);
+  const nameInputRef = useRef<HTMLInputElement>(null);
   const pendingRef = useRef(false);
 
   useEffect(() => {
@@ -110,6 +111,7 @@ export function CreateWishlistModal({
 
   return (
     <Dialog
+      initialFocusRef={nameInputRef}
       isOpen={isOpen}
       title="위시리스트 만들기"
       onClose={handleClose}
@@ -122,6 +124,7 @@ export function CreateWishlistModal({
             이름
           </label>
           <input
+            ref={nameInputRef}
             type="text"
             id="wishlist-name"
             value={name}

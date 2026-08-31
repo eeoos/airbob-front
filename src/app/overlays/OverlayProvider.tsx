@@ -9,6 +9,7 @@ import {
 } from "react";
 import {
   OverlayRuntimeContext,
+  type OverlayModality,
   type OverlayRegistrationId,
   type OverlayStackRegistration,
   type OverlayStackRuntime,
@@ -16,14 +17,17 @@ import {
 import { useBodyScrollLock } from "../../shared/ui/useBodyScrollLock";
 
 export const APP_OVERLAY_ROOT_ID = "airbob-portal-root";
+export const APP_ROOT_ID = "root";
 
 export interface OverlayProviderProps {
+  readonly applicationRoot?: HTMLElement;
   readonly children: ReactNode;
   readonly portalRoot?: HTMLElement;
 }
 
 interface OverlayStackEntry
-  extends Omit<OverlayStackRegistration, "restoreFocusTo"> {
+  extends Omit<OverlayStackRegistration, "modality" | "restoreFocusTo"> {
+  modality: OverlayModality;
   restoreFocusTo: Element | null;
 }
 
@@ -51,6 +55,14 @@ const createOverlayStack = (): OverlayStackRuntime & { clear(): void } => {
   const emitMutation = () => {
     revision += 1;
     emit();
+  };
+
+  const getTopmostModal = () => {
+    for (let index = entries.length - 1; index >= 0; index -= 1) {
+      if (entries[index].modality === "modal") return entries[index];
+    }
+
+    return null;
   };
 
   const restoreFocusAfterStackUpdate = (target: Element | null) => {
@@ -131,8 +143,11 @@ const createOverlayStack = (): OverlayStackRuntime & { clear(): void } => {
   };
 
   return {
-    getSize: () => entries.length,
+    getModalSize: () =>
+      entries.filter((entry) => entry.modality === "modal").length,
+    getTopmostModalId: () => getTopmostModal()?.id ?? null,
     getTopmostId: () => entries.at(-1)?.id ?? null,
+    has: (id) => entries.some((entry) => entry.id === id),
     register: (registration) => {
       unregister(registration.id);
       const restoreFocusTo = resolveRegistrationFocusTarget(
@@ -154,6 +169,7 @@ const createOverlayStack = (): OverlayStackRuntime & { clear(): void } => {
       }
       entries.push({
         ...registration,
+        modality: registration.modality ?? "modal",
         restoreFocusTo,
       });
       emitMutation();
@@ -194,7 +210,13 @@ const findDocumentPortalRoot = () =>
     ? null
     : document.getElementById(APP_OVERLAY_ROOT_ID);
 
+const findDocumentApplicationRoot = () =>
+  typeof document === "undefined"
+    ? null
+    : document.getElementById(APP_ROOT_ID);
+
 export function OverlayProvider({
+  applicationRoot: providedApplicationRoot,
   children,
   portalRoot: providedPortalRoot,
 }: OverlayProviderProps) {
@@ -207,13 +229,40 @@ export function OverlayProvider({
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(
     () => providedPortalRoot ?? findDocumentPortalRoot(),
   );
-  const openDialogCount = useSyncExternalStore(
+  const openModalCount = useSyncExternalStore(
     stack.subscribe,
-    stack.getSize,
+    stack.getModalSize,
     () => 0,
   );
+  const applicationRoot =
+    providedApplicationRoot ?? findDocumentApplicationRoot();
+  const hasOpenModal = openModalCount > 0;
 
-  useBodyScrollLock(openDialogCount > 0);
+  useBodyScrollLock(hasOpenModal);
+
+  useLayoutEffect(() => {
+    if (!applicationRoot || !hasOpenModal) return;
+
+    const previousAriaHidden = applicationRoot.getAttribute("aria-hidden");
+    const previousInert = applicationRoot.getAttribute("inert");
+
+    applicationRoot.setAttribute("aria-hidden", "true");
+    applicationRoot.setAttribute("inert", "");
+
+    return () => {
+      if (previousAriaHidden === null) {
+        applicationRoot.removeAttribute("aria-hidden");
+      } else {
+        applicationRoot.setAttribute("aria-hidden", previousAriaHidden);
+      }
+
+      if (previousInert === null) {
+        applicationRoot.removeAttribute("inert");
+      } else {
+        applicationRoot.setAttribute("inert", previousInert);
+      }
+    };
+  }, [applicationRoot, hasOpenModal]);
 
   useLayoutEffect(() => {
     if (providedPortalRoot) {

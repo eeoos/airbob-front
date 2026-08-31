@@ -258,6 +258,10 @@ describe("claimPaymentCallback", () => {
 
   it.each([
     ["route mismatch", { ...fresh, reservationUid: "another-reservation" }],
+    [
+      "path-shaped reservation",
+      { ...fresh, reservationUid: "../admin", orderId: "../admin" },
+    ],
     ["order mismatch", { ...fresh, orderId: "another-reservation" }],
     ["blank key", { ...fresh, paymentKey: "" }],
     ["unsafe amount", { ...fresh, amount: Number.MAX_SAFE_INTEGER + 1 }],

@@ -61,7 +61,7 @@ const seedDetail = (
   return key;
 };
 
-describe("accommodation detail membership cache projection", () => {
+describe("accommodation detail cache projection", () => {
   it("patches only the exact resource in the exact authenticated scope", () => {
     const client = new QueryClient();
     const keyA7 = seedDetail(client, scopeA, 7, detail(7, false));
@@ -167,6 +167,25 @@ describe("accommodation detail membership cache projection", () => {
     expect(client.getQueryState(keyA7)?.isInvalidated).toBe(true);
     expect(client.getQueryState(keyA8)?.isInvalidated).toBe(false);
     expect(client.getQueryState(keyB7)?.isInvalidated).toBe(false);
+  });
+
+  it("returns the exact detail invalidation promise to publication owners", () => {
+    const client = new QueryClient();
+    const invalidation = Promise.resolve();
+    jest.spyOn(client, "invalidateQueries").mockReturnValue(invalidation);
+
+    const result = createAccommodationDetailQueryCacheProjection(
+      client,
+    ).detailRefreshRequired({
+      scope: scopeA,
+      accommodationId: 7,
+    });
+
+    expect(result).toBe(invalidation);
+    expect(client.invalidateQueries).toHaveBeenCalledWith(
+      expect.objectContaining({ predicate: expect.any(Function) }),
+      { throwOnError: true },
+    );
   });
 
   it("invalidates every canonical detail key only in the requested membership scope", () => {

@@ -1,7 +1,8 @@
-import { HomeRoute as LegacyHomeRoute } from "../../../features/home/HomeRoute";
+import { getHomeHeroViewModel } from "../../../features/home/public";
+import { HomeScreen } from "../../../screens/home/public";
 
 export function HomeRoute() {
-  return <LegacyHomeRoute />;
+  return <HomeScreen {...getHomeHeroViewModel()} />;
 }
 
 export default HomeRoute;

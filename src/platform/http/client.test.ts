@@ -1,8 +1,11 @@
 import axios from "axios";
 import type { AxiosResponse, InternalAxiosRequestConfig } from "axios";
-import { client as legacyClient } from "../../api/client";
-import { onAuthError } from "../../utils/authEvents";
-import { getHttpClient, httpClient } from "./client";
+import { onAuthError } from "../session/authEvents";
+import {
+  API_REQUEST_TIMEOUT_MS,
+  getHttpClient,
+  httpClient,
+} from "./client";
 
 const successfulResponse = (
   config: InternalAxiosRequestConfig,
@@ -23,16 +26,15 @@ describe("platform HTTP client", () => {
     expect(typeof httpClient.request).toBe("function");
   });
 
-  it("is the same singleton exposed by the legacy facade", () => {
+  it("returns the platform-owned singleton from the explicit getter", () => {
     expect(getHttpClient()).toBe(httpClient);
-    expect(legacyClient).toBe(httpClient);
   });
 
-  it("preserves the current credentials, JSON header, base URL, and no-timeout defaults", () => {
+  it("preserves credentials and applies the platform request deadline", () => {
     expect(httpClient.defaults.baseURL).toBe("http://localhost:8080/api/v1");
     expect(httpClient.defaults.withCredentials).toBe(true);
     expect(httpClient.defaults.headers["Content-Type"]).toBe("application/json");
-    expect(httpClient.defaults.timeout).toBe(0);
+    expect(httpClient.defaults.timeout).toBe(API_REQUEST_TIMEOUT_MS);
   });
 
   it("passes an AbortSignal through by identity", async () => {
@@ -50,12 +52,12 @@ describe("platform HTTP client", () => {
     expect(capturedSignal).toBe(controller.signal);
   });
 
-  it("keeps a non-authentication transport failure unchanged for legacy callers", async () => {
+  it("keeps a non-authentication transport failure unchanged through the interceptor", async () => {
     const rawError = new Error("network failure");
     let thrownError: unknown;
 
     try {
-      await legacyClient.get("/raw-error-contract", {
+      await httpClient.get("/raw-error-contract", {
         adapter: async () => Promise.reject(rawError),
       });
     } catch (error) {
@@ -88,7 +90,7 @@ describe("platform HTTP client", () => {
         let thrownError: unknown;
 
         try {
-          await legacyClient.get("/auth-error-contract", {
+          await httpClient.get("/auth-error-contract", {
             adapter: async () => Promise.reject(failure),
           });
         } catch (error) {
@@ -125,7 +127,7 @@ describe("platform HTTP client", () => {
         let thrownError: unknown;
 
         try {
-          await legacyClient.get("/untrusted-auth-code-contract", {
+          await httpClient.get("/untrusted-auth-code-contract", {
             adapter: async () => Promise.reject(failure),
           });
         } catch (error) {

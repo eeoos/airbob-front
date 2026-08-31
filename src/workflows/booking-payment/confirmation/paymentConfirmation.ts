@@ -7,6 +7,7 @@ import type {
 } from "../../../features/reservations/payment/public";
 import { isAppError } from "../../../platform/http/errors";
 import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
+import { isOpaqueIdentifier } from "../../../shared/lib/opaqueIdentifier";
 
 export interface PaymentConfirmationRouteLease {
   isCurrent(): boolean;
@@ -105,8 +106,8 @@ const isBoundedText = (value: string, maximumLength: number): boolean => {
 const isCalendarDate = (value: string): boolean => /^\d{4}-\d{2}-\d{2}$/.test(value);
 
 const isValidCommand = (input: PaymentConfirmationCommand): boolean =>
-  isBoundedText(input.reservationUid, 128) &&
-  isBoundedText(input.orderId, 128) &&
+  isOpaqueIdentifier(input.reservationUid) &&
+  isOpaqueIdentifier(input.orderId) &&
   isBoundedText(input.paymentKey, 512) &&
   input.orderId === input.reservationUid &&
   Number.isSafeInteger(input.amount) &&

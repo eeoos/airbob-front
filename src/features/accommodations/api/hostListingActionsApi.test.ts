@@ -28,4 +28,21 @@ describe("host listing actions API", () => {
       path: "/accommodations/31",
     } satisfies ApiDataRequest);
   });
+
+  it("forwards workflow cancellation without changing method, path, or body", async () => {
+    const requestNullable = jest.fn().mockResolvedValue(null);
+    const api = createHostListingActionsApi(
+      requestNullable as HostListingActionsApiTransport,
+    );
+    const signal = new AbortController().signal;
+
+    await api.publish(31, { signal });
+
+    expect(requestNullable).toHaveBeenCalledWith({
+      method: "PATCH",
+      path: "/accommodations/31/publish",
+      signal,
+    } satisfies ApiDataRequest);
+    expect(requestNullable.mock.calls[0][0]).not.toHaveProperty("body");
+  });
 });

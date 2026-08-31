@@ -1,8 +1,10 @@
 import { apiFailure, apiSuccess } from "../fixtures/api";
 import { test, expect } from "../fixtures/test";
 
+const REVIEW_RESERVATION_UID = "10000000-0000-4000-8000-000000000001";
+
 const reviewableReservation = {
-  reservation_uid: "res-review",
+  reservation_uid: REVIEW_RESERVATION_UID,
   reservation_code: "REVIEW-2026",
   status: "COMPLETED",
   created_at: "2026-06-01T00:00:00",
@@ -46,11 +48,11 @@ test("ends review creation at the explicit missing-reservation state", async ({
   session.authenticate();
   api.register(
     "GET",
-    "/api/v1/profile/guest/reservations/res-review",
+    `/api/v1/profile/guest/reservations/${REVIEW_RESERVATION_UID}`,
     apiFailure(404, "R404", "예약을 찾을 수 없습니다."),
   );
 
-  await page.goto("/reservations/res-review/review");
+  await page.goto(`/reservations/${REVIEW_RESERVATION_UID}/review`);
 
   await expect(
     page.getByText("예약을 찾을 수 없습니다.", { exact: true }),
@@ -58,7 +60,7 @@ test("ends review creation at the explicit missing-reservation state", async ({
   expect(
     api.matching(
       "GET",
-      "/api/v1/profile/guest/reservations/res-review",
+      `/api/v1/profile/guest/reservations/${REVIEW_RESERVATION_UID}`,
     ).length,
   ).toBeGreaterThanOrEqual(1);
 });
@@ -71,7 +73,7 @@ test("keeps the created review and surfaces terminal feedback when its image upl
   session.authenticate();
   api.register(
     "GET",
-    "/api/v1/profile/guest/reservations/res-review",
+    `/api/v1/profile/guest/reservations/${REVIEW_RESERVATION_UID}`,
     apiSuccess(reviewableReservation),
   );
   api.register(
@@ -85,7 +87,7 @@ test("keeps the created review and surfaces terminal feedback when its image upl
     apiFailure(500, "I001", "이미지 업로드 중 오류가 발생했습니다."),
   );
 
-  await page.goto("/reservations/res-review/review");
+  await page.goto(`/reservations/${REVIEW_RESERVATION_UID}/review`);
 
   await expect(
     page.getByRole("heading", { name: "리뷰 작성", level: 1 }),
@@ -103,7 +105,9 @@ test("keeps the created review and surfaces terminal feedback when its image upl
 
   await page.getByRole("button", { name: "리뷰 작성하기" }).click();
 
-  await expect(page).toHaveURL(/\/reservations\/res-review$/);
+  await expect(page).toHaveURL(
+    new RegExp(`/reservations/${REVIEW_RESERVATION_UID}$`),
+  );
   await expect(page.getByRole("alert")).toHaveText(
     "리뷰는 작성되었지만 이미지 업로드에 실패했습니다.",
   );
@@ -145,7 +149,7 @@ test("locks review submission when the create outcome may already have committed
   session.authenticate();
   api.register(
     "GET",
-    "/api/v1/profile/guest/reservations/res-review",
+    `/api/v1/profile/guest/reservations/${REVIEW_RESERVATION_UID}`,
     apiSuccess(reviewableReservation),
   );
   api.register(
@@ -154,7 +158,7 @@ test("locks review submission when the create outcome may already have committed
     apiFailure(500, "I001", "리뷰 처리 결과를 확인할 수 없습니다."),
   );
 
-  await page.goto("/reservations/res-review/review");
+  await page.goto(`/reservations/${REVIEW_RESERVATION_UID}/review`);
   await page.getByLabel("리뷰 내용").fill("결과 확인이 필요한 리뷰입니다.");
   await page.getByRole("button", { name: "리뷰 작성하기" }).click();
 

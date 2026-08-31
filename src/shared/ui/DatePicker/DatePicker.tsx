@@ -1,4 +1,27 @@
-import React, { useState, useRef } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  DAYS_PER_WEEK,
+  WEEKDAYS,
+  addDays,
+  addMonths,
+  addMonthsPreservingDay,
+  findClosestEnabledDate,
+  formatDateKey,
+  formatKoreanDateLabel,
+  formatMonthName,
+  getCalendarWeeks,
+  getMonthIndex,
+  getSelectionAnnouncement,
+  startOfDay,
+  startOfMonth,
+} from "./datePickerModel";
 import styles from "./DatePicker.module.css";
 
 export interface DatePickerProps {
@@ -6,278 +29,448 @@ export interface DatePickerProps {
   checkOut: Date | null;
   onDateSelect: (checkIn: Date | null, checkOut: Date | null) => void;
   onClose: () => void;
+  onEscape?: () => void;
   datePickerRef?: React.RefObject<HTMLDivElement | null>;
-  unavailableDates?: string[]; // YYYY-MM-DD 형식의 날짜 배열
-  hideHeader?: boolean;
+  unavailableDates?: string[];
   hideFooter?: boolean;
 }
+
+const EMPTY_UNAVAILABLE_DATES: string[] = [];
 
 export const DatePicker: React.FC<DatePickerProps> = ({
   checkIn,
   checkOut,
   onDateSelect,
   onClose,
+  onEscape,
   datePickerRef,
-  unavailableDates = [],
-  hideHeader = false,
+  unavailableDates = EMPTY_UNAVAILABLE_DATES,
   hideFooter = false,
 }) => {
-  const [currentMonth, setCurrentMonth] = useState<Date>(
-    checkIn || new Date()
+  const today = useMemo(() => startOfDay(new Date()), []);
+  const todayKey = formatDateKey(today);
+  const checkInKey = checkIn ? formatDateKey(checkIn) : null;
+  const checkOutKey = checkOut ? formatDateKey(checkOut) : null;
+  const unavailableDateKeys = useMemo(
+    () => new Set(unavailableDates),
+    [unavailableDates],
   );
-  const [nextMonth, setNextMonth] = useState<Date>(() => {
-    const date = checkIn || new Date();
-    return new Date(date.getFullYear(), date.getMonth() + 1, 1);
-  });
+  const firstUnavailableDateKeyAfterCheckIn = useMemo(() => {
+    if (!checkInKey || checkOutKey) return null;
+
+    return (
+      unavailableDates
+        .filter((dateKey) => dateKey > checkInKey)
+        .sort()[0] ?? null
+    );
+  }, [checkInKey, checkOutKey, unavailableDates]);
+  const isDateDisabled = useCallback(
+    (date: Date): boolean => {
+      const dateKey = formatDateKey(date);
+
+      if (dateKey < todayKey) {
+        return true;
+      }
+
+      if (checkInKey && !checkOutKey) {
+        return (
+          dateKey <= checkInKey ||
+          (firstUnavailableDateKeyAfterCheckIn !== null &&
+            dateKey > firstUnavailableDateKeyAfterCheckIn)
+        );
+      }
+
+      return unavailableDateKeys.has(dateKey) && dateKey !== checkOutKey;
+    },
+    [
+      checkInKey,
+      checkOutKey,
+      firstUnavailableDateKeyAfterCheckIn,
+      todayKey,
+      unavailableDateKeys,
+    ],
+  );
+  const initialFocusedDate = useMemo(
+    () =>
+      findClosestEnabledDate(checkIn ?? today, 1, isDateDisabled) ?? today,
+    [checkIn, isDateDisabled, today],
+  );
+  const [currentMonth, setCurrentMonth] = useState<Date>(() =>
+    startOfMonth(initialFocusedDate),
+  );
+  const [focusedDate, setFocusedDate] = useState<Date>(initialFocusedDate);
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
+  const focusedDateKey = formatDateKey(focusedDate);
+  const hoverDateKey = hoverDate ? formatDateKey(hoverDate) : null;
+  const [selectionAnnouncement, setSelectionAnnouncement] = useState(() =>
+    getSelectionAnnouncement(checkIn, checkOut),
+  );
+  const nextMonth = useMemo(() => addMonths(currentMonth, 1), [currentMonth]);
+  const currentMonthWeeks = useMemo(
+    () => getCalendarWeeks(currentMonth),
+    [currentMonth],
+  );
+  const nextMonthWeeks = useMemo(
+    () => getCalendarWeeks(nextMonth),
+    [nextMonth],
+  );
   const internalPickerRef = useRef<HTMLDivElement>(null);
-  const pickerRef = datePickerRef || internalPickerRef;
+  const pickerRef = datePickerRef ?? internalPickerRef;
+  const dateCellRefs = useRef(new Map<string, HTMLButtonElement>());
+  const shouldFocusDateRef = useRef(true);
+  const pickerId = useId();
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  useEffect(() => {
+    setSelectionAnnouncement(getSelectionAnnouncement(checkIn, checkOut));
+  }, [checkIn, checkOut]);
 
-  const getDaysInMonth = (date: Date): Array<Date | null> => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const days: Array<Date | null> = [];
+  useEffect(() => {
+    if (!shouldFocusDateRef.current) return;
 
-    // 첫 주의 빈 칸 채우기 (null로 표시)
-    const startDay = firstDay.getDay();
-    for (let i = 0; i < startDay; i++) {
-      days.push(null); // 빈 칸
-    }
-
-    // 해당 월의 날짜들만 추가
-    for (let day = 1; day <= lastDay.getDate(); day++) {
-      days.push(new Date(year, month, day));
-    }
-
-    // 항상 6주(42일)를 보장하기 위해 빈 칸 채우기
-    const totalDays = days.length;
-    const remainingDays = 42 - totalDays;
-    for (let i = 0; i < remainingDays; i++) {
-      days.push(null); // 빈 칸
-    }
-
-    return days;
-  };
+    shouldFocusDateRef.current = false;
+    dateCellRefs.current.get(formatDateKey(focusedDate))?.focus();
+  }, [currentMonth, focusedDate]);
 
   const isDateInRange = (date: Date): boolean => {
-    if (!checkIn || !checkOut) return false;
-    const dateStr = formatDateKey(date);
-    const checkInStr = formatDateKey(checkIn);
-    const checkOutStr = formatDateKey(checkOut);
-    return dateStr > checkInStr && dateStr < checkOutStr;
+    if (!checkInKey || !checkOutKey) return false;
+    const dateKey = formatDateKey(date);
+    return dateKey > checkInKey && dateKey < checkOutKey;
   };
 
   const isDateSelected = (date: Date): boolean => {
-    if (!checkIn && !checkOut) return false;
-    const dateStr = formatDateKey(date);
-    return (
-      (checkIn !== null && formatDateKey(checkIn) === dateStr) ||
-      (checkOut !== null && formatDateKey(checkOut) === dateStr)
-    );
+    const dateKey = formatDateKey(date);
+    return dateKey === checkInKey || dateKey === checkOutKey;
   };
 
   const isDateInHoverRange = (date: Date): boolean => {
-    if (!checkIn || checkOut || !hoverDate) return false;
-    const dateStr = formatDateKey(date);
-    const checkInStr = formatDateKey(checkIn);
-    const hoverStr = formatDateKey(hoverDate);
-    if (hoverDate > checkIn) {
-      return dateStr > checkInStr && dateStr < hoverStr;
+    if (
+      !checkInKey ||
+      checkOutKey ||
+      !hoverDateKey ||
+      !hoverDate ||
+      isDateDisabled(hoverDate)
+    ) {
+      return false;
     }
-    return false;
+
+    const dateKey = formatDateKey(date);
+    return dateKey > checkInKey && dateKey < hoverDateKey;
   };
 
-  const formatDateKey = (date: Date): string => {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-  };
+  const isPastDate = (date: Date): boolean => formatDateKey(date) < todayKey;
 
-  const isDateDisabled = (date: Date): boolean => {
-    const dateStr = formatDateKey(date);
-    const todayStr = formatDateKey(today);
+  const isUnavailableDate = (date: Date): boolean =>
+    unavailableDateKeys.has(formatDateKey(date));
 
-    // 과거 날짜는 비활성화
-    if (dateStr < todayStr) {
-      return true;
-    }
+  const ensureDateIsVisible = useCallback(
+    (date: Date) => {
+      const targetMonthIndex = getMonthIndex(date);
+      const currentMonthIndex = getMonthIndex(currentMonth);
+      const nextMonthIndex = getMonthIndex(nextMonth);
 
-    // unavailable_dates에 포함된 날짜는 비활성화
-    if (unavailableDates.includes(dateStr)) {
-      return true;
-    }
-
-    // 체크인이 선택된 경우, 체크인 이전 날짜는 비활성화
-    if (checkIn && !checkOut) {
-      const checkInStr = formatDateKey(checkIn);
-      return dateStr <= checkInStr;
-    }
-
-    return false;
-  };
-
-  const isPastDate = (date: Date): boolean => {
-    const dateStr = formatDateKey(date);
-    const todayStr = formatDateKey(today);
-    return dateStr < todayStr;
-  };
-
-  const isUnavailableDate = (date: Date): boolean => {
-    const dateStr = formatDateKey(date);
-    return unavailableDates.includes(dateStr);
-  };
-
-  const handleDateClick = (date: Date) => {
-    if (isDateDisabled(date)) {
-      return;
-    }
-
-    const dateStr = formatDateKey(date);
-    const todayStr = formatDateKey(today);
-
-    // 과거 날짜는 선택 불가
-    if (dateStr < todayStr) {
-      return;
-    }
-
-    if (!checkIn || (checkIn && checkOut)) {
-      // 체크인 선택 (또는 기존 선택 초기화 후 체크인 재선택)
-      onDateSelect(date, null);
-    } else if (checkIn && !checkOut) {
-      // 체크아웃 선택 - 체크인 이후 날짜만 선택 가능
-      const checkInStr = formatDateKey(checkIn);
-      if (dateStr > checkInStr) {
-        onDateSelect(checkIn, date);
-      } else {
-        // 체크인 이전 날짜를 클릭하면 체크인을 다시 선택
-        onDateSelect(date, null);
+      if (targetMonthIndex < currentMonthIndex) {
+        setCurrentMonth(startOfMonth(date));
+      } else if (targetMonthIndex > nextMonthIndex) {
+        setCurrentMonth(addMonths(date, -1));
       }
+    },
+    [currentMonth, nextMonth],
+  );
+
+  const moveDateFocus = useCallback(
+    (targetDate: Date, preferredDirection: -1 | 1) => {
+      const nextFocusedDate = findClosestEnabledDate(
+        targetDate,
+        preferredDirection,
+        isDateDisabled,
+      );
+
+      if (!nextFocusedDate) return;
+
+      ensureDateIsVisible(nextFocusedDate);
+      shouldFocusDateRef.current = true;
+      setFocusedDate(nextFocusedDate);
+    },
+    [ensureDateIsVisible, isDateDisabled],
+  );
+
+  useEffect(() => {
+    if (!isDateDisabled(focusedDate)) return;
+
+    moveDateFocus(addDays(focusedDate, 1), 1);
+  }, [focusedDate, isDateDisabled, moveDateFocus]);
+
+  const selectDate = useCallback(
+    (date: Date) => {
+      if (isDateDisabled(date)) return;
+
+      shouldFocusDateRef.current = false;
+      setFocusedDate(date);
+
+      if (!checkIn || checkOut) {
+        onDateSelect(date, null);
+        setSelectionAnnouncement(
+          `${formatKoreanDateLabel(
+            date,
+          )} 체크인 선택됨. 체크아웃 날짜를 선택하세요.`,
+        );
+        return;
+      }
+
+      onDateSelect(checkIn, date);
+      setSelectionAnnouncement(
+        `${formatKoreanDateLabel(checkIn)}부터 ${formatKoreanDateLabel(
+          date,
+        )}까지 선택됨`,
+      );
+    },
+    [checkIn, checkOut, isDateDisabled, onDateSelect],
+  );
+
+  const handleDateKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLButtonElement>, date: Date) => {
+      let targetDate: Date | null = null;
+      let preferredDirection: -1 | 1 = 1;
+
+      switch (event.key) {
+        case "ArrowLeft":
+          targetDate = addDays(date, -1);
+          preferredDirection = -1;
+          break;
+        case "ArrowRight":
+          targetDate = addDays(date, 1);
+          break;
+        case "ArrowUp":
+          targetDate = addDays(date, -DAYS_PER_WEEK);
+          preferredDirection = -1;
+          break;
+        case "ArrowDown":
+          targetDate = addDays(date, DAYS_PER_WEEK);
+          break;
+        case "Home":
+          targetDate = addDays(date, -date.getDay());
+          break;
+        case "End":
+          targetDate = addDays(date, DAYS_PER_WEEK - 1 - date.getDay());
+          preferredDirection = -1;
+          break;
+        case "PageUp":
+          targetDate = addMonthsPreservingDay(date, -1);
+          preferredDirection = -1;
+          break;
+        case "PageDown":
+          targetDate = addMonthsPreservingDay(date, 1);
+          break;
+        case "Enter":
+        case " ":
+          event.preventDefault();
+          selectDate(date);
+          return;
+        default:
+          return;
+      }
+
+      event.preventDefault();
+      moveDateFocus(targetDate, preferredDirection);
+    },
+    [moveDateFocus, selectDate],
+  );
+
+  const moveVisibleMonth = (amount: -1 | 1) => {
+    const nextCurrentMonth = addMonths(currentMonth, amount);
+    const preferredDate = addMonthsPreservingDay(focusedDate, amount);
+    const nextFocusedDate = findClosestEnabledDate(
+      preferredDate,
+      amount,
+      isDateDisabled,
+    );
+
+    if (!nextFocusedDate) return;
+
+    const nextFocusedMonthIndex = getMonthIndex(nextFocusedDate);
+    const nextCurrentMonthIndex = getMonthIndex(nextCurrentMonth);
+
+    if (
+      nextFocusedMonthIndex < nextCurrentMonthIndex ||
+      nextFocusedMonthIndex > nextCurrentMonthIndex + 1
+    ) {
+      return;
     }
+
+    setCurrentMonth(nextCurrentMonth);
+    shouldFocusDateRef.current = false;
+    setFocusedDate(nextFocusedDate);
   };
 
-  const handlePrevMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
-    setNextMonth(new Date(nextMonth.getFullYear(), nextMonth.getMonth() - 1, 1));
-  };
-
-  const handleNextMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
-    setNextMonth(new Date(nextMonth.getFullYear(), nextMonth.getMonth() + 1, 1));
-  };
-
-  const renderCalendar = (month: Date) => {
-    const days = getDaysInMonth(month);
-    const monthName = month.toLocaleDateString("ko-KR", { year: "numeric", month: "long" });
+  const renderCalendar = (
+    month: Date,
+    calendarWeeks: Array<Array<Date | null>>,
+  ) => {
+    const monthName = formatMonthName(month);
+    const monthKey = formatDateKey(month);
+    const monthHeadingId = `${pickerId}-${monthKey}`;
 
     return (
       <div className={styles.calendar}>
         <div className={styles.monthHeader}>
-          <h3 className={styles.monthName}>{monthName}</h3>
+          <h3 id={monthHeadingId} className={styles.monthName}>
+            {monthName}
+          </h3>
         </div>
-        <div className={styles.weekdays}>
-          {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
-            <div key={day} className={styles.weekday}>
-              {day}
-            </div>
-          ))}
-        </div>
-        <div className={styles.days}>
-          {days.map((date, index) => {
-            // null인 경우 빈 칸으로 표시
-            if (!date) {
-              return (
-                <div
-                  key={`empty-${index}`}
-                  className={`${styles.day} ${styles.empty}`}
-                />
-              );
-            }
-
-            const dateStr = formatDateKey(date);
-            const isCurrentMonth = date.getMonth() === month.getMonth() && date.getFullYear() === month.getFullYear();
-            // 해당 달력의 월에 속하는 날짜만 선택된 것으로 표시
-            const isSelected = isCurrentMonth && isDateSelected(date);
-            const isInRange = isCurrentMonth && isDateInRange(date);
-            const isInHoverRange = isCurrentMonth && isDateInHoverRange(date);
-            const isDisabled = isDateDisabled(date);
-            const isPast = isPastDate(date);
-            const isUnavailable = isUnavailableDate(date);
-            // 해당 달력의 월에 속하는 날짜만 시작/끝으로 표시
-            const isStart = isCurrentMonth && checkIn && formatDateKey(checkIn) === dateStr;
-            const isEnd = isCurrentMonth && checkOut && formatDateKey(checkOut) === dateStr;
-
-            return (
-              <button
-                key={dateStr}
-                type="button"
-                aria-label={dateStr}
-                disabled={isDisabled}
-                className={`${styles.day} ${
-                  isSelected ? styles.selected : ""
-                } ${isInRange || isInHoverRange ? styles.inRange : ""} ${
-                  isDisabled ? styles.disabled : ""
-                } ${isPast ? styles.past : ""} ${
-                  isUnavailable ? styles.unavailable : ""
-                } ${isStart ? styles.start : ""} ${isEnd ? styles.end : ""}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDateClick(date);
-                }}
-                onMouseEnter={() => {
-                  if (checkIn && !checkOut) {
-                    setHoverDate(date);
-                  }
-                }}
-                onMouseLeave={() => setHoverDate(null)}
+        <div
+          className={styles.calendarGrid}
+          role="grid"
+          aria-labelledby={monthHeadingId}
+        >
+          <div className={styles.weekdays} role="row">
+            {WEEKDAYS.map((day) => (
+              <div
+                key={day.short}
+                className={styles.weekday}
+                role="columnheader"
+                aria-label={day.long}
               >
-                <span className={styles.dayNumber}>{date.getDate()}</span>
-                {(isPast || isUnavailable) && <span className={styles.dayStrike}>−</span>}
-              </button>
-            );
-          })}
+                {day.short}
+              </div>
+            ))}
+          </div>
+          <div className={styles.days} role="rowgroup">
+            {calendarWeeks.map((week, weekIndex) => (
+              <div
+                key={`${monthKey}-week-${weekIndex}`}
+                className={styles.week}
+                role="row"
+              >
+                {week.map((date, dayIndex) => {
+                  if (!date) {
+                    return (
+                      <div
+                        key={`empty-${weekIndex}-${dayIndex}`}
+                        className={`${styles.day} ${styles.empty}`}
+                        role="gridcell"
+                        aria-hidden="true"
+                      />
+                    );
+                  }
+
+                  const dateKey = formatDateKey(date);
+                  const isSelected = isDateSelected(date);
+                  const isInRange = isDateInRange(date);
+                  const isInHoverRange = isDateInHoverRange(date);
+                  const isDisabled = isDateDisabled(date);
+                  const isPast = isPastDate(date);
+                  const isUnavailable =
+                    isDisabled && isUnavailableDate(date);
+                  const isStart = dateKey === checkInKey;
+                  const isEnd = dateKey === checkOutKey;
+
+                  return (
+                    <button
+                      key={dateKey}
+                      ref={(element) => {
+                        if (element) {
+                          dateCellRefs.current.set(dateKey, element);
+                        } else {
+                          dateCellRefs.current.delete(dateKey);
+                        }
+                      }}
+                      type="button"
+                      role="gridcell"
+                      aria-label={formatKoreanDateLabel(date)}
+                      aria-selected={isSelected}
+                      aria-disabled={isDisabled}
+                      disabled={isDisabled}
+                      tabIndex={
+                        !isDisabled && focusedDateKey === dateKey ? 0 : -1
+                      }
+                      className={`${styles.day} ${
+                        isSelected ? styles.selected : ""
+                      } ${isInRange || isInHoverRange ? styles.inRange : ""} ${
+                        isDisabled ? styles.disabled : ""
+                      } ${isPast ? styles.past : ""} ${
+                        isUnavailable ? styles.unavailable : ""
+                      } ${isStart ? styles.start : ""} ${
+                        isEnd ? styles.end : ""
+                      }`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        selectDate(date);
+                      }}
+                      onKeyDown={(event) => handleDateKeyDown(event, date)}
+                      onMouseEnter={() => {
+                        if (checkIn && !checkOut && !isDisabled) {
+                          setHoverDate(date);
+                        }
+                      }}
+                      onMouseLeave={() => setHoverDate(null)}
+                    >
+                      <span className={styles.dayNumber}>{date.getDate()}</span>
+                      {(isPast || isUnavailable) && (
+                        <span className={styles.dayStrike}>−</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
   };
 
+  const handlePickerKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Escape") return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    (onEscape ?? onClose)();
+  };
+
   return (
-    <div className={styles.datePicker} ref={pickerRef}>
-      {/* 네비게이션 헤더 - 이전/다음 버튼 같은 행 */}
+    <div
+      className={styles.datePicker}
+      ref={pickerRef}
+      onKeyDown={handlePickerKeyDown}
+    >
       <div className={styles.navHeader}>
         <button
           aria-label="이전 달 보기"
           className={styles.monthNavButton}
           type="button"
-          onClick={handlePrevMonth}
+          onClick={() => moveVisibleMonth(-1)}
         >
           ←
         </button>
-        <span className={styles.navTitle}>
-          {currentMonth.toLocaleDateString("ko-KR", { year: "numeric", month: "long" })}
-        </span>
+        <span className={styles.navTitle}>{formatMonthName(currentMonth)}</span>
         <button
           aria-label="다음 달 보기"
           className={styles.monthNavButton}
           type="button"
-          onClick={handleNextMonth}
+          onClick={() => moveVisibleMonth(1)}
         >
           →
         </button>
       </div>
 
-      {/* 스크롤 가능한 달력 영역 */}
       <div className={styles.calendarsScrollArea}>
         <div className={styles.calendars}>
           <div className={styles.calendarWrapper}>
-            {renderCalendar(currentMonth)}
+            {renderCalendar(currentMonth, currentMonthWeeks)}
           </div>
           <div className={styles.calendarWrapper}>
-            {renderCalendar(nextMonth)}
+            {renderCalendar(nextMonth, nextMonthWeeks)}
           </div>
         </div>
+      </div>
+
+      <div
+        className={styles.liveRegion}
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {selectionAnnouncement}
       </div>
 
       {!hideFooter && (
@@ -285,7 +478,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           <button
             className={styles.clearButton}
             type="button"
-            onClick={() => onDateSelect(null, null)}
+            onClick={() => {
+              onDateSelect(null, null);
+              setSelectionAnnouncement("선택한 날짜가 지워졌습니다.");
+            }}
           >
             날짜 지우기
           </button>

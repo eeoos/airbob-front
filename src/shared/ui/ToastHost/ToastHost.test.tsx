@@ -1,5 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { readFileSync } from "fs";
+import { join } from "path";
 import { ToastHost } from "./ToastHost";
 
 describe("ToastHost", () => {
@@ -55,6 +57,77 @@ describe("ToastHost", () => {
     }
   });
 
+  it("restarts the dismiss timer when the message changes", () => {
+    jest.useFakeTimers();
+    const onClose = jest.fn();
+
+    try {
+      const view = render(
+        <ToastHost message="첫 번째 메시지" onClose={onClose} duration={1500} />,
+      );
+
+      act(() => {
+        jest.advanceTimersByTime(1000);
+      });
+      view.rerender(
+        <ToastHost message="두 번째 메시지" onClose={onClose} duration={1500} />,
+      );
+
+      act(() => {
+        jest.advanceTimersByTime(1499);
+      });
+      expect(onClose).not.toHaveBeenCalled();
+
+      act(() => {
+        jest.advanceTimersByTime(1);
+      });
+      expect(onClose).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("uses the latest onClose without restarting the active timer", () => {
+    jest.useFakeTimers();
+    const firstOnClose = jest.fn();
+    const latestOnClose = jest.fn();
+
+    try {
+      const view = render(
+        <ToastHost
+          message="저장 완료"
+          onClose={firstOnClose}
+          duration={1500}
+        />,
+      );
+
+      act(() => {
+        jest.advanceTimersByTime(1000);
+      });
+      view.rerender(
+        <ToastHost
+          message="저장 완료"
+          onClose={latestOnClose}
+          duration={1500}
+        />,
+      );
+
+      act(() => {
+        jest.advanceTimersByTime(499);
+      });
+      expect(firstOnClose).not.toHaveBeenCalled();
+      expect(latestOnClose).not.toHaveBeenCalled();
+
+      act(() => {
+        jest.advanceTimersByTime(1);
+      });
+      expect(firstOnClose).not.toHaveBeenCalled();
+      expect(latestOnClose).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it("keeps a required recovery action visible without auto closing", () => {
     jest.useFakeTimers();
     const onAction = jest.fn();
@@ -88,5 +161,34 @@ describe("ToastHost", () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+
+  it("bounds narrow toasts inside safe viewport insets", () => {
+    const css = readFileSync(
+      join(process.cwd(), "src/shared/ui/ToastHost/ToastHost.module.css"),
+      "utf8",
+    );
+
+    expect(css).toMatch(/\.toast\s*{[^}]*box-sizing:\s*border-box;/s);
+    expect(css).toContain(
+      "min-width: min(300px, var(--toast-viewport-inline-space));",
+    );
+    expect(css).toContain(
+      "max-width: min(500px, var(--toast-viewport-inline-space));",
+    );
+    expect(css).toContain("env(safe-area-inset-top, 0px)");
+    expect(css).toContain("env(safe-area-inset-right, 0px)");
+    expect(css).toContain("env(safe-area-inset-left, 0px)");
+  });
+
+  it("removes toast animation for reduced motion", () => {
+    const css = readFileSync(
+      join(process.cwd(), "src/shared/ui/ToastHost/ToastHost.module.css"),
+      "utf8",
+    );
+
+    expect(css).toMatch(
+      /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*{[\s\S]*\.toast\s*{[^}]*animation:\s*none;/,
+    );
   });
 });

@@ -52,4 +52,45 @@ describe("SearchPagination", () => {
       "page"
     );
   });
+
+  it("keeps only previous, current, and next controls in compact mode", async () => {
+    const onPageChange = jest.fn();
+
+    render(
+      <SearchPagination
+        currentPage={7}
+        totalPages={15}
+        isLoading={false}
+        onPageChange={onPageChange}
+        variant="compact"
+      />,
+    );
+
+    expect(screen.getByRole("status", { name: "현재 8 / 15 페이지" })).toHaveTextContent(
+      "8 / 15",
+    );
+    expect(screen.queryByRole("button", { name: "8" })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "이전" }));
+    await userEvent.click(screen.getByRole("button", { name: "다음" }));
+
+    expect(onPageChange.mock.calls).toEqual([[6], [8]]);
+  });
+
+  it.each([
+    [0, "이전"],
+    [3, "다음"],
+  ])("disables %s boundary navigation in compact mode", (currentPage, label) => {
+    render(
+      <SearchPagination
+        currentPage={currentPage as number}
+        totalPages={4}
+        isLoading={false}
+        onPageChange={jest.fn()}
+        variant="compact"
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: label as string })).toBeDisabled();
+  });
 });

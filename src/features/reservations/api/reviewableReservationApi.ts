@@ -3,6 +3,7 @@ import {
   type ApiDataRequest,
 } from "../../../platform/http/request";
 import type { ReviewableReservationApiPort } from "../ports/reviewableReservationApiPort";
+import { encodeOpaquePathSegment } from "../../../platform/http/opaquePathSegment";
 import type { ReviewableReservationWire } from "./reviewableReservationContracts";
 import { toReviewableReservation } from "./reviewableReservationMapper";
 
@@ -14,9 +15,10 @@ export const createReviewableReservationApi = (
   request: ReviewableReservationApiTransport,
 ): ReviewableReservationApiPort => ({
   async getReviewableReservation(reservationUid, options) {
+    const reservationUidPathSegment = encodeOpaquePathSegment(reservationUid);
     const wire = await request<ReviewableReservationWire>({
       method: "GET",
-      path: `/profile/guest/reservations/${reservationUid}`,
+      path: `/profile/guest/reservations/${reservationUidPathSegment}`,
       signal: options?.signal,
     });
 

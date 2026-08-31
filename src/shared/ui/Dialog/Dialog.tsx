@@ -1,7 +1,10 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import { useBodyScrollLock } from "../useBodyScrollLock";
-import { useOverlayRegistration } from "../overlayRuntime";
+import {
+  OverlayPortalTargetProvider,
+  useOverlayRegistration,
+} from "../overlayRuntime";
 import styles from "./Dialog.module.css";
 
 export type DialogBodyPadding = "default" | "none";
@@ -14,6 +17,7 @@ export interface DialogProps {
   className?: string;
   closeButtonLabel?: string;
   closeOnBackdrop?: boolean;
+  initialFocusRef?: React.RefObject<HTMLElement | null>;
   isOpen: boolean;
   onClose: () => void;
   showHeader?: boolean;
@@ -47,6 +51,17 @@ const getAutofocusElement = (element: HTMLElement) =>
       focusableElement.hasAttribute("autofocus")
   ) ?? null;
 
+const getInitialFocusElement = (
+  dialog: HTMLElement,
+  initialFocusRef?: React.RefObject<HTMLElement | null>,
+) => {
+  const requestedElement = initialFocusRef?.current;
+
+  return requestedElement && dialog.contains(requestedElement)
+    ? requestedElement
+    : getAutofocusElement(dialog);
+};
+
 export function Dialog({
   bodyPadding = "default",
   bodyClassName,
@@ -54,6 +69,7 @@ export function Dialog({
   className,
   closeButtonLabel = "닫기",
   closeOnBackdrop = true,
+  initialFocusRef,
   isOpen,
   onClose,
   showHeader = true,
@@ -63,6 +79,7 @@ export function Dialog({
   const dialogRef = React.useRef<HTMLElement>(null);
   const overlayRef = React.useRef<HTMLDivElement>(null);
   const closeButtonRef = React.useRef<HTMLButtonElement>(null);
+  const initialFocusHandledRef = React.useRef(false);
   const previousFocusedElementRef = React.useRef<Element | null>(null);
   const wasOpenRef = React.useRef(false);
   const titleId = React.useId();
@@ -105,6 +122,7 @@ export function Dialog({
 
   React.useEffect(() => {
     if (!isOpen) {
+      initialFocusHandledRef.current = false;
       previousFocusedElementRef.current = null;
       return;
     }
@@ -116,18 +134,27 @@ export function Dialog({
       previousFocusedElementRef.current = document.activeElement;
     }
 
+    if (overlay.hasRuntime && !overlay.isRegistered) {
+      return;
+    }
+
+    if (initialFocusHandledRef.current) return;
+    initialFocusHandledRef.current = true;
+
+    if (overlay.hasRuntime && !overlay.isTopmostModal) return;
+
     if (
       !(document.activeElement instanceof HTMLElement) ||
       !dialogRef.current?.contains(document.activeElement)
     ) {
-      const autofocusElement = dialogRef.current
-        ? getAutofocusElement(dialogRef.current)
+      const initialFocusElement = dialogRef.current
+        ? getInitialFocusElement(dialogRef.current, initialFocusRef)
         : null;
       const firstFocusableElement = dialogRef.current
         ? getFocusableElements(dialogRef.current)[0] ?? null
         : null;
-      if (autofocusElement) {
-        autofocusElement.focus();
+      if (initialFocusElement) {
+        initialFocusElement.focus();
       } else {
         (
           closeButtonRef.current ??
@@ -150,7 +177,14 @@ export function Dialog({
         previousFocusedElement.focus();
       }
     };
-  }, [isOpen, overlay.hasRuntime, overlay.portalRoot]);
+  }, [
+    isOpen,
+    initialFocusRef,
+    overlay.hasRuntime,
+    overlay.isRegistered,
+    overlay.isTopmostModal,
+    overlay.portalRoot,
+  ]);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
     if (event.key === "Escape") {
@@ -164,7 +198,7 @@ export function Dialog({
     if (
       event.key !== "Tab" ||
       !dialogRef.current ||
-      (overlay.hasRuntime && !overlay.isTopmost)
+      (overlay.hasRuntime && !overlay.isTopmostModal)
     ) {
       return;
     }
@@ -197,7 +231,7 @@ export function Dialog({
   }
 
   const isInactiveUnderOverlay =
-    overlay.hasRuntime && !overlay.isTopmost;
+    overlay.hasRuntime && !overlay.isTopmostModal;
 
   const content = (
     <div
@@ -209,7 +243,7 @@ export function Dialog({
       onMouseDown={
         closeOnBackdrop
           ? () => {
-              if (!overlay.hasRuntime || overlay.isTopmost) onClose();
+              if (!overlay.hasRuntime || overlay.isTopmostModal) onClose();
             }
           : undefined
       }
@@ -241,7 +275,9 @@ export function Dialog({
           </header>
         )}
         <div className={cx(styles.body, bodyPaddingClassName, bodyClassName)}>
-          {children}
+          <OverlayPortalTargetProvider value={null}>
+            {children}
+          </OverlayPortalTargetProvider>
         </div>
       </section>
     </div>
