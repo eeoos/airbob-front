@@ -7,11 +7,13 @@ import { AuthIntentStableBoundary } from "./AuthIntentStableBoundary";
 export interface AppProvidersProps {
   readonly children: ReactNode;
   readonly clearIdentityOwnedState?: () => void;
+  readonly clearRevokedIdentityOwnedState?: () => void;
 }
 
 export function AppProviders({
   children,
   clearIdentityOwnedState,
+  clearRevokedIdentityOwnedState,
 }: AppProvidersProps) {
   return (
     <OverlayProvider>
@@ -21,6 +23,9 @@ export function AppProviders({
           {...(clearIdentityOwnedState === undefined
             ? {}
             : { clearIdentityOwnedState })}
+          {...(clearRevokedIdentityOwnedState === undefined
+            ? {}
+            : { clearRevokedIdentityOwnedState })}
         >
           {children}
         </SessionProvider>

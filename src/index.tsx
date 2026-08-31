@@ -4,7 +4,10 @@ import { BrowserRouter } from "react-router-dom";
 import "./index.css";
 import App from "./App";
 import { AppProviders } from "./app/providers/AppProviders";
-import { clearIdentityOwnedFrontendState } from "./app/providers/clearIdentityOwnedFrontendState";
+import {
+  clearIdentityOwnedFrontendState,
+  clearRevokedIdentityOwnedFrontendState,
+} from "./app/providers/clearIdentityOwnedFrontendState";
 import { ErrorBoundary } from "./app/errors/ErrorBoundary";
 
 const root = ReactDOM.createRoot(
@@ -14,7 +17,12 @@ root.render(
   <React.StrictMode>
     <ErrorBoundary>
       <BrowserRouter>
-        <AppProviders clearIdentityOwnedState={clearIdentityOwnedFrontendState}>
+        <AppProviders
+          clearIdentityOwnedState={clearIdentityOwnedFrontendState}
+          clearRevokedIdentityOwnedState={
+            clearRevokedIdentityOwnedFrontendState
+          }
+        >
           <App />
         </AppProviders>
       </BrowserRouter>

@@ -123,9 +123,6 @@ const callbackFor = (operationId: BookingPaymentOperationId): CallbackData => ({
 
 const checkoutKey = "airbob:booking-payment-v1:checkout";
 const callbackKey = "airbob:booking-payment-v1:callback";
-const retiredPrimaryKey = "airbob:reservation-checkout:7";
-const retiredIndexKey = "airbob:reservation-checkout-index:reservation-7";
-const retiredMarkerKey = "airbob:payment-confirmed:tuple";
 
 describe("booking-payment checkout repository", () => {
   it("writes the exact subject-owned allowlisted envelope and handoff", () => {
@@ -555,113 +552,23 @@ describe("booking-payment callback repository", () => {
 });
 
 describe("booking-payment browser cleanup and failures", () => {
-  it("clears the current namespace and purge-only retired payment prefixes", () => {
+  it("delegates terminal cleanup without erasing unresolved v2 recovery", () => {
     const harness = setup();
     writeCheckout(harness);
     harness.storage.setItem(callbackKey, "callback");
-    harness.storage.setItem(retiredPrimaryKey, "retired");
-    harness.storage.setItem(retiredIndexKey, "7");
-    harness.storage.setItem(retiredMarkerKey, "1");
-    harness.storage.setItem("airbob:booking-payment-v10:checkout", "keep");
-    harness.storage.setItem("airbob:reservation-checkouts:7", "keep");
-    harness.storage.setItem("third-party", "keep");
+    harness.storage.setItem("airbob:booking-payment-v2:journal", "unresolved");
 
     expect(clearBookingPaymentBrowserState({ driver: harness.driver })).toEqual(
-      { status: "cleared", removed: 5 },
+      { status: "cleared", removed: 2 },
     );
-    expect(harness.storage.getItem(retiredPrimaryKey)).toBeNull();
-    expect(harness.storage.getItem(retiredIndexKey)).toBeNull();
-    expect(harness.storage.getItem(retiredMarkerKey)).toBeNull();
-    expect(harness.storage.getItem("airbob:booking-payment-v10:checkout")).toBe(
-      "keep",
+    expect(harness.storage.getItem("airbob:booking-payment-v2:journal")).toBe(
+      "unresolved",
     );
-    expect(harness.storage.getItem("airbob:reservation-checkouts:7")).toBe(
-      "keep",
-    );
-    expect(harness.storage.getItem("third-party")).toBe("keep");
   });
 
-  it("retries a partial current namespace cleanup once", () => {
-    const storage = createStorage({
-      [checkoutKey]: "checkout",
-      [callbackKey]: "callback",
-      keep: "keep",
-    });
-    const originalRemove = storage.removeItem.bind(storage);
-    const failedOnce = new Set<string>();
-    vi.spyOn(storage, "removeItem").mockImplementation((key) => {
-      if (key === callbackKey && !failedOnce.has(key)) {
-        failedOnce.add(key);
-        throw new Error("transient cleanup failure");
-      }
-      originalRemove(key);
-    });
-    const driver = createSessionStorageDriver({ getStorage: () => storage });
-
-    expect(clearBookingPaymentBrowserState({ driver })).toEqual({
-      status: "cleared",
-      removed: 2,
-    });
-    expect(storage.getItem(checkoutKey)).toBeNull();
-    expect(storage.getItem(callbackKey)).toBeNull();
-    expect(storage.getItem("keep")).toBe("keep");
-  });
-
-  it("retries a namespace enumeration error and returns the verified result", () => {
-    const storage = createStorage({ [checkoutKey]: "checkout" });
-    const originalKey = storage.key.bind(storage);
-    let failedOnce = false;
-    vi.spyOn(storage, "key").mockImplementation((index) => {
-      if (!failedOnce) {
-        failedOnce = true;
-        throw new Error("transient key enumeration failure");
-      }
-      return originalKey(index);
-    });
-    const driver = createSessionStorageDriver({ getStorage: () => storage });
-
-    expect(clearBookingPaymentBrowserState({ driver })).toEqual({
-      status: "cleared",
-      removed: 1,
-    });
-    expect(storage.getItem(checkoutKey)).toBeNull();
-  });
-
-  it("reports a final partial cleanup only after its retry also fails", () => {
-    const storage = createStorage({
-      [checkoutKey]: "checkout",
-      [callbackKey]: "callback",
-    });
-    const originalRemove = storage.removeItem.bind(storage);
-    const remove = vi.spyOn(storage, "removeItem").mockImplementation((key) => {
-      if (key === callbackKey) throw new Error("persistent cleanup failure");
-      originalRemove(key);
-    });
-    const driver = createSessionStorageDriver({ getStorage: () => storage });
-
-    expect(clearBookingPaymentBrowserState({ driver })).toEqual({
-      status: "partial",
-      removed: 1,
-      failed: 1,
-    });
-    expect(
-      remove.mock.calls.filter(([key]) => key === callbackKey),
-    ).toHaveLength(2);
-    expect(storage.getItem(callbackKey)).toBe("callback");
-  });
-
-  it("fails closed when purge-only retired payment cleanup cannot complete", () => {
-    const storage = createStorage({
-      [retiredPrimaryKey]: "retired-checkout-with-personal-data",
-      keep: "keep",
-    });
-    const originalRemove = storage.removeItem.bind(storage);
-    const remove = vi.spyOn(storage, "removeItem").mockImplementation((key) => {
-      if (key === retiredPrimaryKey) {
-        throw new Error("persistent retired cleanup failure");
-      }
-      originalRemove(key);
-    });
+  it("reports verified cleanup failures from its delegated owner", () => {
+    const storage = createStorage({ [callbackKey]: "callback" });
+    vi.spyOn(storage, "removeItem").mockImplementation(() => undefined);
     const driver = createSessionStorageDriver({ getStorage: () => storage });
 
     expect(clearBookingPaymentBrowserState({ driver })).toEqual({
@@ -669,11 +576,7 @@ describe("booking-payment browser cleanup and failures", () => {
       removed: 0,
       failed: 1,
     });
-    expect(
-      remove.mock.calls.filter(([key]) => key === retiredPrimaryKey),
-    ).toHaveLength(2);
-    expect(storage.getItem(retiredPrimaryKey)).not.toBeNull();
-    expect(storage.getItem("keep")).toBe("keep");
+    expect(storage.getItem(callbackKey)).toBe("callback");
   });
 
   it("returns typed storage errors from reads and writes", () => {

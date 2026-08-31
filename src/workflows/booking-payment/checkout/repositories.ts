@@ -15,11 +15,14 @@ import type {
   CheckoutData,
   CheckoutHandoffState,
   CheckoutRepository,
-  ClearBookingPaymentBrowserStateResult,
   SubjectOwnedClearResult,
   SubjectOwnedReadResult,
   SubjectOwnedWriteResult,
 } from "./types";
+import {
+  clearTerminalBookingPaymentBrowserState,
+  type ClearBookingPaymentBrowserStateResult,
+} from "../journal/retiredState";
 import { isOpaqueIdentifier } from "../../../shared/lib/opaqueIdentifier";
 import {
   callbackDataKeys,
@@ -33,11 +36,6 @@ import {
 const namespace = "airbob:booking-payment-v1";
 const checkoutSlot = "checkout";
 const callbackSlot = "callback";
-const retiredBookingPaymentPrefixes = Object.freeze([
-  "airbob:reservation-checkout:",
-  "airbob:reservation-checkout-index:",
-  "airbob:payment-confirmed:",
-]);
 const checkoutTtlMs = 60 * 60 * 1000;
 const callbackTtlMs = 15 * 60 * 1000;
 
@@ -168,56 +166,6 @@ const mapClearRead = <T>(
     case "storage-error":
       return result;
   }
-};
-
-const retryNamespaceCleanup = (
-  cleanup: () => ClearBookingPaymentBrowserStateResult,
-): {
-  readonly final: ClearBookingPaymentBrowserStateResult;
-  readonly removed: number;
-} => {
-  const first = cleanup();
-  const firstRemoved =
-    first.status === "cleared" || first.status === "partial"
-      ? first.removed
-      : 0;
-  if (first.status === "cleared") {
-    return { final: first, removed: firstRemoved };
-  }
-
-  const second = cleanup();
-  const secondRemoved =
-    second.status === "cleared" || second.status === "partial"
-      ? second.removed
-      : 0;
-  return {
-    final: second,
-    removed: firstRemoved + secondRemoved,
-  };
-};
-
-const clearRetiredBookingPaymentKeys = (
-  driver: SessionStorageDriver,
-): ClearBookingPaymentBrowserStateResult => {
-  const keys = driver.keys();
-  if (!keys.ok) return { status: "storage-error", error: keys.error };
-
-  let removed = 0;
-  let failed = 0;
-  keys.value.forEach((key) => {
-    if (
-      !retiredBookingPaymentPrefixes.some((prefix) => key.startsWith(prefix))
-    ) {
-      return;
-    }
-
-    if (driver.removeItem(key).ok) removed += 1;
-    else failed += 1;
-  });
-
-  return failed === 0
-    ? { status: "cleared", removed }
-    : { status: "partial", removed, failed };
 };
 
 export const createBookingPaymentCheckoutRepository = ({
@@ -436,33 +384,5 @@ export const clearBookingPaymentBrowserState = ({
   BookingPaymentRepositoryDependencies,
   "driver"
 > = {}): ClearBookingPaymentBrowserStateResult => {
-  const currentStorage = createVersionedSessionStorage<CheckoutData>({
-    namespace,
-    slot: checkoutSlot,
-    purpose: "reservation-checkout",
-    version: 1,
-    privacyClass: "personal",
-    containsPii: false,
-    ttlMs: checkoutTtlMs,
-    dataKeys: checkoutDataKeys,
-    validateData: isCheckoutData,
-    driver,
-  });
-
-  const current = retryNamespaceCleanup(() => currentStorage.clearNamespace());
-  const retired = retryNamespaceCleanup(() =>
-    clearRetiredBookingPaymentKeys(driver),
-  );
-
-  if (current.final.status === "storage-error") return current.final;
-  if (retired.final.status === "storage-error") return retired.final;
-
-  const removed = current.removed + retired.removed;
-  const failed =
-    (current.final.status === "partial" ? current.final.failed : 0) +
-    (retired.final.status === "partial" ? retired.final.failed : 0);
-
-  return failed === 0
-    ? { status: "cleared", removed }
-    : { status: "partial", removed, failed };
+  return clearTerminalBookingPaymentBrowserState({ driver });
 };

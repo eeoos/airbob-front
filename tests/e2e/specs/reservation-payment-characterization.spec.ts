@@ -13,6 +13,7 @@ import { test, expect } from "../fixtures/test";
 
 const CHECKOUT_STORAGE_KEY = "airbob:booking-payment-v1:checkout";
 const CALLBACK_STORAGE_KEY = "airbob:booking-payment-v1:callback";
+const V2_JOURNAL_STORAGE_KEY = "airbob:booking-payment-v2:journal";
 const AUTHENTICATED_OWNER = "subject:member_2t";
 const CHECKOUT_TTL_MS = 60 * 60 * 1000;
 const CALLBACK_TTL_MS = 15 * 60 * 1000;
@@ -794,6 +795,10 @@ test("confirms once, clears owned documents, and server-reconciles a replay with
   session.authenticate();
   await openSeedPage(page);
   await seedBookingPaymentDocuments(page, checkout);
+  await page.evaluate(({ key, value }) => sessionStorage.setItem(key, value), {
+    key: V2_JOURNAL_STORAGE_KEY,
+    value: "synthetic-unresolved-v2-recovery",
+  });
   api.register("POST", "/api/v1/payments/confirm", apiSuccess(null, 202));
   api.register(
     "GET",
@@ -824,16 +829,22 @@ test("confirms once, clears owned documents, and server-reconciles a replay with
   expect(page.url()).not.toContain("paymentKey");
   expect(
     await page.evaluate(
-      ({ checkoutKey, callbackKey }) => ({
+      ({ checkoutKey, callbackKey, v2JournalKey }) => ({
         checkout: sessionStorage.getItem(checkoutKey),
         callback: sessionStorage.getItem(callbackKey),
+        v2Journal: sessionStorage.getItem(v2JournalKey),
       }),
       {
         checkoutKey: CHECKOUT_STORAGE_KEY,
         callbackKey: CALLBACK_STORAGE_KEY,
+        v2JournalKey: V2_JOURNAL_STORAGE_KEY,
       },
     ),
-  ).toEqual({ checkout: null, callback: null });
+  ).toEqual({
+    checkout: null,
+    callback: null,
+    v2Journal: "synthetic-unresolved-v2-recovery",
+  });
 
   await page.goto(callbackPath);
   await page.waitForURL(

@@ -5,7 +5,10 @@ import { MemoryRouter } from "react-router-dom";
 import { authApi } from "../../features/auth/api/authApi";
 import { useAuthCommands } from "../../features/auth/ports/AuthCommandProvider";
 import { Dialog, ToastHost } from "../../shared/ui";
-import type { SessionContextValue } from "../session/SessionProvider";
+import {
+  SessionProvider,
+  type SessionContextValue,
+} from "../session/SessionProvider";
 import { toSessionSubject } from "../session/sessionState";
 import { useSession } from "../session/useSession";
 import { AppProviders } from "./AppProviders";
@@ -22,18 +25,22 @@ vi.mock("../../features/auth/api/authApi", () => ({
 }));
 
 vi.mock("../session/SessionProvider", () => ({
-  SessionProvider: ({
-    children,
-    stableBoundary: StableBoundary,
-  }: {
-    readonly children: ReactNode;
-    readonly stableBoundary?: ComponentType<{ readonly children: ReactNode }>;
-  }) =>
-    StableBoundary ? (
-      <StableBoundary>{children}</StableBoundary>
-    ) : (
-      <>{children}</>
-    ),
+  SessionProvider: vi.fn(
+    ({
+      children,
+      stableBoundary: StableBoundary,
+    }: {
+      readonly children: ReactNode;
+      readonly stableBoundary?: ComponentType<{
+        readonly children: ReactNode;
+      }>;
+    }) =>
+      StableBoundary ? (
+        <StableBoundary>{children}</StableBoundary>
+      ) : (
+        <>{children}</>
+      ),
+  ),
 }));
 
 const mockUseSession = vi.mocked(useSession);
@@ -57,9 +64,36 @@ const createAnonymousSession = (): Mocked<SessionContextValue> =>
 
 describe("AppProviders", () => {
   beforeEach(() => {
+    vi.mocked(SessionProvider).mockClear();
     mockUseSession.mockReset();
     mockUseSession.mockReturnValue(createAnonymousSession());
     vi.mocked(authApi.signup).mockReset().mockResolvedValue(undefined);
+  });
+
+  it("passes generic and revoked identity cleanup ports to the session owner", () => {
+    const clearIdentityOwnedState = vi.fn();
+    const clearRevokedIdentityOwnedState = vi.fn();
+
+    render(
+      <MemoryRouter>
+        <AppProviders
+          clearIdentityOwnedState={clearIdentityOwnedState}
+          clearRevokedIdentityOwnedState={clearRevokedIdentityOwnedState}
+        >
+          content
+        </AppProviders>
+      </MemoryRouter>,
+    );
+
+    const sessionProviderProps = vi
+      .mocked(SessionProvider)
+      .mock.calls.at(-1)?.[0];
+    expect(sessionProviderProps?.clearIdentityOwnedState).toBe(
+      clearIdentityOwnedState,
+    );
+    expect(sessionProviderProps?.clearRevokedIdentityOwnedState).toBe(
+      clearRevokedIdentityOwnedState,
+    );
   });
 
   it("owns the canonical production portal for dialogs and toasts", () => {

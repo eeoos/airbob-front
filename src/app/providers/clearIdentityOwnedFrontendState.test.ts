@@ -1,17 +1,27 @@
 import { clearIdentityOwnedTransactionRoute } from "../router/identityRouteBoundary";
-import { clearBookingPaymentBrowserState } from "../../workflows/booking-payment/checkout";
-import { clearIdentityOwnedFrontendState } from "./clearIdentityOwnedFrontendState";
+import {
+  clearIdentityOwnedBookingPaymentBrowserState,
+  clearTerminalBookingPaymentBrowserState,
+} from "../../workflows/booking-payment/journal";
+import {
+  clearIdentityOwnedFrontendState,
+  clearRevokedIdentityOwnedFrontendState,
+} from "./clearIdentityOwnedFrontendState";
 
 vi.mock("../router/identityRouteBoundary", () => ({
   clearIdentityOwnedTransactionRoute: vi.fn(),
 }));
 
-vi.mock("../../workflows/booking-payment/checkout", () => ({
-  clearBookingPaymentBrowserState: vi.fn(),
+vi.mock("../../workflows/booking-payment/journal", () => ({
+  clearIdentityOwnedBookingPaymentBrowserState: vi.fn(),
+  clearTerminalBookingPaymentBrowserState: vi.fn(),
 }));
 
-const mockClearBookingPaymentBrowserState = vi.mocked(
-  clearBookingPaymentBrowserState,
+const mockClearIdentityOwnedBookingPaymentBrowserState = vi.mocked(
+  clearIdentityOwnedBookingPaymentBrowserState,
+);
+const mockClearTerminalBookingPaymentBrowserState = vi.mocked(
+  clearTerminalBookingPaymentBrowserState,
 );
 const mockClearIdentityOwnedTransactionRoute = vi.mocked(
   clearIdentityOwnedTransactionRoute,
@@ -20,19 +30,30 @@ const mockClearIdentityOwnedTransactionRoute = vi.mocked(
 describe("clearIdentityOwnedFrontendState", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockClearBookingPaymentBrowserState.mockReturnValue({
+    mockClearIdentityOwnedBookingPaymentBrowserState.mockReturnValue({
+      status: "cleared",
+      removed: 0,
+    });
+    mockClearTerminalBookingPaymentBrowserState.mockReturnValue({
       status: "cleared",
       removed: 0,
     });
   });
 
-  it("clears reservation persistence before the current transaction route", () => {
+  it("uses terminal cleanup before a generic checking boundary", () => {
     clearIdentityOwnedFrontendState();
 
-    expect(mockClearBookingPaymentBrowserState).toHaveBeenCalledTimes(1);
+    expect(mockClearTerminalBookingPaymentBrowserState).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(
+      mockClearIdentityOwnedBookingPaymentBrowserState,
+    ).not.toHaveBeenCalled();
     expect(mockClearIdentityOwnedTransactionRoute).toHaveBeenCalledTimes(1);
     const bookingClearOrder =
-      mockClearBookingPaymentBrowserState.mock.invocationCallOrder.at(0);
+      mockClearTerminalBookingPaymentBrowserState.mock.invocationCallOrder.at(
+        0,
+      );
     const routeClearOrder =
       mockClearIdentityOwnedTransactionRoute.mock.invocationCallOrder.at(0);
     if (bookingClearOrder === undefined || routeClearOrder === undefined) {
@@ -41,8 +62,18 @@ describe("clearIdentityOwnedFrontendState", () => {
     expect(bookingClearOrder).toBeLessThan(routeClearOrder);
   });
 
+  it("uses destructive cleanup before a revoked identity boundary", () => {
+    clearRevokedIdentityOwnedFrontendState();
+
+    expect(
+      mockClearIdentityOwnedBookingPaymentBrowserState,
+    ).toHaveBeenCalledTimes(1);
+    expect(mockClearTerminalBookingPaymentBrowserState).not.toHaveBeenCalled();
+    expect(mockClearIdentityOwnedTransactionRoute).toHaveBeenCalledTimes(1);
+  });
+
   it("still clears the current transaction route when reservation cleanup throws", () => {
-    mockClearBookingPaymentBrowserState.mockImplementationOnce(() => {
+    mockClearTerminalBookingPaymentBrowserState.mockImplementationOnce(() => {
       throw new Error("storage cleanup failed");
     });
 
@@ -66,9 +97,22 @@ describe("clearIdentityOwnedFrontendState", () => {
       },
     },
   ])("fails closed when booking cleanup returns $status", (result) => {
-    mockClearBookingPaymentBrowserState.mockReturnValueOnce(result);
+    mockClearTerminalBookingPaymentBrowserState.mockReturnValueOnce(result);
 
     expect(() => clearIdentityOwnedFrontendState()).toThrow(
+      "Identity-owned booking state cleanup did not complete.",
+    );
+    expect(mockClearIdentityOwnedTransactionRoute).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails closed when revoked identity cleanup is incomplete", () => {
+    mockClearIdentityOwnedBookingPaymentBrowserState.mockReturnValueOnce({
+      status: "partial",
+      removed: 1,
+      failed: 1,
+    });
+
+    expect(() => clearRevokedIdentityOwnedFrontendState()).toThrow(
       "Identity-owned booking state cleanup did not complete.",
     );
     expect(mockClearIdentityOwnedTransactionRoute).toHaveBeenCalledTimes(1);

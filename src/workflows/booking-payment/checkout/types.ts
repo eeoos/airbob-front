@@ -140,12 +140,3 @@ export interface CallbackRepository {
     readonly isCurrent?: () => boolean;
   }): SubjectOwnedClearResult;
 }
-
-export type ClearBookingPaymentBrowserStateResult =
-  | { readonly status: "cleared"; readonly removed: number }
-  | {
-      readonly status: "partial";
-      readonly removed: number;
-      readonly failed: number;
-    }
-  | { readonly status: "storage-error"; readonly error: StorageAccessError };

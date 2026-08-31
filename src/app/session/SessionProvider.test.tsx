@@ -251,6 +251,7 @@ interface RenderSessionOptions {
   readonly authPort: SessionAuthPort;
   readonly broadcastFactory?: () => SessionBroadcast;
   readonly clearIdentityOwnedState?: () => void;
+  readonly clearRevokedIdentityOwnedState?: () => void;
   readonly initialState?: SessionState;
   readonly queryClientFactory?: SessionQueryClientFactory;
 }
@@ -259,6 +260,7 @@ const createWrapper = ({
   authPort,
   broadcastFactory,
   clearIdentityOwnedState,
+  clearRevokedIdentityOwnedState,
   initialState,
   queryClientFactory,
 }: RenderSessionOptions) => {
@@ -267,6 +269,9 @@ const createWrapper = ({
     authPort,
     broadcastFactory: broadcastFactory ?? (() => broadcast),
     ...(clearIdentityOwnedState ? { clearIdentityOwnedState } : {}),
+    ...(clearRevokedIdentityOwnedState
+      ? { clearRevokedIdentityOwnedState }
+      : {}),
     ...(initialState ? { initialState } : {}),
     ...(queryClientFactory ? { queryClientFactory } : {}),
   };
@@ -463,17 +468,64 @@ describe("SessionProvider", () => {
     ).not.toHaveBeenCalled();
   });
 
+  it("uses only generic cleanup when an authenticated subject signs in again", async () => {
+    const authPort = createAuthPort();
+    authPort.login.mockResolvedValueOnce(undefined);
+    authPort.getViewer.mockResolvedValueOnce(viewerAUpdated);
+    const clearIdentityOwnedState = vi.fn();
+    const clearRevokedIdentityOwnedState = vi.fn();
+    const { result } = renderSession({
+      authPort,
+      clearIdentityOwnedState,
+      clearRevokedIdentityOwnedState,
+      initialState: authenticatedState(viewerA),
+    });
+
+    await act(async () => {
+      await result.current.session.login(credentialsA);
+    });
+
+    expect(clearIdentityOwnedState).toHaveBeenCalledTimes(1);
+    expect(clearRevokedIdentityOwnedState).not.toHaveBeenCalled();
+    expectAuthenticatedAs(result.current.session.state, viewerAUpdated);
+  });
+
+  it("uses only generic cleanup before same-subject external verification", async () => {
+    const authPort = createAuthPort();
+    authPort.getViewer.mockResolvedValueOnce(viewerAUpdated);
+    const clearIdentityOwnedState = vi.fn();
+    const clearRevokedIdentityOwnedState = vi.fn();
+    const { result } = renderSession({
+      authPort,
+      clearIdentityOwnedState,
+      clearRevokedIdentityOwnedState,
+      initialState: authenticatedState(viewerA),
+    });
+
+    act(() => {
+      triggerAuthError();
+    });
+
+    await waitFor(() =>
+      expectAuthenticatedAs(result.current.session.state, viewerAUpdated),
+    );
+    expect(clearIdentityOwnedState).toHaveBeenCalledTimes(1);
+    expect(clearRevokedIdentityOwnedState).not.toHaveBeenCalled();
+  });
+
   it("revokes authenticated state after a revalidation 401 even when browser cleanup fails", async () => {
     const authPort = createAuthPort();
     authPort.getViewer.mockRejectedValueOnce(authenticationError());
     const cleanupError = new Error("identity cleanup failed");
-    const clearIdentityOwnedState = vi.fn(() => {
+    const clearIdentityOwnedState = vi.fn();
+    const clearRevokedIdentityOwnedState = vi.fn(() => {
       throw cleanupError;
     });
     const queryClients = createTrackedQueryClients();
     const { result } = renderSession({
       authPort,
       clearIdentityOwnedState,
+      clearRevokedIdentityOwnedState,
       initialState: authenticatedState(viewerA),
       queryClientFactory: queryClients.factory,
     });
@@ -493,7 +545,8 @@ describe("SessionProvider", () => {
       reason: "server-revoked",
       revocation: "verified",
     });
-    expect(clearIdentityOwnedState).toHaveBeenCalledTimes(1);
+    expect(clearIdentityOwnedState).not.toHaveBeenCalled();
+    expect(clearRevokedIdentityOwnedState).toHaveBeenCalledTimes(1);
     expect(
       requireQueryGeneration(queryClients.generations, 0).clear,
     ).toHaveBeenCalledTimes(1);
@@ -505,10 +558,18 @@ describe("SessionProvider", () => {
   it("does not publish a different viewer until the old QueryClient is cancelled and cleared", async () => {
     const authPort = createAuthPort();
     authPort.getViewer.mockResolvedValueOnce(viewerB);
+    const clearIdentityOwnedState = vi.fn();
     const queryClients = createTrackedQueryClients();
+    const cleanupGenerationScopes: QueryScope[] = [];
+    const clearRevokedIdentityOwnedState = vi.fn(() => {
+      const currentScope = queryClients.generations.at(-1)?.scope;
+      if (currentScope) cleanupGenerationScopes.push(currentScope);
+    });
     const cancelGate = deferred<void>();
     const { result } = renderSession({
       authPort,
+      clearIdentityOwnedState,
+      clearRevokedIdentityOwnedState,
       initialState: authenticatedState(viewerA),
       queryClientFactory: queryClients.factory,
     });
@@ -529,6 +590,7 @@ describe("SessionProvider", () => {
       reason: "identity-change",
     });
     expect(result.current.session.state.status).not.toBe("authenticated");
+    expect(clearRevokedIdentityOwnedState).not.toHaveBeenCalled();
 
     await act(async () => {
       cancelGate.resolve();
@@ -545,6 +607,127 @@ describe("SessionProvider", () => {
     expect(result.current.queryClient).toBe(
       requireQueryGeneration(queryClients.generations, 2).client,
     );
+    expect(clearIdentityOwnedState).not.toHaveBeenCalled();
+    expect(clearRevokedIdentityOwnedState).toHaveBeenCalledTimes(1);
+    expect(cleanupGenerationScopes).toEqual([{ epoch: 5, subject: null }]);
+    const cleanupOrder =
+      clearRevokedIdentityOwnedState.mock.invocationCallOrder.at(0);
+    const candidateFactoryOrder = vi
+      .mocked(queryClients.factory)
+      .mock.invocationCallOrder.at(2);
+    if (cleanupOrder === undefined || candidateFactoryOrder === undefined) {
+      throw new Error("Expected cleanup and candidate generation activation");
+    }
+    expect(cleanupOrder).toBeLessThan(candidateFactoryOrder);
+  });
+
+  it("fails closed when destructive cleanup blocks a verified subject change", async () => {
+    const authPort = createAuthPort();
+    authPort.login.mockResolvedValueOnce(undefined);
+    authPort.getViewer.mockResolvedValueOnce(viewerB);
+    const clearIdentityOwnedState = vi.fn();
+    const cleanupError = new Error("destructive identity cleanup failed");
+    const clearRevokedIdentityOwnedState = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        throw cleanupError;
+      })
+      .mockImplementationOnce(() => undefined);
+    const queryClients = createTrackedQueryClients();
+    const { result } = renderSession({
+      authPort,
+      clearIdentityOwnedState,
+      clearRevokedIdentityOwnedState,
+      initialState: authenticatedState(viewerA),
+      queryClientFactory: queryClients.factory,
+    });
+
+    let thrown: unknown;
+    await act(async () => {
+      try {
+        await result.current.session.login(credentialsB);
+      } catch (error) {
+        thrown = error;
+      }
+    });
+
+    expect(thrown).toBe(cleanupError);
+    expect(clearIdentityOwnedState).toHaveBeenCalledTimes(1);
+    expect(clearRevokedIdentityOwnedState).toHaveBeenCalledTimes(1);
+    expect(result.current.session.state).toMatchObject({
+      status: "error",
+      reason: "identity-change",
+    });
+    expect(queryClients.generations.map(({ scope }) => scope)).toEqual([
+      { epoch: 4, subject: toSessionSubject(viewerA) },
+      { epoch: 5, subject: null },
+    ]);
+
+    authPort.getViewer.mockResolvedValueOnce(viewerB);
+    await act(async () => {
+      await result.current.session.revalidate();
+    });
+
+    expect(clearIdentityOwnedState).toHaveBeenCalledTimes(1);
+    expect(clearRevokedIdentityOwnedState).toHaveBeenCalledTimes(2);
+    expectAuthenticatedAs(result.current.session.state, viewerB);
+  });
+
+  it("does not destructively clean for a subject probe superseded during cache fencing", async () => {
+    const authPort = createAuthPort();
+    authPort.getViewer
+      .mockResolvedValueOnce(viewerB)
+      .mockResolvedValueOnce(viewerAUpdated);
+    const clearIdentityOwnedState = vi.fn();
+    const clearRevokedIdentityOwnedState = vi.fn();
+    const queryClients = createTrackedQueryClients();
+    const quarantineFence = deferred<void>();
+    const { result } = renderSession({
+      authPort,
+      clearIdentityOwnedState,
+      clearRevokedIdentityOwnedState,
+      initialState: authenticatedState(viewerA),
+      queryClientFactory: queryClients.factory,
+    });
+    requireQueryGeneration(
+      queryClients.generations,
+      0,
+    ).cancelQueries.mockImplementation(() => quarantineFence.promise);
+
+    let staleRevalidation!: Promise<void>;
+    act(() => {
+      staleRevalidation = result.current.session.revalidate();
+    });
+    await waitFor(() =>
+      expect(
+        requireQueryGeneration(queryClients.generations, 0).cancelQueries,
+      ).toHaveBeenCalledTimes(1),
+    );
+    expect(queryClients.generations.map(({ scope }) => scope)).toEqual([
+      { epoch: 4, subject: toSessionSubject(viewerA) },
+      { epoch: 5, subject: null },
+    ]);
+    expect(clearRevokedIdentityOwnedState).not.toHaveBeenCalled();
+
+    let freshRevalidation!: Promise<void>;
+    act(() => {
+      freshRevalidation = result.current.session.revalidate();
+    });
+    await waitFor(() => expect(authPort.getViewer).toHaveBeenCalledTimes(2));
+
+    await act(async () => {
+      quarantineFence.resolve();
+      await Promise.all([staleRevalidation, freshRevalidation]);
+    });
+
+    expect(clearIdentityOwnedState).not.toHaveBeenCalled();
+    expect(clearRevokedIdentityOwnedState).not.toHaveBeenCalled();
+    expect(
+      queryClients.generations.some(
+        ({ scope }) => scope.subject === toSessionSubject(viewerB),
+      ),
+    ).toBe(false);
+    expectAuthenticatedAs(result.current.session.state, viewerAUpdated);
   });
 
   it("aborts an old login locally without letting the next login overtake its server settlement", async () => {
@@ -1079,7 +1262,8 @@ describe("SessionProvider", () => {
     const authPort = createAuthPort();
     authPort.logout.mockResolvedValue(undefined);
     const cleanupError = new Error("identity cleanup failed");
-    const clearIdentityOwnedState = vi
+    const clearIdentityOwnedState = vi.fn();
+    const clearRevokedIdentityOwnedState = vi
       .fn()
       .mockImplementationOnce(() => {
         throw cleanupError;
@@ -1089,6 +1273,7 @@ describe("SessionProvider", () => {
     const { result } = renderSession({
       authPort,
       clearIdentityOwnedState,
+      clearRevokedIdentityOwnedState,
       initialState: authenticatedState(viewerA),
       queryClientFactory: queryClients.factory,
     });
@@ -1124,7 +1309,8 @@ describe("SessionProvider", () => {
         revocation: "verified",
       }),
     );
-    expect(clearIdentityOwnedState).toHaveBeenCalledTimes(2);
+    expect(clearIdentityOwnedState).not.toHaveBeenCalled();
+    expect(clearRevokedIdentityOwnedState).toHaveBeenCalledTimes(2);
     expect(authPort.logout).toHaveBeenCalledTimes(2);
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
@@ -1282,10 +1468,12 @@ describe("SessionProvider", () => {
       .mockReturnValueOnce(freshProbe.promise);
     const broadcast = new FakeSessionBroadcast();
     const clearIdentityOwnedState = vi.fn();
+    const clearRevokedIdentityOwnedState = vi.fn();
     const { result } = renderSession({
       authPort,
       broadcastFactory: () => broadcast,
       clearIdentityOwnedState,
+      clearRevokedIdentityOwnedState,
       initialState: authenticatedState(viewerA),
     });
 
@@ -1325,6 +1513,7 @@ describe("SessionProvider", () => {
     );
     expect(authPort.getViewer).toHaveBeenCalledTimes(2);
     expect(clearIdentityOwnedState).toHaveBeenCalledTimes(2);
+    expect(clearRevokedIdentityOwnedState).toHaveBeenCalledTimes(1);
   });
 
   it("restarts a slow external probe after a newer unrelated auth error", async () => {

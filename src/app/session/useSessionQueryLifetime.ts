@@ -156,6 +156,48 @@ export const useSessionQueryLifetime = ({
     [],
   );
 
+  /**
+   * Synchronously promotes an already cancelled and cleared null quarantine.
+   * Callers must complete resetQueryGeneration before invoking this command.
+   */
+  const activateDisposedQueryQuarantine = useCallback(
+    ({
+      epoch,
+      isStillCurrent,
+      subject,
+    }: ReplaceSessionQueryGenerationOptions) => {
+      if (!isStillCurrent()) return false;
+
+      const previous = generationRef.current;
+      if (
+        subject === null ||
+        previous.epoch !== epoch ||
+        previous.subject !== null ||
+        !previous.tainted
+      ) {
+        return false;
+      }
+
+      const client = queryClientFactory({ epoch, subject });
+      if (!isStillCurrent() || generationRef.current !== previous) return false;
+
+      lifetimeTokenRef.current += 1;
+      const next: SessionQueryGeneration = {
+        client,
+        epoch,
+        fenceId: previous.fenceId + 1,
+        subject,
+        tainted: false,
+        owned: true,
+      };
+
+      generationRef.current = next;
+      setGeneration(next);
+      return true;
+    },
+    [queryClientFactory],
+  );
+
   const stabilizeQueryGeneration = useCallback(
     ({
       epoch,
@@ -190,6 +232,7 @@ export const useSessionQueryLifetime = ({
   }, []);
 
   return {
+    activateDisposedQueryQuarantine,
     disposeCurrentGeneration,
     generation,
     getCurrentGeneration,
