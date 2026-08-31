@@ -103,7 +103,7 @@ OCI, Vercel, AWS와 실제 Airbnb visual restyling은 이번 계획의 완료 �
 - R30. Booking journal, callback credential과 payment operation receipt는 purpose와 sensitivity에 따라 분리해야 한다.
 - R31. New browser records는 exact field allowlist, schema version, subject owner, created/expiry, forward-only phase transition과 cleanup policy를 가져야 한다.
 - R32. 기존 booking-payment v1 record는 새 contract로 migrate하지 않고 v2 activation 전에 purge하며 purge 실패 시 replay-sensitive mutation을 차단해야 한다.
-- R33. Subject/epoch가 바뀐 async completion은 effect를 수행하지 않아야 하며 same-subject reauthentication recovery는 새 epoch lease를 명시적으로 발급해야 한다.
+- R33. Subject 또는 captured `{runtimeLeaseId,sessionEpoch}`가 바뀐 async completion은 effect를 수행하지 않아야 하며 same-subject reauthentication/reload recovery는 exact route/resource claim 뒤 현재 runtime lease pair를 명시적으로 발급해야 한다. Numeric epoch 단독 일치에는 권한이 없다.
 - R34. Sensitive callback state를 BroadcastChannel 또는 cross-tab localStorage로 공유하지 않아야 한다.
 - R35. R016–R026와 P005–P007은 generic conflict 하나가 아니라 workflow action으로 분류돼야 한다.
 
@@ -120,8 +120,8 @@ OCI, Vercel, AWS와 실제 Airbnb visual restyling은 이번 계획의 완료 �
 - R44. Airbnb visual work는 contract, architecture, deterministic browser와 pre-design boundary gate가 green인 뒤 시작해야 한다.
 - R45. Frontend는 backend의 existing cookie-session과 CSRF/Origin contract를 따라야 하며 임의 token scheme을 만들거나 local proxy 성공을 cross-site mutation 방어 증거로 간주하지 않아야 한다.
 - R46. Provider/backend message, `statusUrl`, request message와 internal failure detail은 transport-only untrusted data이며 allowlisted enum/code/identifier만 domain과 UI에 진입해야 한다.
-- R47. Same-subject callback credential은 최초 capture부터 9분과 알려진 hold/attempt 만료 중 이른 시점까지만 유효하고, paymentKey는 backend와 같은 최대 200자로 검증해야 한다.
-- R48. Current Toss adapter의 결제 capability는 `CARD/KRW`와 최소 100원이다. Quote amount 0은 complimentary branch, 1–99원 또는 non-KRW는 hold 생성 전에 fail closed하며 이미 생성된 hold의 recovery에서는 재결제 없이 explicit release 또는 reservation status로 수렴해야 한다.
+- R47. Same-subject callback credential은 최초 capture부터 9분과 attempt 응답이 되돌려 준 authoritative hold expiry 중 이른 시점까지만 유효하고, paymentKey는 backend와 같은 최대 200자로 검증해야 한다.
+- R48. Current Toss/confirm capability는 `CARD/KRW`, 100원 이상, Java `Integer` 상한 이하이다. Quote amount 0은 complimentary branch, 1–99원·`2_147_483_647`원 초과 또는 non-KRW는 hold 생성 전에 fail closed하며 이미 생성된 unsupported hold의 recovery에서는 재결제 없이 explicit release 또는 reservation status로 수렴해야 한다.
 - R49. `CONTACT_SUPPORT`/장기 `REQUIRES_REVIEW`는 존재하지 않는 support route나 연락처를 만들지 않는다. 24시간 receipt가 만료되면 operation-specific poll/confirm을 재시작하지 않고 reservation detail과 allowlisted reservation/operation 식별자로만 수렴한다.
 - R50. V2 activation evidence는 cutover revision과 검증된 v2-compatible rollback revision을 기록해야 한다. 이전 compatible revision이 없으면 rollback 대신 mutation fail-closed와 roll-forward를 사용한다.
 
@@ -136,20 +136,20 @@ OCI, Vercel, AWS와 실제 Airbnb visual restyling은 이번 계획의 완료 �
 - KTD7. **Classify mutation recovery by backend guarantee:** Quote는 inventory를 잡지 않아 response loss 뒤 fresh request가 가능하다. Checkout은 exact body/key, attempt와 release는 exact reservation resource command, confirm은 exact four-field tuple만 replay한다. Replay-sensitive mutation은 request 전에 prepared/submitting phase를 기록한다.
 - KTD8. **Model zero-won checkout as a terminal reservation branch:** Amount가 0인 정상 Ready는 payment workflow에 들어가지 않으며 amount-positive storage validation을 우회하는 예외가 아니다.
 - KTD9. **Issue the attempt after SDK preparation but before gateway launch:** SDK loading 때문에 hold 시간을 소비하지 않되, attempt tuple 저장 뒤에는 다른 network await 없이 Toss를 호출한다.
-- KTD10. **Separate callback credential from the subject-owned transaction receipt:** Pre-auth credential은 memory-only다. Matching subject/journal claim 뒤에는 exact-replay를 위해 `min(firstCapturedAt + 9 minutes, known hold/attempt expiry)` hard-TTL의 dedicated session record로만 저장하고 Accepted receipt write/read-back이 성공한 뒤에만 삭제한다. Credential-free operation/reservation receipt도 personal transaction data이며 24시간 hard TTL 또는 final UI acknowledgment까지 보존한다. 24시간 이후에는 reservation detail로만 수렴하며 confirm 또는 operation-specific recovery를 추측해 재시작하지 않는다.
+- KTD10. **Separate callback credential from the subject-owned transaction receipt:** Pre-auth credential은 memory-only다. Matching subject/journal claim 뒤에는 exact-replay를 위해 `min(firstCapturedAt + 9 minutes, attempt response hold expiry)` hard-TTL의 dedicated session record로만 저장하고 Accepted receipt write/read-back이 성공한 뒤에만 삭제한다. Credential-free operation/reservation receipt도 personal transaction data이며 24시간 hard TTL 또는 final UI acknowledgment까지 보존한다. 24시간 이후에는 reservation detail로만 수렴하며 confirm 또는 operation-specific recovery를 추측해 재시작하지 않는다.
 - KTD11. **Backend operation ID is payment authority and transport text is untrusted:** Payment adapter는 `statusUrl`, provider/backend message, request message와 internal failure detail을 폐기한다. Validated UUID와 known enum/code만 workflow에 넘기고 frontend allowlist가 사용자 문구를 만든다. `SUCCEEDED`만 durable success marker를 허용한다.
-- KTD12. **Guarantee same-tab recovery, not impossible cross-device recovery:** Session storage와 subject/epoch fence를 유지하고 duplicated/opener tab에 record가 복제될 수 있음을 threat model에 포함한다. 다른 tab/device는 backend conflict와 reservation final state로 수렴하며 operation-specific next action은 약속하지 않는다.
+- KTD12. **Guarantee same-tab recovery, not impossible cross-device recovery:** Session storage와 subject/runtime-lease/epoch fence를 유지하고 duplicated/opener tab에 record가 복제될 수 있음을 threat model에 포함한다. 다른 tab/device는 backend conflict와 reservation final state로 수렴하며 operation-specific next action은 약속하지 않는다.
 - KTD13. **Hold release stops at the confirm boundary:** Quote-only cleanup은 local이고 paid hold는 사용자가 포기할 때만 release한다. Callback 수신 또는 confirm submission 뒤에는 release하지 않는다.
 - KTD14. **Keep three verification tiers honest:** Deterministic browser, real local-backend/sandbox, Vercel/OCI deployment evidence를 별도 gate로 유지한다.
 - KTD15. **Use PageContainer for width and gutter:** Shell은 route surface, header policy와 main landmark를 유지하고 shared `PageContainer` recipe가 screen별 width/gutter variant를 소유한다.
 - KTD16. **Keep domain catalog above subfeatures without violating the DAG:** Parent accommodation feature가 semantic catalog를 export하고 screen/controller composition이 detail/editor에 전달한다. Nested feature끼리 import하지 않는다.
 - KTD17. **Prepare design boundaries without restyling:** Editor commands, state/image recipes, layout, responsive/runtime tokens와 stable view sections까지만 이 계획에 포함한다.
 - KTD18. **Stage reachable capabilities behind the durable journal, then make only the owner switch atomic:** Strict-production Knip은 test-only production adapter/export를 허용하지 않는다. Narrow HTTP idempotency primitive와 active reservation read parity는 독립된 작은 green commit으로 land할 수 있다. Quote/checkout adapter의 첫 실제 소비자는 checkout 전 exact body/key 영속화를 요구하므로 subject-owned v2 journal과 retired-key purge gate가 먼저 production-reachable해야 한다. Journal staging은 current v1 preflight가 unresolved v2 state를 발견하면 direct-create를 막는 downgrade fence와 identity-boundary verified cleanup으로 실제 production 가치를 가진다. Journal 뒤에도 paid checkout activation은 attempt/callback/Accepted/polling continuation이 모두 준비될 때까지 금지한다. Quote/checkout adapter와 실제 workflow consumer는 그 continuation과 함께 최종 owner switch에 들어가며, 별도 제품 결정 없이 quote/0원-only 부분 전환으로 paid booking을 닫지 않는다. Callback hardening도 current production graph에서 실제로 validate/inspect/clear되는 단위만 land하고 전체 transaction matrix가 green이 되기 전 merge/deploy하지 않는다.
-- KTD19. **Make transaction identity immutable and phases monotonic:** One subject-owned document는 `flowId + subject + epoch + expected prior phase`가 일치할 때만 full-record replacement를 허용한다. Accommodation/date/guest/quote/key/reservation/amount/currency/attempt/operation tuple은 이후 단계에서 변경할 수 없고 terminal/purge 뒤 stale completion이 record를 되살릴 수 없다.
+- KTD19. **Separate transaction identity from a durable recovery lease:** One subject-owned document는 immutable `flowId + subject`, mutable cryptographic `{runtimeLeaseId, sessionEpoch}`, exact route/resource와 expected prior phase가 일치할 때만 full-record replacement를 허용한다. Numeric epoch는 문서 재시작마다 다시 0이 될 수 있으므로 단독 lease identity가 아니다. Accommodation/date/guest/quote/key/reservation/amount/currency/attempt/operation tuple은 이후 단계에서 변경할 수 없고 terminal/purge 뒤 stale completion이 record를 되살릴 수 없다.
 - KTD20. **Durably observe server terminal before UI publication:** Complimentary Ready와 payment `SUCCEEDED`는 먼저 terminal marker로 기록하고 cache refresh/navigation을 수행한다. Publication이나 cleanup 실패는 server terminal을 되돌리거나 mutation replay를 유발하지 않는다.
 - KTD21. **Do not invent frontend CSRF:** Cookie-session mutation은 backend의 documented CSRF/Origin policy를 따른다. Policy 부재나 arbitrary Origin 허용은 backend 변경 요청이 아니라 Vercel/OCI integration blocker로 남긴다.
 - KTD22. **Keep runtime token data pure:** Canonical token names/values는 `shared/styles`가 소유한다. DOM/CSSOM reader가 필요하면 `platform/browser`가 좁은 port로 제공하며 shared/screens가 `document` 또는 `getComputedStyle`을 직접 읽지 않는다.
-- KTD23. **Respect the current provider capability before creating a hold:** CARD/KRW 100원 미만의 유료 quote는 checkout action을 차단하고 coupon/조건 변경 뒤 새 quote를 요구한다. Complimentary 0원만 Toss를 건너뛴다. Recovery 중 이미 존재하는 1–99원 hold에는 payment attempt를 만들지 않고 explicit release 또는 reservation detail을 제공한다.
+- KTD23. **Respect the current provider capability before creating a hold:** CARD/KRW 100원 미만 또는 Java confirm `Integer` 상한 초과의 유료 quote는 checkout action을 차단하고 coupon/조건 변경 뒤 새 quote를 요구한다. Complimentary 0원만 Toss를 건너뛴다. Recovery 중 이미 존재하는 unsupported amount/currency hold에는 payment attempt를 만들지 않고 explicit release 또는 reservation detail을 제공한다.
 - KTD24. **Do not invent a support product surface:** `REQUIRES_REVIEW`는 allowlisted 설명, reservation/operation identifier와 reservation-detail 이동을 제공한다. 실제 전화, 이메일, help URL은 별도 제품 결정 없이는 추가하지 않는다.
 
 ## High-Level Technical Design
@@ -248,7 +248,9 @@ stateDiagram-v2
   CheckoutSubmitting --> CheckoutSubmitting: ambiguous response / exact replay
   CheckoutSubmitting --> ComplimentaryObserved: zero-won Ready
   ComplimentaryObserved --> Finalized: cache/navigation publication
-  CheckoutSubmitting --> ReservationReady: paid Ready
+  CheckoutSubmitting --> ReservationReady: paid PAYMENT_PENDING Ready
+  CheckoutSubmitting --> ReservationStatusObserved: replayed current non-pending state
+  ReservationStatusObserved --> Finalized: reservation/known-operation recovery publication
   ReservationReady --> AttemptRequesting: explicit pay + durable transition
   AttemptRequesting --> AttemptRequesting: ambiguous response / resource replay
   AttemptRequesting --> AttemptReady: response tuple + durable write
@@ -276,28 +278,27 @@ stateDiagram-v2
 
 ### Immutable transaction identity
 
-| First established | Immutable fields checked by later phases                                         |
-| ----------------- | -------------------------------------------------------------------------------- |
-| Booking intent    | accommodation, calendar-local dates, adult/child guest count and coupon identity |
-| Quote             | quote UID, server amount/currency, expiry and exact checkout body                |
-| Checkout prepared | cryptographic idempotency key and flow ID                                        |
-| Ready             | reservation UID/order ID, amount/currency, payment flags and hold expiry         |
-| Attempt ready     | payment-attempt ID and exact Ready tuple                                         |
-| Callback claimed  | paymentKey plus matching order ID/amount/attempt/flow                            |
-| Operation known   | backend operation ID plus matching reservation/order ID                          |
+| First established | Immutable fields checked by later phases                                                                                       |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Quoted            | flow ID; accommodation/calendar dates/server guest count/coupon; presentation guest breakdown; quote UID/price/currency/expiry |
+| Checkout prepared | exact checkout body, request fingerprint and cryptographic idempotency key                                                     |
+| Ready             | reservation UID/order ID, amount/currency, payment flags and hold expiry                                                       |
+| Attempt ready     | payment-attempt ID and exact Ready tuple                                                                                       |
+| Callback claimed  | paymentKey plus matching order ID/amount/attempt/flow                                                                          |
+| Operation known   | backend operation ID plus matching reservation/order ID                                                                        |
 
 한 필드라도 다르면 이후 mutation, navigation, cache publication과 cleanup은 모두 0회다. Harness는 synthetic key 값을 출력하지 않고 첫 command와 replay의 in-memory equality 또는 one-way fingerprint equality를 검증한다.
 
 ### Browser-state retention and replacement
 
-| Record                       | Retention                                                                | Transition rule                                                                 |
-| ---------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| Pre-auth callback claim      | Current document memory only                                             | URL scrub 뒤 보관; stable same-subject journal 확인 전 API 호출 금지            |
-| Claimed callback credential  | `min(first capture + 9m, known hold/attempt expiry)` in same-tab storage | Accepted receipt write/read-back 전 삭제 금지                                   |
-| Booking transaction document | Server expiry-aware with 60-minute hard cap before operation receipt     | Full-record forward-only replacement; new flow cannot overwrite unresolved flow |
-| Operation/terminal receipt   | 24-hour hard TTL or final UI acknowledgment                              | Credential-free but subject-owned; expiry 뒤 reservation detail로만 수렴        |
+| Record                       | Retention                                                                   | Transition rule                                                                 |
+| ---------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Pre-auth callback claim      | Current document memory only                                                | URL scrub 뒤 보관; stable same-subject journal 확인 전 API 호출 금지            |
+| Claimed callback credential  | `min(first capture + 9m, attempt response hold expiry)` in same-tab storage | Accepted receipt write/read-back 전 삭제 금지                                   |
+| Booking transaction document | Server expiry-aware with 60-minute hard cap before operation receipt        | Full-record forward-only replacement; new flow cannot overwrite unresolved flow |
+| Operation/terminal receipt   | 24-hour hard TTL or final UI acknowledgment                                 | Credential-free but subject-owned; expiry 뒤 reservation detail로만 수렴        |
 
-Session storage가 duplicated/opener tab에 복제될 수 있으므로 record 자체를 신뢰하지 않는다. 모든 read에서 schema, tuple, subject, epoch, TTL과 expected phase를 다시 검증하고 backend conflict를 cross-tab authority로 사용한다.
+Session storage가 duplicated/opener tab에 복제될 수 있으므로 record 자체를 신뢰하지 않는다. 모든 read에서 schema, tuple, subject, cryptographic runtime lease, numeric epoch, TTL과 expected phase를 다시 검증하고 backend conflict를 cross-tab authority로 사용한다.
 
 ### Error-to-action contract
 
@@ -391,7 +392,8 @@ U2와 production-reachable HTTP/read-side capability commit은 U1 뒤 진행한�
 - Approach: Model Quote and Ready as separate validated domain responses. Keep wire types, mappers and concrete HTTP adapters private; workflows consume narrow ports and validated domain results only. A platform cryptographic factory creates the key once, the workflow binds it to method/endpoint/subject/quote/exact-body fingerprint, the feature validates the backend 8–128 contract and HTTP core emits the header. Preserve `requestMessage` as `null` and discard returned request/failure text in this plan.
 - Test scenarios:
   - Quote maps price breakdown, currency, flags, expiry and server time.
-  - Ready accepts exactly the complimentary and paid invariant combinations.
+  - Ready validates the initial complimentary/paid branches and every seven-state current reservation snapshot returned by an exact checkout replay; non-pending replay states converge to reservation/operation recovery and never start a new attempt.
+  - New paid checkout eligibility is exactly `currency === "KRW"` and `100 <= amount <= 2_147_483_647`; all backend `Long` money fields remain non-negative JavaScript safe integers for recovery parsing.
   - Invalid UUID, status, currency, time or flag combinations fail before workflow publication.
   - HTTP core emits one `Idempotency-Key` header and rejects malformed values.
   - StrictMode, double click, reload and ambiguous replay reuse the same in-memory key/fingerprint without printing the key.
@@ -401,42 +403,56 @@ U2와 production-reachable HTTP/read-side capability commit은 U1 뒤 진행한�
 
 #### Checkpoint B — Subject-owned booking journal v2
 
-- Checkpoint outcome: Verified retired-state cleanup, a downgrade-safe v2 journal and separate callback/receipt records become production-reachable before any v2 writer activation. Every later replay-sensitive booking command can then require durable same-tab recovery data before it is sent.
+- Checkpoint outcome: Verified retired-state cleanup, a downgrade-safe v2 journal and separate callback/receipt schemas become production-reachable before any v2 transaction-command writer activation. Every later replay-sensitive booking command can then require durable same-tab recovery data before it is sent.
 - Dependencies: Checkpoint D is green. Checkpoint A1 is already production-reachable; A2 has not been introduced.
-- Requirements: R12–R13, R20, R25, R28, R30–R34.
+- Requirements: R12–R13, R20, R25, R28, R30–R34, R47–R48, R50.
 - Commit sequence:
   - **B0 — verified retired cleanup:** add a dedicated retired-state owner, make current v1 terminal cleanup verify removal by re-enumeration, and split generic identity precheck cleanup from verified logout/revocation/different-subject cleanup. Generic prechecks preserve v2 for same-subject recovery; only verified destructive boundaries own v1, v2 and pre-U10 state.
-  - **B1 — subject-owned journal fence:** add exact v2 journal types/validation/repository, wire a narrow `inspectNewerRecovery` into the existing synchronous v1 reservation preflight, and document the staged/no-writer state.
-  - **B2 — credential and receipt records:** add exact callback credential and operation receipt validation/storage plus identity cleanup/inspection for all v2 slots. Keep the active v1 callback schema and 512-character v1 validator unchanged until the final owner switch; v2 credentials enforce 200.
+  - **B1a — namespace downgrade fence:** add exact v2 journal types/validation/repository, then make the current v1 reservation workflow enumerate the entire exact v2 namespace both in preflight and immediately before transport. Any v2 key blocks the legacy writer without reading or deleting the newer payload; clean storage preserves current behavior.
+  - **B1b — candidate-owner and lease fence:** add a cryptographic runtime lease to authenticated session scope, reconcile candidate journal ownership after `/auth/me` but before candidate QueryClient/session publication, and add explicit same-subject route/resource recovery claim. Verified cleanup and lease replacement/read-back are the only v2 writes; no transaction-command writer is active.
+  - **B2 — credential and receipt schemas:** add exact callback credential and operation receipt validation/read/cleanup plus known-slot owner reconciliation without narrowing B1's whole-namespace downgrade fence. Credential/receipt write commands land only with their first real F/H consumers. Keep the active v1 callback schema and 512-character v1 validator unchanged until the final owner switch; v2 credentials enforce 200.
 - Files:
   - Add `src/workflows/booking-payment/journal/retiredState.ts` and focused tests; delegate existing cleanup in `src/workflows/booking-payment/checkout/repositories.ts` to it.
   - Split generic versus verified-destructive identity cleanup through `src/app/providers/clearIdentityOwnedFrontendState.ts`, `src/app/session/useSessionController.ts`, `AppProviders` composition and their tests.
   - Add `journal/types.ts`, `validation.ts`, `repository.ts` and focused tests under `src/workflows/booking-payment`.
-  - Connect only the v2 recovery inspector to the current `ReservationCheckoutHandoffPort.preflight`; clean storage preserves the existing v1 path.
+  - Add a secure runtime-lease factory under `src/platform`, include its opaque ID in `AuthenticatedSessionScope`, and keep the current numeric epoch as an independent within-runtime stale-operation fence.
+  - Connect the side-effect-free v2 namespace inspector to current `ReservationCheckoutHandoffPort.preflight` and a second guard immediately before `reservationCreate` calls its transport.
+  - Add `reconcileCandidateIdentityOwnedState(scope)` at app composition and call it before candidate query/session publication on bootstrap, login and external verification.
   - Modify auth/session and booking browser tests plus `docs/architecture/frontend-browser-data-inventory.md`.
   - Do not change `src/platform/storage/bookingPaymentStorageDriver.ts` or the generic `versionedSessionStorage.ts`; v2 needs workflow-owned read-back, phase and hard-TTL semantics that the generic v1 engine does not provide.
 - Approach:
   - Purge only `airbob:booking-payment-v1:`, `airbob:reservation-checkout:`, `airbob:reservation-checkout-index:` and `airbob:payment-confirmed:` prefixes at terminal/generic precheck boundaries. Verified logout/revocation/different-subject cleanup additionally owns `airbob:booking-payment-v2:`. Never read or migrate v1 payloads. Run an enumerate→remove→verify pass; on removal, partial or enumeration failure retry one complete pass, then fail closed unless the final successful enumeration proves no targets remain. Preserve near-collision and unrelated keys.
-  - Store exact-key v2 envelopes for `journal`, `callback-credential` and `operation-receipt`. The repository validates schema, owner, epoch, route/flow, expected phase and immutable identity before full-record replacement; after `setItem`, it immediately `getItem`s and verifies raw equality plus parsed identity before any external command may proceed.
-  - Normal transitions keep epoch immutable. A same-subject reload receives a new recovery lease only after exact route/resource and joined-record validation; another subject purges, and stale callers may not inspect or clear a newer session.
-  - Quote is recorded after its safe response. `checkout-prepared`, `attempt-requesting`, `hold-release-requesting` and `confirm-submitting` are persisted before their replay-sensitive mutations. Exact duplicate transitions do not rewrite or extend TTL; illegal/lower/different-flow/terminal-resurrection transitions fail closed.
-  - V2 callback credential TTL is `min(first capture + 9 minutes, known ready/attempt expiry)` with paymentKey length 1–200. Credential-free operation receipt has a non-sliding 24-hour hard TTL. Receipt write/read-back precedes journal repair and credential purge; purge failure cannot authorize re-confirm.
-  - Production reachability is explicit: current v1 preflight performs zero reservation POSTs when valid/malformed/unreadable v2 state cannot be safely cleared, and destructive identity publication remains blocked until the full owned-state cleanup verifies success. Pre-login/external probes do not destroy v2 before a candidate subject is known; explicit logout, auth revocation and verified different-subject transitions do.
+  - B1's downgrade inspector treats `airbob:booking-payment-v2:` as an opaque newer namespace: zero exact-prefix keys is the only `ready` result. Journal, future credential/receipt, orphan/unknown slot, malformed raw and enumeration error all block both v1 preflight and the just-before-send guard. The downgrade inspector never reads or purges v2, so a B2→B1 rollback fails closed instead of destroying a newer schema.
+  - The journal key is exactly `airbob:booking-payment-v2:journal`. Its envelope exact keys are `purpose`, `version`, `privacyClass`, `containsPii`, `owner`, `createdAt`, `hardExpiresAt`, `lease`, `data`; constants are `purpose: "booking-payment-journal"`, `version: 2`, `privacyClass: "sensitive"`, `containsPii: false`. `lease` is exact `{runtimeLeaseId, sessionEpoch}`. `data` is a phase-discriminated exact union with common immutable `flowId`, authoritative server intent, non-authoritative presentation intent and `recoveryExpiresAt`; paymentKey/provider text never enters the journal.
+  - A secure UUID `runtimeLeaseId` is created once per mounted session runtime and combined with the numeric session epoch. Normal commands require both captured values plus live session/route guards. A same-subject reload or epoch change can replace only the lease after exact owner, flow, full schema, TTL and route/resource validation. Numeric epochs are never ordered or trusted across documents. Candidate reconciliation does not grant a lease or expose transaction data.
+  - Candidate reconciliation enumerates the whole v2 namespace before candidate QueryClient/authenticated publication. A sole valid v2 journal for the same owner is preserved unleased. A verified foreign, expired or exact-version-2 malformed journal is removed with read-back/re-enumeration proof; unknown slot, orphan record, version greater than 2, read/enumeration failure or incomplete purge blocks publication. Cold-bootstrap same-owner, cold-bootstrap foreign-owner and failure cases are mandatory.
+  - The exact data union accumulates immutable groups only on allowed predecessor edges: `quoted`; `checkout-prepared`; `checkout-submitting`; `complimentary-observed | reservation-ready | reservation-status-observed`; `attempt-requesting`; `attempt-ready`; `callback-received`; `confirm-submitting`; `operation-known`; `succeeded-observed | failed | review-required`; and `hold-release-requesting | hold-released`. Branch adjacency is an explicit table, never numeric phase ordering. Groups that do not yet exist are forbidden, existing groups remain deep/byte-equivalent, and removal is allowed only from an exact terminal phase/flow/lease.
+  - `flowId` is a cryptographic UUID created once immediately after a safe quote response and before the first `quoted` write. Server intent is exact `{accommodationId, checkInDate, checkOutDate, guestCount, couponId}`; adult/child/infant/pet breakdown is separate presentation metadata and must derive the same `guestCount`. Quote and all backend identifiers validate UUID/strict date/UTC Instant contracts rather than a generic opaque string.
+  - Accumulated group keys mirror the current backend exactly. `quote` is `{quoteUid,accommodationId,orderName,checkIn,checkOut,guestCount,nightlyPrice,nights,subtotal,discountAmount,amount,currency,paymentRequired,inventoryHeld,quoteExpiresAt,serverTime}`. `ready` is `{reservationUid,orderName,checkIn,checkOut,guestCount,subtotal,discountAmount,amount,currency,status,paymentRequired,paymentAllowed,holdExpiresAt,serverTime}` and excludes customer email/name. `attempt` is `{paymentAttemptId,orderId,amount,currency,holdExpiresAt,remainingSeconds,serverTime}`. `operation` is immutable `{operationId,reservationUid,orderId,paymentAttemptId,amount,currency}`; status/nextAction belong to the separate receipt. `release` is `{reservationUid,status,releasedNow,serverTime}`. Every object uses exact keys and rejects provider/backend free text.
+  - Checkout state stores exact `{method:"POST", resource:"/api/v1/reservations", body:{quoteUid,requestMessage:null}, idempotencyKey, requestFingerprint}`. The key is ASCII `[A-Za-z0-9._:-]{8,128}` and the fingerprint binds member, endpoint and exact body. A new paid checkout is eligible only for KRW 100–2,147,483,647; unsupported quote values remain inspectable but cannot reach `checkout-prepared`.
+  - Ready stores the full non-PII server tuple and all seven reservation statuses. Initial zero-won `CONFIRMED` becomes `complimentary-observed`; paid `PAYMENT_PENDING` becomes `reservation-ready`; an exact checkout replay returning `PAYMENT_PROCESSING`, paid `CONFIRMED`, `EXPIRED` or a cancellation state becomes `reservation-status-observed` and can only converge through reservation/known-operation status. An already-created unsupported paid hold may release or inspect status but cannot issue an attempt.
+  - Quote is recorded after its safe response. `checkout-prepared`, `checkout-submitting`, `attempt-requesting`, `hold-release-requesting` and `confirm-submitting` are persisted before their replay-sensitive mutations. Exact duplicate transitions do not rewrite or extend TTL; illegal predecessor, different-flow, immutable-field change and terminal resurrection fail closed.
+  - Journal `hardExpiresAt` is `createdAt + 60 minutes`. `quoted` and unsent `checkout-prepared` use the server-relative quote lifetime; `checkout-submitting` extends only to the hard cap so response-loss replay survives quote expiry; `reservation-ready` and attempt phases use `min(hard cap, local transition time + (holdExpiresAt - serverTime))`; operation-known recovery hands authority to the 24-hour receipt. Default backend 5m/15m/90s values are not frontend constants. Attempt `remainingSeconds` accepts zero on a valid replay.
+  - V2 callback credential TTL is `min(first capture + 9 minutes, attempt response hold expiry)` with paymentKey length 1–200. Before Accepted, journal lease is the sole mutable recovery authority and credential is an immutable owner/flow/tuple reference. Accepted receipt write/read-back transfers sole authority to the credential-free, non-sliding 24-hour receipt; journal repair and credential purge happen afterward, and receipt authority never depends on the 60-minute journal surviving.
+  - B2 legal slot combinations and precedence are exact. `journal` alone is valid before callback; joined `journal + callback-credential` is valid before Accepted; `operation-receipt` alone is valid after Accepted; and receipt plus leftover journal and/or credential is a repair state in which the receipt remains sole authority and extras are opportunistically verified-purged. Credential without journal or receipt is an invalid orphan and cannot confirm. A valid receipt is never rejected merely because the 60-minute journal expired; mismatched-owner/tuple extras cannot override it.
+  - Repository surface is capability-shaped: `inspectNamespaceForLegacyWriter` is enumerate-only; `reconcileCandidateOwner` may perform only the verified candidate cleanup above; `claimRecoveryLease` requires an exact accommodation or reservation locator; and future `createQuoted`, `replaceExpectedPhase`, `acknowledgeTerminal` require a current lease plus read-back. `setItem` success is never trusted without raw equality and full parsed identity verification. Failed/ambiguous writes do not attempt speculative rollback.
+  - Production reachability is explicit: current v1 preflight and just-before-send guard perform zero reservation POSTs whenever any v2 exact-prefix key exists or enumeration fails. Candidate identity publication remains blocked until owner reconciliation verifies success. Pre-login/external probes do not destroy v2 before a candidate subject is known; explicit logout, auth revocation and verified different-subject transitions do.
 - Test scenarios:
   - Transient/persistent remove failure, success-returning no-op removal, transient/persistent first/verification enumeration failure and partial retry are detected; v1 payload `getItem` count remains zero.
   - Prefix collisions such as `airbob:booking-payment-v10:`, `airbob:booking-payment-v20:`, `airbob:reservation-checkouts:` and unrelated storage survive.
-  - Clean storage preserves the current v1 browser matrix; any unresolved v2 record makes current v1 reservation POST count zero.
+  - Clean storage preserves the current v1 browser matrix; any exact-prefix v2 record makes current v1 reservation POST count zero without a payload read. A v2 key inserted in the microtask between preflight and transport is caught by the second guard.
   - A prepared/submitting write failure before checkout, attempt, release, Toss or confirm blocks the external command.
-  - Expired, malformed, wrong-subject and wrong-epoch records are purged only after verified removal and never published.
-  - Complimentary records allow amount 0 only with the matching confirmed invariant.
-  - Lower-phase, different-flow and terminal-resurrection writes are rejected; StrictMode exact duplicates are no-op and do not slide TTL.
-  - Same-subject reload requires an explicit recovery lease; joined journal/credential/receipt must all move to the current epoch before API/Toss calls.
+  - Same-owner old lease is preserved as recovery-required; foreign, expired or exact-v2 malformed state is purged only by candidate reconciliation after verified removal. Unknown/newer state is preserved and blocks publication.
+  - Complimentary records allow amount 0 only with the matching confirmed invariant. Paid Ready structurally accepts replay-current seven-state snapshots, while only supported `PAYMENT_PENDING` can advance toward an attempt.
+  - Quote/Ready/attempt Long values require non-negative JavaScript safe integers; new checkout/attempt/Toss eligibility also enforces KRW 100–2,147,483,647.
+  - Illegal predecessor, different-flow and terminal-resurrection writes are rejected without numeric phase ordering; StrictMode exact duplicates are no-op and do not slide TTL.
+  - Same-subject reload requires exact route/resource claim to replace `{runtimeLeaseId,sessionEpoch}`; a coincident numeric epoch from another document grants no authority and stale-document completion writes nothing.
   - Same-subject login/external revalidation preserves v2 state until B1 can issue that lease; logout, auth revocation and a verified different subject remove it before publication.
   - V2 callback paymentKey accepts 200 characters and rejects 201; credential hard expiry chooses the earliest configured bound.
   - Receipt write/read-back failure preserves the callback credential; credential purge failure after receipt leaves polling authoritative and triggers opportunistic purge without re-confirm.
   - V1+v2 coexistence, prefix collision, partial remove failure and retry never expose or migrate the v1 payload.
   - Account switch removes the old subject record and late completion writes nothing.
-- Verification: Browser-data inventory names purpose, exact fields, sensitivity, hard TTL, owner, legal transitions and terminal cleanup for every record. B0–B2 remain reachable through real downgrade/identity fences, not dead routes or flags. V2 activation is impossible while retired-key cleanup is incomplete, while clean storage leaves current v1 behavior unchanged.
+- Verification: Browser-data inventory names purpose, exact fields, sensitivity, hard TTL, owner, legal transitions, authority handoff and terminal cleanup for every record. B0–B2 remain reachable through real downgrade/identity fences, not dead routes or flags. V2 activation is impossible while retired-key cleanup is incomplete, while clean storage leaves current v1 behavior unchanged.
 
 #### Checkpoint C — Quote review, idempotent checkout and the zero-won branch
 
@@ -448,12 +464,13 @@ U2와 production-reachable HTTP/read-side capability commit은 U1 뒤 진행한�
   - Modify `src/screens/accommodation-detail/useReservationCreateCommand.ts`, detail controller/tests and rename contracts where clarity requires it.
   - Modify `src/app/router/routes/AccommodationDetailRoute.tsx`, `ReservationConfirmRoute.tsx` and route tests.
   - Modify `src/screens/reservation-confirm` controller, view model, screen and tests.
-- Approach: Screen/controller emits user intent; the booking workflow owns quote, checkout, key generation, journal transition and cache commands. Quote/checkout wire adapters are introduced here, not before the final-switch prerequisites. App route adapter injects route/session leases and executes returned navigation commands. The unchanged confirm path displays server price/expiry and requires a second click. On ambiguous checkout, expose exact replay; never create a new key. Complimentary Ready is durably marked before best-effort cache publication/navigation. A quote/0원-only partial cutover requires an explicit product decision because it would temporarily close paid booking; this plan does not assume that decision.
+- Approach: Screen/controller emits user intent; the booking workflow owns quote, checkout, key generation, journal transition and cache commands. Quote/checkout wire adapters are introduced here, not before the final-switch prerequisites. App route adapter injects route/session leases and executes returned navigation commands. The unchanged confirm path displays server price/expiry and requires a second click. On ambiguous checkout, expose exact replay; never create a new key. Complimentary Ready is durably marked before best-effort cache publication/navigation. Paid `PAYMENT_PENDING` continues to attempt handling, while any exact replay that returns another current reservation status becomes `reservation-status-observed` and converges to reservation/known-operation recovery without a new attempt. A quote/0원-only partial cutover requires an explicit product decision because it would temporarily close paid booking; this plan does not assume that decision.
 - Test scenarios:
   - Double click produces one quote or one checkout command per phase.
   - Quote response loss allows a fresh quote because no inventory was held.
   - Checkout response loss replays the same body/key and receives the same reservation.
   - Checkout succeeds after quote expiry and exact replay still resolves the original reservation.
+  - Exact replay returning PAYMENT_PROCESSING, paid CONFIRMED, EXPIRED or a cancellation status performs zero new attempt/Toss calls and opens authoritative recovery/status.
   - R016 and R020 produce no second checkout with a new key.
   - R018/R019 return to a refreshed quote that requires user approval again.
   - Zero-won Ready performs no payment API or Toss call and navigates to reservation detail.
@@ -488,7 +505,7 @@ U2와 production-reachable HTTP/read-side capability commit은 U1 뒤 진행한�
   - Add attempt and hold-release contracts/API/model/ports under `src/features/reservations/payment` with tests.
   - Modify `src/workflows/booking-payment/checkout/paymentRequest.ts`, gateway/repository contracts and tests.
   - Modify reservation-confirm/fail controller and screen contracts for retry versus abandon actions.
-- Approach: Prepare the Toss SDK before the pay click. Attempt issuance and release share the transaction’s single command lane. Persist `attempt-requesting` or `release-requesting` with exact reservation identity before the request, validate the response tuple, then advance. Persist attempt-ready before Toss and launch without another network wait. Release is explicit before callback/confirm and never relies on unload cleanup.
+- Approach: Prepare the Toss SDK before the pay click. Attempt issuance and release share the transaction’s single command lane. Persist `attempt-requesting` or `release-requesting` with exact reservation identity before the request, validate the response tuple, then advance. The attempt has no independent expiry: its returned `holdExpiresAt`/`serverTime` is authoritative and `remainingSeconds` may be zero on a legal replay. Persist attempt-ready before Toss and launch without another network wait only while the hold still has usable time. Release is explicit before callback/confirm and never relies on unload cleanup.
 - Test scenarios:
   - Attempt response loss replays the endpoint and recovers the same ID.
   - Attempt-requesting reload replays the same reservation endpoint and cannot create a second flow.
@@ -498,7 +515,7 @@ U2와 production-reachable HTTP/read-side capability commit은 U1 뒤 진행한�
   - Release timeout safely replays DELETE; release conflict after PAYMENT_PROCESSING switches to payment recovery.
   - Release/pay simultaneous clicks select one command lane; late success callback after release makes zero confirm calls.
   - Confirm-submitting or operation-known state exposes no release command.
-  - Quote amount 1–99 KRW or non-KRW makes zero checkout/attempt/Toss calls and requests a changed condition/new quote; an already-created unsupported hold offers release/status only.
+  - Quote amount 1–99 KRW, above 2,147,483,647 KRW or non-KRW makes zero checkout/attempt/Toss calls and requests a changed condition/new quote; an already-created unsupported hold offers release/status only.
 - Verification: No Toss request exists without a validated attempt persisted for the same reservation tuple.
 
 #### Checkpoint F — Success/fail callback credential capture
@@ -511,7 +528,7 @@ U2와 production-reachable HTTP/read-side capability commit은 U1 뒤 진행한�
   - Modify callback claim/repository files under `src/workflows/booking-payment/confirmation`.
   - Modify artifact-sensitive text policy under `tests/e2e/support`.
   - Modify pre-bootstrap referrer policy in `index.html` and deployment headers where supported without changing backend behavior.
-- Approach: Detect both dedicated success and fail callback routes and unconditionally replace their entire search/hash with the canonical no-query path before parsing, auth/session children, telemetry or third-party initialization. Parse only the captured in-memory string afterward. Keep the pre-auth claim in memory, then create a new epoch recovery lease and a `min(first capture + 9m, known hold/attempt expiry)` session credential only when stable subject and journal owner match. Enforce the backend paymentKey maximum of 200 characters. A different subject purges it. Provider messages map to allowlisted frontend copy.
+- Approach: Detect both dedicated success and fail callback routes and unconditionally replace their entire search/hash with the canonical no-query path before parsing, auth/session children, telemetry or third-party initialization. Parse only the captured in-memory string afterward. Keep the pre-auth claim in memory, then claim the journal's current cryptographic runtime lease and write/read-back a `min(first capture + 9m, attempt response hold expiry)` credential only when stable subject and journal owner/flow/attempt tuple match. Only after credential durability is proven may the journal move `attempt-ready → callback-received`; a credential write failure leaves the journal at attempt-ready, while a journal transition failure preserves the credential for deterministic repair. `confirm-submitting` is forbidden until both are joined. Enforce the backend paymentKey maximum of 200 characters. A different subject purges it. Provider messages map to allowlisted frontend copy.
 - Test scenarios:
   - Success and fail URLs/history contain no credential after the boundary runs.
   - Malformed encoding, duplicate keys, missing tuple members, oversized text and parser exceptions still scrub the full URL and cannot reappear through back/forward.
@@ -542,12 +559,12 @@ U2와 production-reachable HTTP/read-side capability commit은 U1 뒤 진행한�
 #### Checkpoint H — Async operation state machine and route recovery
 
 - Checkpoint outcome: Payment routes survive response loss, reload, polling failure and backend review states while cleaning up only after proven success.
-- Requirements: R24–R29, R33–R36.
+- Requirements: R24–R29, R33–R36, R49.
 - Files:
   - Rewrite `src/workflows/booking-payment/confirmation/paymentMachine.ts`, `paymentConfirmation.ts`, `paymentCallbackClaim.ts` and tests.
   - Modify `src/app/router/routes/PaymentSuccessRoute.tsx`, `PaymentFailRoute.tsx`, booking-payment route tests and recovery tests.
   - Modify payment result/confirmation screen state and accessibility tests.
-- Approach: Persist confirm-submitting before POST. If the response is ambiguous, exact replay recovers the receipt. Write and read back operation-known before deleting the callback credential; if either storage step fails, retain the exact replay tuple. Poll with one cancellable lease. Persist `succeeded-observed` before cache/navigation and retain terminal receipt until publication or acknowledgment. Route other next actions without resubmitting payment.
+- Approach: Persist confirm-submitting before POST. If the response is ambiguous, exact replay recovers the receipt. Write and read back the separate operation receipt before journal repair or callback-credential deletion; that verified receipt atomically becomes the sole recovery authority. From that point, receipt presence forbids confirm replay even when journal repair/purge fails or the 60-minute journal expires. Poll with one cancellable lease. Persist terminal status in the receipt before cache/navigation and retain it until publication or acknowledgment. Route other next actions without resubmitting payment.
 - Test scenarios:
   - Confirm timeout followed by exact replay returns one backend operation and one eventual provider execution.
   - Receipt write failure preserves credential for replay; credential purge failure prioritizes receipt and makes zero new confirm calls.
@@ -567,6 +584,7 @@ U2와 production-reachable HTTP/read-side capability commit은 U1 뒤 진행한�
 - Rewire production app/routes/workflows to the A–H capabilities in one change and update their matching deterministic browser scenarios.
 - Verify retired-key purge before enabling a replay-sensitive command; fail closed to browsing/reservation-status paths when storage cannot be prepared.
 - Delete direct-create adapters/workflow, v1 storage readers, obsolete exports and the `202 null → success` fixture only after no production import reaches them.
+- Record the cutover SHA and rollback capability explicitly. B1 can safely receive a newer v2 namespace only as an opaque mutation fence, but the first complete v2 writer has no previously complete v2-compatible rollback build; after activation, schema/flow incidents are therefore fail-closed and roll-forward-only until a later verified compatible revision exists. Never re-enable the direct v1 writer over extant v2 keys.
 - Run focused transaction tests, architecture/unused-surface checks, full structure and deterministic browser gates on the same revision.
 
 ### U11. Audit the complete deterministic booking/payment matrix
@@ -703,10 +721,13 @@ U2와 production-reachable HTTP/read-side capability commit은 U1 뒤 진행한�
 - AE20. Given malformed or duplicate callback parameters, the entire search/hash is scrubbed before parsing and no app-controlled artifact records the original credential URL.
 - AE21. Given two pages inherit the same session state, they share no credential channel and conflicting checkout/release/confirm attempts converge through backend idempotency, conflict and reservation reads.
 - AE22. Given the Vite proxy flow passes, the report still withholds Vercel→OCI integration until allowed-origin credentialed mutations succeed and arbitrary-origin mutations are rejected.
-- AE23. Given a paid CARD/KRW quote is 1–99원, checkout/attempt/Toss call counts remain zero and the user must change coupon/conditions and request a new quote; amount 0 still follows the complimentary branch.
-- AE24. Given a callback is captured, the credential expires no later than nine minutes from capture or the known hold/attempt expiry, rejects paymentKey over 200 characters and is never copied into an operation receipt.
+- AE23. Given a paid quote is 1–99 KRW, above 2,147,483,647 KRW or non-KRW, checkout/attempt/Toss call counts remain zero and the user must change coupon/conditions and request a new quote; amount 0 still follows the complimentary branch.
+- AE24. Given a callback is captured, the credential expires no later than nine minutes from capture or the attempt response's hold expiry, rejects paymentKey over 200 characters and is never copied into an operation receipt.
 - AE25. Given REQUIRES_REVIEW outlives the 24-hour receipt, the app does not re-confirm or synthesize an operation lookup; it opens reservation detail with allowlisted identifiers and no invented support address.
 - AE26. Given v2 activation, QA evidence records the cutover revision and a verified v2-compatible rollback revision, or explicitly records that fail-closed roll-forward is the only safe recovery.
+- AE27. Given any exact-prefix v2 key appears before or between current v1 preflight and transport, the legacy reservation POST count remains zero and the downgrade fence neither reads nor deletes the newer payload.
+- AE28. Given a fresh document's cookie resolves to another subject while an old v2 journal exists, candidate identity publication waits for verified owner reconciliation; same owner preserves an unleased journal, foreign owner is verified-purged, and unknown/newer state blocks publication.
+- AE29. Given a persisted numeric epoch equals the new document's epoch by coincidence, no transaction data or command is authorized until exact route/resource claim replaces the cryptographic runtime lease and read-back verifies it.
 
 ## System-Wide Impact
 
@@ -722,7 +743,7 @@ U2와 production-reachable HTTP/read-side capability commit은 U1 뒤 진행한�
 ### Data lifecycle
 
 - Quote and checkout identity exist only for the authenticated subject and bounded server/client expiry.
-- Pre-auth callback paymentKey is memory-only; after same-subject claim it exists only in the dedicated credential record until Accepted receipt recovery completes and no later than nine minutes from first capture or known hold/attempt expiry.
+- Pre-auth callback paymentKey is memory-only; after same-subject claim it exists only in the dedicated credential record until Accepted receipt recovery completes and no later than nine minutes from first capture or the attempt response's hold expiry.
 - Payment operation receipt contains no paymentKey but remains subject-owned personal transaction data and survives same-tab reload for at most 24 hours or final acknowledgment. After expiry, reservation detail is the only public recovery authority and confirm/poll are not reconstructed.
 - Logout/account switch purges subject-owned data and does not send speculative hold release after confirm might have reached the server.
 - Old v1 records are purge-only before activation because they cannot prove current transaction identity; purge failure blocks v2 mutation.
@@ -734,8 +755,9 @@ U2와 production-reachable HTTP/read-side capability commit은 U1 뒤 진행한�
 | ----------------------------- | ------------------------------ | ------------------------------------------------------------- | ------------------------------------------------------------------- |
 | Quote conflict/stale          | Keep quoted intent nonterminal | Refresh availability and quote                                | Require explicit re-approval; no mutation cleanup                   |
 | Paid Ready                    | `reservation-ready`            | Invalidate availability, coupon, trips and reservation detail | Stay in payment flow; retain journal                                |
+| Checkout replay current state | `reservation-status-observed`  | Refresh trips/detail                                          | Open authoritative recovery/status; no new attempt                  |
 | Complimentary Ready           | `complimentary-observed`       | Refresh trips/detail and invalidate availability/coupon       | Open detail, then bounded cleanup                                   |
-| Released/already expired hold | `released`                     | Invalidate availability, coupon, trips and detail             | Leave payment flow, then cleanup                                    |
+| Released/already expired hold | `hold-released`                | Invalidate availability, coupon, trips and detail             | Leave payment flow, then cleanup                                    |
 | Payment SUCCEEDED             | `succeeded-observed`           | Refresh reservation detail/trips                              | Publish success/detail, then cleanup or retain until acknowledgment |
 
 Publication failure never calls the server mutation again. Reload resumes publication from the durable phase. Client availability never overrides quote/checkout authority.
@@ -752,7 +774,7 @@ Publication failure never calls the server mutation again. Reload resumes public
 - Callback credentials necessarily arrive in a provider query but are scrubbed before app telemetry/children; pre-bootstrap host/access-log exposure remains a deployment risk.
 - Credential fields never enter long-lived receipts, rendered copy, console, AppError or recorded test artifacts.
 - Status URL and raw transport messages are discarded inside adapters rather than exposed as domain values.
-- Old async work requires its captured epoch; same-subject reauth creates a new recovery lease before any API/storage effect.
+- Old async work requires its captured cryptographic runtime lease plus epoch; same-subject reauth/reload claims a new lease before any API/storage effect.
 - Idempotency keys are transaction identifiers. Test output omits values while in-memory/fingerprint assertions prove exact replay equality.
 - Frontend adds no auth token storage or custom CSRF mechanism and cannot certify backend Origin policy through the Vite proxy.
 
@@ -803,11 +825,11 @@ Implementation depends on the repository-declared Node version, the backend docu
 - `requestMessage` remains `null`; adding free text would require a separate UI and PII/storage decision.
 - Old booking storage is purged, not migrated.
 - Exact confirm replay is required and safe for the same tuple under the current backend implementation.
-- Pre-auth callback credential is memory-only; same-subject claimed credential uses a dedicated session record capped at nine minutes from first capture and the known hold/attempt expiry so exact replay can survive a same-tab reload before Accepted.
+- Pre-auth callback credential is memory-only; same-subject claimed credential uses a dedicated session record capped at nine minutes from first capture and the attempt response's hold expiry so exact replay can survive a same-tab reload before Accepted.
 - Hold release covers pre-confirm abandonment only; general cancellation stays out of scope.
 - Same-tab recovery is guaranteed; cross-tab/device operation lookup is not.
 - Booking/payment HTTP/read-side changes land as small green commits. The production-reachable v2 journal/purge gate lands before quote/checkout, those adapters then join their first real v2 workflow consumer, and only the final composition switch plus retired-writer deletion are atomic.
-- CARD/KRW 100원 is the current provider minimum. Amount 0 is complimentary; 1–99원 and non-KRW fail closed before checkout.
+- CARD/KRW 100원 is the current provider minimum and Java confirm accepts at most 2,147,483,647. Amount 0 is complimentary; 1–99원, larger paid amounts and non-KRW fail closed before checkout.
 - Long-running REQUIRES_REVIEW retains credential-free identifiers for at most the 24-hour same-tab receipt window, then converges to reservation detail without re-confirm. A real support address/route is deferred rather than invented.
 - Frontend does not add a CSRF token scheme; backend Origin/session verification remains a later deployment requirement.
 - Page width/gutter belongs to a shared PageContainer recipe, not shell variants.
