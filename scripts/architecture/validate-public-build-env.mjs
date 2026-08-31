@@ -1,7 +1,16 @@
-import { createRequire } from "node:module";
-import { fileURLToPath } from "node:url";
+import path from "node:path";
+import { loadEnv } from "vite";
 
-const require = createRequire(import.meta.url);
+export const PUBLIC_RUNTIME_ENV_KEYS = Object.freeze([
+  "REACT_APP_API_URL",
+  "REACT_APP_GOOGLE_MAPS_API_KEY",
+  "REACT_APP_TOSS_CLIENT_KEY",
+  "REACT_APP_CLOUDFRONT_DOMAIN",
+]);
+export const PUBLIC_BUILD_ENV_KEYS = Object.freeze([
+  "PUBLIC_URL",
+  ...PUBLIC_RUNTIME_ENV_KEYS,
+]);
 const TOSS_CLIENT_KEY_PATTERN = /^(?:test|live)_ck_[A-Za-z0-9_-]{1,256}$/;
 const GOOGLE_MAPS_BROWSER_KEY_PATTERN = /^[A-Za-z0-9_-]{1,256}$/;
 const KNOWN_SERVER_SECRET_PATTERN = /(?:^|[^A-Za-z0-9])(?:test|live)_sk_[A-Za-z0-9_-]{1,256}(?:$|[^A-Za-z0-9_-])/i;
@@ -194,17 +203,28 @@ export const validatePublicBuildEnvironment = (environment) => {
   validatePublicAssetBase(environment.PUBLIC_URL);
 };
 
-const loadCraBuildEnvironment = () => {
-  process.env.NODE_ENV = "production";
-  // CRA loads .env.production and shell overrides in this same step before its
-  // compiler starts. Reuse that loader so validation sees the build's inputs.
-  require("react-scripts/config/env");
+export const loadPublicBuildEnvironment = ({
+  mode = "production",
+  root = process.cwd(),
+} = {}) => {
+  const loadedEnvironment = loadEnv(mode, root, ["PUBLIC_URL", "REACT_APP_"]);
+
+  return Object.freeze(
+    Object.fromEntries(
+      PUBLIC_BUILD_ENV_KEYS.map((key) => [
+        key,
+        Object.prototype.hasOwnProperty.call(process.env, key)
+          ? process.env[key]
+          : loadedEnvironment[key],
+      ]),
+    ),
+  );
 };
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (path.basename(process.argv[1] ?? "") === "validate-public-build-env.mjs") {
   try {
-    loadCraBuildEnvironment();
-    validatePublicBuildEnvironment(process.env);
+    const environment = loadPublicBuildEnvironment();
+    validatePublicBuildEnvironment(environment);
   } catch (error) {
     process.stderr.write(
       `${error instanceof Error ? error.message : "Public build environment is invalid."}\n`,

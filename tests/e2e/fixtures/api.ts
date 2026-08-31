@@ -80,7 +80,6 @@ const SAFE_STATIC_RESOURCE_TYPES = new Set([
   "stylesheet",
 ]);
 const SAFE_PUBLIC_ASSET_PATHS = new Set([
-  "/asset-manifest.json",
   "/favicon.ico",
   "/logo192.png",
   "/logo512.png",

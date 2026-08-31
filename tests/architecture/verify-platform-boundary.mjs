@@ -16,7 +16,7 @@ const environmentAdapterPath = path.join(
   projectRoot,
   "src/platform/config/env.ts",
 );
-const publicIndexPath = path.join(projectRoot, "public/index.html");
+const rootIndexPath = path.join(projectRoot, "index.html");
 const allowedEnvironmentProperties = new Set([
   "NODE_ENV",
   "REACT_APP_API_URL",
@@ -429,38 +429,123 @@ for (const scenario of validScenarios) {
   }
 }
 
-const containsExecutableScriptTag = (html) =>
-  /<script\b/i.test(html.replaceAll(/<!--[\s\S]*?-->/g, ""));
-const publicIndexSource = await readFile(publicIndexPath, "utf8");
-if (containsExecutableScriptTag(publicIndexSource)) {
+const canonicalModuleEntry = Object.freeze({
+  src: "/src/index.tsx",
+  type: "module",
+});
+const withoutHtmlComments = (html) => html.replaceAll(/<!--[\s\S]*?-->/g, "");
+const collectScriptElements = (html) => {
+  const source = withoutHtmlComments(html);
+  const openingTags = [...source.matchAll(/<script\b([^>]*)>/gi)];
+  const closingTags = [...source.matchAll(/<\/script\s*>/gi)];
+
+  const elements = openingTags.map((openingTag, index) => {
+    const attributes = new Map();
+    const attributeNames = [];
+    const attributeSource = openingTag[1];
+    const attributePattern =
+      /([^\s=/>]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
+    let attributeMatch;
+
+    while ((attributeMatch = attributePattern.exec(attributeSource)) !== null) {
+      const [, rawName, doubleQuoted, singleQuoted, unquoted] = attributeMatch;
+      attributeNames.push(rawName.toLowerCase());
+      attributes.set(
+        rawName.toLowerCase(),
+        doubleQuoted ?? singleQuoted ?? unquoted ?? "",
+      );
+    }
+
+    const contentStart = (openingTag.index ?? 0) + openingTag[0].length;
+    const elementEnd = closingTags[index]?.index;
+    const content =
+      elementEnd === undefined || elementEnd < contentStart
+        ? null
+        : source.slice(contentStart, elementEnd);
+
+    return { attributeNames, attributes, content };
+  });
+
+  return { closingTagCount: closingTags.length, elements };
+};
+const validateDocumentScriptOwnership = (html) => {
+  const { closingTagCount, elements: scripts } = collectScriptElements(html);
+
+  if (scripts.length !== 1 || closingTagCount !== 1) {
+    return `expected exactly one complete script entry, received ${scripts.length} opening and ${closingTagCount} closing tags`;
+  }
+
+  const [{ attributeNames, attributes, content }] = scripts;
+  if (
+    attributeNames.length !== 2 ||
+    new Set(attributeNames).size !== attributeNames.length ||
+    attributes.size !== 2 ||
+    attributes.get("type") !== canonicalModuleEntry.type ||
+    attributes.get("src") !== canonicalModuleEntry.src
+  ) {
+    return "only the first-party Vite module entry is allowed";
+  }
+  if (content === null || content.trim() !== "") {
+    return "the first-party module entry must not contain executable inline code";
+  }
+
+  return null;
+};
+
+const rootIndexSource = await readFile(rootIndexPath, "utf8");
+const rootDocumentScriptViolation = validateDocumentScriptOwnership(rootIndexSource);
+if (rootDocumentScriptViolation !== null) {
   throw new Error(
-    "public/index.html must not bypass the lazy platform integration loaders.",
+    `index.html bypassed platform script ownership: ${rootDocumentScriptViolation}.`,
   );
 }
+
+const invalidDocumentScriptFixtures = [
+  '<script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>',
+  '<script type="module" src="/src/index.tsx"></script><script>alert(1)</script>',
+  '<script type="module" src="/src/index.tsx">alert(1)</script>',
+  '<script type="module" src="/src/alternate-entry.tsx"></script>',
+  '<script type="module" src="https://evil.invalid/app.js" src="/src/index.tsx"></script>',
+  '<script type="module" src="/src/index.tsx" onload="alert(1)"></script>',
+  '<script type="module" src="/src/index.tsx"></script></script>',
+  '</script><script type="module" src="/src/index.tsx">',
+];
 if (
-  !containsExecutableScriptTag(
-    '<script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>',
+  invalidDocumentScriptFixtures.some(
+    (fixture) => validateDocumentScriptOwnership(fixture) === null,
   )
 ) {
-  throw new Error("The public HTML external-script regression fixture is invalid.");
+  throw new Error("An executable HTML script bypassed platform ownership.");
 }
 
 const collectHtmlPlaceholders = (html) =>
   [...html.matchAll(/%([A-Za-z][A-Za-z0-9_]*)%/g)].map((match) =>
     match[1].toUpperCase(),
   );
-const unknownPublicHtmlPlaceholders = collectHtmlPlaceholders(
-  publicIndexSource,
-).filter((name) => name !== "PUBLIC_URL");
-if (unknownPublicHtmlPlaceholders.length > 0) {
+const publicHtmlPlaceholders = collectHtmlPlaceholders(rootIndexSource);
+const unknownHtmlPlaceholders = publicHtmlPlaceholders.filter(
+  (placeholder) => placeholder !== "BASE_URL",
+);
+if (
+  unknownHtmlPlaceholders.length > 0 ||
+  publicHtmlPlaceholders.filter((placeholder) => placeholder === "BASE_URL")
+    .length !== 3
+) {
   throw new Error(
-    `public/index.html contains unowned environment placeholders: ${unknownPublicHtmlPlaceholders.sort().join(", ")}`,
+    `index.html must use only the three owned Vite BASE_URL asset placeholders: ${publicHtmlPlaceholders.sort().join(", ")}`,
   );
 }
+[
+  '%BASE_URL%favicon.ico',
+  '%BASE_URL%logo192.png',
+  '%BASE_URL%manifest.json',
+].forEach((assetReference) => {
+  if (!rootIndexSource.includes(assetReference)) {
+    throw new Error(`index.html lost its owned public asset reference: ${assetReference}.`);
+  }
+});
 if (
-  collectHtmlPlaceholders('<meta content="%React_App_New_Secret%" />').every(
-    (name) => name === "PUBLIC_URL",
-  )
+  collectHtmlPlaceholders('<meta content="%React_App_New_Secret%" />').length !== 1
 ) {
   throw new Error("The public HTML environment-placeholder fixture is invalid.");
 }
@@ -632,6 +717,28 @@ const collectDynamicImportBoundaryViolations = ({ sourceFile, projectPath }) => 
   return violations;
 };
 
+const collectImportMetaViolations = ({ sourceFile, projectPath }) => {
+  const violations = [];
+  const inspectNode = (node) => {
+    if (
+      ts.isMetaProperty(node) &&
+      node.keywordToken === ts.SyntaxKind.ImportKeyword &&
+      !(
+        ts.isPropertyAccessExpression(node.parent) &&
+        node.parent.expression === node &&
+        node.parent.name.text === "url"
+      )
+    ) {
+      violations.push(`${projectPath}:runtime-import-meta`);
+    }
+
+    ts.forEachChild(node, inspectNode);
+  };
+
+  inspectNode(sourceFile);
+  return violations;
+};
+
 const axiosReExportFixturePath = "src/api/client.ts";
 const axiosReExportFixture = ts.createSourceFile(
   axiosReExportFixturePath,
@@ -647,6 +754,20 @@ if (
   }).includes(`${axiosReExportFixturePath}:runtime-axios-export`)
 ) {
   throw new Error("A retired global root allowed an Axios runtime re-export.");
+}
+
+{
+  const projectPath = "src/features/import-meta-url-fixture.ts";
+  const sourceFile = ts.createSourceFile(
+    projectPath,
+    'export const value = new URL("./asset.svg", import.meta.url);',
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+  if (collectImportMetaViolations({ sourceFile, projectPath }).length > 0) {
+    throw new Error("The canonical Vite import.meta.url asset pattern was rejected.");
+  }
 }
 
 const dynamicBoundaryFixtures = [
@@ -706,6 +827,30 @@ for (const fixture of dynamicBoundaryFixtures) {
   }
 }
 
+for (const source of [
+  "export const value = import.meta.env.REACT_APP_API_URL;",
+  'export const value = import.meta["env"].REACT_APP_API_URL;',
+  "const { env } = import.meta; export const value = env;",
+  "const meta = import.meta; export const value = meta.env;",
+  'export const value = Reflect.get(import.meta, "env");',
+]) {
+  const projectPath = "src/features/import-meta-env-fixture.ts";
+  const sourceFile = ts.createSourceFile(
+    projectPath,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+  if (
+    !collectImportMetaViolations({ sourceFile, projectPath }).includes(
+      `${projectPath}:runtime-import-meta`,
+    )
+  ) {
+    throw new Error("import.meta.env escaped the exact browser environment owner.");
+  }
+}
+
 for (const { absolutePath, projectPath } of productionSourceFiles) {
   const source = await readFile(absolutePath, "utf8");
   const sourceExtension = path.extname(absolutePath);
@@ -728,6 +873,7 @@ for (const { absolutePath, projectPath } of productionSourceFiles) {
   productionBoundaryViolations.push(
     ...collectAxiosBoundaryViolations({ sourceFile, projectPath }),
     ...collectDynamicImportBoundaryViolations({ sourceFile, projectPath }),
+    ...collectImportMetaViolations({ sourceFile, projectPath }),
   );
 
   const inspectProductionNode = (node) => {
@@ -779,5 +925,5 @@ if (productionBoundaryViolations.length > 0) {
 }
 
 process.stdout.write(
-  `Platform boundary fixtures passed (${invalidScenarios.length + validScenarios.length + dynamicBoundaryFixtures.length + 5} scenarios).\n`,
+  `Platform boundary fixtures passed (${invalidScenarios.length + validScenarios.length + dynamicBoundaryFixtures.length + 11} scenarios).\n`,
 );

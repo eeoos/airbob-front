@@ -14,6 +14,7 @@ type WebAppManifest = {
 };
 
 const publicRoot = join(process.cwd(), "public");
+const documentSource = readFileSync(join(process.cwd(), "index.html"), "utf8");
 const manifest = JSON.parse(
   readFileSync(join(publicRoot, "manifest.json"), "utf8"),
 ) as WebAppManifest;
@@ -39,13 +40,24 @@ const icoDimensions = (asset: Buffer): [number, number] => {
 
 describe("public app asset contracts", () => {
   it("keeps document and install metadata on the same theme", () => {
-    const document = readFileSync(join(publicRoot, "index.html"), "utf8");
-    const themeMeta = document.match(
+    const themeMeta = documentSource.match(
       /<meta\s+name=["']theme-color["']\s+content=["']([^"']+)["']\s*\/?>/i,
     );
 
     expect(themeMeta?.[1]).toBe(manifest.theme_color);
     expect(manifest.background_color).toBe(manifest.theme_color);
+  });
+
+  it("references public app assets through the Vite base URL", () => {
+    expect(documentSource).toContain(
+      '<link rel="icon" href="%BASE_URL%favicon.ico" />',
+    );
+    expect(documentSource).toContain(
+      '<link rel="apple-touch-icon" href="%BASE_URL%logo192.png" />',
+    );
+    expect(documentSource).toContain(
+      '<link rel="manifest" href="%BASE_URL%manifest.json" />',
+    );
   });
 
   it.each(manifest.icons)(

@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { gzipSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
 import { validatePublicBuildEnvironment } from "./validate-public-build-env.mjs";
 
@@ -185,6 +186,151 @@ const collectTextFilesIfPresent = async (directory) => {
   }
 };
 
+const REQUIRED_PUBLIC_FILES = Object.freeze([
+  "favicon.ico",
+  "index.html",
+  "logo192.png",
+  "logo512.png",
+  "manifest.json",
+  "robots.txt",
+]);
+const U16_INITIAL_JAVASCRIPT_GZIP_CEILING_BYTES = 147_730;
+
+const readLazyRouteChunkPrefixes = async () => {
+  const lazyRouteSource = await readFile(
+    path.join(projectRoot, "src/app/router/lazyRoutes.tsx"),
+    "utf8",
+  );
+  const routeModuleNames = [
+    ...lazyRouteSource.matchAll(
+      /import\(\s*["']\.\/routes\/([^"']+)["']\s*\)/g,
+    ),
+  ].map((match) => match[1]);
+  const uniqueRouteModuleNames = [...new Set(routeModuleNames)];
+
+  if (
+    uniqueRouteModuleNames.length === 0 ||
+    uniqueRouteModuleNames.length !== routeModuleNames.length
+  ) {
+    throw new Error("The lazy-route manifest is empty or contains duplicate modules.");
+  }
+
+  return uniqueRouteModuleNames.map((moduleName) => `${moduleName}-`);
+};
+
+const verifyViteBuildContract = async ({
+  directory,
+  publicAssetBase,
+  requiredLazyRouteChunks,
+}) => {
+  const rootEntries = new Set(await readdir(directory));
+  const missingPublicFiles = REQUIRED_PUBLIC_FILES.filter(
+    (fileName) => !rootEntries.has(fileName),
+  );
+
+  if (missingPublicFiles.length > 0 || rootEntries.has("asset-manifest.json")) {
+    throw new Error(
+      `Production build public-file contract failed: ${missingPublicFiles.join(", ") || "retired asset-manifest.json was emitted"}.`,
+    );
+  }
+
+  const staticDirectory = path.join(directory, "static");
+  const staticEntries = await readdir(staticDirectory);
+  const unhashedStaticAssets = staticEntries.filter(
+    (fileName) => !/-[A-Za-z0-9_-]{8,64}\.[A-Za-z0-9]+(?:\.map)?$/.test(fileName),
+  );
+  if (unhashedStaticAssets.length > 0) {
+    throw new Error(
+      `Immutable /static assets must be content-hashed: ${unhashedStaticAssets.join(", ")}.`,
+    );
+  }
+  const javascriptFiles = staticEntries.filter((fileName) =>
+    fileName.endsWith(".js"),
+  );
+  const cssFiles = staticEntries.filter((fileName) => fileName.endsWith(".css"));
+  const staticEntrySet = new Set(staticEntries);
+
+  if (
+    javascriptFiles.length < requiredLazyRouteChunks.length + 1 ||
+    cssFiles.length === 0
+  ) {
+    throw new Error("Production build did not retain split JavaScript and CSS assets.");
+  }
+
+  const missingRouteChunks = requiredLazyRouteChunks.filter(
+    (prefix) => !javascriptFiles.some((fileName) => fileName.startsWith(prefix)),
+  );
+  if (missingRouteChunks.length > 0) {
+    throw new Error(
+      `Production build collapsed lazy route chunks: ${missingRouteChunks.join(", ")}.`,
+    );
+  }
+
+  const missingSourceMaps = javascriptFiles.filter(
+    (fileName) => !staticEntrySet.has(`${fileName}.map`),
+  );
+  if (missingSourceMaps.length > 0) {
+    throw new Error(
+      `Production build omitted JavaScript source maps: ${missingSourceMaps.join(", ")}.`,
+    );
+  }
+
+  const cssSource = (
+    await Promise.all(
+      cssFiles.map((fileName) => readFile(path.join(staticDirectory, fileName), "utf8")),
+    )
+  ).join("\n");
+  if (/@custom-media\b|@media\s*\(\s*--/i.test(cssSource)) {
+    throw new Error("Production CSS contains unresolved custom-media syntax.");
+  }
+
+  const normalizedBase = `${publicAssetBase.replace(/\/+$/, "")}/`;
+  const indexSource = await readFile(path.join(directory, "index.html"), "utf8");
+  const requiredBuiltReferences = [
+    `${normalizedBase}favicon.ico`,
+    `${normalizedBase}logo192.png`,
+    `${normalizedBase}manifest.json`,
+    `${normalizedBase}static/`,
+  ];
+  if (
+    requiredBuiltReferences.some((reference) => !indexSource.includes(reference)) ||
+    indexSource.includes("%BASE_URL%") ||
+    !/<script\b[^>]*\btype=["']module["'][^>]*>/i.test(indexSource)
+  ) {
+    throw new Error("Production HTML did not preserve the validated Vite base contract.");
+  }
+
+  const initialJavascriptReferences = new Set(
+    [...indexSource.matchAll(/<(?:script|link)\b[^>]*(?:src|href)=["']([^"']+\.js)["'][^>]*>/gi)]
+      .map((match) => match[1])
+      .filter((reference) => reference.includes("/static/")),
+  );
+  if (initialJavascriptReferences.size === 0) {
+    throw new Error("Production HTML did not declare its initial JavaScript graph.");
+  }
+
+  const initialJavascriptGzipBytes = (
+    await Promise.all(
+      [...initialJavascriptReferences].map(async (reference) => {
+        const fileName = new URL(reference, "https://airbob-build.invalid").pathname
+          .split("/")
+          .at(-1);
+        if (!fileName || !staticEntrySet.has(fileName)) {
+          throw new Error("Production HTML references a missing initial JavaScript asset.");
+        }
+        return gzipSync(await readFile(path.join(staticDirectory, fileName))).byteLength;
+      }),
+    )
+  ).reduce((total, bytes) => total + bytes, 0);
+  if (initialJavascriptGzipBytes > U16_INITIAL_JAVASCRIPT_GZIP_CEILING_BYTES) {
+    throw new Error(
+      `Vite initial JavaScript graph exceeded the U16 parity ceiling: ${initialJavascriptGzipBytes} bytes.`,
+    );
+  }
+
+  return initialJavascriptGzipBytes;
+};
+
 const runPackageBuild = ({
   buildPath,
   publicAssetBase,
@@ -207,6 +353,8 @@ const runPackageBuild = ({
   });
 
 try {
+  const initialJavascriptGzipMeasurements = [];
+  const requiredLazyRouteChunks = await readLazyRouteChunkPrefixes();
   const invalidBuildInputs = [
     {
       name: "missing API origin",
@@ -473,10 +621,19 @@ try {
         `Production build did not preserve the validated ${name} PUBLIC_URL.`,
       );
     }
+
+    initialJavascriptGzipMeasurements.push(await verifyViteBuildContract({
+      directory: acceptedBuildPath,
+      publicAssetBase,
+      requiredLazyRouteChunks,
+    }));
   }
 
+  const maximumInitialJavascriptGzipBytes = Math.max(
+    ...initialJavascriptGzipMeasurements,
+  );
   process.stdout.write(
-    "Production builds contain only four approved app-runtime public categories plus a validated PUBLIC_URL asset base.\n",
+    `Production builds contain only four approved app-runtime public categories plus a validated PUBLIC_URL asset base; the Vite initial JavaScript graph is at most ${(maximumInitialJavascriptGzipBytes / 1000).toFixed(2)} kB gzip.\n`,
   );
 } finally {
   await rm(buildRoot, { recursive: true, force: true });

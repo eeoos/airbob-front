@@ -2,7 +2,7 @@
 
 ## Status
 
-U11 is a Vercel Preview candidate for a portfolio service that uses Toss Payments sandbox only. The frontend deploys through the GitHub-connected Vercel project and calls the always-on OCI backend. No real-money payment is in scope.
+U11 is a Vercel Preview candidate for a portfolio service that uses Toss Payments sandbox only. The current descendant build uses Vite, deploys through the GitHub-connected Vercel project, and calls the always-on OCI backend. No real-money payment is in scope.
 
 The merge gate is therefore proportional: keep production untouched while the branch Preview is checked, preserve U10 as a Git/Vercel deployment target, and require all repository gates to be green. A separate artifact store, production payment operator, and real-money rollback drill are not required for this project.
 
@@ -29,6 +29,45 @@ The project owner confirmed that Vercel environment variables are configured. Th
 
 OCI must accept the Preview origin under the existing credentialed CORS/session policy. Do not copy keys, cookies, reservation IDs, payment keys, names, or email addresses into deployment notes or test artifacts.
 
+## Vite deployment and rollback contract
+
+The repository-owned `vercel.json` runs `npm run build`, publishes `build/`, and
+uses Vercel's Vite SPA rewrite for direct route loads. Higher-level rewrites
+check the deployment filesystem first, so `/static/*`, icons, and other public
+files are served as files rather than rewritten to HTML. Content-hashed
+`/static/*` assets are immutable for one year; `index.html` must revalidate.
+
+Before promoting a candidate:
+
+1. Record the candidate commit and commit-specific Preview URL.
+2. Retain the last known-good deployment and confirm its generated URL still
+   loads its own HTML and hashed lazy chunks. Do not delete it or rebuild its
+   commit with a different environment.
+3. Open one tab on the previous production alias, deploy/promote the candidate,
+   then trigger a route that was not loaded before promotion. Record whether
+   the old tab can still fetch its previous lazy chunk.
+4. Direct-load and refresh every public/protected route category on the
+   candidate so the SPA fallback and static-file precedence are exercised.
+5. On failure, restore the previous immutable deployment/alias in Vercel and
+   repeat its HTML, static-asset, and direct-refresh checks.
+
+Vercel retaining an old deployment URL is the rollback primitive; it does not
+by itself prove that a plain Vite SPA tab opened on a moving production alias is
+version-pinned. The old-tab check above is therefore required evidence, not a
+claim made from repository configuration. This project currently uses the
+Hobby-scale portfolio workflow, so no unsupported Skew Protection guarantee is
+assumed.
+
+The repository configuration and local production build can be verified without
+the backend. The Preview deep-link/previous-tab check, OCI credentialed session,
+and Toss sandbox flow are still deferred while backend work continues and must
+not be marked complete from local evidence.
+
+- [Vite on Vercel](https://vercel.com/docs/frameworks/frontend/vite)
+- [Vercel project configuration](https://vercel.com/docs/project-configuration/vercel-json)
+- [Cache-Control headers](https://vercel.com/docs/caching/cache-control-headers)
+- [Vercel Skew Protection and supported frameworks](https://vercel.com/docs/skew-protection)
+
 ## Vercel Preview sandbox check
 
 Use the exact U11 commit Preview with screenshot, trace, video, and HAR disabled by default. Record only safe status codes, counts, durations, and pass/fail results.
@@ -51,7 +90,9 @@ Open U10 and U11 by their commit-specific Vercel URLs rather than mounting both 
 1. Confirm U10 can build against the same OCI API category and sandbox key category.
 2. Confirm U11 still writes the U10 checkout/callback schema.
 3. For a retryable callback, verify the recovery path performs status reconciliation without a second payment request or confirm POST.
-4. Confirm each deployment can still load its own hashed lazy chunks.
+4. Confirm each immutable deployment URL can still load its own hashed lazy
+   chunks from `/static/*`; separately perform the production-alias old-tab
+   check described above.
 
 Because U11 remains a Preview until these checks pass, a failed candidate is handled by not merging it. A production rollback drill is optional for the sandbox portfolio service. After a later production deployment, Vercel Instant Rollback can restore the immediately previous production deployment on Hobby; Preview deployments themselves are not Instant Rollback targets.
 
@@ -63,6 +104,7 @@ U11 is complete when all entries are satisfied:
 
 - [ ] reviewed U11 commit and commit-specific Preview URL recorded
 - [ ] Vercel Preview build succeeded with the configured OCI/sandbox categories
+- [ ] Vite SPA direct refresh, previous-deployment retention, and production-alias old-tab lazy-chunk check passed
 - [ ] sandbox cancel, retry, success, fail, confirm, and status checks passed
 - [ ] U10 commit remains available as a comparison/redeploy target
 - [x] retired `src/platform/integrations/tossPaymentsV1.ts` removed

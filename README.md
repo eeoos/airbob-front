@@ -2,8 +2,12 @@
 
 ## Frontend Setup
 
-Use Node.js 20.12+, Node.js 22, or Node.js 24. Odd-numbered Node releases
-are outside the supported toolchain range.
+Use Node.js 22.12+ on the Node 22 line, or Node.js 24. CI uses Node.js 22;
+other major versions are outside the supported Vite toolchain range.
+
+The browser build targets Vite 8's pinned `baseline-widely-available` set
+(Chrome/Edge 111, Firefox 114, Safari/iOS 16.4). The retired CRA Browserslist
+query is not used to imply a legacy bundle that Vite does not produce.
 
 ```bash
 npm install
@@ -11,6 +15,9 @@ npm run typecheck
 npm run test:ci:no-cache
 npm run build
 ```
+
+Start the Vite development server with `npm run dev` (or the `npm start`
+alias). Use `npm run preview` to inspect an existing production build.
 
 Install the deterministic browser once before the local Playwright suite:
 
@@ -25,16 +32,17 @@ Browser-public application runtime inputs:
 - `REACT_APP_TOSS_CLIENT_KEY` — optional until checkout is used
 - `REACT_APP_CLOUDFRONT_DOMAIN` — optional; the current public asset host is the default
 
-CRA separately consumes `PUBLIC_URL` while interpolating public HTML and asset
-paths. It is a build-only public asset base, not a fifth application runtime
-config value. Leave it missing/empty for the default root, or use either a
+Vite consumes `PUBLIC_URL` only as the validated build asset base. It is not a
+fifth application runtime config value. Leave it missing/empty for the default
+root, or use either a
 single-slash root-relative path such as `/airbob/assets` or an absolute HTTPS
 URL with an optional path. Dot-relative/protocol-relative paths, HTTP/data/blob
 URLs, credentials, query strings, fragments, surrounding whitespace,
 percent-encoded path characters, and HTML-unsafe characters fail before
 compilation.
 
-Local development expects the backend API to be reachable through the CRA proxy at `http://localhost:8080`.
+Local development expects the backend API to be reachable through the Vite
+`/api` proxy at `http://localhost:8080`.
 Production builds fail closed unless `REACT_APP_API_URL` is an explicit HTTPS
 origin with no credentials, path, query, or fragment. The deterministic CI
 build uses a synthetic `.invalid` origin; deployment must provide the real
@@ -88,6 +96,30 @@ npm run verify:design-ready
   browser harness privacy, type, and lint contracts.
 - `smoke:frontend:preflight`: validates smoke env names, dynamic route fixture IDs, browser binary path, frontend URL, and backend reachability without screenshots.
 - `verify:design-ready`: runs `verify:pre-redesign` and strict browser smoke.
+
+## Vite and Vercel deployment
+
+Vite is the only build/dev owner (`start`, `dev`, `build`, and `preview`) and
+keeps the production output at `build/` with production JavaScript source maps,
+development CSS source maps, and hashed files under `build/static/`.
+The unit/integration suite still runs through Jest via `react-scripts` until the
+separate U17 test-runner cutover; `react-scripts` no longer owns development or
+production compilation.
+
+The checked-in `vercel.json` points Vercel at `build/` and applies the official
+Vite SPA fallback. Vercel checks the deployment filesystem before the fallback,
+so real public files and hashed `/static/*` chunks are served directly while
+unknown deep links receive `index.html`. Hashed assets are cached as immutable
+for one year; `index.html` must revalidate so a new document does not keep stale
+chunk references.
+
+Keep the last known-good commit-specific Vercel deployment instead of deleting
+it. Before promoting a candidate, verify a direct route refresh and every lazy
+chunk on both the candidate URL and that previous URL. Roll back by restoring
+the previous immutable deployment/alias in Vercel, then verify its HTML and
+hashed chunks again. Vercel Preview/OCI/Toss sandbox parity and the already-open
+tab check remain explicitly unverified while the backend is unavailable; local
+build success is not evidence for those live checks.
 
 ### Frontend Architecture
 

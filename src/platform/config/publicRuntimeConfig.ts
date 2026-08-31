@@ -1,8 +1,8 @@
 import {
   ConfigError,
-  CraEnvironment,
-  CRA_ENV_KEYS,
-  readCraEnvironment,
+  BrowserEnvironment,
+  PUBLIC_ENV_KEYS,
+  readBrowserEnvironment,
   RuntimeMode,
 } from "./env";
 
@@ -63,7 +63,7 @@ const parseTossClientKey = (value: string | undefined): string | null => {
   if (!candidate) return null;
 
   if (!/^(?:test|live)_ck_[A-Za-z0-9_-]{1,256}$/.test(candidate)) {
-    throw new ConfigError("invalid", CRA_ENV_KEYS.tossClientKey);
+    throw new ConfigError("invalid", PUBLIC_ENV_KEYS.tossClientKey);
   }
 
   return candidate;
@@ -76,7 +76,7 @@ const parseGoogleMapsBrowserKey = (
   if (!candidate) return null;
 
   if (!GOOGLE_MAPS_BROWSER_KEY_PATTERN.test(candidate)) {
-    throw new ConfigError("invalid", CRA_ENV_KEYS.googleMapsApiKey);
+    throw new ConfigError("invalid", PUBLIC_ENV_KEYS.googleMapsApiKey);
   }
 
   return candidate;
@@ -89,7 +89,7 @@ const parseApiOrigin = (
   const configuredOrigin = trimOptional(value);
 
   if (!configuredOrigin && mode === "production") {
-    throw new ConfigError("missing", CRA_ENV_KEYS.apiUrl);
+    throw new ConfigError("missing", PUBLIC_ENV_KEYS.apiUrl);
   }
 
   const candidate = configuredOrigin || DEFAULT_API_ORIGIN;
@@ -119,7 +119,7 @@ const parseApiOrigin = (
 
     return url.origin;
   } catch {
-    throw new ConfigError("invalid", CRA_ENV_KEYS.apiUrl);
+    throw new ConfigError("invalid", PUBLIC_ENV_KEYS.apiUrl);
   }
 };
 
@@ -152,32 +152,38 @@ const parseCloudFrontDomain = (value: string | undefined): string => {
 
     return url.hostname;
   } catch {
-    throw new ConfigError("invalid", CRA_ENV_KEYS.cloudFrontDomain);
+    throw new ConfigError("invalid", PUBLIC_ENV_KEYS.cloudFrontDomain);
   }
 };
 
 export const createPublicRuntimeConfig = (
-  environment: CraEnvironment,
+  environment: BrowserEnvironment,
 ): PublicRuntimeConfig => {
-  rejectAmbiguousEncoding(environment.apiUrl, CRA_ENV_KEYS.apiUrl);
+  rejectAmbiguousEncoding(environment.apiUrl, PUBLIC_ENV_KEYS.apiUrl);
   rejectAmbiguousEncoding(
     environment.googleMapsApiKey,
-    CRA_ENV_KEYS.googleMapsApiKey,
+    PUBLIC_ENV_KEYS.googleMapsApiKey,
   );
-  rejectAmbiguousEncoding(environment.tossClientKey, CRA_ENV_KEYS.tossClientKey);
+  rejectAmbiguousEncoding(
+    environment.tossClientKey,
+    PUBLIC_ENV_KEYS.tossClientKey,
+  );
   rejectAmbiguousEncoding(
     environment.cloudFrontDomain,
-    CRA_ENV_KEYS.cloudFrontDomain,
+    PUBLIC_ENV_KEYS.cloudFrontDomain,
   );
-  rejectKnownServerSecret(environment.apiUrl, CRA_ENV_KEYS.apiUrl);
+  rejectKnownServerSecret(environment.apiUrl, PUBLIC_ENV_KEYS.apiUrl);
   rejectKnownServerSecret(
     environment.googleMapsApiKey,
-    CRA_ENV_KEYS.googleMapsApiKey,
+    PUBLIC_ENV_KEYS.googleMapsApiKey,
   );
-  rejectKnownServerSecret(environment.tossClientKey, CRA_ENV_KEYS.tossClientKey);
+  rejectKnownServerSecret(
+    environment.tossClientKey,
+    PUBLIC_ENV_KEYS.tossClientKey,
+  );
   rejectKnownServerSecret(
     environment.cloudFrontDomain,
-    CRA_ENV_KEYS.cloudFrontDomain,
+    PUBLIC_ENV_KEYS.cloudFrontDomain,
   );
 
   return Object.freeze({
@@ -195,7 +201,7 @@ export const createPublicRuntimeConfig = (
 };
 
 export const getPublicRuntimeConfig = (): PublicRuntimeConfig =>
-  createPublicRuntimeConfig(readCraEnvironment());
+  createPublicRuntimeConfig(readBrowserEnvironment());
 
 export const toSerializablePublicRuntimeConfig = (
   config: PublicRuntimeConfig = getPublicRuntimeConfig(),
@@ -235,7 +241,7 @@ const requireConfiguredValue = (value: string | null, key: string): string => {
 };
 
 export const requireGoogleMapsApiKey = (): string =>
-  requireConfiguredValue(getGoogleMapsApiKey(), CRA_ENV_KEYS.googleMapsApiKey);
+  requireConfiguredValue(getGoogleMapsApiKey(), PUBLIC_ENV_KEYS.googleMapsApiKey);
 
 export const requireTossClientKey = (): string =>
-  requireConfiguredValue(getTossClientKey(), CRA_ENV_KEYS.tossClientKey);
+  requireConfiguredValue(getTossClientKey(), PUBLIC_ENV_KEYS.tossClientKey);

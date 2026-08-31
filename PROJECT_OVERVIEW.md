@@ -12,10 +12,17 @@ React/TypeScript 단일 페이지 애플리케이션입니다. 브라우저에�
 - 호스트: Profile listings → Accommodation edit/create → publish
 - 후기: Reservation detail → Review create/edit/delete
 
-현재 앱은 15개의 lazy route와 `main`, `search-header`, `bare` shell 조합을 사용합니다.
-TanStack Query가 서버 상태를, `AuthProvider`가 세션 상태를, URL과 `history.state` 및 일부
-`sessionStorage` 키가 화면·결제 전환 상태를 보유합니다. Axios 클라이언트는 cookie 기반
-세션과 기존 응답 envelope를 유지합니다.
+현재 앱은 15개의 lazy route와 browse/form/transaction/editor/bare route frame을
+사용합니다. TanStack Query가 서버 상태를, app `SessionProvider`가 인증 수명을, URL과
+`history.state` 및 제한된 `sessionStorage` 문서가 화면·결제 전환 상태를 보유합니다.
+Axios 클라이언트는 cookie 기반 세션과 기존 응답 envelope를 유지합니다.
+
+개발 서버와 production build는 Node.js 22.12+의 22 계열 또는 Node.js 24에서 동작하는
+Vite가 소유하고 결과물 경로는 기존
+배포 계약과 같은 `build/`입니다. Jest는 U17 전환 전까지 `react-scripts`를 test runner로만
+사용합니다. Vercel은 실제 정적 파일을 우선 제공한 뒤 SPA deep-link를 `index.html`로
+보내며, OCI/Toss sandbox가 필요한 live 검증은 backend 준비 전까지 완료로 간주하지
+않습니다.
 
 ## 구조 문서
 

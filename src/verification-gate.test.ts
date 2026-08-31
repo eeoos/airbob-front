@@ -5,6 +5,7 @@ import { spawnSync } from "child_process";
 
 const projectRoot = process.cwd();
 const packageJsonPath = path.join(projectRoot, "package.json");
+const vercelConfigPath = path.join(projectRoot, "vercel.json");
 const frontendWorkflowPath = path.join(
   projectRoot,
   ".github/workflows/frontend.yml",
@@ -343,9 +344,10 @@ describe("frontend verification gate", () => {
     const eslintConfig = JSON.stringify(packageJson.eslintConfig);
 
     expect(packageJson.packageManager).toBe("npm@10.7.0");
-    expect(packageJson.engines?.node).toBe(
-      "^20.12.0 || ^22.0.0 || ^24.0.0",
-    );
+    expect(packageJson.engines?.node).toBe("^22.12.0 || ^24.0.0");
+    expect(packageJson.scripts.start).toBe("vite");
+    expect(packageJson.scripts.dev).toBe("vite");
+    expect(packageJson.scripts.preview).toBe("vite preview");
     expect(packageJson.scripts["test:ci:no-cache"]).toBe(
       "react-scripts test --watchAll=false --no-cache",
     );
@@ -358,8 +360,9 @@ describe("frontend verification gate", () => {
     expect(packageJson.scripts["typecheck:e2e"]).toBe(
       "tsc --noEmit -p tsconfig.e2e.json",
     );
+    expect(packageJson.scripts["typecheck:tooling"]).toBeUndefined();
     expect(packageJson.scripts["lint:e2e"]).toBe(
-      "eslint playwright.config.ts tests/e2e --ext .mjs,.ts --max-warnings=0",
+      "eslint vite.config.mjs playwright.config.ts tests/e2e --ext .mjs,.ts --max-warnings=0",
     );
     expect(packageJson.scripts["test:architecture-rules"]).toContain(
       "verify-dependency-rules.mjs",
@@ -381,6 +384,9 @@ describe("frontend verification gate", () => {
     );
     expect(packageJson.scripts["test:architecture-rules"]).toContain(
       "verify-toss-runtime.mjs",
+    );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-vite-config.mjs",
     );
     expect(packageJson.scripts["test:architecture-rules"]).toContain(
       "verify-toss-build-gate.mjs",
@@ -406,12 +412,16 @@ describe("frontend verification gate", () => {
       stylelint: "16.23.1",
       "stylelint-config-recommended": "17.0.0",
       "stylelint-config-standard": "39.0.0",
+      "@csstools/postcss-global-data": "4.0.0",
+      "@vitejs/plugin-react": "5.2.0",
+      "postcss-custom-media": "12.0.1",
+      vite: "8.2.2",
     });
     expect(packageJson.scripts.lint).toBe(
       "eslint src --ext .js,.jsx,.mjs,.ts,.tsx",
     );
     expect(packageJson.scripts.build).toBe(
-      "node scripts/architecture/validate-public-build-env.mjs && react-scripts build && node scripts/architecture/verify-toss-production-build.mjs",
+      "node scripts/architecture/validate-public-build-env.mjs && vite build && node scripts/architecture/verify-toss-production-build.mjs",
     );
     expect(packageJson.dependencies["@tosspayments/tosspayments-sdk"]).toBe(
       "2.8.1",
@@ -445,18 +455,20 @@ describe("frontend verification gate", () => {
     expect(packageJson.scripts.verify).toContain("npm run build");
     expect(packageJson.scripts.verify).not.toContain("npm run lint");
     expect(packageJson.scripts.verify).not.toContain("lint:strict");
+    expect(packageJson.proxy).toBeUndefined();
+    expect(packageJson.browserslist).toBeUndefined();
     expect(eslintConfig).not.toContain("src/api/client.ts");
     expect(eslintConfig).not.toContain("src/utils/error.ts");
   });
 
-  test("frontend CI runs static and deterministic browser gates on Node 20", () => {
+  test("frontend CI runs static and deterministic browser gates on Node 22", () => {
     expect(fs.existsSync(frontendWorkflowPath)).toBe(true);
 
     const workflow = fs.readFileSync(frontendWorkflowPath, "utf8");
 
     [
       "fetch-depth: 0",
-      "node-version: 20",
+      "node-version: 22",
       "run: npm ci",
       "run: npx playwright install --with-deps chromium",
       "run: npm run test:e2e:artifact-policy",
@@ -493,6 +505,38 @@ describe("frontend verification gate", () => {
 
     expect(commandOrder.every((index) => index >= 0)).toBe(true);
     expect(commandOrder).toEqual([...commandOrder].sort((a, b) => a - b));
+  });
+
+  test("Vercel preserves static assets, SPA refreshes, and cache ownership", () => {
+    const vercelConfig = JSON.parse(
+      fs.readFileSync(vercelConfigPath, "utf8"),
+    );
+
+    expect(vercelConfig.buildCommand).toBe("npm run build");
+    expect(vercelConfig.outputDirectory).toBe("build");
+    expect(vercelConfig.rewrites).toEqual([
+      { source: "/(.*)", destination: "/index.html" },
+    ]);
+    expect(vercelConfig.headers).toEqual([
+      {
+        source: "/static/(.*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        source: "/index.html",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=0, must-revalidate",
+          },
+        ],
+      },
+    ]);
   });
 
   test("canonical frontend architecture docs and placeholder env example are present", () => {
@@ -586,6 +630,7 @@ describe("frontend verification gate", () => {
     ]);
 
     [
+      "PUBLIC_URL=",
       "REACT_APP_API_URL=http://localhost:8080",
       "REACT_APP_GOOGLE_MAPS_API_KEY=replace-with-local-dev-key",
       "AIRBOB_QA_EMAIL=qa@example.com",

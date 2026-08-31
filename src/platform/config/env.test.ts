@@ -1,12 +1,12 @@
 import {
   ConfigError,
-  CRA_ENV_KEYS,
-  readCraEnvironment,
+  PUBLIC_ENV_KEYS,
+  readBrowserEnvironment,
 } from "./env";
 
-describe("readCraEnvironment", () => {
-  it("reads only the explicit CRA browser-public allowlist", () => {
-    const environment = readCraEnvironment({
+describe("readBrowserEnvironment", () => {
+  it("reads only the explicit browser-public allowlist", () => {
+    const environment = readBrowserEnvironment({
       NODE_ENV: "production",
       REACT_APP_API_URL: "https://api.airbob.test",
       REACT_APP_GOOGLE_MAPS_API_KEY: "maps-public-key",
@@ -36,7 +36,7 @@ describe("readCraEnvironment", () => {
       let thrownError: unknown;
 
       try {
-        readCraEnvironment({ NODE_ENV: mode });
+        readBrowserEnvironment({ NODE_ENV: mode });
       } catch (error) {
         thrownError = error;
       }
@@ -44,7 +44,7 @@ describe("readCraEnvironment", () => {
       expect(thrownError).toBeInstanceOf(ConfigError);
       expect(thrownError).toMatchObject({
         kind: mode === undefined ? "missing" : "invalid",
-        key: CRA_ENV_KEYS.mode,
+        key: PUBLIC_ENV_KEYS.mode,
       });
       expect((thrownError as Error).message).not.toContain(String(mode));
     },

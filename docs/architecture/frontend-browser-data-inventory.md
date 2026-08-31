@@ -104,7 +104,7 @@ stable subject, version, creation time, or explicit TTL.
 
 | Value | Current source | Exposure | Policy |
 | --- | --- | --- | --- |
-| API domain | `REACT_APP_API_URL` through `src/platform/config` | Public build configuration | Production requires one explicit HTTPS origin with no credentials, path, query, or fragment; development keeps the CRA proxy. |
+| API domain | `REACT_APP_API_URL` through `src/platform/config` | Public build configuration | Production requires one explicit HTTPS origin with no credentials, path, query, or fragment; development keeps the Vite `/api` proxy. |
 | Google Maps browser key | `REACT_APP_GOOGLE_MAPS_API_KEY` through `src/platform/config` | Public browser key delivered to Google script | Treat as public-but-restricted. Record presence only; never record the value. Percent encoding and non-browser-key characters are rejected; domain/API restrictions remain external prerequisites. |
 | Toss client key | `REACT_APP_TOSS_CLIENT_KEY` through `src/platform/config` | Public browser payment client key | Only API-individual `test_ck_`/`live_ck_` browser-client categories are accepted for the v2 direct payment window. Missing/invalid API origins and misplaced `*_sk_*` server-key categories fail before the production compiler; hostile build/artifact checks prove the boundary without printing the value. |
 | CloudFront domain | `REACT_APP_CLOUDFRONT_DOMAIN` through `src/platform/config` | Public asset host | Exact validated HTTPS host consumed by the platform image resolver. |
@@ -118,7 +118,7 @@ stable subject, version, creation time, or explicit TTL.
 | Live smoke stdout/report | Script redacts configured credential values and records route evidence | Restricted integration job only; stable IDs and credential values remain out of docs. Missing fixture is unverified. |
 | Screenshots | Current live smoke stores route screenshots | Use synthetic data when possible. Real-account screenshots require restricted retention and PII review. |
 | Deterministic Playwright output | U2 disables trace, video, screenshot, and HTML reports; uses synthetic identities and default-deny network; redacts stdout/stderr; and scans the current text artifact directory at teardown. | Keep binary artifacts disabled until an explicit synthetic-only retention policy exists. Any future artifact type must be allowlisted and privacy-scanned before activation. |
-| Built HTML/JavaScript/source maps | CRA exposes four values read by the explicit app platform adapter and separately interpolates build-only `PUBLIC_URL` into HTML/asset paths | A hostile production build requires the four approved app-runtime public canaries, permits only empty or percent-free root-relative/HTTPS-path asset bases, and rejects unsafe `PUBLIC_URL`, secret, QA, cookie/token, private-key, and unpredictable unknown `REACT_APP_*` canaries. |
+| Built HTML/JavaScript/source maps | Vite maps only four existing `REACT_APP_*` values into the explicit app platform adapter and consumes build-only `PUBLIC_URL` as its validated asset base | A hostile production build requires the four approved app-runtime public canaries, permits only empty or percent-free root-relative/HTTPS-path asset bases, and rejects unsafe `PUBLIC_URL`, secret, QA, cookie/token, private-key, and unpredictable unknown `REACT_APP_*` canaries. Vite's generic environment exposure is not an application config boundary. |
 
 ## Cleanup events
 
