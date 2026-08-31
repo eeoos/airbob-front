@@ -2,8 +2,9 @@
 
 ## Frontend Setup
 
-Use Node.js 22.13+ on the Node 22 line, or Node.js 24. CI uses Node.js 22;
-other major versions are outside the supported Vite toolchain range.
+Use Node.js 22.13+ on the Node 22 line, or Node.js 24. CI runs the exact
+Node.js 22.13.0 and 24.0.0 matrix; other major versions are outside the
+supported Vite toolchain range.
 
 The browser build targets Vite 8's pinned `baseline-widely-available` set
 (Chrome/Edge 111, Firefox 114, Safari/iOS 16.4). The retired CRA Browserslist
@@ -79,26 +80,20 @@ accepts only browser-key-safe letters, digits, `_`, and `-`.
 Use these commands before broad visual redesign work:
 
 ```bash
-npm run verify:pre-redesign
-npm run verify:structure
-npm run verify:architecture
-npm run format:check
-npm run report:architecture
-npm run test:public-config-build
-npm run test:e2e:artifact-policy
-npm run typecheck:e2e
-npm run test:e2e:characterization
-npm run lint:e2e
-npm run smoke:frontend:preflight
 npm run verify:design-ready
+npm run report:architecture
 ```
 
-- `verify:pre-redesign`: typecheck, deterministic single-worker Vitest, and production build.
+- `verify:design-ready` and `verify:pre-redesign`: the same canonical,
+  backend-independent design-entry gate. They combine the structure and
+  deterministic browser gates and do not contact OCI, Toss, or Google Maps.
 - `verify:structure`: typecheck, deterministic single-worker Vitest, strict ESLint, the
   architecture/reachability/style ratchets, and a hostile-environment
   production build that proves only the four approved app-runtime public
   config categories plus a validated `PUBLIC_URL` asset base can enter built
   source.
+- `verify:browser`: runs Playwright type/lint and artifact policy checks, then
+  the synthetic same-origin browser characterization without a live backend.
 - `verify:architecture`: runs forbidden-rule fixtures, the production
   dependency graph, monotonic migration-registry checks, target-only dead-code
   enforcement, full development and strict production dependency
@@ -109,7 +104,9 @@ npm run verify:design-ready
   private-key, and unknown-env canaries into a temporary production build and
   fails if any forbidden value reaches generated text assets. It also runs the
   real production build entry point against rejected `PUBLIC_URL` forms and
-  proves accepted root-relative and HTTPS-path asset bases.
+  proves accepted root-relative and HTTPS-path asset bases. Initial and lazy
+  route JavaScript must satisfy the executable budgets in
+  `frontend-bundle-budgets.json`.
 - `test:e2e:characterization`: builds and serves a loopback-only production
   variant, then runs the synthetic Playwright flow matrix without a live backend.
 - `test:e2e:artifact-policy`, `typecheck:e2e`, and `lint:e2e`: enforce the
@@ -117,8 +114,13 @@ npm run verify:design-ready
 - `typecheck` checks browser and Vitest ownership; `typecheck:tooling` checks
   the TypeScript Vite/Vitest configuration without leaking Node types into the
   application project.
-- `smoke:frontend:preflight`: validates smoke env names, dynamic route fixture IDs, browser binary path, frontend URL, and backend reachability without screenshots.
-- `verify:design-ready`: runs `verify:pre-redesign` and strict browser smoke.
+- `audit:production`: blocks high-severity production dependency advisories.
+- `smoke:frontend:preflight`: validates live smoke env names, dynamic route
+  fixture IDs, browser binary path, frontend URL, and backend reachability
+  without screenshots.
+- `verify:live-integration`: runs strict Vercel/OCI route smoke after the
+  external environment is ready. It is deliberately outside the design-entry
+  gate.
 
 ## Vite and Vercel deployment
 
@@ -169,28 +171,23 @@ npm run verify:structure
 npm run test:ci:no-cache -- src/verification-gate.test.ts
 ```
 
-브라우저 기반 smoke까지 확인하려면 QA 계정, 안정적인 reservation UID, 프론트/백엔드 서버, `GSTACK_BROWSE_BIN`을 준비한 뒤 실행합니다.
+현재 구조와 디자인 진입은 backend-independent gate로 판정합니다.
 
 ```bash
 npm run verify:design-ready
 ```
 
-Required smoke environment variables:
+Vercel frontend, OCI backend, 실제 Maps/Places와 Toss sandbox가 준비된 뒤의 live 검증은
+별도입니다. QA credential과 fixture identifier는 out-of-band로 주입하고 문서나 commit에
+남기지 않습니다.
 
-- `AIRBOB_QA_EMAIL`
-- `AIRBOB_QA_PASSWORD`
-- `GSTACK_BROWSE_BIN`
-- `AIRBOB_SMOKE_ACCOMMODATION_ID`
-- `AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID`
-- `AIRBOB_SMOKE_RESERVATION_UID`
-- `AIRBOB_SMOKE_HOST_RESERVATION_UID`
+```bash
+npm run smoke:frontend:preflight
+npm run verify:live-integration
+```
 
-Optional smoke configuration:
-
-- `AIRBOB_FRONTEND_URL` defaults to `http://localhost:3000`
-- `AIRBOB_API_BASE_URL` defaults to `http://localhost:8080`
-- `AIRBOB_SMOKE_REPORT_ROOT` defaults to `.gstack/qa-reports`
-- `AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS=true` requires a visible search result card
-
-날짜가 적힌 기존 smoke 결과는 당시 실행 증거일 뿐 현재 통과 상태를 보장하지 않습니다.
-동적 fixture나 외부 실행 환경이 없어 skip된 경로도 검증 완료로 간주하지 않습니다.
+필수 환경 변수, live-only checklist와 증거 기록 규칙은
+[`docs/qa/frontend-architecture-smoke.ko.md`](docs/qa/frontend-architecture-smoke.ko.md)를
+따릅니다. Backend가 준비되지 않았거나 dynamic route가 skip된 실행은
+`DEFERRED / UNVERIFIED`이며 통과로 간주하지 않습니다. AWS 성능 환경은 디자인 진입
+gate와 별도입니다.

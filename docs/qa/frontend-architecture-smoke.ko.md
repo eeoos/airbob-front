@@ -1,293 +1,146 @@
-# Frontend Architecture Smoke QA
+# Frontend Live Integration Smoke
 
-> 상태: 현재 운영 smoke 절차입니다. 구조와 소유권의 기준은
-> [`../architecture/current-frontend-architecture.md`](../architecture/current-frontend-architecture.md),
-> 브라우저 데이터·artifact 처리 기준은
-> [`../architecture/frontend-browser-data-inventory.md`](../architecture/frontend-browser-data-inventory.md)를 따릅니다.
-> 아래 날짜별 결과는 당시 실행 기록이며 현재 통과를 보장하지 않고, skip된 경로는 검증 완료가 아닙니다.
+> 현재 상태: **DEFERRED / UNVERIFIED**
+> Vercel frontend와 OCI backend가 호환 가능한 상태로 연결되기 전에는 이 문서를 완료
+> 증거로 사용하지 않는다. Toss는 sandbox만 사용한다.
 
-## 목적
+## 목적과 경계
 
-Airbnb 디자인 리팩터 전에 프론트엔드 아키텍처 변경이 주요 사용자 흐름을 깨뜨리지 않았는지 확인한다.
+이 문서는 외부 서비스가 필요한 live 통합만 검증한다. 프론트 구조와 디자인 진입은
+backend-independent `npm run verify:design-ready`가 판정하며, live smoke는 그 명령에
+포함되지 않고 디자인 작업을 차단하지 않는다.
 
-## 환경
+Live 범위는 다음뿐이다.
 
-- Frontend: http://localhost:3000
-- Backend: http://localhost:8080
-- QA 계정: 스레드에서 사용자가 제공한 QA 계정을 사용한다. 실제 이메일, 비밀번호, 닉네임, member_id 같은 자격 증명 값은 문서나 커밋에 남기지 않는다.
+- commit-specific Vercel deployment의 SPA deep link와 lazy asset
+- Vercel origin에서 OCI `/api/v1`로 가는 cookie session, CORS, API envelope와 upload
+- 실제 Google Maps/Places SDK의 key/referrer/quota와 browser interaction
+- Toss sandbox redirect, callback scrub, confirm/status reconciliation
 
-## 자동화 실행
+AWS 성능 환경은 이 runbook과 디자인 진입 gate 밖의 별도 성능 작업이다.
 
-`npm run verify:design-ready`는 정적 pre-redesign gate와 strict frontend smoke gate를 순서대로 실행한다. 정적 gate만 확인할 때는 `npm run verify:pre-redesign`, 구조/lint gate는 `npm run verify:structure`, 브라우저 smoke만 확인할 때는 `npm run smoke:frontend`를 사용한다. 디자인 착수 전 최종 gate는 반드시 `npm run smoke:frontend:strict` 또는 `npm run verify:design-ready`로 실행한다.
+## 실행 전 조건
 
-`npm run smoke:frontend`은 `scripts/smoke/frontend-smoke.mjs`를 실행해 gstack browse로 데스크톱 `1280x720`과 모바일 `375x812` 라우트 스모크를 수행한다. 스크립트는 자격 증명 값을 출력하지 않고, 리포트와 스크린샷을 `.gstack/qa-reports` 아래에 남긴다. `npm run smoke:frontend:strict`는 dynamic reservation route UID가 없으면 브라우저를 실행하기 전에 실패한다.
+- 검증할 Git commit과 그 commit-specific Vercel deployment를 고정한다.
+- 해당 frontend contract와 호환되는 OCI backend가 reachable 상태여야 한다.
+- Vercel에는 OCI API origin, Google Maps browser key, Toss sandbox client key가 올바른
+  deployment environment로 설정돼 있어야 한다. 값은 문서·명령 출력·report에 기록하지
+  않는다.
+- QA 계정과 disposable test data를 out-of-band로 준비한다. 실제 사용자 데이터와 실제
+  결제 수단을 사용하지 않는다.
+- guest/host reservation detail과 accommodation detail/edit에 사용할 안정적인 fixture를
+  준비한다. 식별자는 shell environment에만 두고 echo하거나 commit하지 않는다.
+- `GSTACK_BROWSE_BIN`이 실행 가능해야 한다. Search result card를 검증하려면 OCI search
+  index에도 전용 fixture가 있어야 한다.
 
-`npm run smoke:frontend:preflight`는 스크린샷이나 리포트를 쓰지 않고 smoke 필수 환경 변수, dynamic route UID, accommodation fixture ID, `GSTACK_BROWSE_BIN` 실행 가능 여부, frontend URL, backend URL reachability를 먼저 검증한다. `AIRBOB_SMOKE_REPORT_ROOT` can point smoke artifacts at a temporary directory during harness tests. Normal manual QA can leave it unset so reports continue under `.gstack/qa-reports`.
+## Smoke 환경 변수
 
-| 환경 변수                            | 필수 여부        | 값                                             |
-| ------------------------------------ | ---------------- | ---------------------------------------------- |
-| `AIRBOB_API_BASE_URL`                | UID 추출 시 필수 | `http://localhost:8080/api/v1` 예시            |
-| `AIRBOB_FRONTEND_URL`                | 선택             | `http://localhost:3000` 기본값                 |
-| `AIRBOB_SMOKE_REPORT_ROOT`           | 선택             | harness test 전용 artifact root override       |
-| `AIRBOB_QA_EMAIL`                    | 필수             | `[provided out-of-band]`                       |
-| `AIRBOB_QA_PASSWORD`                 | 필수             | `[provided out-of-band]`                       |
-| `GSTACK_BROWSE_BIN`                  | 필수             | `/absolute/path/to/browse`                     |
-| `AIRBOB_SMOKE_ACCOMMODATION_ID`      | preflight 필수   | accommodation detail 전용 stable fixture ID    |
-| `AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID` | preflight 필수   | accommodation edit 전용 stable fixture ID      |
-| `AIRBOB_SMOKE_RESERVATION_UID`       | strict 필수      | guest reservation detail route UID             |
-| `AIRBOB_SMOKE_HOST_RESERVATION_UID`  | strict 필수      | host reservation detail route UID              |
-| `AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS` | ES seed 후 선택  | `true`면 `/search`에서 result card가 보여야 함 |
+| 이름                                    | 용도                                 | 규칙                                                            |
+| --------------------------------------- | ------------------------------------ | --------------------------------------------------------------- |
+| `AIRBOB_FRONTEND_URL`                   | 검증할 commit-specific Vercel origin | live 실행에서는 반드시 명시하고 query/credential을 넣지 않는다. |
+| `AIRBOB_API_BASE_URL`                   | OCI API base                         | `/api/v1` contract를 가리키며 credential을 URL에 넣지 않는다.   |
+| `AIRBOB_QA_EMAIL`, `AIRBOB_QA_PASSWORD` | 전용 QA 로그인                       | out-of-band로 주입하고 저장·출력하지 않는다.                    |
+| `GSTACK_BROWSE_BIN`                     | browser smoke executable             | absolute executable path                                        |
+| `AIRBOB_SMOKE_ACCOMMODATION_ID`         | accommodation detail fixture         | 전용 fixture만 사용                                             |
+| `AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID`    | accommodation edit fixture           | 변경·삭제 가능한 전용 fixture만 사용                            |
+| `AIRBOB_SMOKE_RESERVATION_UID`          | guest reservation detail fixture     | strict smoke 필수; 기록 금지                                    |
+| `AIRBOB_SMOKE_HOST_RESERVATION_UID`     | host reservation detail fixture      | strict smoke 필수; 기록 금지                                    |
+| `AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS`    | visible result card 강제             | search fixture가 준비된 실행에서만 `true`                       |
+| `AIRBOB_SMOKE_REPORT_ROOT`              | local redacted report 위치 변경      | 필요할 때만 사용                                                |
 
-## ES Search Fixture Gate
+## 실행
 
-- Strict design smoke는 ES 데이터 seed 전에도 실행할 수 있다. 이 경우 `/search`는 empty state까지 확인하지만 search card visual QA는 완료된 것으로 보지 않는다.
-- ES index가 seed된 뒤에는 `AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS=true npm run smoke:frontend:strict`로 실행해 `/search` result card가 실제로 보이는지 확인한다.
-- Smoke report는 `Google Maps API key: present` 또는 `Google Maps API key: missing`처럼 Google Maps key readiness만 기록해야 하며, key 값 자체는 기록하지 않는다.
-- Strict dynamic route UID 추출은 현재 guest/host reservation list의 `filterType=PAST&size=1` path가 안정적인 fixture 경로다. Unfiltered list endpoint는 local QA에서 HTTP 500을 반환한 이력이 있으므로 재사용 스니펫도 PAST filter를 유지한다.
+먼저 동일 commit의 backend-independent gate를 통과시킨다.
 
 ```bash
-export AIRBOB_API_BASE_URL="${AIRBOB_API_BASE_URL:-http://localhost:8080/api/v1}"
-export AIRBOB_FRONTEND_URL="${AIRBOB_FRONTEND_URL:-http://localhost:3000}"
-export GSTACK_BROWSE_BIN="${GSTACK_BROWSE_BIN:-/absolute/path/to/browse}"
-# export AIRBOB_QA_EMAIL="<provided-out-of-band>"
+npm run verify:design-ready
+```
 
-: "${AIRBOB_QA_EMAIL:?Set AIRBOB_QA_EMAIL in the shell before running smoke}"
-: "${AIRBOB_QA_PASSWORD:?Set AIRBOB_QA_PASSWORD in the shell before running smoke}"
+필수 값을 현재 shell에 out-of-band로 주입한 뒤 live reachability와 fixture 준비 상태를
+확인한다. Preflight는 screenshot/report를 만들지 않지만 frontend와 backend에 실제로
+접근한다.
 
-cookie_jar="$(mktemp)"
-trap 'rm -f "$cookie_jar"' EXIT
-
-login_body="$(
-  node -e 'const body = {}; body["email"] = process.env.AIRBOB_QA_EMAIL; body["password"] = process.env.AIRBOB_QA_PASSWORD; process.stdout.write(JSON.stringify(body));'
-)"
-
-curl -fsS \
-  -c "$cookie_jar" \
-  -b "$cookie_jar" \
-  -H "Content-Type: application/json" \
-  -d "$login_body" \
-  "$AIRBOB_API_BASE_URL/auth/login" >/dev/null
-
-guest_reservation_uid="$(
-  curl -fsS -b "$cookie_jar" "$AIRBOB_API_BASE_URL/profile/guest/reservations?filterType=PAST&size=1" |
-    node -e 'let data = ""; process.stdin.on("data", (chunk) => data += chunk); process.stdin.on("end", () => { const json = JSON.parse(data); const uid = json.data?.reservations?.[0]?.reservation_uid; if (uid) process.stdout.write(uid); });'
-)"
-
-host_reservation_uid="$(
-  curl -fsS -b "$cookie_jar" "$AIRBOB_API_BASE_URL/profile/host/reservations?filterType=PAST&size=1" |
-    node -e 'let data = ""; process.stdin.on("data", (chunk) => data += chunk); process.stdin.on("end", () => { const json = JSON.parse(data); const uid = json.data?.reservations?.[0]?.reservation_uid; if (uid) process.stdout.write(uid); });'
-)"
-
-: "${guest_reservation_uid:?No guest PAST reservation UID returned for smoke}"
-: "${host_reservation_uid:?No host PAST reservation UID returned for smoke}"
-
-export AIRBOB_SMOKE_RESERVATION_UID="$guest_reservation_uid"
-export AIRBOB_SMOKE_HOST_RESERVATION_UID="$host_reservation_uid"
-export AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID="${AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID:-3}"
-export AIRBOB_SMOKE_ACCOMMODATION_ID="${AIRBOB_SMOKE_ACCOMMODATION_ID:-$AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID}"
-
+```bash
 npm run smoke:frontend:preflight
-npm run smoke:frontend:strict
+npm run verify:live-integration
 ```
 
-자동화 라우트 커버리지:
-
-- `home`: `/`
-- `search-seoul`: `/search?destination=Albany&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`
-- `wishlist`: `/wishlist`
-- `wishlist-recently-viewed`: `/wishlist?view=recently-viewed`
-- `profile-host-listings`: `/profile?mode=host&tab=listings`
-- `accommodation-detail`: `/accommodations/:id` (`AIRBOB_SMOKE_ACCOMMODATION_ID` 값 또는 edit ID fallback)
-- `accommodation-edit`: `/accommodations/:id/edit` (`AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID` 값 또는 기본값 `3`)
-- `reservation-detail`: `/reservations/:reservationUid` (`AIRBOB_SMOKE_RESERVATION_UID` 제공 시)
-- `host-reservation-detail`: `/profile/host/reservations/:reservationUid` (`AIRBOB_SMOKE_HOST_RESERVATION_UID` 제공 시)
-
-## Architecture Checkpoints
-
-### query route contract
-
-- Steps: open saved deep links for `/search`, `/profile?mode=host&tab=reservations`, `/wishlist?view=recently-viewed`, `/wishlist?id=<wishlistId>`, and the payment redirect pages with safe QA data.
-- Expected: page state, selected tab/view, pagination, reservation/payment state, and browser back/forward behavior match the URL without resetting to defaults.
-- Evidence: record the tested URL, expected state, actual state, and whether refresh/back/forward preserved it.
-
-### server-state auth boundary
-
-- Steps: test login, logout, focus refresh, and a protected route after an expired or rejected session.
-- Expected: Header/UserMenu, auth modal, protected route redirects, wishlist/reservation actions, and 401 handling all reflect the same authenticated or unauthenticated state.
-- Evidence: record the auth state before/after the action, visible Header/UserMenu state, route/modal result, and any 401 network response.
-
-### components ownership boundary
-
-- Steps: inspect affected UI during Search, Wishlist, Reservation, Auth, and Accommodation detail flows after running `npm run test:ci:no-cache`.
-- Expected: shared UI primitives behave consistently across flows, and workflow orchestration remains in its registered route/screen/workflow owner without leaking domain-specific behavior into shared components.
-- Evidence: record the component/flow checked, the interaction performed, the expected shared behavior, and any boundary violation found.
-
-### design system entry contracts
-
-- Steps: run `npm run test:ci -- --runTestsByPath src/shared/styles/design-system-contracts.test.ts src/shared/styles/tokens.test.ts`, then smoke Header, mobile Search popovers, Search bottom sheet, cards, and modal overlays at desktop and mobile widths.
-- Expected: header height, mobile search popover position, page width, card media ratio, modal z-index, and bottom-sheet z-index follow shared tokens without visual overlap or clipped controls.
-- Evidence: record the command result, viewport size, screen/flow checked, screenshot path, and any token/layout mismatch.
-
-## Desktop 1280px 체크리스트
-
-- [ ] Header logo 가 키보드 포커스를 받고 Enter 로 Home 이동이 가능하다.
-- [ ] Home search 입력 후 /search 로 이동한다.
-- [ ] Search list 가 렌더링되고 page query 가 유지된다.
-- [ ] Search 에서 위시리스트 modal 을 열고 닫은 뒤 card 의 wishlist 상태가 갱신된다.
-- [ ] Search map marker 또는 bounds update 후 결과가 새로고침된다.
-- [ ] Accommodation detail 에서 date/guest, coupon, reservation button 이 정상 동작한다.
-- [ ] Auth modal 은 dialog 로 열리고 close button, Escape, backdrop 으로 닫힌다.
-- [ ] 로그인 상태에서 Reservation confirm page 가 열린다.
-- [ ] ReservationConfirm 결제 진입 영역에서 키보드 focus와 page scroll 동작이 깨지지 않는다.
-- [ ] ReservationConfirm 에서 Toss 결제 진입 후 PaymentSuccess 를 거쳐 ReservationDetail 로 이동한다.
-- [ ] AccommodationEdit 에서 image upload, 저장, publish 흐름이 정상 동작한다.
-- [ ] AccommodationEdit 최종 publish 에서 상세주소가 비어 있으면 image upload 전에 확인 modal 이 먼저 열린다.
-- [ ] Host reservation detail 이 host tab/list 에서 정상 진입된다.
-- [ ] Wishlist page 에서 list/detail/modal open-close 흐름이 동작한다.
-- [ ] Profile guest tab 과 host tab 을 전환할 수 있다.
-- [ ] Host listing 에서 infinite scroll 또는 empty state 가 정상 표시된다.
-
-## Mobile 375px 체크리스트
-
-- [ ] Header logo 가 포커스 가능한 Home link 로 동작한다.
-- [ ] Home search UI 가 viewport 안에 맞는다.
-- [ ] Search mobile bottom sheet 의 closed/half/full behavior 가 동작한다.
-- [ ] Search mobile 에서 위시리스트 modal open-close 후 card 상태가 유지된다.
-- [ ] Detail booking panel/modal 이 viewport 안에 맞는다.
-- [ ] Reservation confirm page 의 CTA 와 결제 이동 영역이 viewport 안에 맞는다.
-- [ ] 현재 도달 가능한 Wishlist/Auth/Review/숙소 action dialog가 close button, Escape, backdrop 계약을 지킨다.
-- [ ] Profile guest tab 과 host tab 을 전환할 수 있고 내용이 viewport 안에 맞는다.
-- [ ] Host listing infinite scroll 또는 empty state 가 정상 표시된다.
-
-## Recording
-
-- failed step:
-- console error:
-- network failed request:
-- screenshot path:
-
-## 2026-07-04 KST Redesign Readiness Smoke Gate
-
-- 목적: Airbnb 스타일 redesign 전에 라우트가 단순 load 되는지만 보지 않고, 각 route shell 이 lazy chunk 렌더링 후 기대하는 핵심 visible text 를 렌더링하는지 확인한다.
-- Static gate command: `npm run verify:pre-redesign`
-- Combined gate command: `npm run verify:design-ready`
-- Preflight command: `npm run smoke:frontend:preflight`
-- Wrapper validation command: `env -u AIRBOB_QA_EMAIL -u AIRBOB_QA_PASSWORD -u GSTACK_BROWSE_BIN node scripts/smoke/frontend-smoke.mjs`
-- Wrapper validation expected status: exit 1, missing environment variable names only, no credential values.
-- Non-strict browser smoke command: `npm run smoke:frontend`
-- Strict browser smoke command: `npm run smoke:frontend:strict`
-- Smoke report evidence: each run writes `.gstack/qa-reports/frontend-smoke-<timestamp>.md`; attach the latest generated path when recording a run.
-
-### Route-specific assertions
-
-- `/`: `#root` contains `특별한 숙소`.
-- `/search?destination=Albany&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`: `main, #root` contains `숙소`, search button exists, and wishlist/save action exists when the local search index returns cards. If `AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS` is unset and the local ES-backed search index has no hits, the explicit `검색 결과가 없습니다.` empty state is acceptable smoke coverage. When `AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS=true`, a visible search result card is required.
-- `/wishlist`: `main, #root` contains `위시리스트`.
-- `/wishlist?view=recently-viewed`: `main, #root` contains `최근`.
-- `/profile?mode=host&tab=listings`: `main, #root` contains `호스트`.
-- `/accommodations/:id`: `main, #root` contains `예약하기`, reservation CTA exists, and gallery trigger buttons exist.
-- `/accommodations/:id/edit`: `main, #root` contains `숙소`.
-- `/reservations/:reservationUid`: `main, #root` contains `예약` when `AIRBOB_SMOKE_RESERVATION_UID` is supplied.
-- `/profile/host/reservations/:reservationUid`: `main, #root` contains `예약` when `AIRBOB_SMOKE_HOST_RESERVATION_UID` is supplied.
-
-### Skipped Dynamic Routes
-
-- Profile/Reservations route-boundary refactor must pass `npm run verify:design-ready`.
-- In non-strict `npm run smoke:frontend`, unavailable dynamic route UIDs are listed under `Skipped Dynamic Routes`; this is residual QA scope, not tested coverage.
-- In strict `npm run smoke:frontend:strict`, missing `AIRBOB_SMOKE_RESERVATION_UID` or `AIRBOB_SMOKE_HOST_RESERVATION_UID` fails the wrapper before browser launch.
-- Skipped dynamic routes are not counted as tested route coverage.
-
-### Output guards
-
-- stdout/stderr are redacted before printing and before report generation.
-- Route loop clears console/network state before each navigation.
-- Route assertions poll for rendered root text and route-specific expected text before screenshots.
-- Redacted browser output containing console errors/warnings, browse `[js] ERROR`/`ERROR: evaluate` output, or API 4xx/5xx network failures fails the wrapper.
-
-## Toss npm v2 cutover gate
-
-U11은 로컬 코드 통과와 배포 승인을 분리한다. `PaymentGatewayPort`, 성공/실패 URL, callback query, checkout/callback 저장 스키마, 서버 confirm/status payload는 U10과 동일하다. 활성 로컬 런타임은 공식 npm SDK `2.8.1` 하나이며 `payment({ customerKey: ANONYMOUS })`의 `CARD`/`KRW` redirect 요청을 사용한다.
-
-배포 artifact, sandbox canary, rollback 절차와 완료 기록은 [`../operations/frontend-payment-release-runbook.md`](../operations/frontend-payment-release-runbook.md)를 따른다.
-
-PR 차단 검증:
-
-- `src/platform/integrations/tossPaymentsV2.test.ts`: 공식 SDK load, 동일 키 중복 load, 8초 readiness bound, 실패 후 local retry, runtime validation, `ANONYMOUS` 및 `CARD`/`KRW` 매핑.
-- booking-payment gateway/workflow tests: 기존 포트와 URL/customer/order/amount 값 보존, 공식 v2 error-code 분류, provider 길이/문자 제한의 fail-closed 처리, request single-flight.
-- `reservation-payment-characterization.spec.ts`: 실제 결제 버튼 double-click당 v2 요청 1회, `USER_CANCEL` 후 checkout 보존/재시도, checkout route 이탈 시 launcher 1회 정리, 기존 callback confirm/reconciliation 계약.
-- production build 검사: `/v2/standard` 존재, v1 URL/marker 0건, platform 밖 SDK import 0건.
-
-Vercel Preview에서 아래 증거가 모두 생기기 전에는 merge 또는 U11 완료로 기록하지 않는다.
-
-- sandbox: SDK load/request, 사용자 cancel, invalid key, network failure, success/fail callback을 검사하고 v1 네트워크 요청이 0건인지 확인한다.
-- success callback은 URL credential을 즉시 scrub하고 confirm POST를 정확히 한 번만 전송하며, 모호한 결과는 status reconciliation으로 이동해야 한다.
-- U11 commit-specific Preview URL과 U10 commit `408d303`의 별도 Vercel 비교 URL을 기록한다.
-- U11과 U10이 같은 저장 스키마를 읽고, retryable callback 복구가 추가 결제 요청이나 confirm POST 없이 status만 조회하는지 확인한다.
-- live canary 결과에는 코드·횟수·시간만 남기고 key, reservation UID, paymentKey, 이메일/이름, screenshot/trace/HAR를 남기지 않는다.
-
-이 프로젝트는 Toss sandbox만 사용하며 프론트는 Vercel, 백엔드는 상시 OCI에서 실행한다. 별도 production payment operator나 artifact store 대신 Git commit과 commit-specific Vercel URL을 release identity로 사용한다. AWS 성능 환경은 이 결제 cutover gate에 포함하지 않는다.
-
-U11 소스에는 v1 adapter와 `toss-payments-v1` runtime 타입이 남지 않는다. Knip을 포함한 전체 구조 gate가 green이어야 Preview 후보를 push할 수 있다. Preview 실패는 merge하지 않고 수정하며, production Instant Rollback 훈련은 sandbox 포트폴리오 범위에서 필수로 두지 않는다.
-
-## 2026-07-05 KST Architecture Stabilization Verification
-
-- Static gate command: `npm run verify:pre-redesign`
-- Static gate result: PASS. `typecheck`, full no-cache Jest, and production build completed successfully.
-- Jest result: 154 suites passed, 711 tests passed.
-- Build result: `Compiled successfully.` Freshness notices for `baseline-browser-mapping` and `caniuse-lite` remain environment maintenance warnings, not build failures.
-- Targeted DTO-boundary recheck: PASS. Search map, wishlist index/recent views, host reservation detail view-model tests, and `src/api/ui-api-boundary-contracts.test.ts` passed.
-- Frontend dev server: `http://localhost:3000`
-- Backend server: `http://localhost:8080`
-- Non-strict browser smoke command used for preliminary route evidence:
+Search fixture까지 준비된 실행은 result card를 강제한다.
 
 ```bash
-AIRBOB_FRONTEND_URL=http://localhost:3000 \
-GSTACK_BROWSE_BIN=/Users/jaehoonchoi/gstack/browse/dist/browse \
-AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID=3 \
-npm run smoke:frontend
+AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS=true npm run verify:live-integration
 ```
 
-- Non-strict browser smoke result: PASS for static route subset.
-- Strict browser smoke result: deferred until `AIRBOB_SMOKE_RESERVATION_UID` and `AIRBOB_SMOKE_HOST_RESERVATION_UID` are exported through the credential-safe UID extraction flow above.
-- QA credentials: supplied out-of-band through environment variables; no account values were written to this document.
-- Smoke report: `.gstack/qa-reports/frontend-smoke-2026-07-05T04-04-18-698Z.md`
-- Screenshot directory: `.gstack/qa-reports/screenshots/`
-- Desktop coverage: `/`, `/search?destination=Albany&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`, `/wishlist`, `/wishlist?view=recently-viewed`, `/profile?mode=host&tab=listings`, `/accommodations/3`, `/accommodations/3/edit`.
-- Mobile coverage: `/`, `/search?destination=Albany&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`, `/wishlist`, `/wishlist?view=recently-viewed`, `/profile?mode=host&tab=listings`, `/accommodations/3`, `/accommodations/3/edit`.
-- Skipped dynamic routes: `/reservations/:reservationUid` and `/profile/host/reservations/:reservationUid`; stable route UIDs were not supplied in this run, so the smoke report lists them under `Skipped Dynamic Routes`.
-- Observed environment warning: Google Maps API key warning appears during route loads. The smoke wrapper still exited `0`; no API 4xx/5xx route assertion failure was reported.
+`verify:live-integration`은 strict dynamic-route smoke다. 필수 reservation fixture가 없으면
+browser를 열기 전에 실패해야 한다. Non-strict `npm run smoke:frontend`가 route를 skip한
+결과는 통과 증거가 아니다.
 
-## 2026-07-05 KST Architecture Readiness Closure
+## 자동 route evidence
 
-- Static gate command: `npm run verify:pre-redesign`
-- Static gate result: PASS. `typecheck`, full no-cache Jest, and production build completed successfully.
-- Jest result: 164 suites passed, 758 tests passed.
-- Build result: `Compiled successfully.` Freshness notices for `baseline-browser-mapping` and `caniuse-lite` remain environment maintenance warnings, not build failures.
-- Strict browser smoke command: `npm run smoke:frontend:strict`
-- Strict browser smoke result: PASS.
-- Dynamic reservation route IDs: guest and host PAST reservation UIDs were extracted through the credential-safe API flow above and supplied via environment variables. Actual UID values are intentionally not recorded in this document.
-- Smoke report: `.gstack/qa-reports/frontend-smoke-2026-07-05T07-37-20-134Z.md`
-- Screenshot directory: `.gstack/qa-reports/screenshots/`
-- Desktop coverage: `/`, `/search?destination=Albany&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`, `/wishlist`, `/wishlist?view=recently-viewed`, `/profile?mode=host&tab=listings`, `/accommodations/3`, `/accommodations/3/edit`, `/reservations/:reservationUid`, `/profile/host/reservations/:reservationUid`.
-- Mobile coverage: `/`, `/search?destination=Albany&checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=1`, `/wishlist`, `/wishlist?view=recently-viewed`, `/profile?mode=host&tab=listings`, `/accommodations/3`, `/accommodations/3/edit`, `/reservations/:reservationUid`, `/profile/host/reservations/:reservationUid`.
-- Skipped dynamic routes: none.
-- Search route note: local `/api/v1/search/accommodations` returned an empty result set for the Albany smoke query, so this run verified the explicit search empty state rather than search result cards. Search result card styling should still be visually checked after the local ES search index is seeded or a fallback search fixture is available.
+Strict smoke report에서 desktop과 mobile 각각 다음 route가 skip 없이 확인돼야 한다.
 
-## 2026-07-06 KST Task 10 Final Design Readiness Verification
+- Home, Search, Wishlist, Recently Viewed, Profile Host Listings
+- Accommodation Detail과 Accommodation Edit
+- Guest Reservation Detail과 Host Reservation Detail
 
-- Static gate command: `npm run verify:pre-redesign`
-- Static gate result: PASS. TypeScript, full no-cache Jest, and production build command exited successfully.
-- Jest result: 170 suites passed, 810 tests passed.
-- Build result: CRA completed the production build; environment freshness notices may still appear and should be handled as maintenance.
-- Dynamic reservation route IDs: guest and host PAST reservation UIDs were extracted through the credential-safe API flow and supplied via environment variables. Actual UID values are intentionally not recorded in this document.
-- Strict browser smoke command: `npm run smoke:frontend:strict`
-- Strict browser smoke report: `.gstack/qa-reports/frontend-smoke-2026-07-05T16-28-09-570Z.md`
-- ES search result fixture: present. The Albany search route showed a visible result card with `AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS=true`.
-- Google Maps key readiness: present in the smoke report. QA credential values, actual reservation UID values, and API key values were not recorded in this document.
-- Dynamic route coverage: desktop and mobile covered `/reservations/:reservationUid` and `/profile/host/reservations/:reservationUid`; skipped dynamic routes: none.
-- Browser QA result: PASS. Strict smoke covered 18 desktop/mobile route entries, verified the search result card, and covered both dynamic reservation detail routes.
-- Output guard result: PASS. The smoke report recorded output guard failures: none.
-- Final full verification command: `npm run verify:design-ready`
-- Final full verification result: PASS. The full gate reran the static gate and strict smoke with the same exported dynamic route environment values.
-- Final full verification smoke report: `.gstack/qa-reports/frontend-smoke-2026-07-05T16-28-58-450Z.md`
-- Remaining backend fixture risk: unfiltered guest/host reservation list endpoints returned HTTP 500 during UID extraction. `filterType=PAST` returned usable guest and host route IDs in this run; if that fixture becomes unavailable, strict dynamic route smoke will block before browser coverage.
+Search index가 비어 있으면 empty state까지만 검증된다. Result card evidence가 필요하면
+`AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS=true`로 다시 실행한다. Report의 `Google Maps API key:
+present` 표시는 key 값이나 실제 SDK 동작 증거가 아니므로 아래 수동 확인을 생략할 수 없다.
+
+## 수동 live checklist
+
+### Vercel과 OCI
+
+- [ ] commit-specific Preview URL의 `/`, Search, Wishlist, Profile, detail route를 직접
+      refresh해 HTML과 lazy chunk가 정상 load된다.
+- [ ] QA login 뒤 refresh와 protected route 이동에서도 cookie session이 유지된다.
+- [ ] logout, expired/rejected session, 401 뒤 Header·modal·protected navigation이 같은
+      anonymous state로 수렴한다.
+- [ ] Search/detail/profile/reservation API가 기존 envelope로 동작하고 CORS 또는 cookie
+      warning이 없다.
+- [ ] 전용 editor fixture에서 image upload, save, publish ordering을 확인하고 테스트
+      변경을 정리한다.
+- [ ] 이전 immutable Vercel deployment도 자기 HTML과 hashed chunk를 제공해 rollback
+      대상으로 사용할 수 있다.
+
+### Google Maps와 Places
+
+- [ ] Search에서 SDK가 key/referrer 오류 없이 load되고 Places suggestion을 선택할 수 있다.
+- [ ] marker 선택, map bounds 변경, list/map state와 browser history가 합의한 결과를 보인다.
+- [ ] Search route를 떠난 뒤 obsolete listener, marker, pending result가 다른 route에
+      영향을 주지 않는다.
+- [ ] desktop과 mobile fallback/error terminal이 빈 화면이나 무한 loading으로 남지 않는다.
+
+### Toss sandbox
+
+- [ ] 전용 reservation으로 sandbox 결제 요청이 한 번만 시작된다.
+- [ ] 사용자 cancel과 provider failure가 checkout을 보존하고 안전한 retry를 제공한다.
+- [ ] success callback 진입 즉시 URL의 callback credential이 제거되고 confirm POST가
+      정확히 한 번만 전송된다.
+- [ ] refresh/re-entry와 pending 또는 ambiguous 결과가 추가 결제 요청 없이 status
+      reconciliation으로 수렴한다.
+- [ ] success/fail terminal이 올바른 reservation detail로 이동하고 exact terminal record만
+      정리한다.
+- [ ] live SDK에 retired protocol 요청이 없으며 실제 결제 수단이나 production key를
+      사용하지 않는다.
+
+## 실패와 증거 기록
+
+각 실행은 다음 항목만 redacted 작업 기록에 남긴다.
+
+- 검증한 commit과 Vercel deployment label
+- 실행 시각과 `verify:design-ready`, preflight, `verify:live-integration` exit status
+- generated smoke report의 local path
+- failed step, console error category, network failed request의 method/status/path
+- Maps와 Toss sandbox checklist의 PASS/FAIL/DEFERRED
+
+다음 값은 report, screenshot 이름, issue, commit, 채팅에 남기지 않는다.
+
+- QA email/password, cookie, auth state, Maps/Toss key
+- reservation/accommodation 식별자
+- payment key, order identifier, callback query 또는 callback 전체 URL
+- 실제 사용자 PII, request/response body, HAR, trace, payment callback screenshot
+
+Console error, API failure, skipped dynamic route, credential redaction 실패가 하나라도 있으면
+live gate는 실패다. 외부 환경이 준비되지 않은 경우에는 통과로 기록하지 말고
+`DEFERRED / UNVERIFIED`를 유지한다.

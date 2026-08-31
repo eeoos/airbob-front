@@ -16,6 +16,7 @@ CSS Modules, `appShell.ts`/`publicCache.ts` 호환 경계와 정적 검증 명�
 `appShell.ts`와 `publicCache.ts`는 목표 구조가 아니라 ownership matrix의 제거 조건을 가진
 legacy seam입니다.
 
-당시 사용한 `verify:structure`, `src/verification-gate.test.ts`, `verify:design-ready`는 회귀
-증거로 계속 활용할 수 있습니다. 다만 live smoke는 QA 계정, 안정적인 fixture, 실행 중인
-프론트/백엔드와 브라우저가 필요하며, 과거 통과 기록이나 skip은 현재 검증을 대신하지 않습니다.
+당시 명령의 의미는 역사 기록이며 현재 gate 계약을 정의하지 않습니다. 현재
+`verify:design-ready`는 backend-independent gate이고, live smoke는 별도
+`verify:live-integration`과 live-only runbook을 따릅니다. 과거 통과 기록이나 skip은 현재
+검증을 대신하지 않습니다.

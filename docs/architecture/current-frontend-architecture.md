@@ -308,9 +308,7 @@ Consequences:
   and the current source graph is acyclic with no dependency warnings or errors.
 - The active `src/app/shells/ShellFrame.tsx` is the sole production `main` owner.
 
-U3 supplies executable ownership for this graph. The current
-dependency-cruiser 18 graph reports 510 modules and 1,383 dependencies with zero cycles,
-warnings, or errors. Every declared feature scope is in the migrated registry;
+U3 supplies executable ownership for this graph. Every declared feature scope is in the migrated registry;
 feature-to-peer imports and reintroduced global API/DTO roots fail fixtures.
 Target-ratcheted production Knip reachability, global full-development and
 strict-production dependency classification, strict Stylelint, architecture tools, strict
@@ -333,10 +331,11 @@ aliasing its old implementation.
 The hostile production-build verifier measures the Vite initial JavaScript graph
 as the entry plus every document module-preload rather than reporting only the
 smaller-looking `index-*` file. Retiring Axios in favor of the native platform
-transport brings both root-relative and absolute-base builds below the plan's
-131.4 kB final target; the verifier prints the current measurement. The same
-command verifies all 15
-lazy route chunks and their JavaScript source maps, rejects unresolved
+transport reduces that graph without changing the API contract. Root
+`frontend-bundle-budgets.json` is the single executable source for the initial
+graph and lazy-route budgets; the verifier prints current measurements and
+fails any overage. The same command verifies every registered lazy route's
+incremental static-import graph and its JavaScript source map, rejects unresolved
 custom-media syntax, and scans built JavaScript/maps for forbidden public-config
 canaries. Vite 8 does not emit separate production CSS map assets in this
 pipeline, so the contract states that limitation instead of claiming nonexistent
@@ -387,7 +386,7 @@ status lives in [`frontend-ownership-matrix.md`](./frontend-ownership-matrix.md)
 | Delta | Planned owner |
 | --------------------------------------------------------------------------------------- | ------------- |
 | Toss npm v2 runtime adapter (source cutover complete; live sandbox/OCI parity deferred) | U11 |
-| Final design-entry gate | U18 |
+| Global unused/duplicate export cleanup and final design-entry gate | U18 |
 
 ## Verification contracts
 
@@ -409,17 +408,21 @@ Current local and CI commands are defined in `package.json` and
 - `npm run lint:dependencies`
 - `npm run lint:styles`
 - `npm run format:check`
+- `npm run audit:production`
 - `npm run verify:architecture`
 - `npm run report:architecture`
 - `npm run verify:structure`
+- `npm run verify:browser`
 - `npm run verify:pre-redesign`
-- `npm run smoke:frontend:preflight`
 - `npm run verify:design-ready`
+- `npm run smoke:frontend:preflight`
+- `npm run verify:live-integration`
 
 The deterministic browser suite proves the current synthetic flow matrix; it
 does not prove a live backend, Google Maps, Toss sandbox, or seeded dynamic-route
-behavior. Dated smoke evidence in the QA document is historical; fixture
-omissions are unverified, not passing coverage.
+behavior. `verify:design-ready` and `verify:pre-redesign` are the same offline
+design-entry gate. `verify:live-integration` is separate; fixture omissions and
+unavailable external services remain deferred and unverified.
 
 ## Document authority
 
@@ -431,7 +434,7 @@ omissions are unverified, not passing coverage.
 | `frontend-browser-data-inventory.md` | Browser persistence, ownership, PII, TTL, and cleanup inventory. |
 | `tests/architecture/dependency-rules.md` | Executable static-rule owners, measured debt, strict promotion, and tool transition. |
 | Active plan under `docs/plans/` | Target architecture and implementation units. |
-| `docs/qa/frontend-architecture-smoke.ko.md` | Live smoke operation and historical evidence. |
+| `docs/qa/frontend-architecture-smoke.ko.md` | Live-only Vercel/OCI/Maps/Toss sandbox runbook. |
 | `frontend-architecture-freeze.ko.md` | Superseded July snapshot. |
 | `frontend-structure-refactor.md` | Superseded July outcome record. |
 | `docs/superpowers/plans/**` | Superseded historical plans; not executable. |

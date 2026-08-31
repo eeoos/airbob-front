@@ -26,6 +26,7 @@
     "test:e2e:artifact-policy": "node tests/e2e/support/scan-artifacts.mjs --self-test",
     "test:e2e:characterization": "playwright test --project=chromium",
     "test:public-config-build": "node scripts/architecture/verify-public-config-build.mjs",
+    "audit:production": "npm audit --omit=dev --audit-level=high",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.test.json",
     "typecheck:e2e": "tsc --noEmit -p tsconfig.e2e.json",
     "typecheck:tooling": "tsc --noEmit -p tsconfig.tooling.json",
@@ -44,13 +45,15 @@
     "smoke:frontend": "node scripts/smoke/frontend-smoke.mjs",
     "smoke:frontend:preflight": "node scripts/smoke/frontend-smoke.mjs --preflight",
     "smoke:frontend:strict": "AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES=true node scripts/smoke/frontend-smoke.mjs",
-    "test:architecture-rules": "node tests/architecture/verify-registry-rules.mjs && node tests/architecture/verify-git-baselines.mjs && node scripts/architecture/verify-architecture-ratchet.mjs && node tests/architecture/verify-dependency-rules.mjs && node tests/architecture/verify-knip-reachability.mjs && node tests/architecture/verify-dependency-classification.mjs && node tests/architecture/verify-style-rules.mjs && node tests/architecture/verify-prettier-config.mjs && node tests/architecture/verify-platform-boundary.mjs && node tests/architecture/verify-typescript-config.mjs && node tests/architecture/verify-eslint-config.mjs && node tests/architecture/verify-vite-config.mjs && node tests/architecture/verify-vitest-config.mjs && node tests/architecture/verify-toss-build-gate.mjs && node tests/architecture/verify-toss-runtime.mjs",
+    "test:architecture-rules": "node tests/architecture/verify-registry-rules.mjs && node tests/architecture/verify-git-baselines.mjs && node scripts/architecture/verify-architecture-ratchet.mjs && node tests/architecture/verify-dependency-rules.mjs && node tests/architecture/verify-knip-reachability.mjs && node tests/architecture/verify-dependency-classification.mjs && node tests/architecture/verify-style-rules.mjs && node tests/architecture/verify-prettier-config.mjs && node tests/architecture/verify-platform-boundary.mjs && node tests/architecture/verify-typescript-config.mjs && node tests/architecture/verify-eslint-config.mjs && node tests/architecture/verify-vite-config.mjs && node tests/architecture/verify-vitest-config.mjs && node tests/architecture/verify-frontend-bundle-budgets.mjs && node tests/architecture/verify-toss-build-gate.mjs && node tests/architecture/verify-toss-runtime.mjs",
     "report:architecture": "npm run lint:dead-code:report && npm run lint:styles:report",
     "verify:architecture": "npm run test:architecture-rules && npm run lint:architecture && npm run lint:dead-code && npm run lint:dependencies && npm run lint:styles && npm run lint:architecture-tools && npm run format:check",
     "verify:structure": "npm run typecheck && npm run typecheck:tooling && npm run verify:architecture && npm run test:public-config-build && npm run test:ci:no-cache && npm run lint:strict",
-    "verify:pre-redesign": "npm run typecheck && npm run typecheck:tooling && npm run test:ci:no-cache && npm run build",
-    "verify:design-ready": "npm run verify:pre-redesign && npm run smoke:frontend:strict",
-    "verify": "npm run typecheck && npm run typecheck:tooling && npm run test:ci:no-cache && npm run build"
+    "verify:browser": "npm run typecheck:e2e && npm run lint:e2e && npm run test:e2e:artifact-policy && npm run test:e2e:characterization",
+    "verify:design-ready": "npm run audit:production && npm run verify:structure && npm run verify:browser",
+    "verify:pre-redesign": "npm run verify:design-ready",
+    "verify:live-integration": "npm run smoke:frontend:strict",
+    "verify": "npm run verify:design-ready"
   },
   "devDependencies": {
     "@csstools/postcss-global-data": "4.0.0",

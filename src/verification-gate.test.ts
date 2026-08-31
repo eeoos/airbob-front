@@ -17,6 +17,10 @@ const qaDocPath = path.join(
   projectRoot,
   "docs/qa/frontend-architecture-smoke.ko.md",
 );
+const targetContractMatrixPath = path.join(
+  projectRoot,
+  "docs/qa/frontend-target-contract-matrix.md",
+);
 const architectureDocPath = path.join(
   projectRoot,
   "docs/architecture/frontend-structure-refactor.md",
@@ -46,6 +50,14 @@ const stylelintConfigPath = path.join(projectRoot, "stylelint.config.mjs");
 const architectureRatchetPath = path.join(
   projectRoot,
   "architecture-ratchet.json",
+);
+const frontendBundleBudgetPath = path.join(
+  projectRoot,
+  "frontend-bundle-budgets.json",
+);
+const publicConfigBuildVerifierPath = path.join(
+  projectRoot,
+  "scripts/architecture/verify-public-config-build.mjs",
 );
 const architectureFreezeDocPath = path.join(
   projectRoot,
@@ -414,6 +426,9 @@ describe("frontend verification gate", () => {
     expect(packageJson.scripts["test:architecture-rules"]).toContain(
       "verify-toss-build-gate.mjs",
     );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-frontend-bundle-budgets.mjs",
+    );
     expect(packageJson.scripts["lint:architecture"]).toBe(
       "node scripts/architecture/run-dependency-cruiser.mjs",
     );
@@ -498,8 +513,11 @@ describe("frontend verification gate", () => {
     expect(packageJson.scripts["test:public-config-build"]).toBe(
       "node scripts/architecture/verify-public-config-build.mjs",
     );
-    expect(packageJson.scripts["verify:pre-redesign"]).toBe(
-      "npm run typecheck && npm run typecheck:tooling && npm run test:ci:no-cache && npm run build",
+    expect(packageJson.scripts["audit:production"]).toBe(
+      "npm audit --omit=dev --audit-level=high",
+    );
+    expect(packageJson.scripts["verify:browser"]).toBe(
+      "npm run typecheck:e2e && npm run lint:e2e && npm run test:e2e:artifact-policy && npm run test:e2e:characterization",
     );
     expect(packageJson.scripts["smoke:frontend"]).toBe(
       "node scripts/smoke/frontend-smoke.mjs",
@@ -511,63 +529,77 @@ describe("frontend verification gate", () => {
       "AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES=true node scripts/smoke/frontend-smoke.mjs",
     );
     expect(packageJson.scripts["verify:design-ready"]).toBe(
-      "npm run verify:pre-redesign && npm run smoke:frontend:strict",
+      "npm run audit:production && npm run verify:structure && npm run verify:browser",
     );
-    expect(packageJson.scripts.verify).toContain("npm run typecheck");
-    expect(packageJson.scripts.verify).toContain("npm run test:ci:no-cache");
-    expect(packageJson.scripts.verify).toContain("npm run build");
-    expect(packageJson.scripts.verify).not.toContain("npm run lint");
-    expect(packageJson.scripts.verify).not.toContain("lint:strict");
+    expect(packageJson.scripts["verify:pre-redesign"]).toBe(
+      "npm run verify:design-ready",
+    );
+    expect(packageJson.scripts["verify:live-integration"]).toBe(
+      "npm run smoke:frontend:strict",
+    );
+    expect(packageJson.scripts.verify).toBe("npm run verify:design-ready");
+    expect(packageJson.scripts["verify:design-ready"]).not.toContain("smoke");
     expect(packageJson.proxy).toBeUndefined();
     expect(packageJson.browserslist).toBeUndefined();
   });
 
-  test("frontend CI runs static and deterministic browser gates on Node 22", () => {
+  test("frontend CI runs one canonical offline gate on exact supported Node versions", () => {
     expect(fs.existsSync(frontendWorkflowPath)).toBe(true);
 
     const workflow = fs.readFileSync(frontendWorkflowPath, "utf8");
 
     [
       "fetch-depth: 0",
-      "node-version: 22",
+      'node-version: ["22.13.0", "24.0.0"]',
+      "node-version: $" + "{{ matrix.node-version }}",
       "run: npm ci",
-      "run: npx playwright install --with-deps chromium",
-      "run: npm run test:e2e:artifact-policy",
-      "run: npm run typecheck",
-      "run: npm run typecheck:e2e",
-      "run: npm run typecheck:tooling",
-      "run: npm run verify:architecture",
-      "run: npm run test:public-config-build",
+      "run: npx --no-install playwright install --with-deps chromium",
+      "run: npm run verify:design-ready",
       "AIRBOB_PUSH_BEFORE_SHA: $" +
         "{{ github.event_name == 'push' && github.event.before || '' }}",
-      "run: npm run test:ci:no-cache",
-      "run: npm run build",
-      "run: npm run test:e2e:characterization",
-      "run: npm run lint:strict",
-      "run: npm run lint:e2e",
     ].forEach((term) => {
       expect(workflow).toContain(term);
     });
 
     const commandOrder = [
       "run: npm ci",
-      "run: npx playwright install --with-deps chromium",
-      "run: npm run test:e2e:artifact-policy",
-      "run: npm run typecheck",
-      "run: npm run typecheck:e2e",
-      "run: npm run typecheck:tooling",
-      "run: npm run verify:architecture",
-      "run: npm run test:public-config-build",
-      "run: npm run test:ci:no-cache",
-      "run: npm run build",
-      "REACT_APP_API_URL: https://api.example.invalid",
-      "run: npm run test:e2e:characterization",
-      "run: npm run lint:strict",
-      "run: npm run lint:e2e",
+      "run: npx --no-install playwright install --with-deps chromium",
+      "run: npm run verify:design-ready",
     ].map((term) => workflow.indexOf(term));
 
     expect(commandOrder.every((index) => index >= 0)).toBe(true);
     expect(commandOrder).toEqual([...commandOrder].sort((a, b) => a - b));
+    expect(workflow.match(/run: npm run verify:design-ready/g)).toHaveLength(1);
+    expect(workflow).not.toContain("run: npm run audit:production");
+    expect(workflow).not.toContain("verify:live-integration");
+    expect(workflow).not.toContain("smoke:frontend");
+  });
+
+  test("hostile public builds enforce fixed initial and lazy-route graph budgets", () => {
+    const budgets = JSON.parse(
+      fs.readFileSync(frontendBundleBudgetPath, "utf8"),
+    );
+    const verifier = fs.readFileSync(publicConfigBuildVerifierPath, "utf8");
+
+    expect(budgets).toEqual({
+      initialJavaScriptGzipBytes: 131_400,
+      lazyRouteIncrementalJavaScriptGzipBytes: 80_000,
+    });
+    [
+      "readFrontendBundleBudgets",
+      "enforceFrontendBundleBudgets",
+      "measureFrontendBundleGraphs",
+      "lazyRouteIncrementalJavaScriptGzipMeasurements",
+      "VITE_MANIFEST_PATH",
+      "collectTextFiles",
+      "css|html|js|json|map|txt",
+      "forbiddenCanaries",
+      "missingSourceMaps",
+    ].forEach((term) => {
+      expect(verifier).toContain(term);
+    });
+    expect(verifier).not.toContain("147_730");
+    expect(verifier).not.toContain("U16_INITIAL_JAVASCRIPT");
   });
 
   test("Vercel preserves static assets, SPA refreshes, and cache ownership", () => {
@@ -722,7 +754,8 @@ describe("frontend verification gate", () => {
       "frontend-migration-rules.md",
       "frontend-ownership-matrix.md",
       "appShell.ts`와 `publicCache.ts`는 목표 구조가 아니라",
-      "과거 통과 기록이나 skip은 현재 검증을 대신하지 않습니다.",
+      "과거 통과 기록이나 skip은 현재",
+      "검증을 대신하지 않습니다.",
     ].forEach((term) => {
       expect(freezeDoc).toContain(term);
     });
@@ -1146,145 +1179,111 @@ describe("frontend verification gate", () => {
     }
   });
 
-  test("QA smoke document covers required browser checkpoints without credentials", () => {
+  test("QA smoke document owns only deferred live-integration evidence", () => {
     expect(fs.existsSync(qaDocPath)).toBe(true);
 
     const qaDoc = fs.readFileSync(qaDocPath, "utf8");
     const requiredTerms = [
-      "목적",
-      "Airbnb 디자인 리팩터",
-      "환경",
-      "http://localhost:3000",
-      "http://localhost:8080",
-      "QA 계정",
-      "Recording",
-      "failed step",
-      "console error",
-      "network failed request",
-      "screenshot path",
-      "verify:pre-redesign",
-      "verify:design-ready",
-      "smoke:frontend:strict",
-      "ES Search Fixture Gate",
-      "AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS",
-      "Google Maps API key: present",
+      "# Frontend Live Integration Smoke",
+      "DEFERRED / UNVERIFIED",
+      "backend-independent `npm run verify:design-ready`",
+      "live smoke는 그 명령에",
+      "포함되지 않고 디자인 작업을 차단하지 않는다",
+      "commit-specific Vercel deployment",
+      "OCI `/api/v1`",
+      "Google Maps/Places SDK",
+      "Toss sandbox",
+      "AWS 성능 환경",
+      "npm run verify:design-ready",
+      "npm run smoke:frontend:preflight",
+      "npm run verify:live-integration",
+      "AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS=true",
+      "strict dynamic-route smoke",
+      "Google Maps API key:",
+      "present` 표시는",
       "AIRBOB_API_BASE_URL",
       "AIRBOB_FRONTEND_URL",
       "AIRBOB_SMOKE_REPORT_ROOT",
       "GSTACK_BROWSE_BIN",
       "AIRBOB_QA_EMAIL",
-      ': "' +
-        "$" +
-        "{AIRBOB_QA_PASSWORD:?Set AIRBOB_QA_PASSWORD in the shell before running smoke}" +
-        '"',
+      "AIRBOB_QA_PASSWORD",
       "AIRBOB_SMOKE_ACCOMMODATION_ID",
+      "AIRBOB_SMOKE_EDIT_ACCOMMODATION_ID",
       "AIRBOB_SMOKE_RESERVATION_UID",
       "AIRBOB_SMOKE_HOST_RESERVATION_UID",
-      "curl -fsS",
-      "profile/guest/reservations?filterType=PAST&size=1",
-      "profile/host/reservations?filterType=PAST&size=1",
-      "guest_reservation_uid",
-      "host_reservation_uid",
-      "npm run smoke:frontend:strict",
-      "Skipped Dynamic Routes",
-      "Smoke report evidence",
-      "2026-07-04 KST Redesign Readiness Smoke Gate",
+      "failed step",
+      "console error",
+      "network failed request",
+      "DEFERRED / UNVERIFIED`를 유지",
     ];
-    const desktopSection = getSection(qaDoc, "Desktop 1280px 체크리스트");
-    const desktopTerms = [
-      "Home search",
-      "/search",
-      "Search list",
-      "page query",
-      "map marker",
-      "bounds",
-      "Accommodation detail",
-      "coupon",
-      "reservation button",
-      "Reservation confirm",
-      "AccommodationEdit",
-      "image upload",
-      "publish",
-      "Toss",
-      "PaymentSuccess",
-      "ReservationDetail",
-      "Host reservation detail",
-      "Wishlist",
-      "Profile guest tab",
-      "host tab",
-      "Host listing",
+    const requiredSections = [
+      "목적과 경계",
+      "실행 전 조건",
+      "Smoke 환경 변수",
+      "실행",
+      "자동 route evidence",
+      "수동 live checklist",
+      "실패와 증거 기록",
     ];
-    const mobileSection = getSection(qaDoc, "Mobile 375px 체크리스트");
-    const mobileTerms = [
-      "Home search",
-      "Search mobile bottom sheet",
-      "bottom sheet",
-      "closed",
-      "half",
-      "full",
-      "Detail booking panel",
-      "booking panel",
-      "Reservation confirm",
-      "Wishlist",
-      "Profile guest tab",
-      "host tab",
-      "Host listing",
-      "Wishlist/Auth/Review",
-      "dialog",
-    ];
-    const architectureSection = getSection(qaDoc, "Architecture Checkpoints");
-    const architectureCheckpoints = [
-      {
-        heading: "query route contract",
-        expectedTerms: [
-          "/profile?mode=host&tab=reservations",
-          "/wishlist?view=recently-viewed",
-          "browser back/forward",
-        ],
-      },
-      {
-        heading: "server-state auth boundary",
-        expectedTerms: ["login", "logout", "401 handling"],
-      },
-      {
-        heading: "components ownership boundary",
-        expectedTerms: ["shared UI primitives", "route/screen/workflow owner"],
-      },
-      {
-        heading: "design system entry contracts",
-        expectedTerms: [
-          "src/shared/styles/design-system-contracts.test.ts",
-          "screenshot path",
-        ],
-      },
-    ];
+    const liveChecklist = getSection(qaDoc, "수동 live checklist");
 
     requiredTerms.forEach((term) => {
       expect(qaDoc).toContain(term);
     });
-    desktopTerms.forEach((term) => {
-      expect(desktopSection).toContain(term);
+    requiredSections.forEach((heading) => {
+      expect(getSection(qaDoc, heading)).not.toBe("");
     });
-    mobileTerms.forEach((term) => {
-      expect(mobileSection).toContain(term);
-    });
-    architectureCheckpoints.forEach(({ heading, expectedTerms }) => {
-      const checkpoint = getSection(architectureSection, heading, 3);
-
-      expect(checkpoint).toContain("Steps:");
-      expect(checkpoint).toContain("Expected:");
-      expect(checkpoint).toContain("Evidence:");
-      expectedTerms.forEach((term) => {
-        expect(checkpoint).toContain(term);
-      });
-    });
+    ["Vercel과 OCI", "Google Maps와 Places", "Toss sandbox"].forEach(
+      (heading) => {
+        expect(getSection(liveChecklist, heading, 3)).not.toBe("");
+      },
+    );
 
     expect(qaDoc).not.toMatch(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
-    expect(qaDoc).not.toMatch(
-      /(?:^|[^A-Z_])(?:email|password|nickname|member[_ -]?id)\s*[:=]/i,
-    );
-    expect(qaDoc).not.toMatch(/(?:이메일|비밀번호)\s*[:=：]/);
-    expect(qaDoc).not.toContain("Final Verification");
-    expect(qaDoc).not.toContain("PASS in final verification");
+    [
+      "Desktop 1280px 체크리스트",
+      "Mobile 375px 체크리스트",
+      "Architecture Checkpoints",
+      "2026-07-04",
+      "Final Verification",
+      "PASS in final verification",
+      "react-scripts",
+      "Jest",
+      "http://localhost:3000",
+      "http://localhost:8080",
+    ].forEach((obsoleteTerm) => {
+      expect(qaDoc).not.toContain(obsoleteTerm);
+    });
+  });
+
+  test("target contract matrix keeps offline closure separate from live evidence", () => {
+    expect(fs.existsSync(targetContractMatrixPath)).toBe(true);
+
+    const matrix = fs.readFileSync(targetContractMatrixPath, "utf8");
+    [
+      "판정 기준",
+      "구조 계약",
+      "보존해야 하는 사용자 흐름",
+      "외부 통합 상태",
+      "디자인 진입 판정",
+      "npm run verify:design-ready",
+      "npm run verify:pre-redesign",
+      "npm run verify:structure",
+      "npm run verify:browser",
+      "npm run verify:live-integration",
+      "PENDING (offline closure)",
+      "global unused value/type export와 duplicate export",
+      "frontend-bundle-budgets.json",
+      "DEFERRED / UNVERIFIED (live)",
+      "Vercel → OCI",
+      "Google Maps/Places",
+      "Toss sandbox",
+      "AWS performance environment",
+    ].forEach((term) => {
+      expect(matrix).toContain(term);
+    });
+    expect(matrix).not.toContain("2026-07-04");
+    expect(matrix).not.toContain("react-scripts");
+    expect(matrix).not.toContain("Jest");
   });
 });

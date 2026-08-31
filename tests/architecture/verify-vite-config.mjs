@@ -102,6 +102,7 @@ try {
   assert.equal(productionConfig.build.assetsDir, "static");
   assert.equal(productionConfig.build.cssCodeSplit, true);
   assert.equal(productionConfig.build.emptyOutDir, true);
+  assert.equal(productionConfig.build.manifest, true);
   assert.equal(productionConfig.build.sourcemap, true);
   assert.deepEqual(productionConfig.build.target, [
     "chrome111",
@@ -113,7 +114,7 @@ try {
   assert.equal(productionConfig.define["process.env.NODE_ENV"], '"production"');
 
   process.stdout.write(
-    "Vite config preserves the exact env, test isolation, proxy, CSS, output, and sourcemap contracts.\n",
+    "Vite config preserves the exact env, test isolation, proxy, CSS, output, manifest, and sourcemap contracts.\n",
   );
 } finally {
   restoreEnvironment();

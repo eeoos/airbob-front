@@ -6,6 +6,11 @@ import { randomUUID } from "node:crypto";
 import { gzipSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
 import { validatePublicBuildEnvironment } from "./validate-public-build-env.mjs";
+import {
+  enforceFrontendBundleBudgets,
+  measureFrontendBundleGraphs,
+  readFrontendBundleBudgets,
+} from "./frontend-bundle-budgets.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(scriptDirectory, "../..");
@@ -193,9 +198,9 @@ const REQUIRED_PUBLIC_FILES = Object.freeze([
   "manifest.json",
   "robots.txt",
 ]);
-const U16_INITIAL_JAVASCRIPT_GZIP_CEILING_BYTES = 147_730;
+const VITE_MANIFEST_PATH = Object.freeze([".vite", "manifest.json"]);
 
-const readLazyRouteChunkPrefixes = async () => {
+const readLazyRouteManifestEntries = async () => {
   const lazyRouteSource = await readFile(
     path.join(projectRoot, "src/app/router/lazyRoutes.tsx"),
     "utf8",
@@ -216,13 +221,18 @@ const readLazyRouteChunkPrefixes = async () => {
     );
   }
 
-  return uniqueRouteModuleNames.map((moduleName) => `${moduleName}-`);
+  return uniqueRouteModuleNames.map((moduleName) => ({
+    routeName: moduleName,
+    sourcePath: `src/app/router/routes/${moduleName}.tsx`,
+    chunkPrefix: `${moduleName}-`,
+  }));
 };
 
 const verifyViteBuildContract = async ({
+  budgets,
   directory,
   publicAssetBase,
-  requiredLazyRouteChunks,
+  requiredLazyRoutes,
 }) => {
   const rootEntries = new Set(await readdir(directory));
   const missingPublicFiles = REQUIRED_PUBLIC_FILES.filter(
@@ -255,7 +265,7 @@ const verifyViteBuildContract = async ({
   const staticEntrySet = new Set(staticEntries);
 
   if (
-    javascriptFiles.length < requiredLazyRouteChunks.length + 1 ||
+    javascriptFiles.length < requiredLazyRoutes.length + 1 ||
     cssFiles.length === 0
   ) {
     throw new Error(
@@ -263,10 +273,12 @@ const verifyViteBuildContract = async ({
     );
   }
 
-  const missingRouteChunks = requiredLazyRouteChunks.filter(
-    (prefix) =>
-      !javascriptFiles.some((fileName) => fileName.startsWith(prefix)),
-  );
+  const missingRouteChunks = requiredLazyRoutes
+    .map(({ chunkPrefix }) => chunkPrefix)
+    .filter(
+      (prefix) =>
+        !javascriptFiles.some((fileName) => fileName.startsWith(prefix)),
+    );
   if (missingRouteChunks.length > 0) {
     throw new Error(
       `Production build collapsed lazy route chunks: ${missingRouteChunks.join(", ")}.`,
@@ -331,32 +343,65 @@ const verifyViteBuildContract = async ({
     );
   }
 
-  const initialJavascriptGzipBytes = (
+  const initialJavaScriptFiles = [...initialJavascriptReferences].map(
+    (reference) => {
+      const fileName = new URL(
+        reference,
+        "https://airbob-build.invalid",
+      ).pathname
+        .split("/")
+        .at(-1);
+      if (!fileName || !staticEntrySet.has(fileName)) {
+        throw new Error(
+          "Production HTML references a missing initial JavaScript asset.",
+        );
+      }
+      return `static/${fileName}`;
+    },
+  );
+  const manifest = JSON.parse(
+    await readFile(path.join(directory, ...VITE_MANIFEST_PATH), "utf8"),
+  );
+  const manifestKeys = Object.keys(manifest);
+  const lazyRouteManifestEntries = requiredLazyRoutes.map(
+    ({ routeName, sourcePath }) => {
+      const matchingKeys = manifestKeys.filter(
+        (manifestKey) =>
+          manifestKey === sourcePath ||
+          manifest[manifestKey]?.src === sourcePath,
+      );
+      if (matchingKeys.length !== 1) {
+        throw new Error(
+          `Vite manifest must map lazy route ${sourcePath} exactly once.`,
+        );
+      }
+      return { routeName, manifestKey: matchingKeys[0] };
+    },
+  );
+  const javascriptGzipBytesByFile = new Map(
     await Promise.all(
-      [...initialJavascriptReferences].map(async (reference) => {
-        const fileName = new URL(
-          reference,
-          "https://airbob-build.invalid",
-        ).pathname
-          .split("/")
-          .at(-1);
-        if (!fileName || !staticEntrySet.has(fileName)) {
-          throw new Error(
-            "Production HTML references a missing initial JavaScript asset.",
-          );
-        }
-        return gzipSync(await readFile(path.join(staticDirectory, fileName)))
-          .byteLength;
-      }),
-    )
-  ).reduce((total, bytes) => total + bytes, 0);
-  if (initialJavascriptGzipBytes > U16_INITIAL_JAVASCRIPT_GZIP_CEILING_BYTES) {
-    throw new Error(
-      `Vite initial JavaScript graph exceeded the U16 parity ceiling: ${initialJavascriptGzipBytes} bytes.`,
-    );
-  }
+      javascriptFiles.map(async (fileName) => [
+        `static/${fileName}`,
+        gzipSync(await readFile(path.join(staticDirectory, fileName)))
+          .byteLength,
+      ]),
+    ),
+  );
+  const {
+    initialJavaScriptGzipBytes,
+    lazyRouteIncrementalJavaScriptGzipMeasurements,
+  } = measureFrontendBundleGraphs({
+    manifest,
+    initialJavaScriptFiles,
+    lazyRouteManifestEntries,
+    javascriptGzipBytesByFile,
+  });
 
-  return initialJavascriptGzipBytes;
+  return enforceFrontendBundleBudgets({
+    budgets,
+    initialJavaScriptGzipBytes,
+    lazyRouteIncrementalJavaScriptGzipMeasurements,
+  });
 };
 
 const runPackageBuild = ({
@@ -381,8 +426,9 @@ const runPackageBuild = ({
   });
 
 try {
-  const initialJavascriptGzipMeasurements = [];
-  const requiredLazyRouteChunks = await readLazyRouteChunkPrefixes();
+  const bundleMeasurements = [];
+  const budgets = await readFrontendBundleBudgets();
+  const requiredLazyRoutes = await readLazyRouteManifestEntries();
   const invalidBuildInputs = [
     {
       name: "missing API origin",
@@ -652,20 +698,37 @@ try {
       );
     }
 
-    initialJavascriptGzipMeasurements.push(
+    bundleMeasurements.push(
       await verifyViteBuildContract({
+        budgets,
         directory: acceptedBuildPath,
         publicAssetBase,
-        requiredLazyRouteChunks,
+        requiredLazyRoutes,
       }),
     );
   }
 
   const maximumInitialJavascriptGzipBytes = Math.max(
-    ...initialJavascriptGzipMeasurements,
+    ...bundleMeasurements.map(
+      ({ initialJavaScriptGzipBytes }) => initialJavaScriptGzipBytes,
+    ),
   );
+  const maximumLazyRouteGraph = bundleMeasurements
+    .map(
+      ({ maximumLazyRouteIncrementalJavaScriptGraph }) =>
+        maximumLazyRouteIncrementalJavaScriptGraph,
+    )
+    .reduce((maximum, measurement) =>
+      measurement.gzipBytes > maximum.gzipBytes ? measurement : maximum,
+    );
+  const maximumRouteContributors = maximumLazyRouteGraph.files
+    .map(
+      ({ fileName, gzipBytes }) =>
+        `${fileName} ${(gzipBytes / 1000).toFixed(2)} kB`,
+    )
+    .join(", ");
   process.stdout.write(
-    `Production builds contain only four approved app-runtime public categories plus a validated PUBLIC_URL asset base; the Vite initial JavaScript graph is at most ${(maximumInitialJavascriptGzipBytes / 1000).toFixed(2)} kB gzip.\n`,
+    `Production builds contain only four approved app-runtime public categories plus a validated PUBLIC_URL asset base. Initial JavaScript: ${(maximumInitialJavascriptGzipBytes / 1000).toFixed(2)} kB gzip / ${(budgets.initialJavaScriptGzipBytes / 1000).toFixed(2)} kB budget. Largest lazy-route incremental graph: ${maximumLazyRouteGraph.routeName} ${(maximumLazyRouteGraph.gzipBytes / 1000).toFixed(2)} kB gzip / ${(budgets.lazyRouteIncrementalJavaScriptGzipBytes / 1000).toFixed(2)} kB budget (${maximumRouteContributors}).\n`,
   );
 } finally {
   await rm(buildRoot, { recursive: true, force: true });

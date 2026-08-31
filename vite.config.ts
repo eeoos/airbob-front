@@ -102,6 +102,7 @@ export default defineConfig({
   build: {
     assetsDir: "static",
     cssCodeSplit: true,
+    manifest: true,
     sourcemap: true,
     target: "baseline-widely-available",
   },
