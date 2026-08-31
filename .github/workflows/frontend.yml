@@ -37,6 +37,9 @@ jobs:
       - name: Typecheck browser characterization
         run: npm run typecheck:e2e
 
+      - name: Typecheck tool configuration
+        run: npm run typecheck:tooling
+
       - name: Verify architecture ratchets
         run: npm run verify:architecture
         env:

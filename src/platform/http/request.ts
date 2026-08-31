@@ -17,7 +17,7 @@ export interface ApiDataRequest {
   readonly body?: unknown;
   readonly bodyEncoding?: "multipart";
   readonly params?: object;
-  readonly signal?: AbortSignal;
+  readonly signal?: AbortSignal | undefined;
   readonly onUploadProgress?: (progress: number) => void;
   readonly authEventPolicy?: AuthEventPolicy;
 }
@@ -49,7 +49,7 @@ const toAxiosRequestConfig = ({
   signal,
 }: ApiDataRequest): AxiosRequestConfig => ({
   ...(authEventPolicy ?? {}),
-  data: body,
+  ...(body === undefined ? {} : { data: body }),
   ...(bodyEncoding === "multipart"
     ? {
         headers: { "Content-Type": "multipart/form-data" },
@@ -57,8 +57,8 @@ const toAxiosRequestConfig = ({
       }
     : {}),
   method,
-  params,
-  signal,
+  ...(params === undefined ? {} : { params }),
+  ...(signal === undefined ? {} : { signal }),
   ...(onUploadProgress
     ? {
         onUploadProgress: (progressEvent) => {

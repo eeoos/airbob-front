@@ -23,7 +23,7 @@ const ObserverHarness = ({
     hasNext,
     isLoading,
     onLoadMore,
-    rootMargin,
+    ...(rootMargin === undefined ? {} : { rootMargin }),
   });
 
   return <div data-testid="load-more" ref={observerTarget} />;

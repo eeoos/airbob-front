@@ -94,7 +94,10 @@ export const TimePicker: React.FC<TimePickerProps> = ({
           e.key === "ArrowUp"
             ? currentIndex >= minutes.length - 1 ? 0 : currentIndex + 1
             : currentIndex <= 0 ? minutes.length - 1 : currentIndex - 1;
-        handleMinuteChange(minutes[nextIndex]);
+        const nextMinute = minutes[nextIndex];
+        if (nextMinute !== undefined) {
+          handleMinuteChange(nextMinute);
+        }
       }
     }
   };

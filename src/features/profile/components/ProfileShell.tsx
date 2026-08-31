@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { requireCssModuleClass } from "../../../shared/styles/requireCssModuleClass";
 import { Tabs } from "../../../shared/ui";
 import styles from "./ProfileShell.module.css";
 
@@ -48,10 +49,10 @@ export function ProfileShell(props: ProfileShellProps) {
         <h1 className={styles.title}>프로필</h1>
         <Tabs
           ariaLabel="프로필 모드"
-          className={styles.modeToggle}
+          className={requireCssModuleClass(styles.modeToggle)}
           items={modeItems}
-          selectedTabClassName={styles.active}
-          tabClassName={styles.toggleButton}
+          selectedTabClassName={requireCssModuleClass(styles.active)}
+          tabClassName={requireCssModuleClass(styles.toggleButton)}
           value={props.mode}
           variant="plain"
           onValueChange={props.onModeChange}
@@ -62,10 +63,10 @@ export function ProfileShell(props: ProfileShellProps) {
           {props.mode === "guest" ? (
             <Tabs
               ariaLabel="게스트 프로필"
-              className={styles.nav}
+              className={requireCssModuleClass(styles.nav)}
               items={guestNavItems}
-              selectedTabClassName={styles.active}
-              tabClassName={styles.navItem}
+              selectedTabClassName={requireCssModuleClass(styles.active)}
+              tabClassName={requireCssModuleClass(styles.navItem)}
               value={props.activeTab}
               orientation="vertical"
               variant="plain"
@@ -74,10 +75,10 @@ export function ProfileShell(props: ProfileShellProps) {
           ) : (
             <Tabs
               ariaLabel="호스트 프로필"
-              className={styles.nav}
+              className={requireCssModuleClass(styles.nav)}
               items={hostNavItems}
-              selectedTabClassName={styles.active}
-              tabClassName={styles.navItem}
+              selectedTabClassName={requireCssModuleClass(styles.active)}
+              tabClassName={requireCssModuleClass(styles.navItem)}
               value={props.activeTab}
               orientation="vertical"
               variant="plain"

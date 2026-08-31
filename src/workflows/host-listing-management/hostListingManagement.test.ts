@@ -125,7 +125,7 @@ describe("host listing management workflow", () => {
       action: "delete",
       accommodationId: 31,
     });
-    const signal = harness.api.delete.mock.calls[0][1]?.signal;
+    const signal = harness.api.delete.mock.calls.at(0)?.[1]?.signal;
 
     harness.workflow.dispose();
     expect(signal?.aborted).toBe(true);
@@ -310,7 +310,7 @@ describe("host listing management workflow", () => {
         action: "publish",
         accommodationId: 31,
       });
-      const signal = harness.api.publish.mock.calls[0][1]?.signal;
+      const signal = harness.api.publish.mock.calls.at(0)?.[1]?.signal;
 
       vi.advanceTimersByTime(HOST_LISTING_COMMAND_DEADLINE_MS);
 

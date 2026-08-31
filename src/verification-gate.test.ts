@@ -6,7 +6,7 @@ import { spawnSync } from "child_process";
 const projectRoot = process.cwd();
 const packageJsonPath = path.join(projectRoot, "package.json");
 const vercelConfigPath = path.join(projectRoot, "vercel.json");
-const vitestConfigPath = path.join(projectRoot, "vitest.config.mjs");
+const vitestConfigPath = path.join(projectRoot, "vitest.config.ts");
 const testSetupPath = path.join(projectRoot, "src/test/setup.ts");
 const frontendWorkflowPath = path.join(
   projectRoot,
@@ -364,12 +364,8 @@ describe("frontend verification gate", () => {
     expect(packageJson.scripts["test:e2e:artifact-policy"]).toBe(
       "node tests/e2e/support/scan-artifacts.mjs --self-test",
     );
-    expect(packageJson.scripts["typecheck:e2e"]).toBe(
-      "tsc --noEmit -p tsconfig.e2e.json",
-    );
-    expect(packageJson.scripts["typecheck:tooling"]).toBeUndefined();
     expect(packageJson.scripts["lint:e2e"]).toBe(
-      "eslint vite.config.mjs vitest.config.mjs playwright.config.ts tests/e2e --ext .mjs,.ts --max-warnings=0",
+      "eslint vite.config.ts vitest.config.ts playwright.config.ts tests/e2e --ext .mjs,.ts --max-warnings=0",
     );
     expect(packageJson.scripts["test:architecture-rules"]).toContain(
       "verify-dependency-rules.mjs",
@@ -388,6 +384,9 @@ describe("frontend verification gate", () => {
     );
     expect(packageJson.scripts["test:architecture-rules"]).toContain(
       "verify-style-rules.mjs",
+    );
+    expect(packageJson.scripts["test:architecture-rules"]).toContain(
+      "verify-typescript-config.mjs",
     );
     expect(packageJson.scripts["test:architecture-rules"]).toContain(
       "verify-toss-runtime.mjs",
@@ -467,13 +466,13 @@ describe("frontend verification gate", () => {
       "eslint src --ext .js,.jsx,.mjs,.ts,.tsx --max-warnings=0",
     );
     expect(packageJson.scripts["verify:structure"]).toBe(
-      "npm run typecheck && npm run verify:architecture && npm run test:public-config-build && npm run test:ci:no-cache && npm run lint:strict",
+      "npm run typecheck && npm run typecheck:tooling && npm run verify:architecture && npm run test:public-config-build && npm run test:ci:no-cache && npm run lint:strict",
     );
     expect(packageJson.scripts["test:public-config-build"]).toBe(
       "node scripts/architecture/verify-public-config-build.mjs",
     );
     expect(packageJson.scripts["verify:pre-redesign"]).toBe(
-      "npm run typecheck && npm run test:ci:no-cache && npm run build",
+      "npm run typecheck && npm run typecheck:tooling && npm run test:ci:no-cache && npm run build",
     );
     expect(packageJson.scripts["smoke:frontend"]).toBe(
       "node scripts/smoke/frontend-smoke.mjs",
@@ -511,6 +510,7 @@ describe("frontend verification gate", () => {
       "run: npm run test:e2e:artifact-policy",
       "run: npm run typecheck",
       "run: npm run typecheck:e2e",
+      "run: npm run typecheck:tooling",
       "run: npm run verify:architecture",
       "run: npm run test:public-config-build",
       "AIRBOB_PUSH_BEFORE_SHA: $" +
@@ -530,6 +530,7 @@ describe("frontend verification gate", () => {
       "run: npm run test:e2e:artifact-policy",
       "run: npm run typecheck",
       "run: npm run typecheck:e2e",
+      "run: npm run typecheck:tooling",
       "run: npm run verify:architecture",
       "run: npm run test:public-config-build",
       "run: npm run test:ci:no-cache",
@@ -1024,9 +1025,8 @@ describe("frontend verification gate", () => {
       });
       const output = `${result.stdout}\n${result.stderr}`;
       const reportPathMatch = output.match(/Smoke report written to (.+\.md)/);
-      const reportPath = reportPathMatch
-        ? toSmokeReportPath(reportPathMatch[1])
-        : "";
+      const reportedPath = reportPathMatch?.[1];
+      const reportPath = reportedPath ? toSmokeReportPath(reportedPath) : "";
       const report = reportPath ? fs.readFileSync(reportPath, "utf8") : "";
 
       if (reportPath) {

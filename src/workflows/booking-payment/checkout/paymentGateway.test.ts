@@ -57,8 +57,9 @@ describe("Toss Payments v2 gateway", () => {
     await expect(gateway.prepare()).resolves.toBeUndefined();
 
     expect(loadTossPaymentsV2Client).toHaveBeenCalledWith("test_ck_public");
-    const client = await vi.mocked(loadTossPaymentsV2Client).mock.results[0]
-      .value;
+    const loadResult = vi.mocked(loadTossPaymentsV2Client).mock.results.at(0);
+    if (!loadResult) throw new Error("Expected the Toss client to be loaded");
+    const client = await loadResult.value;
     expect(client.requestPayment).not.toHaveBeenCalled();
   });
 

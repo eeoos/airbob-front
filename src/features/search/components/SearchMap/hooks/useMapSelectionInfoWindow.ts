@@ -1,19 +1,24 @@
-import { MutableRefObject, RefObject, useEffect, useRef } from "react";
+import {
+  useEffect,
+  useRef,
+  type MutableRefObject,
+  type RefObject,
+} from "react";
 import { getGoogleMapsApi } from "../../../../../platform/integrations/googleMaps";
 import { buildInfoWindowContent } from "../lib/infoWindowContent";
 import {
   adjustInfoWindowIntoMapView,
   applyInfoWindowChromeStyles,
 } from "../lib/infoWindowDom";
-import { SearchMapAccommodation, SearchMapMarker } from "../types";
+import type { SearchMapAccommodation, SearchMapMarker } from "../types";
 import { useMapInfoWindowEvents } from "./useMapInfoWindowEvents";
 
 interface UseMapSelectionInfoWindowOptions {
   accommodations: SearchMapAccommodation[];
-  checkIn?: string | null;
-  checkOut?: string | null;
+  checkIn?: string | null | undefined;
+  checkOut?: string | null | undefined;
   getAccommodationHref: (accommodationId: number) => string;
-  hoveredAccommodationId?: number | null;
+  hoveredAccommodationId?: number | null | undefined;
   hoveredAccommodationIdRef: MutableRefObject<number | null>;
   infoWindowRef: MutableRefObject<google.maps.InfoWindow | null>;
   mapInstanceRef: MutableRefObject<google.maps.Map | null>;
@@ -22,7 +27,9 @@ interface UseMapSelectionInfoWindowOptions {
   onAccommodationSelect: (
     accommodation: SearchMapAccommodation | null,
   ) => void;
-  onWishlistToggle?: (accommodationId: number, isInWishlist: boolean) => void;
+  onWishlistToggle?:
+    | ((accommodationId: number, isInWishlist: boolean) => void)
+    | undefined;
   prevHoveredIdRef: MutableRefObject<number | null>;
   prevSelectedIdRef: MutableRefObject<number | null>;
   selectedAccommodationId: number | null;
@@ -183,9 +190,9 @@ export const useMapSelectionInfoWindow = ({
           disableAutoPan: true,
           content: buildInfoWindowContent({
             accommodation: selectedAccommodation,
-            checkIn,
-            checkOut,
             canToggleWishlist: !!onWishlistToggle,
+            ...(checkIn === undefined ? {} : { checkIn }),
+            ...(checkOut === undefined ? {} : { checkOut }),
           }),
         });
 

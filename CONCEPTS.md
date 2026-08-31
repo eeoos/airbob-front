@@ -36,6 +36,9 @@ The U16 ownership switch where Vite becomes the only development and production 
 ### Vitest Test Cutover
 The U17 ownership switch where Vitest 4 becomes the sole unit/integration runner over Vite's module graph. The jsdom suite preserves Jest-era behavior without Axios/router shims, uses deterministic file execution and ordered hooks, and removes `react-scripts` and Jest types from the install graph.
 
+### TypeScript Environment Boundary
+The U23 compiler contract where TypeScript 5.9 checks browser application, Vitest, Vite/Vitest configuration, and Playwright source through separate projects. Browser code receives only Vite/DOM types, while exact optional properties and unchecked indexed access force missing keys, array bounds, and external-input parsers to be handled explicitly.
+
 ### Immutable Deployment Rollback
 A frontend rollback that restores one recorded Git commit and its commit-specific Vercel deployment, including that deployment's own HTML and hashed assets. The previous deployment is retained rather than rebuilt or mixed with a candidate's files; live deep-link and already-open-tab asset checks remain required deployment evidence.
 

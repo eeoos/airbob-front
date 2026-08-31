@@ -30,6 +30,16 @@ describe("readBrowserEnvironment", () => {
     );
   });
 
+  it("omits optional public keys that are absent from the source", () => {
+    const environment = readBrowserEnvironment({ NODE_ENV: "test" });
+
+    expect(environment).toEqual({ mode: "test" });
+    expect(environment).not.toHaveProperty("apiUrl");
+    expect(environment).not.toHaveProperty("googleMapsApiKey");
+    expect(environment).not.toHaveProperty("tossClientKey");
+    expect(environment).not.toHaveProperty("cloudFrontDomain");
+  });
+
   it.each([undefined, "preview", "PRODUCTION"])(
     "rejects unsupported runtime mode %p without exposing its value",
     (mode) => {

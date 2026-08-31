@@ -10,6 +10,12 @@ const daumScripts = () =>
     (script) => script.src === DAUM_POSTCODE_SCRIPT_SRC,
   );
 
+const requireDaumScript = (): HTMLScriptElement => {
+  const script = daumScripts().at(0);
+  if (!script) throw new Error("Expected the Daum postcode script");
+  return script;
+};
+
 const installDaumRuntime = () => {
   const open = vi.fn();
   let oncomplete: ((value: unknown) => void) | null = null;
@@ -61,7 +67,7 @@ describe("Daum postcode platform integration", () => {
   it("loads one exact marked HTTPS script and shares the pending promise", async () => {
     const first = ensureDaumPostcodeScript();
     const second = ensureDaumPostcodeScript();
-    const script = daumScripts()[0];
+    const script = requireDaumScript();
 
     expect(second).toBe(first);
     expect(daumScripts()).toHaveLength(1);
@@ -82,7 +88,7 @@ describe("Daum postcode platform integration", () => {
 
   it("rejects an invalid runtime and retries with a fresh script", async () => {
     const invalidLoad = ensureDaumPostcodeScript();
-    const invalidScript = daumScripts()[0];
+    const invalidScript = requireDaumScript();
     invalidScript.dispatchEvent(new Event("load"));
 
     await expect(invalidLoad).rejects.toMatchObject({
@@ -91,7 +97,7 @@ describe("Daum postcode platform integration", () => {
     expect(invalidScript.isConnected).toBe(false);
 
     const retry = ensureDaumPostcodeScript();
-    const retryScript = daumScripts()[0];
+    const retryScript = requireDaumScript();
     installDaumRuntime();
     retryScript.dispatchEvent(new Event("load"));
     await expect(retry).resolves.toBeUndefined();
@@ -99,7 +105,7 @@ describe("Daum postcode platform integration", () => {
 
   it("removes a failed script and permits retry", async () => {
     const failedLoad = ensureDaumPostcodeScript();
-    const failedScript = daumScripts()[0];
+    const failedScript = requireDaumScript();
     failedScript.dispatchEvent(new Event("error"));
 
     await expect(failedLoad).rejects.toMatchObject({
@@ -145,7 +151,7 @@ describe("Daum postcode platform integration", () => {
   it("does not construct or open the provider after a pending load is aborted", async () => {
     const controller = new AbortController();
     const opening = openDaumPostcode(vi.fn(), vi.fn(), controller.signal);
-    const script = daumScripts()[0];
+    const script = requireDaumScript();
     controller.abort();
     const { open, Postcode } = installDaumRuntime();
 

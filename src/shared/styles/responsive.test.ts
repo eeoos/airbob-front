@@ -32,13 +32,18 @@ const readCustomMediaDeclarations = () => {
 
 const evaluateWidthQuery = (query: string, width: number): boolean => {
   const complement = /^not all and\s+(.+)$/.exec(query);
-  if (complement) return !evaluateWidthQuery(complement[1], width);
+  const complementQuery = complement?.[1];
+  if (complementQuery !== undefined) {
+    return !evaluateWidthQuery(complementQuery, width);
+  }
 
   const maxWidth = /\(max-width:\s*(\d+)px\)/.exec(query);
-  if (maxWidth) return width <= Number(maxWidth[1]);
+  const maxWidthValue = maxWidth?.[1];
+  if (maxWidthValue !== undefined) return width <= Number(maxWidthValue);
 
   const minWidth = /\(min-width:\s*(\d+)px\)/.exec(query);
-  if (minWidth) return width >= Number(minWidth[1]);
+  const minWidthValue = minWidth?.[1];
+  if (minWidthValue !== undefined) return width >= Number(minWidthValue);
 
   throw new Error(`Unsupported responsive media query: ${query}`);
 };

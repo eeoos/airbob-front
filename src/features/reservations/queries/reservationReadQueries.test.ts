@@ -293,7 +293,9 @@ describe("reservation read query boundary", () => {
     );
 
     await waitFor(() =>
-      expect(result.current.data?.pages[0].reservations[0].reservationUid).toBe(
+      expect(
+        result.current.data?.pages.at(0)?.reservations.at(0)?.reservationUid,
+      ).toBe(
         "upcoming-1",
       ),
     );
@@ -305,7 +307,9 @@ describe("reservation read query boundary", () => {
 
     rerender({ filterType: "PAST" });
     await waitFor(() =>
-      expect(result.current.data?.pages[0].reservations[0].reservationUid).toBe(
+      expect(
+        result.current.data?.pages.at(0)?.reservations.at(0)?.reservationUid,
+      ).toBe(
         "past-1",
       ),
     );
@@ -316,7 +320,9 @@ describe("reservation read query boundary", () => {
     });
 
     expect(result.current.data?.pages).toHaveLength(1);
-    expect(result.current.data?.pages[0].reservations[0].reservationUid).toBe(
+    expect(
+      result.current.data?.pages.at(0)?.reservations.at(0)?.reservationUid,
+    ).toBe(
       "past-1",
     );
     queryClient.clear();

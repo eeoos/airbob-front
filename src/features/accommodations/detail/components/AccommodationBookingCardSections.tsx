@@ -140,9 +140,9 @@ function GuestCounterRow({
         decrementLabel={decrementLabel}
         incrementLabel={incrementLabel}
         min={min}
-        max={max}
         value={value}
         onChange={onChange}
+        {...(max === undefined ? {} : { max })}
       />
     </div>
   );

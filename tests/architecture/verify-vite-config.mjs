@@ -6,7 +6,7 @@ import { PUBLIC_RUNTIME_ENV_KEYS } from "../../scripts/architecture/validate-pub
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(scriptDirectory, "../..");
-const configFile = path.join(projectRoot, "vite.config.mjs");
+const configFile = path.join(projectRoot, "vite.config.ts");
 const environmentKeys = [
   "BUILD_PATH",
   "PUBLIC_URL",

@@ -111,7 +111,11 @@ describe("HostReservationsPanel", () => {
     expect(screen.getAllByText("게스트 1")).toHaveLength(2);
     expect(screen.getAllByText("₩100,001")).toHaveLength(2);
 
-    await userEvent.click(screen.getAllByRole("button", { name: "상세" })[0]);
+    const firstDetailButton = screen
+      .getAllByRole("button", { name: "상세" })
+      .at(0);
+    if (!firstDetailButton) throw new Error("Expected a reservation detail button");
+    await userEvent.click(firstDetailButton);
 
     expect(onOpenReservation).toHaveBeenCalledWith("host-1");
   });

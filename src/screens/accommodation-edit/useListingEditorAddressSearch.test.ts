@@ -11,6 +11,15 @@ const deferred = <Value,>() => {
   return { promise, reject, resolve };
 };
 
+const getFirstSearchSignal = (search: ReturnType<typeof vi.fn>) => {
+  const call = search.mock.calls[0];
+  const signal = call?.[0]?.signal;
+  if (!(signal instanceof AbortSignal)) {
+    throw new Error("Expected address search to receive an AbortSignal");
+  }
+  return signal;
+};
+
 const address = {
   postalCode: "06236",
   country: "대한민국",
@@ -39,7 +48,7 @@ describe("useListingEditorAddressSearch", () => {
     );
 
     act(() => result.current.openAddressSearch());
-    const firstSignal = search.mock.calls[0][0].signal as AbortSignal;
+    const firstSignal = getFirstSearchSignal(search);
     act(() => result.current.openAddressSearch());
     expect(firstSignal.aborted).toBe(true);
 

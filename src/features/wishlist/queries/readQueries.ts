@@ -86,7 +86,10 @@ export const createWishlistListsQueryOptions = (
     readonly signal: AbortSignal;
   }) =>
     api.getWishlists(
-      getWishlistListParams({ accommodationId, cursor: pageParam }),
+      getWishlistListParams({
+        ...(accommodationId === undefined ? {} : { accommodationId }),
+        cursor: pageParam,
+      }),
       { signal },
     ),
   initialPageParam: null as string | null,

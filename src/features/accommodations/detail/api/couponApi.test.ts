@@ -41,8 +41,8 @@ describe("coupon API adapter", () => {
       path: "/coupons",
       signal,
     });
-    expect(request.mock.calls[0][0]).not.toHaveProperty("body");
-    expect(request.mock.calls[0][0]).not.toHaveProperty("params");
+    expect(request.mock.calls.at(0)?.at(0)).not.toHaveProperty("body");
+    expect(request.mock.calls.at(0)?.at(0)).not.toHaveProperty("params");
   });
 
   it("preserves the coupon-issue POST contract with no body", async () => {
@@ -61,7 +61,7 @@ describe("coupon API adapter", () => {
       path: "/coupons/3/issue",
       signal,
     });
-    expect(requestNullable.mock.calls[0][0]).not.toHaveProperty("body");
-    expect(requestNullable.mock.calls[0][0]).not.toHaveProperty("params");
+    expect(requestNullable.mock.calls.at(0)?.at(0)).not.toHaveProperty("body");
+    expect(requestNullable.mock.calls.at(0)?.at(0)).not.toHaveProperty("params");
   });
 });

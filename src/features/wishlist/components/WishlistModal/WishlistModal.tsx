@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AuthenticatedSessionScope } from "../../../../platform/session/sessionScope";
 import { useIntersectionLoadMore } from "../../../../shared/lib/useIntersectionLoadMore";
+import { requireCssModuleClass } from "../../../../shared/styles/requireCssModuleClass";
 import { Button, Dialog, ToastHost } from "../../../../shared/ui";
 import { useWishlistListsReadQuery } from "../../queries";
 import {
@@ -40,7 +41,12 @@ const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
   target.style.display = "none";
 
   const placeholder = target.nextElementSibling as HTMLElement | null;
-  if (placeholder?.classList.contains(styles.placeholderImage)) {
+  const placeholderClassName = styles.placeholderImage;
+  if (
+    placeholder &&
+    placeholderClassName &&
+    placeholder.classList.contains(placeholderClassName)
+  ) {
     placeholder.hidden = false;
     placeholder.style.display = "flex";
   }
@@ -198,8 +204,8 @@ export function WishlistModal({
         isOpen={isOpen}
         title="위시리스트에 저장하기"
         onClose={handleClose}
-        className={styles.dialog}
-        bodyClassName={styles.content}
+        className={requireCssModuleClass(styles.dialog)}
+        bodyClassName={requireCssModuleClass(styles.content)}
       >
         <div className={styles.wishlistGrid}>
           {isLoading && (

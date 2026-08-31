@@ -123,7 +123,11 @@ export const PhotosStep: React.FC<PhotosStepProps> = ({
         />
 
         {imageItems.length > 0 && (() => {
-          const coverItem = imageItems[0];
+          const [coverItem] = imageItems;
+          if (!coverItem) {
+            return null;
+          }
+
           const coverImageUrl =
             coverItem.preview || resolveImageUrl(coverItem.url);
           const coverKey = coverItem.id || coverItem.clientId;

@@ -88,7 +88,7 @@ describe("GuestTripsPanel", () => {
     const article = screen.getByRole("article");
 
     expect(card).toHaveAttribute("href", "/reservations/reservation-11");
-    expect(article).toHaveClass(styles.reservationCard);
+    expect(article).toHaveClass(styles.reservationCard ?? "");
     expect(card).not.toContainElement(screen.getByText("산장 숙소"));
 
     const click = createEvent.click(card, { button: 0 });

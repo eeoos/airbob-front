@@ -109,7 +109,22 @@ export const formatReservationDetailDate = (dateString: string): string => {
 };
 
 export const formatReservationDetailTime = (timeString: string): string => {
-  const [hours, minutes] = timeString.split(":").map(Number);
+  const separatorIndex = timeString.indexOf(":");
+  if (separatorIndex <= 0) return timeString;
+
+  const hours = Number(timeString.slice(0, separatorIndex));
+  const minutes = Number(timeString.slice(separatorIndex + 1, separatorIndex + 3));
+  if (
+    !Number.isInteger(hours) ||
+    !Number.isInteger(minutes) ||
+    hours < 0 ||
+    hours > 23 ||
+    minutes < 0 ||
+    minutes > 59
+  ) {
+    return timeString;
+  }
+
   const hour12 = hours % 12 || 12;
   const ampm = hours < 12 ? "오전" : "오후";
 

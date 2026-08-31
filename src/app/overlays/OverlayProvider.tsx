@@ -59,7 +59,8 @@ const createOverlayStack = (): OverlayStackRuntime & { clear(): void } => {
 
   const getTopmostModal = () => {
     for (let index = entries.length - 1; index >= 0; index -= 1) {
-      if (entries[index].modality === "modal") return entries[index];
+      const entry = entries[index];
+      if (entry?.modality === "modal") return entry;
     }
 
     return null;
@@ -126,6 +127,8 @@ const createOverlayStack = (): OverlayStackRuntime & { clear(): void } => {
 
     const wasTopmost = index === entries.length - 1;
     const [removed] = entries.splice(index, 1);
+    if (!removed) return;
+
     pendingFocusLineage = null;
 
     entries.slice(index).forEach((entry) => {

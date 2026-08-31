@@ -128,16 +128,16 @@ describe("app router wishlist projection composition", () => {
     });
 
     expect(
-      client.getQueryData<SearchResultPage>(searchKeyA)?.accommodations[0]
-        .isInWishlist,
+      client.getQueryData<SearchResultPage>(searchKeyA)?.accommodations.at(0)
+        ?.isInWishlist,
     ).toBe(true);
     expect(
-      client.getQueryData<SearchResultPage>(searchKeyB)?.accommodations[0]
-        .isInWishlist,
+      client.getQueryData<SearchResultPage>(searchKeyB)?.accommodations.at(0)
+        ?.isInWishlist,
     ).toBe(false);
     expect(
       client.getQueryData<RecentlyViewedCollection>(recentKey)
-        ?.accommodations[0].isInWishlist,
+        ?.accommodations.at(0)?.isInWishlist,
     ).toBe(true);
     expect(
       client.getQueryData<AccommodationDetail>(detailKeyA)?.isInWishlist,

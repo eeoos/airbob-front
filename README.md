@@ -9,6 +9,12 @@ The browser build targets Vite 8's pinned `baseline-widely-available` set
 (Chrome/Edge 111, Firefox 114, Safari/iOS 16.4). The retired CRA Browserslist
 query is not used to imply a legacy bundle that Vite does not produce.
 
+TypeScript 5.9 owns four explicit environments: browser application source,
+Vitest source, Vite/Vitest configuration, and Playwright. The browser project
+does not receive Node globals. Exact optional properties, unchecked indexed
+access, type-only module syntax, side-effect import checking, and erasable-only
+syntax are blocking compiler contracts.
+
 ```bash
 npm install
 npm run typecheck
@@ -94,6 +100,9 @@ npm run verify:design-ready
   variant, then runs the synthetic Playwright flow matrix without a live backend.
 - `test:e2e:artifact-policy`, `typecheck:e2e`, and `lint:e2e`: enforce the
   browser harness privacy, type, and lint contracts.
+- `typecheck` checks browser and Vitest ownership; `typecheck:tooling` checks
+  the TypeScript Vite/Vitest configuration without leaking Node types into the
+  application project.
 - `smoke:frontend:preflight`: validates smoke env names, dynamic route fixture IDs, browser binary path, frontend URL, and backend reachability without screenshots.
 - `verify:design-ready`: runs `verify:pre-redesign` and strict browser smoke.
 

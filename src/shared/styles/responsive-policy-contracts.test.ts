@@ -11,6 +11,20 @@ const primitiveTokensCssPath = join(
   "src/shared/styles/tokens/primitive.css",
 );
 
+const requireCapture = (
+  match: RegExpMatchArray,
+  index: number,
+  description: string,
+): string => {
+  const value = match[index];
+
+  if (value === undefined) {
+    throw new Error(`Missing ${description} regex capture at index ${index}.`);
+  }
+
+  return value;
+};
+
 const { allowedBreakpointValues, isStrictStylePath } = require(
   "../../../scripts/architecture/style-policy.cjs",
 ) as {
@@ -106,7 +120,7 @@ describe("responsive architecture policy", () => {
       readFileSync(primitiveTokensCssPath, "utf8").matchAll(
         /--breakpoint-[a-z-]+:\s*([^;]+);/g,
       ),
-      (match) => match[1],
+      (match) => requireCapture(match, 1, "breakpoint token value"),
     );
     const sources = cssFiles.map((filePath) => ({
       filePath,

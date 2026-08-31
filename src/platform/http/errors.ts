@@ -26,9 +26,9 @@ export interface AppErrorOptions {
 export class AppError extends Error {
   readonly kind: AppErrorKind;
   readonly code: string;
-  readonly status?: number;
+  readonly status: number | undefined;
   readonly retryable: boolean;
-  readonly cause?: unknown;
+  override readonly cause?: unknown;
 
   constructor({
     kind,
@@ -140,7 +140,7 @@ export const createHttpAppError = ({
       kind: "authentication",
       code: safeBackendCode ?? "AUTHENTICATION_REQUIRED",
       message: "Authentication is required.",
-      status: safeStatus,
+      ...(safeStatus === undefined ? {} : { status: safeStatus }),
       cause,
     });
   }
@@ -180,7 +180,7 @@ export const createHttpAppError = ({
     kind: "http",
     code: safeBackendCode ?? "HTTP_ERROR",
     message: "The HTTP request failed.",
-    status: safeStatus,
+    ...(safeStatus === undefined ? {} : { status: safeStatus }),
     retryable: safeStatus === 408 || safeStatus === 429,
     cause,
   });
@@ -229,11 +229,13 @@ export const normalizeHttpError = (error: unknown): AppError => {
       });
     }
 
+    const backendCode = getSafeBackendCodeFromFailureEnvelope(
+      getAxiosResponseData(error),
+    );
+
     return createHttpAppError({
       status,
-      backendCode: getSafeBackendCodeFromFailureEnvelope(
-        getAxiosResponseData(error),
-      ),
+      ...(backendCode === undefined ? {} : { backendCode }),
       cause: error,
     });
   }

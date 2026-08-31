@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { requireCssModuleClass } from "../../../../shared/styles/requireCssModuleClass";
 import {
   Dialog,
   useNonModalOverlayRegistration,
@@ -119,9 +120,9 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
 
   return (
     <Dialog
-      bodyClassName={styles.modalContent}
+      bodyClassName={requireCssModuleClass(styles.modalContent)}
       bodyPadding="none"
-      className={styles.dialog}
+      className={requireCssModuleClass(styles.dialog)}
       initialFocusRef={closeButtonRef}
       isOpen={isOpen}
       onClose={onClose}

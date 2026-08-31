@@ -97,7 +97,7 @@ describe("HostListingsPanel", () => {
     });
     const article = screen.getByRole("article");
 
-    expect(article).toHaveClass(styles.accommodationCard);
+    expect(article).toHaveClass(styles.accommodationCard ?? "");
     expect(card).not.toContainElement(screen.getByText("바다 숙소"));
     expect(screen.getByText("🏠")).toBeInTheDocument();
     expect(screen.getByText("부산, 해운대구")).toBeInTheDocument();

@@ -127,5 +127,7 @@ export const toRecentlyViewedAccommodationCardViewModel = (
 
 export const getRecentlyViewedSummaryLabel = (
   items: RecentlyViewedAccommodationCardViewModel[],
-) =>
-  items.length > 0 ? formatRecentlyViewedDate(items[0].viewedAt) : "항목 없음";
+) => {
+  const [firstItem] = items;
+  return firstItem ? formatRecentlyViewedDate(firstItem.viewedAt) : "항목 없음";
+};

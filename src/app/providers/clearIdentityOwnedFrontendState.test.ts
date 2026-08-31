@@ -31,11 +31,14 @@ describe("clearIdentityOwnedFrontendState", () => {
 
     expect(mockClearBookingPaymentBrowserState).toHaveBeenCalledTimes(1);
     expect(mockClearIdentityOwnedTransactionRoute).toHaveBeenCalledTimes(1);
-    expect(
-      mockClearBookingPaymentBrowserState.mock.invocationCallOrder[0],
-    ).toBeLessThan(
-      mockClearIdentityOwnedTransactionRoute.mock.invocationCallOrder[0],
-    );
+    const bookingClearOrder =
+      mockClearBookingPaymentBrowserState.mock.invocationCallOrder.at(0);
+    const routeClearOrder =
+      mockClearIdentityOwnedTransactionRoute.mock.invocationCallOrder.at(0);
+    if (bookingClearOrder === undefined || routeClearOrder === undefined) {
+      throw new Error("Expected both identity cleanup commands to run");
+    }
+    expect(bookingClearOrder).toBeLessThan(routeClearOrder);
   });
 
   it("still clears the current transaction route when reservation cleanup throws", () => {

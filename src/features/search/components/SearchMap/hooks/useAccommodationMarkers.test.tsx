@@ -1,5 +1,6 @@
 import { renderHook } from "@testing-library/react";
 import type { MutableRefObject } from "react";
+import { requireDefined } from "../../../../../test/assertions";
 import type {
   SearchMapAccommodation,
   SearchMapMarker,
@@ -74,17 +75,23 @@ describe("useAccommodationMarkers", () => {
     }
 
     class FakeSize {
-      constructor(
-        readonly width: number,
-        readonly height: number,
-      ) {}
+      readonly width: number;
+      readonly height: number;
+
+      constructor(width: number, height: number) {
+        this.width = width;
+        this.height = height;
+      }
     }
 
     class FakePoint {
-      constructor(
-        readonly x: number,
-        readonly y: number,
-      ) {}
+      readonly x: number;
+      readonly y: number;
+
+      constructor(x: number, y: number) {
+        this.x = x;
+        this.y = y;
+      }
     }
 
     (window as any).google = {
@@ -132,12 +139,12 @@ describe("useAccommodationMarkers", () => {
     );
 
     expect(markersRef.current).toHaveLength(1);
-    handlers.mouseover();
+    requireDefined(handlers.mouseover, "mouseover handler")();
     expect(requestAnimationFrame).toHaveBeenCalled();
 
-    const marker = markersRef.current[0];
+    const marker = requireDefined(markersRef.current[0], "map marker");
     marker.isSelected = true;
-    handlers.mouseout();
+    requireDefined(handlers.mouseout, "mouseout handler")();
 
     expect(requestAnimationFrame).toHaveBeenCalledTimes(1);
     expect(marker.setIcon).toHaveBeenLastCalledWith(marker.icons?.selected);

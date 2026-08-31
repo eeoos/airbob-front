@@ -1,3 +1,4 @@
+import { requireCssModuleClass } from "../../shared/styles/requireCssModuleClass";
 import {
   StatusBadge,
   ToastHost,
@@ -155,10 +156,10 @@ function GuestReservationDetail({
   if (state.status === "error") {
     return (
       <ErrorDetail
-        className={guestStyles.error}
+        className={requireCssModuleClass(guestStyles.error)}
         message={state.message}
         onDismiss={actions.onDismissError}
-        toastClassName={guestStyles.toastContainer}
+        toastClassName={requireCssModuleClass(guestStyles.toastContainer)}
       />
     );
   }
@@ -444,10 +445,10 @@ function HostReservationDetail({
   if (state.status === "error") {
     return (
       <ErrorDetail
-        className={hostStyles.error}
+        className={requireCssModuleClass(hostStyles.error)}
         message={state.message}
         onDismiss={actions.onDismissError}
-        toastClassName={hostStyles.toastContainer}
+        toastClassName={requireCssModuleClass(hostStyles.toastContainer)}
       />
     );
   }
@@ -472,7 +473,7 @@ function HostReservationDetail({
       <div className={hostStyles.header}>
         <div className={hostStyles.headerLeft}>
           <StatusBadge
-            className={hostStyles.statusBadge}
+            className={requireCssModuleClass(hostStyles.statusBadge)}
             size="sm"
             tone={view.statusTone}
           >

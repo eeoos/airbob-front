@@ -1,6 +1,7 @@
 import type { MockInstance } from "vitest";
 import { QueryClient } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
+import { requireFixtureItem } from "../../test/assertions";
 import type { SessionState, SessionViewer } from "./sessionState";
 import { toSessionSubject } from "./sessionState";
 import {
@@ -50,6 +51,17 @@ interface TrackedClient {
   readonly cancelQueries: MockInstance;
   readonly clear: MockInstance;
 }
+
+const requireTrackedClient = (
+  clients: readonly TrackedClient[],
+  index: number,
+): TrackedClient => requireFixtureItem(clients, index, "tracked query client");
+
+const requireFirstInvocationOrder = (
+  mock: MockInstance,
+  label: string,
+): number =>
+  requireFixtureItem(mock.mock.invocationCallOrder, 0, `${label} invocation`);
 
 const createTrackedFactory = () => {
   const clients: TrackedClient[] = [];
@@ -114,7 +126,7 @@ describe("useSessionQueryLifetime", () => {
         queryClientFactory: factory,
       }),
     );
-    clients[0].cancelQueries.mockReturnValueOnce(cancelGate.promise);
+    requireTrackedClient(clients, 0).cancelQueries.mockReturnValueOnce(cancelGate.promise);
 
     let replacement!: Promise<boolean>;
     act(() => {
@@ -129,7 +141,7 @@ describe("useSessionQueryLifetime", () => {
     await waitFor(() => expect(clients).toHaveLength(2));
     await waitFor(() =>
       expect(result.current.generation).toMatchObject({
-        client: clients[1].client,
+        client: requireTrackedClient(clients, 1).client,
         epoch: 5,
         fenceId: 1,
         owned: true,
@@ -137,8 +149,8 @@ describe("useSessionQueryLifetime", () => {
         tainted: true,
       }),
     );
-    expect(clients[0].cancelQueries).toHaveBeenCalledTimes(1);
-    expect(clients[0].clear).not.toHaveBeenCalled();
+    expect(requireTrackedClient(clients, 0).cancelQueries).toHaveBeenCalledTimes(1);
+    expect(requireTrackedClient(clients, 0).clear).not.toHaveBeenCalled();
     expect(isStillCurrent).not.toHaveBeenCalled();
 
     let didRemainCurrent!: boolean;
@@ -148,10 +160,18 @@ describe("useSessionQueryLifetime", () => {
     });
 
     expect(didRemainCurrent).toBe(true);
-    expect(clients[0].cancelQueries).toHaveBeenCalledTimes(1);
-    expect(clients[0].clear).toHaveBeenCalledTimes(1);
-    expect(clients[0].cancelQueries.mock.invocationCallOrder[0]).toBeLessThan(
-      clients[0].clear.mock.invocationCallOrder[0],
+    expect(requireTrackedClient(clients, 0).cancelQueries).toHaveBeenCalledTimes(1);
+    expect(requireTrackedClient(clients, 0).clear).toHaveBeenCalledTimes(1);
+    expect(
+      requireFirstInvocationOrder(
+        requireTrackedClient(clients, 0).cancelQueries,
+        "query cancellation",
+      ),
+    ).toBeLessThan(
+      requireFirstInvocationOrder(
+        requireTrackedClient(clients, 0).clear,
+        "query clear",
+      ),
     );
     expect(isStillCurrent).toHaveBeenCalledTimes(1);
   });
@@ -166,7 +186,7 @@ describe("useSessionQueryLifetime", () => {
         queryClientFactory: factory,
       }),
     );
-    clients[0].cancelQueries.mockRejectedValueOnce(cancellationFailure);
+    requireTrackedClient(clients, 0).cancelQueries.mockRejectedValueOnce(cancellationFailure);
 
     let didRemainCurrent!: boolean;
     await act(async () => {
@@ -178,14 +198,22 @@ describe("useSessionQueryLifetime", () => {
     });
 
     expect(didRemainCurrent).toBe(false);
-    expect(clients[0].cancelQueries).toHaveBeenCalledTimes(1);
-    expect(clients[0].clear).toHaveBeenCalledTimes(1);
-    expect(clients[0].cancelQueries.mock.invocationCallOrder[0]).toBeLessThan(
-      clients[0].clear.mock.invocationCallOrder[0],
+    expect(requireTrackedClient(clients, 0).cancelQueries).toHaveBeenCalledTimes(1);
+    expect(requireTrackedClient(clients, 0).clear).toHaveBeenCalledTimes(1);
+    expect(
+      requireFirstInvocationOrder(
+        requireTrackedClient(clients, 0).cancelQueries,
+        "query cancellation",
+      ),
+    ).toBeLessThan(
+      requireFirstInvocationOrder(
+        requireTrackedClient(clients, 0).clear,
+        "query clear",
+      ),
     );
     expect(isStillCurrent).toHaveBeenCalledTimes(1);
     expect(result.current.generation).toMatchObject({
-      client: clients[1].client,
+      client: requireTrackedClient(clients, 1).client,
       epoch: 5,
       fenceId: 1,
       subject: null,
@@ -203,7 +231,7 @@ describe("useSessionQueryLifetime", () => {
       }),
     );
     const initialClient = result.current.generation.client;
-    clients[0].cancelQueries.mockReturnValueOnce(cancelGate.promise);
+    requireTrackedClient(clients, 0).cancelQueries.mockReturnValueOnce(cancelGate.promise);
     initialClient.setQueryData(["stale"], "anonymous data");
 
     let reset!: Promise<boolean>;
@@ -225,7 +253,7 @@ describe("useSessionQueryLifetime", () => {
       }),
     );
     expect(clients).toHaveLength(1);
-    expect(clients[0].clear).not.toHaveBeenCalled();
+    expect(requireTrackedClient(clients, 0).clear).not.toHaveBeenCalled();
 
     await act(async () => {
       cancelGate.resolve();
@@ -251,8 +279,8 @@ describe("useSessionQueryLifetime", () => {
       session: { epoch: 5, subject: null },
     });
     expect(clients).toHaveLength(1);
-    expect(clients[0].cancelQueries).toHaveBeenCalledTimes(1);
-    expect(clients[0].clear).toHaveBeenCalledTimes(1);
+    expect(requireTrackedClient(clients, 0).cancelQueries).toHaveBeenCalledTimes(1);
+    expect(requireTrackedClient(clients, 0).clear).toHaveBeenCalledTimes(1);
   });
 
   it("does not let a superseded in-place reset clear newer generation data", async () => {
@@ -265,7 +293,7 @@ describe("useSessionQueryLifetime", () => {
       }),
     );
     const client = result.current.generation.client;
-    clients[0].cancelQueries
+    requireTrackedClient(clients, 0).cancelQueries
       .mockReturnValueOnce(firstCancel.promise)
       .mockResolvedValueOnce(undefined);
 
@@ -301,7 +329,7 @@ describe("useSessionQueryLifetime", () => {
       fenceId: 0,
       tainted: true,
     });
-    expect(clients[0].clear).toHaveBeenCalledTimes(1);
+    expect(requireTrackedClient(clients, 0).clear).toHaveBeenCalledTimes(1);
   });
 
   it("does not dispose an injected initial client it does not own", async () => {
@@ -366,10 +394,18 @@ describe("useSessionQueryLifetime", () => {
     });
 
     expect(result.current.generation.owned).toBe(true);
-    expect(clients[0].cancelQueries).toHaveBeenCalledTimes(1);
-    expect(clients[0].clear).toHaveBeenCalledTimes(1);
-    expect(clients[0].cancelQueries.mock.invocationCallOrder[0]).toBeLessThan(
-      clients[0].clear.mock.invocationCallOrder[0],
+    expect(requireTrackedClient(clients, 0).cancelQueries).toHaveBeenCalledTimes(1);
+    expect(requireTrackedClient(clients, 0).clear).toHaveBeenCalledTimes(1);
+    expect(
+      requireFirstInvocationOrder(
+        requireTrackedClient(clients, 0).cancelQueries,
+        "query cancellation",
+      ),
+    ).toBeLessThan(
+      requireFirstInvocationOrder(
+        requireTrackedClient(clients, 0).clear,
+        "query clear",
+      ),
     );
   });
 });

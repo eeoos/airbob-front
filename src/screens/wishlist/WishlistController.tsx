@@ -392,7 +392,6 @@ export function WishlistController({
 
   return (
     <WishlistScreen
-      className={className}
       detail={{
         hasNext: detailHasNextPage,
         isLoading: detailQuery.isPending,
@@ -462,6 +461,7 @@ export function WishlistController({
             }
       }
       view={view}
+      {...(className === undefined ? {} : { className })}
     />
   );
 }

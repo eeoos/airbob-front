@@ -1,3 +1,4 @@
+import { requireCssModuleClass } from "../../../shared/styles/requireCssModuleClass";
 import { Dialog } from "../../../shared/ui";
 import styles from "./WishlistViews.module.css";
 
@@ -23,7 +24,7 @@ export function WishlistMemoDialog({
   return (
     <Dialog
       bodyPadding="none"
-      className={styles.memoModal}
+      className={requireCssModuleClass(styles.memoModal)}
       closeButtonLabel="✕"
       isOpen={isOpen}
       onClose={onClose}

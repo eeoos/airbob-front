@@ -1,6 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import type { MutableRefObject, RefObject } from "react";
 import type { Mock } from "vitest";
+import { requireDefined } from "../../../../../test/assertions";
 import type { SearchMapAccommodation, SearchMapMarker } from "../types";
 import { useMapSelectionInfoWindow } from "./useMapSelectionInfoWindow";
 
@@ -168,7 +169,11 @@ describe("useMapSelectionInfoWindow", () => {
 
     rerender({ accommodations: [] });
 
-    expect(googleMaps.infoWindows[0].close).toHaveBeenCalledTimes(1);
+    const infoWindow = requireDefined(
+      googleMaps.infoWindows[0],
+      "selected InfoWindow",
+    );
+    expect(infoWindow.close).toHaveBeenCalledTimes(1);
     expect(infoWindowRef.current).toBeNull();
     expect(onAccommodationSelect).toHaveBeenCalledTimes(1);
     expect(onAccommodationSelect).toHaveBeenCalledWith(null);
@@ -212,10 +217,18 @@ describe("useMapSelectionInfoWindow", () => {
     rerender({ selectedAccommodationId: secondAccommodation.id });
 
     expect(googleMaps.infoWindows).toHaveLength(2);
-    expect(googleMaps.infoWindows[0].close).toHaveBeenCalledTimes(1);
+    const firstInfoWindow = requireDefined(
+      googleMaps.infoWindows[0],
+      "first InfoWindow",
+    );
+    const secondInfoWindow = requireDefined(
+      googleMaps.infoWindows[1],
+      "second InfoWindow",
+    );
+    expect(firstInfoWindow.close).toHaveBeenCalledTimes(1);
     expect(onAccommodationSelect).not.toHaveBeenCalledWith(null);
     expect(infoWindowRef.current).toBe(googleMaps.infoWindows[1]);
-    expect(googleMaps.infoWindows[1].open).toHaveBeenCalledWith(
+    expect(secondInfoWindow.open).toHaveBeenCalledWith(
       baseOptions.mapInstanceRef.current,
       secondMarker,
     );
@@ -245,7 +258,11 @@ describe("useMapSelectionInfoWindow", () => {
     rerender({ hoveredAccommodationId: 99 });
 
     expect(googleMaps.infoWindows).toHaveLength(1);
-    expect(googleMaps.infoWindows[0].close).not.toHaveBeenCalled();
+    const infoWindow = requireDefined(
+      googleMaps.infoWindows[0],
+      "selected InfoWindow",
+    );
+    expect(infoWindow.close).not.toHaveBeenCalled();
     expect(selectedMarker.isSelected).toBe(true);
     expect(selectedMarker.setIcon).toHaveBeenLastCalledWith(
       selectedMarker.icons?.selected,
@@ -271,7 +288,11 @@ describe("useMapSelectionInfoWindow", () => {
 
     expect(googleMaps.infoWindows).toHaveLength(1);
     expect(infoWindowRef.current).toBe(googleMaps.infoWindows[0]);
-    expect(googleMaps.infoWindows[0].open).toHaveBeenCalledWith(
+    const infoWindow = requireDefined(
+      googleMaps.infoWindows[0],
+      "selected InfoWindow",
+    );
+    expect(infoWindow.open).toHaveBeenCalledWith(
       expect.anything(),
       selectedMarker,
     );
@@ -303,9 +324,15 @@ describe("useMapSelectionInfoWindow", () => {
         }),
       ),
     );
-    const infoWindow = googleMaps.infoWindows[0];
+    const infoWindow = requireDefined(
+      googleMaps.infoWindows[0],
+      "selected InfoWindow",
+    );
 
-    infoWindow.listeners.domready[0]();
+    requireDefined(
+      infoWindow.listeners.domready?.[0],
+      "InfoWindow domready listener",
+    )();
     const resizeCall = googleMaps.addMapListener.mock.calls.find(
       ([, eventName]) => eventName === "resize",
     );

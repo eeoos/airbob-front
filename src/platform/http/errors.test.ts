@@ -43,7 +43,12 @@ describe("normalizeHttpError", () => {
   ] as const)(
     "maps transport code %p and status %p to %s",
     (code, status, kind, appCode, retryable) => {
-      expect(normalizeHttpError(axiosFailure({ code, status }))).toMatchObject({
+      const failure = axiosFailure({
+        ...(code === undefined ? {} : { code }),
+        ...(status === undefined ? {} : { status }),
+      });
+
+      expect(normalizeHttpError(failure)).toMatchObject({
         kind,
         code: appCode,
         status,

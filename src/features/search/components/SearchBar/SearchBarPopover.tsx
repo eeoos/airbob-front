@@ -1,4 +1,5 @@
 import React from "react";
+import { requireCssModuleClass } from "../../../../shared/styles/requireCssModuleClass";
 import { useNonModalOverlayRegistration } from "../../../../shared/ui/useNonModalOverlayRegistration";
 import styles from "./SearchBar.module.css";
 
@@ -12,9 +13,9 @@ export interface SearchBarPopoverProps
 }
 
 const variantClassNames: Record<SearchBarPopoverVariant, string> = {
-  date: styles.datePickerContainer,
-  guest: styles.guestPicker,
-  suggestions: styles.suggestions,
+  date: requireCssModuleClass(styles.datePickerContainer),
+  guest: requireCssModuleClass(styles.guestPicker),
+  suggestions: requireCssModuleClass(styles.suggestions),
 };
 
 const cx = (...classNames: Array<string | undefined>) =>

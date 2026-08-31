@@ -1,4 +1,4 @@
-import { RefObject, useEffect, useRef } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 
 type OutsideClickBoundary = {
   contains: (target: Node) => boolean;

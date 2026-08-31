@@ -273,16 +273,16 @@ export function PaymentResultController({
       isReconciling={machine.status === "reconciling"}
       statusMessage={statusMessage}
       onOpenProfile={onOpenProfile}
-      onOpenReservation={onOpenReservation}
-      onReconcile={
-        document && callback && joinedDocuments(document, callback)
-          ? () =>
+      {...(onOpenReservation === undefined ? {} : { onOpenReservation })}
+      {...(document && callback && joinedDocuments(document, callback)
+        ? {
+            onReconcile: () =>
               run(
                 shouldConfirm ? "confirm" : "reconcile",
                 "failure",
-              )
-          : undefined
-      }
+              ),
+          }
+        : {})}
     />
   );
 }

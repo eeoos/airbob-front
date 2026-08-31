@@ -40,6 +40,7 @@ const AccommodationHero: React.FC<AccommodationHeroProps> = ({
   const handleMobileTouchMove = adaptDivTouchHandler(onTouchMove);
   const handleMobileTouchEnd = adaptDivTouchHandler(onTouchEnd);
   const { heroImages, rating, title } = detailView;
+  const primaryHeroImage = heroImages.at(0);
 
   return (
     <>
@@ -92,7 +93,7 @@ const AccommodationHero: React.FC<AccommodationHeroProps> = ({
         </div>
       </div>
 
-      {heroImages.length > 0 && (
+      {primaryHeroImage && (
         <div className={styles.imageSection}>
           <div className={styles.imageGrid}>
             <button
@@ -102,7 +103,7 @@ const AccommodationHero: React.FC<AccommodationHeroProps> = ({
               onClick={() => onOpenGallery(0)}
             >
               <img
-                src={heroImages[0].url}
+                src={primaryHeroImage.url}
                 alt={title}
                 className={styles.image}
               />

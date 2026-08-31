@@ -54,7 +54,9 @@ export const createListingEditorApi = (
       path: `/accommodations/${accommodationId}/images`,
       body,
       bodyEncoding: "multipart",
-      onUploadProgress: options?.onProgress,
+      ...(options?.onProgress === undefined
+        ? {}
+        : { onUploadProgress: options.onProgress }),
       signal: options?.signal,
     });
 

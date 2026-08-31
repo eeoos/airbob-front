@@ -1,4 +1,5 @@
 import React, { useCallback, useState, useEffect, useRef } from "react";
+import { requireCssModuleClass } from "../../../../shared/styles/requireCssModuleClass";
 import { Button, Dialog, ToastHost } from "../../../../shared/ui";
 import { useAuthForm } from "../../model/authForm";
 import { useAuthCommands } from "../../ports/AuthCommandProvider";
@@ -97,13 +98,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       isOpen={isOpen}
       title={title}
       onClose={closeCurrentView}
-      className={styles.dialog}
-      bodyClassName={styles.content}
+      className={requireCssModuleClass(styles.dialog)}
+      bodyClassName={requireCssModuleClass(styles.content)}
     >
       <form onSubmit={handleSubmit} className={styles.form}>
         <AuthFormFields
           idPrefix="auth-modal"
-          inputClassName={styles.input}
+          inputClassName={requireCssModuleClass(styles.input)}
           mode={mode}
           values={form.values}
           onFieldChange={form.setField}

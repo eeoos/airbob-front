@@ -15,7 +15,11 @@ describe("useReviewImageSelection", () => {
     act(() => result.current.addFiles([file]));
     expect(result.current.images[0]?.previewUrl).toBe("blob:review-image");
 
-    act(() => result.current.removeImage(result.current.images[0].id));
+    const [image] = result.current.images;
+    if (!image) {
+      throw new Error("Expected the selected review image to be defined");
+    }
+    act(() => result.current.removeImage(image.id));
     expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:review-image");
 
     unmount();

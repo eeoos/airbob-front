@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 import {
   apiSuccess,
+  requireApiRequest,
   type ApiRequestRecord,
   type ApiResponseSpec,
 } from "../fixtures/api";
@@ -291,7 +292,13 @@ test("maps viewport URL coordinates to the search request without loading Google
     "/api/v1/search/accommodations",
   );
   expect(viewportRequests.length).toBeGreaterThanOrEqual(1);
-  expect(getRequestQuery(viewportRequests[0])).toMatchObject({
+  const viewportRequest = requireApiRequest(
+    viewportRequests,
+    0,
+    "viewport search",
+  );
+
+  expect(getRequestQuery(viewportRequest)).toMatchObject({
     topLeftLat: "38",
     topLeftLng: "126",
     bottomRightLat: "37",
@@ -300,7 +307,7 @@ test("maps viewport URL coordinates to the search request without loading Google
     page: "0",
     size: "18",
   });
-  expect(getRequestQuery(viewportRequests[0])).not.toHaveProperty(
+  expect(getRequestQuery(viewportRequest)).not.toHaveProperty(
     "destination",
   );
 });
@@ -403,7 +410,9 @@ test("projects wishlist add and remove state while collapsing duplicate clicks",
     `/api/v1/members/wishlists/accommodations/${wishlistId}`,
   );
   expect(addRequests).toHaveLength(1);
-  expect(addRequests[0].body).toEqual({ accommodation_id: accommodationId });
+  expect(requireApiRequest(addRequests, 0, "wishlist add").body).toEqual({
+    accommodation_id: accommodationId,
+  });
 
   await wishlistDialog.getByRole("button", { name: "닫기" }).click();
   const cardRemoveButton = page.getByRole("button", {

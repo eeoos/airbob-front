@@ -43,6 +43,6 @@ describe("host listing actions API", () => {
       path: "/accommodations/31/publish",
       signal,
     } satisfies ApiDataRequest);
-    expect(requestNullable.mock.calls[0][0]).not.toHaveProperty("body");
+    expect(requestNullable.mock.calls.at(0)?.at(0)).not.toHaveProperty("body");
   });
 });

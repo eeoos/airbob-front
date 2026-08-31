@@ -12,6 +12,12 @@ const mapsScripts = () =>
     script.src.startsWith("https://maps.googleapis.com/maps/api/js"),
   );
 
+const requireMapsScript = (): HTMLScriptElement => {
+  const script = mapsScripts().at(0);
+  if (!script) throw new Error("Expected the Google Maps script");
+  return script;
+};
+
 const setGoogleMapsReady = () => {
   (window as any).google = {
     maps: {
@@ -41,7 +47,7 @@ describe("Google Maps platform integration", () => {
   it("uses the exact HTTPS endpoint and shares one pending promise", async () => {
     const first = ensureGoogleMapsScript("public-browser-key");
     const second = ensureGoogleMapsScript("public-browser-key");
-    const script = mapsScripts()[0];
+    const script = requireMapsScript();
     const url = new URL(script.src);
 
     expect(second).toBe(first);
@@ -81,7 +87,7 @@ describe("Google Maps platform integration", () => {
     document.head.append(mismatched, callbackScript);
 
     const loading = ensureGoogleMapsScript("requested-key");
-    const ownedScript = mapsScripts()[0];
+    const ownedScript = requireMapsScript();
     const ownedUrl = new URL(ownedScript.src);
 
     expect(mismatched.isConnected).toBe(false);
@@ -100,7 +106,7 @@ describe("Google Maps platform integration", () => {
 
   it("removes a failed script and permits a clean retry", async () => {
     const first = ensureGoogleMapsScript("public-browser-key");
-    const failedScript = mapsScripts()[0];
+    const failedScript = requireMapsScript();
 
     failedScript.dispatchEvent(new Event("error"));
     await expect(first).rejects.toMatchObject({
@@ -110,7 +116,7 @@ describe("Google Maps platform integration", () => {
     expect(failedScript.isConnected).toBe(false);
 
     const retry = ensureGoogleMapsScript("public-browser-key");
-    const retryScript = mapsScripts()[0];
+    const retryScript = requireMapsScript();
     expect(retryScript).not.toBe(failedScript);
 
     setGoogleMapsReady();

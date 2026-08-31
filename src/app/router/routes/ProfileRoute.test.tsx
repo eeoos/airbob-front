@@ -171,14 +171,19 @@ const renderRoute = (
 
 const latestProfileProps = (): ProfileControllerProps => {
   const props = mockCapturedProfileProps.at(-1);
-  expect(props).toBeDefined();
-  return props as ProfileControllerProps;
+  if (!props) throw new Error("Expected ProfileController props to be captured");
+  return props;
 };
 
 const latestWorkflowDependencies = (): HostListingManagementDependencies => {
   const calls = mockCreateHostListingManagementWorkflow.mock.calls;
-  expect(calls.length).toBeGreaterThan(0);
-  return calls[calls.length - 1][0] as HostListingManagementDependencies;
+  const dependencies = calls.at(-1)?.at(0) as
+    | HostListingManagementDependencies
+    | undefined;
+  if (!dependencies) {
+    throw new Error("Expected host-listing workflow dependencies to be captured");
+  }
+  return dependencies;
 };
 
 const expectLocation = async (expected: string) => {

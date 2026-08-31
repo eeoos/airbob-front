@@ -12,6 +12,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import React, { type ReactNode, useEffect } from "react";
+import { requireFixtureItem } from "../../test/assertions";
 import type {
   SessionAuthPort,
   SessionCredentials,
@@ -165,6 +166,24 @@ interface TrackedQueryClient {
   readonly clear: MockInstance<QueryClient["clear"]>;
 }
 
+const requireQueryGeneration = (
+  generations: readonly TrackedQueryClient[],
+  index: number,
+): TrackedQueryClient =>
+  requireFixtureItem(generations, index, "tracked query generation");
+
+const requireMockCall = <Arguments extends readonly unknown[]>(
+  calls: readonly Arguments[],
+  index: number,
+  label: string,
+): Arguments => requireFixtureItem(calls, index, `${label} call`);
+
+const requireFirstInvocationOrder = (
+  mock: MockInstance,
+  label: string,
+): number =>
+  requireFixtureItem(mock.mock.invocationCallOrder, 0, `${label} invocation`);
+
 const createTrackedQueryClients = () => {
   const generations: TrackedQueryClient[] = [];
   const factory: SessionQueryClientFactory = vi.fn((scope) => {
@@ -249,9 +268,9 @@ const createWrapper = ({
   const props: Omit<SessionProviderProps, "children"> = {
     authPort,
     broadcastFactory: broadcastFactory ?? (() => broadcast),
-    clearIdentityOwnedState,
-    initialState,
-    queryClientFactory,
+    ...(clearIdentityOwnedState ? { clearIdentityOwnedState } : {}),
+    ...(initialState ? { initialState } : {}),
+    ...(queryClientFactory ? { queryClientFactory } : {}),
   };
 
   return ({ children }: { readonly children: ReactNode }) => {
@@ -323,7 +342,7 @@ describe("SessionProvider", () => {
       epoch: 0,
     });
     await waitFor(() => expect(authPort.getViewer).toHaveBeenCalledTimes(1));
-    expect(authPort.getViewer.mock.calls[0][0]).toBeInstanceOf(AbortSignal);
+    expect(requireMockCall(authPort.getViewer.mock.calls, 0, "getViewer")[0]).toBeInstanceOf(AbortSignal);
 
     await act(async () => {
       viewerProbe.resolve(viewerA);
@@ -435,8 +454,8 @@ describe("SessionProvider", () => {
     });
     expect(result.current.queryClient).toBe(originalClient);
     expect(queryClients.generations).toHaveLength(1);
-    expect(queryClients.generations[0].cancelQueries).not.toHaveBeenCalled();
-    expect(queryClients.generations[0].clear).not.toHaveBeenCalled();
+    expect(requireQueryGeneration(queryClients.generations, 0).cancelQueries).not.toHaveBeenCalled();
+    expect(requireQueryGeneration(queryClients.generations, 0).clear).not.toHaveBeenCalled();
   });
 
   it("revokes authenticated state after a revalidation 401 even when browser cleanup fails", async () => {
@@ -470,7 +489,7 @@ describe("SessionProvider", () => {
       revocation: "verified",
     });
     expect(clearIdentityOwnedState).toHaveBeenCalledTimes(1);
-    expect(queryClients.generations[0].clear).toHaveBeenCalledTimes(1);
+    expect(requireQueryGeneration(queryClients.generations, 0).clear).toHaveBeenCalledTimes(1);
     expect(result.current.queryClient).toBe(
       queryClients.generations.at(-1)?.client,
     );
@@ -486,7 +505,7 @@ describe("SessionProvider", () => {
       initialState: authenticatedState(viewerA),
       queryClientFactory: queryClients.factory,
     });
-    const original = queryClients.generations[0];
+    const original = requireQueryGeneration(queryClients.generations, 0);
     original.cancelQueries.mockImplementation(() => cancelGate.promise);
 
     let revalidation!: Promise<void>;
@@ -515,7 +534,7 @@ describe("SessionProvider", () => {
       { epoch: 5, subject: toSessionSubject(viewerB) },
     ]);
     expect(result.current.queryClient).toBe(
-      queryClients.generations[2].client,
+      requireQueryGeneration(queryClients.generations, 2).client,
     );
   });
 
@@ -551,7 +570,7 @@ describe("SessionProvider", () => {
       staleCompletionError = await observedOldOperation;
     });
     expect(authPort.login).toHaveBeenCalledTimes(1);
-    expect(authPort.login.mock.calls[0][1]).toBeUndefined();
+    expect(requireMockCall(authPort.login.mock.calls, 0, "first login")[1]).toBeUndefined();
     expect(staleCompletionError).toMatchObject({
       kind: "cancelled",
       code: "STALE_SESSION_OPERATION",
@@ -562,7 +581,7 @@ describe("SessionProvider", () => {
       await oldLogin.promise;
     });
     await waitFor(() => expect(authPort.login).toHaveBeenCalledTimes(2));
-    expect(authPort.login.mock.calls[1][1]).toBeUndefined();
+    expect(requireMockCall(authPort.login.mock.calls, 1, "second login")[1]).toBeUndefined();
 
     await act(async () => {
       currentLogin.resolve();
@@ -596,7 +615,7 @@ describe("SessionProvider", () => {
       () => ({ session: useSession(), queryClient: useQueryClient() }),
       { wrapper: Wrapper },
     );
-    const clientA = queryClients.generations[0];
+    const clientA = requireQueryGeneration(queryClients.generations, 0);
     clientA.cancelQueries.mockImplementation(() => cancelGate.promise);
 
     let loginOperation!: Promise<void>;
@@ -607,11 +626,11 @@ describe("SessionProvider", () => {
     await waitFor(() => expect(clientA.cancelQueries).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(queryClients.generations).toHaveLength(2));
     await waitFor(() => expect(counts).toEqual({ mounts: 2, unmounts: 1 }));
-    expect(queryClients.generations[1].scope).toEqual({
+    expect(requireQueryGeneration(queryClients.generations, 1).scope).toEqual({
       epoch: 5,
       subject: null,
     });
-    expect(result.current.queryClient).toBe(queryClients.generations[1].client);
+    expect(result.current.queryClient).toBe(requireQueryGeneration(queryClients.generations, 1).client);
     expect(clientA.clear).not.toHaveBeenCalled();
     expect(authPort.login).not.toHaveBeenCalled();
 
@@ -623,11 +642,13 @@ describe("SessionProvider", () => {
 
     await waitFor(() => expect(authPort.login).toHaveBeenCalledTimes(1));
     expect(clientA.clear).toHaveBeenCalledTimes(1);
-    expect(clientA.clear.mock.invocationCallOrder[0]).toBeLessThan(
-      authPort.login.mock.invocationCallOrder[0],
+    expect(
+      requireFirstInvocationOrder(clientA.clear, "query clear"),
+    ).toBeLessThan(
+      requireFirstInvocationOrder(authPort.login, "login"),
     );
     expect(counts).toEqual({ mounts: 2, unmounts: 1 });
-    expect(result.current.queryClient).toBe(queryClients.generations[1].client);
+    expect(result.current.queryClient).toBe(requireQueryGeneration(queryClients.generations, 1).client);
 
     await act(async () => {
       loginRequest.resolve();
@@ -686,7 +707,7 @@ describe("SessionProvider", () => {
       queryClientFactory: queryClients.factory,
     });
     const staleKey = ["session-test", "stale-a"] as const;
-    queryClients.generations[0].client.setQueryData(staleKey, "old A data");
+    requireQueryGeneration(queryClients.generations, 0).client.setQueryData(staleKey, "old A data");
 
     let thrown: unknown;
     await act(async () => {
@@ -704,11 +725,11 @@ describe("SessionProvider", () => {
       { epoch: 5, subject: null },
       { epoch: 5, subject: toSessionSubject(viewerA) },
     ]);
-    expect(queryClients.generations[0].clear).toHaveBeenCalledTimes(1);
-    expect(queryClients.generations[1].clear).toHaveBeenCalledTimes(1);
-    const freshA = queryClients.generations[2].client;
+    expect(requireQueryGeneration(queryClients.generations, 0).clear).toHaveBeenCalledTimes(1);
+    expect(requireQueryGeneration(queryClients.generations, 1).clear).toHaveBeenCalledTimes(1);
+    const freshA = requireQueryGeneration(queryClients.generations, 2).client;
     expect(result.current.queryClient).toBe(freshA);
-    expect(freshA).not.toBe(queryClients.generations[0].client);
+    expect(freshA).not.toBe(requireQueryGeneration(queryClients.generations, 0).client);
     expect(freshA.getQueryData(staleKey)).toBeUndefined();
   });
 
@@ -730,10 +751,10 @@ describe("SessionProvider", () => {
     });
 
     expect(authPort.login).toHaveBeenCalledWith(credentialsB);
-    expect(authPort.login.mock.calls[0][1]).toBeUndefined();
+    expect(requireMockCall(authPort.login.mock.calls, 0, "first login")[1]).toBeUndefined();
     expect(authPort.logout).toHaveBeenCalledWith();
-    expect(authPort.logout.mock.calls[0][0]).toBeUndefined();
-    expect(authPort.getViewer.mock.calls[0][0]).toBeInstanceOf(AbortSignal);
+    expect(requireMockCall(authPort.logout.mock.calls, 0, "logout")[0]).toBeUndefined();
+    expect(requireMockCall(authPort.getViewer.mock.calls, 0, "getViewer")[0]).toBeInstanceOf(AbortSignal);
   });
 
   it("fences anonymous cache and in-flight work before publishing B", async () => {
@@ -898,7 +919,7 @@ describe("SessionProvider", () => {
     await waitFor(() => expect(authPort.logout).toHaveBeenCalledTimes(1));
     expect(queryClients.generations).toHaveLength(2);
     const quarantine = result.current.queryClient;
-    expect(quarantine).toBe(queryClients.generations[1].client);
+    expect(quarantine).toBe(requireQueryGeneration(queryClients.generations, 1).client);
 
     await quarantine.fetchQuery({
       queryKey: serverAKey,
@@ -917,10 +938,10 @@ describe("SessionProvider", () => {
       { epoch: 5, subject: null },
     ]);
     const settledClient = result.current.queryClient;
-    expect(settledClient).toBe(queryClients.generations[2].client);
+    expect(settledClient).toBe(requireQueryGeneration(queryClients.generations, 2).client);
     expect(settledClient).not.toBe(quarantine);
     expect(settledClient.getQueryData(serverAKey)).toBeUndefined();
-    expect(queryClients.generations[1].clear).toHaveBeenCalledTimes(1);
+    expect(requireQueryGeneration(queryClients.generations, 1).clear).toHaveBeenCalledTimes(1);
     expect(result.current.session.state).toMatchObject({
       status: "anonymous",
       reason: "logout",
@@ -1044,7 +1065,7 @@ describe("SessionProvider", () => {
 
     expect(thrown).toBe(cleanupError);
     expect(authPort.logout).toHaveBeenCalledTimes(1);
-    expect(queryClients.generations[0].clear).toHaveBeenCalledTimes(1);
+    expect(requireQueryGeneration(queryClients.generations, 0).clear).toHaveBeenCalledTimes(1);
     expect(result.current.session.state).toMatchObject({
       status: "anonymous",
       reason: "logout",
@@ -1229,7 +1250,7 @@ describe("SessionProvider", () => {
       broadcast.emit("revalidate");
     });
     await waitFor(() => expect(authPort.getViewer).toHaveBeenCalledTimes(1));
-    const staleSignal = authPort.getViewer.mock.calls[0][0];
+    const staleSignal = requireMockCall(authPort.getViewer.mock.calls, 0, "getViewer")[0];
 
     act(() => {
       broadcast.emit("invalidate");
@@ -1277,7 +1298,7 @@ describe("SessionProvider", () => {
       triggerAuthError();
     });
     await waitFor(() => expect(authPort.getViewer).toHaveBeenCalledTimes(1));
-    const staleSignal = authPort.getViewer.mock.calls[0][0];
+    const staleSignal = requireMockCall(authPort.getViewer.mock.calls, 0, "getViewer")[0];
 
     act(() => {
       triggerAuthError();
@@ -1318,7 +1339,7 @@ describe("SessionProvider", () => {
       initialState: authenticatedState(viewerA),
       queryClientFactory: queryClients.factory,
     });
-    queryClients.generations[0].cancelQueries.mockImplementation(
+    requireQueryGeneration(queryClients.generations, 0).cancelQueries.mockImplementation(
       () => cleanupGate.promise,
     );
 
@@ -1326,7 +1347,7 @@ describe("SessionProvider", () => {
       triggerAuthError();
       triggerAuthError();
     });
-    expect(queryClients.generations[0].cancelQueries).toHaveBeenCalledTimes(1);
+    expect(requireQueryGeneration(queryClients.generations, 0).cancelQueries).toHaveBeenCalledTimes(1);
 
     await act(async () => {
       cleanupGate.resolve();
@@ -1481,8 +1502,8 @@ describe("SessionProvider", () => {
     );
     const interimClient = result.current.queryClient;
     expect(interimClient).not.toBe(clientA);
-    expect(interimClient).toBe(queryClients.generations[1].client);
-    expect(queryClients.generations[1].scope).toEqual({
+    expect(interimClient).toBe(requireQueryGeneration(queryClients.generations, 1).client);
+    expect(requireQueryGeneration(queryClients.generations, 1).scope).toEqual({
       epoch: 5,
       subject: null,
     });
@@ -1507,7 +1528,7 @@ describe("SessionProvider", () => {
       expectAuthenticatedAs(result.current.session.state, viewerB),
     );
     const clientB = result.current.queryClient;
-    expect(clientB).toBe(queryClients.generations[2].client);
+    expect(clientB).toBe(requireQueryGeneration(queryClients.generations, 2).client);
     expect(queryClients.generations.map(({ scope }) => scope)).toEqual([
       { epoch: 4, subject: toSessionSubject(viewerA) },
       { epoch: 5, subject: null },
@@ -1658,7 +1679,7 @@ describe("SessionProvider", () => {
         initialState: authenticatedState(viewerA),
         queryClientFactory: queryClients.factory,
       });
-      queryClients.generations[0].cancelQueries.mockImplementation(
+      requireQueryGeneration(queryClients.generations, 0).cancelQueries.mockImplementation(
         () => cleanupGate.promise,
       );
 
@@ -1729,7 +1750,7 @@ describe("SessionProvider", () => {
         initialState: authenticatedState(viewerA),
         queryClientFactory: queryClients.factory,
       });
-      queryClients.generations[0].cancelQueries.mockImplementation(
+      requireQueryGeneration(queryClients.generations, 0).cancelQueries.mockImplementation(
         () => cleanupGate.promise,
       );
       const setTimeoutSpy = vi.spyOn(window, "setTimeout");
@@ -1740,7 +1761,7 @@ describe("SessionProvider", () => {
       });
 
       expect(clearIdentityOwnedState).toHaveBeenCalledTimes(1);
-      expect(queryClients.generations[0].cancelQueries).toHaveBeenCalledTimes(1);
+      expect(requireQueryGeneration(queryClients.generations, 0).cancelQueries).toHaveBeenCalledTimes(1);
       expect(
         setTimeoutSpy.mock.calls.filter(([, delay]) => delay === 1_500),
       ).toHaveLength(1);
@@ -1784,7 +1805,11 @@ describe("SessionProvider", () => {
       const recoveryTimerResults = setTimeoutSpy.mock.calls
         .map(([, delay], index) => ({
           delay,
-          timerId: setTimeoutSpy.mock.results[index].value,
+          timerId: requireFixtureItem(
+            setTimeoutSpy.mock.results,
+            index,
+            "setTimeout result",
+          ).value,
         }))
         .filter(({ delay }) => delay === 1_500);
       expect(recoveryTimerResults).toHaveLength(1);
@@ -1792,7 +1817,7 @@ describe("SessionProvider", () => {
       unmount();
       await act(flushMicrotasks);
       expect(clearTimeoutSpy).toHaveBeenCalledWith(
-        recoveryTimerResults[0].timerId,
+        requireFixtureItem(recoveryTimerResults, 0, "recovery timer").timerId,
       );
 
       await act(async () => {
@@ -1861,11 +1886,11 @@ describe("SessionProvider", () => {
     );
 
     await waitFor(() => expect(broadcastFactory).toHaveBeenCalledTimes(2));
-    expect(broadcasts[0].close).toHaveBeenCalledTimes(1);
-    expect(broadcasts[1].close).not.toHaveBeenCalled();
+    expect(requireFixtureItem(broadcasts, 0, "first session broadcast").close).toHaveBeenCalledTimes(1);
+    expect(requireFixtureItem(broadcasts, 1, "second session broadcast").close).not.toHaveBeenCalled();
 
     act(() => {
-      broadcasts[1].emit("revalidate");
+      requireFixtureItem(broadcasts, 1, "second session broadcast").emit("revalidate");
     });
     await waitFor(() => expect(authPort.getViewer).toHaveBeenCalledTimes(1));
     await waitFor(() =>
@@ -1876,6 +1901,6 @@ describe("SessionProvider", () => {
     await act(async () => {
       await Promise.resolve();
     });
-    expect(broadcasts[1].close).toHaveBeenCalledTimes(1);
+    expect(requireFixtureItem(broadcasts, 1, "second session broadcast").close).toHaveBeenCalledTimes(1);
   });
 });

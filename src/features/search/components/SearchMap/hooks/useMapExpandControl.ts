@@ -1,4 +1,4 @@
-import { MutableRefObject, RefObject, useEffect } from "react";
+import { useEffect, type MutableRefObject, type RefObject } from "react";
 import { getGoogleMapsApi } from "../../../../../platform/integrations/googleMaps";
 import {
   removeMapExpandControl,
@@ -10,7 +10,7 @@ interface UseMapExpandControlOptions {
   isMapLoaded: boolean;
   mapInstanceRef: MutableRefObject<google.maps.Map | null>;
   mapRef: RefObject<HTMLDivElement | null>;
-  onExpandToggle?: () => void;
+  onExpandToggle?: (() => void) | undefined;
 }
 
 export const useMapExpandControl = ({

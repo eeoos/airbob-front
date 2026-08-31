@@ -59,9 +59,8 @@ export const toSearchRequest = (
 };
 
 const normalizeStringArray = (
-  values: readonly string[] | undefined,
-): readonly string[] | undefined =>
-  values === undefined ? undefined : [...values];
+  values: readonly string[],
+): readonly string[] => [...values];
 
 /**
  * Produces the stable semantic value used by both the transport and query key.

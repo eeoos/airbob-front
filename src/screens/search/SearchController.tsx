@@ -363,13 +363,12 @@ export function SearchController({
       authModal={{
         isOpen: authModalOpen,
         onClose: closeAuthModal,
-        onSuccess:
-          wishlistAuthIntent === undefined ? handleAuthSuccess : undefined,
         initialMode: "login",
+        ...(wishlistAuthIntent === undefined
+          ? { onSuccess: handleAuthSuccess }
+          : {}),
       }}
       bottomSheet={bottomSheet}
-      checkIn={routeState.checkIn}
-      checkOut={routeState.checkOut}
       errorMessage={errorMessage}
       getAccommodationHref={navigation.getAccommodationHref}
       map={{
@@ -388,7 +387,6 @@ export function SearchController({
       onAccommodationOpen={openAccommodation}
       onClearError={() => setErrorMessage(null)}
       onPageChange={handlePageChange}
-      onWishlistToggle={canOpenWishlist ? openWishlist : undefined}
       results={{
         accommodationCards,
         accommodationMapItems,
@@ -399,6 +397,13 @@ export function SearchController({
         totalPages,
       }}
       wishlistModal={wishlistModal}
+      {...(routeState.checkIn === undefined
+        ? {}
+        : { checkIn: routeState.checkIn })}
+      {...(routeState.checkOut === undefined
+        ? {}
+        : { checkOut: routeState.checkOut })}
+      {...(canOpenWishlist ? { onWishlistToggle: openWishlist } : {})}
     />
   );
 }

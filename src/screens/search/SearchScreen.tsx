@@ -13,6 +13,7 @@ import type {
   SearchMapViewport,
 } from "../../features/search/components/SearchMap/types";
 import { WishlistModal } from "../../features/wishlist/components/WishlistModal";
+import { requireCssModuleClass } from "../../shared/styles/requireCssModuleClass";
 import { ToastHost } from "../../shared/ui";
 import styles from "./SearchScreen.module.css";
 
@@ -29,9 +30,9 @@ export interface SearchScreenBottomSheetProps {
     ComponentProps<"div">["onScroll"]
   >;
   readonly handleBottomSheetToggle: () => void;
-  readonly handleDrag: MotionSectionProps["onDrag"];
-  readonly handleDragEnd: MotionSectionProps["onDragEnd"];
-  readonly handleDragStart: MotionSectionProps["onDragStart"];
+  readonly handleDrag: NonNullable<MotionSectionProps["onDrag"]>;
+  readonly handleDragEnd: NonNullable<MotionSectionProps["onDragEnd"]>;
+  readonly handleDragStart: NonNullable<MotionSectionProps["onDragStart"]>;
   readonly handleMapInteraction: () => void;
   readonly isMobileOrTablet: boolean;
   readonly snapPositions: Readonly<{
@@ -39,7 +40,7 @@ export interface SearchScreenBottomSheetProps {
     half: number;
     expanded: number;
   }>;
-  readonly translateY: MotionStyle["y"];
+  readonly translateY: NonNullable<MotionStyle["y"]>;
 }
 
 export interface SearchScreenMapProps {
@@ -71,40 +72,42 @@ export interface SearchScreenResultsProps {
 export interface SearchScreenProps {
   readonly authModal: ComponentProps<typeof AuthModal>;
   readonly bottomSheet: SearchScreenBottomSheetProps;
-  readonly checkIn?: string;
-  readonly checkOut?: string;
+  readonly checkIn?: string | undefined;
+  readonly checkOut?: string | undefined;
   readonly errorMessage: string | null;
   readonly getAccommodationHref: (accommodationId: number) => string;
   readonly map: SearchScreenMapProps;
   readonly onAccommodationOpen: (accommodationId: number) => void;
   readonly onClearError: () => void;
   readonly onPageChange: (page: number) => void;
-  readonly onWishlistToggle?: (accommodationId: number) => void;
+  readonly onWishlistToggle?: ((accommodationId: number) => void) | undefined;
   readonly results: SearchScreenResultsProps;
   readonly wishlistModal:
     | Omit<ComponentProps<typeof WishlistModal>, "isOpen">
     | null;
 }
 
-const getBottomSheetMotionStyle = (y: MotionStyle["y"]): MotionStyle => ({
+const getBottomSheetMotionStyle = (
+  y: NonNullable<MotionStyle["y"]>,
+): MotionStyle => ({
   y,
 });
 
 const resultsListClassNames = {
-  loading: styles.loading,
-  empty: styles.empty,
-  cardGrid: styles.cardGrid,
-  cardWrapper: styles.cardWrapper,
-  selected: styles.selected,
+  loading: requireCssModuleClass(styles.loading),
+  empty: requireCssModuleClass(styles.empty),
+  cardGrid: requireCssModuleClass(styles.cardGrid),
+  cardWrapper: requireCssModuleClass(styles.cardWrapper),
+  selected: requireCssModuleClass(styles.selected),
 };
 
 const paginationClassNames = {
-  container: styles.paginationContainer,
-  pagination: styles.pagination,
-  button: styles.paginationButton,
-  activeButton: styles.paginationButtonActive,
-  ellipsis: styles.paginationEllipsis,
-  status: styles.paginationStatus,
+  container: requireCssModuleClass(styles.paginationContainer),
+  pagination: requireCssModuleClass(styles.pagination),
+  button: requireCssModuleClass(styles.paginationButton),
+  activeButton: requireCssModuleClass(styles.paginationButtonActive),
+  ellipsis: requireCssModuleClass(styles.paginationEllipsis),
+  status: requireCssModuleClass(styles.paginationStatus),
 };
 
 const bottomSheetStateLabels: Record<
@@ -136,7 +139,6 @@ export function SearchScreen({
   const bottomSheetTitleId = useId();
   const bottomSheetStateLabel =
     bottomSheetStateLabels[bottomSheet.bottomSheetState];
-
   return (
     <>
       <div className={styles.container}>
@@ -148,10 +150,7 @@ export function SearchScreen({
                 selectedAccommodationId={map.selectedAccommodationId}
                 hoveredAccommodationId={map.hoveredAccommodationId}
                 onAccommodationSelect={map.handleAccommodationSelect}
-                onWishlistToggle={onWishlistToggle}
                 getAccommodationHref={getAccommodationHref}
-                checkIn={checkIn}
-                checkOut={checkOut}
                 isExpanded={false}
                 onExpandToggle={() => {}}
                 onBoundsChange={map.requestBounds}
@@ -160,6 +159,9 @@ export function SearchScreen({
                 onMapBoundsUpdated={map.onMapBoundsUpdated}
                 onMapInteraction={bottomSheet.handleMapInteraction}
                 viewport={map.viewport}
+                checkIn={checkIn}
+                checkOut={checkOut}
+                onWishlistToggle={onWishlistToggle}
               />
             </div>
 
@@ -177,14 +179,14 @@ export function SearchScreen({
               drag={bottomSheet.isMobileOrTablet ? "y" : false}
               dragElastic={0}
               dragMomentum={false}
-              dragConstraints={
-                bottomSheet.isMobileOrTablet
-                  ? {
+              {...(bottomSheet.isMobileOrTablet
+                ? {
+                    dragConstraints: {
                       top: -bottomSheet.snapPositions.expanded,
                       bottom: -bottomSheet.snapPositions.collapsed,
-                    }
-                  : undefined
-              }
+                    },
+                  }
+                : {})}
               onDragStart={bottomSheet.handleDragStart}
               onDrag={bottomSheet.handleDrag}
               onDragEnd={bottomSheet.handleDragEnd}
@@ -229,12 +231,12 @@ export function SearchScreen({
                   isLoading={results.isLoading}
                   selectedAccommodationId={map.selectedAccommodationId}
                   onAccommodationClick={onAccommodationOpen}
-                  onWishlistToggle={onWishlistToggle}
                   getAccommodationHref={getAccommodationHref}
-                  checkIn={checkIn}
-                  checkOut={checkOut}
                   layout="bottomSheet"
                   classNames={resultsListClassNames}
+                  checkIn={checkIn}
+                  checkOut={checkOut}
+                  onWishlistToggle={onWishlistToggle}
                 />
                 {hasResults && (
                   <SearchPagination
@@ -266,13 +268,13 @@ export function SearchScreen({
                 isLoading={results.isLoading}
                 selectedAccommodationId={map.selectedAccommodationId}
                 onAccommodationClick={onAccommodationOpen}
-                onWishlistToggle={onWishlistToggle}
                 onHoveredAccommodationChange={map.setHoveredAccommodationId}
                 getAccommodationHref={getAccommodationHref}
-                checkIn={checkIn}
-                checkOut={checkOut}
                 layout="desktop"
                 classNames={resultsListClassNames}
+                checkIn={checkIn}
+                checkOut={checkOut}
+                onWishlistToggle={onWishlistToggle}
               />
               {hasResults && (
                 <SearchPagination
@@ -290,10 +292,7 @@ export function SearchScreen({
                 selectedAccommodationId={map.selectedAccommodationId}
                 hoveredAccommodationId={map.hoveredAccommodationId}
                 onAccommodationSelect={map.handleAccommodationSelect}
-                onWishlistToggle={onWishlistToggle}
                 getAccommodationHref={getAccommodationHref}
-                checkIn={checkIn}
-                checkOut={checkOut}
                 isExpanded={map.isMapExpanded}
                 onExpandToggle={map.toggleMapExpanded}
                 onBoundsChange={map.requestBounds}
@@ -301,6 +300,9 @@ export function SearchScreen({
                 shouldUpdateMapBounds={map.shouldUpdateMapBounds}
                 onMapBoundsUpdated={map.onMapBoundsUpdated}
                 viewport={map.viewport}
+                checkIn={checkIn}
+                checkOut={checkOut}
+                onWishlistToggle={onWishlistToggle}
               />
             </div>
           </div>

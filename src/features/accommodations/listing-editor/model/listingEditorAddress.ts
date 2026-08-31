@@ -46,7 +46,7 @@ export const toListingEditorAddressSelection = (
 
   if (municipality.includes(" ")) {
     const parts = municipality.split(" ").filter(Boolean);
-    city = parts[0];
+    city = parts.at(0) ?? "";
     district = parts.slice(1).join(" ");
   } else if (
     municipality &&

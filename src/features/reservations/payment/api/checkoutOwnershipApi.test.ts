@@ -53,8 +53,8 @@ describe("checkout ownership API adapter", () => {
       path: `/profile/guest/reservations/${RESERVATION_UID}`,
       signal,
     });
-    expect(request.mock.calls[0][0]).not.toHaveProperty("body");
-    expect(request.mock.calls[0][0]).not.toHaveProperty("params");
+    expect(request.mock.calls.at(0)?.at(0)).not.toHaveProperty("body");
+    expect(request.mock.calls.at(0)?.at(0)).not.toHaveProperty("params");
   });
 
   it("accepts the guest-detail contract before a payment exists", async () => {
@@ -74,9 +74,7 @@ describe("checkout ownership API adapter", () => {
         payment: null,
       }),
     );
-    expect(request).toHaveBeenCalledWith(
-      expect.objectContaining({ signal: undefined }),
-    );
+    expect(request.mock.calls[0]?.[0]).toHaveProperty("signal", undefined);
   });
 
   it("rejects a dot-segment UID before credentialed transport", async () => {

@@ -37,7 +37,11 @@ describe("platform API request", () => {
   const originalAdapter = httpClient.defaults.adapter;
 
   afterEach(() => {
-    httpClient.defaults.adapter = originalAdapter;
+    if (originalAdapter === undefined) {
+      delete httpClient.defaults.adapter;
+    } else {
+      httpClient.defaults.adapter = originalAdapter;
+    }
     vi.restoreAllMocks();
   });
 
@@ -65,6 +69,25 @@ describe("platform API request", () => {
         signal: controller.signal,
       }),
     ).resolves.toEqual({ id: 1, name: "Seoul stay" });
+  });
+
+  it("omits an explicitly undefined signal at the Axios boundary", async () => {
+    const requestSpy = vi.spyOn(httpClient, "request").mockResolvedValue(
+      response({} as InternalAxiosRequestConfig, {
+        success: true,
+        data: { id: 1, name: "Seoul stay" },
+        error: null,
+      }),
+    );
+
+    await requestApiData<ListingWire>({
+      method: "GET",
+      path: "/listings",
+      signal: undefined,
+    });
+
+    expect(requestSpy).toHaveBeenCalledOnce();
+    expect(requestSpy.mock.calls[0]?.[0]).not.toHaveProperty("signal");
   });
 
   it("preserves multipart bodies through the real Axios transform pipeline", async () => {

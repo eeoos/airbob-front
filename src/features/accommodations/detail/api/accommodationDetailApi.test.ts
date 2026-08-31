@@ -49,7 +49,7 @@ describe("accommodation detail API adapter", () => {
       path: "/accommodations/7",
       signal,
     });
-    expect(transport.mock.calls[0][0]).not.toHaveProperty("body");
-    expect(transport.mock.calls[0][0]).not.toHaveProperty("params");
+    expect(transport.mock.calls.at(0)?.at(0)).not.toHaveProperty("body");
+    expect(transport.mock.calls.at(0)?.at(0)).not.toHaveProperty("params");
   });
 });

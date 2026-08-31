@@ -120,7 +120,9 @@ const createHarness = () => {
   const api = createApi();
   const query: Mocked<ListingEditorQueryPort> = {
     getHostDetail: vi.fn((accommodationId, options) =>
-      api.getHostDetail(accommodationId, { signal: options.signal }),
+      api.getHostDetail(accommodationId, {
+        ...(options.signal ? { signal: options.signal } : {}),
+      }),
     ),
     projectHostDetail: vi.fn(),
     setHostDetail: vi.fn(),
@@ -1221,7 +1223,7 @@ describe("createListingEditorWorkflow", () => {
     harness.api.getHostDetail.mockReturnValueOnce(pending.promise);
 
     const command = harness.workflow.hydrate();
-    const signal = harness.api.getHostDetail.mock.calls[0][1]?.signal;
+    const signal = harness.api.getHostDetail.mock.calls.at(0)?.[1]?.signal;
     harness.workflow.dispose();
 
     expect(signal?.aborted).toBe(true);

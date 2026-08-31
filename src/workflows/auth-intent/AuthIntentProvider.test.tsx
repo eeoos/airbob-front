@@ -426,8 +426,13 @@ describe("AuthIntentProvider", () => {
     renderRuntime({ strict: true, child: <StrictRequester /> });
 
     expect(issuedAttempts).toHaveLength(2);
-    expect(issuedAttempts[1]).toBeGreaterThan(issuedAttempts[0]);
-    expect(runtime.pending?.attemptId).toBe(issuedAttempts[1]);
+    const firstAttempt = issuedAttempts.at(0);
+    const latestAttempt = issuedAttempts.at(1);
+    if (firstAttempt === undefined || latestAttempt === undefined) {
+      throw new Error("Expected StrictMode to issue two auth-intent attempts");
+    }
+    expect(latestAttempt).toBeGreaterThan(firstAttempt);
+    expect(runtime.pending?.attemptId).toBe(latestAttempt);
   });
 
   it("drops its in-memory record when the provider unmounts", () => {

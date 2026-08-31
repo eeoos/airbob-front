@@ -1,5 +1,9 @@
 import type { Page } from "@playwright/test";
-import { apiSuccess, type ApiResponseSpec } from "../fixtures/api";
+import {
+  apiSuccess,
+  requireApiRequest,
+  type ApiResponseSpec,
+} from "../fixtures/api";
 import {
   installPaymentGatewayFixture,
   readPaymentGatewayCalls,
@@ -336,7 +340,9 @@ test("submits one reservation and performs one PII-free checkout handoff on a do
 
   const reservationRequests = api.matching("POST", "/api/v1/reservations");
   expect(reservationRequests).toHaveLength(1);
-  expect(reservationRequests[0].body).toEqual({
+  expect(
+    requireApiRequest(reservationRequests, 0, "reservation create").body,
+  ).toEqual({
     accommodation_id: 7,
     check_in_date: "2026-07-10",
     check_out_date: "2026-07-12",
@@ -768,7 +774,9 @@ test("confirms once, clears owned documents, and server-reconciles a replay with
 
   const confirmRequests = api.matching("POST", "/api/v1/payments/confirm");
   expect(confirmRequests).toHaveLength(1);
-  expect(confirmRequests[0].body).toEqual({
+  expect(
+    requireApiRequest(confirmRequests, 0, "payment confirmation").body,
+  ).toEqual({
     payment_key: paymentKey,
     order_id: checkout.reservationUid,
     amount: checkout.amount,

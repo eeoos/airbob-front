@@ -1,4 +1,4 @@
-import { MutableRefObject, useEffect, useRef } from "react";
+import { useEffect, useRef, type MutableRefObject } from "react";
 import { getGoogleMapsApi } from "../../../../../platform/integrations/googleMaps";
 import {
   haveAccommodationIdsChanged,
@@ -10,9 +10,9 @@ import {
   getMarkerIconModel,
 } from "../lib/markerIcon";
 import {
-  SearchMapAccommodation,
-  SearchMapMarker,
-  SearchMapViewport,
+  type SearchMapAccommodation,
+  type SearchMapMarker,
+  type SearchMapViewport,
 } from "../types";
 
 interface UseAccommodationMarkersOptions {
@@ -25,12 +25,25 @@ interface UseAccommodationMarkersOptions {
   onAccommodationSelectRef: MutableRefObject<
     (accommodation: SearchMapAccommodation | null) => void
   >;
-  onMapBoundsUpdated?: () => void;
+  onMapBoundsUpdated?: (() => void) | undefined;
   prevViewportRef: MutableRefObject<SearchMapViewport | null>;
   shouldUpdateMapBounds: boolean;
-  viewport?: SearchMapViewport | null;
+  viewport?: SearchMapViewport | null | undefined;
   viewportJustChangedRef: MutableRefObject<boolean>;
 }
+
+type SearchMapAccommodationWithCoordinate = SearchMapAccommodation & {
+  coordinate: {
+    latitude: number;
+    longitude: number;
+  };
+};
+
+const hasCoordinate = (
+  accommodation: SearchMapAccommodation,
+): accommodation is SearchMapAccommodationWithCoordinate =>
+  accommodation.coordinate.latitude !== null &&
+  accommodation.coordinate.longitude !== null;
 
 const createIconUrl = (svgIcon: string) => {
   const svgBlob = new Blob([svgIcon], { type: "image/svg+xml" });
@@ -103,19 +116,15 @@ export const useAccommodationMarkers = ({
       boundsInitializedRef.current = false;
     }
 
-    const validAccommodations = accommodations.filter(
-      (accommodation) =>
-        accommodation.coordinate.latitude !== null &&
-        accommodation.coordinate.longitude !== null
-    );
+    const validAccommodations = accommodations.filter(hasCoordinate);
 
     if (validAccommodations.length === 0) return;
 
     const bounds = new maps.LatLngBounds();
 
     validAccommodations.forEach((accommodation) => {
-      const lat = accommodation.coordinate.latitude!;
-      const lng = accommodation.coordinate.longitude!;
+      const lat = accommodation.coordinate.latitude;
+      const lng = accommodation.coordinate.longitude;
 
       const markerIconModel = getMarkerIconModel({
         basePrice: accommodation.basePrice,
@@ -317,12 +326,14 @@ export const useAccommodationMarkers = ({
       if (validAccommodations.length > 1) {
         map.fitBounds(bounds, 50);
       } else if (validAccommodations.length === 1) {
-        const firstAccommodation = validAccommodations[0];
-        map.setCenter({
-          lat: firstAccommodation.coordinate.latitude!,
-          lng: firstAccommodation.coordinate.longitude!,
-        });
-        map.setZoom(12);
+        const [firstAccommodation] = validAccommodations;
+        if (firstAccommodation) {
+          map.setCenter({
+            lat: firstAccommodation.coordinate.latitude,
+            lng: firstAccommodation.coordinate.longitude,
+          });
+          map.setZoom(12);
+        }
       }
 
       boundsInitializedRef.current = true;

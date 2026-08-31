@@ -221,15 +221,20 @@ describe("OverlayProvider", () => {
     expect(closeSecond).toHaveBeenCalledTimes(1);
 
     const backdrops = screen.getAllByRole("presentation", { hidden: true });
-    expect(backdrops[0]).toHaveAttribute("aria-hidden", "true");
-    expect(backdrops[0]).toHaveAttribute("inert");
-    expect(backdrops[1]).not.toHaveAttribute("aria-hidden");
-    expect(backdrops[1]).not.toHaveAttribute("inert");
+    const firstBackdrop = backdrops.at(0);
+    const secondBackdrop = backdrops.at(1);
+    if (!firstBackdrop || !secondBackdrop) {
+      throw new Error("Expected two dialog backdrops");
+    }
+    expect(firstBackdrop).toHaveAttribute("aria-hidden", "true");
+    expect(firstBackdrop).toHaveAttribute("inert");
+    expect(secondBackdrop).not.toHaveAttribute("aria-hidden");
+    expect(secondBackdrop).not.toHaveAttribute("inert");
 
-    fireEvent.mouseDown(backdrops[0]);
+    fireEvent.mouseDown(firstBackdrop);
     expect(closeFirst).not.toHaveBeenCalled();
 
-    await userEvent.click(backdrops[1]);
+    await userEvent.click(secondBackdrop);
     expect(closeSecond).toHaveBeenCalledTimes(2);
   });
 
@@ -286,9 +291,14 @@ describe("OverlayProvider", () => {
     );
 
     const backdrops = screen.getAllByRole("presentation", { hidden: true });
-    expect(within(backdrops[1]).getByText("first content")).toBeInTheDocument();
-    expect(backdrops[1]).not.toHaveAttribute("inert");
-    expect(backdrops[0]).toHaveAttribute("inert");
+    const firstBackdrop = backdrops.at(0);
+    const secondBackdrop = backdrops.at(1);
+    if (!firstBackdrop || !secondBackdrop) {
+      throw new Error("Expected two dialog backdrops");
+    }
+    expect(within(secondBackdrop).getByText("first content")).toBeInTheDocument();
+    expect(secondBackdrop).not.toHaveAttribute("inert");
+    expect(firstBackdrop).toHaveAttribute("inert");
   });
 
   it("contains focus in the topmost dialog and restores the nested focus chain", async () => {

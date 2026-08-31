@@ -134,9 +134,30 @@ const createProps = (
 
 const getReadyView = () => {
   expect(capturedScreenProps?.state.status).toBe("ready");
-  return capturedScreenProps!.state.status === "ready"
-    ? capturedScreenProps!.state.view
-    : null!;
+  if (!capturedScreenProps || capturedScreenProps.state.status !== "ready") {
+    throw new Error("Expected accommodation detail screen to be ready");
+  }
+  return capturedScreenProps.state.view;
+};
+
+const getFirstCoupon = () => {
+  const couponView = getReadyView().bookingCard.couponState.coupons[0];
+  if (!couponView) {
+    throw new Error("Expected the first coupon view to be defined");
+  }
+  return couponView;
+};
+
+const getMockCall = (
+  mock: ReturnType<typeof vi.fn>,
+  callIndex: number,
+  label: string,
+) => {
+  const call = mock.mock.calls[callIndex];
+  if (!call) {
+    throw new Error(`Expected ${label} call ${callIndex + 1} to be defined`);
+  }
+  return call;
 };
 
 describe("AccommodationDetailController", () => {
@@ -260,9 +281,12 @@ describe("AccommodationDetailController", () => {
     );
 
     await waitFor(() => expect(mockStartReservation).toHaveBeenCalledTimes(1));
-    expect(mockStartReservation.mock.calls[0][0].intent).toEqual(
-      claimedIntent,
+    const [startRequest] = getMockCall(
+      mockStartReservation,
+      0,
+      "startReservation",
     );
+    expect(startRequest?.intent).toEqual(claimedIntent);
     expect(completeClaim).toHaveBeenCalledWith(19);
   });
 
@@ -354,7 +378,7 @@ describe("AccommodationDetailController", () => {
 
     act(() => {
       getReadyView().bookingCard.couponActions.handleIssueCoupon(
-        getReadyView().bookingCard.couponState.coupons[0],
+        getFirstCoupon(),
       );
     });
 
@@ -388,7 +412,7 @@ describe("AccommodationDetailController", () => {
     const view = render(
       <AccommodationDetailController {...initialProps} />,
     );
-    const couponView = getReadyView().bookingCard.couponState.coupons[0];
+    const couponView = getFirstCoupon();
 
     act(() => {
       getReadyView().bookingCard.couponActions.handleIssueCoupon(couponView);
@@ -396,7 +420,7 @@ describe("AccommodationDetailController", () => {
     });
     expect(mockIssueCoupon).toHaveBeenCalledTimes(1);
     expect(
-      getReadyView().bookingCard.couponState.coupons[0].isIssuing,
+      getFirstCoupon().isIssuing,
     ).toBe(true);
 
     isRouteCurrent = false;
@@ -408,7 +432,7 @@ describe("AccommodationDetailController", () => {
     );
     await waitFor(() =>
       expect(
-        getReadyView().bookingCard.couponState.coupons[0].isIssuing,
+        getFirstCoupon().isIssuing,
       ).toBe(false),
     );
 
@@ -505,7 +529,15 @@ describe("AccommodationDetailController", () => {
     );
 
     await waitFor(() => expect(recordRecentlyViewed).toHaveBeenCalledTimes(1));
-    const signal = recordRecentlyViewed.mock.calls[0][1].signal as AbortSignal;
+    const [, recordOptions] = getMockCall(
+      recordRecentlyViewed,
+      0,
+      "recordRecentlyViewed",
+    );
+    if (!(recordOptions?.signal instanceof AbortSignal)) {
+      throw new Error("Expected recordRecentlyViewed to receive an AbortSignal");
+    }
+    const signal = recordOptions.signal;
 
     view.rerender(
       <AccommodationDetailController

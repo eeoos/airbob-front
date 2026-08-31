@@ -1,4 +1,5 @@
 import type { RefCallback } from "react";
+import { requireCssModuleClass } from "../../shared/styles/requireCssModuleClass";
 import type { ReservationFilterType } from "./model/reservationRead";
 import type { HostReservationCheckInSortDirection } from "./lib/hostReservationSort";
 import {
@@ -80,7 +81,7 @@ export function HostReservationsPanel({
       <h2 className={styles.title}>예약 관리</h2>
       <Tabs
         ariaLabel="예약 상태 필터"
-        className={styles.filterTabs}
+        className={requireCssModuleClass(styles.filterTabs)}
         items={filterItems}
         value={filterType}
         onValueChange={onFilterChange}

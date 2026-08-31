@@ -30,9 +30,8 @@ export const normalizeSessionAuthError = (error: unknown): AppError => {
       typeof backendCode === "string"
     ) {
       return createHttpAppError({
-        status: typeof status === "number" ? status : undefined,
-        backendCode:
-          typeof backendCode === "string" ? backendCode : undefined,
+        ...(typeof status === "number" ? { status } : {}),
+        ...(typeof backendCode === "string" ? { backendCode } : {}),
         cause: error,
       });
     }

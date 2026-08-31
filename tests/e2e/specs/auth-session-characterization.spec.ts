@@ -1,5 +1,9 @@
 import type { BrowserContext, Page } from "@playwright/test";
-import { apiSuccess, type ApiHarness } from "../fixtures/api";
+import {
+  apiSuccess,
+  requireApiRequest,
+  type ApiHarness,
+} from "../fixtures/api";
 import {
   SYNTHETIC_USER_B,
   type SyntheticUser,
@@ -216,7 +220,7 @@ test("returns an anonymous user to the complete protected URL after login", asyn
 
   const loginRequests = api.matching("POST", "/api/v1/auth/login");
   expect(loginRequests).toHaveLength(1);
-  expect(loginRequests[0].body).toEqual({
+  expect(requireApiRequest(loginRequests, 0, "login").body).toEqual({
     email: "person-a@example.invalid",
     password: "synthetic-password",
   });
@@ -226,7 +230,11 @@ test("returns an anonymous user to the complete protected URL after login", asyn
     "/api/v1/members/wishlists/accommodations/7",
   );
   expect(detailRequests.length).toBeGreaterThanOrEqual(1);
-  expect(Object.fromEntries(detailRequests[0].query)).toMatchObject({
+  expect(
+    Object.fromEntries(
+      requireApiRequest(detailRequests, 0, "wishlist detail").query,
+    ),
+  ).toMatchObject({
     size: "20",
   });
 });
@@ -355,7 +363,11 @@ test("resumes an anonymous wishlist intent once in the authenticated session gen
   expect(api.matching("POST", "/api/v1/auth/login")).toHaveLength(1);
   const resumedReads = api.matching("GET", "/api/v1/members/wishlists");
   expect(resumedReads).toHaveLength(1);
-  expect(Object.fromEntries(resumedReads[0].query)).toMatchObject({
+  expect(
+    Object.fromEntries(
+      requireApiRequest(resumedReads, 0, "resumed wishlist").query,
+    ),
+  ).toMatchObject({
     accommodationId: String(searchableAccommodation.id),
     size: "20",
   });
@@ -443,7 +455,7 @@ test("publishes a B login to another page through remote session revalidation", 
 
   const loginRequests = api.matching("POST", "/api/v1/auth/login");
   expect(loginRequests).toHaveLength(1);
-  expect(loginRequests[0].body).toEqual({
+  expect(requireApiRequest(loginRequests, 0, "cross-tab login").body).toEqual({
     email: SYNTHETIC_USER_B.email,
     password: "synthetic-password",
   });

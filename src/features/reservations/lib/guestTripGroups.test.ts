@@ -27,7 +27,7 @@ describe("guest trip display helpers", () => {
     ]);
 
     expect(groups.map((group) => group.year)).toEqual([2026, 2025]);
-    expect(groups[1].reservations.map((trip) => trip.reservationUid)).toEqual([
+    expect(groups.at(1)?.reservations.map((trip) => trip.reservationUid)).toEqual([
       "guest-1",
       "guest-3",
     ]);
@@ -41,7 +41,7 @@ describe("guest trip display helpers", () => {
     ]);
 
     expect(groups.map((group) => group.year)).toEqual([2027, 2026]);
-    expect(groups[1].reservations.map((trip) => trip.reservationUid)).toEqual([
+    expect(groups.at(1)?.reservations.map((trip) => trip.reservationUid)).toEqual([
       "guest-1",
       "guest-2",
     ]);

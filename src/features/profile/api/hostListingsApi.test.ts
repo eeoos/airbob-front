@@ -68,8 +68,10 @@ describe("host listings API adapter", () => {
       params: { size: 20, status: "PUBLISHED" },
       signal,
     });
-    expect(transport.mock.calls[0][0]).not.toHaveProperty("body");
-    expect(transport.mock.calls[0][0].params).not.toHaveProperty("cursor");
+    expect(transport.mock.calls.at(0)?.at(0)).not.toHaveProperty("body");
+    expect(transport.mock.calls.at(0)?.at(0)?.params).not.toHaveProperty(
+      "cursor",
+    );
   });
 
   it("forwards an exact cursor without changing the selected status", async () => {

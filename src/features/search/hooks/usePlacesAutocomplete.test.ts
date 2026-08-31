@@ -1,5 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { createElement, StrictMode, type ReactNode } from "react";
+import { requireDefined } from "../../../test/assertions";
 import {
   type PlacePrediction,
   usePlacesAutocomplete,
@@ -147,7 +148,9 @@ describe("usePlacesAutocomplete", () => {
       await first.promise;
     });
     await act(async () => {
-      await result.current.handlePlaceSelect(result.current.suggestions[0]);
+      await result.current.handlePlaceSelect(
+        requireDefined(result.current.suggestions[0], "place suggestion"),
+      );
     });
 
     expect(firstPrediction.toPlace).not.toHaveBeenCalled();

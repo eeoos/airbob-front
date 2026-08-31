@@ -45,7 +45,10 @@ describe("public runtime configuration", () => {
       let thrownError: unknown;
 
       try {
-        createPublicRuntimeConfig({ mode: "production", apiUrl });
+        createPublicRuntimeConfig({
+          mode: "production",
+          ...(apiUrl === undefined ? {} : { apiUrl }),
+        });
       } catch (error) {
         thrownError = error;
       }

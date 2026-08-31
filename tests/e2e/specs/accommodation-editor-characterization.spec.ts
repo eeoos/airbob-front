@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 import {
   apiFailure,
   apiSuccess,
+  requireApiRequest,
   type ApiResponseSpec,
 } from "../fixtures/api";
 import { test, expect } from "../fixtures/test";
@@ -241,12 +242,17 @@ test("hydrates an existing accommodation and saves its update before publishing"
 
   expect(updateRequests).toHaveLength(1);
   expect(publishRequests).toHaveLength(1);
-  expect(updateRequests[0].body).toEqual({
+  const updateRequest = requireApiRequest(updateRequests, 0, "editor update");
+  const publishRequest = requireApiRequest(
+    publishRequests,
+    0,
+    "editor publish",
+  );
+
+  expect(updateRequest.body).toEqual({
     name: "정돈된 합정 테스트 숙소",
   });
-  expect(updateRequests[0].sequence).toBeLessThan(
-    publishRequests[0].sequence,
-  );
+  expect(updateRequest.sequence).toBeLessThan(publishRequest.sequence);
 });
 
 test("lazy-loads the exact Daum postcode integration before mapping a selection", async ({
@@ -353,7 +359,11 @@ test("finishes a pending image upload before save-and-exit navigation", async ({
   );
   expect(uploadRequests).toHaveLength(1);
   expect(profileRequests).toHaveLength(1);
-  expect(uploadRequests[0].sequence).toBeLessThan(profileRequests[0].sequence);
+  expect(
+    requireApiRequest(uploadRequests, 0, "image upload").sequence,
+  ).toBeLessThan(
+    requireApiRequest(profileRequests, 0, "profile refresh").sequence,
+  );
 });
 
 test("keeps the editor mounted when a pending image upload fails", async ({

@@ -519,31 +519,37 @@ export function ProfileController(props: ProfileControllerProps) {
         <GuestProfileController
           hrefs={props.hrefs}
           navigation={props.navigation}
-          reservationApi={props.reservationApi}
           resolveImageUrl={props.resolveImageUrl}
           routeView={props.routeView}
           scope={props.scope}
+          {...(props.reservationApi === undefined
+            ? {}
+            : { reservationApi: props.reservationApi })}
         />
       );
     case "host-listings":
       return (
         <HostListingsProfileController
           confirmDelete={props.confirmDelete}
-          hostListingsApi={props.hostListingsApi}
           hostListingWorkflow={props.hostListingWorkflow}
           navigation={props.navigation}
           resolveImageUrl={props.resolveImageUrl}
           routeView={props.routeView}
           scope={props.scope}
+          {...(props.hostListingsApi === undefined
+            ? {}
+            : { hostListingsApi: props.hostListingsApi })}
         />
       );
     case "host-reservations":
       return (
         <HostReservationsProfileController
           navigation={props.navigation}
-          reservationApi={props.reservationApi}
           routeView={props.routeView}
           scope={props.scope}
+          {...(props.reservationApi === undefined
+            ? {}
+            : { reservationApi: props.reservationApi })}
         />
       );
   }

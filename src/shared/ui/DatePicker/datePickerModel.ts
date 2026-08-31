@@ -23,7 +23,7 @@ export const formatMonthName = (date: Date): string =>
 
 export const formatKoreanDateLabel = (date: Date): string =>
   `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 ${
-    WEEKDAYS[date.getDay()].long
+    WEEKDAYS[date.getDay()]?.long ?? "요일 미상"
   }`;
 
 export const startOfDay = (date: Date): Date =>

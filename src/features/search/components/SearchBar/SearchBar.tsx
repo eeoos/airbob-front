@@ -1,4 +1,5 @@
 import React, { useCallback, useRef } from "react";
+import { requireCssModuleClass } from "../../../../shared/styles/requireCssModuleClass";
 import { DatePicker } from "../../../../shared/ui/DatePicker";
 import {
   type SearchBarRoutePort,
@@ -40,8 +41,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   const { destination, dates, guests, popover, actions, status } =
     useSearchBarState({
       routePort,
-      onSearch,
       isMapDragMode,
+      ...(onSearch === undefined ? {} : { onSearch }),
     });
 
   const { inputText, suggestions, selectedPlace } = destination;
@@ -123,7 +124,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     datePickerElementRef,
     destinationAreaRef,
     suggestionsRef,
-    searchButtonClassName: styles.searchButton,
+    searchButtonClassName: requireCssModuleClass(styles.searchButton),
     isExpanded,
     activePopover,
     completeCheckoutIfNeeded,

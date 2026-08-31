@@ -1,6 +1,6 @@
 import { act, render, renderHook, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { animate, PanInfo } from "framer-motion";
+import { animate, type PanInfo } from "framer-motion";
 import { useSearchBottomSheet } from "./useSearchBottomSheet";
 
 vi.mock("framer-motion", async () => {

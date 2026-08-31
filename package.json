@@ -2,6 +2,7 @@
   "name": "airbob-front",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "packageManager": "npm@10.7.0",
   "engines": {
     "node": "^22.12.0 || ^24.0.0"
@@ -14,7 +15,7 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.5",
-    "typescript": "^4.9.5",
+    "typescript": "5.9.3",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
@@ -29,27 +30,28 @@
     "test:e2e:artifact-policy": "node tests/e2e/support/scan-artifacts.mjs --self-test",
     "test:e2e:characterization": "playwright test --project=chromium",
     "test:public-config-build": "node scripts/architecture/verify-public-config-build.mjs",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.test.json",
     "typecheck:e2e": "tsc --noEmit -p tsconfig.e2e.json",
+    "typecheck:tooling": "tsc --noEmit -p tsconfig.tooling.json",
     "lint": "eslint src --ext .js,.jsx,.mjs,.ts,.tsx",
     "lint:architecture": "node scripts/architecture/run-dependency-cruiser.mjs",
     "lint:architecture-tools": "eslint --no-ignore .dependency-cruiser.cjs stylelint.config.mjs scripts/architecture tests/architecture --ext .cjs,.mjs --max-warnings=0",
     "lint:dead-code": "knip --production --preprocessor ./scripts/architecture/knip-target-ratchet.mjs --reporter compact --no-progress && node scripts/architecture/verify-unused-dependency-ratchet.mjs",
     "lint:dead-code:report": "knip --production --reporter compact --no-progress --no-exit-code",
-    "lint:e2e": "eslint vite.config.mjs vitest.config.mjs playwright.config.ts tests/e2e --ext .mjs,.ts --max-warnings=0",
+    "lint:e2e": "eslint vite.config.ts vitest.config.ts playwright.config.ts tests/e2e --ext .mjs,.ts --max-warnings=0",
     "lint:styles": "stylelint \"src/**/*.css\" --quiet",
     "lint:styles:report": "stylelint \"src/**/*.css\" --formatter compact",
     "lint:strict": "eslint src --ext .js,.jsx,.mjs,.ts,.tsx --max-warnings=0",
     "smoke:frontend": "node scripts/smoke/frontend-smoke.mjs",
     "smoke:frontend:preflight": "node scripts/smoke/frontend-smoke.mjs --preflight",
     "smoke:frontend:strict": "AIRBOB_SMOKE_STRICT_DYNAMIC_ROUTES=true node scripts/smoke/frontend-smoke.mjs",
-    "test:architecture-rules": "node tests/architecture/verify-registry-rules.mjs && node tests/architecture/verify-git-baselines.mjs && node scripts/architecture/verify-architecture-ratchet.mjs && node tests/architecture/verify-dependency-rules.mjs && node tests/architecture/verify-knip-reachability.mjs && node tests/architecture/verify-style-rules.mjs && node tests/architecture/verify-platform-boundary.mjs && node tests/architecture/verify-vite-config.mjs && node tests/architecture/verify-vitest-config.mjs && node tests/architecture/verify-toss-build-gate.mjs && node tests/architecture/verify-toss-runtime.mjs",
+    "test:architecture-rules": "node tests/architecture/verify-registry-rules.mjs && node tests/architecture/verify-git-baselines.mjs && node scripts/architecture/verify-architecture-ratchet.mjs && node tests/architecture/verify-dependency-rules.mjs && node tests/architecture/verify-knip-reachability.mjs && node tests/architecture/verify-style-rules.mjs && node tests/architecture/verify-platform-boundary.mjs && node tests/architecture/verify-typescript-config.mjs && node tests/architecture/verify-vite-config.mjs && node tests/architecture/verify-vitest-config.mjs && node tests/architecture/verify-toss-build-gate.mjs && node tests/architecture/verify-toss-runtime.mjs",
     "report:architecture": "npm run lint:dead-code:report && npm run lint:styles:report",
     "verify:architecture": "npm run test:architecture-rules && npm run lint:architecture && npm run lint:dead-code && npm run lint:styles && npm run lint:architecture-tools",
-    "verify:structure": "npm run typecheck && npm run verify:architecture && npm run test:public-config-build && npm run test:ci:no-cache && npm run lint:strict",
-    "verify:pre-redesign": "npm run typecheck && npm run test:ci:no-cache && npm run build",
+    "verify:structure": "npm run typecheck && npm run typecheck:tooling && npm run verify:architecture && npm run test:public-config-build && npm run test:ci:no-cache && npm run lint:strict",
+    "verify:pre-redesign": "npm run typecheck && npm run typecheck:tooling && npm run test:ci:no-cache && npm run build",
     "verify:design-ready": "npm run verify:pre-redesign && npm run smoke:frontend:strict",
-    "verify": "npm run typecheck && npm run test:ci:no-cache && npm run build"
+    "verify": "npm run typecheck && npm run typecheck:tooling && npm run test:ci:no-cache && npm run build"
   },
   "eslintConfig": {
     "extends": [
@@ -402,8 +404,8 @@
     "@types/node": "20.19.0",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
-    "@vitest/coverage-v8": "4.1.11",
     "@vitejs/plugin-react": "5.2.0",
+    "@vitest/coverage-v8": "4.1.11",
     "dependency-cruiser": "17.4.3",
     "eslint": "8.57.1",
     "eslint-config-react-app": "7.0.1",

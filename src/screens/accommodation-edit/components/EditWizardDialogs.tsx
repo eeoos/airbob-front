@@ -42,18 +42,18 @@ export const EditWizardDialogs: React.FC<EditWizardDialogsProps> = ({
   <>
     {state.error && (
       <ToastHost
-        action={
-          state.recoveryState === "none"
-            ? undefined
-            : {
-                label: "복구 다시 시도",
-                onClick: actions.onRetryRecovery,
-              }
-        }
         closeLabel="오류 닫기"
         dismissible={state.recoveryState === "none"}
         message={state.error}
         onClose={actions.onClearError}
+        {...(state.recoveryState === "none"
+          ? {}
+          : {
+              action: {
+                label: "복구 다시 시도",
+                onClick: actions.onRetryRecovery,
+              },
+            })}
       />
     )}
 

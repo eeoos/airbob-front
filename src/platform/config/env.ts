@@ -12,6 +12,18 @@ export type BrowserEnvironmentSource = Readonly<
   Record<string, string | undefined>
 >;
 
+interface BrowserBuildProcess {
+  readonly env: {
+    readonly NODE_ENV?: string;
+    readonly REACT_APP_API_URL?: string;
+    readonly REACT_APP_GOOGLE_MAPS_API_KEY?: string;
+    readonly REACT_APP_TOSS_CLIENT_KEY?: string;
+    readonly REACT_APP_CLOUDFRONT_DOMAIN?: string;
+  };
+}
+
+declare const process: BrowserBuildProcess;
+
 export interface BrowserEnvironment {
   readonly mode: RuntimeMode;
   readonly apiUrl?: string;
@@ -72,13 +84,20 @@ const parseRuntimeMode = (value: string | undefined): RuntimeMode => {
  */
 export const readBrowserEnvironment = (
   source: BrowserEnvironmentSource = readProcessEnvironment(),
-): BrowserEnvironment => ({
-  mode: parseRuntimeMode(source.NODE_ENV),
-  apiUrl: source.REACT_APP_API_URL,
-  googleMapsApiKey: source.REACT_APP_GOOGLE_MAPS_API_KEY,
-  tossClientKey: source.REACT_APP_TOSS_CLIENT_KEY,
-  cloudFrontDomain: source.REACT_APP_CLOUDFRONT_DOMAIN,
-});
+): BrowserEnvironment => {
+  const apiUrl = source.REACT_APP_API_URL;
+  const googleMapsApiKey = source.REACT_APP_GOOGLE_MAPS_API_KEY;
+  const tossClientKey = source.REACT_APP_TOSS_CLIENT_KEY;
+  const cloudFrontDomain = source.REACT_APP_CLOUDFRONT_DOMAIN;
+
+  return {
+    mode: parseRuntimeMode(source.NODE_ENV),
+    ...(apiUrl === undefined ? {} : { apiUrl }),
+    ...(googleMapsApiKey === undefined ? {} : { googleMapsApiKey }),
+    ...(tossClientKey === undefined ? {} : { tossClientKey }),
+    ...(cloudFrontDomain === undefined ? {} : { cloudFrontDomain }),
+  };
+};
 
 export const getRuntimeMode = (): RuntimeMode => readBrowserEnvironment().mode;
 

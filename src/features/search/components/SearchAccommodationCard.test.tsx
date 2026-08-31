@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { readFileSync } from "fs";
-import { SearchAccommodationCardViewModel } from "../lib/searchAccommodationViewModel";
+import type { SearchAccommodationCardViewModel } from "../lib/searchAccommodationViewModel";
 import { SearchAccommodationCard } from "./SearchAccommodationCard";
 
 const accommodation: SearchAccommodationCardViewModel = {

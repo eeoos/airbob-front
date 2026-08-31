@@ -1,13 +1,13 @@
 import { AppError } from "../../platform/http/errors";
 import {
   createInitialSessionState,
-  SessionAuthenticatedState,
-  SessionState,
-  SessionViewer,
   toAuthenticatedSessionScope,
   toSessionSubject,
+  type SessionAuthenticatedState,
+  type SessionState,
+  type SessionViewer,
 } from "./sessionState";
-import { SessionAction, sessionReducer } from "./sessionReducer";
+import { sessionReducer, type SessionAction } from "./sessionReducer";
 
 const viewerA: SessionViewer = {
   id: 101,

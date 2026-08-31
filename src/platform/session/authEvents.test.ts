@@ -9,9 +9,12 @@ describe("authEvents", () => {
     triggerAuthError();
 
     expect(listener).toHaveBeenCalledTimes(2);
-    expect(listener.mock.calls[1][0].sequence).toBeGreaterThan(
-      listener.mock.calls[0][0].sequence,
-    );
+    const firstEvent = listener.mock.calls.at(0)?.at(0);
+    const secondEvent = listener.mock.calls.at(1)?.at(0);
+    if (!firstEvent || !secondEvent) {
+      throw new Error("Expected two authentication error events");
+    }
+    expect(secondEvent.sequence).toBeGreaterThan(firstEvent.sequence);
     unsubscribe();
   });
 

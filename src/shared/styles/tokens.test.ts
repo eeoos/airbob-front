@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
+import { createRequireDefined } from "../../test/assertions";
 
 // Resolve contracts from the repository root, independent of test placement.
 const projectRoot = process.cwd();
@@ -28,6 +29,10 @@ const {
   }[];
 };
 const srcDir = path.join(projectRoot, "src");
+const requireDesignTokenFixtureValue = createRequireDefined(
+  (description) =>
+    `Missing required design-token fixture value: ${description}`,
+);
 const tokenCssPaths = canonicalTokenStylePaths
   .filter((stylePath) => stylePath.includes("/styles/tokens/"))
   .map((stylePath) => path.join(projectRoot, stylePath));
@@ -165,20 +170,32 @@ type TokenLayer = {
 const parseTokenDeclarations = (source: string): readonly TokenDeclaration[] =>
   Array.from(
     source.matchAll(/^\s*(--[a-z0-9-]+)\s*:\s*([^;]+);/gm),
-    (match, order) => ({
-      name: match[1],
-      order,
-      value: match[2].trim(),
-    }),
+    (match, order) => {
+      const name = requireDesignTokenFixtureValue(
+        match[1],
+        "token declaration name",
+      );
+      const value = requireDesignTokenFixtureValue(
+        match[2],
+        `${name} declaration value`,
+      );
+
+      return { name, order, value: value.trim() };
+    },
   );
+
+const primitiveTokenStylePath = requireDesignTokenFixtureValue(
+  primitiveTokenStylePaths[0],
+  "primitive token stylesheet path",
+);
 
 const tokenLayers: readonly TokenLayer[] = [
   {
     declarations: parseTokenDeclarations(
-      fs.readFileSync(path.join(projectRoot, primitiveTokenStylePaths[0]), "utf8"),
+      fs.readFileSync(path.join(projectRoot, primitiveTokenStylePath), "utf8"),
     ),
     name: "primitive",
-    path: primitiveTokenStylePaths[0],
+    path: primitiveTokenStylePath,
     rank: 0,
   },
   ...derivedTokenStylePaths.map((stylePath, index) => ({
@@ -200,7 +217,9 @@ const tokenOwnerByName = new Map(
 );
 const tokenReferencePattern = /var\(\s*(--[a-z0-9-]+)\s*\)/g;
 const tokenReferences = (value: string) =>
-  Array.from(value.matchAll(tokenReferencePattern), (match) => match[1]);
+  Array.from(value.matchAll(tokenReferencePattern), (match) =>
+    requireDesignTokenFixtureValue(match[1], "token reference"),
+  );
 const resolveTokenValue = (name: string, ancestry: readonly string[] = []): string => {
   if (ancestry.includes(name)) {
     throw new Error(`Circular design token reference: ${[...ancestry, name].join(" -> ")}`);
@@ -244,7 +263,10 @@ const findLegacyAppOverlayZIndexMatch = (line: string) => {
     if (match) {
       return {
         pattern: pattern.name,
-        text: match[0],
+        text: requireDesignTokenFixtureValue(
+          match[0],
+          `${pattern.name} match`,
+        ),
       };
     }
   }
@@ -300,13 +322,16 @@ const findRawZIndexDeclaration = (line: string) => {
     return null;
   }
 
-  const value = match[1].trim();
+  const value = requireDesignTokenFixtureValue(
+    match[1],
+    "z-index value",
+  ).trim();
 
   if (value.startsWith("var(")) {
     return null;
   }
 
-  return match[0];
+  return requireDesignTokenFixtureValue(match[0], "z-index declaration");
 };
 
 const tokenEquivalentFontSizeLiteralValues = [
@@ -345,8 +370,18 @@ const tokenEquivalentLengthRegex = (values: string[]) =>
 
 const findForbiddenTokenEquivalentLiteralMatches = (source: string) =>
   Array.from(source.matchAll(tokenEquivalentDeclarationRegex)).flatMap((match) => {
-    const property = match[2].toLowerCase();
-    const value = match[3];
+    const prefix = requireDesignTokenFixtureValue(
+      match[1],
+      "token literal prefix",
+    );
+    const property = requireDesignTokenFixtureValue(
+      match[2],
+      "token literal property",
+    ).toLowerCase();
+    const value = requireDesignTokenFixtureValue(
+      match[3],
+      `${property} literal value`,
+    );
     const isFontSizeDeclaration = property === "font-size";
     const tokenEquivalentValues = isFontSizeDeclaration
       ? tokenEquivalentFontSizeLiteralValues
@@ -358,7 +393,7 @@ const findForbiddenTokenEquivalentLiteralMatches = (source: string) =>
 
     return [
       {
-        index: (match.index ?? 0) + match[1].length,
+        index: (match.index ?? 0) + prefix.length,
         name: isFontSizeDeclaration ? "font-size-token-literal" : "space-token-literal",
         text: `${property}: ${compactCssSnippet(value)}`,
       },
@@ -373,7 +408,9 @@ const compactCssSnippet = (snippet: string) => snippet.replace(/\s+/g, " ").trim
 const findTransitionAllMatches = (source: string) =>
   Array.from(source.matchAll(/\btransition\s*:\s*all\b/gi)).map((match) => ({
     index: match.index ?? 0,
-    text: compactCssSnippet(match[0]),
+    text: compactCssSnippet(
+      requireDesignTokenFixtureValue(match[0], "transition declaration"),
+    ),
   }));
 
 const normalizeSelector = (selector: string) => selector.trim().replace(/\s+/g, " ");
@@ -381,12 +418,19 @@ const normalizeSelector = (selector: string) => selector.trim().replace(/\s+/g, 
 const cssRuleBlocks = (source: string) =>
   Array.from(source.matchAll(/([^{}]+)\{([^{}]*)\}/g))
     .map((match) => {
-      const selectorText = match[1].trim();
+      const selectorText = requireDesignTokenFixtureValue(
+        match[1],
+        "CSS rule selector",
+      ).trim();
+      const declarations = requireDesignTokenFixtureValue(
+        match[2],
+        `${selectorText} declarations`,
+      );
 
       return {
         selectorText,
         selectors: selectorText.split(",").map(normalizeSelector).filter(Boolean),
-        declarations: match[2],
+        declarations,
         lineNumber: sourceLineNumberAt(source, match.index ?? 0),
       };
     })
@@ -473,7 +517,7 @@ const selectorBlock = (css: string, selector: string) => {
     throw new Error(`Missing selector block: ${selector}`);
   }
 
-  return match[0];
+  return requireDesignTokenFixtureValue(match[0], `${selector} block`);
 };
 
 const expectDeclaration = (block: string, declaration: string) => {
@@ -497,7 +541,8 @@ describe("design token stylesheet contract", () => {
     const indexCss = fs.readFileSync(indexCssPath, "utf8");
     const declaredTokenNames = Array.from(
       tokensCss.matchAll(/^\s*(--[a-z0-9-]+)\s*:/gm),
-      (match) => match[1],
+      (match) =>
+        requireDesignTokenFixtureValue(match[1], "declared token name"),
     );
 
     expect(tokenIndexCss).toBe(

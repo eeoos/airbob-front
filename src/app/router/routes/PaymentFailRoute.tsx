@@ -292,11 +292,12 @@ export function PaymentFailRoute() {
       <PaymentResultScreen
         mode="failure"
         onOpenProfile={() => navigate(routeTo.profile())}
-        onOpenReservation={
-          reservationUid
-            ? () => navigate(routeTo.reservationDetail(reservationUid))
-            : undefined
-        }
+        {...(reservationUid
+          ? {
+              onOpenReservation: () =>
+                navigate(routeTo.reservationDetail(reservationUid)),
+            }
+          : {})}
       />
     );
   }

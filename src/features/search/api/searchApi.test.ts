@@ -1,3 +1,4 @@
+import { requireDefined } from "../../../test/assertions";
 import type { SearchResultPageWire } from "./contracts";
 import { createSearchApi, type SearchApiTransport } from "./searchApi";
 
@@ -67,6 +68,9 @@ describe("search API adapter", () => {
       },
       signal,
     });
-    expect(transport.mock.calls[0][0]).not.toHaveProperty("body");
+    const firstCall = requireDefined(transport.mock.calls[0], "transport call");
+    expect(requireDefined(firstCall[0], "transport request")).not.toHaveProperty(
+      "body",
+    );
   });
 });

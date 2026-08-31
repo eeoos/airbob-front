@@ -132,7 +132,7 @@ describe("reservation read API adapter", () => {
         path,
         signal,
       });
-      expect(transport.mock.calls[0][0]).not.toHaveProperty("params");
+      expect(transport.mock.calls.at(0)?.at(0)).not.toHaveProperty("params");
     },
   );
 

@@ -83,8 +83,9 @@ export const SearchDestinationField = ({
       event.preventDefault();
       event.stopPropagation();
 
-      if (isActive && suggestions.length > 0) {
-        onSelect(suggestions[0]);
+      const firstSuggestion = suggestions[0];
+      if (isActive && firstSuggestion) {
+        onSelect(firstSuggestion);
         return;
       }
 

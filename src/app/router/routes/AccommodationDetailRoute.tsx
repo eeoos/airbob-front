@@ -355,7 +355,7 @@ function AccommodationDetailRouteContent() {
       routeLease={routeLease}
       scope={scope}
       session={workflowSession}
-      wishlistMembership={wishlistMembership}
+      {...(wishlistMembership === undefined ? {} : { wishlistMembership })}
     />
   );
 }

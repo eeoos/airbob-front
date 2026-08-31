@@ -11,6 +11,22 @@ export interface ApiRequestRecord {
   readonly body: unknown;
 }
 
+export const requireApiRequest = (
+  requests: readonly ApiRequestRecord[],
+  index: number,
+  description: string,
+): ApiRequestRecord => {
+  const request = requests.at(index);
+
+  if (!request) {
+    throw new Error(
+      `Missing ${description} API request at index ${index}; received ${requests.length}.`,
+    );
+  }
+
+  return request;
+};
+
 export interface ApiErrorBody {
   message: string;
   status: number;
@@ -144,13 +160,14 @@ export class ApiHarness {
 
   private readonly handlers: RegisteredHandler[] = [];
   private readonly unhandled: UnhandledRequest[] = [];
+  private readonly context: BrowserContext;
+  private readonly appOrigin: string;
   private sequence = 0;
   private readonly appHost: string;
 
-  constructor(
-    private readonly context: BrowserContext,
-    private readonly appOrigin: string,
-  ) {
+  constructor(context: BrowserContext, appOrigin: string) {
+    this.context = context;
+    this.appOrigin = appOrigin;
     this.appHost = new URL(appOrigin).host;
   }
 

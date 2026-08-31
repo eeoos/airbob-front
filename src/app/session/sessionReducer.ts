@@ -1,13 +1,13 @@
 import type { AppError } from "../../platform/http/errors";
 import {
-  SessionAuthenticatedState,
-  SessionAnonymousState,
-  SessionCheckingState,
-  SessionCheckingReason,
-  SessionRevocation,
-  SessionState,
-  SessionViewer,
   toSessionSubject,
+  type SessionAuthenticatedState,
+  type SessionAnonymousState,
+  type SessionCheckingReason,
+  type SessionCheckingState,
+  type SessionRevocation,
+  type SessionState,
+  type SessionViewer,
 } from "./sessionState";
 
 interface SessionOperationAction {

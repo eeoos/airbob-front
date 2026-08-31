@@ -1,4 +1,4 @@
-import { QueryClientConfig } from "@tanstack/react-query";
+import type { QueryClientConfig } from "@tanstack/react-query";
 import { createQueryClient } from "../platform/query/createQueryClient";
 
 const TEST_QUERY_DEFAULTS: NonNullable<QueryClientConfig["defaultOptions"]> = {

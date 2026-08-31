@@ -90,8 +90,13 @@ const setup = ({
     driver,
     now: () => now,
     getEpoch: () => epoch,
-    createOperationId: () =>
-      operationIds[Math.min(operationIndex++, operationIds.length - 1)],
+    createOperationId: () => {
+      const operationId = operationIds.at(
+        Math.min(operationIndex++, operationIds.length - 1),
+      );
+      if (!operationId) throw new Error("Expected a booking operation id fixture");
+      return operationId;
+    },
   };
 
   return {

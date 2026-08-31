@@ -1,5 +1,17 @@
 import { act, renderHook } from "@testing-library/react";
+import { requireDefined } from "../../../test/assertions";
 import { useSearchBarSearch } from "./useSearchBarSearch";
+
+const getFirstPushedSearch = (
+  pushSearch: ReturnType<typeof vi.fn>,
+): URLSearchParams => {
+  const call = requireDefined(pushSearch.mock.calls[0], "pushSearch call");
+  const params = requireDefined(call[0], "pushed search params");
+  if (!(params instanceof URLSearchParams)) {
+    throw new Error("Expected pushed search params to be URLSearchParams");
+  }
+  return params;
+};
 
 const createOptions = () => ({
   inputText: "Seoul",
@@ -64,7 +76,7 @@ describe("useSearchBarSearch", () => {
     });
 
     expect(options.pushSearch).toHaveBeenCalledTimes(1);
-    expect(options.pushSearch.mock.calls[0][0].toString()).toBe(
+    expect(getFirstPushedSearch(options.pushSearch).toString()).toBe(
       "destination=Seoul&lat=37.5665&lng=126.978&topLeftLat=37.7&topLeftLng=126.8&bottomRightLat=37.4&bottomRightLng=127.1&adultOccupancy=2&childOccupancy=1&infantOccupancy=0&petOccupancy=0",
     );
   });
@@ -82,7 +94,7 @@ describe("useSearchBarSearch", () => {
     });
 
     expect(options.pushSearch).toHaveBeenCalledTimes(1);
-    expect(options.pushSearch.mock.calls[0][0].toString()).toBe(
+    expect(getFirstPushedSearch(options.pushSearch).toString()).toBe(
       "destination=Seoul&adultOccupancy=2&childOccupancy=1&infantOccupancy=0&petOccupancy=0",
     );
   });

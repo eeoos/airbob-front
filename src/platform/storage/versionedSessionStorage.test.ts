@@ -1,8 +1,8 @@
 import { createSessionStorageDriver } from "./sessionStorageDriver";
 import {
   createVersionedSessionStorage,
-  LegacyMigrationContext,
-  LegacyMigrationVerification,
+  type LegacyMigrationContext,
+  type LegacyMigrationVerification,
 } from "./versionedSessionStorage";
 
 interface CheckoutRecord {

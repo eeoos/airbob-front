@@ -27,7 +27,7 @@ export const authApi: AuthApi = {
       method: "POST",
       path: "/auth/login",
       body: credentials,
-      ...(signal ? { signal } : {}),
+      signal,
       authEventPolicy: sessionOwnedAuthEventPolicy,
     });
   },
@@ -37,7 +37,7 @@ export const authApi: AuthApi = {
       method: "POST",
       path: "/members",
       body: command,
-      ...(signal ? { signal } : {}),
+      signal,
     });
   },
 
@@ -45,7 +45,7 @@ export const authApi: AuthApi = {
     await requestApiDataNullable({
       method: "POST",
       path: "/auth/logout",
-      ...(signal ? { signal } : {}),
+      signal,
       authEventPolicy: sessionOwnedAuthEventPolicy,
     });
   },
@@ -54,7 +54,7 @@ export const authApi: AuthApi = {
     const viewer = await requestApiData<AuthViewerWire>({
       method: "GET",
       path: "/auth/me",
-      ...(signal ? { signal } : {}),
+      signal,
       authEventPolicy: sessionOwnedAuthEventPolicy,
     });
 

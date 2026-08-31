@@ -7,10 +7,12 @@ interface AdjustInfoWindowIntoMapViewOptions {
 
 const parseTranslateTransform = (transform: string) => {
   const translateMatch = transform.match(/translate\(([^,]+),\s*([^)]+)\)/);
+  const rawX = translateMatch?.[1];
+  const rawY = translateMatch?.[2];
 
   return {
-    x: translateMatch ? parseFloat(translateMatch[1]) : 0,
-    y: translateMatch ? parseFloat(translateMatch[2]) : 0,
+    x: rawX === undefined ? 0 : parseFloat(rawX),
+    y: rawY === undefined ? 0 : parseFloat(rawY),
   };
 };
 

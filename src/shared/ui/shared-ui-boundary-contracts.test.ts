@@ -6,12 +6,18 @@ const sharedUiImportPattern =
   /^[ \t]*import\s+\{([^{}]*?)\}\s+from\s+["'][^"']*shared\/ui["'];?/gm;
 
 const collectSharedUiNamedImports = (source: string) =>
-  Array.from(source.matchAll(sharedUiImportPattern)).flatMap((match) =>
-    match[1]
+  Array.from(source.matchAll(sharedUiImportPattern)).flatMap((match) => {
+    const importList = match.at(1);
+    if (!importList) return [];
+
+    return importList
       .split(",")
-      .map((importName) => importName.trim().split(/\s+as\s+/)[0].trim())
-      .filter(Boolean)
-  );
+      .map(
+        (importName) =>
+          importName.trim().split(/\s+as\s+/).at(0)?.trim() ?? "",
+      )
+      .filter(Boolean);
+  });
 
 const usesJsxTag = (source: string, componentName: string) =>
   new RegExp(`<${componentName}(?:\\s|>|/)`).test(source);

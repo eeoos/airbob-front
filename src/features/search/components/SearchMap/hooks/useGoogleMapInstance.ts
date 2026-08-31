@@ -1,16 +1,16 @@
 import {
-  MutableRefObject,
-  RefObject,
   useEffect,
   useRef,
   useState,
+  type MutableRefObject,
+  type RefObject,
 } from "react";
 import type { IntegrationError } from "../../../../../platform/integrations/errors";
 import {
   createGoogleMapsIntegrationError,
   getGoogleMapsApi,
 } from "../../../../../platform/integrations/googleMaps";
-import { SearchMapAccommodation, SearchMapViewport } from "../types";
+import type { SearchMapAccommodation, SearchMapViewport } from "../types";
 
 interface UseGoogleMapInstanceOptions {
   infoWindowRef: MutableRefObject<google.maps.InfoWindow | null>;
@@ -21,9 +21,9 @@ interface UseGoogleMapInstanceOptions {
   onAccommodationSelectRef: MutableRefObject<
     (accommodation: SearchMapAccommodation | null) => void
   >;
-  onMapInteraction?: () => void;
+  onMapInteraction?: (() => void) | undefined;
   prevViewportRef: MutableRefObject<SearchMapViewport | null>;
-  viewport?: SearchMapViewport | null;
+  viewport?: SearchMapViewport | null | undefined;
   viewportJustChangedRef: MutableRefObject<boolean>;
 }
 

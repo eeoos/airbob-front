@@ -223,11 +223,12 @@ export const buildInfoWindowContent = ({
     title: accommodation.name,
     priceLabel: priceDisplay.priceLabel,
     priceSuffixLabel: priceDisplay.priceSuffixLabel,
-    imageUrl: accommodation.thumbnailUrl ?? undefined,
-    ratingLabel: reviewLabels?.ratingLabel,
-    ratingSecondaryLabel: reviewLabels?.ratingSecondaryLabel,
     locationLabel: accommodation.locationLabel,
     isWishlisted: accommodation.isInWishlist,
     canToggleWishlist,
+    ...(accommodation.thumbnailUrl
+      ? { imageUrl: accommodation.thumbnailUrl }
+      : {}),
+    ...(reviewLabels ?? {}),
   });
 };

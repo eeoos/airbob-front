@@ -1,7 +1,7 @@
 import {
   sessionStorageDriver,
-  SessionStorageDriver,
-  StorageAccessError,
+  type SessionStorageDriver,
+  type StorageAccessError,
 } from "./sessionStorageDriver";
 
 export type BrowserDataPrivacyClass =

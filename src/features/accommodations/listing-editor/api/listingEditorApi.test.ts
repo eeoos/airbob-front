@@ -237,7 +237,10 @@ describe("listing editor API adapter", () => {
       { id: 402, imageUrl: "/second.jpg" },
     ]);
 
-    const requestInput = request.mock.calls[0][0] as ApiDataRequest;
+    const requestInput = request.mock.calls.at(0)?.at(0) as
+      | ApiDataRequest
+      | undefined;
+    if (!requestInput) throw new Error("Expected an image upload request");
     expect(requestInput).toMatchObject({
       bodyEncoding: "multipart",
       method: "POST",

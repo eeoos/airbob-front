@@ -1,6 +1,6 @@
 import React from "react";
 import { ListContainer } from "../../../shared/ui/ListContainer";
-import { SearchAccommodationCardViewModel } from "../lib/searchAccommodationViewModel";
+import type { SearchAccommodationCardViewModel } from "../lib/searchAccommodationViewModel";
 import { SearchAccommodationCard } from "./SearchAccommodationCard";
 
 type SearchResultsLayout = "desktop" | "bottomSheet";
@@ -18,13 +18,15 @@ interface SearchResultsListProps {
   isLoading: boolean;
   selectedAccommodationId: number | null;
   onAccommodationClick: (accommodationId: number) => void;
-  onWishlistToggle?: (accommodationId: number) => void;
-  onHoveredAccommodationChange?: (accommodationId: number | null) => void;
+  onWishlistToggle?: ((accommodationId: number) => void) | undefined;
+  onHoveredAccommodationChange?:
+    | ((accommodationId: number | null) => void)
+    | undefined;
   getAccommodationHref: (accommodationId: number) => string;
-  checkIn?: string | null;
-  checkOut?: string | null;
-  layout?: SearchResultsLayout;
-  classNames?: SearchResultsListClassNames;
+  checkIn?: string | null | undefined;
+  checkOut?: string | null | undefined;
+  layout?: SearchResultsLayout | undefined;
+  classNames?: SearchResultsListClassNames | undefined;
 }
 
 const classNamesFor = (...classNames: Array<string | undefined>): string =>
@@ -66,6 +68,8 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = ({
     >
       <SearchAccommodationCard
         accommodation={accommodation}
+        checkIn={checkIn}
+        checkOut={checkOut}
         detailUrl={getAccommodationHref(accommodation.id)}
         onClick={() => onAccommodationClick(accommodation.id)}
         onWishlistToggle={
@@ -73,8 +77,6 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = ({
             ? () => onWishlistToggle(accommodation.id)
             : undefined
         }
-        checkIn={checkIn}
-        checkOut={checkOut}
       />
     </div>
   ));

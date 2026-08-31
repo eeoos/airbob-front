@@ -13,7 +13,9 @@ export interface GuestTripsYearGroup<
 }
 
 const getDateOnlyParts = (dateString: string) => {
-  const [year, month, day] = dateString.split("-").map(Number);
+  const year = Number(dateString.slice(0, 4));
+  const month = Number(dateString.slice(5, 7));
+  const day = Number(dateString.slice(8, 10));
   return { year, month, day };
 };
 

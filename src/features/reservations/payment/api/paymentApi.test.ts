@@ -102,7 +102,7 @@ describe("payment API adapter", () => {
     });
   });
 
-  it("omits the signal only when the caller does not provide one", async () => {
+  it("passes an absent signal through the platform request contract", async () => {
     const { nullableTransport, request, transport } = createTransports();
     const api = createPaymentApi(transport, nullableTransport);
     request.mockResolvedValue(paymentWire);
@@ -114,12 +114,12 @@ describe("payment API adapter", () => {
       status: "DONE",
     });
 
-    expect(request).toHaveBeenCalledWith(
-      expect.objectContaining<ApiDataRequest>({
-        method: "GET",
-        path: "/payments/orders/reservation-123",
-        signal: undefined,
-      }),
-    );
+    const requestArgument = request.mock.calls[0]?.[0];
+
+    expect(requestArgument).toEqual({
+      method: "GET",
+      path: "/payments/orders/reservation-123",
+      signal: undefined,
+    } satisfies ApiDataRequest);
   });
 });

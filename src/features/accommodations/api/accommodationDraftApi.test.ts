@@ -17,7 +17,7 @@ describe("accommodation draft API", () => {
       method: "POST",
       path: "/accommodations",
     } satisfies ApiDataRequest);
-    expect(request.mock.calls[0][0]).not.toHaveProperty("body");
-    expect(request.mock.calls[0][0]).not.toHaveProperty("params");
+    expect(request.mock.calls.at(0)?.at(0)).not.toHaveProperty("body");
+    expect(request.mock.calls.at(0)?.at(0)).not.toHaveProperty("params");
   });
 });

@@ -149,9 +149,10 @@ describe("Header", () => {
 
     render(<Header />);
 
-    const props = mockSearchBar.mock.calls[0][0] as {
-      routePort: SearchBarRoutePort;
-    };
+    const props = mockSearchBar.mock.calls.at(0)?.at(0) as
+      | { routePort: SearchBarRoutePort }
+      | undefined;
+    if (!props) throw new Error("Expected HeaderSearchBar props to be captured");
     expect(props.routePort.currentSearchParams).toBe(mockSearchParams);
     expect(props.routePort.isSearchRoute).toBe(true);
 

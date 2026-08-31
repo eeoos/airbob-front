@@ -13,7 +13,6 @@ describe("session-scoped search read query keys", () => {
     expect(
       searchReadQueryKeys.results(anonymousScope, {
         page: 0,
-        destination: undefined,
         childOccupancy: 0,
         size: 18,
       }),

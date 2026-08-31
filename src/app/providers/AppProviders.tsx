@@ -40,8 +40,10 @@ export function AppProviders({
     <OverlayProvider>
       <PaymentCallbackCredentialBoundary>
         <SessionProvider
-          clearIdentityOwnedState={clearIdentityOwnedState}
           stableBoundary={AuthIntentStableBoundary}
+          {...(clearIdentityOwnedState === undefined
+            ? {}
+            : { clearIdentityOwnedState })}
         >
           {children}
         </SessionProvider>

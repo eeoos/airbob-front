@@ -16,7 +16,7 @@ describe("NotFoundRoute", () => {
     render(<NotFoundRoute />);
 
     expect(screen.getByTestId("not-found-screen")).toBeInTheDocument();
-    expect(mockNotFoundScreen.mock.calls[0][0]).toEqual({
+    expect(mockNotFoundScreen.mock.calls.at(0)?.at(0)).toEqual({
       title: "404 Not Found",
     });
   });

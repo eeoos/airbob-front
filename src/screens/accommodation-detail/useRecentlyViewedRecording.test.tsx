@@ -7,6 +7,15 @@ const scope = {
   epoch: 2,
 };
 
+const getFirstRecordSignal = (record: ReturnType<typeof vi.fn>) => {
+  const call = record.mock.calls[0];
+  const signal = call?.[1]?.signal;
+  if (!(signal instanceof AbortSignal)) {
+    throw new Error("Expected record to receive an AbortSignal");
+  }
+  return signal;
+};
+
 describe("useRecentlyViewedRecording", () => {
   it("keeps one in-flight success across a date-only route replacement", async () => {
     let resolveRecord!: () => void;
@@ -26,7 +35,7 @@ describe("useRecentlyViewedRecording", () => {
     );
 
     await waitFor(() => expect(record).toHaveBeenCalledTimes(1));
-    const signal = record.mock.calls[0][1].signal as AbortSignal;
+    const signal = getFirstRecordSignal(record);
     rerender({ canRecord: true });
 
     expect(signal.aborted).toBe(false);

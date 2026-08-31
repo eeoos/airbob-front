@@ -2,7 +2,7 @@ import path from "node:path";
 import postcssGlobalData from "@csstools/postcss-global-data";
 import react from "@vitejs/plugin-react";
 import postcssCustomMedia from "postcss-custom-media";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import {
   loadPublicBuildEnvironment,
   PUBLIC_RUNTIME_ENV_KEYS,
@@ -15,13 +15,14 @@ const customMediaPath = path.join(
   projectRoot,
   "src/shared/styles/custom-media.css",
 );
-const defineString = (value) => JSON.stringify(value ?? "");
-const normalizePublicAssetBase = (value) => {
+const defineString = (value: string | undefined): string =>
+  JSON.stringify(value ?? "");
+const normalizePublicAssetBase = (value: string | undefined): string => {
   const configuredBase = value?.trim() || "/";
   return configuredBase.endsWith("/") ? configuredBase : `${configuredBase}/`;
 };
 
-const publicBuildConfigPlugin = () => ({
+const publicBuildConfigPlugin = (): Plugin => ({
   name: "airbob-public-build-config",
   config: (_config, { command, mode }) => {
     // Vitest owns NODE_ENV and lets individual tests override public values.

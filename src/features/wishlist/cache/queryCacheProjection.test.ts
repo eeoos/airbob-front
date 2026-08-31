@@ -90,8 +90,12 @@ describe("wishlist query cache projection", () => {
       isInAnyWishlist: true,
     });
 
-    expect(client.getQueryData<RecentlyViewedCollection>(recentA)?.accommodations[0].isInWishlist).toBe(true);
-    expect(client.getQueryData<RecentlyViewedCollection>(recentB)?.accommodations[0].isInWishlist).toBe(false);
+    expect(client.getQueryData<RecentlyViewedCollection>(recentA)?.accommodations).toEqual([
+      expect.objectContaining({ isInWishlist: true }),
+    ]);
+    expect(client.getQueryData<RecentlyViewedCollection>(recentB)?.accommodations).toEqual([
+      expect.objectContaining({ isInWishlist: false }),
+    ]);
   });
 
   it("invalidates refresh-required resources only for the captured scope", () => {
@@ -143,9 +147,15 @@ describe("wishlist query cache projection", () => {
       wishlistId: 11,
     });
 
-    expect(client.getQueryData<InfiniteData<WishlistCollection>>(listsA)?.pages[0].wishlists).toEqual([]);
+    expect(client.getQueryData<InfiniteData<WishlistCollection>>(listsA)?.pages).toEqual([
+      expect.objectContaining({ wishlists: [] }),
+    ]);
     expect(client.getQueryData(detailA)).toBeUndefined();
-    expect(client.getQueryData<InfiniteData<WishlistCollection>>(listsB)?.pages[0].wishlists).toHaveLength(1);
+    expect(
+      client
+        .getQueryData<InfiniteData<WishlistCollection>>(listsB)
+        ?.pages.flatMap((page) => page.wishlists),
+    ).toHaveLength(1);
   });
 
   it("patches empty memo and removes recently viewed data without mutation I/O", () => {
@@ -166,7 +176,11 @@ describe("wishlist query cache projection", () => {
       accommodationId: 7,
     });
 
-    expect(client.getQueryData<InfiniteData<WishlistDetail>>(detailKey)?.pages[0].accommodations[0].memo).toBe("");
+    expect(
+      client
+        .getQueryData<InfiniteData<WishlistDetail>>(detailKey)
+        ?.pages.flatMap((page) => page.accommodations),
+    ).toEqual([expect.objectContaining({ memo: "" })]);
     expect(client.getQueryData<RecentlyViewedCollection>(recentKey)).toEqual({
       accommodations: [],
       totalCount: 0,

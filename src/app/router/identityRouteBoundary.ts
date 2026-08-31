@@ -13,12 +13,19 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 export const isIdentityOwnedTransactionPath = (pathname: string): boolean => {
   const segments = pathname.replace(/\/+$/, "").split("/");
-  if (segments.length !== 4 || segments[0] !== "" || segments[2] === "") {
+  const [root, namespaceSegment, resourceId, terminalSegment] = segments;
+  if (
+    segments.length !== 4 ||
+    root !== "" ||
+    namespaceSegment === undefined ||
+    !resourceId ||
+    terminalSegment === undefined
+  ) {
     return false;
   }
 
-  const namespace = decodeStaticRouteSegment(segments[1]);
-  const terminal = decodeStaticRouteSegment(segments[3]);
+  const namespace = decodeStaticRouteSegment(namespaceSegment);
+  const terminal = decodeStaticRouteSegment(terminalSegment);
 
   return (
     (namespace === "accommodations" && terminal === "confirm") ||

@@ -232,9 +232,13 @@ export function AccommodationDetailController({
     () =>
       deriveBookingDates({
         basePrice: accommodation?.basePrice ?? 0,
-        checkIn: bookingRouteState.checkIn,
-        checkOut: bookingRouteState.checkOut,
         unavailableDates: accommodation?.unavailableDates ?? [],
+        ...(bookingRouteState.checkIn === undefined
+          ? {}
+          : { checkIn: bookingRouteState.checkIn }),
+        ...(bookingRouteState.checkOut === undefined
+          ? {}
+          : { checkOut: bookingRouteState.checkOut }),
       }),
     [accommodation, bookingRouteState.checkIn, bookingRouteState.checkOut],
   );
@@ -464,7 +468,9 @@ export function AccommodationDetailController({
             const coupon = coupons.find(
               (candidate) => candidate.id === couponView.id,
             );
-            if (coupon) return issueCoupon(coupon);
+            if (!coupon) return undefined;
+
+            return issueCoupon(coupon);
           },
         },
       },

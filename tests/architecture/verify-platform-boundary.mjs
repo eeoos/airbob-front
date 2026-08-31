@@ -560,6 +560,7 @@ const environmentAst = ts.createSourceFile(
 );
 const environmentReads = new Set();
 const unsafeEnvironmentReads = [];
+const localProcessDeclarations = [];
 
 const isProcessEnvironment = (node) =>
   ts.isPropertyAccessExpression(node) &&
@@ -567,19 +568,40 @@ const isProcessEnvironment = (node) =>
   node.expression.text === "process" &&
   node.name.text === "env";
 
+const isLocalAmbientProcessDeclaration = (node) => {
+  const declaration = node.parent;
+  const declarationList = declaration.parent;
+  const statement = declarationList.parent;
+
+  return (
+    ts.isVariableDeclaration(declaration) &&
+    declaration.name === node &&
+    declaration.initializer === undefined &&
+    ts.isVariableDeclarationList(declarationList) &&
+    ts.isVariableStatement(statement) &&
+    statement.modifiers?.some(
+      (modifier) => modifier.kind === ts.SyntaxKind.DeclareKeyword,
+    ) === true
+  );
+};
+
 const inspectEnvironmentNode = (node) => {
   if (ts.isIdentifier(node) && node.text === "process") {
-    const environmentAccess = node.parent;
-    const publicProperty = environmentAccess.parent;
-    if (
-      !ts.isPropertyAccessExpression(environmentAccess) ||
-      environmentAccess.expression !== node ||
-      environmentAccess.name.text !== "env" ||
-      !ts.isPropertyAccessExpression(publicProperty) ||
-      publicProperty.expression !== environmentAccess ||
-      !allowedEnvironmentProperties.has(publicProperty.name.text)
-    ) {
-      unsafeEnvironmentReads.push(node.getText(environmentAst));
+    if (isLocalAmbientProcessDeclaration(node)) {
+      localProcessDeclarations.push(node.getText(environmentAst));
+    } else {
+      const environmentAccess = node.parent;
+      const publicProperty = environmentAccess.parent;
+      if (
+        !ts.isPropertyAccessExpression(environmentAccess) ||
+        environmentAccess.expression !== node ||
+        environmentAccess.name.text !== "env" ||
+        !ts.isPropertyAccessExpression(publicProperty) ||
+        publicProperty.expression !== environmentAccess ||
+        !allowedEnvironmentProperties.has(publicProperty.name.text)
+      ) {
+        unsafeEnvironmentReads.push(node.getText(environmentAst));
+      }
     }
   }
 
@@ -618,6 +640,7 @@ const unknownEnvironmentReads = [...environmentReads].filter(
 
 if (
   unsafeEnvironmentReads.length > 0 ||
+  localProcessDeclarations.length !== 1 ||
   missingEnvironmentReads.length > 0 ||
   unknownEnvironmentReads.length > 0
 ) {

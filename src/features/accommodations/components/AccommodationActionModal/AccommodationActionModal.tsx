@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { requireCssModuleClass } from "../../../../shared/styles/requireCssModuleClass";
 import { Button, Dialog, ToastHost } from "../../../../shared/ui";
 import styles from "./AccommodationActionModal.module.css";
 
@@ -65,9 +66,9 @@ export function AccommodationActionModal({
 
   return (
     <Dialog
-      bodyClassName={styles.content}
+      bodyClassName={requireCssModuleClass(styles.content)}
       bodyPadding="none"
-      className={styles.dialog}
+      className={requireCssModuleClass(styles.dialog)}
       initialFocusRef={closeButtonRef}
       isOpen
       onClose={onClose}

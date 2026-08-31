@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { requireCssModuleClass } from "../../../../shared/styles/requireCssModuleClass";
 import { Dialog } from "../../../../shared/ui";
 import type { AccommodationDetailImageViewModel } from "../lib/accommodationDetailViewModel";
 import styles from "./AccommodationImageGalleryModal.module.css";
@@ -21,12 +22,13 @@ export function AccommodationImageGalleryModal({
   onClose,
 }: AccommodationImageGalleryModalProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const defaultImage = images.at(0);
 
-  if (!isOpen || images.length === 0) {
+  if (!isOpen || !defaultImage) {
     return null;
   }
 
-  const currentImage = images[currentImageIndex] ?? images[0];
+  const currentImage = images.at(currentImageIndex) ?? defaultImage;
   const normalizedIndex = images.indexOf(currentImage);
   const displayIndex = normalizedIndex >= 0 ? normalizedIndex : 0;
 
@@ -46,9 +48,9 @@ export function AccommodationImageGalleryModal({
 
   return (
     <Dialog
-      bodyClassName={styles.galleryBody}
+      bodyClassName={requireCssModuleClass(styles.galleryBody)}
       bodyPadding="none"
-      className={styles.galleryDialog}
+      className={requireCssModuleClass(styles.galleryDialog)}
       initialFocusRef={closeButtonRef}
       isOpen={isOpen}
       onClose={onClose}

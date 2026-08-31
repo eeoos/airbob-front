@@ -211,8 +211,13 @@ export function Dialog({
       return;
     }
 
-    const firstFocusableElement = focusableElements[0];
-    const lastFocusableElement = focusableElements[focusableElements.length - 1];
+    const firstFocusableElement = focusableElements.at(0);
+    const lastFocusableElement = focusableElements.at(-1);
+    if (!firstFocusableElement || !lastFocusableElement) {
+      event.preventDefault();
+      dialogRef.current.focus();
+      return;
+    }
 
     if (event.shiftKey && document.activeElement === firstFocusableElement) {
       event.preventDefault();

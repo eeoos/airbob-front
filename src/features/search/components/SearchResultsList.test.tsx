@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { SearchAccommodationCardViewModel } from "../lib/searchAccommodationViewModel";
+import type { SearchAccommodationCardViewModel } from "../lib/searchAccommodationViewModel";
 import { SearchResultsList } from "./SearchResultsList";
 
 vi.mock("./SearchAccommodationCard", () => ({

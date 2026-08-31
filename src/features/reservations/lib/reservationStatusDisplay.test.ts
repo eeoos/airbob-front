@@ -3,7 +3,7 @@ import {
   formatReservationStatus,
   getReservationStatusTone,
   reservationStatusDisplay,
-  ReservationStatusTone,
+  type ReservationStatusTone,
 } from "./reservationStatusDisplay";
 
 const statusCases: Array<[ReservationStatus, string, ReservationStatusTone]> = [

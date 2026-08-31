@@ -13,7 +13,10 @@ export const defineIconRegistry = <Glyphs extends GlyphMap>(
     fallback,
     glyphs,
     has,
-    resolve: (name: string): IconGlyph =>
-      has(name) ? glyphs[name] : fallback,
+    resolve: (name: string): IconGlyph => {
+      if (!has(name)) return fallback;
+
+      return glyphs[name] ?? fallback;
+    },
   };
 };

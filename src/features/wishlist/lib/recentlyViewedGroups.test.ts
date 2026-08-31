@@ -45,7 +45,7 @@ describe("recently viewed groups", () => {
     );
 
     expect(Object.keys(groups)).toEqual(["오늘", "어제"]);
-    expect(groups["오늘"].map((item) => item.accommodationId)).toEqual([1, 3]);
-    expect(groups["어제"].map((item) => item.accommodationId)).toEqual([2]);
+    expect((groups["오늘"] ?? []).map((item) => item.accommodationId)).toEqual([1, 3]);
+    expect((groups["어제"] ?? []).map((item) => item.accommodationId)).toEqual([2]);
   });
 });

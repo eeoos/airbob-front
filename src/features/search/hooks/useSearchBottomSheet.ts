@@ -9,11 +9,11 @@ import {
   useSyncExternalStore,
 } from "react";
 import {
-  PanInfo,
   animate,
   useMotionValue,
   useSpring,
   useTransform,
+  type PanInfo,
 } from "framer-motion";
 import { useResponsiveLayout } from "../../../shared/styles/useResponsiveLayout";
 import {

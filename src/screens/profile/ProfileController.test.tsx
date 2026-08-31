@@ -219,13 +219,13 @@ const renderController = ({
       <ProfileController
         confirmDelete={confirmDelete}
         hrefs={hrefs}
-        hostListingsApi={hostListingsApi}
         hostListingWorkflow={hostListingWorkflow}
         navigation={navigation}
-        reservationApi={reservationApi}
         resolveImageUrl={resolveImageUrl}
         routeView={nextRouteView}
         scope={scope}
+        {...(hostListingsApi ? { hostListingsApi } : {})}
+        {...(reservationApi ? { reservationApi } : {})}
       />
     </QueryClientProvider>
   );

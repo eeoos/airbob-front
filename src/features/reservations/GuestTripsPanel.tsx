@@ -1,4 +1,5 @@
 import type { MouseEvent, RefCallback } from "react";
+import { requireCssModuleClass } from "../../shared/styles/requireCssModuleClass";
 import type { ReservationFilterType } from "./model/reservationRead";
 import {
   EmptyState,
@@ -88,7 +89,7 @@ export function GuestTripsPanel({
                   {trips.map((trip) => (
                     <NavigationCard
                       key={trip.reservationUid}
-                      className={styles.reservationCard}
+                      className={requireCssModuleClass(styles.reservationCard)}
                       ariaLabel={`${trip.accommodationName} 예약 상세 보기`}
                       href={getReservationHref(trip.reservationUid)}
                       onClick={(event) => {

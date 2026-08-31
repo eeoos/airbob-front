@@ -2,15 +2,24 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import vitestConfig from "../../vitest.config.mjs";
+import { loadConfigFromFile } from "vite";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(scriptDirectory, "../..");
 const sourceRoot = path.join(projectRoot, "src");
 const setupPath = path.join(sourceRoot, "test/setup.ts");
+const vitestConfigPath = path.join(projectRoot, "vitest.config.ts");
 const packageData = JSON.parse(
   fs.readFileSync(path.join(projectRoot, "package.json"), "utf8"),
 );
+const loadedVitestConfig = await loadConfigFromFile(
+  { command: "serve", mode: "test" },
+  vitestConfigPath,
+  projectRoot,
+);
+
+assert.ok(loadedVitestConfig, "Vitest TypeScript config must load through Vite.");
+const vitestConfig = loadedVitestConfig.config;
 
 const collectTestFiles = (directory) =>
   fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {

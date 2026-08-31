@@ -112,7 +112,7 @@ describe("listing editor query boundary", () => {
       options.queryFn({ signal: queryController.signal }),
     ).resolves.toEqual(accommodation(31));
 
-    const forwardedSignal = api.getHostDetail.mock.calls[0][1]?.signal;
+    const forwardedSignal = api.getHostDetail.mock.calls.at(0)?.[1]?.signal;
     expect(forwardedSignal).toBe(queryController.signal);
   });
 

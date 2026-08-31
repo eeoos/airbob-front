@@ -62,7 +62,9 @@ const hasStaticMainRole = (
 ) => {
   const roleAttribute = node.attributes.properties.find(
     (property): property is ts.JsxAttribute =>
-      ts.isJsxAttribute(property) && property.name.text === "role",
+      ts.isJsxAttribute(property) &&
+      ts.isIdentifier(property.name) &&
+      property.name.text === "role",
   );
   const role = staticJsxAttributeValue(roleAttribute?.initializer);
 

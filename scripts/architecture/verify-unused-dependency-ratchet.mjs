@@ -26,8 +26,8 @@ const canonicalKnipConfig = Object.freeze({
     "src/index.tsx!",
     "src/test/**/*.{js,jsx,mjs,ts,tsx}",
     "src/**/*.{test,spec}.{js,jsx,mjs,ts,tsx}",
-    "vite.config.mjs",
-    "vitest.config.mjs",
+    "vite.config.ts",
+    "vitest.config.ts",
     "playwright.config.ts",
     "scripts/**/*.{cjs,mjs}",
     "tests/e2e/specs/**/*.spec.ts",
@@ -42,14 +42,16 @@ const canonicalKnipConfig = Object.freeze({
     "!src/**/__mocks__/**/*.{js,jsx,mjs,ts,tsx}!",
     "!src/**/*.{test,spec}.{js,jsx,mjs,ts,tsx}!",
     "!src/test/**/*.{js,jsx,mjs,ts,tsx}!",
-    "vite.config.mjs",
-    "vitest.config.mjs",
+    "vite.config.ts",
+    "vitest.config.ts",
     "playwright.config.ts",
     "scripts/**/*.{cjs,mjs}",
     "tests/**/*.{ts,mjs}",
     ".dependency-cruiser.cjs",
     "stylelint.config.mjs",
   ]),
+  vite: false,
+  vitest: false,
   rules: Object.freeze([
     "files",
     "dependencies",
@@ -176,7 +178,14 @@ export const assertKnipConfigIsCanonical = (knipConfig) => {
     );
   }
 
-  const canonicalTopLevelKeys = ["$schema", "entry", "project", "rules"];
+  const canonicalTopLevelKeys = [
+    "$schema",
+    "entry",
+    "project",
+    "rules",
+    "vite",
+    "vitest",
+  ];
   const actualTopLevelKeys = Object.keys(knipConfig).sort();
   if (
     actualTopLevelKeys.length !== canonicalTopLevelKeys.length ||
@@ -185,7 +194,7 @@ export const assertKnipConfigIsCanonical = (knipConfig) => {
     )
   ) {
     throw new Error(
-      "Knip config may contain only the canonical schema, entry, project, and rules keys.",
+      "Knip config may contain only the canonical schema, entry, project, explicit Vite/Vitest ownership, and rules keys.",
     );
   }
 
@@ -195,6 +204,14 @@ export const assertKnipConfigIsCanonical = (knipConfig) => {
 
   assertExactSequence("entry", knipConfig.entry, canonicalKnipConfig.entry);
   assertExactSequence("project", knipConfig.project, canonicalKnipConfig.project);
+  if (
+    knipConfig.vite !== canonicalKnipConfig.vite ||
+    knipConfig.vitest !== canonicalKnipConfig.vitest
+  ) {
+    throw new Error(
+      "Knip Vite/Vitest plugins must remain disabled; explicit entry/project globs own reachability while dedicated config tests own semantics.",
+    );
+  }
 
   const actualRuleNames = Object.keys(knipConfig.rules ?? {});
   assertExactSequence("rule set", actualRuleNames, canonicalKnipConfig.rules);

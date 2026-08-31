@@ -170,7 +170,7 @@ function SearchRouteContent() {
       routeState={routeState}
       scope={queryScope}
       wishlistAuthIntent={wishlistAuthIntent}
-      wishlistMembership={wishlistMembership}
+      {...(wishlistMembership === undefined ? {} : { wishlistMembership })}
     />
   );
 }

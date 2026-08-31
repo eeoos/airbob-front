@@ -1,11 +1,11 @@
-import { QueryClient } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import {
   render,
-  RenderOptions,
-  RenderResult,
+  type RenderOptions,
+  type RenderResult,
 } from "@testing-library/react";
-import { ReactElement, ReactNode, useEffect } from "react";
-import { MemoryRouter, MemoryRouterProps } from "react-router-dom";
+import { useEffect, type ReactElement, type ReactNode } from "react";
+import { MemoryRouter, type MemoryRouterProps } from "react-router-dom";
 import {
   APP_OVERLAY_ROOT_ID,
   OverlayProvider,
@@ -190,10 +190,10 @@ export const renderApp = (
       <MemoryRouter initialEntries={initialEntries}>
         <OverlayProvider portalRoot={portalRoot}>
           <SessionProvider
-            authPort={authPort}
             initialQueryClient={queryClient}
             initialState={toInitialSessionState(session)}
             stableBoundary={AuthIntentStableBoundary}
+            {...(authPort ? { authPort } : {})}
           >
             {children}
           </SessionProvider>

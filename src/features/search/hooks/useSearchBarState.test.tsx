@@ -1,4 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
+import { requireDefined } from "../../../test/assertions";
 import {
   type PlacePrediction,
   type SelectedPlace,
@@ -8,6 +9,18 @@ import {
   type SearchBarRoutePort,
   useSearchBarState,
 } from "./useSearchBarState";
+
+const getSearchParamsFromCall = (
+  mock: ReturnType<typeof vi.fn>,
+  label: string,
+): URLSearchParams => {
+  const call = requireDefined(mock.mock.calls[0], `${label} call`);
+  const params = requireDefined(call[0], `${label} params`);
+  if (!(params instanceof URLSearchParams)) {
+    throw new Error(`Expected ${label} params to be URLSearchParams`);
+  }
+  return params;
+};
 
 vi.mock("./usePlacesAutocomplete", () => ({
   usePlacesAutocomplete: vi.fn(),
@@ -214,7 +227,7 @@ describe("useSearchBarState", () => {
     });
 
     expect(mockPushSearch).toHaveBeenCalledTimes(1);
-    expect(mockPushSearch.mock.calls[0][0].toString()).toBe(
+    expect(getSearchParamsFromCall(mockPushSearch, "pushSearch").toString()).toBe(
       "destination=Busan&adultOccupancy=1&childOccupancy=0&infantOccupancy=0&petOccupancy=0",
     );
   });
@@ -316,7 +329,7 @@ describe("useSearchBarState", () => {
       result.current.actions.exitMapDragMode();
     });
 
-    const nextParams = mockReplaceSearch.mock.calls[0][0] as URLSearchParams;
+    const nextParams = getSearchParamsFromCall(mockReplaceSearch, "replaceSearch");
     expect(nextParams.get("destination")).toBe("Seoul");
     expect(nextParams.get("lat")).toBe("37");
     expect(nextParams.get("lng")).toBe("127");

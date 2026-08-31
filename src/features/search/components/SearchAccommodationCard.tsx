@@ -1,17 +1,17 @@
 import React from "react";
 import {
   getSearchAccommodationPriceDisplay,
-  SearchAccommodationCardViewModel,
+  type SearchAccommodationCardViewModel,
 } from "../lib/searchAccommodationViewModel";
 import styles from "./SearchAccommodationCard.module.css";
 
 interface SearchAccommodationCardProps {
   accommodation: SearchAccommodationCardViewModel;
   detailUrl: string;
-  onWishlistToggle?: () => void;
-  onClick?: () => void;
-  checkIn?: string | null;
-  checkOut?: string | null;
+  onWishlistToggle?: (() => void) | undefined;
+  onClick?: (() => void) | undefined;
+  checkIn?: string | null | undefined;
+  checkOut?: string | null | undefined;
 }
 
 export const SearchAccommodationCard: React.FC<SearchAccommodationCardProps> = ({
@@ -62,7 +62,12 @@ export const SearchAccommodationCard: React.FC<SearchAccommodationCardProps> = (
                   const target = e.target as HTMLImageElement;
                   target.style.display = "none";
                   const placeholder = target.nextElementSibling as HTMLElement;
-                  if (placeholder && placeholder.classList.contains(styles.placeholderImage)) {
+                  const placeholderClassName = styles.placeholderImage;
+                  if (
+                    placeholder &&
+                    placeholderClassName &&
+                    placeholder.classList.contains(placeholderClassName)
+                  ) {
                     placeholder.hidden = false;
                     placeholder.style.display = "flex";
                   }

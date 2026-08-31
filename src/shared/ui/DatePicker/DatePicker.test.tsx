@@ -173,8 +173,11 @@ describe("DatePicker", () => {
     );
 
     expect(props.onDateSelect).toHaveBeenCalledTimes(1);
-    const [selectedCheckIn, selectedCheckOut] = props.onDateSelect.mock.calls[0];
-    expect(formatDateKey(selectedCheckIn as Date)).toBe("2026-07-15");
+    const selection = props.onDateSelect.mock.calls.at(0);
+    if (!selection) throw new Error("Expected a selected date range");
+    const [selectedCheckIn, selectedCheckOut] = selection;
+    if (!selectedCheckIn) throw new Error("Expected a selected check-in date");
+    expect(formatDateKey(selectedCheckIn)).toBe("2026-07-15");
     expect(selectedCheckOut).toBeNull();
   });
 
@@ -194,24 +197,29 @@ describe("DatePicker", () => {
     });
 
     expect(firstUnavailableDate).toBeEnabled();
-    expect(firstUnavailableDate).not.toHaveClass(styles.unavailable);
+    expect(firstUnavailableDate).not.toHaveClass(styles.unavailable ?? "");
     expect(dateBeyondUnavailable).toBeDisabled();
 
     await userEvent.click(dateBeyondUnavailable);
     expect(props.onDateSelect).not.toHaveBeenCalled();
 
     await userEvent.hover(firstUnavailableDate);
-    expect(dateInsideValidHoverRange).toHaveClass(styles.inRange);
+    expect(dateInsideValidHoverRange).toHaveClass(styles.inRange ?? "");
 
     await userEvent.click(firstUnavailableDate);
     expect(props.onDateSelect).toHaveBeenCalledTimes(1);
-    const [selectedCheckIn, selectedCheckOut] = props.onDateSelect.mock.calls[0];
-    expect(formatDateKey(selectedCheckIn as Date)).toBe("2026-07-15");
-    expect(formatDateKey(selectedCheckOut as Date)).toBe("2026-07-18");
+    const selection = props.onDateSelect.mock.calls.at(0);
+    if (!selection) throw new Error("Expected a selected date range");
+    const [selectedCheckIn, selectedCheckOut] = selection;
+    if (!selectedCheckIn || !selectedCheckOut) {
+      throw new Error("Expected both check-in and check-out dates");
+    }
+    expect(formatDateKey(selectedCheckIn)).toBe("2026-07-15");
+    expect(formatDateKey(selectedCheckOut)).toBe("2026-07-18");
 
     await userEvent.unhover(firstUnavailableDate);
     await userEvent.hover(dateBeyondUnavailable);
-    expect(dateInsideValidHoverRange).not.toHaveClass(styles.inRange);
+    expect(dateInsideValidHoverRange).not.toHaveClass(styles.inRange ?? "");
   });
 
   it("keeps the first unavailable day as the only valid checkout when it is next", () => {
@@ -340,8 +348,10 @@ describe("DatePicker", () => {
     await userEvent.keyboard(key);
 
     expect(props.onDateSelect).toHaveBeenCalledTimes(1);
-    const [selectedCheckIn] = props.onDateSelect.mock.calls[0];
-    expect(formatDateKey(selectedCheckIn as Date)).toBe("2026-07-16");
+    const selection = props.onDateSelect.mock.calls.at(0);
+    const selectedCheckIn = selection?.at(0);
+    if (!selectedCheckIn) throw new Error("Expected a selected check-in date");
+    expect(formatDateKey(selectedCheckIn)).toBe("2026-07-16");
   });
 
   it("exposes selected endpoints and announces the completed range", async () => {

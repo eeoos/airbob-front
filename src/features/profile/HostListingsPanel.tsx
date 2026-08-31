@@ -1,4 +1,5 @@
 import type { RefCallback } from "react";
+import { requireCssModuleClass } from "../../shared/styles/requireCssModuleClass";
 import type { HostListingFilterStatus } from "./model/hostListing";
 import {
   ActionCard,
@@ -68,7 +69,7 @@ export function HostListingsPanel({
       <h2 className={styles.title}>숙소 관리</h2>
       <Tabs
         ariaLabel="숙소 상태 필터"
-        className={styles.filterTabs}
+        className={requireCssModuleClass(styles.filterTabs)}
         items={statusFilterItems}
         value={statusType}
         onValueChange={onStatusChange}
@@ -82,7 +83,7 @@ export function HostListingsPanel({
             {state.listings.map((accommodation) => (
               <ActionCard
                 key={accommodation.id}
-                className={styles.accommodationCard}
+                className={requireCssModuleClass(styles.accommodationCard)}
                 ariaLabel={accommodation.managementLabel}
                 onClick={() => onOpenListingActions(accommodation.id)}
               >

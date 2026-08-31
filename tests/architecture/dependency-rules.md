@@ -15,6 +15,15 @@ baseline, and how a migrated slice becomes strict without a suppression wall.
 | Local TypeScript/JavaScript feedback | ESLint | Existing strict source gate and architecture-tool scripts, including CRA-resolved `.mjs` modules | None for files in strict scope. |
 | Runtime behavior | Vitest and deterministic Playwright | Current behavior and migrated flows | Target behavior is never counted through skips. |
 
+TypeScript 5.9 separately owns browser application, Vitest, Node tooling, and
+Playwright environments. It proves local type contracts; it does not duplicate
+dependency direction, reachability, or CSS policy.
+
+Knip reaches Vite and Vitest configuration through the canonical explicit
+`entry`/`project` globs. Its framework plugins are disabled so the pinned Knip
+line does not execute TypeScript config; resolved Vite/Vitest semantics belong
+to the dedicated architecture config tests instead.
+
 `architecture-ratchet.json` is the single changed-surface registry. A feature
 may be added to `migratedFeatures` only in the same atomic cutover that leaves
 that feature with zero dependency, reachability, and strict design-policy
@@ -167,14 +176,10 @@ work without converting those inventories into permanent suppressions.
 
 ## Toolchain transition
 
-U3 intentionally pins dependency-cruiser 17.4.3, Knip 2.43.0, Stylelint
+U3 intentionally pinned dependency-cruiser 17.4.3, Knip 2.43.0, Stylelint
 16.23.1, stylelint-config-recommended 17.0.0, and
-stylelint-config-standard 39.0.0. Knip 5/6 requires TypeScript 5,
-and the latest Knip/Stylelint line requires Node 20.19; this repository still
-uses CRA, TypeScript 4.9, and supports even Node 20.12, 22, and 24 release lines.
-
-U23 upgrades Node/TypeScript and these static tools together. That unit must
-replace the Knip v2 preprocessor with the supported modern mechanism, replace
-the local Stylelint token plugin with core cross-file reference rules, revisit
-CRA-era syntax exceptions, and preserve every fixture before deleting the old
-tool adapters.
+stylelint-config-standard 39.0.0. U23 has moved the runtime and compiler floor
+to Node `^22.12 || ^24` and TypeScript 5.9.3. The remaining U23 static-tool
+work replaces CRA ESLint ownership, revalidates dependency classification, and
+preserves every graph/reachability/style fixture before changing an adapter or
+version.

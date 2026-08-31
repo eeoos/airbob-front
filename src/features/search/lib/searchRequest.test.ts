@@ -84,10 +84,9 @@ describe("search request mapping", () => {
     ).toMatchObject({ destination: "Seoul", page: 0, size: 18 });
   });
 
-  it("normalizes only actual defined request values without dropping zeros", () => {
+  it("normalizes present request values without dropping zeros", () => {
     expect(
       normalizeSearchRequest({
-        destination: undefined,
         adultOccupancy: 1,
         childOccupancy: 0,
         page: 0,

@@ -5,7 +5,7 @@ import { useGoogleMapInstance } from "./hooks/useGoogleMapInstance";
 import { useMapBoundsReporter } from "./hooks/useMapBoundsReporter";
 import { useMapExpandControl } from "./hooks/useMapExpandControl";
 import { useMapSelectionInfoWindow } from "./hooks/useMapSelectionInfoWindow";
-import { SearchMapMarker, SearchMapProps } from "./types";
+import type { SearchMapMarker, SearchMapProps } from "./types";
 import styles from "./Map.module.css";
 
 export const Map: React.FC<SearchMapProps> = ({
@@ -130,9 +130,18 @@ export const Map: React.FC<SearchMapProps> = ({
 
   return (
     <div className={styles.mapContainer}>
-      <div ref={mapRef} className={styles.mapCanvas} />
+      <div
+        ref={mapRef}
+        aria-label="숙소 지도"
+        className={styles.mapCanvas}
+        role="region"
+      />
       {isLoadingBounds && (
-        <div className={styles.boundsLoadingOverlay}>
+        <div
+          aria-label="지도 범위 검색 중"
+          className={styles.boundsLoadingOverlay}
+          role="status"
+        >
           <div className={styles.loadingDots}>
             <span />
             <span />

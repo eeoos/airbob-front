@@ -211,7 +211,9 @@ const collectRouterLinkViolations = (relativePath: string): string[] => {
     if (isTrackedRouterLinkElement(node)) {
       const toAttribute = node.attributes.properties.find(
         (property): property is ts.JsxAttribute =>
-          ts.isJsxAttribute(property) && property.name.text === "to"
+          ts.isJsxAttribute(property) &&
+          ts.isIdentifier(property.name) &&
+          property.name.text === "to"
       );
 
       if (isDirectInternalRouteJsxValue(toAttribute?.initializer)) {

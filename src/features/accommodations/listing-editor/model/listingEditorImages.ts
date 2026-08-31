@@ -121,6 +121,8 @@ export const reorderListingEditorImages = (
 
   const next = [...items];
   const [dragged] = next.splice(fromIndex, 1);
+  if (!dragged) return [...items];
+
   next.splice(toIndex, 0, dragged);
   return next;
 };

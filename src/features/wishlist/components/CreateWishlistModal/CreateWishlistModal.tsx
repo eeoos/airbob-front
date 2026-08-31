@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { requireCssModuleClass } from "../../../../shared/styles/requireCssModuleClass";
 import { Dialog, ToastHost } from "../../../../shared/ui";
 import {
   toWishlistErrorMessage,
@@ -115,8 +116,8 @@ export function CreateWishlistModal({
       isOpen={isOpen}
       title="위시리스트 만들기"
       onClose={handleClose}
-      className={styles.dialog}
-      bodyClassName={styles.content}
+      className={requireCssModuleClass(styles.dialog)}
+      bodyClassName={requireCssModuleClass(styles.content)}
     >
       <form onSubmit={handleSubmit} className={styles.form}>
         <div className={styles.inputGroup}>

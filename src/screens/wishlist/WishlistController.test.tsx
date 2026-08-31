@@ -15,6 +15,7 @@ import {
   useWishlistListsReadQuery,
 } from "../../features/wishlist/queries";
 import { OverlayProvider } from "../../app/overlays/OverlayProvider";
+import { requireDefined } from "../../test/assertions";
 import { useIntersectionLoadMore } from "../../shared/lib/useIntersectionLoadMore";
 import {
   useWishlistMembership,
@@ -542,9 +543,12 @@ describe("WishlistController", () => {
       view: { kind: "index" },
     });
 
-    await userEvent.click(screen.getAllByRole("button", {
-      name: "위시리스트 삭제",
-    })[1]);
+    await userEvent.click(
+      requireDefined(
+        screen.getAllByRole("button", { name: "위시리스트 삭제" })[1],
+        "second delete wishlist button",
+      ),
+    );
 
     rerender(
       <OverlayProvider>
@@ -573,9 +577,10 @@ describe("WishlistController", () => {
     );
     const routeCommands = navigation();
     renderController({ navigation: routeCommands, view: { kind: "index" } });
-    const deleteButton = screen.getAllByRole("button", {
-      name: "위시리스트 삭제",
-    })[1];
+    const deleteButton = requireDefined(
+      screen.getAllByRole("button", { name: "위시리스트 삭제" })[1],
+      "second delete wishlist button",
+    );
 
     await userEvent.click(deleteButton);
 

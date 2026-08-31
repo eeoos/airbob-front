@@ -126,9 +126,9 @@ export function useSessionController({
     resetQueryGeneration: resetQueryLifetime,
     stabilizeQueryGeneration: stabilizeQueryLifetime,
   } = useSessionQueryLifetime({
-    initialQueryClient,
     initialState: resolvedInitialState,
-    queryClientFactory,
+    ...(initialQueryClient === undefined ? {} : { initialQueryClient }),
+    ...(queryClientFactory === undefined ? {} : { queryClientFactory }),
   });
 
   const dispatch = useCallback((action: SessionAction) => {

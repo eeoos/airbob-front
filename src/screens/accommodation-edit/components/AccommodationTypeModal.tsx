@@ -1,4 +1,5 @@
 import React from "react";
+import { requireCssModuleClass } from "../../../shared/styles/requireCssModuleClass";
 import styles from "./EditModal.module.css";
 import { AccommodationTypeIcon } from "./accommodationEditIcons";
 import { ACCOMMODATION_TYPE_OPTIONS } from "./editorOptions";
@@ -18,7 +19,7 @@ export const AccommodationTypeModal: React.FC<AccommodationTypeModalProps> = ({
   const title = "다음 중 숙소를 가장 잘 설명하는 것은 무엇인가요?";
 
   return (
-    <EditModalShell title={title} modalClassName={styles.typeModal} onClose={onClose}>
+    <EditModalShell title={title} modalClassName={requireCssModuleClass(styles.typeModal)} onClose={onClose}>
       <div className={styles.typeModalHeader}>
         <h2 className={styles.typeModalTitle}>{title}</h2>
         <button

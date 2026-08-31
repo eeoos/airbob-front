@@ -21,6 +21,12 @@ const mapsScripts = () =>
     script.src.startsWith("https://maps.googleapis.com/maps/api/js?"),
   );
 
+const requireMapsScript = (): HTMLScriptElement => {
+  const script = mapsScripts().at(0);
+  if (!script) throw new Error("Expected the Google Maps script");
+  return script;
+};
+
 const setGoogleMapsReady = () => {
   (window as any).google = {
     maps: {
@@ -63,7 +69,7 @@ describe("useGoogleMapsScript", () => {
 
     await act(async () => {
       setGoogleMapsReady();
-      mapsScripts()[0].dispatchEvent(new Event("load"));
+      requireMapsScript().dispatchEvent(new Event("load"));
       await Promise.resolve();
     });
 
@@ -104,7 +110,7 @@ describe("useGoogleMapsScript", () => {
 
   it("preserves error status after a platform loader failure", async () => {
     const { result } = renderHook(() => useGoogleMapsScript());
-    const script = mapsScripts()[0];
+    const script = requireMapsScript();
 
     await act(async () => {
       script.dispatchEvent(new Event("error"));

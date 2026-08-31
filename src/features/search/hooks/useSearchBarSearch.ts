@@ -57,16 +57,20 @@ export const useSearchBarSearch = ({
           : null;
 
       const searchParams: SearchParams = {
-        destination: inputText || undefined,
-        lat: validSelectedPlace?.lat,
-        lng: validSelectedPlace?.lng,
-        viewport: validSelectedPlace?.viewport,
-        checkIn: checkIn || undefined,
-        checkOut: checkOut || undefined,
         adultOccupancy,
         childOccupancy,
         infantOccupancy,
         petOccupancy,
+        ...(inputText ? { destination: inputText } : {}),
+        ...(validSelectedPlace
+          ? {
+              lat: validSelectedPlace.lat,
+              lng: validSelectedPlace.lng,
+              viewport: validSelectedPlace.viewport,
+            }
+          : {}),
+        ...(checkIn === null ? {} : { checkIn }),
+        ...(checkOut === null ? {} : { checkOut }),
       };
 
       if (onSearch) {
@@ -82,7 +86,6 @@ export const useSearchBarSearch = ({
       }
 
       const params = buildSearchNavigationParams(urlSearchParams, {
-        destination: inputText || undefined,
         selectedPlace: validSelectedPlace,
         checkIn,
         checkOut,
@@ -90,6 +93,7 @@ export const useSearchBarSearch = ({
         childOccupancy,
         infantOccupancy,
         petOccupancy,
+        ...(inputText ? { destination: inputText } : {}),
       });
 
       const nextSearchKey = params.toString();

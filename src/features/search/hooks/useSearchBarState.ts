@@ -191,10 +191,10 @@ export const useSearchBarState = ({
     infantOccupancy: interaction.draft.infantOccupancy,
     petOccupancy: interaction.draft.petOccupancy,
     urlSearchParams: currentSearchParams,
-    onSearch,
     pushSearch: routePort.pushSearch,
     closeTransientPanels,
     isPlacesLoading,
+    ...(onSearch === undefined ? {} : { onSearch }),
   });
 
   const exitMapDragMode = useCallback(() => {

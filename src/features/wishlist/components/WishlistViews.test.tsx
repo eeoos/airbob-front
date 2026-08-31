@@ -7,12 +7,12 @@ import type {
   WishlistSummary,
 } from "../model";
 import {
-  RecentlyViewedAccommodationCardViewModel,
   toRecentlyViewedAccommodationCardViewModel,
   toWishlistAccommodationCardViewModel,
   toWishlistIndexCardViewModel,
-  WishlistAccommodationCardViewModel,
-  WishlistIndexCardViewModel,
+  type RecentlyViewedAccommodationCardViewModel,
+  type WishlistAccommodationCardViewModel,
+  type WishlistIndexCardViewModel,
 } from "../lib/wishlistAccommodationViewModel";
 import { RecentlyViewedView } from "./RecentlyViewedView";
 import { WishlistDetailView } from "./WishlistDetailView";

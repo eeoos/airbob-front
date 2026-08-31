@@ -2,8 +2,8 @@ import React from "react";
 import { ListContainer } from "../../../shared/ui";
 import {
   toWishlistAccommodationMemoTarget,
-  WishlistAccommodationCardViewModel,
-  WishlistAccommodationMemoTarget,
+  type WishlistAccommodationCardViewModel,
+  type WishlistAccommodationMemoTarget,
 } from "../lib/wishlistAccommodationViewModel";
 import styles from "./WishlistViews.module.css";
 
@@ -26,7 +26,12 @@ const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
   target.style.display = "none";
 
   const placeholder = target.nextElementSibling as HTMLElement | null;
-  if (placeholder?.classList.contains(styles.placeholderImage)) {
+  const placeholderClassName = styles.placeholderImage;
+  if (
+    placeholder &&
+    placeholderClassName &&
+    placeholder.classList.contains(placeholderClassName)
+  ) {
     placeholder.hidden = false;
     placeholder.style.display = "flex";
   }

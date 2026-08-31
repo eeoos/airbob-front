@@ -1,4 +1,5 @@
 import React from "react";
+import { requireCssModuleClass } from "../../../shared/styles/requireCssModuleClass";
 import type { AccommodationEditFormData } from "../editorViewContract";
 import styles from "./EditModal.module.css";
 import { AmenityIcon } from "./accommodationEditIcons";
@@ -38,7 +39,7 @@ export const AmenityModal: React.FC<AmenityModalProps> = ({
   const title = "편의시설을 선택하세요";
 
   return (
-    <EditModalShell title={title} modalClassName={styles.typeModal} onClose={onClose}>
+    <EditModalShell title={title} modalClassName={requireCssModuleClass(styles.typeModal)} onClose={onClose}>
       <div className={styles.typeModalHeader}>
         <h2 className={styles.typeModalTitle}>{title}</h2>
         <button

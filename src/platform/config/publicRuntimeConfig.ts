@@ -1,9 +1,9 @@
 import {
   ConfigError,
-  BrowserEnvironment,
   PUBLIC_ENV_KEYS,
   readBrowserEnvironment,
-  RuntimeMode,
+  type BrowserEnvironment,
+  type RuntimeMode,
 } from "./env";
 
 const DEFAULT_API_ORIGIN = "http://localhost:8080";

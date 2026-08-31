@@ -1,3 +1,4 @@
+import { requireCssModuleClass } from "../../../../shared/styles/requireCssModuleClass";
 import { Dialog } from "../../../../shared/ui";
 import styles from "./AccommodationDescriptionModal.module.css";
 
@@ -22,8 +23,8 @@ export function AccommodationDescriptionModal({
       showHeader={false}
       size="custom"
       bodyPadding="none"
-      className={styles.descriptionModalContent}
-      bodyClassName={styles.descriptionModalBody}
+      className={requireCssModuleClass(styles.descriptionModalContent)}
+      bodyClassName={requireCssModuleClass(styles.descriptionModalBody)}
     >
       <button
         type="button"
