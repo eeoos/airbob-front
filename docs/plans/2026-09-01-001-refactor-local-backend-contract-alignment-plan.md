@@ -3,6 +3,7 @@ title: "refactor: Align Airbob frontend with local backend contracts before rede
 type: refactor
 date: 2026-09-01
 deepened: 2026-09-01
+independently_reaudited: 2026-09-01
 ---
 
 # refactor: Align Airbob frontend with local backend contracts before redesign
@@ -15,7 +16,7 @@ OCI, Vercel, AWS와 실제 Airbnb visual restyling은 이번 계획의 완료 �
 
 ## Problem Frame
 
-[2026-09-01 재감사](../qa/2026-09-01-frontend-architecture-local-backend-readiness-audit.md)는 최근 frontend 변경이 같은 구조를 임의로 뒤집은 것이 아니라 `pages → app route adapter + screens`, CRA→Vite, Jest→Vitest, Axios→native HTTP로 수렴한 과정이라고 판정했다. 현재 architecture, structure와 deterministic browser gate도 green이다.
+[2026-09-01 최초 재감사](../qa/2026-09-01-frontend-architecture-local-backend-readiness-audit.md)와 [독립 읽기 전용 재감사](../qa/2026-09-01-frontend-architecture-independent-read-only-reaudit.md)는 최근 frontend 변경이 같은 구조를 임의로 뒤집은 것이 아니라 `pages → app route adapter + screens`, CRA→Vite, Jest→Vitest, Axios→native HTTP로 수렴한 과정이라고 판정했다. 다만 수렴은 부분적이다. DAG, route, session, platform과 toolchain 경계는 유지할 수 있지만 booking/payment semantics, 문서 authority와 pre-design UI boundary는 아직 안정화되지 않았다. 현재 작업 환경에서는 지원 Node/dependency가 준비되지 않아 과거의 architecture/structure/browser green을 독립적으로 재증명하지 못했으며, 구현 중 repository-declared Node로 다시 검증한다.
 
 그러나 backend는 frontend 안정화 이후 availability split, quote-only checkout, reservation idempotency, payment-attempt token과 async payment operation을 도입했다. 현재 frontend는 detail의 `unavailable_dates`를 spread하고, reservation을 직접 생성하며, payment attempt 없이 confirm을 보내고, 202 Accepted를 성공으로 처리한다. 이 상태에서 디자인을 크게 바꾸면 contract failure와 visual regression을 동시에 추적해야 한다.
 
@@ -89,7 +90,7 @@ OCI, Vercel, AWS와 실제 Airbnb visual restyling은 이번 계획의 완료 �
 - R20. Payment-attempt response를 journal에 기록하지 못하면 Toss를 열지 않아야 한다.
 - R21. Payment-attempt response loss는 같은 endpoint replay로 동일 미소비 attempt를 회수해야 한다.
 - R22. Success와 fail callback credential은 auth/session child가 render되기 전에 URL과 history에서 제거해야 한다.
-- R23. Raw provider message와 paymentKey는 app-controlled telemetry, console, storage inventory, test artifact 또는 사용자 copy에 남지 않아야 하며 pre-bootstrap hosting log 한계는 deployment security gate에 기록해야 한다.
+- R23. Raw provider message와 paymentKey는 app-controlled telemetry, console, 일반 storage inventory, operation receipt, test artifact 또는 사용자 copy에 남지 않아야 한다. Exact confirm replay를 위한 allowlisted callback-credential record만 R31/R47의 짧은 수명 동안 허용하며, pre-bootstrap hosting log 한계는 deployment security gate에 기록해야 한다.
 - R24. Confirm은 `paymentAttemptId`를 포함하고 202 Accepted receipt를 반환해야 하며 Accepted 자체를 성공으로 보지 않아야 한다.
 - R25. Confirm response ambiguity는 동일한 paymentKey, orderId, amount와 paymentAttemptId로만 replay해서 같은 operation ID를 회수해야 한다.
 - R26. Payment operation은 `PENDING`, `PROCESSING`, `SUCCEEDED`, `FAILED`, `REQUIRES_REVIEW`와 `nextAction`을 exhaustive하게 처리해야 한다.
@@ -119,6 +120,10 @@ OCI, Vercel, AWS와 실제 Airbnb visual restyling은 이번 계획의 완료 �
 - R44. Airbnb visual work는 contract, architecture, deterministic browser와 pre-design boundary gate가 green인 뒤 시작해야 한다.
 - R45. Frontend는 backend의 existing cookie-session과 CSRF/Origin contract를 따라야 하며 임의 token scheme을 만들거나 local proxy 성공을 cross-site mutation 방어 증거로 간주하지 않아야 한다.
 - R46. Provider/backend message, `statusUrl`, request message와 internal failure detail은 transport-only untrusted data이며 allowlisted enum/code/identifier만 domain과 UI에 진입해야 한다.
+- R47. Same-subject callback credential은 최초 capture부터 9분과 알려진 hold/attempt 만료 중 이른 시점까지만 유효하고, paymentKey는 backend와 같은 최대 200자로 검증해야 한다.
+- R48. Current Toss adapter의 결제 capability는 `CARD/KRW`와 최소 100원이다. Quote amount 0은 complimentary branch, 1–99원 또는 non-KRW는 hold 생성 전에 fail closed하며 이미 생성된 hold의 recovery에서는 재결제 없이 explicit release 또는 reservation status로 수렴해야 한다.
+- R49. `CONTACT_SUPPORT`/장기 `REQUIRES_REVIEW`는 존재하지 않는 support route나 연락처를 만들지 않는다. 24시간 receipt가 만료되면 operation-specific poll/confirm을 재시작하지 않고 reservation detail과 allowlisted reservation/operation 식별자로만 수렴한다.
+- R50. V2 activation evidence는 cutover revision과 검증된 v2-compatible rollback revision을 기록해야 한다. 이전 compatible revision이 없으면 rollback 대신 mutation fail-closed와 roll-forward를 사용한다.
 
 ## Key Technical Decisions
 
@@ -131,7 +136,7 @@ OCI, Vercel, AWS와 실제 Airbnb visual restyling은 이번 계획의 완료 �
 - KTD7. **Classify mutation recovery by backend guarantee:** Quote는 inventory를 잡지 않아 response loss 뒤 fresh request가 가능하다. Checkout은 exact body/key, attempt와 release는 exact reservation resource command, confirm은 exact four-field tuple만 replay한다. Replay-sensitive mutation은 request 전에 prepared/submitting phase를 기록한다.
 - KTD8. **Model zero-won checkout as a terminal reservation branch:** Amount가 0인 정상 Ready는 payment workflow에 들어가지 않으며 amount-positive storage validation을 우회하는 예외가 아니다.
 - KTD9. **Issue the attempt after SDK preparation but before gateway launch:** SDK loading 때문에 hold 시간을 소비하지 않되, attempt tuple 저장 뒤에는 다른 network await 없이 Toss를 호출한다.
-- KTD10. **Separate callback credential from the subject-owned transaction receipt:** Pre-auth credential은 memory-only다. Matching subject/journal claim 뒤에는 exact-replay를 위해 15분 hard-TTL session record로 저장하고 Accepted receipt write/read-back이 성공한 뒤에만 삭제한다. Credential-free operation/reservation receipt도 personal transaction data이며 24시간 hard TTL 또는 final UI acknowledgment까지 보존한다.
+- KTD10. **Separate callback credential from the subject-owned transaction receipt:** Pre-auth credential은 memory-only다. Matching subject/journal claim 뒤에는 exact-replay를 위해 `min(firstCapturedAt + 9 minutes, known hold/attempt expiry)` hard-TTL의 dedicated session record로만 저장하고 Accepted receipt write/read-back이 성공한 뒤에만 삭제한다. Credential-free operation/reservation receipt도 personal transaction data이며 24시간 hard TTL 또는 final UI acknowledgment까지 보존한다. 24시간 이후에는 reservation detail로만 수렴하며 confirm 또는 operation-specific recovery를 추측해 재시작하지 않는다.
 - KTD11. **Backend operation ID is payment authority and transport text is untrusted:** Payment adapter는 `statusUrl`, provider/backend message, request message와 internal failure detail을 폐기한다. Validated UUID와 known enum/code만 workflow에 넘기고 frontend allowlist가 사용자 문구를 만든다. `SUCCEEDED`만 durable success marker를 허용한다.
 - KTD12. **Guarantee same-tab recovery, not impossible cross-device recovery:** Session storage와 subject/epoch fence를 유지하고 duplicated/opener tab에 record가 복제될 수 있음을 threat model에 포함한다. 다른 tab/device는 backend conflict와 reservation final state로 수렴하며 operation-specific next action은 약속하지 않는다.
 - KTD13. **Hold release stops at the confirm boundary:** Quote-only cleanup은 local이고 paid hold는 사용자가 포기할 때만 release한다. Callback 수신 또는 confirm submission 뒤에는 release하지 않는다.
@@ -139,11 +144,13 @@ OCI, Vercel, AWS와 실제 Airbnb visual restyling은 이번 계획의 완료 �
 - KTD15. **Use PageContainer for width and gutter:** Shell은 route surface, header policy와 main landmark를 유지하고 shared `PageContainer` recipe가 screen별 width/gutter variant를 소유한다.
 - KTD16. **Keep domain catalog above subfeatures without violating the DAG:** Parent accommodation feature가 semantic catalog를 export하고 screen/controller composition이 detail/editor에 전달한다. Nested feature끼리 import하지 않는다.
 - KTD17. **Prepare design boundaries without restyling:** Editor commands, state/image recipes, layout, responsive/runtime tokens와 stable view sections까지만 이 계획에 포함한다.
-- KTD18. **Use one atomic production cutover for the coupled booking/payment writer:** Read-side and design-boundary units는 독립 land한다. Quote/checkout, journal v2, attempt, callback, Accepted/polling writer는 U3 내부 checkpoint로 작은 commit을 만들 수 있지만 U3 전체가 green이 되기 전 production merge/deploy하지 않는다.
+- KTD18. **Stage inert capabilities, then make only the owner switch atomic:** Reservation read parity와 adapter/storage/schema/callback hardening은 독립된 작은 green commit으로 land한다. 각 commit은 아직 active writer가 아닌 capability를 추가하거나 한 read boundary만 바꾼다. Quote→checkout→attempt→callback→Accepted/polling production composition과 retired-writer 삭제만 마지막 작은 owner-switch commit에서 함께 수행하며, 전체 transaction matrix가 green이 되기 전 merge/deploy하지 않는다.
 - KTD19. **Make transaction identity immutable and phases monotonic:** One subject-owned document는 `flowId + subject + epoch + expected prior phase`가 일치할 때만 full-record replacement를 허용한다. Accommodation/date/guest/quote/key/reservation/amount/currency/attempt/operation tuple은 이후 단계에서 변경할 수 없고 terminal/purge 뒤 stale completion이 record를 되살릴 수 없다.
 - KTD20. **Durably observe server terminal before UI publication:** Complimentary Ready와 payment `SUCCEEDED`는 먼저 terminal marker로 기록하고 cache refresh/navigation을 수행한다. Publication이나 cleanup 실패는 server terminal을 되돌리거나 mutation replay를 유발하지 않는다.
 - KTD21. **Do not invent frontend CSRF:** Cookie-session mutation은 backend의 documented CSRF/Origin policy를 따른다. Policy 부재나 arbitrary Origin 허용은 backend 변경 요청이 아니라 Vercel/OCI integration blocker로 남긴다.
 - KTD22. **Keep runtime token data pure:** Canonical token names/values는 `shared/styles`가 소유한다. DOM/CSSOM reader가 필요하면 `platform/browser`가 좁은 port로 제공하며 shared/screens가 `document` 또는 `getComputedStyle`을 직접 읽지 않는다.
+- KTD23. **Respect the current provider capability before creating a hold:** CARD/KRW 100원 미만의 유료 quote는 checkout action을 차단하고 coupon/조건 변경 뒤 새 quote를 요구한다. Complimentary 0원만 Toss를 건너뛴다. Recovery 중 이미 존재하는 1–99원 hold에는 payment attempt를 만들지 않고 explicit release 또는 reservation detail을 제공한다.
+- KTD24. **Do not invent a support product surface:** `REQUIRES_REVIEW`는 allowlisted 설명, reservation/operation identifier와 reservation-detail 이동을 제공한다. 실제 전화, 이메일, help URL은 별도 제품 결정 없이는 추가하지 않는다.
 
 ## High-Level Technical Design
 
@@ -283,33 +290,33 @@ stateDiagram-v2
 
 ### Browser-state retention and replacement
 
-| Record                       | Retention                                                            | Transition rule                                                                 |
-| ---------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Pre-auth callback claim      | Current document memory only                                         | URL scrub 뒤 보관; stable same-subject journal 확인 전 API 호출 금지            |
-| Claimed callback credential  | 15-minute hard TTL in same-tab session storage                       | Accepted receipt write/read-back 전 삭제 금지                                   |
-| Booking transaction document | Server expiry-aware with 60-minute hard cap before operation receipt | Full-record forward-only replacement; new flow cannot overwrite unresolved flow |
-| Operation/terminal receipt   | 24-hour hard TTL or final UI acknowledgment                          | Credential-free but subject-owned; terminal publication 실패 시 보존            |
+| Record                       | Retention                                                                | Transition rule                                                                 |
+| ---------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| Pre-auth callback claim      | Current document memory only                                             | URL scrub 뒤 보관; stable same-subject journal 확인 전 API 호출 금지            |
+| Claimed callback credential  | `min(first capture + 9m, known hold/attempt expiry)` in same-tab storage | Accepted receipt write/read-back 전 삭제 금지                                   |
+| Booking transaction document | Server expiry-aware with 60-minute hard cap before operation receipt     | Full-record forward-only replacement; new flow cannot overwrite unresolved flow |
+| Operation/terminal receipt   | 24-hour hard TTL or final UI acknowledgment                              | Credential-free but subject-owned; expiry 뒤 reservation detail로만 수렴        |
 
 Session storage가 duplicated/opener tab에 복제될 수 있으므로 record 자체를 신뢰하지 않는다. 모든 read에서 schema, tuple, subject, epoch, TTL과 expected phase를 다시 검증하고 backend conflict를 cross-tab authority로 사용한다.
 
 ### Error-to-action contract
 
-| Backend code or condition | Frontend action                                              |
-| ------------------------- | ------------------------------------------------------------ |
-| R016                      | Journal/request mismatch로 fail closed; new key 금지         |
-| R017/R018/R019            | Fresh quote를 요청하고 다시 승인받기                         |
-| R020                      | 새 checkout 금지; guest trips 확인 안내                      |
-| R021                      | Reservation detail을 조회해 current state로 수렴             |
-| R022                      | Payment 시작 시간이 부족함; hold release 후 fresh quote      |
-| R023/R024                 | New attempt 금지; reservation state 조회                     |
-| R025/R026                 | Retryable inventory state; availability/quote refresh        |
-| P005                      | Receipt가 stale/invalid; reservation state 조회              |
-| P006                      | Different confirm tuple security conflict; retry 금지        |
-| P007                      | Operation polling/confirmation을 retryable로 유지            |
-| Poll network error        | Payment failure로 확정하지 않고 receipt 보존                 |
-| `START_NEW_CHECKOUT`      | Old tuple을 버리고 fresh quote부터 시작                      |
-| `CONTACT_SUPPORT`         | Operation/reservation identifier만 보존해 support state 표시 |
-| `NONE`                    | Reservation detail이 최종 사용자 설명의 authority            |
+| Backend code or condition | Frontend action                                                                                                         |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| R016                      | Journal/request mismatch로 fail closed; new key 금지                                                                    |
+| R017/R018/R019            | Fresh quote를 요청하고 다시 승인받기                                                                                    |
+| R020                      | 새 checkout 금지; guest trips 확인 안내                                                                                 |
+| R021                      | Reservation detail을 조회해 current state로 수렴                                                                        |
+| R022                      | Payment 시작 시간이 부족함; hold release 후 fresh quote                                                                 |
+| R023/R024                 | New attempt 금지; reservation state 조회                                                                                |
+| R025/R026                 | Retryable inventory state; availability/quote refresh                                                                   |
+| P005                      | Receipt가 stale/invalid; reservation state 조회                                                                         |
+| P006                      | Different confirm tuple security conflict; retry 금지                                                                   |
+| P007                      | Operation polling/confirmation을 retryable로 유지                                                                       |
+| Poll network error        | Payment failure로 확정하지 않고 receipt 보존                                                                            |
+| `START_NEW_CHECKOUT`      | Old tuple을 버리고 fresh quote부터 시작                                                                                 |
+| `CONTACT_SUPPORT`         | Allowlisted review copy, operation/reservation identifier와 reservation-detail 이동만 제공; 실제 연락처는 발명하지 않음 |
+| `NONE`                    | Reservation detail이 최종 사용자 설명의 authority                                                                       |
 
 ## Implementation Units
 
@@ -318,19 +325,18 @@ Session storage가 duplicated/opener tab에 복제될 수 있으므로 record �
 ```mermaid
 flowchart LR
   U1[U1 contract authority] --> U2[U2 availability]
-  U1 --> U13[U13 editor commands]
-  U1 --> U14[U14 state/image/catalog]
-  U1 --> U15[U15 layout and tokens]
-  U2 --> U3[U3 atomic booking/payment cutover]
+  U2 --> U3[U3 staged booking/payment cutover]
   U3 --> U11[U11 cross-flow browser audit]
-  U3 --> U12[U12 real local profile]
-  U11 --> U16[U16 design-entry closure]
-  U13 --> U16
+  U11 --> U12[U12 real local profile attempt]
+  U12 --> U13[U13 editor commands]
+  U12 --> U14[U14 state/image/catalog]
+  U12 --> U15[U15 layout and tokens]
+  U13 --> U16[U16 evidence-backed design-entry closure]
   U14 --> U16
   U15 --> U16
 ```
 
-U2와 U13–U15는 U1 뒤 병렬 실행할 수 있다. U3 내부 checkpoint는 작은 commit과 focused test로 진행하지만 U3 전체가 green이 되기 전 production branch에 merge/deploy하지 않는다. U12는 backend-owned fixture와 local infrastructure가 준비됐을 때 실행하며 U16 또는 backend-independent design entry를 막지 않는다.
+U2와 독립 read-side/capability commit은 U1 뒤 진행한다. U3는 작은 inert capability/read-side commit과 마지막 owner-switch commit으로 나눈다. U11 뒤 U12를 UI 정리보다 먼저 실제로 시도한다. Backend-owned fixture/reset 또는 local infrastructure가 없으면 근거를 `BLOCKED/UNVERIFIED`로 기록한 뒤 그 기록을 U12의 현 단계 산출물로 삼고 U13–U15로 진행한다. U12가 block됐다는 사실을 local integration pass로 표현해서는 안 된다.
 
 ### U1. Close contract authority and architecture registry gaps
 
@@ -366,12 +372,12 @@ U2와 U13–U15는 U1 뒤 병렬 실행할 수 있다. U3 내부 checkpoint는 �
   - Stale accommodation/session results cannot update the current screen.
 - Verification: Existing detail route/query behavior remains stable and no detail mapper reads `unavailable_dates`.
 
-### U3. Atomically cut over the booking and payment critical section
+### U3. Stage and activate the booking and payment critical section
 
-- Outcome: One production revision switches the only booking/payment writer from direct-create/immediate-success to quote, v2 journal, idempotent checkout, payment-attempt, scrubbed callback and async operation recovery.
+- Outcome: Small verified commits establish quote, read parity, v2 journal, idempotent checkout, payment-attempt, scrubbed callback and async operation recovery; one final owner-switch commit replaces direct-create/immediate-success composition.
 - Dependencies: U1 and U2. Backend public V1 snapshot must still match the audit before composition switches.
-- Requirements: R9–R37, R45–R46.
-- Landing boundary: Internal checkpoints A–H may compile and pass focused tests on the branch, but obsolete adapters, storage readers and route composition remain active until every new capability and matching deterministic browser scenario is ready. The final owner switch removes the old writer and retired v1 surface in the same revision.
+- Requirements: R9–R37, R45–R50.
+- Landing boundary: Adapter, storage schema, read-side and callback hardening land as independently green commits without activating an incomplete writer. Obsolete adapters, storage readers and route composition remain active until every new capability and matching deterministic browser scenario is ready. The final owner switch removes the old writer and retired v1 surface in the same small revision.
 - Overall verification: No intermediate build can create a paid hold without a working attempt/callback/operation path. Architecture, structure and browser gates pass at the final switch, and rollback targets only a previously complete v2-compatible build.
 
 #### Checkpoint A — Reservation contracts and narrow HTTP idempotency
@@ -435,9 +441,9 @@ U2와 U13–U15는 U1 뒤 병렬 실행할 수 있다. U3 내부 checkpoint는 �
   - Auth resume, route departure and session change preserve the existing stale-result fences.
 - Verification: Current route URLs remain stable, all charged values are server-authoritative, and ownership tests reject API/storage/Router imports from props screens or injected-workflow binding hooks.
 
-#### Checkpoint D — Reservation read models and status presentation
+#### Checkpoint D — Independent reservation read-side unit
 
-- Checkpoint outcome: Reservation lists/details can describe current backend states and support safe final-status fallback without lying status aliases.
+- Checkpoint outcome: An independently landable read-side commit lets reservation lists/details describe current backend states and support safe final-status fallback without lying status aliases. It does not wait for or activate the new writer.
 - Requirements: R18, R27–R29, R35–R36.
 - Files:
   - Modify `src/features/reservations/api/reservationReadContracts.ts`, mappers/models, query/cache projection and tests.
@@ -471,6 +477,7 @@ U2와 U13–U15는 U1 뒤 병렬 실행할 수 있다. U3 내부 checkpoint는 �
   - Release timeout safely replays DELETE; release conflict after PAYMENT_PROCESSING switches to payment recovery.
   - Release/pay simultaneous clicks select one command lane; late success callback after release makes zero confirm calls.
   - Confirm-submitting or operation-known state exposes no release command.
+  - Quote amount 1–99 KRW or non-KRW makes zero checkout/attempt/Toss calls and requests a changed condition/new quote; an already-created unsupported hold offers release/status only.
 - Verification: No Toss request exists without a validated attempt persisted for the same reservation tuple.
 
 #### Checkpoint F — Success/fail callback credential capture
@@ -483,7 +490,7 @@ U2와 U13–U15는 U1 뒤 병렬 실행할 수 있다. U3 내부 checkpoint는 �
   - Modify callback claim/repository files under `src/workflows/booking-payment/confirmation`.
   - Modify artifact-sensitive text policy under `tests/e2e/support`.
   - Modify pre-bootstrap referrer policy in `index.html` and deployment headers where supported without changing backend behavior.
-- Approach: Detect a dedicated callback route and unconditionally replace its entire search/hash with the canonical no-query path before parsing, telemetry or third-party initialization. Parse only the captured in-memory string afterward. Keep the pre-auth claim in memory, then create a new epoch recovery lease and short-lived session credential only when stable subject and journal owner match. A different subject purges it. Provider messages map to allowlisted frontend copy.
+- Approach: Detect both dedicated success and fail callback routes and unconditionally replace their entire search/hash with the canonical no-query path before parsing, auth/session children, telemetry or third-party initialization. Parse only the captured in-memory string afterward. Keep the pre-auth claim in memory, then create a new epoch recovery lease and a `min(first capture + 9m, known hold/attempt expiry)` session credential only when stable subject and journal owner match. Enforce the backend paymentKey maximum of 200 characters. A different subject purges it. Provider messages map to allowlisted frontend copy.
 - Test scenarios:
   - Success and fail URLs/history contain no credential after the boundary runs.
   - Malformed encoding, duplicate keys, missing tuple members, oversized text and parser exceptions still scrub the full URL and cannot reappear through back/forward.
@@ -527,7 +534,8 @@ U2와 U13–U15는 U1 뒤 병렬 실행할 수 있다. U3 내부 checkpoint는 �
   - SUCCEEDED followed by cache or navigation failure resumes terminal publication without replaying confirm.
   - Poll network error keeps processing/retry UI and receipt.
   - FAILED+START_NEW_CHECKOUT never reuses old quote, key, attempt or paymentKey.
-  - FAILED+NONE opens reservation status; REQUIRES_REVIEW preserves identifiers and shows support state.
+  - FAILED+NONE opens reservation status; REQUIRES_REVIEW preserves identifiers, shows an allowlisted review state and links to reservation detail without inventing a contact channel.
+  - A receipt older than 24 hours never replays confirm or guesses an operation lookup; it converges to reservation detail and explains that operation-specific recovery is unavailable.
   - Route unmount, logout and identity change abort polling and suppress late cache/navigation writes.
   - 401 followed by a late 202 and account switch followed by history return cannot claim the old transaction.
   - Back/forward and StrictMode do not repeat checkout, gateway or confirm commands.
@@ -564,7 +572,7 @@ U2와 U13–U15는 U1 뒤 병렬 실행할 수 있다. U3 내부 checkpoint는 �
 ### U12. Add a canonical real local-backend Playwright profile
 
 - Outcome: Auth, search, wishlist, availability, quote/checkout and sandbox payment can be proven locally without claiming OCI evidence.
-- Dependencies: U3 and a documented backend-owned seed/reset or per-run unique fixture contract. U12 does not authorize frontend-driven DB cleanup or backend edits.
+- Dependencies: U11, followed by an explicit preflight for a documented backend-owned seed/reset or per-run unique fixture contract. U12 does not authorize frontend-driven DB cleanup or backend edits. Missing fixture/infrastructure produces a committed `BLOCKED/UNVERIFIED` evidence record and then allows U13–U15 to proceed; it is not a skipped pass.
 - Requirements: R38–R40, R45–R46.
 - Files:
   - Add a separate Playwright local-integration config and specs under `tests/local-integration` or the repository’s canonical E2E structure.
@@ -598,20 +606,20 @@ U2와 U13–U15는 U1 뒤 병렬 실행할 수 있다. U3 내부 checkpoint는 �
 
 ### U14. Consolidate image/state recipes and accommodation amenity catalog
 
-- Outcome: Repeated visual behavior has one semantic owner without moving accommodation taxonomy into domain-free shared code.
+- Outcome: Repeated visual behavior has an inventoried semantic owner without moving accommodation taxonomy into domain-free shared code or changing established glyphs before visual design.
 - Requirements: R42–R43.
 - Files:
   - Add or extend shared image fallback and `StateView` recipes under `src/shared/ui`.
-  - Modify `WishlistDetailView.tsx`, `WishlistModal.tsx`, `SearchAccommodationCard.tsx` and their tests.
+  - Modify `WishlistDetailView.tsx`, `WishlistModal.tsx`, `SearchAccommodationCard.tsx`, Maps `infoWindowContent.ts` and their tests.
   - Add the accommodation semantic catalog under parent `src/features/accommodations` and export it narrowly.
   - Modify detail/editor amenity registries and screen/controller composition.
-- Approach: Replace sibling-style DOM mutation with a declarative image state owner. Standardize loading/error/empty behavior through recipes rather than one universal component API. Parent accommodation owns a narrow semantic amenity catalog; screen/controller composition passes it into nested detail/editor presentation so nested features do not import each other or the concrete parent implementation.
+- Approach: Inventory every production image fallback and loading/error/empty owner. Replace React sibling-style mutation with declarative image state; keep vendor HTML-string escaping in a separate safe helper rather than forcing it through React. Standardize state semantics through recipes rather than one universal component API, and register any intentionally deferred owner in an executable ratchet. Parent accommodation owns semantic amenity code/label taxonomy; screen/controller composition passes it into nested detail/editor presentation. Preserve the current context-specific detail/editor glyphs until the later visual-design phase instead of claiming visual icon unification.
 - Test scenarios:
   - Image load failure renders a deterministic fallback without direct sibling style mutation.
   - Loading, retryable error, terminal error and empty state retain accessibility semantics.
-  - The same amenity identifier resolves to one label/icon across detail and editor.
+  - The same amenity identifier resolves to one semantic code/label across detail and editor while existing context-specific glyphs remain stable.
   - Adding an unknown amenity produces an explicit fallback and contract-test signal.
-- Verification: Duplicate amenity registries are removed and parent accommodation still passes strict dependency rules.
+- Verification: Duplicate semantic amenity taxonomies are removed, image/state ownership inventory has no silent gaps, Maps escaping remains green and parent accommodation still passes strict dependency rules.
 
 ### U15. Establish page-container, responsive and runtime-token ownership
 
@@ -619,11 +627,11 @@ U2와 U13–U15는 U1 뒤 병렬 실행할 수 있다. U3 내부 checkpoint는 �
 - Requirements: R42, R44.
 - Files:
   - Add a `PageContainer` recipe under `src/shared/ui` and modify `src/app/shells` only for route-surface/landmark responsibilities.
-  - Migrate representative screen width/gutter rules from Search, Detail, Profile, Review and Reservation Confirm CSS.
+  - Inventory every screen/page root as `edge/full`, `wide`, `content` or `narrow`; migrate width/gutter ownership in small screen-family commits and ratchet any intentional exception.
   - Modify `src/shared/styles/custom-media.css`, `responsive.ts`, responsive contract tests and raw media consumers.
   - Add a typed runtime design-token adapter and use it in `RecentlyViewedView.tsx`, Maps marker and info-window helpers.
   - Extend style/source policy to catch new TS/TSX design literals with narrow vendor exceptions.
-- Approach: Shell variants retain semantic route policy; PageContainer owns size/gutter variants. Replace raw media declarations incrementally with named aliases and keep runtime breakpoint values generated from the same pure shared policy. Route non-CSS colors/geometry through typed constants; if DOM/CSSOM reading remains necessary, `platform/browser` owns the reader and injects a narrow port.
+- Approach: Shell variants retain semantic route policy; PageContainer owns size/gutter variants, while true full-viewport Search, guest reservations and editor layouts keep explicitly inventoried edge ownership. The custom-media PostCSS transform already exists in Vite, so update stale CRA-era comments and migrate real consumers instead of adding another plugin. Replace raw media declarations incrementally with named aliases, maintain a decreasing ratchet and verify built CSS resolves aliases. Keep runtime breakpoint values generated from the same pure shared policy. Route non-CSS colors/geometry through typed constants; if DOM/CSSOM reading remains necessary, `platform/browser` owns the reader and injects a narrow port.
 - Test scenarios:
   - PageContainer variants produce expected width/gutter at protected viewports.
   - 320, 375, 768, 1023, 1024, 1025 and 1440 layouts preserve current reflow.
@@ -631,18 +639,18 @@ U2와 U13–U15는 U1 뒤 병렬 실행할 수 있다. U3 내부 checkpoint는 �
   - Raw color/radius/shadow additions in TS/TSX fail unless inside an explicit integration adapter.
   - Shared/screens importing `document`, `getComputedStyle` or a platform runtime token reader fail architecture verification.
   - Maps marker/info-window output retains current safe escaping and visual semantics.
-- Verification: Shell docs match runtime ownership and custom-media tokens have real production consumers.
+- Verification: Every page root has one recorded width/gutter owner, Shell docs match runtime ownership, custom-media tokens have real production consumers and the built CSS contains no unresolved alias.
 
 ### U16. Decompose high-risk visual surfaces and close the design-entry gate
 
-- Outcome: Airbnb design can proceed by reviewable vertical slice without reopening transaction architecture.
-- Dependencies: U1, U11 and U13–U15. U12, OCI, Vercel backend reachability and real Toss evidence are not backend-independent design-entry dependencies.
+- Outcome: Only evidence-backed high-risk visual surfaces are decomposed in screen-sized commits so Airbnb design can proceed without reopening transaction architecture.
+- Dependencies: U1, U11, the U12 attempt/evidence record and U13–U15. A real U12 pass is not required when backend-owned fixture/infrastructure is explicitly `BLOCKED/UNVERIFIED`; OCI, Vercel backend reachability and real Toss evidence remain separate deployment/local-integration gates.
 - Requirements: R5, R40, R44.
 - Files:
   - Split stable visual sections in `src/screens/reservation-detail/ReservationDetailScreen.tsx`, `src/screens/search/SearchScreen.tsx`, Wishlist views, accommodation detail hero/booking sections and editor info step as evidence warrants.
   - Update component tests and existing visual foundation snapshots without changing visual intent.
   - Modify `README.md`, canonical architecture/ownership docs, target contract matrix and pre-redesign gate documentation.
-- Approach: Separate guest/host or visual sections behind existing props contracts. Do not extract single-use leaf wrappers or change payment orchestration during this unit. Record the final design-entry checklist and keep local/deployment evidence separate.
+- Approach: Split a surface only when size, ownership or test evidence shows a stable semantic section; process one screen family per commit. Do not extract single-use leaf wrappers or change payment orchestration during this unit. Record the final design-entry checklist and keep local/deployment evidence separate. If no extraction has a clear owner/test benefit, document that evidence and leave the surface intact.
 - Test scenarios:
   - Existing route/controller props and behavior remain unchanged after section extraction.
   - Keyboard, focus, loading/error and responsive behavior remain stable.
@@ -663,7 +671,7 @@ U2와 U13–U15는 U1 뒤 병렬 실행할 수 있다. U3 내부 checkpoint는 �
 - AE9. Given a success/fail callback, credentials disappear from URL/history before auth child render and another signed-in subject cannot claim them.
 - AE10. Given confirm response is lost after same-subject credential claim, the current document or same-tab reload exact-replays the four-field command, receives the same operation ID and creates no second provider command.
 - AE11. Given PENDING→PROCESSING→SUCCEEDED, progress persists across same-tab reload and cleanup happens only after SUCCEEDED and reservation refresh.
-- AE12. Given FAILED+START_NEW_CHECKOUT, no old quote/key/attempt/paymentKey is reused; given REQUIRES_REVIEW, identifiers remain for support.
+- AE12. Given FAILED+START_NEW_CHECKOUT, no old quote/key/attempt/paymentKey is reused; given REQUIRES_REVIEW, identifiers remain with reservation-detail recovery and no invented support contact.
 - AE13. Given poll network failure, the UI remains unresolved/retryable and never labels the payment failed or successful.
 - AE14. Given logout or account switch during any async step, the late result changes no storage, cache, route or other user screen.
 - AE15. Given an unregistered feature folder, architecture verification fails with the exact scope before design work can merge.
@@ -674,6 +682,10 @@ U2와 U13–U15는 U1 뒤 병렬 실행할 수 있다. U3 내부 checkpoint는 �
 - AE20. Given malformed or duplicate callback parameters, the entire search/hash is scrubbed before parsing and no app-controlled artifact records the original credential URL.
 - AE21. Given two pages inherit the same session state, they share no credential channel and conflicting checkout/release/confirm attempts converge through backend idempotency, conflict and reservation reads.
 - AE22. Given the Vite proxy flow passes, the report still withholds Vercel→OCI integration until allowed-origin credentialed mutations succeed and arbitrary-origin mutations are rejected.
+- AE23. Given a paid CARD/KRW quote is 1–99원, checkout/attempt/Toss call counts remain zero and the user must change coupon/conditions and request a new quote; amount 0 still follows the complimentary branch.
+- AE24. Given a callback is captured, the credential expires no later than nine minutes from capture or the known hold/attempt expiry, rejects paymentKey over 200 characters and is never copied into an operation receipt.
+- AE25. Given REQUIRES_REVIEW outlives the 24-hour receipt, the app does not re-confirm or synthesize an operation lookup; it opens reservation detail with allowlisted identifiers and no invented support address.
+- AE26. Given v2 activation, QA evidence records the cutover revision and a verified v2-compatible rollback revision, or explicitly records that fail-closed roll-forward is the only safe recovery.
 
 ## System-Wide Impact
 
@@ -689,8 +701,8 @@ U2와 U13–U15는 U1 뒤 병렬 실행할 수 있다. U3 내부 checkpoint는 �
 ### Data lifecycle
 
 - Quote and checkout identity exist only for the authenticated subject and bounded server/client expiry.
-- Pre-auth callback paymentKey is memory-only; after same-subject claim it has a 15-minute hard TTL and exists only until Accepted receipt recovery completes.
-- Payment operation receipt contains no paymentKey but remains subject-owned personal transaction data and survives same-tab reload for at most 24 hours or final acknowledgment.
+- Pre-auth callback paymentKey is memory-only; after same-subject claim it exists only in the dedicated credential record until Accepted receipt recovery completes and no later than nine minutes from first capture or known hold/attempt expiry.
+- Payment operation receipt contains no paymentKey but remains subject-owned personal transaction data and survives same-tab reload for at most 24 hours or final acknowledgment. After expiry, reservation detail is the only public recovery authority and confirm/poll are not reconstructed.
 - Logout/account switch purges subject-owned data and does not send speculative hold release after confirm might have reached the server.
 - Old v1 records are purge-only before activation because they cannot prove current transaction identity; purge failure blocks v2 mutation.
 - All journal writes are full-record, expected-phase replacements; stale completions cannot regress or resurrect a terminal flow.
@@ -748,9 +760,10 @@ Publication failure never calls the server mutation again. Reload resumes public
 | Cross-site production cookie is not configured             | Vercel cannot authenticate to OCI                                     | Keep as explicit deployment blocker; do not treat local proxy success as evidence                                     |
 | Backend CSRF/Origin contract is absent or permissive       | Credentialed mutation can be cross-site                               | Do not invent a frontend token; block deployment integration sign-off until backend policy is documented and verified |
 | V2 activation is followed by a pre-v2 frontend rollback    | Retired browser records and current backend contract are incompatible | Roll back only to a v2-compatible build; preserve server state and converge through reservation detail/expiry         |
+| No previously verified v2-compatible build exists          | A nominal rollback would restore the unsafe direct writer             | Record the cutover SHA and use mutation fail-closed plus roll-forward until a verified compatible revision exists     |
 | Backend-owned local fixture/reset is unavailable           | Real mutation profile cannot be repeatable                            | Mark U12 BLOCKED/UNVERIFIED and keep deterministic coverage authoritative; never clean DB from frontend tooling       |
 | Broad UI cleanup reopens transaction code                  | Functional and visual regressions become entangled                    | Finish payment units first; design preparation changes view contracts only                                            |
-| Atomic U3 recreates previous churn                         | Review/bisect quality drops                                           | Use reviewable internal checkpoint commits and focused tests, but merge/deploy only the complete writer cutover       |
+| U3 recreates previous mega-commit churn                    | Review/bisect quality drops                                           | Land inert adapters, read-side, schema and callback hardening separately; keep only the final owner switch atomic     |
 
 Implementation depends on the repository-declared Node version, the backend documented local infrastructure, usable local data for paid and complimentary reservations, and configured Toss sandbox/public Maps values where the guarded profile needs them. Secrets must be read by existing runtime configuration and never copied into plans, fixtures or output.
 
@@ -769,10 +782,12 @@ Implementation depends on the repository-declared Node version, the backend docu
 - `requestMessage` remains `null`; adding free text would require a separate UI and PII/storage decision.
 - Old booking storage is purged, not migrated.
 - Exact confirm replay is required and safe for the same tuple under the current backend implementation.
-- Pre-auth callback credential is memory-only; same-subject claimed credential uses a 15-minute hard-TTL session record so exact replay can survive a same-tab reload before Accepted.
+- Pre-auth callback credential is memory-only; same-subject claimed credential uses a dedicated session record capped at nine minutes from first capture and the known hold/attempt expiry so exact replay can survive a same-tab reload before Accepted.
 - Hold release covers pre-confirm abandonment only; general cancellation stays out of scope.
 - Same-tab recovery is guaranteed; cross-tab/device operation lookup is not.
-- Booking/payment writer changes form one atomic U3 landing even though implementation uses smaller internal checkpoint commits.
+- Booking/payment capability and read-side changes land as small green commits; only the final composition switch and retired-writer deletion are atomic.
+- CARD/KRW 100원 is the current provider minimum. Amount 0 is complimentary; 1–99원 and non-KRW fail closed before checkout.
+- Long-running REQUIRES_REVIEW retains credential-free identifiers for at most the 24-hour same-tab receipt window, then converges to reservation detail without re-confirm. A real support address/route is deferred rather than invented.
 - Frontend does not add a CSRF token scheme; backend Origin/session verification remains a later deployment requirement.
 - Page width/gutter belongs to a shared PageContainer recipe, not shell variants.
 - Actual Airbnb styling starts only after this plan’s design-entry closure.
@@ -805,5 +820,5 @@ Implementation depends on the repository-declared Node version, the backend docu
 ### Official external guidance
 
 - [Vite server proxy options](https://vite.dev/config/server-options.html#server-proxy) — development proxy evidence is local-only.
-- [Toss Payments v2 payment flow](https://docs.tosspayments.com/guides/v2/get-started/payment-flow) and [JavaScript SDK](https://docs.tosspayments.com/sdk/v2/js/payment) — redirect authorization precedes server confirmation; sandbox is non-production evidence.
+- [Toss Payments v2 payment flow](https://docs.tosspayments.com/guides/v2/get-started/payment-flow), [payment-window integration](https://docs.tosspayments.com/guides/v2/payment-widget/integration-window), [minimum-payment FAQ](https://docs.tosspayments.com/resources/faq), [API reference](https://docs.tosspayments.com/reference), [callback URL guidance](https://docs.tosspayments.com/blog/what-is-successurl) and [JavaScript SDK](https://docs.tosspayments.com/sdk/v2/js/payment) — redirect authorization precedes server confirmation; the approval window is bounded, CARD/KRW has a 100-won minimum, and sandbox is non-production evidence.
 - [MDN Fetch credentials](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch), [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS) and [Set-Cookie](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie) — local same-origin proxy success cannot prove cross-site production cookie delivery.
