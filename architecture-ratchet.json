@@ -1,5 +1,6 @@
 {
   "migratedFeatures": [
+    "accommodations",
     "accommodations/detail",
     "accommodations/listing-editor",
     "auth",

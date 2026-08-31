@@ -715,6 +715,7 @@ describe("frontend verification gate", () => {
       [...architectureRatchet.migratedFeatures].sort(),
     );
     expect(architectureRatchet.migratedFeatures).toEqual([
+      "accommodations",
       "accommodations/detail",
       "accommodations/listing-editor",
       "auth",
@@ -1253,7 +1254,7 @@ describe("frontend verification gate", () => {
     });
   });
 
-  test("target contract matrix keeps offline closure separate from live evidence", () => {
+  test("target contract matrix keeps current alignment separate from live evidence", () => {
     expect(fs.existsSync(targetContractMatrixPath)).toBe(true);
 
     const matrix = fs.readFileSync(targetContractMatrixPath, "utf8");
@@ -1269,10 +1270,16 @@ describe("frontend verification gate", () => {
       "npm run verify:browser",
       "npm run verify:live-integration",
       "READY (offline)",
-      "Global unused file/value/type export와 duplicate export",
+      "NOT READY",
+      "ALIGNMENT REQUIRED",
+      "OPEN (U14–U15)",
+      "cfdb1e4",
+      "b2ec09a",
+      "2026-09-01-001-refactor-local-backend-contract-alignment-plan.md",
       "Production Knip은 target preprocessor 없이 전체 production graph",
       "frontend-bundle-budgets.json",
       "DEFERRED / UNVERIFIED (live)",
+      "UNVERIFIED — U12 attempt required",
       "Vercel → OCI",
       "Google Maps/Places",
       "Toss sandbox",
@@ -1280,7 +1287,6 @@ describe("frontend verification gate", () => {
     ].forEach((term) => {
       expect(matrix).toContain(term);
     });
-    expect(matrix).not.toContain("PENDING (offline closure)");
     expect(matrix).not.toContain("2026-07-04");
     expect(matrix).not.toContain("react-scripts");
     expect(matrix).not.toContain("Jest");

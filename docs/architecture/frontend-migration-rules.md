@@ -2,14 +2,16 @@
 
 > Operational supplement to
 > [`current-frontend-architecture.md`](./current-frontend-architecture.md).
-> It does not redefine the current architecture or the target plan.
+> It does not redefine the current architecture or the active
+> [2026-09-01 target plan](../plans/2026-09-01-001-refactor-local-backend-contract-alignment-plan.md).
 
 These rules apply to every frontend architecture implementation unit.
 
 ## 1. Preserve external contracts
 
-- Do not change backend endpoints, methods, request/response fields, response
-  envelope, cookie credentials, or server-authoritative validation.
+- Do not modify backend endpoints, methods, request/response fields, response
+  envelope, cookie credentials, or server-authoritative validation. Frontend
+  adapters must follow the recorded read-only backend contract target.
 - Preserve route paths and current query names during parity migration.
 - Preserve current user-flow outcomes unless the active plan explicitly assigns
   a defect to the unit.
@@ -99,8 +101,10 @@ blocking across the complete production project. Never add a known violation
 snapshot or file ignore to claim that a slice is migrated. The exact registry
 accepts only existing feature roots with production source, and CI compares it
 with Git history so a live feature cannot be downgraded. It is monotonic until
-U22 removes the registered feature root. The exact tool owners and U3 baseline
-live in
+the registered production feature root is intentionally removed. Current
+discovery and the registry must also match in both directions, so an
+unregistered current scope and a stale registered scope both fail with the
+exact scope named. The exact tool owners live in
 [`tests/architecture/dependency-rules.md`](../../tests/architecture/dependency-rules.md).
 New or renamed feature roots must be registered in their creation/rename commit.
 A parent feature cannot claim production source owned by a declared nested
@@ -143,9 +147,10 @@ browser storage when a reload can safely refetch it.
 - Screens and shared UI do not call `fetch`/`XMLHttpRequest`, import retired
   Axios or QueryClient mutation APIs, or access `process.env`, `sessionStorage`,
   or browser SDK globals.
-- SDK replacement is separate from workflow replacement. Specifically, payment
-  behavior moves behind the current Toss v1 adapter before the npm v2 adapter is
-  installed as the sole runtime.
+- SDK replacement is separate from workflow replacement. The official Toss npm
+  v2 adapter remains the sole runtime while the current backend transaction
+  workflow is replaced behind its existing narrow port. Retired v1 readers or
+  writers must not be restored.
 
 ## 9. Replace tests only after equivalent protection exists
 

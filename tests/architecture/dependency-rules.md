@@ -1,5 +1,7 @@
 # Frontend Architecture Ratchets
 
+> Refactor starting baseline: `cfdb1e4`; read-only backend contract target: `b2ec09a`.
+
 This document is the executable-policy companion to the canonical frontend
 architecture. It records which tool owns each static rule, how a migrated slice
 becomes strict without a suppression wall, and which global checks no longer
@@ -55,7 +57,9 @@ production source; symbolic links are forbidden throughout `src` so fixed or
 feature target layers cannot be relocated behind legacy paths.
 Full-history CI and the local Git comparison gate make the
 list monotonic: an entry is removed only when its owning production feature root
-is intentionally deleted. Adding an ignore, known-violation snapshot, or blanket file exception is
+is intentionally deleted. Current feature discovery must equal the registry in
+both directions; this prevents both unregistered current scopes and stale policy
+entries. Adding an ignore, known-violation snapshot, or blanket file exception is
 not a cutover. A new or renamed feature root must enter the registry in the same
 commit, and a parent registration counts only production source owned by that
 parent, never source owned by a declared nested scope. Historical nested entries
@@ -172,7 +176,10 @@ remain available for runtime and component-token composition, but radius,
 shadow, color/background, and aspect ratio aliases must resolve directly to
 canonical tokens. Custom-media
 declarations have one owner and are forbidden outside canonical custom-media
-files. The agreed breakpoint scale is a pre-existing global invariant, so an
+files. Vite already owns the transform, but `cfdb1e4` has no production named
+alias consumer. Real consumer migration, a decreasing raw-media ratchet, and
+built-CSS resolution proof remain 2026-09-01 plan U15 work; transform ownership
+alone is not a completion claim. The agreed breakpoint scale is a pre-existing global invariant, so an
 off-scale media value is an error even in otherwise warning-only legacy CSS.
 
 The custom Stylelint contract does not yet own the focused transition-all, raw z-index,

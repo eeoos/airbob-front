@@ -6,7 +6,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { useCreateAccommodationDraft } from "../../features/accommodations/ports/draftCreate";
+import { useCreateAccommodationDraft } from "../../features/accommodations/ui/draftCreate";
 import { AppError } from "../../platform/http/errors";
 import { UserMenu } from "./UserMenu";
 
@@ -33,7 +33,7 @@ vi.mock("../session/useSession", () => ({
   }),
 }));
 
-vi.mock("../../features/accommodations/ports/draftCreate", () => ({
+vi.mock("../../features/accommodations/ui/draftCreate", () => ({
   useCreateAccommodationDraft: vi.fn(),
 }));
 

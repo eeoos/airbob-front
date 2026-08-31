@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSession } from "../session/useSession";
-import { useCreateAccommodationDraft } from "../../features/accommodations/ports/draftCreate";
+import { useCreateAccommodationDraft } from "../../features/accommodations/ui/draftCreate";
 import { AuthModal } from "../../features/auth/public";
 import { isAppError } from "../../platform/http/errors";
 import { clientLogger } from "../../platform/logging/clientLogger";

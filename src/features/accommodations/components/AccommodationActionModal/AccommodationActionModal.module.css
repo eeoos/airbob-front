@@ -6,19 +6,19 @@
 
 .closeButton {
   position: absolute;
-  top: 16px;
-  left: 16px;
+  top: var(--space-4);
+  left: var(--space-4);
   background: none;
   border: none;
   cursor: pointer;
-  padding: 8px;
+  padding: var(--space-2);
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-pill);
   transition: background-color 0.2s ease;
   color: var(--color-text-primary);
-  z-index: 1;
+  z-index: var(--z-local-raised);
 }
 
 .closeButton:hover {
@@ -26,8 +26,8 @@
 }
 
 .closeButton svg {
-  width: 24px;
-  height: 24px;
+  width: var(--space-6);
+  height: var(--space-6);
 }
 
 .content {
@@ -36,16 +36,16 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-4);
   overflow: visible;
-  padding: 24px;
+  padding: var(--space-6);
 }
 
 .accommodationHeader {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-4);
   width: 100%;
   padding: 0;
   border: none;
@@ -65,7 +65,7 @@
   aspect-ratio: 1;
   border-radius: var(--radius-md);
   overflow: hidden;
-  margin-top: 24px;
+  margin-top: var(--space-6);
 }
 
 .image {
@@ -82,19 +82,19 @@
 }
 
 .name {
-  font-size: 16px;
+  font-size: var(--font-size-md);
   font-weight: 600;
   color: var(--color-text-primary);
   text-align: center;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .actions {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
   width: 100%;
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 
 .editButton {
@@ -104,7 +104,7 @@
   color: var(--color-text-inverse);
   border: none;
   border-radius: var(--radius-md);
-  font-size: 16px;
+  font-size: var(--font-size-md);
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s ease;
@@ -126,7 +126,7 @@
   color: var(--color-text-inverse);
   border: none;
   border-radius: var(--radius-md);
-  font-size: 16px;
+  font-size: var(--font-size-md);
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s ease;
@@ -148,14 +148,14 @@
   color: var(--color-text-primary);
   border: none;
   border-radius: var(--radius-md);
-  font-size: 16px;
+  font-size: var(--font-size-md);
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .deleteButton:hover:not(:disabled) {
@@ -168,13 +168,13 @@
 }
 
 .deleteButton svg {
-  width: 20px;
-  height: 20px;
+  width: var(--space-5);
+  height: var(--space-5);
 }
 
 .toastContainer {
   position: fixed;
-  top: 24px;
-  right: 24px;
+  top: var(--space-6);
+  right: var(--space-6);
   z-index: var(--z-toast);
 }

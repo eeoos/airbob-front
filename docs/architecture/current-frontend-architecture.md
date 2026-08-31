@@ -1,14 +1,17 @@
 # Airbob Frontend Architecture
 
 > Status: canonical current-state source of truth  
-> Baseline: U4 commit `f5222d5`, followed by the U6 Router, U5 session, U19 structural UI, U7-U13 feature/workflow cutovers, U21 small routes, U22 compatibility closure, U14 interaction adoption, U15 design-foundation closure, the U16 Vite build/dev cutover, U17 Vitest cutover, and the U23 TypeScript 5.9/ESLint 9/dependency-classification/formatting boundaries
+> Refactor starting baseline: `cfdb1e470b6fa4461f15a3472797d238d762503e` (`cfdb1e4`)
+> Read-only backend contract target: `b2ec09a3cdc8cf86877edf5f222c6a5cd6c2afd1` (`b2ec09a`)
 > Current migration state: app routing/session/overlay ownership, every feature-owned API/model boundary, and every current route screen are active; legacy global roots are retired; Vite owns build/dev, Vitest owns unit/integration execution, TypeScript owns explicit browser/test/tooling/Playwright environments, native flat-config ESLint owns local source feedback, Knip 6 globally blocks production-unused files/value exports/type exports/duplicate exports and proves dependency placement, and Prettier 3.9 owns formatter-scoped active-tree layout without CRA runtime or lint dependencies
-> Recorded: 2026-08-31 KST
+> Recorded: 2026-09-01 KST
 
-This document describes the frontend that is reachable in production at the
+This document describes the current frontend as it evolves from the starting
 baseline above. It is the only document that defines the current architecture.
-The migration plan describes the target; the ownership matrix records cutover
-state; older freeze and plan documents are historical evidence only.
+The [2026-09-01 contract-alignment plan](../plans/2026-09-01-001-refactor-local-backend-contract-alignment-plan.md)
+describes the target; the ownership matrix records cutover state. The
+2026-08-29 overhaul plan and older freeze/plan documents are historical evidence
+only.
 
 ## Scope and invariants
 
@@ -104,7 +107,7 @@ Current owners:
 | Host listing management | `src/workflows/host-listing-management/**`, composed by `src/app/router/routes/ProfileRoute.tsx` | One route/session-leased writer owns publish, unpublish, and delete. API success and cache-publication failure are represented separately so the UI never repeats a possibly applied exact command. |
 | Legacy global roots | none | `src/{api,components,contexts,hooks,layouts,query,routes,types,utils}` are absent and executable gates prevent reintroduction. |
 | Domain-free UI | `src/shared/ui/**` | Tested primitives own Dialog, Toast, DatePicker, semantic navigation/action cards, shared non-modal overlay registration, and a typed `Icon`/glyph registry. Test-only `PageShell`, `ListingCard`, and `OverlaySurface` abstractions and all compatibility wrappers are removed. |
-| Shared styling and brand assets | `src/shared/styles/**`, `src/shared/assets/**` | Global CSS imports primitive, semantic, then component tokens in one explicit order. The responsive manifest and JS `matchMedia` policy agree at the 1024px boundary; the production wordmark is manifest-owned and public PWA icons use real Airbob artwork. Vite transforms the owned custom-media aliases during development and production builds. |
+| Shared styling and brand assets | `src/shared/styles/**`, `src/shared/assets/**` | Global CSS imports primitive, semantic, then component tokens in one explicit order. The responsive manifest and JS `matchMedia` policy agree at the 1024px boundary; the production wordmark is manifest-owned and public PWA icons use real Airbob artwork. Vite is configured to transform the owned custom-media aliases, but `cfdb1e4` has no production alias consumer; raw media migration and built-CSS proof remain 2026-09-01 plan U15 work. Detail/editor amenity code and label registries are also still duplicated; U14 will consolidate semantics while preserving their current context-specific glyphs. |
 | Build, development, and static deployment | `vite.config.ts`, root `index.html`, `vercel.json` | Vite 8 is the sole `dev`/`build`/`preview` owner on Node 22.13+ or Node 24 and retains `build/`, `build/static/`, the `/api` development proxy, CSS Modules, custom-media transforms, public assets, production JavaScript source maps, development CSS source maps, and route-level lazy chunks. The supported browser floor is Vite 8's pinned `baseline-widely-available` target (Chrome/Edge 111, Firefox 114, Safari/iOS 16.4); the old dynamic CRA Browserslist query is removed rather than implying a legacy bundle. Native ESM TypeScript config is checked by its own Node-only compiler project and exercised through Vite's resolver, ESLint, Knip, and hostile production builds. Vercel checks real files before the SPA fallback, serves hashed `/static/*` assets with immutable caching, and forces `index.html` to revalidate. |
 | Compiler environments | `tsconfig.json`, `tsconfig.test.json`, `tsconfig.tooling.json`, `tsconfig.e2e.json` | TypeScript 5.9 gives production source only DOM/Vite types and separately grants Vitest, Node tooling, and Playwright their exact globals. `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`, `noUncheckedSideEffectImports`, and `erasableSyntaxOnly` are blocking. A local ambient declaration in the environment adapter exposes only the five compile-time properties that Vite explicitly substitutes; Node types never enter the browser project. |
 | Local source lint environments | `eslint.config.mjs`, `tests/architecture/verify-eslint-config.mjs` | ESLint 9.39 uses native flat config and current TypeScript, React, stable Hooks, accessibility, Vitest, Testing Library, jest-dom, and Playwright plugins. Browser, Vitest/DOM/Node, Playwright/Node, ESM Node, and CommonJS Node scopes receive distinct globals; Jest globals and CRA presets are absent. Local binding/import feedback and executable process/storage/SDK/script/native-HTTP capability restrictions remain ESLint-owned, while import direction/cycles, production reachability/dependency declarations, and CSS policy remain exclusively dependency-cruiser, Knip, and Stylelint owned. Retired Axios imports and direct `fetch`/`XMLHttpRequest` use outside `src/platform/http/**` are executable failures. Unused disable directives and unused inline configs are errors; active suppressions require a narrow, reviewable reason. React Compiler-only ref/effect/memo adoption rules are explicitly outside this cutover so they cannot silently force semantic rewrites of established overlay/session/payment runtimes. |
@@ -318,7 +321,8 @@ Consequences:
   and the current source graph is acyclic with no dependency warnings or errors.
 - The active `src/app/shells/ShellFrame.tsx` is the sole production `main` owner.
 
-U3 supplies executable ownership for this graph. Every declared feature scope is in the migrated registry;
+The architecture registry supplies executable ownership for this graph. Every
+discovered top-level and declared nested feature scope is in the migrated registry;
 feature-to-peer imports and reintroduced global API/DTO roots fail fixtures.
 Global strict-production Knip reachability/export enforcement, global
 full-development and strict-production dependency classification, strict
@@ -334,7 +338,8 @@ JavaScript, JSX, and MJS share the same strict lint/reachability coverage as
 TypeScript, including production `.web.mjs` modules through the `.mjs` suffix.
 Unused, unlisted, or misclassified runtime/development packages are globally
 blocking without a historical baseline. New or renamed feature roots must enter the
-registry atomically; parent features cannot borrow nested-feature source to pass
+registry atomically, and current discovery must equal the registry in both
+directions; parent features cannot borrow nested-feature source to pass
 promotion. Knip's source coverage and error-level rules are canonical, and this
 private app forbids optional/peer runtime dependency sections and install-graph
 redirection. Dependency declarations use registry semver only; aliases,
@@ -399,7 +404,9 @@ status lives in [`frontend-ownership-matrix.md`](./frontend-ownership-matrix.md)
 
 | Delta | Planned owner |
 | --------------------------------------------------------------------------------------- | ------------- |
-| Toss npm v2 runtime adapter (source cutover complete; live sandbox/OCI parity deferred) | U11 |
+| Detail/availability and current quote → checkout → payment-operation contract alignment | 2026-09-01 plan U2–U3 |
+| Deterministic payment matrix and real local-backend profile evidence | 2026-09-01 plan U11–U12 |
+| Editor commands, semantic amenity catalog, PageContainer and responsive/runtime-token ownership | 2026-09-01 plan U13–U15 |
 
 ## Verification contracts
 
@@ -446,7 +453,9 @@ unavailable external services remain deferred and unverified.
 | `frontend-migration-rules.md` | Execution rules for every migration slice. |
 | `frontend-browser-data-inventory.md` | Browser persistence, ownership, PII, TTL, and cleanup inventory. |
 | `tests/architecture/dependency-rules.md` | Executable static-rule owners, global production reachability/export policy, strict feature promotion, and tool transition. |
-| Active plan under `docs/plans/` | Target architecture and implementation units. |
+| `docs/plans/2026-09-01-001-refactor-local-backend-contract-alignment-plan.md` | Active target architecture and implementation units. |
+| `docs/qa/2026-09-01-frontend-architecture-independent-read-only-reaudit.md` | Current independent audit evidence for the frontend/backend revisions above. |
+| `docs/plans/2026-08-29-001-refactor-frontend-architecture-overhaul-plan.md` | Superseded historical plan; not executable. |
 | `docs/qa/frontend-architecture-smoke.ko.md` | Live-only Vercel/OCI/Maps/Toss sandbox runbook. |
 | `frontend-architecture-freeze.ko.md` | Superseded July snapshot. |
 | `frontend-structure-refactor.md` | Superseded July outcome record. |

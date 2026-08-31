@@ -1,7 +1,8 @@
 # Frontend Ownership and Cutover Matrix
 
-> Operational registry for the migration described by the active plan.  
-> Baseline state: U4 commit `f5222d5`, followed by U5-U13, U19, U21, U22, U14, and U15 cutovers.
+> Operational registry for the active
+> [2026-09-01 plan](../plans/2026-09-01-001-refactor-local-backend-contract-alignment-plan.md).
+> Refactor starting baseline: `cfdb1e4`; read-only backend contract target: `b2ec09a`.
 > Current cutover state: app Router/session/structural UI, every feature-owned data/workflow boundary, all route screens, and interaction accessibility are active; legacy global roots are retired; production Knip reachability and export ownership are globally strict.
 > Current architecture meaning comes from
 > [`current-frontend-architecture.md`](./current-frontend-architecture.md).
@@ -9,6 +10,9 @@
 This file is deliberately mutable. Each implementation unit updates the rows it
 owns in the same change that switches a production consumer. It records runtime
 ownership; it is not a substitute for git history or plan progress.
+An **Active** runtime owner below records who runs today; it does not assert that
+the owner's wire contract already matches `b2ec09a`. Rows change with the small
+owner-switch unit that closes each current contract gap.
 
 ## Registry rules
 
@@ -96,8 +100,8 @@ auth feature commands have no compatibility context.
 | Image URL boundary | `src/platform/assets/imageUrl.ts` | feature asset ports or direct platform boundary | Complete U22; the utility facade is absent |
 | Shared React test harness | `src/test/renderApp.tsx`, `createTestQueryClient.ts` | same test-only boundary | U4/U19 active; production imports are blocked, tests use the production OverlayProvider, and caller-owned QueryClients/portal roots retain caller lifetime |
 | Cross-feature seams | No production feature compatibility seam remains | App composition and workflows/reconciliation ports | Every feature-to-peer production import is forbidden, including files named `appShell.ts` or `publicCache.ts`; app composition joins only feature-owned public ports and scoped cache projections | Complete U22; feature compatibility filenames and graph exceptions are zero |
-| UI structural runtime | `src/app/header/**`, five app route frames, app overlays, shared interaction primitives | same plus shared responsive policy | U19/U14 active: sole-main shell, one ordered overlay stack, keyboard DatePicker, semantic cards, bottom-sheet controls, and deterministic reflow contracts | Complete U14/U16; transformed custom-media aliases retain the same responsive ownership |
-| Tokens/assets/primitives | `src/shared/{styles,ui,assets}` and `src/app/errors/**` | same | Primitive → semantic → component token references, exact layer ownership, global CSS, a domain-free Icon/pictogram catalog, accommodation-owned amenity mappings, manifest-owned wordmark/PWA assets, the app ErrorBoundary, and four deterministic visual baselines are active. `src/components`, `src/styles`, test-only shared abstractions, unused logo variants, and tracked tier exports are absent | Complete U15; visual redesign must extend the owned tokens and real primitives and intentionally update visual baselines without recreating compatibility roots |
+| UI structural runtime | `src/app/header/**`, five app route frames, app overlays, shared interaction primitives | same plus shared PageContainer/responsive policy | Sole-main shell, one ordered overlay stack, keyboard DatePicker, semantic cards, bottom-sheet controls, and existing deterministic reflow contracts are active | 2026-09-01 U15 remains open: Vite transforms custom media, but production has zero named-alias consumers and page width/gutter ownership is still distributed |
+| Tokens/assets/primitives | `src/shared/{styles,ui,assets}` and `src/app/errors/**`; detail/editor keep separate amenity registries | parent accommodation semantic catalog plus current context-specific detail/editor glyph presentation | Primitive → semantic → component token references, global CSS, a domain-free Icon/pictogram catalog, manifest-owned wordmark/PWA assets and the app ErrorBoundary are active. Amenity code/label ownership is not consolidated; current detail/editor glyphs intentionally differ | 2026-09-01 U14 remains open; consolidate amenity semantics without claiming glyph unification or moving domain taxonomy into shared UI |
 | Build/dev | `vite.config.ts` and root `index.html` after fail-closed validation for API/asset origins, Toss browser keys, build-only `PUBLIC_URL`, and misplaced server-secret shapes | Vite | Complete U16; Vite 8 on Node 22.13+ or Node 24 owns `dev`/`build`/`preview`, and `build/`, `build/static/`, `/api` proxy, public assets, CSS Modules, custom-media transforms, production JavaScript/development CSS source maps, and lazy chunks retain their external contracts. Browser output has one explicit Vite `baseline-widely-available` owner rather than the retired CRA query. Vite's native ESM config is covered by resolved-config, lint, reachability, and hostile production-build gates without a temporary second TypeScript compiler |
 | Static hosting/rollback | `vercel.json` plus immutable Git/Vercel deployments | same | Vercel serves real files before the SPA fallback, caches hashed `/static/*` assets as immutable, and revalidates `index.html`; keep the previous deployment and restore its alias atomically. Preview deep-link, already-open-tab, OCI, and Toss sandbox evidence remains deferred rather than marked verified |
 | Unit/integration runner | `vitest.config.ts`, `src/test/setup.ts`, and test-local Vitest mocks/types | same | Complete U17/U23; the full suite runs through Vitest/jsdom in deterministic file order, and CRA/Jest runtime dependencies and global compatibility shims are absent |

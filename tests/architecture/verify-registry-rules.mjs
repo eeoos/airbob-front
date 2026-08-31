@@ -3,7 +3,10 @@ import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { findLiveRemovedFeatures } from "../../scripts/architecture/verify-architecture-ratchet.mjs";
+import {
+  assertCurrentFeatureScopesMatchRegistry,
+  findLiveRemovedFeatures,
+} from "../../scripts/architecture/verify-architecture-ratchet.mjs";
 import {
   assertKnipConfigIsCanonical,
   assertNoUnsupportedRuntimeDependencySections,
@@ -86,6 +89,80 @@ try {
     throw new Error(
       "Valid top-level and nested feature paths were not preserved.",
     );
+  }
+
+  assertCurrentFeatureScopesMatchRegistry({
+    currentFeatureScopes: [
+      "accommodations/detail",
+      "accommodations/edit",
+      "accommodations/listing-editor",
+      "search",
+    ],
+    migratedFeatures: valid.migratedFeatures,
+  });
+
+  let missingCurrentScopeWasRejected = false;
+  try {
+    assertCurrentFeatureScopesMatchRegistry({
+      currentFeatureScopes: ["accommodations", "accommodations/detail"],
+      migratedFeatures: ["accommodations/detail"],
+    });
+  } catch (error) {
+    if (
+      error.message !==
+      "architecture-ratchet.json is missing current feature ownership scopes: accommodations"
+    ) {
+      throw error;
+    }
+
+    missingCurrentScopeWasRejected = true;
+  }
+  if (!missingCurrentScopeWasRejected) {
+    throw new Error("An unregistered current parent feature was accepted.");
+  }
+
+  let missingNestedScopeWasRejected = false;
+  try {
+    assertCurrentFeatureScopesMatchRegistry({
+      currentFeatureScopes: [
+        "accommodations",
+        "accommodations/detail",
+        "accommodations/listing-editor",
+      ],
+      migratedFeatures: ["accommodations", "accommodations/detail"],
+    });
+  } catch (error) {
+    if (
+      error.message !==
+      "architecture-ratchet.json is missing current feature ownership scopes: accommodations/listing-editor"
+    ) {
+      throw error;
+    }
+
+    missingNestedScopeWasRejected = true;
+  }
+  if (!missingNestedScopeWasRejected) {
+    throw new Error("An unregistered current nested feature was accepted.");
+  }
+
+  let staleRegisteredScopeWasRejected = false;
+  try {
+    assertCurrentFeatureScopesMatchRegistry({
+      currentFeatureScopes: ["search"],
+      migratedFeatures: ["reviews", "search"],
+    });
+  } catch (error) {
+    if (
+      error.message !==
+      "architecture-ratchet.json contains scopes not discovered from current source: reviews"
+    ) {
+      throw error;
+    }
+
+    staleRegisteredScopeWasRejected = true;
+  }
+  if (!staleRegisteredScopeWasRejected) {
+    throw new Error("A stale registered feature scope was accepted.");
   }
   const nestedPolicy = createTargetPolicy({ projectRoot: fixtureRoot });
   if (

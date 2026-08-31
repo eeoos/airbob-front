@@ -1,6 +1,7 @@
 # Frontend Refactor Plan Supersession Index
 
 > Recorded: 2026-08-29 KST  
+> Updated: 2026-09-01 KST
 > Purpose: preserve architectural history without allowing old plans to become
 > execution sources again.
 
@@ -8,8 +9,11 @@
 
 - Current production architecture:
   [`docs/architecture/current-frontend-architecture.md`](../architecture/current-frontend-architecture.md)
-- Active overhaul plan:
-  [`docs/plans/2026-08-29-001-refactor-frontend-architecture-overhaul-plan.md`](../plans/2026-08-29-001-refactor-frontend-architecture-overhaul-plan.md)
+- Active contract-alignment plan:
+  [`docs/plans/2026-09-01-001-refactor-local-backend-contract-alignment-plan.md`](../plans/2026-09-01-001-refactor-local-backend-contract-alignment-plan.md)
+- Independent audit evidence for frontend `cfdb1e4` and read-only backend target
+  `b2ec09a`:
+  [`docs/qa/2026-09-01-frontend-architecture-independent-read-only-reaudit.md`](../qa/2026-09-01-frontend-architecture-independent-read-only-reaudit.md)
 - Mutable cutover registry:
   [`docs/architecture/frontend-ownership-matrix.md`](../architecture/frontend-ownership-matrix.md)
 - Migration execution rules:
@@ -17,9 +21,11 @@
 - Browser persistence/privacy registry:
   [`docs/architecture/frontend-browser-data-inventory.md`](../architecture/frontend-browser-data-inventory.md)
 
-Only these sources may direct new architecture implementation. Historical files
-below explain why current code exists; their task lists, gates, and future-work
-sections are superseded.
+Only the current architecture, active 2026-09-01 plan, mutable registries and
+migration rules may direct new architecture implementation. The audit is
+evidence for those decisions, not a second plan. Historical files below explain
+why current code exists; their task lists, gates, and future-work sections are
+superseded.
 
 ## Git lineage summary
 
@@ -34,8 +40,20 @@ old design:
   payment, and editor race/session behavior after that freeze.
 
 The seams introduced in July were useful migration steps, not the final target.
-The active plan preserves their behavior while replacing their cycles and
-manual ownership.
+The completed 2026-08-29 work preserved their behavior while replacing their
+cycles and manual ownership. The active 2026-09-01 plan preserves those
+converged boundaries while correcting current backend-contract and pre-design
+ownership gaps.
+
+## 2026-08-29 — completed overhaul, now historical
+
+- [`frontend architecture overhaul plan`](../plans/2026-08-29-001-refactor-frontend-architecture-overhaul-plan.md)
+
+This plan explains the route, ownership, Vite/Vitest, native HTTP and strict-tool
+cutovers that produced frontend base `cfdb1e4`. Its completion claims are not
+authority for the read-only backend target `b2ec09a`, booking/payment contract
+alignment, amenity consolidation or custom-media consumer migration. Do not
+resume its unit numbers; use the active 2026-09-01 plan.
 
 ## Current-tree historical plans
 
@@ -87,7 +105,7 @@ workflow. They do not account for the August session/race hardening.
 
 - [`frontend-pre-airbnb-design-structure-closure`](../superpowers/plans/2026-07-05-airbob-frontend-pre-airbnb-design-structure-closure.ko.md)
 
-This plan records a historical readiness claim. The active overhaul plan
+This plan records a historical readiness claim. The active 2026-09-01 plan
 supersedes its remaining-work and design-entry decision.
 
 ### 2026-07-06 — freeze and full-audit hardening

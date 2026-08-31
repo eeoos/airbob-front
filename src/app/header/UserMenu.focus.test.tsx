@@ -23,7 +23,7 @@ vi.mock("../session/useSession", () => ({
   useSession: () => ({ logout: mockLogout }),
 }));
 
-vi.mock("../../features/accommodations/ports/draftCreate", () => ({
+vi.mock("../../features/accommodations/ui/draftCreate", () => ({
   useCreateAccommodationDraft: () => ({
     createDraft: mockCreateDraft,
     isCreating: false,
