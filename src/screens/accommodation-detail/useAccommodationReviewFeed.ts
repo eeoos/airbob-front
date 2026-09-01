@@ -35,13 +35,14 @@ export const useAccommodationReviewFeed = ({
   });
 
   useEffect(() => {
-    if (!reviewsQuery.isError) return;
+    if (!reviewsQuery.isError || reviewsQuery.isFetchNextPageError) return;
     onError(toAccommodationErrorMessage(reviewsQuery.error));
   }, [
     onError,
     reviewsQuery.error,
     reviewsQuery.errorUpdatedAt,
     reviewsQuery.isError,
+    reviewsQuery.isFetchNextPageError,
   ]);
 
   const { fetchNextPage, hasNextPage, isFetchingNextPage, refetch } =

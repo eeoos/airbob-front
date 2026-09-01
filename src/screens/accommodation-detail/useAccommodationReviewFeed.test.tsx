@@ -144,7 +144,7 @@ describe("useAccommodationReviewFeed", () => {
             resolveSecondPage = resolve;
           }),
       );
-    mockReviewsQuery.mockReturnValue({
+    let queryResult: Record<string, unknown> = {
       data: {
         pages: [
           {
@@ -158,13 +158,15 @@ describe("useAccommodationReviewFeed", () => {
       fetchNextPage,
       hasNextPage: true,
       isError: false,
+      isFetchNextPageError: false,
       isFetching: false,
       isFetchingNextPage: false,
       isLoading: false,
       refetch: vi.fn(),
-    });
+    };
+    mockReviewsQuery.mockImplementation(() => queryResult);
     const onError = vi.fn();
-    const { result } = renderHook(() =>
+    const { result, rerender } = renderHook(() =>
       useAccommodationReviewFeed({
         accommodationId: 7,
         enabled: true,
@@ -191,6 +193,14 @@ describe("useAccommodationReviewFeed", () => {
       rejectFirstPage(new Error("late failure"));
       await firstRequest;
     });
+    queryResult = {
+      ...queryResult,
+      error: new Error("late failure"),
+      errorUpdatedAt: 1,
+      isError: true,
+      isFetchNextPageError: true,
+    };
+    rerender();
 
     expect(onError).not.toHaveBeenCalled();
     expect(result.current.loadMoreErrorMessage).toBeNull();
