@@ -18,7 +18,7 @@ OCI, Vercel, AWS와 실제 Airbnb visual restyling은 이번 계획의 완료 �
 
 [2026-09-01 최초 재감사](../qa/2026-09-01-frontend-architecture-local-backend-readiness-audit.md)와 [독립 읽기 전용 재감사](../qa/2026-09-01-frontend-architecture-independent-read-only-reaudit.md)는 최근 frontend 변경이 같은 구조를 임의로 뒤집은 것이 아니라 `pages → app route adapter + screens`, CRA→Vite, Jest→Vitest, Axios→native HTTP로 수렴한 과정이라고 판정했다. 다만 수렴은 부분적이다. DAG, route, session, platform과 toolchain 경계는 유지할 수 있지만 booking/payment semantics, 문서 authority와 pre-design UI boundary는 아직 안정화되지 않았다. 현재 작업 환경에서는 지원 Node/dependency가 준비되지 않아 과거의 architecture/structure/browser green을 독립적으로 재증명하지 못했으며, 구현 중 repository-declared Node로 다시 검증한다.
 
-그러나 backend는 frontend 안정화 이후 availability split, quote-only checkout, reservation idempotency, payment-attempt token과 async payment operation을 도입했다. 현재 frontend는 detail의 `unavailable_dates`를 spread하고, reservation을 직접 생성하며, payment attempt 없이 confirm을 보내고, 202 Accepted를 성공으로 처리한다. 이 상태에서 디자인을 크게 바꾸면 contract failure와 visual regression을 동시에 추적해야 한다.
+그러나 backend는 frontend 안정화 이후 availability split, quote-only checkout, reservation idempotency, payment-attempt token과 async payment operation을 도입했다. 독립 재감사의 `cfdb1e4` 기준 frontend는 detail의 `unavailable_dates`를 spread하고, reservation을 직접 생성하며, payment attempt 없이 confirm을 보내고, 202 Accepted를 성공으로 처리했다. 이 상태에서 디자인을 크게 바꾸면 contract failure와 visual regression을 동시에 추적해야 했다.
 
 이번 계획은 기존 architecture를 또 갈아엎지 않는다. Current V1 contract를 feature adapter에 반영하고 booking/payment state machine을 exact-replay 가능한 transaction으로 바꾼 뒤, 확인된 pre-design boundary만 작은 vertical unit으로 정리한다.
 
@@ -154,6 +154,14 @@ OCI, Vercel, AWS와 실제 Airbnb visual restyling은 이번 계획의 완료 �
 - KTD24. **Do not invent a support product surface:** `REQUIRES_REVIEW`는 allowlisted 설명, reservation/operation identifier와 reservation-detail 이동을 제공한다. 실제 전화, 이메일, help URL은 별도 제품 결정 없이는 추가하지 않는다.
 - KTD25. **Treat the current fail redirect as data-less cancellation evidence:** Current Toss fail callback does not carry the full success tuple, so its provider code/message/orderId cannot authorize a journal claim or payment mutation. The bootstrap boundary scrubs it before children, retains only an internal allowlisted presentation reason in memory, and the route converges to reservation status. Same-attempt retry or hold release is offered only from an already-authorized `attempt-ready` flow reached through its owned pre-callback route reference, never from fail query data.
 - KTD26. **Keep post-Accepted route state as a locator, never authority:** Navigation after a verified receipt may carry the exact credential-free operation reference in owned `history.state`. Reload/history can use it only to request an exact receipt lease claim; the validated subject/receipt/tuple/TTL/route match remains the sole authorization for polling and terminal publication. Missing or malformed route state converges to reservation detail instead of discovering receipts by owner.
+- KTD27. **Close the callback claim/history crash window without owner-wide discovery:** Candidate reconciliation may durably join the one fixed callback-credential slot to its exact attempt journal before session publication. If the browser crashes after URL scrub/claim but before credential-free history publication, the success route may recover that joined pair by the exact reservation path only; it still requires same owner, current lease replacement, live TTL, fixed known slots, matching credential/journal tuple and an absent receipt barrier. This exception does not expose owner-wide journal/receipt discovery. Anonymous bootstrap uses v2-preserving cleanup only while the fresh callback is live, and generic login return parsing continues to reject every identity-owned transaction path; only the successfully retained callback capability may resume its exact clean success path.
+- KTD28. **Keep candidate reconciliation out of route bundles and the full repository out of the initial graph:** The stable app boundary imports only the narrow callback-claim and candidate-classification capabilities needed before identity publication. Full quote/checkout/recovery repositories remain behind their lazy transaction routes; this preserves the existing initial and route bundle budgets without weakening the synchronous identity fence.
+- KTD29. **Require the exact HTTP acceptance status:** The shared API request boundary may validate one expected successful status without forwarding that policy into native transport. Payment confirmation requires `202`; a valid operation body under `200` or `201` is an invalid response and cannot create a receipt.
+- KTD30. **Publish transaction locators before durable authority can outrun history:** Quote generates and write/read-back verifies its credential-free accommodation handle before network I/O. A handle with no journal is safe to discard because quote creates no hold. After checkout migrates the journal to a reservation locator, only a load with the same owner, exact flow and immutable accommodation may perform the one-way locator rejoin, and ordinary commands continue to reject the old locator.
+- KTD31. **Classify identity cleanup by cause:** A fresh scrubbed callback survives only an anonymous authentication rejection needed for the login detour. Explicit logout, authenticated revocation and identity replacement discard the memory credential and verified-purge identity-owned v2 state; durable flow-history publication consumes the memory credential immediately.
+- KTD32. **Close reservation status drift only from an authoritative read:** R021/R023 never cause the frontend to invent a reservation status. The confirm route reads the exact guest reservation and may remove an `attempt-requesting` or `hold-release-requesting` journal only when the same reservation is no longer payment-eligible, has no hold expiry and returns a monotonic server time.
+- KTD33. **Make route generation changes cancel UI authority:** A payment result controller run is keyed by auto-start mode, exact start reference, route lease and workflow. A changed generation clears its timer and starts the newest reference even while an older promise is unresolved; old completions cannot clear the new in-flight state or publish a view.
+- KTD34. **Treat verified receipt expiry as a distinct terminal recovery result:** After exact owner/flow/operation/reservation validation and receipt-last cleanup, expiry produces allowlisted identifiers and reservation/profile fallback only. It does not collapse into a generic retry state and sends no backend confirm or operation request.
 
 ## High-Level Technical Design
 
@@ -264,6 +272,7 @@ stateDiagram-v2
   ReservationReady --> AttemptRequesting: explicit pay + durable transition
   AttemptRequesting --> AttemptRequesting: ambiguous response / resource replay
   AttemptRequesting --> AttemptReady: response tuple + durable write
+  AttemptRequesting --> HoldReleaseRequesting: explicit abandon after ambiguous attempt request
   note right of AttemptReady
     Toss launch, cancel and fail are transient effects;
     the durable phase remains AttemptReady.
@@ -523,7 +532,7 @@ U2와 production-reachable HTTP/read-side capability commit은 U1 뒤 진행한�
   - Add attempt and hold-release contracts/API/model/ports under `src/features/reservations/payment` with tests.
   - Modify `src/workflows/booking-payment/checkout/paymentRequest.ts`, gateway/repository contracts and tests.
   - Modify reservation-confirm/fail controller and screen contracts for retry versus abandon actions.
-- Approach: Prepare the Toss SDK before the pay click. Attempt issuance and release share the transaction’s single command lane. Persist `attempt-requesting` or `release-requesting` with exact reservation identity before the request, validate the response tuple, then advance. The attempt has no independent expiry: its returned `holdExpiresAt`/`serverTime` is authoritative and `remainingSeconds` may be zero on a legal replay. Persist attempt-ready before Toss and launch without another network wait only while the hold still has usable time. Release is explicit before callback/confirm and never relies on unload cleanup.
+- Approach: Prepare the Toss SDK before the pay click. Attempt issuance and release share the transaction’s single command lane. Persist `attempt-requesting` or `hold-release-requesting` with exact reservation identity before the request, validate the response tuple, then advance. An explicit release is allowed from `attempt-ready` and from an ambiguous `attempt-requesting` state because the backend reservation hold—not a successful browser attempt response—is the release authority. The attempt has no independent expiry: its returned `holdExpiresAt`/`serverTime` is authoritative and `remainingSeconds` may be zero on a legal replay. Persist attempt-ready before Toss and launch without another network wait only while the hold still has usable time. Release is explicit before callback/confirm and never relies on unload cleanup.
 - Test scenarios:
   - Attempt response loss replays the endpoint and recovers the same ID.
   - Attempt-requesting reload replays the same reservation endpoint and cannot create a second flow.
@@ -718,6 +727,24 @@ U2와 production-reachable HTTP/read-side capability commit은 U1 뒤 진행한�
   - The pre-redesign gate can run without OCI, while local contract evidence is linked and production deployment remains deferred.
 - Verification: No target screen requires editing a transaction state machine to apply a visual slice, and the next design plan can sequence Home/Auth/Header → Search/Wishlist → Detail → Profile/Reservations → Review/Editor with payment visuals last.
 
+## Execution Status (2026-09-01)
+
+| Unit    | Status               | Evidence                                                                                                                                                                                                                          |
+| ------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| U1      | Complete             | Independent audit and corrected authority/registry documents; exact feature-scope, HTTP and public-surface gates are active.                                                                                                      |
+| U2      | Complete             | `39a435a` separates accommodation detail from availability and preserves fail-closed booking controls.                                                                                                                            |
+| U3      | Complete             | Staged journal/session/callback commits culminate in v2 owner switch `bf78544`; direct-create, v1 confirmation and generic versioned session storage are retired.                                                                 |
+| U11     | Complete             | `42bda80` owns the network-hermetic browser matrix; `ac50110` fixes its Playwright clock boundary at the held-response edge. The two polling cases passed 40 repeated runs before the canonical 59-scenario run.                  |
+| U12     | Blocked / Unverified | [`local backend profile attempt`](../qa/2026-09-01-local-backend-payment-profile-attempt.md) records the missing backend-owned disposable fixture/reset and inactive services. No mutation or Toss sandbox payment was attempted. |
+| U13     | Complete             | `fb6b9c0` replaces React setter contracts with semantic editor commands and one amenity catalog.                                                                                                                                  |
+| U14–U15 | Complete             | `ed8ef67` establishes state/image recipes, PageContainer, responsive aliases, runtime tokens and reservation-detail screen ownership.                                                                                             |
+| U16     | Complete (offline)   | `ac50110` is the final code checkpoint; canonical `npm run verify:design-ready` is green with U12 kept separate.                                                                                                                  |
+
+The activation revision is `bf78544`. No pre-v2 revision is a compatible rollback
+target once v2 browser records exist. `42bda80` is the first verified
+v2-compatible checkpoint for later rollback/forward decisions; incidents between
+activation and that checkpoint remain fail-closed and roll-forward-only.
+
 ## Acceptance Examples
 
 - AE1. Given detail succeeds and availability fails, the guest still sees accommodation content but cannot request a quote until availability retry succeeds.
@@ -750,6 +777,12 @@ U2와 production-reachable HTTP/read-side capability commit은 U1 뒤 진행한�
 - AE28. Given a fresh document's cookie resolves to another subject while an old v2 journal exists, candidate identity publication waits for verified owner reconciliation; same owner preserves an unleased journal, foreign owner is verified-purged, and unknown/newer state blocks publication.
 - AE29. Given a persisted numeric epoch equals the new document's epoch by coincidence, no transaction data or command is authorized until exact route/resource claim replaces the cryptographic runtime lease and read-back verifies it.
 - AE30. Given Accepted created a receipt, only an exact-version operation reference joined to that same-subject receipt can resume polling; a reference alone, an owner-only scan or a forged operation ID causes zero operation reads and converges to reservation detail.
+- AE31. Given payment confirm returns a valid operation envelope under HTTP 200 or 201, no operation receipt is written and the response is rejected as an unexpected success status.
+- AE32. Given the browser crashes before quote persistence, the pre-published exact accommodation handle finds no journal and is safely removed; given it crashes after quote persistence, the same handle reloads the exact quote without owner-wide discovery.
+- AE33. Given checkout persisted a reservation locator but history still contains the same flow's accommodation locator, load may verify and publish the one-way migrated handle; mutation commands with the old locator still send zero requests.
+- AE34. Given an authenticated callback owner logs out or is revoked, the pending memory credential and v2 state are cleared; only a true anonymous authentication rejection may retain them for the bounded login detour.
+- AE35. Given R021/R023, a mismatched, payment-eligible, stale-time or still-held reservation read leaves the journal fail-closed; only a verified non-payment-eligible exact reservation observation closes it before detail navigation.
+- AE36. Given operation A is unresolved while history changes to operation B, B starts once, A publishes nothing after settling, and an identical B rerender does not duplicate polling.
 
 ## System-Wide Impact
 

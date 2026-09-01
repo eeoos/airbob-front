@@ -33,11 +33,12 @@ only.
   Search, and Accommodation Detail controllers receive decoded URL props and do
   not mirror committed route state into local durable state. Transient review
   results use an exact typed one-shot history-state codec.
-- `src/workflows/booking-payment/**` is the sole checkout, payment-request,
-  confirmation, and reconciliation writer. Browser checkout/callback records and
-  the scrubbed in-memory callback claim are correlation or recovery inputs only;
-  owned reservation detail plus backend confirmation/payment status are the
-  terminal authority.
+- `src/workflows/booking-payment/**` is the sole quote, idempotent checkout,
+  payment-attempt, hold-release, confirmation, and operation-recovery writer.
+  The v2 journal and claimed callback credential authorize only their exact
+  pre-Accepted phase. After HTTP 202, the credential-free operation receipt is
+  the sole browser recovery authority; only its validated `SUCCEEDED` or
+  `FAILED` observation is terminal.
 - `src/workflows/listing-editor/**` is the sole Accommodation Editor mutation
   writer. It captures one route/session lease, shares one exact active Promise,
   journals committed phases, and locks uncertain mutations instead of blindly
@@ -62,7 +63,8 @@ src/index.tsx
     BrowserRouter (stable across session generations)
       AppProviders
         OverlayProvider (one portal root + dialog stack)
-          SessionProvider
+          PaymentCallbackCredentialBoundary (scrub + short memory claim)
+            SessionProvider
             useSessionController (explicit state + transitions)
             provider-local physical auth command queue
             useSessionQueryLifetime (subject/epoch generations)
@@ -91,23 +93,23 @@ Current owners:
 | Resumable authentication intent | `src/workflows/auth-intent/**`, composed by `src/app/providers/AppProviders.tsx` | A memory-only provider outside the keyed Query subtree holds only the latest validated primitive intent. Search and Accommodation adapters atomically claim it with a captured session scope; old-generation callbacks never resume Wishlist, reservation, or coupon work. |
 | Server-state client | `src/app/session/SessionProvider.tsx`, `src/platform/query/createQueryClient.ts` | Each session generation receives a new QueryClient. Leaving an authenticated identity remounts the provider subtree; feature Query options carry explicit subject/epoch scopes. |
 | Authentication feature | `src/features/auth/{api,model,ports,ui}/**`, `src/screens/auth/**` | Login and signup routes render the owned controller/screen. Session owns login identity transitions; the feature owns signup transport and form behavior through the injected auth-command boundary. |
-| Routing and shell metadata | `src/app/router/definitions.ts`, `manifest.ts`, `lazyRoutes.tsx`, `paths.ts` | Component-free policy and 15 literal lazy adapter entries are the active production manifest. |
+| Routing and shell metadata | `src/app/router/definitions.ts`, `manifest.ts`, `lazyRoutes.tsx`, `paths.ts` | Component-free policy, 15 literal lazy adapter entries, and one explicit page-layout owner per route are the active production manifest. |
 | Application header | `src/app/header/**` | `Header` and `UserMenu` are app-composition owners; they consume feature public UI/ports and are injected into route frames. |
-| Application shells | `src/app/shells/**` | Browse, form, transaction, editor, and bare shells are route-frame-only owners and render exactly one `main`; nested page structure uses ordinary labelled sections instead of a second shell abstraction. |
+| Application shells | `src/app/shells/**` | Browse, form, transaction, editor, and bare shells own route surface, header placement, and exactly one `main`. They never impose page width or gutters; nested page structure uses ordinary labelled sections instead of a second shell abstraction. |
 | Overlay runtime | `src/app/overlays/OverlayProvider.tsx`, `src/shared/ui/overlayRuntime.ts` | One app-owned `#airbob-portal-root` hosts Dialog and route Toast. Modal and local non-modal registrations share topmost Escape order; only modals lock scroll and isolate the app. Dialog owns focus containment, explicit initial focus, inactive-layer semantics, and focus-lineage restoration. |
 | API transport and envelope | `src/platform/http/**` | One native browser transport and one `AppError` envelope boundary. Credentialed `fetch` owns ordinary JSON and multipart requests; progress-reporting multipart uploads alone use credentialed `XMLHttpRequest`. Feature adapters consume the boundary directly, and the browser owns every `FormData` content boundary. |
 | Browser platform boundary | `src/platform/config/**`, `storage/**`, `integrations/**`, `assets/**`, `browser/**`, `session/**` | Owns public environment input, browser storage access, external SDK globals/scripts, image URL resolution, isolated new-tab navigation, exact current-history-entry validation, auth-error signaling, and the non-PII cross-tab channel. |
 | Wishlist feature and workflow | `src/features/wishlist/**`, `src/workflows/wishlist-membership/**`, `src/screens/wishlist/**` | Feature-owned API/model/scoped read options feed a URL-prop-only screen controller. Search, Detail, and Wishlist lazy adapters mount one route-scoped provider inside the current QueryClient generation, so the writer is disposed on route departure without entering the initial app chunk. Its subject/epoch-fenced command runner owns collection/membership create, add, remove, delete, memo-save, and recently-viewed removal. App composition sends Search and Detail updates only to their owning scoped cache projections. |
 | Search feature | `src/app/router/routes/SearchRoute.tsx`, `src/screens/search/**`, `src/features/search/**` | The app adapter alone owns codec parsing, page push, map-bounds replace, booking-safe detail URLs, auth-intent claim, and workflow composition. `SearchController` derives request/map/view state; feature-owned API/wire mappers and scoped Query options own server reads, cancellation, and stale-result fencing. `SearchScreen` is props-only. SearchBar receives a typed route port and its reducer owns draft/popover/IME interaction only. |
-| Accommodation Detail and reservation create | `src/app/router/routes/AccommodationDetailRoute.tsx`, `src/screens/accommodation-detail/**`, `src/features/accommodations/detail/**`, `src/workflows/booking-payment/reservation-create/**` | The app adapter owns typed booking URL state, exact history-entry/session leases, auth-intent claim, checkout handoff, Wishlist composition, and recently-viewed injection. The independently ratcheted `accommodations/detail` scope owns camelCase models, queries, cache projections, coupon adapters, and detail UI; anonymous projections always mask server Wishlist membership. Screen-local review-feed, recently-viewed, coupon-command, reservation-command, and gallery hooks keep the controller compositional, and the review feed advances one cursor only after its modal sentinel becomes visible. Reservation create uses same-Promise single-flight and a conservative terminal lock, including when a route generation interrupts an already-sent command. Before its POST and again before handoff commit, the aggregate blocks a second reservation while an exact checkout/callback pair still requires payment recovery; the active documents are preserved and the user returns to reason-only reconciliation. |
-| Booking checkout and payment | `src/app/router/PaymentCallbackCredentialBoundary.tsx`, `src/app/router/routes/{ReservationConfirmRoute,PaymentSuccessRoute,PaymentFailRoute}.tsx`, `src/screens/{reservation-confirm,payment-result}/**`, `src/features/reservations/payment/**`, `src/workflows/booking-payment/{checkout,confirmation}/**` | One aggregate owns the versioned checkout/callback repositories, callback claim/replay bootstrap, Toss request policy, confirmation, and status reconciliation. A payment-success-specific boundary in the stable app-provider lifetime parses the external tuple into route-lifetime memory, blocks session/auth children until both histories are credential-free, survives the authenticated QueryClient generation replacement, and releases its claim on route departure without remounting the session/query runtime. App adapters claim exact route/session generations, consume the minimal history handle, and compose props-only screens. Gateway request requires a current subject-owned checkout with no persisted callback; any callback phase returns to confirmation/reconciliation recovery and can never remount payment request. `received` proves no confirm POST boundary was crossed; ownership preflight runs first, `confirming` is durably written immediately before the sole POST, and later phases reconcile only. Document-free server replay retains its scrubbed tuple in the success route when ownership lookup is temporarily unavailable, retries preflight in place, and starts reconciliation only after exact server ownership is verified. Confirmation/reconciliation additionally verifies the authenticated guest reservation and exact reservation/order/amount/resource tuple before confirm/status I/O. Only backend confirm or exact payment status can publish success. Retryable or pending results retain owned records for reconciliation, while only exact joined invalid/terminal/session boundaries purge them. |
+| Accommodation Detail and availability | `src/app/router/routes/AccommodationDetailRoute.tsx`, `src/screens/accommodation-detail/**`, `src/features/accommodations/{detail,catalog}/**` | Detail and availability are independent scoped queries. Detail content remains renderable when availability fails; quote controls fail closed and expose retry. The app adapter owns booking URL state, route/session leases, auth-intent claim, Wishlist composition, recently-viewed injection, and credential-free flow navigation. The controller starts the booking transaction only after a valid availability snapshot and explicit user action. Parent `accommodations/catalog` owns amenity codes/labels while detail and editor retain their context-specific glyphs. |
+| Booking and payment transaction | `src/app/router/PaymentCallbackCredentialBoundary.tsx`, `src/app/router/routes/{AccommodationDetailRoute,ReservationConfirmRoute,PaymentSuccessRoute,PaymentFailRoute}.tsx`, `src/screens/{accommodation-detail,reservation-confirm,payment-result}/**`, `src/features/reservations/{booking,payment}/**`, `src/workflows/booking-payment/{journal,transaction,checkout}/**` | One v2 transaction performs quote → explicit checkout → payment attempt → Toss sandbox request → exact confirm → exact HTTP 202 receipt → operation polling. Before quote I/O, the route write/read-back verifies a credential-free accommodation handle; after checkout, load alone may verify a same-owner/exact-flow one-way promotion to the reservation locator. The 60-minute subject-owned journal stores immutable request identity and forward-only phases before Accepted. R021/R023 close it only after an exact guest reservation read proves a monotonic, non-payment-eligible status; the frontend never guesses the server state. The callback boundary removes query/hash/Router state before children, retains a fresh credential in memory for at most nine minutes, and candidate reconciliation claims it only for the matching subject and attempt. Only anonymous authentication rejection preserves that detour; logout, authenticated revocation and identity replacement purge it. Receipt write/read-back precedes credential/journal cleanup. A 24-hour receipt with an exact history locator is required for polling; the locator alone grants no operation read. `REQUIRES_REVIEW` remains nonterminal and keeps polling. Verified expiry shows only allowlisted identifiers and reservation/profile fallback with no backend operation request. Route-generation changes cancel old UI authority so stale polls cannot suppress or overwrite the newest operation. The fail route is presentation-only and sends no transaction command. |
 | Review read and submission | `src/app/router/routes/ReviewCreateRoute.tsx`, `src/screens/review-create/**`, `src/features/reservations/{api,model,queries}/reviewableReservation*`, `src/features/reviews/**`, `src/workflows/review-submission/**` | A minimal camelCase reservation read model prevents legacy reservation DTOs from reaching the screen. One create/upload workflow makes post-create terminals irreversible, preserves real multipart `FormData`, suppresses stale navigation/publication, and terminal-locks ambiguous create outcomes rather than repeating a possible committed POST. Image-only upload failure remains typed partial success. Reviews is a strict architecture root. |
 | Accommodation Editor | `src/app/router/routes/AccommodationEditRoute.tsx`, `src/screens/accommodation-edit/**`, `src/features/accommodations/listing-editor/**`, `src/workflows/listing-editor/**` | The independently ratcheted `accommodations/listing-editor` scope owns the editor API, camelCase models, ports, and scoped Query projection. The app adapter owns resource/session/route provenance and injects profile publication, Daum postcode, and image URL ports. The controller hydrates one typed workflow instance and supplies only view data and callbacks to the props-only screen. The workflow owns single-flight save/publish, stale completion fences, immediate delete reconciliation, ordered upload/update/publish phases, and terminal uncertainty locks. The deleted `features/accommodations/edit/**` tree and global editor API methods cannot become a second writer. |
 | Profile and reservation reads | `src/app/router/routes/{ProfileRoute,ReservationDetailRoute,HostReservationDetailRoute}.tsx`, `src/screens/{profile,reservation-detail}/**`, `src/features/{profile,reservations}/**` | App codecs are the sole Profile URL authority. Controllers consume subject/epoch-scoped Query options with explicit guest/host audience keys, cancellation, camelCase models, and props-only screens. Listing editor and host actions publish through scoped Profile/reservation cache projections. |
 | Host listing management | `src/workflows/host-listing-management/**`, composed by `src/app/router/routes/ProfileRoute.tsx` | One route/session-leased writer owns publish, unpublish, and delete. API success and cache-publication failure are represented separately so the UI never repeats a possibly applied exact command. |
 | Legacy global roots | none | `src/{api,components,contexts,hooks,layouts,query,routes,types,utils}` are absent and executable gates prevent reintroduction. |
-| Domain-free UI | `src/shared/ui/**` | Tested primitives own Dialog, Toast, DatePicker, semantic navigation/action cards, shared non-modal overlay registration, and a typed `Icon`/glyph registry. Test-only `PageShell`, `ListingCard`, and `OverlaySurface` abstractions and all compatibility wrappers are removed. |
-| Shared styling and brand assets | `src/shared/styles/**`, `src/shared/assets/**` | Global CSS imports primitive, semantic, then component tokens in one explicit order. The responsive manifest and JS `matchMedia` policy agree at the 1024px boundary; the production wordmark is manifest-owned and public PWA icons use real Airbob artwork. Vite is configured to transform the owned custom-media aliases, but `cfdb1e4` has no production alias consumer; raw media migration and built-CSS proof remain 2026-09-01 plan U15 work. Detail/editor amenity code and label registries are also still duplicated; U14 will consolidate semantics while preserving their current context-specific glyphs. |
+| Domain-free UI | `src/shared/ui/**` | Tested primitives own Dialog, Toast, DatePicker, semantic navigation/action cards, `ImageWithFallback`, loading/empty/retryable/terminal state recipes, shared non-modal overlay registration, a typed `Icon`/glyph registry, and `PageContainer`. `PageContainer` alone owns the `edge`, `full`, `wide`, `content`, and `narrow` page width/gutter recipes. Maps HTML fallback remains a separate escaped vendor adapter rather than a React primitive. |
+| Shared styling and brand assets | `src/shared/styles/**`, `src/shared/assets/**` | Global CSS imports primitive, semantic, then component tokens in one explicit order. The pure responsive policy and custom-media manifest agree at every named boundary, production styles consume all seven aliases, Vite resolves them with `preserve: false`, and an executable ratchet holds raw width queries at zero. `runtimeDesignTokens.ts` is the pure typed owner for SVG/vendor values that cannot consume the CSS cascade; it reads no DOM/CSSOM, and shared/screens may not acquire a platform runtime-token reader. The two exact Google InfoWindow adapters remain separately inventoried exceptions because they write SDK-owned inline HTML/DOM styles. The production wordmark is manifest-owned and public PWA icons use real Airbob artwork. |
 | Build, development, and static deployment | `vite.config.ts`, root `index.html`, `vercel.json` | Vite 8 is the sole `dev`/`build`/`preview` owner on Node 22.13+ or Node 24 and retains `build/`, `build/static/`, the `/api` development proxy, CSS Modules, custom-media transforms, public assets, production JavaScript source maps, development CSS source maps, and route-level lazy chunks. The supported browser floor is Vite 8's pinned `baseline-widely-available` target (Chrome/Edge 111, Firefox 114, Safari/iOS 16.4); the old dynamic CRA Browserslist query is removed rather than implying a legacy bundle. Native ESM TypeScript config is checked by its own Node-only compiler project and exercised through Vite's resolver, ESLint, Knip, and hostile production builds. Vercel checks real files before the SPA fallback, serves hashed `/static/*` assets with immutable caching, and forces `index.html` to revalidate. |
 | Compiler environments | `tsconfig.json`, `tsconfig.test.json`, `tsconfig.tooling.json`, `tsconfig.e2e.json` | TypeScript 5.9 gives production source only DOM/Vite types and separately grants Vitest, Node tooling, and Playwright their exact globals. `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`, `noUncheckedSideEffectImports`, and `erasableSyntaxOnly` are blocking. A local ambient declaration in the environment adapter exposes only the five compile-time properties that Vite explicitly substitutes; Node types never enter the browser project. |
 | Local source lint environments | `eslint.config.mjs`, `tests/architecture/verify-eslint-config.mjs` | ESLint 9.39 uses native flat config and current TypeScript, React, stable Hooks, accessibility, Vitest, Testing Library, jest-dom, and Playwright plugins. Browser, Vitest/DOM/Node, Playwright/Node, ESM Node, and CommonJS Node scopes receive distinct globals; Jest globals and CRA presets are absent. Local binding/import feedback and executable process/storage/SDK/script/native-HTTP capability restrictions remain ESLint-owned, while import direction/cycles, production reachability/dependency declarations, and CSS policy remain exclusively dependency-cruiser, Knip, and Stylelint owned. Retired Axios imports and direct `fetch`/`XMLHttpRequest` use outside `src/platform/http/**` are executable failures. Unused disable directives and unused inline configs are errors; active suppressions require a narrow, reviewable reason. React Compiler-only ref/effect/memo adoption rules are explicitly outside this cutover so they cannot silently force semantic rewrites of established overlay/session/payment runtimes. |
@@ -143,6 +145,18 @@ there is no legacy route manifest, path/query copy, layout, or route body.
 | signup | `/signup` | public | form/hidden header | `app/router/routes/SignupRoute.tsx` | `screens/auth/AuthController.tsx` |
 | not-found | `*` | public | bare/hidden header | `app/router/routes/NotFoundRoute.tsx` | `screens/not-found/NotFoundScreen.tsx` |
 
+Page width and gutter ownership is independently recorded in each route
+definition and enforced against production screen sources:
+
+| Owner | Routes | Contract |
+| --- | --- | --- |
+| `PageContainer edge` | home | Unbounded, zero-gutter page surface |
+| `PageContainer full` | accommodation detail, profile | 1760px cap, zero page gutter; section-local spacing remains inside owned view sections |
+| `PageContainer wide` | wishlist | 1400px content cap with the preserved 64px → 48px → 24px gutter reflow |
+| `PageContainer content` | accommodation confirm, host reservation detail | 1200px content cap with 24px → 16px gutters |
+| `PageContainer narrow` | reservation review, payment success/fail, login/signup, not-found | 800px content cap with the preserved 24px gutter; narrower cards remain content-local |
+| Explicit viewport exception | search, accommodation editor, guest reservation detail | These three surfaces own map/sheet, wizard, or split-pane viewport scrolling and must not be wrapped by a constraining page container |
+
 All 15 entries are lazy. Each is a literal import and remains a separate
 route-level adapter entry. `src/app/header/**` owns Header/UserMenu composition, while
 `src/app/shells/**` owns route framing and the sole `main` landmark contract.
@@ -159,8 +173,9 @@ The retired legacy source roots are absent from src.
 | Profile route view | App `profileCodec` output passed by the app adapter | The URL is the sole durable guest/host tab and filter authority; the controller owns only transient sort, dialog, pending, and dismissed-error state. |
 | Server resources | Session generation QueryClient plus feature-owned TanStack Query options | U5 physically replaces and clears the client at an identity boundary. Wishlist, Search, Accommodation Detail/coupons, Reviews, Profile host listings, and guest/host reservation reads include subject/epoch keys/meta and forward cancellation. Guest/host audience and filter identity are explicit key inputs, and app composition reconciles only the captured scope through owning projections. |
 | Viewer identity | `SessionProvider` explicit reducer state | A non-PII subject and monotonic epoch define identity lifetime. Consumers use `useSession` or narrow injected feature-command ports; no mirrored auth context exists. |
-| Checkout recovery | `airbob:booking-payment-v1:checkout` plus a typed history handle | One static, subject-owned versioned record retains the exact checkout allowlist for 60 minutes; the history entry carries only purpose/version/operation ID and is replace-consumed. Foreign, expired, malformed, wrong-purpose/version, unknown-field, route-mismatched, and operation-mismatched inputs fail closed. A handoff mismatch that may reference another current checkout preserves it. Missing or unusable state is cleared and opens guest trips rather than inviting another reservation command. Retired input never triggers migration or backend recovery. Name and email never enter the record. |
-| Payment callback and confirm dedupe | stable-lifetime in-memory pre-auth claim, `airbob:booking-payment-v1:callback`, and the confirmation workflow instance | The pre-auth claim exists only for the scrubbed success-route lifetime but survives the session QueryClient generation switch. A subject-owned sensitive callback record with a sliding 15-minute TTL then retains the exact tuple and the `received`, `confirming`, or `reconciling` phase; every successful callback write first refreshes the joined checkout's longer 60-minute lifetime. A fresh callback joined to the current checkout starts at confirm-capable `received`; existing `confirming` and `reconciling` records are reconciliation-only. Exact concurrent commands share one active Promise; a possibly sent confirm is never repeated and later attempts reconcile. Reopening confirm while any joined callback exists routes to reason-only recovery without mounting the gateway. Retired browser markers are ignored. |
+| Pre-Accepted booking recovery | `airbob:booking-payment-v2:journal` plus an exact credential-free flow reference in `history.state` | One subject-owned v2 journal keeps quote, exact checkout request and idempotency key, Ready, attempt, and pre-confirm release/confirm phases for at most 60 minutes and no later than relevant server expiry. Full-record expected-phase replacement preserves immutable groups. Reload must join subject, cryptographic runtime lease, flow ID, route locator, phase, TTL, and exact tuple before any command. Customer name/email and paymentKey never enter the journal. |
+| Callback credential and confirm dedupe | stable-lifetime pre-auth memory claim plus `airbob:booking-payment-v2:callback-credential` | The boundary scrubs the external URL before session/auth children. Matching candidate identity and attempt data may persist the exact callback credential in one same-tab slot until the earlier of nine minutes from first capture or hold expiry. `confirm-submitting` is durable before the exact four-field POST. Network ambiguity preserves the credential for exact replay only while the receipt slot is proven absent; a present or opaque receipt barrier forbids confirm. |
+| Post-Accepted payment recovery | `airbob:booking-payment-v2:operation-receipt` plus an exact credential-free operation reference in `history.state` | Only an exact HTTP 202 with a validated body is written and read back before lower authority is removed; 200/201 are rejected. The receipt alone authorizes operation GET and monotonic observation replacement for up to 24 hours. Polling clamps server hints to 2–30 seconds, treats network failure as retryable, keeps `REQUIRES_REVIEW` unresolved, and acknowledges/cleans receipt-last only after a persisted `SUCCEEDED` or `FAILED` result is published. Exact verified expiry performs receipt-last cleanup, renders allowlisted reservation/operation identifiers and converges to reservation detail without re-confirm, retry or guessed operation lookup. |
 | Cross-tab session signal | `src/platform/session/sessionBroadcast.ts` | A same-origin BroadcastChannel exchanges only an exact non-PII transition envelope and drives invalidate-before-revalidate handling. |
 | Accommodation editor | One `listing-editor` workflow instance with an explicit state machine, operation journal, committed baseline revision, and route/session lease | The app route composes external ports; the controller owns React view derivation; the workflow serializes delete/save/publish commands, rejects stale completions, and exposes typed hydration, retryable, denied, invalid, and uncertainty-locked terminals. |
 | Ephemeral UI | Component-local state plus the app overlay stack | Popovers, hover, menu and dialog-open state stay with their interaction owner. Overlay ordering, topmost dismissal, focus restoration, and scroll locking are memory-only app runtime concerns. |
@@ -185,21 +200,23 @@ Detailed browser persistence and privacy properties are recorded in
   cross-tab/focus recovery; absolute latest-command ordering would require a
   backend idempotency or sequence contract and is outside the frontend-only
   migration authority.
-- An identity boundary advances the epoch, clears the current owned
-  `airbob:booking-payment-v1:` checkout/callback namespace and purge-deletes
-  exact retired payment-prefix keys without reading them through the injected
-  booking-payment cleanup port, cancels and clears the previous
-  QueryClient, and creates a new subject/epoch generation before publishing the
-  next viewer. When an authenticated identity is fenced, a generation key
+- An identity boundary advances the epoch, quarantines and clears the previous
+  QueryClient, reconciles the exact v2 journal/credential/receipt owner, and
+  creates a new subject/epoch/runtime-lease generation before publishing the
+  next viewer. Generic probes purge only retired v1 prefixes and preserve v2
+  until the candidate subject is known; verified logout, revocation, or a
+  different subject uses ordered credential → journal → receipt-last cleanup.
+  A fresh scrubbed callback also preserves v2 through the anonymous login
+  detour. Unknown/newer state or any unverifiable removal keeps publication
+  fail-closed. When an authenticated identity is fenced, a generation key
   remounts the QueryClient subtree so late mutation callbacks from the old tree
   cannot write into the new viewer's client. When no authenticated identity is
   present, the anonymous/error client is instead cancelled, cleared, and
   re-scoped in place; a failed login can therefore retain its modal intent,
   inputs, and exact error. A successful viewer probe replaces and remounts that
-  client only after payment cleanup completes. Current-namespace and retired-key
-  cleanup each retry one partial/storage-failed pass; a final non-cleared result is
-  propagated and leaves the session transition fail-closed instead of publishing
-  a new identity over residual payment state.
+  client only after payment reconciliation completes. Any storage or verification
+  failure is propagated and leaves the session transition fail-closed instead of
+  publishing a new identity over residual payment state.
 - `BrowserRouter` and the memory-only auth-intent provider live outside the
   keyed Query generation. An anonymous action registers one immutable,
   primitive-only latest attempt with its exact location key/path. Login failure
@@ -273,23 +290,19 @@ function-identity scope inference, global Query facade, or rollback reader.
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Google Maps/Places | `src/platform/integrations/{googleMaps,googlePlaces,useGoogleMapsScript}.ts` plus Search-owned Places hook | Exact HTTPS singleton loader, typed terminal states, validated runtime access, lazy Places activation, and bounded SDK/DOM resource cleanup. The unused global hook facades are deleted. |
 | Daum postcode | `src/platform/integrations/daumPostcode.ts`, injected into the editor by `src/app/router/routes/AccommodationEditRoute.tsx` | Lazy exact HTTPS loader, callback validation, and abortable open operation; the props-only screen never imports the browser integration. |
-| Toss Payments | `src/platform/integrations/tossPaymentsV2.ts`, adapted by `src/workflows/booking-payment/checkout/paymentGateway.ts` | Pinned official npm SDK v2 behind the unchanged `PaymentGatewayPort`. The adapter owns one bounded, client-key-scoped load, initializes the direct payment window with `ANONYMOUS`, and maps the existing request to `CARD`/`KRW`; a route-owned gateway lease reuses that client and destroys its launcher on route departure. The workflow adapter owns safe error policy and duplicate-request fencing. The retired v1 source is removed; immutable Git commit `408d303` and its Vercel deployment are the U10 comparison/rollback target. |
+| Toss Payments | `src/platform/integrations/tossPaymentsV2.ts`, adapted by `src/workflows/booking-payment/checkout/paymentGateway.ts` | Pinned official npm SDK v2 initializes the direct payment window with `ANONYMOUS` and maps `CARD`/`KRW`. A route-owned lease reuses and disposes the client. Order ID, customer fields, URLs, and paid amount are validated before provider I/O; backend-authoritative `orderName` is nonblank/bounded and forwarded byte-for-byte. The retired v1 source and writer are absent. No pre-v2 build is a compatible rollback for the active journal, so the first cutover is fail-closed/roll-forward until a verified v2 revision exists. |
 | CloudFront images | `src/platform/assets/imageUrl.ts` | Validated HTTPS asset host; consumers import the platform owner or receive a narrow injected resolver. |
 | Environment | `src/platform/config/env.ts`, `publicRuntimeConfigCore.ts`, `publicRuntimeConfig.ts`, `vite.config.ts`, `scripts/architecture/validate-public-build-env.mjs` | `publicRuntimeConfigCore.ts` owns pure validation and config creation from an injected browser-environment value. The thin `publicRuntimeConfig.ts` browser adapter reads mode plus four explicitly mapped browser-public values while preserving the existing `REACT_APP_*` deployment names. Vite consumes validated build-only `PUBLIC_URL` as its asset base; preflight permits only empty, single-slash root-relative, or absolute HTTPS asset bases with percent-free safe paths. Runtime and build validation reject percent encoding and server-secret key shapes in every public exposure; Google Maps also uses a browser-key-safe character set. |
 
 `src/platform/storage/sessionStorageDriverCore.ts` owns the injectable storage
-driver factory, while the thin `sessionStorageDriver.ts` browser adapter exposes
-the only production `sessionStorage` singleton. The platform storage boundary
-also owns the generic versioned envelope engine. The booking-payment aggregate
-is its active domain writer through that named storage driver: static
-checkout/callback slots carry purpose, version, privacy/PII classification,
-stable subject, creation/expiry, exact field allowlists, invalid-record purge,
-and session/route fences.
-The active aggregate has no pre-U10 reader, migration branch, or
-confirmed-marker consumer. Residual retired values are ignored for recovery;
-exact retired-prefix keys are purge-deleted without reading their contents at
-identity and terminal cleanup boundaries. Only the current versioned namespace
-participates in checkout and callback recovery.
+driver factory, while `bookingPaymentStorageDriver.ts` is the thin production
+adapter. Booking-payment owns exactly three v2 slots: journal, callback
+credential, and operation receipt. Every slot has an exact purpose/version,
+privacy classification, subject, hard TTL, field allowlist, and verified
+write/remove contract. Candidate reconciliation recognizes only those keys,
+preserves unknown/newer state as a blocking barrier, and never discovers a flow
+by owner alone. Pre-v2 values have no reader or migration path; exact retired
+prefixes are purge-only cleanup inputs.
 
 ## Current dependency boundaries
 
@@ -387,26 +400,30 @@ the blocking source of truth.
 - Wishlist membership agreement across search, accommodation detail, recently
   viewed, and wishlist screens.
 - Anonymous wishlist or booking intent resumed after successful login.
-- Accommodation detail to reservation creation to checkout handoff.
-- Toss callback validation, server confirm, cache invalidation, and reservation
-  detail navigation.
-- Retryable or ambiguous confirmation preserved for status reconciliation.
+- Accommodation detail and independent availability to quote, explicit checkout,
+  complimentary completion, or paid hold.
+- Payment-attempt replay, same-attempt Toss retry, explicit pre-confirm hold
+  release, and no automatic provider launch after reload.
+- Callback scrub/login claim, exact confirm, 202 receipt persistence, bounded
+  polling, review recovery, terminal cache publication, and receipt-last cleanup.
+- Retryable transport ambiguity never becomes a false payment success/failure or
+  a second checkout/confirm mutation.
 - Review creation with image-upload partial failure.
 - Accommodation draft hydration, image reconciliation, save, and publish order.
 - Profile guest/host modes, filters, and wishlist views restored from their URLs.
 - Guest and host reservation list/detail navigation, pagination, status display,
   cancellation/review actions, and host listing publish/unpublish/delete flows.
 
-## Remaining migration delta and target owner
+## Deferred evidence and next owner
 
 This table is architectural scope, not implementation progress. Active cutover
 status lives in [`frontend-ownership-matrix.md`](./frontend-ownership-matrix.md).
 
-| Delta | Planned owner |
-| --------------------------------------------------------------------------------------- | ------------- |
-| Detail/availability and current quote → checkout → payment-operation contract alignment | 2026-09-01 plan U2–U3 |
-| Deterministic payment matrix and real local-backend profile evidence | 2026-09-01 plan U11–U12 |
-| Editor commands, semantic amenity catalog, PageContainer and responsive/runtime-token ownership | 2026-09-01 plan U13–U15 |
+| Delta | Owner/status |
+| --- | --- |
+| Repeatable real local-backend mutation and Toss sandbox evidence | U12 is `BLOCKED / UNVERIFIED`: the backend exposes no frontend-safe disposable fixture/reset owner and no local services were listening. Deterministic browser evidence remains blocking. |
+| Vercel→OCI credential/CORS/Origin, Maps production key, AWS performance | Separate deployment/infrastructure gates; local proxy success is not evidence. |
+| Airbnb visual styling | A later design plan. The transaction, screen, image/state, amenity, page-container, responsive, and runtime-token boundaries are the design-entry baseline. |
 
 ## Verification contracts
 
@@ -443,6 +460,12 @@ does not prove a live backend, Google Maps, Toss sandbox, or seeded dynamic-rout
 behavior. `verify:design-ready` and `verify:pre-redesign` are the same offline
 design-entry gate. `verify:live-integration` is separate; fixture omissions and
 unavailable external services remain deferred and unverified.
+
+The v2 writer cut over at `bf78544`; `42bda80` is the first post-cutover
+verification checkpoint. `ac50110` removes real-time drift from the two exact
+operation-polling clock boundaries, and the canonical offline design-entry gate
+is green on that checkpoint plus the matching architecture/evidence documents.
+A pre-v2 build is not a safe rollback target once v2 browser records exist.
 
 ## Document authority
 
