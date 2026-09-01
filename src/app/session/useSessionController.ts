@@ -10,6 +10,11 @@ import {
 import { AppError } from "../../platform/http/errors";
 import { isSameAuthenticatedSessionScope } from "../../platform/session/sessionScope";
 import {
+  createSessionRuntimeLeaseId,
+  type SessionRuntimeLeaseId,
+  type SessionRuntimeLeaseIdFactory,
+} from "../../platform/session/runtimeLeaseId";
+import {
   createSessionBroadcast,
   type SessionBroadcast,
   type SessionBroadcastPhase,
@@ -43,6 +48,10 @@ export interface SessionControllerOptions {
   readonly initialQueryClient?: QueryClient;
   readonly initialState?: SessionState;
   readonly queryClientFactory?: SessionQueryClientFactory;
+  readonly reconcileCandidateIdentityOwnedState?: (
+    scope: AuthenticatedSessionScope,
+  ) => void;
+  readonly runtimeLeaseIdFactory?: SessionRuntimeLeaseIdFactory;
 }
 
 export interface SessionControllerResult {
@@ -65,6 +74,8 @@ interface PendingExternalBoundary {
 }
 
 const NOOP_IDENTITY_CLEANUP = () => undefined;
+const NOOP_CANDIDATE_RECONCILIATION = (_scope: AuthenticatedSessionScope) =>
+  undefined;
 
 const createStaleSessionOperationError = () =>
   new AppError({
@@ -84,12 +95,19 @@ export function useSessionController({
   initialQueryClient,
   initialState,
   queryClientFactory,
+  reconcileCandidateIdentityOwnedState = NOOP_CANDIDATE_RECONCILIATION,
+  runtimeLeaseIdFactory = createSessionRuntimeLeaseId,
 }: SessionControllerOptions = {}): SessionControllerResult {
   const resolvedInitialState = useMemo(
     () => initialState ?? createInitialSessionState({ operationId: 0 }),
     [initialState],
   );
   const [state, rawDispatch] = useReducer(sessionReducer, resolvedInitialState);
+  const runtimeLeaseIdRef = useRef<SessionRuntimeLeaseId | null>(null);
+  if (runtimeLeaseIdRef.current === null) {
+    runtimeLeaseIdRef.current = runtimeLeaseIdFactory();
+  }
+  const runtimeLeaseId = runtimeLeaseIdRef.current;
   const stateRef = useRef(state);
   stateRef.current = state;
   const identityOwnerSubjectRef = useRef<SessionSubject | null>(
@@ -278,6 +296,29 @@ export function useSessionController({
     destructiveCleanupRequiredRef.current = false;
   }, [clearRevokedIdentityOwnedState]);
 
+  const reconcileCandidateIdentity = useCallback(
+    (scope: AuthenticatedSessionScope, operation: ActiveOperation): boolean => {
+      if (!isCurrentOperation(operation)) return false;
+
+      try {
+        reconcileCandidateIdentityOwnedState(scope);
+      } catch (error) {
+        if (isCurrentOperation(operation)) {
+          dispatch({
+            type: "session/check-failed",
+            operationId: operation.id,
+            epoch: scope.epoch,
+            error: normalizeSessionAuthError(error),
+          });
+        }
+        throw error;
+      }
+
+      return isCurrentOperation(operation);
+    },
+    [dispatch, isCurrentOperation, reconcileCandidateIdentityOwnedState],
+  );
+
   const advanceCheckingBoundary = useCallback(
     async (
       operation: ActiveOperation,
@@ -327,6 +368,11 @@ export function useSessionController({
 
       const epoch = stateRef.current.epoch;
       const subject = toSessionSubject(viewer);
+      const scope: AuthenticatedSessionScope = {
+        epoch,
+        runtimeLeaseId,
+        subject,
+      };
       if (discardPreviousIdentity) {
         const currentGeneration = getCurrentGeneration();
         if (
@@ -365,6 +411,7 @@ export function useSessionController({
         }
         if (!isCurrentOperation(operation)) return false;
 
+        if (!reconcileCandidateIdentity(scope, operation)) return false;
         try {
           if (!activateDisposedQueryQuarantine(epoch, subject, operation)) {
             return false;
@@ -379,6 +426,8 @@ export function useSessionController({
           throw activationError;
         }
       } else {
+        if (!reconcileCandidateIdentity(scope, operation)) return false;
+
         const currentGeneration = getCurrentGeneration();
         if (
           currentGeneration.epoch !== epoch ||
@@ -413,8 +462,10 @@ export function useSessionController({
       dispatch,
       getCurrentGeneration,
       isCurrentOperation,
+      reconcileCandidateIdentity,
       replaceQueryGeneration,
       resetQueryGeneration,
+      runtimeLeaseId,
     ],
   );
 
@@ -678,6 +729,7 @@ export function useSessionController({
     }
   }, [
     beginOperation,
+    clearRevokedIdentityState,
     dispatch,
     finishOperation,
     isCurrentOperation,
@@ -912,14 +964,22 @@ export function useSessionController({
   ]);
 
   const captureAuthenticatedSession = useCallback(
-    () => toAuthenticatedSessionScope(stateRef.current),
-    [],
+    () => toAuthenticatedSessionScope(stateRef.current, runtimeLeaseId),
+    [runtimeLeaseId],
   );
 
-  const isCurrentSession = useCallback((scope: AuthenticatedSessionScope) => {
-    const current = toAuthenticatedSessionScope(stateRef.current);
-    return current !== null && isSameAuthenticatedSessionScope(current, scope);
-  }, []);
+  const isCurrentSession = useCallback(
+    (scope: AuthenticatedSessionScope) => {
+      const current = toAuthenticatedSessionScope(
+        stateRef.current,
+        runtimeLeaseId,
+      );
+      return (
+        current !== null && isSameAuthenticatedSessionScope(current, scope)
+      );
+    },
+    [runtimeLeaseId],
+  );
 
   const deferRemotePhase = useCallback(
     (phase: SessionBroadcastPhase) => {

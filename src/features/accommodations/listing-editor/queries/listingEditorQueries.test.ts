@@ -1,6 +1,7 @@
 import { QueryClient } from "@tanstack/react-query";
 import type { Mocked } from "vitest";
 import type { AuthenticatedSessionScope } from "../../../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../../../test/sessionFixtures";
 import type { ListingEditorApiPort } from "../ports/listingEditorApiPort";
 import type { ListingEditorAccommodation } from "../model/listingEditor";
 import { listingEditorQueryKeys } from "./listingEditorQueryKeys";
@@ -9,11 +10,13 @@ import { createListingEditorQueryOptions } from "./listingEditorQueryOptions";
 
 const scopeA = {
   epoch: 4,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
   subject: "subject:member_a" as AuthenticatedSessionScope["subject"],
 };
 const nextEpochScope = { ...scopeA, epoch: 5 };
 const scopeB = {
   epoch: 4,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
   subject: "subject:member_b" as AuthenticatedSessionScope["subject"],
 };
 
@@ -84,7 +87,9 @@ describe("listing editor query boundary", () => {
       31,
       { session: { subject: scopeA.subject, epoch: 4 } },
     ]);
-    expect(options.meta).toEqual({ session: scopeA });
+    expect(options.meta).toEqual({
+      session: { epoch: scopeA.epoch, subject: scopeA.subject },
+    });
     expect(listingEditorQueryKeys.detail(nextEpochScope, 31)).not.toEqual(
       options.queryKey,
     );
@@ -262,7 +267,9 @@ describe("listing editor query boundary", () => {
         exact: true,
         queryKey: listingEditorQueryKeys.detail(scopeA, 31),
       })?.meta,
-    ).toEqual({ session: scopeA });
+    ).toEqual({
+      session: { epoch: scopeA.epoch, subject: scopeA.subject },
+    });
     client.clear();
   });
 
@@ -364,7 +371,9 @@ describe("listing editor query boundary", () => {
         exact: true,
         queryKey: listingEditorQueryKeys.detail(scopeA, 31),
       })?.meta,
-    ).toEqual({ session: scopeA });
+    ).toEqual({
+      session: { epoch: scopeA.epoch, subject: scopeA.subject },
+    });
     client.clear();
   });
 

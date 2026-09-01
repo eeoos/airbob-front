@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
 import { requireDefined } from "../../../test/assertions";
+import { testSessionRuntimeLeaseId } from "../../../test/sessionFixtures";
 import { reviewableReservationApi } from "../api/reviewableReservationApi";
 import type { ReviewableReservation } from "../model/reviewableReservation";
 import { useReviewableReservationReadQuery } from "./reviewableReservationQuery";
@@ -36,6 +37,7 @@ const getCapturedOptions = (): CapturedQueryOptions =>
 const scope = {
   subject: "subject:member_7",
   epoch: 4,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 } as AuthenticatedSessionScope;
 
 const reservation = (reservationUid: string): ReviewableReservation => ({
@@ -85,7 +87,9 @@ describe("reviewable reservation read query", () => {
       "reservation-123",
       { session: { subject: scope.subject, epoch: 4 } },
     ]);
-    expect(options.meta).toEqual({ session: scope });
+    expect(options.meta).toEqual({
+      session: { epoch: scope.epoch, subject: scope.subject },
+    });
     expect(getReviewableReservation).toHaveBeenCalledWith("reservation-123", {
       signal,
     });

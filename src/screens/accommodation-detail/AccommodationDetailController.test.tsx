@@ -1,6 +1,7 @@
 import { act, render, waitFor } from "@testing-library/react";
 import { StrictMode } from "react";
 import type { SessionSubject } from "../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../test/sessionFixtures";
 import { AccommodationDetailController } from "./AccommodationDetailController";
 import type { AccommodationDetailScreenProps } from "./AccommodationDetailScreen";
 
@@ -87,6 +88,7 @@ const availability = {
 const authenticatedScope = {
   subject: "subject:member_1" as SessionSubject,
   epoch: 3,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 
 const session = {
@@ -130,6 +132,7 @@ const createProps = (
   },
   checkoutHandoff: {
     preflight: vi.fn(() => ({ status: "ready" as const })),
+    assertNoNewerRecovery: vi.fn(() => ({ status: "ready" as const })),
     commit: vi.fn(),
   },
   isAuthenticated: true,

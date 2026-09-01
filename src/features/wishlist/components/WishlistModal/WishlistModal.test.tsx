@@ -5,6 +5,7 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../../../test/sessionFixtures";
 import type { WishlistCollection } from "../../model";
 import { useWishlistListsReadQuery } from "../../queries";
 import { WISHLIST_REFRESH_WARNING_MESSAGE } from "../wishlistErrorMessage";
@@ -19,6 +20,7 @@ const mockUseWishlistListsReadQuery = vi.mocked(useWishlistListsReadQuery);
 const scope: AuthenticatedSessionScope = {
   subject: "subject:member_a" as SessionSubject,
   epoch: 3,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 const wishlistPage: WishlistCollection = {
   wishlists: [

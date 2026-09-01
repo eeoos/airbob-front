@@ -4,6 +4,7 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../../test/sessionFixtures";
 import {
   createBookingPaymentCallbackRepository,
   createBookingPaymentCheckoutRepository,
@@ -17,6 +18,7 @@ type CheckoutWriteData = Parameters<
 
 const scope: AuthenticatedSessionScope = {
   epoch: 5,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
   subject: "subject:confirm_recovery" as SessionSubject,
 };
 const mockConfirmControllerProps: Array<Record<string, unknown>> = [];
@@ -55,7 +57,9 @@ const mockSession = {
   },
   captureAuthenticatedSession: () => scope,
   isCurrentSession: (candidate: AuthenticatedSessionScope) =>
-    candidate.subject === scope.subject && candidate.epoch === scope.epoch,
+    candidate.subject === scope.subject &&
+    candidate.epoch === scope.epoch &&
+    candidate.runtimeLeaseId === scope.runtimeLeaseId,
   login: vi.fn(),
   logout: vi.fn(),
   revalidate: vi.fn(),

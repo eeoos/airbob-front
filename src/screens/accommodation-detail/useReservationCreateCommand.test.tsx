@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { SessionSubject } from "../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../test/sessionFixtures";
 import { useReservationCreateCommand } from "./useReservationCreateCommand";
 
 const mockCreateWorkflow = vi.fn();
@@ -33,9 +34,11 @@ const availability = {
 const authenticatedScope = {
   subject: "subject:member_1" as SessionSubject,
   epoch: 2,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 const checkoutHandoff = {
   preflight: vi.fn(() => ({ status: "ready" as const })),
+  assertNoNewerRecovery: vi.fn(() => ({ status: "ready" as const })),
   commit: vi.fn(),
 };
 const session = {

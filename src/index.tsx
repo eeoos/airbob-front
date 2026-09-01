@@ -8,6 +8,7 @@ import {
   clearIdentityOwnedFrontendState,
   clearRevokedIdentityOwnedFrontendState,
 } from "./app/providers/clearIdentityOwnedFrontendState";
+import { reconcileCandidateIdentityOwnedFrontendState } from "./app/providers/reconcileCandidateIdentityOwnedFrontendState";
 import { ErrorBoundary } from "./app/errors/ErrorBoundary";
 
 const root = ReactDOM.createRoot(
@@ -21,6 +22,9 @@ root.render(
           clearIdentityOwnedState={clearIdentityOwnedFrontendState}
           clearRevokedIdentityOwnedState={
             clearRevokedIdentityOwnedFrontendState
+          }
+          reconcileCandidateIdentityOwnedState={
+            reconcileCandidateIdentityOwnedFrontendState
           }
         >
           <App />

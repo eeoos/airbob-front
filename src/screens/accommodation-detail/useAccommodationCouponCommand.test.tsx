@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { SessionSubject } from "../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../test/sessionFixtures";
 import { useAccommodationCouponCommand } from "./useAccommodationCouponCommand";
 
 const mockIssueCoupon = vi.fn();
@@ -29,6 +30,7 @@ const coupon = {
 const authenticatedScope = {
   subject: "subject:member_1" as SessionSubject,
   epoch: 2,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 
 describe("useAccommodationCouponCommand", () => {

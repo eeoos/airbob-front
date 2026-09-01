@@ -59,7 +59,7 @@ function PaymentSuccessRoute() {
   const sessionEpoch = session.state.epoch;
   const sessionSubject =
     session.state.status === "authenticated" ? session.state.subject : null;
-  const { isCurrentSession } = session;
+  const { captureAuthenticatedSession, isCurrentSession } = session;
   const [resolution, setResolution] = useState<SuccessResolution>({
     status: "resolving",
   });
@@ -67,13 +67,13 @@ function PaymentSuccessRoute() {
     useState(false);
   const claimedRef = useRef(false);
   const invalidHandledRef = useRef(false);
-  const scope = useMemo(
-    () =>
-      sessionSubject !== null
-        ? { epoch: sessionEpoch, subject: sessionSubject }
-        : null,
-    [sessionEpoch, sessionSubject],
-  );
+  const scope = useMemo(() => {
+    const captured = captureAuthenticatedSession();
+    return captured?.epoch === sessionEpoch &&
+      captured.subject === sessionSubject
+      ? captured
+      : null;
+  }, [captureAuthenticatedSession, sessionEpoch, sessionSubject]);
   const reservationCache = useMemo(
     () => createReservationReadQueryCacheProjection(queryClient),
     [queryClient],

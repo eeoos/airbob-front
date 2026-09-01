@@ -29,21 +29,18 @@ function ReservationConfirmRoute() {
   const sessionEpoch = session.state.epoch;
   const sessionSubject =
     session.state.status === "authenticated" ? session.state.subject : null;
-  const { isCurrentSession } = session;
+  const { captureAuthenticatedSession, isCurrentSession } = session;
   const accommodationId = parsePositiveInteger(id ?? null, 0) || null;
   const [resolution, setResolution] = useState<CheckoutResolution>({
     status: "resolving",
   });
-  const scope = useMemo(
-    () =>
-      sessionSubject !== null
-        ? {
-            epoch: sessionEpoch,
-            subject: sessionSubject,
-          }
-        : null,
-    [sessionEpoch, sessionSubject],
-  );
+  const scope = useMemo(() => {
+    const captured = captureAuthenticatedSession();
+    return captured?.epoch === sessionEpoch &&
+      captured.subject === sessionSubject
+      ? captured
+      : null;
+  }, [captureAuthenticatedSession, sessionEpoch, sessionSubject]);
   const checkoutRepository = useMemo(
     () =>
       createBookingPaymentCheckoutRepository({

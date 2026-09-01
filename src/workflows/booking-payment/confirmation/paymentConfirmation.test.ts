@@ -4,6 +4,7 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../../test/sessionFixtures";
 import type {
   CheckoutOwnership,
   CheckoutOwnershipApiPort,
@@ -18,10 +19,12 @@ import {
 const scopeA: AuthenticatedSessionScope = {
   subject: "subject:payment_a" as SessionSubject,
   epoch: 4,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 const scopeB: AuthenticatedSessionScope = {
   subject: "subject:payment_b" as SessionSubject,
   epoch: 5,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 
 const command = (): PaymentConfirmationCommand => ({
@@ -100,7 +103,8 @@ const setup = ({
     isCurrentSession: vi.fn(
       (scope: AuthenticatedSessionScope) =>
         currentScope?.subject === scope.subject &&
-        currentScope.epoch === scope.epoch,
+        currentScope.epoch === scope.epoch &&
+        currentScope.runtimeLeaseId === scope.runtimeLeaseId,
     ),
   };
   const workflow = createPaymentConfirmationWorkflow({

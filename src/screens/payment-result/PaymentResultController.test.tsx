@@ -12,6 +12,7 @@ import type {
   SessionSubject,
 } from "../../platform/session/sessionScope";
 import { renderApp } from "../../test/renderApp";
+import { testSessionRuntimeLeaseId } from "../../test/sessionFixtures";
 import type {
   CallbackData,
   CheckoutData,
@@ -24,6 +25,7 @@ import {
 
 const scope: AuthenticatedSessionScope = {
   epoch: 7,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
   subject: "subject:payment_result" as SessionSubject,
 };
 

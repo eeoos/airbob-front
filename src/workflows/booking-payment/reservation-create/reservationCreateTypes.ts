@@ -99,6 +99,17 @@ export interface ReservationCheckoutHandoffPort {
   preflight(
     input: ReservationCheckoutHandoffPreflightInput,
   ): ReservationCheckoutHandoffPreflightResult;
+  /**
+   * Rechecks the opaque v2 namespace in the same JavaScript turn that starts
+   * the legacy transport. Unlike preflight, this guard has no navigation side
+   * effects and can only allow or block the retired writer.
+   */
+  assertNoNewerRecovery(
+    input: ReservationCheckoutHandoffPreflightInput,
+  ): Extract<
+    ReservationCheckoutHandoffPreflightResult,
+    { readonly status: "ready" | "blocked" }
+  >;
   commit(input: ReservationCheckoutHandoffInput): void;
 }
 

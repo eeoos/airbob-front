@@ -19,6 +19,7 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../../test/sessionFixtures";
 import {
   createBookingPaymentCallbackRepository,
   createBookingPaymentCheckoutRepository,
@@ -32,6 +33,7 @@ import ReservationConfirmRoute from "./ReservationConfirmRoute";
 
 const scope: AuthenticatedSessionScope = {
   epoch: 3,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
   subject: "subject:route_payment" as SessionSubject,
 };
 const mockPaymentControllerProps: Array<Record<string, unknown>> = [];
@@ -93,7 +95,9 @@ const mockSession = {
   },
   captureAuthenticatedSession: () => scope,
   isCurrentSession: (candidate: AuthenticatedSessionScope) =>
-    candidate.subject === scope.subject && candidate.epoch === scope.epoch,
+    candidate.subject === scope.subject &&
+    candidate.epoch === scope.epoch &&
+    candidate.runtimeLeaseId === scope.runtimeLeaseId,
   login: vi.fn(),
   logout: vi.fn(),
   revalidate: vi.fn(),

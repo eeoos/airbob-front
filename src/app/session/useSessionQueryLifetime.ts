@@ -6,7 +6,7 @@ import {
   setQueryClientSessionScope,
   type SessionQueryScope,
 } from "../../platform/query/sessionScope";
-import { toAuthenticatedSessionScope, type SessionState } from "./sessionState";
+import type { SessionState } from "./sessionState";
 
 export interface SessionQueryGeneration extends SessionQueryScope {
   readonly client: QueryClient;
@@ -62,10 +62,10 @@ export const useSessionQueryLifetime = ({
   const initialGenerationRef = useRef<SessionQueryGeneration | null>(null);
 
   if (initialGenerationRef.current === null) {
-    const initialScope = toAuthenticatedSessionScope(initialState);
     const scope = {
       epoch: initialState.epoch,
-      subject: initialScope?.subject ?? null,
+      subject:
+        initialState.status === "authenticated" ? initialState.subject : null,
     };
     const client = initialQueryClient ?? queryClientFactory(scope);
     if (initialQueryClient) {

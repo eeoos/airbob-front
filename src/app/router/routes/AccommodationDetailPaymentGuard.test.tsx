@@ -4,6 +4,7 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../../test/sessionFixtures";
 import {
   createBookingPaymentCallbackRepository,
   createBookingPaymentCheckoutRepository,
@@ -16,6 +17,7 @@ import AccommodationDetailRoute from "./AccommodationDetailRoute";
 
 const scope: AuthenticatedSessionScope = {
   epoch: 9,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
   subject: "subject:active_payment_guard" as SessionSubject,
 };
 let capturedHandoff: ReservationCheckoutHandoffPort | null = null;
@@ -75,7 +77,9 @@ const mockSession = {
   },
   captureAuthenticatedSession: () => scope,
   isCurrentSession: (candidate: AuthenticatedSessionScope) =>
-    candidate.subject === scope.subject && candidate.epoch === scope.epoch,
+    candidate.subject === scope.subject &&
+    candidate.epoch === scope.epoch &&
+    candidate.runtimeLeaseId === scope.runtimeLeaseId,
   login: vi.fn(),
   logout: vi.fn(),
   revalidate: vi.fn(),
@@ -97,6 +101,8 @@ const intent: ReservationStartIntent = {
   petCount: 0,
   couponId: null,
 };
+
+const v2JournalKey = "airbob:booking-payment-v2:journal";
 
 function LocationProbe() {
   const location = useLocation();
@@ -201,6 +207,67 @@ describe("AccommodationDetailRoute active payment guard", () => {
     ).toBe(callbackBefore);
   });
 
+  it("blocks the legacy handoff without reading or deleting opaque v2 state", async () => {
+    const opaqueV2State = "newer-state-must-remain-opaque";
+    window.sessionStorage.setItem(v2JournalKey, opaqueV2State);
+
+    render(
+      <MemoryRouter initialEntries={["/accommodations/42"]}>
+        <LocationProbe />
+        <Routes>
+          <Route
+            path="/accommodations/:id"
+            element={<AccommodationDetailRoute />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await screen.findByTestId("accommodation-detail-controller");
+    const handoff = capturedHandoff;
+    if (handoff === null) throw new Error("checkout handoff was not captured");
+
+    expect(handoff.preflight({ session: scope, intent })).toEqual({
+      status: "blocked",
+    });
+    expect(handoff.assertNoNewerRecovery({ session: scope, intent })).toEqual({
+      status: "blocked",
+    });
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/accommodations/42",
+    );
+    expect(window.sessionStorage.getItem(v2JournalKey)).toBe(opaqueV2State);
+  });
+
+  it("does not mistake a near-collision namespace for v2 recovery", async () => {
+    window.sessionStorage.setItem(
+      "airbob:booking-payment-v20:journal",
+      "unrelated-newer-major",
+    );
+
+    render(
+      <MemoryRouter initialEntries={["/accommodations/42"]}>
+        <Routes>
+          <Route
+            path="/accommodations/:id"
+            element={<AccommodationDetailRoute />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await screen.findByTestId("accommodation-detail-controller");
+    const handoff = capturedHandoff;
+    if (handoff === null) throw new Error("checkout handoff was not captured");
+
+    expect(handoff.preflight({ session: scope, intent })).toEqual({
+      status: "ready",
+    });
+    expect(handoff.assertNoNewerRecovery({ session: scope, intent })).toEqual({
+      status: "ready",
+    });
+  });
+
   it("does not overwrite recovery that appears after preflight but before commit", async () => {
     render(
       <MemoryRouter initialEntries={["/accommodations/42"]}>
@@ -250,5 +317,48 @@ describe("AccommodationDetailRoute active payment guard", () => {
     expect(
       window.sessionStorage.getItem("airbob:booking-payment-v1:callback"),
     ).toBe(callbackBefore);
+  });
+
+  it("does not write a v1 handoff when v2 state appears after preflight", async () => {
+    render(
+      <MemoryRouter initialEntries={["/accommodations/42"]}>
+        <Routes>
+          <Route
+            path="/accommodations/:id"
+            element={<AccommodationDetailRoute />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await screen.findByTestId("accommodation-detail-controller");
+    const handoff = capturedHandoff;
+    if (handoff === null) throw new Error("checkout handoff was not captured");
+    expect(handoff.preflight({ session: scope, intent })).toEqual({
+      status: "ready",
+    });
+
+    window.sessionStorage.setItem(v2JournalKey, "opaque-late-v2-state");
+
+    expect(() =>
+      handoff.commit({
+        session: scope,
+        intent,
+        appliedCoupon: null,
+        reservation: {
+          reservationUid: "reservation-new",
+          orderName: "새 예약",
+          amount: 120_000,
+          customerEmail: "viewer@example.com",
+          customerName: "뷰어",
+        },
+      }),
+    ).toThrow("A newer payment recovery state is active.");
+    expect(
+      window.sessionStorage.getItem("airbob:booking-payment-v1:checkout"),
+    ).toBeNull();
+    expect(window.sessionStorage.getItem(v2JournalKey)).toBe(
+      "opaque-late-v2-state",
+    );
   });
 });

@@ -742,6 +742,54 @@ test("blocks a new reservation while an earlier payment needs recovery", async (
   });
 });
 
+test("blocks the legacy reservation writer when opaque v2 recovery exists", async ({
+  api,
+  page,
+  session,
+}) => {
+  const opaqueV2State = "opaque-newer-recovery-must-not-be-read";
+
+  session.authenticate();
+  api.register("GET", "/api/v1/accommodations/7", apiSuccess(accommodation));
+  api.register("GET", "/api/v1/coupons", apiSuccess({ infos: [] }));
+  api.register(
+    "POST",
+    "/api/v1/members/recently-viewed/7",
+    apiSuccess(null, 201),
+  );
+  api.register(
+    "GET",
+    "/api/v1/accommodations/7/availability",
+    apiSuccess(accommodationAvailability),
+  );
+  api.register(
+    "POST",
+    "/api/v1/reservations",
+    apiSuccess({ unexpected: true }, 201),
+  );
+  await page.goto(
+    "/accommodations/7?checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2&childOccupancy=1",
+  );
+  const reserveButton = page.getByRole("button", { name: "예약하기" });
+  await expect(reserveButton).toBeEnabled();
+  await page.evaluate(({ key, value }) => sessionStorage.setItem(key, value), {
+    key: V2_JOURNAL_STORAGE_KEY,
+    value: opaqueV2State,
+  });
+  await reserveButton.click();
+
+  await expect(page.getByRole("alert")).toContainText(
+    "진행 중인 결제 상태를 먼저 확인해주세요.",
+  );
+  expect(api.matching("POST", "/api/v1/reservations")).toHaveLength(0);
+  expect(
+    await page.evaluate(
+      (key) => sessionStorage.getItem(key),
+      V2_JOURNAL_STORAGE_KEY,
+    ),
+  ).toBe(opaqueV2State);
+});
+
 test("scrubs callback credentials before an anonymous auth redirect", async ({
   page,
 }) => {
@@ -795,10 +843,6 @@ test("confirms once, clears owned documents, and server-reconciles a replay with
   session.authenticate();
   await openSeedPage(page);
   await seedBookingPaymentDocuments(page, checkout);
-  await page.evaluate(({ key, value }) => sessionStorage.setItem(key, value), {
-    key: V2_JOURNAL_STORAGE_KEY,
-    value: "synthetic-unresolved-v2-recovery",
-  });
   api.register("POST", "/api/v1/payments/confirm", apiSuccess(null, 202));
   api.register(
     "GET",
@@ -829,21 +873,18 @@ test("confirms once, clears owned documents, and server-reconciles a replay with
   expect(page.url()).not.toContain("paymentKey");
   expect(
     await page.evaluate(
-      ({ checkoutKey, callbackKey, v2JournalKey }) => ({
+      ({ checkoutKey, callbackKey }) => ({
         checkout: sessionStorage.getItem(checkoutKey),
         callback: sessionStorage.getItem(callbackKey),
-        v2Journal: sessionStorage.getItem(v2JournalKey),
       }),
       {
         checkoutKey: CHECKOUT_STORAGE_KEY,
         callbackKey: CALLBACK_STORAGE_KEY,
-        v2JournalKey: V2_JOURNAL_STORAGE_KEY,
       },
     ),
   ).toEqual({
     checkout: null,
     callback: null,
-    v2Journal: "synthetic-unresolved-v2-recovery",
   });
 
   await page.goto(callbackPath);

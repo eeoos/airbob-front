@@ -3,6 +3,7 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../test/sessionFixtures";
 import {
   createSessionQueryMeta,
   matchesSessionQueryScope,
@@ -13,13 +14,16 @@ import {
 const scope: AuthenticatedSessionScope = {
   subject: "subject:member_1" as SessionSubject,
   epoch: 7,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 
 describe("session-scoped query contracts", () => {
   it("creates deeply frozen non-PII query metadata", () => {
     const meta = createSessionQueryMeta(scope);
 
-    expect(meta).toEqual({ session: scope });
+    expect(meta).toEqual({
+      session: { subject: scope.subject, epoch: scope.epoch },
+    });
     expect(Object.isFrozen(meta)).toBe(true);
     expect(Object.isFrozen(meta.session)).toBe(true);
     expect(meta).not.toHaveProperty("viewer");

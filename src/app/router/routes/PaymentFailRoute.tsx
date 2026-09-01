@@ -67,7 +67,7 @@ function PaymentFailRoute() {
   const sessionEpoch = session.state.epoch;
   const sessionSubject =
     session.state.status === "authenticated" ? session.state.subject : null;
-  const { isCurrentSession } = session;
+  const { captureAuthenticatedSession, isCurrentSession } = session;
   const reason = paymentCodec.parse(location.search).reason;
   const canonicalPath = reservationUid
     ? routeTo.paymentFail(reservationUid, reason ? { reason } : undefined)
@@ -77,13 +77,13 @@ function PaymentFailRoute() {
   });
   const [routerSyncPath, setRouterSyncPath] = useState<string | null>(null);
   const claimedLeaseRef = useRef<string | null>(null);
-  const scope = useMemo(
-    () =>
-      sessionSubject !== null
-        ? { epoch: sessionEpoch, subject: sessionSubject }
-        : null,
-    [sessionEpoch, sessionSubject],
-  );
+  const scope = useMemo(() => {
+    const captured = captureAuthenticatedSession();
+    return captured?.epoch === sessionEpoch &&
+      captured.subject === sessionSubject
+      ? captured
+      : null;
+  }, [captureAuthenticatedSession, sessionEpoch, sessionSubject]);
   const reservationCache = useMemo(
     () => createReservationReadQueryCacheProjection(queryClient),
     [queryClient],
@@ -102,6 +102,7 @@ function PaymentFailRoute() {
   const resolutionLeaseKey = JSON.stringify([
     scope?.epoch ?? null,
     scope?.subject ?? null,
+    scope?.runtimeLeaseId ?? null,
     reservationUid ?? null,
     reason ?? null,
   ]);

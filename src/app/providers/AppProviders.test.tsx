@@ -5,6 +5,7 @@ import { MemoryRouter } from "react-router-dom";
 import { authApi } from "../../features/auth/api/authApi";
 import { useAuthCommands } from "../../features/auth/ports/AuthCommandProvider";
 import { Dialog, ToastHost } from "../../shared/ui";
+import { testSessionRuntimeLeaseId } from "../../test/sessionFixtures";
 import {
   SessionProvider,
   type SessionContextValue,
@@ -70,15 +71,19 @@ describe("AppProviders", () => {
     vi.mocked(authApi.signup).mockReset().mockResolvedValue(undefined);
   });
 
-  it("passes generic and revoked identity cleanup ports to the session owner", () => {
+  it("passes cleanup and candidate reconciliation ports to the session owner", () => {
     const clearIdentityOwnedState = vi.fn();
     const clearRevokedIdentityOwnedState = vi.fn();
+    const reconcileCandidateIdentityOwnedState = vi.fn();
 
     render(
       <MemoryRouter>
         <AppProviders
           clearIdentityOwnedState={clearIdentityOwnedState}
           clearRevokedIdentityOwnedState={clearRevokedIdentityOwnedState}
+          reconcileCandidateIdentityOwnedState={
+            reconcileCandidateIdentityOwnedState
+          }
         >
           content
         </AppProviders>
@@ -93,6 +98,9 @@ describe("AppProviders", () => {
     );
     expect(sessionProviderProps?.clearRevokedIdentityOwnedState).toBe(
       clearRevokedIdentityOwnedState,
+    );
+    expect(sessionProviderProps?.reconcileCandidateIdentityOwnedState).toBe(
+      reconcileCandidateIdentityOwnedState,
     );
   });
 
@@ -154,6 +162,7 @@ describe("AppProviders", () => {
         thumbnailImageUrl: null,
       }),
       epoch: 2,
+      runtimeLeaseId: testSessionRuntimeLeaseId,
     });
     expect(result.current.shouldCompleteLoginInCurrentView()).toBe(false);
   });

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { AuthenticatedSessionScope } from "../../platform/session/sessionScope";
 import { OverlayProvider } from "../overlays/OverlayProvider";
 import { PaymentCallbackCredentialBoundary } from "../router/PaymentCallbackCredentialBoundary";
 import { SessionProvider } from "../session/SessionProvider";
@@ -8,12 +9,16 @@ export interface AppProvidersProps {
   readonly children: ReactNode;
   readonly clearIdentityOwnedState?: () => void;
   readonly clearRevokedIdentityOwnedState?: () => void;
+  readonly reconcileCandidateIdentityOwnedState?: (
+    scope: AuthenticatedSessionScope,
+  ) => void;
 }
 
 export function AppProviders({
   children,
   clearIdentityOwnedState,
   clearRevokedIdentityOwnedState,
+  reconcileCandidateIdentityOwnedState,
 }: AppProvidersProps) {
   return (
     <OverlayProvider>
@@ -26,6 +31,9 @@ export function AppProviders({
           {...(clearRevokedIdentityOwnedState === undefined
             ? {}
             : { clearRevokedIdentityOwnedState })}
+          {...(reconcileCandidateIdentityOwnedState === undefined
+            ? {}
+            : { reconcileCandidateIdentityOwnedState })}
         >
           {children}
         </SessionProvider>

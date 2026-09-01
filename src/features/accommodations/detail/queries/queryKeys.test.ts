@@ -1,10 +1,12 @@
 import type { AuthenticatedSessionScope } from "../../../../platform/session/sessionScope";
 import type { SessionQueryScope } from "../../../../platform/query/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../../../test/sessionFixtures";
 import { accommodationReadQueryKeys } from "./queryKeys";
 
 const authenticatedScope = {
   subject: "subject:member_7",
   epoch: 4,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 } as AuthenticatedSessionScope;
 
 describe("accommodation read query keys", () => {

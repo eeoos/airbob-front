@@ -2,6 +2,7 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../../test/sessionFixtures";
 import { PaymentGatewayError, type PaymentGatewayPort } from "./paymentGateway";
 import { createPaymentRequestWorkflow } from "./paymentRequest";
 
@@ -11,10 +12,12 @@ type PaymentRequestCommand = Parameters<
 
 const scopeA: AuthenticatedSessionScope = {
   epoch: 3,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
   subject: "subject:checkout_a" as SessionSubject,
 };
 const scopeB: AuthenticatedSessionScope = {
   epoch: 4,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
   subject: "subject:checkout_b" as SessionSubject,
 };
 
@@ -50,7 +53,8 @@ const setup = (gatewayOverrides: Partial<PaymentGatewayPort> = {}) => {
     isCurrentSession: vi.fn(
       (scope: AuthenticatedSessionScope) =>
         currentScope?.subject === scope.subject &&
-        currentScope.epoch === scope.epoch,
+        currentScope.epoch === scope.epoch &&
+        currentScope.runtimeLeaseId === scope.runtimeLeaseId,
     ),
   };
   const workflow = createPaymentRequestWorkflow({ gateway, session });

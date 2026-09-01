@@ -6,6 +6,7 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../test/sessionFixtures";
 import type { ListingEditorAccommodation } from "../../features/accommodations/listing-editor/model/listingEditor";
 import type { ListingEditorQueryPort } from "../../features/accommodations/listing-editor/public";
 import type { AccommodationEditScreenProps } from "./editorViewContract";
@@ -50,6 +51,7 @@ const accommodation: ListingEditorAccommodation = {
 const scope: AuthenticatedSessionScope = {
   subject: "subject:member_7" as SessionSubject,
   epoch: 1,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 
 const deferred = <Value,>() => {

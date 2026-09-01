@@ -2,6 +2,7 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../../test/sessionFixtures";
 import { createSessionStorageDriver } from "../../../platform/storage/sessionStorageDriverCore";
 import {
   clearBookingPaymentBrowserState,
@@ -21,10 +22,12 @@ type CheckoutWriteData = Parameters<
 const scopeA = {
   subject: "subject:viewer_a" as SessionSubject,
   epoch: 7,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 } satisfies AuthenticatedSessionScope;
 const scopeB = {
   subject: "subject:viewer_b" as SessionSubject,
   epoch: 7,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 } satisfies AuthenticatedSessionScope;
 
 const checkout: CheckoutWriteData = {

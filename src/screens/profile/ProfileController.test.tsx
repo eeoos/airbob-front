@@ -19,6 +19,7 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../test/sessionFixtures";
 import {
   ProfileController,
   type ProfileControllerProps,
@@ -38,6 +39,7 @@ type HostListingManagementResult = Awaited<
 
 const scope: AuthenticatedSessionScope = {
   epoch: 4,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
   subject: "subject:profile-controller" as SessionSubject,
 };
 

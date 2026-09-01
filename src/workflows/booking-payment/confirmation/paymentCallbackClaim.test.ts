@@ -3,6 +3,7 @@ import type {
   CheckoutOwnershipApiPort,
 } from "../../../features/reservations/payment/public";
 import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../../test/sessionFixtures";
 import type {
   BookingPaymentOperationId,
   CallbackData,
@@ -25,6 +26,7 @@ const operationId = "operation_1" as BookingPaymentOperationId;
 const scope = {
   subject: "subject:member_1",
   epoch: 7,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 } as AuthenticatedSessionScope;
 const fresh: PaymentCallbackFreshTuple = {
   reservationUid: "reservation-7",

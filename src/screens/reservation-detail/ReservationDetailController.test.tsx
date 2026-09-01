@@ -11,11 +11,13 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../test/sessionFixtures";
 import { ReservationDetailController } from "./ReservationDetailController";
 
 const scope: AuthenticatedSessionScope = {
   subject: "subject:profile-test" as SessionSubject,
   epoch: 3,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 
 const payment = {

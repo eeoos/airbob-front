@@ -1,6 +1,7 @@
 import type { Mocked } from "vitest";
 import type { AuthenticatedSessionScope } from "../../../../platform/session/sessionScope";
 import type { SessionQueryScope } from "../../../../platform/query/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../../../test/sessionFixtures";
 import type { AccommodationDetail } from "../model/accommodationDetail";
 import type { AccommodationAvailability } from "../model/accommodationAvailability";
 import type { AccommodationAvailabilityApiPort } from "../ports/accommodationAvailabilityApiPort";
@@ -15,6 +16,7 @@ import {
 const authenticatedScope = {
   subject: "subject:member_7",
   epoch: 4,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 } as AuthenticatedSessionScope;
 
 const anonymousScope: SessionQueryScope = { subject: null, epoch: 2 };
@@ -201,7 +203,12 @@ describe("accommodation read query contracts", () => {
         },
       },
     ]);
-    expect(options.meta).toEqual({ session: authenticatedScope });
+    expect(options.meta).toEqual({
+      session: {
+        epoch: authenticatedScope.epoch,
+        subject: authenticatedScope.subject,
+      },
+    });
     expect(couponApi.getValidCoupons).toHaveBeenCalledWith({ signal });
     expect(options.retry).toBe(false);
     expect(options.throwOnError).toBe(false);

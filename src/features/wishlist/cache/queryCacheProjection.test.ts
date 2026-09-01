@@ -4,6 +4,7 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../../test/sessionFixtures";
 import type {
   RecentlyViewedCollection,
   WishlistCollection,
@@ -15,10 +16,12 @@ import { createWishlistQueryCacheProjection } from "./queryCacheProjection";
 const scopeA: AuthenticatedSessionScope = {
   subject: "subject:member_a" as SessionSubject,
   epoch: 3,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 const scopeB: AuthenticatedSessionScope = {
   subject: "subject:member_b" as SessionSubject,
   epoch: 4,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 
 const seedScopedQueryData = <TData>(

@@ -4,6 +4,7 @@ import type {
   SessionSubject,
 } from "../../platform/session/sessionScope";
 import { renderApp } from "../../test/renderApp";
+import { testSessionRuntimeLeaseId } from "../../test/sessionFixtures";
 import type {
   CheckoutData,
   PaymentGatewayPort,
@@ -19,6 +20,7 @@ vi.mock("../../features/accommodations/detail/public", () => ({
 
 const scope: AuthenticatedSessionScope = {
   epoch: 7,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
   subject: "subject:reservation_confirm" as SessionSubject,
 };
 
@@ -71,7 +73,9 @@ describe("ReservationConfirmController", () => {
     const sessionMethods = {
       captureAuthenticatedSession: () => scope,
       isCurrentSession: (candidate: AuthenticatedSessionScope) =>
-        candidate.subject === scope.subject && candidate.epoch === scope.epoch,
+        candidate.subject === scope.subject &&
+        candidate.epoch === scope.epoch &&
+        candidate.runtimeLeaseId === scope.runtimeLeaseId,
     };
     const controller = (session = sessionMethods) => (
       <ReservationConfirmController

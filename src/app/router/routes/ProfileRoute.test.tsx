@@ -14,6 +14,10 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../../platform/session/sessionScope";
+import {
+  anotherTestSessionRuntimeLeaseId,
+  testSessionRuntimeLeaseId,
+} from "../../../test/sessionFixtures";
 import type {
   ProfileNavigationCommands,
   ProfileRouteView,
@@ -31,6 +35,7 @@ type HostListingManagementWorkflow =
 const scope: AuthenticatedSessionScope = {
   subject: "subject:profile-route" as SessionSubject,
   epoch: 11,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 const mockCapturedProfileProps: ProfileControllerProps[] = [];
 const mockUseSession = vi.fn();
@@ -572,6 +577,7 @@ describe("ProfileRoute authority gates", () => {
     const nextScope: AuthenticatedSessionScope = {
       subject: "subject:profile-route-next" as SessionSubject,
       epoch: scope.epoch + 1,
+      runtimeLeaseId: anotherTestSessionRuntimeLeaseId,
     };
     const firstWorkflow = {
       dispose: vi.fn(),

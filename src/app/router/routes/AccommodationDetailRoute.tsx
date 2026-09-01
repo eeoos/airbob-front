@@ -25,6 +25,7 @@ import {
   createBookingPaymentCallbackRepository,
   createBookingPaymentCheckoutRepository,
 } from "../../../workflows/booking-payment/checkout";
+import { inspectBookingPaymentV2NamespaceForLegacyWriter } from "../../../workflows/booking-payment/journal";
 import type { ReservationCheckoutHandoffPort } from "../../../workflows/booking-payment/reservation-create";
 import { useWishlistMembership } from "../../../workflows/wishlist-membership";
 import { useSession } from "../../session/useSession";
@@ -202,6 +203,25 @@ function AccommodationDetailRouteContent() {
   );
 
   const checkoutHandoff = useMemo<ReservationCheckoutHandoffPort>(() => {
+    const inspectNewerRecovery = (
+      session: AuthenticatedSessionScope,
+      intentAccommodationId: number,
+    ) => {
+      if (
+        accommodationId === null ||
+        intentAccommodationId !== accommodationId ||
+        !routeLease.isCurrent() ||
+        !isCurrentSession(session)
+      ) {
+        return { status: "blocked" } as const;
+      }
+
+      return inspectBookingPaymentV2NamespaceForLegacyWriter().status ===
+        "ready"
+        ? ({ status: "ready" } as const)
+        : ({ status: "blocked" } as const);
+    };
+
     const inspectActivePayment = (
       session: AuthenticatedSessionScope,
       navigateToRecovery: boolean,
@@ -245,13 +265,19 @@ function AccommodationDetailRouteContent() {
     return {
       preflight(input) {
         if (
-          accommodationId === null ||
-          input.intent.accommodationId !== accommodationId
+          inspectNewerRecovery(input.session, input.intent.accommodationId)
+            .status !== "ready"
         ) {
           return { status: "blocked" };
         }
 
         return inspectActivePayment(input.session, true);
+      },
+      assertNoNewerRecovery(input) {
+        return inspectNewerRecovery(
+          input.session,
+          input.intent.accommodationId,
+        );
       },
       commit(input) {
         if (
@@ -263,6 +289,12 @@ function AccommodationDetailRouteContent() {
           throw new Error("Checkout handoff is no longer current.");
         }
 
+        if (
+          inspectNewerRecovery(input.session, input.intent.accommodationId)
+            .status !== "ready"
+        ) {
+          throw new Error("A newer payment recovery state is active.");
+        }
         if (inspectActivePayment(input.session, false).status !== "ready") {
           throw new Error("An earlier payment still requires recovery.");
         }

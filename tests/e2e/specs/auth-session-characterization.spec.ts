@@ -46,6 +46,7 @@ const identityOwnedSessionStoragePrefixes = [
 ] as const;
 
 const deterministicSessionRoute = "/search?destination=Seoul&adultOccupancy=2";
+const authenticatedOwner = "subject:member_2t";
 
 const stubHomeHeroImage = (context: BrowserContext) =>
   context.route(
@@ -113,49 +114,102 @@ const logoutFromSessionRoute = async (page: Page) => {
 };
 
 const seedOwnedSessionStorage = async (page: Page, tabId: string) => {
-  await page.evaluate((syntheticTabId) => {
-    sessionStorage.setItem(
-      "airbob:booking-payment-v1:checkout",
-      `synthetic-checkout-${syntheticTabId}`,
-    );
-    sessionStorage.setItem(
-      "airbob:booking-payment-v1:callback",
-      `synthetic-callback-${syntheticTabId}`,
-    );
-    sessionStorage.setItem(
-      "airbob:booking-payment-v2:journal",
-      `synthetic-v2-journal-${syntheticTabId}`,
-    );
-    sessionStorage.setItem(
-      `airbob:reservation-checkout:${syntheticTabId}`,
-      `retired-checkout-${syntheticTabId}`,
-    );
-    sessionStorage.setItem(
-      `airbob:reservation-checkout-index:synthetic-${syntheticTabId}`,
-      syntheticTabId,
-    );
-    sessionStorage.setItem(
-      `airbob:payment-confirmed:synthetic-${syntheticTabId}`,
-      "1",
-    );
-    sessionStorage.setItem(
-      "airbob:booking-payment-v10:checkout",
-      `keep-v10-${syntheticTabId}`,
-    );
-    sessionStorage.setItem(
-      "airbob:booking-payment-v20:journal",
-      `keep-v20-${syntheticTabId}`,
-    );
-    sessionStorage.setItem(
-      "airbob:reservation-checkouts:synthetic",
-      `keep-plural-${syntheticTabId}`,
-    );
-    sessionStorage.setItem(
-      "airbob:reservation-checkout",
-      `keep-without-colon-${syntheticTabId}`,
-    );
-    sessionStorage.setItem("airbob:unrelated", `keep-${syntheticTabId}`);
-  }, tabId);
+  await page.evaluate(
+    ({ owner, syntheticTabId }) => {
+      const now = Date.now();
+      const recoveryExpiresAt = now + 5 * 60_000;
+      sessionStorage.setItem(
+        "airbob:booking-payment-v1:checkout",
+        `synthetic-checkout-${syntheticTabId}`,
+      );
+      sessionStorage.setItem(
+        "airbob:booking-payment-v1:callback",
+        `synthetic-callback-${syntheticTabId}`,
+      );
+      sessionStorage.setItem(
+        "airbob:booking-payment-v2:journal",
+        JSON.stringify({
+          purpose: "booking-payment-journal",
+          version: 2,
+          privacyClass: "sensitive",
+          containsPii: false,
+          owner,
+          createdAt: now,
+          hardExpiresAt: now + 60 * 60_000,
+          lease: {
+            runtimeLeaseId: "30000000-0000-4000-8000-000000000003",
+            sessionEpoch: 0,
+          },
+          data: {
+            phase: "quoted",
+            flowId: "40000000-0000-4000-8000-000000000004",
+            serverIntent: {
+              accommodationId: 7,
+              checkInDate: "2026-09-10",
+              checkOutDate: "2026-09-12",
+              guestCount: 2,
+              couponId: null,
+            },
+            presentationIntent: {
+              adultCount: 2,
+              childCount: 0,
+              infantCount: 0,
+              petCount: 0,
+            },
+            recoveryExpiresAt,
+            quote: {
+              quoteUid: "50000000-0000-4000-8000-000000000005",
+              accommodationId: 7,
+              orderName: "Synthetic candidate recovery stay",
+              checkIn: "2026-09-10",
+              checkOut: "2026-09-12",
+              guestCount: 2,
+              nightlyPrice: 1_000,
+              nights: 2,
+              subtotal: 2_000,
+              discountAmount: 0,
+              amount: 2_000,
+              currency: "KRW",
+              paymentRequired: true,
+              inventoryHeld: false,
+              quoteExpiresAt: new Date(recoveryExpiresAt).toISOString(),
+              serverTime: new Date(now).toISOString(),
+            },
+          },
+        }),
+      );
+      sessionStorage.setItem(
+        `airbob:reservation-checkout:${syntheticTabId}`,
+        `retired-checkout-${syntheticTabId}`,
+      );
+      sessionStorage.setItem(
+        `airbob:reservation-checkout-index:synthetic-${syntheticTabId}`,
+        syntheticTabId,
+      );
+      sessionStorage.setItem(
+        `airbob:payment-confirmed:synthetic-${syntheticTabId}`,
+        "1",
+      );
+      sessionStorage.setItem(
+        "airbob:booking-payment-v10:checkout",
+        `keep-v10-${syntheticTabId}`,
+      );
+      sessionStorage.setItem(
+        "airbob:booking-payment-v20:journal",
+        `keep-v20-${syntheticTabId}`,
+      );
+      sessionStorage.setItem(
+        "airbob:reservation-checkouts:synthetic",
+        `keep-plural-${syntheticTabId}`,
+      );
+      sessionStorage.setItem(
+        "airbob:reservation-checkout",
+        `keep-without-colon-${syntheticTabId}`,
+      );
+      sessionStorage.setItem("airbob:unrelated", `keep-${syntheticTabId}`);
+    },
+    { owner: authenticatedOwner, syntheticTabId: tabId },
+  );
 };
 
 const readOwnedSessionStorage = (page: Page) =>

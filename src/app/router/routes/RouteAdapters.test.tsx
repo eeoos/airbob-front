@@ -6,7 +6,11 @@ import type { ListingEditorAccommodation } from "../../../features/accommodation
 import type { ListingEditorQueryPort } from "../../../features/accommodations/listing-editor/public";
 import type { ListingEditorPublicationPort } from "../../../workflows/listing-editor";
 import type { ProfileControllerProps } from "../../../screens/profile/ProfileController";
-import type { SessionSubject } from "../../../platform/session/sessionScope";
+import type {
+  AuthenticatedSessionScope,
+  SessionSubject,
+} from "../../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../../test/sessionFixtures";
 import {
   MemoryRouter,
   Route,
@@ -61,7 +65,7 @@ type CapturedProps = {
     };
     checkoutHandoff: {
       commit(input: {
-        session: { subject: string; epoch: number };
+        session: AuthenticatedSessionScope;
         reservation: {
           reservationUid: string;
           orderName: string;
@@ -88,7 +92,7 @@ type CapturedProps = {
     routeLease: { isCurrent(): boolean };
     wishlistMembership?: {
       commands: object;
-      scope: { subject: string; epoch: number };
+      scope: AuthenticatedSessionScope;
     };
   };
   detail: {
@@ -101,7 +105,7 @@ type CapturedProps = {
       openReview(reservationUid: string): void;
     };
     reservationUid: string;
-    scope: { subject: string; epoch: number };
+    scope: AuthenticatedSessionScope;
   };
   reviewCreate: {
     reservationUid: string | null;
@@ -177,7 +181,7 @@ type CapturedProps = {
     };
     wishlistMembership?: {
       commands: object;
-      scope: { subject: string; epoch: number };
+      scope: AuthenticatedSessionScope;
     };
   };
   wishlist: {
@@ -188,7 +192,7 @@ type CapturedProps = {
       openWishlistDetail(wishlistId: number): void;
       openAccommodation(accommodationId: number): void;
     };
-    scope: { subject: string; epoch: number };
+    scope: AuthenticatedSessionScope;
     view:
       | { kind: "index" }
       | { kind: "recently-viewed" }
@@ -424,6 +428,7 @@ beforeEach(() => {
   mockCaptureAuthenticatedSession.mockReturnValue({
     subject: "subject:member_7",
     epoch: 3,
+    runtimeLeaseId: testSessionRuntimeLeaseId,
   });
   mockSessionLogin.mockReset();
   mockSessionLogin.mockResolvedValue(undefined);
@@ -525,7 +530,11 @@ describe("app route adapter contracts", () => {
     expect(() =>
       act(() =>
         captured("accommodation").checkoutHandoff.commit({
-          session: { subject: "subject:member_7", epoch: 3 },
+          session: {
+            subject: "subject:member_7" as SessionSubject,
+            epoch: 3,
+            runtimeLeaseId: testSessionRuntimeLeaseId,
+          },
           reservation: {
             reservationUid: "reservation-42",
             orderName: "테스트 숙소 2박",
@@ -595,7 +604,11 @@ describe("app route adapter contracts", () => {
     expect(mockIsCurrentSession).toHaveBeenCalledWith(session);
     expect(captured("accommodation").wishlistMembership).toEqual({
       commands: mockWishlistCommands,
-      scope: { subject: "subject:member_7", epoch: 3 },
+      scope: {
+        subject: "subject:member_7",
+        epoch: 3,
+        runtimeLeaseId: testSessionRuntimeLeaseId,
+      },
     });
   });
 
@@ -771,7 +784,11 @@ describe("app route adapter contracts", () => {
     expect(mockIsCurrentSession).toHaveBeenCalledWith(session);
     expect(captured("search").wishlistMembership).toEqual({
       commands: mockWishlistCommands,
-      scope: { subject: "subject:member_7", epoch: 3 },
+      scope: {
+        subject: "subject:member_7",
+        epoch: 3,
+        runtimeLeaseId: testSessionRuntimeLeaseId,
+      },
     });
 
     act(() => {
@@ -846,7 +863,11 @@ describe("app route adapter contracts", () => {
     renderAdapter("/wishlist", "/wishlist?id=7#memo", <WishlistRoute />);
 
     expect(captured("wishlist")).toMatchObject({
-      scope: { subject: "subject:member_7", epoch: 3 },
+      scope: {
+        subject: "subject:member_7",
+        epoch: 3,
+        runtimeLeaseId: testSessionRuntimeLeaseId,
+      },
       view: { kind: "wishlist-detail", wishlistId: 7 },
     });
     await userEvent.click(
@@ -880,6 +901,7 @@ describe("app route adapter contracts", () => {
     expect(mockIsCurrentSession).toHaveBeenCalledWith({
       subject: "subject:member_7",
       epoch: 3,
+      runtimeLeaseId: testSessionRuntimeLeaseId,
     });
   });
 
@@ -1047,7 +1069,11 @@ describe("app route adapter contracts", () => {
     captured("edit").query.setHostDetail({
       accommodation: projected,
       accommodationId: 42,
-      scope: { subject: "subject:member_7" as SessionSubject, epoch: 1 },
+      scope: {
+        subject: "subject:member_7" as SessionSubject,
+        epoch: 1,
+        runtimeLeaseId: testSessionRuntimeLeaseId,
+      },
     });
     expect(
       queryClient.getQueryData([
@@ -1070,6 +1096,7 @@ describe("app route adapter contracts", () => {
     const changedScope = {
       subject: "subject:editor-publication" as SessionSubject,
       epoch: 9,
+      runtimeLeaseId: testSessionRuntimeLeaseId,
     };
     mockRefreshAccommodationDetail.mockRejectedValueOnce(failure);
     renderAdapter(

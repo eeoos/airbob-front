@@ -6,6 +6,7 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../test/sessionFixtures";
 import type {
   WishlistMembershipDependencies,
   WishlistMembershipTransport,
@@ -16,6 +17,7 @@ import { useWishlistMembership } from "./useWishlistMembership";
 const scope: AuthenticatedSessionScope = {
   subject: "subject:member_7" as SessionSubject,
   epoch: 3,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 
 type WishlistMembershipProjection =

@@ -3,6 +3,7 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../../test/sessionFixtures";
 import type { ReservationReady } from "../../../features/reservations/public";
 import { createReservationCreateWorkflow } from "./reservationCreate";
 import type {
@@ -14,11 +15,13 @@ import type {
 const scopeA: AuthenticatedSessionScope = {
   subject: "subject:reservation_a" as SessionSubject,
   epoch: 7,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 
 const scopeB: AuthenticatedSessionScope = {
   subject: "subject:reservation_b" as SessionSubject,
   epoch: 8,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 
 const reservationReady: ReservationReady = {
@@ -79,6 +82,12 @@ const setup = ({
     preflight: vi.fn((): ReservationCheckoutHandoffPreflightResult => ({
       status: "ready",
     })),
+    assertNoNewerRecovery: vi.fn(
+      (): Extract<
+        ReservationCheckoutHandoffPreflightResult,
+        { readonly status: "ready" | "blocked" }
+      > => ({ status: "ready" }),
+    ),
     commit: vi.fn(),
   };
   const session = {
@@ -86,7 +95,8 @@ const setup = ({
     isCurrentSession: vi.fn(
       (scope: AuthenticatedSessionScope) =>
         currentScope?.subject === scope.subject &&
-        currentScope.epoch === scope.epoch,
+        currentScope.epoch === scope.epoch &&
+        currentScope.runtimeLeaseId === scope.runtimeLeaseId,
     ),
   };
   const workflow = createReservationCreateWorkflow({
@@ -286,6 +296,22 @@ describe("reservation create workflow", () => {
     expect(handoff.commit).not.toHaveBeenCalled();
   });
 
+  it("catches newer recovery that appears after preflight but before transport", async () => {
+    const { create, handoff, input, workflow } = setup();
+
+    const pending = workflow.start(input());
+    expect(handoff.preflight).toHaveBeenCalledTimes(1);
+    handoff.assertNoNewerRecovery.mockReturnValue({ status: "blocked" });
+
+    await expect(pending).resolves.toEqual({ status: "checkout-blocked" });
+    expect(handoff.assertNoNewerRecovery).toHaveBeenCalledWith({
+      session: scopeA,
+      intent: expect.objectContaining({ accommodationId: 7 }),
+    });
+    expect(create).not.toHaveBeenCalled();
+    expect(handoff.commit).not.toHaveBeenCalled();
+  });
+
   it("creates once and commits the immutable checkout handoff while current", async () => {
     const { create, handoff, input, workflow } = setup();
     const initialCommand = input();
@@ -308,6 +334,7 @@ describe("reservation create workflow", () => {
     });
 
     expect(create).toHaveBeenCalledTimes(1);
+    expect(handoff.assertNoNewerRecovery).toHaveBeenCalledTimes(1);
     expect(create).toHaveBeenCalledWith(
       {
         accommodationId: 7,
@@ -365,6 +392,12 @@ describe("reservation create workflow", () => {
       preflight: vi.fn((): ReservationCheckoutHandoffPreflightResult => ({
         status: "ready",
       })),
+      assertNoNewerRecovery: vi.fn(
+        (): Extract<
+          ReservationCheckoutHandoffPreflightResult,
+          { readonly status: "ready" | "blocked" }
+        > => ({ status: "ready" }),
+      ),
       commit: vi.fn(),
     };
     const workflow = createReservationCreateWorkflow({

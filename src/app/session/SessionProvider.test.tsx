@@ -23,6 +23,13 @@ import type {
 } from "../../platform/session/sessionBroadcast";
 import { AppError } from "../../platform/http/errors";
 import { triggerAuthError } from "../../platform/session/authEvents";
+import type { AuthenticatedSessionScope } from "../../platform/session/sessionScope";
+import type {
+  SessionRuntimeLeaseId,
+  SessionRuntimeLeaseIdFactory,
+} from "../../platform/session/runtimeLeaseId";
+import { createBookingPaymentJournalRepository } from "../../workflows/booking-payment/journal";
+import { reconcileCandidateIdentityOwnedFrontendState } from "../providers/reconcileCandidateIdentityOwnedFrontendState";
 import { SessionProvider, type SessionProviderProps } from "./SessionProvider";
 import type { SessionQueryClientFactory } from "./useSessionQueryLifetime";
 import {
@@ -93,6 +100,63 @@ const credentialsA: SessionCredentials = {
 const credentialsB: SessionCredentials = {
   email: viewerB.email,
   password: "password-b",
+};
+
+const runtimeLeaseA =
+  "10000000-0000-4000-8000-000000000001" as SessionRuntimeLeaseId;
+const runtimeLeaseB =
+  "20000000-0000-4000-8000-000000000002" as SessionRuntimeLeaseId;
+
+const V2_JOURNAL_KEY = "airbob:booking-payment-v2:journal";
+
+const seedQuotedV2Journal = (owner: string): string => {
+  const now = Date.now();
+  const result = createBookingPaymentJournalRepository({
+    now: () => now,
+  }).createQuoted({
+    owner,
+    lease: {
+      runtimeLeaseId: "30000000-0000-4000-8000-000000000003",
+      sessionEpoch: 0,
+    },
+    flowId: "40000000-0000-4000-8000-000000000004",
+    serverIntent: {
+      accommodationId: 7,
+      checkInDate: "2026-09-10",
+      checkOutDate: "2026-09-12",
+      guestCount: 2,
+      couponId: null,
+    },
+    presentationIntent: {
+      adultCount: 2,
+      childCount: 0,
+      infantCount: 0,
+      petCount: 0,
+    },
+    quote: {
+      quoteUid: "50000000-0000-4000-8000-000000000005",
+      accommodationId: 7,
+      orderName: "Candidate recovery stay",
+      checkIn: "2026-09-10",
+      checkOut: "2026-09-12",
+      guestCount: 2,
+      nightlyPrice: 1_000,
+      nights: 2,
+      subtotal: 2_000,
+      discountAmount: 0,
+      amount: 2_000,
+      currency: "KRW",
+      paymentRequired: true,
+      inventoryHeld: false,
+      quoteExpiresAt: new Date(now + 5 * 60_000).toISOString(),
+      serverTime: new Date(now).toISOString(),
+    },
+    isCurrent: () => true,
+  });
+  if (result.status !== "written") {
+    throw new Error("Expected candidate journal fixture to be written");
+  }
+  return sessionStorage.getItem(V2_JOURNAL_KEY) ?? "";
 };
 
 const authenticatedState = (
@@ -254,6 +318,10 @@ interface RenderSessionOptions {
   readonly clearRevokedIdentityOwnedState?: () => void;
   readonly initialState?: SessionState;
   readonly queryClientFactory?: SessionQueryClientFactory;
+  readonly reconcileCandidateIdentityOwnedState?: (
+    scope: AuthenticatedSessionScope,
+  ) => void;
+  readonly runtimeLeaseIdFactory?: SessionRuntimeLeaseIdFactory;
 }
 
 const createWrapper = ({
@@ -263,6 +331,8 @@ const createWrapper = ({
   clearRevokedIdentityOwnedState,
   initialState,
   queryClientFactory,
+  reconcileCandidateIdentityOwnedState,
+  runtimeLeaseIdFactory,
 }: RenderSessionOptions) => {
   const broadcast = new FakeSessionBroadcast();
   const props: Omit<SessionProviderProps, "children"> = {
@@ -274,6 +344,10 @@ const createWrapper = ({
       : {}),
     ...(initialState ? { initialState } : {}),
     ...(queryClientFactory ? { queryClientFactory } : {}),
+    ...(reconcileCandidateIdentityOwnedState
+      ? { reconcileCandidateIdentityOwnedState }
+      : {}),
+    ...(runtimeLeaseIdFactory ? { runtimeLeaseIdFactory } : {}),
   };
 
   return function SessionWrapper({
@@ -428,6 +502,107 @@ describe("SessionProvider", () => {
     expectAuthenticatedAs(result.current.session.state, viewerA);
   });
 
+  it("keeps a candidate unpublished when identity-owned state reconciliation fails", async () => {
+    const authPort = createAuthPort();
+    authPort.getViewer.mockResolvedValueOnce(viewerA);
+    const queryClients = createTrackedQueryClients();
+    const reconciliationError = new Error("candidate recovery is blocked");
+    const reconcileCandidateIdentityOwnedState = vi.fn(() => {
+      throw reconciliationError;
+    });
+    const { result } = renderSession({
+      authPort,
+      queryClientFactory: queryClients.factory,
+      reconcileCandidateIdentityOwnedState,
+      runtimeLeaseIdFactory: () => runtimeLeaseA,
+    });
+
+    await waitFor(() =>
+      expect(result.current.session.state).toMatchObject({
+        status: "error",
+        reason: "bootstrap",
+      }),
+    );
+
+    expect(reconcileCandidateIdentityOwnedState).toHaveBeenCalledWith({
+      epoch: 0,
+      runtimeLeaseId: runtimeLeaseA,
+      subject: toSessionSubject(viewerA),
+    });
+    expect(queryClients.generations).toHaveLength(1);
+    expect(requireQueryGeneration(queryClients.generations, 0).scope).toEqual({
+      epoch: 0,
+      subject: null,
+    });
+    expect(result.current.session.captureAuthenticatedSession()).toBeNull();
+  });
+
+  it("cold-bootstraps through the production adapter while preserving same-owner recovery", async () => {
+    const before = seedQuotedV2Journal(toSessionSubject(viewerA));
+    const authPort = createAuthPort();
+    authPort.getViewer.mockResolvedValueOnce(viewerA);
+
+    const { result } = renderSession({
+      authPort,
+      reconcileCandidateIdentityOwnedState:
+        reconcileCandidateIdentityOwnedFrontendState,
+      runtimeLeaseIdFactory: () => runtimeLeaseA,
+    });
+
+    await waitFor(() =>
+      expectAuthenticatedAs(result.current.session.state, viewerA),
+    );
+    expect(sessionStorage.getItem(V2_JOURNAL_KEY)).toBe(before);
+  });
+
+  it("cold-bootstraps through the production adapter only after foreign recovery is removed", async () => {
+    seedQuotedV2Journal(toSessionSubject(viewerA));
+    const authPort = createAuthPort();
+    authPort.getViewer.mockResolvedValueOnce(viewerB);
+
+    const { result } = renderSession({
+      authPort,
+      reconcileCandidateIdentityOwnedState:
+        reconcileCandidateIdentityOwnedFrontendState,
+      runtimeLeaseIdFactory: () => runtimeLeaseA,
+    });
+
+    await waitFor(() =>
+      expectAuthenticatedAs(result.current.session.state, viewerB),
+    );
+    expect(sessionStorage.getItem(V2_JOURNAL_KEY)).toBeNull();
+  });
+
+  it("cold-bootstrap preserves unknown v2 state and publishes no candidate identity", async () => {
+    const unknownKey = "airbob:booking-payment-v2:unknown-future-slot";
+    sessionStorage.setItem(unknownKey, "opaque-newer-state");
+    const authPort = createAuthPort();
+    authPort.getViewer.mockResolvedValueOnce(viewerA);
+    const queryClients = createTrackedQueryClients();
+
+    const { result } = renderSession({
+      authPort,
+      queryClientFactory: queryClients.factory,
+      reconcileCandidateIdentityOwnedState:
+        reconcileCandidateIdentityOwnedFrontendState,
+      runtimeLeaseIdFactory: () => runtimeLeaseA,
+    });
+
+    await waitFor(() =>
+      expect(result.current.session.state).toMatchObject({
+        status: "error",
+        reason: "bootstrap",
+      }),
+    );
+    expect(result.current.session.captureAuthenticatedSession()).toBeNull();
+    expect(queryClients.generations).toHaveLength(1);
+    expect(queryClients.generations[0]?.scope).toEqual({
+      epoch: 0,
+      subject: null,
+    });
+    expect(sessionStorage.getItem(unknownKey)).toBe("opaque-newer-state");
+  });
+
   it("preserves the viewer and QueryClient when same-subject revalidation gets a server error", async () => {
     const authPort = createAuthPort();
     const failure = serverError("same subject revalidation failed");
@@ -559,6 +734,7 @@ describe("SessionProvider", () => {
     const authPort = createAuthPort();
     authPort.getViewer.mockResolvedValueOnce(viewerB);
     const clearIdentityOwnedState = vi.fn();
+    const reconcileCandidateIdentityOwnedState = vi.fn();
     const queryClients = createTrackedQueryClients();
     const cleanupGenerationScopes: QueryScope[] = [];
     const clearRevokedIdentityOwnedState = vi.fn(() => {
@@ -572,6 +748,8 @@ describe("SessionProvider", () => {
       clearRevokedIdentityOwnedState,
       initialState: authenticatedState(viewerA),
       queryClientFactory: queryClients.factory,
+      reconcileCandidateIdentityOwnedState,
+      runtimeLeaseIdFactory: () => runtimeLeaseA,
     });
     const original = requireQueryGeneration(queryClients.generations, 0);
     original.cancelQueries.mockImplementation(() => cancelGate.promise);
@@ -609,6 +787,11 @@ describe("SessionProvider", () => {
     );
     expect(clearIdentityOwnedState).not.toHaveBeenCalled();
     expect(clearRevokedIdentityOwnedState).toHaveBeenCalledTimes(1);
+    expect(reconcileCandidateIdentityOwnedState).toHaveBeenCalledWith({
+      epoch: 5,
+      runtimeLeaseId: runtimeLeaseA,
+      subject: toSessionSubject(viewerB),
+    });
     expect(cleanupGenerationScopes).toEqual([{ epoch: 5, subject: null }]);
     const cleanupOrder =
       clearRevokedIdentityOwnedState.mock.invocationCallOrder.at(0);
@@ -618,7 +801,14 @@ describe("SessionProvider", () => {
     if (cleanupOrder === undefined || candidateFactoryOrder === undefined) {
       throw new Error("Expected cleanup and candidate generation activation");
     }
+    const reconciliationOrder =
+      reconcileCandidateIdentityOwnedState.mock.invocationCallOrder.at(0);
+    if (reconciliationOrder === undefined) {
+      throw new Error("Expected candidate identity reconciliation");
+    }
     expect(cleanupOrder).toBeLessThan(candidateFactoryOrder);
+    expect(cleanupOrder).toBeLessThan(reconciliationOrder);
+    expect(reconciliationOrder).toBeLessThan(candidateFactoryOrder);
   });
 
   it("fails closed when destructive cleanup blocks a verified subject change", async () => {
@@ -673,6 +863,70 @@ describe("SessionProvider", () => {
     expectAuthenticatedAs(result.current.session.state, viewerB);
   });
 
+  it("keeps a verified replacement subject unpublished when candidate reconciliation fails", async () => {
+    const authPort = createAuthPort();
+    authPort.login.mockResolvedValueOnce(undefined);
+    authPort.getViewer.mockResolvedValueOnce(viewerB);
+    const clearIdentityOwnedState = vi.fn();
+    const clearRevokedIdentityOwnedState = vi.fn();
+    const reconciliationError = new Error("candidate recovery is blocked");
+    const reconcileCandidateIdentityOwnedState = vi.fn(() => {
+      throw reconciliationError;
+    });
+    const queryClients = createTrackedQueryClients();
+    const { result } = renderSession({
+      authPort,
+      clearIdentityOwnedState,
+      clearRevokedIdentityOwnedState,
+      initialState: authenticatedState(viewerA),
+      queryClientFactory: queryClients.factory,
+      reconcileCandidateIdentityOwnedState,
+      runtimeLeaseIdFactory: () => runtimeLeaseA,
+    });
+    const capturedA = result.current.session.captureAuthenticatedSession();
+    expect(capturedA).not.toBeNull();
+
+    let thrown: unknown;
+    await act(async () => {
+      try {
+        await result.current.session.login(credentialsB);
+      } catch (error) {
+        thrown = error;
+      }
+    });
+
+    expect(thrown).toBe(reconciliationError);
+    expect(clearIdentityOwnedState).toHaveBeenCalledTimes(1);
+    expect(clearRevokedIdentityOwnedState).toHaveBeenCalledTimes(1);
+    expect(reconcileCandidateIdentityOwnedState).toHaveBeenCalledWith({
+      epoch: 5,
+      runtimeLeaseId: runtimeLeaseA,
+      subject: toSessionSubject(viewerB),
+    });
+    expect(result.current.session.state).toMatchObject({
+      status: "error",
+      reason: "identity-change",
+    });
+    expect(result.current.session.captureAuthenticatedSession()).toBeNull();
+    if (capturedA === null) throw new Error("expected authenticated scope");
+    expect(result.current.session.isCurrentSession(capturedA)).toBe(false);
+    expect(queryClients.generations.map(({ scope }) => scope)).toEqual([
+      { epoch: 4, subject: toSessionSubject(viewerA) },
+      { epoch: 5, subject: null },
+    ]);
+    expect(
+      queryClients.generations.some(
+        ({ scope }) => scope.subject === toSessionSubject(viewerB),
+      ),
+    ).toBe(false);
+    expect(
+      requireQueryGeneration(queryClients.generations, 0).cancelQueries,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      requireQueryGeneration(queryClients.generations, 0).clear,
+    ).toHaveBeenCalledTimes(1);
+  });
+
   it("does not destructively clean for a subject probe superseded during cache fencing", async () => {
     const authPort = createAuthPort();
     authPort.getViewer
@@ -680,6 +934,7 @@ describe("SessionProvider", () => {
       .mockResolvedValueOnce(viewerAUpdated);
     const clearIdentityOwnedState = vi.fn();
     const clearRevokedIdentityOwnedState = vi.fn();
+    const reconcileCandidateIdentityOwnedState = vi.fn();
     const queryClients = createTrackedQueryClients();
     const quarantineFence = deferred<void>();
     const { result } = renderSession({
@@ -688,6 +943,8 @@ describe("SessionProvider", () => {
       clearRevokedIdentityOwnedState,
       initialState: authenticatedState(viewerA),
       queryClientFactory: queryClients.factory,
+      reconcileCandidateIdentityOwnedState,
+      runtimeLeaseIdFactory: () => runtimeLeaseA,
     });
     requireQueryGeneration(
       queryClients.generations,
@@ -727,6 +984,9 @@ describe("SessionProvider", () => {
         ({ scope }) => scope.subject === toSessionSubject(viewerB),
       ),
     ).toBe(false);
+    expect(reconcileCandidateIdentityOwnedState).not.toHaveBeenCalledWith(
+      expect.objectContaining({ subject: toSessionSubject(viewerB) }),
+    );
     expectAuthenticatedAs(result.current.session.state, viewerAUpdated);
   });
 
@@ -1612,11 +1872,19 @@ describe("SessionProvider", () => {
     const { result } = renderSession({
       authPort,
       initialState: authenticatedState(viewerA),
+      runtimeLeaseIdFactory: () => runtimeLeaseA,
     });
     const capturedA = result.current.session.captureAuthenticatedSession();
     expect(capturedA).not.toBeNull();
     if (capturedA === null) throw new Error("expected authenticated scope");
+    expect(capturedA.runtimeLeaseId).toBe(runtimeLeaseA);
     expect(result.current.session.isCurrentSession(capturedA)).toBe(true);
+    expect(
+      result.current.session.isCurrentSession({
+        ...capturedA,
+        runtimeLeaseId: runtimeLeaseB,
+      }),
+    ).toBe(false);
 
     await act(async () => {
       await result.current.session.logout();
@@ -1634,6 +1902,41 @@ describe("SessionProvider", () => {
     if (capturedB === null) throw new Error("expected authenticated scope");
     expect(result.current.session.isCurrentSession(capturedB)).toBe(true);
     expect(capturedB.epoch).toBeGreaterThan(capturedA.epoch);
+    expect(capturedB.runtimeLeaseId).toBe(capturedA.runtimeLeaseId);
+  });
+
+  it("creates distinct runtime authority for distinct controller mounts", () => {
+    const runtimeLeaseIdFactory = vi
+      .fn<SessionRuntimeLeaseIdFactory>()
+      .mockReturnValueOnce(runtimeLeaseA)
+      .mockReturnValueOnce(runtimeLeaseB);
+    const { result: firstResult, unmount: unmountFirst } = renderSession({
+      authPort: createAuthPort(),
+      initialState: authenticatedState(viewerA),
+      runtimeLeaseIdFactory,
+    });
+    const firstScope =
+      firstResult.current.session.captureAuthenticatedSession();
+    unmountFirst();
+
+    const { result: secondResult, unmount: unmountSecond } = renderSession({
+      authPort: createAuthPort(),
+      initialState: authenticatedState(viewerA),
+      runtimeLeaseIdFactory,
+    });
+    const secondScope =
+      secondResult.current.session.captureAuthenticatedSession();
+
+    expect(firstScope?.runtimeLeaseId).toBe(runtimeLeaseA);
+    expect(secondScope?.runtimeLeaseId).toBe(runtimeLeaseB);
+    expect(runtimeLeaseIdFactory).toHaveBeenCalledTimes(2);
+    if (firstScope === null || secondScope === null) {
+      throw new Error("expected authenticated session scopes");
+    }
+    expect(secondResult.current.session.isCurrentSession(firstScope)).toBe(
+      false,
+    );
+    unmountSecond();
   });
 
   it("isolates detached old query and mutation completions from the B QueryClient", async () => {

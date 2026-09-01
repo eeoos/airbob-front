@@ -1,4 +1,5 @@
 import { AppError } from "../../platform/http/errors";
+import type { SessionRuntimeLeaseId } from "../../platform/session/runtimeLeaseId";
 import {
   createInitialSessionState,
   toAuthenticatedSessionScope,
@@ -41,6 +42,9 @@ const anotherRetryableError = new AppError({
   message: "Network failed.",
   retryable: true,
 });
+
+const runtimeLeaseId =
+  "10000000-0000-4000-8000-000000000001" as SessionRuntimeLeaseId;
 
 const nonRetryableError = new AppError({
   kind: "invalid-response",
@@ -589,16 +593,21 @@ describe("session state contracts", () => {
     ).toThrow(TypeError);
   });
 
-  it("captures only an authenticated subject and epoch", () => {
-    expect(toAuthenticatedSessionScope(authenticatedState(viewerA, 7))).toEqual(
-      {
-        subject: toSessionSubject(viewerA),
-        epoch: 7,
-      },
-    );
+  it("captures authenticated identity with its runtime authority", () => {
+    expect(
+      toAuthenticatedSessionScope(
+        authenticatedState(viewerA, 7),
+        runtimeLeaseId,
+      ),
+    ).toEqual({
+      subject: toSessionSubject(viewerA),
+      epoch: 7,
+      runtimeLeaseId,
+    });
     expect(
       toAuthenticatedSessionScope(
         createInitialSessionState({ epoch: 7, operationId: 1 }),
+        runtimeLeaseId,
       ),
     ).toBeNull();
   });

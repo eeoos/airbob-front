@@ -158,6 +158,23 @@ export const createReservationCreateWorkflow = (
       try {
         if (!isCurrent()) return lockAsStale();
 
+        let sendGuard: Extract<
+          ReservationCheckoutHandoffPreflightResult,
+          { readonly status: "ready" | "blocked" }
+        >;
+        try {
+          sendGuard = dependencies.handoff.assertNoNewerRecovery({
+            session: scope,
+            intent: command.intent,
+          });
+        } catch {
+          sendGuard = { status: "blocked" };
+        }
+        if (sendGuard.status === "blocked") {
+          return { status: "checkout-blocked" };
+        }
+        if (!isCurrent()) return lockAsStale();
+
         const response = await dependencies.transport.create(
           {
             accommodationId: command.intent.accommodationId,

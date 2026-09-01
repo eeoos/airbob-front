@@ -8,6 +8,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import React from "react";
 import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
 import { requireDefined } from "../../../test/assertions";
+import { testSessionRuntimeLeaseId } from "../../../test/sessionFixtures";
 import type {
   GuestReservationDetail,
   ReservationListPage,
@@ -73,6 +74,7 @@ const getCapturedDetailOptions = (): CapturedDetailQueryOptions =>
 
 const scope = {
   epoch: 4,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
   subject: "subject:member_7" as AuthenticatedSessionScope["subject"],
 };
 
@@ -230,7 +232,9 @@ describe("reservation read query boundary", () => {
         size: 20,
       }),
     ).not.toEqual(guestOptions.queryKey);
-    expect(guestOptions.meta).toEqual({ session: scope });
+    expect(guestOptions.meta).toEqual({
+      session: { epoch: scope.epoch, subject: scope.subject },
+    });
     expect(getList).toHaveBeenCalledWith(
       "guest",
       { filterType: "UPCOMING", size: 20 },
