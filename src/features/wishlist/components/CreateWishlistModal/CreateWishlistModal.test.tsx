@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Mocked } from "vitest";
 import type { WishlistMembershipCommandPort } from "../../ports/wishlistMembershipCommandPort";
@@ -88,10 +88,44 @@ describe("CreateWishlistModal", () => {
       WISHLIST_CREATED_ONLY_MESSAGE,
     );
     expect(input).toHaveValue("여름 여행");
+    expect(screen.getByRole("button", { name: "다시 시도" })).toBeEnabled();
 
-    await userEvent.click(screen.getByRole("button", { name: "새로 만들기" }));
+    await userEvent.click(screen.getByRole("button", { name: "다시 시도" }));
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
     expect(commands.createAndAddAccommodation).toHaveBeenCalledTimes(2);
+  });
+
+  it("announces submission busy state and protects the active name", async () => {
+    let resolve!: (result: {
+      status: "applied";
+      isInAnyWishlist: true;
+      wishlistId: number;
+    }) => void;
+    const pending = new Promise<{
+      status: "applied";
+      isInAnyWishlist: true;
+      wishlistId: number;
+    }>((resolvePromise) => {
+      resolve = resolvePromise;
+    });
+    const commands = createCommands();
+    commands.createAndAddAccommodation.mockReturnValue(pending);
+    renderCreateModal({ commands });
+    const input = screen.getByRole("textbox", { name: "이름" });
+
+    await userEvent.type(input, "겨울 바다");
+    await userEvent.click(screen.getByRole("button", { name: "새로 만들기" }));
+
+    expect(input).toBeDisabled();
+    expect(screen.getByRole("button", { name: "저장 중..." })).toHaveAttribute(
+      "aria-busy",
+      "true",
+    );
+
+    await act(async () => {
+      resolve({ status: "applied", isInAnyWishlist: true, wishlistId: 12 });
+      await pending;
+    });
   });
 
   it("closes without invoking a command", async () => {

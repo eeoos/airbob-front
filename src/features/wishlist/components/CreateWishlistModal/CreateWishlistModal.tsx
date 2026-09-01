@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { requireCssModuleClass } from "../../../../shared/styles/requireCssModuleClass";
-import { Dialog, ToastHost } from "../../../../shared/ui";
+import { Button, Dialog } from "../../../../shared/ui";
 import {
   toWishlistErrorMessage,
   WISHLIST_CREATED_ONLY_MESSAGE,
@@ -62,6 +62,7 @@ export function CreateWishlistModal({
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
+      setError(null);
       setName(event.target.value.slice(0, 50));
     },
     [],
@@ -122,51 +123,78 @@ export function CreateWishlistModal({
       className={requireCssModuleClass(styles.dialog)}
       bodyClassName={requireCssModuleClass(styles.content)}
     >
-      <form onSubmit={handleSubmit} className={styles.form}>
+      <form
+        aria-busy={isPending || undefined}
+        onSubmit={handleSubmit}
+        className={styles.form}
+      >
+        <p className={styles.description}>
+          여행 목적이나 계절처럼 나중에도 알아보기 쉬운 이름을 붙여 보세요.
+        </p>
         <div className={styles.inputGroup}>
           <label htmlFor="wishlist-name" className={styles.label}>
             이름
           </label>
           <input
+            aria-describedby={`wishlist-name-help wishlist-name-count${
+              error ? " wishlist-create-error" : ""
+            }`}
+            aria-invalid={error ? true : undefined}
+            autoComplete="off"
+            disabled={isPending}
             ref={nameInputRef}
             type="text"
             id="wishlist-name"
             value={name}
             onChange={handleChange}
             className={styles.input}
-            placeholder="위시리스트 이름을 입력하세요"
+            placeholder="예: 가을 제주 여행"
             maxLength={50}
             required
           />
-          <div className={styles.charCount}>{name.length}/50자</div>
+          <div className={styles.inputMeta}>
+            <span id="wishlist-name-help">이름은 나중에 변경할 수 있어요.</span>
+            <span aria-live="polite" id="wishlist-name-count">
+              {name.length}/50자
+            </span>
+          </div>
         </div>
 
+        {error && (
+          <div
+            className={styles.errorPanel}
+            id="wishlist-create-error"
+            role="alert"
+          >
+            <strong>숙소 저장을 완료하지 못했어요</strong>
+            <span>{error}</span>
+            <span>
+              입력한 이름을 유지했어요. 같은 내용으로 다시 시도하세요.
+            </span>
+          </div>
+        )}
+
         <div className={styles.buttonGroup}>
-          <button
-            type="button"
+          <Button
             className={styles.cancelButton}
             onClick={handleClose}
+            size="md"
+            variant="secondary"
           >
             취소
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
             className={styles.submitButton}
             disabled={!name.trim() || isPending}
+            isLoading={isPending}
+            loadingLabel="저장 중..."
+            size="md"
           >
-            새로 만들기
-          </button>
+            {error ? "다시 시도" : "새로 만들기"}
+          </Button>
         </div>
       </form>
-      {error && (
-        <div className={styles.toastContainer}>
-          <ToastHost
-            closeLabel="오류 닫기"
-            message={error}
-            onClose={() => setError(null)}
-          />
-        </div>
-      )}
     </Dialog>
   );
 }

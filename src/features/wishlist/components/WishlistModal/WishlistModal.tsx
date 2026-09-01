@@ -5,7 +5,10 @@ import { requireCssModuleClass } from "../../../../shared/styles/requireCssModul
 import {
   Button,
   Dialog,
+  EmptyState,
   ImageWithFallback,
+  RetryableErrorState,
+  Skeleton,
   stateViewRecipes,
   ToastHost,
 } from "../../../../shared/ui";
@@ -41,6 +44,27 @@ const removePendingWishlistId = (
   next.delete(wishlistId);
   return next;
 };
+
+const MODAL_SKELETON_COUNT = 4;
+
+function WishlistModalSkeleton() {
+  return (
+    <div className={styles.loadingState} {...stateViewRecipes.loading}>
+      <span className={styles.visuallyHidden}>
+        위시리스트를 불러오는 중입니다.
+      </span>
+      <div className={styles.wishlistGrid} aria-hidden="true">
+        {Array.from({ length: MODAL_SKELETON_COUNT }, (_, index) => (
+          <div className={styles.skeletonCard} key={index}>
+            <Skeleton className={styles.skeletonImage} />
+            <Skeleton className={styles.skeletonTitle} />
+            <Skeleton className={styles.skeletonMeta} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function WishlistModal({
   accommodationId,
@@ -78,6 +102,9 @@ export function WishlistModal({
     (wishlistsQuery.isLoading ||
       (wishlistsQuery.isFetching && wishlists.length === 0));
   const hasNext = isOpen && Boolean(wishlistsQuery.hasNextPage);
+  const queryErrorMessage = wishlistsQuery.isError
+    ? toWishlistErrorMessage(wishlistsQuery.error)
+    : null;
 
   useEffect(() => {
     interactionGenerationRef.current += 1;
@@ -86,12 +113,6 @@ export function WishlistModal({
     setShowCreateModal(false);
     setError(null);
   }, [accommodationId, isOpen, scope.epoch, scope.subject]);
-
-  useEffect(() => {
-    if (isOpen && wishlistsQuery.error) {
-      setError(toWishlistErrorMessage(wishlistsQuery.error));
-    }
-  }, [isOpen, wishlistsQuery.error, wishlistsQuery.errorUpdatedAt]);
 
   const loadMoreWishlists = useCallback(async () => {
     if (!wishlistsQuery.hasNextPage || wishlistsQuery.isFetching) return;
@@ -186,6 +207,11 @@ export function WishlistModal({
     [],
   );
 
+  const retryWishlists = useCallback(() => {
+    setError(null);
+    void wishlistsQuery.refetch();
+  }, [wishlistsQuery]);
+
   if (!isOpen) return null;
 
   return (
@@ -197,74 +223,142 @@ export function WishlistModal({
         className={requireCssModuleClass(styles.dialog)}
         bodyClassName={requireCssModuleClass(styles.content)}
       >
-        <div className={styles.wishlistGrid}>
-          {isLoading && (
-            <div
-              className={styles.loadingIndicator}
-              {...stateViewRecipes.loading}
-            >
-              로딩 중...
-            </div>
-          )}
-          {wishlists.map((wishlist) => {
-            const isPending =
-              isRefreshing || pendingWishlistIds.has(wishlist.id);
-
-            return (
-              <button
-                type="button"
-                key={wishlist.id}
-                className={styles.wishlistItem}
-                aria-pressed={wishlist.isContained}
-                aria-busy={isPending || undefined}
-                disabled={isPending}
-                onClick={() => void toggleWishlist(wishlist)}
-              >
-                <div className={styles.wishlistImage}>
-                  <ImageWithFallback
-                    src={wishlist.thumbnailUrl}
-                    alt={wishlist.name}
-                    fallback={
-                      <div className={styles.placeholderImage}>
-                        <svg viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                        </svg>
-                      </div>
-                    }
-                  />
-                  <div
-                    className={`${styles.wishlistIcon} ${
-                      wishlist.isContained ? styles.active : ""
-                    }`}
+        <div
+          aria-busy={
+            isLoading || isRefreshing || pendingWishlistIds.size > 0
+              ? true
+              : undefined
+          }
+          className={styles.libraryBody}
+        >
+          {queryErrorMessage && wishlists.length === 0 ? (
+            <RetryableErrorState
+              action={
+                <Button
+                  isLoading={isLoading}
+                  loadingLabel="다시 불러오는 중..."
+                  onClick={retryWishlists}
+                  size="sm"
+                  variant="secondary"
+                >
+                  다시 시도
+                </Button>
+              }
+              className={styles.dialogState}
+              description={queryErrorMessage}
+              title="위시리스트를 불러오지 못했어요"
+            />
+          ) : isLoading && wishlists.length === 0 ? (
+            <WishlistModalSkeleton />
+          ) : wishlists.length === 0 ? (
+            <EmptyState
+              className={styles.dialogState}
+              description="새 모음을 만들면 이 숙소를 바로 저장할 수 있어요."
+              title="아직 만든 위시리스트가 없어요"
+            />
+          ) : (
+            <>
+              {queryErrorMessage && (
+                <div className={styles.refreshError} role="alert">
+                  <div>
+                    <strong>최신 목록을 불러오지 못했어요</strong>
+                    <span>{queryErrorMessage}</span>
+                  </div>
+                  <Button
+                    isLoading={isRefreshing}
+                    loadingLabel="다시 불러오는 중..."
+                    onClick={retryWishlists}
+                    size="sm"
+                    variant="secondary"
                   >
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill={wishlist.isContained ? "currentColor" : "none"}
-                      stroke="currentColor"
-                      strokeWidth="1.5"
+                    다시 시도
+                  </Button>
+                </div>
+              )}
+              <div
+                aria-label="저장할 위시리스트 선택"
+                className={styles.wishlistGrid}
+                role="group"
+              >
+                {wishlists.map((wishlist) => {
+                  const isPending =
+                    isRefreshing || pendingWishlistIds.has(wishlist.id);
+
+                  return (
+                    <button
+                      type="button"
+                      key={wishlist.id}
+                      className={styles.wishlistItem}
+                      aria-label={`${wishlist.name}, ${wishlist.itemCountLabel}, ${
+                        wishlist.isContained ? "저장됨" : "저장되지 않음"
+                      }`}
+                      aria-pressed={wishlist.isContained}
+                      aria-busy={isPending || undefined}
+                      disabled={isPending}
+                      onClick={() => void toggleWishlist(wishlist)}
                     >
-                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                    </svg>
-                  </div>
+                      <div className={styles.wishlistImage}>
+                        <ImageWithFallback
+                          src={wishlist.thumbnailUrl}
+                          alt={wishlist.name}
+                          fallback={
+                            <div className={styles.placeholderImage}>
+                              <svg
+                                aria-hidden="true"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                              >
+                                <path d="M5 7.5h14v11H5z" />
+                                <path d="m7.5 15 3-3 2.2 2.2 1.8-1.7 2 2" />
+                              </svg>
+                              <span>대표 사진 없음</span>
+                            </div>
+                          }
+                        />
+                        <div
+                          aria-hidden="true"
+                          className={`${styles.wishlistIcon} ${
+                            wishlist.isContained ? styles.active : ""
+                          }`}
+                        >
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill={
+                              wishlist.isContained ? "currentColor" : "none"
+                            }
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                          >
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className={styles.wishlistInfo}>
+                        <div className={styles.wishlistName}>
+                          {wishlist.name}
+                        </div>
+                        <div className={styles.wishlistCount}>
+                          {wishlist.itemCountLabel}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+                <div ref={setLoadingTarget} className={styles.loadingIndicator}>
+                  {hasNext && wishlistsQuery.isFetchingNextPage && (
+                    <span {...stateViewRecipes.loading}>
+                      더 많은 위시리스트를 불러오는 중입니다.
+                    </span>
+                  )}
                 </div>
-                <div className={styles.wishlistInfo}>
-                  <div className={styles.wishlistName}>{wishlist.name}</div>
-                  <div className={styles.wishlistCount}>
-                    {wishlist.itemCountLabel}
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-          <div ref={setLoadingTarget} className={styles.loadingIndicator}>
-            {hasNext && wishlistsQuery.isFetchingNextPage && (
-              <span {...stateViewRecipes.loading}>로딩 중...</span>
-            )}
-          </div>
+              </div>
+            </>
+          )}
         </div>
 
         <Button
           className={styles.createButton}
+          disabled={isLoading || isRefreshing}
           onClick={() => {
             setError(null);
             setShowCreateModal(true);

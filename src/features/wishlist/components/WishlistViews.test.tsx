@@ -164,7 +164,9 @@ describe("Wishlist view components", () => {
 
   it("renders loading and empty states", () => {
     renderWishlistIndex({ isLoading: true });
-    expect(screen.getByRole("status")).toHaveTextContent("로딩 중...");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "저장한 숙소 모음을 불러오는 중입니다.",
+    );
     expect(screen.getByRole("status")).toHaveAttribute(
       "data-state-kind",
       "loading",
@@ -172,7 +174,7 @@ describe("Wishlist view components", () => {
 
     renderWishlistDetail();
     expect(screen.getAllByRole("status")[1]).toHaveTextContent(
-      "위시리스트가 비어있습니다.",
+      "이 위시리스트는 아직 비어 있어요",
     );
 
     renderRecentlyViewed();
@@ -180,9 +182,75 @@ describe("Wishlist view components", () => {
       screen
         .getAllByRole("status")
         .some((state) =>
-          state.textContent?.includes("최근 조회한 숙소가 없습니다."),
+          state.textContent?.includes("최근 조회한 숙소가 없어요"),
         ),
     ).toBe(true);
+  });
+
+  it("offers an explicit retry for a cold wishlist read failure", async () => {
+    const onRetry = vi.fn();
+    renderWishlistIndex({
+      errorMessage: "네트워크 오류가 발생했습니다.",
+      onRetry,
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "위시리스트를 불러오지 못했어요",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps cached collections visible when a refresh fails", () => {
+    renderWishlistIndex({
+      errorMessage: "서버 오류가 발생했습니다.",
+      onRetry: vi.fn(),
+      wishlists: [makeWishlistCard()],
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "최신 위시리스트를 불러오지 못했어요",
+    );
+    expect(
+      screen.getByRole("button", { name: /Weekend saves 위시리스트 열기/ }),
+    ).toBeVisible();
+  });
+
+  it("announces recently-viewed edit mode and labels each destructive action", () => {
+    renderRecentlyViewed({
+      isEditMode: true,
+      recentlyViewed: [makeRecentlyViewedCard()],
+    });
+
+    expect(screen.getByRole("status")).toHaveTextContent("편집 모드");
+    expect(
+      screen.getByRole("button", {
+        name: "Ocean house 최근 조회에서 삭제",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("replaces failed collection and recent-stay images declaratively", () => {
+    renderWishlistIndex({
+      wishlists: [
+        makeWishlistCard({ thumbnailImageUrl: "/broken-collection.jpg" }),
+      ],
+    });
+    fireEvent.error(
+      screen.getByRole("img", { name: "Weekend saves 대표 사진" }),
+    );
+    expect(
+      screen.getByRole("img", { name: "Weekend saves 대표 이미지 없음" }),
+    ).toBeVisible();
+
+    renderRecentlyViewed({
+      recentlyViewed: [makeRecentlyViewedCard()],
+    });
+    fireEvent.error(screen.getByRole("img", { name: "Ocean house 숙소 사진" }));
+    expect(
+      screen.getByRole("img", { name: "Ocean house 이미지 없음" }),
+    ).toBeVisible();
   });
 
   it("does not open a wishlist card when deleting the wishlist", async () => {
@@ -200,7 +268,7 @@ describe("Wishlist view components", () => {
     });
 
     await userEvent.click(
-      screen.getByRole("button", { name: "위시리스트 삭제" }),
+      screen.getByRole("button", { name: /Weekend saves 위시리스트 삭제/ }),
     );
 
     expect(onDeleteWishlist).toHaveBeenCalledWith(42, expect.any(Object));
@@ -217,7 +285,9 @@ describe("Wishlist view components", () => {
       wishlistAccommodations: [makeWishlistAccommodationCard()],
     });
 
-    await userEvent.click(screen.getByRole("button", { name: "삭제" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Lake cabin 위시리스트에서 삭제" }),
+    );
 
     expect(onRemoveFromWishlist).toHaveBeenCalledWith(501);
     expect(onOpenAccommodationDetail).not.toHaveBeenCalled();
@@ -250,15 +320,15 @@ describe("Wishlist view components", () => {
       wishlistAccommodations: [makeWishlistAccommodationCard()],
     });
 
-    const image = screen.getByRole("img", { name: "Lake cabin" });
+    const image = screen.getByRole("img", { name: "Lake cabin 숙소 사진" });
     expect(screen.queryByText("이미지 없음")).not.toBeInTheDocument();
 
     fireEvent.error(image);
 
     expect(
-      screen.queryByRole("img", { name: "Lake cabin" }),
+      screen.queryByRole("img", { name: "Lake cabin 숙소 사진" }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText("이미지 없음")).toBeVisible();
+    expect(screen.getByText("숙소 사진을 준비 중이에요")).toBeVisible();
   });
 
   it("opens the memo dialog from a wishlist detail memo button", async () => {
@@ -292,7 +362,11 @@ describe("Wishlist view components", () => {
       recentlyViewed: [makeRecentlyViewedCard()],
     });
 
-    await userEvent.click(screen.getByRole("button", { name: "삭제" }));
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Ocean house 최근 조회에서 삭제",
+      }),
+    );
 
     expect(onRemoveRecentlyViewed).toHaveBeenCalledWith(101);
     expect(onOpenAccommodationDetail).not.toHaveBeenCalled();
@@ -308,7 +382,11 @@ describe("Wishlist view components", () => {
       recentlyViewed: [makeRecentlyViewedCard()],
     });
 
-    await userEvent.click(screen.getByRole("button", { name: "위시리스트" }));
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Ocean house 위시리스트 저장",
+      }),
+    );
 
     expect(onWishlistToggle).toHaveBeenCalledWith(101);
     expect(onOpenAccommodationDetail).not.toHaveBeenCalled();
@@ -320,21 +398,27 @@ describe("Wishlist view components", () => {
       wishlists: [makeWishlistCard()],
     });
     expect(
-      screen.getByRole("button", { name: "위시리스트 삭제" }),
+      screen.getByRole("button", { name: /Weekend saves 위시리스트 삭제/ }),
     ).toBeInTheDocument();
     expectNoNestedInteractiveControls(indexContainer);
 
     const { container: detailContainer } = renderWishlistDetail({
       wishlistAccommodations: [makeWishlistAccommodationCard()],
     });
-    expect(screen.getByRole("button", { name: "삭제" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "Lake cabin 위시리스트에서 삭제",
+      }),
+    ).toBeInTheDocument();
     expectNoNestedInteractiveControls(detailContainer);
 
     const { container: recentlyViewedContainer } = renderRecentlyViewed({
       recentlyViewed: [makeRecentlyViewedCard()],
     });
     expect(
-      screen.getByRole("button", { name: "위시리스트" }),
+      screen.getByRole("button", {
+        name: "Ocean house 위시리스트 저장",
+      }),
     ).toBeInTheDocument();
     expectNoNestedInteractiveControls(recentlyViewedContainer);
   });
@@ -357,5 +441,30 @@ describe("Wishlist view components", () => {
 
     await userEvent.click(saveButton);
     expect(onSave).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps memo drafts editable while exposing retry and busy semantics", () => {
+    render(
+      <WishlistMemoDialog
+        errorMessage="네트워크 오류가 발생했습니다."
+        isOpen
+        isPending
+        memoText="바다 전망 문의"
+        onChangeMemoText={vi.fn()}
+        onClear={vi.fn()}
+        onClose={vi.fn()}
+        onDismissError={vi.fn()}
+        onSave={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "메모를 저장하지 못했어요",
+    );
+    expect(screen.getByRole("textbox", { name: "메모" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "저장 중..." })).toHaveAttribute(
+      "aria-busy",
+      "true",
+    );
   });
 });
