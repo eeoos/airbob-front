@@ -35,10 +35,12 @@ describe("Profile responsive layout contracts", () => {
     const tabletBlock = getMediaBlock(css, "(--viewport-mobile-tablet)");
 
     expect(tabletBlock).toMatch(
-      /\.content\s*{[^}]*grid-template-columns:\s*1fr;/s,
+      /\.content\s*{[^}]*grid-template-columns:\s*minmax\(0, 1fr\);/s,
     );
+    expect(tabletBlock).toMatch(/\.content\s*{[^}]*align-content:\s*start;/s);
     expect(tabletBlock).toMatch(/\.sidebar\s*{[^}]*position:\s*static;/s);
     expect(tabletBlock).toMatch(/\.sidebar\s*{[^}]*width:\s*100%;/s);
+    expect(tabletBlock).toMatch(/\.sidebar\s*{[^}]*min-width:\s*0;/s);
     expect(tabletBlock).toMatch(/\.sidebar\s*{[^}]*box-shadow:\s*none;/s);
     expect(tabletBlock).toMatch(/\.nav\s*{[^}]*flex-direction:\s*row;/s);
     expect(tabletBlock).toMatch(/\.nav\s*{[^}]*overflow-x:\s*auto;/s);
