@@ -13,6 +13,7 @@ import {
   PaymentCallbackCredentialBoundary,
   useMarkPaymentRecoveryFence,
   usePaymentCallbackCredentialClaim,
+  usePaymentCallbackFailureClaim,
   usePaymentRecoveryFenceStatus,
 } from "./PaymentCallbackCredentialBoundary";
 
@@ -26,6 +27,7 @@ vi.mock("../session/useSession", () => ({
 const callbackPath = "/reservations/reservation-1/success";
 const callbackSearch =
   "?paymentKey=payment-key-1&orderId=reservation-1&amount=120000";
+const failPath = "/reservations/reservation-1/fail";
 
 function LocationProbe() {
   const location = useLocation();
@@ -35,6 +37,7 @@ function LocationProbe() {
       {JSON.stringify({
         pathname: location.pathname,
         search: location.search,
+        hash: location.hash,
         state: location.state,
       })}
     </output>
@@ -43,15 +46,25 @@ function LocationProbe() {
 
 function CredentialProbe() {
   const claim = usePaymentCallbackCredentialClaim();
+  const failureClaim = usePaymentCallbackFailureClaim();
 
   return (
-    <output data-testid="credential-claim">{JSON.stringify(claim)}</output>
+    <>
+      <output data-testid="credential-claim">{JSON.stringify(claim)}</output>
+      <output data-testid="failure-claim">
+        {JSON.stringify(failureClaim)}
+      </output>
+    </>
   );
 }
 
 function AuthenticatedBoundaryProbe() {
   const location = useLocation();
-  mockAuthenticatedBoundaryRender(location.search);
+  mockAuthenticatedBoundaryRender({
+    hash: location.hash,
+    search: location.search,
+    state: location.state,
+  });
 
   return (
     <RequireAuthenticatedRoute>
@@ -60,25 +73,38 @@ function AuthenticatedBoundaryProbe() {
   );
 }
 
-const renderBoundary = (initialEntry: InitialEntry) =>
+const renderBoundary = (
+  initialEntry: InitialEntry,
+  now: () => number = Date.now,
+) =>
   render(
     <MemoryRouter initialEntries={[initialEntry]}>
       <LocationProbe />
-      <Routes>
-        <Route
-          path="/reservations/:reservationUid/success"
-          element={
-            <PaymentCallbackCredentialBoundary>
-              <AuthenticatedBoundaryProbe />
-            </PaymentCallbackCredentialBoundary>
-          }
-        />
-        <Route path="/login" element={<div data-testid="login-route" />} />
-      </Routes>
+      <PaymentCallbackCredentialBoundary now={now}>
+        <Routes>
+          <Route
+            path="/reservations/:reservationUid/success"
+            element={<AuthenticatedBoundaryProbe />}
+          />
+          <Route
+            path="/reservations/:reservationUid/fail"
+            element={<AuthenticatedBoundaryProbe />}
+          />
+          <Route path="/login" element={<div data-testid="login-route" />} />
+        </Routes>
+      </PaymentCallbackCredentialBoundary>
     </MemoryRouter>,
   );
 
-const setBrowserCallbackEntry = (search: string) => {
+const setBrowserCallbackEntry = ({
+  hash = "",
+  pathname = callbackPath,
+  search,
+}: {
+  readonly hash?: string;
+  readonly pathname?: string;
+  readonly search: string;
+}) => {
   window.history.replaceState(
     {
       idx: 0,
@@ -86,21 +112,27 @@ const setBrowserCallbackEntry = (search: string) => {
       usr: { paymentKey: "payment-key-in-browser-history" },
     },
     "",
-    `${callbackPath}${search}`,
+    `${pathname}${search}${hash}`,
   );
 };
 
 function StableRuntimeProbe({
+  onLocationRender,
   onMount,
   onUnmount,
 }: {
+  readonly onLocationRender?: (location: string) => void;
   readonly onMount: () => void;
   readonly onUnmount: () => void;
 }) {
   const claim = usePaymentCallbackCredentialClaim();
+  const failureClaim = usePaymentCallbackFailureClaim();
   const recoveryFenceStatus = usePaymentRecoveryFenceStatus();
   const markRecoveryFence = useMarkPaymentRecoveryFence();
   const navigate = useNavigate();
+  const location = useLocation();
+  const renderedLocation = `${location.pathname}${location.search}${location.hash}:${JSON.stringify(location.state)}`;
+  onLocationRender?.(renderedLocation);
 
   useEffect(() => {
     onMount();
@@ -110,6 +142,10 @@ function StableRuntimeProbe({
   return (
     <>
       <output data-testid="stable-claim">{JSON.stringify(claim)}</output>
+      <output data-testid="stable-failure-claim">
+        {JSON.stringify(failureClaim)}
+      </output>
+      <output data-testid="stable-location">{renderedLocation}</output>
       <output data-testid="recovery-fence">{recoveryFenceStatus}</output>
       <button
         type="button"
@@ -123,8 +159,19 @@ function StableRuntimeProbe({
       >
         payment fail
       </button>
+      <button
+        type="button"
+        onClick={() =>
+          navigate("/reservations/reservation-2/fail?reason=confirm-failed")
+        }
+      >
+        internal failure callback
+      </button>
       <button type="button" onClick={() => navigate("/")}>
         home
+      </button>
+      <button type="button" onClick={() => navigate(-1)}>
+        back
       </button>
       <button
         type="button"
@@ -145,14 +192,29 @@ function StableRuntimeProbe({
       >
         new callback
       </button>
+      <button
+        type="button"
+        onClick={() =>
+          navigate(
+            "/reservations/reservation-4/success?paymentKey=provider-secret-query&orderId=reservation-4&amount=140000#provider-secret-hash",
+            { state: { code: "provider-secret-state" } },
+          )
+        }
+      >
+        sensitive callback
+      </button>
     </>
   );
 }
 
-const expectCredentialsScrubbedFromHistory = () => {
-  expect(window.location.pathname).toBe(callbackPath);
+const expectCredentialsScrubbedFromHistory = (
+  pathname = callbackPath,
+  forbiddenValue = "payment-key",
+) => {
+  expect(window.location.pathname).toBe(pathname);
   expect(window.location.search).toBe("");
-  expect(JSON.stringify(window.history.state)).not.toContain("payment-key");
+  expect(window.location.hash).toBe("");
+  expect(JSON.stringify(window.history.state)).not.toContain(forbiddenValue);
   expect(window.history.state).toMatchObject({ usr: null });
 };
 
@@ -168,9 +230,13 @@ describe("PaymentCallbackCredentialBoundary", () => {
       state: { status: "checking" },
       revalidate: vi.fn(),
     });
-    setBrowserCallbackEntry(callbackSearch);
+    setBrowserCallbackEntry({
+      hash: "#paymentKey=payment-key-in-hash",
+      search: callbackSearch,
+    });
 
     renderBoundary({
+      hash: "#paymentKey=payment-key-in-hash",
       pathname: callbackPath,
       search: callbackSearch,
       state: { paymentKey: "payment-key-in-router-history" },
@@ -181,9 +247,13 @@ describe("PaymentCallbackCredentialBoundary", () => {
       expect(screen.getByTestId("location")).toHaveTextContent('"search":""'),
     );
 
-    expect(mockAuthenticatedBoundaryRender).toHaveBeenCalledWith("");
+    expect(mockAuthenticatedBoundaryRender).toHaveBeenCalledWith({
+      hash: "",
+      search: "",
+      state: null,
+    });
     expect(mockAuthenticatedBoundaryRender).not.toHaveBeenCalledWith(
-      callbackSearch,
+      expect.objectContaining({ search: callbackSearch }),
     );
     expect(screen.getByTestId("location")).toHaveTextContent('"state":null');
     expect(screen.queryByTestId("credential-claim")).not.toBeInTheDocument();
@@ -195,7 +265,7 @@ describe("PaymentCallbackCredentialBoundary", () => {
       state: { status: "anonymous" },
       revalidate: vi.fn(),
     });
-    setBrowserCallbackEntry(callbackSearch);
+    setBrowserCallbackEntry({ search: callbackSearch });
 
     renderBoundary({
       pathname: callbackPath,
@@ -219,12 +289,11 @@ describe("PaymentCallbackCredentialBoundary", () => {
       state: { status: "authenticated" },
       revalidate: vi.fn(),
     });
-    setBrowserCallbackEntry(callbackSearch);
+    setBrowserCallbackEntry({ search: callbackSearch });
 
     renderBoundary({
       pathname: callbackPath,
       search: callbackSearch,
-      state: { paymentKey: "payment-key-in-router-history" },
     });
 
     const claim = await screen.findByTestId("credential-claim");
@@ -237,13 +306,32 @@ describe("PaymentCallbackCredentialBoundary", () => {
     expectCredentialsScrubbedFromHistory();
   });
 
+  it("keeps the first capture time stable across every scrub render", async () => {
+    mockUseSession.mockReturnValue({
+      state: { status: "authenticated" },
+      revalidate: vi.fn(),
+    });
+    const now = vi.fn().mockReturnValueOnce(1_000).mockReturnValue(9_000);
+    setBrowserCallbackEntry({ search: callbackSearch });
+
+    renderBoundary({ pathname: callbackPath, search: callbackSearch }, now);
+
+    expect(await screen.findByTestId("credential-claim")).toHaveTextContent(
+      '"firstCapturedAt":1000',
+    );
+    expect(now.mock.calls.length).toBeGreaterThan(1);
+    expect(screen.getByTestId("credential-claim")).not.toHaveTextContent(
+      '"firstCapturedAt":9000',
+    );
+  });
+
   it("fails a partial callback closed after removing it from both histories", async () => {
     mockUseSession.mockReturnValue({
       state: { status: "authenticated" },
       revalidate: vi.fn(),
     });
     const partialSearch = "?paymentKey=partial-payment-key";
-    setBrowserCallbackEntry(partialSearch);
+    setBrowserCallbackEntry({ search: partialSearch });
 
     renderBoundary({
       pathname: callbackPath,
@@ -262,15 +350,214 @@ describe("PaymentCallbackCredentialBoundary", () => {
     expectCredentialsScrubbedFromHistory();
   });
 
-  it("keeps the application runtime mounted while clean payment routes change", async () => {
+  it.each([
+    {
+      label: "an unknown query key",
+      search: `${callbackSearch}&code=provider-secret-code`,
+      hash: "",
+      state: null,
+    },
+    {
+      label: "a duplicate callback key",
+      search: `${callbackSearch}&paymentKey=provider-secret-duplicate`,
+      hash: "",
+      state: null,
+    },
+    {
+      label: "a callback hash",
+      search: callbackSearch,
+      hash: "#provider-secret-hash",
+      state: null,
+    },
+    {
+      label: "callback router state",
+      search: callbackSearch,
+      hash: "",
+      state: { code: "provider-secret-state" },
+    },
+    {
+      label: "an oversized payment key",
+      search: `?paymentKey=${"x".repeat(201)}&orderId=reservation-1&amount=120000`,
+      hash: "",
+      state: null,
+    },
+    {
+      label: "malformed URL encoding",
+      search: "?paymentKey=%E0%A4%A&orderId=reservation-1&amount=120000",
+      hash: "",
+      state: null,
+    },
+  ])("fails $label closed after scrubbing it", async (entry) => {
+    mockUseSession.mockReturnValue({
+      state: { status: "authenticated" },
+      revalidate: vi.fn(),
+    });
+    setBrowserCallbackEntry({ hash: entry.hash, search: entry.search });
+
+    renderBoundary({
+      hash: entry.hash,
+      pathname: callbackPath,
+      search: entry.search,
+      state: entry.state,
+    });
+
+    expect(await screen.findByTestId("credential-claim")).toHaveTextContent(
+      '{"status":"invalid"}',
+    );
+    expect(screen.getByTestId("location")).toHaveTextContent('"search":""');
+    expect(screen.getByTestId("location")).toHaveTextContent('"hash":""');
+    expect(screen.getByTestId("location")).toHaveTextContent('"state":null');
+    expect(document.body).not.toHaveTextContent("provider-secret");
+    expectCredentialsScrubbedFromHistory();
+  });
+
+  it.each(["confirm-failed", "invalid-callback"] as const)(
+    "keeps only the data-less %s reason for an exact app-authored fail route",
+    async (reason) => {
+      mockUseSession.mockReturnValue({
+        state: { status: "authenticated" },
+        revalidate: vi.fn(),
+      });
+      const search = `?reason=${reason}`;
+      setBrowserCallbackEntry({ pathname: failPath, search });
+
+      renderBoundary({ pathname: failPath, search });
+
+      expect(await screen.findByTestId("failure-claim")).toHaveTextContent(
+        JSON.stringify({ status: "internal", reason }),
+      );
+      expect(screen.getByTestId("credential-claim")).toHaveTextContent(
+        '{"status":"none"}',
+      );
+      expect(screen.getByTestId("location")).toHaveTextContent('"search":""');
+      expect(screen.getByTestId("location")).toHaveTextContent('"hash":""');
+      expect(screen.getByTestId("location")).toHaveTextContent('"state":null');
+      expect(mockAuthenticatedBoundaryRender).toHaveBeenCalledWith({
+        hash: "",
+        search: "",
+        state: null,
+      });
+      expectCredentialsScrubbedFromHistory(failPath);
+    },
+  );
+
+  it.each([
+    {
+      label: "provider fields",
+      search:
+        "?code=provider-secret-code&message=provider-secret-message&orderId=provider-secret-order",
+      hash: "#paymentKey=provider-secret-key",
+      state: null,
+    },
+    {
+      label: "a partial internal-looking query",
+      search: "?reason=confirm-failed&paymentKey=provider-secret",
+      hash: "",
+      state: null,
+    },
+    {
+      label: "an unknown reason",
+      search: "?reason=provider-secret",
+      hash: "",
+      state: null,
+    },
+    {
+      label: "provider router state",
+      search: "?reason=confirm-failed",
+      hash: "",
+      state: { message: "provider-secret" },
+    },
+  ])("reduces $label to an invalid data-less fail claim", async (entry) => {
+    mockUseSession.mockReturnValue({
+      state: { status: "authenticated" },
+      revalidate: vi.fn(),
+    });
+    setBrowserCallbackEntry({
+      hash: entry.hash,
+      pathname: failPath,
+      search: entry.search,
+    });
+
+    renderBoundary({
+      hash: entry.hash,
+      pathname: failPath,
+      search: entry.search,
+      state: entry.state,
+    });
+
+    expect(await screen.findByTestId("failure-claim")).toHaveTextContent(
+      '{"status":"invalid"}',
+    );
+    expect(screen.getByTestId("credential-claim")).toHaveTextContent(
+      '{"status":"none"}',
+    );
+    expect(screen.getByTestId("location")).not.toHaveTextContent(
+      "provider-secret",
+    );
+    expect(screen.getByTestId("location")).toHaveTextContent('"search":""');
+    expect(screen.getByTestId("location")).toHaveTextContent('"hash":""');
+    expect(screen.getByTestId("location")).toHaveTextContent('"state":null');
+    expect(document.body).not.toHaveTextContent("provider-secret");
+    expect(JSON.stringify(window.history.state)).not.toContain(
+      "provider-secret",
+    );
+    expectCredentialsScrubbedFromHistory(failPath);
+  });
+
+  it("does not revive an internal fail reason when navigating back to its scrubbed entry", async () => {
     const onMount = vi.fn();
     const onUnmount = vi.fn();
-    setBrowserCallbackEntry(callbackSearch);
+    const failSearch = "?reason=confirm-failed";
+    setBrowserCallbackEntry({ pathname: failPath, search: failSearch });
+
+    const view = render(
+      <MemoryRouter initialEntries={[`${failPath}${failSearch}`]}>
+        <PaymentCallbackCredentialBoundary>
+          <StableRuntimeProbe onMount={onMount} onUnmount={onUnmount} />
+        </PaymentCallbackCredentialBoundary>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("stable-failure-claim")).toHaveTextContent(
+        '"reason":"confirm-failed"',
+      ),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "home" }));
+    await waitFor(() =>
+      expect(screen.getByTestId("stable-failure-claim")).toHaveTextContent(
+        '{"status":"none"}',
+      ),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "back" }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("stable-failure-claim")).toHaveTextContent(
+        '{"status":"invalid"}',
+      ),
+    );
+    expect(onMount).toHaveBeenCalledTimes(1);
+    expect(onUnmount).not.toHaveBeenCalled();
+    expectCredentialsScrubbedFromHistory(failPath);
+
+    view.unmount();
+    expect(onUnmount).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the application runtime mounted while clean payment routes change", async () => {
+    const onLocationRender = vi.fn();
+    const onMount = vi.fn();
+    const onUnmount = vi.fn();
+    setBrowserCallbackEntry({ search: callbackSearch });
 
     const view = render(
       <MemoryRouter initialEntries={[`${callbackPath}${callbackSearch}`]}>
         <PaymentCallbackCredentialBoundary>
-          <StableRuntimeProbe onMount={onMount} onUnmount={onUnmount} />
+          <StableRuntimeProbe
+            onLocationRender={onLocationRender}
+            onMount={onMount}
+            onUnmount={onUnmount}
+          />
         </PaymentCallbackCredentialBoundary>
       </MemoryRouter>,
     );
@@ -288,6 +575,26 @@ describe("PaymentCallbackCredentialBoundary", () => {
       expect(screen.getByTestId("stable-claim")).toHaveTextContent(
         '{"status":"none"}',
       ),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "new callback" }));
+    await waitFor(() =>
+      expect(screen.getByTestId("stable-claim")).toHaveTextContent(
+        '"reservationUid":"reservation-3"',
+      ),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "sensitive callback" }));
+    await waitFor(() =>
+      expect(screen.getByTestId("stable-location")).toHaveTextContent(
+        "/reservations/reservation-4/success:null",
+      ),
+    );
+    expect(screen.getByTestId("stable-claim")).toHaveTextContent(
+      '{"status":"invalid"}',
+    );
+    expect(onLocationRender.mock.calls.flat().join(" ")).not.toContain(
+      "provider-secret",
     );
 
     fireEvent.click(screen.getByRole("button", { name: "payment fail" }));
@@ -333,6 +640,18 @@ describe("PaymentCallbackCredentialBoundary", () => {
     );
     expect(screen.getByTestId("stable-claim")).not.toHaveTextContent(
       "payment-key-3",
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "internal failure callback" }),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("stable-failure-claim")).toHaveTextContent(
+        '{"status":"invalid"}',
+      ),
+    );
+    expect(screen.getByTestId("recovery-fence")).toHaveTextContent(
+      "recovery-unavailable",
     );
 
     fireEvent.click(

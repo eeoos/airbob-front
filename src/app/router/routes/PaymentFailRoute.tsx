@@ -24,8 +24,10 @@ import {
   type PaymentCallbackDocument,
 } from "../../../workflows/booking-payment/confirmation";
 import { useSession } from "../../session/useSession";
-import { usePaymentRecoveryFenceStatus } from "../PaymentCallbackCredentialBoundary";
-import { paymentCodec } from "../codecs/paymentCodec";
+import {
+  usePaymentCallbackFailureClaim,
+  usePaymentRecoveryFenceStatus,
+} from "../PaymentCallbackCredentialBoundary";
 import { routeTo } from "../paths";
 
 type FailureResolution =
@@ -65,14 +67,16 @@ function PaymentFailRoute() {
   const queryClient = useQueryClient();
   const { reservationUid } = useParams<{ reservationUid: string }>();
   const session = useSession();
+  const failureClaim = usePaymentCallbackFailureClaim();
   const paymentRecoveryFenceStatus = usePaymentRecoveryFenceStatus();
   const sessionEpoch = session.state.epoch;
   const sessionSubject =
     session.state.status === "authenticated" ? session.state.subject : null;
   const { captureAuthenticatedSession, isCurrentSession } = session;
-  const reason = paymentCodec.parse(location.search).reason;
+  const reason =
+    failureClaim.status === "internal" ? failureClaim.reason : undefined;
   const canonicalPath = reservationUid
-    ? routeTo.paymentFail(reservationUid, reason ? { reason } : undefined)
+    ? routeTo.paymentFail(reservationUid)
     : routeTo.profile();
   const [resolution, setResolution] = useState<FailureResolution>({
     status: "resolving",
@@ -106,6 +110,7 @@ function PaymentFailRoute() {
     scope?.subject ?? null,
     scope?.runtimeLeaseId ?? null,
     reservationUid ?? null,
+    failureClaim.status,
     reason ?? null,
     paymentRecoveryFenceStatus,
   ]);
@@ -123,15 +128,17 @@ function PaymentFailRoute() {
   );
 
   useLayoutEffect(() => {
-    if (scope === null || claimedLeaseRef.current === resolutionLeaseKey) {
+    if (
+      scope === null ||
+      location.search !== "" ||
+      location.hash !== "" ||
+      location.state !== null ||
+      claimedLeaseRef.current === resolutionLeaseKey
+    ) {
       return;
     }
     claimedLeaseRef.current = resolutionLeaseKey;
     setResolution({ status: "resolving" });
-    const scrub = () => {
-      browserWindowNavigation.replaceCurrentUrl(canonicalPath);
-      setRouterSyncPath(canonicalPath);
-    };
 
     if (paymentRecoveryFenceStatus !== "none") {
       const recoveryPath = reservationUid
@@ -143,7 +150,12 @@ function PaymentFailRoute() {
       return;
     }
 
-    if (!reservationUid || reason !== "confirm-failed") {
+    if (!reservationUid || failureClaim.status !== "internal") {
+      setResolution({ status: "empty" });
+      return;
+    }
+
+    if (reason !== "confirm-failed") {
       const joinedCheckout = reservationUid
         ? repositories.checkout.readForCallback({
             scope,
@@ -174,7 +186,6 @@ function PaymentFailRoute() {
       ) {
         clearBookingPaymentBrowserState();
       }
-      scrub();
       setResolution({ status: "empty" });
       return;
     }
@@ -203,12 +214,10 @@ function PaymentFailRoute() {
       ) {
         clearBookingPaymentBrowserState();
       }
-      scrub();
       setResolution({ status: "empty" });
       return;
     }
 
-    scrub();
     setResolution({
       status: "ready",
       leaseKey: resolutionLeaseKey,
@@ -216,8 +225,7 @@ function PaymentFailRoute() {
       document: toPaymentCallbackDocument(checkout.data),
     });
   }, [
-    canonicalPath,
-    navigate,
+    failureClaim.status,
     paymentRecoveryFenceStatus,
     reason,
     repositories,
@@ -226,6 +234,9 @@ function PaymentFailRoute() {
     routeLease,
     scope,
     isCurrentSession,
+    location.hash,
+    location.search,
+    location.state,
   ]);
 
   useEffect(() => {
@@ -294,7 +305,7 @@ function PaymentFailRoute() {
     reason !== "confirm-failed" ||
     resolution.callback.reservationUid !== reservationUid ||
     resolution.document.reservationUid !== reservationUid ||
-    `${location.pathname}${location.search}` !== canonicalPath
+    `${location.pathname}${location.search}${location.hash}` !== canonicalPath
   ) {
     return (
       <PaymentResultScreen

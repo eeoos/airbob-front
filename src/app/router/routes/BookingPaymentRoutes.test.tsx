@@ -242,6 +242,12 @@ const paymentSuccessRoute = () => (
   </PaymentCallbackCredentialBoundary>
 );
 
+const paymentFailRoute = () => (
+  <PaymentCallbackCredentialBoundary>
+    <PaymentFailRoute />
+  </PaymentCallbackCredentialBoundary>
+);
+
 function PaymentRecoveryFenceBeforeCommands({
   children,
   status,
@@ -665,29 +671,29 @@ describe("booking payment app routes", () => {
     ).toBeNull();
   });
 
-  it("restores retryable fail state from owned documents and drops URL credentials", async () => {
+  it("rejects an internal-looking fail query that also carries provider credentials", async () => {
     const { written } = seedCheckout();
     seedCallback(written.data);
 
     renderRoute(
       "/reservations/reservation-1/fail?reason=confirm-failed&paymentKey=payment-key-1&orderId=reservation-1&amount=120000",
       "/reservations/:reservationUid/fail",
-      <PaymentFailRoute />,
+      paymentFailRoute(),
     );
 
-    await screen.findByTestId("payment-result-controller");
     await waitFor(() =>
-      expect(screen.getByTestId("location")).toHaveTextContent(
-        '"search":"?reason=confirm-failed"',
-      ),
+      expect(screen.getByTestId("location")).toHaveTextContent('"search":""'),
     );
     expect(screen.getByTestId("location")).not.toHaveTextContent(
       "payment-key-1",
     );
-    expect(mockPaymentControllerProps.at(-1)).toMatchObject({
-      mode: "failure",
-      shouldConfirm: false,
-    });
+    expect(mockPaymentControllerProps).toHaveLength(0);
+    expect(
+      window.sessionStorage.getItem("airbob:booking-payment-v1:checkout"),
+    ).toContain("reservation-1");
+    expect(
+      window.sessionStorage.getItem("airbob:booking-payment-v1:callback"),
+    ).toContain("reservation-1");
   });
 
   it("restores a received failure callback as confirm-capable", async () => {
@@ -697,7 +703,7 @@ describe("booking payment app routes", () => {
     renderRoute(
       "/reservations/reservation-1/fail?reason=confirm-failed",
       "/reservations/:reservationUid/fail",
-      <PaymentFailRoute />,
+      paymentFailRoute(),
     );
 
     await screen.findByTestId("payment-result-controller");
@@ -714,7 +720,7 @@ describe("booking payment app routes", () => {
     renderRoute(
       "/reservations/reservation-1/fail?reason=invalid-callback",
       "/reservations/:reservationUid/fail",
-      <PaymentFailRoute />,
+      paymentFailRoute(),
     );
 
     expect(
@@ -733,7 +739,7 @@ describe("booking payment app routes", () => {
     renderRoute(
       "/reservations/reservation-1/fail?reason=invalid-callback",
       "/reservations/:reservationUid/fail",
-      <PaymentFailRoute />,
+      paymentFailRoute(),
     );
 
     await waitFor(() =>
@@ -753,7 +759,7 @@ describe("booking payment app routes", () => {
     renderRoute(
       "/reservations/reservation-1/fail?reason=confirm-failed",
       "/reservations/:reservationUid/fail",
-      <PaymentFailRoute />,
+      paymentFailRoute(),
       <FailureRouteTransitionControls />,
     );
 
@@ -810,8 +816,6 @@ describe("booking payment app routes", () => {
         screen.queryByTestId("payment-result-controller"),
       ).not.toBeInTheDocument(),
     );
-    expect(screen.getByTestId("location")).toHaveTextContent(
-      '"search":"?reason=invalid-callback"',
-    );
+    expect(screen.getByTestId("location")).toHaveTextContent('"search":""');
   });
 });
