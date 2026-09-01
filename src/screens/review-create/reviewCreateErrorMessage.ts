@@ -1,3 +1,8 @@
+import {
+  readBooleanField,
+  readStringField,
+} from "../../shared/lib/readStringField";
+
 const backendMessages: Readonly<Record<string, string>> = {
   M004: "로그인이 필요합니다.",
   R001: "존재하지 않는 예약입니다.",
@@ -10,6 +15,13 @@ const authenticationRequiredMessage = "로그인이 필요합니다.";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
+
+export const isReviewCreateReadErrorRetryable = (error: unknown): boolean => {
+  if (readBooleanField(error, "retryable") === true) return true;
+
+  const kind = readStringField(error, "kind");
+  return kind === "network" || kind === "timeout" || kind === "server";
+};
 
 export const toReviewCreateErrorMessage = (error: unknown): string => {
   if (isRecord(error)) {

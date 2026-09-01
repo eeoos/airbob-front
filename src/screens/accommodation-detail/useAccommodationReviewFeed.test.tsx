@@ -31,7 +31,10 @@ describe("useAccommodationReviewFeed", () => {
       fetchNextPage,
       hasNextPage: true,
       isError: false,
+      isFetching: false,
       isFetchingNextPage: false,
+      isLoading: false,
+      refetch: vi.fn(),
     };
     mockReviewsQuery.mockImplementation(() => queryResult);
     const { result, rerender } = renderHook(() =>
@@ -74,7 +77,7 @@ describe("useAccommodationReviewFeed", () => {
     expect(fetchNextPage).toHaveBeenCalledTimes(2);
   });
 
-  it("reports a failed cursor once until the modal lifecycle restarts", async () => {
+  it("reports a failed cursor once and retries only from the explicit action", async () => {
     const fetchNextPage = vi.fn().mockRejectedValue(new Error("failed"));
     mockReviewsQuery.mockReturnValue({
       data: {
@@ -90,7 +93,10 @@ describe("useAccommodationReviewFeed", () => {
       fetchNextPage,
       hasNextPage: true,
       isError: false,
+      isFetching: false,
       isFetchingNextPage: false,
+      isLoading: false,
+      refetch: vi.fn(),
     });
     const onError = vi.fn();
     const { result } = renderHook(() =>
@@ -116,9 +122,68 @@ describe("useAccommodationReviewFeed", () => {
     await act(async () => result.current.loadNextReviewPage());
     expect(fetchNextPage).toHaveBeenCalledTimes(1);
 
-    act(() => result.current.closeReviewModal());
-    act(() => result.current.openReviewModal());
-    await act(async () => result.current.loadNextReviewPage());
+    act(() => result.current.retryNextReviewPage());
+    await waitFor(() => expect(fetchNextPage).toHaveBeenCalledTimes(2));
     expect(fetchNextPage).toHaveBeenCalledTimes(2);
+  });
+
+  it("owns initial loading, error retry, empty, and ready states", async () => {
+    const refetch = vi.fn();
+    let queryResult: Record<string, unknown> = {
+      data: undefined,
+      error: null,
+      errorUpdatedAt: 0,
+      fetchNextPage: vi.fn(),
+      hasNextPage: false,
+      isError: false,
+      isFetching: true,
+      isFetchingNextPage: false,
+      isLoading: true,
+      refetch,
+    };
+    mockReviewsQuery.mockImplementation(() => queryResult);
+    const onError = vi.fn();
+    const { result, rerender } = renderHook(() =>
+      useAccommodationReviewFeed({
+        accommodationId: 7,
+        enabled: true,
+        onError,
+        scope: {
+          subject: "subject:member_1" as SessionSubject,
+          epoch: 2,
+        },
+      }),
+    );
+
+    expect(result.current.status).toBe("loading");
+
+    queryResult = {
+      ...queryResult,
+      error: { kind: "network" },
+      errorUpdatedAt: 1,
+      isError: true,
+      isFetching: false,
+      isLoading: false,
+    };
+    rerender();
+    expect(result.current.status).toBe("error");
+    act(() => result.current.retryReviewFeed());
+    expect(refetch).toHaveBeenCalledTimes(1);
+
+    queryResult = {
+      ...queryResult,
+      data: {
+        pages: [
+          {
+            reviews: [],
+            pageInfo: { hasNext: false, nextCursor: null },
+          },
+        ],
+      },
+      error: null,
+      isError: false,
+    };
+    rerender();
+    expect(result.current.status).toBe("empty");
   });
 });

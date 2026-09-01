@@ -20,6 +20,9 @@ export const useAccommodationReviewFeed = ({
   scope,
 }: UseAccommodationReviewFeedOptions) => {
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [loadMoreErrorMessage, setLoadMoreErrorMessage] = useState<
+    string | null
+  >(null);
   const requestedPageRef = useRef<string | null>(null);
   const reviewsQuery = useAccommodationReviewsReadQuery({
     accommodationId,
@@ -37,7 +40,8 @@ export const useAccommodationReviewFeed = ({
     reviewsQuery.isError,
   ]);
 
-  const { fetchNextPage, hasNextPage, isFetchingNextPage } = reviewsQuery;
+  const { fetchNextPage, hasNextPage, isFetchingNextPage, refetch } =
+    reviewsQuery;
   const nextCursor =
     reviewsQuery.data?.pages.at(-1)?.pageInfo.nextCursor ?? null;
 
@@ -50,9 +54,12 @@ export const useAccommodationReviewFeed = ({
     requestedPageRef.current = requestKey;
 
     try {
-      await fetchNextPage({ cancelRefetch: false });
+      await fetchNextPage({ cancelRefetch: false, throwOnError: true });
+      setLoadMoreErrorMessage(null);
     } catch (error) {
-      onError(toAccommodationErrorMessage(error));
+      const message = toAccommodationErrorMessage(error);
+      setLoadMoreErrorMessage(message);
+      onError(message);
     }
   }, [
     accommodationId,
@@ -68,12 +75,26 @@ export const useAccommodationReviewFeed = ({
 
   const closeReviewModal = useCallback(() => {
     requestedPageRef.current = null;
+    setLoadMoreErrorMessage(null);
     setIsReviewModalOpen(false);
   }, []);
 
   const openReviewModal = useCallback(() => {
+    setLoadMoreErrorMessage(null);
     setIsReviewModalOpen(true);
   }, []);
+
+  const retryReviewFeed = useCallback(() => {
+    requestedPageRef.current = null;
+    setLoadMoreErrorMessage(null);
+    void refetch();
+  }, [refetch]);
+
+  const retryNextReviewPage = useCallback(() => {
+    requestedPageRef.current = null;
+    setLoadMoreErrorMessage(null);
+    void loadNextReviewPage();
+  }, [loadNextReviewPage]);
 
   const reviewPages = useMemo(
     () => reviewsQuery.data?.pages ?? [],
@@ -87,6 +108,16 @@ export const useAccommodationReviewFeed = ({
     () => toReviewViewModels(reviewPages.flatMap((page) => page.reviews)),
     [reviewPages],
   );
+  const hasLoadedReviewPage = reviewPages.length > 0;
+  const status: "empty" | "error" | "loading" | "ready" = !enabled
+    ? "empty"
+    : reviewsQuery.isLoading
+      ? "loading"
+      : reviewsQuery.isError && !hasLoadedReviewPage
+        ? "error"
+        : previewReviews.length > 0
+          ? "ready"
+          : "empty";
 
   return {
     allReviews,
@@ -94,8 +125,18 @@ export const useAccommodationReviewFeed = ({
     hasNextReviewPage: Boolean(hasNextPage && nextCursor !== null),
     isFetchingNextReviewPage: isFetchingNextPage,
     isReviewModalOpen,
+    isRetryingReviewFeed: Boolean(
+      reviewsQuery.isFetching && !reviewsQuery.isFetchingNextPage,
+    ),
     loadNextReviewPage,
+    loadMoreErrorMessage,
     openReviewModal,
     previewReviews,
+    retryNextReviewPage,
+    retryReviewFeed,
+    reviewErrorMessage: reviewsQuery.isError
+      ? toAccommodationErrorMessage(reviewsQuery.error)
+      : null,
+    status,
   };
 };
