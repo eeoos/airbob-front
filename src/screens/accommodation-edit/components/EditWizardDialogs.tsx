@@ -10,6 +10,7 @@ import { DetailAddressConfirmModal } from "./DetailAddressConfirmModal";
 
 type EditWizardDialogsState = Pick<
   AccommodationEditScreenState,
+  | "amenityOptions"
   | "error"
   | "formData"
   | "isAmenityModalOpen"
@@ -25,9 +26,11 @@ type EditWizardDialogsActions = Pick<
   | "onCloseDetailAddressConfirm"
   | "onCloseTypeModal"
   | "onConfirmDetailAddress"
-  | "onInputChange"
+  | "onAccommodationTypeSelect"
+  | "onAmenityToggle"
+  | "onAmenityIncrement"
+  | "onAmenityDecrement"
   | "onRetryRecovery"
-  | "setFormData"
 >;
 
 interface EditWizardDialogsProps {
@@ -67,7 +70,7 @@ export const EditWizardDialogs: React.FC<EditWizardDialogsProps> = ({
     {state.isTypeModalOpen && (
       <AccommodationTypeModal
         selectedType={state.formData.type}
-        onSelect={(type) => actions.onInputChange("type", type)}
+        onSelect={actions.onAccommodationTypeSelect}
         onClose={actions.onCloseTypeModal}
       />
     )}
@@ -75,7 +78,10 @@ export const EditWizardDialogs: React.FC<EditWizardDialogsProps> = ({
     {state.isAmenityModalOpen && (
       <AmenityModal
         amenityInfos={state.formData.amenityInfos}
-        setFormData={actions.setFormData}
+        options={state.amenityOptions}
+        onToggle={actions.onAmenityToggle}
+        onIncrement={actions.onAmenityIncrement}
+        onDecrement={actions.onAmenityDecrement}
         onClose={actions.onCloseAmenityModal}
       />
     )}

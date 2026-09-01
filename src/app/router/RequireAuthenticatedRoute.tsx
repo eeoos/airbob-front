@@ -1,6 +1,6 @@
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { Button, ErrorState, LoadingState } from "../../shared/ui";
+import { Button, LoadingState, RetryableErrorState } from "../../shared/ui";
 import { useSession } from "../session/useSession";
 import { routeTo } from "./paths";
 
@@ -20,7 +20,7 @@ export function RequireAuthenticatedRoute({
 
   if (state.status === "error") {
     return (
-      <ErrorState
+      <RetryableErrorState
         title="로그인 상태를 확인하지 못했어요"
         description="연결을 확인한 뒤 다시 시도해 주세요."
         action={

@@ -1,12 +1,6 @@
-.container {
-  max-width: 1760px;
-  margin: 0 auto;
-  padding: 0;
-}
-
 .loading,
 .error {
-  padding: 80px var(--space-6);
+  padding-block: 80px;
   color: var(--color-text-secondary);
   font-size: var(--font-size-md);
   text-align: center;
@@ -33,14 +27,14 @@
   height: fit-content;
 }
 
-@media (max-width: 1400px) {
+@media (--viewport-wide) {
   .contentWrapper {
     gap: 60px;
     padding: 0 60px;
   }
 }
 
-@media (max-width: 1200px) {
+@media (--viewport-compact) {
   .contentWrapper {
     grid-template-columns: 1fr minmax(280px, 350px);
     gap: var(--space-10);
@@ -48,7 +42,7 @@
   }
 }
 
-@media (max-width: 1024px) {
+@media (--viewport-mobile-tablet) {
   .contentWrapper {
     grid-template-columns: 1fr;
     gap: var(--space-8);
@@ -61,7 +55,7 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (--viewport-tablet) {
   .contentWrapper {
     gap: var(--space-6);
     padding: 0 var(--space-4);

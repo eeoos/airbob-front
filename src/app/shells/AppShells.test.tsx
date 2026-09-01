@@ -34,6 +34,7 @@ describe("app shells", () => {
       expect(screen.getAllByRole("main")).toHaveLength(1);
       expect(header).toAppearBefore(main);
       expect(within(main).getByText("Shell content")).toBeInTheDocument();
+      expect(main).toHaveAttribute("data-route-surface", shellId);
     },
   );
 

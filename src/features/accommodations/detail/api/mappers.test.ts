@@ -2,7 +2,11 @@ import type {
   AccommodationDetailWire,
   CouponCollectionWire,
 } from "./contracts";
-import { toAccommodationDetail, toCouponCollection } from "./mappers";
+import {
+  toAccommodationAvailability,
+  toAccommodationDetail,
+  toCouponCollection,
+} from "./mappers";
 
 describe("accommodation API mappers", () => {
   it("maps every accommodation-detail wire field into the owned model", () => {
@@ -15,7 +19,7 @@ describe("accommodation API mappers", () => {
       currency: "KRW",
       check_in_time: "15:00:00",
       check_out_time: "11:00:00",
-      unavailable_dates: ["2026-09-10"],
+      time_zone_id: "Asia/Seoul",
       is_in_wishlist: true,
       address_summary: {
         country: "대한민국",
@@ -51,7 +55,7 @@ describe("accommodation API mappers", () => {
       currency: "KRW",
       checkInTime: "15:00:00",
       checkOutTime: "11:00:00",
-      unavailableDates: ["2026-09-10"],
+      timeZoneId: "Asia/Seoul",
       isInWishlist: true,
       addressSummary: {
         country: "대한민국",
@@ -76,6 +80,62 @@ describe("accommodation API mappers", () => {
       ],
       images: [{ id: 51, imageUrl: "/stay.png" }],
       reviewSummary: { totalCount: 12, averageRating: 4.75 },
+    });
+  });
+
+  it.each(["", "   "])("rejects an empty detail timeZoneId", (timeZoneId) => {
+    const wire = {
+      id: 31,
+      name: "한강 전망 숙소",
+      description: "조용한 숙소",
+      type: "APARTMENT",
+      base_price: 125000,
+      currency: "KRW",
+      check_in_time: "15:00:00",
+      check_out_time: "11:00:00",
+      time_zone_id: timeZoneId,
+      is_in_wishlist: false,
+      address_summary: {
+        country: "대한민국",
+        state: null,
+        city: "서울",
+        district: null,
+      },
+      coordinate: { latitude: null, longitude: null },
+      host: { id: 7, nickname: "호스트", thumbnail_image_url: null },
+      policy: { max_occupancy: 4, infant_occupancy: 1, pet_occupancy: 0 },
+      amenities: [],
+      images: [],
+      review_summary: { total_count: 0, average_rating: 0 },
+    } satisfies AccommodationDetailWire;
+
+    expect(() => toAccommodationDetail(wire)).toThrow(
+      "Accommodation detail timeZoneId is invalid.",
+    );
+  });
+
+  it("maps canonical availability ranges and binds route identity", () => {
+    expect(
+      toAccommodationAvailability(
+        {
+          booking_window_start_inclusive: "2026-09-01",
+          booking_window_end_exclusive: "2027-09-01",
+          unavailable_ranges: [
+            {
+              start_date: "2026-09-10",
+              end_date_exclusive: "2026-09-12",
+            },
+          ],
+        },
+        31,
+      ),
+    ).toEqual({
+      accommodationId: 31,
+      bookingWindowStartInclusive: "2026-09-01",
+      bookingWindowEndExclusive: "2027-09-01",
+      unavailableRanges: [
+        { startDate: "2026-09-10", endDateExclusive: "2026-09-12" },
+      ],
     });
   });
 

@@ -1,5 +1,8 @@
-import React from "react";
-import { ListContainer } from "../../../shared/ui";
+import {
+  ImageWithFallback,
+  ListContainer,
+  stateViewRecipes,
+} from "../../../shared/ui";
 import {
   toWishlistAccommodationMemoTarget,
   type WishlistAccommodationCardViewModel,
@@ -20,22 +23,6 @@ interface WishlistDetailViewProps {
   setWishlistAccommodationsObserverTarget: (node: Element | null) => void;
   wishlistAccommodations: WishlistAccommodationCardViewModel[];
 }
-
-const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
-  const target = event.target as HTMLImageElement;
-  target.style.display = "none";
-
-  const placeholder = target.nextElementSibling as HTMLElement | null;
-  const placeholderClassName = styles.placeholderImage;
-  if (
-    placeholder &&
-    placeholderClassName &&
-    placeholder.classList.contains(placeholderClassName)
-  ) {
-    placeholder.hidden = false;
-    placeholder.style.display = "flex";
-  }
-};
 
 export function WishlistDetailView({
   hasNext,
@@ -73,9 +60,13 @@ export function WishlistDetailView({
         </div>
       </div>
       {isLoading ? (
-        <div className={styles.loading}>로딩 중...</div>
+        <div className={styles.loading} {...stateViewRecipes.loading}>
+          로딩 중...
+        </div>
       ) : wishlistAccommodations.length === 0 ? (
-        <div className={styles.empty}>위시리스트가 비어있습니다.</div>
+        <div className={styles.empty} {...stateViewRecipes.empty}>
+          위시리스트가 비어있습니다.
+        </div>
       ) : (
         <>
           <ListContainer columns={4} gap={40}>
@@ -92,23 +83,15 @@ export function WishlistDetailView({
                   }
                 >
                   <div className={styles.wishlistCardImage}>
-                    {item.thumbnailUrl ? (
-                      <>
-                        <img
-                          src={item.thumbnailUrl}
-                          alt={item.name}
-                          onError={handleImageError}
-                        />
-                        <div
-                          className={`${styles.placeholderImage} ${styles.placeholderImageHidden}`}
-                          hidden
-                        >
+                    <ImageWithFallback
+                      src={item.thumbnailUrl}
+                      alt={item.name}
+                      fallback={
+                        <div className={styles.placeholderImage}>
                           이미지 없음
                         </div>
-                      </>
-                    ) : (
-                      <div className={styles.placeholderImage}>이미지 없음</div>
-                    )}
+                      }
+                    />
                   </div>
                   <div className={styles.wishlistCardInfo}>
                     <div className={styles.locationRow}>
@@ -166,7 +149,12 @@ export function WishlistDetailView({
               className={styles.loadMoreContainer}
             >
               {isLoadingMore && (
-                <div className={styles.loadingMore}>로딩 중...</div>
+                <div
+                  className={styles.loadingMore}
+                  {...stateViewRecipes.loading}
+                >
+                  로딩 중...
+                </div>
               )}
             </div>
           )}

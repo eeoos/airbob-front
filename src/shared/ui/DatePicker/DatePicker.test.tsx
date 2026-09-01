@@ -158,6 +158,193 @@ describe("DatePicker", () => {
     expect(props.onDateSelect).not.toHaveBeenCalled();
   });
 
+  it("uses a supplied server window instead of the browser's local today", () => {
+    renderDatePicker({
+      selectionWindow: {
+        startInclusive: "2026-07-05",
+        endExclusive: "2026-07-20",
+      },
+    });
+
+    expect(
+      screen.getByRole("gridcell", { name: "2026년 7월 4일 토요일" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("gridcell", { name: "2026년 7월 5일 일요일" }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("gridcell", { name: "2026년 7월 20일 월요일" }),
+    ).toBeDisabled();
+  });
+
+  it("treats disabled ranges as half-open stay nights", () => {
+    renderDatePicker({
+      checkIn: new Date(2026, 6, 12),
+      disabledRanges: [
+        { startInclusive: "2026-07-15", endExclusive: "2026-07-18" },
+      ],
+      selectionWindow: {
+        startInclusive: "2026-07-10",
+        endExclusive: "2026-07-20",
+      },
+    });
+
+    expect(
+      screen.getByRole("gridcell", { name: "2026년 7월 15일 수요일" }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("gridcell", { name: "2026년 7월 16일 목요일" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("gridcell", { name: "2026년 7월 18일 토요일" }),
+    ).toBeDisabled();
+  });
+
+  it("allows checkout exactly at the server window end", () => {
+    renderDatePicker({
+      checkIn: new Date(2026, 6, 18),
+      selectionWindow: {
+        startInclusive: "2026-07-10",
+        endExclusive: "2026-07-20",
+      },
+    });
+
+    expect(
+      screen.getByRole("gridcell", { name: "2026년 7월 20일 월요일" }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("gridcell", { name: "2026년 7월 21일 화요일" }),
+    ).toBeDisabled();
+  });
+
+  it("does not restart a completed range from its blocked checkout boundary", async () => {
+    const checkIn = new Date(2026, 6, 12);
+    const checkOut = new Date(2026, 6, 15);
+    const view = renderDatePicker({
+      checkIn,
+      disabledRanges: [
+        { startInclusive: "2026-07-15", endExclusive: "2026-07-18" },
+      ],
+      selectionWindow: {
+        startInclusive: "2026-07-10",
+        endExclusive: "2026-07-20",
+      },
+    });
+    let blockedCheckout = screen.getByRole("gridcell", {
+      name: "2026년 7월 15일 수요일",
+    });
+
+    expect(blockedCheckout).toBeEnabled();
+    await userEvent.click(blockedCheckout);
+    expect(view.props.onDateSelect).toHaveBeenCalledTimes(1);
+
+    view.rerender(
+      <DatePicker {...view.props} checkIn={checkIn} checkOut={checkOut} />,
+    );
+    blockedCheckout = screen.getByRole("gridcell", {
+      name: "2026년 7월 15일 수요일",
+    });
+    expect(blockedCheckout).toHaveAttribute("aria-selected", "true");
+    expect(blockedCheckout).toBeDisabled();
+    await userEvent.click(blockedCheckout);
+    expect(view.props.onDateSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it("treats a blocked partial check-in as display-only and restarts from the next enabled date", async () => {
+    const blockedCheckIn = new Date(2026, 6, 12);
+    const { props } = renderDatePicker({
+      checkIn: blockedCheckIn,
+      disabledRanges: [
+        { startInclusive: "2026-07-12", endExclusive: "2026-07-14" },
+      ],
+      selectionWindow: {
+        startInclusive: "2026-07-10",
+        endExclusive: "2026-07-20",
+      },
+    });
+    const displayedCheckIn = screen.getByRole("gridcell", {
+      name: "2026년 7월 12일 일요일",
+    });
+
+    expect(displayedCheckIn).toHaveAttribute("aria-selected", "true");
+    expect(displayedCheckIn).toBeDisabled();
+
+    await userEvent.click(
+      screen.getByRole("gridcell", {
+        name: "2026년 7월 14일 화요일",
+      }),
+    );
+
+    expect(props.onDateSelect).toHaveBeenCalledTimes(1);
+    const selection = props.onDateSelect.mock.calls.at(0);
+    const selectedCheckIn = selection?.at(0);
+    if (!selectedCheckIn) throw new Error("Expected a restarted check-in date");
+    expect(formatDateKey(selectedCheckIn)).toBe("2026-07-14");
+    expect(selection?.at(1)).toBeNull();
+  });
+
+  it("treats an out-of-window partial check-in as display-only and restarts inside the window", async () => {
+    const { props } = renderDatePicker({
+      checkIn: new Date(2026, 6, 25),
+      selectionWindow: {
+        startInclusive: "2026-07-10",
+        endExclusive: "2026-07-20",
+      },
+    });
+
+    await userEvent.click(
+      screen.getByRole("gridcell", {
+        name: "2026년 7월 14일 화요일",
+      }),
+    );
+
+    expect(props.onDateSelect).toHaveBeenCalledTimes(1);
+    const selection = props.onDateSelect.mock.calls.at(0);
+    const selectedCheckIn = selection?.at(0);
+    if (!selectedCheckIn) throw new Error("Expected a restarted check-in date");
+    expect(formatDateKey(selectedCheckIn)).toBe("2026-07-14");
+    expect(selection?.at(1)).toBeNull();
+  });
+
+  it("restarts a partial check-in blocked by the legacy unavailable-date input", async () => {
+    const { props } = renderDatePicker({
+      checkIn: new Date(2026, 6, 12),
+      unavailableDates: ["2026-07-12"],
+    });
+
+    await userEvent.click(
+      screen.getByRole("gridcell", {
+        name: "2026년 7월 14일 화요일",
+      }),
+    );
+
+    expect(props.onDateSelect).toHaveBeenCalledTimes(1);
+    const selection = props.onDateSelect.mock.calls.at(0);
+    const selectedCheckIn = selection?.at(0);
+    if (!selectedCheckIn) throw new Error("Expected a restarted check-in date");
+    expect(formatDateKey(selectedCheckIn)).toBe("2026-07-14");
+    expect(selection?.at(1)).toBeNull();
+  });
+
+  it("restarts a stale partial check-in using the browser-today minimum", async () => {
+    const { props } = renderDatePicker({
+      checkIn: new Date(2026, 6, 9),
+    });
+
+    await userEvent.click(
+      screen.getByRole("gridcell", {
+        name: "2026년 7월 14일 화요일",
+      }),
+    );
+
+    expect(props.onDateSelect).toHaveBeenCalledTimes(1);
+    const selection = props.onDateSelect.mock.calls.at(0);
+    const selectedCheckIn = selection?.at(0);
+    if (!selectedCheckIn) throw new Error("Expected a restarted check-in date");
+    expect(formatDateKey(selectedCheckIn)).toBe("2026-07-14");
+    expect(selection?.at(1)).toBeNull();
+  });
+
   it("calls onDateSelect when a selectable future date is clicked", async () => {
     const { props } = renderDatePicker();
 
@@ -399,13 +586,13 @@ describe("DatePicker", () => {
     );
 
     expect(css).toMatch(
-      /@media \(max-width: 768px\)[\s\S]*\.days\s*\{[\s\S]*grid-auto-rows:\s*minmax\(var\(--control-touch-target\), auto\)/,
+      /@media \(--viewport-tablet\)[\s\S]*\.days\s*\{[\s\S]*grid-auto-rows:\s*minmax\(var\(--control-touch-target\), auto\)/,
     );
     expect(css).toMatch(
-      /@media \(max-width: 768px\)[\s\S]*\.day\s*\{[\s\S]*min-height:\s*var\(--control-touch-target\)/,
+      /@media \(--viewport-tablet\)[\s\S]*\.day\s*\{[\s\S]*min-height:\s*var\(--control-touch-target\)/,
     );
     expect(css).toMatch(
-      /@media \(max-width: 480px\)[\s\S]*\.day\s*\{[\s\S]*min-height:\s*var\(--control-touch-target\)/,
+      /@media \(--viewport-phone\)[\s\S]*\.day\s*\{[\s\S]*min-height:\s*var\(--control-touch-target\)/,
     );
   });
 });

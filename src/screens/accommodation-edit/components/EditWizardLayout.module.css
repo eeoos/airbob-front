@@ -279,7 +279,7 @@
   }
 }
 
-@media (max-width: 1024px) {
+@media (--viewport-mobile-tablet) {
   .content {
     flex-direction: column;
   }
@@ -300,7 +300,7 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (--viewport-tablet) {
   .header {
     padding: var(--space-4);
   }

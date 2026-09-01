@@ -6,8 +6,7 @@ import {
   WishlistMemoDialog,
   WishlistModal,
 } from "../../features/wishlist/components";
-import { ToastHost } from "../../shared/ui";
-import styles from "./WishlistScreen.module.css";
+import { PageContainer, ToastHost } from "../../shared/ui";
 
 export type WishlistRouteView =
   | { readonly kind: "index" }
@@ -49,7 +48,7 @@ export function WishlistScreen({
   view,
 }: WishlistScreenProps) {
   return (
-    <div className={className ?? styles.container}>
+    <PageContainer className={className} variant="wide">
       {view.kind === "recently-viewed" ? (
         <RecentlyViewedView {...recentlyViewed} />
       ) : view.kind === "wishlist-detail" ? (
@@ -68,6 +67,6 @@ export function WishlistScreen({
 
       {saveModal && <WishlistModal {...saveModal} isOpen />}
       <WishlistMemoDialog {...memoDialog} />
-    </div>
+    </PageContainer>
   );
 }

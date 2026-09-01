@@ -10,6 +10,11 @@ import {
 import { AppError } from "../../platform/http/errors";
 import { isSameAuthenticatedSessionScope } from "../../platform/session/sessionScope";
 import {
+  createSessionRuntimeLeaseId,
+  type SessionRuntimeLeaseId,
+  type SessionRuntimeLeaseIdFactory,
+} from "../../platform/session/runtimeLeaseId";
+import {
   createSessionBroadcast,
   type SessionBroadcast,
   type SessionBroadcastPhase,
@@ -39,10 +44,23 @@ export interface SessionControllerOptions {
   readonly authPort?: SessionAuthPort;
   readonly broadcastFactory?: () => SessionBroadcast;
   readonly clearIdentityOwnedState?: () => void;
+  readonly clearRevokedIdentityOwnedState?: (
+    reason: RevokedIdentityCleanupReason,
+  ) => void;
   readonly initialQueryClient?: QueryClient;
   readonly initialState?: SessionState;
   readonly queryClientFactory?: SessionQueryClientFactory;
+  readonly reconcileCandidateIdentityOwnedState?: (
+    scope: AuthenticatedSessionScope,
+  ) => void;
+  readonly runtimeLeaseIdFactory?: SessionRuntimeLeaseIdFactory;
 }
+
+export type RevokedIdentityCleanupReason =
+  | "authentication-rejected"
+  | "authenticated-session-revoked"
+  | "explicit-logout"
+  | "identity-replaced";
 
 export interface SessionControllerResult {
   readonly session: SessionContextValue;
@@ -60,9 +78,12 @@ interface ActiveOperation {
 interface PendingExternalBoundary {
   readonly operation: ActiveOperation;
   readonly cleanup: Promise<boolean>;
+  readonly previousSubject: SessionSubject | null;
 }
 
 const NOOP_IDENTITY_CLEANUP = () => undefined;
+const NOOP_CANDIDATE_RECONCILIATION = (_scope: AuthenticatedSessionScope) =>
+  undefined;
 
 const createStaleSessionOperationError = () =>
   new AppError({
@@ -78,17 +99,31 @@ export function useSessionController({
   authPort = sessionAuthPort,
   broadcastFactory = createSessionBroadcast,
   clearIdentityOwnedState = NOOP_IDENTITY_CLEANUP,
+  clearRevokedIdentityOwnedState = clearIdentityOwnedState,
   initialQueryClient,
   initialState,
   queryClientFactory,
+  reconcileCandidateIdentityOwnedState = NOOP_CANDIDATE_RECONCILIATION,
+  runtimeLeaseIdFactory = createSessionRuntimeLeaseId,
 }: SessionControllerOptions = {}): SessionControllerResult {
   const resolvedInitialState = useMemo(
     () => initialState ?? createInitialSessionState({ operationId: 0 }),
     [initialState],
   );
   const [state, rawDispatch] = useReducer(sessionReducer, resolvedInitialState);
+  const runtimeLeaseIdRef = useRef<SessionRuntimeLeaseId | null>(null);
+  if (runtimeLeaseIdRef.current === null) {
+    runtimeLeaseIdRef.current = runtimeLeaseIdFactory();
+  }
+  const runtimeLeaseId = runtimeLeaseIdRef.current;
   const stateRef = useRef(state);
   stateRef.current = state;
+  const identityOwnerSubjectRef = useRef<SessionSubject | null>(
+    resolvedInitialState.status === "authenticated"
+      ? resolvedInitialState.subject
+      : null,
+  );
+  const destructiveCleanupRequiredRef = useRef(false);
   const operationSequenceRef = useRef(initialOperationId(resolvedInitialState));
   const activeOperationRef = useRef<ActiveOperation | null>(null);
   const mountedRef = useRef(false);
@@ -115,6 +150,7 @@ export function useSessionController({
   const externalProbeOperationRef = useRef<ActiveOperation | null>(null);
   const externalVerificationRef = useRef<Promise<void> | null>(null);
   const {
+    activateDisposedQueryQuarantine: activateDisposedQueryQuarantineLifetime,
     disposeCurrentGeneration,
     generation: queryGeneration,
     getCurrentGeneration,
@@ -212,6 +248,16 @@ export function useSessionController({
     [isCurrentOperation, replaceQueryLifetime],
   );
 
+  const activateDisposedQueryQuarantine = useCallback(
+    (epoch: number, subject: SessionSubject, operation: ActiveOperation) =>
+      activateDisposedQueryQuarantineLifetime({
+        epoch,
+        subject,
+        isStillCurrent: () => isCurrentOperation(operation),
+      }),
+    [activateDisposedQueryQuarantineLifetime, isCurrentOperation],
+  );
+
   const resetQueryGeneration = useCallback(
     (epoch: number, operation: ActiveOperation) =>
       resetQueryLifetime({
@@ -249,6 +295,39 @@ export function useSessionController({
       }
     },
     [replayDeferredRemotePhaseIfIdle],
+  );
+
+  const clearRevokedIdentityState = useCallback(
+    (reason: RevokedIdentityCleanupReason) => {
+      destructiveCleanupRequiredRef.current = true;
+      clearRevokedIdentityOwnedState(reason);
+      identityOwnerSubjectRef.current = null;
+      destructiveCleanupRequiredRef.current = false;
+    },
+    [clearRevokedIdentityOwnedState],
+  );
+
+  const reconcileCandidateIdentity = useCallback(
+    (scope: AuthenticatedSessionScope, operation: ActiveOperation): boolean => {
+      if (!isCurrentOperation(operation)) return false;
+
+      try {
+        reconcileCandidateIdentityOwnedState(scope);
+      } catch (error) {
+        if (isCurrentOperation(operation)) {
+          dispatch({
+            type: "session/check-failed",
+            operationId: operation.id,
+            epoch: scope.epoch,
+            error: normalizeSessionAuthError(error),
+          });
+        }
+        throw error;
+      }
+
+      return isCurrentOperation(operation);
+    },
+    [dispatch, isCurrentOperation, reconcileCandidateIdentityOwnedState],
   );
 
   const advanceCheckingBoundary = useCallback(
@@ -294,23 +373,86 @@ export function useSessionController({
       operation: ActiveOperation,
       viewer: SessionViewer,
       actionType: "session/check-succeeded" | "session/identity-published",
+      discardPreviousIdentity = false,
     ) => {
       if (!isCurrentOperation(operation)) return false;
 
       const epoch = stateRef.current.epoch;
       const subject = toSessionSubject(viewer);
-      const currentGeneration = getCurrentGeneration();
-      if (
-        currentGeneration.epoch !== epoch ||
-        currentGeneration.subject !== subject ||
-        currentGeneration.tainted
-      ) {
-        const didReplace = await replaceQueryGeneration(
+      const scope: AuthenticatedSessionScope = {
+        epoch,
+        runtimeLeaseId,
+        subject,
+      };
+      if (discardPreviousIdentity) {
+        const currentGeneration = getCurrentGeneration();
+        if (
+          currentGeneration.epoch !== epoch ||
+          currentGeneration.subject !== null ||
+          !currentGeneration.tainted
+        ) {
+          const didQuarantine = await replaceQueryGeneration(
+            epoch,
+            null,
+            operation,
+            true,
+          );
+          if (!didQuarantine) return false;
+        }
+        if (!isCurrentOperation(operation)) return false;
+
+        const didDisposeQuarantine = await resetQueryGeneration(
           epoch,
-          subject,
           operation,
         );
-        if (!didReplace) return false;
+        if (!didDisposeQuarantine || !isCurrentOperation(operation)) {
+          return false;
+        }
+
+        try {
+          clearRevokedIdentityState("identity-replaced");
+        } catch (cleanupError) {
+          dispatch({
+            type: "session/check-failed",
+            operationId: operation.id,
+            epoch,
+            error: normalizeSessionAuthError(cleanupError),
+          });
+          throw cleanupError;
+        }
+        if (!isCurrentOperation(operation)) return false;
+
+        if (!reconcileCandidateIdentity(scope, operation)) return false;
+        try {
+          if (!activateDisposedQueryQuarantine(epoch, subject, operation)) {
+            return false;
+          }
+        } catch (activationError) {
+          dispatch({
+            type: "session/check-failed",
+            operationId: operation.id,
+            epoch,
+            error: normalizeSessionAuthError(activationError),
+          });
+          throw activationError;
+        }
+      } else {
+        if (!reconcileCandidateIdentity(scope, operation)) return false;
+
+        const currentGeneration = getCurrentGeneration();
+        if (
+          currentGeneration.epoch !== epoch ||
+          currentGeneration.subject !== subject ||
+          currentGeneration.tainted
+        ) {
+          const didReplace = await replaceQueryGeneration(
+            epoch,
+            subject,
+            operation,
+          );
+          if (!didReplace) return false;
+        }
+        if (!isCurrentOperation(operation)) return false;
       }
 
       dispatch({
@@ -319,13 +461,22 @@ export function useSessionController({
         epoch,
         viewer,
       });
-      return stateRef.current.status === "authenticated";
+      const published =
+        stateRef.current.status === "authenticated" &&
+        stateRef.current.subject === subject;
+      if (published) identityOwnerSubjectRef.current = subject;
+      return published;
     },
     [
+      activateDisposedQueryQuarantine,
+      clearRevokedIdentityState,
       dispatch,
       getCurrentGeneration,
       isCurrentOperation,
+      reconcileCandidateIdentity,
       replaceQueryGeneration,
+      resetQueryGeneration,
+      runtimeLeaseId,
     ],
   );
 
@@ -333,10 +484,18 @@ export function useSessionController({
     async (
       operation: ActiveOperation,
       successType: "session/check-succeeded" | "session/identity-published",
+      previousSubject: SessionSubject | null = identityOwnerSubjectRef.current,
     ): Promise<boolean> => {
       try {
         const viewer = await runViewerProbe(operation);
         if (!isCurrentOperation(operation)) return false;
+        if (
+          destructiveCleanupRequiredRef.current ||
+          (previousSubject !== null &&
+            toSessionSubject(viewer) !== previousSubject)
+        ) {
+          return publishCheckedViewer(operation, viewer, successType, true);
+        }
         return publishCheckedViewer(operation, viewer, successType);
       } catch (error) {
         if (!isCurrentOperation(operation)) return false;
@@ -348,7 +507,11 @@ export function useSessionController({
 
         if (isSessionAuthenticationError(error)) {
           try {
-            clearIdentityOwnedState();
+            clearRevokedIdentityState(
+              previousSubject === null
+                ? "authentication-rejected"
+                : "authenticated-session-revoked",
+            );
           } catch (cleanupError) {
             dispatch({
               type: "session/check-failed",
@@ -375,7 +538,7 @@ export function useSessionController({
       }
     },
     [
-      clearIdentityOwnedState,
+      clearRevokedIdentityState,
       dispatch,
       getCurrentGeneration,
       isCurrentOperation,
@@ -412,7 +575,11 @@ export function useSessionController({
 
         externalProbeOperationRef.current = operation;
         try {
-          await settleCheckingProbe(operation, "session/check-succeeded");
+          await settleCheckingProbe(
+            operation,
+            "session/check-succeeded",
+            pending.previousSubject,
+          );
         } finally {
           if (externalProbeOperationRef.current === operation) {
             externalProbeOperationRef.current = null;
@@ -475,10 +642,12 @@ export function useSessionController({
     const existing = pendingExternalBoundaryRef.current;
     if (existing) return existing;
 
+    const previousSubject = identityOwnerSubjectRef.current;
     const operation = beginOperation();
     const pending: PendingExternalBoundary = {
       operation,
       cleanup: advanceCheckingBoundary(operation, "external-change"),
+      previousSubject,
     };
     pendingExternalBoundaryRef.current = pending;
     return pending;
@@ -528,28 +697,18 @@ export function useSessionController({
         epoch: latest.epoch,
         viewer,
       });
-      try {
-        clearIdentityOwnedState();
-      } catch (cleanupError) {
-        dispatch({
-          type: "session/check-failed",
-          operationId: operation.id,
-          epoch: stateRef.current.epoch,
-          error: normalizeSessionAuthError(cleanupError),
-        });
-        throw cleanupError;
-      }
       const didReplace = await replaceQueryGeneration(
         stateRef.current.epoch,
         null,
         operation,
         true,
       );
-      if (!didReplace) return;
+      if (!didReplace || !isCurrentOperation(operation)) return;
       await publishCheckedViewer(
         operation,
         viewer,
         "session/identity-published",
+        true,
       );
     } catch (error) {
       if (!isCurrentOperation(operation)) return;
@@ -559,7 +718,7 @@ export function useSessionController({
         const capturedEpoch = latest.epoch;
         let cleanupError: unknown;
         try {
-          clearIdentityOwnedState();
+          clearRevokedIdentityState("authenticated-session-revoked");
         } catch (caughtCleanupError) {
           cleanupError = caughtCleanupError;
         }
@@ -585,7 +744,7 @@ export function useSessionController({
     }
   }, [
     beginOperation,
-    clearIdentityOwnedState,
+    clearRevokedIdentityState,
     dispatch,
     finishOperation,
     isCurrentOperation,
@@ -598,6 +757,7 @@ export function useSessionController({
 
   const login = useCallback(
     async (credentials: SessionCredentials) => {
+      const previousSubject = identityOwnerSubjectRef.current;
       const operation = beginCookieOperation();
 
       publishSessionPhaseRef.current("invalidate");
@@ -619,7 +779,11 @@ export function useSessionController({
           }
 
           try {
-            await settleCheckingProbe(operation, "session/identity-published");
+            await settleCheckingProbe(
+              operation,
+              "session/identity-published",
+              previousSubject,
+            );
           } catch {
             // The session probe owns the visible terminal state; the login
             // error remains the caller-facing command result.
@@ -634,6 +798,7 @@ export function useSessionController({
         const didPublish = await settleCheckingProbe(
           operation,
           "session/identity-published",
+          previousSubject,
         );
         if (!didPublish) throw createStaleSessionOperationError();
       } finally {
@@ -725,7 +890,7 @@ export function useSessionController({
 
     let cleanupError: unknown;
     try {
-      clearIdentityOwnedState();
+      clearRevokedIdentityState("explicit-logout");
     } catch (caughtCleanupError) {
       cleanupError = caughtCleanupError;
     }
@@ -753,7 +918,7 @@ export function useSessionController({
     }
   }, [
     beginCookieOperation,
-    clearIdentityOwnedState,
+    clearRevokedIdentityState,
     dispatch,
     finishCookieOperation,
     isCurrentOperation,
@@ -788,7 +953,7 @@ export function useSessionController({
     try {
       let cleanupError: unknown;
       try {
-        clearIdentityOwnedState();
+        clearRevokedIdentityState("explicit-logout");
       } catch (caughtCleanupError) {
         cleanupError = caughtCleanupError;
       }
@@ -807,21 +972,29 @@ export function useSessionController({
     }
   }, [
     beginCookieOperation,
-    clearIdentityOwnedState,
+    clearRevokedIdentityState,
     finishCookieOperation,
     isCurrentOperation,
     settleServerLogout,
   ]);
 
   const captureAuthenticatedSession = useCallback(
-    () => toAuthenticatedSessionScope(stateRef.current),
-    [],
+    () => toAuthenticatedSessionScope(stateRef.current, runtimeLeaseId),
+    [runtimeLeaseId],
   );
 
-  const isCurrentSession = useCallback((scope: AuthenticatedSessionScope) => {
-    const current = toAuthenticatedSessionScope(stateRef.current);
-    return current !== null && isSameAuthenticatedSessionScope(current, scope);
-  }, []);
+  const isCurrentSession = useCallback(
+    (scope: AuthenticatedSessionScope) => {
+      const current = toAuthenticatedSessionScope(
+        stateRef.current,
+        runtimeLeaseId,
+      );
+      return (
+        current !== null && isSameAuthenticatedSessionScope(current, scope)
+      );
+    },
+    [runtimeLeaseId],
+  );
 
   const deferRemotePhase = useCallback(
     (phase: SessionBroadcastPhase) => {

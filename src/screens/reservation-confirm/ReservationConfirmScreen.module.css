@@ -1,7 +1,5 @@
 .container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: var(--space-4) var(--space-6) var(--space-10);
+  padding-block: var(--space-4) var(--space-10);
 }
 
 .content {
@@ -18,7 +16,7 @@
 
 .loading,
 .error {
-  padding: 80px var(--space-6);
+  padding-block: 80px;
   color: var(--color-text-secondary);
   font-size: var(--font-size-md);
   text-align: center;
@@ -183,9 +181,27 @@
   opacity: 0.6;
 }
 
-@media (max-width: 768px) {
+.releaseButton {
+  width: 100%;
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  background: var(--color-background-page);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+}
+
+.releaseButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+@media (--viewport-tablet) {
   .container {
-    padding: var(--space-6) var(--space-4);
+    padding-block: var(--space-6);
   }
 
   .title {

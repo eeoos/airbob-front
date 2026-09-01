@@ -1,7 +1,6 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 import postcss from "postcss";
-import { RESPONSIVE_MEDIA_QUERIES } from "../../shared/styles/responsive";
 
 const readSearchSource = (relativePath: string) =>
   readFileSync(
@@ -46,9 +45,9 @@ describe("Search responsive contracts", () => {
     );
     const mobileOrTabletBlocks = getMediaBlocks(
       css,
-      RESPONSIVE_MEDIA_QUERIES.mobileOrTablet,
+      "(--viewport-mobile-tablet)",
     );
-    const desktopBlocks = getMediaBlocks(css, RESPONSIVE_MEDIA_QUERIES.desktop);
+    const desktopBlocks = getMediaBlocks(css, "(--viewport-desktop)");
 
     expect(mobileOrTabletBlocks).toEqual(
       expect.arrayContaining([

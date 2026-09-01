@@ -1,5 +1,7 @@
 import { groupRecentlyViewedByDate } from "../lib/recentlyViewedGroups";
 import type { RecentlyViewedAccommodationCardViewModel } from "../lib/wishlistAccommodationViewModel";
+import { RUNTIME_DESIGN_TOKENS } from "../../../shared/styles/runtimeDesignTokens";
+import { stateViewRecipes } from "../../../shared/ui";
 import styles from "./WishlistViews.module.css";
 
 interface RecentlyViewedViewProps {
@@ -37,7 +39,7 @@ export function RecentlyViewedView({
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2"
+              strokeWidth={RUNTIME_DESIGN_TOKENS.icon.navigationStrokeWidth}
             >
               <path d="M19 12H5M12 19l-7-7 7-7" />
             </svg>
@@ -55,7 +57,9 @@ export function RecentlyViewedView({
         )}
       </div>
       {recentlyViewed.length === 0 ? (
-        <div className={styles.empty}>최근 조회한 숙소가 없습니다.</div>
+        <div className={styles.empty} {...stateViewRecipes.empty}>
+          최근 조회한 숙소가 없습니다.
+        </div>
       ) : (
         <>
           {Object.entries(groupRecentlyViewedByDate(recentlyViewed)).map(
@@ -131,9 +135,20 @@ export function RecentlyViewedView({
                         >
                           <svg
                             viewBox="0 0 24 24"
-                            fill={item.isInWishlist ? "#ff385c" : "none"}
-                            stroke={item.isInWishlist ? "#ffffff" : "#222222"}
-                            strokeWidth="1.5"
+                            fill={
+                              item.isInWishlist
+                                ? RUNTIME_DESIGN_TOKENS.color.brand.reference
+                                : "none"
+                            }
+                            stroke={
+                              item.isInWishlist
+                                ? RUNTIME_DESIGN_TOKENS.color.textInverse
+                                    .reference
+                                : RUNTIME_DESIGN_TOKENS.color.text.reference
+                            }
+                            strokeWidth={
+                              RUNTIME_DESIGN_TOKENS.icon.wishlistStrokeWidth
+                            }
                           >
                             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                           </svg>

@@ -1,11 +1,13 @@
 import type { Mocked } from "vitest";
 import { act, render, waitFor } from "@testing-library/react";
 import { StrictMode } from "react";
+import { accommodationAmenityCatalog } from "../../features/accommodations/public";
 import { AppError } from "../../platform/http/errors";
 import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../test/sessionFixtures";
 import type { ListingEditorAccommodation } from "../../features/accommodations/listing-editor/model/listingEditor";
 import type { ListingEditorQueryPort } from "../../features/accommodations/listing-editor/public";
 import type { AccommodationEditScreenProps } from "./editorViewContract";
@@ -50,6 +52,7 @@ const accommodation: ListingEditorAccommodation = {
 const scope: AuthenticatedSessionScope = {
   subject: "subject:member_7" as SessionSubject,
   epoch: 1,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 
 const deferred = <Value,>() => {
@@ -97,6 +100,7 @@ const createProps = () => {
 
   return {
     accommodationId: 3,
+    amenityCatalog: accommodationAmenityCatalog,
     addressSearch: {
       search: vi.fn(),
     },
@@ -159,6 +163,9 @@ describe("AccommodationEditController", () => {
     );
 
     expect(currentScreen().state.formData.name).toBe("기존 숙소");
+    expect(currentScreen().state.amenitySemantics).toEqual([
+      { isKnown: true, label: "무선 인터넷", name: "WIFI" },
+    ]);
     expect(currentScreen().state.imageItems).toEqual([
       { clientId: "server:31", id: 31, url: "/room.jpg" },
     ]);
@@ -166,6 +173,79 @@ describe("AccommodationEditController", () => {
     expect(props.query.getHostDetail).toHaveBeenCalledWith(3, {
       scope,
       signal: expect.any(AbortSignal),
+    });
+  });
+
+  it("passes an explicit unknown-amenity signal into editor presentation", async () => {
+    const props = createProps();
+    props.api.getHostDetail.mockResolvedValue({
+      ...accommodation,
+      amenities: [{ name: "FUTURE_AMENITY", count: 1 }],
+    });
+
+    await renderReadyController(props);
+
+    expect(currentScreen().state.amenitySemantics).toEqual([
+      {
+        isKnown: false,
+        label: "알 수 없는 편의시설",
+        name: "FUTURE_AMENITY",
+      },
+    ]);
+  });
+
+  it("orders rapid semantic commands through the single draft writer", async () => {
+    const props = createProps();
+    await renderReadyController(props);
+
+    act(() => {
+      currentScreen().actions.onGuestIncrement();
+      currentScreen().actions.onGuestIncrement();
+      currentScreen().actions.onAmenityIncrement("WIFI");
+      currentScreen().actions.onAmenityIncrement("WIFI");
+    });
+
+    expect(
+      currentScreen().state.formData.occupancyPolicyInfo.maxOccupancy,
+    ).toBe("6");
+    expect(currentScreen().state.formData.amenityInfos).toEqual([
+      { name: "WIFI", count: 3 },
+    ]);
+  });
+
+  it("closes and reopens editor overlays without mutating unrelated fields", async () => {
+    const props = createProps();
+    await renderReadyController(props);
+    const originalForm = currentScreen().state.formData;
+
+    act(() => currentScreen().actions.onOpenAmenityModal());
+    expect(currentScreen().state.isAmenityModalOpen).toBe(true);
+    act(() => currentScreen().actions.onCloseAmenityModal());
+    act(() => currentScreen().actions.onOpenAmenityModal());
+    expect(currentScreen().state.isAmenityModalOpen).toBe(true);
+    act(() => currentScreen().actions.onCloseAmenityModal());
+
+    act(() => currentScreen().actions.onOpenTypeModal());
+    act(() => currentScreen().actions.onCloseTypeModal());
+    act(() => currentScreen().actions.onOpenTypeModal());
+    expect(currentScreen().state.isTypeModalOpen).toBe(true);
+
+    act(() =>
+      currentScreen().actions.onAccommodationTypeSelect("PRIVATE_ROOM"),
+    );
+    expect(currentScreen().state.isTypeModalOpen).toBe(false);
+    expect(currentScreen().state.formData).toEqual({
+      ...originalForm,
+      type: "PRIVATE_ROOM",
+    });
+
+    act(() => currentScreen().actions.onTimePickerOpen("checkIn"));
+    act(() => currentScreen().actions.onTimePickerClose());
+    act(() => currentScreen().actions.onTimePickerOpen("checkOut"));
+    expect(currentScreen().state.openTimePicker).toBe("checkOut");
+    expect(currentScreen().state.formData).toEqual({
+      ...originalForm,
+      type: "PRIVATE_ROOM",
     });
   });
 
@@ -223,7 +303,7 @@ describe("AccommodationEditController", () => {
     );
 
     act(() => currentScreen().actions.onStepClick(4));
-    act(() => currentScreen().actions.onInputChange("name", "변경한 숙소"));
+    act(() => currentScreen().actions.onFieldChange("name", "변경한 숙소"));
     act(() => {
       void currentScreen().actions.onNext();
       void currentScreen().actions.onNext();
@@ -323,7 +403,7 @@ describe("AccommodationEditController", () => {
     await renderReadyController(props);
 
     selectPendingImage();
-    act(() => currentScreen().actions.onInputChange("name", "저장할 숙소"));
+    act(() => currentScreen().actions.onFieldChange("name", "저장할 숙소"));
     act(() => currentScreen().actions.onSaveAndExit());
 
     expect(currentScreen().state.showDetailAddressConfirm).toBe(true);
@@ -358,7 +438,7 @@ describe("AccommodationEditController", () => {
 
     selectPendingImage("broken.png");
     act(() =>
-      currentScreen().actions.onInputChange("name", "저장하지 못할 숙소"),
+      currentScreen().actions.onFieldChange("name", "저장하지 못할 숙소"),
     );
     act(() => currentScreen().actions.onSaveAndExit());
     act(() => currentScreen().actions.onConfirmDetailAddress());
@@ -378,7 +458,7 @@ describe("AccommodationEditController", () => {
     await renderReadyController(props);
 
     act(() => currentScreen().actions.onStepClick(4));
-    act(() => currentScreen().actions.onInputChange("name", "변경한 숙소"));
+    act(() => currentScreen().actions.onFieldChange("name", "변경한 숙소"));
     act(() => currentScreen().actions.onNext());
     await waitFor(() => expect(currentScreen().state.error).not.toBeNull());
 
@@ -399,7 +479,7 @@ describe("AccommodationEditController", () => {
     await renderReadyController(props);
 
     act(() => currentScreen().actions.onStepClick(4));
-    act(() => currentScreen().actions.onInputChange("name", "저장된 숙소"));
+    act(() => currentScreen().actions.onFieldChange("name", "저장된 숙소"));
     act(() => currentScreen().actions.onNext());
     await waitFor(() => expect(currentScreen().state.error).not.toBeNull());
 
@@ -423,7 +503,7 @@ describe("AccommodationEditController", () => {
     await renderReadyController(props);
 
     act(() =>
-      currentScreen().actions.onInputChange("name", "서버에 저장된 이름"),
+      currentScreen().actions.onFieldChange("name", "서버에 저장된 이름"),
     );
     act(() => currentScreen().actions.onSaveAndExit());
     await waitFor(() =>
@@ -431,11 +511,11 @@ describe("AccommodationEditController", () => {
     );
 
     act(() => {
-      currentScreen().actions.onInputChange("name", "복구 중 유실될 이름");
-      currentScreen().actions.setFormData((current) => ({
-        ...current,
-        description: "복구 중 유실될 설명",
-      }));
+      currentScreen().actions.onFieldChange("name", "복구 중 유실될 이름");
+      currentScreen().actions.onFieldChange(
+        "description",
+        "복구 중 유실될 설명",
+      );
       currentScreen().actions.onOpenAmenityModal();
       currentScreen().actions.onStepClick(4);
     });
@@ -478,7 +558,7 @@ describe("AccommodationEditController", () => {
     await renderReadyController(props);
 
     act(() =>
-      currentScreen().actions.onInputChange("name", "삭제 후 저장할 이름"),
+      currentScreen().actions.onFieldChange("name", "삭제 후 저장할 이름"),
     );
     act(() => currentScreen().actions.onImageRemove(0));
     await waitFor(() =>
@@ -510,7 +590,7 @@ describe("AccommodationEditController", () => {
     await renderReadyController(props);
 
     selectPendingImage("retry.png");
-    act(() => currentScreen().actions.onInputChange("name", "재시도할 숙소"));
+    act(() => currentScreen().actions.onFieldChange("name", "재시도할 숙소"));
     act(() => currentScreen().actions.onSaveAndExit());
     await waitFor(() => expect(currentScreen().state.error).not.toBeNull());
     expect(currentScreen().state.imageItems.map((image) => image.id)).toEqual([

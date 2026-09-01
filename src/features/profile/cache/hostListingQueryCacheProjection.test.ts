@@ -1,5 +1,6 @@
 import { InfiniteQueryObserver, QueryClient } from "@tanstack/react-query";
 import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../../test/sessionFixtures";
 import type { HostListingPage } from "../model/hostListing";
 import type { HostListingsApiPort } from "../ports/hostListingsApiPort";
 import { createHostListingInfiniteQueryOptions } from "../queries/hostListingQueries";
@@ -8,10 +9,12 @@ import { createHostListingQueryCacheProjection } from "./hostListingQueryCachePr
 const scopeA: AuthenticatedSessionScope = {
   subject: "subject:member_a" as AuthenticatedSessionScope["subject"],
   epoch: 4,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 const scopeB: AuthenticatedSessionScope = {
   subject: "subject:member_b" as AuthenticatedSessionScope["subject"],
   epoch: 4,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 
 const emptyPage: HostListingPage = {

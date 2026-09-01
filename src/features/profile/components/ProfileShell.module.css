@@ -1,8 +1,6 @@
 .container {
   --profile-content-layer: 1;
 
-  max-width: 1760px;
-  margin: 0 auto;
   padding: var(--space-6);
 }
 
@@ -128,7 +126,7 @@
 }
 
 /* 타이틀이 탭/사이드바와 겹치지 않도록 안정적인 상단 마진 추가 */
-@media (max-width: 1024px) {
+@media (--viewport-mobile-tablet) {
   .main {
     padding-top: var(--space-6);
     width: 100%;
@@ -162,7 +160,7 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (--viewport-tablet) {
   .container {
     padding: var(--space-4);
   }

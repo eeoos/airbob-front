@@ -1,3 +1,5 @@
+import { RUNTIME_DESIGN_TOKENS } from "../../../../../shared/styles/runtimeDesignTokens";
+
 export type MarkerIconState = "default" | "selected" | "hovered";
 
 export interface MarkerPriceInput {
@@ -15,18 +17,16 @@ export interface MarkerIconModel {
   };
 }
 
-const MARKER_BUBBLE_HEIGHT = 28;
-const MARKER_MIN_BUBBLE_WIDTH = 60;
-const MARKER_HORIZONTAL_PADDING = 12;
-
 const MARKER_ICON_COLORS = {
-  activeBackground: "#222222",
-  activeBorder: "#222222",
-  activeText: "#ffffff",
-  defaultBackground: "#ffffff",
-  defaultBorder: "#dddddd",
-  defaultText: "#222222",
+  activeBackground: RUNTIME_DESIGN_TOKENS.color.text.resolved,
+  activeBorder: RUNTIME_DESIGN_TOKENS.color.text.resolved,
+  activeText: RUNTIME_DESIGN_TOKENS.color.textInverse.resolved,
+  defaultBackground: RUNTIME_DESIGN_TOKENS.color.surface.resolved,
+  defaultBorder: RUNTIME_DESIGN_TOKENS.color.border.resolved,
+  defaultText: RUNTIME_DESIGN_TOKENS.color.text.resolved,
 } as const;
+
+const MARKER_GEOMETRY = RUNTIME_DESIGN_TOKENS.marker;
 
 const getMarkerPriceText = ({ basePrice, currency }: MarkerPriceInput) => {
   if (currency === "KRW") {
@@ -40,17 +40,19 @@ export const getMarkerIconModel = (
   input: MarkerPriceInput,
 ): MarkerIconModel => {
   const priceText = getMarkerPriceText(input);
-  const textWidth = priceText.length * 8 + 20;
-  const bubbleWidth = Math.max(textWidth, MARKER_MIN_BUBBLE_WIDTH);
-  const totalWidth = bubbleWidth + MARKER_HORIZONTAL_PADDING * 2;
+  const textWidth =
+    priceText.length * MARKER_GEOMETRY.characterWidthPx +
+    MARKER_GEOMETRY.textExtraWidthPx;
+  const bubbleWidth = Math.max(textWidth, MARKER_GEOMETRY.minimumBubbleWidthPx);
+  const totalWidth = bubbleWidth + MARKER_GEOMETRY.horizontalPaddingPx * 2;
 
   return {
     priceText,
-    bubbleHeight: MARKER_BUBBLE_HEIGHT,
+    bubbleHeight: MARKER_GEOMETRY.bubbleHeightPx,
     totalWidth,
     anchor: {
       x: totalWidth / 2,
-      y: MARKER_BUBBLE_HEIGHT,
+      y: MARKER_GEOMETRY.bubbleHeightPx,
     },
   };
 };
@@ -66,7 +68,9 @@ export const buildMarkerPriceSvg = (
   const bubbleStroke = isActive
     ? MARKER_ICON_COLORS.activeBorder
     : MARKER_ICON_COLORS.defaultBorder;
-  const strokeWidth = isActive ? 2 : 1;
+  const strokeWidth = isActive
+    ? MARKER_GEOMETRY.activeStrokeWidth
+    : MARKER_GEOMETRY.defaultStrokeWidth;
   const textFill = isActive
     ? MARKER_ICON_COLORS.activeText
     : MARKER_ICON_COLORS.defaultText;
@@ -83,13 +87,13 @@ export const buildMarkerPriceSvg = (
               .price-text {
                 fill: ${textFill};
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-                font-size: 14px;
-                font-weight: 600;
+                font-size: ${MARKER_GEOMETRY.textFontSizePx}px;
+                font-weight: ${MARKER_GEOMETRY.fontWeight};
               }
             </style>
           </defs>
-          <rect class="price-bubble" x="0" y="0" width="${model.totalWidth}" height="${model.bubbleHeight}" rx="14" ry="14"/>
-          <text class="price-text" x="${model.totalWidth / 2}" y="${model.bubbleHeight / 2 + 4}" text-anchor="middle" dominant-baseline="middle">${model.priceText}</text>
+          <rect class="price-bubble" x="0" y="0" width="${model.totalWidth}" height="${model.bubbleHeight}" rx="${MARKER_GEOMETRY.bubbleRadiusPx}" ry="${MARKER_GEOMETRY.bubbleRadiusPx}"/>
+          <text class="price-text" x="${model.totalWidth / 2}" y="${model.bubbleHeight / 2 + MARKER_GEOMETRY.baselineOffsetPx}" text-anchor="middle" dominant-baseline="middle">${model.priceText}</text>
         </svg>
       `;
 };

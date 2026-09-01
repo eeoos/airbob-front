@@ -1,14 +1,16 @@
 import { act, render, waitFor } from "@testing-library/react";
 import { StrictMode } from "react";
+import { accommodationAmenityCatalog } from "../../features/accommodations/public";
 import type { SessionSubject } from "../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../test/sessionFixtures";
 import { AccommodationDetailController } from "./AccommodationDetailController";
 import type { AccommodationDetailScreenProps } from "./AccommodationDetailScreen";
 
 const mockDetailQuery = vi.fn();
+const mockAvailabilityQuery = vi.fn();
 const mockCouponsQuery = vi.fn();
 const mockReviewsQuery = vi.fn();
 const mockIssueCoupon = vi.fn();
-const mockCreateReservationWorkflow = vi.fn();
 const mockStartReservation = vi.fn();
 const mockDisposeReservation = vi.fn();
 let capturedScreenProps: AccommodationDetailScreenProps | null = null;
@@ -22,6 +24,8 @@ vi.mock("../../features/accommodations/detail/public", async () => ({
   },
   useAccommodationDetailReadQuery: (...args: unknown[]) =>
     mockDetailQuery(...args),
+  useAccommodationAvailabilityReadQuery: (...args: unknown[]) =>
+    mockAvailabilityQuery(...args),
   useValidCouponsReadQuery: (...args: unknown[]) => mockCouponsQuery(...args),
 }));
 
@@ -31,15 +35,6 @@ vi.mock("../../features/reviews/public", async () => ({
   )),
   useAccommodationReviewsReadQuery: (...args: unknown[]) =>
     mockReviewsQuery(...args),
-}));
-
-vi.mock("../../workflows/booking-payment/reservation-create", async () => ({
-  ...(await vi.importActual<
-    typeof import("../../workflows/booking-payment/reservation-create")
-  >("../../workflows/booking-payment/reservation-create")),
-  createReservationCreateWorkflow: (...args: unknown[]) =>
-    mockCreateReservationWorkflow(...args),
-  reservationCreateTransport: {},
 }));
 
 vi.mock("./AccommodationDetailScreen", () => ({
@@ -58,7 +53,7 @@ const accommodation = {
   currency: "KRW",
   checkInTime: "15:00:00",
   checkOutTime: "11:00:00",
-  unavailableDates: [],
+  timeZoneId: "Asia/Seoul",
   isInWishlist: false,
   addressSummary: {
     country: "대한민국",
@@ -74,14 +69,71 @@ const accommodation = {
   reviewSummary: { totalCount: 0, averageRating: 0 },
 };
 
+const availability = {
+  accommodationId: 7,
+  bookingWindowStartInclusive: "2026-07-10",
+  bookingWindowEndExclusive: "2027-07-10",
+  unavailableRanges: [],
+};
+
 const authenticatedScope = {
   subject: "subject:member_1" as SessionSubject,
   epoch: 3,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 
 const session = {
   captureAuthenticatedSession: vi.fn(() => authenticatedScope),
   isCurrentSession: vi.fn(() => true),
+};
+
+const flowHandle = {
+  flowId: "10000000-0000-4000-8000-000000000001",
+  locator: { kind: "accommodation" as const, accommodationId: 7 },
+};
+
+const quoteSnapshot = {
+  phase: "quoted" as const,
+  flowId: flowHandle.flowId,
+  accommodationId: 7,
+  reservationUid: null,
+  checkIn: "2026-07-20",
+  checkOut: "2026-07-22",
+  adultCount: 2,
+  childCount: 1,
+  infantCount: 0,
+  petCount: 0,
+  orderName: "테스트 숙소",
+  nightlyPrice: 100000,
+  nights: 2,
+  subtotal: 200000,
+  discountAmount: 0,
+  amount: 200000,
+  currency: "KRW",
+  couponDisplayName: null,
+  quoteExpiresAt: "2026-07-10T00:10:00Z",
+  serverTime: "2026-07-10T00:00:00Z",
+  paymentRequired: true,
+  reservationStatus: null,
+  paymentAllowed: false,
+  holdExpiresAt: null,
+  canCheckout: true,
+  canPay: false,
+  canRetryPayment: false,
+  canReleaseHold: false,
+};
+
+const bookingWorkflow = {
+  quote: (...args: unknown[]) => mockStartReservation(...args),
+  load: vi.fn(() => ({ status: "missing" as const })),
+  checkout: vi.fn(),
+  prepareGateway: vi.fn(),
+  pay: vi.fn(),
+  releaseHold: vi.fn(),
+  acknowledgeTerminal: vi.fn(),
+  acknowledgeReservationStatusDrift: vi.fn(),
+  abandonUnheld: vi.fn(() => ({ status: "abandoned" as const })),
+  dispose: mockDisposeReservation,
 };
 
 const coupon = {
@@ -104,12 +156,14 @@ const createProps = (
   > = {},
 ) => ({
   accommodationId: 7,
+  amenityCatalog: accommodationAmenityCatalog,
   authIntent: {
     claimed: null,
     cancelPending: vi.fn(),
     completeClaim: vi.fn(),
     request: vi.fn(() => true),
   },
+  bookingFlowHandle: null,
   bookingRouteState: {
     checkIn: "2026-07-20",
     checkOut: "2026-07-22",
@@ -118,12 +172,14 @@ const createProps = (
     infantOccupancy: 0,
     petOccupancy: 0,
   },
-  checkoutHandoff: {
-    preflight: vi.fn(() => ({ status: "ready" as const })),
-    commit: vi.fn(),
-  },
+  bookingWorkflow,
   isAuthenticated: true,
+  isPaymentRecoveryBlocked: false,
+  onBookingFlowHandleChange: vi.fn(() => true),
+  onOpenPayment: vi.fn(),
+  onOpenTrips: vi.fn(),
   onReplaceBookingDates: vi.fn(),
+  onTerminalReservation: vi.fn().mockResolvedValue(true),
   recordRecentlyViewed: vi.fn().mockResolvedValue(undefined),
   resolveImageUrl: (path: string | null) => path ?? "",
   routeLease: { isCurrent: () => true },
@@ -170,6 +226,15 @@ describe("AccommodationDetailController", () => {
       isError: false,
       isLoading: false,
     });
+    mockAvailabilityQuery.mockReset();
+    mockAvailabilityQuery.mockReturnValue({
+      data: availability,
+      error: null,
+      isError: false,
+      isFetching: false,
+      isLoading: false,
+      refetch: vi.fn(),
+    });
     mockCouponsQuery.mockReset();
     mockCouponsQuery.mockReturnValue({
       data: { coupons: [] },
@@ -191,13 +256,17 @@ describe("AccommodationDetailController", () => {
     });
     mockIssueCoupon.mockReset();
     mockStartReservation.mockReset();
-    mockStartReservation.mockResolvedValue({ status: "handed-off" });
-    mockDisposeReservation.mockReset();
-    mockCreateReservationWorkflow.mockReset();
-    mockCreateReservationWorkflow.mockReturnValue({
-      dispose: mockDisposeReservation,
-      start: mockStartReservation,
+    mockStartReservation.mockResolvedValue({
+      status: "quoted",
+      handle: flowHandle,
+      snapshot: quoteSnapshot,
     });
+    mockDisposeReservation.mockReset();
+    bookingWorkflow.load.mockReset();
+    bookingWorkflow.load.mockReturnValue({ status: "missing" });
+    bookingWorkflow.checkout.mockReset();
+    bookingWorkflow.abandonUnheld.mockReset();
+    bookingWorkflow.abandonUnheld.mockReturnValue({ status: "abandoned" });
   });
 
   it("submits a validated current booking snapshot to one workflow owner", async () => {
@@ -212,7 +281,12 @@ describe("AccommodationDetailController", () => {
         maxOccupancy: 4,
         maxInfants: 1,
         maxPets: 1,
-        unavailableDates: [],
+      },
+      availability: {
+        accommodationId: 7,
+        bookingWindowStartInclusive: "2026-07-10",
+        bookingWindowEndExclusive: "2027-07-10",
+        unavailableRanges: [],
       },
       appliedCoupon: null,
       intent: {
@@ -226,8 +300,158 @@ describe("AccommodationDetailController", () => {
         petCount: 0,
         couponId: null,
       },
+      publishPreparedHandle: expect.any(Function),
       routeLease: expect.any(Object),
     });
+  });
+
+  it("keeps detail visible and fails date/reserve actions closed while availability loads", () => {
+    mockAvailabilityQuery.mockReturnValue({
+      data: undefined,
+      error: null,
+      isError: false,
+      isFetching: true,
+      isLoading: true,
+      refetch: vi.fn(),
+    });
+
+    render(<AccommodationDetailController {...createProps()} />);
+
+    expect(capturedScreenProps?.state.status).toBe("ready");
+    expect(getReadyView().bookingCard.bookingState.availabilityStatus).toBe(
+      "loading",
+    );
+    act(() => getReadyView().bookingCard.bookingActions.onReserve());
+    expect(mockStartReservation).not.toHaveBeenCalled();
+  });
+
+  it("keeps detail visible on availability error and exposes an explicit retry", () => {
+    const refetch = vi.fn();
+    mockAvailabilityQuery.mockReturnValue({
+      data: undefined,
+      error: new Error("availability failed"),
+      isError: true,
+      isFetching: false,
+      isLoading: false,
+      refetch,
+    });
+
+    render(<AccommodationDetailController {...createProps()} />);
+
+    expect(capturedScreenProps?.state.status).toBe("ready");
+    expect(getReadyView().bookingCard.bookingState.availabilityStatus).toBe(
+      "error",
+    );
+    act(() => getReadyView().bookingCard.bookingActions.retryAvailability());
+    expect(refetch).toHaveBeenCalledTimes(1);
+    expect(mockStartReservation).not.toHaveBeenCalled();
+  });
+
+  it.each(["loading", "error"] as const)(
+    "closes an open picker and blocks stale date callbacks when availability becomes %s",
+    async (nextStatus) => {
+      const onReplaceBookingDates = vi.fn();
+      const props = createProps({ onReplaceBookingDates });
+      const view = render(<AccommodationDetailController {...props} />);
+
+      act(() =>
+        getReadyView().bookingCard.bookingActions.onDatePickerOpenChange(true),
+      );
+      expect(getReadyView().bookingCard.bookingState.isDatePickerOpen).toBe(
+        true,
+      );
+      const staleDateCallback =
+        getReadyView().bookingCard.bookingActions.handleDateSelect;
+
+      mockAvailabilityQuery.mockReturnValue(
+        nextStatus === "loading"
+          ? {
+              data: availability,
+              error: null,
+              isError: false,
+              isFetching: true,
+              isLoading: false,
+              refetch: vi.fn(),
+            }
+          : {
+              data: undefined,
+              error: new Error("availability failed"),
+              isError: true,
+              isFetching: false,
+              isLoading: false,
+              refetch: vi.fn(),
+            },
+      );
+      view.rerender(<AccommodationDetailController {...props} />);
+
+      await waitFor(() =>
+        expect(getReadyView().bookingCard.bookingState.isDatePickerOpen).toBe(
+          false,
+        ),
+      );
+      expect(getReadyView().bookingCard.bookingState.availabilityStatus).toBe(
+        nextStatus,
+      );
+      act(() =>
+        staleDateCallback(new Date(2026, 6, 24), new Date(2026, 6, 25)),
+      );
+      expect(onReplaceBookingDates).not.toHaveBeenCalled();
+    },
+  );
+
+  it("holds a claimed reservation intent through availability failure and resumes after retry", async () => {
+    const completeClaim = vi.fn();
+    const claimedIntent = {
+      type: "reservation.start" as const,
+      accommodationId: 7,
+      checkIn: "2026-08-10",
+      checkOut: "2026-08-13",
+      adultCount: 2,
+      childCount: 0,
+      infantCount: 0,
+      petCount: 0,
+      couponId: null,
+    };
+    mockAvailabilityQuery.mockReturnValue({
+      data: undefined,
+      error: new Error("availability failed"),
+      isError: true,
+      isFetching: false,
+      isLoading: false,
+      refetch: vi.fn(),
+    });
+    const props = createProps({
+      authIntent: {
+        claimed: {
+          attemptId: 23,
+          intent: claimedIntent,
+          isCurrent: () => true,
+        },
+        cancelPending: vi.fn(),
+        completeClaim,
+        request: vi.fn(() => true),
+      },
+    });
+    const view = render(<AccommodationDetailController {...props} />);
+
+    expect(mockStartReservation).not.toHaveBeenCalled();
+    expect(completeClaim).not.toHaveBeenCalled();
+
+    mockAvailabilityQuery.mockReturnValue({
+      data: availability,
+      error: null,
+      isError: false,
+      isFetching: false,
+      isLoading: false,
+      refetch: vi.fn(),
+    });
+    view.rerender(<AccommodationDetailController {...props} />);
+
+    await waitFor(() => expect(mockStartReservation).toHaveBeenCalledTimes(1));
+    expect(completeClaim).toHaveBeenCalledWith(23);
+    expect(mockStartReservation).toHaveBeenCalledWith(
+      expect.objectContaining({ intent: claimedIntent }),
+    );
   });
 
   it("keeps the committed reservation workflow live through StrictMode replay", async () => {

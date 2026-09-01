@@ -12,7 +12,7 @@ const accommodationDetailFixture = (
   currency: "KRW",
   checkInTime: "15:00:00",
   checkOutTime: "11:00:00",
-  unavailableDates: ["2026-07-10", "2026-07-11"],
+  timeZoneId: "Asia/Seoul",
   isInWishlist: false,
   addressSummary: {
     country: "대한민국",
@@ -46,11 +46,26 @@ const accommodationDetailFixture = (
 describe("accommodation booking view model", () => {
   it("maps booking DTO fields into display-oriented booking data", () => {
     expect(
-      toAccommodationBookingViewModel(accommodationDetailFixture()),
+      toAccommodationBookingViewModel(accommodationDetailFixture(), {
+        accommodationId: 7,
+        bookingWindowStartInclusive: "2026-07-10",
+        bookingWindowEndExclusive: "2027-07-10",
+        unavailableRanges: [
+          { startDate: "2026-07-10", endDateExclusive: "2026-07-12" },
+        ],
+      }),
     ).toEqual({
       basePrice: 120000,
       basePriceLabel: "₩120,000",
-      unavailableDates: ["2026-07-10", "2026-07-11"],
+      availability: {
+        selectionWindow: {
+          startInclusive: "2026-07-10",
+          endExclusive: "2027-07-10",
+        },
+        disabledRanges: [
+          { startInclusive: "2026-07-10", endExclusive: "2026-07-12" },
+        ],
+      },
       guestLimits: {
         maxAdultsAndChildren: 5,
         maxInfants: 2,

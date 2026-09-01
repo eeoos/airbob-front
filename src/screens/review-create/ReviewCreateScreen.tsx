@@ -1,5 +1,5 @@
 import type { ChangeEvent, FormEvent } from "react";
-import { ToastHost } from "../../shared/ui";
+import { PageContainer, ToastHost } from "../../shared/ui";
 import styles from "./ReviewCreateScreen.module.css";
 
 export interface ReviewCreateReservationView {
@@ -78,14 +78,18 @@ export function ReviewCreateScreen({
   };
 
   if (state.status === "loading") {
-    return <div className={styles.loading}>로딩 중...</div>;
+    return (
+      <PageContainer className={styles.loading} variant="narrow">
+        로딩 중...
+      </PageContainer>
+    );
   }
 
   if (state.status === "error") {
     return (
-      <div className={styles.error} role="alert">
+      <PageContainer className={styles.error} role="alert" variant="narrow">
         {state.message}
-      </div>
+      </PageContainer>
     );
   }
 
@@ -93,7 +97,7 @@ export function ReviewCreateScreen({
 
   return (
     <>
-      <div className={styles.container}>
+      <PageContainer className={styles.container} variant="narrow">
         <button
           aria-label="뒤로 가기"
           className={styles.backButton}
@@ -271,7 +275,7 @@ export function ReviewCreateScreen({
             </div>
           </form>
         </div>
-      </div>
+      </PageContainer>
 
       {errorMessage && (
         <ToastHost

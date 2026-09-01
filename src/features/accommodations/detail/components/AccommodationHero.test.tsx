@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { accommodationAmenityCatalog } from "../../public";
 import AccommodationHero from "./AccommodationHero";
 import type { AccommodationDetail } from "../model/accommodationDetail";
 import { toAccommodationDetailViewModel } from "../lib/accommodationDetailViewModel";
@@ -14,7 +15,7 @@ const accommodation: AccommodationDetail = {
   currency: "KRW",
   checkInTime: "15:00:00",
   checkOutTime: "11:00:00",
-  unavailableDates: [],
+  timeZoneId: "Asia/Seoul",
   isInWishlist: false,
   addressSummary: {
     country: "대한민국",
@@ -55,7 +56,11 @@ const renderHero = (
   overrides: Partial<React.ComponentProps<typeof AccommodationHero>> = {},
 ) => {
   const props: React.ComponentProps<typeof AccommodationHero> = {
-    detailView: toAccommodationDetailViewModel(accommodation, resolveImageUrl),
+    detailView: toAccommodationDetailViewModel(
+      accommodation,
+      resolveImageUrl,
+      accommodationAmenityCatalog,
+    ),
     mobileSlideIndex: 0,
     onMobileSlideIndexChange: vi.fn(),
     onOpenGallery: vi.fn(),
@@ -162,6 +167,7 @@ describe("AccommodationHero", () => {
           images: accommodation.images.slice(0, 5),
         },
         resolveImageUrl,
+        accommodationAmenityCatalog,
       ),
       onMobileSlideIndexChange,
       onOpenGallery,

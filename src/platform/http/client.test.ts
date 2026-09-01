@@ -136,6 +136,81 @@ describe("platform HTTP client", () => {
     expect(fetchRequest).not.toHaveBeenCalled();
   });
 
+  it("serializes one validated idempotency header without normalizing its value", async () => {
+    const fetchRequest = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) => fetchResponse(),
+    );
+    const client = createClient(fetchRequest);
+
+    await client.request({
+      method: "POST",
+      path: "/reservations",
+      body: { quote_uid: "5f54b9c2-5b9e-45a3-a4f4-7a119227c01a" },
+      idempotencyKey: "Checkout.Flow:01_A-B",
+    });
+
+    const headers = new Headers(fetchRequest.mock.calls[0]?.[1]?.headers);
+    expect(headers.get("Idempotency-Key")).toBe("Checkout.Flow:01_A-B");
+  });
+
+  it.each([
+    [8, "key00001"],
+    [128, "a".repeat(128)],
+  ] as const)(
+    "accepts the inclusive %i-character idempotency length boundary",
+    async (_length, key) => {
+      const fetchRequest = vi.fn(
+        async (_input: RequestInfo | URL, _init?: RequestInit) =>
+          fetchResponse(),
+      );
+      const client = createClient(fetchRequest);
+
+      await client.request({
+        method: "POST",
+        path: "/reservations",
+        body: { quote_uid: "5f54b9c2-5b9e-45a3-a4f4-7a119227c01a" },
+        idempotencyKey: key,
+      });
+
+      const headers = new Headers(fetchRequest.mock.calls[0]?.[1]?.headers);
+      expect(headers.get("Idempotency-Key")).toBe(key);
+    },
+  );
+
+  it.each([
+    "short_1",
+    "a".repeat(129),
+    " leading-space",
+    "trailing-space ",
+    "contains/slash",
+    "한글-key-123",
+  ])(
+    "rejects malformed idempotency key %j before network access",
+    async (key) => {
+      const fetchRequest = vi.fn(
+        async (_input: RequestInfo | URL, _init?: RequestInit) =>
+          fetchResponse(),
+      );
+      const client = createClient(fetchRequest);
+
+      const result = client
+        .request({
+          method: "POST",
+          path: "/reservations",
+          body: { quote_uid: "5f54b9c2-5b9e-45a3-a4f4-7a119227c01a" },
+          idempotencyKey: key,
+        })
+        .catch((error: unknown) => error);
+
+      await expect(result).resolves.toMatchObject({
+        name: "HttpTransportFailure",
+        kind: "configuration",
+      });
+      expect(fetchRequest).not.toHaveBeenCalled();
+      expect(JSON.stringify(await result)).not.toContain(key);
+    },
+  );
+
   it("propagates caller cancellation through the owned AbortSignal", async () => {
     const fetchRequest = vi.fn(
       async (_input: RequestInfo | URL, init?: RequestInit) =>
@@ -273,6 +348,45 @@ describe("platform HTTP client", () => {
     );
     expect(fakeRequest.send).toHaveBeenCalledWith(body);
     expect(onUploadProgress).toHaveBeenCalledExactlyOnceWith(33);
+  });
+
+  it("applies the same validated idempotency capability to progress requests", async () => {
+    const fakeRequest = createFakeRequest();
+    fakeRequest.send.mockImplementation(() => fakeRequest.onload?.());
+    const client = createProgressClient(fakeRequest);
+
+    await client.request({
+      method: "POST",
+      path: "/accommodations/31/images",
+      body: createMultipartBody(),
+      bodyEncoding: "multipart",
+      idempotencyKey: "upload.test:01",
+      onUploadProgress: vi.fn(),
+    });
+
+    expect(fakeRequest.setRequestHeader.mock.calls).toEqual([
+      ["Accept", "application/json"],
+      ["Idempotency-Key", "upload.test:01"],
+    ]);
+  });
+
+  it("rejects a malformed progress-request idempotency key before browser I/O", () => {
+    const fakeRequest = createFakeRequest();
+    const client = createProgressClient(fakeRequest);
+
+    expect(() =>
+      client.request({
+        method: "POST",
+        path: "/accommodations/31/images",
+        body: createMultipartBody(),
+        bodyEncoding: "multipart",
+        idempotencyKey: "bad/key",
+        onUploadProgress: vi.fn(),
+      }),
+    ).toThrow(HttpTransportFailure);
+    expect(fakeRequest.open).not.toHaveBeenCalled();
+    expect(fakeRequest.setRequestHeader).not.toHaveBeenCalled();
+    expect(fakeRequest.send).not.toHaveBeenCalled();
   });
 
   it("propagates caller cancellation through the progress-upload request and releases handlers", async () => {

@@ -1,5 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
 import type { SessionSubject } from "../../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../../test/sessionFixtures";
 import { createReservationReadQueryCacheProjection } from "./reservationReadQueryCacheProjection";
 import { reservationReadQueryKeys } from "../queries/reservationReadQueryKeys";
 
@@ -9,6 +10,7 @@ describe("reservation read cache projection", () => {
     const scope = {
       subject: "subject:member-1" as SessionSubject,
       epoch: 4,
+      runtimeLeaseId: testSessionRuntimeLeaseId,
     };
     const otherScope = { ...scope, epoch: 5 };
     const guestList = reservationReadQueryKeys.list(scope, "guest", {

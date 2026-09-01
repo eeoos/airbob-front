@@ -9,21 +9,26 @@ import {
 import {
   calculateAccommodationCouponDiscount,
   type AccommodationCoupon,
+  type AccommodationAvailability,
   type AccommodationDetailQueryOptions,
   toAccommodationBookingCouponViewModel,
   toAccommodationBookingCouponViewModels,
   toAccommodationBookingViewModel,
   toAccommodationDetailViewModel,
   useAccommodationDetailReadQuery,
+  useAccommodationAvailabilityReadQuery,
   useValidCouponsReadQuery,
 } from "../../features/accommodations/detail/public";
+import type { AccommodationAmenityCatalog } from "../../features/accommodations/public";
 import { useOutsideClick } from "../../shared/ui";
-import {
-  type ReservationCheckoutHandoffPort,
-  type ReservationCreateRouteLease,
-  type ReservationCreateSessionPort,
-  type ReservationStartIntent,
-} from "../../workflows/booking-payment/reservation-create";
+import type {
+  BookingTransactionHandle,
+  BookingTransactionRouteLease,
+  BookingTransactionSessionPort,
+  BookingTransactionSnapshot,
+  BookingTransactionStartIntent,
+  BookingTransactionWorkflow,
+} from "../../workflows/booking-payment/transaction/booking";
 import {
   AccommodationDetailScreen,
   type AccommodationDetailReadyView,
@@ -55,7 +60,7 @@ interface AccommodationDetailBookingRouteState {
 
 export type AccommodationDetailAuthIntent =
   | { readonly type: "wishlist.open"; readonly accommodationId: number }
-  | ReservationStartIntent
+  | BookingTransactionStartIntent
   | {
       readonly type: "coupon.issue";
       readonly accommodationId: number;
@@ -82,32 +87,55 @@ type WishlistMembership = Omit<
 
 export interface AccommodationDetailControllerProps {
   readonly accommodationId: number | null;
+  readonly amenityCatalog: AccommodationAmenityCatalog;
   readonly authIntent: AccommodationDetailAuthIntentPort;
+  readonly bookingFlowHandle: BookingTransactionHandle | null;
   readonly bookingRouteState: AccommodationDetailBookingRouteState;
-  readonly checkoutHandoff: ReservationCheckoutHandoffPort;
+  readonly bookingWorkflow: BookingTransactionWorkflow;
   readonly isAuthenticated: boolean;
+  readonly isPaymentRecoveryBlocked: boolean;
+  readonly onBookingFlowHandleChange: (
+    handle: BookingTransactionHandle | null,
+  ) => boolean;
+  readonly onOpenPayment: (
+    handle: BookingTransactionHandle,
+    snapshot: BookingTransactionSnapshot,
+  ) => void;
+  readonly onOpenTrips: () => void;
   readonly onReplaceBookingDates: (
     checkIn: string | null,
     checkOut: string | null,
   ) => void;
+  readonly onTerminalReservation: (
+    handle: BookingTransactionHandle,
+    snapshot: BookingTransactionSnapshot,
+    routeLease: BookingTransactionRouteLease,
+  ) => Promise<boolean>;
   readonly recordRecentlyViewed: (
     accommodationId: number,
     options: { readonly signal: AbortSignal },
   ) => Promise<void>;
   readonly resolveImageUrl: (path: string | null) => string;
-  readonly routeLease: ReservationCreateRouteLease;
+  readonly routeLease: BookingTransactionRouteLease;
   readonly scope: DetailScope;
-  readonly session: ReservationCreateSessionPort;
+  readonly session: BookingTransactionSessionPort;
   readonly wishlistMembership?: WishlistMembership;
 }
 
 export function AccommodationDetailController({
   accommodationId,
+  amenityCatalog,
   authIntent,
+  bookingFlowHandle,
   bookingRouteState,
-  checkoutHandoff,
+  bookingWorkflow,
   isAuthenticated,
+  isPaymentRecoveryBlocked,
+  onBookingFlowHandleChange,
+  onOpenPayment,
+  onOpenTrips,
   onReplaceBookingDates,
+  onTerminalReservation,
   recordRecentlyViewed,
   resolveImageUrl,
   routeLease,
@@ -119,11 +147,25 @@ export function AccommodationDetailController({
     accommodationId,
     scope,
   });
+  const availabilityQuery = useAccommodationAvailabilityReadQuery({
+    accommodationId,
+    scope,
+  });
   const couponsQuery = useValidCouponsReadQuery({
     enabled: isAuthenticated,
     scope,
   });
   const accommodation = detailQuery.data ?? null;
+  const availability: AccommodationAvailability | null =
+    availabilityQuery.isError || availabilityQuery.isFetching
+      ? null
+      : (availabilityQuery.data ?? null);
+  const availabilityStatus =
+    availabilityQuery.isLoading || availabilityQuery.isFetching
+      ? "loading"
+      : availability
+        ? "ready"
+        : "error";
   const accommodationIdentity = accommodation?.id ?? null;
   const maxOccupancy = accommodation?.policy.maxOccupancy ?? 0;
   const maxInfants = accommodation?.policy.infantOccupancy ?? 0;
@@ -152,6 +194,12 @@ export function AccommodationDetailController({
     contains(target: Node): boolean;
   } | null>(null);
   const handledAuthAttemptRef = useRef<number | null>(null);
+  const availabilityInteractionReadyRef = useRef(false);
+  availabilityInteractionReadyRef.current = Boolean(
+    availabilityStatus === "ready" &&
+    availability &&
+    accommodationIdentity === availability.accommodationId,
+  );
   const reviewFeed = useAccommodationReviewFeed({
     accommodationId,
     enabled: Boolean(accommodation?.reviewSummary.totalCount),
@@ -188,6 +236,12 @@ export function AccommodationDetailController({
     maxOccupancy,
     maxPets,
   ]);
+
+  useEffect(() => {
+    if (availabilityStatus !== "ready") {
+      setIsDatePickerOpen(false);
+    }
+  }, [availabilityStatus]);
 
   useRecentlyViewedRecording({
     accommodationId: accommodation?.id ?? null,
@@ -233,7 +287,7 @@ export function AccommodationDetailController({
     () =>
       deriveBookingDates({
         basePrice: accommodation?.basePrice ?? 0,
-        unavailableDates: accommodation?.unavailableDates ?? [],
+        availability,
         ...(bookingRouteState.checkIn === undefined
           ? {}
           : { checkIn: bookingRouteState.checkIn }),
@@ -241,7 +295,12 @@ export function AccommodationDetailController({
           ? {}
           : { checkOut: bookingRouteState.checkOut }),
       }),
-    [accommodation, bookingRouteState.checkIn, bookingRouteState.checkOut],
+    [
+      accommodation?.basePrice,
+      availability,
+      bookingRouteState.checkIn,
+      bookingRouteState.checkOut,
+    ],
   );
   const coupons = useMemo<readonly AccommodationCoupon[]>(
     () => couponsQuery.data?.coupons ?? [],
@@ -259,19 +318,74 @@ export function AccommodationDetailController({
     bookingDates.totalPrice - selectedCouponDiscount,
     0,
   );
-  const { isReservationLocked, isReserving, startReservation } =
-    useReservationCreateCommand({
-      accommodation,
-      bookingDates,
-      checkoutHandoff,
-      guestCounts: { adultCount, childCount, infantCount, petCount },
-      onError: setErrorMessage,
-      requestAuthentication: requireAuthentication,
-      routeLease,
-      scope,
-      selectedCoupon,
-      session,
-    });
+  const isStayReady = Boolean(
+    availabilityStatus === "ready" &&
+    availability &&
+    accommodation &&
+    availability.accommodationId === accommodation.id &&
+    bookingDates.isStayReady &&
+    bookingDates.checkIn &&
+    bookingDates.checkOut &&
+    bookingDates.nights > 0,
+  );
+  const {
+    abandonQuote,
+    isReservationLocked,
+    isReserving,
+    quoteSnapshot,
+    reservationStatus,
+    selectionLocked,
+    startReservation,
+  } = useReservationCreateCommand({
+    accommodation,
+    availability,
+    bookingDates,
+    flowHandle: bookingFlowHandle,
+    guestCounts: { adultCount, childCount, infantCount, petCount },
+    isRecoveryBlocked: isPaymentRecoveryBlocked,
+    onError: setErrorMessage,
+    onFlowHandleChange: onBookingFlowHandleChange,
+    onOpenPayment,
+    onOpenTrips,
+    onTerminalReservation,
+    requestAuthentication: requireAuthentication,
+    routeLease,
+    selectedCoupon,
+    workflow: bookingWorkflow,
+  });
+
+  useEffect(() => {
+    if (!selectionLocked) return;
+    setIsDatePickerOpen(false);
+    setIsGuestPickerOpen(false);
+  }, [selectionLocked]);
+
+  useEffect(() => {
+    if (!selectionLocked || !quoteSnapshot) return;
+    setAdultCount(quoteSnapshot.adultCount);
+    setChildCount(quoteSnapshot.childCount);
+    setInfantCount(quoteSnapshot.infantCount);
+    setPetCount(quoteSnapshot.petCount);
+
+    const displayedCheckIn = bookingDates.checkIn
+      ? formatBookingLocalDate(bookingDates.checkIn)
+      : null;
+    const displayedCheckOut = bookingDates.checkOut
+      ? formatBookingLocalDate(bookingDates.checkOut)
+      : null;
+    if (
+      displayedCheckIn !== quoteSnapshot.checkIn ||
+      displayedCheckOut !== quoteSnapshot.checkOut
+    ) {
+      onReplaceBookingDates(quoteSnapshot.checkIn, quoteSnapshot.checkOut);
+    }
+  }, [
+    bookingDates.checkIn,
+    bookingDates.checkOut,
+    onReplaceBookingDates,
+    quoteSnapshot,
+    selectionLocked,
+  ]);
 
   useEffect(() => {
     const claimed = authIntent.claimed;
@@ -319,6 +433,7 @@ export function AccommodationDetailController({
         return;
       }
       case "reservation.start": {
+        if (availabilityStatus !== "ready") return;
         if (claimedIntent.couponId !== null && couponsQuery.isFetching) return;
         if (claimedIntent.couponId !== null && couponsQuery.isError) {
           complete();
@@ -341,6 +456,7 @@ export function AccommodationDetailController({
     }
   }, [
     accommodation,
+    availabilityStatus,
     authIntent,
     coupons,
     couponsQuery.isError,
@@ -368,9 +484,17 @@ export function AccommodationDetailController({
     isDatePickerOpen,
   );
 
-  const detailView = accommodation
-    ? toAccommodationDetailViewModel(accommodation, resolveImageUrl)
-    : null;
+  const detailView = useMemo(
+    () =>
+      accommodation
+        ? toAccommodationDetailViewModel(
+            accommodation,
+            resolveImageUrl,
+            amenityCatalog,
+          )
+        : null,
+    [accommodation, amenityCatalog, resolveImageUrl],
+  );
   const imageGallery = useAccommodationImageGallery({
     imageCount: detailView?.heroImages.length ?? 0,
   });
@@ -409,11 +533,17 @@ export function AccommodationDetailController({
         },
       },
       bookingCard: {
-        bookingView: toAccommodationBookingViewModel(accommodation),
+        bookingView: toAccommodationBookingViewModel(
+          accommodation,
+          availability,
+        ),
         isAuthenticated,
         bookingState: {
           payablePrice,
+          availabilityStatus,
+          isStayReady,
           nights: bookingDates.nights,
+          selectionState: bookingDates.selectionState,
           totalPrice: bookingDates.totalPrice,
           checkIn: bookingDates.checkIn,
           checkOut: bookingDates.checkOut,
@@ -428,10 +558,16 @@ export function AccommodationDetailController({
           petCount,
           isReservationLocked,
           isReserving,
+          quoteSnapshot,
+          reservationStatus,
+          selectionLocked,
         },
         bookingActions: {
           formatDate: formatBookingDisplayDate,
           handleDateSelect: (checkIn, checkOut) => {
+            if (selectionLocked || !availabilityInteractionReadyRef.current) {
+              return;
+            }
             startTransition(() => {
               onReplaceBookingDates(
                 checkIn ? formatBookingLocalDate(checkIn) : null,
@@ -440,13 +576,31 @@ export function AccommodationDetailController({
               if (checkOut) setIsDatePickerOpen(false);
             });
           },
-          setIsDatePickerOpen,
-          setIsGuestPickerOpen,
-          setAdultCount,
-          setChildCount,
-          setInfantCount,
-          setPetCount,
-          onReserve: () => void startReservation(),
+          onDatePickerOpenChange: setIsDatePickerOpen,
+          onGuestPickerOpenChange: setIsGuestPickerOpen,
+          onAdultCountChange: (next) => {
+            if (!selectionLocked) setAdultCount(next);
+          },
+          onChildCountChange: (next) => {
+            if (!selectionLocked) setChildCount(next);
+          },
+          onInfantCountChange: (next) => {
+            if (!selectionLocked) setInfantCount(next);
+          },
+          onPetCountChange: (next) => {
+            if (!selectionLocked) setPetCount(next);
+          },
+          onAbandonQuote: abandonQuote,
+          onReserve: () => {
+            if (
+              !quoteSnapshot &&
+              (!availabilityInteractionReadyRef.current || !isStayReady)
+            ) {
+              return;
+            }
+            void startReservation();
+          },
+          retryAvailability: () => void availabilityQuery.refetch(),
         },
         couponState: {
           coupons: couponViews,
@@ -458,8 +612,11 @@ export function AccommodationDetailController({
           couponDiscount: selectedCouponDiscount,
         },
         couponActions: {
-          setSelectedCouponId,
+          onSelectedCouponIdChange: (couponId) => {
+            if (!selectionLocked) setSelectedCouponId(couponId);
+          },
           handleIssueCoupon: (couponView) => {
+            if (selectionLocked) return undefined;
             const coupon = coupons.find(
               (candidate) => candidate.id === couponView.id,
             );

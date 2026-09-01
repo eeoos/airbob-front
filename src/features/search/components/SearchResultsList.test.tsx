@@ -45,7 +45,11 @@ describe("SearchResultsList", () => {
       />,
     );
 
-    expect(screen.getByText("로딩 중...")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("로딩 중...");
+    expect(screen.getByRole("status")).toHaveAttribute(
+      "data-state-kind",
+      "loading",
+    );
   });
 
   it("delegates card clicks with the accommodation id", async () => {

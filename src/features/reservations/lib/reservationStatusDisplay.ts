@@ -13,13 +13,17 @@ const reservationStatusDisplay = {
     label: "결제 대기",
     tone: "warning",
   },
-  PAYMENT_COMPLETED: {
-    label: "결제 완료",
-    tone: "success",
+  PAYMENT_PROCESSING: {
+    label: "결제 처리 중",
+    tone: "warning",
   },
   CONFIRMED: {
     label: "확정됨",
     tone: "success",
+  },
+  CANCELLATION_PENDING: {
+    label: "취소 처리 중",
+    tone: "warning",
   },
   CANCELLED: {
     label: "취소됨",
@@ -28,10 +32,6 @@ const reservationStatusDisplay = {
   CANCELLATION_FAILED: {
     label: "취소 실패",
     tone: "danger",
-  },
-  COMPLETED: {
-    label: "이용 완료",
-    tone: "neutral",
   },
   EXPIRED: {
     label: "만료됨",

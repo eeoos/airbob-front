@@ -3,6 +3,8 @@
 Airbob은 숙소 탐색, 위시리스트, 예약과 결제, 리뷰, 호스트 숙소 관리를 제공하는
 React/TypeScript 단일 페이지 애플리케이션입니다. 브라우저에서 사용하는 백엔드 계약은
 `/api/v1` REST API이며, 이번 프론트엔드 구조 전환은 API·DB·서버 동작을 변경하지 않습니다.
+이번 contract-alignment의 출발 기준은 frontend `cfdb1e4`와 read-only backend
+contract target `b2ec09a`입니다.
 
 ## 현재 제품 흐름
 
@@ -39,8 +41,10 @@ capability 경계를 검사합니다. Vercel은 실제 정적 파일을 우선 �
 - route/workflow 소유권과 cutover 상태: [frontend ownership matrix](docs/architecture/frontend-ownership-matrix.md)
 - 브라우저 저장 데이터와 개인정보/TTL: [frontend browser data inventory](docs/architecture/frontend-browser-data-inventory.md)
 - 의존성·미사용 코드·스타일 strict 승격: [frontend architecture ratchets](tests/architecture/dependency-rules.md)
-- 실행 계획: [frontend architecture overhaul plan](docs/plans/2026-08-29-001-refactor-frontend-architecture-overhaul-plan.md)
+- 실행 계획: [local-backend contract alignment plan](docs/plans/2026-09-01-001-refactor-local-backend-contract-alignment-plan.md)
+- 독립 재감사: [frontend architecture independent re-audit](docs/qa/2026-09-01-frontend-architecture-independent-read-only-reaudit.md)
 - 과거 계획 색인: [frontend refactor plan index](docs/archive/frontend-refactor-plan-index.md)
 
-구조를 판단할 때는 첫 번째 문서를 우선합니다. 나머지 문서는 운영 규칙, 진행 상태 또는
-역사 기록이며 현재 구조를 별도로 정의하지 않습니다.
+현재 구현 구조를 판단할 때는 첫 번째 문서를, 목표와 실행 순서를 판단할 때는 2026-09-01
+실행 계획을 우선합니다. 2026-08-29 계획은 완료 이력과 맥락을 위한 역사 기록이며 새 작업을
+지시하지 않습니다.

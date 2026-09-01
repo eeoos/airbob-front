@@ -107,7 +107,7 @@
   z-index: var(--z-toast);
 }
 
-@media (max-width: 768px) {
+@media (--viewport-tablet) {
   .reservationsGrid {
     grid-template-columns: 1fr;
   }

@@ -39,7 +39,13 @@ vi.mock("../../../../shared/ui", async () => {
 const bookingView: AccommodationBookingViewModel = {
   basePrice: 100000,
   basePriceLabel: "₩100,000",
-  unavailableDates: [],
+  availability: {
+    selectionWindow: {
+      startInclusive: "2026-07-10",
+      endExclusive: "2027-07-10",
+    },
+    disabledRanges: [],
+  },
   guestLimits: {
     maxAdultsAndChildren: 4,
     maxInfants: 1,
@@ -75,6 +81,8 @@ const createBookingCardProps = (): BookingCardProps => ({
   bookingView,
   isAuthenticated: true,
   bookingState: {
+    availabilityStatus: "ready",
+    isStayReady: true,
     payablePrice: 190000,
     nights: 2,
     totalPrice: 200000,
@@ -91,6 +99,10 @@ const createBookingCardProps = (): BookingCardProps => ({
     petCount: 0,
     isReservationLocked: false,
     isReserving: false,
+    quoteSnapshot: null,
+    reservationStatus: "idle",
+    selectionLocked: false,
+    selectionState: "ready",
   },
   bookingActions: {
     formatDate: (date) =>
@@ -101,13 +113,15 @@ const createBookingCardProps = (): BookingCardProps => ({
           )}. ${String(date.getDate()).padStart(2, "0")}.`
         : "",
     handleDateSelect: vi.fn(),
-    setIsDatePickerOpen: vi.fn(),
-    setIsGuestPickerOpen: vi.fn(),
-    setAdultCount: vi.fn(),
-    setChildCount: vi.fn(),
-    setInfantCount: vi.fn(),
-    setPetCount: vi.fn(),
+    onDatePickerOpenChange: vi.fn(),
+    onGuestPickerOpenChange: vi.fn(),
+    onAdultCountChange: vi.fn(),
+    onChildCountChange: vi.fn(),
+    onInfantCountChange: vi.fn(),
+    onPetCountChange: vi.fn(),
+    onAbandonQuote: vi.fn(() => true),
     onReserve: vi.fn(),
+    retryAvailability: vi.fn(),
   },
   couponState: {
     coupons: [coupon],
@@ -117,7 +131,7 @@ const createBookingCardProps = (): BookingCardProps => ({
     couponDiscount: 10000,
   },
   couponActions: {
-    setSelectedCouponId: vi.fn(),
+    onSelectedCouponIdChange: vi.fn(),
     handleIssueCoupon: vi.fn(),
   },
 });
@@ -168,6 +182,253 @@ describe("AccommodationBookingCard", () => {
     expect(bookingProps.bookingActions.onReserve).toHaveBeenCalledTimes(1);
   });
 
+  it("fails date and reserve controls closed and retries an availability error", () => {
+    const retryAvailability = vi.fn();
+    setupBookingCard({
+      bookingState: { availabilityStatus: "error" },
+      bookingActions: { retryAvailability },
+      bookingView: {
+        ...bookingView,
+        availability: { selectionWindow: null, disabledRanges: [] },
+      },
+    });
+
+    expect(screen.getByRole("button", { name: /체크인/ })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "예약 가능 날짜 확인 필요" }),
+    ).toBeDisabled();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "예약 가능한 날짜를 불러오지 못했습니다.",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    expect(retryAvailability).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables reservation with accurate copy when no stay is available", () => {
+    setupBookingCard({
+      bookingState: {
+        checkIn: null,
+        checkOut: null,
+        isStayReady: false,
+        nights: 0,
+        payablePrice: 0,
+        selectionState: "fully-booked",
+        totalPrice: 0,
+      },
+    });
+
+    expect(
+      screen.getByRole("button", { name: "예약 가능한 날짜 없음" }),
+    ).toBeDisabled();
+  });
+
+  it.each([
+    ["incomplete", "체크인·체크아웃 선택"],
+    ["invalid", "예약 날짜 다시 선택"],
+    ["outside-window", "예약 날짜 다시 선택"],
+    ["unavailable", "예약 날짜 다시 선택"],
+  ] as const)(
+    "disables a %s stay with corrective reserve copy",
+    (selectionState, label) => {
+      setupBookingCard({
+        bookingState: {
+          checkOut:
+            selectionState === "incomplete" ? null : new Date(2026, 6, 12),
+          isStayReady: false,
+          selectionState,
+        },
+      });
+
+      expect(screen.getByRole("button", { name: label })).toBeDisabled();
+    },
+  );
+
+  it("does not trust a ready label without complete positive-night endpoints", () => {
+    setupBookingCard({
+      bookingState: {
+        checkOut: null,
+        isStayReady: true,
+        nights: 0,
+        selectionState: "ready",
+      },
+    });
+
+    expect(
+      screen.getByRole("button", { name: "체크인·체크아웃 선택" }),
+    ).toBeDisabled();
+  });
+
+  it.each([
+    ["loading", "status"],
+    ["error", "alert"],
+  ] as const)(
+    "immediately unmounts an open date picker and restores focus when availability becomes %s",
+    (availabilityStatus, statusRole) => {
+      const props = createBookingCardProps();
+      const view = render(
+        <AccommodationBookingCard
+          {...props}
+          bookingState={{ ...props.bookingState, isDatePickerOpen: true }}
+        />,
+      );
+      expect(screen.getByTestId("date-picker")).toBeInTheDocument();
+      screen.getByRole("button", { name: "date picker focus target" }).focus();
+
+      view.rerender(
+        <AccommodationBookingCard
+          {...props}
+          bookingState={{
+            ...props.bookingState,
+            availabilityStatus,
+            isDatePickerOpen: true,
+            isStayReady: false,
+          }}
+        />,
+      );
+
+      expect(screen.queryByTestId("date-picker")).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /체크인/ })).toHaveAttribute(
+        "aria-expanded",
+        "false",
+      );
+      expect(
+        screen.getByRole(statusRole, { name: "예약 가능 여부" }),
+      ).toHaveFocus();
+    },
+  );
+
+  it("returns availability-owned focus to the enabled date trigger after loading completes", () => {
+    const props = createBookingCardProps();
+    const view = render(
+      <AccommodationBookingCard
+        {...props}
+        bookingState={{ ...props.bookingState, isDatePickerOpen: true }}
+      />,
+    );
+    screen.getByRole("button", { name: "date picker focus target" }).focus();
+
+    view.rerender(
+      <AccommodationBookingCard
+        {...props}
+        bookingState={{
+          ...props.bookingState,
+          availabilityStatus: "loading",
+          isDatePickerOpen: true,
+          isStayReady: false,
+        }}
+      />,
+    );
+    expect(
+      screen.getByRole("status", { name: "예약 가능 여부" }),
+    ).toHaveFocus();
+
+    view.rerender(
+      <AccommodationBookingCard
+        {...props}
+        bookingState={{ ...props.bookingState, isDatePickerOpen: false }}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /체크인/ })).toHaveFocus();
+  });
+
+  it.each(["ready", "error"] as const)(
+    "keeps retry focus owned through loading and restores it for a %s result",
+    (terminalStatus) => {
+      const retryAvailability = vi.fn(() => {
+        expect(
+          screen.getByRole("alert", { name: "예약 가능 여부" }),
+        ).toHaveFocus();
+      });
+      const props = createBookingCardProps();
+      const view = render(
+        <AccommodationBookingCard
+          {...props}
+          bookingActions={{ ...props.bookingActions, retryAvailability }}
+          bookingState={{
+            ...props.bookingState,
+            availabilityStatus: "error",
+            isStayReady: false,
+          }}
+        />,
+      );
+      const retryButton = screen.getByRole("button", { name: "다시 시도" });
+      retryButton.focus();
+
+      fireEvent.click(retryButton);
+      expect(retryAvailability).toHaveBeenCalledTimes(1);
+
+      view.rerender(
+        <AccommodationBookingCard
+          {...props}
+          bookingActions={{ ...props.bookingActions, retryAvailability }}
+          bookingState={{
+            ...props.bookingState,
+            availabilityStatus: "loading",
+            isStayReady: false,
+          }}
+        />,
+      );
+      expect(
+        screen.getByRole("status", { name: "예약 가능 여부" }),
+      ).toHaveFocus();
+
+      view.rerender(
+        <AccommodationBookingCard
+          {...props}
+          bookingActions={{ ...props.bookingActions, retryAvailability }}
+          bookingState={{
+            ...props.bookingState,
+            availabilityStatus: terminalStatus,
+            isStayReady: terminalStatus === "ready",
+          }}
+        />,
+      );
+
+      const expectedFocusTarget =
+        terminalStatus === "ready"
+          ? screen.getByRole("button", { name: /체크인/ })
+          : screen.getByRole("alert", { name: "예약 가능 여부" });
+      expect(expectedFocusTarget).toHaveFocus();
+    },
+  );
+
+  it("does not reclaim focus when the user leaves the availability status", () => {
+    const props = createBookingCardProps();
+    const view = render(
+      <AccommodationBookingCard
+        {...props}
+        bookingState={{ ...props.bookingState, isDatePickerOpen: true }}
+      />,
+    );
+    screen.getByRole("button", { name: "date picker focus target" }).focus();
+
+    view.rerender(
+      <AccommodationBookingCard
+        {...props}
+        bookingState={{
+          ...props.bookingState,
+          availabilityStatus: "loading",
+          isDatePickerOpen: true,
+          isStayReady: false,
+        }}
+      />,
+    );
+    const guestTrigger = screen.getByRole("button", { name: /인원/ });
+    guestTrigger.focus();
+
+    view.rerender(
+      <AccommodationBookingCard
+        {...props}
+        bookingState={{ ...props.bookingState, isDatePickerOpen: false }}
+      />,
+    );
+
+    expect(guestTrigger).toHaveFocus();
+    expect(screen.getByRole("button", { name: /체크인/ })).not.toHaveFocus();
+  });
+
   it("exposes date and guest pickers through semantic disclosure buttons", () => {
     setupBookingCard({
       bookingState: {
@@ -194,41 +455,44 @@ describe("AccommodationBookingCard", () => {
   });
 
   it("opens date picker through controlled state and closes via DatePicker callback", () => {
-    const setIsDatePickerOpen = vi.fn();
+    const onDatePickerOpenChange = vi.fn();
     setupBookingCard({
       bookingState: { isDatePickerOpen: true },
-      bookingActions: { setIsDatePickerOpen },
+      bookingActions: { onDatePickerOpenChange },
     });
 
     expect(screen.getByTestId("date-picker")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "close date picker" }));
 
-    expect(setIsDatePickerOpen).toHaveBeenCalledWith(false);
+    expect(onDatePickerOpenChange).toHaveBeenCalledWith(false);
   });
 
   it("closes the guest picker before opening the date picker", () => {
-    const setIsDatePickerOpen = vi.fn();
-    const setIsGuestPickerOpen = vi.fn();
+    const onDatePickerOpenChange = vi.fn();
+    const onGuestPickerOpenChange = vi.fn();
     setupBookingCard({
       bookingState: {
         isDatePickerOpen: false,
         isGuestPickerOpen: true,
       },
-      bookingActions: { setIsDatePickerOpen, setIsGuestPickerOpen },
+      bookingActions: {
+        onDatePickerOpenChange,
+        onGuestPickerOpenChange,
+      },
     });
 
     fireEvent.click(screen.getByRole("button", { name: /체크인/ }));
 
-    expect(setIsGuestPickerOpen).toHaveBeenCalledWith(false);
-    expect(setIsDatePickerOpen).toHaveBeenCalledWith(true);
+    expect(onGuestPickerOpenChange).toHaveBeenCalledWith(false);
+    expect(onDatePickerOpenChange).toHaveBeenCalledWith(true);
   });
 
   it("closes the date picker with Escape and restores focus to its trigger", () => {
-    const setIsDatePickerOpen = vi.fn();
+    const onDatePickerOpenChange = vi.fn();
     setupBookingCard({
       bookingState: { isDatePickerOpen: true },
-      bookingActions: { setIsDatePickerOpen },
+      bookingActions: { onDatePickerOpenChange },
     });
     const dateTrigger = screen.getByRole("button", { name: /체크인/ });
     const datePickerTarget = screen.getByRole("button", {
@@ -238,15 +502,15 @@ describe("AccommodationBookingCard", () => {
     datePickerTarget.focus();
     fireEvent.keyDown(datePickerTarget, { key: "Escape" });
 
-    expect(setIsDatePickerOpen).toHaveBeenCalledWith(false);
+    expect(onDatePickerOpenChange).toHaveBeenCalledWith(false);
     expect(dateTrigger).toHaveFocus();
   });
 
   it("updates guest counts through guest picker controls", () => {
-    const setAdultCount = vi.fn();
+    const onAdultCountChange = vi.fn();
     setupBookingCard({
       bookingState: { isGuestPickerOpen: true },
-      bookingActions: { setAdultCount },
+      bookingActions: { onAdultCountChange },
     });
 
     expect(
@@ -255,14 +519,14 @@ describe("AccommodationBookingCard", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "성인 늘리기" }));
 
-    expect(setAdultCount).toHaveBeenCalledWith(3);
+    expect(onAdultCountChange).toHaveBeenCalledWith(3);
   });
 
   it("closes the guest picker with Escape and restores focus to its trigger", () => {
-    const setIsGuestPickerOpen = vi.fn();
+    const onGuestPickerOpenChange = vi.fn();
     setupBookingCard({
       bookingState: { isGuestPickerOpen: true },
-      bookingActions: { setIsGuestPickerOpen },
+      bookingActions: { onGuestPickerOpenChange },
     });
     const guestTrigger = screen.getByRole("button", { name: /인원/ });
     const guestControl = screen.getByRole("button", { name: "성인 늘리기" });
@@ -270,7 +534,7 @@ describe("AccommodationBookingCard", () => {
     guestControl.focus();
     fireEvent.keyDown(guestControl, { key: "Escape" });
 
-    expect(setIsGuestPickerOpen).toHaveBeenCalledWith(false);
+    expect(onGuestPickerOpenChange).toHaveBeenCalledWith(false);
     expect(guestTrigger).toHaveFocus();
   });
 
@@ -302,14 +566,14 @@ describe("AccommodationBookingCard", () => {
   });
 
   it("clears and applies coupons from the booking card", () => {
-    const setSelectedCouponId = vi.fn();
+    const onSelectedCouponIdChange = vi.fn();
     const handleIssueCoupon = vi.fn();
     setupBookingCard({
       couponState: {
         selectedCoupon: coupon,
       },
       couponActions: {
-        setSelectedCouponId,
+        onSelectedCouponIdChange,
         handleIssueCoupon,
       },
     });
@@ -317,8 +581,41 @@ describe("AccommodationBookingCard", () => {
     fireEvent.click(screen.getByRole("button", { name: "해제" }));
     fireEvent.click(screen.getByRole("button", { name: "적용 중" }));
 
-    expect(setSelectedCouponId).toHaveBeenCalledWith(null);
+    expect(onSelectedCouponIdChange).toHaveBeenCalledWith(null);
     expect(handleIssueCoupon).toHaveBeenCalledWith(coupon);
+  });
+
+  it("shows the server quote as the second action and locks mutable inputs", () => {
+    const onAbandonQuote = vi.fn(() => true);
+    const bookingProps = setupBookingCard({
+      bookingState: {
+        quoteSnapshot: {
+          amount: 175_000,
+          canCheckout: true,
+          currency: "KRW",
+          discountAmount: 25_000,
+          nightlyPrice: 100_000,
+          nights: 2,
+          phase: "quoted",
+          quoteExpiresAt: "2026-09-01T10:10:00Z",
+          subtotal: 200_000,
+        },
+        reservationStatus: "quoted",
+        selectionLocked: true,
+      },
+      bookingActions: { onAbandonQuote },
+    });
+
+    expect(screen.getByText("서버에서 확인한 최종 요금")).toBeInTheDocument();
+    expect(screen.getAllByText("₩175,000")).not.toHaveLength(0);
+    expect(screen.getByRole("button", { name: /체크인/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /인원/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "해제" })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "예약 계속하기" }));
+    expect(bookingProps.bookingActions.onReserve).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("button", { name: "조건 다시 선택" }));
+    expect(onAbandonQuote).toHaveBeenCalledOnce();
   });
 
   it("disables the reserve button while a reservation is being created", () => {

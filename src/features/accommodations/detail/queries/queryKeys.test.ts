@@ -1,10 +1,12 @@
 import type { AuthenticatedSessionScope } from "../../../../platform/session/sessionScope";
 import type { SessionQueryScope } from "../../../../platform/query/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../../../test/sessionFixtures";
 import { accommodationReadQueryKeys } from "./queryKeys";
 
 const authenticatedScope = {
   subject: "subject:member_7",
   epoch: 4,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 } as AuthenticatedSessionScope;
 
 describe("accommodation read query keys", () => {
@@ -49,6 +51,31 @@ describe("accommodation read query keys", () => {
     expect(base).not.toContainEqual(
       expect.objectContaining({ authRefreshIndex: expect.anything() }),
     );
+  });
+
+  it("keeps availability identity scoped by route id, subject, and epoch", () => {
+    const key = accommodationReadQueryKeys.availability(authenticatedScope, 31);
+
+    expect(key).toEqual([
+      "accommodation",
+      "availability",
+      31,
+      {
+        session: {
+          subject: authenticatedScope.subject,
+          epoch: authenticatedScope.epoch,
+        },
+      },
+    ]);
+    expect(
+      accommodationReadQueryKeys.availability(
+        { ...authenticatedScope, epoch: 5 },
+        31,
+      ),
+    ).not.toEqual(key);
+    expect(
+      accommodationReadQueryKeys.availability(authenticatedScope, 32),
+    ).not.toEqual(key);
   });
 
   it("scopes authenticated coupon reads", () => {

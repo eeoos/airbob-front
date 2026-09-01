@@ -1,7 +1,13 @@
 import type { Page } from "@playwright/test";
 
 export type SyntheticPaymentResult =
-  { outcome: "resolve" } | { outcome: "reject"; code: string; message: string };
+  | { outcome: "resolve"; deferPreparation?: boolean }
+  | {
+      outcome: "reject";
+      code: string;
+      message: string;
+      deferPreparation?: boolean;
+    };
 
 export interface PaymentGatewayCall {
   kind: "client" | "destroy" | "payment" | "request-payment";
@@ -50,7 +56,7 @@ export const installPaymentGatewayFixture = async (
           payload: redactSensitivePayload({ clientKey }),
         });
 
-        return {
+        const client = {
           payment: (options: unknown) => {
             calls.push({
               kind: "payment",
@@ -78,9 +84,48 @@ export const installPaymentGatewayFixture = async (
             };
           },
         };
+
+        if (!configuredResult.deferPreparation) return client;
+
+        return new Promise<typeof client>((resolve) => {
+          Object.defineProperty(
+            window,
+            "__AIRBOB_RELEASE_PAYMENT_PREPARATION__",
+            {
+              configurable: true,
+              value: () => {
+                delete (
+                  window as typeof window & {
+                    __AIRBOB_RELEASE_PAYMENT_PREPARATION__?: () => void;
+                  }
+                ).__AIRBOB_RELEASE_PAYMENT_PREPARATION__;
+                resolve(client);
+              },
+            },
+          );
+        });
       },
     });
   }, result);
+};
+
+export const releasePaymentGatewayPreparation = async (
+  page: Page,
+): Promise<void> => {
+  await page.waitForFunction(
+    () =>
+      typeof (
+        window as typeof window & {
+          __AIRBOB_RELEASE_PAYMENT_PREPARATION__?: () => void;
+        }
+      ).__AIRBOB_RELEASE_PAYMENT_PREPARATION__ === "function",
+  );
+  await page.evaluate(() => {
+    const syntheticWindow = window as typeof window & {
+      __AIRBOB_RELEASE_PAYMENT_PREPARATION__?: () => void;
+    };
+    syntheticWindow.__AIRBOB_RELEASE_PAYMENT_PREPARATION__?.();
+  });
 };
 
 export const readPaymentGatewayCalls = async (

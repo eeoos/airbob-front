@@ -111,7 +111,7 @@
   background: var(--color-text-strong);
 }
 
-@media (max-width: 768px) {
+@media (--viewport-tablet) {
   .formRow {
     grid-template-columns: 1fr;
   }

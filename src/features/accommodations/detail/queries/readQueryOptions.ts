@@ -3,8 +3,11 @@ import {
   type SessionQueryScope,
 } from "../../../../platform/query/sessionScope";
 import { accommodationDetailApi as defaultAccommodationDetailApi } from "../api/accommodationDetailApi";
+import { accommodationAvailabilityApi as defaultAccommodationAvailabilityApi } from "../api/accommodationAvailabilityApi";
 import { accommodationCouponApi as defaultAccommodationCouponApi } from "../api/couponApi";
 import type { AccommodationDetail } from "../model/accommodationDetail";
+import type { AccommodationAvailability } from "../model/accommodationAvailability";
+import type { AccommodationAvailabilityApiPort } from "../ports/accommodationAvailabilityApiPort";
 import type { AccommodationDetailApiPort } from "../ports/accommodationDetailApiPort";
 import type { AccommodationCouponApiPort } from "../ports/couponApiPort";
 import { accommodationReadQueryKeys } from "./queryKeys";
@@ -39,6 +42,39 @@ export const createAccommodationDetailQueryOptions = (
       ? { ...resource, isInWishlist: false }
       : resource;
   },
+  meta: createSessionQueryMeta(scope),
+  retry: false as const,
+  throwOnError: false as const,
+});
+
+export type AccommodationAvailabilityQueryOptions =
+  AccommodationDetailQueryOptions;
+
+export const createAccommodationAvailabilityQueryOptions = (
+  {
+    scope,
+    accommodationId,
+    enabled = true,
+  }: AccommodationAvailabilityQueryOptions,
+  api: AccommodationAvailabilityApiPort = defaultAccommodationAvailabilityApi,
+) => ({
+  queryKey: accommodationReadQueryKeys.availability(scope, accommodationId),
+  queryFn: ({ signal }: { readonly signal: AbortSignal }) => {
+    if (accommodationId === null) {
+      throw new TypeError(
+        "accommodationId is required for an accommodation availability query.",
+      );
+    }
+
+    return api.getAvailability(accommodationId, { signal });
+  },
+  enabled: enabled && accommodationId !== null,
+  select: (
+    resource: AccommodationAvailability,
+  ): AccommodationAvailability | null =>
+    accommodationId !== null && resource.accommodationId === accommodationId
+      ? resource
+      : null,
   meta: createSessionQueryMeta(scope),
   retry: false as const,
   throwOnError: false as const,

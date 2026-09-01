@@ -1,20 +1,28 @@
 import type {
+  PaymentAttempt,
   PaymentCommandOptions,
-  PaymentConfirmation,
-  PaymentRecord,
+  PaymentOperationAccepted,
+  PaymentOperationConfirmation,
+  PaymentOperationDetail,
+  ReservationHoldRelease,
 } from "../model/payment";
 
-export interface PaymentApiPort {
-  confirm(
-    input: PaymentConfirmation,
+export interface PaymentOperationApiPort {
+  beginPaymentAttempt(
+    reservationUid: string,
     options?: PaymentCommandOptions,
-  ): Promise<void>;
-  getByPaymentKey(
-    paymentKey: string,
+  ): Promise<PaymentAttempt>;
+  releaseHold(
+    reservationUid: string,
     options?: PaymentCommandOptions,
-  ): Promise<PaymentRecord>;
-  getByOrderId(
-    orderId: string,
+  ): Promise<ReservationHoldRelease>;
+  confirmPaymentOperation(
+    input: PaymentOperationConfirmation,
     options?: PaymentCommandOptions,
-  ): Promise<PaymentRecord>;
+  ): Promise<PaymentOperationAccepted>;
+  getPaymentOperation(
+    operationId: string,
+    expectedOrderId: string,
+    options?: PaymentCommandOptions,
+  ): Promise<PaymentOperationDetail>;
 }

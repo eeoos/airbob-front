@@ -1,7 +1,15 @@
 import { render, screen } from "@testing-library/react";
+import { accommodationAmenityCatalog } from "../../public";
 import AmenityIcon from "./AmenityIcon";
+import { accommodationAmenityIconRegistry } from "./amenityIconRegistry";
 
 describe("AmenityIcon", () => {
+  it("keeps a context-specific detail glyph for every parent catalog code", () => {
+    expect(Object.keys(accommodationAmenityIconRegistry.glyphs).sort()).toEqual(
+      accommodationAmenityCatalog.knownAmenities.map(({ code }) => code).sort(),
+    );
+  });
+
   it("renders an accessible icon for an amenity type", () => {
     render(<AmenityIcon type="WIFI" />);
 

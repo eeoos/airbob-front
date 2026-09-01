@@ -10,6 +10,7 @@ import { createListingEditorQueryPort } from "../../features/accommodations/list
 import { listingEditorQueryKeys } from "../../features/accommodations/listing-editor/queries/listingEditorQueryKeys";
 import { AppError } from "../../platform/http/errors";
 import type { AuthenticatedSessionScope } from "../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../test/sessionFixtures";
 import {
   createListingEditorWorkflow,
   type ListingEditorPublicationPort,
@@ -23,10 +24,12 @@ type ListingEditorContinuationPort = Parameters<
 
 const scope = {
   epoch: 4,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
   subject: "subject:member_test" as AuthenticatedSessionScope["subject"],
 };
 const replacementScope = {
   epoch: 5,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
   subject: "subject:member_replacement" as AuthenticatedSessionScope["subject"],
 };
 

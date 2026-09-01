@@ -3,7 +3,6 @@ import {
   defineIconRegistry,
   pictogramGlyphs,
 } from "../../../../shared/ui/Icon";
-import type { AccommodationAmenityCode } from "../lib/accommodationLabels";
 
 const accommodationAmenityGlyphs = {
   WIFI: pictogramGlyphs.wifi,
@@ -36,7 +35,7 @@ const accommodationAmenityGlyphs = {
   OUTDOOR_SPACE: pictogramGlyphs.stackedLayers,
   BBQ_GRILL: pictogramGlyphs.barbecueGrill,
   BALCONY: pictogramGlyphs.balcony,
-} as const satisfies Readonly<Record<AccommodationAmenityCode, IconGlyph>>;
+} as const satisfies Readonly<Record<string, IconGlyph>>;
 
 export const accommodationAmenityIconRegistry = defineIconRegistry(
   accommodationAmenityGlyphs,

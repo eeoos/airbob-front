@@ -1,4 +1,4 @@
-import { ToastHost } from "../../shared/ui";
+import { PageContainer, ToastHost } from "../../shared/ui";
 import styles from "./ReservationConfirmScreen.module.css";
 
 interface ReservationConfirmAccommodationView {
@@ -37,9 +37,12 @@ export type ReservationConfirmPaymentStatus =
   "loading" | "ready" | "processing";
 
 export interface ReservationConfirmScreenProps {
+  readonly canReleaseHold: boolean;
   readonly errorMessage: string | null;
+  readonly isReleasing: boolean;
   readonly onClearError: () => void;
   readonly onConfirmPayment: () => void;
+  readonly onReleaseHold: () => void;
   readonly paymentStatus: ReservationConfirmPaymentStatus;
   readonly state: ReservationConfirmScreenState;
 }
@@ -54,25 +57,33 @@ const paymentButtonCopy: Record<ReservationConfirmPaymentStatus, string> = {
 };
 
 export function ReservationConfirmScreen({
+  canReleaseHold,
   errorMessage,
+  isReleasing,
   onClearError,
   onConfirmPayment,
+  onReleaseHold,
   paymentStatus,
   state,
 }: ReservationConfirmScreenProps) {
   if (state.status === "loading") {
     return (
-      <div className={styles.loading} role="status" aria-live="polite">
+      <PageContainer
+        className={styles.loading}
+        role="status"
+        aria-live="polite"
+        variant="content"
+      >
         로딩 중...
-      </div>
+      </PageContainer>
     );
   }
 
   if (state.status === "error") {
     return (
-      <div className={styles.error} role="alert">
+      <PageContainer className={styles.error} role="alert" variant="content">
         {state.message}
-      </div>
+      </PageContainer>
     );
   }
 
@@ -81,9 +92,11 @@ export function ReservationConfirmScreen({
 
   return (
     <>
-      <section
+      <PageContainer
+        as="section"
         className={styles.container}
         aria-labelledby="reservation-confirm-title"
+        variant="content"
       >
         <div className={styles.content}>
           <h1 id="reservation-confirm-title" className={styles.title}>
@@ -185,8 +198,21 @@ export function ReservationConfirmScreen({
           >
             {paymentButtonCopy[paymentStatus]}
           </button>
+          {canReleaseHold && (
+            <button
+              className={styles.releaseButton}
+              type="button"
+              onClick={onReleaseHold}
+              disabled={isReleasing || paymentStatus === "processing"}
+              aria-busy={isReleasing}
+            >
+              {isReleasing
+                ? "예약 해제 확인 중..."
+                : "예약을 취소하고 객실 해제"}
+            </button>
+          )}
         </div>
-      </section>
+      </PageContainer>
 
       {errorMessage && (
         <ToastHost

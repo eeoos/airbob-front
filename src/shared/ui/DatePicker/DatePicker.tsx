@@ -6,6 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { calendarLocalDateToDate } from "../../lib/calendarLocalDate";
 import {
   DAYS_PER_WEEK,
   WEEKDAYS,
@@ -31,11 +32,24 @@ export interface DatePickerProps {
   onClose: () => void;
   onEscape?: () => void;
   datePickerRef?: React.RefObject<HTMLDivElement | null>;
-  unavailableDates?: string[];
+  unavailableDates?: readonly string[];
+  disabledRanges?: readonly DatePickerDisabledRange[];
+  selectionWindow?: DatePickerSelectionWindow;
   hideFooter?: boolean;
 }
 
-const EMPTY_UNAVAILABLE_DATES: string[] = [];
+interface DatePickerDisabledRange {
+  readonly startInclusive: string;
+  readonly endExclusive: string;
+}
+
+interface DatePickerSelectionWindow {
+  readonly startInclusive: string;
+  readonly endExclusive: string;
+}
+
+const EMPTY_UNAVAILABLE_DATES: readonly string[] = [];
+const EMPTY_DISABLED_RANGES: readonly DatePickerDisabledRange[] = [];
 
 export const DatePicker: React.FC<DatePickerProps> = ({
   checkIn,
@@ -45,53 +59,110 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   onEscape,
   datePickerRef,
   unavailableDates = EMPTY_UNAVAILABLE_DATES,
+  disabledRanges = EMPTY_DISABLED_RANGES,
+  selectionWindow,
   hideFooter = false,
 }) => {
   const today = useMemo(() => startOfDay(new Date()), []);
   const todayKey = formatDateKey(today);
+  const canonicalSelectionWindow = useMemo(() => {
+    if (!selectionWindow) return null;
+
+    const start = calendarLocalDateToDate(selectionWindow.startInclusive);
+    const end = calendarLocalDateToDate(selectionWindow.endExclusive);
+    if (
+      !start ||
+      !end ||
+      selectionWindow.startInclusive >= selectionWindow.endExclusive
+    ) {
+      return null;
+    }
+
+    return { ...selectionWindow, startDate: start };
+  }, [selectionWindow]);
+  const minimumDate = canonicalSelectionWindow?.startDate ?? today;
+  const minimumDateKey = canonicalSelectionWindow?.startInclusive ?? todayKey;
+  const windowEndExclusiveKey = canonicalSelectionWindow?.endExclusive ?? null;
   const checkInKey = checkIn ? formatDateKey(checkIn) : null;
   const checkOutKey = checkOut ? formatDateKey(checkOut) : null;
   const unavailableDateKeys = useMemo(
     () => new Set(unavailableDates),
     [unavailableDates],
   );
+  const isBlockedStayDateKey = useCallback(
+    (dateKey: string): boolean =>
+      unavailableDateKeys.has(dateKey) ||
+      disabledRanges.some(
+        (range) =>
+          dateKey >= range.startInclusive && dateKey < range.endExclusive,
+      ),
+    [disabledRanges, unavailableDateKeys],
+  );
+  const isPartialCheckInInvalidForInteraction = Boolean(
+    checkInKey !== null &&
+    checkOutKey === null &&
+    (checkInKey < minimumDateKey ||
+      (windowEndExclusiveKey !== null && checkInKey >= windowEndExclusiveKey) ||
+      isBlockedStayDateKey(checkInKey)),
+  );
+  const interactionCheckIn = isPartialCheckInInvalidForInteraction
+    ? null
+    : checkIn;
+  const interactionCheckInKey = isPartialCheckInInvalidForInteraction
+    ? null
+    : checkInKey;
   const firstUnavailableDateKeyAfterCheckIn = useMemo(() => {
-    if (!checkInKey || checkOutKey) return null;
+    if (!interactionCheckInKey || checkOutKey) return null;
 
-    return (
-      unavailableDates.filter((dateKey) => dateKey > checkInKey).sort()[0] ??
-      null
-    );
-  }, [checkInKey, checkOutKey, unavailableDates]);
+    const starts = [
+      ...unavailableDates.filter((dateKey) => dateKey > interactionCheckInKey),
+      ...disabledRanges
+        .filter((range) => range.endExclusive > interactionCheckInKey)
+        .map((range) =>
+          range.startInclusive > interactionCheckInKey
+            ? range.startInclusive
+            : interactionCheckInKey,
+        ),
+    ].sort();
+
+    return starts[0] ?? null;
+  }, [checkOutKey, disabledRanges, interactionCheckInKey, unavailableDates]);
   const isDateDisabled = useCallback(
     (date: Date): boolean => {
       const dateKey = formatDateKey(date);
 
-      if (dateKey < todayKey) {
+      if (dateKey < minimumDateKey) {
         return true;
       }
 
-      if (checkInKey && !checkOutKey) {
+      if (interactionCheckInKey && !checkOutKey) {
         return (
-          dateKey <= checkInKey ||
+          dateKey <= interactionCheckInKey ||
+          (windowEndExclusiveKey !== null && dateKey > windowEndExclusiveKey) ||
           (firstUnavailableDateKeyAfterCheckIn !== null &&
             dateKey > firstUnavailableDateKeyAfterCheckIn)
         );
       }
 
-      return unavailableDateKeys.has(dateKey) && dateKey !== checkOutKey;
+      return (
+        (windowEndExclusiveKey !== null && dateKey >= windowEndExclusiveKey) ||
+        isBlockedStayDateKey(dateKey)
+      );
     },
     [
-      checkInKey,
       checkOutKey,
       firstUnavailableDateKeyAfterCheckIn,
-      todayKey,
-      unavailableDateKeys,
+      interactionCheckInKey,
+      isBlockedStayDateKey,
+      minimumDateKey,
+      windowEndExclusiveKey,
     ],
   );
   const initialFocusedDate = useMemo(
-    () => findClosestEnabledDate(checkIn ?? today, 1, isDateDisabled) ?? today,
-    [checkIn, isDateDisabled, today],
+    () =>
+      findClosestEnabledDate(checkIn ?? minimumDate, 1, isDateDisabled) ??
+      minimumDate,
+    [checkIn, isDateDisabled, minimumDate],
   );
   const [currentMonth, setCurrentMonth] = useState<Date>(() =>
     startOfMonth(initialFocusedDate),
@@ -101,7 +172,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   const focusedDateKey = formatDateKey(focusedDate);
   const hoverDateKey = hoverDate ? formatDateKey(hoverDate) : null;
   const [selectionAnnouncement, setSelectionAnnouncement] = useState(() =>
-    getSelectionAnnouncement(checkIn, checkOut),
+    getSelectionAnnouncement(interactionCheckIn, checkOut),
   );
   const nextMonth = useMemo(() => addMonths(currentMonth, 1), [currentMonth]);
   const currentMonthWeeks = useMemo(
@@ -119,8 +190,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   const pickerId = useId();
 
   useEffect(() => {
-    setSelectionAnnouncement(getSelectionAnnouncement(checkIn, checkOut));
-  }, [checkIn, checkOut]);
+    setSelectionAnnouncement(
+      getSelectionAnnouncement(interactionCheckIn, checkOut),
+    );
+  }, [checkOut, interactionCheckIn]);
 
   useEffect(() => {
     if (!shouldFocusDateRef.current) return;
@@ -142,7 +215,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
   const isDateInHoverRange = (date: Date): boolean => {
     if (
-      !checkInKey ||
+      !interactionCheckInKey ||
       checkOutKey ||
       !hoverDateKey ||
       !hoverDate ||
@@ -152,13 +225,14 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     }
 
     const dateKey = formatDateKey(date);
-    return dateKey > checkInKey && dateKey < hoverDateKey;
+    return dateKey > interactionCheckInKey && dateKey < hoverDateKey;
   };
 
-  const isPastDate = (date: Date): boolean => formatDateKey(date) < todayKey;
+  const isPastDate = (date: Date): boolean =>
+    formatDateKey(date) < minimumDateKey;
 
   const isUnavailableDate = (date: Date): boolean =>
-    unavailableDateKeys.has(formatDateKey(date));
+    isBlockedStayDateKey(formatDateKey(date));
 
   const ensureDateIsVisible = useCallback(
     (date: Date) => {
@@ -205,7 +279,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       shouldFocusDateRef.current = false;
       setFocusedDate(date);
 
-      if (!checkIn || checkOut) {
+      if (!interactionCheckIn || checkOut) {
         onDateSelect(date, null);
         setSelectionAnnouncement(
           `${formatKoreanDateLabel(
@@ -215,14 +289,14 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         return;
       }
 
-      onDateSelect(checkIn, date);
+      onDateSelect(interactionCheckIn, date);
       setSelectionAnnouncement(
-        `${formatKoreanDateLabel(checkIn)}부터 ${formatKoreanDateLabel(
-          date,
-        )}까지 선택됨`,
+        `${formatKoreanDateLabel(
+          interactionCheckIn,
+        )}부터 ${formatKoreanDateLabel(date)}까지 선택됨`,
       );
     },
-    [checkIn, checkOut, isDateDisabled, onDateSelect],
+    [checkOut, interactionCheckIn, isDateDisabled, onDateSelect],
   );
 
   const handleDateKeyDown = useCallback(
@@ -395,7 +469,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                       }}
                       onKeyDown={(event) => handleDateKeyDown(event, date)}
                       onMouseEnter={() => {
-                        if (checkIn && !checkOut && !isDisabled) {
+                        if (interactionCheckIn && !checkOut && !isDisabled) {
                           setHoverDate(date);
                         }
                       }}

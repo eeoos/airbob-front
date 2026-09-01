@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
 import { requireDefined } from "../../../test/assertions";
+import { testSessionRuntimeLeaseId } from "../../../test/sessionFixtures";
 import { recentlyViewedApi, wishlistApi } from "../api";
 import type { WishlistCollection, WishlistDetail } from "../model";
 import {
@@ -64,6 +65,7 @@ const getCapturedQueryOptions = (): CapturedQueryOptions =>
 const scope = {
   subject: "subject:member_7",
   epoch: 4,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 } as AuthenticatedSessionScope;
 
 describe("wishlist read query contracts", () => {
@@ -97,7 +99,9 @@ describe("wishlist read query contracts", () => {
       31,
       { session: { subject: scope.subject, epoch: 4 } },
     ]);
-    expect(options.meta).toEqual({ session: scope });
+    expect(options.meta).toEqual({
+      session: { epoch: scope.epoch, subject: scope.subject },
+    });
     expect(getWishlists).toHaveBeenCalledWith(
       { accommodationId: 31, cursor: "cursor-1", size: 20 },
       { signal },
@@ -115,7 +119,9 @@ describe("wishlist read query contracts", () => {
       null,
       { session: { subject: scope.subject, epoch: 4 } },
     ]);
-    expect(options.meta).toEqual({ session: scope });
+    expect(options.meta).toEqual({
+      session: { epoch: scope.epoch, subject: scope.subject },
+    });
   });
 
   it("preserves explicit disabled policies without changing semantic keys", () => {
@@ -217,7 +223,9 @@ describe("wishlist read query contracts", () => {
       { session: { subject: scope.subject, epoch: 4 } },
     ]);
     expect(options.enabled).toBe(true);
-    expect(options.meta).toEqual({ session: scope });
+    expect(options.meta).toEqual({
+      session: { epoch: scope.epoch, subject: scope.subject },
+    });
     expect(getRecentlyViewed).toHaveBeenCalledWith({ signal });
   });
 

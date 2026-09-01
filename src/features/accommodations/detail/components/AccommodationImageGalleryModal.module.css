@@ -125,7 +125,7 @@
   object-fit: cover;
 }
 
-@media (max-width: 768px) {
+@media (--viewport-tablet) {
   .galleryBody {
     gap: var(--space-3);
   }

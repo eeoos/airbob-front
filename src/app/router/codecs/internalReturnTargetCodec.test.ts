@@ -76,6 +76,38 @@ describe("internalReturnTargetCodec", () => {
     expect(internalReturnTargetCodec.parse(locationState(pathname))).toBeNull();
   });
 
+  it("admits only the exact clean success target for an already-claimed payment recovery", () => {
+    const expectedPath = "/reservations/res-7/success";
+    expect(
+      internalReturnTargetCodec.parseClaimedPaymentRecovery(
+        locationState(expectedPath),
+        expectedPath,
+      ),
+    ).toEqual({ pathname: expectedPath, search: "", hash: "" });
+    expect(
+      internalReturnTargetCodec.parse(locationState(expectedPath)),
+    ).toBeNull();
+
+    expect(
+      internalReturnTargetCodec.parseClaimedPaymentRecovery(
+        locationState(expectedPath, "?paymentKey=secret"),
+        expectedPath,
+      ),
+    ).toBeNull();
+    expect(
+      internalReturnTargetCodec.parseClaimedPaymentRecovery(
+        locationState("/reservations/other/success"),
+        expectedPath,
+      ),
+    ).toBeNull();
+    expect(
+      internalReturnTargetCodec.parseClaimedPaymentRecovery(
+        locationState("/reservations/res-7/fail"),
+        "/reservations/res-7/fail",
+      ),
+    ).toBeNull();
+  });
+
   it("rejects malformed structured parts and extra fields", () => {
     expect(
       internalReturnTargetCodec.parse(

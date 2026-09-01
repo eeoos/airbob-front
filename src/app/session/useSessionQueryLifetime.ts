@@ -6,7 +6,7 @@ import {
   setQueryClientSessionScope,
   type SessionQueryScope,
 } from "../../platform/query/sessionScope";
-import { toAuthenticatedSessionScope, type SessionState } from "./sessionState";
+import type { SessionState } from "./sessionState";
 
 export interface SessionQueryGeneration extends SessionQueryScope {
   readonly client: QueryClient;
@@ -62,10 +62,10 @@ export const useSessionQueryLifetime = ({
   const initialGenerationRef = useRef<SessionQueryGeneration | null>(null);
 
   if (initialGenerationRef.current === null) {
-    const initialScope = toAuthenticatedSessionScope(initialState);
     const scope = {
       epoch: initialState.epoch,
-      subject: initialScope?.subject ?? null,
+      subject:
+        initialState.status === "authenticated" ? initialState.subject : null,
     };
     const client = initialQueryClient ?? queryClientFactory(scope);
     if (initialQueryClient) {
@@ -156,6 +156,48 @@ export const useSessionQueryLifetime = ({
     [],
   );
 
+  /**
+   * Synchronously promotes an already cancelled and cleared null quarantine.
+   * Callers must complete resetQueryGeneration before invoking this command.
+   */
+  const activateDisposedQueryQuarantine = useCallback(
+    ({
+      epoch,
+      isStillCurrent,
+      subject,
+    }: ReplaceSessionQueryGenerationOptions) => {
+      if (!isStillCurrent()) return false;
+
+      const previous = generationRef.current;
+      if (
+        subject === null ||
+        previous.epoch !== epoch ||
+        previous.subject !== null ||
+        !previous.tainted
+      ) {
+        return false;
+      }
+
+      const client = queryClientFactory({ epoch, subject });
+      if (!isStillCurrent() || generationRef.current !== previous) return false;
+
+      lifetimeTokenRef.current += 1;
+      const next: SessionQueryGeneration = {
+        client,
+        epoch,
+        fenceId: previous.fenceId + 1,
+        subject,
+        tainted: false,
+        owned: true,
+      };
+
+      generationRef.current = next;
+      setGeneration(next);
+      return true;
+    },
+    [queryClientFactory],
+  );
+
   const stabilizeQueryGeneration = useCallback(
     ({
       epoch,
@@ -190,6 +232,7 @@ export const useSessionQueryLifetime = ({
   }, []);
 
   return {
+    activateDisposedQueryQuarantine,
     disposeCurrentGeneration,
     generation,
     getCurrentGeneration,

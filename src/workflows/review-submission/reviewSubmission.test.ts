@@ -5,12 +5,14 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../test/sessionFixtures";
 import { AppError } from "../../platform/http/errors";
 import { createReviewSubmissionWorkflow } from "./reviewSubmission";
 
 const scope: AuthenticatedSessionScope = {
   subject: "subject:member_7" as SessionSubject,
   epoch: 4,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 
 const deferred = <T>() => {

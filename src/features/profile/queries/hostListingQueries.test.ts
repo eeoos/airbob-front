@@ -1,6 +1,7 @@
 import { QueryClient } from "@tanstack/react-query";
 import type { Mocked } from "vitest";
 import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../../test/sessionFixtures";
 import type { HostListingPage, HostListingStatus } from "../model/hostListing";
 import type { HostListingsApiPort } from "../ports/hostListingsApiPort";
 import { hostListingQueryKeys } from "./hostListingQueryKeys";
@@ -9,10 +10,12 @@ import { createHostListingInfiniteQueryOptions } from "./hostListingQueries";
 const scopeA: AuthenticatedSessionScope = {
   subject: "subject:member_a" as AuthenticatedSessionScope["subject"],
   epoch: 4,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 const scopeB: AuthenticatedSessionScope = {
   subject: "subject:member_b" as AuthenticatedSessionScope["subject"],
   epoch: 4,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 
 const page = (
@@ -65,7 +68,9 @@ describe("host listing query boundary", () => {
       { size: 20, status: "PUBLISHED" },
       { session: { subject: scopeA.subject, epoch: 4 } },
     ]);
-    expect(options.meta).toEqual({ session: scopeA });
+    expect(options.meta).toEqual({
+      session: { epoch: scopeA.epoch, subject: scopeA.subject },
+    });
     expect(options.retry).toBe(false);
     expect(api.getHostListings).toHaveBeenCalledWith(
       { cursor: "cursor-1", size: 20, status: "PUBLISHED" },

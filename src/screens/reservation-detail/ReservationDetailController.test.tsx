@@ -11,11 +11,13 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../test/sessionFixtures";
 import { ReservationDetailController } from "./ReservationDetailController";
 
 const scope: AuthenticatedSessionScope = {
   subject: "subject:profile-test" as SessionSubject,
   epoch: 3,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 
 const payment = {
@@ -24,7 +26,6 @@ const payment = {
   cancels: [],
   method: null,
   orderId: "order-1",
-  paymentKey: null,
   requestedAt: "2026-07-01T00:00:00",
   status: "DONE" as const,
   totalAmount: 240000,
@@ -51,6 +52,10 @@ const guestReservation = (
   },
   canWriteReview: false,
   checkInDateTime: "2026-07-10T15:00:00",
+  timeZoneId: "Asia/Seoul",
+  paymentAllowed: false,
+  holdExpiresAt: null,
+  serverTime: "2026-07-01T00:00:00Z",
   checkInTime: "15:00",
   checkOutDateTime: "2026-07-12T11:00:00",
   checkOutTime: "11:00",
@@ -83,6 +88,7 @@ const hostReservation = (
     street: "해운대로",
   },
   checkInDateTime: "2026-07-10T15:00:00",
+  timeZoneId: "Asia/Seoul",
   checkOutDateTime: "2026-07-12T11:00:00",
   createdAt: "2026-07-01T00:00:00",
   guest: { id: 3, nickname: "게스트", thumbnailImageUrl: null },

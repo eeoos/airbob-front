@@ -1,5 +1,10 @@
 import React from "react";
-import { Button, ErrorState, LoadingState } from "../../shared/ui";
+import {
+  Button,
+  LoadingState,
+  RetryableErrorState,
+  TerminalErrorState,
+} from "../../shared/ui";
 import { EditStepContent } from "./components/EditStepContent";
 import { EditWizardActionBar } from "./components/EditWizardActionBar";
 import { EditWizardDialogs } from "./components/EditWizardDialogs";
@@ -28,7 +33,7 @@ export const AccommodationEditScreen: React.FC<
 
   if (state.detailState.status === "invalid-resource") {
     return (
-      <ErrorState
+      <TerminalErrorState
         title="숙소 정보를 확인할 수 없어요"
         description="요청한 숙소가 존재하는지 확인해 주세요."
         action={
@@ -42,7 +47,7 @@ export const AccommodationEditScreen: React.FC<
 
   if (state.detailState.status === "denied") {
     return (
-      <ErrorState
+      <TerminalErrorState
         title="이 숙소를 수정할 권한이 없어요"
         description="호스트 계정과 숙소 소유권을 확인해 주세요."
         action={
@@ -56,7 +61,7 @@ export const AccommodationEditScreen: React.FC<
 
   if (state.detailState.status === "retryable-load-error") {
     return (
-      <ErrorState
+      <RetryableErrorState
         title="숙소 정보를 불러오지 못했어요"
         description="다시 시도하거나 호스트 화면으로 돌아가 주세요."
         action={

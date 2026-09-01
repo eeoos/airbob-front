@@ -13,7 +13,7 @@ const detailWire: AccommodationDetailWire = {
   currency: "KRW",
   check_in_time: "15:00:00",
   check_out_time: "11:00:00",
-  unavailable_dates: [],
+  time_zone_id: "Asia/Seoul",
   is_in_wishlist: false,
   address_summary: {
     country: "KR",
@@ -40,6 +40,7 @@ describe("accommodation detail API adapter", () => {
     await expect(api.getDetail(7, { signal })).resolves.toMatchObject({
       id: 7,
       basePrice: 100000,
+      timeZoneId: "Asia/Seoul",
       isInWishlist: false,
       policy: { maxOccupancy: 4 },
     });

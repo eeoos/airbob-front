@@ -219,10 +219,6 @@
   height: var(--control-height-lg);
 }
 
-.placeholderImageHidden {
-  display: none;
-}
-
 .wishlistCardInfo {
   padding: 10px 0 0 0;
 }
@@ -607,26 +603,26 @@
   cursor: not-allowed;
 }
 
-@media (max-width: 1400px) {
+@media (--viewport-wide) {
   .recentlyViewedGrid {
     grid-template-columns: repeat(3, 280px);
   }
 }
 
-@media (max-width: 1200px) {
+@media (--viewport-compact) {
   .recentlyViewedGrid {
     grid-template-columns: repeat(2, 280px);
   }
 }
 
-@media (max-width: 1024px) {
+@media (--viewport-mobile-tablet) {
   .wishlistGrid {
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: var(--space-7) var(--space-5);
   }
 }
 
-@media (max-width: 768px) {
+@media (--viewport-tablet) {
   .recentlyViewedGrid {
     grid-template-columns: 1fr;
   }

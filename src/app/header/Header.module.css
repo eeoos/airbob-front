@@ -54,7 +54,7 @@
   flex-shrink: 0;
 }
 
-@media (max-width: 768px) {
+@media (--viewport-tablet) {
   .header {
     padding: 0 var(--space-4);
     z-index: var(--z-header);
@@ -95,7 +95,7 @@
 }
 
 /* 태블릿 (769-1024px) */
-@media (min-width: 769px) and (max-width: 1024px) {
+@media (--viewport-tablet-up) and (--viewport-mobile-tablet) {
   .header {
     position: sticky; /* 태블릿에서도 헤더 고정 */
     top: 0; /* 상단에 고정 */

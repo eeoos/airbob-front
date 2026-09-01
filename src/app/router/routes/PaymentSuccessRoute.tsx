@@ -1,53 +1,95 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { paymentApi } from "../../../features/reservations/payment/public";
 import { createReservationReadQueryCacheProjection } from "../../../features/reservations/public";
-import { checkoutOwnershipApi } from "../../../features/reservations/payment/public";
 import { browserWindowNavigation } from "../../../platform/browser/windowNavigation";
-import { PaymentResultController } from "../../../screens/payment-result/PaymentResultController";
+import {
+  PaymentResultController,
+  type PaymentRecoveryStart,
+} from "../../../screens/payment-result/PaymentResultController";
 import { PaymentResultScreen } from "../../../screens/payment-result/PaymentResultScreen";
+import { useStrictModeSafeDisposable } from "../../../shared/lib/useStrictModeSafeDisposable";
+import { createBookingPaymentJournalRepository } from "../../../workflows/booking-payment/journal";
 import {
-  clearBookingPaymentBrowserState,
-  createBookingPaymentCallbackRepository,
-  createBookingPaymentCheckoutRepository,
-  type CallbackPhase,
-} from "../../../workflows/booking-payment/checkout";
-import {
-  claimPaymentCallback,
-  resolveServerPaymentCallbackReplay,
-  type PaymentCallbackClaimInvalidReason,
-  type PaymentCallbackFreshTuple,
-  type PaymentCallbackReady,
-} from "../../../workflows/booking-payment/confirmation";
+  createBookingPaymentRecoveryWorkflow,
+  type BookingPaymentConfirmationResumeReferenceState,
+  type BookingPaymentOperationReference,
+} from "../../../workflows/booking-payment/transaction/recovery";
 import { useSession } from "../../session/useSession";
-import { usePaymentCallbackCredentialClaim } from "../PaymentCallbackCredentialBoundary";
+import {
+  useConsumePendingPaymentCallbackCredential,
+  useMarkPaymentRecoveryFence,
+  usePaymentCallbackCredentialClaim,
+  usePaymentRecoveryFenceStatus,
+} from "../PaymentCallbackCredentialBoundary";
+import {
+  bookingPaymentStateCodec,
+  type BookingPaymentFlowReferenceState,
+  type BookingPaymentOperationReferenceState,
+} from "../codecs/bookingPaymentStateCodec";
 import { routeTo } from "../paths";
 
-type SuccessResolution =
+type StaticResolution =
   | { readonly status: "resolving" }
-  | PaymentCallbackReady
   | {
-      readonly status: "server-replay-required";
-      readonly fresh: PaymentCallbackFreshTuple;
-    }
-  | {
-      readonly status: "server-replay-retryable";
-      readonly fresh: PaymentCallbackFreshTuple;
-      readonly reason: "ownership-unavailable";
-    }
-  | {
-      readonly status: "invalid";
-      readonly reason?:
-        PaymentCallbackClaimInvalidReason | "ownership-mismatch";
-    }
-  | { readonly status: "stale" };
+      readonly status: "unavailable";
+      readonly message: string;
+      readonly canRetryCandidateReconciliation: boolean;
+    };
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const readRouterUserState = (): unknown => {
+  try {
+    const current: unknown = window.history.state;
+    return isRecord(current) && "usr" in current ? current.usr : null;
+  } catch {
+    return null;
+  }
+};
+
+const replaceRouterUserState = <T,>(
+  pathname: string,
+  state: T,
+  parse: (value: unknown) => T | null,
+): T | null => {
+  try {
+    const current: unknown = window.history.state;
+    const next = isRecord(current)
+      ? { ...current, usr: state }
+      : { usr: state };
+    window.history.replaceState(next, "", pathname);
+    return parse(readRouterUserState());
+  } catch {
+    return null;
+  }
+};
+
+const exactFlowReference = (
+  value: BookingPaymentFlowReferenceState | null,
+  reservationUid: string | undefined,
+): BookingPaymentConfirmationResumeReferenceState | null => {
+  if (
+    value?.locator.kind !== "reservation" ||
+    value.locator.reservationUid !== reservationUid
+  ) {
+    return null;
+  }
+  return {
+    purpose: value.purpose,
+    version: value.version,
+    flowId: value.flowId,
+    locator: value.locator,
+  };
+};
+
+const exactOperationReference = (
+  value: BookingPaymentOperationReferenceState | null,
+  reservationUid: string | undefined,
+): BookingPaymentOperationReferenceState | null =>
+  value?.reservationUid === reservationUid ? value : null;
 
 function PaymentSuccessRoute() {
   const location = useLocation();
@@ -55,40 +97,23 @@ function PaymentSuccessRoute() {
   const queryClient = useQueryClient();
   const { reservationUid } = useParams<{ reservationUid: string }>();
   const credentialClaim = usePaymentCallbackCredentialClaim();
+  const consumePendingCallbackCredential =
+    useConsumePendingPaymentCallbackCredential();
+  const recoveryFenceStatus = usePaymentRecoveryFenceStatus();
+  const markRecoveryFence = useMarkPaymentRecoveryFence();
   const session = useSession();
-  const sessionEpoch = session.state.epoch;
-  const sessionSubject =
-    session.state.status === "authenticated" ? session.state.subject : null;
-  const { isCurrentSession } = session;
-  const [resolution, setResolution] = useState<SuccessResolution>({
+  const [staticResolution, setStaticResolution] = useState<StaticResolution>({
     status: "resolving",
   });
-  const [ephemeralReplayRecoverable, setEphemeralReplayRecoverable] =
-    useState(false);
-  const claimedRef = useRef(false);
-  const invalidHandledRef = useRef(false);
-  const scope = useMemo(
-    () =>
-      sessionSubject !== null
-        ? { epoch: sessionEpoch, subject: sessionSubject }
-        : null,
-    [sessionEpoch, sessionSubject],
-  );
-  const reservationCache = useMemo(
-    () => createReservationReadQueryCacheProjection(queryClient),
-    [queryClient],
-  );
-  const repositories = useMemo(
-    () => ({
-      callback: createBookingPaymentCallbackRepository({
-        getEpoch: () => sessionEpoch,
-      }),
-      checkout: createBookingPaymentCheckoutRepository({
-        getEpoch: () => sessionEpoch,
-      }),
-    }),
-    [sessionEpoch],
-  );
+  const [candidateRetryBusy, setCandidateRetryBusy] = useState(false);
+  const [localRecoveryStart, setLocalRecoveryStart] = useState<{
+    readonly historyKey: string;
+    readonly start: PaymentRecoveryStart;
+    readonly verifiedFence: boolean;
+  } | null>(null);
+  const callbackClaimedRef = useRef(false);
+  const { captureAuthenticatedSession, isCurrentSession } = session;
+  const repository = useMemo(() => createBookingPaymentJournalRepository(), []);
   const routeLease = useMemo(
     () => ({
       isCurrent: () =>
@@ -101,190 +126,388 @@ function PaymentSuccessRoute() {
     }),
     [location.hash, location.key, location.pathname, location.search],
   );
-
-  useLayoutEffect(() => {
-    if (claimedRef.current || scope === null || location.search !== "") {
-      return;
+  const workflowSession = useMemo(
+    () => ({ captureAuthenticatedSession, isCurrentSession }),
+    [captureAuthenticatedSession, isCurrentSession],
+  );
+  const workflow = useMemo(
+    () =>
+      createBookingPaymentRecoveryWorkflow({
+        api: paymentApi,
+        repository,
+        routeLease,
+        session: workflowSession,
+      }),
+    [repository, routeLease, workflowSession],
+  );
+  useStrictModeSafeDisposable(workflow);
+  const reservationCache = useMemo(
+    () => createReservationReadQueryCacheProjection(queryClient),
+    [queryClient],
+  );
+  const flowReference = useMemo(
+    () =>
+      exactFlowReference(
+        bookingPaymentStateCodec.parseFlowReference(location.state),
+        reservationUid,
+      ),
+    [location.state, reservationUid],
+  );
+  const operationReference = useMemo(
+    () =>
+      exactOperationReference(
+        bookingPaymentStateCodec.parseOperationReference(location.state),
+        reservationUid,
+      ),
+    [location.state, reservationUid],
+  );
+  const locationStart = useMemo<PaymentRecoveryStart | null>(() => {
+    if (operationReference) {
+      return {
+        kind: "operation",
+        reference: {
+          flowId: operationReference.flowId,
+          operationId: operationReference.operationId,
+          reservationUid: operationReference.reservationUid,
+        },
+      };
     }
-    claimedRef.current = true;
-    const isCurrent = () => routeLease.isCurrent() && isCurrentSession(scope);
-
-    if (!reservationUid || credentialClaim.status === "invalid") {
-      setResolution({ status: "invalid" });
-      return;
+    if (flowReference) {
+      return { kind: "confirmation", reference: flowReference };
     }
-    const fresh =
-      credentialClaim.status === "fresh" ? credentialClaim.fresh : undefined;
-    const claimed = claimPaymentCallback(repositories, {
-      scope,
-      reservationUid,
-      ...(fresh ? { fresh } : {}),
-      isCurrent,
-    });
-    if (claimed.status === "stale") return;
+    return null;
+  }, [flowReference, operationReference]);
+  const localRecoveryForEntry = useMemo(() => {
+    const localReservationUid =
+      localRecoveryStart?.start.kind === "confirmation"
+        ? localRecoveryStart.start.reference.locator.reservationUid
+        : localRecoveryStart?.start.reference.reservationUid;
+    return localRecoveryStart?.historyKey === location.key &&
+      localReservationUid === reservationUid
+      ? localRecoveryStart
+      : null;
+  }, [localRecoveryStart, location.key, reservationUid]);
+  const start = localRecoveryForEntry?.start ?? locationStart;
 
-    setResolution(claimed);
-  }, [
-    credentialClaim,
-    location.search,
-    repositories,
-    reservationUid,
-    routeLease,
-    scope,
-    isCurrentSession,
-  ]);
+  const currentCleanPath = `${location.pathname}${location.search}${location.hash}`;
 
-  useEffect(() => {
-    if (
-      resolution.status !== "server-replay-required" ||
-      scope === null ||
-      location.search !== ""
-    ) {
-      return;
-    }
-
-    const controller = new AbortController();
-    let active = true;
-    const isCurrent = () =>
-      active && routeLease.isCurrent() && isCurrentSession(scope);
-
-    void resolveServerPaymentCallbackReplay(
-      { ownershipApi: checkoutOwnershipApi },
-      {
-        fresh: resolution.fresh,
-        signal: controller.signal,
-        isCurrent,
-      },
-    ).then((result) => {
-      if (!isCurrent()) return;
-      if (result.status !== "stale") setResolution(result);
-    });
-
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [isCurrentSession, location.search, resolution, routeLease, scope]);
-
-  const clearDocuments = useCallback(() => {
-    if (scope === null) return;
-    if (routeLease.isCurrent() && isCurrentSession(scope)) {
-      clearBookingPaymentBrowserState();
-    }
-  }, [isCurrentSession, routeLease, scope]);
-
-  const handleInvalid = useCallback(
-    (clearJoinedDocuments = false) => {
-      if (!reservationUid) {
-        navigate(routeTo.profile(), { replace: true, state: null });
-        return;
+  const publishConfirmationStart = useCallback(
+    (
+      reference: BookingPaymentConfirmationResumeReferenceState,
+      verifiedFence = false,
+    ): boolean => {
+      if (
+        reservationUid === undefined ||
+        reference.locator.reservationUid !== reservationUid ||
+        !routeLease.isCurrent()
+      ) {
+        return false;
       }
-      if (clearJoinedDocuments) clearDocuments();
-      navigate(
-        routeTo.paymentFail(reservationUid, { reason: "invalid-callback" }),
-        { replace: true, state: null },
+      const persisted = replaceRouterUserState(
+        currentCleanPath,
+        reference,
+        bookingPaymentStateCodec.parseFlowReference,
       );
+      if (
+        persisted === null ||
+        persisted.flowId !== reference.flowId ||
+        persisted.locator.kind !== "reservation" ||
+        persisted.locator.reservationUid !== reservationUid
+      ) {
+        return false;
+      }
+      setLocalRecoveryStart({
+        historyKey: location.key,
+        verifiedFence,
+        start: {
+          kind: "confirmation",
+          reference: {
+            purpose: persisted.purpose,
+            version: persisted.version,
+            flowId: persisted.flowId,
+            locator: {
+              kind: "reservation",
+              reservationUid: persisted.locator.reservationUid,
+            },
+          },
+        },
+      });
+      // The callback tuple now has two credential-free durable recovery
+      // anchors: the claimed journal and the read-back history reference.
+      // Remove its short-lived memory lease before logout/revocation can occur.
+      consumePendingCallbackCredential();
+      return true;
     },
-    [clearDocuments, navigate, reservationUid],
+    [
+      consumePendingCallbackCredential,
+      currentCleanPath,
+      location.key,
+      reservationUid,
+      routeLease,
+    ],
   );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (
-      resolution.status !== "invalid" ||
-      invalidHandledRef.current ||
-      location.search !== ""
+      location.search !== "" ||
+      location.hash !== "" ||
+      start !== null ||
+      callbackClaimedRef.current
     ) {
       return;
     }
-    invalidHandledRef.current = true;
-    const clearJoinedDocuments =
-      resolution.reason === "callback-mismatch" ||
-      resolution.reason === "callback-write-failed";
-    handleInvalid(clearJoinedDocuments);
-  }, [handleInvalid, location.search, resolution]);
 
-  if (
-    resolution.status === "server-replay-retryable" &&
-    scope !== null &&
-    location.search === ""
-  ) {
+    callbackClaimedRef.current = true;
+    if (!reservationUid || credentialClaim.status === "invalid") {
+      setStaticResolution({
+        status: "unavailable",
+        message:
+          credentialClaim.status === "invalid"
+            ? "결제 콜백 정보가 올바르지 않습니다."
+            : "이 화면에서 결제 상태를 확인할 복구 식별자가 없습니다.",
+        canRetryCandidateReconciliation:
+          recoveryFenceStatus === "recovery-unavailable",
+      });
+      return;
+    }
+
+    if (
+      credentialClaim.status === "none" &&
+      recoveryFenceStatus === "recovery-unavailable"
+    ) {
+      setStaticResolution({
+        status: "unavailable",
+        message: "이전 복구 시도에서 저장된 결제 정보를 확인하지 못했습니다.",
+        canRetryCandidateReconciliation: true,
+      });
+      return;
+    }
+
+    const claimed =
+      credentialClaim.status === "fresh"
+        ? workflow.claimCallback(credentialClaim.fresh)
+        : workflow.recoverClaimedCallback(reservationUid);
+    if (claimed.status !== "confirmation-ready") {
+      setStaticResolution({
+        status: "unavailable",
+        message:
+          claimed.status === "auth-required"
+            ? "로그인 상태를 확인한 뒤 다시 시도해주세요."
+            : claimed.status === "receipt-authoritative"
+              ? "결제 처리는 접수되었지만 이 화면에서 이어서 확인할 수 없습니다."
+              : claimed.status === "invalid-callback"
+                ? "이 화면에서 결제 상태를 확인할 복구 식별자가 없습니다."
+                : "저장된 결제 정보를 안전하게 확인하지 못했습니다.",
+        canRetryCandidateReconciliation:
+          claimed.status === "retryable" ||
+          claimed.status === "recovery-unavailable",
+      });
+      return;
+    }
+
+    if (!publishConfirmationStart(claimed.reference)) {
+      setStaticResolution({
+        status: "unavailable",
+        message: "결제 복구 식별자를 브라우저 히스토리에 저장하지 못했습니다.",
+        canRetryCandidateReconciliation: false,
+      });
+      return;
+    }
+
+    // The controller cannot mount (and therefore cannot POST) before the real
+    // browser history entry has returned the exact credential-free reference.
+  }, [
+    credentialClaim,
+    currentCleanPath,
+    location.hash,
+    location.search,
+    publishConfirmationStart,
+    recoveryFenceStatus,
+    reservationUid,
+    start,
+    workflow,
+  ]);
+
+  const persistOperationReference = useCallback(
+    (reference: BookingPaymentOperationReference): boolean => {
+      if (
+        reservationUid === undefined ||
+        reference.reservationUid !== reservationUid ||
+        !routeLease.isCurrent()
+      ) {
+        return false;
+      }
+      const state = bookingPaymentStateCodec.serializeOperationReference(
+        reference.flowId,
+        reference.operationId,
+        reference.reservationUid,
+      );
+      if (state === null) return false;
+      const persisted = replaceRouterUserState(
+        currentCleanPath,
+        state,
+        bookingPaymentStateCodec.parseOperationReference,
+      );
+      if (
+        persisted === null ||
+        persisted.flowId !== reference.flowId ||
+        persisted.operationId !== reference.operationId ||
+        persisted.reservationUid !== reference.reservationUid
+      ) {
+        return false;
+      }
+      setLocalRecoveryStart({
+        historyKey: location.key,
+        verifiedFence: false,
+        start: { kind: "operation", reference },
+      });
+      return true;
+    },
+    [currentCleanPath, location.key, reservationUid, routeLease],
+  );
+
+  const markVerifiedRecovery = useCallback(() => {
+    if (recoveryFenceStatus !== "none") markRecoveryFence("none");
+  }, [markRecoveryFence, recoveryFenceStatus]);
+
+  const openReservation = useCallback(() => {
+    if (reservationUid) navigate(routeTo.reservationDetail(reservationUid));
+    else navigate(routeTo.profile());
+  }, [navigate, reservationUid]);
+
+  const handleTerminalAcknowledged = useCallback(
+    async (reference: BookingPaymentOperationReference) => {
+      const scope = captureAuthenticatedSession();
+      if (
+        scope === null ||
+        reference.reservationUid !== reservationUid ||
+        !routeLease.isCurrent() ||
+        !isCurrentSession(scope)
+      ) {
+        return;
+      }
+      try {
+        await reservationCache.guestReservationChanged({
+          reservationUid: reference.reservationUid,
+          scope,
+        });
+      } catch {
+        // The receipt is already acknowledged. Cache invalidation is a
+        // best-effort projection and cannot recreate payment authority.
+      }
+      if (routeLease.isCurrent() && isCurrentSession(scope)) {
+        navigate(routeTo.reservationDetail(reference.reservationUid), {
+          replace: true,
+          state: null,
+        });
+      }
+    },
+    [
+      captureAuthenticatedSession,
+      isCurrentSession,
+      navigate,
+      reservationCache,
+      reservationUid,
+      routeLease,
+    ],
+  );
+
+  const retryCandidateReconciliation = useCallback(() => {
+    if (candidateRetryBusy) return;
+    const scope = captureAuthenticatedSession();
+    if (scope === null || !routeLease.isCurrent() || !isCurrentSession(scope)) {
+      return;
+    }
+    setCandidateRetryBusy(true);
+    let result: ReturnType<typeof repository.reconcileCandidateOwner>;
+    try {
+      result = repository.reconcileCandidateOwner(scope.subject);
+    } catch {
+      setCandidateRetryBusy(false);
+      setStaticResolution({
+        status: "unavailable",
+        message: "저장된 결제 정보를 아직 확인하지 못했습니다.",
+        canRetryCandidateReconciliation: true,
+      });
+      return;
+    }
+    if (!routeLease.isCurrent() || !isCurrentSession(scope)) return;
+    setCandidateRetryBusy(false);
+    if (result.status === "ready") {
+      markRecoveryFence("none");
+      setStaticResolution({
+        status: "unavailable",
+        message:
+          "복구 상태를 정리했습니다. 예약 상세에서 현재 상태를 확인해주세요.",
+        canRetryCandidateReconciliation: false,
+      });
+      return;
+    }
+    if (result.status === "recovery-required" && reservationUid) {
+      const claimed = workflow.recoverClaimedCallback(reservationUid);
+      if (
+        claimed.status === "confirmation-ready" &&
+        routeLease.isCurrent() &&
+        isCurrentSession(scope) &&
+        publishConfirmationStart(claimed.reference, true)
+      ) {
+        markRecoveryFence("none");
+        return;
+      }
+    }
+    setStaticResolution({
+      status: "unavailable",
+      message:
+        result.status === "recovery-required"
+          ? "결제 복구 정보가 남아 있지만 이 화면에 필요한 식별자가 없습니다."
+          : "저장된 결제 정보를 아직 확인하지 못했습니다.",
+      canRetryCandidateReconciliation: true,
+    });
+  }, [
+    candidateRetryBusy,
+    captureAuthenticatedSession,
+    isCurrentSession,
+    markRecoveryFence,
+    publishConfirmationStart,
+    repository,
+    reservationUid,
+    routeLease,
+    workflow,
+  ]);
+
+  if (start !== null) {
     return (
-      <PaymentResultScreen
-        mode="failure"
-        statusMessage="결제 상태를 확인하지 못했습니다. 잠시 후 다시 시도해주세요."
-        onOpenProfile={() => navigate(routeTo.profile())}
-        onReconcile={() =>
-          setResolution({
-            status: "server-replay-required",
-            fresh: resolution.fresh,
-          })
+      <PaymentResultController
+        autoStart={
+          recoveryFenceStatus !== "recovery-unavailable" ||
+          localRecoveryForEntry?.verifiedFence === true
         }
+        onOpenProfile={() => navigate(routeTo.profile())}
+        onOpenReservation={openReservation}
+        onOperationAccepted={persistOperationReference}
+        onRecoveryVerified={markVerifiedRecovery}
+        onTerminalAcknowledged={handleTerminalAcknowledged}
+        routeLease={routeLease}
+        start={start}
+        workflow={workflow}
       />
     );
   }
 
-  if (
-    resolution.status !== "ready" ||
-    scope === null ||
-    location.search !== ""
-  ) {
+  if (staticResolution.status === "resolving") {
     return <PaymentResultScreen mode="processing" />;
   }
 
-  const changeCallbackPhase = (phase: CallbackPhase) =>
-    resolution.persistCallback
-      ? repositories.callback.write({
-          scope,
-          data: { ...resolution.callback, phase },
-          isCurrent: () => routeLease.isCurrent() && isCurrentSession(scope),
-        }).status === "written"
-      : routeLease.isCurrent() && isCurrentSession(scope);
-
   return (
-    <PaymentResultController
-      callback={resolution.callback}
-      document={resolution.document}
-      mode={ephemeralReplayRecoverable ? "failure" : "success"}
-      shouldConfirm={resolution.shouldConfirm}
-      routeLease={routeLease}
-      session={session}
-      onCallbackPhaseChange={changeCallbackPhase}
-      onConfirmed={async () => {
-        const confirmedReservationUid = resolution.callback.reservationUid;
-        clearDocuments();
-        try {
-          await reservationCache.guestReservationChanged({
-            reservationUid: confirmedReservationUid,
-            scope,
-          });
-        } catch {
-          // Cache freshness is best-effort; server payment authority already won.
-        }
-        if (routeLease.isCurrent()) {
-          navigate(routeTo.reservationDetail(confirmedReservationUid), {
-            replace: true,
-            state: null,
-          });
-        }
-      }}
-      onInvalid={() => handleInvalid(resolution.persistCallback)}
+    <PaymentResultScreen
+      mode="recovery-unavailable"
+      isBusy={candidateRetryBusy}
+      statusMessage={staticResolution.message}
       onOpenProfile={() => navigate(routeTo.profile())}
-      onRecoverable={() => {
-        if (!resolution.persistCallback) {
-          // A server-authoritative replay has no browser documents to hand to
-          // the fail route. Keep its verified tuple in this route's memory so
-          // the user can reconcile again without restoring URL credentials.
-          setEphemeralReplayRecoverable(true);
-          return;
-        }
-        navigate(
-          routeTo.paymentFail(resolution.callback.reservationUid, {
-            reason: "confirm-failed",
-          }),
-          { replace: true, state: null },
-        );
-      }}
-      onTerminalFailure={() => handleInvalid(resolution.persistCallback)}
+      {...(reservationUid ? { onOpenReservation: openReservation } : {})}
+      {...(staticResolution.canRetryCandidateReconciliation
+        ? { onRetry: retryCandidateReconciliation }
+        : {})}
     />
   );
 }

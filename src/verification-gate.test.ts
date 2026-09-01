@@ -611,6 +611,15 @@ describe("frontend verification gate", () => {
     ]);
     expect(vercelConfig.headers).toEqual([
       {
+        source: "/(.*)",
+        headers: [
+          {
+            key: "Referrer-Policy",
+            value: "no-referrer",
+          },
+        ],
+      },
+      {
         source: "/static/(.*)",
         headers: [
           {
@@ -715,12 +724,14 @@ describe("frontend verification gate", () => {
       [...architectureRatchet.migratedFeatures].sort(),
     );
     expect(architectureRatchet.migratedFeatures).toEqual([
+      "accommodations",
       "accommodations/detail",
       "accommodations/listing-editor",
       "auth",
       "home",
       "profile",
       "reservations",
+      "reservations/booking",
       "reservations/payment",
       "reviews",
       "search",
@@ -1253,7 +1264,7 @@ describe("frontend verification gate", () => {
     });
   });
 
-  test("target contract matrix keeps offline closure separate from live evidence", () => {
+  test("target contract matrix keeps current alignment separate from live evidence", () => {
     expect(fs.existsSync(targetContractMatrixPath)).toBe(true);
 
     const matrix = fs.readFileSync(targetContractMatrixPath, "utf8");
@@ -1269,10 +1280,15 @@ describe("frontend verification gate", () => {
       "npm run verify:browser",
       "npm run verify:live-integration",
       "READY (offline)",
-      "Global unused file/value/type export와 duplicate export",
-      "Production Knip은 target preprocessor 없이 전체 production graph",
-      "frontend-bundle-budgets.json",
+      "BLOCKED / UNVERIFIED",
+      "READY (offline, U14)",
+      "cfdb1e4",
+      "b2ec09a",
+      "2026-09-01-001-refactor-local-backend-contract-alignment-plan.md",
+      "strict production graph",
+      "Root budget",
       "DEFERRED / UNVERIFIED (live)",
+      "U12 attempt",
       "Vercel → OCI",
       "Google Maps/Places",
       "Toss sandbox",
@@ -1280,7 +1296,6 @@ describe("frontend verification gate", () => {
     ].forEach((term) => {
       expect(matrix).toContain(term);
     });
-    expect(matrix).not.toContain("PENDING (offline closure)");
     expect(matrix).not.toContain("2026-07-04");
     expect(matrix).not.toContain("react-scripts");
     expect(matrix).not.toContain("Jest");

@@ -12,6 +12,10 @@ const reservationFixture = (
   guestCount: 2,
   checkInDateTime: "2020-07-10T15:00:00",
   checkOutDateTime: "2020-07-12T11:00:00",
+  timeZoneId: "Asia/Seoul",
+  paymentAllowed: false,
+  holdExpiresAt: null,
+  serverTime: "2026-07-01T00:00:00Z",
   checkInTime: "15:00",
   checkOutTime: "11:00",
   canWriteReview: true,
@@ -86,7 +90,6 @@ describe("reservation detail view model", () => {
       reservationFixture({
         payment: {
           orderId: "order-123",
-          paymentKey: null,
           method: "가상계좌",
           totalAmount: 120000,
           balanceAmount: null,
@@ -145,4 +148,25 @@ describe("reservation detail view model", () => {
       ).mapCoordinate,
     ).toBeNull();
   });
+
+  it.each([
+    ["PAYMENT_PROCESSING", "결제 처리 중"],
+    ["CANCELLATION_PENDING", "취소 처리 중"],
+  ] as const)(
+    "renders %s as status-only recovery without inventing a payment action",
+    (status, label) => {
+      const viewModel = toReservationDetailViewModel(
+        reservationFixture({
+          status,
+          paymentAllowed: false,
+          holdExpiresAt: null,
+          payment: null,
+        }),
+      );
+
+      expect(viewModel.status).toEqual({ label, tone: "warning" });
+      expect(viewModel.payment).toBeNull();
+      expect(viewModel).not.toHaveProperty("paymentAction");
+    },
+  );
 });

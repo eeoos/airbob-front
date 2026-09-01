@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { readFileSync } from "fs";
 import type { SearchAccommodationCardViewModel } from "../lib/searchAccommodationViewModel";
@@ -93,6 +93,25 @@ describe("SearchAccommodationCard", () => {
       "href",
       "/accommodations/1?checkIn=2026-07-10&checkOut=2026-07-12",
     );
+  });
+
+  it("declaratively replaces a failed thumbnail without hidden siblings", () => {
+    const { container } = render(
+      <SearchAccommodationCard
+        accommodation={{ ...accommodation, thumbnailUrl: "/broken.jpg" }}
+        detailUrl="/accommodations/1"
+      />,
+    );
+
+    fireEvent.error(screen.getByRole("img", { name: "성수 숙소" }));
+
+    expect(
+      screen.queryByRole("img", { name: "성수 숙소" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("이미지 없음")).toBeVisible();
+    // Declarative fallback means the card never carries an imperative sibling.
+    // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
+    expect(container.querySelector("[hidden]")).toBeNull();
   });
 
   it("keeps wishlist icon color state in token-backed CSS", () => {

@@ -164,15 +164,25 @@ describe("Wishlist view components", () => {
 
   it("renders loading and empty states", () => {
     renderWishlistIndex({ isLoading: true });
-    expect(screen.getByText("로딩 중...")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("로딩 중...");
+    expect(screen.getByRole("status")).toHaveAttribute(
+      "data-state-kind",
+      "loading",
+    );
 
     renderWishlistDetail();
-    expect(screen.getByText("위시리스트가 비어있습니다.")).toBeInTheDocument();
+    expect(screen.getAllByRole("status")[1]).toHaveTextContent(
+      "위시리스트가 비어있습니다.",
+    );
 
     renderRecentlyViewed();
     expect(
-      screen.getByText("최근 조회한 숙소가 없습니다."),
-    ).toBeInTheDocument();
+      screen
+        .getAllByRole("status")
+        .some((state) =>
+          state.textContent?.includes("최근 조회한 숙소가 없습니다."),
+        ),
+    ).toBe(true);
   });
 
   it("does not open a wishlist card when deleting the wishlist", async () => {
@@ -241,14 +251,14 @@ describe("Wishlist view components", () => {
     });
 
     const image = screen.getByRole("img", { name: "Lake cabin" });
-    const placeholder = screen.getByText("이미지 없음");
-
-    expect(placeholder).toHaveStyle({ display: "none" });
+    expect(screen.queryByText("이미지 없음")).not.toBeInTheDocument();
 
     fireEvent.error(image);
 
-    expect(image).toHaveStyle({ display: "none" });
-    expect(placeholder).toHaveStyle({ display: "flex" });
+    expect(
+      screen.queryByRole("img", { name: "Lake cabin" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("이미지 없음")).toBeVisible();
   });
 
   it("opens the memo dialog from a wishlist detail memo button", async () => {

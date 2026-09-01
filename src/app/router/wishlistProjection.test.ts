@@ -10,15 +10,18 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../test/sessionFixtures";
 import { createAppWishlistProjection } from "./wishlistProjection";
 
 const scopeA: AuthenticatedSessionScope = {
   subject: "subject:member_a" as SessionSubject,
   epoch: 3,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 const scopeB: AuthenticatedSessionScope = {
   subject: "subject:member_b" as SessionSubject,
   epoch: 4,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 
 const request = { destination: "Seoul", page: 0, size: 18 } as const;
@@ -67,7 +70,7 @@ const accommodationDetail = (
   currency: "KRW",
   checkInTime: "15:00",
   checkOutTime: "11:00",
-  unavailableDates: [],
+  timeZoneId: "Asia/Seoul",
   isInWishlist,
   addressSummary: {
     country: "대한민국",

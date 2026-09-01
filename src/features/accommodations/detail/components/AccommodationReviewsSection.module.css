@@ -178,7 +178,7 @@
   background-color: var(--color-text-primary);
 }
 
-@media (max-width: 1400px) {
+@media (--viewport-wide) {
   .reviewSection {
     margin-left: 60px;
     max-width: calc(100% - 120px);
@@ -193,7 +193,7 @@
   }
 }
 
-@media (max-width: 1200px) {
+@media (--viewport-compact) {
   .reviewSection {
     margin-left: var(--space-10);
     max-width: calc(100% - 80px);
@@ -212,7 +212,7 @@
   }
 }
 
-@media (max-width: 1024px) {
+@media (--viewport-mobile-tablet) {
   .reviewSection {
     margin-left: var(--space-6);
     margin-right: var(--space-6);
@@ -233,7 +233,7 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (--viewport-tablet) {
   .reviewSection {
     margin-left: var(--space-4);
     margin-right: var(--space-4);

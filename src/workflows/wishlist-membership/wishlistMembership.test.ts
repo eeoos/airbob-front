@@ -3,6 +3,7 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../test/sessionFixtures";
 import {
   createWishlistMembership,
   type WishlistMembershipDependencies,
@@ -18,10 +19,12 @@ type WishlistMembershipProjection =
 const scopeA: AuthenticatedSessionScope = {
   subject: "subject:member_a" as SessionSubject,
   epoch: 3,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 const scopeB: AuthenticatedSessionScope = {
   subject: "subject:member_b" as SessionSubject,
   epoch: 4,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 
 const deferred = <T>() => {
@@ -159,6 +162,7 @@ describe("wishlistMembership", () => {
     const nextEpoch: AuthenticatedSessionScope = {
       subject: scopeA.subject,
       epoch: scopeA.epoch + 1,
+      runtimeLeaseId: scopeA.runtimeLeaseId,
     };
     transport.addAccommodation
       .mockReturnValueOnce(oldAddRequest.promise)

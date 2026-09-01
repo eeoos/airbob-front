@@ -35,10 +35,45 @@ export const findLiveRemovedFeatures = ({
   );
 };
 
+export const assertCurrentFeatureScopesMatchRegistry = ({
+  currentFeatureScopes,
+  migratedFeatures,
+}) => {
+  const current = new Set(currentFeatureScopes);
+  const registered = new Set(migratedFeatures);
+  const missingScopes = currentFeatureScopes.filter(
+    (scope) => !registered.has(scope),
+  );
+  const staleScopes = migratedFeatures.filter((scope) => !current.has(scope));
+
+  if (missingScopes.length > 0) {
+    throw new Error(
+      "architecture-ratchet.json is missing current feature ownership scopes: " +
+        missingScopes.join(", "),
+    );
+  }
+
+  if (staleScopes.length > 0) {
+    throw new Error(
+      "architecture-ratchet.json contains scopes not discovered from current source: " +
+        staleScopes.join(", "),
+    );
+  }
+};
+
 export const verifyArchitectureRatchet = ({ root = projectRoot } = {}) => {
+  const currentRatchetData = validateArchitectureRatchetData(
+    JSON.parse(fs.readFileSync(path.join(root, registryPath), "utf8")),
+  );
+  const currentFeatureScopes = discoverFeatureOwnershipScopes(root);
+
+  assertCurrentFeatureScopesMatchRegistry({
+    currentFeatureScopes,
+    migratedFeatures: currentRatchetData.migratedFeatures,
+  });
+
   const currentRatchet = readArchitectureRatchet({ projectRoot: root });
   const comparisons = getArchitectureComparisonRevisions(root);
-  const currentFeatureScopes = discoverFeatureOwnershipScopes(root);
 
   for (const comparison of comparisons) {
     const historicalFeatureScopes = new Set(
@@ -93,7 +128,7 @@ export const verifyArchitectureRatchet = ({ root = projectRoot } = {}) => {
   }
 
   process.stdout.write(
-    `Architecture registry passed existence and monotonic checks against ${comparisons.length} Git baseline(s).\n`,
+    `Architecture registry matches every current feature scope and passed monotonic checks against ${comparisons.length} Git baseline(s).\n`,
   );
 };
 

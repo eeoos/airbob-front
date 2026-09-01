@@ -19,6 +19,7 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../test/sessionFixtures";
 import {
   ProfileController,
   type ProfileControllerProps,
@@ -38,6 +39,7 @@ type HostListingManagementResult = Awaited<
 
 const scope: AuthenticatedSessionScope = {
   epoch: 4,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
   subject: "subject:profile-controller" as SessionSubject,
 };
 
@@ -61,6 +63,8 @@ const guestReservation = (
   audience: "guest",
   checkInDate,
   checkOutDate: "2027-08-05",
+  timeZoneId: "Asia/Seoul",
+  status: "CONFIRMED",
   createdAt: "2027-07-01T00:00:00Z",
   reservationId: 101,
   reservationUid,
@@ -83,6 +87,7 @@ const hostReservation = ({
   audience: "host",
   checkInDate,
   checkOutDate: "2027-09-15",
+  timeZoneId: "Asia/Seoul",
   createdAt: "2027-07-01T00:00:00Z",
   currency: "KRW",
   guest: {

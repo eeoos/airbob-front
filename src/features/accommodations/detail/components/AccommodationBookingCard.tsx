@@ -7,15 +7,16 @@ import {
   BookingGuestSection,
   BookingPriceBreakdown,
   BookingPriceHeader,
+  BookingQuoteSummary,
   BookingReserveAction,
 } from "./AccommodationBookingCardSections";
 import styles from "./AccommodationBookingCard.module.css";
 
-type NumberSetter = React.Dispatch<React.SetStateAction<number>>;
-type BooleanSetter = React.Dispatch<React.SetStateAction<boolean>>;
 type BookingCoupon = AccommodationBookingCouponViewModel;
 
 interface AccommodationBookingState {
+  availabilityStatus: "loading" | "error" | "ready";
+  isStayReady: boolean;
   payablePrice: number;
   nights: number;
   totalPrice: number;
@@ -32,18 +33,48 @@ interface AccommodationBookingState {
   petCount: number;
   isReservationLocked: boolean;
   isReserving: boolean;
+  quoteSnapshot: {
+    readonly amount: number;
+    readonly canCheckout: boolean;
+    readonly currency: string;
+    readonly discountAmount: number;
+    readonly nightlyPrice: number;
+    readonly nights: number;
+    readonly phase: string;
+    readonly quoteExpiresAt: string;
+    readonly subtotal: number;
+  } | null;
+  reservationStatus:
+    | "idle"
+    | "quoting"
+    | "quoted"
+    | "checking-out"
+    | "terminal-ready"
+    | "completing"
+    | "locked";
+  selectionLocked: boolean;
+  selectionState:
+    | "availability-unavailable"
+    | "fully-booked"
+    | "incomplete"
+    | "invalid"
+    | "outside-window"
+    | "ready"
+    | "unavailable";
 }
 
 interface AccommodationBookingActions {
   formatDate: (date: Date | null) => string;
   handleDateSelect: (checkIn: Date | null, checkOut: Date | null) => void;
-  setIsDatePickerOpen: BooleanSetter;
-  setIsGuestPickerOpen: BooleanSetter;
-  setAdultCount: NumberSetter;
-  setChildCount: NumberSetter;
-  setInfantCount: NumberSetter;
-  setPetCount: NumberSetter;
+  onDatePickerOpenChange: (isOpen: boolean) => void;
+  onGuestPickerOpenChange: (isOpen: boolean) => void;
+  onAdultCountChange: (count: number) => void;
+  onChildCountChange: (count: number) => void;
+  onInfantCountChange: (count: number) => void;
+  onPetCountChange: (count: number) => void;
+  onAbandonQuote: () => boolean;
   onReserve: () => void;
+  retryAvailability: () => void;
 }
 
 interface AccommodationCouponState {
@@ -55,7 +86,7 @@ interface AccommodationCouponState {
 }
 
 interface AccommodationCouponActions {
-  setSelectedCouponId: (couponId: number | null) => void;
+  onSelectedCouponIdChange: (couponId: number | null) => void;
   handleIssueCoupon: (coupon: BookingCoupon) => void | Promise<void>;
 }
 
@@ -93,17 +124,25 @@ export function AccommodationBookingCard({
     petCount,
     isReservationLocked,
     isReserving,
+    quoteSnapshot,
+    reservationStatus,
+    selectionLocked,
+    availabilityStatus,
+    isStayReady,
+    selectionState,
   } = bookingState;
   const {
     formatDate,
     handleDateSelect,
-    setAdultCount,
-    setChildCount,
-    setInfantCount,
-    setIsDatePickerOpen,
-    setIsGuestPickerOpen,
-    setPetCount,
+    onAdultCountChange,
+    onChildCountChange,
+    onDatePickerOpenChange,
+    onGuestPickerOpenChange,
+    onInfantCountChange,
+    onPetCountChange,
+    onAbandonQuote,
     onReserve,
+    retryAvailability,
   } = bookingActions;
   const {
     coupons,
@@ -112,16 +151,21 @@ export function AccommodationBookingCard({
     selectedCoupon,
     couponDiscount,
   } = couponState;
-  const { setSelectedCouponId, handleIssueCoupon } = couponActions;
+  const { onSelectedCouponIdChange, handleIssueCoupon } = couponActions;
   const {
     basePrice,
-    unavailableDates,
+    availability,
     guestLimits: { maxAdultsAndChildren, maxInfants, maxPets },
   } = bookingView;
+  const isDatePickerAvailableOpen =
+    availabilityStatus === "ready" && isDatePickerOpen;
 
   return (
     <div className={styles.bookingCard}>
-      <BookingPriceHeader nights={nights} payablePrice={payablePrice} />
+      <BookingPriceHeader
+        nights={quoteSnapshot?.nights ?? nights}
+        payablePrice={quoteSnapshot?.amount ?? payablePrice}
+      />
 
       <BookingDateSection
         checkIn={checkIn}
@@ -130,10 +174,14 @@ export function AccommodationBookingCard({
         dateSectionRef={dateSectionRef}
         formatDate={formatDate}
         handleDateSelect={handleDateSelect}
-        isDatePickerOpen={isDatePickerOpen}
-        setIsDatePickerOpen={setIsDatePickerOpen}
-        setIsGuestPickerOpen={setIsGuestPickerOpen}
-        unavailableDates={unavailableDates}
+        isDatePickerOpen={isDatePickerAvailableOpen}
+        onDatePickerOpenChange={onDatePickerOpenChange}
+        onGuestPickerOpenChange={onGuestPickerOpenChange}
+        availabilityStatus={availabilityStatus}
+        disabledRanges={availability.disabledRanges}
+        retryAvailability={retryAvailability}
+        selectionLocked={selectionLocked}
+        selectionWindow={availability.selectionWindow}
       />
 
       <BookingGuestSection
@@ -141,17 +189,18 @@ export function AccommodationBookingCard({
         childCount={childCount}
         guestPickerRef={guestPickerRef}
         infantCount={infantCount}
-        isDatePickerOpen={isDatePickerOpen}
+        isDatePickerOpen={isDatePickerAvailableOpen}
         isGuestPickerOpen={isGuestPickerOpen}
         maxInfants={maxInfants}
         maxOccupancy={maxAdultsAndChildren}
         maxPets={maxPets}
         petCount={petCount}
-        setAdultCount={setAdultCount}
-        setChildCount={setChildCount}
-        setInfantCount={setInfantCount}
-        setIsGuestPickerOpen={setIsGuestPickerOpen}
-        setPetCount={setPetCount}
+        onAdultCountChange={onAdultCountChange}
+        onChildCountChange={onChildCountChange}
+        onInfantCountChange={onInfantCountChange}
+        onGuestPickerOpenChange={onGuestPickerOpenChange}
+        onPetCountChange={onPetCountChange}
+        selectionLocked={selectionLocked}
       />
 
       {isAuthenticated && (
@@ -162,7 +211,8 @@ export function AccommodationBookingCard({
           handleIssueCoupon={handleIssueCoupon}
           isLoadingCoupons={isLoadingCoupons}
           selectedCoupon={selectedCoupon}
-          setSelectedCouponId={setSelectedCouponId}
+          onSelectedCouponIdChange={onSelectedCouponIdChange}
+          selectionLocked={selectionLocked}
         />
       )}
 
@@ -174,10 +224,30 @@ export function AccommodationBookingCard({
         totalPrice={totalPrice}
       />
 
+      {quoteSnapshot && (
+        <BookingQuoteSummary
+          amount={quoteSnapshot.amount}
+          canAbandon={
+            quoteSnapshot.phase === "quoted" ||
+            quoteSnapshot.phase === "checkout-prepared"
+          }
+          currency={quoteSnapshot.currency}
+          discountAmount={quoteSnapshot.discountAmount}
+          onAbandonQuote={onAbandonQuote}
+          quoteExpiresAt={quoteSnapshot.quoteExpiresAt}
+          subtotal={quoteSnapshot.subtotal}
+        />
+      )}
+
       <BookingReserveAction
+        availabilityStatus={availabilityStatus}
+        hasCompleteStay={Boolean(checkIn && checkOut && nights > 0)}
         isReservationLocked={isReservationLocked}
         isReserving={isReserving}
+        isStayReady={isStayReady}
         onReserve={onReserve}
+        reservationStatus={reservationStatus}
+        selectionState={selectionState}
       />
     </div>
   );

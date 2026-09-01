@@ -1,7 +1,4 @@
-import type {
-  ReservationPaymentStatus,
-  ReservationStatus,
-} from "../model/reservationRead";
+import type { ReservationPaymentStatus } from "../model/reservationRead";
 
 export interface ReservationAccommodationWire {
   readonly id: number;
@@ -45,7 +42,7 @@ interface ReservationVirtualAccountWire {
 
 export interface ReservationPaymentWire {
   readonly order_id: string;
-  readonly payment_key?: string | null;
+  readonly payment_key?: unknown;
   readonly method?: string | null;
   readonly total_amount: number;
   readonly balance_amount?: number | null;
@@ -67,6 +64,8 @@ export interface GuestReservationListItemWire {
   readonly reservation_uid: string;
   readonly check_in_date: string;
   readonly check_out_date: string;
+  readonly time_zone_id: unknown;
+  readonly status: unknown;
   readonly created_at: string;
   readonly accommodation: ReservationAccommodationWire;
 }
@@ -84,7 +83,8 @@ export interface HostReservationListItemWire {
   readonly guest_count: number;
   readonly check_in_date: string;
   readonly check_out_date: string;
-  readonly status: ReservationStatus;
+  readonly time_zone_id: unknown;
+  readonly status: unknown;
   readonly created_at: string;
   readonly guest: ReservationMemberWire;
   readonly accommodation: ReservationAccommodationWire;
@@ -98,17 +98,22 @@ export interface HostReservationPageWire {
 interface ReservationDetailWireBase {
   readonly reservation_uid: string;
   readonly reservation_code: string;
-  readonly status: ReservationStatus;
+  readonly status: unknown;
   readonly created_at: string;
   readonly guest_count: number;
   readonly check_in_date_time: string;
   readonly check_out_date_time: string;
+  readonly time_zone_id: unknown;
+  readonly request_message: unknown;
   readonly accommodation: ReservationAccommodationWire;
   readonly address: ReservationAddressWire;
   readonly payment: ReservationPaymentWire | null;
 }
 
 export interface GuestReservationDetailWire extends ReservationDetailWireBase {
+  readonly payment_allowed: unknown;
+  readonly hold_expires_at: unknown;
+  readonly server_time: unknown;
   readonly check_in_time: string;
   readonly check_out_time: string;
   readonly can_write_review: boolean;

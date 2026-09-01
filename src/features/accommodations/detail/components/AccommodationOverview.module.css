@@ -159,7 +159,7 @@
   opacity: 0.7;
 }
 
-@media (max-width: 1200px) {
+@media (--viewport-compact) {
   .mainContent {
     gap: var(--space-10);
   }
@@ -169,7 +169,7 @@
   }
 }
 
-@media (max-width: 1024px) {
+@media (--viewport-mobile-tablet) {
   .mainContent {
     gap: var(--space-8);
   }
@@ -179,7 +179,7 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (--viewport-tablet) {
   .mainContent {
     gap: var(--space-6);
   }

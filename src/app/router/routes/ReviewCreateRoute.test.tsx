@@ -8,6 +8,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { accommodationReadQueryKeys } from "../../../features/accommodations/detail/queries/queryKeys";
 import { createSessionQueryMeta } from "../../../platform/query/sessionScope";
 import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../../test/sessionFixtures";
 import type { ReviewSubmissionPublicationPort } from "../../../workflows/review-submission";
 import ReviewCreateRoute from "./ReviewCreateRoute";
 
@@ -29,6 +30,7 @@ vi.mock("../../session/useSession", () => ({
     captureAuthenticatedSession: () => ({
       subject: "subject:member_7",
       epoch: 3,
+      runtimeLeaseId: testSessionRuntimeLeaseId,
     }),
     isCurrentSession: () => true,
     state: { status: "authenticated" },
@@ -38,6 +40,7 @@ vi.mock("../../session/useSession", () => ({
 const scope = {
   subject: "subject:member_7",
   epoch: 3,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 } as AuthenticatedSessionScope;
 
 describe("ReviewCreateRoute", () => {

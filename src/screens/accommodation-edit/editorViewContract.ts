@@ -1,53 +1,64 @@
-import type {
-  ChangeEvent,
-  Dispatch,
-  DragEvent,
-  FormEvent,
-  SetStateAction,
-} from "react";
+import type { ChangeEvent, DragEvent, FormEvent } from "react";
 
 export type AccommodationEditStep = 1 | 2 | 3 | 4 | 5;
 export type AccommodationEditTimeField = "checkIn" | "checkOut";
 export type AccommodationEditTimePicker = AccommodationEditTimeField | null;
 export type AccommodationEditTimePeriod = "AM" | "PM";
+export type AccommodationEditTimeValueSelection =
+  | { readonly unit: "hour"; readonly value: number }
+  | { readonly unit: "minute"; readonly value: number }
+  | { readonly unit: "period"; readonly value: AccommodationEditTimePeriod };
 export type AccommodationEditRecoveryState =
   "none" | "protected-command" | "protected-delete";
 
 interface AccommodationEditAmenityInfo {
-  name: string;
-  count: number;
+  readonly name: string;
+  readonly count: number;
+}
+
+export interface AccommodationEditAmenityOption {
+  readonly label: string;
+  readonly name: string;
+}
+
+export interface AccommodationEditAmenitySemantic extends AccommodationEditAmenityOption {
+  readonly isKnown: boolean;
 }
 
 export interface AccommodationEditFormData {
-  name: string;
-  description: string;
-  basePrice: string;
-  type: string;
-  checkInTime: string;
-  checkOutTime: string;
-  addressInfo: {
-    postalCode: string;
-    city: string;
-    state: string;
-    country: string;
-    detail: string;
-    district: string;
-    street: string;
+  readonly name: string;
+  readonly description: string;
+  readonly basePrice: string;
+  readonly type: string;
+  readonly checkInTime: string;
+  readonly checkOutTime: string;
+  readonly addressInfo: {
+    readonly postalCode: string;
+    readonly city: string;
+    readonly state: string;
+    readonly country: string;
+    readonly detail: string;
+    readonly district: string;
+    readonly street: string;
   };
-  occupancyPolicyInfo: {
-    maxOccupancy: string;
-    infantOccupancy: boolean;
-    petOccupancy: boolean;
+  readonly occupancyPolicyInfo: {
+    readonly maxOccupancy: string;
+    readonly infantOccupancy: boolean;
+    readonly petOccupancy: boolean;
   };
-  amenityInfos: AccommodationEditAmenityInfo[];
+  readonly amenityInfos: readonly AccommodationEditAmenityInfo[];
 }
 
+export type AccommodationEditField = "name" | "description" | "basePrice";
+export type AccommodationEditOccupancyField =
+  "infantOccupancy" | "petOccupancy";
+
 export interface AccommodationEditImageItem {
-  clientId: string;
-  id?: number;
-  url: string;
-  file?: File;
-  preview?: string;
+  readonly clientId: string;
+  readonly id?: number;
+  readonly url: string;
+  readonly file?: File;
+  readonly preview?: string;
 }
 
 export type AccommodationEditDetailState =
@@ -57,36 +68,31 @@ export type AccommodationEditDetailState =
   | { status: "denied"; accommodationId: string }
   | { status: "retryable-load-error"; accommodationId: string };
 
-type NestedFormFields = {
-  addressInfo: AccommodationEditFormData["addressInfo"];
-  occupancyPolicyInfo: AccommodationEditFormData["occupancyPolicyInfo"];
-};
-
 export interface AccommodationEditScreenState {
-  currentStep: AccommodationEditStep;
-  detailState: AccommodationEditDetailState;
-  isEditorReady: boolean;
-  isSaving: boolean;
-  isDeletingImage: boolean;
-  recoveryState: AccommodationEditRecoveryState;
-  uploadProgress: number;
-  formData: AccommodationEditFormData;
-  imageItems: AccommodationEditImageItem[];
-  draggedIndex: number | null;
-  dragOverIndex: number | null;
-  openTimePicker: AccommodationEditTimePicker;
-  isTypeModalOpen: boolean;
-  isAmenityModalOpen: boolean;
-  showDetailAddressConfirm: boolean;
-  error: string | null;
-  canProceedToNext: boolean;
+  readonly amenityOptions: readonly AccommodationEditAmenityOption[];
+  readonly amenitySemantics: readonly AccommodationEditAmenitySemantic[];
+  readonly currentStep: AccommodationEditStep;
+  readonly detailState: AccommodationEditDetailState;
+  readonly isEditorReady: boolean;
+  readonly isSaving: boolean;
+  readonly isDeletingImage: boolean;
+  readonly recoveryState: AccommodationEditRecoveryState;
+  readonly uploadProgress: number;
+  readonly formData: AccommodationEditFormData;
+  readonly imageItems: readonly AccommodationEditImageItem[];
+  readonly draggedIndex: number | null;
+  readonly dragOverIndex: number | null;
+  readonly openTimePicker: AccommodationEditTimePicker;
+  readonly isTypeModalOpen: boolean;
+  readonly isAmenityModalOpen: boolean;
+  readonly showDetailAddressConfirm: boolean;
+  readonly error: string | null;
+  readonly canProceedToNext: boolean;
 }
 
 export interface AccommodationEditScreenActions {
   isStepCompleted: (step: AccommodationEditStep) => boolean;
   isStepClickable: (step: AccommodationEditStep) => boolean;
-  setFormData: Dispatch<SetStateAction<AccommodationEditFormData>>;
-  setOpenTimePicker: Dispatch<SetStateAction<AccommodationEditTimePicker>>;
   resolveImageUrl: (imagePath: string | null | undefined) => string;
   onAddressSearch: () => void;
   onDetailChange: (value: string) => void;
@@ -97,24 +103,24 @@ export interface AccommodationEditScreenActions {
   onDragStart: (index: number) => void;
   onDragOverItem: (event: DragEvent, index: number) => void;
   onDragEnd: (event: DragEvent) => void;
-  onInputChange: <K extends keyof AccommodationEditFormData>(
-    field: K,
-    value: AccommodationEditFormData[K],
+  onFieldChange: (field: AccommodationEditField, value: string) => void;
+  onOccupancyChange: (
+    field: AccommodationEditOccupancyField,
+    value: boolean,
   ) => void;
-  onNestedChange: <
-    P extends keyof NestedFormFields,
-    K extends keyof NestedFormFields[P],
-  >(
-    parent: P,
-    field: K,
-    value: NestedFormFields[P][K],
-  ) => void;
-  onTimeChange: (
+  onGuestIncrement: () => void;
+  onGuestDecrement: () => void;
+  onAmenityToggle: (name: string) => void;
+  onAmenityIncrement: (name: string) => void;
+  onAmenityDecrement: (name: string) => void;
+  onAmenityRemove: (name: string) => void;
+  onTimePickerOpen: (picker: AccommodationEditTimeField) => void;
+  onTimePickerClose: () => void;
+  onTimeValueSelect: (
     type: AccommodationEditTimeField,
-    hour: number,
-    minute: number,
-    period: AccommodationEditTimePeriod,
+    selection: AccommodationEditTimeValueSelection,
   ) => void;
+  onAccommodationTypeSelect: (type: string) => void;
   onOpenTypeModal: () => void;
   onCloseTypeModal: () => void;
   onOpenAmenityModal: () => void;

@@ -14,8 +14,15 @@ type ApiRequestMethod = "GET" | "POST" | "PATCH" | "DELETE";
 export interface ApiDataRequest {
   readonly method: ApiRequestMethod;
   readonly path: string;
+  /**
+   * Narrows a successful command to the one HTTP status that carries its
+   * protocol meaning. The value is validated by this API boundary and is not
+   * forwarded to the native transport.
+   */
+  readonly expectedSuccessStatus?: number;
   readonly body?: unknown;
   readonly bodyEncoding?: "multipart";
+  readonly idempotencyKey?: string;
   readonly params?: object;
   readonly signal?: AbortSignal | undefined;
   readonly onUploadProgress?: (progress: number) => void;
@@ -35,6 +42,7 @@ const isHtmlContentType = (response: HttpClientResponse): boolean =>
 const toHttpClientRequest = ({
   body,
   bodyEncoding,
+  idempotencyKey,
   method,
   onUploadProgress,
   params,
@@ -45,6 +53,7 @@ const toHttpClientRequest = ({
   path,
   ...(body === undefined ? {} : { body }),
   ...(bodyEncoding === undefined ? {} : { bodyEncoding }),
+  ...(idempotencyKey === undefined ? {} : { idempotencyKey }),
   ...(params === undefined ? {} : { params }),
   ...(signal === undefined ? {} : { signal }),
   ...(onUploadProgress === undefined ? {} : { onUploadProgress }),
@@ -63,7 +72,19 @@ const executeRequest = async (
   request: ApiDataRequest,
 ): Promise<HttpClientResponse> => {
   try {
-    return await httpClient.request(toHttpClientRequest(request));
+    const response = await httpClient.request(toHttpClientRequest(request));
+    if (
+      request.expectedSuccessStatus !== undefined &&
+      response.status !== request.expectedSuccessStatus
+    ) {
+      throw new AppError({
+        kind: "invalid-response",
+        code: "UNEXPECTED_HTTP_STATUS",
+        message: "The API response used an unexpected success status.",
+        status: response.status,
+      });
+    }
+    return response;
   } catch (error) {
     const appError = normalizeHttpError(error);
     publishAuthErrorIfNeeded(appError, request);

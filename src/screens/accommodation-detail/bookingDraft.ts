@@ -1,3 +1,11 @@
+import {
+  addCalendarLocalDateDays,
+  calendarLocalDateToDate,
+  calendarNightsBetween,
+  formatCalendarLocalDate,
+  parseCalendarLocalDateOrdinal,
+} from "../../shared/lib/calendarLocalDate";
+
 interface BookingRouteCounts {
   readonly adultOccupancy: number;
   readonly childOccupancy: number;
@@ -5,31 +13,7 @@ interface BookingRouteCounts {
   readonly petOccupancy: number;
 }
 
-const LOCAL_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
-const DAY_MILLISECONDS = 24 * 60 * 60 * 1000;
-
-const parseBookingLocalDate = (value: string): Date | null => {
-  const match = LOCAL_DATE_PATTERN.exec(value);
-  if (!match) return null;
-
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  const date = new Date(year, month - 1, day);
-
-  return date.getFullYear() === year &&
-    date.getMonth() === month - 1 &&
-    date.getDate() === day
-    ? date
-    : null;
-};
-
-export const formatBookingLocalDate = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
+export const formatBookingLocalDate = formatCalendarLocalDate;
 
 export const formatBookingDisplayDate = (date: Date | null): string =>
   date
@@ -42,55 +26,221 @@ export const formatBookingDisplayDate = (date: Date | null): string =>
 export interface DerivedBookingDates {
   readonly checkIn: Date | null;
   readonly checkOut: Date | null;
+  readonly isStayReady: boolean;
   readonly nights: number;
+  readonly selectionState: BookingStaySelectionState;
   readonly totalPrice: number;
 }
+
+type BookingStaySelectionState =
+  | "availability-unavailable"
+  | "fully-booked"
+  | "incomplete"
+  | "invalid"
+  | "outside-window"
+  | "ready"
+  | "unavailable";
+
+export interface BookingAvailabilitySnapshot {
+  readonly bookingWindowStartInclusive: string;
+  readonly bookingWindowEndExclusive: string;
+  readonly unavailableRanges: readonly {
+    readonly startDate: string;
+    readonly endDateExclusive: string;
+  }[];
+}
+
+const isStayDateUnavailable = (
+  date: string,
+  availability: BookingAvailabilitySnapshot,
+): boolean =>
+  availability.unavailableRanges.some(
+    (range) => date >= range.startDate && date < range.endDateExclusive,
+  );
+
+const doesStayOverlapUnavailableRange = (
+  checkIn: string,
+  checkOut: string,
+  availability: BookingAvailabilitySnapshot,
+): boolean =>
+  availability.unavailableRanges.some(
+    (range) => range.startDate < checkOut && range.endDateExclusive > checkIn,
+  );
+
+const toDerivedBookingDates = (
+  basePrice: number,
+  checkIn: string | undefined,
+  checkOut: string | undefined,
+  selectionState: BookingStaySelectionState,
+): DerivedBookingDates => {
+  const parsedCheckIn = checkIn ? calendarLocalDateToDate(checkIn) : null;
+  const parsedCheckOut = checkOut ? calendarLocalDateToDate(checkOut) : null;
+  const parsedNights =
+    checkIn && checkOut ? calendarNightsBetween(checkIn, checkOut) : null;
+  const nights = parsedNights !== null && parsedNights > 0 ? parsedNights : 0;
+
+  return {
+    checkIn: parsedCheckIn,
+    checkOut: parsedCheckOut,
+    isStayReady: selectionState === "ready",
+    nights,
+    selectionState,
+    totalPrice: nights > 0 ? basePrice * nights : 0,
+  };
+};
+
+const deriveDefaultBookingDates = (
+  basePrice: number,
+  availability: BookingAvailabilitySnapshot,
+): DerivedBookingDates => {
+  let defaultCheckIn = availability.bookingWindowStartInclusive;
+  while (
+    defaultCheckIn < availability.bookingWindowEndExclusive &&
+    isStayDateUnavailable(defaultCheckIn, availability)
+  ) {
+    const nextDate = addCalendarLocalDateDays(defaultCheckIn, 1);
+    if (!nextDate) break;
+    defaultCheckIn = nextDate;
+  }
+
+  const defaultCheckOut = addCalendarLocalDateDays(defaultCheckIn, 1);
+  if (
+    defaultCheckIn >= availability.bookingWindowEndExclusive ||
+    !defaultCheckOut ||
+    defaultCheckOut > availability.bookingWindowEndExclusive
+  ) {
+    return toDerivedBookingDates(
+      basePrice,
+      undefined,
+      undefined,
+      "fully-booked",
+    );
+  }
+
+  return toDerivedBookingDates(
+    basePrice,
+    defaultCheckIn,
+    defaultCheckOut,
+    "ready",
+  );
+};
 
 export const deriveBookingDates = ({
   basePrice,
   checkIn,
   checkOut,
-  unavailableDates,
+  availability,
 }: {
   readonly basePrice: number;
   readonly checkIn?: string;
   readonly checkOut?: string;
-  readonly unavailableDates: readonly string[];
+  readonly availability: BookingAvailabilitySnapshot | null;
 }): DerivedBookingDates => {
-  const parsedCheckIn = checkIn ? parseBookingLocalDate(checkIn) : null;
-  const parsedCheckOut = checkOut ? parseBookingLocalDate(checkOut) : null;
+  const hasExplicitCheckIn = checkIn !== undefined;
+  const hasExplicitCheckOut = checkOut !== undefined;
+  const hasExplicitSelection = hasExplicitCheckIn || hasExplicitCheckOut;
 
-  if (parsedCheckIn && parsedCheckOut && parsedCheckOut > parsedCheckIn) {
-    const nights = Math.ceil(
-      (parsedCheckOut.getTime() - parsedCheckIn.getTime()) / DAY_MILLISECONDS,
+  if (!hasExplicitSelection) {
+    return availability
+      ? deriveDefaultBookingDates(basePrice, availability)
+      : toDerivedBookingDates(
+          basePrice,
+          undefined,
+          undefined,
+          "availability-unavailable",
+        );
+  }
+
+  const checkInOrdinal = parseCalendarLocalDateOrdinal(checkIn);
+  const checkOutOrdinal = parseCalendarLocalDateOrdinal(checkOut);
+  const displayableCheckIn =
+    checkInOrdinal === null ? undefined : (checkIn as string);
+  const displayableCheckOut =
+    checkOutOrdinal === null ? undefined : (checkOut as string);
+
+  if (
+    (hasExplicitCheckIn && checkInOrdinal === null) ||
+    (hasExplicitCheckOut && checkOutOrdinal === null)
+  ) {
+    return toDerivedBookingDates(
+      basePrice,
+      displayableCheckIn,
+      displayableCheckOut,
+      "invalid",
     );
-    return {
-      checkIn: parsedCheckIn,
-      checkOut: parsedCheckOut,
-      nights,
-      totalPrice: basePrice * nights,
-    };
   }
 
-  if (parsedCheckIn) {
-    return { checkIn: parsedCheckIn, checkOut: null, nights: 0, totalPrice: 0 };
+  if (!availability) {
+    return toDerivedBookingDates(
+      basePrice,
+      displayableCheckIn,
+      displayableCheckOut,
+      "availability-unavailable",
+    );
   }
 
-  const unavailable = new Set(unavailableDates);
-  const defaultCheckIn = new Date();
-  defaultCheckIn.setHours(0, 0, 0, 0);
-  while (unavailable.has(formatBookingLocalDate(defaultCheckIn))) {
-    defaultCheckIn.setDate(defaultCheckIn.getDate() + 1);
-  }
-  const defaultCheckOut = new Date(defaultCheckIn);
-  defaultCheckOut.setDate(defaultCheckOut.getDate() + 1);
+  if (
+    checkInOrdinal === null ||
+    checkOutOrdinal === null ||
+    !checkIn ||
+    !checkOut
+  ) {
+    if (
+      checkIn &&
+      (checkIn < availability.bookingWindowStartInclusive ||
+        checkIn >= availability.bookingWindowEndExclusive)
+    ) {
+      return toDerivedBookingDates(
+        basePrice,
+        displayableCheckIn,
+        displayableCheckOut,
+        "outside-window",
+      );
+    }
+    if (checkIn && isStayDateUnavailable(checkIn, availability)) {
+      return toDerivedBookingDates(
+        basePrice,
+        displayableCheckIn,
+        displayableCheckOut,
+        "unavailable",
+      );
+    }
 
-  return {
-    checkIn: defaultCheckIn,
-    checkOut: defaultCheckOut,
-    nights: 1,
-    totalPrice: basePrice,
-  };
+    return toDerivedBookingDates(
+      basePrice,
+      displayableCheckIn,
+      displayableCheckOut,
+      "incomplete",
+    );
+  }
+
+  if (checkOutOrdinal <= checkInOrdinal) {
+    return toDerivedBookingDates(
+      basePrice,
+      displayableCheckIn,
+      displayableCheckOut,
+      "invalid",
+    );
+  }
+
+  if (
+    checkIn < availability.bookingWindowStartInclusive ||
+    checkIn >= availability.bookingWindowEndExclusive ||
+    checkOut > availability.bookingWindowEndExclusive
+  ) {
+    return toDerivedBookingDates(
+      basePrice,
+      checkIn,
+      checkOut,
+      "outside-window",
+    );
+  }
+
+  if (doesStayOverlapUnavailableRange(checkIn, checkOut, availability)) {
+    return toDerivedBookingDates(basePrice, checkIn, checkOut, "unavailable");
+  }
+
+  return toDerivedBookingDates(basePrice, checkIn, checkOut, "ready");
 };
 
 const clamp = (value: number, min: number, max: number): number =>

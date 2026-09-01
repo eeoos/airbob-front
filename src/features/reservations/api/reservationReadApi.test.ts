@@ -51,6 +51,8 @@ const detailBase = {
   guest_count: 2,
   check_in_date_time: "2026-07-10T15:00:00Z",
   check_out_date_time: "2026-07-12T11:00:00Z",
+  time_zone_id: "Asia/Seoul",
+  request_message: null,
   accommodation,
   address,
   payment: null,
@@ -104,6 +106,9 @@ describe("reservation read API adapter", () => {
       `/profile/guest/reservations/${RESERVATION_UID}`,
       {
         ...detailBase,
+        payment_allowed: false,
+        hold_expires_at: null,
+        server_time: "2026-07-01T00:00:00Z",
         can_write_review: true,
         check_in_time: "15:00:00",
         check_out_time: "11:00:00",

@@ -4,9 +4,9 @@ import {
   type AccommodationCoupon,
 } from "../../features/accommodations/detail/public";
 import type {
-  ReservationCreateRouteLease,
-  ReservationCreateSessionPort,
-} from "../../workflows/booking-payment/reservation-create";
+  BookingTransactionRouteLease,
+  BookingTransactionSessionPort,
+} from "../../workflows/booking-payment/transaction/booking";
 import {
   getAccommodationErrorCode,
   toAccommodationErrorMessage,
@@ -17,8 +17,8 @@ interface UseAccommodationCouponCommandOptions {
   readonly isAuthenticated: boolean;
   readonly onError: (message: string | null) => void;
   readonly requestAuthentication: (couponId: number) => void;
-  readonly routeLease: ReservationCreateRouteLease;
-  readonly session: ReservationCreateSessionPort;
+  readonly routeLease: BookingTransactionRouteLease;
+  readonly session: BookingTransactionSessionPort;
 }
 
 export const useAccommodationCouponCommand = ({

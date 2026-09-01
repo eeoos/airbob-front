@@ -476,7 +476,7 @@
 }
 
 /* ---- Mid-Desktop (1200-1400px) ---- */
-@media (max-width: 1400px) {
+@media (--viewport-wide) {
   .content {
     grid-template-columns: minmax(380px, 550px) 1fr;
   }
@@ -492,7 +492,7 @@
 }
 
 /* ---- Small-Desktop (1024-1200px) ---- */
-@media (max-width: 1200px) {
+@media (--viewport-compact) {
   .content {
     grid-template-columns: minmax(350px, 500px) 1fr;
   }
@@ -516,7 +516,7 @@
 }
 
 /* ---- Tablet (768-1024px) ---- */
-@media (max-width: 1024px) {
+@media (--viewport-mobile-tablet) {
   .container {
     height: auto;
     overflow: visible;
@@ -568,7 +568,7 @@
 }
 
 /* ---- Mobile (<768px) ---- */
-@media (max-width: 768px) {
+@media (--viewport-tablet) {
   .container {
     padding: 0;
   }

@@ -70,6 +70,18 @@ describe("Toss Payments v2 integration", () => {
     });
   });
 
+  it("preserves backend-authoritative order-name padding byte for byte", async () => {
+    const { requestPayment } = setupSdk();
+    const client = await loadTossPaymentsV2Client(nextClientKey());
+    const orderName = "  서버에서 변경된 숙소명  ";
+
+    await client.requestPayment({ ...request, orderName });
+
+    expect(requestPayment).toHaveBeenCalledWith(
+      expect.objectContaining({ orderName }),
+    );
+  });
+
   it("deduplicates concurrent SDK loads for the same public key", async () => {
     const { payment } = setupSdk();
     const clientKey = nextClientKey();
@@ -248,6 +260,7 @@ describe("Toss Payments v2 integration", () => {
   it.each([
     ["short order ID", { orderId: "short" }],
     ["unsupported order ID character", { orderId: "reservation.1" }],
+    ["blank order name", { orderName: " \t " }],
     ["long order name", { orderName: "가".repeat(101) }],
     ["long customer email", { customerEmail: "e".repeat(101) }],
     ["long customer name", { customerName: "가".repeat(101) }],

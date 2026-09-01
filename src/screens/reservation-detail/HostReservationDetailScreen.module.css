@@ -1,13 +1,11 @@
 .container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: var(--space-6);
+  padding-block: var(--space-6);
 }
 
 .loading,
 .error {
   text-align: center;
-  padding: 80px var(--space-6);
+  padding-block: 80px;
   color: var(--color-text-secondary);
   font-size: var(--font-size-md);
 }
@@ -387,11 +385,7 @@
   line-height: 1.5;
 }
 
-@media (max-width: 768px) {
-  .container {
-    padding: var(--space-4);
-  }
-
+@media (--viewport-tablet) {
   .header {
     flex-wrap: wrap;
   }

@@ -39,12 +39,14 @@ const searchableAccommodation = {
 
 const identityOwnedSessionStoragePrefixes = [
   "airbob:booking-payment-v1:",
+  "airbob:booking-payment-v2:",
   "airbob:reservation-checkout:",
   "airbob:reservation-checkout-index:",
   "airbob:payment-confirmed:",
 ] as const;
 
 const deterministicSessionRoute = "/search?destination=Seoul&adultOccupancy=2";
+const authenticatedOwner = "subject:member_2t";
 
 const stubHomeHeroImage = (context: BrowserContext) =>
   context.route(
@@ -112,29 +114,102 @@ const logoutFromSessionRoute = async (page: Page) => {
 };
 
 const seedOwnedSessionStorage = async (page: Page, tabId: string) => {
-  await page.evaluate((syntheticTabId) => {
-    sessionStorage.setItem(
-      "airbob:booking-payment-v1:checkout",
-      `synthetic-checkout-${syntheticTabId}`,
-    );
-    sessionStorage.setItem(
-      "airbob:booking-payment-v1:callback",
-      `synthetic-callback-${syntheticTabId}`,
-    );
-    sessionStorage.setItem(
-      `airbob:reservation-checkout:${syntheticTabId}`,
-      `retired-checkout-${syntheticTabId}`,
-    );
-    sessionStorage.setItem(
-      `airbob:reservation-checkout-index:synthetic-${syntheticTabId}`,
-      syntheticTabId,
-    );
-    sessionStorage.setItem(
-      `airbob:payment-confirmed:synthetic-${syntheticTabId}`,
-      "1",
-    );
-    sessionStorage.setItem("airbob:unrelated", `keep-${syntheticTabId}`);
-  }, tabId);
+  await page.evaluate(
+    ({ owner, syntheticTabId }) => {
+      const now = Date.now();
+      const recoveryExpiresAt = now + 5 * 60_000;
+      sessionStorage.setItem(
+        "airbob:booking-payment-v1:checkout",
+        `synthetic-checkout-${syntheticTabId}`,
+      );
+      sessionStorage.setItem(
+        "airbob:booking-payment-v1:callback",
+        `synthetic-callback-${syntheticTabId}`,
+      );
+      sessionStorage.setItem(
+        "airbob:booking-payment-v2:journal",
+        JSON.stringify({
+          purpose: "booking-payment-journal",
+          version: 2,
+          privacyClass: "sensitive",
+          containsPii: false,
+          owner,
+          createdAt: now,
+          hardExpiresAt: now + 60 * 60_000,
+          lease: {
+            runtimeLeaseId: "30000000-0000-4000-8000-000000000003",
+            sessionEpoch: 0,
+          },
+          data: {
+            phase: "quoted",
+            flowId: "40000000-0000-4000-8000-000000000004",
+            serverIntent: {
+              accommodationId: 7,
+              checkInDate: "2026-09-10",
+              checkOutDate: "2026-09-12",
+              guestCount: 2,
+              couponId: null,
+            },
+            presentationIntent: {
+              adultCount: 2,
+              childCount: 0,
+              infantCount: 0,
+              petCount: 0,
+            },
+            recoveryExpiresAt,
+            quote: {
+              quoteUid: "50000000-0000-4000-8000-000000000005",
+              accommodationId: 7,
+              orderName: "Synthetic candidate recovery stay",
+              checkIn: "2026-09-10",
+              checkOut: "2026-09-12",
+              guestCount: 2,
+              nightlyPrice: 1_000,
+              nights: 2,
+              subtotal: 2_000,
+              discountAmount: 0,
+              amount: 2_000,
+              currency: "KRW",
+              paymentRequired: true,
+              inventoryHeld: false,
+              quoteExpiresAt: new Date(recoveryExpiresAt).toISOString(),
+              serverTime: new Date(now).toISOString(),
+            },
+          },
+        }),
+      );
+      sessionStorage.setItem(
+        `airbob:reservation-checkout:${syntheticTabId}`,
+        `retired-checkout-${syntheticTabId}`,
+      );
+      sessionStorage.setItem(
+        `airbob:reservation-checkout-index:synthetic-${syntheticTabId}`,
+        syntheticTabId,
+      );
+      sessionStorage.setItem(
+        `airbob:payment-confirmed:synthetic-${syntheticTabId}`,
+        "1",
+      );
+      sessionStorage.setItem(
+        "airbob:booking-payment-v10:checkout",
+        `keep-v10-${syntheticTabId}`,
+      );
+      sessionStorage.setItem(
+        "airbob:booking-payment-v20:journal",
+        `keep-v20-${syntheticTabId}`,
+      );
+      sessionStorage.setItem(
+        "airbob:reservation-checkouts:synthetic",
+        `keep-plural-${syntheticTabId}`,
+      );
+      sessionStorage.setItem(
+        "airbob:reservation-checkout",
+        `keep-without-colon-${syntheticTabId}`,
+      );
+      sessionStorage.setItem("airbob:unrelated", `keep-${syntheticTabId}`);
+    },
+    { owner: authenticatedOwner, syntheticTabId: tabId },
+  );
 };
 
 const readOwnedSessionStorage = (page: Page) =>
@@ -148,6 +223,14 @@ const readOwnedSessionStorage = (page: Page) =>
         prefixes.some((prefix) => key.startsWith(prefix)),
       ),
       unrelated: sessionStorage.getItem("airbob:unrelated"),
+      nearCollisions: {
+        v10: sessionStorage.getItem("airbob:booking-payment-v10:checkout"),
+        v20: sessionStorage.getItem("airbob:booking-payment-v20:journal"),
+        plural: sessionStorage.getItem(
+          "airbob:reservation-checkouts:synthetic",
+        ),
+        withoutColon: sessionStorage.getItem("airbob:reservation-checkout"),
+      },
     };
   }, identityOwnedSessionStoragePrefixes);
 
@@ -157,6 +240,27 @@ const expectOwnedSessionStorageCleared = async (page: Page, tabId: string) => {
     .toEqual({
       ownedKeys: [],
       unrelated: `keep-${tabId}`,
+      nearCollisions: {
+        v10: `keep-v10-${tabId}`,
+        v20: `keep-v20-${tabId}`,
+        plural: `keep-plural-${tabId}`,
+        withoutColon: `keep-without-colon-${tabId}`,
+      },
+    });
+};
+
+const expectSameSubjectV2Preserved = async (page: Page, tabId: string) => {
+  await expect
+    .poll(() => readOwnedSessionStorage(page))
+    .toEqual({
+      ownedKeys: ["airbob:booking-payment-v2:journal"],
+      unrelated: `keep-${tabId}`,
+      nearCollisions: {
+        v10: `keep-v10-${tabId}`,
+        v20: `keep-v20-${tabId}`,
+        plural: `keep-plural-${tabId}`,
+        withoutColon: `keep-without-colon-${tabId}`,
+      },
     });
 };
 
@@ -476,18 +580,28 @@ test("keeps the sender locally anonymous when logout fails while the remote page
     expectAuthenticatedHeader(page),
     expectAuthenticatedHeader(secondPage),
   ]);
+  await Promise.all([
+    seedOwnedSessionStorage(page, "failed-logout-sender"),
+    seedOwnedSessionStorage(secondPage, "same-subject-remote"),
+  ]);
 
   const meRequestsBeforeLogout = api.matching("GET", "/api/v1/auth/me").length;
   await logoutFromSessionRoute(page);
 
   await expect(page.getByRole("button", { name: "프로필" })).toBeHidden();
-  await expect(page.getByRole("alert")).toContainText(
-    "서버에서 로그아웃을 확인하지 못했습니다.",
-  );
+  await expect(
+    page
+      .getByRole("alert")
+      .filter({ hasText: "서버에서 로그아웃을 확인하지 못했습니다." }),
+  ).toBeVisible();
   await expect
     .poll(() => api.matching("GET", "/api/v1/auth/me").length)
     .toBeGreaterThan(meRequestsBeforeLogout);
   await expectAuthenticatedHeader(secondPage);
+  await Promise.all([
+    expectOwnedSessionStorageCleared(page, "failed-logout-sender"),
+    expectSameSubjectV2Preserved(secondPage, "same-subject-remote"),
+  ]);
 
   expect(api.matching("POST", "/api/v1/auth/logout")).toHaveLength(1);
   const meRequestsAfterLogout = api.matching("GET", "/api/v1/auth/me").length;

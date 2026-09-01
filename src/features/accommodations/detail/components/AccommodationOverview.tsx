@@ -38,7 +38,12 @@ export function AccommodationOverview({
         <div className={styles.amenitiesSection}>
           <div className={styles.amenitiesGrid}>
             {detailView.amenities.map((amenity) => (
-              <div key={amenity.key} className={styles.amenityItem}>
+              <div
+                key={amenity.key}
+                className={styles.amenityItem}
+                data-amenity-code={amenity.type}
+                data-amenity-known={amenity.isKnown}
+              >
                 <AmenityIcon type={amenity.type} decorative />
                 <span>{amenity.label}</span>
               </div>

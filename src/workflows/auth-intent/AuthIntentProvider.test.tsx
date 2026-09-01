@@ -9,6 +9,7 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../test/sessionFixtures";
 import {
   toAuthIntentLocalDate,
   type AuthIntentAttemptId,
@@ -46,11 +47,13 @@ const failedLoginAnonymousState = {
 const scopeA: AuthenticatedSessionScope = {
   subject: "subject:test_a" as SessionSubject,
   epoch: 3,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 
 const scopeB: AuthenticatedSessionScope = {
   subject: "subject:test_b" as SessionSubject,
   epoch: 4,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 
 const wishlistIntent = (accommodationId: number): WishlistOpenAuthIntent => ({
@@ -78,7 +81,8 @@ function RuntimeHarness({
     captureAuthenticatedSession: () => sessionScope,
     isCurrentSession: (candidate: AuthenticatedSessionScope) =>
       sessionScope?.subject === candidate.subject &&
-      sessionScope.epoch === candidate.epoch,
+      sessionScope.epoch === candidate.epoch &&
+      sessionScope.runtimeLeaseId === candidate.runtimeLeaseId,
   };
 
   return <AuthIntentProvider session={session}>{children}</AuthIntentProvider>;

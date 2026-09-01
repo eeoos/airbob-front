@@ -4,6 +4,7 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../platform/session/sessionScope";
+import type { SessionRuntimeLeaseId } from "../../platform/session/runtimeLeaseId";
 
 export type { SessionViewer } from "../../features/auth/ports/sessionPort";
 export type {
@@ -94,7 +95,8 @@ export const toSessionSubject = (viewer: SessionViewer): SessionSubject => {
 
 export const toAuthenticatedSessionScope = (
   state: SessionState,
+  runtimeLeaseId: SessionRuntimeLeaseId,
 ): AuthenticatedSessionScope | null =>
   state.status === "authenticated"
-    ? { subject: state.subject, epoch: state.epoch }
+    ? { subject: state.subject, epoch: state.epoch, runtimeLeaseId }
     : null;

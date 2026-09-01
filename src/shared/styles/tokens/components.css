@@ -11,6 +11,10 @@
   --layout-viewport-width: var(--size-vw-100);
   --layout-viewport-height: var(--size-vh-100);
   --layout-page-max-width: var(--size-px-1120);
+  --layout-page-full-max-width: var(--size-px-1760);
+  --layout-page-wide-max-width: var(--size-px-1400);
+  --layout-page-content-max-width: var(--size-px-1200);
+  --layout-page-narrow-max-width: var(--size-px-800);
   --layout-page-padding-x: var(--space-6);
   --layout-header-desktop-height: var(--size-px-80);
   --layout-header-mobile-height: var(--size-px-130);

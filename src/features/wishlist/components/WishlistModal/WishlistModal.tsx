@@ -2,7 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AuthenticatedSessionScope } from "../../../../platform/session/sessionScope";
 import { useIntersectionLoadMore } from "../../../../shared/lib/useIntersectionLoadMore";
 import { requireCssModuleClass } from "../../../../shared/styles/requireCssModuleClass";
-import { Button, Dialog, ToastHost } from "../../../../shared/ui";
+import {
+  Button,
+  Dialog,
+  ImageWithFallback,
+  stateViewRecipes,
+  ToastHost,
+} from "../../../../shared/ui";
 import { useWishlistListsReadQuery } from "../../queries";
 import {
   toWishlistModalItemViewModel,
@@ -34,22 +40,6 @@ const removePendingWishlistId = (
   const next = new Set(pendingWishlistIds);
   next.delete(wishlistId);
   return next;
-};
-
-const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
-  const target = event.currentTarget;
-  target.style.display = "none";
-
-  const placeholder = target.nextElementSibling as HTMLElement | null;
-  const placeholderClassName = styles.placeholderImage;
-  if (
-    placeholder &&
-    placeholderClassName &&
-    placeholder.classList.contains(placeholderClassName)
-  ) {
-    placeholder.hidden = false;
-    placeholder.style.display = "flex";
-  }
 };
 
 export function WishlistModal({
@@ -209,7 +199,12 @@ export function WishlistModal({
       >
         <div className={styles.wishlistGrid}>
           {isLoading && (
-            <div className={styles.loadingIndicator}>로딩 중...</div>
+            <div
+              className={styles.loadingIndicator}
+              {...stateViewRecipes.loading}
+            >
+              로딩 중...
+            </div>
           )}
           {wishlists.map((wishlist) => {
             const isPending =
@@ -226,29 +221,17 @@ export function WishlistModal({
                 onClick={() => void toggleWishlist(wishlist)}
               >
                 <div className={styles.wishlistImage}>
-                  {wishlist.thumbnailUrl ? (
-                    <>
-                      <img
-                        src={wishlist.thumbnailUrl}
-                        alt={wishlist.name}
-                        onError={handleImageError}
-                      />
-                      <div
-                        className={`${styles.placeholderImage} ${styles.placeholderImageHidden}`}
-                        hidden
-                      >
+                  <ImageWithFallback
+                    src={wishlist.thumbnailUrl}
+                    alt={wishlist.name}
+                    fallback={
+                      <div className={styles.placeholderImage}>
                         <svg viewBox="0 0 24 24" fill="currentColor">
                           <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                         </svg>
                       </div>
-                    </>
-                  ) : (
-                    <div className={styles.placeholderImage}>
-                      <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                      </svg>
-                    </div>
-                  )}
+                    }
+                  />
                   <div
                     className={`${styles.wishlistIcon} ${
                       wishlist.isContained ? styles.active : ""
@@ -274,7 +257,9 @@ export function WishlistModal({
             );
           })}
           <div ref={setLoadingTarget} className={styles.loadingIndicator}>
-            {hasNext && wishlistsQuery.isFetchingNextPage && "로딩 중..."}
+            {hasNext && wishlistsQuery.isFetchingNextPage && (
+              <span {...stateViewRecipes.loading}>로딩 중...</span>
+            )}
           </div>
         </div>
 

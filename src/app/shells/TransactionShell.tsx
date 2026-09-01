@@ -1,5 +1,5 @@
 import { ShellFrame, type AppShellProps } from "./ShellFrame";
 
 export function TransactionShell(props: AppShellProps) {
-  return <ShellFrame {...props} />;
+  return <ShellFrame {...props} routeSurface="transaction" />;
 }

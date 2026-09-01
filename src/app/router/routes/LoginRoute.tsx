@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { browserWindowNavigation } from "../../../platform/browser/windowNavigation";
 import { AuthController } from "../../../screens/auth/public";
 import { useSession } from "../../session/useSession";
+import { usePendingPaymentRecoveryReturn } from "../PaymentCallbackCredentialBoundary";
 import { internalReturnTargetCodec } from "../codecs/internalReturnTargetCodec";
 import { routeTo } from "../paths";
 
@@ -9,6 +10,8 @@ function LoginRoute() {
   const location = useLocation();
   const navigate = useNavigate();
   const session = useSession();
+  const readPendingPaymentRecoveryReservation =
+    usePendingPaymentRecoveryReturn();
   const returnTarget = internalReturnTargetCodec.parse(location.state);
   const returnPath = returnTarget
     ? internalReturnTargetCodec.serialize(returnTarget)
@@ -32,7 +35,19 @@ function LoginRoute() {
           session.isCurrentSession(scope)
         );
       }}
-      onSuccess={() => navigate(returnPath ?? routeTo.home())}
+      onSuccess={() => {
+        const pendingReservationUid = readPendingPaymentRecoveryReservation();
+        const expectedPaymentPath = pendingReservationUid
+          ? routeTo.paymentSuccess(pendingReservationUid)
+          : null;
+        const paymentTarget = expectedPaymentPath
+          ? internalReturnTargetCodec.parseClaimedPaymentRecovery(
+              location.state,
+              expectedPaymentPath,
+            )
+          : null;
+        navigate(paymentTarget?.pathname ?? returnPath ?? routeTo.home());
+      }}
       onAlternate={() => navigate(routeTo.signup())}
     />
   );

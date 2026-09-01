@@ -54,8 +54,10 @@ describe("info window content helper", () => {
     });
 
     expect(html).toContain(
-      '<img src="https://cdn.example.com/accommodations/10/thumb.jpg"',
+      '<img data-info-window-image src="https://cdn.example.com/accommodations/10/thumb.jpg"',
     );
+    expect(html).toContain("data-info-window-image-fallback hidden");
+    expect(html).not.toContain("onerror=");
     expect(html).toContain('data-info-window-action="wishlist"');
     expect(html).toContain('data-accommodation-id="10"');
     expect(html).toContain('data-is-in-wishlist="true"');

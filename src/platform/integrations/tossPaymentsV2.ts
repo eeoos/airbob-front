@@ -72,6 +72,9 @@ const isSdkBootstrapFailure = (error: unknown): boolean => {
 const isBoundedText = (value: string, maxLength: number): boolean =>
   value.length > 0 && value.length <= maxLength && value.trim() === value;
 
+const isNonBlankBoundedText = (value: string, maxLength: number): boolean =>
+  value.length <= maxLength && value.trim().length > 0;
+
 const isAbsoluteRedirectUrl = (value: string): boolean => {
   try {
     const url = new URL(value);
@@ -89,7 +92,7 @@ const isAbsoluteRedirectUrl = (value: string): boolean => {
 
 const isValidRequest = (input: TossPaymentsV2Request): boolean =>
   /^[A-Za-z0-9_=-]{6,64}$/.test(input.orderId) &&
-  isBoundedText(input.orderName, 100) &&
+  isNonBlankBoundedText(input.orderName, 100) &&
   isBoundedText(input.customerEmail, 100) &&
   isBoundedText(input.customerName, 100) &&
   Number.isSafeInteger(input.amount) &&

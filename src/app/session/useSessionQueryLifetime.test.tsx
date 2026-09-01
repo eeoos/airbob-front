@@ -296,6 +296,98 @@ describe("useSessionQueryLifetime", () => {
     expect(requireTrackedClient(clients, 0).clear).toHaveBeenCalledTimes(1);
   });
 
+  it("activates only an exact disposed null quarantine without disposing it twice", async () => {
+    const { clients, factory } = createTrackedFactory();
+    const { result } = renderHook(() =>
+      useSessionQueryLifetime({
+        initialState: authenticatedState(),
+        queryClientFactory: factory,
+      }),
+    );
+
+    let didRejectLiveGeneration!: boolean;
+    act(() => {
+      didRejectLiveGeneration = result.current.activateDisposedQueryQuarantine({
+        epoch: 4,
+        subject: toSessionSubject(viewerA),
+        isStillCurrent: () => true,
+      });
+    });
+    expect(didRejectLiveGeneration).toBe(false);
+    expect(clients).toHaveLength(1);
+
+    await act(async () => {
+      await result.current.resetQueryGeneration({
+        epoch: 5,
+        subject: null,
+        isStillCurrent: () => true,
+      });
+    });
+    const quarantine = requireTrackedClient(clients, 0);
+    expect(quarantine.cancelQueries).toHaveBeenCalledTimes(1);
+    expect(quarantine.clear).toHaveBeenCalledTimes(1);
+
+    let didActivate!: boolean;
+    act(() => {
+      didActivate = result.current.activateDisposedQueryQuarantine({
+        epoch: 5,
+        subject: toSessionSubject(viewerA),
+        isStillCurrent: () => true,
+      });
+    });
+
+    expect(didActivate).toBe(true);
+    expect(clients).toHaveLength(2);
+    expect(result.current.generation).toMatchObject({
+      client: requireTrackedClient(clients, 1).client,
+      epoch: 5,
+      subject: toSessionSubject(viewerA),
+      tainted: false,
+    });
+    expect(quarantine.cancelQueries).toHaveBeenCalledTimes(1);
+    expect(quarantine.clear).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not install a candidate when the current operation changes during factory creation", async () => {
+    const { clients, factory } = createTrackedFactory();
+    const { result } = renderHook(() =>
+      useSessionQueryLifetime({
+        initialState: anonymousState(),
+        queryClientFactory: factory,
+      }),
+    );
+    await act(async () => {
+      await result.current.resetQueryGeneration({
+        epoch: 5,
+        subject: null,
+        isStillCurrent: () => true,
+      });
+    });
+    const quarantine = result.current.generation;
+    const isStillCurrent = vi
+      .fn()
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(false);
+
+    let didActivate!: boolean;
+    act(() => {
+      didActivate = result.current.activateDisposedQueryQuarantine({
+        epoch: 5,
+        subject: toSessionSubject(viewerA),
+        isStillCurrent,
+      });
+    });
+
+    expect(didActivate).toBe(false);
+    expect(clients).toHaveLength(2);
+    expect(result.current.generation).toBe(quarantine);
+    expect(result.current.generation).toMatchObject({
+      epoch: 5,
+      subject: null,
+      tainted: true,
+    });
+  });
+
   it("does not let a superseded in-place reset clear newer generation data", async () => {
     const { clients, factory } = createTrackedFactory();
     const firstCancel = deferred<void>();

@@ -1,9 +1,11 @@
 import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../../test/sessionFixtures";
 import { wishlistReadQueryKeys } from "./queryKeys";
 
 const scope = {
   subject: "subject:member_7",
   epoch: 4,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 } as AuthenticatedSessionScope;
 
 describe("session-scoped wishlist read query keys", () => {

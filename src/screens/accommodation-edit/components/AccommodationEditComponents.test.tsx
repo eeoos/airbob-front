@@ -4,6 +4,7 @@ import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { OverlayProvider } from "../../../app/overlays/OverlayProvider";
+import { accommodationAmenityCatalog } from "../../../features/accommodations/public";
 import { AccommodationEditScreen } from "../AccommodationEditScreen";
 import type {
   AccommodationEditFormData,
@@ -46,9 +47,18 @@ const createFormData = (
   ...overrides,
 });
 
+const amenityOptions = accommodationAmenityCatalog.knownAmenities.map(
+  ({ code, label }) => ({ label, name: code }),
+);
+const wifiAmenitySemantics = [
+  { isKnown: true, label: "무선 인터넷", name: "WIFI" },
+] as const;
+
 const createScreenState = (
   overrides: Partial<AccommodationEditScreenState> = {},
 ): AccommodationEditScreenState => ({
+  amenityOptions,
+  amenitySemantics: wifiAmenitySemantics,
   currentStep: 2,
   detailState: { status: "ready", accommodationId: "3" },
   isEditorReady: true,
@@ -74,8 +84,6 @@ const createScreenActions = (
 ): AccommodationEditScreenActions => ({
   isStepCompleted: (step) => step < 2,
   isStepClickable: (step) => step <= 2,
-  setFormData: vi.fn(),
-  setOpenTimePicker: vi.fn(),
   resolveImageUrl: (imagePath) => imagePath || "",
   onAddressSearch: vi.fn(),
   onDetailChange: vi.fn(),
@@ -86,9 +94,18 @@ const createScreenActions = (
   onDragStart: vi.fn(),
   onDragOverItem: vi.fn(),
   onDragEnd: vi.fn(),
-  onInputChange: vi.fn(),
-  onNestedChange: vi.fn(),
-  onTimeChange: vi.fn(),
+  onFieldChange: vi.fn(),
+  onOccupancyChange: vi.fn(),
+  onGuestIncrement: vi.fn(),
+  onGuestDecrement: vi.fn(),
+  onAmenityToggle: vi.fn(),
+  onAmenityIncrement: vi.fn(),
+  onAmenityDecrement: vi.fn(),
+  onAmenityRemove: vi.fn(),
+  onTimePickerOpen: vi.fn(),
+  onTimePickerClose: vi.fn(),
+  onTimeValueSelect: vi.fn(),
+  onAccommodationTypeSelect: vi.fn(),
   onOpenTypeModal: vi.fn(),
   onCloseTypeModal: vi.fn(),
   onOpenAmenityModal: vi.fn(),
@@ -241,6 +258,34 @@ describe("AccommodationEdit extracted components", () => {
     );
     expect(dialogsSource).toContain("ToastHost");
     expect(dialogsSource).not.toContain("ErrorToast");
+  });
+
+  it("keeps the public editor view contract free of React setters and draft-wide mutation", () => {
+    const contractSource = readProjectFile(
+      `${SCREEN_ROOT_DIR}/editorViewContract.ts`,
+    );
+    const semanticViewFiles = [
+      `${FEATURE_COMPONENTS_DIR}/EditStepContent.tsx`,
+      `${FEATURE_COMPONENTS_DIR}/EditWizardDialogs.tsx`,
+      `${FEATURE_COMPONENTS_DIR}/InfoStep.tsx`,
+      `${FEATURE_COMPONENTS_DIR}/AmenityModal.tsx`,
+      `${FEATURE_COMPONENTS_DIR}/TimePicker.tsx`,
+      `${FEATURE_COMPONENTS_DIR}/TimeStep.tsx`,
+    ];
+
+    expect(contractSource).not.toMatch(/\b(?:Dispatch|SetStateAction)\b/);
+    expect(contractSource).not.toMatch(/\bsetFormData\b|\bsetOpenTimePicker\b/);
+    expect(contractSource).toContain("readonly formData");
+    expect(contractSource).toContain("onGuestIncrement");
+    expect(contractSource).toContain("onAmenityToggle");
+    expect(contractSource).toContain("onTimePickerOpen");
+    expect(contractSource).toContain("onTimePickerClose");
+
+    semanticViewFiles.forEach((file) => {
+      const source = readProjectFile(file);
+      expect(source).not.toMatch(/\b(?:Dispatch|SetStateAction|useState)\b/);
+      expect(source).not.toMatch(/\bsetFormData\b|\bsetOpenTimePicker\b/);
+    });
   });
 
   it("keeps wizard layout and edit form styles in dedicated CSS modules", () => {
@@ -544,7 +589,7 @@ describe("AccommodationEdit extracted components", () => {
 
     const modalMobileRules = getCssBlocks(
       modalCss,
-      "@media (max-width: 768px)",
+      "@media (--viewport-tablet)",
     ).join("\n");
 
     mobileModalClasses.forEach((className) => {
@@ -606,6 +651,10 @@ describe("AccommodationEdit extracted components", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "숙소 정보를 불러오지 못했어요",
     );
+    expect(screen.getByRole("alert")).toHaveAttribute(
+      "data-state-kind",
+      "retryable-error",
+    );
     expect(
       screen.queryByRole("button", { name: "저장 후 나가기" }),
     ).not.toBeInTheDocument();
@@ -635,6 +684,10 @@ describe("AccommodationEdit extracted components", () => {
       );
 
       expect(screen.getByRole("alert")).toHaveTextContent(title);
+      expect(screen.getByRole("alert")).toHaveAttribute(
+        "data-state-kind",
+        "terminal-error",
+      );
       expect(
         screen.queryByRole("button", { name: "다시 시도" }),
       ).not.toBeInTheDocument();
@@ -659,6 +712,38 @@ describe("AccommodationEdit extracted components", () => {
     fireEvent.click(screen.getByRole("button", { name: "오류 닫기" }));
 
     expect(onClearError).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders the injected unknown-amenity fallback and contract signal", () => {
+    const { container } = render(
+      <AccommodationEditScreen
+        state={createScreenState({
+          amenitySemantics: [
+            {
+              isKnown: false,
+              label: "알 수 없는 편의시설",
+              name: "FUTURE_AMENITY",
+            },
+          ],
+          currentStep: 3,
+          formData: createFormData({
+            amenityInfos: [{ name: "FUTURE_AMENITY", count: 1 }],
+          }),
+        })}
+        actions={createScreenActions()}
+      />,
+    );
+
+    expect(screen.getByText("알 수 없는 편의시설")).toBeInTheDocument();
+    // The explicit signal catches backend catalog drift without changing glyphs.
+    // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
+    const unknownAmenity = container.querySelector(
+      '[data-amenity-known="false"]',
+    );
+    expect(unknownAmenity).toHaveAttribute(
+      "data-amenity-code",
+      "FUTURE_AMENITY",
+    );
   });
 
   it("renders a persistent protected-recovery action and locks ordinary edits", () => {
@@ -752,19 +837,35 @@ describe("AccommodationEdit extracted components", () => {
     }
   });
 
-  it("renders info step fields and forwards edits", () => {
-    const onInputChange = vi.fn();
-    const onNestedChange = vi.fn();
-    const setFormData = vi.fn();
+  it("dispatches one semantic command for each info-step action", () => {
+    const onFieldChange = vi.fn();
+    const onOccupancyChange = vi.fn();
+    const onGuestIncrement = vi.fn();
+    const onGuestDecrement = vi.fn();
+    const onAmenityIncrement = vi.fn();
+    const onAmenityDecrement = vi.fn();
+    const onAmenityRemove = vi.fn();
     const onOpenTypeModal = vi.fn();
     const onOpenAmenityModal = vi.fn();
 
     render(
       <InfoStep
-        formData={createFormData()}
-        onInputChange={onInputChange}
-        onNestedChange={onNestedChange}
-        setFormData={setFormData}
+        amenitySemantics={wifiAmenitySemantics}
+        formData={createFormData({
+          occupancyPolicyInfo: {
+            maxOccupancy: "2",
+            infantOccupancy: false,
+            petOccupancy: false,
+          },
+          amenityInfos: [{ name: "WIFI", count: 2 }],
+        })}
+        onFieldChange={onFieldChange}
+        onOccupancyChange={onOccupancyChange}
+        onGuestIncrement={onGuestIncrement}
+        onGuestDecrement={onGuestDecrement}
+        onAmenityIncrement={onAmenityIncrement}
+        onAmenityDecrement={onAmenityDecrement}
+        onAmenityRemove={onAmenityRemove}
         onOpenTypeModal={onOpenTypeModal}
         onOpenAmenityModal={onOpenAmenityModal}
       />,
@@ -775,10 +876,42 @@ describe("AccommodationEdit extracted components", () => {
     });
     fireEvent.click(screen.getByText("전체 숙소"));
     fireEvent.click(screen.getByText("편의시설 추가"));
+    fireEvent.click(
+      screen.getByRole("button", { name: "최대 게스트 수 줄이기" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "최대 게스트 수 늘리기" }),
+    );
+    fireEvent.click(screen.getByRole("checkbox", { name: "유아 수용 가능" }));
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "반려동물 수용 가능" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "무선 인터넷 수량 감소" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "무선 인터넷 수량 증가" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "무선 인터넷 제거" }));
 
-    expect(onInputChange).toHaveBeenCalledWith("name", "새 숙소");
-    expect(onOpenTypeModal).toHaveBeenCalled();
-    expect(onOpenAmenityModal).toHaveBeenCalled();
+    expect(onFieldChange).toHaveBeenCalledTimes(1);
+    expect(onFieldChange).toHaveBeenCalledWith("name", "새 숙소");
+    expect(onOpenTypeModal).toHaveBeenCalledTimes(1);
+    expect(onOpenAmenityModal).toHaveBeenCalledTimes(1);
+    expect(onGuestDecrement).toHaveBeenCalledTimes(1);
+    expect(onGuestIncrement).toHaveBeenCalledTimes(1);
+    expect(onOccupancyChange).toHaveBeenNthCalledWith(
+      1,
+      "infantOccupancy",
+      true,
+    );
+    expect(onOccupancyChange).toHaveBeenNthCalledWith(2, "petOccupancy", true);
+    expect(onAmenityDecrement).toHaveBeenCalledTimes(1);
+    expect(onAmenityDecrement).toHaveBeenCalledWith("WIFI");
+    expect(onAmenityIncrement).toHaveBeenCalledTimes(1);
+    expect(onAmenityIncrement).toHaveBeenCalledWith("WIFI");
+    expect(onAmenityRemove).toHaveBeenCalledTimes(1);
+    expect(onAmenityRemove).toHaveBeenCalledWith("WIFI");
   });
 
   it("selects accommodation type from the extracted modal", () => {
@@ -795,8 +928,9 @@ describe("AccommodationEdit extracted components", () => {
 
     fireEvent.click(screen.getByText("개인실"));
 
+    expect(onSelect).toHaveBeenCalledTimes(1);
     expect(onSelect).toHaveBeenCalledWith("PRIVATE_ROOM");
-    expect(onClose).toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it("renders edit modals as accessible dialogs and focuses the close action", () => {
@@ -831,7 +965,10 @@ describe("AccommodationEdit extracted components", () => {
     render(
       <AmenityModal
         amenityInfos={[]}
-        setFormData={vi.fn()}
+        options={amenityOptions}
+        onToggle={vi.fn()}
+        onIncrement={vi.fn()}
+        onDecrement={vi.fn()}
         onClose={onClose}
       />,
     );
@@ -846,30 +983,61 @@ describe("AccommodationEdit extracted components", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it("selects and increments amenities from the extracted modal", () => {
-    const setFormData = vi.fn();
+  it("dispatches one semantic command for each amenity modal action", () => {
+    const onToggle = vi.fn();
+    const onIncrement = vi.fn();
+    const onDecrement = vi.fn();
     const onClose = vi.fn();
 
-    render(
+    const { rerender } = render(
       <AmenityModal
         amenityInfos={[]}
-        setFormData={setFormData}
+        options={amenityOptions}
+        onToggle={onToggle}
+        onIncrement={onIncrement}
+        onDecrement={onDecrement}
         onClose={onClose}
       />,
     );
 
     fireEvent.click(screen.getByText("무선 인터넷"));
+    expect(onToggle).toHaveBeenCalledTimes(1);
+    expect(onToggle).toHaveBeenCalledWith("WIFI");
+
+    rerender(
+      <AmenityModal
+        amenityInfos={[{ name: "WIFI", count: 2 }]}
+        options={amenityOptions}
+        onToggle={onToggle}
+        onIncrement={onIncrement}
+        onDecrement={onDecrement}
+        onClose={onClose}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "무선 인터넷 수량 감소" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "무선 인터넷 수량 증가" }),
+    );
     fireEvent.click(screen.getByText("완료"));
 
-    expect(setFormData).toHaveBeenCalled();
-    expect(onClose).toHaveBeenCalled();
+    expect(onDecrement).toHaveBeenCalledTimes(1);
+    expect(onDecrement).toHaveBeenCalledWith("WIFI");
+    expect(onIncrement).toHaveBeenCalledTimes(1);
+    expect(onIncrement).toHaveBeenCalledWith("WIFI");
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it("does not nest amenity count buttons inside selectable controls", () => {
     render(
       <AmenityModal
         amenityInfos={[{ name: "WIFI", count: 1 }]}
-        setFormData={vi.fn()}
+        options={amenityOptions}
+        onToggle={vi.fn()}
+        onIncrement={vi.fn()}
+        onDecrement={vi.fn()}
         onClose={vi.fn()}
       />,
     );
@@ -887,12 +1055,16 @@ describe("AccommodationEdit extracted components", () => {
   });
 
   it("does not toggle amenity selection when count buttons receive keyboard events", () => {
-    const setFormData = vi.fn();
+    const onToggle = vi.fn();
+    const onIncrement = vi.fn();
 
     render(
       <AmenityModal
         amenityInfos={[{ name: "WIFI", count: 1 }]}
-        setFormData={setFormData}
+        options={amenityOptions}
+        onToggle={onToggle}
+        onIncrement={onIncrement}
+        onDecrement={vi.fn()}
         onClose={vi.fn()}
       />,
     );
@@ -906,37 +1078,53 @@ describe("AccommodationEdit extracted components", () => {
 
     fireEvent.keyDown(incrementButton, { key: "Enter" });
 
-    expect(setFormData).not.toHaveBeenCalled();
+    expect(onIncrement).not.toHaveBeenCalled();
+    expect(onToggle).not.toHaveBeenCalled();
   });
 
   it("renders time step and delegates time picker changes", () => {
-    const onTimeChange = vi.fn();
-    const setOpenTimePicker = vi.fn();
+    const onTimeValueSelect = vi.fn();
+    const onTimePickerOpen = vi.fn();
+    const onTimePickerClose = vi.fn();
 
     render(
       <TimeStep
         checkInTime="15:00:00"
         checkOutTime="11:00:00"
         openTimePicker="checkIn"
-        setOpenTimePicker={setOpenTimePicker}
-        onTimeChange={onTimeChange}
+        onTimePickerOpen={onTimePickerOpen}
+        onTimePickerClose={onTimePickerClose}
+        onTimeValueSelect={onTimeValueSelect}
       />,
     );
 
     fireEvent.click(screen.getByText("오후"));
     fireEvent.click(screen.getByText("04"));
+    fireEvent.click(screen.getByRole("button", { name: /오후 03:00/ }));
+    fireEvent.click(screen.getByRole("button", { name: /오전 11:00/ }));
 
-    expect(onTimeChange).toHaveBeenCalledWith("checkIn", 4, 0, "PM");
+    expect(onTimeValueSelect).toHaveBeenCalledTimes(2);
+    expect(onTimeValueSelect).toHaveBeenNthCalledWith(1, "checkIn", {
+      unit: "period",
+      value: "PM",
+    });
+    expect(onTimeValueSelect).toHaveBeenNthCalledWith(2, "checkIn", {
+      unit: "hour",
+      value: 4,
+    });
+    expect(onTimePickerClose).toHaveBeenCalledTimes(1);
+    expect(onTimePickerOpen).toHaveBeenCalledTimes(1);
+    expect(onTimePickerOpen).toHaveBeenCalledWith("checkOut");
   });
 
   it("renders standalone time picker controls", () => {
-    const onChange = vi.fn();
+    const onSelect = vi.fn();
 
-    render(<TimePicker hour={3} minute={0} period="PM" onChange={onChange} />);
+    render(<TimePicker hour={3} minute={0} period="PM" onSelect={onSelect} />);
 
     fireEvent.click(screen.getByText("30"));
 
-    expect(onChange).toHaveBeenCalledWith(3, 30, "PM");
+    expect(onSelect).toHaveBeenCalledWith({ unit: "minute", value: 30 });
   });
 
   it("closes the time popover on Escape and restores its trigger focus", async () => {
@@ -950,8 +1138,9 @@ describe("AccommodationEdit extracted components", () => {
           checkInTime="15:00:00"
           checkOutTime="11:00:00"
           openTimePicker={openTimePicker}
-          setOpenTimePicker={setOpenTimePicker}
-          onTimeChange={vi.fn()}
+          onTimePickerOpen={setOpenTimePicker}
+          onTimePickerClose={() => setOpenTimePicker(null)}
+          onTimeValueSelect={vi.fn()}
         />
       );
     }

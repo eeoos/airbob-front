@@ -1,11 +1,13 @@
 {
   "migratedFeatures": [
+    "accommodations",
     "accommodations/detail",
     "accommodations/listing-editor",
     "auth",
     "home",
     "profile",
     "reservations",
+    "reservations/booking",
     "reservations/payment",
     "reviews",
     "search",

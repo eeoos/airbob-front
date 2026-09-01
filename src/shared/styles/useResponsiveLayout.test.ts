@@ -32,9 +32,13 @@ describe("useResponsiveLayout", () => {
   });
 
   it.each([
+    [320, "mobile-tablet"],
+    [375, "mobile-tablet"],
+    [768, "mobile-tablet"],
     [1023, "mobile-tablet"],
     [1024, "mobile-tablet"],
     [1025, "desktop"],
+    [1440, "desktop"],
   ] as const)(
     "returns the %s initial layout synchronously",
     (nextWidth, layout) => {

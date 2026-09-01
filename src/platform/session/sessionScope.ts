@@ -1,3 +1,5 @@
+import type { SessionRuntimeLeaseId } from "./runtimeLeaseId";
+
 declare const sessionSubjectBrand: unique symbol;
 
 /**
@@ -11,9 +13,13 @@ export type SessionSubject = string & {
 export interface AuthenticatedSessionScope {
   readonly subject: SessionSubject;
   readonly epoch: number;
+  readonly runtimeLeaseId: SessionRuntimeLeaseId;
 }
 
 export const isSameAuthenticatedSessionScope = (
   left: AuthenticatedSessionScope,
   right: AuthenticatedSessionScope,
-): boolean => left.subject === right.subject && left.epoch === right.epoch;
+): boolean =>
+  left.subject === right.subject &&
+  left.epoch === right.epoch &&
+  left.runtimeLeaseId === right.runtimeLeaseId;

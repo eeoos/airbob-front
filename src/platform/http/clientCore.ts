@@ -2,6 +2,7 @@ import { HttpTransportFailure } from "./transportFailure";
 
 const API_REQUEST_TIMEOUT_MS = 30_000;
 const MULTIPART_API_REQUEST_TIMEOUT_MS = 5 * 60_000;
+const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9._:-]{8,128}$/u;
 
 type HttpQueryPrimitive = boolean | number | string;
 type HttpQueryValue =
@@ -12,6 +13,7 @@ export interface HttpClientRequest {
   readonly path: string;
   readonly body?: unknown;
   readonly bodyEncoding?: "multipart";
+  readonly idempotencyKey?: string;
   readonly params?: object;
   readonly signal?: AbortSignal | undefined;
   readonly onUploadProgress?: (progress: number) => void;
@@ -155,12 +157,26 @@ const requestBodyFor = (request: HttpClientRequest): BodyInit | undefined => {
   return request.body === undefined ? undefined : JSON.stringify(request.body);
 };
 
-const requestHeadersFor = (request: HttpClientRequest): HeadersInit => ({
-  Accept: "application/json",
-  ...(request.body === undefined || request.bodyEncoding === "multipart"
-    ? {}
-    : { "Content-Type": "application/json" }),
-});
+const requestHeadersFor = (
+  request: HttpClientRequest,
+): Readonly<Record<string, string>> => {
+  if (
+    request.idempotencyKey !== undefined &&
+    !IDEMPOTENCY_KEY_PATTERN.test(request.idempotencyKey)
+  ) {
+    throw new HttpTransportFailure("configuration");
+  }
+
+  return {
+    Accept: "application/json",
+    ...(request.body === undefined || request.bodyEncoding === "multipart"
+      ? {}
+      : { "Content-Type": "application/json" }),
+    ...(request.idempotencyKey === undefined
+      ? {}
+      : { "Idempotency-Key": request.idempotencyKey }),
+  };
+};
 
 const assertSuccessfulResponse = (
   status: number,
@@ -221,6 +237,7 @@ const sendMultipartProgressRequest = (
   request: HttpClientRequest,
 ): Promise<HttpClientResponse> => {
   const body = requestBodyFor(request);
+  const headers = requestHeadersFor(request);
   if (!(body instanceof FormData)) {
     throw new HttpTransportFailure("configuration");
   }
@@ -261,7 +278,9 @@ const sendMultipartProgressRequest = (
       browserRequest.open(request.method, url);
       browserRequest.withCredentials = true;
       browserRequest.timeout = requestTimeoutFor(request);
-      browserRequest.setRequestHeader("Accept", "application/json");
+      Object.entries(headers).forEach(([name, value]) => {
+        browserRequest.setRequestHeader(name, value);
+      });
       browserRequest.upload.onprogress = ({
         lengthComputable,
         loaded,

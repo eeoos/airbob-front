@@ -32,7 +32,7 @@ const getMediaBlock = (css: string, query: string) => {
 describe("Profile responsive layout contracts", () => {
   it("removes desktop sidebar spacing and divider on tablet/mobile", () => {
     const css = readProfileCss();
-    const tabletBlock = getMediaBlock(css, "(max-width: 1024px)");
+    const tabletBlock = getMediaBlock(css, "(--viewport-mobile-tablet)");
 
     expect(tabletBlock).toMatch(/\.sidebar\s*{[^}]*padding-right:\s*0;/s);
     expect(tabletBlock).toMatch(/\.sidebar\s*{[^}]*border-right:\s*none;/s);

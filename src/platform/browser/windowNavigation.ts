@@ -1,7 +1,9 @@
 export interface BrowserWindowNavigation {
   getOrigin(): string;
+  getCurrentUserState(): unknown;
   isCurrentHistoryEntry(entry: BrowserHistoryEntry): boolean;
   openInNewTab(url: string): Window | null;
+  replaceCurrentUserState(state: unknown): boolean;
   replaceCurrentUrl(url: string): void;
 }
 
@@ -28,6 +30,13 @@ export const browserWindowNavigation: BrowserWindowNavigation = {
     return window.location.origin;
   },
 
+  getCurrentUserState() {
+    const state: unknown = window.history.state;
+    return typeof state === "object" && state !== null && "usr" in state
+      ? state.usr
+      : null;
+  },
+
   isCurrentHistoryEntry(entry) {
     const currentHistoryKey = readCurrentHistoryKey();
     const isSameHistoryKey =
@@ -50,6 +59,45 @@ export const browserWindowNavigation: BrowserWindowNavigation = {
     }
 
     return openedWindow;
+  },
+
+  replaceCurrentUserState(userState) {
+    try {
+      const expected = JSON.stringify(userState);
+      if (expected === undefined) return false;
+      const currentState: unknown = window.history.state;
+      const currentRecord =
+        typeof currentState === "object" &&
+        currentState !== null &&
+        !Array.isArray(currentState)
+          ? currentState
+          : {};
+      const currentKey = readCurrentHistoryKey();
+      window.history.replaceState(
+        { ...currentRecord, usr: userState },
+        "",
+        `${window.location.pathname}${window.location.search}${window.location.hash}`,
+      );
+      const writtenState: unknown = window.history.state;
+      if (
+        typeof writtenState !== "object" ||
+        writtenState === null ||
+        !("usr" in writtenState)
+      ) {
+        return false;
+      }
+      const verified =
+        readCurrentHistoryKey() === currentKey &&
+        JSON.stringify(writtenState.usr) === expected;
+      if (verified) {
+        window.dispatchEvent(
+          new PopStateEvent("popstate", { state: window.history.state }),
+        );
+      }
+      return verified;
+    } catch {
+      return false;
+    }
   },
 
   replaceCurrentUrl(url) {

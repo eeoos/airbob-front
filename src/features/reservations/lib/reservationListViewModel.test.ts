@@ -15,6 +15,8 @@ const guestReservationFixture = (
   reservationUid: "guest-reservation-11",
   checkInDate: "2026-07-10",
   checkOutDate: "2026-07-12",
+  timeZoneId: "Asia/Seoul",
+  status: "CONFIRMED",
   createdAt: "2026-07-01T00:00:00",
   accommodation: {
     id: 7,
@@ -35,7 +37,8 @@ const hostReservationFixture = (
   guestCount: 3,
   checkInDate: "2026-07-10",
   checkOutDate: "2026-07-12",
-  status: "PAYMENT_COMPLETED",
+  status: "PAYMENT_PROCESSING",
+  timeZoneId: "Asia/Seoul",
   createdAt: "2026-07-01",
   guest: {
     id: 2,
@@ -63,8 +66,8 @@ describe("reservation list view model", () => {
   it("maps host reservation DTO fields into row display fields", () => {
     expect(toHostReservationRowViewModel(hostReservationFixture())).toEqual({
       reservationUid: "host-reservation-7",
-      statusLabel: "결제 완료",
-      statusTone: "success",
+      statusLabel: "결제 처리 중",
+      statusTone: "warning",
       guestName: "예약 게스트",
       guestCountLabel: "3명",
       checkInLabel: "2026년 7월 10일",

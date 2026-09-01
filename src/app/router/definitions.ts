@@ -4,7 +4,6 @@ import { ROUTE_PATHS } from "./paths";
 type RouteAuthPolicy = "public" | "authenticated";
 type RouteShell = AppShellId;
 export type RouteHeaderPolicy = "default" | "search" | "hidden";
-
 interface RouteDefinitionShape {
   id: string;
   path: string;

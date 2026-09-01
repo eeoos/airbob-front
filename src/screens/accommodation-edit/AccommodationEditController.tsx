@@ -5,13 +5,12 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
-  type Dispatch,
-  type SetStateAction,
 } from "react";
 import type {
   ListingEditorApiPort,
   ListingEditorQueryPort,
 } from "../../features/accommodations/listing-editor/public";
+import type { AccommodationAmenityCatalog } from "../../features/accommodations/public";
 import {
   createListingEditorWorkflow,
   type EditorPersistenceIntent,
@@ -40,6 +39,7 @@ import { useListingEditorImages } from "./useListingEditorImages";
 
 export interface AccommodationEditControllerProps {
   readonly accommodationId: number;
+  readonly amenityCatalog: AccommodationAmenityCatalog;
   readonly addressSearch: ListingEditorAddressSearchPort;
   readonly api: ListingEditorApiPort;
   readonly instanceId: string;
@@ -111,6 +111,7 @@ const hasSnapshot = (
 
 export function AccommodationEditController({
   accommodationId,
+  amenityCatalog,
   addressSearch,
   api,
   instanceId,
@@ -275,7 +276,7 @@ export function AccommodationEditController({
   const handleAddressSelected = useCallback(
     (address: AccommodationEditFormData["addressInfo"]) => {
       if (!prepareDraftEdit()) return;
-      draft.setFormData((current) => ({ ...current, addressInfo: address }));
+      draft.replaceAddress(address);
     },
     [draft, prepareDraftEdit],
   );
@@ -341,9 +342,7 @@ export function AccommodationEditController({
 
       const mustConfirmAddress =
         !draft.formData.addressInfo.detail.trim() &&
-        (intent === "publish" ||
-          (intent === "save-exit" && currentStep === 1) ||
-          (intent === "advance" && currentStep === 1));
+        (intent === "publish" || currentStep === 1);
       if (mustConfirmAddress) {
         setPendingIntent(intent);
         return;
@@ -368,24 +367,6 @@ export function AccommodationEditController({
     },
     [applyCommandResult, images, workflow],
   );
-
-  const setFormData: Dispatch<SetStateAction<AccommodationEditFormData>> =
-    useCallback(
-      (action) => {
-        if (!prepareDraftEdit()) return;
-        draft.setFormData(action);
-      },
-      [draft, prepareDraftEdit],
-    );
-
-  const setOpenTimePicker: AccommodationEditScreenActions["setOpenTimePicker"] =
-    useCallback(
-      (action) => {
-        if (!prepareDraftEdit()) return;
-        draft.setOpenTimePicker(action);
-      },
-      [draft, prepareDraftEdit],
-    );
 
   const isStepCompleted = useCallback(
     (step: AccommodationEditStep) =>
@@ -460,8 +441,30 @@ export function AccommodationEditController({
           ambiguous: machineState.retry === "locked",
         })
       : null;
+  const amenityOptions = useMemo(
+    () =>
+      amenityCatalog.knownAmenities.map(({ code, label }) => ({
+        label,
+        name: code,
+      })),
+    [amenityCatalog],
+  );
+  const amenitySemantics = useMemo(
+    () =>
+      draft.formData.amenityInfos.map(({ name }) => {
+        const semanticAmenity = amenityCatalog.resolve(name);
+        return {
+          isKnown: semanticAmenity.isKnown,
+          label: semanticAmenity.label,
+          name,
+        };
+      }),
+    [amenityCatalog, draft.formData.amenityInfos],
+  );
 
   const state: AccommodationEditScreenState = {
+    amenityOptions,
+    amenitySemantics,
     canProceedToNext,
     currentStep,
     detailState: toDetailState(machineState.status, accommodationId),
@@ -514,7 +517,7 @@ export function AccommodationEditController({
     },
     onDetailChange: (value) => {
       if (!prepareDraftEdit()) return;
-      draft.handleNestedChange("addressInfo", "detail", value);
+      draft.changeAddressDetail(value);
     },
     onDragEnd: (event) => {
       if (!prepareDraftEdit()) return;
@@ -539,13 +542,37 @@ export function AccommodationEditController({
       if (!prepareDraftEdit()) return;
       images.handleImageSelect(event);
     },
-    onInputChange: (field, value) => {
+    onFieldChange: (field, value) => {
       if (!prepareDraftEdit()) return;
-      draft.handleInputChange(field, value);
+      draft.changeField(field, value);
     },
-    onNestedChange: (parent, field, value) => {
+    onOccupancyChange: (field, value) => {
       if (!prepareDraftEdit()) return;
-      draft.handleNestedChange(parent, field, value);
+      draft.changeOccupancy(field, value);
+    },
+    onGuestIncrement: () => {
+      if (!prepareDraftEdit()) return;
+      draft.incrementGuest();
+    },
+    onGuestDecrement: () => {
+      if (!prepareDraftEdit()) return;
+      draft.decrementGuest();
+    },
+    onAmenityToggle: (name) => {
+      if (!prepareDraftEdit()) return;
+      draft.toggleAmenity(name);
+    },
+    onAmenityIncrement: (name) => {
+      if (!prepareDraftEdit()) return;
+      draft.incrementAmenity(name);
+    },
+    onAmenityDecrement: (name) => {
+      if (!prepareDraftEdit()) return;
+      draft.decrementAmenity(name);
+    },
+    onAmenityRemove: (name) => {
+      if (!prepareDraftEdit()) return;
+      draft.removeAmenity(name);
     },
     onNext: () => {
       if (canProceedToNext) requestIntent("advance");
@@ -569,13 +596,23 @@ export function AccommodationEditController({
       const target = stepNumber as AccommodationEditStep;
       if (isStepClickable(target)) setCurrentStep(target);
     },
-    onTimeChange: (type, hour, minute, period) => {
+    onTimePickerOpen: (picker) => {
       if (!prepareDraftEdit()) return;
-      draft.handleTimeChange(type, hour, minute, period);
+      draft.openTimePickerCommand(picker);
+    },
+    onTimePickerClose: () => {
+      if (!prepareDraftEdit()) return;
+      draft.closeTimePicker();
+    },
+    onTimeValueSelect: (type, selection) => {
+      if (!prepareDraftEdit()) return;
+      draft.selectTimeValue(type, selection);
+    },
+    onAccommodationTypeSelect: (type) => {
+      if (!prepareDraftEdit()) return;
+      if (draft.selectAccommodationType(type)) setIsTypeModalOpen(false);
     },
     resolveImageUrl,
-    setFormData,
-    setOpenTimePicker,
   };
 
   return <AccommodationEditScreen state={state} actions={actions} />;

@@ -2,6 +2,7 @@ import type { Mocked } from "vitest";
 import type { HostListingActionsApiPort } from "../../features/accommodations/ports/hostListingActionsApiPort";
 import { AppError } from "../../platform/http/errors";
 import type { AuthenticatedSessionScope } from "../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../test/sessionFixtures";
 import {
   createHostListingManagementWorkflow,
   type HostListingManagementPublicationPort,
@@ -10,6 +11,7 @@ import {
 const scope: AuthenticatedSessionScope = {
   subject: "subject:member_7" as AuthenticatedSessionScope["subject"],
   epoch: 4,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 
 const deferred = <T>() => {

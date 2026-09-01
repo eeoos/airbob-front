@@ -1,4 +1,5 @@
 import React from "react";
+import { ImageWithFallback } from "../../../shared/ui";
 import {
   getSearchAccommodationPriceDisplay,
   type SearchAccommodationCardViewModel,
@@ -55,36 +56,13 @@ export const SearchAccommodationCard: React.FC<
         onClick={handleCardClick}
       >
         <div className={styles.wishlistCardImage}>
-          {accommodation.thumbnailUrl ? (
-            <>
-              <img
-                src={accommodation.thumbnailUrl}
-                alt={accommodation.name}
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = "none";
-                  const placeholder = target.nextElementSibling as HTMLElement;
-                  const placeholderClassName = styles.placeholderImage;
-                  if (
-                    placeholder &&
-                    placeholderClassName &&
-                    placeholder.classList.contains(placeholderClassName)
-                  ) {
-                    placeholder.hidden = false;
-                    placeholder.style.display = "flex";
-                  }
-                }}
-              />
-              <div
-                className={`${styles.placeholderImage} ${styles.placeholderImageHidden}`}
-                hidden
-              >
-                이미지 없음
-              </div>
-            </>
-          ) : (
-            <div className={styles.placeholderImage}>이미지 없음</div>
-          )}
+          <ImageWithFallback
+            src={accommodation.thumbnailUrl}
+            alt={accommodation.name}
+            fallback={
+              <div className={styles.placeholderImage}>이미지 없음</div>
+            }
+          />
         </div>
         <div className={styles.wishlistCardInfo}>
           <div className={styles.locationRow}>

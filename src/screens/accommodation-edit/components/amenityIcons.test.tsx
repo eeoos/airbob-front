@@ -1,10 +1,10 @@
 import { render, screen } from "@testing-library/react";
+import {
+  accommodationAmenityCatalog,
+  type AccommodationAmenityCode,
+} from "../../../features/accommodations/public";
 import { accommodationEditAmenityIconRegistry } from "./amenityIconRegistry";
 import { AmenityIcon } from "./amenityIcons";
-import {
-  AMENITY_OPTIONS,
-  type AccommodationEditAmenityCode,
-} from "./editorOptions";
 
 const geometrySignature = (svg: SVGSVGElement): string =>
   // SVG geometry is the behavior under contract, so direct child inspection is intentional.
@@ -68,14 +68,16 @@ const editorAmenityGeometry = {
     "rect(height=12,rx=2,width=18,x=3,y=6)|path(d=M3 10h18M3 14h18)|circle(cx=8,cy=12,r=1)|circle(cx=16,cy=12,r=1)",
   BALCONY:
     "rect(height=12,rx=2,width=18,x=3,y=8)|path(d=M3 12h18M3 16h18)|path(d=M6 20v-4M18 20v-4)",
-} as const satisfies Record<AccommodationEditAmenityCode, string>;
+} as const satisfies Record<AccommodationAmenityCode, string>;
 
 const fallbackGeometry =
   "rect(height=18,rx=2,width=18,x=3,y=3)|path(d=M3 9h18M9 3v18)";
 
 describe("accommodation edit AmenityIcon", () => {
   it("maps every amenity option exposed by the editor", () => {
-    const optionCodes = AMENITY_OPTIONS.map(({ value }) => value).sort();
+    const optionCodes = accommodationAmenityCatalog.knownAmenities
+      .map(({ code }) => code)
+      .sort();
     const mappedCodes = Object.keys(
       accommodationEditAmenityIconRegistry.glyphs,
     ).sort();
@@ -88,16 +90,16 @@ describe("accommodation edit AmenityIcon", () => {
     ).toEqual([]);
   });
 
-  it.each(AMENITY_OPTIONS)(
-    "preserves the pre-refactor $value SVG geometry",
-    ({ value }) => {
-      const { container } = render(<AmenityIcon type={value} />);
+  it.each(accommodationAmenityCatalog.knownAmenities)(
+    "preserves the pre-refactor $code SVG geometry",
+    ({ code }) => {
+      const { container } = render(<AmenityIcon type={code} />);
       // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       const icon = container.querySelector("svg");
 
       expect(icon).not.toBeNull();
       expect(geometrySignature(icon as SVGSVGElement)).toBe(
-        editorAmenityGeometry[value],
+        editorAmenityGeometry[code],
       );
     },
   );

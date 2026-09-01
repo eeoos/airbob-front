@@ -1,7 +1,7 @@
 ---
 title: Frontend Architecture Verification Loop Before Design Work
 date: 2026-07-03
-last_updated: 2026-07-06
+last_updated: 2026-09-01
 category: workflow-issues
 module: frontend-architecture
 problem_type: workflow_issue
@@ -30,6 +30,18 @@ related_components: [testing_framework, documentation, tooling]
 # Frontend Architecture Verification Loop Before Design Work
 
 ## Context
+
+> Current-target caveat (2026-09-01): this document preserves historical
+> workflow lessons; its `routes/pages`, `appShell` and `publicCache` examples do
+> not describe the current runtime. Start from frontend `cfdb1e4`, read-only
+> backend contract target `b2ec09a`, the
+> [current architecture](../../architecture/current-frontend-architecture.md),
+> [independent re-audit](../../qa/2026-09-01-frontend-architecture-independent-read-only-reaudit.md)
+> and [active contract-alignment plan](../../plans/2026-09-01-001-refactor-local-backend-contract-alignment-plan.md).
+> At that baseline, custom-media transformation is configured but has no
+> production named-alias consumer, and detail/editor amenity semantics remain
+> duplicated; neither boundary is complete until the active plan's U14/U15 work
+> lands.
 
 Airbob needed a behavior-preserving frontend architecture refactor before applying the Airbnb `design.md` styling pass. The important sequence was architecture first, visual redesign second. The architecture work had to stabilize URL ownership, auth/layout policy, domain state boundaries, shared UI primitives, and overlay tokens before broad visual changes could hide regressions.
 
@@ -422,6 +434,11 @@ The design handoff should preserve known limitations:
 
 ## Related
 
+- `docs/plans/2026-09-01-001-refactor-local-backend-contract-alignment-plan.md`
+  is the active implementation plan; the 2026-08-29 plan and July plans are
+  historical evidence.
+- `docs/qa/2026-09-01-frontend-architecture-independent-read-only-reaudit.md`
+  records the current evidence and explicit incomplete boundaries.
 - `docs/superpowers/plans/2026-07-02-airbob-pre-design-architecture.md` describes the pre-design architecture plan and the reason design work was deferred.
 - `docs/superpowers/plans/2026-07-04-airbob-profile-reservation-boundary-refactor.ko.md` describes the profile, reservation, payment, and review route-boundary refactor that produced the route-only barrel and feature-owned CSS rules.
 - `docs/superpowers/plans/2026-07-06-airbob-frontend-architecture-freeze.ko.md` documents the task-by-task architecture freeze execution plan.

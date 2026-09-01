@@ -105,7 +105,7 @@
   opacity: 0.6;
 }
 
-@media (max-width: 768px) {
+@media (--viewport-tablet) {
   .title {
     font-size: 20px;
     margin-bottom: var(--space-6);

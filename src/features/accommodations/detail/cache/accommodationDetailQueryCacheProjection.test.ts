@@ -7,6 +7,7 @@ import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../../../test/sessionFixtures";
 import type { AccommodationDetail } from "../model/accommodationDetail";
 import { accommodationReadQueryKeys } from "../queries/queryKeys";
 import { createAccommodationDetailQueryCacheProjection } from "./accommodationDetailQueryCacheProjection";
@@ -14,10 +15,12 @@ import { createAccommodationDetailQueryCacheProjection } from "./accommodationDe
 const scopeA = {
   subject: "subject:member_a" as SessionSubject,
   epoch: 3,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 } satisfies AuthenticatedSessionScope;
 const scopeB = {
   subject: "subject:member_b" as SessionSubject,
   epoch: 4,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 } satisfies AuthenticatedSessionScope;
 const anonymousScope: SessionQueryScope = { subject: null, epoch: 3 };
 
@@ -30,7 +33,7 @@ const detail = (id: number, isInWishlist: boolean): AccommodationDetail => ({
   currency: "KRW",
   checkInTime: "15:00",
   checkOutTime: "11:00",
-  unavailableDates: [],
+  timeZoneId: "Asia/Seoul",
   isInWishlist,
   addressSummary: {
     country: "대한민국",

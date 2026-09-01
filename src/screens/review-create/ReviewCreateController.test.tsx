@@ -3,6 +3,7 @@ import { StrictMode } from "react";
 import userEvent from "@testing-library/user-event";
 import { renderApp } from "../../test/renderApp";
 import type { SessionSubject } from "../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../test/sessionFixtures";
 import { ReviewCreateController } from "./ReviewCreateController";
 
 const mockUseReviewableReservationReadQuery = vi.fn();
@@ -48,12 +49,14 @@ const session = {
   captureAuthenticatedSession: vi.fn(() => ({
     subject: "subject:member_1" as SessionSubject,
     epoch: 3,
+    runtimeLeaseId: testSessionRuntimeLeaseId,
   })),
   isCurrentSession: vi.fn(() => true),
 };
 const authenticatedScope = {
   subject: "subject:member_1" as SessionSubject,
   epoch: 3,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
 };
 
 const renderController = (
@@ -82,6 +85,7 @@ describe("ReviewCreateController", () => {
     session.captureAuthenticatedSession.mockReturnValue({
       subject: "subject:member_1" as SessionSubject,
       epoch: 3,
+      runtimeLeaseId: testSessionRuntimeLeaseId,
     });
     session.isCurrentSession.mockReturnValue(true);
     mockUseReviewableReservationReadQuery.mockReset();
@@ -108,6 +112,7 @@ describe("ReviewCreateController", () => {
       scope: {
         subject: "subject:member_1",
         epoch: 3,
+        runtimeLeaseId: testSessionRuntimeLeaseId,
       },
     });
     expect(screen.getByText("테스트 숙소")).toBeInTheDocument();
