@@ -442,7 +442,10 @@ export function GuestReservationDetailScreen({
                   role="img"
                 >
                   <span aria-hidden="true" className={guestStyles.mapPin}>
-                    ·
+                    <svg viewBox="0 0 24 24">
+                      <path d="M12 21s6-5.6 6-12a6 6 0 1 0-12 0c0 6.4 6 12 6 12Z" />
+                      <circle cx="12" cy="9" r="2" />
+                    </svg>
                   </span>
                   <span>지도를 불러올 수 없습니다.</span>
                 </div>
