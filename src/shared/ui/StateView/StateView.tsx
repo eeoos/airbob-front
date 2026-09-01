@@ -1,5 +1,6 @@
 import React from "react";
 import styles from "./StateView.module.css";
+import { stateViewRecipes } from "./stateViewRecipes";
 
 export interface StateViewProps extends Omit<
   React.HTMLAttributes<HTMLDivElement>,
@@ -32,18 +33,18 @@ function StateView({
   );
 }
 
-export function LoadingState({
-  "aria-live": ariaLive = "polite",
-  role = "status",
-  ...props
-}: StateViewProps) {
-  return <StateView aria-live={ariaLive} role={role} {...props} />;
+export function LoadingState(props: StateViewProps) {
+  return <StateView {...stateViewRecipes.loading} {...props} />;
 }
 
 export function EmptyState(props: StateViewProps) {
-  return <StateView {...props} />;
+  return <StateView {...stateViewRecipes.empty} {...props} />;
 }
 
-export function ErrorState({ role = "alert", ...props }: StateViewProps) {
-  return <StateView role={role} {...props} />;
+export function RetryableErrorState(props: StateViewProps) {
+  return <StateView {...stateViewRecipes.retryableError} {...props} />;
+}
+
+export function TerminalErrorState(props: StateViewProps) {
+  return <StateView {...stateViewRecipes.terminalError} {...props} />;
 }

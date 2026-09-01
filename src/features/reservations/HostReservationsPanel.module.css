@@ -148,7 +148,7 @@
   font-size: var(--font-size-sm);
 }
 
-@media (max-width: 768px) {
+@media (--viewport-tablet) {
   .tableContainer {
     overflow-x: scroll;
   }

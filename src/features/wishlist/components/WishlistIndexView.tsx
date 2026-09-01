@@ -1,4 +1,5 @@
 import React from "react";
+import { stateViewRecipes } from "../../../shared/ui";
 import type { WishlistIndexCardViewModel } from "../lib/wishlistAccommodationViewModel";
 import styles from "./WishlistViews.module.css";
 
@@ -36,7 +37,9 @@ export function WishlistIndexView({
       {isLoading &&
       recentlyViewedSummaryLabel === "항목 없음" &&
       wishlists.length === 0 ? (
-        <div className={styles.loading}>로딩 중...</div>
+        <div className={styles.loading} {...stateViewRecipes.loading}>
+          로딩 중...
+        </div>
       ) : (
         <div className={styles.wishlistGrid}>
           <button
@@ -109,7 +112,12 @@ export function WishlistIndexView({
               className={styles.loadMoreContainer}
             >
               {isLoadingMoreWishlists && (
-                <div className={styles.loadingMore}>로딩 중...</div>
+                <div
+                  className={styles.loadingMore}
+                  {...stateViewRecipes.loading}
+                >
+                  로딩 중...
+                </div>
               )}
             </div>
           )}

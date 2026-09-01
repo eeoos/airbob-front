@@ -1,4 +1,6 @@
 import type { SearchMapAccommodation } from "../types";
+import { getSearchAccommodationPriceDisplay } from "../../../lib/searchAccommodationViewModel";
+import { escapeInfoWindowHtml } from "./safeInfoWindowHtml";
 
 interface SearchMapInfoWindowContent {
   accommodationId: string;
@@ -26,14 +28,6 @@ type SearchMapInfoWindowContentViewModel = Omit<
 > & {
   canToggleWishlist: boolean;
 };
-
-const escapeHtml = (value: string | number) =>
-  String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 
 const INFO_WINDOW_STYLE_TOKENS = {
   actionGap: "8px",
@@ -69,61 +63,6 @@ const INFO_WINDOW_STYLE_TOKENS = {
 const INFO_WINDOW_FONT =
   "var(--font-family-base), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
 
-const calculateNights = (
-  checkIn: string | null | undefined,
-  checkOut: string | null | undefined,
-) => {
-  if (!checkIn || !checkOut) {
-    return 1;
-  }
-
-  const checkInDate = new Date(checkIn);
-  const checkOutDate = new Date(checkOut);
-  const diffTime = checkOutDate.getTime() - checkInDate.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-  return diffDays > 0 ? diffDays : 1;
-};
-
-const formatPrice = (basePrice: number, currency: string) => {
-  if (currency === "KRW") {
-    return `₩${basePrice.toLocaleString()}`;
-  }
-
-  return `${currency} ${basePrice.toLocaleString()}`;
-};
-
-const formatTotalPrice = (
-  basePrice: number,
-  nights: number,
-  currency: string,
-) => formatPrice(basePrice * nights, currency);
-
-const buildPriceDisplay = (
-  accommodation: SearchMapAccommodation,
-  checkIn: string | null | undefined,
-  checkOut: string | null | undefined,
-) => {
-  const nights = calculateNights(checkIn, checkOut);
-  const hasDates = checkIn && checkOut;
-
-  if (hasDates) {
-    return {
-      priceLabel: formatTotalPrice(
-        accommodation.basePrice,
-        nights,
-        accommodation.currency,
-      ),
-      priceSuffixLabel: `${nights}박`,
-    };
-  }
-
-  return {
-    priceLabel: formatPrice(accommodation.basePrice, accommodation.currency),
-    priceSuffixLabel: "1박",
-  };
-};
-
 const buildReviewLabels = (accommodation: SearchMapAccommodation) => {
   if (!accommodation.showReview) {
     return undefined;
@@ -154,17 +93,21 @@ const buildSearchMapInfoWindowContentView = ({
   const wishlistLabel = isWishlisted
     ? "위시리스트에서 제거"
     : "위시리스트에 저장";
-  const escapedAccommodationId = escapeHtml(accommodationId);
-  const escapedTitle = escapeHtml(title);
-  const escapedPriceLabel = escapeHtml(priceLabel);
+  const escapedAccommodationId = escapeInfoWindowHtml(accommodationId);
+  const escapedTitle = escapeInfoWindowHtml(title);
+  const escapedPriceLabel = escapeInfoWindowHtml(priceLabel);
   const escapedPriceSuffixLabel = priceSuffixLabel
-    ? escapeHtml(priceSuffixLabel)
+    ? escapeInfoWindowHtml(priceSuffixLabel)
     : null;
-  const escapedImageUrl = imageUrl ? escapeHtml(imageUrl) : null;
-  const escapedLocationLabel = locationLabel ? escapeHtml(locationLabel) : null;
-  const escapedRatingLabel = ratingLabel ? escapeHtml(ratingLabel) : null;
+  const escapedImageUrl = imageUrl ? escapeInfoWindowHtml(imageUrl) : null;
+  const escapedLocationLabel = locationLabel
+    ? escapeInfoWindowHtml(locationLabel)
+    : null;
+  const escapedRatingLabel = ratingLabel
+    ? escapeInfoWindowHtml(ratingLabel)
+    : null;
   const escapedRatingSecondaryLabel = ratingSecondaryLabel
-    ? escapeHtml(ratingSecondaryLabel)
+    ? escapeInfoWindowHtml(ratingSecondaryLabel)
     : null;
 
   return `
@@ -172,8 +115,8 @@ const buildSearchMapInfoWindowContentView = ({
             <div style="position: relative; width: ${INFO_WINDOW_STYLE_TOKENS.cardWidth}; height: ${INFO_WINDOW_STYLE_TOKENS.imageHeight}; overflow: hidden; background-color: ${INFO_WINDOW_STYLE_TOKENS.backgroundMuted};">
               ${
                 escapedImageUrl
-                  ? `<img src="${escapedImageUrl}" alt="${escapedTitle}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
-              <div style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; background-color: ${INFO_WINDOW_STYLE_TOKENS.backgroundMuted}; color: ${INFO_WINDOW_STYLE_TOKENS.textSecondary}; font-size: ${INFO_WINDOW_STYLE_TOKENS.textFontSize};">이미지 없음</div>`
+                  ? `<img data-info-window-image src="${escapedImageUrl}" alt="${escapedTitle}" style="width: 100%; height: 100%; object-fit: cover;" />
+              <div data-info-window-image-fallback hidden style="display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; background-color: ${INFO_WINDOW_STYLE_TOKENS.backgroundMuted}; color: ${INFO_WINDOW_STYLE_TOKENS.textSecondary}; font-size: ${INFO_WINDOW_STYLE_TOKENS.textFontSize};">이미지 없음</div>`
                   : `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background-color: ${INFO_WINDOW_STYLE_TOKENS.backgroundMuted}; color: ${INFO_WINDOW_STYLE_TOKENS.textSecondary}; font-size: ${INFO_WINDOW_STYLE_TOKENS.textFontSize};">이미지 없음</div>`
               }
               <div style="position: absolute; top: ${INFO_WINDOW_STYLE_TOKENS.actionInset}; right: ${INFO_WINDOW_STYLE_TOKENS.actionInset}; display: flex; gap: ${INFO_WINDOW_STYLE_TOKENS.actionGap}; z-index: ${INFO_WINDOW_STYLE_TOKENS.actionLayerZIndex};">
@@ -229,14 +172,18 @@ export const buildInfoWindowContent = ({
   checkOut,
   canToggleWishlist,
 }: BuildInfoWindowContentInput) => {
-  const priceDisplay = buildPriceDisplay(accommodation, checkIn, checkOut);
+  const priceDisplay = getSearchAccommodationPriceDisplay(
+    accommodation,
+    checkIn,
+    checkOut,
+  );
   const reviewLabels = buildReviewLabels(accommodation);
 
   return buildSearchMapInfoWindowContent({
     accommodationId: String(accommodation.id),
     title: accommodation.name,
-    priceLabel: priceDisplay.priceLabel,
-    priceSuffixLabel: priceDisplay.priceSuffixLabel,
+    priceLabel: priceDisplay.amountLabel,
+    priceSuffixLabel: priceDisplay.unitLabel,
     locationLabel: accommodation.locationLabel,
     isWishlisted: accommodation.isInWishlist,
     canToggleWishlist,

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { useGoogleMapsScript } from "../../../../platform/integrations/useGoogleMapsScript";
+import { stateViewRecipes } from "../../../../shared/ui";
 import { useAccommodationMarkers } from "./hooks/useAccommodationMarkers";
 import { useGoogleMapInstance } from "./hooks/useGoogleMapInstance";
 import { useMapBoundsReporter } from "./hooks/useMapBoundsReporter";
@@ -121,7 +122,14 @@ export const Map: React.FC<SearchMapProps> = ({
 
     return (
       <div className={styles.mapContainer}>
-        <div className={styles.loading}>{mapFallbackText}</div>
+        <div
+          className={styles.loading}
+          {...(hasMapError
+            ? stateViewRecipes.retryableError
+            : stateViewRecipes.loading)}
+        >
+          {mapFallbackText}
+        </div>
       </div>
     );
   }

@@ -47,9 +47,14 @@ const evaluateWidthQuery = (query: string, width: number): boolean => {
 
 describe("shared responsive policy", () => {
   it.each([
+    [320, true, false],
+    [375, true, false],
+    [768, true, false],
+    [1023, true, false],
     [1024, true, false],
     [1024.5, false, true],
     [1025, false, true],
+    [1440, false, true],
   ])(
     "assigns %spx to exactly one layout partition",
     (width, expectedMobileOrTablet, expectedDesktop) => {
@@ -62,18 +67,42 @@ describe("shared responsive policy", () => {
     },
   );
 
-  it("publishes exactly one desktop alias aligned with the runtime partition", () => {
+  it("keeps every CSS alias aligned with the pure runtime breakpoint policy", () => {
     const declarations = readCustomMediaDeclarations();
     const desktopAliases = Array.from(declarations.keys()).filter((name) =>
       name.includes("desktop"),
     );
 
     expect(desktopAliases).toEqual(["--viewport-desktop"]);
+    expect(declarations).toEqual(
+      new Map([
+        ["--viewport-phone", RESPONSIVE_MEDIA_QUERIES.phone],
+        ["--viewport-tablet", RESPONSIVE_MEDIA_QUERIES.tablet],
+        ["--viewport-tablet-up", RESPONSIVE_MEDIA_QUERIES.tabletUp],
+        ["--viewport-mobile-tablet", RESPONSIVE_MEDIA_QUERIES.mobileOrTablet],
+        ["--viewport-desktop", RESPONSIVE_MEDIA_QUERIES.desktop],
+        ["--viewport-compact", RESPONSIVE_MEDIA_QUERIES.compact],
+        ["--viewport-wide", RESPONSIVE_MEDIA_QUERIES.wide],
+      ]),
+    );
     expect(declarations.get("--viewport-mobile-tablet")).toBe(
       RESPONSIVE_MEDIA_QUERIES.mobileOrTablet,
     );
     expect(declarations.get("--viewport-desktop")).toBe(
       RESPONSIVE_MEDIA_QUERIES.desktop,
     );
+  });
+
+  it("protects every named runtime query value", () => {
+    expect(RESPONSIVE_MEDIA_QUERIES).toEqual({
+      phone: "(max-width: 480px)",
+      tablet: "(max-width: 768px)",
+      tabletUp: "(min-width: 769px)",
+      mobileOrTablet: "(max-width: 1024px)",
+      desktop: "not all and (max-width: 1024px)",
+      compact: "(max-width: 1200px)",
+      wide: "(max-width: 1400px)",
+    });
+    expect(Object.isFrozen(RESPONSIVE_MEDIA_QUERIES)).toBe(true);
   });
 });

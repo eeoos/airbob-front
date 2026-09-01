@@ -313,7 +313,7 @@
   color: var(--color-text-inverse);
 }
 
-@media (max-width: 768px) {
+@media (--viewport-tablet) {
   .datePicker {
     position: relative;
     min-width: auto;
@@ -447,7 +447,7 @@
   }
 }
 
-@media (max-width: 480px) {
+@media (--viewport-phone) {
   .navHeader {
     padding: var(--space-3);
   }

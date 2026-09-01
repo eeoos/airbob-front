@@ -377,7 +377,7 @@
   text-align: center;
 }
 
-@media (max-width: 768px) {
+@media (--viewport-tablet) {
   /* 축소 모드 - 작게 표시 */
   .searchBar {
     max-width: 280px;
@@ -550,7 +550,7 @@
 }
 
 /* ---- Tablet (768-1024px) ---- */
-@media (min-width: 769px) and (max-width: 1024px) {
+@media (--viewport-tablet-up) and (--viewport-mobile-tablet) {
   /* 태블릿에서 날짜 선택기 - 드롭다운 계층 유지 */
   .datePickerContainer {
     z-index: var(--z-dropdown);

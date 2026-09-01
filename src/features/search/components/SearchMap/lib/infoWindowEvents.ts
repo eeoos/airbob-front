@@ -1,3 +1,5 @@
+import { bindInfoWindowImageFallback } from "./infoWindowImageFallback";
+
 interface BindInfoWindowEventsOptions {
   root: HTMLElement;
   onCardClick: () => void;
@@ -22,6 +24,7 @@ export const bindInfoWindowEvents = ({
   onClose,
   onWishlistToggle,
 }: BindInfoWindowEventsOptions) => {
+  const unbindImageFallback = bindInfoWindowImageFallback(root);
   const handleClick = (event: MouseEvent) => {
     const actionElement =
       event.target instanceof Element
@@ -58,5 +61,6 @@ export const bindInfoWindowEvents = ({
 
   return () => {
     root.removeEventListener("click", handleClick);
+    unbindImageFallback();
   };
 };

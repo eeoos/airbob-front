@@ -1,5 +1,6 @@
 import React from "react";
 import { ListContainer } from "../../../shared/ui/ListContainer";
+import { stateViewRecipes } from "../../../shared/ui/StateView";
 import type { SearchAccommodationCardViewModel } from "../lib/searchAccommodationViewModel";
 import { SearchAccommodationCard } from "./SearchAccommodationCard";
 
@@ -45,11 +46,19 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = ({
   classNames,
 }) => {
   if (isLoading && accommodations.length === 0) {
-    return <div className={classNames?.loading}>로딩 중...</div>;
+    return (
+      <div className={classNames?.loading} {...stateViewRecipes.loading}>
+        로딩 중...
+      </div>
+    );
   }
 
   if (accommodations.length === 0) {
-    return <div className={classNames?.empty}>검색 결과가 없습니다.</div>;
+    return (
+      <div className={classNames?.empty} {...stateViewRecipes.empty}>
+        검색 결과가 없습니다.
+      </div>
+    );
   }
 
   const cards = accommodations.map((accommodation) => (

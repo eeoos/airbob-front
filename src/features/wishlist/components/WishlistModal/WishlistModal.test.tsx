@@ -1,4 +1,10 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Mocked } from "vitest";
 import type {
@@ -105,6 +111,33 @@ describe("WishlistModal", () => {
     expect(
       screen.getByRole("dialog", { name: "위시리스트에 저장하기" }),
     ).toBeInTheDocument();
+  });
+
+  it("renders an accessible loading recipe for the initial read", () => {
+    mockQuery({
+      data: undefined,
+      isFetching: true,
+      isLoading: true,
+    });
+
+    renderModal();
+
+    expect(screen.getByRole("status")).toHaveAttribute(
+      "data-state-kind",
+      "loading",
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("로딩 중...");
+  });
+
+  it("declaratively replaces a failed wishlist thumbnail", () => {
+    renderModal();
+
+    fireEvent.error(screen.getByRole("img", { name: "서울 여행" }));
+
+    expect(
+      screen.queryByRole("img", { name: "서울 여행" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /서울 여행/ })).toBeVisible();
   });
 
   it("routes item writes through the injected command port", async () => {

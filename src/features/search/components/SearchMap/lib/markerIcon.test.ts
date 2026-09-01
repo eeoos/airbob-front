@@ -38,19 +38,19 @@ describe("marker icon helpers", () => {
     expect(defaultSvg).toContain(`width="${model.totalWidth}"`);
     expect(defaultSvg).toContain("₩123,456");
     expect(defaultSvg).toContain(`.price-bubble {
-                fill: #ffffff;
-                stroke: #dddddd;
+                fill: #fff;
+                stroke: #ddd;
                 stroke-width: 1;
               }`);
     expect(defaultSvg).toContain(`.price-text {
-                fill: #222222;`);
+                fill: #222;`);
     expect(selectedSvg).toContain("₩123,456");
     expect(selectedSvg).toContain(`.price-bubble {
-                fill: #222222;
-                stroke: #222222;
+                fill: #222;
+                stroke: #222;
                 stroke-width: 2;
               }`);
     expect(selectedSvg).toContain(`.price-text {
-                fill: #ffffff;`);
+                fill: #fff;`);
   });
 });

@@ -586,13 +586,13 @@ describe("DatePicker", () => {
     );
 
     expect(css).toMatch(
-      /@media \(max-width: 768px\)[\s\S]*\.days\s*\{[\s\S]*grid-auto-rows:\s*minmax\(var\(--control-touch-target\), auto\)/,
+      /@media \(--viewport-tablet\)[\s\S]*\.days\s*\{[\s\S]*grid-auto-rows:\s*minmax\(var\(--control-touch-target\), auto\)/,
     );
     expect(css).toMatch(
-      /@media \(max-width: 768px\)[\s\S]*\.day\s*\{[\s\S]*min-height:\s*var\(--control-touch-target\)/,
+      /@media \(--viewport-tablet\)[\s\S]*\.day\s*\{[\s\S]*min-height:\s*var\(--control-touch-target\)/,
     );
     expect(css).toMatch(
-      /@media \(max-width: 480px\)[\s\S]*\.day\s*\{[\s\S]*min-height:\s*var\(--control-touch-target\)/,
+      /@media \(--viewport-phone\)[\s\S]*\.day\s*\{[\s\S]*min-height:\s*var\(--control-touch-target\)/,
     );
   });
 });

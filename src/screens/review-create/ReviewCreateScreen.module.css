@@ -1,7 +1,5 @@
 .container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: var(--space-6);
+  padding-block: var(--space-6);
 }
 
 .backButton {
@@ -30,7 +28,7 @@
 
 .loading,
 .error {
-  padding: 80px var(--space-6);
+  padding-block: 80px;
   color: var(--color-text-secondary);
   font-size: var(--font-size-md);
   text-align: center;
@@ -340,9 +338,9 @@
   opacity: 0.6;
 }
 
-@media (max-width: 768px) {
+@media (--viewport-tablet) {
   .container {
-    padding: var(--space-4);
+    padding-block: var(--space-4);
   }
 
   .accommodationInfo,

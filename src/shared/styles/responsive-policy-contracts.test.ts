@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from "fs";
 import { createRequire } from "module";
 import { join, relative } from "path";
 import postcss from "postcss";
+import postcssCustomMedia from "postcss-custom-media";
 
 const customMediaCssPath = join(
   process.cwd(),
@@ -27,12 +28,15 @@ const requireCapture = (
 };
 
 const loadCommonJsModule = createRequire(import.meta.url);
-const { allowedBreakpointValues, isStrictStylePath } = loadCommonJsModule(
-  "../../../scripts/architecture/style-policy.cjs",
-) as {
-  allowedBreakpointValues: readonly string[];
-  isStrictStylePath: (filePath: string) => boolean;
-};
+const { allowedBreakpointValues, isStrictStylePath, rawMediaQueryRatchet } =
+  loadCommonJsModule("../../../scripts/architecture/style-policy.cjs") as {
+    allowedBreakpointValues: readonly string[];
+    isStrictStylePath: (filePath: string) => boolean;
+    rawMediaQueryRatchet: {
+      readonly allowedPaths: readonly string[];
+      readonly maximumWidthQueryCount: number;
+    };
+  };
 
 const collectCssFiles = (directory: string): string[] =>
   readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -90,6 +94,25 @@ const collectUnresolvedCustomMediaConsumers = (
   return consumers;
 };
 
+const collectRawWidthMediaQueries = (source: string) => {
+  const queries: string[] = [];
+  const root = postcss.parse(source);
+
+  root.walkAtRules((atRule) => {
+    if (atRule.name.toLowerCase() !== "media") return;
+    if (
+      !/\((?:min|max)-width:\s*\d+(?:\.\d+)?(?:px|em|rem)\)/i.test(
+        atRule.params,
+      )
+    ) {
+      return;
+    }
+    queries.push(atRule.params);
+  });
+
+  return queries;
+};
+
 describe("responsive architecture policy", () => {
   it.each([
     "@media screen and (--viewport-mobile-tablet) { .fixture { display: block; } }",
@@ -108,7 +131,7 @@ describe("responsive architecture policy", () => {
     expect(collectUnresolvedCustomMediaConsumers(declaration)).toEqual([]);
   });
 
-  it("enforces the canonical owner and migration breakpoint scale repository-wide", () => {
+  it("enforces canonical aliases, a decreasing raw-query ratchet, and resolved build output", async () => {
     const cssFiles = collectCssFiles(join(process.cwd(), "src"));
     const canonicalSource = readFileSync(customMediaCssPath, "utf8");
     const canonicalBreakpointValues = new Set(
@@ -136,7 +159,37 @@ describe("responsive architecture policy", () => {
           collectCustomMediaDeclarations(source).length > 0,
       )
       .map(({ projectPath }) => projectPath);
-    const unresolvedCustomMediaConsumers = sources
+    const aliasConsumers = sources.filter(
+      ({ projectPath, source }) =>
+        projectPath !== "src/shared/styles/custom-media.css" &&
+        collectUnresolvedCustomMediaConsumers(source, projectPath).length > 0,
+    );
+    const consumedAliases = new Set(
+      aliasConsumers.flatMap(({ source }) =>
+        Array.from(source.matchAll(/--viewport-[a-z-]+/g), (match) => match[0]),
+      ),
+    );
+    const rawWidthConsumers = sources.flatMap(({ projectPath, source }) =>
+      collectRawWidthMediaQueries(source).map((query) => ({
+        projectPath,
+        query,
+      })),
+    );
+    const compiledSources = await Promise.all(
+      sources
+        .filter(
+          ({ projectPath }) =>
+            projectPath !== "src/shared/styles/custom-media.css",
+        )
+        .map(async ({ projectPath, source }) => {
+          const result = await postcss([
+            postcssCustomMedia({ preserve: false }),
+          ]).process(`${canonicalSource}\n${source}`, { from: projectPath });
+
+          return { projectPath, source: result.css };
+        }),
+    );
+    const unresolvedBuiltConsumers = compiledSources
       .filter(
         ({ projectPath, source }) =>
           collectUnresolvedCustomMediaConsumers(source, projectPath).length > 0,
@@ -162,7 +215,30 @@ describe("responsive architecture policy", () => {
       ),
     ).toEqual([]);
     expect(localCustomMediaOwners).toEqual([]);
-    expect(unresolvedCustomMediaConsumers).toEqual([]);
+    expect(aliasConsumers.length).toBeGreaterThan(0);
+    expect(Array.from(consumedAliases).sort()).toEqual(
+      [
+        "--viewport-compact",
+        "--viewport-desktop",
+        "--viewport-mobile-tablet",
+        "--viewport-phone",
+        "--viewport-tablet",
+        "--viewport-tablet-up",
+        "--viewport-wide",
+      ].sort(),
+    );
+    expect(unresolvedBuiltConsumers).toEqual([]);
+    expect(rawWidthConsumers.length).toBeLessThanOrEqual(
+      rawMediaQueryRatchet.maximumWidthQueryCount,
+    );
+    expect(
+      rawWidthConsumers
+        .map(({ projectPath }) => projectPath)
+        .filter(
+          (projectPath) =>
+            !rawMediaQueryRatchet.allowedPaths.includes(projectPath),
+        ),
+    ).toEqual([]);
     expect(offScaleStrictConsumers).toEqual([]);
   });
 });

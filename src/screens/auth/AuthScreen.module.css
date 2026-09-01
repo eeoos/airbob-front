@@ -4,8 +4,13 @@
   align-items: center;
   justify-content: center;
   background-color: var(--color-background-muted);
-  padding: var(--space-6);
   position: relative;
+}
+
+.page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .card {

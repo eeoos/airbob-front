@@ -1,3 +1,4 @@
+import { PageContainer } from "../../shared/ui";
 import styles from "./HomeScreen.module.css";
 
 export interface HomeScreenProps {
@@ -7,7 +8,7 @@ export interface HomeScreenProps {
 
 export function HomeScreen({ subtitle, title }: HomeScreenProps) {
   return (
-    <div className={styles.container}>
+    <PageContainer variant="edge">
       <div className={styles.hero}>
         <div className={styles.heroOverlay}>
           <div className={styles.heroContent}>
@@ -16,6 +17,6 @@ export function HomeScreen({ subtitle, title }: HomeScreenProps) {
           </div>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

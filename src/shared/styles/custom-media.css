@@ -1,8 +1,7 @@
 /*
- * Declaration-only responsive manifest while CRA owns the build.
- * U14 adopts these values through contract-checked media literals.
- * U16 must enable custom-media transformation before any production stylesheet
- * imports this file or introduces an `@media (--viewport-*)` consumer.
+ * Canonical CSS responsive manifest. Vite injects these declarations through
+ * postcss-global-data and resolves every production alias with
+ * postcss-custom-media (`preserve: false`).
  */
 @custom-media --viewport-phone (max-width: 480px);
 @custom-media --viewport-tablet (max-width: 768px);

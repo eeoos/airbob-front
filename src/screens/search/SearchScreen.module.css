@@ -222,7 +222,7 @@
 }
 
 /* ---- Mid-Desktop (1200-1400px) ---- */
-@media (max-width: 1400px) {
+@media (--viewport-wide) {
   .main {
     padding: var(--space-6) 60px 0 60px;
     gap: var(--space-10);
@@ -246,7 +246,7 @@
 }
 
 /* ---- Small-Desktop (1024-1200px) ---- */
-@media (max-width: 1200px) {
+@media (--viewport-compact) {
   .main {
     padding: var(--space-6) var(--space-10) 0 var(--space-10);
     gap: var(--space-8);
@@ -271,7 +271,7 @@
 }
 
 /* ---- Tablet (768-1024px) ---- */
-@media (max-width: 1024px) {
+@media (--viewport-mobile-tablet) {
   /* Hide desktop layout on tablet/mobile */
   .main {
     display: none;
@@ -470,7 +470,7 @@
 }
 
 /* ---- Mobile (<768px) ---- */
-@media (max-width: 768px) {
+@media (--viewport-tablet) {
   /* Hide desktop layout on mobile */
   .main {
     display: none;
@@ -625,7 +625,7 @@
 }
 
 /* Desktop: Show desktop layout, hide bottom sheet */
-@media not all and (max-width: 1024px) {
+@media (--viewport-desktop) {
   .mapLayer,
   .bottomSheet {
     display: none;
