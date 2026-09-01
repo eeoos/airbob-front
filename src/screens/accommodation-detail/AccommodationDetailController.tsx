@@ -40,7 +40,10 @@ import {
   formatBookingLocalDate,
   normalizeBookingCounts,
 } from "./bookingDraft";
-import { toAccommodationErrorMessage } from "./accommodationDetailErrors";
+import {
+  isAccommodationDetailTerminalError,
+  toAccommodationErrorMessage,
+} from "./accommodationDetailErrors";
 import { useAccommodationCouponCommand } from "./useAccommodationCouponCommand";
 import { useAccommodationImageGallery } from "./useAccommodationImageGallery";
 import { useAccommodationReviewFeed } from "./useAccommodationReviewFeed";
@@ -500,17 +503,38 @@ export function AccommodationDetailController({
   });
 
   let state: AccommodationDetailScreenState;
+  const detailErrorIsTerminal =
+    detailQuery.isError &&
+    isAccommodationDetailTerminalError(detailQuery.error);
+  const refreshError =
+    detailQuery.isError && accommodation && !detailErrorIsTerminal
+      ? {
+          isRetrying: Boolean(detailQuery.isFetching),
+          message: toAccommodationErrorMessage(detailQuery.error),
+          onRetry: () => void detailQuery.refetch(),
+        }
+      : null;
   if (accommodationId === null) {
-    state = { status: "error", message: "숙소 정보를 확인할 수 없습니다." };
+    state = {
+      status: "terminal-error",
+      message: "숙소 정보를 확인할 수 없습니다.",
+    };
   } else if (detailQuery.isLoading) {
     state = { status: "loading" };
-  } else if (detailQuery.isError) {
-    state = {
-      status: "error",
-      message: toAccommodationErrorMessage(detailQuery.error),
-    };
+  } else if (detailQuery.isError && (!accommodation || detailErrorIsTerminal)) {
+    const message = toAccommodationErrorMessage(detailQuery.error);
+    state = detailErrorIsTerminal
+      ? { status: "terminal-error", message }
+      : {
+          status: "retryable-error",
+          message,
+          onRetry: () => void detailQuery.refetch(),
+        };
   } else if (!accommodation || !detailView) {
-    state = { status: "error", message: "숙소를 찾을 수 없습니다." };
+    state = {
+      status: "terminal-error",
+      message: "숙소를 찾을 수 없습니다.",
+    };
   } else {
     const couponViewOptions = {
       issuingCouponId,
@@ -654,7 +678,6 @@ export function AccommodationDetailController({
             setIsWishlistModalOpen(true);
           }
         },
-        onShare: () => undefined,
         onTouchStart: imageGallery.onTouchStart,
         onTouchMove: imageGallery.onTouchMove,
         onTouchEnd: imageGallery.onTouchEnd,
@@ -698,6 +721,7 @@ export function AccommodationDetailController({
     <AccommodationDetailScreen
       errorMessage={errorMessage}
       onClearError={() => setErrorMessage(null)}
+      refreshError={refreshError}
       state={state}
     />
   );

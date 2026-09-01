@@ -111,6 +111,16 @@ describe("AccommodationOverview", () => {
     expect(screen.getByText("호")).toBeInTheDocument();
   });
 
+  it("uses the host initial when the thumbnail fails to load", () => {
+    renderOverview();
+
+    fireEvent.error(screen.getByAltText("호스트"));
+
+    expect(
+      screen.getByRole("img", { name: "호스트 프로필 이미지 없음" }),
+    ).toHaveTextContent("호");
+  });
+
   it("renders an explicit catalog signal for an unknown amenity", () => {
     const { container } = render(
       <AccommodationOverview

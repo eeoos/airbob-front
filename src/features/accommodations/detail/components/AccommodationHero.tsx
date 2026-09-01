@@ -1,4 +1,5 @@
 import React from "react";
+import { ImageWithFallback } from "../../../../shared/ui";
 import type { AccommodationDetailViewModel } from "../lib/accommodationDetailViewModel";
 import styles from "./AccommodationHero.module.css";
 
@@ -19,11 +20,14 @@ interface AccommodationHeroProps {
   onMobileSlideIndexChange: (index: number) => void;
   onOpenGallery: (index: number) => void;
   onSave: () => void;
-  onShare: () => void;
   onTouchStart?: React.TouchEventHandler<HTMLDivElement>;
   onTouchMove?: React.TouchEventHandler<HTMLDivElement>;
   onTouchEnd?: React.TouchEventHandler<HTMLDivElement>;
 }
+
+const PhotoPlaceholderIcon = () => (
+  <span aria-hidden="true" className={styles.photoPlaceholderIcon} />
+);
 
 const AccommodationHero: React.FC<AccommodationHeroProps> = ({
   detailView,
@@ -31,7 +35,6 @@ const AccommodationHero: React.FC<AccommodationHeroProps> = ({
   onMobileSlideIndexChange,
   onOpenGallery,
   onSave,
-  onShare,
   onTouchStart,
   onTouchMove,
   onTouchEnd,
@@ -41,6 +44,40 @@ const AccommodationHero: React.FC<AccommodationHeroProps> = ({
   const handleMobileTouchEnd = adaptDivTouchHandler(onTouchEnd);
   const { heroImages, rating, title } = detailView;
   const primaryHeroImage = heroImages.at(0);
+
+  const handleMobileSliderKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+  ) => {
+    if (heroImages.length < 2) return;
+
+    const lastIndex = heroImages.length - 1;
+    const nextIndex =
+      event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? lastIndex
+          : event.key === "ArrowLeft"
+            ? (mobileSlideIndex + lastIndex) % heroImages.length
+            : event.key === "ArrowRight"
+              ? (mobileSlideIndex + 1) % heroImages.length
+              : null;
+
+    if (nextIndex === null) return;
+
+    event.preventDefault();
+    onMobileSlideIndexChange(nextIndex);
+  };
+
+  const imageFallback = (label: string) => (
+    <span
+      className={styles.imageFallback}
+      role="img"
+      aria-label={`${label} 사진을 불러올 수 없음`}
+    >
+      <PhotoPlaceholderIcon />
+      <span>사진을 준비하고 있어요</span>
+    </span>
+  );
 
   return (
     <>
@@ -52,6 +89,7 @@ const AccommodationHero: React.FC<AccommodationHeroProps> = ({
               {rating.hasReviews && (
                 <div className={styles.review}>
                   <svg
+                    aria-hidden="true"
                     viewBox="0 0 24 24"
                     fill="currentColor"
                     className={styles.star}
@@ -67,25 +105,16 @@ const AccommodationHero: React.FC<AccommodationHeroProps> = ({
             </div>
           </div>
           <div className={styles.actionButtons}>
-            <button className={styles.shareButton} onClick={onShare}>
+            <button
+              type="button"
+              className={styles.saveButton}
+              aria-label={
+                detailView.isInWishlist ? "저장 목록 열기" : "위시리스트에 저장"
+              }
+              onClick={onSave}
+            >
               <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="18" cy="5" r="3"></circle>
-                <circle cx="6" cy="12" r="3"></circle>
-                <circle cx="18" cy="19" r="3"></circle>
-                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-              </svg>
-              <span>공유하기</span>
-            </button>
-            <button className={styles.saveButton} onClick={onSave}>
-              <svg
+                aria-hidden="true"
                 viewBox="0 0 24 24"
                 className={
                   detailView.isInWishlist ? styles.saveIconActive : undefined
@@ -104,219 +133,152 @@ const AccommodationHero: React.FC<AccommodationHeroProps> = ({
         </div>
       </div>
 
-      {primaryHeroImage && (
-        <div className={styles.imageSection}>
-          <div className={styles.imageGrid}>
-            <button
-              type="button"
-              className={styles.mainImage}
-              aria-label={`${title} 대표 사진 크게 보기`}
-              onClick={() => onOpenGallery(0)}
-            >
-              <img
-                src={primaryHeroImage.url}
-                alt={title}
-                className={styles.image}
-              />
-            </button>
-            <div className={styles.thumbnailGrid}>
-              {Array.from({ length: 4 }).map((_, index) => {
-                const imageIndex = index + 1;
-                const image = heroImages[imageIndex];
+      <div className={styles.imageSection}>
+        {primaryHeroImage ? (
+          <>
+            <div className={styles.imageGrid}>
+              <button
+                type="button"
+                className={styles.mainImage}
+                aria-label={`${title} 대표 사진 크게 보기`}
+                onClick={() => onOpenGallery(0)}
+              >
+                <ImageWithFallback
+                  src={primaryHeroImage.url}
+                  alt={title}
+                  className={styles.image}
+                  fallback={imageFallback(`${title} 대표`)}
+                />
+              </button>
+              <div className={styles.thumbnailGrid}>
+                {Array.from({ length: 4 }).map((_, index) => {
+                  const imageIndex = index + 1;
+                  const image = heroImages[imageIndex];
 
-                if (image) {
-                  const isViewAllThumbnail =
-                    index === 3 && heroImages.length > 5;
+                  if (image) {
+                    const isViewAllThumbnail =
+                      index === 3 && heroImages.length > 5;
+
+                    return (
+                      <button
+                        key={image.id}
+                        type="button"
+                        className={styles.thumbnail}
+                        aria-label={
+                          isViewAllThumbnail
+                            ? `${title} 사진 모두 보기`
+                            : `${title} 사진 ${imageIndex + 1} 크게 보기`
+                        }
+                        onClick={() =>
+                          onOpenGallery(isViewAllThumbnail ? 0 : imageIndex)
+                        }
+                      >
+                        <ImageWithFallback
+                          src={image.url}
+                          alt={image.alt}
+                          fallback={imageFallback(image.alt)}
+                        />
+                        {isViewAllThumbnail && (
+                          <div
+                            className={styles.viewAllButton}
+                            aria-hidden="true"
+                          >
+                            <svg
+                              width="16"
+                              height="16"
+                              viewBox="0 0 16 16"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                            >
+                              <path d="M1 1h4v4H1zm5 0h4v4H6zm5 0h4v4h-4zM1 6h4v4H1zm5 0h4v4H6zm5 0h4v4h-4zM1 11h4v4H1zm5 0h4v4H6zm5 0h4v4h-4z" />
+                            </svg>
+                            <span>사진 모두 보기</span>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  }
 
                   return (
-                    <button
-                      key={image.id}
-                      type="button"
-                      className={styles.thumbnail}
-                      aria-label={
-                        isViewAllThumbnail
-                          ? `${title} 사진 모두 보기`
-                          : `${title} 사진 ${imageIndex + 1} 크게 보기`
-                      }
-                      onClick={() =>
-                        onOpenGallery(isViewAllThumbnail ? 0 : imageIndex)
-                      }
+                    <div
+                      key={`placeholder-${index}`}
+                      className={styles.thumbnailPlaceholder}
+                      aria-hidden="true"
                     >
-                      <img src={image.url} alt={image.alt} />
-                      {isViewAllThumbnail && (
-                        <div
-                          className={styles.viewAllButton}
-                          aria-hidden="true"
-                        >
-                          <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 16 16"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <rect
-                              x="1"
-                              y="1"
-                              width="4"
-                              height="4"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              fill="none"
-                            />
-                            <rect
-                              x="6"
-                              y="1"
-                              width="4"
-                              height="4"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              fill="none"
-                            />
-                            <rect
-                              x="11"
-                              y="1"
-                              width="4"
-                              height="4"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              fill="none"
-                            />
-                            <rect
-                              x="1"
-                              y="6"
-                              width="4"
-                              height="4"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              fill="none"
-                            />
-                            <rect
-                              x="6"
-                              y="6"
-                              width="4"
-                              height="4"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              fill="none"
-                            />
-                            <rect
-                              x="11"
-                              y="6"
-                              width="4"
-                              height="4"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              fill="none"
-                            />
-                            <rect
-                              x="1"
-                              y="11"
-                              width="4"
-                              height="4"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              fill="none"
-                            />
-                            <rect
-                              x="6"
-                              y="11"
-                              width="4"
-                              height="4"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              fill="none"
-                            />
-                            <rect
-                              x="11"
-                              y="11"
-                              width="4"
-                              height="4"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              fill="none"
-                            />
-                          </svg>
-                          <span>사진 모두 보기</span>
-                        </div>
-                      )}
-                    </button>
+                      <PhotoPlaceholderIcon />
+                    </div>
                   );
-                }
+                })}
+              </div>
+            </div>
 
-                return (
-                  <div
-                    key={`placeholder-${index}`}
-                    className={styles.thumbnailPlaceholder}
-                  >
-                    <svg
-                      width="48"
-                      height="48"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                      <circle cx="8.5" cy="8.5" r="1.5" />
-                      <polyline points="21 15 16 10 5 21" />
-                    </svg>
-                  </div>
-                );
-              })}
+            <div className={styles.mobileImageSliderFrame}>
+              <button
+                type="button"
+                className={styles.mobileImageSlider}
+                aria-keyshortcuts="ArrowLeft ArrowRight Home End"
+                aria-label={`${title} 모바일 사진 ${
+                  mobileSlideIndex + 1
+                } 크게 보기`}
+                onTouchStart={handleMobileTouchStart}
+                onTouchMove={handleMobileTouchMove}
+                onTouchEnd={handleMobileTouchEnd}
+                onKeyDown={handleMobileSliderKeyDown}
+                onClick={() => onOpenGallery(mobileSlideIndex)}
+              >
+                <div
+                  className={styles.sliderContainer}
+                  style={{
+                    transform: `translateX(-${mobileSlideIndex * 100}%)`,
+                  }}
+                >
+                  {heroImages.map((image) => (
+                    <ImageWithFallback
+                      key={image.id}
+                      src={image.url}
+                      alt={image.alt}
+                      className={styles.slideImage}
+                      fallback={imageFallback(image.alt)}
+                    />
+                  ))}
+                </div>
+                <div className={styles.sliderIndicator}>
+                  {mobileSlideIndex + 1} / {heroImages.length}
+                </div>
+              </button>
+              {heroImages.length <= 5 && (
+                <div className={styles.sliderDots}>
+                  {heroImages.map((_, index) => (
+                    <button
+                      type="button"
+                      key={index}
+                      aria-label={`${title} 사진 ${index + 1} 보기`}
+                      className={`${styles.sliderDot} ${index === mobileSlideIndex ? styles.active : ""}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onMobileSlideIndexChange(index);
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <div
+            className={styles.emptyHero}
+            role="img"
+            aria-label={`${title} 숙소 사진 없음`}
+          >
+            <PhotoPlaceholderIcon />
+            <div>
+              <strong>숙소 사진을 준비하고 있어요</strong>
+              <span>아래에서 숙소 정보를 계속 확인할 수 있습니다.</span>
             </div>
           </div>
-
-          <div className={styles.mobileImageSliderFrame}>
-            <button
-              type="button"
-              className={styles.mobileImageSlider}
-              aria-label={`${title} 모바일 사진 ${
-                mobileSlideIndex + 1
-              } 크게 보기`}
-              onTouchStart={handleMobileTouchStart}
-              onTouchMove={handleMobileTouchMove}
-              onTouchEnd={handleMobileTouchEnd}
-              onClick={() => onOpenGallery(mobileSlideIndex)}
-            >
-              <div
-                className={styles.sliderContainer}
-                style={{ transform: `translateX(-${mobileSlideIndex * 100}%)` }}
-              >
-                {heroImages.map((image) => (
-                  <img
-                    key={image.id}
-                    src={image.url}
-                    alt={image.alt}
-                    className={styles.slideImage}
-                  />
-                ))}
-              </div>
-              <div className={styles.sliderIndicator}>
-                {mobileSlideIndex + 1} / {heroImages.length}
-              </div>
-            </button>
-            {heroImages.length <= 5 && (
-              <div className={styles.sliderDots}>
-                {heroImages.map((_, index) => (
-                  <button
-                    type="button"
-                    key={index}
-                    aria-label={`${title} 사진 ${index + 1} 보기`}
-                    className={`${styles.sliderDot} ${index === mobileSlideIndex ? styles.active : ""}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onMobileSlideIndexChange(index);
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </>
   );
 };

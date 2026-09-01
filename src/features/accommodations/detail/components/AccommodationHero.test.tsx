@@ -65,7 +65,6 @@ const renderHero = (
     onMobileSlideIndexChange: vi.fn(),
     onOpenGallery: vi.fn(),
     onSave: vi.fn(),
-    onShare: vi.fn(),
     ...overrides,
   };
 
@@ -94,16 +93,16 @@ describe("AccommodationHero", () => {
     );
   });
 
-  it("runs the save and share actions", () => {
+  it("runs the save action without exposing the unfinished share control", () => {
     const onSave = vi.fn();
-    const onShare = vi.fn();
-    renderHero({ onSave, onShare });
+    renderHero({ onSave });
 
     fireEvent.click(screen.getByRole("button", { name: /저장/ }));
-    fireEvent.click(screen.getByRole("button", { name: /공유하기/ }));
 
     expect(onSave).toHaveBeenCalledTimes(1);
-    expect(onShare).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByRole("button", { name: /공유하기/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("opens the gallery from named desktop thumbnail buttons", () => {
@@ -181,6 +180,28 @@ describe("AccommodationHero", () => {
     expect(onOpenGallery).not.toHaveBeenCalled();
   });
 
+  it("offers keyboard alternatives for mobile image navigation", () => {
+    const onMobileSlideIndexChange = vi.fn();
+    renderHero({ mobileSlideIndex: 2, onMobileSlideIndexChange });
+
+    const slider = screen.getByRole("button", {
+      name: "남산 전망 숙소 모바일 사진 3 크게 보기",
+    });
+
+    expect(slider).toHaveAttribute(
+      "aria-keyshortcuts",
+      "ArrowLeft ArrowRight Home End",
+    );
+
+    fireEvent.keyDown(slider, { key: "ArrowRight" });
+    fireEvent.keyDown(slider, { key: "Home" });
+    fireEvent.keyDown(slider, { key: "End" });
+
+    expect(onMobileSlideIndexChange).toHaveBeenNthCalledWith(1, 3);
+    expect(onMobileSlideIndexChange).toHaveBeenNthCalledWith(2, 0);
+    expect(onMobileSlideIndexChange).toHaveBeenNthCalledWith(3, 5);
+  });
+
   it("keeps every gallery action on a stable accessible button name", () => {
     renderHero();
 
@@ -194,5 +215,39 @@ describe("AccommodationHero", () => {
     ].forEach((name) => {
       expect(screen.getByRole("button", { name })).toBeInTheDocument();
     });
+  });
+
+  it("keeps a deterministic hero frame when the accommodation has no images", () => {
+    renderHero({
+      detailView: toAccommodationDetailViewModel(
+        { ...accommodation, images: [] },
+        resolveImageUrl,
+        accommodationAmenityCatalog,
+      ),
+    });
+
+    expect(
+      screen.getByRole("img", { name: "남산 전망 숙소 숙소 사진 없음" }),
+    ).toHaveTextContent("숙소 사진을 준비하고 있어요");
+    expect(
+      screen.queryByRole("button", { name: /사진.*크게 보기/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("replaces a failed hero image without removing its gallery trigger", () => {
+    renderHero();
+
+    fireEvent.error(screen.getByAltText("남산 전망 숙소"));
+
+    expect(
+      screen.getByRole("img", {
+        name: "남산 전망 숙소 대표 사진을 불러올 수 없음",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "남산 전망 숙소 대표 사진 크게 보기",
+      }),
+    ).toBeInTheDocument();
   });
 });

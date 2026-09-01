@@ -1,4 +1,5 @@
 import type { AccommodationDetailViewModel } from "../lib/accommodationDetailViewModel";
+import { ImageWithFallback } from "../../../../shared/ui";
 import AmenityIcon from "./AmenityIcon";
 import styles from "./AccommodationOverview.module.css";
 
@@ -23,22 +24,25 @@ export function AccommodationOverview({
 
   return (
     <>
-      <div className={styles.locationSection}>
+      <section
+        className={styles.locationSection}
+        aria-labelledby="accommodation-overview-title"
+      >
         <div className={styles.locationInfo}>
-          <span className={styles.address}>
+          <h2 id="accommodation-overview-title" className={styles.address}>
             {detailView.overviewTitleLabel}
-          </span>
+          </h2>
           <span className={styles.maxOccupancy}>
             {detailView.counts.guestLabel}
           </span>
         </div>
-      </div>
+      </section>
 
       {detailView.amenities.length > 0 && (
-        <div className={styles.amenitiesSection}>
-          <div className={styles.amenitiesGrid}>
+        <section className={styles.amenitiesSection} aria-label="주요 편의시설">
+          <ul className={styles.amenitiesGrid}>
             {detailView.amenities.map((amenity) => (
-              <div
+              <li
                 key={amenity.key}
                 className={styles.amenityItem}
                 data-amenity-code={amenity.type}
@@ -46,26 +50,29 @@ export function AccommodationOverview({
               >
                 <AmenityIcon type={amenity.type} decorative />
                 <span>{amenity.label}</span>
-              </div>
+              </li>
             ))}
-          </div>
-        </div>
+          </ul>
+        </section>
       )}
 
       <div className={styles.mainContent}>
         <section className={styles.section}>
           <div className={styles.hostInfo}>
             <div className={styles.hostAvatar}>
-              {detailView.hostSummary.avatarUrl ? (
-                <img
-                  src={detailView.hostSummary.avatarUrl}
-                  alt={detailView.hostSummary.name}
-                />
-              ) : (
-                <div className={styles.avatarPlaceholder}>
-                  {detailView.hostSummary.avatarInitial}
-                </div>
-              )}
+              <ImageWithFallback
+                src={detailView.hostSummary.avatarUrl}
+                alt={detailView.hostSummary.name}
+                fallback={
+                  <div
+                    className={styles.avatarPlaceholder}
+                    role="img"
+                    aria-label={`${detailView.hostSummary.name} 프로필 이미지 없음`}
+                  >
+                    {detailView.hostSummary.avatarInitial}
+                  </div>
+                }
+              />
             </div>
             <div className={styles.hostDetails}>
               <span className={styles.hostLabel}>호스트:</span>

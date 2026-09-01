@@ -1,8 +1,8 @@
 .bookingCard {
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-content-card);
   padding: var(--space-6);
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-sticky);
   position: relative;
   z-index: var(--z-local-raised);
   background-color: var(--color-background-page);
@@ -17,7 +17,7 @@
 
 .totalPrice {
   font-size: var(--font-size-xl);
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
 }
 
@@ -27,8 +27,8 @@
 }
 
 .dateSection {
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-action) var(--radius-action) 0 0;
   overflow: visible;
   margin-bottom: 0;
   background-color: var(--color-background-page);
@@ -99,12 +99,14 @@
 
 .availabilityRetryButton {
   flex-shrink: 0;
-  padding: 0;
+  min-height: var(--control-touch-target);
+  padding: 0 var(--space-2);
   border: 0;
   background: transparent;
-  color: var(--color-text-primary);
+  border-radius: var(--radius-action);
+  color: var(--color-action-primary-hover);
   font: inherit;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   text-decoration: underline;
   cursor: pointer;
 }
@@ -116,7 +118,7 @@
 
 .dateLabel {
   font-size: 10px;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
   margin-bottom: 2px;
   text-transform: uppercase;
@@ -127,15 +129,15 @@
 .dateValue {
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   line-height: 1.2;
 }
 
 .guestRowContainer {
   position: relative;
-  border: 1px solid var(--color-border-strong);
-  border-top: 1px solid var(--color-border-strong);
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  border: 1px solid var(--color-border-default);
+  border-top: 1px solid var(--color-border-default);
+  border-radius: 0 0 var(--radius-action) var(--radius-action);
   margin-bottom: var(--space-6);
   margin-top: -1px;
   background-color: var(--color-background-page);
@@ -175,7 +177,7 @@
 .guestValue {
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   line-height: 1.2;
 }
 
@@ -193,9 +195,9 @@
   left: -1px;
   right: -1px;
   background-color: var(--color-background-page);
-  border: 1px solid var(--color-border-strong);
+  border: 1px solid var(--color-border-default);
   border-top: none;
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  border-radius: 0 0 var(--radius-action) var(--radius-action);
   padding: var(--space-2) var(--space-4);
   z-index: var(--z-dropdown-raised);
   box-shadow: var(--shadow-lg);
@@ -218,7 +220,7 @@
 
 .guestPickerTitle {
   font-size: var(--font-size-md);
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   color: var(--color-text-primary);
 }
 
@@ -252,8 +254,8 @@
   align-items: center;
   justify-content: center;
   transition:
-    border-color 0.2s ease,
-    color 0.2s ease;
+    border-color var(--motion-duration-fast) var(--motion-ease-standard),
+    color var(--motion-duration-fast) var(--motion-ease-standard);
 }
 
 .guestPickerButton:hover:not(.guestPickerButtonDisabled) {
@@ -268,7 +270,7 @@
 
 .guestPickerCount {
   font-size: var(--font-size-md);
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   color: var(--color-text-primary);
   min-width: 20px;
   text-align: center;
@@ -290,7 +292,7 @@
   border: none;
   color: var(--color-text-primary);
   font-size: var(--font-size-md);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   text-decoration: underline;
   cursor: pointer;
   text-align: right;
@@ -312,19 +314,21 @@
 
 .couponTitle {
   font-size: var(--font-size-md);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
 }
 
 .couponClearButton {
   background: none;
   border: none;
-  color: var(--color-text-primary);
+  min-height: var(--control-touch-target);
+  border-radius: var(--radius-action);
+  color: var(--color-action-primary-hover);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   text-decoration: underline;
   cursor: pointer;
-  padding: 0;
+  padding: 0 var(--space-2);
 }
 
 .couponEmpty {
@@ -346,13 +350,13 @@
   gap: var(--space-3);
   padding: var(--space-3);
   border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-action);
   background-color: var(--color-background-page);
 }
 
 .couponItemSelected {
-  border-color: var(--color-text-primary);
-  background-color: var(--color-background-muted);
+  border-color: var(--color-action-primary);
+  background-color: var(--color-surface-brand-subtle);
 }
 
 .couponInfo {
@@ -361,7 +365,7 @@
 
 .couponName {
   font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
   margin-bottom: var(--space-1);
 }
@@ -374,22 +378,24 @@
 
 .couponApplyButton {
   flex-shrink: 0;
-  border: 1px solid var(--color-text-primary);
-  border-radius: var(--radius-md);
-  background-color: var(--color-text-primary);
+  min-height: var(--control-touch-target);
+  border: 1px solid var(--color-action-primary);
+  border-radius: var(--radius-action);
+  background-color: var(--color-action-primary);
   color: var(--color-text-inverse);
   padding: var(--space-2) 10px;
   font-size: var(--font-size-xs);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
   transition:
-    background-color 0.2s ease,
-    color 0.2s ease,
-    border-color 0.2s ease;
+    background-color var(--motion-duration-fast) var(--motion-ease-standard),
+    color var(--motion-duration-fast) var(--motion-ease-standard),
+    border-color var(--motion-duration-fast) var(--motion-ease-standard);
 }
 
 .couponApplyButton:hover:not(:disabled) {
-  background-color: var(--color-text-primary);
+  border-color: var(--color-action-primary-hover);
+  background-color: var(--color-action-primary-hover);
 }
 
 .couponApplyButton:disabled {
@@ -424,8 +430,8 @@
   margin-bottom: var(--space-4);
   padding: var(--space-4);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  background: var(--color-background-muted);
+  border-radius: var(--radius-action);
+  background: var(--color-surface-brand-subtle);
 }
 
 .quoteSummaryHeader,
@@ -453,16 +459,18 @@
   margin-top: var(--space-2);
   padding-top: var(--space-2);
   border-top: 1px solid var(--color-border-default);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .quoteResetButton {
-  padding: 0;
+  min-height: var(--control-touch-target);
+  padding: 0 var(--space-2);
   border: 0;
   background: transparent;
-  color: var(--color-text-primary);
+  border-radius: var(--radius-action);
+  color: var(--color-action-primary-hover);
   font-size: var(--font-size-xs);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   text-decoration: underline;
   cursor: pointer;
 }
@@ -476,23 +484,30 @@
 .reserveButton {
   width: 100%;
   padding: 14px;
-  background: linear-gradient(
-    to right,
-    var(--color-brand-coral),
-    var(--color-brand-coral-hover)
-  );
+  background: var(--color-action-primary);
   color: var(--color-text-inverse);
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-action);
   font-size: var(--font-size-md);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
-  transition: opacity 0.2s ease;
+  transition: background-color var(--motion-duration-fast)
+    var(--motion-ease-standard);
   margin-bottom: var(--space-4);
 }
 
 .reserveButton:hover {
-  opacity: 0.9;
+  background: var(--color-action-primary-hover);
+}
+
+.dateRow:focus-visible,
+.guestRow:focus-visible,
+.availabilityRetryButton:focus-visible,
+.couponClearButton:focus-visible,
+.couponApplyButton:focus-visible,
+.quoteResetButton:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-visible);
 }
 
 .bookingNote {
@@ -512,5 +527,13 @@
     max-width: none;
     transform-origin: top center;
     z-index: var(--z-dropdown);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guestPickerButton,
+  .couponApplyButton,
+  .reserveButton {
+    transition: none;
   }
 }
