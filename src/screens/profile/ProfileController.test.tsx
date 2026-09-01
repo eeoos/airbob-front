@@ -312,6 +312,43 @@ describe("ProfileController", () => {
     expect(hostListings.getHostListings).not.toHaveBeenCalled();
   });
 
+  it("recovers an initial guest-trip read failure through the visible retry", async () => {
+    const reservations = createReservationApi();
+    reservations.getList
+      .mockRejectedValueOnce(
+        new AppError({
+          code: "NETWORK_ERROR",
+          kind: "network",
+          message: "offline",
+          retryable: true,
+        }),
+      )
+      .mockResolvedValueOnce(
+        guestPage([guestReservation("guest-recovered", "다시 만난 바다 숙소")]),
+      );
+
+    renderController({
+      reservationApi: reservations.api,
+      routeView: {
+        activeTab: "upcoming",
+        filterType: "UPCOMING",
+        variant: "guest",
+      },
+    });
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "네트워크 연결을 확인한 뒤 다시 시도해주세요.",
+    );
+    expect(
+      screen.queryByText("아직 표시할 여행이 없어요"),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+
+    expect(await screen.findByText("다시 만난 바다 숙소")).toBeInTheDocument();
+    expect(reservations.getList).toHaveBeenCalledTimes(2);
+  });
+
   it("maps the host-listings route variant and its status filter", async () => {
     const reservations = createReservationApi();
     const hostListings = createHostListingsApi();
@@ -427,7 +464,9 @@ describe("ProfileController", () => {
     expect(
       screen.queryByText("노출되면 안 되는 예정 숙소"),
     ).not.toBeInTheDocument();
-    expect(screen.getByText("로딩 중...")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "여행 목록을 불러오는 중입니다.",
+    );
 
     await act(async () => {
       past.resolve(

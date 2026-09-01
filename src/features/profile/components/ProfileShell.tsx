@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useResponsiveLayout } from "../../../shared/styles/useResponsiveLayout";
 import { requireCssModuleClass } from "../../../shared/styles/requireCssModuleClass";
 import { Tabs } from "../../../shared/ui";
 import styles from "./ProfileShell.module.css";
@@ -43,10 +44,20 @@ export type ProfileShellProps = ProfileShellBaseProps &
   );
 
 export function ProfileShell(props: ProfileShellProps) {
+  const responsiveLayout = useResponsiveLayout();
+  const sectionOrientation =
+    responsiveLayout === "desktop" ? "vertical" : "horizontal";
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1 className={styles.title}>프로필</h1>
+        <div className={styles.titleGroup}>
+          <p className={styles.eyebrow}>나의 Airbob</p>
+          <h1 className={styles.title}>프로필</h1>
+          <p className={styles.subtitle}>
+            여행 기록과 호스팅 작업을 한곳에서 확인하세요.
+          </p>
+        </div>
         <Tabs
           ariaLabel="프로필 모드"
           className={requireCssModuleClass(styles.modeToggle)}
@@ -68,7 +79,7 @@ export function ProfileShell(props: ProfileShellProps) {
               selectedTabClassName={requireCssModuleClass(styles.active)}
               tabClassName={requireCssModuleClass(styles.navItem)}
               value={props.activeTab}
-              orientation="vertical"
+              orientation={sectionOrientation}
               variant="plain"
               onValueChange={props.onTabChange}
             />
@@ -80,7 +91,7 @@ export function ProfileShell(props: ProfileShellProps) {
               selectedTabClassName={requireCssModuleClass(styles.active)}
               tabClassName={requireCssModuleClass(styles.navItem)}
               value={props.activeTab}
-              orientation="vertical"
+              orientation={sectionOrientation}
               variant="plain"
               onValueChange={props.onTabChange}
             />

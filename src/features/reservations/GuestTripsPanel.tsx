@@ -2,10 +2,14 @@ import type { MouseEvent, RefCallback } from "react";
 import { requireCssModuleClass } from "../../shared/styles/requireCssModuleClass";
 import type { ReservationFilterType } from "./model/reservationRead";
 import {
+  Button,
   EmptyState,
-  LoadingState,
+  ImageWithFallback,
   NavigationCard,
+  RetryableErrorState,
+  Skeleton,
   ToastHost,
+  stateViewRecipes,
 } from "../../shared/ui";
 import styles from "./GuestTripsPanel.module.css";
 
@@ -25,6 +29,12 @@ interface GuestTripYearGroupView {
 
 type GuestTripsPanelState =
   | { readonly status: "loading" }
+  | {
+      readonly status: "error";
+      readonly isRetrying: boolean;
+      readonly message: string;
+      readonly onRetry: () => void;
+    }
   | {
       readonly status: "ready";
       readonly groups: readonly GuestTripYearGroupView[];
@@ -60,6 +70,54 @@ const getTitle = (filterType: GuestTripsFilterType) => {
   }
 };
 
+const getEmptyDescription = (filterType: GuestTripsFilterType) => {
+  switch (filterType) {
+    case "UPCOMING":
+      return "새로운 여행을 예약하면 이곳에서 일정과 숙소를 확인할 수 있어요.";
+    case "PAST":
+      return "여행을 마치면 지난 숙소와 일정을 이곳에 차곡차곡 모아드려요.";
+    case "CANCELLED":
+      return "취소된 예약이 생기면 이곳에서 기록을 확인할 수 있어요.";
+  }
+};
+
+function GuestTripsSkeleton() {
+  return (
+    <section className={styles.loadingState} {...stateViewRecipes.loading}>
+      <span className={styles.srOnly}>여행 목록을 불러오는 중입니다.</span>
+      <Skeleton className={styles.loadingEyebrow} />
+      <Skeleton className={styles.loadingTitle} />
+      <Skeleton className={styles.loadingIntro} />
+      <div className={styles.loadingGrid}>
+        {Array.from({ length: 2 }, (_, index) => (
+          <div className={styles.loadingCard} key={index}>
+            <Skeleton className={styles.loadingImage} />
+            <div className={styles.loadingContent}>
+              <Skeleton className={styles.loadingLineWide} />
+              <Skeleton className={styles.loadingLine} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TripImageFallback({ name }: { readonly name: string }) {
+  return (
+    <div
+      aria-label={`${name} 숙소 이미지 없음`}
+      className={styles.placeholder}
+      role="img"
+    >
+      <svg aria-hidden="true" viewBox="0 0 32 32">
+        <path d="M5 26V13.5L16 5l11 8.5V26a1 1 0 0 1-1 1h-7v-8h-6v8H6a1 1 0 0 1-1-1Z" />
+      </svg>
+      <span>사진 준비 중</span>
+    </div>
+  );
+}
+
 export function GuestTripsPanel({
   errorMessage,
   filterType,
@@ -70,15 +128,39 @@ export function GuestTripsPanel({
   state,
 }: GuestTripsPanelProps) {
   if (state.status === "loading") {
-    return <LoadingState title="로딩 중..." />;
+    return <GuestTripsSkeleton />;
   }
 
   return (
     <div className={styles.container}>
-      <h2 className={styles.title}>{getTitle(filterType)}</h2>
+      <header className={styles.header}>
+        <p className={styles.eyebrow}>나의 여행</p>
+        <h2 className={styles.title}>{getTitle(filterType)}</h2>
+        <p className={styles.intro}>
+          예약 일정과 숙소 정보를 한눈에 확인하세요.
+        </p>
+      </header>
 
-      {state.groups.length === 0 ? (
-        <EmptyState title="아직 예약한 여행이 없습니다." />
+      {state.status === "error" ? (
+        <RetryableErrorState
+          title="여행을 불러오지 못했어요"
+          description={state.message}
+          action={
+            <Button
+              isLoading={state.isRetrying}
+              loadingLabel="다시 불러오는 중..."
+              onClick={state.onRetry}
+              variant="secondary"
+            >
+              다시 시도
+            </Button>
+          }
+        />
+      ) : state.groups.length === 0 ? (
+        <EmptyState
+          title="아직 표시할 여행이 없어요"
+          description={getEmptyDescription(filterType)}
+        />
       ) : (
         <>
           <div className={styles.reservationsByYear}>
@@ -105,22 +187,23 @@ export function GuestTripsPanel({
                       }}
                     >
                       <div className={styles.image}>
-                        {trip.thumbnailUrl ? (
-                          <img
-                            src={trip.thumbnailUrl}
-                            alt={trip.accommodationName}
-                          />
-                        ) : (
-                          <div className={styles.placeholder}>🏠</div>
-                        )}
+                        <ImageWithFallback
+                          alt={trip.accommodationName}
+                          className={styles.thumbnail}
+                          fallback={
+                            <TripImageFallback name={trip.accommodationName} />
+                          }
+                          loading="lazy"
+                          src={trip.thumbnailUrl}
+                        />
                       </div>
                       <div className={styles.content}>
-                        <div className={styles.location}>
+                        <h4 className={styles.location}>
                           {trip.accommodationName}
-                        </div>
-                        <div className={styles.dateRange}>
+                        </h4>
+                        <p className={styles.dateRange}>
                           {trip.dateRangeLabel}
-                        </div>
+                        </p>
                       </div>
                     </NavigationCard>
                   ))}
@@ -132,7 +215,13 @@ export function GuestTripsPanel({
           {state.hasNext && (
             <div ref={loadMoreRef} className={styles.loadMoreContainer}>
               {state.isLoadingMore && (
-                <div className={styles.loadingMore}>로딩 중...</div>
+                <div
+                  aria-live="polite"
+                  className={styles.loadingMore}
+                  role="status"
+                >
+                  여행을 더 불러오는 중...
+                </div>
               )}
             </div>
           )}

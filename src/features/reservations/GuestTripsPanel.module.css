@@ -2,12 +2,32 @@
   width: 100%;
 }
 
+.header {
+  margin-bottom: var(--space-8);
+}
+
+.eyebrow {
+  margin: 0 0 var(--space-2);
+  color: var(--color-action-primary-hover);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .title {
   font-size: var(--font-size-2xl);
-  font-weight: 600;
-  color: var(--color-text-primary);
-  line-height: 1.2;
-  margin: 0 0 var(--space-8) 0;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-brand-ink);
+  line-height: var(--line-height-heading);
+  margin: 0;
+}
+
+.intro {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-body);
 }
 
 .reservationsByYear {
@@ -38,23 +58,34 @@
 .reservationCard {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-content-card);
+  background: var(--color-background-page);
   cursor: pointer;
-  transition: transform var(--motion-duration-base) var(--motion-ease-standard);
+  box-shadow: var(--shadow-surface);
+  transition:
+    box-shadow var(--motion-duration-base) var(--motion-ease-standard),
+    transform var(--motion-duration-base) var(--motion-ease-standard);
 }
 
 .reservationCard:hover {
   transform: translateY(-2px);
+  box-shadow: var(--shadow-floating);
 }
 
 .image {
   width: 100%;
-  aspect-ratio: 1;
-  border-radius: var(--radius-lg);
+  aspect-ratio: var(--listing-card-media-ratio);
+  border-radius: calc(var(--radius-content-card) - var(--space-1));
   overflow: hidden;
   margin-bottom: var(--space-3);
+  background: var(--color-surface-brand-subtle);
 }
 
-.image img {
+.thumbnail {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -63,11 +94,24 @@
 .placeholder {
   width: 100%;
   height: 100%;
-  background-color: var(--color-background-muted);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 48px;
+  flex-direction: column;
+  gap: var(--space-2);
+  background-color: var(--color-surface-brand-subtle);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.placeholder svg {
+  width: var(--space-8);
+  height: var(--space-8);
+  fill: none;
+  stroke: var(--color-action-primary-hover);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.5;
 }
 
 .content {
@@ -77,14 +121,19 @@
 }
 
 .location {
-  font-size: 15px;
-  font-weight: 600;
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
+  line-height: var(--line-height-heading);
+  overflow-wrap: anywhere;
 }
 
 .dateRange {
+  margin: 0;
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
+  line-height: var(--line-height-body);
 }
 
 .loadMoreContainer {
@@ -107,23 +156,119 @@
   z-index: var(--z-toast);
 }
 
+.loadingState {
+  min-height: 360px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.loadingEyebrow {
+  width: 84px;
+  height: var(--space-3);
+}
+
+.loadingTitle {
+  width: min(240px, 70%);
+  height: var(--space-8);
+  margin-top: var(--space-3);
+}
+
+.loadingIntro {
+  width: min(360px, 100%);
+  height: var(--space-4);
+  margin-top: var(--space-3);
+}
+
+.loadingGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+  margin-top: var(--space-8);
+}
+
+.loadingCard {
+  min-width: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-content-card);
+}
+
+.loadingImage {
+  width: 100%;
+  aspect-ratio: var(--listing-card-media-ratio);
+  border-radius: calc(var(--radius-content-card) - var(--space-1));
+}
+
+.loadingContent {
+  padding-top: var(--space-3);
+}
+
+.loadingLineWide,
+.loadingLine {
+  height: var(--space-4);
+}
+
+.loadingLineWide {
+  width: 78%;
+}
+
+.loadingLine {
+  width: 58%;
+  margin-top: var(--space-2);
+}
+
 @media (--viewport-tablet) {
   .reservationsGrid {
     grid-template-columns: 1fr;
   }
 
+  .loadingGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (--viewport-phone) {
+  .header {
+    margin-bottom: var(--space-6);
+  }
+
+  .title {
+    font-size: var(--font-size-xl);
+  }
+
+  .reservationsByYear {
+    gap: var(--space-10);
+  }
+
+  .reservationsGrid {
+    gap: var(--space-5);
+  }
+
   .reservationCard {
-    flex-direction: column;
+    padding: var(--space-2);
   }
 
-  /* 호스트 모드와 동일하게 aspect-ratio 유지 */
-  .image {
-    width: 100%;
-    aspect-ratio: 1;
+  .toastContainer {
+    right: var(--space-4);
+    left: var(--space-4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reservationCard {
+    transition: none;
   }
 
-  .dates {
-    flex-direction: column;
-    gap: var(--space-4);
+  .reservationCard:hover {
+    transform: none;
   }
 }

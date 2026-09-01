@@ -208,7 +208,9 @@ describe("ProfileScreen", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("CODE-1")).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "상세" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "게스트 예약 상세" }),
+    );
 
     expect(onOpenReservation).toHaveBeenCalledWith("host-reservation-1");
   });
