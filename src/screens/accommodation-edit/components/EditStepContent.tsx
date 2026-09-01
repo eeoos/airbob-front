@@ -13,6 +13,7 @@ import timeStyles from "./TimeStep.module.css";
 
 type EditStepContentState = Pick<
   AccommodationEditScreenState,
+  | "amenitySemantics"
   | "currentStep"
   | "draggedIndex"
   | "dragOverIndex"
@@ -35,14 +36,19 @@ type EditStepContentActions = Pick<
   | "onDrop"
   | "onImageRemove"
   | "onImageSelect"
-  | "onInputChange"
-  | "onNestedChange"
+  | "onFieldChange"
+  | "onOccupancyChange"
+  | "onGuestIncrement"
+  | "onGuestDecrement"
+  | "onAmenityIncrement"
+  | "onAmenityDecrement"
+  | "onAmenityRemove"
   | "onOpenAmenityModal"
   | "onOpenTypeModal"
-  | "onTimeChange"
+  | "onTimePickerOpen"
+  | "onTimePickerClose"
+  | "onTimeValueSelect"
   | "resolveImageUrl"
-  | "setFormData"
-  | "setOpenTimePicker"
 >;
 
 interface EditStepContentProps {
@@ -66,7 +72,7 @@ export const EditStepContent: React.FC<EditStepContentProps> = ({
 
   useOutsideClick(
     timePickerBoundaryRef,
-    () => actions.setOpenTimePicker(null),
+    actions.onTimePickerClose,
     Boolean(state.openTimePicker),
   );
 
@@ -103,10 +109,15 @@ export const EditStepContent: React.FC<EditStepContentProps> = ({
     case 3:
       return (
         <InfoStep
+          amenitySemantics={state.amenitySemantics}
           formData={state.formData}
-          onInputChange={actions.onInputChange}
-          onNestedChange={actions.onNestedChange}
-          setFormData={actions.setFormData}
+          onFieldChange={actions.onFieldChange}
+          onOccupancyChange={actions.onOccupancyChange}
+          onGuestIncrement={actions.onGuestIncrement}
+          onGuestDecrement={actions.onGuestDecrement}
+          onAmenityIncrement={actions.onAmenityIncrement}
+          onAmenityDecrement={actions.onAmenityDecrement}
+          onAmenityRemove={actions.onAmenityRemove}
           onOpenTypeModal={actions.onOpenTypeModal}
           onOpenAmenityModal={actions.onOpenAmenityModal}
         />
@@ -118,8 +129,9 @@ export const EditStepContent: React.FC<EditStepContentProps> = ({
           checkInTime={state.formData.checkInTime}
           checkOutTime={state.formData.checkOutTime}
           openTimePicker={state.openTimePicker}
-          setOpenTimePicker={actions.setOpenTimePicker}
-          onTimeChange={actions.onTimeChange}
+          onTimePickerOpen={actions.onTimePickerOpen}
+          onTimePickerClose={actions.onTimePickerClose}
+          onTimeValueSelect={actions.onTimeValueSelect}
         />
       );
 

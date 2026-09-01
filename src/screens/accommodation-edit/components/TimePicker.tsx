@@ -1,5 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
-import type { AccommodationEditTimePeriod } from "../editorViewContract";
+import React, { useEffect, useRef } from "react";
+import type {
+  AccommodationEditTimePeriod,
+  AccommodationEditTimeValueSelection,
+} from "../editorViewContract";
 import styles from "./TimeStep.module.css";
 
 interface TimePickerProps {
@@ -8,11 +11,7 @@ interface TimePickerProps {
   minute: number;
   pickerRef?: React.Ref<HTMLDivElement>;
   period: AccommodationEditTimePeriod;
-  onChange: (
-    hour: number,
-    minute: number,
-    period: AccommodationEditTimePeriod,
-  ) => void;
+  onSelect: (selection: AccommodationEditTimeValueSelection) => void;
   onEscape?: () => boolean | void;
 }
 
@@ -22,53 +21,40 @@ export const TimePicker: React.FC<TimePickerProps> = ({
   minute,
   pickerRef,
   period,
-  onChange,
+  onSelect,
   onEscape,
 }) => {
-  const [localHour, setLocalHour] = useState(hour);
-  const [localMinute, setLocalMinute] = useState(minute);
-  const [localPeriod, setLocalPeriod] =
-    useState<AccommodationEditTimePeriod>(period);
   const hourListRef = useRef<HTMLDivElement>(null);
   const minuteListRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setLocalHour(hour);
-    setLocalMinute(minute);
-    setLocalPeriod(period);
-  }, [hour, minute, period]);
 
   useEffect(() => {
     const selectedButton = hourListRef.current?.querySelector(
       `.${styles.timePickerOptionSelected}`,
     ) as HTMLElement | null;
     selectedButton?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
-  }, [localHour]);
+  }, [hour]);
 
   useEffect(() => {
     const selectedButton = minuteListRef.current?.querySelector(
       `.${styles.timePickerOptionSelected}`,
     ) as HTMLElement | null;
     selectedButton?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
-  }, [localMinute]);
+  }, [minute]);
 
   const handleHourChange = (value: number) => {
     if (value >= 1 && value <= 12) {
-      setLocalHour(value);
-      onChange(value, localMinute, localPeriod);
+      onSelect({ unit: "hour", value });
     }
   };
 
   const handleMinuteChange = (value: number) => {
     if (value >= 0 && value <= 59) {
-      setLocalMinute(value);
-      onChange(localHour, value, localPeriod);
+      onSelect({ unit: "minute", value });
     }
   };
 
   const handlePeriodChange = (newPeriod: AccommodationEditTimePeriod) => {
-    setLocalPeriod(newPeriod);
-    onChange(localHour, localMinute, newPeriod);
+    onSelect({ unit: "period", value: newPeriod });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent, type: "hour" | "minute") => {
@@ -85,15 +71,15 @@ export const TimePicker: React.FC<TimePickerProps> = ({
       if (type === "hour") {
         const nextHour =
           e.key === "ArrowUp"
-            ? localHour >= 12
+            ? hour >= 12
               ? 1
-              : localHour + 1
-            : localHour <= 1
+              : hour + 1
+            : hour <= 1
               ? 12
-              : localHour - 1;
+              : hour - 1;
         handleHourChange(nextHour);
       } else {
-        const currentIndex = minutes.findIndex((m) => m === localMinute);
+        const currentIndex = minutes.findIndex((m) => m === minute);
         const nextIndex =
           e.key === "ArrowUp"
             ? currentIndex >= minutes.length - 1
@@ -148,14 +134,14 @@ export const TimePicker: React.FC<TimePickerProps> = ({
           <div className={styles.timePickerList}>
             <button
               type="button"
-              className={`${styles.timePickerOption} ${localPeriod === "AM" ? styles.timePickerOptionSelected : ""}`}
+              className={`${styles.timePickerOption} ${period === "AM" ? styles.timePickerOptionSelected : ""}`}
               onClick={() => handlePeriodChange("AM")}
             >
               오전
             </button>
             <button
               type="button"
-              className={`${styles.timePickerOption} ${localPeriod === "PM" ? styles.timePickerOptionSelected : ""}`}
+              className={`${styles.timePickerOption} ${period === "PM" ? styles.timePickerOptionSelected : ""}`}
               onClick={() => handlePeriodChange("PM")}
             >
               오후
@@ -169,7 +155,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
               <button
                 key={h}
                 type="button"
-                className={`${styles.timePickerOption} ${localHour === h ? styles.timePickerOptionSelected : ""}`}
+                className={`${styles.timePickerOption} ${hour === h ? styles.timePickerOptionSelected : ""}`}
                 onClick={() => handleHourChange(h)}
               >
                 {String(h).padStart(2, "0")}
@@ -184,7 +170,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
               <button
                 key={m}
                 type="button"
-                className={`${styles.timePickerOption} ${localMinute === m ? styles.timePickerOptionSelected : ""}`}
+                className={`${styles.timePickerOption} ${minute === m ? styles.timePickerOptionSelected : ""}`}
                 onClick={() => handleMinuteChange(m)}
               >
                 {String(m).padStart(2, "0")}

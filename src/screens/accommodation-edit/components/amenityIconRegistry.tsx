@@ -1,6 +1,6 @@
 import type { IconGlyph } from "../../../shared/ui/Icon";
 import { defineIconRegistry } from "../../../shared/ui/Icon";
-import type { AccommodationEditAmenityCode } from "./editorOptions";
+import type { AccommodationAmenityCode } from "../../../features/accommodations/public";
 
 const editorStrokeGlyph = (children: IconGlyph["children"]): IconGlyph => ({
   children,
@@ -216,7 +216,7 @@ const accommodationEditAmenityGlyphs = {
       <path d="M6 20v-4M18 20v-4" />
     </>,
   ),
-} as const satisfies Readonly<Record<AccommodationEditAmenityCode, IconGlyph>>;
+} as const satisfies Readonly<Record<AccommodationAmenityCode, IconGlyph>>;
 
 const accommodationEditAmenityFallbackGlyph = editorStrokeGlyph(
   <>

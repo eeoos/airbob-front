@@ -277,7 +277,7 @@
   background: var(--color-text-primary);
 }
 
-@media (max-width: 768px) {
+@media (--viewport-tablet) {
   .typeModal {
     max-width: calc(var(--layout-viewport-width) - 40px);
   }

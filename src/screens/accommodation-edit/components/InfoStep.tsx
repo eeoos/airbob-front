@@ -1,37 +1,40 @@
 import React from "react";
-import type { AccommodationEditFormData } from "../editorViewContract";
-import { ACCOMMODATION_TYPE_OPTIONS, AMENITY_OPTIONS } from "./editorOptions";
+import type {
+  AccommodationEditAmenitySemantic,
+  AccommodationEditField,
+  AccommodationEditFormData,
+  AccommodationEditOccupancyField,
+} from "../editorViewContract";
+import { ACCOMMODATION_TYPE_OPTIONS } from "./editorOptions";
 import styles from "./EditForm.module.css";
 
-type NestedFormFields = {
-  addressInfo: AccommodationEditFormData["addressInfo"];
-  occupancyPolicyInfo: AccommodationEditFormData["occupancyPolicyInfo"];
-};
-
 interface InfoStepProps {
+  amenitySemantics: readonly AccommodationEditAmenitySemantic[];
   formData: AccommodationEditFormData;
-  onInputChange: <K extends keyof AccommodationEditFormData>(
-    field: K,
-    value: AccommodationEditFormData[K],
+  onFieldChange: (field: AccommodationEditField, value: string) => void;
+  onOccupancyChange: (
+    field: AccommodationEditOccupancyField,
+    value: boolean,
   ) => void;
-  onNestedChange: <
-    P extends keyof NestedFormFields,
-    K extends keyof NestedFormFields[P],
-  >(
-    parent: P,
-    field: K,
-    value: NestedFormFields[P][K],
-  ) => void;
-  setFormData: React.Dispatch<React.SetStateAction<AccommodationEditFormData>>;
+  onGuestIncrement: () => void;
+  onGuestDecrement: () => void;
+  onAmenityIncrement: (name: string) => void;
+  onAmenityDecrement: (name: string) => void;
+  onAmenityRemove: (name: string) => void;
   onOpenTypeModal: () => void;
   onOpenAmenityModal: () => void;
 }
 
 export const InfoStep: React.FC<InfoStepProps> = ({
+  amenitySemantics,
   formData,
-  onInputChange,
-  onNestedChange,
-  setFormData,
+  onFieldChange,
+  onOccupancyChange,
+  onGuestIncrement,
+  onGuestDecrement,
+  onAmenityIncrement,
+  onAmenityDecrement,
+  onAmenityRemove,
   onOpenTypeModal,
   onOpenAmenityModal,
 }) => (
@@ -47,7 +50,7 @@ export const InfoStep: React.FC<InfoStepProps> = ({
         id="accommodation-name"
         type="text"
         value={formData.name}
-        onChange={(e) => onInputChange("name", e.target.value)}
+        onChange={(e) => onFieldChange("name", e.target.value)}
         className={styles.input}
         placeholder="예: 편안한 아파트"
         required
@@ -62,7 +65,7 @@ export const InfoStep: React.FC<InfoStepProps> = ({
       <textarea
         id="accommodation-description"
         value={formData.description}
-        onChange={(e) => onInputChange("description", e.target.value)}
+        onChange={(e) => onFieldChange("description", e.target.value)}
         className={styles.textarea}
         placeholder="숙소에 대한 자세한 설명을 입력해주세요."
         required
@@ -101,7 +104,7 @@ export const InfoStep: React.FC<InfoStepProps> = ({
         id="accommodation-base-price"
         type="number"
         value={formData.basePrice}
-        onChange={(e) => onInputChange("basePrice", e.target.value)}
+        onChange={(e) => onFieldChange("basePrice", e.target.value)}
         className={`${styles.input} ${styles.priceInput}`}
         placeholder="50000"
         required
@@ -122,17 +125,7 @@ export const InfoStep: React.FC<InfoStepProps> = ({
               type="button"
               aria-label="최대 게스트 수 줄이기"
               className={styles.quantityButton}
-              onClick={() => {
-                const current =
-                  Number(formData.occupancyPolicyInfo.maxOccupancy) || 1;
-                if (current > 1) {
-                  onNestedChange(
-                    "occupancyPolicyInfo",
-                    "maxOccupancy",
-                    String(current - 1),
-                  );
-                }
-              }}
+              onClick={onGuestDecrement}
               disabled={Number(formData.occupancyPolicyInfo.maxOccupancy) <= 1}
             >
               <svg
@@ -151,15 +144,7 @@ export const InfoStep: React.FC<InfoStepProps> = ({
               type="button"
               aria-label="최대 게스트 수 늘리기"
               className={styles.quantityButton}
-              onClick={() => {
-                const current =
-                  Number(formData.occupancyPolicyInfo.maxOccupancy) || 1;
-                onNestedChange(
-                  "occupancyPolicyInfo",
-                  "maxOccupancy",
-                  String(current + 1),
-                );
-              }}
+              onClick={onGuestIncrement}
             >
               <svg
                 viewBox="0 0 24 24"
@@ -185,11 +170,7 @@ export const InfoStep: React.FC<InfoStepProps> = ({
               type="checkbox"
               checked={formData.occupancyPolicyInfo.infantOccupancy}
               onChange={(e) =>
-                onNestedChange(
-                  "occupancyPolicyInfo",
-                  "infantOccupancy",
-                  e.target.checked,
-                )
+                onOccupancyChange("infantOccupancy", e.target.checked)
               }
               className={styles.checkbox}
             />
@@ -207,11 +188,7 @@ export const InfoStep: React.FC<InfoStepProps> = ({
               type="checkbox"
               checked={formData.occupancyPolicyInfo.petOccupancy}
               onChange={(e) =>
-                onNestedChange(
-                  "occupancyPolicyInfo",
-                  "petOccupancy",
-                  e.target.checked,
-                )
+                onOccupancyChange("petOccupancy", e.target.checked)
               }
               className={styles.checkbox}
             />
@@ -225,63 +202,70 @@ export const InfoStep: React.FC<InfoStepProps> = ({
       <h3 className={styles.sectionTitle}>편의시설</h3>
       {formData.amenityInfos.length > 0 && (
         <div className={styles.selectedAmenitiesList}>
-          {formData.amenityInfos.map((amenity, index) => (
-            <div
-              key={`${amenity.name}-${index}`}
-              className={styles.selectedAmenityItem}
-            >
-              <span className={styles.selectedAmenityName}>
-                {AMENITY_OPTIONS.find((a) => a.value === amenity.name)?.label ||
-                  amenity.name}
-              </span>
-              <div className={styles.amenityCountSelector}>
-                <button
-                  type="button"
-                  className={styles.amenityCountButton}
-                  onClick={() => {
-                    const newAmenities = [...formData.amenityInfos];
-                    if (amenity.count > 0) {
-                      newAmenities[index] = {
-                        ...amenity,
-                        count: amenity.count - 1,
-                      };
-                      if (newAmenities[index].count === 0) {
-                        newAmenities.splice(index, 1);
-                      }
-                      setFormData((prev) => ({
-                        ...prev,
-                        amenityInfos: newAmenities,
-                      }));
-                    }
-                  }}
-                  disabled={amenity.count <= 0}
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                  </svg>
-                </button>
-                <span className={styles.amenityCountValue}>
-                  {amenity.count}
+          {formData.amenityInfos.map((amenity, index) => {
+            const semanticAmenity = amenitySemantics.find(
+              ({ name }) => name === amenity.name,
+            );
+            const amenityLabel = semanticAmenity?.label ?? amenity.name;
+
+            return (
+              <div
+                key={`${amenity.name}-${index}`}
+                className={styles.selectedAmenityItem}
+                data-amenity-code={amenity.name}
+                data-amenity-known={semanticAmenity?.isKnown ?? false}
+              >
+                <span className={styles.selectedAmenityName}>
+                  {amenityLabel}
                 </span>
+                <div className={styles.amenityCountSelector}>
+                  <button
+                    type="button"
+                    className={styles.amenityCountButton}
+                    aria-label={`${amenityLabel} 수량 감소`}
+                    onClick={() => {
+                      if (amenity.count <= 1) {
+                        onAmenityRemove(amenity.name);
+                        return;
+                      }
+                      onAmenityDecrement(amenity.name);
+                    }}
+                    disabled={amenity.count <= 0}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                  </button>
+                  <span className={styles.amenityCountValue}>
+                    {amenity.count}
+                  </span>
+                  <button
+                    type="button"
+                    className={styles.amenityCountButton}
+                    aria-label={`${amenityLabel} 수량 증가`}
+                    onClick={() => onAmenityIncrement(amenity.name)}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                  </button>
+                </div>
                 <button
                   type="button"
-                  className={styles.amenityCountButton}
-                  onClick={() => {
-                    const newAmenities = [...formData.amenityInfos];
-                    newAmenities[index] = {
-                      ...amenity,
-                      count: amenity.count + 1,
-                    };
-                    setFormData((prev) => ({
-                      ...prev,
-                      amenityInfos: newAmenities,
-                    }));
-                  }}
+                  className={styles.amenityRemoveButton}
+                  aria-label={`${amenityLabel} 제거`}
+                  onClick={() => onAmenityRemove(amenity.name)}
                 >
                   <svg
                     viewBox="0 0 24 24"
@@ -289,36 +273,13 @@ export const InfoStep: React.FC<InfoStepProps> = ({
                     stroke="currentColor"
                     strokeWidth="2"
                   >
-                    <line x1="12" y1="5" x2="12" y2="19" />
-                    <line x1="5" y1="12" x2="19" y2="12" />
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
                   </svg>
                 </button>
               </div>
-              <button
-                type="button"
-                className={styles.amenityRemoveButton}
-                onClick={() => {
-                  const newAmenities = formData.amenityInfos.filter(
-                    (_, itemIndex) => itemIndex !== index,
-                  );
-                  setFormData((prev) => ({
-                    ...prev,
-                    amenityInfos: newAmenities,
-                  }));
-                }}
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
       <button

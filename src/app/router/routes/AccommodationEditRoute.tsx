@@ -5,6 +5,7 @@ import {
   createListingEditorQueryPort,
   listingEditorApi,
 } from "../../../features/accommodations/listing-editor/public";
+import { accommodationAmenityCatalog } from "../../../features/accommodations/public";
 import { createAccommodationDetailQueryCacheProjection } from "../../../features/accommodations/detail/public";
 import { createHostListingQueryCacheProjection } from "../../../features/profile/public";
 import { resolveImageUrl } from "../../../platform/assets/imageUrl";
@@ -91,6 +92,7 @@ function AccommodationEditRoute() {
     <AccommodationEditController
       key={instanceId}
       accommodationId={accommodationId}
+      amenityCatalog={accommodationAmenityCatalog}
       addressSearch={listingEditorAddressSearch}
       api={listingEditorApi}
       instanceId={instanceId}

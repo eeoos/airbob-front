@@ -364,7 +364,7 @@
   height: var(--space-5);
 }
 
-@media (max-width: 768px) {
+@media (--viewport-tablet) {
   .stepTitle {
     font-size: 24px;
   }

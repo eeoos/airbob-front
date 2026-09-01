@@ -1,38 +1,30 @@
 import React from "react";
 import { requireCssModuleClass } from "../../../shared/styles/requireCssModuleClass";
-import type { AccommodationEditFormData } from "../editorViewContract";
+import type {
+  AccommodationEditAmenityOption,
+  AccommodationEditFormData,
+} from "../editorViewContract";
 import styles from "./EditModal.module.css";
 import { AmenityIcon } from "./accommodationEditIcons";
-import { AMENITY_OPTIONS } from "./editorOptions";
 import { EditModalShell } from "./EditModalShell";
 
 interface AmenityModalProps {
   amenityInfos: AccommodationEditFormData["amenityInfos"];
-  setFormData: React.Dispatch<React.SetStateAction<AccommodationEditFormData>>;
+  options: readonly AccommodationEditAmenityOption[];
+  onToggle: (name: string) => void;
+  onIncrement: (name: string) => void;
+  onDecrement: (name: string) => void;
   onClose: () => void;
 }
 
 export const AmenityModal: React.FC<AmenityModalProps> = ({
   amenityInfos,
-  setFormData,
+  options,
+  onToggle,
+  onIncrement,
+  onDecrement,
   onClose,
 }) => {
-  const toggleAmenity = (amenityValue: string, isSelected: boolean) => {
-    if (isSelected) {
-      setFormData((prev) => ({
-        ...prev,
-        amenityInfos: prev.amenityInfos.filter(
-          (item) => item.name !== amenityValue,
-        ),
-      }));
-      return;
-    }
-
-    setFormData((prev) => ({
-      ...prev,
-      amenityInfos: [...prev.amenityInfos, { name: amenityValue, count: 1 }],
-    }));
-  };
   const title = "편의시설을 선택하세요";
 
   return (
@@ -61,23 +53,23 @@ export const AmenityModal: React.FC<AmenityModalProps> = ({
         </button>
       </div>
       <div className={styles.typeModalGrid}>
-        {AMENITY_OPTIONS.map((amenity) => {
+        {options.map((amenity) => {
           const currentAmenity = amenityInfos.find(
-            (item) => item.name === amenity.value,
+            (item) => item.name === amenity.name,
           );
           const isSelected = currentAmenity !== undefined;
           const count = currentAmenity?.count || 0;
 
           return (
-            <div key={amenity.value} className={styles.amenityOptionContainer}>
+            <div key={amenity.name} className={styles.amenityOptionContainer}>
               <button
                 type="button"
                 aria-pressed={isSelected}
                 className={`${styles.typeOption} ${isSelected ? styles.typeOptionSelected : ""}`}
-                onClick={() => toggleAmenity(amenity.value, isSelected)}
+                onClick={() => onToggle(amenity.name)}
               >
                 <div className={styles.typeOptionIcon}>
-                  <AmenityIcon type={amenity.value} />
+                  <AmenityIcon type={amenity.name} />
                 </div>
                 <span className={styles.typeOptionLabel}>{amenity.label}</span>
               </button>
@@ -87,18 +79,7 @@ export const AmenityModal: React.FC<AmenityModalProps> = ({
                     type="button"
                     className={styles.amenityCountButton}
                     aria-label={`${amenity.label} 수량 감소`}
-                    onClick={() => {
-                      if (count > 1) {
-                        setFormData((prev) => ({
-                          ...prev,
-                          amenityInfos: prev.amenityInfos.map((item) =>
-                            item.name === amenity.value
-                              ? { ...item, count: count - 1 }
-                              : item,
-                          ),
-                        }));
-                      }
-                    }}
+                    onClick={() => onDecrement(amenity.name)}
                     disabled={count <= 1}
                   >
                     <svg
@@ -115,16 +96,7 @@ export const AmenityModal: React.FC<AmenityModalProps> = ({
                     type="button"
                     className={styles.amenityCountButton}
                     aria-label={`${amenity.label} 수량 증가`}
-                    onClick={() => {
-                      setFormData((prev) => ({
-                        ...prev,
-                        amenityInfos: prev.amenityInfos.map((item) =>
-                          item.name === amenity.value
-                            ? { ...item, count: count + 1 }
-                            : item,
-                        ),
-                      }));
-                    }}
+                    onClick={() => onIncrement(amenity.name)}
                   >
                     <svg
                       viewBox="0 0 24 24"

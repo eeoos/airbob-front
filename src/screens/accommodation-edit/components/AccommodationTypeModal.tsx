@@ -49,10 +49,7 @@ export const AccommodationTypeModal: React.FC<AccommodationTypeModalProps> = ({
             key={type.value}
             type="button"
             className={`${styles.typeOption} ${selectedType === type.value ? styles.typeOptionSelected : ""}`}
-            onClick={() => {
-              onSelect(type.value);
-              onClose();
-            }}
+            onClick={() => onSelect(type.value)}
           >
             <div className={styles.typeOptionIcon}>
               <AccommodationTypeIcon type={type.value} />

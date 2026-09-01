@@ -34,7 +34,7 @@ describe("useListingEditorDraft", () => {
     const { result } = renderHook(() => useListingEditorDraft());
 
     act(() => result.current.hydrate(accommodation));
-    act(() => result.current.handleInputChange("name", "변경한 숙소"));
+    act(() => result.current.changeField("name", "변경한 숙소"));
 
     expect(result.current.capturePersistence()).toMatchObject({
       update: { name: "변경한 숙소" },
@@ -55,9 +55,9 @@ describe("useListingEditorDraft", () => {
     const { result } = renderHook(() => useListingEditorDraft());
 
     act(() => result.current.hydrate(accommodation));
-    act(() => result.current.handleInputChange("name", "전송한 값"));
+    act(() => result.current.changeField("name", "전송한 값"));
     const captured = result.current.capturePersistence();
-    act(() => result.current.handleInputChange("name", "추가 변경"));
+    act(() => result.current.changeField("name", "추가 변경"));
     act(() =>
       result.current.commitBaseline({ ...accommodation, name: "전송한 값" }),
     );
@@ -116,5 +116,84 @@ describe("useListingEditorDraft", () => {
       }),
     );
     expect(result.current.capturePersistence()?.update).toEqual({});
+  });
+
+  it("applies rapid count and time commands against the latest draft", () => {
+    const { result } = renderHook(() => useListingEditorDraft());
+    act(() => result.current.hydrate(accommodation));
+
+    act(() => {
+      result.current.incrementGuest();
+      result.current.incrementGuest();
+      result.current.incrementAmenity("WIFI");
+      result.current.incrementAmenity("WIFI");
+      result.current.selectTimeValue("checkIn", { unit: "hour", value: 4 });
+      result.current.selectTimeValue("checkIn", {
+        unit: "minute",
+        value: 30,
+      });
+    });
+
+    expect(result.current.formData.occupancyPolicyInfo.maxOccupancy).toBe("6");
+    expect(result.current.formData.amenityInfos).toEqual([
+      { name: "WIFI", count: 3 },
+    ]);
+    expect(result.current.formData.checkInTime).toBe("16:30");
+
+    act(() => {
+      result.current.decrementGuest();
+      result.current.decrementGuest();
+      result.current.decrementAmenity("WIFI");
+      result.current.decrementAmenity("WIFI");
+    });
+
+    expect(result.current.formData.occupancyPolicyInfo.maxOccupancy).toBe("4");
+    expect(result.current.formData.amenityInfos).toEqual([
+      { name: "WIFI", count: 1 },
+    ]);
+  });
+
+  it("rejects invalid semantic command inputs without mutating the draft", () => {
+    const { result } = renderHook(() => useListingEditorDraft());
+    act(() => result.current.hydrate(accommodation));
+    const before = result.current.formData;
+
+    act(() => {
+      result.current.changeField("unknown" as never, "ignored");
+      result.current.changeOccupancy("unknown" as never, true);
+      result.current.toggleAmenity("   ");
+      result.current.incrementAmenity("UNKNOWN");
+      result.current.decrementAmenity("UNKNOWN");
+      result.current.removeAmenity("UNKNOWN");
+      result.current.openTimePickerCommand("unknown" as never);
+      result.current.selectTimeValue("checkIn", { unit: "hour", value: 0 });
+      result.current.selectTimeValue("checkOut", {
+        unit: "minute",
+        value: 60,
+      });
+      result.current.selectTimeValue("checkIn", {
+        unit: "period",
+        value: "invalid" as never,
+      });
+    });
+
+    expect(result.current.formData).toBe(before);
+    expect(result.current.openTimePicker).toBeNull();
+    expect(result.current.selectAccommodationType("UNKNOWN")).toBe(false);
+    expect(result.current.formData).toBe(before);
+  });
+
+  it("opens and reopens time pickers without changing unrelated draft fields", () => {
+    const { result } = renderHook(() => useListingEditorDraft());
+    act(() => result.current.hydrate(accommodation));
+    const before = result.current.formData;
+
+    act(() => result.current.openTimePickerCommand("checkIn"));
+    expect(result.current.openTimePicker).toBe("checkIn");
+    act(() => result.current.closeTimePicker());
+    act(() => result.current.openTimePickerCommand("checkOut"));
+
+    expect(result.current.openTimePicker).toBe("checkOut");
+    expect(result.current.formData).toBe(before);
   });
 });

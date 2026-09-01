@@ -3,8 +3,8 @@ import { parseListingEditorTime } from "../../../features/accommodations/listing
 import { useNonModalOverlayRegistration } from "../../../shared/ui";
 import type {
   AccommodationEditTimeField,
-  AccommodationEditTimePeriod,
   AccommodationEditTimePicker,
+  AccommodationEditTimeValueSelection,
 } from "../editorViewContract";
 import formStyles from "./EditForm.module.css";
 import styles from "./TimeStep.module.css";
@@ -15,14 +15,11 @@ interface TimeStepProps {
   checkInTime: string;
   checkOutTime: string;
   openTimePicker: AccommodationEditTimePicker;
-  setOpenTimePicker: React.Dispatch<
-    React.SetStateAction<AccommodationEditTimePicker>
-  >;
-  onTimeChange: (
+  onTimePickerOpen: (picker: AccommodationEditTimeField) => void;
+  onTimePickerClose: () => void;
+  onTimeValueSelect: (
     type: AccommodationEditTimeField,
-    hour: number,
-    minute: number,
-    period: AccommodationEditTimePeriod,
+    selection: AccommodationEditTimeValueSelection,
   ) => void;
 }
 
@@ -30,8 +27,9 @@ export const TimeStep: React.FC<TimeStepProps> = ({
   checkInTime,
   checkOutTime,
   openTimePicker,
-  setOpenTimePicker,
-  onTimeChange,
+  onTimePickerOpen,
+  onTimePickerClose,
+  onTimeValueSelect,
 }) => {
   const checkInParsed = parseListingEditorTime(checkInTime);
   const checkOutParsed = parseListingEditorTime(checkOutTime);
@@ -39,19 +37,15 @@ export const TimeStep: React.FC<TimeStepProps> = ({
   const checkOutTriggerRef = React.useRef<HTMLButtonElement>(null);
   const checkInPickerRef = React.useRef<HTMLDivElement>(null);
   const checkOutPickerRef = React.useRef<HTMLDivElement>(null);
-  const closeTimePicker = React.useCallback(
-    () => setOpenTimePicker(null),
-    [setOpenTimePicker],
-  );
   const checkInOverlay = useNonModalOverlayRegistration({
     enabled: openTimePicker === "checkIn",
-    onClose: closeTimePicker,
+    onClose: onTimePickerClose,
     overlayRef: checkInPickerRef,
     triggerRef: checkInTriggerRef,
   });
   const checkOutOverlay = useNonModalOverlayRegistration({
     enabled: openTimePicker === "checkOut",
-    onClose: closeTimePicker,
+    onClose: onTimePickerClose,
     overlayRef: checkOutPickerRef,
     triggerRef: checkOutTriggerRef,
   });
@@ -77,11 +71,13 @@ export const TimeStep: React.FC<TimeStepProps> = ({
               aria-expanded={openTimePicker === "checkIn"}
               type="button"
               className={styles.timeInputButton}
-              onClick={() =>
-                setOpenTimePicker(
-                  openTimePicker === "checkIn" ? null : "checkIn",
-                )
-              }
+              onClick={() => {
+                if (openTimePicker === "checkIn") {
+                  onTimePickerClose();
+                  return;
+                }
+                onTimePickerOpen("checkIn");
+              }}
             >
               <span className={styles.timeDisplay}>
                 {checkInParsed.period === "AM" ? "오전" : "오후"}{" "}
@@ -98,7 +94,9 @@ export const TimeStep: React.FC<TimeStepProps> = ({
                 minute={checkInParsed.minute}
                 pickerRef={checkInPickerRef}
                 period={checkInParsed.period}
-                onChange={(h, m, p) => onTimeChange("checkIn", h, m, p)}
+                onSelect={(selection) =>
+                  onTimeValueSelect("checkIn", selection)
+                }
               />
             )}
           </div>
@@ -118,11 +116,13 @@ export const TimeStep: React.FC<TimeStepProps> = ({
               aria-expanded={openTimePicker === "checkOut"}
               type="button"
               className={styles.timeInputButton}
-              onClick={() =>
-                setOpenTimePicker(
-                  openTimePicker === "checkOut" ? null : "checkOut",
-                )
-              }
+              onClick={() => {
+                if (openTimePicker === "checkOut") {
+                  onTimePickerClose();
+                  return;
+                }
+                onTimePickerOpen("checkOut");
+              }}
             >
               <span className={styles.timeDisplay}>
                 {checkOutParsed.period === "AM" ? "오전" : "오후"}{" "}
@@ -139,7 +139,9 @@ export const TimeStep: React.FC<TimeStepProps> = ({
                 minute={checkOutParsed.minute}
                 pickerRef={checkOutPickerRef}
                 period={checkOutParsed.period}
-                onChange={(h, m, p) => onTimeChange("checkOut", h, m, p)}
+                onSelect={(selection) =>
+                  onTimeValueSelect("checkOut", selection)
+                }
               />
             )}
           </div>

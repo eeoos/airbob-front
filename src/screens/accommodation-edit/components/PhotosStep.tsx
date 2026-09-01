@@ -4,7 +4,7 @@ import formStyles from "./EditForm.module.css";
 import styles from "./PhotosStep.module.css";
 
 interface PhotosStepProps {
-  imageItems: AccommodationEditImageItem[];
+  imageItems: readonly AccommodationEditImageItem[];
   isSaving: boolean;
   isDeletingImage: boolean;
   uploadProgress: number;
