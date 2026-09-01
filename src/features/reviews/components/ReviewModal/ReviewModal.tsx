@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { useIntersectionLoadMore } from "../../../../shared/lib/useIntersectionLoadMore";
 import { requireCssModuleClass } from "../../../../shared/styles/requireCssModuleClass";
 import {
   Button,
@@ -11,9 +12,9 @@ import {
   useOutsideClick,
 } from "../../../../shared/ui";
 import type { ReviewViewModel } from "../../lib/reviewViewModel";
+import type { ReviewSortType } from "../../model";
 import styles from "./ReviewModal.module.css";
 
-type ReviewSortType = "LATEST" | "HIGHEST_RATING" | "LOWEST_RATING";
 type ReviewModalStatus = "empty" | "error" | "loading" | "ready";
 
 const REVIEW_SORT_TYPE = {
@@ -103,8 +104,6 @@ export function ReviewModal({
   const sortDropdownRef = useRef<HTMLDivElement>(null);
   const sortTriggerRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
-  const loadMoreStateRef = useRef({ hasNext, isFetching, onLoadMore });
   const closeSortDropdown = useCallback(() => setIsSortDropdownOpen(false), []);
   const sortOverlay = useNonModalOverlayRegistration({
     enabled: isOpen && isSortDropdownOpen,
@@ -113,45 +112,30 @@ export function ReviewModal({
     triggerRef: sortTriggerRef,
   });
 
-  loadMoreStateRef.current = { hasNext, isFetching, onLoadMore };
   useOutsideClick(sortContainerRef, closeSortDropdown, isSortDropdownOpen);
-
-  useEffect(() => {
-    const sentinel = loadMoreSentinelRef.current;
-    if (
-      !isOpen ||
-      status !== "ready" ||
-      loadMoreErrorMessage !== null ||
-      sentinel === null ||
-      typeof IntersectionObserver === "undefined"
-    ) {
-      return;
-    }
-
-    const observer = new IntersectionObserver((entries) => {
-      if (!entries.some((entry) => entry.isIntersecting)) return;
-
-      const loadMoreState = loadMoreStateRef.current;
-      if (!loadMoreState.hasNext || loadMoreState.isFetching) return;
-      loadMoreState.onLoadMore();
-    });
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [isOpen, loadMoreErrorMessage, status]);
+  const loadMoreSentinelRef = useIntersectionLoadMore({
+    disabled: !isOpen || status !== "ready" || loadMoreErrorMessage !== null,
+    hasNext,
+    isLoading: isFetching,
+    onLoadMore,
+    threshold: 0,
+  });
+  const sortedReviews = useMemo(
+    () =>
+      [...reviews].sort((a, b) => {
+        switch (sortType) {
+          case REVIEW_SORT_TYPE.LATEST:
+            return b.date.timestamp - a.date.timestamp;
+          case REVIEW_SORT_TYPE.HIGHEST_RATING:
+            return b.rating - a.rating;
+          case REVIEW_SORT_TYPE.LOWEST_RATING:
+            return a.rating - b.rating;
+        }
+      }),
+    [reviews, sortType],
+  );
 
   if (!isOpen) return null;
-
-  const sortedReviews = [...reviews].sort((a, b) => {
-    switch (sortType) {
-      case REVIEW_SORT_TYPE.LATEST:
-        return b.date.timestamp - a.date.timestamp;
-      case REVIEW_SORT_TYPE.HIGHEST_RATING:
-        return b.rating - a.rating;
-      case REVIEW_SORT_TYPE.LOWEST_RATING:
-        return a.rating - b.rating;
-    }
-  });
 
   return (
     <Dialog

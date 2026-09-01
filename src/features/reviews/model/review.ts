@@ -1,4 +1,4 @@
-type ReviewSortType = "LATEST" | "HIGHEST_RATING" | "LOWEST_RATING";
+export type ReviewSortType = "LATEST" | "HIGHEST_RATING" | "LOWEST_RATING";
 
 export interface ReviewApiRequestOptions {
   readonly signal?: AbortSignal;

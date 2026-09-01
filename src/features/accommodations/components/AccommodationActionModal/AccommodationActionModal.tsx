@@ -6,6 +6,7 @@ import {
   ImageWithFallback,
   ToastHost,
 } from "../../../../shared/ui";
+import type { HostListingAction } from "../../ports/hostListingActionsApiPort";
 import styles from "./AccommodationActionModal.module.css";
 
 interface AccommodationActionViewModel {
@@ -30,8 +31,6 @@ export interface AccommodationActionModalProps {
   readonly onPublish: (accommodationId: number) => void;
   readonly onUnpublish: (accommodationId: number) => void;
 }
-
-type PendingAction = "delete" | "publish" | "unpublish";
 
 function AccommodationImageFallback({ name }: { readonly name: string }) {
   return (
@@ -61,7 +60,7 @@ export function AccommodationActionModal({
   onUnpublish,
 }: AccommodationActionModalProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const [pendingAction, setPendingAction] = useState<PendingAction | null>(
+  const [pendingAction, setPendingAction] = useState<HostListingAction | null>(
     null,
   );
 
@@ -77,7 +76,7 @@ export function AccommodationActionModal({
   };
 
   const runAction = (
-    action: PendingAction,
+    action: HostListingAction,
     execute: (accommodationId: number) => void,
   ) => {
     setPendingAction(action);

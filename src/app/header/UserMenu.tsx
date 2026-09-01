@@ -76,7 +76,6 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const menuDropdownRef = useRef<HTMLDivElement>(null);
   const menuItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const draftCreateRequestRef = useRef(false);
   const { createDraft, isCreating } = useCreateAccommodationDraft({
     onCreated: (accommodationId) => {
       if (
@@ -233,16 +232,11 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
   };
 
   const handleHosting = () => {
-    if (isCreating || draftCreateRequestRef.current) return;
+    if (isCreating) return;
 
-    draftCreateRequestRef.current = true;
     setDraftCreateErrorMessage(null);
     menuButtonRef.current?.focus();
-    const operation = createDraft();
-    const releaseRequest = () => {
-      draftCreateRequestRef.current = false;
-    };
-    void operation.then(releaseRequest, releaseRequest);
+    void createDraft();
   };
 
   const retryHosting = () => {

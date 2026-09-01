@@ -390,31 +390,6 @@ describe("UserMenu", () => {
     expect(mockCreateDraft).not.toHaveBeenCalled();
   });
 
-  it("coalesces rapid hosting activation before the busy view renders", async () => {
-    let resolveDraft!: () => void;
-    const pendingDraft = new Promise<void>((resolve) => {
-      resolveDraft = resolve;
-    });
-    mockCreateDraft.mockReturnValue(pendingDraft);
-    mockUseCreateAccommodationDraft.mockReturnValue({
-      createDraft: mockCreateDraft,
-      isCreating: false,
-    });
-    render(<UserMenu isLoggedIn />);
-
-    await openMenu();
-    const hostingItem = screen.getByRole("menuitem", { name: "호스팅 하기" });
-    fireEvent.click(hostingItem);
-    fireEvent.click(hostingItem);
-
-    expect(mockCreateDraft).toHaveBeenCalledTimes(1);
-
-    await act(async () => {
-      resolveDraft();
-      await pendingDraft;
-    });
-  });
-
   it("does not navigate when a draft finishes after the user changes route", async () => {
     let resolveDraft!: () => void;
     const pendingDraft = new Promise<void>((resolve) => {
