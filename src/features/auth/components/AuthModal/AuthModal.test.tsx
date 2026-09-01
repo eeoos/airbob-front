@@ -42,6 +42,13 @@ describe("AuthModal", () => {
 
     expect(screen.getByRole("dialog", { name: "로그인" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "닫기" })).toHaveFocus();
+    expect(
+      screen.getByText("저장한 숙소와 예약 내역을 이어서 확인하세요."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("form", { name: "로그인 양식" })).toHaveAttribute(
+      "aria-describedby",
+      "auth-modal-login-description",
+    );
   });
 
   it("validates signup locally and dismisses the error toast", async () => {
@@ -60,6 +67,10 @@ describe("AuthModal", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("비밀번호가 일치하지 않습니다.");
+    expect(screen.getByTestId("auth-modal-inline-error")).toHaveTextContent(
+      "입력 내용을 확인하고 다시 시도해 주세요.",
+    );
+    expect(screen.getByRole("button", { name: "다시 회원가입" })).toBeEnabled();
     expect(commands.signup).not.toHaveBeenCalled();
 
     await userEvent.click(
@@ -207,6 +218,13 @@ describe("AuthModal", () => {
     fireEvent.submit(submitButton);
     fireEvent.submit(submitButton);
     expect(commands.login).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByRole("button", { name: "로그인하는 중…" }),
+    ).toBeDisabled();
+    expect(screen.getByRole("form", { name: "로그인 양식" })).toHaveAttribute(
+      "aria-busy",
+      "true",
+    );
 
     await act(async () => resolveLogin());
 

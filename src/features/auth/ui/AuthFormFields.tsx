@@ -32,7 +32,9 @@ export function AuthFormFields({
           {...fieldProps("nickname")}
           type="text"
           label="닉네임"
-          placeholder="닉네임을 입력하세요 (1-20자)"
+          placeholder="여행자 이름"
+          hint="공개 프로필에 표시되며 1~20자로 입력해 주세요."
+          autoComplete="nickname"
           minLength={1}
           maxLength={20}
           required
@@ -43,7 +45,12 @@ export function AuthFormFields({
         {...fieldProps("email")}
         type="email"
         label="이메일"
-        placeholder="이메일을 입력하세요"
+        placeholder="name@example.com"
+        autoCapitalize="none"
+        autoComplete={mode === "login" ? "username" : "email"}
+        autoCorrect="off"
+        inputMode="email"
+        spellCheck={false}
         required
       />
 
@@ -51,11 +58,9 @@ export function AuthFormFields({
         {...fieldProps("password")}
         type="password"
         label="비밀번호"
-        placeholder={
-          mode === "login"
-            ? "비밀번호를 입력하세요"
-            : "비밀번호를 입력하세요 (8-20자)"
-        }
+        placeholder="비밀번호를 입력하세요"
+        hint={mode === "signup" ? "8~20자로 입력해 주세요." : undefined}
+        autoComplete={mode === "login" ? "current-password" : "new-password"}
         minLength={mode === "signup" ? 8 : undefined}
         maxLength={mode === "signup" ? 20 : undefined}
         required
@@ -67,6 +72,7 @@ export function AuthFormFields({
           type="password"
           label="비밀번호 확인"
           placeholder="비밀번호를 다시 입력하세요"
+          autoComplete="new-password"
           required
         />
       )}
