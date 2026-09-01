@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderApp } from "../../test/renderApp";
 import {
@@ -13,6 +13,7 @@ const createProps = (): ReservationConfirmScreenProps => ({
   onClearError: vi.fn(),
   onConfirmPayment: vi.fn(),
   onReleaseHold: vi.fn(),
+  onRetryLoad: vi.fn(),
   paymentStatus: "ready",
   state: {
     status: "ready",
@@ -66,6 +67,10 @@ describe("ReservationConfirmScreen", () => {
     expect(screen.getByText("여름 할인")).toBeInTheDocument();
     expect(screen.getByText("-₩20,000")).toBeInTheDocument();
     expect(screen.getByText("₩180,000")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "예약 조건" })).toBeVisible();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "예약 조건과 최종 금액을 확인한 뒤 결제를 진행해주세요.",
+    );
   });
 
   it("omits optional image, rating, cancellation copy, and coupon rows", () => {
@@ -92,7 +97,9 @@ describe("ReservationConfirmScreen", () => {
       />,
     );
 
-    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "테스트 숙소 이미지 없음" }),
+    ).toBeVisible();
     expect(screen.queryByText(/후기/)).not.toBeInTheDocument();
     expect(screen.queryByText(/까지 예약을 취소하면/)).not.toBeInTheDocument();
     expect(screen.queryByText("쿠폰 할인")).not.toBeInTheDocument();
@@ -104,7 +111,9 @@ describe("ReservationConfirmScreen", () => {
       <ReservationConfirmScreen {...props} state={{ status: "loading" }} />,
     );
 
-    expect(screen.getByRole("status")).toHaveTextContent("로딩 중...");
+    expect(screen.getByRole("status")).toHaveAccessibleName(
+      "예약 정보를 불러오는 중",
+    );
     expect(
       screen.queryByRole("button", { name: "확인 및 결제" }),
     ).not.toBeInTheDocument();
@@ -125,6 +134,19 @@ describe("ReservationConfirmScreen", () => {
     expect(
       screen.queryByRole("button", { name: "확인 및 결제" }),
     ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    expect(props.onRetryLoad).toHaveBeenCalledTimes(1);
+  });
+
+  it("replaces a failed accommodation image with an accessible fallback", () => {
+    renderApp(<ReservationConfirmScreen {...createProps()} />);
+
+    fireEvent.error(screen.getByRole("img", { name: "테스트 숙소" }));
+
+    expect(
+      screen.getByRole("img", { name: "테스트 숙소 이미지 없음" }),
+    ).toBeVisible();
   });
 
   it.each([
