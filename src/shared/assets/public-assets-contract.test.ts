@@ -39,6 +39,12 @@ const icoDimensions = (asset: Buffer): [number, number] => {
 };
 
 describe("public app asset contracts", () => {
+  it("blocks callback credentials from becoming document referrers", () => {
+    expect(documentSource).toContain(
+      '<meta name="referrer" content="no-referrer" />',
+    );
+  });
+
   it("keeps document and install metadata on the same theme", () => {
     const themeMeta = documentSource.match(
       /<meta\s+name=["']theme-color["']\s+content=["']([^"']+)["']\s*\/?>/i,

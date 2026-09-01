@@ -611,6 +611,15 @@ describe("frontend verification gate", () => {
     ]);
     expect(vercelConfig.headers).toEqual([
       {
+        source: "/(.*)",
+        headers: [
+          {
+            key: "Referrer-Policy",
+            value: "no-referrer",
+          },
+        ],
+      },
+      {
         source: "/static/(.*)",
         headers: [
           {
