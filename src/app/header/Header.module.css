@@ -4,15 +4,16 @@
   z-index: var(--z-header);
   background-color: var(--color-background-page);
   border-bottom: 1px solid var(--color-border-default);
-  padding: 0 var(--space-6);
-  isolation: isolate; /* stacking context 명시적 생성 */
+  box-shadow: var(--shadow-surface);
+  padding: 0 var(--layout-page-padding-x);
+  isolation: isolate;
 }
 
 .container {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  max-width: 1760px;
+  max-width: var(--layout-page-full-max-width);
   margin: 0 auto;
   height: var(--layout-header-desktop-height);
   gap: var(--space-6);
@@ -23,12 +24,17 @@
   align-items: center;
   cursor: pointer;
   flex-shrink: 0;
+  border-radius: var(--radius-action);
+}
+
+.logo:hover {
+  background: var(--color-surface-brand-subtle);
 }
 
 .logo:focus-visible {
-  border-radius: var(--radius-md);
-  outline: 2px solid var(--color-text-primary);
-  outline-offset: var(--space-1);
+  outline: none;
+  background: var(--color-surface-brand-subtle);
+  box-shadow: var(--focus-ring-visible);
 }
 
 .logoImage {
@@ -37,8 +43,9 @@
 }
 
 .searchBar {
+  box-sizing: border-box;
   flex: 1;
-  max-width: 450px;
+  max-width: calc(var(--layout-page-narrow-max-width) / 2 + var(--space-12));
   margin: 0 auto;
   display: flex;
   justify-content: center;
@@ -46,60 +53,67 @@
   transition: max-width var(--motion-duration-slow) var(--motion-ease-standard);
 }
 
-.searchBar:has([data-search-shell="expanded"]) {
-  max-width: 850px;
+.searchBar:has([data-expanded]) {
+  max-width: var(--layout-page-narrow-max-width);
 }
 
 .menu {
+  display: flex;
+  justify-content: flex-end;
   flex-shrink: 0;
 }
 
 @media (--viewport-tablet) {
   .header {
     padding: 0 var(--space-4);
-    z-index: var(--z-header);
-    position: sticky; /* 모바일에서도 헤더 고정 */
-    top: 0; /* 상단에 고정 */
-    isolation: isolate; /* stacking context 명시적 생성 유지 */
   }
 
   .container {
-    height: auto;
-    min-height: 60px;
-    flex-wrap: wrap;
-    gap: 0 var(--space-3);
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows:
+      calc(var(--control-touch-target) + var(--space-2))
+      minmax(0, 1fr);
+    column-gap: var(--space-3);
+    height: var(--layout-header-mobile-height);
   }
 
   .logoImage {
     height: var(--space-10);
   }
 
-  .logo,
-  .menu {
-    min-height: 60px;
+  .logo {
+    grid-column: 1;
+    grid-row: 1;
+    min-height: var(--control-touch-target);
   }
 
   .menu {
-    display: flex;
+    grid-column: 3;
+    grid-row: 1;
     align-items: center;
+    min-height: var(--control-touch-target);
   }
 
   .searchBar {
-    order: 3;
-    flex: 0 0 100%;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    align-self: stretch;
     max-width: none;
     margin: 0;
-    padding: var(--space-3) 0 var(--space-4) 0;
+    padding: var(--space-2) 0 var(--space-3);
     background: var(--color-background-page);
   }
 }
 
-/* 태블릿 (769-1024px) */
 @media (--viewport-tablet-up) and (--viewport-mobile-tablet) {
-  .header {
-    position: sticky; /* 태블릿에서도 헤더 고정 */
-    top: 0; /* 상단에 고정 */
-    z-index: var(--z-header);
-    isolation: isolate; /* stacking context 명시적 생성 유지 */
+  .container {
+    gap: var(--space-4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .searchBar {
+    transition: none;
   }
 }

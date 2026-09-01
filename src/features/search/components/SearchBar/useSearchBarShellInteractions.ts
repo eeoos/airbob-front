@@ -13,13 +13,11 @@ interface UseSearchBarShellInteractionsOptions {
   destinationAreaRef: SearchBarDomRef;
   suggestionsRef: SearchBarDomRef<HTMLDivElement>;
   searchButtonClassName: string;
-  isExpanded: boolean;
   activePopover: SearchActivePopover;
   completeCheckoutIfNeeded: () => void;
   closeTransientPanels: (options?: {
     collapseWhenDateSelected?: boolean;
   }) => void;
-  expandShell: () => void;
   collapseShell: () => void;
   closeActivePopover: () => void;
   openDatePicker: () => void;
@@ -40,11 +38,9 @@ export const useSearchBarShellInteractions = ({
   destinationAreaRef,
   suggestionsRef,
   searchButtonClassName,
-  isExpanded,
   activePopover,
   completeCheckoutIfNeeded,
   closeTransientPanels,
-  expandShell,
   collapseShell,
   closeActivePopover,
   openDatePicker,
@@ -71,9 +67,6 @@ export const useSearchBarShellInteractions = ({
       const isSearchButton = target.closest(`.${searchButtonClassName}`);
 
       if (isRegisteredRegion || isSearchButton) {
-        if (!isExpanded) {
-          expandShell();
-        }
         return;
       }
 
@@ -93,9 +86,7 @@ export const useSearchBarShellInteractions = ({
       datePickerElementRef,
       datePickerRef,
       destinationAreaRef,
-      expandShell,
       guestPickerRef,
-      isExpanded,
       searchButtonClassName,
       suggestionsRef,
     ],

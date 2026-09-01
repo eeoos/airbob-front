@@ -106,17 +106,12 @@ describe("Header", () => {
     expect(screen.queryAllByTestId("header-search-bar")).toHaveLength(0);
   });
 
-  it("centers mobile menu contents in the wrapped header row", () => {
+  it("keeps the mobile header aligned to the shared height contract", () => {
     const css = readFileSync(`${__dirname}/Header.module.css`, "utf8");
 
-    expect(css).toContain(
-      [
-        "  .menu {",
-        "    display: flex;",
-        "    align-items: center;",
-        "  }",
-      ].join("\n"),
-    );
+    expect(css).toContain("height: var(--layout-header-mobile-height);");
+    expect(css).toContain("grid-template-columns: auto minmax(0, 1fr) auto;");
+    expect(css).toContain("grid-column: 1 / -1;");
   });
 
   it("passes map drag mode only when all viewport params are valid", () => {

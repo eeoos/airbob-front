@@ -1,11 +1,12 @@
 .searchBar {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   background: var(--color-background-page);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-pill);
   padding: 0 var(--space-2);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-surface);
   transition:
     max-width var(--motion-duration-slow) var(--motion-ease-standard),
     border-color var(--motion-duration-slow) var(--motion-ease-standard),
@@ -13,23 +14,25 @@
   position: relative;
   cursor: pointer;
   width: 100%;
-  max-width: 450px;
+  max-width: calc(var(--layout-page-narrow-max-width) / 2 + var(--space-12));
   height: var(--control-height-lg);
-  z-index: var(--z-local-raised); /* stacking context 생성 */
+  z-index: var(--z-local-raised);
 }
 
 .searchBar:hover {
-  box-shadow: var(--shadow-md);
+  border-color: var(--color-brand-identity);
+  box-shadow: var(--shadow-control);
 }
 
 .searchBar.expanded {
-  box-shadow: var(--shadow-md);
-  border-color: var(--color-text-primary);
-  max-width: 850px;
-  height: auto;
+  box-shadow: var(--shadow-floating);
+  border-color: var(--color-action-primary);
+  max-width: var(--layout-page-narrow-max-width);
+  height: calc(var(--control-height-lg) + var(--space-2));
 }
 
 .searchItem {
+  box-sizing: border-box;
   appearance: none;
   border: 0;
   background: transparent;
@@ -43,8 +46,11 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-height: 40px;
+  min-height: var(--control-touch-target);
   text-align: left;
+  border-radius: var(--radius-action);
+  transition: background-color var(--motion-duration-base)
+    var(--motion-ease-standard);
 }
 
 .searchItemHost {
@@ -63,25 +69,36 @@
   padding: 0 var(--space-3);
 }
 
-.searchBar > .searchItem:first-child {
+.destinationItem {
   flex: 1.2;
 }
 
-/* 체크인/체크아웃 필드 (3번째 searchItem) */
-.searchBar > .searchItem:nth-child(3),
-.searchBar > .searchItemHost:nth-child(3) {
+.dateItemHost {
   flex: 1.8;
 }
 
-.searchBar:not(.expanded) .searchItem .label {
-  display: none;
+.guestItemHost {
+  flex: 1;
+}
+
+.searchItem:hover {
+  background: var(--color-surface-brand-subtle);
+}
+
+.searchItem:focus-visible {
+  position: relative;
+  z-index: var(--z-local-raised);
+  outline: none;
+  background: var(--color-surface-brand-subtle);
+  box-shadow: var(--focus-ring-visible);
 }
 
 .label {
-  font-size: 11px;
-  font-weight: 600;
+  display: block;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
-  margin-bottom: 2px;
+  margin-bottom: var(--space-1);
   line-height: 1.2;
 }
 
@@ -93,16 +110,17 @@
 .input {
   border: none;
   outline: none;
-  font-size: 13px;
-  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
   width: 100%;
   background: transparent;
-  line-height: 1.2;
+  line-height: 1.4;
   padding: 0;
 }
 
 .input:focus-visible {
-  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--focus-ring-visible);
 }
 
 .suggestions {
@@ -114,8 +132,9 @@
   width: max-content;
   max-width: 600px;
   background: var(--color-background-page);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-content-card);
+  box-shadow: var(--shadow-floating);
   max-height: 300px;
   overflow: hidden auto;
   z-index: var(--z-dropdown);
@@ -147,6 +166,7 @@
 }
 
 .suggestionItem {
+  box-sizing: border-box;
   appearance: none;
   width: 100%;
   padding: var(--space-3) var(--space-4);
@@ -155,6 +175,7 @@
   background: transparent;
   cursor: pointer;
   font-family: inherit;
+  min-height: var(--control-touch-target);
   text-align: left;
   transition: background-color var(--motion-duration-base)
     var(--motion-ease-standard);
@@ -164,13 +185,26 @@
   border-bottom: none;
 }
 
-.suggestionItem:hover {
-  background-color: var(--color-background-muted);
+.suggestionItem:hover,
+.suggestionItem:focus-visible {
+  background-color: var(--color-surface-brand-subtle);
+}
+
+.suggestionItem:focus-visible {
+  position: relative;
+  z-index: var(--z-local-raised);
+  outline: none;
+  box-shadow: var(--focus-ring-visible);
+}
+
+.suggestionStatus {
+  cursor: default;
+  color: var(--color-text-secondary);
 }
 
 .suggestionMainText {
   font-size: var(--font-size-sm);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   color: var(--color-text-primary);
   margin-bottom: 2px;
 }
@@ -181,7 +215,7 @@
 }
 
 .value {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   white-space: nowrap;
   overflow: hidden;
@@ -190,9 +224,9 @@
 }
 
 .compactValue {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-primary);
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -210,6 +244,16 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+}
+
+.mobileDateValue {
+  display: none;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .divider {
@@ -232,28 +276,28 @@
   min-width: var(--control-touch-target);
   min-height: var(--control-touch-target);
   border-radius: var(--radius-pill);
-  background: var(--color-brand-coral);
+  background: var(--color-action-primary);
   border: none;
   cursor: pointer;
   color: var(--color-text-inverse);
   flex-shrink: 0;
-  transition: background-color var(--motion-duration-base)
-    var(--motion-ease-standard);
-}
-
-/* 컴팩트 모드에서 버튼 크기 줄이기 */
-.searchBar:not(.expanded) .searchButton {
-  width: var(--control-height-md);
-  height: var(--control-height-md);
+  transition:
+    background-color var(--motion-duration-base) var(--motion-ease-standard),
+    box-shadow var(--motion-duration-base) var(--motion-ease-standard);
 }
 
 .searchBar:not(.expanded) .searchButton svg {
-  width: 14px;
-  height: 14px;
+  width: var(--font-size-sm);
+  height: var(--font-size-sm);
 }
 
 .searchButton:hover {
-  background: var(--color-brand-coral-hover);
+  background: var(--color-action-primary-hover);
+}
+
+.searchButton:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-visible);
 }
 
 .searchButton svg {
@@ -266,9 +310,7 @@
   top: calc(100% + var(--space-2));
   left: 50%;
   transform: translateX(-50%);
-  z-index: var(--z-dropdown); /* 데스크톱 기본값 */
-
-  /* 확장된 검색바 중앙에 맞춤 */
+  z-index: var(--z-dropdown);
 }
 
 .guestPicker {
@@ -276,8 +318,9 @@
   top: calc(100% + var(--space-2));
   right: 0;
   background: var(--color-background-page);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-dialog);
+  box-shadow: var(--shadow-floating);
   padding: var(--space-4);
   min-width: 300px;
   z-index: var(--z-dropdown);
@@ -311,7 +354,7 @@
 
 .guestLabel {
   font-size: var(--font-size-md);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
   margin-bottom: var(--space-1);
 }
@@ -335,81 +378,42 @@
 }
 
 .guestControls span {
-  min-width: 20px;
+  min-width: var(--space-5);
   color: var(--color-text-primary);
   font-size: var(--font-size-md);
-  font-weight: 600;
-  text-align: center;
-}
-
-.controlButton {
-  width: var(--control-height-sm);
-  height: var(--control-height-sm);
-  min-width: var(--control-touch-target);
-  min-height: var(--control-touch-target);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-pill);
-  background: var(--color-background-page);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--font-size-lg);
-  color: var(--color-text-primary);
-  transition: border-color var(--motion-duration-base)
-    var(--motion-ease-standard);
-}
-
-.controlButton:hover:not(:disabled) {
-  border-color: var(--color-text-primary);
-}
-
-.controlButton:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.guestCount {
-  font-size: var(--font-size-md);
-  font-weight: 600;
-  color: var(--color-text-primary);
-  min-width: 20px;
+  font-weight: var(--font-weight-semibold);
   text-align: center;
 }
 
 @media (--viewport-tablet) {
-  /* 축소 모드 - 작게 표시 */
   .searchBar {
-    max-width: 280px;
+    max-width: 100%;
     height: var(--control-height-lg);
     border-radius: var(--radius-pill);
-    padding: 0 6px;
+    padding: 0 var(--space-1);
     flex-wrap: nowrap;
     margin: 0 auto;
   }
 
-  /* 확장 모드 - 전체 너비 */
   .searchBar.expanded {
     max-width: 100%;
-    height: 56px;
-    border-radius: var(--radius-lg);
-    padding: 0 var(--space-2);
+    height: calc(var(--control-height-lg) + var(--space-2));
+    border-radius: var(--radius-action);
+    padding: 0 var(--space-1);
   }
 
-  /* 모바일에서 가로 레이아웃 유지 */
   .searchItem {
-    padding: 6px var(--space-2);
+    padding: var(--space-1) var(--space-2);
     flex: 1;
     min-width: 0;
   }
 
-  .searchBar > .searchItem:first-child {
+  .destinationItem {
     flex: 1.5;
   }
 
-  /* 체크인/체크아웃 필드 */
-  .searchBar > .searchItem:nth-child(3),
-  .searchBar > .searchItemHost:nth-child(3) {
+  .dateItemHost,
+  .guestItemHost {
     flex: 1;
   }
 
@@ -418,13 +422,13 @@
     height: var(--space-5);
   }
 
-  /* 축소 모드에서 divider 숨김 */
   .searchBar:not(.expanded) .divider {
     display: none;
   }
 
   .label {
-    font-size: 10px;
+    font-size: var(--font-size-xs);
+    margin-bottom: 0;
   }
 
   .value,
@@ -432,59 +436,54 @@
     font-size: var(--font-size-xs);
   }
 
-  /* iOS 자동 확대 방지: 16px 이상 필요 */
   .input {
     font-size: var(--font-size-md);
   }
 
-  /* 날짜 필드 가로 유지 */
   .dateFields {
-    flex-direction: row;
-    gap: var(--space-1);
+    display: none;
   }
 
-  .dateField {
-    flex: 1;
+  .mobileDateValue {
+    display: block;
   }
 
-  /* 모바일 검색 버튼 */
   .searchButton {
-    width: 36px;
-    height: 36px;
-  }
-
-  .searchBar.expanded .searchButton {
-    width: var(--control-height-md);
-    height: var(--control-height-md);
+    width: var(--control-touch-target);
+    height: var(--control-touch-target);
   }
 
   .searchButton svg {
-    width: 14px;
-    height: 14px;
+    width: var(--font-size-sm);
+    height: var(--font-size-sm);
   }
 
-  /* 모바일에서 날짜 선택기 - 헤더 아래에 표시 */
   .datePickerContainer {
     position: fixed;
     inset: var(--layout-search-mobile-popover-top) var(--space-4) auto;
     transform: none;
     z-index: var(--z-dropdown);
     background: var(--color-background-page);
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-lg);
-    max-height: calc(100vh - 160px);
+    border-radius: var(--radius-dialog);
+    box-shadow: var(--shadow-floating);
+    max-height: calc(
+      var(--layout-viewport-height) - var(--layout-search-mobile-popover-top) -
+        var(--space-8)
+    );
     overflow-y: auto;
   }
 
-  /* 모바일에서 여행자 선택기 - 헤더 아래에 표시 */
   .guestPicker {
     position: fixed;
     inset: var(--layout-search-mobile-popover-top) var(--space-4) auto;
     min-width: auto;
     width: auto;
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-lg);
-    max-height: calc(100vh - 160px);
+    border-radius: var(--radius-dialog);
+    box-shadow: var(--shadow-floating);
+    max-height: calc(
+      var(--layout-viewport-height) - var(--layout-search-mobile-popover-top) -
+        var(--space-8)
+    );
     overflow-y: auto;
     z-index: var(--z-dropdown);
     padding: var(--space-4);
@@ -497,12 +496,12 @@
   }
 
   .guestLabel {
-    font-size: 15px;
+    font-size: var(--font-size-sm);
     white-space: nowrap;
   }
 
   .guestSubLabel {
-    font-size: 13px;
+    font-size: var(--font-size-xs);
     white-space: nowrap;
   }
 
@@ -511,27 +510,18 @@
     gap: var(--space-3);
   }
 
-  .controlButton {
-    width: var(--space-7);
-    height: var(--space-7);
-    font-size: var(--font-size-md);
-  }
-
-  .guestCount {
-    font-size: 15px;
-    min-width: 24px;
-  }
-
-  /* 모바일에서 추천 드롭다운 - 헤더 아래에 표시 */
   .suggestions {
     position: fixed;
     inset: var(--layout-search-mobile-popover-top) var(--space-4) auto;
     min-width: auto;
     max-width: none;
     width: auto;
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-lg);
-    max-height: calc(100vh - 160px);
+    border-radius: var(--radius-dialog);
+    box-shadow: var(--shadow-floating);
+    max-height: calc(
+      var(--layout-viewport-height) - var(--layout-search-mobile-popover-top) -
+        var(--space-8)
+    );
     z-index: var(--z-dropdown);
     padding: var(--space-2) 0;
   }
@@ -549,20 +539,16 @@
   }
 }
 
-/* ---- Tablet (768-1024px) ---- */
-@media (--viewport-tablet-up) and (--viewport-mobile-tablet) {
-  /* 태블릿에서 날짜 선택기 - 드롭다운 계층 유지 */
-  .datePickerContainer {
-    z-index: var(--z-dropdown);
+@media (prefers-reduced-motion: reduce) {
+  .searchBar,
+  .searchItem,
+  .searchButton,
+  .suggestionItem {
+    transition: none;
   }
 
-  /* 태블릿에서 여행자 선택기 - 드롭다운 계층 유지 */
+  .suggestions,
   .guestPicker {
-    z-index: var(--z-dropdown);
-  }
-
-  /* 태블릿에서 추천 드롭다운 - 드롭다운 계층 유지 */
-  .suggestions {
-    z-index: var(--z-dropdown);
+    animation: none;
   }
 }

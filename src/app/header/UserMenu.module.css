@@ -10,6 +10,7 @@
 
 .menuButton,
 .profileButton {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -18,14 +19,27 @@
   border-radius: var(--radius-pill);
   background: var(--color-background-page);
   cursor: pointer;
-  transition: box-shadow var(--motion-duration-base) var(--motion-ease-standard);
+  color: var(--color-text-primary);
+  transition:
+    background-color var(--motion-duration-base) var(--motion-ease-standard),
+    border-color var(--motion-duration-base) var(--motion-ease-standard),
+    box-shadow var(--motion-duration-base) var(--motion-ease-standard);
   width: var(--control-touch-target);
   height: var(--control-touch-target);
 }
 
 .menuButton:hover,
 .profileButton:hover {
-  box-shadow: var(--shadow-sm);
+  background: var(--color-surface-brand-subtle);
+  border-color: var(--color-brand-identity);
+  box-shadow: var(--shadow-surface);
+}
+
+.menuButton:focus-visible,
+.profileButton:focus-visible {
+  outline: none;
+  background: var(--color-surface-brand-subtle);
+  box-shadow: var(--focus-ring-visible);
 }
 
 .icon {
@@ -39,20 +53,23 @@
   top: calc(100% + var(--space-2));
   right: 0;
   background: var(--color-background-page);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-content-card);
+  box-shadow: var(--shadow-floating);
   min-width: 200px;
   padding: var(--space-2) 0;
   z-index: var(--z-dropdown);
 }
 
 .menuItem {
+  box-sizing: border-box;
   width: 100%;
   padding: var(--space-3) var(--space-4);
   text-align: left;
   background: none;
   border: none;
   cursor: pointer;
+  min-height: var(--control-touch-target);
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
   transition: background-color var(--motion-duration-base)
@@ -60,11 +77,33 @@
 }
 
 .menuItem:hover {
-  background-color: var(--color-background-muted);
+  background-color: var(--color-surface-brand-subtle);
+}
+
+.menuItem:focus-visible {
+  position: relative;
+  z-index: var(--z-local-raised);
+  outline: none;
+  background-color: var(--color-surface-brand-subtle);
+  box-shadow: var(--focus-ring-visible);
 }
 
 .divider {
   height: 1px;
   background-color: var(--color-border-subtle);
   margin: var(--space-2) 0;
+}
+
+@media (--viewport-phone) {
+  .menuDropdown {
+    max-width: calc(var(--layout-viewport-width) - var(--space-8));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menuButton,
+  .profileButton,
+  .menuItem {
+    transition: none;
+  }
 }

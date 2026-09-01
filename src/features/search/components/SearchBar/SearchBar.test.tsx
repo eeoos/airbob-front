@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { MockedFunction } from "vitest";
 import { OverlayProvider } from "../../../../app/overlays/OverlayProvider";
@@ -172,28 +172,27 @@ describe("SearchBar", () => {
     );
     const searchItemStyles = getCssBlock(css, ".searchItem");
     const searchButtonStyles = getCssBlock(css, ".searchButton");
-    const controlButtonStyles = getCssBlock(css, ".controlButton");
     const suggestionItemStyles = getCssBlock(css, ".suggestionItem");
 
     expect(searchItemStyles).toContain("appearance: none;");
     expect(searchItemStyles).toContain("border: 0;");
     expect(searchItemStyles).toContain("background: transparent;");
     expect(searchItemStyles).toContain("font: inherit;");
-    expect(searchButtonStyles).toContain(
-      "min-width: var(--control-touch-target);",
-    );
-    expect(searchButtonStyles).toContain(
+    expect(searchItemStyles).toContain(
       "min-height: var(--control-touch-target);",
     );
-    expect(controlButtonStyles).toContain(
+    expect(searchButtonStyles).toContain(
       "min-width: var(--control-touch-target);",
     );
-    expect(controlButtonStyles).toContain(
+    expect(searchButtonStyles).toContain(
       "min-height: var(--control-touch-target);",
     );
     expect(suggestionItemStyles).toContain("appearance: none;");
     expect(suggestionItemStyles).toContain("border: 0;");
     expect(suggestionItemStyles).toContain("width: 100%;");
+    expect(suggestionItemStyles).toContain(
+      "min-height: var(--control-touch-target);",
+    );
     expect(suggestionItemStyles).toContain("text-align: left;");
   });
 
@@ -208,15 +207,40 @@ describe("SearchBar", () => {
 
     expect(searchButton).toHaveAttribute("type", "button");
     expect(destinationButton).toHaveAttribute("type", "button");
-    expect(screen.getByRole("search", { name: "숙소 검색" })).toHaveAttribute(
-      "data-search-shell",
-      "compact",
-    );
+    expect(
+      screen.getByRole("search", { name: "숙소 검색" }),
+    ).not.toHaveAttribute("data-expanded");
 
     await userEvent.click(destinationButton);
 
-    expect(state.actions.expandShell).toHaveBeenCalledTimes(1);
+    expect(state.actions.expandShell).not.toHaveBeenCalled();
     expect(state.actions.openDestination).toHaveBeenCalledTimes(1);
+  });
+
+  it("moves focus to the destination input after the compact shell expands", () => {
+    const compactState = createSearchBarState({
+      destination: { inputText: "Seoul" },
+    });
+    mockUseSearchBarState.mockReturnValue(compactState);
+    const view = render(<SearchBar routePort={routePort} />);
+
+    const destinationButton = screen.getByRole("button", { name: "Seoul" });
+    destinationButton.focus();
+    destinationButton.click();
+    mockUseSearchBarState.mockReturnValue(
+      createSearchBarState({
+        destination: { inputText: "Seoul" },
+        popover: {
+          activePopover: "destination",
+          isExpanded: true,
+          showSuggestions: false,
+        },
+      }),
+    );
+    view.rerender(<SearchBar routePort={routePort} />);
+    act(() => vi.runOnlyPendingTimers());
+
+    expect(screen.getByRole("combobox", { name: "여행지" })).toHaveFocus();
   });
 
   it("renders date and guest segments as disclosure buttons", () => {
@@ -233,9 +257,11 @@ describe("SearchBar", () => {
 
     expect(dateTrigger).toHaveAttribute("type", "button");
     expect(dateTrigger).toHaveAttribute("aria-expanded", "false");
+    expect(dateTrigger).toHaveAttribute("aria-haspopup", "dialog");
     expect(dateTrigger).toHaveAttribute("aria-controls", "search-date-picker");
     expect(guestTrigger).toHaveAttribute("type", "button");
     expect(guestTrigger).toHaveAttribute("aria-expanded", "false");
+    expect(guestTrigger).toHaveAttribute("aria-haspopup", "dialog");
     expect(guestTrigger).toHaveAttribute(
       "aria-controls",
       "search-guest-picker",
@@ -313,6 +339,52 @@ describe("SearchBar", () => {
     const { suggestionButton } = renderExpandedSearchBarWithSuggestions();
 
     expect(suggestionButton).toHaveAttribute("type", "button");
+  });
+
+  it("programmatically labels the destination input and links its suggestion dialog", () => {
+    renderExpandedSearchBarWithSuggestions();
+
+    const input = screen.getByRole("combobox", { name: "여행지" });
+    const suggestionsDialog = screen.getByRole("dialog", {
+      name: "검색 지역 추천",
+    });
+
+    expect(input).toHaveAttribute("aria-autocomplete", "list");
+    expect(input).toHaveAttribute("aria-expanded", "true");
+    expect(input).toHaveAttribute("aria-haspopup", "dialog");
+    expect(input).toHaveAttribute("aria-controls", suggestionsDialog.id);
+  });
+
+  it("moves through destination suggestions with directional and boundary keys", async () => {
+    const busanSuggestion = {
+      placeId: "place-2",
+      description: "부산, 대한민국",
+      mainText: "부산",
+      secondaryText: "대한민국",
+    };
+
+    renderExpandedSearchBarWithSuggestions({
+      destination: {
+        suggestions: [seoulSuggestion, busanSuggestion],
+      },
+    });
+
+    const input = screen.getByRole("combobox", { name: "여행지" });
+    const seoulButton = screen.getByRole("button", { name: /서울/ });
+    const busanButton = screen.getByRole("button", { name: /부산/ });
+
+    input.focus();
+    await userEvent.keyboard("{ArrowDown}");
+    expect(seoulButton).toHaveFocus();
+
+    await userEvent.keyboard("{ArrowDown}");
+    expect(busanButton).toHaveFocus();
+
+    await userEvent.keyboard("{Home}");
+    expect(seoulButton).toHaveFocus();
+
+    await userEvent.keyboard("{ArrowUp}");
+    expect(busanButton).toHaveFocus();
   });
 
   it("selects a place suggestion with pointer activation", async () => {
@@ -507,8 +579,8 @@ describe("SearchBar", () => {
     });
 
     expect(screen.getByRole("search", { name: "숙소 검색" })).toHaveAttribute(
-      "data-search-shell",
-      "expanded",
+      "data-expanded",
+      "",
     );
     dateTrigger.focus();
     await userEvent.keyboard("{Escape}");

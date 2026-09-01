@@ -164,6 +164,7 @@ export const useSearchBarDestinationInteractions = ({
       blurTimerRef.current = null;
       const activeElement = document.activeElement;
       const registeredRegions = [
+        destinationInputRef.current,
         suggestionsRef.current,
         datePickerElementRef.current,
         datePickerRef.current,
@@ -188,6 +189,7 @@ export const useSearchBarDestinationInteractions = ({
     collapseShell,
     datePickerElementRef,
     datePickerRef,
+    destinationInputRef,
     guestPickerRef,
     suggestionsRef,
   ]);
