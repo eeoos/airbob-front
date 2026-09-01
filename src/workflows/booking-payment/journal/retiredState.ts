@@ -3,6 +3,10 @@ import type {
   SessionStorageDriver,
   StorageAccessError,
 } from "../../../platform/storage/sessionStorageDriver";
+import {
+  BOOKING_PAYMENT_V2_OPERATION_RECEIPT_KEY,
+  orderBookingPaymentCleanupKeys,
+} from "./namespace";
 
 const terminalCleanupPrefixes = Object.freeze([
   "airbob:booking-payment-v1:",
@@ -53,13 +57,42 @@ const enumerateTargets = (
 const removeTargets = (
   driver: SessionStorageDriver,
   keys: readonly string[],
+  prefixes: readonly string[],
 ): void => {
-  keys.forEach((key) => {
-    // Removal results are intentionally not trusted. A storage implementation
-    // can report success without deleting anything, so only re-enumeration may
-    // prove that a key is gone.
-    driver.removeItem(key);
-  });
+  const orderedKeys = orderBookingPaymentCleanupKeys(keys);
+  const includesOperationReceipt = orderedKeys.includes(
+    BOOKING_PAYMENT_V2_OPERATION_RECEIPT_KEY,
+  );
+
+  orderedKeys
+    .filter((key) => key !== BOOKING_PAYMENT_V2_OPERATION_RECEIPT_KEY)
+    .forEach((key) => {
+      // Removal results are intentionally not trusted. A storage implementation
+      // can report success without deleting anything, so only re-enumeration may
+      // prove that a key is gone.
+      driver.removeItem(key);
+    });
+
+  if (!includesOperationReceipt) return;
+
+  // The operation receipt is the post-Accepted recovery barrier. Keep it until
+  // a fresh enumeration proves that every less-authoritative key covered by
+  // this cleanup is actually absent. For identity cleanup that includes v1,
+  // retired-prefix, and unknown/newer v2 state.
+  const verification = driver.keys();
+  if (!verification.ok) return;
+
+  const hasLowerAuthorityState = verification.value.some(
+    (key) =>
+      matchesAnyPrefix(key, prefixes) &&
+      key !== BOOKING_PAYMENT_V2_OPERATION_RECEIPT_KEY,
+  );
+  if (hasLowerAuthorityState) return;
+
+  // Removal results are intentionally not trusted. A storage implementation
+  // can report success without deleting anything, so only re-enumeration may
+  // prove that a key is gone.
+  driver.removeItem(BOOKING_PAYMENT_V2_OPERATION_RECEIPT_KEY);
 };
 
 const clearAndVerifyPrefixes = (
@@ -75,7 +108,7 @@ const clearAndVerifyPrefixes = (
       return initial;
     }
     initial.keys.forEach((key) => observedKeys.add(key));
-    removeTargets(driver, initial.keys);
+    removeTargets(driver, initial.keys, prefixes);
 
     const verification = enumerateTargets(driver, prefixes);
     if (verification.status === "storage-error") {

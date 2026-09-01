@@ -27,11 +27,15 @@ import {
   type PaymentCallbackReady,
 } from "../../../workflows/booking-payment/confirmation";
 import { useSession } from "../../session/useSession";
-import { usePaymentCallbackCredentialClaim } from "../PaymentCallbackCredentialBoundary";
+import {
+  usePaymentCallbackCredentialClaim,
+  usePaymentRecoveryFenceStatus,
+} from "../PaymentCallbackCredentialBoundary";
 import { routeTo } from "../paths";
 
 type SuccessResolution =
   | { readonly status: "resolving" }
+  | { readonly status: "recovery-fenced" }
   | PaymentCallbackReady
   | {
       readonly status: "server-replay-required";
@@ -55,6 +59,7 @@ function PaymentSuccessRoute() {
   const queryClient = useQueryClient();
   const { reservationUid } = useParams<{ reservationUid: string }>();
   const credentialClaim = usePaymentCallbackCredentialClaim();
+  const paymentRecoveryFenceStatus = usePaymentRecoveryFenceStatus();
   const session = useSession();
   const sessionEpoch = session.state.epoch;
   const sessionSubject =
@@ -103,9 +108,15 @@ function PaymentSuccessRoute() {
   );
 
   useLayoutEffect(() => {
-    if (claimedRef.current || scope === null || location.search !== "") {
+    if (scope === null || location.search !== "") {
       return;
     }
+    if (paymentRecoveryFenceStatus !== "none") {
+      claimedRef.current = true;
+      setResolution({ status: "recovery-fenced" });
+      return;
+    }
+    if (claimedRef.current) return;
     claimedRef.current = true;
     const isCurrent = () => routeLease.isCurrent() && isCurrentSession(scope);
 
@@ -126,6 +137,7 @@ function PaymentSuccessRoute() {
     setResolution(claimed);
   }, [
     credentialClaim,
+    paymentRecoveryFenceStatus,
     location.search,
     repositories,
     reservationUid,
@@ -202,6 +214,25 @@ function PaymentSuccessRoute() {
       resolution.reason === "callback-write-failed";
     handleInvalid(clearJoinedDocuments);
   }, [handleInvalid, location.search, resolution]);
+
+  useEffect(() => {
+    if (
+      resolution.status !== "recovery-fenced" ||
+      !reservationUid ||
+      location.search !== ""
+    ) {
+      return;
+    }
+
+    navigate(routeTo.reservationDetail(reservationUid), {
+      replace: true,
+      state: null,
+    });
+  }, [location.search, navigate, reservationUid, resolution.status]);
+
+  if (paymentRecoveryFenceStatus !== "none") {
+    return <PaymentResultScreen mode="processing" />;
+  }
 
   if (
     resolution.status === "server-replay-retryable" &&

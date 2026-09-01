@@ -10,6 +10,10 @@ import {
   SessionProvider,
   type SessionContextValue,
 } from "../session/SessionProvider";
+import {
+  usePaymentCallbackCredentialClaim,
+  usePaymentRecoveryFenceStatus,
+} from "../router/PaymentCallbackCredentialBoundary";
 import { toSessionSubject } from "../session/sessionState";
 import { useSession } from "../session/useSession";
 import { AppProviders } from "./AppProviders";
@@ -74,7 +78,7 @@ describe("AppProviders", () => {
   it("passes cleanup and candidate reconciliation ports to the session owner", () => {
     const clearIdentityOwnedState = vi.fn();
     const clearRevokedIdentityOwnedState = vi.fn();
-    const reconcileCandidateIdentityOwnedState = vi.fn();
+    const reconcileCandidateIdentityOwnedState = vi.fn(() => "ready" as const);
 
     render(
       <MemoryRouter>
@@ -99,10 +103,86 @@ describe("AppProviders", () => {
     expect(sessionProviderProps?.clearRevokedIdentityOwnedState).toBe(
       clearRevokedIdentityOwnedState,
     );
-    expect(sessionProviderProps?.reconcileCandidateIdentityOwnedState).toBe(
-      reconcileCandidateIdentityOwnedState,
-    );
+    const forwardedReconciliation =
+      sessionProviderProps?.reconcileCandidateIdentityOwnedState;
+    expect(forwardedReconciliation).toEqual(expect.any(Function));
+    forwardedReconciliation?.({
+      subject: toSessionSubject({
+        id: 41,
+        email: "guest@example.com",
+        nickname: "Guest",
+        thumbnailImageUrl: null,
+      }),
+      epoch: 2,
+      runtimeLeaseId: testSessionRuntimeLeaseId,
+    });
+    expect(reconcileCandidateIdentityOwnedState).toHaveBeenCalledTimes(1);
   });
+
+  it.each(["recovery-required", "recovery-unavailable"] as const)(
+    "invalidates a scrubbed callback before publishing %s commands",
+    async (status) => {
+      const callbackPath = "/reservations/reservation-1/success";
+      const callbackSearch =
+        "?paymentKey=payment-key-1&orderId=reservation-1&amount=120000";
+      window.history.replaceState(
+        { idx: 0, key: "callback", usr: { paymentKey: "secret" } },
+        "",
+        `${callbackPath}${callbackSearch}`,
+      );
+      const reconcileCandidateIdentityOwnedState = vi.fn(() => status);
+
+      function CredentialProbe() {
+        const claim = usePaymentCallbackCredentialClaim();
+        const recoveryFenceStatus = usePaymentRecoveryFenceStatus();
+        return (
+          <output data-testid="callback-claim">
+            {`${claim.status}:${recoveryFenceStatus}`}
+          </output>
+        );
+      }
+
+      render(
+        <MemoryRouter initialEntries={[`${callbackPath}${callbackSearch}`]}>
+          <AppProviders
+            reconcileCandidateIdentityOwnedState={
+              reconcileCandidateIdentityOwnedState
+            }
+          >
+            <CredentialProbe />
+          </AppProviders>
+        </MemoryRouter>,
+      );
+
+      expect(await screen.findByTestId("callback-claim")).toHaveTextContent(
+        "fresh:none",
+      );
+      const forwardedReconciliation = vi
+        .mocked(SessionProvider)
+        .mock.calls.at(-1)?.[0].reconcileCandidateIdentityOwnedState;
+      expect(forwardedReconciliation).toEqual(expect.any(Function));
+
+      act(() => {
+        forwardedReconciliation?.({
+          subject: toSessionSubject({
+            id: 41,
+            email: "guest@example.com",
+            nickname: "Guest",
+            thumbnailImageUrl: null,
+          }),
+          epoch: 2,
+          runtimeLeaseId: testSessionRuntimeLeaseId,
+        });
+      });
+
+      expect(screen.getByTestId("callback-claim")).toHaveTextContent(
+        `invalid:${status}`,
+      );
+      expect(screen.getByTestId("callback-claim")).not.toHaveTextContent(
+        "payment-key-1",
+      );
+    },
+  );
 
   it("owns the canonical production portal for dialogs and toasts", () => {
     const view = render(

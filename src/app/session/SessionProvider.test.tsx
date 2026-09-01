@@ -108,6 +108,7 @@ const runtimeLeaseB =
   "20000000-0000-4000-8000-000000000002" as SessionRuntimeLeaseId;
 
 const V2_JOURNAL_KEY = "airbob:booking-payment-v2:journal";
+const V2_OPERATION_RECEIPT_KEY = "airbob:booking-payment-v2:operation-receipt";
 
 const seedQuotedV2Journal = (owner: string): string => {
   const now = Date.now();
@@ -157,6 +158,36 @@ const seedQuotedV2Journal = (owner: string): string => {
     throw new Error("Expected candidate journal fixture to be written");
   }
   return sessionStorage.getItem(V2_JOURNAL_KEY) ?? "";
+};
+
+const seedOperationReceipt = (owner: string, createdAt: number): string => {
+  const raw = JSON.stringify({
+    purpose: "booking-payment-operation-receipt",
+    version: 2,
+    privacyClass: "personal",
+    containsPii: false,
+    owner,
+    createdAt,
+    hardExpiresAt: createdAt + 24 * 60 * 60_000,
+    lease: {
+      runtimeLeaseId: "80000000-0000-4000-8000-000000000008",
+      sessionEpoch: 0,
+    },
+    data: {
+      flowId: "40000000-0000-4000-8000-000000000004",
+      operation: {
+        operationId: "90000000-0000-4000-8000-000000000009",
+        reservationUid: "60000000-0000-4000-8000-000000000006",
+        orderId: "60000000-0000-4000-8000-000000000006",
+        paymentAttemptId: "70000000-0000-4000-8000-000000000007",
+        amount: 2_000,
+        currency: "KRW",
+      },
+      observation: null,
+    },
+  });
+  sessionStorage.setItem(V2_OPERATION_RECEIPT_KEY, raw);
+  return raw;
 };
 
 const authenticatedState = (
@@ -553,6 +584,45 @@ describe("SessionProvider", () => {
       expectAuthenticatedAs(result.current.session.state, viewerA),
     );
     expect(sessionStorage.getItem(V2_JOURNAL_KEY)).toBe(before);
+  });
+
+  it("cold-bootstraps while preserving an active same-owner operation receipt", async () => {
+    const before = seedOperationReceipt(toSessionSubject(viewerA), Date.now());
+    const authPort = createAuthPort();
+    authPort.getViewer.mockResolvedValueOnce(viewerA);
+
+    const { result } = renderSession({
+      authPort,
+      reconcileCandidateIdentityOwnedState:
+        reconcileCandidateIdentityOwnedFrontendState,
+      runtimeLeaseIdFactory: () => runtimeLeaseA,
+    });
+
+    await waitFor(() =>
+      expectAuthenticatedAs(result.current.session.state, viewerA),
+    );
+    expect(sessionStorage.getItem(V2_OPERATION_RECEIPT_KEY)).toBe(before);
+  });
+
+  it("publishes the candidate only after an expired same-owner receipt becomes unavailable", async () => {
+    seedOperationReceipt(
+      toSessionSubject(viewerA),
+      Date.now() - 24 * 60 * 60_000 - 1_000,
+    );
+    const authPort = createAuthPort();
+    authPort.getViewer.mockResolvedValueOnce(viewerA);
+
+    const { result } = renderSession({
+      authPort,
+      reconcileCandidateIdentityOwnedState:
+        reconcileCandidateIdentityOwnedFrontendState,
+      runtimeLeaseIdFactory: () => runtimeLeaseA,
+    });
+
+    await waitFor(() =>
+      expectAuthenticatedAs(result.current.session.state, viewerA),
+    );
+    expect(sessionStorage.getItem(V2_OPERATION_RECEIPT_KEY)).toBeNull();
   });
 
   it("cold-bootstraps through the production adapter only after foreign recovery is removed", async () => {

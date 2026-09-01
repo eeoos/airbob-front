@@ -320,6 +320,7 @@ export type BookingPaymentUnheldFlowCloseResult =
 export type BookingPaymentCandidateReconciliationResult =
   | { readonly status: "ready" }
   | { readonly status: "recovery-required" }
+  | { readonly status: "recovery-unavailable" }
   | {
       readonly status: "blocked";
       readonly reason:

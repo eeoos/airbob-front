@@ -6,6 +6,9 @@ type CandidateOwnerRepository = Pick<
   "reconcileCandidateOwner"
 >;
 
+export type CandidateIdentityOwnedFrontendStateReconciliationStatus =
+  "ready" | "recovery-required" | "recovery-unavailable";
+
 /**
  * App composition joins candidate session publication to booking recovery
  * ownership without exposing transaction data to the session layer.
@@ -13,11 +16,15 @@ type CandidateOwnerRepository = Pick<
 export const reconcileCandidateIdentityOwnedFrontendState = (
   scope: AuthenticatedSessionScope,
   repository: CandidateOwnerRepository = createBookingPaymentJournalRepository(),
-): void => {
+): CandidateIdentityOwnedFrontendStateReconciliationStatus => {
   try {
     const result = repository.reconcileCandidateOwner(scope.subject);
-    if (result.status === "ready" || result.status === "recovery-required") {
-      return;
+    if (
+      result.status === "ready" ||
+      result.status === "recovery-required" ||
+      result.status === "recovery-unavailable"
+    ) {
+      return result.status;
     }
   } catch {
     // Session publication owns one redacted failure surface for storage faults.

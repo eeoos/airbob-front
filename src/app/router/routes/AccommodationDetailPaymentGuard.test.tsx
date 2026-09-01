@@ -21,6 +21,8 @@ const scope: AuthenticatedSessionScope = {
   subject: "subject:active_payment_guard" as SessionSubject,
 };
 let capturedHandoff: ReservationCheckoutHandoffPort | null = null;
+let paymentRecoveryFenceStatus:
+  "none" | "recovery-required" | "recovery-unavailable" = "none";
 
 vi.mock("../../../platform/browser/windowNavigation", () => ({
   browserWindowNavigation: {
@@ -89,6 +91,16 @@ const mockSession = {
 vi.mock("../../session/useSession", () => ({
   useSession: () => mockSession,
 }));
+
+vi.mock("../PaymentCallbackCredentialBoundary", async () => {
+  const actual = await vi.importActual<
+    typeof import("../PaymentCallbackCredentialBoundary")
+  >("../PaymentCallbackCredentialBoundary");
+  return {
+    ...actual,
+    usePaymentRecoveryFenceStatus: () => paymentRecoveryFenceStatus,
+  };
+});
 
 const intent: ReservationStartIntent = {
   type: "reservation.start",
@@ -161,7 +173,39 @@ describe("AccommodationDetailRoute active payment guard", () => {
   beforeEach(() => {
     window.sessionStorage.clear();
     capturedHandoff = null;
+    paymentRecoveryFenceStatus = "none";
   });
+
+  it.each(["recovery-required", "recovery-unavailable"] as const)(
+    "blocks a new legacy reservation while the in-memory %s fence survives cleaned storage",
+    async (status) => {
+      paymentRecoveryFenceStatus = status;
+
+      render(
+        <MemoryRouter initialEntries={["/accommodations/42"]}>
+          <Routes>
+            <Route
+              path="/accommodations/:id"
+              element={<AccommodationDetailRoute />}
+            />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await screen.findByTestId("accommodation-detail-controller");
+      const handoff = capturedHandoff;
+      if (handoff === null)
+        throw new Error("checkout handoff was not captured");
+
+      expect(handoff.preflight({ session: scope, intent })).toEqual({
+        status: "blocked",
+      });
+      expect(handoff.assertNoNewerRecovery({ session: scope, intent })).toEqual(
+        { status: "blocked" },
+      );
+      expect(window.sessionStorage.length).toBe(0);
+    },
+  );
 
   it("preserves active recovery and redirects before another reservation starts", async () => {
     seedActiveRecovery();

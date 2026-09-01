@@ -7,6 +7,8 @@ import {
 const v1CheckoutKey = "airbob:booking-payment-v1:checkout";
 const v1CallbackKey = "airbob:booking-payment-v1:callback";
 const v2JournalKey = "airbob:booking-payment-v2:journal";
+const v2CredentialKey = "airbob:booking-payment-v2:callback-credential";
+const v2ReceiptKey = "airbob:booking-payment-v2:operation-receipt";
 const retiredCheckoutKey = "airbob:reservation-checkout:7";
 const retiredIndexKey = "airbob:reservation-checkout-index:reservation-7";
 const retiredMarkerKey = "airbob:payment-confirmed:tuple";
@@ -72,23 +74,167 @@ describe("retired booking-payment browser state", () => {
     const harness = createStorageHarness({
       [v1CheckoutKey]: "secret-v1-checkout",
       [v2JournalKey]: "secret-v2-journal",
-      "airbob:booking-payment-v2:callback-credential": "secret-credential",
+      [v2CredentialKey]: "secret-credential",
+      [v2ReceiptKey]: "secret-receipt",
       [retiredCheckoutKey]: "secret-retired-checkout",
       "airbob:booking-payment-v20:journal": "keep-v20",
       unrelated: "keep",
     });
+    const getItem = vi.spyOn(harness.storage, "getItem");
+    const removeItem = vi.spyOn(harness.storage, "removeItem");
+
+    expect(
+      clearIdentityOwnedBookingPaymentBrowserState({
+        driver: harness.driver,
+      }),
+    ).toEqual({ status: "cleared", removed: 5 });
+    expect(getItem).not.toHaveBeenCalled();
+    expect(
+      removeItem.mock.calls
+        .map(([key]) => key)
+        .filter((key) =>
+          [v2CredentialKey, v2JournalKey, v2ReceiptKey].includes(key),
+        ),
+    ).toEqual([v2CredentialKey, v2JournalKey, v2ReceiptKey]);
+    expect(removeItem.mock.calls.at(-1)?.[0]).toBe(v2ReceiptKey);
+    expect([...harness.values]).toEqual([
+      ["airbob:booking-payment-v20:journal", "keep-v20"],
+      ["unrelated", "keep"],
+    ]);
+  });
+
+  it("preserves the receipt when a lower-authority v2 removal keeps failing", () => {
+    const harness = createStorageHarness({
+      [v2JournalKey]: "secret-v2-journal",
+      [v2CredentialKey]: "secret-credential",
+      [v2ReceiptKey]: "secret-receipt",
+    });
+    const originalRemove = harness.storage.removeItem.bind(harness.storage);
+    const remove = vi
+      .spyOn(harness.storage, "removeItem")
+      .mockImplementation((key) => {
+        if (key === v2CredentialKey) {
+          throw new Error("persistent lower-authority removal failure");
+        }
+        originalRemove(key);
+      });
     const getItem = vi.spyOn(harness.storage, "getItem");
 
     expect(
       clearIdentityOwnedBookingPaymentBrowserState({
         driver: harness.driver,
       }),
-    ).toEqual({ status: "cleared", removed: 4 });
+    ).toEqual({ status: "partial", removed: 1, failed: 2 });
+    expect(
+      remove.mock.calls.filter(([key]) => key === v2CredentialKey),
+    ).toHaveLength(2);
+    expect(
+      remove.mock.calls.filter(([key]) => key === v2ReceiptKey),
+    ).toHaveLength(0);
+    expect(harness.values.has(v2CredentialKey)).toBe(true);
+    expect(harness.values.has(v2JournalKey)).toBe(false);
+    expect(harness.values.has(v2ReceiptKey)).toBe(true);
     expect(getItem).not.toHaveBeenCalled();
-    expect([...harness.values]).toEqual([
-      ["airbob:booking-payment-v20:journal", "keep-v20"],
-      ["unrelated", "keep"],
+  });
+
+  it("removes the receipt only after a transient lower-authority failure is verified absent", () => {
+    const harness = createStorageHarness({
+      [v2JournalKey]: "secret-v2-journal",
+      [v2CredentialKey]: "secret-credential",
+      [v2ReceiptKey]: "secret-receipt",
+    });
+    const originalRemove = harness.storage.removeItem.bind(harness.storage);
+    const remove = vi
+      .spyOn(harness.storage, "removeItem")
+      .mockImplementation((key) => {
+        const credentialAttempts = remove.mock.calls.filter(
+          ([calledKey]) => calledKey === v2CredentialKey,
+        ).length;
+        if (key === v2CredentialKey && credentialAttempts === 1) {
+          throw new Error("transient lower-authority removal failure");
+        }
+        originalRemove(key);
+      });
+    const getItem = vi.spyOn(harness.storage, "getItem");
+
+    expect(
+      clearIdentityOwnedBookingPaymentBrowserState({
+        driver: harness.driver,
+      }),
+    ).toEqual({ status: "cleared", removed: 3 });
+    expect(remove.mock.calls.map(([key]) => key)).toEqual([
+      v2CredentialKey,
+      v2JournalKey,
+      v2CredentialKey,
+      v2ReceiptKey,
     ]);
+    expect(getItem).not.toHaveBeenCalled();
+    expect(harness.values.size).toBe(0);
+  });
+
+  it("preserves the receipt when a retired v1 removal keeps failing", () => {
+    const harness = createStorageHarness({
+      [v1CallbackKey]: "secret-v1-callback",
+      [v2ReceiptKey]: "secret-receipt",
+    });
+    const originalRemove = harness.storage.removeItem.bind(harness.storage);
+    const remove = vi
+      .spyOn(harness.storage, "removeItem")
+      .mockImplementation((key) => {
+        if (key === v1CallbackKey) {
+          throw new Error("persistent v1 removal failure");
+        }
+        originalRemove(key);
+      });
+    const getItem = vi.spyOn(harness.storage, "getItem");
+
+    expect(
+      clearIdentityOwnedBookingPaymentBrowserState({
+        driver: harness.driver,
+      }),
+    ).toEqual({ status: "partial", removed: 0, failed: 2 });
+    expect(
+      remove.mock.calls.filter(([key]) => key === v1CallbackKey),
+    ).toHaveLength(2);
+    expect(
+      remove.mock.calls.filter(([key]) => key === v2ReceiptKey),
+    ).toHaveLength(0);
+    expect(harness.values.has(v1CallbackKey)).toBe(true);
+    expect(harness.values.has(v2ReceiptKey)).toBe(true);
+    expect(getItem).not.toHaveBeenCalled();
+  });
+
+  it("removes the receipt after a transient retired v1 failure is verified absent", () => {
+    const harness = createStorageHarness({
+      [v1CallbackKey]: "secret-v1-callback",
+      [v2ReceiptKey]: "secret-receipt",
+    });
+    const originalRemove = harness.storage.removeItem.bind(harness.storage);
+    const remove = vi
+      .spyOn(harness.storage, "removeItem")
+      .mockImplementation((key) => {
+        const v1Attempts = remove.mock.calls.filter(
+          ([calledKey]) => calledKey === v1CallbackKey,
+        ).length;
+        if (key === v1CallbackKey && v1Attempts === 1) {
+          throw new Error("transient v1 removal failure");
+        }
+        originalRemove(key);
+      });
+    const getItem = vi.spyOn(harness.storage, "getItem");
+
+    expect(
+      clearIdentityOwnedBookingPaymentBrowserState({
+        driver: harness.driver,
+      }),
+    ).toEqual({ status: "cleared", removed: 2 });
+    expect(remove.mock.calls.map(([key]) => key)).toEqual([
+      v1CallbackKey,
+      v1CallbackKey,
+      v2ReceiptKey,
+    ]);
+    expect(getItem).not.toHaveBeenCalled();
+    expect(harness.values.size).toBe(0);
   });
 
   it("re-enumerates and retries only the keys that remain", () => {

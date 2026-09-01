@@ -1,9 +1,13 @@
-import type { ReactNode } from "react";
+import { useCallback, type ReactNode } from "react";
 import type { AuthenticatedSessionScope } from "../../platform/session/sessionScope";
 import { OverlayProvider } from "../overlays/OverlayProvider";
-import { PaymentCallbackCredentialBoundary } from "../router/PaymentCallbackCredentialBoundary";
+import {
+  PaymentCallbackCredentialBoundary,
+  useMarkPaymentRecoveryFence,
+} from "../router/PaymentCallbackCredentialBoundary";
 import { SessionProvider } from "../session/SessionProvider";
 import { AuthIntentStableBoundary } from "./AuthIntentStableBoundary";
+import type { CandidateIdentityOwnedFrontendStateReconciliationStatus } from "./reconcileCandidateIdentityOwnedFrontendState";
 
 export interface AppProvidersProps {
   readonly children: ReactNode;
@@ -11,7 +15,41 @@ export interface AppProvidersProps {
   readonly clearRevokedIdentityOwnedState?: () => void;
   readonly reconcileCandidateIdentityOwnedState?: (
     scope: AuthenticatedSessionScope,
-  ) => void;
+  ) => CandidateIdentityOwnedFrontendStateReconciliationStatus;
+}
+
+function SessionWithPaymentRecoveryFence({
+  children,
+  clearIdentityOwnedState,
+  clearRevokedIdentityOwnedState,
+  reconcileCandidateIdentityOwnedState,
+}: AppProvidersProps) {
+  const markPaymentRecoveryFence = useMarkPaymentRecoveryFence();
+  const reconcileCandidate = useCallback(
+    (scope: AuthenticatedSessionScope) => {
+      if (reconcileCandidateIdentityOwnedState === undefined) return;
+      const result = reconcileCandidateIdentityOwnedState(scope);
+      markPaymentRecoveryFence(result === "ready" ? "none" : result);
+    },
+    [markPaymentRecoveryFence, reconcileCandidateIdentityOwnedState],
+  );
+
+  return (
+    <SessionProvider
+      stableBoundary={AuthIntentStableBoundary}
+      {...(clearIdentityOwnedState === undefined
+        ? {}
+        : { clearIdentityOwnedState })}
+      {...(clearRevokedIdentityOwnedState === undefined
+        ? {}
+        : { clearRevokedIdentityOwnedState })}
+      {...(reconcileCandidateIdentityOwnedState === undefined
+        ? {}
+        : { reconcileCandidateIdentityOwnedState: reconcileCandidate })}
+    >
+      {children}
+    </SessionProvider>
+  );
 }
 
 export function AppProviders({
@@ -23,8 +61,7 @@ export function AppProviders({
   return (
     <OverlayProvider>
       <PaymentCallbackCredentialBoundary>
-        <SessionProvider
-          stableBoundary={AuthIntentStableBoundary}
+        <SessionWithPaymentRecoveryFence
           {...(clearIdentityOwnedState === undefined
             ? {}
             : { clearIdentityOwnedState })}
@@ -36,7 +73,7 @@ export function AppProviders({
             : { reconcileCandidateIdentityOwnedState })}
         >
           {children}
-        </SessionProvider>
+        </SessionWithPaymentRecoveryFence>
       </PaymentCallbackCredentialBoundary>
     </OverlayProvider>
   );

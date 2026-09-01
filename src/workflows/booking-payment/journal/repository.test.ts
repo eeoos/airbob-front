@@ -1175,15 +1175,17 @@ describe("booking-payment journal repository", () => {
     });
     requireWritten(repository.createQuoted(createQuotedInput()));
     currentNow = initialNow + 5 * 60_000;
-    vi.spyOn(harness.driver, "keys")
-      .mockReturnValueOnce({
-        ok: true,
-        value: [BOOKING_PAYMENT_V2_JOURNAL_KEY],
-      })
-      .mockReturnValueOnce({
-        ok: false,
-        error: { kind: "storage-unavailable", operation: "keys" },
-      });
+    vi.spyOn(harness.driver, "keys").mockImplementation(() =>
+      harness.values.has(BOOKING_PAYMENT_V2_JOURNAL_KEY)
+        ? {
+            ok: true,
+            value: [...harness.values.keys()],
+          }
+        : {
+            ok: false,
+            error: { kind: "storage-unavailable", operation: "keys" },
+          },
+    );
 
     expect(repository.reconcileCandidateOwner(owner)).toEqual({
       status: "storage-error",

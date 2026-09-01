@@ -11,7 +11,9 @@ import {
 import { RequireAuthenticatedRoute } from "./RequireAuthenticatedRoute";
 import {
   PaymentCallbackCredentialBoundary,
+  useMarkPaymentRecoveryFence,
   usePaymentCallbackCredentialClaim,
+  usePaymentRecoveryFenceStatus,
 } from "./PaymentCallbackCredentialBoundary";
 
 const mockUseSession = vi.fn();
@@ -96,6 +98,8 @@ function StableRuntimeProbe({
   readonly onUnmount: () => void;
 }) {
   const claim = usePaymentCallbackCredentialClaim();
+  const recoveryFenceStatus = usePaymentRecoveryFenceStatus();
+  const markRecoveryFence = useMarkPaymentRecoveryFence();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -106,6 +110,7 @@ function StableRuntimeProbe({
   return (
     <>
       <output data-testid="stable-claim">{JSON.stringify(claim)}</output>
+      <output data-testid="recovery-fence">{recoveryFenceStatus}</output>
       <button
         type="button"
         onClick={() => navigate("/reservations/reservation-2/success")}
@@ -120,6 +125,25 @@ function StableRuntimeProbe({
       </button>
       <button type="button" onClick={() => navigate("/")}>
         home
+      </button>
+      <button
+        type="button"
+        onClick={() => markRecoveryFence("recovery-unavailable")}
+      >
+        fence recovery
+      </button>
+      <button type="button" onClick={() => markRecoveryFence("none")}>
+        clear recovery fence
+      </button>
+      <button
+        type="button"
+        onClick={() =>
+          navigate(
+            "/reservations/reservation-3/success?paymentKey=payment-key-3&orderId=reservation-3&amount=130000",
+          )
+        }
+      >
+        new callback
       </button>
     </>
   );
@@ -274,5 +298,51 @@ describe("PaymentCallbackCredentialBoundary", () => {
 
     view.unmount();
     expect(onUnmount).toHaveBeenCalledTimes(1);
+  });
+
+  it("carries an unavailable fence across clean and complete callback routes until the workflow clears it", async () => {
+    const view = render(
+      <MemoryRouter initialEntries={["/"]}>
+        <PaymentCallbackCredentialBoundary>
+          <StableRuntimeProbe onMount={vi.fn()} onUnmount={vi.fn()} />
+        </PaymentCallbackCredentialBoundary>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "fence recovery" }));
+    fireEvent.click(screen.getByRole("button", { name: "next success" }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("stable-claim")).toHaveTextContent(
+        '{"status":"invalid"}',
+      ),
+    );
+    expect(screen.getByTestId("recovery-fence")).toHaveTextContent(
+      "recovery-unavailable",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "new callback" }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("stable-claim")).toHaveTextContent(
+        '{"status":"invalid"}',
+      ),
+    );
+    expect(screen.getByTestId("recovery-fence")).toHaveTextContent(
+      "recovery-unavailable",
+    );
+    expect(screen.getByTestId("stable-claim")).not.toHaveTextContent(
+      "payment-key-3",
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "clear recovery fence" }),
+    );
+    expect(screen.getByTestId("stable-claim")).toHaveTextContent(
+      '{"status":"invalid"}',
+    );
+    expect(screen.getByTestId("recovery-fence")).toHaveTextContent("none");
+
+    view.unmount();
   });
 });

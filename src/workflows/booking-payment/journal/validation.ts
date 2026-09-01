@@ -63,6 +63,13 @@ const isNonNegativeSafeInteger = (value: unknown): value is number =>
 const isPositiveSafeInteger = (value: unknown): value is number =>
   Number.isSafeInteger(value) && (value as number) > 0;
 
+export const isSupportedBookingPaymentCardAmount = (
+  value: unknown,
+): value is number =>
+  Number.isSafeInteger(value) &&
+  (value as number) >= BOOKING_PAYMENT_MINIMUM_CARD_AMOUNT &&
+  (value as number) <= BOOKING_PAYMENT_MAXIMUM_CARD_AMOUNT;
+
 const isValidCalendarParts = (
   year: number,
   month: number,
@@ -78,8 +85,11 @@ const isValidCalendarParts = (
   );
 };
 
-const isBookingPaymentUuid = (value: unknown): value is string =>
+export const isBookingPaymentUuid = (value: unknown): value is string =>
   typeof value === "string" && UUID_PATTERN.test(value);
+
+export const isBookingPaymentOwner = (value: unknown): value is string =>
+  typeof value === "string" && OWNER_PATTERN.test(value);
 
 const isBookingPaymentCalendarDate = (value: unknown): value is string => {
   if (typeof value !== "string") return false;
@@ -116,7 +126,7 @@ export const parseBookingPaymentUtcInstant = (
   return Number.isFinite(timestamp) && timestamp >= 0 ? timestamp : null;
 };
 
-const parseBookingPaymentUtcInstantNanoseconds = (
+export const parseBookingPaymentUtcInstantNanoseconds = (
   value: unknown,
 ): bigint | null => {
   if (typeof value !== "string") return null;
@@ -366,8 +376,7 @@ const isSupportedBookingPaymentReadyForAttempt = (
   ready.status === "PAYMENT_PENDING" &&
   ready.paymentAllowed &&
   ready.currency === "KRW" &&
-  ready.amount >= BOOKING_PAYMENT_MINIMUM_CARD_AMOUNT &&
-  ready.amount <= BOOKING_PAYMENT_MAXIMUM_CARD_AMOUNT;
+  isSupportedBookingPaymentCardAmount(ready.amount);
 
 const isBookingPaymentAttempt = (
   value: unknown,
@@ -497,8 +506,7 @@ const dataGroupsAreConsistent = (value: Record<string, unknown>): boolean => {
         value.phase === "checkout-submitting") &&
       quote.amount > 0 &&
       (quote.currency !== "KRW" ||
-        quote.amount < BOOKING_PAYMENT_MINIMUM_CARD_AMOUNT ||
-        quote.amount > BOOKING_PAYMENT_MAXIMUM_CARD_AMOUNT)
+        !isSupportedBookingPaymentCardAmount(quote.amount))
     ) {
       return false;
     }
@@ -625,8 +633,7 @@ export const isBookingPaymentJournalEnvelope = (
   value.version === 2 &&
   value.privacyClass === "sensitive" &&
   value.containsPii === false &&
-  typeof value.owner === "string" &&
-  OWNER_PATTERN.test(value.owner) &&
+  isBookingPaymentOwner(value.owner) &&
   isNonNegativeSafeInteger(value.createdAt) &&
   isNonNegativeSafeInteger(value.hardExpiresAt) &&
   value.hardExpiresAt ===

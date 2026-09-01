@@ -1,4 +1,5 @@
 import {
+  useCallback,
   createContext,
   type ReactElement,
   useContext,
@@ -29,8 +30,18 @@ const noClaim: PaymentCallbackCredentialClaim = Object.freeze({
   status: "none",
 });
 
+export type PaymentRecoveryFenceStatus =
+  "none" | "recovery-required" | "recovery-unavailable";
+
 const PaymentCallbackCredentialContext =
   createContext<PaymentCallbackCredentialClaim>(invalidClaim);
+
+const PaymentRecoveryFenceStatusContext =
+  createContext<PaymentRecoveryFenceStatus>("none");
+
+const PaymentRecoveryFenceCommandContext = createContext<
+  ((status: PaymentRecoveryFenceStatus) => void) | null
+>(null);
 
 const captureCredentialClaim = (
   reservationUid: string | undefined,
@@ -82,6 +93,7 @@ export function PaymentCallbackCredentialBoundary({
   const safePath = reservationUid
     ? routeTo.paymentSuccess(reservationUid)
     : null;
+  const recoveryFenceRef = useRef<PaymentRecoveryFenceStatus>("none");
   const leaseRef = useRef<CredentialLease>({
     routeKey,
     sourceSearch: location.search,
@@ -90,15 +102,19 @@ export function PaymentCallbackCredentialBoundary({
       : noClaim,
   });
   const [routerSyncPath, setRouterSyncPath] = useState<string | null>(null);
+  const [recoveryFenceStatus, setRecoveryFenceStatus] =
+    useState<PaymentRecoveryFenceStatus>("none");
 
   const lease = leaseRef.current;
   if (lease.routeKey !== routeKey) {
     leaseRef.current = {
       routeKey,
       sourceSearch: location.search,
-      claim: reservationUid
-        ? captureCredentialClaim(reservationUid, location.search)
-        : noClaim,
+      claim: !reservationUid
+        ? noClaim
+        : recoveryFenceStatus !== "none"
+          ? invalidClaim
+          : captureCredentialClaim(reservationUid, location.search),
     };
   } else if (
     reservationUid &&
@@ -108,9 +124,33 @@ export function PaymentCallbackCredentialBoundary({
     leaseRef.current = {
       routeKey,
       sourceSearch: location.search,
-      claim: captureCredentialClaim(reservationUid, location.search),
+      claim:
+        recoveryFenceStatus === "none"
+          ? captureCredentialClaim(reservationUid, location.search)
+          : invalidClaim,
     };
   }
+
+  const markRecoveryFence = useCallback(
+    (status: PaymentRecoveryFenceStatus) => {
+      const previousStatus = recoveryFenceRef.current;
+      recoveryFenceRef.current = status;
+      setRecoveryFenceStatus(status);
+      const currentLease = leaseRef.current;
+      if (currentLease.routeKey === null) return;
+
+      leaseRef.current = {
+        ...currentLease,
+        claim:
+          status === "none"
+            ? previousStatus === "none"
+              ? currentLease.claim
+              : invalidClaim
+            : invalidClaim,
+      };
+    },
+    [],
+  );
 
   useLayoutEffect(() => {
     if (safePath === null || location.search === "") return;
@@ -135,11 +175,30 @@ export function PaymentCallbackCredentialBoundary({
     (location.search !== "" || routerSyncPath === safePath);
 
   return (
-    <PaymentCallbackCredentialContext.Provider value={leaseRef.current.claim}>
-      {isScrubbingCurrentRoute ? null : children}
-    </PaymentCallbackCredentialContext.Provider>
+    <PaymentRecoveryFenceCommandContext.Provider value={markRecoveryFence}>
+      <PaymentRecoveryFenceStatusContext.Provider value={recoveryFenceStatus}>
+        <PaymentCallbackCredentialContext.Provider
+          value={leaseRef.current.claim}
+        >
+          {isScrubbingCurrentRoute ? null : children}
+        </PaymentCallbackCredentialContext.Provider>
+      </PaymentRecoveryFenceStatusContext.Provider>
+    </PaymentRecoveryFenceCommandContext.Provider>
   );
 }
 
 export const usePaymentCallbackCredentialClaim = () =>
   useContext(PaymentCallbackCredentialContext);
+
+export const useMarkPaymentRecoveryFence = () => {
+  const markRecoveryFence = useContext(PaymentRecoveryFenceCommandContext);
+  if (markRecoveryFence === null) {
+    throw new Error(
+      "Payment callback recovery fence must be used inside its boundary.",
+    );
+  }
+  return markRecoveryFence;
+};
+
+export const usePaymentRecoveryFenceStatus = () =>
+  useContext(PaymentRecoveryFenceStatusContext);

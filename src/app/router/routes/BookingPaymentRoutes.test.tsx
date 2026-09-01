@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import { useLayoutEffect, useState, type ReactElement } from "react";
 import {
   act,
   fireEvent,
@@ -26,7 +26,11 @@ import {
   type CallbackData,
   type CheckoutData,
 } from "../../../workflows/booking-payment/checkout";
-import { PaymentCallbackCredentialBoundary } from "../PaymentCallbackCredentialBoundary";
+import {
+  PaymentCallbackCredentialBoundary,
+  type PaymentRecoveryFenceStatus,
+  useMarkPaymentRecoveryFence,
+} from "../PaymentCallbackCredentialBoundary";
 import PaymentFailRoute from "./PaymentFailRoute";
 import PaymentSuccessRoute from "./PaymentSuccessRoute";
 import ReservationConfirmRoute from "./ReservationConfirmRoute";
@@ -238,6 +242,35 @@ const paymentSuccessRoute = () => (
   </PaymentCallbackCredentialBoundary>
 );
 
+function PaymentRecoveryFenceBeforeCommands({
+  children,
+  status,
+}: {
+  readonly children: ReactElement;
+  readonly status: Exclude<PaymentRecoveryFenceStatus, "none">;
+}) {
+  const markRecoveryFence = useMarkPaymentRecoveryFence();
+  const [commandsReleased, setCommandsReleased] = useState(false);
+
+  useLayoutEffect(() => {
+    markRecoveryFence(status);
+    setCommandsReleased(true);
+  }, [markRecoveryFence, status]);
+
+  return commandsReleased ? children : null;
+}
+
+const recoveryFencedRoute = (
+  element: ReactElement,
+  status: Exclude<PaymentRecoveryFenceStatus, "none">,
+) => (
+  <PaymentCallbackCredentialBoundary>
+    <PaymentRecoveryFenceBeforeCommands status={status}>
+      {element}
+    </PaymentRecoveryFenceBeforeCommands>
+  </PaymentCallbackCredentialBoundary>
+);
+
 describe("booking payment app routes", () => {
   beforeEach(() => {
     window.sessionStorage.clear();
@@ -367,6 +400,45 @@ describe("booking payment app routes", () => {
       mode: "success",
       shouldConfirm: false,
     });
+  });
+
+  it.each(["recovery-required", "recovery-unavailable"] as const)(
+    "routes %s success callbacks to reservation detail without reviving a confirm-capable legacy tuple",
+    async (status) => {
+      const { written } = seedCheckout();
+      seedCallback(written.data, "received");
+
+      renderRoute(
+        "/reservations/reservation-1/success",
+        "/reservations/:reservationUid/success",
+        recoveryFencedRoute(<PaymentSuccessRoute />, status),
+      );
+
+      await screen.findByTestId("fallback-route");
+      expect(screen.getByTestId("location")).toHaveTextContent(
+        '"pathname":"/reservations/reservation-1"',
+      );
+      expect(mockPaymentControllerProps).toHaveLength(0);
+      expect(mockGetCheckoutOwnership).not.toHaveBeenCalled();
+    },
+  );
+
+  it("routes a recovery-fenced failure callback to reservation detail before reading a confirm-capable legacy tuple", async () => {
+    const { written } = seedCheckout();
+    seedCallback(written.data, "received");
+
+    renderRoute(
+      "/reservations/reservation-1/fail?reason=confirm-failed",
+      "/reservations/:reservationUid/fail",
+      recoveryFencedRoute(<PaymentFailRoute />, "recovery-required"),
+    );
+
+    await screen.findByTestId("fallback-route");
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      '"pathname":"/reservations/reservation-1"',
+    );
+    expect(mockPaymentControllerProps).toHaveLength(0);
+    expect(mockGetCheckoutOwnership).not.toHaveBeenCalled();
   });
 
   it("keeps a persisted received success callback eligible for its first confirm", async () => {

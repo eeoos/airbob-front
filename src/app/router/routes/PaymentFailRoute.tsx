@@ -24,6 +24,7 @@ import {
   type PaymentCallbackDocument,
 } from "../../../workflows/booking-payment/confirmation";
 import { useSession } from "../../session/useSession";
+import { usePaymentRecoveryFenceStatus } from "../PaymentCallbackCredentialBoundary";
 import { paymentCodec } from "../codecs/paymentCodec";
 import { routeTo } from "../paths";
 
@@ -64,6 +65,7 @@ function PaymentFailRoute() {
   const queryClient = useQueryClient();
   const { reservationUid } = useParams<{ reservationUid: string }>();
   const session = useSession();
+  const paymentRecoveryFenceStatus = usePaymentRecoveryFenceStatus();
   const sessionEpoch = session.state.epoch;
   const sessionSubject =
     session.state.status === "authenticated" ? session.state.subject : null;
@@ -105,6 +107,7 @@ function PaymentFailRoute() {
     scope?.runtimeLeaseId ?? null,
     reservationUid ?? null,
     reason ?? null,
+    paymentRecoveryFenceStatus,
   ]);
   const routeLease = useMemo(
     () => ({
@@ -129,6 +132,16 @@ function PaymentFailRoute() {
       browserWindowNavigation.replaceCurrentUrl(canonicalPath);
       setRouterSyncPath(canonicalPath);
     };
+
+    if (paymentRecoveryFenceStatus !== "none") {
+      const recoveryPath = reservationUid
+        ? routeTo.reservationDetail(reservationUid)
+        : routeTo.profile();
+      browserWindowNavigation.replaceCurrentUrl(recoveryPath);
+      setRouterSyncPath(recoveryPath);
+      setResolution({ status: "empty" });
+      return;
+    }
 
     if (!reservationUid || reason !== "confirm-failed") {
       const joinedCheckout = reservationUid
@@ -205,6 +218,7 @@ function PaymentFailRoute() {
   }, [
     canonicalPath,
     navigate,
+    paymentRecoveryFenceStatus,
     reason,
     repositories,
     resolutionLeaseKey,
@@ -273,6 +287,7 @@ function PaymentFailRoute() {
   }, [clearDocuments, resolution]);
 
   if (
+    paymentRecoveryFenceStatus !== "none" ||
     resolution.status !== "ready" ||
     scope === null ||
     resolution.leaseKey !== resolutionLeaseKey ||

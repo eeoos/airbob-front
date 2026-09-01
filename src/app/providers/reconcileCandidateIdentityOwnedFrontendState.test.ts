@@ -16,16 +16,16 @@ const scope: AuthenticatedSessionScope = {
 };
 
 describe("candidate identity-owned frontend state reconciliation", () => {
-  it.each(["ready", "recovery-required"] as const)(
-    "allows candidate publication for %s without exposing recovery data",
+  it.each(["ready", "recovery-required", "recovery-unavailable"] as const)(
+    "returns the status-only %s result without exposing recovery data",
     (status) => {
       const reconcileCandidateOwner = vi.fn(() => ({ status }) as const);
 
-      expect(() =>
+      expect(
         reconcileCandidateIdentityOwnedFrontendState(scope, {
           reconcileCandidateOwner,
         }),
-      ).not.toThrow();
+      ).toBe(status);
       expect(reconcileCandidateOwner).toHaveBeenCalledWith(scope.subject);
       expect(reconcileCandidateOwner).toHaveBeenCalledTimes(1);
     },

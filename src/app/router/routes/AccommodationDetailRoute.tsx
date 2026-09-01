@@ -29,6 +29,7 @@ import { inspectBookingPaymentV2NamespaceForLegacyWriter } from "../../../workfl
 import type { ReservationCheckoutHandoffPort } from "../../../workflows/booking-payment/reservation-create";
 import { useWishlistMembership } from "../../../workflows/wishlist-membership";
 import { useSession } from "../../session/useSession";
+import { usePaymentRecoveryFenceStatus } from "../PaymentCallbackCredentialBoundary";
 import { parsePositiveInteger } from "../codecs/queryCodecUtils";
 import { accommodationBookingCodec } from "../codecs/searchCodec";
 import { routeTo } from "../paths";
@@ -51,6 +52,7 @@ function AccommodationDetailRouteContent() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const session = useSession();
+  const paymentRecoveryFenceStatus = usePaymentRecoveryFenceStatus();
   const { pending, request, cancel, claim } = useAuthIntent();
   const wishlistCommands = useWishlistMembership();
   const requestedAttemptIdRef = useRef<AuthIntentAttemptId | null>(null);
@@ -208,6 +210,7 @@ function AccommodationDetailRouteContent() {
       intentAccommodationId: number,
     ) => {
       if (
+        paymentRecoveryFenceStatus !== "none" ||
         accommodationId === null ||
         intentAccommodationId !== accommodationId ||
         !routeLease.isCurrent() ||
@@ -334,6 +337,7 @@ function AccommodationDetailRouteContent() {
     checkoutRepository,
     isCurrentSession,
     navigate,
+    paymentRecoveryFenceStatus,
     routeLease,
   ]);
 

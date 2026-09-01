@@ -17,6 +17,7 @@ import type {
   BookingPaymentUnheldFlowCloseReason,
   BookingPaymentUnheldFlowCloseResult,
 } from "./types";
+import { reconcileBookingPaymentCandidateOwner } from "./candidateReconciliation";
 import {
   BOOKING_PAYMENT_JOURNAL_HARD_TTL_MS,
   isAllowedBookingPaymentJournalTransition,
@@ -29,9 +30,10 @@ import {
   parseBookingPaymentUtcInstant,
   preservesBookingPaymentJournalImmutableGroups,
 } from "./validation";
-
-const BOOKING_PAYMENT_V2_NAMESPACE_PREFIX = "airbob:booking-payment-v2:";
-const BOOKING_PAYMENT_V2_JOURNAL_KEY = `${BOOKING_PAYMENT_V2_NAMESPACE_PREFIX}journal`;
+import {
+  BOOKING_PAYMENT_V2_JOURNAL_KEY,
+  BOOKING_PAYMENT_V2_NAMESPACE_PREFIX,
+} from "./namespace";
 
 interface BookingPaymentStorageOptions {
   readonly driver?: SessionStorageDriver;
@@ -246,20 +248,6 @@ const writeAndVerify = (
   return { status: "written", record: verified };
 };
 
-const removeAndVerifyWholeNamespace = (
-  driver: SessionStorageDriver,
-): BookingPaymentCandidateReconciliationResult => {
-  const removed = driver.removeItem(BOOKING_PAYMENT_V2_JOURNAL_KEY);
-  if (!removed.ok) return { status: "storage-error", error: removed.error };
-  const keys = driver.keys();
-  if (!keys.ok) return { status: "storage-error", error: keys.error };
-  return keys.value.some((key) =>
-    key.startsWith(BOOKING_PAYMENT_V2_NAMESPACE_PREFIX),
-  )
-    ? { status: "blocked", reason: "cleanup-not-verified" }
-    : { status: "ready" };
-};
-
 type BookingPaymentCreateNamespacePreparationResult =
   | { readonly status: "ready"; readonly currentTime: number }
   | { readonly status: "stale" }
@@ -356,22 +344,6 @@ const prepareNamespaceForCreate = (
   return safeIsCurrent(isCurrent)
     ? { status: "ready", currentTime }
     : { status: "stale" };
-};
-
-const peekVersion = (raw: string): number | null => {
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    const version =
-      parsed && typeof parsed === "object" && !Array.isArray(parsed)
-        ? (parsed as Record<string, unknown>).version
-        : null;
-    if (!Number.isSafeInteger(version) || typeof version !== "number") {
-      return null;
-    }
-    return version;
-  } catch {
-    return null;
-  }
 };
 
 const locatorMatches = (
@@ -496,57 +468,8 @@ export const createBookingPaymentJournalRepository = ({
 
   const reconcileCandidateOwner = (
     owner: string,
-  ): BookingPaymentCandidateReconciliationResult => {
-    const keys = driver.keys();
-    if (!keys.ok) return { status: "storage-error", error: keys.error };
-    const v2Keys = keys.value.filter((key) =>
-      key.startsWith(BOOKING_PAYMENT_V2_NAMESPACE_PREFIX),
-    );
-    if (v2Keys.length === 0) return { status: "ready" };
-    if (v2Keys.length !== 1 || v2Keys[0] !== BOOKING_PAYMENT_V2_JOURNAL_KEY) {
-      return { status: "blocked", reason: "unknown-v2-state" };
-    }
-
-    const raw = driver.getItem(BOOKING_PAYMENT_V2_JOURNAL_KEY);
-    if (!raw.ok) return { status: "storage-error", error: raw.error };
-    if (raw.value === null) {
-      const verified = driver.keys();
-      if (!verified.ok) {
-        return { status: "storage-error", error: verified.error };
-      }
-      return verified.value.some((key) =>
-        key.startsWith(BOOKING_PAYMENT_V2_NAMESPACE_PREFIX),
-      )
-        ? { status: "blocked", reason: "unknown-v2-state" }
-        : { status: "ready" };
-    }
-
-    const record = parseBookingPaymentJournalEnvelope(raw.value);
-    if (!record) {
-      const version = peekVersion(raw.value);
-      if (version === null) {
-        return { status: "blocked", reason: "malformed-unknown-version" };
-      }
-      if (version > 2) return { status: "blocked", reason: "newer-version" };
-      if (version !== 2) {
-        return { status: "blocked", reason: "malformed-unknown-version" };
-      }
-      return removeAndVerifyWholeNamespace(driver);
-    }
-
-    const currentTime = safeCurrentTime(now);
-    if (currentTime === null) {
-      return { status: "blocked", reason: "invalid-clock" };
-    }
-    if (
-      record.owner === owner &&
-      currentTime < record.hardExpiresAt &&
-      currentTime < record.data.recoveryExpiresAt
-    ) {
-      return { status: "recovery-required" };
-    }
-    return removeAndVerifyWholeNamespace(driver);
-  };
+  ): BookingPaymentCandidateReconciliationResult =>
+    reconcileBookingPaymentCandidateOwner({ driver, now, owner });
 
   const claimRecoveryLease = (
     input: ClaimRecoveryLeaseInput,
