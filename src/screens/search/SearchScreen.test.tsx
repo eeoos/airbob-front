@@ -318,4 +318,23 @@ describe("SearchScreen", () => {
     expect(collapsedHandle).toHaveAttribute("aria-controls", contentId);
     expect(content).toHaveAttribute("hidden");
   });
+
+  it("loads the account dialog only when authentication is requested", async () => {
+    const closedProps = createProps();
+    const view = render(<SearchScreen {...closedProps} />);
+
+    expect(screen.queryByTestId("auth-modal")).not.toBeInTheDocument();
+
+    view.rerender(
+      <SearchScreen
+        {...closedProps}
+        authModal={{ ...closedProps.authModal, isOpen: true }}
+      />,
+    );
+
+    expect(await screen.findByTestId("auth-modal")).toHaveAttribute(
+      "data-open",
+      "true",
+    );
+  });
 });
