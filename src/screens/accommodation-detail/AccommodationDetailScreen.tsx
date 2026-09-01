@@ -1,6 +1,6 @@
 import { useRef, type ComponentProps } from "react";
+import { AccommodationBookingCard } from "../../features/accommodations/detail/components/AccommodationBookingCard";
 import {
-  AccommodationBookingCard,
   AccommodationDescriptionModal,
   AccommodationHero,
   AccommodationImageGalleryModal,
