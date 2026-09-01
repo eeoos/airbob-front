@@ -1483,9 +1483,12 @@ test("keeps detail readable while availability fails closed and retries", async 
   await expect(
     page.getByText("예약 가능한 날짜를 불러오지 못했습니다."),
   ).toBeVisible();
-  await expect(page.getByRole("button", { name: /체크인/ })).toBeDisabled();
+  const bookingDateButton = page.locator(
+    'button[aria-controls="booking-date-picker"]',
+  );
+  await expect(bookingDateButton).toBeDisabled();
   await page.getByRole("button", { name: "다시 시도" }).click();
-  await expect(page.getByRole("button", { name: /체크인/ })).toBeEnabled();
+  await expect(bookingDateButton).toBeEnabled();
   await expect(page.getByRole("button", { name: "예약하기" })).toBeEnabled();
   expect(
     api.matching("GET", "/api/v1/accommodations/7/availability"),

@@ -52,6 +52,32 @@ const expectFocusInside = async (container: Locator) => {
     .toBe(true);
 };
 
+const expectMinimumTouchTarget = async (locator: Locator) => {
+  await expect(locator).toBeVisible();
+  const bounds = await locator.boundingBox();
+
+  expect(bounds).not.toBeNull();
+  expect(bounds?.width ?? 0).toBeGreaterThanOrEqual(44);
+  expect(bounds?.height ?? 0).toBeGreaterThanOrEqual(44);
+};
+
+const expectVisibleFocusIndicator = async (locator: Locator) => {
+  await locator.focus();
+  await expect(locator).toBeFocused();
+
+  const hasVisibleIndicator = await locator.evaluate((element) => {
+    const styles = getComputedStyle(element);
+    const hasOutline =
+      styles.outlineStyle !== "none" &&
+      Number.parseFloat(styles.outlineWidth) > 0;
+    const hasBoxShadow = styles.boxShadow !== "none";
+
+    return hasOutline || hasBoxShadow;
+  });
+
+  expect(hasVisibleIndicator).toBe(true);
+};
+
 test("keeps stacked dialogs modal, focus-contained, and Escape ordered", async ({
   api,
   page,
@@ -245,11 +271,73 @@ test("keeps mobile calendar date targets at least 44 by 44 pixels", async ({
   const enabledDate = page
     .locator('#search-date-picker [role="gridcell"]:not([disabled])')
     .first();
-  const bounds = await enabledDate.boundingBox();
+  const primaryTargets = [
+    page.getByRole("link", { name: "Airbob 홈으로 이동" }),
+    search.getByRole("button", { name: "검색" }),
+    page.getByRole("button", { name: "사용자 메뉴" }),
+    page.getByRole("button", { name: "위시리스트에 저장" }),
+    enabledDate,
+  ];
 
-  expect(bounds).not.toBeNull();
-  expect(bounds?.width ?? 0).toBeGreaterThanOrEqual(44);
-  expect(bounds?.height ?? 0).toBeGreaterThanOrEqual(44);
+  expect(primaryTargets).toHaveLength(5);
+  for (const target of primaryTargets) {
+    await expectMinimumTouchTarget(target);
+  }
+});
+
+test("keeps phase-one controls visibly focused and keyboard-operable", async ({
+  api,
+  page,
+  session,
+}) => {
+  session.clear();
+  api.register(
+    "GET",
+    "/api/v1/search/accommodations",
+    apiSuccess(searchResponse),
+  );
+
+  await page.goto(searchURL);
+
+  const search = page.getByRole("search", { name: "숙소 검색" });
+  const destinationTrigger = search.getByRole("button", { name: "Seoul" });
+  await destinationTrigger.focus();
+  await page.keyboard.press("Enter");
+
+  const destinationInput = search.getByRole("combobox", { name: "여행지" });
+  await expect(destinationInput).toBeFocused();
+  await expect(destinationInput).toHaveAttribute("aria-autocomplete", "list");
+  await expect(destinationInput).toHaveAttribute("aria-expanded", "false");
+
+  await page.keyboard.press("Escape");
+  await expect(destinationInput).toBeFocused();
+
+  const focusTargets = [
+    page.getByRole("link", { name: "Airbob 홈으로 이동" }),
+    search.getByRole("button", { name: "검색" }),
+    page.getByRole("link", {
+      name: "숙소 상세 보기: 접근성 테스트 숙소",
+    }),
+    page.getByRole("button", { name: "위시리스트에 저장" }),
+    page.getByRole("button", { name: "사용자 메뉴" }),
+  ];
+
+  for (const target of focusTargets) {
+    await expectVisibleFocusIndicator(target);
+  }
+
+  const menuButton = page.getByRole("button", { name: "사용자 메뉴" });
+  await menuButton.focus();
+  await page.keyboard.press("Enter");
+
+  const loginItem = page.getByRole("menuitem", { name: "로그인" });
+  const signupItem = page.getByRole("menuitem", { name: "회원가입" });
+  await expect(loginItem).toBeFocused();
+  await page.keyboard.press("End");
+  await expect(signupItem).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("menu", { name: "사용자 메뉴" })).toBeHidden();
+  await expect(menuButton).toBeFocused();
 });
 
 test("honors reduced motion while keyboard controls move the mobile results sheet", async ({
@@ -281,6 +369,17 @@ test("honors reduced motion while keyboard controls move the mobile results shee
       () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     ),
   ).toBe(true);
+  const resultCard = page.getByTestId("search-result-card");
+  await resultCard.hover();
+  const cardMotion = await resultCard.evaluate((element) => {
+    const styles = getComputedStyle(element);
+    return {
+      transform: styles.transform,
+      transitionDuration: styles.transitionDuration,
+    };
+  });
+  expect(cardMotion.transform).toBe("none");
+  expect(cardMotion.transitionDuration).toBe("0s");
   const halfTransform = await sheet.evaluate(
     (element) => getComputedStyle(element).transform,
   );

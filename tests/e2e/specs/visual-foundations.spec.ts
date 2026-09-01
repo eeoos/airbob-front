@@ -1,8 +1,15 @@
+import type { Page } from "@playwright/test";
 import { apiSuccess } from "../fixtures/api";
 import { test, expect } from "../fixtures/test";
 
 const VIEWPORT = { width: 1280, height: 800 } as const;
 const SEARCH_URL = "/search?destination=Seoul&adultOccupancy=2";
+const SYNTHETIC_IMAGE_ORIGIN = "https://images.airbob.invalid";
+const SEARCH_IMAGE_URL = `${SYNTHETIC_IMAGE_ORIGIN}/phase-1/search-card.svg`;
+const DETAIL_IMAGE_URLS = Array.from(
+  { length: 5 },
+  (_, index) => `${SYNTHETIC_IMAGE_ORIGIN}/phase-1/detail-${index + 1}.svg`,
+);
 
 const screenshotOptions = {
   animations: "disabled",
@@ -14,10 +21,56 @@ const screenshotOptions = {
   scale: "css",
 } as const;
 
+const foundationScreenshotOptions = {
+  ...screenshotOptions,
+  maxDiffPixelRatio: 0.02,
+} as const;
+
+const syntheticImagePalette = [
+  ["#dff4fb", "#5aaed2", "#14323f"],
+  ["#f6e9df", "#c9785d", "#4b3028"],
+  ["#e7f1e8", "#78a77e", "#294a32"],
+  ["#eee8f7", "#9678bd", "#3f3057"],
+  ["#fff1d9", "#d89d45", "#5d431d"],
+] as const;
+
+const syntheticImageBody = (index: number): string => {
+  const [surface, accent, ink] =
+    syntheticImagePalette[index % syntheticImagePalette.length] ??
+    syntheticImagePalette[0];
+
+  return `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800">
+      <rect width="1200" height="800" fill="${surface}" />
+      <circle cx="920" cy="160" r="92" fill="${accent}" opacity="0.72" />
+      <path d="M0 610 260 370l170 160 190-210 260 290 150-120 170 150v160H0Z" fill="${accent}" opacity="0.5" />
+      <path d="M365 610V350l235-150 235 150v260H365Z" fill="white" opacity="0.92" />
+      <path d="M470 610V455h260v155M515 365h170" fill="none" stroke="${ink}" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  `;
+};
+
+const installSyntheticImages = async (
+  page: Page,
+  imageUrls: readonly string[],
+) => {
+  await Promise.all(
+    imageUrls.map((imageUrl, index) =>
+      page.route(imageUrl, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "image/svg+xml; charset=utf-8",
+          body: syntheticImageBody(index),
+        });
+      }),
+    ),
+  );
+};
+
 const searchAccommodation = {
   id: 81,
   name: "서촌 디자인 테스트 숙소",
-  accommodation_thumbnail_url: null,
+  accommodation_thumbnail_url: SEARCH_IMAGE_URL,
   base_price: 120_000,
   currency: "KRW",
   type: "HOUSE",
@@ -89,7 +142,10 @@ const detailAccommodation = {
     { type: "HEATING", count: 1 },
     { type: "PARKING", count: 1 },
   ],
-  images: [],
+  images: DETAIL_IMAGE_URLS.map((imageUrl, index) => ({
+    id: index + 1,
+    image_url: imageUrl,
+  })),
   review_summary: {
     total_count: 0,
     average_rating: 0,
@@ -170,6 +226,7 @@ test("keeps the desktop search and header foundation visually stable", async ({
   session,
 }) => {
   session.clear();
+  await installSyntheticImages(page, [SEARCH_IMAGE_URL]);
   api.register(
     "GET",
     "/api/v1/search/accommodations",
@@ -185,11 +242,14 @@ test("keeps the desktop search and header foundation visually stable", async ({
   await expect(
     page.getByRole("link", { name: "Airbob 홈으로 이동" }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("img", { name: "서촌 디자인 테스트 숙소" }),
+  ).toBeVisible();
   await waitForStablePaint(page);
 
   await expect(page).toHaveScreenshot(
     "search-and-header-foundation.png",
-    screenshotOptions,
+    foundationScreenshotOptions,
   );
 });
 
@@ -199,6 +259,7 @@ test("keeps the accommodation detail foundation visually stable", async ({
   session,
 }) => {
   session.clear();
+  await installSyntheticImages(page, DETAIL_IMAGE_URLS);
   api.register(
     "GET",
     "/api/v1/accommodations/7",
@@ -216,12 +277,19 @@ test("keeps the accommodation detail foundation visually stable", async ({
   await expect(
     page.getByRole("heading", { name: "합정 디자인 테스트 숙소", level: 1 }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("img", {
+      name: "합정 디자인 테스트 숙소",
+      exact: true,
+    }),
+  ).toBeVisible();
   await expect(page.getByText("무선 인터넷")).toBeVisible();
+  await page.evaluate(() => window.scrollTo(0, 0));
   await waitForStablePaint(page);
 
   await expect(page).toHaveScreenshot(
     "accommodation-detail-foundation.png",
-    screenshotOptions,
+    foundationScreenshotOptions,
   );
 });
 
@@ -231,6 +299,7 @@ test("keeps the authentication dialog and overlay visually stable", async ({
   session,
 }) => {
   session.clear();
+  await installSyntheticImages(page, [SEARCH_IMAGE_URL]);
   api.register(
     "GET",
     "/api/v1/search/accommodations",

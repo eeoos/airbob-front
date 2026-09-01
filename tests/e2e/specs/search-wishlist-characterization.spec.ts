@@ -90,7 +90,7 @@ test("keeps a URL-driven search stable across a full browser refresh", async ({
   await expect(
     page.getByRole("heading", { name: "숙소 0개", level: 2 }),
   ).toBeVisible();
-  await expect(page.getByText("검색 결과가 없습니다.")).toBeVisible();
+  await expect(page.getByText("조건에 맞는 숙소가 없어요")).toBeVisible();
   await expect(page).toHaveURL(expectedSearchURL);
 
   await page.reload();
@@ -275,8 +275,10 @@ test("maps viewport URL coordinates to the search request without loading Google
     "/search?topLeftLat=38&topLeftLng=126&bottomRightLat=37&bottomRightLng=128&adultOccupancy=2";
   await page.goto(viewportURL);
 
-  await expect(page.getByText("지도를 불러올 수 없습니다.")).toBeVisible();
-  await expect(page.getByText("검색 결과가 없습니다.")).toBeVisible();
+  await expect(
+    page.getByText("지도 없이 결과를 둘러볼 수 있어요"),
+  ).toBeVisible();
+  await expect(page.getByText("조건에 맞는 숙소가 없어요")).toBeVisible();
   expect(`${new URL(page.url()).pathname}${new URL(page.url()).search}`).toBe(
     viewportURL,
   );
