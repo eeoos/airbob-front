@@ -143,13 +143,6 @@ function HostReservationDetailController({
     { audience: "host", reservationUid, scope },
     api,
   );
-  const currentErrorIdentity = errorIdentity(
-    reservationUid,
-    query.errorUpdatedAt,
-  );
-  const [dismissedErrorIdentity, setDismissedErrorIdentity] = useState<
-    string | null
-  >(null);
 
   let state: ReservationDetailState<HostReservationDetailView>;
   if (query.isLoading) {
@@ -157,10 +150,7 @@ function HostReservationDetailController({
   } else if (query.isError) {
     state = {
       status: "error",
-      message:
-        dismissedErrorIdentity === currentErrorIdentity
-          ? null
-          : toReservationDetailErrorMessage(query.error),
+      message: toReservationDetailErrorMessage(query.error),
     };
   } else if (!query.data) {
     state = { status: "missing" };
@@ -172,8 +162,8 @@ function HostReservationDetailController({
   }
   const actions: HostReservationDetailActions = {
     onBack: navigation.back,
-    onDismissError: () => setDismissedErrorIdentity(currentErrorIdentity),
     onOpenAccommodation: navigation.openAccommodation,
+    onRetry: () => void query.refetch(),
   };
 
   return (

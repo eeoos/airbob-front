@@ -91,8 +91,8 @@ export interface GuestReservationDetailActions {
 
 export interface HostReservationDetailActions {
   readonly onBack: () => void;
-  readonly onDismissError: () => void;
   readonly onOpenAccommodation: (accommodationId: number) => void;
+  readonly onRetry: () => void;
 }
 
 export interface GuestReservationDetailScreenProps {

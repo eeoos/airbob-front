@@ -262,4 +262,41 @@ describe("ReservationDetailController", () => {
       ),
     );
   });
+
+  it("recovers a host detail read failure through the visible retry action", async () => {
+    const { api, getDetail } = createApi();
+    getDetail
+      .mockRejectedValueOnce(
+        new AppError({
+          code: "NETWORK_ERROR",
+          kind: "network",
+          message: "offline",
+          retryable: true,
+        }),
+      )
+      .mockResolvedValueOnce(hostReservation());
+
+    renderController(
+      <ReservationDetailController
+        variant="host"
+        api={api}
+        navigation={{
+          back: vi.fn(),
+          openAccommodation: vi.fn(),
+        }}
+        reservationUid="host-reservation-1"
+        resolveImageUrl={() => ""}
+        scope={scope}
+      />,
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "네트워크 연결을 확인한 뒤 다시 시도해주세요.",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+
+    expect(await screen.findByText("HOST-CODE-1")).toBeInTheDocument();
+    expect(getDetail).toHaveBeenCalledTimes(2);
+  });
 });

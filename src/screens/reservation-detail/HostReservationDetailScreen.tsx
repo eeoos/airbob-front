@@ -1,14 +1,15 @@
 import { requireCssModuleClass } from "../../shared/styles/requireCssModuleClass";
 import {
+  Button,
   ImageWithFallback,
   PageContainer,
+  RetryableErrorState,
   Skeleton,
   StatusBadge,
   TerminalErrorState,
   stateViewRecipes,
 } from "../../shared/ui";
 import hostStyles from "./HostReservationDetailScreen.module.css";
-import { ReservationDetailError } from "./ReservationDetailError";
 import type { HostReservationDetailScreenProps } from "./reservationDetailViewContract";
 
 function HostReservationDetailLoading() {
@@ -79,12 +80,18 @@ export function HostReservationDetailScreen({
 
   if (state.status === "error") {
     return (
-      <PageContainer variant="content">
-        <ReservationDetailError
-          className={requireCssModuleClass(hostStyles.error)}
-          message={state.message}
-          onDismiss={actions.onDismissError}
-          toastClassName={requireCssModuleClass(hostStyles.toastContainer)}
+      <PageContainer className={hostStyles.stateShell} variant="content">
+        <RetryableErrorState
+          title="예약 정보를 불러오지 못했어요"
+          description={state.message ?? "잠시 후 다시 시도해주세요."}
+          action={
+            <div className={hostStyles.stateActions}>
+              <Button onClick={actions.onRetry}>다시 시도</Button>
+              <Button onClick={actions.onBack} variant="secondary">
+                예약 목록으로
+              </Button>
+            </div>
+          }
         />
       </PageContainer>
     );
@@ -93,7 +100,14 @@ export function HostReservationDetailScreen({
   if (state.status === "missing") {
     return (
       <PageContainer className={hostStyles.stateShell} variant="content">
-        <TerminalErrorState title="예약을 찾을 수 없습니다." />
+        <TerminalErrorState
+          title="예약을 찾을 수 없습니다."
+          action={
+            <Button onClick={actions.onBack} variant="secondary">
+              예약 목록으로
+            </Button>
+          }
+        />
       </PageContainer>
     );
   }

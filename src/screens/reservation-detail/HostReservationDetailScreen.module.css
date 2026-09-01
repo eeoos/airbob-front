@@ -337,22 +337,16 @@
 }
 
 .loading,
-.stateShell,
-.error {
+.stateShell {
   padding-block: var(--space-16);
 }
 
-.error {
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-md);
-  text-align: center;
-}
-
-.toastContainer {
-  position: fixed;
-  top: var(--space-6);
-  right: var(--space-6);
-  z-index: var(--z-toast);
+.stateActions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
 }
 
 .srOnly {
@@ -483,9 +477,9 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .toastContainer {
-    right: var(--space-4);
-    left: var(--space-4);
+  .stateActions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .loadingHero {

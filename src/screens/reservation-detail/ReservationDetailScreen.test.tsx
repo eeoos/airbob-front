@@ -20,8 +20,8 @@ const guestActions: Mocked<GuestReservationDetailActions> = {
 
 const hostActions: Mocked<HostReservationDetailActions> = {
   onBack: vi.fn(),
-  onDismissError: vi.fn(),
   onOpenAccommodation: vi.fn(),
+  onRetry: vi.fn(),
 };
 
 const guestView: GuestReservationDetailView = {
@@ -133,15 +133,15 @@ describe("ReservationDetailScreen", () => {
     );
 
     expect(
-      screen.getByText("예약 정보를 불러오지 못했습니다."),
+      screen.getByText("예약 정보를 불러오지 못했어요"),
     ).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent(
       "존재하지 않는 예약입니다.",
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "오류 닫기" }));
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
 
-    expect(hostActions.onDismissError).toHaveBeenCalledTimes(1);
+    expect(hostActions.onRetry).toHaveBeenCalledTimes(1);
   });
 
   it("renders guest loading and terminal states without inventing retry", () => {
