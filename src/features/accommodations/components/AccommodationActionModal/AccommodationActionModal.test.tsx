@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
   AccommodationActionModal,
@@ -138,6 +138,51 @@ describe("AccommodationActionModal", () => {
     await userEvent.click(screen.getByRole("button", { name: "오류 닫기" }));
     expect(onDismissError).toHaveBeenCalledTimes(1);
   });
+
+  it("announces the selected listing action with a contextual pending label", async () => {
+    const onUnpublish = vi.fn();
+    const props = createProps({ onUnpublish });
+    const { rerender } = render(<AccommodationActionModal {...props} />);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "리스팅 비공개" }),
+    );
+    rerender(<AccommodationActionModal {...props} isPending />);
+
+    const pendingButton = screen.getByRole("button", {
+      name: "비공개로 전환 중...",
+    });
+    expect(pendingButton).toBeDisabled();
+    expect(pendingButton).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "리스팅을 비공개로 전환하고 있습니다.",
+    );
+    expect(
+      screen.getByRole("group", { name: "숙소 관리 작업" }),
+    ).toHaveAttribute("aria-busy", "true");
+    expect(onUnpublish).toHaveBeenCalledWith(7);
+  });
+
+  it.each([null, "/broken.jpg"])(
+    "renders a named fallback when the thumbnail source is %s",
+    (thumbnailUrl) => {
+      render(
+        <AccommodationActionModal
+          {...createProps({
+            accommodation: { ...accommodation, thumbnailUrl },
+          })}
+        />,
+      );
+
+      if (thumbnailUrl) {
+        fireEvent.error(screen.getByRole("img", { name: "남산 숙소" }));
+      }
+
+      expect(
+        screen.getByRole("img", { name: "남산 숙소 숙소 이미지 없음" }),
+      ).toHaveTextContent("사진 준비 중");
+    },
+  );
 
   it("renders nothing without a selected accommodation", () => {
     const { container } = render(

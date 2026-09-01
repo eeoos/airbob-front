@@ -100,7 +100,9 @@ describe("UserMenu", () => {
     await openMenu();
     await userEvent.click(screen.getByRole("menuitem", { name: "로그인" }));
 
-    expect(screen.getByRole("dialog", { name: "login" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("dialog", { name: "login" }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole("menuitem", { name: "로그인" }),
     ).not.toBeInTheDocument();
@@ -112,7 +114,9 @@ describe("UserMenu", () => {
     await openMenu();
     await userEvent.click(screen.getByRole("menuitem", { name: "회원가입" }));
 
-    expect(screen.getByRole("dialog", { name: "signup" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("dialog", { name: "signup" }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole("menuitem", { name: "회원가입" }),
     ).not.toBeInTheDocument();
@@ -363,6 +367,54 @@ describe("UserMenu", () => {
     expect(mockClientLogError).not.toHaveBeenCalled();
   });
 
+  it("shows an accessible busy entry and prevents duplicate draft creation", async () => {
+    mockUseCreateAccommodationDraft.mockReturnValue({
+      createDraft: mockCreateDraft,
+      isCreating: true,
+    });
+    render(<UserMenu isLoggedIn />);
+
+    await openMenu();
+    const hostingItem = screen.getByRole("menuitem", {
+      name: "호스팅 준비 중...",
+    });
+
+    expect(hostingItem).toBeDisabled();
+    expect(hostingItem).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "새 숙소를 위한 호스팅 공간을 준비하고 있습니다.",
+    );
+
+    fireEvent.click(hostingItem);
+    fireEvent.click(hostingItem);
+    expect(mockCreateDraft).not.toHaveBeenCalled();
+  });
+
+  it("coalesces rapid hosting activation before the busy view renders", async () => {
+    let resolveDraft!: () => void;
+    const pendingDraft = new Promise<void>((resolve) => {
+      resolveDraft = resolve;
+    });
+    mockCreateDraft.mockReturnValue(pendingDraft);
+    mockUseCreateAccommodationDraft.mockReturnValue({
+      createDraft: mockCreateDraft,
+      isCreating: false,
+    });
+    render(<UserMenu isLoggedIn />);
+
+    await openMenu();
+    const hostingItem = screen.getByRole("menuitem", { name: "호스팅 하기" });
+    fireEvent.click(hostingItem);
+    fireEvent.click(hostingItem);
+
+    expect(mockCreateDraft).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveDraft();
+      await pendingDraft;
+    });
+  });
+
   it("does not navigate when a draft finishes after the user changes route", async () => {
     let resolveDraft!: () => void;
     const pendingDraft = new Promise<void>((resolve) => {
@@ -373,7 +425,7 @@ describe("UserMenu", () => {
         await pendingDraft;
         onCreated(987);
       },
-      isCreating: true,
+      isCreating: false,
     }));
     render(<UserMenu isLoggedIn />);
 
@@ -391,7 +443,7 @@ describe("UserMenu", () => {
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it("logs only safe AppError metadata for an invisible draft failure", () => {
+  it("logs only safe metadata and offers recovery for a draft failure", async () => {
     render(<UserMenu isLoggedIn />);
     const error = new AppError({
       kind: "server",
@@ -402,8 +454,10 @@ describe("UserMenu", () => {
       cause: { secret: "backend-detail-canary" },
     });
 
-    capturedDraftError?.(error);
-    capturedDraftError?.(new Error("raw-detail-canary"));
+    await act(async () => {
+      capturedDraftError?.(error);
+      capturedDraftError?.(new Error("raw-detail-canary"));
+    });
 
     expect(mockClientLogError).toHaveBeenCalledTimes(1);
     expect(mockClientLogError).toHaveBeenCalledWith({
@@ -420,7 +474,25 @@ describe("UserMenu", () => {
     expect(JSON.stringify(mockClientLogError.mock.calls)).not.toContain(
       "raw-detail-canary",
     );
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "호스팅 준비를 시작하지 못했습니다. 잠시 후 다시 시도해주세요.",
+    );
+    expect(screen.getByRole("alert")).not.toHaveTextContent(
+      "raw-detail-canary",
+    );
     expect(mockNavigate).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("menuitem", { name: "다시 시도" }));
+
+    await waitFor(() => expect(mockCreateDraft).toHaveBeenCalledTimes(1));
+    expect(mockNavigate).toHaveBeenCalledWith("/accommodations/987/edit", {
+      state: {
+        accommodationEdit: {
+          accommodationId: "987",
+          source: "created-draft",
+        },
+      },
+    });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });

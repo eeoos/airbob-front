@@ -74,10 +74,14 @@ const intentionallyLocalImageOwners = {
 const sharedStateRecipeOwners = {
   "src/app/router/RequireAuthenticatedRoute.tsx": "session gate recipes",
   "src/app/router/Router.tsx": "route suspense loading recipe",
+  "src/features/accommodations/detail/components/AccommodationReviewsSection.tsx":
+    "accommodation review loading, empty and retryable-error recipes",
   "src/features/profile/HostListingsPanel.tsx": "host list recipes",
   "src/features/reservations/GuestTripsPanel.tsx": "guest trip recipes",
   "src/features/reservations/HostReservationsPanel.tsx":
     "host reservation recipes",
+  "src/features/reviews/components/ReviewModal/ReviewModal.tsx":
+    "review modal empty and retryable-error recipes",
   "src/features/search/components/SearchMap/Map.tsx":
     "integration loading and terminal fallback recipes",
   "src/features/search/components/SearchResultsList.tsx":
@@ -98,24 +102,34 @@ const sharedStateRecipeOwners = {
     "checkout loading and terminal-error recipes",
   "src/screens/reservation-detail/GuestReservationDetailScreen.tsx":
     "guest reservation loading, retryable-error and terminal-error recipes",
+  "src/screens/reservation-detail/HostReservationDetailScreen.tsx":
+    "host reservation loading, retryable-error and terminal-error recipes",
+  "src/screens/review-create/ReviewCreateScreen.tsx":
+    "review creation retryable-error and terminal-error recipes",
   "src/shared/ui/StateView/StateView.tsx": "domain-free state recipe renderer",
 } as const;
 
 const intentionallyLocalStateOwners = {
+  "src/app/header/UserMenu.tsx":
+    "menu-local host draft creation progress and recovery",
   "src/app/session/LogoutRevocationNotice.tsx":
     "assertive session revocation notice",
+  "src/features/accommodations/components/AccommodationActionModal/AccommodationActionModal.tsx":
+    "listing action progress inside the selected-host context",
   "src/features/accommodations/detail/components/AccommodationBookingCardSections.tsx":
     "inline coupon sub-state inside an otherwise ready card",
-  "src/features/reviews/components/ReviewModal/ReviewModal.tsx":
-    "incremental modal feed status",
+  "src/features/wishlist/components/CreateWishlistModal/CreateWishlistModal.tsx":
+    "wishlist creation form error context",
+  "src/features/wishlist/components/WishlistMemoDialog.tsx":
+    "wishlist memo form error context",
   "src/features/search/components/SearchBar/SearchDestinationField.tsx":
     "combobox-local async suggestion status",
   "src/features/search/components/SearchPagination.tsx":
     "pagination-local progress status",
   "src/screens/payment-result/PaymentResultScreen.tsx":
     "workflow-specific operation progress and outcome",
-  "src/screens/review-create/ReviewCreateScreen.tsx":
-    "review workflow state surface",
+  "src/screens/accommodation-edit/components/EditWizardNavigation.tsx":
+    "editor draft creation progress label",
   "src/shared/ui/DatePicker/DatePicker.tsx": "calendar interaction status",
   "src/shared/ui/TextField/TextField.tsx": "field-local validation message",
   "src/shared/ui/ToastHost/ToastHost.tsx": "assertive transient message host",

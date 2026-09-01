@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSession } from "../session/useSession";
 import { useCreateAccommodationDraft } from "../../features/accommodations/ui/draftCreate";
-import { AuthModal } from "../../features/auth/public";
 import { isAppError } from "../../platform/http/errors";
 import { clientLogger } from "../../platform/logging/clientLogger";
 import { browserWindowNavigation } from "../../platform/browser/windowNavigation";
@@ -22,6 +21,12 @@ interface UserMenuProps {
 
 type PendingMenuFocus = "first" | "last" | null;
 
+const LazyAuthModal = React.lazy(async () => {
+  const { AuthModal } = await import("../../features/auth/public");
+
+  return { default: AuthModal };
+});
+
 const logDraftCreationError = (error: unknown) => {
   if (!isAppError(error)) return;
 
@@ -33,6 +38,23 @@ const logDraftCreationError = (error: unknown) => {
       status: error.status,
     },
   });
+};
+
+const toDraftCreationErrorMessage = (error: unknown): string => {
+  if (!isAppError(error)) {
+    return "호스팅 준비를 시작하지 못했습니다. 잠시 후 다시 시도해주세요.";
+  }
+
+  switch (error.kind) {
+    case "network":
+      return "네트워크 연결을 확인한 뒤 다시 시도해주세요.";
+    case "timeout":
+      return "요청 시간이 초과되었습니다. 다시 시도해주세요.";
+    case "authentication":
+      return "로그인 상태를 확인한 뒤 다시 시도해주세요.";
+    default:
+      return "호스팅 준비를 시작하지 못했습니다. 잠시 후 다시 시도해주세요.";
+  }
 };
 
 export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
@@ -47,11 +69,15 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
   const [authModalMode, setAuthModalMode] = useState<"login" | "signup">(
     "login",
   );
+  const [draftCreateErrorMessage, setDraftCreateErrorMessage] = useState<
+    string | null
+  >(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const menuDropdownRef = useRef<HTMLDivElement>(null);
   const menuItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const { createDraft } = useCreateAccommodationDraft({
+  const draftCreateRequestRef = useRef(false);
+  const { createDraft, isCreating } = useCreateAccommodationDraft({
     onCreated: (accommodationId) => {
       if (
         !browserWindowNavigation.isCurrentHistoryEntry({
@@ -64,11 +90,18 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
         return;
       }
 
+      setDraftCreateErrorMessage(null);
+      setIsMenuOpen(false);
       navigate(routeTo.accommodationEdit(accommodationId), {
         state: createAccommodationEditNavigationState(accommodationId),
       });
     },
-    onError: logDraftCreationError,
+    onError: (error) => {
+      logDraftCreationError(error);
+      setDraftCreateErrorMessage(toDraftCreationErrorMessage(error));
+      setPendingMenuFocus(null);
+      setIsMenuOpen(true);
+    },
   });
 
   useOutsideClick(menuRef, () => setIsMenuOpen(false), isMenuOpen);
@@ -88,7 +121,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
 
   const getMenuItems = () =>
     menuItemRefs.current.filter(
-      (item): item is HTMLButtonElement => item !== null,
+      (item): item is HTMLButtonElement => item !== null && !item.disabled,
     );
 
   const focusMenuItem = (index: number) => {
@@ -107,9 +140,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
       return;
     }
 
-    const menuItems = menuItemRefs.current.filter(
-      (item): item is HTMLButtonElement => item !== null,
-    );
+    const menuItems = getMenuItems();
     const focusIndex = pendingMenuFocus === "first" ? 0 : menuItems.length - 1;
 
     menuItems[focusIndex]?.focus();
@@ -201,9 +232,28 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
     setIsMenuOpen(false);
   };
 
-  const handleHosting = async () => {
-    setIsMenuOpen(false);
-    await createDraft();
+  const handleHosting = () => {
+    if (isCreating || draftCreateRequestRef.current) return;
+
+    draftCreateRequestRef.current = true;
+    setDraftCreateErrorMessage(null);
+    menuButtonRef.current?.focus();
+    const operation = createDraft();
+    const releaseRequest = () => {
+      draftCreateRequestRef.current = false;
+    };
+    void operation.then(releaseRequest, releaseRequest);
+  };
+
+  const retryHosting = () => {
+    setPendingMenuFocus(null);
+    setIsMenuOpen(true);
+    handleHosting();
+  };
+
+  const dismissDraftCreateError = () => {
+    menuItemRefs.current[2]?.focus();
+    setDraftCreateErrorMessage(null);
   };
 
   const handleLogout = async () => {
@@ -330,6 +380,8 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
                   </button>
                   <button
                     className={styles.menuItem}
+                    aria-busy={isCreating ? true : undefined}
+                    disabled={isCreating}
                     onClick={handleHosting}
                     ref={(node) => {
                       menuItemRefs.current[2] = node;
@@ -337,8 +389,55 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
                     role="menuitem"
                     type="button"
                   >
-                    호스팅 하기
+                    <span>
+                      {isCreating ? "호스팅 준비 중..." : "호스팅 하기"}
+                    </span>
+                    {isCreating && (
+                      <span
+                        aria-hidden="true"
+                        className={styles.loadingIndicator}
+                      />
+                    )}
                   </button>
+                  {isCreating && (
+                    <div role="none">
+                      <span className={styles.srOnly} role="status">
+                        새 숙소를 위한 호스팅 공간을 준비하고 있습니다.
+                      </span>
+                    </div>
+                  )}
+                  {draftCreateErrorMessage && (
+                    <div className={styles.draftError} role="none">
+                      <p className={styles.draftErrorMessage} role="alert">
+                        {draftCreateErrorMessage}
+                      </p>
+                      <div className={styles.draftErrorActions} role="none">
+                        <button
+                          className={styles.draftErrorAction}
+                          onClick={retryHosting}
+                          ref={(node) => {
+                            menuItemRefs.current[3] = node;
+                          }}
+                          role="menuitem"
+                          type="button"
+                        >
+                          다시 시도
+                        </button>
+                        <button
+                          aria-label="호스팅 준비 오류 닫기"
+                          className={styles.draftErrorAction}
+                          onClick={dismissDraftCreateError}
+                          ref={(node) => {
+                            menuItemRefs.current[4] = node;
+                          }}
+                          role="menuitem"
+                          type="button"
+                        >
+                          닫기
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   <div
                     aria-orientation="horizontal"
                     className={styles.divider}
@@ -348,7 +447,8 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
                     className={styles.menuItem}
                     onClick={handleLogout}
                     ref={(node) => {
-                      menuItemRefs.current[3] = node;
+                      menuItemRefs.current[draftCreateErrorMessage ? 5 : 3] =
+                        node;
                     }}
                     role="menuitem"
                     type="button"
@@ -361,11 +461,21 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
           )}
         </div>
       </div>
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        initialMode={authModalMode}
-      />
+      {isAuthModalOpen && (
+        <React.Suspense
+          fallback={
+            <span className={styles.srOnly} role="status">
+              계정 화면을 불러오고 있습니다.
+            </span>
+          }
+        >
+          <LazyAuthModal
+            isOpen
+            onClose={() => setIsAuthModalOpen(false)}
+            initialMode={authModalMode}
+          />
+        </React.Suspense>
+      )}
     </>
   );
 };
