@@ -632,6 +632,25 @@ describe("AccommodationEditController", () => {
     expect(props.api.getHostDetail).toHaveBeenCalledTimes(1);
   });
 
+  it("moves hydrated images through the editor view command", async () => {
+    const props = createProps();
+    props.api.getHostDetail.mockResolvedValue({
+      ...accommodation,
+      images: [
+        { id: 31, imageUrl: "/one.jpg" },
+        { id: 32, imageUrl: "/two.jpg" },
+        { id: 33, imageUrl: "/three.jpg" },
+      ],
+    });
+    await renderReadyController(props);
+
+    act(() => currentScreen().actions.onImageMove(0, 2));
+
+    expect(currentScreen().state.imageItems.map((image) => image.id)).toEqual([
+      32, 33, 31,
+    ]);
+  });
+
   it("blocks commands during reconciliation and restores a rejected deletion in place", async () => {
     const props = createProps();
     const images = [

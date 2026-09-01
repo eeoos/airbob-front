@@ -538,6 +538,10 @@ export function AccommodationEditController({
     },
     onExitDetailError: onNavigateToHostProfile,
     onImageRemove: handleImageRemove,
+    onImageMove: (fromIndex, toIndex) => {
+      if (!prepareDraftEdit()) return;
+      images.moveAt(fromIndex, toIndex);
+    },
     onImageSelect: (event) => {
       if (!prepareDraftEdit()) return;
       images.handleImageSelect(event);

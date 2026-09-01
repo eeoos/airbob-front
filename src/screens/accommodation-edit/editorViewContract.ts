@@ -100,6 +100,7 @@ export interface AccommodationEditScreenActions {
   onDrop: (event: DragEvent<HTMLDivElement>) => void;
   onDragOver: (event: DragEvent<HTMLDivElement>) => void;
   onImageRemove: (index: number) => void;
+  onImageMove: (fromIndex: number, toIndex: number) => void;
   onDragStart: (index: number) => void;
   onDragOverItem: (event: DragEvent, index: number) => void;
   onDragEnd: (event: DragEvent) => void;
