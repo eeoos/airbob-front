@@ -124,6 +124,21 @@ describe("ReservationConfirmController", () => {
     });
   });
 
+  it("refetches the accommodation detail once from the load error action", () => {
+    const refetch = vi.fn();
+    mockUseAccommodationDetailReadQuery.mockReturnValue({
+      data: undefined,
+      isError: true,
+      isLoading: false,
+      refetch,
+    });
+
+    renderController(createWorkflow());
+
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
   it("uses runtime-only customer data and keeps a cancelled Toss attempt retryable", async () => {
     const workflow = createWorkflow();
     vi.mocked(workflow.pay)

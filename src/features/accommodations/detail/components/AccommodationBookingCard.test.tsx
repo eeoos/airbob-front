@@ -723,6 +723,50 @@ describe("AccommodationBookingCard", () => {
 
   it.each([
     [
+      "quoted",
+      "loading",
+      "예약 계속하기",
+      "예약 가능한 날짜를 확인하고 있어요. 확인이 끝나면 날짜를 선택할 수 있습니다.",
+    ],
+    [
+      "quoted",
+      "error",
+      "예약 계속하기",
+      "날짜 정보를 불러오지 못했어요. ‘다시 시도’를 눌러 예약 가능 여부를 확인해주세요.",
+    ],
+    [
+      "terminal-ready",
+      "loading",
+      "예약 내역 확인",
+      "예약 가능한 날짜를 확인하고 있어요. 확인이 끝나면 날짜를 선택할 수 있습니다.",
+    ],
+    [
+      "terminal-ready",
+      "error",
+      "예약 내역 확인",
+      "날짜 정보를 불러오지 못했어요. ‘다시 시도’를 눌러 예약 가능 여부를 확인해주세요.",
+    ],
+  ] as const)(
+    "keeps the %s continuation action clear during availability %s",
+    (reservationStatus, availabilityStatus, actionLabel, guidance) => {
+      setupBookingCard({
+        bookingState: {
+          availabilityStatus,
+          isStayReady: false,
+          reservationStatus,
+          selectionState: "availability-unavailable",
+        },
+      });
+
+      const action = screen.getByRole("button", { name: actionLabel });
+      expect(action).toBeEnabled();
+      expect(action).not.toHaveAttribute("aria-describedby");
+      expect(screen.queryByText(guidance)).not.toBeInTheDocument();
+    },
+  );
+
+  it.each([
+    [
       "quoting",
       "최종 요금 확인 중...",
       "서버에서 최종 요금을 확인하고 있습니다.",

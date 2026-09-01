@@ -102,7 +102,34 @@ describe("ReservationConfirmScreen", () => {
     ).toBeVisible();
     expect(screen.queryByText(/후기/)).not.toBeInTheDocument();
     expect(screen.queryByText(/까지 예약을 취소하면/)).not.toBeInTheDocument();
+    expect(
+      screen.getByText("결제 전 예약 조건을 다시 확인해주세요."),
+    ).toBeInTheDocument();
     expect(screen.queryByText("쿠폰 할인")).not.toBeInTheDocument();
+  });
+
+  it("restores focus to the ready heading only after an error retry", async () => {
+    const props = createProps();
+    const { rerender } = renderApp(<ReservationConfirmScreen {...props} />);
+
+    expect(
+      screen.getByRole("heading", { name: "확인 및 결제" }),
+    ).not.toHaveFocus();
+
+    rerender(
+      <ReservationConfirmScreen
+        {...props}
+        state={{
+          status: "error",
+          message: "숙소 정보를 불러올 수 없습니다.",
+        }}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+
+    rerender(<ReservationConfirmScreen {...props} />);
+
+    expect(screen.getByRole("heading", { name: "확인 및 결제" })).toHaveFocus();
   });
 
   it("renders loading and error terminals without a payment action", () => {

@@ -94,8 +94,7 @@
 
 .backButton:focus-visible,
 .backButtonOnImage:focus-visible,
-.accommodationBox:focus-visible,
-.map:focus-visible {
+.accommodationBox:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring-visible);
 }
@@ -503,6 +502,11 @@
   width: 100%;
   height: 100%;
   border: none;
+}
+
+.map:focus-visible {
+  outline: 3px solid var(--color-focus-visible);
+  outline-offset: -3px;
 }
 
 .mapPlaceholder {

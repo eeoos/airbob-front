@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import {
   Button,
   ImageWithFallback,
@@ -122,6 +123,16 @@ export function ReservationConfirmScreen({
   paymentStatus,
   state,
 }: ReservationConfirmScreenProps) {
+  const retryIntentRef = useRef(false);
+  const readyTitleRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    if (state.status !== "ready" || !retryIntentRef.current) return;
+
+    retryIntentRef.current = false;
+    readyTitleRef.current?.focus();
+  }, [state.status]);
+
   if (state.status === "loading") return <ReservationConfirmLoading />;
 
   if (state.status === "error") {
@@ -132,7 +143,13 @@ export function ReservationConfirmScreen({
           description={state.message}
           action={
             onRetryLoad ? (
-              <Button variant="secondary" onClick={onRetryLoad}>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  retryIntentRef.current = true;
+                  onRetryLoad();
+                }}
+              >
                 다시 시도
               </Button>
             ) : undefined
@@ -155,7 +172,12 @@ export function ReservationConfirmScreen({
       >
         <header className={styles.pageHeader}>
           <p className={styles.eyebrow}>예약 2단계 · 결제</p>
-          <h1 id="reservation-confirm-title" className={styles.title}>
+          <h1
+            ref={readyTitleRef}
+            id="reservation-confirm-title"
+            className={styles.title}
+            tabIndex={-1}
+          >
             확인 및 결제
           </h1>
           <p className={styles.intro}>

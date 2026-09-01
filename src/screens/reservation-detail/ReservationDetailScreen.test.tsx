@@ -352,6 +352,9 @@ describe("ReservationDetailScreen", () => {
     );
     expect(css).toContain("min-height: var(--control-touch-target);");
     expect(css).toContain("box-shadow: var(--focus-ring-visible);");
+    expect(css).toMatch(
+      /\.map:focus-visible\s*\{[\s\S]*?outline:\s*3px solid var\(--color-focus-visible\);[\s\S]*?outline-offset:\s*-3px;/,
+    );
     expect(css).toContain("@media (--viewport-mobile-tablet)");
     expect(css).toContain("@media (--viewport-tablet)");
     expect(css).toContain("@media (--viewport-phone)");

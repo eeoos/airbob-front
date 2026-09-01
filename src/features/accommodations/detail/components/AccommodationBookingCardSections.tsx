@@ -694,10 +694,12 @@ export function BookingReserveAction({
   const selectionGuidanceId = React.useId();
   const canContinueExistingFlow =
     reservationStatus === "quoted" || reservationStatus === "terminal-ready";
-  const selectionGuidance = getBookingSelectionGuidance({
-    availabilityStatus,
-    selectionState,
-  });
+  const selectionGuidance = canContinueExistingFlow
+    ? null
+    : getBookingSelectionGuidance({
+        availabilityStatus,
+        selectionState,
+      });
   const { announcement: progressAnnouncement, loadingLabel } =
     getReservationProgressCopy(reservationStatus);
   const actionLabel = (() => {
