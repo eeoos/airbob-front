@@ -306,7 +306,7 @@ test("returns an anonymous user to the complete protected URL after login", asyn
 
   await expect(page).toHaveURL(/\/login$/);
   await expect(
-    page.getByRole("heading", { name: "로그인", level: 2 }),
+    page.getByRole("heading", { name: "로그인", level: 1 }),
   ).toBeVisible();
 
   await page.getByLabel("이메일").fill("person-a@example.invalid");
@@ -317,7 +317,9 @@ test("returns an anonymous user to the complete protected URL after login", asyn
   await expect(
     page.getByRole("heading", { name: "여름 여행", level: 1 }),
   ).toBeVisible();
-  await expect(page.getByText("위시리스트가 비어있습니다.")).toBeVisible();
+  await expect(
+    page.getByText("이 위시리스트는 아직 비어 있어요"),
+  ).toBeVisible();
 
   const loginRequests = api.matching("POST", "/api/v1/auth/login");
   expect(loginRequests).toHaveLength(1);

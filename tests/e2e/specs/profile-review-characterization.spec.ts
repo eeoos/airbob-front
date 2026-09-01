@@ -103,13 +103,15 @@ test("keeps the created review and surfaces terminal feedback when its image upl
   await page.goto(`/reservations/${REVIEW_RESERVATION_UID}/review`);
 
   await expect(
-    page.getByRole("heading", { name: "리뷰 작성", level: 1 }),
+    page.getByRole("heading", { name: "숙박 경험 남기기", level: 1 }),
   ).toBeVisible();
   await expect(
-    page.getByText("합정 테스트 숙소에 대한 리뷰를 작성해주세요."),
+    page.getByText(
+      "다음 게스트가 머무름을 선택하는 데 도움이 되는 경험을 알려주세요.",
+    ),
   ).toBeVisible();
 
-  await page.getByRole("button", { name: "4점" }).click();
+  await page.getByRole("radio", { name: "4점" }).click();
   await page
     .getByLabel("리뷰 내용")
     .fill("청결하고 조용해서 다시 머물고 싶은 숙소였습니다.");
@@ -118,7 +120,7 @@ test("keeps the created review and surfaces terminal feedback when its image upl
     mimeType: "image/png",
     buffer: Buffer.from("synthetic-review-image"),
   });
-  await expect(page.getByAltText("미리보기 1")).toBeVisible();
+  await expect(page.getByAltText("선택한 사진 1")).toBeVisible();
 
   await page.getByRole("button", { name: "리뷰 작성하기" }).click();
 
@@ -180,9 +182,9 @@ test("locks review submission when the create outcome may already have committed
     "리뷰 처리 결과를 확인할 수 없습니다. 예약 상세에서 리뷰 작성 가능 여부를 확인해주세요.",
   );
   await expect(
-    page.getByRole("button", { name: "예약 상세에서 결과 확인" }),
-  ).toBeDisabled();
-  await expect(page.getByRole("button", { name: "취소" })).toBeEnabled();
+    page.getByRole("button", { name: "예약 상세에서 확인하기" }),
+  ).toBeEnabled();
+  await expect(page.getByRole("button", { name: "취소" })).toHaveCount(0);
   expect(api.matching("POST", "/api/v1/accommodations/7/reviews")).toHaveLength(
     1,
   );
