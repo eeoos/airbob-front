@@ -5,9 +5,12 @@ visual identity starts with the sky blue already present in the Airbob
 wordmark, not with another marketplace's brand color.
 
 The first design slice covers the global header, search results, listing cards,
-and the top of accommodation detail. Later routes may keep the legacy coral
-tokens until their approved redesign phase. This staged adoption is deliberate:
-do not globally remap a legacy token to force an unfinished migration.
+and the top of accommodation detail. The guest-journey slice extends that
+language through booking conditions, server-confirmed quotes, payment handoff
+and recovery, and the guest reservation record. Later routes may keep the
+legacy coral tokens until their redesign phase. This staged adoption is
+deliberate: do not globally remap a legacy token to force an unfinished
+migration.
 
 ## Principles
 
@@ -85,6 +88,26 @@ preserve state changes with color, borders, text, and layout.
 - Missing and failed images reserve the same aspect ratio as successful media.
   Meaningful fallbacks use the accommodation name in their accessible label;
   decorative fallback details are hidden.
+
+## Guest Journey Ledger
+
+The booking and payment journey should feel like a warm, legible reservation
+ledger rather than a sequence of unrelated forms. Its content order is stable:
+
+1. stay conditions: dates, guests, availability, and cancellation terms;
+2. the server-confirmed quote and its validity window;
+3. explicit payment handoff and processing state;
+4. the authoritative reservation and payment record.
+
+Sky identity surfaces mark active and recoverable work. Clay is reserved for
+rare attention states; success, warning, and danger use their semantic status
+tokens. Processing, review, failure, recovery-unavailable, and success must stay
+visually and semantically distinct without relying on emoji or motion.
+
+Provider handoff is always an explicit user action. A reload never presents an
+automatic payment launch as progress, and a provider cancellation never reads
+as a cancelled reservation. Browser QA uses deterministic payment fixtures; it
+does not imply that a live provider or deployment profile has been verified.
 
 ## Responsive and Interaction Contract
 
