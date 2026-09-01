@@ -7,9 +7,12 @@ import {
 } from "./ReservationConfirmScreen";
 
 const createProps = (): ReservationConfirmScreenProps => ({
+  canReleaseHold: true,
   errorMessage: null,
+  isReleasing: false,
   onClearError: vi.fn(),
   onConfirmPayment: vi.fn(),
+  onReleaseHold: vi.fn(),
   paymentStatus: "ready",
   state: {
     status: "ready",
@@ -147,6 +150,18 @@ describe("ReservationConfirmScreen", () => {
     await userEvent.click(paymentButton);
 
     expect(props.onConfirmPayment).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers an explicit hold release without coupling it to payment", async () => {
+    const props = createProps();
+    renderApp(<ReservationConfirmScreen {...props} />);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "예약을 취소하고 객실 해제" }),
+    );
+
+    expect(props.onReleaseHold).toHaveBeenCalledOnce();
+    expect(props.onConfirmPayment).not.toHaveBeenCalled();
   });
 
   it("presents payment errors and delegates dismissal", async () => {

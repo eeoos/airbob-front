@@ -51,7 +51,7 @@
   white-space: pre-wrap;
 }
 
-@media (max-width: 768px) {
+@media (--viewport-tablet) {
   .descriptionModalBody {
     padding: var(--space-8) var(--space-6);
   }

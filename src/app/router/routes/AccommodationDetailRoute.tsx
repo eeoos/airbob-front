@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createPath,
@@ -5,15 +6,19 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom";
+import { accommodationAmenityCatalog } from "../../../features/accommodations/public";
+import { reservationBookingApi } from "../../../features/reservations/booking/public";
+import { paymentApi } from "../../../features/reservations/payment/public";
+import { createReservationReadQueryCacheProjection } from "../../../features/reservations/public";
 import { recentlyViewedApi } from "../../../features/wishlist/public";
 import { resolveImageUrl } from "../../../platform/assets/imageUrl";
 import { browserWindowNavigation } from "../../../platform/browser/windowNavigation";
-import type { AuthenticatedSessionScope } from "../../../platform/session/sessionScope";
 import {
   AccommodationDetailController,
   type AccommodationDetailAuthIntent,
   type AccommodationDetailClaimedAuthIntent,
 } from "../../../screens/accommodation-detail/public";
+import { useStrictModeSafeDisposable } from "../../../shared/lib/useStrictModeSafeDisposable";
 import {
   toAuthIntentLocalDate,
   useAuthIntent,
@@ -21,15 +26,16 @@ import {
   type AuthIntentAttemptId,
   type ClaimedAuthIntent,
 } from "../../../workflows/auth-intent";
+import { createTossPaymentsV2GatewayLease } from "../../../workflows/booking-payment/checkout";
 import {
-  createBookingPaymentCallbackRepository,
-  createBookingPaymentCheckoutRepository,
-} from "../../../workflows/booking-payment/checkout";
-import { inspectBookingPaymentV2NamespaceForLegacyWriter } from "../../../workflows/booking-payment/journal";
-import type { ReservationCheckoutHandoffPort } from "../../../workflows/booking-payment/reservation-create";
+  createBookingTransactionWorkflow,
+  type BookingTransactionHandle,
+  type BookingTransactionSnapshot,
+} from "../../../workflows/booking-payment/transaction/booking";
 import { useWishlistMembership } from "../../../workflows/wishlist-membership";
 import { useSession } from "../../session/useSession";
 import { usePaymentRecoveryFenceStatus } from "../PaymentCallbackCredentialBoundary";
+import { bookingPaymentStateCodec } from "../codecs/bookingPaymentStateCodec";
 import { parsePositiveInteger } from "../codecs/queryCodecUtils";
 import { accommodationBookingCodec } from "../codecs/searchCodec";
 import { routeTo } from "../paths";
@@ -50,6 +56,7 @@ const toRuntimeAuthIntent = (
 function AccommodationDetailRouteContent() {
   const location = useLocation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { id } = useParams<{ id: string }>();
   const session = useSession();
   const paymentRecoveryFenceStatus = usePaymentRecoveryFenceStatus();
@@ -77,10 +84,7 @@ function AccommodationDetailRouteContent() {
     [location.search],
   );
   const scope = useMemo(
-    () => ({
-      epoch: sessionEpoch,
-      subject: sessionSubject,
-    }),
+    () => ({ epoch: sessionEpoch, subject: sessionSubject }),
     [sessionEpoch, sessionSubject],
   );
   const routeLease = useMemo(
@@ -95,19 +99,33 @@ function AccommodationDetailRouteContent() {
     }),
     [location.hash, location.key, location.pathname, location.search],
   );
-  const checkoutRepository = useMemo(
+  const gatewayLease = useMemo(() => createTossPaymentsV2GatewayLease(), []);
+  useStrictModeSafeDisposable(gatewayLease);
+  const bookingWorkflow = useMemo(
     () =>
-      createBookingPaymentCheckoutRepository({
-        getEpoch: () => sessionEpoch,
+      createBookingTransactionWorkflow({
+        bookingApi: reservationBookingApi,
+        gateway: gatewayLease.gateway,
+        paymentApi,
+        session: workflowSession,
       }),
-    [sessionEpoch],
+    [gatewayLease.gateway, workflowSession],
   );
-  const callbackRepository = useMemo(
+  useStrictModeSafeDisposable(bookingWorkflow);
+  const reservationPublication = useMemo(
+    () => createReservationReadQueryCacheProjection(queryClient),
+    [queryClient],
+  );
+  const flowReference = useMemo(
+    () => bookingPaymentStateCodec.parseFlowReference(location.state),
+    [location.state],
+  );
+  const flowHandle = useMemo<BookingTransactionHandle | null>(
     () =>
-      createBookingPaymentCallbackRepository({
-        getEpoch: () => sessionEpoch,
-      }),
-    [sessionEpoch],
+      flowReference
+        ? { flowId: flowReference.flowId, locator: flowReference.locator }
+        : null,
+    [flowReference],
   );
 
   const requestAuthIntent = useCallback(
@@ -204,142 +222,95 @@ function AccommodationDetailRouteContent() {
     [cancelPendingAuthIntent, claimed, requestAuthIntent],
   );
 
-  const checkoutHandoff = useMemo<ReservationCheckoutHandoffPort>(() => {
-    const inspectNewerRecovery = (
-      session: AuthenticatedSessionScope,
-      intentAccommodationId: number,
+  const replaceHistoryState = useCallback(
+    (handle: BookingTransactionHandle | null): boolean => {
+      const state = handle
+        ? bookingPaymentStateCodec.serializeFlowReference(
+            handle.flowId,
+            handle.locator,
+          )
+        : null;
+      if (handle && !state) return false;
+      return browserWindowNavigation.replaceCurrentUserState(state);
+    },
+    [],
+  );
+
+  const openPayment = useCallback(
+    (
+      handle: BookingTransactionHandle,
+      snapshot: BookingTransactionSnapshot,
     ) => {
       if (
-        paymentRecoveryFenceStatus !== "none" ||
         accommodationId === null ||
-        intentAccommodationId !== accommodationId ||
-        !routeLease.isCurrent() ||
-        !isCurrentSession(session)
+        snapshot.accommodationId !== accommodationId ||
+        snapshot.reservationUid === null ||
+        handle.locator.kind !== "reservation" ||
+        handle.locator.reservationUid !== snapshot.reservationUid
       ) {
-        return { status: "blocked" } as const;
+        return;
       }
+      const state = bookingPaymentStateCodec.serializeFlowReference(
+        handle.flowId,
+        handle.locator,
+      );
+      if (!state) return;
+      navigate(routeTo.accommodationConfirm(accommodationId), { state });
+    },
+    [accommodationId, navigate],
+  );
 
-      return inspectBookingPaymentV2NamespaceForLegacyWriter().status ===
-        "ready"
-        ? ({ status: "ready" } as const)
-        : ({ status: "blocked" } as const);
-    };
-
-    const inspectActivePayment = (
-      session: AuthenticatedSessionScope,
-      navigateToRecovery: boolean,
-    ) => {
-      if (!routeLease.isCurrent() || !isCurrentSession(session)) {
-        return { status: "blocked" } as const;
-      }
-
-      const callback = callbackRepository.read({ scope: session });
-      if (callback.status === "missing") {
-        return { status: "ready" } as const;
-      }
-      if (callback.status !== "found") {
-        return { status: "blocked" } as const;
-      }
-
-      const checkout = checkoutRepository.readForCallback({
-        scope: session,
-        reservationUid: callback.data.reservationUid,
-      });
+  const completeTerminalReservation = useCallback(
+    async (
+      handle: BookingTransactionHandle,
+      snapshot: BookingTransactionSnapshot,
+      commandRouteLease: { isCurrent(): boolean },
+    ): Promise<boolean> => {
+      const captured = captureAuthenticatedSession();
       if (
-        checkout.status !== "found" ||
-        checkout.data.operationId !== callback.data.operationId ||
-        checkout.data.reservationUid !== callback.data.orderId ||
-        checkout.data.amount !== callback.data.amount
+        (snapshot.phase !== "complimentary-observed" &&
+          snapshot.phase !== "reservation-status-observed" &&
+          snapshot.phase !== "hold-released") ||
+        snapshot.reservationUid === null ||
+        handle.locator.kind !== "reservation" ||
+        handle.locator.reservationUid !== snapshot.reservationUid ||
+        !captured ||
+        !commandRouteLease.isCurrent() ||
+        !isCurrentSession(captured)
       ) {
-        return { status: "blocked" } as const;
+        return false;
       }
 
-      if (navigateToRecovery) {
-        navigate(
-          routeTo.paymentFail(callback.data.reservationUid, {
-            reason: "confirm-failed",
-          }),
-          { replace: true, state: null },
-        );
+      try {
+        await reservationPublication.guestReservationChanged({
+          reservationUid: snapshot.reservationUid,
+          scope: captured,
+        });
+      } catch {
+        return false;
       }
-      return { status: "payment-recovery-required" } as const;
-    };
-
-    return {
-      preflight(input) {
-        if (
-          inspectNewerRecovery(input.session, input.intent.accommodationId)
-            .status !== "ready"
-        ) {
-          return { status: "blocked" };
-        }
-
-        return inspectActivePayment(input.session, true);
-      },
-      assertNoNewerRecovery(input) {
-        return inspectNewerRecovery(
-          input.session,
-          input.intent.accommodationId,
-        );
-      },
-      commit(input) {
-        if (
-          accommodationId === null ||
-          input.intent.accommodationId !== accommodationId ||
-          !routeLease.isCurrent() ||
-          !isCurrentSession(input.session)
-        ) {
-          throw new Error("Checkout handoff is no longer current.");
-        }
-
-        if (
-          inspectNewerRecovery(input.session, input.intent.accommodationId)
-            .status !== "ready"
-        ) {
-          throw new Error("A newer payment recovery state is active.");
-        }
-        if (inspectActivePayment(input.session, false).status !== "ready") {
-          throw new Error("An earlier payment still requires recovery.");
-        }
-
-        const writeResult = checkoutRepository.write({
-          scope: input.session,
-          isCurrent: () =>
-            routeLease.isCurrent() && isCurrentSession(input.session),
-          data: {
-            accommodationId,
-            reservationUid: input.reservation.reservationUid,
-            orderName: input.reservation.orderName,
-            amount: input.reservation.amount,
-            checkIn: input.intent.checkIn,
-            checkOut: input.intent.checkOut,
-            adultOccupancy: input.intent.adultCount,
-            childOccupancy: input.intent.childCount,
-            infantOccupancy: input.intent.infantCount,
-            petOccupancy: input.intent.petCount,
-            couponName: input.appliedCoupon?.name ?? null,
-            couponDiscount: input.appliedCoupon?.discount ?? null,
-          },
-        });
-
-        if (writeResult.status !== "written") {
-          throw new Error("Checkout handoff could not be persisted.");
-        }
-
-        navigate(routeTo.accommodationConfirm(accommodationId), {
-          state: writeResult.handle,
-        });
-      },
-    };
-  }, [
-    accommodationId,
-    callbackRepository,
-    checkoutRepository,
-    isCurrentSession,
-    navigate,
-    paymentRecoveryFenceStatus,
-    routeLease,
-  ]);
+      if (!commandRouteLease.isCurrent() || !isCurrentSession(captured)) {
+        return false;
+      }
+      const acknowledged = bookingWorkflow.acknowledgeTerminal({
+        handle,
+        routeLease: commandRouteLease,
+      });
+      if (acknowledged.status !== "acknowledged") return false;
+      navigate(routeTo.reservationDetail(snapshot.reservationUid), {
+        replace: true,
+        state: null,
+      });
+      return true;
+    },
+    [
+      bookingWorkflow,
+      captureAuthenticatedSession,
+      isCurrentSession,
+      navigate,
+      reservationPublication,
+    ],
+  );
 
   const replaceBookingDates = useCallback(
     (checkIn: string | null, checkOut: string | null) => {
@@ -356,7 +327,10 @@ function AccommodationDetailRouteContent() {
           search: search ? `?${search}` : "",
           hash: location.hash,
         },
-        { replace: true },
+        {
+          replace: true,
+          state: browserWindowNavigation.getCurrentUserState(),
+        },
       );
     },
     [location.hash, location.pathname, location.search, navigate],
@@ -379,11 +353,20 @@ function AccommodationDetailRouteContent() {
     <AccommodationDetailController
       key={accommodationId ?? "invalid"}
       accommodationId={accommodationId}
+      amenityCatalog={accommodationAmenityCatalog}
       authIntent={authIntent}
+      bookingFlowHandle={flowHandle}
       bookingRouteState={bookingRouteState}
-      checkoutHandoff={checkoutHandoff}
+      bookingWorkflow={bookingWorkflow}
       isAuthenticated={isAuthenticated}
+      isPaymentRecoveryBlocked={
+        paymentRecoveryFenceStatus !== "none" && flowHandle === null
+      }
+      onBookingFlowHandleChange={replaceHistoryState}
+      onOpenPayment={openPayment}
+      onOpenTrips={() => navigate(routeTo.profile(), { replace: true })}
       onReplaceBookingDates={replaceBookingDates}
+      onTerminalReservation={completeTerminalReservation}
       recordRecentlyViewed={recordRecentlyViewed}
       resolveImageUrl={resolveImageUrl}
       routeLease={routeLease}

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { accommodationAmenityCatalog } from "../../public";
 import type { AccommodationDetail } from "../model/accommodationDetail";
 import { toAccommodationDetailViewModel } from "../lib/accommodationDetailViewModel";
 import { AccommodationOverview } from "./AccommodationOverview";
@@ -51,7 +52,11 @@ const renderOverview = (
   overrides: Partial<React.ComponentProps<typeof AccommodationOverview>> = {},
 ) => {
   const props: React.ComponentProps<typeof AccommodationOverview> = {
-    detailView: toAccommodationDetailViewModel(accommodation, resolveImageUrl),
+    detailView: toAccommodationDetailViewModel(
+      accommodation,
+      resolveImageUrl,
+      accommodationAmenityCatalog,
+    ),
     onOpenDescription: vi.fn(),
     ...overrides,
   };
@@ -99,9 +104,37 @@ describe("AccommodationOverview", () => {
           },
         },
         resolveImageUrl,
+        accommodationAmenityCatalog,
       ),
     });
 
     expect(screen.getByText("호")).toBeInTheDocument();
+  });
+
+  it("renders an explicit catalog signal for an unknown amenity", () => {
+    const { container } = render(
+      <AccommodationOverview
+        detailView={toAccommodationDetailViewModel(
+          {
+            ...accommodation,
+            amenities: [{ type: "FUTURE_AMENITY", count: 1 }],
+          },
+          resolveImageUrl,
+          accommodationAmenityCatalog,
+        )}
+        onOpenDescription={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("알 수 없는 편의시설")).toBeInTheDocument();
+    // The data contract is intentionally machine-readable for monitoring/tests.
+    // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
+    const unknownAmenity = container.querySelector(
+      '[data-amenity-known="false"]',
+    );
+    expect(unknownAmenity).toHaveAttribute(
+      "data-amenity-code",
+      "FUTURE_AMENITY",
+    );
   });
 });

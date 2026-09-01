@@ -17,7 +17,7 @@ type ReservationBookingApiTransport = <T>(
   request: ApiDataRequest,
 ) => Promise<NonNullable<T>>;
 
-export const createReservationBookingApi = (
+const createReservationBookingApi = (
   request: ReservationBookingApiTransport,
 ): ReservationBookingApiPort => ({
   async createQuote(input, options) {

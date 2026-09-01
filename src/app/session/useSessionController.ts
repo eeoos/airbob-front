@@ -44,7 +44,9 @@ export interface SessionControllerOptions {
   readonly authPort?: SessionAuthPort;
   readonly broadcastFactory?: () => SessionBroadcast;
   readonly clearIdentityOwnedState?: () => void;
-  readonly clearRevokedIdentityOwnedState?: () => void;
+  readonly clearRevokedIdentityOwnedState?: (
+    reason: RevokedIdentityCleanupReason,
+  ) => void;
   readonly initialQueryClient?: QueryClient;
   readonly initialState?: SessionState;
   readonly queryClientFactory?: SessionQueryClientFactory;
@@ -53,6 +55,12 @@ export interface SessionControllerOptions {
   ) => void;
   readonly runtimeLeaseIdFactory?: SessionRuntimeLeaseIdFactory;
 }
+
+export type RevokedIdentityCleanupReason =
+  | "authentication-rejected"
+  | "authenticated-session-revoked"
+  | "explicit-logout"
+  | "identity-replaced";
 
 export interface SessionControllerResult {
   readonly session: SessionContextValue;
@@ -289,12 +297,15 @@ export function useSessionController({
     [replayDeferredRemotePhaseIfIdle],
   );
 
-  const clearRevokedIdentityState = useCallback(() => {
-    destructiveCleanupRequiredRef.current = true;
-    clearRevokedIdentityOwnedState();
-    identityOwnerSubjectRef.current = null;
-    destructiveCleanupRequiredRef.current = false;
-  }, [clearRevokedIdentityOwnedState]);
+  const clearRevokedIdentityState = useCallback(
+    (reason: RevokedIdentityCleanupReason) => {
+      destructiveCleanupRequiredRef.current = true;
+      clearRevokedIdentityOwnedState(reason);
+      identityOwnerSubjectRef.current = null;
+      destructiveCleanupRequiredRef.current = false;
+    },
+    [clearRevokedIdentityOwnedState],
+  );
 
   const reconcileCandidateIdentity = useCallback(
     (scope: AuthenticatedSessionScope, operation: ActiveOperation): boolean => {
@@ -399,7 +410,7 @@ export function useSessionController({
         }
 
         try {
-          clearRevokedIdentityState();
+          clearRevokedIdentityState("identity-replaced");
         } catch (cleanupError) {
           dispatch({
             type: "session/check-failed",
@@ -496,7 +507,11 @@ export function useSessionController({
 
         if (isSessionAuthenticationError(error)) {
           try {
-            clearRevokedIdentityState();
+            clearRevokedIdentityState(
+              previousSubject === null
+                ? "authentication-rejected"
+                : "authenticated-session-revoked",
+            );
           } catch (cleanupError) {
             dispatch({
               type: "session/check-failed",
@@ -703,7 +718,7 @@ export function useSessionController({
         const capturedEpoch = latest.epoch;
         let cleanupError: unknown;
         try {
-          clearRevokedIdentityState();
+          clearRevokedIdentityState("authenticated-session-revoked");
         } catch (caughtCleanupError) {
           cleanupError = caughtCleanupError;
         }
@@ -875,7 +890,7 @@ export function useSessionController({
 
     let cleanupError: unknown;
     try {
-      clearRevokedIdentityState();
+      clearRevokedIdentityState("explicit-logout");
     } catch (caughtCleanupError) {
       cleanupError = caughtCleanupError;
     }
@@ -938,7 +953,7 @@ export function useSessionController({
     try {
       let cleanupError: unknown;
       try {
-        clearRevokedIdentityState();
+        clearRevokedIdentityState("explicit-logout");
       } catch (caughtCleanupError) {
         cleanupError = caughtCleanupError;
       }

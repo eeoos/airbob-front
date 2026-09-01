@@ -1,4 +1,16 @@
+import { act, render, screen } from "@testing-library/react";
+import { createElement } from "react";
+import { BrowserRouter, useLocation } from "react-router-dom";
 import { browserWindowNavigation } from "./windowNavigation";
+
+const HistoryStateProbe = () => {
+  const location = useLocation();
+  return createElement(
+    "output",
+    { "data-testid": "history-state" },
+    JSON.stringify({ key: location.key, state: location.state }),
+  );
+};
 
 describe("browserWindowNavigation", () => {
   it("exposes the current browser origin without leaking window access", () => {
@@ -21,6 +33,78 @@ describe("browserWindowNavigation", () => {
       key: "history-key",
       usr: null,
     });
+  });
+
+  it("replaces and reads back Router user state without changing the route lease key", () => {
+    const previousUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    const previousState = window.history.state;
+    window.history.replaceState(
+      { idx: 4, key: "booking-entry", usr: null },
+      "",
+      "/accommodations/42?checkIn=2026-09-10",
+    );
+    const reference = {
+      purpose: "booking-payment-flow-reference",
+      version: 2,
+      flowId: "10000000-0000-4000-8000-000000000001",
+      locator: { kind: "accommodation", accommodationId: 42 },
+    };
+    const popState = vi.fn();
+    window.addEventListener("popstate", popState);
+
+    try {
+      expect(browserWindowNavigation.replaceCurrentUserState(reference)).toBe(
+        true,
+      );
+      expect(window.history.state).toEqual({
+        idx: 4,
+        key: "booking-entry",
+        usr: reference,
+      });
+      expect(browserWindowNavigation.getCurrentUserState()).toEqual(reference);
+      expect(popState).toHaveBeenCalledOnce();
+      expect(window.location.pathname).toBe("/accommodations/42");
+      expect(window.location.search).toBe("?checkIn=2026-09-10");
+    } finally {
+      window.removeEventListener("popstate", popState);
+      window.history.replaceState(previousState, "", previousUrl);
+    }
+  });
+
+  it("synchronizes a same-key user-state replacement back into BrowserRouter", () => {
+    const previousUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    const previousState = window.history.state;
+    window.history.replaceState(
+      { idx: 0, key: "same-key-entry", usr: null },
+      "",
+      "/accommodations/42",
+    );
+    const view = render(
+      createElement(BrowserRouter, null, createElement(HistoryStateProbe)),
+    );
+    const reference = {
+      purpose: "booking-payment-flow-reference",
+      version: 2,
+      flowId: "10000000-0000-4000-8000-000000000001",
+      locator: { kind: "accommodation", accommodationId: 42 },
+    };
+
+    try {
+      act(() => {
+        expect(browserWindowNavigation.replaceCurrentUserState(reference)).toBe(
+          true,
+        );
+      });
+      expect(screen.getByTestId("history-state")).toHaveTextContent(
+        "same-key-entry",
+      );
+      expect(screen.getByTestId("history-state")).toHaveTextContent(
+        reference.flowId,
+      );
+    } finally {
+      view.unmount();
+      window.history.replaceState(previousState, "", previousUrl);
+    }
   });
 
   it("matches an exact Router history entry and rejects stale route entries", () => {

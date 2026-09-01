@@ -1,34 +1,89 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../../platform/session/sessionScope";
 import { testSessionRuntimeLeaseId } from "../../../test/sessionFixtures";
-import {
-  createBookingPaymentCallbackRepository,
-  createBookingPaymentCheckoutRepository,
-  type CallbackData,
-} from "../../../workflows/booking-payment/checkout";
+import { bookingPaymentStateCodec } from "../codecs/bookingPaymentStateCodec";
 import ReservationConfirmRoute from "./ReservationConfirmRoute";
 
-type CheckoutWriteData = Parameters<
-  ReturnType<typeof createBookingPaymentCheckoutRepository>["write"]
->[0]["data"];
-
-const scope: AuthenticatedSessionScope = {
-  epoch: 5,
-  runtimeLeaseId: testSessionRuntimeLeaseId,
-  subject: "subject:confirm_recovery" as SessionSubject,
+const reservationUid = "20000000-0000-4000-8000-000000000002";
+const flowId = "10000000-0000-4000-8000-000000000001";
+const handle = {
+  flowId,
+  locator: { kind: "reservation" as const, reservationUid },
 };
-const mockConfirmControllerProps: Array<Record<string, unknown>> = [];
+const snapshot = {
+  phase: "reservation-ready" as const,
+  flowId,
+  accommodationId: 42,
+  reservationUid,
+  checkIn: "2026-09-10",
+  checkOut: "2026-09-12",
+  adultCount: 2,
+  childCount: 0,
+  infantCount: 0,
+  petCount: 0,
+  orderName: "테스트 숙소 예약",
+  nightlyPrice: 60_000,
+  nights: 2,
+  subtotal: 120_000,
+  discountAmount: 0,
+  amount: 120_000,
+  currency: "KRW",
+  couponDisplayName: null,
+  quoteExpiresAt: "2026-09-01T10:10:00Z",
+  serverTime: "2026-09-01T10:00:00Z",
+  paymentRequired: true,
+  reservationStatus: "PAYMENT_PENDING" as const,
+  paymentAllowed: true,
+  holdExpiresAt: "2026-09-01T10:15:00Z",
+  canCheckout: false,
+  canPay: true,
+  canRetryPayment: false,
+  canReleaseHold: true,
+};
+
+const mocks = vi.hoisted(() => ({
+  load: vi.fn(),
+  acknowledgeTerminal: vi.fn(),
+  acknowledgeReservationStatusDrift: vi.fn(),
+  getGuestDetail: vi.fn(),
+  controllerProps: [] as Array<Record<string, unknown>>,
+}));
+
+vi.mock("../../../workflows/booking-payment/transaction/booking", async () => {
+  const actual = await vi.importActual<
+    typeof import("../../../workflows/booking-payment/transaction/booking")
+  >("../../../workflows/booking-payment/transaction/booking");
+  return {
+    ...actual,
+    createBookingTransactionWorkflow: () => ({
+      load: (...args: unknown[]) => mocks.load(...args),
+      acknowledgeTerminal: (...args: unknown[]) =>
+        mocks.acknowledgeTerminal(...args),
+      acknowledgeReservationStatusDrift: (...args: unknown[]) =>
+        mocks.acknowledgeReservationStatusDrift(...args),
+      dispose: vi.fn(),
+    }),
+  };
+});
 
 vi.mock("../../../platform/browser/windowNavigation", () => ({
   browserWindowNavigation: {
     getOrigin: () => "https://airbob.test",
     isCurrentHistoryEntry: () => true,
-    openInNewTab: vi.fn(),
-    replaceCurrentUrl: vi.fn(),
+  },
+}));
+
+vi.mock("../../../features/reservations/public", async () => ({
+  ...(await vi.importActual<
+    typeof import("../../../features/reservations/public")
+  >("../../../features/reservations/public")),
+  reservationReadApi: {
+    getDetail: (...args: unknown[]) => mocks.getGuestDetail(...args),
   },
 }));
 
@@ -36,12 +91,17 @@ vi.mock(
   "../../../screens/reservation-confirm/ReservationConfirmController",
   () => ({
     ReservationConfirmController: (props: Record<string, unknown>) => {
-      mockConfirmControllerProps.push(props);
+      mocks.controllerProps.push(props);
       return <div data-testid="reservation-confirm-controller" />;
     },
   }),
 );
 
+const scope: AuthenticatedSessionScope = {
+  epoch: 5,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
+  subject: "subject:confirm_recovery" as SessionSubject,
+};
 const mockSession = {
   state: {
     status: "authenticated" as const,
@@ -56,308 +116,297 @@ const mockSession = {
     revalidation: { status: "idle" as const },
   },
   captureAuthenticatedSession: () => scope,
-  isCurrentSession: (candidate: AuthenticatedSessionScope) =>
-    candidate.subject === scope.subject &&
-    candidate.epoch === scope.epoch &&
-    candidate.runtimeLeaseId === scope.runtimeLeaseId,
+  isCurrentSession: () => true,
   login: vi.fn(),
   logout: vi.fn(),
   revalidate: vi.fn(),
   retryServerLogout: vi.fn(),
 };
 
-vi.mock("../../session/useSession", () => ({
-  useSession: () => mockSession,
-}));
-
-const checkoutData: CheckoutWriteData = {
-  accommodationId: 42,
-  reservationUid: "reservation-1",
-  orderName: "테스트 숙소 예약",
-  amount: 120_000,
-  checkIn: "2026-09-10",
-  checkOut: "2026-09-12",
-  adultOccupancy: 2,
-  childOccupancy: 0,
-  infantOccupancy: 0,
-  petOccupancy: 0,
-  couponName: null,
-  couponDiscount: null,
-};
-
-const createRepositories = () => ({
-  checkout: createBookingPaymentCheckoutRepository({
-    getEpoch: () => scope.epoch,
-    createOperationId: () => "confirm-recovery-operation",
-  }),
-  callback: createBookingPaymentCallbackRepository({
-    getEpoch: () => scope.epoch,
-  }),
-});
-
-const seedCheckout = (overrides: Partial<CheckoutWriteData> = {}) => {
-  const repositories = createRepositories();
-  const result = repositories.checkout.write({
-    scope,
-    data: { ...checkoutData, ...overrides },
-    isCurrent: () => true,
-  });
-  if (result.status !== "written") throw new Error("checkout fixture failed");
-  return { repositories, checkout: result.data };
-};
-
-const seedCallback = (
-  checkout: ReturnType<typeof seedCheckout>["checkout"],
-  phase: CallbackData["phase"],
-) => {
-  const result = createRepositories().callback.write({
-    scope,
-    data: {
-      operationId: checkout.operationId,
-      reservationUid: checkout.reservationUid,
-      orderId: checkout.reservationUid,
-      paymentKey: "payment-key-1",
-      amount: checkout.amount,
-      phase,
-    },
-    isCurrent: () => true,
-  });
-  if (result.status !== "written") throw new Error("callback fixture failed");
-};
+vi.mock("../../session/useSession", () => ({ useSession: () => mockSession }));
 
 function LocationProbe() {
   const location = useLocation();
   return (
     <output data-testid="location">
-      {`${location.pathname}${location.search}`}
+      {JSON.stringify({ pathname: location.pathname, state: location.state })}
     </output>
   );
 }
 
-const renderConfirmRoute = (accommodationId = 42, state: unknown = null) =>
-  render(
-    <MemoryRouter
-      initialEntries={[
-        {
-          pathname: `/accommodations/${accommodationId}/confirm`,
-          state,
-        },
-      ]}
-    >
-      <LocationProbe />
-      <Routes>
-        <Route
-          path="/accommodations/:id/confirm"
-          element={<ReservationConfirmRoute />}
-        />
-        <Route path="*" element={<div data-testid="fallback-route" />} />
-      </Routes>
-    </MemoryRouter>,
+const renderConfirmRoute = (state: unknown, accommodationId = 42) => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter
+        initialEntries={[
+          { pathname: `/accommodations/${accommodationId}/confirm`, state },
+        ]}
+      >
+        <LocationProbe />
+        <Routes>
+          <Route
+            path="/accommodations/:id/confirm"
+            element={<ReservationConfirmRoute />}
+          />
+          <Route path="*" element={<div data-testid="fallback-route" />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
+};
 
-describe("ReservationConfirmRoute payment recovery boundary", () => {
+describe("ReservationConfirmRoute v2 authority", () => {
   beforeEach(() => {
-    window.sessionStorage.clear();
-    mockConfirmControllerProps.length = 0;
+    mocks.load.mockReset();
+    mocks.load.mockReturnValue({ status: "ready", handle, snapshot });
+    mocks.acknowledgeTerminal.mockReset();
+    mocks.acknowledgeTerminal.mockReturnValue({ status: "acknowledged" });
+    mocks.acknowledgeReservationStatusDrift.mockReset();
+    mocks.acknowledgeReservationStatusDrift.mockReturnValue({
+      status: "acknowledged",
+    });
+    mocks.getGuestDetail.mockReset();
+    mocks.getGuestDetail.mockResolvedValue({
+      audience: "guest",
+      reservationUid,
+      status: "PAYMENT_PROCESSING",
+      paymentAllowed: false,
+      holdExpiresAt: null,
+      serverTime: "2026-09-01T10:01:00Z",
+    });
+    mocks.controllerProps.length = 0;
   });
 
-  it.each<CallbackData["phase"]>(["received", "confirming", "reconciling"])(
-    "routes a %s callback to reconciliation without requesting payment again",
-    async (phase) => {
-      const { checkout } = seedCheckout();
-      seedCallback(checkout, phase);
+  it("mounts payment only after exact route state joins the exact journal", async () => {
+    const state = bookingPaymentStateCodec.serializeFlowReference(
+      flowId,
+      handle.locator,
+    );
+    renderConfirmRoute(state);
 
-      renderConfirmRoute();
+    await screen.findByTestId("reservation-confirm-controller");
+    expect(mocks.load).toHaveBeenCalledWith({
+      handle,
+      routeLease: expect.any(Object),
+    });
+    expect(mocks.controllerProps.at(-1)).toMatchObject({
+      customer: { email: "viewer@example.com", name: "뷰어" },
+      handle,
+      snapshot,
+      successUrl: `https://airbob.test/reservations/${reservationUid}/success`,
+      failUrl: `https://airbob.test/reservations/${reservationUid}/fail`,
+    });
+    expect(screen.getByTestId("location")).toHaveTextContent(flowId);
+  });
+
+  it.each([
+    null,
+    {
+      purpose: "reservation-checkout",
+      version: 1,
+      operationId: "legacy-operation",
+    },
+    {
+      purpose: "booking-payment-flow-reference",
+      version: 2,
+      flowId,
+      locator: { kind: "reservation", reservationUid: "not-a-uuid" },
+    },
+  ])(
+    "rejects missing, retired, or malformed route authority",
+    async (state) => {
+      renderConfirmRoute(state);
 
       await screen.findByTestId("fallback-route");
       expect(screen.getByTestId("location")).toHaveTextContent(
-        "/reservations/reservation-1/fail?reason=confirm-failed",
+        '"pathname":"/profile"',
       );
-      expect(mockConfirmControllerProps).toHaveLength(0);
-      expect(
-        window.sessionStorage.getItem("airbob:booking-payment-v1:checkout"),
-      ).not.toBeNull();
-      expect(
-        window.sessionStorage.getItem("airbob:booking-payment-v1:callback"),
-      ).not.toBeNull();
+      expect(mocks.load).not.toHaveBeenCalled();
+      expect(mocks.controllerProps).toHaveLength(0);
     },
   );
 
-  it("keeps an owned checkout eligible when no callback exists", async () => {
-    const { checkout } = seedCheckout();
+  it("preserves the journal but routes a path mismatch to reservation status", async () => {
+    const state = bookingPaymentStateCodec.serializeFlowReference(
+      flowId,
+      handle.locator,
+    );
+    renderConfirmRoute(state, 41);
 
-    renderConfirmRoute();
+    await screen.findByTestId("fallback-route");
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      `"pathname":"/reservations/${reservationUid}"`,
+    );
+    expect(mocks.controllerProps).toHaveLength(0);
+  });
 
+  it("publishes a released reservation before acknowledging and navigating", async () => {
+    const releasedSnapshot = {
+      ...snapshot,
+      phase: "hold-released" as const,
+      reservationStatus: "EXPIRED" as const,
+      paymentAllowed: false,
+      holdExpiresAt: null,
+      canPay: false,
+      canReleaseHold: false,
+    };
+    mocks.load.mockReturnValue({
+      status: "ready",
+      handle,
+      snapshot: releasedSnapshot,
+    });
+    const state = bookingPaymentStateCodec.serializeFlowReference(
+      flowId,
+      handle.locator,
+    );
+    renderConfirmRoute(state);
     await screen.findByTestId("reservation-confirm-controller");
-    expect(mockConfirmControllerProps.at(-1)).toMatchObject({ checkout });
-  });
+    const props = mocks.controllerProps.at(-1);
+    const onReleased = props?.onReleased;
+    if (typeof onReleased !== "function") {
+      throw new Error("Expected release completion adapter");
+    }
 
-  it("fails closed and clears joined documents when callback data mismatches", async () => {
-    const { checkout } = seedCheckout();
-    seedCallback(checkout, "received");
-    const callbackEnvelope = JSON.parse(
-      window.sessionStorage.getItem("airbob:booking-payment-v1:callback") ??
-        "{}",
-    );
-    callbackEnvelope.data.amount = checkout.amount - 1;
-    window.sessionStorage.setItem(
-      "airbob:booking-payment-v1:callback",
-      JSON.stringify(callbackEnvelope),
-    );
-
-    renderConfirmRoute();
-
-    await screen.findByTestId("fallback-route");
-    expect(screen.getByTestId("location")).toHaveTextContent("/profile");
-    expect(mockConfirmControllerProps).toHaveLength(0);
-    await waitFor(() => expect(window.sessionStorage.length).toBe(0));
-  });
-
-  it("rejects target-wins data for another accommodation without discarding it", async () => {
-    seedCheckout({
-      accommodationId: 41,
-      reservationUid: "reservation-41",
+    await act(async () => {
+      await onReleased(handle, releasedSnapshot, {
+        isCurrent: () => true,
+      });
     });
 
-    renderConfirmRoute(42);
-
-    await screen.findByTestId("fallback-route");
-    expect(screen.getByTestId("location")).toHaveTextContent(
-      "/accommodations/42",
+    expect(mocks.acknowledgeTerminal).toHaveBeenCalledWith({
+      handle,
+      routeLease: expect.any(Object),
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("location")).toHaveTextContent(
+        `"pathname":"/reservations/${reservationUid}"`,
+      ),
     );
-    expect(mockConfirmControllerProps).toHaveLength(0);
-    expect(
-      window.sessionStorage.getItem("airbob:booking-payment-v1:checkout"),
-    ).toContain("reservation-41");
   });
 
-  it("preserves current data and ignores retired documents for a stale handoff", async () => {
-    const { checkout } = seedCheckout();
-    const retiredPrimary = JSON.stringify({
-      ...checkoutData,
-      customerEmail: "retired@example.invalid",
-      customerName: "레거시 사용자",
-    });
-    window.sessionStorage.setItem(
-      "airbob:reservation-checkout:42",
-      retiredPrimary,
+  it("closes verified server state drift before discarding the direct flow reference", async () => {
+    const state = bookingPaymentStateCodec.serializeFlowReference(
+      flowId,
+      handle.locator,
     );
-    window.sessionStorage.setItem(
-      "airbob:reservation-checkout-index:reservation-1",
-      "42",
-    );
+    renderConfirmRoute(state);
+    await screen.findByTestId("reservation-confirm-controller");
+    const props = mocks.controllerProps.at(-1);
+    const onReservationStatusDrift = props?.onReservationStatusDrift;
+    if (typeof onReservationStatusDrift !== "function") {
+      throw new Error("Expected status-drift adapter");
+    }
 
-    renderConfirmRoute(42, {
-      checkoutHandoff: {
-        purpose: "reservation-checkout",
-        version: 1,
-        operationId: "stale-route-operation",
+    await act(async () => {
+      await onReservationStatusDrift(handle, snapshot, {
+        isCurrent: () => true,
+      });
+    });
+
+    expect(mocks.getGuestDetail).toHaveBeenCalledWith("guest", reservationUid);
+    expect(mocks.acknowledgeReservationStatusDrift).toHaveBeenCalledWith({
+      handle,
+      routeLease: expect.any(Object),
+      observation: {
+        reservationUid,
+        status: "PAYMENT_PROCESSING",
+        paymentAllowed: false,
+        holdExpiresAt: null,
+        serverTime: "2026-09-01T10:01:00Z",
       },
     });
-
-    await screen.findByTestId("fallback-route");
-    expect(screen.getByTestId("location")).toHaveTextContent(
-      "/accommodations/42",
-    );
-    expect(mockConfirmControllerProps).toHaveLength(0);
-    expect(
-      window.sessionStorage.getItem("airbob:booking-payment-v1:checkout"),
-    ).toContain(checkout.operationId);
-    expect(
-      window.sessionStorage.getItem("airbob:reservation-checkout:42"),
-    ).toBe(retiredPrimary);
-    expect(
-      window.sessionStorage.getItem(
-        "airbob:reservation-checkout-index:reservation-1",
+    expect(mocks.acknowledgeTerminal).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(screen.getByTestId("location")).toHaveTextContent(
+        `"pathname":"/reservations/${reservationUid}"`,
       ),
-    ).toBe("42");
+    );
   });
 
-  it("purges retired data and opens trips when the versioned target is missing", async () => {
-    const retiredPrimary = JSON.stringify({
-      reservationUid: "reservation-1",
-      orderName: checkoutData.orderName,
-      amount: checkoutData.amount,
-      customerEmail: "retired@example.invalid",
-      customerName: "레거시 사용자",
-      checkIn: checkoutData.checkIn,
-      checkOut: checkoutData.checkOut,
-      adultOccupancy: checkoutData.adultOccupancy,
-      childOccupancy: checkoutData.childOccupancy,
-      infantOccupancy: checkoutData.infantOccupancy,
-      petOccupancy: checkoutData.petOccupancy,
-      couponName: null,
-      couponDiscount: null,
+  it("retains the exact confirm reference when status drift is not verified", async () => {
+    mocks.acknowledgeReservationStatusDrift.mockReturnValue({
+      status: "not-converged",
     });
-    window.sessionStorage.setItem(
-      "airbob:reservation-checkout:42",
-      retiredPrimary,
+    const state = bookingPaymentStateCodec.serializeFlowReference(
+      flowId,
+      handle.locator,
     );
-    window.sessionStorage.setItem(
-      "airbob:reservation-checkout-index:reservation-1",
-      "42",
-    );
+    renderConfirmRoute(state);
+    await screen.findByTestId("reservation-confirm-controller");
+    const callback = mocks.controllerProps.at(-1)?.onReservationStatusDrift;
+    if (typeof callback !== "function") throw new Error("missing callback");
 
-    renderConfirmRoute(42, {
-      checkoutHandoff: {
-        purpose: "reservation-checkout",
-        version: 1,
-        operationId: "missing-route-operation",
-      },
-    });
-
-    await screen.findByTestId("fallback-route");
-    expect(screen.getByTestId("location")).toHaveTextContent("/profile");
-    expect(mockConfirmControllerProps).toHaveLength(0);
-    expect(
-      window.sessionStorage.getItem("airbob:reservation-checkout:42"),
-    ).toBeNull();
-    expect(
-      window.sessionStorage.getItem(
-        "airbob:reservation-checkout-index:reservation-1",
-      ),
-    ).toBeNull();
-    expect(
-      window.sessionStorage.getItem("airbob:booking-payment-v1:checkout"),
-    ).toBeNull();
+    await expect(
+      callback(handle, snapshot, { isCurrent: () => true }),
+    ).resolves.toBe(false);
+    expect(screen.queryByTestId("fallback-route")).not.toBeInTheDocument();
+    expect(screen.getByTestId("location")).toHaveTextContent(flowId);
   });
 
-  it("preserves current data and ignores retired documents for malformed state", async () => {
-    const { checkout } = seedCheckout();
-    const retiredPrimary = JSON.stringify({
-      ...checkoutData,
-      customerEmail: "retired@example.invalid",
-      customerName: "레거시 사용자",
-    });
-    window.sessionStorage.setItem(
-      "airbob:reservation-checkout:42",
-      retiredPrimary,
+  it("retains the exact confirm reference when authoritative status cannot be read", async () => {
+    mocks.getGuestDetail.mockRejectedValue(new Error("detail unavailable"));
+    const state = bookingPaymentStateCodec.serializeFlowReference(
+      flowId,
+      handle.locator,
     );
-    window.sessionStorage.setItem(
-      "airbob:reservation-checkout-index:reservation-1",
-      "42",
-    );
+    renderConfirmRoute(state);
+    await screen.findByTestId("reservation-confirm-controller");
+    const callback = mocks.controllerProps.at(-1)?.onReservationStatusDrift;
+    if (typeof callback !== "function") throw new Error("missing callback");
 
-    renderConfirmRoute(42, {
-      checkoutHandoff: {
-        purpose: "reservation-checkout",
-        version: 999,
-        operationId: "malformed-route-operation",
-      },
+    await expect(
+      callback(handle, snapshot, { isCurrent: () => true }),
+    ).resolves.toBe(false);
+    expect(mocks.acknowledgeReservationStatusDrift).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("fallback-route")).not.toBeInTheDocument();
+    expect(screen.getByTestId("location")).toHaveTextContent(flowId);
+  });
+
+  it("rejects a status observation for any other reservation", async () => {
+    mocks.getGuestDetail.mockResolvedValue({
+      audience: "guest",
+      reservationUid: "30000000-0000-4000-8000-000000000003",
+      status: "PAYMENT_PROCESSING",
+      paymentAllowed: false,
+      holdExpiresAt: null,
+      serverTime: "2026-09-01T10:01:00Z",
     });
+    const state = bookingPaymentStateCodec.serializeFlowReference(
+      flowId,
+      handle.locator,
+    );
+    renderConfirmRoute(state);
+    await screen.findByTestId("reservation-confirm-controller");
+    const callback = mocks.controllerProps.at(-1)?.onReservationStatusDrift;
+    if (typeof callback !== "function") throw new Error("missing callback");
 
-    await screen.findByTestId("fallback-route");
-    expect(mockConfirmControllerProps).toHaveLength(0);
-    expect(
-      window.sessionStorage.getItem("airbob:booking-payment-v1:checkout"),
-    ).toContain(checkout.operationId);
-    expect(
-      window.sessionStorage.getItem("airbob:reservation-checkout:42"),
-    ).toBe(retiredPrimary);
-    expect(
-      window.sessionStorage.getItem(
-        "airbob:reservation-checkout-index:reservation-1",
-      ),
-    ).toBe("42");
+    await expect(
+      callback(handle, snapshot, { isCurrent: () => true }),
+    ).resolves.toBe(false);
+    expect(mocks.acknowledgeReservationStatusDrift).not.toHaveBeenCalled();
+    expect(screen.getByTestId("location")).toHaveTextContent(flowId);
+  });
+
+  it("retains the exact confirm reference when journal acknowledgement throws", async () => {
+    mocks.acknowledgeReservationStatusDrift.mockImplementation(() => {
+      throw new Error("journal unavailable");
+    });
+    const state = bookingPaymentStateCodec.serializeFlowReference(
+      flowId,
+      handle.locator,
+    );
+    renderConfirmRoute(state);
+    await screen.findByTestId("reservation-confirm-controller");
+    const callback = mocks.controllerProps.at(-1)?.onReservationStatusDrift;
+    if (typeof callback !== "function") throw new Error("missing callback");
+
+    await expect(
+      callback(handle, snapshot, { isCurrent: () => true }),
+    ).resolves.toBe(false);
+    expect(screen.queryByTestId("fallback-route")).not.toBeInTheDocument();
+    expect(screen.getByTestId("location")).toHaveTextContent(flowId);
   });
 });

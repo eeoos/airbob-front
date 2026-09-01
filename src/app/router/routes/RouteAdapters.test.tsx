@@ -63,28 +63,6 @@ type CapturedProps = {
       infantOccupancy: number;
       petOccupancy: number;
     };
-    checkoutHandoff: {
-      commit(input: {
-        session: AuthenticatedSessionScope;
-        reservation: {
-          reservationUid: string;
-          orderName: string;
-          amount: number;
-          customerEmail: string;
-          customerName: string;
-        };
-        intent: {
-          accommodationId: number;
-          checkIn: string;
-          checkOut: string;
-          adultCount: number;
-          childCount: number;
-          infantCount: number;
-          petCount: number;
-        };
-        appliedCoupon: null;
-      }): void;
-    };
     onReplaceBookingDates(
       checkIn: string | null,
       checkOut: string | null,
@@ -275,6 +253,7 @@ vi.mock("../../../screens/accommodation-edit/public", () => ({
 }));
 vi.mock("../../../platform/browser/windowNavigation", () => ({
   browserWindowNavigation: {
+    getCurrentUserState: () => null,
     isCurrentHistoryEntry: (...args: unknown[]) =>
       mockIsCurrentHistoryEntry(...args),
     openInNewTab: (...args: unknown[]) => mockOpenInNewTab(...args),
@@ -516,51 +495,6 @@ describe("app route adapter contracts", () => {
       ),
     );
     expectLocation("/accommodations/42?checkIn=2026-07-20&checkOut=2026-07-22");
-  });
-
-  it("rejects checkout storage and navigation after the captured route entry is stale", () => {
-    sessionStorage.clear();
-    renderAdapter(
-      "/accommodations/:id",
-      "/accommodations/42",
-      <AccommodationDetailRoute />,
-    );
-    mockIsCurrentHistoryEntry.mockReturnValue(false);
-
-    expect(() =>
-      act(() =>
-        captured("accommodation").checkoutHandoff.commit({
-          session: {
-            subject: "subject:member_7" as SessionSubject,
-            epoch: 3,
-            runtimeLeaseId: testSessionRuntimeLeaseId,
-          },
-          reservation: {
-            reservationUid: "reservation-42",
-            orderName: "테스트 숙소 2박",
-            amount: 200000,
-            customerEmail: "guest@example.invalid",
-            customerName: "게스트",
-          },
-          intent: {
-            accommodationId: 42,
-            checkIn: "2026-07-20",
-            checkOut: "2026-07-22",
-            adultCount: 1,
-            childCount: 0,
-            infantCount: 0,
-            petCount: 0,
-          },
-          appliedCoupon: null,
-        }),
-      ),
-    ).toThrow("Checkout handoff is no longer current.");
-
-    expectLocation("/accommodations/42");
-    expect(sessionStorage.getItem("airbob:reservation-checkout:42")).toBeNull();
-    expect(
-      sessionStorage.getItem("airbob:booking-payment-v1:checkout"),
-    ).toBeNull();
   });
 
   it("atomically claims a matching current-location accommodation intent", async () => {

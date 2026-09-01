@@ -99,6 +99,48 @@ describe("platform API request", () => {
     expect(requestSpy.mock.calls[0]?.[0]).not.toHaveProperty("idempotencyKey");
   });
 
+  it("validates an exact command success status without forwarding policy to the transport", async () => {
+    const requestSpy = vi.spyOn(httpClient, "request").mockResolvedValue({
+      ...successfulListingResponse(),
+      status: 202,
+    });
+
+    await expect(
+      requestApiData<ListingWire>({
+        method: "POST",
+        path: "/commands",
+        expectedSuccessStatus: 202,
+      }),
+    ).resolves.toEqual({ id: 1, name: "Seoul stay" });
+    expect(requestSpy).toHaveBeenCalledWith({
+      method: "POST",
+      path: "/commands",
+    });
+  });
+
+  it.each([200, 201])(
+    "rejects HTTP %s when a command contract requires 202 Accepted",
+    async (status) => {
+      vi.spyOn(httpClient, "request").mockResolvedValue({
+        ...successfulListingResponse(),
+        status,
+      });
+
+      await expect(
+        requestApiData<ListingWire>({
+          method: "POST",
+          path: "/commands",
+          expectedSuccessStatus: 202,
+        }),
+      ).rejects.toMatchObject({
+        name: "AppError",
+        code: "UNEXPECTED_HTTP_STATUS",
+        kind: "invalid-response",
+        status,
+      });
+    },
+  );
+
   it("preserves multipart bodies and progress callbacks by identity", async () => {
     const body = new FormData();
     body.append("images", new File(["image"], "stay.png"));

@@ -8,7 +8,7 @@ import {
   orderBookingPaymentCleanupKeys,
 } from "./namespace";
 
-const terminalCleanupPrefixes = Object.freeze([
+export const BOOKING_PAYMENT_RETIRED_STATE_PREFIXES = Object.freeze([
   "airbob:booking-payment-v1:",
   "airbob:reservation-checkout:",
   "airbob:reservation-checkout-index:",
@@ -16,7 +16,7 @@ const terminalCleanupPrefixes = Object.freeze([
 ]);
 
 const identityCleanupPrefixes = Object.freeze([
-  ...terminalCleanupPrefixes,
+  ...BOOKING_PAYMENT_RETIRED_STATE_PREFIXES,
   "airbob:booking-payment-v2:",
 ]);
 
@@ -143,7 +143,7 @@ const clearAndVerifyPrefixes = (
 export const clearTerminalBookingPaymentBrowserState = ({
   driver = bookingPaymentStorageDriver,
 }: ClearBookingPaymentBrowserStateOptions = {}): ClearBookingPaymentBrowserStateResult =>
-  clearAndVerifyPrefixes(driver, terminalCleanupPrefixes);
+  clearAndVerifyPrefixes(driver, BOOKING_PAYMENT_RETIRED_STATE_PREFIXES);
 
 /**
  * Clears all booking-payment state before a new frontend identity is published.

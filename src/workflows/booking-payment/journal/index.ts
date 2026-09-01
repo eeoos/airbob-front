@@ -1,8 +1,2 @@
-export {
-  clearIdentityOwnedBookingPaymentBrowserState,
-  clearTerminalBookingPaymentBrowserState,
-} from "./retiredState";
-export {
-  createBookingPaymentJournalRepository,
-  inspectBookingPaymentV2NamespaceForLegacyWriter,
-} from "./repository";
+export { clearTerminalBookingPaymentBrowserState } from "./retiredState";
+export { createBookingPaymentJournalRepository } from "./repository";

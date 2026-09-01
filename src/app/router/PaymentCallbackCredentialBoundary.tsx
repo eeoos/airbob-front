@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -15,6 +16,7 @@ import {
   useNavigate,
 } from "react-router-dom";
 import { browserWindowNavigation } from "../../platform/browser/windowNavigation";
+import { bookingPaymentStateCodec } from "./codecs/bookingPaymentStateCodec";
 import { paymentCodec } from "./codecs/paymentCodec";
 import { ROUTE_PATHS, routeTo } from "./paths";
 
@@ -25,6 +27,8 @@ interface PaymentCallbackCredentialTuple {
   readonly amount: number;
   readonly firstCapturedAt: number;
 }
+
+const PAYMENT_CALLBACK_MEMORY_TTL_MS = 9 * 60 * 1000;
 
 export type PaymentCallbackCredentialClaim =
   | { readonly status: "none" }
@@ -75,6 +79,14 @@ const PaymentRecoveryFenceStatusContext =
 const PaymentRecoveryFenceCommandContext = createContext<
   ((status: PaymentRecoveryFenceStatus) => void) | null
 >(null);
+
+interface PendingPaymentCallbackCredentialPort {
+  read(): PaymentCallbackCredentialClaim;
+  discard(): void;
+}
+
+const PendingPaymentCallbackCredentialContext =
+  createContext<PendingPaymentCallbackCredentialPort | null>(null);
 
 const hasWellFormedUrlEncoding = (value: string): boolean => {
   try {
@@ -204,6 +216,21 @@ export function PaymentCallbackCredentialBoundary({
       ? routeTo.paymentFail(failReservationUid)
       : null;
   const routeKey = routeKind && safePath ? `${routeKind}:${safePath}` : null;
+  const operationReference =
+    successReservationUid && location.search === "" && location.hash === ""
+      ? bookingPaymentStateCodec.parseOperationReference(location.state)
+      : null;
+  const flowReference =
+    successReservationUid && location.search === "" && location.hash === ""
+      ? bookingPaymentStateCodec.parseFlowReference(location.state)
+      : null;
+  const hasAllowedRecoveryState =
+    successReservationUid !== undefined &&
+    (operationReference?.reservationUid === successReservationUid ||
+      (flowReference?.locator.kind === "reservation" &&
+        flowReference.locator.reservationUid === successReservationUid));
+  const hasUnsafeRouterState =
+    location.state !== null && !hasAllowedRecoveryState;
   const recoveryFenceRef = useRef<PaymentRecoveryFenceStatus>("none");
   const hasReleasedChildrenRef = useRef(false);
   const leaseRef = useRef<CredentialLease>({
@@ -213,7 +240,7 @@ export function PaymentCallbackCredentialBoundary({
           successReservationUid,
           location.search,
           location.hash,
-          location.state !== null,
+          hasUnsafeRouterState,
           noClaim,
           now(),
         )
@@ -222,31 +249,87 @@ export function PaymentCallbackCredentialBoundary({
       ? captureFailureClaim(
           location.search,
           location.hash,
-          location.state !== null,
+          hasUnsafeRouterState,
         )
       : noFailureClaim,
   });
+  const pendingSuccessRef = useRef<PaymentCallbackCredentialTuple | null>(
+    leaseRef.current.claim.status === "fresh"
+      ? leaseRef.current.claim.fresh
+      : null,
+  );
   const publishedLeaseRef = useRef(leaseRef.current);
   const [routerSyncPath, setRouterSyncPath] = useState<string | null>(null);
   const [recoveryFenceStatus, setRecoveryFenceStatus] =
     useState<PaymentRecoveryFenceStatus>("none");
+  const [, setPendingRevision] = useState(0);
+
+  const readPendingSuccess = useCallback((): PaymentCallbackCredentialClaim => {
+    const pending = pendingSuccessRef.current;
+    if (pending === null) return noClaim;
+
+    let currentTime: number;
+    try {
+      currentTime = now();
+    } catch {
+      pendingSuccessRef.current = null;
+      return invalidClaim;
+    }
+    const expiresAt = pending.firstCapturedAt + PAYMENT_CALLBACK_MEMORY_TTL_MS;
+    if (
+      !Number.isSafeInteger(currentTime) ||
+      currentTime < pending.firstCapturedAt ||
+      !Number.isSafeInteger(expiresAt) ||
+      currentTime >= expiresAt
+    ) {
+      pendingSuccessRef.current = null;
+      return invalidClaim;
+    }
+    return { status: "fresh", fresh: pending };
+  }, [now]);
+
+  const discardPendingSuccess = useCallback(() => {
+    pendingSuccessRef.current = null;
+    const currentLease = leaseRef.current;
+    if (currentLease.claim.status === "fresh") {
+      leaseRef.current = { ...currentLease, claim: invalidClaim };
+    }
+    setPendingRevision((revision) => revision + 1);
+  }, []);
+
+  const pendingCredentialPort = useMemo<PendingPaymentCallbackCredentialPort>(
+    () => ({ read: readPendingSuccess, discard: discardPendingSuccess }),
+    [discardPendingSuccess, readPendingSuccess],
+  );
 
   const lease = leaseRef.current;
   if (lease.routeKey !== routeKey) {
+    const restoredPending = successReservationUid
+      ? readPendingSuccess()
+      : noClaim;
     leaseRef.current = {
       routeKey,
       claim: !successReservationUid
         ? noClaim
-        : recoveryFenceStatus !== "none"
-          ? invalidClaim
-          : captureCredentialClaim(
-              successReservationUid,
-              location.search,
-              location.hash,
-              location.state !== null,
-              noClaim,
-              now(),
-            ),
+        : hasAllowedRecoveryState
+          ? noClaim
+          : recoveryFenceStatus !== "none"
+            ? invalidClaim
+            : location.search === "" &&
+                location.hash === "" &&
+                !hasUnsafeRouterState
+              ? restoredPending.status === "fresh" &&
+                restoredPending.fresh.reservationUid === successReservationUid
+                ? restoredPending
+                : noClaim
+              : captureCredentialClaim(
+                  successReservationUid,
+                  location.search,
+                  location.hash,
+                  hasUnsafeRouterState,
+                  noClaim,
+                  now(),
+                ),
       failureClaim: !failReservationUid
         ? noFailureClaim
         : recoveryFenceStatus !== "none"
@@ -254,12 +337,12 @@ export function PaymentCallbackCredentialBoundary({
           : captureFailureClaim(
               location.search,
               location.hash,
-              location.state !== null,
+              hasUnsafeRouterState,
             ),
     };
   } else if (
     routeKey !== null &&
-    (location.search !== "" || location.hash !== "" || location.state !== null)
+    (location.search !== "" || location.hash !== "" || hasUnsafeRouterState)
   ) {
     leaseRef.current = {
       routeKey,
@@ -269,7 +352,7 @@ export function PaymentCallbackCredentialBoundary({
               successReservationUid,
               location.search,
               location.hash,
-              location.state !== null,
+              hasUnsafeRouterState,
               leaseRef.current.claim,
               now(),
             )
@@ -280,16 +363,52 @@ export function PaymentCallbackCredentialBoundary({
           ? captureFailureClaim(
               location.search,
               location.hash,
-              location.state !== null,
+              hasUnsafeRouterState,
             )
           : invalidFailureClaim
         : noFailureClaim,
     };
   }
 
+  if (hasAllowedRecoveryState) {
+    pendingSuccessRef.current = null;
+    leaseRef.current = { ...leaseRef.current, claim: noClaim };
+  } else if (
+    successReservationUid &&
+    (location.search !== "" || location.hash !== "" || hasUnsafeRouterState)
+  ) {
+    const observedClaim = leaseRef.current.claim;
+    pendingSuccessRef.current =
+      observedClaim.status === "fresh" ? observedClaim.fresh : null;
+  }
+
+  const pendingFirstCapturedAt =
+    pendingSuccessRef.current?.firstCapturedAt ?? null;
+  useEffect(() => {
+    if (pendingFirstCapturedAt === null) return;
+
+    let currentTime: number;
+    try {
+      currentTime = now();
+    } catch {
+      discardPendingSuccess();
+      return;
+    }
+    const expiresAt = pendingFirstCapturedAt + PAYMENT_CALLBACK_MEMORY_TTL_MS;
+    const delay = expiresAt - currentTime;
+    if (!Number.isSafeInteger(expiresAt) || delay <= 0) {
+      discardPendingSuccess();
+      return;
+    }
+
+    const timeoutId = globalThis.setTimeout(discardPendingSuccess, delay);
+    return () => globalThis.clearTimeout(timeoutId);
+  }, [discardPendingSuccess, now, pendingFirstCapturedAt]);
+
   const markRecoveryFence = useCallback(
     (status: PaymentRecoveryFenceStatus) => {
       const previousStatus = recoveryFenceRef.current;
+      if (previousStatus === status) return;
       recoveryFenceRef.current = status;
       setRecoveryFenceStatus(status);
       const currentLease = leaseRef.current;
@@ -317,9 +436,7 @@ export function PaymentCallbackCredentialBoundary({
   useLayoutEffect(() => {
     if (
       safePath === null ||
-      (location.search === "" &&
-        location.hash === "" &&
-        location.state === null)
+      (location.search === "" && location.hash === "" && !hasUnsafeRouterState)
     ) {
       return;
     }
@@ -332,7 +449,7 @@ export function PaymentCallbackCredentialBoundary({
               successReservationUid,
               location.search,
               location.hash,
-              location.state !== null,
+              hasUnsafeRouterState,
               leaseRef.current.claim,
               now(),
             )
@@ -343,7 +460,7 @@ export function PaymentCallbackCredentialBoundary({
           ? captureFailureClaim(
               location.search,
               location.hash,
-              location.state !== null,
+              hasUnsafeRouterState,
             )
           : invalidFailureClaim
         : noFailureClaim,
@@ -352,6 +469,7 @@ export function PaymentCallbackCredentialBoundary({
     setRouterSyncPath(safePath);
   }, [
     failReservationUid,
+    hasUnsafeRouterState,
     location.hash,
     location.search,
     location.state,
@@ -377,7 +495,7 @@ export function PaymentCallbackCredentialBoundary({
     safePath !== null &&
     (location.search !== "" ||
       location.hash !== "" ||
-      location.state !== null ||
+      hasUnsafeRouterState ||
       routerSyncPath === safePath);
   const shouldHoldChildren =
     isScrubbingCurrentRoute && !hasReleasedChildrenRef.current;
@@ -388,21 +506,27 @@ export function PaymentCallbackCredentialBoundary({
   }
 
   return (
-    <PaymentRecoveryFenceCommandContext.Provider value={markRecoveryFence}>
-      <PaymentRecoveryFenceStatusContext.Provider value={recoveryFenceStatus}>
-        <RouterLocationContext.Provider value={safeLocationContextRef.current}>
-          <PaymentCallbackCredentialContext.Provider
-            value={publishedLeaseRef.current.claim}
+    <PendingPaymentCallbackCredentialContext.Provider
+      value={pendingCredentialPort}
+    >
+      <PaymentRecoveryFenceCommandContext.Provider value={markRecoveryFence}>
+        <PaymentRecoveryFenceStatusContext.Provider value={recoveryFenceStatus}>
+          <RouterLocationContext.Provider
+            value={safeLocationContextRef.current}
           >
-            <PaymentCallbackFailureContext.Provider
-              value={publishedLeaseRef.current.failureClaim}
+            <PaymentCallbackCredentialContext.Provider
+              value={publishedLeaseRef.current.claim}
             >
-              {shouldHoldChildren ? null : children}
-            </PaymentCallbackFailureContext.Provider>
-          </PaymentCallbackCredentialContext.Provider>
-        </RouterLocationContext.Provider>
-      </PaymentRecoveryFenceStatusContext.Provider>
-    </PaymentRecoveryFenceCommandContext.Provider>
+              <PaymentCallbackFailureContext.Provider
+                value={publishedLeaseRef.current.failureClaim}
+              >
+                {shouldHoldChildren ? null : children}
+              </PaymentCallbackFailureContext.Provider>
+            </PaymentCallbackCredentialContext.Provider>
+          </RouterLocationContext.Provider>
+        </PaymentRecoveryFenceStatusContext.Provider>
+      </PaymentRecoveryFenceCommandContext.Provider>
+    </PendingPaymentCallbackCredentialContext.Provider>
   );
 }
 
@@ -411,6 +535,35 @@ export const usePaymentCallbackCredentialClaim = () =>
 
 export const usePaymentCallbackFailureClaim = () =>
   useContext(PaymentCallbackFailureContext);
+
+export const usePendingPaymentCallbackCredentialForCandidate = () => {
+  const port = useContext(PendingPaymentCallbackCredentialContext);
+  if (port === null) {
+    throw new Error(
+      "Pending payment callback credential must be used inside its boundary.",
+    );
+  }
+  return port;
+};
+
+export const usePendingPaymentRecoveryReturn = () => {
+  const port = useContext(PendingPaymentCallbackCredentialContext);
+  return useCallback((): string | null => {
+    if (port === null) return null;
+    const pending = port.read();
+    return pending.status === "fresh" ? pending.fresh.reservationUid : null;
+  }, [port]);
+};
+
+export const useConsumePendingPaymentCallbackCredential = () => {
+  const port = useContext(PendingPaymentCallbackCredentialContext);
+  if (port === null) {
+    throw new Error(
+      "Pending payment callback credential must be used inside its boundary.",
+    );
+  }
+  return port.discard;
+};
 
 export const useMarkPaymentRecoveryFence = () => {
   const markRecoveryFence = useContext(PaymentRecoveryFenceCommandContext);

@@ -99,6 +99,9 @@ const createBookingCardProps = (): BookingCardProps => ({
     petCount: 0,
     isReservationLocked: false,
     isReserving: false,
+    quoteSnapshot: null,
+    reservationStatus: "idle",
+    selectionLocked: false,
     selectionState: "ready",
   },
   bookingActions: {
@@ -110,12 +113,13 @@ const createBookingCardProps = (): BookingCardProps => ({
           )}. ${String(date.getDate()).padStart(2, "0")}.`
         : "",
     handleDateSelect: vi.fn(),
-    setIsDatePickerOpen: vi.fn(),
-    setIsGuestPickerOpen: vi.fn(),
-    setAdultCount: vi.fn(),
-    setChildCount: vi.fn(),
-    setInfantCount: vi.fn(),
-    setPetCount: vi.fn(),
+    onDatePickerOpenChange: vi.fn(),
+    onGuestPickerOpenChange: vi.fn(),
+    onAdultCountChange: vi.fn(),
+    onChildCountChange: vi.fn(),
+    onInfantCountChange: vi.fn(),
+    onPetCountChange: vi.fn(),
+    onAbandonQuote: vi.fn(() => true),
     onReserve: vi.fn(),
     retryAvailability: vi.fn(),
   },
@@ -127,7 +131,7 @@ const createBookingCardProps = (): BookingCardProps => ({
     couponDiscount: 10000,
   },
   couponActions: {
-    setSelectedCouponId: vi.fn(),
+    onSelectedCouponIdChange: vi.fn(),
     handleIssueCoupon: vi.fn(),
   },
 });
@@ -451,41 +455,44 @@ describe("AccommodationBookingCard", () => {
   });
 
   it("opens date picker through controlled state and closes via DatePicker callback", () => {
-    const setIsDatePickerOpen = vi.fn();
+    const onDatePickerOpenChange = vi.fn();
     setupBookingCard({
       bookingState: { isDatePickerOpen: true },
-      bookingActions: { setIsDatePickerOpen },
+      bookingActions: { onDatePickerOpenChange },
     });
 
     expect(screen.getByTestId("date-picker")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "close date picker" }));
 
-    expect(setIsDatePickerOpen).toHaveBeenCalledWith(false);
+    expect(onDatePickerOpenChange).toHaveBeenCalledWith(false);
   });
 
   it("closes the guest picker before opening the date picker", () => {
-    const setIsDatePickerOpen = vi.fn();
-    const setIsGuestPickerOpen = vi.fn();
+    const onDatePickerOpenChange = vi.fn();
+    const onGuestPickerOpenChange = vi.fn();
     setupBookingCard({
       bookingState: {
         isDatePickerOpen: false,
         isGuestPickerOpen: true,
       },
-      bookingActions: { setIsDatePickerOpen, setIsGuestPickerOpen },
+      bookingActions: {
+        onDatePickerOpenChange,
+        onGuestPickerOpenChange,
+      },
     });
 
     fireEvent.click(screen.getByRole("button", { name: /체크인/ }));
 
-    expect(setIsGuestPickerOpen).toHaveBeenCalledWith(false);
-    expect(setIsDatePickerOpen).toHaveBeenCalledWith(true);
+    expect(onGuestPickerOpenChange).toHaveBeenCalledWith(false);
+    expect(onDatePickerOpenChange).toHaveBeenCalledWith(true);
   });
 
   it("closes the date picker with Escape and restores focus to its trigger", () => {
-    const setIsDatePickerOpen = vi.fn();
+    const onDatePickerOpenChange = vi.fn();
     setupBookingCard({
       bookingState: { isDatePickerOpen: true },
-      bookingActions: { setIsDatePickerOpen },
+      bookingActions: { onDatePickerOpenChange },
     });
     const dateTrigger = screen.getByRole("button", { name: /체크인/ });
     const datePickerTarget = screen.getByRole("button", {
@@ -495,15 +502,15 @@ describe("AccommodationBookingCard", () => {
     datePickerTarget.focus();
     fireEvent.keyDown(datePickerTarget, { key: "Escape" });
 
-    expect(setIsDatePickerOpen).toHaveBeenCalledWith(false);
+    expect(onDatePickerOpenChange).toHaveBeenCalledWith(false);
     expect(dateTrigger).toHaveFocus();
   });
 
   it("updates guest counts through guest picker controls", () => {
-    const setAdultCount = vi.fn();
+    const onAdultCountChange = vi.fn();
     setupBookingCard({
       bookingState: { isGuestPickerOpen: true },
-      bookingActions: { setAdultCount },
+      bookingActions: { onAdultCountChange },
     });
 
     expect(
@@ -512,14 +519,14 @@ describe("AccommodationBookingCard", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "성인 늘리기" }));
 
-    expect(setAdultCount).toHaveBeenCalledWith(3);
+    expect(onAdultCountChange).toHaveBeenCalledWith(3);
   });
 
   it("closes the guest picker with Escape and restores focus to its trigger", () => {
-    const setIsGuestPickerOpen = vi.fn();
+    const onGuestPickerOpenChange = vi.fn();
     setupBookingCard({
       bookingState: { isGuestPickerOpen: true },
-      bookingActions: { setIsGuestPickerOpen },
+      bookingActions: { onGuestPickerOpenChange },
     });
     const guestTrigger = screen.getByRole("button", { name: /인원/ });
     const guestControl = screen.getByRole("button", { name: "성인 늘리기" });
@@ -527,7 +534,7 @@ describe("AccommodationBookingCard", () => {
     guestControl.focus();
     fireEvent.keyDown(guestControl, { key: "Escape" });
 
-    expect(setIsGuestPickerOpen).toHaveBeenCalledWith(false);
+    expect(onGuestPickerOpenChange).toHaveBeenCalledWith(false);
     expect(guestTrigger).toHaveFocus();
   });
 
@@ -559,14 +566,14 @@ describe("AccommodationBookingCard", () => {
   });
 
   it("clears and applies coupons from the booking card", () => {
-    const setSelectedCouponId = vi.fn();
+    const onSelectedCouponIdChange = vi.fn();
     const handleIssueCoupon = vi.fn();
     setupBookingCard({
       couponState: {
         selectedCoupon: coupon,
       },
       couponActions: {
-        setSelectedCouponId,
+        onSelectedCouponIdChange,
         handleIssueCoupon,
       },
     });
@@ -574,8 +581,41 @@ describe("AccommodationBookingCard", () => {
     fireEvent.click(screen.getByRole("button", { name: "해제" }));
     fireEvent.click(screen.getByRole("button", { name: "적용 중" }));
 
-    expect(setSelectedCouponId).toHaveBeenCalledWith(null);
+    expect(onSelectedCouponIdChange).toHaveBeenCalledWith(null);
     expect(handleIssueCoupon).toHaveBeenCalledWith(coupon);
+  });
+
+  it("shows the server quote as the second action and locks mutable inputs", () => {
+    const onAbandonQuote = vi.fn(() => true);
+    const bookingProps = setupBookingCard({
+      bookingState: {
+        quoteSnapshot: {
+          amount: 175_000,
+          canCheckout: true,
+          currency: "KRW",
+          discountAmount: 25_000,
+          nightlyPrice: 100_000,
+          nights: 2,
+          phase: "quoted",
+          quoteExpiresAt: "2026-09-01T10:10:00Z",
+          subtotal: 200_000,
+        },
+        reservationStatus: "quoted",
+        selectionLocked: true,
+      },
+      bookingActions: { onAbandonQuote },
+    });
+
+    expect(screen.getByText("서버에서 확인한 최종 요금")).toBeInTheDocument();
+    expect(screen.getAllByText("₩175,000")).not.toHaveLength(0);
+    expect(screen.getByRole("button", { name: /체크인/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /인원/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "해제" })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "예약 계속하기" }));
+    expect(bookingProps.bookingActions.onReserve).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("button", { name: "조건 다시 선택" }));
+    expect(onAbandonQuote).toHaveBeenCalledOnce();
   });
 
   it("disables the reserve button while a reservation is being created", () => {

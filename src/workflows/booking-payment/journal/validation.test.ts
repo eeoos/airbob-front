@@ -411,9 +411,7 @@ describe("booking-payment journal v2 validation", () => {
     expect(validatesQuote(quote({ orderName: "  Original stay  " }))).toBe(
       true,
     );
-    expect(validatesReady(ready({ orderName: "  Renamed stay  " }))).toBe(
-      true,
-    );
+    expect(validatesReady(ready({ orderName: "  Renamed stay  " }))).toBe(true);
     expect(
       isBookingPaymentJournalData({
         ...data("reservation-ready"),
@@ -496,6 +494,12 @@ describe("booking-payment journal v2 validation", () => {
     expect(
       isAllowedBookingPaymentJournalTransition(
         data("reservation-ready"),
+        data("hold-release-requesting"),
+      ),
+    ).toBe(true);
+    expect(
+      isAllowedBookingPaymentJournalTransition(
+        data("attempt-requesting"),
         data("hold-release-requesting"),
       ),
     ).toBe(true);

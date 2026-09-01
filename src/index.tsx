@@ -8,7 +8,10 @@ import {
   clearIdentityOwnedFrontendState,
   clearRevokedIdentityOwnedFrontendState,
 } from "./app/providers/clearIdentityOwnedFrontendState";
-import { reconcileCandidateIdentityOwnedFrontendState } from "./app/providers/reconcileCandidateIdentityOwnedFrontendState";
+import {
+  claimCandidatePaymentCallbackCredential,
+  reconcileCandidateIdentityOwnedFrontendState,
+} from "./app/providers/reconcileCandidateIdentityOwnedFrontendState";
 import { ErrorBoundary } from "./app/errors/ErrorBoundary";
 
 const root = ReactDOM.createRoot(
@@ -19,6 +22,9 @@ root.render(
     <ErrorBoundary>
       <BrowserRouter>
         <AppProviders
+          claimCandidatePaymentCallbackCredential={
+            claimCandidatePaymentCallbackCredential
+          }
           clearIdentityOwnedState={clearIdentityOwnedFrontendState}
           clearRevokedIdentityOwnedState={
             clearRevokedIdentityOwnedFrontendState

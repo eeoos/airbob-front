@@ -8,10 +8,11 @@ import type {
   BookingPaymentJournalPhase,
   BookingPaymentJournalReadResult,
   BookingPaymentJournalWriteResult,
-  BookingPaymentNamespaceInspectionResult,
   BookingPaymentPresentationIntent,
   BookingPaymentQuote,
   BookingPaymentRecoveryLocator,
+  BookingPaymentReservationStatusDriftCloseResult,
+  BookingPaymentReservationStatusObservation,
   BookingPaymentRuntimeLease,
   BookingPaymentServerIntent,
   BookingPaymentUnheldFlowCloseReason,
@@ -28,12 +29,14 @@ import {
   isExactBookingPaymentJournalData,
   parseBookingPaymentJournalEnvelope,
   parseBookingPaymentUtcInstant,
+  parseBookingPaymentUtcInstantNanoseconds,
   preservesBookingPaymentJournalImmutableGroups,
 } from "./validation";
 import {
   BOOKING_PAYMENT_V2_JOURNAL_KEY,
   BOOKING_PAYMENT_V2_NAMESPACE_PREFIX,
 } from "./namespace";
+import { createBookingPaymentRecoveryRecordsRepository } from "./recoveryRecordsRepository";
 
 interface BookingPaymentStorageOptions {
   readonly driver?: SessionStorageDriver;
@@ -86,7 +89,14 @@ interface CloseUnheldFlowInput extends BookingPaymentJournalAuthorityInput {
   readonly closeReason: BookingPaymentUnheldFlowCloseReason;
 }
 
+interface CloseReservationStatusDriftInput extends BookingPaymentJournalAuthorityInput {
+  readonly observation: BookingPaymentReservationStatusObservation;
+}
+
 interface BookingPaymentJournalRepository {
+  readonly recoveryRecords: ReturnType<
+    typeof createBookingPaymentRecoveryRecordsRepository
+  >;
   read(
     input: BookingPaymentJournalAuthorityInput,
   ): BookingPaymentJournalReadResult;
@@ -96,6 +106,13 @@ interface BookingPaymentJournalRepository {
   claimRecoveryLease(
     input: ClaimRecoveryLeaseInput,
   ): BookingPaymentJournalWriteResult;
+  claimMigratedReservationRecoveryLease(
+    input: ClaimRecoveryLeaseInput,
+  ): BookingPaymentJournalWriteResult;
+  prepareQuotedCreate(input: {
+    readonly owner: string;
+    readonly isCurrent: () => boolean;
+  }): BookingPaymentCreateNamespacePreparationResult;
   createQuoted(input: CreateQuotedInput): BookingPaymentJournalWriteResult;
   replaceExpectedPhase(
     input: ReplaceExpectedPhaseInput,
@@ -106,6 +123,9 @@ interface BookingPaymentJournalRepository {
   closeUnheldFlow(
     input: CloseUnheldFlowInput,
   ): BookingPaymentUnheldFlowCloseResult;
+  closeReservationStatusDrift(
+    input: CloseReservationStatusDriftInput,
+  ): BookingPaymentReservationStatusDriftCloseResult;
 }
 
 const safeCurrentTime = (now: () => number): number | null => {
@@ -134,30 +154,6 @@ const exactLease = (
 ): boolean =>
   left.runtimeLeaseId === right.runtimeLeaseId &&
   left.sessionEpoch === right.sessionEpoch;
-
-/**
- * Downgrade fence for the still-active legacy writer. This capability is
- * intentionally enumerate-only: a previous build cannot interpret or own any
- * payload in the newer namespace.
- */
-export const inspectBookingPaymentV2NamespaceForLegacyWriter = ({
-  driver = bookingPaymentStorageDriver,
-}: BookingPaymentStorageOptions = {}): BookingPaymentNamespaceInspectionResult => {
-  const keys = driver.keys();
-  if (!keys.ok) {
-    return {
-      status: "blocked",
-      reason: "storage-error",
-      error: keys.error,
-    };
-  }
-
-  return keys.value.some((key) =>
-    key.startsWith(BOOKING_PAYMENT_V2_NAMESPACE_PREFIX),
-  )
-    ? { status: "blocked", reason: "v2-state-present" }
-    : { status: "ready" };
-};
 
 const readCurrentJournal = (
   driver: SessionStorageDriver,
@@ -362,6 +358,59 @@ const locatorMatches = (
   );
 };
 
+const canPromoteAccommodationLocatorToReservation = (
+  data: BookingPaymentJournalData,
+  locator: BookingPaymentRecoveryLocator,
+): boolean =>
+  locator.kind === "accommodation" &&
+  data.serverIntent.accommodationId === locator.accommodationId &&
+  (data.phase === "reservation-ready" ||
+    data.phase === "complimentary-observed" ||
+    data.phase === "reservation-status-observed");
+
+const RESERVATION_STATUS_DRIFT_PHASES = new Set<BookingPaymentJournalPhase>([
+  "attempt-requesting",
+  "hold-release-requesting",
+]);
+const RESERVATION_STATUS_DRIFT_STATUSES = new Set([
+  "PAYMENT_PROCESSING",
+  "CONFIRMED",
+  "CANCELLATION_PENDING",
+  "CANCELLED",
+  "CANCELLATION_FAILED",
+  "EXPIRED",
+]);
+
+const isVerifiedReservationStatusDrift = (
+  data: BookingPaymentJournalData,
+  observation: BookingPaymentReservationStatusObservation,
+): boolean => {
+  const observationKeys = Object.keys(observation).sort();
+  if (
+    !("ready" in data) ||
+    observationKeys.length !== 5 ||
+    observationKeys[0] !== "holdExpiresAt" ||
+    observationKeys[1] !== "paymentAllowed" ||
+    observationKeys[2] !== "reservationUid" ||
+    observationKeys[3] !== "serverTime" ||
+    observationKeys[4] !== "status" ||
+    observation.reservationUid !== data.ready.reservationUid ||
+    !RESERVATION_STATUS_DRIFT_STATUSES.has(observation.status) ||
+    typeof observation.paymentAllowed !== "boolean" ||
+    observation.paymentAllowed ||
+    observation.holdExpiresAt !== null
+  ) {
+    return false;
+  }
+  const observedAt = parseBookingPaymentUtcInstantNanoseconds(
+    observation.serverTime,
+  );
+  const readyAt = parseBookingPaymentUtcInstantNanoseconds(
+    data.ready.serverTime,
+  );
+  return observedAt !== null && readyAt !== null && observedAt >= readyAt;
+};
+
 const isBookingPaymentUnheldFlowCloseReason = (
   value: unknown,
 ): value is BookingPaymentUnheldFlowCloseReason => {
@@ -462,6 +511,10 @@ export const createBookingPaymentJournalRepository = ({
   driver = bookingPaymentStorageDriver,
   now = Date.now,
 }: BookingPaymentJournalRepositoryOptions = {}): BookingPaymentJournalRepository => {
+  const recoveryRecords = createBookingPaymentRecoveryRecordsRepository({
+    driver,
+    now,
+  });
   const read = (
     input: BookingPaymentJournalAuthorityInput,
   ): BookingPaymentJournalReadResult => readWithAuthority(driver, now, input);
@@ -491,6 +544,39 @@ export const createBookingPaymentJournalRepository = ({
         ? { status: "unchanged" }
         : { status: "stale" };
     }
+    return writeAndVerify(
+      driver,
+      { ...current.record, lease: input.lease },
+      input.isCurrent,
+    );
+  };
+
+  const claimMigratedReservationRecoveryLease = (
+    input: ClaimRecoveryLeaseInput,
+  ): BookingPaymentJournalWriteResult => {
+    if (!safeIsCurrent(input.isCurrent)) return { status: "stale" };
+    if (!isBookingPaymentRuntimeLease(input.lease)) {
+      return { status: "rejected", reason: "invalid-data" };
+    }
+    const current = readCurrentJournal(driver, now, input.owner);
+    if (current.status !== "found") return mapReadRejectionToWrite(current);
+    if (current.record.data.flowId !== input.flowId) {
+      return { status: "rejected", reason: "flow-mismatch" };
+    }
+    if (
+      !canPromoteAccommodationLocatorToReservation(
+        current.record.data,
+        input.locator,
+      )
+    ) {
+      return { status: "rejected", reason: "locator-mismatch" };
+    }
+
+    // This is the only allowed cross-locator claim: checkout has already
+    // durably introduced Ready, while history may still contain the exact
+    // same flow's accommodation locator. Rewriting and reading back the whole
+    // envelope proves the current lease before revealing the reservation
+    // locator to the workflow. Normal reads and commands remain strict.
     return writeAndVerify(
       driver,
       { ...current.record, lease: input.lease },
@@ -541,6 +627,12 @@ export const createBookingPaymentJournalRepository = ({
     };
     return writeAndVerify(driver, record, input.isCurrent);
   };
+
+  const prepareQuotedCreate = (input: {
+    readonly owner: string;
+    readonly isCurrent: () => boolean;
+  }): BookingPaymentCreateNamespacePreparationResult =>
+    prepareNamespaceForCreate(driver, now, input.owner, input.isCurrent);
 
   const replaceExpectedPhase = (
     input: ReplaceExpectedPhaseInput,
@@ -703,13 +795,70 @@ export const createBookingPaymentJournalRepository = ({
       : { status: "stale" };
   };
 
+  const closeReservationStatusDrift = (
+    input: CloseReservationStatusDriftInput,
+  ): BookingPaymentReservationStatusDriftCloseResult => {
+    if (!safeIsCurrent(input.isCurrent)) return { status: "stale" };
+    const initialKeys = driver.keys();
+    if (!initialKeys.ok) {
+      return { status: "storage-error", error: initialKeys.error };
+    }
+    const initialV2Keys = initialKeys.value.filter((key) =>
+      key.startsWith(BOOKING_PAYMENT_V2_NAMESPACE_PREFIX),
+    );
+    if (initialV2Keys.length === 0) {
+      return { status: "rejected", reason: "missing-journal" };
+    }
+    if (
+      initialV2Keys.length !== 1 ||
+      initialV2Keys[0] !== BOOKING_PAYMENT_V2_JOURNAL_KEY
+    ) {
+      return { status: "rejected", reason: "opaque-v2-state" };
+    }
+
+    const current = read(input);
+    if (current.status === "missing") {
+      return { status: "rejected", reason: "missing-journal" };
+    }
+    if (current.status !== "found") return current;
+    if (!RESERVATION_STATUS_DRIFT_PHASES.has(current.record.data.phase)) {
+      return { status: "rejected", reason: "phase-mismatch" };
+    }
+    if (
+      !isVerifiedReservationStatusDrift(current.record.data, input.observation)
+    ) {
+      return { status: "rejected", reason: "invalid-observation" };
+    }
+    if (!safeIsCurrent(input.isCurrent)) return { status: "stale" };
+    const removed = driver.removeItem(BOOKING_PAYMENT_V2_JOURNAL_KEY);
+    if (!removed.ok) return { status: "storage-error", error: removed.error };
+    const verified = driver.keys();
+    if (!verified.ok) {
+      return { status: "storage-error", error: verified.error };
+    }
+    if (
+      verified.value.some((key) =>
+        key.startsWith(BOOKING_PAYMENT_V2_NAMESPACE_PREFIX),
+      )
+    ) {
+      return { status: "rejected", reason: "remove-not-verified" };
+    }
+    return safeIsCurrent(input.isCurrent)
+      ? { status: "cleared" }
+      : { status: "stale" };
+  };
+
   return {
+    recoveryRecords,
     read,
     reconcileCandidateOwner,
     claimRecoveryLease,
+    claimMigratedReservationRecoveryLease,
+    prepareQuotedCreate,
     createQuoted,
     replaceExpectedPhase,
     acknowledgeTerminal,
     closeUnheldFlow,
+    closeReservationStatusDrift,
   };
 };

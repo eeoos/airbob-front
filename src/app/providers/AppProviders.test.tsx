@@ -100,9 +100,12 @@ describe("AppProviders", () => {
     expect(sessionProviderProps?.clearIdentityOwnedState).toBe(
       clearIdentityOwnedState,
     );
-    expect(sessionProviderProps?.clearRevokedIdentityOwnedState).toBe(
-      clearRevokedIdentityOwnedState,
+    expect(sessionProviderProps?.clearRevokedIdentityOwnedState).toEqual(
+      expect.any(Function),
     );
+    sessionProviderProps?.clearRevokedIdentityOwnedState?.("explicit-logout");
+    expect(clearRevokedIdentityOwnedState).toHaveBeenCalledTimes(1);
+    expect(clearIdentityOwnedState).not.toHaveBeenCalled();
     const forwardedReconciliation =
       sessionProviderProps?.reconcileCandidateIdentityOwnedState;
     expect(forwardedReconciliation).toEqual(expect.any(Function));
@@ -183,6 +186,208 @@ describe("AppProviders", () => {
       );
     },
   );
+
+  it("claims a matching pending callback before publishing its candidate identity", async () => {
+    const callbackPath = "/reservations/reservation-1/success";
+    const callbackSearch =
+      "?paymentKey=payment-key-1&orderId=reservation-1&amount=120000";
+    window.history.replaceState(null, "", `${callbackPath}${callbackSearch}`);
+    const claimCandidatePaymentCallbackCredential = vi.fn(
+      () => "claimed" as const,
+    );
+    const reconcileCandidateIdentityOwnedState = vi.fn(
+      () => "recovery-required" as const,
+    );
+
+    function CredentialProbe() {
+      const claim = usePaymentCallbackCredentialClaim();
+      const recoveryFenceStatus = usePaymentRecoveryFenceStatus();
+      return (
+        <output data-testid="claimed-callback">
+          {`${claim.status}:${recoveryFenceStatus}`}
+        </output>
+      );
+    }
+
+    render(
+      <MemoryRouter initialEntries={[`${callbackPath}${callbackSearch}`]}>
+        <AppProviders
+          claimCandidatePaymentCallbackCredential={
+            claimCandidatePaymentCallbackCredential
+          }
+          reconcileCandidateIdentityOwnedState={
+            reconcileCandidateIdentityOwnedState
+          }
+        >
+          <CredentialProbe />
+        </AppProviders>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByTestId("claimed-callback")).toHaveTextContent(
+      "fresh:none",
+    );
+    const forwardedReconciliation = vi
+      .mocked(SessionProvider)
+      .mock.calls.at(-1)?.[0].reconcileCandidateIdentityOwnedState;
+    const scope = {
+      subject: toSessionSubject({
+        id: 41,
+        email: "guest@example.com",
+        nickname: "Guest",
+        thumbnailImageUrl: null,
+      }),
+      epoch: 2,
+      runtimeLeaseId: testSessionRuntimeLeaseId,
+    };
+
+    act(() => forwardedReconciliation?.(scope));
+
+    expect(claimCandidatePaymentCallbackCredential).toHaveBeenCalledWith(
+      scope,
+      expect.objectContaining({
+        reservationUid: "reservation-1",
+        orderId: "reservation-1",
+        paymentKey: "payment-key-1",
+        amount: 120000,
+      }),
+    );
+    expect(screen.getByTestId("claimed-callback")).toHaveTextContent(
+      "fresh:none",
+    );
+  });
+
+  it("preserves v2 recovery during an anonymous callback bootstrap cleanup", async () => {
+    const callbackPath = "/reservations/reservation-1/success";
+    const callbackSearch =
+      "?paymentKey=payment-key-1&orderId=reservation-1&amount=120000";
+    window.history.replaceState(null, "", `${callbackPath}${callbackSearch}`);
+    const clearIdentityOwnedState = vi.fn();
+    const clearRevokedIdentityOwnedState = vi.fn();
+
+    render(
+      <MemoryRouter initialEntries={[`${callbackPath}${callbackSearch}`]}>
+        <AppProviders
+          clearIdentityOwnedState={clearIdentityOwnedState}
+          clearRevokedIdentityOwnedState={clearRevokedIdentityOwnedState}
+        >
+          content
+        </AppProviders>
+      </MemoryRouter>,
+    );
+
+    await screen.findByText("content");
+    const cleanup = vi
+      .mocked(SessionProvider)
+      .mock.calls.at(-1)?.[0].clearRevokedIdentityOwnedState;
+    expect(cleanup).toEqual(expect.any(Function));
+
+    act(() => cleanup?.("authentication-rejected"));
+
+    expect(clearIdentityOwnedState).not.toHaveBeenCalled();
+    expect(clearRevokedIdentityOwnedState).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "authenticated-session-revoked",
+    "explicit-logout",
+    "identity-replaced",
+  ] as const)(
+    "discards a pending callback and clears v2 state for %s",
+    async (reason) => {
+      const callbackPath = "/reservations/reservation-1/success";
+      const callbackSearch =
+        "?paymentKey=payment-key-1&orderId=reservation-1&amount=120000";
+      window.history.replaceState(null, "", `${callbackPath}${callbackSearch}`);
+      const clearRevokedIdentityOwnedState = vi.fn();
+
+      function CredentialProbe() {
+        const claim = usePaymentCallbackCredentialClaim();
+        return <output data-testid="callback-status">{claim.status}</output>;
+      }
+
+      render(
+        <MemoryRouter initialEntries={[`${callbackPath}${callbackSearch}`]}>
+          <AppProviders
+            clearRevokedIdentityOwnedState={clearRevokedIdentityOwnedState}
+          >
+            <CredentialProbe />
+          </AppProviders>
+        </MemoryRouter>,
+      );
+
+      expect(await screen.findByTestId("callback-status")).toHaveTextContent(
+        "fresh",
+      );
+      const cleanup = vi
+        .mocked(SessionProvider)
+        .mock.calls.at(-1)?.[0].clearRevokedIdentityOwnedState;
+
+      act(() => cleanup?.(reason));
+
+      expect(clearRevokedIdentityOwnedState).toHaveBeenCalledOnce();
+      expect(screen.getByTestId("callback-status")).toHaveTextContent(
+        "invalid",
+      );
+    },
+  );
+
+  it("keeps the pending callback private and blocks publication on claim storage failure", async () => {
+    const callbackPath = "/reservations/reservation-1/success";
+    const callbackSearch =
+      "?paymentKey=payment-key-1&orderId=reservation-1&amount=120000";
+    window.history.replaceState(null, "", `${callbackPath}${callbackSearch}`);
+    const reconcileCandidateIdentityOwnedState = vi.fn(
+      () => "recovery-required" as const,
+    );
+
+    function CredentialProbe() {
+      const claim = usePaymentCallbackCredentialClaim();
+      const recoveryFenceStatus = usePaymentRecoveryFenceStatus();
+      return (
+        <output data-testid="callback-claim">
+          {`${claim.status}:${recoveryFenceStatus}`}
+        </output>
+      );
+    }
+
+    render(
+      <MemoryRouter initialEntries={[`${callbackPath}${callbackSearch}`]}>
+        <AppProviders
+          claimCandidatePaymentCallbackCredential={() => "blocked"}
+          reconcileCandidateIdentityOwnedState={
+            reconcileCandidateIdentityOwnedState
+          }
+        >
+          <CredentialProbe />
+        </AppProviders>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByTestId("callback-claim")).toHaveTextContent(
+      "fresh:none",
+    );
+    const forwardedReconciliation = vi
+      .mocked(SessionProvider)
+      .mock.calls.at(-1)?.[0].reconcileCandidateIdentityOwnedState;
+
+    expect(() =>
+      forwardedReconciliation?.({
+        subject: toSessionSubject({
+          id: 41,
+          email: "guest@example.com",
+          nickname: "Guest",
+          thumbnailImageUrl: null,
+        }),
+        epoch: 2,
+        runtimeLeaseId: testSessionRuntimeLeaseId,
+      }),
+    ).toThrow("Candidate payment callback could not be reconciled.");
+    expect(reconcileCandidateIdentityOwnedState).not.toHaveBeenCalled();
+    expect(screen.getByTestId("callback-claim")).toHaveTextContent(
+      "fresh:none",
+    );
+  });
 
   it("owns the canonical production portal for dialogs and toasts", () => {
     const view = render(

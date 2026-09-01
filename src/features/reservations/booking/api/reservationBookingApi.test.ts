@@ -1,7 +1,13 @@
-import type { ApiDataRequest } from "../../../../platform/http/request";
+import { requestApiData } from "../../../../platform/http/request";
 import type { ReservationQuote } from "../model/booking";
 import type { ReservationQuoteWire, ReservationReadyWire } from "./contracts";
-import { createReservationBookingApi } from "./reservationBookingApi";
+import { reservationBookingApi } from "./reservationBookingApi";
+
+vi.mock("../../../../platform/http/request", () => ({
+  requestApiData: vi.fn(),
+}));
+
+const mockRequestApiData = vi.mocked(requestApiData);
 
 const QUOTE_UID = "11111111-1111-4111-8111-111111111111";
 const RESERVATION_UID = "22222222-2222-4222-8222-222222222222";
@@ -64,15 +70,16 @@ const validQuote = (): ReservationQuote => ({
 });
 
 describe("reservation booking API adapter", () => {
+  beforeEach(() => {
+    mockRequestApiData.mockReset();
+  });
+
   it("posts the exact quote contract and forwards cancellation", async () => {
-    const request = vi.fn().mockResolvedValue(quoteWire);
-    const api = createReservationBookingApi(
-      request as <T>(input: ApiDataRequest) => Promise<NonNullable<T>>,
-    );
+    mockRequestApiData.mockResolvedValue(quoteWire);
     const signal = new AbortController().signal;
 
     await expect(
-      api.createQuote(
+      reservationBookingApi.createQuote(
         {
           accommodationId: 7,
           checkInDate: "2026-09-10",
@@ -84,7 +91,7 @@ describe("reservation booking API adapter", () => {
       ),
     ).resolves.toMatchObject({ quoteUid: QUOTE_UID, amount: 170_000 });
 
-    expect(request).toHaveBeenCalledWith({
+    expect(mockRequestApiData).toHaveBeenCalledWith({
       method: "POST",
       path: "/reservation-quotes",
       body: {
@@ -99,12 +106,9 @@ describe("reservation booking API adapter", () => {
   });
 
   it("omits coupon_id rather than serializing a null coupon", async () => {
-    const request = vi.fn().mockResolvedValue(quoteWire);
-    const api = createReservationBookingApi(
-      request as <T>(input: ApiDataRequest) => Promise<NonNullable<T>>,
-    );
+    mockRequestApiData.mockResolvedValue(quoteWire);
 
-    await api.createQuote({
+    await reservationBookingApi.createQuote({
       accommodationId: 7,
       checkInDate: "2026-09-10",
       checkOutDate: "2026-09-12",
@@ -112,7 +116,7 @@ describe("reservation booking API adapter", () => {
       couponId: null,
     });
 
-    expect(request).toHaveBeenCalledWith({
+    expect(mockRequestApiData).toHaveBeenCalledWith({
       method: "POST",
       path: "/reservation-quotes",
       body: {
@@ -126,14 +130,10 @@ describe("reservation booking API adapter", () => {
   });
 
   it("posts the exact idempotent checkout contract and binds Ready to its quote", async () => {
-    const request = vi
-      .fn()
+    mockRequestApiData
       .mockResolvedValueOnce(quoteWire)
       .mockResolvedValueOnce(readyWire);
-    const api = createReservationBookingApi(
-      request as <T>(input: ApiDataRequest) => Promise<NonNullable<T>>,
-    );
-    const quote = await api.createQuote({
+    const quote = await reservationBookingApi.createQuote({
       accommodationId: 7,
       checkInDate: "2026-09-10",
       checkOutDate: "2026-09-12",
@@ -143,7 +143,10 @@ describe("reservation booking API adapter", () => {
     const signal = new AbortController().signal;
 
     await expect(
-      api.checkout({ quote, idempotencyKey: "checkout:flow_01" }, { signal }),
+      reservationBookingApi.checkout(
+        { quote, idempotencyKey: "checkout:flow_01" },
+        { signal },
+      ),
     ).resolves.toEqual({
       reservationUid: RESERVATION_UID,
       orderName: "합정 테스트 숙소 2박",
@@ -161,7 +164,7 @@ describe("reservation booking API adapter", () => {
       serverTime: "2026-09-01T03:00:01Z",
     });
 
-    expect(request).toHaveBeenNthCalledWith(2, {
+    expect(mockRequestApiData).toHaveBeenNthCalledWith(2, {
       method: "POST",
       path: "/reservations",
       body: { quote_uid: QUOTE_UID, request_message: null },
@@ -171,15 +174,13 @@ describe("reservation booking API adapter", () => {
   });
 
   it("rejects an invalid quote identity returned by the transport", async () => {
-    const request = vi
-      .fn()
-      .mockResolvedValue({ ...quoteWire, accommodation_id: 8 });
-    const api = createReservationBookingApi(
-      request as <T>(input: ApiDataRequest) => Promise<NonNullable<T>>,
-    );
+    mockRequestApiData.mockResolvedValue({
+      ...quoteWire,
+      accommodation_id: 8,
+    });
 
     await expect(
-      api.createQuote({
+      reservationBookingApi.createQuote({
         accommodationId: 7,
         checkInDate: "2026-09-10",
         checkOutDate: "2026-09-12",
@@ -190,16 +191,13 @@ describe("reservation booking API adapter", () => {
   });
 
   it("rejects an invalid Ready identity returned by the transport", async () => {
-    const request = vi.fn().mockResolvedValue({
+    mockRequestApiData.mockResolvedValue({
       ...readyWire,
       amount: 170_001,
     });
-    const api = createReservationBookingApi(
-      request as <T>(input: ApiDataRequest) => Promise<NonNullable<T>>,
-    );
 
     await expect(
-      api.checkout({
+      reservationBookingApi.checkout({
         quote: validQuote(),
         idempotencyKey: "checkout:flow_01",
       }),
@@ -207,18 +205,13 @@ describe("reservation booking API adapter", () => {
   });
 
   it("rejects a malformed idempotency key before transport access", async () => {
-    const request = vi.fn();
-    const api = createReservationBookingApi(
-      request as <T>(input: ApiDataRequest) => Promise<NonNullable<T>>,
-    );
-
     await expect(
-      api.checkout({
+      reservationBookingApi.checkout({
         quote: validQuote(),
         idempotencyKey: "bad/key",
       }),
     ).rejects.toThrow("idempotencyKey");
-    expect(request).not.toHaveBeenCalled();
+    expect(mockRequestApiData).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -242,61 +235,50 @@ describe("reservation booking API adapter", () => {
   ])(
     "rejects a malformed supplied Quote %s before checkout transport",
     async (_field, patch) => {
-      const request = vi.fn();
-      const api = createReservationBookingApi(
-        request as <T>(input: ApiDataRequest) => Promise<NonNullable<T>>,
-      );
       const suppliedQuote = {
         ...validQuote(),
         ...patch,
       } as ReservationQuote;
 
       await expect(
-        api.checkout({
+        reservationBookingApi.checkout({
           quote: suppliedQuote,
           idempotencyKey: "checkout:flow_01",
         }),
       ).rejects.toThrow("Reservation booking");
-      expect(request).not.toHaveBeenCalled();
+      expect(mockRequestApiData).not.toHaveBeenCalled();
     },
   );
 
   it.each(Object.keys(validQuote()))(
     "rejects a supplied Quote missing %s before checkout transport",
     async (field) => {
-      const request = vi.fn();
-      const api = createReservationBookingApi(
-        request as <T>(input: ApiDataRequest) => Promise<NonNullable<T>>,
-      );
       const suppliedQuote = Object.fromEntries(
         Object.entries(validQuote()).filter(([key]) => key !== field),
       ) as unknown as ReservationQuote;
 
       await expect(
-        api.checkout({
+        reservationBookingApi.checkout({
           quote: suppliedQuote,
           idempotencyKey: "checkout:flow_01",
         }),
       ).rejects.toThrow("Reservation booking");
-      expect(request).not.toHaveBeenCalled();
+      expect(mockRequestApiData).not.toHaveBeenCalled();
     },
   );
 
   it("accepts a renamed padded Ready order name on idempotent replay", async () => {
-    const request = vi.fn().mockResolvedValue({
+    mockRequestApiData.mockResolvedValue({
       ...readyWire,
       order_name: "  서버에서 변경된 숙소명  ",
     });
-    const api = createReservationBookingApi(
-      request as <T>(input: ApiDataRequest) => Promise<NonNullable<T>>,
-    );
 
     await expect(
-      api.checkout({
+      reservationBookingApi.checkout({
         quote: validQuote(),
         idempotencyKey: "checkout:flow_01",
       }),
     ).resolves.toMatchObject({ orderName: "  서버에서 변경된 숙소명  " });
-    expect(request).toHaveBeenCalledTimes(1);
+    expect(mockRequestApiData).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,8 +1,12 @@
 import type { AccommodationDetail } from "../model/accommodationDetail";
-import {
-  getAccommodationAmenityLabel,
-  getAccommodationTypeLabel,
-} from "./accommodationLabels";
+import { getAccommodationTypeLabel } from "./accommodationLabels";
+
+interface AccommodationAmenitySemanticResolver {
+  resolve(code: string): {
+    readonly isKnown: boolean;
+    readonly label: string;
+  };
+}
 
 export interface AccommodationDetailImageViewModel {
   id: number;
@@ -46,6 +50,7 @@ export interface AccommodationDetailViewModel {
     key: string;
     type: string;
     label: string;
+    isKnown: boolean;
     count: number;
   }>;
   labels: {
@@ -72,6 +77,7 @@ const getLocationLabel = (accommodation: AccommodationDetail) =>
 export const toAccommodationDetailViewModel = (
   accommodation: AccommodationDetail,
   imageResolver: (path: string | null) => string,
+  amenityResolver: AccommodationAmenitySemanticResolver,
 ): AccommodationDetailViewModel => {
   const typeLabel = getAccommodationTypeLabel(accommodation.type);
   const locationName =
@@ -114,12 +120,17 @@ export const toAccommodationDetailViewModel = (
       averageRatingLabel: accommodation.reviewSummary.averageRating.toFixed(1),
       reviewCountLabel: `(${accommodation.reviewSummary.totalCount})`,
     },
-    amenities: accommodation.amenities.map((amenity, index) => ({
-      key: `${amenity.type}-${index}`,
-      type: amenity.type,
-      label: getAccommodationAmenityLabel(amenity.type),
-      count: amenity.count,
-    })),
+    amenities: accommodation.amenities.map((amenity, index) => {
+      const semanticAmenity = amenityResolver.resolve(amenity.type);
+
+      return {
+        key: `${amenity.type}-${index}`,
+        type: amenity.type,
+        label: semanticAmenity.label,
+        isKnown: semanticAmenity.isKnown,
+        count: amenity.count,
+      };
+    }),
     labels: {
       cancellation: "취소 정책",
       checkIn: `체크인 ${formatTimeLabel(accommodation.checkInTime)}`,

@@ -1,14 +1,13 @@
+import { parseCalendarLocalDateOrdinal } from "../../../../shared/lib/calendarLocalDate";
 import type {
-  AppliedReservationCoupon,
-  ReservationCreateCommandInput,
-  ReservationCreateValidationCode,
-  ReservationStartIntent,
-  ValidatedReservationCreateCommand,
-} from "./reservationCreateTypes";
-import { parseCalendarLocalDateOrdinal } from "../../../shared/lib/calendarLocalDate";
+  BookingTransactionAppliedCoupon,
+  BookingTransactionQuoteInput,
+  BookingTransactionStartIntent,
+  BookingTransactionValidationCode,
+} from "./types";
 
 const validationMessages: Readonly<
-  Record<ReservationCreateValidationCode, string>
+  Record<BookingTransactionValidationCode, string>
 > = {
   INVALID_ACCOMMODATION: "숙소 정보를 불러올 수 없습니다.",
   INVALID_DATE: "체크인/체크아웃 날짜를 선택해주세요.",
@@ -20,46 +19,46 @@ const validationMessages: Readonly<
   INVALID_COUPON: "적용할 수 없는 쿠폰입니다.",
 };
 
-export class ReservationCreateValidationError extends Error {
-  readonly code: ReservationCreateValidationCode;
+export class BookingTransactionValidationError extends Error {
+  readonly code: BookingTransactionValidationCode;
 
-  constructor(code: ReservationCreateValidationCode) {
+  constructor(code: BookingTransactionValidationCode) {
     super(validationMessages[code]);
-    this.name = "ReservationCreateValidationError";
+    this.name = "BookingTransactionValidationError";
     this.code = code;
-    Object.setPrototypeOf(this, ReservationCreateValidationError.prototype);
+    Object.setPrototypeOf(this, BookingTransactionValidationError.prototype);
   }
 }
 
-const fail = (code: ReservationCreateValidationCode): never => {
-  throw new ReservationCreateValidationError(code);
+const fail = (code: BookingTransactionValidationCode): never => {
+  throw new BookingTransactionValidationError(code);
 };
 
-const isPositiveSafeInteger = (value: number) =>
+const isPositiveSafeInteger = (value: number): boolean =>
   Number.isSafeInteger(value) && value > 0;
 
-const isNonNegativeSafeInteger = (value: number) =>
+const isNonNegativeSafeInteger = (value: number): boolean =>
   Number.isSafeInteger(value) && value >= 0;
 
-const requireLocalDateOrdinal = (value: string): number => {
+const requireIntentDate = (value: string): number => {
   const ordinal = parseCalendarLocalDateOrdinal(value);
   if (ordinal === null) {
-    throw new ReservationCreateValidationError("INVALID_DATE");
+    throw new BookingTransactionValidationError("INVALID_DATE");
   }
-
   return ordinal;
 };
 
-const requireAvailabilityDateOrdinal = (value: unknown): number => {
+const requireAvailabilityDate = (value: unknown): number => {
   const ordinal = parseCalendarLocalDateOrdinal(value);
   if (ordinal === null) {
-    throw new ReservationCreateValidationError("INVALID_AVAILABILITY");
+    throw new BookingTransactionValidationError("INVALID_AVAILABILITY");
   }
-
   return ordinal;
 };
 
-const freezeIntent = (intent: ReservationStartIntent): ReservationStartIntent =>
+const freezeIntent = (
+  intent: BookingTransactionStartIntent,
+): BookingTransactionStartIntent =>
   Object.freeze({
     type: "reservation.start" as const,
     accommodationId: intent.accommodationId,
@@ -72,21 +71,33 @@ const freezeIntent = (intent: ReservationStartIntent): ReservationStartIntent =>
     couponId: intent.couponId,
   });
 
-const freezeCoupon = (
-  coupon: AppliedReservationCoupon | null,
-): AppliedReservationCoupon | null =>
-  coupon
-    ? Object.freeze({
-        id: coupon.id,
-        name: coupon.name,
-        discount: coupon.discount,
-      })
-    : null;
+const validateCoupon = (
+  couponId: number | null,
+  coupon: BookingTransactionAppliedCoupon | null,
+): void => {
+  if (couponId === null) {
+    if (coupon !== null) fail("INVALID_COUPON");
+    return;
+  }
 
-export const validateReservationCreateCommand = (
-  input: ReservationCreateCommandInput,
-): ValidatedReservationCreateCommand => {
-  const { accommodation, intent } = input;
+  if (
+    !isPositiveSafeInteger(couponId) ||
+    coupon === null ||
+    coupon.id !== couponId ||
+    !isPositiveSafeInteger(coupon.id) ||
+    coupon.name.trim().length === 0 ||
+    coupon.name.trim() !== coupon.name ||
+    !Number.isFinite(coupon.discount) ||
+    coupon.discount <= 0
+  ) {
+    fail("INVALID_COUPON");
+  }
+};
+
+export const validateBookingTransactionQuoteInput = (
+  input: BookingTransactionQuoteInput,
+): BookingTransactionStartIntent => {
+  const { accommodation, availability, intent } = input;
   if (
     !isPositiveSafeInteger(intent.accommodationId) ||
     !isPositiveSafeInteger(accommodation.id) ||
@@ -98,37 +109,33 @@ export const validateReservationCreateCommand = (
     fail("INVALID_ACCOMMODATION");
   }
 
-  const checkInOrdinal = requireLocalDateOrdinal(intent.checkIn);
-  const checkOutOrdinal = requireLocalDateOrdinal(intent.checkOut);
-  if (checkOutOrdinal <= checkInOrdinal) {
-    fail("INVALID_DATE_RANGE");
-  }
+  const checkInOrdinal = requireIntentDate(intent.checkIn);
+  const checkOutOrdinal = requireIntentDate(intent.checkOut);
+  if (checkOutOrdinal <= checkInOrdinal) fail("INVALID_DATE_RANGE");
 
-  const availability = accommodation.availability;
+  if (availability === null) {
+    throw new BookingTransactionValidationError("INVALID_AVAILABILITY");
+  }
   if (
-    !availability ||
     !isPositiveSafeInteger(availability.accommodationId) ||
     availability.accommodationId !== accommodation.id ||
     !Array.isArray(availability.unavailableRanges)
   ) {
     fail("INVALID_AVAILABILITY");
   }
-  const windowStartOrdinal = requireAvailabilityDateOrdinal(
+
+  const windowStartOrdinal = requireAvailabilityDate(
     availability.bookingWindowStartInclusive,
   );
-  const windowEndOrdinal = requireAvailabilityDateOrdinal(
+  const windowEndOrdinal = requireAvailabilityDate(
     availability.bookingWindowEndExclusive,
   );
-  if (windowStartOrdinal >= windowEndOrdinal) {
-    fail("INVALID_AVAILABILITY");
-  }
+  if (windowStartOrdinal >= windowEndOrdinal) fail("INVALID_AVAILABILITY");
 
   let previousRangeEndOrdinal = windowStartOrdinal;
   for (const range of availability.unavailableRanges) {
-    const rangeStartOrdinal = requireAvailabilityDateOrdinal(range?.startDate);
-    const rangeEndOrdinal = requireAvailabilityDateOrdinal(
-      range?.endDateExclusive,
-    );
+    const rangeStartOrdinal = requireAvailabilityDate(range?.startDate);
+    const rangeEndOrdinal = requireAvailabilityDate(range?.endDateExclusive);
     if (
       rangeStartOrdinal >= rangeEndOrdinal ||
       rangeStartOrdinal < windowStartOrdinal ||
@@ -168,24 +175,6 @@ export const validateReservationCreateCommand = (
     fail("INVALID_OCCUPANCY");
   }
 
-  const coupon = input.appliedCoupon;
-  if (intent.couponId === null) {
-    if (coupon !== null) fail("INVALID_COUPON");
-  } else if (
-    !isPositiveSafeInteger(intent.couponId) ||
-    coupon === null ||
-    coupon.id !== intent.couponId ||
-    !isPositiveSafeInteger(coupon.id) ||
-    !coupon.name.trim() ||
-    !Number.isFinite(coupon.discount) ||
-    coupon.discount <= 0
-  ) {
-    fail("INVALID_COUPON");
-  }
-
-  return Object.freeze({
-    intent: freezeIntent(intent),
-    appliedCoupon: freezeCoupon(coupon),
-    routeLease: input.routeLease,
-  });
+  validateCoupon(intent.couponId, input.appliedCoupon);
+  return freezeIntent(intent);
 };

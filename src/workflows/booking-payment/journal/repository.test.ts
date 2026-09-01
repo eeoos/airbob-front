@@ -9,10 +9,7 @@ import type {
   BookingPaymentRecoveryLocator,
   BookingPaymentRuntimeLease,
 } from "./types";
-import {
-  createBookingPaymentJournalRepository,
-  inspectBookingPaymentV2NamespaceForLegacyWriter,
-} from "./repository";
+import { createBookingPaymentJournalRepository } from "./repository";
 import { BOOKING_PAYMENT_JOURNAL_HARD_TTL_MS } from "./validation";
 
 const initialNow = Date.parse("2026-09-01T10:00:00Z");
@@ -102,6 +99,30 @@ const attempt = (
   holdExpiresAt: "2026-09-01T10:15:00Z",
   remainingSeconds: 900,
   serverTime: "2026-09-01T10:00:00Z",
+  ...overrides,
+});
+
+const statusDriftObservation = (
+  overrides: Partial<{
+    reservationUid: string;
+    status:
+      | "PAYMENT_PENDING"
+      | "PAYMENT_PROCESSING"
+      | "CONFIRMED"
+      | "CANCELLATION_PENDING"
+      | "CANCELLED"
+      | "CANCELLATION_FAILED"
+      | "EXPIRED";
+    paymentAllowed: boolean;
+    holdExpiresAt: string | null;
+    serverTime: string;
+  }> = {},
+) => ({
+  reservationUid,
+  status: "CONFIRMED" as const,
+  paymentAllowed: false,
+  holdExpiresAt: null,
+  serverTime: "2026-09-01T10:01:00Z",
   ...overrides,
 });
 
@@ -213,60 +234,6 @@ const requireWritten = (
     throw new Error("Expected a written journal");
   return result.record;
 };
-
-describe("booking-payment v2 namespace downgrade inspector", () => {
-  it("is ready only when the exact namespace contains no keys", () => {
-    const harness = createStorageHarness({
-      "airbob:booking-payment-v20:journal": "keep",
-      "airbob:booking-payment-v2": "near-collision",
-      unrelated: "keep",
-    });
-    expect(
-      inspectBookingPaymentV2NamespaceForLegacyWriter({
-        driver: harness.driver,
-      }),
-    ).toEqual({ status: "ready" });
-  });
-
-  it.each([
-    BOOKING_PAYMENT_V2_JOURNAL_KEY,
-    "airbob:booking-payment-v2:callback-credential",
-    "airbob:booking-payment-v2:unknown-future-slot",
-  ])("blocks opaquely for %s without reading or deleting payloads", (key) => {
-    const harness = createStorageHarness({ [key]: "secret-newer-payload" });
-    const getItem = vi.spyOn(harness.driver, "getItem");
-    const removeItem = vi.spyOn(harness.driver, "removeItem");
-    expect(
-      inspectBookingPaymentV2NamespaceForLegacyWriter({
-        driver: harness.driver,
-      }),
-    ).toEqual({ status: "blocked", reason: "v2-state-present" });
-    expect(getItem).not.toHaveBeenCalled();
-    expect(removeItem).not.toHaveBeenCalled();
-    expect(harness.values.get(key)).toBe("secret-newer-payload");
-  });
-
-  it("blocks on enumeration failure without any payload access", () => {
-    const harness = createStorageHarness();
-    vi.spyOn(harness.driver, "keys").mockReturnValue({
-      ok: false,
-      error: { kind: "storage-unavailable", operation: "keys" },
-    });
-    const getItem = vi.spyOn(harness.driver, "getItem");
-    const removeItem = vi.spyOn(harness.driver, "removeItem");
-    expect(
-      inspectBookingPaymentV2NamespaceForLegacyWriter({
-        driver: harness.driver,
-      }),
-    ).toEqual({
-      status: "blocked",
-      reason: "storage-error",
-      error: { kind: "storage-unavailable", operation: "keys" },
-    });
-    expect(getItem).not.toHaveBeenCalled();
-    expect(removeItem).not.toHaveBeenCalled();
-  });
-});
 
 describe("booking-payment journal repository", () => {
   it("creates the exact envelope with server-relative quote TTL and raw read-back", () => {
@@ -656,6 +623,111 @@ describe("booking-payment journal repository", () => {
     ).toMatchObject({ status: "found" });
   });
 
+  it("promotes only an exact same-flow checkout locator during verified load recovery", () => {
+    const readyRecord = journalEnvelope(reservationReadyData());
+    const harness = createStorageHarness({
+      [BOOKING_PAYMENT_V2_JOURNAL_KEY]: JSON.stringify(readyRecord),
+    });
+    const repository = createBookingPaymentJournalRepository({
+      driver: harness.driver,
+      now: () => initialNow,
+    });
+
+    expect(
+      repository.claimRecoveryLease({
+        owner,
+        flowId,
+        locator: accommodationLocator,
+        lease: replacementLease,
+        isCurrent: () => true,
+      }),
+    ).toEqual({ status: "rejected", reason: "locator-mismatch" });
+    expect(
+      repository.claimMigratedReservationRecoveryLease({
+        owner,
+        flowId: nextFlowId,
+        locator: accommodationLocator,
+        lease: replacementLease,
+        isCurrent: () => true,
+      }),
+    ).toEqual({ status: "rejected", reason: "flow-mismatch" });
+    expect(
+      repository.claimMigratedReservationRecoveryLease({
+        owner,
+        flowId,
+        locator: { kind: "accommodation", accommodationId: 8 },
+        lease: replacementLease,
+        isCurrent: () => true,
+      }),
+    ).toEqual({ status: "rejected", reason: "locator-mismatch" });
+    expect(
+      repository.claimMigratedReservationRecoveryLease({
+        owner,
+        flowId,
+        locator: reservationLocator,
+        lease: replacementLease,
+        isCurrent: () => true,
+      }),
+    ).toEqual({ status: "rejected", reason: "locator-mismatch" });
+
+    expect(
+      repository.claimMigratedReservationRecoveryLease({
+        owner,
+        flowId,
+        locator: accommodationLocator,
+        lease: replacementLease,
+        isCurrent: () => true,
+      }),
+    ).toMatchObject({
+      status: "written",
+      record: {
+        lease: replacementLease,
+        data: {
+          phase: "reservation-ready",
+          ready: { reservationUid },
+        },
+      },
+    });
+    expect(
+      repository.read(
+        authority(() => true, {
+          lease: replacementLease,
+          locator: accommodationLocator,
+        }),
+      ),
+    ).toEqual({ status: "rejected", reason: "locator-mismatch" });
+    expect(
+      repository.read(
+        authority(() => true, {
+          lease: replacementLease,
+          locator: reservationLocator,
+        }),
+      ),
+    ).toMatchObject({ status: "found" });
+
+    const laterPhaseHarness = createStorageHarness({
+      [BOOKING_PAYMENT_V2_JOURNAL_KEY]: JSON.stringify(
+        journalEnvelope({
+          ...reservationReadyData(),
+          phase: "attempt-ready",
+          attempt: attempt(),
+        }),
+      ),
+    });
+    expect(
+      createBookingPaymentJournalRepository({
+        driver: laterPhaseHarness.driver,
+        now: () => initialNow,
+      }).claimMigratedReservationRecoveryLease({
+        owner,
+        flowId,
+        locator: accommodationLocator,
+        lease: replacementLease,
+        isCurrent: () => true,
+      }),
+    ).toEqual({ status: "rejected", reason: "locator-mismatch" });
+  });
+
   it("checks claim liveness immediately before and after lease replacement", () => {
     const beforeSetHarness = createStorageHarness();
     const beforeSetRepository = createBookingPaymentJournalRepository({
@@ -705,6 +777,94 @@ describe("booking-payment journal repository", () => {
           "null",
       ).lease,
     ).toEqual(replacementLease);
+  });
+
+  it.each(["attempt-requesting", "hold-release-requesting"] as const)(
+    "verified-closes %s only after an authoritative non-pending status read",
+    (phase) => {
+      const requestingData: BookingPaymentJournalData =
+        phase === "attempt-requesting"
+          ? { ...reservationReadyData(), phase: "attempt-requesting" }
+          : { ...reservationReadyData(), phase: "hold-release-requesting" };
+      const harness = createStorageHarness({
+        [BOOKING_PAYMENT_V2_JOURNAL_KEY]: JSON.stringify(
+          journalEnvelope(requestingData),
+        ),
+      });
+      const repository = createBookingPaymentJournalRepository({
+        driver: harness.driver,
+        now: () => initialNow,
+      });
+
+      expect(
+        repository.closeReservationStatusDrift({
+          ...authority(() => true, { locator: reservationLocator }),
+          observation: statusDriftObservation(),
+        }),
+      ).toEqual({ status: "cleared" });
+      expect(harness.values.has(BOOKING_PAYMENT_V2_JOURNAL_KEY)).toBe(false);
+    },
+  );
+
+  it("rejects guessed, stale, mismatched, or opaque status-drift cleanup", () => {
+    const record = journalEnvelope({
+      ...reservationReadyData(),
+      phase: "attempt-requesting",
+    });
+    const harness = createStorageHarness({
+      [BOOKING_PAYMENT_V2_JOURNAL_KEY]: JSON.stringify(record),
+    });
+    const repository = createBookingPaymentJournalRepository({
+      driver: harness.driver,
+      now: () => initialNow,
+    });
+    const input = {
+      ...authority(() => true, { locator: reservationLocator }),
+      observation: statusDriftObservation(),
+    };
+
+    expect(
+      repository.closeReservationStatusDrift({
+        ...input,
+        observation: statusDriftObservation({
+          status: "PAYMENT_PENDING",
+          paymentAllowed: true,
+          holdExpiresAt: "2026-09-01T10:15:00Z",
+        }),
+      }),
+    ).toEqual({ status: "rejected", reason: "invalid-observation" });
+    expect(
+      repository.closeReservationStatusDrift({
+        ...input,
+        observation: statusDriftObservation({
+          serverTime: "2026-09-01T09:59:59Z",
+        }),
+      }),
+    ).toEqual({ status: "rejected", reason: "invalid-observation" });
+    expect(
+      repository.closeReservationStatusDrift({
+        ...input,
+        observation: statusDriftObservation({
+          reservationUid: "80000000-0000-4000-8000-000000000008",
+        }),
+      }),
+    ).toEqual({ status: "rejected", reason: "invalid-observation" });
+    expect(
+      repository.closeReservationStatusDrift({
+        ...input,
+        locator: accommodationLocator,
+      }),
+    ).toEqual({ status: "rejected", reason: "locator-mismatch" });
+    expect(harness.values.get(BOOKING_PAYMENT_V2_JOURNAL_KEY)).toBe(
+      JSON.stringify(record),
+    );
+
+    harness.values.set("airbob:booking-payment-v2:future-slot", "opaque");
+    expect(repository.closeReservationStatusDrift(input)).toEqual({
+      status: "rejected",
+      reason: "opaque-v2-state",
+    });
+    expect(harness.values.has(BOOKING_PAYMENT_V2_JOURNAL_KEY)).toBe(true);
   });
 
   it("rejects unsupported paid checkout preparation but preserves its quote for inspection", () => {

@@ -666,7 +666,7 @@ const ALLOWED_TRANSITIONS: Readonly<
   "complimentary-observed": [],
   "reservation-ready": ["attempt-requesting", "hold-release-requesting"],
   "reservation-status-observed": [],
-  "attempt-requesting": ["attempt-ready"],
+  "attempt-requesting": ["attempt-ready", "hold-release-requesting"],
   "attempt-ready": ["callback-received", "hold-release-requesting"],
   "callback-received": ["confirm-submitting"],
   "confirm-submitting": [],

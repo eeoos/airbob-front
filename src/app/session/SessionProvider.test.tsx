@@ -500,6 +500,9 @@ describe("SessionProvider", () => {
       }),
     );
     expect(clearIdentityOwnedState).toHaveBeenCalledTimes(1);
+    expect(clearIdentityOwnedState).toHaveBeenCalledWith(
+      "authentication-rejected",
+    );
   });
 
   it("exposes a retryable bootstrap server error and recovers through revalidate", async () => {
@@ -758,6 +761,32 @@ describe("SessionProvider", () => {
     expect(clearRevokedIdentityOwnedState).not.toHaveBeenCalled();
   });
 
+  it("classifies a rejected external verification as authenticated revocation", async () => {
+    const authPort = createAuthPort();
+    authPort.getViewer.mockRejectedValueOnce(authenticationError());
+    const clearIdentityOwnedState = vi.fn();
+    const clearRevokedIdentityOwnedState = vi.fn();
+    const { result } = renderSession({
+      authPort,
+      clearIdentityOwnedState,
+      clearRevokedIdentityOwnedState,
+      initialState: authenticatedState(viewerA),
+    });
+
+    act(() => triggerAuthError());
+
+    await waitFor(() =>
+      expect(result.current.session.state).toMatchObject({
+        status: "anonymous",
+        reason: "server-revoked",
+      }),
+    );
+    expect(clearIdentityOwnedState).toHaveBeenCalledOnce();
+    expect(clearRevokedIdentityOwnedState).toHaveBeenCalledWith(
+      "authenticated-session-revoked",
+    );
+  });
+
   it("revokes authenticated state after a revalidation 401 even when browser cleanup fails", async () => {
     const authPort = createAuthPort();
     authPort.getViewer.mockRejectedValueOnce(authenticationError());
@@ -792,6 +821,9 @@ describe("SessionProvider", () => {
     });
     expect(clearIdentityOwnedState).not.toHaveBeenCalled();
     expect(clearRevokedIdentityOwnedState).toHaveBeenCalledTimes(1);
+    expect(clearRevokedIdentityOwnedState).toHaveBeenCalledWith(
+      "authenticated-session-revoked",
+    );
     expect(
       requireQueryGeneration(queryClients.generations, 0).clear,
     ).toHaveBeenCalledTimes(1);
@@ -857,6 +889,9 @@ describe("SessionProvider", () => {
     );
     expect(clearIdentityOwnedState).not.toHaveBeenCalled();
     expect(clearRevokedIdentityOwnedState).toHaveBeenCalledTimes(1);
+    expect(clearRevokedIdentityOwnedState).toHaveBeenCalledWith(
+      "identity-replaced",
+    );
     expect(reconcileCandidateIdentityOwnedState).toHaveBeenCalledWith({
       epoch: 5,
       runtimeLeaseId: runtimeLeaseA,
@@ -1641,6 +1676,14 @@ describe("SessionProvider", () => {
     );
     expect(clearIdentityOwnedState).not.toHaveBeenCalled();
     expect(clearRevokedIdentityOwnedState).toHaveBeenCalledTimes(2);
+    expect(clearRevokedIdentityOwnedState).toHaveBeenNthCalledWith(
+      1,
+      "explicit-logout",
+    );
+    expect(clearRevokedIdentityOwnedState).toHaveBeenNthCalledWith(
+      2,
+      "explicit-logout",
+    );
     expect(authPort.logout).toHaveBeenCalledTimes(2);
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });

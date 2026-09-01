@@ -208,18 +208,6 @@ export type BookingPaymentRecoveryLocator =
     }
   | { readonly kind: "reservation"; readonly reservationUid: string };
 
-export type BookingPaymentNamespaceInspectionResult =
-  | { readonly status: "ready" }
-  | {
-      readonly status: "blocked";
-      readonly reason: "v2-state-present";
-    }
-  | {
-      readonly status: "blocked";
-      readonly reason: "storage-error";
-      readonly error: StorageAccessError;
-    };
-
 export type BookingPaymentJournalReadResult =
   | { readonly status: "found"; readonly record: BookingPaymentJournalEnvelope }
   | { readonly status: "missing" }
@@ -312,6 +300,35 @@ export type BookingPaymentUnheldFlowCloseResult =
         | "locator-mismatch"
         | "phase-mismatch"
         | "invalid-close-reason"
+        | "opaque-v2-state"
+        | "remove-not-verified";
+    }
+  | { readonly status: "storage-error"; readonly error: StorageAccessError };
+
+export interface BookingPaymentReservationStatusObservation {
+  readonly reservationUid: string;
+  readonly status: BookingPaymentReservationStatus;
+  readonly paymentAllowed: boolean;
+  readonly holdExpiresAt: string | null;
+  readonly serverTime: string;
+}
+
+export type BookingPaymentReservationStatusDriftCloseResult =
+  | { readonly status: "cleared" }
+  | { readonly status: "stale" }
+  | {
+      readonly status: "rejected";
+      readonly reason:
+        | "missing-journal"
+        | "malformed"
+        | "foreign-owner"
+        | "expired"
+        | "invalid-clock"
+        | "stale-lease"
+        | "flow-mismatch"
+        | "locator-mismatch"
+        | "phase-mismatch"
+        | "invalid-observation"
         | "opaque-v2-state"
         | "remove-not-verified";
     }

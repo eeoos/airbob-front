@@ -1,29 +1,48 @@
-import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { reservationBookingApi } from "../../../features/reservations/booking/public";
+import { paymentApi } from "../../../features/reservations/payment/public";
+import {
+  createReservationReadQueryCacheProjection,
+  reservationReadApi,
+} from "../../../features/reservations/public";
 import { resolveImageUrl } from "../../../platform/assets/imageUrl";
 import { browserWindowNavigation } from "../../../platform/browser/windowNavigation";
 import { ReservationConfirmController } from "../../../screens/reservation-confirm/ReservationConfirmController";
 import { ReservationConfirmScreen } from "../../../screens/reservation-confirm/ReservationConfirmScreen";
 import { useStrictModeSafeDisposable } from "../../../shared/lib/useStrictModeSafeDisposable";
+import { createTossPaymentsV2GatewayLease } from "../../../workflows/booking-payment/checkout";
 import {
-  clearBookingPaymentBrowserState,
-  createBookingPaymentCallbackRepository,
-  createBookingPaymentCheckoutRepository,
-  createTossPaymentsV2GatewayLease,
-  type CheckoutData,
-} from "../../../workflows/booking-payment/checkout";
+  createBookingTransactionWorkflow,
+  type BookingTransactionHandle,
+  type BookingTransactionSnapshot,
+} from "../../../workflows/booking-payment/transaction/booking";
 import { useSession } from "../../session/useSession";
+import { bookingPaymentStateCodec } from "../codecs/bookingPaymentStateCodec";
 import { parsePositiveInteger } from "../codecs/queryCodecUtils";
 import { routeTo } from "../paths";
 
 type CheckoutResolution =
   | { readonly status: "resolving" }
-  | { readonly status: "ready"; readonly checkout: CheckoutData }
+  | {
+      readonly status: "ready";
+      readonly handle: BookingTransactionHandle;
+      readonly snapshot: BookingTransactionSnapshot;
+    }
   | { readonly status: "invalid" };
+
+const isConfirmablePhase = (phase: BookingTransactionSnapshot["phase"]) =>
+  phase === "reservation-ready" ||
+  phase === "attempt-requesting" ||
+  phase === "attempt-ready" ||
+  phase === "hold-release-requesting" ||
+  phase === "hold-released";
 
 function ReservationConfirmRoute() {
   const location = useLocation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { id } = useParams<{ id: string }>();
   const session = useSession();
   const sessionEpoch = session.state.epoch;
@@ -37,29 +56,37 @@ function ReservationConfirmRoute() {
   const scope = useMemo(() => {
     const captured = captureAuthenticatedSession();
     return captured?.epoch === sessionEpoch &&
-      captured.subject === sessionSubject
+      captured.subject === sessionSubject &&
+      isCurrentSession(captured)
       ? captured
       : null;
-  }, [captureAuthenticatedSession, sessionEpoch, sessionSubject]);
-  const checkoutRepository = useMemo(
+  }, [
+    captureAuthenticatedSession,
+    isCurrentSession,
+    sessionEpoch,
+    sessionSubject,
+  ]);
+  const workflowSession = useMemo(
+    () => ({ captureAuthenticatedSession, isCurrentSession }),
+    [captureAuthenticatedSession, isCurrentSession],
+  );
+  const gatewayLease = useMemo(() => createTossPaymentsV2GatewayLease(), []);
+  useStrictModeSafeDisposable(gatewayLease);
+  const workflow = useMemo(
     () =>
-      createBookingPaymentCheckoutRepository({
-        getEpoch: () => sessionEpoch,
+      createBookingTransactionWorkflow({
+        bookingApi: reservationBookingApi,
+        gateway: gatewayLease.gateway,
+        paymentApi,
+        session: workflowSession,
       }),
-    [sessionEpoch],
+    [gatewayLease.gateway, workflowSession],
   );
-  const callbackRepository = useMemo(
-    () =>
-      createBookingPaymentCallbackRepository({
-        getEpoch: () => sessionEpoch,
-      }),
-    [sessionEpoch],
+  useStrictModeSafeDisposable(workflow);
+  const publication = useMemo(
+    () => createReservationReadQueryCacheProjection(queryClient),
+    [queryClient],
   );
-  const paymentGatewayLease = useMemo(
-    () => createTossPaymentsV2GatewayLease(),
-    [],
-  );
-  useStrictModeSafeDisposable(paymentGatewayLease);
   const routeLease = useMemo(
     () => ({
       isCurrent: () =>
@@ -72,138 +99,167 @@ function ReservationConfirmRoute() {
     }),
     [location.hash, location.key, location.pathname, location.search],
   );
+  const flowReference = useMemo(
+    () => bookingPaymentStateCodec.parseFlowReference(location.state),
+    [location.state],
+  );
 
   useEffect(() => {
     if (accommodationId === null) {
-      navigate(routeTo.home(), { replace: true });
+      navigate(routeTo.home(), { replace: true, state: null });
       return;
     }
     if (scope === null) return;
+    if (!flowReference || flowReference.locator.kind !== "reservation") {
+      setResolution({ status: "invalid" });
+      navigate(routeTo.profile(), { replace: true, state: null });
+      return;
+    }
 
-    let active = true;
-    const isCurrent = () =>
-      active && routeLease.isCurrent() && isCurrentSession(scope);
-    const consumeHistoryState = () => {
-      if (location.state === null || location.state === undefined) return;
+    const handle: BookingTransactionHandle = {
+      flowId: flowReference.flowId,
+      locator: flowReference.locator,
+    };
+    const loaded = workflow.load({ handle, routeLease });
+    if (
+      loaded.status !== "ready" ||
+      loaded.snapshot.accommodationId !== accommodationId ||
+      loaded.snapshot.reservationUid !== flowReference.locator.reservationUid ||
+      !isConfirmablePhase(loaded.snapshot.phase)
+    ) {
+      setResolution({ status: "invalid" });
       navigate(
-        {
-          pathname: location.pathname,
-          search: location.search,
-          hash: location.hash,
-        },
+        routeTo.reservationDetail(flowReference.locator.reservationUid),
         { replace: true, state: null },
       );
-    };
-    const publishReady = (checkout: CheckoutData) => {
-      if (!isCurrent()) return;
-      consumeHistoryState();
-      setResolution({ status: "ready", checkout });
-    };
-    const rejectCheckout = () => {
-      if (!isCurrent()) return;
-      clearBookingPaymentBrowserState();
-      setResolution({ status: "invalid" });
-      // Reservation creation precedes the checkout handoff. When that handoff
-      // is missing or unusable, send the guest to their server-owned trips
-      // instead of inviting a second reservation command from the detail page.
-      navigate(routeTo.profile(), { replace: true });
-    };
-    const rejectRouteMismatch = () => {
-      if (!isCurrent()) return;
-      setResolution({ status: "invalid" });
-      navigate(routeTo.accommodationDetail(accommodationId), {
-        replace: true,
-      });
-    };
-    const resolveCheckout = (checkout: CheckoutData) => {
-      if (!isCurrent()) return;
-      if (checkout.accommodationId !== accommodationId) {
-        // A direct URL for another accommodation must not discard or charge
-        // the active checkout owned by that other route.
-        rejectRouteMismatch();
-        return;
-      }
+      return;
+    }
 
-      const callback = callbackRepository.read({
-        scope,
-        operationId: checkout.operationId,
-      });
-      if (!isCurrent()) return;
-      if (callback.status === "missing") {
-        publishReady(checkout);
-        return;
-      }
-      if (
-        callback.status === "found" &&
-        callback.data.reservationUid === checkout.reservationUid &&
-        callback.data.orderId === checkout.reservationUid &&
-        callback.data.amount === checkout.amount
-      ) {
-        // Once a callback exists, payment may already have reached the server.
-        // Recovery must reconcile and can never request payment again.
-        setResolution({ status: "invalid" });
-        navigate(
-          routeTo.paymentFail(checkout.reservationUid, {
-            reason: "confirm-failed",
-          }),
-          { replace: true, state: null },
-        );
-        return;
-      }
-
-      if (callback.status === "found") {
-        rejectCheckout();
-        return;
-      }
-
-      // An unreadable or different-operation callback may represent another
-      // active recovery. Block this request without deleting unrelated state.
-      rejectRouteMismatch();
-    };
-
-    const owned = checkoutRepository.read({
-      scope,
-      accommodationId,
-      locationState: location.state,
+    setResolution({
+      status: "ready",
+      handle: loaded.handle,
+      snapshot: loaded.snapshot,
     });
-    if (owned.status === "found") {
-      resolveCheckout(owned.data);
-      return () => {
-        active = false;
-      };
-    }
-    if (
-      owned.status === "rejected" &&
-      (owned.reason === "invalid-handoff" ||
-        owned.reason === "operation-mismatch" ||
-        owned.reason === "accommodation-mismatch")
-    ) {
-      // A current checkout may belong to another route or newer history entry.
-      // Preserve it while rejecting only this navigation.
-      rejectRouteMismatch();
-    } else {
-      // Confirmation accepts only the current versioned document, optionally
-      // joined to its exact handoff. Missing, unreadable, or retired state is
-      // never upgraded and never triggers a backend ownership/payment lookup.
-      rejectCheckout();
-    }
+  }, [accommodationId, flowReference, navigate, routeLease, scope, workflow]);
 
-    return () => {
-      active = false;
-    };
-  }, [
-    accommodationId,
-    callbackRepository,
-    checkoutRepository,
-    location.hash,
-    location.pathname,
-    location.search,
-    location.state,
-    navigate,
-    routeLease,
-    scope,
-    isCurrentSession,
-  ]);
+  const completeReleasedReservation = useCallback(
+    async (
+      handle: BookingTransactionHandle,
+      snapshot: BookingTransactionSnapshot,
+      commandRouteLease: { isCurrent(): boolean },
+    ): Promise<boolean> => {
+      const captured = captureAuthenticatedSession();
+      if (
+        snapshot.phase !== "hold-released" ||
+        snapshot.reservationUid === null ||
+        handle.locator.kind !== "reservation" ||
+        handle.locator.reservationUid !== snapshot.reservationUid ||
+        !captured ||
+        !commandRouteLease.isCurrent() ||
+        !isCurrentSession(captured)
+      ) {
+        return false;
+      }
+      try {
+        await publication.guestReservationChanged({
+          reservationUid: snapshot.reservationUid,
+          scope: captured,
+        });
+      } catch {
+        return false;
+      }
+      if (!commandRouteLease.isCurrent() || !isCurrentSession(captured)) {
+        return false;
+      }
+      const acknowledged = workflow.acknowledgeTerminal({
+        handle,
+        routeLease: commandRouteLease,
+      });
+      if (acknowledged.status !== "acknowledged") return false;
+      navigate(routeTo.reservationDetail(snapshot.reservationUid), {
+        replace: true,
+        state: null,
+      });
+      return true;
+    },
+    [
+      captureAuthenticatedSession,
+      isCurrentSession,
+      navigate,
+      publication,
+      workflow,
+    ],
+  );
+
+  const convergeReservationStatus = useCallback(
+    async (
+      handle: BookingTransactionHandle,
+      snapshot: BookingTransactionSnapshot,
+      commandRouteLease: { isCurrent(): boolean },
+    ): Promise<boolean> => {
+      const captured = captureAuthenticatedSession();
+      if (
+        snapshot.reservationUid === null ||
+        handle.locator.kind !== "reservation" ||
+        handle.locator.reservationUid !== snapshot.reservationUid ||
+        !captured ||
+        !commandRouteLease.isCurrent() ||
+        !isCurrentSession(captured)
+      ) {
+        return false;
+      }
+      try {
+        const detail = await reservationReadApi.getDetail(
+          "guest",
+          snapshot.reservationUid,
+        );
+        if (
+          detail.audience !== "guest" ||
+          detail.reservationUid !== snapshot.reservationUid ||
+          !commandRouteLease.isCurrent() ||
+          !isCurrentSession(captured)
+        ) {
+          return false;
+        }
+        await publication.guestReservationChanged({
+          reservationUid: snapshot.reservationUid,
+          scope: captured,
+        });
+        if (!commandRouteLease.isCurrent() || !isCurrentSession(captured)) {
+          return false;
+        }
+        const acknowledged = workflow.acknowledgeReservationStatusDrift({
+          handle,
+          routeLease: commandRouteLease,
+          observation: {
+            reservationUid: detail.reservationUid,
+            status: detail.status,
+            paymentAllowed: detail.paymentAllowed,
+            holdExpiresAt: detail.holdExpiresAt,
+            serverTime: detail.serverTime,
+          },
+        });
+        if (acknowledged.status !== "acknowledged") return false;
+      } catch {
+        return false;
+      }
+      if (!commandRouteLease.isCurrent() || !isCurrentSession(captured)) {
+        return false;
+      }
+      navigate(routeTo.reservationDetail(snapshot.reservationUid), {
+        replace: true,
+        state: null,
+      });
+      return true;
+    },
+    [
+      captureAuthenticatedSession,
+      isCurrentSession,
+      navigate,
+      publication,
+      workflow,
+    ],
+  );
 
   if (
     resolution.status !== "ready" ||
@@ -212,9 +268,12 @@ function ReservationConfirmRoute() {
   ) {
     return (
       <ReservationConfirmScreen
+        canReleaseHold={false}
         errorMessage={null}
+        isReleasing={false}
         onClearError={() => undefined}
         onConfirmPayment={() => undefined}
+        onReleaseHold={() => undefined}
         paymentStatus="loading"
         state={{ status: "loading" }}
       />
@@ -222,22 +281,25 @@ function ReservationConfirmRoute() {
   }
 
   const origin = browserWindowNavigation.getOrigin();
-  const reservationUid = resolution.checkout.reservationUid;
+  const reservationUid = resolution.snapshot.reservationUid;
+  if (reservationUid === null) return null;
 
   return (
     <ReservationConfirmController
-      checkout={resolution.checkout}
       customer={{
         email: session.state.viewer.email,
         name: session.state.viewer.nickname,
       }}
       failUrl={`${origin}${routeTo.paymentFail(reservationUid)}`}
-      gateway={paymentGatewayLease.gateway}
+      handle={resolution.handle}
+      onReleased={completeReleasedReservation}
+      onReservationStatusDrift={convergeReservationStatus}
       resolveImageUrl={resolveImageUrl}
       routeLease={routeLease}
       scope={scope}
-      session={session}
+      snapshot={resolution.snapshot}
       successUrl={`${origin}${routeTo.paymentSuccess(reservationUid)}`}
+      workflow={workflow}
     />
   );
 }

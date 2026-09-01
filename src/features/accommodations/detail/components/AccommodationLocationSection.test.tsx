@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { accommodationAmenityCatalog } from "../../public";
 import type { AccommodationDetail } from "../model/accommodationDetail";
 import { toAccommodationDetailViewModel } from "../lib/accommodationDetailViewModel";
 import { AccommodationLocationSection } from "./AccommodationLocationSection";
@@ -51,6 +52,7 @@ describe("AccommodationLocationSection", () => {
         detailView={toAccommodationDetailViewModel(
           accommodation,
           resolveImageUrl,
+          accommodationAmenityCatalog,
         )}
         googleMapsApiKey="maps-key"
       />,
@@ -76,6 +78,7 @@ describe("AccommodationLocationSection", () => {
         detailView={toAccommodationDetailViewModel(
           accommodation,
           resolveImageUrl,
+          accommodationAmenityCatalog,
         )}
         googleMapsApiKey=""
       />,

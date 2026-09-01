@@ -1,5 +1,6 @@
 import { act, render, waitFor } from "@testing-library/react";
 import { StrictMode } from "react";
+import { accommodationAmenityCatalog } from "../../features/accommodations/public";
 import type { SessionSubject } from "../../platform/session/sessionScope";
 import { testSessionRuntimeLeaseId } from "../../test/sessionFixtures";
 import { AccommodationDetailController } from "./AccommodationDetailController";
@@ -10,7 +11,6 @@ const mockAvailabilityQuery = vi.fn();
 const mockCouponsQuery = vi.fn();
 const mockReviewsQuery = vi.fn();
 const mockIssueCoupon = vi.fn();
-const mockCreateReservationWorkflow = vi.fn();
 const mockStartReservation = vi.fn();
 const mockDisposeReservation = vi.fn();
 let capturedScreenProps: AccommodationDetailScreenProps | null = null;
@@ -35,15 +35,6 @@ vi.mock("../../features/reviews/public", async () => ({
   )),
   useAccommodationReviewsReadQuery: (...args: unknown[]) =>
     mockReviewsQuery(...args),
-}));
-
-vi.mock("../../workflows/booking-payment/reservation-create", async () => ({
-  ...(await vi.importActual<
-    typeof import("../../workflows/booking-payment/reservation-create")
-  >("../../workflows/booking-payment/reservation-create")),
-  createReservationCreateWorkflow: (...args: unknown[]) =>
-    mockCreateReservationWorkflow(...args),
-  reservationCreateTransport: {},
 }));
 
 vi.mock("./AccommodationDetailScreen", () => ({
@@ -96,6 +87,55 @@ const session = {
   isCurrentSession: vi.fn(() => true),
 };
 
+const flowHandle = {
+  flowId: "10000000-0000-4000-8000-000000000001",
+  locator: { kind: "accommodation" as const, accommodationId: 7 },
+};
+
+const quoteSnapshot = {
+  phase: "quoted" as const,
+  flowId: flowHandle.flowId,
+  accommodationId: 7,
+  reservationUid: null,
+  checkIn: "2026-07-20",
+  checkOut: "2026-07-22",
+  adultCount: 2,
+  childCount: 1,
+  infantCount: 0,
+  petCount: 0,
+  orderName: "테스트 숙소",
+  nightlyPrice: 100000,
+  nights: 2,
+  subtotal: 200000,
+  discountAmount: 0,
+  amount: 200000,
+  currency: "KRW",
+  couponDisplayName: null,
+  quoteExpiresAt: "2026-07-10T00:10:00Z",
+  serverTime: "2026-07-10T00:00:00Z",
+  paymentRequired: true,
+  reservationStatus: null,
+  paymentAllowed: false,
+  holdExpiresAt: null,
+  canCheckout: true,
+  canPay: false,
+  canRetryPayment: false,
+  canReleaseHold: false,
+};
+
+const bookingWorkflow = {
+  quote: (...args: unknown[]) => mockStartReservation(...args),
+  load: vi.fn(() => ({ status: "missing" as const })),
+  checkout: vi.fn(),
+  prepareGateway: vi.fn(),
+  pay: vi.fn(),
+  releaseHold: vi.fn(),
+  acknowledgeTerminal: vi.fn(),
+  acknowledgeReservationStatusDrift: vi.fn(),
+  abandonUnheld: vi.fn(() => ({ status: "abandoned" as const })),
+  dispose: mockDisposeReservation,
+};
+
 const coupon = {
   id: 31,
   name: "만원 할인",
@@ -116,12 +156,14 @@ const createProps = (
   > = {},
 ) => ({
   accommodationId: 7,
+  amenityCatalog: accommodationAmenityCatalog,
   authIntent: {
     claimed: null,
     cancelPending: vi.fn(),
     completeClaim: vi.fn(),
     request: vi.fn(() => true),
   },
+  bookingFlowHandle: null,
   bookingRouteState: {
     checkIn: "2026-07-20",
     checkOut: "2026-07-22",
@@ -130,13 +172,14 @@ const createProps = (
     infantOccupancy: 0,
     petOccupancy: 0,
   },
-  checkoutHandoff: {
-    preflight: vi.fn(() => ({ status: "ready" as const })),
-    assertNoNewerRecovery: vi.fn(() => ({ status: "ready" as const })),
-    commit: vi.fn(),
-  },
+  bookingWorkflow,
   isAuthenticated: true,
+  isPaymentRecoveryBlocked: false,
+  onBookingFlowHandleChange: vi.fn(() => true),
+  onOpenPayment: vi.fn(),
+  onOpenTrips: vi.fn(),
   onReplaceBookingDates: vi.fn(),
+  onTerminalReservation: vi.fn().mockResolvedValue(true),
   recordRecentlyViewed: vi.fn().mockResolvedValue(undefined),
   resolveImageUrl: (path: string | null) => path ?? "",
   routeLease: { isCurrent: () => true },
@@ -213,13 +256,17 @@ describe("AccommodationDetailController", () => {
     });
     mockIssueCoupon.mockReset();
     mockStartReservation.mockReset();
-    mockStartReservation.mockResolvedValue({ status: "handed-off" });
-    mockDisposeReservation.mockReset();
-    mockCreateReservationWorkflow.mockReset();
-    mockCreateReservationWorkflow.mockReturnValue({
-      dispose: mockDisposeReservation,
-      start: mockStartReservation,
+    mockStartReservation.mockResolvedValue({
+      status: "quoted",
+      handle: flowHandle,
+      snapshot: quoteSnapshot,
     });
+    mockDisposeReservation.mockReset();
+    bookingWorkflow.load.mockReset();
+    bookingWorkflow.load.mockReturnValue({ status: "missing" });
+    bookingWorkflow.checkout.mockReset();
+    bookingWorkflow.abandonUnheld.mockReset();
+    bookingWorkflow.abandonUnheld.mockReturnValue({ status: "abandoned" });
   });
 
   it("submits a validated current booking snapshot to one workflow owner", async () => {
@@ -234,12 +281,12 @@ describe("AccommodationDetailController", () => {
         maxOccupancy: 4,
         maxInfants: 1,
         maxPets: 1,
-        availability: {
-          accommodationId: 7,
-          bookingWindowStartInclusive: "2026-07-10",
-          bookingWindowEndExclusive: "2027-07-10",
-          unavailableRanges: [],
-        },
+      },
+      availability: {
+        accommodationId: 7,
+        bookingWindowStartInclusive: "2026-07-10",
+        bookingWindowEndExclusive: "2027-07-10",
+        unavailableRanges: [],
       },
       appliedCoupon: null,
       intent: {
@@ -253,6 +300,7 @@ describe("AccommodationDetailController", () => {
         petCount: 0,
         couponId: null,
       },
+      publishPreparedHandle: expect.any(Function),
       routeLease: expect.any(Object),
     });
   });
@@ -307,7 +355,7 @@ describe("AccommodationDetailController", () => {
       const view = render(<AccommodationDetailController {...props} />);
 
       act(() =>
-        getReadyView().bookingCard.bookingActions.setIsDatePickerOpen(true),
+        getReadyView().bookingCard.bookingActions.onDatePickerOpenChange(true),
       );
       expect(getReadyView().bookingCard.bookingState.isDatePickerOpen).toBe(
         true,

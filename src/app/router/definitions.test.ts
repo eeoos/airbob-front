@@ -3,7 +3,13 @@ import { join } from "path";
 import { routeDefinitions } from "./definitions";
 
 const expectedRouteDefinitions = [
-  { id: "home", path: "/", auth: "public", shell: "browse", header: "default" },
+  {
+    id: "home",
+    path: "/",
+    auth: "public",
+    shell: "browse",
+    header: "default",
+  },
   {
     id: "search",
     path: "/search",
@@ -113,7 +119,7 @@ describe("app route definitions", () => {
     expect(new Set(routeDefinitions.map(({ id }) => id)).size).toBe(15);
   });
 
-  it("locks all route path, auth, shell, and header policies", () => {
+  it("locks every route path, auth, shell, and header policy", () => {
     expect(routeDefinitions).toEqual(expectedRouteDefinitions);
     expect(routeDefinitions.at(-1)?.id).toBe("not-found");
     expect(new Set(routeDefinitions.map(({ path }) => path)).size).toBe(15);

@@ -1,55 +1,91 @@
 import {
   requestApiData,
-  requestApiDataNullable,
   type ApiDataRequest,
 } from "../../../../platform/http/request";
-import type { PaymentApiPort } from "../ports/paymentApiPort";
-import type { PaymentRecordWire } from "./contracts";
-import { toPaymentConfirmationWireRequest, toPaymentRecord } from "./mappers";
+import type { PaymentOperationApiPort } from "../ports/paymentApiPort";
+import type {
+  PaymentAttemptWire,
+  PaymentOperationAcceptedWire,
+  PaymentOperationDetailWire,
+  ReservationHoldReleaseWire,
+} from "./contracts";
+import {
+  toPaymentAttempt,
+  toPaymentOperationAccepted,
+  toPaymentOperationConfirmationWireRequest,
+  toPaymentOperationDetail,
+  toPaymentResourceId,
+  toReservationHoldRelease,
+} from "./mappers";
 
 type PaymentApiTransport = <T>(
   request: ApiDataRequest,
 ) => Promise<NonNullable<T>>;
 
-type NullablePaymentApiTransport = <T = null>(
-  request: ApiDataRequest,
-) => Promise<T | null>;
-
 const createPaymentApi = (
   request: PaymentApiTransport,
-  requestNullable: NullablePaymentApiTransport,
-): PaymentApiPort => ({
-  async confirm(input, options) {
-    await requestNullable({
+): PaymentOperationApiPort => ({
+  async beginPaymentAttempt(reservationUid, options) {
+    const validatedReservationUid = toPaymentResourceId(
+      reservationUid,
+      "reservationUid",
+    );
+    const wire = await request<PaymentAttemptWire>({
+      method: "POST",
+      path: `/reservations/${validatedReservationUid}/payment-attempts`,
+      signal: options?.signal,
+    });
+
+    return toPaymentAttempt(wire, validatedReservationUid);
+  },
+
+  async releaseHold(reservationUid, options) {
+    const validatedReservationUid = toPaymentResourceId(
+      reservationUid,
+      "reservationUid",
+    );
+    const wire = await request<ReservationHoldReleaseWire>({
+      method: "DELETE",
+      path: `/reservations/${validatedReservationUid}/hold`,
+      signal: options?.signal,
+    });
+
+    return toReservationHoldRelease(wire, validatedReservationUid);
+  },
+
+  async confirmPaymentOperation(input, options) {
+    const wire = await request<PaymentOperationAcceptedWire>({
       method: "POST",
       path: "/payments/confirm",
-      body: toPaymentConfirmationWireRequest(input),
+      expectedSuccessStatus: 202,
+      body: toPaymentOperationConfirmationWireRequest(input),
       signal: options?.signal,
     });
+
+    return toPaymentOperationAccepted(wire);
   },
 
-  async getByPaymentKey(paymentKey, options) {
-    const wire = await request<PaymentRecordWire>({
+  async getPaymentOperation(operationId, expectedOrderId, options) {
+    const validatedOperationId = toPaymentResourceId(
+      operationId,
+      "operationId",
+    );
+    const validatedOrderId = toPaymentResourceId(
+      expectedOrderId,
+      "expectedOrderId",
+    );
+    const wire = await request<PaymentOperationDetailWire>({
       method: "GET",
-      path: `/payments/${paymentKey}`,
+      path: `/payment-operations/${validatedOperationId}`,
       signal: options?.signal,
     });
 
-    return toPaymentRecord(wire);
-  },
-
-  async getByOrderId(orderId, options) {
-    const wire = await request<PaymentRecordWire>({
-      method: "GET",
-      path: `/payments/orders/${orderId}`,
-      signal: options?.signal,
-    });
-
-    return toPaymentRecord(wire);
+    return toPaymentOperationDetail(
+      wire,
+      validatedOperationId,
+      validatedOrderId,
+    );
   },
 });
 
-export const paymentApi = createPaymentApi(
-  requestApiData,
-  requestApiDataNullable,
-);
+export const paymentApi = createPaymentApi(requestApiData);

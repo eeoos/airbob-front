@@ -194,6 +194,29 @@ const parseInternalReturnLocationState = (
   return parseInternalReturnTarget(readDataProperty(value, "from"));
 };
 
+const parseClaimedPaymentRecoveryLocationState = (
+  value: unknown,
+  expectedSuccessPath: string,
+): InternalReturnTarget | null => {
+  if (
+    !expectedSuccessPath.endsWith("/success") ||
+    !isIdentityOwnedTransactionPath(expectedSuccessPath) ||
+    !hasOnlyExpectedDataProperties(value, EXPECTED_LOCATION_STATE_KEYS)
+  ) {
+    return null;
+  }
+  const target = readDataProperty(value, "from");
+  if (!hasOnlyExpectedDataProperties(target, EXPECTED_TARGET_KEYS)) {
+    return null;
+  }
+  const pathname = readDataProperty(target, "pathname");
+  const search = readDataProperty(target, "search");
+  const hash = readDataProperty(target, "hash");
+  return pathname === expectedSuccessPath && search === "" && hash === ""
+    ? { pathname: expectedSuccessPath, search: "", hash: "" }
+    : null;
+};
+
 const serializeInternalReturnTarget = (
   target: InternalReturnTarget,
 ): string | null => {
@@ -219,6 +242,7 @@ const canonicalizeInternalReturnLocationState = (
 
 export const internalReturnTargetCodec = {
   parse: parseInternalReturnLocationState,
+  parseClaimedPaymentRecovery: parseClaimedPaymentRecoveryLocationState,
   parseTarget: parseInternalReturnTarget,
   serialize: serializeInternalReturnTarget,
   canonicalize: canonicalizeInternalReturnLocationState,

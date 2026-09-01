@@ -11,7 +11,7 @@ import {
 import { AuthModal } from "../../features/auth/public";
 import { ReviewModal } from "../../features/reviews/public";
 import { WishlistModal } from "../../features/wishlist/public";
-import { ToastHost } from "../../shared/ui";
+import { PageContainer, stateViewRecipes, ToastHost } from "../../shared/ui";
 import styles from "./AccommodationDetailScreen.module.css";
 
 export interface AccommodationDetailReadyView {
@@ -46,14 +46,26 @@ export function AccommodationDetailScreen({
   state,
 }: AccommodationDetailScreenProps) {
   if (state.status === "loading") {
-    return <div className={styles.loading}>로딩 중...</div>;
+    return (
+      <PageContainer
+        className={styles.loading}
+        variant="full"
+        {...stateViewRecipes.loading}
+      >
+        로딩 중...
+      </PageContainer>
+    );
   }
 
   if (state.status === "error") {
     return (
-      <div className={styles.error} role="alert">
+      <PageContainer
+        className={styles.error}
+        variant="full"
+        {...stateViewRecipes.terminalError}
+      >
         {state.message}
-      </div>
+      </PageContainer>
     );
   }
 
@@ -61,7 +73,7 @@ export function AccommodationDetailScreen({
 
   return (
     <>
-      <div className={styles.container}>
+      <PageContainer variant="full">
         <AccommodationHero {...view.hero} />
 
         <div className={styles.contentWrapper}>
@@ -75,7 +87,7 @@ export function AccommodationDetailScreen({
 
         <AccommodationLocationSection {...view.location} />
         <AccommodationReviewsSection {...view.reviews} />
-      </div>
+      </PageContainer>
 
       <ReviewModal {...view.reviewModal} />
       {view.wishlistModal && <WishlistModal {...view.wishlistModal} />}

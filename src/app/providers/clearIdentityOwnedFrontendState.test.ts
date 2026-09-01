@@ -2,7 +2,7 @@ import { clearIdentityOwnedTransactionRoute } from "../router/identityRouteBound
 import {
   clearIdentityOwnedBookingPaymentBrowserState,
   clearTerminalBookingPaymentBrowserState,
-} from "../../workflows/booking-payment/journal";
+} from "../../workflows/booking-payment/journal/retiredState";
 import {
   clearIdentityOwnedFrontendState,
   clearRevokedIdentityOwnedFrontendState,
@@ -12,7 +12,7 @@ vi.mock("../router/identityRouteBoundary", () => ({
   clearIdentityOwnedTransactionRoute: vi.fn(),
 }));
 
-vi.mock("../../workflows/booking-payment/journal", () => ({
+vi.mock("../../workflows/booking-payment/journal/retiredState", () => ({
   clearIdentityOwnedBookingPaymentBrowserState: vi.fn(),
   clearTerminalBookingPaymentBrowserState: vi.fn(),
 }));

@@ -1,43 +1,88 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import type {
   AuthenticatedSessionScope,
   SessionSubject,
 } from "../../../platform/session/sessionScope";
 import { testSessionRuntimeLeaseId } from "../../../test/sessionFixtures";
-import {
-  createBookingPaymentCallbackRepository,
-  createBookingPaymentCheckoutRepository,
-} from "../../../workflows/booking-payment/checkout";
-import type {
-  ReservationCheckoutHandoffPort,
-  ReservationStartIntent,
-} from "../../../workflows/booking-payment/reservation-create";
+import { bookingPaymentStateCodec } from "../codecs/bookingPaymentStateCodec";
 import AccommodationDetailRoute from "./AccommodationDetailRoute";
 
-const scope: AuthenticatedSessionScope = {
-  epoch: 9,
-  runtimeLeaseId: testSessionRuntimeLeaseId,
-  subject: "subject:active_payment_guard" as SessionSubject,
+const flowId = "10000000-0000-4000-8000-000000000001";
+const reservationUid = "20000000-0000-4000-8000-000000000002";
+const accommodationHandle = {
+  flowId,
+  locator: { kind: "accommodation" as const, accommodationId: 42 },
 };
-let capturedHandoff: ReservationCheckoutHandoffPort | null = null;
+const reservationHandle = {
+  flowId,
+  locator: { kind: "reservation" as const, reservationUid },
+};
+const paymentSnapshot = {
+  phase: "reservation-ready" as const,
+  flowId,
+  accommodationId: 42,
+  reservationUid,
+  checkIn: "2026-09-10",
+  checkOut: "2026-09-12",
+  adultCount: 2,
+  childCount: 0,
+  infantCount: 0,
+  petCount: 0,
+  orderName: "테스트 숙소",
+  nightlyPrice: 60_000,
+  nights: 2,
+  subtotal: 120_000,
+  discountAmount: 0,
+  amount: 120_000,
+  currency: "KRW",
+  couponDisplayName: null,
+  quoteExpiresAt: "2026-09-01T10:10:00Z",
+  serverTime: "2026-09-01T10:00:00Z",
+  paymentRequired: true,
+  reservationStatus: "PAYMENT_PENDING" as const,
+  paymentAllowed: true,
+  holdExpiresAt: "2026-09-01T10:15:00Z",
+  canCheckout: false,
+  canPay: true,
+  canRetryPayment: false,
+  canReleaseHold: true,
+};
+
+const mocks = vi.hoisted(() => ({
+  controllerProps: [] as Array<Record<string, unknown>>,
+  acknowledgeTerminal: vi.fn(),
+  replaceCurrentUserState: vi.fn(),
+}));
 let paymentRecoveryFenceStatus:
   "none" | "recovery-required" | "recovery-unavailable" = "none";
 
+vi.mock("../../../workflows/booking-payment/transaction/booking", async () => {
+  const actual = await vi.importActual<
+    typeof import("../../../workflows/booking-payment/transaction/booking")
+  >("../../../workflows/booking-payment/transaction/booking");
+  return {
+    ...actual,
+    createBookingTransactionWorkflow: () => ({
+      acknowledgeTerminal: (...args: unknown[]) =>
+        mocks.acknowledgeTerminal(...args),
+      dispose: vi.fn(),
+    }),
+  };
+});
+
 vi.mock("../../../platform/browser/windowNavigation", () => ({
   browserWindowNavigation: {
-    getOrigin: () => "https://airbob.test",
     isCurrentHistoryEntry: () => true,
-    openInNewTab: vi.fn(),
-    replaceCurrentUrl: vi.fn(),
+    replaceCurrentUserState: (...args: unknown[]) =>
+      mocks.replaceCurrentUserState(...args),
   },
 }));
 
 vi.mock("../../../screens/accommodation-detail/public", () => ({
-  AccommodationDetailController: (props: {
-    checkoutHandoff: ReservationCheckoutHandoffPort;
-  }) => {
-    capturedHandoff = props.checkoutHandoff;
+  AccommodationDetailController: (props: Record<string, unknown>) => {
+    mocks.controllerProps.push(props);
     return <div data-testid="accommodation-detail-controller" />;
   },
 }));
@@ -64,13 +109,22 @@ vi.mock("./WishlistMembershipRouteBoundary", () => ({
   }) => children,
 }));
 
+vi.mock("../PaymentCallbackCredentialBoundary", () => ({
+  usePaymentRecoveryFenceStatus: () => paymentRecoveryFenceStatus,
+}));
+
+const scope: AuthenticatedSessionScope = {
+  epoch: 9,
+  runtimeLeaseId: testSessionRuntimeLeaseId,
+  subject: "subject:active_payment_guard" as SessionSubject,
+};
 const mockSession = {
   state: {
     status: "authenticated" as const,
     epoch: scope.epoch,
     subject: scope.subject,
     viewer: {
-      id: 7,
+      id: 1,
       email: "viewer@example.com",
       nickname: "뷰어",
       thumbnailImageUrl: null,
@@ -78,146 +132,26 @@ const mockSession = {
     revalidation: { status: "idle" as const },
   },
   captureAuthenticatedSession: () => scope,
-  isCurrentSession: (candidate: AuthenticatedSessionScope) =>
-    candidate.subject === scope.subject &&
-    candidate.epoch === scope.epoch &&
-    candidate.runtimeLeaseId === scope.runtimeLeaseId,
-  login: vi.fn(),
-  logout: vi.fn(),
-  revalidate: vi.fn(),
-  retryServerLogout: vi.fn(),
+  isCurrentSession: () => true,
 };
 
-vi.mock("../../session/useSession", () => ({
-  useSession: () => mockSession,
-}));
-
-vi.mock("../PaymentCallbackCredentialBoundary", async () => {
-  const actual = await vi.importActual<
-    typeof import("../PaymentCallbackCredentialBoundary")
-  >("../PaymentCallbackCredentialBoundary");
-  return {
-    ...actual,
-    usePaymentRecoveryFenceStatus: () => paymentRecoveryFenceStatus,
-  };
-});
-
-const intent: ReservationStartIntent = {
-  type: "reservation.start",
-  accommodationId: 42,
-  checkIn: "2026-09-10",
-  checkOut: "2026-09-12",
-  adultCount: 2,
-  childCount: 0,
-  infantCount: 0,
-  petCount: 0,
-  couponId: null,
-};
-
-const v2JournalKey = "airbob:booking-payment-v2:journal";
+vi.mock("../../session/useSession", () => ({ useSession: () => mockSession }));
 
 function LocationProbe() {
   const location = useLocation();
   return (
     <output data-testid="location">
-      {`${location.pathname}${location.search}`}
+      {JSON.stringify({ pathname: location.pathname, state: location.state })}
     </output>
   );
 }
 
-const seedActiveRecovery = () => {
-  const checkout = createBookingPaymentCheckoutRepository({
-    getEpoch: () => scope.epoch,
-    createOperationId: () => "active-payment-operation",
-  });
-  const callback = createBookingPaymentCallbackRepository({
-    getEpoch: () => scope.epoch,
-  });
-  const written = checkout.write({
-    scope,
-    isCurrent: () => true,
-    data: {
-      accommodationId: 41,
-      reservationUid: "reservation-active",
-      orderName: "진행 중인 예약",
-      amount: 90_000,
-      checkIn: "2026-09-01",
-      checkOut: "2026-09-03",
-      adultOccupancy: 2,
-      childOccupancy: 0,
-      infantOccupancy: 0,
-      petOccupancy: 0,
-      couponName: null,
-      couponDiscount: null,
-    },
-  });
-  if (written.status !== "written") throw new Error("checkout fixture failed");
-  const callbackWrite = callback.write({
-    scope,
-    isCurrent: () => true,
-    data: {
-      operationId: written.data.operationId,
-      reservationUid: written.data.reservationUid,
-      orderId: written.data.reservationUid,
-      paymentKey: "payment-key-active",
-      amount: written.data.amount,
-      phase: "reconciling",
-    },
-  });
-  if (callbackWrite.status !== "written") {
-    throw new Error("callback fixture failed");
-  }
-};
-
-describe("AccommodationDetailRoute active payment guard", () => {
-  beforeEach(() => {
-    window.sessionStorage.clear();
-    capturedHandoff = null;
-    paymentRecoveryFenceStatus = "none";
-  });
-
-  it.each(["recovery-required", "recovery-unavailable"] as const)(
-    "blocks a new legacy reservation while the in-memory %s fence survives cleaned storage",
-    async (status) => {
-      paymentRecoveryFenceStatus = status;
-
-      render(
-        <MemoryRouter initialEntries={["/accommodations/42"]}>
-          <Routes>
-            <Route
-              path="/accommodations/:id"
-              element={<AccommodationDetailRoute />}
-            />
-          </Routes>
-        </MemoryRouter>,
-      );
-
-      await screen.findByTestId("accommodation-detail-controller");
-      const handoff = capturedHandoff;
-      if (handoff === null)
-        throw new Error("checkout handoff was not captured");
-
-      expect(handoff.preflight({ session: scope, intent })).toEqual({
-        status: "blocked",
-      });
-      expect(handoff.assertNoNewerRecovery({ session: scope, intent })).toEqual(
-        { status: "blocked" },
-      );
-      expect(window.sessionStorage.length).toBe(0);
-    },
-  );
-
-  it("preserves active recovery and redirects before another reservation starts", async () => {
-    seedActiveRecovery();
-    const checkoutBefore = window.sessionStorage.getItem(
-      "airbob:booking-payment-v1:checkout",
-    );
-    const callbackBefore = window.sessionStorage.getItem(
-      "airbob:booking-payment-v1:callback",
-    );
-
-    render(
-      <MemoryRouter initialEntries={["/accommodations/42"]}>
+const renderDetailRoute = (state: unknown = null) =>
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter
+        initialEntries={[{ pathname: "/accommodations/42", state }]}
+      >
         <LocationProbe />
         <Routes>
           <Route
@@ -226,183 +160,114 @@ describe("AccommodationDetailRoute active payment guard", () => {
           />
           <Route path="*" element={<div data-testid="fallback-route" />} />
         </Routes>
-      </MemoryRouter>,
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+
+const latestControllerProps = () => {
+  const props = mocks.controllerProps.at(-1);
+  if (!props) throw new Error("Expected detail controller props");
+  return props;
+};
+
+describe("AccommodationDetailRoute v2 booking boundary", () => {
+  beforeEach(() => {
+    paymentRecoveryFenceStatus = "none";
+    mocks.controllerProps.length = 0;
+    mocks.acknowledgeTerminal.mockReset();
+    mocks.acknowledgeTerminal.mockReturnValue({ status: "acknowledged" });
+    mocks.replaceCurrentUserState.mockReset();
+    mocks.replaceCurrentUserState.mockReturnValue(true);
+  });
+
+  it.each(["recovery-required", "recovery-unavailable"] as const)(
+    "blocks a new command while the %s fence is active",
+    async (status) => {
+      paymentRecoveryFenceStatus = status;
+      renderDetailRoute();
+      await screen.findByTestId("accommodation-detail-controller");
+
+      expect(latestControllerProps().isPaymentRecoveryBlocked).toBe(true);
+      expect(latestControllerProps().bookingFlowHandle).toBeNull();
+    },
+  );
+
+  it("restores an exact direct flow reference even when recovery is fenced", async () => {
+    paymentRecoveryFenceStatus = "recovery-required";
+    const state = bookingPaymentStateCodec.serializeFlowReference(
+      flowId,
+      accommodationHandle.locator,
     );
-
+    renderDetailRoute(state);
     await screen.findByTestId("accommodation-detail-controller");
-    let result: ReturnType<ReservationCheckoutHandoffPort["preflight"]> | null =
-      null;
-    act(() => {
-      result = capturedHandoff?.preflight({ session: scope, intent }) ?? null;
-    });
 
-    expect(result).toEqual({ status: "payment-recovery-required" });
-    await screen.findByTestId("fallback-route");
-    await waitFor(() =>
-      expect(screen.getByTestId("location")).toHaveTextContent(
-        "/reservations/reservation-active/fail?reason=confirm-failed",
+    expect(latestControllerProps()).toMatchObject({
+      bookingFlowHandle: accommodationHandle,
+      isPaymentRecoveryBlocked: false,
+    });
+  });
+
+  it("persists the quote locator as direct history state", async () => {
+    renderDetailRoute();
+    await screen.findByTestId("accommodation-detail-controller");
+    const callback = latestControllerProps().onBookingFlowHandleChange;
+    if (typeof callback !== "function") throw new Error("missing callback");
+
+    expect(callback(accommodationHandle)).toBe(true);
+
+    expect(mocks.replaceCurrentUserState).toHaveBeenCalledWith(
+      bookingPaymentStateCodec.serializeFlowReference(
+        flowId,
+        accommodationHandle.locator,
       ),
     );
-    expect(
-      window.sessionStorage.getItem("airbob:booking-payment-v1:checkout"),
-    ).toBe(checkoutBefore);
-    expect(
-      window.sessionStorage.getItem("airbob:booking-payment-v1:callback"),
-    ).toBe(callbackBefore);
   });
 
-  it("blocks the legacy handoff without reading or deleting opaque v2 state", async () => {
-    const opaqueV2State = "newer-state-must-remain-opaque";
-    window.sessionStorage.setItem(v2JournalKey, opaqueV2State);
-
-    render(
-      <MemoryRouter initialEntries={["/accommodations/42"]}>
-        <LocationProbe />
-        <Routes>
-          <Route
-            path="/accommodations/:id"
-            element={<AccommodationDetailRoute />}
-          />
-        </Routes>
-      </MemoryRouter>,
-    );
-
+  it("opens confirm with the exact reservation flow reference", async () => {
+    renderDetailRoute();
     await screen.findByTestId("accommodation-detail-controller");
-    const handoff = capturedHandoff;
-    if (handoff === null) throw new Error("checkout handoff was not captured");
+    const callback = latestControllerProps().onOpenPayment;
+    if (typeof callback !== "function") throw new Error("missing callback");
 
-    expect(handoff.preflight({ session: scope, intent })).toEqual({
-      status: "blocked",
-    });
-    expect(handoff.assertNoNewerRecovery({ session: scope, intent })).toEqual({
-      status: "blocked",
-    });
+    act(() => callback(reservationHandle, paymentSnapshot));
+
+    await screen.findByTestId("fallback-route");
     expect(screen.getByTestId("location")).toHaveTextContent(
-      "/accommodations/42",
+      '"pathname":"/accommodations/42/confirm"',
     );
-    expect(window.sessionStorage.getItem(v2JournalKey)).toBe(opaqueV2State);
+    expect(screen.getByTestId("location")).toHaveTextContent(reservationUid);
   });
 
-  it("does not mistake a near-collision namespace for v2 recovery", async () => {
-    window.sessionStorage.setItem(
-      "airbob:booking-payment-v20:journal",
-      "unrelated-newer-major",
-    );
-
-    render(
-      <MemoryRouter initialEntries={["/accommodations/42"]}>
-        <Routes>
-          <Route
-            path="/accommodations/:id"
-            element={<AccommodationDetailRoute />}
-          />
-        </Routes>
-      </MemoryRouter>,
-    );
-
+  it("acknowledges a published terminal reservation before opening detail", async () => {
+    renderDetailRoute();
     await screen.findByTestId("accommodation-detail-controller");
-    const handoff = capturedHandoff;
-    if (handoff === null) throw new Error("checkout handoff was not captured");
+    const callback = latestControllerProps().onTerminalReservation;
+    if (typeof callback !== "function") throw new Error("missing callback");
+    const terminalSnapshot = {
+      ...paymentSnapshot,
+      phase: "complimentary-observed" as const,
+      amount: 0,
+      paymentRequired: false,
+      paymentAllowed: false,
+      holdExpiresAt: null,
+      reservationStatus: "CONFIRMED" as const,
+      canPay: false,
+      canReleaseHold: false,
+    };
 
-    expect(handoff.preflight({ session: scope, intent })).toEqual({
-      status: "ready",
-    });
-    expect(handoff.assertNoNewerRecovery({ session: scope, intent })).toEqual({
-      status: "ready",
-    });
-  });
-
-  it("does not overwrite recovery that appears after preflight but before commit", async () => {
-    render(
-      <MemoryRouter initialEntries={["/accommodations/42"]}>
-        <Routes>
-          <Route
-            path="/accommodations/:id"
-            element={<AccommodationDetailRoute />}
-          />
-        </Routes>
-      </MemoryRouter>,
-    );
-
-    await screen.findByTestId("accommodation-detail-controller");
-    const handoff = capturedHandoff;
-    if (handoff === null) throw new Error("checkout handoff was not captured");
-
-    expect(handoff.preflight({ session: scope, intent })).toEqual({
-      status: "ready",
+    await act(async () => {
+      await callback(reservationHandle, terminalSnapshot, {
+        isCurrent: () => true,
+      });
     });
 
-    seedActiveRecovery();
-    const checkoutBefore = window.sessionStorage.getItem(
-      "airbob:booking-payment-v1:checkout",
-    );
-    const callbackBefore = window.sessionStorage.getItem(
-      "airbob:booking-payment-v1:callback",
-    );
-
-    expect(() =>
-      handoff.commit({
-        session: scope,
-        intent,
-        appliedCoupon: null,
-        reservation: {
-          reservationUid: "reservation-new",
-          orderName: "새 예약",
-          amount: 120_000,
-          customerEmail: "viewer@example.com",
-          customerName: "뷰어",
-        },
-      }),
-    ).toThrow("An earlier payment still requires recovery.");
-
-    expect(
-      window.sessionStorage.getItem("airbob:booking-payment-v1:checkout"),
-    ).toBe(checkoutBefore);
-    expect(
-      window.sessionStorage.getItem("airbob:booking-payment-v1:callback"),
-    ).toBe(callbackBefore);
-  });
-
-  it("does not write a v1 handoff when v2 state appears after preflight", async () => {
-    render(
-      <MemoryRouter initialEntries={["/accommodations/42"]}>
-        <Routes>
-          <Route
-            path="/accommodations/:id"
-            element={<AccommodationDetailRoute />}
-          />
-        </Routes>
-      </MemoryRouter>,
-    );
-
-    await screen.findByTestId("accommodation-detail-controller");
-    const handoff = capturedHandoff;
-    if (handoff === null) throw new Error("checkout handoff was not captured");
-    expect(handoff.preflight({ session: scope, intent })).toEqual({
-      status: "ready",
+    expect(mocks.acknowledgeTerminal).toHaveBeenCalledWith({
+      handle: reservationHandle,
+      routeLease: expect.any(Object),
     });
-
-    window.sessionStorage.setItem(v2JournalKey, "opaque-late-v2-state");
-
-    expect(() =>
-      handoff.commit({
-        session: scope,
-        intent,
-        appliedCoupon: null,
-        reservation: {
-          reservationUid: "reservation-new",
-          orderName: "새 예약",
-          amount: 120_000,
-          customerEmail: "viewer@example.com",
-          customerName: "뷰어",
-        },
-      }),
-    ).toThrow("A newer payment recovery state is active.");
-    expect(
-      window.sessionStorage.getItem("airbob:booking-payment-v1:checkout"),
-    ).toBeNull();
-    expect(window.sessionStorage.getItem(v2JournalKey)).toBe(
-      "opaque-late-v2-state",
+    await screen.findByTestId("fallback-route");
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      `"pathname":"/reservations/${reservationUid}"`,
     );
   });
 });

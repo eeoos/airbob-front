@@ -8,9 +8,6 @@ import {
 } from "../../../../shared/ui";
 import styles from "./AccommodationBookingCard.module.css";
 
-type NumberSetter = React.Dispatch<React.SetStateAction<number>>;
-type BooleanSetter = React.Dispatch<React.SetStateAction<boolean>>;
-
 interface BookingPriceHeaderProps {
   nights: number;
   payablePrice: number;
@@ -25,13 +22,14 @@ interface BookingDateSectionProps {
   formatDate: (date: Date | null) => string;
   handleDateSelect: (checkIn: Date | null, checkOut: Date | null) => void;
   isDatePickerOpen: boolean;
-  setIsDatePickerOpen: BooleanSetter;
-  setIsGuestPickerOpen: BooleanSetter;
+  onDatePickerOpenChange: (isOpen: boolean) => void;
+  onGuestPickerOpenChange: (isOpen: boolean) => void;
   disabledRanges: readonly {
     readonly startInclusive: string;
     readonly endExclusive: string;
   }[];
   retryAvailability: () => void;
+  selectionLocked: boolean;
   selectionWindow: {
     readonly startInclusive: string;
     readonly endExclusive: string;
@@ -49,11 +47,12 @@ interface BookingGuestSectionProps {
   maxOccupancy: number;
   maxPets: number;
   petCount: number;
-  setAdultCount: NumberSetter;
-  setChildCount: NumberSetter;
-  setInfantCount: NumberSetter;
-  setIsGuestPickerOpen: BooleanSetter;
-  setPetCount: NumberSetter;
+  onAdultCountChange: (count: number) => void;
+  onChildCountChange: (count: number) => void;
+  onInfantCountChange: (count: number) => void;
+  onGuestPickerOpenChange: (isOpen: boolean) => void;
+  onPetCountChange: (count: number) => void;
+  selectionLocked: boolean;
 }
 
 interface BookingCouponSectionProps {
@@ -65,7 +64,8 @@ interface BookingCouponSectionProps {
   ) => void | Promise<void>;
   isLoadingCoupons: boolean;
   selectedCoupon: AccommodationBookingCouponViewModel | null;
-  setSelectedCouponId: (couponId: number | null) => void;
+  onSelectedCouponIdChange: (couponId: number | null) => void;
+  selectionLocked: boolean;
 }
 
 interface BookingPriceBreakdownProps {
@@ -83,6 +83,14 @@ interface BookingReserveActionProps {
   isReserving: boolean;
   isStayReady: boolean;
   onReserve: () => void;
+  reservationStatus:
+    | "idle"
+    | "quoting"
+    | "quoted"
+    | "checking-out"
+    | "terminal-ready"
+    | "completing"
+    | "locked";
   selectionState:
     | "availability-unavailable"
     | "fully-booked"
@@ -91,6 +99,16 @@ interface BookingReserveActionProps {
     | "outside-window"
     | "ready"
     | "unavailable";
+}
+
+interface BookingQuoteSummaryProps {
+  readonly amount: number;
+  readonly canAbandon: boolean;
+  readonly currency: string;
+  readonly discountAmount: number;
+  readonly onAbandonQuote: () => boolean;
+  readonly quoteExpiresAt: string;
+  readonly subtotal: number;
 }
 
 interface GuestCounterRowProps {
@@ -180,10 +198,11 @@ export function BookingDateSection({
   formatDate,
   handleDateSelect,
   isDatePickerOpen,
-  setIsDatePickerOpen,
-  setIsGuestPickerOpen,
+  onDatePickerOpenChange,
+  onGuestPickerOpenChange,
   disabledRanges,
   retryAvailability,
+  selectionLocked,
   selectionWindow,
 }: BookingDateSectionProps) {
   const dateTriggerRef = React.useRef<HTMLButtonElement>(null);
@@ -193,9 +212,9 @@ export function BookingDateSection({
   const previousAvailabilityStatusRef = React.useRef(availabilityStatus);
   const wasDatePickerOpenRef = React.useRef(isDatePickerOpen);
   const closeDatePicker = React.useCallback(() => {
-    setIsDatePickerOpen(false);
+    onDatePickerOpenChange(false);
     dateTriggerRef.current?.focus();
-  }, [setIsDatePickerOpen]);
+  }, [onDatePickerOpenChange]);
   const dateOverlay = useNonModalOverlayRegistration({
     enabled: availabilityStatus === "ready" && isDatePickerOpen,
     onClose: closeDatePicker,
@@ -203,15 +222,16 @@ export function BookingDateSection({
     triggerRef: dateTriggerRef,
   });
   const toggleDatePicker = React.useCallback(() => {
-    if (availabilityStatus !== "ready") return;
+    if (availabilityStatus !== "ready" || selectionLocked) return;
     const willOpen = !isDatePickerOpen;
-    if (willOpen) setIsGuestPickerOpen(false);
-    setIsDatePickerOpen(willOpen);
+    if (willOpen) onGuestPickerOpenChange(false);
+    onDatePickerOpenChange(willOpen);
   }, [
     availabilityStatus,
     isDatePickerOpen,
-    setIsDatePickerOpen,
-    setIsGuestPickerOpen,
+    onDatePickerOpenChange,
+    onGuestPickerOpenChange,
+    selectionLocked,
   ]);
   const focusAvailabilityStatus = React.useCallback(() => {
     const statusTarget = availabilityStatusRef.current;
@@ -298,7 +318,7 @@ export function BookingDateSection({
         aria-expanded={isDatePickerOpen}
         aria-controls="booking-date-picker"
         aria-busy={availabilityStatus === "loading"}
-        disabled={availabilityStatus !== "ready"}
+        disabled={availabilityStatus !== "ready" || selectionLocked}
         onClick={toggleDatePicker}
       >
         <div className={styles.dateColumn}>
@@ -377,19 +397,20 @@ export function BookingGuestSection({
   maxOccupancy,
   maxPets,
   petCount,
-  setAdultCount,
-  setChildCount,
-  setInfantCount,
-  setIsGuestPickerOpen,
-  setPetCount,
+  onAdultCountChange,
+  onChildCountChange,
+  onInfantCountChange,
+  onGuestPickerOpenChange,
+  onPetCountChange,
+  selectionLocked,
 }: BookingGuestSectionProps) {
   const guestCount = adultCount + childCount;
   const guestTriggerRef = React.useRef<HTMLButtonElement>(null);
   const guestPopoverRef = React.useRef<HTMLDivElement>(null);
   const closeGuestPicker = React.useCallback(() => {
-    setIsGuestPickerOpen(false);
+    onGuestPickerOpenChange(false);
     guestTriggerRef.current?.focus();
-  }, [setIsGuestPickerOpen]);
+  }, [onGuestPickerOpenChange]);
   const guestOverlay = useNonModalOverlayRegistration({
     enabled: isGuestPickerOpen && !isDatePickerOpen,
     onClose: closeGuestPicker,
@@ -410,7 +431,8 @@ export function BookingGuestSection({
         className={styles.guestRow}
         aria-expanded={isGuestPickerOpen}
         aria-controls="booking-guest-picker"
-        onClick={() => setIsGuestPickerOpen(!isGuestPickerOpen)}
+        disabled={selectionLocked}
+        onClick={() => onGuestPickerOpenChange(!isGuestPickerOpen)}
       >
         <div className={styles.guestColumn}>
           <div className={styles.dateLabel}>인원</div>
@@ -444,7 +466,7 @@ export function BookingGuestSection({
             incrementLabel="성인 늘리기"
             min={1}
             max={adultCount + (maxOccupancy - guestCount)}
-            onChange={setAdultCount}
+            onChange={onAdultCountChange}
           />
 
           <GuestCounterRow
@@ -454,7 +476,7 @@ export function BookingGuestSection({
             decrementLabel="어린이 줄이기"
             incrementLabel="어린이 늘리기"
             max={childCount + (maxOccupancy - guestCount)}
-            onChange={setChildCount}
+            onChange={onChildCountChange}
           />
 
           <GuestCounterRow
@@ -464,7 +486,7 @@ export function BookingGuestSection({
             decrementLabel="유아 줄이기"
             incrementLabel="유아 늘리기"
             max={maxInfants}
-            onChange={setInfantCount}
+            onChange={onInfantCountChange}
           />
 
           <GuestCounterRow
@@ -482,7 +504,7 @@ export function BookingGuestSection({
             decrementLabel="반려동물 줄이기"
             incrementLabel="반려동물 늘리기"
             max={maxPets}
-            onChange={setPetCount}
+            onChange={onPetCountChange}
           />
 
           <div className={styles.guestPickerNote}>
@@ -514,7 +536,8 @@ export function BookingCouponSection({
   handleIssueCoupon,
   isLoadingCoupons,
   selectedCoupon,
-  setSelectedCouponId,
+  onSelectedCouponIdChange,
+  selectionLocked,
 }: BookingCouponSectionProps) {
   return (
     <div className={styles.couponSection}>
@@ -524,7 +547,8 @@ export function BookingCouponSection({
           <button
             type="button"
             className={styles.couponClearButton}
-            onClick={() => setSelectedCouponId(null)}
+            disabled={selectionLocked}
+            onClick={() => onSelectedCouponIdChange(null)}
           >
             해제
           </button>
@@ -558,7 +582,9 @@ export function BookingCouponSection({
                   type="button"
                   className={styles.couponApplyButton}
                   onClick={() => handleIssueCoupon(coupon)}
-                  disabled={!coupon.isApplicable || coupon.isIssuing}
+                  disabled={
+                    selectionLocked || !coupon.isApplicable || coupon.isIssuing
+                  }
                 >
                   {coupon.actionLabel}
                 </button>
@@ -605,10 +631,26 @@ export function BookingReserveAction({
   isReserving,
   isStayReady,
   onReserve,
+  reservationStatus,
   selectionState,
 }: BookingReserveActionProps) {
+  const canContinueExistingFlow =
+    reservationStatus === "quoted" || reservationStatus === "terminal-ready";
+  const loadingLabel =
+    reservationStatus === "quoting"
+      ? "최종 요금 확인 중..."
+      : reservationStatus === "checking-out"
+        ? "예약 처리 중..."
+        : reservationStatus === "completing"
+          ? "예약 내역 갱신 중..."
+          : "예약 중...";
   const actionLabel = (() => {
     if (isReservationLocked) return "예약 내역 확인 필요";
+    if (reservationStatus === "quoted") return "예약 계속하기";
+    if (reservationStatus === "terminal-ready") return "예약 내역 확인";
+    if (reservationStatus === "checking-out") return "예약 처리 중";
+    if (reservationStatus === "completing") return "예약 내역 갱신 중";
+    if (reservationStatus === "quoting") return "최종 요금 확인 중";
     if (availabilityStatus === "loading") return "예약 가능 날짜 확인 중";
     if (availabilityStatus === "error") return "예약 가능 날짜 확인 필요";
 
@@ -636,13 +678,14 @@ export function BookingReserveAction({
         className={styles.reserveButton}
         disabled={
           isReservationLocked ||
-          availabilityStatus !== "ready" ||
-          !isStayReady ||
-          !hasCompleteStay
+          (!canContinueExistingFlow &&
+            (availabilityStatus !== "ready" ||
+              !isStayReady ||
+              !hasCompleteStay))
         }
         onClick={onReserve}
         isLoading={isReserving}
-        loadingLabel="예약 중..."
+        loadingLabel={loadingLabel}
       >
         {actionLabel}
       </Button>
@@ -651,5 +694,59 @@ export function BookingReserveAction({
         예약 확정 전에는 요금이 청구되지 않습니다.
       </div>
     </>
+  );
+}
+
+const formatQuoteExpiry = (value: string): string => {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime())
+    ? "유효 시간 내"
+    : parsed.toLocaleTimeString("ko-KR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+};
+
+export function BookingQuoteSummary({
+  amount,
+  canAbandon,
+  currency,
+  discountAmount,
+  onAbandonQuote,
+  quoteExpiresAt,
+  subtotal,
+}: BookingQuoteSummaryProps) {
+  return (
+    <section className={styles.quoteSummary} aria-label="확정된 예약 견적">
+      <div className={styles.quoteSummaryHeader}>
+        <strong>서버에서 확인한 최종 요금</strong>
+        {canAbandon && (
+          <button
+            className={styles.quoteResetButton}
+            onClick={onAbandonQuote}
+            type="button"
+          >
+            조건 다시 선택
+          </button>
+        )}
+      </div>
+      <div className={styles.quoteSummaryRow}>
+        <span>숙박 요금</span>
+        <span>₩{subtotal.toLocaleString("ko-KR")}</span>
+      </div>
+      {discountAmount > 0 && (
+        <div className={styles.quoteSummaryRow}>
+          <span>할인</span>
+          <span>-₩{discountAmount.toLocaleString("ko-KR")}</span>
+        </div>
+      )}
+      <div className={styles.quoteSummaryTotal}>
+        <span>결제 예정 금액 ({currency})</span>
+        <span>₩{amount.toLocaleString("ko-KR")}</span>
+      </div>
+      <p className={styles.quoteExpiry}>
+        {formatQuoteExpiry(quoteExpiresAt)}까지 유효한 견적입니다.
+      </p>
+    </section>
   );
 }

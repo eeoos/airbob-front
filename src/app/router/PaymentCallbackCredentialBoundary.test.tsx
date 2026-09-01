@@ -12,6 +12,7 @@ import { RequireAuthenticatedRoute } from "./RequireAuthenticatedRoute";
 import {
   PaymentCallbackCredentialBoundary,
   useMarkPaymentRecoveryFence,
+  usePendingPaymentCallbackCredentialForCandidate,
   usePaymentCallbackCredentialClaim,
   usePaymentCallbackFailureClaim,
   usePaymentRecoveryFenceStatus,
@@ -58,6 +59,15 @@ function CredentialProbe() {
   );
 }
 
+function PendingCredentialProbe() {
+  const pending = usePendingPaymentCallbackCredentialForCandidate();
+  return (
+    <output data-testid="pending-candidate-credential">
+      {JSON.stringify(pending.read())}
+    </output>
+  );
+}
+
 function AuthenticatedBoundaryProbe() {
   const location = useLocation();
   mockAuthenticatedBoundaryRender({
@@ -90,7 +100,15 @@ const renderBoundary = (
             path="/reservations/:reservationUid/fail"
             element={<AuthenticatedBoundaryProbe />}
           />
-          <Route path="/login" element={<div data-testid="login-route" />} />
+          <Route
+            path="/login"
+            element={
+              <>
+                <div data-testid="login-route" />
+                <PendingCredentialProbe />
+              </>
+            }
+          />
         </Routes>
       </PaymentCallbackCredentialBoundary>
     </MemoryRouter>,
@@ -282,6 +300,100 @@ describe("PaymentCallbackCredentialBoundary", () => {
     );
     expect(routerLocation).not.toContain("payment-key");
     expectCredentialsScrubbedFromHistory();
+  });
+
+  it("keeps one valid callback private across the anonymous login detour", async () => {
+    mockUseSession.mockReturnValue({
+      state: { status: "anonymous" },
+      revalidate: vi.fn(),
+    });
+    window.history.replaceState(null, "", `${callbackPath}${callbackSearch}`);
+
+    renderBoundary({ pathname: callbackPath, search: callbackSearch });
+
+    await screen.findByTestId("login-route");
+    expect(
+      screen.getByTestId("pending-candidate-credential"),
+    ).toHaveTextContent('"paymentKey":"payment-key-1"');
+    expect(screen.queryByTestId("credential-claim")).not.toBeInTheDocument();
+    expect(screen.getByTestId("location")).not.toHaveTextContent(
+      "payment-key-1",
+    );
+    expect(window.location.pathname).toBe(callbackPath);
+    expect(window.location.search).toBe("");
+    expect(window.location.hash).toBe("");
+    expect(JSON.stringify(window.history.state)).not.toContain("payment-key");
+  });
+
+  it("passes an exact credential-free operation reference through without scrubbing", async () => {
+    mockUseSession.mockReturnValue({
+      state: { status: "authenticated" },
+      revalidate: vi.fn(),
+    });
+    const reservationUid = "20000000-0000-4000-8000-000000000002";
+    const pathname = `/reservations/${reservationUid}/success`;
+    const operationReference = {
+      purpose: "booking-payment-operation-reference",
+      version: 2,
+      flowId: "10000000-0000-4000-8000-000000000001",
+      operationId: "30000000-0000-4000-8000-000000000003",
+      reservationUid,
+    } as const;
+    window.history.replaceState(
+      { idx: 0, key: "operation", usr: operationReference },
+      "",
+      pathname,
+    );
+
+    renderBoundary({ pathname, state: operationReference });
+
+    expect(await screen.findByTestId("credential-claim")).toHaveTextContent(
+      '{"status":"none"}',
+    );
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      JSON.stringify(operationReference),
+    );
+    expect(mockAuthenticatedBoundaryRender).toHaveBeenCalledWith({
+      hash: "",
+      search: "",
+      state: operationReference,
+    });
+    expect(window.history.state).toMatchObject({ usr: operationReference });
+  });
+
+  it("passes an exact credential-free pre-Accepted flow reference through", async () => {
+    mockUseSession.mockReturnValue({
+      state: { status: "authenticated" },
+      revalidate: vi.fn(),
+    });
+    const reservationUid = "20000000-0000-4000-8000-000000000002";
+    const pathname = `/reservations/${reservationUid}/success`;
+    const flowReference = {
+      purpose: "booking-payment-flow-reference",
+      version: 2,
+      flowId: "10000000-0000-4000-8000-000000000001",
+      locator: { kind: "reservation", reservationUid },
+    } as const;
+    window.history.replaceState(
+      { idx: 0, key: "flow", usr: flowReference },
+      "",
+      pathname,
+    );
+
+    renderBoundary({ pathname, state: flowReference });
+
+    expect(await screen.findByTestId("credential-claim")).toHaveTextContent(
+      '{"status":"none"}',
+    );
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      JSON.stringify(flowReference),
+    );
+    expect(mockAuthenticatedBoundaryRender).toHaveBeenCalledWith({
+      hash: "",
+      search: "",
+      state: flowReference,
+    });
+    expect(window.history.state).toMatchObject({ usr: flowReference });
   });
 
   it("keeps a valid callback tuple only in memory after authentication", async () => {

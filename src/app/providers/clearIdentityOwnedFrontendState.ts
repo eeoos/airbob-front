@@ -1,7 +1,7 @@
 import {
   clearIdentityOwnedBookingPaymentBrowserState,
   clearTerminalBookingPaymentBrowserState,
-} from "../../workflows/booking-payment/journal";
+} from "../../workflows/booking-payment/journal/retiredState";
 import { clearIdentityOwnedTransactionRoute } from "../router/identityRouteBoundary";
 
 type BookingPaymentCleanup =
