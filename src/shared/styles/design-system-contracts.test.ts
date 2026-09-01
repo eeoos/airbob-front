@@ -67,7 +67,33 @@ const requiredInteractionTokenDeclarations = [
   "--layout-mobile-safe-bottom: var(--environment-safe-area-bottom);",
 ];
 
+const requiredAirbobFoundationDeclarations = [
+  "--color-brand-identity: var(--palette-sky-400);",
+  "--color-brand-ink: var(--palette-ink-900);",
+  "--color-action-primary: var(--palette-sky-700);",
+  "--color-action-primary-hover: var(--palette-sky-800);",
+  "--color-action-accent: var(--palette-clay-600);",
+  "--color-surface-brand-subtle: var(--palette-sky-50);",
+  "--color-focus-visible: var(--palette-sky-700);",
+  "--focus-ring-visible: var(--elevation-focus-visible);",
+  "--radius-action: var(--radius-lg);",
+  "--radius-content-card: var(--radius-xl);",
+  "--radius-dialog: var(--radius-2xl);",
+  "--shadow-surface: var(--elevation-1);",
+  "--shadow-floating: var(--elevation-3);",
+  "--shadow-sticky: var(--elevation-6);",
+  "--listing-card-media-ratio: var(--ratio-landscape);",
+];
+
 describe("design system entry contracts", () => {
+  it("imports the runtime font through the tracked application entry", () => {
+    const indexTsx = readSource("index.tsx");
+
+    expect(indexTsx).toContain(
+      'import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";',
+    );
+  });
+
   it("exposes layout and media tokens from the global token entrypoint", () => {
     const tokensCss = readTokenLayers();
 
@@ -82,6 +108,37 @@ describe("design system entry contracts", () => {
     requiredInteractionTokenDeclarations.forEach((declaration) => {
       expect(tokensCss).toContain(declaration);
     });
+  });
+
+  it("exposes the additive Airbob identity and component-role tokens", () => {
+    const tokensCss = readTokenLayers();
+
+    requiredAirbobFoundationDeclarations.forEach((declaration) => {
+      expect(tokensCss).toContain(declaration);
+    });
+
+    // Staged adoption keeps the existing routes stable until their redesign.
+    expect(tokensCss).toContain(
+      "--color-brand-coral: var(--palette-coral-500);",
+    );
+  });
+
+  it("keeps Phase 1 primitive adoption opt-in", () => {
+    const buttonCss = readSource("shared/ui/Button/Button.module.css");
+    const dialogCss = readSource("shared/ui/Dialog/Dialog.module.css");
+    const detailDialogCss = readSource(
+      "features/accommodations/detail/components/AccommodationDescriptionModal.module.css",
+    );
+    const searchResultsCss = readSource(
+      "features/search/components/SearchResultsList.module.css",
+    );
+
+    expect(buttonCss).toContain("background: var(--color-brand-coral);");
+    expect(dialogCss).toContain("border-radius: var(--radius-lg);");
+    expect(detailDialogCss).toContain("border-radius: var(--radius-dialog);");
+    expect(searchResultsCss).toContain(
+      "border-color: var(--color-action-primary);",
+    );
   });
 
   it("uses the mobile search popover offset token for search overlays", () => {

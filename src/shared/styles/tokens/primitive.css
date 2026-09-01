@@ -14,6 +14,12 @@
   --palette-coral-400: #ff5a7f;
   --palette-coral-500: #ff385c;
   --palette-coral-600: #e61e4d;
+  --palette-sky-50: #f4fafc;
+  --palette-sky-400: #7bc8f0;
+  --palette-sky-700: #19769d;
+  --palette-sky-800: #125a79;
+  --palette-clay-600: #c9473d;
+  --palette-ink-900: #14323f;
   --palette-teal-500: #00a699;
   --palette-teal-600: #008489;
   --palette-rust-600: #c13515;
@@ -45,16 +51,25 @@
   --motion-duration-fast: 150ms;
   --motion-duration-base: 200ms;
   --motion-duration-slow: 300ms;
+  --motion-duration-ambient: 1200ms;
   --motion-ease-standard: ease;
   --font-family-base:
-    -apple-system, blinkmacsystemfont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
-    "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+    "Pretendard Variable", "Pretendard", -apple-system, blinkmacsystemfont,
+    "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans",
+    "Droid Sans", "Helvetica Neue", sans-serif;
   --font-size-xs: 12px;
   --font-size-sm: 14px;
   --font-size-md: 16px;
   --font-size-lg: 18px;
   --font-size-xl: 22px;
   --font-size-2xl: 32px;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-tight: 1.25;
+  --line-height-heading: 1.35;
+  --line-height-body: 1.5;
   --radius-xs: 2px;
   --radius-sm: 4px;
   --radius-6: 6px;
@@ -71,6 +86,7 @@
   --elevation-6: 0 4px 24px var(--palette-black-a15);
   --elevation-7: 0 -4px 24px var(--palette-black-a15);
   --elevation-8: 0 0 0 2px var(--palette-black-a24);
+  --elevation-focus-visible: 0 0 0 3px var(--palette-sky-700);
   --stack-0: 0;
   --stack-1: 1;
   --stack-2: 2;
@@ -96,6 +112,7 @@
   --size-vh-100: 100vh;
   --environment-safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --ratio-square: 1 / 1;
+  --ratio-landscape: 4 / 3;
   --breakpoint-tablet: 768px;
   --breakpoint-desktop: 1024px;
   --breakpoint-wide: 1400px;

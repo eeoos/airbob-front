@@ -7,6 +7,7 @@ export { DatePicker } from "./DatePicker";
 export { ImageWithFallback } from "./ImageWithFallback";
 export { ListContainer } from "./ListContainer";
 export { PageContainer } from "./PageContainer";
+export { Skeleton } from "./Skeleton";
 export {
   EmptyState,
   LoadingState,

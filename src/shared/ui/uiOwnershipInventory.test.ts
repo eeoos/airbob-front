@@ -79,9 +79,9 @@ const sharedStateRecipeOwners = {
   "src/features/reservations/HostReservationsPanel.tsx":
     "host reservation recipes",
   "src/features/search/components/SearchMap/Map.tsx":
-    "integration loading and retryable-error recipes",
+    "integration loading and terminal fallback recipes",
   "src/features/search/components/SearchResultsList.tsx":
-    "search loading and empty recipes",
+    "search loading, empty and retryable-error recipes",
   "src/features/wishlist/components/RecentlyViewedView.tsx":
     "recent history empty recipe",
   "src/features/wishlist/components/WishlistDetailView.tsx":
@@ -104,6 +104,8 @@ const intentionallyLocalStateOwners = {
     "inline coupon sub-state inside an otherwise ready card",
   "src/features/reviews/components/ReviewModal/ReviewModal.tsx":
     "incremental modal feed status",
+  "src/features/search/components/SearchBar/SearchDestinationField.tsx":
+    "combobox-local async suggestion status",
   "src/features/search/components/SearchPagination.tsx":
     "pagination-local progress status",
   "src/screens/payment-result/PaymentResultScreen.tsx":

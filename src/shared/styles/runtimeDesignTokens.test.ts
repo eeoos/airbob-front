@@ -66,6 +66,7 @@ describe("runtime design token policy", () => {
       textFontSizePx: 14,
     });
     expect(Object.isFrozen(RUNTIME_DESIGN_TOKENS.marker)).toBe(true);
+    expect(Object.isFrozen(RUNTIME_DESIGN_TOKENS.color)).toBe(true);
     expect(Object.isFrozen(RUNTIME_DESIGN_TOKENS.icon)).toBe(true);
     expect(Object.isFrozen(RUNTIME_DESIGN_TOKENS)).toBe(true);
   });
