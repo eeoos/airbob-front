@@ -426,6 +426,13 @@ const openSeedPage = async (page: Page): Promise<void> => {
   );
 };
 
+const pauseClockWhileOperationResponseIsHeld = async (
+  page: Page,
+): Promise<void> => {
+  const currentTime = await page.evaluate(() => Date.now());
+  await page.clock.pauseAt(currentTime + 5_000);
+};
+
 const seedStorage = async (
   page: Page,
   entries: Readonly<Record<string, unknown>>,
@@ -991,10 +998,13 @@ test("clamps operation polling, surfaces review identifiers, and retains the rec
     operationWire("REQUIRES_REVIEW", { retryAfterSeconds: 3, sequence: 3 }),
     operationWire("SUCCEEDED", { sequence: 4 }),
   ];
+  const firstRead = deferred<ApiResponseSpec>();
   let reads = 0;
-  api.register("GET", `/api/v1/payment-operations/${OPERATION_ID}`, () =>
-    apiSuccess(observations[Math.min(reads++, observations.length - 1)]),
-  );
+  api.register("GET", `/api/v1/payment-operations/${OPERATION_ID}`, () => {
+    const observation =
+      observations[Math.min(reads++, observations.length - 1)];
+    return reads === 1 ? firstRead.promise : apiSuccess(observation);
+  });
   registerReservationDetail(api);
 
   await openSeedPage(page);
@@ -1007,6 +1017,11 @@ test("clamps operation polling, surfaces review identifiers, and retains the rec
           .length,
     )
     .toBe(1);
+  await pauseClockWhileOperationResponseIsHeld(page);
+  firstRead.resolve(apiSuccess(observations[0]));
+  await expect(page.getByRole("status")).toContainText(
+    "결제 승인 대기 중입니다",
+  );
   await page.clock.runFor(1_999);
   expect(
     api.matching("GET", `/api/v1/payment-operations/${OPERATION_ID}`),
@@ -1048,6 +1063,7 @@ test("clamps operation polling, surfaces review identifiers, and retains the rec
     '"status":"SUCCEEDED"',
   );
 
+  await page.clock.resume();
   await page.goto("/login");
   await page.goBack();
   await expect(
@@ -1076,11 +1092,12 @@ test("retries an operation network error after the conservative two-second delay
   session,
 }) => {
   session.authenticate();
+  const firstRead = deferred<ApiResponseSpec>();
   let reads = 0;
   api.register("GET", `/api/v1/payment-operations/${OPERATION_ID}`, () => {
     reads += 1;
     return reads === 1
-      ? apiResponseLost()
+      ? firstRead.promise
       : apiSuccess(
           operationWire("FAILED", { nextAction: "NONE", sequence: 1 }),
         );
@@ -1088,6 +1105,15 @@ test("retries an operation network error after the conservative two-second delay
   await openSeedPage(page);
   await seedStorage(page, { [OPERATION_RECEIPT_KEY]: receiptEnvelope() });
   await navigateWithRouterState(page, successPath, operationState());
+  await expect
+    .poll(
+      () =>
+        api.matching("GET", `/api/v1/payment-operations/${OPERATION_ID}`)
+          .length,
+    )
+    .toBe(1);
+  await pauseClockWhileOperationResponseIsHeld(page);
+  firstRead.resolve(apiResponseLost());
   await expect(page.getByRole("status")).toContainText(
     "자동으로 다시 확인합니다",
   );
