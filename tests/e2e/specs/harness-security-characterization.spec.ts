@@ -101,6 +101,95 @@ test("the exact synthetic API origin handles CORS without journaling its preflig
   }
 });
 
+test("the idempotency capability is limited to the exact reservation checkout", async ({
+  appBaseURL: baseURL,
+  browser,
+}) => {
+  const context = await browser.newContext({ baseURL });
+  const harness = new ApiHarness(context, new URL(baseURL).origin);
+  harness.register("POST", "/api/v1/reservations", (request) =>
+    apiSuccess(
+      {
+        body: request.body,
+        idempotencyKey: request.idempotencyKey,
+      },
+      201,
+    ),
+  );
+  await harness.install();
+
+  try {
+    const page = await context.newPage();
+    await page.goto("/robots.txt");
+    const outcomes = await page.evaluate(async (apiOrigin) => {
+      const request = async (path: string, idempotencyKey: string) => {
+        try {
+          const response = await fetch(`${apiOrigin}${path}`, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              "content-type": "application/json",
+              "idempotency-key": idempotencyKey,
+            },
+            body: JSON.stringify({
+              quote_uid: "20000000-0000-4000-8000-000000000001",
+              request_message: null,
+            }),
+          });
+          return { body: await response.json(), status: response.status };
+        } catch {
+          return "blocked";
+        }
+      };
+
+      return {
+        exact: await request(
+          "/api/v1/reservations",
+          "60000000-0000-4000-8000-000000000001",
+        ),
+        malformed: await request("/api/v1/reservations", "bad/key"),
+        offResource: await request(
+          "/api/v1/reservation-quotes",
+          "60000000-0000-4000-8000-000000000001",
+        ),
+      };
+    }, E2E_API_ORIGIN);
+
+    expect(outcomes.exact).toEqual({
+      body: {
+        success: true,
+        data: {
+          body: {
+            quote_uid: "20000000-0000-4000-8000-000000000001",
+            request_message: null,
+          },
+          idempotencyKey: "60000000-0000-4000-8000-000000000001",
+        },
+        error: null,
+      },
+      status: 201,
+    });
+    expect(outcomes.malformed).toBe("blocked");
+    expect(outcomes.offResource).toBe("blocked");
+    expect(harness.requests).toHaveLength(1);
+
+    let isolationError = "";
+    try {
+      harness.assertNoUnhandledRequests();
+    } catch (error) {
+      isolationError = toErrorMessage(error);
+    }
+    expect(isolationError).toContain(
+      "POST api.airbob-e2e.invalid/api/v1/reservations (api)",
+    );
+    expect(isolationError).toContain(
+      "POST api.airbob-e2e.invalid/api/v1/reservation-quotes (api)",
+    );
+  } finally {
+    await context.close();
+  }
+});
+
 test("the harness records and blocks every non-allowlisted data channel", async ({
   appBaseURL: baseURL,
   browser,

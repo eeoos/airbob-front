@@ -589,9 +589,11 @@ test("keeps the sender locally anonymous when logout fails while the remote page
   await logoutFromSessionRoute(page);
 
   await expect(page.getByRole("button", { name: "프로필" })).toBeHidden();
-  await expect(page.getByRole("alert")).toContainText(
-    "서버에서 로그아웃을 확인하지 못했습니다.",
-  );
+  await expect(
+    page
+      .getByRole("alert")
+      .filter({ hasText: "서버에서 로그아웃을 확인하지 못했습니다." }),
+  ).toBeVisible();
   await expect
     .poll(() => api.matching("GET", "/api/v1/auth/me").length)
     .toBeGreaterThan(meRequestsBeforeLogout);

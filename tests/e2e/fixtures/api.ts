@@ -9,6 +9,7 @@ export interface ApiRequestRecord {
   readonly pathname: string;
   readonly query: ReadonlyArray<readonly [string, string]>;
   readonly body: unknown;
+  readonly idempotencyKey: string | null;
 }
 
 export const requireApiRequest = (
@@ -38,11 +39,14 @@ export interface ApiErrorBody {
   }>;
 }
 
-export interface ApiResponseSpec {
-  status: number;
-  body: unknown;
-  headers?: Record<string, string>;
+export interface ApiHttpResponseSpec {
+  readonly status: number;
+  readonly body: unknown;
+  readonly headers?: Record<string, string>;
 }
+
+export type ApiResponseSpec =
+  ApiHttpResponseSpec | { readonly connection: "abort" };
 
 type ApiHandler = (
   request: ApiRequestRecord,
@@ -67,7 +71,12 @@ interface UnhandledRequest {
 
 const API_PATH = "/api";
 const E2E_API_ALLOWED_METHODS = new Set(["GET", "POST", "PATCH", "DELETE"]);
-const E2E_API_ALLOWED_APP_HEADERS = new Set(["accept", "content-type"]);
+const E2E_API_ALLOWED_APP_HEADERS = new Set([
+  "accept",
+  "content-type",
+  "idempotency-key",
+]);
+const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9._:-]{8,128}$/;
 const BROWSER_MANAGED_HEADERS = new Set([
   "accept-encoding",
   "accept-language",
@@ -129,7 +138,7 @@ const matchesPath = (matcher: PathMatcher, pathname: string): boolean => {
 export const isExactE2eApiUrl = (url: URL): boolean =>
   url.origin === E2E_API_ORIGIN && !url.username && !url.password;
 
-export const apiSuccess = <T>(data: T, status = 200): ApiResponseSpec => ({
+export const apiSuccess = <T>(data: T, status = 200): ApiHttpResponseSpec => ({
   status,
   body: {
     success: true,
@@ -142,7 +151,7 @@ export const apiFailure = (
   status: number,
   code: string,
   message: string,
-): ApiResponseSpec => ({
+): ApiHttpResponseSpec => ({
   status,
   body: {
     success: false,
@@ -153,6 +162,14 @@ export const apiFailure = (
       code,
     } satisfies ApiErrorBody,
   },
+});
+
+/**
+ * Simulates a request that reached the server but whose response was lost.
+ * The request is still recorded before the connection is aborted.
+ */
+export const apiResponseLost = (): ApiResponseSpec => ({
+  connection: "abort",
 });
 
 export class ApiHarness {
@@ -246,7 +263,7 @@ export class ApiHarness {
     if (isE2eApiOrigin && isApiPath) {
       if (
         !this.hasExactAppOrigin(request) ||
-        !this.isAllowedExternalApiRequest(request, method)
+        !this.isAllowedExternalApiRequest(request, method, url)
       ) {
         this.recordUnhandled(method, url, "api");
         await route.abort("blockedbyclient");
@@ -333,6 +350,7 @@ export class ApiHarness {
       pathname: url.pathname,
       query: Array.from(url.searchParams.entries()),
       body: parseBody(request),
+      idempotencyKey: request.headers()["idempotency-key"] ?? null,
     };
     this.requests.push(record);
 
@@ -364,6 +382,10 @@ export class ApiHarness {
     }
 
     const response = await registration.handler(record);
+    if ("connection" in response) {
+      await route.abort("failed");
+      return;
+    }
     await route.fulfill({
       status: response.status,
       headers: {
@@ -388,6 +410,7 @@ export class ApiHarness {
   private isAllowedExternalApiRequest(
     request: Request,
     method: string,
+    url: URL,
   ): boolean {
     if (!E2E_API_ALLOWED_METHODS.has(method)) {
       return false;
@@ -405,6 +428,16 @@ export class ApiHarness {
     });
 
     if (hasUnexpectedHeader) {
+      return false;
+    }
+
+    const idempotencyKey = headers["idempotency-key"];
+    if (
+      idempotencyKey !== undefined &&
+      (method !== "POST" ||
+        url.pathname !== "/api/v1/reservations" ||
+        !IDEMPOTENCY_KEY_PATTERN.test(idempotencyKey))
+    ) {
       return false;
     }
 

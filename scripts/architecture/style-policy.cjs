@@ -92,7 +92,11 @@ const tokenLayerPolicies = Object.freeze([
       "--size-px-89",
       "--size-px-130",
       "--size-px-144",
+      "--size-px-800",
       "--size-px-1120",
+      "--size-px-1200",
+      "--size-px-1400",
+      "--size-px-1760",
       "--size-vw-100",
       "--size-vh-90",
       "--size-vh-100",
@@ -167,6 +171,10 @@ const tokenLayerPolicies = Object.freeze([
       "--layout-viewport-width",
       "--layout-viewport-height",
       "--layout-page-max-width",
+      "--layout-page-full-max-width",
+      "--layout-page-wide-max-width",
+      "--layout-page-content-max-width",
+      "--layout-page-narrow-max-width",
       "--layout-page-padding-x",
       "--layout-header-desktop-height",
       "--layout-header-mobile-height",
@@ -296,6 +304,11 @@ const allowedBreakpointValues = Object.freeze([
   "1400px",
 ]);
 
+const rawMediaQueryRatchet = Object.freeze({
+  allowedPaths: Object.freeze([]),
+  maximumWidthQueryCount: 0,
+});
+
 const collectStylePaths = (projectRoot, directory) => {
   if (!fs.existsSync(directory)) {
     return [];
@@ -351,6 +364,7 @@ const createStylePolicy = ({ projectRoot }) => {
     preExistingStrictStylePaths,
     primitiveTokenStylePaths,
     protectedDesignLiteralStylePaths,
+    rawMediaQueryRatchet,
     strictMigratedStylePaths,
     strictStyleGlobs,
     tokenLayerPolicies,
@@ -372,6 +386,7 @@ module.exports = Object.freeze({
   preExistingStrictStylePaths,
   primitiveTokenStylePaths,
   protectedDesignLiteralStylePaths,
+  rawMediaQueryRatchet,
   tokenLayerPolicies,
   createStylePolicy,
   isVendorImportantOverridePath,
