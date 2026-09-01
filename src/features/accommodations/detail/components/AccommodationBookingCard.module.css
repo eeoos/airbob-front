@@ -1,4 +1,8 @@
 .bookingCard {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-content-card);
   padding: var(--space-6);
@@ -27,6 +31,7 @@
 }
 
 .dateSection {
+  min-width: 0;
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-action) var(--radius-action) 0 0;
   overflow: visible;
@@ -63,6 +68,7 @@
 
 .dateColumn {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   padding: 0 var(--space-4);
@@ -97,6 +103,11 @@
   line-height: 1.4;
 }
 
+.availabilityStatus > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .availabilityRetryButton {
   flex-shrink: 0;
   min-height: var(--control-touch-target);
@@ -127,13 +138,18 @@
 }
 
 .dateValue {
+  min-width: 0;
+  overflow: hidden;
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
   font-weight: var(--font-weight-regular);
   line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .guestRowContainer {
+  min-width: 0;
   position: relative;
   border: 1px solid var(--color-border-default);
   border-top: 1px solid var(--color-border-default);
@@ -165,6 +181,7 @@
 
 .guestColumn {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   padding: 0;
@@ -175,10 +192,14 @@
 }
 
 .guestValue {
+  min-width: 0;
+  overflow: hidden;
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
   font-weight: var(--font-weight-regular);
   line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .guestArrow {
@@ -202,6 +223,8 @@
   z-index: var(--z-dropdown-raised);
   box-shadow: var(--shadow-lg);
   margin-top: 0;
+  box-sizing: border-box;
+  max-width: calc(100% + 2px);
   isolation: isolate;
 }
 
@@ -209,11 +232,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  min-width: 0;
+  gap: var(--space-3);
   padding: var(--space-3) 0;
 }
 
 .guestPickerLabel {
   display: flex;
+  min-width: 0;
   flex-direction: column;
   gap: var(--space-1);
 }
@@ -227,6 +253,7 @@
 .guestPickerSubtitle {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
 }
 
 .guestPickerLink {
@@ -286,8 +313,12 @@
 }
 
 .guestPickerClose {
+  display: inline-flex;
+  min-height: var(--control-touch-target);
+  align-items: center;
+  justify-content: flex-end;
   margin-top: var(--space-4);
-  padding: 0;
+  padding: 0 var(--space-2);
   background: none;
   border: none;
   color: var(--color-text-primary);
@@ -422,37 +453,67 @@
   line-height: 1.5;
 }
 
+.priceBreakdownRow > :first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.priceBreakdownRow > :last-child {
+  flex-shrink: 0;
+}
+
 .priceBreakdownRow + .priceBreakdownRow {
   margin-top: var(--space-2);
 }
 
 .quoteSummary {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
   margin-bottom: var(--space-4);
   padding: var(--space-4);
-  border: 1px solid var(--color-border-strong);
+  border: 1px solid var(--color-action-primary);
   border-radius: var(--radius-action);
   background: var(--color-surface-brand-subtle);
 }
 
-.quoteSummaryHeader,
 .quoteSummaryRow,
 .quoteSummaryTotal {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
 }
 
 .quoteSummaryHeader {
-  flex-wrap: wrap;
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: var(--space-1);
   margin-bottom: var(--space-3);
   font-size: var(--font-size-sm);
 }
 
-.quoteSummaryRow,
-.quoteSummaryTotal {
+.quoteSummaryBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-action-primary);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.2;
+}
+
+.quoteSummaryDescription {
+  color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .quoteSummaryTotal {
@@ -462,8 +523,39 @@
   font-weight: var(--font-weight-semibold);
 }
 
+.quoteSummaryRow > :first-child,
+.quoteSummaryTotal > :first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.quoteSummaryRow > :last-child,
+.quoteSummaryTotal > :last-child {
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.quoteSummaryTotal > strong {
+  color: var(--color-action-primary-hover);
+  font-size: var(--font-size-md);
+}
+
+.quoteSummaryFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-default);
+}
+
 .quoteResetButton {
+  display: inline-flex;
+  flex-shrink: 0;
   min-height: var(--control-touch-target);
+  align-items: center;
+  justify-content: center;
   padding: 0 var(--space-2);
   border: 0;
   background: transparent;
@@ -476,13 +568,47 @@
 }
 
 .quoteExpiry {
-  margin: var(--space-2) 0 0;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
   color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
+  line-height: 1.4;
+}
+
+.quoteExpiry strong {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.selectionGuidance {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--color-action-primary);
+  border-radius: var(--radius-action);
+  background: var(--color-surface-brand-subtle);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.statusAnnouncement {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 .reserveButton {
   width: 100%;
+  min-height: var(--control-touch-target);
   padding: 14px;
   background: var(--color-action-primary);
   color: var(--color-text-inverse);
@@ -496,7 +622,7 @@
   margin-bottom: var(--space-4);
 }
 
-.reserveButton:hover {
+.reserveButton:hover:not(:disabled) {
   background: var(--color-action-primary-hover);
 }
 
@@ -505,7 +631,9 @@
 .availabilityRetryButton:focus-visible,
 .couponClearButton:focus-visible,
 .couponApplyButton:focus-visible,
-.quoteResetButton:focus-visible {
+.guestPickerClose:focus-visible,
+.quoteResetButton:focus-visible,
+.reserveButton:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring-visible);
 }
@@ -530,9 +658,69 @@
   }
 }
 
+@media (--viewport-phone) {
+  .bookingCard {
+    padding: var(--space-4);
+  }
+
+  .priceSection {
+    flex-wrap: wrap;
+    margin-bottom: var(--space-4);
+  }
+
+  .dateColumn,
+  .guestRow {
+    padding-inline: var(--space-3);
+  }
+
+  .availabilityStatus {
+    align-items: stretch;
+    flex-direction: column;
+    padding-inline: var(--space-3);
+  }
+
+  .availabilityRetryButton {
+    width: 100%;
+  }
+
+  .guestPicker {
+    padding-inline: var(--space-3);
+  }
+
+  .guestPickerItem {
+    gap: var(--space-2);
+  }
+
+  .guestPickerTitle {
+    font-size: var(--font-size-sm);
+  }
+
+  .guestPickerSubtitle {
+    font-size: var(--font-size-xs);
+  }
+
+  .quoteSummary {
+    padding: var(--space-3);
+  }
+
+  .quoteSummaryFooter {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .quoteResetButton {
+    width: 100%;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .availabilityRetryButton,
+  .dateRow,
+  .guestPickerClose,
   .guestPickerButton,
+  .guestRow,
   .couponApplyButton,
+  .quoteResetButton,
   .reserveButton {
     transition: none;
   }

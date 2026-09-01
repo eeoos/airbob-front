@@ -1,5 +1,6 @@
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { readFileSync } from "fs";
 import type { AccommodationBookingCouponViewModel } from "../lib/accommodationBookingSectionsViewModel";
 import type { AccommodationBookingViewModel } from "../lib/accommodationBookingViewModel";
 import { AccommodationBookingCard } from "./AccommodationBookingCard";
@@ -200,9 +201,34 @@ describe("AccommodationBookingCard", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "예약 가능한 날짜를 불러오지 못했습니다.",
     );
+    const retryGuidance = screen.getByText(
+      "날짜 정보를 불러오지 못했어요. ‘다시 시도’를 눌러 예약 가능 여부를 확인해주세요.",
+    );
+    expect(
+      screen.getByRole("button", { name: "예약 가능 날짜 확인 필요" }),
+    ).toHaveAttribute("aria-describedby", retryGuidance.id);
 
     fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
     expect(retryAvailability).toHaveBeenCalledTimes(1);
+  });
+
+  it("explains availability loading at the reserve entry point", () => {
+    setupBookingCard({
+      bookingState: {
+        availabilityStatus: "loading",
+        isStayReady: false,
+        selectionState: "availability-unavailable",
+      },
+    });
+
+    expect(
+      screen.getByText(
+        "예약 가능한 날짜를 확인하고 있어요. 확인이 끝나면 날짜를 선택할 수 있습니다.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "예약 가능 날짜 확인 중" }),
+    ).toBeDisabled();
   });
 
   it("disables reservation with accurate copy when no stay is available", () => {
@@ -221,16 +247,42 @@ describe("AccommodationBookingCard", () => {
     expect(
       screen.getByRole("button", { name: "예약 가능한 날짜 없음" }),
     ).toBeDisabled();
+    expect(
+      screen.getByText(
+        "현재 예약 가능한 날짜가 없어요. 다른 숙소를 확인해주세요.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it.each([
-    ["incomplete", "체크인·체크아웃 선택"],
-    ["invalid", "예약 날짜 다시 선택"],
-    ["outside-window", "예약 날짜 다시 선택"],
-    ["unavailable", "예약 날짜 다시 선택"],
+    [
+      "availability-unavailable",
+      "예약 가능 날짜 확인 필요",
+      "예약 가능 날짜 정보를 확인한 뒤 날짜를 다시 선택해주세요.",
+    ],
+    [
+      "incomplete",
+      "체크인·체크아웃 선택",
+      "체크인과 체크아웃 날짜를 모두 선택해주세요.",
+    ],
+    [
+      "invalid",
+      "예약 날짜 다시 선택",
+      "체크아웃은 체크인 다음 날짜부터 선택할 수 있어요.",
+    ],
+    [
+      "outside-window",
+      "예약 날짜 다시 선택",
+      "숙소의 예약 가능 기간 안에서 날짜를 다시 선택해주세요.",
+    ],
+    [
+      "unavailable",
+      "예약 날짜 다시 선택",
+      "선택한 숙박 기간에 예약할 수 없는 날짜가 포함되어 있어요.",
+    ],
   ] as const)(
-    "disables a %s stay with corrective reserve copy",
-    (selectionState, label) => {
+    "disables a %s stay with corrective reserve copy and guidance",
+    (selectionState, label, guidance) => {
       setupBookingCard({
         bookingState: {
           checkOut:
@@ -240,7 +292,12 @@ describe("AccommodationBookingCard", () => {
         },
       });
 
+      const guidanceElement = screen.getByText(guidance);
       expect(screen.getByRole("button", { name: label })).toBeDisabled();
+      expect(screen.getByRole("button", { name: label })).toHaveAttribute(
+        "aria-describedby",
+        guidanceElement.id,
+      );
     },
   );
 
@@ -606,8 +663,25 @@ describe("AccommodationBookingCard", () => {
       bookingActions: { onAbandonQuote },
     });
 
-    expect(screen.getByText("서버에서 확인한 최종 요금")).toBeInTheDocument();
-    expect(screen.getAllByText("₩175,000")).not.toHaveLength(0);
+    const quoteSummary = screen.getByRole("region", {
+      name: "확정된 예약 견적",
+    });
+    expect(within(quoteSummary).getByText("서버 견적")).toBeInTheDocument();
+    expect(
+      within(quoteSummary).getByText("서버에서 확인한 최종 요금"),
+    ).toBeInTheDocument();
+    expect(
+      within(quoteSummary).getByText(
+        "아래 금액을 확인한 뒤 예약을 계속해주세요.",
+      ),
+    ).toBeInTheDocument();
+    expect(within(quoteSummary).getByText("견적 유효 시각")).toBeVisible();
+    expect(within(quoteSummary).getByText(/까지$/)).toHaveAttribute(
+      "datetime",
+      "2026-09-01T10:10:00Z",
+    );
+    expect(quoteSummary).toHaveAccessibleDescription(/견적 유효 시각.*까지/);
+    expect(within(quoteSummary).getByText("₩175,000")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /체크인/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: /인원/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: "해제" })).toBeDisabled();
@@ -617,6 +691,67 @@ describe("AccommodationBookingCard", () => {
     fireEvent.click(screen.getByRole("button", { name: "조건 다시 선택" }));
     expect(onAbandonQuote).toHaveBeenCalledOnce();
   });
+
+  it("keeps the quote-expiry fallback without an invalid time semantic", () => {
+    setupBookingCard({
+      bookingState: {
+        quoteSnapshot: {
+          amount: 175_000,
+          canCheckout: true,
+          currency: "KRW",
+          discountAmount: 25_000,
+          nightlyPrice: 100_000,
+          nights: 2,
+          phase: "quoted",
+          quoteExpiresAt: "invalid-expiry",
+          subtotal: 200_000,
+        },
+        reservationStatus: "quoted",
+        selectionLocked: true,
+      },
+    });
+
+    const quoteSummary = screen.getByRole("region", {
+      name: "확정된 예약 견적",
+    });
+    expect(within(quoteSummary).getByText("유효 시간 내")).toBeVisible();
+    expect(
+      within(quoteSummary).queryByText("유효 시간 내", { selector: "time" }),
+    ).not.toBeInTheDocument();
+    expect(quoteSummary).toHaveAccessibleDescription(/유효 시간 내/);
+  });
+
+  it.each([
+    [
+      "quoting",
+      "최종 요금 확인 중...",
+      "서버에서 최종 요금을 확인하고 있습니다.",
+    ],
+    [
+      "checking-out",
+      "예약 처리 중...",
+      "예약을 처리하고 있습니다. 잠시만 기다려주세요.",
+    ],
+  ] as const)(
+    "announces the %s reservation transition without changing its action label",
+    (reservationStatus, actionLabel, announcement) => {
+      setupBookingCard({
+        bookingState: {
+          isReserving: true,
+          reservationStatus,
+        },
+      });
+
+      const status = screen.getByRole("status");
+      expect(status).toHaveTextContent(announcement);
+      expect(status).toHaveAttribute("aria-live", "polite");
+      expect(status).toHaveAttribute("aria-atomic", "true");
+      expect(screen.getByRole("button", { name: actionLabel })).toHaveAttribute(
+        "aria-busy",
+        "true",
+      );
+    },
+  );
 
   it("disables the reserve button while a reservation is being created", () => {
     const bookingProps = setupBookingCard({
@@ -645,5 +780,30 @@ describe("AccommodationBookingCard", () => {
 
     fireEvent.click(reserveButton);
     expect(bookingProps.bookingActions.onReserve).not.toHaveBeenCalled();
+  });
+
+  it("keeps narrow booking content, touch targets, focus rings, and motion preferences in local styles", () => {
+    const css = readFileSync(
+      `${__dirname}/AccommodationBookingCard.module.css`,
+      "utf8",
+    );
+
+    expect(css).toMatch(
+      /\.bookingCard\s*\{[\s\S]*?min-width:\s*0;[\s\S]*?max-width:\s*100%;/,
+    );
+    expect(css).toMatch(/\.quoteSummary\s*\{[\s\S]*?max-width:\s*100%;/);
+    expect(css).toContain("@media (--viewport-phone)");
+    expect(css).toMatch(
+      /\.guestPickerClose\s*\{[\s\S]*?min-height:\s*var\(--control-touch-target\);/,
+    );
+    expect(css).toMatch(
+      /\.reserveButton\s*\{[\s\S]*?min-height:\s*var\(--control-touch-target\);/,
+    );
+    expect(css).toMatch(
+      /\.reserveButton:focus-visible\s*\{[\s\S]*?box-shadow:\s*var\(--focus-ring-visible\);/,
+    );
+    expect(css).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.reserveButton\s*\{[\s\S]*?transition:\s*none;/,
+    );
   });
 });

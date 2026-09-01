@@ -122,6 +122,37 @@ interface GuestCounterRowProps {
   value: number;
 }
 
+const bookingSelectionGuidance: Record<
+  Exclude<BookingReserveActionProps["selectionState"], "ready">,
+  string
+> = {
+  "availability-unavailable":
+    "예약 가능 날짜 정보를 확인한 뒤 날짜를 다시 선택해주세요.",
+  "fully-booked": "현재 예약 가능한 날짜가 없어요. 다른 숙소를 확인해주세요.",
+  incomplete: "체크인과 체크아웃 날짜를 모두 선택해주세요.",
+  invalid: "체크아웃은 체크인 다음 날짜부터 선택할 수 있어요.",
+  "outside-window": "숙소의 예약 가능 기간 안에서 날짜를 다시 선택해주세요.",
+  unavailable: "선택한 숙박 기간에 예약할 수 없는 날짜가 포함되어 있어요.",
+};
+
+const getBookingSelectionGuidance = ({
+  availabilityStatus,
+  selectionState,
+}: Pick<BookingReserveActionProps, "availabilityStatus" | "selectionState">):
+  string | null => {
+  if (availabilityStatus === "loading") {
+    return "예약 가능한 날짜를 확인하고 있어요. 확인이 끝나면 날짜를 선택할 수 있습니다.";
+  }
+
+  if (availabilityStatus === "error") {
+    return "날짜 정보를 불러오지 못했어요. ‘다시 시도’를 눌러 예약 가능 여부를 확인해주세요.";
+  }
+
+  return selectionState === "ready"
+    ? null
+    : bookingSelectionGuidance[selectionState];
+};
+
 const buildGuestSummary = ({
   adultCount,
   childCount,
@@ -634,8 +665,19 @@ export function BookingReserveAction({
   reservationStatus,
   selectionState,
 }: BookingReserveActionProps) {
+  const selectionGuidanceId = React.useId();
   const canContinueExistingFlow =
     reservationStatus === "quoted" || reservationStatus === "terminal-ready";
+  const selectionGuidance = getBookingSelectionGuidance({
+    availabilityStatus,
+    selectionState,
+  });
+  const progressAnnouncement =
+    reservationStatus === "quoting"
+      ? "서버에서 최종 요금을 확인하고 있습니다."
+      : reservationStatus === "checking-out"
+        ? "예약을 처리하고 있습니다. 잠시만 기다려주세요."
+        : null;
   const loadingLabel =
     reservationStatus === "quoting"
       ? "최종 요금 확인 중..."
@@ -672,10 +714,32 @@ export function BookingReserveAction({
 
   return (
     <>
+      {progressAnnouncement && (
+        <span
+          className={styles.statusAnnouncement}
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {progressAnnouncement}
+        </span>
+      )}
+
+      {selectionGuidance && (
+        <p
+          className={styles.selectionGuidance}
+          data-selection-state={selectionState}
+          id={selectionGuidanceId}
+        >
+          {selectionGuidance}
+        </p>
+      )}
+
       <Button
         fullWidth
         size="lg"
         className={styles.reserveButton}
+        aria-describedby={selectionGuidance ? selectionGuidanceId : undefined}
         disabled={
           isReservationLocked ||
           (!canContinueExistingFlow &&
@@ -716,19 +780,22 @@ export function BookingQuoteSummary({
   quoteExpiresAt,
   subtotal,
 }: BookingQuoteSummaryProps) {
+  const expiryDescriptionId = React.useId();
+  const quoteExpiryLabel = formatQuoteExpiry(quoteExpiresAt);
+  const hasExactQuoteExpiry = !Number.isNaN(new Date(quoteExpiresAt).getTime());
+
   return (
-    <section className={styles.quoteSummary} aria-label="확정된 예약 견적">
+    <section
+      className={styles.quoteSummary}
+      aria-describedby={expiryDescriptionId}
+      aria-label="확정된 예약 견적"
+    >
       <div className={styles.quoteSummaryHeader}>
+        <span className={styles.quoteSummaryBadge}>서버 견적</span>
         <strong>서버에서 확인한 최종 요금</strong>
-        {canAbandon && (
-          <button
-            className={styles.quoteResetButton}
-            onClick={onAbandonQuote}
-            type="button"
-          >
-            조건 다시 선택
-          </button>
-        )}
+        <span className={styles.quoteSummaryDescription}>
+          아래 금액을 확인한 뒤 예약을 계속해주세요.
+        </span>
       </div>
       <div className={styles.quoteSummaryRow}>
         <span>숙박 요금</span>
@@ -742,11 +809,29 @@ export function BookingQuoteSummary({
       )}
       <div className={styles.quoteSummaryTotal}>
         <span>결제 예정 금액 ({currency})</span>
-        <span>₩{amount.toLocaleString("ko-KR")}</span>
+        <strong>₩{amount.toLocaleString("ko-KR")}</strong>
       </div>
-      <p className={styles.quoteExpiry}>
-        {formatQuoteExpiry(quoteExpiresAt)}까지 유효한 견적입니다.
-      </p>
+      <div className={styles.quoteSummaryFooter}>
+        <p className={styles.quoteExpiry} id={expiryDescriptionId}>
+          <span>견적 유효 시각</span>
+          <strong>
+            {hasExactQuoteExpiry ? (
+              <time dateTime={quoteExpiresAt}>{quoteExpiryLabel}까지</time>
+            ) : (
+              quoteExpiryLabel
+            )}
+          </strong>
+        </p>
+        {canAbandon && (
+          <button
+            className={styles.quoteResetButton}
+            onClick={onAbandonQuote}
+            type="button"
+          >
+            조건 다시 선택
+          </button>
+        )}
+      </div>
     </section>
   );
 }
