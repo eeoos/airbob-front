@@ -153,6 +153,32 @@ const getBookingSelectionGuidance = ({
     : bookingSelectionGuidance[selectionState];
 };
 
+const getReservationProgressCopy = (
+  reservationStatus: BookingReserveActionProps["reservationStatus"],
+): { readonly announcement: string | null; readonly loadingLabel: string } => {
+  if (reservationStatus === "quoting") {
+    return {
+      announcement: "서버에서 최종 요금을 확인하고 있습니다.",
+      loadingLabel: "최종 요금 확인 중...",
+    };
+  }
+
+  if (reservationStatus === "checking-out") {
+    return {
+      announcement: "예약을 처리하고 있습니다. 잠시만 기다려주세요.",
+      loadingLabel: "예약 처리 중...",
+    };
+  }
+
+  return {
+    announcement: null,
+    loadingLabel:
+      reservationStatus === "completing"
+        ? "예약 내역 갱신 중..."
+        : "예약 중...",
+  };
+};
+
 const buildGuestSummary = ({
   adultCount,
   childCount,
@@ -672,20 +698,8 @@ export function BookingReserveAction({
     availabilityStatus,
     selectionState,
   });
-  const progressAnnouncement =
-    reservationStatus === "quoting"
-      ? "서버에서 최종 요금을 확인하고 있습니다."
-      : reservationStatus === "checking-out"
-        ? "예약을 처리하고 있습니다. 잠시만 기다려주세요."
-        : null;
-  const loadingLabel =
-    reservationStatus === "quoting"
-      ? "최종 요금 확인 중..."
-      : reservationStatus === "checking-out"
-        ? "예약 처리 중..."
-        : reservationStatus === "completing"
-          ? "예약 내역 갱신 중..."
-          : "예약 중...";
+  const { announcement: progressAnnouncement, loadingLabel } =
+    getReservationProgressCopy(reservationStatus);
   const actionLabel = (() => {
     if (isReservationLocked) return "예약 내역 확인 필요";
     if (reservationStatus === "quoted") return "예약 계속하기";
@@ -726,11 +740,7 @@ export function BookingReserveAction({
       )}
 
       {selectionGuidance && (
-        <p
-          className={styles.selectionGuidance}
-          data-selection-state={selectionState}
-          id={selectionGuidanceId}
-        >
+        <p className={styles.selectionGuidance} id={selectionGuidanceId}>
           {selectionGuidance}
         </p>
       )}
@@ -761,16 +771,6 @@ export function BookingReserveAction({
   );
 }
 
-const formatQuoteExpiry = (value: string): string => {
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime())
-    ? "유효 시간 내"
-    : parsed.toLocaleTimeString("ko-KR", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-};
-
 export function BookingQuoteSummary({
   amount,
   canAbandon,
@@ -781,8 +781,14 @@ export function BookingQuoteSummary({
   subtotal,
 }: BookingQuoteSummaryProps) {
   const expiryDescriptionId = React.useId();
-  const quoteExpiryLabel = formatQuoteExpiry(quoteExpiresAt);
-  const hasExactQuoteExpiry = !Number.isNaN(new Date(quoteExpiresAt).getTime());
+  const quoteExpiry = new Date(quoteExpiresAt);
+  const hasExactQuoteExpiry = !Number.isNaN(quoteExpiry.getTime());
+  const quoteExpiryLabel = hasExactQuoteExpiry
+    ? quoteExpiry.toLocaleTimeString("ko-KR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "유효 시간 내";
 
   return (
     <section

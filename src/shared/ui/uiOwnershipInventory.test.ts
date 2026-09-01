@@ -94,6 +94,10 @@ const sharedStateRecipeOwners = {
     "detail loading and terminal-error recipes",
   "src/screens/accommodation-edit/AccommodationEditScreen.tsx":
     "editor loading, retryable-error and terminal-error recipes",
+  "src/screens/reservation-confirm/ReservationConfirmScreen.tsx":
+    "checkout loading and terminal-error recipes",
+  "src/screens/reservation-detail/GuestReservationDetailScreen.tsx":
+    "guest reservation loading, retryable-error and terminal-error recipes",
   "src/shared/ui/StateView/StateView.tsx": "domain-free state recipe renderer",
 } as const;
 
@@ -110,8 +114,6 @@ const intentionallyLocalStateOwners = {
     "pagination-local progress status",
   "src/screens/payment-result/PaymentResultScreen.tsx":
     "workflow-specific operation progress and outcome",
-  "src/screens/reservation-confirm/ReservationConfirmScreen.tsx":
-    "checkout workflow state surface",
   "src/screens/review-create/ReviewCreateScreen.tsx":
     "review workflow state surface",
   "src/shared/ui/DatePicker/DatePicker.tsx": "calendar interaction status",
@@ -174,7 +176,7 @@ describe("production UI owner inventory", () => {
 
   it("accounts for state recipe adopters and intentional local semantics", () => {
     const stateOwnerPattern =
-      /<LoadingState\b|<EmptyState\b|<ErrorState\b|<RetryableErrorState\b|<TerminalErrorState\b|stateViewRecipes[.]|role="(?:status|alert)"|className=\{[^}]*styles[.](?:loading|empty|error)\}/;
+      /<LoadingState\b|<EmptyState\b|<ErrorState\b|<RetryableErrorState\b|<TerminalErrorState\b|stateViewRecipes[.]|role=(?:"(?:status|alert)"|\{[^}]*"(?:status|alert)"[^}]*\})|className=\{[^}]*styles[.](?:loading|empty|error)\}/;
     const discovered = discoverOwners(
       (source, path) => path.endsWith(".tsx") && stateOwnerPattern.test(source),
     );

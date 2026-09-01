@@ -92,7 +92,6 @@ function PaymentStateMark({
   readonly mode: PaymentResultScreenMode;
 }) {
   const commonSvgProps = {
-    "aria-hidden": true,
     focusable: false,
     viewBox: "0 0 48 48",
   } as const;
@@ -187,10 +186,7 @@ export function PaymentResultScreen({
       aria-labelledby="payment-result-title"
       variant="narrow"
     >
-      <article
-        className={`${styles.content} ${contentClassByMode[mode]}`}
-        data-payment-result-mode={mode}
-      >
+      <article className={`${styles.content} ${contentClassByMode[mode]}`}>
         <div className={styles.ledgerHeader} aria-hidden="true">
           <span className={styles.ledgerBrand}>AIRBOB 예약 기록</span>
           <span className={styles.ledgerMeta}>결제 상태</span>
