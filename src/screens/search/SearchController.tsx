@@ -10,7 +10,10 @@ import {
   SEARCH_PAGE_LIMIT,
   toSearchRequest,
 } from "../../features/search/lib/searchRequest";
-import type { SearchCommittedRouteState } from "../../features/search/model/search";
+import type {
+  SearchCommittedRouteState,
+  SearchResultPage,
+} from "../../features/search/model/search";
 import {
   useSearchResultsReadQuery,
   type SearchResultsQueryOptions,
@@ -85,6 +88,22 @@ const searchRequestIdentity = (
   request: ReturnType<typeof toSearchRequest>,
 ): string => JSON.stringify(request);
 
+const retainedSearchResultIdentity = (
+  scope: SearchQueryScope,
+  state: SearchCommittedRouteState,
+): string =>
+  JSON.stringify([
+    scope.subject,
+    scope.epoch,
+    state.destination,
+    state.checkIn,
+    state.checkOut,
+    state.adultOccupancy,
+    state.childOccupancy,
+    state.infantOccupancy,
+    state.petOccupancy,
+  ]);
+
 const clampResultPage = (page: number, totalPages: number): number => {
   const limitedTotalPages = Math.max(
     0,
@@ -141,6 +160,7 @@ export function SearchController({
   } = useSearchMapState();
   const request = useMemo(() => toSearchRequest(routeState), [routeState]);
   const query = useSearchResultsReadQuery({ request, scope });
+  const { refetch: refetchSearchResults } = query;
   const viewport = useMemo(() => toViewport(routeState), [routeState]);
   const isMapDragMode =
     viewport !== null && routeState.destination === undefined;
@@ -152,7 +172,10 @@ export function SearchController({
   const pendingBoundsRequestRef = useRef<string | null>(null);
   const pendingAuthAttemptIdRef = useRef<number | null>(null);
   const handledResumeAttemptRef = useRef<number | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const retainedResultRef = useRef<{
+    readonly identity: string;
+    readonly result: SearchResultPage;
+  } | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [pendingWishlistAccommodationId, setPendingWishlistAccommodationId] =
     useState<number | null>(null);
@@ -164,10 +187,27 @@ export function SearchController({
     () => searchRequestIdentity(request),
     [request],
   );
+  const retainedResultIdentity = retainedSearchResultIdentity(
+    scope,
+    routeState,
+  );
 
   useEffect(() => {
-    setErrorMessage(null);
+    if (!query.data || query.isError || query.isPlaceholderData) return;
 
+    retainedResultRef.current = {
+      identity: retainedResultIdentity,
+      result: query.data,
+    };
+  }, [
+    query.data,
+    query.dataUpdatedAt,
+    query.isError,
+    query.isPlaceholderData,
+    retainedResultIdentity,
+  ]);
+
+  useEffect(() => {
     if (pendingScrollRequestRef.current !== requestIdentity) {
       pendingScrollRequestRef.current = null;
     }
@@ -181,8 +221,7 @@ export function SearchController({
 
     pendingScrollRequestRef.current = null;
     pendingBoundsRequestRef.current = null;
-    setErrorMessage(toSearchErrorMessage(query.error));
-  }, [query.error, query.errorUpdatedAt, query.isError]);
+  }, [query.errorUpdatedAt, query.isError]);
 
   useEffect(() => {
     const previousViewportIdentity = previousViewportIdentityRef.current;
@@ -203,8 +242,6 @@ export function SearchController({
     ) {
       return;
     }
-
-    setErrorMessage(null);
 
     if (pendingBoundsRequestRef.current === requestIdentity) {
       pendingBoundsRequestRef.current = null;
@@ -248,9 +285,16 @@ export function SearchController({
     setWishlistAccommodationId(null);
   }, [wishlistMembership?.scope.epoch, wishlistMembership?.scope.subject]);
 
+  const retainedResult =
+    query.isError &&
+    retainedResultRef.current?.identity === retainedResultIdentity
+      ? retainedResultRef.current.result
+      : undefined;
+  const visibleResult = query.data ?? retainedResult;
+  const isShowingRetainedResult = query.data === undefined && !!retainedResult;
   const accommodations = useMemo(
-    () => query.data?.accommodations ?? [],
-    [query.data?.accommodations],
+    () => visibleResult?.accommodations ?? [],
+    [visibleResult?.accommodations],
   );
   const accommodationCards = useMemo(
     () => accommodations.map(toSearchAccommodationCardViewModel),
@@ -260,7 +304,14 @@ export function SearchController({
     () => accommodations.map(toSearchAccommodationMapViewModel),
     [accommodations],
   );
-  const pageInfo = query.data?.pageInfo;
+  const pageInfo = visibleResult?.pageInfo;
+  const errorMessage = query.isError ? toSearchErrorMessage(query.error) : null;
+  const isErrorRetryable =
+    query.isError &&
+    typeof query.error === "object" &&
+    query.error !== null &&
+    "retryable" in query.error &&
+    query.error.retryable === true;
   const totalPages = Math.max(
     0,
     Math.min(pageInfo?.totalPages ?? 0, SEARCH_PAGE_LIMIT),
@@ -347,7 +398,12 @@ export function SearchController({
     setWishlistAccommodationId(null);
   }, []);
 
-  const canOpenWishlist = !query.isPlaceholderData;
+  const retrySearch = useCallback(() => {
+    void refetchSearchResults();
+  }, [refetchSearchResults]);
+
+  const canOpenWishlist =
+    !query.isPlaceholderData && !query.isError && !isShowingRetainedResult;
   const wishlistModal =
     wishlistMembership && wishlistAccommodationId !== null
       ? {
@@ -370,6 +426,7 @@ export function SearchController({
       }}
       bottomSheet={bottomSheet}
       errorMessage={errorMessage}
+      isErrorRetryable={isErrorRetryable}
       getAccommodationHref={navigation.getAccommodationHref}
       map={{
         handleAccommodationSelect,
@@ -385,14 +442,15 @@ export function SearchController({
         viewport,
       }}
       onAccommodationOpen={openAccommodation}
-      onClearError={() => setErrorMessage(null)}
       onPageChange={handlePageChange}
+      onRetry={retrySearch}
       results={{
         accommodationCards,
         accommodationMapItems,
         currentPage,
-        isLoading: query.isFetching,
-        isPlaceholderData: query.isPlaceholderData,
+        isLoading: query.isFetching && visibleResult === undefined,
+        isPlaceholderData: query.isPlaceholderData || isShowingRetainedResult,
+        isRefreshing: query.isFetching && visibleResult !== undefined,
         totalElements: pageInfo?.totalElements ?? 0,
         totalPages,
       }}

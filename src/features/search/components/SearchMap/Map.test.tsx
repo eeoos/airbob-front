@@ -53,7 +53,9 @@ describe("SearchMap", () => {
   it("renders loading feedback while forwarding absent composition inputs", () => {
     render(<Map {...baseProps} />);
 
-    expect(screen.getByText("지도를 불러오는 중...")).toBeVisible();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "지도를 불러오는 중입니다.",
+    );
     expect(hookMocks.useGoogleMapInstance.mock.calls[0]?.[0]).toHaveProperty(
       "viewport",
       undefined,
@@ -161,7 +163,15 @@ describe("SearchMap", () => {
 
       render(<Map {...baseProps} />);
 
-      expect(screen.getByText("지도를 불러올 수 없습니다.")).toBeVisible();
+      expect(
+        screen.getByRole("heading", {
+          name: "지도 없이 결과를 둘러볼 수 있어요",
+        }),
+      ).toBeVisible();
+      expect(screen.getByRole("alert")).toHaveAttribute(
+        "data-state-kind",
+        "terminal-error",
+      );
     },
   );
 });

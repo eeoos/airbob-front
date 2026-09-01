@@ -1,0 +1,147 @@
+.stateOwner {
+  width: 100%;
+  min-width: 0;
+  border-radius: var(--radius-content-card);
+}
+
+.stateOwner:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-visible);
+}
+
+.retryButton {
+  min-height: var(--control-touch-target);
+  border-radius: var(--radius-action);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+.retryButton:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-visible);
+}
+
+.retryButton:not(:disabled):hover {
+  border-color: var(--color-action-primary);
+  background: var(--color-surface-brand-subtle);
+}
+
+.statusText {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.state {
+  min-height: 280px;
+  border-radius: var(--radius-content-card);
+  background: var(--color-surface-brand-subtle);
+}
+
+.loadingState {
+  width: 100%;
+}
+
+.skeletonGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-6);
+  width: 100%;
+}
+
+.skeletonCard {
+  min-width: 0;
+}
+
+.skeletonImage {
+  width: 100%;
+  aspect-ratio: var(--listing-card-media-ratio);
+  border-radius: var(--radius-content-card);
+}
+
+.skeletonCopy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+}
+
+.skeletonLineWide,
+.skeletonLineMedium,
+.skeletonLineShort {
+  height: var(--space-3);
+  border-radius: var(--radius-pill);
+}
+
+.skeletonLineWide {
+  width: 84%;
+}
+
+.skeletonLineMedium {
+  width: 64%;
+}
+
+.skeletonLineShort {
+  width: 44%;
+}
+
+.refreshError {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-action);
+  background: var(--color-status-danger-bg);
+  color: var(--color-text-primary);
+}
+
+.refreshErrorCopy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+}
+
+.refreshErrorCopy span {
+  color: var(--color-text-secondary);
+}
+
+@media (--viewport-compact) {
+  .skeletonGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (--viewport-tablet) {
+  .skeletonGrid,
+  .skeletonGrid[data-layout="bottomSheet"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .refreshError {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .retryButton {
+    transition: none;
+  }
+
+  .skeletonImage,
+  .skeletonLineWide,
+  .skeletonLineMedium,
+  .skeletonLineShort {
+    animation: none;
+  }
+}

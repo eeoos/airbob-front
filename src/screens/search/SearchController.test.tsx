@@ -1,5 +1,6 @@
 import { act, render } from "@testing-library/react";
 import type { SearchResultPage } from "../../features/search/model/search";
+import { AppError } from "../../platform/http/errors";
 import type { SearchScreenProps } from "./SearchScreen";
 import {
   SearchController,
@@ -15,6 +16,7 @@ let mockQueryResult: {
   isError: boolean;
   isFetching: boolean;
   isPlaceholderData: boolean;
+  refetch: ReturnType<typeof vi.fn>;
 };
 
 const mockUseSearchResultsReadQuery = vi.fn();
@@ -149,6 +151,7 @@ describe("SearchController", () => {
       isError: false,
       isFetching: false,
       isPlaceholderData: false,
+      refetch: vi.fn(),
     };
   });
 
@@ -328,7 +331,12 @@ describe("SearchController", () => {
     mockQueryResult = {
       ...mockQueryResult,
       data: undefined,
-      error: new Error("검색 서버 연결 실패"),
+      error: new AppError({
+        kind: "server",
+        code: "SERVER_ERROR",
+        message: "검색 서버 연결 실패",
+        retryable: true,
+      }),
       errorUpdatedAt: 2,
       isError: true,
     };
@@ -338,13 +346,22 @@ describe("SearchController", () => {
     expect(currentScreenProps().errorMessage).toBe(
       "검색 결과를 불러오지 못했습니다.",
     );
+    expect(currentScreenProps().isErrorRetryable).toBe(true);
+
+    act(() => currentScreenProps().onRetry());
+    expect(mockQueryResult.refetch).toHaveBeenCalledTimes(1);
   });
 
   it("clears a same-request error after a successful refetch settles", () => {
     mockQueryResult = {
       ...mockQueryResult,
       data: undefined,
-      error: new Error("검색 서버 연결 실패"),
+      error: new AppError({
+        kind: "server",
+        code: "SERVER_ERROR",
+        message: "검색 서버 연결 실패",
+        retryable: true,
+      }),
       errorUpdatedAt: 2,
       isError: true,
     };
@@ -367,5 +384,55 @@ describe("SearchController", () => {
     view.rerender(<SearchController {...props} />);
 
     expect(currentScreenProps().errorMessage).toBeNull();
+  });
+
+  it("keeps the last successful page when a same-family page transition fails", () => {
+    const props = baseProps();
+    const view = render(<SearchController {...props} />);
+
+    mockQueryResult = {
+      ...mockQueryResult,
+      data: undefined,
+      error: new AppError({
+        kind: "server",
+        code: "SERVER_ERROR",
+        message: "다음 페이지를 불러오지 못했습니다.",
+        retryable: true,
+      }),
+      errorUpdatedAt: 2,
+      isError: true,
+    };
+    view.rerender(
+      <SearchController
+        {...props}
+        routeState={{ ...props.routeState, page: 2 }}
+      />,
+    );
+
+    expect(currentScreenProps().results.accommodationCards).toHaveLength(1);
+    expect(currentScreenProps().results.accommodationCards[0]?.id).toBe(7);
+    expect(currentScreenProps().results.isPlaceholderData).toBe(true);
+    expect(currentScreenProps().errorMessage).toBe(
+      "검색 결과를 불러오지 못했습니다.",
+    );
+  });
+
+  it("does not expose retry for non-retryable search failures", () => {
+    mockQueryResult = {
+      ...mockQueryResult,
+      data: undefined,
+      error: new AppError({
+        kind: "validation",
+        code: "VALIDATION_ERROR",
+        message: "검색 조건을 확인해주세요.",
+      }),
+      errorUpdatedAt: 2,
+      isError: true,
+    };
+
+    render(<SearchController {...baseProps()} />);
+
+    expect(currentScreenProps().isErrorRetryable).toBe(false);
+    expect(currentScreenProps().errorMessage).toBe("검색 조건을 확인해주세요.");
   });
 });

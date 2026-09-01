@@ -14,7 +14,6 @@ import type {
 } from "../../features/search/components/SearchMap/types";
 import { WishlistModal } from "../../features/wishlist/components/WishlistModal";
 import { requireCssModuleClass } from "../../shared/styles/requireCssModuleClass";
-import { ToastHost } from "../../shared/ui";
 import styles from "./SearchScreen.module.css";
 
 type MotionSectionProps = ComponentProps<typeof motion.section>;
@@ -65,6 +64,7 @@ interface SearchScreenResultsProps {
   readonly currentPage: number;
   readonly isLoading: boolean;
   readonly isPlaceholderData: boolean;
+  readonly isRefreshing: boolean;
   readonly totalElements: number;
   readonly totalPages: number;
 }
@@ -76,10 +76,11 @@ export interface SearchScreenProps {
   readonly checkOut?: string | undefined;
   readonly errorMessage: string | null;
   readonly getAccommodationHref: (accommodationId: number) => string;
+  readonly isErrorRetryable: boolean;
   readonly map: SearchScreenMapProps;
   readonly onAccommodationOpen: (accommodationId: number) => void;
-  readonly onClearError: () => void;
   readonly onPageChange: (page: number) => void;
+  readonly onRetry: () => void;
   readonly onWishlistToggle?: ((accommodationId: number) => void) | undefined;
   readonly results: SearchScreenResultsProps;
   readonly wishlistModal: Omit<
@@ -127,10 +128,11 @@ export function SearchScreen({
   checkOut,
   errorMessage,
   getAccommodationHref,
+  isErrorRetryable,
   map,
   onAccommodationOpen,
-  onClearError,
   onPageChange,
+  onRetry,
   onWishlistToggle,
   results,
   wishlistModal,
@@ -140,30 +142,81 @@ export function SearchScreen({
   const bottomSheetTitleId = useId();
   const bottomSheetStateLabel =
     bottomSheetStateLabels[bottomSheet.bottomSheetState];
+  const resultCountLabel =
+    results.isLoading && !hasResults
+      ? "숙소를 찾는 중"
+      : errorMessage && !hasResults
+        ? "검색 결과"
+        : results.totalElements >= 1000
+          ? "숙소 1,000개 이상"
+          : `숙소 ${results.totalElements.toLocaleString()}개`;
+  const isPaginationBusy =
+    results.isLoading || results.isPlaceholderData || results.isRefreshing;
+  const renderMap = (
+    isExpanded: boolean,
+    onExpandToggle: () => void,
+    onMapInteraction?: () => void,
+  ) => (
+    <Map
+      accommodations={results.accommodationMapItems}
+      selectedAccommodationId={map.selectedAccommodationId}
+      hoveredAccommodationId={map.hoveredAccommodationId}
+      onAccommodationSelect={map.handleAccommodationSelect}
+      getAccommodationHref={getAccommodationHref}
+      isExpanded={isExpanded}
+      onExpandToggle={onExpandToggle}
+      onBoundsChange={map.requestBounds}
+      isMapDragMode={map.isMapDragMode}
+      shouldUpdateMapBounds={map.shouldUpdateMapBounds}
+      onMapBoundsUpdated={map.onMapBoundsUpdated}
+      viewport={map.viewport}
+      checkIn={checkIn}
+      checkOut={checkOut}
+      onWishlistToggle={onWishlistToggle}
+      onMapInteraction={onMapInteraction}
+    />
+  );
+  const renderResults = (
+    layout: "desktop" | "bottomSheet",
+    variant: "compact" | "full",
+  ) => (
+    <>
+      <SearchResultsList
+        accommodations={results.accommodationCards}
+        errorMessage={errorMessage}
+        isErrorRetryable={isErrorRetryable}
+        isLoading={results.isLoading}
+        isRefreshing={results.isRefreshing}
+        selectedAccommodationId={map.selectedAccommodationId}
+        onAccommodationClick={onAccommodationOpen}
+        onHoveredAccommodationChange={map.setHoveredAccommodationId}
+        getAccommodationHref={getAccommodationHref}
+        layout={layout}
+        classNames={resultsListClassNames}
+        checkIn={checkIn}
+        checkOut={checkOut}
+        onWishlistToggle={onWishlistToggle}
+        onRetry={onRetry}
+      />
+      {hasResults && (
+        <SearchPagination
+          currentPage={results.currentPage}
+          totalPages={results.totalPages}
+          isLoading={isPaginationBusy}
+          onPageChange={onPageChange}
+          classNames={paginationClassNames}
+          variant={variant}
+        />
+      )}
+    </>
+  );
   return (
     <>
       <div className={styles.container}>
         {bottomSheet.isMobileOrTablet ? (
           <>
             <div className={styles.mapLayer}>
-              <Map
-                accommodations={results.accommodationMapItems}
-                selectedAccommodationId={map.selectedAccommodationId}
-                hoveredAccommodationId={map.hoveredAccommodationId}
-                onAccommodationSelect={map.handleAccommodationSelect}
-                getAccommodationHref={getAccommodationHref}
-                isExpanded={false}
-                onExpandToggle={() => {}}
-                onBoundsChange={map.requestBounds}
-                isMapDragMode={map.isMapDragMode}
-                shouldUpdateMapBounds={map.shouldUpdateMapBounds}
-                onMapBoundsUpdated={map.onMapBoundsUpdated}
-                onMapInteraction={bottomSheet.handleMapInteraction}
-                viewport={map.viewport}
-                checkIn={checkIn}
-                checkOut={checkOut}
-                onWishlistToggle={onWishlistToggle}
-              />
+              {renderMap(false, () => {}, bottomSheet.handleMapInteraction)}
             </div>
 
             <motion.section
@@ -209,9 +262,7 @@ export function SearchScreen({
                 </button>
 
                 <h2 id={bottomSheetTitleId} className={styles.title}>
-                  {results.totalElements >= 1000
-                    ? "숙소 1,000개 이상"
-                    : `숙소 ${results.totalElements.toLocaleString()}개`}
+                  {resultCountLabel}
                 </h2>
               </div>
 
@@ -227,28 +278,7 @@ export function SearchScreen({
                 hidden={bottomSheet.bottomSheetState === "collapsed"}
                 onScroll={bottomSheet.handleBottomSheetScroll}
               >
-                <SearchResultsList
-                  accommodations={results.accommodationCards}
-                  isLoading={results.isLoading}
-                  selectedAccommodationId={map.selectedAccommodationId}
-                  onAccommodationClick={onAccommodationOpen}
-                  getAccommodationHref={getAccommodationHref}
-                  layout="bottomSheet"
-                  classNames={resultsListClassNames}
-                  checkIn={checkIn}
-                  checkOut={checkOut}
-                  onWishlistToggle={onWishlistToggle}
-                />
-                {hasResults && (
-                  <SearchPagination
-                    currentPage={results.currentPage}
-                    totalPages={results.totalPages}
-                    isLoading={results.isLoading}
-                    onPageChange={onPageChange}
-                    classNames={paginationClassNames}
-                    variant="compact"
-                  />
-                )}
+                {renderResults("bottomSheet", "compact")}
               </div>
             </motion.section>
           </>
@@ -259,63 +289,12 @@ export function SearchScreen({
             }`}
           >
             <div className={styles.results}>
-              <h2 className={styles.title}>
-                {results.totalElements >= 1000
-                  ? "숙소 1,000개 이상"
-                  : `숙소 ${results.totalElements.toLocaleString()}개`}
-              </h2>
-              <SearchResultsList
-                accommodations={results.accommodationCards}
-                isLoading={results.isLoading}
-                selectedAccommodationId={map.selectedAccommodationId}
-                onAccommodationClick={onAccommodationOpen}
-                onHoveredAccommodationChange={map.setHoveredAccommodationId}
-                getAccommodationHref={getAccommodationHref}
-                layout="desktop"
-                classNames={resultsListClassNames}
-                checkIn={checkIn}
-                checkOut={checkOut}
-                onWishlistToggle={onWishlistToggle}
-              />
-              {hasResults && (
-                <SearchPagination
-                  currentPage={results.currentPage}
-                  totalPages={results.totalPages}
-                  isLoading={results.isLoading}
-                  onPageChange={onPageChange}
-                  classNames={paginationClassNames}
-                />
-              )}
+              <h2 className={styles.title}>{resultCountLabel}</h2>
+              {renderResults("desktop", "full")}
             </div>
             <div className={styles.mapSection}>
-              <Map
-                accommodations={results.accommodationMapItems}
-                selectedAccommodationId={map.selectedAccommodationId}
-                hoveredAccommodationId={map.hoveredAccommodationId}
-                onAccommodationSelect={map.handleAccommodationSelect}
-                getAccommodationHref={getAccommodationHref}
-                isExpanded={map.isMapExpanded}
-                onExpandToggle={map.toggleMapExpanded}
-                onBoundsChange={map.requestBounds}
-                isMapDragMode={map.isMapDragMode}
-                shouldUpdateMapBounds={map.shouldUpdateMapBounds}
-                onMapBoundsUpdated={map.onMapBoundsUpdated}
-                viewport={map.viewport}
-                checkIn={checkIn}
-                checkOut={checkOut}
-                onWishlistToggle={onWishlistToggle}
-              />
+              {renderMap(map.isMapExpanded, map.toggleMapExpanded)}
             </div>
-          </div>
-        )}
-
-        {errorMessage && (
-          <div className={styles.toastContainer}>
-            <ToastHost
-              closeLabel="오류 닫기"
-              message={errorMessage}
-              onClose={onClearError}
-            />
           </div>
         )}
       </div>

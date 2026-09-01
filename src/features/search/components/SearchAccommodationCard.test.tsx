@@ -108,7 +108,10 @@ describe("SearchAccommodationCard", () => {
     expect(
       screen.queryByRole("img", { name: "성수 숙소" }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText("이미지 없음")).toBeVisible();
+    expect(
+      screen.getByRole("img", { name: "성수 숙소 이미지 없음" }),
+    ).toBeVisible();
+    expect(screen.getByText("사진 준비 중")).toBeVisible();
     // Declarative fallback means the card never carries an imperative sibling.
     // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
     expect(container.querySelector("[hidden]")).toBeNull();
@@ -120,8 +123,10 @@ describe("SearchAccommodationCard", () => {
       "utf8",
     );
 
-    expect(css).toContain("fill: var(--color-brand-coral);");
+    expect(css).toContain("fill: var(--color-action-accent);");
     expect(css).toContain("stroke: var(--color-text-inverse);");
     expect(css).toContain("stroke: var(--color-text-primary);");
+    expect(css).toContain("width: var(--control-touch-target);");
+    expect(css).toContain("box-shadow: var(--focus-ring-visible);");
   });
 });

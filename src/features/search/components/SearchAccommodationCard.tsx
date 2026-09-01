@@ -60,7 +60,20 @@ export const SearchAccommodationCard: React.FC<
             src={accommodation.thumbnailUrl}
             alt={accommodation.name}
             fallback={
-              <div className={styles.placeholderImage}>이미지 없음</div>
+              <div
+                className={styles.placeholderImage}
+                role="img"
+                aria-label={`${accommodation.name} 이미지 없음`}
+              >
+                <svg
+                  aria-hidden="true"
+                  className={styles.placeholderIcon}
+                  viewBox="0 0 48 48"
+                >
+                  <path d="M8 14a6 6 0 0 1 6-6h20a6 6 0 0 1 6 6v20a6 6 0 0 1-6 6H14a6 6 0 0 1-6-6V14Zm3 20 9-10 7 7 4-5 7 8m-4-17a3 3 0 1 1-6 0 3 3 0 1 1 6 0Z" />
+                </svg>
+                <span>사진 준비 중</span>
+              </div>
             }
           />
         </div>

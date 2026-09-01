@@ -7,13 +7,12 @@
 }
 
 .main {
-  padding: var(--space-6) 80px 0 80px;
-  max-width: 1760px;
-  margin: 0 auto 0 auto;
-  margin-bottom: 0;
+  padding: var(--space-6) var(--space-16) 0;
+  max-width: var(--layout-page-full-max-width);
+  margin: 0 auto;
   position: relative;
   display: flex;
-  gap: var(--space-12);
+  gap: var(--space-10);
   height: calc(100vh - var(--layout-header-desktop-height));
   min-height: calc(100vh - var(--layout-header-desktop-height));
   align-items: flex-start;
@@ -91,22 +90,24 @@
   min-height: 500px;
   max-height: calc(100vh - 120px);
   align-self: flex-start;
-  overflow: visible;
+  overflow: hidden;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-content-card);
+  box-shadow: var(--shadow-surface);
 }
 
 .title {
-  font-size: var(--font-size-sm);
-  font-weight: 400;
-  color: var(--color-text-primary);
-  margin: 0 0 var(--space-6) 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-heading);
+  color: var(--color-brand-ink);
+  margin: 0 0 var(--space-5);
 }
 
 .loading,
 .empty {
-  text-align: center;
-  padding: 80px var(--space-6);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-md);
+  width: 100%;
+  min-height: 280px;
 }
 
 .paginationContainer {
@@ -142,15 +143,15 @@
 }
 
 .paginationButton {
-  min-width: 40px;
-  height: var(--control-height-md);
+  min-width: var(--control-touch-target);
+  height: var(--control-touch-target);
   padding: 0 var(--space-3);
   background-color: var(--color-background-page);
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-action);
   font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
   transition:
     background-color var(--motion-duration-base) var(--motion-ease-standard),
@@ -162,8 +163,15 @@
 }
 
 .paginationButton:hover:not(:disabled) {
-  border-color: var(--color-text-primary);
-  background-color: var(--color-background-muted);
+  border-color: var(--color-action-primary);
+  background-color: var(--color-surface-brand-subtle);
+  color: var(--color-action-primary-hover);
+}
+
+.paginationButton:focus-visible {
+  outline: 2px solid var(--color-focus-visible);
+  outline-offset: var(--space-1);
+  box-shadow: var(--focus-ring-visible);
 }
 
 .paginationButton:disabled {
@@ -172,14 +180,15 @@
 }
 
 .paginationButtonActive {
-  background-color: var(--color-text-primary);
+  background-color: var(--color-action-primary);
   color: var(--color-text-inverse);
-  border-color: var(--color-text-primary);
+  border-color: var(--color-action-primary);
 }
 
 .paginationButtonActive:hover {
-  background-color: var(--color-text-primary);
-  border-color: var(--color-text-primary);
+  background-color: var(--color-action-primary-hover);
+  border-color: var(--color-action-primary-hover);
+  color: var(--color-text-inverse);
 }
 
 .paginationEllipsis {
@@ -194,31 +203,24 @@
   min-width: 72px;
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   text-align: center;
 }
 
-.toastContainer {
-  position: fixed;
-  top: var(--space-6);
-  right: var(--space-6);
-  z-index: var(--z-toast);
-}
-
 .cardWrapper {
-  cursor: pointer;
   transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+    transform var(--motion-duration-base) var(--motion-ease-standard),
+    box-shadow var(--motion-duration-base) var(--motion-ease-standard);
   display: flex;
   width: 100%;
   height: 100%;
 }
 
 .selected {
-  outline: 2px solid var(--color-brand-coral);
+  border-radius: var(--radius-content-card);
+  outline: 2px solid var(--color-action-primary);
   outline-offset: 2px;
-  box-shadow: var(--focus-ring);
+  box-shadow: var(--focus-ring-visible);
 }
 
 /* ---- Mid-Desktop (1200-1400px) ---- */
@@ -298,7 +300,9 @@
     right: 0;
     bottom: 0;
     background: var(--color-background-page);
-    border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+    border: 1px solid var(--color-border-subtle);
+    border-bottom: 0;
+    border-radius: var(--radius-dialog) var(--radius-dialog) 0 0;
     box-shadow: var(--shadow-bottom-sheet);
     z-index: var(--z-bottom-sheet);
     display: flex;
@@ -375,14 +379,15 @@
     font: inherit;
     cursor: grab;
     flex-shrink: 0;
+    min-height: var(--control-touch-target);
     touch-action: none;
   }
 
   .dragHandle:focus-visible {
-    border-radius: var(--radius-md);
-    outline: 2px solid var(--color-text-primary);
+    border-radius: var(--radius-action);
+    outline: 2px solid var(--color-focus-visible);
     outline-offset: -2px;
-    box-shadow: var(--focus-ring);
+    box-shadow: var(--focus-ring-visible);
   }
 
   .dragHandle:active {
@@ -398,9 +403,9 @@
 
   /* Title in Header */
   .bottomSheetHeader .title {
-    font-size: var(--font-size-sm);
-    font-weight: 400;
-    color: var(--color-text-primary);
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-brand-ink);
     margin: 0;
     padding: 0 0 var(--space-3) 0;
     text-align: center;
@@ -415,8 +420,8 @@
     width: 100%;
     box-sizing: border-box;
     transition:
-      opacity 0.3s ease,
-      visibility 0.3s ease;
+      opacity var(--motion-duration-slow) var(--motion-ease-standard),
+      visibility var(--motion-duration-slow) var(--motion-ease-standard);
   }
 
   .bottomSheetContent.hidden {
@@ -448,13 +453,13 @@
   .cardGrid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-4);
+    gap: var(--space-6);
     margin-bottom: var(--space-4);
     width: 100%;
     box-sizing: border-box;
     transition:
-      opacity 0.3s ease,
-      transform 0.3s ease;
+      opacity var(--motion-duration-slow) var(--motion-ease-standard),
+      transform var(--motion-duration-slow) var(--motion-ease-standard);
   }
 
   /* Collapsed state: show ~1 row (2 cards) on tablet */
@@ -529,25 +534,25 @@
   }
 
   .bottomSheetHeader .title {
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     padding: 0 0 var(--space-2) 0;
   }
 
   .dragHandle {
-    padding: 10px 0 6px 0;
+    padding: var(--space-2) 0;
   }
 
   /* Card Grid - Mobile: 1 column */
   .cardGrid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: var(--space-4);
+    gap: var(--space-6);
     margin-bottom: var(--space-4);
     width: 100%;
     box-sizing: border-box;
     transition:
-      opacity 0.3s ease,
-      transform 0.3s ease;
+      opacity var(--motion-duration-slow) var(--motion-ease-standard),
+      transform var(--motion-duration-slow) var(--motion-ease-standard);
   }
 
   /* Collapsed state: show ~1 card on mobile */
@@ -561,15 +566,15 @@
     width: 100%;
     box-sizing: border-box;
     transition:
-      opacity 0.3s ease,
-      visibility 0.3s ease;
+      opacity var(--motion-duration-slow) var(--motion-ease-standard),
+      visibility var(--motion-duration-slow) var(--motion-ease-standard);
   }
 
   .paginationButton {
-    min-width: 36px;
-    height: 36px;
-    padding: 0 10px;
-    font-size: 13px;
+    min-width: var(--control-touch-target);
+    height: var(--control-touch-target);
+    padding: 0 var(--space-2);
+    font-size: var(--font-size-sm);
   }
 
   /* 카드 래퍼 오버플로우 방지 */

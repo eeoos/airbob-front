@@ -63,6 +63,7 @@ vi.mock("../../features/search/components/SearchMap", () => ({
 
 vi.mock("../../features/search/components/SearchResultsList", () => ({
   SearchResultsList: (props: {
+    errorMessage?: string | null;
     layout: string;
     onAccommodationClick: (accommodationId: number) => void;
     onWishlistToggle?: (accommodationId: number) => void;
@@ -135,6 +136,7 @@ const createProps = (
   checkOut: "2026-07-12",
   errorMessage: null,
   getAccommodationHref: (id) => `/accommodations/${id}`,
+  isErrorRetryable: false,
   map: {
     handleAccommodationSelect: vi.fn(),
     hoveredAccommodationId: null,
@@ -149,8 +151,8 @@ const createProps = (
     viewport: null,
   },
   onAccommodationOpen: vi.fn(),
-  onClearError: vi.fn(),
   onPageChange: vi.fn(),
+  onRetry: vi.fn(),
   onWishlistToggle: vi.fn(),
   results: {
     accommodationCards: [
@@ -185,6 +187,7 @@ const createProps = (
     currentPage: 1,
     isLoading: false,
     isPlaceholderData: false,
+    isRefreshing: false,
     totalElements: 42,
     totalPages: 3,
   },
@@ -254,7 +257,9 @@ describe("SearchScreen", () => {
       "data-layout",
       "bottomSheet",
     );
-    expect(screen.getByText("검색 요청 실패")).toBeVisible();
+    expect(mockResultsList).toHaveBeenCalledWith(
+      expect.objectContaining({ errorMessage: "검색 요청 실패" }),
+    );
     expect(screen.getByTestId("wishlist-modal")).toHaveTextContent("7");
     expect(screen.getByRole("button", { name: "next page" })).toHaveAttribute(
       "data-pagination-variant",
