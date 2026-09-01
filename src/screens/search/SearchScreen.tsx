@@ -1,12 +1,9 @@
-import {
-  lazy,
-  Suspense,
-  useId,
-  type ComponentProps,
-  type RefObject,
-} from "react";
+import { useId, type ComponentProps, type RefObject } from "react";
 import { motion, type MotionStyle } from "framer-motion";
-import type { AuthModalProps } from "../../features/auth/components/AuthModal/AuthModal";
+import {
+  DeferredAuthModal,
+  type AuthModalProps,
+} from "../../features/auth/public";
 import type {
   SearchAccommodationCardViewModel,
   SearchAccommodationMapViewModel,
@@ -74,13 +71,6 @@ interface SearchScreenResultsProps {
   readonly totalElements: number;
   readonly totalPages: number;
 }
-
-const LazyAuthModal = lazy(async () => {
-  const { AuthModal } =
-    await import("../../features/auth/components/AuthModal");
-
-  return { default: AuthModal };
-});
 
 export interface SearchScreenProps {
   readonly authModal: AuthModalProps;
@@ -316,17 +306,7 @@ export function SearchScreen({
         <WishlistModal {...wishlistModal} isOpen />
       )}
 
-      {authModal.isOpen && (
-        <Suspense
-          fallback={
-            <span className={styles.srOnly} role="status">
-              계정 화면을 불러오고 있습니다.
-            </span>
-          }
-        >
-          <LazyAuthModal {...authModal} />
-        </Suspense>
-      )}
+      {authModal.isOpen && <DeferredAuthModal {...authModal} />}
     </>
   );
 }

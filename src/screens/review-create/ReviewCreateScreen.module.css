@@ -570,8 +570,8 @@
 
   .starLabel,
   .starVisual {
-    width: 48px;
-    height: 48px;
+    width: var(--space-12);
+    height: var(--space-12);
   }
 
   .imagePreviewContainer {

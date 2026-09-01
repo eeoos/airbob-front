@@ -76,6 +76,8 @@ const sharedStateRecipeOwners = {
   "src/app/router/Router.tsx": "route suspense loading recipe",
   "src/features/accommodations/detail/components/AccommodationReviewsSection.tsx":
     "accommodation review loading, empty and retryable-error recipes",
+  "src/features/auth/components/AuthModal/DeferredAuthModal.tsx":
+    "deferred account loading and retryable-error recipes",
   "src/features/profile/HostListingsPanel.tsx": "host list recipes",
   "src/features/reservations/GuestTripsPanel.tsx": "guest trip recipes",
   "src/features/reservations/HostReservationsPanel.tsx":
@@ -130,8 +132,6 @@ const intentionallyLocalStateOwners = {
     "workflow-specific operation progress and outcome",
   "src/screens/accommodation-edit/components/EditWizardNavigation.tsx":
     "editor draft creation progress label",
-  "src/screens/search/SearchScreen.tsx":
-    "account dialog chunk loading announcement",
   "src/shared/ui/DatePicker/DatePicker.tsx": "calendar interaction status",
   "src/shared/ui/TextField/TextField.tsx": "field-local validation message",
   "src/shared/ui/ToastHost/ToastHost.tsx": "assertive transient message host",

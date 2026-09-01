@@ -1,1 +1,1 @@
-export { AuthModal } from "./components/AuthModal";
+export { DeferredAuthModal, type AuthModalProps } from "./components/AuthModal";

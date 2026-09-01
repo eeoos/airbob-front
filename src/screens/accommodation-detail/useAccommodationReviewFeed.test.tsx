@@ -127,6 +127,81 @@ describe("useAccommodationReviewFeed", () => {
     expect(fetchNextPage).toHaveBeenCalledTimes(2);
   });
 
+  it("does not publish a late pagination failure after close and reopen", async () => {
+    let rejectFirstPage!: (error: Error) => void;
+    let resolveSecondPage!: () => void;
+    const fetchNextPage = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise<never>((_resolve, reject) => {
+            rejectFirstPage = reject;
+          }),
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveSecondPage = resolve;
+          }),
+      );
+    mockReviewsQuery.mockReturnValue({
+      data: {
+        pages: [
+          {
+            reviews: [],
+            pageInfo: { hasNext: true, nextCursor: "cursor-2" },
+          },
+        ],
+      },
+      error: null,
+      errorUpdatedAt: 0,
+      fetchNextPage,
+      hasNextPage: true,
+      isError: false,
+      isFetching: false,
+      isFetchingNextPage: false,
+      isLoading: false,
+      refetch: vi.fn(),
+    });
+    const onError = vi.fn();
+    const { result } = renderHook(() =>
+      useAccommodationReviewFeed({
+        accommodationId: 7,
+        enabled: true,
+        onError,
+        scope: {
+          subject: "subject:member_1" as SessionSubject,
+          epoch: 2,
+        },
+      }),
+    );
+
+    act(() => result.current.openReviewModal());
+    let firstRequest!: Promise<void>;
+    act(() => {
+      firstRequest = result.current.loadNextReviewPage();
+    });
+    act(() => result.current.closeReviewModal());
+    act(() => result.current.openReviewModal());
+    let secondRequest!: Promise<void>;
+    act(() => {
+      secondRequest = result.current.loadNextReviewPage();
+    });
+    await act(async () => {
+      rejectFirstPage(new Error("late failure"));
+      await firstRequest;
+    });
+
+    expect(onError).not.toHaveBeenCalled();
+    expect(result.current.loadMoreErrorMessage).toBeNull();
+
+    await act(async () => {
+      resolveSecondPage();
+      await secondRequest;
+    });
+    expect(fetchNextPage).toHaveBeenCalledTimes(2);
+  });
+
   it("owns initial loading, error retry, empty, and ready states", async () => {
     const refetch = vi.fn();
     let queryResult: Record<string, unknown> = {

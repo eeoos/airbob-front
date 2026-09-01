@@ -150,6 +150,7 @@ function HostReservationDetailController({
   } else if (query.isError) {
     state = {
       status: "error",
+      isRetrying: Boolean(query.isFetching),
       message: toReservationDetailErrorMessage(query.error),
     };
   } else if (!query.data) {

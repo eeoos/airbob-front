@@ -282,7 +282,7 @@
 
 @media (--viewport-mobile-tablet) {
   .reviewSection {
-    width: calc(100% - 48px);
+    width: calc(100% - var(--space-12));
     margin-inline: var(--space-6);
   }
 
@@ -298,7 +298,7 @@
   }
 
   .reviewSection {
-    width: calc(100% - 32px);
+    width: calc(100% - var(--space-8));
     margin: 0 var(--space-4) var(--space-8);
     padding-top: var(--space-8);
   }

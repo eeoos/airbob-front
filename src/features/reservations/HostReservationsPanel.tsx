@@ -115,6 +115,32 @@ export function HostReservationsPanel({
         </p>
       </header>
 
+      <div className={styles.controls}>
+        <Tabs
+          ariaLabel="예약 상태 필터"
+          className={requireCssModuleClass(styles.filterTabs)}
+          items={filterItems}
+          value={filterType}
+          onValueChange={onFilterChange}
+        />
+        {state.status === "ready" && (
+          <Button
+            aria-label={`체크인 ${
+              checkInSortDirection === "ascending" ? "오래된 순" : "가까운 순"
+            } 정렬`}
+            className={styles.sortButton}
+            onClick={onCheckInSort}
+            size="sm"
+            variant="secondary"
+          >
+            체크인
+            <span className={styles.sortIcon} aria-hidden="true">
+              {checkInSortDirection === "ascending" ? "↑" : "↓"}
+            </span>
+          </Button>
+        )}
+      </div>
+
       {state.status === "error" ? (
         <RetryableErrorState
           title="예약을 불러오지 못했어요"
@@ -132,30 +158,6 @@ export function HostReservationsPanel({
         />
       ) : (
         <>
-          <div className={styles.controls}>
-            <Tabs
-              ariaLabel="예약 상태 필터"
-              className={requireCssModuleClass(styles.filterTabs)}
-              items={filterItems}
-              value={filterType}
-              onValueChange={onFilterChange}
-            />
-            <Button
-              aria-label={`체크인 ${
-                checkInSortDirection === "ascending" ? "오래된 순" : "가까운 순"
-              } 정렬`}
-              className={styles.sortButton}
-              onClick={onCheckInSort}
-              size="sm"
-              variant="secondary"
-            >
-              체크인
-              <span className={styles.sortIcon} aria-hidden="true">
-                {checkInSortDirection === "ascending" ? "↑" : "↓"}
-              </span>
-            </Button>
-          </div>
-
           {state.rows.length === 0 ? (
             <EmptyState
               title="이 상태의 예약이 없어요"

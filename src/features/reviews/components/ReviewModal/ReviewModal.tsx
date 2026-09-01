@@ -134,6 +134,11 @@ export function ReviewModal({
       }),
     [reviews, sortType],
   );
+  const closeModal = () => {
+    setIsSortDropdownOpen(false);
+    setSortType(REVIEW_SORT_TYPE.LATEST);
+    onClose();
+  };
 
   if (!isOpen) return null;
 
@@ -144,7 +149,7 @@ export function ReviewModal({
       className={requireCssModuleClass(styles.dialog)}
       initialFocusRef={closeButtonRef}
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={closeModal}
       showHeader={false}
       size="xl"
       title={`후기 ${totalCount}개`}
@@ -154,7 +159,7 @@ export function ReviewModal({
         aria-label="후기 모달 닫기"
         className={styles.closeButton}
         type="button"
-        onClick={onClose}
+        onClick={closeModal}
       >
         <svg aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
           <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSession } from "../session/useSession";
 import { useCreateAccommodationDraft } from "../../features/accommodations/ui/draftCreate";
+import { DeferredAuthModal } from "../../features/auth/public";
 import { isAppError } from "../../platform/http/errors";
 import { clientLogger } from "../../platform/logging/clientLogger";
 import { browserWindowNavigation } from "../../platform/browser/windowNavigation";
@@ -20,12 +21,6 @@ interface UserMenuProps {
 }
 
 type PendingMenuFocus = "first" | "last" | null;
-
-const LazyAuthModal = React.lazy(async () => {
-  const { AuthModal } = await import("../../features/auth/public");
-
-  return { default: AuthModal };
-});
 
 const logDraftCreationError = (error: unknown) => {
   if (!isAppError(error)) return;
@@ -60,6 +55,12 @@ const toDraftCreationErrorMessage = (error: unknown): string => {
 export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const menuHistoryEntry = {
+    hash: location.hash,
+    key: location.key,
+    pathname: location.pathname,
+    search: location.search,
+  };
   const userMenuId = useId();
   const { logout } = useSession();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -78,14 +79,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
   const menuItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const { createDraft, isCreating } = useCreateAccommodationDraft({
     onCreated: (accommodationId) => {
-      if (
-        !browserWindowNavigation.isCurrentHistoryEntry({
-          hash: location.hash,
-          key: location.key,
-          pathname: location.pathname,
-          search: location.search,
-        })
-      ) {
+      if (!browserWindowNavigation.isCurrentHistoryEntry(menuHistoryEntry)) {
         return;
       }
 
@@ -97,6 +91,9 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
     },
     onError: (error) => {
       logDraftCreationError(error);
+      if (!browserWindowNavigation.isCurrentHistoryEntry(menuHistoryEntry)) {
+        return;
+      }
       setDraftCreateErrorMessage(toDraftCreationErrorMessage(error));
       setPendingMenuFocus(null);
       setIsMenuOpen(true);
@@ -456,19 +453,11 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
         </div>
       </div>
       {isAuthModalOpen && (
-        <React.Suspense
-          fallback={
-            <span className={styles.srOnly} role="status">
-              계정 화면을 불러오고 있습니다.
-            </span>
-          }
-        >
-          <LazyAuthModal
-            isOpen
-            onClose={() => setIsAuthModalOpen(false)}
-            initialMode={authModalMode}
-          />
-        </React.Suspense>
+        <DeferredAuthModal
+          isOpen
+          onClose={() => setIsAuthModalOpen(false)}
+          initialMode={authModalMode}
+        />
       )}
     </>
   );

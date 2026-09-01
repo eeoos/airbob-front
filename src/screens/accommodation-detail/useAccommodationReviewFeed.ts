@@ -24,6 +24,10 @@ export const useAccommodationReviewFeed = ({
     string | null
   >(null);
   const requestedPageRef = useRef<string | null>(null);
+  const modalGenerationRef = useRef(0);
+  const feedIdentity = `${accommodationId ?? "invalid"}:${scope.subject ?? "anonymous"}:${scope.epoch}`;
+  const feedIdentityRef = useRef(feedIdentity);
+  feedIdentityRef.current = feedIdentity;
   const reviewsQuery = useAccommodationReviewsReadQuery({
     accommodationId,
     enabled,
@@ -49,37 +53,53 @@ export const useAccommodationReviewFeed = ({
     if (!isReviewModalOpen) return;
     if (!hasNextPage || isFetchingNextPage || nextCursor === null) return;
 
-    const requestKey = `${accommodationId ?? "invalid"}:${scope.subject ?? "anonymous"}:${scope.epoch}:${nextCursor}`;
+    const requestKey = `${feedIdentity}:${nextCursor}`;
+    const requestGeneration = modalGenerationRef.current;
     if (requestedPageRef.current === requestKey) return;
     requestedPageRef.current = requestKey;
 
     try {
       await fetchNextPage({ cancelRefetch: false, throwOnError: true });
+      if (
+        requestedPageRef.current !== requestKey ||
+        modalGenerationRef.current !== requestGeneration ||
+        feedIdentityRef.current !== feedIdentity
+      ) {
+        return;
+      }
       setLoadMoreErrorMessage(null);
     } catch (error) {
+      if (
+        requestedPageRef.current !== requestKey ||
+        modalGenerationRef.current !== requestGeneration ||
+        feedIdentityRef.current !== feedIdentity
+      ) {
+        return;
+      }
       const message = toAccommodationErrorMessage(error);
       setLoadMoreErrorMessage(message);
       onError(message);
     }
   }, [
-    accommodationId,
+    feedIdentity,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
     isReviewModalOpen,
     nextCursor,
     onError,
-    scope.epoch,
-    scope.subject,
   ]);
 
   const closeReviewModal = useCallback(() => {
+    modalGenerationRef.current += 1;
     requestedPageRef.current = null;
     setLoadMoreErrorMessage(null);
     setIsReviewModalOpen(false);
   }, []);
 
   const openReviewModal = useCallback(() => {
+    modalGenerationRef.current += 1;
+    requestedPageRef.current = null;
     setLoadMoreErrorMessage(null);
     setIsReviewModalOpen(true);
   }, []);
@@ -91,6 +111,7 @@ export const useAccommodationReviewFeed = ({
   }, [refetch]);
 
   const retryNextReviewPage = useCallback(() => {
+    modalGenerationRef.current += 1;
     requestedPageRef.current = null;
     setLoadMoreErrorMessage(null);
     void loadNextReviewPage();

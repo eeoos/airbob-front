@@ -175,10 +175,12 @@ describe("HostReservationsPanel", () => {
 
   it("offers an explicit retry without confusing failure with an empty list", async () => {
     const onRetry = vi.fn();
+    const onFilterChange = vi.fn();
 
     render(
       <HostReservationsPanel
         {...createProps({
+          onFilterChange,
           state: {
             status: "error",
             isRetrying: false,
@@ -195,6 +197,12 @@ describe("HostReservationsPanel", () => {
     expect(
       screen.queryByText("이 상태의 예약이 없어요"),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /체크인/ }),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("tab", { name: "취소된 예약" }));
+    expect(onFilterChange).toHaveBeenCalledWith("CANCELLED");
 
     await userEvent.click(screen.getByRole("button", { name: "다시 시도" }));
     expect(onRetry).toHaveBeenCalledTimes(1);

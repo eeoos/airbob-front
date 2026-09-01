@@ -86,7 +86,13 @@ export function HostReservationDetailScreen({
           description={state.message ?? "잠시 후 다시 시도해주세요."}
           action={
             <div className={hostStyles.stateActions}>
-              <Button onClick={actions.onRetry}>다시 시도</Button>
+              <Button
+                isLoading={Boolean(state.isRetrying)}
+                loadingLabel="다시 불러오는 중..."
+                onClick={actions.onRetry}
+              >
+                다시 시도
+              </Button>
               <Button onClick={actions.onBack} variant="secondary">
                 예약 목록으로
               </Button>
@@ -161,7 +167,7 @@ export function HostReservationDetailScreen({
       </header>
 
       <div className={hostStyles.contentGrid}>
-        <main className={hostStyles.mainColumn}>
+        <div className={hostStyles.mainColumn}>
           <section
             aria-labelledby="host-reservation-stay-title"
             className={hostStyles.section}
@@ -258,7 +264,7 @@ export function HostReservationDetailScreen({
               </div>
             </dl>
           </section>
-        </main>
+        </div>
 
         <aside
           aria-labelledby="host-reservation-payment-title"

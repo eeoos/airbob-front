@@ -8,7 +8,10 @@ import {
   AccommodationOverview,
   AccommodationReviewsSection,
 } from "../../features/accommodations/detail/public";
-import { AuthModal } from "../../features/auth/public";
+import {
+  DeferredAuthModal,
+  type AuthModalProps,
+} from "../../features/auth/public";
 import { ReviewModal } from "../../features/reviews/public";
 import { WishlistModal } from "../../features/wishlist/public";
 import {
@@ -23,7 +26,7 @@ import {
 import styles from "./AccommodationDetailScreen.module.css";
 
 export interface AccommodationDetailReadyView {
-  readonly authModal: ComponentProps<typeof AuthModal>;
+  readonly authModal: AuthModalProps;
   readonly bookingCard: ComponentProps<typeof AccommodationBookingCard>;
   readonly descriptionModal: ComponentProps<
     typeof AccommodationDescriptionModal
@@ -197,7 +200,7 @@ export function AccommodationDetailScreen({
 
       <ReviewModal {...view.reviewModal} />
       {view.wishlistModal && <WishlistModal {...view.wishlistModal} />}
-      <AuthModal {...view.authModal} />
+      <DeferredAuthModal {...view.authModal} />
       <AccommodationDescriptionModal {...view.descriptionModal} />
       <AccommodationImageGalleryModal {...view.galleryModal} />
 

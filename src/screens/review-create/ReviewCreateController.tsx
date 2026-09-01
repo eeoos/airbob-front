@@ -42,6 +42,7 @@ export interface ReviewCreateControllerProps {
   readonly scope: ReviewSubmissionSessionScope | null;
   readonly session: ReviewSubmissionSessionPort;
   readonly onBack: () => void;
+  readonly onVerifyResult: () => void;
   readonly onComplete: (
     reservationUid: string,
     result: ReviewCreateCompletionResult,
@@ -81,6 +82,7 @@ const toReservationView = (
 export function ReviewCreateController({
   onBack,
   onComplete,
+  onVerifyResult,
   publication,
   reservationUid,
   resolveImageUrl,
@@ -248,7 +250,11 @@ export function ReviewCreateController({
   } else if (reservationQuery.isError) {
     const message = toReviewCreateErrorMessage(reservationQuery.error);
     state = isReviewCreateReadErrorRetryable(reservationQuery.error)
-      ? { status: "retryable-error", message }
+      ? {
+          status: "retryable-error",
+          isRetrying: Boolean(reservationQuery.isFetching),
+          message,
+        }
       : { status: "terminal-error", message };
   } else if (!reservationQuery.data) {
     state = {
@@ -283,6 +289,7 @@ export function ReviewCreateController({
       onRemoveImage={imageSelection.removeImage}
       onRetryLoad={() => void reservationQuery.refetch()}
       onSubmit={handleSubmit}
+      onVerifyResult={onVerifyResult}
       rating={rating}
       state={state}
     />

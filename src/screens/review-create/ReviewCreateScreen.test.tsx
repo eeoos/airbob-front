@@ -21,6 +21,7 @@ const createProps = (): ReviewCreateScreenProps => ({
   onRemoveImage: vi.fn(),
   onRetryLoad: vi.fn(),
   onSubmit: vi.fn(),
+  onVerifyResult: vi.fn(),
   rating: 5,
   state: {
     status: "ready",
@@ -48,12 +49,27 @@ describe("ReviewCreateScreen", () => {
         {...props}
         state={{
           status: "retryable-error",
+          isRetrying: false,
           message: "네트워크 연결을 확인해주세요.",
         }}
       />,
     );
     await userEvent.click(screen.getByRole("button", { name: "다시 시도" }));
     expect(props.onRetryLoad).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <ReviewCreateScreen
+        {...props}
+        state={{
+          status: "retryable-error",
+          isRetrying: true,
+          message: "네트워크 연결을 확인해주세요.",
+        }}
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: "다시 불러오는 중..." }),
+    ).toBeDisabled();
 
     rerender(
       <ReviewCreateScreen
@@ -127,6 +143,24 @@ describe("ReviewCreateScreen", () => {
     expect(
       screen.queryByRole("button", { name: "리뷰 작성하기" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("keeps ambiguous-result verification separate from ordinary cancellation", async () => {
+    const props = createProps();
+    renderApp(
+      <ReviewCreateScreen
+        {...props}
+        errorMessage="제출 결과를 확인할 수 없습니다."
+        isSubmitLocked
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "예약 상세에서 확인하기" }),
+    );
+
+    expect(props.onVerifyResult).toHaveBeenCalledTimes(1);
+    expect(props.onCancel).not.toHaveBeenCalled();
   });
 
   it("replaces failed accommodation and selected-photo media", () => {

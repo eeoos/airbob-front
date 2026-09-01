@@ -19,7 +19,11 @@ export interface ReviewCreateReservationView {
 
 export type ReviewCreateScreenState =
   | { readonly status: "loading" }
-  | { readonly status: "retryable-error"; readonly message: string }
+  | {
+      readonly status: "retryable-error";
+      readonly isRetrying: boolean;
+      readonly message: string;
+    }
   | { readonly status: "terminal-error"; readonly message: string }
   | {
       readonly status: "ready";
@@ -46,6 +50,7 @@ export interface ReviewCreateScreenProps {
   readonly onRemoveImage: (imageId: string) => void;
   readonly onRetryLoad: () => void;
   readonly onSubmit: () => void;
+  readonly onVerifyResult: () => void;
   readonly rating: number;
   readonly state: ReviewCreateScreenState;
 }
@@ -96,6 +101,7 @@ export function ReviewCreateScreen({
   onRemoveImage,
   onRetryLoad,
   onSubmit,
+  onVerifyResult,
   rating,
   state,
 }: ReviewCreateScreenProps) {
@@ -138,7 +144,12 @@ export function ReviewCreateScreen({
           description={state.message}
           action={
             <div className={styles.stateActions}>
-              <Button type="button" onClick={onRetryLoad}>
+              <Button
+                isLoading={state.isRetrying}
+                loadingLabel="다시 불러오는 중..."
+                type="button"
+                onClick={onRetryLoad}
+              >
                 다시 시도
               </Button>
               <Button type="button" variant="secondary" onClick={onBack}>
@@ -387,7 +398,7 @@ export function ReviewCreateScreen({
 
             <div className={styles.actions}>
               {isSubmitLocked ? (
-                <Button fullWidth type="button" onClick={onCancel}>
+                <Button fullWidth type="button" onClick={onVerifyResult}>
                   예약 상세에서 확인하기
                 </Button>
               ) : (

@@ -120,7 +120,9 @@ test("keeps the created review and surfaces terminal feedback when its image upl
     mimeType: "image/png",
     buffer: Buffer.from("synthetic-review-image"),
   });
-  await expect(page.getByAltText("선택한 사진 1")).toBeVisible();
+  await expect(
+    page.getByRole("img", { name: "선택한 사진 1 미리보기 없음" }),
+  ).toBeVisible();
 
   await page.getByRole("button", { name: "리뷰 작성하기" }).click();
 
@@ -188,4 +190,7 @@ test("locks review submission when the create outcome may already have committed
   expect(api.matching("POST", "/api/v1/accommodations/7/reviews")).toHaveLength(
     1,
   );
+
+  await page.getByRole("button", { name: "예약 상세에서 확인하기" }).click();
+  await expect(page).toHaveURL(`/reservations/${REVIEW_RESERVATION_UID}`);
 });

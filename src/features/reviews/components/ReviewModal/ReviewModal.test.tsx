@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { OverlayProvider } from "../../../../app/overlays/OverlayProvider";
 import type { Review } from "../../model";
 import { toReviewViewModels } from "../../lib/reviewViewModel";
@@ -208,6 +209,49 @@ describe("ReviewModal", () => {
 
     await userEvent.keyboard("{Escape}");
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("resets sort state and the open popover when the dialog reopens", async () => {
+    function ReviewModalHarness() {
+      const [isOpen, setIsOpen] = useState(true);
+
+      return (
+        <>
+          <button type="button" onClick={() => setIsOpen(true)}>
+            후기 다시 열기
+          </button>
+          <ReviewModal
+            {...renderProps({
+              isOpen,
+              onClose: () => setIsOpen(false),
+            })}
+          />
+        </>
+      );
+    }
+
+    render(<ReviewModalHarness />);
+    await userEvent.click(screen.getByRole("button", { name: "최신순" }));
+    expect(
+      screen.getByRole("group", { name: "불러온 후기 정렬 옵션" }),
+    ).toBeVisible();
+    await userEvent.click(screen.getByRole("button", { name: "낮은 평점순" }));
+    expect(reviewContents()).toEqual(["낮은 평점 후기", "가장 좋은 후기"]);
+
+    await userEvent.click(screen.getByRole("button", { name: "낮은 평점순" }));
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "후기 모달 닫기" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "후기 다시 열기" }),
+    );
+
+    expect(
+      screen.queryByRole("group", { name: "불러온 후기 정렬 옵션" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "최신순" })).toBeVisible();
+    expect(reviewContents()).toEqual(["가장 좋은 후기", "낮은 평점 후기"]);
   });
 
   it("renders nothing while closed", () => {

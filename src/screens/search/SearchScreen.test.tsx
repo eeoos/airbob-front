@@ -101,8 +101,8 @@ vi.mock("../../features/search/components/SearchPagination", () => ({
   },
 }));
 
-vi.mock("../../features/auth/components/AuthModal", () => ({
-  AuthModal: ({ isOpen }: { isOpen: boolean }) => (
+vi.mock("../../features/auth/public", () => ({
+  DeferredAuthModal: ({ isOpen }: { isOpen: boolean }) => (
     <section data-testid="auth-modal" data-open={String(isOpen)} />
   ),
 }));

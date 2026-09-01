@@ -44,7 +44,7 @@ vi.mock("../../platform/logging/clientLogger", () => ({
 }));
 
 vi.mock("../../features/auth/public", () => ({
-  AuthModal: ({
+  DeferredAuthModal: ({
     initialMode,
     isOpen,
   }: {
@@ -415,6 +415,41 @@ describe("UserMenu", () => {
       await Promise.resolve();
     });
 
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("does not reopen a stale draft failure after the user changes route", async () => {
+    let resolveDraft!: () => void;
+    const pendingDraft = new Promise<void>((resolve) => {
+      resolveDraft = resolve;
+    });
+    const error = new AppError({
+      kind: "network",
+      code: "DRAFT_NETWORK_FAILED",
+      message: "network detail canary",
+      retryable: true,
+    });
+    mockUseCreateAccommodationDraft.mockImplementation(({ onError }) => ({
+      createDraft: async () => {
+        await pendingDraft;
+        onError(error);
+      },
+      isCreating: false,
+    }));
+    render(<UserMenu isLoggedIn />);
+
+    await openMenu();
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: "호스팅 하기" }),
+    );
+    window.history.pushState({ key: "new-entry" }, "", "/search");
+    await act(async () => {
+      resolveDraft();
+      await pendingDraft;
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 

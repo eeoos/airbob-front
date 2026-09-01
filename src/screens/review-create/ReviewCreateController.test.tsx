@@ -65,6 +65,7 @@ const renderController = (
   const props: React.ComponentProps<typeof ReviewCreateController> = {
     onBack: vi.fn(),
     onComplete: vi.fn(),
+    onVerifyResult: vi.fn(),
     publication: { publishReviewCreated: vi.fn() },
     reservationUid: "reservation-123",
     resolveImageUrl: (path) => `https://cdn.example.com${path ?? ""}`,
@@ -127,6 +128,7 @@ describe("ReviewCreateController", () => {
     const props: React.ComponentProps<typeof ReviewCreateController> = {
       onBack: vi.fn(),
       onComplete: vi.fn(),
+      onVerifyResult: vi.fn(),
       publication: { publishReviewCreated: vi.fn() },
       reservationUid: "reservation-123",
       resolveImageUrl: (path) => path ?? "",
@@ -161,7 +163,7 @@ describe("ReviewCreateController", () => {
       isError: true,
       isLoading: false,
     });
-    const { onBack, onComplete } = renderController();
+    const { onBack, onComplete, onVerifyResult } = renderController();
 
     expect(screen.getByRole("alert")).toHaveTextContent(
       "리뷰를 작성할 권한이 없습니다.",
@@ -169,6 +171,7 @@ describe("ReviewCreateController", () => {
     expect(mockSubmit).not.toHaveBeenCalled();
     expect(onBack).not.toHaveBeenCalled();
     expect(onComplete).not.toHaveBeenCalled();
+    expect(onVerifyResult).not.toHaveBeenCalled();
   });
 
   it("retries a transport read failure only through the reservation query", async () => {
@@ -180,7 +183,7 @@ describe("ReviewCreateController", () => {
       isLoading: false,
       refetch,
     });
-    const { onBack, onComplete } = renderController();
+    const { onBack, onComplete, onVerifyResult } = renderController();
 
     expect(screen.getByRole("alert")).toHaveTextContent(
       "네트워크 연결을 확인한 뒤 다시 시도해주세요.",
@@ -191,6 +194,7 @@ describe("ReviewCreateController", () => {
     expect(mockSubmit).not.toHaveBeenCalled();
     expect(onBack).not.toHaveBeenCalled();
     expect(onComplete).not.toHaveBeenCalled();
+    expect(onVerifyResult).not.toHaveBeenCalled();
   });
 
   it("rejects an image larger than 10MB without creating a preview", () => {
@@ -293,7 +297,7 @@ describe("ReviewCreateController", () => {
       status: "ambiguous",
       error: { kind: "network" },
     });
-    const { onBack, onComplete } = renderController();
+    const { onBack, onComplete, onVerifyResult } = renderController();
 
     await userEvent.type(screen.getByLabelText("리뷰 내용"), "좋은 숙소예요");
     await userEvent.click(
@@ -314,7 +318,8 @@ describe("ReviewCreateController", () => {
     await userEvent.click(verificationAction);
     expect(mockSubmit).toHaveBeenCalledTimes(1);
     expect(onComplete).not.toHaveBeenCalled();
-    expect(onBack).toHaveBeenCalledTimes(1);
+    expect(onBack).not.toHaveBeenCalled();
+    expect(onVerifyResult).toHaveBeenCalledTimes(1);
   });
 
   it("locks a replacement route generation when an earlier create may have committed", async () => {
@@ -330,6 +335,7 @@ describe("ReviewCreateController", () => {
     const props: React.ComponentProps<typeof ReviewCreateController> = {
       onBack: vi.fn(),
       onComplete: vi.fn(),
+      onVerifyResult: vi.fn(),
       publication: { publishReviewCreated: vi.fn() },
       reservationUid: "reservation-123",
       resolveImageUrl: (path) => path ?? "",

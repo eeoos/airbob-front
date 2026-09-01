@@ -142,6 +142,21 @@ describe("ReservationDetailScreen", () => {
     fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
 
     expect(hostActions.onRetry).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <ReservationDetailScreen
+        variant="host"
+        state={{
+          status: "error",
+          isRetrying: true,
+          message: "존재하지 않는 예약입니다.",
+        }}
+        actions={hostActions}
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: "다시 불러오는 중..." }),
+    ).toBeDisabled();
   });
 
   it("renders guest loading and terminal states without inventing retry", () => {
