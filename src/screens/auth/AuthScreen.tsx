@@ -2,6 +2,7 @@ import type { FormEvent } from "react";
 import type { AuthFormController } from "../../features/auth/model/authForm";
 import type { AuthMode } from "../../features/auth/model/auth";
 import { AuthFormFields } from "../../features/auth/ui/AuthFormFields";
+import { AuthInlineError } from "../../features/auth/ui/AuthInlineError";
 import { requireCssModuleClass } from "../../shared/styles/requireCssModuleClass";
 import { Button, Card, PageContainer, ToastHost } from "../../shared/ui";
 import styles from "./AuthScreen.module.css";
@@ -73,22 +74,11 @@ export function AuthScreen({
               />
 
               {form.error && (
-                <div
+                <AuthInlineError
                   id={errorContextId}
-                  className={styles.errorContext}
-                  data-testid="auth-inline-error"
-                >
-                  <span className={styles.errorIcon} aria-hidden="true">
-                    !
-                  </span>
-                  <div>
-                    <p className={styles.errorTitle}>확인이 필요해요</p>
-                    <p className={styles.errorMessage}>{form.error}</p>
-                    <p className={styles.errorHint}>
-                      입력 내용을 확인하고 다시 시도해 주세요.
-                    </p>
-                  </div>
-                </div>
+                  message={form.error}
+                  testId="auth-inline-error"
+                />
               )}
 
               <Button

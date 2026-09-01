@@ -4,13 +4,14 @@ import { Button, Dialog, ToastHost } from "../../../../shared/ui";
 import { useAuthForm } from "../../model/authForm";
 import { useAuthCommands } from "../../ports/AuthCommandProvider";
 import { AuthFormFields } from "../../ui/AuthFormFields";
+import { AuthInlineError } from "../../ui/AuthInlineError";
 import styles from "./AuthModal.module.css";
 
-interface AuthModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  initialMode?: "login" | "signup";
-  onSuccess?: () => void;
+export interface AuthModalProps {
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly initialMode?: "login" | "signup";
+  readonly onSuccess?: () => void;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
@@ -131,22 +132,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         />
 
         {form.error && (
-          <div
+          <AuthInlineError
             id={errorContextId}
-            className={styles.errorContext}
-            data-testid="auth-modal-inline-error"
-          >
-            <span className={styles.errorIcon} aria-hidden="true">
-              !
-            </span>
-            <div>
-              <p className={styles.errorTitle}>확인이 필요해요</p>
-              <p className={styles.errorMessage}>{form.error}</p>
-              <p className={styles.errorHint}>
-                입력 내용을 확인하고 다시 시도해 주세요.
-              </p>
-            </div>
-          </div>
+            message={form.error}
+            testId="auth-modal-inline-error"
+          />
         )}
 
         <Button

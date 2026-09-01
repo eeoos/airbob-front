@@ -6,6 +6,7 @@ import {
   type RefObject,
 } from "react";
 import { motion, type MotionStyle } from "framer-motion";
+import type { AuthModalProps } from "../../features/auth/components/AuthModal/AuthModal";
 import type {
   SearchAccommodationCardViewModel,
   SearchAccommodationMapViewModel,
@@ -74,13 +75,6 @@ interface SearchScreenResultsProps {
   readonly totalPages: number;
 }
 
-interface SearchAuthModalProps {
-  readonly initialMode?: "login" | "signup";
-  readonly isOpen: boolean;
-  readonly onClose: () => void;
-  readonly onSuccess?: () => void;
-}
-
 const LazyAuthModal = lazy(async () => {
   const { AuthModal } =
     await import("../../features/auth/components/AuthModal");
@@ -89,7 +83,7 @@ const LazyAuthModal = lazy(async () => {
 });
 
 export interface SearchScreenProps {
-  readonly authModal: SearchAuthModalProps;
+  readonly authModal: AuthModalProps;
   readonly bottomSheet: SearchScreenBottomSheetProps;
   readonly checkIn?: string | undefined;
   readonly checkOut?: string | undefined;
