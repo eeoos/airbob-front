@@ -407,6 +407,24 @@ describe("booking-payment journal v2 validation", () => {
     );
   });
 
+  it("preserves backend order-name bytes and allows a rename between quote and checkout", () => {
+    expect(validatesQuote(quote({ orderName: "  Original stay  " }))).toBe(
+      true,
+    );
+    expect(validatesReady(ready({ orderName: "  Renamed stay  " }))).toBe(
+      true,
+    );
+    expect(
+      isBookingPaymentJournalData({
+        ...data("reservation-ready"),
+        quote: quote({ orderName: "Original stay" }),
+        ready: ready({ orderName: "  Renamed stay  " }),
+      }),
+    ).toBe(true);
+    expect(validatesQuote(quote({ orderName: "   " }))).toBe(false);
+    expect(validatesReady(ready({ orderName: "\t  " }))).toBe(false);
+  });
+
   it("rejects customer/provider/paymentKey fields anywhere in the exact envelope", () => {
     expect(
       isBookingPaymentJournalEnvelope({
@@ -583,8 +601,12 @@ describe("booking-payment journal v2 validation", () => {
 
   it("requires accumulated groups to remain byte-equivalent", () => {
     const previous = data("reservation-ready");
+    const attemptRequesting = data("attempt-requesting");
+    if (attemptRequesting.phase !== "attempt-requesting") {
+      throw new Error("Expected attempt-requesting fixture");
+    }
     const next = {
-      ...data("attempt-requesting"),
+      ...attemptRequesting,
       quote: { ...quote(), orderName: "Changed" },
     };
     expect(preservesBookingPaymentJournalImmutableGroups(previous, next)).toBe(
@@ -611,8 +633,15 @@ describe("booking-payment journal v2 validation", () => {
     };
     expect(
       preservesBookingPaymentJournalImmutableGroups(previous, {
-        ...data("attempt-requesting"),
+        ...attemptRequesting,
         quote: reorderedQuote,
+      }),
+    ).toBe(false);
+
+    expect(
+      preservesBookingPaymentJournalImmutableGroups(previous, {
+        ...attemptRequesting,
+        ready: { ...ready(), orderName: "Renamed after persistence" },
       }),
     ).toBe(false);
 

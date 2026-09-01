@@ -148,7 +148,7 @@ const isNonEmptyText = (value: unknown): value is string =>
   typeof value === "string" &&
   value.length > 0 &&
   value.length <= 255 &&
-  value.trim() === value;
+  value.trim().length > 0;
 
 const hasSafeMoneyIdentity = (value: Record<string, unknown>): boolean => {
   const { subtotal, discountAmount, amount } = value;
@@ -515,7 +515,6 @@ const dataGroupsAreConsistent = (value: Record<string, unknown>): boolean => {
   if ("ready" in value) {
     const ready = value.ready as BookingPaymentReady;
     if (
-      ready.orderName !== quote.orderName ||
       ready.checkIn !== quote.checkIn ||
       ready.checkOut !== quote.checkOut ||
       ready.guestCount !== quote.guestCount ||

@@ -8,6 +8,7 @@ const configuredNestedFeatureScopes = Object.freeze([
   // classification. Discovery activates it only while a real directory exists.
   "accommodations/edit",
   "accommodations/listing-editor",
+  "reservations/booking",
   "reservations/payment",
 ]);
 

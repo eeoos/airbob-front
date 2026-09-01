@@ -731,6 +731,7 @@ describe("frontend verification gate", () => {
       "home",
       "profile",
       "reservations",
+      "reservations/booking",
       "reservations/payment",
       "reviews",
       "search",
