@@ -1299,7 +1299,7 @@ describe("frontend verification gate", () => {
       "strict production graph",
       "Root budget",
       "DEFERRED / UNVERIFIED (live)",
-      "2026-09-01 attempt",
+      "2026-09-02 local-benchmark audit",
       "npm run verify:local:core",
       "npm run verify:local:toss",
       "Vercel → OCI",
