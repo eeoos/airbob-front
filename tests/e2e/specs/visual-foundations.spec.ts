@@ -26,6 +26,13 @@ const foundationScreenshotOptions = {
   maxDiffPixelRatio: 0.02,
 } as const;
 
+const componentScreenshotOptions = {
+  animations: "disabled",
+  caret: "hide",
+  maxDiffPixelRatio: 0.02,
+  scale: "css",
+} as const;
+
 const syntheticImagePalette = [
   ["#dff4fb", "#5aaed2", "#14323f"],
   ["#f6e9df", "#c9785d", "#4b3028"],
@@ -250,6 +257,12 @@ test("keeps the desktop search and header foundation visually stable", async ({
   await expect(page).toHaveScreenshot(
     "search-and-header-foundation.png",
     foundationScreenshotOptions,
+  );
+  await expect(
+    page.getByRole("search", { name: "숙소 검색" }),
+  ).toHaveScreenshot(
+    "compact-search-bar-foundation.png",
+    componentScreenshotOptions,
   );
 });
 

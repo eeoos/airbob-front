@@ -154,6 +154,84 @@ test("keeps the 320px search route free of horizontal overflow with core actions
   await expectNoHorizontalOverflow(page, 320);
 });
 
+test("keeps the search action balanced from 320px through 4K", async ({
+  api,
+  page,
+  session,
+}) => {
+  session.clear();
+  api.register(
+    "GET",
+    "/api/v1/search/accommodations",
+    apiSuccess(searchResponse),
+  );
+
+  const viewportWidths = [
+    320, 390, 768, 769, 1024, 1025, 1280, 1920, 2560, 3840,
+  ];
+
+  for (const width of viewportWidths) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(searchURL);
+
+    const search = page.getByRole("search", { name: "숙소 검색" });
+    const searchButton = search.getByRole("button", { name: "검색" });
+    const compactGeometry = await searchButton.evaluate((button) => {
+      const bounds = button.getBoundingClientRect();
+      const visual = getComputedStyle(button, "::before");
+      const icon = button.querySelector("svg")?.getBoundingClientRect();
+
+      return {
+        buttonHeight: bounds.height,
+        buttonWidth: bounds.width,
+        iconHeight: icon?.height ?? 0,
+        iconWidth: icon?.width ?? 0,
+        visualHeight: Number.parseFloat(visual.height),
+        visualWidth: Number.parseFloat(visual.width),
+      };
+    });
+
+    expect(compactGeometry, `compact geometry at ${width}px`).toEqual({
+      buttonHeight: 44,
+      buttonWidth: 44,
+      iconHeight: 14,
+      iconWidth: 14,
+      visualHeight: 40,
+      visualWidth: 40,
+    });
+    await expectFullyInsideViewport(searchButton, width);
+
+    await search.getByRole("button", { name: "Seoul" }).click();
+    await expect(search).toHaveAttribute("data-expanded", "");
+
+    const expandedGeometry = await searchButton.evaluate((button) => {
+      const bounds = button.getBoundingClientRect();
+      const visual = getComputedStyle(button, "::before");
+      const icon = button.querySelector("svg")?.getBoundingClientRect();
+
+      return {
+        buttonHeight: bounds.height,
+        buttonWidth: bounds.width,
+        iconHeight: icon?.height ?? 0,
+        iconWidth: icon?.width ?? 0,
+        visualHeight: Number.parseFloat(visual.height),
+        visualWidth: Number.parseFloat(visual.width),
+      };
+    });
+
+    expect(expandedGeometry, `expanded geometry at ${width}px`).toEqual({
+      buttonHeight: 44,
+      buttonWidth: 44,
+      iconHeight: width <= 768 ? 14 : 16,
+      iconWidth: width <= 768 ? 14 : 16,
+      visualHeight: 44,
+      visualWidth: 44,
+    });
+    await expectFullyInsideViewport(searchButton, width);
+    await expectNoHorizontalOverflow(page, width);
+  }
+});
+
 const responsiveBoundary = (
   width: number,
   layout: "bottom-sheet" | "desktop",

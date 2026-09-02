@@ -166,12 +166,17 @@ describe("SearchBar", () => {
     vi.useRealTimers();
   });
 
-  it("keeps icon controls at the shared touch target and resets suggestion buttons", () => {
+  it("keeps icon controls accessible while giving compact search a lighter visual target", () => {
     const css = readProjectFile(
       "src/features/search/components/SearchBar/SearchBar.module.css",
     );
     const searchItemStyles = getCssBlock(css, ".searchItem");
     const searchButtonStyles = getCssBlock(css, ".searchButton");
+    const searchButtonVisualStyles = getCssBlock(css, ".searchButton::before");
+    const compactSearchButtonVisualStyles = getCssBlock(
+      css,
+      ".searchBar:not(.expanded) .searchButton::before",
+    );
     const suggestionItemStyles = getCssBlock(css, ".suggestionItem");
 
     expect(searchItemStyles).toContain("appearance: none;");
@@ -186,6 +191,22 @@ describe("SearchBar", () => {
     );
     expect(searchButtonStyles).toContain(
       "min-height: var(--control-touch-target);",
+    );
+    expect(searchButtonStyles).toContain("width: var(--control-touch-target);");
+    expect(searchButtonStyles).toContain(
+      "height: var(--control-touch-target);",
+    );
+    expect(searchButtonVisualStyles).toContain(
+      "width: var(--control-touch-target);",
+    );
+    expect(searchButtonVisualStyles).toContain(
+      "height: var(--control-touch-target);",
+    );
+    expect(compactSearchButtonVisualStyles).toContain(
+      "width: var(--control-height-md);",
+    );
+    expect(compactSearchButtonVisualStyles).toContain(
+      "height: var(--control-height-md);",
     );
     expect(suggestionItemStyles).toContain("appearance: none;");
     expect(suggestionItemStyles).toContain("border: 0;");

@@ -268,22 +268,38 @@
 }
 
 .searchButton {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--control-height-lg);
-  height: var(--control-height-lg);
+  width: var(--control-touch-target);
+  height: var(--control-touch-target);
   min-width: var(--control-touch-target);
   min-height: var(--control-touch-target);
+  padding: 0;
   border-radius: var(--radius-pill);
-  background: var(--color-action-primary);
+  background: transparent;
   border: none;
   cursor: pointer;
   color: var(--color-text-inverse);
   flex-shrink: 0;
-  transition:
-    background-color var(--motion-duration-base) var(--motion-ease-standard),
-    box-shadow var(--motion-duration-base) var(--motion-ease-standard);
+  transition: box-shadow var(--motion-duration-base) var(--motion-ease-standard);
+}
+
+.searchButton::before {
+  position: absolute;
+  width: var(--control-touch-target);
+  height: var(--control-touch-target);
+  border-radius: inherit;
+  background: var(--color-action-primary);
+  content: "";
+  transition: background-color var(--motion-duration-base)
+    var(--motion-ease-standard);
+}
+
+.searchBar:not(.expanded) .searchButton::before {
+  width: var(--control-height-md);
+  height: var(--control-height-md);
 }
 
 .searchBar:not(.expanded) .searchButton svg {
@@ -291,7 +307,7 @@
   height: var(--font-size-sm);
 }
 
-.searchButton:hover {
+.searchButton:hover::before {
   background: var(--color-action-primary-hover);
 }
 
@@ -301,6 +317,7 @@
 }
 
 .searchButton svg {
+  position: relative;
   width: var(--space-4);
   height: var(--space-4);
 }
@@ -543,6 +560,7 @@
   .searchBar,
   .searchItem,
   .searchButton,
+  .searchButton::before,
   .suggestionItem {
     transition: none;
   }
