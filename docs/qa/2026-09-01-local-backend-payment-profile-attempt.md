@@ -8,10 +8,10 @@
 
 사용자가 주요 local data가 준비됐다고 알렸다. 따라서 이 문서가 2026-09-01에 확인한
 "공개 fixture/reset 계약을 찾지 못함"은 당시 attempt의 사실이며, 현재 data 부재를
-주장하는 근거로 사용하지 않는다. 다만 현재 service는 꺼져 있고 backend-owned
-disposable/reset 소유권, paid slot 1–3, complimentary slot과 full messaging readiness를
-자동 preflight와 별도 owner attestation으로 확인하지 않았다. 실제 mutation이나 Toss
-sandbox 실행도 아직 없다.
+주장하는 근거로 사용하지 않는다. 현재 infrastructure와 backend는 `local-benchmark`로
+실행 중이고 reset ownership도 확인됐다. 다만 복원 DB에는 inventory와 active coupon이
+없고, paid slot 1–3과 complimentary slot을 제공하는 실행 가능한 backend-owned business
+fixture reset 절차도 없다. 실제 mutation이나 Toss sandbox 실행도 아직 없다.
 
 그러므로 판정은 **BLOCKED / UNVERIFIED**를 유지한다. 후속 실행과 redacted 증거는
 [`2026-09-02 U12 local-integration evidence`](./2026-09-02-u12-local-integration-evidence.md)가

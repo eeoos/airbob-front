@@ -421,7 +421,7 @@ status lives in [`frontend-ownership-matrix.md`](./frontend-ownership-matrix.md)
 
 | Delta | Owner/status |
 | --- | --- |
-| Repeatable real local-backend core mutation evidence | U12 is `BLOCKED / UNVERIFIED`: major local data readiness has been signaled, but services are currently off and the backend-owned disposable/reset owner, paid slots 1–3, and complimentary slot are not verified. `local-core` must be recorded separately from Toss. |
+| Repeatable real local-backend core mutation evidence | U12 is `BLOCKED / UNVERIFIED`: infrastructure and the backend are running with `local-benchmark`, and reset ownership is confirmed. However, the restored DB has no inventory or active coupons and no executable backend-owned business-fixture reset procedure exposes paid slots 1–3 or a complimentary slot. `local-core` must be recorded separately from Toss. |
 | Local Toss sandbox evidence | U12 is `BLOCKED / UNVERIFIED`: run only after `local-core` passes, with browser-public and server credentials kept in their owning processes, a slot-scoped confirm-failure profile, full messaging readiness, and a distinct `local-toss-sandbox` result. |
 | Vercel→OCI credential/CORS/Origin, Maps production key, AWS performance | Separate deployment/infrastructure gates; local proxy success is not evidence. |
 | Airbnb visual styling | A later design plan. The transaction, screen, image/state, amenity, page-container, responsive, and runtime-token boundaries are the design-entry baseline. |

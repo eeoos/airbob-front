@@ -1,6 +1,7 @@
 # U12 Local Integration Status and Redacted Evidence
 
-> Overall: **BLOCKED / UNVERIFIED**
+> Overall mutation profile: **BLOCKED / UNVERIFIED**
+> Local-benchmark read-only subset: **PASS**
 > Local core: **BLOCKED / UNVERIFIED**
 > Local Toss sandbox: **BLOCKED / UNVERIFIED**
 >
@@ -9,19 +10,68 @@
 
 ## Current prerequisite status
 
-| Prerequisite                         | Status               | Evidence boundary                                                     |
-| ------------------------------------ | -------------------- | --------------------------------------------------------------------- |
-| Major local data                     | readiness signaled   | 사용자가 주요 data 준비를 알림; fixture 값은 수집하거나 기록하지 않음 |
-| Frontend/backend/messaging services  | BLOCKED / UNVERIFIED | 현재 service가 꺼져 있어 reachability/readiness 미검증                |
-| Backend-owned disposable/reset owner | BLOCKED / UNVERIFIED | owner와 reset/cleanup 절차를 아직 확인하지 않음                       |
-| Paid slots 1–3                       | BLOCKED / UNVERIFIED | 세 slot의 독립성, availability와 paid quote 조건 미검증               |
-| Complimentary slot                   | BLOCKED / UNVERIFIED | accommodation/date/coupon의 0원 quote 조건 미검증                     |
-| Full messaging terminal              | BLOCKED / UNVERIFIED | backend-owned messaging path의 bounded terminal 미검증                |
-| Toss sandbox                         | BLOCKED / UNVERIFIED | local core와 credential ownership 미검증; provider flow 미실행        |
-| Toss failure discriminator           | BLOCKED / UNVERIFIED | paid[1] 공식 test-code 주입을 구분하는 backend 증거 미검증            |
+| Prerequisite                         | Status                | Evidence boundary                                                                                                     |
+| ------------------------------------ | --------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Major local data                     | PARTIAL READY         | 803,008 members와 170,201 published accommodations의 aggregate를 읽기 전용으로 확인; U12 booking fixture는 아님       |
+| Read-only runtime reachability       | PASS (read-only only) | frontend `localhost:3000`, local-benchmark backend readiness `UP`, MySQL/Redis/Kafka/Elasticsearch/Debezium reachable |
+| Backend-owned disposable/reset owner | PARTIAL               | 사용자가 전용 local reset ownership을 확인했지만 business fixture reset/restore procedure는 backend에 없음            |
+| Paid slots 1–3                       | BLOCKED / UNVERIFIED  | inventory row가 0이므로 availability, quote와 checkout용 독립 slot을 구성할 수 없음                                   |
+| Complimentary slot                   | BLOCKED / UNVERIFIED  | inventory row와 active coupon이 모두 0이므로 0원 quote 조건을 구성할 수 없음                                          |
+| Full messaging terminal              | BLOCKED / UNVERIFIED  | connector와 task는 `no_data`/`RUNNING`이지만 mutation terminal은 실행하지 않음                                        |
+| Toss sandbox                         | BLOCKED / UNVERIFIED  | local-benchmark가 Toss를 비활성화하며 matching core PASS가 없음                                                       |
+| Toss failure discriminator           | BLOCKED / UNVERIFIED  | backend가 `TossPayments-Test-Code` 또는 동등한 slot-scoped failure injection을 지원하지 않음                          |
 
 이 상태는 skip이나 pass가 아니다. 자동 preflight와 backend-owner attestation이 각자의
 전제조건을 검증하기 전에는 mutation을 보내지 않는다.
+
+## 2026-09-02 actual local-benchmark audit
+
+사용자가 reset ownership을 확인한 뒤에도 새 `dev`-only process는 실행하지 않았다. 기존 IntelliJ
+process가 정확히 `local-benchmark`, `dev`, `performance-lab`,
+`local-benchmark-runtime` group으로 실행 중임을 확인했고 일반 health와 readiness는 모두
+`UP`이었다. 이 profile은 Flyway, 전체 scheduler, inventory startup/seed/retention, Toss,
+Google server integration, Slack과 S3 write를 비활성화한다.
+
+- Backend HEAD: `3d0ae2d65ae650d6eb9d9def7d6daeffa98a6e0a`
+- Backend runtime-tree fingerprint: `e0ca06f59e962ca3ed6c94ed8ce61d18923ccb87a0a611435d47854e7589cb23`
+- Backend worktree: dirty; 위 fingerprint는 local-benchmark runtime 관련 tracked diff와
+  untracked runtime/test file을 포함하므로 HEAD만으로 재현됐다고 주장하지 않는다.
+- Elasticsearch `accommodations` alias: present
+- Debezium connector: `snapshot.mode=no_data`, connector와 task 모두 `RUNNING`
+- Published accommodations: `170,201`
+- Members: `803,008`
+- `accommodation_inventory_day`: `0`
+- Future available inventory: `0`
+- Active coupons: `0`
+
+Mutation 없이 실제 browser에서 다음 read-only subset을 확인했다.
+
+- 원본 checkout의 browser-public `.env`를 file 복사나 값 출력 없이 Vite process에 주입했다.
+  Worktree에는 ignored `.env`가 복사되지 않으므로 API URL만 있는 `.env.development`로는
+  Google Maps가 활성화되지 않는다.
+- Google Maps referrer와 일치하는 `http://localhost:3000`에서 Busan 검색 결과
+  `1,000개 이상`, listing image/fallback, pagination, 지도와 price marker를 확인했다.
+- 검색 결과의 public accommodation detail을 열어 hero, 핵심 정보, host, amenities, reviews와
+  location map을 확인했다.
+- Inventory가 없는 local-benchmark에서 availability는 fail-closed 상태와 retry action을
+  표시하고, detail content와 disabled booking entry를 보존했다.
+- 허용되지 않은 `127.0.0.1` referrer에서는 Google provider error가 발생해도 검색 결과를
+  보존하고 지도 영역만 실패 상태로 유지한다. Partial SDK listener cleanup crash는 frontend
+  commit `607a95f`에서 수정했다.
+
+검증 결과:
+
+- Map cleanup regression tests: `3 passed`
+- Frontend unit/integration: `2,560 passed` across `292` files
+- Affected deterministic browser suite: `32 passed`
+- Live normal Maps path: PASS, console errors `0`
+- Live provider-failure recovery: PASS; provider error는 관찰됐고 application cleanup error와
+  global error boundary는 재발하지 않음
+
+실제 U12 mutation runner는 실행하지 않았다. `local-benchmark` 문서와 데이터 상태가
+availability/quote/checkout 실행을 금지하고, runner가 요구하는 QA credential 및 paid/
+complimentary fixture attestation을 충족하지 못하기 때문이다. 이 판정은 read-only subset
+PASS와 별개인 `BLOCKED / UNVERIFIED`다.
 
 ## Mutation authority
 

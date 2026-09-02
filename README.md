@@ -160,12 +160,14 @@ Playwright config is unsupported and is blocked without the runner identity.
 Before Toss, the runner re-reads the frontend state and requires the exact
 same revision plus a matching same-run core PASS manifest.
 
-The latest U12 status remains **BLOCKED / UNVERIFIED**. The user has signaled
-that the major local data is prepared, but the current services are not running
-and the disposable/reset owner, slot-scoped Toss failure discriminator, and
-full messaging readiness have not yet been verified. A missing prerequisite is
-a blocked result, not a skipped or passing
-scenario. Core and Toss results must be recorded separately in the
+The latest local-benchmark read-only subset is **PASS**: the local infrastructure,
+backend readiness, real search results, Google Maps on the authorized localhost
+origin, and accommodation detail were verified without a domain mutation. The
+U12 mutation profiles remain **BLOCKED / UNVERIFIED** because the restored data
+has no booking inventory or active coupon, the backend has no owned business-fixture
+reset procedure, local-benchmark disables Toss, and the provider failure discriminator
+is not implemented. A missing prerequisite is a blocked result, not a skipped or
+passing scenario. Core and Toss results must be recorded separately in the
 [`redacted U12 evidence record`](docs/qa/2026-09-02-u12-local-integration-evidence.md).
 
 Success through Vite's local `/api` proxy proves neither Vercel-to-OCI

@@ -2,12 +2,13 @@
 
 > U12 local core: **BLOCKED / UNVERIFIED**
 > U12 local Toss sandbox: **BLOCKED / UNVERIFIED**
+> Local-benchmark read-only subset: **PASS**
 > Deployment live: **DEFERRED / UNVERIFIED**
 >
-> 주요 local data가 준비됐다는 사용자 신호는 받았다. 그러나 현재 local service는 꺼져
-> 있고 backend-owned disposable/reset 소유권과 full messaging readiness는 아직 검증하지
-> 않았다. 이 전제조건을 증명하기 전에는 local core나 Toss sandbox를 pass로 기록하지
-> 않는다. Toss는 sandbox만 사용한다.
+> 2026-09-02 audit에서 infrastructure, local-benchmark backend readiness, 실제 search/Maps와
+> accommodation detail을 읽기 전용으로 검증했다. 사용자는 전용 local reset ownership도
+> 확인했다. 그러나 booking inventory와 active coupon이 0이고 backend-owned fixture reset
+> procedure와 Toss failure injection이 없으므로 local core와 Toss는 pass로 기록하지 않는다.
 
 ## 목적과 경계
 
