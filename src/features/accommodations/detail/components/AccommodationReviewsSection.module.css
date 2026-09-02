@@ -4,9 +4,11 @@
 }
 
 .reviewSection {
+  --detail-inline-gutter: inherit;
+
   position: relative;
-  width: min(1136px, calc(100% - 160px));
-  margin: 0 0 var(--space-12) 80px;
+  width: auto;
+  margin: 0 var(--detail-inline-gutter, var(--size-px-80)) var(--space-12);
   padding-top: var(--space-12);
 }
 
@@ -153,6 +155,7 @@
 }
 
 .reviewContent {
+  max-width: 68ch;
   margin: 0;
   color: var(--color-text-primary);
   font-size: var(--font-size-md);
@@ -261,19 +264,7 @@
   width: 68%;
 }
 
-@media (--viewport-wide) {
-  .reviewSection {
-    width: calc(100% - 120px);
-    margin-left: 60px;
-  }
-}
-
 @media (--viewport-compact) {
-  .reviewSection {
-    width: calc(100% - 80px);
-    margin-left: var(--space-10);
-  }
-
   .reviewsGrid,
   .loadingGrid {
     gap: var(--space-8) var(--space-6);
@@ -282,8 +273,7 @@
 
 @media (--viewport-mobile-tablet) {
   .reviewSection {
-    width: calc(100% - var(--space-12));
-    margin-inline: var(--space-6);
+    margin-inline: var(--detail-inline-gutter, var(--space-6));
   }
 
   .reviewsGrid,
@@ -298,8 +288,8 @@
   }
 
   .reviewSection {
-    width: calc(100% - var(--space-8));
-    margin: 0 var(--space-4) var(--space-8);
+    margin-inline: var(--detail-inline-gutter, var(--space-4));
+    margin-bottom: var(--space-8);
     padding-top: var(--space-8);
   }
 

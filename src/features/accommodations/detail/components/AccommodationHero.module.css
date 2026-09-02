@@ -1,5 +1,11 @@
+.header,
+.imageSection {
+  --detail-inline-gutter: inherit;
+}
+
 .header {
-  padding: var(--space-6) var(--size-px-80) var(--space-4);
+  padding: var(--space-6) var(--detail-inline-gutter, var(--size-px-80))
+    var(--space-4);
 }
 
 .titleSection {
@@ -110,7 +116,7 @@
 
 .imageSection {
   margin-bottom: var(--space-10);
-  padding: 0 var(--size-px-80);
+  padding: 0 var(--detail-inline-gutter, var(--size-px-80));
 }
 
 .imageGrid {
@@ -300,23 +306,10 @@
   font-size: var(--font-size-sm);
 }
 
-@media (--viewport-wide) {
-  .header,
-  .imageSection {
-    padding-inline: var(--space-16);
-  }
-}
-
-@media (--viewport-compact) {
-  .header,
-  .imageSection {
-    padding-inline: var(--space-10);
-  }
-}
-
 @media (--viewport-mobile-tablet) {
   .header {
-    padding: var(--space-5) var(--space-6) var(--space-4);
+    padding: var(--space-5) var(--detail-inline-gutter, var(--space-6))
+      var(--space-4);
   }
 
   .imageSection {
@@ -416,7 +409,7 @@
 
 @media (--viewport-tablet) {
   .header {
-    padding-inline: var(--space-4);
+    padding-inline: var(--detail-inline-gutter, var(--space-4));
   }
 
   .titleSection {

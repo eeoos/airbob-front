@@ -303,7 +303,7 @@ for (const boundary of [
   });
 }
 
-test("reflows the detail hero, overview, and booking entry from 320px through 1440px", async ({
+test("aligns the detail shell from 320px through 4K", async ({
   api,
   page,
   session,
@@ -329,16 +329,28 @@ test("reflows the detail hero, overview, and booking entry from 320px through 14
   ).toBeVisible();
 
   const layouts = [
-    { width: 320, comparisonAxis: "y" },
-    { width: 390, comparisonAxis: "y" },
-    { width: 768, comparisonAxis: "y" },
-    { width: 1024, comparisonAxis: "y" },
-    { width: 1025, comparisonAxis: "x" },
-    { width: 1280, comparisonAxis: "x" },
-    { width: 1440, comparisonAxis: "x" },
+    [320, "y", 16],
+    [390, "y", 16],
+    [768, "y", 16],
+    [769, "y", 24],
+    [1024, "y", 24],
+    [1025, "x", 40],
+    [1200, "x", 40],
+    [1201, "x", 64],
+    [1280, "x", 64],
+    [1366, "x", 64],
+    [1400, "x", 64],
+    [1401, "x", 80],
+    [1440, "x", 80],
+    [1536, "x", 80],
+    [1600, "x", 80],
+    [1760, "x", 80],
+    [1920, "x", 80],
+    [2560, "x", 80],
+    [3840, "x", 80],
   ] as const;
 
-  for (const { width, comparisonAxis } of layouts) {
+  for (const [width, comparisonAxis, expectedGutter] of layouts) {
     await test.step(`${width}px detail layout`, async () => {
       await page.setViewportSize({ width, height: width <= 768 ? 844 : 900 });
       await page.evaluate(
@@ -358,22 +370,100 @@ test("reflows the detail hero, overview, and booking entry from 320px through 14
         name: "서울의 전체 숙소",
         level: 2,
       });
+      const locationHeading = page.getByRole("heading", {
+        name: "위치",
+        level: 2,
+      });
+      const reviewsHeading = page.getByRole("heading", {
+        name: "아직 등록된 후기가 없어요",
+        level: 2,
+      });
+      const detailStateOwner = page.getByRole("region", {
+        name: "숙소 상세 상태",
+      });
       const bookingAction = page.getByRole("button", { name: "예약하기" });
 
       await expectFullyInsideViewport(homeLink, width);
       await expect(heroFallback).toBeVisible();
       await expect(overviewHeading).toBeVisible();
+      await expect(locationHeading).toBeVisible();
+      await expect(reviewsHeading).toBeVisible();
       await expect(bookingAction).toBeVisible();
       await expectNoHorizontalOverflow(page, width);
 
-      const overviewBounds = await overviewHeading.boundingBox();
-      const bookingBounds = await bookingAction.boundingBox();
+      const heroTitle = page.getByRole("heading", {
+        name: "반응형 상세 테스트 숙소",
+        level: 1,
+      });
+      const [
+        heroTitleBounds,
+        overviewBounds,
+        locationBounds,
+        reviewsBounds,
+        bookingBounds,
+      ] = await Promise.all([
+        heroTitle.boundingBox(),
+        overviewHeading.boundingBox(),
+        locationHeading.boundingBox(),
+        reviewsHeading.boundingBox(),
+        bookingAction.boundingBox(),
+      ]);
+
+      const computedGutter = await detailStateOwner.evaluate((owner) =>
+        Number.parseFloat(
+          getComputedStyle(owner).getPropertyValue("--detail-inline-gutter"),
+        ),
+      );
+      expect(computedGutter, `detail gutter at ${width}px`).toBe(
+        expectedGutter,
+      );
+
+      expect(heroTitleBounds).not.toBeNull();
       expect(overviewBounds).not.toBeNull();
+      expect(locationBounds).not.toBeNull();
+      expect(reviewsBounds).not.toBeNull();
       expect(bookingBounds).not.toBeNull();
+
+      const alignedLeftEdges = [
+        overviewBounds!.x,
+        locationBounds!.x,
+        reviewsBounds!.x,
+      ];
+      for (const left of alignedLeftEdges) {
+        expect(
+          Math.abs(left - heroTitleBounds!.x),
+          `detail left edge at ${width}px`,
+        ).toBeLessThanOrEqual(1);
+      }
 
       expect(bookingBounds?.[comparisonAxis] ?? 0).toBeGreaterThan(
         overviewBounds?.[comparisonAxis] ?? Number.POSITIVE_INFINITY,
       );
+    });
+  }
+
+  for (const width of [
+    1025, 1200, 1201, 1366, 1400, 1401, 1536, 1600, 1760, 1920, 2560, 3840,
+  ]) {
+    await test.step(`${width}px desktop right edge`, async () => {
+      await page.setViewportSize({ width, height: 900 });
+      const heroBounds = await page
+        .getByRole("img", {
+          name: "반응형 상세 테스트 숙소 숙소 사진 없음",
+        })
+        .boundingBox();
+      const bookingBounds = await page
+        .getByRole("region", { name: "숙소 예약" })
+        .boundingBox();
+
+      expect(heroBounds).not.toBeNull();
+      expect(bookingBounds).not.toBeNull();
+      const heroRight = heroBounds!.x + heroBounds!.width;
+      const bookingRight = bookingBounds!.x + bookingBounds!.width;
+      expect(
+        Math.abs(heroRight - bookingRight),
+        `booking and hero right edge at ${width}px`,
+      ).toBeLessThanOrEqual(1);
     });
   }
 });
