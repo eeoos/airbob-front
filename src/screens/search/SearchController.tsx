@@ -29,7 +29,6 @@ export interface SearchNavigationCommands {
   readonly openAccommodation: (accommodationId: number) => void;
   readonly openPage: (page: number) => void;
   readonly replaceMapBounds: (bounds: SearchMapBounds) => void;
-  readonly scrollResultsToTop: () => void;
 }
 
 export interface SearchWishlistAuthIntent {
@@ -160,7 +159,6 @@ export function SearchController({
   const isRouteMapDragMode =
     viewport !== null && routeState.destination === undefined;
   const previousRequestIdentityRef = useRef<string | undefined>(undefined);
-  const pendingScrollRequestRef = useRef<string | null>(null);
   const pendingBoundsRequestRef = useRef<string | null>(null);
   const suspendedBoundsRequestRef = useRef<string | null>(null);
   const pendingAuthAttemptIdRef = useRef<number | null>(null);
@@ -215,9 +213,6 @@ export function SearchController({
   ]);
 
   useEffect(() => {
-    if (pendingScrollRequestRef.current !== requestIdentity) {
-      pendingScrollRequestRef.current = null;
-    }
     if (pendingBoundsRequestRef.current !== requestIdentity) {
       pendingBoundsRequestRef.current = null;
     }
@@ -229,7 +224,6 @@ export function SearchController({
   useEffect(() => {
     if (!query.isError) return;
 
-    pendingScrollRequestRef.current = null;
     pendingBoundsRequestRef.current = null;
   }, [query.errorUpdatedAt, query.isError]);
 
@@ -262,13 +256,7 @@ export function SearchController({
       pendingBoundsRequestRef.current = null;
       requestMapBoundsUpdate();
     }
-
-    if (pendingScrollRequestRef.current === requestIdentity) {
-      pendingScrollRequestRef.current = null;
-      navigation.scrollResultsToTop();
-    }
   }, [
-    navigation,
     query.data,
     query.dataUpdatedAt,
     query.isError,
@@ -351,7 +339,6 @@ export function SearchController({
         ...request,
         page,
       });
-      pendingScrollRequestRef.current = targetRequestIdentity;
       pendingBoundsRequestRef.current = targetRequestIdentity;
       navigation.openPage(page);
     },

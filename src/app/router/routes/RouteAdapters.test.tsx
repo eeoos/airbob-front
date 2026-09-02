@@ -136,7 +136,6 @@ type CapturedProps = {
         east: number;
         west: number;
       }): void;
-      scrollResultsToTop(): void;
     };
     routeState: {
       destination?: string;

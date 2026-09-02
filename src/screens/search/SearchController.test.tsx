@@ -111,7 +111,6 @@ const navigation = () => ({
   openAccommodation: vi.fn(),
   openPage: vi.fn(),
   replaceMapBounds: vi.fn(),
-  scrollResultsToTop: vi.fn(),
 });
 
 const baseProps = (
@@ -228,7 +227,6 @@ describe("SearchController", () => {
     );
 
     expect(mockRequestMapBoundsUpdate).toHaveBeenCalledTimes(1);
-    expect(commands.scrollResultsToTop).toHaveBeenCalledTimes(1);
   });
 
   it("lets a user drag cancel a pending pagination refit", () => {
@@ -267,7 +265,6 @@ describe("SearchController", () => {
     view.rerender(<SearchController {...pageTwoProps} />);
 
     expect(mockRequestMapBoundsUpdate).not.toHaveBeenCalled();
-    expect(commands.scrollResultsToTop).toHaveBeenCalledTimes(1);
 
     act(() => currentScreenProps().map.onBoundsDragCancel());
     expect(currentScreenProps().map.isMapDragMode).toBe(false);
@@ -312,7 +309,6 @@ describe("SearchController", () => {
     view.rerender(<SearchController {...pageTwoProps} />);
 
     expect(mockRequestMapBoundsUpdate).toHaveBeenCalledTimes(1);
-    expect(commands.scrollResultsToTop).toHaveBeenCalledTimes(1);
   });
 
   it("requests a result refit after a non-map search even when result ids stay the same", () => {
@@ -415,7 +411,6 @@ describe("SearchController", () => {
     );
 
     expect(mockRequestMapBoundsUpdate).toHaveBeenCalledTimes(1);
-    expect(commands.scrollResultsToTop).not.toHaveBeenCalled();
   });
 
   it("derives map-drag mode from the committed viewport across pagination", () => {

@@ -154,6 +154,9 @@ describe("design system entry contracts", () => {
     const searchPageCss = readSource("screens/search/SearchScreen.module.css");
 
     expect(searchPageCss).toContain("var(--layout-header-desktop-height)");
+    expect(searchPageCss).toMatch(
+      /\.main\s*{[^}]*box-sizing:\s*border-box;[^}]*height:\s*calc\(100vh - var\(--layout-header-desktop-height\) - 1px\);/s,
+    );
     expect(searchPageCss).toContain(
       "var(--layout-search-mobile-bottom-sheet-offset)",
     );
