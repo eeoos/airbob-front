@@ -477,7 +477,7 @@ test("recovers a detail 503 through the explicit retry command", async ({
   await expect(detailStateOwner).toBeFocused();
 });
 
-test("keeps detail content while availability retry owns and restores focus", async ({
+test("keeps detail content while the primary availability retry owns focus", async ({
   api,
   page,
   session,
@@ -509,7 +509,7 @@ test("keeps detail content while availability retry owns and restores focus", as
     "예약 가능한 날짜를 불러오지 못했습니다.",
   );
 
-  await availabilityAlert.getByRole("button", { name: "다시 시도" }).click();
+  await page.getByRole("button", { name: "날짜 다시 불러오기" }).click();
 
   const availabilityStatus = page.getByRole("status", {
     name: "예약 가능 여부",
@@ -517,14 +517,18 @@ test("keeps detail content while availability retry owns and restores focus", as
   await expect(availabilityStatus).toContainText(
     "예약 가능한 날짜를 확인하고 있습니다.",
   );
-  await expect(availabilityStatus).toBeFocused();
+  await expect(
+    page.getByText(
+      "예약 가능한 날짜를 확인하고 있어요. 확인이 끝나면 날짜를 선택할 수 있습니다.",
+    ),
+  ).toBeFocused();
 
   availabilityDeferred.resolve(apiSuccess(detailAvailability));
-  const dateTrigger = page.locator(
-    'button[aria-controls="booking-date-picker"]',
-  );
+  const dateTrigger = page
+    .locator('button[aria-controls="booking-date-picker"]')
+    .first();
   await expect(dateTrigger).toBeEnabled();
-  await expect(dateTrigger).toBeFocused();
+  await expect(page.getByRole("button", { name: "예약하기" })).toBeFocused();
   await expect.poll(() => availabilityAttempts).toBe(2);
 });
 

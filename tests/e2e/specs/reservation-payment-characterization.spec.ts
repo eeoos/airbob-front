@@ -1481,18 +1481,136 @@ test("keeps detail readable while availability fails closed and retries", async 
     page.getByRole("heading", { name: accommodation.name, level: 1 }),
   ).toBeVisible();
   await expect(
-    page.getByText("예약 가능한 날짜를 불러오지 못했습니다."),
+    page.getByText(
+      "날짜 정보를 불러오지 못했어요. ‘날짜 다시 불러오기’를 눌러 확인해주세요.",
+    ),
   ).toBeVisible();
-  const bookingDateButton = page.locator(
-    'button[aria-controls="booking-date-picker"]',
-  );
+  const bookingDateButton = page
+    .locator('button[aria-controls="booking-date-picker"]')
+    .first();
   await expect(bookingDateButton).toBeDisabled();
-  await page.getByRole("button", { name: "다시 시도" }).click();
+  await page.getByRole("button", { name: "날짜 다시 불러오기" }).click();
   await expect(bookingDateButton).toBeEnabled();
   await expect(page.getByRole("button", { name: "예약하기" })).toBeEnabled();
   expect(
     api.matching("GET", "/api/v1/accommodations/7/availability"),
   ).toHaveLength(2);
+});
+
+test("keeps the calendar open through partial and complete date selection", async ({
+  api,
+  page,
+  session,
+}) => {
+  session.clear();
+  registerAccommodationReads(api);
+
+  await page.goto("/accommodations/7?adultOccupancy=1");
+  const bookingCard = page.getByRole("region", { name: "숙소 예약" });
+  await expect(
+    bookingCard.getByRole("heading", {
+      name: "날짜를 선택해 요금 확인",
+    }),
+  ).toBeVisible();
+  await bookingCard.getByRole("button", { name: "체크인 날짜 추가" }).click();
+
+  const dateOverlay = page.getByRole("dialog", { name: "예약 날짜 선택" });
+  await expect(dateOverlay).toBeVisible();
+  await dateOverlay
+    .getByRole("gridcell", { name: "2026년 1월 10일 토요일" })
+    .click();
+
+  await expect(dateOverlay).toBeVisible();
+  await expect(
+    bookingCard.getByRole("button", { name: "체크인 2026. 01. 10." }),
+  ).toBeVisible();
+  await expect(
+    bookingCard.getByRole("button", { name: "체크아웃 날짜 추가" }),
+  ).toBeVisible();
+  await expect(
+    dateOverlay.getByText("체크아웃 날짜를 선택하세요", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    bookingCard.getByRole("heading", {
+      name: "날짜를 선택해 요금 확인",
+    }),
+  ).toBeVisible();
+
+  await dateOverlay
+    .getByRole("gridcell", { name: "2026년 1월 12일 월요일" })
+    .click();
+
+  await expect(dateOverlay).toBeVisible();
+  await expect(
+    bookingCard.getByRole("button", { name: "체크아웃 2026. 01. 12." }),
+  ).toBeVisible();
+  await expect(bookingCard.getByText("총액")).toBeVisible();
+  await expect(bookingCard.getByText("₩100,000")).toBeVisible();
+  await expect(
+    bookingCard.getByRole("button", { name: "예약하기" }),
+  ).toBeEnabled();
+
+  await dateOverlay.getByRole("button", { name: "닫기" }).click();
+  await expect(dateOverlay).toBeHidden();
+  await expect(
+    bookingCard.getByRole("button", { name: "체크아웃 2026. 01. 12." }),
+  ).toBeFocused();
+
+  await bookingCard
+    .getByRole("button", { name: "체크아웃 2026. 01. 12." })
+    .click();
+  await expect(dateOverlay).toBeVisible();
+  await dateOverlay
+    .getByRole("gridcell", { name: "2026년 1월 13일 화요일" })
+    .click();
+
+  await expect(
+    bookingCard.getByRole("button", { name: "체크인 2026. 01. 10." }),
+  ).toBeVisible();
+  await expect(
+    bookingCard.getByRole("button", { name: "체크아웃 2026. 01. 13." }),
+  ).toBeVisible();
+  await expect(dateOverlay).toBeVisible();
+});
+
+test("replaces a partial check-in without silently creating a checkout", async ({
+  api,
+  page,
+  session,
+}) => {
+  session.clear();
+  registerAccommodationReads(api);
+
+  await page.goto("/accommodations/7?adultOccupancy=1");
+  const bookingCard = page.getByRole("region", { name: "숙소 예약" });
+  await bookingCard.getByRole("button", { name: "체크인 날짜 추가" }).click();
+
+  const dateOverlay = page.getByRole("dialog", { name: "예약 날짜 선택" });
+  await dateOverlay
+    .getByRole("gridcell", { name: "2026년 1월 10일 토요일" })
+    .click();
+  await bookingCard
+    .getByRole("button", { name: "체크인 2026. 01. 10." })
+    .click();
+
+  await expect(
+    dateOverlay.getByText("체크인 날짜를 선택하세요", { exact: true }),
+  ).toBeVisible();
+  await dateOverlay
+    .getByRole("gridcell", { name: "2026년 1월 11일 일요일" })
+    .click();
+
+  await expect(
+    bookingCard.getByRole("button", { name: "체크인 2026. 01. 11." }),
+  ).toBeVisible();
+  await expect(
+    bookingCard.getByRole("button", { name: "체크아웃 날짜 추가" }),
+  ).toBeVisible();
+  await expect(dateOverlay).toBeVisible();
+  await expect
+    .poll(() => new URL(page.url()).searchParams.get("checkIn"))
+    .toBe("2026-01-11");
+  expect(new URL(page.url()).searchParams.get("checkOut")).toBeNull();
 });
 
 const phaseTwoScreenshotOptions = {

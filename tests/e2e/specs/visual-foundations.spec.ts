@@ -304,6 +304,81 @@ test("keeps the accommodation detail foundation visually stable", async ({
     "accommodation-detail-foundation.png",
     foundationScreenshotOptions,
   );
+  await expect(
+    page.getByRole("region", { name: "숙소 예약" }),
+  ).toHaveScreenshot(
+    "completed-booking-card-foundation.png",
+    componentScreenshotOptions,
+  );
+});
+
+test("keeps the empty booking card and anchored date overlay visually stable", async ({
+  api,
+  page,
+  session,
+}) => {
+  session.clear();
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await installSyntheticImages(page, DETAIL_IMAGE_URLS);
+  api.register(
+    "GET",
+    "/api/v1/accommodations/7",
+    apiSuccess(detailAccommodation),
+  );
+  api.register(
+    "GET",
+    "/api/v1/accommodations/7/availability",
+    apiSuccess(detailAvailability),
+  );
+
+  await page.goto("/accommodations/7?adultOccupancy=1");
+  const bookingCard = page.getByRole("region", { name: "숙소 예약" });
+  const checkIn = bookingCard.getByRole("button", {
+    name: "체크인 날짜 추가",
+  });
+  await bookingCard.scrollIntoViewIfNeeded();
+  await expect(checkIn).toBeVisible();
+  await waitForStablePaint(page);
+
+  await expect(bookingCard).toHaveScreenshot(
+    "empty-booking-card-foundation.png",
+    componentScreenshotOptions,
+  );
+
+  const before = await checkIn.boundingBox();
+  await checkIn.click();
+  const dateOverlay = page.getByRole("dialog", { name: "예약 날짜 선택" });
+  await expect(dateOverlay).toBeVisible();
+  await waitForStablePaint(page);
+  const after = await checkIn.boundingBox();
+
+  expect(after).toEqual(before);
+  await expect(dateOverlay).toHaveScreenshot(
+    "anchored-booking-date-overlay-foundation.png",
+    componentScreenshotOptions,
+  );
+
+  await dateOverlay.getByRole("button", { name: "닫기" }).click();
+  await page.setViewportSize({ width: 390, height: 900 });
+  await bookingCard.scrollIntoViewIfNeeded();
+  await checkIn.click();
+  await expect(dateOverlay).toBeVisible();
+  await waitForStablePaint(page);
+  await expect(dateOverlay).toHaveScreenshot(
+    "mobile-booking-date-overlay-foundation.png",
+    componentScreenshotOptions,
+  );
+
+  await dateOverlay.getByRole("button", { name: "닫기" }).click();
+  await page.setViewportSize({ width: 1024, height: 900 });
+  await bookingCard.scrollIntoViewIfNeeded();
+  await checkIn.click();
+  await expect(dateOverlay).toBeVisible();
+  await waitForStablePaint(page);
+  await expect(dateOverlay).toHaveScreenshot(
+    "tablet-booking-date-overlay-foundation.png",
+    componentScreenshotOptions,
+  );
 });
 
 test("keeps the authentication dialog and overlay visually stable", async ({
