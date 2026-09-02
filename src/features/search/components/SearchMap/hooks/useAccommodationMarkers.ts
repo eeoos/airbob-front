@@ -156,7 +156,7 @@ export const useAccommodationMarkers = ({
           window.cancelAnimationFrame(animationFrameId);
           animationFrameId = null;
         }
-        markerListeners.forEach((listener) => listener.remove());
+        markerListeners.forEach((listener) => listener?.remove?.());
         marker?.setMap(null);
         marker?.unbindAll();
         objectUrls.forEach((url) => URL.revokeObjectURL(url));

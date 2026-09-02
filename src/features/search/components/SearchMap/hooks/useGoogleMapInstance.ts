@@ -152,7 +152,7 @@ export const useGoogleMapInstance = ({
 
     return () => {
       mapListeners.forEach((listener) => {
-        listener.remove();
+        listener?.remove?.();
       });
       elementListeners.forEach(({ event, listener }) => {
         mapElement.removeEventListener(event, listener);

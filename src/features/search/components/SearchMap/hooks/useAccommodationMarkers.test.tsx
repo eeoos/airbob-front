@@ -46,9 +46,11 @@ describe("useAccommodationMarkers", () => {
   });
 
   it("disposes marker listeners, animation frame, object URLs, and owned bindings", () => {
-    const listenerHandles = Array.from({ length: 3 }, () => ({
-      remove: vi.fn(),
-    }));
+    const listenerHandles = [
+      { remove: vi.fn() },
+      undefined,
+      { remove: vi.fn() },
+    ];
     const handlers: Record<string, (...args: any[]) => void> = {};
     const setMap = vi.fn();
     const unbindAll = vi.fn();
@@ -169,9 +171,11 @@ describe("useAccommodationMarkers", () => {
     marker.dispose?.();
     unmount();
 
-    listenerHandles.forEach((listener) => {
-      expect(listener.remove).toHaveBeenCalledTimes(1);
-    });
+    listenerHandles
+      .filter((listener) => listener !== undefined)
+      .forEach((listener) => {
+        expect(listener.remove).toHaveBeenCalledTimes(1);
+      });
     expect(cancelAnimationFrame).toHaveBeenCalledWith(41);
     expect(setMap).toHaveBeenCalledWith(null);
     expect(unbindAll).toHaveBeenCalledTimes(1);

@@ -57,9 +57,11 @@ describe("useGoogleMapInstance", () => {
   });
 
   it("removes every owned listener and SDK instance resource on unmount", () => {
-    const listenerHandles = Array.from({ length: 3 }, () => ({
-      remove: vi.fn(),
-    }));
+    const listenerHandles = [
+      { remove: vi.fn() },
+      undefined,
+      { remove: vi.fn() },
+    ];
     const unbindAll = vi.fn();
     let nextListenerIndex = 0;
     const addListener = vi.fn(() => listenerHandles[nextListenerIndex++]);
@@ -84,9 +86,11 @@ describe("useGoogleMapInstance", () => {
     expect(mapInstanceRef.current).toBe(map);
     unmount();
 
-    listenerHandles.forEach((listener) => {
-      expect(listener.remove).toHaveBeenCalledTimes(1);
-    });
+    listenerHandles
+      .filter((listener) => listener !== undefined)
+      .forEach((listener) => {
+        expect(listener.remove).toHaveBeenCalledTimes(1);
+      });
     expect(removeEventListener).toHaveBeenCalledWith(
       "touchstart",
       expect.any(Function),
