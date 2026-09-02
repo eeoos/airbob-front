@@ -72,6 +72,7 @@ export const Map: React.FC<SearchMapProps> = ({
 
   const isLoadingBounds = useMapBoundsReporter({
     isInitialIdleRef,
+    isMapLoaded,
     mapInstanceRef,
     onBoundsChange,
     onUserDragCancel: onBoundsDragCancel,

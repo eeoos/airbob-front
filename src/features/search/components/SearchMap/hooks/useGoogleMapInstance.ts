@@ -123,26 +123,23 @@ export const useGoogleMapInstance = ({
           onMapInteractionRef.current?.();
         }),
       );
-      mapListeners.push(
-        map.addListener("zoomstart", () => {
-          onMapInteractionRef.current?.();
-        }),
-      );
-
-      const touchStartListener = () => {
-        onMapInteractionRef.current?.();
-      };
-      const mouseDownListener = () => {
+      const userMapInteractionListener = () => {
         onMapInteractionRef.current?.();
       };
 
-      mapElement.addEventListener("touchstart", touchStartListener, {
+      mapElement.addEventListener("touchstart", userMapInteractionListener, {
         passive: true,
       });
-      mapElement.addEventListener("mousedown", mouseDownListener);
+      mapElement.addEventListener("mousedown", userMapInteractionListener);
+      mapElement.addEventListener("wheel", userMapInteractionListener, {
+        passive: true,
+      });
+      mapElement.addEventListener("keydown", userMapInteractionListener);
       elementListeners.push(
-        { event: "touchstart", listener: touchStartListener },
-        { event: "mousedown", listener: mouseDownListener },
+        { event: "touchstart", listener: userMapInteractionListener },
+        { event: "mousedown", listener: userMapInteractionListener },
+        { event: "wheel", listener: userMapInteractionListener },
+        { event: "keydown", listener: userMapInteractionListener },
       );
     } catch {
       mapInstanceRef.current = null;

@@ -130,6 +130,7 @@ describe("SearchMap", () => {
     );
     expect(hookMocks.useMapBoundsReporter).toHaveBeenCalledWith(
       expect.objectContaining({
+        isMapLoaded: true,
         onBoundsChange: optionalProps.onBoundsChange,
         onUserDragCancel: optionalProps.onBoundsDragCancel,
         onUserDragStart: optionalProps.onBoundsDragStart,

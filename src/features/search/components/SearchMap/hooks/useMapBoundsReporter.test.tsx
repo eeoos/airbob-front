@@ -46,6 +46,33 @@ describe("useMapBoundsReporter", () => {
     vi.useRealTimers();
   });
 
+  it("attaches listeners when the asynchronous map runtime becomes ready", () => {
+    const { handlers, map } = createMapHarness(initialBounds);
+    const mapInstanceRef = ref<google.maps.Map | null>(null);
+    const isInitialIdleRef = ref(true);
+    const onBoundsChange = vi.fn();
+
+    const { rerender } = renderHook(
+      ({ isMapLoaded }) =>
+        useMapBoundsReporter({
+          isInitialIdleRef,
+          isMapLoaded,
+          mapInstanceRef,
+          onBoundsChange,
+        }),
+      { initialProps: { isMapLoaded: false } },
+    );
+
+    expect(map.addListener).not.toHaveBeenCalled();
+
+    mapInstanceRef.current = map;
+    rerender({ isMapLoaded: true });
+
+    expect(map.addListener).toHaveBeenCalledTimes(2);
+    expect(handlers.idle).toEqual(expect.any(Function));
+    expect(handlers.dragstart).toEqual(expect.any(Function));
+  });
+
   it("signals drag start immediately and cancels a drag whose bounds did not change", () => {
     vi.useFakeTimers();
     const { handlers, map } = createMapHarness(initialBounds);
@@ -58,6 +85,7 @@ describe("useMapBoundsReporter", () => {
     const { result } = renderHook(() =>
       useMapBoundsReporter({
         isInitialIdleRef,
+        isMapLoaded: true,
         mapInstanceRef,
         onBoundsChange,
         onUserDragCancel,
@@ -100,6 +128,7 @@ describe("useMapBoundsReporter", () => {
       ({ onBoundsChange }) =>
         useMapBoundsReporter({
           isInitialIdleRef,
+          isMapLoaded: true,
           mapInstanceRef,
           onBoundsChange,
           requestKey,
@@ -144,6 +173,7 @@ describe("useMapBoundsReporter", () => {
       ({ requestKey }) =>
         useMapBoundsReporter({
           isInitialIdleRef,
+          isMapLoaded: true,
           mapInstanceRef,
           onBoundsChange,
           requestKey,
@@ -171,6 +201,99 @@ describe("useMapBoundsReporter", () => {
     expect(onBoundsChange).not.toHaveBeenCalled();
   });
 
+  it("replaces a pending bounds report when a second drag starts", () => {
+    vi.useFakeTimers();
+    const { handlers, map, setBounds } = createMapHarness(initialBounds);
+    const onBoundsChange = vi.fn();
+    const onUserDragStart = vi.fn();
+    const isInitialIdleRef = ref(true);
+    const mapInstanceRef = ref(map);
+    const firstDraggedBounds = { ...initialBounds, north: 38.5 };
+    const secondDraggedBounds = {
+      north: 35.35,
+      south: 35.05,
+      east: 129.25,
+      west: 128.85,
+    };
+
+    const { result } = renderHook(() =>
+      useMapBoundsReporter({
+        isInitialIdleRef,
+        isMapLoaded: true,
+        mapInstanceRef,
+        onBoundsChange,
+        onUserDragStart,
+        requestKey: "busan-page-0",
+      }),
+    );
+
+    act(() => handlers.idle?.());
+    setBounds(firstDraggedBounds);
+    act(() => {
+      handlers.dragstart?.();
+      handlers.idle?.();
+    });
+    expect(result.current).toBe(true);
+    expect(vi.getTimerCount()).toBe(1);
+
+    act(() => vi.advanceTimersByTime(1500));
+    act(() => handlers.dragstart?.());
+    expect(result.current).toBe(false);
+    expect(vi.getTimerCount()).toBe(0);
+
+    setBounds(secondDraggedBounds);
+    act(() => handlers.idle?.());
+    expect(result.current).toBe(true);
+    expect(vi.getTimerCount()).toBe(1);
+
+    act(() => vi.advanceTimersByTime(3000));
+
+    expect(onUserDragStart).toHaveBeenCalledTimes(2);
+    expect(onBoundsChange).toHaveBeenCalledExactlyOnceWith(secondDraggedBounds);
+    expect(result.current).toBe(false);
+  });
+
+  it("preserves pending bounds when the replacing drag does not move farther", () => {
+    vi.useFakeTimers();
+    const { handlers, map, setBounds } = createMapHarness(initialBounds);
+    const onBoundsChange = vi.fn();
+    const isInitialIdleRef = ref(true);
+    const mapInstanceRef = ref(map);
+    const draggedBounds = { ...initialBounds, north: 38.5 };
+
+    const { result } = renderHook(() =>
+      useMapBoundsReporter({
+        isInitialIdleRef,
+        isMapLoaded: true,
+        mapInstanceRef,
+        onBoundsChange,
+        requestKey: "seoul-page-0",
+      }),
+    );
+
+    act(() => handlers.idle?.());
+    setBounds(draggedBounds);
+    act(() => {
+      handlers.dragstart?.();
+      handlers.idle?.();
+    });
+    expect(result.current).toBe(true);
+
+    act(() => vi.advanceTimersByTime(1500));
+    act(() => {
+      handlers.dragstart?.();
+      handlers.idle?.();
+    });
+
+    expect(result.current).toBe(true);
+    expect(vi.getTimerCount()).toBe(1);
+
+    act(() => vi.advanceTimersByTime(3000));
+
+    expect(onBoundsChange).toHaveBeenCalledExactlyOnceWith(draggedBounds);
+    expect(result.current).toBe(false);
+  });
+
   it("does not report programmatic idle events", () => {
     vi.useFakeTimers();
     const { handlers, map, setBounds } = createMapHarness(initialBounds);
@@ -182,6 +305,7 @@ describe("useMapBoundsReporter", () => {
     const { result } = renderHook(() =>
       useMapBoundsReporter({
         isInitialIdleRef,
+        isMapLoaded: true,
         mapInstanceRef,
         onBoundsChange,
         onUserDragCancel,
@@ -211,6 +335,7 @@ describe("useMapBoundsReporter", () => {
     const { unmount } = renderHook(() =>
       useMapBoundsReporter({
         isInitialIdleRef,
+        isMapLoaded: true,
         mapInstanceRef,
         onBoundsChange,
         onUserDragCancel,

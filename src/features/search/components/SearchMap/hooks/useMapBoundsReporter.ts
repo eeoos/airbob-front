@@ -4,6 +4,7 @@ import type { SearchMapBounds } from "../types";
 
 interface UseMapBoundsReporterOptions {
   isInitialIdleRef: MutableRefObject<boolean>;
+  isMapLoaded: boolean;
   mapInstanceRef: MutableRefObject<google.maps.Map | null>;
   onBoundsChange?: ((bounds: SearchMapBounds) => void) | undefined;
   onUserDragCancel?: (() => void) | undefined;
@@ -30,6 +31,7 @@ const readMapBounds = (
 
 export const useMapBoundsReporter = ({
   isInitialIdleRef,
+  isMapLoaded,
   mapInstanceRef,
   onBoundsChange,
   onUserDragCancel,
@@ -58,7 +60,7 @@ export const useMapBoundsReporter = ({
   const canReportBounds = onBoundsChange !== undefined;
 
   useEffect(() => {
-    if (!mapInstanceRef.current || !canReportBounds) return;
+    if (!isMapLoaded || !mapInstanceRef.current || !canReportBounds) return;
 
     const mapInstance = mapInstanceRef.current;
 
@@ -98,8 +100,6 @@ export const useMapBoundsReporter = ({
         return;
       }
 
-      previousBoundsRef.current = nextBounds;
-
       if (boundsChangeTimerRef.current) {
         clearTimeout(boundsChangeTimerRef.current);
         boundsChangeTimerRef.current = null;
@@ -115,12 +115,20 @@ export const useMapBoundsReporter = ({
         pendingRequestKeyRef.current = undefined;
 
         if (pendingRequestKey === requestKeyRef.current) {
+          previousBoundsRef.current = nextBounds;
           onBoundsChangeRef.current?.(nextBounds);
         }
       }, 3000);
     };
 
-    const markUserDragIntent = () => {
+    const markUserViewportIntent = () => {
+      if (boundsChangeTimerRef.current) {
+        clearTimeout(boundsChangeTimerRef.current);
+        boundsChangeTimerRef.current = null;
+        pendingRequestKeyRef.current = undefined;
+        setIsLoadingBounds(false);
+      }
+
       userDragIntentRef.current = true;
       userDragRequestKeyRef.current = requestKeyRef.current;
       onUserDragStartRef.current?.();
@@ -129,7 +137,7 @@ export const useMapBoundsReporter = ({
     idleListenerRef.current = mapInstance.addListener("idle", handleIdle);
     const dragStartListener = mapInstance.addListener(
       "dragstart",
-      markUserDragIntent,
+      markUserViewportIntent,
     );
 
     return () => {
@@ -152,7 +160,7 @@ export const useMapBoundsReporter = ({
         onUserDragCancelRef.current?.();
       }
     };
-  }, [canReportBounds, isInitialIdleRef, mapInstanceRef]);
+  }, [canReportBounds, isInitialIdleRef, isMapLoaded, mapInstanceRef]);
 
   useEffect(() => {
     if (
