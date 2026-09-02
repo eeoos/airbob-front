@@ -9,6 +9,10 @@
   isolation: isolate;
 }
 
+.searchHeader {
+  padding-inline: var(--space-8);
+}
+
 .container {
   display: flex;
   align-items: center;
@@ -17,6 +21,10 @@
   margin: 0 auto;
   height: var(--layout-header-desktop-height);
   gap: var(--space-6);
+}
+
+.searchRouteContainer {
+  max-width: none;
 }
 
 .logo {

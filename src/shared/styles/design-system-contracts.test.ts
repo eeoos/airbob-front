@@ -162,31 +162,35 @@ describe("design system entry contracts", () => {
     );
   });
 
-  it("keeps the expanded search map viewport-bound and below the header", () => {
+  it("slides the expanded search map across the full-width search shell", () => {
     const searchPageCss = readSource("screens/search/SearchScreen.module.css");
     const expandedLayoutRule = Array.from(
       searchPageCss.matchAll(/\.main\.mapExpanded\s*\{([^}]*)\}/g),
+    ).at(-1)?.[1];
+    const expandedResultsRule = Array.from(
+      searchPageCss.matchAll(/\.main\.mapExpanded \.results\s*\{([^}]*)\}/g),
     ).at(-1)?.[1];
     const expandedMapRule = Array.from(
       searchPageCss.matchAll(/\.main\.mapExpanded \.mapSection\s*\{([^}]*)\}/g),
     ).at(-1)?.[1];
 
     expect(expandedLayoutRule).toBeDefined();
-    expect(expandedLayoutRule).toContain("position: fixed;");
     expect(expandedLayoutRule).toContain(
-      "inset: calc(var(--layout-header-desktop-height) + 1px)",
+      "grid-template-columns: minmax(0, 0fr) minmax(0, 1fr);",
     );
-    expect(expandedLayoutRule).toContain("z-index: var(--z-local-overlay);");
-    expect(expandedLayoutRule).toContain("max-width: none;");
-    expect(expandedLayoutRule).toContain("width: auto;");
-    expect(expandedLayoutRule).toContain("height: auto;");
-    expect(expandedLayoutRule).toContain("min-height: 0;");
-    expect(expandedLayoutRule).not.toContain("var(--z-bottom-sheet)");
+    expect(expandedLayoutRule).toContain("gap: 0;");
+    expect(expandedLayoutRule).not.toContain("position: fixed;");
+
+    expect(expandedResultsRule).toBeDefined();
+    expect(expandedResultsRule).toContain("opacity: 0;");
+    expect(expandedResultsRule).toContain("visibility: hidden;");
+    expect(expandedResultsRule).toContain("pointer-events: none;");
 
     expect(expandedMapRule).toBeDefined();
-    expect(expandedMapRule).toContain("align-self: stretch;");
-    expect(expandedMapRule).toContain("height: auto;");
-    expect(expandedMapRule).toContain("min-height: 0;");
+    expect(expandedMapRule).toContain("width: 100%;");
+    expect(searchPageCss).toContain(
+      "grid-template-columns var(--motion-duration-slow)",
+    );
     expect(searchPageCss).toContain(
       ".main.mapExpanded .mapSection > *,\n.main.mapExpanded .mapSection > * > * {\n  min-height: 0;\n}",
     );

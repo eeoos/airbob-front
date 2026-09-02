@@ -304,6 +304,93 @@ for (const boundary of [
   });
 }
 
+test("keeps the desktop result and map panes balanced across monitor widths", async ({
+  api,
+  page,
+  session,
+}) => {
+  session.clear();
+  api.register(
+    "GET",
+    "/api/v1/search/accommodations",
+    apiSuccess(searchResponse),
+  );
+  await page.goto(searchURL);
+
+  for (const [width, expectedColumns] of [
+    [1025, 2],
+    [1280, 2],
+    [1440, 2],
+    [1600, 3],
+    [1920, 3],
+    [2560, 3],
+    [3840, 3],
+  ] as const) {
+    await test.step(`${width}px split layout`, async () => {
+      await page.setViewportSize({ width, height: 900 });
+
+      const resultsPane = page.locator('[data-search-pane="results"]');
+      const mapPane = page.locator('[data-search-pane="map"]');
+      const headerContainer = page.locator('[data-header-layout="full-width"]');
+      const homeLink = page.getByRole("link", {
+        name: "Airbob 홈으로 이동",
+      });
+      const userMenu = page.getByRole("button", { name: "사용자 메뉴" });
+      const resultGrid = page.getByRole("list", {
+        name: "숙소 검색 결과",
+      });
+      await expect(resultsPane).toBeVisible();
+      await expect(mapPane).toBeVisible();
+
+      const [
+        resultsBounds,
+        mapBounds,
+        headerBounds,
+        homeLinkBounds,
+        userMenuBounds,
+        columns,
+      ] = await Promise.all([
+        resultsPane.boundingBox(),
+        mapPane.boundingBox(),
+        headerContainer.boundingBox(),
+        homeLink.boundingBox(),
+        userMenu.boundingBox(),
+        resultGrid.evaluate(
+          (grid) =>
+            getComputedStyle(grid).gridTemplateColumns.split(" ").length,
+        ),
+      ]);
+
+      expect(resultsBounds).not.toBeNull();
+      expect(mapBounds).not.toBeNull();
+      expect(headerBounds).not.toBeNull();
+      expect(homeLinkBounds).not.toBeNull();
+      expect(userMenuBounds).not.toBeNull();
+      expect(
+        Math.abs(resultsBounds!.width - mapBounds!.width),
+        `balanced panes at ${width}px`,
+      ).toBeLessThanOrEqual(1);
+      expect(resultsBounds!.x, `results left edge at ${width}px`).toBe(32);
+      expect(
+        mapBounds!.x + mapBounds!.width,
+        `map right edge at ${width}px`,
+      ).toBe(width - 32);
+      expect(headerBounds!.x, `header left edge at ${width}px`).toBe(32);
+      expect(
+        headerBounds!.x + headerBounds!.width,
+        `header right edge at ${width}px`,
+      ).toBe(width - 32);
+      expect(homeLinkBounds!.x, `logo left edge at ${width}px`).toBe(32);
+      expect(
+        userMenuBounds!.x + userMenuBounds!.width,
+        `menu right edge at ${width}px`,
+      ).toBe(width - 32);
+      expect(columns, `result columns at ${width}px`).toBe(expectedColumns);
+      await expectNoHorizontalOverflow(page, width);
+    });
+  }
+});
+
 test("aligns the detail shell from 320px through 4K", async ({
   api,
   page,

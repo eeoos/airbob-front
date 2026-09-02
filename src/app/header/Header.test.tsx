@@ -98,6 +98,19 @@ describe("Header", () => {
     render(<Header headerMode="search" />);
 
     expect(screen.getAllByTestId("header-search-bar")).toHaveLength(1);
+    expect(screen.getByRole("banner")).toHaveAttribute(
+      "data-layout",
+      "full-width",
+    );
+  });
+
+  it("keeps non-search headers on the contained page shell", () => {
+    render(<Header />);
+
+    expect(screen.getByRole("banner")).toHaveAttribute(
+      "data-layout",
+      "contained",
+    );
   });
 
   it("renders no logical search bars for hidden header mode", () => {
@@ -112,6 +125,15 @@ describe("Header", () => {
     expect(css).toContain("height: var(--layout-header-mobile-height);");
     expect(css).toContain("grid-template-columns: auto minmax(0, 1fr) auto;");
     expect(css).toContain("grid-column: 1 / -1;");
+  });
+
+  it("keeps contained pages capped while search uses the shared full-width gutter", () => {
+    const css = readFileSync(`${__dirname}/Header.module.css`, "utf8");
+
+    expect(css).toContain("max-width: var(--layout-page-full-max-width);");
+    expect(css).toContain(".searchRouteContainer {");
+    expect(css).toContain("max-width: none;");
+    expect(css).toContain("padding-inline: var(--space-8);");
   });
 
   it("passes map drag mode only when all viewport params are valid", () => {

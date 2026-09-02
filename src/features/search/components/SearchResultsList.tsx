@@ -48,9 +48,11 @@ const SKELETON_CARD_COUNT = 6;
 
 function SearchResultsSkeleton({
   className,
+  gridClassName,
   layout,
 }: {
   readonly className?: string | undefined;
+  readonly gridClassName?: string | undefined;
   readonly layout: SearchResultsLayout;
 }) {
   return (
@@ -59,7 +61,10 @@ function SearchResultsSkeleton({
       {...stateViewRecipes.loading}
     >
       <span className={styles.statusText}>숙소를 찾는 중입니다.</span>
-      <div className={styles.skeletonGrid} data-layout={layout}>
+      <div
+        className={classNamesFor(styles.skeletonGrid, gridClassName)}
+        data-layout={layout}
+      >
         {Array.from({ length: SKELETON_CARD_COUNT }, (_, index) => (
           <div className={styles.skeletonCard} key={index}>
             <Skeleton className={styles.skeletonImage} />
@@ -130,7 +135,11 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = ({
     );
   } else if (isLoading && accommodations.length === 0) {
     content = (
-      <SearchResultsSkeleton className={classNames?.loading} layout={layout} />
+      <SearchResultsSkeleton
+        className={classNames?.loading}
+        gridClassName={classNames?.cardGrid}
+        layout={layout}
+      />
     );
   } else if (accommodations.length === 0) {
     content = (
@@ -205,6 +214,7 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = ({
           <ListContainer
             aria-busy={isRefreshing || undefined}
             aria-label="숙소 검색 결과"
+            className={classNames?.cardGrid}
             columns={3}
             gap={24}
             role="list"
