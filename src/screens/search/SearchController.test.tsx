@@ -23,6 +23,7 @@ const mockUseSearchResultsReadQuery = vi.fn();
 const mockSelectAccommodationId = vi.fn();
 const mockSetIsMapDragMode = vi.fn();
 const mockRequestMapBoundsUpdate = vi.fn();
+const mockOnMapBoundsUpdated = vi.fn();
 
 vi.mock("../../features/search/queries/searchQueries", () => ({
   useSearchResultsReadQuery: (options: unknown) => {
@@ -53,7 +54,7 @@ vi.mock("../../features/search/hooks/useSearchMapState", () => ({
     hoveredAccommodationId: null,
     isMapDragMode: false,
     isMapExpanded: false,
-    onMapBoundsUpdated: vi.fn(),
+    onMapBoundsUpdated: mockOnMapBoundsUpdated,
     requestMapBoundsUpdate: mockRequestMapBoundsUpdate,
     selectAccommodationId: mockSelectAccommodationId,
     selectedAccommodationId: null,
@@ -230,7 +231,149 @@ describe("SearchController", () => {
     expect(commands.scrollResultsToTop).toHaveBeenCalledTimes(1);
   });
 
-  it("drops deferred pagination effects when another route supersedes the target", () => {
+  it("lets a user drag cancel a pending pagination refit", () => {
+    const commands = navigation();
+    const view = render(
+      <SearchController {...baseProps({ navigation: commands })} />,
+    );
+
+    act(() => currentScreenProps().onPageChange(2));
+
+    mockQueryResult = {
+      ...mockQueryResult,
+      isFetching: true,
+      isPlaceholderData: true,
+    };
+    const pageTwoProps = baseProps({
+      navigation: commands,
+      routeState: { ...baseProps().routeState, page: 2 },
+    });
+    view.rerender(<SearchController {...pageTwoProps} />);
+
+    act(() => currentScreenProps().map.onBoundsDragStart());
+    expect(currentScreenProps().map.isMapDragMode).toBe(true);
+    expect(mockOnMapBoundsUpdated).toHaveBeenCalledTimes(1);
+
+    mockQueryResult = {
+      ...mockQueryResult,
+      data: {
+        ...resultPage,
+        pageInfo: { ...resultPage.pageInfo, currentPage: 2 },
+      },
+      dataUpdatedAt: 2,
+      isFetching: false,
+      isPlaceholderData: false,
+    };
+    view.rerender(<SearchController {...pageTwoProps} />);
+
+    expect(mockRequestMapBoundsUpdate).not.toHaveBeenCalled();
+    expect(commands.scrollResultsToTop).toHaveBeenCalledTimes(1);
+
+    act(() => currentScreenProps().map.onBoundsDragCancel());
+    expect(currentScreenProps().map.isMapDragMode).toBe(false);
+    expect(mockRequestMapBoundsUpdate).toHaveBeenCalledTimes(1);
+  });
+
+  it("restores a pending pagination refit when a no-op drag ends before the query", () => {
+    const commands = navigation();
+    const view = render(
+      <SearchController {...baseProps({ navigation: commands })} />,
+    );
+
+    act(() => currentScreenProps().onPageChange(2));
+
+    mockQueryResult = {
+      ...mockQueryResult,
+      isFetching: true,
+      isPlaceholderData: true,
+    };
+    const pageTwoProps = baseProps({
+      navigation: commands,
+      routeState: { ...baseProps().routeState, page: 2 },
+    });
+    view.rerender(<SearchController {...pageTwoProps} />);
+
+    act(() => {
+      currentScreenProps().map.onBoundsDragStart();
+      currentScreenProps().map.onBoundsDragCancel();
+    });
+    expect(mockRequestMapBoundsUpdate).not.toHaveBeenCalled();
+
+    mockQueryResult = {
+      ...mockQueryResult,
+      data: {
+        ...resultPage,
+        pageInfo: { ...resultPage.pageInfo, currentPage: 2 },
+      },
+      dataUpdatedAt: 2,
+      isFetching: false,
+      isPlaceholderData: false,
+    };
+    view.rerender(<SearchController {...pageTwoProps} />);
+
+    expect(mockRequestMapBoundsUpdate).toHaveBeenCalledTimes(1);
+    expect(commands.scrollResultsToTop).toHaveBeenCalledTimes(1);
+  });
+
+  it("requests a result refit after a non-map search even when result ids stay the same", () => {
+    const commands = navigation();
+    const view = render(
+      <SearchController {...baseProps({ navigation: commands })} />,
+    );
+
+    mockQueryResult = {
+      ...mockQueryResult,
+      dataUpdatedAt: 2,
+    };
+    view.rerender(
+      <SearchController
+        {...baseProps({
+          navigation: commands,
+          routeState: {
+            ...baseProps().routeState,
+            destination: "Busan",
+            page: 0,
+          },
+        })}
+      />,
+    );
+
+    expect(mockRequestMapBoundsUpdate).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserves a user viewport when its map-search result settles", () => {
+    const commands = navigation();
+    const view = render(
+      <SearchController {...baseProps({ navigation: commands })} />,
+    );
+
+    mockQueryResult = {
+      ...mockQueryResult,
+      dataUpdatedAt: 2,
+    };
+    view.rerender(
+      <SearchController
+        {...baseProps({
+          navigation: commands,
+          routeState: {
+            page: 0,
+            topLeftLat: 35.3,
+            topLeftLng: 128.7,
+            bottomRightLat: 34.9,
+            bottomRightLng: 129.3,
+            adultOccupancy: 1,
+            childOccupancy: 0,
+            infantOccupancy: 0,
+            petOccupancy: 0,
+          },
+        })}
+      />,
+    );
+
+    expect(mockRequestMapBoundsUpdate).not.toHaveBeenCalled();
+  });
+
+  it("drops stale page effects while refitting the superseding search", () => {
     const commands = navigation();
     const view = render(
       <SearchController {...baseProps({ navigation: commands })} />,
@@ -271,13 +414,13 @@ describe("SearchController", () => {
       />,
     );
 
-    expect(mockRequestMapBoundsUpdate).not.toHaveBeenCalled();
+    expect(mockRequestMapBoundsUpdate).toHaveBeenCalledTimes(1);
     expect(commands.scrollResultsToTop).not.toHaveBeenCalled();
   });
 
   it("derives map-drag mode from the committed viewport across pagination", () => {
     const commands = navigation();
-    render(
+    const view = render(
       <SearchController
         {...baseProps({
           navigation: commands,
@@ -300,6 +443,35 @@ describe("SearchController", () => {
     act(() => currentScreenProps().onPageChange(2));
     expect(currentScreenProps().map.isMapDragMode).toBe(true);
     expect(commands.openPage).toHaveBeenCalledWith(2);
+
+    mockQueryResult = {
+      ...mockQueryResult,
+      data: {
+        ...resultPage,
+        pageInfo: { ...resultPage.pageInfo, currentPage: 2 },
+      },
+      dataUpdatedAt: 2,
+    };
+    view.rerender(
+      <SearchController
+        {...baseProps({
+          navigation: commands,
+          routeState: {
+            page: 2,
+            topLeftLat: 38,
+            topLeftLng: 126,
+            bottomRightLat: 37,
+            bottomRightLng: 128,
+            adultOccupancy: 1,
+            childOccupancy: 0,
+            infantOccupancy: 0,
+            petOccupancy: 0,
+          },
+        })}
+      />,
+    );
+
+    expect(mockRequestMapBoundsUpdate).toHaveBeenCalledTimes(1);
   });
 
   it("gates wishlist intent behind auth and cancels the active attempt", () => {

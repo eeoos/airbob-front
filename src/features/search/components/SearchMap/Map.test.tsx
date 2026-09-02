@@ -74,10 +74,13 @@ describe("SearchMap", () => {
     const optionalProps: Required<
       Pick<
         SearchMapProps,
+        | "boundsRequestKey"
         | "checkIn"
         | "checkOut"
         | "hoveredAccommodationId"
         | "onBoundsChange"
+        | "onBoundsDragCancel"
+        | "onBoundsDragStart"
         | "onExpandToggle"
         | "onMapBoundsUpdated"
         | "onMapInteraction"
@@ -85,10 +88,13 @@ describe("SearchMap", () => {
         | "viewport"
       >
     > = {
+      boundsRequestKey: "seoul-page-1",
       checkIn: "2026-09-01",
       checkOut: "2026-09-02",
       hoveredAccommodationId: null,
       onBoundsChange: vi.fn(),
+      onBoundsDragCancel: vi.fn(),
+      onBoundsDragStart: vi.fn(),
       onExpandToggle: vi.fn(),
       onMapBoundsUpdated: vi.fn(),
       onMapInteraction: vi.fn(),
@@ -120,6 +126,14 @@ describe("SearchMap", () => {
       expect.objectContaining({
         onMapInteraction: optionalProps.onMapInteraction,
         viewport,
+      }),
+    );
+    expect(hookMocks.useMapBoundsReporter).toHaveBeenCalledWith(
+      expect.objectContaining({
+        onBoundsChange: optionalProps.onBoundsChange,
+        onUserDragCancel: optionalProps.onBoundsDragCancel,
+        onUserDragStart: optionalProps.onBoundsDragStart,
+        requestKey: optionalProps.boundsRequestKey,
       }),
     );
     expect(hookMocks.useMapSelectionInfoWindow).toHaveBeenCalledWith(

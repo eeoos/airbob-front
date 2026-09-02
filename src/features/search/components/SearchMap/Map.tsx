@@ -25,6 +25,9 @@ export const Map: React.FC<SearchMapProps> = ({
   isExpanded = false,
   onExpandToggle,
   onBoundsChange,
+  onBoundsDragCancel,
+  onBoundsDragStart,
+  boundsRequestKey,
   isMapDragMode = false,
   shouldUpdateMapBounds = false,
   onMapBoundsUpdated,
@@ -71,6 +74,9 @@ export const Map: React.FC<SearchMapProps> = ({
     isInitialIdleRef,
     mapInstanceRef,
     onBoundsChange,
+    onUserDragCancel: onBoundsDragCancel,
+    onUserDragStart: onBoundsDragStart,
+    requestKey: boundsRequestKey,
   });
 
   useAccommodationMarkers({

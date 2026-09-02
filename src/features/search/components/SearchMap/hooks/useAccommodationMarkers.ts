@@ -110,14 +110,19 @@ export const useAccommodationMarkers = ({
     if (validAccommodations.length === 0) {
       boundsInitializedRef.current = false;
       prevAccommodationsRef.current = [];
+      if (shouldUpdateMapBounds) {
+        onMapBoundsUpdated?.();
+      }
       return;
     }
 
     const bounds = new maps.LatLngBounds();
+    const uniqueCoordinateKeys = new Set<string>();
 
     validAccommodations.forEach((accommodation) => {
       const lat = accommodation.coordinate.latitude;
       const lng = accommodation.coordinate.longitude;
+      uniqueCoordinateKeys.add(`${lat},${lng}`);
       bounds.extend({ lat, lng });
 
       if (!shouldRebuildMarkers) return;
@@ -315,9 +320,9 @@ export const useAccommodationMarkers = ({
     ) {
       isInitialIdleRef.current = true;
 
-      if (validAccommodations.length > 1) {
+      if (uniqueCoordinateKeys.size > 1) {
         map.fitBounds(bounds, 50);
-      } else if (validAccommodations.length === 1) {
+      } else {
         const [firstAccommodation] = validAccommodations;
         if (firstAccommodation) {
           map.setCenter({

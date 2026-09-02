@@ -138,10 +138,13 @@ const createProps = (
   getAccommodationHref: (id) => `/accommodations/${id}`,
   isErrorRetryable: false,
   map: {
+    boundsRequestKey: "seoul-page-1",
     handleAccommodationSelect: vi.fn(),
     hoveredAccommodationId: null,
     isMapDragMode: false,
     isMapExpanded: false,
+    onBoundsDragCancel: vi.fn(),
+    onBoundsDragStart: vi.fn(),
     onMapBoundsUpdated: vi.fn(),
     requestBounds: vi.fn(),
     selectedAccommodationId: null,
@@ -221,6 +224,30 @@ describe("SearchScreen", () => {
     expect(screen.getByRole("button", { name: "next page" })).toHaveAttribute(
       "data-pagination-variant",
       "full",
+    );
+  });
+
+  it("removes the collapsed result pane from navigation in expanded map mode", () => {
+    const base = createProps();
+
+    render(
+      <SearchScreen {...base} map={{ ...base.map, isMapExpanded: true }} />,
+    );
+
+    expect(
+      screen.getByRole("region", {
+        hidden: true,
+      }),
+    ).toHaveAttribute("aria-label", "숙소 검색 결과 패널");
+    expect(screen.getByRole("region", { hidden: true })).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+    expect(screen.getByRole("region", { hidden: true })).toHaveAttribute(
+      "inert",
+    );
+    expect(mockMap).toHaveBeenCalledWith(
+      expect.objectContaining({ isExpanded: true }),
     );
   });
 

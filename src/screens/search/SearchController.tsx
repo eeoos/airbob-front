@@ -79,11 +79,6 @@ const toViewport = (
   return { north, west, south, east };
 };
 
-const viewportIdentity = (viewport: SearchMapBounds | null): string | null =>
-  viewport
-    ? `${viewport.north},${viewport.west},${viewport.south},${viewport.east}`
-    : null;
-
 const searchRequestIdentity = (
   request: ReturnType<typeof toSearchRequest>,
 ): string => JSON.stringify(request);
@@ -162,14 +157,12 @@ export function SearchController({
   const query = useSearchResultsReadQuery({ request, scope });
   const { refetch: refetchSearchResults } = query;
   const viewport = useMemo(() => toViewport(routeState), [routeState]);
-  const isMapDragMode =
+  const isRouteMapDragMode =
     viewport !== null && routeState.destination === undefined;
-  const currentViewportIdentity = viewportIdentity(viewport);
-  const previousViewportIdentityRef = useRef<string | null | undefined>(
-    undefined,
-  );
+  const previousRequestIdentityRef = useRef<string | undefined>(undefined);
   const pendingScrollRequestRef = useRef<string | null>(null);
   const pendingBoundsRequestRef = useRef<string | null>(null);
+  const suspendedBoundsRequestRef = useRef<string | null>(null);
   const pendingAuthAttemptIdRef = useRef<number | null>(null);
   const handledResumeAttemptRef = useRef<number | null>(null);
   const retainedResultRef = useRef<{
@@ -182,15 +175,29 @@ export function SearchController({
   const [wishlistAccommodationId, setWishlistAccommodationId] = useState<
     number | null
   >(null);
+  const [userDragRequestIdentity, setUserDragRequestIdentity] = useState<
+    string | null
+  >(null);
 
   const requestIdentity = useMemo(
     () => searchRequestIdentity(request),
     [request],
   );
+  const isMapDragMode =
+    isRouteMapDragMode || userDragRequestIdentity === requestIdentity;
   const retainedResultIdentity = retainedSearchResultIdentity(
     scope,
     routeState,
   );
+
+  useEffect(() => {
+    if (
+      userDragRequestIdentity !== null &&
+      (isRouteMapDragMode || userDragRequestIdentity !== requestIdentity)
+    ) {
+      setUserDragRequestIdentity(null);
+    }
+  }, [isRouteMapDragMode, requestIdentity, userDragRequestIdentity]);
 
   useEffect(() => {
     if (!query.data || query.isError || query.isPlaceholderData) return;
@@ -214,6 +221,9 @@ export function SearchController({
     if (pendingBoundsRequestRef.current !== requestIdentity) {
       pendingBoundsRequestRef.current = null;
     }
+    if (suspendedBoundsRequestRef.current !== requestIdentity) {
+      suspendedBoundsRequestRef.current = null;
+    }
   }, [requestIdentity, scope.epoch, scope.subject]);
 
   useEffect(() => {
@@ -224,14 +234,19 @@ export function SearchController({
   }, [query.errorUpdatedAt, query.isError]);
 
   useEffect(() => {
-    const previousViewportIdentity = previousViewportIdentityRef.current;
-    previousViewportIdentityRef.current = currentViewportIdentity;
+    const previousRequestIdentity = previousRequestIdentityRef.current;
+    previousRequestIdentityRef.current = requestIdentity;
 
-    if (previousViewportIdentity === currentViewportIdentity) return;
+    if (
+      previousRequestIdentity === undefined ||
+      previousRequestIdentity === requestIdentity ||
+      pendingBoundsRequestRef.current === requestIdentity
+    ) {
+      return;
+    }
 
-    pendingBoundsRequestRef.current =
-      currentViewportIdentity === null ? null : requestIdentity;
-  }, [currentViewportIdentity, requestIdentity]);
+    pendingBoundsRequestRef.current = isMapDragMode ? null : requestIdentity;
+  }, [isMapDragMode, requestIdentity]);
 
   useEffect(() => {
     if (
@@ -345,10 +360,53 @@ export function SearchController({
 
   const handleMapBoundsChange = useCallback(
     (bounds: SearchMapBounds) => {
+      suspendedBoundsRequestRef.current = null;
       navigation.replaceMapBounds(bounds);
     },
     [navigation],
   );
+
+  const handleMapBoundsDragStart = useCallback(() => {
+    suspendedBoundsRequestRef.current =
+      pendingBoundsRequestRef.current === requestIdentity ||
+      shouldUpdateMapBounds
+        ? requestIdentity
+        : null;
+    pendingBoundsRequestRef.current = null;
+    onMapBoundsUpdated();
+    setUserDragRequestIdentity(requestIdentity);
+  }, [onMapBoundsUpdated, requestIdentity, shouldUpdateMapBounds]);
+
+  const handleMapBoundsDragCancel = useCallback(() => {
+    const suspendedRequestIdentity = suspendedBoundsRequestRef.current;
+    suspendedBoundsRequestRef.current = null;
+
+    if (suspendedRequestIdentity === requestIdentity) {
+      if (
+        query.data &&
+        !query.isError &&
+        !query.isFetching &&
+        !query.isPlaceholderData
+      ) {
+        requestMapBoundsUpdate();
+      } else {
+        pendingBoundsRequestRef.current = requestIdentity;
+      }
+    }
+
+    setUserDragRequestIdentity((currentRequestIdentity) =>
+      currentRequestIdentity === requestIdentity
+        ? null
+        : currentRequestIdentity,
+    );
+  }, [
+    query.data,
+    query.isError,
+    query.isFetching,
+    query.isPlaceholderData,
+    requestIdentity,
+    requestMapBoundsUpdate,
+  ]);
 
   const openAccommodation = useCallback(
     (accommodationId: number) => {
@@ -429,10 +487,13 @@ export function SearchController({
       isErrorRetryable={isErrorRetryable}
       getAccommodationHref={navigation.getAccommodationHref}
       map={{
+        boundsRequestKey: requestIdentity,
         handleAccommodationSelect,
         hoveredAccommodationId,
         isMapDragMode,
         isMapExpanded,
+        onBoundsDragCancel: handleMapBoundsDragCancel,
+        onBoundsDragStart: handleMapBoundsDragStart,
         onMapBoundsUpdated,
         requestBounds: handleMapBoundsChange,
         selectedAccommodationId,

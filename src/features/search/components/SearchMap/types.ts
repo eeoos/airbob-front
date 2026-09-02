@@ -23,6 +23,9 @@ export interface SearchMapProps {
   isExpanded?: boolean | undefined;
   onExpandToggle?: (() => void) | undefined;
   onBoundsChange?: ((bounds: SearchMapBounds) => void) | undefined;
+  onBoundsDragCancel?: (() => void) | undefined;
+  onBoundsDragStart?: (() => void) | undefined;
+  boundsRequestKey?: string | undefined;
   isMapDragMode?: boolean | undefined;
   shouldUpdateMapBounds?: boolean | undefined;
   onMapBoundsUpdated?: (() => void) | undefined;

@@ -46,12 +46,15 @@ interface SearchScreenBottomSheetProps {
 }
 
 interface SearchScreenMapProps {
+  readonly boundsRequestKey: string;
   readonly handleAccommodationSelect: (
     accommodation: SearchAccommodationMapViewModel | null,
   ) => void;
   readonly hoveredAccommodationId: number | null;
   readonly isMapDragMode: boolean;
   readonly isMapExpanded: boolean;
+  readonly onBoundsDragCancel: () => void;
+  readonly onBoundsDragStart: () => void;
   readonly onMapBoundsUpdated: () => void;
   readonly requestBounds: (bounds: SearchMapBounds) => void;
   readonly selectedAccommodationId: number | null;
@@ -162,6 +165,7 @@ export function SearchScreen({
   ) => (
     <Map
       accommodations={results.accommodationMapItems}
+      boundsRequestKey={map.boundsRequestKey}
       selectedAccommodationId={map.selectedAccommodationId}
       hoveredAccommodationId={map.hoveredAccommodationId}
       onAccommodationSelect={map.handleAccommodationSelect}
@@ -169,6 +173,8 @@ export function SearchScreen({
       isExpanded={isExpanded}
       onExpandToggle={onExpandToggle}
       onBoundsChange={map.requestBounds}
+      onBoundsDragCancel={map.onBoundsDragCancel}
+      onBoundsDragStart={map.onBoundsDragStart}
       isMapDragMode={map.isMapDragMode}
       shouldUpdateMapBounds={map.shouldUpdateMapBounds}
       onMapBoundsUpdated={map.onMapBoundsUpdated}
@@ -291,11 +297,18 @@ export function SearchScreen({
               map.isMapExpanded ? styles.mapExpanded : ""
             }`}
           >
-            <div className={styles.results}>
+            <div
+              aria-hidden={map.isMapExpanded || undefined}
+              aria-label="숙소 검색 결과 패널"
+              className={styles.results}
+              data-search-pane="results"
+              inert={map.isMapExpanded}
+              role="region"
+            >
               <h2 className={styles.title}>{resultCountLabel}</h2>
               {renderResults("desktop", "full")}
             </div>
-            <div className={styles.mapSection}>
+            <div className={styles.mapSection} data-search-pane="map">
               {renderMap(map.isMapExpanded, map.toggleMapExpanded)}
             </div>
           </div>
