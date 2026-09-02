@@ -7,6 +7,8 @@
 }
 
 .main {
+  --search-map-expanded-inline-gutter: calc(var(--space-16) + var(--space-4));
+
   padding: var(--space-6) var(--space-16) 0;
   max-width: var(--layout-page-full-max-width);
   margin: 0 auto;
@@ -226,6 +228,8 @@
 /* ---- Mid-Desktop (1200-1400px) ---- */
 @media (--viewport-wide) {
   .main {
+    --search-map-expanded-inline-gutter: calc(var(--space-10) + var(--space-5));
+
     padding: var(--space-6) 60px 0 60px;
     gap: var(--space-10);
   }
@@ -234,22 +238,13 @@
     flex: 0 0 clamp(350px, 35%, 500px);
     width: clamp(350px, 35%, 500px);
   }
-
-  .main.mapExpanded {
-    left: 60px;
-    right: 60px;
-    width: calc(100% - 120px);
-    padding: var(--space-6) 0;
-  }
-
-  .main.mapExpanded .mapSection {
-    flex: 1;
-  }
 }
 
 /* ---- Small-Desktop (1024-1200px) ---- */
 @media (--viewport-compact) {
   .main {
+    --search-map-expanded-inline-gutter: var(--space-10);
+
     padding: var(--space-6) var(--space-10) 0 var(--space-10);
     gap: var(--space-8);
   }
@@ -258,17 +253,6 @@
     flex: 0 0 clamp(300px, 35%, 450px);
     width: clamp(300px, 35%, 450px);
     min-height: 450px;
-  }
-
-  .main.mapExpanded {
-    left: var(--space-10);
-    right: var(--space-10);
-    width: calc(100% - 80px);
-    padding: var(--space-6) 0;
-  }
-
-  .main.mapExpanded .mapSection {
-    flex: 1;
   }
 }
 
@@ -599,16 +583,18 @@
 
 /* 지도 확장 모드 */
 .main.mapExpanded {
-  position: absolute;
-  inset: var(--layout-header-desktop-height) 80px auto;
-  z-index: var(--z-bottom-sheet);
+  position: fixed;
+  inset: calc(var(--layout-header-desktop-height) + 1px)
+    var(--search-map-expanded-inline-gutter) 0;
+  z-index: var(--z-local-overlay);
   background: var(--color-background-page);
   padding: var(--space-6) 0;
   margin: 0;
-  height: calc(100vh - var(--layout-header-desktop-height));
-  min-height: calc(100vh - var(--layout-header-desktop-height));
+  width: auto;
+  max-width: none;
+  height: auto;
+  min-height: 0;
   box-sizing: border-box;
-  width: calc(100% - 160px);
   gap: 0;
 }
 
@@ -620,13 +606,17 @@
   flex: 1;
   position: relative;
   top: 0;
-  height: calc(100vh - var(--layout-header-desktop-height) - var(--space-12));
-  min-height: calc(
-    100vh - var(--layout-header-desktop-height) - var(--space-12)
-  );
+  align-self: stretch;
+  height: auto;
+  min-height: 0;
   max-height: none;
   margin: 0;
   width: 100%;
+}
+
+.main.mapExpanded .mapSection > *,
+.main.mapExpanded .mapSection > * > * {
+  min-height: 0;
 }
 
 /* Desktop: Show desktop layout, hide bottom sheet */

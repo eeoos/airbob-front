@@ -162,6 +162,36 @@ describe("design system entry contracts", () => {
     );
   });
 
+  it("keeps the expanded search map viewport-bound and below the header", () => {
+    const searchPageCss = readSource("screens/search/SearchScreen.module.css");
+    const expandedLayoutRule = Array.from(
+      searchPageCss.matchAll(/\.main\.mapExpanded\s*\{([^}]*)\}/g),
+    ).at(-1)?.[1];
+    const expandedMapRule = Array.from(
+      searchPageCss.matchAll(/\.main\.mapExpanded \.mapSection\s*\{([^}]*)\}/g),
+    ).at(-1)?.[1];
+
+    expect(expandedLayoutRule).toBeDefined();
+    expect(expandedLayoutRule).toContain("position: fixed;");
+    expect(expandedLayoutRule).toContain(
+      "inset: calc(var(--layout-header-desktop-height) + 1px)",
+    );
+    expect(expandedLayoutRule).toContain("z-index: var(--z-local-overlay);");
+    expect(expandedLayoutRule).toContain("max-width: none;");
+    expect(expandedLayoutRule).toContain("width: auto;");
+    expect(expandedLayoutRule).toContain("height: auto;");
+    expect(expandedLayoutRule).toContain("min-height: 0;");
+    expect(expandedLayoutRule).not.toContain("var(--z-bottom-sheet)");
+
+    expect(expandedMapRule).toBeDefined();
+    expect(expandedMapRule).toContain("align-self: stretch;");
+    expect(expandedMapRule).toContain("height: auto;");
+    expect(expandedMapRule).toContain("min-height: 0;");
+    expect(searchPageCss).toContain(
+      ".main.mapExpanded .mapSection > *,\n.main.mapExpanded .mapSection > * > * {\n  min-height: 0;\n}",
+    );
+  });
+
   it("keeps search map DOM helper styling behind named token constants", () => {
     const infoWindowSource = readSource(
       "features/search/components/SearchMap/lib/infoWindowContent.ts",
