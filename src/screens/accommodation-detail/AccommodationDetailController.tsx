@@ -597,7 +597,6 @@ export function AccommodationDetailController({
                 checkIn ? formatBookingLocalDate(checkIn) : null,
                 checkOut ? formatBookingLocalDate(checkOut) : null,
               );
-              if (checkOut) setIsDatePickerOpen(false);
             });
           },
           onDatePickerOpenChange: setIsDatePickerOpen,

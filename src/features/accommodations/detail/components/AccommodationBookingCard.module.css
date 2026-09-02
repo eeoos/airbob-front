@@ -15,19 +15,40 @@
 .priceSection {
   display: flex;
   align-items: baseline;
-  gap: var(--space-1);
+  flex-wrap: wrap;
+  gap: var(--space-2);
   margin-bottom: var(--space-6);
+}
+
+.pricePrompt {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+.priceHeading,
+.originalPrice {
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-tight);
+}
+
+.priceHeading {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-regular);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.originalPrice {
+  color: var(--color-text-secondary);
 }
 
 .totalPrice {
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
-}
-
-.priceInfo {
-  font-size: var(--font-size-md);
-  color: var(--color-text-secondary);
 }
 
 .dateSection {
@@ -40,33 +61,65 @@
   position: relative;
 }
 
+.dateSectionOpen {
+  z-index: var(--z-dropdown-raised);
+}
+
 .datePickerContainer {
+  box-sizing: border-box;
   position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: var(--space-2);
+  top: calc(-1 * var(--space-3));
+  right: calc(-1 * var(--space-3));
   z-index: var(--z-dropdown);
-  width: fit-content;
-  max-width: calc(var(--layout-viewport-width) - 40px);
+  width: min(744px, calc(var(--layout-viewport-width) - var(--space-12)));
+  max-width: calc(var(--layout-viewport-width) - var(--space-12));
+  padding: calc(56px + var(--space-6)) var(--space-3) var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-dialog);
+  background: var(--color-background-page);
+  box-shadow: var(--shadow-floating);
   transform-origin: top right;
 }
 
+.calendarSummary {
+  position: absolute;
+  top: var(--space-5);
+  left: var(--space-6);
+  display: flex;
+  width: min(280px, calc(100% - 400px));
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.calendarSummary strong {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-tight);
+}
+
+.calendarSummary span {
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .dateRow {
+  position: relative;
+  z-index: var(--z-dropdown-raised);
   display: flex;
   align-items: stretch;
   padding: 0;
   width: 100%;
   height: 56px;
   box-sizing: border-box;
-  border: none;
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
 }
 
 .dateColumn {
+  appearance: none;
   flex: 1;
   min-width: 0;
   display: flex;
@@ -76,6 +129,23 @@
   height: 56px;
   justify-content: center;
   box-sizing: border-box;
+  border: 0;
+  border-radius: var(--radius-action);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-ease-standard),
+    box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.dateColumn:hover:not(:disabled) {
+  background: var(--color-surface-brand-subtle);
+}
+
+.dateColumnActive {
+  box-shadow: var(--focus-ring-visible);
 }
 
 .dateDivider {
@@ -85,44 +155,18 @@
   flex-shrink: 0;
 }
 
-.horizontalDivider {
+.availabilityAnnouncement {
+  position: absolute;
+  width: 1px;
   height: 1px;
-  background-color: var(--color-border-strong);
-  width: 100%;
-  margin: 0;
-}
-
-.availabilityStatus {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-xs);
-  line-height: 1.4;
-}
-
-.availabilityStatus > span {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.availabilityRetryButton {
-  flex-shrink: 0;
-  min-height: var(--control-touch-target);
-  padding: 0 var(--space-2);
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
   border: 0;
-  background: transparent;
-  border-radius: var(--radius-action);
-  color: var(--color-action-primary-hover);
-  font: inherit;
-  font-weight: var(--font-weight-semibold);
-  text-decoration: underline;
-  cursor: pointer;
 }
 
-.dateRow:disabled {
+.dateColumn:disabled {
   cursor: not-allowed;
   opacity: 0.65;
 }
@@ -157,11 +201,7 @@
   margin-bottom: var(--space-6);
   margin-top: -1px;
   background-color: var(--color-background-page);
-  z-index: var(--z-dropdown);
-}
-
-.hidden {
-  display: none;
+  z-index: var(--z-local-raised);
 }
 
 .guestRow {
@@ -585,10 +625,7 @@
 
 .selectionGuidance {
   margin: 0 0 var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border-left: 3px solid var(--color-action-primary);
-  border-radius: var(--radius-action);
-  background: var(--color-surface-brand-subtle);
+  padding: 0;
   color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
   line-height: 1.5;
@@ -626,9 +663,12 @@
   background: var(--color-action-primary-hover);
 }
 
-.dateRow:focus-visible,
+.reserveButton:last-child {
+  margin-bottom: 0;
+}
+
+.dateColumn:focus-visible,
 .guestRow:focus-visible,
-.availabilityRetryButton:focus-visible,
 .couponClearButton:focus-visible,
 .couponApplyButton:focus-visible,
 .guestPickerClose:focus-visible,
@@ -645,16 +685,38 @@
   line-height: 1.5;
 }
 
-@media (--viewport-tablet) {
+@media (--viewport-mobile-tablet) {
+  .dateRow {
+    z-index: var(--z-local-raised);
+  }
+
   .datePickerContainer {
     position: fixed;
     top: var(--layout-search-mobile-popover-top);
-    left: var(--space-1);
-    right: var(--space-1);
-    width: auto;
-    max-width: none;
+    right: auto;
+    left: 50%;
+    width: min(744px, calc(var(--layout-viewport-width) - var(--space-4)));
+    max-width: calc(var(--layout-viewport-width) - var(--space-4));
+    max-height: calc(
+      var(--layout-viewport-height) - var(--layout-search-mobile-popover-top) -
+        var(--space-2)
+    );
+    padding: var(--space-3);
+    overflow: hidden auto;
+    transform: translateX(-50%);
     transform-origin: top center;
     z-index: var(--z-dropdown);
+  }
+
+  .calendarSummary {
+    position: static;
+    width: auto;
+    margin: 0;
+    padding: var(--space-2) var(--space-1) var(--space-4);
+  }
+
+  .calendarSummary span {
+    white-space: normal;
   }
 }
 
@@ -671,16 +733,6 @@
   .dateColumn,
   .guestRow {
     padding-inline: var(--space-3);
-  }
-
-  .availabilityStatus {
-    align-items: stretch;
-    flex-direction: column;
-    padding-inline: var(--space-3);
-  }
-
-  .availabilityRetryButton {
-    width: 100%;
   }
 
   .guestPicker {
@@ -714,8 +766,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .availabilityRetryButton,
-  .dateRow,
+  .dateColumn,
   .guestPickerClose,
   .guestPickerButton,
   .guestRow,

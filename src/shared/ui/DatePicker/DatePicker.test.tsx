@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Mock } from "vitest";
 import { DatePicker } from "./DatePicker";
@@ -66,6 +66,24 @@ describe("DatePicker", () => {
     ).toHaveTextContent("토");
   });
 
+  it("applies the compact surface only when a consumer requests it", () => {
+    const view = renderDatePicker({ variant: "compact" });
+    const compactClass = styles.compact;
+
+    expect(compactClass).toBeDefined();
+    if (!compactClass) throw new Error("Missing compact DatePicker style");
+
+    expect(screen.getByRole("group", { name: "날짜 선택" })).toHaveClass(
+      compactClass,
+    );
+
+    view.rerender(<DatePicker {...view.props} variant="default" />);
+
+    expect(screen.getByRole("group", { name: "날짜 선택" })).not.toHaveClass(
+      compactClass,
+    );
+  });
+
   it("renders selectable dates as grid cells backed by buttons", () => {
     renderDatePicker();
 
@@ -75,6 +93,93 @@ describe("DatePicker", () => {
 
     expect(dateCell).toHaveAttribute("type", "button");
     expect(dateCell.tagName).toBe("BUTTON");
+  });
+
+  it("focuses the initial date without scrolling an anchored consumer", () => {
+    const focusSpy = vi.spyOn(HTMLElement.prototype, "focus");
+
+    renderDatePicker();
+
+    expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true });
+    focusSpy.mockRestore();
+  });
+
+  it("lets keyboard roving focus scroll Arrow and Page targets into view", () => {
+    const focusSpy = vi.spyOn(HTMLElement.prototype, "focus");
+
+    renderDatePicker();
+    const initialDate = screen.getByRole("gridcell", {
+      name: "2026년 7월 10일 금요일",
+    });
+    focusSpy.mockClear();
+
+    fireEvent.keyDown(initialDate, { key: "ArrowRight" });
+
+    const arrowTarget = screen.getByRole("gridcell", {
+      name: "2026년 7월 11일 토요일",
+    });
+    expect(arrowTarget).toHaveFocus();
+    expect(focusSpy).toHaveBeenLastCalledWith();
+
+    focusSpy.mockClear();
+    fireEvent.keyDown(arrowTarget, { key: "PageDown" });
+
+    expect(
+      screen.getByRole("gridcell", { name: "2026년 8월 11일 화요일" }),
+    ).toHaveFocus();
+    expect(focusSpy).toHaveBeenLastCalledWith();
+    focusSpy.mockRestore();
+  });
+
+  it("uses an explicit check-in endpoint to replace a partial check-in", async () => {
+    const onDateSelect =
+      vi.fn<(checkIn: Date | null, checkOut: Date | null) => void>();
+    renderDatePicker({
+      checkIn: new Date(2026, 6, 15),
+      onDateSelect,
+      selectionEndpoint: "checkIn",
+    });
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "새 체크인 날짜를 선택하세요.",
+    );
+    const replacementDate = screen.getByRole("gridcell", {
+      name: "2026년 7월 12일 일요일",
+    });
+    const inRangeClass = styles.inRange;
+    if (!inRangeClass) throw new Error("Missing in-range DatePicker style");
+
+    await userEvent.hover(replacementDate);
+
+    expect(replacementDate).not.toHaveClass(inRangeClass);
+
+    await userEvent.click(replacementDate);
+
+    expect(onDateSelect).toHaveBeenCalledTimes(1);
+    const selection = onDateSelect.mock.calls[0];
+    expect(selection?.[0] && formatDateKey(selection[0])).toBe("2026-07-12");
+    expect(selection?.[1]).toBeNull();
+  });
+
+  it("keeps an explicit checkout endpoint anchored to the existing check-in", async () => {
+    const checkIn = new Date(2026, 6, 15);
+    const onDateSelect =
+      vi.fn<(checkIn: Date | null, checkOut: Date | null) => void>();
+    renderDatePicker({
+      checkIn,
+      onDateSelect,
+      selectionEndpoint: "checkOut",
+    });
+
+    await userEvent.click(
+      screen.getByRole("gridcell", {
+        name: "2026년 7월 18일 토요일",
+      }),
+    );
+
+    expect(onDateSelect).toHaveBeenCalledTimes(1);
+    const selection = onDateSelect.mock.calls[0];
+    expect(selection?.[0]).toBe(checkIn);
+    expect(selection?.[1] && formatDateKey(selection[1])).toBe("2026-07-18");
   });
 
   it("labels month navigation buttons for screen readers", () => {

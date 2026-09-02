@@ -402,6 +402,31 @@ describe("AccommodationDetailController", () => {
     },
   );
 
+  it("keeps the date overlay open after a complete range is selected", async () => {
+    const onReplaceBookingDates = vi.fn();
+    render(
+      <AccommodationDetailController
+        {...createProps({ onReplaceBookingDates })}
+      />,
+    );
+
+    act(() =>
+      getReadyView().bookingCard.bookingActions.onDatePickerOpenChange(true),
+    );
+    const handleDateSelect =
+      getReadyView().bookingCard.bookingActions.handleDateSelect;
+
+    act(() => handleDateSelect(new Date(2026, 6, 24), new Date(2026, 6, 27)));
+
+    await waitFor(() =>
+      expect(onReplaceBookingDates).toHaveBeenCalledWith(
+        "2026-07-24",
+        "2026-07-27",
+      ),
+    );
+    expect(getReadyView().bookingCard.bookingState.isDatePickerOpen).toBe(true);
+  });
+
   it("holds a claimed reservation intent through availability failure and resumes after retry", async () => {
     const completeClaim = vi.fn();
     const claimedIntent = {

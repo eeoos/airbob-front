@@ -117,12 +117,7 @@ const deriveDefaultBookingDates = (
     );
   }
 
-  return toDerivedBookingDates(
-    basePrice,
-    defaultCheckIn,
-    defaultCheckOut,
-    "ready",
-  );
+  return toDerivedBookingDates(basePrice, undefined, undefined, "incomplete");
 };
 
 export const deriveBookingDates = ({
