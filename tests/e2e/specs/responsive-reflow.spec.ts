@@ -136,9 +136,11 @@ test("keeps the 320px search route free of horizontal overflow with core actions
 
   const search = page.getByRole("search", { name: "숙소 검색" });
   const coreActions = [
-    page.getByRole("link", { name: "Airbob 홈으로 이동" }),
-    search.getByRole("button", { name: "검색" }),
-    page.getByRole("button", { name: "사용자 메뉴" }),
+    search.getByRole("button", { name: "이전 화면으로" }),
+    search.getByRole("button", {
+      name: /Seoul.*검색 조건 수정/,
+    }),
+    search.getByRole("button", { name: "검색 조건 수정", exact: true }),
     page.getByRole("button", { name: /검색 결과 패널 조절/ }),
   ];
 
@@ -146,16 +148,18 @@ test("keeps the 320px search route free of horizontal overflow with core actions
     await expectFullyInsideViewport(action, 320);
   }
 
-  await expect(
-    page.getByRole("link", {
-      name: "숙소 상세 보기: 반응형 테스트 숙소",
-    }),
-  ).toHaveCount(1);
+  const resultLink = page.getByRole("link", {
+    name: "숙소 상세 보기: 반응형 테스트 숙소",
+    includeHidden: true,
+  });
+  await expect(resultLink).toBeHidden();
+  await page.getByRole("button", { name: /검색 결과 패널 조절/ }).click();
+  await expect(resultLink).toBeVisible();
 
   await expectNoHorizontalOverflow(page, 320);
 });
 
-test("keeps the search action balanced from 320px through 4K", async ({
+test("keeps the mobile search summary balanced through the tablet boundary", async ({
   api,
   page,
   session,
@@ -167,15 +171,72 @@ test("keeps the search action balanced from 320px through 4K", async ({
     apiSuccess(searchResponse),
   );
 
-  const viewportWidths = [
-    320, 390, 768, 769, 1024, 1025, 1280, 1920, 2560, 3840,
-  ];
-
-  for (const width of viewportWidths) {
+  for (const width of [320, 390, 768, 769, 1024]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(searchURL);
 
     const search = page.getByRole("search", { name: "숙소 검색" });
+    const summaryButton = search.getByRole("button", {
+      name: /Seoul.*검색 조건 수정/,
+    });
+    const filterButton = search.getByRole("button", {
+      name: "검색 조건 수정",
+      exact: true,
+    });
+    const compactGeometry = await summaryButton.evaluate((button) => {
+      const bounds = button.getBoundingClientRect();
+
+      return {
+        buttonHeight: bounds.height,
+        buttonWidth: bounds.width,
+      };
+    });
+
+    expect(
+      compactGeometry.buttonHeight,
+      `mobile summary height at ${width}px`,
+    ).toBeGreaterThanOrEqual(44);
+    expect(
+      compactGeometry.buttonWidth,
+      `mobile summary width at ${width}px`,
+    ).toBeGreaterThan(0);
+    await expectFullyInsideViewport(summaryButton, width);
+    await expectFullyInsideViewport(filterButton, width);
+
+    await summaryButton.click();
+    const dialog = page.getByRole("dialog", { name: "숙소 검색" });
+    const submitButton = dialog.getByRole("button", {
+      name: "검색",
+      exact: true,
+    });
+    await expect(dialog).toBeVisible();
+    await expect(submitButton).toBeVisible();
+    const submitBounds = await submitButton.boundingBox();
+    expect(submitBounds?.height ?? 0).toBeGreaterThanOrEqual(44);
+    await expectFullyInsideViewport(submitButton, width);
+    await dialog.getByRole("button", { name: "검색 닫기" }).click();
+    await expectNoHorizontalOverflow(page, width);
+  }
+});
+
+test("keeps the desktop search action balanced from 1025px through 4K", async ({
+  api,
+  page,
+  session,
+}) => {
+  session.clear();
+  api.register(
+    "GET",
+    "/api/v1/search/accommodations",
+    apiSuccess(searchResponse),
+  );
+
+  for (const width of [1025, 1280, 1920, 2560, 3840]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(searchURL);
+
+    const search = page.getByRole("search", { name: "숙소 검색" });
+
     const searchButton = search.getByRole("button", { name: "검색" });
     const compactGeometry = await searchButton.evaluate((button) => {
       const bounds = button.getBoundingClientRect();
@@ -223,8 +284,8 @@ test("keeps the search action balanced from 320px through 4K", async ({
     expect(expandedGeometry, `expanded geometry at ${width}px`).toEqual({
       buttonHeight: 44,
       buttonWidth: 44,
-      iconHeight: width <= 768 ? 14 : 16,
-      iconWidth: width <= 768 ? 14 : 16,
+      iconHeight: 16,
+      iconWidth: 16,
       visualHeight: 44,
       visualWidth: 44,
     });
@@ -233,32 +294,8 @@ test("keeps the search action balanced from 320px through 4K", async ({
   }
 });
 
-const responsiveBoundary = (
-  width: number,
-  layout: "bottom-sheet" | "desktop",
-) => {
-  const hasBottomSheet = layout === "bottom-sheet";
-
-  return {
-    width,
-    layout,
-    bottomSheetCount: hasBottomSheet ? 1 : 0,
-    controlledRegions: hasBottomSheet ? [true] : [],
-    bottomSheetVisible: hasBottomSheet,
-  };
-};
-
-for (const boundary of [
-  responsiveBoundary(320, "bottom-sheet"),
-  responsiveBoundary(390, "bottom-sheet"),
-  responsiveBoundary(768, "bottom-sheet"),
-  responsiveBoundary(1023, "bottom-sheet"),
-  responsiveBoundary(1024, "bottom-sheet"),
-  responsiveBoundary(1025, "desktop"),
-  responsiveBoundary(1280, "desktop"),
-  responsiveBoundary(1440, "desktop"),
-]) {
-  test(`renders only the ${boundary.layout} result layout at ${boundary.width}px`, async ({
+for (const width of [320, 390, 768, 1023, 1024]) {
+  test(`renders only the bottom-sheet result layout at ${width}px`, async ({
     api,
     page,
     session,
@@ -269,29 +306,48 @@ for (const boundary of [
       "/api/v1/search/accommodations",
       apiSuccess(searchResponse),
     );
-    await page.setViewportSize({ width: boundary.width, height: 720 });
+    await page.setViewportSize({ width, height: 720 });
 
     await page.goto(searchURL);
 
     const resultLink = page.getByRole("link", {
       name: "숙소 상세 보기: 반응형 테스트 숙소",
+      includeHidden: true,
     });
     const bottomSheetHandle = page.getByRole("button", {
       name: /검색 결과 패널 조절/,
     });
     const bottomSheetResults = page.getByRole("group", {
       name: "검색 결과 목록",
+      includeHidden: true,
     });
     await expect(resultLink).toHaveCount(1);
+    await expect(bottomSheetHandle).toHaveCount(1);
+    await expect(bottomSheetResults).toHaveCount(1);
+    await expect(bottomSheetHandle).toBeVisible();
+    await expect(bottomSheetHandle).toHaveAttribute("data-state", "collapsed");
+    await expect(bottomSheetResults).toBeHidden();
+    await expect(resultLink).toBeHidden();
+
+    const sheet = bottomSheetHandle.locator("xpath=ancestor::section[1]");
+    const collapsedGeometry = await sheet.evaluate((element) => {
+      const rootStyles = getComputedStyle(document.documentElement);
+      const peekHeight = Number.parseFloat(
+        rootStyles.getPropertyValue("--layout-search-bottom-sheet-peek-height"),
+      );
+      const visibleHeight =
+        window.innerHeight - element.getBoundingClientRect().top;
+
+      return { peekHeight, visibleHeight };
+    });
+    expect(
+      Math.abs(collapsedGeometry.visibleHeight - collapsedGeometry.peekHeight),
+    ).toBeLessThanOrEqual(2);
+
+    await bottomSheetHandle.click();
+    await expect(bottomSheetHandle).toHaveAttribute("data-state", "half");
+    await expect(bottomSheetResults).toBeVisible();
     await expect(resultLink).toBeVisible();
-    await expect(bottomSheetHandle).toHaveCount(boundary.bottomSheetCount);
-    await expect(bottomSheetResults).toHaveCount(boundary.bottomSheetCount);
-    await expect(bottomSheetHandle).toBeVisible({
-      visible: boundary.bottomSheetVisible,
-    });
-    await expect(bottomSheetResults).toBeVisible({
-      visible: boundary.bottomSheetVisible,
-    });
 
     const controlledRegions = await bottomSheetHandle.evaluateAll((handles) =>
       handles.map((handle) => {
@@ -299,10 +355,130 @@ for (const boundary of [
         return Boolean(controlledId && document.getElementById(controlledId));
       }),
     );
-    expect(controlledRegions).toEqual(boundary.controlledRegions);
-    await expectNoHorizontalOverflow(page, boundary.width);
+    expect(controlledRegions).toEqual([true]);
+    await expectNoHorizontalOverflow(page, width);
   });
 }
+
+for (const width of [1025, 1280, 1440]) {
+  test(`renders only the desktop result layout at ${width}px`, async ({
+    api,
+    page,
+    session,
+  }) => {
+    session.clear();
+    api.register(
+      "GET",
+      "/api/v1/search/accommodations",
+      apiSuccess(searchResponse),
+    );
+    await page.setViewportSize({ width, height: 720 });
+    await page.goto(searchURL);
+
+    await expect(
+      page.getByRole("link", {
+        name: "숙소 상세 보기: 반응형 테스트 숙소",
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /검색 결과 패널 조절/ }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("group", { name: "검색 결과 목록" }),
+    ).toHaveCount(0);
+    await expectNoHorizontalOverflow(page, width);
+  });
+}
+
+test("keeps every mobile sheet snap attached to the viewport", async ({
+  api,
+  page,
+  session,
+}) => {
+  session.clear();
+  api.register(
+    "GET",
+    "/api/v1/search/accommodations",
+    apiSuccess(searchResponse),
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(searchURL);
+
+  const handle = page.getByRole("button", {
+    name: /검색 결과 패널 조절/,
+  });
+  const sheet = handle.locator("xpath=ancestor::section[1]");
+  const readSheetGeometry = () =>
+    sheet.evaluate((element) => {
+      const rootStyles = getComputedStyle(document.documentElement);
+      const surfaceTop =
+        Number.parseFloat(
+          rootStyles.getPropertyValue("--layout-search-header-mobile-height"),
+        ) +
+        Number.parseFloat(
+          rootStyles.getPropertyValue("--layout-search-header-divider-height"),
+        );
+      const peekHeight = Number.parseFloat(
+        rootStyles.getPropertyValue("--layout-search-bottom-sheet-peek-height"),
+      );
+      const top = element.getBoundingClientRect().top;
+
+      return {
+        peekHeight,
+        surfaceHeight: window.innerHeight - surfaceTop,
+        surfaceTop,
+        top,
+        visibleHeight: window.innerHeight - top,
+      };
+    });
+
+  await expect(handle).toHaveAttribute("data-state", "collapsed");
+  await expect
+    .poll(async () => {
+      const geometry = await readSheetGeometry();
+      return Math.abs(geometry.visibleHeight - geometry.peekHeight);
+    })
+    .toBeLessThanOrEqual(2);
+
+  await handle.click();
+  await expect(handle).toHaveAttribute("data-state", "half");
+  await expect
+    .poll(async () => {
+      const geometry = await readSheetGeometry();
+      return Math.abs(geometry.visibleHeight - geometry.surfaceHeight * 0.5);
+    })
+    .toBeLessThanOrEqual(3);
+
+  await handle.click();
+  await expect(handle).toHaveAttribute("data-state", "expanded");
+  await expect
+    .poll(async () => {
+      const geometry = await readSheetGeometry();
+      return Math.abs(geometry.top - geometry.surfaceTop);
+    })
+    .toBeLessThanOrEqual(2);
+
+  await page.getByRole("button", { name: "지도 보기" }).click();
+  await expect(handle).toHaveAttribute("data-state", "collapsed");
+  await expect
+    .poll(async () => {
+      const geometry = await readSheetGeometry();
+      return Math.abs(geometry.visibleHeight - geometry.peekHeight);
+    })
+    .toBeLessThanOrEqual(2);
+
+  const documentGeometry = await page.evaluate(() => ({
+    bodyHeight: document.body.scrollHeight,
+    documentHeight: document.documentElement.scrollHeight,
+    viewportHeight: window.innerHeight,
+  }));
+  expect(documentGeometry.bodyHeight).toBeLessThanOrEqual(
+    documentGeometry.viewportHeight,
+  );
+  expect(documentGeometry.documentHeight).toBeLessThanOrEqual(
+    documentGeometry.viewportHeight,
+  );
+});
 
 test("keeps the desktop result and map panes balanced across monitor widths", async ({
   api,

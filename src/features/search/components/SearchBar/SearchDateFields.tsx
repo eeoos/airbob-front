@@ -6,6 +6,7 @@ interface SearchDateFieldsProps {
   checkOut: Date | null;
   isExpanded: boolean;
   isOpen: boolean;
+  leadingLabel?: string;
   onTriggerClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
   triggerRef?: React.Ref<HTMLButtonElement>;
 }
@@ -34,6 +35,7 @@ export const SearchDateFields = ({
   checkOut,
   isExpanded,
   isOpen,
+  leadingLabel,
   onTriggerClick,
   triggerRef,
 }: SearchDateFieldsProps) => (
@@ -47,6 +49,9 @@ export const SearchDateFields = ({
     onClick={onTriggerClick}
     type="button"
   >
+    {leadingLabel && (
+      <span className={styles.mobileDateLabel}>{leadingLabel}</span>
+    )}
     {isExpanded ? (
       <>
         <div aria-hidden="true" className={styles.dateFields}>

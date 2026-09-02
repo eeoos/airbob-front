@@ -40,6 +40,7 @@ export type SearchInteractionEvent =
   | { type: "destinationTextChanged"; value: string }
   | { type: "destinationSelected"; place: SearchPlaceSelection }
   | { type: "destinationSelectionCleared" }
+  | { type: "searchCriteriaReset" }
   | { type: "dateRangeChanged"; checkIn: Date | null; checkOut: Date | null }
   | { type: "checkoutCompleted" }
   | { type: "guestCountChanged"; guest: SearchGuestKey; value: number }
@@ -58,8 +59,7 @@ export type SearchInteractionEvent =
   | { type: "compositionEnded" }
   | { type: "bottomSheetSet"; state: SearchBottomSheetState }
   | { type: "bottomSheetStepped"; direction: "up" | "down" }
-  | { type: "bottomSheetMapInteracted" }
-  | { type: "bottomSheetContentScrolled" };
+  | { type: "bottomSheetMapInteracted" };
 
 const DEFAULT_COMMITTED_VALUES: SearchCommittedValues = {
   destination: "",
@@ -135,7 +135,7 @@ export const createSearchInteractionState = (
   shell: "compact",
   activePopover: "none",
   composition: "idle",
-  bottomSheet: "half",
+  bottomSheet: "collapsed",
 });
 
 export const getNextSearchBottomSheetState = (
@@ -186,6 +186,12 @@ export const searchInteractionReducer = (
           destinationText: "",
           selectedPlace: null,
         },
+      };
+    case "searchCriteriaReset":
+      return {
+        ...state,
+        draft: normalizeCommittedValues(DEFAULT_COMMITTED_VALUES),
+        composition: "idle",
       };
     case "dateRangeChanged":
       return {
@@ -260,9 +266,5 @@ export const searchInteractionReducer = (
       };
     case "bottomSheetMapInteracted":
       return { ...state, bottomSheet: "collapsed" };
-    case "bottomSheetContentScrolled":
-      return state.bottomSheet === "expanded"
-        ? state
-        : { ...state, bottomSheet: "expanded" };
   }
 };

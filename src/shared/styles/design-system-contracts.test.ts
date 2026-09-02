@@ -34,10 +34,12 @@ const requiredLayoutTokenDeclarations = [
   "--layout-page-padding-x: var(--space-6);",
   "--layout-header-desktop-height: var(--size-px-80);",
   "--layout-header-mobile-height: var(--size-px-130);",
+  "--layout-search-header-mobile-height: var(--size-px-80);",
+  "--layout-search-header-divider-height: var(--size-px-1);",
+  "--layout-search-bottom-sheet-peek-height: var(--size-px-72);",
   "--layout-edit-header-height: var(--size-px-89);",
   "--layout-modal-max-height: var(--size-vh-90);",
   "--layout-search-mobile-popover-top: var(--size-px-130);",
-  "--layout-search-mobile-bottom-sheet-offset: var(--size-px-144);",
   "--card-media-ratio: var(--ratio-square);",
 ];
 
@@ -158,7 +160,10 @@ describe("design system entry contracts", () => {
       /\.main\s*{[^}]*box-sizing:\s*border-box;[^}]*height:\s*calc\(100vh - var\(--layout-header-desktop-height\) - 1px\);/s,
     );
     expect(searchPageCss).toContain(
-      "var(--layout-search-mobile-bottom-sheet-offset)",
+      "var(--layout-search-header-mobile-height)",
+    );
+    expect(searchPageCss).toContain(
+      "var(--layout-search-bottom-sheet-peek-height)",
     );
     expect(searchPageCss).not.toContain(
       "100vh - var(--layout-header-mobile-height) - 60px",

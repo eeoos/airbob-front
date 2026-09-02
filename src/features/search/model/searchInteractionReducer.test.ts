@@ -131,26 +131,55 @@ describe("searchInteractionReducer", () => {
     expect(dateKey(completed.draft.checkOut)).toBe("2026-7-21");
   });
 
+  it("resets every search criterion from the canonical defaults", () => {
+    const populated = createSearchInteractionState({
+      destination: "Busan",
+      checkIn: new Date(2026, 6, 12),
+      checkOut: new Date(2026, 6, 15),
+      adultOccupancy: 4,
+      childOccupancy: 2,
+      infantOccupancy: 1,
+      petOccupancy: 1,
+    });
+    const next = searchInteractionReducer(
+      { ...populated, composition: "composing" },
+      { type: "searchCriteriaReset" },
+    );
+
+    expect(next.draft).toEqual({
+      destinationText: "",
+      selectedPlace: null,
+      checkIn: null,
+      checkOut: null,
+      adultOccupancy: 1,
+      childOccupancy: 0,
+      infantOccupancy: 0,
+      petOccupancy: 0,
+    });
+    expect(next.composition).toBe("idle");
+  });
+
   it("uses the same reducer transitions for the bottom sheet projection", () => {
     const initial = createSearchInteractionState();
-    const expanded = searchInteractionReducer(initial, {
+    const half = searchInteractionReducer(initial, {
       type: "bottomSheetStepped",
       direction: "up",
     });
-    const half = searchInteractionReducer(expanded, {
+    const expanded = searchInteractionReducer(half, {
+      type: "bottomSheetStepped",
+      direction: "up",
+    });
+    const steppedDown = searchInteractionReducer(expanded, {
       type: "bottomSheetStepped",
       direction: "down",
     });
-    const collapsed = searchInteractionReducer(half, {
+    const collapsed = searchInteractionReducer(steppedDown, {
       type: "bottomSheetMapInteracted",
-    });
-    const scrolled = searchInteractionReducer(collapsed, {
-      type: "bottomSheetContentScrolled",
     });
 
     expect(expanded.bottomSheet).toBe("expanded");
     expect(half.bottomSheet).toBe("half");
+    expect(steppedDown.bottomSheet).toBe("half");
     expect(collapsed.bottomSheet).toBe("collapsed");
-    expect(scrolled.bottomSheet).toBe("expanded");
   });
 });

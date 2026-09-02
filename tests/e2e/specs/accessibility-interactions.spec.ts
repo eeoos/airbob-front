@@ -266,23 +266,99 @@ test("keeps mobile calendar date targets at least 44 by 44 pixels", async ({
 
   await page.goto(searchURL);
   const search = page.getByRole("search", { name: "숙소 검색" });
-  await search.locator('button[aria-controls="search-date-picker"]').click();
+  const summaryButton = search.getByRole("button", {
+    name: /Seoul.*검색 조건 수정/,
+  });
+  const mobileHeaderTargets = [
+    search.getByRole("button", { name: "이전 화면으로" }),
+    summaryButton,
+    search.getByRole("button", {
+      name: "검색 조건 수정",
+      exact: true,
+    }),
+  ];
+
+  for (const target of mobileHeaderTargets) {
+    await expectMinimumTouchTarget(target);
+  }
+
+  await summaryButton.click();
+  const dialog = page.getByRole("dialog", { name: "숙소 검색" });
+  await dialog.locator('button[aria-controls="search-date-picker"]').click();
 
   const enabledDate = page
     .locator('#search-date-picker [role="gridcell"]:not([disabled])')
     .first();
   const primaryTargets = [
-    page.getByRole("link", { name: "Airbob 홈으로 이동" }),
-    search.getByRole("button", { name: "검색" }),
-    page.getByRole("button", { name: "사용자 메뉴" }),
-    page.getByRole("button", { name: "위시리스트에 저장" }),
+    dialog.getByRole("button", { name: "검색 닫기" }),
+    dialog.getByRole("button", { name: "다음", exact: true }),
     enabledDate,
   ];
 
-  expect(primaryTargets).toHaveLength(5);
+  expect(primaryTargets).toHaveLength(3);
   for (const target of primaryTargets) {
     await expectMinimumTouchTarget(target);
   }
+});
+
+test("moves through the mobile destination, date, and guest steps without squeezing autocomplete", async ({
+  api,
+  page,
+  session,
+}) => {
+  session.clear();
+  api.register(
+    "GET",
+    "/api/v1/search/accommodations",
+    apiSuccess(searchResponse),
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  await page.goto(searchURL);
+  const search = page.getByRole("search", { name: "숙소 검색" });
+  await search.getByRole("button", { name: /Seoul.*검색 조건 수정/ }).click();
+
+  const dialog = page.getByRole("dialog", { name: "숙소 검색" });
+  await dialog.getByRole("button", { name: /여행지 검색 열기/ }).click();
+
+  const destinationInput = dialog.getByRole("combobox", { name: "여행지" });
+  await expect(destinationInput).toBeFocused();
+  await dialog.getByRole("button", { name: "여행지 입력 지우기" }).click();
+
+  const recommendations = dialog.getByRole("list", {
+    name: "추천 여행지",
+  });
+  await expect(recommendations).toBeVisible();
+  const busanRecommendation = recommendations.getByRole("button", {
+    name: /부산.*바다와 도심/,
+  });
+  const recommendationBounds = await busanRecommendation.boundingBox();
+  expect(recommendationBounds).not.toBeNull();
+  expect(recommendationBounds?.x ?? -1).toBeGreaterThanOrEqual(0);
+  expect(
+    (recommendationBounds?.x ?? 0) + (recommendationBounds?.width ?? 0),
+  ).toBeLessThanOrEqual(390);
+  await busanRecommendation.click();
+
+  const datePicker = dialog.getByRole("dialog", { name: "검색 날짜 선택" });
+  await expect(datePicker).toBeVisible();
+  await expect(
+    dialog.getByRole("button", { name: "다음", exact: true }),
+  ).toBeVisible();
+
+  const enabledDates = datePicker.locator(
+    'button[role="gridcell"]:not([disabled])',
+  );
+  await enabledDates.nth(0).click();
+  await enabledDates.nth(2).click();
+  await dialog.getByRole("button", { name: "다음", exact: true }).click();
+
+  await expect(
+    dialog.getByRole("dialog", { name: "검색 인원 선택" }),
+  ).toBeVisible();
+  await expect(
+    dialog.getByRole("button", { name: "검색", exact: true }),
+  ).toBeVisible();
 });
 
 test("keeps phase-one controls visibly focused and keyboard-operable", async ({
@@ -361,7 +437,7 @@ test("honors reduced motion while keyboard controls move the mobile results shee
   });
   const sheet = handle.locator("xpath=ancestor::section[1]");
 
-  await expect(handle).toHaveAttribute("data-state", "half");
+  await expect(handle).toHaveAttribute("data-state", "collapsed");
   await handle.focus();
   await expect(handle).toBeFocused();
   expect(
@@ -369,6 +445,13 @@ test("honors reduced motion while keyboard controls move the mobile results shee
       () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     ),
   ).toBe(true);
+  const collapsedTransform = await sheet.evaluate(
+    (element) => getComputedStyle(element).transform,
+  );
+
+  await page.keyboard.press("ArrowUp");
+  await expect(handle).toHaveAttribute("data-state", "half");
+  await expect(handle).toHaveAttribute("aria-expanded", "true");
   const resultCard = page.getByTestId("search-result-card");
   await resultCard.hover();
   const cardMotion = await resultCard.evaluate((element) => {
@@ -383,6 +466,7 @@ test("honors reduced motion while keyboard controls move the mobile results shee
   const halfTransform = await sheet.evaluate(
     (element) => getComputedStyle(element).transform,
   );
+  expect(halfTransform).not.toBe(collapsedTransform);
 
   await page.keyboard.press("ArrowUp");
   await expect(handle).toHaveAttribute("data-state", "expanded");
@@ -419,4 +503,123 @@ test("honors reduced motion while keyboard controls move the mobile results shee
   expect(motion.animationDuration).toBe("0s");
   expect(motion.transitionDuration).toBe("0s");
   expect(motion.willChange).toBe("auto");
+});
+
+test("anchors the first pointer drag to the collapsed sheet and suppresses its click", async ({
+  api,
+  page,
+  session,
+}) => {
+  session.clear();
+  api.register(
+    "GET",
+    "/api/v1/search/accommodations",
+    apiSuccess(searchResponse),
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(searchURL);
+
+  const handle = page.getByRole("button", {
+    name: /검색 결과 패널 조절/,
+  });
+  const sheet = handle.locator("xpath=ancestor::section[1]");
+  const handleBounds = await handle.boundingBox();
+  const initialSheetBounds = await sheet.boundingBox();
+
+  expect(handleBounds).not.toBeNull();
+  expect(initialSheetBounds).not.toBeNull();
+
+  const pointerX = (handleBounds?.x ?? 0) + (handleBounds?.width ?? 0) / 2;
+  const pointerY = (handleBounds?.y ?? 0) + (handleBounds?.height ?? 0) / 2;
+  await page.mouse.move(pointerX, pointerY);
+  await page.mouse.down();
+  await page.mouse.move(pointerX, pointerY - 24, { steps: 4 });
+
+  const draggedSheetBounds = await sheet.boundingBox();
+  expect(draggedSheetBounds).not.toBeNull();
+  expect(draggedSheetBounds?.y ?? 0).toBeLessThan(
+    (initialSheetBounds?.y ?? 0) - 10,
+  );
+  expect(draggedSheetBounds?.y ?? 0).toBeGreaterThan(
+    (initialSheetBounds?.y ?? 0) - 40,
+  );
+
+  await page.mouse.up();
+  await expect(handle).toHaveAttribute("data-state", "collapsed");
+  await expect(handle).toHaveAttribute("aria-expanded", "false");
+});
+
+test("keeps sheet content continuous and resumes a snap after an interrupted drag", async ({
+  api,
+  page,
+  session,
+}) => {
+  session.clear();
+  api.register(
+    "GET",
+    "/api/v1/search/accommodations",
+    apiSuccess(searchResponse),
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(searchURL);
+
+  const handle = page.getByRole("button", {
+    name: /검색 결과 패널 조절/,
+  });
+  const sheet = handle.locator("xpath=ancestor::section[1]");
+  const title = sheet.getByRole("heading", { name: "숙소 1개" });
+  const content = page.getByRole("group", {
+    name: "검색 결과 목록",
+    includeHidden: true,
+  });
+
+  await handle.click();
+  await expect(handle).toHaveAttribute("data-state", "half");
+
+  const titleBounds = await title.boundingBox();
+  expect(titleBounds).not.toBeNull();
+  const pointerX = (titleBounds?.x ?? 0) + (titleBounds?.width ?? 0) / 2;
+  const pointerY = (titleBounds?.y ?? 0) + (titleBounds?.height ?? 0) / 2;
+  await page.mouse.move(pointerX, pointerY);
+  await page.mouse.down();
+  await page.mouse.move(pointerX, pointerY - 24, { steps: 4 });
+  await page.mouse.up();
+
+  await expect
+    .poll(async () => {
+      const geometry = await sheet.evaluate((element) => {
+        const rootStyles = getComputedStyle(document.documentElement);
+        const surfaceTop =
+          Number.parseFloat(
+            rootStyles.getPropertyValue("--layout-search-header-mobile-height"),
+          ) +
+          Number.parseFloat(
+            rootStyles.getPropertyValue(
+              "--layout-search-header-divider-height",
+            ),
+          );
+        const surfaceHeight = window.innerHeight - surfaceTop;
+        const visibleHeight =
+          window.innerHeight - element.getBoundingClientRect().top;
+
+        return Math.abs(visibleHeight - surfaceHeight * 0.5);
+      });
+
+      return geometry;
+    })
+    .toBeLessThanOrEqual(3);
+
+  await handle.click();
+  await expect(handle).toHaveAttribute("data-state", "expanded");
+  await expect
+    .poll(
+      async () => (await sheet.boundingBox())?.y ?? Number.POSITIVE_INFINITY,
+    )
+    .toBeLessThanOrEqual(82);
+
+  await handle.click();
+  await expect(handle).toHaveAttribute("data-state", "collapsed");
+  expect(await content.getAttribute("hidden")).toBeNull();
+  await expect(content).toBeHidden();
 });

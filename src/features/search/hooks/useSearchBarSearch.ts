@@ -55,6 +55,13 @@ export const useSearchBarSearch = ({
         selectedPlace.viewport
           ? selectedPlace
           : null;
+      const completedCheckOut = (() => {
+        if (checkOut || !checkIn) return checkOut;
+
+        const nextDay = new Date(checkIn.getTime());
+        nextDay.setDate(nextDay.getDate() + 1);
+        return nextDay;
+      })();
 
       const searchParams: SearchParams = {
         adultOccupancy,
@@ -70,7 +77,7 @@ export const useSearchBarSearch = ({
             }
           : {}),
         ...(checkIn === null ? {} : { checkIn }),
-        ...(checkOut === null ? {} : { checkOut }),
+        ...(completedCheckOut === null ? {} : { checkOut: completedCheckOut }),
       };
 
       if (onSearch) {
@@ -88,7 +95,7 @@ export const useSearchBarSearch = ({
       const params = buildSearchNavigationParams(urlSearchParams, {
         selectedPlace: validSelectedPlace,
         checkIn,
-        checkOut,
+        checkOut: completedCheckOut,
         adultOccupancy,
         childOccupancy,
         infantOccupancy,

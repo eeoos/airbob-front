@@ -58,6 +58,14 @@ export const Header: React.FC<HeaderProps> = ({ headerMode = "default" }) => {
     }),
     [isSearchRoute, pushSearch, replaceSearch, searchParams],
   );
+  const handleMobileSearchBack = useCallback(() => {
+    if (location.key === "default") {
+      navigate(routeTo.home(), { replace: true });
+      return;
+    }
+
+    navigate(-1);
+  }, [location.key, navigate]);
 
   return (
     <header
@@ -80,6 +88,8 @@ export const Header: React.FC<HeaderProps> = ({ headerMode = "default" }) => {
           <div className={styles.searchBar}>
             <HeaderSearchBar
               isMapDragMode={isMapDragMode}
+              mobileHeader={isSearchLayout}
+              onMobileBack={handleMobileSearchBack}
               routePort={searchBarRoutePort}
             />
           </div>

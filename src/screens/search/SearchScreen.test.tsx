@@ -14,8 +14,10 @@ vi.mock("framer-motion", () => {
         {
           children,
           drag,
+          dragControls,
           dragConstraints,
           dragElastic,
+          dragListener,
           dragMomentum,
           onDrag,
           onDragEnd,
@@ -34,8 +36,10 @@ vi.mock("framer-motion", () => {
         {
           children,
           drag,
+          dragControls,
           dragConstraints,
           dragElastic,
+          dragListener,
           dragMomentum,
           onDrag,
           onDragEnd,
@@ -119,18 +123,23 @@ const createProps = (
   authModal: { isOpen: false, onClose: vi.fn() },
   bottomSheet: {
     bottomSheetRef: createRef<HTMLDivElement>(),
+    bottomSheetHeaderRef: createRef<HTMLDivElement>(),
     bottomSheetHandleRef: createRef<HTMLButtonElement>(),
     bottomSheetState: "collapsed",
-    handleBottomSheetScroll: vi.fn(),
+    dragControls: {} as SearchScreenProps["bottomSheet"]["dragControls"],
     handleBottomSheetKeyDown: vi.fn(),
+    handleBottomSheetPointerDown: vi.fn(),
+    handleBottomSheetPointerEnd: vi.fn(),
     handleBottomSheetToggle: vi.fn(),
     handleDrag: vi.fn(),
     handleDragEnd: vi.fn(),
     handleDragStart: vi.fn(),
     handleMapInteraction: vi.fn(),
+    isDragging: false,
     isMobileOrTablet: false,
-    snapPositions: { collapsed: 0, half: 250, expanded: 500 },
+    snapPositions: { collapsed: 691, half: 382, expanded: 0 },
     translateY: 0,
+    visibleSheetHeight: 72,
   },
   checkIn: "2026-07-10",
   checkOut: "2026-07-12",
@@ -287,6 +296,7 @@ describe("SearchScreen", () => {
     expect(mockResultsList).toHaveBeenCalledWith(
       expect.objectContaining({ errorMessage: "검색 요청 실패" }),
     );
+    expect(mockMap.mock.lastCall?.[0]).not.toHaveProperty("onExpandToggle");
     expect(screen.getByTestId("wishlist-modal")).toHaveTextContent("7");
     expect(screen.getByRole("button", { name: "next page" })).toHaveAttribute(
       "data-pagination-variant",
@@ -296,12 +306,16 @@ describe("SearchScreen", () => {
 
   it("connects a named keyboard handle to the mobile result region", () => {
     const handleBottomSheetKeyDown = vi.fn();
+    const handleBottomSheetPointerDown = vi.fn();
+    const handleBottomSheetPointerEnd = vi.fn();
     const handleBottomSheetToggle = vi.fn();
     const props = createProps({
       bottomSheet: {
         ...createProps().bottomSheet,
         bottomSheetState: "half",
         handleBottomSheetKeyDown,
+        handleBottomSheetPointerDown,
+        handleBottomSheetPointerEnd,
         handleBottomSheetToggle,
         isMobileOrTablet: true,
       },
@@ -326,9 +340,13 @@ describe("SearchScreen", () => {
     expect(content).not.toHaveAttribute("hidden");
 
     fireEvent.keyDown(handle, { key: "ArrowUp" });
+    fireEvent.pointerDown(handle);
+    fireEvent.pointerUp(handle);
     fireEvent.click(handle);
 
     expect(handleBottomSheetKeyDown).toHaveBeenCalledTimes(1);
+    expect(handleBottomSheetPointerDown).toHaveBeenCalledTimes(1);
+    expect(handleBottomSheetPointerEnd).toHaveBeenCalledTimes(1);
     expect(handleBottomSheetToggle).toHaveBeenCalledTimes(1);
 
     view.rerender(
@@ -344,6 +362,64 @@ describe("SearchScreen", () => {
     expect(collapsedHandle).toHaveAttribute("aria-expanded", "false");
     expect(collapsedHandle).toHaveAttribute("aria-controls", contentId);
     expect(content).toHaveAttribute("hidden");
+
+    view.rerender(
+      <SearchScreen
+        {...props}
+        bottomSheet={{
+          ...props.bottomSheet,
+          bottomSheetState: "collapsed",
+          isDragging: true,
+        }}
+      />,
+    );
+
+    expect(content).not.toHaveAttribute("hidden");
+    expect(content).toHaveAttribute("aria-hidden", "true");
+    expect(content).toHaveAttribute("inert");
+  });
+
+  it("offers an accessible map return action only from the expanded sheet", () => {
+    const base = createProps();
+    const handleMapInteraction = vi.fn();
+    const view = render(
+      <SearchScreen
+        {...base}
+        bottomSheet={{
+          ...base.bottomSheet,
+          bottomSheetState: "half",
+          handleMapInteraction,
+          isMobileOrTablet: true,
+        }}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "지도 보기" }),
+    ).not.toBeInTheDocument();
+
+    view.rerender(
+      <SearchScreen
+        {...base}
+        bottomSheet={{
+          ...base.bottomSheet,
+          bottomSheetState: "expanded",
+          handleMapInteraction,
+          isMobileOrTablet: true,
+        }}
+      />,
+    );
+
+    const sheet = screen.getByRole("region", { name: "숙소 42개" });
+    const mapButton = screen.getByRole("button", { name: "지도 보기" });
+    const mobileMap = screen.getByTestId("search-mobile-map-layer");
+
+    expect(sheet).toHaveAttribute("data-bottom-sheet", "search-results");
+    expect(sheet).toHaveAttribute("data-state", "expanded");
+    expect(mobileMap).toHaveAttribute("aria-hidden", "true");
+    expect(mobileMap).toHaveAttribute("inert");
+    fireEvent.click(mapButton);
+    expect(handleMapInteraction).toHaveBeenCalledTimes(1);
   });
 
   it("loads the account dialog only when authentication is requested", async () => {

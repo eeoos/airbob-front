@@ -24,10 +24,12 @@
   --layout-page-padding-x: var(--space-6);
   --layout-header-desktop-height: var(--size-px-80);
   --layout-header-mobile-height: var(--size-px-130);
+  --layout-search-header-mobile-height: var(--size-px-80);
+  --layout-search-header-divider-height: var(--size-px-1);
+  --layout-search-bottom-sheet-peek-height: var(--size-px-72);
   --layout-edit-header-height: var(--size-px-89);
   --layout-modal-max-height: var(--size-vh-90);
   --layout-search-mobile-popover-top: var(--size-px-130);
-  --layout-search-mobile-bottom-sheet-offset: var(--size-px-144);
   --layout-mobile-safe-bottom: var(--environment-safe-area-bottom);
   --card-media-ratio: var(--ratio-square);
   --listing-card-media-ratio: var(--ratio-landscape);

@@ -493,7 +493,7 @@
   }
 
   .calendarsScrollArea {
-    padding: var(--space-2) var(--space-3);
+    padding: var(--space-2) var(--space-1);
   }
 
   .day {

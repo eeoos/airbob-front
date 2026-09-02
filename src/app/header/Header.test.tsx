@@ -5,6 +5,7 @@ import type { SearchBarRoutePort } from "../../features/search/ui/HeaderSearchBa
 import { Header } from "./Header";
 
 let mockPathname = "/";
+let mockLocationKey = "route-key";
 let mockSearchParams = new URLSearchParams();
 const mockSearchBar = vi.fn();
 const mockUserMenu = vi.fn();
@@ -26,6 +27,7 @@ vi.mock("react-router-dom", () => ({
     </a>
   ),
   useLocation: () => ({
+    key: mockLocationKey,
     pathname: mockPathname,
   }),
   useNavigate: () => mockNavigate,
@@ -38,6 +40,8 @@ vi.mock("../../features/search/ui/HeaderSearchBar", async () => ({
   >("../../features/search/ui/HeaderSearchBar")),
   HeaderSearchBar: (props: {
     isMapDragMode?: boolean;
+    mobileHeader?: boolean;
+    onMobileBack?: () => void;
     routePort: SearchBarRoutePort;
   }) => {
     mockSearchBar(props);
@@ -68,6 +72,7 @@ vi.mock("../session/useSession", () => ({
 describe("Header", () => {
   beforeEach(() => {
     mockPathname = "/";
+    mockLocationKey = "route-key";
     mockSearchParams = new URLSearchParams();
     mockIsAuthenticated = false;
     mockSearchBar.mockClear();
@@ -102,6 +107,34 @@ describe("Header", () => {
       "data-layout",
       "full-width",
     );
+    expect(mockSearchBar).toHaveBeenCalledWith(
+      expect.objectContaining({ mobileHeader: true }),
+    );
+  });
+
+  it("delegates the search-only mobile back control to route history", () => {
+    mockPathname = "/search";
+
+    render(<Header headerMode="search" />);
+
+    const props = mockSearchBar.mock.calls.at(0)?.at(0) as
+      { onMobileBack?: () => void } | undefined;
+    props?.onMobileBack?.();
+
+    expect(mockNavigate).toHaveBeenCalledWith(-1);
+  });
+
+  it("returns a directly opened search route to home", () => {
+    mockPathname = "/search";
+    mockLocationKey = "default";
+
+    render(<Header headerMode="search" />);
+
+    const props = mockSearchBar.mock.calls.at(0)?.at(0) as
+      { onMobileBack?: () => void } | undefined;
+    props?.onMobileBack?.();
+
+    expect(mockNavigate).toHaveBeenCalledWith("/", { replace: true });
   });
 
   it("keeps non-search headers on the contained page shell", () => {
@@ -125,6 +158,9 @@ describe("Header", () => {
     expect(css).toContain("height: var(--layout-header-mobile-height);");
     expect(css).toContain("grid-template-columns: auto minmax(0, 1fr) auto;");
     expect(css).toContain("grid-column: 1 / -1;");
+    expect(css).toContain("height: var(--layout-search-header-mobile-height);");
+    expect(css).toContain(".searchRouteContainer .logo");
+    expect(css).toContain(".searchRouteContainer .menu");
   });
 
   it("keeps contained pages capped while search uses the shared full-width gutter", () => {

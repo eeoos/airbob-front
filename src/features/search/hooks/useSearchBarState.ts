@@ -80,6 +80,11 @@ export const useSearchBarState = ({
     dispatch({ type: "destinationSelectionCleared" });
   }, [resetPlaces]);
 
+  const resetSearchCriteria = useCallback(() => {
+    resetPlaces();
+    dispatch({ type: "searchCriteriaReset" });
+  }, [resetPlaces]);
+
   const selectDestination = useCallback(
     (prediction: SearchPlacePrediction) => {
       dispatch({
@@ -263,6 +268,7 @@ export const useSearchBarState = ({
       changeDestination,
       selectDestination,
       clearDestinationSelection,
+      resetSearchCriteria,
       startDestinationSession,
       handleSearch,
       exitMapDragMode,
@@ -289,6 +295,7 @@ export const useSearchBarState = ({
       openDatePicker,
       openDestination,
       selectDestination,
+      resetSearchCriteria,
       startDestinationSession,
       startComposition,
       toggleGuestPicker,

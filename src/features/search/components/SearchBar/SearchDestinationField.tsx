@@ -30,6 +30,8 @@ interface SearchDestinationFieldInternalProps extends Omit<
   onInputClick?: React.MouseEventHandler<HTMLInputElement>;
   onRequestSuggestions?: () => void;
   onSelect: (value: SearchDestinationSuggestion) => void;
+  showClearButton?: boolean;
+  showSuggestionIcons?: boolean;
   shouldClearOnValueChange?: boolean;
   suggestions: SearchDestinationSuggestion[];
   suggestionsRef?: React.Ref<HTMLDivElement>;
@@ -64,6 +66,8 @@ export const SearchDestinationField = ({
   onInputClick,
   onRequestSuggestions,
   onSelect,
+  showClearButton = false,
+  showSuggestionIcons = false,
   shouldClearOnValueChange = false,
   suggestions,
   suggestionsRef,
@@ -183,6 +187,22 @@ export const SearchDestinationField = ({
           className={styles.input}
           onClick={onInputClick}
         />
+        {showClearButton && value.length > 0 && (
+          <button
+            aria-label="여행지 입력 지우기"
+            className={styles.destinationClearButton}
+            onClick={() => {
+              onClear();
+              inputRef.current?.focus();
+            }}
+            onMouseDown={(event) => event.preventDefault()}
+            type="button"
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="m7 7 10 10M17 7 7 17" />
+            </svg>
+          </button>
+        )}
         {isSuggestionPopoverOpen && (
           <SearchBarPopover
             id={suggestionsId}
@@ -216,14 +236,24 @@ export const SearchDestinationField = ({
                 }}
                 type="button"
               >
-                <div className={styles.suggestionMainText}>
-                  {getSuggestionMainText(suggestion)}
-                </div>
-                {getSuggestionSecondaryText(suggestion) && (
-                  <div className={styles.suggestionSecondaryText}>
-                    {getSuggestionSecondaryText(suggestion)}
-                  </div>
+                {showSuggestionIcons && (
+                  <span aria-hidden="true" className={styles.suggestionIcon}>
+                    <svg viewBox="0 0 24 24">
+                      <path d="M12 21s6-5.35 6-11a6 6 0 1 0-12 0c0 5.65 6 11 6 11Z" />
+                      <circle cx="12" cy="10" r="2.2" />
+                    </svg>
+                  </span>
                 )}
+                <span className={styles.suggestionText}>
+                  <span className={styles.suggestionMainText}>
+                    {getSuggestionMainText(suggestion)}
+                  </span>
+                  {getSuggestionSecondaryText(suggestion) && (
+                    <span className={styles.suggestionSecondaryText}>
+                      {getSuggestionSecondaryText(suggestion)}
+                    </span>
+                  )}
+                </span>
               </button>
             ))}
           </SearchBarPopover>

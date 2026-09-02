@@ -23,26 +23,33 @@ type MotionSectionProps = ComponentProps<typeof motion.section>;
 
 interface SearchScreenBottomSheetProps {
   readonly bottomSheetHandleRef: RefObject<HTMLButtonElement | null>;
+  readonly bottomSheetHeaderRef: RefObject<HTMLDivElement | null>;
   readonly bottomSheetRef: RefObject<HTMLElement | null>;
   readonly bottomSheetState: "collapsed" | "half" | "expanded";
   readonly handleBottomSheetKeyDown: NonNullable<
     ComponentProps<"button">["onKeyDown"]
   >;
-  readonly handleBottomSheetScroll: NonNullable<
-    ComponentProps<"div">["onScroll"]
+  readonly handleBottomSheetPointerDown: NonNullable<
+    ComponentProps<"div">["onPointerDown"]
+  >;
+  readonly handleBottomSheetPointerEnd: NonNullable<
+    ComponentProps<"div">["onPointerUp"]
   >;
   readonly handleBottomSheetToggle: () => void;
   readonly handleDrag: NonNullable<MotionSectionProps["onDrag"]>;
   readonly handleDragEnd: NonNullable<MotionSectionProps["onDragEnd"]>;
   readonly handleDragStart: NonNullable<MotionSectionProps["onDragStart"]>;
   readonly handleMapInteraction: () => void;
+  readonly isDragging: boolean;
   readonly isMobileOrTablet: boolean;
+  readonly dragControls: NonNullable<MotionSectionProps["dragControls"]>;
   readonly snapPositions: Readonly<{
     collapsed: number;
     half: number;
     expanded: number;
   }>;
   readonly translateY: NonNullable<MotionStyle["y"]>;
+  readonly visibleSheetHeight: number;
 }
 
 interface SearchScreenMapProps {
@@ -97,8 +104,10 @@ export interface SearchScreenProps {
 
 const getBottomSheetMotionStyle = (
   y: NonNullable<MotionStyle["y"]>,
-): MotionStyle => ({
+  visibleSheetHeight: number,
+): MotionStyle & { "--search-bottom-sheet-visible-height": string } => ({
   y,
+  "--search-bottom-sheet-visible-height": `${visibleSheetHeight}px`,
 });
 
 const resultsListClassNames = {
@@ -160,7 +169,7 @@ export function SearchScreen({
     results.isLoading || results.isPlaceholderData || results.isRefreshing;
   const renderMap = (
     isExpanded: boolean,
-    onExpandToggle: () => void,
+    onExpandToggle?: () => void,
     onMapInteraction?: () => void,
   ) => (
     <Map
@@ -171,7 +180,6 @@ export function SearchScreen({
       onAccommodationSelect={map.handleAccommodationSelect}
       getAccommodationHref={getAccommodationHref}
       isExpanded={isExpanded}
-      onExpandToggle={onExpandToggle}
       onBoundsChange={map.requestBounds}
       onBoundsDragCancel={map.onBoundsDragCancel}
       onBoundsDragStart={map.onBoundsDragStart}
@@ -183,6 +191,7 @@ export function SearchScreen({
       checkOut={checkOut}
       onWishlistToggle={onWishlistToggle}
       onMapInteraction={onMapInteraction}
+      {...(onExpandToggle === undefined ? {} : { onExpandToggle })}
     />
   );
   const renderResults = (
@@ -224,8 +233,16 @@ export function SearchScreen({
       <div className={styles.container}>
         {bottomSheet.isMobileOrTablet ? (
           <>
-            <div className={styles.mapLayer}>
-              {renderMap(false, () => {}, bottomSheet.handleMapInteraction)}
+            <div
+              aria-hidden={
+                bottomSheet.bottomSheetState === "expanded" || undefined
+              }
+              className={styles.mapLayer}
+              data-search-mobile-map=""
+              data-testid="search-mobile-map-layer"
+              inert={bottomSheet.bottomSheetState === "expanded"}
+            >
+              {renderMap(false, undefined, bottomSheet.handleMapInteraction)}
             </div>
 
             <motion.section
@@ -233,20 +250,23 @@ export function SearchScreen({
               aria-labelledby={bottomSheetTitleId}
               className={`${styles.bottomSheet} ${
                 styles[bottomSheet.bottomSheetState]
-              } ${
-                results.accommodationCards.length === 0
-                  ? styles.emptyResults
-                  : ""
-              }`}
-              style={getBottomSheetMotionStyle(bottomSheet.translateY)}
+              } ${bottomSheet.isDragging ? styles.dragging : ""}`}
+              style={getBottomSheetMotionStyle(
+                bottomSheet.translateY,
+                bottomSheet.visibleSheetHeight,
+              )}
+              data-bottom-sheet="search-results"
+              data-state={bottomSheet.bottomSheetState}
               drag={bottomSheet.isMobileOrTablet ? "y" : false}
+              dragControls={bottomSheet.dragControls}
               dragElastic={0}
+              dragListener={false}
               dragMomentum={false}
               {...(bottomSheet.isMobileOrTablet
                 ? {
                     dragConstraints: {
-                      top: -bottomSheet.snapPositions.expanded,
-                      bottom: -bottomSheet.snapPositions.collapsed,
+                      top: bottomSheet.snapPositions.expanded,
+                      bottom: bottomSheet.snapPositions.collapsed,
                     },
                   }
                 : {})}
@@ -254,7 +274,13 @@ export function SearchScreen({
               onDrag={bottomSheet.handleDrag}
               onDragEnd={bottomSheet.handleDragEnd}
             >
-              <div className={styles.bottomSheetHeader}>
+              <div
+                ref={bottomSheet.bottomSheetHeaderRef}
+                className={styles.bottomSheetHeader}
+                onPointerCancel={bottomSheet.handleBottomSheetPointerEnd}
+                onPointerDown={bottomSheet.handleBottomSheetPointerDown}
+                onPointerUp={bottomSheet.handleBottomSheetPointerEnd}
+              >
                 <button
                   ref={bottomSheet.bottomSheetHandleRef}
                   type="button"
@@ -275,17 +301,42 @@ export function SearchScreen({
                 </h2>
               </div>
 
+              {bottomSheet.bottomSheetState === "expanded" && (
+                <button
+                  type="button"
+                  className={styles.mapReturnButton}
+                  onClick={bottomSheet.handleMapInteraction}
+                >
+                  지도 보기
+                  <svg
+                    className={styles.mapReturnButtonIcon}
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path d="m3.5 5.5 5-2 7 2 5-2v15l-5 2-7-2-5 2v-15Z" />
+                    <path d="M8.5 3.5v15M15.5 5.5v15" />
+                  </svg>
+                </button>
+              )}
+
               <div
                 id={bottomSheetContentId}
                 role="group"
                 aria-label="검색 결과 목록"
                 className={`${styles.bottomSheetContent} ${
-                  bottomSheet.bottomSheetState === "collapsed"
+                  bottomSheet.bottomSheetState === "collapsed" &&
+                  !bottomSheet.isDragging
                     ? styles.hidden
                     : ""
                 }`}
-                hidden={bottomSheet.bottomSheetState === "collapsed"}
-                onScroll={bottomSheet.handleBottomSheetScroll}
+                aria-hidden={
+                  bottomSheet.bottomSheetState === "collapsed" || undefined
+                }
+                inert={bottomSheet.bottomSheetState === "collapsed"}
+                hidden={
+                  bottomSheet.bottomSheetState === "collapsed" &&
+                  !bottomSheet.isDragging
+                }
               >
                 {renderResults("bottomSheet", "compact")}
               </div>

@@ -1,5 +1,6 @@
 import React, { useCallback, useRef } from "react";
 import { requireCssModuleClass } from "../../../../shared/styles/requireCssModuleClass";
+import { useResponsiveLayout } from "../../../../shared/styles/useResponsiveLayout";
 import { DatePicker } from "../../../../shared/ui/DatePicker";
 import {
   type SearchBarRoutePort,
@@ -15,13 +16,61 @@ import { useSearchBarOutsideClick } from "./useSearchBarOutsideClick";
 import { useSearchBarShellInteractions } from "./useSearchBarShellInteractions";
 import styles from "./SearchBar.module.css";
 
-interface SearchBarProps {
+const LazyMobileSearchBar = React.lazy(() => import("./MobileSearchBar"));
+
+interface SearchBarBaseProps {
   routePort: SearchBarRoutePort;
   onSearch?: (searchParams: SearchParams) => void;
   isMapDragMode?: boolean;
 }
 
-export const SearchBar: React.FC<SearchBarProps> = ({
+type SearchBarProps = SearchBarBaseProps &
+  (
+    | { mobileHeader: boolean; onMobileBack: () => void }
+    | { mobileHeader?: false; onMobileBack?: never }
+  );
+
+export const SearchBar: React.FC<SearchBarProps> = (props) => {
+  const isMobileOrTablet = useResponsiveLayout() === "mobile-tablet";
+
+  if (props.mobileHeader && isMobileOrTablet) {
+    return (
+      <React.Suspense
+        fallback={
+          <div
+            aria-busy="true"
+            aria-label="숙소 검색"
+            className={styles.mobileHeaderBar}
+            role="search"
+          >
+            <span className={styles.visuallyHidden}>
+              검색 화면을 준비하는 중입니다.
+            </span>
+          </div>
+        }
+      >
+        <LazyMobileSearchBar
+          routePort={props.routePort}
+          isMapDragMode={props.isMapDragMode ?? false}
+          onMobileBack={props.onMobileBack}
+          {...(props.onSearch === undefined
+            ? {}
+            : { onSearch: props.onSearch })}
+        />
+      </React.Suspense>
+    );
+  }
+
+  return (
+    <DesktopSearchBar
+      routePort={props.routePort}
+      isMapDragMode={props.isMapDragMode ?? false}
+      {...(props.onSearch === undefined ? {} : { onSearch: props.onSearch })}
+    />
+  );
+};
+
+const DesktopSearchBar: React.FC<SearchBarBaseProps> = ({
   routePort,
   onSearch,
   isMapDragMode = false,
@@ -155,6 +204,21 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     closeActivePopover();
     guestTriggerRef.current?.focus();
   }, [closeActivePopover]);
+
+  const submitSearch = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      event.stopPropagation();
+
+      if (isPlacesLoading) return;
+
+      if (activePopover === "date" || activePopover === "guests") {
+        closeTransientPanels({ collapseWhenDateSelected: true });
+      }
+
+      handleSearch(event);
+    },
+    [activePopover, closeTransientPanels, handleSearch, isPlacesLoading],
+  );
 
   return (
     <div
@@ -305,15 +369,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       <button
         aria-label="검색"
         className={styles.searchButton}
-        onClick={(event) => {
-          event.stopPropagation();
-
-          if (activePopover === "date" || activePopover === "guests") {
-            closeTransientPanels({ collapseWhenDateSelected: true });
-          }
-
-          handleSearch(event);
-        }}
+        onClick={submitSearch}
         type="button"
       >
         <svg aria-hidden="true" viewBox="0 0 32 32" fill="currentColor">
