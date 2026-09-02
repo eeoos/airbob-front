@@ -20,13 +20,19 @@ const testFiles = [
   "src/**/__mocks__/**/*.{js,jsx,mjs,ts,tsx}",
   "src/**/*.{test,spec}.{js,jsx,mjs,ts,tsx}",
 ];
-const e2eTypeScriptFiles = ["playwright.config.ts", "tests/e2e/**/*.ts"];
+const e2eTypeScriptFiles = [
+  "playwright.config.ts",
+  "playwright.local-integration.config.ts",
+  "tests/e2e/**/*.ts",
+  "tests/local-integration/**/*.ts",
+];
 const nodeEsmFiles = [
   "eslint.config.mjs",
   "stylelint.config.mjs",
   "scripts/**/*.{mjs,js}",
   "tests/architecture/**/*.mjs",
   "tests/e2e/support/**/*.mjs",
+  "tests/local-integration/support/**/*.mjs",
 ];
 const nodeCommonJsFiles = [".dependency-cruiser.cjs", "**/*.cjs"];
 const toolingTypeScriptFiles = ["vite.config.ts", "vitest.config.ts"];
