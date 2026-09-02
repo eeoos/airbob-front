@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import { stripVTControlCharacters } from "node:util";
 
 export const COMMITTED_PRIVACY_CANARIES = [
@@ -7,12 +8,173 @@ export const COMMITTED_PRIVACY_CANARIES = [
   "paymentKey=artifact-private-payment-key",
 ];
 
-const sensitiveFieldNames =
-  "customer[-_]?email|customer[-_]?name|email|nickname|order[-_]?id|password|payment[-_]?key|access[-_]?token|refresh[-_]?token|session[-_]?token|token|authorization|cookie|api[-_]?key|client[-_]?secret|secret";
+export const RUNTIME_SENSITIVE_ENV_NAMES = Object.freeze([
+  "AIRBOB_LOCAL_COMPLIMENTARY_COUPON_ID",
+  "AIRBOB_LOCAL_COMPLIMENTARY_FIXTURE",
+  "AIRBOB_LOCAL_PAID_FIXTURES",
+  "AIRBOB_LOCAL_SEARCH_DESTINATION",
+  "AIRBOB_LOCAL_TOSS_CARD_CVC",
+  "AIRBOB_LOCAL_TOSS_CARD_EXPIRY",
+  "AIRBOB_LOCAL_TOSS_CARD_NUMBER",
+  "AIRBOB_LOCAL_TOSS_CARD_PASSWORD",
+  "AIRBOB_LOCAL_WISHLIST_ACCOMMODATION_ID",
+  "AIRBOB_QA_EMAIL",
+  "AIRBOB_QA_PASSWORD",
+  "REACT_APP_TOSS_CLIENT_KEY",
+]);
+
+const MINIMUM_EXACT_RUNTIME_SENSITIVE_VALUE_LENGTH = 4;
+
+const collectStructuredRuntimeValues = (value, values) => {
+  if (typeof value === "string" || typeof value === "number") {
+    values.add(String(value));
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectStructuredRuntimeValues(item, values));
+    return;
+  }
+
+  if (value !== null && typeof value === "object") {
+    Object.values(value).forEach((item) =>
+      collectStructuredRuntimeValues(item, values),
+    );
+  }
+};
+
+export const readRuntimeSensitiveValues = (environment = process.env) => {
+  const values = new Set();
+
+  RUNTIME_SENSITIVE_ENV_NAMES.forEach((name) => {
+    const rawValue = environment[name];
+    if (typeof rawValue !== "string" || rawValue.length === 0) return;
+
+    values.add(rawValue);
+    try {
+      collectStructuredRuntimeValues(JSON.parse(rawValue), values);
+    } catch {
+      // Non-JSON runner values are already represented by their exact bytes.
+    }
+  });
+
+  return [...values].sort(
+    (left, right) => right.length - left.length || left.localeCompare(right),
+  );
+};
+
+const normalizeRuntimeSensitiveValues = (values) =>
+  [...new Set(values.map((value) => normalizeSensitiveText(value)))]
+    .filter(Boolean)
+    .sort(
+      (left, right) => right.length - left.length || left.localeCompare(right),
+    );
+
+const addRuntimeRepresentation = (representations, value) => {
+  if (value) representations.add(value);
+};
+
+const runtimeRepresentations = (value) => {
+  const representations = new Set([value]);
+
+  try {
+    addRuntimeRepresentation(representations, encodeURIComponent(value));
+  } catch {
+    // Lone surrogate input remains covered by its normalized raw bytes.
+  }
+
+  try {
+    const formEncoded = new URLSearchParams({ value })
+      .toString()
+      .slice("value=".length);
+    addRuntimeRepresentation(representations, formEncoded);
+  } catch {
+    // Invalid URL-form input remains covered by its normalized raw bytes.
+  }
+
+  const json = JSON.stringify(value);
+  if (typeof json === "string" && json.length >= 2) {
+    addRuntimeRepresentation(representations, json.slice(1, -1));
+  }
+
+  const base64 = Buffer.from(value, "utf8").toString("base64");
+  addRuntimeRepresentation(representations, base64);
+  addRuntimeRepresentation(
+    representations,
+    base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, ""),
+  );
+
+  const compact = value.replace(/[\s/-]+/g, "");
+  if (compact !== value) addRuntimeRepresentation(representations, compact);
+
+  return representations;
+};
+
+const exactRuntimeSensitiveValues = (values) => {
+  const exactValues = new Set();
+  normalizeRuntimeSensitiveValues(values).forEach((value) => {
+    // Short IDs and provider fields are common enough that global replacement
+    // would corrupt harmless counters and prose. Their typed contexts are
+    // handled by the field/query/path redactors below.
+    if (value.length < MINIMUM_EXACT_RUNTIME_SENSITIVE_VALUE_LENGTH) return;
+    runtimeRepresentations(value).forEach((representation) => {
+      if (
+        representation.length >= MINIMUM_EXACT_RUNTIME_SENSITIVE_VALUE_LENGTH
+      ) {
+        exactValues.add(representation);
+      }
+    });
+  });
+
+  return [...exactValues].sort(
+    (left, right) => right.length - left.length || left.localeCompare(right),
+  );
+};
+
+const redactRuntimeSensitiveValues = (text, values) => {
+  let redacted = text;
+  values.forEach((value) => {
+    redacted = redacted.split(value).join("[redacted-runtime]");
+  });
+  return redacted;
+};
+
+const sensitiveFieldBaseNames =
+  "customer[-_]?email|customer[-_]?name|email|nickname|order[-_]?id|password|payment[-_]?key|access[-_]?token|refresh[-_]?token|session[-_]?token|token|authorization|cookie|api[-_]?key|client[-_]?secret|secret|cvc|card[-_]?(?:cvc|number|password|expiry)|(?:accommodation|coupon|reservation|wishlist|operation)[-_]?(?:id|uid)|payment[-_]?(?:attempt|operation)[-_]?(?:id|uid)|check[-_]?(?:in|out)|destination";
+const sensitiveFieldNames = `(?:${sensitiveFieldBaseNames})(?:[-_]?(?:base64|encoded|url[-_]?encoded|json))?`;
 const sensitiveFieldReference = `(?:\\b(?:${sensitiveFieldNames})\\b|["'\\x60](?:${sensitiveFieldNames})["'\\x60]|\\\\+["'](?:${sensitiveFieldNames})\\\\+["'])`;
 const horizontalWhitespace = "[^\\S\\r\\n]*";
 const MAX_STRUCTURED_VALUE_DEPTH = 64;
 const structuredValueClosingDelimiter = { "{": "}", "[": "]" };
+const sensitiveQueryNames =
+  "orderId|paymentKey|token|accommodationId|couponId|reservationId|reservationUid|wishlistId|operationId|paymentAttemptId|paymentOperationId|destination";
+const sensitiveResourceOwners =
+  "members/wishlists/accommodations|members/recently-viewed|members/wishlists|reservations|accommodations|coupons|payment-attempts|payment-operations";
+const createSensitiveQueryPattern = () =>
+  new RegExp(
+    `(?:^|[?&])(?:${sensitiveQueryNames})=(\\[redacted\\]|[^&\\s"'<>,}\\]);]+)`,
+    "gi",
+  );
+const createSensitiveResourcePathPattern = () =>
+  new RegExp(
+    `((?:https?:\\/\\/[^\\s"'<>]+)?\\/(?:api\\/v1\\/)?(?:${sensitiveResourceOwners})\\/)([^/?#\\s"'<>]+)`,
+    "gi",
+  );
+const safeResourcePathSegments = new Set([
+  ":id",
+  "[redacted]",
+  "accommodations",
+  "availability",
+  "hold",
+  "issue",
+  "payment-attempts",
+  "publish",
+  "reviews",
+  "unpublish",
+]);
+
+const isSafeResourcePathSegment = (value) =>
+  safeResourcePathSegments.has(value.toLowerCase());
 
 const isSyntheticEmail = (email) => email.toLowerCase().endsWith(".invalid");
 
@@ -293,9 +455,20 @@ const redactUnquotedAssignments = (text) => {
   return `${redacted}${text.slice(cursor)}`;
 };
 
-export const findSensitiveTextViolations = (text) => {
+export const findSensitiveTextViolations = (
+  text,
+  { runtimeSensitiveValues = readRuntimeSensitiveValues() } = {},
+) => {
   const normalizedText = normalizeSensitiveText(text);
   const violations = new Set();
+
+  if (
+    exactRuntimeSensitiveValues(runtimeSensitiveValues).some((value) =>
+      normalizedText.includes(value),
+    )
+  ) {
+    violations.add("runtime-sensitive-value");
+  }
 
   for (const match of normalizedText.matchAll(
     /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,
@@ -305,11 +478,17 @@ export const findSensitiveTextViolations = (text) => {
     }
   }
 
-  for (const match of normalizedText.matchAll(
-    /(?:^|[?&])(?:orderId|paymentKey|token)=(\[redacted\]|[^&\s"'<>,}\]);]+)/gi,
-  )) {
+  for (const match of normalizedText.matchAll(createSensitiveQueryPattern())) {
     if (match[1] !== "[redacted]") {
       violations.add("sensitive-callback-query");
+    }
+  }
+
+  for (const match of normalizedText.matchAll(
+    createSensitiveResourcePathPattern(),
+  )) {
+    if (!isSafeResourcePathSegment(match[2])) {
+      violations.add("sensitive-resource-path");
     }
   }
 
@@ -342,17 +521,27 @@ export const findSensitiveTextViolations = (text) => {
   return [...violations].sort();
 };
 
-export const redactSensitiveText = (input) => {
+export const redactSensitiveText = (
+  input,
+  { runtimeSensitiveValues = readRuntimeSensitiveValues() } = {},
+) => {
   let text = normalizeSensitiveText(input);
+
+  text = redactRuntimeSensitiveValues(
+    text,
+    exactRuntimeSensitiveValues(runtimeSensitiveValues),
+  );
 
   COMMITTED_PRIVACY_CANARIES.forEach((canary) => {
     text = text.split(canary).join("[redacted-canary]");
   });
 
-  text = text.replace(
-    /([?&](?:orderId|paymentKey|token)=)(?:\[redacted\]|[^&\s"'<>,}\]);]+)/gi,
-    "$1[redacted]",
-  );
+  text = text.replace(createSensitiveQueryPattern(), (match) => {
+    const separator =
+      match.startsWith("?") || match.startsWith("&") ? match[0] : "";
+    const assignment = separator ? match.slice(1) : match;
+    return `${separator}${assignment.slice(0, assignment.indexOf("=") + 1)}[redacted]`;
+  });
   text = text.replace(
     /([A-Z0-9._%+-]+)@([A-Z0-9.-]+\.[A-Z]{2,})/gi,
     "[redacted-email]",
@@ -363,8 +552,9 @@ export const redactSensitiveText = (input) => {
   );
   text = text.replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [redacted]");
   text = text.replace(
-    /(https?:\/\/[^\s"'<>]+\/reservations\/)[^/?#\s"'<>]+/gi,
-    "$1[redacted]",
+    createSensitiveResourcePathPattern(),
+    (match, prefix, value) =>
+      isSafeResourcePathSegment(value) ? match : `${prefix}[redacted]`,
   );
 
   text = redactStructuredAssignments(text);
@@ -681,8 +871,11 @@ const consumeAwaitingValue = (text) => {
  * quoted and structured values may span records, so stdout and stderr must
  * each own one rather than redacting completed lines independently.
  */
-export const createStreamingSensitiveTextRedactor = () => {
+export const createStreamingSensitiveTextRedactor = ({
+  runtimeSensitiveValues = readRuntimeSensitiveValues(),
+} = {}) => {
   let continuation = null;
+  const exactValues = exactRuntimeSensitiveValues(runtimeSensitiveValues);
 
   return {
     redact(input) {
@@ -702,7 +895,11 @@ export const createStreamingSensitiveTextRedactor = () => {
       } else if (continuation?.kind === "unquoted-value") {
         result = consumeUnquotedContinuation(text);
       } else {
-        result = redactFreshText(text);
+        const exactRedactedText = redactRuntimeSensitiveValues(
+          text,
+          exactValues,
+        );
+        result = redactFreshText(exactRedactedText);
       }
 
       continuation = result.continuation;
