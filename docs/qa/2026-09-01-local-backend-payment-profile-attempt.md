@@ -4,6 +4,20 @@
 > Frontend 기준: v2 owner switch `bf78544`, verification checkpoint `ac50110`
 > Read-only backend 기준: `b2ec09a3cdc8cf86877edf5f222c6a5cd6c2afd1`
 
+## 2026-09-02 재개 상태
+
+사용자가 주요 local data가 준비됐다고 알렸다. 따라서 이 문서가 2026-09-01에 확인한
+"공개 fixture/reset 계약을 찾지 못함"은 당시 attempt의 사실이며, 현재 data 부재를
+주장하는 근거로 사용하지 않는다. 다만 현재 service는 꺼져 있고 backend-owned
+disposable/reset 소유권, paid slot 1–3, complimentary slot과 full messaging readiness를
+자동 preflight와 별도 owner attestation으로 확인하지 않았다. 실제 mutation이나 Toss
+sandbox 실행도 아직 없다.
+
+그러므로 판정은 **BLOCKED / UNVERIFIED**를 유지한다. 후속 실행과 redacted 증거는
+[`2026-09-02 U12 local-integration evidence`](./2026-09-02-u12-local-integration-evidence.md)가
+소유한다. Local core와 local Toss sandbox는 서로 다른 명령과 결과로 기록하며, 어느
+한쪽도 다른 쪽의 pass를 대신하지 않는다.
+
 ## 시도한 범위
 
 U12 사전조건에 따라 실제 mutation을 보내기 전에 backend가 소유하는 반복 가능한
@@ -42,7 +56,8 @@ Vercel, production Maps와 실제 결제는 이 판정에 포함되지 않는다
 
 ## 재개 조건
 
-Backend가 다음을 공개 계약으로 제공한 뒤 별도 local profile을 실행한다.
+다음 항목을 backend-owner attestation과 자동 preflight가 각각 실제로 확인한 뒤 별도
+local profile을 실행한다.
 
 1. 실행마다 격리되는 guest/host와 published accommodation 또는 명시적 reset owner
 2. paid CARD/KRW 100원 이상과 complimentary 0원 quote를 만드는 안정적 조건
@@ -50,5 +65,17 @@ Backend가 다음을 공개 계약으로 제공한 뒤 별도 local profile을 �
 4. reservation/operation identifier만으로 실패를 재진단하고 cleanup owner를 검증하는 절차
 5. Toss sandbox client/server credential을 값 노출 없이 검사하는 guarded preflight
 
-그때 core API/messaging과 Toss sandbox를 서로 다른 Playwright project와 결과로 기록하고,
-외부 callback credential, cookie, payment key, 실제 사용자 PII를 artifact에 남기지 않는다.
+Mutation은 `AIRBOB_LOCAL_MUTATION_PROFILE=disposable`과
+`AIRBOB_LOCAL_DATA_OWNERSHIP_PROFILE=backend-owned-disposable`을 함께 명시한 경우에만
+허용하고, fresh reset authorization과 non-secret backend revision/owner/procedure label을
+같은 run identity에 묶는다. 이 기계적 label은 backend owner의 실제 reset 책임을 대신하지
+않으며 post-run cleanup 전 result는 `BLOCKED_UNVERIFIED`를 유지한다. Toss server key는
+backend process만 소유하며 Playwright runner는 raw key를 읽지 않고 non-secret
+server-profile attestation만 검사한다.
+Core API/messaging은 `npm run verify:local:core`, Toss sandbox는 core PASS 뒤
+`npm run verify:local:toss`로 서로 다른 Playwright project와 결과에 기록한다. 외부
+callback credential, cookie, payment key, 식별자, 실제 사용자 PII, request/response body,
+HAR, trace, video 또는 credential-bearing screenshot은 artifact에 남기지 않는다.
+
+Local Vite proxy 결과는 Vercel→OCI credential/CORS/Origin/CSRF, production Maps,
+cross-device recovery 또는 AWS performance를 증명하지 않는다.

@@ -124,6 +124,54 @@ npm run report:architecture
   external environment is ready. It is deliberately outside the design-entry
   gate.
 
+## U12 local integration
+
+U12 can be exercised against the documented local backend and messaging stack;
+it does not require Vercel or OCI. The local profile is intentionally split so
+that a real core API/messaging result cannot be confused with a Toss sandbox
+result:
+
+```bash
+npm run test:local:preflight
+npm run test:local:core
+npm run verify:local:core
+npm run test:local:toss
+npm run verify:local:toss
+npm run verify:local-integration
+```
+
+The required environment-variable names are listed in
+[`docs/qa/frontend-architecture-smoke.ko.md`](docs/qa/frontend-architecture-smoke.ko.md).
+In particular, mutation runs must explicitly set
+`AIRBOB_LOCAL_MUTATION_PROFILE=disposable` and
+`AIRBOB_LOCAL_DATA_OWNERSHIP_PROFILE=backend-owned-disposable`, bind a fresh
+reset authorization to safe backend-revision/owner/procedure labels, provide
+three non-overlapping paid date slots and one complimentary slot, and use only
+backend-owned disposable data or a backend-owned reset procedure. Never print
+or commit fixture, credential, or transaction values.
+
+`test:local:toss` and `verify:local:toss` always run `local-core` first under one
+generated run identity. Each project writes a mode-`0600` sanitized
+`result.json`. Scenario assertions may pass while the evidence remains
+`BLOCKED_UNVERIFIED` with `EXTERNAL_RESET_REQUIRED`; only the backend owner's
+post-run cleanup record can complete U12 evidence. Run these package commands
+from a clean committed frontend workspace; direct invocation of the local
+Playwright config is unsupported and is blocked without the runner identity.
+Before Toss, the runner re-reads the frontend state and requires the exact
+same revision plus a matching same-run core PASS manifest.
+
+The latest U12 status remains **BLOCKED / UNVERIFIED**. The user has signaled
+that the major local data is prepared, but the current services are not running
+and the disposable/reset owner, slot-scoped Toss failure discriminator, and
+full messaging readiness have not yet been verified. A missing prerequisite is
+a blocked result, not a skipped or passing
+scenario. Core and Toss results must be recorded separately in the
+[`redacted U12 evidence record`](docs/qa/2026-09-02-u12-local-integration-evidence.md).
+
+Success through Vite's local `/api` proxy proves neither Vercel-to-OCI
+credential/CORS/Origin/CSRF behavior nor production Maps, cross-device recovery,
+or AWS performance.
+
 ## Vite and Vercel deployment
 
 Vite is the only build/dev owner (`dev`, `build`, and `preview`) and

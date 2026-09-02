@@ -1187,16 +1187,23 @@ describe("frontend verification gate", () => {
     }
   });
 
-  test("QA smoke document owns only deferred live-integration evidence", () => {
+  test("QA smoke document separates guarded local and deferred live evidence", () => {
     expect(fs.existsSync(qaDocPath)).toBe(true);
 
     const qaDoc = fs.readFileSync(qaDocPath, "utf8");
     const requiredTerms = [
-      "# Frontend Live Integration Smoke",
+      "# Frontend Local and Live Integration Smoke",
+      "U12 local core: **BLOCKED / UNVERIFIED**",
+      "U12 local Toss sandbox: **BLOCKED / UNVERIFIED**",
       "DEFERRED / UNVERIFIED",
-      "backend-independent `npm run verify:design-ready`",
-      "live smoke는 그 명령에",
-      "포함되지 않고 디자인 작업을 차단하지 않는다",
+      "backend-independent",
+      "`npm run verify:design-ready`가 판정",
+      "어느 통합 smoke도 그 명령에 포함되지 않는다",
+      "npm run test:local:preflight",
+      "npm run test:local:core",
+      "npm run test:local:toss",
+      "clean committed frontend workspace",
+      "같은 run identity",
       "commit-specific Vercel deployment",
       "OCI `/api/v1`",
       "Google Maps/Places SDK",
@@ -1226,9 +1233,13 @@ describe("frontend verification gate", () => {
     ];
     const requiredSections = [
       "목적과 경계",
-      "실행 전 조건",
-      "Smoke 환경 변수",
-      "실행",
+      "U12 local profile",
+      "Local 실행 전 조건",
+      "Local 환경 변수 이름",
+      "Local 실행과 독립 결과",
+      "Deployment live 실행 전 조건",
+      "Deployment live 환경 변수",
+      "Deployment live 실행",
       "자동 route evidence",
       "수동 live checklist",
       "실패와 증거 기록",
@@ -1288,7 +1299,9 @@ describe("frontend verification gate", () => {
       "strict production graph",
       "Root budget",
       "DEFERRED / UNVERIFIED (live)",
-      "U12 attempt",
+      "2026-09-01 attempt",
+      "npm run verify:local:core",
+      "npm run verify:local:toss",
       "Vercel → OCI",
       "Google Maps/Places",
       "Toss sandbox",

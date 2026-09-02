@@ -391,7 +391,7 @@ the blocking source of truth.
   its own assets, but a plain Vite SPA does not by itself pin an already-open
   production-alias tab to that deployment. The pre-opened-tab lazy-chunk check,
   Preview deep links, OCI, and Toss sandbox remain live deployment evidence and
-  are explicitly deferred while the backend is unavailable.
+  remain explicitly deferred until the deployment prerequisites are verified.
 
 ## User flows that must survive cutover
 
@@ -421,7 +421,8 @@ status lives in [`frontend-ownership-matrix.md`](./frontend-ownership-matrix.md)
 
 | Delta | Owner/status |
 | --- | --- |
-| Repeatable real local-backend mutation and Toss sandbox evidence | U12 is `BLOCKED / UNVERIFIED`: the backend exposes no frontend-safe disposable fixture/reset owner and no local services were listening. Deterministic browser evidence remains blocking. |
+| Repeatable real local-backend core mutation evidence | U12 is `BLOCKED / UNVERIFIED`: major local data readiness has been signaled, but services are currently off and the backend-owned disposable/reset owner, paid slots 1–3, and complimentary slot are not verified. `local-core` must be recorded separately from Toss. |
+| Local Toss sandbox evidence | U12 is `BLOCKED / UNVERIFIED`: run only after `local-core` passes, with browser-public and server credentials kept in their owning processes, a slot-scoped confirm-failure profile, full messaging readiness, and a distinct `local-toss-sandbox` result. |
 | Vercel→OCI credential/CORS/Origin, Maps production key, AWS performance | Separate deployment/infrastructure gates; local proxy success is not evidence. |
 | Airbnb visual styling | A later design plan. The transaction, screen, image/state, amenity, page-container, responsive, and runtime-token boundaries are the design-entry baseline. |
 
@@ -452,14 +453,39 @@ Current local and CI commands are defined in `package.json` and
 - `npm run verify:browser`
 - `npm run verify:pre-redesign`
 - `npm run verify:design-ready`
+- `npm run test:local:preflight`
+- `npm run test:local:core`
+- `npm run verify:local:core`
+- `npm run test:local:toss`
+- `npm run verify:local:toss`
+- `npm run verify:local-integration`
 - `npm run smoke:frontend:preflight`
 - `npm run verify:live-integration`
 
 The deterministic browser suite proves the current synthetic flow matrix; it
 does not prove a live backend, Google Maps, Toss sandbox, or seeded dynamic-route
 behavior. `verify:design-ready` and `verify:pre-redesign` are the same offline
-design-entry gate. `verify:live-integration` is separate; fixture omissions and
-unavailable external services remain deferred and unverified.
+design-entry gate. The local commands use the Vite proxy and require
+`AIRBOB_LOCAL_MUTATION_PROFILE=disposable` plus the exact non-secret
+`AIRBOB_LOCAL_DATA_OWNERSHIP_PROFILE=backend-owned-disposable` attestation, a
+fresh authorization timestamp, and safe backend revision/reset
+owner/procedure labels. Those labels make a run inspectable but do not replace
+out-of-band authority or post-run cleanup.
+Automated preflight verifies allowlisted, non-overlapping fixture shapes,
+inventory readiness, dependency ports, the accommodation search alias and the
+Debezium connector/task state. The backend owner still owns the reset procedure
+and its execution. The project-aware runner emits one sanitized `result.json`
+per project and forces `local-core` before Toss with one run identity. It
+requires a clean committed frontend state, re-reads that state between stages,
+and the browser global setup independently blocks a direct or mismatched Toss
+project unless the same-run core PASS manifest matches both frontend and backend
+revision.
+Assertion success remains `BLOCKED_UNVERIFIED` while cleanup is
+`EXTERNAL_RESET_REQUIRED`. `local-core` proves auth/core API/hold behavior;
+`local-toss-sandbox` separately proves provider callback, confirm and bounded
+messaging terminal behavior. `verify:live-integration` remains separate; local
+proxy success does not prove Vercel/OCI credentialed CORS, Origin/CSRF rejection,
+production Maps, cross-device behavior, or AWS performance.
 
 The v2 writer cut over at `bf78544`; `42bda80` is the first post-cutover
 verification checkpoint. `ac50110` removes real-time drift from the two exact
@@ -479,7 +505,8 @@ A pre-v2 build is not a safe rollback target once v2 browser records exist.
 | `docs/plans/2026-09-01-001-refactor-local-backend-contract-alignment-plan.md` | Active target architecture and implementation units. |
 | `docs/qa/2026-09-01-frontend-architecture-independent-read-only-reaudit.md` | Current independent audit evidence for the frontend/backend revisions above. |
 | `docs/plans/2026-08-29-001-refactor-frontend-architecture-overhaul-plan.md` | Superseded historical plan; not executable. |
-| `docs/qa/frontend-architecture-smoke.ko.md` | Live-only Vercel/OCI/Maps/Toss sandbox runbook. |
+| `docs/qa/frontend-architecture-smoke.ko.md` | Separate local-core, local Toss sandbox, and deployment-live runbook. |
+| `docs/qa/2026-09-02-u12-local-integration-evidence.md` | Redacted U12 prerequisite/status record and per-run evidence template. |
 | `frontend-architecture-freeze.ko.md` | Superseded July snapshot. |
 | `frontend-structure-refactor.md` | Superseded July outcome record. |
 | `docs/superpowers/plans/**` | Superseded historical plans; not executable. |
