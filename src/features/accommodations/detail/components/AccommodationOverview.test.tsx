@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { accommodationAmenityCatalog } from "../../public";
 import type { AccommodationDetail } from "../model/accommodationDetail";
 import { toAccommodationDetailViewModel } from "../lib/accommodationDetailViewModel";
@@ -77,6 +77,50 @@ describe("AccommodationOverview", () => {
     expect(screen.getByAltText("호스트")).toHaveAttribute("src", "/host.jpg");
     expect(screen.getByText("호스트 님")).toBeInTheDocument();
     expect(screen.getByText(accommodation.description)).toBeInTheDocument();
+
+    const amenities = screen.getByRole("region", {
+      name: "숙소 편의시설",
+    });
+    expect(
+      within(amenities).getByRole("heading", {
+        level: 2,
+        name: "숙소 편의시설",
+      }),
+    ).toBeVisible();
+    expect(within(amenities).queryAllByRole("img")).toHaveLength(0);
+  });
+
+  it("keeps host, description, and amenities in a clear reading order", () => {
+    renderOverview();
+
+    const host = screen.getByRole("region", { name: "호스트 정보" });
+    const description = screen.getByRole("region", { name: "숙소 설명" });
+    const amenities = screen.getByRole("region", {
+      name: "숙소 편의시설",
+    });
+
+    expect(host).toAppearBefore(description);
+    expect(description).toAppearBefore(amenities);
+  });
+
+  it("does not render an empty description section", () => {
+    renderOverview({
+      detailView: toAccommodationDetailViewModel(
+        {
+          ...accommodation,
+          description: "",
+        },
+        resolveImageUrl,
+        accommodationAmenityCatalog,
+      ),
+    });
+
+    expect(
+      screen.queryByRole("region", { name: "숙소 설명" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: "숙소 편의시설" }),
+    ).toBeInTheDocument();
   });
 
   it("opens the full description when the summary is truncated", () => {

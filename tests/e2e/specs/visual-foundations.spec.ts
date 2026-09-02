@@ -10,6 +10,39 @@ const DETAIL_IMAGE_URLS = Array.from(
   { length: 5 },
   (_, index) => `${SYNTHETIC_IMAGE_ORIGIN}/phase-1/detail-${index + 1}.svg`,
 );
+const DETAIL_AMENITY_TYPES = [
+  "WIFI",
+  "AIR_CONDITIONER",
+  "HEATING",
+  "KITCHEN",
+  "WASHER",
+  "DRYER",
+  "PARKING",
+  "TV",
+  "HAIR_DRYER",
+  "IRON",
+  "SHAMPOO",
+  "BED_LINENS",
+  "EXTRA_PILLOWS",
+  "CRIB",
+  "HIGH_CHAIR",
+  "DISHWASHER",
+  "COFFEE_MACHINE",
+  "MICROWAVE",
+  "REFRIGERATOR",
+  "ELEVATOR",
+  "POOL",
+  "HOT_TUB",
+  "GYM",
+  "SMOKE_ALARM",
+  "CARBON_MONOXIDE_ALARM",
+  "FIRE_EXTINGUISHER",
+  "PETS_ALLOWED",
+  "OUTDOOR_SPACE",
+  "BBQ_GRILL",
+  "BALCONY",
+  "FUTURE_AMENITY",
+] as const;
 
 const screenshotOptions = {
   animations: "disabled",
@@ -143,12 +176,7 @@ const detailAccommodation = {
     infant_occupancy: 1,
     pet_occupancy: 1,
   },
-  amenities: [
-    { type: "WIFI", count: 1 },
-    { type: "AIR_CONDITIONER", count: 1 },
-    { type: "HEATING", count: 1 },
-    { type: "PARKING", count: 1 },
-  ],
+  amenities: DETAIL_AMENITY_TYPES.map((type) => ({ type, count: 1 })),
   images: DETAIL_IMAGE_URLS.map((imageUrl, index) => ({
     id: index + 1,
     image_url: imageUrl,
@@ -308,6 +336,47 @@ test("keeps the accommodation detail foundation visually stable", async ({
     page.getByRole("region", { name: "숙소 예약" }),
   ).toHaveScreenshot(
     "completed-booking-card-foundation.png",
+    componentScreenshotOptions,
+  );
+
+  const amenities = page.getByRole("region", { name: "숙소 편의시설" });
+  await page.addStyleTag({
+    content: "header { display: none !important; }",
+  });
+  await amenities.scrollIntoViewIfNeeded();
+  await waitForStablePaint(page);
+  await expect(amenities.locator("[data-amenity-code]")).toHaveCount(
+    DETAIL_AMENITY_TYPES.length,
+  );
+  const iconBounds = await amenities.locator("svg").evaluateAll((icons) =>
+    icons.map((icon) => {
+      const bounds = (icon as SVGGraphicsElement).getBBox();
+      return {
+        height: bounds.height,
+        width: bounds.width,
+        x: bounds.x,
+        y: bounds.y,
+      };
+    }),
+  );
+  for (const bounds of iconBounds) {
+    expect(bounds.width).toBeGreaterThan(1);
+    expect(bounds.height).toBeGreaterThan(1);
+    expect(bounds.x).toBeGreaterThanOrEqual(0);
+    expect(bounds.y).toBeGreaterThanOrEqual(0);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(24);
+    expect(bounds.y + bounds.height).toBeLessThanOrEqual(24);
+  }
+  await expect(amenities).toHaveScreenshot(
+    "accommodation-amenities-foundation.png",
+    componentScreenshotOptions,
+  );
+
+  await page.setViewportSize({ width: 390, height: 900 });
+  await amenities.scrollIntoViewIfNeeded();
+  await waitForStablePaint(page);
+  await expect(amenities).toHaveScreenshot(
+    "accommodation-amenities-mobile-foundation.png",
     componentScreenshotOptions,
   );
 });

@@ -28,8 +28,8 @@ const accommodationAmenityGlyphs = {
   REFRIGERATOR: pictogramGlyphs.refrigerator,
   ELEVATOR: pictogramGlyphs.elevator,
   HOT_TUB: pictogramGlyphs.hotTub,
-  SMOKE_ALARM: pictogramGlyphs.alertCircle,
-  CARBON_MONOXIDE_ALARM: pictogramGlyphs.alertCircle,
+  SMOKE_ALARM: pictogramGlyphs.smokeAlarm,
+  CARBON_MONOXIDE_ALARM: pictogramGlyphs.carbonMonoxideAlarm,
   FIRE_EXTINGUISHER: pictogramGlyphs.fireExtinguisher,
   PETS_ALLOWED: pictogramGlyphs.pet,
   OUTDOOR_SPACE: pictogramGlyphs.stackedLayers,
@@ -39,5 +39,5 @@ const accommodationAmenityGlyphs = {
 
 export const accommodationAmenityIconRegistry = defineIconRegistry(
   accommodationAmenityGlyphs,
-  pictogramGlyphs.alertCircle,
+  pictogramGlyphs.feature,
 );

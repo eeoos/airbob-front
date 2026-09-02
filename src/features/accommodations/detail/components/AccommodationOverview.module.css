@@ -1,7 +1,7 @@
 .locationSection {
   position: relative;
   z-index: var(--z-local-base);
-  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-6);
 }
 
 .locationInfo {
@@ -24,8 +24,33 @@
   font-size: var(--font-size-md);
 }
 
+.mainContent {
+  display: flex;
+  max-width: 100%;
+  flex-direction: column;
+}
+
+.section {
+  padding: var(--space-6) 0;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.section:last-child {
+  padding-bottom: 0;
+}
+
 .amenitiesSection {
-  margin-bottom: var(--space-8);
+  display: flex;
+  flex-direction: column;
+}
+
+.amenitiesTitle {
+  margin: 0 0 var(--space-5);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-heading);
+  letter-spacing: -0.01em;
 }
 
 .amenitiesGrid {
@@ -46,26 +71,25 @@
   gap: var(--space-3);
   color: var(--color-text-primary);
   font-size: var(--font-size-md);
+  line-height: var(--line-height-body);
 }
 
-.amenityItem svg {
-  flex-shrink: 0;
-  color: var(--color-action-primary);
+.amenityIconFrame {
+  display: inline-flex;
+  width: var(--space-10);
+  height: var(--space-10);
+  flex: 0 0 var(--space-10);
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-background-muted);
+  color: var(--color-brand-ink);
 }
 
-.mainContent {
-  display: flex;
-  max-width: 100%;
-  flex-direction: column;
-}
-
-.section {
-  padding: var(--space-6) 0;
-  border-top: 1px solid var(--color-border-subtle);
-}
-
-.section:last-child {
-  padding-bottom: 0;
+.amenityLabel {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .hostInfo {
@@ -122,6 +146,7 @@
 }
 
 .description {
+  max-width: 68ch;
   margin: 0;
   color: var(--color-text-primary);
   font-size: var(--font-size-md);
@@ -159,12 +184,18 @@
 }
 
 @media (--viewport-tablet) {
-  .amenitiesGrid {
-    grid-template-columns: 1fr;
-  }
-
   .address {
     font-size: var(--font-size-lg);
+  }
+
+  .amenitiesTitle {
+    font-size: var(--font-size-lg);
+  }
+}
+
+@media (--viewport-phone) {
+  .amenitiesGrid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
