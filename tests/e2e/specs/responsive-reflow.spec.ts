@@ -43,6 +43,7 @@ const searchResponse = {
 const searchURL = "/search?destination=Seoul&adultOccupancy=2";
 const detailURL =
   "/accommodations/281?checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2";
+const DETAIL_PAGE_MAX_WIDTH = 1760;
 
 const responsiveDetailAccommodation = {
   id: 281,
@@ -424,6 +425,16 @@ test("aligns the detail shell from 320px through 4K", async ({
       expect(reviewsBounds).not.toBeNull();
       expect(bookingBounds).not.toBeNull();
 
+      const expectedContainerLeft = Math.max(
+        0,
+        (width - DETAIL_PAGE_MAX_WIDTH) / 2,
+      );
+      const expectedContentLeft = expectedContainerLeft + expectedGutter;
+      expect(
+        Math.abs(heroTitleBounds!.x - expectedContentLeft),
+        `detail gutter offset at ${width}px`,
+      ).toBeLessThanOrEqual(1);
+
       const alignedLeftEdges = [
         overviewBounds!.x,
         locationBounds!.x,
@@ -442,9 +453,20 @@ test("aligns the detail shell from 320px through 4K", async ({
     });
   }
 
-  for (const width of [
-    1025, 1200, 1201, 1366, 1400, 1401, 1536, 1600, 1760, 1920, 2560, 3840,
-  ]) {
+  for (const [width, expectedGutter] of [
+    [1025, 40],
+    [1200, 40],
+    [1201, 64],
+    [1366, 64],
+    [1400, 64],
+    [1401, 80],
+    [1536, 80],
+    [1600, 80],
+    [1760, 80],
+    [1920, 80],
+    [2560, 80],
+    [3840, 80],
+  ] as const) {
     await test.step(`${width}px desktop right edge`, async () => {
       await page.setViewportSize({ width, height: 900 });
       const heroBounds = await page
@@ -460,6 +482,17 @@ test("aligns the detail shell from 320px through 4K", async ({
       expect(bookingBounds).not.toBeNull();
       const heroRight = heroBounds!.x + heroBounds!.width;
       const bookingRight = bookingBounds!.x + bookingBounds!.width;
+      const expectedContainerLeft = Math.max(
+        0,
+        (width - DETAIL_PAGE_MAX_WIDTH) / 2,
+      );
+      const expectedContainerWidth = Math.min(width, DETAIL_PAGE_MAX_WIDTH);
+      const expectedContentRight =
+        expectedContainerLeft + expectedContainerWidth - expectedGutter;
+      expect(
+        Math.abs(heroRight - expectedContentRight),
+        `detail right gutter offset at ${width}px`,
+      ).toBeLessThanOrEqual(1);
       expect(
         Math.abs(heroRight - bookingRight),
         `booking and hero right edge at ${width}px`,
