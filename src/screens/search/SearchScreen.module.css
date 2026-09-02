@@ -94,6 +94,7 @@
 }
 
 .mapSection {
+  box-sizing: border-box;
   width: auto;
   min-width: 0;
   position: sticky;

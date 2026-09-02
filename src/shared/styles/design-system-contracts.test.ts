@@ -167,6 +167,7 @@ describe("design system entry contracts", () => {
 
   it("slides the expanded search map across the full-width search shell", () => {
     const searchPageCss = readSource("screens/search/SearchScreen.module.css");
+    const mapRule = searchPageCss.match(/\.mapSection\s*{([^}]*)\}/)?.[1];
     const expandedLayoutRule = Array.from(
       searchPageCss.matchAll(/\.main\.mapExpanded\s*\{([^}]*)\}/g),
     ).at(-1)?.[1];
@@ -191,6 +192,7 @@ describe("design system entry contracts", () => {
 
     expect(expandedMapRule).toBeDefined();
     expect(expandedMapRule).toContain("width: 100%;");
+    expect(mapRule).toContain("box-sizing: border-box;");
     expect(searchPageCss).toContain(
       "grid-template-columns var(--motion-duration-slow)",
     );
