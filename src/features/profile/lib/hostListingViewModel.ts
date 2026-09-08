@@ -30,7 +30,8 @@ const getHostListingLocationLabel = (
 
   return (
     [addressSummary.city, addressSummary.district].filter(Boolean).join(", ") ||
-    addressSummary.country
+    addressSummary.country ||
+    "위치 정보 없음"
   );
 };
 

@@ -1,9 +1,9 @@
 import type { HostListingStatus } from "../model/hostListing";
 
 interface HostListingAddressSummaryWire {
-  readonly country: string;
+  readonly country: string | null;
   readonly state: string | null;
-  readonly city: string;
+  readonly city: string | null;
   readonly district: string | null;
 }
 
