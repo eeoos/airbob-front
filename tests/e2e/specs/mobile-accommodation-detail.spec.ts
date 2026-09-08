@@ -338,6 +338,7 @@ test("opens editable review from the mobile booking bar and returns to the inlin
 }) => {
   session.authenticate();
   api.register("GET", "/api/v1/coupons", apiSuccess({ infos: [] }));
+  api.register("GET", "/api/v1/members/me/coupons", apiSuccess({ infos: [] }));
   api.register(
     "POST",
     "/api/v1/members/recently-viewed/281",

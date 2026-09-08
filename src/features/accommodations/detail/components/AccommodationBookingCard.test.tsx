@@ -61,7 +61,7 @@ const coupon: AccommodationBookingCouponViewModel = {
   actionLabel: "적용 중",
   discount: 10000,
   id: 3,
-  isApplicable: true,
+  isActionEnabled: true,
   isIssuing: false,
   isSelected: true,
   metadataLabel: "10,000원 할인 · 남은 수량 8장",
@@ -135,6 +135,7 @@ const createBookingCardProps = (): BookingCardProps => ({
     couponDiscount: 10000,
   },
   couponActions: {
+    retryCoupons: vi.fn(),
     onSelectedCouponIdChange: vi.fn(),
     handleIssueCoupon: vi.fn(),
   },
@@ -848,9 +849,17 @@ describe("AccommodationBookingCard", () => {
   it("clears and applies coupons from the booking card", () => {
     const onSelectedCouponIdChange = vi.fn();
     const handleIssueCoupon = vi.fn();
+    const anotherCoupon = {
+      ...coupon,
+      id: 4,
+      name: "다른 쿠폰",
+      isSelected: false,
+      actionLabel: "적용하기",
+    };
     setupBookingCard({
       couponState: {
         selectedCoupon: coupon,
+        coupons: [coupon, anotherCoupon],
       },
       couponActions: {
         onSelectedCouponIdChange,
@@ -859,10 +868,11 @@ describe("AccommodationBookingCard", () => {
     });
 
     fireEvent.click(screen.getByRole("button", { name: "해제" }));
-    fireEvent.click(screen.getByRole("button", { name: "적용 중" }));
+    expect(screen.getByRole("button", { name: "적용 중" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "적용하기" }));
 
     expect(onSelectedCouponIdChange).toHaveBeenCalledWith(null);
-    expect(handleIssueCoupon).toHaveBeenCalledWith(coupon);
+    expect(handleIssueCoupon).toHaveBeenCalledWith(anotherCoupon);
   });
 
   it("shows the server quote as the second action and locks mutable inputs", () => {

@@ -10,6 +10,7 @@ import type { AccommodationDetailScreenProps } from "./AccommodationDetailScreen
 const mockDetailQuery = vi.fn();
 const mockAvailabilityQuery = vi.fn();
 const mockCouponsQuery = vi.fn();
+const mockMemberCouponsQuery = vi.fn();
 const mockReviewsQuery = vi.fn();
 const mockIssueCoupon = vi.fn();
 const mockStartReservation = vi.fn();
@@ -27,7 +28,10 @@ vi.mock("../../features/accommodations/detail/public", async () => ({
     mockDetailQuery(...args),
   useAccommodationAvailabilityReadQuery: (...args: unknown[]) =>
     mockAvailabilityQuery(...args),
-  useValidCouponsReadQuery: (...args: unknown[]) => mockCouponsQuery(...args),
+  useCouponCampaignsReadQuery: (...args: unknown[]) =>
+    mockCouponsQuery(...args),
+  useMemberCouponsReadQuery: (...args: unknown[]) =>
+    mockMemberCouponsQuery(...args),
 }));
 
 vi.mock("../../features/reviews/public", async () => ({
@@ -148,8 +152,12 @@ const coupon = {
   maxDiscountAmount: null,
   minPaymentPrice: null,
   issuedQuantity: 0,
-  startDate: "2026-01-01",
-  endDate: "2026-12-31",
+  kind: "campaign" as const,
+  issuanceStatus: "OPEN" as const,
+  issueStartAt: "2026-01-01T00:00:00",
+  issueEndAt: "2026-12-31T00:00:00",
+  usableFrom: "2026-01-01T00:00:00",
+  usableUntil: "2026-12-31T00:00:00",
   totalQuantity: 10,
 };
 
@@ -239,6 +247,14 @@ describe("AccommodationDetailController", () => {
       isFetching: false,
       isLoading: false,
       refetch: vi.fn(),
+    });
+    mockMemberCouponsQuery.mockReset();
+    mockMemberCouponsQuery.mockReturnValue({
+      data: { coupons: [] },
+      isFetching: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn().mockResolvedValue({ data: { coupons: [] } }),
     });
     mockCouponsQuery.mockReset();
     mockCouponsQuery.mockReturnValue({

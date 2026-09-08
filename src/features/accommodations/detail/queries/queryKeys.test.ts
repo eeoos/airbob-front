@@ -79,28 +79,28 @@ describe("accommodation read query keys", () => {
   });
 
   it("scopes authenticated coupon reads", () => {
-    expect(accommodationReadQueryKeys.validCoupons(authenticatedScope)).toEqual(
-      [
-        "accommodation",
-        "coupons",
-        "valid",
-        {
-          session: {
-            subject: authenticatedScope.subject,
-            epoch: authenticatedScope.epoch,
-          },
+    expect(
+      accommodationReadQueryKeys.couponCampaigns(authenticatedScope),
+    ).toEqual([
+      "accommodation",
+      "coupons",
+      "campaigns",
+      {
+        session: {
+          subject: authenticatedScope.subject,
+          epoch: authenticatedScope.epoch,
         },
-      ],
-    );
+      },
+    ]);
   });
 
   it("represents anonymous coupon state without inventing a subject", () => {
     const anonymousScope: SessionQueryScope = { subject: null, epoch: 9 };
 
-    expect(accommodationReadQueryKeys.validCoupons(anonymousScope)).toEqual([
+    expect(accommodationReadQueryKeys.couponCampaigns(anonymousScope)).toEqual([
       "accommodation",
       "coupons",
-      "valid",
+      "campaigns",
       { session: { subject: null, epoch: 9 } },
     ]);
   });

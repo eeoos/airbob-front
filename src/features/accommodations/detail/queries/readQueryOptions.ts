@@ -80,20 +80,35 @@ export const createAccommodationAvailabilityQueryOptions = (
   throwOnError: false as const,
 });
 
-export interface ValidCouponsQueryOptions {
+export interface CouponQueryOptions {
   readonly scope: SessionQueryScope;
   readonly enabled?: boolean;
 }
 
-export const createValidCouponsQueryOptions = (
-  { scope, enabled = true }: ValidCouponsQueryOptions,
+export const createCouponCampaignsQueryOptions = (
+  { scope, enabled = true }: CouponQueryOptions,
   api: AccommodationCouponApiPort = defaultAccommodationCouponApi,
 ) => ({
-  queryKey: accommodationReadQueryKeys.validCoupons(scope),
+  queryKey: accommodationReadQueryKeys.couponCampaigns(scope),
   queryFn: ({ signal }: { readonly signal: AbortSignal }) =>
-    api.getValidCoupons({ signal }),
+    api.getCampaigns({ signal }),
   enabled: enabled && scope.subject !== null,
   meta: createSessionQueryMeta(scope),
+  retry: false as const,
+  throwOnError: false as const,
+});
+
+export const createMemberCouponsQueryOptions = (
+  { scope, enabled = true }: CouponQueryOptions,
+  api: AccommodationCouponApiPort = defaultAccommodationCouponApi,
+) => ({
+  queryKey: accommodationReadQueryKeys.memberCoupons(scope),
+  queryFn: ({ signal }: { readonly signal: AbortSignal }) =>
+    api.getMyCoupons({ signal }),
+  enabled: enabled && scope.subject !== null,
+  meta: createSessionQueryMeta(scope),
+  staleTime: 0,
+  refetchOnMount: "always" as const,
   retry: false as const,
   throwOnError: false as const,
 });

@@ -1,9 +1,11 @@
 import { useRef, useState } from "react";
 import {
   calculateAccommodationCouponDiscount,
+  isAccommodationCouponApplicable,
+  type AccommodationMemberCoupon,
   useAccommodationDetailReadQuery,
   useAccommodationAvailabilityReadQuery,
-  useValidCouponsReadQuery,
+  useMemberCouponsReadQuery,
   type AccommodationDetailQueryOptions,
 } from "../../features/accommodations/detail/public";
 import { Button, LoadingState, RetryableErrorState } from "../../shared/ui";
@@ -55,7 +57,7 @@ export function ReservationReviewController({
   const options = { accommodationId: initialSnapshot.accommodationId, scope };
   const detailQuery = useAccommodationDetailReadQuery(options);
   const availabilityQuery = useAccommodationAvailabilityReadQuery(options);
-  const couponsQuery = useValidCouponsReadQuery({ scope });
+  const couponsQuery = useMemberCouponsReadQuery({ scope });
   const [handle, setHandle] = useState(initialHandle);
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [busy, setBusy] = useState(false);
@@ -77,11 +79,31 @@ export function ReservationReviewController({
     setBusy(true);
     setError(null);
     try {
-      const coupon = couponsQuery.data?.coupons.find(
-        (item) => item.id === draft.couponId,
-      );
       const nights =
         (Date.parse(draft.checkOut) - Date.parse(draft.checkIn)) / 86_400_000;
+      let coupon: AccommodationMemberCoupon | undefined;
+      if (draft.couponId !== null) {
+        try {
+          const refreshed = await couponsQuery.refetch({ throwOnError: true });
+          if (!routeLease.isCurrent()) return false;
+          coupon = refreshed.data?.coupons.find(
+            (item) => item.id === draft.couponId,
+          );
+        } catch {
+          if (routeLease.isCurrent())
+            setError("보유 쿠폰을 확인하지 못했습니다. 다시 시도해주세요.");
+          return false;
+        }
+        if (
+          !coupon ||
+          !isAccommodationCouponApplicable(coupon, nights * detail.basePrice)
+        ) {
+          setError(
+            "선택한 쿠폰을 현재 예약에 적용할 수 없습니다. 다른 쿠폰을 선택하거나 적용을 해제해주세요.",
+          );
+          return false;
+        }
+      }
       const discount = coupon
         ? calculateAccommodationCouponDiscount(
             coupon,

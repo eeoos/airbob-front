@@ -1,4 +1,24 @@
-import type { AccommodationCoupon } from "../model/coupon";
+import type {
+  AccommodationCoupon,
+  AccommodationCouponCampaign,
+  AccommodationMemberCoupon,
+} from "../model/coupon";
+
+export const mergeAccommodationCoupons = (
+  campaigns: readonly AccommodationCouponCampaign[],
+  owned: readonly AccommodationMemberCoupon[],
+): readonly AccommodationCoupon[] => {
+  const ownedIds = new Set(owned.map((coupon) => coupon.id));
+  return [...owned, ...campaigns.filter((coupon) => !ownedIds.has(coupon.id))];
+};
+
+export const isAccommodationCouponApplicable = (
+  coupon: AccommodationCoupon,
+  amount: number,
+): coupon is AccommodationMemberCoupon =>
+  coupon.kind === "owned" &&
+  coupon.status === "AVAILABLE" &&
+  calculateAccommodationCouponDiscount(coupon, amount) > 0;
 
 export const calculateAccommodationCouponDiscount = (
   coupon: AccommodationCoupon,

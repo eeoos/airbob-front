@@ -1,12 +1,22 @@
 export type { AccommodationDetail } from "./model/accommodationDetail";
 export { accommodationCouponApi } from "./api/couponApi";
-export { calculateAccommodationCouponDiscount } from "./lib/accommodationCouponRules";
+export {
+  calculateAccommodationCouponDiscount,
+  isAccommodationCouponApplicable,
+  mergeAccommodationCoupons,
+} from "./lib/accommodationCouponRules";
 export { createAccommodationDetailQueryCacheProjection } from "./cache/accommodationDetailQueryCacheProjection";
-export type { AccommodationCoupon } from "./model/coupon";
+export type {
+  AccommodationCoupon,
+  AccommodationCouponCampaign,
+  AccommodationMemberCoupon,
+  AccommodationMemberCouponCollection,
+} from "./model/coupon";
 export {
   useAccommodationDetailReadQuery,
   useAccommodationAvailabilityReadQuery,
-  useValidCouponsReadQuery,
+  useCouponCampaignsReadQuery,
+  useMemberCouponsReadQuery,
 } from "./queries/readQueries";
 export type { AccommodationDetailQueryOptions } from "./queries/readQueries";
 export type { AccommodationAvailability } from "./model/accommodationAvailability";

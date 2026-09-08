@@ -1,3 +1,5 @@
+import couponCampaignContract from "../../../src/features/accommodations/detail/api/__fixtures__/coupon-campaigns.json" with { type: "json" };
+import memberCouponContract from "../../../src/features/accommodations/detail/api/__fixtures__/member-coupons.json" with { type: "json" };
 import type { Page } from "@playwright/test";
 import {
   apiFailure,
@@ -14,6 +16,15 @@ import {
 } from "../fixtures/paymentGateway";
 import { SYNTHETIC_USER_A, SYNTHETIC_USER_B } from "../fixtures/session";
 import { test, expect } from "../fixtures/test";
+
+const requireCouponContract = <T>(
+  rows: readonly T[],
+  predicate: (row: T) => boolean,
+): T => {
+  const coupon = rows.find(predicate);
+  if (!coupon) throw new Error("Missing coupon contract fixture");
+  return coupon;
+};
 
 const JOURNAL_KEY = "airbob:booking-payment-v2:journal";
 const CALLBACK_CREDENTIAL_KEY = "airbob:booking-payment-v2:callback-credential";
@@ -391,6 +402,7 @@ const registerAccommodationReads = (api: ApiHarness): void => {
     apiSuccess(accommodationAvailability),
   );
   api.register("GET", "/api/v1/coupons", apiSuccess({ infos: [] }));
+  api.register("GET", "/api/v1/members/me/coupons", apiSuccess({ infos: [] }));
   api.register(
     "POST",
     "/api/v1/members/recently-viewed/7",
@@ -2077,21 +2089,20 @@ test("retains the accepted quote after an edit fails and applies a coupon on ret
   registerAccommodationReads(api);
   api.register(
     "GET",
-    "/api/v1/coupons",
+    "/api/v1/members/me/coupons",
     apiSuccess({
       infos: [
         {
-          id: 3,
+          coupon_id: 3,
+          status: "AVAILABLE",
           name: "만원 쿠폰",
           description: null,
           discount_type: "FIXED_AMOUNT",
           discount_value: 10_000,
           min_payment_price: null,
           max_discount_amount: null,
-          start_date: "2026-01-01",
-          end_date: "2026-12-31",
-          total_quantity: null,
-          issued_quantity: 0,
+          usable_from: "2026-01-01T00:00:00",
+          usable_until: "2026-12-31T00:00:00",
         },
       ],
     }),
@@ -2110,6 +2121,7 @@ test("retains the accepted quote after an edit fails and applies a coupon on ret
   });
   await page.goto(detailPath);
   await page.getByRole("button", { name: "예약하기", exact: true }).click();
+  await expect(page.getByRole("region", { name: "예약 검토" })).toBeVisible();
   const originalJournal = await readJournal(page);
   await page.getByRole("button", { name: "쿠폰 변경", exact: true }).click();
   const couponDialog = page.getByRole("dialog", { name: "쿠폰 선택" });
@@ -2133,4 +2145,160 @@ test("retains the accepted quote after an edit fails and applies a coupon on ret
       "revised quote",
     ).body,
   ).toMatchObject({ coupon_id: 3 });
+});
+
+test("coupon contracts keep sold-out owned coupons usable and unavailable rows disabled", async ({
+  api,
+  page,
+  session,
+}) => {
+  session.authenticate();
+  registerAccommodationReads(api);
+  const soldOut = requireCouponContract(
+    couponCampaignContract.infos,
+    (coupon) => coupon.issuance_status === "SOLD_OUT",
+  );
+  api.register(
+    "GET",
+    "/api/v1/coupons",
+    apiSuccess({
+      infos: [
+        ...couponCampaignContract.infos,
+        { ...soldOut, id: 18, name: "미보유 매진 쿠폰" },
+      ],
+    }),
+  );
+  api.register(
+    "GET",
+    "/api/v1/members/me/coupons",
+    apiSuccess(memberCouponContract),
+  );
+  api.register(
+    "POST",
+    "/api/v1/reservation-quotes",
+    apiSuccess(quoteWire(90000), 201),
+  );
+  await page.goto(detailPath);
+  await expect(
+    page
+      .getByRole("group", { name: "발급 예정 쿠폰", exact: true })
+      .getByRole("button", { name: "발급 예정" }),
+  ).toBeDisabled();
+  await expect(
+    page
+      .getByRole("group", { name: "미보유 매진 쿠폰", exact: true })
+      .getByRole("button", { name: "매진" }),
+  ).toBeDisabled();
+  for (const name of [
+    "사용 예정 쿠폰",
+    "사용 완료 쿠폰",
+    "만료 쿠폰",
+    "비활성 쿠폰",
+  ]) {
+    await expect(
+      page.getByRole("group", { name, exact: true }).getByRole("button"),
+    ).toBeDisabled();
+  }
+  await expect(
+    page
+      .getByRole("group", { name: "발급 종료 보유 쿠폰", exact: true })
+      .getByRole("button", { name: "적용하기" }),
+  ).toBeEnabled();
+  const ownedRow = page.getByRole("group", { name: "매진 쿠폰", exact: true });
+  await ownedRow.getByRole("button", { name: "적용하기" }).click();
+  await expect(ownedRow.getByRole("button", { name: "적용 중" })).toBeVisible();
+  expect(api.matching("POST", "/api/v1/coupons/12/issue")).toHaveLength(0);
+  await page.getByRole("button", { name: "예약하기", exact: true }).click();
+  await expect(page.getByRole("region", { name: "예약 검토" })).toBeVisible();
+  expect(
+    requireApiRequest(
+      api.matching("POST", "/api/v1/reservation-quotes"),
+      0,
+      "owned coupon quote",
+    ).body,
+  ).toMatchObject({ coupon_id: 12 });
+});
+
+test("coupon CP003 reloads the owned state and does not apply an already-used coupon", async ({
+  api,
+  page,
+  session,
+}) => {
+  session.authenticate();
+  registerAccommodationReads(api);
+  const open = requireCouponContract(
+    couponCampaignContract.infos,
+    (coupon) => coupon.issuance_status === "OPEN",
+  );
+  const used = requireCouponContract(
+    memberCouponContract.infos,
+    (coupon) => coupon.status === "USED",
+  );
+  let issued = false;
+  api.register("GET", "/api/v1/coupons", apiSuccess({ infos: [open] }));
+  api.register("GET", "/api/v1/members/me/coupons", () =>
+    apiSuccess({
+      infos: issued ? [{ ...used, coupon_id: open.id, name: open.name }] : [],
+    }),
+  );
+  api.register("POST", `/api/v1/coupons/${open.id}/issue`, () => {
+    issued = true;
+    return apiFailure(409, "CP003", "Already issued");
+  });
+  await page.goto(detailPath);
+  await page
+    .getByRole("group", { name: open.name, exact: true })
+    .getByRole("button", { name: "발급받기" })
+    .click();
+  await expect(
+    page
+      .getByRole("group", { name: open.name, exact: true })
+      .getByRole("button", { name: "사용 완료" }),
+  ).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "적용 중", exact: true }),
+  ).toHaveCount(0);
+  expect(
+    api.matching("GET", "/api/v1/members/me/coupons").length,
+  ).toBeGreaterThanOrEqual(2);
+  expect(api.matching("POST", "/api/v1/reservation-quotes")).toHaveLength(0);
+});
+
+test("coupon review rechecks usage before saving and preserves the accepted quote on expiry", async ({
+  api,
+  page,
+  session,
+}) => {
+  session.authenticate();
+  registerAccommodationReads(api);
+  const available = requireCouponContract(
+    memberCouponContract.infos,
+    (coupon) => coupon.status === "AVAILABLE",
+  );
+  let expired = false;
+  api.register("GET", "/api/v1/members/me/coupons", () =>
+    apiSuccess({
+      infos: [{ ...available, status: expired ? "EXPIRED" : "AVAILABLE" }],
+    }),
+  );
+  api.register(
+    "POST",
+    "/api/v1/reservation-quotes",
+    apiSuccess(quoteWire(), 201),
+  );
+  await page.goto(detailPath);
+  await page.getByRole("button", { name: "예약하기", exact: true }).click();
+  await expect(page.getByRole("region", { name: "예약 검토" })).toBeVisible();
+  const originalJournal = await readJournal(page);
+  await page.getByRole("button", { name: "쿠폰 변경", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "쿠폰 선택" });
+  await dialog.getByRole("radio", { name: new RegExp(available.name) }).check();
+  expired = true;
+  await dialog.getByRole("button", { name: "저장", exact: true }).click();
+  await expect(dialog.getByRole("alert")).toContainText(
+    "선택한 쿠폰을 현재 예약에 적용할 수 없습니다",
+  );
+  expect(api.matching("POST", "/api/v1/reservation-quotes")).toHaveLength(1);
+  expect(api.matching("POST", "/api/v1/reservations")).toHaveLength(0);
+  expect(await readJournal(page)).toEqual(originalJournal);
 });

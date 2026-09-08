@@ -1,7 +1,8 @@
+import { toAccommodationBookingCouponViewModels } from "../../features/accommodations/detail/public";
 import { useRef, useState } from "react";
 import type {
   AccommodationAvailability,
-  AccommodationCoupon,
+  AccommodationMemberCoupon,
   AccommodationDetail,
 } from "../../features/accommodations/detail/public";
 import { calendarLocalDateToDate } from "../../shared/lib/calendarLocalDate";
@@ -31,7 +32,7 @@ interface ReservationReviewScreenProps {
   readonly availability: AccommodationAvailability | null;
   readonly availabilityLoading: boolean;
   readonly onRetryAvailability: () => void;
-  readonly coupons: readonly AccommodationCoupon[];
+  readonly coupons: readonly AccommodationMemberCoupon[];
   readonly couponsLoading: boolean;
   readonly couponsError: boolean;
   readonly onRetryCoupons: () => void;
@@ -78,6 +79,15 @@ export function ReservationReviewScreen({
   const [saved, setSaved] = useState("");
   const headingRef = useRef<HTMLHeadingElement>(null);
   const amount = reviewMoney(snapshot.amount, snapshot.currency);
+  const couponViews = toAccommodationBookingCouponViewModels(coupons, {
+    issuingCouponId: null,
+    selectedCouponId: draft.couponId,
+    totalPrice:
+      Math.max(
+        0,
+        (Date.parse(draft.checkOut) - Date.parse(draft.checkIn)) / 86_400_000,
+      ) * detail.basePrice,
+  });
   const couponLabel =
     coupons.find((coupon) => coupon.id === snapshot.couponId)?.name ??
     snapshot.couponDisplayName;
@@ -487,7 +497,7 @@ export function ReservationReviewScreen({
                   </Button>
                 </div>
               ) : (
-                coupons.map((coupon) => (
+                couponViews.map((coupon) => (
                   <label
                     className={styles.couponOption}
                     key={coupon.id}
@@ -499,7 +509,7 @@ export function ReservationReviewScreen({
                       type="radio"
                       name="review-coupon"
                       checked={draft.couponId === coupon.id}
-                      disabled={busy}
+                      disabled={busy || !coupon.isActionEnabled}
                       onChange={() =>
                         setDraft({ ...draft, couponId: coupon.id })
                       }
@@ -507,12 +517,8 @@ export function ReservationReviewScreen({
                     <span>
                       <strong>{coupon.name}</strong>
                       <small>
-                        {coupon.discountType === "PERCENTAGE"
-                          ? `${coupon.discountValue}% 할인`
-                          : `${reviewMoney(coupon.discountValue, snapshot.currency)} 할인`}
-                        {coupon.minPaymentPrice
-                          ? ` · ${reviewMoney(coupon.minPaymentPrice, snapshot.currency)} 이상`
-                          : ""}
+                        {coupon.metadataLabel}
+                        {!coupon.isActionEnabled && ` · ${coupon.actionLabel}`}
                       </small>
                     </span>
                   </label>

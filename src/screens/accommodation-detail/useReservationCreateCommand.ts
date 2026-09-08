@@ -1,6 +1,7 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import {
   calculateAccommodationCouponDiscount,
+  isAccommodationCouponApplicable,
   type AccommodationAvailability,
   type AccommodationCoupon,
 } from "../../features/accommodations/detail/public";
@@ -82,7 +83,8 @@ const toAppliedCoupon = (
   coupon: AccommodationCoupon | null,
   totalPrice: number,
 ) => {
-  if (!coupon) return null;
+  if (!coupon || !isAccommodationCouponApplicable(coupon, totalPrice))
+    return null;
   const discount = calculateAccommodationCouponDiscount(coupon, totalPrice);
   return discount > 0 ? { id: coupon.id, name: coupon.name, discount } : null;
 };

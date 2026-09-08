@@ -8,6 +8,8 @@ import {
 } from "react";
 import {
   calculateAccommodationCouponDiscount,
+  isAccommodationCouponApplicable,
+  mergeAccommodationCoupons,
   type AccommodationCoupon,
   type AccommodationAvailability,
   type AccommodationDetailQueryOptions,
@@ -17,7 +19,8 @@ import {
   toAccommodationDetailViewModel,
   useAccommodationDetailReadQuery,
   useAccommodationAvailabilityReadQuery,
-  useValidCouponsReadQuery,
+  useCouponCampaignsReadQuery,
+  useMemberCouponsReadQuery,
 } from "../../features/accommodations/detail/public";
 import type { AccommodationAmenityCatalog } from "../../features/accommodations/public";
 import { useOutsideClick } from "../../shared/ui";
@@ -156,10 +159,24 @@ export function AccommodationDetailController({
     accommodationId,
     scope,
   });
-  const couponsQuery = useValidCouponsReadQuery({
+  const couponsQuery = useCouponCampaignsReadQuery({
     enabled: isAuthenticated,
     scope,
   });
+  const memberCouponsQuery = useMemberCouponsReadQuery({
+    enabled: isAuthenticated,
+    scope,
+  });
+  const refetchMemberCoupons = memberCouponsQuery.refetch;
+  const refetchCampaigns = couponsQuery.refetch;
+  const refreshMyCoupons = useCallback(async () => {
+    const result = await refetchMemberCoupons({ throwOnError: true });
+    if (!result.data) throw new Error("보유 쿠폰을 확인하지 못했습니다.");
+    return result.data;
+  }, [refetchMemberCoupons]);
+  const refreshCampaigns = useCallback(() => {
+    void refetchCampaigns();
+  }, [refetchCampaigns]);
   const accommodation = detailQuery.data ?? null;
   const availability: AccommodationAvailability | null =
     availabilityQuery.isError || availabilityQuery.isFetching
@@ -274,19 +291,6 @@ export function AccommodationDetailController({
     },
     [accommodationIdentity, requireAuthentication],
   );
-  const {
-    issueCoupon,
-    issuingCouponId,
-    selectedCouponId,
-    setSelectedCouponId,
-  } = useAccommodationCouponCommand({
-    accommodationId: accommodationIdentity,
-    isAuthenticated,
-    onError: setErrorMessage,
-    requestAuthentication: requestCouponAuthentication,
-    routeLease,
-    session,
-  });
 
   const bookingDates = useMemo(
     () =>
@@ -307,12 +311,38 @@ export function AccommodationDetailController({
       bookingRouteState.checkOut,
     ],
   );
+  const {
+    issueCoupon,
+    issuingCouponId,
+    selectedCouponId,
+    clearSelectedCoupon,
+  } = useAccommodationCouponCommand({
+    accommodationId: accommodationIdentity,
+    isAuthenticated,
+    onError: setErrorMessage,
+    requestAuthentication: requestCouponAuthentication,
+    routeLease,
+    session,
+    scope,
+    totalPrice: bookingDates.totalPrice,
+    refreshMyCoupons,
+    refreshCampaigns,
+  });
+
   const coupons = useMemo<readonly AccommodationCoupon[]>(
-    () => couponsQuery.data?.coupons ?? [],
-    [couponsQuery.data],
+    () =>
+      mergeAccommodationCoupons(
+        couponsQuery.data?.coupons ?? [],
+        memberCouponsQuery.data?.coupons ?? [],
+      ),
+    [couponsQuery.data, memberCouponsQuery.data],
   );
   const selectedCoupon =
-    coupons.find((coupon) => coupon.id === selectedCouponId) ?? null;
+    memberCouponsQuery.data?.coupons.find(
+      (coupon) =>
+        coupon.id === selectedCouponId &&
+        isAccommodationCouponApplicable(coupon, bookingDates.totalPrice),
+    ) ?? null;
   const selectedCouponDiscount = selectedCoupon
     ? calculateAccommodationCouponDiscount(
         selectedCoupon,
@@ -358,6 +388,40 @@ export function AccommodationDetailController({
     selectedCoupon,
     workflow: bookingWorkflow,
   });
+
+  useEffect(() => {
+    if (
+      selectionLocked ||
+      selectedCouponId === null ||
+      memberCouponsQuery.isFetching ||
+      memberCouponsQuery.isError ||
+      !memberCouponsQuery.data
+    )
+      return;
+    const coupon = memberCouponsQuery.data.coupons.find(
+      (item) => item.id === selectedCouponId,
+    );
+    if (
+      !coupon ||
+      coupon.status !== "AVAILABLE" ||
+      (bookingDates.isStayReady &&
+        !isAccommodationCouponApplicable(coupon, bookingDates.totalPrice))
+    ) {
+      clearSelectedCoupon();
+      setErrorMessage(
+        "선택한 쿠폰의 상태가 변경되어 적용을 해제했습니다. 보유 쿠폰을 다시 확인해주세요.",
+      );
+    }
+  }, [
+    selectionLocked,
+    selectedCouponId,
+    memberCouponsQuery.data,
+    memberCouponsQuery.isFetching,
+    memberCouponsQuery.isError,
+    bookingDates.isStayReady,
+    bookingDates.totalPrice,
+    clearSelectedCoupon,
+  ]);
 
   useEffect(() => {
     if (!selectionLocked) return;
@@ -421,8 +485,8 @@ export function AccommodationDetailController({
         if (wishlistMembership) setIsWishlistModalOpen(true);
         return;
       case "coupon.issue": {
-        if (couponsQuery.isFetching) return;
-        if (couponsQuery.isError) {
+        if (couponsQuery.isFetching || memberCouponsQuery.isFetching) return;
+        if (couponsQuery.isError || memberCouponsQuery.isError) {
           complete();
           return;
         }
@@ -439,16 +503,22 @@ export function AccommodationDetailController({
       }
       case "reservation.start": {
         if (availabilityStatus !== "ready") return;
-        if (claimedIntent.couponId !== null && couponsQuery.isFetching) return;
-        if (claimedIntent.couponId !== null && couponsQuery.isError) {
+        if (claimedIntent.couponId !== null && memberCouponsQuery.isFetching)
+          return;
+        if (claimedIntent.couponId !== null && memberCouponsQuery.isError) {
           complete();
           return;
         }
         const coupon =
           claimedIntent.couponId === null
             ? null
-            : (coupons.find(
-                (candidate) => candidate.id === claimedIntent.couponId,
+            : (memberCouponsQuery.data?.coupons.find(
+                (candidate) =>
+                  candidate.id === claimedIntent.couponId &&
+                  isAccommodationCouponApplicable(
+                    candidate,
+                    bookingDates.totalPrice,
+                  ),
               ) ?? null);
         complete();
         if (claimedIntent.couponId !== null && !coupon) {
@@ -466,6 +536,10 @@ export function AccommodationDetailController({
     coupons,
     couponsQuery.isError,
     couponsQuery.isFetching,
+    memberCouponsQuery.data,
+    memberCouponsQuery.isFetching,
+    memberCouponsQuery.isError,
+    bookingDates.totalPrice,
     issueCoupon,
     startReservation,
     wishlistMembership,
@@ -623,25 +697,57 @@ export function AccommodationDetailController({
             ) {
               return;
             }
+            if (!quoteSnapshot && issuingCouponId !== null) {
+              setErrorMessage("쿠폰 확인이 끝난 뒤 예약을 진행해주세요.");
+              return;
+            }
+            if (
+              !quoteSnapshot &&
+              selectedCouponId !== null &&
+              (memberCouponsQuery.isFetching ||
+                memberCouponsQuery.isError ||
+                !selectedCoupon)
+            ) {
+              setErrorMessage(
+                "선택한 쿠폰 상태를 다시 확인하거나 적용을 해제해주세요.",
+              );
+              return;
+            }
             void startReservation();
           },
           retryAvailability: () => void availabilityQuery.refetch(),
         },
         couponState: {
           coupons: couponViews,
-          errorMessage: couponsQuery.isError
-            ? toAccommodationErrorMessage(couponsQuery.error)
-            : null,
-          isLoadingCoupons: couponsQuery.isFetching,
+          errorMessage:
+            couponsQuery.isError || memberCouponsQuery.isError
+              ? toAccommodationErrorMessage(
+                  couponsQuery.error ?? memberCouponsQuery.error,
+                )
+              : null,
+          isLoadingCoupons:
+            couponsQuery.isFetching || memberCouponsQuery.isFetching,
           selectedCoupon: selectedCouponView,
           couponDiscount: selectedCouponDiscount,
         },
         couponActions: {
+          retryCoupons: () => {
+            if (!selectionLocked)
+              void Promise.all([
+                couponsQuery.refetch(),
+                memberCouponsQuery.refetch(),
+              ]);
+          },
           onSelectedCouponIdChange: (couponId) => {
-            if (!selectionLocked) setSelectedCouponId(couponId);
+            if (!selectionLocked && couponId === null) clearSelectedCoupon();
           },
           handleIssueCoupon: (couponView) => {
-            if (selectionLocked) return undefined;
+            if (
+              selectionLocked ||
+              memberCouponsQuery.isFetching ||
+              memberCouponsQuery.isError
+            )
+              return undefined;
             const coupon = coupons.find(
               (candidate) => candidate.id === couponView.id,
             );
