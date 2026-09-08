@@ -341,6 +341,132 @@
   color: var(--color-text-inverse);
 }
 
+.datePicker.search {
+  box-sizing: border-box;
+  width: min(
+    var(--layout-page-narrow-max-width),
+    calc(100vw - var(--space-12))
+  );
+  padding: var(--space-8);
+  border-radius: var(--radius-dialog);
+  box-shadow: var(--shadow-floating);
+}
+
+.search .calendars {
+  gap: var(--space-12);
+}
+
+.search .calendar {
+  min-height: 0;
+  padding-top: 0;
+}
+
+.search .monthHeader {
+  position: relative;
+  min-height: var(--control-height-md);
+  margin-bottom: var(--space-3);
+}
+
+.search .monthName {
+  font-size: var(--font-size-md);
+}
+
+.search .monthNavButton {
+  position: absolute;
+  top: 0;
+  margin-top: 0;
+}
+
+.search .previousMonthButton {
+  left: 0;
+}
+
+.search .nextMonthButton {
+  right: 0;
+}
+
+.search .weekdays,
+.search .week {
+  gap: 0;
+}
+
+.search .days {
+  grid-template-rows: repeat(6, var(--space-12));
+  min-height: 0;
+}
+
+.search .day {
+  height: var(--space-12);
+  min-height: var(--control-touch-target);
+  background: transparent;
+  border-radius: 0;
+}
+
+.search .day::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.search .day.inRange::before,
+.search .day.rangeStart::before,
+.search .day.rangeEnd::before {
+  background: var(--color-background-muted);
+}
+
+.search .day.rangeStart::before {
+  left: 50%;
+}
+
+.search .day.rangeEnd::before {
+  right: 50%;
+}
+
+.search .day.inRange:first-child::before {
+  border-top-left-radius: var(--radius-sm);
+  border-bottom-left-radius: var(--radius-sm);
+}
+
+.search .day.inRange:last-child::before {
+  border-top-right-radius: var(--radius-sm);
+  border-bottom-right-radius: var(--radius-sm);
+}
+
+.search .dayNumber {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: min(var(--space-12), 100%);
+  height: auto;
+  aspect-ratio: 1;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+}
+
+.search .day:hover:not(.disabled, .empty) {
+  background: transparent;
+}
+
+.search .day:hover:not(.disabled, .empty) .dayNumber,
+.search .day.rangeEnd:not(.selected) .dayNumber {
+  border-color: var(--color-text-primary);
+}
+
+.search .day.selected {
+  opacity: 1;
+}
+
+.search .day.selected .dayNumber {
+  background: var(--color-text-primary);
+  color: var(--color-text-inverse);
+}
+
+.search .footer {
+  margin-top: var(--space-5);
+}
+
 @media (--viewport-tablet) {
   .datePicker {
     position: relative;

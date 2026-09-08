@@ -25,8 +25,10 @@
 }
 
 .searchBar.expanded {
-  box-shadow: var(--shadow-floating);
-  border-color: var(--color-action-primary);
+  padding-left: 0;
+  background: var(--color-background-hover);
+  box-shadow: var(--shadow-surface);
+  border-color: var(--color-border-default);
   max-width: var(--layout-page-narrow-max-width);
   height: calc(var(--control-height-lg) + var(--space-2));
 }
@@ -161,6 +163,39 @@
 .input:focus-visible {
   border-radius: var(--radius-sm);
   box-shadow: var(--focus-ring-visible);
+}
+
+.searchBar .input:focus-visible {
+  box-shadow: none;
+}
+
+.searchBar.expanded .searchItem {
+  align-self: stretch;
+  border-radius: var(--radius-pill);
+  padding: var(--space-2) var(--space-6);
+}
+
+.searchBar.expanded .searchItemHost {
+  align-self: stretch;
+}
+
+.searchBar.expanded .dateItemHost {
+  position: static;
+  flex: 1.2;
+}
+
+.searchBar.expanded .searchItem:hover {
+  background: var(--color-border-subtle);
+}
+
+.searchBar.expanded .searchItem[data-active] {
+  background: var(--color-background-page);
+  box-shadow: var(--shadow-floating);
+}
+
+.searchBar.expanded .searchItem:focus-visible,
+.searchBar.expanded .destinationItem:has(.input:focus-visible) {
+  box-shadow: var(--focus-ring), var(--shadow-floating);
 }
 
 .suggestions {
@@ -302,12 +337,7 @@
 }
 
 .dateFields {
-  display: flex;
-  gap: var(--space-4);
-}
-
-.dateField {
-  flex: 1;
+  width: 100%;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -1110,6 +1140,10 @@
 }
 
 @media (--viewport-tablet) {
+  .searchBar.expanded .searchItem {
+    padding: var(--space-1) var(--space-2);
+  }
+
   .searchBar {
     max-width: 100%;
     height: var(--control-height-lg);

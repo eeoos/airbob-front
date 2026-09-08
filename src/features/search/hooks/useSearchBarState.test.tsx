@@ -266,6 +266,36 @@ describe("useSearchBarState", () => {
     });
   });
 
+  it.each(["date", "guests", "none"] as const)(
+    "keeps the current %s panel when selected place details arrive late",
+    (activePopover) => {
+      mockHandlePlaceSelect.mockResolvedValue(undefined);
+      const { result } = renderHook(() =>
+        useSearchBarState({ routePort: createRoutePort() }),
+      );
+
+      act(() => {
+        result.current.actions.openDestination();
+        result.current.actions.selectDestination(seoulPrediction);
+        result.current.actions.openDatePicker();
+      });
+
+      act(() => {
+        if (activePopover === "guests")
+          result.current.actions.toggleGuestPicker();
+        if (activePopover === "none") result.current.actions.collapseShell();
+      });
+
+      act(() => {
+        placesOptions?.onPlaceSelect?.(seoulPlace);
+      });
+
+      expect(result.current.destination.selectedPlace).toEqual(seoulPlace);
+      expect(result.current.popover.activePopover).toBe(activePopover);
+      expect(result.current.popover.isExpanded).toBe(activePopover !== "none");
+    },
+  );
+
   it("normalizes reversed dates and clamps all guest update paths", () => {
     const { result } = renderHook(() =>
       useSearchBarState({ routePort: createRoutePort() }),

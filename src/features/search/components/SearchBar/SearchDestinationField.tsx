@@ -115,7 +115,12 @@ export const SearchDestinationField = ({
       return;
     }
 
-    if (event.key === "Enter" && !isComposing) {
+    if (
+      event.key === "Enter" &&
+      !isComposing &&
+      !event.nativeEvent.isComposing &&
+      event.keyCode !== 229
+    ) {
       event.preventDefault();
       event.stopPropagation();
 

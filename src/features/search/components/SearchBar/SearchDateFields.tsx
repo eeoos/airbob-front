@@ -25,10 +25,15 @@ const formatCompactDate = (date: Date | null): string => {
   return `${month} ${day}일`;
 };
 
-const formatDateRange = (checkIn: Date | null, checkOut: Date | null) =>
-  checkIn && checkOut
-    ? `${formatCompactDate(checkIn)} - ${formatCompactDate(checkOut)}`
-    : "날짜 추가";
+const formatDateRange = (checkIn: Date | null, checkOut: Date | null) => {
+  if (checkIn && checkOut) {
+    return `${formatCompactDate(checkIn)} - ${formatCompactDate(checkOut)}`;
+  }
+
+  if (checkIn) return `${formatCompactDate(checkIn)} - 날짜 추가`;
+  if (checkOut) return `날짜 추가 - ${formatCompactDate(checkOut)}`;
+  return "날짜 추가";
+};
 
 export const SearchDateFields = ({
   checkIn,
@@ -46,6 +51,7 @@ export const SearchDateFields = ({
     aria-expanded={isOpen}
     aria-haspopup="dialog"
     className={styles.searchItem}
+    data-active={isOpen ? "" : undefined}
     onClick={onTriggerClick}
     type="button"
   >
@@ -55,17 +61,9 @@ export const SearchDateFields = ({
     {isExpanded ? (
       <>
         <div aria-hidden="true" className={styles.dateFields}>
-          <div className={styles.dateField}>
-            <div className={styles.label}>체크인</div>
-            <div className={styles.value}>
-              {checkIn ? formatDisplayDate(checkIn) : "날짜 추가"}
-            </div>
-          </div>
-          <div className={styles.dateField}>
-            <div className={styles.label}>체크아웃</div>
-            <div className={styles.value}>
-              {checkOut ? formatDisplayDate(checkOut) : "날짜 추가"}
-            </div>
+          <div className={styles.label}>날짜</div>
+          <div className={styles.value}>
+            {formatDateRange(checkIn, checkOut)}
           </div>
         </div>
         <div aria-hidden="true" className={styles.mobileDateValue}>

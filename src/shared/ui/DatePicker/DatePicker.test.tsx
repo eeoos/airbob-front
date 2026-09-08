@@ -84,6 +84,82 @@ describe("DatePicker", () => {
     );
   });
 
+  it("places search navigation with the month headings without repeating the title", async () => {
+    const view = renderDatePicker({ variant: "search" });
+    const searchClass = styles.search;
+    if (!searchClass) throw new Error("Missing search DatePicker style");
+
+    expect(screen.getByRole("group", { name: "날짜 선택" })).toHaveClass(
+      searchClass,
+    );
+    expect(screen.getAllByText("2026년 7월")).toHaveLength(1);
+    expect(screen.getAllByText("2026년 8월")).toHaveLength(1);
+
+    await userEvent.click(screen.getByRole("button", { name: "다음 달 보기" }));
+
+    expect(
+      screen.getByRole("grid", { name: "2026년 8월" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("grid", { name: "2026년 9월" }),
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "이전 달 보기" }));
+
+    expect(
+      screen.getByRole("grid", { name: "2026년 7월" }),
+    ).toBeInTheDocument();
+
+    view.rerender(<DatePicker {...view.props} variant="compact" />);
+
+    expect(screen.getByRole("group", { name: "날짜 선택" })).not.toHaveClass(
+      searchClass,
+    );
+  });
+
+  it("connects search range endpoints only while a complete or hovered range exists", async () => {
+    const checkIn = new Date(2026, 6, 15);
+    const checkOut = new Date(2026, 6, 18);
+    const view = renderDatePicker({ variant: "search", checkIn, checkOut });
+    const rangeStartClass = styles.rangeStart;
+    const rangeEndClass = styles.rangeEnd;
+    const inRangeClass = styles.inRange;
+    if (!rangeStartClass || !rangeEndClass || !inRangeClass) {
+      throw new Error("Missing date range styles");
+    }
+    const startDate = screen.getByRole("gridcell", {
+      name: "2026년 7월 15일 수요일",
+    });
+    const middleDate = screen.getByRole("gridcell", {
+      name: "2026년 7월 16일 목요일",
+    });
+    const endDate = screen.getByRole("gridcell", {
+      name: "2026년 7월 18일 토요일",
+    });
+
+    expect(startDate).toHaveClass(rangeStartClass);
+    expect(middleDate).toHaveClass(inRangeClass);
+    expect(endDate).toHaveClass(rangeEndClass);
+    expect(endDate).toHaveAttribute("aria-selected", "true");
+
+    view.rerender(<DatePicker {...view.props} checkOut={null} />);
+
+    expect(startDate).not.toHaveClass(rangeStartClass);
+    expect(endDate).not.toHaveClass(rangeEndClass);
+
+    await userEvent.hover(endDate);
+
+    expect(startDate).toHaveClass(rangeStartClass);
+    expect(middleDate).toHaveClass(inRangeClass);
+    expect(endDate).toHaveClass(rangeEndClass);
+    expect(endDate).toHaveAttribute("aria-selected", "false");
+
+    await userEvent.unhover(endDate);
+
+    expect(startDate).not.toHaveClass(rangeStartClass);
+    expect(endDate).not.toHaveClass(rangeEndClass);
+  });
+
   it("renders selectable dates as grid cells backed by buttons", () => {
     renderDatePicker();
 

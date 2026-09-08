@@ -36,7 +36,7 @@ export interface DatePickerProps {
   disabledRanges?: readonly DatePickerDisabledRange[];
   selectionWindow?: DatePickerSelectionWindow;
   hideFooter?: boolean;
-  variant?: "default" | "compact";
+  variant?: "default" | "compact" | "search";
   selectionEndpoint?: "checkIn" | "checkOut";
 }
 
@@ -186,6 +186,16 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
   const focusedDateKey = formatDateKey(focusedDate);
   const hoverDateKey = hoverDate ? formatDateKey(hoverDate) : null;
+  const visibleRangeEndKey =
+    checkOutKey ??
+    (isSelectingCheckOut && hoverDate && !isDateDisabled(hoverDate)
+      ? hoverDateKey
+      : null);
+  const hasVisibleRange = Boolean(
+    interactionCheckInKey &&
+    visibleRangeEndKey &&
+    interactionCheckInKey < visibleRangeEndKey,
+  );
   const getCurrentSelectionAnnouncement = useCallback(
     () =>
       selectionEndpoint === "checkIn" && interactionCheckIn
@@ -404,6 +414,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   const renderCalendar = (
     month: Date,
     calendarWeeks: Array<Array<Date | null>>,
+    navigationDirection: -1 | 1,
   ) => {
     const monthName = formatMonthName(month);
     const monthKey = formatDateKey(month);
@@ -412,6 +423,24 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     return (
       <div className={styles.calendar}>
         <div className={styles.monthHeader}>
+          {variant === "search" && (
+            <button
+              aria-label={
+                navigationDirection === -1 ? "이전 달 보기" : "다음 달 보기"
+              }
+              className={`${styles.monthNavButton} ${
+                navigationDirection === -1
+                  ? styles.previousMonthButton
+                  : styles.nextMonthButton
+              }`}
+              type="button"
+              onClick={() => moveVisibleMonth(navigationDirection)}
+            >
+              <span aria-hidden="true">
+                {navigationDirection === -1 ? "‹" : "›"}
+              </span>
+            </button>
+          )}
           <h3 id={monthHeadingId} className={styles.monthName}>
             {monthName}
           </h3>
@@ -461,6 +490,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                   const isUnavailable = isDisabled && isUnavailableDate(date);
                   const isStart = dateKey === checkInKey;
                   const isEnd = dateKey === checkOutKey;
+                  const isRangeStart =
+                    hasVisibleRange && dateKey === interactionCheckInKey;
+                  const isRangeEnd =
+                    hasVisibleRange && dateKey === visibleRangeEndKey;
 
                   return (
                     <button
@@ -489,6 +522,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                         isUnavailable ? styles.unavailable : ""
                       } ${isStart ? styles.start : ""} ${
                         isEnd ? styles.end : ""
+                      } ${isRangeStart ? styles.rangeStart : ""} ${
+                        isRangeEnd ? styles.rangeEnd : ""
                       }`}
                       onClick={(event) => {
                         event.stopPropagation();
@@ -534,38 +569,42 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       aria-label="날짜 선택"
       className={`${styles.datePicker} ${
         variant === "compact" ? styles.compact : ""
-      }`}
+      } ${variant === "search" ? styles.search : ""}`}
       ref={pickerRef}
       onKeyDownCapture={handlePickerKeyDown}
       role="group"
     >
-      <div className={styles.navHeader}>
-        <button
-          aria-label="이전 달 보기"
-          className={styles.monthNavButton}
-          type="button"
-          onClick={() => moveVisibleMonth(-1)}
-        >
-          ←
-        </button>
-        <span className={styles.navTitle}>{formatMonthName(currentMonth)}</span>
-        <button
-          aria-label="다음 달 보기"
-          className={styles.monthNavButton}
-          type="button"
-          onClick={() => moveVisibleMonth(1)}
-        >
-          →
-        </button>
-      </div>
+      {variant !== "search" && (
+        <div className={styles.navHeader}>
+          <button
+            aria-label="이전 달 보기"
+            className={styles.monthNavButton}
+            type="button"
+            onClick={() => moveVisibleMonth(-1)}
+          >
+            ←
+          </button>
+          <span className={styles.navTitle}>
+            {formatMonthName(currentMonth)}
+          </span>
+          <button
+            aria-label="다음 달 보기"
+            className={styles.monthNavButton}
+            type="button"
+            onClick={() => moveVisibleMonth(1)}
+          >
+            →
+          </button>
+        </div>
+      )}
 
       <div className={styles.calendarsScrollArea}>
         <div className={styles.calendars}>
           <div className={styles.calendarWrapper}>
-            {renderCalendar(currentMonth, currentMonthWeeks)}
+            {renderCalendar(currentMonth, currentMonthWeeks, -1)}
           </div>
           <div className={styles.calendarWrapper}>
-            {renderCalendar(nextMonth, nextMonthWeeks)}
+            {renderCalendar(nextMonth, nextMonthWeeks, 1)}
           </div>
         </div>
       </div>

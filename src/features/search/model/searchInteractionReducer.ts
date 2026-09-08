@@ -176,7 +176,6 @@ export const searchInteractionReducer = (
       return {
         ...state,
         draft: { ...state.draft, selectedPlace: event.place },
-        activePopover: "none",
       };
     case "destinationSelectionCleared":
       return {
