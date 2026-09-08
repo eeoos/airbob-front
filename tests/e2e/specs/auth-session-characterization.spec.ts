@@ -481,6 +481,9 @@ test("resumes an anonymous wishlist intent once in the authenticated session gen
   );
 
   expect(api.matching("POST", "/api/v1/auth/login")).toHaveLength(1);
+  await expect(
+    page.getByRole("button", { name: /로그인 뒤 이어진 여행/ }),
+  ).toBeVisible();
   const resumedReads = api.matching("GET", "/api/v1/members/wishlists");
   expect(resumedReads).toHaveLength(1);
   expect(
