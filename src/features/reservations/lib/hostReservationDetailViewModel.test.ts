@@ -35,14 +35,7 @@ const hostReservationDetailFixture = (
     thumbnailImageUrl: "/guests/2.jpg",
   },
   payment: {
-    orderId: "order-1",
-    method: null,
     totalAmount: 240000,
-    balanceAmount: null,
-    status: "DONE",
-    requestedAt: "2026-07-01T00:00:00",
-    approvedAt: null,
-    cancels: [],
   },
   timeZoneId: "Asia/Seoul",
   ...overrides,
@@ -89,15 +82,22 @@ describe("host reservation detail view model", () => {
       throw new Error("Expected a paid reservation fixture");
     const view = toHostReservationDetailViewModel({
       ...reservation,
+      status: "CANCELLED",
       payment: {
         ...reservation.payment,
         totalAmount: 100001,
-        balanceAmount: 0,
-        status: "CANCELED",
       },
     });
 
     expect(view.payment).toEqual({ nights: 2, totalAmountLabel: "₩100,001" });
+  });
+
+  it("keeps a recorded zero payment visible", () => {
+    const view = toHostReservationDetailViewModel(
+      hostReservationDetailFixture({ payment: { totalAmount: 0 } }),
+    );
+
+    expect(view.payment).toEqual({ nights: 2, totalAmountLabel: "₩0" });
   });
 
   it("maps host reservation API fields into display fields", () => {

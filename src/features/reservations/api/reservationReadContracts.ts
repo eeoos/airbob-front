@@ -99,10 +99,10 @@ interface ReservationDetailWireBase {
   readonly request_message: unknown;
   readonly accommodation: ReservationAccommodationWire;
   readonly address: ReservationAddressWire;
-  readonly payment: ReservationPaymentWire | null;
 }
 
 export interface GuestReservationDetailWire extends ReservationDetailWireBase {
+  readonly payment: ReservationPaymentWire | null;
   readonly payment_allowed: unknown;
   readonly hold_expires_at: unknown;
   readonly server_time: unknown;
@@ -115,4 +115,5 @@ export interface GuestReservationDetailWire extends ReservationDetailWireBase {
 
 export interface HostReservationDetailWire extends ReservationDetailWireBase {
   readonly guest: ReservationMemberWire;
+  readonly payment: { readonly total_amount: number } | null;
 }

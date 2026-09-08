@@ -297,5 +297,6 @@ export const toHostReservationDetail = (
   accommodation: toAccommodation(wire.accommodation),
   address: toAddress(wire.address),
   guest: toMember(wire.guest),
-  payment: toPayment(wire.payment),
+  payment:
+    wire.payment === null ? null : { totalAmount: wire.payment.total_amount },
 });

@@ -262,7 +262,7 @@ describe("reservation read wire mappers", () => {
     expect(JSON.stringify(detail)).not.toContain("payment-1");
   });
 
-  it("maps host detail and normalizes omitted optional payment fields", () => {
+  it("maps host detail with only the original payment amount", () => {
     const wire: HostReservationDetailWire = {
       reservation_uid: "host-reservation-21",
       reservation_code: "H-21",
@@ -277,11 +277,7 @@ describe("reservation read wire mappers", () => {
       address,
       guest: member,
       payment: {
-        order_id: "order-2",
-        payment_key: "host-read-payment-key",
         total_amount: 240000,
-        status: "DONE",
-        requested_at: "2026-07-01T10:00:00Z",
       },
     };
     const detail = toHostReservationDetail(wire);
@@ -295,20 +291,19 @@ describe("reservation read wire mappers", () => {
         thumbnailImageUrl: "/member.jpg",
       },
       payment: {
-        orderId: "order-2",
-        method: null,
         totalAmount: 240000,
-        balanceAmount: null,
-        approvedAt: null,
-        cancels: [],
       },
     });
+    expect(detail.payment).toEqual({ totalAmount: 240000 });
+    expect(
+      toHostReservationDetail({ ...wire, payment: null }).payment,
+    ).toBeNull();
+    expect(
+      toHostReservationDetail({ ...wire, payment: { total_amount: 0 } })
+        .payment,
+    ).toEqual({ totalAmount: 0 });
     expect(detail).not.toHaveProperty("requestMessage");
-    expect(detail.payment).not.toHaveProperty("paymentKey");
-    expect(detail.payment).not.toHaveProperty("virtualAccount");
-    expect(JSON.stringify(detail)).not.toContain("1234567890");
     expect(JSON.stringify(detail)).not.toContain("늦은 체크인을 요청합니다.");
-    expect(JSON.stringify(detail)).not.toContain("host-read-payment-key");
   });
 
   it.each(currentReservationStatuses)(

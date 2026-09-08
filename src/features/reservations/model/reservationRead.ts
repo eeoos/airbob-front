@@ -123,10 +123,10 @@ interface ReservationDetailBase<TAudience extends ReservationReadAudience> {
   readonly timeZoneId: string;
   readonly accommodation: ReservationAccommodation;
   readonly address: ReservationAddress;
-  readonly payment: ReservationPayment | null;
 }
 
 export interface GuestReservationDetail extends ReservationDetailBase<"guest"> {
+  readonly payment: ReservationPayment | null;
   readonly paymentAllowed: boolean;
   readonly holdExpiresAt: string | null;
   readonly serverTime: string;
@@ -139,6 +139,7 @@ export interface GuestReservationDetail extends ReservationDetailBase<"guest"> {
 
 export interface HostReservationDetail extends ReservationDetailBase<"host"> {
   readonly guest: ReservationMember;
+  readonly payment: { readonly totalAmount: number } | null;
 }
 
 export type ReservationDetailByAudience<

@@ -317,13 +317,6 @@ const hostReservationDetail = {
   },
   guest_count: 2,
   payment: {
-    approved_at: "2026-06-22T00:01:00Z",
-    balance_amount: 420_000,
-    cancels: [],
-    method: "카드",
-    order_id: "synthetic-host-order-302",
-    requested_at: "2026-06-22T00:00:30Z",
-    status: "DONE",
     total_amount: 420_000,
   },
   request_message: "조용한 체크인을 부탁드립니다.",
