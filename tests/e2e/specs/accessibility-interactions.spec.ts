@@ -428,6 +428,8 @@ test("honors reduced motion while keyboard controls move the mobile results shee
     name: /검색 결과 패널 조절/,
   });
   const sheet = handle.locator("xpath=ancestor::section[1]");
+  await handle.focus();
+  await page.keyboard.press("Home");
 
   await expect(handle).toHaveAttribute("data-state", "collapsed");
   await handle.focus();
@@ -516,6 +518,8 @@ test("anchors the first pointer drag to the collapsed sheet and suppresses its c
     name: /검색 결과 패널 조절/,
   });
   const sheet = handle.locator("xpath=ancestor::section[1]");
+  await handle.focus();
+  await page.keyboard.press("Home");
   const handleBounds = await handle.boundingBox();
   const initialSheetBounds = await sheet.boundingBox();
 
@@ -566,7 +570,6 @@ test("keeps sheet content continuous and resumes a snap after an interrupted dra
     includeHidden: true,
   });
 
-  await handle.click();
   await expect(handle).toHaveAttribute("data-state", "half");
 
   const titleBounds = await title.boundingBox();
@@ -595,7 +598,7 @@ test("keeps sheet content continuous and resumes a snap after an interrupted dra
         const visibleHeight =
           window.innerHeight - element.getBoundingClientRect().top;
 
-        return Math.abs(visibleHeight - surfaceHeight * 0.5);
+        return Math.abs(visibleHeight - surfaceHeight * 0.7);
       });
 
       return geometry;
@@ -610,7 +613,8 @@ test("keeps sheet content continuous and resumes a snap after an interrupted dra
     )
     .toBeLessThanOrEqual(82);
 
-  await handle.click();
+  await handle.focus();
+  await page.keyboard.press("Home");
   await expect(handle).toHaveAttribute("data-state", "collapsed");
   expect(await content.getAttribute("hidden")).toBeNull();
   await expect(content).toBeHidden();

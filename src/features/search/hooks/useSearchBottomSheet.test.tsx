@@ -156,6 +156,12 @@ const BottomSheetFocusHarness = () => {
   );
 };
 
+const renderCollapsedSheet = () => {
+  const view = renderHook(() => useSearchBottomSheet());
+  act(() => view.result.current.setBottomSheetState("collapsed"));
+  return view;
+};
+
 describe("useSearchBottomSheet", () => {
   beforeEach(() => {
     mediaQueryLists.clear();
@@ -185,11 +191,11 @@ describe("useSearchBottomSheet", () => {
     resizeWindow(390);
   });
 
-  it("detects mobile/tablet viewport and starts in collapsed state", () => {
+  it("starts with the map above a mostly open list", () => {
     const { result } = renderHook(() => useSearchBottomSheet());
 
     expect(result.current.isMobileOrTablet).toBe(true);
-    expect(result.current.bottomSheetState).toBe("collapsed");
+    expect(result.current.bottomSheetState).toBe("half");
   });
 
   it.each([
@@ -202,7 +208,7 @@ describe("useSearchBottomSheet", () => {
     (width, expectedIsMobileOrTablet) => {
       resizeWindow(width);
 
-      const { result } = renderHook(() => useSearchBottomSheet());
+      const { result } = renderCollapsedSheet();
 
       expect(result.current.isMobileOrTablet).toBe(expectedIsMobileOrTablet);
       expect(window.matchMedia).toHaveBeenCalledWith("(max-width: 1024px)");
@@ -211,7 +217,7 @@ describe("useSearchBottomSheet", () => {
 
   it("updates the layout when the media query crosses the boundary", () => {
     resizeWindow(1025);
-    const { result } = renderHook(() => useSearchBottomSheet());
+    const { result } = renderCollapsedSheet();
 
     expect(result.current.isMobileOrTablet).toBe(false);
 
@@ -223,7 +229,7 @@ describe("useSearchBottomSheet", () => {
   });
 
   it("collapses on map interaction without coupling list scroll to sheet state", () => {
-    const { result } = renderHook(() => useSearchBottomSheet());
+    const { result } = renderCollapsedSheet();
 
     act(() => result.current.setBottomSheetState("expanded"));
 
@@ -235,7 +241,7 @@ describe("useSearchBottomSheet", () => {
   });
 
   it("moves one snap state per drag direction", () => {
-    const { result } = renderHook(() => useSearchBottomSheet());
+    const { result } = renderCollapsedSheet();
 
     act(() => {
       result.current.handleDragStart();
@@ -260,7 +266,7 @@ describe("useSearchBottomSheet", () => {
   });
 
   it("uses velocity direction for a flick that stays below the distance threshold", () => {
-    const { result } = renderHook(() => useSearchBottomSheet());
+    const { result } = renderCollapsedSheet();
 
     act(() => {
       result.current.handleDragStart();
@@ -279,7 +285,7 @@ describe("useSearchBottomSheet", () => {
 
   it("moves with the pointer while clamping drag translation to the snap range", () => {
     prefersReducedMotion = true;
-    const { result } = renderHook(() => useSearchBottomSheet());
+    const { result } = renderCollapsedSheet();
 
     act(() => {
       result.current.handleDragStart();
@@ -299,7 +305,7 @@ describe("useSearchBottomSheet", () => {
 
   it("captures the current snap synchronously before the first drag frame", () => {
     prefersReducedMotion = true;
-    const { result } = renderHook(() => useSearchBottomSheet());
+    const { result } = renderCollapsedSheet();
     const handle = document.createElement("button");
 
     act(() => {
@@ -321,7 +327,7 @@ describe("useSearchBottomSheet", () => {
   });
 
   it("anchors a new drag to the visible position of an interrupted snap", () => {
-    const { result } = renderHook(() => useSearchBottomSheet());
+    const { result } = renderCollapsedSheet();
     const handle = document.createElement("button");
 
     act(() => result.current.setBottomSheetState("half"));
@@ -348,7 +354,7 @@ describe("useSearchBottomSheet", () => {
   });
 
   it("resumes the current snap after a header press without a drag", () => {
-    const { result } = renderHook(() => useSearchBottomSheet());
+    const { result } = renderCollapsedSheet();
     const handle = document.createElement("button");
 
     act(() => result.current.setBottomSheetState("half"));
@@ -377,7 +383,7 @@ describe("useSearchBottomSheet", () => {
   });
 
   it("suppresses the native click even when it arrives before drag end", () => {
-    const { result } = renderHook(() => useSearchBottomSheet());
+    const { result } = renderCollapsedSheet();
     const handle = document.createElement("button");
 
     act(() => {
@@ -400,7 +406,7 @@ describe("useSearchBottomSheet", () => {
   });
 
   it("does not treat a completed handle drag as a button click", () => {
-    const { result } = renderHook(() => useSearchBottomSheet());
+    const { result } = renderCollapsedSheet();
     const handle = document.createElement("button");
 
     act(() => {
@@ -422,7 +428,7 @@ describe("useSearchBottomSheet", () => {
   });
 
   it("moves between all snap states with the keyboard contract", () => {
-    const { result } = renderHook(() => useSearchBottomSheet());
+    const { result } = renderCollapsedSheet();
     const press = (key: string) => {
       const preventDefault = vi.fn();
 
@@ -453,7 +459,7 @@ describe("useSearchBottomSheet", () => {
   });
 
   it("cycles the button action through half, expanded, and collapsed", () => {
-    const { result } = renderHook(() => useSearchBottomSheet());
+    const { result } = renderCollapsedSheet();
 
     act(() => result.current.handleBottomSheetToggle());
     expect(result.current.bottomSheetState).toBe("half");
@@ -479,7 +485,7 @@ describe("useSearchBottomSheet", () => {
 
   it("bypasses spring animation when reduced motion is requested", () => {
     prefersReducedMotion = true;
-    const { result } = renderHook(() => useSearchBottomSheet());
+    const { result } = renderCollapsedSheet();
 
     expect(mockAnimate).not.toHaveBeenCalled();
 
@@ -492,7 +498,7 @@ describe("useSearchBottomSheet", () => {
   });
 
   it("keeps spring animation when reduced motion is not requested", () => {
-    const { result } = renderHook(() => useSearchBottomSheet());
+    const { result } = renderCollapsedSheet();
     mockAnimate.mockClear();
 
     act(() => result.current.setBottomSheetState("expanded"));
@@ -506,10 +512,10 @@ describe("useSearchBottomSheet", () => {
 
   it("computes distinct mobile snap positions from the viewport", () => {
     resizeWindow(390, 844);
-    const { result } = renderHook(() => useSearchBottomSheet());
+    const { result } = renderCollapsedSheet();
 
     expect(result.current.snapPositions.expanded).toBe(0);
-    expect(result.current.snapPositions.half).toBe(382);
+    expect(result.current.snapPositions.half).toBe(229);
     expect(result.current.snapPositions.collapsed).toBe(691);
     expect(result.current.snapPositions.half).toBeGreaterThan(
       result.current.snapPositions.expanded,
@@ -520,7 +526,7 @@ describe("useSearchBottomSheet", () => {
   });
 
   it("uses rendered sheet and peek geometry as the snap source of truth", () => {
-    const { result } = renderHook(() => useSearchBottomSheet());
+    const { result } = renderCollapsedSheet();
     const sheet = document.createElement("section");
     const header = document.createElement("div");
     sheet.getBoundingClientRect = () => rectWithHeight(700);
@@ -534,7 +540,7 @@ describe("useSearchBottomSheet", () => {
 
     expect(result.current.snapPositions).toEqual({
       collapsed: 620,
-      half: 350,
+      half: 210,
       expanded: 0,
     });
     expect(result.current.visibleSheetHeight).toBe(80);
@@ -542,7 +548,7 @@ describe("useSearchBottomSheet", () => {
 
   it("does not run mobile drag transitions on desktop", () => {
     resizeWindow(1280);
-    const { result } = renderHook(() => useSearchBottomSheet());
+    const { result } = renderCollapsedSheet();
 
     expect(result.current.isMobileOrTablet).toBe(false);
 

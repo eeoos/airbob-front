@@ -318,7 +318,7 @@
     /* transform is controlled by Framer Motion; touch handling stays in CSS. */
   }
 
-  /* Bottom Sheet Header - Always Visible */
+  /* The handle and count scroll away with the expanded list. */
   .bottomSheetHeader {
     position: relative;
     box-sizing: border-box;
@@ -383,13 +383,18 @@
     pointer-events: none;
   }
 
-  /* Content Section - Hidden in Collapsed */
-  .bottomSheetContent {
+  .bottomSheetViewport {
     flex: 1;
+    min-height: 0;
     overflow: hidden auto;
     overscroll-behavior: contain;
-    padding: 0 var(--space-4) var(--space-4) var(--space-4);
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  /* Content Section - Hidden in Collapsed */
+  .bottomSheetContent {
+    padding: 0 var(--space-4) var(--space-4) var(--space-4);
     width: 100%;
     box-sizing: border-box;
     transition:
@@ -397,36 +402,36 @@
       visibility var(--motion-duration-slow) var(--motion-ease-standard);
   }
 
-  .bottomSheet.half .bottomSheetContent {
+  .bottomSheet.half .bottomSheetViewport {
+    overflow: clip;
     flex: 0 0 auto;
-    height: calc(
-      var(--search-bottom-sheet-visible-height) -
-        var(--layout-search-bottom-sheet-peek-height)
-    );
-    max-height: calc(
-      var(--search-bottom-sheet-visible-height) -
-        var(--layout-search-bottom-sheet-peek-height)
-    );
+    height: var(--search-bottom-sheet-visible-height);
+    max-height: var(--search-bottom-sheet-visible-height);
   }
 
-  .bottomSheet.dragging .bottomSheetContent {
+  .bottomSheet.dragging .bottomSheetViewport {
     flex: 1 1 auto;
     height: auto;
     max-height: none;
+    overflow: hidden;
   }
 
   .bottomSheet.expanded .bottomSheetContent {
-    overflow: hidden auto;
     padding-bottom: calc(
       var(--space-16) + var(--space-6) + var(--layout-mobile-safe-bottom)
     );
+  }
+
+  .bottomSheet.expanded {
+    border-radius: 0;
+    border: 0;
   }
 
   .bottomSheetContent.hidden {
     display: none;
   }
 
-  .bottomSheetContent::-webkit-scrollbar {
+  .bottomSheetViewport::-webkit-scrollbar {
     display: none;
   }
 

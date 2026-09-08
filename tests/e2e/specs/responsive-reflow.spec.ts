@@ -152,7 +152,7 @@ test("keeps the 320px search route free of horizontal overflow with core actions
     name: "숙소 상세 보기: 반응형 테스트 숙소",
     includeHidden: true,
   });
-  await expect(resultLink).toBeHidden();
+  await expect(resultLink).toBeVisible();
   await page.getByRole("button", { name: /검색 결과 패널 조절/ }).click();
   await expect(resultLink).toBeVisible();
 
@@ -325,6 +325,9 @@ for (const width of [320, 390, 768, 1023, 1024]) {
     await expect(bottomSheetHandle).toHaveCount(1);
     await expect(bottomSheetResults).toHaveCount(1);
     await expect(bottomSheetHandle).toBeVisible();
+    await expect(bottomSheetHandle).toHaveAttribute("data-state", "half");
+    await bottomSheetHandle.focus();
+    await page.keyboard.press("Home");
     await expect(bottomSheetHandle).toHaveAttribute("data-state", "collapsed");
     await expect(bottomSheetResults).toBeHidden();
     await expect(resultLink).toBeHidden();
@@ -432,6 +435,8 @@ test("keeps every mobile sheet snap attached to the viewport", async ({
       };
     });
 
+  await handle.focus();
+  await page.keyboard.press("Home");
   await expect(handle).toHaveAttribute("data-state", "collapsed");
   await expect
     .poll(async () => {
@@ -445,7 +450,7 @@ test("keeps every mobile sheet snap attached to the viewport", async ({
   await expect
     .poll(async () => {
       const geometry = await readSheetGeometry();
-      return Math.abs(geometry.visibleHeight - geometry.surfaceHeight * 0.5);
+      return Math.abs(geometry.visibleHeight - geometry.surfaceHeight * 0.7);
     })
     .toBeLessThanOrEqual(3);
 
@@ -459,11 +464,11 @@ test("keeps every mobile sheet snap attached to the viewport", async ({
     .toBeLessThanOrEqual(2);
 
   await page.getByRole("button", { name: "지도 보기" }).click();
-  await expect(handle).toHaveAttribute("data-state", "collapsed");
+  await expect(handle).toHaveAttribute("data-state", "half");
   await expect
     .poll(async () => {
       const geometry = await readSheetGeometry();
-      return Math.abs(geometry.visibleHeight - geometry.peekHeight);
+      return Math.abs(geometry.visibleHeight - geometry.surfaceHeight * 0.7);
     })
     .toBeLessThanOrEqual(2);
 

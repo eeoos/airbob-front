@@ -15,6 +15,7 @@ import {
   type PanInfo,
 } from "framer-motion";
 import { useResponsiveLayout } from "../../../shared/styles/useResponsiveLayout";
+import { useSearchBottomSheetContentGestures } from "./useSearchBottomSheetContentGestures";
 import {
   createSearchInteractionState,
   getNextSearchBottomSheetState,
@@ -94,7 +95,7 @@ export const useSearchBottomSheet = () => {
   const [interactionState, dispatch] = useReducer(
     searchInteractionReducer,
     undefined,
-    createSearchInteractionState,
+    () => ({ ...createSearchInteractionState(), bottomSheet: "half" as const }),
   );
   const bottomSheetState = interactionState.bottomSheet;
   const isMobileOrTablet = useResponsiveLayout() === "mobile-tablet";
@@ -112,6 +113,7 @@ export const useSearchBottomSheet = () => {
   const bottomSheetRef = useRef<HTMLElement | null>(null);
   const bottomSheetHeaderRef = useRef<HTMLDivElement | null>(null);
   const bottomSheetHandleRef = useRef<HTMLButtonElement | null>(null);
+  const bottomSheetContentRef = useRef<HTMLDivElement | null>(null);
   const dragControls = useDragControls();
   const snapPositions = useMemo(() => {
     if (!isMobileOrTablet) {
@@ -121,7 +123,7 @@ export const useSearchBottomSheet = () => {
     const { peekHeight, surfaceHeight } = geometry;
     const expanded = 0;
     const collapsed = Math.max(0, surfaceHeight - peekHeight);
-    const half = Math.min(collapsed, Math.round(surfaceHeight * 0.5));
+    const half = Math.min(collapsed, Math.round(surfaceHeight * 0.3));
 
     return {
       collapsed,
@@ -324,6 +326,24 @@ export const useSearchBottomSheet = () => {
     setBottomSheetState("collapsed");
   }, [setBottomSheetState]);
 
+  const handleMapReturn = useCallback(() => {
+    if (bottomSheetContentRef.current)
+      bottomSheetContentRef.current.scrollTop = 0;
+    setBottomSheetState("half");
+  }, [setBottomSheetState]);
+
+  useSearchBottomSheetContentGestures({
+    contentRef: bottomSheetContentRef,
+    enabled: isMobileOrTablet,
+    state: bottomSheetState,
+    positions: snapPositions,
+    y,
+    stopAnimation: stopActiveSnapAnimation,
+    animateToPosition,
+    setState: setBottomSheetState,
+    setDragging: setIsDragging,
+  });
+
   const handleBottomSheetPointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       if (!isMobileOrTablet || event.button !== 0) return;
@@ -406,6 +426,9 @@ export const useSearchBottomSheet = () => {
   }, [bottomSheetState, clearHandleClickSuppression, setBottomSheetState]);
 
   useLayoutEffect(() => {
+    if (bottomSheetState !== "expanded" && bottomSheetContentRef.current) {
+      bottomSheetContentRef.current.scrollTop = 0;
+    }
     if (bottomSheetState !== "collapsed") return;
 
     const sheet = bottomSheetRef.current;
@@ -512,6 +535,7 @@ export const useSearchBottomSheet = () => {
     bottomSheetRef,
     bottomSheetHeaderRef,
     bottomSheetHandleRef,
+    bottomSheetContentRef,
     dragControls,
     snapPositions,
     visibleSheetHeight: Math.max(
@@ -525,6 +549,7 @@ export const useSearchBottomSheet = () => {
     handleDrag,
     handleDragEnd,
     handleMapInteraction,
+    handleMapReturn,
     handleBottomSheetPointerDown,
     handleBottomSheetPointerEnd,
   };

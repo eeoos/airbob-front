@@ -125,6 +125,7 @@ const createProps = (
     bottomSheetRef: createRef<HTMLDivElement>(),
     bottomSheetHeaderRef: createRef<HTMLDivElement>(),
     bottomSheetHandleRef: createRef<HTMLButtonElement>(),
+    bottomSheetContentRef: createRef<HTMLDivElement>(),
     bottomSheetState: "collapsed",
     dragControls: {} as SearchScreenProps["bottomSheet"]["dragControls"],
     handleBottomSheetKeyDown: vi.fn(),
@@ -135,6 +136,7 @@ const createProps = (
     handleDragEnd: vi.fn(),
     handleDragStart: vi.fn(),
     handleMapInteraction: vi.fn(),
+    handleMapReturn: vi.fn(),
     isDragging: false,
     isMobileOrTablet: false,
     snapPositions: { collapsed: 691, half: 382, expanded: 0 },
@@ -248,12 +250,9 @@ describe("SearchScreen", () => {
         },
       });
       const view = render(<SearchScreen {...props} />);
-      const scrollArea = screen.getByRole(
-        isMobileOrTablet ? "group" : "region",
-        {
-          name: isMobileOrTablet ? "검색 결과 목록" : "숙소 목록 스크롤",
-        },
-      );
+      const scrollArea = screen.getByRole("region", {
+        name: "숙소 목록 스크롤",
+      });
       scrollArea.scrollTop = 300;
 
       view.rerender(
@@ -424,14 +423,14 @@ describe("SearchScreen", () => {
 
   it("offers an accessible map return action only from the expanded sheet", () => {
     const base = createProps();
-    const handleMapInteraction = vi.fn();
+    const handleMapReturn = vi.fn();
     const view = render(
       <SearchScreen
         {...base}
         bottomSheet={{
           ...base.bottomSheet,
           bottomSheetState: "half",
-          handleMapInteraction,
+          handleMapReturn,
           isMobileOrTablet: true,
         }}
       />,
@@ -447,7 +446,7 @@ describe("SearchScreen", () => {
         bottomSheet={{
           ...base.bottomSheet,
           bottomSheetState: "expanded",
-          handleMapInteraction,
+          handleMapReturn,
           isMobileOrTablet: true,
         }}
       />,
@@ -462,7 +461,7 @@ describe("SearchScreen", () => {
     expect(mobileMap).toHaveAttribute("aria-hidden", "true");
     expect(mobileMap).toHaveAttribute("inert");
     fireEvent.click(mapButton);
-    expect(handleMapInteraction).toHaveBeenCalledTimes(1);
+    expect(handleMapReturn).toHaveBeenCalledTimes(1);
   });
 
   it("loads the account dialog only when authentication is requested", async () => {
