@@ -123,9 +123,9 @@ describe("SearchAccommodationCard", () => {
       "utf8",
     );
 
-    expect(css).toContain("fill: var(--color-action-accent);");
+    expect(css).toContain("fill: var(--color-brand-coral);");
     expect(css).toContain("stroke: var(--color-text-inverse);");
-    expect(css).toContain("stroke: var(--color-text-primary);");
+    expect(css).toContain("fill: var(--overlay-backdrop);");
     expect(css).toContain("width: var(--control-touch-target);");
     expect(css).toContain("box-shadow: var(--focus-ring-visible);");
   });

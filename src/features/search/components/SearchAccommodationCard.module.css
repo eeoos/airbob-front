@@ -159,10 +159,10 @@
 
 .wishlistButton {
   position: absolute;
-  top: var(--space-3);
-  right: var(--space-3);
-  background: var(--overlay-surface-strong);
-  border: 1px solid var(--overlay-surface-muted);
+  top: var(--space-1);
+  right: var(--space-1);
+  background: transparent;
+  border: 0;
   border-radius: var(--radius-pill);
   width: var(--control-touch-target);
   height: var(--control-touch-target);
@@ -170,19 +170,14 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  padding: var(--space-2);
-  color: var(--color-text-primary);
-  transition:
-    transform var(--motion-duration-fast) var(--motion-ease-standard),
-    color var(--motion-duration-fast) var(--motion-ease-standard),
-    background-color var(--motion-duration-fast) var(--motion-ease-standard);
+  padding: 0;
+  transition: transform var(--motion-duration-fast) var(--motion-ease-standard);
   z-index: var(--z-local-raised);
   box-shadow: none;
 }
 
 .wishlistButton:hover {
-  transform: scale(1.04);
-  background: var(--color-background-page);
+  transform: scale(1.1);
 }
 
 .wishlistButton:focus-visible {
@@ -190,16 +185,18 @@
   box-shadow: var(--focus-ring-visible);
 }
 
-.wishlistButton.active svg {
-  fill: var(--color-action-accent);
-  stroke: var(--color-text-inverse);
+.wishlistButton.active .wishlistIcon {
+  fill: var(--color-brand-coral);
 }
 
 .wishlistIcon {
-  width: var(--space-5);
-  height: var(--space-5);
-  fill: none;
-  stroke: var(--color-text-primary);
+  width: var(--space-6);
+  height: var(--space-6);
+  fill: var(--overlay-backdrop);
+  stroke: var(--color-text-inverse);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 1px 1px var(--overlay-backdrop));
 }
 
 @media (--viewport-desktop) {
