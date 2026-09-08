@@ -5,6 +5,13 @@ import { E2E_API_ORIGIN } from "../support/runtimeOrigins";
 const toErrorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
+test.beforeEach(async ({ context }) => {
+  await context.route(
+    /^https:\/\/images\.unsplash\.com\/photo-1566073771259-6a8506099945(?:\?.*)?$/,
+    (route) => route.fulfill({ status: 204, body: "" }),
+  );
+});
+
 test("network isolation is active for tests that request only a page", async ({
   page,
 }) => {
@@ -17,9 +24,7 @@ test("network isolation is active for tests that request only a page", async ({
   await page.goto("/login");
 
   expect((await authResponse).status()).toBe(401);
-  await expect(
-    page.getByRole("heading", { name: "로그인", level: 1 }),
-  ).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "로그인" })).toBeVisible();
 });
 
 test("the production-build server rejects an unexpected Host header", async ({

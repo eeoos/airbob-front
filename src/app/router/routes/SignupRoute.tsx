@@ -22,8 +22,12 @@ function SignupRoute() {
       canComplete={() =>
         browserWindowNavigation.isCurrentHistoryEntry(routeEntry)
       }
-      onSuccess={() => navigate(routeTo.login())}
-      onAlternate={() => navigate(routeTo.login())}
+      onSuccess={() =>
+        navigate(routeTo.home(), { state: { authModal: "login" } })
+      }
+      onAlternate={() =>
+        navigate(routeTo.home(), { state: { authModal: "login" } })
+      }
     />
   );
 }

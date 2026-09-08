@@ -15,6 +15,16 @@ vi.mock("../session/useSession", () => ({
   useSession: vi.fn(),
 }));
 
+const mockIsCurrentHistoryEntry = vi.fn<(...args: unknown[]) => boolean>(
+  () => true,
+);
+vi.mock("../../platform/browser/windowNavigation", () => ({
+  browserWindowNavigation: {
+    isCurrentHistoryEntry: (...args: unknown[]) =>
+      mockIsCurrentHistoryEntry(...args),
+  },
+}));
+
 const mockLocation = {
   pathname: "/wishlist",
   search: "?view=recently-viewed",
@@ -100,6 +110,7 @@ const renderRequireAuthenticatedRoute = (state: SessionState) => {
 describe("RequireAuthenticatedRoute session state handling", () => {
   beforeEach(() => {
     mockUseSession.mockReset();
+    mockIsCurrentHistoryEntry.mockReturnValue(true);
   });
 
   it("keeps the route pending during a session check without redirecting", () => {
@@ -146,19 +157,50 @@ describe("RequireAuthenticatedRoute session state handling", () => {
     });
 
     const redirect = screen.getByTestId("navigate");
-    expect(redirect).toHaveAttribute("data-to", routeTo.login());
+    expect(redirect).toHaveAttribute("data-to", routeTo.home());
     expect(redirect).toHaveAttribute("data-replace", "true");
     expect(redirect).toHaveAttribute(
       "data-state",
       JSON.stringify({
-        from: {
-          pathname: mockLocation.pathname,
-          search: mockLocation.search,
-          hash: mockLocation.hash,
+        authModal: "login",
+        returnTo: {
+          from: {
+            pathname: mockLocation.pathname,
+            search: mockLocation.search,
+            hash: mockLocation.hash,
+          },
         },
       }),
     );
     expect(screen.queryByText("보호된 페이지")).not.toBeInTheDocument();
+  });
+
+  it("does not let the retiring route reopen login during logout navigation", () => {
+    mockIsCurrentHistoryEntry.mockReturnValue(false);
+    renderRequireAuthenticatedRoute({
+      status: "anonymous",
+      reason: "logout",
+      revocation: "unverified",
+      operationId: 2,
+      epoch: 1,
+    });
+    expect(screen.queryByTestId("navigate")).not.toBeInTheDocument();
+    expect(screen.queryByText("보호된 페이지")).not.toBeInTheDocument();
+  });
+
+  it("can request login again for a new protected navigation after logout", () => {
+    renderRequireAuthenticatedRoute({
+      status: "anonymous",
+      reason: "logout",
+      revocation: "verified",
+      operationId: 2,
+      epoch: 1,
+    });
+    expect(screen.getByTestId("navigate")).toHaveAttribute("data-to", "/");
+    expect(screen.getByTestId("navigate")).toHaveAttribute(
+      "data-state",
+      expect.stringContaining('"authModal":"login"'),
+    );
   });
 
   it.each([

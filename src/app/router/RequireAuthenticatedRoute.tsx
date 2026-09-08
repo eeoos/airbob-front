@@ -1,5 +1,6 @@
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
+import { browserWindowNavigation } from "../../platform/browser/windowNavigation";
 import { Button, LoadingState, RetryableErrorState } from "../../shared/ui";
 import { useSession } from "../session/useSession";
 import { routeTo } from "./paths";
@@ -36,15 +37,27 @@ export function RequireAuthenticatedRoute({
   }
 
   if (state.status === "anonymous") {
+    // Logout can publish before React finishes the navigation home. Do not
+    // let the retiring protected route open a login modal over that navigation.
+    if (
+      state.reason === "logout" &&
+      !browserWindowNavigation.isCurrentHistoryEntry(location)
+    ) {
+      return null;
+    }
+
     return (
       <Navigate
-        to={routeTo.login()}
+        to={routeTo.home()}
         replace
         state={{
-          from: {
-            pathname: location.pathname,
-            search: location.search,
-            hash: location.hash,
+          authModal: "login",
+          returnTo: {
+            from: {
+              pathname: location.pathname,
+              search: location.search,
+              hash: location.hash,
+            },
           },
         }}
       />

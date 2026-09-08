@@ -20,7 +20,6 @@ import {
 } from "react-router-dom";
 import AccommodationDetailRoute from "./AccommodationDetailRoute";
 import AccommodationEditRoute from "./AccommodationEditRoute";
-import LoginRoute from "./LoginRoute";
 import ProfileRoute from "./ProfileRoute";
 import ReservationDetailRoute from "./ReservationDetailRoute";
 import ReviewCreateRoute from "./ReviewCreateRoute";
@@ -101,16 +100,6 @@ type CapturedProps = {
     publication: ListingEditorPublicationPort;
     query: ListingEditorQueryPort;
     routeLease: { isCurrent(): boolean };
-  };
-  login: {
-    mode: "login";
-    submitLogin: (credentials: {
-      email: string;
-      password: string;
-    }) => Promise<void>;
-    canComplete: () => boolean;
-    onSuccess: () => void;
-    onAlternate: () => void;
   };
   signup: {
     mode: "signup";
@@ -219,11 +208,11 @@ function mockRoute<Key extends keyof CapturedProps>(
 }
 
 vi.mock("../../../screens/auth/public", () => ({
-  AuthController: (props: CapturedProps["login"] | CapturedProps["signup"]) => {
+  AuthController: (props: CapturedProps["signup"]) => {
     mockCapturedProps[props.mode] = props as never;
     return (
       <button type="button" onClick={props.onSuccess}>
-        {props.mode === "login" ? "로그인 성공" : "회원가입 성공"}
+        회원가입 성공
       </button>
     );
   },
@@ -732,51 +721,7 @@ describe("app route adapter contracts", () => {
     );
   });
 
-  it("restores a validated login return target", async () => {
-    const from = {
-      pathname: "/profile",
-      search: "?mode=host&tab=reservations",
-      hash: "#calendar",
-    };
-    renderAdapter(
-      "/login",
-      { pathname: "/login", state: { from } },
-      <LoginRoute />,
-    );
-
-    expect(captured("login").submitLogin).toBe(mockSessionLogin);
-    expect(captured("login").canComplete()).toBe(true);
-    await userEvent.click(screen.getByRole("button", { name: "로그인 성공" }));
-    expectLocation("/profile?mode=host&tab=reservations#calendar");
-  });
-
-  it("drops a hostile login return target", async () => {
-    renderAdapter(
-      "/login",
-      {
-        pathname: "/login",
-        state: {
-          from: { pathname: "//evil.example/steal", search: "", hash: "" },
-        },
-      },
-      <LoginRoute />,
-    );
-
-    await userEvent.click(screen.getByRole("button", { name: "로그인 성공" }));
-    expectLocation("/");
-  });
-
-  it("rejects login completion after the browser leaves the captured route entry", () => {
-    mockIsCurrentHistoryEntry.mockReturnValue(false);
-    renderAdapter("/login", "/login", <LoginRoute />);
-
-    expect(captured("login").canComplete()).toBe(false);
-    expect(mockIsCurrentHistoryEntry).toHaveBeenCalledWith(
-      expect.objectContaining({ pathname: "/login" }),
-    );
-  });
-
-  it("injects the feature signup command and navigates to login", async () => {
+  it("injects the feature signup command and opens the home login modal", async () => {
     renderAdapter("/signup", "/signup", <SignupRoute />);
 
     expect(captured("signup").submitSignup).toBe(mockSignup);
@@ -784,7 +729,10 @@ describe("app route adapter contracts", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "회원가입 성공" }),
     );
-    expectLocation("/login");
+    expectLocation("/");
+    expect(screen.getByTestId("current-location-state")).toHaveTextContent(
+      JSON.stringify({ authModal: "login" }),
+    );
   });
 
   it("parses wishlist URL state once and owns typed navigation commands", async () => {
