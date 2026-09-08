@@ -1,6 +1,8 @@
 import { apiSuccess } from "../fixtures/api";
 import { test, expect } from "../fixtures/test";
 
+test.use({ hasTouch: true });
+
 const imageUrl = "https://images.airbob.invalid/mobile-detail.svg";
 const name = "모바일 상세 확인 숙소";
 const address = {
@@ -152,7 +154,32 @@ test("opens mobile details in place with a photo header, review carousel and edi
     name: "후기 미리보기",
     exact: true,
   });
-  await page.getByRole("button", { name: "다음 후기", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "이전 후기", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "다음 후기", exact: true }),
+  ).toHaveCount(0);
+  await carousel.scrollIntoViewIfNeeded();
+  const carouselBounds = await carousel.boundingBox();
+  expect(carouselBounds).not.toBeNull();
+  const swipeY = carouselBounds!.y + 80;
+  const touchClient = await context.newCDPSession(page);
+  await touchClient.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [{ x: 330, y: swipeY }],
+  });
+  for (let step = 1; step <= 10; step++) {
+    await touchClient.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ x: 330 - step * 25, y: swipeY }],
+    });
+  }
+  await touchClient.send("Input.dispatchTouchEvent", {
+    type: "touchEnd",
+    touchPoints: [],
+  });
+  await touchClient.detach();
   await expect
     .poll(() => carousel.evaluate((el) => el.scrollLeft))
     .toBeGreaterThan(100);
