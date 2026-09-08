@@ -129,7 +129,6 @@ export function AccommodationActionModal({
       </button>
 
       <header className={styles.header}>
-        <p className={styles.eyebrow}>호스트 작업공간</p>
         <h2 className={styles.title}>숙소 관리</h2>
         <p className={styles.description}>
           숙소 상태를 확인하고 다음 관리 작업을 선택하세요.

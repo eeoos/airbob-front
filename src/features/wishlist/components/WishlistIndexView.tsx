@@ -99,7 +99,6 @@ export function WishlistIndexView({
   return (
     <section aria-labelledby="wishlist-library-title" className={styles.page}>
       <header className={styles.pageHeader}>
-        <p className={styles.eyebrow}>나만의 숙소 라이브러리</p>
         <h1 className={styles.pageTitle} id="wishlist-library-title">
           위시리스트
         </h1>

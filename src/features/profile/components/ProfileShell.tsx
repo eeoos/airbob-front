@@ -52,7 +52,6 @@ export function ProfileShell(props: ProfileShellProps) {
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.titleGroup}>
-          <p className={styles.eyebrow}>나의 Airbob</p>
           <h1 className={styles.title}>프로필</h1>
           <p className={styles.subtitle}>
             여행 기록과 호스팅 작업을 한곳에서 확인하세요.

@@ -58,16 +58,6 @@
   padding: 0 var(--space-1) 0 calc(var(--control-touch-target) + var(--space-3));
 }
 
-.eyebrow {
-  margin: 0 0 var(--space-1);
-  color: var(--color-action-primary-hover);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.08em;
-  line-height: var(--line-height-heading);
-  text-transform: uppercase;
-}
-
 .title {
   margin: 0;
   color: var(--color-brand-ink);

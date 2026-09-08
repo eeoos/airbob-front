@@ -109,7 +109,6 @@ export function RecentlyViewedView({
           </svg>
         </button>
         <div className={styles.routeHeading}>
-          <p className={styles.eyebrow}>최근의 관심</p>
           <h1 className={styles.recentlyViewedTitle} id="recently-viewed-title">
             최근 조회
           </h1>
