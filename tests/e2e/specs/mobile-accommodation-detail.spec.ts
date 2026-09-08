@@ -112,7 +112,7 @@ test.beforeEach(async ({ api, session, context }) => {
   );
 });
 
-test("opens mobile details in place with a photo header, review carousel and editable booking sheet", async ({
+test("opens mobile details in place with a photo header, review carousel and inline booking calendar", async ({
   page,
   context,
 }) => {
@@ -201,28 +201,30 @@ test("opens mobile details in place with a photo header, review carousel and edi
   await reviews.getByRole("button", { name: "후기 모달 닫기" }).click();
   await expect(reviews).toBeHidden();
 
-  await page.getByRole("button", { name: "날짜와 인원, 요금 확인" }).click();
-  const booking = page.getByRole("dialog", { name: "예약 정보", exact: true });
-  await expect(booking).toBeVisible();
-  await booking.getByRole("button", { name: /인원.*게스트 2명/ }).click();
-  await booking.getByRole("button", { name: "성인 늘리기" }).click();
-  await booking.getByRole("button", { name: /인원.*게스트 3명/ }).click();
-  await booking.getByRole("button", { name: /^체크아웃 / }).click();
-  const dates = booking.getByRole("dialog", {
-    name: "예약 날짜 선택",
-    exact: true,
-  });
-  await expect(dates).toBeVisible();
-  await dates.getByRole("gridcell", { name: /2026년 7월 14일/ }).click();
+  await page.getByRole("button", { name: "숙박 날짜 변경" }).click();
+  const calendar = page.getByRole("region", { name: "숙박 날짜", exact: true });
+  await expect(
+    calendar.getByRole("heading", { name: "부산, 대한민국에서 2박" }),
+  ).toBeInViewport();
+  await expect(
+    page.getByRole("dialog", { name: "예약 정보", exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "성인 늘리기" })).toHaveCount(
+    0,
+  );
+  await expect(calendar.getByRole("grid")).toHaveCount(1);
+  await calendar.getByRole("gridcell", { name: /2026년 7월 10일/ }).click();
+  await calendar.getByRole("gridcell", { name: /2026년 7월 14일/ }).click();
   await expect(page).toHaveURL(/checkOut=2026-07-14/);
-  await booking.getByRole("button", { name: "완료", exact: true }).click();
-  await expect(booking).toBeHidden();
   await expect(
-    page.getByRole("button", { name: "날짜와 인원, 요금 확인" }),
-  ).toContainText("게스트 3명");
+    page.getByRole("button", { name: "숙박 날짜 변경" }),
+  ).toContainText("게스트 2명");
   await expect(
-    page.getByRole("button", { name: "날짜와 인원, 요금 확인" }),
+    page.getByRole("button", { name: "숙박 날짜 변경" }),
   ).toContainText("600,000");
+  await expect(
+    calendar.getByRole("heading", { name: "부산, 대한민국에서 4박" }),
+  ).toBeVisible();
   await page
     .getByRole("button", { name: "이전 화면으로", exact: true })
     .click();
@@ -257,26 +259,120 @@ test("selects missing dates from the mobile booking bar at 320px and supports di
   await page
     .getByRole("button", { name: "예약 가능 여부 보기", exact: true })
     .click();
-  const booking = page.getByRole("dialog", { name: "예약 정보", exact: true });
-  const dates = booking.getByRole("dialog", {
+  const dates = page.getByRole("dialog", {
     name: "예약 날짜 선택",
     exact: true,
   });
+  await expect(
+    dates.getByRole("heading", { name: "체크인 날짜 선택" }),
+  ).toBeVisible();
+  await expect(
+    dates.getByRole("button", { name: "저장", exact: true }),
+  ).toBeDisabled();
+  await expect(dates.getByRole("grid")).toHaveCount(7);
+  expect(await dates.evaluate((el) => el.scrollWidth)).toBeLessThanOrEqual(320);
+  await dates.getByRole("gridcell", { name: /2026년 8월 30일/ }).click();
+  await expect(
+    dates.getByRole("heading", { name: "체크아웃 날짜 선택" }),
+  ).toBeVisible();
+  await dates.getByRole("gridcell", { name: /2026년 9월 2일/ }).click();
+  await expect(page).not.toHaveURL(/checkIn=/);
+  await dates.getByRole("button", { name: "저장", exact: true }).click();
+  await expect(dates).toBeHidden();
+  await expect(page).toHaveURL(/checkIn=2026-08-30&checkOut=2026-09-02/);
+  const calendar = page.getByRole("region", { name: "숙박 날짜", exact: true });
+  await expect(
+    page.getByRole("button", { name: "숙박 날짜 변경" }),
+  ).toContainText("450,000");
+  await expect(
+    calendar.getByRole("grid", { name: "2026년 8월" }),
+  ).toBeVisible();
+  await calendar.getByRole("button", { name: "날짜 지우기" }).click();
+  await expect(page).not.toHaveURL(/checkIn=/);
+  await expect(
+    page.getByRole("button", { name: "숙박 날짜 변경" }),
+  ).toContainText("날짜를 선택해");
+  await expect(
+    page.getByRole("button", { name: "숙박 날짜 변경" }),
+  ).toContainText("★ 4.7");
+  await page
+    .getByRole("button", { name: "예약 가능 여부 보기", exact: true })
+    .click();
   await expect(dates).toBeVisible();
   await dates.getByRole("gridcell", { name: /2026년 7월 10일/ }).click();
   await dates.getByRole("gridcell", { name: /2026년 7월 12일/ }).click();
-  await expect(page).toHaveURL(/checkIn=2026-07-10&checkOut=2026-07-12/);
-  expect(await booking.evaluate((el) => el.scrollWidth)).toBeLessThanOrEqual(
-    320,
-  );
-  await booking.getByRole("button", { name: "완료", exact: true }).click();
-  await expect(
-    page.getByRole("button", { name: "날짜와 인원, 요금 확인" }),
-  ).toContainText("300,000");
+  await dates.getByRole("button", { name: "날짜 선택 닫기" }).click();
+  await expect(page).not.toHaveURL(/checkIn=/);
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(320);
   await page
     .getByRole("button", { name: "이전 화면으로", exact: true })
     .click();
   await expect(page).toHaveURL(/\/search$/);
+});
+
+test("shows the mobile final quote before checkout and locks calendar changes until it is released", async ({
+  page,
+  api,
+  session,
+}) => {
+  session.authenticate();
+  api.register("GET", "/api/v1/coupons", apiSuccess({ infos: [] }));
+  api.register(
+    "POST",
+    "/api/v1/members/recently-viewed/281",
+    apiSuccess(null, 201),
+  );
+  api.register(
+    "POST",
+    "/api/v1/reservation-quotes",
+    apiSuccess(
+      {
+        quote_uid: "11111111-1111-4111-8111-111111111111",
+        accommodation_id: 281,
+        order_name: `${name} 2박`,
+        check_in: "2026-07-10",
+        check_out: "2026-07-12",
+        guest_count: 2,
+        nightly_price: 150000,
+        nights: 2,
+        subtotal: 300000,
+        discount_amount: 0,
+        amount: 300000,
+        currency: "KRW",
+        payment_required: true,
+        inventory_held: false,
+        quote_expires_at: "2026-07-01T03:10:00Z",
+        server_time: "2026-07-01T03:00:00Z",
+      },
+      201,
+    ),
+  );
+  await page.setViewportSize({ width: 425, height: 1024 });
+  await page.goto(
+    "/accommodations/281?checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2",
+  );
+  await page.getByRole("button", { name: "예약하기", exact: true }).click();
+  const quote = page.getByRole("region", { name: "확정된 예약 견적" });
+  await expect(quote).toBeInViewport();
+  await expect(quote).toContainText("300,000");
+  await expect(
+    page.getByRole("button", { name: "예약 계속하기" }),
+  ).toBeEnabled();
+  expect(api.matching("POST", "/api/v1/reservations")).toHaveLength(0);
+  const calendar = page.getByRole("region", { name: "숙박 날짜", exact: true });
+  await expect(
+    calendar.getByRole("gridcell", { name: /2026년 7월 15일/ }),
+  ).toBeDisabled();
+  await expect(
+    calendar.getByRole("button", { name: "날짜 지우기" }),
+  ).toBeDisabled();
+  await quote.getByRole("button", { name: "조건 다시 선택" }).click();
+  await expect(quote).toHaveCount(0);
+  await expect(
+    calendar.getByRole("gridcell", { name: /2026년 7월 15일/ }),
+  ).toBeEnabled();
 });
 
 for (const viewport of [

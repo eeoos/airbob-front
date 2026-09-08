@@ -1,4 +1,5 @@
 import { useRef, type ComponentProps } from "react";
+import { useResponsiveLayout } from "../../shared/styles/useResponsiveLayout";
 import { AccommodationBookingCard } from "../../features/accommodations/detail/components/AccommodationBookingCard";
 import {
   AccommodationDescriptionModal,
@@ -70,6 +71,7 @@ export function AccommodationDetailScreen({
   state,
 }: AccommodationDetailScreenProps) {
   const stateOwnerRef = useRef<HTMLDivElement>(null);
+  const isMobile = useResponsiveLayout() === "mobile-tablet";
   const backButton = onBack && (
     <button
       type="button"
@@ -204,13 +206,27 @@ export function AccommodationDetailScreen({
           <div className={styles.leftColumn}>
             <AccommodationOverview {...view.overview} />
           </div>
-          <div className={styles.sidebar}>
-            <AccommodationBookingCard {...view.bookingCard} />
-          </div>
+          {!isMobile && (
+            <div className={styles.sidebar}>
+              <AccommodationBookingCard {...view.bookingCard} />
+            </div>
+          )}
         </div>
 
         <AccommodationLocationSection {...view.location} />
         <AccommodationReviewsSection {...view.reviews} />
+        {isMobile && (
+          <AccommodationBookingCard
+            {...view.bookingCard}
+            locationLabel={view.overview.detailView.locationLabel}
+            {...(view.overview.detailView.rating.hasReviews
+              ? {
+                  ratingLabel:
+                    view.overview.detailView.rating.averageRatingLabel,
+                }
+              : {})}
+          />
+        )}
       </PageContainer>
 
       <ReviewModal {...view.reviewModal} />

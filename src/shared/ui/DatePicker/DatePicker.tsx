@@ -36,7 +36,7 @@ export interface DatePickerProps {
   disabledRanges?: readonly DatePickerDisabledRange[];
   selectionWindow?: DatePickerSelectionWindow;
   hideFooter?: boolean;
-  variant?: "default" | "compact" | "search";
+  variant?: "default" | "compact" | "search" | "inline" | "sheet";
   selectionEndpoint?: "checkIn" | "checkOut";
 }
 
@@ -218,7 +218,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   const internalPickerRef = useRef<HTMLDivElement>(null);
   const pickerRef = datePickerRef ?? internalPickerRef;
   const dateCellRefs = useRef(new Map<string, HTMLButtonElement>());
-  const dateFocusRequestRef = useRef<"initial" | "roving" | null>("initial");
+  const dateFocusRequestRef = useRef<"initial" | "roving" | null>(
+    variant === "inline" || variant === "sheet" ? null : "initial",
+  );
   const pickerId = useId();
 
   useEffect(() => {
@@ -237,6 +239,20 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       dateCell?.focus();
     }
   }, [currentMonth, focusedDate]);
+
+  useEffect(() => {
+    if (
+      variant !== "inline" ||
+      !checkInKey ||
+      pickerRef.current?.contains(document.activeElement)
+    )
+      return;
+
+    // A date saved in the separate mobile calendar must also be visible here.
+    dateFocusRequestRef.current = null;
+    setCurrentMonth(startOfMonth(initialFocusedDate));
+    setFocusedDate(initialFocusedDate);
+  }, [checkInKey, initialFocusedDate, pickerRef, variant]);
 
   const isDateInRange = (date: Date): boolean => {
     if (!checkInKey || !checkOutKey) return false;
@@ -273,21 +289,26 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
   const ensureDateIsVisible = useCallback(
     (date: Date) => {
+      if (variant === "sheet") return;
       const targetMonthIndex = getMonthIndex(date);
       const currentMonthIndex = getMonthIndex(currentMonth);
-      const nextMonthIndex = getMonthIndex(nextMonth);
+      const nextMonthIndex = getMonthIndex(
+        variant === "inline" ? currentMonth : nextMonth,
+      );
 
       if (targetMonthIndex < currentMonthIndex) {
         setCurrentMonth(startOfMonth(date));
       } else if (targetMonthIndex > nextMonthIndex) {
-        setCurrentMonth(addMonths(date, -1));
+        setCurrentMonth(
+          variant === "inline" ? startOfMonth(date) : addMonths(date, -1),
+        );
       }
     },
-    [currentMonth, nextMonth],
+    [currentMonth, nextMonth, variant],
   );
 
   const moveDateFocus = useCallback(
-    (targetDate: Date, preferredDirection: -1 | 1) => {
+    (targetDate: Date, preferredDirection: -1 | 1, requestFocus = true) => {
       const nextFocusedDate = findClosestEnabledDate(
         targetDate,
         preferredDirection,
@@ -297,7 +318,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       if (!nextFocusedDate) return;
 
       ensureDateIsVisible(nextFocusedDate);
-      dateFocusRequestRef.current = "roving";
+      dateFocusRequestRef.current = requestFocus ? "roving" : null;
       setFocusedDate(nextFocusedDate);
     },
     [ensureDateIsVisible, isDateDisabled],
@@ -306,8 +327,13 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   useEffect(() => {
     if (!isDateDisabled(focusedDate)) return;
 
-    moveDateFocus(addDays(focusedDate, 1), 1);
-  }, [focusedDate, isDateDisabled, moveDateFocus]);
+    moveDateFocus(
+      addDays(focusedDate, 1),
+      1,
+      (variant !== "inline" && variant !== "sheet") ||
+        Boolean(pickerRef.current?.contains(document.activeElement)),
+    );
+  }, [focusedDate, isDateDisabled, moveDateFocus, pickerRef, variant]);
 
   const selectDate = useCallback(
     (date: Date) => {
@@ -401,7 +427,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
     if (
       nextFocusedMonthIndex < nextCurrentMonthIndex ||
-      nextFocusedMonthIndex > nextCurrentMonthIndex + 1
+      nextFocusedMonthIndex >
+        nextCurrentMonthIndex + (variant === "inline" ? 0 : 1)
     ) {
       return;
     }
@@ -410,6 +437,19 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     dateFocusRequestRef.current = null;
     setFocusedDate(nextFocusedDate);
   };
+
+  const sheetMonths = useMemo(() => {
+    const firstMonth = startOfMonth(minimumDate);
+    const lastDate = windowEndExclusiveKey
+      ? calendarLocalDateToDate(windowEndExclusiveKey)
+      : null;
+    const count = lastDate
+      ? getMonthIndex(lastDate) - getMonthIndex(firstMonth) + 1
+      : 12;
+    return Array.from({ length: Math.max(1, count) }, (_, index) =>
+      addMonths(firstMonth, index),
+    );
+  }, [minimumDate, windowEndExclusiveKey]);
 
   const renderCalendar = (
     month: Date,
@@ -423,7 +463,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     return (
       <div className={styles.calendar}>
         <div className={styles.monthHeader}>
-          {variant === "search" && (
+          {(variant === "search" || variant === "inline") && (
             <button
               aria-label={
                 navigationDirection === -1 ? "이전 달 보기" : "다음 달 보기"
@@ -444,6 +484,16 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           <h3 id={monthHeadingId} className={styles.monthName}>
             {monthName}
           </h3>
+          {variant === "inline" && (
+            <button
+              aria-label="다음 달 보기"
+              className={`${styles.monthNavButton} ${styles.nextMonthButton}`}
+              type="button"
+              onClick={() => moveVisibleMonth(1)}
+            >
+              <span aria-hidden="true">›</span>
+            </button>
+          )}
         </div>
         <div
           className={styles.calendarGrid}
@@ -557,7 +607,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   };
 
   const handlePickerKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== "Escape") return;
+    if (event.key !== "Escape" || variant === "inline") return;
 
     event.preventDefault();
     event.stopPropagation();
@@ -569,12 +619,12 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       aria-label="날짜 선택"
       className={`${styles.datePicker} ${
         variant === "compact" ? styles.compact : ""
-      } ${variant === "search" ? styles.search : ""}`}
+      } ${variant === "search" || variant === "inline" || variant === "sheet" ? styles.search : ""} ${variant === "inline" || variant === "sheet" ? styles.inline : ""} ${variant === "sheet" ? styles.sheet : ""}`}
       ref={pickerRef}
       onKeyDownCapture={handlePickerKeyDown}
       role="group"
     >
-      {variant !== "search" && (
+      {variant !== "search" && variant !== "inline" && variant !== "sheet" && (
         <div className={styles.navHeader}>
           <button
             aria-label="이전 달 보기"
@@ -600,12 +650,27 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
       <div className={styles.calendarsScrollArea}>
         <div className={styles.calendars}>
-          <div className={styles.calendarWrapper}>
-            {renderCalendar(currentMonth, currentMonthWeeks, -1)}
-          </div>
-          <div className={styles.calendarWrapper}>
-            {renderCalendar(nextMonth, nextMonthWeeks, 1)}
-          </div>
+          {variant === "sheet" ? (
+            sheetMonths.map((month) => (
+              <div
+                className={styles.calendarWrapper}
+                key={formatDateKey(month)}
+              >
+                {renderCalendar(month, getCalendarWeeks(month), -1)}
+              </div>
+            ))
+          ) : (
+            <>
+              <div className={styles.calendarWrapper}>
+                {renderCalendar(currentMonth, currentMonthWeeks, -1)}
+              </div>
+              {variant !== "inline" && (
+                <div className={styles.calendarWrapper}>
+                  {renderCalendar(nextMonth, nextMonthWeeks, 1)}
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
 
@@ -630,13 +695,15 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           >
             날짜 지우기
           </button>
-          <button
-            className={styles.closeButton}
-            type="button"
-            onClick={onClose}
-          >
-            닫기
-          </button>
+          {variant !== "inline" && (
+            <button
+              className={styles.closeButton}
+              type="button"
+              onClick={onClose}
+            >
+              닫기
+            </button>
+          )}
         </div>
       )}
     </div>

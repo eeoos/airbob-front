@@ -66,6 +66,60 @@ describe("DatePicker", () => {
     ).toHaveTextContent("토");
   });
 
+  it("keeps an inline calendar in the page without stealing focus or adding a close action", () => {
+    const trigger = document.createElement("button");
+    document.body.appendChild(trigger);
+    trigger.focus();
+    const { props } = renderDatePicker({ variant: "inline" });
+
+    expect(trigger).toHaveFocus();
+    expect(screen.getAllByRole("grid")).toHaveLength(1);
+    expect(
+      screen.queryByRole("button", { name: "닫기" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "다음 달 보기" }));
+    expect(
+      screen.getByRole("grid", { name: "2026년 8월" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "이전 달 보기" }));
+    expect(
+      screen.getByRole("grid", { name: "2026년 7월" }),
+    ).toBeInTheDocument();
+    const lastDay = screen.getByRole("gridcell", { name: /2026년 7월 31일/ });
+    fireEvent.keyDown(lastDay, { key: "ArrowRight" });
+    expect(
+      screen.getByRole("gridcell", { name: /2026년 8월 1일/ }),
+    ).toHaveFocus();
+    fireEvent.click(screen.getByRole("button", { name: "날짜 지우기" }));
+    expect(props.onDateSelect).toHaveBeenCalledWith(null, null);
+    fireEvent.keyDown(screen.getByRole("group", { name: "날짜 선택" }), {
+      key: "Escape",
+    });
+    expect(props.onClose).not.toHaveBeenCalled();
+    trigger.remove();
+  });
+
+  it("renders the availability window as vertically scrollable months in a date sheet", () => {
+    renderDatePicker({
+      variant: "sheet",
+      hideFooter: true,
+      selectionWindow: {
+        startInclusive: "2026-07-10",
+        endExclusive: "2026-10-01",
+      },
+    });
+    expect(screen.getAllByRole("grid")).toHaveLength(4);
+    expect(
+      screen.queryByRole("button", { name: "다음 달 보기" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("gridcell", { name: /2026년 7월 9일/ }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("grid", { name: "2026년 10월" }),
+    ).toBeInTheDocument();
+  });
+
   it("applies the compact surface only when a consumer requests it", () => {
     const view = renderDatePicker({ variant: "compact" });
     const compactClass = styles.compact;

@@ -1,6 +1,5 @@
 import React from "react";
-import { requireCssModuleClass } from "../../../../shared/styles/requireCssModuleClass";
-import { Dialog } from "../../../../shared/ui";
+import { DatePicker } from "../../../../shared/ui";
 import { useResponsiveLayout } from "../../../../shared/styles/useResponsiveLayout";
 import type { AccommodationBookingViewModel } from "../lib/accommodationBookingViewModel";
 import type { AccommodationBookingCouponViewModel } from "../lib/accommodationBookingSectionsViewModel";
@@ -14,6 +13,7 @@ import {
   BookingReserveAction,
 } from "./AccommodationBookingCardSections";
 import styles from "./AccommodationBookingCard.module.css";
+import { AccommodationMobileDateDialog } from "./AccommodationMobileDateDialog";
 
 type BookingCoupon = AccommodationBookingCouponViewModel;
 
@@ -94,6 +94,8 @@ interface AccommodationCouponActions {
 }
 
 interface AccommodationBookingCardProps {
+  locationLabel?: string;
+  ratingLabel?: string;
   bookingView: AccommodationBookingViewModel;
   isAuthenticated: boolean;
   bookingState: AccommodationBookingState;
@@ -103,6 +105,8 @@ interface AccommodationBookingCardProps {
 }
 
 export function AccommodationBookingCard({
+  locationLabel,
+  ratingLabel,
   bookingView,
   isAuthenticated,
   bookingState,
@@ -111,7 +115,9 @@ export function AccommodationBookingCard({
   couponActions,
 }: AccommodationBookingCardProps) {
   const isMobile = useResponsiveLayout() === "mobile-tablet";
-  const [isMobileBookingOpen, setIsMobileBookingOpen] = React.useState(false);
+  const [isMobileDatesOpen, setIsMobileDatesOpen] = React.useState(false);
+  const calendarHeadingRef = React.useRef<HTMLHeadingElement>(null);
+  const quoteSummaryRef = React.useRef<HTMLDivElement>(null);
   const {
     payablePrice,
     nights,
@@ -171,11 +177,17 @@ export function AccommodationBookingCard({
     onGuestPickerOpenChange(false);
     onDatePickerOpenChange(true);
   };
-  const closeMobileBooking = () => {
-    onDatePickerOpenChange(false);
-    onGuestPickerOpenChange(false);
-    setIsMobileBookingOpen(false);
+  const requestMobileDates = () => {
+    calendarHeadingRef.current?.scrollIntoView({ block: "start" });
+    calendarHeadingRef.current?.focus({ preventScroll: true });
   };
+
+  const hasQuote = quoteSnapshot !== null;
+  React.useEffect(() => {
+    if (!isMobile || !hasQuote) return;
+    quoteSummaryRef.current?.scrollIntoView({ block: "center" });
+    quoteSummaryRef.current?.focus({ preventScroll: true });
+  }, [hasQuote, isMobile]);
   const renderReserveAction = (
     reserve: () => void,
     selectDates: () => void,
@@ -192,6 +204,52 @@ export function AccommodationBookingCard({
       retryAvailability={retryAvailability}
       selectionState={selectionState}
     />
+  );
+
+  const priceDetails = (
+    <>
+      {isAuthenticated && (
+        <BookingCouponSection
+          couponDiscount={couponDiscount}
+          coupons={coupons}
+          errorMessage={couponErrorMessage}
+          handleIssueCoupon={handleIssueCoupon}
+          isLoadingCoupons={isLoadingCoupons}
+          selectedCoupon={selectedCoupon}
+          onSelectedCouponIdChange={onSelectedCouponIdChange}
+          selectionLocked={selectionLocked}
+        />
+      )}
+
+      <BookingPriceBreakdown
+        basePrice={basePrice}
+        couponDiscount={couponDiscount}
+        nights={nights}
+        selectedCoupon={selectedCoupon}
+        totalPrice={totalPrice}
+      />
+
+      {quoteSnapshot && (
+        <div
+          ref={quoteSummaryRef}
+          tabIndex={-1}
+          className={styles.quoteFocusTarget}
+        >
+          <BookingQuoteSummary
+            amount={quoteSnapshot.amount}
+            canAbandon={
+              quoteSnapshot.phase === "quoted" ||
+              quoteSnapshot.phase === "checkout-prepared"
+            }
+            currency={quoteSnapshot.currency}
+            discountAmount={quoteSnapshot.discountAmount}
+            onAbandonQuote={onAbandonQuote}
+            quoteExpiresAt={quoteSnapshot.quoteExpiresAt}
+            subtotal={quoteSnapshot.subtotal}
+          />
+        </div>
+      )}
+    </>
   );
 
   const bookingContent = (
@@ -239,41 +297,7 @@ export function AccommodationBookingCard({
         selectionLocked={selectionLocked}
       />
 
-      {isAuthenticated && (
-        <BookingCouponSection
-          couponDiscount={couponDiscount}
-          coupons={coupons}
-          errorMessage={couponErrorMessage}
-          handleIssueCoupon={handleIssueCoupon}
-          isLoadingCoupons={isLoadingCoupons}
-          selectedCoupon={selectedCoupon}
-          onSelectedCouponIdChange={onSelectedCouponIdChange}
-          selectionLocked={selectionLocked}
-        />
-      )}
-
-      <BookingPriceBreakdown
-        basePrice={basePrice}
-        couponDiscount={couponDiscount}
-        nights={nights}
-        selectedCoupon={selectedCoupon}
-        totalPrice={totalPrice}
-      />
-
-      {quoteSnapshot && (
-        <BookingQuoteSummary
-          amount={quoteSnapshot.amount}
-          canAbandon={
-            quoteSnapshot.phase === "quoted" ||
-            quoteSnapshot.phase === "checkout-prepared"
-          }
-          currency={quoteSnapshot.currency}
-          discountAmount={quoteSnapshot.discountAmount}
-          onAbandonQuote={onAbandonQuote}
-          quoteExpiresAt={quoteSnapshot.quoteExpiresAt}
-          subtotal={quoteSnapshot.subtotal}
-        />
-      )}
+      {priceDetails}
 
       {renderReserveAction(onReserve, requestDates)}
     </section>
@@ -283,12 +307,69 @@ export function AccommodationBookingCard({
 
   return (
     <>
+      <section className={styles.mobileCalendarSection} aria-label="숙박 날짜">
+        <h2
+          ref={calendarHeadingRef}
+          tabIndex={-1}
+          className={styles.mobileCalendarHeading}
+        >
+          {hasCompleteStay
+            ? `${locationLabel ? `${locationLabel}에서 ` : ""}${displayedNights}박`
+            : checkIn
+              ? "체크아웃 날짜 선택"
+              : "체크인 날짜 선택"}
+        </h2>
+        <p className={styles.mobileCalendarSummary}>
+          {checkIn
+            ? `${formatDate(checkIn)}${checkOut ? ` – ${formatDate(checkOut)}` : " · 체크아웃 날짜를 선택해주세요"}`
+            : "여행 날짜를 선택하면 요금을 확인할 수 있어요."}
+        </p>
+        {availabilityStatus === "ready" ? (
+          <fieldset
+            disabled={selectionLocked}
+            className={styles.mobileCalendar}
+            aria-label="숙박 날짜 선택"
+          >
+            <DatePicker
+              checkIn={checkIn}
+              checkOut={checkOut}
+              onDateSelect={handleDateSelect}
+              onClose={() => undefined}
+              disabledRanges={availability.disabledRanges}
+              {...(availability.selectionWindow
+                ? { selectionWindow: availability.selectionWindow }
+                : {})}
+              variant="inline"
+            />
+          </fieldset>
+        ) : (
+          <div className={styles.mobileCalendarStatus} role="status">
+            {availabilityStatus === "loading"
+              ? "예약 가능한 날짜를 확인하고 있어요."
+              : "날짜 정보를 불러오지 못했어요."}
+            {availabilityStatus === "error" && (
+              <button
+                type="button"
+                className={styles.quoteResetButton}
+                onClick={retryAvailability}
+              >
+                다시 불러오기
+              </button>
+            )}
+          </div>
+        )}
+        {priceDetails}
+      </section>
       <div className={styles.mobileBookingBar} aria-label="예약 요약">
         <button
           className={styles.mobileSummaryButton}
           type="button"
-          aria-label="날짜와 인원, 요금 확인"
-          onClick={() => setIsMobileBookingOpen(true)}
+          aria-label="숙박 날짜 변경"
+          onClick={
+            hasCompleteStay
+              ? requestMobileDates
+              : () => setIsMobileDatesOpen(true)
+          }
         >
           {hasCompleteStay ? (
             <>
@@ -309,34 +390,31 @@ export function AccommodationBookingCard({
               요금 확인
             </strong>
           )}
-          <span className={styles.mobileStaySummary}>
-            게스트 {adultCount + childCount}명
-            {infantCount > 0 ? ` · 유아 ${infantCount}명` : ""}
-            {petCount > 0 ? ` · 반려동물 ${petCount}마리` : ""}
-          </span>
+          {hasCompleteStay ? (
+            <span className={styles.mobileStaySummary}>
+              게스트 {adultCount + childCount}명
+              {infantCount > 0 ? ` · 유아 ${infantCount}명` : ""}
+              {petCount > 0 ? ` · 반려동물 ${petCount}마리` : ""}
+            </span>
+          ) : ratingLabel ? (
+            <span className={styles.mobileRating}>★ {ratingLabel}</span>
+          ) : null}
         </button>
         <div className={styles.mobileReserveAction}>
-          {renderReserveAction(
-            () => setIsMobileBookingOpen(true),
-            () => {
-              setIsMobileBookingOpen(true);
-              requestDates();
-            },
-          )}
+          {renderReserveAction(onReserve, () => setIsMobileDatesOpen(true))}
         </div>
       </div>
-      <Dialog
-        isOpen={isMobileBookingOpen}
-        onClose={closeMobileBooking}
-        title="예약 정보"
-        closeButtonLabel="완료"
-        size="custom"
-        className={requireCssModuleClass(styles.mobileBookingDialog)}
-        bodyClassName={requireCssModuleClass(styles.mobileBookingBody)}
-        bodyPadding="none"
-      >
-        {bookingContent}
-      </Dialog>
+      {isMobileDatesOpen && (
+        <AccommodationMobileDateDialog
+          checkIn={checkIn}
+          checkOut={checkOut}
+          availability={availability}
+          disabled={selectionLocked || availabilityStatus !== "ready"}
+          {...(ratingLabel ? { ratingLabel } : {})}
+          onSave={handleDateSelect}
+          onClose={() => setIsMobileDatesOpen(false)}
+        />
+      )}
     </>
   );
 }

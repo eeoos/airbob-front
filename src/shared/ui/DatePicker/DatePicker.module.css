@@ -631,3 +631,73 @@
     padding: 10px var(--space-3);
   }
 }
+
+.datePicker.inline {
+  width: 100%;
+  max-width: 100%;
+  max-height: none;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+  z-index: auto;
+  animation: none;
+}
+
+.inline .calendarsScrollArea {
+  padding: 0;
+  overflow: visible;
+}
+
+.inline .monthHeader {
+  margin-bottom: var(--space-4);
+}
+
+.inline .days {
+  grid-template-rows: repeat(6, minmax(var(--control-touch-target), 1fr));
+  gap: var(--space-2);
+}
+
+.inline .calendarWrapper,
+.inline .calendar {
+  min-width: 0;
+}
+
+.inline .week {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.inline .day {
+  min-width: 0;
+  height: auto;
+  aspect-ratio: 1;
+}
+
+.inline .dayNumber {
+  width: min(54px, 100%);
+}
+
+.inline .footer {
+  padding: var(--space-5) 0 0;
+  border: 0;
+}
+
+.sheet .calendars {
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.sheet .calendarWrapper {
+  width: 100%;
+}
+
+.sheet .monthHeader {
+  justify-content: flex-start;
+}
+
+.sheet .weekdays {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}

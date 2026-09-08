@@ -679,7 +679,12 @@ test("aligns the detail shell from 320px through 4K", async ({
         heroTitle.boundingBox(),
         overviewHeading.boundingBox(),
         locationHeading.boundingBox(),
-        reviewsHeading.boundingBox(),
+        page
+          .getByRole("region", {
+            name: "아직 등록된 후기가 없어요",
+            exact: true,
+          })
+          .boundingBox(),
         bookingAction.boundingBox(),
       ]);
 
