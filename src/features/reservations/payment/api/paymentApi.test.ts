@@ -6,6 +6,7 @@ import type {
   ReservationHoldReleaseWire,
 } from "./contracts";
 import { paymentApi } from "./paymentApi";
+import operationReadContracts from "./__fixtures__/payment-operation-read.json";
 
 vi.mock("../../../../platform/http/request", () => ({
   requestApiData: vi.fn(),
@@ -57,6 +58,28 @@ describe("payment API adapter", () => {
   beforeEach(() => {
     mockRequestApiData.mockReset();
   });
+
+  it.each(operationReadContracts)(
+    "accepts the MySQL-backed $operation_status read contract",
+    async ({ response }) => {
+      mockRequestApiData.mockResolvedValue(response);
+      await expect(
+        paymentApi.getPaymentOperation(
+          response.operation_id,
+          response.order_id,
+        ),
+      ).resolves.toEqual({
+        operationId: response.operation_id,
+        orderId: response.order_id,
+        status: response.status,
+        updatedAt: response.updated_at,
+        nextAction: response.next_action,
+        retryAfterSeconds: response.retry_after_seconds,
+        userFailureCode: response.user_failure_code,
+        serverTime: response.server_time,
+      });
+    },
+  );
 
   it("issues a payment attempt with the exact resource path, method, and signal", async () => {
     const signal = new AbortController().signal;
