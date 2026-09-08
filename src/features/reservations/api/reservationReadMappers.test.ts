@@ -252,16 +252,12 @@ describe("reservation read wire mappers", () => {
             canceledAt: "2026-07-02T10:00:00Z",
           },
         ],
-        virtualAccount: {
-          accountNumber: "1234567890",
-          bankCode: "088",
-          customerName: "게스트",
-          dueDate: "2026-07-03T23:59:59Z",
-        },
       },
     });
     expect(detail).not.toHaveProperty("requestMessage");
     expect(detail.payment).not.toHaveProperty("paymentKey");
+    expect(detail.payment).not.toHaveProperty("virtualAccount");
+    expect(JSON.stringify(detail)).not.toContain("1234567890");
     expect(JSON.stringify(detail)).not.toContain("조용한 방을 부탁드립니다.");
     expect(JSON.stringify(detail)).not.toContain("payment-1");
   });
@@ -305,11 +301,12 @@ describe("reservation read wire mappers", () => {
         balanceAmount: null,
         approvedAt: null,
         cancels: [],
-        virtualAccount: null,
       },
     });
     expect(detail).not.toHaveProperty("requestMessage");
     expect(detail.payment).not.toHaveProperty("paymentKey");
+    expect(detail.payment).not.toHaveProperty("virtualAccount");
+    expect(JSON.stringify(detail)).not.toContain("1234567890");
     expect(JSON.stringify(detail)).not.toContain("늦은 체크인을 요청합니다.");
     expect(JSON.stringify(detail)).not.toContain("host-read-payment-key");
   });

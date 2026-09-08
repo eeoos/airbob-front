@@ -47,12 +47,6 @@ export interface GuestReservationDetailView {
     readonly approvedAtLabel: string | null;
     readonly statusLabel: string;
     readonly statusTone: ReservationDetailStatusTone;
-    readonly virtualAccount: {
-      readonly bankName: string;
-      readonly accountNumber: string;
-      readonly customerName: string;
-      readonly dueDateLabel: string;
-    } | null;
   } | null;
   readonly mapEmbedUrl: string | null;
 }

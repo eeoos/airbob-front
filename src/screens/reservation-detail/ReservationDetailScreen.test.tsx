@@ -54,17 +54,11 @@ const guestView: GuestReservationDetailView = {
   },
   canReview: true,
   payment: {
-    methodLabel: "가상계좌",
+    methodLabel: "카드",
     amountLabel: "₩240,000",
     approvedAtLabel: "2026년 7월 1일 오후 2:00",
-    statusLabel: "입금 대기",
-    statusTone: "warning",
-    virtualAccount: {
-      bankName: "국민은행",
-      accountNumber: "1234567890",
-      customerName: "에어비앤비",
-      dueDateLabel: "2026년 7월 2일 오후 11:59",
-    },
+    statusLabel: "결제 완료",
+    statusTone: "success",
   },
   mapEmbedUrl:
     "https://www.google.com/maps/embed/v1/place?key=maps-key&q=37.5%2C127",
@@ -232,12 +226,9 @@ describe("ReservationDetailScreen", () => {
     expect(screen.getByText("KR Seoul Mapo 와우산로")).toBeInTheDocument();
     expect(screen.getByText("게스트 2명")).toBeInTheDocument();
     expect(screen.getByText("CODE-123")).toBeInTheDocument();
-    expect(screen.getByText("가상계좌 입금 정보")).toBeInTheDocument();
-    expect(screen.getByText("국민은행")).toBeInTheDocument();
-    expect(screen.getByText("1234567890")).toBeInTheDocument();
-    expect(
-      screen.getByText("위 가상계좌로 입금 기한 내에 입금해주세요."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("카드")).toBeInTheDocument();
+    expect(screen.getByText("결제 완료")).toBeInTheDocument();
+    expect(screen.queryByText("가상계좌 입금 정보")).not.toBeInTheDocument();
     expect(
       screen.getByRole("heading", { level: 1, name: "테스트 숙소" }),
     ).toBeInTheDocument();
@@ -259,10 +250,6 @@ describe("ReservationDetailScreen", () => {
         "결제 방법",
         "결제 금액",
         "결제 일시",
-        "은행",
-        "계좌번호",
-        "예금주",
-        "입금 기한",
       ]),
     );
 

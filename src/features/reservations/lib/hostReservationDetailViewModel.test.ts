@@ -43,7 +43,6 @@ const hostReservationDetailFixture = (
     requestedAt: "2026-07-01T00:00:00",
     approvedAt: null,
     cancels: [],
-    virtualAccount: null,
   },
   timeZoneId: "Asia/Seoul",
   ...overrides,

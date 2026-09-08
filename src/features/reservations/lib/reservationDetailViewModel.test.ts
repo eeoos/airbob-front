@@ -120,40 +120,28 @@ describe("reservation detail view model", () => {
     });
   });
 
-  it("maps virtual account payment details without exposing payment DTO names", () => {
+  it("maps card payment details without exposing payment DTO names", () => {
     const viewModel = toReservationDetailViewModel(
       reservationFixture({
         payment: {
           orderId: "order-123",
-          method: "가상계좌",
+          method: "카드",
           totalAmount: 120000,
           balanceAmount: null,
-          status: "WAITING_FOR_DEPOSIT",
+          status: "DONE",
           requestedAt: "2026-07-01T00:00:00",
           approvedAt: null,
           cancels: [],
-          virtualAccount: {
-            accountNumber: "123-456",
-            bankCode: "04",
-            customerName: "홍길동",
-            dueDate: "2026-07-02T23:59:00",
-          },
         },
       }),
     );
 
     expect(viewModel.payment).toEqual({
-      methodLabel: "가상계좌",
+      methodLabel: "카드",
       amountLabel: "₩120,000",
       approvedAtLabel: null,
-      statusLabel: "입금 대기",
-      statusTone: "warning",
-      virtualAccount: {
-        bankName: "KB국민은행",
-        accountNumber: "123-456",
-        customerName: "홍길동",
-        dueDateLabel: expect.stringContaining("2026년 7월 2일"),
-      },
+      statusLabel: "결제 완료",
+      statusTone: "success",
     });
   });
 

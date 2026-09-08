@@ -154,14 +154,6 @@ const toPayment = (
           cancelReason: cancel.cancel_reason,
           canceledAt: cancel.canceled_at,
         })),
-        virtualAccount: wire.virtual_account
-          ? {
-              accountNumber: wire.virtual_account.account_number,
-              bankCode: wire.virtual_account.bank_code,
-              customerName: wire.virtual_account.customer_name,
-              dueDate: wire.virtual_account.due_date,
-            }
-          : null,
       };
 
 const toPageInfo = (wire: ReservationPageInfoWire): ReservationPageInfo => ({

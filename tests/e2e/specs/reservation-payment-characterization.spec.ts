@@ -1708,19 +1708,13 @@ const reservationDetailWithPaymentWire = () => ({
   can_write_review: true,
   payment: {
     order_id: RESERVATION_UID,
-    method: "가상계좌",
+    method: "카드",
     total_amount: 100_000,
     balance_amount: 100_000,
-    status: "WAITING_FOR_DEPOSIT",
+    status: "DONE",
     requested_at: "2026-07-01T03:00:01Z",
-    approved_at: null,
+    approved_at: "2026-07-01T03:00:02Z",
     cancels: [],
-    virtual_account: {
-      account_number: "123-456-7890",
-      bank_code: "04",
-      customer_name: "합성 게스트",
-      due_date: "2026-07-02T14:59:00Z",
-    },
   },
 });
 
@@ -1840,9 +1834,10 @@ test("keeps the guest reservation ledger responsive with payment and media fallb
 
   await page.goto(`/reservations/${RESERVATION_UID}`);
   await expect(page.getByText("SYNTHETIC-RESERVATION")).toBeVisible();
+  await expect(page.getByText("카드", { exact: true })).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "가상계좌 입금 정보" }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   const paymentPanel = page.getByRole("region", { name: "결제 정보" });
   await expect(paymentPanel).toBeVisible();
   await paymentPanel.evaluate((element) => {

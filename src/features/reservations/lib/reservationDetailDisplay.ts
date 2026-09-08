@@ -1,28 +1,5 @@
 import type { ReservationPaymentStatus } from "../model/reservationRead";
 
-const BANK_NAMES: Record<string, string> = {
-  "20": "우리은행",
-  "88": "신한은행",
-  "04": "KB국민은행",
-  "03": "기업은행",
-  "11": "NH농협은행",
-  "23": "SC제일은행",
-  "27": "한국씨티은행",
-  "07": "수협은행",
-  "37": "전북은행",
-  "39": "경남은행",
-  "34": "광주은행",
-  "32": "부산은행",
-  "45": "새마을금고",
-  "48": "신협",
-  "50": "저축은행",
-  "71": "우체국",
-  "81": "하나은행",
-  "89": "케이뱅크",
-  "90": "카카오뱅크",
-  "92": "토스뱅크",
-};
-
 const PAYMENT_STATUS_LABELS: Partial<Record<ReservationPaymentStatus, string>> =
   {
     READY: "결제 대기",
@@ -46,11 +23,6 @@ const PAYMENT_STATUSES = new Set<ReservationPaymentStatus>([
 
 const isPaymentStatus = (status: string): status is ReservationPaymentStatus =>
   PAYMENT_STATUSES.has(status as ReservationPaymentStatus);
-
-export const formatBankName = (bankCode?: string | null) => {
-  if (!bankCode) return "-";
-  return BANK_NAMES[bankCode] ?? `은행코드 ${bankCode}`;
-};
 
 export const formatPaymentStatus = (
   status?: ReservationPaymentStatus | string | null,

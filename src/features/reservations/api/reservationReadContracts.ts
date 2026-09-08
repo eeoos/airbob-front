@@ -33,13 +33,6 @@ interface ReservationPaymentCancelWire {
   readonly canceled_at: string;
 }
 
-interface ReservationVirtualAccountWire {
-  readonly account_number: string;
-  readonly bank_code: string;
-  readonly customer_name: string;
-  readonly due_date: string;
-}
-
 export interface ReservationPaymentWire {
   readonly order_id: string;
   readonly payment_key?: unknown;
@@ -50,7 +43,6 @@ export interface ReservationPaymentWire {
   readonly requested_at: string;
   readonly approved_at?: string | null;
   readonly cancels?: readonly ReservationPaymentCancelWire[];
-  readonly virtual_account?: ReservationVirtualAccountWire | null;
 }
 
 export interface ReservationPageInfoWire {

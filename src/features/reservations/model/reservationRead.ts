@@ -53,13 +53,6 @@ interface ReservationPaymentCancel {
   readonly canceledAt: string;
 }
 
-interface ReservationVirtualAccount {
-  readonly accountNumber: string;
-  readonly bankCode: string;
-  readonly customerName: string;
-  readonly dueDate: string;
-}
-
 export interface ReservationPayment {
   readonly orderId: string;
   readonly method: string | null;
@@ -69,7 +62,6 @@ export interface ReservationPayment {
   readonly requestedAt: string;
   readonly approvedAt: string | null;
   readonly cancels: readonly ReservationPaymentCancel[];
-  readonly virtualAccount: ReservationVirtualAccount | null;
 }
 
 export interface ReservationPageInfo {

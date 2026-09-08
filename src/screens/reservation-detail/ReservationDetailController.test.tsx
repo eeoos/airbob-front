@@ -29,7 +29,6 @@ const payment = {
   requestedAt: "2026-07-01T00:00:00",
   status: "DONE" as const,
   totalAmount: 240000,
-  virtualAccount: null,
 };
 
 const guestReservation = (
