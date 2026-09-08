@@ -504,6 +504,50 @@
   text-align: center;
 }
 
+.mobileHomeBar {
+  display: flex;
+  min-width: 0;
+  width: 100%;
+  min-height: calc(var(--control-touch-target) + var(--space-3));
+}
+
+.mobileHomeSearchButton {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3) var(--space-6);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-pill);
+  background: var(--color-background-page);
+  box-shadow: var(--shadow-control);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.mobileHomeSearchButton:hover {
+  background: var(--color-background-muted);
+}
+
+.mobileHomeSearchButton:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-visible);
+}
+
+.mobileHomeSearchButton svg {
+  width: var(--space-4);
+  height: var(--space-4);
+  fill: none;
+  stroke: currentcolor;
+  stroke-linecap: round;
+  stroke-width: 2;
+}
+
 .mobileHeaderBar {
   box-sizing: border-box;
   display: grid;
@@ -795,116 +839,10 @@
   right: var(--space-1);
 }
 
-.mobileDestinationRecommendations {
-  box-sizing: border-box;
-  height: calc(
-    100% - var(--control-touch-target) - var(--space-2) - var(--space-5)
-  );
-  padding-top: var(--space-4);
-  overflow: hidden auto;
-  overscroll-behavior: contain;
-}
-
-.mobileDestinationEyebrow {
-  margin: 0 0 var(--space-2);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-}
-
-.mobileDestinationRecommendationList,
-.mobileDestinationQuickList {
-  display: grid;
-  gap: var(--space-1);
-  padding: 0;
-  margin: 0;
-  list-style: none;
-}
-
-.mobileDestinationRecommendation,
-.mobileDestinationQuickItem {
-  box-sizing: border-box;
-  display: grid;
-  grid-template-columns: var(--control-touch-target) minmax(0, 1fr);
-  align-items: center;
-  gap: var(--space-3);
-  width: 100%;
-  min-height: calc(var(--control-touch-target) + var(--space-3));
-  padding: var(--space-2);
-  border: 0;
-  border-radius: var(--radius-action);
-  background: transparent;
-  color: var(--color-text-primary);
-  cursor: pointer;
-  font: inherit;
-  text-align: left;
-}
-
-.mobileDestinationRecommendation:hover,
-.mobileDestinationQuickItem:hover {
-  background: var(--color-background-hover);
-}
-
-.mobileDestinationRecommendation:focus-visible,
-.mobileDestinationQuickItem:focus-visible,
 .mobileDestinationPrompt:focus-visible,
 .mobileCollapsedCriteria:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring-visible);
-}
-
-.mobileDestinationRecommendation strong,
-.mobileDestinationRecommendation small,
-.mobileDestinationQuickItem strong,
-.mobileDestinationQuickItem small {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.mobileDestinationRecommendation strong,
-.mobileDestinationQuickItem strong {
-  margin-bottom: var(--space-1);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-}
-
-.mobileDestinationRecommendation small,
-.mobileDestinationQuickItem small {
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-xs);
-}
-
-.mobileDestinationIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--control-touch-target);
-  height: var(--control-touch-target);
-  border-radius: var(--radius-action);
-  background: var(--color-surface-brand-subtle);
-  color: var(--color-action-primary);
-}
-
-.mobileDestinationIcon[data-accent="2"] {
-  background: var(--color-status-success-bg);
-  color: var(--color-success);
-}
-
-.mobileDestinationIcon[data-accent="3"] {
-  background: var(--color-status-warning-bg);
-  color: var(--color-status-warning-text);
-}
-
-.mobileDestinationIcon svg {
-  width: var(--space-5);
-  height: var(--space-5);
-  fill: none;
-  stroke: currentcolor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.8;
 }
 
 .mobileDestinationPrompt {
@@ -939,16 +877,6 @@
   font-size: var(--font-size-sm);
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.mobileDestinationQuickList {
-  max-height: calc(var(--space-16) * 4);
-  overflow: hidden auto;
-}
-
-.mobileDestinationQuickItem {
-  min-height: calc(var(--control-touch-target) + var(--space-2));
-  padding-block: var(--space-1);
 }
 
 .mobileEditorCardCollapsed {
@@ -1337,8 +1265,6 @@
   .destinationClearButton,
   .mobileDestinationBackButton,
   .mobileDestinationPrompt,
-  .mobileDestinationRecommendation,
-  .mobileDestinationQuickItem,
   .mobileCollapsedCriteria {
     transition: none;
   }

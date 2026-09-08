@@ -33,14 +33,16 @@ type SearchBarProps = SearchBarBaseProps &
 export const SearchBar: React.FC<SearchBarProps> = (props) => {
   const isMobileOrTablet = useResponsiveLayout() === "mobile-tablet";
 
-  if (props.mobileHeader && isMobileOrTablet) {
+  if (isMobileOrTablet) {
     return (
       <React.Suspense
         fallback={
           <div
             aria-busy="true"
             aria-label="숙소 검색"
-            className={styles.mobileHeaderBar}
+            className={
+              props.mobileHeader ? styles.mobileHeaderBar : styles.mobileHomeBar
+            }
             role="search"
           >
             <span className={styles.visuallyHidden}>
@@ -52,7 +54,9 @@ export const SearchBar: React.FC<SearchBarProps> = (props) => {
         <LazyMobileSearchBar
           routePort={props.routePort}
           isMapDragMode={props.isMapDragMode ?? false}
-          onMobileBack={props.onMobileBack}
+          {...(props.mobileHeader
+            ? { mobileHeader: true, onMobileBack: props.onMobileBack }
+            : { mobileHeader: false })}
           {...(props.onSearch === undefined
             ? {}
             : { onSearch: props.onSearch })}
@@ -75,7 +79,6 @@ const DesktopSearchBar: React.FC<SearchBarBaseProps> = ({
   onSearch,
   isMapDragMode = false,
 }) => {
-  const isDesktop = useResponsiveLayout() === "desktop";
   const searchBarRef = useRef<HTMLDivElement>(null);
   const datePickerRef = useRef<HTMLDivElement>(null);
   const guestPickerRef = useRef<HTMLDivElement>(null);
@@ -308,7 +311,7 @@ const DesktopSearchBar: React.FC<SearchBarBaseProps> = ({
             onClose={closeDateAndRestoreFocus}
           >
             <DatePicker
-              variant={isDesktop ? "search" : "default"}
+              variant="search"
               checkIn={checkIn}
               checkOut={checkOut}
               onDateSelect={handleDateSelect}

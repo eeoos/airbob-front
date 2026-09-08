@@ -16,12 +16,14 @@ import { useSearchBarOutsideClick } from "./useSearchBarOutsideClick";
 import { useSearchBarShellInteractions } from "./useSearchBarShellInteractions";
 import styles from "./SearchBar.module.css";
 
-interface MobileSearchBarProps {
+type MobileSearchBarProps = {
   routePort: SearchBarRoutePort;
   onSearch?: (searchParams: SearchParams) => void;
   isMapDragMode: boolean;
-  onMobileBack: () => void;
-}
+} & (
+  | { mobileHeader: true; onMobileBack: () => void }
+  | { mobileHeader: false; onMobileBack?: never }
+);
 
 const formatMobileDate = (date: Date) =>
   date.toLocaleDateString("ko-KR", {
@@ -29,37 +31,11 @@ const formatMobileDate = (date: Date) =>
     day: "numeric",
   });
 
-const MOBILE_DESTINATION_RECOMMENDATIONS = [
-  {
-    label: "부산",
-    description: "바다와 도심을 함께 즐기기 좋은 곳",
-  },
-  {
-    label: "서울",
-    description: "문화와 미식이 모여 있는 도시",
-  },
-  {
-    label: "제주",
-    description: "자연 속에서 쉬어가기 좋은 섬",
-  },
-  {
-    label: "인천",
-    description: "도심 가까이 떠나기 좋은 여행지",
-  },
-  {
-    label: "강릉",
-    description: "동해의 풍경과 커피를 즐기는 곳",
-  },
-  {
-    label: "전주",
-    description: "한옥과 지역 음식을 만나는 도시",
-  },
-] as const;
-
 const MobileSearchBar: React.FC<MobileSearchBarProps> = ({
   routePort,
   onSearch,
   isMapDragMode,
+  mobileHeader,
   onMobileBack,
 }) => {
   const [isDestinationSearchOpen, setIsDestinationSearchOpen] = useState(false);
@@ -325,45 +301,63 @@ const MobileSearchBar: React.FC<MobileSearchBarProps> = ({
         ref={isExpanded ? undefined : searchBarRef}
         aria-hidden={isExpanded || undefined}
         aria-label="숙소 검색"
-        className={styles.mobileHeaderBar}
+        className={mobileHeader ? styles.mobileHeaderBar : styles.mobileHomeBar}
         inert={isExpanded || undefined}
         role="search"
       >
-        <button
-          aria-label="이전 화면으로"
-          className={styles.mobileHeaderIconButton}
-          onClick={onMobileBack}
-          type="button"
-        >
-          <svg aria-hidden="true" viewBox="0 0 24 24">
-            <path d="m15 18-6-6 6-6" />
-          </svg>
-        </button>
+        {mobileHeader ? (
+          <>
+            <button
+              aria-label="이전 화면으로"
+              className={styles.mobileHeaderIconButton}
+              onClick={onMobileBack}
+              type="button"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+            </button>
 
-        <button
-          aria-label={`${destinationLabel}, ${summaryLabel}, 검색 조건 수정`}
-          className={styles.mobileSearchSummary}
-          onClick={openEditor}
-          type="button"
-        >
-          <span className={styles.mobileSearchSummaryPrimary}>
-            {destinationLabel}
-          </span>
-          <span className={styles.mobileSearchSummarySecondary}>
-            {summaryLabel}
-          </span>
-        </button>
+            <button
+              aria-label={`${destinationLabel}, ${summaryLabel}, 검색 조건 수정`}
+              className={styles.mobileSearchSummary}
+              onClick={openEditor}
+              type="button"
+            >
+              <span className={styles.mobileSearchSummaryPrimary}>
+                {destinationLabel}
+              </span>
+              <span className={styles.mobileSearchSummarySecondary}>
+                {summaryLabel}
+              </span>
+            </button>
 
-        <button
-          aria-label="검색 조건 수정"
-          className={styles.mobileHeaderIconButton}
-          onClick={openEditor}
-          type="button"
-        >
-          <svg aria-hidden="true" viewBox="0 0 24 24">
-            <path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 4v6M6 14v6" />
-          </svg>
-        </button>
+            <button
+              aria-label="검색 조건 수정"
+              className={styles.mobileHeaderIconButton}
+              onClick={openEditor}
+              type="button"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 4v6M6 14v6" />
+              </svg>
+            </button>
+          </>
+        ) : (
+          <button
+            aria-haspopup="dialog"
+            aria-expanded={isExpanded}
+            className={styles.mobileHomeSearchButton}
+            onClick={openEditor}
+            type="button"
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <circle cx="10.5" cy="10.5" r="6.5" />
+              <path d="m16 16 4 4" />
+            </svg>
+            <span>검색을 시작해 보세요</span>
+          </button>
+        )}
       </div>
 
       <Dialog
@@ -433,45 +427,6 @@ const MobileSearchBar: React.FC<MobileSearchBarProps> = ({
                   />
                 </div>
               </div>
-
-              {inputText.trim().length === 0 && (
-                <div className={styles.mobileDestinationRecommendations}>
-                  <p className={styles.mobileDestinationEyebrow}>추천 여행지</p>
-                  <ul
-                    aria-label="추천 여행지"
-                    className={styles.mobileDestinationRecommendationList}
-                  >
-                    {MOBILE_DESTINATION_RECOMMENDATIONS.map(
-                      (recommendation, index) => (
-                        <li key={recommendation.label}>
-                          <button
-                            className={styles.mobileDestinationRecommendation}
-                            onClick={() =>
-                              handleDestinationSelect(recommendation.label)
-                            }
-                            type="button"
-                          >
-                            <span
-                              aria-hidden="true"
-                              className={styles.mobileDestinationIcon}
-                              data-accent={(index % 3) + 1}
-                            >
-                              <svg viewBox="0 0 24 24">
-                                <path d="M12 21s6-5.35 6-11a6 6 0 1 0-12 0c0 5.65 6 11 6 11Z" />
-                                <circle cx="12" cy="10" r="2.2" />
-                              </svg>
-                            </span>
-                            <span>
-                              <strong>{recommendation.label}</strong>
-                              <small>{recommendation.description}</small>
-                            </span>
-                          </button>
-                        </li>
-                      ),
-                    )}
-                  </ul>
-                </div>
-              )}
             </section>
           ) : (
             <>
@@ -517,42 +472,6 @@ const MobileSearchBar: React.FC<MobileSearchBarProps> = ({
                             : inputText || "여행지 검색"}
                         </span>
                       </button>
-                      <p className={styles.mobileDestinationEyebrow}>
-                        추천 여행지
-                      </p>
-                      <ul
-                        aria-label="빠른 여행지 선택"
-                        className={styles.mobileDestinationQuickList}
-                      >
-                        {MOBILE_DESTINATION_RECOMMENDATIONS.slice(0, 4).map(
-                          (recommendation, index) => (
-                            <li key={recommendation.label}>
-                              <button
-                                className={styles.mobileDestinationQuickItem}
-                                onClick={() =>
-                                  handleDestinationSelect(recommendation.label)
-                                }
-                                type="button"
-                              >
-                                <span
-                                  aria-hidden="true"
-                                  className={styles.mobileDestinationIcon}
-                                  data-accent={(index % 3) + 1}
-                                >
-                                  <svg viewBox="0 0 24 24">
-                                    <path d="M12 21s6-5.35 6-11a6 6 0 1 0-12 0c0 5.65 6 11 6 11Z" />
-                                    <circle cx="12" cy="10" r="2.2" />
-                                  </svg>
-                                </span>
-                                <span>
-                                  <strong>{recommendation.label}</strong>
-                                  <small>{recommendation.description}</small>
-                                </span>
-                              </button>
-                            </li>
-                          ),
-                        )}
-                      </ul>
                     </>
                   ) : (
                     <button
