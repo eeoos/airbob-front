@@ -19,7 +19,6 @@ interface SearchResultsListClassNames {
   empty?: string;
   cardGrid?: string;
   cardWrapper?: string;
-  selected?: string;
 }
 
 interface SearchResultsListProps {
@@ -28,7 +27,6 @@ interface SearchResultsListProps {
   isErrorRetryable?: boolean | undefined;
   isLoading: boolean;
   isRefreshing?: boolean | undefined;
-  selectedAccommodationId: number | null;
   onAccommodationClick: (accommodationId: number) => void;
   onWishlistToggle?: ((accommodationId: number) => void) | undefined;
   removingAccommodationIds?: ReadonlySet<number> | undefined;
@@ -87,7 +85,6 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = ({
   isErrorRetryable = false,
   isLoading,
   isRefreshing = false,
-  selectedAccommodationId,
   onAccommodationClick,
   onWishlistToggle,
   removingAccommodationIds,
@@ -165,12 +162,7 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = ({
             onHoveredAccommodationChange?.(null);
           }
         }}
-        className={classNamesFor(
-          classNames?.cardWrapper,
-          selectedAccommodationId === accommodation.id
-            ? classNames?.selected
-            : undefined,
-        )}
+        className={classNames?.cardWrapper}
       >
         <SearchAccommodationCard
           accommodation={accommodation}

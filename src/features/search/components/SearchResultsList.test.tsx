@@ -39,7 +39,6 @@ describe("SearchResultsList", () => {
         accommodations={[]}
         getAccommodationHref={(id) => `/accommodations/${id}`}
         isLoading={true}
-        selectedAccommodationId={null}
         onAccommodationClick={vi.fn()}
         onWishlistToggle={vi.fn()}
       />,
@@ -64,7 +63,6 @@ describe("SearchResultsList", () => {
         getAccommodationHref={(id) => `/accommodations/${id}`}
         isErrorRetryable
         isLoading={false}
-        selectedAccommodationId={null}
         onAccommodationClick={vi.fn()}
         onRetry={onRetry}
       />,
@@ -90,7 +88,6 @@ describe("SearchResultsList", () => {
         getAccommodationHref={(id) => `/accommodations/${id}`}
         isErrorRetryable
         isLoading
-        selectedAccommodationId={null}
         onAccommodationClick={vi.fn()}
         onRetry={onRetry}
       />,
@@ -108,7 +105,6 @@ describe("SearchResultsList", () => {
         errorMessage="검색 조건을 확인해주세요."
         getAccommodationHref={(id) => `/accommodations/${id}`}
         isLoading={false}
-        selectedAccommodationId={null}
         onAccommodationClick={vi.fn()}
         onRetry={vi.fn()}
       />,
@@ -133,7 +129,6 @@ describe("SearchResultsList", () => {
         getAccommodationHref={(id) => `/accommodations/${id}`}
         isErrorRetryable
         isLoading={false}
-        selectedAccommodationId={null}
         onAccommodationClick={vi.fn()}
         onRetry={onRetry}
       />,
@@ -155,7 +150,6 @@ describe("SearchResultsList", () => {
         isErrorRetryable
         isLoading={false}
         isRefreshing
-        selectedAccommodationId={null}
         onAccommodationClick={vi.fn()}
         onRetry={onRetry}
       />,
@@ -174,7 +168,6 @@ describe("SearchResultsList", () => {
         accommodations={[createAccommodation(7)]}
         getAccommodationHref={(id) => `/accommodations/${id}`}
         isLoading={false}
-        selectedAccommodationId={null}
         onAccommodationClick={vi.fn()}
         onHoveredAccommodationChange={onHoveredAccommodationChange}
       />,
@@ -196,7 +189,6 @@ describe("SearchResultsList", () => {
         accommodations={[createAccommodation(7)]}
         getAccommodationHref={(id) => `/accommodations/${id}`}
         isLoading={false}
-        selectedAccommodationId={null}
         onAccommodationClick={onAccommodationClick}
         onWishlistToggle={vi.fn()}
       />,
@@ -216,7 +208,6 @@ describe("SearchResultsList", () => {
           `/accommodations/${id}?checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2`
         }
         isLoading={false}
-        selectedAccommodationId={null}
         onAccommodationClick={vi.fn()}
         onWishlistToggle={vi.fn()}
       />,

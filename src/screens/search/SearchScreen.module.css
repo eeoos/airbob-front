@@ -227,13 +227,6 @@
   }
 }
 
-.selected {
-  border-radius: var(--radius-content-card);
-  outline: 2px solid var(--color-action-primary);
-  outline-offset: 2px;
-  box-shadow: var(--focus-ring-visible);
-}
-
 /* ---- Small-Desktop (1024-1200px) ---- */
 @media (--viewport-compact) {
   .mapSection {
