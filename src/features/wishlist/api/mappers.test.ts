@@ -70,6 +70,7 @@ describe("wishlist wire mappers", () => {
     "maps nested wishlist accommodation fields including nullable review summary $summary",
     ({ summary, expected }) => {
       const wire: WishlistDetailWire = {
+        wishlist_name: "여름 여행",
         wishlist_accommodations: [
           {
             wishlist_accommodation_id: 91,
@@ -94,6 +95,7 @@ describe("wishlist wire mappers", () => {
       };
 
       expect(toWishlistDetail(wire)).toEqual({
+        wishlistName: "여름 여행",
         accommodations: [
           {
             wishlistAccommodationId: 91,

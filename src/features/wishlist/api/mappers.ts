@@ -49,6 +49,7 @@ export const toWishlistCollection = (
 });
 
 export const toWishlistDetail = (wire: WishlistDetailWire): WishlistDetail => ({
+  wishlistName: wire.wishlist_name,
   accommodations: wire.wishlist_accommodations.map((item) => ({
     wishlistAccommodationId: item.wishlist_accommodation_id,
     memo: item.memo,

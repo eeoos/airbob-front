@@ -7,19 +7,6 @@ import type {
   WishlistProjectionPort,
 } from "../../features/wishlist/public";
 
-const MEMBERSHIP_PAGE_SIZE = 20;
-
-interface WishlistMembershipPage {
-  readonly wishlists: ReadonlyArray<{
-    readonly id: number;
-    readonly isContained: boolean | null;
-  }>;
-  readonly pageInfo: {
-    readonly hasNext: boolean;
-    readonly nextCursor: string | null;
-  };
-}
-
 interface WishlistMembershipSnapshot {
   readonly isInAnyWishlist: boolean;
   readonly targetWishlistContains: boolean | null;
@@ -53,11 +40,10 @@ export interface WishlistMembershipTransport {
   getAccommodationMembership(
     input: {
       readonly accommodationId: number;
-      readonly cursor?: string;
-      readonly size: number;
+      readonly wishlistId?: number;
     },
     signal: AbortSignal,
-  ): Promise<WishlistMembershipPage>;
+  ): Promise<WishlistMembershipSnapshot>;
 }
 
 type WishlistMembershipProjection = WishlistProjectionPort;
@@ -196,54 +182,17 @@ export function createWishlistMembership(
     signal: AbortSignal,
     targetWishlistId?: number,
   ): Promise<WishlistMembershipSnapshot | null> => {
-    let cursor: string | undefined;
-    const visitedCursors = new Set<string>();
-    let isInAnyWishlist = false;
-    let targetWishlistContains: boolean | null = null;
-    let targetWishlistFound = false;
-
-    while (true) {
-      if (!isCurrent(scope)) return null;
-
-      const page = await dependencies.transport.getAccommodationMembership(
-        {
-          accommodationId,
-          ...(cursor ? { cursor } : {}),
-          size: MEMBERSHIP_PAGE_SIZE,
-        },
-        signal,
-      );
-
-      if (!isCurrent(scope)) return null;
-      isInAnyWishlist ||= page.wishlists.some(
-        (wishlist) => wishlist.isContained === true,
-      );
-      if (targetWishlistId !== undefined) {
-        const targetWishlist = page.wishlists.find(
-          (wishlist) => wishlist.id === targetWishlistId,
-        );
-        if (targetWishlist) {
-          targetWishlistFound = true;
-          targetWishlistContains = targetWishlist.isContained;
-        }
-      }
-
-      const nextCursor = page.pageInfo.nextCursor;
-      if (
-        !page.pageInfo.hasNext ||
-        nextCursor === null ||
-        visitedCursors.has(nextCursor)
-      ) {
-        return {
-          isInAnyWishlist,
-          targetWishlistContains,
-          targetWishlistFound,
-        };
-      }
-
-      visitedCursors.add(nextCursor);
-      cursor = nextCursor;
-    }
+    if (!isCurrent(scope)) return null;
+    const snapshot = await dependencies.transport.getAccommodationMembership(
+      {
+        accommodationId,
+        ...(targetWishlistId === undefined
+          ? {}
+          : { wishlistId: targetWishlistId }),
+      },
+      signal,
+    );
+    return isCurrent(scope) ? snapshot : null;
   };
 
   const reconcileMembership = async (

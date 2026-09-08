@@ -65,7 +65,7 @@ export function WishlistController({
 
   const selectedWishlistId =
     view.kind === "wishlist-detail" ? view.wishlistId : null;
-  const shouldLoadWishlistLists = view.kind !== "recently-viewed";
+  const shouldLoadWishlistLists = view.kind === "index";
   const shouldLoadRecentlyViewed = view.kind !== "wishlist-detail";
   const shouldLoadWishlistDetail = selectedWishlistId !== null;
   const wishlistsQuery = useWishlistListsReadQuery({
@@ -97,7 +97,6 @@ export function WishlistController({
   const [memoState, setMemoState] = useState<MemoState | null>(null);
   const memoGenerationRef = useRef(0);
   const pendingKeysRef = useRef<Set<MutationKey>>(new Set());
-  const recoveringWishlistIdRef = useRef<number | null>(null);
   const [pendingKeys, setPendingKeys] = useState<ReadonlySet<MutationKey>>(
     () => new Set(),
   );
@@ -170,11 +169,7 @@ export function WishlistController({
       ),
     [recentlyViewedQuery.data],
   );
-  const selectedWishlistName = useMemo(
-    () =>
-      wishlists.find((wishlist) => wishlist.id === selectedWishlistId)?.name,
-    [selectedWishlistId, wishlists],
-  );
+  const selectedWishlistName = detailQuery.data?.pages[0]?.wishlistName;
   const wishlistListsErrorMessage = wishlistsQuery.isError
     ? toWishlistErrorMessage(wishlistsQuery.error)
     : null;
@@ -183,7 +178,7 @@ export function WishlistController({
     : null;
   const wishlistDetailErrorMessage = detailQuery.isError
     ? toWishlistErrorMessage(detailQuery.error)
-    : wishlistListsErrorMessage;
+    : null;
   const wishlistIndexErrorMessage =
     wishlistListsErrorMessage ?? recentlyViewedErrorMessage;
 
@@ -197,46 +192,8 @@ export function WishlistController({
   }, [recentlyViewedQuery]);
   const retryWishlistDetail = useCallback(() => {
     setErrorMessage(null);
-    void Promise.all([wishlistsQuery.refetch(), detailQuery.refetch()]);
-  }, [detailQuery, wishlistsQuery]);
-
-  useEffect(() => {
-    if (
-      selectedWishlistId === null ||
-      selectedWishlistName !== undefined ||
-      !wishlistsHaveNextPage ||
-      wishlistsAreFetchingNextPage ||
-      recoveringWishlistIdRef.current === selectedWishlistId
-    ) {
-      return;
-    }
-
-    const recoveringWishlistId = selectedWishlistId;
-    recoveringWishlistIdRef.current = recoveringWishlistId;
-
-    void fetchNextWishlistPage()
-      .catch((error) => {
-        const latestView = viewRef.current;
-        if (
-          latestView.kind === "wishlist-detail" &&
-          latestView.wishlistId === recoveringWishlistId
-        ) {
-          showQueryError(error);
-        }
-      })
-      .finally(() => {
-        if (recoveringWishlistIdRef.current === recoveringWishlistId) {
-          recoveringWishlistIdRef.current = null;
-        }
-      });
-  }, [
-    selectedWishlistId,
-    selectedWishlistName,
-    fetchNextWishlistPage,
-    showQueryError,
-    wishlistsAreFetchingNextPage,
-    wishlistsHaveNextPage,
-  ]);
+    void detailQuery.refetch();
+  }, [detailQuery]);
 
   const loadMoreWishlists = useCallback(() => {
     if (!wishlistsHaveNextPage || wishlistsAreFetchingNextPage) return;

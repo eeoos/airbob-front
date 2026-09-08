@@ -36,8 +36,9 @@ const transport: Mocked<WishlistMembershipTransport> = {
   createWishlist: vi.fn().mockResolvedValue({ id: 11 }),
   deleteWishlist: vi.fn().mockResolvedValue(undefined),
   getAccommodationMembership: vi.fn().mockResolvedValue({
-    wishlists: [{ id: 11, isContained: true }],
-    pageInfo: { hasNext: false, nextCursor: null },
+    isInAnyWishlist: true,
+    targetWishlistFound: false,
+    targetWishlistContains: null,
   }),
   removeAccommodation: vi.fn().mockResolvedValue(undefined),
   removeRecentlyViewed: vi.fn().mockResolvedValue(undefined),
@@ -76,8 +77,9 @@ describe("WishlistMembershipProvider", () => {
     transport.createWishlist.mockResolvedValue({ id: 11 });
     transport.addAccommodation.mockResolvedValue({ id: 31 });
     transport.getAccommodationMembership.mockResolvedValue({
-      wishlists: [{ id: 11, isContained: true }],
-      pageInfo: { hasNext: false, nextCursor: null },
+      isInAnyWishlist: true,
+      targetWishlistFound: false,
+      targetWishlistContains: null,
     });
   });
 

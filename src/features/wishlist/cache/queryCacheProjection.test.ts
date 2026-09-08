@@ -75,6 +75,7 @@ const detail = (memo: string): InfiniteData<WishlistDetail, string | null> => ({
   pageParams: [null],
   pages: [
     {
+      wishlistName: "여름 여행",
       accommodations: [
         {
           wishlistAccommodationId: 31,

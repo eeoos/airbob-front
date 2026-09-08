@@ -200,6 +200,7 @@ const recentlyViewedCollection = {
 };
 
 const wishlistDetail = {
+  wishlist_name: "가을 서울 산책",
   page_info: pageInfo,
   wishlist_accommodations: [
     {

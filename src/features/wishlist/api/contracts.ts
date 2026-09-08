@@ -48,8 +48,15 @@ interface WishlistAccommodationWire {
 }
 
 export interface WishlistDetailWire {
+  readonly wishlist_name: string;
   readonly wishlist_accommodations: readonly WishlistAccommodationWire[];
   readonly page_info: CursorPageInfoWire;
+}
+
+export interface WishlistMembershipWire {
+  readonly is_in_any_wishlist: boolean;
+  readonly target_wishlist_contains: boolean | null;
+  readonly target_wishlist_found: boolean;
 }
 
 interface RecentlyViewedAccommodationWire {

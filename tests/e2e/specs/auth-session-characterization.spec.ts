@@ -304,6 +304,7 @@ test("returns an anonymous user to the complete protected URL after login", asyn
     "GET",
     "/api/v1/members/wishlists/accommodations/7",
     apiSuccess({
+      wishlist_name: "여름 여행",
       wishlist_accommodations: [],
       page_info: emptyPage,
     }),
@@ -475,6 +476,9 @@ test("resumes an anonymous wishlist intent once in the authenticated session gen
   await expect(authDialog).toBeHidden();
   await expect(
     page.getByRole("dialog", { name: "위시리스트에 저장하기" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /로그인 뒤 이어진 여행/ }),
   ).toBeVisible();
   expect(`${new URL(page.url()).pathname}${new URL(page.url()).search}`).toBe(
     searchURL,

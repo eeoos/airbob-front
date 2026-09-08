@@ -154,6 +154,7 @@ describe("wishlist read query contracts", () => {
     const getWishlistAccommodations = vi
       .spyOn(wishlistApi, "getWishlistAccommodations")
       .mockResolvedValue({
+        wishlistName: "여름 여행",
         accommodations: [],
         pageInfo: { hasNext: false, nextCursor: null, currentSize: 0 },
       });
@@ -184,6 +185,7 @@ describe("wishlist read query contracts", () => {
       },
     };
     const detailPage: WishlistDetail = {
+      wishlistName: "여름 여행",
       accommodations: [],
       pageInfo: {
         currentSize: 0,

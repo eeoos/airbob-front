@@ -10,7 +10,7 @@ import {
   type WishlistMembershipTransport,
 } from "./wishlistMembership";
 
-type WishlistMembershipPage = Awaited<
+type WishlistMembershipSnapshot = Awaited<
   ReturnType<WishlistMembershipTransport["getAccommodationMembership"]>
 >;
 type WishlistMembershipProjection =
@@ -37,19 +37,18 @@ const deferred = <T>() => {
   return { promise, reject, resolve };
 };
 
-const membershipPage = ({
+const membershipSnapshot = ({
   contained = false,
-  hasNext = false,
-  nextCursor = null,
-  wishlistId = 11,
+  inAny = contained,
+  targetFound = true,
 }: {
   contained?: boolean;
-  hasNext?: boolean;
-  nextCursor?: string | null;
-  wishlistId?: number;
-} = {}): WishlistMembershipPage => ({
-  wishlists: [{ id: wishlistId, isContained: contained }],
-  pageInfo: { hasNext, nextCursor },
+  inAny?: boolean;
+  targetFound?: boolean;
+} = {}): WishlistMembershipSnapshot => ({
+  isInAnyWishlist: inAny,
+  targetWishlistContains: targetFound ? contained : null,
+  targetWishlistFound: targetFound,
 });
 
 const createTransport = (): Mocked<WishlistMembershipTransport> => ({
@@ -58,7 +57,7 @@ const createTransport = (): Mocked<WishlistMembershipTransport> => ({
   deleteWishlist: vi.fn().mockResolvedValue(undefined),
   getAccommodationMembership: vi
     .fn()
-    .mockResolvedValue(membershipPage({ contained: true })),
+    .mockResolvedValue(membershipSnapshot({ contained: true })),
   removeAccommodation: vi.fn().mockResolvedValue(undefined),
   removeRecentlyViewed: vi.fn().mockResolvedValue(undefined),
   saveMemo: vi.fn().mockResolvedValue(undefined),
@@ -195,13 +194,11 @@ describe("wishlistMembership", () => {
     });
   });
 
-  it("derives multi-list membership from every server page after removal", async () => {
+  it("uses one authoritative membership snapshot after removal from one list", async () => {
     const { commands, projection, transport } = setup();
-    transport.getAccommodationMembership
-      .mockResolvedValueOnce(
-        membershipPage({ hasNext: true, nextCursor: "next" }),
-      )
-      .mockResolvedValueOnce(membershipPage({ contained: true }));
+    transport.getAccommodationMembership.mockResolvedValueOnce(
+      membershipSnapshot({ contained: true }),
+    );
 
     await expect(
       commands.removeAccommodation({
@@ -209,15 +206,10 @@ describe("wishlistMembership", () => {
         wishlistAccommodationId: 31,
       }),
     ).resolves.toEqual({ status: "applied", isInAnyWishlist: true });
-
-    expect(transport.getAccommodationMembership).toHaveBeenNthCalledWith(
-      1,
-      { accommodationId: 7, size: 20 },
-      expect.any(AbortSignal),
-    );
-    expect(transport.getAccommodationMembership).toHaveBeenNthCalledWith(
-      2,
-      { accommodationId: 7, cursor: "next", size: 20 },
+    expect(
+      transport.getAccommodationMembership,
+    ).toHaveBeenCalledExactlyOnceWith(
+      { accommodationId: 7 },
       expect.any(AbortSignal),
     );
     expect(projection.membershipReconciled).toHaveBeenCalledWith({
@@ -229,10 +221,10 @@ describe("wishlistMembership", () => {
 
   it("serializes membership mutations for one accommodation through reconciliation", async () => {
     const { commands, projection, transport } = setup();
-    const firstMembership = deferred<WishlistMembershipPage>();
+    const firstMembership = deferred<WishlistMembershipSnapshot>();
     transport.getAccommodationMembership
       .mockReturnValueOnce(firstMembership.promise)
-      .mockResolvedValueOnce(membershipPage({ contained: false }));
+      .mockResolvedValueOnce(membershipSnapshot({ contained: false }));
 
     const first = commands.removeAccommodation({
       accommodationId: 7,
@@ -245,7 +237,7 @@ describe("wishlistMembership", () => {
     });
 
     expect(transport.removeAccommodation).toHaveBeenCalledTimes(1);
-    firstMembership.resolve(membershipPage({ contained: true }));
+    firstMembership.resolve(membershipSnapshot({ contained: true }));
     await expect(first).resolves.toEqual({
       status: "applied",
       isInAnyWishlist: true,
@@ -274,15 +266,17 @@ describe("wishlistMembership", () => {
     ]);
   });
 
-  it("retries add with the already-created wishlist after a partial failure", async () => {
+  it("retries the target list even when the accommodation is saved in a different list", async () => {
     const { commands, projection, transport } = setup();
     const addError = new Error("add failed");
     transport.addAccommodation
       .mockRejectedValueOnce(addError)
       .mockResolvedValueOnce({ id: 101 });
     transport.getAccommodationMembership
-      .mockResolvedValueOnce(membershipPage({ contained: false }))
-      .mockResolvedValueOnce(membershipPage({ contained: true }));
+      .mockResolvedValueOnce(
+        membershipSnapshot({ contained: false, inAny: true }),
+      )
+      .mockResolvedValueOnce(membershipSnapshot({ contained: true }));
 
     await expect(
       commands.createAndAddAccommodation({
@@ -309,6 +303,35 @@ describe("wishlistMembership", () => {
     expect(transport.createWishlist).toHaveBeenCalledTimes(1);
     expect(transport.addAccommodation).toHaveBeenCalledTimes(2);
     expect(projection.wishlistCreated).toHaveBeenCalledTimes(1);
+    expect(transport.getAccommodationMembership).toHaveBeenNthCalledWith(
+      1,
+      { accommodationId: 7, wishlistId: 11 },
+      expect.any(AbortSignal),
+    );
+  });
+
+  it("creates a replacement when a partially created target list no longer exists", async () => {
+    const { commands, transport } = setup();
+    transport.addAccommodation.mockRejectedValueOnce(new Error("add failed"));
+    await commands.createAndAddAccommodation({
+      accommodationId: 7,
+      name: "여행",
+    });
+    transport.getAccommodationMembership.mockResolvedValueOnce(
+      membershipSnapshot({ targetFound: false, inAny: true }),
+    );
+    transport.createWishlist.mockResolvedValueOnce({ id: 12 });
+
+    await expect(
+      commands.createAndAddAccommodation({ accommodationId: 7, name: "여행" }),
+    ).resolves.toMatchObject({ status: "applied", wishlistId: 12 });
+    expect(transport.createWishlist).toHaveBeenCalledTimes(2);
+    expect(transport.addAccommodation).toHaveBeenNthCalledWith(
+      2,
+      12,
+      { accommodationId: 7 },
+      expect.any(AbortSignal),
+    );
   });
 
   it("reconciles an ambiguous create-and-add response before retrying the mutation", async () => {
@@ -317,7 +340,7 @@ describe("wishlistMembership", () => {
       new Error("response lost after apply"),
     );
     transport.getAccommodationMembership.mockResolvedValueOnce(
-      membershipPage({ contained: true }),
+      membershipSnapshot({ contained: true }),
     );
 
     await expect(
@@ -421,16 +444,20 @@ describe("wishlistMembership", () => {
     });
   });
 
-  it("stops repeated cursors instead of looping forever", async () => {
-    const { commands, transport } = setup();
-    transport.getAccommodationMembership.mockResolvedValue(
-      membershipPage({ hasNext: true, nextCursor: "same" }),
-    );
-
-    await expect(
-      commands.addAccommodation({ accommodationId: 7, wishlistId: 11 }),
-    ).resolves.toEqual({ status: "applied", isInAnyWishlist: false });
-    expect(transport.getAccommodationMembership).toHaveBeenCalledTimes(2);
+  it("suppresses a membership response from a session that changed during the read", async () => {
+    const { commands, projection, setScope, transport } = setup();
+    const request = deferred<WishlistMembershipSnapshot>();
+    transport.getAccommodationMembership.mockReturnValueOnce(request.promise);
+    const result = commands.addAccommodation({
+      accommodationId: 7,
+      wishlistId: 11,
+    });
+    await Promise.resolve();
+    expect(transport.getAccommodationMembership).toHaveBeenCalledTimes(1);
+    setScope(scopeB);
+    request.resolve(membershipSnapshot({ contained: true }));
+    await expect(result).resolves.toEqual({ status: "stale" });
+    expect(projection.membershipReconciled).not.toHaveBeenCalled();
   });
 
   it("aborts owned work on disposal and suppresses the late completion", async () => {

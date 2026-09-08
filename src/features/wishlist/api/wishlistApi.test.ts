@@ -4,6 +4,7 @@ import {
 } from "../../../platform/http/request";
 import { wishlistApi } from "./wishlistApi";
 import withoutReviewsContract from "./__fixtures__/wishlist-detail-without-reviews.json";
+import membershipContract from "./__fixtures__/wishlist-membership.json";
 
 vi.mock("../../../platform/http/request", () => ({
   requestApiData: vi.fn(),
@@ -18,6 +19,53 @@ describe("wishlist API adapter", () => {
     mockRequestApiData.mockReset();
     mockRequestApiDataNullable.mockReset();
   });
+
+  it("reads the backend membership snapshot without fetching wishlist pages", async () => {
+    mockRequestApiData.mockResolvedValue(membershipContract);
+    const signal = new AbortController().signal;
+    await expect(
+      wishlistApi.getAccommodationMembership(
+        { accommodationId: 31, wishlistId: 42 },
+        { signal },
+      ),
+    ).resolves.toEqual({
+      isInAnyWishlist: true,
+      targetWishlistContains: false,
+      targetWishlistFound: true,
+    });
+    expect(mockRequestApiData).toHaveBeenCalledExactlyOnceWith({
+      method: "GET",
+      path: "/members/wishlists/membership",
+      params: { accommodationId: 31, wishlistId: 42 },
+      signal,
+    });
+  });
+
+  it.each([
+    {
+      is_in_any_wishlist: null,
+      target_wishlist_contains: null,
+      target_wishlist_found: false,
+    },
+    {
+      is_in_any_wishlist: true,
+      target_wishlist_contains: null,
+      target_wishlist_found: true,
+    },
+    {
+      is_in_any_wishlist: true,
+      target_wishlist_contains: false,
+      target_wishlist_found: false,
+    },
+  ])(
+    "rejects incomplete membership snapshots instead of confirming a guessed state",
+    async (wire) => {
+      mockRequestApiData.mockResolvedValue(wire);
+      await expect(
+        wishlistApi.getAccommodationMembership({ accommodationId: 31 }),
+      ).rejects.toThrow(TypeError);
+    },
+  );
 
   it("preserves the create wire body while exposing a camelCase input", async () => {
     const signal = new AbortController().signal;
@@ -115,6 +163,7 @@ describe("wishlist API adapter", () => {
 
   it("maps wishlist detail pagination and response fields", async () => {
     mockRequestApiData.mockResolvedValue({
+      wishlist_name: "여름 여행",
       wishlist_accommodations: [],
       page_info: { has_next: true, next_cursor: "next", current_size: 0 },
     });
@@ -125,6 +174,7 @@ describe("wishlist API adapter", () => {
         size: 20,
       }),
     ).resolves.toEqual({
+      wishlistName: "여름 여행",
       accommodations: [],
       pageInfo: { hasNext: true, nextCursor: "next", currentSize: 0 },
     });
@@ -143,6 +193,7 @@ describe("wishlist API adapter", () => {
     await expect(
       wishlistApi.getWishlistAccommodations(42, { size: 20 }),
     ).resolves.toEqual({
+      wishlistName: "여름 여행",
       accommodations: [
         {
           wishlistAccommodationId: 501,

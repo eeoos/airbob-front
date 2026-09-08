@@ -466,6 +466,13 @@ test("toggles only the chosen wishlist and keeps the heart saved until all membe
   const wishlistId = 7;
   const wishlistAccommodationId = 501;
 
+  api.register("GET", "/api/v1/members/wishlists/membership", () =>
+    apiSuccess({
+      is_in_any_wishlist: isContained || isSecondContained,
+      target_wishlist_found: false,
+      target_wishlist_contains: null,
+    }),
+  );
   api.register("GET", "/api/v1/search/accommodations", () =>
     apiSuccess({
       stay_search_result_listing: [
@@ -636,6 +643,16 @@ test("toggles only the chosen wishlist and keeps the heart saved until all membe
   await expect(secondWishlistButton).toHaveAttribute("aria-pressed", "false");
   await wishlistDialog.getByRole("button", { name: "닫기" }).click();
   await expect(cardSaveButton).toHaveAttribute("aria-pressed", "false");
+  const membershipReads = api.matching(
+    "GET",
+    "/api/v1/members/wishlists/membership",
+  );
+  expect(membershipReads).toHaveLength(4);
+  for (const request of membershipReads) {
+    expect(getRequestQuery(request)).toEqual({
+      accommodationId: String(accommodationId),
+    });
+  }
   expect(
     api.matching(
       "DELETE",
@@ -665,6 +682,13 @@ test("fences an in-flight A membership result before B runs the same command", a
     resolveOldAdd = resolve;
   });
 
+  api.register("GET", "/api/v1/members/wishlists/membership", () =>
+    apiSuccess({
+      is_in_any_wishlist: isContained,
+      target_wishlist_found: false,
+      target_wishlist_contains: null,
+    }),
+  );
   api.register("GET", "/api/v1/search/accommodations", () =>
     apiSuccess({
       stay_search_result_listing: [
@@ -747,12 +771,13 @@ test("fences an in-flight A membership result before B runs the same command", a
   ).toBeVisible();
 
   const countAccommodationScopedWishlistReads = () =>
-    api
-      .matching("GET", "/api/v1/members/wishlists")
-      .filter(
-        (request) =>
-          getRequestQuery(request).accommodationId === String(accommodationId),
-      ).length;
+    [
+      ...api.matching("GET", "/api/v1/members/wishlists"),
+      ...api.matching("GET", "/api/v1/members/wishlists/membership"),
+    ].filter(
+      (request) =>
+        getRequestQuery(request).accommodationId === String(accommodationId),
+    ).length;
   const scopedReadsBeforeOldAddResolution =
     countAccommodationScopedWishlistReads();
 
@@ -781,4 +806,7 @@ test("fences an in-flight A membership result before B runs the same command", a
       `/api/v1/members/wishlists/accommodations/${wishlistId}`,
     ),
   ).toHaveLength(2);
+  expect(
+    api.matching("GET", "/api/v1/members/wishlists/membership"),
+  ).toHaveLength(1);
 });

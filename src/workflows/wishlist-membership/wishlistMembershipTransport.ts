@@ -16,25 +16,6 @@ export const wishlistMembershipTransport: WishlistMembershipTransport = {
   },
   removeRecentlyViewed: (accommodationId, signal) =>
     recentlyViewedApi.remove(accommodationId, { signal }),
-  async getAccommodationMembership(input, signal) {
-    const page = await wishlistApi.getWishlists(
-      {
-        accommodationId: input.accommodationId,
-        ...(input.cursor ? { cursor: input.cursor } : {}),
-        size: input.size,
-      },
-      { signal },
-    );
-
-    return {
-      wishlists: page.wishlists.map((wishlist) => ({
-        id: wishlist.id,
-        isContained: wishlist.containsAccommodation,
-      })),
-      pageInfo: {
-        hasNext: page.pageInfo.hasNext,
-        nextCursor: page.pageInfo.nextCursor,
-      },
-    };
-  },
+  getAccommodationMembership: (input, signal) =>
+    wishlistApi.getAccommodationMembership(input, { signal }),
 };
