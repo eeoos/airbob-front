@@ -259,7 +259,7 @@ test("restores paginated search URLs and requests through browser history", asyn
     .toBeGreaterThan(pageThreeRequestsBeforeForward);
 });
 
-test("keeps pagination fixed through repeated navigation with uneven result heights", async ({
+test("places pagination after results and returns to the top after page changes", async ({
   api,
   page,
   session,
@@ -320,17 +320,14 @@ test("keeps pagination fixed through repeated navigation with uneven result heig
       const pagination = page.getByRole("navigation", {
         name: "검색 결과 페이지",
       });
-      await expect(pagination).toBeInViewport();
-      const paginationTop = await pagination.evaluate(
-        (element) => element.getBoundingClientRect().top,
-      );
+      await expect(pagination).not.toBeInViewport();
       const resultsScrollArea = page.getByRole("region", {
         name: "숙소 목록 스크롤",
       });
-      await resultsScrollArea
-        .getByRole("listitem")
-        .last()
-        .scrollIntoViewIfNeeded();
+      await expect(
+        resultsScrollArea.getByRole("navigation", { name: "검색 결과 페이지" }),
+      ).toHaveCount(1);
+      await pagination.scrollIntoViewIfNeeded();
       await expect(pagination).toBeInViewport();
       await expect
         .poll(() =>
@@ -367,22 +364,22 @@ test("keeps pagination fixed through repeated navigation with uneven result heig
         expect(
           await resultsScrollArea.evaluate((element) => element.scrollTop),
         ).toBe(0);
-        await expect(pagination).toBeInViewport({ ratio: 1 });
-        expect(
-          await pagination.evaluate(
-            (element) => element.getBoundingClientRect().top,
-          ),
-        ).toBe(paginationTop);
-        expect(await page.evaluate(() => window.scrollY)).toBe(0);
-        await resultsScrollArea
+        await expect(
+          resultsScrollArea.getByRole("listitem").first(),
+        ).toBeInViewport();
+        const lastCardBottom = await resultsScrollArea
           .getByRole("listitem")
           .last()
-          .scrollIntoViewIfNeeded();
-        expect(
-          await pagination.evaluate(
-            (element) => element.getBoundingClientRect().top,
-          ),
-        ).toBe(paginationTop);
+          .evaluate((element) => element.getBoundingClientRect().bottom);
+        const paginationTop = await pagination.evaluate(
+          (element) => element.getBoundingClientRect().top,
+        );
+        expect(paginationTop).toBeGreaterThan(lastCardBottom);
+        expect(await page.evaluate(() => window.scrollY)).toBe(0);
+        await pagination.scrollIntoViewIfNeeded();
+        for (const pageButton of await pagination.getByRole("button").all()) {
+          await expect(pageButton).toBeInViewport({ ratio: 1 });
+        }
         const cardRows = await page
           .getByTestId("search-result-card")
           .evaluateAll((cards) => {

@@ -387,8 +387,8 @@ export function SearchScreen({
               >
                 <h2 className={styles.title}>{resultCountLabel}</h2>
                 {renderResults("desktop")}
+                {renderPagination("full")}
               </div>
-              {renderPagination("full")}
             </div>
             <div className={styles.mapSection} data-search-pane="map">
               {renderMap(map.isMapExpanded, map.toggleMapExpanded)}
