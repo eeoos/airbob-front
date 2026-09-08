@@ -23,7 +23,6 @@ interface HostReservationAccommodationViewModel {
 
 interface HostReservationPaymentViewModel {
   nights: number;
-  pricePerNightLabel: string;
   totalAmountLabel: string;
 }
 
@@ -46,10 +45,10 @@ const calculateHostReservationNights = (
   checkIn: string,
   checkOut: string,
 ): number => {
-  const checkInDate = new Date(checkIn);
-  const checkOutDate = new Date(checkOut);
-  const diffTime = checkOutDate.getTime() - checkInDate.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  // The API supplies accommodation-local date-times; compare their calendar dates in UTC.
+  const diffDays =
+    (Date.parse(checkOut.slice(0, 10)) - Date.parse(checkIn.slice(0, 10))) /
+    86_400_000;
 
   return diffDays > 0 ? diffDays : 1;
 };
@@ -74,13 +73,9 @@ const toPaymentViewModel = (
     return null;
   }
 
-  const totalAmount = reservation.payment.totalAmount || 0;
-  const pricePerNight = Math.floor(totalAmount / nights);
-
   return {
     nights,
-    pricePerNightLabel: formatNullablePrice(pricePerNight),
-    totalAmountLabel: formatNullablePrice(totalAmount),
+    totalAmountLabel: formatNullablePrice(reservation.payment.totalAmount),
   };
 };
 

@@ -125,7 +125,9 @@ export function HostReservationsPanel({
         {state.status === "ready" && (
           <Button
             aria-label={`체크인 ${
-              checkInSortDirection === "ascending" ? "오래된 순" : "가까운 순"
+              checkInSortDirection === "ascending"
+                ? "빠른 날짜순"
+                : "늦은 날짜순"
             } 정렬`}
             className={styles.sortButton}
             onClick={onCheckInSort}
@@ -139,6 +141,13 @@ export function HostReservationsPanel({
           </Button>
         )}
       </div>
+
+      {state.status === "ready" && state.rows.length > 0 && (
+        <p className={styles.sortNotice}>
+          현재 불러온 예약 {state.rows.length}건 안에서 체크인 날짜순으로
+          정렬합니다.
+        </p>
+      )}
 
       {state.status === "error" ? (
         <RetryableErrorState

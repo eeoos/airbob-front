@@ -1,5 +1,8 @@
 import type { HostReservationDetail } from "../model/reservationRead";
 import { toHostReservationDetailViewModel } from "./hostReservationDetailViewModel";
+import hostStayContract from "../api/__fixtures__/host-reservation-stay-payment.json";
+import { toHostReservationDetail } from "../api/reservationReadMappers";
+import type { HostReservationDetailWire } from "../api/reservationReadContracts";
 
 const hostReservationDetailFixture = (
   overrides: Partial<HostReservationDetail> = {},
@@ -47,6 +50,57 @@ const hostReservationDetailFixture = (
 });
 
 describe("host reservation detail view model", () => {
+  it("consumes the backend local-stay and discounted payment contract", () => {
+    const reservation = toHostReservationDetail(
+      hostStayContract as HostReservationDetailWire,
+    );
+
+    expect(toHostReservationDetailViewModel(reservation)).toMatchObject({
+      guestStaySummaryLabel: "2게스트 • 2박 • ₩100,001",
+      checkInDateLabel: "2026년 11월 1일 (일)",
+      checkOutDateLabel: "2026년 11월 3일 (화)",
+      payment: { nights: 2, totalAmountLabel: "₩100,001" },
+    });
+  });
+
+  it.each([
+    ["2026-11-01T00:00:00", "2026-11-02T00:00:00", 1],
+    ["2026-03-07T00:00:00", "2026-03-09T00:00:00", 2],
+    ["2026-07-10T09:00:00", "2026-07-11T18:00:00", 1],
+    ["2028-02-28T15:00:00", "2028-03-01T11:00:00", 2],
+  ])(
+    "counts local stay dates from %s to %s as %i nights",
+    (checkInDateTime, checkOutDateTime, nights) => {
+      const view = toHostReservationDetailViewModel(
+        hostReservationDetailFixture({
+          checkInDateTime,
+          checkOutDateTime,
+          timeZoneId: "Asia/Seoul",
+        }),
+      );
+
+      expect(view.payment?.nights).toBe(nights);
+      expect(view.guestStaySummaryLabel).toContain(`${nights}박`);
+    },
+  );
+
+  it("preserves an indivisible original payment amount without reconstructing a nightly rate", () => {
+    const reservation = hostReservationDetailFixture();
+    if (!reservation.payment)
+      throw new Error("Expected a paid reservation fixture");
+    const view = toHostReservationDetailViewModel({
+      ...reservation,
+      payment: {
+        ...reservation.payment,
+        totalAmount: 100001,
+        balanceAmount: 0,
+        status: "CANCELED",
+      },
+    });
+
+    expect(view.payment).toEqual({ nights: 2, totalAmountLabel: "₩100,001" });
+  });
+
   it("maps host reservation API fields into display fields", () => {
     expect(
       toHostReservationDetailViewModel(hostReservationDetailFixture()),
@@ -72,7 +126,6 @@ describe("host reservation detail view model", () => {
       createdAtDateLabel: "2026년 7월 1일 (수)",
       payment: {
         nights: 2,
-        pricePerNightLabel: "₩120,000",
         totalAmountLabel: "₩240,000",
       },
     });

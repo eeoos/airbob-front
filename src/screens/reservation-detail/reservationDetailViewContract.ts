@@ -79,7 +79,6 @@ export interface HostReservationDetailView {
   readonly createdAtDateLabel: string;
   readonly payment: {
     readonly nights: number;
-    readonly pricePerNightLabel: string;
     readonly totalAmountLabel: string;
   } | null;
 }

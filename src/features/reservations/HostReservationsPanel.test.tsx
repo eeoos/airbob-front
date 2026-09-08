@@ -109,6 +109,11 @@ describe("HostReservationsPanel", () => {
     expect(screen.getByText("이용 완료")).toBeInTheDocument();
     expect(screen.getAllByText("게스트 1")).toHaveLength(2);
     expect(screen.getAllByText("₩100,001")).toHaveLength(2);
+    expect(
+      screen.getByText(
+        "현재 불러온 예약 2건 안에서 체크인 날짜순으로 정렬합니다.",
+      ),
+    ).toBeVisible();
 
     const firstDetailButton = screen
       .getAllByRole("button", { name: /예약 상세/ })
@@ -138,6 +143,7 @@ describe("HostReservationsPanel", () => {
 
     expect(checkInHeader).toHaveAttribute("aria-sort", "descending");
     expect(sortButton).toHaveTextContent("↓");
+    expect(sortButton).toHaveAccessibleName("체크인 늦은 날짜순 정렬");
 
     sortButton.focus();
     await userEvent.keyboard("{Enter}");
@@ -150,6 +156,7 @@ describe("HostReservationsPanel", () => {
 
     expect(checkInHeader).toHaveAttribute("aria-sort", "ascending");
     expect(sortButton).toHaveTextContent("↑");
+    expect(sortButton).toHaveAccessibleName("체크인 빠른 날짜순 정렬");
   });
 
   it("attaches the injected load-more ref for nonempty paginated tables", () => {
