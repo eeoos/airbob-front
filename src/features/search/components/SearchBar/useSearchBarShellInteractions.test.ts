@@ -12,11 +12,9 @@ const createOptions = () => ({
   destinationAreaRef: createRef<HTMLDivElement>(null),
   suggestionsRef: createRef<HTMLDivElement>(null),
   searchButtonClassName: "search-button",
-  isExpanded: false,
   activePopover: "none" as const,
   completeCheckoutIfNeeded: vi.fn(),
   closeTransientPanels: vi.fn(),
-  expandShell: vi.fn(),
   collapseShell: vi.fn(),
   closeActivePopover: vi.fn(),
   openDatePicker: vi.fn(),
@@ -24,7 +22,7 @@ const createOptions = () => ({
 });
 
 describe("useSearchBarShellInteractions", () => {
-  it("expands without closing when an internal search region is clicked", () => {
+  it("lets the internal search control own its state transition", () => {
     const destinationArea = document.createElement("div");
     const options = {
       ...createOptions(),
@@ -39,8 +37,8 @@ describe("useSearchBarShellInteractions", () => {
       } as any);
     });
 
-    expect(options.expandShell).toHaveBeenCalledTimes(1);
     expect(options.closeTransientPanels).not.toHaveBeenCalled();
+    expect(options.collapseShell).not.toHaveBeenCalled();
   });
 
   it("closes an active popover instead of collapsing through a second path", () => {
@@ -49,7 +47,6 @@ describe("useSearchBarShellInteractions", () => {
     const options = {
       ...createOptions(),
       activePopover: "date" as const,
-      isExpanded: true,
     };
     const { result } = renderHook(() => useSearchBarShellInteractions(options));
 
@@ -69,7 +66,7 @@ describe("useSearchBarShellInteractions", () => {
 
   it("collapses the shell when no popover is active", () => {
     const outside = document.createElement("button");
-    const options = { ...createOptions(), isExpanded: true };
+    const options = createOptions();
     const { result } = renderHook(() => useSearchBarShellInteractions(options));
 
     act(() => {

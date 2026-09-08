@@ -119,42 +119,6 @@ export function WishlistController({
     setErrorMessage(toWishlistErrorMessage(error));
   }, []);
 
-  useEffect(() => {
-    if (shouldLoadWishlistLists && wishlistsQuery.isError) {
-      showQueryError(wishlistsQuery.error);
-    }
-  }, [
-    showQueryError,
-    shouldLoadWishlistLists,
-    wishlistsQuery.error,
-    wishlistsQuery.errorUpdatedAt,
-    wishlistsQuery.isError,
-  ]);
-
-  useEffect(() => {
-    if (shouldLoadRecentlyViewed && recentlyViewedQuery.isError) {
-      showQueryError(recentlyViewedQuery.error);
-    }
-  }, [
-    recentlyViewedQuery.error,
-    recentlyViewedQuery.errorUpdatedAt,
-    recentlyViewedQuery.isError,
-    showQueryError,
-    shouldLoadRecentlyViewed,
-  ]);
-
-  useEffect(() => {
-    if (shouldLoadWishlistDetail && detailQuery.isError) {
-      showQueryError(detailQuery.error);
-    }
-  }, [
-    detailQuery.error,
-    detailQuery.errorUpdatedAt,
-    detailQuery.isError,
-    showQueryError,
-    shouldLoadWishlistDetail,
-  ]);
-
   const runCommand = useCallback(
     async <Result,>(
       operation: MutationKey,
@@ -211,6 +175,30 @@ export function WishlistController({
       wishlists.find((wishlist) => wishlist.id === selectedWishlistId)?.name,
     [selectedWishlistId, wishlists],
   );
+  const wishlistListsErrorMessage = wishlistsQuery.isError
+    ? toWishlistErrorMessage(wishlistsQuery.error)
+    : null;
+  const recentlyViewedErrorMessage = recentlyViewedQuery.isError
+    ? toWishlistErrorMessage(recentlyViewedQuery.error)
+    : null;
+  const wishlistDetailErrorMessage = detailQuery.isError
+    ? toWishlistErrorMessage(detailQuery.error)
+    : wishlistListsErrorMessage;
+  const wishlistIndexErrorMessage =
+    wishlistListsErrorMessage ?? recentlyViewedErrorMessage;
+
+  const retryWishlistIndex = useCallback(() => {
+    setErrorMessage(null);
+    void Promise.all([wishlistsQuery.refetch(), recentlyViewedQuery.refetch()]);
+  }, [recentlyViewedQuery, wishlistsQuery]);
+  const retryRecentlyViewed = useCallback(() => {
+    setErrorMessage(null);
+    void recentlyViewedQuery.refetch();
+  }, [recentlyViewedQuery]);
+  const retryWishlistDetail = useCallback(() => {
+    setErrorMessage(null);
+    void Promise.all([wishlistsQuery.refetch(), detailQuery.refetch()]);
+  }, [detailQuery, wishlistsQuery]);
 
   useEffect(() => {
     if (
@@ -338,6 +326,7 @@ export function WishlistController({
   const handleOpenMemo = useCallback(
     (target: WishlistAccommodationMemoTarget) => {
       memoGenerationRef.current += 1;
+      setErrorMessage(null);
       setMemoState({
         ...target,
         generation: memoGenerationRef.current,
@@ -348,6 +337,7 @@ export function WishlistController({
   );
   const handleCloseMemo = useCallback(() => {
     memoGenerationRef.current += 1;
+    setErrorMessage(null);
     setMemoState(null);
   }, []);
   const handleSaveMemo = useCallback(async () => {
@@ -381,26 +371,34 @@ export function WishlistController({
   return (
     <WishlistScreen
       detail={{
+        errorMessage: wishlistDetailErrorMessage,
         hasNext: detailHasNextPage,
         isLoading: detailQuery.isPending,
         isLoadingMore: detailIsFetchingNextPage,
         isMutationPending,
+        isRefreshing: detailQuery.isFetching && !detailQuery.isPending,
         onBack: navigation.openIndex,
         onOpenAccommodationDetail: navigation.openAccommodation,
         onOpenMemo: handleOpenMemo,
         onRemoveFromWishlist: handleRemoveFromWishlist,
+        onRetry: retryWishlistDetail,
         selectedWishlistName: selectedWishlistName ?? "위시리스트",
         setWishlistAccommodationsObserverTarget,
         wishlistAccommodations: wishlistAccommodationCards,
       }}
-      errorMessage={errorMessage}
+      errorMessage={memoState === null ? errorMessage : null}
       index={{
+        errorMessage: wishlistIndexErrorMessage,
         isLoading: wishlistsQuery.isPending || recentlyViewedQuery.isPending,
         isLoadingMoreWishlists: wishlistsAreFetchingNextPage,
         isMutationPending,
+        isRefreshing:
+          (wishlistsQuery.isFetching && !wishlistsQuery.isPending) ||
+          (recentlyViewedQuery.isFetching && !recentlyViewedQuery.isPending),
         onDeleteWishlist: handleDeleteWishlist,
         onOpenRecentlyViewed: navigation.openRecentlyViewed,
         onOpenWishlist: navigation.openWishlistDetail,
+        onRetry: retryWishlistIndex,
         recentlyViewedSummaryLabel:
           getRecentlyViewedSummaryLabel(recentlyViewedCards),
         setWishlistsObserverTarget,
@@ -408,6 +406,7 @@ export function WishlistController({
         wishlistsHasNext: wishlistsHaveNextPage,
       }}
       memoDialog={{
+        errorMessage,
         isOpen: memoState !== null,
         isPending:
           memoState !== null &&
@@ -424,15 +423,21 @@ export function WishlistController({
             current === null ? null : { ...current, text: "" },
           ),
         onClose: handleCloseMemo,
+        onDismissError: () => setErrorMessage(null),
         onSave: handleSaveMemo,
       }}
       onClearError={() => setErrorMessage(null)}
       recentlyViewed={{
+        errorMessage: recentlyViewedErrorMessage,
         isEditMode,
+        isLoading: recentlyViewedQuery.isPending,
         isMutationPending,
+        isRefreshing:
+          recentlyViewedQuery.isFetching && !recentlyViewedQuery.isPending,
         onBack: navigation.openIndex,
         onOpenAccommodationDetail: navigation.openAccommodation,
         onRemoveRecentlyViewed: handleRemoveRecentlyViewed,
+        onRetry: retryRecentlyViewed,
         onToggleEditMode: () => setIsEditMode((current) => !current),
         onWishlistToggle: setSaveModalAccommodationId,
         recentlyViewed: recentlyViewedCards,

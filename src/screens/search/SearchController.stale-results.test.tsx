@@ -108,7 +108,6 @@ const createProps = (destination: string): SearchControllerProps => ({
     openAccommodation: vi.fn(),
     openPage: vi.fn(),
     replaceMapBounds: vi.fn(),
-    scrollResultsToTop: vi.fn(),
   },
   routeState: {
     destination,

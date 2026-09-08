@@ -1,4 +1,7 @@
-import { toReviewCreateErrorMessage } from "./reviewCreateErrorMessage";
+import {
+  isReviewCreateReadErrorRetryable,
+  toReviewCreateErrorMessage,
+} from "./reviewCreateErrorMessage";
 
 describe("toReviewCreateErrorMessage", () => {
   it.each([
@@ -18,5 +21,15 @@ describe("toReviewCreateErrorMessage", () => {
     expect(toReviewCreateErrorMessage(new Error("internal details"))).toBe(
       "리뷰 요청을 처리하지 못했습니다.",
     );
+  });
+
+  it("limits read retries to transport and explicitly retryable failures", () => {
+    expect(isReviewCreateReadErrorRetryable({ kind: "network" })).toBe(true);
+    expect(isReviewCreateReadErrorRetryable({ kind: "timeout" })).toBe(true);
+    expect(isReviewCreateReadErrorRetryable({ retryable: true })).toBe(true);
+    expect(
+      isReviewCreateReadErrorRetryable({ code: "V003", kind: "validation" }),
+    ).toBe(false);
+    expect(isReviewCreateReadErrorRetryable(new Error("unknown"))).toBe(false);
   });
 });

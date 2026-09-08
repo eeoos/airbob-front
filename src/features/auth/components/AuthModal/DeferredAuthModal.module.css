@@ -1,0 +1,38 @@
+.dialog {
+  width: min(100%, 480px);
+}
+
+.loadingState {
+  display: grid;
+  min-height: 220px;
+  place-items: center;
+  padding: var(--space-6);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
+.errorState {
+  padding: var(--space-6);
+}
+
+.errorActions {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+@media (--viewport-phone) {
+  .loadingState,
+  .errorState {
+    padding: var(--space-4);
+  }
+
+  .errorActions {
+    flex-direction: column;
+  }
+
+  .errorActions > * {
+    width: 100%;
+  }
+}

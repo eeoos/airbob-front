@@ -57,9 +57,7 @@ describe("useGoogleMapInstance", () => {
   });
 
   it("removes every owned listener and SDK instance resource on unmount", () => {
-    const listenerHandles = Array.from({ length: 3 }, () => ({
-      remove: vi.fn(),
-    }));
+    const listenerHandles = [{ remove: vi.fn() }, undefined];
     const unbindAll = vi.fn();
     let nextListenerIndex = 0;
     const addListener = vi.fn(() => listenerHandles[nextListenerIndex++]);
@@ -67,6 +65,7 @@ describe("useGoogleMapInstance", () => {
     const mapElement = document.createElement("div");
     const removeEventListener = vi.spyOn(mapElement, "removeEventListener");
     const mapInstanceRef = ref<google.maps.Map | null>(null);
+    const onMapInteraction = vi.fn();
 
     (window as any).google = {
       maps: {
@@ -78,21 +77,36 @@ describe("useGoogleMapInstance", () => {
     };
 
     const { unmount } = renderHook(() =>
-      useGoogleMapInstance(createOptions(mapElement, { mapInstanceRef })),
+      useGoogleMapInstance(
+        createOptions(mapElement, { mapInstanceRef, onMapInteraction }),
+      ),
     );
 
     expect(mapInstanceRef.current).toBe(map);
+    mapElement.dispatchEvent(new WheelEvent("wheel", { bubbles: true }));
+    mapElement.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true }));
+    expect(onMapInteraction).toHaveBeenCalledTimes(2);
     unmount();
 
-    listenerHandles.forEach((listener) => {
-      expect(listener.remove).toHaveBeenCalledTimes(1);
-    });
+    listenerHandles
+      .filter((listener) => listener !== undefined)
+      .forEach((listener) => {
+        expect(listener.remove).toHaveBeenCalledTimes(1);
+      });
     expect(removeEventListener).toHaveBeenCalledWith(
       "touchstart",
       expect.any(Function),
     );
     expect(removeEventListener).toHaveBeenCalledWith(
       "mousedown",
+      expect.any(Function),
+    );
+    expect(removeEventListener).toHaveBeenCalledWith(
+      "wheel",
+      expect.any(Function),
+    );
+    expect(removeEventListener).toHaveBeenCalledWith(
+      "keydown",
       expect.any(Function),
     );
     expect(unbindAll).toHaveBeenCalledTimes(1);

@@ -40,14 +40,16 @@ const createProps = (
 });
 
 describe("HostReservationsPanel", () => {
-  it("renders only the shared loading state while loading", () => {
+  it("renders a semantic reservation skeleton while loading", () => {
     render(
       <HostReservationsPanel
         {...createProps({ state: { status: "loading" } })}
       />,
     );
 
-    expect(screen.getByText("로딩 중...")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "호스트 예약을 불러오는 중입니다.",
+    );
     expect(screen.queryByText("예약 관리")).not.toBeInTheDocument();
   });
 
@@ -66,7 +68,7 @@ describe("HostReservationsPanel", () => {
     );
 
     expect(screen.getByText("예약 관리")).toBeInTheDocument();
-    expect(screen.getByText("아직 예약이 없습니다.")).toBeInTheDocument();
+    expect(screen.getByText("이 상태의 예약이 없어요")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("tab", { name: "취소된 예약" }));
     expect(onFilterChange).toHaveBeenCalledWith("CANCELLED");
@@ -109,7 +111,7 @@ describe("HostReservationsPanel", () => {
     expect(screen.getAllByText("₩100,001")).toHaveLength(2);
 
     const firstDetailButton = screen
-      .getAllByRole("button", { name: "상세" })
+      .getAllByRole("button", { name: /예약 상세/ })
       .at(0);
     if (!firstDetailButton)
       throw new Error("Expected a reservation detail button");
@@ -168,6 +170,41 @@ describe("HostReservationsPanel", () => {
     );
 
     expect(loadMoreRef).toHaveBeenCalledWith(expect.any(HTMLDivElement));
-    expect(screen.getByText("로딩 중...")).toBeInTheDocument();
+    expect(screen.getByText("예약을 더 불러오는 중...")).toBeInTheDocument();
+  });
+
+  it("offers an explicit retry without confusing failure with an empty list", async () => {
+    const onRetry = vi.fn();
+    const onFilterChange = vi.fn();
+
+    render(
+      <HostReservationsPanel
+        {...createProps({
+          onFilterChange,
+          state: {
+            status: "error",
+            isRetrying: false,
+            message: "잠시 후 다시 시도해주세요.",
+            onRetry,
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "예약을 불러오지 못했어요",
+    );
+    expect(
+      screen.queryByText("이 상태의 예약이 없어요"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /체크인/ }),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("tab", { name: "취소된 예약" }));
+    expect(onFilterChange).toHaveBeenCalledWith("CANCELLED");
+
+    await userEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
   });
 });

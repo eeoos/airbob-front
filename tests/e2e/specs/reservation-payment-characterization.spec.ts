@@ -1481,13 +1481,394 @@ test("keeps detail readable while availability fails closed and retries", async 
     page.getByRole("heading", { name: accommodation.name, level: 1 }),
   ).toBeVisible();
   await expect(
-    page.getByText("예약 가능한 날짜를 불러오지 못했습니다."),
+    page.getByText(
+      "날짜 정보를 불러오지 못했어요. ‘날짜 다시 불러오기’를 눌러 확인해주세요.",
+    ),
   ).toBeVisible();
-  await expect(page.getByRole("button", { name: /체크인/ })).toBeDisabled();
-  await page.getByRole("button", { name: "다시 시도" }).click();
-  await expect(page.getByRole("button", { name: /체크인/ })).toBeEnabled();
+  const bookingDateButton = page
+    .locator('button[aria-controls="booking-date-picker"]')
+    .first();
+  await expect(bookingDateButton).toBeDisabled();
+  await page.getByRole("button", { name: "날짜 다시 불러오기" }).click();
+  await expect(bookingDateButton).toBeEnabled();
   await expect(page.getByRole("button", { name: "예약하기" })).toBeEnabled();
   expect(
     api.matching("GET", "/api/v1/accommodations/7/availability"),
   ).toHaveLength(2);
+});
+
+test("keeps the calendar open through partial and complete date selection", async ({
+  api,
+  page,
+  session,
+}) => {
+  session.clear();
+  registerAccommodationReads(api);
+
+  await page.goto("/accommodations/7?adultOccupancy=1");
+  const bookingCard = page.getByRole("region", { name: "숙소 예약" });
+  await expect(
+    bookingCard.getByRole("heading", {
+      name: "날짜를 선택해 요금 확인",
+    }),
+  ).toBeVisible();
+  await bookingCard.getByRole("button", { name: "체크인 날짜 추가" }).click();
+
+  const dateOverlay = page.getByRole("dialog", { name: "예약 날짜 선택" });
+  await expect(dateOverlay).toBeVisible();
+  await dateOverlay
+    .getByRole("gridcell", { name: "2026년 1월 10일 토요일" })
+    .click();
+
+  await expect(dateOverlay).toBeVisible();
+  await expect(
+    bookingCard.getByRole("button", { name: "체크인 2026. 01. 10." }),
+  ).toBeVisible();
+  await expect(
+    bookingCard.getByRole("button", { name: "체크아웃 날짜 추가" }),
+  ).toBeVisible();
+  await expect(
+    dateOverlay.getByText("체크아웃 날짜를 선택하세요", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    bookingCard.getByRole("heading", {
+      name: "날짜를 선택해 요금 확인",
+    }),
+  ).toBeVisible();
+
+  await dateOverlay
+    .getByRole("gridcell", { name: "2026년 1월 12일 월요일" })
+    .click();
+
+  await expect(dateOverlay).toBeVisible();
+  await expect(
+    bookingCard.getByRole("button", { name: "체크아웃 2026. 01. 12." }),
+  ).toBeVisible();
+  await expect(bookingCard.getByText("총액")).toBeVisible();
+  await expect(bookingCard.getByText("₩100,000")).toBeVisible();
+  await expect(
+    bookingCard.getByRole("button", { name: "예약하기" }),
+  ).toBeEnabled();
+
+  await dateOverlay.getByRole("button", { name: "닫기" }).click();
+  await expect(dateOverlay).toBeHidden();
+  await expect(
+    bookingCard.getByRole("button", { name: "체크아웃 2026. 01. 12." }),
+  ).toBeFocused();
+
+  await bookingCard
+    .getByRole("button", { name: "체크아웃 2026. 01. 12." })
+    .click();
+  await expect(dateOverlay).toBeVisible();
+  await dateOverlay
+    .getByRole("gridcell", { name: "2026년 1월 13일 화요일" })
+    .click();
+
+  await expect(
+    bookingCard.getByRole("button", { name: "체크인 2026. 01. 10." }),
+  ).toBeVisible();
+  await expect(
+    bookingCard.getByRole("button", { name: "체크아웃 2026. 01. 13." }),
+  ).toBeVisible();
+  await expect(dateOverlay).toBeVisible();
+});
+
+test("replaces a partial check-in without silently creating a checkout", async ({
+  api,
+  page,
+  session,
+}) => {
+  session.clear();
+  registerAccommodationReads(api);
+
+  await page.goto("/accommodations/7?adultOccupancy=1");
+  const bookingCard = page.getByRole("region", { name: "숙소 예약" });
+  await bookingCard.getByRole("button", { name: "체크인 날짜 추가" }).click();
+
+  const dateOverlay = page.getByRole("dialog", { name: "예약 날짜 선택" });
+  await dateOverlay
+    .getByRole("gridcell", { name: "2026년 1월 10일 토요일" })
+    .click();
+  await bookingCard
+    .getByRole("button", { name: "체크인 2026. 01. 10." })
+    .click();
+
+  await expect(
+    dateOverlay.getByText("체크인 날짜를 선택하세요", { exact: true }),
+  ).toBeVisible();
+  await dateOverlay
+    .getByRole("gridcell", { name: "2026년 1월 11일 일요일" })
+    .click();
+
+  await expect(
+    bookingCard.getByRole("button", { name: "체크인 2026. 01. 11." }),
+  ).toBeVisible();
+  await expect(
+    bookingCard.getByRole("button", { name: "체크아웃 날짜 추가" }),
+  ).toBeVisible();
+  await expect(dateOverlay).toBeVisible();
+  await expect
+    .poll(() => new URL(page.url()).searchParams.get("checkIn"))
+    .toBe("2026-01-11");
+  expect(new URL(page.url()).searchParams.get("checkOut")).toBeNull();
+});
+
+const phaseTwoScreenshotOptions = {
+  animations: "disabled",
+  caret: "hide",
+  fullPage: false,
+  maxDiffPixelRatio: 0.03,
+  scale: "css",
+} as const;
+
+const waitForStableGuestJourneyPaint = async (page: Page): Promise<void> => {
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
+  });
+};
+
+const expectGuestJourneyNoHorizontalOverflow = async (
+  page: Page,
+  width: number,
+): Promise<void> => {
+  const widths = await page.evaluate(() => ({
+    body: document.body.scrollWidth,
+    document: document.documentElement.scrollWidth,
+    viewport: window.innerWidth,
+  }));
+
+  expect(widths.viewport).toBe(width);
+  expect(widths.body).toBeLessThanOrEqual(widths.viewport);
+  expect(widths.document).toBeLessThanOrEqual(widths.viewport);
+};
+
+const expectGuestJourneyTouchTarget = async (
+  locator: import("@playwright/test").Locator,
+): Promise<void> => {
+  await expect(locator).toBeVisible();
+  const bounds = await locator.boundingBox();
+
+  expect(bounds).not.toBeNull();
+  expect(bounds?.width ?? 0).toBeGreaterThanOrEqual(44);
+  expect(bounds?.height ?? 0).toBeGreaterThanOrEqual(44);
+};
+
+const expectGuestJourneyVisibleFocus = async (
+  locator: import("@playwright/test").Locator,
+): Promise<void> => {
+  await locator.focus();
+  await locator.page().keyboard.press("Tab");
+  await locator.page().keyboard.press("Shift+Tab");
+  await expect(locator).toBeFocused();
+  expect(
+    await locator.evaluate((element) => {
+      const styles = getComputedStyle(element);
+      return (
+        (styles.outlineStyle !== "none" &&
+          Number.parseFloat(styles.outlineWidth) > 0) ||
+        styles.boxShadow !== "none"
+      );
+    }),
+  ).toBe(true);
+};
+
+const reservationDetailWithPaymentWire = () => ({
+  ...reservationDetailWire("CONFIRMED"),
+  can_write_review: true,
+  payment: {
+    order_id: RESERVATION_UID,
+    method: "가상계좌",
+    total_amount: 100_000,
+    balance_amount: 100_000,
+    status: "WAITING_FOR_DEPOSIT",
+    requested_at: "2026-07-01T03:00:01Z",
+    approved_at: null,
+    cancels: [],
+    virtual_account: {
+      account_number: "123-456-7890",
+      bank_code: "04",
+      customer_name: "합성 게스트",
+      due_date: "2026-07-02T14:59:00Z",
+    },
+  },
+});
+
+test("keeps quote and payment confirmation usable from 320px through desktop", async ({
+  api,
+  page,
+  session,
+}) => {
+  session.authenticate();
+  await installPaymentGatewayFixture(page);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 320, height: 900 });
+  registerAccommodationReads(api);
+  api.register(
+    "POST",
+    "/api/v1/reservation-quotes",
+    apiSuccess(quoteWire(), 201),
+  );
+  api.register("POST", "/api/v1/reservations", apiSuccess(readyWire()));
+
+  await page.goto(detailPath);
+  await page.getByRole("button", { name: "예약하기" }).click();
+
+  const quote = page.getByRole("region", { name: "확정된 예약 견적" });
+  const continueButton = page.getByRole("button", {
+    name: "예약 계속하기",
+  });
+  await expect(quote).toBeVisible();
+  await expect(quote).toContainText("견적 유효 시각");
+  await expect(quote.locator("time")).toContainText("까지");
+  await expectGuestJourneyTouchTarget(continueButton);
+  await expectGuestJourneyNoHorizontalOverflow(page, 320);
+
+  await continueButton.click();
+  await expect(page).toHaveURL("/accommodations/7/confirm");
+  await expect(
+    page.getByRole("heading", { name: "확인 및 결제" }),
+  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "예약 조건" })).toBeVisible();
+  await expect(
+    page.getByRole("img", { name: "합정 테스트 숙소 이미지 없음" }),
+  ).toBeVisible();
+
+  const paymentButton = page.getByRole("button", { name: "확인 및 결제" });
+  const releaseButton = page.getByRole("button", {
+    name: "예약을 취소하고 객실 해제",
+  });
+  await expect(paymentButton).toBeEnabled();
+  await expectGuestJourneyTouchTarget(paymentButton);
+  await expectGuestJourneyTouchTarget(releaseButton);
+  await expectGuestJourneyVisibleFocus(paymentButton);
+  await expectGuestJourneyNoHorizontalOverflow(page, 320);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await waitForStableGuestJourneyPaint(page);
+  await expect(page).toHaveScreenshot(
+    "guest-confirm-mobile-foundation.png",
+    phaseTwoScreenshotOptions,
+  );
+
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await waitForStableGuestJourneyPaint(page);
+  await expectGuestJourneyNoHorizontalOverflow(page, 1440);
+  await expect(page).toHaveScreenshot(
+    "guest-confirm-desktop-foundation.png",
+    phaseTwoScreenshotOptions,
+  );
+});
+
+test("keeps the payment review ledger accessible on a 320px viewport", async ({
+  api,
+  page,
+  session,
+}) => {
+  session.authenticate();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 320, height: 900 });
+  api.register(
+    "GET",
+    `/api/v1/payment-operations/${OPERATION_ID}`,
+    apiSuccess(
+      operationWire("REQUIRES_REVIEW", {
+        retryAfterSeconds: 30,
+        sequence: 3,
+      }),
+    ),
+  );
+
+  await openSeedPage(page);
+  await seedStorage(page, {
+    [OPERATION_RECEIPT_KEY]: receiptEnvelope(),
+  });
+  await navigateWithRouterState(page, successPath, operationState());
+
+  await expect(
+    page.getByRole("heading", { name: "결제 확인이 필요합니다" }),
+  ).toBeVisible();
+  await expect(page.getByText(RESERVATION_UID)).toBeVisible();
+  await expect(page.getByText(OPERATION_ID)).toBeVisible();
+
+  const retryButton = page.getByRole("button", {
+    name: "결제 상태 다시 확인",
+  });
+  await expectGuestJourneyTouchTarget(retryButton);
+  await expectGuestJourneyVisibleFocus(retryButton);
+  await expectGuestJourneyNoHorizontalOverflow(page, 320);
+  await expectNoBrowserSecret(page, [PAYMENT_KEY, SYNTHETIC_USER_A.email]);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await waitForStableGuestJourneyPaint(page);
+  await expect(page).toHaveScreenshot(
+    "payment-review-mobile-foundation.png",
+    phaseTwoScreenshotOptions,
+  );
+});
+
+test("keeps the guest reservation ledger responsive with payment and media fallbacks", async ({
+  api,
+  page,
+  session,
+}) => {
+  session.authenticate();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 320, height: 1200 });
+  api.register(
+    "GET",
+    `/api/v1/profile/guest/reservations/${RESERVATION_UID}`,
+    apiSuccess(reservationDetailWithPaymentWire()),
+  );
+
+  await page.goto(`/reservations/${RESERVATION_UID}`);
+  await expect(page.getByText("SYNTHETIC-RESERVATION")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "가상계좌 입금 정보" }),
+  ).toBeVisible();
+  const paymentPanel = page.getByRole("region", { name: "결제 정보" });
+  await expect(paymentPanel).toBeVisible();
+  await paymentPanel.evaluate((element) => {
+    const rootStyles = getComputedStyle(document.documentElement);
+    const mobileHeaderOffset =
+      Number.parseFloat(
+        rootStyles.getPropertyValue("--layout-header-mobile-height"),
+      ) + Number.parseFloat(rootStyles.getPropertyValue("--space-4"));
+    window.scrollTo(
+      0,
+      Math.max(
+        0,
+        element.getBoundingClientRect().top +
+          window.scrollY -
+          mobileHeaderOffset,
+      ),
+    );
+  });
+  await waitForStableGuestJourneyPaint(page);
+  await expect(paymentPanel).toHaveScreenshot(
+    "guest-reservation-payment-mobile-foundation.png",
+    phaseTwoScreenshotOptions,
+  );
+  await expect(page.getByText("지도를 불러올 수 없습니다.")).toBeVisible();
+
+  const profileBackButton = page.getByRole("button", { name: /돌아가기/ });
+  const routeBackButton = page.getByRole("button", { name: "뒤로 가기" });
+  await expectGuestJourneyTouchTarget(profileBackButton);
+  await expectGuestJourneyTouchTarget(routeBackButton);
+  await expectGuestJourneyVisibleFocus(routeBackButton);
+  await expectGuestJourneyNoHorizontalOverflow(page, 320);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await waitForStableGuestJourneyPaint(page);
+  await expect(page).toHaveScreenshot(
+    "guest-reservation-mobile-foundation.png",
+    phaseTwoScreenshotOptions,
+  );
+
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await waitForStableGuestJourneyPaint(page);
+  await expectGuestJourneyNoHorizontalOverflow(page, 1440);
+  await expect(page).toHaveScreenshot(
+    "guest-reservation-desktop-foundation.png",
+    phaseTwoScreenshotOptions,
+  );
 });

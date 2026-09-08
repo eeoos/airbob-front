@@ -9,7 +9,6 @@ export {
 } from "./queries/readQueries";
 export type { AccommodationDetailQueryOptions } from "./queries/readQueries";
 export type { AccommodationAvailability } from "./model/accommodationAvailability";
-export { AccommodationBookingCard } from "./components/AccommodationBookingCard";
 export { AccommodationDescriptionModal } from "./components/AccommodationDescriptionModal";
 export { default as AccommodationHero } from "./components/AccommodationHero";
 export { AccommodationImageGalleryModal } from "./components/AccommodationImageGalleryModal";

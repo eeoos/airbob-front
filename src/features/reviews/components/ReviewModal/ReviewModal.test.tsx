@@ -1,5 +1,6 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { OverlayProvider } from "../../../../app/overlays/OverlayProvider";
 import type { Review } from "../../model";
 import { toReviewViewModels } from "../../lib/reviewViewModel";
@@ -20,7 +21,7 @@ const reviews: Review[] = [
       nickname: "민수",
       thumbnailImageUrl: "/minsu.jpg",
     },
-    images: [],
+    images: [{ id: 20, imageUrl: "/stay.jpg" }],
   },
   {
     id: 2,
@@ -83,12 +84,18 @@ const renderReviewModal = (
 ) => {
   const props: React.ComponentProps<typeof ReviewModal> = {
     averageRating: 4.25,
+    errorMessage: null,
     hasNext: false,
     isFetching: false,
     isOpen: true,
+    isRetrying: false,
+    loadMoreErrorMessage: null,
     onClose: vi.fn(),
     onLoadMore: vi.fn(),
+    onRetry: vi.fn(),
+    onRetryLoadMore: vi.fn(),
     reviews: toReviewViewModels(reviews),
+    status: "ready",
     totalCount: 2,
     ...overrides,
   };
@@ -115,16 +122,24 @@ describe("ReviewModal", () => {
     });
   });
 
-  it("renders as a Dialog with review summary content", () => {
+  it("renders a semantic record and discloses the loaded sorting scope", () => {
     renderReviewModal();
 
     expect(
       screen.getByRole("dialog", { name: "후기 2개" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("★ 4.25")).toBeInTheDocument();
-    expect(screen.getByText("후기 2개")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "평점 4.25 · 후기 2개" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("현재 불러온 후기 2개 안에서 정렬합니다."),
+    ).toBeVisible();
+    expect(screen.getByRole("img", { name: "5점 만점에 5점" })).toBeVisible();
     expect(screen.getByText("가장 좋은 후기")).toBeInTheDocument();
     expect(screen.getByText("낮은 평점 후기")).toBeInTheDocument();
+
+    fireEvent.error(screen.getByAltText("리뷰 이미지"));
+    expect(screen.getByRole("img", { name: "후기 이미지 없음" })).toBeVisible();
   });
 
   it("closes from explicit close control, Escape, and backdrop", async () => {
@@ -162,12 +177,18 @@ describe("ReviewModal", () => {
       <OverlayProvider>
         <ReviewModal
           averageRating={4.25}
+          errorMessage={null}
           hasNext={false}
           isFetching={false}
           isOpen
+          isRetrying={false}
+          loadMoreErrorMessage={null}
           onClose={onClose}
           onLoadMore={vi.fn()}
+          onRetry={vi.fn()}
+          onRetryLoadMore={vi.fn()}
           reviews={toReviewViewModels(reviews)}
+          status="ready"
           totalCount={2}
         />
       </OverlayProvider>,
@@ -190,6 +211,49 @@ describe("ReviewModal", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it("resets sort state and the open popover when the dialog reopens", async () => {
+    function ReviewModalHarness() {
+      const [isOpen, setIsOpen] = useState(true);
+
+      return (
+        <>
+          <button type="button" onClick={() => setIsOpen(true)}>
+            후기 다시 열기
+          </button>
+          <ReviewModal
+            {...renderProps({
+              isOpen,
+              onClose: () => setIsOpen(false),
+            })}
+          />
+        </>
+      );
+    }
+
+    render(<ReviewModalHarness />);
+    await userEvent.click(screen.getByRole("button", { name: "최신순" }));
+    expect(
+      screen.getByRole("group", { name: "불러온 후기 정렬 옵션" }),
+    ).toBeVisible();
+    await userEvent.click(screen.getByRole("button", { name: "낮은 평점순" }));
+    expect(reviewContents()).toEqual(["낮은 평점 후기", "가장 좋은 후기"]);
+
+    await userEvent.click(screen.getByRole("button", { name: "낮은 평점순" }));
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "후기 모달 닫기" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "후기 다시 열기" }),
+    );
+
+    expect(
+      screen.queryByRole("group", { name: "불러온 후기 정렬 옵션" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "최신순" })).toBeVisible();
+    expect(reviewContents()).toEqual(["가장 좋은 후기", "낮은 평점 후기"]);
+  });
+
   it("renders nothing while closed", () => {
     const { container } = renderReviewModal({ isOpen: false });
 
@@ -209,4 +273,70 @@ describe("ReviewModal", () => {
 
     expect(props.onLoadMore).toHaveBeenCalledTimes(1);
   });
+
+  it("renders initial loading, empty, and retryable states", async () => {
+    const onRetry = vi.fn();
+    const { rerender } = renderReviewModal({ status: "loading" });
+
+    expect(
+      screen.getByRole("status", { name: "후기 불러오는 중" }),
+    ).toBeVisible();
+
+    rerender(
+      <ReviewModal
+        {...renderProps({ reviews: [], status: "empty", totalCount: 0 })}
+      />,
+    );
+    expect(screen.getByText("아직 등록된 여행 기록이 없어요")).toBeVisible();
+
+    rerender(
+      <ReviewModal
+        {...renderProps({
+          errorMessage: "네트워크 연결을 확인해 주세요.",
+          onRetry,
+          reviews: [],
+          status: "error",
+        })}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a failed next page inline and exposes one explicit retry", async () => {
+    const onRetryLoadMore = vi.fn();
+    renderReviewModal({
+      hasNext: true,
+      loadMoreErrorMessage: "후기를 더 불러오지 못했습니다.",
+      onRetryLoadMore,
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "후기를 더 불러오지 못했습니다.",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "이어서 다시 불러오기" }),
+    );
+    expect(onRetryLoadMore).toHaveBeenCalledTimes(1);
+  });
+});
+
+const renderProps = (
+  overrides: Partial<React.ComponentProps<typeof ReviewModal>> = {},
+): React.ComponentProps<typeof ReviewModal> => ({
+  averageRating: 4.25,
+  errorMessage: null,
+  hasNext: false,
+  isFetching: false,
+  isOpen: true,
+  isRetrying: false,
+  loadMoreErrorMessage: null,
+  onClose: vi.fn(),
+  onLoadMore: vi.fn(),
+  onRetry: vi.fn(),
+  onRetryLoadMore: vi.fn(),
+  reviews: toReviewViewModels(reviews),
+  status: "ready",
+  totalCount: 2,
+  ...overrides,
 });

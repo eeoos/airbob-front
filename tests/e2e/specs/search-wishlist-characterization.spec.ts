@@ -90,7 +90,7 @@ test("keeps a URL-driven search stable across a full browser refresh", async ({
   await expect(
     page.getByRole("heading", { name: "숙소 0개", level: 2 }),
   ).toBeVisible();
-  await expect(page.getByText("검색 결과가 없습니다.")).toBeVisible();
+  await expect(page.getByText("조건에 맞는 숙소가 없어요")).toBeVisible();
   await expect(page).toHaveURL(expectedSearchURL);
 
   await page.reload();
@@ -259,6 +259,77 @@ test("restores paginated search URLs and requests through browser history", asyn
     .toBeGreaterThan(pageThreeRequestsBeforeForward);
 });
 
+test("keeps pagination visible across desktop sizes while swapping full result pages", async ({
+  api,
+  page,
+  session,
+}) => {
+  session.clear();
+  api.register("GET", "/api/v1/search/accommodations", (request) => {
+    const requestedPage = Number(getRequestQuery(request).page ?? "0");
+
+    return apiSuccess({
+      stay_search_result_listing: Array.from({ length: 18 }, (_, index) =>
+        makeSearchAccommodation(
+          requestedPage * 100 + index + 1,
+          `페이지 ${requestedPage + 1} 숙소 ${index + 1}`,
+        ),
+      ),
+      page_info: {
+        page_size: 18,
+        current_page: requestedPage,
+        total_pages: 3,
+        total_elements: 54,
+        is_first: requestedPage === 0,
+        is_last: requestedPage === 2,
+        has_next: requestedPage < 2,
+        has_previous: requestedPage > 0,
+      },
+    });
+  });
+
+  const desktopViewports = [
+    { width: 1280, height: 720 },
+    { width: 1920, height: 1080 },
+    { width: 2560, height: 1440 },
+  ];
+
+  for (const viewport of desktopViewports) {
+    await test.step(`${viewport.width}x${viewport.height}`, async () => {
+      await page.setViewportSize(viewport);
+      await page.goto("/search?destination=Seoul&adultOccupancy=2");
+
+      const pagination = page.getByRole("navigation", {
+        name: "검색 결과 페이지",
+      });
+      await pagination.scrollIntoViewIfNeeded();
+      await expect(pagination).toBeInViewport();
+      await expect
+        .poll(() =>
+          page.evaluate(() => ({
+            documentHeight: document.documentElement.scrollHeight,
+            viewportHeight: window.innerHeight,
+            windowScrollY: window.scrollY,
+          })),
+        )
+        .toEqual({
+          documentHeight: viewport.height,
+          viewportHeight: viewport.height,
+          windowScrollY: 0,
+        });
+
+      await pagination.getByRole("button", { name: "2" }).click();
+
+      await expect(
+        pagination.getByRole("button", { name: "2" }),
+      ).toHaveAttribute("aria-current", "page");
+      await expect(pagination).toBeInViewport();
+      expect(new URL(page.url()).searchParams.get("page")).toBe("1");
+      expect(await page.evaluate(() => window.scrollY)).toBe(0);
+    });
+  }
+});
+
 test("maps viewport URL coordinates to the search request without loading Google", async ({
   api,
   page,
@@ -275,8 +346,10 @@ test("maps viewport URL coordinates to the search request without loading Google
     "/search?topLeftLat=38&topLeftLng=126&bottomRightLat=37&bottomRightLng=128&adultOccupancy=2";
   await page.goto(viewportURL);
 
-  await expect(page.getByText("지도를 불러올 수 없습니다.")).toBeVisible();
-  await expect(page.getByText("검색 결과가 없습니다.")).toBeVisible();
+  await expect(
+    page.getByText("지도 없이 결과를 둘러볼 수 있어요"),
+  ).toBeVisible();
+  await expect(page.getByText("조건에 맞는 숙소가 없어요")).toBeVisible();
   expect(`${new URL(page.url()).pathname}${new URL(page.url()).search}`).toBe(
     viewportURL,
   );

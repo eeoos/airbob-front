@@ -94,7 +94,9 @@ test("restores wishlist index, recent, and detail views through browser history"
     page.getByRole("heading", { name: "위시리스트", level: 1 }),
   ).toBeVisible();
 
-  await page.getByRole("button", { name: /브라우저 테스트 여행/ }).click();
+  await page
+    .getByRole("button", { name: /브라우저 테스트 여행 위시리스트 열기/ })
+    .click();
   await expect(page).toHaveURL(/\/wishlist\?id=7#history$/);
   await expect(
     page.getByRole("heading", { name: "브라우저 테스트 여행", level: 1 }),

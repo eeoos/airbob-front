@@ -24,6 +24,72 @@ const accommodation: SearchMapAccommodation = {
   coordinate: { latitude: 37.5, longitude: 127 },
 };
 
+const installMinimalMarkerRuntime = () => {
+  class FakeMarker {
+    addListener = vi.fn(() => ({ remove: vi.fn() }));
+    setIcon = vi.fn();
+    setMap = vi.fn();
+    unbindAll = vi.fn();
+  }
+
+  class FakeSize {
+    readonly width: number;
+    readonly height: number;
+
+    constructor(width: number, height: number) {
+      this.width = width;
+      this.height = height;
+    }
+  }
+
+  class FakePoint {
+    readonly x: number;
+    readonly y: number;
+
+    constructor(x: number, y: number) {
+      this.x = x;
+      this.y = y;
+    }
+  }
+
+  class FakeLatLngBounds {
+    readonly points: Array<{ lat: number; lng: number }> = [];
+
+    extend(point: { lat: number; lng: number }) {
+      this.points.push(point);
+    }
+  }
+
+  (window as any).google = {
+    maps: {
+      Map: function Map() {},
+      Marker: FakeMarker,
+      Size: FakeSize,
+      Point: FakePoint,
+      LatLngBounds: FakeLatLngBounds,
+      event: {},
+    },
+  };
+  Object.defineProperty(URL, "createObjectURL", {
+    configurable: true,
+    value: vi.fn(() => "blob:amenity-marker"),
+  });
+  Object.defineProperty(URL, "revokeObjectURL", {
+    configurable: true,
+    value: vi.fn(),
+  });
+};
+
+const accommodationAt = (
+  id: number,
+  latitude: number,
+  longitude: number,
+): SearchMapAccommodation => ({
+  ...accommodation,
+  id,
+  coordinate: { latitude, longitude },
+});
+
 describe("useAccommodationMarkers", () => {
   const originalCancelAnimationFrame = window.cancelAnimationFrame;
   const originalCreateObjectURL = URL.createObjectURL;
@@ -46,9 +112,11 @@ describe("useAccommodationMarkers", () => {
   });
 
   it("disposes marker listeners, animation frame, object URLs, and owned bindings", () => {
-    const listenerHandles = Array.from({ length: 3 }, () => ({
-      remove: vi.fn(),
-    }));
+    const listenerHandles = [
+      { remove: vi.fn() },
+      undefined,
+      { remove: vi.fn() },
+    ];
     const handlers: Record<string, (...args: any[]) => void> = {};
     const setMap = vi.fn();
     const unbindAll = vi.fn();
@@ -169,9 +237,11 @@ describe("useAccommodationMarkers", () => {
     marker.dispose?.();
     unmount();
 
-    listenerHandles.forEach((listener) => {
-      expect(listener.remove).toHaveBeenCalledTimes(1);
-    });
+    listenerHandles
+      .filter((listener) => listener !== undefined)
+      .forEach((listener) => {
+        expect(listener.remove).toHaveBeenCalledTimes(1);
+      });
     expect(cancelAnimationFrame).toHaveBeenCalledWith(41);
     expect(setMap).toHaveBeenCalledWith(null);
     expect(unbindAll).toHaveBeenCalledTimes(1);
@@ -181,5 +251,112 @@ describe("useAccommodationMarkers", () => {
       "blob:hovered",
     ]);
     expect(markersRef.current).toEqual([]);
+  });
+
+  it("consumes an explicit refit request when no result has a coordinate", () => {
+    (window as any).google = {
+      maps: { Map: function Map() {} },
+    };
+    const onMapBoundsUpdated = vi.fn();
+
+    renderHook(() =>
+      useAccommodationMarkers({
+        accommodations: [],
+        isInitialIdleRef: ref(true),
+        isMapDragMode: false,
+        isMapLoaded: true,
+        mapInstanceRef: ref({} as google.maps.Map),
+        markersRef: ref<SearchMapMarker[]>([]),
+        onAccommodationSelectRef: ref(vi.fn()),
+        onMapBoundsUpdated,
+        prevViewportRef: ref<SearchMapViewport | null>(null),
+        shouldUpdateMapBounds: true,
+        viewport: null,
+        viewportJustChangedRef: ref(false),
+      }),
+    );
+
+    expect(onMapBoundsUpdated).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses a city-level center for duplicate coordinates", () => {
+    installMinimalMarkerRuntime();
+    const fitBounds = vi.fn();
+    const setCenter = vi.fn();
+    const setZoom = vi.fn();
+    const map = {
+      fitBounds,
+      setCenter,
+      setZoom,
+    } as unknown as google.maps.Map;
+
+    renderHook(() =>
+      useAccommodationMarkers({
+        accommodations: [
+          accommodationAt(10, 35.1796, 129.0756),
+          accommodationAt(11, 35.1796, 129.0756),
+        ],
+        isInitialIdleRef: ref(true),
+        isMapDragMode: false,
+        isMapLoaded: true,
+        mapInstanceRef: ref(map),
+        markersRef: ref<SearchMapMarker[]>([]),
+        onAccommodationSelectRef: ref(vi.fn()),
+        prevViewportRef: ref<SearchMapViewport | null>(null),
+        shouldUpdateMapBounds: false,
+        viewport: null,
+        viewportJustChangedRef: ref(false),
+      }),
+    );
+
+    expect(fitBounds).not.toHaveBeenCalled();
+    expect(setCenter).toHaveBeenCalledWith({
+      lat: 35.1796,
+      lng: 129.0756,
+    });
+    expect(setZoom).toHaveBeenCalledWith(12);
+  });
+
+  it("fits every distinct result coordinate with map padding", () => {
+    installMinimalMarkerRuntime();
+    const fitBounds = vi.fn();
+    const setCenter = vi.fn();
+    const setZoom = vi.fn();
+    const map = {
+      fitBounds,
+      setCenter,
+      setZoom,
+    } as unknown as google.maps.Map;
+
+    renderHook(() =>
+      useAccommodationMarkers({
+        accommodations: [
+          accommodationAt(10, 35.1796, 129.0756),
+          accommodationAt(11, 35.1587, 129.1604),
+        ],
+        isInitialIdleRef: ref(true),
+        isMapDragMode: false,
+        isMapLoaded: true,
+        mapInstanceRef: ref(map),
+        markersRef: ref<SearchMapMarker[]>([]),
+        onAccommodationSelectRef: ref(vi.fn()),
+        prevViewportRef: ref<SearchMapViewport | null>(null),
+        shouldUpdateMapBounds: false,
+        viewport: null,
+        viewportJustChangedRef: ref(false),
+      }),
+    );
+
+    expect(fitBounds).toHaveBeenCalledTimes(1);
+    const fittedBounds = fitBounds.mock.calls[0]?.[0] as unknown as {
+      points: Array<{ lat: number; lng: number }>;
+    };
+    expect(fittedBounds.points).toEqual([
+      { lat: 35.1796, lng: 129.0756 },
+      { lat: 35.1587, lng: 129.1604 },
+    ]);
+    expect(fitBounds).toHaveBeenCalledWith(fittedBounds, 50);
+    expect(setCenter).not.toHaveBeenCalled();
+    expect(setZoom).not.toHaveBeenCalled();
   });
 });

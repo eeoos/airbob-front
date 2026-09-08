@@ -6,5 +6,6 @@ export type {
   ReviewImage,
   ReviewListParams,
   ReviewPage,
+  ReviewSortType,
   UploadedReviewImages,
 } from "./review";

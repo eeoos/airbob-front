@@ -1,16 +1,30 @@
-# Frontend Live Integration Smoke
+# Frontend Local and Live Integration Smoke
 
-> 현재 상태: **DEFERRED / UNVERIFIED**
-> Vercel frontend와 OCI backend가 호환 가능한 상태로 연결되기 전에는 이 문서를 완료
-> 증거로 사용하지 않는다. Toss는 sandbox만 사용한다.
+> U12 local core: **BLOCKED / UNVERIFIED**
+> U12 local Toss sandbox: **BLOCKED / UNVERIFIED**
+> Local-benchmark read-only subset: **PASS**
+> Deployment live: **DEFERRED / UNVERIFIED**
+>
+> 2026-09-02 audit에서 infrastructure, local-benchmark backend readiness, 실제 search/Maps와
+> accommodation detail을 읽기 전용으로 검증했다. 사용자는 전용 local reset ownership도
+> 확인했다. 그러나 booking inventory와 active coupon이 0이고 backend-owned fixture reset
+> procedure와 Toss failure injection이 없으므로 local core와 Toss는 pass로 기록하지 않는다.
 
 ## 목적과 경계
 
-이 문서는 외부 서비스가 필요한 live 통합만 검증한다. 프론트 구조와 디자인 진입은
-backend-independent `npm run verify:design-ready`가 판정하며, live smoke는 그 명령에
-포함되지 않고 디자인 작업을 차단하지 않는다.
+이 문서는 U12 real local-backend profile과 외부 서비스가 필요한 deployment live 통합을
+서로 다른 증거로 검증한다. 프론트 구조와 디자인 진입은 backend-independent
+`npm run verify:design-ready`가 판정하며, 어느 통합 smoke도 그 명령에 포함되지 않는다.
 
-Live 범위는 다음뿐이다.
+Local 범위는 다음뿐이다.
+
+- Vite `/api` proxy를 통한 cookie session, search, wishlist, detail과 availability
+- backend-owned disposable data에서 paid/complimentary quote와 checkout
+- paid hold의 attempt replay/release와 availability projection
+- local messaging stack을 통과한 operation terminal
+- 별도 Toss sandbox project의 cancel/fail/success, callback scrub, confirm/poll recovery
+
+Deployment live 범위는 다음뿐이다.
 
 - commit-specific Vercel deployment의 SPA deep link와 lazy asset
 - Vercel origin에서 OCI `/api/v1`로 가는 cookie session, CORS, API envelope와 upload
@@ -19,7 +33,120 @@ Live 범위는 다음뿐이다.
 
 AWS 성능 환경은 이 runbook과 디자인 진입 gate 밖의 별도 성능 작업이다.
 
-## 실행 전 조건
+## U12 local profile
+
+### Local 실행 전 조건
+
+- Vite frontend, local backend와 backend 문서가 요구하는 DB/cache/messaging service가
+  모두 reachable이어야 한다. 단순 port open만으로 messaging ready를 주장하지 않는다.
+- Backend owner가 해당 identity, accommodation, inventory, coupon과 생성된
+  reservation/operation을 disposable로 선언하고 reset/cleanup 책임자와 절차를 제공해야
+  한다. 이 ownership은 자동 preflight가 추론할 수 없으므로 실행 전 out-of-band attestation과
+  실행 기록이 필요하다. Frontend runner는 DB를 seed/reset하거나 backend test SQL을
+  재사용하지 않는다.
+- 서로 겹치지 않는 paid slot 1–3과 별도 complimentary slot을 준비한다. Paid quote는
+  current CARD/KRW 최소 금액을 충족하고 complimentary quote는 Toss를 호출하지 않는
+  조건이어야 한다.
+- Search와 wishlist fixture가 동일한 disposable dataset을 가리키고 guest identity가 이를
+  읽고 변경할 권한을 가져야 한다.
+- Operation terminal을 만드는 Kafka/Debezium 등 backend-owned messaging path의 readiness와
+  bounded completion 기준을 backend owner가 확인해야 한다.
+- Toss project는 local core가 먼저 검증된 뒤에만 실행한다. Browser에는
+  `REACT_APP_TOSS_CLIENT_KEY`만 주입하고 server credential은 backend process가 소유한다.
+  Key 값이나 존재 확인 출력도 evidence에 남기지 않는다.
+
+### Local 환경 변수 이름
+
+아래는 canonical 이름이다. Shell과 secret manager에는 값을 out-of-band로 주입하되,
+명령, screenshot, report, issue, commit과 채팅에는 값을 쓰지 않는다.
+
+| 이름                                      | 용도                                                 |
+| ----------------------------------------- | ---------------------------------------------------- |
+| `AIRBOB_QA_EMAIL`, `AIRBOB_QA_PASSWORD`   | disposable guest identity                            |
+| `AIRBOB_LOCAL_MUTATION_PROFILE`           | mutation opt-in; 정확히 `disposable`                 |
+| `AIRBOB_LOCAL_DATA_OWNERSHIP_PROFILE`     | 정확히 `backend-owned-disposable`인 소유권 확인      |
+| `AIRBOB_LOCAL_BACKEND_REVISION`           | 실행 대상 backend의 non-secret Git revision          |
+| `AIRBOB_LOCAL_RESET_AUTHORIZED_AT`        | 15분 이내 UTC reset 승인 시각                        |
+| `AIRBOB_LOCAL_RESET_OWNER_LABEL`          | 정확히 `backend-local-owner`인 PII-free 역할 label   |
+| `AIRBOB_LOCAL_RESET_PROCEDURE_LABEL`      | PII가 아닌 reset/restore 절차 label                  |
+| `AIRBOB_LOCAL_BACKEND_ORIGIN`             | optional loopback backend-origin override            |
+| `AIRBOB_LOCAL_BACKEND_READINESS_PATH`     | optional backend readiness-path override             |
+| `AIRBOB_LOCAL_REQUIRED_HEALTH_COMPONENTS` | optional required-health-component override          |
+| `AIRBOB_LOCAL_MYSQL_PORT`                 | optional local MySQL readiness-port override         |
+| `AIRBOB_LOCAL_REDIS_PORT`                 | optional local Redis readiness-port override         |
+| `AIRBOB_LOCAL_CACHE_REDIS_PORT`           | optional local cache-Redis readiness-port override   |
+| `AIRBOB_LOCAL_ELASTICSEARCH_PORT`         | optional local Elasticsearch readiness-port override |
+| `AIRBOB_LOCAL_KAFKA_PORT`                 | optional local Kafka readiness-port override         |
+| `AIRBOB_LOCAL_DEBEZIUM_PORT`              | optional local Debezium readiness-port override      |
+| `AIRBOB_LOCAL_SEARCH_DESTINATION`         | disposable search fixture                            |
+| `AIRBOB_LOCAL_WISHLIST_ACCOMMODATION_ID`  | wishlist mutation fixture                            |
+| `AIRBOB_LOCAL_PAID_FIXTURES`              | 정확히 세 개의 독립적인 paid slot fixture            |
+| `AIRBOB_LOCAL_COMPLIMENTARY_FIXTURE`      | accommodation/date를 포함한 complimentary slot       |
+| `AIRBOB_LOCAL_COMPLIMENTARY_COUPON_ID`    | backend-owned complimentary coupon                   |
+| `AIRBOB_LOCAL_TOSS_SANDBOX_PROFILE`       | explicit Toss sandbox opt-in                         |
+| `AIRBOB_LOCAL_TOSS_PROVIDER_PROFILE`      | test-only provider-input attestation                 |
+| `AIRBOB_LOCAL_TOSS_SERVER_PROFILE`        | 정확히 `sandbox-configured`인 backend-owned 확인     |
+| `AIRBOB_LOCAL_TOSS_FAILURE_PROFILE`       | 정확히 `confirm-test-code-configured`인 실패 확인    |
+| `AIRBOB_LOCAL_TOSS_EXPECTED_FAILURE_CODE` | paid[1]에서 기대하는 non-secret backend failure code |
+| `REACT_APP_TOSS_CLIENT_KEY`               | Toss sandbox browser-public client key               |
+| `AIRBOB_LOCAL_TOSS_CARD_NUMBER`           | runner-only sandbox card input                       |
+| `AIRBOB_LOCAL_TOSS_CARD_EXPIRY`           | runner-only sandbox card input                       |
+| `AIRBOB_LOCAL_TOSS_CARD_CVC`              | runner-only sandbox card input                       |
+| `AIRBOB_LOCAL_TOSS_CARD_PASSWORD`         | runner-only sandbox card input                       |
+
+Local frontend origin은 harness가 고정 소유하며 별도 환경 변수로 받지 않는다. Runner는
+card 입력을 browser나 Vite child로 전달하지 않고 spec scope에서만 사용한다. Raw
+`AIRBOB_LOCAL_TOSS_SECRET_KEY`와 `TOSS_SECRET_KEY`가 Playwright 환경에 있으면 preflight는
+즉시 차단한다. Server credential과 공식 confirm test-code 주입은 backend process만
+소유한다. Test-code 동작은
+[Toss Payments 테스트 환경 문서](https://docs.tosspayments.com/guides/v2/get-started/environment)를
+기준으로 한다. Failure profile은 paid slot 2(`paid[1]`)에만 적용되는 one-shot 또는
+slot-scoped 계약이어야 하며 paid slot 3(`paid[2]`)의 success를 오염시키면 안 된다.
+
+### Local 실행과 독립 결과
+
+```bash
+npm run test:local:preflight
+npm run test:local:core
+npm run verify:local:core
+npm run test:local:toss
+npm run verify:local:toss
+npm run verify:local-integration
+```
+
+| 결과 이름            | 명령                                                           | Redacted result root                                | 판정 규칙                                            |
+| -------------------- | -------------------------------------------------------------- | --------------------------------------------------- | ---------------------------------------------------- |
+| `local-core`         | `test:local:preflight`, `test:local:core`, `verify:local:core` | `test-results/local-integration/local-core`         | Auth/core API/hold assertion과 redaction을 독립 기록 |
+| `local-toss-sandbox` | `test:local:toss`, `verify:local:toss`                         | `test-results/local-integration/local-toss-sandbox` | 같은 run identity의 core assertion PASS 뒤에만 시작  |
+| aggregate            | `verify:local-integration`                                     | 위 두 result root를 그대로 분리 유지                | guarded runner가 core→Toss 순서를 한 번만 소유       |
+
+위 package command만 지원한다. Local Playwright config를 직접 호출하는 경로는 runner
+identity가 없어 차단된다. Mutation run은 clean committed frontend workspace에서만 시작하며,
+Toss 직전에 revision/worktree 상태를 다시 읽어 core 시점과 정확히 같은지 확인한다. Toss
+global setup도 동일 run identity, frontend/backend revision의 `local-core` PASS manifest를
+독립 확인한다.
+
+각 result root의 mode-`0600` `result.json`은 run identity, frontend/backend revision,
+preflight/assertion status, reset label과 cleanup 상태만 보존한다. Fixture, credential,
+transaction identifier와 request/response 값은 보존하지 않는다. Assertion이 모두 통과해도
+`cleanupStatus=EXTERNAL_RESET_REQUIRED`이면 evidence는 `BLOCKED_UNVERIFIED`다.
+
+자동 preflight는 allowlisted 환경 이름/형식, fresh reset authorization, 서로 겹치지 않는 fixture, frontend/backend
+health, dependency port, Elasticsearch accommodation alias와 Debezium connector/task
+`RUNNING`을 검사한다. Exact data-ownership attestation이 없으면 command를 실행하지 않고
+`BLOCKED / UNVERIFIED`로 기록한다. 실제 reset 책임자와 절차 실행은 여전히 backend owner가
+기록한다. Service, fixture slot 또는 messaging readiness가 하나라도 확인되지 않아도 같은
+판정이다. `test:local:toss` 자체가 같은 실행에서 core를 먼저 수행한다. Toss
+credential/profile이 없거나 matching core assertion이 PASS가 아니면 provider project를
+시작하지 않으며 Toss 결과도 PASS나 skip이 아니라 `BLOCKED / UNVERIFIED`다. 각 실행은
+[`U12 redacted evidence record`](./2026-09-02-u12-local-integration-evidence.md)에 독립적으로
+기록한다.
+
+Local proxy 성공은 same-origin development behavior만 증명한다. Vercel→OCI의 credential,
+CORS allowlist, Origin/CSRF rejection, production Maps key/referrer/quota, cross-device recovery,
+AWS 성능을 증명하지 않는다.
+
+## Deployment live 실행 전 조건
 
 - 검증할 Git commit과 그 commit-specific Vercel deployment를 고정한다.
 - 해당 frontend contract와 호환되는 OCI backend가 reachable 상태여야 한다.
@@ -33,7 +160,7 @@ AWS 성능 환경은 이 runbook과 디자인 진입 gate 밖의 별도 성능 �
 - `GSTACK_BROWSE_BIN`이 실행 가능해야 한다. Search result card를 검증하려면 OCI search
   index에도 전용 fixture가 있어야 한다.
 
-## Smoke 환경 변수
+## Deployment live 환경 변수
 
 | 이름                                    | 용도                                 | 규칙                                                            |
 | --------------------------------------- | ------------------------------------ | --------------------------------------------------------------- |
@@ -48,7 +175,7 @@ AWS 성능 환경은 이 runbook과 디자인 진입 gate 밖의 별도 성능 �
 | `AIRBOB_SMOKE_EXPECT_SEARCH_RESULTS`    | visible result card 강제             | search fixture가 준비된 실행에서만 `true`                       |
 | `AIRBOB_SMOKE_REPORT_ROOT`              | local redacted report 위치 변경      | 필요할 때만 사용                                                |
 
-## 실행
+## Deployment live 실행
 
 먼저 동일 commit의 backend-independent gate를 통과시킨다.
 
@@ -128,9 +255,14 @@ present` 표시는 key 값이나 실제 SDK 동작 증거가 아니므로 아래
 
 각 실행은 다음 항목만 redacted 작업 기록에 남긴다.
 
-- 검증한 commit과 Vercel deployment label
-- 실행 시각과 `verify:design-ready`, preflight, `verify:live-integration` exit status
-- generated smoke report의 local path
+- 검증한 frontend/backend commit과 실행 시각
+- local이면 `local-core`와 `local-toss-sandbox` 각각의 명령, exit status와
+  `PASS`/`FAIL`/`BLOCKED / UNVERIFIED` 판정
+- local이면 backend reset/disposable 책임자와 messaging readiness 확인 여부. 사람 이름,
+  내부 URL이나 credential이 아니라 승인된 owner label과 redacted 절차 참조만 기록
+- deployment live이면 Vercel deployment label과 `verify:design-ready`, preflight,
+  `verify:live-integration` exit status
+- generated smoke report의 local redacted path
 - failed step, console error category, network failed request의 method/status/path
 - Maps와 Toss sandbox checklist의 PASS/FAIL/DEFERRED
 
@@ -139,8 +271,10 @@ present` 표시는 key 값이나 실제 SDK 동작 증거가 아니므로 아래
 - QA email/password, cookie, auth state, Maps/Toss key
 - reservation/accommodation 식별자
 - payment key, order identifier, callback query 또는 callback 전체 URL
-- 실제 사용자 PII, request/response body, HAR, trace, payment callback screenshot
+- 실제 사용자 PII, request/response body, HAR, trace, video, download, raw browser storage
+- payment callback, credential-bearing URL 또는 provider 화면 screenshot
 
 Console error, API failure, skipped dynamic route, credential redaction 실패가 하나라도 있으면
-live gate는 실패다. 외부 환경이 준비되지 않은 경우에는 통과로 기록하지 말고
-`DEFERRED / UNVERIFIED`를 유지한다.
+해당 gate는 실패다. Local 전제조건이 없으면 `BLOCKED / UNVERIFIED`, deployment 외부
+환경이 준비되지 않았으면 `DEFERRED / UNVERIFIED`를 유지한다. 둘 다 skip이나 pass로
+기록하지 않는다.

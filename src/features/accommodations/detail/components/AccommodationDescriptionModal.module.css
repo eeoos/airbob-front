@@ -1,6 +1,7 @@
 .descriptionModalContent {
   max-width: 800px;
-  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-dialog);
+  box-shadow: var(--shadow-floating);
 }
 
 .descriptionModalBody {

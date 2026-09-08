@@ -3,11 +3,15 @@ import { requireCssModuleClass } from "../../shared/styles/requireCssModuleClass
 import type { HostListingFilterStatus } from "./model/hostListing";
 import {
   ActionCard,
+  Button,
   EmptyState,
-  LoadingState,
+  ImageWithFallback,
+  RetryableErrorState,
+  Skeleton,
   StatusBadge,
   Tabs,
   ToastHost,
+  stateViewRecipes,
 } from "../../shared/ui";
 import styles from "./HostListingsPanel.module.css";
 
@@ -23,6 +27,12 @@ interface HostListingCardView {
 
 type HostListingsPanelState =
   | { readonly status: "loading" }
+  | {
+      readonly status: "error";
+      readonly isRetrying: boolean;
+      readonly message: string;
+      readonly onRetry: () => void;
+    }
   | {
       readonly status: "ready";
       readonly listings: readonly HostListingCardView[];
@@ -49,6 +59,40 @@ const statusFilterItems = [
   label: string;
 }>;
 
+function HostListingsSkeleton() {
+  return (
+    <section className={styles.loadingState} {...stateViewRecipes.loading}>
+      <span className={styles.srOnly}>호스트 숙소를 불러오는 중입니다.</span>
+      <Skeleton className={styles.loadingTitle} />
+      <Skeleton className={styles.loadingTabs} />
+      <div className={styles.loadingGrid}>
+        {Array.from({ length: 3 }, (_, index) => (
+          <div className={styles.loadingCard} key={index}>
+            <Skeleton className={styles.loadingImage} />
+            <Skeleton className={styles.loadingLineWide} />
+            <Skeleton className={styles.loadingLine} />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ListingImageFallback({ name }: { readonly name: string }) {
+  return (
+    <div
+      aria-label={`${name} 숙소 이미지 없음`}
+      className={styles.placeholder}
+      role="img"
+    >
+      <svg aria-hidden="true" viewBox="0 0 32 32">
+        <path d="M5 26V13.5L16 5l11 8.5V26a1 1 0 0 1-1 1h-7v-8h-6v8H6a1 1 0 0 1-1-1Z" />
+      </svg>
+      <span>사진 준비 중</span>
+    </div>
+  );
+}
+
 export function HostListingsPanel({
   errorMessage,
   loadMoreRef,
@@ -59,12 +103,18 @@ export function HostListingsPanel({
   statusType,
 }: HostListingsPanelProps) {
   if (state.status === "loading") {
-    return <LoadingState title="로딩 중..." />;
+    return <HostListingsSkeleton />;
   }
 
   return (
     <div className={styles.container}>
-      <h2 className={styles.title}>숙소 관리</h2>
+      <header className={styles.header}>
+        <p className={styles.eyebrow}>호스트 작업공간</p>
+        <h2 className={styles.title}>숙소 관리</h2>
+        <p className={styles.intro}>
+          공개 상태를 확인하고 다음 관리 작업을 선택하세요.
+        </p>
+      </header>
       <Tabs
         ariaLabel="숙소 상태 필터"
         className={requireCssModuleClass(styles.filterTabs)}
@@ -73,8 +123,26 @@ export function HostListingsPanel({
         onValueChange={onStatusChange}
       />
 
-      {state.listings.length === 0 ? (
-        <EmptyState title="아직 숙소가 없습니다." />
+      {state.status === "error" ? (
+        <RetryableErrorState
+          title="숙소를 불러오지 못했어요"
+          description={state.message}
+          action={
+            <Button
+              isLoading={state.isRetrying}
+              loadingLabel="다시 불러오는 중..."
+              onClick={state.onRetry}
+              variant="secondary"
+            >
+              다시 시도
+            </Button>
+          }
+        />
+      ) : state.listings.length === 0 ? (
+        <EmptyState
+          title="이 상태의 숙소가 없어요"
+          description="다른 공개 상태를 선택해 숙소를 확인해보세요."
+        />
       ) : (
         <>
           <div className={styles.accommodationsGrid}>
@@ -86,20 +154,20 @@ export function HostListingsPanel({
                 onClick={() => onOpenListingActions(accommodation.id)}
               >
                 <div className={styles.image}>
-                  {accommodation.thumbnailUrl ? (
-                    <img
-                      src={accommodation.thumbnailUrl}
-                      alt={accommodation.imageAlt}
-                    />
-                  ) : (
-                    <div className={styles.placeholder}>🏠</div>
-                  )}
+                  <ImageWithFallback
+                    src={accommodation.thumbnailUrl}
+                    alt={accommodation.imageAlt}
+                    className={styles.thumbnail}
+                    fallback={
+                      <ListingImageFallback name={accommodation.name} />
+                    }
+                  />
                 </div>
                 <div className={styles.content}>
-                  <div className={styles.name}>{accommodation.name}</div>
-                  <div className={styles.location}>
+                  <h3 className={styles.name}>{accommodation.name}</h3>
+                  <p className={styles.location}>
                     {accommodation.locationLabel}
-                  </div>
+                  </p>
                   <StatusBadge size="sm" tone="neutral">
                     {accommodation.statusLabel}
                   </StatusBadge>

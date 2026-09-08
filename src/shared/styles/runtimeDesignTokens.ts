@@ -26,6 +26,7 @@ const defineColorToken = <const Name extends RuntimeCssColorTokenName>(
  */
 export const RUNTIME_DESIGN_TOKENS = Object.freeze({
   color: Object.freeze({
+    // Kept for existing out-of-scope consumers during the staged redesign.
     brand: defineColorToken("--color-brand-coral", "#ff385c"),
     border: defineColorToken("--color-border-default", "#ddd"),
     surface: defineColorToken("--color-background-page", "#fff"),

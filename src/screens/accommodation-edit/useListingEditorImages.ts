@@ -171,6 +171,28 @@ export const useListingEditorImages = ({
     setDragOverIndex(null);
   }, []);
 
+  const moveAt = useCallback((fromIndex: number, toIndex: number) => {
+    setImageItems((current) => {
+      if (
+        fromIndex < 0 ||
+        toIndex < 0 ||
+        fromIndex >= current.length ||
+        toIndex >= current.length ||
+        fromIndex === toIndex
+      ) {
+        return current;
+      }
+
+      const next = reorderListingEditorImages(current, fromIndex, toIndex).map(
+        (item) => ({ ...item }),
+      );
+      imageItemsRef.current = next;
+      return next;
+    });
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  }, []);
+
   const handleDragOverItem = useCallback(
     (event: DragEvent, index: number) => {
       event.preventDefault();
@@ -230,6 +252,7 @@ export const useListingEditorImages = ({
     handleImageSelect,
     hydrate,
     imageItems,
+    moveAt,
     removeAt,
     restore,
     setUploadProgress,

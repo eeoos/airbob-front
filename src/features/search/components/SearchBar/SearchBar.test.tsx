@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { MockedFunction } from "vitest";
 import { OverlayProvider } from "../../../../app/overlays/OverlayProvider";
@@ -9,6 +9,14 @@ import {
   type SearchBarRoutePort,
   useSearchBarState,
 } from "../../hooks/useSearchBarState";
+
+const responsiveLayout = vi.hoisted(() => ({
+  current: "desktop" as "desktop" | "mobile-tablet",
+}));
+
+vi.mock("../../../../shared/styles/useResponsiveLayout", () => ({
+  useResponsiveLayout: () => responsiveLayout.current,
+}));
 
 vi.mock("../../hooks/useSearchBarState", () => ({
   useSearchBarState: vi.fn(),
@@ -47,6 +55,12 @@ const getCssBlock = (source: string, selector: string) => {
   }
 
   return match[1];
+};
+
+const settleLazyMobileSearchBar = async () => {
+  await act(async () => {
+    await import("./MobileSearchBar");
+  });
 };
 
 const createSearchBarState = (
@@ -97,6 +111,7 @@ const createSearchBarState = (
       changeDestination: vi.fn(),
       selectDestination: vi.fn(),
       clearDestinationSelection: vi.fn(),
+      resetSearchCriteria: vi.fn(),
       startDestinationSession: vi.fn(),
       handleSearch: vi.fn(),
       exitMapDragMode: vi.fn(),
@@ -159,41 +174,64 @@ describe("SearchBar", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-07-10T12:00:00"));
+    responsiveLayout.current = "desktop";
+    document.body.style.overflow = "";
     mockUseSearchBarState.mockReturnValue(createSearchBarState());
   });
 
   afterEach(() => {
+    document.body.style.overflow = "";
     vi.useRealTimers();
   });
 
-  it("keeps icon controls at the shared touch target and resets suggestion buttons", () => {
+  it("keeps icon controls accessible while giving compact search a lighter visual target", () => {
     const css = readProjectFile(
       "src/features/search/components/SearchBar/SearchBar.module.css",
     );
     const searchItemStyles = getCssBlock(css, ".searchItem");
     const searchButtonStyles = getCssBlock(css, ".searchButton");
-    const controlButtonStyles = getCssBlock(css, ".controlButton");
+    const searchButtonVisualStyles = getCssBlock(css, ".searchButton::before");
+    const compactSearchButtonVisualStyles = getCssBlock(
+      css,
+      ".searchBar:not(.expanded) .searchButton::before",
+    );
     const suggestionItemStyles = getCssBlock(css, ".suggestionItem");
 
     expect(searchItemStyles).toContain("appearance: none;");
     expect(searchItemStyles).toContain("border: 0;");
     expect(searchItemStyles).toContain("background: transparent;");
     expect(searchItemStyles).toContain("font: inherit;");
+    expect(searchItemStyles).toContain(
+      "min-height: var(--control-touch-target);",
+    );
     expect(searchButtonStyles).toContain(
       "min-width: var(--control-touch-target);",
     );
     expect(searchButtonStyles).toContain(
       "min-height: var(--control-touch-target);",
     );
-    expect(controlButtonStyles).toContain(
-      "min-width: var(--control-touch-target);",
+    expect(searchButtonStyles).toContain("width: var(--control-touch-target);");
+    expect(searchButtonStyles).toContain(
+      "height: var(--control-touch-target);",
     );
-    expect(controlButtonStyles).toContain(
-      "min-height: var(--control-touch-target);",
+    expect(searchButtonVisualStyles).toContain(
+      "width: var(--control-touch-target);",
+    );
+    expect(searchButtonVisualStyles).toContain(
+      "height: var(--control-touch-target);",
+    );
+    expect(compactSearchButtonVisualStyles).toContain(
+      "width: var(--control-height-md);",
+    );
+    expect(compactSearchButtonVisualStyles).toContain(
+      "height: var(--control-height-md);",
     );
     expect(suggestionItemStyles).toContain("appearance: none;");
     expect(suggestionItemStyles).toContain("border: 0;");
     expect(suggestionItemStyles).toContain("width: 100%;");
+    expect(suggestionItemStyles).toContain(
+      "min-height: var(--control-touch-target);",
+    );
     expect(suggestionItemStyles).toContain("text-align: left;");
   });
 
@@ -208,15 +246,231 @@ describe("SearchBar", () => {
 
     expect(searchButton).toHaveAttribute("type", "button");
     expect(destinationButton).toHaveAttribute("type", "button");
-    expect(screen.getByRole("search", { name: "숙소 검색" })).toHaveAttribute(
-      "data-search-shell",
-      "compact",
-    );
+    expect(
+      screen.getByRole("search", { name: "숙소 검색" }),
+    ).not.toHaveAttribute("data-expanded");
 
     await userEvent.click(destinationButton);
 
-    expect(state.actions.expandShell).toHaveBeenCalledTimes(1);
+    expect(state.actions.expandShell).not.toHaveBeenCalled();
     expect(state.actions.openDestination).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders the search route as a compact two-line mobile summary", async () => {
+    vi.useRealTimers();
+    responsiveLayout.current = "mobile-tablet";
+    const onMobileBack = vi.fn();
+    const state = createSearchBarState({
+      destination: { inputText: "대한민국 부산" },
+      dates: {
+        checkIn: new Date("2026-07-12T00:00:00"),
+        checkOut: new Date("2026-07-15T00:00:00"),
+      },
+      guests: { totalGuests: 3 },
+    });
+    mockUseSearchBarState.mockReturnValue(state);
+
+    render(
+      <SearchBar
+        mobileHeader
+        onMobileBack={onMobileBack}
+        routePort={routePort}
+      />,
+    );
+    await settleLazyMobileSearchBar();
+
+    expect(
+      await screen.findByRole("button", {
+        name: /대한민국 부산.*게스트 3명.*검색 조건 수정/,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "검색 조건 수정" }),
+    ).toHaveAttribute("type", "button");
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "검색 조건 수정" }),
+    );
+    expect(state.actions.startDestinationSession).toHaveBeenCalledTimes(1);
+    expect(state.actions.openDestination).toHaveBeenCalledTimes(1);
+    expect(state.actions.exitMapDragMode).not.toHaveBeenCalled();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "이전 화면으로" }),
+    );
+    expect(onMobileBack).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens an accessible full-screen mobile search editor with existing actions", async () => {
+    vi.useRealTimers();
+    responsiveLayout.current = "mobile-tablet";
+    const state = createSearchBarState({
+      destination: { inputText: "부산" },
+      popover: {
+        activePopover: "destination",
+        isExpanded: true,
+        showSuggestions: false,
+      },
+    });
+    mockUseSearchBarState.mockReturnValue(state);
+
+    render(
+      <OverlayProvider>
+        <SearchBar mobileHeader onMobileBack={vi.fn()} routePort={routePort} />
+      </OverlayProvider>,
+    );
+    await settleLazyMobileSearchBar();
+
+    expect(
+      await screen.findByRole("dialog", { name: "숙소 검색" }),
+    ).toHaveAttribute("aria-modal", "true");
+    expect(
+      screen.queryByRole("combobox", { name: "여행지" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "부산, 여행지 검색 열기" }),
+    ).toBeInTheDocument();
+    expect(document.body).toHaveStyle({ overflow: "hidden" });
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "부산, 여행지 검색 열기" }),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("combobox", { name: "여행지" })).toHaveFocus(),
+    );
+
+    expect(screen.getByRole("combobox", { name: "여행지" })).toHaveFocus();
+    expect(
+      screen.getByRole("button", { name: "여행지 입력 지우기" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "검색" }),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "검색 조건으로 돌아가기" }),
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "전체 삭제" }));
+    expect(state.actions.resetSearchCriteria).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(screen.getByRole("button", { name: "검색" }));
+    expect(state.actions.handleSearch).toHaveBeenCalledTimes(1);
+    expect(state.actions.collapseShell).toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("button", { name: "검색 닫기" }));
+    expect(state.actions.closeTransientPanels).toHaveBeenCalled();
+    expect(state.actions.collapseShell).toHaveBeenCalled();
+  });
+
+  it("opens destination search as a dedicated mobile step and advances a recommendation to dates", async () => {
+    vi.useRealTimers();
+    responsiveLayout.current = "mobile-tablet";
+    const state = createSearchBarState({
+      popover: {
+        activePopover: "destination",
+        isExpanded: true,
+        showSuggestions: true,
+      },
+    });
+    mockUseSearchBarState.mockReturnValue(state);
+
+    render(
+      <OverlayProvider>
+        <SearchBar mobileHeader onMobileBack={vi.fn()} routePort={routePort} />
+      </OverlayProvider>,
+    );
+    await settleLazyMobileSearchBar();
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "어디든지, 여행지 검색 열기",
+      }),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("combobox", { name: "여행지" })).toHaveFocus(),
+    );
+
+    expect(screen.getByRole("combobox", { name: "여행지" })).toHaveFocus();
+    expect(
+      screen.getByRole("button", {
+        name: /부산.*바다와 도심을 함께 즐기기 좋은 곳/,
+      }),
+    ).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: /부산.*바다와 도심을 함께 즐기기 좋은 곳/,
+      }),
+    );
+
+    expect(state.actions.changeDestination).toHaveBeenCalledWith("부산");
+    expect(state.actions.openDatePicker).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByRole("combobox", { name: "여행지" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("uses the Airbnb-style date next action to advance the mobile editor to guests", async () => {
+    vi.useRealTimers();
+    responsiveLayout.current = "mobile-tablet";
+    const state = createSearchBarState({
+      dates: {
+        checkIn: new Date("2026-07-12T00:00:00"),
+        checkOut: new Date("2026-07-15T00:00:00"),
+      },
+      popover: {
+        activePopover: "date",
+        isExpanded: true,
+        showDatePicker: true,
+      },
+    });
+    mockUseSearchBarState.mockReturnValue(state);
+
+    render(
+      <OverlayProvider>
+        <SearchBar mobileHeader onMobileBack={vi.fn()} routePort={routePort} />
+      </OverlayProvider>,
+    );
+    await settleLazyMobileSearchBar();
+
+    expect(
+      await screen.findByRole("button", { name: "다음" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "검색" }),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "다음" }));
+
+    expect(state.actions.completeCheckoutIfNeeded).toHaveBeenCalledTimes(1);
+    expect(state.actions.toggleGuestPicker).toHaveBeenCalledTimes(1);
+  });
+
+  it("moves focus to the destination input after the compact shell expands", () => {
+    const compactState = createSearchBarState({
+      destination: { inputText: "Seoul" },
+    });
+    mockUseSearchBarState.mockReturnValue(compactState);
+    const view = render(<SearchBar routePort={routePort} />);
+
+    const destinationButton = screen.getByRole("button", { name: "Seoul" });
+    destinationButton.focus();
+    destinationButton.click();
+    mockUseSearchBarState.mockReturnValue(
+      createSearchBarState({
+        destination: { inputText: "Seoul" },
+        popover: {
+          activePopover: "destination",
+          isExpanded: true,
+          showSuggestions: false,
+        },
+      }),
+    );
+    view.rerender(<SearchBar routePort={routePort} />);
+    act(() => vi.runOnlyPendingTimers());
+
+    expect(screen.getByRole("combobox", { name: "여행지" })).toHaveFocus();
   });
 
   it("renders date and guest segments as disclosure buttons", () => {
@@ -233,9 +487,11 @@ describe("SearchBar", () => {
 
     expect(dateTrigger).toHaveAttribute("type", "button");
     expect(dateTrigger).toHaveAttribute("aria-expanded", "false");
+    expect(dateTrigger).toHaveAttribute("aria-haspopup", "dialog");
     expect(dateTrigger).toHaveAttribute("aria-controls", "search-date-picker");
     expect(guestTrigger).toHaveAttribute("type", "button");
     expect(guestTrigger).toHaveAttribute("aria-expanded", "false");
+    expect(guestTrigger).toHaveAttribute("aria-haspopup", "dialog");
     expect(guestTrigger).toHaveAttribute(
       "aria-controls",
       "search-guest-picker",
@@ -313,6 +569,52 @@ describe("SearchBar", () => {
     const { suggestionButton } = renderExpandedSearchBarWithSuggestions();
 
     expect(suggestionButton).toHaveAttribute("type", "button");
+  });
+
+  it("programmatically labels the destination input and links its suggestion dialog", () => {
+    renderExpandedSearchBarWithSuggestions();
+
+    const input = screen.getByRole("combobox", { name: "여행지" });
+    const suggestionsDialog = screen.getByRole("dialog", {
+      name: "검색 지역 추천",
+    });
+
+    expect(input).toHaveAttribute("aria-autocomplete", "list");
+    expect(input).toHaveAttribute("aria-expanded", "true");
+    expect(input).toHaveAttribute("aria-haspopup", "dialog");
+    expect(input).toHaveAttribute("aria-controls", suggestionsDialog.id);
+  });
+
+  it("moves through destination suggestions with directional and boundary keys", async () => {
+    const busanSuggestion = {
+      placeId: "place-2",
+      description: "부산, 대한민국",
+      mainText: "부산",
+      secondaryText: "대한민국",
+    };
+
+    renderExpandedSearchBarWithSuggestions({
+      destination: {
+        suggestions: [seoulSuggestion, busanSuggestion],
+      },
+    });
+
+    const input = screen.getByRole("combobox", { name: "여행지" });
+    const seoulButton = screen.getByRole("button", { name: /서울/ });
+    const busanButton = screen.getByRole("button", { name: /부산/ });
+
+    input.focus();
+    await userEvent.keyboard("{ArrowDown}");
+    expect(seoulButton).toHaveFocus();
+
+    await userEvent.keyboard("{ArrowDown}");
+    expect(busanButton).toHaveFocus();
+
+    await userEvent.keyboard("{Home}");
+    expect(seoulButton).toHaveFocus();
+
+    await userEvent.keyboard("{ArrowUp}");
+    expect(busanButton).toHaveFocus();
   });
 
   it("selects a place suggestion with pointer activation", async () => {
@@ -507,8 +809,8 @@ describe("SearchBar", () => {
     });
 
     expect(screen.getByRole("search", { name: "숙소 검색" })).toHaveAttribute(
-      "data-search-shell",
-      "expanded",
+      "data-expanded",
+      "",
     );
     dateTrigger.focus();
     await userEvent.keyboard("{Escape}");

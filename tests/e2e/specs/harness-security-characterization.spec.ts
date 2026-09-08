@@ -18,7 +18,7 @@ test("network isolation is active for tests that request only a page", async ({
 
   expect((await authResponse).status()).toBe(401);
   await expect(
-    page.getByRole("heading", { name: "로그인", level: 2 }),
+    page.getByRole("heading", { name: "로그인", level: 1 }),
   ).toBeVisible();
 });
 

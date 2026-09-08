@@ -91,6 +91,7 @@ const createScreenActions = (
   onDrop: vi.fn(),
   onDragOver: vi.fn(),
   onImageRemove: vi.fn(),
+  onImageMove: vi.fn(),
   onDragStart: vi.fn(),
   onDragOverItem: vi.fn(),
   onDragEnd: vi.fn(),
@@ -390,6 +391,11 @@ describe("AccommodationEdit extracted components", () => {
       const classSelector = new RegExp(`\\.${className}(?![A-Za-z0-9_-])`);
       expect(layoutCss).toMatch(classSelector);
     });
+
+    expect(layoutCss).toContain("@media (--viewport-mobile-tablet)");
+    expect(layoutCss).toContain("@media (--viewport-tablet)");
+    expect(layoutCss).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(layoutCss).toContain("box-shadow: var(--focus-ring-visible)");
   });
 
   it("keeps photo and time styles in step-local CSS modules", () => {
@@ -423,8 +429,12 @@ describe("AccommodationEdit extracted components", () => {
       "dragOver",
       "coverPhotoLabel",
       "uploadedImage",
+      "imageFallback",
       "imageMenuButton",
+      "imageMoveControls",
+      "imageMoveButton",
       "addImageSlot",
+      "orderAnnouncement",
     ];
     const timeClasses = [
       "formRow",
@@ -492,6 +502,11 @@ describe("AccommodationEdit extracted components", () => {
       const classSelector = new RegExp(`\\.${className}(?![A-Za-z0-9_-])`);
       expect(timeCss).not.toMatch(classSelector);
     });
+
+    expect(photosCss).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(timeCss).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(photosCss).toContain("box-shadow: var(--focus-ring-visible)");
+    expect(timeCss).toContain("box-shadow: var(--focus-ring-visible)");
   });
 
   it("keeps modal styles in the feature-local modal CSS module", () => {
@@ -596,6 +611,10 @@ describe("AccommodationEdit extracted components", () => {
       const classSelector = new RegExp(`\\.${className}(?![A-Za-z0-9_-])`);
       expect(modalMobileRules).toMatch(classSelector);
     });
+
+    expect(modalCss).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(modalCss).toContain("min-height: var(--space-11)");
+    expect(modalCss).toContain("box-shadow: var(--focus-ring-visible)");
   });
 
   it("renders wizard sidebar steps as semantic buttons", () => {
@@ -627,6 +646,43 @@ describe("AccommodationEdit extracted components", () => {
 
     expect(onStepClick).toHaveBeenCalledTimes(1);
     expect(onStepClick).toHaveBeenCalledWith(1);
+  });
+
+  it("announces structural loading and moves focus into a changed step", async () => {
+    const { rerender } = render(
+      <AccommodationEditScreen
+        state={createScreenState({
+          detailState: { status: "loading", accommodationId: "3" },
+          isEditorReady: false,
+        })}
+        actions={createScreenActions()}
+      />,
+    );
+
+    const loadingState = screen.getByRole("status");
+    expect(loadingState).toHaveAttribute("data-state-kind", "loading");
+    expect(loadingState).toHaveTextContent(
+      "숙소 작업 공간을 준비하는 중입니다.",
+    );
+
+    rerender(
+      <AccommodationEditScreen
+        state={createScreenState({ currentStep: 2 })}
+        actions={createScreenActions()}
+      />,
+    );
+    rerender(
+      <AccommodationEditScreen
+        state={createScreenState({ currentStep: 3 })}
+        actions={createScreenActions()}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("region", { name: "3단계 편집 내용" }),
+      ).toHaveFocus(),
+    );
   });
 
   it("renders retry and back-safe actions without mounting the wizard after detail failure", () => {
@@ -805,6 +861,7 @@ describe("AccommodationEdit extracted components", () => {
       onDrop: vi.fn(),
       onDragOver: vi.fn(),
       onImageRemove: vi.fn(),
+      onImageMove: vi.fn(),
       onDragStart: vi.fn(),
       onDragOverItem: vi.fn(),
       onDragEnd: vi.fn(),
@@ -835,6 +892,51 @@ describe("AccommodationEdit extracted components", () => {
       rerender(<PhotosStep {...photosStepProps} {...lockedState} />);
       expect(screen.getByRole("button", { name: "추가" })).toBeDisabled();
     }
+  });
+
+  it("falls back failed photos and supports keyboard-safe ordering", () => {
+    const onImageMove = vi.fn();
+
+    render(
+      <PhotosStep
+        imageItems={[
+          { clientId: "server:1", id: 1, url: "/one.jpg" },
+          { clientId: "server:2", id: 2, url: "/two.jpg" },
+        ]}
+        isSaving={false}
+        isDeletingImage={false}
+        uploadProgress={0}
+        draggedIndex={null}
+        dragOverIndex={null}
+        resolveImageUrl={(imagePath) => imagePath ?? ""}
+        onImageSelect={vi.fn()}
+        onDrop={vi.fn()}
+        onDragOver={vi.fn()}
+        onImageRemove={vi.fn()}
+        onImageMove={onImageMove}
+        onDragStart={vi.fn()}
+        onDragOverItem={vi.fn()}
+        onDragEnd={vi.fn()}
+      />,
+    );
+
+    fireEvent.error(screen.getByAltText("커버 사진"));
+
+    expect(
+      screen.getByRole("img", { name: "커버 사진을 불러올 수 없음" }),
+    ).toBeVisible();
+
+    const moveLaterButton = screen.getByRole("button", {
+      name: "커버 사진을 뒤 순서로 이동",
+    });
+    moveLaterButton.focus();
+    fireEvent.click(moveLaterButton);
+
+    expect(moveLaterButton).toHaveFocus();
+    expect(onImageMove).toHaveBeenCalledWith(0, 1);
+    expect(
+      screen.getByText("커버 사진을 2번째 순서로 이동했습니다."),
+    ).toHaveAttribute("aria-live", "polite");
   });
 
   it("dispatches one semantic command for each info-step action", () => {
@@ -928,6 +1030,10 @@ describe("AccommodationEdit extracted components", () => {
 
     fireEvent.click(screen.getByText("개인실"));
 
+    expect(screen.getByRole("button", { name: "전체 숙소" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     expect(onSelect).toHaveBeenCalledTimes(1);
     expect(onSelect).toHaveBeenCalledWith("PRIVATE_ROOM");
     expect(onClose).not.toHaveBeenCalled();

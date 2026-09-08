@@ -1,8 +1,15 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
     "types": ["node", "@playwright/test"]
   },
-  "include": ["playwright.config.ts", "tests/e2e/**/*.ts"],
+  "include": [
+    "playwright.config.ts",
+    "playwright.local-integration.config.ts",
+    "tests/e2e/**/*.ts",
+    "tests/local-integration/**/*.ts"
+  ],
   "exclude": []
 }

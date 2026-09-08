@@ -1,6 +1,10 @@
 import React, { useEffect, useRef } from "react";
 import { useGoogleMapsScript } from "../../../../platform/integrations/useGoogleMapsScript";
-import { stateViewRecipes } from "../../../../shared/ui";
+import {
+  Skeleton,
+  stateViewRecipes,
+  TerminalErrorState,
+} from "../../../../shared/ui";
 import { useAccommodationMarkers } from "./hooks/useAccommodationMarkers";
 import { useGoogleMapInstance } from "./hooks/useGoogleMapInstance";
 import { useMapBoundsReporter } from "./hooks/useMapBoundsReporter";
@@ -21,6 +25,9 @@ export const Map: React.FC<SearchMapProps> = ({
   isExpanded = false,
   onExpandToggle,
   onBoundsChange,
+  onBoundsDragCancel,
+  onBoundsDragStart,
+  boundsRequestKey,
   isMapDragMode = false,
   shouldUpdateMapBounds = false,
   onMapBoundsUpdated,
@@ -65,8 +72,12 @@ export const Map: React.FC<SearchMapProps> = ({
 
   const isLoadingBounds = useMapBoundsReporter({
     isInitialIdleRef,
+    isMapLoaded,
     mapInstanceRef,
     onBoundsChange,
+    onUserDragCancel: onBoundsDragCancel,
+    onUserDragStart: onBoundsDragStart,
+    requestKey: boundsRequestKey,
   });
 
   useAccommodationMarkers({
@@ -116,20 +127,20 @@ export const Map: React.FC<SearchMapProps> = ({
     mapScriptStatus === "error";
 
   if (!isMapLoaded || hasMapError) {
-    const mapFallbackText = hasMapError
-      ? "지도를 불러올 수 없습니다."
-      : "지도를 불러오는 중...";
-
     return (
       <div className={styles.mapContainer}>
-        <div
-          className={styles.loading}
-          {...(hasMapError
-            ? stateViewRecipes.retryableError
-            : stateViewRecipes.loading)}
-        >
-          {mapFallbackText}
-        </div>
+        {hasMapError ? (
+          <TerminalErrorState
+            className={styles.mapState}
+            title="지도 없이 결과를 둘러볼 수 있어요"
+            description="지도를 불러오지 못했지만 숙소 목록과 상세 정보는 계속 이용할 수 있습니다."
+          />
+        ) : (
+          <div className={styles.loading} {...stateViewRecipes.loading}>
+            <span className={styles.statusText}>지도를 불러오는 중입니다.</span>
+            <Skeleton className={styles.mapSkeleton} />
+          </div>
+        )}
       </div>
     );
   }

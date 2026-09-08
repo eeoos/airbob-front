@@ -71,7 +71,10 @@ export const shouldFitAccommodationBounds = ({
   boundsInitialized,
   accommodationsChanged,
 }: ShouldFitAccommodationBoundsInput) => {
-  if (validAccommodationCount <= 0 || isMapDragMode) {
+  if (
+    validAccommodationCount <= 0 ||
+    (isMapDragMode && !shouldUpdateMapBounds)
+  ) {
     return false;
   }
 

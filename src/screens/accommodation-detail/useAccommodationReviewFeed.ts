@@ -20,7 +20,14 @@ export const useAccommodationReviewFeed = ({
   scope,
 }: UseAccommodationReviewFeedOptions) => {
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [loadMoreErrorMessage, setLoadMoreErrorMessage] = useState<
+    string | null
+  >(null);
   const requestedPageRef = useRef<string | null>(null);
+  const modalGenerationRef = useRef(0);
+  const feedIdentity = `${accommodationId ?? "invalid"}:${scope.subject ?? "anonymous"}:${scope.epoch}`;
+  const feedIdentityRef = useRef(feedIdentity);
+  feedIdentityRef.current = feedIdentity;
   const reviewsQuery = useAccommodationReviewsReadQuery({
     accommodationId,
     enabled,
@@ -28,16 +35,18 @@ export const useAccommodationReviewFeed = ({
   });
 
   useEffect(() => {
-    if (!reviewsQuery.isError) return;
+    if (!reviewsQuery.isError || reviewsQuery.isFetchNextPageError) return;
     onError(toAccommodationErrorMessage(reviewsQuery.error));
   }, [
     onError,
     reviewsQuery.error,
     reviewsQuery.errorUpdatedAt,
     reviewsQuery.isError,
+    reviewsQuery.isFetchNextPageError,
   ]);
 
-  const { fetchNextPage, hasNextPage, isFetchingNextPage } = reviewsQuery;
+  const { fetchNextPage, hasNextPage, isFetchingNextPage, refetch } =
+    reviewsQuery;
   const nextCursor =
     reviewsQuery.data?.pages.at(-1)?.pageInfo.nextCursor ?? null;
 
@@ -45,35 +54,69 @@ export const useAccommodationReviewFeed = ({
     if (!isReviewModalOpen) return;
     if (!hasNextPage || isFetchingNextPage || nextCursor === null) return;
 
-    const requestKey = `${accommodationId ?? "invalid"}:${scope.subject ?? "anonymous"}:${scope.epoch}:${nextCursor}`;
+    const requestKey = `${feedIdentity}:${nextCursor}`;
+    const requestGeneration = modalGenerationRef.current;
     if (requestedPageRef.current === requestKey) return;
     requestedPageRef.current = requestKey;
 
     try {
-      await fetchNextPage({ cancelRefetch: false });
+      await fetchNextPage({ cancelRefetch: false, throwOnError: true });
+      if (
+        requestedPageRef.current !== requestKey ||
+        modalGenerationRef.current !== requestGeneration ||
+        feedIdentityRef.current !== feedIdentity
+      ) {
+        return;
+      }
+      setLoadMoreErrorMessage(null);
     } catch (error) {
-      onError(toAccommodationErrorMessage(error));
+      if (
+        requestedPageRef.current !== requestKey ||
+        modalGenerationRef.current !== requestGeneration ||
+        feedIdentityRef.current !== feedIdentity
+      ) {
+        return;
+      }
+      const message = toAccommodationErrorMessage(error);
+      setLoadMoreErrorMessage(message);
+      onError(message);
     }
   }, [
-    accommodationId,
+    feedIdentity,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
     isReviewModalOpen,
     nextCursor,
     onError,
-    scope.epoch,
-    scope.subject,
   ]);
 
   const closeReviewModal = useCallback(() => {
+    modalGenerationRef.current += 1;
     requestedPageRef.current = null;
+    setLoadMoreErrorMessage(null);
     setIsReviewModalOpen(false);
   }, []);
 
   const openReviewModal = useCallback(() => {
+    modalGenerationRef.current += 1;
+    requestedPageRef.current = null;
+    setLoadMoreErrorMessage(null);
     setIsReviewModalOpen(true);
   }, []);
+
+  const retryReviewFeed = useCallback(() => {
+    requestedPageRef.current = null;
+    setLoadMoreErrorMessage(null);
+    void refetch();
+  }, [refetch]);
+
+  const retryNextReviewPage = useCallback(() => {
+    modalGenerationRef.current += 1;
+    requestedPageRef.current = null;
+    setLoadMoreErrorMessage(null);
+    void loadNextReviewPage();
+  }, [loadNextReviewPage]);
 
   const reviewPages = useMemo(
     () => reviewsQuery.data?.pages ?? [],
@@ -87,6 +130,16 @@ export const useAccommodationReviewFeed = ({
     () => toReviewViewModels(reviewPages.flatMap((page) => page.reviews)),
     [reviewPages],
   );
+  const hasLoadedReviewPage = reviewPages.length > 0;
+  const status: "empty" | "error" | "loading" | "ready" = !enabled
+    ? "empty"
+    : reviewsQuery.isLoading
+      ? "loading"
+      : reviewsQuery.isError && !hasLoadedReviewPage
+        ? "error"
+        : previewReviews.length > 0
+          ? "ready"
+          : "empty";
 
   return {
     allReviews,
@@ -94,8 +147,18 @@ export const useAccommodationReviewFeed = ({
     hasNextReviewPage: Boolean(hasNextPage && nextCursor !== null),
     isFetchingNextReviewPage: isFetchingNextPage,
     isReviewModalOpen,
+    isRetryingReviewFeed: Boolean(
+      reviewsQuery.isFetching && !reviewsQuery.isFetchingNextPage,
+    ),
     loadNextReviewPage,
+    loadMoreErrorMessage,
     openReviewModal,
     previewReviews,
+    retryNextReviewPage,
+    retryReviewFeed,
+    reviewErrorMessage: reviewsQuery.isError
+      ? toAccommodationErrorMessage(reviewsQuery.error)
+      : null,
+    status,
   };
 };

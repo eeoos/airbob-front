@@ -1,63 +1,262 @@
-.loading,
-.error {
-  padding-block: 80px;
+.stateOwner {
+  --detail-inline-gutter: var(--size-px-80);
+
+  min-width: 0;
+}
+
+.stateOwner:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-visible);
+}
+
+.refreshError {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin: 0 var(--detail-inline-gutter) var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-action);
+  background: var(--color-status-danger-bg);
+}
+
+.refreshErrorCopy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-1);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+}
+
+.refreshErrorCopy span {
   color: var(--color-text-secondary);
-  font-size: var(--font-size-md);
-  text-align: center;
+}
+
+.actionButton {
+  min-height: var(--control-touch-target);
+  border-radius: var(--radius-action);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+.actionButton:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-visible);
+}
+
+.primaryAction {
+  background: var(--color-action-primary);
+}
+
+.primaryAction:not(:disabled):hover {
+  background: var(--color-action-primary-hover);
+}
+
+.secondaryAction:not(:disabled):hover {
+  border-color: var(--color-action-primary);
+  background: var(--color-surface-brand-subtle);
+}
+
+.stateShell {
+  display: flex;
+  min-height: calc(
+    var(--layout-viewport-height) - var(--layout-header-desktop-height)
+  );
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-12) var(--space-6);
+}
+
+.loadingShell {
+  padding: var(--space-6) var(--detail-inline-gutter) var(--space-16);
+}
+
+.loadingAnnouncement {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.loadingHeader {
+  display: flex;
+  min-height: var(--space-16);
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.titleSkeleton {
+  width: min(55%, 420px);
+  height: var(--space-8);
+}
+
+.metaSkeleton {
+  width: min(28%, 180px);
+  height: var(--space-4);
+}
+
+.heroSkeleton {
+  width: 100%;
+  height: clamp(320px, 34vw, 500px);
+  margin-bottom: var(--space-10);
+  border-radius: var(--radius-content-card);
+}
+
+.loadingContent,
+.contentWrapper {
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+  gap: var(--space-16);
+}
+
+.loadingOverview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-top: var(--space-3);
+}
+
+.overviewTitleSkeleton {
+  width: min(65%, 360px);
+  height: var(--space-7);
+}
+
+.overviewLineSkeleton,
+.overviewLineShortSkeleton {
+  width: 100%;
+  height: var(--space-4);
+}
+
+.overviewLineShortSkeleton {
+  width: 72%;
+}
+
+.bookingSkeleton {
+  width: 100%;
+  height: 420px;
+  border-radius: var(--radius-content-card);
 }
 
 .contentWrapper {
-  display: grid;
-  grid-template-columns: 1fr minmax(320px, 400px);
-  gap: 80px;
+  box-sizing: border-box;
   margin-bottom: var(--space-12);
-  padding: 0 80px;
+  padding-inline: var(--detail-inline-gutter);
 }
 
 .leftColumn {
   display: flex;
+  min-width: 0;
   flex-direction: column;
 }
 
 .sidebar {
   position: sticky;
-  top: 100px;
+  top: calc(var(--layout-header-desktop-height) + var(--space-5));
   z-index: var(--z-sticky);
   align-self: flex-start;
   height: fit-content;
 }
 
 @media (--viewport-wide) {
+  .stateOwner {
+    --detail-inline-gutter: var(--space-16);
+  }
+
+  .loadingContent,
   .contentWrapper {
-    gap: 60px;
-    padding: 0 60px;
+    gap: var(--space-12);
   }
 }
 
 @media (--viewport-compact) {
+  .stateOwner {
+    --detail-inline-gutter: var(--space-10);
+  }
+
+  .loadingContent,
   .contentWrapper {
-    grid-template-columns: 1fr minmax(280px, 350px);
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
     gap: var(--space-10);
-    padding: 0 var(--space-10);
   }
 }
 
 @media (--viewport-mobile-tablet) {
+  .stateOwner {
+    --detail-inline-gutter: var(--space-6);
+  }
+
+  .stateShell {
+    min-height: calc(
+      var(--layout-viewport-height) - var(--layout-header-mobile-height)
+    );
+  }
+
+  .loadingShell {
+    padding: var(--space-5) 0 var(--space-12);
+  }
+
+  .loadingHeader {
+    padding-inline: var(--detail-inline-gutter);
+  }
+
+  .heroSkeleton {
+    height: auto;
+    aspect-ratio: 4 / 3;
+    border-radius: 0;
+  }
+
+  .loadingContent,
   .contentWrapper {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-8);
-    padding: 0 var(--space-6);
+  }
+
+  .loadingContent {
+    box-sizing: border-box;
+    padding-inline: var(--detail-inline-gutter);
   }
 
   .sidebar {
     position: static;
-    order: -1;
+    width: 100%;
+    max-width: 480px;
+  }
+
+  .bookingSkeleton {
+    max-width: 480px;
   }
 }
 
 @media (--viewport-tablet) {
-  .contentWrapper {
-    gap: var(--space-6);
-    padding: 0 var(--space-4);
+  .stateOwner {
+    --detail-inline-gutter: var(--space-4);
+  }
+
+  .refreshError {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .stateShell {
+    padding-inline: var(--space-4);
+  }
+
+  .bookingSkeleton {
+    height: 380px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .actionButton {
+    transition: none;
   }
 }

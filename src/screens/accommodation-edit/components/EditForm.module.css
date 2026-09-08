@@ -1,19 +1,23 @@
 .stepContent {
   margin-bottom: var(--space-10);
+  animation: editor-step-enter var(--motion-duration-slow)
+    var(--motion-ease-standard) both;
 }
 
 .stepTitle {
-  font-size: 28px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  margin-bottom: var(--space-2);
+  margin: 0 0 var(--space-2);
+  color: var(--color-brand-ink);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-heading);
 }
 
 .stepDescription {
-  font-size: var(--font-size-md);
+  max-width: 560px;
+  margin: 0 0 var(--space-8);
   color: var(--color-text-secondary);
-  margin-bottom: var(--space-8);
-  line-height: 1.5;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-body);
 }
 
 .formGroup {
@@ -27,13 +31,13 @@
 .label {
   display: block;
   font-size: var(--font-size-md);
-  font-weight: 600;
-  color: var(--color-text-primary);
+  color: var(--color-brand-ink);
+  font-weight: var(--font-weight-semibold);
   margin-bottom: var(--space-2);
 }
 
 .required {
-  color: var(--color-brand-coral);
+  color: var(--color-action-accent);
 }
 
 .checkboxRow {
@@ -45,13 +49,16 @@
 
 .checkboxTextLabel {
   font-size: var(--font-size-md);
-  font-weight: 600;
-  color: var(--color-text-primary);
+  color: var(--color-brand-ink);
+  font-weight: var(--font-weight-semibold);
 }
 
 .checkboxLabel {
   display: flex;
   align-items: center;
+  justify-content: center;
+  min-width: var(--space-11);
+  min-height: var(--space-11);
   cursor: pointer;
 }
 
@@ -59,7 +66,7 @@
   width: var(--space-5);
   height: var(--space-5);
   cursor: pointer;
-  accent-color: var(--color-text-primary);
+  accent-color: var(--color-action-primary);
 }
 
 .quantityRow {
@@ -71,8 +78,8 @@
 
 .quantityLabel {
   font-size: var(--font-size-md);
-  font-weight: 600;
-  color: var(--color-text-primary);
+  color: var(--color-brand-ink);
+  font-weight: var(--font-weight-semibold);
 }
 
 .quantitySelector {
@@ -82,8 +89,8 @@
 }
 
 .quantityButton {
-  width: var(--space-10);
-  height: var(--space-10);
+  width: var(--space-11);
+  height: var(--space-11);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-pill);
   background: var(--color-background-page);
@@ -98,8 +105,8 @@
 }
 
 .quantityButton:hover:not(:disabled) {
-  border-color: var(--color-text-primary);
-  background: var(--color-background-muted);
+  border-color: var(--color-action-primary);
+  background: var(--color-surface-brand-subtle);
 }
 
 .quantityButton:disabled {
@@ -110,7 +117,7 @@
 .quantityButton svg {
   width: var(--space-4);
   height: var(--space-4);
-  stroke: var(--color-text-primary);
+  stroke: var(--color-brand-ink);
 }
 
 .quantityButton:disabled svg {
@@ -119,35 +126,40 @@
 
 .quantityValue {
   font-size: var(--font-size-lg);
-  font-weight: 600;
-  color: var(--color-text-primary);
+  color: var(--color-brand-ink);
+  font-weight: var(--font-weight-semibold);
   min-width: 40px;
   text-align: center;
 }
 
 .input,
 .textarea {
+  box-sizing: border-box;
   width: 100%;
+  min-height: var(--space-11);
   padding: 14px var(--space-4);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
   font-size: var(--font-size-md);
+  background: var(--color-background-page);
   color: var(--color-text-primary);
-  transition: border-color 0.2s ease;
   font-family: inherit;
+  transition:
+    border-color var(--motion-duration-base) var(--motion-ease-standard),
+    box-shadow var(--motion-duration-base) var(--motion-ease-standard);
 }
 
 .input:focus,
 .textarea:focus {
   outline: none;
-  border-color: var(--color-text-primary);
+  border-color: var(--color-action-primary);
 }
 
 .input:focus-visible,
 .textarea:focus-visible {
   outline: none;
-  border-color: var(--color-text-primary);
-  box-shadow: var(--focus-ring);
+  border-color: var(--color-action-primary);
+  box-shadow: var(--focus-ring-visible);
 }
 
 .input:disabled {
@@ -188,20 +200,23 @@
 }
 
 .addressSearchButton {
-  padding: 14px var(--space-6);
-  background: var(--color-text-primary);
+  min-height: var(--space-11);
+  padding: var(--space-3) var(--space-6);
+  background: var(--color-action-primary);
   color: var(--color-text-inverse);
   border: none;
   border-radius: var(--radius-md);
   font-size: var(--font-size-md);
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition:
+    background-color var(--motion-duration-base) var(--motion-ease-standard),
+    box-shadow var(--motion-duration-base) var(--motion-ease-standard);
   white-space: nowrap;
 }
 
 .addressSearchButton:hover {
-  background: var(--color-text-primary);
+  background: var(--color-action-primary-hover);
 }
 
 .section {
@@ -212,13 +227,14 @@
 
 .sectionTitle {
   font-size: 20px;
-  font-weight: 600;
-  color: var(--color-text-primary);
+  color: var(--color-brand-ink);
+  font-weight: var(--font-weight-semibold);
   margin-bottom: var(--space-6);
 }
 
 .typeSelectButton {
   width: 100%;
+  min-height: var(--space-11);
   padding: 14px var(--space-4);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
@@ -229,12 +245,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  transition: border-color 0.2s ease;
   font-family: inherit;
+  transition:
+    border-color var(--motion-duration-base) var(--motion-ease-standard),
+    box-shadow var(--motion-duration-base) var(--motion-ease-standard);
 }
 
 .typeSelectButton:hover {
-  border-color: var(--color-text-primary);
+  border-color: var(--color-action-primary);
 }
 
 .typeSelectButton svg {
@@ -255,16 +273,17 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--space-3) var(--space-4);
-  background: var(--color-background-muted);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--color-brand-identity);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-brand-subtle);
   gap: var(--space-3);
 }
 
 .selectedAmenityName {
   flex: 1;
   font-size: var(--font-size-md);
-  color: var(--color-text-primary);
-  font-weight: 500;
+  color: var(--color-brand-ink);
+  font-weight: var(--font-weight-medium);
 }
 
 .amenityCountSelector {
@@ -274,8 +293,8 @@
 }
 
 .amenityCountButton {
-  width: var(--space-8);
-  height: var(--space-8);
+  width: var(--space-11);
+  height: var(--space-11);
   border: 1px solid var(--color-border-default);
   background: var(--color-background-page);
   border-radius: var(--radius-sm);
@@ -289,8 +308,8 @@
 }
 
 .amenityCountButton:hover:not(:disabled) {
-  border-color: var(--color-text-primary);
-  background: var(--color-background-muted);
+  border-color: var(--color-action-primary);
+  background: var(--color-background-page);
 }
 
 .amenityCountButton:disabled {
@@ -307,13 +326,13 @@
   min-width: 32px;
   text-align: center;
   font-size: var(--font-size-md);
-  font-weight: 600;
-  color: var(--color-text-primary);
+  color: var(--color-brand-ink);
+  font-weight: var(--font-weight-semibold);
 }
 
 .amenityRemoveButton {
-  width: var(--space-8);
-  height: var(--space-8);
+  width: var(--space-11);
+  height: var(--space-11);
   border: none;
   background: transparent;
   cursor: pointer;
@@ -341,6 +360,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  min-height: var(--space-11);
   padding: var(--space-3) var(--space-5);
   border: 1px dashed var(--color-border-default);
   background: var(--color-background-page);
@@ -355,8 +375,8 @@
 }
 
 .addAmenityButton:hover {
-  border-color: var(--color-text-primary);
-  background: var(--color-background-muted);
+  border-color: var(--color-action-primary);
+  background: var(--color-surface-brand-subtle);
 }
 
 .addAmenityButton svg {
@@ -364,9 +384,86 @@
   height: var(--space-5);
 }
 
+.addressSearchButton:focus-visible,
+.typeSelectButton:focus-visible,
+.quantityButton:focus-visible,
+.checkbox:focus-visible,
+.amenityCountButton:focus-visible,
+.amenityRemoveButton:focus-visible,
+.addAmenityButton:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-visible);
+}
+
+.publishPanel {
+  padding: var(--space-6);
+  border: 1px solid var(--color-brand-identity);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-brand-subtle);
+}
+
+.publishEyebrow {
+  margin: 0 0 var(--space-2);
+  color: var(--color-action-primary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.08em;
+}
+
+.publishTitle {
+  margin: 0 0 var(--space-4);
+  color: var(--color-brand-ink);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.publishChecklist {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.publishChecklist li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-body);
+}
+
+.publishChecklist li::before {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-5);
+  height: var(--space-5);
+  border-radius: var(--radius-pill);
+  background: var(--color-action-primary);
+  color: var(--color-text-inverse);
+  content: "✓";
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+
+@keyframes editor-step-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-2));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (--viewport-tablet) {
   .stepTitle {
-    font-size: 24px;
+    font-size: 26px;
   }
 
   .stepDescription {
@@ -385,5 +482,41 @@
 
   .addressSearchButton {
     width: 100%;
+  }
+
+  .selectedAmenityItem {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .selectedAmenityName {
+    flex-basis: calc(100% - var(--space-11) - var(--space-3));
+  }
+
+  .amenityCountSelector {
+    order: 3;
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .publishPanel {
+    padding: var(--space-5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stepContent {
+    animation: none;
+  }
+
+  .input,
+  .textarea,
+  .addressSearchButton,
+  .typeSelectButton,
+  .quantityButton,
+  .amenityCountButton,
+  .amenityRemoveButton,
+  .addAmenityButton {
+    transition: none;
   }
 }

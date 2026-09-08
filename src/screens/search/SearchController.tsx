@@ -10,7 +10,10 @@ import {
   SEARCH_PAGE_LIMIT,
   toSearchRequest,
 } from "../../features/search/lib/searchRequest";
-import type { SearchCommittedRouteState } from "../../features/search/model/search";
+import type {
+  SearchCommittedRouteState,
+  SearchResultPage,
+} from "../../features/search/model/search";
 import {
   useSearchResultsReadQuery,
   type SearchResultsQueryOptions,
@@ -26,7 +29,6 @@ export interface SearchNavigationCommands {
   readonly openAccommodation: (accommodationId: number) => void;
   readonly openPage: (page: number) => void;
   readonly replaceMapBounds: (bounds: SearchMapBounds) => void;
-  readonly scrollResultsToTop: () => void;
 }
 
 export interface SearchWishlistAuthIntent {
@@ -76,14 +78,25 @@ const toViewport = (
   return { north, west, south, east };
 };
 
-const viewportIdentity = (viewport: SearchMapBounds | null): string | null =>
-  viewport
-    ? `${viewport.north},${viewport.west},${viewport.south},${viewport.east}`
-    : null;
-
 const searchRequestIdentity = (
   request: ReturnType<typeof toSearchRequest>,
 ): string => JSON.stringify(request);
+
+const retainedSearchResultIdentity = (
+  scope: SearchQueryScope,
+  state: SearchCommittedRouteState,
+): string =>
+  JSON.stringify([
+    scope.subject,
+    scope.epoch,
+    state.destination,
+    state.checkIn,
+    state.checkOut,
+    state.adultOccupancy,
+    state.childOccupancy,
+    state.infantOccupancy,
+    state.petOccupancy,
+  ]);
 
 const clampResultPage = (page: number, totalPages: number): number => {
   const limitedTotalPages = Math.max(
@@ -141,58 +154,93 @@ export function SearchController({
   } = useSearchMapState();
   const request = useMemo(() => toSearchRequest(routeState), [routeState]);
   const query = useSearchResultsReadQuery({ request, scope });
+  const { refetch: refetchSearchResults } = query;
   const viewport = useMemo(() => toViewport(routeState), [routeState]);
-  const isMapDragMode =
+  const isRouteMapDragMode =
     viewport !== null && routeState.destination === undefined;
-  const currentViewportIdentity = viewportIdentity(viewport);
-  const previousViewportIdentityRef = useRef<string | null | undefined>(
-    undefined,
-  );
-  const pendingScrollRequestRef = useRef<string | null>(null);
+  const previousRequestIdentityRef = useRef<string | undefined>(undefined);
   const pendingBoundsRequestRef = useRef<string | null>(null);
+  const suspendedBoundsRequestRef = useRef<string | null>(null);
   const pendingAuthAttemptIdRef = useRef<number | null>(null);
   const handledResumeAttemptRef = useRef<number | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const retainedResultRef = useRef<{
+    readonly identity: string;
+    readonly result: SearchResultPage;
+  } | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [pendingWishlistAccommodationId, setPendingWishlistAccommodationId] =
     useState<number | null>(null);
   const [wishlistAccommodationId, setWishlistAccommodationId] = useState<
     number | null
   >(null);
+  const [userDragRequestIdentity, setUserDragRequestIdentity] = useState<
+    string | null
+  >(null);
 
   const requestIdentity = useMemo(
     () => searchRequestIdentity(request),
     [request],
   );
+  const isMapDragMode =
+    isRouteMapDragMode || userDragRequestIdentity === requestIdentity;
+  const retainedResultIdentity = retainedSearchResultIdentity(
+    scope,
+    routeState,
+  );
 
   useEffect(() => {
-    setErrorMessage(null);
-
-    if (pendingScrollRequestRef.current !== requestIdentity) {
-      pendingScrollRequestRef.current = null;
+    if (
+      userDragRequestIdentity !== null &&
+      (isRouteMapDragMode || userDragRequestIdentity !== requestIdentity)
+    ) {
+      setUserDragRequestIdentity(null);
     }
+  }, [isRouteMapDragMode, requestIdentity, userDragRequestIdentity]);
+
+  useEffect(() => {
+    if (!query.data || query.isError || query.isPlaceholderData) return;
+
+    retainedResultRef.current = {
+      identity: retainedResultIdentity,
+      result: query.data,
+    };
+  }, [
+    query.data,
+    query.dataUpdatedAt,
+    query.isError,
+    query.isPlaceholderData,
+    retainedResultIdentity,
+  ]);
+
+  useEffect(() => {
     if (pendingBoundsRequestRef.current !== requestIdentity) {
       pendingBoundsRequestRef.current = null;
+    }
+    if (suspendedBoundsRequestRef.current !== requestIdentity) {
+      suspendedBoundsRequestRef.current = null;
     }
   }, [requestIdentity, scope.epoch, scope.subject]);
 
   useEffect(() => {
     if (!query.isError) return;
 
-    pendingScrollRequestRef.current = null;
     pendingBoundsRequestRef.current = null;
-    setErrorMessage(toSearchErrorMessage(query.error));
-  }, [query.error, query.errorUpdatedAt, query.isError]);
+  }, [query.errorUpdatedAt, query.isError]);
 
   useEffect(() => {
-    const previousViewportIdentity = previousViewportIdentityRef.current;
-    previousViewportIdentityRef.current = currentViewportIdentity;
+    const previousRequestIdentity = previousRequestIdentityRef.current;
+    previousRequestIdentityRef.current = requestIdentity;
 
-    if (previousViewportIdentity === currentViewportIdentity) return;
+    if (
+      previousRequestIdentity === undefined ||
+      previousRequestIdentity === requestIdentity ||
+      pendingBoundsRequestRef.current === requestIdentity
+    ) {
+      return;
+    }
 
-    pendingBoundsRequestRef.current =
-      currentViewportIdentity === null ? null : requestIdentity;
-  }, [currentViewportIdentity, requestIdentity]);
+    pendingBoundsRequestRef.current = isMapDragMode ? null : requestIdentity;
+  }, [isMapDragMode, requestIdentity]);
 
   useEffect(() => {
     if (
@@ -204,19 +252,11 @@ export function SearchController({
       return;
     }
 
-    setErrorMessage(null);
-
     if (pendingBoundsRequestRef.current === requestIdentity) {
       pendingBoundsRequestRef.current = null;
       requestMapBoundsUpdate();
     }
-
-    if (pendingScrollRequestRef.current === requestIdentity) {
-      pendingScrollRequestRef.current = null;
-      navigation.scrollResultsToTop();
-    }
   }, [
-    navigation,
     query.data,
     query.dataUpdatedAt,
     query.isError,
@@ -248,9 +288,16 @@ export function SearchController({
     setWishlistAccommodationId(null);
   }, [wishlistMembership?.scope.epoch, wishlistMembership?.scope.subject]);
 
+  const retainedResult =
+    query.isError &&
+    retainedResultRef.current?.identity === retainedResultIdentity
+      ? retainedResultRef.current.result
+      : undefined;
+  const visibleResult = query.data ?? retainedResult;
+  const isShowingRetainedResult = query.data === undefined && !!retainedResult;
   const accommodations = useMemo(
-    () => query.data?.accommodations ?? [],
-    [query.data?.accommodations],
+    () => visibleResult?.accommodations ?? [],
+    [visibleResult?.accommodations],
   );
   const accommodationCards = useMemo(
     () => accommodations.map(toSearchAccommodationCardViewModel),
@@ -260,7 +307,14 @@ export function SearchController({
     () => accommodations.map(toSearchAccommodationMapViewModel),
     [accommodations],
   );
-  const pageInfo = query.data?.pageInfo;
+  const pageInfo = visibleResult?.pageInfo;
+  const errorMessage = query.isError ? toSearchErrorMessage(query.error) : null;
+  const isErrorRetryable =
+    query.isError &&
+    typeof query.error === "object" &&
+    query.error !== null &&
+    "retryable" in query.error &&
+    query.error.retryable === true;
   const totalPages = Math.max(
     0,
     Math.min(pageInfo?.totalPages ?? 0, SEARCH_PAGE_LIMIT),
@@ -285,7 +339,6 @@ export function SearchController({
         ...request,
         page,
       });
-      pendingScrollRequestRef.current = targetRequestIdentity;
       pendingBoundsRequestRef.current = targetRequestIdentity;
       navigation.openPage(page);
     },
@@ -294,10 +347,53 @@ export function SearchController({
 
   const handleMapBoundsChange = useCallback(
     (bounds: SearchMapBounds) => {
+      suspendedBoundsRequestRef.current = null;
       navigation.replaceMapBounds(bounds);
     },
     [navigation],
   );
+
+  const handleMapBoundsDragStart = useCallback(() => {
+    suspendedBoundsRequestRef.current =
+      pendingBoundsRequestRef.current === requestIdentity ||
+      shouldUpdateMapBounds
+        ? requestIdentity
+        : null;
+    pendingBoundsRequestRef.current = null;
+    onMapBoundsUpdated();
+    setUserDragRequestIdentity(requestIdentity);
+  }, [onMapBoundsUpdated, requestIdentity, shouldUpdateMapBounds]);
+
+  const handleMapBoundsDragCancel = useCallback(() => {
+    const suspendedRequestIdentity = suspendedBoundsRequestRef.current;
+    suspendedBoundsRequestRef.current = null;
+
+    if (suspendedRequestIdentity === requestIdentity) {
+      if (
+        query.data &&
+        !query.isError &&
+        !query.isFetching &&
+        !query.isPlaceholderData
+      ) {
+        requestMapBoundsUpdate();
+      } else {
+        pendingBoundsRequestRef.current = requestIdentity;
+      }
+    }
+
+    setUserDragRequestIdentity((currentRequestIdentity) =>
+      currentRequestIdentity === requestIdentity
+        ? null
+        : currentRequestIdentity,
+    );
+  }, [
+    query.data,
+    query.isError,
+    query.isFetching,
+    query.isPlaceholderData,
+    requestIdentity,
+    requestMapBoundsUpdate,
+  ]);
 
   const openAccommodation = useCallback(
     (accommodationId: number) => {
@@ -347,7 +443,12 @@ export function SearchController({
     setWishlistAccommodationId(null);
   }, []);
 
-  const canOpenWishlist = !query.isPlaceholderData;
+  const retrySearch = useCallback(() => {
+    void refetchSearchResults();
+  }, [refetchSearchResults]);
+
+  const canOpenWishlist =
+    !query.isPlaceholderData && !query.isError && !isShowingRetainedResult;
   const wishlistModal =
     wishlistMembership && wishlistAccommodationId !== null
       ? {
@@ -370,12 +471,16 @@ export function SearchController({
       }}
       bottomSheet={bottomSheet}
       errorMessage={errorMessage}
+      isErrorRetryable={isErrorRetryable}
       getAccommodationHref={navigation.getAccommodationHref}
       map={{
+        boundsRequestKey: requestIdentity,
         handleAccommodationSelect,
         hoveredAccommodationId,
         isMapDragMode,
         isMapExpanded,
+        onBoundsDragCancel: handleMapBoundsDragCancel,
+        onBoundsDragStart: handleMapBoundsDragStart,
         onMapBoundsUpdated,
         requestBounds: handleMapBoundsChange,
         selectedAccommodationId,
@@ -385,14 +490,15 @@ export function SearchController({
         viewport,
       }}
       onAccommodationOpen={openAccommodation}
-      onClearError={() => setErrorMessage(null)}
       onPageChange={handlePageChange}
+      onRetry={retrySearch}
       results={{
         accommodationCards,
         accommodationMapItems,
         currentPage,
-        isLoading: query.isFetching,
-        isPlaceholderData: query.isPlaceholderData,
+        isLoading: query.isFetching && visibleResult === undefined,
+        isPlaceholderData: query.isPlaceholderData || isShowingRetainedResult,
+        isRefreshing: query.isFetching && visibleResult !== undefined,
         totalElements: pageInfo?.totalElements ?? 0,
         totalPages,
       }}

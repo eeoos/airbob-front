@@ -9,6 +9,13 @@
   --color-border-default: var(--palette-neutral-200);
   --color-border-subtle: var(--palette-neutral-150);
   --color-border-strong: var(--palette-neutral-350);
+  --color-brand-identity: var(--palette-sky-400);
+  --color-brand-ink: var(--palette-ink-900);
+  --color-action-primary: var(--palette-sky-700);
+  --color-action-primary-hover: var(--palette-sky-800);
+  --color-action-accent: var(--palette-clay-600);
+  --color-surface-brand-subtle: var(--palette-sky-50);
+  --color-focus-visible: var(--palette-sky-700);
   --color-brand-coral: var(--palette-coral-500);
   --color-brand-coral-gradient-end: var(--palette-coral-400);
   --color-brand-coral-hover: var(--palette-coral-600);
@@ -26,6 +33,7 @@
   --shadow-md: var(--elevation-4);
   --shadow-lg: var(--elevation-6);
   --focus-ring: var(--elevation-8);
+  --focus-ring-visible: var(--elevation-focus-visible);
   --z-header: var(--stack-1000);
   --z-sticky: var(--stack-1100);
   --z-dropdown: var(--stack-2000);

@@ -1,5 +1,6 @@
 .dialog {
-  max-width: 600px;
+  width: min(520px, calc(100vw - var(--space-8)));
+  border-radius: var(--radius-dialog);
 }
 
 .content {
@@ -9,7 +10,14 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--space-5);
+}
+
+.description {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-body);
 }
 
 .inputGroup {
@@ -19,85 +27,106 @@
 }
 
 .label {
+  color: var(--color-brand-ink);
   font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
 }
 
 .input {
-  padding: var(--space-3) var(--space-4);
+  min-height: var(--control-touch-target);
+  padding: 0 var(--space-4);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-action);
+  background: var(--color-background-page);
+  box-sizing: border-box;
+  color: var(--color-text-primary);
+  font-family: inherit;
   font-size: var(--font-size-md);
-  transition: border-color var(--motion-duration-base)
-    var(--motion-ease-standard);
+  transition:
+    border-color var(--motion-duration-fast) var(--motion-ease-standard),
+    box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
 }
 
 .input:focus-visible {
+  border-color: var(--color-action-primary);
   outline: none;
-  border-color: var(--color-text-primary);
-  box-shadow: var(--focus-ring);
+  box-shadow: var(--focus-ring-visible);
 }
 
-.charCount {
-  font-size: var(--font-size-xs);
+.input[aria-invalid="true"] {
+  border-color: var(--color-danger);
+}
+
+.input:disabled {
+  background: var(--color-background-muted);
+  cursor: progress;
+}
+
+.inputMeta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
   color: var(--color-text-secondary);
-  text-align: right;
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-body);
+}
+
+.inputMeta span:last-child {
+  flex-shrink: 0;
+}
+
+.errorPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-action);
+  background: var(--color-status-danger-bg);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-body);
+}
+
+.errorPanel span {
+  color: var(--color-text-secondary);
 }
 
 .buttonGroup {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
-  margin-top: var(--space-2);
+  margin-top: var(--space-1);
 }
 
-.cancelButton {
-  flex: 1;
-  padding: 14px;
-  background-color: var(--color-background-page);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-md);
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    background-color var(--motion-duration-base) var(--motion-ease-standard),
-    border-color var(--motion-duration-base) var(--motion-ease-standard);
-}
-
-.cancelButton:hover {
-  background-color: var(--color-background-muted);
-  border-color: var(--color-text-primary);
+.cancelButton,
+.submitButton {
+  width: 100%;
+  min-height: var(--control-touch-target);
+  border-radius: var(--radius-action);
 }
 
 .submitButton {
-  flex: 1;
-  padding: 14px;
-  background-color: var(--color-text-primary);
-  color: var(--color-text-inverse);
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-md);
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color var(--motion-duration-base)
-    var(--motion-ease-standard);
+  background: var(--color-action-primary);
 }
 
-.submitButton:hover:not(:disabled) {
-  background-color: var(--color-text-primary);
+.submitButton:not(:disabled):hover {
+  background: var(--color-action-primary-hover);
 }
 
-.submitButton:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+@media (--viewport-phone) {
+  .dialog {
+    width: 100%;
+  }
+
+  .buttonGroup {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
-.toastContainer {
-  position: absolute;
-  top: var(--space-4);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: var(--z-toast);
+@media (prefers-reduced-motion: reduce) {
+  .input {
+    transition: none;
+  }
 }

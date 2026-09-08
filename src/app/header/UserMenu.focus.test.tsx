@@ -82,7 +82,9 @@ describe("UserMenu auth modal focus return", () => {
       await userEvent.click(menuButton);
       await userEvent.click(screen.getByRole("menuitem", { name: mode }));
 
-      expect(screen.getByRole("dialog", { name: mode })).toBeInTheDocument();
+      expect(
+        await screen.findByRole("dialog", { name: mode }),
+      ).toBeInTheDocument();
       fireEvent.keyDown(document, { key: "Escape" });
 
       await waitFor(() => {

@@ -65,6 +65,7 @@ const renderController = (
   const props: React.ComponentProps<typeof ReviewCreateController> = {
     onBack: vi.fn(),
     onComplete: vi.fn(),
+    onVerifyResult: vi.fn(),
     publication: { publishReviewCreated: vi.fn() },
     reservationUid: "reservation-123",
     resolveImageUrl: (path) => `https://cdn.example.com${path ?? ""}`,
@@ -94,6 +95,7 @@ describe("ReviewCreateController", () => {
       error: null,
       isError: false,
       isLoading: false,
+      refetch: vi.fn(),
     });
     mockSubmit.mockReset();
     mockDispose.mockReset();
@@ -126,6 +128,7 @@ describe("ReviewCreateController", () => {
     const props: React.ComponentProps<typeof ReviewCreateController> = {
       onBack: vi.fn(),
       onComplete: vi.fn(),
+      onVerifyResult: vi.fn(),
       publication: { publishReviewCreated: vi.fn() },
       reservationUid: "reservation-123",
       resolveImageUrl: (path) => path ?? "",
@@ -160,7 +163,7 @@ describe("ReviewCreateController", () => {
       isError: true,
       isLoading: false,
     });
-    const { onBack, onComplete } = renderController();
+    const { onBack, onComplete, onVerifyResult } = renderController();
 
     expect(screen.getByRole("alert")).toHaveTextContent(
       "리뷰를 작성할 권한이 없습니다.",
@@ -168,6 +171,30 @@ describe("ReviewCreateController", () => {
     expect(mockSubmit).not.toHaveBeenCalled();
     expect(onBack).not.toHaveBeenCalled();
     expect(onComplete).not.toHaveBeenCalled();
+    expect(onVerifyResult).not.toHaveBeenCalled();
+  });
+
+  it("retries a transport read failure only through the reservation query", async () => {
+    const refetch = vi.fn();
+    mockUseReviewableReservationReadQuery.mockReturnValue({
+      data: undefined,
+      error: { kind: "network", retryable: true },
+      isError: true,
+      isLoading: false,
+      refetch,
+    });
+    const { onBack, onComplete, onVerifyResult } = renderController();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "네트워크 연결을 확인한 뒤 다시 시도해주세요.",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+
+    expect(refetch).toHaveBeenCalledTimes(1);
+    expect(mockSubmit).not.toHaveBeenCalled();
+    expect(onBack).not.toHaveBeenCalled();
+    expect(onComplete).not.toHaveBeenCalled();
+    expect(onVerifyResult).not.toHaveBeenCalled();
   });
 
   it("rejects an image larger than 10MB without creating a preview", () => {
@@ -224,7 +251,7 @@ describe("ReviewCreateController", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "note.txt은(는) 지원하지 않는 이미지 형식입니다.",
     );
-    expect(screen.getByAltText("미리보기 1")).toHaveAttribute(
+    expect(screen.getByAltText("선택한 사진 1")).toHaveAttribute(
       "src",
       "blob:review-image",
     );
@@ -270,7 +297,7 @@ describe("ReviewCreateController", () => {
       status: "ambiguous",
       error: { kind: "network" },
     });
-    const { onBack, onComplete } = renderController();
+    const { onBack, onComplete, onVerifyResult } = renderController();
 
     await userEvent.type(screen.getByLabelText("리뷰 내용"), "좋은 숙소예요");
     await userEvent.click(
@@ -280,18 +307,19 @@ describe("ReviewCreateController", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "예약 상세에서 리뷰 작성 가능 여부를 확인해주세요.",
     );
-    const lockedSubmit = screen.getByRole("button", {
-      name: "예약 상세에서 결과 확인",
+    const verificationAction = screen.getByRole("button", {
+      name: "예약 상세에서 확인하기",
     });
-    expect(lockedSubmit).toBeDisabled();
-    expect(screen.getByRole("button", { name: "취소" })).toBeEnabled();
+    expect(verificationAction).toBeEnabled();
+    expect(
+      screen.queryByRole("button", { name: "리뷰 작성하기" }),
+    ).not.toBeInTheDocument();
 
-    lockedSubmit.click();
+    await userEvent.click(verificationAction);
     expect(mockSubmit).toHaveBeenCalledTimes(1);
     expect(onComplete).not.toHaveBeenCalled();
-
-    await userEvent.click(screen.getByRole("button", { name: "취소" }));
-    expect(onBack).toHaveBeenCalledTimes(1);
+    expect(onBack).not.toHaveBeenCalled();
+    expect(onVerifyResult).toHaveBeenCalledTimes(1);
   });
 
   it("locks a replacement route generation when an earlier create may have committed", async () => {
@@ -307,6 +335,7 @@ describe("ReviewCreateController", () => {
     const props: React.ComponentProps<typeof ReviewCreateController> = {
       onBack: vi.fn(),
       onComplete: vi.fn(),
+      onVerifyResult: vi.fn(),
       publication: { publishReviewCreated: vi.fn() },
       reservationUid: "reservation-123",
       resolveImageUrl: (path) => path ?? "",
@@ -333,8 +362,8 @@ describe("ReviewCreateController", () => {
       "예약 상세에서 리뷰 작성 가능 여부를 확인해주세요.",
     );
     expect(
-      screen.getByRole("button", { name: "예약 상세에서 결과 확인" }),
-    ).toBeDisabled();
+      screen.getByRole("button", { name: "예약 상세에서 확인하기" }),
+    ).toBeEnabled();
     expect(mockSubmit).toHaveBeenCalledTimes(1);
 
     await act(async () => {

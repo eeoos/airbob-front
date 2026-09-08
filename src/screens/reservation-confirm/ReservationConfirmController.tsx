@@ -410,6 +410,7 @@ export function ReservationConfirmController({
       onClearError={() => setErrorMessage(null)}
       onConfirmPayment={confirmPayment}
       onReleaseHold={releaseHold}
+      onRetryLoad={() => void detailQuery.refetch()}
       paymentStatus={paymentStatus}
       state={state}
     />

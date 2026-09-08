@@ -9,8 +9,9 @@ import {
 import styles from "./AccommodationBookingCard.module.css";
 
 interface BookingPriceHeaderProps {
-  nights: number;
+  hasCompleteStay: boolean;
   payablePrice: number;
+  totalPrice: number;
 }
 
 interface BookingDateSectionProps {
@@ -22,13 +23,13 @@ interface BookingDateSectionProps {
   formatDate: (date: Date | null) => string;
   handleDateSelect: (checkIn: Date | null, checkOut: Date | null) => void;
   isDatePickerOpen: boolean;
+  nights: number;
   onDatePickerOpenChange: (isOpen: boolean) => void;
   onGuestPickerOpenChange: (isOpen: boolean) => void;
   disabledRanges: readonly {
     readonly startInclusive: string;
     readonly endExclusive: string;
   }[];
-  retryAvailability: () => void;
   selectionLocked: boolean;
   selectionWindow: {
     readonly startInclusive: string;
@@ -50,6 +51,7 @@ interface BookingGuestSectionProps {
   onAdultCountChange: (count: number) => void;
   onChildCountChange: (count: number) => void;
   onInfantCountChange: (count: number) => void;
+  onDatePickerOpenChange: (isOpen: boolean) => void;
   onGuestPickerOpenChange: (isOpen: boolean) => void;
   onPetCountChange: (count: number) => void;
   selectionLocked: boolean;
@@ -83,6 +85,7 @@ interface BookingReserveActionProps {
   isReserving: boolean;
   isStayReady: boolean;
   onReserve: () => void;
+  onRequestDates: () => void;
   reservationStatus:
     | "idle"
     | "quoting"
@@ -91,6 +94,7 @@ interface BookingReserveActionProps {
     | "terminal-ready"
     | "completing"
     | "locked";
+  retryAvailability: () => void;
   selectionState:
     | "availability-unavailable"
     | "fully-booked"
@@ -121,6 +125,63 @@ interface GuestCounterRowProps {
   title: string;
   value: number;
 }
+
+const bookingSelectionGuidance: Record<
+  Exclude<BookingReserveActionProps["selectionState"], "ready">,
+  string
+> = {
+  "availability-unavailable":
+    "예약 가능 날짜 정보를 확인한 뒤 날짜를 다시 선택해주세요.",
+  "fully-booked": "현재 예약 가능한 날짜가 없어요. 다른 숙소를 확인해주세요.",
+  incomplete: "체크인과 체크아웃 날짜를 모두 선택해주세요.",
+  invalid: "체크아웃은 체크인 다음 날짜부터 선택할 수 있어요.",
+  "outside-window": "숙소의 예약 가능 기간 안에서 날짜를 다시 선택해주세요.",
+  unavailable: "선택한 숙박 기간에 예약할 수 없는 날짜가 포함되어 있어요.",
+};
+
+const getBookingSelectionGuidance = ({
+  availabilityStatus,
+  selectionState,
+}: Pick<BookingReserveActionProps, "availabilityStatus" | "selectionState">):
+  string | null => {
+  if (availabilityStatus === "loading") {
+    return "예약 가능한 날짜를 확인하고 있어요. 확인이 끝나면 날짜를 선택할 수 있습니다.";
+  }
+
+  if (availabilityStatus === "error") {
+    return "날짜 정보를 불러오지 못했어요. ‘날짜 다시 불러오기’를 눌러 확인해주세요.";
+  }
+
+  return selectionState === "ready" || selectionState === "incomplete"
+    ? null
+    : bookingSelectionGuidance[selectionState];
+};
+
+const getReservationProgressCopy = (
+  reservationStatus: BookingReserveActionProps["reservationStatus"],
+): { readonly announcement: string | null; readonly loadingLabel: string } => {
+  if (reservationStatus === "quoting") {
+    return {
+      announcement: "서버에서 최종 요금을 확인하고 있습니다.",
+      loadingLabel: "최종 요금 확인 중...",
+    };
+  }
+
+  if (reservationStatus === "checking-out") {
+    return {
+      announcement: "예약을 처리하고 있습니다. 잠시만 기다려주세요.",
+      loadingLabel: "예약 처리 중...",
+    };
+  }
+
+  return {
+    announcement: null,
+    loadingLabel:
+      reservationStatus === "completing"
+        ? "예약 내역 갱신 중..."
+        : "예약 중...",
+  };
+};
 
 const buildGuestSummary = ({
   adultCount,
@@ -176,15 +237,34 @@ function GuestCounterRow({
 }
 
 export function BookingPriceHeader({
-  nights,
+  hasCompleteStay,
   payablePrice,
+  totalPrice,
 }: BookingPriceHeaderProps) {
+  if (!hasCompleteStay) {
+    return (
+      <div className={styles.priceSection} aria-label="예약 요금">
+        <h2 className={styles.pricePrompt}>날짜를 선택해 요금 확인</h2>
+      </div>
+    );
+  }
+
+  const hasDiscount = totalPrice > payablePrice;
+
   return (
-    <div className={styles.priceSection}>
-      <span className={styles.totalPrice}>
+    <div className={styles.priceSection} aria-label="예약 요금">
+      <span className={styles.priceHeading}>총액</span>
+      {hasDiscount && (
+        <del
+          aria-label={`할인 전 총액 ₩${totalPrice.toLocaleString()}`}
+          className={styles.originalPrice}
+        >
+          ₩{totalPrice.toLocaleString()}
+        </del>
+      )}
+      <strong className={styles.totalPrice}>
         ₩{payablePrice.toLocaleString()}
-      </span>
-      <span className={styles.priceInfo}>· {nights}박</span>
+      </strong>
     </div>
   );
 }
@@ -198,41 +278,59 @@ export function BookingDateSection({
   formatDate,
   handleDateSelect,
   isDatePickerOpen,
+  nights,
   onDatePickerOpenChange,
   onGuestPickerOpenChange,
   disabledRanges,
-  retryAvailability,
   selectionLocked,
   selectionWindow,
 }: BookingDateSectionProps) {
-  const dateTriggerRef = React.useRef<HTMLButtonElement>(null);
+  const checkInTriggerRef = React.useRef<HTMLButtonElement>(null);
+  const checkOutTriggerRef = React.useRef<HTMLButtonElement>(null);
   const datePopoverRef = React.useRef<HTMLDivElement>(null);
   const availabilityStatusRef = React.useRef<HTMLDivElement>(null);
   const availabilityFocusOwnedRef = React.useRef(false);
   const previousAvailabilityStatusRef = React.useRef(availabilityStatus);
   const wasDatePickerOpenRef = React.useRef(isDatePickerOpen);
+  const endpointWasDatePickerOpenRef = React.useRef(isDatePickerOpen);
+  const openedFromDateFieldRef = React.useRef(false);
+  const [activeEndpoint, setActiveEndpoint] = React.useState<
+    "checkIn" | "checkOut"
+  >(checkIn && !checkOut ? "checkOut" : "checkIn");
+  const [isReplacingCheckout, setIsReplacingCheckout] = React.useState(false);
+  const activeTriggerRef =
+    activeEndpoint === "checkOut" ? checkOutTriggerRef : checkInTriggerRef;
   const closeDatePicker = React.useCallback(() => {
     onDatePickerOpenChange(false);
-    dateTriggerRef.current?.focus();
-  }, [onDatePickerOpenChange]);
+    setIsReplacingCheckout(false);
+    activeTriggerRef.current?.focus();
+  }, [activeTriggerRef, onDatePickerOpenChange]);
   const dateOverlay = useNonModalOverlayRegistration({
     enabled: availabilityStatus === "ready" && isDatePickerOpen,
     onClose: closeDatePicker,
     overlayRef: datePopoverRef,
-    triggerRef: dateTriggerRef,
+    triggerRef: activeTriggerRef,
   });
-  const toggleDatePicker = React.useCallback(() => {
-    if (availabilityStatus !== "ready" || selectionLocked) return;
-    const willOpen = !isDatePickerOpen;
-    if (willOpen) onGuestPickerOpenChange(false);
-    onDatePickerOpenChange(willOpen);
-  }, [
-    availabilityStatus,
-    isDatePickerOpen,
-    onDatePickerOpenChange,
-    onGuestPickerOpenChange,
-    selectionLocked,
-  ]);
+  const openDatePicker = React.useCallback(
+    (endpoint: "checkIn" | "checkOut") => {
+      if (availabilityStatus !== "ready" || selectionLocked) return;
+      openedFromDateFieldRef.current = true;
+      setActiveEndpoint(endpoint);
+      setIsReplacingCheckout(
+        endpoint === "checkOut" && Boolean(checkIn && checkOut),
+      );
+      onGuestPickerOpenChange(false);
+      onDatePickerOpenChange(true);
+    },
+    [
+      availabilityStatus,
+      checkIn,
+      checkOut,
+      onDatePickerOpenChange,
+      onGuestPickerOpenChange,
+      selectionLocked,
+    ],
+  );
   const focusAvailabilityStatus = React.useCallback(() => {
     const statusTarget = availabilityStatusRef.current;
     if (!statusTarget) return;
@@ -257,10 +355,19 @@ export function BookingDateSection({
     },
     [],
   );
-  const handleRetryAvailability = React.useCallback(() => {
-    focusAvailabilityStatus();
-    retryAvailability();
-  }, [focusAvailabilityStatus, retryAvailability]);
+
+  React.useEffect(() => {
+    const isOpening = isDatePickerOpen && !endpointWasDatePickerOpenRef.current;
+    endpointWasDatePickerOpenRef.current = isDatePickerOpen;
+    if (isOpening && !openedFromDateFieldRef.current) {
+      setActiveEndpoint(checkIn && !checkOut ? "checkOut" : "checkIn");
+      setIsReplacingCheckout(false);
+    }
+    if (!isDatePickerOpen) {
+      setIsReplacingCheckout(false);
+    }
+    openedFromDateFieldRef.current = false;
+  }, [checkIn, checkOut, isDatePickerOpen]);
 
   React.useLayoutEffect(() => {
     const previousAvailabilityStatus = previousAvailabilityStatusRef.current;
@@ -294,7 +401,7 @@ export function BookingDateSection({
       previousAvailabilityStatus !== "ready" &&
       availabilityFocusOwnedRef.current
     ) {
-      dateTriggerRef.current?.focus();
+      activeTriggerRef.current?.focus();
       availabilityFocusOwnedRef.current = false;
     }
   }, [
@@ -302,59 +409,105 @@ export function BookingDateSection({
     dateSectionRef,
     focusAvailabilityStatus,
     isDatePickerOpen,
+    activeTriggerRef,
   ]);
+
+  const pickerCheckOut = isReplacingCheckout ? null : checkOut;
+  const isReplacingPartialCheckIn =
+    activeEndpoint === "checkIn" && Boolean(checkIn && !checkOut);
+  const calendarTitle = isReplacingPartialCheckIn
+    ? "체크인 날짜를 선택하세요"
+    : checkIn && checkOut && nights > 0
+      ? `${nights}박`
+      : checkIn
+        ? "체크아웃 날짜를 선택하세요"
+        : "여행 날짜를 선택하세요";
+  const calendarDescription = isReplacingPartialCheckIn
+    ? "새 체크인 날짜를 선택하세요."
+    : checkIn && checkOut
+      ? `${formatDate(checkIn)} – ${formatDate(checkOut)}`
+      : checkIn
+        ? `${formatDate(checkIn)} 이후`
+        : "날짜를 선택해 요금을 확인하세요.";
+  const handlePickerDateSelect = React.useCallback(
+    (nextCheckIn: Date | null, nextCheckOut: Date | null) => {
+      setIsReplacingCheckout(false);
+      if (!nextCheckIn) {
+        setActiveEndpoint("checkIn");
+      } else if (!nextCheckOut) {
+        setActiveEndpoint("checkOut");
+      }
+      handleDateSelect(nextCheckIn, nextCheckOut);
+    },
+    [handleDateSelect],
+  );
 
   return (
     <div
-      className={styles.dateSection}
+      className={`${styles.dateSection} ${
+        isDatePickerOpen ? styles.dateSectionOpen : ""
+      }`}
       ref={dateSectionRef}
       onBlurCapture={handleAvailabilityBoundaryBlur}
       onFocusCapture={handleAvailabilityBoundaryFocus}
     >
-      <button
-        ref={dateTriggerRef}
-        type="button"
-        className={styles.dateRow}
-        aria-expanded={isDatePickerOpen}
-        aria-controls="booking-date-picker"
-        aria-busy={availabilityStatus === "loading"}
-        disabled={availabilityStatus !== "ready" || selectionLocked}
-        onClick={toggleDatePicker}
-      >
-        <div className={styles.dateColumn}>
+      <div className={styles.dateRow}>
+        <button
+          ref={checkInTriggerRef}
+          type="button"
+          className={`${styles.dateColumn} ${
+            isDatePickerOpen && activeEndpoint === "checkIn"
+              ? styles.dateColumnActive
+              : ""
+          }`}
+          aria-label={`체크인 ${formatDate(checkIn) || "날짜 추가"}`}
+          aria-haspopup="dialog"
+          aria-expanded={isDatePickerOpen}
+          aria-controls="booking-date-picker"
+          aria-busy={availabilityStatus === "loading"}
+          disabled={availabilityStatus !== "ready" || selectionLocked}
+          onClick={() => openDatePicker("checkIn")}
+        >
           <div className={styles.dateLabel}>체크인</div>
-          <div className={styles.dateValue}>{formatDate(checkIn)}</div>
-        </div>
+          <div className={styles.dateValue}>
+            {formatDate(checkIn) || "날짜 추가"}
+          </div>
+        </button>
         <div className={styles.dateDivider} />
-        <div className={styles.dateColumn}>
+        <button
+          ref={checkOutTriggerRef}
+          type="button"
+          className={`${styles.dateColumn} ${
+            isDatePickerOpen && activeEndpoint === "checkOut"
+              ? styles.dateColumnActive
+              : ""
+          }`}
+          aria-label={`체크아웃 ${formatDate(checkOut) || "날짜 추가"}`}
+          aria-haspopup="dialog"
+          aria-expanded={isDatePickerOpen}
+          aria-controls="booking-date-picker"
+          aria-busy={availabilityStatus === "loading"}
+          disabled={availabilityStatus !== "ready" || selectionLocked}
+          onClick={() => openDatePicker("checkOut")}
+        >
           <div className={styles.dateLabel}>체크아웃</div>
-          <div className={styles.dateValue}>{formatDate(checkOut)}</div>
-        </div>
-      </button>
-      <div className={styles.horizontalDivider} />
+          <div className={styles.dateValue}>
+            {formatDate(checkOut) || "날짜 추가"}
+          </div>
+        </button>
+      </div>
 
       {availabilityStatus !== "ready" && (
         <div
           ref={availabilityStatusRef}
-          className={styles.availabilityStatus}
+          className={styles.availabilityAnnouncement}
           aria-label="예약 가능 여부"
           role={availabilityStatus === "error" ? "alert" : "status"}
           tabIndex={-1}
         >
-          <span>
-            {availabilityStatus === "loading"
-              ? "예약 가능한 날짜를 확인하고 있습니다."
-              : "예약 가능한 날짜를 불러오지 못했습니다."}
-          </span>
-          {availabilityStatus === "error" && (
-            <button
-              className={styles.availabilityRetryButton}
-              type="button"
-              onClick={handleRetryAvailability}
-            >
-              다시 시도
-            </button>
-          )}
+          {availabilityStatus === "loading"
+            ? "예약 가능한 날짜를 확인하고 있습니다."
+            : "예약 가능한 날짜를 불러오지 못했습니다."}
         </div>
       )}
 
@@ -368,10 +521,16 @@ export function BookingDateSection({
           role="dialog"
           tabIndex={-1}
         >
+          <div className={styles.calendarSummary} aria-hidden="true">
+            <strong>{calendarTitle}</strong>
+            <span>{calendarDescription}</span>
+          </div>
           <DatePicker
+            variant="compact"
             checkIn={checkIn}
-            checkOut={checkOut}
-            onDateSelect={handleDateSelect}
+            checkOut={pickerCheckOut}
+            selectionEndpoint={activeEndpoint}
+            onDateSelect={handlePickerDateSelect}
             onClose={closeDatePicker}
             onEscape={() => {
               dateOverlay.requestCloseOnEscape();
@@ -400,6 +559,7 @@ export function BookingGuestSection({
   onAdultCountChange,
   onChildCountChange,
   onInfantCountChange,
+  onDatePickerOpenChange,
   onGuestPickerOpenChange,
   onPetCountChange,
   selectionLocked,
@@ -419,12 +579,7 @@ export function BookingGuestSection({
   });
 
   return (
-    <div
-      className={`${styles.guestRowContainer} ${
-        isDatePickerOpen ? styles.hidden : ""
-      }`}
-      ref={guestPickerRef}
-    >
+    <div className={styles.guestRowContainer} ref={guestPickerRef}>
       <button
         ref={guestTriggerRef}
         type="button"
@@ -432,7 +587,11 @@ export function BookingGuestSection({
         aria-expanded={isGuestPickerOpen}
         aria-controls="booking-guest-picker"
         disabled={selectionLocked}
-        onClick={() => onGuestPickerOpenChange(!isGuestPickerOpen)}
+        onClick={() => {
+          const willOpen = !isGuestPickerOpen;
+          if (willOpen) onDatePickerOpenChange(false);
+          onGuestPickerOpenChange(willOpen);
+        }}
       >
         <div className={styles.guestColumn}>
           <div className={styles.dateLabel}>인원</div>
@@ -631,19 +790,25 @@ export function BookingReserveAction({
   isReserving,
   isStayReady,
   onReserve,
+  onRequestDates,
   reservationStatus,
+  retryAvailability,
   selectionState,
 }: BookingReserveActionProps) {
+  const selectionGuidanceId = React.useId();
+  const selectionGuidanceRef = React.useRef<HTMLParagraphElement>(null);
+  const actionRef = React.useRef<HTMLButtonElement>(null);
+  const availabilityRetryFocusOwnedRef = React.useRef(false);
   const canContinueExistingFlow =
     reservationStatus === "quoted" || reservationStatus === "terminal-ready";
-  const loadingLabel =
-    reservationStatus === "quoting"
-      ? "최종 요금 확인 중..."
-      : reservationStatus === "checking-out"
-        ? "예약 처리 중..."
-        : reservationStatus === "completing"
-          ? "예약 내역 갱신 중..."
-          : "예약 중...";
+  const selectionGuidance = canContinueExistingFlow
+    ? null
+    : getBookingSelectionGuidance({
+        availabilityStatus,
+        selectionState,
+      });
+  const { announcement: progressAnnouncement, loadingLabel } =
+    getReservationProgressCopy(reservationStatus);
   const actionLabel = (() => {
     if (isReservationLocked) return "예약 내역 확인 필요";
     if (reservationStatus === "quoted") return "예약 계속하기";
@@ -652,60 +817,132 @@ export function BookingReserveAction({
     if (reservationStatus === "completing") return "예약 내역 갱신 중";
     if (reservationStatus === "quoting") return "최종 요금 확인 중";
     if (availabilityStatus === "loading") return "예약 가능 날짜 확인 중";
-    if (availabilityStatus === "error") return "예약 가능 날짜 확인 필요";
+    if (availabilityStatus === "error") return "날짜 다시 불러오기";
 
     switch (selectionState) {
       case "fully-booked":
         return "예약 가능한 날짜 없음";
       case "incomplete":
-        return "체크인·체크아웃 선택";
+        return "예약 가능 여부 보기";
       case "invalid":
       case "outside-window":
       case "unavailable":
         return "예약 날짜 다시 선택";
       case "availability-unavailable":
-        return "예약 가능 날짜 확인 필요";
+        return "예약 가능 여부 보기";
       case "ready":
-        return hasCompleteStay ? "예약하기" : "체크인·체크아웃 선택";
+        return hasCompleteStay ? "예약하기" : "예약 가능 여부 보기";
     }
   })();
+  const isFullyBooked = selectionState === "fully-booked";
+  const shouldRetryAvailability =
+    !canContinueExistingFlow && availabilityStatus === "error";
+  const shouldRequestDates =
+    !canContinueExistingFlow &&
+    availabilityStatus === "ready" &&
+    (!isStayReady || !hasCompleteStay || selectionState !== "ready");
+  const isActionDisabled =
+    isReservationLocked ||
+    (!canContinueExistingFlow &&
+      (availabilityStatus === "loading" || isFullyBooked));
+  const handlePrimaryAction = () => {
+    if (shouldRetryAvailability) {
+      availabilityRetryFocusOwnedRef.current = true;
+      selectionGuidanceRef.current?.focus();
+      retryAvailability();
+      return;
+    }
+    if (shouldRequestDates) {
+      onRequestDates();
+      return;
+    }
+    onReserve();
+  };
+  const releaseAvailabilityRetryFocus = React.useCallback(
+    (event: React.FocusEvent<HTMLParagraphElement>) => {
+      const nextTarget = event.relatedTarget;
+      if (
+        nextTarget instanceof Node &&
+        event.currentTarget.contains(nextTarget)
+      ) {
+        return;
+      }
+
+      availabilityRetryFocusOwnedRef.current = false;
+    },
+    [],
+  );
+
+  React.useLayoutEffect(() => {
+    if (!availabilityRetryFocusOwnedRef.current) return;
+
+    const activeElement = document.activeElement;
+    const guidance = selectionGuidanceRef.current;
+    if (
+      activeElement &&
+      activeElement !== document.body &&
+      activeElement !== guidance
+    ) {
+      availabilityRetryFocusOwnedRef.current = false;
+      return;
+    }
+
+    if (availabilityStatus === "ready") {
+      actionRef.current?.focus();
+      availabilityRetryFocusOwnedRef.current = false;
+      return;
+    }
+
+    selectionGuidanceRef.current?.focus();
+  }, [availabilityStatus, selectionGuidance]);
 
   return (
     <>
+      {progressAnnouncement && (
+        <span
+          className={styles.statusAnnouncement}
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {progressAnnouncement}
+        </span>
+      )}
+
+      {selectionGuidance && (
+        <p
+          ref={selectionGuidanceRef}
+          className={styles.selectionGuidance}
+          id={selectionGuidanceId}
+          tabIndex={-1}
+          onBlur={releaseAvailabilityRetryFocus}
+        >
+          {selectionGuidance}
+        </p>
+      )}
+
       <Button
+        ref={actionRef}
         fullWidth
         size="lg"
         className={styles.reserveButton}
-        disabled={
-          isReservationLocked ||
-          (!canContinueExistingFlow &&
-            (availabilityStatus !== "ready" ||
-              !isStayReady ||
-              !hasCompleteStay))
-        }
-        onClick={onReserve}
+        aria-describedby={selectionGuidance ? selectionGuidanceId : undefined}
+        disabled={isActionDisabled}
+        onClick={handlePrimaryAction}
         isLoading={isReserving}
         loadingLabel={loadingLabel}
       >
         {actionLabel}
       </Button>
 
-      <div className={styles.bookingNote}>
-        예약 확정 전에는 요금이 청구되지 않습니다.
-      </div>
+      {(hasCompleteStay || canContinueExistingFlow) && (
+        <div className={styles.bookingNote}>
+          예약 확정 전에는 요금이 청구되지 않습니다.
+        </div>
+      )}
     </>
   );
 }
-
-const formatQuoteExpiry = (value: string): string => {
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime())
-    ? "유효 시간 내"
-    : parsed.toLocaleTimeString("ko-KR", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-};
 
 export function BookingQuoteSummary({
   amount,
@@ -716,19 +953,28 @@ export function BookingQuoteSummary({
   quoteExpiresAt,
   subtotal,
 }: BookingQuoteSummaryProps) {
+  const expiryDescriptionId = React.useId();
+  const quoteExpiry = new Date(quoteExpiresAt);
+  const hasExactQuoteExpiry = !Number.isNaN(quoteExpiry.getTime());
+  const quoteExpiryLabel = hasExactQuoteExpiry
+    ? quoteExpiry.toLocaleTimeString("ko-KR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "유효 시간 내";
+
   return (
-    <section className={styles.quoteSummary} aria-label="확정된 예약 견적">
+    <section
+      className={styles.quoteSummary}
+      aria-describedby={expiryDescriptionId}
+      aria-label="확정된 예약 견적"
+    >
       <div className={styles.quoteSummaryHeader}>
+        <span className={styles.quoteSummaryBadge}>서버 견적</span>
         <strong>서버에서 확인한 최종 요금</strong>
-        {canAbandon && (
-          <button
-            className={styles.quoteResetButton}
-            onClick={onAbandonQuote}
-            type="button"
-          >
-            조건 다시 선택
-          </button>
-        )}
+        <span className={styles.quoteSummaryDescription}>
+          아래 금액을 확인한 뒤 예약을 계속해주세요.
+        </span>
       </div>
       <div className={styles.quoteSummaryRow}>
         <span>숙박 요금</span>
@@ -742,11 +988,29 @@ export function BookingQuoteSummary({
       )}
       <div className={styles.quoteSummaryTotal}>
         <span>결제 예정 금액 ({currency})</span>
-        <span>₩{amount.toLocaleString("ko-KR")}</span>
+        <strong>₩{amount.toLocaleString("ko-KR")}</strong>
       </div>
-      <p className={styles.quoteExpiry}>
-        {formatQuoteExpiry(quoteExpiresAt)}까지 유효한 견적입니다.
-      </p>
+      <div className={styles.quoteSummaryFooter}>
+        <p className={styles.quoteExpiry} id={expiryDescriptionId}>
+          <span>견적 유효 시각</span>
+          <strong>
+            {hasExactQuoteExpiry ? (
+              <time dateTime={quoteExpiresAt}>{quoteExpiryLabel}까지</time>
+            ) : (
+              quoteExpiryLabel
+            )}
+          </strong>
+        </p>
+        {canAbandon && (
+          <button
+            className={styles.quoteResetButton}
+            onClick={onAbandonQuote}
+            type="button"
+          >
+            조건 다시 선택
+          </button>
+        )}
+      </div>
     </section>
   );
 }

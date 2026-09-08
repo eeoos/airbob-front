@@ -1,4 +1,13 @@
-import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  lstat,
+  mkdir,
+  mkdtemp,
+  opendir,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -6,6 +15,7 @@ import {
   COMMITTED_PRIVACY_CANARIES,
   findSensitiveTextViolations,
   normalizeSensitiveText,
+  readRuntimeSensitiveValues,
   redactSensitiveText,
 } from "./sensitive-text.mjs";
 import {
@@ -31,10 +41,40 @@ const allowedTextArtifactExtensions = new Set([
   ".yaml",
   ".yml",
 ]);
+const ARTIFACT_QUARANTINE_MARKER =
+  "[Playwright artifact quarantined by privacy policy.]\n";
+const DEFAULT_ARTIFACT_LIMITS = Object.freeze({
+  maxFileBytes: 2 * 1024 * 1024,
+  maxFileCount: 512,
+  maxTreeBytes: 16 * 1024 * 1024,
+});
 
-export const findTextViolations = (text) => {
+const readSelectedProjectNames = (argv = process.argv.slice(2)) => {
+  const names = new Set();
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const argument = argv[index];
+    if (argument === "--project") {
+      const value = argv[index + 1];
+      if (value) names.add(value);
+      index += 1;
+    } else if (argument?.startsWith("--project=")) {
+      const value = argument.slice("--project=".length);
+      if (value) names.add(value);
+    }
+  }
+
+  return names;
+};
+
+export const findTextViolations = (
+  text,
+  { runtimeSensitiveValues = readRuntimeSensitiveValues() } = {},
+) => {
   const normalizedText = normalizeSensitiveText(text);
-  const violations = new Set(findSensitiveTextViolations(normalizedText));
+  const violations = new Set(
+    findSensitiveTextViolations(normalizedText, { runtimeSensitiveValues }),
+  );
 
   COMMITTED_PRIVACY_CANARIES.forEach((canary, index) => {
     if (normalizedText.includes(canary)) {
@@ -45,44 +85,110 @@ export const findTextViolations = (text) => {
   return [...violations].sort();
 };
 
-const collectArtifactFiles = async (directory) => {
+const artifactFiles = async function* (directory) {
   let entries;
   try {
-    entries = await readdir(directory, { withFileTypes: true });
+    entries = await opendir(directory);
   } catch (error) {
     if (error && typeof error === "object" && error.code === "ENOENT") {
-      return [];
+      return;
     }
     throw error;
   }
 
-  const files = [];
-  for (const entry of entries) {
+  for await (const entry of entries) {
     const entryPath = path.join(directory, entry.name);
 
     if (entry.isSymbolicLink()) {
-      files.push({ path: entryPath, kind: "symbolic-link" });
+      yield { path: entryPath, kind: "symbolic-link", size: 0 };
     } else if (entry.isDirectory()) {
-      files.push(...(await collectArtifactFiles(entryPath)));
+      yield* artifactFiles(entryPath);
     } else if (entry.isFile()) {
-      files.push({ path: entryPath, kind: "file" });
+      let stats;
+      try {
+        stats = await lstat(entryPath);
+      } catch (error) {
+        if (error && typeof error === "object" && error.code === "ENOENT") {
+          continue;
+        }
+        throw error;
+      }
+      yield {
+        path: entryPath,
+        kind: stats.isFile() ? "file" : "unsafe-node",
+        size: stats.size,
+      };
+    } else {
+      yield { path: entryPath, kind: "unsafe-node", size: 0 };
     }
   }
-
-  return files;
 };
 
-const scanArtifactDirectories = async (directories) => {
+const securelyReplaceTextArtifact = async (artifactPath, text) => {
+  await rm(artifactPath, { force: true });
+  await writeFile(artifactPath, text, { encoding: "utf8", flag: "wx" });
+};
+
+const quarantineTextArtifact = async (artifactPath) => {
+  try {
+    await securelyReplaceTextArtifact(artifactPath, ARTIFACT_QUARANTINE_MARKER);
+    return "quarantined";
+  } catch {
+    await rm(artifactPath, { force: true });
+    return "removed";
+  }
+};
+
+const sanitizeTextArtifact = async (
+  artifactPath,
+  text,
+  runtimeSensitiveValues,
+) => {
+  const violations = findTextViolations(text, { runtimeSensitiveValues });
+  if (violations.length === 0) return null;
+
+  const redacted = redactSensitiveText(text, { runtimeSensitiveValues });
+  const residualViolations = findTextViolations(redacted, {
+    runtimeSensitiveValues,
+  });
+  if (residualViolations.length === 0) {
+    await securelyReplaceTextArtifact(artifactPath, redacted);
+    return { action: "sanitized", violations };
+  }
+
+  const action = await quarantineTextArtifact(artifactPath);
+  return {
+    action,
+    violations: [...new Set([...violations, ...residualViolations])],
+  };
+};
+
+const scanArtifactDirectories = async (
+  directories,
+  {
+    limits = DEFAULT_ARTIFACT_LIMITS,
+    runtimeSensitiveValues = readRuntimeSensitiveValues(),
+  } = {},
+) => {
   const findings = [];
+  let fileCount = 0;
+  let treeBytes = 0;
 
   for (const absoluteRoot of directories) {
-    const files = await collectArtifactFiles(absoluteRoot);
-
-    for (const artifact of files) {
+    for await (const artifact of artifactFiles(absoluteRoot)) {
+      fileCount += 1;
+      treeBytes += artifact.size;
       const relativePath = path.relative(projectRoot, artifact.path);
 
       if (artifact.kind === "symbolic-link") {
+        await rm(artifact.path, { force: true });
         findings.push(`${relativePath}:symbolic-link-artifact`);
+        continue;
+      }
+
+      if (artifact.kind !== "file") {
+        await rm(artifact.path, { force: true });
+        findings.push(`${relativePath}:unsafe-artifact-node`);
         continue;
       }
 
@@ -91,13 +197,44 @@ const scanArtifactDirectories = async (directories) => {
           path.extname(artifact.path).toLowerCase(),
         )
       ) {
+        await rm(artifact.path, { force: true });
         findings.push(`${relativePath}:unsafe-binary-artifact`);
         continue;
       }
 
+      if (fileCount > limits.maxFileCount) {
+        const action = await quarantineTextArtifact(artifact.path);
+        findings.push(`${relativePath}:artifact-file-count-budget:${action}`);
+        continue;
+      }
+
+      if (artifact.size > limits.maxFileBytes) {
+        const action = await quarantineTextArtifact(artifact.path);
+        findings.push(`${relativePath}:artifact-file-byte-budget:${action}`);
+        continue;
+      }
+
+      if (treeBytes > limits.maxTreeBytes) {
+        const action = await quarantineTextArtifact(artifact.path);
+        findings.push(`${relativePath}:artifact-tree-byte-budget:${action}`);
+        continue;
+      }
+
       const text = await readFile(artifact.path, "utf8");
-      findTextViolations(text).forEach((violation) => {
-        findings.push(`${relativePath}:${violation}`);
+      const actualBytes = Buffer.byteLength(text, "utf8");
+      if (actualBytes > limits.maxFileBytes) {
+        const action = await quarantineTextArtifact(artifact.path);
+        findings.push(`${relativePath}:artifact-file-byte-budget:${action}`);
+        continue;
+      }
+
+      const sanitized = await sanitizeTextArtifact(
+        artifact.path,
+        text,
+        runtimeSensitiveValues,
+      );
+      sanitized?.violations.forEach((violation) => {
+        findings.push(`${relativePath}:${violation}:${sanitized.action}`);
       });
     }
   }
@@ -109,12 +246,40 @@ const scanArtifactDirectories = async (directories) => {
   }
 };
 
-export const scanPlaywrightArtifacts = async () =>
-  scanArtifactDirectories(
-    artifactRoots.map((artifactRoot) => path.join(projectRoot, artifactRoot)),
-  );
+export const scanPlaywrightArtifacts = async (config) => {
+  const selectedProjectNames = readSelectedProjectNames();
+  const configuredRoots = config?.projects
+    ?.filter(
+      (project) =>
+        selectedProjectNames.size === 0 ||
+        selectedProjectNames.has(project.name),
+    )
+    ?.map((project) => project.outputDir)
+    .filter(Boolean);
+  const directories =
+    configuredRoots?.length > 0
+      ? [...new Set(configuredRoots)]
+      : artifactRoots.map((artifactRoot) =>
+          path.join(projectRoot, artifactRoot),
+        );
+
+  await scanArtifactDirectories(directories);
+};
 
 const runSelfTest = async () => {
+  const selectedProjectNames = readSelectedProjectNames([
+    "--project=local-core",
+    "--project",
+    "local-toss-sandbox",
+  ]);
+  if (
+    selectedProjectNames.size !== 2 ||
+    !selectedProjectNames.has("local-core") ||
+    !selectedProjectNames.has("local-toss-sandbox")
+  ) {
+    throw new Error("Artifact scanner did not preserve CLI project ownership.");
+  }
+
   COMMITTED_PRIVACY_CANARIES.forEach((canary, index) => {
     const violations = findTextViolations(`fixture ${canary}`);
     if (!violations.includes(`committed-canary-${index + 1}`)) {
@@ -136,6 +301,151 @@ const runSelfTest = async () => {
     throw new Error(
       "Artifact scanner rejected the synthetic fixture allowlist.",
     );
+  }
+
+  const runtimeEnvironment = {
+    AIRBOB_LOCAL_COMPLIMENTARY_COUPON_ID: "73",
+    AIRBOB_LOCAL_PAID_FIXTURES: JSON.stringify([
+      {
+        accommodationId: "201",
+        checkIn: "2026-10-10",
+        checkOut: "2026-10-12",
+      },
+    ]),
+    AIRBOB_LOCAL_SEARCH_DESTINATION: "제주",
+    AIRBOB_LOCAL_TOSS_CARD_CVC: "123",
+    AIRBOB_LOCAL_TOSS_CARD_EXPIRY: "12/30",
+    AIRBOB_LOCAL_TOSS_CARD_PASSWORD: "00",
+    AIRBOB_LOCAL_WISHLIST_ACCOMMODATION_ID: "201",
+    AIRBOB_QA_PASSWORD: 'runtime/"private\\value+7429',
+  };
+  const runtimeSensitiveValues = readRuntimeSensitiveValues(runtimeEnvironment);
+  ["00", "73", "123", "201", "제주", "2026-10-10"].forEach((expectedValue) => {
+    if (!runtimeSensitiveValues.includes(expectedValue)) {
+      throw new Error(
+        "Runtime-sensitive environment collection dropped a configured value.",
+      );
+    }
+  });
+
+  const longRuntimeValue = runtimeEnvironment.AIRBOB_QA_PASSWORD;
+  if (
+    !findTextViolations(`unlabelled ${longRuntimeValue}`, {
+      runtimeSensitiveValues,
+    }).includes("runtime-sensitive-value")
+  ) {
+    throw new Error("Artifact scanner missed an exact runtime value.");
+  }
+  const runtimeRedacted = redactSensitiveText(
+    `unlabelled ${longRuntimeValue}`,
+    { runtimeSensitiveValues },
+  );
+  if (
+    runtimeRedacted.includes(longRuntimeValue) ||
+    findTextViolations(runtimeRedacted, { runtimeSensitiveValues }).length > 0
+  ) {
+    throw new Error("Artifact redactor exposed an exact runtime value.");
+  }
+
+  const transformedRuntimeValues = [
+    encodeURIComponent(longRuntimeValue),
+    new URLSearchParams({ value: longRuntimeValue })
+      .toString()
+      .slice("value=".length),
+    JSON.stringify(longRuntimeValue).slice(1, -1),
+    Buffer.from(longRuntimeValue, "utf8").toString("base64"),
+  ];
+  transformedRuntimeValues.forEach((transformedValue) => {
+    const input = `transformed ${transformedValue}`;
+    const redacted = redactSensitiveText(input, { runtimeSensitiveValues });
+    if (
+      !findTextViolations(input, { runtimeSensitiveValues }).includes(
+        "runtime-sensitive-value",
+      ) ||
+      redacted.includes(transformedValue) ||
+      findTextViolations(redacted, { runtimeSensitiveValues }).length > 0
+    ) {
+      throw new Error("Artifact policy missed a transformed runtime value.");
+    }
+  });
+
+  const contextualRuntimeCases = [
+    ["short CVC", "cardCvc: 123", "structured-sensitive-value"],
+    [
+      "short card password JSON",
+      '{"cardPassword":"00"}',
+      "structured-sensitive-value",
+    ],
+    [
+      "short accommodation path",
+      "https://example.invalid/api/v1/accommodations/201/availability",
+      "sensitive-resource-path",
+    ],
+    [
+      "short nested member path",
+      "/api/v1/members/recently-viewed/201",
+      "sensitive-resource-path",
+    ],
+    [
+      "short coupon query",
+      "https://example.invalid/coupons?couponId=73",
+      "sensitive-callback-query",
+    ],
+    [
+      "URL-encoded destination",
+      `https://example.invalid/search?destination=${encodeURIComponent("제주")}`,
+      "sensitive-callback-query",
+    ],
+    [
+      "short identifier base64",
+      `couponIdBase64: ${Buffer.from("73", "utf8").toString("base64")}`,
+      "structured-sensitive-value",
+    ],
+    ["slash-stripped expiry", "provider field 1230", "runtime-sensitive-value"],
+  ];
+  contextualRuntimeCases.forEach(([, input, expectedViolation]) => {
+    const violations = findTextViolations(input, { runtimeSensitiveValues });
+    const redacted = redactSensitiveText(input, { runtimeSensitiveValues });
+    if (
+      !violations.includes(expectedViolation) ||
+      redacted === input ||
+      findTextViolations(redacted, { runtimeSensitiveValues }).length > 0
+    ) {
+      throw new Error("Artifact policy missed a contextual runtime value.");
+    }
+  });
+
+  const harmlessShortText = "progress 00 of 73; counters 123 and 201";
+  if (
+    findTextViolations(harmlessShortText, { runtimeSensitiveValues }).length >
+      0 ||
+    redactSensitiveText(harmlessShortText, { runtimeSensitiveValues }) !==
+      harmlessShortText
+  ) {
+    throw new Error("Artifact policy globally redacted common short values.");
+  }
+
+  let runtimeReporterOutput = "";
+  const runtimeWriter = createRedactedLineWriter({
+    stdout: {
+      write: (value) => {
+        runtimeReporterOutput += String(value);
+      },
+    },
+    stderr: { write: () => {} },
+    runtimeSensitiveValues,
+  });
+  const runtimeSplit = Math.floor(longRuntimeValue.length / 2);
+  runtimeWriter.stdout(`split ${longRuntimeValue.slice(0, runtimeSplit)}`);
+  runtimeWriter.stdout(
+    `${longRuntimeValue.slice(runtimeSplit)} without field name\n`,
+  );
+  runtimeWriter.flush();
+  if (
+    runtimeReporterOutput.includes(longRuntimeValue) ||
+    !runtimeReporterOutput.includes("[redacted-runtime]")
+  ) {
+    throw new Error("Streaming reporter exposed an exact runtime value.");
   }
 
   const detectorCases = [
@@ -687,28 +997,156 @@ const runSelfTest = async () => {
     path.join(os.tmpdir(), "airbob-artifact-scan-"),
   );
   try {
+    const unsafeReportPath = path.join(temporaryRoot, "unsafe-report.txt");
+    const errorContextPath = path.join(temporaryRoot, "error-context.md");
+    const unsafeScreenshotPath = path.join(
+      temporaryRoot,
+      "unsafe-screenshot.png",
+    );
+    const unsafeLinkPath = path.join(temporaryRoot, "unsafe-link.log");
     await writeFile(
-      path.join(temporaryRoot, "unsafe-report.txt"),
+      unsafeReportPath,
       COMMITTED_PRIVACY_CANARIES.join("\n"),
       "utf8",
     );
     await writeFile(
-      path.join(temporaryRoot, "unsafe-screenshot.png"),
-      "binary",
+      errorContextPath,
+      [
+        "# Error context",
+        '{"customerName":"Private Person","cvc":"123","cardPassword":"00"}',
+        `page: https://example.invalid/api/v1/accommodations/201?couponId=73&destination=${encodeURIComponent("제주")}`,
+      ].join("\n"),
+      "utf8",
     );
+    await writeFile(unsafeScreenshotPath, "binary");
+    await symlink("unsafe-report.txt", unsafeLinkPath);
 
     let rejectedUnsafeTree = false;
     try {
-      await scanArtifactDirectories([temporaryRoot]);
+      await scanArtifactDirectories([temporaryRoot], {
+        runtimeSensitiveValues,
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       rejectedUnsafeTree =
         message.includes("committed-canary-1") &&
-        message.includes("unsafe-binary-artifact");
+        message.includes("structured-sensitive-value") &&
+        message.includes("sensitive-resource-path") &&
+        message.includes("sensitive-callback-query") &&
+        message.includes("unsafe-binary-artifact") &&
+        message.includes("symbolic-link-artifact");
     }
 
     if (!rejectedUnsafeTree) {
       throw new Error("Artifact scanner accepted an unsafe artifact tree.");
+    }
+
+    for (const sanitizedPath of [unsafeReportPath, errorContextPath]) {
+      const sanitizedText = await readFile(sanitizedPath, "utf8");
+      if (
+        findTextViolations(sanitizedText, { runtimeSensitiveValues }).length > 0
+      ) {
+        throw new Error("Artifact scanner retained unsafe text after failure.");
+      }
+    }
+
+    for (const removedPath of [unsafeScreenshotPath, unsafeLinkPath]) {
+      try {
+        await lstat(removedPath);
+        throw new Error(
+          "Artifact scanner retained a removable unsafe artifact.",
+        );
+      } catch (error) {
+        if (!(error && typeof error === "object" && error.code === "ENOENT")) {
+          throw error;
+        }
+      }
+    }
+
+    const fileBudgetRoot = path.join(temporaryRoot, "file-budget");
+    await mkdir(fileBudgetRoot);
+    const oversizedTextPath = path.join(fileBudgetRoot, "oversized.log");
+    await writeFile(oversizedTextPath, "x".repeat(65), "utf8");
+    let rejectedFileBudget = false;
+    try {
+      await scanArtifactDirectories([fileBudgetRoot], {
+        limits: { maxFileBytes: 64, maxFileCount: 10, maxTreeBytes: 1_024 },
+        runtimeSensitiveValues,
+      });
+    } catch (error) {
+      rejectedFileBudget = String(error).includes("artifact-file-byte-budget");
+    }
+    if (
+      !rejectedFileBudget ||
+      (await readFile(oversizedTextPath, "utf8")) !== ARTIFACT_QUARANTINE_MARKER
+    ) {
+      throw new Error("Artifact scanner did not enforce the file byte budget.");
+    }
+
+    const countBudgetRoot = path.join(temporaryRoot, "count-budget");
+    await mkdir(countBudgetRoot);
+    const countBudgetPaths = ["one.log", "two.log"].map((name) =>
+      path.join(countBudgetRoot, name),
+    );
+    await Promise.all(
+      countBudgetPaths.map((artifactPath) =>
+        writeFile(artifactPath, "safe", "utf8"),
+      ),
+    );
+    let rejectedCountBudget = false;
+    try {
+      await scanArtifactDirectories([countBudgetRoot], {
+        limits: {
+          maxFileBytes: 64,
+          maxFileCount: 1,
+          maxTreeBytes: 1_024,
+        },
+        runtimeSensitiveValues,
+      });
+    } catch (error) {
+      rejectedCountBudget = String(error).includes(
+        "artifact-file-count-budget",
+      );
+    }
+    const countBudgetContents = await Promise.all(
+      countBudgetPaths.map((artifactPath) => readFile(artifactPath, "utf8")),
+    );
+    if (
+      !rejectedCountBudget ||
+      !countBudgetContents.includes(ARTIFACT_QUARANTINE_MARKER)
+    ) {
+      throw new Error(
+        "Artifact scanner did not enforce the file count budget.",
+      );
+    }
+
+    const treeBudgetRoot = path.join(temporaryRoot, "tree-budget");
+    await mkdir(treeBudgetRoot);
+    const treeBudgetPaths = ["one.log", "two.log"].map((name) =>
+      path.join(treeBudgetRoot, name),
+    );
+    await Promise.all(
+      treeBudgetPaths.map((artifactPath) =>
+        writeFile(artifactPath, "x".repeat(40), "utf8"),
+      ),
+    );
+    let rejectedTreeBudget = false;
+    try {
+      await scanArtifactDirectories([treeBudgetRoot], {
+        limits: { maxFileBytes: 64, maxFileCount: 10, maxTreeBytes: 60 },
+        runtimeSensitiveValues,
+      });
+    } catch (error) {
+      rejectedTreeBudget = String(error).includes("artifact-tree-byte-budget");
+    }
+    const treeBudgetContents = await Promise.all(
+      treeBudgetPaths.map((artifactPath) => readFile(artifactPath, "utf8")),
+    );
+    if (
+      !rejectedTreeBudget ||
+      !treeBudgetContents.includes(ARTIFACT_QUARANTINE_MARKER)
+    ) {
+      throw new Error("Artifact scanner did not enforce the tree byte budget.");
     }
   } finally {
     await rm(temporaryRoot, { recursive: true, force: true });

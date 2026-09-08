@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { requireCssModuleClass } from "../../../../shared/styles/requireCssModuleClass";
-import { Dialog } from "../../../../shared/ui";
+import { Dialog, ImageWithFallback } from "../../../../shared/ui";
 import type { AccommodationDetailImageViewModel } from "../lib/accommodationDetailViewModel";
 import styles from "./AccommodationImageGalleryModal.module.css";
 
@@ -33,6 +33,16 @@ export function AccommodationImageGalleryModal({
   const displayIndex = normalizedIndex >= 0 ? normalizedIndex : 0;
 
   const showNavigation = images.length > 1;
+  const imageFallback = (label: string) => (
+    <div
+      className={styles.galleryImageFallback}
+      role="img"
+      aria-label={`${label} 사진을 불러올 수 없음`}
+    >
+      <span aria-hidden="true">⌂</span>
+      <strong>사진을 불러올 수 없어요</strong>
+    </div>
+  );
 
   const goToPreviousImage = () => {
     onCurrentImageIndexChange(
@@ -68,10 +78,11 @@ export function AccommodationImageGalleryModal({
         ×
       </button>
       <div className={styles.galleryMain}>
-        <img
+        <ImageWithFallback
           src={currentImage.url}
           alt={`${accommodationName} ${displayIndex + 1}`}
           className={styles.galleryImage}
+          fallback={imageFallback(`${accommodationName} ${displayIndex + 1}`)}
         />
         {showNavigation && (
           <>
@@ -101,12 +112,17 @@ export function AccommodationImageGalleryModal({
           <button
             type="button"
             key={image.id}
+            aria-label={`${accommodationName} 사진 ${index + 1} 보기`}
             className={`${styles.galleryThumbnail} ${
               index === displayIndex ? styles.galleryThumbnailActive : ""
             }`}
             onClick={() => onCurrentImageIndexChange(index)}
           >
-            <img src={image.url} alt={image.alt} />
+            <ImageWithFallback
+              src={image.url}
+              alt={image.alt}
+              fallback={imageFallback(image.alt)}
+            />
           </button>
         ))}
       </div>

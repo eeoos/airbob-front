@@ -1,4 +1,5 @@
 import type { AccommodationDetailViewModel } from "../lib/accommodationDetailViewModel";
+import { ImageWithFallback } from "../../../../shared/ui";
 import AmenityIcon from "./AmenityIcon";
 import styles from "./AccommodationOverview.module.css";
 
@@ -23,49 +24,37 @@ export function AccommodationOverview({
 
   return (
     <>
-      <div className={styles.locationSection}>
+      <section
+        className={styles.locationSection}
+        aria-labelledby="accommodation-overview-title"
+      >
         <div className={styles.locationInfo}>
-          <span className={styles.address}>
+          <h2 id="accommodation-overview-title" className={styles.address}>
             {detailView.overviewTitleLabel}
-          </span>
+          </h2>
           <span className={styles.maxOccupancy}>
             {detailView.counts.guestLabel}
           </span>
         </div>
-      </div>
-
-      {detailView.amenities.length > 0 && (
-        <div className={styles.amenitiesSection}>
-          <div className={styles.amenitiesGrid}>
-            {detailView.amenities.map((amenity) => (
-              <div
-                key={amenity.key}
-                className={styles.amenityItem}
-                data-amenity-code={amenity.type}
-                data-amenity-known={amenity.isKnown}
-              >
-                <AmenityIcon type={amenity.type} decorative />
-                <span>{amenity.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      </section>
 
       <div className={styles.mainContent}>
-        <section className={styles.section}>
+        <section className={styles.section} aria-label="호스트 정보">
           <div className={styles.hostInfo}>
             <div className={styles.hostAvatar}>
-              {detailView.hostSummary.avatarUrl ? (
-                <img
-                  src={detailView.hostSummary.avatarUrl}
-                  alt={detailView.hostSummary.name}
-                />
-              ) : (
-                <div className={styles.avatarPlaceholder}>
-                  {detailView.hostSummary.avatarInitial}
-                </div>
-              )}
+              <ImageWithFallback
+                src={detailView.hostSummary.avatarUrl}
+                alt={detailView.hostSummary.name}
+                fallback={
+                  <div
+                    className={styles.avatarPlaceholder}
+                    role="img"
+                    aria-label={`${detailView.hostSummary.name} 프로필 이미지 없음`}
+                  >
+                    {detailView.hostSummary.avatarInitial}
+                  </div>
+                }
+              />
             </div>
             <div className={styles.hostDetails}>
               <span className={styles.hostLabel}>호스트:</span>
@@ -76,22 +65,49 @@ export function AccommodationOverview({
           </div>
         </section>
 
-        <section className={styles.section}>
-          {detailView.description && (
-            <>
-              <p className={styles.description}>{visibleDescription}</p>
-              {isDescriptionLong && (
-                <button
-                  type="button"
-                  className={styles.showMoreButton}
-                  onClick={onOpenDescription}
+        {detailView.description && (
+          <section className={styles.section} aria-label="숙소 설명">
+            <p className={styles.description}>{visibleDescription}</p>
+            {isDescriptionLong && (
+              <button
+                type="button"
+                className={styles.showMoreButton}
+                onClick={onOpenDescription}
+              >
+                더 보기
+              </button>
+            )}
+          </section>
+        )}
+
+        {detailView.amenities.length > 0 && (
+          <section
+            className={`${styles.section} ${styles.amenitiesSection}`}
+            aria-labelledby="accommodation-amenities-title"
+          >
+            <h2
+              id="accommodation-amenities-title"
+              className={styles.amenitiesTitle}
+            >
+              숙소 편의시설
+            </h2>
+            <ul className={styles.amenitiesGrid}>
+              {detailView.amenities.map((amenity) => (
+                <li
+                  key={amenity.key}
+                  className={styles.amenityItem}
+                  data-amenity-code={amenity.type}
+                  data-amenity-known={amenity.isKnown}
                 >
-                  더 보기
-                </button>
-              )}
-            </>
-          )}
-        </section>
+                  <span className={styles.amenityIconFrame} aria-hidden="true">
+                    <AmenityIcon type={amenity.type} decorative />
+                  </span>
+                  <span className={styles.amenityLabel}>{amenity.label}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
       </div>
     </>
   );

@@ -91,17 +91,30 @@ describe("map bounds helpers", () => {
     ).toBe(true);
   });
 
-  it("keeps fitBounds disabled while map drag mode is active", () => {
+  it("keeps passive fitBounds disabled while map drag mode is active", () => {
     expect(
       shouldFitAccommodationBounds({
         validAccommodationCount: 3,
         isMapDragMode: true,
         viewportJustChanged: true,
-        shouldUpdateMapBounds: true,
+        shouldUpdateMapBounds: false,
         boundsInitialized: false,
         accommodationsChanged: true,
       }),
     ).toBe(false);
+  });
+
+  it("allows an explicit page-result refit while map drag mode is active", () => {
+    expect(
+      shouldFitAccommodationBounds({
+        validAccommodationCount: 3,
+        isMapDragMode: true,
+        viewportJustChanged: false,
+        shouldUpdateMapBounds: true,
+        boundsInitialized: true,
+        accommodationsChanged: true,
+      }),
+    ).toBe(true);
   });
 
   it("requests fitBounds for initial load, viewport transition, page update, or changed accommodations", () => {

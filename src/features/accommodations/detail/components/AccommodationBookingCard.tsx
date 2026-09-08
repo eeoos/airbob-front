@@ -159,12 +159,15 @@ export function AccommodationBookingCard({
   } = bookingView;
   const isDatePickerAvailableOpen =
     availabilityStatus === "ready" && isDatePickerOpen;
+  const displayedNights = quoteSnapshot?.nights ?? nights;
+  const hasCompleteStay = Boolean(checkIn && checkOut && displayedNights > 0);
 
   return (
-    <div className={styles.bookingCard}>
+    <section aria-label="숙소 예약" className={styles.bookingCard}>
       <BookingPriceHeader
-        nights={quoteSnapshot?.nights ?? nights}
+        hasCompleteStay={hasCompleteStay}
         payablePrice={quoteSnapshot?.amount ?? payablePrice}
+        totalPrice={quoteSnapshot?.subtotal ?? totalPrice}
       />
 
       <BookingDateSection
@@ -179,7 +182,7 @@ export function AccommodationBookingCard({
         onGuestPickerOpenChange={onGuestPickerOpenChange}
         availabilityStatus={availabilityStatus}
         disabledRanges={availability.disabledRanges}
-        retryAvailability={retryAvailability}
+        nights={displayedNights}
         selectionLocked={selectionLocked}
         selectionWindow={availability.selectionWindow}
       />
@@ -198,6 +201,7 @@ export function AccommodationBookingCard({
         onAdultCountChange={onAdultCountChange}
         onChildCountChange={onChildCountChange}
         onInfantCountChange={onInfantCountChange}
+        onDatePickerOpenChange={onDatePickerOpenChange}
         onGuestPickerOpenChange={onGuestPickerOpenChange}
         onPetCountChange={onPetCountChange}
         selectionLocked={selectionLocked}
@@ -241,14 +245,19 @@ export function AccommodationBookingCard({
 
       <BookingReserveAction
         availabilityStatus={availabilityStatus}
-        hasCompleteStay={Boolean(checkIn && checkOut && nights > 0)}
+        hasCompleteStay={hasCompleteStay}
         isReservationLocked={isReservationLocked}
         isReserving={isReserving}
         isStayReady={isStayReady}
         onReserve={onReserve}
+        onRequestDates={() => {
+          onGuestPickerOpenChange(false);
+          onDatePickerOpenChange(true);
+        }}
         reservationStatus={reservationStatus}
+        retryAvailability={retryAvailability}
         selectionState={selectionState}
       />
-    </div>
+    </section>
   );
 }

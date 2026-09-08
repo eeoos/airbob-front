@@ -24,6 +24,9 @@
   strict lint를 소유한다. 개별 focused test 통과는 이 전체 gate를 대신하지 않는다.
 - `npm run verify:browser`는 synthetic same-origin API와 기본 차단 network 정책을 쓰는
   결정론적 browser 증거를 소유한다. U11의 v2 예약·결제 matrix는 이 gate에 포함된다.
+- `npm run verify:local:core`와 `npm run verify:local:toss`는 U12 local core와 Toss
+  sandbox를 서로 다른 결과로 소유한다. `npm run verify:local-integration`은 둘을 함께
+  실행할 뿐 한 결과를 다른 결과의 pass로 승격하지 않는다.
 - `npm run verify:live-integration`은 별도 live smoke다. Vercel, OCI, 실제 Maps와
   Toss sandbox 증거는 디자인 진입의 offline gate가 아니다.
 - `READY (offline)`은 실제 외부 시스템을 호출했다는 뜻이 아니다.
@@ -64,20 +67,39 @@ fallback과 cleanup 계약만 증명하며 실제 key/quota/referrer 설정을 �
 
 ## 외부 통합 상태
 
-| 외부 경계                   | 필요한 증거                                                                                                                                                                                                     | 현재 상태                                                                                                                            |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Local backend core profile  | Backend-owned disposable fixture/reset 또는 per-run unique resource로 auth, availability, paid/complimentary quote, checkout, attempt/release와 operation messaging을 반복 실행                                 | [`U12 attempt`](./2026-09-01-local-backend-payment-profile-attempt.md): **BLOCKED / UNVERIFIED** — fixture/reset과 실행 service 없음 |
-| Toss sandbox                | Local backend core 전제가 갖춰진 뒤 test client/server credential을 값 노출 없이 preflight하고 CARD/KRW cancel/fail/success redirect, exactly joined confirm와 polling을 검증한다. 실제 결제는 수행하지 않는다. | DEFERRED / UNVERIFIED (sandbox)                                                                                                      |
-| Vercel Preview              | commit-specific deep-link refresh, lazy chunk와 immutable deployment rollback 확인                                                                                                                              | DEFERRED / UNVERIFIED (live); offline gate 비차단                                                                                    |
-| Vercel → OCI                | 실제 preview origin의 cookie/CORS/authenticated API/upload/error envelope 확인                                                                                                                                  | DEFERRED / UNVERIFIED (live); offline gate 비차단                                                                                    |
-| Google Maps/Places          | browser-public key referrer 제한, SDK load, autocomplete, marker/bounds와 route cleanup 확인                                                                                                                    | DEFERRED / UNVERIFIED (live); offline gate 비차단                                                                                    |
-| AWS performance environment | 필요할 때 별도 baseline/regression 측정                                                                                                                                                                         | DEFERRED; 별도 performance scope                                                                                                     |
+| 외부 경계                   | 필요한 증거                                                                                                                                                                                                        | 현재 상태                                                                                                                                                                                                          |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Local backend core profile  | Backend-owned disposable fixture/reset 또는 per-run unique resource로 auth, availability, paid/complimentary quote, checkout와 attempt/release를 반복 실행                                                         | [`U12 evidence`](./2026-09-02-u12-local-integration-evidence.md): read-only search/detail **PASS**; core **BLOCKED / UNVERIFIED** — inventory와 active coupon이 0이고 backend-owned fixture reset procedure가 없음 |
+| Local Toss sandbox          | Local core PASS 뒤 test client/server credential을 값 노출 없이 preflight하고 CARD/KRW cancel/fail/success redirect, exactly joined confirm와 polling을 별도 project로 검증한다. 실제 결제 수단은 사용하지 않는다. | [`U12 evidence`](./2026-09-02-u12-local-integration-evidence.md): **BLOCKED / UNVERIFIED** — local-benchmark Toss 비활성, matching core PASS와 deterministic failure injection 없음                                |
+| Vercel Preview              | commit-specific deep-link refresh, lazy chunk와 immutable deployment rollback 확인                                                                                                                                 | DEFERRED / UNVERIFIED (live); offline gate 비차단                                                                                                                                                                  |
+| Vercel → OCI                | 실제 preview origin의 cookie/CORS/authenticated API/upload/error envelope 확인                                                                                                                                     | DEFERRED / UNVERIFIED (live); offline gate 비차단                                                                                                                                                                  |
+| Google Maps/Places          | browser-public key referrer 제한, SDK load, autocomplete, marker/bounds와 route cleanup 확인                                                                                                                       | Local `localhost` search map **PASS**; provider-failure cleanup **PASS**; deployment live는 DEFERRED / UNVERIFIED                                                                                                  |
+| AWS performance environment | 필요할 때 별도 baseline/regression 측정                                                                                                                                                                            | DEFERRED; 별도 performance scope                                                                                                                                                                                   |
 
-U12에서는 backend README, profile, Flyway, startup runner와 현재 Compose/listener를
-읽기 전용으로 확인했다. Product fixture/reset 공개 계약이 없어 실제 mutation을 보내지
-않았으며 backend 파일·DB·설정도 수정하지 않았다. 이 판정은 local integration pass가
-아니다. 외부 절차와 기록 규칙은
+2026-09-02 local-benchmark audit에서는 infrastructure와 backend readiness, 실제 search,
+Google Maps와 accommodation detail을 읽기 전용으로 확인했다. 사용자는 전용 local reset
+ownership도 확인했다. 그러나 restored dataset의 booking inventory와 active coupon이 0이고,
+backend-owned business fixture reset procedure가 없으며 local-benchmark가 Toss를 비활성화한다.
+따라서 read-only subset은 PASS지만 paid slot 1–3, complimentary slot, full messaging terminal과
+Toss provider flow는 계속 `BLOCKED / UNVERIFIED`다.
+
+Local core는 `npm run test:local:preflight` → `npm run test:local:core` →
+`npm run verify:local:core`로 기록한다. `npm run test:local:toss`와
+`npm run verify:local:toss`는 새 run identity에서 core를 먼저 수행하고 matching core
+assertion PASS를 확인한 뒤에만 Toss를 시작한다. Aggregate
+`npm run verify:local-integration`은 같은 guarded runner를 사용하며 결과를 합치지 않는다.
+Mutation은 `AIRBOB_LOCAL_MUTATION_PROFILE=disposable` opt-in,
+`AIRBOB_LOCAL_DATA_OWNERSHIP_PROFILE=backend-owned-disposable` attestation과
+fresh reset authorization, non-secret backend revision/owner/procedure label과
+backend-owned reset 책임이 모두 확인될 때만 허용한다. Project별 sanitized result manifest는
+assertion success와 external reset pending을 분리한다. Backend 파일·DB·설정을 frontend
+runner가 변경하지 않는다. Full operation messaging terminal은 provider와 분리할 수 없으므로
+`local-toss-sandbox`가 소유하고 aggregate U12에서만 전체 경로를 주장한다.
+이 판정은 local integration pass가 아니다. 외부 절차와 기록 규칙은
 [`frontend-architecture-smoke.ko.md`](./frontend-architecture-smoke.ko.md)가 소유한다.
+
+Local Vite proxy 성공은 Vercel→OCI credential/CORS/Origin/CSRF, production Maps,
+cross-device recovery 또는 AWS performance 증거가 아니다.
 
 ## 디자인 진입 판정
 

@@ -144,9 +144,6 @@ function SearchRouteContent() {
         nextParams.set("bottomRightLng", String(bounds.east));
         setSearchParams(nextParams, { replace: true });
       },
-      scrollResultsToTop() {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      },
     };
   }, [detailSearchString, searchParamsString, setSearchParams]);
   const wishlistScope =

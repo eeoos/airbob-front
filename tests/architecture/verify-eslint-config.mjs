@@ -61,7 +61,7 @@ assert.equal(packageData.scripts.lint, "eslint src");
 assert.equal(packageData.scripts["lint:strict"], "eslint src --max-warnings=0");
 assert.equal(
   packageData.scripts["lint:e2e"],
-  "eslint vite.config.ts vitest.config.ts playwright.config.ts tests/e2e --max-warnings=0",
+  "eslint vite.config.ts vitest.config.ts playwright.config.ts playwright.local-integration.config.ts tests/e2e tests/local-integration --max-warnings=0",
 );
 assert.equal(
   packageData.scripts["lint:architecture-tools"],

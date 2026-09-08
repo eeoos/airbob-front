@@ -35,6 +35,7 @@ type EditStepContentActions = Pick<
   | "onDragStart"
   | "onDrop"
   | "onImageRemove"
+  | "onImageMove"
   | "onImageSelect"
   | "onFieldChange"
   | "onOccupancyChange"
@@ -100,6 +101,7 @@ export const EditStepContent: React.FC<EditStepContentProps> = ({
           onDrop={actions.onDrop}
           onDragOver={actions.onDragOver}
           onImageRemove={actions.onImageRemove}
+          onImageMove={actions.onImageMove}
           onDragStart={actions.onDragStart}
           onDragOverItem={actions.onDragOverItem}
           onDragEnd={actions.onDragEnd}

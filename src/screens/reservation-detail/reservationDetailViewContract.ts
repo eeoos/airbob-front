@@ -4,7 +4,11 @@ type ReservationDetailStatusTone = StatusBadgeTone;
 
 export type ReservationDetailState<TView> =
   | { readonly status: "loading" }
-  | { readonly status: "error"; readonly message: string | null }
+  | {
+      readonly status: "error";
+      readonly isRetrying?: boolean;
+      readonly message: string | null;
+    }
   | { readonly status: "missing" }
   | { readonly status: "ready"; readonly view: TView };
 
@@ -91,8 +95,8 @@ export interface GuestReservationDetailActions {
 
 export interface HostReservationDetailActions {
   readonly onBack: () => void;
-  readonly onDismissError: () => void;
   readonly onOpenAccommodation: (accommodationId: number) => void;
+  readonly onRetry: () => void;
 }
 
 export interface GuestReservationDetailScreenProps {

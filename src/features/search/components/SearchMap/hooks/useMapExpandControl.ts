@@ -13,6 +13,8 @@ interface UseMapExpandControlOptions {
   onExpandToggle?: (() => void) | undefined;
 }
 
+const MAP_LAYOUT_TRANSITION_SETTLE_MS = 350;
+
 export const useMapExpandControl = ({
   isExpanded,
   isMapLoaded,
@@ -58,7 +60,7 @@ export const useMapExpandControl = ({
         if (map && maps) {
           maps.event.trigger(map, "resize");
         }
-      }, 100);
+      }, MAP_LAYOUT_TRANSITION_SETTLE_MS);
     }
 
     return () => {

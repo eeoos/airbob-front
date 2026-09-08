@@ -51,6 +51,23 @@ describe("useListingEditorImages", () => {
     expect(revokeObjectUrl).toHaveBeenCalledWith("blob:1");
   });
 
+  it("moves an image by explicit indexes for keyboard controls", () => {
+    const { result } = renderHook(() =>
+      useListingEditorImages({ onError: vi.fn() }),
+    );
+
+    act(() =>
+      result.current.hydrate([
+        { id: 1, imageUrl: "/1.png" },
+        { id: 2, imageUrl: "/2.png" },
+        { id: 3, imageUrl: "/3.png" },
+      ]),
+    );
+    act(() => result.current.moveAt(0, 2));
+
+    expect(result.current.imageItems.map((item) => item.id)).toEqual([2, 3, 1]);
+  });
+
   it("revokes retained local previews on unmount", () => {
     const revokeObjectUrl = vi.fn();
     const { result, unmount } = renderHook(() =>

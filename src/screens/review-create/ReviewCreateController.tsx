@@ -17,7 +17,10 @@ import {
   type ReviewCreateReservationView,
   type ReviewCreateScreenState,
 } from "./ReviewCreateScreen";
-import { toReviewCreateErrorMessage } from "./reviewCreateErrorMessage";
+import {
+  isReviewCreateReadErrorRetryable,
+  toReviewCreateErrorMessage,
+} from "./reviewCreateErrorMessage";
 import { useReviewImageSelection } from "./useReviewImageSelection";
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
@@ -39,6 +42,7 @@ export interface ReviewCreateControllerProps {
   readonly scope: ReviewSubmissionSessionScope | null;
   readonly session: ReviewSubmissionSessionPort;
   readonly onBack: () => void;
+  readonly onVerifyResult: () => void;
   readonly onComplete: (
     reservationUid: string,
     result: ReviewCreateCompletionResult,
@@ -78,6 +82,7 @@ const toReservationView = (
 export function ReviewCreateController({
   onBack,
   onComplete,
+  onVerifyResult,
   publication,
   reservationUid,
   resolveImageUrl,
@@ -236,19 +241,29 @@ export function ReviewCreateController({
 
   let state: ReviewCreateScreenState;
   if (!reservationUid) {
-    state = { status: "error", message: "예약 정보를 확인할 수 없습니다." };
+    state = {
+      status: "terminal-error",
+      message: "예약 정보를 확인할 수 없습니다.",
+    };
   } else if (reservationQuery.isLoading) {
     state = { status: "loading" };
   } else if (reservationQuery.isError) {
-    state = {
-      status: "error",
-      message: toReviewCreateErrorMessage(reservationQuery.error),
-    };
+    const message = toReviewCreateErrorMessage(reservationQuery.error);
+    state = isReviewCreateReadErrorRetryable(reservationQuery.error)
+      ? {
+          status: "retryable-error",
+          isRetrying: Boolean(reservationQuery.isFetching),
+          message,
+        }
+      : { status: "terminal-error", message };
   } else if (!reservationQuery.data) {
-    state = { status: "error", message: "예약을 찾을 수 없습니다." };
+    state = {
+      status: "terminal-error",
+      message: "예약을 찾을 수 없습니다.",
+    };
   } else if (!reservationQuery.data.canWriteReview) {
     state = {
-      status: "error",
+      status: "terminal-error",
       message: "리뷰를 작성할 수 없는 예약입니다.",
     };
   } else {
@@ -272,7 +287,9 @@ export function ReviewCreateController({
       onImagesSelected={handleImagesSelected}
       onRatingChange={setRating}
       onRemoveImage={imageSelection.removeImage}
+      onRetryLoad={() => void reservationQuery.refetch()}
       onSubmit={handleSubmit}
+      onVerifyResult={onVerifyResult}
       rating={rating}
       state={state}
     />

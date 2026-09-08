@@ -35,32 +35,47 @@ export const EditWizardSidebar: React.FC<EditWizardSidebarProps> = ({
   isStepClickable,
   onStepClick,
 }) => (
-  <div className={styles.sidebar}>
-    {STEPS.map((step) => {
-      const isClickable =
-        !isInteractionDisabled && isStepClickable(step.number);
-      const isCurrent = currentStep === step.number;
-      const isCompleted =
-        isStepCompleted(step.number) && !isCurrent && step.number !== 5;
+  <nav className={styles.sidebar} aria-label="숙소 등록 진행 단계">
+    <div className={styles.sidebarHeader}>
+      <p className={styles.sidebarEyebrow}>등록 진행률</p>
+      <p className={styles.sidebarProgress} aria-live="polite">
+        5단계 중 {currentStep}단계
+      </p>
+    </div>
+    <ol className={styles.stepList}>
+      {STEPS.map((step) => {
+        const isClickable =
+          !isInteractionDisabled && isStepClickable(step.number);
+        const isCurrent = currentStep === step.number;
+        const isCompleted =
+          isStepCompleted(step.number) && !isCurrent && step.number !== 5;
 
-      return (
-        <button
-          key={step.number}
-          type="button"
-          className={`${styles.stepItem} ${isCurrent ? styles.active : ""} ${
-            isCompleted ? styles.completed : ""
-          } ${isClickable ? styles.clickable : ""}`}
-          disabled={!isClickable}
-          aria-current={isCurrent ? "step" : undefined}
-          onClick={() => onStepClick(step.number)}
-        >
-          <div className={styles.stepNumber}>{step.number}</div>
-          <div className={styles.stepInfo}>
-            <div className={styles.stepItemTitle}>{step.title}</div>
-            <div className={styles.stepItemDescription}>{step.description}</div>
-          </div>
-        </button>
-      );
-    })}
-  </div>
+        return (
+          <li key={step.number} className={styles.stepListItem}>
+            <button
+              type="button"
+              className={`${styles.stepItem} ${isCurrent ? styles.active : ""} ${
+                isCompleted ? styles.completed : ""
+              } ${isClickable ? styles.clickable : ""}`}
+              disabled={!isClickable}
+              aria-label={`${step.number} ${step.title} ${step.description}${
+                isCompleted ? " 완료됨" : ""
+              }`}
+              aria-current={isCurrent ? "step" : undefined}
+              onClick={() => onStepClick(step.number)}
+            >
+              <span className={styles.stepNumber}>{step.number}</span>
+              <span className={styles.stepInfo}>
+                <span className={styles.stepItemTitle}>{step.title}</span>
+                <span className={styles.stepItemDescription}>
+                  {step.description}
+                </span>
+                {isCompleted && <span className={styles.srOnly}>완료됨</span>}
+              </span>
+            </button>
+          </li>
+        );
+      })}
+    </ol>
+  </nav>
 );

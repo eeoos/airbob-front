@@ -17,7 +17,7 @@ export const EditWizardNavigation: React.FC<EditWizardNavigationProps> = ({
   onBack,
   onNext,
 }) => (
-  <div className={styles.buttonGroup}>
+  <div className={styles.buttonGroup} role="group" aria-label="단계 이동">
     {currentStep > 1 && (
       <button type="button" className={styles.backButton} onClick={onBack}>
         뒤로
@@ -31,10 +31,13 @@ export const EditWizardNavigation: React.FC<EditWizardNavigationProps> = ({
         disabled={isSaving || !canProceedToNext}
       >
         {isSaving ? (
-          <span className={styles.loadingDots}>
-            <span></span>
-            <span></span>
-            <span></span>
+          <span className={styles.loadingLabel} role="status">
+            <span className={styles.loadingDots} aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+            저장 중
           </span>
         ) : (
           "다음"

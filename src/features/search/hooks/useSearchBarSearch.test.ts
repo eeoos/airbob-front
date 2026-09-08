@@ -81,6 +81,22 @@ describe("useSearchBarSearch", () => {
     );
   });
 
+  it("submits a one-night range when checkout completion has not rendered yet", () => {
+    const options = {
+      ...createOptions(),
+      checkIn: new Date(2026, 6, 12),
+    };
+    const { result } = renderHook(() => useSearchBarSearch(options));
+
+    act(() => {
+      result.current();
+    });
+
+    const params = getFirstPushedSearch(options.pushSearch);
+    expect(params.get("checkIn")).toBe("2026-07-12");
+    expect(params.get("checkOut")).toBe("2026-07-13");
+  });
+
   it("ignores an invalid selected place and navigates as a text search", () => {
     const options = createOptions();
     options.selectedPlace = {

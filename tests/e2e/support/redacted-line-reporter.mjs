@@ -1,4 +1,7 @@
-import { createStreamingSensitiveTextRedactor } from "./sensitive-text.mjs";
+import {
+  createStreamingSensitiveTextRedactor,
+  readRuntimeSensitiveValues,
+} from "./sensitive-text.mjs";
 
 const toText = (value) =>
   Buffer.isBuffer(value) ? value.toString() : String(value);
@@ -6,10 +9,12 @@ const toText = (value) =>
 const MAX_BUFFERED_RECORD_LENGTH = 64 * 1024;
 const OVERSIZED_RECORD_MARKER = "[redacted oversized log record]";
 
-const createBufferedChannel = (stream) => {
+const createBufferedChannel = (stream, runtimeSensitiveValues) => {
   let tail = "";
   let quarantined = false;
-  const redactor = createStreamingSensitiveTextRedactor();
+  const redactor = createStreamingSensitiveTextRedactor({
+    runtimeSensitiveValues,
+  });
 
   const emitRecord = (record) => {
     stream.write(redactor.redact(record));
@@ -64,9 +69,13 @@ const createBufferedChannel = (stream) => {
   };
 };
 
-export const createRedactedLineWriter = ({ stdout, stderr }) => {
-  const stdoutChannel = createBufferedChannel(stdout);
-  const stderrChannel = createBufferedChannel(stderr);
+export const createRedactedLineWriter = ({
+  stdout,
+  stderr,
+  runtimeSensitiveValues = readRuntimeSensitiveValues(),
+}) => {
+  const stdoutChannel = createBufferedChannel(stdout, runtimeSensitiveValues);
+  const stderrChannel = createBufferedChannel(stderr, runtimeSensitiveValues);
 
   return {
     stdout: (value) => stdoutChannel.write(value),
@@ -82,10 +91,15 @@ const formatError = (error) =>
   error?.stack ?? error?.message ?? error?.value ?? String(error);
 
 export class RedactedLineReporter {
-  constructor({ stdout = process.stdout, stderr = process.stderr } = {}) {
+  constructor({
+    stdout = process.stdout,
+    stderr = process.stderr,
+    suiteLabel = "deterministic browser tests",
+  } = {}) {
     this.total = 0;
     this.completed = 0;
     this.counts = new Map();
+    this.suiteLabel = suiteLabel;
     this.output = createRedactedLineWriter({ stdout, stderr });
   }
 
@@ -95,7 +109,7 @@ export class RedactedLineReporter {
 
   onBegin(_config, suite) {
     this.total = suite.allTests().length;
-    this.output.stdout(`Running ${this.total} deterministic browser tests\n`);
+    this.output.stdout(`Running ${this.total} ${this.suiteLabel}\n`);
   }
 
   onTestEnd(test, result) {

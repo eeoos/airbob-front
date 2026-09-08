@@ -73,15 +73,23 @@ const expectedPublicTokenValues: Readonly<Record<string, string>> = {
   "--motion-duration-fast": "150ms",
   "--motion-duration-base": "200ms",
   "--motion-duration-slow": "300ms",
+  "--motion-duration-ambient": "1200ms",
   "--motion-ease-standard": "ease",
   "--font-family-base":
-    '-apple-system, blinkmacsystemfont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif',
+    '"Pretendard Variable", "Pretendard", -apple-system, blinkmacsystemfont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif',
   "--font-size-xs": "12px",
   "--font-size-sm": "14px",
   "--font-size-md": "16px",
   "--font-size-lg": "18px",
   "--font-size-xl": "22px",
   "--font-size-2xl": "32px",
+  "--font-weight-regular": "400",
+  "--font-weight-medium": "500",
+  "--font-weight-semibold": "600",
+  "--font-weight-bold": "700",
+  "--line-height-tight": "1.25",
+  "--line-height-heading": "1.35",
+  "--line-height-body": "1.5",
   "--radius-xs": "2px",
   "--radius-sm": "4px",
   "--radius-control": "6px",
@@ -106,6 +114,13 @@ const expectedPublicTokenValues: Readonly<Record<string, string>> = {
   "--color-border-default": "#ddd",
   "--color-border-subtle": "#ebebeb",
   "--color-border-strong": "#b0b0b0",
+  "--color-brand-identity": "#7bc8f0",
+  "--color-brand-ink": "#14323f",
+  "--color-action-primary": "#19769d",
+  "--color-action-primary-hover": "#125a79",
+  "--color-action-accent": "#c9473d",
+  "--color-surface-brand-subtle": "#f4fafc",
+  "--color-focus-visible": "#19769d",
   "--color-brand-coral": "#ff385c",
   "--color-brand-coral-gradient-end": "#ff5a7f",
   "--color-brand-coral-hover": "#e61e4d",
@@ -120,6 +135,7 @@ const expectedPublicTokenValues: Readonly<Record<string, string>> = {
   "--color-scrollbar-thumb": "#888",
   "--color-scrollbar-thumb-hover": "#555",
   "--focus-ring": "0 0 0 2px rgb(34 34 34 / 24%)",
+  "--focus-ring-visible": "0 0 0 3px #19769d",
   "--z-header": "1000",
   "--z-sticky": "1100",
   "--z-dropdown": "2000",
@@ -139,10 +155,16 @@ const expectedPublicTokenValues: Readonly<Record<string, string>> = {
   "--control-height-md": "40px",
   "--control-height-lg": "48px",
   "--control-touch-target": "44px",
+  "--radius-action": "12px",
+  "--radius-content-card": "16px",
+  "--radius-dialog": "24px",
   "--shadow-control": "0 2px 8px rgb(0 0 0 / 15%)",
   "--shadow-card": "0 2px 16px rgb(0 0 0 / 12%)",
   "--shadow-modal": "0 4px 16px rgb(0 0 0 / 15%)",
   "--shadow-bottom-sheet": "0 -4px 24px rgb(0 0 0 / 15%)",
+  "--shadow-surface": "0 1px 2px rgb(0 0 0 / 8%)",
+  "--shadow-floating": "0 2px 16px rgb(0 0 0 / 12%)",
+  "--shadow-sticky": "0 4px 24px rgb(0 0 0 / 15%)",
   "--layout-viewport-width": "100vw",
   "--layout-viewport-height": "100vh",
   "--layout-page-max-width": "1120px",
@@ -153,12 +175,15 @@ const expectedPublicTokenValues: Readonly<Record<string, string>> = {
   "--layout-page-padding-x": "24px",
   "--layout-header-desktop-height": "80px",
   "--layout-header-mobile-height": "130px",
+  "--layout-search-header-mobile-height": "80px",
+  "--layout-search-header-divider-height": "1px",
+  "--layout-search-bottom-sheet-peek-height": "72px",
   "--layout-edit-header-height": "89px",
   "--layout-modal-max-height": "90vh",
   "--layout-search-mobile-popover-top": "130px",
-  "--layout-search-mobile-bottom-sheet-offset": "144px",
   "--layout-mobile-safe-bottom": "env(safe-area-inset-bottom, 0px)",
   "--card-media-ratio": "1 / 1",
+  "--listing-card-media-ratio": "4 / 3",
 };
 
 type TokenLayerName = "primitive" | "semantic" | "components";
@@ -567,6 +592,7 @@ describe("design token stylesheet contract", () => {
     const tokenIndexCss = fs.readFileSync(tokenIndexCssPath, "utf8");
     const globalsCss = fs.readFileSync(globalsCssPath, "utf8");
     const indexCss = fs.readFileSync(indexCssPath, "utf8");
+    const indexTsx = fs.readFileSync(indexTsxPath, "utf8");
     const declaredTokenNames = Array.from(
       tokensCss.matchAll(/^\s*(--[a-z0-9-]+)\s*:/gm),
       (match) =>
@@ -578,10 +604,11 @@ describe("design token stylesheet contract", () => {
         '@import url("./semantic.css");\n' +
         '@import url("./components.css");\n',
     );
-    expect(globalsCss.startsWith('@import url("./tokens/index.css");')).toBe(
-      true,
-    );
+    expect(globalsCss).toMatch(/^@import url\("[.]\/tokens\/index[.]css"\);/);
     expect(indexCss).toBe('@import url("./shared/styles/globals.css");\n');
+    expect(indexTsx).toContain(
+      'import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";',
+    );
 
     tokenCssPaths.forEach((tokenCssPath) => {
       const tokenLayerCss = fs.readFileSync(tokenCssPath, "utf8").trim();

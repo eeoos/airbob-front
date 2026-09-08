@@ -29,13 +29,13 @@ export const Header: React.FC<HeaderProps> = ({ headerMode = "default" }) => {
   const isAuthenticated = state.status === "authenticated";
   const shouldRenderSearch =
     headerMode === "default" || headerMode === "search";
+  const isSearchRoute = location.pathname === ROUTE_PATHS.search;
+  const isSearchLayout = headerMode === "search";
 
   // Search 페이지이고 destination 파라미터가 없고 viewport 파라미터가 있으면 지도 드래그 모드
   const hasViewport = getViewportFromSearchParams(searchParams) !== null;
   const isMapDragMode =
-    location.pathname === ROUTE_PATHS.search &&
-    !searchParams.get("destination") &&
-    hasViewport;
+    isSearchRoute && !searchParams.get("destination") && hasViewport;
   const pushSearch = useCallback(
     (nextSearchParams: URLSearchParams) => {
       const query = nextSearchParams.toString();
@@ -52,16 +52,30 @@ export const Header: React.FC<HeaderProps> = ({ headerMode = "default" }) => {
   const searchBarRoutePort = useMemo<SearchBarRoutePort>(
     () => ({
       currentSearchParams: searchParams,
-      isSearchRoute: location.pathname === ROUTE_PATHS.search,
+      isSearchRoute,
       pushSearch,
       replaceSearch,
     }),
-    [location.pathname, pushSearch, replaceSearch, searchParams],
+    [isSearchRoute, pushSearch, replaceSearch, searchParams],
   );
+  const handleMobileSearchBack = useCallback(() => {
+    if (location.key === "default") {
+      navigate(routeTo.home(), { replace: true });
+      return;
+    }
+
+    navigate(-1);
+  }, [location.key, navigate]);
 
   return (
-    <header className={styles.header}>
-      <div className={styles.container}>
+    <header
+      className={`${styles.header} ${isSearchLayout ? styles.searchHeader : ""}`}
+      data-layout={isSearchLayout ? "full-width" : "contained"}
+    >
+      <div
+        className={`${styles.container} ${isSearchLayout ? styles.searchRouteContainer : ""}`}
+        data-header-layout={isSearchLayout ? "full-width" : "contained"}
+      >
         <Link
           to={routeTo.home()}
           className={styles.logo}
@@ -74,6 +88,8 @@ export const Header: React.FC<HeaderProps> = ({ headerMode = "default" }) => {
           <div className={styles.searchBar}>
             <HeaderSearchBar
               isMapDragMode={isMapDragMode}
+              mobileHeader={isSearchLayout}
+              onMobileBack={handleMobileSearchBack}
               routePort={searchBarRoutePort}
             />
           </div>

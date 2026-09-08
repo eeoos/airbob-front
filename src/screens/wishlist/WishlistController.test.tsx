@@ -149,8 +149,10 @@ const queryBase = {
   fetchNextPage: vi.fn(),
   hasNextPage: false,
   isError: false,
+  isFetching: false,
   isFetchingNextPage: false,
   isPending: false,
+  refetch: vi.fn().mockResolvedValue(undefined),
 };
 
 const navigation = () => ({
@@ -533,7 +535,7 @@ describe("WishlistController", () => {
 
     await userEvent.click(
       requireDefined(
-        screen.getAllByRole("button", { name: "위시리스트 삭제" })[1],
+        screen.getAllByRole("button", { name: /위시리스트 삭제/ })[1],
         "second delete wishlist button",
       ),
     );
@@ -566,7 +568,7 @@ describe("WishlistController", () => {
     const routeCommands = navigation();
     renderController({ navigation: routeCommands, view: { kind: "index" } });
     const deleteButton = requireDefined(
-      screen.getAllByRole("button", { name: "위시리스트 삭제" })[1],
+      screen.getAllByRole("button", { name: /위시리스트 삭제/ })[1],
       "second delete wishlist button",
     );
 
@@ -601,7 +603,7 @@ describe("WishlistController", () => {
     );
     await waitFor(() =>
       expect(
-        screen.queryByRole("dialog", { name: "메모 추가" }),
+        screen.queryByRole("dialog", { name: "숙소 메모" }),
       ).not.toBeInTheDocument(),
     );
   });
@@ -640,15 +642,15 @@ describe("WishlistController", () => {
       await pendingSave;
     });
 
-    expect(screen.getByRole("dialog", { name: "메모 추가" })).toBeVisible();
+    expect(screen.getByRole("dialog", { name: "숙소 메모" })).toBeVisible();
     expect(memo).toHaveValue("더 최신인 초안");
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "저장" })).toBeEnabled(),
     );
-    await userEvent.click(screen.getByRole("button", { name: "✕" }));
+    await userEvent.click(screen.getByRole("button", { name: "메모 닫기" }));
     await waitFor(() =>
       expect(
-        screen.queryByRole("dialog", { name: "메모 추가" }),
+        screen.queryByRole("dialog", { name: "숙소 메모" }),
       ).not.toBeInTheDocument(),
     );
   });
@@ -673,7 +675,7 @@ describe("WishlistController", () => {
       expect(membershipCommands.saveMemo).toHaveBeenCalledTimes(1),
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "✕" }));
+    await userEvent.click(screen.getByRole("button", { name: "메모 닫기" }));
     await userEvent.click(openMemo);
     expect(screen.getByRole("textbox", { name: "메모" })).toHaveValue(
       "Pack sunscreen",
@@ -684,14 +686,14 @@ describe("WishlistController", () => {
       await pendingSave;
     });
 
-    expect(screen.getByRole("dialog", { name: "메모 추가" })).toBeVisible();
+    expect(screen.getByRole("dialog", { name: "숙소 메모" })).toBeVisible();
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "저장" })).toBeEnabled(),
     );
-    await userEvent.click(screen.getByRole("button", { name: "✕" }));
+    await userEvent.click(screen.getByRole("button", { name: "메모 닫기" }));
     await waitFor(() =>
       expect(
-        screen.queryByRole("dialog", { name: "메모 추가" }),
+        screen.queryByRole("dialog", { name: "숙소 메모" }),
       ).not.toBeInTheDocument(),
     );
   });
@@ -706,7 +708,11 @@ describe("WishlistController", () => {
       view: { kind: "wishlist-detail", wishlistId: 42 },
     });
 
-    await userEvent.click(screen.getByRole("button", { name: "삭제" }));
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Lake cabin 위시리스트에서 삭제",
+      }),
+    );
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       WISHLIST_REFRESH_WARNING_MESSAGE,
@@ -726,6 +732,62 @@ describe("WishlistController", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "존재하지 않는 위시리스트입니다.",
+    );
+  });
+
+  it("retries the active index reads through their existing query instances", async () => {
+    const listsRefetch = vi.fn().mockResolvedValue(undefined);
+    const recentlyViewedRefetch = vi.fn().mockResolvedValue(undefined);
+    mockUseWishlistListsReadQuery.mockReturnValue({
+      ...queryBase,
+      data: undefined,
+      error: { code: "W001" },
+      errorUpdatedAt: 1,
+      isError: true,
+      refetch: listsRefetch,
+    } as unknown as ReturnType<typeof useWishlistListsReadQuery>);
+    mockUseRecentlyViewedReadQuery.mockReturnValue({
+      ...queryBase,
+      data: undefined,
+      error: { code: "W001" },
+      errorUpdatedAt: 1,
+      isError: true,
+      refetch: recentlyViewedRefetch,
+    } as unknown as ReturnType<typeof useRecentlyViewedReadQuery>);
+
+    renderController({ navigation: navigation(), view: { kind: "index" } });
+    await userEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+
+    expect(listsRefetch).toHaveBeenCalledTimes(1);
+    expect(recentlyViewedRefetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a failed memo draft open and retries the same semantic command", async () => {
+    membershipCommands.saveMemo
+      .mockRejectedValueOnce({ code: "W003" })
+      .mockResolvedValueOnce({ status: "applied" });
+    renderController({
+      navigation: navigation(),
+      view: { kind: "wishlist-detail", wishlistId: 42 },
+    });
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /Pack sunscreen/ }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "저장" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "메모를 저장하지 못했어요",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "다시 저장" }));
+
+    await waitFor(() =>
+      expect(membershipCommands.saveMemo).toHaveBeenCalledTimes(2),
+    );
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: "숙소 메모" }),
+      ).not.toBeInTheDocument(),
     );
   });
 });

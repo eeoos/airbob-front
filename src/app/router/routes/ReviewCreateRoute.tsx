@@ -89,6 +89,10 @@ function ReviewCreateRoute() {
       key={reservationUid ?? "invalid"}
       onBack={() => navigate(-1)}
       onComplete={handleComplete}
+      onVerifyResult={() => {
+        if (!reservationUid || !routeLease.isCurrent()) return;
+        navigate(routeTo.reservationDetail(reservationUid), { replace: true });
+      }}
       publication={publication}
       reservationUid={reservationUid}
       resolveImageUrl={resolveImageUrl}

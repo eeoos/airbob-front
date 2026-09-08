@@ -10,9 +10,8 @@ import {
 } from "react";
 import {
   animate,
+  useDragControls,
   useMotionValue,
-  useSpring,
-  useTransform,
   type PanInfo,
 } from "framer-motion";
 import { useResponsiveLayout } from "../../../shared/styles/useResponsiveLayout";
@@ -29,6 +28,43 @@ const getViewportHeight = () =>
   typeof window === "undefined" ? 0 : window.innerHeight;
 
 const REDUCED_MOTION_MEDIA_QUERY = "(prefers-reduced-motion: reduce)";
+const SEARCH_HEADER_HEIGHT_TOKEN = "--layout-search-header-mobile-height";
+const SEARCH_HEADER_DIVIDER_TOKEN = "--layout-search-header-divider-height";
+const BOTTOM_SHEET_PEEK_HEIGHT_TOKEN =
+  "--layout-search-bottom-sheet-peek-height";
+
+interface BottomSheetGeometry {
+  readonly peekHeight: number;
+  readonly surfaceHeight: number;
+}
+
+interface SnapAnimationControls {
+  stop(): void;
+  then(onResolve: () => void): Promise<void>;
+}
+
+const readRootPixelToken = (tokenName: string): number => {
+  if (typeof window === "undefined") return 0;
+
+  const value = Number.parseFloat(
+    window
+      .getComputedStyle(document.documentElement)
+      .getPropertyValue(tokenName),
+  );
+  return Number.isFinite(value) ? value : 0;
+};
+
+const getFallbackBottomSheetGeometry = (
+  viewportHeight: number,
+): BottomSheetGeometry => ({
+  peekHeight: readRootPixelToken(BOTTOM_SHEET_PEEK_HEIGHT_TOKEN),
+  surfaceHeight: Math.max(
+    0,
+    viewportHeight -
+      readRootPixelToken(SEARCH_HEADER_HEIGHT_TOKEN) -
+      readRootPixelToken(SEARCH_HEADER_DIVIDER_TOKEN),
+  ),
+});
 
 const canMatchReducedMotion = () =>
   typeof window !== "undefined" && typeof window.matchMedia === "function";
@@ -68,51 +104,78 @@ export const useSearchBottomSheet = () => {
     () => false,
   );
   const [viewportHeight, setViewportHeight] = useState(getViewportHeight);
+  const [geometry, setGeometry] = useState<BottomSheetGeometry>(() =>
+    getFallbackBottomSheetGeometry(getViewportHeight()),
+  );
+  const [isDragging, setIsDragging] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
   const bottomSheetRef = useRef<HTMLElement | null>(null);
+  const bottomSheetHeaderRef = useRef<HTMLDivElement | null>(null);
   const bottomSheetHandleRef = useRef<HTMLButtonElement | null>(null);
+  const dragControls = useDragControls();
   const snapPositions = useMemo(() => {
     if (!isMobileOrTablet) {
       return { collapsed: 0, half: 0, expanded: 0 };
     }
 
-    const collapsed = 0;
-    const half = Math.round(viewportHeight * 0.32);
-    const expanded = Math.round(viewportHeight * 0.68);
+    const { peekHeight, surfaceHeight } = geometry;
+    const expanded = 0;
+    const collapsed = Math.max(0, surfaceHeight - peekHeight);
+    const half = Math.min(collapsed, Math.round(surfaceHeight * 0.5));
 
     return {
       collapsed,
       half,
       expanded,
     };
-  }, [isMobileOrTablet, viewportHeight]);
+  }, [geometry, isMobileOrTablet]);
   const y = useMotionValue(
     isMobileOrTablet ? snapPositions[bottomSheetState] : 0,
   );
-  const immediateTranslateY = useMotionValue(
-    isMobileOrTablet ? -snapPositions[bottomSheetState] : 0,
-  );
-  const springY = useSpring(y, {
-    stiffness: 60,
-    damping: 30,
-    mass: 1.2,
-  });
-  const animatedTranslateY = useTransform(springY, (value) => -value);
-  const translateY = prefersReducedMotion
-    ? immediateTranslateY
-    : animatedTranslateY;
+  const activeSnapAnimationRef = useRef<SnapAnimationControls | null>(null);
+  const translateY = y;
   const dragStartStateRef = useRef<BottomSheetState>(bottomSheetState);
   const dragStartYRef = useRef(0);
+  const dragPreparedOnPointerDownRef = useRef(false);
+  const dragSessionStartedRef = useRef(false);
   const draggedFromHandleRef = useRef(false);
   const suppressHandleClickRef = useRef(false);
   const handleClickSuppressionTimeoutRef = useRef<number | null>(null);
   const pendingHandleFocusRef = useRef(false);
 
-  const setYPosition = useCallback(
-    (position: number) => {
-      y.set(position);
-      immediateTranslateY.set(-position);
+  const setYPosition = useCallback((position: number) => y.set(position), [y]);
+
+  const stopActiveSnapAnimation = useCallback(() => {
+    activeSnapAnimationRef.current?.stop();
+    activeSnapAnimationRef.current = null;
+  }, []);
+
+  const animateToPosition = useCallback(
+    (targetPosition: number) => {
+      stopActiveSnapAnimation();
+
+      if (prefersReducedMotion) {
+        setIsAnimating(false);
+        setYPosition(targetPosition);
+        return;
+      }
+
+      setIsAnimating(true);
+      const animation = animate(y, targetPosition, {
+        type: "spring",
+        stiffness: 280,
+        damping: 32,
+        mass: 0.9,
+      });
+      activeSnapAnimationRef.current = animation;
+      void animation.then(() => {
+        if (activeSnapAnimationRef.current !== animation) return;
+
+        activeSnapAnimationRef.current = null;
+        setIsAnimating(false);
+      });
     },
-    [immediateTranslateY, y],
+    [prefersReducedMotion, setYPosition, stopActiveSnapAnimation, y],
   );
 
   const rememberFocusedContent = useCallback(() => {
@@ -135,10 +198,11 @@ export const useSearchBottomSheet = () => {
     (state: BottomSheetState) => {
       if (state === bottomSheetState) return;
       if (state === "collapsed") rememberFocusedContent();
+      if (!prefersReducedMotion) setIsAnimating(true);
 
       dispatch({ type: "bottomSheetSet", state });
     },
-    [bottomSheetState, rememberFocusedContent],
+    [bottomSheetState, prefersReducedMotion, rememberFocusedContent],
   );
 
   const clearHandleClickSuppression = useCallback(() => {
@@ -150,60 +214,20 @@ export const useSearchBottomSheet = () => {
     }
   }, []);
 
-  const suppressClickAfterHandleDrag = useCallback(() => {
-    if (!draggedFromHandleRef.current) return;
+  const scheduleHandleClickSuppressionClear = useCallback(() => {
+    if (!suppressHandleClickRef.current) return;
 
-    clearHandleClickSuppression();
-    suppressHandleClickRef.current = true;
+    if (handleClickSuppressionTimeoutRef.current !== null) {
+      window.clearTimeout(handleClickSuppressionTimeoutRef.current);
+    }
     handleClickSuppressionTimeoutRef.current = window.setTimeout(
       clearHandleClickSuppression,
       0,
     );
   }, [clearHandleClickSuppression]);
 
-  const handleDragEnd = useCallback(
-    (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-      if (!isMobileOrTablet) {
-        return;
-      }
-
-      const dragThreshold = 50;
-      const velocityThreshold = 0.5;
-      const dragDistance = Math.abs(info.offset.y);
-      const isDraggingUp = info.offset.y < 0;
-      const velocity = Math.abs(info.velocity.y);
-      const shouldSnap =
-        dragDistance > dragThreshold || velocity > velocityThreshold;
-
-      suppressClickAfterHandleDrag();
-      draggedFromHandleRef.current = false;
-
-      if (shouldSnap) {
-        setBottomSheetState(
-          getNextSearchBottomSheetState(
-            dragStartStateRef.current,
-            isDraggingUp ? "up" : "down",
-          ),
-        );
-      } else {
-        setYPosition(snapPositions[dragStartStateRef.current]);
-      }
-    },
-    [
-      isMobileOrTablet,
-      setBottomSheetState,
-      setYPosition,
-      snapPositions,
-      suppressClickAfterHandleDrag,
-    ],
-  );
-
-  const handleDragStart = useCallback(
+  const captureDragStart = useCallback(
     (event?: MouseEvent | TouchEvent | PointerEvent) => {
-      if (!isMobileOrTablet) {
-        return;
-      }
-
       const handle = bottomSheetHandleRef.current;
       draggedFromHandleRef.current = Boolean(
         handle &&
@@ -213,7 +237,67 @@ export const useSearchBottomSheet = () => {
       dragStartStateRef.current = bottomSheetState;
       dragStartYRef.current = y.get();
     },
-    [bottomSheetState, isMobileOrTablet, y],
+    [bottomSheetState, y],
+  );
+
+  const handleDragEnd = useCallback(
+    (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+      if (!isMobileOrTablet) {
+        return;
+      }
+
+      const dragThreshold = 50;
+      const velocityThreshold = 500;
+      const dragDistance = Math.abs(info.offset.y);
+      const velocity = Math.abs(info.velocity.y);
+      const shouldSnap =
+        dragDistance > dragThreshold || velocity > velocityThreshold;
+      const dragDirection =
+        dragDistance > dragThreshold ? info.offset.y : info.velocity.y;
+      const isDraggingUp = dragDirection < 0;
+
+      scheduleHandleClickSuppressionClear();
+      dragPreparedOnPointerDownRef.current = false;
+      dragSessionStartedRef.current = false;
+      draggedFromHandleRef.current = false;
+      setIsDragging(false);
+
+      if (shouldSnap) {
+        setBottomSheetState(
+          getNextSearchBottomSheetState(
+            dragStartStateRef.current,
+            isDraggingUp ? "up" : "down",
+          ),
+        );
+      } else {
+        animateToPosition(snapPositions[dragStartStateRef.current]);
+      }
+    },
+    [
+      isMobileOrTablet,
+      animateToPosition,
+      setBottomSheetState,
+      snapPositions,
+      scheduleHandleClickSuppressionClear,
+    ],
+  );
+
+  const handleDragStart = useCallback(
+    (event?: MouseEvent | TouchEvent | PointerEvent) => {
+      if (!isMobileOrTablet) {
+        return;
+      }
+
+      stopActiveSnapAnimation();
+      setIsAnimating(false);
+      setIsDragging(true);
+      dragSessionStartedRef.current = true;
+
+      if (dragPreparedOnPointerDownRef.current) return;
+
+      captureDragStart(event);
+    },
+    [captureDragStart, isMobileOrTablet, stopActiveSnapAnimation],
   );
 
   const handleDrag = useCallback(
@@ -222,10 +306,14 @@ export const useSearchBottomSheet = () => {
         return;
       }
 
-      let nextY = dragStartYRef.current - info.offset.y;
+      if (draggedFromHandleRef.current && Math.abs(info.offset.y) > 4) {
+        suppressHandleClickRef.current = true;
+      }
+
+      let nextY = dragStartYRef.current + info.offset.y;
       nextY = Math.max(
-        snapPositions.collapsed,
-        Math.min(snapPositions.expanded, nextY),
+        snapPositions.expanded,
+        Math.min(snapPositions.collapsed, nextY),
       );
       setYPosition(nextY);
     },
@@ -236,15 +324,40 @@ export const useSearchBottomSheet = () => {
     setBottomSheetState("collapsed");
   }, [setBottomSheetState]);
 
-  const handleBottomSheetScroll = useCallback(
-    (event: React.UIEvent<HTMLDivElement>) => {
-      const scrollTop = event.currentTarget.scrollTop;
-      if (scrollTop > 20 && bottomSheetState !== "expanded") {
-        setBottomSheetState("expanded");
-      }
+  const handleBottomSheetPointerDown = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (!isMobileOrTablet || event.button !== 0) return;
+
+      stopActiveSnapAnimation();
+      setIsAnimating(false);
+      setIsDragging(true);
+      clearHandleClickSuppression();
+      captureDragStart(event.nativeEvent);
+      dragPreparedOnPointerDownRef.current = true;
+      dragSessionStartedRef.current = false;
+      dragControls.start(event);
     },
-    [bottomSheetState, setBottomSheetState],
+    [
+      captureDragStart,
+      clearHandleClickSuppression,
+      dragControls,
+      isMobileOrTablet,
+      stopActiveSnapAnimation,
+    ],
   );
+
+  const handleBottomSheetPointerEnd = useCallback(() => {
+    if (
+      !dragPreparedOnPointerDownRef.current ||
+      dragSessionStartedRef.current
+    ) {
+      return;
+    }
+
+    dragPreparedOnPointerDownRef.current = false;
+    setIsDragging(false);
+    animateToPosition(snapPositions[bottomSheetState]);
+  }, [animateToPosition, bottomSheetState, snapPositions]);
 
   const handleBottomSheetKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLButtonElement>) => {
@@ -277,6 +390,8 @@ export const useSearchBottomSheet = () => {
   );
 
   const handleBottomSheetToggle = useCallback(() => {
+    setIsDragging(false);
+
     if (suppressHandleClickRef.current) {
       clearHandleClickSuppression();
       return;
@@ -322,6 +437,45 @@ export const useSearchBottomSheet = () => {
     };
   }, []);
 
+  const measureBottomSheetGeometry = useCallback(() => {
+    const fallback = getFallbackBottomSheetGeometry(viewportHeight);
+    const measuredSurfaceHeight =
+      bottomSheetRef.current?.getBoundingClientRect().height ?? 0;
+    const measuredPeekHeight =
+      bottomSheetHeaderRef.current?.getBoundingClientRect().height ?? 0;
+    const nextGeometry = {
+      surfaceHeight:
+        measuredSurfaceHeight > 0
+          ? measuredSurfaceHeight
+          : fallback.surfaceHeight,
+      peekHeight:
+        measuredPeekHeight > 0 ? measuredPeekHeight : fallback.peekHeight,
+    };
+
+    setGeometry((currentGeometry) =>
+      currentGeometry.surfaceHeight === nextGeometry.surfaceHeight &&
+      currentGeometry.peekHeight === nextGeometry.peekHeight
+        ? currentGeometry
+        : nextGeometry,
+    );
+  }, [viewportHeight]);
+
+  useLayoutEffect(() => {
+    if (!isMobileOrTablet) return;
+
+    measureBottomSheetGeometry();
+
+    if (typeof ResizeObserver !== "function") return;
+
+    const observer = new ResizeObserver(measureBottomSheetGeometry);
+    if (bottomSheetRef.current) observer.observe(bottomSheetRef.current);
+    if (bottomSheetHeaderRef.current) {
+      observer.observe(bottomSheetHeaderRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [isMobileOrTablet, measureBottomSheetGeometry]);
+
   useEffect(
     () => () => {
       clearHandleClickSuppression();
@@ -331,40 +485,39 @@ export const useSearchBottomSheet = () => {
 
   useEffect(() => {
     if (!isMobileOrTablet) {
+      stopActiveSnapAnimation();
+      setIsDragging(false);
+      setIsAnimating(false);
       setYPosition(0);
       return;
     }
 
-    const targetPosition = snapPositions[bottomSheetState];
-    if (prefersReducedMotion) {
-      setYPosition(targetPosition);
-      return;
-    }
+    animateToPosition(snapPositions[bottomSheetState]);
 
-    const animation = animate(y, targetPosition, {
-      type: "spring",
-      stiffness: 60,
-      damping: 30,
-      mass: 1.2,
-    });
-
-    return () => animation.stop();
+    return stopActiveSnapAnimation;
   }, [
+    animateToPosition,
     bottomSheetState,
     isMobileOrTablet,
-    prefersReducedMotion,
     setYPosition,
     snapPositions,
-    y,
+    stopActiveSnapAnimation,
   ]);
 
   return {
     bottomSheetState,
+    isDragging: isDragging || isAnimating,
     setBottomSheetState,
     isMobileOrTablet,
     bottomSheetRef,
+    bottomSheetHeaderRef,
     bottomSheetHandleRef,
+    dragControls,
     snapPositions,
+    visibleSheetHeight: Math.max(
+      0,
+      geometry.surfaceHeight - snapPositions[bottomSheetState],
+    ),
     translateY,
     handleBottomSheetKeyDown,
     handleBottomSheetToggle,
@@ -372,6 +525,7 @@ export const useSearchBottomSheet = () => {
     handleDrag,
     handleDragEnd,
     handleMapInteraction,
-    handleBottomSheetScroll,
+    handleBottomSheetPointerDown,
+    handleBottomSheetPointerEnd,
   };
 };

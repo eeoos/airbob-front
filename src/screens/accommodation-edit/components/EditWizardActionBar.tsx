@@ -10,8 +10,14 @@ export const EditWizardActionBar: React.FC<EditWizardActionBarProps> = ({
   isSaving,
   onSaveAndExit,
 }) => (
-  <div className={styles.header}>
-    <h1 className={styles.title}>숙소 등록</h1>
+  <header className={styles.header}>
+    <div className={styles.titleGroup}>
+      <p className={styles.eyebrow}>Airbob 호스트 스튜디오</p>
+      <h1 className={styles.title}>숙소 등록</h1>
+      <p className={styles.headerDescription}>
+        게스트가 머무를 공간을 단계별로 완성해 보세요.
+      </p>
+    </div>
     <button
       type="button"
       className={styles.saveAndExitButton}
@@ -20,5 +26,5 @@ export const EditWizardActionBar: React.FC<EditWizardActionBarProps> = ({
     >
       저장 후 나가기
     </button>
-  </div>
+  </header>
 );

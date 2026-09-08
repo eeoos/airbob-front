@@ -162,11 +162,12 @@ function GuestProfileController({
     isError,
     isFetchingNextPage,
   } = query;
+  const hasInitialError = isError && query.data === undefined;
   const readError = useProfileReadError({
     error,
     errorUpdatedAt,
     identity: `guest:${routeView.filterType}:${scope.subject}:${scope.epoch}`,
-    isError,
+    isError: isError && !hasInitialError,
   });
   const loadMore = useCallback(() => {
     if (!hasNextPage || isFetchingNextPage) return;
@@ -184,7 +185,7 @@ function GuestProfileController({
       variant="guest"
       activeTab={routeView.activeTab}
       guestTrips={{
-        errorMessage: readError.message,
+        errorMessage: hasInitialError ? null : readError.message,
         filterType: routeView.filterType,
         getReservationHref: hrefs.guestReservation,
         loadMoreRef,
@@ -192,12 +193,19 @@ function GuestProfileController({
         onOpenReservation: navigation.openGuestReservation,
         state: query.isLoading
           ? { status: "loading" }
-          : {
-              status: "ready",
-              groups,
-              hasNext: Boolean(hasNextPage),
-              isLoadingMore: isFetchingNextPage,
-            },
+          : hasInitialError
+            ? {
+                status: "error",
+                isRetrying: query.isFetching,
+                message: toProfileReadErrorMessage(error),
+                onRetry: () => void query.refetch(),
+              }
+            : {
+                status: "ready",
+                groups,
+                hasNext: Boolean(hasNextPage),
+                isLoadingMore: isFetchingNextPage,
+              },
       }}
       onModeChange={navigation.changeMode}
       onTabChange={navigation.changeGuestTab}
@@ -287,11 +295,12 @@ function HostListingsProfileController({
     isError,
     isFetchingNextPage,
   } = query;
+  const hasInitialError = isError && query.data === undefined;
   const readError = useProfileReadError({
     error,
     errorUpdatedAt,
     identity: `host-listings:${routeView.statusType}:${scope.subject}:${scope.epoch}`,
-    isError,
+    isError: isError && !hasInitialError,
   });
   const loadMore = useCallback(() => {
     if (!hasNextPage || isFetchingNextPage) return;
@@ -389,19 +398,26 @@ function HostListingsProfileController({
           }),
       }}
       hostListings={{
-        errorMessage: readError.message,
+        errorMessage: hasInitialError ? null : readError.message,
         loadMoreRef,
         onDismissError: readError.dismiss,
         onOpenListingActions: openListingActions,
         onStatusChange: navigation.changeHostListingStatus,
         state: query.isLoading
           ? { status: "loading" }
-          : {
-              status: "ready",
-              listings: listingViews,
-              hasNext: Boolean(hasNextPage),
-              isLoadingMore: isFetchingNextPage,
-            },
+          : hasInitialError
+            ? {
+                status: "error",
+                isRetrying: query.isFetching,
+                message: toProfileReadErrorMessage(error),
+                onRetry: () => void query.refetch(),
+              }
+            : {
+                status: "ready",
+                listings: listingViews,
+                hasNext: Boolean(hasNextPage),
+                isLoadingMore: isFetchingNextPage,
+              },
         statusType: routeView.statusType,
       }}
       onModeChange={navigation.changeMode}
@@ -457,11 +473,12 @@ function HostReservationsProfileController({
     isError,
     isFetchingNextPage,
   } = query;
+  const hasInitialError = isError && query.data === undefined;
   const readError = useProfileReadError({
     error,
     errorUpdatedAt,
     identity: `host-reservations:${routeView.filterType}:${scope.subject}:${scope.epoch}`,
-    isError,
+    isError: isError && !hasInitialError,
   });
   const loadMore = useCallback(() => {
     if (!hasNextPage || isFetchingNextPage) return;
@@ -479,7 +496,7 @@ function HostReservationsProfileController({
       variant="host-reservations"
       hostReservations={{
         checkInSortDirection: sortDirection,
-        errorMessage: readError.message,
+        errorMessage: hasInitialError ? null : readError.message,
         filterType: routeView.filterType,
         loadMoreRef,
         onCheckInSort: () =>
@@ -491,12 +508,19 @@ function HostReservationsProfileController({
         onOpenReservation: navigation.openHostReservation,
         state: query.isLoading
           ? { status: "loading" }
-          : {
-              status: "ready",
-              rows,
-              hasNext: Boolean(hasNextPage),
-              isLoadingMore: isFetchingNextPage,
-            },
+          : hasInitialError
+            ? {
+                status: "error",
+                isRetrying: query.isFetching,
+                message: toProfileReadErrorMessage(error),
+                onRetry: () => void query.refetch(),
+              }
+            : {
+                status: "ready",
+                rows,
+                hasNext: Boolean(hasNextPage),
+                isLoadingMore: isFetchingNextPage,
+              },
       }}
       onModeChange={navigation.changeMode}
       onSectionChange={navigation.changeHostSection}

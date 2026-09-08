@@ -13,6 +13,34 @@
   flex-direction: column;
 }
 
+.datePicker.compact {
+  box-sizing: border-box;
+  width: min(720px, calc(100vw - var(--space-12)));
+  max-width: 720px;
+  padding: var(--space-5);
+  border: 0;
+  border-radius: var(--radius-dialog);
+  box-shadow: none;
+}
+
+.compact .navHeader {
+  padding-bottom: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.compact .calendars {
+  gap: var(--space-6);
+}
+
+.compact .calendar {
+  min-height: 340px;
+  padding-top: var(--space-2);
+}
+
+.compact .days {
+  min-height: 250px;
+}
+
 @keyframes slideDownFadeIn {
   from {
     opacity: 0;
@@ -332,6 +360,13 @@
     ); /* datePickerContainer의 z-index가 더 높으므로 상대적으로 낮게 설정 */
   }
 
+  .datePicker.compact {
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+    border: 0;
+  }
+
   /* 네비게이션 헤더 - 고정 */
   .navHeader {
     padding: var(--space-4);
@@ -376,6 +411,11 @@
     width: 100%;
     min-height: auto;
     padding-top: 0;
+  }
+
+  .compact .calendar,
+  .compact .days {
+    min-height: auto;
   }
 
   .monthHeader {
@@ -453,7 +493,7 @@
   }
 
   .calendarsScrollArea {
-    padding: var(--space-2) var(--space-3);
+    padding: var(--space-2) var(--space-1);
   }
 
   .day {

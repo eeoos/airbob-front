@@ -1,5 +1,6 @@
 import React, { useCallback, useRef } from "react";
 import { requireCssModuleClass } from "../../../../shared/styles/requireCssModuleClass";
+import { useResponsiveLayout } from "../../../../shared/styles/useResponsiveLayout";
 import { DatePicker } from "../../../../shared/ui/DatePicker";
 import {
   type SearchBarRoutePort,
@@ -15,13 +16,61 @@ import { useSearchBarOutsideClick } from "./useSearchBarOutsideClick";
 import { useSearchBarShellInteractions } from "./useSearchBarShellInteractions";
 import styles from "./SearchBar.module.css";
 
-interface SearchBarProps {
+const LazyMobileSearchBar = React.lazy(() => import("./MobileSearchBar"));
+
+interface SearchBarBaseProps {
   routePort: SearchBarRoutePort;
   onSearch?: (searchParams: SearchParams) => void;
   isMapDragMode?: boolean;
 }
 
-export const SearchBar: React.FC<SearchBarProps> = ({
+type SearchBarProps = SearchBarBaseProps &
+  (
+    | { mobileHeader: boolean; onMobileBack: () => void }
+    | { mobileHeader?: false; onMobileBack?: never }
+  );
+
+export const SearchBar: React.FC<SearchBarProps> = (props) => {
+  const isMobileOrTablet = useResponsiveLayout() === "mobile-tablet";
+
+  if (props.mobileHeader && isMobileOrTablet) {
+    return (
+      <React.Suspense
+        fallback={
+          <div
+            aria-busy="true"
+            aria-label="숙소 검색"
+            className={styles.mobileHeaderBar}
+            role="search"
+          >
+            <span className={styles.visuallyHidden}>
+              검색 화면을 준비하는 중입니다.
+            </span>
+          </div>
+        }
+      >
+        <LazyMobileSearchBar
+          routePort={props.routePort}
+          isMapDragMode={props.isMapDragMode ?? false}
+          onMobileBack={props.onMobileBack}
+          {...(props.onSearch === undefined
+            ? {}
+            : { onSearch: props.onSearch })}
+        />
+      </React.Suspense>
+    );
+  }
+
+  return (
+    <DesktopSearchBar
+      routePort={props.routePort}
+      isMapDragMode={props.isMapDragMode ?? false}
+      {...(props.onSearch === undefined ? {} : { onSearch: props.onSearch })}
+    />
+  );
+};
+
+const DesktopSearchBar: React.FC<SearchBarBaseProps> = ({
   routePort,
   onSearch,
   isMapDragMode = false,
@@ -69,7 +118,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     changeChildOccupancy,
     changeInfantOccupancy,
     changePetOccupancy,
-    expandShell,
     collapseShell,
     openDestination,
     openDatePicker,
@@ -126,11 +174,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     destinationAreaRef,
     suggestionsRef,
     searchButtonClassName: requireCssModuleClass(styles.searchButton),
-    isExpanded,
     activePopover,
     completeCheckoutIfNeeded,
     closeTransientPanels,
-    expandShell,
     collapseShell,
     closeActivePopover,
     openDatePicker,
@@ -159,17 +205,35 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     guestTriggerRef.current?.focus();
   }, [closeActivePopover]);
 
+  const submitSearch = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      event.stopPropagation();
+
+      if (isPlacesLoading) return;
+
+      if (activePopover === "date" || activePopover === "guests") {
+        closeTransientPanels({ collapseWhenDateSelected: true });
+      }
+
+      handleSearch(event);
+    },
+    [activePopover, closeTransientPanels, handleSearch, isPlacesLoading],
+  );
+
   return (
     <div
       ref={searchBarRef}
       aria-label="숙소 검색"
       className={`${styles.searchBar} ${isExpanded ? styles.expanded : ""}`}
-      data-search-shell={isExpanded ? "expanded" : "compact"}
+      data-expanded={isExpanded ? "" : undefined}
       onClickCapture={handleSearchBarClick}
       role="search"
     >
       {isExpanded ? (
-        <div ref={setDestinationAreaRef} className={styles.searchItem}>
+        <div
+          ref={setDestinationAreaRef}
+          className={`${styles.searchItem} ${styles.destinationItem}`}
+        >
           <SearchDestinationField
             inputRef={destinationInputRef}
             isActive={showSuggestions}
@@ -203,7 +267,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       ) : (
         <button
           ref={setDestinationAreaRef}
-          className={styles.searchItem}
+          className={`${styles.searchItem} ${styles.destinationItem}`}
           onClick={handleDestinationClick}
           type="button"
         >
@@ -217,7 +281,10 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
       <div className={styles.divider} />
 
-      <div className={styles.searchItemHost} ref={datePickerRef}>
+      <div
+        className={`${styles.searchItemHost} ${styles.dateItemHost}`}
+        ref={datePickerRef}
+      >
         <SearchDateFields
           checkIn={checkIn}
           checkOut={checkOut}
@@ -252,11 +319,15 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
       <div className={styles.divider} />
 
-      <div className={styles.searchItemHost} ref={guestPickerRef}>
+      <div
+        className={`${styles.searchItemHost} ${styles.guestItemHost}`}
+        ref={guestPickerRef}
+      >
         <button
           ref={guestTriggerRef}
           aria-controls="search-guest-picker"
           aria-expanded={showGuestPicker}
+          aria-haspopup="dialog"
           className={styles.searchItem}
           onClick={handleGuestClick}
           type="button"
@@ -298,18 +369,10 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       <button
         aria-label="검색"
         className={styles.searchButton}
-        onClick={(event) => {
-          event.stopPropagation();
-
-          if (activePopover === "date" || activePopover === "guests") {
-            closeTransientPanels({ collapseWhenDateSelected: true });
-          }
-
-          handleSearch(event);
-        }}
+        onClick={submitSearch}
         type="button"
       >
-        <svg viewBox="0 0 32 32" fill="currentColor">
+        <svg aria-hidden="true" viewBox="0 0 32 32" fill="currentColor">
           <path d="M13 0c7.18 0 13 5.82 13 13 0 2.868-.93 5.52-2.502 7.68l7.607 7.608-1.414 1.414-7.607-7.607C18.52 25.07 15.868 26 13 26 5.82 26 0 20.18 0 13S5.82 0 13 0zm0 2C7.477 2 3 6.477 3 12s4.477 10 10 10 10-4.477 10-10S18.523 2 13 2z" />
         </svg>
       </button>

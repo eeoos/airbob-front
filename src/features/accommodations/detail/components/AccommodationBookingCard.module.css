@@ -1,8 +1,12 @@
 .bookingCard {
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-content-card);
   padding: var(--space-6);
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-sticky);
   position: relative;
   z-index: var(--z-local-raised);
   background-color: var(--color-background-page);
@@ -11,58 +15,113 @@
 .priceSection {
   display: flex;
   align-items: baseline;
-  gap: var(--space-1);
+  flex-wrap: wrap;
+  gap: var(--space-2);
   margin-bottom: var(--space-6);
+}
+
+.pricePrompt {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+.priceHeading,
+.originalPrice {
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-tight);
+}
+
+.priceHeading {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-regular);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.originalPrice {
+  color: var(--color-text-secondary);
 }
 
 .totalPrice {
   font-size: var(--font-size-xl);
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
 }
 
-.priceInfo {
-  font-size: var(--font-size-md);
-  color: var(--color-text-secondary);
-}
-
 .dateSection {
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  min-width: 0;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-action) var(--radius-action) 0 0;
   overflow: visible;
   margin-bottom: 0;
   background-color: var(--color-background-page);
   position: relative;
 }
 
+.dateSectionOpen {
+  z-index: var(--z-dropdown-raised);
+}
+
 .datePickerContainer {
+  box-sizing: border-box;
   position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: var(--space-2);
+  top: calc(-1 * var(--space-3));
+  right: calc(-1 * var(--space-3));
   z-index: var(--z-dropdown);
-  width: fit-content;
-  max-width: calc(var(--layout-viewport-width) - 40px);
+  width: min(744px, calc(var(--layout-viewport-width) - var(--space-12)));
+  max-width: calc(var(--layout-viewport-width) - var(--space-12));
+  padding: calc(56px + var(--space-6)) var(--space-3) var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-dialog);
+  background: var(--color-background-page);
+  box-shadow: var(--shadow-floating);
   transform-origin: top right;
 }
 
+.calendarSummary {
+  position: absolute;
+  top: var(--space-5);
+  left: var(--space-6);
+  display: flex;
+  width: min(280px, calc(100% - 400px));
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.calendarSummary strong {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-tight);
+}
+
+.calendarSummary span {
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .dateRow {
+  position: relative;
+  z-index: var(--z-dropdown-raised);
   display: flex;
   align-items: stretch;
   padding: 0;
   width: 100%;
   height: 56px;
   box-sizing: border-box;
-  border: none;
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
 }
 
 .dateColumn {
+  appearance: none;
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   padding: 0 var(--space-4);
@@ -70,6 +129,23 @@
   height: 56px;
   justify-content: center;
   box-sizing: border-box;
+  border: 0;
+  border-radius: var(--radius-action);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-ease-standard),
+    box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.dateColumn:hover:not(:disabled) {
+  background: var(--color-surface-brand-subtle);
+}
+
+.dateColumnActive {
+  box-shadow: var(--focus-ring-visible);
 }
 
 .dateDivider {
@@ -79,44 +155,25 @@
   flex-shrink: 0;
 }
 
-.horizontalDivider {
+.availabilityAnnouncement {
+  position: absolute;
+  width: 1px;
   height: 1px;
-  background-color: var(--color-border-strong);
-  width: 100%;
-  margin: 0;
-}
-
-.availabilityStatus {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-xs);
-  line-height: 1.4;
-}
-
-.availabilityRetryButton {
-  flex-shrink: 0;
   padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
   border: 0;
-  background: transparent;
-  color: var(--color-text-primary);
-  font: inherit;
-  font-weight: 600;
-  text-decoration: underline;
-  cursor: pointer;
 }
 
-.dateRow:disabled {
+.dateColumn:disabled {
   cursor: not-allowed;
   opacity: 0.65;
 }
 
 .dateLabel {
   font-size: 10px;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
   margin-bottom: 2px;
   text-transform: uppercase;
@@ -125,25 +182,26 @@
 }
 
 .dateValue {
+  min-width: 0;
+  overflow: hidden;
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .guestRowContainer {
+  min-width: 0;
   position: relative;
-  border: 1px solid var(--color-border-strong);
-  border-top: 1px solid var(--color-border-strong);
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  border: 1px solid var(--color-border-default);
+  border-top: 1px solid var(--color-border-default);
+  border-radius: 0 0 var(--radius-action) var(--radius-action);
   margin-bottom: var(--space-6);
   margin-top: -1px;
   background-color: var(--color-background-page);
-  z-index: var(--z-dropdown);
-}
-
-.hidden {
-  display: none;
+  z-index: var(--z-local-raised);
 }
 
 .guestRow {
@@ -163,6 +221,7 @@
 
 .guestColumn {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   padding: 0;
@@ -173,10 +232,14 @@
 }
 
 .guestValue {
+  min-width: 0;
+  overflow: hidden;
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .guestArrow {
@@ -193,13 +256,15 @@
   left: -1px;
   right: -1px;
   background-color: var(--color-background-page);
-  border: 1px solid var(--color-border-strong);
+  border: 1px solid var(--color-border-default);
   border-top: none;
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  border-radius: 0 0 var(--radius-action) var(--radius-action);
   padding: var(--space-2) var(--space-4);
   z-index: var(--z-dropdown-raised);
   box-shadow: var(--shadow-lg);
   margin-top: 0;
+  box-sizing: border-box;
+  max-width: calc(100% + 2px);
   isolation: isolate;
 }
 
@@ -207,24 +272,28 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  min-width: 0;
+  gap: var(--space-3);
   padding: var(--space-3) 0;
 }
 
 .guestPickerLabel {
   display: flex;
+  min-width: 0;
   flex-direction: column;
   gap: var(--space-1);
 }
 
 .guestPickerTitle {
   font-size: var(--font-size-md);
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   color: var(--color-text-primary);
 }
 
 .guestPickerSubtitle {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
 }
 
 .guestPickerLink {
@@ -252,8 +321,8 @@
   align-items: center;
   justify-content: center;
   transition:
-    border-color 0.2s ease,
-    color 0.2s ease;
+    border-color var(--motion-duration-fast) var(--motion-ease-standard),
+    color var(--motion-duration-fast) var(--motion-ease-standard);
 }
 
 .guestPickerButton:hover:not(.guestPickerButtonDisabled) {
@@ -268,7 +337,7 @@
 
 .guestPickerCount {
   font-size: var(--font-size-md);
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   color: var(--color-text-primary);
   min-width: 20px;
   text-align: center;
@@ -284,13 +353,17 @@
 }
 
 .guestPickerClose {
+  display: inline-flex;
+  min-height: var(--control-touch-target);
+  align-items: center;
+  justify-content: flex-end;
   margin-top: var(--space-4);
-  padding: 0;
+  padding: 0 var(--space-2);
   background: none;
   border: none;
   color: var(--color-text-primary);
   font-size: var(--font-size-md);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   text-decoration: underline;
   cursor: pointer;
   text-align: right;
@@ -312,19 +385,21 @@
 
 .couponTitle {
   font-size: var(--font-size-md);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
 }
 
 .couponClearButton {
   background: none;
   border: none;
-  color: var(--color-text-primary);
+  min-height: var(--control-touch-target);
+  border-radius: var(--radius-action);
+  color: var(--color-action-primary-hover);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   text-decoration: underline;
   cursor: pointer;
-  padding: 0;
+  padding: 0 var(--space-2);
 }
 
 .couponEmpty {
@@ -346,13 +421,13 @@
   gap: var(--space-3);
   padding: var(--space-3);
   border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-action);
   background-color: var(--color-background-page);
 }
 
 .couponItemSelected {
-  border-color: var(--color-text-primary);
-  background-color: var(--color-background-muted);
+  border-color: var(--color-action-primary);
+  background-color: var(--color-surface-brand-subtle);
 }
 
 .couponInfo {
@@ -361,7 +436,7 @@
 
 .couponName {
   font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
   margin-bottom: var(--space-1);
 }
@@ -374,22 +449,24 @@
 
 .couponApplyButton {
   flex-shrink: 0;
-  border: 1px solid var(--color-text-primary);
-  border-radius: var(--radius-md);
-  background-color: var(--color-text-primary);
+  min-height: var(--control-touch-target);
+  border: 1px solid var(--color-action-primary);
+  border-radius: var(--radius-action);
+  background-color: var(--color-action-primary);
   color: var(--color-text-inverse);
   padding: var(--space-2) 10px;
   font-size: var(--font-size-xs);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
   transition:
-    background-color 0.2s ease,
-    color 0.2s ease,
-    border-color 0.2s ease;
+    background-color var(--motion-duration-fast) var(--motion-ease-standard),
+    color var(--motion-duration-fast) var(--motion-ease-standard),
+    border-color var(--motion-duration-fast) var(--motion-ease-standard);
 }
 
 .couponApplyButton:hover:not(:disabled) {
-  background-color: var(--color-text-primary);
+  border-color: var(--color-action-primary-hover);
+  background-color: var(--color-action-primary-hover);
 }
 
 .couponApplyButton:disabled {
@@ -416,83 +493,189 @@
   line-height: 1.5;
 }
 
+.priceBreakdownRow > :first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.priceBreakdownRow > :last-child {
+  flex-shrink: 0;
+}
+
 .priceBreakdownRow + .priceBreakdownRow {
   margin-top: var(--space-2);
 }
 
 .quoteSummary {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
   margin-bottom: var(--space-4);
   padding: var(--space-4);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  background: var(--color-background-muted);
+  border: 1px solid var(--color-action-primary);
+  border-radius: var(--radius-action);
+  background: var(--color-surface-brand-subtle);
 }
 
-.quoteSummaryHeader,
 .quoteSummaryRow,
 .quoteSummaryTotal {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
 }
 
 .quoteSummaryHeader {
-  flex-wrap: wrap;
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: var(--space-1);
   margin-bottom: var(--space-3);
   font-size: var(--font-size-sm);
 }
 
-.quoteSummaryRow,
-.quoteSummaryTotal {
+.quoteSummaryBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-action-primary);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.2;
+}
+
+.quoteSummaryDescription {
+  color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .quoteSummaryTotal {
   margin-top: var(--space-2);
   padding-top: var(--space-2);
   border-top: 1px solid var(--color-border-default);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
+}
+
+.quoteSummaryRow > :first-child,
+.quoteSummaryTotal > :first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.quoteSummaryRow > :last-child,
+.quoteSummaryTotal > :last-child {
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.quoteSummaryTotal > strong {
+  color: var(--color-action-primary-hover);
+  font-size: var(--font-size-md);
+}
+
+.quoteSummaryFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-default);
 }
 
 .quoteResetButton {
-  padding: 0;
+  display: inline-flex;
+  flex-shrink: 0;
+  min-height: var(--control-touch-target);
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-2);
   border: 0;
   background: transparent;
-  color: var(--color-text-primary);
+  border-radius: var(--radius-action);
+  color: var(--color-action-primary-hover);
   font-size: var(--font-size-xs);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   text-decoration: underline;
   cursor: pointer;
 }
 
 .quoteExpiry {
-  margin: var(--space-2) 0 0;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
   color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
+  line-height: 1.4;
+}
+
+.quoteExpiry strong {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.selectionGuidance {
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.statusAnnouncement {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 .reserveButton {
   width: 100%;
+  min-height: var(--control-touch-target);
   padding: 14px;
-  background: linear-gradient(
-    to right,
-    var(--color-brand-coral),
-    var(--color-brand-coral-hover)
-  );
+  background: var(--color-action-primary);
   color: var(--color-text-inverse);
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-action);
   font-size: var(--font-size-md);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
-  transition: opacity 0.2s ease;
+  transition: background-color var(--motion-duration-fast)
+    var(--motion-ease-standard);
   margin-bottom: var(--space-4);
 }
 
-.reserveButton:hover {
-  opacity: 0.9;
+.reserveButton:hover:not(:disabled) {
+  background: var(--color-action-primary-hover);
+}
+
+.reserveButton:last-child {
+  margin-bottom: 0;
+}
+
+.dateColumn:focus-visible,
+.guestRow:focus-visible,
+.couponClearButton:focus-visible,
+.couponApplyButton:focus-visible,
+.guestPickerClose:focus-visible,
+.quoteResetButton:focus-visible,
+.reserveButton:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-visible);
 }
 
 .bookingNote {
@@ -502,15 +685,94 @@
   line-height: 1.5;
 }
 
-@media (--viewport-tablet) {
+@media (--viewport-mobile-tablet) {
+  .dateRow {
+    z-index: var(--z-local-raised);
+  }
+
   .datePickerContainer {
     position: fixed;
     top: var(--layout-search-mobile-popover-top);
-    left: var(--space-1);
-    right: var(--space-1);
-    width: auto;
-    max-width: none;
+    right: auto;
+    left: 50%;
+    width: min(744px, calc(var(--layout-viewport-width) - var(--space-4)));
+    max-width: calc(var(--layout-viewport-width) - var(--space-4));
+    max-height: calc(
+      var(--layout-viewport-height) - var(--layout-search-mobile-popover-top) -
+        var(--space-2)
+    );
+    padding: var(--space-3);
+    overflow: hidden auto;
+    transform: translateX(-50%);
     transform-origin: top center;
     z-index: var(--z-dropdown);
+  }
+
+  .calendarSummary {
+    position: static;
+    width: auto;
+    margin: 0;
+    padding: var(--space-2) var(--space-1) var(--space-4);
+  }
+
+  .calendarSummary span {
+    white-space: normal;
+  }
+}
+
+@media (--viewport-phone) {
+  .bookingCard {
+    padding: var(--space-4);
+  }
+
+  .priceSection {
+    flex-wrap: wrap;
+    margin-bottom: var(--space-4);
+  }
+
+  .dateColumn,
+  .guestRow {
+    padding-inline: var(--space-3);
+  }
+
+  .guestPicker {
+    padding-inline: var(--space-3);
+  }
+
+  .guestPickerItem {
+    gap: var(--space-2);
+  }
+
+  .guestPickerTitle {
+    font-size: var(--font-size-sm);
+  }
+
+  .guestPickerSubtitle {
+    font-size: var(--font-size-xs);
+  }
+
+  .quoteSummary {
+    padding: var(--space-3);
+  }
+
+  .quoteSummaryFooter {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .quoteResetButton {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dateColumn,
+  .guestPickerClose,
+  .guestPickerButton,
+  .guestRow,
+  .couponApplyButton,
+  .quoteResetButton,
+  .reserveButton {
+    transition: none;
   }
 }

@@ -36,6 +36,8 @@ export interface DatePickerProps {
   disabledRanges?: readonly DatePickerDisabledRange[];
   selectionWindow?: DatePickerSelectionWindow;
   hideFooter?: boolean;
+  variant?: "default" | "compact";
+  selectionEndpoint?: "checkIn" | "checkOut";
 }
 
 interface DatePickerDisabledRange {
@@ -62,6 +64,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   disabledRanges = EMPTY_DISABLED_RANGES,
   selectionWindow,
   hideFooter = false,
+  variant = "default",
+  selectionEndpoint,
 }) => {
   const today = useMemo(() => startOfDay(new Date()), []);
   const todayKey = formatDateKey(today);
@@ -111,8 +115,14 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   const interactionCheckInKey = isPartialCheckInInvalidForInteraction
     ? null
     : checkInKey;
+  const isSelectingCheckOut =
+    selectionEndpoint === "checkOut"
+      ? interactionCheckIn !== null
+      : selectionEndpoint === "checkIn"
+        ? false
+        : interactionCheckIn !== null && checkOut === null;
   const firstUnavailableDateKeyAfterCheckIn = useMemo(() => {
-    if (!interactionCheckInKey || checkOutKey) return null;
+    if (!isSelectingCheckOut || !interactionCheckInKey) return null;
 
     const starts = [
       ...unavailableDates.filter((dateKey) => dateKey > interactionCheckInKey),
@@ -126,7 +136,12 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     ].sort();
 
     return starts[0] ?? null;
-  }, [checkOutKey, disabledRanges, interactionCheckInKey, unavailableDates]);
+  }, [
+    disabledRanges,
+    interactionCheckInKey,
+    isSelectingCheckOut,
+    unavailableDates,
+  ]);
   const isDateDisabled = useCallback(
     (date: Date): boolean => {
       const dateKey = formatDateKey(date);
@@ -135,7 +150,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         return true;
       }
 
-      if (interactionCheckInKey && !checkOutKey) {
+      if (isSelectingCheckOut && interactionCheckInKey) {
         return (
           dateKey <= interactionCheckInKey ||
           (windowEndExclusiveKey !== null && dateKey > windowEndExclusiveKey) ||
@@ -150,9 +165,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       );
     },
     [
-      checkOutKey,
       firstUnavailableDateKeyAfterCheckIn,
       interactionCheckInKey,
+      isSelectingCheckOut,
       isBlockedStayDateKey,
       minimumDateKey,
       windowEndExclusiveKey,
@@ -171,8 +186,15 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
   const focusedDateKey = formatDateKey(focusedDate);
   const hoverDateKey = hoverDate ? formatDateKey(hoverDate) : null;
-  const [selectionAnnouncement, setSelectionAnnouncement] = useState(() =>
-    getSelectionAnnouncement(interactionCheckIn, checkOut),
+  const getCurrentSelectionAnnouncement = useCallback(
+    () =>
+      selectionEndpoint === "checkIn" && interactionCheckIn
+        ? "새 체크인 날짜를 선택하세요."
+        : getSelectionAnnouncement(interactionCheckIn, checkOut),
+    [checkOut, interactionCheckIn, selectionEndpoint],
+  );
+  const [selectionAnnouncement, setSelectionAnnouncement] = useState(
+    getCurrentSelectionAnnouncement,
   );
   const nextMonth = useMemo(() => addMonths(currentMonth, 1), [currentMonth]);
   const currentMonthWeeks = useMemo(
@@ -186,20 +208,24 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   const internalPickerRef = useRef<HTMLDivElement>(null);
   const pickerRef = datePickerRef ?? internalPickerRef;
   const dateCellRefs = useRef(new Map<string, HTMLButtonElement>());
-  const shouldFocusDateRef = useRef(true);
+  const dateFocusRequestRef = useRef<"initial" | "roving" | null>("initial");
   const pickerId = useId();
 
   useEffect(() => {
-    setSelectionAnnouncement(
-      getSelectionAnnouncement(interactionCheckIn, checkOut),
-    );
-  }, [checkOut, interactionCheckIn]);
+    setSelectionAnnouncement(getCurrentSelectionAnnouncement());
+  }, [getCurrentSelectionAnnouncement]);
 
   useEffect(() => {
-    if (!shouldFocusDateRef.current) return;
+    const focusRequest = dateFocusRequestRef.current;
+    if (!focusRequest) return;
 
-    shouldFocusDateRef.current = false;
-    dateCellRefs.current.get(formatDateKey(focusedDate))?.focus();
+    dateFocusRequestRef.current = null;
+    const dateCell = dateCellRefs.current.get(formatDateKey(focusedDate));
+    if (focusRequest === "initial") {
+      dateCell?.focus({ preventScroll: true });
+    } else {
+      dateCell?.focus();
+    }
   }, [currentMonth, focusedDate]);
 
   const isDateInRange = (date: Date): boolean => {
@@ -215,6 +241,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
   const isDateInHoverRange = (date: Date): boolean => {
     if (
+      !isSelectingCheckOut ||
       !interactionCheckInKey ||
       checkOutKey ||
       !hoverDateKey ||
@@ -260,7 +287,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       if (!nextFocusedDate) return;
 
       ensureDateIsVisible(nextFocusedDate);
-      shouldFocusDateRef.current = true;
+      dateFocusRequestRef.current = "roving";
       setFocusedDate(nextFocusedDate);
     },
     [ensureDateIsVisible, isDateDisabled],
@@ -276,10 +303,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     (date: Date) => {
       if (isDateDisabled(date)) return;
 
-      shouldFocusDateRef.current = false;
+      dateFocusRequestRef.current = null;
       setFocusedDate(date);
 
-      if (!interactionCheckIn || checkOut) {
+      if (!isSelectingCheckOut || !interactionCheckIn) {
         onDateSelect(date, null);
         setSelectionAnnouncement(
           `${formatKoreanDateLabel(
@@ -296,7 +323,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         )}부터 ${formatKoreanDateLabel(date)}까지 선택됨`,
       );
     },
-    [checkOut, interactionCheckIn, isDateDisabled, onDateSelect],
+    [interactionCheckIn, isDateDisabled, isSelectingCheckOut, onDateSelect],
   );
 
   const handleDateKeyDown = useCallback(
@@ -370,7 +397,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     }
 
     setCurrentMonth(nextCurrentMonth);
-    shouldFocusDateRef.current = false;
+    dateFocusRequestRef.current = null;
     setFocusedDate(nextFocusedDate);
   };
 
@@ -469,7 +496,11 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                       }}
                       onKeyDown={(event) => handleDateKeyDown(event, date)}
                       onMouseEnter={() => {
-                        if (interactionCheckIn && !checkOut && !isDisabled) {
+                        if (
+                          isSelectingCheckOut &&
+                          interactionCheckIn &&
+                          !isDisabled
+                        ) {
                           setHoverDate(date);
                         }
                       }}
@@ -501,7 +532,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   return (
     <div
       aria-label="날짜 선택"
-      className={styles.datePicker}
+      className={`${styles.datePicker} ${
+        variant === "compact" ? styles.compact : ""
+      }`}
       ref={pickerRef}
       onKeyDownCapture={handlePickerKeyDown}
       role="group"

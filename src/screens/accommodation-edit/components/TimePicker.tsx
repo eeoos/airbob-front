@@ -31,14 +31,14 @@ export const TimePicker: React.FC<TimePickerProps> = ({
     const selectedButton = hourListRef.current?.querySelector(
       `.${styles.timePickerOptionSelected}`,
     ) as HTMLElement | null;
-    selectedButton?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+    selectedButton?.scrollIntoView?.({ block: "nearest", behavior: "auto" });
   }, [hour]);
 
   useEffect(() => {
     const selectedButton = minuteListRef.current?.querySelector(
       `.${styles.timePickerOptionSelected}`,
     ) as HTMLElement | null;
-    selectedButton?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+    selectedButton?.scrollIntoView?.({ block: "nearest", behavior: "auto" });
   }, [minute]);
 
   const handleHourChange = (value: number) => {
@@ -129,11 +129,16 @@ export const TimePicker: React.FC<TimePickerProps> = ({
       tabIndex={-1}
     >
       <div className={styles.timePickerContent}>
-        <div className={styles.timePickerColumn}>
+        <div
+          className={styles.timePickerColumn}
+          role="group"
+          aria-label="오전 또는 오후"
+        >
           <div className={styles.timePickerHeader}>오전/오후</div>
           <div className={styles.timePickerList}>
             <button
               type="button"
+              aria-pressed={period === "AM"}
               className={`${styles.timePickerOption} ${period === "AM" ? styles.timePickerOptionSelected : ""}`}
               onClick={() => handlePeriodChange("AM")}
             >
@@ -141,6 +146,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
             </button>
             <button
               type="button"
+              aria-pressed={period === "PM"}
               className={`${styles.timePickerOption} ${period === "PM" ? styles.timePickerOptionSelected : ""}`}
               onClick={() => handlePeriodChange("PM")}
             >
@@ -148,13 +154,14 @@ export const TimePicker: React.FC<TimePickerProps> = ({
             </button>
           </div>
         </div>
-        <div className={styles.timePickerColumn}>
+        <div className={styles.timePickerColumn} role="group" aria-label="시간">
           <div className={styles.timePickerHeader}>시간</div>
           <div className={styles.timePickerList} ref={hourListRef}>
             {hours.map((h) => (
               <button
                 key={h}
                 type="button"
+                aria-pressed={hour === h}
                 className={`${styles.timePickerOption} ${hour === h ? styles.timePickerOptionSelected : ""}`}
                 onClick={() => handleHourChange(h)}
               >
@@ -163,13 +170,14 @@ export const TimePicker: React.FC<TimePickerProps> = ({
             ))}
           </div>
         </div>
-        <div className={styles.timePickerColumn}>
+        <div className={styles.timePickerColumn} role="group" aria-label="분">
           <div className={styles.timePickerHeader}>분</div>
           <div className={styles.timePickerList} ref={minuteListRef}>
             {minutes.map((m) => (
               <button
                 key={m}
                 type="button"
+                aria-pressed={minute === m}
                 className={`${styles.timePickerOption} ${minute === m ? styles.timePickerOptionSelected : ""}`}
                 onClick={() => handleMinuteChange(m)}
               >

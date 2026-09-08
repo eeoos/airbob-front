@@ -40,7 +40,9 @@ describe("HostListingsPanel", () => {
       <HostListingsPanel {...createProps({ state: { status: "loading" } })} />,
     );
 
-    expect(screen.getByText("로딩 중...")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "호스트 숙소를 불러오는 중입니다.",
+    );
     expect(screen.queryByText("숙소 관리")).not.toBeInTheDocument();
   });
 
@@ -59,7 +61,7 @@ describe("HostListingsPanel", () => {
     );
 
     expect(screen.getByText("숙소 관리")).toBeInTheDocument();
-    expect(screen.getByText("아직 숙소가 없습니다.")).toBeInTheDocument();
+    expect(screen.getByText("이 상태의 숙소가 없어요")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("tab", { name: "작성 중" }));
     expect(onStatusChange).toHaveBeenCalledWith("DRAFT");
@@ -95,13 +97,36 @@ describe("HostListingsPanel", () => {
 
     expect(article).toHaveClass(styles.accommodationCard ?? "");
     expect(card).not.toContainElement(screen.getByText("바다 숙소"));
-    expect(screen.getByText("🏠")).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "바다 숙소 숙소 이미지 없음" }),
+    ).toBeVisible();
     expect(screen.getByText("부산, 해운대구")).toBeInTheDocument();
     expect(within(article).getByText("공개")).toBeInTheDocument();
 
     fireEvent.click(card);
 
     expect(onOpenListingActions).toHaveBeenCalledWith(7);
+  });
+
+  it("replaces an exact failed thumbnail with the named fallback", () => {
+    render(
+      <HostListingsPanel
+        {...createProps({
+          state: {
+            status: "ready",
+            listings: [{ ...listing, thumbnailUrl: "/broken-listing.jpg" }],
+            hasNext: false,
+            isLoadingMore: false,
+          },
+        })}
+      />,
+    );
+
+    fireEvent.error(screen.getByRole("img", { name: "바다 숙소" }));
+
+    expect(
+      screen.getByRole("img", { name: "바다 숙소 숙소 이미지 없음" }),
+    ).toBeVisible();
   });
 
   it("attaches the injected load-more ref and preserves loading copy", () => {
@@ -123,5 +148,32 @@ describe("HostListingsPanel", () => {
 
     expect(loadMoreRef).toHaveBeenCalledWith(expect.any(HTMLDivElement));
     expect(screen.getByText("로딩 중...")).toBeInTheDocument();
+  });
+
+  it("offers an explicit retry without showing an empty listing state", async () => {
+    const onRetry = vi.fn();
+
+    render(
+      <HostListingsPanel
+        {...createProps({
+          state: {
+            status: "error",
+            isRetrying: false,
+            message: "잠시 후 다시 시도해주세요.",
+            onRetry,
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "숙소를 불러오지 못했어요",
+    );
+    expect(
+      screen.queryByText("이 상태의 숙소가 없어요"),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
   });
 });

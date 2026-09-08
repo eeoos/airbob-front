@@ -48,6 +48,7 @@ export const AccommodationTypeModal: React.FC<AccommodationTypeModalProps> = ({
           <button
             key={type.value}
             type="button"
+            aria-pressed={selectedType === type.value}
             className={`${styles.typeOption} ${selectedType === type.value ? styles.typeOptionSelected : ""}`}
             onClick={() => onSelect(type.value)}
           >

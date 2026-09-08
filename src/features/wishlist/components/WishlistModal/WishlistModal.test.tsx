@@ -61,18 +61,21 @@ const createCommands = (): Mocked<WishlistMembershipCommandPort> => ({
 
 const mockQuery = (overrides: Record<string, unknown> = {}) => {
   const fetchNextPage = vi.fn().mockResolvedValue(undefined);
+  const refetch = vi.fn().mockResolvedValue(undefined);
   mockUseWishlistListsReadQuery.mockReturnValue({
     data: { pageParams: [null], pages: [wishlistPage] },
     error: null,
     errorUpdatedAt: 0,
     fetchNextPage,
     hasNextPage: false,
+    isError: false,
     isFetching: false,
     isFetchingNextPage: false,
     isLoading: false,
+    refetch,
     ...overrides,
   } as never);
-  return { fetchNextPage };
+  return { fetchNextPage, refetch };
 };
 
 const renderModal = (
@@ -126,7 +129,57 @@ describe("WishlistModal", () => {
       "data-state-kind",
       "loading",
     );
-    expect(screen.getByRole("status")).toHaveTextContent("로딩 중...");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "위시리스트를 불러오는 중입니다.",
+    );
+  });
+
+  it("renders a retryable cold error and refetches the existing query", async () => {
+    const { refetch } = mockQuery({
+      data: undefined,
+      error: { code: "W001" },
+      isError: true,
+    });
+
+    renderModal();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "위시리스트를 불러오지 못했어요",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserves cached modal items when a background refresh fails", () => {
+    mockQuery({
+      error: { code: "W001" },
+      isError: true,
+    });
+
+    renderModal();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "최신 목록을 불러오지 못했어요",
+    );
+    expect(screen.getByRole("button", { name: /서울 여행/ })).toBeVisible();
+  });
+
+  it("explains the empty modal before offering collection creation", () => {
+    mockQuery({
+      data: {
+        pageParams: [null],
+        pages: [{ ...wishlistPage, wishlists: [] }],
+      },
+    });
+
+    renderModal();
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "아직 만든 위시리스트가 없어요",
+    );
+    expect(
+      screen.getByRole("button", { name: "새로운 위시리스트 만들기" }),
+    ).toBeEnabled();
   });
 
   it("declaratively replaces a failed wishlist thumbnail", () => {

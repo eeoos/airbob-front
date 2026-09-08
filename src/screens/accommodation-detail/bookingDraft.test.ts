@@ -36,7 +36,7 @@ describe("accommodation booking draft", () => {
     });
   });
 
-  it("selects the first available default check-in when dates are absent", () => {
+  it("keeps dates empty until the guest explicitly selects a stay", () => {
     const result = deriveBookingDates({
       basePrice: 100000,
       availability: {
@@ -47,17 +47,26 @@ describe("accommodation booking draft", () => {
       },
     });
 
-    expect(formatBookingLocalDate(result.checkIn!)).toBe("2026-07-12");
-    expect(formatBookingLocalDate(result.checkOut!)).toBe("2026-07-13");
+    expect(result).toEqual({
+      checkIn: null,
+      checkOut: null,
+      isStayReady: false,
+      nights: 0,
+      selectionState: "incomplete",
+      totalPrice: 0,
+    });
   });
 
-  it("uses the server booking-window start instead of the browser date", () => {
+  it("does not invent a browser-date stay when the route has no dates", () => {
     vi.setSystemTime(new Date("2030-01-01T12:00:00"));
 
     const result = deriveBookingDates({ basePrice: 100000, availability });
 
-    expect(formatBookingLocalDate(result.checkIn!)).toBe("2026-07-10");
-    expect(formatBookingLocalDate(result.checkOut!)).toBe("2026-07-11");
+    expect(result).toMatchObject({
+      checkIn: null,
+      checkOut: null,
+      selectionState: "incomplete",
+    });
   });
 
   it("fails closed while availability is absent", () => {

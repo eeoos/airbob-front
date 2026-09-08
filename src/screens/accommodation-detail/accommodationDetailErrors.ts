@@ -1,18 +1,26 @@
+import {
+  readBooleanField,
+  readStringField,
+} from "../../shared/lib/readStringField";
+
 export const getAccommodationErrorCode = (error: unknown): string | null =>
-  typeof error === "object" &&
-  error !== null &&
-  "code" in error &&
-  typeof error.code === "string"
-    ? error.code
-    : null;
+  readStringField(error, "code");
 
 const getAccommodationErrorKind = (error: unknown): string | null =>
+  readStringField(error, "kind");
+
+const getAccommodationErrorStatus = (error: unknown): number | null =>
   typeof error === "object" &&
   error !== null &&
-  "kind" in error &&
-  typeof error.kind === "string"
-    ? error.kind
+  "status" in error &&
+  typeof error.status === "number"
+    ? error.status
     : null;
+
+export const isAccommodationDetailTerminalError = (error: unknown): boolean =>
+  getAccommodationErrorCode(error) === "A001" ||
+  getAccommodationErrorStatus(error) === 404 ||
+  readBooleanField(error, "retryable") !== true;
 
 export const toAccommodationErrorMessage = (error: unknown): string => {
   const code = getAccommodationErrorCode(error);
@@ -26,6 +34,9 @@ export const toAccommodationErrorMessage = (error: unknown): string => {
     R003: "동시에 많은 예약이 시도되어 처리하지 못했습니다. 잠시 후 다시 시도해주세요.",
   };
   if (code && byCode[code]) return byCode[code];
+  if (getAccommodationErrorStatus(error) === 404) {
+    return "존재하지 않거나 삭제된 숙소입니다.";
+  }
 
   const kind = getAccommodationErrorKind(error);
   if (kind === "network" || kind === "timeout") {

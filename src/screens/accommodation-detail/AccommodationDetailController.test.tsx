@@ -1,6 +1,7 @@
 import { act, render, waitFor } from "@testing-library/react";
 import { StrictMode } from "react";
 import { accommodationAmenityCatalog } from "../../features/accommodations/public";
+import { AppError } from "../../platform/http/errors";
 import type { SessionSubject } from "../../platform/session/sessionScope";
 import { testSessionRuntimeLeaseId } from "../../test/sessionFixtures";
 import { AccommodationDetailController } from "./AccommodationDetailController";
@@ -224,7 +225,9 @@ describe("AccommodationDetailController", () => {
       data: accommodation,
       error: null,
       isError: false,
+      isFetching: false,
       isLoading: false,
+      refetch: vi.fn(),
     });
     mockAvailabilityQuery.mockReset();
     mockAvailabilityQuery.mockReturnValue({
@@ -398,6 +401,31 @@ describe("AccommodationDetailController", () => {
       expect(onReplaceBookingDates).not.toHaveBeenCalled();
     },
   );
+
+  it("keeps the date overlay open after a complete range is selected", async () => {
+    const onReplaceBookingDates = vi.fn();
+    render(
+      <AccommodationDetailController
+        {...createProps({ onReplaceBookingDates })}
+      />,
+    );
+
+    act(() =>
+      getReadyView().bookingCard.bookingActions.onDatePickerOpenChange(true),
+    );
+    const handleDateSelect =
+      getReadyView().bookingCard.bookingActions.handleDateSelect;
+
+    act(() => handleDateSelect(new Date(2026, 6, 24), new Date(2026, 6, 27)));
+
+    await waitFor(() =>
+      expect(onReplaceBookingDates).toHaveBeenCalledWith(
+        "2026-07-24",
+        "2026-07-27",
+      ),
+    );
+    expect(getReadyView().bookingCard.bookingState.isDatePickerOpen).toBe(true);
+  });
 
   it("holds a claimed reservation intent through availability failure and resumes after retry", async () => {
     const completeClaim = vi.fn();
@@ -820,10 +848,110 @@ describe("AccommodationDetailController", () => {
     render(<AccommodationDetailController {...createProps()} />);
 
     expect(capturedScreenProps?.state).toEqual({
-      status: "error",
+      status: "terminal-error",
       message: "존재하지 않거나 삭제된 숙소입니다.",
     });
     expect(mockStartReservation).not.toHaveBeenCalled();
+  });
+
+  it("keeps network and server detail failures retryable through the query owner", () => {
+    const refetch = vi.fn();
+    mockDetailQuery.mockReturnValue({
+      data: undefined,
+      error: new AppError({
+        code: "SERVER_ERROR",
+        kind: "server",
+        message: "Server unavailable",
+        retryable: true,
+        status: 503,
+      }),
+      isError: true,
+      isFetching: false,
+      isLoading: false,
+      refetch,
+    });
+    render(<AccommodationDetailController {...createProps()} />);
+
+    expect(capturedScreenProps?.state.status).toBe("retryable-error");
+    if (capturedScreenProps?.state.status !== "retryable-error") {
+      throw new Error("Expected a retryable detail state");
+    }
+
+    act(
+      () =>
+        capturedScreenProps?.state.status === "retryable-error" &&
+        capturedScreenProps.state.onRetry(),
+    );
+    expect(refetch).toHaveBeenCalledTimes(1);
+    expect(mockStartReservation).not.toHaveBeenCalled();
+  });
+
+  it("keeps cached detail content when a retryable background refresh fails", () => {
+    const refetch = vi.fn();
+    mockDetailQuery.mockReturnValue({
+      data: accommodation,
+      error: new AppError({
+        code: "SERVER_ERROR",
+        kind: "server",
+        message: "Server unavailable",
+        retryable: true,
+        status: 503,
+      }),
+      isError: true,
+      isFetching: false,
+      isLoading: false,
+      refetch,
+    });
+
+    render(<AccommodationDetailController {...createProps()} />);
+
+    expect(capturedScreenProps?.state.status).toBe("ready");
+    expect(capturedScreenProps?.refreshError).toMatchObject({
+      isRetrying: false,
+      message: "요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.",
+    });
+    act(() => capturedScreenProps?.refreshError?.onRetry());
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps non-retryable detail failures terminal", () => {
+    mockDetailQuery.mockReturnValue({
+      data: undefined,
+      error: new AppError({
+        code: "VALIDATION_ERROR",
+        kind: "validation",
+        message: "Invalid detail request",
+        status: 422,
+      }),
+      isError: true,
+      isFetching: false,
+      isLoading: false,
+      refetch: vi.fn(),
+    });
+
+    render(<AccommodationDetailController {...createProps()} />);
+
+    expect(capturedScreenProps?.state).toEqual({
+      status: "terminal-error",
+      message: "요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.",
+    });
+    expect(capturedScreenProps?.refreshError).toBeNull();
+  });
+
+  it("treats an HTTP 404 detail failure as terminal", () => {
+    mockDetailQuery.mockReturnValue({
+      data: undefined,
+      error: { code: "HTTP_ERROR", kind: "http", status: 404 },
+      isError: true,
+      isLoading: false,
+      refetch: vi.fn(),
+    });
+    render(<AccommodationDetailController {...createProps()} />);
+
+    expect(capturedScreenProps?.state).toEqual({
+      status: "terminal-error",
+      message: "존재하지 않거나 삭제된 숙소입니다.",
+    });
   });
 
   it("records a current authenticated detail at most once per controller scope", async () => {
