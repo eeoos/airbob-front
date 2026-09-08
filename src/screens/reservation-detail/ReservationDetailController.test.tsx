@@ -22,11 +22,7 @@ const scope: AuthenticatedSessionScope = {
 
 const payment = {
   approvedAt: null,
-  balanceAmount: null,
-  cancels: [],
   method: null,
-  orderId: "order-1",
-  requestedAt: "2026-07-01T00:00:00",
   status: "DONE" as const,
   totalAmount: 240000,
 };

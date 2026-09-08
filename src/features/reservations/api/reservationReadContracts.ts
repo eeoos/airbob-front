@@ -27,22 +27,11 @@ interface ReservationCoordinateWire {
   readonly longitude: number | null;
 }
 
-interface ReservationPaymentCancelWire {
-  readonly cancel_amount: number;
-  readonly cancel_reason: string;
-  readonly canceled_at: string;
-}
-
 export interface ReservationPaymentWire {
-  readonly order_id: string;
-  readonly payment_key?: unknown;
   readonly method?: string | null;
   readonly total_amount: number;
-  readonly balance_amount?: number | null;
   readonly status: ReservationPaymentStatus;
-  readonly requested_at: string;
   readonly approved_at?: string | null;
-  readonly cancels?: readonly ReservationPaymentCancelWire[];
 }
 
 export interface ReservationPageInfoWire {

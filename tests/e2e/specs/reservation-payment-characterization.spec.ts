@@ -1707,14 +1707,10 @@ const reservationDetailWithPaymentWire = () => ({
   ...reservationDetailWire("CONFIRMED"),
   can_write_review: true,
   payment: {
-    order_id: RESERVATION_UID,
     method: "카드",
     total_amount: 100_000,
-    balance_amount: 100_000,
     status: "DONE",
-    requested_at: "2026-07-01T03:00:01Z",
     approved_at: "2026-07-01T03:00:02Z",
-    cancels: [],
   },
 });
 

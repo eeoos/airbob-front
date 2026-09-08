@@ -1,3 +1,5 @@
+import guestDetailContract from "../api/__fixtures__/guest-reservation-detail-payment.json";
+import { toGuestReservationDetail } from "../api/reservationReadMappers";
 import type { GuestReservationDetail } from "../model/reservationRead";
 import { toReservationDetailViewModel } from "./reservationDetailViewModel";
 
@@ -47,6 +49,25 @@ const reservationFixture = (
 });
 
 describe("reservation detail view model", () => {
+  it("keeps payment amount, host, map, and local stay dates from the backend contract", () => {
+    const detail = toGuestReservationDetail({
+      ...guestDetailContract,
+      payment: { ...guestDetailContract.payment, status: "PARTIAL_CANCELED" },
+    });
+    const view = toReservationDetailViewModel(detail);
+    expect(view.payment).toMatchObject({
+      methodLabel: "카드",
+      amountLabel: "₩100,001",
+      statusLabel: "부분 취소",
+    });
+    expect(view.payment?.approvedAtLabel).toBeTruthy();
+    expect(view.host.nickname).toBe("테스트 호스트");
+    expect(view.mapCoordinate).toEqual({ latitude: 40.7, longitude: -74 });
+    expect(view.canReview).toBe(false);
+    expect(view.checkIn.dateLabel).toContain("11월 1일");
+    expect(view.checkOut.dateLabel).toContain("11월 3일");
+  });
+
   it.each(["CONFIRMED", "CANCELLATION_FAILED"] as const)(
     "uses the server review permission for %s even when the device clock is behind",
     (status) => {
@@ -124,14 +145,10 @@ describe("reservation detail view model", () => {
     const viewModel = toReservationDetailViewModel(
       reservationFixture({
         payment: {
-          orderId: "order-123",
           method: "카드",
           totalAmount: 120000,
-          balanceAmount: null,
           status: "DONE",
-          requestedAt: "2026-07-01T00:00:00",
           approvedAt: null,
-          cancels: [],
         },
       }),
     );

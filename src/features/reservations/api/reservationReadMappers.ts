@@ -142,18 +142,10 @@ const toPayment = (
   wire === null
     ? null
     : {
-        orderId: wire.order_id,
         method: wire.method ?? null,
         totalAmount: wire.total_amount,
-        balanceAmount: wire.balance_amount ?? null,
         status: wire.status,
-        requestedAt: wire.requested_at,
         approvedAt: wire.approved_at ?? null,
-        cancels: (wire.cancels ?? []).map((cancel) => ({
-          cancelAmount: cancel.cancel_amount,
-          cancelReason: cancel.cancel_reason,
-          canceledAt: cancel.canceled_at,
-        })),
       };
 
 const toPageInfo = (wire: ReservationPageInfoWire): ReservationPageInfo => ({

@@ -9,7 +9,7 @@ describe("reservation detail display", () => {
     expect(formatPaymentStatus("DONE")).toBe("결제 완료");
     expect(formatPaymentStatus("WAITING_FOR_DEPOSIT")).toBe("입금 대기");
     expect(formatPaymentStatus("ABORTED")).toBe("ABORTED");
-    expect(formatPaymentStatus("PARTIAL_CANCELED")).toBe("PARTIAL_CANCELED");
+    expect(formatPaymentStatus("PARTIAL_CANCELED")).toBe("부분 취소");
     expect(formatPaymentStatus("UNKNOWN_STATUS")).toBe("UNKNOWN_STATUS");
   });
 

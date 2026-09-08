@@ -47,21 +47,11 @@ interface ReservationCoordinate {
   readonly longitude: number | null;
 }
 
-interface ReservationPaymentCancel {
-  readonly cancelAmount: number;
-  readonly cancelReason: string;
-  readonly canceledAt: string;
-}
-
 export interface ReservationPayment {
-  readonly orderId: string;
   readonly method: string | null;
   readonly totalAmount: number;
-  readonly balanceAmount: number | null;
   readonly status: ReservationPaymentStatus;
-  readonly requestedAt: string;
   readonly approvedAt: string | null;
-  readonly cancels: readonly ReservationPaymentCancel[];
 }
 
 export interface ReservationPageInfo {

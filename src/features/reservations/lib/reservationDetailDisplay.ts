@@ -7,6 +7,7 @@ const PAYMENT_STATUS_LABELS: Partial<Record<ReservationPaymentStatus, string>> =
     WAITING_FOR_DEPOSIT: "입금 대기",
     DONE: "결제 완료",
     CANCELED: "결제 취소",
+    PARTIAL_CANCELED: "부분 취소",
     EXPIRED: "결제 만료",
   };
 
