@@ -11,6 +11,7 @@ interface SearchAccommodationCardProps {
   accommodation: SearchAccommodationCardViewModel;
   detailUrl: string;
   onWishlistToggle?: (() => void) | undefined;
+  isWishlistPending?: boolean;
   onClick?: (() => void) | undefined;
   checkIn?: string | null | undefined;
   checkOut?: string | null | undefined;
@@ -22,6 +23,7 @@ export const SearchAccommodationCard: React.FC<
   accommodation,
   detailUrl,
   onWishlistToggle,
+  isWishlistPending = false,
   onClick,
   checkIn,
   checkOut,
@@ -117,9 +119,13 @@ export const SearchAccommodationCard: React.FC<
             accommodation.isInWishlist ? styles.active : ""
           }`}
           aria-label={
-            accommodation.isInWishlist ? "저장 목록 열기" : "위시리스트에 저장"
+            accommodation.isInWishlist
+              ? "위시리스트에서 제거"
+              : "위시리스트에 저장"
           }
           aria-pressed={accommodation.isInWishlist}
+          aria-busy={isWishlistPending || undefined}
+          disabled={isWishlistPending}
           onClick={handleWishlistClick}
         >
           <svg

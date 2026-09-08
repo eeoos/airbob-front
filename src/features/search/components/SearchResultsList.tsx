@@ -31,6 +31,7 @@ interface SearchResultsListProps {
   selectedAccommodationId: number | null;
   onAccommodationClick: (accommodationId: number) => void;
   onWishlistToggle?: ((accommodationId: number) => void) | undefined;
+  removingAccommodationIds?: ReadonlySet<number> | undefined;
   onHoveredAccommodationChange?:
     ((accommodationId: number | null) => void) | undefined;
   getAccommodationHref: (accommodationId: number) => string;
@@ -89,6 +90,7 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = ({
   selectedAccommodationId,
   onAccommodationClick,
   onWishlistToggle,
+  removingAccommodationIds,
   onHoveredAccommodationChange,
   getAccommodationHref,
   checkIn,
@@ -175,6 +177,9 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = ({
           checkIn={checkIn}
           checkOut={checkOut}
           detailUrl={getAccommodationHref(accommodation.id)}
+          isWishlistPending={
+            removingAccommodationIds?.has(accommodation.id) ?? false
+          }
           onClick={() => onAccommodationClick(accommodation.id)}
           onWishlistToggle={
             onWishlistToggle

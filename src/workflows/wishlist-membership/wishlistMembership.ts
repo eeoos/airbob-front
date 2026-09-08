@@ -13,6 +13,7 @@ interface WishlistMembershipPage {
   readonly wishlists: ReadonlyArray<{
     readonly id: number;
     readonly isContained: boolean | null;
+    readonly wishlistAccommodationId: number | null;
   }>;
   readonly pageInfo: {
     readonly hasNext: boolean;
@@ -21,6 +22,7 @@ interface WishlistMembershipPage {
 }
 
 interface WishlistMembershipSnapshot {
+  readonly wishlistAccommodationIds: ReadonlyArray<number | null>;
   readonly isInAnyWishlist: boolean;
   readonly targetWishlistContains: boolean | null;
   readonly targetWishlistFound: boolean;
@@ -198,6 +200,7 @@ export function createWishlistMembership(
   ): Promise<WishlistMembershipSnapshot | null> => {
     let cursor: string | undefined;
     const visitedCursors = new Set<string>();
+    const wishlistAccommodationIds = new Set<number | null>();
     let isInAnyWishlist = false;
     let targetWishlistContains: boolean | null = null;
     let targetWishlistFound = false;
@@ -218,6 +221,11 @@ export function createWishlistMembership(
       isInAnyWishlist ||= page.wishlists.some(
         (wishlist) => wishlist.isContained === true,
       );
+      for (const wishlist of page.wishlists) {
+        if (wishlist.isContained === true) {
+          wishlistAccommodationIds.add(wishlist.wishlistAccommodationId);
+        }
+      }
       if (targetWishlistId !== undefined) {
         const targetWishlist = page.wishlists.find(
           (wishlist) => wishlist.id === targetWishlistId,
@@ -235,6 +243,7 @@ export function createWishlistMembership(
         visitedCursors.has(nextCursor)
       ) {
         return {
+          wishlistAccommodationIds: [...wishlistAccommodationIds],
           isInAnyWishlist,
           targetWishlistContains,
           targetWishlistFound,
@@ -322,6 +331,49 @@ export function createWishlistMembership(
           wishlistAccommodationId,
           signal,
         );
+        if (!isCurrent(scope)) return staleResult;
+        return reconcileMembership(scope, accommodationId, signal);
+      },
+      `membership:${accommodationId}`,
+    ) as Promise<WishlistMembershipMutationResult>;
+  };
+
+  const removeAccommodationFromAllWishlists = ({
+    accommodationId,
+  }: {
+    readonly accommodationId: number;
+  }) => {
+    requirePositiveId("accommodationId", accommodationId);
+
+    return run(
+      `remove-all:${accommodationId}`,
+      async (scope, signal) => {
+        const membership = await resolveMembership(
+          scope,
+          accommodationId,
+          signal,
+        );
+        if (membership === null || !isCurrent(scope)) return staleResult;
+
+        const itemIds = membership.wishlistAccommodationIds.map((id) => {
+          if (id === null)
+            throw new Error("Missing wishlist accommodation ID.");
+          requirePositiveId("wishlistAccommodationId", id);
+          return id;
+        });
+
+        try {
+          for (const itemId of itemIds) {
+            if (!isCurrent(scope)) return staleResult;
+            await dependencies.transport.removeAccommodation(itemId, signal);
+          }
+        } catch (error) {
+          if (!isCurrent(scope) || signal.aborted) return staleResult;
+          // A failed later deletion must not hide earlier successful removals.
+          await reconcileMembership(scope, accommodationId, signal);
+          throw error;
+        }
+
         if (!isCurrent(scope)) return staleResult;
         return reconcileMembership(scope, accommodationId, signal);
       },
@@ -499,6 +551,7 @@ export function createWishlistMembership(
       createdWishlistIds.clear();
     },
     removeAccommodation,
+    removeAccommodationFromAllWishlists,
     removeRecentlyViewed,
     saveMemo,
   };

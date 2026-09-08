@@ -44,6 +44,7 @@ const wishlistPage: WishlistCollection = {
 };
 
 const createCommands = (): Mocked<WishlistMembershipCommandPort> => ({
+  removeAccommodationFromAllWishlists: vi.fn(),
   addAccommodation: vi.fn().mockResolvedValue({
     status: "applied",
     isInAnyWishlist: true,

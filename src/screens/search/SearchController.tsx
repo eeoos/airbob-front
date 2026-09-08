@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { WishlistMembershipCommandPort } from "../../features/wishlist/ports/wishlistMembershipCommandPort";
 import type { WishlistModalProps } from "../../features/wishlist/components/WishlistModal";
+import { toWishlistErrorMessage } from "../../features/wishlist/components/wishlistErrorMessage";
 import type { SearchMapBounds } from "../../features/search/components/SearchMap/types";
 import {
   toSearchAccommodationCardViewModel,
@@ -168,6 +169,12 @@ export function SearchController({
     readonly result: SearchResultPage;
   } | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [wishlistError, setWishlistError] = useState<string | null>(null);
+  const [removingAccommodationIds, setRemovingAccommodationIds] = useState<
+    ReadonlySet<number>
+  >(() => new Set());
+  const removingAccommodationIdsRef = useRef(new Set<number>());
+  const wishlistGenerationRef = useRef(0);
   const [pendingWishlistAccommodationId, setPendingWishlistAccommodationId] =
     useState<number | null>(null);
   const [wishlistAccommodationId, setWishlistAccommodationId] = useState<
@@ -285,7 +292,14 @@ export function SearchController({
   }, [isAuthenticated, wishlistAuthIntent]);
 
   useEffect(() => {
+    const pendingIds = removingAccommodationIdsRef.current;
     setWishlistAccommodationId(null);
+    setWishlistError(null);
+    setRemovingAccommodationIds(new Set());
+    return () => {
+      wishlistGenerationRef.current += 1;
+      pendingIds.clear();
+    };
   }, [wishlistMembership?.scope.epoch, wishlistMembership?.scope.subject]);
 
   const retainedResult =
@@ -403,8 +417,9 @@ export function SearchController({
     [navigation, selectAccommodationId],
   );
 
-  const openWishlist = useCallback(
-    (accommodationId: number) => {
+  const toggleWishlist = useCallback(
+    async (accommodationId: number) => {
+      if (removingAccommodationIdsRef.current.has(accommodationId)) return;
       if (!isAuthenticated) {
         const attemptId = wishlistAuthIntent?.request(accommodationId) ?? null;
         pendingAuthAttemptIdRef.current = attemptId;
@@ -413,9 +428,44 @@ export function SearchController({
         return;
       }
 
-      setWishlistAccommodationId(accommodationId);
+      const accommodation = accommodations.find(
+        (item) => item.id === accommodationId,
+      );
+      setWishlistError(null);
+      if (!accommodation?.isInWishlist) {
+        setWishlistAccommodationId(accommodationId);
+        return;
+      }
+      if (!wishlistMembership) return;
+
+      const generation = wishlistGenerationRef.current;
+      removingAccommodationIdsRef.current.add(accommodationId);
+      setRemovingAccommodationIds(new Set(removingAccommodationIdsRef.current));
+      try {
+        const result =
+          await wishlistMembership.commands.removeAccommodationFromAllWishlists(
+            { accommodationId },
+          );
+        if (generation !== wishlistGenerationRef.current) return;
+        if (result.status === "applied-unconfirmed") {
+          setWishlistError(
+            "저장 취소 후 최신 상태를 불러오지 못했습니다. 잠시 후 다시 확인해주세요.",
+          );
+        }
+      } catch (error) {
+        if (generation === wishlistGenerationRef.current) {
+          setWishlistError(toWishlistErrorMessage(error));
+        }
+      } finally {
+        if (generation === wishlistGenerationRef.current) {
+          removingAccommodationIdsRef.current.delete(accommodationId);
+          setRemovingAccommodationIds(
+            new Set(removingAccommodationIdsRef.current),
+          );
+        }
+      }
     },
-    [isAuthenticated, wishlistAuthIntent],
+    [accommodations, isAuthenticated, wishlistAuthIntent, wishlistMembership],
   );
 
   const closeAuthModal = useCallback(() => {
@@ -503,13 +553,21 @@ export function SearchController({
         totalPages,
       }}
       wishlistModal={wishlistModal}
+      removingAccommodationIds={removingAccommodationIds}
+      wishlistError={
+        wishlistError
+          ? { message: wishlistError, onClose: () => setWishlistError(null) }
+          : null
+      }
       {...(routeState.checkIn === undefined
         ? {}
         : { checkIn: routeState.checkIn })}
       {...(routeState.checkOut === undefined
         ? {}
         : { checkOut: routeState.checkOut })}
-      {...(canOpenWishlist ? { onWishlistToggle: openWishlist } : {})}
+      {...(canOpenWishlist
+        ? { onWishlistToggle: (id: number) => void toggleWishlist(id) }
+        : {})}
     />
   );
 }

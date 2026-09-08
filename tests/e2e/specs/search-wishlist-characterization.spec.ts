@@ -454,7 +454,7 @@ test("maps viewport URL coordinates to the search request without loading Google
   expect(getRequestQuery(viewportRequest)).not.toHaveProperty("destination");
 });
 
-test("saves to a wishlist and closes without toggling saved items while collapsing duplicate clicks", async ({
+test("saves through the picker then removes directly from the heart while collapsing duplicate clicks", async ({
   api,
   page,
   session,
@@ -557,25 +557,23 @@ test("saves to a wishlist and closes without toggling saved items while collapsi
   });
 
   const savedCardButton = page.getByRole("button", {
-    name: "저장 목록 열기",
+    name: "위시리스트에서 제거",
   });
   await expect(savedCardButton).toHaveAttribute("aria-pressed", "true");
 
-  await savedCardButton.click();
-  const containedWishlistButton = wishlistDialog.getByRole("button", {
-    name: /여름 여행/,
+  await savedCardButton.evaluate((element) => {
+    (element as HTMLButtonElement).click();
+    (element as HTMLButtonElement).click();
   });
-  await expect(containedWishlistButton).toHaveAccessibleName(/저장됨/);
-  await expect(containedWishlistButton).toBeEnabled();
-  await containedWishlistButton.click();
 
+  await expect(cardSaveButton).toHaveAttribute("aria-pressed", "false");
   await expect(wishlistDialog).toBeHidden();
   expect(
     api.matching(
       "DELETE",
       `/api/v1/members/wishlists/accommodations/${wishlistAccommodationId}`,
     ),
-  ).toHaveLength(0);
+  ).toHaveLength(1);
 
   expect(
     api.matching(
@@ -583,7 +581,11 @@ test("saves to a wishlist and closes without toggling saved items while collapsi
       `/api/v1/members/wishlists/accommodations/${wishlistId}`,
     ),
   ).toHaveLength(1);
-  await expect(savedCardButton).toHaveAttribute("aria-pressed", "true");
+  await page.reload();
+  await expect(cardSaveButton).toHaveAttribute("aria-pressed", "false");
+  await cardSaveButton.click();
+  await expect(wishlistDialog).toBeVisible();
+  await expect(wishlistButton).toHaveAccessibleName(/저장되지 않음/);
 });
 
 test("fences an in-flight A membership result before B runs the same command", async ({
@@ -716,7 +718,7 @@ test("fences an in-flight A membership result before B runs the same command", a
 
   await expect(currentDialog).toBeHidden();
   await expect(
-    page.getByRole("button", { name: "저장 목록 열기" }),
+    page.getByRole("button", { name: "위시리스트에서 제거" }),
   ).toHaveAttribute("aria-pressed", "true");
   expect(
     api.matching(

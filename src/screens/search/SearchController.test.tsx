@@ -1,6 +1,8 @@
 import { act, render } from "@testing-library/react";
 import type { SearchResultPage } from "../../features/search/model/search";
 import { AppError } from "../../platform/http/errors";
+import type { SessionSubject } from "../../platform/session/sessionScope";
+import { testSessionRuntimeLeaseId } from "../../test/sessionFixtures";
 import type { SearchScreenProps } from "./SearchScreen";
 import {
   SearchController,
@@ -139,6 +141,34 @@ const currentScreenProps = (): SearchScreenProps => {
   return mockCapturedScreenProps;
 };
 
+const wishlistMembership = (): NonNullable<
+  SearchControllerProps["wishlistMembership"]
+> => ({
+  scope: {
+    subject: "subject:member_a" as SessionSubject,
+    epoch: 3,
+    runtimeLeaseId: testSessionRuntimeLeaseId,
+  },
+  commands: {
+    addAccommodation: vi.fn(),
+    removeAccommodation: vi.fn(),
+    createAndAddAccommodation: vi.fn(),
+    removeAccommodationFromAllWishlists: vi
+      .fn()
+      .mockResolvedValue({ status: "applied", isInAnyWishlist: false }),
+  },
+});
+
+const showSavedAccommodation = () => {
+  mockQueryResult.data = {
+    ...resultPage,
+    accommodations: resultPage.accommodations.map((item) => ({
+      ...item,
+      isInWishlist: true,
+    })),
+  };
+};
+
 describe("SearchController", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -153,6 +183,95 @@ describe("SearchController", () => {
       isPlaceholderData: false,
       refetch: vi.fn(),
     };
+  });
+
+  it("opens the list picker only for an unsaved accommodation", () => {
+    const membership = wishlistMembership();
+    render(
+      <SearchController {...baseProps({ wishlistMembership: membership })} />,
+    );
+    act(() => currentScreenProps().onWishlistToggle?.(7));
+    expect(currentScreenProps().wishlistModal?.accommodationId).toBe(7);
+    expect(
+      membership.commands.removeAccommodationFromAllWishlists,
+    ).not.toHaveBeenCalled();
+  });
+
+  it("removes a saved accommodation directly and blocks duplicate card/map clicks while pending", async () => {
+    showSavedAccommodation();
+    const membership = wishlistMembership();
+    let finish!: () => void;
+    vi.mocked(
+      membership.commands.removeAccommodationFromAllWishlists,
+    ).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = () => resolve({ status: "applied", isInAnyWishlist: false });
+        }),
+    );
+    render(
+      <SearchController {...baseProps({ wishlistMembership: membership })} />,
+    );
+    act(() => {
+      currentScreenProps().onWishlistToggle?.(7);
+      currentScreenProps().onWishlistToggle?.(7);
+    });
+    expect(
+      membership.commands.removeAccommodationFromAllWishlists,
+    ).toHaveBeenCalledExactlyOnceWith({ accommodationId: 7 });
+    expect(currentScreenProps().wishlistModal).toBeNull();
+    expect(currentScreenProps().removingAccommodationIds?.has(7)).toBe(true);
+    await act(async () => finish());
+    expect(currentScreenProps().removingAccommodationIds?.has(7)).toBe(false);
+  });
+
+  it("keeps the saved heart and shows a retryable error when removal fails", async () => {
+    showSavedAccommodation();
+    const membership = wishlistMembership();
+    vi.mocked(
+      membership.commands.removeAccommodationFromAllWishlists,
+    ).mockRejectedValueOnce({ code: "W002" });
+    render(
+      <SearchController {...baseProps({ wishlistMembership: membership })} />,
+    );
+    await act(async () => currentScreenProps().onWishlistToggle?.(7));
+    expect(currentScreenProps().wishlistError?.message).toBe(
+      "위시리스트에 대한 접근 권한이 없습니다.",
+    );
+    expect(
+      currentScreenProps().results.accommodationCards[0]?.isInWishlist,
+    ).toBe(true);
+    expect(currentScreenProps().removingAccommodationIds?.has(7)).toBe(false);
+    expect(currentScreenProps().wishlistModal).toBeNull();
+  });
+
+  it("suppresses a late removal error after changing sessions", async () => {
+    showSavedAccommodation();
+    const membership = wishlistMembership();
+    let fail!: () => void;
+    vi.mocked(
+      membership.commands.removeAccommodationFromAllWishlists,
+    ).mockImplementation(
+      () =>
+        new Promise((_, reject) => {
+          fail = () => reject(new Error("old request"));
+        }),
+    );
+    const props = baseProps({ wishlistMembership: membership });
+    const view = render(<SearchController {...props} />);
+    act(() => currentScreenProps().onWishlistToggle?.(7));
+    view.rerender(
+      <SearchController
+        {...props}
+        wishlistMembership={{
+          ...membership,
+          scope: { ...membership.scope, epoch: 4 },
+        }}
+      />,
+    );
+    await act(async () => fail());
+    expect(currentScreenProps().wishlistError).toBeNull();
+    expect(currentScreenProps().removingAccommodationIds?.size).toBe(0);
   });
 
   it("builds the scoped query from committed route state and maps domain results", () => {
