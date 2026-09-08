@@ -3,7 +3,7 @@ import { ROUTE_PATHS } from "./paths";
 
 type RouteAuthPolicy = "public" | "authenticated";
 type RouteShell = AppShellId;
-export type RouteHeaderPolicy = "default" | "search" | "hidden";
+export type RouteHeaderPolicy = "default" | "search" | "detail" | "hidden";
 interface RouteDefinitionShape {
   id: string;
   path: string;
@@ -32,7 +32,7 @@ export const routeDefinitions = [
     path: ROUTE_PATHS.accommodationDetail,
     auth: "public",
     shell: "browse",
-    header: "default",
+    header: "detail",
   },
   {
     id: "accommodation-confirm",

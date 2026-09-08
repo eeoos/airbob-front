@@ -4,6 +4,7 @@ import { bindInfoWindowEvents } from "../lib/infoWindowEvents";
 
 interface UseMapInfoWindowEventsOptions {
   getAccommodationHref: (accommodationId: number) => string;
+  onAccommodationOpen?: ((accommodationId: number) => void) | undefined;
   onWishlistToggle?:
     ((accommodationId: number, isInWishlist: boolean) => void) | undefined;
 }
@@ -16,6 +17,7 @@ interface BindMapInfoWindowEventsOptions {
 
 export const useMapInfoWindowEvents = ({
   getAccommodationHref,
+  onAccommodationOpen,
   onWishlistToggle,
 }: UseMapInfoWindowEventsOptions) =>
   useCallback(
@@ -23,6 +25,10 @@ export const useMapInfoWindowEvents = ({
       return bindInfoWindowEvents({
         root,
         onCardClick: () => {
+          if (onAccommodationOpen) {
+            onAccommodationOpen(accommodationId);
+            return;
+          }
           browserWindowNavigation.openInNewTab(
             getAccommodationHref(accommodationId),
           );
@@ -38,5 +44,5 @@ export const useMapInfoWindowEvents = ({
         },
       });
     },
-    [getAccommodationHref, onWishlistToggle],
+    [getAccommodationHref, onAccommodationOpen, onWishlistToggle],
   );

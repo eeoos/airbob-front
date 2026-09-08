@@ -106,7 +106,6 @@ export function AccommodationReviewsSection({
       className={`${styles.section} ${styles.reviewSection}`}
     >
       <div className={styles.sectionHeading}>
-        <span className={styles.eyebrow}>여행 기록</span>
         <h2
           aria-label={
             reviewSummary.hasReviews
@@ -118,9 +117,15 @@ export function AccommodationReviewsSection({
         >
           {reviewSummary.hasReviews ? (
             <>
-              <span aria-hidden="true">★</span>{" "}
-              {reviewSummary.averageRating.toFixed(2)} · 후기{" "}
-              {reviewSummary.reviewCount}개
+              <span className={styles.desktopSummary}>
+                <span aria-hidden="true">★</span>{" "}
+                {reviewSummary.averageRating.toFixed(2)} · 후기{" "}
+                {reviewSummary.reviewCount}개
+              </span>
+              <span className={styles.mobileSummary} aria-hidden="true">
+                <strong>{reviewSummary.averageRating.toFixed(2)}</strong>
+                <span>후기 {reviewSummary.reviewCount}개</span>
+              </span>
             </>
           ) : (
             "아직 등록된 후기가 없어요"
@@ -191,7 +196,13 @@ export function AccommodationReviewsSection({
 
       {status === "ready" && (
         <>
-          <div className={styles.reviewsGrid}>
+          {/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- The scrollable review region supports native keyboard scrolling. */}
+          <div
+            className={styles.reviewsGrid}
+            role="region"
+            aria-label="후기 미리보기"
+            tabIndex={0}
+          >
             {reviews.map((review) => {
               const isExpanded = expandedReviews[review.id];
               const isLongReview =
@@ -225,16 +236,25 @@ export function AccommodationReviewsSection({
                     </div>
                   </div>
 
-                  <Rating rating={review.rating} />
+                  <div className={styles.reviewMeta}>
+                    <Rating rating={review.rating} />
+                    <span className={styles.reviewMetaDate}>
+                      <span aria-hidden="true">·</span> {review.date.label}
+                    </span>
+                  </div>
                   <p className={styles.reviewContent}>{visibleContent}</p>
 
                   {isLongReview && (
                     <button
                       className={styles.reviewShowMoreButton}
                       type="button"
+                      aria-label="이 후기 전체 보기"
                       onClick={onOpenReviews}
                     >
-                      이 후기 전체 보기
+                      <span className={styles.desktopSummary}>
+                        이 후기 전체 보기
+                      </span>
+                      <span className={styles.mobileMoreLabel}>더 보기</span>
                     </button>
                   )}
 
@@ -259,6 +279,7 @@ export function AccommodationReviewsSection({
             })}
           </div>
 
+          {/* eslint-enable jsx-a11y/no-noninteractive-tabindex */}
           <div className={styles.reviewViewAll}>
             <Button type="button" variant="secondary" onClick={onOpenReviews}>
               후기 {reviewSummary.reviewCount}개 모두 보기

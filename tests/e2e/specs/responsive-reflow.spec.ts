@@ -152,7 +152,7 @@ test("keeps the 320px search route free of horizontal overflow with core actions
     name: "숙소 상세 보기: 반응형 테스트 숙소",
     includeHidden: true,
   });
-  await expect(resultLink).toBeHidden();
+  await expect(resultLink).toBeVisible();
   await page.getByRole("button", { name: /검색 결과 패널 조절/ }).click();
   await expect(resultLink).toBeVisible();
 
@@ -325,6 +325,9 @@ for (const width of [320, 390, 768, 1023, 1024]) {
     await expect(bottomSheetHandle).toHaveCount(1);
     await expect(bottomSheetResults).toHaveCount(1);
     await expect(bottomSheetHandle).toBeVisible();
+    await expect(bottomSheetHandle).toHaveAttribute("data-state", "half");
+    await bottomSheetHandle.focus();
+    await page.keyboard.press("Home");
     await expect(bottomSheetHandle).toHaveAttribute("data-state", "collapsed");
     await expect(bottomSheetResults).toBeHidden();
     await expect(resultLink).toBeHidden();
@@ -432,6 +435,8 @@ test("keeps every mobile sheet snap attached to the viewport", async ({
       };
     });
 
+  await handle.focus();
+  await page.keyboard.press("Home");
   await expect(handle).toHaveAttribute("data-state", "collapsed");
   await expect
     .poll(async () => {
@@ -445,7 +450,7 @@ test("keeps every mobile sheet snap attached to the viewport", async ({
   await expect
     .poll(async () => {
       const geometry = await readSheetGeometry();
-      return Math.abs(geometry.visibleHeight - geometry.surfaceHeight * 0.5);
+      return Math.abs(geometry.visibleHeight - geometry.surfaceHeight * 0.7);
     })
     .toBeLessThanOrEqual(3);
 
@@ -593,9 +598,9 @@ test("aligns the detail shell from 320px through 4K", async ({
   ).toBeVisible();
 
   const layouts = [
-    [320, "y", 16],
-    [390, "y", 16],
-    [768, "y", 16],
+    [320, "y", 24],
+    [390, "y", 24],
+    [768, "y", 24],
     [769, "y", 24],
     [1024, "y", 24],
     [1025, "x", 40],
@@ -647,7 +652,12 @@ test("aligns the detail shell from 320px through 4K", async ({
       });
       const bookingAction = page.getByRole("button", { name: "예약하기" });
 
-      await expectFullyInsideViewport(homeLink, width);
+      const navigationAction =
+        // eslint-disable-next-line playwright/no-conditional-in-test -- Each viewport has a different navigation control by design.
+        width <= 1024
+          ? page.getByRole("button", { name: "이전 화면으로", exact: true })
+          : homeLink;
+      await expectFullyInsideViewport(navigationAction, width);
       await expect(heroFallback).toBeVisible();
       await expect(overviewHeading).toBeVisible();
       await expect(locationHeading).toBeVisible();
@@ -669,7 +679,12 @@ test("aligns the detail shell from 320px through 4K", async ({
         heroTitle.boundingBox(),
         overviewHeading.boundingBox(),
         locationHeading.boundingBox(),
-        reviewsHeading.boundingBox(),
+        page
+          .getByRole("region", {
+            name: "아직 등록된 후기가 없어요",
+            exact: true,
+          })
+          .boundingBox(),
         bookingAction.boundingBox(),
       ]);
 
@@ -710,9 +725,14 @@ test("aligns the detail shell from 320px through 4K", async ({
         ).toBeLessThanOrEqual(1);
       }
 
-      expect(bookingBounds?.[comparisonAxis] ?? 0).toBeGreaterThan(
-        overviewBounds?.[comparisonAxis] ?? Number.POSITIVE_INFINITY,
-      );
+      const bookingSpace =
+        // eslint-disable-next-line playwright/no-conditional-in-test -- Mobile uses a viewport footer; desktop uses the right sidebar.
+        width <= 1024
+          ? // eslint-disable-next-line playwright/no-conditional-in-test -- Match the viewport height in this responsive matrix.
+            (width <= 768 ? 844 : 900) -
+            (bookingBounds!.y + bookingBounds!.height)
+          : bookingBounds![comparisonAxis] - overviewBounds![comparisonAxis];
+      expect(bookingSpace).toBeGreaterThanOrEqual(0);
     });
   }
 

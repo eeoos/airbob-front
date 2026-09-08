@@ -1,4 +1,5 @@
 import { useRef, type ComponentProps } from "react";
+import { useResponsiveLayout } from "../../shared/styles/useResponsiveLayout";
 import { AccommodationBookingCard } from "../../features/accommodations/detail/components/AccommodationBookingCard";
 import {
   AccommodationDescriptionModal,
@@ -52,6 +53,7 @@ export type AccommodationDetailScreenState =
 
 export interface AccommodationDetailScreenProps {
   readonly errorMessage: string | null;
+  readonly onBack?: () => void;
   readonly onClearError: () => void;
   readonly refreshError?: {
     readonly isRetrying: boolean;
@@ -64,10 +66,22 @@ export interface AccommodationDetailScreenProps {
 export function AccommodationDetailScreen({
   errorMessage,
   onClearError,
+  onBack,
   refreshError = null,
   state,
 }: AccommodationDetailScreenProps) {
   const stateOwnerRef = useRef<HTMLDivElement>(null);
+  const isMobile = useResponsiveLayout() === "mobile-tablet";
+  const backButton = onBack && (
+    <button
+      type="button"
+      className={styles.stateBackButton}
+      onClick={onBack}
+      aria-label="이전 화면으로"
+    >
+      ←
+    </button>
+  );
 
   if (state.status === "loading") {
     return (
@@ -78,6 +92,7 @@ export function AccommodationDetailScreen({
         role="region"
         tabIndex={-1}
       >
+        {backButton}
         <PageContainer
           className={styles.loadingShell}
           variant="full"
@@ -113,6 +128,7 @@ export function AccommodationDetailScreen({
         role="region"
         tabIndex={-1}
       >
+        {backButton}
         <PageContainer className={styles.stateShell} variant="full">
           <RetryableErrorState
             title="숙소 정보를 불러오지 못했어요"
@@ -144,6 +160,7 @@ export function AccommodationDetailScreen({
         role="region"
         tabIndex={-1}
       >
+        {backButton}
         <PageContainer className={styles.stateShell} variant="full">
           <TerminalErrorState
             title="숙소 정보를 확인할 수 없어요"
@@ -189,13 +206,27 @@ export function AccommodationDetailScreen({
           <div className={styles.leftColumn}>
             <AccommodationOverview {...view.overview} />
           </div>
-          <div className={styles.sidebar}>
-            <AccommodationBookingCard {...view.bookingCard} />
-          </div>
+          {!isMobile && (
+            <div className={styles.sidebar}>
+              <AccommodationBookingCard {...view.bookingCard} />
+            </div>
+          )}
         </div>
 
         <AccommodationLocationSection {...view.location} />
         <AccommodationReviewsSection {...view.reviews} />
+        {isMobile && (
+          <AccommodationBookingCard
+            {...view.bookingCard}
+            locationLabel={view.overview.detailView.locationLabel}
+            {...(view.overview.detailView.rating.hasReviews
+              ? {
+                  ratingLabel:
+                    view.overview.detailView.rating.averageRatingLabel,
+                }
+              : {})}
+          />
+        )}
       </PageContainer>
 
       <ReviewModal {...view.reviewModal} />

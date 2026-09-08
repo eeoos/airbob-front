@@ -26,7 +26,7 @@
 }
 
 .results {
-  overflow: hidden auto;
+  overflow: hidden;
   padding: 0;
   margin: 0;
   min-width: 0;
@@ -35,8 +35,6 @@
   max-height: 100%;
   display: flex;
   flex-direction: column;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
   border: none;
   place-content: flex-start;
   align-items: stretch;
@@ -50,46 +48,21 @@
     visibility 0s linear 0s;
 }
 
-.results:focus-visible {
+.resultsScrollArea {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.resultsScrollArea:focus-visible {
   outline: 2px solid var(--color-text-primary);
   outline-offset: 2px;
   box-shadow: var(--focus-ring);
 }
 
-.results > *:last-child {
-  margin-bottom: 0;
-  padding-bottom: 0;
-}
-
-.results > .paginationContainer {
-  padding-bottom: var(--space-4);
-  margin-bottom: 0;
-  flex-shrink: 0;
-}
-
-.results > * {
-  margin-bottom: 0;
-}
-
-.results > *:not(:last-child) {
-  margin-bottom: 0;
-}
-
-.results > * > *:last-child {
-  margin-bottom: 0;
-  padding-bottom: 0;
-}
-
-.results > *:last-child > *:last-child {
-  margin-bottom: 0;
-  padding-bottom: 0;
-}
-
-.results > * > * {
-  margin-bottom: 0;
-}
-
-.results::-webkit-scrollbar {
+.resultsScrollArea::-webkit-scrollbar {
   display: none;
 }
 
@@ -110,11 +83,11 @@
 }
 
 .title {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-xl);
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-heading);
   color: var(--color-brand-ink);
-  margin: 0 0 var(--space-5);
+  margin: 0 0 var(--space-6);
 }
 
 .loading,
@@ -235,6 +208,16 @@
 
 .cardGrid[data-columns="3"] {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+@media (--viewport-desktop) {
+  .cardGrid > .cardWrapper {
+    display: grid;
+    grid-row: span 4;
+    grid-template-rows: subgrid;
+    row-gap: var(--space-1);
+  }
 }
 
 @container search-results (max-width: 720px) {
@@ -327,7 +310,7 @@
     /* transform is controlled by Framer Motion; touch handling stays in CSS. */
   }
 
-  /* Bottom Sheet Header - Always Visible */
+  /* The handle and count scroll away with the expanded list. */
   .bottomSheetHeader {
     position: relative;
     box-sizing: border-box;
@@ -392,13 +375,18 @@
     pointer-events: none;
   }
 
-  /* Content Section - Hidden in Collapsed */
-  .bottomSheetContent {
+  .bottomSheetViewport {
     flex: 1;
+    min-height: 0;
     overflow: hidden auto;
     overscroll-behavior: contain;
-    padding: 0 var(--space-4) var(--space-4) var(--space-4);
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  /* Content Section - Hidden in Collapsed */
+  .bottomSheetContent {
+    padding: 0 var(--space-4) var(--space-4) var(--space-4);
     width: 100%;
     box-sizing: border-box;
     transition:
@@ -406,36 +394,36 @@
       visibility var(--motion-duration-slow) var(--motion-ease-standard);
   }
 
-  .bottomSheet.half .bottomSheetContent {
+  .bottomSheet.half .bottomSheetViewport {
+    overflow: clip;
     flex: 0 0 auto;
-    height: calc(
-      var(--search-bottom-sheet-visible-height) -
-        var(--layout-search-bottom-sheet-peek-height)
-    );
-    max-height: calc(
-      var(--search-bottom-sheet-visible-height) -
-        var(--layout-search-bottom-sheet-peek-height)
-    );
+    height: var(--search-bottom-sheet-visible-height);
+    max-height: var(--search-bottom-sheet-visible-height);
   }
 
-  .bottomSheet.dragging .bottomSheetContent {
+  .bottomSheet.dragging .bottomSheetViewport {
     flex: 1 1 auto;
     height: auto;
     max-height: none;
+    overflow: hidden;
   }
 
   .bottomSheet.expanded .bottomSheetContent {
-    overflow: hidden auto;
     padding-bottom: calc(
       var(--space-16) + var(--space-6) + var(--layout-mobile-safe-bottom)
     );
+  }
+
+  .bottomSheet.expanded {
+    border-radius: 0;
+    border: 0;
   }
 
   .bottomSheetContent.hidden {
     display: none;
   }
 
-  .bottomSheetContent::-webkit-scrollbar {
+  .bottomSheetViewport::-webkit-scrollbar {
     display: none;
   }
 

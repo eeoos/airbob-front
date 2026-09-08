@@ -33,14 +33,16 @@ type SearchBarProps = SearchBarBaseProps &
 export const SearchBar: React.FC<SearchBarProps> = (props) => {
   const isMobileOrTablet = useResponsiveLayout() === "mobile-tablet";
 
-  if (props.mobileHeader && isMobileOrTablet) {
+  if (isMobileOrTablet) {
     return (
       <React.Suspense
         fallback={
           <div
             aria-busy="true"
             aria-label="숙소 검색"
-            className={styles.mobileHeaderBar}
+            className={
+              props.mobileHeader ? styles.mobileHeaderBar : styles.mobileHomeBar
+            }
             role="search"
           >
             <span className={styles.visuallyHidden}>
@@ -52,7 +54,9 @@ export const SearchBar: React.FC<SearchBarProps> = (props) => {
         <LazyMobileSearchBar
           routePort={props.routePort}
           isMapDragMode={props.isMapDragMode ?? false}
-          onMobileBack={props.onMobileBack}
+          {...(props.mobileHeader
+            ? { mobileHeader: true, onMobileBack: props.onMobileBack }
+            : { mobileHeader: false })}
           {...(props.onSearch === undefined
             ? {}
             : { onSearch: props.onSearch })}
@@ -205,6 +209,11 @@ const DesktopSearchBar: React.FC<SearchBarBaseProps> = ({
     guestTriggerRef.current?.focus();
   }, [closeActivePopover]);
 
+  const advanceToDate = useCallback(() => {
+    handleDestinationEnterWithoutSuggestion();
+    dateTriggerRef.current?.focus();
+  }, [handleDestinationEnterWithoutSuggestion]);
+
   const submitSearch = useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
       event.stopPropagation();
@@ -233,6 +242,7 @@ const DesktopSearchBar: React.FC<SearchBarBaseProps> = ({
         <div
           ref={setDestinationAreaRef}
           className={`${styles.searchItem} ${styles.destinationItem}`}
+          data-active={showSuggestions ? "" : undefined}
         >
           <SearchDestinationField
             inputRef={destinationInputRef}
@@ -244,7 +254,7 @@ const DesktopSearchBar: React.FC<SearchBarBaseProps> = ({
             onClear={clearDestinationSelection}
             onCompositionEnd={endComposition}
             onCompositionStart={startComposition}
-            onEnterWithoutSuggestion={handleDestinationEnterWithoutSuggestion}
+            onEnterWithoutSuggestion={advanceToDate}
             onEscape={handleDestinationEscape}
             onFocus={handleDestinationFocus}
             onInputClick={(event) => event.stopPropagation()}
@@ -252,11 +262,11 @@ const DesktopSearchBar: React.FC<SearchBarBaseProps> = ({
             onSelect={(suggestion) => {
               if (typeof suggestion === "string") {
                 changeDestination(suggestion);
-                closeActivePopover();
-                return;
+              } else {
+                selectDestination(suggestion);
               }
 
-              selectDestination(suggestion);
+              advanceToDate();
             }}
             shouldClearOnValueChange={!!selectedPlace}
             suggestions={suggestions}
@@ -301,6 +311,7 @@ const DesktopSearchBar: React.FC<SearchBarBaseProps> = ({
             onClose={closeDateAndRestoreFocus}
           >
             <DatePicker
+              variant="search"
               checkIn={checkIn}
               checkOut={checkOut}
               onDateSelect={handleDateSelect}
@@ -329,6 +340,7 @@ const DesktopSearchBar: React.FC<SearchBarBaseProps> = ({
           aria-expanded={showGuestPicker}
           aria-haspopup="dialog"
           className={styles.searchItem}
+          data-active={showGuestPicker ? "" : undefined}
           onClick={handleGuestClick}
           type="button"
         >

@@ -1,6 +1,7 @@
 .galleryDialog {
   background: transparent;
   box-shadow: none;
+  pointer-events: none;
 }
 
 .galleryBody {
@@ -14,29 +15,42 @@
   padding: 0;
 }
 
-.galleryClose {
-  position: absolute;
-  top: var(--space-5);
-  right: var(--space-5);
-  z-index: var(--z-local-raised);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--control-touch-target);
-  height: var(--control-touch-target);
-  border: none;
-  border-radius: var(--radius-pill);
-  background: var(--overlay-surface-strong);
-  color: var(--color-text-primary);
-  cursor: pointer;
-  font-size: 28px;
-  line-height: 1;
-  transition: background-color var(--motion-duration-fast)
-    var(--motion-ease-standard);
+/* Transparent space uses Dialog's backdrop; photos and controls keep their events. */
+.galleryClose,
+.galleryImage,
+.galleryImageFallback,
+.galleryNav,
+.galleryThumbnail {
+  pointer-events: auto;
 }
 
-.galleryClose:hover {
-  background: var(--color-surface-brand-subtle);
+.galleryClose {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.galleryClose:focus-visible {
+  top: var(--space-4);
+  left: 50%;
+  z-index: var(--z-local-raised);
+  width: auto;
+  height: var(--control-touch-target);
+  margin: 0;
+  padding: 0 var(--space-4);
+  clip-path: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-background-page);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  transform: translateX(-50%);
 }
 
 .galleryClose:focus-visible,

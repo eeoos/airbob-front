@@ -217,13 +217,17 @@ describe("Wishlist view components", () => {
     ).toBeVisible();
   });
 
-  it("announces recently-viewed edit mode and labels each destructive action", () => {
+  it("shows completion and labeled delete controls without an edit-mode notice", () => {
     renderRecentlyViewed({
       isEditMode: true,
       recentlyViewed: [makeRecentlyViewedCard()],
     });
 
-    expect(screen.getByRole("status")).toHaveTextContent("편집 모드");
+    expect(screen.getByRole("button", { name: "완료" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", {
         name: "Ocean house 최근 조회에서 삭제",

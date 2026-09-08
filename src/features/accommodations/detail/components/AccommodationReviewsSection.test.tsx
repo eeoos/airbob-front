@@ -57,7 +57,7 @@ describe("AccommodationReviewsSection", () => {
       "/guest.jpg",
     );
     expect(screen.getByRole("img", { name: "5점 만점에 4점" })).toBeVisible();
-    expect(screen.getByText("2026년 7월")).toBeInTheDocument();
+    expect(screen.getAllByText(/2026년 7월/)).toHaveLength(2);
     expect(screen.getByText(review.content)).toBeInTheDocument();
     expect(screen.getByAltText("리뷰 이미지")).toHaveAttribute(
       "src",

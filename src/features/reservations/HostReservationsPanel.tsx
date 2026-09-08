@@ -108,7 +108,6 @@ export function HostReservationsPanel({
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <p className={styles.eyebrow}>호스트 작업공간</p>
         <h2 className={styles.title}>예약 관리</h2>
         <p className={styles.intro}>
           다가오는 체크인과 게스트 정보를 차분하게 확인하세요.

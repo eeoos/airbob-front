@@ -1,6 +1,12 @@
 import * as fs from "fs";
 import * as path from "path";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { MockedFunction } from "vitest";
 import { OverlayProvider } from "../../../../app/overlays/OverlayProvider";
@@ -256,6 +262,53 @@ describe("SearchBar", () => {
     expect(state.actions.openDestination).toHaveBeenCalledTimes(1);
   });
 
+  it("opens the shared mobile editor from the home search prompt", async () => {
+    vi.useRealTimers();
+    responsiveLayout.current = "mobile-tablet";
+    const state = createSearchBarState();
+    mockUseSearchBarState.mockReturnValue(state);
+    const view = render(
+      <OverlayProvider>
+        <SearchBar routePort={routePort} />
+      </OverlayProvider>,
+    );
+    await settleLazyMobileSearchBar();
+
+    const prompt = await screen.findByRole("button", {
+      name: "검색을 시작해 보세요",
+    });
+    expect(prompt).toHaveAttribute("aria-haspopup", "dialog");
+    expect(
+      screen.queryByRole("button", { name: "어디든지" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "이전 화면으로" }),
+    ).not.toBeInTheDocument();
+    await userEvent.click(prompt);
+    expect(state.actions.openDestination).toHaveBeenCalledTimes(1);
+    expect(state.actions.handleSearch).not.toHaveBeenCalled();
+
+    mockUseSearchBarState.mockReturnValue(
+      createSearchBarState({
+        popover: {
+          activePopover: "destination",
+          isExpanded: true,
+          showSuggestions: true,
+        },
+      }),
+    );
+    view.rerender(
+      <OverlayProvider>
+        <SearchBar routePort={routePort} />
+      </OverlayProvider>,
+    );
+    expect(
+      await screen.findByRole("dialog", { name: "숙소 검색" }),
+    ).toHaveAttribute("aria-modal", "true");
+    expect(screen.getByRole("heading", { name: "위치" })).toBeVisible();
+    expect(screen.queryByText("추천 여행지")).not.toBeInTheDocument();
+  });
+
   it("renders the search route as a compact two-line mobile summary", async () => {
     vi.useRealTimers();
     responsiveLayout.current = "mobile-tablet";
@@ -363,7 +416,7 @@ describe("SearchBar", () => {
     expect(state.actions.collapseShell).toHaveBeenCalled();
   });
 
-  it("opens destination search as a dedicated mobile step and advances a recommendation to dates", async () => {
+  it("opens destination search without recommendations and advances entered text to dates", async () => {
     vi.useRealTimers();
     responsiveLayout.current = "mobile-tablet";
     const state = createSearchBarState({
@@ -392,17 +445,14 @@ describe("SearchBar", () => {
     );
 
     expect(screen.getByRole("combobox", { name: "여행지" })).toHaveFocus();
+    expect(screen.queryByText("추천 여행지")).not.toBeInTheDocument();
     expect(
-      screen.getByRole("button", {
-        name: /부산.*바다와 도심을 함께 즐기기 좋은 곳/,
-      }),
-    ).toBeInTheDocument();
-
-    await userEvent.click(
-      screen.getByRole("button", {
-        name: /부산.*바다와 도심을 함께 즐기기 좋은 곳/,
-      }),
-    );
+      screen.queryByRole("dialog", { name: "검색 지역 추천" }),
+    ).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole("combobox", { name: "여행지" }), {
+      target: { value: "부산" },
+    });
+    await userEvent.keyboard("{Enter}");
 
     expect(state.actions.changeDestination).toHaveBeenCalledWith("부산");
     expect(state.actions.openDatePicker).toHaveBeenCalledTimes(1);
@@ -618,13 +668,101 @@ describe("SearchBar", () => {
   });
 
   it("selects a place suggestion with pointer activation", async () => {
+    const openDatePicker = vi.fn();
     const { selectDestination, suggestionButton } =
-      renderExpandedSearchBarWithSuggestions();
+      renderExpandedSearchBarWithSuggestions({ actions: { openDatePicker } });
 
     await userEvent.click(suggestionButton);
 
     expect(selectDestination).toHaveBeenCalledWith(seoulSuggestion);
+    expect(openDatePicker).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByRole("button", { name: /체크인.*체크아웃/ }),
+    ).toHaveFocus();
   });
+
+  it.each([true, false])(
+    "advances destination Enter to dates with suggestions: %s",
+    async (hasSuggestions) => {
+      const openDatePicker = vi.fn();
+      const handleSearch = vi.fn();
+      const selectDestination = vi.fn();
+      mockUseSearchBarState.mockReturnValue(
+        createSearchBarState({
+          destination: {
+            inputText: "서울",
+            suggestions: hasSuggestions ? [seoulSuggestion] : [],
+          },
+          popover: {
+            isExpanded: true,
+            activePopover: "destination",
+            showSuggestions: true,
+          },
+          actions: { openDatePicker, handleSearch, selectDestination },
+        }),
+      );
+
+      render(<SearchBar routePort={routePort} />);
+
+      screen.getByRole("combobox", { name: "여행지" }).focus();
+      await userEvent.keyboard("{Enter}");
+
+      expect(openDatePicker).toHaveBeenCalledTimes(1);
+      expect(selectDestination).toHaveBeenCalledTimes(hasSuggestions ? 1 : 0);
+      expect(handleSearch).not.toHaveBeenCalled();
+      expect(
+        screen.getByRole("button", { name: /체크인.*체크아웃/ }),
+      ).toHaveFocus();
+    },
+  );
+
+  it.each([{ isComposing: true }, { keyCode: 229 }])(
+    "does not confirm destination during native IME composition: %j",
+    (nativeEvent) => {
+      const openDatePicker = vi.fn();
+      const { selectDestination } = renderExpandedSearchBarWithSuggestions({
+        actions: { openDatePicker },
+      });
+
+      fireEvent.keyDown(screen.getByRole("combobox", { name: "여행지" }), {
+        key: "Enter",
+        ...nativeEvent,
+      });
+
+      expect(selectDestination).not.toHaveBeenCalled();
+      expect(openDatePicker).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    [null, null, "날짜 추가"],
+    [new Date(2026, 6, 15), null, "7월 15일 - 날짜 추가"],
+    [new Date(2026, 6, 15), new Date(2026, 6, 25), "7월 15일 - 7월 25일"],
+    [new Date(2026, 6, 31), new Date(2026, 7, 2), "7월 31일 - 8월 2일"],
+  ])(
+    "shows one expanded date range for %s to %s",
+    (checkIn, checkOut, range) => {
+      mockUseSearchBarState.mockReturnValue(
+        createSearchBarState({
+          dates: { checkIn, checkOut },
+          popover: { isExpanded: true },
+        }),
+      );
+
+      render(<SearchBar routePort={routePort} />);
+
+      expect(screen.getByText("날짜", { exact: true })).toBeInTheDocument();
+      expect(
+        screen.queryByText("체크인", { exact: true }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("체크아웃", { exact: true }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /체크인.*체크아웃/ }),
+      ).toHaveTextContent(range);
+    },
+  );
 
   it("updates destination input state, resets stale place selection, and opens suggestions while typing", async () => {
     const changeDestination = vi.fn();
@@ -861,12 +999,17 @@ describe("SearchBar", () => {
     ["Enter", "{Enter}"],
     ["Space", " "],
   ])("selects a place suggestion with %s", async (_keyName, key) => {
+    const openDatePicker = vi.fn();
     const { selectDestination, suggestionButton } =
-      renderExpandedSearchBarWithSuggestions();
+      renderExpandedSearchBarWithSuggestions({ actions: { openDatePicker } });
 
     suggestionButton.focus();
     await userEvent.keyboard(key);
 
     expect(selectDestination).toHaveBeenCalledWith(seoulSuggestion);
+    expect(openDatePicker).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByRole("button", { name: /체크인.*체크아웃/ }),
+    ).toHaveFocus();
   });
 });

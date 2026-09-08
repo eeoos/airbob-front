@@ -259,7 +259,7 @@ test("restores paginated search URLs and requests through browser history", asyn
     .toBeGreaterThan(pageThreeRequestsBeforeForward);
 });
 
-test("keeps pagination visible across desktop sizes while swapping full result pages", async ({
+test("places pagination after results and returns to the top after page changes", async ({
   api,
   page,
   session,
@@ -267,22 +267,40 @@ test("keeps pagination visible across desktop sizes while swapping full result p
   session.clear();
   api.register("GET", "/api/v1/search/accommodations", (request) => {
     const requestedPage = Number(getRequestQuery(request).page ?? "0");
+    const resultCount = requestedPage === 3 ? 3 : 18;
+    const nameSuffix =
+      requestedPage === 2
+        ? " 넓은 거실과 바다 전망이 있는 가족 숙소".repeat(8)
+        : "";
 
     return apiSuccess({
-      stay_search_result_listing: Array.from({ length: 18 }, (_, index) =>
-        makeSearchAccommodation(
-          requestedPage * 100 + index + 1,
-          `페이지 ${requestedPage + 1} 숙소 ${index + 1}`,
-        ),
+      stay_search_result_listing: Array.from(
+        { length: resultCount },
+        (_, index) => {
+          const accommodation = makeSearchAccommodation(
+            requestedPage * 100 + index + 1,
+            `페이지 ${requestedPage + 1} 숙소 ${index + 1}${index % 3 === 1 ? nameSuffix : ""}`,
+          );
+          return {
+            ...accommodation,
+            address_summary: {
+              ...accommodation.address_summary,
+              city:
+                index % 4 === 0
+                  ? "서울 용산구 한강 전망이 보이는 조용한 동네"
+                  : "서울",
+            },
+          };
+        },
       ),
       page_info: {
         page_size: 18,
         current_page: requestedPage,
-        total_pages: 3,
-        total_elements: 54,
+        total_pages: 4,
+        total_elements: 57,
         is_first: requestedPage === 0,
-        is_last: requestedPage === 2,
-        has_next: requestedPage < 2,
+        is_last: requestedPage === 3,
+        has_next: requestedPage < 3,
         has_previous: requestedPage > 0,
       },
     });
@@ -302,6 +320,13 @@ test("keeps pagination visible across desktop sizes while swapping full result p
       const pagination = page.getByRole("navigation", {
         name: "검색 결과 페이지",
       });
+      await expect(pagination).not.toBeInViewport();
+      const resultsScrollArea = page.getByRole("region", {
+        name: "숙소 목록 스크롤",
+      });
+      await expect(
+        resultsScrollArea.getByRole("navigation", { name: "검색 결과 페이지" }),
+      ).toHaveCount(1);
       await pagination.scrollIntoViewIfNeeded();
       await expect(pagination).toBeInViewport();
       await expect
@@ -318,14 +343,69 @@ test("keeps pagination visible across desktop sizes while swapping full result p
           windowScrollY: 0,
         });
 
-      await pagination.getByRole("button", { name: "2" }).click();
-
-      await expect(
-        pagination.getByRole("button", { name: "2" }),
-      ).toHaveAttribute("aria-current", "page");
-      await expect(pagination).toBeInViewport();
-      expect(new URL(page.url()).searchParams.get("page")).toBe("1");
-      expect(await page.evaluate(() => window.scrollY)).toBe(0);
+      for (const { button, currentPage } of [
+        { button: "2", currentPage: "2" },
+        { button: "3", currentPage: "3" },
+        { button: "다음", currentPage: "4" },
+        { button: "이전", currentPage: "3" },
+        { button: "1", currentPage: "1" },
+        { button: "다음", currentPage: "2" },
+        { button: "다음", currentPage: "3" },
+      ]) {
+        await pagination
+          .getByRole("button", { name: button, exact: true })
+          .click();
+        const activeButton = pagination.getByRole("button", {
+          name: currentPage,
+          exact: true,
+        });
+        await expect(activeButton).toHaveAttribute("aria-current", "page");
+        await expect(activeButton).toBeEnabled();
+        expect(
+          await resultsScrollArea.evaluate((element) => element.scrollTop),
+        ).toBe(0);
+        await expect(
+          resultsScrollArea.getByRole("listitem").first(),
+        ).toBeInViewport();
+        const lastCardBottom = await resultsScrollArea
+          .getByRole("listitem")
+          .last()
+          .evaluate((element) => element.getBoundingClientRect().bottom);
+        const paginationTop = await pagination.evaluate(
+          (element) => element.getBoundingClientRect().top,
+        );
+        expect(paginationTop).toBeGreaterThan(lastCardBottom);
+        expect(await page.evaluate(() => window.scrollY)).toBe(0);
+        await pagination.scrollIntoViewIfNeeded();
+        for (const pageButton of await pagination.getByRole("button").all()) {
+          await expect(pageButton).toBeInViewport({ ratio: 1 });
+        }
+        const cardRows = await page
+          .getByTestId("search-result-card")
+          .evaluateAll((cards) => {
+            const rows = new Map<number, number[][]>();
+            for (const card of cards) {
+              const info = card.querySelector("a > div:last-child");
+              if (!info) throw new Error("Missing accommodation information");
+              const top = card.getBoundingClientRect().top;
+              const partTops = Array.from(info.children).map(
+                (part) => part.getBoundingClientRect().top,
+              );
+              rows.set(top, [...(rows.get(top) ?? []), partTops]);
+            }
+            return Array.from(rows.values());
+          });
+        for (const row of cardRows) {
+          for (const partIndex of [0, 1, 2]) {
+            const positions = row.map(
+              (parts) => parts[partIndex] ?? Number.NaN,
+            );
+            expect(
+              Math.max(...positions) - Math.min(...positions),
+            ).toBeLessThan(1);
+          }
+        }
+      }
     });
   }
 });

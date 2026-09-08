@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useResponsiveLayout } from "../../../shared/styles/useResponsiveLayout";
 import { browserWindowNavigation } from "../../../platform/browser/windowNavigation";
 import {
   SearchController,
@@ -40,6 +41,8 @@ const toBookingSafeSearchParams = (params: URLSearchParams) => {
 };
 
 function SearchRouteContent() {
+  const navigate = useNavigate();
+  const layout = useResponsiveLayout();
   const [searchParams, setSearchParams] = useSearchParams();
   const session = useSession();
   const { isCurrentSession, state } = session;
@@ -120,9 +123,9 @@ function SearchRouteContent() {
     return {
       getAccommodationHref,
       openAccommodation(accommodationId) {
-        browserWindowNavigation.openInNewTab(
-          getAccommodationHref(accommodationId),
-        );
+        const href = getAccommodationHref(accommodationId);
+        if (layout === "mobile-tablet") navigate(href);
+        else browserWindowNavigation.openInNewTab(href);
       },
       openPage(page) {
         const nextParams = new URLSearchParams(searchParamsString);
@@ -145,7 +148,13 @@ function SearchRouteContent() {
         setSearchParams(nextParams, { replace: true });
       },
     };
-  }, [detailSearchString, searchParamsString, setSearchParams]);
+  }, [
+    detailSearchString,
+    layout,
+    navigate,
+    searchParamsString,
+    setSearchParams,
+  ]);
   const wishlistScope =
     state.status === "authenticated"
       ? session.captureAuthenticatedSession()

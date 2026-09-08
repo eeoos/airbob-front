@@ -1,4 +1,10 @@
-import { useId, type ComponentProps, type RefObject } from "react";
+import {
+  useId,
+  useLayoutEffect,
+  useRef,
+  type ComponentProps,
+  type RefObject,
+} from "react";
 import { motion, type MotionStyle } from "framer-motion";
 import {
   DeferredAuthModal,
@@ -23,6 +29,7 @@ type MotionSectionProps = ComponentProps<typeof motion.section>;
 
 interface SearchScreenBottomSheetProps {
   readonly bottomSheetHandleRef: RefObject<HTMLButtonElement | null>;
+  readonly bottomSheetContentRef: RefObject<HTMLDivElement | null>;
   readonly bottomSheetHeaderRef: RefObject<HTMLDivElement | null>;
   readonly bottomSheetRef: RefObject<HTMLElement | null>;
   readonly bottomSheetState: "collapsed" | "half" | "expanded";
@@ -40,6 +47,7 @@ interface SearchScreenBottomSheetProps {
   readonly handleDragEnd: NonNullable<MotionSectionProps["onDragEnd"]>;
   readonly handleDragStart: NonNullable<MotionSectionProps["onDragStart"]>;
   readonly handleMapInteraction: () => void;
+  readonly handleMapReturn: () => void;
   readonly isDragging: boolean;
   readonly isMobileOrTablet: boolean;
   readonly dragControls: NonNullable<MotionSectionProps["dragControls"]>;
@@ -152,6 +160,16 @@ export function SearchScreen({
   results,
   wishlistModal,
 }: SearchScreenProps) {
+  const resultsScrollRef = useRef<HTMLDivElement>(null);
+  const mobileResultsScrollRef = bottomSheet.bottomSheetContentRef;
+  const isMobileOrTablet = bottomSheet.isMobileOrTablet;
+  useLayoutEffect(() => {
+    const scrollArea = isMobileOrTablet
+      ? mobileResultsScrollRef.current
+      : resultsScrollRef.current;
+    if (scrollArea) scrollArea.scrollTop = 0;
+  }, [results.currentPage, isMobileOrTablet, mobileResultsScrollRef]);
+
   const hasResults = results.accommodationCards.length > 0;
   const bottomSheetContentId = useId();
   const bottomSheetTitleId = useId();
@@ -179,6 +197,7 @@ export function SearchScreen({
       hoveredAccommodationId={map.hoveredAccommodationId}
       onAccommodationSelect={map.handleAccommodationSelect}
       getAccommodationHref={getAccommodationHref}
+      onAccommodationOpen={onAccommodationOpen}
       isExpanded={isExpanded}
       onBoundsChange={map.requestBounds}
       onBoundsDragCancel={map.onBoundsDragCancel}
@@ -194,40 +213,36 @@ export function SearchScreen({
       {...(onExpandToggle === undefined ? {} : { onExpandToggle })}
     />
   );
-  const renderResults = (
-    layout: "desktop" | "bottomSheet",
-    variant: "compact" | "full",
-  ) => (
-    <>
-      <SearchResultsList
-        accommodations={results.accommodationCards}
-        errorMessage={errorMessage}
-        isErrorRetryable={isErrorRetryable}
-        isLoading={results.isLoading}
-        isRefreshing={results.isRefreshing}
-        selectedAccommodationId={map.selectedAccommodationId}
-        onAccommodationClick={onAccommodationOpen}
-        onHoveredAccommodationChange={map.setHoveredAccommodationId}
-        getAccommodationHref={getAccommodationHref}
-        layout={layout}
-        classNames={resultsListClassNames}
-        checkIn={checkIn}
-        checkOut={checkOut}
-        onWishlistToggle={onWishlistToggle}
-        onRetry={onRetry}
-      />
-      {hasResults && (
-        <SearchPagination
-          currentPage={results.currentPage}
-          totalPages={results.totalPages}
-          isLoading={isPaginationBusy}
-          onPageChange={onPageChange}
-          classNames={paginationClassNames}
-          variant={variant}
-        />
-      )}
-    </>
+  const renderResults = (layout: "desktop" | "bottomSheet") => (
+    <SearchResultsList
+      accommodations={results.accommodationCards}
+      errorMessage={errorMessage}
+      isErrorRetryable={isErrorRetryable}
+      isLoading={results.isLoading}
+      isRefreshing={results.isRefreshing}
+      selectedAccommodationId={map.selectedAccommodationId}
+      onAccommodationClick={onAccommodationOpen}
+      onHoveredAccommodationChange={map.setHoveredAccommodationId}
+      getAccommodationHref={getAccommodationHref}
+      layout={layout}
+      classNames={resultsListClassNames}
+      checkIn={checkIn}
+      checkOut={checkOut}
+      onWishlistToggle={onWishlistToggle}
+      onRetry={onRetry}
+    />
   );
+  const renderPagination = (variant: "compact" | "full") =>
+    hasResults && (
+      <SearchPagination
+        currentPage={results.currentPage}
+        totalPages={results.totalPages}
+        isLoading={isPaginationBusy}
+        onPageChange={onPageChange}
+        classNames={paginationClassNames}
+        variant={variant}
+      />
+    );
   return (
     <>
       <div className={styles.container}>
@@ -275,37 +290,67 @@ export function SearchScreen({
               onDragEnd={bottomSheet.handleDragEnd}
             >
               <div
-                ref={bottomSheet.bottomSheetHeaderRef}
-                className={styles.bottomSheetHeader}
-                onPointerCancel={bottomSheet.handleBottomSheetPointerEnd}
-                onPointerDown={bottomSheet.handleBottomSheetPointerDown}
-                onPointerUp={bottomSheet.handleBottomSheetPointerEnd}
+                ref={bottomSheet.bottomSheetContentRef}
+                className={styles.bottomSheetViewport}
+                role="region"
+                aria-label="숙소 목록 스크롤"
+                data-search-sheet-scroll=""
               >
-                <button
-                  ref={bottomSheet.bottomSheetHandleRef}
-                  type="button"
-                  className={styles.dragHandle}
-                  aria-controls={bottomSheetContentId}
-                  aria-expanded={bottomSheet.bottomSheetState !== "collapsed"}
-                  aria-keyshortcuts="ArrowUp ArrowDown Home End"
-                  aria-label={`검색 결과 패널 조절, 현재 ${bottomSheetStateLabel}`}
-                  data-state={bottomSheet.bottomSheetState}
-                  onClick={bottomSheet.handleBottomSheetToggle}
-                  onKeyDown={bottomSheet.handleBottomSheetKeyDown}
+                <div
+                  ref={bottomSheet.bottomSheetHeaderRef}
+                  className={styles.bottomSheetHeader}
+                  data-search-sheet-header=""
+                  onPointerCancel={bottomSheet.handleBottomSheetPointerEnd}
+                  onPointerDown={bottomSheet.handleBottomSheetPointerDown}
+                  onPointerUp={bottomSheet.handleBottomSheetPointerEnd}
                 >
-                  <span className={styles.dragHandleBar} aria-hidden="true" />
-                </button>
+                  <button
+                    ref={bottomSheet.bottomSheetHandleRef}
+                    type="button"
+                    className={styles.dragHandle}
+                    aria-controls={bottomSheetContentId}
+                    aria-expanded={bottomSheet.bottomSheetState !== "collapsed"}
+                    aria-keyshortcuts="ArrowUp ArrowDown Home End"
+                    aria-label={`검색 결과 패널 조절, 현재 ${bottomSheetStateLabel}`}
+                    data-state={bottomSheet.bottomSheetState}
+                    onClick={bottomSheet.handleBottomSheetToggle}
+                    onKeyDown={bottomSheet.handleBottomSheetKeyDown}
+                  >
+                    <span className={styles.dragHandleBar} aria-hidden="true" />
+                  </button>
 
-                <h2 id={bottomSheetTitleId} className={styles.title}>
-                  {resultCountLabel}
-                </h2>
+                  <h2 id={bottomSheetTitleId} className={styles.title}>
+                    {resultCountLabel}
+                  </h2>
+                </div>
+                <div
+                  id={bottomSheetContentId}
+                  role="group"
+                  aria-label="검색 결과 목록"
+                  className={`${styles.bottomSheetContent} ${
+                    bottomSheet.bottomSheetState === "collapsed" &&
+                    !bottomSheet.isDragging
+                      ? styles.hidden
+                      : ""
+                  }`}
+                  aria-hidden={
+                    bottomSheet.bottomSheetState === "collapsed" || undefined
+                  }
+                  inert={bottomSheet.bottomSheetState === "collapsed"}
+                  hidden={
+                    bottomSheet.bottomSheetState === "collapsed" &&
+                    !bottomSheet.isDragging
+                  }
+                >
+                  {renderResults("bottomSheet")}
+                  {renderPagination("compact")}
+                </div>
               </div>
-
               {bottomSheet.bottomSheetState === "expanded" && (
                 <button
                   type="button"
                   className={styles.mapReturnButton}
-                  onClick={bottomSheet.handleMapInteraction}
+                  onClick={bottomSheet.handleMapReturn}
                 >
                   지도 보기
                   <svg
@@ -318,28 +363,6 @@ export function SearchScreen({
                   </svg>
                 </button>
               )}
-
-              <div
-                id={bottomSheetContentId}
-                role="group"
-                aria-label="검색 결과 목록"
-                className={`${styles.bottomSheetContent} ${
-                  bottomSheet.bottomSheetState === "collapsed" &&
-                  !bottomSheet.isDragging
-                    ? styles.hidden
-                    : ""
-                }`}
-                aria-hidden={
-                  bottomSheet.bottomSheetState === "collapsed" || undefined
-                }
-                inert={bottomSheet.bottomSheetState === "collapsed"}
-                hidden={
-                  bottomSheet.bottomSheetState === "collapsed" &&
-                  !bottomSheet.isDragging
-                }
-              >
-                {renderResults("bottomSheet", "compact")}
-              </div>
             </motion.section>
           </>
         ) : (
@@ -356,8 +379,17 @@ export function SearchScreen({
               inert={map.isMapExpanded}
               role="region"
             >
-              <h2 className={styles.title}>{resultCountLabel}</h2>
-              {renderResults("desktop", "full")}
+              <div
+                ref={resultsScrollRef}
+                aria-label="숙소 목록 스크롤"
+                className={styles.resultsScrollArea}
+                data-search-results-scroll=""
+                role="region"
+              >
+                <h2 className={styles.title}>{resultCountLabel}</h2>
+                {renderResults("desktop")}
+                {renderPagination("full")}
+              </div>
             </div>
             <div className={styles.mapSection} data-search-pane="map">
               {renderMap(map.isMapExpanded, map.toggleMapExpanded)}

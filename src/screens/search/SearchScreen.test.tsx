@@ -125,6 +125,7 @@ const createProps = (
     bottomSheetRef: createRef<HTMLDivElement>(),
     bottomSheetHeaderRef: createRef<HTMLDivElement>(),
     bottomSheetHandleRef: createRef<HTMLButtonElement>(),
+    bottomSheetContentRef: createRef<HTMLDivElement>(),
     bottomSheetState: "collapsed",
     dragControls: {} as SearchScreenProps["bottomSheet"]["dragControls"],
     handleBottomSheetKeyDown: vi.fn(),
@@ -135,6 +136,7 @@ const createProps = (
     handleDragEnd: vi.fn(),
     handleDragStart: vi.fn(),
     handleMapInteraction: vi.fn(),
+    handleMapReturn: vi.fn(),
     isDragging: false,
     isMobileOrTablet: false,
     snapPositions: { collapsed: 691, half: 382, expanded: 0 },
@@ -236,6 +238,54 @@ describe("SearchScreen", () => {
     );
   });
 
+  it.each([false, true])(
+    "scrolls new result pages to the top without resetting refreshes (mobile: %s)",
+    (isMobileOrTablet) => {
+      const base = createProps();
+      const props = createProps({
+        bottomSheet: {
+          ...base.bottomSheet,
+          isMobileOrTablet,
+          bottomSheetState: "expanded",
+        },
+      });
+      const view = render(<SearchScreen {...props} />);
+      const scrollArea = screen.getByRole("region", {
+        name: "숙소 목록 스크롤",
+      });
+      scrollArea.scrollTop = 300;
+
+      view.rerender(
+        <SearchScreen
+          {...props}
+          results={{
+            ...props.results,
+            isRefreshing: true,
+            isPlaceholderData: true,
+          }}
+        />,
+      );
+      expect(scrollArea.scrollTop).toBe(300);
+
+      view.rerender(
+        <SearchScreen
+          {...props}
+          results={{ ...props.results, currentPage: 2 }}
+        />,
+      );
+      expect(scrollArea.scrollTop).toBe(0);
+
+      scrollArea.scrollTop = 200;
+      view.rerender(
+        <SearchScreen
+          {...props}
+          results={{ ...props.results, currentPage: 2, isRefreshing: true }}
+        />,
+      );
+      expect(scrollArea.scrollTop).toBe(200);
+    },
+  );
+
   it("removes the collapsed result pane from navigation in expanded map mode", () => {
     const base = createProps();
 
@@ -243,18 +293,10 @@ describe("SearchScreen", () => {
       <SearchScreen {...base} map={{ ...base.map, isMapExpanded: true }} />,
     );
 
-    expect(
-      screen.getByRole("region", {
-        hidden: true,
-      }),
-    ).toHaveAttribute("aria-label", "숙소 검색 결과 패널");
-    expect(screen.getByRole("region", { hidden: true })).toHaveAttribute(
-      "aria-hidden",
-      "true",
-    );
-    expect(screen.getByRole("region", { hidden: true })).toHaveAttribute(
-      "inert",
-    );
+    const resultsPane = screen.getByLabelText("숙소 검색 결과 패널");
+    expect(resultsPane).toHaveAttribute("role", "region");
+    expect(resultsPane).toHaveAttribute("aria-hidden", "true");
+    expect(resultsPane).toHaveAttribute("inert");
     expect(mockMap).toHaveBeenCalledWith(
       expect.objectContaining({ isExpanded: true }),
     );
@@ -381,14 +423,14 @@ describe("SearchScreen", () => {
 
   it("offers an accessible map return action only from the expanded sheet", () => {
     const base = createProps();
-    const handleMapInteraction = vi.fn();
+    const handleMapReturn = vi.fn();
     const view = render(
       <SearchScreen
         {...base}
         bottomSheet={{
           ...base.bottomSheet,
           bottomSheetState: "half",
-          handleMapInteraction,
+          handleMapReturn,
           isMobileOrTablet: true,
         }}
       />,
@@ -404,7 +446,7 @@ describe("SearchScreen", () => {
         bottomSheet={{
           ...base.bottomSheet,
           bottomSheetState: "expanded",
-          handleMapInteraction,
+          handleMapReturn,
           isMobileOrTablet: true,
         }}
       />,
@@ -419,7 +461,7 @@ describe("SearchScreen", () => {
     expect(mobileMap).toHaveAttribute("aria-hidden", "true");
     expect(mobileMap).toHaveAttribute("inert");
     fireEvent.click(mapButton);
-    expect(handleMapInteraction).toHaveBeenCalledTimes(1);
+    expect(handleMapReturn).toHaveBeenCalledTimes(1);
   });
 
   it("loads the account dialog only when authentication is requested", async () => {

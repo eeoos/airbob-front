@@ -109,7 +109,6 @@ export function RecentlyViewedView({
           </svg>
         </button>
         <div className={styles.routeHeading}>
-          <p className={styles.eyebrow}>최근의 관심</p>
           <h1 className={styles.recentlyViewedTitle} id="recently-viewed-title">
             최근 조회
           </h1>
@@ -123,21 +122,12 @@ export function RecentlyViewedView({
             className={styles.editButton}
             onClick={onToggleEditMode}
             size="sm"
-            variant="secondary"
+            variant="ghost"
           >
-            {isEditMode ? "편집 완료" : "목록 편집"}
+            {isEditMode ? "완료" : "수정"}
           </Button>
         )}
       </header>
-
-      {isEditMode && recentlyViewed.length > 0 && (
-        <div className={styles.editModeNotice} role="status" aria-live="polite">
-          <strong>편집 모드</strong>
-          <span>
-            각 숙소의 삭제 버튼으로 최근 조회 기록에서 제거할 수 있어요.
-          </span>
-        </div>
-      )}
 
       {errorMessage && recentlyViewed.length === 0 ? (
         <RetryableErrorState

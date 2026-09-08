@@ -130,7 +130,7 @@
 .name {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-regular);
-  color: var(--color-text-primary);
+  color: var(--color-text-secondary);
   line-height: 1.4;
   margin: 0;
   overflow: hidden;
@@ -200,6 +200,32 @@
   height: var(--space-5);
   fill: none;
   stroke: var(--color-text-primary);
+}
+
+@media (--viewport-desktop) {
+  .accommodationCard,
+  .cardLink {
+    display: grid;
+    grid-row: span 4;
+    grid-template-rows: subgrid;
+    row-gap: inherit;
+    height: auto;
+  }
+
+  .wishlistCardImage {
+    margin-bottom: var(--space-2);
+  }
+
+  .wishlistCardInfo {
+    display: grid;
+    grid-row: span 3;
+    grid-template-rows: subgrid;
+    padding: 0;
+  }
+
+  .name {
+    min-height: calc(var(--font-size-sm) * 1.4 * 2);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

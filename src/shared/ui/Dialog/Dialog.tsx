@@ -247,6 +247,8 @@ export function Dialog({
         closeOnBackdrop
           ? (event) => {
               if (event.target !== event.currentTarget) return;
+              // Keep the pointer's default focus change from undoing focus restoration.
+              event.preventDefault();
               if (!overlay.hasRuntime || overlay.isTopmostModal) onClose();
             }
           : undefined

@@ -56,6 +56,7 @@ const toRuntimeAuthIntent = (
 function AccommodationDetailRouteContent() {
   const location = useLocation();
   const navigate = useNavigate();
+  const enteredFromApp = useRef(location.key !== "default");
   const queryClient = useQueryClient();
   const { id } = useParams<{ id: string }>();
   const session = useSession();
@@ -364,6 +365,10 @@ function AccommodationDetailRouteContent() {
       }
       onBookingFlowHandleChange={replaceHistoryState}
       onOpenPayment={openPayment}
+      onBack={() => {
+        if (enteredFromApp.current) navigate(-1);
+        else navigate(routeTo.search(), { replace: true });
+      }}
       onOpenTrips={() => navigate(routeTo.profile(), { replace: true })}
       onReplaceBookingDates={replaceBookingDates}
       onTerminalReservation={completeTerminalReservation}

@@ -75,7 +75,7 @@ export function AccommodationImageGalleryModal({
         className={styles.galleryClose}
         onClick={onClose}
       >
-        ×
+        사진 닫기
       </button>
       <div className={styles.galleryMain}>
         <ImageWithFallback

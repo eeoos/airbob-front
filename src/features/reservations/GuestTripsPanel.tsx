@@ -134,7 +134,6 @@ export function GuestTripsPanel({
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <p className={styles.eyebrow}>나의 여행</p>
         <h2 className={styles.title}>{getTitle(filterType)}</h2>
         <p className={styles.intro}>
           예약 일정과 숙소 정보를 한눈에 확인하세요.
