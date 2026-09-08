@@ -249,6 +249,25 @@ test("keeps desktop details in a new tab with the existing booking card", async 
   await expect(
     detail.getByRole("link", { name: "Airbob 홈으로 이동" }),
   ).toBeVisible();
+  const booking = detail.getByRole("region", {
+    name: "숙소 예약",
+    exact: true,
+  });
+  await booking.getByRole("button", { name: /^체크인 / }).click();
+  const calendar = booking.getByRole("dialog", {
+    name: "예약 날짜 선택",
+    exact: true,
+  });
+  await expect(calendar.getByRole("grid")).toHaveCount(2);
+  await calendar.getByRole("button", { name: "날짜 지우기" }).click();
+  await calendar.getByRole("button", { name: "닫기", exact: true }).click();
+  await expect(
+    booking.getByRole("heading", { name: "날짜를 선택해 요금 확인" }),
+  ).toBeVisible();
+  await booking
+    .getByRole("button", { name: "예약 가능 여부 보기", exact: true })
+    .click();
+  await expect(calendar).toBeVisible();
 });
 
 test("selects missing dates from the mobile booking bar at 320px and supports direct-entry back navigation", async ({

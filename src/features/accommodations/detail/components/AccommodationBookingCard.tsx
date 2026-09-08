@@ -208,7 +208,7 @@ export function AccommodationBookingCard({
 
   const priceDetails = (
     <>
-      {isAuthenticated && (
+      {isAuthenticated && hasCompleteStay && (
         <BookingCouponSection
           couponDiscount={couponDiscount}
           coupons={coupons}

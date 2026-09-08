@@ -4,9 +4,9 @@
   min-width: 0;
   max-width: 100%;
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-content-card);
+  border-radius: var(--radius-action);
   padding: var(--space-6);
-  box-shadow: var(--shadow-sticky);
+  box-shadow: var(--shadow-card);
   position: relative;
   z-index: var(--z-local-raised);
   background-color: var(--color-background-page);
@@ -124,13 +124,13 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  padding: 0 var(--space-4);
+  padding: 0 var(--space-3);
   background-color: var(--color-background-page);
   height: 56px;
   justify-content: center;
   box-sizing: border-box;
   border: 0;
-  border-radius: var(--radius-action);
+  border-radius: 0;
   color: inherit;
   font: inherit;
   text-align: left;
@@ -140,8 +140,20 @@
     box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
 }
 
+.dateColumn:first-child {
+  border-top-left-radius: var(--radius-action);
+}
+
+.dateColumn:last-child {
+  border-top-right-radius: var(--radius-action);
+}
+
+.dateValue.datePlaceholder {
+  color: var(--color-text-secondary);
+}
+
 .dateColumn:hover:not(:disabled) {
-  background: var(--color-surface-brand-subtle);
+  background: var(--color-background-muted);
 }
 
 .dateColumnActive {
@@ -150,7 +162,7 @@
 
 .dateDivider {
   width: 1px;
-  background-color: var(--color-border-strong);
+  background-color: var(--color-border-default);
   margin: 0;
   flex-shrink: 0;
 }
@@ -198,7 +210,7 @@
   border: 1px solid var(--color-border-default);
   border-top: 1px solid var(--color-border-default);
   border-radius: 0 0 var(--radius-action) var(--radius-action);
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-4);
   margin-top: -1px;
   background-color: var(--color-background-page);
   z-index: var(--z-local-raised);
@@ -207,7 +219,8 @@
 .guestRow {
   display: flex;
   align-items: center;
-  padding: 0 var(--space-4);
+  padding: 0 var(--space-3);
+  border-radius: inherit;
   width: 100%;
   background-color: var(--color-background-page);
   border: none;
@@ -650,7 +663,7 @@
   background: var(--color-action-primary);
   color: var(--color-text-inverse);
   border: none;
-  border-radius: var(--radius-action);
+  border-radius: var(--radius-pill);
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
   cursor: pointer;

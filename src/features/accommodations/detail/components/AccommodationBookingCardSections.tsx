@@ -469,7 +469,9 @@ export function BookingDateSection({
           onClick={() => openDatePicker("checkIn")}
         >
           <div className={styles.dateLabel}>체크인</div>
-          <div className={styles.dateValue}>
+          <div
+            className={`${styles.dateValue} ${checkIn ? "" : styles.datePlaceholder}`}
+          >
             {formatDate(checkIn) || "날짜 추가"}
           </div>
         </button>
@@ -491,7 +493,9 @@ export function BookingDateSection({
           onClick={() => openDatePicker("checkOut")}
         >
           <div className={styles.dateLabel}>체크아웃</div>
-          <div className={styles.dateValue}>
+          <div
+            className={`${styles.dateValue} ${checkOut ? "" : styles.datePlaceholder}`}
+          >
             {formatDate(checkOut) || "날짜 추가"}
           </div>
         </button>
