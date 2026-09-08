@@ -429,8 +429,7 @@ test("keeps the empty booking card and anchored date overlay visually stable", a
 
   await dateOverlay.getByRole("button", { name: "닫기" }).click();
   await page.setViewportSize({ width: 390, height: 900 });
-  await bookingCard.scrollIntoViewIfNeeded();
-  await checkIn.click();
+  await page.getByRole("button", { name: "숙박 날짜 변경" }).click();
   await expect(dateOverlay).toBeVisible();
   await waitForStablePaint(page);
   await expect(dateOverlay).toHaveScreenshot(
@@ -438,10 +437,9 @@ test("keeps the empty booking card and anchored date overlay visually stable", a
     componentScreenshotOptions,
   );
 
-  await dateOverlay.getByRole("button", { name: "닫기" }).click();
+  await dateOverlay.getByRole("button", { name: "날짜 선택 닫기" }).click();
   await page.setViewportSize({ width: 1024, height: 900 });
-  await bookingCard.scrollIntoViewIfNeeded();
-  await checkIn.click();
+  await page.getByRole("button", { name: "숙박 날짜 변경" }).click();
   await expect(dateOverlay).toBeVisible();
   await waitForStablePaint(page);
   await expect(dateOverlay).toHaveScreenshot(

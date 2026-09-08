@@ -273,7 +273,7 @@
   }
 
   .sidebar {
-    z-index: auto;
+    z-index: var(--z-flow);
   }
 }
 

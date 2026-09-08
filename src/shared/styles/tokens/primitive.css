@@ -87,6 +87,7 @@
   --elevation-7: 0 -4px 24px var(--palette-black-a15);
   --elevation-8: 0 0 0 2px var(--palette-black-a24);
   --elevation-focus-visible: 0 0 0 3px var(--palette-sky-700);
+  --stack-auto: auto;
   --stack-0: 0;
   --stack-1: 1;
   --stack-2: 2;

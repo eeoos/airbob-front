@@ -520,6 +520,9 @@ test("keeps the wishlist library and saved stay detail stable through 320px", as
 
   await page.setViewportSize(MOBILE_VIEWPORT);
   await expectNoHorizontalOverflow(page, MOBILE_VIEWPORT.width);
+  await expect(
+    page.getByRole("button", { name: "검색을 시작해 보세요" }),
+  ).toBeVisible();
   await captureAtTop(page, "phase-three-wishlist-library-mobile.png");
 
   await openCollection.click();
@@ -575,6 +578,9 @@ test("keeps guest trips and host reservation management stable through 320px", a
 
   await page.setViewportSize(MOBILE_VIEWPORT);
   await expectNoHorizontalOverflow(page, MOBILE_VIEWPORT.width);
+  await expect(
+    page.getByRole("button", { name: "검색을 시작해 보세요" }),
+  ).toBeVisible();
   await captureAtTop(page, "phase-three-profile-guest-trips-mobile.png");
 
   await page.goto("/profile?mode=host&tab=reservations-upcoming");
