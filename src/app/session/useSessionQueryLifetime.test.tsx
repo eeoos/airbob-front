@@ -27,7 +27,6 @@ const viewerA: SessionViewer = {
   id: 1,
   email: "user-a@example.com",
   nickname: "User A",
-  thumbnailImageUrl: null,
 };
 
 const authenticatedState = (epoch = 4): SessionState => ({

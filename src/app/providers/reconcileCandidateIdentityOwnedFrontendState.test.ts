@@ -11,7 +11,6 @@ const scope: AuthenticatedSessionScope = {
     id: 41,
     email: "candidate@example.com",
     nickname: "Candidate",
-    thumbnailImageUrl: null,
   }),
   epoch: 3,
   runtimeLeaseId:

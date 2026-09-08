@@ -5,21 +5,18 @@ export interface SyntheticUser {
   id: number;
   email: `${string}.invalid`;
   nickname: string;
-  thumbnail_image_url: string | null;
 }
 
 export const SYNTHETIC_USER_A: SyntheticUser = {
   id: 101,
   email: "person-a@example.invalid",
   nickname: "테스트 사용자",
-  thumbnail_image_url: null,
 };
 
 export const SYNTHETIC_USER_B: SyntheticUser = {
   id: 202,
   email: "person-b@example.invalid",
   nickname: "테스트 사용자 B",
-  thumbnail_image_url: null,
 };
 
 export const SYNTHETIC_USER = SYNTHETIC_USER_A;

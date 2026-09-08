@@ -29,7 +29,6 @@ describe("sessionAuthPort", () => {
       id: 1,
       email: credentials.email,
       nickname: "Member",
-      thumbnailImageUrl: null,
     });
     vi.mocked(authApi.login).mockResolvedValue();
     vi.mocked(authApi.logout).mockResolvedValue();
