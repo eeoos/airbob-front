@@ -236,6 +236,57 @@ describe("SearchScreen", () => {
     );
   });
 
+  it.each([false, true])(
+    "scrolls new result pages to the top without resetting refreshes (mobile: %s)",
+    (isMobileOrTablet) => {
+      const base = createProps();
+      const props = createProps({
+        bottomSheet: {
+          ...base.bottomSheet,
+          isMobileOrTablet,
+          bottomSheetState: "expanded",
+        },
+      });
+      const view = render(<SearchScreen {...props} />);
+      const scrollArea = screen.getByRole(
+        isMobileOrTablet ? "group" : "region",
+        {
+          name: isMobileOrTablet ? "검색 결과 목록" : "숙소 목록 스크롤",
+        },
+      );
+      scrollArea.scrollTop = 300;
+
+      view.rerender(
+        <SearchScreen
+          {...props}
+          results={{
+            ...props.results,
+            isRefreshing: true,
+            isPlaceholderData: true,
+          }}
+        />,
+      );
+      expect(scrollArea.scrollTop).toBe(300);
+
+      view.rerender(
+        <SearchScreen
+          {...props}
+          results={{ ...props.results, currentPage: 2 }}
+        />,
+      );
+      expect(scrollArea.scrollTop).toBe(0);
+
+      scrollArea.scrollTop = 200;
+      view.rerender(
+        <SearchScreen
+          {...props}
+          results={{ ...props.results, currentPage: 2, isRefreshing: true }}
+        />,
+      );
+      expect(scrollArea.scrollTop).toBe(200);
+    },
+  );
+
   it("removes the collapsed result pane from navigation in expanded map mode", () => {
     const base = createProps();
 
@@ -243,18 +294,10 @@ describe("SearchScreen", () => {
       <SearchScreen {...base} map={{ ...base.map, isMapExpanded: true }} />,
     );
 
-    expect(
-      screen.getByRole("region", {
-        hidden: true,
-      }),
-    ).toHaveAttribute("aria-label", "숙소 검색 결과 패널");
-    expect(screen.getByRole("region", { hidden: true })).toHaveAttribute(
-      "aria-hidden",
-      "true",
-    );
-    expect(screen.getByRole("region", { hidden: true })).toHaveAttribute(
-      "inert",
-    );
+    const resultsPane = screen.getByLabelText("숙소 검색 결과 패널");
+    expect(resultsPane).toHaveAttribute("role", "region");
+    expect(resultsPane).toHaveAttribute("aria-hidden", "true");
+    expect(resultsPane).toHaveAttribute("inert");
     expect(mockMap).toHaveBeenCalledWith(
       expect.objectContaining({ isExpanded: true }),
     );

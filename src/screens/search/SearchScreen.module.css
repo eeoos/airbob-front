@@ -26,7 +26,7 @@
 }
 
 .results {
-  overflow: hidden auto;
+  overflow: hidden;
   padding: 0;
   margin: 0;
   min-width: 0;
@@ -35,8 +35,6 @@
   max-height: 100%;
   display: flex;
   flex-direction: column;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
   border: none;
   place-content: flex-start;
   align-items: stretch;
@@ -50,46 +48,29 @@
     visibility 0s linear 0s;
 }
 
-.results:focus-visible {
+.resultsScrollArea {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.resultsScrollArea:focus-visible {
   outline: 2px solid var(--color-text-primary);
   outline-offset: 2px;
   box-shadow: var(--focus-ring);
 }
 
-.results > *:last-child {
-  margin-bottom: 0;
-  padding-bottom: 0;
-}
-
 .results > .paginationContainer {
-  padding-bottom: var(--space-4);
-  margin-bottom: 0;
+  padding: var(--space-4) 0;
+  margin: 0;
   flex-shrink: 0;
+  border-top: 1px solid var(--color-border-subtle);
+  background: var(--color-background-page);
 }
 
-.results > * {
-  margin-bottom: 0;
-}
-
-.results > *:not(:last-child) {
-  margin-bottom: 0;
-}
-
-.results > * > *:last-child {
-  margin-bottom: 0;
-  padding-bottom: 0;
-}
-
-.results > *:last-child > *:last-child {
-  margin-bottom: 0;
-  padding-bottom: 0;
-}
-
-.results > * > * {
-  margin-bottom: 0;
-}
-
-.results::-webkit-scrollbar {
+.resultsScrollArea::-webkit-scrollbar {
   display: none;
 }
 
@@ -235,6 +216,16 @@
 
 .cardGrid[data-columns="3"] {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+@media (--viewport-desktop) {
+  .cardGrid > .cardWrapper {
+    display: grid;
+    grid-row: span 4;
+    grid-template-rows: subgrid;
+    row-gap: var(--space-1);
+  }
 }
 
 @container search-results (max-width: 720px) {

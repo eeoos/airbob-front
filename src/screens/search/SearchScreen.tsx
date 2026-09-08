@@ -1,4 +1,10 @@
-import { useId, type ComponentProps, type RefObject } from "react";
+import {
+  useId,
+  useLayoutEffect,
+  useRef,
+  type ComponentProps,
+  type RefObject,
+} from "react";
 import { motion, type MotionStyle } from "framer-motion";
 import {
   DeferredAuthModal,
@@ -152,6 +158,13 @@ export function SearchScreen({
   results,
   wishlistModal,
 }: SearchScreenProps) {
+  const resultsScrollRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (resultsScrollRef.current) {
+      resultsScrollRef.current.scrollTop = 0;
+    }
+  }, [results.currentPage]);
+
   const hasResults = results.accommodationCards.length > 0;
   const bottomSheetContentId = useId();
   const bottomSheetTitleId = useId();
@@ -194,40 +207,36 @@ export function SearchScreen({
       {...(onExpandToggle === undefined ? {} : { onExpandToggle })}
     />
   );
-  const renderResults = (
-    layout: "desktop" | "bottomSheet",
-    variant: "compact" | "full",
-  ) => (
-    <>
-      <SearchResultsList
-        accommodations={results.accommodationCards}
-        errorMessage={errorMessage}
-        isErrorRetryable={isErrorRetryable}
-        isLoading={results.isLoading}
-        isRefreshing={results.isRefreshing}
-        selectedAccommodationId={map.selectedAccommodationId}
-        onAccommodationClick={onAccommodationOpen}
-        onHoveredAccommodationChange={map.setHoveredAccommodationId}
-        getAccommodationHref={getAccommodationHref}
-        layout={layout}
-        classNames={resultsListClassNames}
-        checkIn={checkIn}
-        checkOut={checkOut}
-        onWishlistToggle={onWishlistToggle}
-        onRetry={onRetry}
-      />
-      {hasResults && (
-        <SearchPagination
-          currentPage={results.currentPage}
-          totalPages={results.totalPages}
-          isLoading={isPaginationBusy}
-          onPageChange={onPageChange}
-          classNames={paginationClassNames}
-          variant={variant}
-        />
-      )}
-    </>
+  const renderResults = (layout: "desktop" | "bottomSheet") => (
+    <SearchResultsList
+      accommodations={results.accommodationCards}
+      errorMessage={errorMessage}
+      isErrorRetryable={isErrorRetryable}
+      isLoading={results.isLoading}
+      isRefreshing={results.isRefreshing}
+      selectedAccommodationId={map.selectedAccommodationId}
+      onAccommodationClick={onAccommodationOpen}
+      onHoveredAccommodationChange={map.setHoveredAccommodationId}
+      getAccommodationHref={getAccommodationHref}
+      layout={layout}
+      classNames={resultsListClassNames}
+      checkIn={checkIn}
+      checkOut={checkOut}
+      onWishlistToggle={onWishlistToggle}
+      onRetry={onRetry}
+    />
   );
+  const renderPagination = (variant: "compact" | "full") =>
+    hasResults && (
+      <SearchPagination
+        currentPage={results.currentPage}
+        totalPages={results.totalPages}
+        isLoading={isPaginationBusy}
+        onPageChange={onPageChange}
+        classNames={paginationClassNames}
+        variant={variant}
+      />
+    );
   return (
     <>
       <div className={styles.container}>
@@ -320,6 +329,7 @@ export function SearchScreen({
               )}
 
               <div
+                ref={resultsScrollRef}
                 id={bottomSheetContentId}
                 role="group"
                 aria-label="검색 결과 목록"
@@ -338,7 +348,8 @@ export function SearchScreen({
                   !bottomSheet.isDragging
                 }
               >
-                {renderResults("bottomSheet", "compact")}
+                {renderResults("bottomSheet")}
+                {renderPagination("compact")}
               </div>
             </motion.section>
           </>
@@ -356,8 +367,17 @@ export function SearchScreen({
               inert={map.isMapExpanded}
               role="region"
             >
-              <h2 className={styles.title}>{resultCountLabel}</h2>
-              {renderResults("desktop", "full")}
+              <div
+                ref={resultsScrollRef}
+                aria-label="숙소 목록 스크롤"
+                className={styles.resultsScrollArea}
+                data-search-results-scroll=""
+                role="region"
+              >
+                <h2 className={styles.title}>{resultCountLabel}</h2>
+                {renderResults("desktop")}
+              </div>
+              {renderPagination("full")}
             </div>
             <div className={styles.mapSection} data-search-pane="map">
               {renderMap(map.isMapExpanded, map.toggleMapExpanded)}
