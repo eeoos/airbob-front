@@ -99,10 +99,10 @@
 .editButton {
   min-height: var(--control-touch-target);
   border-radius: var(--radius-action);
+  text-decoration: underline;
   white-space: nowrap;
 }
 
-.editModeNotice,
 .refreshError {
   display: flex;
   align-items: center;
@@ -111,21 +111,6 @@
   margin-bottom: var(--space-6);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-action);
-}
-
-.editModeNotice {
-  justify-content: flex-start;
-  border: 1px solid var(--color-brand-identity);
-  background: var(--color-surface-brand-subtle);
-  color: var(--color-brand-ink);
-  font-size: var(--font-size-sm);
-}
-
-.editModeNotice span {
-  color: var(--color-text-secondary);
-}
-
-.refreshError {
   border: 1px solid var(--color-danger);
   background: var(--color-status-danger-bg);
 }
@@ -733,8 +718,7 @@
     gap: var(--space-8);
   }
 
-  .refreshError,
-  .editModeNotice {
+  .refreshError {
     align-items: stretch;
     flex-direction: column;
   }
