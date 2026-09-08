@@ -874,7 +874,7 @@ describe("AccommodationEdit extracted components", () => {
     const onFileInputClick = vi.fn();
     fileInput.addEventListener("click", onFileInputClick);
 
-    const addImageButton = screen.getByRole("button", { name: "추가" });
+    const addImageButton = screen.getByRole("button", { name: "사진 추가" });
     expect(addImageButton).toBeEnabled();
     expect(addImageButton).toHaveAttribute("type", "button");
     fireEvent.click(addImageButton);
@@ -885,7 +885,7 @@ describe("AccommodationEdit extracted components", () => {
       { isSaving: false, isDeletingImage: true },
     ]) {
       rerender(<PhotosStep {...photosStepProps} {...lockedState} />);
-      expect(screen.getByRole("button", { name: "추가" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "사진 추가" })).toBeDisabled();
     }
   });
 

@@ -354,18 +354,21 @@ export const PhotosStep: React.FC<PhotosStepProps> = ({
             <button
               type="button"
               className={styles.addImageSlot}
+              aria-label="사진 추가"
               disabled={isImageInteractionDisabled}
               onClick={() => document.getElementById("imageInput")?.click()}
             >
               <svg
+                aria-hidden="true"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.5"
               >
-                <path d="M12 5v14M5 12h14" />
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <path d="m21 15-5-5L5 21" />
               </svg>
-              <span>추가</span>
             </button>
           </div>
           <p className={styles.orderAnnouncement} aria-live="polite">
