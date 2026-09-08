@@ -74,6 +74,8 @@ const intentionallyLocalImageOwners = {
 } as const;
 
 const sharedStateRecipeOwners = {
+  "src/features/wishlist/components/WishlistModal/DeferredWishlistModal.tsx":
+    "on-demand wishlist dialog loading and chunk retry recipes",
   "src/screens/reservation-confirm/ReservationReviewController.tsx":
     "booking review detail loading and retryable-error recipes",
   "src/app/router/RequireAuthenticatedRoute.tsx": "session gate recipes",
@@ -116,6 +118,8 @@ const sharedStateRecipeOwners = {
 } as const;
 
 const intentionallyLocalStateOwners = {
+  "src/features/accommodations/detail/components/AccommodationBookingCard.tsx":
+    "mobile inline calendar availability and retry status",
   "src/screens/reservation-confirm/ReservationReviewScreen.tsx":
     "quote revision feedback and inline date/coupon editor status",
   "src/app/header/UserMenu.tsx":
