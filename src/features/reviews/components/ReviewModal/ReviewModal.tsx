@@ -168,7 +168,6 @@ export function ReviewModal({
 
       <header className={styles.modalHeader}>
         <div className={styles.headerCopy}>
-          <span className={styles.eyebrow}>여행 기록</span>
           <h2
             aria-label={`평점 ${averageRating.toFixed(2)} · 후기 ${totalCount}개`}
             className={styles.headerTitle}

@@ -106,7 +106,6 @@ export function AccommodationReviewsSection({
       className={`${styles.section} ${styles.reviewSection}`}
     >
       <div className={styles.sectionHeading}>
-        <span className={styles.eyebrow}>여행 기록</span>
         <h2
           aria-label={
             reviewSummary.hasReviews
