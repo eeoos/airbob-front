@@ -47,6 +47,41 @@ const reservationFixture = (
 });
 
 describe("reservation detail view model", () => {
+  it.each(["CONFIRMED", "CANCELLATION_FAILED"] as const)(
+    "uses the server review permission for %s even when the device clock is behind",
+    (status) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2020-07-12T01:59:59Z"));
+      try {
+        const viewModel = toReservationDetailViewModel(
+          reservationFixture({
+            status,
+            canWriteReview: true,
+            serverTime: "2020-07-12T02:00:00Z",
+          }),
+        );
+        expect(viewModel.canReview).toBe(true);
+      } finally {
+        vi.useRealTimers();
+      }
+    },
+  );
+
+  it.each([
+    "CONFIRMED",
+    "CANCELLATION_FAILED",
+    "CANCELLATION_PENDING",
+  ] as const)(
+    "does not grant review permission for %s when the server denies it",
+    (status) => {
+      expect(
+        toReservationDetailViewModel(
+          reservationFixture({ status, canWriteReview: false }),
+        ).canReview,
+      ).toBe(false);
+    },
+  );
+
   it("maps guest reservation detail fields into route display fields", () => {
     expect(toReservationDetailViewModel(reservationFixture())).toMatchObject({
       reservationUid: "reservation-123",

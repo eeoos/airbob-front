@@ -116,7 +116,7 @@ export interface GuestReservationDetailWire extends ReservationDetailWireBase {
   readonly server_time: unknown;
   readonly check_in_time: string;
   readonly check_out_time: string;
-  readonly can_write_review: boolean;
+  readonly can_write_review: unknown;
   readonly coordinate: ReservationCoordinateWire;
   readonly host: ReservationMemberWire;
 }

@@ -1,3 +1,4 @@
+import reviewPermissionContract from "../../../src/features/reservations/api/__fixtures__/guest-reservation-reviewable.json" with { type: "json" };
 import { apiFailure, apiSuccess, requireApiRequest } from "../fixtures/api";
 import { test, expect } from "../fixtures/test";
 
@@ -193,4 +194,107 @@ test("locks review submission when the create outcome may already have committed
 
   await page.getByRole("button", { name: "예약 상세에서 확인하기" }).click();
   await expect(page).toHaveURL(`/reservations/${REVIEW_RESERVATION_UID}`);
+});
+
+test("allows a server-approved cancellation-failed review with a slow device clock and hides the action after creation", async ({
+  api,
+  page,
+  session,
+}) => {
+  session.authenticate();
+  await page.clock.setFixedTime(new Date("2026-08-25T02:59:59Z"));
+  let hasReview = false;
+  api.register(
+    "GET",
+    `/api/v1/profile/guest/reservations/${REVIEW_RESERVATION_UID}`,
+    () =>
+      apiSuccess({ ...reviewPermissionContract, can_write_review: !hasReview }),
+  );
+  api.register("POST", "/api/v1/accommodations/7/reviews", () => {
+    hasReview = true;
+    return apiSuccess({ id: 902 }, 201);
+  });
+
+  await page.goto(`/reservations/${REVIEW_RESERVATION_UID}`);
+  await page.getByRole("button", { name: "리뷰 작성하기" }).click();
+  await expect(page).toHaveURL(
+    `/reservations/${REVIEW_RESERVATION_UID}/review`,
+  );
+  await page
+    .getByLabel("리뷰 내용")
+    .fill("취소가 실패하여 예정대로 머문 숙소의 후기입니다.");
+  await page.getByRole("button", { name: "리뷰 작성하기" }).click();
+  await expect(page).toHaveURL(`/reservations/${REVIEW_RESERVATION_UID}`);
+  await expect(page.getByRole("button", { name: "리뷰 작성하기" })).toHaveCount(
+    0,
+  );
+  expect(api.matching("POST", "/api/v1/accommodations/7/reviews")).toHaveLength(
+    1,
+  );
+});
+
+test("a fast device clock cannot override a server-denied review on either route", async ({
+  api,
+  page,
+  session,
+}) => {
+  session.authenticate();
+  await page.clock.setFixedTime(new Date("2030-01-01T00:00:00Z"));
+  api.register(
+    "GET",
+    `/api/v1/profile/guest/reservations/${REVIEW_RESERVATION_UID}`,
+    apiSuccess({
+      ...reviewPermissionContract,
+      status: "CONFIRMED",
+      can_write_review: false,
+    }),
+  );
+
+  await page.goto(`/reservations/${REVIEW_RESERVATION_UID}`);
+  await expect(page.getByText("REVIEW-2026", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "리뷰 작성하기" })).toHaveCount(
+    0,
+  );
+  await page.goto(`/reservations/${REVIEW_RESERVATION_UID}/review`);
+  await expect(
+    page.getByText("리뷰를 작성할 수 없는 예약입니다.", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "리뷰 작성하기" })).toHaveCount(
+    0,
+  );
+  expect(api.matching("POST", "/api/v1/accommodations/7/reviews")).toHaveLength(
+    0,
+  );
+});
+
+test("rechecks review permission when moving from reservation detail to the form", async ({
+  api,
+  page,
+  session,
+}) => {
+  session.authenticate();
+  let canWriteReview = true;
+  api.register(
+    "GET",
+    `/api/v1/profile/guest/reservations/${REVIEW_RESERVATION_UID}`,
+    () =>
+      apiSuccess({
+        ...reviewPermissionContract,
+        can_write_review: canWriteReview,
+      }),
+  );
+
+  await page.goto(`/reservations/${REVIEW_RESERVATION_UID}`);
+  await expect(
+    page.getByRole("button", { name: "리뷰 작성하기" }),
+  ).toBeEnabled();
+  canWriteReview = false;
+  await page.getByRole("button", { name: "리뷰 작성하기" }).click();
+  await expect(
+    page.getByText("리뷰를 작성할 수 없는 예약입니다.", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByLabel("리뷰 내용")).toHaveCount(0);
+  expect(api.matching("POST", "/api/v1/accommodations/7/reviews")).toHaveLength(
+    0,
+  );
 });

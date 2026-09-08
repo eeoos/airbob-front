@@ -1,5 +1,4 @@
 import {
-  canCreateReview,
   formatBankName,
   formatPaymentStatus,
   formatReservationDetailDate,
@@ -17,47 +16,6 @@ describe("reservation detail display", () => {
     expect(formatPaymentStatus("ABORTED")).toBe("ABORTED");
     expect(formatPaymentStatus("PARTIAL_CANCELED")).toBe("PARTIAL_CANCELED");
     expect(formatPaymentStatus("UNKNOWN_STATUS")).toBe("UNKNOWN_STATUS");
-  });
-
-  it("allows review creation only after confirmed checkout when review writing is enabled", () => {
-    const now = new Date("2026-07-12T12:00:00");
-
-    expect(
-      canCreateReview({
-        canWriteReview: true,
-        checkOutDateTime: "2026-07-12T11:00:00",
-        checkOutTime: "11:00",
-        now,
-        status: "CONFIRMED",
-      }),
-    ).toBe(true);
-    expect(
-      canCreateReview({
-        canWriteReview: false,
-        checkOutDateTime: "2026-07-12T11:00:00",
-        checkOutTime: "11:00",
-        now,
-        status: "CONFIRMED",
-      }),
-    ).toBe(false);
-    expect(
-      canCreateReview({
-        canWriteReview: true,
-        checkOutDateTime: "2026-07-12T11:00:00",
-        checkOutTime: "11:00",
-        now,
-        status: "CANCELLATION_PENDING",
-      }),
-    ).toBe(false);
-    expect(
-      canCreateReview({
-        canWriteReview: true,
-        checkOutDateTime: "2026-07-13T11:00:00",
-        checkOutTime: "11:00",
-        now,
-        status: "CONFIRMED",
-      }),
-    ).toBe(false);
   });
 
   it("preserves guest reservation date and time labels", () => {
