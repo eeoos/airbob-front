@@ -66,7 +66,7 @@ describe("AccommodationImageGalleryModal", () => {
     expect(screen.getByRole("button", { name: "다음 사진" })).toBeEnabled();
   });
 
-  it("focuses the explicit close control", () => {
+  it("focuses the accessible close control", () => {
     renderGalleryModal();
 
     expect(

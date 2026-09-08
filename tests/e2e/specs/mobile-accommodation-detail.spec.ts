@@ -76,7 +76,7 @@ test.beforeEach(async ({ api, session, context }) => {
         { type: "HEATING", count: 1 },
         { type: "AIR_CONDITIONER", count: 1 },
       ],
-      images: [{ id: 1, image_url: imageUrl }],
+      images: [1, 2, 3].map((id) => ({ id, image_url: imageUrl })),
       review_summary: summary,
     }),
   );
@@ -251,3 +251,71 @@ test("selects missing dates from the mobile booking bar at 320px and supports di
     .click();
   await expect(page).toHaveURL(/\/search$/);
 });
+
+for (const viewport of [
+  { width: 1440, height: 1000 },
+  { width: 425, height: 1024 },
+]) {
+  test.describe(`photo gallery at ${viewport.width}px`, () => {
+    test.use({ viewport, hasTouch: true });
+
+    test("dismisses empty space by mouse and touch while keeping photos and controls active", async ({
+      page,
+    }) => {
+      await page.goto("/accommodations/281");
+      const photoTrigger = page.getByRole("button", {
+        name: /(?:대표 사진|모바일 사진 1) 크게 보기$/,
+      });
+      await photoTrigger.click();
+      const gallery = page.getByRole("dialog", { name: `${name} 사진 갤러리` });
+      const closeControl = gallery.getByRole("button", {
+        name: "사진 갤러리 닫기",
+        exact: true,
+      });
+      await expect(closeControl).toHaveCSS("clip-path", "inset(50%)");
+      const mainPhoto = gallery.locator("img:not(button img)");
+      await mainPhoto.click();
+      await expect(gallery).toBeVisible();
+      await gallery
+        .getByRole("button", { name: "다음 사진", exact: true })
+        .click();
+      await expect(mainPhoto).toHaveAttribute("alt", `${name} 2`);
+      await gallery
+        .getByRole("button", { name: `${name} 사진 3 보기`, exact: true })
+        .click();
+      await expect(mainPhoto).toHaveAttribute("alt", `${name} 3`);
+
+      const dialogBounds = await gallery.boundingBox();
+      const thumbnailBounds = await gallery
+        .getByRole("button", { name: `${name} 사진 3 보기`, exact: true })
+        .boundingBox();
+      expect(dialogBounds).not.toBeNull();
+      expect(thumbnailBounds).not.toBeNull();
+      // This blank point is inside the transparent dialog, beyond the thumbnails.
+      const blank = {
+        x: dialogBounds!.x + dialogBounds!.width - 12,
+        y: thumbnailBounds!.y + thumbnailBounds!.height / 2,
+      };
+      expect(blank.x).toBeGreaterThan(
+        thumbnailBounds!.x + thumbnailBounds!.width,
+      );
+      await page.mouse.click(blank.x, blank.y);
+      await expect(gallery).toBeHidden();
+      await expect(photoTrigger).toBeFocused();
+
+      await photoTrigger.click();
+      await expect(gallery).toBeVisible();
+      await page.touchscreen.tap(blank.x, blank.y);
+      await expect(gallery).toBeHidden();
+      await expect(photoTrigger).toBeFocused();
+
+      await photoTrigger.click();
+      await page.keyboard.press("Tab");
+      await page.keyboard.press("Shift+Tab");
+      await expect(closeControl).toBeFocused();
+      await expect(closeControl).toHaveCSS("clip-path", "none");
+      await closeControl.press("Escape");
+      await expect(gallery).toBeHidden();
+    });
+  });
+}
