@@ -219,7 +219,7 @@ export const SearchDestinationField = ({
             {isLoading && (
               <div
                 aria-live="polite"
-                className={`${styles.suggestionItem} ${styles.suggestionStatus}`}
+                className={styles.suggestionStatus}
                 role="status"
               >
                 여행지를 찾는 중입니다.

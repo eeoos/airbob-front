@@ -16,8 +16,8 @@ const emptySearchResponse = {
   },
 };
 
-const installBusanAutocomplete = (page: Page) =>
-  page.addInitScript(() => {
+const installBusanAutocomplete = (page: Page, holdSuggestions = false) =>
+  page.addInitScript((holdSuggestions) => {
     Object.defineProperty(window, "google", {
       value: {
         maps: {
@@ -25,45 +25,56 @@ const installBusanAutocomplete = (page: Page) =>
           places: {
             AutocompleteSessionToken: class {},
             AutocompleteSuggestion: {
-              fetchAutocompleteSuggestions: async () => ({
-                suggestions: [
-                  {
-                    placePrediction: {
-                      placeId: "synthetic-busan",
-                      mainText: { text: "부산" },
-                      secondaryText: { text: "대한민국" },
-                      text: { text: "대한민국 부산" },
-                      toPlace: () => ({
-                        fetchFields: () =>
-                          new Promise<void>((resolve) => {
-                            window.addEventListener(
-                              "airbob-test-resolve-place",
-                              () => resolve(),
-                              { once: true },
-                            );
-                          }),
-                        location: { lat: () => 35.18, lng: () => 129.08 },
-                        viewport: {
-                          getNorthEast: () => ({
-                            lat: () => 35.4,
-                            lng: () => 129.3,
-                          }),
-                          getSouthWest: () => ({
-                            lat: () => 35,
-                            lng: () => 128.8,
-                          }),
-                        },
-                      }),
+              fetchAutocompleteSuggestions: async () => {
+                if (holdSuggestions) {
+                  await new Promise<void>((resolve) => {
+                    window.addEventListener(
+                      "airbob-test-resolve-suggestions",
+                      () => resolve(),
+                      { once: true },
+                    );
+                  });
+                }
+                return {
+                  suggestions: [
+                    {
+                      placePrediction: {
+                        placeId: "synthetic-busan",
+                        mainText: { text: "부산" },
+                        secondaryText: { text: "대한민국" },
+                        text: { text: "대한민국 부산" },
+                        toPlace: () => ({
+                          fetchFields: () =>
+                            new Promise<void>((resolve) => {
+                              window.addEventListener(
+                                "airbob-test-resolve-place",
+                                () => resolve(),
+                                { once: true },
+                              );
+                            }),
+                          location: { lat: () => 35.18, lng: () => 129.08 },
+                          viewport: {
+                            getNorthEast: () => ({
+                              lat: () => 35.4,
+                              lng: () => 129.3,
+                            }),
+                            getSouthWest: () => ({
+                              lat: () => 35,
+                              lng: () => 128.8,
+                            }),
+                          },
+                        }),
+                      },
                     },
-                  },
-                ],
-              }),
+                  ],
+                };
+              },
             },
           },
         },
       },
     });
-  });
+  }, holdSuggestions);
 
 test.beforeEach(async ({ api, context, session }) => {
   await context.route(
@@ -108,6 +119,51 @@ test("opens and closes the mobile home editor from one search prompt across widt
     await expect(dialog).toBeHidden();
     await expect(prompt).toBeFocused();
     await expect(page).toHaveURL(/\/$/);
+  }
+});
+
+test("keeps the pending mobile destination message on a full-width line", async ({
+  page,
+}) => {
+  await installBusanAutocomplete(page, true);
+  for (const width of [320, 390, 1024]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto("/");
+    await page
+      .getByRole("button", { name: "검색을 시작해 보세요", exact: true })
+      .click();
+    const dialog = page.getByRole("dialog", { name: "숙소 검색" });
+    await dialog.getByRole("button", { name: /여행지 검색 열기/ }).click();
+    const input = dialog.getByRole("combobox", { name: "여행지" });
+    await input.fill("부산");
+    const status = dialog
+      .getByRole("status")
+      .filter({ hasText: "여행지를 찾는 중입니다." });
+    await expect(status).toBeVisible();
+    await expect(input).toHaveAttribute("aria-busy", "true");
+    const textBounds = await status.evaluate((element) => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      const text = range.getBoundingClientRect();
+      const row = element.getBoundingClientRect();
+      return {
+        lines: range.getClientRects().length,
+        width: text.width,
+        right: text.right,
+        rowRight: row.right,
+      };
+    });
+    expect(textBounds.lines, `loading message at ${width}px`).toBe(1);
+    expect(textBounds.width).toBeGreaterThan(120);
+    expect(textBounds.right).toBeLessThanOrEqual(textBounds.rowRight);
+    await page.evaluate(() =>
+      window.dispatchEvent(new Event("airbob-test-resolve-suggestions")),
+    );
+    await expect(status).toBeHidden();
+    await expect(
+      dialog.getByRole("button", { name: "부산 대한민국" }),
+    ).toBeVisible();
+    await expect(input).toHaveAttribute("aria-busy", "false");
   }
 });
 

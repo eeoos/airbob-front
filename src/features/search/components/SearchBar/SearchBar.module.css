@@ -273,8 +273,14 @@
 }
 
 .suggestionStatus {
-  cursor: default;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--control-touch-target);
+  padding: var(--space-3) var(--space-4);
   color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-body);
+  text-align: left;
 }
 
 .suggestionMainText {
@@ -1001,6 +1007,10 @@
   padding: var(--space-3) var(--space-2);
   border-bottom: 0;
   border-radius: var(--radius-action);
+}
+
+.mobileDestinationPanel .suggestionStatus {
+  padding-inline: var(--space-2);
 }
 
 .mobileEditor .guestPicker {
