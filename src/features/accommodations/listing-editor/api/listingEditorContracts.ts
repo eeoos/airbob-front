@@ -9,9 +9,9 @@ interface ListingEditorAddressWire {
 }
 
 interface ListingEditorPolicyWire {
-  readonly max_occupancy: number;
-  readonly infant_occupancy: number;
-  readonly pet_occupancy: number;
+  readonly max_occupancy?: number | null;
+  readonly infant_occupancy?: number | null;
+  readonly pet_occupancy?: number | null;
 }
 
 interface ListingEditorAmenityWire {

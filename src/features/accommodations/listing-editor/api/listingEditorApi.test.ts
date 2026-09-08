@@ -1,4 +1,10 @@
 import type { ApiDataRequest } from "../../../../platform/http/request";
+import policyContracts from "./__fixtures__/host-policy-contracts.json";
+import {
+  buildListingEditorUpdate,
+  getListingEditorFallbackProvenance,
+  toListingEditorFormData,
+} from "../model/listingEditorDraft";
 import {
   createListingEditorApi,
   type ListingEditorApiTransport,
@@ -60,6 +66,45 @@ const createTransport = () => {
 };
 
 describe("listing editor API adapter", () => {
+  it.each([
+    {
+      label: "all-null policy fields",
+      policy: policyContracts.absent,
+      expected: { maxOccupancy: 1, infantOccupancy: 0, petOccupancy: 0 },
+    },
+    {
+      label: "partially missing policy",
+      policy: policyContracts.partial,
+      expected: { maxOccupancy: 4, infantOccupancy: 0, petOccupancy: 2 },
+    },
+    {
+      label: "null policy",
+      policy: null,
+      expected: { maxOccupancy: 1, infantOccupancy: 0, petOccupancy: 0 },
+    },
+    {
+      label: "omitted individual fields",
+      policy: { max_occupancy: 4, pet_occupancy: 2 },
+      expected: { maxOccupancy: 4, infantOccupancy: 0, petOccupancy: 2 },
+    },
+  ])(
+    "includes displayed defaults in an unchanged save for $label",
+    async ({ policy, expected }) => {
+      const { request, transport } = createTransport();
+      request.mockResolvedValue({ ...hostDetailWire, policy });
+      const source = await createListingEditorApi(transport).getHostDetail(31);
+      const form = toListingEditorFormData(source);
+      expect(
+        buildListingEditorUpdate({
+          baseline: form,
+          baselinePolicy: source.occupancyPolicy,
+          formData: form,
+          fallbackProvenance: getListingEditorFallbackProvenance(source),
+        }),
+      ).toEqual({ occupancyPolicy: expected });
+    },
+  );
+
   it("preserves the host-detail GET and maps only the editor-owned model", async () => {
     const { request, transport } = createTransport();
     const api = createListingEditorApi(transport);

@@ -40,9 +40,9 @@ export const toListingEditorAccommodation = (
     : null,
   occupancyPolicy: wire.policy
     ? {
-        maxOccupancy: wire.policy.max_occupancy,
-        infantOccupancy: wire.policy.infant_occupancy,
-        petOccupancy: wire.policy.pet_occupancy,
+        maxOccupancy: wire.policy.max_occupancy ?? null,
+        infantOccupancy: wire.policy.infant_occupancy ?? null,
+        petOccupancy: wire.policy.pet_occupancy ?? null,
       }
     : null,
   amenities: wire.amenities.map((amenity) => ({

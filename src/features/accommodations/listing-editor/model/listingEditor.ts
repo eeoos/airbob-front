@@ -34,7 +34,11 @@ export interface ListingEditorAccommodation {
   readonly checkInTime: string | null;
   readonly checkOutTime: string | null;
   readonly address: ListingEditorAddress | null;
-  readonly occupancyPolicy: ListingEditorOccupancyPolicy | null;
+  readonly occupancyPolicy: {
+    readonly maxOccupancy: number | null;
+    readonly infantOccupancy: number | null;
+    readonly petOccupancy: number | null;
+  } | null;
   readonly amenities: readonly ListingEditorAmenity[];
   readonly images: readonly ListingEditorImage[];
 }

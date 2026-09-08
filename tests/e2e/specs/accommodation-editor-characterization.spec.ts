@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test";
+import policyContracts from "../../../src/features/accommodations/listing-editor/api/__fixtures__/host-policy-contracts.json" with { type: "json" };
 import {
   apiFailure,
   apiSuccess,
@@ -529,4 +530,111 @@ test("does not publish after the editor unmounts while an update is still in fli
     api.matching("PATCH", "/api/v1/accommodations/31/publish"),
   ).toHaveLength(0);
   await expect(page).toHaveURL(/\/profile$/);
+});
+
+for (const contract of [
+  {
+    name: "absent",
+    policy: policyContracts.absent,
+    expected: { max_occupancy: 1, infant_occupancy: 0, pet_occupancy: 0 },
+  },
+  {
+    name: "partial",
+    policy: policyContracts.partial,
+    expected: { max_occupancy: 4, infant_occupancy: 0, pet_occupancy: 2 },
+  },
+]) {
+  test(`persists ${contract.name} policy defaults once without requiring an edit`, async ({
+    api,
+    appBaseURL,
+    page,
+    session,
+  }) => {
+    session.authenticate();
+    let saved = false;
+    api.register("GET", "/api/v1/profile/host/accommodations/31", () =>
+      apiSuccess({
+        ...makeEditableAccommodation(appBaseURL),
+        policy: saved ? contract.expected : contract.policy,
+      }),
+    );
+    api.register("PATCH", "/api/v1/accommodations/31", () => {
+      saved = true;
+      return apiSuccess(null);
+    });
+    api.register(
+      "GET",
+      "/api/v1/profile/host/accommodations",
+      apiSuccess(emptyHostListings),
+    );
+
+    await page.goto("/accommodations/31/edit");
+    await openInfoStep(page);
+    await expect(
+      page.getByRole("checkbox", { name: "유아 수용 가능" }),
+    ).not.toBeChecked();
+    await page.getByRole("button", { name: "저장 후 나가기" }).click();
+    await expect(page).toHaveURL(/\/profile\?mode=host$/);
+    expect(
+      requireApiRequest(
+        api.matching("PATCH", "/api/v1/accommodations/31"),
+        0,
+        "policy defaults",
+      ).body,
+    ).toEqual({ occupancy_policy_info: contract.expected });
+
+    await page.goto("/accommodations/31/edit");
+    await openInfoStep(page);
+    await page.getByRole("button", { name: "저장 후 나가기" }).click();
+    await expect(page).toHaveURL(/\/profile\?mode=host$/);
+    expect(api.matching("PATCH", "/api/v1/accommodations/31")).toHaveLength(1);
+  });
+}
+
+test("preserves existing infant and pet counts while changing the maximum occupancy", async ({
+  api,
+  appBaseURL,
+  page,
+  session,
+}) => {
+  session.authenticate();
+  api.register(
+    "GET",
+    "/api/v1/profile/host/accommodations/31",
+    apiSuccess({
+      ...makeEditableAccommodation(appBaseURL),
+      policy: policyContracts.complete,
+    }),
+  );
+  api.register("PATCH", "/api/v1/accommodations/31", apiSuccess(null));
+  api.register(
+    "GET",
+    "/api/v1/profile/host/accommodations",
+    apiSuccess(emptyHostListings),
+  );
+
+  await page.goto("/accommodations/31/edit");
+  await openInfoStep(page);
+  await expect(
+    page.getByRole("checkbox", { name: "유아 수용 가능" }),
+  ).toBeChecked();
+  await expect(
+    page.getByRole("checkbox", { name: "반려동물 수용 가능" }),
+  ).toBeChecked();
+  await page.getByRole("button", { name: "최대 게스트 수 늘리기" }).click();
+  await page.getByRole("button", { name: "저장 후 나가기" }).click();
+  await expect(page).toHaveURL(/\/profile\?mode=host$/);
+  expect(
+    requireApiRequest(
+      api.matching("PATCH", "/api/v1/accommodations/31"),
+      0,
+      "policy maximum change",
+    ).body,
+  ).toEqual({
+    occupancy_policy_info: {
+      max_occupancy: 5,
+      infant_occupancy: 2,
+      pet_occupancy: 3,
+    },
+  });
 });

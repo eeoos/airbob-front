@@ -114,7 +114,10 @@ export const getListingEditorFallbackProvenance = (
 ): ListingEditorFallbackProvenance => ({
   checkInTime: accommodation.checkInTime === null,
   checkOutTime: accommodation.checkOutTime === null,
-  occupancyPolicy: accommodation.occupancyPolicy === null,
+  occupancyPolicy:
+    accommodation.occupancyPolicy?.maxOccupancy == null ||
+    accommodation.occupancyPolicy?.infantOccupancy == null ||
+    accommodation.occupancyPolicy?.petOccupancy == null,
 });
 
 const sortedAmenities = (amenities: ListingEditorFormData["amenityInfos"]) =>
@@ -172,15 +175,21 @@ const toCompleteAddress = (
 
 const toOccupancyPolicy = (
   policy: ListingEditorFormData["occupancyPolicyInfo"],
+  baselinePolicy: ListingEditorAccommodation["occupancyPolicy"],
 ): NonNullable<ListingEditorUpdateInput["occupancyPolicy"]> => ({
   maxOccupancy: Number(policy.maxOccupancy),
-  infantOccupancy: policy.infantOccupancy ? 1 : 0,
-  petOccupancy: policy.petOccupancy ? 1 : 0,
+  infantOccupancy: policy.infantOccupancy
+    ? Math.max(1, baselinePolicy?.infantOccupancy ?? 0)
+    : 0,
+  petOccupancy: policy.petOccupancy
+    ? Math.max(1, baselinePolicy?.petOccupancy ?? 0)
+    : 0,
 });
 
 export const buildListingEditorUpdate = ({
   formData,
   baseline,
+  baselinePolicy = null,
   fallbackProvenance = {
     checkInTime: false,
     checkOutTime: false,
@@ -189,6 +198,7 @@ export const buildListingEditorUpdate = ({
 }: {
   readonly formData: ListingEditorFormData;
   readonly baseline: ListingEditorFormData;
+  readonly baselinePolicy?: ListingEditorAccommodation["occupancyPolicy"];
   readonly fallbackProvenance?: ListingEditorFallbackProvenance;
 }): ListingEditorUpdateInput => {
   const update: {
@@ -226,7 +236,10 @@ export const buildListingEditorUpdate = ({
     fallbackProvenance.occupancyPolicy ||
     occupancyChanged(formData.occupancyPolicyInfo, baseline.occupancyPolicyInfo)
   ) {
-    update.occupancyPolicy = toOccupancyPolicy(formData.occupancyPolicyInfo);
+    update.occupancyPolicy = toOccupancyPolicy(
+      formData.occupancyPolicyInfo,
+      baselinePolicy,
+    );
   }
   if (amenitiesChanged(formData.amenityInfos, baseline.amenityInfos)) {
     update.amenities = sortedAmenities(formData.amenityInfos);

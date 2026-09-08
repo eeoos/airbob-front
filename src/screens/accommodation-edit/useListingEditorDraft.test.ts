@@ -30,6 +30,60 @@ const accommodation: ListingEditorAccommodation = {
 };
 
 describe("useListingEditorDraft", () => {
+  it("preserves stored infant and pet counts when only the maximum changes", () => {
+    const { result } = renderHook(() => useListingEditorDraft());
+    act(() =>
+      result.current.hydrate({
+        ...accommodation,
+        occupancyPolicy: {
+          maxOccupancy: 4,
+          infantOccupancy: 2,
+          petOccupancy: 3,
+        },
+      }),
+    );
+    act(() => result.current.incrementGuest());
+    expect(result.current.capturePersistence()?.update).toEqual({
+      occupancyPolicy: { maxOccupancy: 5, infantOccupancy: 2, petOccupancy: 3 },
+    });
+  });
+
+  it("repairs a partial policy once and uses the committed counts for later edits", () => {
+    const { result } = renderHook(() => useListingEditorDraft());
+    act(() =>
+      result.current.hydrate({
+        ...accommodation,
+        occupancyPolicy: {
+          maxOccupancy: 4,
+          infantOccupancy: null,
+          petOccupancy: 2,
+        },
+      }),
+    );
+    expect(result.current.capturePersistence()?.update).toEqual({
+      occupancyPolicy: { maxOccupancy: 4, infantOccupancy: 0, petOccupancy: 2 },
+    });
+    act(() =>
+      result.current.commitBaseline({
+        ...accommodation,
+        occupancyPolicy: {
+          maxOccupancy: 4,
+          infantOccupancy: 0,
+          petOccupancy: 2,
+        },
+      }),
+    );
+    expect(result.current.capturePersistence()?.update).toEqual({});
+    act(() => result.current.changeOccupancy("infantOccupancy", true));
+    expect(result.current.capturePersistence()?.update).toEqual({
+      occupancyPolicy: { maxOccupancy: 4, infantOccupancy: 1, petOccupancy: 2 },
+    });
+    act(() => result.current.changeOccupancy("petOccupancy", false));
+    expect(result.current.capturePersistence()?.update).toEqual({
+      occupancyPolicy: { maxOccupancy: 4, infantOccupancy: 1, petOccupancy: 0 },
+    });
+  });
+
   it("keeps the working draft separate from the committed server baseline", () => {
     const { result } = renderHook(() => useListingEditorDraft());
 

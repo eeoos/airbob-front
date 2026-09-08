@@ -83,6 +83,8 @@ export const useListingEditorDraft = () => {
   const [baseline, setBaseline] = useState<AccommodationEditFormData | null>(
     null,
   );
+  const [baselinePolicy, setBaselinePolicy] =
+    useState<ListingEditorAccommodation["occupancyPolicy"]>(null);
   const [fallbackProvenance, setFallbackProvenance] =
     useState<ListingEditorFallbackProvenance>({
       checkInTime: false,
@@ -96,6 +98,7 @@ export const useListingEditorDraft = () => {
     const form = toEditorFormData(accommodation);
     setFormData(form);
     setBaseline(cloneListingEditorFormData(form));
+    setBaselinePolicy(accommodation.occupancyPolicy);
     setFallbackProvenance(getListingEditorFallbackProvenance(accommodation));
     setOpenTimePicker(null);
   }, []);
@@ -103,6 +106,7 @@ export const useListingEditorDraft = () => {
   const commitBaseline = useCallback(
     (accommodation: ListingEditorAccommodation) => {
       setBaseline(toEditorFormData(accommodation));
+      setBaselinePolicy(accommodation.occupancyPolicy);
       setFallbackProvenance(getListingEditorFallbackProvenance(accommodation));
     },
     [],
@@ -115,10 +119,11 @@ export const useListingEditorDraft = () => {
       update: buildListingEditorUpdate({
         formData: submittedForm,
         baseline,
+        baselinePolicy,
         fallbackProvenance,
       }),
     };
-  }, [baseline, fallbackProvenance, formData]);
+  }, [baseline, baselinePolicy, fallbackProvenance, formData]);
 
   const changeField = useCallback(
     (field: AccommodationEditField, value: string) => {
