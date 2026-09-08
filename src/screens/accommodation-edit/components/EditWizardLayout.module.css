@@ -116,16 +116,6 @@
   min-width: 0;
 }
 
-.eyebrow,
-.sidebarEyebrow {
-  margin: 0 0 var(--space-1);
-  color: var(--color-action-primary);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .title {
   margin: 0;
   color: var(--color-brand-ink);
@@ -203,6 +193,11 @@
 
 .sidebarEyebrow {
   margin: 0;
+  color: var(--color-action-primary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .sidebarProgress {

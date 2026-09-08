@@ -74,8 +74,10 @@ export const toWishlistAccommodationCardViewModel = (
     [item.addressSummary.city, item.addressSummary.district]
       .filter(Boolean)
       .join(", ") || item.addressSummary.country,
-  showReview: item.reviewSummary.totalCount > 0,
-  reviewRatingLabel: item.reviewSummary.averageRating.toFixed(1),
+  showReview:
+    item.reviewSummary.totalCount > 0 &&
+    item.reviewSummary.averageRating !== null,
+  reviewRatingLabel: item.reviewSummary.averageRating?.toFixed(1) ?? "",
   reviewCountLabel: `(${item.reviewSummary.totalCount})`,
   memo: item.memo,
 });
@@ -116,8 +118,12 @@ export const toRecentlyViewedAccommodationCardViewModel = (
       .join(", ") ||
     item.addressSummary?.country ||
     "",
-  showReview: Boolean(item.reviewSummary && item.reviewSummary.totalCount > 0),
-  reviewRatingLabel: (item.reviewSummary?.averageRating ?? 0).toFixed(1),
+  showReview: Boolean(
+    item.reviewSummary &&
+    item.reviewSummary.totalCount > 0 &&
+    item.reviewSummary.averageRating !== null,
+  ),
+  reviewRatingLabel: item.reviewSummary?.averageRating?.toFixed(1) ?? "",
   reviewCountLabel: `(${item.reviewSummary?.totalCount ?? 0})`,
   isInWishlist: item.isInWishlist,
   viewedAt: item.viewedAt,

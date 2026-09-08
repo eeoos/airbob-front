@@ -322,7 +322,10 @@ describe("UserMenu", () => {
     await waitFor(() => {
       expect(mockLogout).toHaveBeenCalledTimes(1);
     });
-    expect(mockNavigate).toHaveBeenCalledWith("/");
+    expect(mockNavigate).toHaveBeenCalledWith("/", {
+      replace: true,
+      state: null,
+    });
   });
 
   it("does not let a late logout completion override newer navigation", async () => {
@@ -335,6 +338,10 @@ describe("UserMenu", () => {
 
     await openMenu();
     await userEvent.click(screen.getByRole("menuitem", { name: "로그아웃" }));
+    expect(mockNavigate).toHaveBeenCalledWith("/", {
+      replace: true,
+      state: null,
+    });
     window.history.pushState({ key: "new-entry" }, "", "/search");
     await act(async () => {
       resolveLogout();
@@ -342,7 +349,7 @@ describe("UserMenu", () => {
       await Promise.resolve();
     });
 
-    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
   });
 
   it("creates a hosting draft and navigates to the accommodation create editor", async () => {

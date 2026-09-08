@@ -12,7 +12,6 @@ export const EditWizardActionBar: React.FC<EditWizardActionBarProps> = ({
 }) => (
   <header className={styles.header}>
     <div className={styles.titleGroup}>
-      <p className={styles.eyebrow}>Airbob 호스트 스튜디오</p>
       <h1 className={styles.title}>숙소 등록</h1>
       <p className={styles.headerDescription}>
         게스트가 머무를 공간을 단계별로 완성해 보세요.

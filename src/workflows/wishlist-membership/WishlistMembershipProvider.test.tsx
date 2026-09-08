@@ -1,6 +1,14 @@
 import type { Mocked } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook } from "@testing-library/react";
+import {
+  act,
+  render,
+  renderHook,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { CreateWishlistModal } from "../../features/wishlist/components/CreateWishlistModal/CreateWishlistModal";
 import type { ReactNode } from "react";
 import type {
   AuthenticatedSessionScope,
@@ -65,11 +73,81 @@ const wrapper = ({ children }: { readonly children: ReactNode }) => (
 describe("WishlistMembershipProvider", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    transport.createWishlist.mockResolvedValue({ id: 11 });
     transport.addAccommodation.mockResolvedValue({ id: 31 });
     transport.getAccommodationMembership.mockResolvedValue({
       wishlists: [{ id: 11, isContained: true }],
       pageInfo: { hasNext: false, nextCursor: null },
     });
+  });
+
+  it("creates and saves from the modal after StrictMode replays provider effects", async () => {
+    const onComplete = vi.fn();
+    const CreateModal = () => (
+      <CreateWishlistModal
+        accommodationId={7}
+        commands={useWishlistMembership()}
+        isOpen
+        onClose={vi.fn()}
+        onComplete={onComplete}
+      />
+    );
+    render(<CreateModal />, { wrapper, reactStrictMode: true });
+    await userEvent.type(
+      screen.getByRole("textbox", { name: "이름" }),
+      "  부산 여행  ",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "새로 만들기" }));
+
+    await waitFor(() =>
+      expect(onComplete).toHaveBeenCalledWith({
+        status: "applied",
+        isInAnyWishlist: true,
+        wishlistId: 11,
+      }),
+    );
+    expect(transport.createWishlist).toHaveBeenCalledExactlyOnceWith(
+      { name: "부산 여행" },
+      expect.any(AbortSignal),
+    );
+    expect(transport.addAccommodation).toHaveBeenCalledExactlyOnceWith(
+      11,
+      { accommodationId: 7 },
+      expect.any(AbortSignal),
+    );
+    expect(projection.membershipReconciled).toHaveBeenCalledWith({
+      scope,
+      accommodationId: 7,
+      isInAnyWishlist: true,
+    });
+  });
+
+  it("still aborts pending work on a real unmount without applying stale cache changes", async () => {
+    let finishAdd!: (value: { id: number }) => void;
+    transport.addAccommodation.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishAdd = resolve;
+        }),
+    );
+    const { result, unmount } = renderHook(() => useWishlistMembership(), {
+      wrapper,
+      reactStrictMode: true,
+    });
+    const request = result.current.addAccommodation({
+      accommodationId: 7,
+      wishlistId: 11,
+    });
+    const signal = transport.addAccommodation.mock.calls[0]?.[2];
+    expect(signal?.aborted).toBe(false);
+
+    unmount();
+    await act(async () => Promise.resolve());
+    expect(signal?.aborted).toBe(true);
+    finishAdd({ id: 31 });
+    await expect(request).resolves.toEqual({ status: "stale" });
+    expect(transport.getAccommodationMembership).not.toHaveBeenCalled();
+    expect(projection.membershipReconciled).not.toHaveBeenCalled();
   });
 
   it("shares one command single-flight registry with every consumer", async () => {

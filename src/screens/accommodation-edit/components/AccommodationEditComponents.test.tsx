@@ -533,8 +533,6 @@ describe("AccommodationEdit extracted components", () => {
       "typeOptionSelected",
       "typeOptionIcon",
       "typeOptionLabel",
-      "amenityOptionContainer",
-      "amenityCountControl",
       "amenityModalFooter",
       "amenityModalDoneButton",
       "confirmModal",
@@ -545,10 +543,7 @@ describe("AccommodationEdit extracted components", () => {
       "confirmModalButtonCancel",
       "confirmModalButtonConfirm",
     ];
-    const sharedAmenityCountClasses = [
-      "amenityCountButton",
-      "amenityCountValue",
-    ];
+    const formAmenityCountClasses = ["amenityCountButton", "amenityCountValue"];
     const mobileModalClasses = ["typeModal", "typeModalGrid", "typeOption"];
 
     expect(fs.existsSync(modalCssPath)).toBe(true);
@@ -584,9 +579,9 @@ describe("AccommodationEdit extracted components", () => {
       expect(modalCss).toMatch(classSelector);
     });
 
-    sharedAmenityCountClasses.forEach((className) => {
+    formAmenityCountClasses.forEach((className) => {
       const classSelector = new RegExp(`\\.${className}(?![A-Za-z0-9_-])`);
-      expect(modalCss).toMatch(classSelector);
+      expect(modalCss).not.toMatch(classSelector);
       expect(formCss).toMatch(classSelector);
     });
 
@@ -597,8 +592,8 @@ describe("AccommodationEdit extracted components", () => {
       `${FEATURE_COMPONENTS_DIR}/InfoStep.tsx`,
     );
 
-    sharedAmenityCountClasses.forEach((className) => {
-      expect(amenityModalSource).toContain(`styles.${className}`);
+    formAmenityCountClasses.forEach((className) => {
+      expect(amenityModalSource).not.toContain(`styles.${className}`);
       expect(infoStepSource).toContain(`styles.${className}`);
     });
 
@@ -879,7 +874,7 @@ describe("AccommodationEdit extracted components", () => {
     const onFileInputClick = vi.fn();
     fileInput.addEventListener("click", onFileInputClick);
 
-    const addImageButton = screen.getByRole("button", { name: "추가" });
+    const addImageButton = screen.getByRole("button", { name: "사진 추가" });
     expect(addImageButton).toBeEnabled();
     expect(addImageButton).toHaveAttribute("type", "button");
     fireEvent.click(addImageButton);
@@ -890,7 +885,7 @@ describe("AccommodationEdit extracted components", () => {
       { isSaving: false, isDeletingImage: true },
     ]) {
       rerender(<PhotosStep {...photosStepProps} {...lockedState} />);
-      expect(screen.getByRole("button", { name: "추가" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "사진 추가" })).toBeDisabled();
     }
   });
 
@@ -1073,8 +1068,6 @@ describe("AccommodationEdit extracted components", () => {
         amenityInfos={[]}
         options={amenityOptions}
         onToggle={vi.fn()}
-        onIncrement={vi.fn()}
-        onDecrement={vi.fn()}
         onClose={onClose}
       />,
     );
@@ -1089,10 +1082,8 @@ describe("AccommodationEdit extracted components", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it("dispatches one semantic command for each amenity modal action", () => {
+  it("toggles amenity selection without quantity controls and closes on done", () => {
     const onToggle = vi.fn();
-    const onIncrement = vi.fn();
-    const onDecrement = vi.fn();
     const onClose = vi.fn();
 
     const { rerender } = render(
@@ -1100,92 +1091,38 @@ describe("AccommodationEdit extracted components", () => {
         amenityInfos={[]}
         options={amenityOptions}
         onToggle={onToggle}
-        onIncrement={onIncrement}
-        onDecrement={onDecrement}
         onClose={onClose}
       />,
     );
 
-    fireEvent.click(screen.getByText("무선 인터넷"));
+    fireEvent.click(screen.getByRole("button", { name: "무선 인터넷" }));
     expect(onToggle).toHaveBeenCalledTimes(1);
     expect(onToggle).toHaveBeenCalledWith("WIFI");
+    expect(onClose).not.toHaveBeenCalled();
 
     rerender(
       <AmenityModal
         amenityInfos={[{ name: "WIFI", count: 2 }]}
         options={amenityOptions}
         onToggle={onToggle}
-        onIncrement={onIncrement}
-        onDecrement={onDecrement}
         onClose={onClose}
       />,
     );
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "무선 인터넷 수량 감소" }),
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: "무선 인터넷 수량 증가" }),
-    );
-    fireEvent.click(screen.getByText("완료"));
+    const selectedAmenity = screen.getByRole("button", { name: "무선 인터넷" });
+    expect(selectedAmenity).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.queryByRole("button", { name: /수량/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("2")).not.toBeInTheDocument();
 
-    expect(onDecrement).toHaveBeenCalledTimes(1);
-    expect(onDecrement).toHaveBeenCalledWith("WIFI");
-    expect(onIncrement).toHaveBeenCalledTimes(1);
-    expect(onIncrement).toHaveBeenCalledWith("WIFI");
+    fireEvent.click(selectedAmenity);
+    expect(onToggle).toHaveBeenCalledTimes(2);
+    expect(onToggle).toHaveBeenLastCalledWith("WIFI");
+    expect(onClose).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "완료" }));
     expect(onClose).toHaveBeenCalledTimes(1);
-  });
-
-  it("does not nest amenity count buttons inside selectable controls", () => {
-    render(
-      <AmenityModal
-        amenityInfos={[{ name: "WIFI", count: 1 }]}
-        options={amenityOptions}
-        onToggle={vi.fn()}
-        onIncrement={vi.fn()}
-        onDecrement={vi.fn()}
-        onClose={vi.fn()}
-      />,
-    );
-
-    expect(screen.getByRole("button", { name: "무선 인터넷" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    expect(
-      screen.getByRole("button", { name: "무선 인터넷 수량 감소" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "무선 인터넷 수량 증가" }),
-    ).toBeInTheDocument();
-  });
-
-  it("does not toggle amenity selection when count buttons receive keyboard events", () => {
-    const onToggle = vi.fn();
-    const onIncrement = vi.fn();
-
-    render(
-      <AmenityModal
-        amenityInfos={[{ name: "WIFI", count: 1 }]}
-        options={amenityOptions}
-        onToggle={onToggle}
-        onIncrement={onIncrement}
-        onDecrement={vi.fn()}
-        onClose={vi.fn()}
-      />,
-    );
-
-    const incrementButton = screen.getByRole("button", {
-      name: "무선 인터넷 수량 증가",
-    });
-    expect(
-      screen.getByRole("button", { name: "무선 인터넷 수량 감소" }),
-    ).toBeDisabled();
-
-    fireEvent.keyDown(incrementButton, { key: "Enter" });
-
-    expect(onIncrement).not.toHaveBeenCalled();
-    expect(onToggle).not.toHaveBeenCalled();
   });
 
   it("renders time step and delegates time picker changes", () => {

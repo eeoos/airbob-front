@@ -454,13 +454,14 @@ test("maps viewport URL coordinates to the search request without loading Google
   expect(getRequestQuery(viewportRequest)).not.toHaveProperty("destination");
 });
 
-test("projects wishlist add and remove state while collapsing duplicate clicks", async ({
+test("toggles only the chosen wishlist and keeps the heart saved until all memberships are removed", async ({
   api,
   page,
   session,
 }) => {
   session.authenticate();
   let isContained = false;
+  let isSecondContained = false;
   const accommodationId = 81;
   const wishlistId = 7;
   const wishlistAccommodationId = 501;
@@ -471,7 +472,7 @@ test("projects wishlist add and remove state while collapsing duplicate clicks",
         makeSearchAccommodation(
           accommodationId,
           "위시리스트 상태 테스트 숙소",
-          isContained,
+          isContained || isSecondContained,
         ),
       ],
       page_info: {
@@ -500,11 +501,22 @@ test("projects wishlist add and remove state while collapsing duplicate clicks",
             ? wishlistAccommodationId
             : null,
         },
+        {
+          id: wishlistId + 1,
+          name: "겨울 여행",
+          created_at: "2026-06-01T00:00:00Z",
+          wishlist_item_count: isSecondContained ? 1 : 0,
+          thumbnail_image_url: null,
+          is_contained: isSecondContained,
+          wishlist_accommodation_id: isSecondContained
+            ? wishlistAccommodationId + 1
+            : null,
+        },
       ],
       page_info: {
         has_next: false,
         next_cursor: null,
-        current_size: 1,
+        current_size: 2,
       },
     }),
   );
@@ -521,6 +533,22 @@ test("projects wishlist add and remove state while collapsing duplicate clicks",
     `/api/v1/members/wishlists/accommodations/${wishlistAccommodationId}`,
     () => {
       isContained = false;
+      return apiSuccess(null);
+    },
+  );
+  api.register(
+    "POST",
+    `/api/v1/members/wishlists/accommodations/${wishlistId + 1}`,
+    () => {
+      isSecondContained = true;
+      return apiSuccess({ id: wishlistAccommodationId + 1 }, 201);
+    },
+  );
+  api.register(
+    "DELETE",
+    `/api/v1/members/wishlists/accommodations/${wishlistAccommodationId + 1}`,
+    () => {
+      isSecondContained = false;
       return apiSuccess(null);
     },
   );
@@ -556,13 +584,24 @@ test("projects wishlist add and remove state while collapsing duplicate clicks",
     accommodation_id: accommodationId,
   });
 
-  await wishlistDialog.getByRole("button", { name: "닫기" }).click();
-  const cardRemoveButton = page.getByRole("button", {
-    name: "위시리스트에서 제거",
+  const secondWishlistButton = wishlistDialog.getByRole("button", {
+    name: /겨울 여행/,
   });
-  await expect(cardRemoveButton).toHaveAttribute("aria-pressed", "true");
+  await expect(secondWishlistButton).toHaveAttribute("aria-pressed", "false");
+  await secondWishlistButton.click();
+  await expect(secondWishlistButton).toHaveAttribute("aria-pressed", "true");
+  await expect(wishlistButton).toHaveAttribute("aria-pressed", "true");
 
-  await cardRemoveButton.click();
+  await wishlistDialog.getByRole("button", { name: "닫기" }).click();
+  const savedCardButton = page.getByRole("button", {
+    name: "저장 목록 열기",
+  });
+  await expect(savedCardButton).toHaveAttribute("aria-pressed", "true");
+
+  await savedCardButton.click();
+  expect(
+    api.requests.filter((request) => request.method === "DELETE"),
+  ).toHaveLength(0);
   const containedWishlistButton = wishlistDialog.getByRole("button", {
     name: /여름 여행/,
   });
@@ -580,9 +619,29 @@ test("projects wishlist add and remove state while collapsing duplicate clicks",
       `/api/v1/members/wishlists/accommodations/${wishlistAccommodationId}`,
     ),
   ).toHaveLength(1);
+  expect(
+    api.matching(
+      "DELETE",
+      `/api/v1/members/wishlists/accommodations/${wishlistAccommodationId + 1}`,
+    ),
+  ).toHaveLength(0);
+  await expect(secondWishlistButton).toHaveAttribute("aria-pressed", "true");
 
   await wishlistDialog.getByRole("button", { name: "닫기" }).click();
+  await expect(savedCardButton).toHaveAttribute("aria-pressed", "true");
+  await savedCardButton.click();
+  await expect(wishlistButton).toHaveAttribute("aria-pressed", "false");
+  await expect(secondWishlistButton).toHaveAttribute("aria-pressed", "true");
+  await secondWishlistButton.click();
+  await expect(secondWishlistButton).toHaveAttribute("aria-pressed", "false");
+  await wishlistDialog.getByRole("button", { name: "닫기" }).click();
   await expect(cardSaveButton).toHaveAttribute("aria-pressed", "false");
+  expect(
+    api.matching(
+      "DELETE",
+      `/api/v1/members/wishlists/accommodations/${wishlistAccommodationId + 1}`,
+    ),
+  ).toHaveLength(1);
 });
 
 test("fences an in-flight A membership result before B runs the same command", async ({

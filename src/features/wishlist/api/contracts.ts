@@ -12,8 +12,8 @@ export interface AddressSummaryWire {
 }
 
 export interface ReviewSummaryWire {
-  readonly total_count: number;
-  readonly average_rating: number;
+  readonly total_count: number | null;
+  readonly average_rating: number | null;
 }
 
 interface AccommodationSummaryWire {
@@ -43,7 +43,7 @@ interface WishlistAccommodationWire {
   readonly created_at: string;
   readonly accommodation: AccommodationSummaryWire;
   readonly address_summary: AddressSummaryWire;
-  readonly review_summary: ReviewSummaryWire;
+  readonly review_summary: ReviewSummaryWire | null;
   readonly is_in_wishlist: boolean;
 }
 

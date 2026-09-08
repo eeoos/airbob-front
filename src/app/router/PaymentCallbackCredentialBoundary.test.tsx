@@ -101,10 +101,10 @@ const renderBoundary = (
             element={<AuthenticatedBoundaryProbe />}
           />
           <Route
-            path="/login"
+            path="/"
             element={
               <>
-                <div data-testid="login-route" />
+                <div data-testid="home-login-modal" />
                 <PendingCredentialProbe />
               </>
             }
@@ -278,7 +278,7 @@ describe("PaymentCallbackCredentialBoundary", () => {
     expectCredentialsScrubbedFromHistory();
   });
 
-  it("sends an anonymous user to login with a credential-free return path", async () => {
+  it("opens the home login modal with a credential-free return path", async () => {
     mockUseSession.mockReturnValue({
       state: { status: "anonymous" },
       revalidate: vi.fn(),
@@ -291,10 +291,10 @@ describe("PaymentCallbackCredentialBoundary", () => {
       state: { paymentKey: "payment-key-in-router-history" },
     });
 
-    await screen.findByTestId("login-route");
+    await screen.findByTestId("home-login-modal");
     const routerLocation = screen.getByTestId("location").textContent ?? "";
 
-    expect(routerLocation).toContain('"pathname":"/login"');
+    expect(routerLocation).toContain('"pathname":"/"');
     expect(routerLocation).toContain(
       `"from":{"pathname":"${callbackPath}","search":"","hash":""}`,
     );
@@ -311,7 +311,7 @@ describe("PaymentCallbackCredentialBoundary", () => {
 
     renderBoundary({ pathname: callbackPath, search: callbackSearch });
 
-    await screen.findByTestId("login-route");
+    await screen.findByTestId("home-login-modal");
     expect(
       screen.getByTestId("pending-candidate-credential"),
     ).toHaveTextContent('"paymentKey":"payment-key-1"');

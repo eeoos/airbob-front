@@ -28,9 +28,9 @@ const toAddressSummary = (wire: AddressSummaryWire): AddressSummary => ({
   district: wire.district,
 });
 
-const toReviewSummary = (wire: ReviewSummaryWire): ReviewSummary => ({
-  totalCount: wire.total_count,
-  averageRating: wire.average_rating,
+const toReviewSummary = (wire: ReviewSummaryWire | null): ReviewSummary => ({
+  totalCount: wire?.total_count ?? 0,
+  averageRating: wire?.average_rating ?? null,
 });
 
 export const toWishlistCollection = (

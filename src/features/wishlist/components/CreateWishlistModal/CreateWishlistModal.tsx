@@ -128,15 +128,12 @@ export function CreateWishlistModal({
         onSubmit={handleSubmit}
         className={styles.form}
       >
-        <p className={styles.description}>
-          여행 목적이나 계절처럼 나중에도 알아보기 쉬운 이름을 붙여 보세요.
-        </p>
         <div className={styles.inputGroup}>
           <label htmlFor="wishlist-name" className={styles.label}>
             이름
           </label>
           <input
-            aria-describedby={`wishlist-name-help wishlist-name-count${
+            aria-describedby={`wishlist-name-count${
               error ? " wishlist-create-error" : ""
             }`}
             aria-invalid={error ? true : undefined}
@@ -153,7 +150,6 @@ export function CreateWishlistModal({
             required
           />
           <div className={styles.inputMeta}>
-            <span id="wishlist-name-help">이름은 나중에 변경할 수 있어요.</span>
             <span aria-live="polite" id="wishlist-name-count">
               {name.length}/50자
             </span>

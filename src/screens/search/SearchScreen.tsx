@@ -123,7 +123,6 @@ const resultsListClassNames = {
   empty: requireCssModuleClass(styles.empty),
   cardGrid: requireCssModuleClass(styles.cardGrid),
   cardWrapper: requireCssModuleClass(styles.cardWrapper),
-  selected: requireCssModuleClass(styles.selected),
 };
 
 const paginationClassNames = {
@@ -220,7 +219,6 @@ export function SearchScreen({
       isErrorRetryable={isErrorRetryable}
       isLoading={results.isLoading}
       isRefreshing={results.isRefreshing}
-      selectedAccommodationId={map.selectedAccommodationId}
       onAccommodationClick={onAccommodationOpen}
       onHoveredAccommodationChange={map.setHoveredAccommodationId}
       getAccommodationHref={getAccommodationHref}

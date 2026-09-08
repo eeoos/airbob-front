@@ -13,7 +13,7 @@ export interface AddressSummary {
 
 export interface ReviewSummary {
   readonly totalCount: number;
-  readonly averageRating: number;
+  readonly averageRating: number | null;
 }
 
 interface AccommodationSummary {

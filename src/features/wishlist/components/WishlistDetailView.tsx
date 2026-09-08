@@ -111,7 +111,6 @@ export function WishlistDetailView({
           </svg>
         </button>
         <div className={styles.routeHeading}>
-          <p className={styles.eyebrow}>저장한 여행 아이디어</p>
           <h1 className={styles.recentlyViewedTitle} id="wishlist-detail-title">
             {selectedWishlistName}
           </h1>

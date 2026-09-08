@@ -516,6 +516,13 @@ const detailPath =
   "&adultOccupancy=2&childOccupancy=1";
 const successPath = `/reservations/${RESERVATION_UID}/success`;
 
+test.beforeEach(async ({ context }) => {
+  await context.route(
+    /^https:\/\/images\.unsplash\.com\/photo-1566073771259-6a8506099945(?:\?.*)?$/,
+    (route) => route.fulfill({ status: 204, body: "" }),
+  );
+});
+
 test("quotes first and single-flights the explicit checkout transition", async ({
   api,
   page,
@@ -944,7 +951,7 @@ test("keeps a same-subject callback private across the anonymous login detour", 
   await page.goto(
     `${successPath}?paymentKey=${PAYMENT_KEY}&orderId=${RESERVATION_UID}&amount=100000`,
   );
-  await expect(page).toHaveURL("/login");
+  await expect(page).toHaveURL("/");
   await expectNoBrowserSecret(page, [PAYMENT_KEY]);
   expect(JSON.stringify(await readJournal(page))).toContain(
     '"phase":"attempt-ready"',
@@ -972,14 +979,14 @@ test("purges a callback journal when the login candidate is a different subject"
   await page.goto(
     `${successPath}?paymentKey=${PAYMENT_KEY}&orderId=${RESERVATION_UID}&amount=100000`,
   );
-  await expect(page).toHaveURL("/login");
+  await expect(page).toHaveURL("/");
   // Publish the foreign server identity on a fresh document. The pending
   // callback is deliberately not portable across documents, while candidate
   // reconciliation must still purge the previous subject's journal.
   session.authenticate(SYNTHETIC_USER_B);
   await page.reload();
-  await expect(page).toHaveURL("/login");
-  await expect(page.getByRole("heading", { name: "로그인" })).toBeVisible();
+  await expect(page).toHaveURL("/");
+  await expect(page.getByRole("dialog", { name: "로그인" })).toBeHidden();
   expect(api.matching("POST", "/api/v1/payments/confirm")).toHaveLength(0);
   expect(await readV2Storage(page)).toEqual({});
   await expectNoBrowserSecret(page, [PAYMENT_KEY, SYNTHETIC_USER_B.email]);
@@ -1073,7 +1080,7 @@ test("clamps operation polling, surfaces review identifiers, and retains the rec
     api.matching("GET", `/api/v1/payment-operations/${OPERATION_ID}`),
   ).toHaveLength(4);
   await page.goForward();
-  await expect(page).toHaveURL("/login");
+  await expect(page).toHaveURL("/");
   await page.goBack();
   await expect(
     page.getByRole("heading", { name: "결제가 완료되었습니다" }),

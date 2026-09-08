@@ -264,6 +264,13 @@ const expectSameSubjectV2Preserved = async (page: Page, tabId: string) => {
     });
 };
 
+test.beforeEach(async ({ context }) => {
+  await context.route(
+    /^https:\/\/images\.unsplash\.com\/photo-1566073771259-6a8506099945(?:\?.*)?$/,
+    (route) => route.fulfill({ status: 204, body: "" }),
+  );
+});
+
 test("returns an anonymous user to the complete protected URL after login", async ({
   api,
   page,
@@ -304,10 +311,8 @@ test("returns an anonymous user to the complete protected URL after login", asyn
 
   await page.goto("/wishlist?id=7#memo");
 
-  await expect(page).toHaveURL(/\/login$/);
-  await expect(
-    page.getByRole("heading", { name: "로그인", level: 1 }),
-  ).toBeVisible();
+  await expect(page).toHaveURL("/");
+  await expect(page.getByRole("dialog", { name: "로그인" })).toBeVisible();
 
   await page.getByLabel("이메일").fill("person-a@example.invalid");
   await page.getByLabel("비밀번호").fill("synthetic-password");
@@ -340,6 +345,20 @@ test("returns an anonymous user to the complete protected URL after login", asyn
   ).toMatchObject({
     size: "20",
   });
+
+  await logoutFromSessionRoute(page);
+  await expect(page).toHaveURL("/");
+  await expect(page.getByRole("dialog", { name: "로그인" })).toBeHidden();
+  await expectAnonymousHeader(page);
+
+  await page.goto("/wishlist?id=7#memo");
+  const loginDialog = page.getByRole("dialog", { name: "로그인" });
+  await expect(loginDialog).toBeVisible();
+  await loginDialog.getByRole("button", { name: "닫기", exact: true }).click();
+  await expect(page).toHaveURL("/");
+  await expect(loginDialog).toBeHidden();
+  await page.reload();
+  await expect(loginDialog).toBeHidden();
 });
 
 test("cancels a pending anonymous wishlist save when the auth modal closes", async ({

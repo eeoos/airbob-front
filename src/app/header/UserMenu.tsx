@@ -248,19 +248,11 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isLoggedIn }) => {
   };
 
   const handleLogout = async () => {
-    const logoutEntry = {
-      hash: location.hash,
-      key: location.key,
-      pathname: location.pathname,
-      search: location.search,
-    };
-
     try {
-      await logout();
+      const logoutOperation = logout();
       setIsMenuOpen(false);
-      if (browserWindowNavigation.isCurrentHistoryEntry(logoutEntry)) {
-        navigate(routeTo.home());
-      }
+      navigate(routeTo.home(), { replace: true, state: null });
+      await logoutOperation;
     } catch (error) {
       clientLogger.error({ message: "Logout failed:", error });
       setIsMenuOpen(false);

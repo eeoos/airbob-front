@@ -90,9 +90,7 @@ const buildSearchMapInfoWindowContentView = ({
     ? INFO_WINDOW_STYLE_TOKENS.brand
     : INFO_WINDOW_STYLE_TOKENS.textPrimary;
   const wishlistIconFill = isWishlisted ? "currentColor" : "none";
-  const wishlistLabel = isWishlisted
-    ? "위시리스트에서 제거"
-    : "위시리스트에 저장";
+  const wishlistLabel = isWishlisted ? "저장 목록 열기" : "위시리스트에 저장";
   const escapedAccommodationId = escapeInfoWindowHtml(accommodationId);
   const escapedTitle = escapeInfoWindowHtml(title);
   const escapedPriceLabel = escapeInfoWindowHtml(priceLabel);

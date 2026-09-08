@@ -99,6 +99,26 @@ describe("wishlist accommodation view model", () => {
     });
   });
 
+  it.each([0, 3])(
+    "renders saved and recently viewed cards without inventing a rating when %i reviews have no average",
+    (totalCount) => {
+      const reviewSummary = { totalCount, averageRating: null };
+      const saved = toWishlistAccommodationCardViewModel(
+        wishlistAccommodationFixture({ reviewSummary }),
+      );
+      const recent = toRecentlyViewedAccommodationCardViewModel(
+        recentlyViewedFixture({ reviewSummary }),
+      );
+
+      expect(saved.name).toBe("Lake cabin");
+      expect(recent.name).toBe("Ocean house");
+      for (const card of [saved, recent]) {
+        expect(card.showReview).toBe(false);
+        expect(card.reviewRatingLabel).toBe("");
+      }
+    },
+  );
+
   it("maps wishlist index fields into card display fields", () => {
     expect(toWishlistIndexCardViewModel(wishlistFixture())).toEqual({
       id: 42,
@@ -179,7 +199,7 @@ describe("wishlist accommodation view model", () => {
     expect(viewModel.thumbnailUrl).toBeNull();
     expect(viewModel.locationLabel).toBe("");
     expect(viewModel.showReview).toBe(false);
-    expect(viewModel.reviewRatingLabel).toBe("0.0");
+    expect(viewModel.reviewRatingLabel).toBe("");
     expect(viewModel.reviewCountLabel).toBe("(0)");
   });
 });

@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import type { HomeScreenProps } from "../../../screens/home/HomeScreen";
+import { MemoryRouter } from "react-router-dom";
 import HomeRoute from "./HomeRoute";
 
 const mockHomeScreen = vi.fn();
@@ -13,7 +14,11 @@ vi.mock("../../../screens/home/public", () => ({
 
 describe("HomeRoute", () => {
   it("maps the home hero view model into screen props", () => {
-    render(<HomeRoute />);
+    render(
+      <MemoryRouter>
+        <HomeRoute />
+      </MemoryRouter>,
+    );
 
     expect(screen.getByTestId("home-screen")).toBeInTheDocument();
     expect(mockHomeScreen.mock.calls.at(0)?.at(0)).toEqual({

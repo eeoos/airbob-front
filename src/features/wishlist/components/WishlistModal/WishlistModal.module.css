@@ -128,33 +128,22 @@
   stroke-width: 1.5;
 }
 
-.wishlistIcon {
-  position: absolute;
-  z-index: var(--z-local-raised);
-  top: var(--space-2);
-  right: var(--space-2);
-  display: inline-flex;
-  width: var(--control-touch-target);
-  height: var(--control-touch-target);
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-pill);
-  background: var(--overlay-surface-muted);
-  box-shadow: var(--shadow-control);
-  color: var(--color-brand-ink);
-}
-
-.wishlistIcon.active {
-  color: var(--color-brand-coral);
-}
-
-.wishlistIcon svg {
-  width: var(--space-6);
-  height: var(--space-6);
-}
-
 .wishlistInfo {
-  padding-top: var(--space-3);
+  position: relative;
+  padding: var(--space-3) var(--space-8) 0 0;
+}
+
+.savedIndicator {
+  position: absolute;
+  top: var(--space-3);
+  right: 0;
+  width: var(--space-5);
+  height: var(--space-5);
+  fill: none;
+  stroke: var(--color-action-primary);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .wishlistName {

@@ -117,17 +117,17 @@ export const SearchAccommodationCard: React.FC<
             accommodation.isInWishlist ? styles.active : ""
           }`}
           aria-label={
-            accommodation.isInWishlist
-              ? "위시리스트에서 제거"
-              : "위시리스트에 저장"
+            accommodation.isInWishlist ? "저장 목록 열기" : "위시리스트에 저장"
           }
           aria-pressed={accommodation.isInWishlist}
           onClick={handleWishlistClick}
         >
           <svg
+            aria-hidden="true"
+            focusable="false"
             viewBox="0 0 24 24"
             className={styles.wishlistIcon}
-            strokeWidth="1.5"
+            strokeWidth="2"
           >
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
           </svg>

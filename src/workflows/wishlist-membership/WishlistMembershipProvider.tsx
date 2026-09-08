@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, type ReactNode } from "react";
+import { useMemo, useRef, type ReactNode } from "react";
+import { useStrictModeSafeDisposable } from "../../shared/lib/useStrictModeSafeDisposable";
 import {
   createWishlistQueryCacheProjection,
   type WishlistProjectionPort,
@@ -52,7 +53,7 @@ export function WishlistMembershipProvider({
     [projectionFactory, queryClient, sessionPort, transport],
   );
 
-  useEffect(() => () => commands.dispose(), [commands]);
+  useStrictModeSafeDisposable(commands);
 
   return (
     <WishlistMembershipContext.Provider value={commands}>
