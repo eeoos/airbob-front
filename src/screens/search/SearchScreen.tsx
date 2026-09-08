@@ -197,6 +197,7 @@ export function SearchScreen({
       hoveredAccommodationId={map.hoveredAccommodationId}
       onAccommodationSelect={map.handleAccommodationSelect}
       getAccommodationHref={getAccommodationHref}
+      onAccommodationOpen={onAccommodationOpen}
       isExpanded={isExpanded}
       onBoundsChange={map.requestBounds}
       onBoundsDragCancel={map.onBoundsDragCancel}

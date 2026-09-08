@@ -20,6 +20,7 @@ interface AccommodationHeroProps {
   onMobileSlideIndexChange: (index: number) => void;
   onOpenGallery: (index: number) => void;
   onSave: () => void;
+  onBack?: () => void;
   onTouchStart?: React.TouchEventHandler<HTMLDivElement>;
   onTouchMove?: React.TouchEventHandler<HTMLDivElement>;
   onTouchEnd?: React.TouchEventHandler<HTMLDivElement>;
@@ -35,6 +36,7 @@ const AccommodationHero: React.FC<AccommodationHeroProps> = ({
   onMobileSlideIndexChange,
   onOpenGallery,
   onSave,
+  onBack,
   onTouchStart,
   onTouchMove,
   onTouchEnd,
@@ -80,7 +82,25 @@ const AccommodationHero: React.FC<AccommodationHeroProps> = ({
   );
 
   return (
-    <>
+    <div className={styles.hero}>
+      {onBack && (
+        <button
+          type="button"
+          className={styles.backButton}
+          aria-label="이전 화면으로"
+          onClick={onBack}
+        >
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+          >
+            <path d="m12 5-7 7 7 7M5 12h14" />
+          </svg>
+        </button>
+      )}
       <div className={styles.header}>
         <div className={styles.titleSection}>
           <div className={styles.titleWrapper}>
@@ -247,7 +267,7 @@ const AccommodationHero: React.FC<AccommodationHeroProps> = ({
                   {mobileSlideIndex + 1} / {heroImages.length}
                 </div>
               </button>
-              {heroImages.length <= 5 && (
+              {heroImages.length > 1 && heroImages.length <= 5 && (
                 <div className={styles.sliderDots}>
                   {heroImages.map((_, index) => (
                     <button
@@ -279,7 +299,7 @@ const AccommodationHero: React.FC<AccommodationHeroProps> = ({
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 };
 

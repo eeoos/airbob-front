@@ -43,6 +43,28 @@ describe("useMapInfoWindowEvents", () => {
     cleanup();
   });
 
+  it("uses the route navigation command when opening a map card", () => {
+    const root = document.createElement("div");
+    root.innerHTML = "<p>mobile card body</p>";
+    document.body.appendChild(root);
+    const onAccommodationOpen = vi.fn();
+    const { result } = renderHook(() =>
+      useMapInfoWindowEvents({
+        getAccommodationHref: (id) => `/accommodations/${id}`,
+        onAccommodationOpen,
+      }),
+    );
+    const cleanup = result.current({
+      root,
+      accommodationId: 10,
+      onClose: vi.fn(),
+    });
+    fireEvent.click(screen.getByText("mobile card body"));
+    expect(onAccommodationOpen).toHaveBeenCalledWith(10);
+    expect(openSpy).not.toHaveBeenCalled();
+    cleanup();
+  });
+
   it("toggles wishlist with the clicked accommodation id and then closes", () => {
     const root = document.createElement("div");
     root.innerHTML = `

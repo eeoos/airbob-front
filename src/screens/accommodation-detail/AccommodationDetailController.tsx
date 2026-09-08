@@ -104,6 +104,7 @@ export interface AccommodationDetailControllerProps {
     handle: BookingTransactionHandle,
     snapshot: BookingTransactionSnapshot,
   ) => void;
+  readonly onBack?: () => void;
   readonly onOpenTrips: () => void;
   readonly onReplaceBookingDates: (
     checkIn: string | null,
@@ -137,6 +138,7 @@ export function AccommodationDetailController({
   onBookingFlowHandleChange,
   onOpenPayment,
   onOpenTrips,
+  onBack,
   onReplaceBookingDates,
   onTerminalReservation,
   recordRecentlyViewed,
@@ -664,6 +666,7 @@ export function AccommodationDetailController({
       },
       hero: {
         detailView,
+        ...(onBack ? { onBack } : {}),
         mobileSlideIndex: imageGallery.mobileSlideIndex,
         onMobileSlideIndexChange: imageGallery.setMobileSlideIndex,
         onOpenGallery: imageGallery.openGallery,
@@ -728,6 +731,7 @@ export function AccommodationDetailController({
 
   return (
     <AccommodationDetailScreen
+      {...(onBack ? { onBack } : {})}
       errorMessage={errorMessage}
       onClearError={() => setErrorMessage(null)}
       refreshError={refreshError}

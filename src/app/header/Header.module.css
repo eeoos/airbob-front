@@ -154,3 +154,9 @@
     transition: none;
   }
 }
+
+@media (--viewport-mobile-tablet) {
+  .detailHeader {
+    display: none;
+  }
+}

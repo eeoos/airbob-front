@@ -22,7 +22,7 @@ const expectedRouteDefinitions = [
     path: "/accommodations/:id",
     auth: "public",
     shell: "browse",
-    header: "default",
+    header: "detail",
   },
   {
     id: "accommodation-confirm",

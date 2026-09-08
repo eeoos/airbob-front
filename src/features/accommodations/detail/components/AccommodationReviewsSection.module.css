@@ -312,3 +312,69 @@
     width: 100%;
   }
 }
+
+.carouselControls {
+  display: none;
+}
+
+@media (--viewport-mobile-tablet) {
+  .reviewSection {
+    padding-top: var(--space-8);
+    margin-bottom: var(--space-8);
+  }
+
+  .sectionDescription {
+    display: none;
+  }
+
+  .carouselControls {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    margin-top: var(--space-4);
+  }
+
+  .carouselControls button {
+    width: var(--space-11);
+    height: var(--space-11);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-pill);
+    background: var(--color-background-page);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-xl);
+    cursor: pointer;
+  }
+
+  .carouselControls button:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring-visible);
+  }
+
+  .reviewsGrid {
+    display: flex;
+    gap: var(--space-4);
+    margin: var(--space-4) calc(var(--detail-inline-gutter) * -1) 0;
+    padding: 0 var(--detail-inline-gutter) var(--space-2);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--detail-inline-gutter);
+  }
+
+  .reviewCard {
+    padding: var(--space-5);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-content-card);
+    scroll-snap-align: start;
+    flex: 0 0 88%;
+    box-sizing: border-box;
+  }
+
+  .reviewContent {
+    font-size: var(--font-size-sm);
+  }
+
+  .reviewViewAll button {
+    width: 100%;
+  }
+}

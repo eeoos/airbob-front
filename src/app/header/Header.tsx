@@ -28,7 +28,9 @@ export const Header: React.FC<HeaderProps> = ({ headerMode = "default" }) => {
   const { state } = useSession();
   const isAuthenticated = state.status === "authenticated";
   const shouldRenderSearch =
-    headerMode === "default" || headerMode === "search";
+    headerMode === "default" ||
+    headerMode === "search" ||
+    headerMode === "detail";
   const isSearchRoute = location.pathname === ROUTE_PATHS.search;
   const isSearchLayout = headerMode === "search";
 
@@ -69,7 +71,7 @@ export const Header: React.FC<HeaderProps> = ({ headerMode = "default" }) => {
 
   return (
     <header
-      className={`${styles.header} ${isSearchLayout ? styles.searchHeader : ""}`}
+      className={`${styles.header} ${isSearchLayout ? styles.searchHeader : ""} ${headerMode === "detail" ? styles.detailHeader : ""}`}
       data-layout={isSearchLayout ? "full-width" : "contained"}
     >
       <div

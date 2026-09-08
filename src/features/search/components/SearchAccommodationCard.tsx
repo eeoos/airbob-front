@@ -1,4 +1,5 @@
 import React from "react";
+import { useResponsiveLayout } from "../../../shared/styles/useResponsiveLayout";
 import { ImageWithFallback } from "../../../shared/ui";
 import {
   getSearchAccommodationPriceDisplay,
@@ -25,6 +26,7 @@ export const SearchAccommodationCard: React.FC<
   checkIn,
   checkOut,
 }) => {
+  const layout = useResponsiveLayout();
   const priceDisplay = getSearchAccommodationPriceDisplay(
     accommodation,
     checkIn,
@@ -32,7 +34,14 @@ export const SearchAccommodationCard: React.FC<
   );
 
   const handleCardClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
-    if (onClick) {
+    if (
+      onClick &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.shiftKey &&
+      !event.altKey &&
+      event.button === 0
+    ) {
       event.preventDefault();
       onClick();
     }
@@ -49,7 +58,7 @@ export const SearchAccommodationCard: React.FC<
     <div className={styles.accommodationCard} data-testid="search-result-card">
       <a
         href={detailUrl}
-        target="_blank"
+        target={layout === "desktop" ? "_blank" : undefined}
         rel="noopener noreferrer"
         className={styles.cardLink}
         aria-label={`숙소 상세 보기: ${accommodation.name}`}

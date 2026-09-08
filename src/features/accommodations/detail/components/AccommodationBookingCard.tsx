@@ -1,4 +1,7 @@
 import React from "react";
+import { requireCssModuleClass } from "../../../../shared/styles/requireCssModuleClass";
+import { Dialog } from "../../../../shared/ui";
+import { useResponsiveLayout } from "../../../../shared/styles/useResponsiveLayout";
 import type { AccommodationBookingViewModel } from "../lib/accommodationBookingViewModel";
 import type { AccommodationBookingCouponViewModel } from "../lib/accommodationBookingSectionsViewModel";
 import {
@@ -107,6 +110,8 @@ export function AccommodationBookingCard({
   couponState,
   couponActions,
 }: AccommodationBookingCardProps) {
+  const isMobile = useResponsiveLayout() === "mobile-tablet";
+  const [isMobileBookingOpen, setIsMobileBookingOpen] = React.useState(false);
   const {
     payablePrice,
     nights,
@@ -162,7 +167,34 @@ export function AccommodationBookingCard({
   const displayedNights = quoteSnapshot?.nights ?? nights;
   const hasCompleteStay = Boolean(checkIn && checkOut && displayedNights > 0);
 
-  return (
+  const requestDates = () => {
+    onGuestPickerOpenChange(false);
+    onDatePickerOpenChange(true);
+  };
+  const closeMobileBooking = () => {
+    onDatePickerOpenChange(false);
+    onGuestPickerOpenChange(false);
+    setIsMobileBookingOpen(false);
+  };
+  const renderReserveAction = (
+    reserve: () => void,
+    selectDates: () => void,
+  ) => (
+    <BookingReserveAction
+      availabilityStatus={availabilityStatus}
+      hasCompleteStay={hasCompleteStay}
+      isReservationLocked={isReservationLocked}
+      isReserving={isReserving}
+      isStayReady={isStayReady}
+      onReserve={reserve}
+      onRequestDates={selectDates}
+      reservationStatus={reservationStatus}
+      retryAvailability={retryAvailability}
+      selectionState={selectionState}
+    />
+  );
+
+  const bookingContent = (
     <section aria-label="숙소 예약" className={styles.bookingCard}>
       <BookingPriceHeader
         hasCompleteStay={hasCompleteStay}
@@ -243,21 +275,68 @@ export function AccommodationBookingCard({
         />
       )}
 
-      <BookingReserveAction
-        availabilityStatus={availabilityStatus}
-        hasCompleteStay={hasCompleteStay}
-        isReservationLocked={isReservationLocked}
-        isReserving={isReserving}
-        isStayReady={isStayReady}
-        onReserve={onReserve}
-        onRequestDates={() => {
-          onGuestPickerOpenChange(false);
-          onDatePickerOpenChange(true);
-        }}
-        reservationStatus={reservationStatus}
-        retryAvailability={retryAvailability}
-        selectionState={selectionState}
-      />
+      {renderReserveAction(onReserve, requestDates)}
     </section>
+  );
+
+  if (!isMobile) return bookingContent;
+
+  return (
+    <>
+      <div className={styles.mobileBookingBar} aria-label="예약 요약">
+        <button
+          className={styles.mobileSummaryButton}
+          type="button"
+          aria-label="날짜와 인원, 요금 확인"
+          onClick={() => setIsMobileBookingOpen(true)}
+        >
+          {hasCompleteStay ? (
+            <>
+              <span>
+                총액{" "}
+                <strong>
+                  ₩{(quoteSnapshot?.amount ?? payablePrice).toLocaleString()}
+                </strong>
+              </span>
+              <span className={styles.mobileStaySummary}>
+                {formatDate(checkIn)} – {formatDate(checkOut)}
+              </span>
+            </>
+          ) : (
+            <strong>
+              날짜를 선택해
+              <br />
+              요금 확인
+            </strong>
+          )}
+          <span className={styles.mobileStaySummary}>
+            게스트 {adultCount + childCount}명
+            {infantCount > 0 ? ` · 유아 ${infantCount}명` : ""}
+            {petCount > 0 ? ` · 반려동물 ${petCount}마리` : ""}
+          </span>
+        </button>
+        <div className={styles.mobileReserveAction}>
+          {renderReserveAction(
+            () => setIsMobileBookingOpen(true),
+            () => {
+              setIsMobileBookingOpen(true);
+              requestDates();
+            },
+          )}
+        </div>
+      </div>
+      <Dialog
+        isOpen={isMobileBookingOpen}
+        onClose={closeMobileBooking}
+        title="예약 정보"
+        closeButtonLabel="완료"
+        size="custom"
+        className={requireCssModuleClass(styles.mobileBookingDialog)}
+        bodyClassName={requireCssModuleClass(styles.mobileBookingBody)}
+        bodyPadding="none"
+      >
+        {bookingContent}
+      </Dialog>
+    </>
   );
 }

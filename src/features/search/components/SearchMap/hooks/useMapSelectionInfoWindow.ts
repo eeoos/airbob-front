@@ -18,6 +18,7 @@ interface UseMapSelectionInfoWindowOptions {
   checkIn?: string | null | undefined;
   checkOut?: string | null | undefined;
   getAccommodationHref: (accommodationId: number) => string;
+  onAccommodationOpen?: ((accommodationId: number) => void) | undefined;
   hoveredAccommodationId?: number | null | undefined;
   hoveredAccommodationIdRef: MutableRefObject<number | null>;
   infoWindowRef: MutableRefObject<google.maps.InfoWindow | null>;
@@ -68,6 +69,7 @@ export const useMapSelectionInfoWindow = ({
   checkIn,
   checkOut,
   getAccommodationHref,
+  onAccommodationOpen,
   hoveredAccommodationId,
   hoveredAccommodationIdRef,
   infoWindowRef,
@@ -83,6 +85,7 @@ export const useMapSelectionInfoWindow = ({
   const closeInfoWindowRef = useRef<CloseInfoWindow | null>(null);
   const bindMapInfoWindowEvents = useMapInfoWindowEvents({
     getAccommodationHref,
+    onAccommodationOpen,
     onWishlistToggle,
   });
 

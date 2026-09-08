@@ -161,11 +161,29 @@ export function ReviewModal({
         type="button"
         onClick={closeModal}
       >
-        <svg aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
+        <svg
+          className={styles.desktopCloseIcon}
+          aria-hidden="true"
+          fill="currentColor"
+          viewBox="0 0 24 24"
+        >
           <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
         </svg>
+        <svg
+          className={styles.mobileBackIcon}
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+        >
+          <path d="m12 5-7 7 7 7M5 12h14" />
+        </svg>
       </button>
-
+      <div className={styles.mobileRatingSummary} aria-hidden="true">
+        <strong>{averageRating.toFixed(2)}</strong>
+        <span>★ · 후기 {totalCount}개</span>
+      </div>
       <header className={styles.modalHeader}>
         <div className={styles.headerCopy}>
           <h2

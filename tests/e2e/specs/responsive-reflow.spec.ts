@@ -598,9 +598,9 @@ test("aligns the detail shell from 320px through 4K", async ({
   ).toBeVisible();
 
   const layouts = [
-    [320, "y", 16],
-    [390, "y", 16],
-    [768, "y", 16],
+    [320, "y", 24],
+    [390, "y", 24],
+    [768, "y", 24],
     [769, "y", 24],
     [1024, "y", 24],
     [1025, "x", 40],
@@ -652,7 +652,12 @@ test("aligns the detail shell from 320px through 4K", async ({
       });
       const bookingAction = page.getByRole("button", { name: "예약하기" });
 
-      await expectFullyInsideViewport(homeLink, width);
+      const navigationAction =
+        // eslint-disable-next-line playwright/no-conditional-in-test -- Each viewport has a different navigation control by design.
+        width <= 1024
+          ? page.getByRole("button", { name: "이전 화면으로", exact: true })
+          : homeLink;
+      await expectFullyInsideViewport(navigationAction, width);
       await expect(heroFallback).toBeVisible();
       await expect(overviewHeading).toBeVisible();
       await expect(locationHeading).toBeVisible();
@@ -715,9 +720,14 @@ test("aligns the detail shell from 320px through 4K", async ({
         ).toBeLessThanOrEqual(1);
       }
 
-      expect(bookingBounds?.[comparisonAxis] ?? 0).toBeGreaterThan(
-        overviewBounds?.[comparisonAxis] ?? Number.POSITIVE_INFINITY,
-      );
+      const bookingSpace =
+        // eslint-disable-next-line playwright/no-conditional-in-test -- Mobile uses a viewport footer; desktop uses the right sidebar.
+        width <= 1024
+          ? // eslint-disable-next-line playwright/no-conditional-in-test -- Match the viewport height in this responsive matrix.
+            (width <= 768 ? 844 : 900) -
+            (bookingBounds!.y + bookingBounds!.height)
+          : bookingBounds![comparisonAxis] - overviewBounds![comparisonAxis];
+      expect(bookingSpace).toBeGreaterThanOrEqual(0);
     });
   }
 

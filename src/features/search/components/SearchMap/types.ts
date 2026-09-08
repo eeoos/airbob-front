@@ -18,6 +18,7 @@ export interface SearchMapProps {
   onWishlistToggle?:
     ((accommodationId: number, isInWishlist: boolean) => void) | undefined;
   getAccommodationHref: (accommodationId: number) => string;
+  onAccommodationOpen?: ((accommodationId: number) => void) | undefined;
   checkIn?: string | null | undefined;
   checkOut?: string | null | undefined;
   isExpanded?: boolean | undefined;

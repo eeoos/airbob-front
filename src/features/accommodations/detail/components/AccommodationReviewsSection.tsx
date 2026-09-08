@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import {
   Button,
   EmptyState,
@@ -100,6 +101,18 @@ export function AccommodationReviewsSection({
   reviewSummary,
   status,
 }: AccommodationReviewsSectionProps) {
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const scrollReviews = (direction: number) => {
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+    carousel.scrollBy({
+      left:
+        direction *
+        (carousel.firstElementChild?.getBoundingClientRect().width ??
+          carousel.clientWidth),
+      behavior: "auto",
+    });
+  };
   return (
     <section
       aria-labelledby="accommodation-reviews-title"
@@ -190,7 +203,31 @@ export function AccommodationReviewsSection({
 
       {status === "ready" && (
         <>
-          <div className={styles.reviewsGrid}>
+          <div
+            className={styles.carouselControls}
+            aria-label="후기 미리보기 이동"
+          >
+            <button
+              type="button"
+              aria-label="이전 후기"
+              onClick={() => scrollReviews(-1)}
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              aria-label="다음 후기"
+              onClick={() => scrollReviews(1)}
+            >
+              ›
+            </button>
+          </div>
+          <div
+            ref={carouselRef}
+            className={styles.reviewsGrid}
+            role="region"
+            aria-label="후기 미리보기"
+          >
             {reviews.map((review) => {
               const isExpanded = expandedReviews[review.id];
               const isLongReview =
