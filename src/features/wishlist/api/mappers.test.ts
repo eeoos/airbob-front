@@ -52,58 +52,72 @@ describe("wishlist wire mappers", () => {
     });
   });
 
-  it("maps nested wishlist accommodation wire fields without leaking snake_case", () => {
-    const wire: WishlistDetailWire = {
-      wishlist_accommodations: [
-        {
-          wishlist_accommodation_id: 91,
-          memo: "창가 방",
-          created_at: "2026-07-02T00:00:00Z",
-          accommodation: {
-            id: 31,
-            name: "서울 하우스",
-            thumbnail_url: "/stay.jpg",
+  it.each([
+    {
+      summary: { total_count: 12, average_rating: 4.8 },
+      expected: { totalCount: 12, averageRating: 4.8 },
+    },
+    {
+      summary: { total_count: 0, average_rating: null },
+      expected: { totalCount: 0, averageRating: null },
+    },
+    {
+      summary: { total_count: null, average_rating: null },
+      expected: { totalCount: 0, averageRating: null },
+    },
+    { summary: null, expected: { totalCount: 0, averageRating: null } },
+  ])(
+    "maps nested wishlist accommodation fields including nullable review summary $summary",
+    ({ summary, expected }) => {
+      const wire: WishlistDetailWire = {
+        wishlist_accommodations: [
+          {
+            wishlist_accommodation_id: 91,
+            memo: "창가 방",
+            created_at: "2026-07-02T00:00:00Z",
+            accommodation: {
+              id: 31,
+              name: "서울 하우스",
+              thumbnail_url: "/stay.jpg",
+            },
+            address_summary: {
+              country: "대한민국",
+              state: null,
+              city: "서울",
+              district: "마포구",
+            },
+            review_summary: summary,
+            is_in_wishlist: true,
           },
-          address_summary: {
-            country: "대한민국",
-            state: null,
-            city: "서울",
-            district: "마포구",
-          },
-          review_summary: {
-            total_count: 12,
-            average_rating: 4.8,
-          },
-          is_in_wishlist: true,
-        },
-      ],
-      page_info: { ...pageInfo, has_next: false, next_cursor: null },
-    };
+        ],
+        page_info: { ...pageInfo, has_next: false, next_cursor: null },
+      };
 
-    expect(toWishlistDetail(wire)).toEqual({
-      accommodations: [
-        {
-          wishlistAccommodationId: 91,
-          memo: "창가 방",
-          createdAt: "2026-07-02T00:00:00Z",
-          accommodation: {
-            id: 31,
-            name: "서울 하우스",
-            thumbnailUrl: "/stay.jpg",
+      expect(toWishlistDetail(wire)).toEqual({
+        accommodations: [
+          {
+            wishlistAccommodationId: 91,
+            memo: "창가 방",
+            createdAt: "2026-07-02T00:00:00Z",
+            accommodation: {
+              id: 31,
+              name: "서울 하우스",
+              thumbnailUrl: "/stay.jpg",
+            },
+            addressSummary: {
+              country: "대한민국",
+              state: null,
+              city: "서울",
+              district: "마포구",
+            },
+            reviewSummary: expected,
+            isInWishlist: true,
           },
-          addressSummary: {
-            country: "대한민국",
-            state: null,
-            city: "서울",
-            district: "마포구",
-          },
-          reviewSummary: { totalCount: 12, averageRating: 4.8 },
-          isInWishlist: true,
-        },
-      ],
-      pageInfo: { hasNext: false, nextCursor: null, currentSize: 1 },
-    });
-  });
+        ],
+        pageInfo: { hasNext: false, nextCursor: null, currentSize: 1 },
+      });
+    },
+  );
 
   it("maps nullable recently viewed summaries to camelCase models", () => {
     const wire: RecentlyViewedCollectionWire = {
