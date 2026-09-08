@@ -96,7 +96,6 @@
 
 .detailRow h3,
 .guestRow h3,
-.paymentMethod h3,
 .stayRules h3 {
   margin: 0 0 var(--space-2);
   font-size: var(--font-size-md);
@@ -105,7 +104,6 @@
 
 .detailRow p,
 .guestRow p,
-.paymentMethod p,
 .stayRules p {
   margin: 0;
   font-size: var(--font-size-sm);
@@ -168,21 +166,6 @@
   color: var(--color-action-primary);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
-}
-
-.paymentMethod {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  margin-top: var(--space-5);
-  padding: var(--space-5);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-action);
-}
-
-.cardSymbol {
-  color: var(--color-brand-ink);
-  font-size: var(--font-size-2xl);
 }
 
 .stayRules {

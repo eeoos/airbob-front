@@ -242,23 +242,11 @@ export function ReservationReviewScreen({
               </p>
             ) : (
               <>
-                <div className={styles.paymentMethod}>
-                  <span className={styles.cardSymbol} aria-hidden="true">
-                    ▰
-                  </span>
-                  <div>
-                    <h3>
-                      {snapshot.paymentRequired
-                        ? "카드 결제"
-                        : "전액 할인 적용"}
-                    </h3>
-                    <p>
-                      {snapshot.paymentRequired
-                        ? "결제창에서 사용할 카드를 선택해주세요."
-                        : "추가 결제 없이 예약을 확정할 수 있어요."}
-                    </p>
-                  </div>
-                </div>
+                <p className={styles.secondary}>
+                  {snapshot.paymentRequired
+                    ? "확인 및 결제를 누르면 토스페이먼츠 결제창이 열립니다."
+                    : "전액 할인이 적용되어 추가 결제 없이 예약을 확정할 수 있어요."}
+                </p>
                 <div className={styles.stayRules}>
                   <h3>숙소 이용 안내</h3>
                   <p>
