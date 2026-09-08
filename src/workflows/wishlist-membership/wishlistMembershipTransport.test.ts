@@ -39,7 +39,7 @@ describe("wishlistMembershipTransport", () => {
         signal,
       ),
     ).resolves.toEqual({
-      wishlists: [{ id: 11, isContained: true, wishlistAccommodationId: 31 }],
+      wishlists: [{ id: 11, isContained: true }],
       pageInfo: { hasNext: true, nextCursor: "next" },
     });
     expect(wishlistApi.getWishlists).toHaveBeenCalledWith(

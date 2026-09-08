@@ -80,7 +80,7 @@ describe("info window content helper", () => {
       canToggleWishlist: true,
     });
 
-    expect(html).toContain('aria-label="위시리스트에서 제거"');
+    expect(html).toContain('aria-label="저장 목록 열기"');
     expect(html).toContain('aria-pressed="true"');
     expect(html).toContain('data-info-window-action="close"');
     expect(html).toContain('aria-label="지도 숙소 카드 닫기"');

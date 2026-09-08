@@ -22,9 +22,6 @@ export type CreateAndAddWishlistCommandResult =
  * Wishlist UI receives this port and never constructs a mutation writer.
  */
 export interface WishlistMembershipCommandPort {
-  removeAccommodationFromAllWishlists(input: {
-    readonly accommodationId: number;
-  }): Promise<WishlistMembershipCommandResult>;
   addAccommodation(input: {
     readonly accommodationId: number;
     readonly wishlistId: number;

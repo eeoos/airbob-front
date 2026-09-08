@@ -6,7 +6,6 @@ import { WISHLIST_CREATED_ONLY_MESSAGE } from "../wishlistErrorMessage";
 import { CreateWishlistModal } from "./CreateWishlistModal";
 
 const createCommands = (): Mocked<WishlistMembershipCommandPort> => ({
-  removeAccommodationFromAllWishlists: vi.fn(),
   addAccommodation: vi.fn().mockResolvedValue({
     status: "applied",
     isInAnyWishlist: true,

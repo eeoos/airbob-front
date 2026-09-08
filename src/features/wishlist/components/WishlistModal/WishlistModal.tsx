@@ -142,14 +142,13 @@ export function WishlistModal({
     onClose();
   }, [onClose]);
 
-  const saveToWishlist = useCallback(
+  const toggleWishlist = useCallback(
     async (wishlist: WishlistModalItemViewModel) => {
-      if (!isOpen || isRefreshing || pendingWishlistIdsRef.current.size > 0) {
-        return;
-      }
-
-      if (wishlist.isContained) {
-        handleClose();
+      if (
+        !isOpen ||
+        isRefreshing ||
+        pendingWishlistIdsRef.current.has(wishlist.id)
+      ) {
         return;
       }
 
@@ -161,15 +160,19 @@ export function WishlistModal({
       setError(null);
 
       try {
-        const result = await commands.addAccommodation({
-          accommodationId,
-          wishlistId: wishlist.id,
-        });
+        const result =
+          wishlist.isContained && wishlist.wishlistAccommodationId !== null
+            ? await commands.removeAccommodation({
+                accommodationId,
+                wishlistAccommodationId: wishlist.wishlistAccommodationId,
+              })
+            : await commands.addAccommodation({
+                accommodationId,
+                wishlistId: wishlist.id,
+              });
 
         if (generation !== interactionGenerationRef.current) return;
-        if (result.status === "applied") {
-          handleClose();
-        } else if (result.status === "applied-unconfirmed") {
+        if (result.status === "applied-unconfirmed") {
           setError(WISHLIST_REFRESH_WARNING_MESSAGE);
         }
       } catch (mutationError) {
@@ -186,7 +189,7 @@ export function WishlistModal({
         }
       }
     },
-    [accommodationId, commands, handleClose, isOpen, isRefreshing],
+    [accommodationId, commands, isOpen, isRefreshing],
   );
 
   const handleCreateComplete = useCallback(
@@ -196,14 +199,12 @@ export function WishlistModal({
         { readonly status: "applied" | "applied-unconfirmed" }
       >,
     ) => {
-      if (result.status === "applied") {
-        handleClose();
-      } else {
-        setShowCreateModal(false);
+      setShowCreateModal(false);
+      if (result.status === "applied-unconfirmed") {
         setError(WISHLIST_REFRESH_WARNING_MESSAGE);
       }
     },
-    [handleClose],
+    [],
   );
 
   const retryWishlists = useCallback(() => {
@@ -291,9 +292,10 @@ export function WishlistModal({
                       aria-label={`${wishlist.name}, ${wishlist.itemCountLabel}, ${
                         wishlist.isContained ? "저장됨" : "저장되지 않음"
                       }`}
+                      aria-pressed={wishlist.isContained}
                       aria-busy={isPending || undefined}
-                      disabled={isRefreshing || pendingWishlistIds.size > 0}
-                      onClick={() => void saveToWishlist(wishlist)}
+                      disabled={isPending}
+                      onClick={() => void toggleWishlist(wishlist)}
                     >
                       <div className={styles.wishlistImage}>
                         <ImageWithFallback
@@ -321,6 +323,15 @@ export function WishlistModal({
                         <div className={styles.wishlistCount}>
                           {wishlist.itemCountLabel}
                         </div>
+                        {wishlist.isContained && (
+                          <svg
+                            aria-hidden="true"
+                            className={styles.savedIndicator}
+                            viewBox="0 0 24 24"
+                          >
+                            <path d="m5 12 4 4L19 6" />
+                          </svg>
+                        )}
                       </div>
                     </button>
                   );
@@ -339,7 +350,7 @@ export function WishlistModal({
 
         <Button
           className={styles.createButton}
-          disabled={isLoading || isRefreshing || pendingWishlistIds.size > 0}
+          disabled={isLoading || isRefreshing}
           onClick={() => {
             setError(null);
             setShowCreateModal(true);

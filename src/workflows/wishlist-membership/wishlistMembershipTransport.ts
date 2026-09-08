@@ -30,7 +30,6 @@ export const wishlistMembershipTransport: WishlistMembershipTransport = {
       wishlists: page.wishlists.map((wishlist) => ({
         id: wishlist.id,
         isContained: wishlist.containsAccommodation,
-        wishlistAccommodationId: wishlist.wishlistAccommodationId,
       })),
       pageInfo: {
         hasNext: page.pageInfo.hasNext,

@@ -22,7 +22,6 @@ import type {
   SearchMapViewport,
 } from "../../features/search/components/SearchMap/types";
 import { WishlistModal } from "../../features/wishlist/components/WishlistModal";
-import { ToastHost } from "../../shared/ui";
 import { requireCssModuleClass } from "../../shared/styles/requireCssModuleClass";
 import styles from "./SearchScreen.module.css";
 
@@ -104,11 +103,6 @@ export interface SearchScreenProps {
   readonly onPageChange: (page: number) => void;
   readonly onRetry: () => void;
   readonly onWishlistToggle?: ((accommodationId: number) => void) | undefined;
-  readonly removingAccommodationIds?: ReadonlySet<number> | undefined;
-  readonly wishlistError?: {
-    readonly message: string;
-    readonly onClose: () => void;
-  } | null;
   readonly results: SearchScreenResultsProps;
   readonly wishlistModal: Omit<
     ComponentProps<typeof WishlistModal>,
@@ -162,8 +156,6 @@ export function SearchScreen({
   onPageChange,
   onRetry,
   onWishlistToggle,
-  removingAccommodationIds,
-  wishlistError,
   results,
   wishlistModal,
 }: SearchScreenProps) {
@@ -236,7 +228,6 @@ export function SearchScreen({
       checkOut={checkOut}
       onWishlistToggle={onWishlistToggle}
       onRetry={onRetry}
-      removingAccommodationIds={removingAccommodationIds}
     />
   );
   const renderPagination = (variant: "compact" | "full") =>
@@ -410,7 +401,6 @@ export function SearchScreen({
       )}
 
       {authModal.isOpen && <DeferredAuthModal {...authModal} />}
-      {wishlistError && <ToastHost {...wishlistError} closeLabel="오류 닫기" />}
     </>
   );
 }

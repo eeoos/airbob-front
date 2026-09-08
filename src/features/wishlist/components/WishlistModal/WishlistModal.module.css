@@ -129,7 +129,21 @@
 }
 
 .wishlistInfo {
-  padding-top: var(--space-3);
+  position: relative;
+  padding: var(--space-3) var(--space-8) 0 0;
+}
+
+.savedIndicator {
+  position: absolute;
+  top: var(--space-3);
+  right: 0;
+  width: var(--space-5);
+  height: var(--space-5);
+  fill: none;
+  stroke: var(--color-action-primary);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .wishlistName {

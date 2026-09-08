@@ -42,21 +42,13 @@ const membershipPage = ({
   hasNext = false,
   nextCursor = null,
   wishlistId = 11,
-  itemId = 31,
 }: {
   contained?: boolean;
   hasNext?: boolean;
   nextCursor?: string | null;
   wishlistId?: number;
-  itemId?: number;
 } = {}): WishlistMembershipPage => ({
-  wishlists: [
-    {
-      id: wishlistId,
-      isContained: contained,
-      wishlistAccommodationId: contained ? itemId : null,
-    },
-  ],
+  wishlists: [{ id: wishlistId, isContained: contained }],
   pageInfo: { hasNext, nextCursor },
 });
 
@@ -108,122 +100,6 @@ const setup = (initialScope: AuthenticatedSessionScope | null = scopeA) => {
 };
 
 describe("wishlistMembership", () => {
-  it("removes only this accommodation's saved entries from all pages and joins duplicate clicks", async () => {
-    const { commands, projection, transport } = setup();
-    transport.getAccommodationMembership
-      .mockResolvedValueOnce(
-        membershipPage({ contained: true, hasNext: true, nextCursor: "next" }),
-      )
-      .mockResolvedValueOnce(
-        membershipPage({ contained: true, wishlistId: 12, itemId: 32 }),
-      )
-      .mockResolvedValue(membershipPage());
-
-    const first = commands.removeAccommodationFromAllWishlists({
-      accommodationId: 7,
-    });
-    const second = commands.removeAccommodationFromAllWishlists({
-      accommodationId: 7,
-    });
-    expect(second).toBe(first);
-    await expect(first).resolves.toEqual({
-      status: "applied",
-      isInAnyWishlist: false,
-    });
-    expect(transport.removeAccommodation).toHaveBeenCalledTimes(2);
-    expect(transport.removeAccommodation).toHaveBeenNthCalledWith(
-      1,
-      31,
-      expect.any(AbortSignal),
-    );
-    expect(transport.removeAccommodation).toHaveBeenNthCalledWith(
-      2,
-      32,
-      expect.any(AbortSignal),
-    );
-    expect(transport.getAccommodationMembership).toHaveBeenNthCalledWith(
-      2,
-      { accommodationId: 7, size: 20, cursor: "next" },
-      expect.any(AbortSignal),
-    );
-    expect(transport.deleteWishlist).not.toHaveBeenCalled();
-    expect(projection.membershipReconciled).toHaveBeenCalledExactlyOnceWith({
-      scope: scopeA,
-      accommodationId: 7,
-      isInAnyWishlist: false,
-    });
-  });
-
-  it("does not delete anything if the membership read fails", async () => {
-    const { commands, projection, transport } = setup();
-    const error = new Error("membership unavailable");
-    transport.getAccommodationMembership.mockRejectedValueOnce(error);
-    await expect(
-      commands.removeAccommodationFromAllWishlists({ accommodationId: 7 }),
-    ).rejects.toBe(error);
-    expect(transport.removeAccommodation).not.toHaveBeenCalled();
-    expect(projection.membershipReconciled).not.toHaveBeenCalled();
-  });
-
-  it("refreshes actual membership after a partial failure and retries only the remaining saved item", async () => {
-    const { commands, projection, transport } = setup();
-    const remaining = membershipPage({
-      contained: true,
-      wishlistId: 12,
-      itemId: 32,
-    });
-    transport.getAccommodationMembership
-      .mockResolvedValueOnce(
-        membershipPage({ contained: true, hasNext: true, nextCursor: "next" }),
-      )
-      .mockResolvedValueOnce(remaining)
-      .mockResolvedValueOnce(remaining)
-      .mockResolvedValueOnce(remaining)
-      .mockResolvedValue(membershipPage());
-    const error = new Error("delete failed");
-    transport.removeAccommodation
-      .mockResolvedValueOnce(undefined)
-      .mockRejectedValueOnce(error);
-
-    await expect(
-      commands.removeAccommodationFromAllWishlists({ accommodationId: 7 }),
-    ).rejects.toBe(error);
-    expect(projection.membershipReconciled).toHaveBeenLastCalledWith({
-      scope: scopeA,
-      accommodationId: 7,
-      isInAnyWishlist: true,
-    });
-    await expect(
-      commands.removeAccommodationFromAllWishlists({ accommodationId: 7 }),
-    ).resolves.toEqual({ status: "applied", isInAnyWishlist: false });
-    expect(transport.removeAccommodation.mock.calls.map(([id]) => id)).toEqual([
-      31, 32, 32,
-    ]);
-  });
-
-  it("stops remaining removals and ignores results after the session changes", async () => {
-    const { commands, projection, transport, setScope } = setup();
-    const removal = deferred<void>();
-    transport.getAccommodationMembership
-      .mockResolvedValueOnce(
-        membershipPage({ contained: true, hasNext: true, nextCursor: "next" }),
-      )
-      .mockResolvedValueOnce(
-        membershipPage({ contained: true, wishlistId: 12, itemId: 32 }),
-      );
-    transport.removeAccommodation.mockImplementationOnce(() => {
-      setScope(scopeB);
-      return removal.promise;
-    });
-    const request = commands.removeAccommodationFromAllWishlists({
-      accommodationId: 7,
-    });
-    removal.resolve();
-    await expect(request).resolves.toEqual({ status: "stale" });
-    expect(transport.removeAccommodation).toHaveBeenCalledTimes(1);
-    expect(projection.membershipReconciled).not.toHaveBeenCalled();
-  });
-
   it("joins duplicate target commands into one mutation and one reconciliation", async () => {
     const { commands, projection, transport } = setup();
 

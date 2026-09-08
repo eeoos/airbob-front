@@ -164,7 +164,6 @@ const navigation = () => ({
 });
 
 const commands = (): Mocked<WishlistMembershipCommands> => ({
-  removeAccommodationFromAllWishlists: vi.fn(),
   addAccommodation: vi.fn().mockResolvedValue({
     isInAnyWishlist: true,
     status: "applied",
