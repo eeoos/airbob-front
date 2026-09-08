@@ -329,7 +329,7 @@ export const useSearchBottomSheet = () => {
   const handleMapReturn = useCallback(() => {
     if (bottomSheetContentRef.current)
       bottomSheetContentRef.current.scrollTop = 0;
-    setBottomSheetState("half");
+    setBottomSheetState("collapsed");
   }, [setBottomSheetState]);
 
   useSearchBottomSheetContentGestures({

@@ -26,6 +26,14 @@ interface ContentDrag {
   scrollsList: boolean;
 }
 
+const isControlTarget = (target: EventTarget | null) =>
+  target instanceof Element &&
+  Boolean(
+    target.closest(
+      "button, input, textarea, select, [role='slider'], [data-search-sheet-header]",
+    ),
+  );
+
 // Let the browser scroll the expanded list. Only take over a vertical gesture
 // when it should move the sheet: at a partial snap, or pulling down at list top.
 export function useSearchBottomSheetContentGestures({
@@ -50,14 +58,7 @@ export function useSearchBottomSheetContentGestures({
     let mousePointerId: number | null = null;
 
     const start = (x: number, pointerY: number, target: EventTarget | null) => {
-      if (
-        target instanceof Element &&
-        target.closest(
-          "button, input, textarea, select, [role='slider'], [data-search-sheet-header]",
-        )
-      ) {
-        return;
-      }
+      if (isControlTarget(target)) return;
       drag = {
         startX: x,
         startY: pointerY,
@@ -147,6 +148,7 @@ export function useSearchBottomSheetContentGestures({
       if (drag && !drag.scrollsList) event.preventDefault();
     };
     const preventClickAfterDrag = (event: MouseEvent) => {
+      if (isControlTarget(event.target)) return;
       if (performance.now() >= suppressClickUntil.current) return;
       event.preventDefault();
       event.stopPropagation();

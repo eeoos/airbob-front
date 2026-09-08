@@ -464,11 +464,11 @@ test("keeps every mobile sheet snap attached to the viewport", async ({
     .toBeLessThanOrEqual(2);
 
   await page.getByRole("button", { name: "지도 보기" }).click();
-  await expect(handle).toHaveAttribute("data-state", "half");
+  await expect(handle).toHaveAttribute("data-state", "collapsed");
   await expect
     .poll(async () => {
       const geometry = await readSheetGeometry();
-      return Math.abs(geometry.visibleHeight - geometry.surfaceHeight * 0.7);
+      return Math.abs(geometry.visibleHeight - geometry.peekHeight);
     })
     .toBeLessThanOrEqual(2);
 

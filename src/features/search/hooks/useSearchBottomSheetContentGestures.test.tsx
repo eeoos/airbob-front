@@ -82,6 +82,8 @@ describe("mobile result content gestures", () => {
     expect(swipe(button, 400, 200)).toBe(true);
     expect(fireEvent.click(button)).toBe(true);
     expect(sheet.setState).not.toHaveBeenCalled();
+    swipe(sheet.content, 500, 300);
+    expect(fireEvent.click(button)).toBe(true);
   });
 
   it("returns a short or cancelled swipe to its original snap", () => {

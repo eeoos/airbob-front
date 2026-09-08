@@ -123,9 +123,17 @@ test("hands touch gestures between the sheet and native list scrolling", async (
     })
     .toBeLessThan(0);
   await page.getByRole("button", { name: "지도 보기" }).click();
-  await expect(handle).toHaveAttribute("data-state", "half");
+  await expect(handle).toHaveAttribute("data-state", "collapsed");
+  await expect(
+    page.getByRole("group", { name: "검색 결과 목록" }),
+  ).toBeHidden();
+  await expect(page.getByTestId("search-mobile-map-layer")).not.toHaveAttribute(
+    "inert",
+  );
   expect((await readGeometry(page)).scrollTop).toBe(0);
 
+  await handle.click();
+  await expect(handle).toHaveAttribute("data-state", "half");
   await touchDrag(client, initial.cardTop + 120, initial.cardTop - 120);
   await expect(handle).toHaveAttribute("data-state", "expanded");
   await touchDrag(client, 200, 420);
