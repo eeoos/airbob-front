@@ -12,8 +12,6 @@ interface AmenityModalProps {
   amenityInfos: AccommodationEditFormData["amenityInfos"];
   options: readonly AccommodationEditAmenityOption[];
   onToggle: (name: string) => void;
-  onIncrement: (name: string) => void;
-  onDecrement: (name: string) => void;
   onClose: () => void;
 }
 
@@ -21,8 +19,6 @@ export const AmenityModal: React.FC<AmenityModalProps> = ({
   amenityInfos,
   options,
   onToggle,
-  onIncrement,
-  onDecrement,
   onClose,
 }) => {
   const title = "편의시설을 선택하세요";
@@ -54,63 +50,23 @@ export const AmenityModal: React.FC<AmenityModalProps> = ({
       </div>
       <div className={styles.typeModalGrid}>
         {options.map((amenity) => {
-          const currentAmenity = amenityInfos.find(
+          const isSelected = amenityInfos.some(
             (item) => item.name === amenity.name,
           );
-          const isSelected = currentAmenity !== undefined;
-          const count = currentAmenity?.count || 0;
 
           return (
-            <div key={amenity.name} className={styles.amenityOptionContainer}>
-              <button
-                type="button"
-                aria-pressed={isSelected}
-                className={`${styles.typeOption} ${isSelected ? styles.typeOptionSelected : ""}`}
-                onClick={() => onToggle(amenity.name)}
-              >
-                <div className={styles.typeOptionIcon}>
-                  <AmenityIcon type={amenity.name} />
-                </div>
-                <span className={styles.typeOptionLabel}>{amenity.label}</span>
-              </button>
-              {isSelected && (
-                <div className={styles.amenityCountControl}>
-                  <button
-                    type="button"
-                    className={styles.amenityCountButton}
-                    aria-label={`${amenity.label} 수량 감소`}
-                    onClick={() => onDecrement(amenity.name)}
-                    disabled={count <= 1}
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                  </button>
-                  <span className={styles.amenityCountValue}>{count}</span>
-                  <button
-                    type="button"
-                    className={styles.amenityCountButton}
-                    aria-label={`${amenity.label} 수량 증가`}
-                    onClick={() => onIncrement(amenity.name)}
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <line x1="12" y1="5" x2="12" y2="19" />
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                  </button>
-                </div>
-              )}
-            </div>
+            <button
+              key={amenity.name}
+              type="button"
+              aria-pressed={isSelected}
+              className={`${styles.typeOption} ${isSelected ? styles.typeOptionSelected : ""}`}
+              onClick={() => onToggle(amenity.name)}
+            >
+              <div className={styles.typeOptionIcon}>
+                <AmenityIcon type={amenity.name} />
+              </div>
+              <span className={styles.typeOptionLabel}>{amenity.label}</span>
+            </button>
           );
         })}
       </div>

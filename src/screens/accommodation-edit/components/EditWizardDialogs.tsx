@@ -28,8 +28,6 @@ type EditWizardDialogsActions = Pick<
   | "onConfirmDetailAddress"
   | "onAccommodationTypeSelect"
   | "onAmenityToggle"
-  | "onAmenityIncrement"
-  | "onAmenityDecrement"
   | "onRetryRecovery"
 >;
 
@@ -80,8 +78,6 @@ export const EditWizardDialogs: React.FC<EditWizardDialogsProps> = ({
         amenityInfos={state.formData.amenityInfos}
         options={state.amenityOptions}
         onToggle={actions.onAmenityToggle}
-        onIncrement={actions.onAmenityIncrement}
-        onDecrement={actions.onAmenityDecrement}
         onClose={actions.onCloseAmenityModal}
       />
     )}
