@@ -1,6 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
+import withoutReviewsContract from "../api/__fixtures__/wishlist-detail-without-reviews.json";
+import { toWishlistDetail } from "../api/mappers";
 import type {
   RecentlyViewedAccommodation,
   WishlistAccommodation,
@@ -295,6 +297,44 @@ describe("Wishlist view components", () => {
 
     expect(onRemoveFromWishlist).toHaveBeenCalledWith(501);
     expect(onOpenAccommodationDetail).not.toHaveBeenCalled();
+  });
+
+  it("renders the backend no-review contract and keeps navigation, memo and removal IDs distinct", async () => {
+    const detail = toWishlistDetail(withoutReviewsContract);
+    const onOpenAccommodationDetail = vi.fn();
+    const onOpenMemo = vi.fn();
+    const onRemoveFromWishlist = vi.fn();
+    renderWishlistDetail({
+      hasNext: detail.pageInfo.hasNext,
+      onOpenAccommodationDetail,
+      onOpenMemo,
+      onRemoveFromWishlist,
+      wishlistAccommodations: detail.accommodations.map(
+        toWishlistAccommodationCardViewModel,
+      ),
+    });
+
+    expect(screen.getByText("서울 하우스")).toBeVisible();
+    expect(screen.queryByLabelText(/평점/)).not.toBeInTheDocument();
+    expect(screen.queryByText("0.0")).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "서울 하우스 메모 수정: 창가 방" }),
+    );
+    expect(onOpenMemo).toHaveBeenCalledWith({
+      wishlistAccommodationId: 501,
+      memo: "창가 방",
+    });
+    await userEvent.click(
+      screen.getByRole("button", { name: "서울 하우스 위시리스트에서 삭제" }),
+    );
+    expect(onRemoveFromWishlist).toHaveBeenCalledWith(501);
+    expect(onOpenAccommodationDetail).not.toHaveBeenCalled();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "서울 하우스 숙소 상세 보기" }),
+    );
+    expect(onOpenAccommodationDetail).toHaveBeenCalledWith(31);
   });
 
   it("labels the wishlist detail back button for assistive technology", () => {

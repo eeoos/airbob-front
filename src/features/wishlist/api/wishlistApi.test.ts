@@ -3,6 +3,7 @@ import {
   requestApiDataNullable,
 } from "../../../platform/http/request";
 import { wishlistApi } from "./wishlistApi";
+import withoutReviewsContract from "./__fixtures__/wishlist-detail-without-reviews.json";
 
 vi.mock("../../../platform/http/request", () => ({
   requestApiData: vi.fn(),
@@ -132,6 +133,42 @@ describe("wishlist API adapter", () => {
       method: "GET",
       path: "/members/wishlists/accommodations/7",
       params: { cursor: "cursor-1", size: 20 },
+      signal: undefined,
+    });
+  });
+
+  it("consumes the backend MySQL no-review contract with distinct action IDs", async () => {
+    mockRequestApiData.mockResolvedValue(withoutReviewsContract);
+
+    await expect(
+      wishlistApi.getWishlistAccommodations(42, { size: 20 }),
+    ).resolves.toEqual({
+      accommodations: [
+        {
+          wishlistAccommodationId: 501,
+          memo: "창가 방",
+          createdAt: "2026-07-02T00:00:00Z",
+          accommodation: {
+            id: 31,
+            name: "서울 하우스",
+            thumbnailUrl: "/stay.jpg",
+          },
+          addressSummary: {
+            country: "대한민국",
+            state: null,
+            city: "서울",
+            district: "마포구",
+          },
+          reviewSummary: { totalCount: 0, averageRating: 0 },
+          isInWishlist: true,
+        },
+      ],
+      pageInfo: { hasNext: false, nextCursor: null, currentSize: 1 },
+    });
+    expect(mockRequestApiData).toHaveBeenCalledWith({
+      method: "GET",
+      path: "/members/wishlists/accommodations/42",
+      params: { cursor: undefined, size: 20 },
       signal: undefined,
     });
   });
