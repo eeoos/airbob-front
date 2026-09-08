@@ -8,7 +8,6 @@ export {
 export { createAccommodationDetailQueryCacheProjection } from "./cache/accommodationDetailQueryCacheProjection";
 export type {
   AccommodationCoupon,
-  AccommodationCouponCampaign,
   AccommodationMemberCoupon,
   AccommodationMemberCouponCollection,
 } from "./model/coupon";

@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type {
-  AccommodationCouponCampaign,
+  AccommodationCoupon,
   AccommodationMemberCoupon,
 } from "../../features/accommodations/detail/public";
 import type { SessionSubject } from "../../platform/session/sessionScope";
@@ -18,7 +18,7 @@ vi.mock("../../features/accommodations/detail/public", async () => ({
     issue: (...args: unknown[]) => mockIssueCoupon(...args),
   },
 }));
-const campaign: AccommodationCouponCampaign = {
+const campaign: Extract<AccommodationCoupon, { kind: "campaign" }> = {
   id: 31,
   name: "만원 할인",
   description: null,

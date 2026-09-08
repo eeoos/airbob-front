@@ -3,9 +3,9 @@ import {
   accommodationCouponApi,
   isAccommodationCouponApplicable,
   type AccommodationCoupon,
+  type AccommodationDetailQueryOptions,
   type AccommodationMemberCouponCollection,
 } from "../../features/accommodations/detail/public";
-import type { SessionQueryScope } from "../../platform/query/sessionScope";
 import type {
   BookingTransactionRouteLease,
   BookingTransactionSessionPort,
@@ -22,7 +22,7 @@ interface UseAccommodationCouponCommandOptions {
   readonly requestAuthentication: (couponId: number) => void;
   readonly routeLease: BookingTransactionRouteLease;
   readonly session: BookingTransactionSessionPort;
-  readonly scope: SessionQueryScope;
+  readonly scope: AccommodationDetailQueryOptions["scope"];
   readonly totalPrice: number;
   readonly refreshMyCoupons: () => Promise<AccommodationMemberCouponCollection>;
   readonly refreshCampaigns: () => void;
@@ -43,7 +43,7 @@ export const useAccommodationCouponCommand = ({
   const [issuingCouponId, setIssuingCouponId] = useState<number | null>(null);
   const [selection, setSelection] = useState<{
     id: number;
-    scope: SessionQueryScope;
+    scope: AccommodationDetailQueryOptions["scope"];
   } | null>(null);
   const activeControllerRef = useRef<AbortController | null>(null);
   const selectedCouponId =
