@@ -1,3 +1,4 @@
+import hostEditorContract from "../../../src/features/accommodations/listing-editor/api/__fixtures__/host-accommodation-editor.json" with { type: "json" };
 import type { Page } from "@playwright/test";
 import policyContracts from "../../../src/features/accommodations/listing-editor/api/__fixtures__/host-policy-contracts.json" with { type: "json" };
 import {
@@ -9,48 +10,8 @@ import {
 import { test, expect } from "../fixtures/test";
 
 const makeEditableAccommodation = (baseURL: string) => ({
-  id: 31,
-  name: "합정 테스트 숙소",
-  description: "현재 편집 동작을 고정하기 위한 합성 숙소입니다.",
-  type: "APARTMENT",
-  base_price: 125000,
-  currency: "KRW",
-  check_in_time: "15:00",
-  check_out_time: "11:00",
-  address: {
-    country: "대한민국",
-    state: "서울특별시",
-    city: "서울",
-    district: "마포구",
-    street: "월드컵북로",
-    detail: "101호",
-    postal_code: "04000",
-  },
-  coordinate: {
-    latitude: 37.556,
-    longitude: 126.923,
-  },
-  host: {
-    id: 202,
-    nickname: "합정 호스트",
-    thumbnail_image_url: null,
-  },
-  policy: {
-    max_occupancy: 4,
-    infant_occupancy: 1,
-    pet_occupancy: 0,
-  },
-  amenities: [{ type: "WIFI", count: 1 }],
-  images: [
-    {
-      id: 301,
-      image_url: new URL("/logo192.png", baseURL).href,
-    },
-  ],
-  review_summary: {
-    total_count: 0,
-    average_rating: 0,
-  },
+  ...hostEditorContract,
+  images: [{ id: 301, image_url: new URL("/logo192.png", baseURL).href }],
 });
 
 const emptyHostListings = {

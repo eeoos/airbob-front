@@ -1,3 +1,4 @@
+import hostDetailWire from "./__fixtures__/host-accommodation-editor.json";
 import type { ApiDataRequest } from "../../../../platform/http/request";
 import policyContracts from "./__fixtures__/host-policy-contracts.json";
 import {
@@ -9,46 +10,6 @@ import {
   createListingEditorApi,
   type ListingEditorApiTransport,
 } from "./listingEditorApiFactory";
-
-const hostDetailWire = {
-  id: 31,
-  name: "합정 테스트 숙소",
-  description: "조용한 숙소",
-  type: "APARTMENT",
-  base_price: 125000,
-  currency: "KRW",
-  check_in_time: "15:00:00",
-  check_out_time: "11:00:00",
-  address: {
-    country: "대한민국",
-    state: "서울특별시",
-    city: "서울",
-    district: "마포구",
-    street: "월드컵북로",
-    detail: "101호",
-    postal_code: "04000",
-  },
-  coordinate: {
-    latitude: 37.556,
-    longitude: 126.923,
-  },
-  host: {
-    id: 202,
-    nickname: "합정 호스트",
-    thumbnail_image_url: null,
-  },
-  policy: {
-    max_occupancy: 4,
-    infant_occupancy: 1,
-    pet_occupancy: 0,
-  },
-  amenities: [{ type: "WIFI", count: 1 }],
-  images: [{ id: 301, image_url: "/room-301.png" }],
-  review_summary: {
-    total_count: 0,
-    average_rating: 0,
-  },
-};
 
 const createTransport = () => {
   const request = vi.fn();
