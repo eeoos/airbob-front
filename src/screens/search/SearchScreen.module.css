@@ -91,11 +91,11 @@
 }
 
 .title {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-xl);
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-heading);
   color: var(--color-brand-ink);
-  margin: 0 0 var(--space-5);
+  margin: 0 0 var(--space-6);
 }
 
 .loading,
