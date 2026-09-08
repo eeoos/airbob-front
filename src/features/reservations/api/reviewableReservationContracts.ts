@@ -15,7 +15,7 @@ interface ReviewableReservationAddressWire {
 
 export interface ReviewableReservationWire {
   readonly reservation_uid: string;
-  readonly can_write_review: boolean;
+  readonly can_write_review: unknown;
   readonly check_in_date_time: string;
   readonly check_out_date_time: string;
   readonly accommodation: ReviewableReservationAccommodationWire;

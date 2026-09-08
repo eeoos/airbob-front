@@ -1,7 +1,6 @@
 import { resolveImageUrl as defaultResolveImageUrl } from "../../../platform/assets/imageUrl";
 import type { GuestReservationDetail } from "../model/reservationRead";
 import {
-  canCreateReview,
   formatBankName,
   formatPaymentStatus,
   formatReservationDetailDate,
@@ -173,12 +172,7 @@ export const toReservationDetailViewModel = (
     label: formatReservationStatus(reservation.status),
     tone: getReservationStatusTone(reservation.status),
   },
-  canReview: canCreateReview({
-    canWriteReview: reservation.canWriteReview,
-    checkOutDateTime: reservation.checkOutDateTime,
-    checkOutTime: reservation.checkOutTime,
-    status: reservation.status,
-  }),
+  canReview: reservation.canWriteReview,
   payment: toReservationPaymentViewModel(reservation.payment),
   mapCoordinate: getMapCoordinate(reservation),
 });

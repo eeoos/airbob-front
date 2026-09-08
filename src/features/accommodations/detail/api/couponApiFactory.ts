@@ -1,6 +1,9 @@
 import type { AccommodationCouponApiPort } from "../ports/couponApiPort";
-import type { CouponCollectionWire } from "./contracts";
-import { toCouponCollection } from "./mappers";
+import type {
+  CouponCollectionWire,
+  MemberCouponCollectionWire,
+} from "./contracts";
+import { toCouponCollection, toMemberCouponCollection } from "./mappers";
 import type { AccommodationApiTransport } from "./transport";
 
 export type CouponApiTransport = AccommodationApiTransport;
@@ -8,7 +11,7 @@ export type CouponApiTransport = AccommodationApiTransport;
 export const createCouponApi = (
   transport: CouponApiTransport,
 ): AccommodationCouponApiPort => ({
-  async getValidCoupons(options) {
+  async getCampaigns(options) {
     const wire = await transport.request<CouponCollectionWire>({
       method: "GET",
       path: "/coupons",
@@ -16,6 +19,15 @@ export const createCouponApi = (
     });
 
     return toCouponCollection(wire);
+  },
+
+  async getMyCoupons(options) {
+    const wire = await transport.request<MemberCouponCollectionWire>({
+      method: "GET",
+      path: "/members/me/coupons",
+      signal: options?.signal,
+    });
+    return toMemberCouponCollection(wire);
   },
 
   async issue(couponId, options) {

@@ -92,6 +92,7 @@ export interface BookingTransactionSnapshot {
   readonly amount: number;
   readonly currency: string;
   readonly couponDisplayName: string | null;
+  readonly couponId: number | null;
   readonly quoteExpiresAt: string;
   readonly serverTime: string;
   readonly paymentRequired: boolean;
@@ -150,6 +151,7 @@ export type BookingTransactionAccessFailure =
       readonly status: "blocked";
       readonly reason:
         | "invalid-authority"
+        | "recovery-expired"
         | "storage-unavailable"
         | "persistence-unavailable"
         | "recovery-required";
@@ -297,7 +299,15 @@ export type BookingTransactionAbandonResult =
   | { readonly status: "not-abandonable" }
   | BookingTransactionAccessFailure;
 
+export type BookingTransactionReviseResult =
+  | BookingTransactionQuoteResult
+  | BookingTransactionAccessFailure
+  | { readonly status: "not-editable" };
+
 export interface BookingTransactionWorkflow {
+  reviseQuote(
+    input: BookingTransactionQuoteInput & BookingTransactionAuthorityInput,
+  ): Promise<BookingTransactionReviseResult>;
   quote(
     input: BookingTransactionQuoteInput,
   ): Promise<BookingTransactionQuoteResult>;

@@ -796,17 +796,17 @@ test("completes the disposable zero-won branch without attempt, Toss, or confirm
       Array.isArray(couponCollection.infos),
       "Coupon collection was invalid.",
     );
-    const couponIndex = couponCollection.infos.findIndex(
+    const couponFixture = couponCollection.infos.find(
       (candidate) => isRecord(candidate) && candidate.id === fixture.couponId,
     );
     assertInvariant(
-      couponIndex >= 0,
+      isRecord(couponFixture) && typeof couponFixture.name === "string",
       "Complimentary coupon fixture was not available.",
     );
 
     const couponAction = page
-      .getByRole("button", { name: "발급/적용" })
-      .nth(couponIndex);
+      .getByRole("group", { name: String(couponFixture.name), exact: true })
+      .getByRole("button", { name: /^(발급받기|적용하기)$/ });
     await expect(couponAction).toBeEnabled();
     await couponAction.click();
     await expect(page.getByRole("button", { name: "적용 중" })).toBeDisabled();

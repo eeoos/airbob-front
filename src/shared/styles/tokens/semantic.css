@@ -34,6 +34,7 @@
   --shadow-lg: var(--elevation-6);
   --focus-ring: var(--elevation-8);
   --focus-ring-visible: var(--elevation-focus-visible);
+  --z-flow: var(--stack-auto);
   --z-header: var(--stack-1000);
   --z-sticky: var(--stack-1100);
   --z-dropdown: var(--stack-2000);

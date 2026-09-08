@@ -1965,3 +1965,80 @@ describe("booking-payment journal repository", () => {
     expect(harness.values.has(BOOKING_PAYMENT_V2_JOURNAL_KEY)).toBe(false);
   });
 });
+
+describe("unsubmitted quote revision fence", () => {
+  it("compares the previous quote and rejects a late competing revision", () => {
+    const harness = createStorageHarness();
+    const repository = createBookingPaymentJournalRepository({
+      driver: harness.driver,
+      now: () => initialNow,
+    });
+    const original = requireWritten(
+      repository.createQuoted(createQuotedInput()),
+    );
+    const input = {
+      ...authority(),
+      expectedQuoteUid: quoteUid,
+      serverIntent: original.data.serverIntent,
+      presentationIntent: original.data.presentationIntent,
+      quote: quote({ quoteUid: nextQuoteUid }),
+    };
+    expect(repository.reviseQuoted(input)).toMatchObject({
+      status: "written",
+      record: {
+        createdAt: original.createdAt,
+        hardExpiresAt: original.hardExpiresAt,
+      },
+    });
+    const revised = harness.values.get(BOOKING_PAYMENT_V2_JOURNAL_KEY);
+    expect(repository.reviseQuoted(input)).toEqual({
+      status: "rejected",
+      reason: "phase-mismatch",
+    });
+    expect(harness.values.get(BOOKING_PAYMENT_V2_JOURNAL_KEY)).toBe(revised);
+  });
+
+  it.each(["checkout-prepared", "checkout-submitting"] as const)(
+    "never revises a %s request",
+    (phase) => {
+      const harness = createStorageHarness();
+      const repository = createBookingPaymentJournalRepository({
+        driver: harness.driver,
+        now: () => initialNow,
+      });
+      const original = requireWritten(
+        repository.createQuoted(createQuotedInput()),
+      );
+      const prepared = requireWritten(
+        repository.replaceExpectedPhase({
+          ...authority(),
+          expectedPhase: "quoted",
+          nextData: { ...original.data, phase: "checkout-prepared", checkout },
+        }),
+      );
+      if (phase === "checkout-submitting")
+        requireWritten(
+          repository.replaceExpectedPhase({
+            ...authority(),
+            expectedPhase: "checkout-prepared",
+            nextData: {
+              ...prepared.data,
+              phase: "checkout-submitting",
+              checkout,
+            },
+          }),
+        );
+      const before = harness.values.get(BOOKING_PAYMENT_V2_JOURNAL_KEY);
+      expect(
+        repository.reviseQuoted({
+          ...authority(),
+          expectedQuoteUid: quoteUid,
+          serverIntent: original.data.serverIntent,
+          presentationIntent: original.data.presentationIntent,
+          quote: quote({ quoteUid: nextQuoteUid }),
+        }),
+      ).toEqual({ status: "rejected", reason: "phase-mismatch" });
+      expect(harness.values.get(BOOKING_PAYMENT_V2_JOURNAL_KEY)).toBe(before);
+    },
+  );
+});

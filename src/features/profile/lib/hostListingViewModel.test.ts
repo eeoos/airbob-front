@@ -1,5 +1,8 @@
 import type { HostListing } from "../model/hostListing";
 import { toHostListingViewModels } from "./hostListingViewModel";
+import hostListContract from "../api/__fixtures__/host-accommodation-list.json";
+import { toHostListingPage } from "../api/hostListingsMappers";
+import type { HostListingPageWire } from "../api/hostListingsContracts";
 
 const hostAccommodationFixture = (
   overrides: Partial<HostListing> = {},
@@ -20,6 +23,58 @@ const hostAccommodationFixture = (
 });
 
 describe("host listing view model", () => {
+  it("consumes the backend list contract with incomplete addresses and status-specific actions", () => {
+    const page = toHostListingPage(hostListContract as HostListingPageWire);
+
+    expect(page.pageInfo).toEqual({
+      currentSize: 3,
+      hasNext: false,
+      nextCursor: null,
+    });
+    expect(page.listings[0]).toMatchObject({
+      id: 33,
+      type: null,
+      createdAt: "2026-09-07T01:02:03.123456Z",
+      addressSummary: {
+        country: null,
+        state: null,
+        city: null,
+        district: null,
+      },
+    });
+    expect(toHostListingViewModels(page.listings)).toMatchObject([
+      {
+        id: 33,
+        name: "이름 없음",
+        locationLabel: "위치 정보 없음",
+        statusLabel: "작성 중",
+        canOpenDetail: false,
+        canPublish: false,
+        canUnpublish: false,
+        thumbnailUrl: null,
+      },
+      {
+        id: 32,
+        name: "서울 하우스 32",
+        locationLabel: "서울, 마포구",
+        statusLabel: "비공개",
+        canOpenDetail: false,
+        canPublish: true,
+        canUnpublish: false,
+        thumbnailUrl: "https://d1wivnghydqg7i.cloudfront.net/stay.jpg",
+      },
+      {
+        id: 31,
+        name: "서울 하우스 31",
+        locationLabel: "서울, 마포구",
+        statusLabel: "공개",
+        canOpenDetail: true,
+        canPublish: false,
+        canUnpublish: true,
+      },
+    ]);
+  });
+
   it("maps published host accommodations into listing and action display data", () => {
     expect(toHostListingViewModels([hostAccommodationFixture()])).toEqual([
       {

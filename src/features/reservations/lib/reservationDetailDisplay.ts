@@ -1,7 +1,4 @@
-import type {
-  ReservationPaymentStatus,
-  ReservationStatus,
-} from "../model/reservationRead";
+import type { ReservationPaymentStatus } from "../model/reservationRead";
 
 const BANK_NAMES: Record<string, string> = {
   "20": "우리은행",
@@ -50,38 +47,6 @@ const PAYMENT_STATUSES = new Set<ReservationPaymentStatus>([
 const isPaymentStatus = (status: string): status is ReservationPaymentStatus =>
   PAYMENT_STATUSES.has(status as ReservationPaymentStatus);
 
-const isCheckoutCompleted = (
-  checkOutDateTime: string,
-  checkOutTime: string,
-  now = new Date(),
-): boolean => {
-  const checkout = new Date(checkOutDateTime);
-  const checkoutDate = new Date(
-    checkout.getFullYear(),
-    checkout.getMonth(),
-    checkout.getDate(),
-  );
-  const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-  if (checkoutDate < todayDate) {
-    return true;
-  }
-
-  if (checkoutDate.getTime() === todayDate.getTime()) {
-    const [hours, minutes] = checkOutTime.split(":").map(Number);
-    const checkoutTime = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
-      hours,
-      minutes,
-    );
-    return checkoutTime < now;
-  }
-
-  return false;
-};
-
 export const formatBankName = (bankCode?: string | null) => {
   if (!bankCode) return "-";
   return BANK_NAMES[bankCode] ?? `은행코드 ${bankCode}`;
@@ -129,20 +94,3 @@ export const formatReservationDetailTime = (timeString: string): string => {
 
   return `${ampm} ${hour12}:${minutes.toString().padStart(2, "0")}`;
 };
-
-export const canCreateReview = ({
-  canWriteReview,
-  checkOutDateTime,
-  checkOutTime,
-  now,
-  status,
-}: {
-  canWriteReview?: boolean | null;
-  checkOutDateTime: string;
-  checkOutTime: string;
-  now?: Date;
-  status: ReservationStatus;
-}) =>
-  isCheckoutCompleted(checkOutDateTime, checkOutTime, now) &&
-  status === "CONFIRMED" &&
-  Boolean(canWriteReview);

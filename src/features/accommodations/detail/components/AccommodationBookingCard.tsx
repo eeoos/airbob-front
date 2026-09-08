@@ -89,6 +89,7 @@ interface AccommodationCouponState {
 }
 
 interface AccommodationCouponActions {
+  retryCoupons: () => void;
   onSelectedCouponIdChange: (couponId: number | null) => void;
   handleIssueCoupon: (coupon: BookingCoupon) => void | Promise<void>;
 }
@@ -162,7 +163,8 @@ export function AccommodationBookingCard({
     selectedCoupon,
     couponDiscount,
   } = couponState;
-  const { onSelectedCouponIdChange, handleIssueCoupon } = couponActions;
+  const { onSelectedCouponIdChange, handleIssueCoupon, retryCoupons } =
+    couponActions;
   const {
     basePrice,
     availability,
@@ -214,6 +216,7 @@ export function AccommodationBookingCard({
           coupons={coupons}
           errorMessage={couponErrorMessage}
           handleIssueCoupon={handleIssueCoupon}
+          onRetry={retryCoupons}
           isLoadingCoupons={isLoadingCoupons}
           selectedCoupon={selectedCoupon}
           onSelectedCouponIdChange={onSelectedCouponIdChange}

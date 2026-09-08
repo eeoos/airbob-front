@@ -29,6 +29,7 @@ interface ActiveReservationRequest {
 }
 
 export interface ReservationConfirmControllerProps {
+  readonly autoStartPayment?: boolean;
   readonly customer: ReservationConfirmCustomer;
   readonly failUrl: string;
   readonly handle: BookingTransactionHandle;
@@ -58,6 +59,7 @@ const requestFailureMessage = (code: string): string => {
 };
 
 export function ReservationConfirmController({
+  autoStartPayment = false,
   customer,
   failUrl,
   handle,
@@ -82,6 +84,7 @@ export function ReservationConfirmController({
   const [hasReservationStatusDrift, setHasReservationStatusDrift] =
     useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const autoStartConsumedRef = useRef(false);
   const activeRequestRef = useRef<ActiveReservationRequest | null>(null);
 
   const hasActiveRequest = useCallback(() => {
@@ -281,6 +284,18 @@ export function ReservationConfirmController({
     successUrl,
     workflow,
   ]);
+
+  useEffect(() => {
+    if (
+      !autoStartPayment ||
+      autoStartConsumedRef.current ||
+      paymentStatus !== "ready" ||
+      errorMessage !== null
+    )
+      return;
+    autoStartConsumedRef.current = true;
+    confirmPayment();
+  }, [autoStartPayment, confirmPayment, errorMessage, paymentStatus]);
 
   const releaseHold = useCallback(() => {
     if (hasActiveRequest() || isReleasing) return;

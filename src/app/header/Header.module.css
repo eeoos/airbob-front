@@ -91,6 +91,11 @@
     height: var(--space-10);
   }
 
+  .compactContainer {
+    grid-template-rows: 1fr;
+    height: var(--space-16);
+  }
+
   .logo {
     grid-column: 1;
     grid-row: 1;

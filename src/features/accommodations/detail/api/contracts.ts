@@ -78,12 +78,33 @@ export interface CouponWire {
   readonly discount_value: number;
   readonly min_payment_price: number | null;
   readonly max_discount_amount: number | null;
-  readonly start_date: string;
-  readonly end_date: string;
+  readonly issue_start_at: string;
+  readonly issue_end_at: string;
+  readonly usable_from: string;
+  readonly usable_until: string;
+  readonly issuance_status: "UPCOMING" | "OPEN" | "SOLD_OUT";
   readonly total_quantity: number | null;
   readonly issued_quantity: number;
 }
 
 export interface CouponCollectionWire {
   readonly infos: readonly CouponWire[];
+}
+
+export interface MemberCouponWire {
+  readonly coupon_id: number;
+  readonly name: string;
+  readonly description: string | null;
+  readonly discount_type: CouponDiscountTypeWire;
+  readonly discount_value: number;
+  readonly min_payment_price: number | null;
+  readonly max_discount_amount: number | null;
+  readonly usable_from: string;
+  readonly usable_until: string;
+  readonly status:
+    "UPCOMING" | "AVAILABLE" | "UNAVAILABLE" | "USED" | "EXPIRED";
+}
+
+export interface MemberCouponCollectionWire {
+  readonly infos: readonly MemberCouponWire[];
 }

@@ -874,6 +874,11 @@
     outline: none;
   }
 
+  .mobileCalendarHeading:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring-visible);
+  }
+
   .mobileCalendarSummary {
     margin: 0 0 var(--space-8);
     color: var(--color-text-secondary);
@@ -914,6 +919,11 @@
 
 .quoteFocusTarget:focus {
   outline: none;
+}
+
+.quoteFocusTarget:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-visible);
 }
 
 .mobileRating {

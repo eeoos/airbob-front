@@ -136,6 +136,7 @@ const expectedPublicTokenValues: Readonly<Record<string, string>> = {
   "--color-scrollbar-thumb-hover": "#555",
   "--focus-ring": "0 0 0 2px rgb(34 34 34 / 24%)",
   "--focus-ring-visible": "0 0 0 3px #19769d",
+  "--z-flow": "auto",
   "--z-header": "1000",
   "--z-sticky": "1100",
   "--z-dropdown": "2000",
@@ -793,7 +794,10 @@ describe("design token stylesheet contract", () => {
       "features/accommodations/detail/components/AccommodationImageGalleryModal.module.css",
     );
     const dialogOverlay = selectorBlock(dialogCss, overlaySelector);
-    const galleryClose = selectorBlock(galleryCss, ".galleryClose");
+    const galleryClose = selectorBlock(
+      galleryCss,
+      ".galleryClose:focus-visible",
+    );
 
     expectDeclaration(dialogOverlay, "background: var(--overlay-backdrop);");
     expectDeclaration(dialogOverlay, "z-index: var(--z-modal);");

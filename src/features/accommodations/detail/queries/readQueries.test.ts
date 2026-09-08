@@ -10,7 +10,8 @@ import type { AccommodationCouponApiPort } from "../ports/couponApiPort";
 import {
   createAccommodationDetailQueryOptions,
   createAccommodationAvailabilityQueryOptions,
-  createValidCouponsQueryOptions,
+  createCouponCampaignsQueryOptions,
+  createMemberCouponsQueryOptions,
 } from "./readQueryOptions";
 
 const authenticatedScope = {
@@ -61,7 +62,8 @@ describe("accommodation read query contracts", () => {
     getAvailability: vi.fn(),
   };
   const couponApi: Mocked<AccommodationCouponApiPort> = {
-    getValidCoupons: vi.fn(),
+    getCampaigns: vi.fn(),
+    getMyCoupons: vi.fn(),
     issue: vi.fn(),
   };
 
@@ -184,18 +186,18 @@ describe("accommodation read query contracts", () => {
 
   it("scopes authenticated coupon reads and forwards cancellation", async () => {
     const signal = new AbortController().signal;
-    const options = createValidCouponsQueryOptions(
+    const options = createCouponCampaignsQueryOptions(
       { scope: authenticatedScope },
       couponApi,
     );
-    couponApi.getValidCoupons.mockResolvedValue({ coupons: [] });
+    couponApi.getCampaigns.mockResolvedValue({ coupons: [] });
 
     await options.queryFn({ signal });
 
     expect(options.queryKey).toEqual([
       "accommodation",
       "coupons",
-      "valid",
+      "campaigns",
       {
         session: {
           subject: authenticatedScope.subject,
@@ -209,13 +211,13 @@ describe("accommodation read query contracts", () => {
         subject: authenticatedScope.subject,
       },
     });
-    expect(couponApi.getValidCoupons).toHaveBeenCalledWith({ signal });
+    expect(couponApi.getCampaigns).toHaveBeenCalledWith({ signal });
     expect(options.retry).toBe(false);
     expect(options.throwOnError).toBe(false);
   });
 
   it("keeps the unconditional coupon hook network-inert while anonymous", () => {
-    const options = createValidCouponsQueryOptions(
+    const options = createCouponCampaignsQueryOptions(
       { scope: anonymousScope },
       couponApi,
     );
@@ -224,11 +226,49 @@ describe("accommodation read query contracts", () => {
     expect(options.queryKey).toEqual([
       "accommodation",
       "coupons",
-      "valid",
+      "campaigns",
       { session: { subject: null, epoch: 2 } },
     ]);
     expect(options.meta).toEqual({ session: anonymousScope });
-    expect(couponApi.getValidCoupons).not.toHaveBeenCalled();
+    expect(couponApi.getCampaigns).not.toHaveBeenCalled();
+  });
+
+  it("keeps member coupons separate from campaign data and isolates identities", async () => {
+    const options = createMemberCouponsQueryOptions(
+      { scope: authenticatedScope },
+      couponApi,
+    );
+    const signal = new AbortController().signal;
+    couponApi.getMyCoupons.mockResolvedValue({ coupons: [] });
+    await options.queryFn({ signal });
+    expect(couponApi.getMyCoupons).toHaveBeenCalledWith({ signal });
+    expect(options.queryKey).not.toEqual(
+      createCouponCampaignsQueryOptions(
+        { scope: authenticatedScope },
+        couponApi,
+      ).queryKey,
+    );
+    expect(options.queryKey[2]).toBe("owned");
+    expect(options.meta).toEqual({
+      session: {
+        subject: authenticatedScope.subject,
+        epoch: authenticatedScope.epoch,
+      },
+    });
+    expect(options.staleTime).toBe(0);
+    expect(options.refetchOnMount).toBe("always");
+    expect(
+      createMemberCouponsQueryOptions({ scope: anonymousScope }, couponApi)
+        .enabled,
+    ).toBe(false);
+    expect(
+      createMemberCouponsQueryOptions(
+        {
+          scope: { ...authenticatedScope, epoch: authenticatedScope.epoch + 1 },
+        },
+        couponApi,
+      ).queryKey,
+    ).not.toEqual(options.queryKey);
   });
 
   it("preserves explicit disabled policies without changing semantic keys", () => {
@@ -236,7 +276,7 @@ describe("accommodation read query contracts", () => {
       { scope: anonymousScope, accommodationId: 31, enabled: false },
       detailApi,
     );
-    const couponOptions = createValidCouponsQueryOptions(
+    const couponOptions = createCouponCampaignsQueryOptions(
       { scope: authenticatedScope, enabled: false },
       couponApi,
     );
@@ -249,6 +289,6 @@ describe("accommodation read query contracts", () => {
     expect(availabilityOptions.enabled).toBe(false);
     expect(couponOptions.enabled).toBe(false);
     expect(detailOptions.queryKey[2]).toBe(31);
-    expect(couponOptions.queryKey[2]).toBe("valid");
+    expect(couponOptions.queryKey[2]).toBe("campaigns");
   });
 });

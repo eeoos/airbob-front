@@ -275,7 +275,7 @@ export const toGuestReservationDetail = (
     timeZoneId: toTimeZoneId(wire.time_zone_id),
     checkInTime: wire.check_in_time,
     checkOutTime: wire.check_out_time,
-    canWriteReview: wire.can_write_review,
+    canWriteReview: toBoolean(wire.can_write_review, "canWriteReview"),
     accommodation: toAccommodation(wire.accommodation),
     address: toAddress(wire.address),
     coordinate: {

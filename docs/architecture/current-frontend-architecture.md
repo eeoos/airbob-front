@@ -132,7 +132,7 @@ there is no legacy route manifest, path/query copy, layout, or route body.
 | home | `/` | public | browse | `app/router/routes/HomeRoute.tsx` | `screens/home/HomeScreen.tsx` |
 | search | `/search` | public | browse/search header | `app/router/routes/SearchRoute.tsx` | `screens/search/SearchController.tsx` → `SearchScreen.tsx` |
 | accommodation-detail | `/accommodations/:id` | public | browse | `app/router/routes/AccommodationDetailRoute.tsx` | `screens/accommodation-detail/AccommodationDetailController.tsx` → `AccommodationDetailScreen.tsx` |
-| accommodation-confirm | `/accommodations/:id/confirm` | protected | transaction | `app/router/routes/ReservationConfirmRoute.tsx` | `screens/reservation-confirm/ReservationConfirmController.tsx` → `ReservationConfirmScreen.tsx` |
+| accommodation-confirm | `/accommodations/:id/confirm` | protected | transaction | `app/router/routes/ReservationConfirmRoute.tsx` | `screens/reservation-confirm/ReservationReviewController.tsx` → `ReservationReviewScreen.tsx` (unheld); `ReservationConfirmController.tsx` → `ReservationConfirmScreen.tsx` (held/payment recovery) |
 | accommodation-edit | `/accommodations/:id/edit` | protected | editor | `app/router/routes/AccommodationEditRoute.tsx` | `screens/accommodation-edit/AccommodationEditController.tsx` → `AccommodationEditScreen.tsx` |
 | wishlist | `/wishlist` | protected | browse | `app/router/routes/WishlistRoute.tsx` | `screens/wishlist/WishlistController.tsx` |
 | profile | `/profile` | protected | browse | `app/router/routes/ProfileRoute.tsx` | `screens/profile/ProfileController.tsx` → `ProfileScreen.tsx` |
@@ -173,7 +173,7 @@ The retired legacy source roots are absent from src.
 | Profile route view | App `profileCodec` output passed by the app adapter | The URL is the sole durable guest/host tab and filter authority; the controller owns only transient sort, dialog, pending, and dismissed-error state. |
 | Server resources | Session generation QueryClient plus feature-owned TanStack Query options | U5 physically replaces and clears the client at an identity boundary. Wishlist, Search, Accommodation Detail/coupons, Reviews, Profile host listings, and guest/host reservation reads include subject/epoch keys/meta and forward cancellation. Guest/host audience and filter identity are explicit key inputs, and app composition reconciles only the captured scope through owning projections. |
 | Viewer identity | `SessionProvider` explicit reducer state | A non-PII subject and monotonic epoch define identity lifetime. Consumers use `useSession` or narrow injected feature-command ports; no mirrored auth context exists. |
-| Pre-Accepted booking recovery | `airbob:booking-payment-v2:journal` plus an exact credential-free flow reference in `history.state` | One subject-owned v2 journal keeps quote, exact checkout request and idempotency key, Ready, attempt, and pre-confirm release/confirm phases for at most 60 minutes and no later than relevant server expiry. Full-record expected-phase replacement preserves immutable groups. Reload must join subject, cryptographic runtime lease, flow ID, route locator, phase, TTL, and exact tuple before any command. Customer name/email and paymentKey never enter the journal. |
+| Pre-Accepted booking recovery | `airbob:booking-payment-v2:journal` plus an exact credential-free flow reference in `history.state` | One subject-owned v2 journal keeps quote, exact checkout request and idempotency key, Ready, attempt, and pre-confirm release/confirm phases for at most 60 minutes and no later than relevant server expiry. Full-record expected-phase replacement preserves immutable groups. An explicit compare-and-replace may revise only an unsubmitted `quoted` record; prepared and submitted checkout groups remain immutable. Reload must join subject, cryptographic runtime lease, flow ID, route locator, phase, TTL, and exact tuple before any command. Customer name/email and paymentKey never enter the journal. |
 | Callback credential and confirm dedupe | stable-lifetime pre-auth memory claim plus `airbob:booking-payment-v2:callback-credential` | The boundary scrubs the external URL before session/auth children. Matching candidate identity and attempt data may persist the exact callback credential in one same-tab slot until the earlier of nine minutes from first capture or hold expiry. `confirm-submitting` is durable before the exact four-field POST. Network ambiguity preserves the credential for exact replay only while the receipt slot is proven absent; a present or opaque receipt barrier forbids confirm. |
 | Post-Accepted payment recovery | `airbob:booking-payment-v2:operation-receipt` plus an exact credential-free operation reference in `history.state` | Only an exact HTTP 202 with a validated body is written and read back before lower authority is removed; 200/201 are rejected. The receipt alone authorizes operation GET and monotonic observation replacement for up to 24 hours. Polling clamps server hints to 2–30 seconds, treats network failure as retryable, keeps `REQUIRES_REVIEW` unresolved, and acknowledges/cleans receipt-last only after a persisted `SUCCEEDED` or `FAILED` result is published. Exact verified expiry performs receipt-last cleanup, renders allowlisted reservation/operation identifiers and converges to reservation detail without re-confirm, retry or guessed operation lookup. |
 | Cross-tab session signal | `src/platform/session/sessionBroadcast.ts` | A same-origin BroadcastChannel exchanges only an exact non-PII transition envelope and drives invalidate-before-revalidate handling. |
@@ -182,6 +182,23 @@ The retired legacy source roots are absent from src.
 
 Detailed browser persistence and privacy properties are recorded in
 [`frontend-browser-data-inventory.md`](./frontend-browser-data-inventory.md).
+
+## Editable booking review
+
+Accommodation Detail creates a non-holding quote and immediately opens the existing
+`/accommodations/:id/confirm` route. The review and final confirmation views permit
+date, guest and coupon edits. Each saved edit requests a fresh server quote; an
+unsuccessful edit preserves the last accepted terms and price. Only the final
+confirmation action calls idempotent checkout and, for a payable reservation,
+opens the existing Toss card-payment flow. A zero-amount quote still requires that
+explicit final action.
+
+The route uses a compact header, a desktop summary column and mobile fixed actions
+with shared Dialog/DatePicker editors. There is no host-message step. Live handle
+publication retains the controller's current transition; reload joins the exact
+journal and history reference without automatically opening Toss. A quote that
+expires during review can be refreshed explicitly without acquiring inventory.
+Backend inventory ownership and hold duration remain unchanged.
 
 ## Session and Query lifetime
 

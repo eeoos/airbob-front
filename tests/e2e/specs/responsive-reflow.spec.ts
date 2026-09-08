@@ -784,7 +784,7 @@ test("aligns the detail shell from 320px through 4K", async ({
   }
 });
 
-test("keeps booking fields anchored when the calendar opens from 320px through wide desktop", async ({
+test("keeps desktop booking fields anchored when the calendar opens through wide desktop", async ({
   api,
   page,
   session,
@@ -801,9 +801,7 @@ test("keeps booking fields anchored when the calendar opens from 320px through w
     apiSuccess(responsiveDetailAvailability),
   );
 
-  const viewportWidths = [
-    320, 390, 768, 769, 1024, 1025, 1280, 1440, 1920, 2560, 3840,
-  ];
+  const viewportWidths = [1025, 1280, 1440, 1920, 2560, 3840];
 
   for (const width of viewportWidths) {
     await test.step(`${width}px anchored booking calendar`, async () => {
@@ -878,7 +876,7 @@ test("keeps booking fields anchored when the calendar opens from 320px through w
   }
 });
 
-test("keeps the fixed mobile calendar above the anchored booking fields", async ({
+test("keeps the mobile date dialog above the booking summary through the tablet boundary", async ({
   api,
   page,
   session,
@@ -894,43 +892,59 @@ test("keeps the fixed mobile calendar above the anchored booking fields", async 
     "/api/v1/accommodations/281/availability",
     apiSuccess(responsiveDetailAvailability),
   );
-  await page.setViewportSize({ width: 390, height: 900 });
-  await page.goto("/accommodations/281?adultOccupancy=1");
+  for (const width of [320, 390, 768, 769, 1024]) {
+    await test.step(`${width}px mobile booking calendar`, async () => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/accommodations/281?adultOccupancy=1");
 
-  const bookingCard = page.getByRole("region", { name: "숙소 예약" });
-  const checkIn = bookingCard.getByRole("button", {
-    name: "체크인 날짜 추가",
-  });
-  await bookingCard.scrollIntoViewIfNeeded();
-  await checkIn.click();
+      const inlineCalendar = page.getByRole("region", { name: "숙박 날짜" });
+      await expect(
+        inlineCalendar.getByRole("group", { name: "숙박 날짜 선택" }),
+      ).toBeVisible();
+      await expect(page.getByRole("region", { name: "숙소 예약" })).toHaveCount(
+        0,
+      );
+      const summary = page.getByRole("button", { name: "숙박 날짜 변경" });
+      await expect(summary).toBeInViewport();
+      const summaryBounds = await summary.boundingBox();
+      expect(summaryBounds).not.toBeNull();
+      await summary.click();
 
-  const dateOverlay = page.getByRole("dialog", { name: "예약 날짜 선택" });
-  const overlayBounds = await dateOverlay.boundingBox();
-  const checkInBounds = await checkIn.boundingBox();
-  expect(overlayBounds).not.toBeNull();
-  expect(checkInBounds).not.toBeNull();
-  const overlapLeft = Math.max(overlayBounds!.x, checkInBounds!.x);
-  const overlapTop = Math.max(overlayBounds!.y, checkInBounds!.y);
-  const overlapRight = Math.min(
-    overlayBounds!.x + overlayBounds!.width,
-    checkInBounds!.x + checkInBounds!.width,
-  );
-  const overlapBottom = Math.min(
-    overlayBounds!.y + overlayBounds!.height,
-    checkInBounds!.y + checkInBounds!.height,
-  );
-  expect(overlapRight).toBeGreaterThan(overlapLeft);
-  expect(overlapBottom).toBeGreaterThan(overlapTop);
-
-  const overlayOwnsOverlap = await dateOverlay.evaluate(
-    (dialog, point) => {
-      const hitTarget = document.elementFromPoint(point.x, point.y);
-      return Boolean(hitTarget && dialog.contains(hitTarget));
-    },
-    {
-      x: overlapLeft + (overlapRight - overlapLeft) / 2,
-      y: overlapTop + (overlapBottom - overlapTop) / 2,
-    },
-  );
-  expect(overlayOwnsOverlap).toBe(true);
+      const dateOverlay = page.getByRole("dialog", { name: "예약 날짜 선택" });
+      await expect(dateOverlay).toBeVisible();
+      await expect(
+        dateOverlay.getByRole("button", { name: "저장" }),
+      ).toBeDisabled();
+      const overlayBounds = await dateOverlay.boundingBox();
+      expect(overlayBounds).not.toBeNull();
+      const overlapLeft = Math.max(overlayBounds!.x, summaryBounds!.x);
+      const overlapTop = Math.max(overlayBounds!.y, summaryBounds!.y);
+      const overlapRight = Math.min(
+        overlayBounds!.x + overlayBounds!.width,
+        summaryBounds!.x + summaryBounds!.width,
+      );
+      const overlapBottom = Math.min(
+        overlayBounds!.y + overlayBounds!.height,
+        summaryBounds!.y + summaryBounds!.height,
+      );
+      expect(overlapRight).toBeGreaterThan(overlapLeft);
+      expect(overlapBottom).toBeGreaterThan(overlapTop);
+      expect(
+        await dateOverlay.evaluate(
+          (dialog, point) => {
+            const hitTarget = document.elementFromPoint(point.x, point.y);
+            return Boolean(hitTarget && dialog.contains(hitTarget));
+          },
+          {
+            x: overlapLeft + (overlapRight - overlapLeft) / 2,
+            y: overlapTop + (overlapBottom - overlapTop) / 2,
+          },
+        ),
+      ).toBe(true);
+      await expectNoHorizontalOverflow(page, width);
+      await dateOverlay.getByRole("button", { name: "날짜 선택 닫기" }).click();
+      await expect(dateOverlay).toBeHidden();
+      await expect(summary).toBeFocused();
+    });
+  }
 });

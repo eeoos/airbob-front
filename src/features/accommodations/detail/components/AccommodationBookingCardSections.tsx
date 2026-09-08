@@ -58,6 +58,7 @@ interface BookingGuestSectionProps {
 }
 
 interface BookingCouponSectionProps {
+  onRetry: () => void;
   couponDiscount: number;
   coupons: AccommodationBookingCouponViewModel[];
   errorMessage: string | null;
@@ -693,6 +694,7 @@ export function BookingGuestSection({
 }
 
 export function BookingCouponSection({
+  onRetry,
   couponDiscount,
   coupons,
   errorMessage,
@@ -706,6 +708,14 @@ export function BookingCouponSection({
     <div className={styles.couponSection}>
       <div className={styles.couponHeader}>
         <div className={styles.couponTitle}>쿠폰</div>
+        <button
+          type="button"
+          className={styles.couponClearButton}
+          disabled={selectionLocked || isLoadingCoupons}
+          onClick={onRetry}
+        >
+          새로고침
+        </button>
         {selectedCoupon && couponDiscount > 0 && (
           <button
             type="button"
@@ -724,13 +734,17 @@ export function BookingCouponSection({
           {errorMessage}
         </div>
       ) : coupons.length === 0 ? (
-        <div className={styles.couponEmpty}>발급 가능한 쿠폰이 없습니다.</div>
+        <div className={styles.couponEmpty}>
+          보유하거나 발급받을 수 있는 쿠폰이 없습니다.
+        </div>
       ) : (
         <div className={styles.couponList}>
           {coupons.map((coupon) => {
             return (
               <div
                 key={coupon.id}
+                role="group"
+                aria-label={coupon.name}
                 className={`${styles.couponItem} ${
                   coupon.isSelected ? styles.couponItemSelected : ""
                 }`}
@@ -746,7 +760,10 @@ export function BookingCouponSection({
                   className={styles.couponApplyButton}
                   onClick={() => handleIssueCoupon(coupon)}
                   disabled={
-                    selectionLocked || !coupon.isApplicable || coupon.isIssuing
+                    selectionLocked ||
+                    !coupon.isActionEnabled ||
+                    coupon.isIssuing ||
+                    coupon.isSelected
                   }
                 >
                   {coupon.actionLabel}

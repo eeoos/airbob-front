@@ -4,9 +4,9 @@ export type HostListingStatus =
 export type HostListingFilterStatus = Exclude<HostListingStatus, "DELETED">;
 
 export interface HostListingAddressSummary {
-  readonly country: string;
+  readonly country: string | null;
   readonly state: string | null;
-  readonly city: string;
+  readonly city: string | null;
   readonly district: string | null;
 }
 

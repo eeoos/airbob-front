@@ -5,14 +5,18 @@ import {
 import type { AccommodationAvailability } from "../model/accommodationAvailability";
 import type { AccommodationDetail } from "../model/accommodationDetail";
 import type {
-  AccommodationCoupon,
+  AccommodationCouponCampaign,
   AccommodationCouponCollection,
+  AccommodationMemberCoupon,
+  AccommodationMemberCouponCollection,
 } from "../model/coupon";
 import type {
   AccommodationAvailabilityWire,
   AccommodationDetailWire,
   CouponCollectionWire,
   CouponWire,
+  MemberCouponWire,
+  MemberCouponCollectionWire,
 } from "./contracts";
 
 export const toAccommodationDetail = (
@@ -146,22 +150,74 @@ export const toAccommodationAvailability = (
   });
 };
 
-const toAccommodationCoupon = (wire: CouponWire): AccommodationCoupon => ({
-  id: wire.id,
-  name: wire.name,
-  description: wire.description,
-  discountType: wire.discount_type,
-  discountValue: wire.discount_value,
-  minPaymentPrice: wire.min_payment_price,
-  maxDiscountAmount: wire.max_discount_amount,
-  startDate: wire.start_date,
-  endDate: wire.end_date,
-  totalQuantity: wire.total_quantity,
-  issuedQuantity: wire.issued_quantity,
-});
+const couponLocalDateTime = (value: string): string => {
+  if (
+    typeof value !== "string" ||
+    !isCanonicalCalendarLocalDate(value.slice(0, 10)) ||
+    !/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,9})?$/.test(
+      value,
+    )
+  )
+    throw new TypeError("Coupon period is invalid.");
+  return value;
+};
+
+const toAccommodationCoupon = (
+  wire: CouponWire,
+): AccommodationCouponCampaign => {
+  if (!["UPCOMING", "OPEN", "SOLD_OUT"].includes(wire.issuance_status)) {
+    throw new TypeError("Coupon issuance status is invalid.");
+  }
+  return {
+    kind: "campaign",
+    id: wire.id,
+    name: wire.name,
+    description: wire.description,
+    discountType: wire.discount_type,
+    discountValue: wire.discount_value,
+    minPaymentPrice: wire.min_payment_price,
+    maxDiscountAmount: wire.max_discount_amount,
+    issueStartAt: couponLocalDateTime(wire.issue_start_at),
+    issueEndAt: couponLocalDateTime(wire.issue_end_at),
+    usableFrom: couponLocalDateTime(wire.usable_from),
+    usableUntil: couponLocalDateTime(wire.usable_until),
+    issuanceStatus: wire.issuance_status,
+    totalQuantity: wire.total_quantity,
+    issuedQuantity: wire.issued_quantity,
+  };
+};
 
 export const toCouponCollection = (
   wire: CouponCollectionWire,
 ): AccommodationCouponCollection => ({
   coupons: wire.infos.map(toAccommodationCoupon),
+});
+
+const toMemberCoupon = (wire: MemberCouponWire): AccommodationMemberCoupon => {
+  if (
+    !["UPCOMING", "AVAILABLE", "UNAVAILABLE", "USED", "EXPIRED"].includes(
+      wire.status,
+    )
+  ) {
+    throw new TypeError("Member coupon status is invalid.");
+  }
+  return {
+    kind: "owned",
+    id: wire.coupon_id,
+    name: wire.name,
+    description: wire.description,
+    discountType: wire.discount_type,
+    discountValue: wire.discount_value,
+    minPaymentPrice: wire.min_payment_price,
+    maxDiscountAmount: wire.max_discount_amount,
+    usableFrom: couponLocalDateTime(wire.usable_from),
+    usableUntil: couponLocalDateTime(wire.usable_until),
+    status: wire.status,
+  };
+};
+
+export const toMemberCouponCollection = (
+  wire: MemberCouponCollectionWire,
+): AccommodationMemberCouponCollection => ({
+  coupons: wire.infos.map(toMemberCoupon),
 });

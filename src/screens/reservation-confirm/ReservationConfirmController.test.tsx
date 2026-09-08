@@ -48,6 +48,7 @@ const snapshot: BookingTransactionSnapshot = {
   discountAmount: 0,
   amount: 120_000,
   currency: "KRW",
+  couponId: null,
   couponDisplayName: null,
   quoteExpiresAt: "2026-09-01T10:10:00Z",
   serverTime: "2026-09-01T10:00:00Z",

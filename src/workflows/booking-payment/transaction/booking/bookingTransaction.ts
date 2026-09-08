@@ -45,10 +45,12 @@ import type {
   BookingTransactionPrepareResult,
   BookingTransactionQuoteInput,
   BookingTransactionQuoteResult,
+  BookingTransactionReviseResult,
   BookingTransactionReleaseResult,
   BookingTransactionRequestFailure,
   BookingTransactionReservationStatusObservation,
   BookingTransactionSnapshot,
+  BookingTransactionStartIntent,
   BookingTransactionStatusDriftAcknowledgementResult,
   BookingTransactionWorkflow,
   BookingTransactionWorkflowDependencies,
@@ -166,6 +168,7 @@ const toSnapshot = (
     discountAmount: data.quote.discountAmount,
     amount: data.quote.amount,
     currency: data.quote.currency,
+    couponId: data.serverIntent.couponId,
     couponDisplayName:
       data.serverIntent.couponId === null ? null : GENERIC_APPLIED_COUPON_LABEL,
     quoteExpiresAt: data.quote.quoteExpiresAt,
@@ -321,6 +324,8 @@ const mapJournalAccessFailure = (
   reason?: string,
 ): BookingTransactionAccessFailure => {
   if (status === "stale") return { status: "stale" };
+  if (reason === "expired")
+    return { status: "blocked", reason: "recovery-expired" };
   if (status === "missing" || reason === "missing-journal") {
     return { status: "missing" };
   }
@@ -338,6 +343,8 @@ const mapJournalWriteFailure = (
   reason?: string,
 ): BookingTransactionAccessFailure => {
   if (status === "stale") return { status: "stale" };
+  if (reason === "expired")
+    return { status: "blocked", reason: "recovery-expired" };
   if (status === "storage-error") {
     return { status: "blocked", reason: "storage-unavailable" };
   }
@@ -363,6 +370,7 @@ export const createBookingTransactionWorkflow = (
     readonly key: string;
     readonly promise: Promise<BookingTransactionQuoteResult>;
   } | null = null;
+  let activeRevision: Promise<BookingTransactionReviseResult> | null = null;
   let activeCheckout: {
     readonly key: string;
     readonly promise: Promise<BookingTransactionCheckoutResult>;
@@ -656,6 +664,96 @@ export const createBookingTransactionWorkflow = (
     return pending;
   };
 
+  const reviseQuote = (
+    input: BookingTransactionQuoteInput & BookingTransactionAuthorityInput,
+  ): Promise<BookingTransactionReviseResult> => {
+    if (activeRevision || activeCheckout || activeQuote)
+      return Promise.resolve({ status: "busy" });
+    const authority = resolveAuthority(input);
+    if (authority.status !== "found") return Promise.resolve(authority);
+    if (authority.record.data.phase !== "quoted")
+      return Promise.resolve({ status: "not-editable" });
+    let intent: BookingTransactionStartIntent;
+    try {
+      intent = validateBookingTransactionQuoteInput(input);
+      if (
+        intent.accommodationId !==
+        authority.record.data.serverIntent.accommodationId
+      ) {
+        return Promise.resolve({ status: "not-editable" });
+      }
+    } catch (error) {
+      return Promise.resolve(
+        error instanceof BookingTransactionValidationError
+          ? { status: "invalid", error }
+          : { status: "blocked", reason: "invalid-authority" },
+      );
+    }
+    const controller = createController();
+    const execute = async (): Promise<BookingTransactionReviseResult> => {
+      try {
+        if (!authority.isCurrent()) return currentFailure();
+        const response = await dependencies.bookingApi.createQuote(
+          {
+            accommodationId: intent.accommodationId,
+            checkInDate: intent.checkIn,
+            checkOutDate: intent.checkOut,
+            guestCount: intent.adultCount + intent.childCount,
+            couponId: intent.couponId,
+          },
+          { signal: controller.signal },
+        );
+        if (!authority.isCurrent()) return currentFailure();
+        const written = journal.reviseQuoted({
+          owner: authority.scope.subject,
+          lease: toRuntimeLease(authority.scope),
+          flowId: input.handle.flowId,
+          locator: input.handle.locator,
+          expectedQuoteUid: authority.record.data.quote.quoteUid,
+          serverIntent: {
+            accommodationId: intent.accommodationId,
+            checkInDate: intent.checkIn,
+            checkOutDate: intent.checkOut,
+            guestCount: intent.adultCount + intent.childCount,
+            couponId: intent.couponId,
+          },
+          presentationIntent: {
+            adultCount: intent.adultCount,
+            childCount: intent.childCount,
+            infantCount: intent.infantCount,
+            petCount: intent.petCount,
+          },
+          quote: response,
+          isCurrent: authority.isCurrent,
+        });
+        if (written.status !== "written")
+          return mapJournalWriteFailure(
+            written.status,
+            "reason" in written ? written.reason : undefined,
+          );
+        return {
+          status: "quoted",
+          handle: handleForData(written.record.data),
+          snapshot: toSnapshot(written.record.data),
+        };
+      } catch (error) {
+        if (!authority.isCurrent()) return currentFailure();
+        const failure = toRequestFailure(error);
+        return isDefinitiveQuoteFailure(error)
+          ? { status: "definitive-failure", failure }
+          : { status: "retryable-error", stage: "quote", failure };
+      }
+    };
+    const pending = Promise.resolve()
+      .then(execute)
+      .finally(() => {
+        releaseController(controller);
+        if (activeRevision === pending) activeRevision = null;
+      });
+    activeRevision = pending;
+    return pending;
+  };
+
   const load = (
     input: BookingTransactionAuthorityInput,
   ): BookingTransactionLoadResult => {
@@ -674,6 +772,7 @@ export const createBookingTransactionWorkflow = (
   const checkout = (
     input: BookingTransactionAuthorityInput,
   ): Promise<BookingTransactionCheckoutResult> => {
+    if (activeRevision) return Promise.resolve({ status: "busy" });
     if (disposed) {
       return Promise.resolve({ status: "locked", terminal: "disposed" });
     }
@@ -1340,6 +1439,7 @@ export const createBookingTransactionWorkflow = (
   const abandonUnheld = (
     input: BookingTransactionAuthorityInput,
   ): BookingTransactionAbandonResult => {
+    if (activeRevision || activeCheckout) return { status: "not-abandonable" };
     const authority = resolveAuthority(input);
     if (authority.status !== "found") return authority;
     if (
@@ -1367,6 +1467,7 @@ export const createBookingTransactionWorkflow = (
 
   return {
     quote,
+    reviseQuote,
     load,
     checkout,
     prepareGateway,

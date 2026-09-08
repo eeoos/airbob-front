@@ -21,6 +21,8 @@ export const accommodationReadQueryKeys = {
       createSessionQueryMeta(scope),
     ] as const,
   couponsRoot,
-  validCoupons: (scope: SessionQueryScope) =>
-    [...couponsRoot, "valid", createSessionQueryMeta(scope)] as const,
+  couponCampaigns: (scope: SessionQueryScope) =>
+    [...couponsRoot, "campaigns", createSessionQueryMeta(scope)] as const,
+  memberCoupons: (scope: SessionQueryScope) =>
+    [...couponsRoot, "owned", createSessionQueryMeta(scope)] as const,
 };

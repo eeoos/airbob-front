@@ -29,7 +29,7 @@ const expectedRouteDefinitions = [
     path: "/accommodations/:id/confirm",
     auth: "authenticated",
     shell: "transaction",
-    header: "default",
+    header: "compact",
   },
   {
     id: "accommodation-edit",

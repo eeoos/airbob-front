@@ -19,6 +19,7 @@ const snapshot = (): BookingTransactionSnapshot => ({
   discountAmount: 150_000,
   amount: 50_000,
   currency: "KRW",
+  couponId: null,
   couponDisplayName: "적용된 쿠폰",
   quoteExpiresAt: "2026-09-01T10:10:00Z",
   serverTime: "2026-09-01T10:00:00Z",
@@ -52,6 +53,7 @@ describe("reservation confirm view model", () => {
     expect(
       toReservationConfirmCheckoutView({
         ...snapshot(),
+        couponId: null,
         couponDisplayName: null,
         discountAmount: 0,
         amount: 180_000,
