@@ -1,3 +1,4 @@
+export type { AccommodationDetail } from "./model/accommodationDetail";
 export { accommodationCouponApi } from "./api/couponApi";
 export { calculateAccommodationCouponDiscount } from "./lib/accommodationCouponRules";
 export { createAccommodationDetailQueryCacheProjection } from "./cache/accommodationDetailQueryCacheProjection";

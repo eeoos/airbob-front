@@ -64,6 +64,13 @@ interface BookingPaymentJournalAuthorityInput {
   readonly isCurrent: () => boolean;
 }
 
+interface ReviseQuotedInput extends BookingPaymentJournalAuthorityInput {
+  readonly expectedQuoteUid: string;
+  readonly serverIntent: BookingPaymentServerIntent;
+  readonly presentationIntent: BookingPaymentPresentationIntent;
+  readonly quote: BookingPaymentQuote;
+}
+
 interface ReplaceExpectedPhaseInput extends BookingPaymentJournalAuthorityInput {
   readonly expectedPhase: BookingPaymentJournalPhase;
   /**
@@ -114,6 +121,7 @@ interface BookingPaymentJournalRepository {
     readonly isCurrent: () => boolean;
   }): BookingPaymentCreateNamespacePreparationResult;
   createQuoted(input: CreateQuotedInput): BookingPaymentJournalWriteResult;
+  reviseQuoted(input: ReviseQuotedInput): BookingPaymentJournalWriteResult;
   replaceExpectedPhase(
     input: ReplaceExpectedPhaseInput,
   ): BookingPaymentJournalWriteResult;
@@ -628,6 +636,54 @@ export const createBookingPaymentJournalRepository = ({
     return writeAndVerify(driver, record, input.isCurrent);
   };
 
+  // Only an unsubmitted quote may change its booking terms. The normal
+  // transition path continues to keep every prepared checkout immutable.
+  const reviseQuoted = (
+    input: ReviseQuotedInput,
+  ): BookingPaymentJournalWriteResult => {
+    const current = read(input);
+    if (current.status !== "found") return mapReadRejectionToWrite(current);
+    if (
+      current.record.data.phase !== "quoted" ||
+      current.record.data.quote.quoteUid !== input.expectedQuoteUid
+    ) {
+      return { status: "rejected", reason: "phase-mismatch" };
+    }
+    if (
+      input.serverIntent.accommodationId !==
+      current.record.data.serverIntent.accommodationId
+    ) {
+      return { status: "rejected", reason: "locator-mismatch" };
+    }
+    const currentTime = safeCurrentTime(now);
+    if (currentTime === null)
+      return { status: "rejected", reason: "invalid-clock" };
+    const recoveryExpiresAt = serverRelativeDeadline(
+      currentTime,
+      input.quote.serverTime,
+      input.quote.quoteExpiresAt,
+      current.record.hardExpiresAt,
+    );
+    if (recoveryExpiresAt === null || recoveryExpiresAt <= currentTime) {
+      return { status: "rejected", reason: "invalid-data" };
+    }
+    return writeAndVerify(
+      driver,
+      {
+        ...current.record,
+        data: {
+          phase: "quoted",
+          flowId: input.flowId,
+          recoveryExpiresAt,
+          serverIntent: input.serverIntent,
+          presentationIntent: input.presentationIntent,
+          quote: input.quote,
+        },
+      },
+      input.isCurrent,
+    );
+  };
+
   const prepareQuotedCreate = (input: {
     readonly owner: string;
     readonly isCurrent: () => boolean;
@@ -856,6 +912,7 @@ export const createBookingPaymentJournalRepository = ({
     claimMigratedReservationRecoveryLease,
     prepareQuotedCreate,
     createQuoted,
+    reviseQuoted,
     replaceExpectedPhase,
     acknowledgeTerminal,
     closeUnheldFlow,

@@ -331,7 +331,7 @@ test("selects missing dates from the mobile booking bar at 320px and supports di
   await expect(page).toHaveURL(/\/search$/);
 });
 
-test("shows the mobile final quote before checkout and locks calendar changes until it is released", async ({
+test("opens editable review from the mobile booking bar and returns to the inline calendar without checkout", async ({
   page,
   api,
   session,
@@ -373,25 +373,32 @@ test("shows the mobile final quote before checkout and locks calendar changes un
     "/accommodations/281?checkIn=2026-07-10&checkOut=2026-07-12&adultOccupancy=2",
   );
   await page.getByRole("button", { name: "예약하기", exact: true }).click();
-  const quote = page.getByRole("region", { name: "확정된 예약 견적" });
-  await expect(quote).toBeInViewport();
-  await expect(quote).toContainText("300,000");
+  await expect(page).toHaveURL("/accommodations/281/confirm");
+  const review = page.getByRole("region", { name: "예약 검토" });
+  await expect(review).toBeInViewport();
+  await expect(page.getByRole("main")).toContainText("₩300,000");
   await expect(
-    page.getByRole("button", { name: "예약 계속하기" }),
+    page.getByRole("button", { name: "다음", exact: true }),
   ).toBeEnabled();
   expect(api.matching("POST", "/api/v1/reservations")).toHaveLength(0);
+  await page.getByRole("button", { name: "날짜 변경", exact: true }).click();
+  const dateEditor = page.getByRole("dialog", {
+    name: "날짜 변경",
+    exact: true,
+  });
+  await expect(
+    dateEditor.getByRole("gridcell", { name: /2026년 7월 15일/ }),
+  ).toBeEnabled();
+  await dateEditor.getByRole("button", { name: "취소", exact: true }).click();
+  await page
+    .getByRole("button", { name: "숙소로 돌아가기", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/accommodations\/281\?checkIn=2026-07-10/);
   const calendar = page.getByRole("region", { name: "숙박 날짜", exact: true });
   await expect(
     calendar.getByRole("gridcell", { name: /2026년 7월 15일/ }),
-  ).toBeDisabled();
-  await expect(
-    calendar.getByRole("button", { name: "날짜 지우기" }),
-  ).toBeDisabled();
-  await quote.getByRole("button", { name: "조건 다시 선택" }).click();
-  await expect(quote).toHaveCount(0);
-  await expect(
-    calendar.getByRole("gridcell", { name: /2026년 7월 15일/ }),
   ).toBeEnabled();
+  expect(api.matching("POST", "/api/v1/reservations")).toHaveLength(0);
 });
 
 for (const viewport of [

@@ -111,6 +111,7 @@ const quoteSnapshot = {
   discountAmount: 0,
   amount: 200000,
   currency: "KRW",
+  couponId: null,
   couponDisplayName: null,
   quoteExpiresAt: "2026-07-10T00:10:00Z",
   serverTime: "2026-07-10T00:00:00Z",
@@ -127,6 +128,7 @@ const quoteSnapshot = {
 const bookingWorkflow = {
   quote: (...args: unknown[]) => mockStartReservation(...args),
   load: vi.fn(() => ({ status: "missing" as const })),
+  reviseQuote: vi.fn(),
   checkout: vi.fn(),
   prepareGateway: vi.fn(),
   pay: vi.fn(),

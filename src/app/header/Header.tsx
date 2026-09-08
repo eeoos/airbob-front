@@ -75,7 +75,7 @@ export const Header: React.FC<HeaderProps> = ({ headerMode = "default" }) => {
       data-layout={isSearchLayout ? "full-width" : "contained"}
     >
       <div
-        className={`${styles.container} ${isSearchLayout ? styles.searchRouteContainer : ""}`}
+        className={`${styles.container} ${isSearchLayout ? styles.searchRouteContainer : ""} ${headerMode === "compact" ? styles.compactContainer : ""}`}
         data-header-layout={isSearchLayout ? "full-width" : "contained"}
       >
         <Link

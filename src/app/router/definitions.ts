@@ -3,7 +3,8 @@ import { ROUTE_PATHS } from "./paths";
 
 type RouteAuthPolicy = "public" | "authenticated";
 type RouteShell = AppShellId;
-export type RouteHeaderPolicy = "default" | "search" | "detail" | "hidden";
+export type RouteHeaderPolicy =
+  "default" | "search" | "detail" | "compact" | "hidden";
 interface RouteDefinitionShape {
   id: string;
   path: string;
@@ -39,7 +40,7 @@ export const routeDefinitions = [
     path: ROUTE_PATHS.accommodationConfirm,
     auth: "authenticated",
     shell: "transaction",
-    header: "default",
+    header: "compact",
   },
   {
     id: "accommodation-edit",

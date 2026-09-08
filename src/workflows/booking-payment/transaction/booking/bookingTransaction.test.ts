@@ -1146,3 +1146,109 @@ describe("booking transaction workflow", () => {
     expect(harness.storage.values.has(JOURNAL_KEY)).toBe(false);
   });
 });
+
+describe("editable booking review", () => {
+  it("replaces an unheld quote and checks out only its latest conditions", async () => {
+    const harness = createWorkflowHarness();
+    const input = quoteInput();
+    const handle = await requireQuotedHandle(harness.workflow, input);
+    const nextQuoteUid = "30000000-0000-4000-8000-000000000099";
+    harness.createQuote.mockResolvedValue(
+      paidQuote({ quoteUid: nextQuoteUid, guestCount: 4 }),
+    );
+    const result = await harness.workflow.reviseQuote({
+      ...input,
+      handle,
+      intent: { ...input.intent, adultCount: 3 },
+    });
+    expect(result).toMatchObject({
+      status: "quoted",
+      handle,
+      snapshot: { adultCount: 3, couponId: 31, reservationUid: null },
+    });
+    expect(harness.checkout).not.toHaveBeenCalled();
+    expect(harness.beginPaymentAttempt).not.toHaveBeenCalled();
+    expect(harness.createQuote).toHaveBeenLastCalledWith(
+      expect.objectContaining({ guestCount: 4 }),
+      expect.anything(),
+    );
+    harness.checkout.mockResolvedValue(paidReady({ guestCount: 4 }));
+    await harness.workflow.checkout({ handle, routeLease: input.routeLease });
+    expect(harness.checkout).toHaveBeenCalledWith(
+      expect.objectContaining({
+        quote: expect.objectContaining({
+          quoteUid: nextQuoteUid,
+          guestCount: 4,
+        }),
+      }),
+      expect.anything(),
+    );
+  });
+
+  it("preserves the previous quote when a revision request fails", async () => {
+    const harness = createWorkflowHarness();
+    const input = quoteInput();
+    const handle = await requireQuotedHandle(harness.workflow, input);
+    const before = harness.storage.values.get(JOURNAL_KEY);
+    harness.createQuote.mockRejectedValue(
+      new Error("Synthetic network failure"),
+    );
+    await expect(
+      harness.workflow.reviseQuote({
+        ...input,
+        handle,
+        intent: { ...input.intent, adultCount: 3 },
+      }),
+    ).resolves.toMatchObject({ status: "retryable-error" });
+    expect(harness.storage.values.get(JOURNAL_KEY)).toBe(before);
+    expect(harness.checkout).not.toHaveBeenCalled();
+  });
+
+  it("blocks checkout, abandonment and another edit while a quote revision is pending", async () => {
+    const harness = createWorkflowHarness();
+    const input = quoteInput();
+    const handle = await requireQuotedHandle(harness.workflow, input);
+    const pending = deferred<ReservationQuote>();
+    harness.createQuote.mockReturnValue(pending.promise);
+    const revision = harness.workflow.reviseQuote({ ...input, handle });
+    await expect(
+      harness.workflow.checkout({ handle, routeLease: input.routeLease }),
+    ).resolves.toEqual({ status: "busy" });
+    await expect(
+      harness.workflow.reviseQuote({ ...input, handle }),
+    ).resolves.toEqual({ status: "busy" });
+    expect(
+      harness.workflow.abandonUnheld({ handle, routeLease: input.routeLease }),
+    ).toEqual({ status: "not-abandonable" });
+    pending.resolve(paidQuote());
+    await expect(revision).resolves.toMatchObject({ status: "quoted" });
+    expect(harness.checkout).not.toHaveBeenCalled();
+  });
+
+  it("does not apply a quote revision after navigation or identity change", async () => {
+    const harness = createWorkflowHarness();
+    const input = quoteInput();
+    const handle = await requireQuotedHandle(harness.workflow, input);
+    const before = harness.storage.values.get(JOURNAL_KEY);
+    const pending = deferred<ReservationQuote>();
+    harness.createQuote.mockReturnValue(pending.promise);
+    const revision = harness.workflow.reviseQuote({ ...input, handle });
+    await vi.waitFor(() =>
+      expect(harness.createQuote).toHaveBeenCalledTimes(2),
+    );
+    harness.setSessionCurrent(false);
+    pending.resolve(paidQuote({ guestCount: 4 }));
+    await expect(revision).resolves.toEqual({ status: "stale" });
+    expect(harness.storage.values.get(JOURNAL_KEY)).toBe(before);
+  });
+
+  it("rejects editing after a checkout has acquired inventory", async () => {
+    const harness = createWorkflowHarness();
+    const handle = await requirePaymentHandle(harness.workflow);
+    harness.createQuote.mockClear();
+    await expect(
+      harness.workflow.reviseQuote({ ...quoteInput(), handle }),
+    ).resolves.toEqual({ status: "not-editable" });
+    expect(harness.createQuote).not.toHaveBeenCalled();
+  });
+});

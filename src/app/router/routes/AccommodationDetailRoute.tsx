@@ -245,9 +245,10 @@ function AccommodationDetailRouteContent() {
       if (
         accommodationId === null ||
         snapshot.accommodationId !== accommodationId ||
-        snapshot.reservationUid === null ||
-        handle.locator.kind !== "reservation" ||
-        handle.locator.reservationUid !== snapshot.reservationUid
+        (handle.locator.kind === "accommodation"
+          ? handle.locator.accommodationId !== accommodationId ||
+            !snapshot.canCheckout
+          : handle.locator.reservationUid !== snapshot.reservationUid)
       ) {
         return;
       }

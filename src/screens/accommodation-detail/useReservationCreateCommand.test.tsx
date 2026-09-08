@@ -39,6 +39,7 @@ const quoteSnapshot: BookingTransactionSnapshot = {
   discountAmount: 0,
   amount: 200000,
   currency: "KRW",
+  couponId: null,
   couponDisplayName: null,
   quoteExpiresAt: "2026-07-10T00:10:00Z",
   serverTime: "2026-07-10T00:00:00Z",
@@ -161,31 +162,19 @@ const renderCommand = ({
 };
 
 describe("useReservationCreateCommand", () => {
-  it("persists a quote first and checks out only on the second explicit action", async () => {
+  it("opens editable review from the first quote without acquiring inventory", async () => {
     const view = renderCommand();
-
     await act(async () => void (await view.result.current.startReservation()));
     expect(view.workflow.quote).toHaveBeenCalledOnce();
     expect(view.workflow.checkout).not.toHaveBeenCalled();
     expect(view.onFlowHandleChange).toHaveBeenCalledWith(handle);
-    expect(view.result.current.quoteSnapshot).toEqual(quoteSnapshot);
-    expect(view.result.current.selectionLocked).toBe(true);
-
-    await act(async () => void (await view.result.current.startReservation()));
-    expect(view.workflow.checkout).toHaveBeenCalledWith({
-      handle,
-      routeLease: expect.any(Object),
-    });
-    expect(view.onOpenPayment).toHaveBeenCalledWith(
-      paymentHandle,
-      paymentSnapshot,
-    );
-    expect(view.onFlowHandleChange).toHaveBeenLastCalledWith(paymentHandle);
-    expect(
-      view.onFlowHandleChange.mock.invocationCallOrder.at(-1),
-    ).toBeLessThan(
+    expect(view.onOpenPayment).toHaveBeenCalledWith(handle, quoteSnapshot);
+    expect(view.onFlowHandleChange.mock.invocationCallOrder[0]).toBeLessThan(
       view.onOpenPayment.mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER,
     );
+    await act(async () => void (await view.result.current.startReservation()));
+    expect(view.workflow.checkout).not.toHaveBeenCalled();
+    expect(view.onOpenPayment).toHaveBeenLastCalledWith(handle, quoteSnapshot);
   });
 
   it("keeps an in-flight quote alive when same-key history publication rerenders", async () => {
@@ -367,20 +356,12 @@ describe("useReservationCreateCommand", () => {
     );
   });
 
-  it("does not open Toss when checkout reservation authority cannot be published", async () => {
-    const workflow = createWorkflow();
-    const view = renderCommand({ workflow });
+  it("does not open review when quote authority cannot be published", async () => {
+    const view = renderCommand({ flowHandleChangeResult: false });
     await act(async () => void (await view.result.current.startReservation()));
-    view.onFlowHandleChange.mockReturnValue(false);
-
-    await act(async () => void (await view.result.current.startReservation()));
-
-    expect(view.onFlowHandleChange).toHaveBeenLastCalledWith(paymentHandle);
-    expect(view.result.current.reservationStatus).toBe("locked");
     expect(view.onOpenPayment).not.toHaveBeenCalled();
-    expect(view.onError).toHaveBeenLastCalledWith(
-      "진행 중인 예약 또는 결제 상태를 먼저 확인해주세요.",
-    );
+    expect(view.workflow.checkout).not.toHaveBeenCalled();
+    expect(view.result.current.reservationStatus).toBe("locked");
   });
 
   it("replays a reloaded journal without reconstructing authority from client defaults", async () => {
@@ -402,10 +383,8 @@ describe("useReservationCreateCommand", () => {
 
     await act(async () => void (await view.result.current.startReservation()));
 
-    expect(workflow.checkout).toHaveBeenCalledWith({
-      handle,
-      routeLease: expect.any(Object),
-    });
+    expect(workflow.checkout).not.toHaveBeenCalled();
+    expect(view.onOpenPayment).toHaveBeenCalledWith(handle, restoredSnapshot);
   });
 
   it("blocks a new quote while the app recovery fence is active", async () => {
@@ -420,73 +399,19 @@ describe("useReservationCreateCommand", () => {
     );
   });
 
-  it("publishes and acknowledges terminal reservation state before leaving", async () => {
+  it("requires final review even when a quote needs no payment", async () => {
     const workflow = createWorkflow();
-    const terminalSnapshot: BookingTransactionSnapshot = {
-      ...paymentSnapshot,
-      phase: "complimentary-observed",
-      amount: 0,
-      paymentRequired: false,
-      paymentAllowed: false,
-      holdExpiresAt: null,
-      reservationStatus: "CONFIRMED",
-      canPay: false,
-      canReleaseHold: false,
-    };
-    vi.mocked(workflow.checkout).mockResolvedValue({
-      status: "complimentary",
-      handle: paymentHandle,
-      snapshot: terminalSnapshot,
+    const freeQuote = { ...quoteSnapshot, amount: 0, paymentRequired: false };
+    vi.mocked(workflow.quote).mockResolvedValue({
+      status: "quoted",
+      handle,
+      snapshot: freeQuote,
     });
     const view = renderCommand({ workflow });
     await act(async () => void (await view.result.current.startReservation()));
-
-    await act(async () => void (await view.result.current.startReservation()));
-
-    await waitFor(() =>
-      expect(view.onTerminalReservation).toHaveBeenCalledWith(
-        paymentHandle,
-        terminalSnapshot,
-        expect.any(Object),
-      ),
-    );
-    expect(view.onFlowHandleChange).toHaveBeenLastCalledWith(paymentHandle);
-    expect(
-      view.onFlowHandleChange.mock.invocationCallOrder.at(-1),
-    ).toBeLessThan(
-      view.onTerminalReservation.mock.invocationCallOrder[0] ??
-        Number.MAX_SAFE_INTEGER,
-    );
-  });
-
-  it("publishes a reservation-status handle before terminal completion", async () => {
-    const workflow = createWorkflow();
-    const terminalSnapshot: BookingTransactionSnapshot = {
-      ...paymentSnapshot,
-      phase: "reservation-status-observed",
-      reservationStatus: "EXPIRED",
-      paymentAllowed: false,
-      holdExpiresAt: null,
-      canPay: false,
-      canReleaseHold: false,
-    };
-    vi.mocked(workflow.checkout).mockResolvedValue({
-      status: "reservation-status",
-      handle: paymentHandle,
-      snapshot: terminalSnapshot,
-    });
-    const view = renderCommand({ workflow });
-
-    await act(async () => void (await view.result.current.startReservation()));
-    await act(async () => void (await view.result.current.startReservation()));
-
-    expect(view.onFlowHandleChange).toHaveBeenLastCalledWith(paymentHandle);
-    expect(
-      view.onFlowHandleChange.mock.invocationCallOrder.at(-1),
-    ).toBeLessThan(
-      view.onTerminalReservation.mock.invocationCallOrder[0] ??
-        Number.MAX_SAFE_INTEGER,
-    );
+    expect(view.onOpenPayment).toHaveBeenCalledWith(handle, freeQuote);
+    expect(workflow.checkout).not.toHaveBeenCalled();
+    expect(view.onTerminalReservation).not.toHaveBeenCalled();
   });
 
   it("keeps a reloaded terminal journal explicitly completable", async () => {

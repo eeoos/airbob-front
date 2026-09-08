@@ -23,6 +23,8 @@ const discoverOwners = (predicate: (source: string, path: string) => boolean) =>
     .sort();
 
 const imageRecipeOwners = {
+  "src/screens/reservation-confirm/ReservationReviewScreen.tsx":
+    "editable booking review accommodation summary",
   "src/features/search/components/SearchAccommodationCard.tsx":
     "search result thumbnail",
   "src/features/wishlist/components/WishlistDetailView.tsx":
@@ -72,6 +74,8 @@ const intentionallyLocalImageOwners = {
 } as const;
 
 const sharedStateRecipeOwners = {
+  "src/screens/reservation-confirm/ReservationReviewController.tsx":
+    "booking review detail loading and retryable-error recipes",
   "src/app/router/RequireAuthenticatedRoute.tsx": "session gate recipes",
   "src/app/router/Router.tsx": "route suspense loading recipe",
   "src/features/accommodations/detail/components/AccommodationReviewsSection.tsx":
@@ -112,6 +116,8 @@ const sharedStateRecipeOwners = {
 } as const;
 
 const intentionallyLocalStateOwners = {
+  "src/screens/reservation-confirm/ReservationReviewScreen.tsx":
+    "quote revision feedback and inline date/coupon editor status",
   "src/app/header/UserMenu.tsx":
     "menu-local host draft creation progress and recovery",
   "src/app/session/LogoutRevocationNotice.tsx":

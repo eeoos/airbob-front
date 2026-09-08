@@ -117,7 +117,6 @@ export const useReservationCreateCommand = ({
   onError,
   onFlowHandleChange,
   onOpenPayment,
-  onOpenTrips,
   onTerminalReservation,
   requestAuthentication,
   routeLease,
@@ -130,7 +129,6 @@ export const useReservationCreateCommand = ({
   );
   const activeCommandRef = useRef<Promise<unknown> | null>(null);
   const currentHandleRef = useRef<BookingTransactionHandle | null>(flowHandle);
-  const liveQuotedCouponIdRef = useRef<number | null | undefined>(undefined);
 
   useLayoutEffect(() => {
     if (
@@ -145,7 +143,6 @@ export const useReservationCreateCommand = ({
 
     if (!flowHandle) {
       currentHandleRef.current = null;
-      liveQuotedCouponIdRef.current = undefined;
       setSnapshot(null);
       setStatus("idle");
       return;
@@ -185,7 +182,6 @@ export const useReservationCreateCommand = ({
       // safe to discard without owner-wide discovery.
       if (onFlowHandleChange(null)) {
         currentHandleRef.current = null;
-        liveQuotedCouponIdRef.current = undefined;
         setSnapshot(null);
         setStatus("idle");
         onError(null);
@@ -251,34 +247,6 @@ export const useReservationCreateCommand = ({
     [accommodation, availability, bookingDates, guestCounts, selectedCoupon],
   );
 
-  const selectionMatchesQuote = useCallback(
-    (quoteSnapshot: BookingTransactionSnapshot): boolean => {
-      if (!accommodation) return false;
-      const couponId = liveQuotedCouponIdRef.current;
-      if (couponId === undefined) {
-        // A direct v2 reference restored after reload is joined to the exact
-        // persisted journal. Inputs are locked and the journal, not a
-        // reconstructed client draft, remains checkout authority.
-        return accommodation.id === quoteSnapshot.accommodationId;
-      }
-      return (
-        accommodation.id === quoteSnapshot.accommodationId &&
-        (bookingDates.checkIn
-          ? formatBookingLocalDate(bookingDates.checkIn)
-          : "") === quoteSnapshot.checkIn &&
-        (bookingDates.checkOut
-          ? formatBookingLocalDate(bookingDates.checkOut)
-          : "") === quoteSnapshot.checkOut &&
-        guestCounts.adultCount === quoteSnapshot.adultCount &&
-        guestCounts.childCount === quoteSnapshot.childCount &&
-        guestCounts.infantCount === quoteSnapshot.infantCount &&
-        guestCounts.petCount === quoteSnapshot.petCount &&
-        (selectedCoupon?.id ?? null) === couponId
-      );
-    },
-    [accommodation, bookingDates, guestCounts, selectedCoupon?.id],
-  );
-
   const completeTerminal = useCallback(
     async (
       handle: BookingTransactionHandle,
@@ -298,142 +266,6 @@ export const useReservationCreateCommand = ({
     [onError, onTerminalReservation, routeLease],
   );
 
-  const checkout = useCallback(
-    async (
-      handle: BookingTransactionHandle,
-      quoteSnapshot: BookingTransactionSnapshot,
-    ) => {
-      if (!selectionMatchesQuote(quoteSnapshot)) {
-        onError("예약 조건이 변경되었습니다. 조건을 다시 선택해주세요.");
-        return;
-      }
-
-      setStatus("checking-out");
-      onError(null);
-      const pending = workflow.checkout({ handle, routeLease });
-      activeCommandRef.current = pending;
-      try {
-        const result = await pending;
-        if (activeCommandRef.current !== pending || !routeLease.isCurrent()) {
-          return;
-        }
-        switch (result.status) {
-          case "payment-ready":
-            // Checkout changes the durable journal locator from accommodation
-            // to reservation. Publish that exact handle before any route or
-            // terminal side effect so a crash can rejoin the written journal.
-            currentHandleRef.current = result.handle;
-            if (!onFlowHandleChange(result.handle)) {
-              setStatus("locked");
-              onError(activePaymentMessage);
-              return;
-            }
-            setSnapshot(result.snapshot);
-            onOpenPayment(result.handle, result.snapshot);
-            return;
-          case "complimentary":
-          case "reservation-status":
-            currentHandleRef.current = result.handle;
-            if (!onFlowHandleChange(result.handle)) {
-              setStatus("locked");
-              onError(activePaymentMessage);
-              return;
-            }
-            setSnapshot(result.snapshot);
-            await completeTerminal(result.handle, result.snapshot);
-            return;
-          case "current":
-            currentHandleRef.current = result.handle;
-            setSnapshot(result.snapshot);
-            if (isTerminalPhase(result.snapshot)) {
-              await completeTerminal(result.handle, result.snapshot);
-            } else if (
-              result.snapshot.reservationUid &&
-              (result.snapshot.canPay ||
-                result.snapshot.phase === "hold-release-requesting")
-            ) {
-              onOpenPayment(result.handle, result.snapshot);
-            } else {
-              setStatus("quoted");
-            }
-            return;
-          case "unsupported-payment": {
-            const abandoned = workflow.abandonUnheld({
-              handle: result.handle,
-              routeLease,
-            });
-            if (abandoned.status === "abandoned") {
-              if (onFlowHandleChange(null)) {
-                currentHandleRef.current = null;
-                setSnapshot(null);
-                setStatus("idle");
-              } else {
-                setStatus("locked");
-              }
-            } else {
-              setStatus("locked");
-            }
-            onError(
-              result.reason === "currency"
-                ? "현재 이 통화는 결제할 수 없습니다."
-                : "카드 결제 가능한 금액 범위를 벗어났습니다.",
-            );
-            return;
-          }
-          case "conflict":
-            setStatus("locked");
-            onError(activePaymentMessage);
-            onOpenTrips();
-            return;
-          case "definitive-failure":
-            if (onFlowHandleChange(null)) {
-              currentHandleRef.current = null;
-              setSnapshot(null);
-              setStatus("idle");
-              onError(failureMessage(result.failure.code));
-            } else {
-              setStatus("locked");
-              onError(activePaymentMessage);
-            }
-            return;
-          case "retryable-error":
-            setStatus("quoted");
-            onError(failureMessage(result.failure.code));
-            return;
-          case "auth-required":
-            setStatus("idle");
-            onError("다시 로그인한 뒤 예약을 계속해주세요.");
-            return;
-          case "blocked":
-            setStatus("locked");
-            onError(activePaymentMessage);
-            return;
-          case "missing":
-            setStatus("locked");
-            onError("예약 견적을 찾을 수 없습니다.");
-            return;
-          case "busy":
-          case "stale":
-          case "locked":
-            return;
-        }
-      } finally {
-        if (activeCommandRef.current === pending)
-          activeCommandRef.current = null;
-      }
-    },
-    [
-      completeTerminal,
-      onError,
-      onFlowHandleChange,
-      onOpenPayment,
-      onOpenTrips,
-      routeLease,
-      selectionMatchesQuote,
-      workflow,
-    ],
-  );
-
   const startReservation = useCallback(
     async (
       resumeIntent?: BookingTransactionStartIntent,
@@ -446,7 +278,7 @@ export const useReservationCreateCommand = ({
         if (isTerminalPhase(snapshot)) {
           await completeTerminal(handle, snapshot);
         } else if (snapshot.canCheckout) {
-          await checkout(handle, snapshot);
+          onOpenPayment(handle, snapshot);
         } else if (
           snapshot.reservationUid &&
           (snapshot.canPay || snapshot.phase === "hold-release-requesting")
@@ -513,10 +345,10 @@ export const useReservationCreateCommand = ({
               onError(activePaymentMessage);
               return;
             }
-            liveQuotedCouponIdRef.current = draft.intent.couponId;
             currentHandleRef.current = result.handle;
             setSnapshot(result.snapshot);
             setStatus("quoted");
+            onOpenPayment(result.handle, result.snapshot);
             return;
           case "auth-required":
             setStatus("idle");
@@ -554,7 +386,6 @@ export const useReservationCreateCommand = ({
     [
       accommodation,
       availability,
-      checkout,
       completeTerminal,
       currentIntent,
       isRecoveryBlocked,
@@ -585,7 +416,6 @@ export const useReservationCreateCommand = ({
     }
 
     currentHandleRef.current = null;
-    liveQuotedCouponIdRef.current = undefined;
     setSnapshot(null);
     setStatus("idle");
     onError(null);
