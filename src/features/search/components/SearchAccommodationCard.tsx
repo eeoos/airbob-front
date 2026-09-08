@@ -117,9 +117,7 @@ export const SearchAccommodationCard: React.FC<
             accommodation.isInWishlist ? styles.active : ""
           }`}
           aria-label={
-            accommodation.isInWishlist
-              ? "위시리스트에서 제거"
-              : "위시리스트에 저장"
+            accommodation.isInWishlist ? "저장 목록 열기" : "위시리스트에 저장"
           }
           aria-pressed={accommodation.isInWishlist}
           onClick={handleWishlistClick}

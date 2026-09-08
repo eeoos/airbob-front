@@ -36,8 +36,8 @@ const wishlistPage: WishlistCollection = {
       createdAt: "2026-08-29T00:00:00Z",
       thumbnailImageUrl: "https://example.com/seoul.jpg",
       itemCount: 2,
-      containsAccommodation: true,
-      wishlistAccommodationId: 10,
+      containsAccommodation: false,
+      wishlistAccommodationId: null,
     },
   ],
   pageInfo: { currentSize: 1, hasNext: false, nextCursor: null },
@@ -193,20 +193,46 @@ describe("WishlistModal", () => {
     expect(screen.getByRole("button", { name: /서울 여행/ })).toBeVisible();
   });
 
-  it("routes item writes through the injected command port", async () => {
-    const { commands } = renderModal();
+  it("saves the selected wishlist and closes after success", async () => {
+    const { commands, onClose } = renderModal();
     const itemButton = screen.getByRole("button", { name: /서울 여행/ });
 
-    expect(itemButton).toHaveAttribute("aria-pressed", "true");
+    expect(itemButton).not.toHaveAttribute("aria-pressed");
     await userEvent.click(itemButton);
 
-    await waitFor(() =>
-      expect(commands.removeAccommodation).toHaveBeenCalledWith({
-        accommodationId: 7,
-        wishlistAccommodationId: 10,
-      }),
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+    expect(commands.addAccommodation).toHaveBeenCalledExactlyOnceWith({
+      accommodationId: 7,
+      wishlistId: 1,
+    });
+    expect(commands.removeAccommodation).not.toHaveBeenCalled();
+  });
+
+  it("keeps an already saved wishlist intact and closes without another write", async () => {
+    mockQuery({
+      data: {
+        pageParams: [null],
+        pages: [
+          {
+            ...wishlistPage,
+            wishlists: wishlistPage.wishlists.map((wishlist) => ({
+              ...wishlist,
+              containsAccommodation: true,
+              wishlistAccommodationId: 10,
+            })),
+          },
+        ],
+      },
+    });
+    const { commands, onClose } = renderModal();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /서울 여행.*저장됨/ }),
     );
+
+    expect(onClose).toHaveBeenCalledTimes(1);
     expect(commands.addAccommodation).not.toHaveBeenCalled();
+    expect(commands.removeAccommodation).not.toHaveBeenCalled();
   });
 
   it("blocks duplicate UI submissions while the central command is pending", async () => {
@@ -221,39 +247,45 @@ describe("WishlistModal", () => {
       resolve = resolvePromise;
     });
     const commands = createCommands();
-    commands.removeAccommodation.mockReturnValue(pending);
-    renderModal({ commands });
+    commands.addAccommodation.mockReturnValue(pending);
+    const { onClose } = renderModal({ commands });
     const itemButton = screen.getByRole("button", { name: /서울 여행/ });
 
     await userEvent.click(itemButton);
     expect(itemButton).toBeDisabled();
     await userEvent.click(itemButton);
-    expect(commands.removeAccommodation).toHaveBeenCalledTimes(1);
+    expect(commands.addAccommodation).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: "새로운 위시리스트 만들기" }),
+    ).toBeDisabled();
 
     await act(async () => {
-      resolve({ status: "applied", isInAnyWishlist: false });
+      resolve({ status: "applied", isInAnyWishlist: true });
       await pending;
     });
-    expect(itemButton).toBeEnabled();
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it("renders command failures with the shared toast primitive", async () => {
     const commands = createCommands();
-    commands.removeAccommodation.mockRejectedValue({ code: "W003" });
-    renderModal({ commands });
+    commands.addAccommodation.mockRejectedValue({ code: "W001" });
+    const { onClose } = renderModal({ commands });
 
     await userEvent.click(screen.getByRole("button", { name: /서울 여행/ }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "존재하지 않는 위시리스트 항목입니다.",
+      "존재하지 않는 위시리스트입니다.",
     );
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: /서울 여행/ })).toBeEnabled();
     await userEvent.click(screen.getByRole("button", { name: "오류 닫기" }));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("warns after an applied mutation whose membership refresh is unconfirmed", async () => {
     const commands = createCommands();
-    commands.removeAccommodation.mockResolvedValue({
+    commands.addAccommodation.mockResolvedValue({
       status: "applied-unconfirmed",
       error: new Error("refresh failed"),
     });
@@ -264,7 +296,29 @@ describe("WishlistModal", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       WISHLIST_REFRESH_WARNING_MESSAGE,
     );
-    expect(commands.removeAccommodation).toHaveBeenCalledTimes(1);
+    expect(commands.addAccommodation).toHaveBeenCalledTimes(1);
+  });
+
+  it("closes the picker after creating a wishlist and saving the accommodation", async () => {
+    const { commands, onClose } = renderModal();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "새로운 위시리스트 만들기" }),
+    );
+    await userEvent.type(
+      screen.getByRole("textbox", { name: "이름" }),
+      "여름 여행",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "새로 만들기" }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+    expect(commands.createAndAddAccommodation).toHaveBeenCalledExactlyOnceWith({
+      accommodationId: 7,
+      name: "여름 여행",
+    });
+    expect(
+      screen.queryByRole("dialog", { name: "위시리스트 만들기" }),
+    ).not.toBeInTheDocument();
   });
 
   it("surfaces an unconfirmed refresh after create without repeating create-and-add", async () => {
@@ -303,7 +357,7 @@ describe("WishlistModal", () => {
       resolve = resolvePromise;
     });
     const commands = createCommands();
-    commands.removeAccommodation.mockReturnValue(pending);
+    commands.addAccommodation.mockReturnValue(pending);
     const { onClose, rerender } = renderModal({ commands });
 
     await userEvent.click(screen.getByRole("button", { name: /서울 여행/ }));
@@ -328,7 +382,7 @@ describe("WishlistModal", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(commands.removeAccommodation).toHaveBeenCalledTimes(1);
+    expect(commands.addAccommodation).toHaveBeenCalledTimes(1);
   });
 
   it("closes without refetching or issuing any write", async () => {

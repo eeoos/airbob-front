@@ -454,7 +454,7 @@ test("maps viewport URL coordinates to the search request without loading Google
   expect(getRequestQuery(viewportRequest)).not.toHaveProperty("destination");
 });
 
-test("projects wishlist add and remove state while collapsing duplicate clicks", async ({
+test("saves to a wishlist and closes without toggling saved items while collapsing duplicate clicks", async ({
   api,
   page,
   session,
@@ -539,14 +539,14 @@ test("projects wishlist add and remove state while collapsing duplicate clicks",
   const wishlistButton = wishlistDialog.getByRole("button", {
     name: /여름 여행/,
   });
-  await expect(wishlistButton).toHaveAttribute("aria-pressed", "false");
+  await expect(wishlistButton).toHaveAccessibleName(/저장되지 않음/);
 
   await wishlistButton.evaluate((element) => {
     (element as HTMLButtonElement).click();
     (element as HTMLButtonElement).click();
   });
 
-  await expect(wishlistButton).toHaveAttribute("aria-pressed", "true");
+  await expect(wishlistDialog).toBeHidden();
   const addRequests = api.matching(
     "POST",
     `/api/v1/members/wishlists/accommodations/${wishlistId}`,
@@ -556,33 +556,34 @@ test("projects wishlist add and remove state while collapsing duplicate clicks",
     accommodation_id: accommodationId,
   });
 
-  await wishlistDialog.getByRole("button", { name: "닫기" }).click();
-  const cardRemoveButton = page.getByRole("button", {
-    name: "위시리스트에서 제거",
+  const savedCardButton = page.getByRole("button", {
+    name: "저장 목록 열기",
   });
-  await expect(cardRemoveButton).toHaveAttribute("aria-pressed", "true");
+  await expect(savedCardButton).toHaveAttribute("aria-pressed", "true");
 
-  await cardRemoveButton.click();
+  await savedCardButton.click();
   const containedWishlistButton = wishlistDialog.getByRole("button", {
     name: /여름 여행/,
   });
-  await expect(containedWishlistButton).toHaveAttribute("aria-pressed", "true");
+  await expect(containedWishlistButton).toHaveAccessibleName(/저장됨/);
   await expect(containedWishlistButton).toBeEnabled();
   await containedWishlistButton.click();
 
-  await expect(containedWishlistButton).toHaveAttribute(
-    "aria-pressed",
-    "false",
-  );
+  await expect(wishlistDialog).toBeHidden();
   expect(
     api.matching(
       "DELETE",
       `/api/v1/members/wishlists/accommodations/${wishlistAccommodationId}`,
     ),
-  ).toHaveLength(1);
+  ).toHaveLength(0);
 
-  await wishlistDialog.getByRole("button", { name: "닫기" }).click();
-  await expect(cardSaveButton).toHaveAttribute("aria-pressed", "false");
+  expect(
+    api.matching(
+      "POST",
+      `/api/v1/members/wishlists/accommodations/${wishlistId}`,
+    ),
+  ).toHaveLength(1);
+  await expect(savedCardButton).toHaveAttribute("aria-pressed", "true");
 });
 
 test("fences an in-flight A membership result before B runs the same command", async ({
@@ -713,8 +714,9 @@ test("fences an in-flight A membership result before B runs the same command", a
   });
   await currentDialog.getByRole("button", { name: /세션 경계 여행/ }).click();
 
+  await expect(currentDialog).toBeHidden();
   await expect(
-    currentDialog.getByRole("button", { name: /세션 경계 여행/ }),
+    page.getByRole("button", { name: "저장 목록 열기" }),
   ).toHaveAttribute("aria-pressed", "true");
   expect(
     api.matching(
