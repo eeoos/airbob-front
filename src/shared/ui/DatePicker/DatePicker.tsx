@@ -23,6 +23,7 @@ import {
   startOfDay,
   startOfMonth,
 } from "./datePickerModel";
+import { Dialog } from "../Dialog/Dialog";
 import styles from "./DatePicker.module.css";
 
 export interface DatePickerProps {
@@ -36,7 +37,7 @@ export interface DatePickerProps {
   disabledRanges?: readonly DatePickerDisabledRange[];
   selectionWindow?: DatePickerSelectionWindow;
   hideFooter?: boolean;
-  variant?: "default" | "compact" | "search" | "inline" | "sheet";
+  variant?: "default" | "compact" | "search" | "inline" | "sheet" | "booking";
   numberOfMonths?: 1 | 2;
   selectionEndpoint?: "checkIn" | "checkOut";
 }
@@ -69,6 +70,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   numberOfMonths = 1,
   selectionEndpoint,
 }) => {
+  const [isKeyboardHelpOpen, setIsKeyboardHelpOpen] = useState(false);
+  const isBooking = variant === "booking";
   const isSingleMonth = variant === "inline" && numberOfMonths === 1;
   const today = useMemo(() => startOfDay(new Date()), []);
   const todayKey = formatDateKey(today);
@@ -462,10 +465,14 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     const monthKey = formatDateKey(month);
     const monthHeadingId = `${pickerId}-${monthKey}`;
 
+    const visibleWeeks = isBooking
+      ? calendarWeeks.filter((week) => week.some(Boolean))
+      : calendarWeeks;
+
     return (
       <div className={styles.calendar}>
         <div className={styles.monthHeader}>
-          {(variant === "search" || variant === "inline") && (
+          {(variant === "search" || variant === "inline" || isBooking) && (
             <button
               aria-label={
                 navigationDirection === -1 ? "이전 달 보기" : "다음 달 보기"
@@ -515,7 +522,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             ))}
           </div>
           <div className={styles.days} role="rowgroup">
-            {calendarWeeks.map((week, weekIndex) => (
+            {visibleWeeks.map((week, weekIndex) => (
               <div
                 key={`${monthKey}-week-${weekIndex}`}
                 className={styles.week}
@@ -609,6 +616,12 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   };
 
   const handlePickerKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (isKeyboardHelpOpen) return;
+    if (isBooking && event.key === "?") {
+      event.preventDefault();
+      setIsKeyboardHelpOpen(true);
+      return;
+    }
     if (event.key !== "Escape" || variant === "inline") return;
 
     event.preventDefault();
@@ -621,12 +634,12 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       aria-label="날짜 선택"
       className={`${styles.datePicker} ${
         variant === "compact" ? styles.compact : ""
-      } ${variant === "search" || variant === "inline" || variant === "sheet" ? styles.search : ""} ${variant === "inline" || variant === "sheet" ? styles.inline : ""} ${variant === "sheet" ? styles.sheet : ""}`}
+      } ${variant === "search" || variant === "inline" || variant === "sheet" || isBooking ? styles.search : ""} ${variant === "inline" || variant === "sheet" ? styles.inline : ""} ${variant === "sheet" ? styles.sheet : ""} ${isBooking ? styles.booking : ""}`}
       ref={pickerRef}
       onKeyDownCapture={handlePickerKeyDown}
       role="group"
     >
-      {variant !== "search" && variant !== "inline" && variant !== "sheet" && (
+      {(variant === "default" || variant === "compact") && (
         <div className={styles.navHeader}>
           <button
             aria-label="이전 달 보기"
@@ -687,6 +700,38 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
       {!hideFooter && (
         <div className={styles.footer}>
+          {isBooking && (
+            <button
+              type="button"
+              className={styles.keyboardButton}
+              aria-label="키보드 단축키 보기"
+              aria-haspopup="dialog"
+              onClick={() => setIsKeyboardHelpOpen(true)}
+            >
+              <svg
+                width="22"
+                height="18"
+                viewBox="0 0 24 20"
+                fill="none"
+                aria-hidden="true"
+              >
+                <rect
+                  x="1"
+                  y="2"
+                  width="22"
+                  height="16"
+                  rx="2"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                />
+                <path
+                  d="M4 6h2m2 0h2m2 0h2m2 0h2m2 0h1M4 9h2m2 0h2m2 0h2m2 0h2m2 0h1M7 14h10"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                />
+              </svg>
+            </button>
+          )}
           <button
             className={styles.clearButton}
             type="button"
@@ -707,6 +752,52 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             </button>
           )}
         </div>
+      )}
+      {isBooking && (
+        <Dialog
+          isOpen={isKeyboardHelpOpen}
+          onClose={() => setIsKeyboardHelpOpen(false)}
+          title="키보드 단축키"
+          showHeader={false}
+          size="sm"
+        >
+          <div className={styles.keyboardHelp}>
+            <h2>키보드 단축키</h2>
+            <dl>
+              <div>
+                <dt>Enter / Space</dt>
+                <dd>해당 날짜 선택</dd>
+              </div>
+              <div>
+                <dt>← / →</dt>
+                <dd>하루 전 / 다음 날로 이동</dd>
+              </div>
+              <div>
+                <dt>↑ / ↓</dt>
+                <dd>이전 주 / 다음 주로 이동</dd>
+              </div>
+              <div>
+                <dt>Page Up / Down</dt>
+                <dd>이전 달 / 다음 달로 이동</dd>
+              </div>
+              <div>
+                <dt>Home / End</dt>
+                <dd>해당 주의 첫날 / 마지막 날로 이동</dd>
+              </div>
+              <div>
+                <dt>Esc</dt>
+                <dd>달력 닫기</dd>
+              </div>
+            </dl>
+            <button
+              type="button"
+              className={styles.clearButton}
+              onClick={() => setIsKeyboardHelpOpen(false)}
+            >
+              달력으로 돌아가기
+            </button>
+          </div>
+        </Dialog>
       )}
     </div>
   );

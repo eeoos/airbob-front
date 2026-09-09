@@ -713,3 +713,156 @@
   overflow: hidden;
   clip-path: inset(50%);
 }
+
+.datePicker.booking {
+  width: 100%;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  animation: none;
+}
+
+.booking .calendars {
+  gap: var(--space-8);
+}
+
+.booking .calendarWrapper,
+.booking .calendar {
+  min-width: 0;
+}
+
+.booking .monthHeader {
+  min-height: 36px;
+  margin-bottom: var(--space-2);
+}
+
+.booking .monthNavButton {
+  width: var(--space-8);
+  height: var(--space-8);
+  padding: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-xl);
+}
+
+.booking .weekday {
+  font-weight: var(--font-weight-regular);
+}
+
+.booking .weekdays {
+  margin-bottom: var(--space-1);
+}
+
+.booking .days {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 0;
+}
+
+.booking .day {
+  height: var(--control-touch-target);
+  font-size: var(--font-size-sm);
+}
+
+.booking .day::before {
+  top: 2px;
+  bottom: 2px;
+}
+
+.booking .dayNumber {
+  width: min(40px, 100%);
+  font-weight: var(--font-weight-semibold);
+}
+
+.booking .day:focus-visible {
+  box-shadow: none;
+}
+
+.booking .day:focus-visible .dayNumber {
+  outline: 1px solid var(--color-text-primary);
+  outline-offset: 2px;
+}
+
+.booking .footer {
+  justify-content: flex-end;
+  gap: var(--space-5);
+  margin-top: var(--space-5);
+  padding: 0;
+  border: 0;
+}
+
+.booking .clearButton {
+  min-height: var(--space-8);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+}
+
+.booking .closeButton {
+  min-height: var(--space-8);
+  padding: var(--space-2) var(--space-7);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+}
+
+.keyboardButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  margin-right: auto;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.keyboardButton:hover {
+  background: var(--color-background-muted);
+}
+
+.keyboardButton:focus-visible,
+.booking .clearButton:focus-visible,
+.booking .closeButton:focus-visible,
+.booking .monthNavButton:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 2px;
+}
+
+.keyboardHelp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.keyboardHelp h2 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.keyboardHelp dl {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.keyboardHelp dl div {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.keyboardHelp dd {
+  margin: 0;
+}
+
+.keyboardHelp > button {
+  align-self: flex-end;
+}

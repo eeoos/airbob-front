@@ -50,6 +50,50 @@ describe("DatePicker", () => {
     vi.useRealTimers();
   });
 
+  it("navigates paired booking months without duplicate titles or empty trailing weeks", () => {
+    renderDatePicker({ variant: "booking" });
+    expect(screen.getAllByText("2026년 7월")).toHaveLength(1);
+    expect(
+      within(screen.getByRole("grid", { name: "2026년 7월" })).getAllByRole(
+        "row",
+      ),
+    ).toHaveLength(6);
+    expect(
+      within(screen.getByRole("grid", { name: "2026년 8월" })).getAllByRole(
+        "row",
+      ),
+    ).toHaveLength(7);
+    fireEvent.click(screen.getByRole("button", { name: "다음 달 보기" }));
+    expect(
+      screen.getByRole("grid", { name: "2026년 8월" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("grid", { name: "2026년 9월" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "이전 달 보기" }));
+    expect(
+      screen.getByRole("grid", { name: "2026년 7월" }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows keyboard help without closing the booking calendar and restores focus", () => {
+    const { props } = renderDatePicker({ variant: "booking" });
+    const help = screen.getByRole("button", { name: "키보드 단축키 보기" });
+    help.focus();
+    fireEvent.click(help);
+    const dialog = screen.getByRole("dialog", { name: "키보드 단축키" });
+    expect(within(dialog).getByText("해당 날짜 선택")).toBeInTheDocument();
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    expect(
+      screen.queryByRole("dialog", { name: "키보드 단축키" }),
+    ).not.toBeInTheDocument();
+    expect(props.onClose).not.toHaveBeenCalled();
+    expect(help).toHaveFocus();
+    fireEvent.click(help);
+    fireEvent.click(screen.getByRole("button", { name: "달력으로 돌아가기" }));
+    expect(help).toHaveFocus();
+  });
+
   it("renders two named month grids with Korean weekday headers", () => {
     renderDatePicker();
 

@@ -427,7 +427,7 @@ export function BookingDateSection({
   const calendarDescription = isReplacingPartialCheckIn
     ? "새 체크인 날짜를 선택하세요."
     : checkIn && checkOut
-      ? `${formatDate(checkIn)} – ${formatDate(checkOut)}`
+      ? `${checkIn.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" })} - ${checkOut.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" })}`
       : checkIn
         ? `${formatDate(checkIn)} 이후`
         : "날짜를 선택해 요금을 확인하세요.";
@@ -454,53 +454,83 @@ export function BookingDateSection({
       onFocusCapture={handleAvailabilityBoundaryFocus}
     >
       <div className={styles.dateRow}>
-        <button
-          ref={checkInTriggerRef}
-          type="button"
-          className={`${styles.dateColumn} ${
-            isDatePickerOpen && activeEndpoint === "checkIn"
-              ? styles.dateColumnActive
-              : ""
-          }`}
-          aria-label={`체크인 ${formatDate(checkIn) || "날짜 추가"}`}
-          aria-haspopup="dialog"
-          aria-expanded={isDatePickerOpen}
-          aria-controls="booking-date-picker"
-          aria-busy={availabilityStatus === "loading"}
-          disabled={availabilityStatus !== "ready" || selectionLocked}
-          onClick={() => openDatePicker("checkIn")}
-        >
-          <div className={styles.dateLabel}>체크인</div>
-          <div
-            className={`${styles.dateValue} ${checkIn ? "" : styles.datePlaceholder}`}
+        <div className={styles.dateField}>
+          <button
+            ref={checkInTriggerRef}
+            type="button"
+            className={`${styles.dateColumn} ${
+              isDatePickerOpen && activeEndpoint === "checkIn"
+                ? styles.dateColumnActive
+                : ""
+            }`}
+            aria-label={`체크인 ${formatDate(checkIn) || "날짜 추가"}`}
+            aria-haspopup="dialog"
+            aria-expanded={isDatePickerOpen}
+            aria-controls="booking-date-picker"
+            aria-busy={availabilityStatus === "loading"}
+            disabled={availabilityStatus !== "ready" || selectionLocked}
+            onClick={() => openDatePicker("checkIn")}
           >
-            {formatDate(checkIn) || "날짜 추가"}
-          </div>
-        </button>
+            <div className={styles.dateLabel}>체크인</div>
+            <div
+              className={`${styles.dateValue} ${checkIn ? "" : styles.datePlaceholder}`}
+            >
+              {formatDate(checkIn) || "날짜 추가"}
+            </div>
+          </button>
+          {isDatePickerOpen && checkIn && (
+            <button
+              type="button"
+              className={styles.dateClearButton}
+              aria-label="체크인 날짜 지우기"
+              onClick={() => {
+                handlePickerDateSelect(null, null);
+                checkInTriggerRef.current?.focus();
+              }}
+            >
+              <span aria-hidden="true">×</span>
+            </button>
+          )}
+        </div>
         <div className={styles.dateDivider} />
-        <button
-          ref={checkOutTriggerRef}
-          type="button"
-          className={`${styles.dateColumn} ${
-            isDatePickerOpen && activeEndpoint === "checkOut"
-              ? styles.dateColumnActive
-              : ""
-          }`}
-          aria-label={`체크아웃 ${formatDate(checkOut) || "날짜 추가"}`}
-          aria-haspopup="dialog"
-          aria-expanded={isDatePickerOpen}
-          aria-controls="booking-date-picker"
-          aria-busy={availabilityStatus === "loading"}
-          disabled={availabilityStatus !== "ready" || selectionLocked}
-          onClick={() => openDatePicker("checkOut")}
-        >
-          <div className={styles.dateLabel}>체크아웃</div>
-          <div
-            className={`${styles.dateValue} ${checkOut ? "" : styles.datePlaceholder}`}
+        <div className={styles.dateField}>
+          <button
+            ref={checkOutTriggerRef}
+            type="button"
+            className={`${styles.dateColumn} ${
+              isDatePickerOpen && activeEndpoint === "checkOut"
+                ? styles.dateColumnActive
+                : ""
+            }`}
+            aria-label={`체크아웃 ${formatDate(checkOut) || "날짜 추가"}`}
+            aria-haspopup="dialog"
+            aria-expanded={isDatePickerOpen}
+            aria-controls="booking-date-picker"
+            aria-busy={availabilityStatus === "loading"}
+            disabled={availabilityStatus !== "ready" || selectionLocked}
+            onClick={() => openDatePicker("checkOut")}
           >
-            {formatDate(checkOut) || "날짜 추가"}
-          </div>
-        </button>
+            <div className={styles.dateLabel}>체크아웃</div>
+            <div
+              className={`${styles.dateValue} ${checkOut ? "" : styles.datePlaceholder}`}
+            >
+              {formatDate(checkOut) || "날짜 추가"}
+            </div>
+          </button>
+          {isDatePickerOpen && checkOut && (
+            <button
+              type="button"
+              className={styles.dateClearButton}
+              aria-label="체크아웃 날짜 지우기"
+              onClick={() => {
+                handlePickerDateSelect(checkIn, null);
+                checkOutTriggerRef.current?.focus();
+              }}
+            >
+              <span aria-hidden="true">×</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {availabilityStatus !== "ready" && (
@@ -532,7 +562,7 @@ export function BookingDateSection({
             <span>{calendarDescription}</span>
           </div>
           <DatePicker
-            variant="compact"
+            variant="booking"
             checkIn={checkIn}
             checkOut={pickerCheckOut}
             selectionEndpoint={activeEndpoint}

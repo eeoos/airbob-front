@@ -171,6 +171,42 @@ const setupBookingCard = (overrides: BookingCardOverrides = {}) => {
 };
 
 describe("AccommodationBookingCard", () => {
+  it("clears checkout independently and returns focus to its date field", () => {
+    const props = setupBookingCard({
+      bookingState: { isDatePickerOpen: true },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "체크아웃 날짜 지우기" }),
+    );
+    expect(props.bookingActions.handleDateSelect).toHaveBeenCalledWith(
+      props.bookingState.checkIn,
+      null,
+    );
+    expect(
+      screen.getByRole("button", { name: "체크아웃 2026. 07. 12." }),
+    ).toHaveFocus();
+    expect(
+      props.bookingActions.onDatePickerOpenChange,
+    ).not.toHaveBeenCalledWith(false);
+  });
+
+  it("clears the stay when check-in is removed and keeps date selection open", () => {
+    const props = setupBookingCard({
+      bookingState: { isDatePickerOpen: true },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "체크인 날짜 지우기" }));
+    expect(props.bookingActions.handleDateSelect).toHaveBeenCalledWith(
+      null,
+      null,
+    );
+    expect(
+      screen.getByRole("button", { name: "체크인 2026. 07. 10." }),
+    ).toHaveFocus();
+    expect(
+      props.bookingActions.onDatePickerOpenChange,
+    ).not.toHaveBeenCalledWith(false);
+  });
+
   it("uses the same price and reservation command in the scrolled desktop summary", () => {
     const props = createBookingCardProps();
     const onRevealBooking = vi.fn();
@@ -328,7 +364,9 @@ describe("AccommodationBookingCard", () => {
       },
     });
 
-    expect(screen.getByRole("button", { name: /체크인/ })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /^체크인 (?:\d|날짜 추가)/ }),
+    ).toBeDisabled();
     expect(screen.getByRole("alert")).toHaveTextContent(
       "예약 가능한 날짜를 불러오지 못했습니다.",
     );
@@ -469,10 +507,9 @@ describe("AccommodationBookingCard", () => {
       );
 
       expect(screen.queryByTestId("date-picker")).not.toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /체크인/ })).toHaveAttribute(
-        "aria-expanded",
-        "false",
-      );
+      expect(
+        screen.getByRole("button", { name: /^체크인 (?:\d|날짜 추가)/ }),
+      ).toHaveAttribute("aria-expanded", "false");
       expect(
         screen.getByRole(statusRole, { name: "예약 가능 여부" }),
       ).toHaveFocus();
@@ -511,7 +548,9 @@ describe("AccommodationBookingCard", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: /체크인/ })).toHaveFocus();
+    expect(
+      screen.getByRole("button", { name: /^체크인 (?:\d|날짜 추가)/ }),
+    ).toHaveFocus();
   });
 
   it.each(["ready", "error"] as const)(
@@ -615,7 +654,9 @@ describe("AccommodationBookingCard", () => {
     );
 
     expect(guestTrigger).toHaveFocus();
-    expect(screen.getByRole("button", { name: /체크인/ })).not.toHaveFocus();
+    expect(
+      screen.getByRole("button", { name: /^체크인 (?:\d|날짜 추가)/ }),
+    ).not.toHaveFocus();
   });
 
   it("does not reclaim retry focus after the user moves to another control", () => {
@@ -665,7 +706,9 @@ describe("AccommodationBookingCard", () => {
           bookingState={{ ...props.bookingState, isDatePickerOpen: true }}
         />,
       );
-      fireEvent.click(screen.getByRole("button", { name: /체크아웃/ }));
+      fireEvent.click(
+        screen.getByRole("button", { name: /^체크아웃 (?:\d|날짜 추가)/ }),
+      );
       screen.getByRole("button", { name: "date picker focus target" }).focus();
 
       view.rerender(
@@ -692,8 +735,12 @@ describe("AccommodationBookingCard", () => {
         />,
       );
 
-      expect(screen.getByRole("button", { name: /체크아웃/ })).toHaveFocus();
-      expect(screen.getByRole("button", { name: /체크인/ })).not.toHaveFocus();
+      expect(
+        screen.getByRole("button", { name: /^체크아웃 (?:\d|날짜 추가)/ }),
+      ).toHaveFocus();
+      expect(
+        screen.getByRole("button", { name: /^체크인 (?:\d|날짜 추가)/ }),
+      ).not.toHaveFocus();
     },
   );
 
@@ -705,8 +752,12 @@ describe("AccommodationBookingCard", () => {
       },
     });
 
-    const checkInButton = screen.getByRole("button", { name: /체크인/ });
-    const checkOutButton = screen.getByRole("button", { name: /체크아웃/ });
+    const checkInButton = screen.getByRole("button", {
+      name: /^체크인 (?:\d|날짜 추가)/,
+    });
+    const checkOutButton = screen.getByRole("button", {
+      name: /^체크아웃 (?:\d|날짜 추가)/,
+    });
     const guestButton = screen.getByRole("button", { name: /인원/ });
 
     for (const dateButton of [checkInButton, checkOutButton]) {
@@ -747,7 +798,9 @@ describe("AccommodationBookingCard", () => {
       bookingActions: { onDatePickerOpenChange },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: /체크아웃/ }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /^체크아웃 (?:\d|날짜 추가)/ }),
+    );
 
     expect(onDatePickerOpenChange).toHaveBeenCalledWith(true);
   });
@@ -812,7 +865,9 @@ describe("AccommodationBookingCard", () => {
       },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: /체크인/ }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /^체크인 (?:\d|날짜 추가)/ }),
+    );
 
     expect(onGuestPickerOpenChange).toHaveBeenCalledWith(false);
     expect(onDatePickerOpenChange).toHaveBeenCalledWith(true);
@@ -824,7 +879,9 @@ describe("AccommodationBookingCard", () => {
       bookingState: { isDatePickerOpen: true },
       bookingActions: { onDatePickerOpenChange },
     });
-    const dateTrigger = screen.getByRole("button", { name: /체크인/ });
+    const dateTrigger = screen.getByRole("button", {
+      name: /^체크인 (?:\d|날짜 추가)/,
+    });
     const datePickerTarget = screen.getByRole("button", {
       name: "date picker focus target",
     });
@@ -964,7 +1021,9 @@ describe("AccommodationBookingCard", () => {
     );
     expect(quoteSummary).toHaveAccessibleDescription(/견적 유효 시각.*까지/);
     expect(within(quoteSummary).getByText("₩175,000")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /체크인/ })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /^체크인 (?:\d|날짜 추가)/ }),
+    ).toBeDisabled();
     expect(screen.getByRole("button", { name: /인원/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: "해제" })).toBeDisabled();
 
