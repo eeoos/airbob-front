@@ -265,12 +265,15 @@ export const useSearchBottomSheet = () => {
       setIsDragging(false);
 
       if (shouldSnap) {
-        setBottomSheetState(
-          getNextSearchBottomSheetState(
-            dragStartStateRef.current,
-            isDraggingUp ? "up" : "down",
-          ),
+        const nextState = getNextSearchBottomSheetState(
+          dragStartStateRef.current,
+          isDraggingUp ? "up" : "down",
         );
+        if (nextState === dragStartStateRef.current) {
+          animateToPosition(snapPositions[nextState]);
+        } else {
+          setBottomSheetState(nextState);
+        }
       } else {
         animateToPosition(snapPositions[dragStartStateRef.current]);
       }
@@ -313,10 +316,11 @@ export const useSearchBottomSheet = () => {
       }
 
       let nextY = dragStartYRef.current + info.offset.y;
-      nextY = Math.max(
-        snapPositions.expanded,
-        Math.min(snapPositions.collapsed, nextY),
-      );
+      const lowestPosition =
+        dragStartStateRef.current === "collapsed"
+          ? snapPositions.collapsed
+          : Math.max(snapPositions.half, dragStartYRef.current);
+      nextY = Math.max(snapPositions.expanded, Math.min(lowestPosition, nextY));
       setYPosition(nextY);
     },
     [isMobileOrTablet, setYPosition, snapPositions],

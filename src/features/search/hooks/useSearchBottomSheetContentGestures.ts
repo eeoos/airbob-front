@@ -87,7 +87,11 @@ export function useSearchBottomSheetContentGestures({
       event.preventDefault();
       drag.offset = dy;
       const nextY = drag.sheetY + dy;
-      y.set(Math.max(positions.expanded, Math.min(positions.collapsed, nextY)));
+      const lowestPosition =
+        state === "collapsed"
+          ? positions.collapsed
+          : Math.max(positions.half, drag.sheetY);
+      y.set(Math.max(positions.expanded, Math.min(lowestPosition, nextY)));
       // Once the sheet reaches the header, spend the rest of this same swipe
       // scrolling its contents, including the handle and result count.
       content.scrollTop = Math.max(0, positions.expanded - nextY);

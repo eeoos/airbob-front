@@ -149,7 +149,7 @@ export const getNextSearchBottomSheetState = (
   }
 
   if (currentState === "expanded") return "half";
-  if (currentState === "half") return "collapsed";
+  // Opening the full map is an explicit map action, not a list gesture.
   return currentState;
 };
 

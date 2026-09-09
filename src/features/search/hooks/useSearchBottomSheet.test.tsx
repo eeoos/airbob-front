@@ -280,7 +280,43 @@ describe("useSearchBottomSheet", () => {
       result.current.handleDragEnd({} as PointerEvent, panInfo(0, 700));
     });
 
+    expect(result.current.bottomSheetState).toBe("half");
+    expect(mockAnimate).toHaveBeenLastCalledWith(
+      expect.anything(),
+      result.current.snapPositions.half,
+      expect.anything(),
+    );
+  });
+
+  it("stops repeated downward handle drags at the partial list, but still opens the map explicitly", () => {
+    prefersReducedMotion = true;
+    const { result } = renderHook(() => useSearchBottomSheet());
+    act(() => result.current.setBottomSheetState("expanded"));
+
+    for (let gesture = 0; gesture < 2; gesture++) {
+      act(() => {
+        result.current.handleDragStart();
+        result.current.handleDrag({} as PointerEvent, panInfo(10_000));
+      });
+      expect(result.current.translateY.get()).toBe(
+        result.current.snapPositions.half,
+      );
+      act(() =>
+        result.current.handleDragEnd({} as PointerEvent, panInfo(10_000)),
+      );
+      expect(result.current.bottomSheetState).toBe("half");
+      expect(result.current.translateY.get()).toBe(
+        result.current.snapPositions.half,
+      );
+    }
+
+    act(() => result.current.handleMapReturn());
     expect(result.current.bottomSheetState).toBe("collapsed");
+    act(() => {
+      result.current.handleDragStart();
+      result.current.handleDragEnd({} as PointerEvent, panInfo(-80));
+    });
+    expect(result.current.bottomSheetState).toBe("half");
   });
 
   it("moves with the pointer while clamping drag translation to the snap range", () => {
