@@ -2,7 +2,6 @@ import { useCallback, useMemo, useReducer } from "react";
 import { usePlacesAutocomplete } from "./usePlacesAutocomplete";
 import type { SearchParams } from "../lib/searchBarContracts";
 import { parseSearchBarUrlState } from "../lib/searchBarUrlState";
-import { removeViewportParams } from "../lib/searchParams";
 import type {
   SearchPlacePrediction,
   SearchSelectedPlace,
@@ -18,21 +17,17 @@ import { useSearchBarUrlSync } from "./useSearchBarUrlSync";
 
 export interface SearchBarRoutePort {
   readonly currentSearchParams: URLSearchParams;
-  readonly isSearchRoute: boolean;
   pushSearch(searchParams: URLSearchParams): void;
-  replaceSearch(searchParams: URLSearchParams): void;
 }
 
 interface UseSearchBarStateOptions {
   routePort: SearchBarRoutePort;
   onSearch?: (searchParams: SearchParams) => void;
-  isMapDragMode?: boolean;
 }
 
 export const useSearchBarState = ({
   routePort,
   onSearch,
-  isMapDragMode = false,
 }: UseSearchBarStateOptions) => {
   const { currentSearchParams } = routePort;
   const [interaction, dispatch] = useReducer(
@@ -195,12 +190,6 @@ export const useSearchBarState = ({
     ...(onSearch === undefined ? {} : { onSearch }),
   });
 
-  const exitMapDragMode = useCallback(() => {
-    if (isMapDragMode && routePort.isSearchRoute) {
-      routePort.replaceSearch(removeViewportParams(currentSearchParams));
-    }
-  }, [currentSearchParams, isMapDragMode, routePort]);
-
   const destination = useMemo(
     () => ({
       inputText: interaction.draft.destinationText,
@@ -271,7 +260,6 @@ export const useSearchBarState = ({
       resetSearchCriteria,
       startDestinationSession,
       handleSearch,
-      exitMapDragMode,
       completeCheckoutIfNeeded,
       closeTransientPanels,
       handleDateSelect,
@@ -288,7 +276,6 @@ export const useSearchBarState = ({
       collapseShell,
       completeCheckoutIfNeeded,
       endComposition,
-      exitMapDragMode,
       expandShell,
       handleDateSelect,
       handleSearch,

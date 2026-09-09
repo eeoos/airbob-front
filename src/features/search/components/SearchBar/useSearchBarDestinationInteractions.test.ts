@@ -11,9 +11,7 @@ const createOptions = () => ({
   guestPickerRef: createRef<HTMLElement>(null),
   datePickerElementRef: createRef<HTMLElement>(null),
   isExpanded: false,
-  isMapDragMode: true,
   activePopover: "none" as const,
-  exitMapDragMode: vi.fn(),
   changeDestination: vi.fn(),
   openDestination: vi.fn(),
   openDatePicker: vi.fn(),
@@ -55,6 +53,7 @@ describe("useSearchBarDestinationInteractions", () => {
 
     expect(options.openDestination).toHaveBeenCalledTimes(1);
     expect(input).toHaveFocus();
+    expect(options.changeDestination).not.toHaveBeenCalled();
 
     input.remove();
   });
@@ -73,7 +72,7 @@ describe("useSearchBarDestinationInteractions", () => {
     expect(options.openDestination).toHaveBeenCalledTimes(1);
   });
 
-  it("exits map mode for typing and clears the old map destination on focus", () => {
+  it("keeps the destination draft when refocusing the input", () => {
     const options = createOptions();
     const { result } = renderHook(() =>
       useSearchBarDestinationInteractions(options),
@@ -84,9 +83,8 @@ describe("useSearchBarDestinationInteractions", () => {
       result.current.handleDestinationFocus();
     });
 
-    expect(options.exitMapDragMode).toHaveBeenCalledTimes(2);
     expect(options.changeDestination).toHaveBeenNthCalledWith(1, "Busan");
-    expect(options.changeDestination).toHaveBeenNthCalledWith(2, "");
+    expect(options.changeDestination).toHaveBeenCalledOnce();
     expect(options.openDestination).toHaveBeenCalledTimes(1);
   });
 

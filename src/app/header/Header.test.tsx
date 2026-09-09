@@ -10,7 +10,6 @@ let mockSearchParams = new URLSearchParams();
 const mockSearchBar = vi.fn();
 const mockUserMenu = vi.fn();
 const mockNavigate = vi.fn();
-const mockSetSearchParams = vi.fn();
 let mockIsAuthenticated = false;
 
 vi.mock("react-router-dom", () => ({
@@ -31,7 +30,7 @@ vi.mock("react-router-dom", () => ({
     pathname: mockPathname,
   }),
   useNavigate: () => mockNavigate,
-  useSearchParams: () => [mockSearchParams, mockSetSearchParams],
+  useSearchParams: () => [mockSearchParams],
 }));
 
 vi.mock("../../features/search/ui/HeaderSearchBar", async () => ({
@@ -78,7 +77,6 @@ describe("Header", () => {
     mockSearchBar.mockClear();
     mockUserMenu.mockClear();
     mockNavigate.mockReset();
-    mockSetSearchParams.mockReset();
   });
 
   it("renders the logo as an accessible home link", () => {
@@ -196,7 +194,7 @@ describe("Header", () => {
     );
   });
 
-  it("owns push and replace commands behind the search route port", () => {
+  it("owns the search submission command behind the route port", () => {
     mockPathname = "/search";
     mockSearchParams = new URLSearchParams("destination=Seoul&page=2");
 
@@ -207,7 +205,6 @@ describe("Header", () => {
     if (!props)
       throw new Error("Expected HeaderSearchBar props to be captured");
     expect(props.routePort.currentSearchParams).toBe(mockSearchParams);
-    expect(props.routePort.isSearchRoute).toBe(true);
 
     props.routePort.pushSearch(
       new URLSearchParams("destination=Busan&adultOccupancy=2"),
@@ -215,12 +212,6 @@ describe("Header", () => {
     expect(mockNavigate).toHaveBeenCalledWith(
       "/search?destination=Busan&adultOccupancy=2",
     );
-
-    const replacement = new URLSearchParams("destination=Seoul");
-    props.routePort.replaceSearch(replacement);
-    expect(mockSetSearchParams).toHaveBeenCalledWith(replacement, {
-      replace: true,
-    });
   });
 
   it("passes authentication state to the user menu", () => {

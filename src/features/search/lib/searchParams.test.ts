@@ -1,7 +1,6 @@
 import {
   buildSearchNavigationParams,
   getViewportFromSearchParams,
-  removeViewportParams,
 } from "./searchParams";
 
 const date = (isoDate: string) => new Date(`${isoDate}T00:00:00.000Z`);
@@ -144,7 +143,7 @@ describe("search params helpers", () => {
     expect(params.get("checkOut")).toBe("2026-07-12");
   });
 
-  it("reads and removes viewport params consistently", () => {
+  it("reads viewport params consistently", () => {
     const params = new URLSearchParams(
       "topLeftLat=38&topLeftLng=126&bottomRightLat=37&bottomRightLng=128&lat=37&lng=127",
     );
@@ -155,14 +154,5 @@ describe("search params helpers", () => {
       south: 37,
       east: 128,
     });
-
-    const withoutViewport = removeViewportParams(params);
-
-    expect(withoutViewport.has("topLeftLat")).toBe(false);
-    expect(withoutViewport.has("topLeftLng")).toBe(false);
-    expect(withoutViewport.has("bottomRightLat")).toBe(false);
-    expect(withoutViewport.has("bottomRightLng")).toBe(false);
-    expect(withoutViewport.get("lat")).toBe("37");
-    expect(withoutViewport.get("lng")).toBe("127");
   });
 });

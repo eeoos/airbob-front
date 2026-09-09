@@ -95,7 +95,6 @@ const DesktopSearchBar: React.FC<SearchBarBaseProps> = ({
   const { destination, dates, guests, popover, actions, status } =
     useSearchBarState({
       routePort,
-      isMapDragMode,
       ...(onSearch === undefined ? {} : { onSearch }),
     });
 
@@ -134,7 +133,6 @@ const DesktopSearchBar: React.FC<SearchBarBaseProps> = ({
     clearDestinationSelection,
     startDestinationSession,
     handleSearch,
-    exitMapDragMode,
     completeCheckoutIfNeeded,
     closeTransientPanels,
     handleDateSelect,
@@ -154,9 +152,7 @@ const DesktopSearchBar: React.FC<SearchBarBaseProps> = ({
     guestPickerRef,
     datePickerElementRef,
     isExpanded,
-    isMapDragMode,
     activePopover,
-    exitMapDragMode,
     changeDestination,
     openDestination,
     openDatePicker,
@@ -282,9 +278,8 @@ const DesktopSearchBar: React.FC<SearchBarBaseProps> = ({
           type="button"
         >
           <div className={styles.compactValue}>
-            {isMapDragMode
-              ? "지도에 표시된 지역의 숙소"
-              : inputText || "어디든지"}
+            {inputText ||
+              (isMapDragMode ? "지도에 표시된 지역의 숙소" : "어디든지")}
           </div>
         </button>
       )}

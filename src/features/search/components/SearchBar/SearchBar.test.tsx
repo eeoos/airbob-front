@@ -44,9 +44,7 @@ const mockUseSearchBarState = useSearchBarState as MockedFunction<
 
 const routePort: SearchBarRoutePort = {
   currentSearchParams: new URLSearchParams(),
-  isSearchRoute: false,
   pushSearch: vi.fn(),
-  replaceSearch: vi.fn(),
 };
 
 const readProjectFile = (relativePath: string) =>
@@ -120,7 +118,6 @@ const createSearchBarState = (
       resetSearchCriteria: vi.fn(),
       startDestinationSession: vi.fn(),
       handleSearch: vi.fn(),
-      exitMapDragMode: vi.fn(),
       completeCheckoutIfNeeded: vi.fn(),
       closeTransientPanels: vi.fn(),
       handleDateSelect: vi.fn(),
@@ -346,7 +343,6 @@ describe("SearchBar", () => {
     );
     expect(state.actions.startDestinationSession).toHaveBeenCalledTimes(1);
     expect(state.actions.openDestination).toHaveBeenCalledTimes(1);
-    expect(state.actions.exitMapDragMode).not.toHaveBeenCalled();
 
     await userEvent.click(
       screen.getByRole("button", { name: "이전 화면으로" }),
