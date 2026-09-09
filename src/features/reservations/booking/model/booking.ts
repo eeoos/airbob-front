@@ -34,7 +34,6 @@ export interface ReservationQuote {
   readonly currency: string;
   readonly paymentRequired: boolean;
   readonly inventoryHeld: false;
-  readonly quoteExpiresAt: string;
   readonly serverTime: string;
 }
 

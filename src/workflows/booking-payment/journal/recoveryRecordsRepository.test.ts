@@ -58,7 +58,6 @@ const quote: BookingPaymentQuote = {
   currency: "KRW",
   paymentRequired: true,
   inventoryHeld: false,
-  quoteExpiresAt: "2026-09-01T10:05:00Z",
   serverTime: "2026-09-01T10:00:00Z",
 };
 
@@ -583,6 +582,45 @@ describe("booking payment recovery command repository", () => {
         );
       },
     );
+
+    it("normalizes a legacy journal even when resuming with the same lease", () => {
+      const harness = createClaimedHarness("confirm-submitting");
+      const original = JSON.parse(
+        harness.values.get(BOOKING_PAYMENT_V2_JOURNAL_KEY) ?? "null",
+      ) as BookingPaymentJournalEnvelope;
+      harness.values.set(
+        BOOKING_PAYMENT_V2_JOURNAL_KEY,
+        JSON.stringify({
+          ...original,
+          data: {
+            ...original.data,
+            quote: {
+              ...original.data.quote,
+              quoteExpiresAt: "2026-09-01T10:05:00Z",
+            },
+          },
+        }),
+      );
+      const credentialBefore = harness.values.get(
+        BOOKING_PAYMENT_V2_CALLBACK_CREDENTIAL_KEY,
+      );
+      expect(
+        harness.repository.claimStoredCallbackCredentialByReservation(
+          storedCallbackClaimInput({ lease }),
+        ),
+      ).toMatchObject({
+        status: "unchanged",
+        authority: { flowId, reservationUid, paymentAttemptId, lease },
+      });
+      expect(
+        JSON.parse(
+          harness.values.get(BOOKING_PAYMENT_V2_JOURNAL_KEY) ?? "null",
+        ),
+      ).toEqual(original);
+      expect(
+        harness.values.get(BOOKING_PAYMENT_V2_CALLBACK_CREDENTIAL_KEY),
+      ).toBe(credentialBefore);
+    });
 
     it("does not discover a stored callback for another reservation", () => {
       const harness = createClaimedHarness("attempt-ready");

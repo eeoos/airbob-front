@@ -26,7 +26,6 @@ const createProps = (): Props => ({
     currency: "KRW",
     couponId: null,
     couponDisplayName: null,
-    quoteExpiresAt: "2026-09-01T10:05:00Z",
     serverTime: "2026-09-01T10:00:00Z",
     paymentRequired: true,
     reservationStatus: null,

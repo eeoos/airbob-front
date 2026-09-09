@@ -34,7 +34,6 @@ const quoteWire = (): ReservationQuoteWire => ({
   currency: "KRW",
   payment_required: true,
   inventory_held: false,
-  quote_expires_at: "2026-09-01T03:05:00.000000001Z",
   server_time: "2026-09-01T03:00:00Z",
 });
 
@@ -99,7 +98,7 @@ describe("reservation booking mappers", () => {
     );
   });
 
-  it("maps a validated quote with exact date, night, money, and expiry identities", () => {
+  it("maps a validated quote with exact date, night, money, and server-time fields", () => {
     expect(quote()).toEqual({
       quoteUid: QUOTE_UID,
       accommodationId: 7,
@@ -115,9 +114,15 @@ describe("reservation booking mappers", () => {
       currency: "KRW",
       paymentRequired: true,
       inventoryHeld: false,
-      quoteExpiresAt: "2026-09-01T03:05:00.000000001Z",
       serverTime: "2026-09-01T03:00:00Z",
     });
+  });
+
+  it("accepts quotes without an expiry and ignores the retired field from older servers", () => {
+    const current = toReservationQuote(quoteWire(), quoteInput());
+    expect(current).not.toHaveProperty("quoteExpiresAt");
+    const legacy = { ...quoteWire(), quote_expires_at: "2026-09-01T03:05:00Z" };
+    expect(toReservationQuote(legacy, quoteInput())).toEqual(current);
   });
 
   it("preserves a backend-valid padded quote order name byte-for-byte", () => {
@@ -144,7 +149,6 @@ describe("reservation booking mappers", () => {
     ["currency shape", { currency: "krw" }],
     ["payment flag", { payment_required: false }],
     ["inventory authority", { inventory_held: true }],
-    ["expiry instant", { quote_expires_at: "2026-09-01T03:00:00Z" }],
     ["server instant", { server_time: "2026-09-01T03:00:00+09:00" }],
   ])("rejects an invalid quote %s", (_name, patch) => {
     expect(() =>

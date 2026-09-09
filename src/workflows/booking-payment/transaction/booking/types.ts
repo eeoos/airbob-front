@@ -93,7 +93,6 @@ export interface BookingTransactionSnapshot {
   readonly currency: string;
   readonly couponDisplayName: string | null;
   readonly couponId: number | null;
-  readonly quoteExpiresAt: string;
   readonly serverTime: string;
   readonly paymentRequired: boolean;
   readonly reservationStatus: ReservationBookingStatus | null;

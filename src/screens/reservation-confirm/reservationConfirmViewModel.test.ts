@@ -21,7 +21,6 @@ const snapshot = (): BookingTransactionSnapshot => ({
   currency: "KRW",
   couponId: null,
   couponDisplayName: "적용된 쿠폰",
-  quoteExpiresAt: "2026-09-01T10:10:00Z",
   serverTime: "2026-09-01T10:00:00Z",
   paymentRequired: true,
   reservationStatus: "PAYMENT_PENDING",

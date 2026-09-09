@@ -172,7 +172,6 @@ const seedOwnedSessionStorage = async (page: Page, tabId: string) => {
               currency: "KRW",
               paymentRequired: true,
               inventoryHeld: false,
-              quoteExpiresAt: new Date(recoveryExpiresAt).toISOString(),
               serverTime: new Date(now).toISOString(),
             },
           },

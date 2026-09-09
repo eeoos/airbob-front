@@ -363,7 +363,6 @@ test("opens editable review from the mobile booking bar and returns to the inlin
         currency: "KRW",
         payment_required: true,
         inventory_held: false,
-        quote_expires_at: "2026-07-01T03:10:00Z",
         server_time: "2026-07-01T03:00:00Z",
       },
       201,

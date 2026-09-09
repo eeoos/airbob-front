@@ -56,7 +56,6 @@ const quote = (
   currency: "KRW",
   paymentRequired: true,
   inventoryHeld: false,
-  quoteExpiresAt: "2026-09-01T10:05:00Z",
   serverTime: "2026-09-01T10:00:00Z",
   ...overrides,
 });
@@ -236,7 +235,7 @@ const requireWritten = (
 };
 
 describe("booking-payment journal repository", () => {
-  it("creates the exact envelope with server-relative quote TTL and raw read-back", () => {
+  it("creates the exact envelope with browser retention only and raw read-back", () => {
     const harness = createStorageHarness();
     const repository = createBookingPaymentJournalRepository({
       driver: harness.driver,
@@ -258,13 +257,77 @@ describe("booking-payment journal repository", () => {
         flowId,
         serverIntent: createQuotedInput().serverIntent,
         presentationIntent: createQuotedInput().presentationIntent,
-        recoveryExpiresAt: initialNow + 5 * 60 * 1000,
+        recoveryExpiresAt: initialNow + BOOKING_PAYMENT_JOURNAL_HARD_TTL_MS,
         quote: quote(),
       },
     });
     expect(
       JSON.parse(harness.values.get(BOOKING_PAYMENT_V2_JOURNAL_KEY) ?? "null"),
     ).toEqual(record);
+  });
+
+  it("keeps an unsubmitted quote usable after five minutes without extending browser retention", () => {
+    const harness = createStorageHarness();
+    let currentTime = initialNow;
+    const repository = createBookingPaymentJournalRepository({
+      driver: harness.driver,
+      now: () => currentTime,
+    });
+    const created = requireWritten(
+      repository.createQuoted(createQuotedInput()),
+    );
+    currentTime += 6 * 60_000;
+    expect(repository.read(authority())).toMatchObject({
+      status: "found",
+      record: created,
+    });
+    const revised = requireWritten(
+      repository.reviseQuoted({
+        ...authority(),
+        expectedQuoteUid: quoteUid,
+        serverIntent: createQuotedInput().serverIntent,
+        presentationIntent: createQuotedInput().presentationIntent,
+        quote: quote({ quoteUid: nextQuoteUid }),
+      }),
+    );
+    expect(revised.hardExpiresAt).toBe(created.hardExpiresAt);
+    expect(revised.data.recoveryExpiresAt).toBe(created.hardExpiresAt);
+    currentTime = created.hardExpiresAt;
+    expect(repository.read(authority())).toEqual({
+      status: "rejected",
+      reason: "expired",
+    });
+  });
+
+  it("reads a legacy in-flight journal without changing its payment identities or hold deadline", () => {
+    const data = {
+      ...reservationReadyData(),
+      phase: "attempt-ready" as const,
+      attempt: attempt(),
+    };
+    const original = journalEnvelope(data);
+    const legacy = {
+      ...original,
+      data: {
+        ...data,
+        quote: { ...data.quote, quoteExpiresAt: "2026-09-01T10:05:00Z" },
+      },
+    };
+    const harness = createStorageHarness({
+      [BOOKING_PAYMENT_V2_JOURNAL_KEY]: JSON.stringify(legacy),
+    });
+    let currentTime = initialNow + 6 * 60_000;
+    const repository = createBookingPaymentJournalRepository({
+      driver: harness.driver,
+      now: () => currentTime,
+    });
+    expect(
+      repository.read(authority(() => true, { locator: reservationLocator })),
+    ).toEqual({ status: "found", record: original });
+    currentTime = original.data.recoveryExpiresAt;
+    expect(
+      repository.read(authority(() => true, { locator: reservationLocator })),
+    ).toEqual({ status: "rejected", reason: "expired" });
   });
 
   it("does not trust success-returning writes without exact raw equality", () => {
@@ -353,7 +416,7 @@ describe("booking-payment journal repository", () => {
       now: () => currentTime,
     });
     requireWritten(repository.createQuoted(createQuotedInput()));
-    currentTime += 5 * 60_000;
+    currentTime += BOOKING_PAYMENT_JOURNAL_HARD_TTL_MS;
 
     expect(repository.createQuoted(createNextQuotedInput())).toMatchObject({
       status: "written",
@@ -429,7 +492,7 @@ describe("booking-payment journal repository", () => {
       now: () => currentTime,
     });
     requireWritten(removalRepository.createQuoted(createQuotedInput()));
-    currentTime += 5 * 60_000;
+    currentTime += BOOKING_PAYMENT_JOURNAL_HARD_TTL_MS;
     vi.spyOn(removalHarness.storage, "removeItem").mockImplementation(
       () => undefined,
     );
@@ -450,7 +513,7 @@ describe("booking-payment journal repository", () => {
       now: () => currentTime,
     });
     requireWritten(repository.createQuoted(createQuotedInput()));
-    currentTime += 5 * 60_000;
+    currentTime += BOOKING_PAYMENT_JOURNAL_HARD_TTL_MS;
 
     const originalKeys = harness.driver.keys.bind(harness.driver);
     vi.spyOn(harness.driver, "keys")
@@ -478,7 +541,7 @@ describe("booking-payment journal repository", () => {
       now: () => currentTime,
     });
     requireWritten(beforeRemovalRepository.createQuoted(createQuotedInput()));
-    currentTime += 5 * 60_000;
+    currentTime += BOOKING_PAYMENT_JOURNAL_HARD_TTL_MS;
     const beforeRemoval = vi
       .fn()
       .mockReturnValueOnce(true)
@@ -499,7 +562,7 @@ describe("booking-payment journal repository", () => {
       now: () => currentTime,
     });
     requireWritten(afterRemovalRepository.createQuoted(createQuotedInput()));
-    currentTime += 5 * 60_000;
+    currentTime += BOOKING_PAYMENT_JOURNAL_HARD_TTL_MS;
     const afterRemoval = vi
       .fn()
       .mockReturnValueOnce(true)
@@ -524,7 +587,7 @@ describe("booking-payment journal repository", () => {
       now: () => currentTime,
     });
     requireWritten(repository.createQuoted(createQuotedInput()));
-    currentTime += 5 * 60_000;
+    currentTime += BOOKING_PAYMENT_JOURNAL_HARD_TTL_MS;
 
     const originalSet = harness.storage.setItem.bind(harness.storage);
     vi.spyOn(harness.storage, "setItem")
@@ -1111,7 +1174,11 @@ describe("booking-payment journal repository", () => {
     });
     expect(prepared).toMatchObject({
       status: "written",
-      record: { data: { recoveryExpiresAt: initialNow + 300_000 } },
+      record: {
+        data: {
+          recoveryExpiresAt: initialNow + BOOKING_PAYMENT_JOURNAL_HARD_TTL_MS,
+        },
+      },
     });
     const submitting = repository.replaceExpectedPhase({
       ...authority(),
@@ -1282,7 +1349,7 @@ describe("booking-payment journal repository", () => {
     });
     requireWritten(repository.createQuoted(createQuotedInput()));
 
-    currentNow = initialNow + 5 * 60_000;
+    currentNow = initialNow + BOOKING_PAYMENT_JOURNAL_HARD_TTL_MS;
 
     expect(repository.reconcileCandidateOwner(owner)).toEqual({
       status: "ready",
@@ -1334,7 +1401,7 @@ describe("booking-payment journal repository", () => {
       now: () => currentNow,
     });
     requireWritten(repository.createQuoted(createQuotedInput()));
-    currentNow = initialNow + 5 * 60_000;
+    currentNow = initialNow + BOOKING_PAYMENT_JOURNAL_HARD_TTL_MS;
     vi.spyOn(harness.driver, "keys").mockImplementation(() =>
       harness.values.has(BOOKING_PAYMENT_V2_JOURNAL_KEY)
         ? {

@@ -146,7 +146,6 @@ const seedQuotedV2Journal = (owner: string): string => {
       currency: "KRW",
       paymentRequired: true,
       inventoryHeld: false,
-      quoteExpiresAt: new Date(now + 5 * 60_000).toISOString(),
       serverTime: new Date(now).toISOString(),
     },
     isCurrent: () => true,
