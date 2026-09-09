@@ -61,6 +61,7 @@ interface SearchScreenBottomSheetProps {
 }
 
 interface SearchScreenMapProps {
+  readonly autoFitAccommodations?: boolean;
   readonly boundsRequestKey: string;
   readonly handleAccommodationSelect: (
     accommodation: SearchAccommodationMapViewModel | null,
@@ -190,6 +191,7 @@ export function SearchScreen({
     onMapInteraction?: () => void,
   ) => (
     <Map
+      autoFitAccommodations={map.autoFitAccommodations}
       accommodations={results.accommodationMapItems}
       boundsRequestKey={map.boundsRequestKey}
       selectedAccommodationId={map.selectedAccommodationId}
@@ -246,7 +248,7 @@ export function SearchScreen({
       <div className={styles.container}>
         {bottomSheet.isMobileOrTablet ? (
           <>
-            <div
+            <motion.div
               aria-hidden={
                 bottomSheet.bottomSheetState === "expanded" || undefined
               }
@@ -254,9 +256,14 @@ export function SearchScreen({
               data-search-mobile-map=""
               data-testid="search-mobile-map-layer"
               inert={bottomSheet.bottomSheetState === "expanded"}
+              style={{
+                height: bottomSheet.translateY,
+                // Keep a usable canvas under the expanded list for camera updates.
+                minHeight: bottomSheet.snapPositions.half,
+              }}
             >
               {renderMap(false, undefined, bottomSheet.handleMapInteraction)}
-            </div>
+            </motion.div>
 
             <motion.section
               ref={bottomSheet.bottomSheetRef}

@@ -61,7 +61,7 @@ describe("useGoogleMapInstance", () => {
     const unbindAll = vi.fn();
     let nextListenerIndex = 0;
     const addListener = vi.fn(() => listenerHandles[nextListenerIndex++]);
-    const map = { addListener, unbindAll };
+    const map = { addListener, unbindAll, fitBounds: vi.fn() };
     const mapElement = document.createElement("div");
     const removeEventListener = vi.spyOn(mapElement, "removeEventListener");
     const mapInstanceRef = ref<google.maps.Map | null>(null);
@@ -72,6 +72,7 @@ describe("useGoogleMapInstance", () => {
         Map: function Map() {
           return map;
         },
+        LatLngBounds: class {},
         event: {},
       },
     };

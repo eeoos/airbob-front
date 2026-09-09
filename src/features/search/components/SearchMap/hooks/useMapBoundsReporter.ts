@@ -6,6 +6,7 @@ import {
   type MutableRefObject,
 } from "react";
 import { hasBoundsChanged } from "../lib/mapBounds";
+import { SEARCH_MAP_CAMERA } from "../../../lib/searchMapConfig";
 import type { SearchMapBounds } from "../types";
 
 interface UseMapBoundsReporterOptions {
@@ -48,7 +49,7 @@ const isCameraAtLocation = (
     currentCenter !== undefined &&
     Math.abs(currentCenter.lat() - center.lat) < 1e-9 &&
     Math.min(longitudeDistance, 360 - longitudeDistance) < 1e-9 &&
-    map.getZoom() === 13
+    map.getZoom() === SEARCH_MAP_CAMERA.nearbyZoom
   );
 };
 
@@ -115,7 +116,7 @@ export const useMapBoundsReporter = ({
       onUserDragStartRef.current?.();
       setIsLoadingBounds(true);
       const isAlreadyCentered = isCameraAtLocation(map, center);
-      map.moveCamera({ center, zoom: 13 });
+      map.moveCamera({ center, zoom: SEARCH_MAP_CAMERA.nearbyZoom });
       // An unchanged camera does not emit another idle event.
       if (isAlreadyCentered) reportIdleRef.current();
     },
@@ -154,7 +155,10 @@ export const useMapBoundsReporter = ({
         userDragRequestKeyRef.current === requestKeyRef.current &&
         !isCameraAtLocation(mapInstance, locationTarget)
       ) {
-        mapInstance.moveCamera({ center: locationTarget, zoom: 13 });
+        mapInstance.moveCamera({
+          center: locationTarget,
+          zoom: SEARCH_MAP_CAMERA.nearbyZoom,
+        });
         return;
       }
       userDragIntentRef.current = false;

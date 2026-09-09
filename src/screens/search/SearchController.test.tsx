@@ -201,6 +201,33 @@ describe("SearchController", () => {
     expect(commands.replaceMapBounds).toHaveBeenCalledWith(bounds);
   });
 
+  it("waits for the new destination results before fitting the map", () => {
+    const props = baseProps();
+    const emptyRoute = { ...props.routeState };
+    delete emptyRoute.destination;
+    const view = render(
+      <SearchController {...props} routeState={emptyRoute} />,
+    );
+    expect(currentScreenProps().map.autoFitAccommodations).toBe(false);
+
+    mockQueryResult = {
+      ...mockQueryResult,
+      isFetching: true,
+      isPlaceholderData: true,
+    };
+    view.rerender(<SearchController {...props} />);
+    expect(currentScreenProps().map.autoFitAccommodations).toBe(false);
+
+    mockQueryResult = {
+      ...mockQueryResult,
+      dataUpdatedAt: 2,
+      isFetching: false,
+      isPlaceholderData: false,
+    };
+    view.rerender(<SearchController {...props} />);
+    expect(currentScreenProps().map.autoFitAccommodations).toBe(true);
+  });
+
   it("applies deferred pagination effects only after the target request settles", () => {
     const commands = navigation();
     const view = render(

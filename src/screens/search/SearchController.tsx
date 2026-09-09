@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { WishlistMembershipCommandPort } from "../../features/wishlist/ports/wishlistMembershipCommandPort";
 import type { WishlistModalProps } from "../../features/wishlist/components/WishlistModal";
 import type { SearchMapBounds } from "../../features/search/components/SearchMap/types";
+import { DEFAULT_SEARCH_VIEWPORT } from "../../features/search/lib/searchMapConfig";
 import {
   toSearchAccommodationCardViewModel,
   toSearchAccommodationMapViewModel,
@@ -155,9 +156,16 @@ export function SearchController({
   const request = useMemo(() => toSearchRequest(routeState), [routeState]);
   const query = useSearchResultsReadQuery({ request, scope });
   const { refetch: refetchSearchResults } = query;
-  const viewport = useMemo(() => toViewport(routeState), [routeState]);
+  const committedViewport = useMemo(() => toViewport(routeState), [routeState]);
+  const isDefaultViewport =
+    committedViewport === null && !routeState.destination;
+  const viewport = isDefaultViewport
+    ? DEFAULT_SEARCH_VIEWPORT
+    : committedViewport;
   const isRouteMapDragMode =
-    viewport !== null && routeState.destination === undefined;
+    !isDefaultViewport &&
+    viewport !== null &&
+    routeState.destination === undefined;
   const previousRequestIdentityRef = useRef<string | undefined>(undefined);
   const pendingBoundsRequestRef = useRef<string | null>(null);
   const suspendedBoundsRequestRef = useRef<string | null>(null);
@@ -474,6 +482,11 @@ export function SearchController({
       isErrorRetryable={isErrorRetryable}
       getAccommodationHref={navigation.getAccommodationHref}
       map={{
+        autoFitAccommodations:
+          !isDefaultViewport &&
+          !query.isPlaceholderData &&
+          !query.isError &&
+          !isShowingRetainedResult,
         boundsRequestKey: requestIdentity,
         handleAccommodationSelect,
         hoveredAccommodationId,

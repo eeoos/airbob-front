@@ -7,6 +7,7 @@ import type {
   SearchMapViewport,
 } from "../types";
 import { useAccommodationMarkers } from "./useAccommodationMarkers";
+import { DEFAULT_SEARCH_VIEWPORT } from "../../../lib/searchMapConfig";
 
 const ref = <T,>(current: T): MutableRefObject<T> => ({ current });
 
@@ -316,6 +317,76 @@ describe("useAccommodationMarkers", () => {
     });
     expect(setZoom).toHaveBeenCalledWith(12);
   });
+
+  it("keeps the default regional viewport even if results contain a distant accommodation", () => {
+    installMinimalMarkerRuntime();
+    const map = { fitBounds: vi.fn(), setCenter: vi.fn(), setZoom: vi.fn() };
+    renderHook(() =>
+      useAccommodationMarkers({
+        accommodations: [accommodationAt(90, 35.17, 129.07)],
+        autoFitAccommodations: false,
+        isInitialIdleRef: ref(true),
+        isMapDragMode: false,
+        isMapLoaded: true,
+        mapInstanceRef: ref(map as unknown as google.maps.Map),
+        markersRef: ref<SearchMapMarker[]>([]),
+        onAccommodationSelectRef: ref(vi.fn()),
+        prevViewportRef: ref(DEFAULT_SEARCH_VIEWPORT),
+        shouldUpdateMapBounds: true,
+        viewport: DEFAULT_SEARCH_VIEWPORT,
+        viewportJustChangedRef: ref(true),
+      }),
+    );
+    expect(map.fitBounds).not.toHaveBeenCalled();
+    expect(map.setCenter).not.toHaveBeenCalled();
+    expect(map.setZoom).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      viewport: { north: 35.3, south: 35, east: 129.3, west: 128.8 },
+      isMapDragMode: true,
+    },
+    { viewport: null, isMapDragMode: false },
+  ])(
+    "returns from a previous search to the default region even with empty results: $isMapDragMode",
+    (initialProps) => {
+      installMinimalMarkerRuntime();
+      const map = { fitBounds: vi.fn() };
+      const prevViewportRef = ref<SearchMapViewport | null>(
+        DEFAULT_SEARCH_VIEWPORT,
+      );
+      const mapInstanceRef = ref(map as unknown as google.maps.Map);
+      const markersRef = ref<SearchMapMarker[]>([]);
+      const viewportJustChangedRef = ref(false);
+      const isInitialIdleRef = ref(false);
+      const onAccommodationSelectRef = ref(vi.fn());
+      const { rerender } = renderHook(
+        ({ viewport, isMapDragMode }) =>
+          useAccommodationMarkers({
+            accommodations: [],
+            autoFitAccommodations: false,
+            isInitialIdleRef,
+            isMapDragMode,
+            isMapLoaded: true,
+            mapInstanceRef,
+            markersRef,
+            onAccommodationSelectRef,
+            prevViewportRef,
+            shouldUpdateMapBounds: false,
+            viewport,
+            viewportJustChangedRef,
+          }),
+        {
+          initialProps,
+        },
+      );
+      expect(map.fitBounds).not.toHaveBeenCalled();
+      rerender({ viewport: DEFAULT_SEARCH_VIEWPORT, isMapDragMode: false });
+      expect(map.fitBounds).toHaveBeenCalledOnce();
+      expect(prevViewportRef.current).toEqual(DEFAULT_SEARCH_VIEWPORT);
+    },
+  );
 
   it("fits every distinct result coordinate with map padding", () => {
     installMinimalMarkerRuntime();

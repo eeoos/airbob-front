@@ -15,6 +15,7 @@ import type { SearchMapMarker, SearchMapProps } from "./types";
 import styles from "./Map.module.css";
 
 export const Map: React.FC<SearchMapProps> = ({
+  autoFitAccommodations = true,
   accommodations,
   selectedAccommodationId,
   hoveredAccommodationId,
@@ -106,6 +107,7 @@ export const Map: React.FC<SearchMapProps> = ({
   cancelLocationSearchRef.current = cancelLocationSearch;
 
   useAccommodationMarkers({
+    autoFitAccommodations,
     accommodations,
     isInitialIdleRef,
     isMapDragMode,

@@ -1,5 +1,6 @@
 import { useEffect, useRef, type MutableRefObject } from "react";
 import { getGoogleMapsApi } from "../../../../../platform/integrations/googleMaps";
+import { SEARCH_MAP_CAMERA } from "../../../lib/searchMapConfig";
 import {
   haveAccommodationIdsChanged,
   hasViewportChanged,
@@ -13,6 +14,7 @@ import {
 } from "../types";
 
 interface UseAccommodationMarkersOptions {
+  autoFitAccommodations?: boolean;
   accommodations: SearchMapAccommodation[];
   isInitialIdleRef: MutableRefObject<boolean>;
   isMapDragMode: boolean;
@@ -60,6 +62,7 @@ const disposeSearchMapMarkers = (markers: SearchMapMarker[]) => {
 };
 
 export const useAccommodationMarkers = ({
+  autoFitAccommodations = true,
   accommodations,
   isInitialIdleRef,
   isMapDragMode,
@@ -89,6 +92,24 @@ export const useAccommodationMarkers = ({
     if (!mapInstanceRef.current || !maps) return;
 
     const map = mapInstanceRef.current;
+    if (viewport) {
+      if (
+        !isMapDragMode &&
+        hasViewportChanged(prevViewportRef.current, viewport)
+      ) {
+        isInitialIdleRef.current = true;
+        const viewportBounds = new maps.LatLngBounds(
+          { lat: viewport.south, lng: viewport.west },
+          { lat: viewport.north, lng: viewport.east },
+        );
+        map.fitBounds(viewportBounds, SEARCH_MAP_CAMERA.viewportPadding);
+        viewportJustChangedRef.current = true;
+      }
+      // Track manual searches too, so returning to the default region can reset the map.
+      prevViewportRef.current = viewport;
+    } else {
+      prevViewportRef.current = null;
+    }
     const validAccommodations = accommodations.filter(hasCoordinate);
     const markerAccommodations = markersRef.current.flatMap((marker) =>
       marker.accommodationId === undefined
@@ -285,30 +306,13 @@ export const useAccommodationMarkers = ({
       }
     });
 
-    if (viewport && !isMapDragMode) {
-      const viewportChanged = hasViewportChanged(
-        prevViewportRef.current,
-        viewport,
-      );
-
-      if (viewportChanged) {
-        isInitialIdleRef.current = true;
-        const viewportBounds = new maps.LatLngBounds(
-          { lat: viewport.south, lng: viewport.west },
-          { lat: viewport.north, lng: viewport.east },
-        );
-        map.fitBounds(viewportBounds, 50);
-        prevViewportRef.current = viewport;
-        viewportJustChangedRef.current = true;
-      }
-    }
-
     const accommodationsChanged = haveAccommodationIdsChanged(
       prevAccommodationsRef.current,
       validAccommodations,
     );
 
     if (
+      autoFitAccommodations &&
       shouldFitAccommodationBounds({
         validAccommodationCount: validAccommodations.length,
         isMapDragMode,
@@ -321,7 +325,7 @@ export const useAccommodationMarkers = ({
       isInitialIdleRef.current = true;
 
       if (uniqueCoordinateKeys.size > 1) {
-        map.fitBounds(bounds, 50);
+        map.fitBounds(bounds, SEARCH_MAP_CAMERA.accommodationPadding);
       } else {
         const [firstAccommodation] = validAccommodations;
         if (firstAccommodation) {
@@ -329,7 +333,7 @@ export const useAccommodationMarkers = ({
             lat: firstAccommodation.coordinate.latitude,
             lng: firstAccommodation.coordinate.longitude,
           });
-          map.setZoom(12);
+          map.setZoom(SEARCH_MAP_CAMERA.singleAccommodationZoom);
         }
       }
 
@@ -343,9 +347,11 @@ export const useAccommodationMarkers = ({
     if (accommodationsChanged) {
       prevAccommodationsRef.current = [...validAccommodations];
     }
+    if (!autoFitAccommodations && shouldUpdateMapBounds) onMapBoundsUpdated?.();
     // onAccommodationSelect is read from a ref to avoid rebuilding markers for callback identity changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
+    autoFitAccommodations,
     accommodations,
     isMapDragMode,
     shouldUpdateMapBounds,
