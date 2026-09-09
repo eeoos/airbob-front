@@ -8,6 +8,7 @@ vi.mock("../../features/wishlist/api", () => ({
     create: vi.fn(),
     delete: vi.fn(),
     getWishlists: vi.fn(),
+    getAccommodationMembership: vi.fn(),
     removeAccommodation: vi.fn(),
     updateAccommodationMemo: vi.fn(),
   },
@@ -16,36 +17,29 @@ vi.mock("../../features/wishlist/api", () => ({
 describe("wishlistMembershipTransport", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("maps the feature collection into the workflow membership page", async () => {
-    vi.mocked(wishlistApi.getWishlists).mockResolvedValue({
-      wishlists: [
-        {
-          id: 11,
-          name: "여행",
-          createdAt: "2026-08-29T00:00:00Z",
-          itemCount: 2,
-          thumbnailImageUrl: null,
-          containsAccommodation: true,
-          wishlistAccommodationId: 31,
-        },
-      ],
-      pageInfo: { hasNext: true, nextCursor: "next", currentSize: 1 },
-    });
+  it("requests one membership snapshot and forwards the target and AbortSignal", async () => {
+    const snapshot = {
+      isInAnyWishlist: true,
+      targetWishlistFound: true,
+      targetWishlistContains: false,
+    };
+    vi.mocked(wishlistApi.getAccommodationMembership).mockResolvedValue(
+      snapshot,
+    );
     const signal = new AbortController().signal;
-
     await expect(
       wishlistMembershipTransport.getAccommodationMembership(
-        { accommodationId: 7, cursor: "cursor", size: 20 },
+        { accommodationId: 7, wishlistId: 11 },
         signal,
       ),
-    ).resolves.toEqual({
-      wishlists: [{ id: 11, isContained: true }],
-      pageInfo: { hasNext: true, nextCursor: "next" },
-    });
-    expect(wishlistApi.getWishlists).toHaveBeenCalledWith(
-      { accommodationId: 7, cursor: "cursor", size: 20 },
+    ).resolves.toEqual(snapshot);
+    expect(
+      wishlistApi.getAccommodationMembership,
+    ).toHaveBeenCalledExactlyOnceWith(
+      { accommodationId: 7, wishlistId: 11 },
       { signal },
     );
+    expect(wishlistApi.getWishlists).not.toHaveBeenCalled();
   });
 
   it("passes AbortSignal through every mutation adapter", async () => {

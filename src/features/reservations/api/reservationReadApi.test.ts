@@ -6,6 +6,7 @@ import type {
   HostReservationPageWire,
 } from "./reservationReadContracts";
 import { reservationReadApi } from "./reservationReadApi";
+import hostStayContract from "./__fixtures__/host-reservation-stay-payment.json";
 
 vi.mock("../../../platform/http/request", () => ({
   requestApiData: vi.fn(),
@@ -143,6 +144,17 @@ describe("reservation read API adapter", () => {
       );
     },
   );
+
+  it("reads the host contract with only the original payment amount", async () => {
+    mockRequestApiData.mockResolvedValue(hostStayContract);
+
+    const detail = await reservationReadApi.getDetail(
+      "host",
+      hostStayContract.reservation_uid,
+    );
+
+    expect(detail.payment).toEqual({ totalAmount: 100001 });
+  });
 
   it("rejects a path-shaped UID before transport", async () => {
     await expect(

@@ -9,8 +9,13 @@ import type {
   WishlistDetailParams,
   WishlistListParams,
 } from "../model";
+import type { WishlistMembership } from "../model/wishlist";
 
 export interface WishlistApiPort {
+  getAccommodationMembership(
+    params: { readonly accommodationId: number; readonly wishlistId?: number },
+    options?: ApiRequestOptions,
+  ): Promise<WishlistMembership>;
   create(
     input: CreateWishlistInput,
     options?: ApiRequestOptions,

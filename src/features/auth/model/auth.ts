@@ -23,7 +23,6 @@ export interface AuthViewer {
   readonly id: number;
   readonly email: string;
   readonly nickname: string;
-  readonly thumbnailImageUrl: string | null;
 }
 
 export const createEmptyAuthForm = (): AuthFormValues => ({

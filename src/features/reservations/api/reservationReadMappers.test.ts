@@ -1,3 +1,4 @@
+import guestDetailContract from "./__fixtures__/guest-reservation-detail-payment.json";
 import type {
   GuestReservationDetailWire,
   GuestReservationPageWire,
@@ -100,6 +101,30 @@ const currentReservationStatuses = [
 ] as const;
 
 describe("reservation read wire mappers", () => {
+  it("consumes the narrowed backend payment contract without losing recovery or stay fields", () => {
+    const detail = toGuestReservationDetail({
+      ...guestDetailContract,
+      payment: { ...guestDetailContract.payment, status: "PARTIAL_CANCELED" },
+    });
+    expect(detail.payment).toEqual({
+      method: "카드",
+      totalAmount: 100001,
+      status: "PARTIAL_CANCELED",
+      approvedAt: "2026-09-01T09:00:00Z",
+    });
+    expect(detail).toMatchObject({
+      status: "CANCELLATION_FAILED",
+      paymentAllowed: false,
+      holdExpiresAt: null,
+      serverTime: "2026-09-01T10:02:01Z",
+      timeZoneId: "America/New_York",
+      checkInDateTime: "2026-11-01T00:00:00",
+      checkOutDateTime: "2026-11-03T00:00:00",
+      canWriteReview: false,
+      coordinate: { latitude: 40.7, longitude: -74 },
+    });
+  });
+
   it("maps guest and host list pages without leaking snake_case fields", () => {
     const guestWire: GuestReservationPageWire = {
       page_info: pageInfo,
@@ -196,7 +221,7 @@ describe("reservation read wire mappers", () => {
     });
   });
 
-  it("maps the complete guest detail projection including payment metadata", () => {
+  it("maps guest detail while ignoring unused fields in an older payment response", () => {
     const wire = guestDetailWire();
 
     const detail = toGuestReservationDetail(wire);
@@ -238,35 +263,25 @@ describe("reservation read wire mappers", () => {
         thumbnailImageUrl: "/member.jpg",
       },
       payment: {
-        orderId: "order-1",
         method: "CARD",
         totalAmount: 240000,
-        balanceAmount: 220000,
         status: "PARTIAL_CANCELED",
-        requestedAt: "2026-07-01T10:00:00Z",
         approvedAt: "2026-07-01T10:01:00Z",
-        cancels: [
-          {
-            cancelAmount: 20000,
-            cancelReason: "일정 변경",
-            canceledAt: "2026-07-02T10:00:00Z",
-          },
-        ],
-        virtualAccount: {
-          accountNumber: "1234567890",
-          bankCode: "088",
-          customerName: "게스트",
-          dueDate: "2026-07-03T23:59:59Z",
-        },
       },
     });
     expect(detail).not.toHaveProperty("requestMessage");
     expect(detail.payment).not.toHaveProperty("paymentKey");
+    expect(detail.payment).not.toHaveProperty("orderId");
+    expect(detail.payment).not.toHaveProperty("balanceAmount");
+    expect(detail.payment).not.toHaveProperty("cancels");
+    expect(detail.payment).not.toHaveProperty("requestedAt");
+    expect(detail.payment).not.toHaveProperty("virtualAccount");
+    expect(JSON.stringify(detail)).not.toContain("1234567890");
     expect(JSON.stringify(detail)).not.toContain("조용한 방을 부탁드립니다.");
     expect(JSON.stringify(detail)).not.toContain("payment-1");
   });
 
-  it("maps host detail and normalizes omitted optional payment fields", () => {
+  it("maps host detail with only the original payment amount", () => {
     const wire: HostReservationDetailWire = {
       reservation_uid: "host-reservation-21",
       reservation_code: "H-21",
@@ -281,11 +296,7 @@ describe("reservation read wire mappers", () => {
       address,
       guest: member,
       payment: {
-        order_id: "order-2",
-        payment_key: "host-read-payment-key",
         total_amount: 240000,
-        status: "DONE",
-        requested_at: "2026-07-01T10:00:00Z",
       },
     };
     const detail = toHostReservationDetail(wire);
@@ -299,19 +310,19 @@ describe("reservation read wire mappers", () => {
         thumbnailImageUrl: "/member.jpg",
       },
       payment: {
-        orderId: "order-2",
-        method: null,
         totalAmount: 240000,
-        balanceAmount: null,
-        approvedAt: null,
-        cancels: [],
-        virtualAccount: null,
       },
     });
+    expect(detail.payment).toEqual({ totalAmount: 240000 });
+    expect(
+      toHostReservationDetail({ ...wire, payment: null }).payment,
+    ).toBeNull();
+    expect(
+      toHostReservationDetail({ ...wire, payment: { total_amount: 0 } })
+        .payment,
+    ).toEqual({ totalAmount: 0 });
     expect(detail).not.toHaveProperty("requestMessage");
-    expect(detail.payment).not.toHaveProperty("paymentKey");
     expect(JSON.stringify(detail)).not.toContain("늦은 체크인을 요청합니다.");
-    expect(JSON.stringify(detail)).not.toContain("host-read-payment-key");
   });
 
   it.each(currentReservationStatuses)(

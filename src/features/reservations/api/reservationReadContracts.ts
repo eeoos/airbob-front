@@ -27,30 +27,11 @@ interface ReservationCoordinateWire {
   readonly longitude: number | null;
 }
 
-interface ReservationPaymentCancelWire {
-  readonly cancel_amount: number;
-  readonly cancel_reason: string;
-  readonly canceled_at: string;
-}
-
-interface ReservationVirtualAccountWire {
-  readonly account_number: string;
-  readonly bank_code: string;
-  readonly customer_name: string;
-  readonly due_date: string;
-}
-
 export interface ReservationPaymentWire {
-  readonly order_id: string;
-  readonly payment_key?: unknown;
   readonly method?: string | null;
   readonly total_amount: number;
-  readonly balance_amount?: number | null;
   readonly status: ReservationPaymentStatus;
-  readonly requested_at: string;
   readonly approved_at?: string | null;
-  readonly cancels?: readonly ReservationPaymentCancelWire[];
-  readonly virtual_account?: ReservationVirtualAccountWire | null;
 }
 
 export interface ReservationPageInfoWire {
@@ -107,10 +88,10 @@ interface ReservationDetailWireBase {
   readonly request_message: unknown;
   readonly accommodation: ReservationAccommodationWire;
   readonly address: ReservationAddressWire;
-  readonly payment: ReservationPaymentWire | null;
 }
 
 export interface GuestReservationDetailWire extends ReservationDetailWireBase {
+  readonly payment: ReservationPaymentWire | null;
   readonly payment_allowed: unknown;
   readonly hold_expires_at: unknown;
   readonly server_time: unknown;
@@ -123,4 +104,5 @@ export interface GuestReservationDetailWire extends ReservationDetailWireBase {
 
 export interface HostReservationDetailWire extends ReservationDetailWireBase {
   readonly guest: ReservationMemberWire;
+  readonly payment: { readonly total_amount: number } | null;
 }

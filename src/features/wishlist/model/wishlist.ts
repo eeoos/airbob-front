@@ -48,8 +48,15 @@ export interface WishlistAccommodation {
 }
 
 export interface WishlistDetail {
+  readonly wishlistName: string;
   readonly accommodations: readonly WishlistAccommodation[];
   readonly pageInfo: CursorPageInfo;
+}
+
+export interface WishlistMembership {
+  readonly isInAnyWishlist: boolean;
+  readonly targetWishlistContains: boolean | null;
+  readonly targetWishlistFound: boolean;
 }
 
 export interface IdentifierResult {

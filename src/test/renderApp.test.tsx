@@ -16,14 +16,12 @@ const session: SessionViewer = {
   id: 7,
   email: "guest@example.invalid",
   nickname: "Guest",
-  thumbnailImageUrl: null,
 };
 
 const nextSession: SessionViewer = {
   id: 8,
   email: "next@example.invalid",
   nickname: "Next",
-  thumbnailImageUrl: null,
 };
 
 const HarnessProbe = () => {

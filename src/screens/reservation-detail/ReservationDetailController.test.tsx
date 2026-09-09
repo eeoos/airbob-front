@@ -22,14 +22,9 @@ const scope: AuthenticatedSessionScope = {
 
 const payment = {
   approvedAt: null,
-  balanceAmount: null,
-  cancels: [],
   method: null,
-  orderId: "order-1",
-  requestedAt: "2026-07-01T00:00:00",
   status: "DONE" as const,
   totalAmount: 240000,
-  virtualAccount: null,
 };
 
 const guestReservation = (
@@ -93,7 +88,7 @@ const hostReservation = (
   createdAt: "2026-07-01T00:00:00",
   guest: { id: 3, nickname: "게스트", thumbnailImageUrl: null },
   guestCount: 2,
-  payment,
+  payment: { totalAmount: payment.totalAmount },
   reservationCode: "HOST-CODE-1",
   reservationUid,
   status: "CONFIRMED",

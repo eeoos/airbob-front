@@ -2,6 +2,12 @@ import type {
   GuestReservationListItem,
   HostReservationListItem,
 } from "../model/reservationRead";
+import hostListContract from "../api/__fixtures__/host-reservation-list.json";
+import expiredGuestListContract from "../api/__fixtures__/guest-reservation-list-expired.json";
+import {
+  toGuestReservationPage,
+  toHostReservationPage,
+} from "../api/reservationReadMappers";
 import {
   toGuestTripCardViewModel,
   toHostReservationRowViewModel,
@@ -54,6 +60,54 @@ const hostReservationFixture = (
 });
 
 describe("reservation list view model", () => {
+  it("renders an expired guest reservation from the backend list contract", () => {
+    const page = toGuestReservationPage(expiredGuestListContract);
+
+    expect(page.reservations[0]?.status).toBe("EXPIRED");
+    expect(page.pageInfo).toEqual({
+      hasNext: false,
+      nextCursor: null,
+      currentSize: 1,
+    });
+    expect(
+      page.reservations.map((reservation) =>
+        toGuestTripCardViewModel(reservation),
+      ),
+    ).toEqual([
+      {
+        reservationUid: "40000000-0000-4000-8000-000000000041",
+        accommodationName: "목록 숙소",
+        thumbnailUrl: "https://d1wivnghydqg7i.cloudfront.net/stay.jpg",
+        dateRangeLabel: "2026년 11월 1일 ~ 3일",
+      },
+    ]);
+  });
+
+  it("renders the backend host list contract through the wire mapper", () => {
+    const page = toHostReservationPage(hostListContract);
+
+    expect(page.pageInfo).toEqual({
+      hasNext: false,
+      nextCursor: null,
+      currentSize: 1,
+    });
+    expect(page.reservations.map(toHostReservationRowViewModel)).toEqual([
+      {
+        reservationUid: "30000000-0000-4000-8000-000000000041",
+        statusLabel: "확정됨",
+        statusTone: "success",
+        guestName: "예약 게스트",
+        guestCountLabel: "2명",
+        checkInLabel: "2026년 11월 1일",
+        checkOutLabel: "2026년 11월 3일",
+        createdAtLabel: "2026년 2월 1일",
+        accommodationName: "목록 숙소",
+        reservationCodeLabel: "LIST-41",
+        totalPriceLabel: "₩100,001",
+      },
+    ]);
+  });
+
   it("maps guest trip DTO fields into card display fields", () => {
     expect(toGuestTripCardViewModel(guestReservationFixture())).toEqual({
       reservationUid: "guest-reservation-11",

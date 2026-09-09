@@ -1,7 +1,6 @@
 import { resolveImageUrl as defaultResolveImageUrl } from "../../../platform/assets/imageUrl";
 import type { GuestReservationDetail } from "../model/reservationRead";
 import {
-  formatBankName,
   formatPaymentStatus,
   formatReservationDetailDate,
   formatReservationDetailTime,
@@ -15,7 +14,7 @@ import {
   getReservationStatusTone,
 } from "./reservationStatusDisplay";
 
-type PaymentStatusTone = "success" | "warning" | "neutral";
+type PaymentStatusTone = "success" | "neutral";
 
 interface ReservationDateTimeViewModel {
   dateLabel: string;
@@ -28,12 +27,6 @@ interface ReservationPaymentViewModel {
   approvedAtLabel: string | null;
   statusLabel: string;
   statusTone: PaymentStatusTone;
-  virtualAccount: {
-    bankName: string;
-    accountNumber: string;
-    customerName: string;
-    dueDateLabel: string;
-  } | null;
 }
 
 export interface ReservationDetailViewModel {
@@ -101,10 +94,6 @@ const getPaymentStatusTone = (
     return "success";
   }
 
-  if (payment.virtualAccount && payment.status === "WAITING_FOR_DEPOSIT") {
-    return "warning";
-  }
-
   return "neutral";
 };
 
@@ -112,9 +101,6 @@ const toReservationPaymentViewModel = (
   payment: GuestReservationDetail["payment"],
 ): ReservationPaymentViewModel | null => {
   if (!payment) return null;
-
-  const isVirtualAccountPending =
-    payment.virtualAccount && payment.status === "WAITING_FOR_DEPOSIT";
 
   return {
     methodLabel: payment.method ?? "-",
@@ -124,16 +110,6 @@ const toReservationPaymentViewModel = (
       : null,
     statusLabel: formatPaymentStatus(payment.status),
     statusTone: getPaymentStatusTone(payment),
-    virtualAccount: isVirtualAccountPending
-      ? {
-          bankName: formatBankName(payment.virtualAccount?.bankCode),
-          accountNumber: payment.virtualAccount?.accountNumber ?? "-",
-          customerName: payment.virtualAccount?.customerName ?? "-",
-          dueDateLabel: payment.virtualAccount?.dueDate
-            ? formatKoreanDateTime(payment.virtualAccount.dueDate)
-            : "-",
-        }
-      : null,
   };
 };
 

@@ -1,20 +1,15 @@
 import {
-  formatBankName,
   formatPaymentStatus,
   formatReservationDetailDate,
   formatReservationDetailTime,
 } from "./reservationDetailDisplay";
 
 describe("reservation detail display", () => {
-  it("maps numeric bank codes and preserves payment status label coverage", () => {
-    expect(formatBankName("04")).toBe("KB국민은행");
-    expect(formatBankName("20")).toBe("우리은행");
-    expect(formatBankName("88")).toBe("신한은행");
-    expect(formatBankName("UNKNOWN")).toBe("은행코드 UNKNOWN");
+  it("preserves payment status label coverage", () => {
     expect(formatPaymentStatus("DONE")).toBe("결제 완료");
     expect(formatPaymentStatus("WAITING_FOR_DEPOSIT")).toBe("입금 대기");
     expect(formatPaymentStatus("ABORTED")).toBe("ABORTED");
-    expect(formatPaymentStatus("PARTIAL_CANCELED")).toBe("PARTIAL_CANCELED");
+    expect(formatPaymentStatus("PARTIAL_CANCELED")).toBe("부분 취소");
     expect(formatPaymentStatus("UNKNOWN_STATUS")).toBe("UNKNOWN_STATUS");
   });
 

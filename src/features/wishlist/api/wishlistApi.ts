@@ -5,12 +5,35 @@ import type {
   UpdateWishlistAccommodationMemoWireRequest,
   WishlistCollectionWire,
   WishlistDetailWire,
+  WishlistMembershipWire,
 } from "./contracts";
 import { platformApiTransport, type ApiTransport } from "./transport";
 import { toWishlistCollection, toWishlistDetail } from "./mappers";
 import type { WishlistApiPort } from "../ports/wishlistApiPort";
 
 const createWishlistApi = (transport: ApiTransport): WishlistApiPort => ({
+  async getAccommodationMembership(params, options) {
+    const wire = await transport.request<WishlistMembershipWire>({
+      method: "GET",
+      path: "/members/wishlists/membership",
+      params,
+      signal: options?.signal,
+    });
+    if (
+      typeof wire.is_in_any_wishlist !== "boolean" ||
+      typeof wire.target_wishlist_found !== "boolean" ||
+      (wire.target_wishlist_found
+        ? typeof wire.target_wishlist_contains !== "boolean"
+        : wire.target_wishlist_contains !== null)
+    ) {
+      throw new TypeError("Wishlist membership response is invalid.");
+    }
+    return {
+      isInAnyWishlist: wire.is_in_any_wishlist,
+      targetWishlistContains: wire.target_wishlist_contains,
+      targetWishlistFound: wire.target_wishlist_found,
+    };
+  },
   async create(input, options) {
     const body: CreateWishlistWireRequest = { name: input.name };
     return transport.request<IdentifierWire>({

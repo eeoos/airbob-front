@@ -27,6 +27,60 @@ const createTransport = () => {
 };
 
 describe("listing editor API adapter", () => {
+  it("uses the backend detail as the save baseline and submits only edited fields", async () => {
+    const { request, requestNullable, transport } = createTransport();
+    request.mockResolvedValue(hostDetailWire);
+    requestNullable.mockResolvedValue(null);
+    const api = createListingEditorApi(transport);
+    const source = await api.getHostDetail(31);
+    const baseline = toListingEditorFormData(source);
+    const options = {
+      baseline,
+      baselinePolicy: source.occupancyPolicy,
+      fallbackProvenance: getListingEditorFallbackProvenance(source),
+    };
+    expect(
+      buildListingEditorUpdate({ ...options, formData: baseline }),
+    ).toEqual({});
+
+    const update = buildListingEditorUpdate({
+      ...options,
+      formData: {
+        ...baseline,
+        name: "수정한 숙소 이름",
+        addressInfo: { ...baseline.addressInfo, detail: "202호" },
+        occupancyPolicyInfo: {
+          ...baseline.occupancyPolicyInfo,
+          maxOccupancy: "6",
+        },
+      },
+    });
+    await api.update(31, update);
+
+    expect(requestNullable).toHaveBeenCalledWith({
+      method: "PATCH",
+      path: "/accommodations/31",
+      body: {
+        name: "수정한 숙소 이름",
+        address_info: {
+          country: "대한민국",
+          state: "서울특별시",
+          city: "서울",
+          district: "마포구",
+          street: "월드컵북로",
+          detail: "202호",
+          postal_code: "04000",
+        },
+        occupancy_policy_info: {
+          max_occupancy: 6,
+          infant_occupancy: 1,
+          pet_occupancy: 0,
+        },
+      },
+      signal: undefined,
+    });
+  });
+
   it.each([
     {
       label: "all-null policy fields",

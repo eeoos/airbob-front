@@ -271,24 +271,22 @@ export function HostReservationDetailScreen({
           className={hostStyles.summaryColumn}
         >
           <div className={hostStyles.sectionHeading}>
-            <span className={hostStyles.sectionKicker}>정산</span>
+            <span className={hostStyles.sectionKicker}>결제</span>
             <h2
               className={hostStyles.sectionTitle}
               id="host-reservation-payment-title"
             >
-              요금 세부 정보
+              결제 정보
             </h2>
           </div>
           {view.payment ? (
             <dl className={hostStyles.feeDetails}>
               <div className={hostStyles.feeItem}>
-                <dt className={hostStyles.feeLabel}>숙박 요금</dt>
-                <dd className={hostStyles.feeValue}>
-                  {view.payment.nights}박 × {view.payment.pricePerNightLabel}
-                </dd>
+                <dt className={hostStyles.feeLabel}>숙박 기간</dt>
+                <dd className={hostStyles.feeValue}>{view.payment.nights}박</dd>
               </div>
               <div className={hostStyles.feeTotal}>
-                <dt className={hostStyles.feeTotalLabel}>총액 KRW</dt>
+                <dt className={hostStyles.feeTotalLabel}>최초 결제 금액</dt>
                 <dd className={hostStyles.feeTotalValue}>
                   {view.payment.totalAmountLabel}
                 </dd>

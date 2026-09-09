@@ -14,7 +14,6 @@ const viewerA: SessionViewer = {
   id: 101,
   email: "person-a@example.invalid",
   nickname: "Person A",
-  thumbnailImageUrl: null,
 };
 
 const viewerAUpdated: SessionViewer = {
@@ -26,7 +25,6 @@ const viewerB: SessionViewer = {
   id: 202,
   email: "person-b@example.invalid",
   nickname: "Person B",
-  thumbnailImageUrl: "https://images.example.invalid/person-b.png",
 };
 
 const retryableError = new AppError({

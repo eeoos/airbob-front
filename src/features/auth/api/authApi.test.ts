@@ -4,6 +4,7 @@ import {
 } from "../../../platform/http/request";
 import { sessionOwnedAuthEventPolicy } from "../../../platform/http/authEventPolicy";
 import { authApi } from "./authApi";
+import memberProfileContract from "./__fixtures__/auth-me-profile.json";
 
 vi.mock("../../../platform/http/request", () => ({
   requestApiData: vi.fn(),
@@ -67,26 +68,33 @@ describe("feature auth API contract", () => {
     });
   });
 
-  it("maps the viewer wire response into the feature model", async () => {
+  it("maps the backend viewer contract into the feature model", async () => {
     const controller = new AbortController();
-    mockRequestApiData.mockResolvedValue({
-      id: 41,
-      email: "guest@example.com",
-      nickname: "Guest",
-      thumbnail_image_url: "/images/guest.jpg",
-    });
+    mockRequestApiData.mockResolvedValue(memberProfileContract);
 
     await expect(authApi.getViewer(controller.signal)).resolves.toEqual({
       id: 41,
-      email: "guest@example.com",
-      nickname: "Guest",
-      thumbnailImageUrl: "/images/guest.jpg",
+      email: "profile@test.invalid",
+      nickname: "예약 회원",
     });
     expect(mockRequestApiData).toHaveBeenCalledWith({
       method: "GET",
       path: "/auth/me",
       signal: controller.signal,
       authEventPolicy: sessionOwnedAuthEventPolicy,
+    });
+  });
+
+  it("ignores an unused image field from an older viewer response", async () => {
+    mockRequestApiData.mockResolvedValue({
+      ...memberProfileContract,
+      thumbnail_image_url: "/images/profile.jpg",
+    });
+
+    await expect(authApi.getViewer()).resolves.toEqual({
+      id: 41,
+      email: "profile@test.invalid",
+      nickname: "예약 회원",
     });
   });
 });

@@ -47,12 +47,6 @@ export interface GuestReservationDetailView {
     readonly approvedAtLabel: string | null;
     readonly statusLabel: string;
     readonly statusTone: ReservationDetailStatusTone;
-    readonly virtualAccount: {
-      readonly bankName: string;
-      readonly accountNumber: string;
-      readonly customerName: string;
-      readonly dueDateLabel: string;
-    } | null;
   } | null;
   readonly mapEmbedUrl: string | null;
 }
@@ -79,7 +73,6 @@ export interface HostReservationDetailView {
   readonly createdAtDateLabel: string;
   readonly payment: {
     readonly nights: number;
-    readonly pricePerNightLabel: string;
     readonly totalAmountLabel: string;
   } | null;
 }

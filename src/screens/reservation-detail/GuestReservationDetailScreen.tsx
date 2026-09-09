@@ -362,52 +362,6 @@ export function GuestReservationDetailScreen({
                     </div>
                   )}
                 </dl>
-
-                {view.payment.virtualAccount && (
-                  <div className={guestStyles.virtualAccountSection}>
-                    <h3 className={guestStyles.virtualAccountTitle}>
-                      가상계좌 입금 정보
-                    </h3>
-                    <dl className={guestStyles.virtualAccountInfo}>
-                      <div className={guestStyles.virtualAccountItem}>
-                        <dt className={guestStyles.virtualAccountLabel}>
-                          은행
-                        </dt>
-                        <dd className={guestStyles.virtualAccountValue}>
-                          {view.payment.virtualAccount.bankName}
-                        </dd>
-                      </div>
-                      <div className={guestStyles.virtualAccountItem}>
-                        <dt className={guestStyles.virtualAccountLabel}>
-                          계좌번호
-                        </dt>
-                        <dd className={guestStyles.virtualAccountValue}>
-                          {view.payment.virtualAccount.accountNumber}
-                        </dd>
-                      </div>
-                      <div className={guestStyles.virtualAccountItem}>
-                        <dt className={guestStyles.virtualAccountLabel}>
-                          예금주
-                        </dt>
-                        <dd className={guestStyles.virtualAccountValue}>
-                          {view.payment.virtualAccount.customerName}
-                        </dd>
-                      </div>
-                      <div className={guestStyles.virtualAccountItem}>
-                        <dt className={guestStyles.virtualAccountLabel}>
-                          입금 기한
-                        </dt>
-                        <dd className={guestStyles.virtualAccountValue}>
-                          {view.payment.virtualAccount.dueDateLabel}
-                        </dd>
-                      </div>
-                    </dl>
-                    <div className={guestStyles.virtualAccountNotice}>
-                      <p>위 가상계좌로 입금 기한 내에 입금해주세요.</p>
-                      <p>입금이 확인되면 예약이 확정됩니다.</p>
-                    </div>
-                  </div>
-                )}
               </section>
             )}
           </div>

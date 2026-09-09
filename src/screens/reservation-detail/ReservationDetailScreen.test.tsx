@@ -54,17 +54,11 @@ const guestView: GuestReservationDetailView = {
   },
   canReview: true,
   payment: {
-    methodLabel: "가상계좌",
+    methodLabel: "카드",
     amountLabel: "₩240,000",
     approvedAtLabel: "2026년 7월 1일 오후 2:00",
-    statusLabel: "입금 대기",
-    statusTone: "warning",
-    virtualAccount: {
-      bankName: "국민은행",
-      accountNumber: "1234567890",
-      customerName: "에어비앤비",
-      dueDateLabel: "2026년 7월 2일 오후 11:59",
-    },
+    statusLabel: "결제 완료",
+    statusTone: "success",
   },
   mapEmbedUrl:
     "https://www.google.com/maps/embed/v1/place?key=maps-key&q=37.5%2C127",
@@ -92,7 +86,6 @@ const hostView: HostReservationDetailView = {
   createdAtDateLabel: "2026년 7월 1일 (수)",
   payment: {
     nights: 2,
-    pricePerNightLabel: "₩120,000",
     totalAmountLabel: "₩240,000",
   },
 };
@@ -233,12 +226,9 @@ describe("ReservationDetailScreen", () => {
     expect(screen.getByText("KR Seoul Mapo 와우산로")).toBeInTheDocument();
     expect(screen.getByText("게스트 2명")).toBeInTheDocument();
     expect(screen.getByText("CODE-123")).toBeInTheDocument();
-    expect(screen.getByText("가상계좌 입금 정보")).toBeInTheDocument();
-    expect(screen.getByText("국민은행")).toBeInTheDocument();
-    expect(screen.getByText("1234567890")).toBeInTheDocument();
-    expect(
-      screen.getByText("위 가상계좌로 입금 기한 내에 입금해주세요."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("카드")).toBeInTheDocument();
+    expect(screen.getByText("결제 완료")).toBeInTheDocument();
+    expect(screen.queryByText("가상계좌 입금 정보")).not.toBeInTheDocument();
     expect(
       screen.getByRole("heading", { level: 1, name: "테스트 숙소" }),
     ).toBeInTheDocument();
@@ -260,10 +250,6 @@ describe("ReservationDetailScreen", () => {
         "결제 방법",
         "결제 금액",
         "결제 일시",
-        "은행",
-        "계좌번호",
-        "예금주",
-        "입금 기한",
       ]),
     );
 
@@ -396,7 +382,8 @@ describe("ReservationDetailScreen", () => {
     expect(screen.getByText("2026년 7월 10일 (금)")).toBeInTheDocument();
     expect(screen.getByText("2026년 7월 12일 (일)")).toBeInTheDocument();
     expect(screen.getByText("2026년 7월 1일 (수)")).toBeInTheDocument();
-    expect(screen.getByText("2박 × ₩120,000")).toBeInTheDocument();
+    expect(screen.getByText("2박", { exact: true })).toBeInTheDocument();
+    expect(screen.queryByText(/×/)).not.toBeInTheDocument();
     expect(screen.getByText("₩240,000")).toBeInTheDocument();
     expect(
       screen.getByRole("region", { name: "머무는 곳" }),
@@ -405,7 +392,7 @@ describe("ReservationDetailScreen", () => {
       screen.getByRole("region", { name: "체크인 정보" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("complementary", { name: "요금 세부 정보" }),
+      screen.getByRole("complementary", { name: "결제 정보" }),
     ).toBeInTheDocument();
     expect(screen.getAllByRole("term").map((term) => term.textContent)).toEqual(
       expect.arrayContaining([
@@ -414,8 +401,8 @@ describe("ReservationDetailScreen", () => {
         "체크아웃",
         "예약일",
         "예약 코드",
-        "숙박 요금",
-        "총액 KRW",
+        "숙박 기간",
+        "최초 결제 금액",
       ]),
     );
 

@@ -98,6 +98,7 @@ const detailPages: InfiniteData<WishlistDetail, string | null> = {
   pageParams: [null],
   pages: [
     {
+      wishlistName: "Exact loaded name",
       accommodations: [
         {
           accommodation: {
@@ -319,7 +320,7 @@ describe("WishlistController", () => {
     );
 
     expect(mockUseWishlistListsReadQuery).toHaveBeenLastCalledWith({
-      enabled: true,
+      enabled: false,
       scope,
     });
     expect(mockUseRecentlyViewedReadQuery).toHaveBeenLastCalledWith({
@@ -458,66 +459,49 @@ describe("WishlistController", () => {
     });
   });
 
-  it("continues collection pagination until a direct detail route name is recovered", async () => {
-    const fetchNextPage = vi.fn().mockResolvedValue(undefined);
-    const firstPage = wishlistPages([[wishlist(1, "First page")]]);
+  it("uses the detail response name without fetching collection pages", () => {
+    const fetchNextPage = vi.fn();
     mockUseWishlistListsReadQuery.mockReturnValue({
       ...queryBase,
-      data: firstPage,
-      fetchNextPage,
+      data: undefined,
       hasNextPage: true,
-    } as unknown as ReturnType<typeof useWishlistListsReadQuery>);
-    const routeCommands = navigation();
-    const { rerender } = renderController({
-      navigation: routeCommands,
-      view: { kind: "wishlist-detail", wishlistId: 42 },
-    });
-
-    await waitFor(() => expect(fetchNextPage).toHaveBeenCalledTimes(1));
-
-    mockUseWishlistListsReadQuery.mockReturnValue({
-      ...queryBase,
-      data: wishlistPages([
-        [wishlist(1, "First page")],
-        [wishlist(42, "Recovered exact name")],
-      ]),
       fetchNextPage,
-      hasNextPage: false,
     } as unknown as ReturnType<typeof useWishlistListsReadQuery>);
-    rerender(
-      <OverlayProvider>
-        <WishlistController
-          navigation={routeCommands}
-          scope={scope}
-          view={{ kind: "wishlist-detail", wishlistId: 42 }}
-        />
-      </OverlayProvider>,
-    );
-
-    expect(
-      await screen.findByRole("heading", { name: "Recovered exact name" }),
-    ).toBeInTheDocument();
-    expect(fetchNextPage).toHaveBeenCalledTimes(1);
-  });
-
-  it("surfaces a direct detail name-recovery pagination failure", async () => {
-    const fetchNextPage = vi.fn().mockRejectedValue({ code: "W002" });
-    mockUseWishlistListsReadQuery.mockReturnValue({
-      ...queryBase,
-      data: wishlistPages([[wishlist(1, "First page")]]),
-      fetchNextPage,
-      hasNextPage: true,
-    } as unknown as ReturnType<typeof useWishlistListsReadQuery>);
-
     renderController({
       navigation: navigation(),
       view: { kind: "wishlist-detail", wishlistId: 42 },
     });
+    expect(
+      screen.getByRole("heading", { name: "Exact loaded name" }),
+    ).toBeVisible();
+    expect(fetchNextPage).not.toHaveBeenCalled();
+    expect(mockUseWishlistListsReadQuery).toHaveBeenLastCalledWith({
+      enabled: false,
+      scope,
+    });
+  });
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "위시리스트에 대한 접근 권한이 없습니다.",
-    );
-    expect(fetchNextPage).toHaveBeenCalledTimes(1);
+  it("retries a failed detail read without refetching the collection", async () => {
+    const detailRefetch = vi.fn();
+    const listRefetch = vi.fn();
+    mockUseWishlistListsReadQuery.mockReturnValue({
+      ...queryBase,
+      refetch: listRefetch,
+    } as unknown as ReturnType<typeof useWishlistListsReadQuery>);
+    mockUseWishlistDetailReadQuery.mockReturnValue({
+      ...queryBase,
+      data: undefined,
+      isError: true,
+      error: { code: "W002" },
+      refetch: detailRefetch,
+    } as unknown as ReturnType<typeof useWishlistDetailReadQuery>);
+    renderController({
+      navigation: navigation(),
+      view: { kind: "wishlist-detail", wishlistId: 42 },
+    });
+    await userEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    expect(detailRefetch).toHaveBeenCalledTimes(1);
+    expect(listRefetch).not.toHaveBeenCalled();
   });
 
   it("replaces a now-deleted selected detail route using the latest route view", async () => {

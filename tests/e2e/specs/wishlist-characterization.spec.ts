@@ -1,12 +1,67 @@
 import { apiSuccess } from "../fixtures/api";
 import { test, expect } from "../fixtures/test";
 import mixedHistoryContract from "../../../src/features/wishlist/api/__fixtures__/recently-viewed-mixed-history.json" with { type: "json" };
+import wishlistDetailContract from "../../../src/features/wishlist/api/__fixtures__/wishlist-detail-without-reviews.json" with { type: "json" };
 
 const pageInfo = {
   has_next: false,
   next_cursor: null,
   current_size: 1,
 };
+
+for (const { label, accommodations, cardCount, emptyCount } of [
+  {
+    label: "populated",
+    accommodations: wishlistDetailContract.wishlist_accommodations,
+    cardCount: 1,
+    emptyCount: 0,
+  },
+  { label: "blank", accommodations: [], cardCount: 0, emptyCount: 1 },
+]) {
+  test(`opens a ${label} wishlist directly without reading summary pages`, async ({
+    api,
+    page,
+    session,
+  }) => {
+    session.authenticate();
+    await page.route(
+      "https://d1wivnghydqg7i.cloudfront.net/stay.jpg",
+      (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "image/svg+xml",
+          body: '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>',
+        }),
+    );
+    api.register(
+      "GET",
+      "/api/v1/members/wishlists/accommodations/42",
+      apiSuccess({
+        ...wishlistDetailContract,
+        wishlist_accommodations: accommodations,
+        page_info: { ...pageInfo, current_size: cardCount },
+      }),
+    );
+
+    await page.goto("/wishlist?id=42");
+    await expect(
+      page.getByRole("heading", { name: "여름 여행", level: 1 }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("이 위시리스트는 아직 비어 있어요"),
+    ).toHaveCount(emptyCount);
+    await expect(
+      page.getByRole("button", {
+        name: "서울 하우스 숙소 상세 보기",
+        exact: true,
+      }),
+    ).toHaveCount(cardCount);
+    expect(
+      api.matching("GET", "/api/v1/members/wishlists/accommodations/42"),
+    ).toHaveLength(1);
+    expect(api.matching("GET", "/api/v1/members/wishlists")).toHaveLength(0);
+  });
+}
 
 test("renders the backend recent-history contract and removes the selected accommodation", async ({
   api,
@@ -131,6 +186,7 @@ test("restores wishlist index, recent, and detail views through browser history"
     "GET",
     "/api/v1/members/wishlists/accommodations/7",
     apiSuccess({
+      wishlist_name: "브라우저 테스트 여행",
       wishlist_accommodations: [
         {
           wishlist_accommodation_id: 501,

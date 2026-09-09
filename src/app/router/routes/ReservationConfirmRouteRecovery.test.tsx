@@ -111,7 +111,6 @@ const mockSession = {
       id: 7,
       email: "viewer@example.com",
       nickname: "뷰어",
-      thumbnailImageUrl: null,
     },
     revalidation: { status: "idle" as const },
   },

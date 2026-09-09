@@ -1,3 +1,5 @@
+import guestDetailContract from "../api/__fixtures__/guest-reservation-detail-payment.json";
+import { toGuestReservationDetail } from "../api/reservationReadMappers";
 import type { GuestReservationDetail } from "../model/reservationRead";
 import { toReservationDetailViewModel } from "./reservationDetailViewModel";
 
@@ -47,6 +49,25 @@ const reservationFixture = (
 });
 
 describe("reservation detail view model", () => {
+  it("keeps payment amount, host, map, and local stay dates from the backend contract", () => {
+    const detail = toGuestReservationDetail({
+      ...guestDetailContract,
+      payment: { ...guestDetailContract.payment, status: "PARTIAL_CANCELED" },
+    });
+    const view = toReservationDetailViewModel(detail);
+    expect(view.payment).toMatchObject({
+      methodLabel: "카드",
+      amountLabel: "₩100,001",
+      statusLabel: "부분 취소",
+    });
+    expect(view.payment?.approvedAtLabel).toBeTruthy();
+    expect(view.host.nickname).toBe("테스트 호스트");
+    expect(view.mapCoordinate).toEqual({ latitude: 40.7, longitude: -74 });
+    expect(view.canReview).toBe(false);
+    expect(view.checkIn.dateLabel).toContain("11월 1일");
+    expect(view.checkOut.dateLabel).toContain("11월 3일");
+  });
+
   it.each(["CONFIRMED", "CANCELLATION_FAILED"] as const)(
     "uses the server review permission for %s even when the device clock is behind",
     (status) => {
@@ -120,40 +141,24 @@ describe("reservation detail view model", () => {
     });
   });
 
-  it("maps virtual account payment details without exposing payment DTO names", () => {
+  it("maps card payment details without exposing payment DTO names", () => {
     const viewModel = toReservationDetailViewModel(
       reservationFixture({
         payment: {
-          orderId: "order-123",
-          method: "가상계좌",
+          method: "카드",
           totalAmount: 120000,
-          balanceAmount: null,
-          status: "WAITING_FOR_DEPOSIT",
-          requestedAt: "2026-07-01T00:00:00",
+          status: "DONE",
           approvedAt: null,
-          cancels: [],
-          virtualAccount: {
-            accountNumber: "123-456",
-            bankCode: "04",
-            customerName: "홍길동",
-            dueDate: "2026-07-02T23:59:00",
-          },
         },
       }),
     );
 
     expect(viewModel.payment).toEqual({
-      methodLabel: "가상계좌",
+      methodLabel: "카드",
       amountLabel: "₩120,000",
       approvedAtLabel: null,
-      statusLabel: "입금 대기",
-      statusTone: "warning",
-      virtualAccount: {
-        bankName: "KB국민은행",
-        accountNumber: "123-456",
-        customerName: "홍길동",
-        dueDateLabel: expect.stringContaining("2026년 7월 2일"),
-      },
+      statusLabel: "결제 완료",
+      statusTone: "success",
     });
   });
 

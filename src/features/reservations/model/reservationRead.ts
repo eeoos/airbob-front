@@ -47,29 +47,11 @@ interface ReservationCoordinate {
   readonly longitude: number | null;
 }
 
-interface ReservationPaymentCancel {
-  readonly cancelAmount: number;
-  readonly cancelReason: string;
-  readonly canceledAt: string;
-}
-
-interface ReservationVirtualAccount {
-  readonly accountNumber: string;
-  readonly bankCode: string;
-  readonly customerName: string;
-  readonly dueDate: string;
-}
-
 export interface ReservationPayment {
-  readonly orderId: string;
   readonly method: string | null;
   readonly totalAmount: number;
-  readonly balanceAmount: number | null;
   readonly status: ReservationPaymentStatus;
-  readonly requestedAt: string;
   readonly approvedAt: string | null;
-  readonly cancels: readonly ReservationPaymentCancel[];
-  readonly virtualAccount: ReservationVirtualAccount | null;
 }
 
 export interface ReservationPageInfo {
@@ -131,10 +113,10 @@ interface ReservationDetailBase<TAudience extends ReservationReadAudience> {
   readonly timeZoneId: string;
   readonly accommodation: ReservationAccommodation;
   readonly address: ReservationAddress;
-  readonly payment: ReservationPayment | null;
 }
 
 export interface GuestReservationDetail extends ReservationDetailBase<"guest"> {
+  readonly payment: ReservationPayment | null;
   readonly paymentAllowed: boolean;
   readonly holdExpiresAt: string | null;
   readonly serverTime: string;
@@ -147,6 +129,7 @@ export interface GuestReservationDetail extends ReservationDetailBase<"guest"> {
 
 export interface HostReservationDetail extends ReservationDetailBase<"host"> {
   readonly guest: ReservationMember;
+  readonly payment: { readonly totalAmount: number } | null;
 }
 
 export type ReservationDetailByAudience<
