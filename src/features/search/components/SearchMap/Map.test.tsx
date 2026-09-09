@@ -105,6 +105,7 @@ describe("SearchMap", () => {
       },
     });
     const searchAround = vi.fn();
+    const cancelLocationSearch = vi.fn();
     const onMapInteraction = vi.fn();
     hookMocks.useGoogleMapsScript.mockReturnValue({
       isLoaded: true,
@@ -114,6 +115,7 @@ describe("SearchMap", () => {
       isLoadingBounds: false,
       searchAround,
       cancelPendingBounds: vi.fn(),
+      cancelLocationSearch,
     });
     render(
       <Map
@@ -132,7 +134,26 @@ describe("SearchMap", () => {
       } as GeolocationPosition),
     );
     expect(searchAround).not.toHaveBeenCalled();
+    expect(cancelLocationSearch).toHaveBeenCalledOnce();
     expect(onMapInteraction).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps repeat requests disabled until the location camera has settled", () => {
+    hookMocks.useGoogleMapsScript.mockReturnValue({
+      isLoaded: true,
+      status: "loaded",
+    });
+    hookMocks.useMapBoundsReporter.mockReturnValue({
+      isLoadingBounds: true,
+      isLocationSearchPending: true,
+      searchAround: vi.fn(),
+      cancelPendingBounds: vi.fn(),
+    });
+    render(<Map {...baseProps} onBoundsChange={vi.fn()} />);
+    expect(
+      screen.getByRole("button", { name: "현재 위치에서 검색" }),
+    ).toBeDisabled();
+    expect(screen.getByText("주변 검색 중…")).toBeVisible();
   });
 
   it("renders loading feedback while forwarding absent composition inputs", () => {

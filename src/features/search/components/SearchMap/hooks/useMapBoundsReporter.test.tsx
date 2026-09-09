@@ -12,6 +12,8 @@ const createGoogleBounds = (bounds: SearchMapBounds) => ({
 
 const createMapHarness = (initialBounds: SearchMapBounds) => {
   let currentBounds = initialBounds;
+  let currentCenter = { lat: 37.5665, lng: 126.978 };
+  let currentZoom = 7;
   const handlers: Record<string, () => void> = {};
   const listenerRemovals: Record<string, ReturnType<typeof vi.fn>> = {};
   const map = {
@@ -23,11 +25,22 @@ const createMapHarness = (initialBounds: SearchMapBounds) => {
     }),
     getBounds: vi.fn(() => createGoogleBounds(currentBounds)),
     getCenter: vi.fn(() => ({
-      lat: () => 37.5665,
-      lng: () => 126.978,
+      lat: () => currentCenter.lat,
+      lng: () => currentCenter.lng,
     })),
-    getZoom: vi.fn(() => 7),
-    setOptions: vi.fn(),
+    getZoom: vi.fn(() => currentZoom),
+    moveCamera: vi.fn(
+      ({
+        center,
+        zoom,
+      }: {
+        center: google.maps.LatLngLiteral;
+        zoom: number;
+      }) => {
+        currentCenter = center;
+        currentZoom = zoom;
+      },
+    ),
   } as unknown as google.maps.Map;
 
   return {
@@ -77,7 +90,7 @@ describe("useMapBoundsReporter", () => {
     });
     expect(vi.getTimerCount()).toBe(1);
     act(() => result.current.searchAround({ lat: 35.17, lng: 129.07 }));
-    expect(map.setOptions).toHaveBeenCalledExactlyOnceWith({
+    expect(map.moveCamera).toHaveBeenCalledExactlyOnceWith({
       center: { lat: 35.17, lng: 129.07 },
       zoom: 13,
     });
@@ -114,6 +127,58 @@ describe("useMapBoundsReporter", () => {
     rerender({ requestKey: "jeju" });
     act(() => handlers.idle?.());
     expect(onBoundsChange).not.toHaveBeenCalled();
+    expect(result.current.isLoadingBounds).toBe(false);
+  });
+
+  it("waits for the location camera when an earlier automatic fit finishes late", () => {
+    const { handlers, map, setBounds } = createMapHarness(initialBounds);
+    const onBoundsChange = vi.fn();
+    const mapInstanceRef = ref(map);
+    const isInitialIdleRef = ref(true);
+    const { result } = renderHook(() =>
+      useMapBoundsReporter({
+        isInitialIdleRef,
+        isMapLoaded: true,
+        mapInstanceRef,
+        onBoundsChange,
+      }),
+    );
+    act(() => result.current.searchAround({ lat: 35.17, lng: 129.07 }));
+    // Simulate a previously scheduled SDK fitBounds settling back over Seoul.
+    map.moveCamera({ center: { lat: 37.5665, lng: 126.978 }, zoom: 11 });
+    act(() => handlers.idle?.());
+    expect(onBoundsChange).not.toHaveBeenCalled();
+    expect(map.moveCamera).toHaveBeenLastCalledWith({
+      center: { lat: 35.17, lng: 129.07 },
+      zoom: 13,
+    });
+    const nearbyBounds = { north: 35.2, south: 35.1, east: 129.2, west: 129 };
+    setBounds(nearbyBounds);
+    act(() => handlers.idle?.());
+    expect(onBoundsChange).toHaveBeenCalledExactlyOnceWith(nearbyBounds);
+    expect(result.current.isLoadingBounds).toBe(false);
+  });
+
+  it("allows map interaction to cancel a location camera move before it settles", () => {
+    const { handlers, map } = createMapHarness(initialBounds);
+    const onBoundsChange = vi.fn();
+    const onUserDragCancel = vi.fn();
+    const mapInstanceRef = ref(map);
+    const isInitialIdleRef = ref(true);
+    const { result } = renderHook(() =>
+      useMapBoundsReporter({
+        isInitialIdleRef,
+        isMapLoaded: true,
+        mapInstanceRef,
+        onBoundsChange,
+        onUserDragCancel,
+      }),
+    );
+    act(() => result.current.searchAround({ lat: 35.17, lng: 129.07 }));
+    act(() => result.current.cancelLocationSearch());
+    act(() => handlers.idle?.());
+    expect(onBoundsChange).not.toHaveBeenCalled();
+    expect(onUserDragCancel).toHaveBeenCalledOnce();
     expect(result.current.isLoadingBounds).toBe(false);
   });
 
@@ -166,6 +231,30 @@ describe("useMapBoundsReporter", () => {
     expect(map.addListener).toHaveBeenCalledTimes(2);
     expect(handlers.idle).toEqual(expect.any(Function));
     expect(handlers.dragstart).toEqual(expect.any(Function));
+  });
+
+  it("recognizes the same camera across longitude normalization at the date line", () => {
+    const bounds = { north: 36, south: 34, east: -179, west: 179 };
+    const { map } = createMapHarness(bounds);
+    vi.mocked(map.getCenter).mockReturnValue({
+      lat: () => 35,
+      lng: () => -180,
+    } as google.maps.LatLng);
+    vi.mocked(map.getZoom).mockReturnValue(13);
+    const onBoundsChange = vi.fn();
+    const mapInstanceRef = ref(map);
+    const isInitialIdleRef = ref(true);
+    const { result } = renderHook(() =>
+      useMapBoundsReporter({
+        isInitialIdleRef,
+        isMapLoaded: true,
+        mapInstanceRef,
+        onBoundsChange,
+      }),
+    );
+    act(() => result.current.searchAround({ lat: 35, lng: 180 }));
+    expect(onBoundsChange).toHaveBeenCalledExactlyOnceWith(bounds);
+    expect(result.current.isLoadingBounds).toBe(false);
   });
 
   it("signals drag start immediately and cancels a drag whose bounds did not change", () => {

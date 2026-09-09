@@ -62,6 +62,7 @@ export const Map: React.FC<SearchMapProps> = ({
   const locationSearchRef = useRef<
     ((center: google.maps.LatLngLiteral) => void) | null
   >(null);
+  const cancelLocationSearchRef = useRef<(() => void) | null>(null);
   const currentLocation = useCurrentLocation({
     requestKey: boundsRequestKey,
     onLocation: (center) => locationSearchRef.current?.(center),
@@ -69,6 +70,7 @@ export const Map: React.FC<SearchMapProps> = ({
   const cancelLocation = currentLocation.cancel;
   const handleMapInteraction = useCallback(() => {
     cancelLocation();
+    cancelLocationSearchRef.current?.();
     onMapInteraction?.();
   }, [cancelLocation, onMapInteraction]);
 
@@ -85,17 +87,23 @@ export const Map: React.FC<SearchMapProps> = ({
     viewportJustChangedRef,
   });
 
-  const { isLoadingBounds, searchAround, cancelPendingBounds } =
-    useMapBoundsReporter({
-      isInitialIdleRef,
-      isMapLoaded,
-      mapInstanceRef,
-      onBoundsChange,
-      onUserDragCancel: onBoundsDragCancel,
-      onUserDragStart: onBoundsDragStart,
-      requestKey: boundsRequestKey,
-    });
+  const {
+    isLoadingBounds,
+    isLocationSearchPending,
+    searchAround,
+    cancelPendingBounds,
+    cancelLocationSearch,
+  } = useMapBoundsReporter({
+    isInitialIdleRef,
+    isMapLoaded,
+    mapInstanceRef,
+    onBoundsChange,
+    onUserDragCancel: onBoundsDragCancel,
+    onUserDragStart: onBoundsDragStart,
+    requestKey: boundsRequestKey,
+  });
   locationSearchRef.current = searchAround;
+  cancelLocationSearchRef.current = cancelLocationSearch;
 
   useAccommodationMarkers({
     accommodations,
@@ -177,8 +185,8 @@ export const Map: React.FC<SearchMapProps> = ({
             type="button"
             className={styles.locationButton}
             aria-label="현재 위치에서 검색"
-            aria-busy={currentLocation.isLocating}
-            disabled={currentLocation.isLocating}
+            aria-busy={currentLocation.isLocating || isLocationSearchPending}
+            disabled={currentLocation.isLocating || isLocationSearchPending}
             onClick={() => {
               cancelPendingBounds();
               onMapInteraction?.();
@@ -191,7 +199,11 @@ export const Map: React.FC<SearchMapProps> = ({
               <path d="M12 2v3m0 14v3M2 12h3m14 0h3" />
             </svg>
             <span>
-              {currentLocation.isLocating ? "위치 확인 중…" : "현재 위치"}
+              {currentLocation.isLocating
+                ? "위치 확인 중…"
+                : isLocationSearchPending
+                  ? "주변 검색 중…"
+                  : "현재 위치"}
             </span>
           </button>
           <div
