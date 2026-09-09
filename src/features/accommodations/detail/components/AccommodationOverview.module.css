@@ -45,6 +45,7 @@
 }
 
 .amenitiesTitle {
+  scroll-margin-top: calc(var(--layout-header-desktop-height) + var(--space-6));
   margin: 0 0 var(--space-5);
   color: var(--color-text-primary);
   font-size: var(--font-size-xl);
@@ -234,4 +235,8 @@
     gap: var(--space-2);
     font-size: var(--font-size-sm);
   }
+}
+
+.amenitiesTitle:focus {
+  outline: none;
 }

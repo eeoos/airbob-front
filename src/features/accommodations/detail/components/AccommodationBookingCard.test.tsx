@@ -4,6 +4,7 @@ import { readFileSync } from "fs";
 import type { AccommodationBookingCouponViewModel } from "../lib/accommodationBookingSectionsViewModel";
 import type { AccommodationBookingViewModel } from "../lib/accommodationBookingViewModel";
 import { AccommodationBookingCard } from "./AccommodationBookingCard";
+import { AccommodationBookingSummary } from "./AccommodationBookingSummary";
 
 vi.mock("../../../../shared/ui", async () => {
   const actual = await vi.importActual<typeof import("../../../../shared/ui")>(
@@ -170,6 +171,54 @@ const setupBookingCard = (overrides: BookingCardOverrides = {}) => {
 };
 
 describe("AccommodationBookingCard", () => {
+  it("uses the same price and reservation command in the scrolled desktop summary", () => {
+    const props = createBookingCardProps();
+    const onRevealBooking = vi.fn();
+    render(
+      <AccommodationBookingSummary
+        {...props}
+        onRevealBooking={onRevealBooking}
+        ratingLabel="4.8"
+        reviewCountLabel="후기 12개"
+      />,
+    );
+    expect(screen.getByText("₩190,000")).toBeVisible();
+    expect(screen.getByText("★ 4.8 · 후기 12개")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "예약하기" }));
+    expect(onRevealBooking).toHaveBeenCalledOnce();
+    expect(props.bookingActions.onReserve).toHaveBeenCalledOnce();
+  });
+
+  it("returns to the reservation calendar from an undated desktop summary", () => {
+    const props = createBookingCardProps();
+    const onRevealBooking = vi.fn();
+    render(
+      <AccommodationBookingSummary
+        {...props}
+        bookingState={{
+          ...props.bookingState,
+          checkIn: null,
+          checkOut: null,
+          nights: 0,
+          isStayReady: false,
+          selectionState: "incomplete",
+        }}
+        onRevealBooking={onRevealBooking}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "예약 가능 여부 보기" }),
+    );
+    expect(onRevealBooking).toHaveBeenCalledOnce();
+    expect(props.bookingActions.onDatePickerOpenChange).toHaveBeenCalledWith(
+      true,
+    );
+    expect(props.bookingActions.onGuestPickerOpenChange).toHaveBeenCalledWith(
+      false,
+    );
+    expect(props.bookingActions.onReserve).not.toHaveBeenCalled();
+  });
+
   it("renders booking price, dates, guest summary, coupon, and reserve action", () => {
     const bookingProps = setupBookingCard();
 

@@ -80,6 +80,7 @@ interface BookingPriceBreakdownProps {
 }
 
 interface BookingReserveActionProps {
+  buttonRef?: React.RefObject<HTMLButtonElement | null> | undefined;
   availabilityStatus: "loading" | "error" | "ready";
   hasCompleteStay: boolean;
   isReservationLocked: boolean;
@@ -805,6 +806,7 @@ export function BookingPriceBreakdown({
 }
 
 export function BookingReserveAction({
+  buttonRef,
   availabilityStatus,
   hasCompleteStay,
   isReservationLocked,
@@ -943,7 +945,10 @@ export function BookingReserveAction({
       )}
 
       <Button
-        ref={actionRef}
+        ref={(element) => {
+          actionRef.current = element;
+          if (buttonRef) buttonRef.current = element;
+        }}
         fullWidth
         size="lg"
         className={styles.reserveButton}

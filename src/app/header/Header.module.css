@@ -14,6 +14,10 @@
   padding-inline: var(--space-8);
 }
 
+.detailHeader {
+  position: relative;
+}
+
 .container {
   display: flex;
   align-items: center;

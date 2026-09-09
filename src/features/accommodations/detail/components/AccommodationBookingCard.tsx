@@ -95,6 +95,7 @@ interface AccommodationCouponActions {
 }
 
 interface AccommodationBookingCardProps {
+  reserveActionRef?: React.RefObject<HTMLButtonElement | null>;
   locationLabel?: string;
   ratingLabel?: string;
   bookingView: AccommodationBookingViewModel;
@@ -106,6 +107,7 @@ interface AccommodationBookingCardProps {
 }
 
 export function AccommodationBookingCard({
+  reserveActionRef,
   locationLabel,
   ratingLabel,
   bookingView,
@@ -195,6 +197,7 @@ export function AccommodationBookingCard({
     selectDates: () => void,
   ) => (
     <BookingReserveAction
+      buttonRef={reserveActionRef}
       availabilityStatus={availabilityStatus}
       hasCompleteStay={hasCompleteStay}
       isReservationLocked={isReservationLocked}

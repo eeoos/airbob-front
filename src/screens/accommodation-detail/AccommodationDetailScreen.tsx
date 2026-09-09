@@ -1,6 +1,7 @@
 import { useRef, type ComponentProps } from "react";
 import { useResponsiveLayout } from "../../shared/styles/useResponsiveLayout";
 import { AccommodationBookingCard } from "../../features/accommodations/detail/components/AccommodationBookingCard";
+import { AccommodationBookingSummary } from "../../features/accommodations/detail/components/AccommodationBookingSummary";
 import {
   AccommodationDescriptionModal,
   AccommodationHero,
@@ -25,6 +26,10 @@ import {
   ToastHost,
 } from "../../shared/ui";
 import styles from "./AccommodationDetailScreen.module.css";
+import {
+  DETAIL_SECTIONS,
+  useDetailScrollNavigation,
+} from "./useDetailScrollNavigation";
 
 export interface AccommodationDetailReadyView {
   readonly authModal: AuthModalProps;
@@ -72,6 +77,9 @@ export function AccommodationDetailScreen({
 }: AccommodationDetailScreenProps) {
   const stateOwnerRef = useRef<HTMLDivElement>(null);
   const isMobile = useResponsiveLayout() === "mobile-tablet";
+  const navigation = useDetailScrollNavigation(
+    !isMobile && state.status === "ready",
+  );
   const backButton = onBack && (
     <button
       type="button"
@@ -181,6 +189,61 @@ export function AccommodationDetailScreen({
       role="region"
       tabIndex={-1}
     >
+      {!isMobile && (
+        <div
+          ref={navigation.navigationRef}
+          className={styles.detailNavigation}
+          data-visible={navigation.visible}
+          aria-hidden={!navigation.visible}
+          inert={!navigation.visible}
+        >
+          <div className={styles.navigationInner}>
+            <nav aria-label="숙소 상세 목차" className={styles.sectionLinks}>
+              {DETAIL_SECTIONS.filter(
+                ({ id }) =>
+                  id !== "accommodation-amenities-title" ||
+                  view.overview.detailView.amenities.length > 0,
+              ).map(({ id, label }) => (
+                <a
+                  key={id}
+                  href={`#${id}`}
+                  aria-current={
+                    navigation.activeSection === id ? "location" : undefined
+                  }
+                  onClick={(event) => {
+                    event.preventDefault();
+                    navigation.navigateToSection(id);
+                  }}
+                >
+                  {label}
+                </a>
+              ))}
+            </nav>
+            {navigation.showReservation && (
+              <AccommodationBookingSummary
+                bookingState={view.bookingCard.bookingState}
+                bookingActions={view.bookingCard.bookingActions}
+                ratingLabel={
+                  view.overview.detailView.rating.hasReviews
+                    ? view.overview.detailView.rating.averageRatingLabel
+                    : undefined
+                }
+                reviewCountLabel={
+                  view.overview.detailView.rating.hasReviews
+                    ? view.overview.detailView.rating.reviewCountLabel
+                    : undefined
+                }
+                onRevealBooking={() =>
+                  navigation.reserveActionRef.current?.scrollIntoView({
+                    block: "center",
+                    behavior: "instant",
+                  })
+                }
+              />
+            )}
+          </div>
+        </div>
+      )}
       <PageContainer variant="full">
         {refreshError && (
           <div className={styles.refreshError} role="alert">
@@ -200,7 +263,14 @@ export function AccommodationDetailScreen({
             </Button>
           </div>
         )}
-        <AccommodationHero {...view.hero} />
+        <div
+          id="accommodation-photos"
+          ref={navigation.heroRef}
+          tabIndex={-1}
+          className={styles.sectionTarget}
+        >
+          <AccommodationHero {...view.hero} />
+        </div>
 
         <div className={styles.contentWrapper}>
           <div className={styles.leftColumn}>
@@ -208,13 +278,28 @@ export function AccommodationDetailScreen({
           </div>
           {!isMobile && (
             <div className={styles.sidebar}>
-              <AccommodationBookingCard {...view.bookingCard} />
+              <AccommodationBookingCard
+                {...view.bookingCard}
+                reserveActionRef={navigation.reserveActionRef}
+              />
             </div>
           )}
         </div>
 
-        <AccommodationLocationSection {...view.location} />
-        <AccommodationReviewsSection {...view.reviews} />
+        <div
+          id="accommodation-location"
+          tabIndex={-1}
+          className={styles.sectionTarget}
+        >
+          <AccommodationLocationSection {...view.location} />
+        </div>
+        <div
+          id="accommodation-reviews"
+          tabIndex={-1}
+          className={styles.sectionTarget}
+        >
+          <AccommodationReviewsSection {...view.reviews} />
+        </div>
         {isMobile && (
           <AccommodationBookingCard
             {...view.bookingCard}
