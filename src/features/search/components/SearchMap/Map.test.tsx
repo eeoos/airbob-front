@@ -56,6 +56,29 @@ describe("SearchMap", () => {
 
   afterEach(() => vi.unstubAllGlobals());
 
+  it("reveals the map before opening a selected marker card on mobile", () => {
+    const onMapInteraction = vi.fn();
+    const onAccommodationSelect = vi.fn();
+    render(
+      <Map
+        {...baseProps}
+        onMapInteraction={onMapInteraction}
+        onAccommodationSelect={onAccommodationSelect}
+      />,
+    );
+    const selection =
+      hookMocks.useAccommodationMarkers.mock.calls[0]?.[0]
+        .onAccommodationSelectRef;
+    act(() => selection.current({ id: 10 }));
+    expect(onMapInteraction).toHaveBeenCalledOnce();
+    expect(onAccommodationSelect).toHaveBeenCalledWith({ id: 10 });
+    expect(onMapInteraction.mock.invocationCallOrder[0]).toBeLessThan(
+      onAccommodationSelect.mock.invocationCallOrder[0]!,
+    );
+    act(() => selection.current(null));
+    expect(onMapInteraction).toHaveBeenCalledOnce();
+  });
+
   it("cancels old map searches before requesting location and moves only after permission succeeds", () => {
     let succeed: PositionCallback | undefined;
     const getCurrentPosition = vi.fn((success: PositionCallback) => {

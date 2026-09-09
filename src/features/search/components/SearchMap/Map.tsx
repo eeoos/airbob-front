@@ -56,10 +56,6 @@ export const Map: React.FC<SearchMapProps> = ({
   const { isLoaded: isMapLoaded, status: mapScriptStatus } =
     useGoogleMapsScript();
 
-  useEffect(() => {
-    onAccommodationSelectRef.current = onAccommodationSelect;
-  }, [onAccommodationSelect]);
-
   const locationSearchRef = useRef<
     ((center: google.maps.LatLngLiteral) => void) | null
   >(null);
@@ -74,6 +70,13 @@ export const Map: React.FC<SearchMapProps> = ({
     cancelLocationSearchRef.current?.();
     onMapInteraction?.();
   }, [cancelLocation, onMapInteraction]);
+
+  useEffect(() => {
+    onAccommodationSelectRef.current = (accommodation) => {
+      if (accommodation) handleMapInteraction();
+      onAccommodationSelect(accommodation);
+    };
+  }, [handleMapInteraction, onAccommodationSelect]);
 
   const mapRuntimeError = useGoogleMapInstance({
     infoWindowRef,

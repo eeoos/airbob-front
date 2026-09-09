@@ -5,6 +5,8 @@ import {
   type RefObject,
 } from "react";
 import { getGoogleMapsApi } from "../../../../../platform/integrations/googleMaps";
+import { getMarkerIconModel } from "../lib/markerIcon";
+import { MAP_CARD_LAYOUT } from "../lib/infoWindowPlacement";
 import { buildInfoWindowContent } from "../lib/infoWindowContent";
 import {
   adjustInfoWindowIntoMapView,
@@ -93,21 +95,7 @@ export const useMapSelectionInfoWindow = ({
     const maps = getGoogleMapsApi();
     if (!mapInstanceRef.current || !maps) return;
 
-    let isEffectActive = true;
-    const pendingTimers = new Set<number>();
     let disposeOwnedInfoWindow: (() => void) | null = null;
-    const schedule = (callback: () => void, delay: number) => {
-      const timer = window.setTimeout(() => {
-        pendingTimers.delete(timer);
-        if (isEffectActive) callback();
-      }, delay);
-      pendingTimers.add(timer);
-      return timer;
-    };
-    const clearPendingTimers = () => {
-      pendingTimers.forEach((timer) => window.clearTimeout(timer));
-      pendingTimers.clear();
-    };
 
     const currentSelectedId = selectedAccommodationId;
     const prevSelectedId = prevSelectedIdRef.current;
@@ -181,8 +169,19 @@ export const useMapSelectionInfoWindow = ({
       }
 
       if (selectedMarker) {
+        const map = mapInstanceRef.current;
+        const position = {
+          lat: selectedAccommodation.coordinate.latitude,
+          lng: selectedAccommodation.coordinate.longitude,
+        };
+        const markerHeight = getMarkerIconModel(
+          selectedAccommodation,
+        ).bubbleHeight;
         const infoWindow = new maps.InfoWindow({
           disableAutoPan: true,
+          headerDisabled: true,
+          maxWidth: MAP_CARD_LAYOUT.width,
+          position,
           content: buildInfoWindowContent({
             accommodation: selectedAccommodation,
             canToggleWishlist: !!onWishlistToggle,
@@ -196,10 +195,14 @@ export const useMapSelectionInfoWindow = ({
         let closeClickListener: google.maps.MapsEventListener | null = null;
         let closeListener: google.maps.MapsEventListener | null = null;
         let resizeListener: google.maps.MapsEventListener | null = null;
+        let idleListener: google.maps.MapsEventListener | null = null;
+        let resizeObserver: ResizeObserver | null = null;
+        let pixelOffset = { x: 0, y: 0 };
         let didHandleInfoWindowClose = false;
         let pendingCloseOptions: CloseInfoWindowOptions | null = null;
         const cleanupInfoWindowListeners = () => {
-          clearPendingTimers();
+          resizeObserver?.disconnect();
+          resizeObserver = null;
           unbindInfoWindowEvents?.();
           unbindInfoWindowEvents = null;
 
@@ -208,6 +211,7 @@ export const useMapSelectionInfoWindow = ({
             closeClickListener,
             closeListener,
             resizeListener,
+            idleListener,
           ].forEach((listener) => {
             if (listener) {
               maps.event.removeListener(listener);
@@ -218,6 +222,7 @@ export const useMapSelectionInfoWindow = ({
           closeClickListener = null;
           closeListener = null;
           resizeListener = null;
+          idleListener = null;
         };
 
         const handleInfoWindowClose = (options?: CloseInfoWindowOptions) => {
@@ -266,20 +271,25 @@ export const useMapSelectionInfoWindow = ({
           closeSelectedInfoWindow({ clearSelection: false });
         };
 
+        const adjustInfoWindowPosition = () => {
+          if (didHandleInfoWindowClose || !mapRef.current) return;
+          adjustInfoWindowIntoMapView({
+            mapElement: mapRef.current,
+            map,
+            position,
+            markerHeight,
+            offset: pixelOffset,
+            setOffset: (x, y) => {
+              pixelOffset = { x, y };
+              infoWindow.setOptions({ pixelOffset: new maps.Size(x, y) });
+            },
+          });
+        };
+
         domReadyListener = infoWindow.addListener("domready", () => {
           const mapElement = mapRef.current;
-
-          if (!mapElement) {
-            return;
-          }
-
-          schedule(() => {
-            adjustInfoWindowIntoMapView({
-              mapElement,
-              root: mapElement,
-            });
-          }, 50);
-
+          if (!mapElement) return;
+          applyInfoWindowChromeStyles(mapElement);
           const infoWindowElement = mapElement.querySelector<HTMLElement>(
             `#info-window-${selectedAccommodation.id}`,
           );
@@ -290,9 +300,14 @@ export const useMapSelectionInfoWindow = ({
               accommodationId: selectedAccommodation.id,
               onClose: closeSelectedInfoWindow,
             });
+            if (typeof ResizeObserver !== "undefined") {
+              resizeObserver?.disconnect();
+              resizeObserver = new ResizeObserver(adjustInfoWindowPosition);
+              resizeObserver.observe(mapElement);
+              resizeObserver.observe(infoWindowElement);
+            }
           }
-
-          applyInfoWindowChromeStyles(mapElement);
+          adjustInfoWindowPosition();
         });
 
         closeClickListener = infoWindow.addListener("closeclick", () => {
@@ -302,30 +317,17 @@ export const useMapSelectionInfoWindow = ({
           handleInfoWindowClose();
         });
 
-        infoWindow.open(mapInstanceRef.current, selectedMarker);
         infoWindowRef.current = infoWindow;
-
-        const adjustInfoWindowPosition = () => {
-          if (!infoWindowRef.current || !mapRef.current) {
-            return;
-          }
-
-          const mapElement = mapRef.current;
-
-          schedule(() => {
-            adjustInfoWindowIntoMapView({
-              mapElement,
-              root: mapElement,
-            });
-          }, 100);
-        };
-
+        infoWindow.open({ map, shouldFocus: false });
         resizeListener = maps.event.addListener(
-          mapInstanceRef.current,
+          map,
           "resize",
-          () => {
-            adjustInfoWindowPosition();
-          },
+          adjustInfoWindowPosition,
+        );
+        idleListener = maps.event.addListener(
+          map,
+          "idle",
+          adjustInfoWindowPosition,
         );
       }
     }
@@ -333,8 +335,6 @@ export const useMapSelectionInfoWindow = ({
     prevSelectedIdRef.current = currentSelectedId;
 
     return () => {
-      isEffectActive = false;
-      clearPendingTimers();
       disposeOwnedInfoWindow?.();
     };
   }, [

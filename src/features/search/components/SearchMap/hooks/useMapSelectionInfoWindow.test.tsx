@@ -228,10 +228,10 @@ describe("useMapSelectionInfoWindow", () => {
     expect(firstInfoWindow.close).toHaveBeenCalledTimes(1);
     expect(onAccommodationSelect).not.toHaveBeenCalledWith(null);
     expect(infoWindowRef.current).toBe(googleMaps.infoWindows[1]);
-    expect(secondInfoWindow.open).toHaveBeenCalledWith(
-      baseOptions.mapInstanceRef.current,
-      secondMarker,
-    );
+    expect(secondInfoWindow.open).toHaveBeenCalledWith({
+      map: baseOptions.mapInstanceRef.current,
+      shouldFocus: false,
+    });
     expect(firstMarker.isSelected).toBe(false);
     expect(secondMarker.isSelected).toBe(true);
   });
@@ -292,14 +292,21 @@ describe("useMapSelectionInfoWindow", () => {
       googleMaps.infoWindows[0],
       "selected InfoWindow",
     );
-    expect(infoWindow.open).toHaveBeenCalledWith(
-      expect.anything(),
-      selectedMarker,
-    );
+    expect(infoWindow.open).toHaveBeenCalledWith({
+      map: expect.anything(),
+      shouldFocus: false,
+    });
   });
 
-  it("closes its InfoWindow and clears DOM/resize timers on unmount", () => {
-    vi.useFakeTimers();
+  it("closes its InfoWindow and disconnects resize observers and SDK listeners on unmount", () => {
+    const disconnect = vi.fn();
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe = vi.fn();
+        disconnect = disconnect;
+      },
+    );
     const googleMaps = installGoogleMapsMock();
     const selectedAccommodation = createAccommodation();
     const selectedMarker = createMarker(selectedAccommodation.id);
@@ -339,13 +346,11 @@ describe("useMapSelectionInfoWindow", () => {
     expect(resizeCall).toBeDefined();
     resizeCall?.[2]?.();
 
-    expect(vi.getTimerCount()).toBeGreaterThan(0);
-
     unmount();
 
     expect(infoWindow.close).toHaveBeenCalledTimes(1);
     expect(googleMaps.removeListener).toHaveBeenCalled();
-    expect(vi.getTimerCount()).toBe(0);
-    vi.useRealTimers();
+    expect(disconnect).toHaveBeenCalled();
+    vi.unstubAllGlobals();
   });
 });

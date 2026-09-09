@@ -1,71 +1,54 @@
+import {
+  MAP_CARD_LAYOUT,
+  getMapCardPlacement,
+  getMarkerMapPoint,
+} from "./infoWindowPlacement";
+
 interface AdjustInfoWindowIntoMapViewOptions {
   mapElement: HTMLElement;
-  root?: ParentNode;
-  infoWindowWidth?: number;
-  margin?: number;
+  map: google.maps.Map;
+  position: google.maps.LatLngLiteral;
+  markerHeight: number;
+  offset: { x: number; y: number };
+  setOffset: (x: number, y: number) => void;
 }
-
-const parseTranslateTransform = (transform: string) => {
-  const translateMatch = transform.match(/translate\(([^,]+),\s*([^)]+)\)/);
-  const rawX = translateMatch?.[1];
-  const rawY = translateMatch?.[2];
-
-  return {
-    x: rawX === undefined ? 0 : parseFloat(rawX),
-    y: rawY === undefined ? 0 : parseFloat(rawY),
-  };
-};
 
 export const adjustInfoWindowIntoMapView = ({
   mapElement,
-  root = mapElement,
-  infoWindowWidth = 327,
-  margin = 20,
+  map,
+  position,
+  markerHeight,
+  offset,
+  setOffset,
 }: AdjustInfoWindowIntoMapViewOptions) => {
-  const infoWindowContainer = root.querySelector<HTMLElement>(".gm-style-iw-c");
-  if (!infoWindowContainer) {
-    return false;
-  }
-
-  const infoWindowParent = infoWindowContainer.parentElement;
-  if (!infoWindowParent) {
-    return false;
-  }
-
+  const container = mapElement.querySelector<HTMLElement>(".gm-style-iw-c");
+  const card = container?.querySelector<HTMLElement>("[data-map-card]");
+  if (!container || !card) return;
+  applyInfoWindowChromeStyles(mapElement);
   const mapRect = mapElement.getBoundingClientRect();
-  const infoWindowRect = infoWindowContainer.getBoundingClientRect();
-  const infoWindowHeight = infoWindowRect.height;
+  if (mapRect.width <= 0 || mapRect.height <= 0) return;
+  const point = getMarkerMapPoint(map, position, mapRect.width, mapRect.height);
+  if (!point) return;
 
-  const infoWindowLeft = infoWindowRect.left - mapRect.left;
-  const infoWindowTop = infoWindowRect.top - mapRect.top;
-  const infoWindowRight = infoWindowLeft + infoWindowWidth;
-  const infoWindowBottom = infoWindowTop + infoWindowHeight;
-
-  let adjustX = 0;
-  let adjustY = 0;
-
-  if (infoWindowLeft < margin) {
-    adjustX = margin - infoWindowLeft;
-  } else if (infoWindowRight > mapRect.width - margin) {
-    adjustX = mapRect.width - margin - infoWindowRight;
+  card.style.width = `${Math.max(0, Math.min(MAP_CARD_LAYOUT.width, mapRect.width - MAP_CARD_LAYOUT.margin * 2))}px`;
+  card.style.maxHeight = `${Math.max(0, mapRect.height - MAP_CARD_LAYOUT.margin * 2)}px`;
+  const rect = container.getBoundingClientRect();
+  const placement = getMapCardPlacement({
+    mapWidth: mapRect.width,
+    mapHeight: mapRect.height,
+    cardWidth: rect.width,
+    cardHeight: rect.height,
+    markerX: point.x,
+    markerY: point.y,
+    markerHeight,
+  });
+  const dx = placement.left - (rect.left - mapRect.left);
+  const dy = placement.top - (rect.top - mapRect.top);
+  if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+    setOffset(offset.x + dx, offset.y + dy);
   }
-
-  if (infoWindowTop < margin) {
-    adjustY = margin - infoWindowTop;
-  } else if (infoWindowBottom > mapRect.height - margin) {
-    adjustY = mapRect.height - margin - infoWindowBottom;
-  }
-
-  if (adjustX === 0 && adjustY === 0) {
-    return false;
-  }
-
-  const currentTransform = parseTranslateTransform(
-    infoWindowParent.style.transform || "",
-  );
-  infoWindowParent.style.transform = `translate(${currentTransform.x + adjustX}px, ${currentTransform.y + adjustY}px)`;
-
-  return true;
+  card.dataset.placement = placement.side;
+  card.style.visibility = "visible";
 };
 
 export const applyInfoWindowChromeStyles = (root: ParentNode) => {
@@ -75,6 +58,7 @@ export const applyInfoWindowChromeStyles = (root: ParentNode) => {
     infoWindowContent.style.background = "transparent";
     infoWindowContent.style.boxShadow = "none";
     infoWindowContent.style.overflow = "visible";
+    infoWindowContent.style.maxHeight = "none";
   }
 
   const infoWindowContainer = root.querySelector<HTMLElement>(".gm-style-iw-c");
@@ -84,6 +68,9 @@ export const applyInfoWindowChromeStyles = (root: ParentNode) => {
     infoWindowContainer.style.boxShadow = "none";
     infoWindowContainer.style.borderRadius = "12px";
     infoWindowContainer.style.overflow = "hidden";
+    // The responsive card owns its bounds; Google's padding allowance would clip it.
+    infoWindowContainer.style.maxWidth = "none";
+    infoWindowContainer.style.maxHeight = "none";
   }
 
   root.querySelector<HTMLElement>(".gm-style-iw-chr")?.remove();

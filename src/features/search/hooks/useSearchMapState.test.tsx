@@ -2,7 +2,7 @@ import { act, renderHook } from "@testing-library/react";
 import { useSearchMapState } from "./useSearchMapState";
 
 describe("useSearchMapState", () => {
-  it("tracks selected and hovered accommodations for list/map sync", () => {
+  it("selects a map marker without moving the results list", () => {
     const scrollIntoView = vi.fn();
     const element = document.createElement("div");
     element.id = "accommodation-10";
@@ -18,10 +18,7 @@ describe("useSearchMapState", () => {
 
     expect(result.current.hoveredAccommodationId).toBe(10);
     expect(result.current.selectedAccommodationId).toBe(10);
-    expect(scrollIntoView).toHaveBeenCalledWith({
-      behavior: "smooth",
-      block: "center",
-    });
+    expect(scrollIntoView).not.toHaveBeenCalled();
 
     act(() => {
       result.current.handleAccommodationSelect(null);
