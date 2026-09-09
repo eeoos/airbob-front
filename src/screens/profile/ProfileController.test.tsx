@@ -611,9 +611,7 @@ describe("ProfileController", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "리스팅 비공개" }),
     );
-    await userEvent.click(
-      screen.getByRole("button", { name: "숙소 관리 닫기" }),
-    );
+    await userEvent.keyboard("{Escape}");
     await userEvent.click(
       screen.getByRole("button", {
         name: "북촌 숙소 숙소 관리 열기",

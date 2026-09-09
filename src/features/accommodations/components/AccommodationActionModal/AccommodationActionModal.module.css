@@ -16,63 +16,6 @@
   padding: var(--space-6);
 }
 
-.closeButton {
-  position: absolute;
-  top: var(--space-4);
-  left: var(--space-4);
-  z-index: var(--z-local-raised);
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--control-touch-target);
-  height: var(--control-touch-target);
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--color-text-primary);
-  cursor: pointer;
-  transition:
-    background-color var(--motion-duration-base) var(--motion-ease-standard),
-    border-color var(--motion-duration-base) var(--motion-ease-standard),
-    box-shadow var(--motion-duration-base) var(--motion-ease-standard);
-}
-
-.closeButton:hover {
-  border-color: var(--color-border-default);
-  background-color: var(--color-surface-brand-subtle);
-}
-
-.closeButton:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring-visible);
-}
-
-.closeButton svg {
-  width: var(--space-5);
-  height: var(--space-5);
-}
-
-.header {
-  padding: 0 var(--space-1) 0 calc(var(--control-touch-target) + var(--space-3));
-}
-
-.title {
-  margin: 0;
-  color: var(--color-brand-ink);
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-  line-height: var(--line-height-heading);
-}
-
-.description {
-  margin: var(--space-1) 0 0;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  line-height: var(--line-height-body);
-}
-
 .accommodationHeader,
 .accommodationPreview {
   box-sizing: border-box;
@@ -211,21 +154,6 @@
     padding: var(--space-4);
   }
 
-  .closeButton {
-    top: var(--space-3);
-    left: var(--space-3);
-  }
-
-  .header {
-    min-height: var(--control-touch-target);
-    padding-right: 0;
-    padding-left: calc(var(--control-touch-target) + var(--space-2));
-  }
-
-  .description {
-    display: none;
-  }
-
   .previewCopy {
     align-items: flex-start;
     flex-direction: column;
@@ -238,7 +166,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .closeButton,
   .accommodationHeader {
     transition: none;
   }
