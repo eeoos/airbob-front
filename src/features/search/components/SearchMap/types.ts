@@ -11,6 +11,7 @@ export type SearchMapViewport = SearchMapBounds;
 export type SearchMapAccommodation = SearchAccommodationMapViewModel;
 
 export interface SearchMapProps {
+  selectionPresentation?: "anchored" | "bottom" | undefined;
   autoFitAccommodations?: boolean | undefined;
   isWaitingForResults?: boolean | undefined;
   accommodations: SearchMapAccommodation[];

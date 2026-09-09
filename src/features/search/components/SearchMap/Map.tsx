@@ -15,6 +15,7 @@ import type { SearchMapMarker, SearchMapProps } from "./types";
 import styles from "./Map.module.css";
 
 export const Map: React.FC<SearchMapProps> = ({
+  selectionPresentation = "anchored",
   autoFitAccommodations = true,
   isWaitingForResults = false,
   accommodations,
@@ -130,6 +131,7 @@ export const Map: React.FC<SearchMapProps> = ({
   });
 
   useMapSelectionInfoWindow({
+    showInfoWindow: selectionPresentation === "anchored",
     accommodations,
     checkIn,
     checkOut,

@@ -111,8 +111,8 @@ export const useGoogleMapInstance = ({
         map.addListener("click", () => {
           if (infoWindowRef.current) {
             infoWindowRef.current.close();
-            onAccommodationSelectRef.current(null);
           }
+          onAccommodationSelectRef.current(null);
 
           onMapInteractionRef.current?.();
         }),

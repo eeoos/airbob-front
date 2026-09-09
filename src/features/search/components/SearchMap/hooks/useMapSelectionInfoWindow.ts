@@ -16,6 +16,7 @@ import type { SearchMapAccommodation, SearchMapMarker } from "../types";
 import { useMapInfoWindowEvents } from "./useMapInfoWindowEvents";
 
 interface UseMapSelectionInfoWindowOptions {
+  showInfoWindow?: boolean;
   accommodations: SearchMapAccommodation[];
   checkIn?: string | null | undefined;
   checkOut?: string | null | undefined;
@@ -67,6 +68,7 @@ const selectMarker = (marker: SearchMapMarker | null) => {
 };
 
 export const useMapSelectionInfoWindow = ({
+  showInfoWindow = true,
   accommodations,
   checkIn,
   checkOut,
@@ -168,7 +170,17 @@ export const useMapSelectionInfoWindow = ({
         closeCurrentInfoWindowForReplacement();
       }
 
-      if (selectedMarker) {
+      if (selectedMarker && !showInfoWindow) {
+        disposeOwnedInfoWindow = () => {
+          restoreMarkerForHoverState(
+            selectedMarker,
+            selectedAccommodation.id,
+            hoveredAccommodationIdRef.current,
+          );
+        };
+      }
+
+      if (selectedMarker && showInfoWindow) {
         const map = mapInstanceRef.current;
         const position = {
           lat: selectedAccommodation.coordinate.latitude,
@@ -351,6 +363,7 @@ export const useMapSelectionInfoWindow = ({
     onWishlistToggle,
     prevSelectedIdRef,
     selectedAccommodationId,
+    showInfoWindow,
   ]);
 
   useEffect(() => {

@@ -4,6 +4,7 @@ import type { SearchScreenProps } from "./SearchScreen";
 import { SearchScreen } from "./SearchScreen";
 
 const mockMap = vi.fn();
+const mockMobileMapCard = vi.fn();
 const mockResultsList = vi.fn();
 const mockPagination = vi.fn();
 
@@ -59,6 +60,10 @@ vi.mock("framer-motion", () => {
 });
 
 vi.mock("../../features/search/components/SearchMap", () => ({
+  MobileMapCard: (props: unknown) => {
+    mockMobileMapCard(props);
+    return null;
+  },
   Map: (props: unknown) => {
     mockMap(props);
     return <section data-testid="search-map" />;
@@ -304,6 +309,60 @@ describe("SearchScreen", () => {
       );
       expect(scrollArea.scrollTop).toBe(720);
     }
+  });
+
+  it("shows the mobile selection above the full map and restores the list peek on close", () => {
+    const base = createProps();
+    const props = createProps({
+      bottomSheet: { ...base.bottomSheet, isMobileOrTablet: true },
+      map: { ...base.map, selectedAccommodationId: 7 },
+    });
+    const view = render(<SearchScreen {...props} />);
+    const sheet = props.bottomSheet.bottomSheetRef.current;
+
+    expect(mockMap).toHaveBeenLastCalledWith(
+      expect.objectContaining({ selectionPresentation: "bottom" }),
+    );
+    expect(screen.getByTestId("search-mobile-map-layer")).toHaveAttribute(
+      "data-full-map",
+      "true",
+    );
+    expect(sheet).toHaveAttribute("hidden");
+    expect(sheet).toHaveAttribute("inert");
+    const cardProps = mockMobileMapCard.mock.lastCall?.[0];
+    expect(cardProps).toEqual(
+      expect.objectContaining({
+        accommodation: props.results.accommodationMapItems[0],
+        checkIn: props.checkIn,
+        checkOut: props.checkOut,
+        onAccommodationOpen: props.onAccommodationOpen,
+        onWishlistToggle: props.onWishlistToggle,
+      }),
+    );
+    cardProps.onClose();
+    expect(props.map.handleAccommodationSelect).toHaveBeenCalledWith(null);
+
+    view.rerender(
+      <SearchScreen
+        {...props}
+        map={{ ...props.map, selectedAccommodationId: null }}
+      />,
+    );
+    expect(sheet).not.toHaveAttribute("hidden");
+    expect(sheet).not.toHaveAttribute("inert");
+    expect(mockMobileMapCard).toHaveBeenLastCalledWith(
+      expect.objectContaining({ accommodation: null }),
+    );
+
+    view.rerender(
+      <SearchScreen
+        {...props}
+        bottomSheet={{ ...props.bottomSheet, isMobileOrTablet: false }}
+      />,
+    );
+    expect(mockMap).toHaveBeenLastCalledWith(
+      expect.objectContaining({ selectionPresentation: "anchored" }),
+    );
   });
 
   it("removes the collapsed result pane from navigation in expanded map mode", () => {

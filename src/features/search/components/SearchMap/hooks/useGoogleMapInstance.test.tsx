@@ -60,12 +60,17 @@ describe("useGoogleMapInstance", () => {
     const listenerHandles = [{ remove: vi.fn() }, undefined];
     const unbindAll = vi.fn();
     let nextListenerIndex = 0;
-    const addListener = vi.fn(() => listenerHandles[nextListenerIndex++]);
+    const handlers = new Map<string, () => void>();
+    const addListener = vi.fn((event: string, handler: () => void) => {
+      handlers.set(event, handler);
+      return listenerHandles[nextListenerIndex++];
+    });
     const map = { addListener, unbindAll, fitBounds: vi.fn() };
     const mapElement = document.createElement("div");
     const removeEventListener = vi.spyOn(mapElement, "removeEventListener");
     const mapInstanceRef = ref<google.maps.Map | null>(null);
     const onMapInteraction = vi.fn();
+    const onAccommodationSelect = vi.fn();
 
     (window as any).google = {
       maps: {
@@ -79,7 +84,11 @@ describe("useGoogleMapInstance", () => {
 
     const { unmount } = renderHook(() =>
       useGoogleMapInstance(
-        createOptions(mapElement, { mapInstanceRef, onMapInteraction }),
+        createOptions(mapElement, {
+          mapInstanceRef,
+          onMapInteraction,
+          onAccommodationSelectRef: ref(onAccommodationSelect),
+        }),
       ),
     );
 
@@ -87,6 +96,9 @@ describe("useGoogleMapInstance", () => {
     mapElement.dispatchEvent(new WheelEvent("wheel", { bubbles: true }));
     mapElement.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true }));
     expect(onMapInteraction).toHaveBeenCalledTimes(2);
+    // A bottom card has no Google InfoWindow, but a blank-map click still closes it.
+    handlers.get("click")?.();
+    expect(onAccommodationSelect).toHaveBeenCalledWith(null);
     unmount();
 
     listenerHandles

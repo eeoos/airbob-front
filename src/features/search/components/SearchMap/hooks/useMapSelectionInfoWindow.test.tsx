@@ -127,6 +127,39 @@ describe("useMapSelectionInfoWindow", () => {
     vi.clearAllMocks();
   });
 
+  it("keeps mobile marker selection in sync without opening an anchored window", () => {
+    const maps = installGoogleMapsMock();
+    const first = createAccommodation();
+    const second = createAccommodation({ id: 20 });
+    const firstMarker = createMarker(first.id);
+    const secondMarker = createMarker(second.id);
+    const options = createHookOptions({
+      accommodations: [first, second],
+      markersRef: ref([firstMarker, secondMarker]),
+      selectedAccommodationId: first.id,
+      showInfoWindow: false,
+    });
+    const { rerender } = renderHook(
+      (props) => useMapSelectionInfoWindow(props),
+      { initialProps: options },
+    );
+    expect(firstMarker.setIcon).toHaveBeenLastCalledWith("selected-icon");
+    expect(maps.infoWindows).toHaveLength(0);
+    rerender({ ...options, selectedAccommodationId: second.id });
+    expect(firstMarker.setIcon).toHaveBeenLastCalledWith("default-icon");
+    expect(secondMarker.setIcon).toHaveBeenLastCalledWith("selected-icon");
+    expect(maps.infoWindows).toHaveLength(0);
+    rerender({
+      ...options,
+      selectedAccommodationId: second.id,
+      showInfoWindow: true,
+    });
+    expect(maps.infoWindows).toHaveLength(1);
+    rerender({ ...options, selectedAccommodationId: null });
+    expect(secondMarker.setIcon).toHaveBeenLastCalledWith("default-icon");
+    expect(options.onAccommodationSelect).not.toHaveBeenCalled();
+  });
+
   it("closes and clears the current InfoWindow when the selected accommodation disappears", () => {
     const googleMaps = installGoogleMapsMock();
     const selectedAccommodation = createAccommodation();
