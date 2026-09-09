@@ -306,7 +306,56 @@
 }
 
 .dateDialog {
-  max-width: 760px;
+  align-self: flex-start;
+  max-width: 960px;
+  max-height: calc(100dvh - var(--space-16));
+  margin-top: var(--space-4);
+  border-radius: var(--space-8);
+  overflow: hidden;
+}
+
+.dateDialogHeader {
+  flex: 0 0 auto;
+  padding: calc(var(--space-12) + var(--space-2)) var(--space-6) var(--space-5);
+}
+
+.dateDialogHeader h2 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 24px;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.25;
+}
+
+.dateDialogClose {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-touch-target);
+  height: var(--control-touch-target);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.dateDialogClose:hover:not(:disabled) {
+  background: var(--color-background-muted);
+}
+
+.dateDialogClose:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.dateDialogClose:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: -4px;
 }
 
 .dateDialog .editorBody,
@@ -327,7 +376,7 @@
 }
 
 .dateDialog .editorContent {
-  padding-inline: var(--space-4);
+  padding: 0 var(--space-6);
 }
 
 .guestRow {
@@ -381,6 +430,29 @@
   padding: var(--space-4) var(--space-6);
   border-top: 1px solid var(--color-border-subtle);
   background: var(--color-background-page);
+}
+
+.dateDialog .editorFooter {
+  padding: var(--space-6);
+  border: 0;
+}
+
+.dateDialog .dateSaveButton {
+  min-height: var(--space-12);
+  background: var(--color-text-primary);
+  color: var(--color-text-inverse);
+  border-color: var(--color-text-primary);
+}
+
+.dateDialog .dateSaveButton:hover:not(:disabled) {
+  background: var(--color-text-primary);
+  border-color: var(--color-text-primary);
+}
+
+.dateDialog .dateSaveButton:disabled {
+  background: var(--color-background-muted);
+  border-color: var(--color-background-muted);
+  color: var(--color-text-secondary);
 }
 
 .editorFooter > button:last-child {
@@ -538,6 +610,14 @@
   }
 
   .dateDialog .editorContent {
-    padding-inline: var(--space-2);
+    padding-inline: var(--space-6);
+  }
+
+  .dateDialogHeader {
+    padding-top: var(--space-12);
+  }
+
+  .dateDialogHeader h2 {
+    font-size: var(--font-size-xl);
   }
 }

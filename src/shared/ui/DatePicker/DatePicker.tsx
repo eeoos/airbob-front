@@ -37,7 +37,14 @@ export interface DatePickerProps {
   disabledRanges?: readonly DatePickerDisabledRange[];
   selectionWindow?: DatePickerSelectionWindow;
   hideFooter?: boolean;
-  variant?: "default" | "compact" | "search" | "inline" | "sheet" | "booking";
+  variant?:
+    | "default"
+    | "compact"
+    | "search"
+    | "inline"
+    | "sheet"
+    | "booking"
+    | "review";
   numberOfMonths?: 1 | 2;
   selectionEndpoint?: "checkIn" | "checkOut";
 }
@@ -72,6 +79,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 }) => {
   const [isKeyboardHelpOpen, setIsKeyboardHelpOpen] = useState(false);
   const isBooking = variant === "booking";
+  const hasPairedMonthNavigation = isBooking || variant === "review";
   const isSingleMonth = variant === "inline" && numberOfMonths === 1;
   const today = useMemo(() => startOfDay(new Date()), []);
   const todayKey = formatDateKey(today);
@@ -465,14 +473,16 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     const monthKey = formatDateKey(month);
     const monthHeadingId = `${pickerId}-${monthKey}`;
 
-    const visibleWeeks = isBooking
+    const visibleWeeks = hasPairedMonthNavigation
       ? calendarWeeks.filter((week) => week.some(Boolean))
       : calendarWeeks;
 
     return (
       <div className={styles.calendar}>
         <div className={styles.monthHeader}>
-          {(variant === "search" || variant === "inline" || isBooking) && (
+          {(variant === "search" ||
+            variant === "inline" ||
+            hasPairedMonthNavigation) && (
             <button
               aria-label={
                 navigationDirection === -1 ? "이전 달 보기" : "다음 달 보기"
@@ -634,7 +644,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       aria-label="날짜 선택"
       className={`${styles.datePicker} ${
         variant === "compact" ? styles.compact : ""
-      } ${variant === "search" || variant === "inline" || variant === "sheet" || isBooking ? styles.search : ""} ${variant === "inline" || variant === "sheet" ? styles.inline : ""} ${variant === "sheet" ? styles.sheet : ""} ${isBooking ? styles.booking : ""}`}
+      } ${variant === "search" || variant === "inline" || variant === "sheet" || hasPairedMonthNavigation ? styles.search : ""} ${variant === "inline" || variant === "sheet" ? styles.inline : ""} ${variant === "sheet" ? styles.sheet : ""} ${isBooking ? styles.booking : ""} ${variant === "review" ? styles.review : ""}`}
       ref={pickerRef}
       onKeyDownCapture={handlePickerKeyDown}
       role="group"

@@ -1,5 +1,5 @@
 import type { ComponentProps } from "react";
-import { screen, waitFor, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderApp } from "../../test/renderApp";
 import { ReservationReviewScreen } from "./ReservationReviewScreen";
@@ -87,6 +87,95 @@ const primaryAction = (name: string) => {
 };
 
 describe("ReservationReviewScreen", () => {
+  it("clears draft dates and saves a complete cross-month stay only when requested", async () => {
+    let acceptSave!: (accepted: boolean) => void;
+    const saveResult = new Promise<boolean>((resolve) => {
+      acceptSave = resolve;
+    });
+    const props = {
+      ...createProps(),
+      onSave: vi.fn().mockReturnValue(saveResult),
+    };
+    renderApp(
+      <ReservationReviewScreen
+        {...props}
+        availability={{
+          accommodationId: 42,
+          bookingWindowStartInclusive: "2026-09-01",
+          bookingWindowEndExclusive: "2026-12-01",
+          unavailableRanges: [],
+        }}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "날짜 변경" }));
+    const dialog = screen.getByRole("dialog", { name: "날짜 변경" });
+    const save = within(dialog).getByRole("button", { name: "저장" });
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "날짜 지우기" }),
+    );
+    expect(save).toBeDisabled();
+    expect(
+      within(dialog).queryAllByRole("gridcell", { selected: true }),
+    ).toHaveLength(0);
+    expect(props.onSave).not.toHaveBeenCalled();
+    await userEvent.click(
+      within(dialog).getByRole("gridcell", { name: /2026년 9월 29일/ }),
+    );
+    expect(save).toBeDisabled();
+    await userEvent.click(
+      within(dialog).getByRole("gridcell", { name: /2026년 10월 2일/ }),
+    );
+    expect(save).toBeEnabled();
+    expect(props.onSave).not.toHaveBeenCalled();
+    await userEvent.click(save);
+    expect(dialog).toBeInTheDocument();
+    await act(async () => {
+      acceptSave(true);
+      await saveResult;
+    });
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(props.onSave).toHaveBeenCalledWith({
+      checkIn: "2026-09-29",
+      checkOut: "2026-10-02",
+      adultCount: 2,
+      childCount: 0,
+      infantCount: 0,
+      petCount: 0,
+      couponId: null,
+    });
+    expect(screen.getByRole("button", { name: "날짜 변경" })).toHaveFocus();
+    expect(props.onCheckout).not.toHaveBeenCalled();
+  });
+
+  it("discards cleared dates with the close icon and restores the accepted stay", async () => {
+    const props = createProps();
+    renderApp(
+      <ReservationReviewScreen
+        {...props}
+        availability={{
+          accommodationId: 42,
+          bookingWindowStartInclusive: "2026-09-01",
+          bookingWindowEndExclusive: "2026-12-01",
+          unavailableRanges: [],
+        }}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "날짜 변경" }));
+    await userEvent.click(screen.getByRole("button", { name: "날짜 지우기" }));
+    await userEvent.click(screen.getByRole("button", { name: "닫기" }));
+    await userEvent.click(screen.getByRole("button", { name: "날짜 변경" }));
+    expect(
+      screen.getByRole("gridcell", { name: /2026년 9월 10일/ }),
+    ).toHaveAttribute("aria-selected", "true");
+    expect(
+      screen.getByRole("gridcell", { name: /2026년 9월 12일/ }),
+    ).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("button", { name: "저장" })).toBeEnabled();
+    expect(props.onSave).not.toHaveBeenCalled();
+  });
+
   it("waits for the final confirmation click and preserves editing on that step", async () => {
     const props = createProps();
     renderApp(<ReservationReviewScreen {...props} />);

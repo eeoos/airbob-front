@@ -866,3 +866,60 @@
 .keyboardHelp > button {
   align-self: flex-end;
 }
+
+.datePicker.review {
+  width: 100%;
+  max-width: 100%;
+  max-height: none;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  animation: none;
+}
+
+.review .calendarsScrollArea {
+  overflow: visible;
+  padding: 0;
+}
+
+.review .calendarWrapper,
+.review .calendar {
+  min-width: 0;
+}
+
+.review .monthNavButton {
+  color: var(--color-text-primary);
+}
+
+.review .weekday {
+  font-weight: var(--font-weight-regular);
+}
+
+.review .days {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 0;
+}
+
+.review .day {
+  min-width: 0;
+  height: auto;
+  max-height: var(--space-16);
+  aspect-ratio: 1;
+  font-size: var(--font-size-sm);
+}
+
+.review .dayNumber {
+  width: min(var(--space-16), 100%);
+}
+
+.review .day:focus-visible {
+  box-shadow: none;
+}
+
+.review .day:focus-visible .dayNumber {
+  outline: 1px solid var(--color-text-primary);
+  outline-offset: -2px;
+}

@@ -359,6 +359,7 @@ export function ReservationReviewScreen({
               : "쿠폰 선택"
         }
         onClose={closeEditor}
+        showHeader={editor !== "dates"}
         closeOnBackdrop={!busy}
         size="custom"
         className={
@@ -367,16 +368,40 @@ export function ReservationReviewScreen({
         bodyClassName={styles.editorBody ?? ""}
         bodyPadding="none"
       >
+        {editor === "dates" && (
+          <header className={styles.dateDialogHeader}>
+            <button
+              type="button"
+              className={styles.dateDialogClose}
+              aria-label="닫기"
+              disabled={busy}
+              onClick={closeEditor}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="m6 6 12 12M18 6 6 18"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+            <h2>날짜 변경</h2>
+          </header>
+        )}
         <div className={styles.editorContent}>
           {editor === "dates" && (
             <>
-              <p className={styles.secondary}>
-                여행 일정을 선택해주세요. 요금은 저장할 때 다시 확인합니다.
-              </p>
               {availability && !availabilityLoading ? (
                 <fieldset disabled={busy} className={styles.calendarFieldset}>
                   <DatePicker
-                    variant="compact"
+                    variant="review"
                     hideFooter
                     checkIn={calendarLocalDateToDate(draft.checkIn)}
                     checkOut={calendarLocalDateToDate(draft.checkOut)}
@@ -542,11 +567,21 @@ export function ReservationReviewScreen({
             type="button"
             className={styles.textButton}
             disabled={busy}
-            onClick={closeEditor}
+            onClick={
+              editor === "dates"
+                ? () =>
+                    setDraft((current) => ({
+                      ...current,
+                      checkIn: "",
+                      checkOut: "",
+                    }))
+                : closeEditor
+            }
           >
-            취소
+            {editor === "dates" ? "날짜 지우기" : "취소"}
           </button>
           <Button
+            className={editor === "dates" ? styles.dateSaveButton : undefined}
             disabled={
               busy ||
               (editor === "dates" &&

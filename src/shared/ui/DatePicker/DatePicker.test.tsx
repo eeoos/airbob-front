@@ -50,31 +50,34 @@ describe("DatePicker", () => {
     vi.useRealTimers();
   });
 
-  it("navigates paired booking months without duplicate titles or empty trailing weeks", () => {
-    renderDatePicker({ variant: "booking" });
-    expect(screen.getAllByText("2026년 7월")).toHaveLength(1);
-    expect(
-      within(screen.getByRole("grid", { name: "2026년 7월" })).getAllByRole(
-        "row",
-      ),
-    ).toHaveLength(6);
-    expect(
-      within(screen.getByRole("grid", { name: "2026년 8월" })).getAllByRole(
-        "row",
-      ),
-    ).toHaveLength(7);
-    fireEvent.click(screen.getByRole("button", { name: "다음 달 보기" }));
-    expect(
-      screen.getByRole("grid", { name: "2026년 8월" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("grid", { name: "2026년 9월" }),
-    ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "이전 달 보기" }));
-    expect(
-      screen.getByRole("grid", { name: "2026년 7월" }),
-    ).toBeInTheDocument();
-  });
+  it.each(["booking", "review"] as const)(
+    "navigates paired %s months without duplicate titles or empty trailing weeks",
+    (variant) => {
+      renderDatePicker({ variant });
+      expect(screen.getAllByText("2026년 7월")).toHaveLength(1);
+      expect(
+        within(screen.getByRole("grid", { name: "2026년 7월" })).getAllByRole(
+          "row",
+        ),
+      ).toHaveLength(6);
+      expect(
+        within(screen.getByRole("grid", { name: "2026년 8월" })).getAllByRole(
+          "row",
+        ),
+      ).toHaveLength(7);
+      fireEvent.click(screen.getByRole("button", { name: "다음 달 보기" }));
+      expect(
+        screen.getByRole("grid", { name: "2026년 8월" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("grid", { name: "2026년 9월" }),
+      ).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "이전 달 보기" }));
+      expect(
+        screen.getByRole("grid", { name: "2026년 7월" }),
+      ).toBeInTheDocument();
+    },
+  );
 
   it("shows keyboard help without closing the booking calendar and restores focus", () => {
     const { props } = renderDatePicker({ variant: "booking" });
