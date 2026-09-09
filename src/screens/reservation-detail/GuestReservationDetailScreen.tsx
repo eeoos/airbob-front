@@ -127,15 +127,6 @@ export function GuestReservationDetailScreen({
   return (
     <>
       <div className={guestStyles.container}>
-        <button
-          className={guestStyles.backButton}
-          type="button"
-          onClick={actions.onBackToProfile}
-        >
-          <span aria-hidden="true">←</span>
-          <span>돌아가기</span>
-        </button>
-
         <div className={guestStyles.content}>
           <div className={guestStyles.mainContent}>
             <section
@@ -177,7 +168,6 @@ export function GuestReservationDetailScreen({
                 </div>
                 <div className={guestStyles.accommodationInfo}>
                   <div className={guestStyles.heroMeta}>
-                    <span className={guestStyles.eyebrow}>여행 원장</span>
                     <StatusBadge tone={view.status.tone}>
                       {view.status.label}
                     </StatusBadge>
@@ -214,7 +204,6 @@ export function GuestReservationDetailScreen({
               className={guestStyles.section}
             >
               <div className={guestStyles.sectionHeading}>
-                <span className={guestStyles.sectionKicker}>일정</span>
                 <h2
                   className={guestStyles.sectionTitle}
                   id="guest-reservation-itinerary-title"
@@ -249,7 +238,6 @@ export function GuestReservationDetailScreen({
               className={guestStyles.section}
             >
               <div className={guestStyles.sectionHeading}>
-                <span className={guestStyles.sectionKicker}>예약</span>
                 <h2
                   className={guestStyles.sectionTitle}
                   id="guest-reservation-details-title"
@@ -291,7 +279,6 @@ export function GuestReservationDetailScreen({
               className={guestStyles.section}
             >
               <div className={guestStyles.sectionHeading}>
-                <span className={guestStyles.sectionKicker}>호스트</span>
                 <h2
                   className={guestStyles.sectionTitle}
                   id="guest-reservation-host-title"
@@ -326,7 +313,6 @@ export function GuestReservationDetailScreen({
               >
                 <div className={guestStyles.sectionTitleRow}>
                   <div className={guestStyles.sectionHeading}>
-                    <span className={guestStyles.sectionKicker}>결제</span>
                     <h2
                       className={guestStyles.sectionTitle}
                       id="guest-reservation-payment-title"
@@ -366,19 +352,7 @@ export function GuestReservationDetailScreen({
             )}
           </div>
 
-          <aside
-            aria-labelledby="guest-reservation-map-title"
-            className={guestStyles.rightSection}
-          >
-            <div className={guestStyles.mapHeader}>
-              <span className={guestStyles.sectionKicker}>여행지</span>
-              <h2
-                className={guestStyles.mapTitle}
-                id="guest-reservation-map-title"
-              >
-                숙소 위치
-              </h2>
-            </div>
+          <aside aria-label="숙소 위치" className={guestStyles.rightSection}>
             <div className={guestStyles.mapContainer}>
               {view.mapEmbedUrl ? (
                 <iframe

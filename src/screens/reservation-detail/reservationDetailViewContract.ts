@@ -79,7 +79,6 @@ export interface HostReservationDetailView {
 
 export interface GuestReservationDetailActions {
   readonly onBack: () => void;
-  readonly onBackToProfile: () => void;
   readonly onDismissError: () => void;
   readonly onDismissFeedback: () => void;
   readonly onOpenAccommodation: (accommodationId: number) => void;
