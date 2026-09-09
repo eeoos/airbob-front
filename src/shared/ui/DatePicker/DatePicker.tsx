@@ -37,6 +37,7 @@ export interface DatePickerProps {
   selectionWindow?: DatePickerSelectionWindow;
   hideFooter?: boolean;
   variant?: "default" | "compact" | "search" | "inline" | "sheet";
+  numberOfMonths?: 1 | 2;
   selectionEndpoint?: "checkIn" | "checkOut";
 }
 
@@ -65,8 +66,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   selectionWindow,
   hideFooter = false,
   variant = "default",
+  numberOfMonths = 1,
   selectionEndpoint,
 }) => {
+  const isSingleMonth = variant === "inline" && numberOfMonths === 1;
   const today = useMemo(() => startOfDay(new Date()), []);
   const todayKey = formatDateKey(today);
   const canonicalSelectionWindow = useMemo(() => {
@@ -293,18 +296,18 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       const targetMonthIndex = getMonthIndex(date);
       const currentMonthIndex = getMonthIndex(currentMonth);
       const nextMonthIndex = getMonthIndex(
-        variant === "inline" ? currentMonth : nextMonth,
+        isSingleMonth ? currentMonth : nextMonth,
       );
 
       if (targetMonthIndex < currentMonthIndex) {
         setCurrentMonth(startOfMonth(date));
       } else if (targetMonthIndex > nextMonthIndex) {
         setCurrentMonth(
-          variant === "inline" ? startOfMonth(date) : addMonths(date, -1),
+          isSingleMonth ? startOfMonth(date) : addMonths(date, -1),
         );
       }
     },
-    [currentMonth, nextMonth, variant],
+    [currentMonth, nextMonth, isSingleMonth, variant],
   );
 
   const moveDateFocus = useCallback(
@@ -427,8 +430,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
     if (
       nextFocusedMonthIndex < nextCurrentMonthIndex ||
-      nextFocusedMonthIndex >
-        nextCurrentMonthIndex + (variant === "inline" ? 0 : 1)
+      nextFocusedMonthIndex > nextCurrentMonthIndex + (isSingleMonth ? 0 : 1)
     ) {
       return;
     }
@@ -484,7 +486,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           <h3 id={monthHeadingId} className={styles.monthName}>
             {monthName}
           </h3>
-          {variant === "inline" && (
+          {isSingleMonth && (
             <button
               aria-label="다음 달 보기"
               className={`${styles.monthNavButton} ${styles.nextMonthButton}`}
@@ -664,7 +666,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
               <div className={styles.calendarWrapper}>
                 {renderCalendar(currentMonth, currentMonthWeeks, -1)}
               </div>
-              {variant !== "inline" && (
+              {!isSingleMonth && (
                 <div className={styles.calendarWrapper}>
                   {renderCalendar(nextMonth, nextMonthWeeks, 1)}
                 </div>

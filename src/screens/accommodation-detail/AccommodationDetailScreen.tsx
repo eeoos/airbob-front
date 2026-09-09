@@ -2,6 +2,7 @@ import { useRef, type ComponentProps } from "react";
 import { useResponsiveLayout } from "../../shared/styles/useResponsiveLayout";
 import { AccommodationBookingCard } from "../../features/accommodations/detail/components/AccommodationBookingCard";
 import { AccommodationBookingSummary } from "../../features/accommodations/detail/components/AccommodationBookingSummary";
+import { AccommodationStayCalendar } from "../../features/accommodations/detail/components/AccommodationStayCalendar";
 import {
   AccommodationDescriptionModal,
   AccommodationHero,
@@ -300,6 +301,12 @@ export function AccommodationDetailScreen({
         >
           <AccommodationReviewsSection {...view.reviews} />
         </div>
+        {!isMobile && (
+          <AccommodationStayCalendar
+            {...view.bookingCard}
+            locationLabel={view.overview.detailView.locationLabel}
+          />
+        )}
         {isMobile && (
           <AccommodationBookingCard
             {...view.bookingCard}

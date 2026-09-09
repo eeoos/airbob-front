@@ -857,53 +857,6 @@
     overflow: hidden;
     clip-path: inset(50%);
   }
-
-  .mobileCalendarSection {
-    margin: var(--space-8) var(--space-6);
-  }
-
-  .mobileCalendarHeading {
-    margin: 0 0 var(--space-2);
-    color: var(--color-text-primary);
-    font-size: var(--font-size-xl);
-    font-weight: var(--font-weight-semibold);
-    scroll-margin-top: var(--space-6);
-  }
-
-  .mobileCalendarHeading:focus {
-    outline: none;
-  }
-
-  .mobileCalendarHeading:focus-visible {
-    outline: none;
-    box-shadow: var(--focus-ring-visible);
-  }
-
-  .mobileCalendarSummary {
-    margin: 0 0 var(--space-8);
-    color: var(--color-text-secondary);
-    font-size: var(--font-size-sm);
-  }
-
-  .mobileCalendar {
-    width: 100%;
-    max-width: 480px;
-    min-width: 0;
-    margin: 0 0 var(--space-6);
-    padding: 0;
-    border: 0;
-  }
-
-  .mobileCalendarStatus {
-    display: flex;
-    min-height: 160px;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
-    gap: var(--space-4);
-    color: var(--color-text-secondary);
-    font-size: var(--font-size-sm);
-  }
 }
 
 @media (--viewport-phone) {

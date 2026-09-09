@@ -120,6 +120,60 @@ describe("DatePicker", () => {
     ).toBeInTheDocument();
   });
 
+  it("supports two inline months, cross-month selection, and switching back to one month", () => {
+    const { props, rerender } = renderDatePicker({
+      variant: "inline",
+      numberOfMonths: 2,
+    });
+    expect(screen.getAllByRole("grid")).toHaveLength(2);
+    expect(
+      screen.getAllByRole("button", { name: "다음 달 보기" }),
+    ).toHaveLength(1);
+    expect(
+      screen.getAllByRole("button", { name: "이전 달 보기" }),
+    ).toHaveLength(1);
+    expect(
+      screen.queryByRole("button", { name: "닫기" }),
+    ).not.toBeInTheDocument();
+
+    const checkIn = new Date(2026, 6, 31);
+    screen.getByRole("gridcell", { name: /2026년 7월 31일/ }).focus();
+    fireEvent.click(screen.getByRole("gridcell", { name: /2026년 7월 31일/ }));
+    expect(props.onDateSelect).toHaveBeenLastCalledWith(checkIn, null);
+    rerender(<DatePicker {...props} checkIn={checkIn} />);
+    fireEvent.keyDown(
+      screen.getByRole("gridcell", { name: /2026년 7월 31일/ }),
+      { key: "ArrowRight" },
+    );
+    expect(
+      screen.getByRole("grid", { name: "2026년 7월" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("gridcell", { name: /2026년 8월 1일/ }),
+    ).toHaveFocus();
+    fireEvent.click(screen.getByRole("gridcell", { name: /2026년 8월 2일/ }));
+    expect(props.onDateSelect).toHaveBeenLastCalledWith(
+      checkIn,
+      new Date(2026, 7, 2),
+    );
+
+    rerender(
+      <DatePicker
+        {...props}
+        numberOfMonths={1}
+        checkIn={checkIn}
+        checkOut={new Date(2026, 7, 2)}
+      />,
+    );
+    expect(screen.getAllByRole("grid")).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "다음 달 보기" }));
+    expect(
+      screen.getByRole("grid", { name: "2026년 8월" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "날짜 지우기" }));
+    expect(props.onDateSelect).toHaveBeenLastCalledWith(null, null);
+  });
+
   it("applies the compact surface only when a consumer requests it", () => {
     const view = renderDatePicker({ variant: "compact" });
     const compactClass = styles.compact;

@@ -1,5 +1,4 @@
 import React from "react";
-import { DatePicker } from "../../../../shared/ui";
 import { useResponsiveLayout } from "../../../../shared/styles/useResponsiveLayout";
 import type { AccommodationBookingViewModel } from "../lib/accommodationBookingViewModel";
 import type { AccommodationBookingCouponViewModel } from "../lib/accommodationBookingSectionsViewModel";
@@ -13,6 +12,7 @@ import {
   BookingReserveAction,
 } from "./AccommodationBookingCardSections";
 import styles from "./AccommodationBookingCard.module.css";
+import { AccommodationStayCalendar } from "./AccommodationStayCalendar";
 import { AccommodationMobileDateDialog } from "./AccommodationMobileDateDialog";
 
 type BookingCoupon = AccommodationBookingCouponViewModel;
@@ -313,59 +313,15 @@ export function AccommodationBookingCard({
 
   return (
     <>
-      <section className={styles.mobileCalendarSection} aria-label="숙박 날짜">
-        <h2
-          ref={calendarHeadingRef}
-          tabIndex={-1}
-          className={styles.mobileCalendarHeading}
-        >
-          {hasCompleteStay
-            ? `${locationLabel ? `${locationLabel}에서 ` : ""}${displayedNights}박`
-            : checkIn
-              ? "체크아웃 날짜 선택"
-              : "체크인 날짜 선택"}
-        </h2>
-        <p className={styles.mobileCalendarSummary}>
-          {checkIn
-            ? `${formatDate(checkIn)}${checkOut ? ` – ${formatDate(checkOut)}` : " · 체크아웃 날짜를 선택해주세요"}`
-            : "여행 날짜를 선택하면 요금을 확인할 수 있어요."}
-        </p>
-        {availabilityStatus === "ready" ? (
-          <fieldset
-            disabled={selectionLocked}
-            className={styles.mobileCalendar}
-            aria-label="숙박 날짜 선택"
-          >
-            <DatePicker
-              checkIn={checkIn}
-              checkOut={checkOut}
-              onDateSelect={handleDateSelect}
-              onClose={() => undefined}
-              disabledRanges={availability.disabledRanges}
-              {...(availability.selectionWindow
-                ? { selectionWindow: availability.selectionWindow }
-                : {})}
-              variant="inline"
-            />
-          </fieldset>
-        ) : (
-          <div className={styles.mobileCalendarStatus} role="status">
-            {availabilityStatus === "loading"
-              ? "예약 가능한 날짜를 확인하고 있어요."
-              : "날짜 정보를 불러오지 못했어요."}
-            {availabilityStatus === "error" && (
-              <button
-                type="button"
-                className={styles.quoteResetButton}
-                onClick={retryAvailability}
-              >
-                다시 불러오기
-              </button>
-            )}
-          </div>
-        )}
+      <AccommodationStayCalendar
+        bookingView={bookingView}
+        bookingState={bookingState}
+        bookingActions={bookingActions}
+        {...(locationLabel ? { locationLabel } : {})}
+        headingRef={calendarHeadingRef}
+      >
         {priceDetails}
-      </section>
+      </AccommodationStayCalendar>
       <div className={styles.mobileBookingBar} aria-label="예약 요약">
         <button
           className={styles.mobileSummaryButton}

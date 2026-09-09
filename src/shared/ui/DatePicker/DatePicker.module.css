@@ -653,7 +653,10 @@
 }
 
 .inline .days {
-  grid-template-rows: repeat(6, minmax(var(--control-touch-target), 1fr));
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  min-height: 0;
   gap: var(--space-2);
 }
 
@@ -664,11 +667,13 @@
 
 .inline .week {
   grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0;
 }
 
 .inline .day {
   min-width: 0;
   height: auto;
+  max-height: var(--space-16);
   aspect-ratio: 1;
 }
 
@@ -677,8 +682,15 @@
 }
 
 .inline .footer {
+  justify-content: flex-end;
   padding: var(--space-5) 0 0;
   border: 0;
+}
+
+@media (--viewport-mobile-tablet) {
+  .inline .footer {
+    justify-content: flex-start;
+  }
 }
 
 .sheet .calendars {
