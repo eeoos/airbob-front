@@ -676,6 +676,25 @@ describe("app route adapter contracts", () => {
     );
   });
 
+  it("preserves travel dates and guests when a nearby search replaces the destination and page", () => {
+    renderAdapter(
+      "/search",
+      "/search?destination=Seoul&page=2&lat=37.5&lng=127&checkIn=2026-10-10&checkOut=2026-10-12&adultOccupancy=2&childOccupancy=1&infantOccupancy=1&petOccupancy=1",
+      <SearchRoute />,
+    );
+    act(() =>
+      captured("search").navigation.replaceMapBounds({
+        north: 35.2,
+        south: 35.1,
+        east: 129.2,
+        west: 129,
+      }),
+    );
+    expectLocation(
+      "/search?checkIn=2026-10-10&checkOut=2026-10-12&adultOccupancy=2&childOccupancy=1&infantOccupancy=1&petOccupancy=1&topLeftLat=35.2&topLeftLng=129&bottomRightLat=35.1&bottomRightLng=129.2",
+    );
+  });
+
   it("delivers an atomically claimed wishlist intent to the new search owner", async () => {
     const session = { epoch: 6, subject: "subject:member_2" };
     const claimed = {
