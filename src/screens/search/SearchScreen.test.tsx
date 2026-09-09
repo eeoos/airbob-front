@@ -286,6 +286,26 @@ describe("SearchScreen", () => {
     },
   );
 
+  it("keeps the desktop list position when map markers are selected, changed, and cleared", () => {
+    const props = createProps();
+    const view = render(<SearchScreen {...props} />);
+    const scrollArea = screen.getByRole("region", { name: "숙소 목록 스크롤" });
+    scrollArea.scrollTop = 720;
+
+    for (const selectedAccommodationId of [7, 8, null]) {
+      view.rerender(
+        <SearchScreen
+          {...props}
+          map={{ ...props.map, selectedAccommodationId }}
+        />,
+      );
+      expect(screen.getByRole("region", { name: "숙소 목록 스크롤" })).toBe(
+        scrollArea,
+      );
+      expect(scrollArea.scrollTop).toBe(720);
+    }
+  });
+
   it("removes the collapsed result pane from navigation in expanded map mode", () => {
     const base = createProps();
 
