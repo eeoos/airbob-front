@@ -45,6 +45,7 @@ interface SearchMapMarkerIcons {
 export type SearchMapMarker = google.maps.Marker & {
   accommodation?: SearchMapAccommodation;
   accommodationId?: number;
+  priceText?: string;
   dispose?: () => void;
   icons?: SearchMapMarkerIcons;
   isSelected?: boolean;

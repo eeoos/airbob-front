@@ -277,6 +277,12 @@ describe("SearchMap", () => {
         onWishlistToggle: optionalProps.onWishlistToggle,
       }),
     );
+    expect(hookMocks.useAccommodationMarkers).toHaveBeenCalledWith(
+      expect.objectContaining({
+        checkIn: optionalProps.checkIn,
+        checkOut: optionalProps.checkOut,
+      }),
+    );
     expect(hookMocks.useMapExpandControl).toHaveBeenCalledWith(
       expect.objectContaining({
         isExpanded: true,

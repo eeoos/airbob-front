@@ -114,6 +114,8 @@ export const Map: React.FC<SearchMapProps> = ({
     autoFitAccommodations,
     isWaitingForResults,
     accommodations,
+    checkIn,
+    checkOut,
     isInitialIdleRef,
     isMapDragMode,
     isMapLoaded,

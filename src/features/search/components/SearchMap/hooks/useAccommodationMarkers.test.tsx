@@ -8,6 +8,7 @@ import type {
 } from "../types";
 import { useAccommodationMarkers } from "./useAccommodationMarkers";
 import { DEFAULT_SEARCH_VIEWPORT } from "../../../lib/searchMapConfig";
+import * as markerIcons from "../lib/markerIcon";
 
 const ref = <T,>(current: T): MutableRefObject<T> => ({ current });
 
@@ -106,6 +107,7 @@ describe("useAccommodationMarkers", () => {
   const originalRevokeObjectURL = URL.revokeObjectURL;
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
     window.cancelAnimationFrame = originalCancelAnimationFrame;
     window.requestAnimationFrame = originalRequestAnimationFrame;
@@ -118,6 +120,90 @@ describe("useAccommodationMarkers", () => {
       value: originalRevokeObjectURL,
     });
     (window as any).google = originalGoogle;
+  });
+
+  it("refreshes all price icons for the same results when dates or nightly rates change", () => {
+    installMinimalMarkerRuntime();
+    const buildSvg = vi.spyOn(markerIcons, "buildMarkerPriceSvg");
+    const map = {
+      fitBounds: vi.fn(),
+      getDiv: () => ({ clientWidth: 1000, clientHeight: 800 }),
+    };
+    const markersRef = ref<SearchMapMarker[]>([]);
+    const options = {
+      isInitialIdleRef: ref(false),
+      isMapDragMode: true,
+      isMapLoaded: true,
+      mapInstanceRef: ref(map as unknown as google.maps.Map),
+      markersRef,
+      onAccommodationSelectRef: ref(vi.fn()),
+      prevViewportRef: ref<SearchMapViewport | null>(null),
+      shouldUpdateMapBounds: false,
+      viewportJustChangedRef: ref(false),
+    };
+    const initialProps = {
+      accommodations: [accommodation],
+      checkIn: null as string | null,
+      checkOut: null as string | null,
+    };
+    const { rerender } = renderHook(
+      (props) => useAccommodationMarkers({ ...options, ...props }),
+      { initialProps },
+    );
+    const initialMarker = requireDefined(
+      markersRef.current[0],
+      "initial marker",
+    );
+    expect(buildSvg).toHaveBeenLastCalledWith(
+      expect.objectContaining({ priceText: "₩100,000" }),
+      "hovered",
+    );
+    buildSvg.mockClear();
+
+    rerender({
+      ...initialProps,
+      checkIn: "2026-09-20",
+      checkOut: "2026-09-21",
+    });
+    expect(markersRef.current[0]).toBe(initialMarker);
+    expect(buildSvg).not.toHaveBeenCalled();
+
+    rerender({
+      ...initialProps,
+      checkIn: "2026-09-20",
+      checkOut: "2026-09-23",
+    });
+    expect(markersRef.current[0]).not.toBe(initialMarker);
+    expect(initialMarker.setMap).toHaveBeenCalledWith(null);
+    for (const state of ["default", "selected", "hovered"] as const) {
+      expect(buildSvg).toHaveBeenCalledWith(
+        expect.objectContaining({ priceText: "₩300,000" }),
+        state,
+      );
+    }
+    buildSvg.mockClear();
+
+    rerender({
+      ...initialProps,
+      checkIn: "2026-10-01",
+      checkOut: "2026-10-04",
+    });
+    expect(buildSvg).not.toHaveBeenCalled();
+
+    rerender(initialProps);
+    expect(buildSvg).toHaveBeenLastCalledWith(
+      expect.objectContaining({ priceText: "₩100,000" }),
+      "hovered",
+    );
+    rerender({
+      ...initialProps,
+      accommodations: [{ ...accommodation, basePrice: 120000 }],
+    });
+    expect(buildSvg).toHaveBeenLastCalledWith(
+      expect.objectContaining({ priceText: "₩120,000" }),
+      "hovered",
+    );
+    expect(map.fitBounds).not.toHaveBeenCalled();
   });
 
   it("disposes marker listeners, animation frame, object URLs, and owned bindings", () => {

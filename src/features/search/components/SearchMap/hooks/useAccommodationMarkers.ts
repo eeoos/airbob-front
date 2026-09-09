@@ -18,6 +18,8 @@ interface UseAccommodationMarkersOptions {
   autoFitAccommodations?: boolean;
   isWaitingForResults?: boolean;
   accommodations: SearchMapAccommodation[];
+  checkIn?: string | null | undefined;
+  checkOut?: string | null | undefined;
   isInitialIdleRef: MutableRefObject<boolean>;
   isMapDragMode: boolean;
   isMapLoaded: boolean;
@@ -71,6 +73,8 @@ export const useAccommodationMarkers = ({
   autoFitAccommodations = true,
   isWaitingForResults = false,
   accommodations,
+  checkIn,
+  checkOut,
   isInitialIdleRef,
   isMapDragMode,
   isMapLoaded,
@@ -117,6 +121,9 @@ export const useAccommodationMarkers = ({
 
     const map = mapInstanceRef.current;
     const validAccommodations = accommodations.filter(hasCoordinate);
+    const markerIconModels = validAccommodations.map((accommodation) =>
+      getMarkerIconModel(accommodation, checkIn, checkOut),
+    );
     if (!isWaitingForResults && viewport) {
       if (
         !isMapDragMode &&
@@ -146,8 +153,13 @@ export const useAccommodationMarkers = ({
       markerAccommodations,
       validAccommodations,
     );
+    // Dates or refreshed rates can change prices even when the result IDs stay the same.
+    const pricesChanged = markersRef.current.some(
+      (marker, index) =>
+        marker.priceText !== markerIconModels[index]?.priceText,
+    );
     const shouldRebuildMarkers =
-      markersChanged || markersRef.current.length === 0;
+      markersChanged || pricesChanged || markersRef.current.length === 0;
 
     if (shouldRebuildMarkers) {
       disposeSearchMapMarkers(markersRef.current);
@@ -163,16 +175,13 @@ export const useAccommodationMarkers = ({
       return;
     }
 
-    validAccommodations.forEach((accommodation) => {
+    validAccommodations.forEach((accommodation, index) => {
       const lat = accommodation.coordinate.latitude;
       const lng = accommodation.coordinate.longitude;
 
       if (!shouldRebuildMarkers) return;
 
-      const markerIconModel = getMarkerIconModel({
-        basePrice: accommodation.basePrice,
-        currency: accommodation.currency,
-      });
+      const markerIconModel = markerIconModels[index]!;
       const { totalWidth, bubbleHeight, anchor } = markerIconModel;
       const objectUrls: string[] = [];
       const markerListeners: google.maps.MapsEventListener[] = [];
@@ -275,6 +284,7 @@ export const useAccommodationMarkers = ({
         }) as SearchMapMarker;
 
         marker.accommodationId = accommodation.id;
+        marker.priceText = markerIconModel.priceText;
         marker.accommodation = accommodation;
         marker.icons = {
           default: {
@@ -348,8 +358,8 @@ export const useAccommodationMarkers = ({
 
       const element = map.getDiv();
       const target = getResultViewport(
-        validAccommodations.map((accommodation) => {
-          const icon = getMarkerIconModel(accommodation);
+        validAccommodations.map((accommodation, index) => {
+          const icon = markerIconModels[index]!;
           return {
             ...accommodation.coordinate,
             markerWidth: icon.totalWidth,
@@ -391,6 +401,8 @@ export const useAccommodationMarkers = ({
     autoFitAccommodations,
     isWaitingForResults,
     accommodations,
+    checkIn,
+    checkOut,
     isMapDragMode,
     shouldUpdateMapBounds,
     onMapBoundsUpdated,
