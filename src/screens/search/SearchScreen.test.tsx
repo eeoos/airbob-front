@@ -384,11 +384,15 @@ describe("SearchScreen", () => {
     fireEvent.keyDown(handle, { key: "ArrowUp" });
     fireEvent.pointerDown(handle);
     fireEvent.pointerUp(handle);
-    fireEvent.click(handle);
+    fireEvent.click(handle, { detail: 1 });
 
     expect(handleBottomSheetKeyDown).toHaveBeenCalledTimes(1);
     expect(handleBottomSheetPointerDown).toHaveBeenCalledTimes(1);
     expect(handleBottomSheetPointerEnd).toHaveBeenCalledTimes(1);
+    expect(handleBottomSheetToggle).not.toHaveBeenCalled();
+
+    // Keyboard and assistive activation still provide an alternative to dragging.
+    fireEvent.click(handle, { detail: 0 });
     expect(handleBottomSheetToggle).toHaveBeenCalledTimes(1);
 
     view.rerender(

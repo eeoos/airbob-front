@@ -321,7 +321,11 @@ export function SearchScreen({
                     aria-keyshortcuts="ArrowUp ArrowDown Home End"
                     aria-label={`검색 결과 패널 조절, 현재 ${bottomSheetStateLabel}`}
                     data-state={bottomSheet.bottomSheetState}
-                    onClick={bottomSheet.handleBottomSheetToggle}
+                    onClick={(event) => {
+                      // Keep keyboard/assistive activation; pointer taps only prepare dragging.
+                      if (event.detail === 0)
+                        bottomSheet.handleBottomSheetToggle();
+                    }}
                     onKeyDown={bottomSheet.handleBottomSheetKeyDown}
                   >
                     <span className={styles.dragHandleBar} aria-hidden="true" />
