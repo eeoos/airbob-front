@@ -16,6 +16,7 @@ import styles from "./Map.module.css";
 
 export const Map: React.FC<SearchMapProps> = ({
   autoFitAccommodations = true,
+  isWaitingForResults = false,
   accommodations,
   selectedAccommodationId,
   hoveredAccommodationId,
@@ -111,6 +112,7 @@ export const Map: React.FC<SearchMapProps> = ({
 
   useAccommodationMarkers({
     autoFitAccommodations,
+    isWaitingForResults,
     accommodations,
     isInitialIdleRef,
     isMapDragMode,

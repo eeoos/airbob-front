@@ -11,7 +11,7 @@ export const DEFAULT_SEARCH_VIEWPORT: SearchViewport = {
 
 export const SEARCH_MAP_CAMERA = {
   viewportPadding: 0,
-  accommodationPadding: 50,
+  resultMargin: 16,
+  maximumResultZoom: 16,
   nearbyZoom: 13,
-  singleAccommodationZoom: 12,
 } as const;

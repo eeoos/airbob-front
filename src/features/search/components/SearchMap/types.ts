@@ -12,6 +12,7 @@ export type SearchMapAccommodation = SearchAccommodationMapViewModel;
 
 export interface SearchMapProps {
   autoFitAccommodations?: boolean | undefined;
+  isWaitingForResults?: boolean | undefined;
   accommodations: SearchMapAccommodation[];
   selectedAccommodationId: number | null;
   hoveredAccommodationId?: number | null | undefined;

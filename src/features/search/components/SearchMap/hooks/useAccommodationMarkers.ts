@@ -1,4 +1,4 @@
-import { useEffect, useRef, type MutableRefObject } from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { getGoogleMapsApi } from "../../../../../platform/integrations/googleMaps";
 import { SEARCH_MAP_CAMERA } from "../../../lib/searchMapConfig";
 import {
@@ -6,6 +6,7 @@ import {
   hasViewportChanged,
   shouldFitAccommodationBounds,
 } from "../lib/mapBounds";
+import { getResultViewport } from "../lib/resultViewport";
 import { buildMarkerPriceSvg, getMarkerIconModel } from "../lib/markerIcon";
 import {
   type SearchMapAccommodation,
@@ -15,6 +16,7 @@ import {
 
 interface UseAccommodationMarkersOptions {
   autoFitAccommodations?: boolean;
+  isWaitingForResults?: boolean;
   accommodations: SearchMapAccommodation[];
   isInitialIdleRef: MutableRefObject<boolean>;
   isMapDragMode: boolean;
@@ -42,7 +44,11 @@ const hasCoordinate = (
   accommodation: SearchMapAccommodation,
 ): accommodation is SearchMapAccommodationWithCoordinate =>
   accommodation.coordinate.latitude !== null &&
-  accommodation.coordinate.longitude !== null;
+  accommodation.coordinate.longitude !== null &&
+  Number.isFinite(accommodation.coordinate.latitude) &&
+  Number.isFinite(accommodation.coordinate.longitude) &&
+  Math.abs(accommodation.coordinate.latitude) <= 90 &&
+  Math.abs(accommodation.coordinate.longitude) <= 180;
 
 const createIconUrl = (svgIcon: string) => {
   const svgBlob = new Blob([svgIcon], { type: "image/svg+xml" });
@@ -63,6 +69,7 @@ const disposeSearchMapMarkers = (markers: SearchMapMarker[]) => {
 
 export const useAccommodationMarkers = ({
   autoFitAccommodations = true,
+  isWaitingForResults = false,
   accommodations,
   isInitialIdleRef,
   isMapDragMode,
@@ -77,7 +84,24 @@ export const useAccommodationMarkers = ({
   viewportJustChangedRef,
 }: UseAccommodationMarkersOptions) => {
   const boundsInitializedRef = useRef(false);
+  const lastResultViewportRef = useRef<string | null>(null);
   const prevAccommodationsRef = useRef<SearchMapAccommodation[]>([]);
+  const [mapSize, setMapSize] = useState("");
+
+  useEffect(() => {
+    if (
+      !isMapLoaded ||
+      !mapInstanceRef.current ||
+      typeof ResizeObserver === "undefined"
+    )
+      return;
+    const element = mapInstanceRef.current.getDiv();
+    const observer = new ResizeObserver(() => {
+      setMapSize(`${element.clientWidth}:${element.clientHeight}`);
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [isMapLoaded, mapInstanceRef]);
 
   useEffect(
     () => () => {
@@ -92,9 +116,11 @@ export const useAccommodationMarkers = ({
     if (!mapInstanceRef.current || !maps) return;
 
     const map = mapInstanceRef.current;
-    if (viewport) {
+    const validAccommodations = accommodations.filter(hasCoordinate);
+    if (!isWaitingForResults && viewport) {
       if (
         !isMapDragMode &&
+        (!autoFitAccommodations || validAccommodations.length === 0) &&
         hasViewportChanged(prevViewportRef.current, viewport)
       ) {
         isInitialIdleRef.current = true;
@@ -104,13 +130,13 @@ export const useAccommodationMarkers = ({
         );
         map.fitBounds(viewportBounds, SEARCH_MAP_CAMERA.viewportPadding);
         viewportJustChangedRef.current = true;
+        lastResultViewportRef.current = null;
       }
       // Track manual searches too, so returning to the default region can reset the map.
       prevViewportRef.current = viewport;
-    } else {
+    } else if (!isWaitingForResults && !viewport) {
       prevViewportRef.current = null;
     }
-    const validAccommodations = accommodations.filter(hasCoordinate);
     const markerAccommodations = markersRef.current.flatMap((marker) =>
       marker.accommodationId === undefined
         ? []
@@ -131,20 +157,15 @@ export const useAccommodationMarkers = ({
     if (validAccommodations.length === 0) {
       boundsInitializedRef.current = false;
       prevAccommodationsRef.current = [];
-      if (shouldUpdateMapBounds) {
+      if (!isWaitingForResults && shouldUpdateMapBounds) {
         onMapBoundsUpdated?.();
       }
       return;
     }
 
-    const bounds = new maps.LatLngBounds();
-    const uniqueCoordinateKeys = new Set<string>();
-
     validAccommodations.forEach((accommodation) => {
       const lat = accommodation.coordinate.latitude;
       const lng = accommodation.coordinate.longitude;
-      uniqueCoordinateKeys.add(`${lat},${lng}`);
-      bounds.extend({ lat, lng });
 
       if (!shouldRebuildMarkers) return;
 
@@ -312,6 +333,7 @@ export const useAccommodationMarkers = ({
     );
 
     if (
+      !isWaitingForResults &&
       autoFitAccommodations &&
       shouldFitAccommodationBounds({
         validAccommodationCount: validAccommodations.length,
@@ -324,17 +346,31 @@ export const useAccommodationMarkers = ({
     ) {
       isInitialIdleRef.current = true;
 
-      if (uniqueCoordinateKeys.size > 1) {
-        map.fitBounds(bounds, SEARCH_MAP_CAMERA.accommodationPadding);
-      } else {
-        const [firstAccommodation] = validAccommodations;
-        if (firstAccommodation) {
-          map.setCenter({
-            lat: firstAccommodation.coordinate.latitude,
-            lng: firstAccommodation.coordinate.longitude,
-          });
-          map.setZoom(SEARCH_MAP_CAMERA.singleAccommodationZoom);
-        }
+      const element = map.getDiv();
+      const target = getResultViewport(
+        validAccommodations.map((accommodation) => {
+          const icon = getMarkerIconModel(accommodation);
+          return {
+            ...accommodation.coordinate,
+            markerWidth: icon.totalWidth,
+            markerHeight: icon.bubbleHeight,
+          };
+        }),
+        element.clientWidth,
+        element.clientHeight,
+      );
+      if (!target) return;
+      const targetKey = JSON.stringify(target);
+      if (isMapDragMode || lastResultViewportRef.current !== targetKey) {
+        lastResultViewportRef.current = targetKey;
+        // A single SDK camera transition, rather than separate center/zoom changes.
+        map.fitBounds(
+          new maps.LatLngBounds(
+            { lat: target.south, lng: target.west },
+            { lat: target.north, lng: target.east },
+          ),
+          0,
+        );
       }
 
       boundsInitializedRef.current = true;
@@ -347,16 +383,20 @@ export const useAccommodationMarkers = ({
     if (accommodationsChanged) {
       prevAccommodationsRef.current = [...validAccommodations];
     }
-    if (!autoFitAccommodations && shouldUpdateMapBounds) onMapBoundsUpdated?.();
+    if (!isWaitingForResults && !autoFitAccommodations && shouldUpdateMapBounds)
+      onMapBoundsUpdated?.();
     // onAccommodationSelect is read from a ref to avoid rebuilding markers for callback identity changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     autoFitAccommodations,
+    isWaitingForResults,
     accommodations,
     isMapDragMode,
     shouldUpdateMapBounds,
     onMapBoundsUpdated,
     viewport,
     isMapLoaded,
+    // Retry a pending fit when the mobile sheet's map acquires its initial size.
+    mapSize,
   ]);
 };

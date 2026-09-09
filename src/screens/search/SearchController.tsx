@@ -189,6 +189,13 @@ export function SearchController({
     () => searchRequestIdentity(request),
     [request],
   );
+  const searchIdentity = useMemo(
+    () => searchRequestIdentity({ ...request, page: 0 }),
+    [request],
+  );
+  const [paginatedSearchIdentity, setPaginatedSearchIdentity] = useState<
+    string | null
+  >(null);
   const isMapDragMode =
     isRouteMapDragMode || userDragRequestIdentity === requestIdentity;
   const retainedResultIdentity = retainedSearchResultIdentity(
@@ -260,6 +267,8 @@ export function SearchController({
       return;
     }
 
+    if ((request.page ?? 0) > 0) setPaginatedSearchIdentity(searchIdentity);
+
     if (pendingBoundsRequestRef.current === requestIdentity) {
       pendingBoundsRequestRef.current = null;
       requestMapBoundsUpdate();
@@ -270,8 +279,10 @@ export function SearchController({
     query.isError,
     query.isFetching,
     query.isPlaceholderData,
+    request.page,
     requestIdentity,
     requestMapBoundsUpdate,
+    searchIdentity,
   ]);
 
   useEffect(() => {
@@ -483,7 +494,9 @@ export function SearchController({
       getAccommodationHref={navigation.getAccommodationHref}
       map={{
         autoFitAccommodations:
-          !isDefaultViewport &&
+          (!isDefaultViewport ||
+            routeState.page > 0 ||
+            paginatedSearchIdentity === searchIdentity) &&
           !query.isPlaceholderData &&
           !query.isError &&
           !isShowingRetainedResult,

@@ -1,4 +1,4 @@
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import type { MutableRefObject } from "react";
 import { requireDefined } from "../../../../../test/assertions";
 import type {
@@ -56,6 +56,13 @@ const installMinimalMarkerRuntime = () => {
   class FakeLatLngBounds {
     readonly points: Array<{ lat: number; lng: number }> = [];
 
+    constructor(
+      southWest: { lat: number; lng: number },
+      northEast: { lat: number; lng: number },
+    ) {
+      this.points.push(southWest, northEast);
+    }
+
     extend(point: { lat: number; lng: number }) {
       this.points.push(point);
     }
@@ -99,6 +106,7 @@ describe("useAccommodationMarkers", () => {
   const originalRevokeObjectURL = URL.revokeObjectURL;
 
   afterEach(() => {
+    vi.unstubAllGlobals();
     window.cancelAnimationFrame = originalCancelAnimationFrame;
     window.requestAnimationFrame = originalRequestAnimationFrame;
     Object.defineProperty(URL, "createObjectURL", {
@@ -187,6 +195,7 @@ describe("useAccommodationMarkers", () => {
     });
 
     const map = {
+      getDiv: () => ({ clientWidth: 1000, clientHeight: 800 }),
       fitBounds: vi.fn(),
       setCenter: vi.fn(),
       setZoom: vi.fn(),
@@ -280,12 +289,13 @@ describe("useAccommodationMarkers", () => {
     expect(onMapBoundsUpdated).toHaveBeenCalledTimes(1);
   });
 
-  it("uses a city-level center for duplicate coordinates", () => {
+  it("fits duplicate coordinates in one transition without zooming past neighborhood level", () => {
     installMinimalMarkerRuntime();
     const fitBounds = vi.fn();
     const setCenter = vi.fn();
     const setZoom = vi.fn();
     const map = {
+      getDiv: () => ({ clientWidth: 1000, clientHeight: 800 }),
       fitBounds,
       setCenter,
       setZoom,
@@ -310,12 +320,20 @@ describe("useAccommodationMarkers", () => {
       }),
     );
 
-    expect(fitBounds).not.toHaveBeenCalled();
-    expect(setCenter).toHaveBeenCalledWith({
-      lat: 35.1796,
-      lng: 129.0756,
-    });
-    expect(setZoom).toHaveBeenCalledWith(12);
+    expect(fitBounds).toHaveBeenCalledOnce();
+    const bounds = fitBounds.mock.calls[0]?.[0] as {
+      points: Array<{ lat: number; lng: number }>;
+    };
+    const southWest = requireDefined(bounds.points[0], "south west bound");
+    const northEast = requireDefined(bounds.points[1], "north east bound");
+    const zoom = Math.log2(
+      1000 / (((northEast.lng - southWest.lng) / 360) * 256),
+    );
+    expect(zoom).toBeCloseTo(16);
+    expect(southWest.lat).toBeLessThan(35.1796);
+    expect(northEast.lat).toBeGreaterThan(35.1796);
+    expect(setCenter).not.toHaveBeenCalled();
+    expect(setZoom).not.toHaveBeenCalled();
   });
 
   it("keeps the default regional viewport even if results contain a distant accommodation", () => {
@@ -388,12 +406,13 @@ describe("useAccommodationMarkers", () => {
     },
   );
 
-  it("fits every distinct result coordinate with map padding", () => {
+  it("fits all result coordinates and their price labels in one transition", () => {
     installMinimalMarkerRuntime();
     const fitBounds = vi.fn();
     const setCenter = vi.fn();
     const setZoom = vi.fn();
     const map = {
+      getDiv: () => ({ clientWidth: 1000, clientHeight: 800 }),
       fitBounds,
       setCenter,
       setZoom,
@@ -422,12 +441,147 @@ describe("useAccommodationMarkers", () => {
     const fittedBounds = fitBounds.mock.calls[0]?.[0] as unknown as {
       points: Array<{ lat: number; lng: number }>;
     };
-    expect(fittedBounds.points).toEqual([
-      { lat: 35.1796, lng: 129.0756 },
-      { lat: 35.1587, lng: 129.1604 },
-    ]);
-    expect(fitBounds).toHaveBeenCalledWith(fittedBounds, 50);
+    const southWest = requireDefined(
+      fittedBounds.points[0],
+      "south west bound",
+    );
+    const northEast = requireDefined(
+      fittedBounds.points[1],
+      "north east bound",
+    );
+    expect(southWest.lat).toBeLessThan(35.1587);
+    expect(southWest.lng).toBeLessThan(129.0756);
+    expect(northEast.lat).toBeGreaterThan(35.1796);
+    expect(northEast.lng).toBeGreaterThan(129.1604);
+    expect(fitBounds).toHaveBeenCalledWith(fittedBounds, 0);
     expect(setCenter).not.toHaveBeenCalled();
     expect(setZoom).not.toHaveBeenCalled();
+  });
+
+  it("waits for fresh page results and consumes a repeated refit without moving twice", () => {
+    installMinimalMarkerRuntime();
+    const map = {
+      fitBounds: vi.fn(),
+      getDiv: () => ({ clientWidth: 1000, clientHeight: 800 }),
+    };
+    const options = {
+      accommodations: [accommodation],
+      isInitialIdleRef: ref(true),
+      isMapDragMode: false,
+      isMapLoaded: true,
+      mapInstanceRef: ref(map as unknown as google.maps.Map),
+      markersRef: ref<SearchMapMarker[]>([]),
+      onAccommodationSelectRef: ref(vi.fn()),
+      onMapBoundsUpdated: vi.fn(),
+      prevViewportRef: ref<SearchMapViewport | null>(null),
+      viewport: null,
+      viewportJustChangedRef: ref(false),
+    };
+    const initialProps = {
+      accommodations: [accommodation],
+      isWaitingForResults: false,
+      shouldUpdateMapBounds: false,
+    };
+    const { rerender } = renderHook(
+      (props) => useAccommodationMarkers({ ...options, ...props }),
+      { initialProps },
+    );
+    expect(map.fitBounds).toHaveBeenCalledOnce();
+    map.fitBounds.mockClear();
+    options.onMapBoundsUpdated.mockClear();
+
+    const nextPage = [accommodationAt(11, 37.6, 127.1)];
+    rerender({
+      accommodations: nextPage,
+      isWaitingForResults: true,
+      shouldUpdateMapBounds: true,
+    });
+    expect(map.fitBounds).not.toHaveBeenCalled();
+    expect(options.onMapBoundsUpdated).not.toHaveBeenCalled();
+    rerender({
+      accommodations: nextPage,
+      isWaitingForResults: false,
+      shouldUpdateMapBounds: true,
+    });
+    expect(map.fitBounds).toHaveBeenCalledOnce();
+    rerender({
+      accommodations: nextPage,
+      isWaitingForResults: false,
+      shouldUpdateMapBounds: false,
+    });
+    rerender({
+      accommodations: nextPage,
+      isWaitingForResults: false,
+      shouldUpdateMapBounds: true,
+    });
+    expect(map.fitBounds).toHaveBeenCalledOnce();
+    expect(options.onMapBoundsUpdated).toHaveBeenCalledTimes(2);
+  });
+
+  it("preserves manual map position until an explicit page refit is requested", () => {
+    installMinimalMarkerRuntime();
+    const map = {
+      fitBounds: vi.fn(),
+      getDiv: () => ({ clientWidth: 1000, clientHeight: 800 }),
+    };
+    const options = {
+      accommodations: [accommodation],
+      isInitialIdleRef: ref(false),
+      isMapDragMode: true,
+      isMapLoaded: true,
+      mapInstanceRef: ref(map as unknown as google.maps.Map),
+      markersRef: ref<SearchMapMarker[]>([]),
+      onAccommodationSelectRef: ref(vi.fn()),
+      prevViewportRef: ref<SearchMapViewport | null>(null),
+      viewportJustChangedRef: ref(false),
+    };
+    const { rerender } = renderHook(
+      ({ shouldUpdateMapBounds }) =>
+        useAccommodationMarkers({ ...options, shouldUpdateMapBounds }),
+      { initialProps: { shouldUpdateMapBounds: false } },
+    );
+    expect(map.fitBounds).not.toHaveBeenCalled();
+    rerender({ shouldUpdateMapBounds: true });
+    expect(map.fitBounds).toHaveBeenCalledOnce();
+  });
+
+  it("fits after the mobile map acquires its size and leaves later sheet resizing alone", () => {
+    installMinimalMarkerRuntime();
+    let onResize: (() => void) | undefined;
+    const disconnect = vi.fn();
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(callback: () => void) {
+          onResize = callback;
+        }
+        observe = vi.fn();
+        disconnect = disconnect;
+      },
+    );
+    const element = { clientWidth: 425, clientHeight: 0 };
+    const map = { fitBounds: vi.fn(), getDiv: () => element };
+    const options = {
+      accommodations: [accommodation],
+      isInitialIdleRef: ref(false),
+      isMapDragMode: false,
+      isMapLoaded: true,
+      mapInstanceRef: ref(map as unknown as google.maps.Map),
+      markersRef: ref<SearchMapMarker[]>([]),
+      onAccommodationSelectRef: ref(vi.fn()),
+      prevViewportRef: ref<SearchMapViewport | null>(null),
+      shouldUpdateMapBounds: false,
+      viewportJustChangedRef: ref(false),
+    };
+    const { unmount } = renderHook(() => useAccommodationMarkers(options));
+    expect(map.fitBounds).not.toHaveBeenCalled();
+    element.clientHeight = 280;
+    act(() => requireDefined(onResize, "map resize observer")());
+    expect(map.fitBounds).toHaveBeenCalledOnce();
+    element.clientHeight = 800;
+    act(() => requireDefined(onResize, "map resize observer")());
+    expect(map.fitBounds).toHaveBeenCalledOnce();
+    unmount();
+    expect(disconnect).toHaveBeenCalledOnce();
   });
 });

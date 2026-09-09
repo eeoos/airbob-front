@@ -192,6 +192,9 @@ export function SearchScreen({
   ) => (
     <Map
       autoFitAccommodations={map.autoFitAccommodations}
+      isWaitingForResults={
+        results.isLoading || results.isPlaceholderData || results.isRefreshing
+      }
       accommodations={results.accommodationMapItems}
       boundsRequestKey={map.boundsRequestKey}
       selectedAccommodationId={map.selectedAccommodationId}
