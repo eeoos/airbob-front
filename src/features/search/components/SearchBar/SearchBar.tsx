@@ -221,8 +221,15 @@ const DesktopSearchBar: React.FC<SearchBarBaseProps> = ({
       }
 
       handleSearch(event);
+      collapseShell();
     },
-    [activePopover, closeTransientPanels, handleSearch, isPlacesLoading],
+    [
+      activePopover,
+      closeTransientPanels,
+      collapseShell,
+      handleSearch,
+      isPlacesLoading,
+    ],
   );
 
   return (
