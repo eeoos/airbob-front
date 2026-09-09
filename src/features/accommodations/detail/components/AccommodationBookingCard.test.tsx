@@ -887,7 +887,6 @@ describe("AccommodationBookingCard", () => {
           nightlyPrice: 100_000,
           nights: 2,
           phase: "quoted",
-          quoteExpiresAt: "2026-09-01T10:10:00Z",
           subtotal: 200_000,
         },
         reservationStatus: "quoted",
@@ -908,12 +907,12 @@ describe("AccommodationBookingCard", () => {
         "아래 금액을 확인한 뒤 예약을 계속해주세요.",
       ),
     ).toBeInTheDocument();
-    expect(within(quoteSummary).getByText("견적 유효 시각")).toBeVisible();
-    expect(within(quoteSummary).getByText(/까지$/)).toHaveAttribute(
-      "datetime",
-      "2026-09-01T10:10:00Z",
+    expect(quoteSummary).toHaveAccessibleDescription(
+      "결제 시 최신 요금과 예약 가능 여부를 다시 확인합니다.",
     );
-    expect(quoteSummary).toHaveAccessibleDescription(/견적 유효 시각.*까지/);
+    expect(
+      within(quoteSummary).queryByText("견적 유효 시각"),
+    ).not.toBeInTheDocument();
     expect(within(quoteSummary).getByText("₩175,000")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /체크인/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: /인원/ })).toBeDisabled();
@@ -923,35 +922,6 @@ describe("AccommodationBookingCard", () => {
     expect(bookingProps.bookingActions.onReserve).toHaveBeenCalledOnce();
     fireEvent.click(screen.getByRole("button", { name: "조건 다시 선택" }));
     expect(onAbandonQuote).toHaveBeenCalledOnce();
-  });
-
-  it("keeps the quote-expiry fallback without an invalid time semantic", () => {
-    setupBookingCard({
-      bookingState: {
-        quoteSnapshot: {
-          amount: 175_000,
-          canCheckout: true,
-          currency: "KRW",
-          discountAmount: 25_000,
-          nightlyPrice: 100_000,
-          nights: 2,
-          phase: "quoted",
-          quoteExpiresAt: "invalid-expiry",
-          subtotal: 200_000,
-        },
-        reservationStatus: "quoted",
-        selectionLocked: true,
-      },
-    });
-
-    const quoteSummary = screen.getByRole("region", {
-      name: "확정된 예약 견적",
-    });
-    expect(within(quoteSummary).getByText("유효 시간 내")).toBeVisible();
-    expect(
-      within(quoteSummary).queryByText("유효 시간 내", { selector: "time" }),
-    ).not.toBeInTheDocument();
-    expect(quoteSummary).toHaveAccessibleDescription(/유효 시간 내/);
   });
 
   it.each([

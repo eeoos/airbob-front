@@ -63,6 +63,7 @@ import {
 const EXACT_CHECKOUT_RESOURCE = "/api/v1/reservations" as const;
 const GENERIC_APPLIED_COUPON_LABEL = "적용된 쿠폰";
 const CHECKOUT_CONFLICT_CODES = new Set(["R016", "R020"]);
+// R018 remains an unheld failure only for responses from older backend builds.
 const DEFINITIVE_UNHELD_CODES = new Set(["R017", "R018", "R019"]);
 const ATTEMPT_UNAVAILABLE_CODES = new Set(["R022", "R023"]);
 
@@ -171,7 +172,6 @@ const toSnapshot = (
     couponId: data.serverIntent.couponId,
     couponDisplayName:
       data.serverIntent.couponId === null ? null : GENERIC_APPLIED_COUPON_LABEL,
-    quoteExpiresAt: data.quote.quoteExpiresAt,
     serverTime: latestServerTime(data),
     paymentRequired: data.quote.paymentRequired,
     reservationStatus: ready?.status ?? null,
@@ -291,7 +291,6 @@ const toReservationQuote = (
   currency: data.quote.currency,
   paymentRequired: data.quote.paymentRequired,
   inventoryHeld: false,
-  quoteExpiresAt: data.quote.quoteExpiresAt,
   serverTime: data.quote.serverTime,
 });
 

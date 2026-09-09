@@ -27,7 +27,6 @@ const quoteWire: ReservationQuoteWire = {
   currency: "KRW",
   payment_required: true,
   inventory_held: false,
-  quote_expires_at: "2026-09-01T03:05:00Z",
   server_time: "2026-09-01T03:00:00Z",
 };
 
@@ -65,7 +64,6 @@ const validQuote = (): ReservationQuote => ({
   currency: "KRW",
   paymentRequired: true,
   inventoryHeld: false,
-  quoteExpiresAt: "2026-09-01T03:05:00Z",
   serverTime: "2026-09-01T03:00:00Z",
 });
 
@@ -229,7 +227,6 @@ describe("reservation booking API adapter", () => {
     ["currency", { currency: "krw" }],
     ["paymentRequired", { paymentRequired: false }],
     ["inventoryHeld", { inventoryHeld: true }],
-    ["quoteExpiresAt", { quoteExpiresAt: "2026-09-01T03:00:00Z" }],
     ["serverTime", { serverTime: "not-an-instant" }],
     ["extra field", { raw_message: "must-not-cross" }],
   ])(

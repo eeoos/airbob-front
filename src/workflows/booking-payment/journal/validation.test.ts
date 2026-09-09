@@ -40,7 +40,6 @@ const quote = (
   currency: "KRW",
   paymentRequired: true,
   inventoryHeld: false,
-  quoteExpiresAt: "2026-09-01T10:05:00Z",
   serverTime: "2026-09-01T10:00:00Z",
   ...overrides,
 });
@@ -258,6 +257,77 @@ describe("booking-payment journal v2 validation", () => {
       expect(isBookingPaymentJournalData(data(phase))).toBe(true),
     );
   });
+
+  it.each(["quoted", "checkout-prepared"] as const)(
+    "normalizes a legacy %s quote to the existing browser retention limit",
+    (phase) => {
+      const original = envelope(data(phase));
+      const legacy = {
+        ...original,
+        data: {
+          ...original.data,
+          quote: {
+            ...original.data.quote,
+            quoteExpiresAt: "2026-09-01T10:05:00Z",
+          },
+        },
+      };
+      expect(
+        parseBookingPaymentJournalEnvelope(JSON.stringify(legacy)),
+      ).toEqual({
+        ...original,
+        data: { ...original.data, recoveryExpiresAt: original.hardExpiresAt },
+      });
+    },
+  );
+
+  it.each([
+    "checkout-submitting",
+    "reservation-ready",
+    "attempt-ready",
+    "confirm-submitting",
+  ] as const)(
+    "preserves all identities and deadlines in a legacy %s payment journal",
+    (phase) => {
+      const original = envelope(data(phase));
+      const legacy = {
+        ...original,
+        data: {
+          ...original.data,
+          quote: {
+            ...original.data.quote,
+            quoteExpiresAt: "2026-09-01T10:05:00Z",
+          },
+        },
+      };
+      expect(
+        parseBookingPaymentJournalEnvelope(JSON.stringify(legacy)),
+      ).toEqual(original);
+    },
+  );
+
+  it.each([
+    { quoteExpiresAt: "invalid-instant" },
+    { quoteExpiresAt: "2026-09-01T10:00:00Z" },
+    { quoteExpiresAt: "2026-09-01T10:05:00Z", unknownField: "must-not-cross" },
+    { quoteExpiresAt: "2026-09-01T10:05:00Z", amount: 99 },
+  ])(
+    "keeps strict validation when a legacy quote is malformed: %j",
+    (patch) => {
+      const original = envelope(data("attempt-ready"));
+      expect(
+        parseBookingPaymentJournalEnvelope(
+          JSON.stringify({
+            ...original,
+            data: {
+              ...original.data,
+              quote: { ...original.data.quote, ...patch },
+            },
+          }),
+        ),
+      ).toBeNull();
+    },
+  );
 
   it("accepts every current Ready status as structurally recoverable", () => {
     const statuses: readonly BookingPaymentReady["status"][] = [
@@ -632,7 +702,6 @@ describe("booking-payment journal v2 validation", () => {
       currency: quote().currency,
       paymentRequired: quote().paymentRequired,
       inventoryHeld: quote().inventoryHeld,
-      quoteExpiresAt: quote().quoteExpiresAt,
       serverTime: quote().serverTime,
     };
     expect(

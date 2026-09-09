@@ -44,7 +44,6 @@ interface AccommodationBookingState {
     readonly nightlyPrice: number;
     readonly nights: number;
     readonly phase: string;
-    readonly quoteExpiresAt: string;
     readonly subtotal: number;
   } | null;
   reservationStatus:
@@ -247,7 +246,6 @@ export function AccommodationBookingCard({
             currency={quoteSnapshot.currency}
             discountAmount={quoteSnapshot.discountAmount}
             onAbandonQuote={onAbandonQuote}
-            quoteExpiresAt={quoteSnapshot.quoteExpiresAt}
             subtotal={quoteSnapshot.subtotal}
           />
         </div>

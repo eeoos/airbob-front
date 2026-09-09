@@ -54,7 +54,6 @@ const paidQuote = (
   currency: "KRW",
   paymentRequired: true,
   inventoryHeld: false,
-  quoteExpiresAt: "2026-09-01T10:05:00Z",
   serverTime: "2026-09-01T10:00:00Z",
   ...overrides,
 });
@@ -335,6 +334,29 @@ describe("booking transaction workflow", () => {
 
     pendingQuote.resolve(paidQuote());
     await expect(first).resolves.toMatchObject({ status: "quoted" });
+  });
+
+  it("checks out the same reviewed quote after five minutes without requiring a new quote", async () => {
+    const storage = createStorageHarness();
+    let currentTime = NOW;
+    const journal = createBookingPaymentJournalRepository({
+      driver: storage.driver,
+      now: () => currentTime,
+    });
+    const harness = createWorkflowHarness({ journal });
+    const handle = await requireQuotedHandle(harness.workflow);
+    currentTime += 6 * 60_000;
+    await expect(
+      harness.workflow.checkout({
+        handle,
+        routeLease: { isCurrent: () => true },
+      }),
+    ).resolves.toMatchObject({ status: "payment-ready" });
+    expect(harness.createQuote).toHaveBeenCalledOnce();
+    expect(harness.checkout).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ quote: paidQuote() }),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
   });
 
   it("publishes the first flow handle before quote I/O and blocks an unverified publication", async () => {

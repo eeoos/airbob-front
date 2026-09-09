@@ -224,7 +224,6 @@ const isBookingPaymentQuote = (
       "currency",
       "paymentRequired",
       "inventoryHeld",
-      "quoteExpiresAt",
       "serverTime",
     ]) ||
     !isBookingPaymentUuid(value.quoteUid) ||
@@ -245,23 +244,12 @@ const isBookingPaymentQuote = (
     return false;
   }
 
-  const quoteExpiry = parseBookingPaymentUtcInstant(value.quoteExpiresAt);
   const serverTime = parseBookingPaymentUtcInstant(value.serverTime);
-  const quoteExpiryNs = parseBookingPaymentUtcInstantNanoseconds(
-    value.quoteExpiresAt,
-  );
-  const serverTimeNs = parseBookingPaymentUtcInstantNanoseconds(
-    value.serverTime,
-  );
   const calendarNights =
     calendarDayNumber(value.checkOut) - calendarDayNumber(value.checkIn);
   const rawSubtotal = value.nightlyPrice * value.nights;
   return (
-    quoteExpiry !== null &&
     serverTime !== null &&
-    quoteExpiryNs !== null &&
-    serverTimeNs !== null &&
-    quoteExpiryNs > serverTimeNs &&
     calendarNights === value.nights &&
     Number.isSafeInteger(rawSubtotal) &&
     rawSubtotal === value.subtotal
@@ -646,7 +634,40 @@ export const parseBookingPaymentJournalEnvelope = (
   raw: string,
 ): BookingPaymentJournalEnvelope | null => {
   try {
-    const parsed: unknown = JSON.parse(raw);
+    let parsed: unknown = JSON.parse(raw);
+    // Read the previous v2 shape without losing an in-flight checkout or
+    // payment attempt. Only this retired field is removed; all remaining
+    // identity, shape and deadline checks still run below.
+    if (
+      isRecord(parsed) &&
+      isRecord(parsed.data) &&
+      isRecord(parsed.data.quote) &&
+      Object.hasOwn(parsed.data.quote, "quoteExpiresAt")
+    ) {
+      const { quoteExpiresAt, ...quote } = parsed.data.quote;
+      const expiry = parseBookingPaymentUtcInstantNanoseconds(quoteExpiresAt);
+      const serverTime = parseBookingPaymentUtcInstantNanoseconds(
+        quote.serverTime,
+      );
+      if (expiry === null || serverTime === null || expiry <= serverTime)
+        return null;
+      const normalized = {
+        ...parsed,
+        data: { ...parsed.data, quote },
+      };
+      if (!isBookingPaymentJournalEnvelope(normalized)) return null;
+      parsed =
+        normalized.data.phase === "quoted" ||
+        normalized.data.phase === "checkout-prepared"
+          ? {
+              ...normalized,
+              data: {
+                ...normalized.data,
+                recoveryExpiresAt: normalized.hardExpiresAt,
+              },
+            }
+          : normalized;
+    }
     return isBookingPaymentJournalEnvelope(parsed) ? parsed : null;
   } catch {
     return null;

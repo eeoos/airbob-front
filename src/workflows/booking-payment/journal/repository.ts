@@ -605,15 +605,9 @@ export const createBookingPaymentJournalRepository = ({
     const { currentTime } = namespace;
 
     const hardExpiresAt = currentTime + BOOKING_PAYMENT_JOURNAL_HARD_TTL_MS;
-    const recoveryExpiresAt = serverRelativeDeadline(
-      currentTime,
-      input.quote.serverTime,
-      input.quote.quoteExpiresAt,
-      hardExpiresAt,
-    );
-    if (recoveryExpiresAt === null || recoveryExpiresAt <= currentTime) {
-      return { status: "rejected", reason: "invalid-data" };
-    }
+    // Quote usability is decided by checkout revalidation. This deadline only
+    // limits how long this browser retains the unsubmitted booking flow.
+    const recoveryExpiresAt = hardExpiresAt;
     const data: BookingPaymentJournalData = {
       phase: "quoted",
       flowId: input.flowId,
@@ -658,14 +652,9 @@ export const createBookingPaymentJournalRepository = ({
     const currentTime = safeCurrentTime(now);
     if (currentTime === null)
       return { status: "rejected", reason: "invalid-clock" };
-    const recoveryExpiresAt = serverRelativeDeadline(
-      currentTime,
-      input.quote.serverTime,
-      input.quote.quoteExpiresAt,
-      current.record.hardExpiresAt,
-    );
-    if (recoveryExpiresAt === null || recoveryExpiresAt <= currentTime) {
-      return { status: "rejected", reason: "invalid-data" };
+    const recoveryExpiresAt = current.record.hardExpiresAt;
+    if (recoveryExpiresAt <= currentTime) {
+      return { status: "rejected", reason: "expired" };
     }
     return writeAndVerify(
       driver,
