@@ -1,10 +1,11 @@
 import React, { useCallback, useState, useEffect, useRef } from "react";
 import { requireCssModuleClass } from "../../../../shared/styles/requireCssModuleClass";
-import { Button, Dialog, ToastHost } from "../../../../shared/ui";
+import { Button, Dialog } from "../../../../shared/ui";
 import { useAuthForm } from "../../model/authForm";
 import { useAuthCommands } from "../../ports/AuthCommandProvider";
 import { AuthFormFields } from "../../ui/AuthFormFields";
 import { AuthInlineError } from "../../ui/AuthInlineError";
+import { AuthErrorToast } from "../../ui/AuthErrorToast";
 import styles from "./AuthModal.module.css";
 
 export interface AuthModalProps {
@@ -166,13 +167,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           {mode === "login" ? "회원가입" : "로그인"}
         </button>
       </div>
-      {form.error && (
-        <ToastHost
-          closeLabel="오류 닫기"
-          message={form.error}
-          onClose={form.clearError}
-        />
-      )}
+      {form.error && <AuthErrorToast key={form.error} message={form.error} />}
     </Dialog>
   );
 };

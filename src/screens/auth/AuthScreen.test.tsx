@@ -82,6 +82,27 @@ describe("AuthScreen", () => {
     expect(screen.getByRole("button", { name: "가입하는 중…" })).toBeDisabled();
   });
 
+  it("dismisses only the toast while retaining the form error and retry action", async () => {
+    const form = createForm({
+      error: "이메일 또는 비밀번호가 올바르지 않습니다.",
+    });
+    render(
+      <AuthScreen
+        form={form}
+        mode="login"
+        onAlternate={vi.fn()}
+        onSubmit={vi.fn()}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "오류 닫기" }));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByTestId("auth-inline-error")).toHaveTextContent(
+      form.error!,
+    );
+    expect(screen.getByRole("button", { name: "다시 로그인" })).toBeEnabled();
+    expect(form.clearError).not.toHaveBeenCalled();
+  });
+
   it("preserves the alternate account-entry action", async () => {
     const onAlternate = vi.fn();
     render(

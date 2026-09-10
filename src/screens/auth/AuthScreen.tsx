@@ -3,8 +3,9 @@ import type { AuthFormController } from "../../features/auth/model/authForm";
 import type { AuthMode } from "../../features/auth/model/auth";
 import { AuthFormFields } from "../../features/auth/ui/AuthFormFields";
 import { AuthInlineError } from "../../features/auth/ui/AuthInlineError";
+import { AuthErrorToast } from "../../features/auth/ui/AuthErrorToast";
 import { requireCssModuleClass } from "../../shared/styles/requireCssModuleClass";
-import { Button, Card, PageContainer, ToastHost } from "../../shared/ui";
+import { Button, Card, PageContainer } from "../../shared/ui";
 import styles from "./AuthScreen.module.css";
 
 export interface AuthScreenProps {
@@ -111,13 +112,7 @@ export function AuthScreen({
         </Card>
       </PageContainer>
 
-      {form.error && (
-        <ToastHost
-          closeLabel="오류 닫기"
-          message={form.error}
-          onClose={form.clearError}
-        />
-      )}
+      {form.error && <AuthErrorToast key={form.error} message={form.error} />}
     </div>
   );
 }
