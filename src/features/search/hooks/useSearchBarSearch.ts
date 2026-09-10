@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { buildSearchNavigationParams } from "../lib/searchParams";
 import type { SearchParams } from "../lib/searchBarContracts";
 import type { SearchPlaceSelection } from "../model/search";
@@ -39,6 +39,13 @@ export const useSearchBarSearch = ({
   isPlacesLoading = false,
 }: UseSearchBarSearchOptions) => {
   const lastSearchKeyRef = useRef<string | null>(null);
+  const currentSearchKey = urlSearchParams.toString();
+
+  useEffect(() => {
+    // The header survives navigation; a previous page's submit must not block
+    // the same search after returning home or moving through browser history.
+    lastSearchKeyRef.current = null;
+  }, [currentSearchKey]);
 
   return useCallback(
     (event?: SearchBarSearchEvent) => {
