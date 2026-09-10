@@ -124,7 +124,6 @@ const quoteWire = (amount = 100_000) => ({
   currency: "KRW",
   payment_required: amount > 0,
   inventory_held: false,
-  quote_expires_at: "2026-07-01T03:10:00Z",
   server_time: SERVER_TIME,
 });
 
@@ -295,7 +294,6 @@ const journalEnvelope = (
       currency: "KRW",
       paymentRequired: amount > 0,
       inventoryHeld: false,
-      quoteExpiresAt: "2026-07-01T03:10:00Z",
       serverTime: SERVER_TIME,
     },
   };
@@ -1964,7 +1962,7 @@ for (const width of [390, 1440]) {
   });
 }
 
-test("opens Toss once only after final review and never automatically on reload", async ({
+test("checks out the same quote after six minutes and opens Toss once without reopening on reload", async ({
   api,
   page,
   session,
@@ -1981,17 +1979,36 @@ test("opens Toss once only after final review and never automatically on reload"
     "/api/v1/reservation-quotes",
     apiSuccess(quoteWire(), 201),
   );
-  api.register("POST", "/api/v1/reservations", apiSuccess(readyWire(), 201));
+  api.register(
+    "POST",
+    "/api/v1/reservations",
+    apiSuccess(
+      {
+        ...readyWire(),
+        server_time: "2026-07-01T03:06:00Z",
+        hold_expires_at: "2026-07-01T03:21:00Z",
+      },
+      201,
+    ),
+  );
   api.register(
     "POST",
     `/api/v1/reservations/${RESERVATION_UID}/payment-attempts`,
-    apiSuccess(attemptWire(), 201),
+    apiSuccess(
+      {
+        ...attemptWire(),
+        server_time: "2026-07-01T03:06:00Z",
+        hold_expires_at: "2026-07-01T03:21:00Z",
+      },
+      201,
+    ),
   );
   await page.goto(detailPath);
   await page.getByRole("button", { name: "예약하기", exact: true }).click();
   await page.getByRole("button", { name: "다음", exact: true }).click();
   expect(api.matching("POST", "/api/v1/reservations")).toHaveLength(0);
   expect(await readPaymentGatewayCalls(page)).toHaveLength(0);
+  await page.clock.fastForward(6 * 60 * 1000);
   await page
     .getByRole("button", { name: "확인 및 결제", exact: true })
     .evaluate((button) => {
@@ -2012,6 +2029,7 @@ test("opens Toss once only after final review and never automatically on reload"
     ),
   ).toBeVisible();
   expect(api.matching("POST", "/api/v1/reservations")).toHaveLength(1);
+  expect(api.matching("POST", "/api/v1/reservation-quotes")).toHaveLength(1);
   expect(api.matching("POST", new RegExp("/payment-attempts$"))).toHaveLength(
     1,
   );
@@ -2029,7 +2047,7 @@ test("opens Toss once only after final review and never automatically on reload"
   );
 });
 
-test("refreshes an expired review quote without holding inventory or starting payment", async ({
+test("refreshes review after browser retention ends without holding inventory or starting payment", async ({
   api,
   page,
   session,
@@ -2052,10 +2070,10 @@ test("refreshes an expired review quote without holding inventory or starting pa
   await page.goto(detailPath);
   await page.getByRole("button", { name: "예약하기", exact: true }).click();
   await page.getByRole("button", { name: "다음", exact: true }).click();
-  await page.clock.fastForward(11 * 60 * 1000);
+  await page.clock.fastForward(61 * 60 * 1000);
   await page.getByRole("button", { name: "확인 및 결제", exact: true }).click();
   await expect(page.getByRole("alert")).toContainText(
-    "요금 확인 시간이 지났습니다.",
+    "저장된 예약 정보의 보관 시간이 지났습니다.",
   );
   await page
     .getByRole("button", { name: "최신 요금 다시 확인", exact: true })

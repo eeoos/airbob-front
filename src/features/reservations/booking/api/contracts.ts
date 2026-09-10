@@ -21,7 +21,6 @@ export interface ReservationQuoteWire {
   readonly currency: unknown;
   readonly payment_required: unknown;
   readonly inventory_held: unknown;
-  readonly quote_expires_at: unknown;
   readonly server_time: unknown;
 }
 

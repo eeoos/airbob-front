@@ -113,7 +113,6 @@ interface BookingQuoteSummaryProps {
   readonly currency: string;
   readonly discountAmount: number;
   readonly onAbandonQuote: () => boolean;
-  readonly quoteExpiresAt: string;
   readonly subtotal: number;
 }
 
@@ -1006,23 +1005,14 @@ export function BookingQuoteSummary({
   currency,
   discountAmount,
   onAbandonQuote,
-  quoteExpiresAt,
   subtotal,
 }: BookingQuoteSummaryProps) {
-  const expiryDescriptionId = React.useId();
-  const quoteExpiry = new Date(quoteExpiresAt);
-  const hasExactQuoteExpiry = !Number.isNaN(quoteExpiry.getTime());
-  const quoteExpiryLabel = hasExactQuoteExpiry
-    ? quoteExpiry.toLocaleTimeString("ko-KR", {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : "유효 시간 내";
+  const availabilityDescriptionId = React.useId();
 
   return (
     <section
       className={styles.quoteSummary}
-      aria-describedby={expiryDescriptionId}
+      aria-describedby={availabilityDescriptionId}
       aria-label="확정된 예약 견적"
     >
       <div className={styles.quoteSummaryHeader}>
@@ -1047,15 +1037,8 @@ export function BookingQuoteSummary({
         <strong>₩{amount.toLocaleString("ko-KR")}</strong>
       </div>
       <div className={styles.quoteSummaryFooter}>
-        <p className={styles.quoteExpiry} id={expiryDescriptionId}>
-          <span>견적 유효 시각</span>
-          <strong>
-            {hasExactQuoteExpiry ? (
-              <time dateTime={quoteExpiresAt}>{quoteExpiryLabel}까지</time>
-            ) : (
-              quoteExpiryLabel
-            )}
-          </strong>
+        <p className={styles.quoteAvailability} id={availabilityDescriptionId}>
+          결제 시 최신 요금과 예약 가능 여부를 다시 확인합니다.
         </p>
         {canAbandon && (
           <button

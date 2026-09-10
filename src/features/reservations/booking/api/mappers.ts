@@ -38,7 +38,6 @@ const RESERVATION_QUOTE_KEYS = [
   "currency",
   "paymentRequired",
   "inventoryHeld",
-  "quoteExpiresAt",
   "serverTime",
 ] as const;
 
@@ -251,7 +250,6 @@ export const validateReservationQuote = (value: unknown): ReservationQuote => {
       toBoolean(value.inventoryHeld, "inventoryHeld") === false
         ? false
         : invalidField("inventoryHeld"),
-    quoteExpiresAt: toUtcInstant(value.quoteExpiresAt, "quoteExpiresAt"),
     serverTime: toUtcInstant(value.serverTime, "serverTime"),
   };
 
@@ -267,13 +265,6 @@ export const validateReservationQuote = (value: unknown): ReservationQuote => {
   if (quote.paymentRequired !== quote.amount > 0) {
     invalidField("paymentRequired");
   }
-
-  const quoteExpiresAtNs = toUtcInstantNanoseconds(
-    quote.quoteExpiresAt,
-    "quoteExpiresAt",
-  );
-  const serverTimeNs = toUtcInstantNanoseconds(quote.serverTime, "serverTime");
-  if (quoteExpiresAtNs <= serverTimeNs) invalidField("quote expiry");
 
   return quote;
 };
@@ -320,7 +311,6 @@ export const toReservationQuote = (
       toBoolean(wire.inventory_held, "inventoryHeld") === false
         ? false
         : invalidField("inventoryHeld"),
-    quoteExpiresAt: toUtcInstant(wire.quote_expires_at, "quoteExpiresAt"),
     serverTime: toUtcInstant(wire.server_time, "serverTime"),
   });
 

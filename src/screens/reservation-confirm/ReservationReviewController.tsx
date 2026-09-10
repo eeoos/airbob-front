@@ -225,7 +225,9 @@ export function ReservationReviewController({
         snapshot.phase === "quoted"
       ) {
         setNeedsNewQuote(true);
-        setError(reviewFailureMessage("R018"));
+        setError(
+          "저장된 예약 정보의 보관 시간이 지났습니다. 최신 요금을 다시 확인해주세요.",
+        );
         return;
       }
       if (result.status === "retryable-error") {

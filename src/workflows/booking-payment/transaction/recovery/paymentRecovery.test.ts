@@ -71,7 +71,6 @@ const quote: BookingPaymentQuote = {
   currency: "KRW",
   paymentRequired: true,
   inventoryHeld: false,
-  quoteExpiresAt: "2026-09-01T10:05:00Z",
   serverTime: "2026-09-01T10:00:00Z",
 };
 

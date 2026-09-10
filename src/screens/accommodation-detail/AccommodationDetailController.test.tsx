@@ -117,7 +117,6 @@ const quoteSnapshot = {
   currency: "KRW",
   couponId: null,
   couponDisplayName: null,
-  quoteExpiresAt: "2026-07-10T00:10:00Z",
   serverTime: "2026-07-10T00:00:00Z",
   paymentRequired: true,
   reservationStatus: null,

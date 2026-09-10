@@ -793,7 +793,7 @@ export const createBookingPaymentRecoveryRecordsRepository = ({
       return { status: "rejected", reason: "invalid-data" };
     }
     const leaseChanged = !exactLease(journal.journal.lease, input.lease);
-    if (leaseChanged) {
+    if (leaseChanged || journal.raw !== nextJournalRaw) {
       if (!safeIsCurrent(input.isCurrent)) return { status: "stale" };
       const written = writeRawAndVerify(
         driver,
