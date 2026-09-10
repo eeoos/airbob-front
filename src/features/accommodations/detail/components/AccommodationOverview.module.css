@@ -241,3 +241,7 @@
 .amenitiesTitle:focus {
   outline: none;
 }
+
+.amenitiesTitle:focus-visible {
+  box-shadow: var(--focus-ring-visible);
+}

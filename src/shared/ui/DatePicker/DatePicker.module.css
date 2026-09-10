@@ -772,7 +772,7 @@
 }
 
 .booking .dayNumber {
-  width: min(40px, 100%);
+  width: min(var(--space-10), 100%);
   font-weight: var(--font-weight-semibold);
 }
 

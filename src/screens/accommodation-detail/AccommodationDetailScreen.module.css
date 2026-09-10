@@ -71,6 +71,10 @@
   outline: none;
 }
 
+.sectionTarget:focus-visible {
+  box-shadow: var(--focus-ring-visible);
+}
+
 .stateOwner:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring-visible);
