@@ -23,6 +23,13 @@ const mockRect = (
   });
 };
 
+const centeredMap = () =>
+  ({
+    getProjection: () => ({ fromLatLngToPoint: () => ({ x: 0, y: 0 }) }),
+    getCenter: () => ({ lat: () => 37.5, lng: () => 127 }),
+    getZoom: () => 10,
+  }) as unknown as google.maps.Map;
+
 describe("info window DOM helpers", () => {
   beforeEach(() => {
     document.body.innerHTML = "";
@@ -41,10 +48,25 @@ describe("info window DOM helpers", () => {
     mockRect(mapElement, { left: 0, top: 0, width: 300, height: 240 });
     mockRect(infoWindow, { left: 280, top: 220, width: 327, height: 80 });
 
-    const didAdjust = adjustInfoWindowIntoMapView({ mapElement });
-
-    expect(didAdjust).toBe(true);
-    expect(parent).toHaveStyle({ transform: "translate(-317px, -75px)" });
+    const card = document.createElement("div");
+    card.dataset.mapCard = "";
+    infoWindow.append(card);
+    const setOffset = vi.fn();
+    adjustInfoWindowIntoMapView({
+      mapElement,
+      map: centeredMap(),
+      position: { lat: 37.5, lng: 127 },
+      markerHeight: 28,
+      offset: { x: 10, y: 5 },
+      setOffset,
+    });
+    expect(setOffset).toHaveBeenCalledWith(-254, -79);
+    expect(parent).toHaveStyle({ transform: "translate(10px, 5px)" });
+    expect(card).toHaveStyle({
+      width: "268px",
+      maxHeight: "208px",
+      visibility: "visible",
+    });
   });
 
   it("leaves an in-bounds info window transform unchanged", () => {
@@ -58,11 +80,21 @@ describe("info window DOM helpers", () => {
     document.body.append(mapElement);
 
     mockRect(mapElement, { left: 0, top: 0, width: 500, height: 320 });
-    mockRect(infoWindow, { left: 80, top: 40, width: 327, height: 100 });
+    mockRect(infoWindow, { left: 86.5, top: 176, width: 327, height: 100 });
 
-    const didAdjust = adjustInfoWindowIntoMapView({ mapElement });
-
-    expect(didAdjust).toBe(false);
+    const card = document.createElement("div");
+    card.dataset.mapCard = "";
+    infoWindow.append(card);
+    const setOffset = vi.fn();
+    adjustInfoWindowIntoMapView({
+      mapElement,
+      map: centeredMap(),
+      position: { lat: 37.5, lng: 127 },
+      markerHeight: 28,
+      offset: { x: 0, y: 0 },
+      setOffset,
+    });
+    expect(setOffset).not.toHaveBeenCalled();
     expect(parent).toHaveStyle({ transform: "translate(4px, 8px)" });
   });
 
@@ -94,6 +126,8 @@ describe("info window DOM helpers", () => {
     expect(content).toHaveStyle({ overflow: "visible" });
     expect(container).toHaveStyle({ borderRadius: "12px" });
     expect(container).toHaveStyle({ overflow: "hidden" });
+    expect(container).toHaveStyle({ maxWidth: "none", maxHeight: "none" });
+    expect(content).toHaveStyle({ maxHeight: "none" });
     expect(document.querySelector(".gm-style-iw-chr")).toBeNull();
     expect(document.querySelector(".gm-ui-hover-effect")).toBeNull();
     expect(document.querySelector(".gm-style-iw-ch")).toBeNull();

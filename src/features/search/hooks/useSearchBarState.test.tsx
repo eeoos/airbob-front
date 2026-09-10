@@ -27,7 +27,6 @@ vi.mock("./usePlacesAutocomplete", () => ({
 }));
 
 const mockPushSearch = vi.fn();
-const mockReplaceSearch = vi.fn();
 const mockHandleInputChange = vi.fn();
 const mockHandlePlaceSelect = vi.fn();
 const mockResetPlaces = vi.fn();
@@ -52,7 +51,6 @@ const seoulPlace: SelectedPlace = {
 };
 
 let currentSearchParams = new URLSearchParams();
-let currentPathname = "/search";
 let placesOptions: Parameters<typeof usePlacesAutocomplete>[0];
 let placesState: {
   suggestions: PlacePrediction[];
@@ -61,9 +59,7 @@ let placesState: {
 
 const createRoutePort = (): SearchBarRoutePort => ({
   currentSearchParams,
-  isSearchRoute: currentPathname === "/search",
   pushSearch: mockPushSearch,
-  replaceSearch: mockReplaceSearch,
 });
 
 const getLocalDateKey = (date: Date | null | undefined) => {
@@ -77,13 +73,11 @@ const getLocalDateKey = (date: Date | null | undefined) => {
 describe("useSearchBarState", () => {
   beforeEach(() => {
     mockPushSearch.mockReset();
-    mockReplaceSearch.mockReset();
     mockHandleInputChange.mockReset();
     mockHandlePlaceSelect.mockReset();
     mockResetPlaces.mockReset();
     mockStartNewSession.mockReset();
     currentSearchParams = new URLSearchParams();
-    currentPathname = "/search";
     placesState = { suggestions: [], isLoading: false };
     placesOptions = undefined;
 
@@ -346,29 +340,33 @@ describe("useSearchBarState", () => {
     expect(result.current.popover.activePopover).toBe("none");
   });
 
-  it("preserves map-drag exit replace semantics", () => {
+  it("keeps the current-location viewport while editing and replaces it only on search", () => {
     currentSearchParams = new URLSearchParams(
-      "destination=Seoul&lat=37&lng=127&topLeftLat=38&topLeftLng=126&bottomRightLat=37&bottomRightLng=128",
+      "page=2&adultOccupancy=2&topLeftLat=38&topLeftLng=126&bottomRightLat=37&bottomRightLng=128",
     );
+    const originalSearch = currentSearchParams.toString();
     const { result } = renderHook(() =>
-      useSearchBarState({
-        isMapDragMode: true,
-        routePort: createRoutePort(),
-      }),
+      useSearchBarState({ routePort: createRoutePort() }),
     );
 
-    act(() => {
-      result.current.actions.exitMapDragMode();
-    });
+    act(() => result.current.actions.openDestination());
+    act(() => result.current.actions.startDestinationSession());
+    expect(mockPushSearch).not.toHaveBeenCalled();
+    expect(currentSearchParams.toString()).toBe(originalSearch);
 
-    const nextParams = getSearchParamsFromCall(
-      mockReplaceSearch,
-      "replaceSearch",
-    );
-    expect(nextParams.get("destination")).toBe("Seoul");
-    expect(nextParams.get("lat")).toBe("37");
-    expect(nextParams.get("lng")).toBe("127");
+    act(() => result.current.actions.changeDestination("Busan"));
+    act(() => result.current.actions.collapseShell());
+    act(() => result.current.actions.openDestination());
+    expect(result.current.destination.inputText).toBe("Busan");
+    expect(currentSearchParams.toString()).toBe(originalSearch);
+    expect(mockPushSearch).not.toHaveBeenCalled();
+
+    act(() => result.current.actions.handleSearch());
+    const nextParams = getSearchParamsFromCall(mockPushSearch, "pushSearch");
+    expect(nextParams.get("destination")).toBe("Busan");
+    expect(nextParams.get("adultOccupancy")).toBe("2");
     expect(nextParams.has("topLeftLat")).toBe(false);
-    expect(mockReplaceSearch).toHaveBeenCalledTimes(1);
+    expect(nextParams.has("page")).toBe(false);
+    expect(mockPushSearch).toHaveBeenCalledOnce();
   });
 });

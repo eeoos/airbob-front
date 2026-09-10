@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { useGoogleMapsScript } from "../../../../platform/integrations/useGoogleMapsScript";
 import {
   Skeleton,
@@ -6,6 +6,7 @@ import {
   TerminalErrorState,
 } from "../../../../shared/ui";
 import { useAccommodationMarkers } from "./hooks/useAccommodationMarkers";
+import { useCurrentLocation } from "./hooks/useCurrentLocation";
 import { useGoogleMapInstance } from "./hooks/useGoogleMapInstance";
 import { useMapBoundsReporter } from "./hooks/useMapBoundsReporter";
 import { useMapExpandControl } from "./hooks/useMapExpandControl";
@@ -14,6 +15,9 @@ import type { SearchMapMarker, SearchMapProps } from "./types";
 import styles from "./Map.module.css";
 
 export const Map: React.FC<SearchMapProps> = ({
+  selectionPresentation = "anchored",
+  autoFitAccommodations = true,
+  isWaitingForResults = false,
   accommodations,
   selectedAccommodationId,
   hoveredAccommodationId,
@@ -54,9 +58,27 @@ export const Map: React.FC<SearchMapProps> = ({
   const { isLoaded: isMapLoaded, status: mapScriptStatus } =
     useGoogleMapsScript();
 
+  const locationSearchRef = useRef<
+    ((center: google.maps.LatLngLiteral) => void) | null
+  >(null);
+  const cancelLocationSearchRef = useRef<(() => void) | null>(null);
+  const currentLocation = useCurrentLocation({
+    requestKey: boundsRequestKey,
+    onLocation: (center) => locationSearchRef.current?.(center),
+  });
+  const cancelLocation = currentLocation.cancel;
+  const handleMapInteraction = useCallback(() => {
+    cancelLocation();
+    cancelLocationSearchRef.current?.();
+    onMapInteraction?.();
+  }, [cancelLocation, onMapInteraction]);
+
   useEffect(() => {
-    onAccommodationSelectRef.current = onAccommodationSelect;
-  }, [onAccommodationSelect]);
+    onAccommodationSelectRef.current = (accommodation) => {
+      if (accommodation) handleMapInteraction();
+      onAccommodationSelect(accommodation);
+    };
+  }, [handleMapInteraction, onAccommodationSelect]);
 
   const mapRuntimeError = useGoogleMapInstance({
     infoWindowRef,
@@ -65,13 +87,19 @@ export const Map: React.FC<SearchMapProps> = ({
     mapInstanceRef,
     mapRef,
     onAccommodationSelectRef,
-    onMapInteraction,
+    onMapInteraction: handleMapInteraction,
     prevViewportRef,
     viewport,
     viewportJustChangedRef,
   });
 
-  const isLoadingBounds = useMapBoundsReporter({
+  const {
+    isLoadingBounds,
+    isLocationSearchPending,
+    searchAround,
+    cancelPendingBounds,
+    cancelLocationSearch,
+  } = useMapBoundsReporter({
     isInitialIdleRef,
     isMapLoaded,
     mapInstanceRef,
@@ -80,9 +108,15 @@ export const Map: React.FC<SearchMapProps> = ({
     onUserDragStart: onBoundsDragStart,
     requestKey: boundsRequestKey,
   });
+  locationSearchRef.current = searchAround;
+  cancelLocationSearchRef.current = cancelLocationSearch;
 
   useAccommodationMarkers({
+    autoFitAccommodations,
+    isWaitingForResults,
     accommodations,
+    checkIn,
+    checkOut,
     isInitialIdleRef,
     isMapDragMode,
     isMapLoaded,
@@ -97,6 +131,7 @@ export const Map: React.FC<SearchMapProps> = ({
   });
 
   useMapSelectionInfoWindow({
+    showInfoWindow: selectionPresentation === "anchored",
     accommodations,
     checkIn,
     checkOut,
@@ -155,6 +190,46 @@ export const Map: React.FC<SearchMapProps> = ({
         className={styles.mapCanvas}
         role="region"
       />
+      {onBoundsChange && (
+        <div className={styles.locationControl}>
+          <button
+            type="button"
+            className={styles.locationButton}
+            aria-label="현재 위치에서 검색"
+            aria-busy={currentLocation.isLocating || isLocationSearchPending}
+            disabled={currentLocation.isLocating || isLocationSearchPending}
+            onClick={() => {
+              cancelPendingBounds();
+              onMapInteraction?.();
+              currentLocation.requestLocation();
+            }}
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="7" />
+              <circle cx="12" cy="12" r="2" />
+              <path d="M12 2v3m0 14v3M2 12h3m14 0h3" />
+            </svg>
+            <span>
+              {currentLocation.isLocating
+                ? "위치 확인 중…"
+                : isLocationSearchPending
+                  ? "주변 검색 중…"
+                  : "현재 위치"}
+            </span>
+          </button>
+          <div
+            role="status"
+            className={
+              currentLocation.error ? styles.locationError : styles.statusText
+            }
+          >
+            {currentLocation.error ??
+              (currentLocation.isLocating
+                ? "현재 위치를 확인하고 있습니다."
+                : "")}
+          </div>
+        </div>
+      )}
       {isLoadingBounds && (
         <div
           aria-label="지도 범위 검색 중"

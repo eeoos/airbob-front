@@ -1,5 +1,6 @@
 import type { SearchMapAccommodation } from "../types";
 import { getSearchAccommodationPriceDisplay } from "../../../lib/searchAccommodationViewModel";
+import { MAP_CARD_LAYOUT } from "./infoWindowPlacement";
 import { escapeInfoWindowHtml } from "./safeInfoWindowHtml";
 
 interface SearchMapInfoWindowContent {
@@ -42,9 +43,8 @@ const INFO_WINDOW_STYLE_TOKENS = {
   buttonCloseSize: "30px",
   buttonIconSize: "16px",
   buttonWishlistSize: "28px",
-  cardWidth: "327px",
+  cardWidth: `${MAP_CARD_LAYOUT.width}px`,
   contentPadding: "12px 12px 12px 12px",
-  imageHeight: "211.94px",
   closeButtonFontSize: "20px",
   lineHeightCompact: "1.2",
   lineHeightTight: "1",
@@ -109,8 +109,8 @@ const buildSearchMapInfoWindowContentView = ({
     : null;
 
   return `
-          <div id="info-window-${escapedAccommodationId}" style="width: ${INFO_WINDOW_STYLE_TOKENS.cardWidth}; font-family: ${INFO_WINDOW_FONT}; border-radius: ${INFO_WINDOW_STYLE_TOKENS.borderRadiusLg}; overflow: hidden; box-shadow: ${INFO_WINDOW_STYLE_TOKENS.shadowMd}; background: ${INFO_WINDOW_STYLE_TOKENS.background}; margin: 0; padding: 0; cursor: pointer; display: flex; flex-direction: column;">
-            <div style="position: relative; width: ${INFO_WINDOW_STYLE_TOKENS.cardWidth}; height: ${INFO_WINDOW_STYLE_TOKENS.imageHeight}; overflow: hidden; background-color: ${INFO_WINDOW_STYLE_TOKENS.backgroundMuted};">
+          <div id="info-window-${escapedAccommodationId}" data-map-card style="visibility: hidden; width: ${INFO_WINDOW_STYLE_TOKENS.cardWidth}; font-family: ${INFO_WINDOW_FONT}; border-radius: ${INFO_WINDOW_STYLE_TOKENS.borderRadiusLg}; overflow: auto; overscroll-behavior: contain; box-shadow: ${INFO_WINDOW_STYLE_TOKENS.shadowMd}; background: ${INFO_WINDOW_STYLE_TOKENS.background}; margin: 0; padding: 0; cursor: pointer; display: flex; flex-direction: column;">
+            <div style="position: relative; flex-shrink: 0; width: 100%; aspect-ratio: 327 / 212; overflow: hidden; background-color: ${INFO_WINDOW_STYLE_TOKENS.backgroundMuted};">
               ${
                 escapedImageUrl
                   ? `<img data-info-window-image src="${escapedImageUrl}" alt="${escapedTitle}" style="width: 100%; height: 100%; object-fit: cover;" />
@@ -132,7 +132,7 @@ const buildSearchMapInfoWindowContentView = ({
                 <button type="button" aria-label="지도 숙소 카드 닫기" data-info-window-action="close" style="width: ${INFO_WINDOW_STYLE_TOKENS.buttonCloseSize}; height: ${INFO_WINDOW_STYLE_TOKENS.buttonCloseSize}; border-radius: ${INFO_WINDOW_STYLE_TOKENS.borderRadiusPill}; border: none; background: ${INFO_WINDOW_STYLE_TOKENS.buttonBackground}; cursor: pointer; display: flex; align-items: center; justify-content: center; color: ${INFO_WINDOW_STYLE_TOKENS.textPrimary}; font-size: ${INFO_WINDOW_STYLE_TOKENS.closeButtonFontSize}; line-height: ${INFO_WINDOW_STYLE_TOKENS.lineHeightTight}; box-shadow: ${INFO_WINDOW_STYLE_TOKENS.shadowSm};">×</button>
               </div>
             </div>
-            <div style="width: ${INFO_WINDOW_STYLE_TOKENS.cardWidth}; padding: ${INFO_WINDOW_STYLE_TOKENS.contentPadding}; background: ${INFO_WINDOW_STYLE_TOKENS.background}; box-sizing: border-box; display: flex; flex-direction: column;">
+            <div style="width: 100%; padding: ${INFO_WINDOW_STYLE_TOKENS.contentPadding}; background: ${INFO_WINDOW_STYLE_TOKENS.background}; box-sizing: border-box; display: flex; flex-direction: column;">
               ${
                 escapedLocationLabel || escapedRatingLabel
                   ? `<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: ${INFO_WINDOW_STYLE_TOKENS.locationMarginBottom};">

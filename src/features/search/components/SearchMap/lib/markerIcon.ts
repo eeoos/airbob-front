@@ -1,4 +1,5 @@
 import { RUNTIME_DESIGN_TOKENS } from "../../../../../shared/styles/runtimeDesignTokens";
+import { getSearchAccommodationPriceDisplay } from "../../../lib/searchAccommodationViewModel";
 
 export type MarkerIconState = "default" | "selected" | "hovered";
 
@@ -28,18 +29,16 @@ const MARKER_ICON_COLORS = {
 
 const MARKER_GEOMETRY = RUNTIME_DESIGN_TOKENS.marker;
 
-const getMarkerPriceText = ({ basePrice, currency }: MarkerPriceInput) => {
-  if (currency === "KRW") {
-    return `₩${basePrice.toLocaleString()}`;
-  }
-
-  return `${currency} ${basePrice.toLocaleString()}`;
-};
-
 export const getMarkerIconModel = (
   input: MarkerPriceInput,
+  checkIn?: string | null,
+  checkOut?: string | null,
 ): MarkerIconModel => {
-  const priceText = getMarkerPriceText(input);
+  const { amountLabel: priceText } = getSearchAccommodationPriceDisplay(
+    input,
+    checkIn,
+    checkOut,
+  );
   const textWidth =
     priceText.length * MARKER_GEOMETRY.characterWidthPx +
     MARKER_GEOMETRY.textExtraWidthPx;

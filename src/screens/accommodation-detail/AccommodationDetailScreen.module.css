@@ -1,7 +1,78 @@
 .stateOwner {
   --detail-inline-gutter: var(--size-px-80);
+  --detail-navigation-height: var(--layout-header-desktop-height);
 
   min-width: 0;
+}
+
+.detailNavigation {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: var(--z-header);
+  height: var(--detail-navigation-height);
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: var(--color-background-page);
+  visibility: hidden;
+  transform: translateY(-100%);
+  transition: transform var(--motion-duration-base) var(--motion-ease-standard);
+}
+
+.detailNavigation[data-visible="true"] {
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.navigationInner {
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--layout-page-full-max-width);
+  height: 100%;
+  margin-inline: auto;
+  padding-inline: var(--detail-inline-gutter);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+
+.sectionLinks {
+  display: flex;
+  height: 100%;
+  gap: var(--space-6);
+}
+
+.sectionLinks a {
+  display: flex;
+  align-items: center;
+  border-bottom: 3px solid transparent;
+  padding-top: 3px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.sectionLinks a[aria-current],
+.sectionLinks a:hover {
+  border-bottom-color: var(--color-text-primary);
+}
+
+.sectionLinks a:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-visible);
+}
+
+.sectionTarget {
+  scroll-margin-top: calc(var(--detail-navigation-height) + var(--space-6));
+}
+
+.sectionTarget:focus {
+  outline: none;
+}
+
+.sectionTarget:focus-visible {
+  box-shadow: var(--focus-ring-visible);
 }
 
 .stateOwner:focus-visible {
@@ -160,8 +231,8 @@
 
 .sidebar {
   position: sticky;
-  top: calc(var(--layout-header-desktop-height) + var(--space-5));
-  z-index: var(--z-sticky);
+  top: calc(var(--detail-navigation-height) + var(--space-5));
+  z-index: var(--z-local-raised);
   align-self: flex-start;
   height: fit-content;
 }
@@ -256,7 +327,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .actionButton {
+  .actionButton,
+  .detailNavigation {
     transition: none;
   }
 }

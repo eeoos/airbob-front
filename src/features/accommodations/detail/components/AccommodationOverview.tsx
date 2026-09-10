@@ -87,6 +87,7 @@ export function AccommodationOverview({
           >
             <h2
               id="accommodation-amenities-title"
+              tabIndex={-1}
               className={styles.amenitiesTitle}
             >
               숙소 편의시설

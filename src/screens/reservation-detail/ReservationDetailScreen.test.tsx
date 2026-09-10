@@ -11,7 +11,6 @@ import {
 
 const guestActions: Mocked<GuestReservationDetailActions> = {
   onBack: vi.fn(),
-  onBackToProfile: vi.fn(),
   onDismissError: vi.fn(),
   onDismissFeedback: vi.fn(),
   onOpenAccommodation: vi.fn(),
@@ -253,12 +252,10 @@ describe("ReservationDetailScreen", () => {
       ]),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /돌아가기/ }));
     fireEvent.click(screen.getByRole("button", { name: "뒤로 가기" }));
     fireEvent.click(screen.getByRole("button", { name: "숙소로 이동하기" }));
     fireEvent.click(screen.getByRole("button", { name: "리뷰 작성하기" }));
 
-    expect(guestActions.onBackToProfile).toHaveBeenCalledTimes(1);
     expect(guestActions.onBack).toHaveBeenCalledTimes(1);
     expect(guestActions.onOpenAccommodation).toHaveBeenCalledWith(7);
     expect(guestActions.onOpenReview).toHaveBeenCalledWith("reservation-123");

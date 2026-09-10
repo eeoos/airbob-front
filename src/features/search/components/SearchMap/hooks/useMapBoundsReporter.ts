@@ -1,5 +1,12 @@
-import { useEffect, useRef, useState, type MutableRefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MutableRefObject,
+} from "react";
 import { hasBoundsChanged } from "../lib/mapBounds";
+import { SEARCH_MAP_CAMERA } from "../../../lib/searchMapConfig";
 import type { SearchMapBounds } from "../types";
 
 interface UseMapBoundsReporterOptions {
@@ -29,6 +36,23 @@ const readMapBounds = (
   };
 };
 
+const isCameraAtLocation = (
+  map: google.maps.Map,
+  center: google.maps.LatLngLiteral,
+) => {
+  const currentCenter = map.getCenter();
+  const longitudeDistance =
+    currentCenter === undefined
+      ? Infinity
+      : Math.abs(currentCenter.lng() - center.lng);
+  return (
+    currentCenter !== undefined &&
+    Math.abs(currentCenter.lat() - center.lat) < 1e-9 &&
+    Math.min(longitudeDistance, 360 - longitudeDistance) < 1e-9 &&
+    map.getZoom() === SEARCH_MAP_CAMERA.nearbyZoom
+  );
+};
+
 export const useMapBoundsReporter = ({
   isInitialIdleRef,
   isMapLoaded,
@@ -45,6 +69,8 @@ export const useMapBoundsReporter = ({
   const idleListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   const previousBoundsRef = useRef<SearchMapBounds | null>(null);
   const userDragIntentRef = useRef(false);
+  const locationTargetRef = useRef<google.maps.LatLngLiteral | null>(null);
+  const reportIdleRef = useRef<(() => void) | null>(null);
   const userDragRequestKeyRef = useRef<string | undefined>(undefined);
   const pendingRequestKeyRef = useRef<string | undefined>(undefined);
   const onBoundsChangeRef = useRef(onBoundsChange);
@@ -58,6 +84,44 @@ export const useMapBoundsReporter = ({
   requestKeyRef.current = requestKey;
 
   const canReportBounds = onBoundsChange !== undefined;
+
+  const cancelPendingBounds = useCallback(() => {
+    const hasIntent =
+      userDragIntentRef.current || boundsChangeTimerRef.current !== null;
+    if (boundsChangeTimerRef.current)
+      clearTimeout(boundsChangeTimerRef.current);
+    boundsChangeTimerRef.current = null;
+    pendingRequestKeyRef.current = undefined;
+    userDragIntentRef.current = false;
+    locationTargetRef.current = null;
+    userDragRequestKeyRef.current = undefined;
+    setIsLoadingBounds(false);
+    if (hasIntent) onUserDragCancelRef.current?.();
+  }, []);
+
+  const cancelLocationSearch = useCallback(() => {
+    if (locationTargetRef.current !== null) cancelPendingBounds();
+  }, [cancelPendingBounds]);
+
+  const searchAround = useCallback(
+    (center: google.maps.LatLngLiteral) => {
+      const map = mapInstanceRef.current;
+      if (!map || !reportIdleRef.current || !onBoundsChangeRef.current) return;
+
+      cancelPendingBounds();
+      userDragIntentRef.current = true;
+      // Keep the target until the SDK settles; an earlier fitBounds may still finish.
+      locationTargetRef.current = center;
+      userDragRequestKeyRef.current = requestKeyRef.current;
+      onUserDragStartRef.current?.();
+      setIsLoadingBounds(true);
+      const isAlreadyCentered = isCameraAtLocation(map, center);
+      map.moveCamera({ center, zoom: SEARCH_MAP_CAMERA.nearbyZoom });
+      // An unchanged camera does not emit another idle event.
+      if (isAlreadyCentered) reportIdleRef.current();
+    },
+    [cancelPendingBounds, mapInstanceRef],
+  );
 
   useEffect(() => {
     if (!isMapLoaded || !mapInstanceRef.current || !canReportBounds) return;
@@ -85,17 +149,42 @@ export const useMapBoundsReporter = ({
 
       isInitialIdleRef.current = false;
       if (!userDragIntentRef.current) return;
+      const locationTarget = locationTargetRef.current;
+      if (
+        locationTarget &&
+        userDragRequestKeyRef.current === requestKeyRef.current &&
+        !isCameraAtLocation(mapInstance, locationTarget)
+      ) {
+        mapInstance.moveCamera({
+          center: locationTarget,
+          zoom: SEARCH_MAP_CAMERA.nearbyZoom,
+        });
+        return;
+      }
       userDragIntentRef.current = false;
+      const isLocationSearch = locationTarget !== null;
+      locationTargetRef.current = null;
 
       const dragRequestKey = userDragRequestKeyRef.current;
       userDragRequestKeyRef.current = undefined;
 
-      if (dragRequestKey !== requestKeyRef.current) return;
+      if (dragRequestKey !== requestKeyRef.current) {
+        setIsLoadingBounds(false);
+        return;
+      }
+
+      if (isLocationSearch && nextBounds !== null) {
+        setIsLoadingBounds(false);
+        previousBoundsRef.current = nextBounds;
+        onBoundsChangeRef.current?.(nextBounds);
+        return;
+      }
 
       if (
         nextBounds === null ||
         !hasBoundsChanged(previousBoundsRef.current, nextBounds)
       ) {
+        setIsLoadingBounds(false);
         onUserDragCancelRef.current?.();
         return;
       }
@@ -122,6 +211,7 @@ export const useMapBoundsReporter = ({
     };
 
     const markUserViewportIntent = () => {
+      locationTargetRef.current = null;
       if (boundsChangeTimerRef.current) {
         clearTimeout(boundsChangeTimerRef.current);
         boundsChangeTimerRef.current = null;
@@ -134,6 +224,7 @@ export const useMapBoundsReporter = ({
       onUserDragStartRef.current?.();
     };
 
+    reportIdleRef.current = handleIdle;
     idleListenerRef.current = mapInstance.addListener("idle", handleIdle);
     const dragStartListener = mapInstance.addListener(
       "dragstart",
@@ -150,6 +241,8 @@ export const useMapBoundsReporter = ({
         pendingRequestKeyRef.current = undefined;
       }
       userDragIntentRef.current = false;
+      locationTargetRef.current = null;
+      reportIdleRef.current = null;
       userDragRequestKeyRef.current = undefined;
       if (idleListenerRef.current) {
         idleListenerRef.current.remove();
@@ -164,6 +257,12 @@ export const useMapBoundsReporter = ({
 
   useEffect(() => {
     if (
+      userDragIntentRef.current &&
+      userDragRequestKeyRef.current !== requestKey
+    ) {
+      cancelPendingBounds();
+    }
+    if (
       !boundsChangeTimerRef.current ||
       pendingRequestKeyRef.current === requestKey
     ) {
@@ -174,7 +273,7 @@ export const useMapBoundsReporter = ({
     boundsChangeTimerRef.current = null;
     pendingRequestKeyRef.current = undefined;
     setIsLoadingBounds(false);
-  }, [requestKey]);
+  }, [cancelPendingBounds, requestKey]);
 
   useEffect(() => {
     if (canReportBounds) return;
@@ -187,5 +286,12 @@ export const useMapBoundsReporter = ({
     setIsLoadingBounds(false);
   }, [canReportBounds]);
 
-  return isLoadingBounds;
+  return {
+    isLoadingBounds,
+    isLocationSearchPending:
+      isLoadingBounds && locationTargetRef.current !== null,
+    cancelPendingBounds,
+    cancelLocationSearch,
+    searchAround,
+  };
 };

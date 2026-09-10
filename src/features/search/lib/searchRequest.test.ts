@@ -1,5 +1,6 @@
 import type { SearchCommittedRouteState } from "../model/search";
 import { normalizeSearchRequest, toSearchRequest } from "./searchRequest";
+import { DEFAULT_SEARCH_VIEWPORT } from "./searchMapConfig";
 
 const committedState = (
   overrides: Partial<SearchCommittedRouteState> = {},
@@ -16,6 +17,24 @@ const committedState = (
 });
 
 describe("search request mapping", () => {
+  it("limits an empty destination to the same metro viewport used by the map", () => {
+    const state = { ...committedState() };
+    delete state.destination;
+    expect(toSearchRequest(state)).toEqual({
+      topLeftLat: DEFAULT_SEARCH_VIEWPORT.north,
+      topLeftLng: DEFAULT_SEARCH_VIEWPORT.west,
+      bottomRightLat: DEFAULT_SEARCH_VIEWPORT.south,
+      bottomRightLng: DEFAULT_SEARCH_VIEWPORT.east,
+      checkIn: "2026-09-10",
+      checkOut: "2026-09-12",
+      adultOccupancy: 2,
+      childOccupancy: 1,
+      infantOccupancy: 0,
+      petOccupancy: 0,
+      page: 2,
+      size: 18,
+    });
+  });
   it("maps committed destination state to the current endpoint query", () => {
     expect(toSearchRequest(committedState())).toEqual({
       destination: "Seoul",

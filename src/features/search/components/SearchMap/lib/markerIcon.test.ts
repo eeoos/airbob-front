@@ -1,6 +1,38 @@
 import { buildMarkerPriceSvg, getMarkerIconModel } from "./markerIcon";
 
 describe("marker icon helpers", () => {
+  it.each([
+    [undefined, undefined, "₩123,456"],
+    ["2026-09-20", undefined, "₩123,456"],
+    ["2026-09-20", "2026-09-21", "₩123,456"],
+    ["2026-09-20", "2026-09-23", "₩370,368"],
+    ["2026-09-30", "2026-10-02", "₩246,912"],
+  ])(
+    "prices the searched stay from %s to %s",
+    (checkIn, checkOut, expected) => {
+      const model = getMarkerIconModel(
+        { basePrice: 123456, currency: "KRW" },
+        checkIn,
+        checkOut,
+      );
+      expect(model.priceText).toBe(expected);
+      for (const state of ["default", "selected", "hovered"] as const) {
+        expect(buildMarkerPriceSvg(model, state)).toContain(expected);
+      }
+    },
+  );
+
+  it("sizes long-stay markers for the total price", () => {
+    const nightly = getMarkerIconModel({ basePrice: 99000, currency: "KRW" });
+    const total = getMarkerIconModel(
+      { basePrice: 99000, currency: "KRW" },
+      "2026-09-01",
+      "2026-09-30",
+    );
+    expect(total.priceText).toBe("₩2,871,000");
+    expect(total.totalWidth).toBeGreaterThan(nightly.totalWidth);
+  });
+
   it("formats KRW marker prices with the won symbol", () => {
     expect(
       getMarkerIconModel({ basePrice: 123456, currency: "KRW" }).priceText,

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { requireCssModuleClass } from "../../../../shared/styles/requireCssModuleClass";
 import {
   Button,
@@ -59,7 +59,6 @@ export function AccommodationActionModal({
   onPublish,
   onUnpublish,
 }: AccommodationActionModalProps) {
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const [pendingAction, setPendingAction] = useState<HostListingAction | null>(
     null,
   );
@@ -109,32 +108,12 @@ export function AccommodationActionModal({
       bodyClassName={requireCssModuleClass(styles.content)}
       bodyPadding="none"
       className={requireCssModuleClass(styles.dialog)}
-      initialFocusRef={closeButtonRef}
       isOpen
       onClose={onClose}
       showHeader={false}
       size="sm"
       title="숙소 관리"
     >
-      <button
-        ref={closeButtonRef}
-        aria-label="숙소 관리 닫기"
-        className={styles.closeButton}
-        type="button"
-        onClick={onClose}
-      >
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-        </svg>
-      </button>
-
-      <header className={styles.header}>
-        <h2 className={styles.title}>숙소 관리</h2>
-        <p className={styles.description}>
-          숙소 상태를 확인하고 다음 관리 작업을 선택하세요.
-        </p>
-      </header>
-
       {accommodation.canOpenDetail ? (
         <button
           aria-label={`${accommodation.name} 상세 보기`}

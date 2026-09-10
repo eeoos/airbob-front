@@ -34,7 +34,7 @@ const createProps = (
 });
 
 describe("AccommodationActionModal", () => {
-  it("renders as a Dialog and closes from explicit close, Escape, and backdrop", async () => {
+  it("renders as a Dialog and closes from Escape and backdrop", async () => {
     const onClose = vi.fn();
 
     render(<AccommodationActionModal {...createProps({ onClose })} />);
@@ -43,13 +43,10 @@ describe("AccommodationActionModal", () => {
       screen.getByRole("dialog", { name: "숙소 관리" }),
     ).toBeInTheDocument();
 
-    await userEvent.click(
-      screen.getByRole("button", { name: "숙소 관리 닫기" }),
-    );
     await userEvent.keyboard("{Escape}");
     await userEvent.click(screen.getByRole("presentation"));
 
-    expect(onClose).toHaveBeenCalledTimes(3);
+    expect(onClose).toHaveBeenCalledTimes(2);
   });
 
   it("delegates detail and edit navigation before closing", async () => {
@@ -111,6 +108,7 @@ describe("AccommodationActionModal", () => {
 
   it("injects pending and error state without disabling dismissal or detail", async () => {
     const onDismissError = vi.fn();
+    const onClose = vi.fn();
 
     render(
       <AccommodationActionModal
@@ -118,6 +116,7 @@ describe("AccommodationActionModal", () => {
           errorMessage: "처리에 실패했습니다.",
           isPending: true,
           onDismissError,
+          onClose,
         })}
       />,
     );
@@ -128,15 +127,14 @@ describe("AccommodationActionModal", () => {
     ).toBeDisabled();
     expect(screen.getByRole("button", { name: "리스팅 삭제" })).toBeDisabled();
     expect(
-      screen.getByRole("button", { name: "숙소 관리 닫기" }),
-    ).toBeEnabled();
-    expect(
       screen.getByRole("button", { name: "남산 숙소 상세 보기" }),
     ).toBeEnabled();
 
     expect(screen.getByRole("alert")).toHaveTextContent("처리에 실패했습니다.");
     await userEvent.click(screen.getByRole("button", { name: "오류 닫기" }));
     expect(onDismissError).toHaveBeenCalledTimes(1);
+    await userEvent.keyboard("{Escape}");
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it("announces the selected listing action with a contextual pending label", async () => {

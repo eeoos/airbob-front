@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { Map } from "./Map";
 import type { SearchMapProps } from "./types";
 
@@ -47,7 +47,136 @@ describe("SearchMap", () => {
       status: "loading",
     });
     hookMocks.useGoogleMapInstance.mockReturnValue(null);
-    hookMocks.useMapBoundsReporter.mockReturnValue(false);
+    hookMocks.useMapBoundsReporter.mockReturnValue({
+      isLoadingBounds: false,
+      searchAround: vi.fn(),
+      cancelPendingBounds: vi.fn(),
+    });
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("reveals the map before opening a selected marker card on mobile", () => {
+    const onMapInteraction = vi.fn();
+    const onAccommodationSelect = vi.fn();
+    render(
+      <Map
+        {...baseProps}
+        onMapInteraction={onMapInteraction}
+        onAccommodationSelect={onAccommodationSelect}
+      />,
+    );
+    const selection =
+      hookMocks.useAccommodationMarkers.mock.calls[0]?.[0]
+        .onAccommodationSelectRef;
+    act(() => selection.current({ id: 10 }));
+    expect(onMapInteraction).toHaveBeenCalledOnce();
+    expect(onAccommodationSelect).toHaveBeenCalledWith({ id: 10 });
+    expect(onMapInteraction.mock.invocationCallOrder[0]).toBeLessThan(
+      onAccommodationSelect.mock.invocationCallOrder[0]!,
+    );
+    act(() => selection.current(null));
+    expect(onMapInteraction).toHaveBeenCalledOnce();
+  });
+
+  it("cancels old map searches before requesting location and moves only after permission succeeds", () => {
+    let succeed: PositionCallback | undefined;
+    const getCurrentPosition = vi.fn((success: PositionCallback) => {
+      succeed = success;
+    });
+    vi.stubGlobal("navigator", { geolocation: { getCurrentPosition } });
+    const searchAround = vi.fn();
+    const cancelPendingBounds = vi.fn();
+    hookMocks.useGoogleMapsScript.mockReturnValue({
+      isLoaded: true,
+      status: "loaded",
+    });
+    hookMocks.useMapBoundsReporter.mockReturnValue({
+      isLoadingBounds: false,
+      searchAround,
+      cancelPendingBounds,
+    });
+    render(<Map {...baseProps} onBoundsChange={vi.fn()} />);
+    const button = screen.getByRole("button", { name: "현재 위치에서 검색" });
+    expect(getCurrentPosition).not.toHaveBeenCalled();
+    fireEvent.click(button);
+    expect(cancelPendingBounds).toHaveBeenCalledOnce();
+    expect(cancelPendingBounds.mock.invocationCallOrder[0]).toBeLessThan(
+      getCurrentPosition.mock.invocationCallOrder[0]!,
+    );
+    expect(button).toBeDisabled();
+    expect(searchAround).not.toHaveBeenCalled();
+    act(() =>
+      succeed?.({
+        coords: { latitude: 35.17, longitude: 129.07 },
+      } as GeolocationPosition),
+    );
+    expect(searchAround).toHaveBeenCalledExactlyOnceWith({
+      lat: 35.17,
+      lng: 129.07,
+    });
+    expect(button).toBeEnabled();
+  });
+
+  it("ignores a pending location response after a map interaction", () => {
+    let succeed: PositionCallback | undefined;
+    vi.stubGlobal("navigator", {
+      geolocation: {
+        getCurrentPosition: vi.fn((success: PositionCallback) => {
+          succeed = success;
+        }),
+      },
+    });
+    const searchAround = vi.fn();
+    const cancelLocationSearch = vi.fn();
+    const onMapInteraction = vi.fn();
+    hookMocks.useGoogleMapsScript.mockReturnValue({
+      isLoaded: true,
+      status: "loaded",
+    });
+    hookMocks.useMapBoundsReporter.mockReturnValue({
+      isLoadingBounds: false,
+      searchAround,
+      cancelPendingBounds: vi.fn(),
+      cancelLocationSearch,
+    });
+    render(
+      <Map
+        {...baseProps}
+        onBoundsChange={vi.fn()}
+        onMapInteraction={onMapInteraction}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "현재 위치에서 검색" }));
+    act(() =>
+      hookMocks.useGoogleMapInstance.mock.lastCall?.[0].onMapInteraction(),
+    );
+    act(() =>
+      succeed?.({
+        coords: { latitude: 35.17, longitude: 129.07 },
+      } as GeolocationPosition),
+    );
+    expect(searchAround).not.toHaveBeenCalled();
+    expect(cancelLocationSearch).toHaveBeenCalledOnce();
+    expect(onMapInteraction).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps repeat requests disabled until the location camera has settled", () => {
+    hookMocks.useGoogleMapsScript.mockReturnValue({
+      isLoaded: true,
+      status: "loaded",
+    });
+    hookMocks.useMapBoundsReporter.mockReturnValue({
+      isLoadingBounds: true,
+      isLocationSearchPending: true,
+      searchAround: vi.fn(),
+      cancelPendingBounds: vi.fn(),
+    });
+    render(<Map {...baseProps} onBoundsChange={vi.fn()} />);
+    expect(
+      screen.getByRole("button", { name: "현재 위치에서 검색" }),
+    ).toBeDisabled();
+    expect(screen.getByText("주변 검색 중…")).toBeVisible();
   });
 
   it("renders loading feedback while forwarding absent composition inputs", () => {
@@ -106,7 +235,10 @@ describe("SearchMap", () => {
       isLoaded: true,
       status: "loaded",
     });
-    hookMocks.useMapBoundsReporter.mockReturnValue(true);
+    hookMocks.useMapBoundsReporter.mockReturnValue({
+      isLoadingBounds: true,
+      searchAround: vi.fn(),
+    });
 
     render(
       <Map
@@ -124,7 +256,7 @@ describe("SearchMap", () => {
     ).toBeVisible();
     expect(hookMocks.useGoogleMapInstance).toHaveBeenCalledWith(
       expect.objectContaining({
-        onMapInteraction: optionalProps.onMapInteraction,
+        onMapInteraction: expect.any(Function),
         viewport,
       }),
     );
@@ -143,6 +275,12 @@ describe("SearchMap", () => {
         checkOut: optionalProps.checkOut,
         hoveredAccommodationId: null,
         onWishlistToggle: optionalProps.onWishlistToggle,
+      }),
+    );
+    expect(hookMocks.useAccommodationMarkers).toHaveBeenCalledWith(
+      expect.objectContaining({
+        checkIn: optionalProps.checkIn,
+        checkOut: optionalProps.checkOut,
       }),
     );
     expect(hookMocks.useMapExpandControl).toHaveBeenCalledWith(

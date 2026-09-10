@@ -57,7 +57,6 @@ const MobileSearchBar: React.FC<MobileSearchBarProps> = ({
   const { destination, dates, guests, popover, actions, status } =
     useSearchBarState({
       routePort,
-      isMapDragMode,
       ...(onSearch === undefined ? {} : { onSearch }),
     });
 
@@ -97,7 +96,6 @@ const MobileSearchBar: React.FC<MobileSearchBarProps> = ({
     resetSearchCriteria,
     startDestinationSession,
     handleSearch,
-    exitMapDragMode,
     completeCheckoutIfNeeded,
     closeTransientPanels,
     handleDateSelect,
@@ -114,9 +112,7 @@ const MobileSearchBar: React.FC<MobileSearchBarProps> = ({
     guestPickerRef,
     datePickerElementRef,
     isExpanded,
-    isMapDragMode,
     activePopover,
-    exitMapDragMode,
     changeDestination,
     openDestination,
     openDatePicker,
@@ -286,9 +282,8 @@ const MobileSearchBar: React.FC<MobileSearchBarProps> = ({
     closeEditor();
   }, [closeEditor, handleDestinationBack, isDestinationSearchOpen]);
 
-  const destinationLabel = isMapDragMode
-    ? "지도에 표시된 지역의 숙소"
-    : inputText || "어디든지";
+  const destinationLabel =
+    inputText || (isMapDragMode ? "지도에 표시된 지역의 숙소" : "어디든지");
   const dateLabel =
     checkIn && checkOut
       ? `${formatMobileDate(checkIn)} – ${formatMobileDate(checkOut)}`
@@ -467,9 +462,8 @@ const MobileSearchBar: React.FC<MobileSearchBarProps> = ({
                           <path d="m16 16 4 4" />
                         </svg>
                         <span>
-                          {isMapDragMode
-                            ? "지도 표시 지역"
-                            : inputText || "여행지 검색"}
+                          {inputText ||
+                            (isMapDragMode ? "지도 표시 지역" : "여행지 검색")}
                         </span>
                       </button>
                     </>

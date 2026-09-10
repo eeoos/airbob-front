@@ -23,12 +23,6 @@ export const useSearchMapState = () => {
       }
 
       setSelectedAccommodationId(accommodation.id);
-      const element = document.getElementById(
-        `accommodation-${accommodation.id}`,
-      );
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
     },
     [],
   );

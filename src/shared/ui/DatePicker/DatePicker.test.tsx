@@ -50,6 +50,53 @@ describe("DatePicker", () => {
     vi.useRealTimers();
   });
 
+  it.each(["booking", "review"] as const)(
+    "navigates paired %s months without duplicate titles or empty trailing weeks",
+    (variant) => {
+      renderDatePicker({ variant });
+      expect(screen.getAllByText("2026년 7월")).toHaveLength(1);
+      expect(
+        within(screen.getByRole("grid", { name: "2026년 7월" })).getAllByRole(
+          "row",
+        ),
+      ).toHaveLength(6);
+      expect(
+        within(screen.getByRole("grid", { name: "2026년 8월" })).getAllByRole(
+          "row",
+        ),
+      ).toHaveLength(7);
+      fireEvent.click(screen.getByRole("button", { name: "다음 달 보기" }));
+      expect(
+        screen.getByRole("grid", { name: "2026년 8월" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("grid", { name: "2026년 9월" }),
+      ).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "이전 달 보기" }));
+      expect(
+        screen.getByRole("grid", { name: "2026년 7월" }),
+      ).toBeInTheDocument();
+    },
+  );
+
+  it("shows keyboard help without closing the booking calendar and restores focus", () => {
+    const { props } = renderDatePicker({ variant: "booking" });
+    const help = screen.getByRole("button", { name: "키보드 단축키 보기" });
+    help.focus();
+    fireEvent.click(help);
+    const dialog = screen.getByRole("dialog", { name: "키보드 단축키" });
+    expect(within(dialog).getByText("해당 날짜 선택")).toBeInTheDocument();
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    expect(
+      screen.queryByRole("dialog", { name: "키보드 단축키" }),
+    ).not.toBeInTheDocument();
+    expect(props.onClose).not.toHaveBeenCalled();
+    expect(help).toHaveFocus();
+    fireEvent.click(help);
+    fireEvent.click(screen.getByRole("button", { name: "달력으로 돌아가기" }));
+    expect(help).toHaveFocus();
+  });
+
   it("renders two named month grids with Korean weekday headers", () => {
     renderDatePicker();
 
@@ -118,6 +165,60 @@ describe("DatePicker", () => {
     expect(
       screen.getByRole("grid", { name: "2026년 10월" }),
     ).toBeInTheDocument();
+  });
+
+  it("supports two inline months, cross-month selection, and switching back to one month", () => {
+    const { props, rerender } = renderDatePicker({
+      variant: "inline",
+      numberOfMonths: 2,
+    });
+    expect(screen.getAllByRole("grid")).toHaveLength(2);
+    expect(
+      screen.getAllByRole("button", { name: "다음 달 보기" }),
+    ).toHaveLength(1);
+    expect(
+      screen.getAllByRole("button", { name: "이전 달 보기" }),
+    ).toHaveLength(1);
+    expect(
+      screen.queryByRole("button", { name: "닫기" }),
+    ).not.toBeInTheDocument();
+
+    const checkIn = new Date(2026, 6, 31);
+    screen.getByRole("gridcell", { name: /2026년 7월 31일/ }).focus();
+    fireEvent.click(screen.getByRole("gridcell", { name: /2026년 7월 31일/ }));
+    expect(props.onDateSelect).toHaveBeenLastCalledWith(checkIn, null);
+    rerender(<DatePicker {...props} checkIn={checkIn} />);
+    fireEvent.keyDown(
+      screen.getByRole("gridcell", { name: /2026년 7월 31일/ }),
+      { key: "ArrowRight" },
+    );
+    expect(
+      screen.getByRole("grid", { name: "2026년 7월" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("gridcell", { name: /2026년 8월 1일/ }),
+    ).toHaveFocus();
+    fireEvent.click(screen.getByRole("gridcell", { name: /2026년 8월 2일/ }));
+    expect(props.onDateSelect).toHaveBeenLastCalledWith(
+      checkIn,
+      new Date(2026, 7, 2),
+    );
+
+    rerender(
+      <DatePicker
+        {...props}
+        numberOfMonths={1}
+        checkIn={checkIn}
+        checkOut={new Date(2026, 7, 2)}
+      />,
+    );
+    expect(screen.getAllByRole("grid")).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "다음 달 보기" }));
+    expect(
+      screen.getByRole("grid", { name: "2026년 8월" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "날짜 지우기" }));
+    expect(props.onDateSelect).toHaveBeenLastCalledWith(null, null);
   });
 
   it("applies the compact surface only when a consumer requests it", () => {

@@ -21,9 +21,6 @@ const VIEWPORT_KEYS = [
 
 const LOCATION_KEYS = ["lat", "lng"] as const;
 
-const cloneParams = (params: URLSearchParams): URLSearchParams =>
-  new URLSearchParams(params.toString());
-
 const SEARCH_QUERY_KEYS_TO_PRESERVE = [
   "destination",
   "page",
@@ -69,14 +66,6 @@ const setViewportParams = (
   params.set("topLeftLng", viewport.west.toString());
   params.set("bottomRightLat", viewport.south.toString());
   params.set("bottomRightLng", viewport.east.toString());
-};
-
-export const removeViewportParams = (
-  params: URLSearchParams,
-): URLSearchParams => {
-  const nextParams = cloneParams(params);
-  VIEWPORT_KEYS.forEach((key) => nextParams.delete(key));
-  return nextParams;
 };
 
 export const getViewportFromSearchParams = (

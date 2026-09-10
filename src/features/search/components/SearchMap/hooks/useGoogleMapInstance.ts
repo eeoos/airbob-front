@@ -11,6 +11,10 @@ import {
   getGoogleMapsApi,
 } from "../../../../../platform/integrations/googleMaps";
 import type { SearchMapAccommodation, SearchMapViewport } from "../types";
+import {
+  DEFAULT_SEARCH_VIEWPORT,
+  SEARCH_MAP_CAMERA,
+} from "../../../lib/searchMapConfig";
 
 interface UseGoogleMapInstanceOptions {
   infoWindowRef: MutableRefObject<google.maps.InfoWindow | null>;
@@ -67,17 +71,15 @@ export const useGoogleMapInstance = ({
     }> = [];
     let createdMap: google.maps.Map | null = null;
 
-    const defaultCenter = { lat: 37.5665, lng: 126.978 };
-    const initialCenter = viewport
-      ? {
-          lat: (viewport.north + viewport.south) / 2,
-          lng: (viewport.east + viewport.west) / 2,
-        }
-      : defaultCenter;
+    const initialViewport = viewport ?? DEFAULT_SEARCH_VIEWPORT;
+    const initialCenter = {
+      lat: (initialViewport.north + initialViewport.south) / 2,
+      lng: (initialViewport.east + initialViewport.west) / 2,
+    };
 
     const mapOptions: google.maps.MapOptions = {
       center: initialCenter,
-      zoom: 7,
+      isFractionalZoomEnabled: true,
       mapTypeControl: false,
       fullscreenControl: false,
       streetViewControl: false,
@@ -96,23 +98,21 @@ export const useGoogleMapInstance = ({
       mapInstanceRef.current = map;
       setError(null);
 
-      if (viewport) {
-        const initialBounds = new maps.LatLngBounds(
-          { lat: viewport.south, lng: viewport.west },
-          { lat: viewport.north, lng: viewport.east },
-        );
-        map.fitBounds(initialBounds, 50);
-        prevViewportRef.current = viewport;
-        viewportJustChangedRef.current = true;
-        isInitialIdleRef.current = true;
-      }
+      const initialBounds = new maps.LatLngBounds(
+        { lat: initialViewport.south, lng: initialViewport.west },
+        { lat: initialViewport.north, lng: initialViewport.east },
+      );
+      map.fitBounds(initialBounds, SEARCH_MAP_CAMERA.viewportPadding);
+      prevViewportRef.current = initialViewport;
+      viewportJustChangedRef.current = true;
+      isInitialIdleRef.current = true;
 
       mapListeners.push(
         map.addListener("click", () => {
           if (infoWindowRef.current) {
             infoWindowRef.current.close();
-            onAccommodationSelectRef.current(null);
           }
+          onAccommodationSelectRef.current(null);
 
           onMapInteractionRef.current?.();
         }),

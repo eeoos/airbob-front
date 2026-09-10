@@ -18,6 +18,36 @@ const accommodation: SearchAccommodationCardViewModel = {
 };
 
 describe("SearchAccommodationCard", () => {
+  it("updates nightly and total stay prices when search dates change or are cleared", () => {
+    const renderCard = (checkIn?: string, checkOut?: string) => (
+      <SearchAccommodationCard
+        accommodation={accommodation}
+        detailUrl="/accommodations/1"
+        checkIn={checkIn}
+        checkOut={checkOut}
+      />
+    );
+    const { rerender } = render(renderCard());
+    expect(screen.getByTestId("search-result-card")).toHaveTextContent(
+      "₩100,000 1박",
+    );
+
+    rerender(renderCard("2026-09-20", "2026-09-21"));
+    expect(screen.getByTestId("search-result-card")).toHaveTextContent(
+      "₩100,000 1박",
+    );
+
+    rerender(renderCard("2026-09-20", "2026-09-23"));
+    expect(screen.getByTestId("search-result-card")).toHaveTextContent(
+      "₩300,000 3박",
+    );
+
+    rerender(renderCard());
+    expect(screen.getByTestId("search-result-card")).toHaveTextContent(
+      "₩100,000 1박",
+    );
+  });
+
   it("exposes the stable smoke selector on the card wrapper", () => {
     render(
       <SearchAccommodationCard

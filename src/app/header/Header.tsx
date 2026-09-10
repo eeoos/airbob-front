@@ -24,7 +24,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ headerMode = "default" }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const { state } = useSession();
   const isAuthenticated = state.status === "authenticated";
   const shouldRenderSearch =
@@ -45,20 +45,12 @@ export const Header: React.FC<HeaderProps> = ({ headerMode = "default" }) => {
     },
     [navigate],
   );
-  const replaceSearch = useCallback(
-    (nextSearchParams: URLSearchParams) => {
-      setSearchParams(nextSearchParams, { replace: true });
-    },
-    [setSearchParams],
-  );
   const searchBarRoutePort = useMemo<SearchBarRoutePort>(
     () => ({
       currentSearchParams: searchParams,
-      isSearchRoute,
       pushSearch,
-      replaceSearch,
     }),
-    [isSearchRoute, pushSearch, replaceSearch, searchParams],
+    [pushSearch, searchParams],
   );
   const handleMobileSearchBack = useCallback(() => {
     if (location.key === "default") {

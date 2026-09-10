@@ -27,6 +27,8 @@ const imageRecipeOwners = {
     "editable booking review accommodation summary",
   "src/features/search/components/SearchAccommodationCard.tsx":
     "search result thumbnail",
+  "src/features/search/components/SearchMap/MobileMapCard.tsx":
+    "selected accommodation thumbnail in the mobile map card",
   "src/features/wishlist/components/WishlistDetailView.tsx":
     "wishlist accommodation thumbnail",
   "src/features/wishlist/components/WishlistModal/WishlistModal.tsx":
@@ -118,8 +120,8 @@ const sharedStateRecipeOwners = {
 } as const;
 
 const intentionallyLocalStateOwners = {
-  "src/features/accommodations/detail/components/AccommodationBookingCard.tsx":
-    "mobile inline calendar availability and retry status",
+  "src/features/accommodations/detail/components/AccommodationStayCalendar.tsx":
+    "responsive inline calendar availability and retry status",
   "src/screens/reservation-confirm/ReservationReviewScreen.tsx":
     "quote revision feedback and inline date/coupon editor status",
   "src/app/header/UserMenu.tsx":

@@ -201,6 +201,78 @@ describe("SearchController", () => {
     expect(commands.replaceMapBounds).toHaveBeenCalledWith(bounds);
   });
 
+  it("waits for the new destination results before fitting the map", () => {
+    const props = baseProps();
+    const emptyRoute = { ...props.routeState, page: 0 };
+    delete emptyRoute.destination;
+    const view = render(
+      <SearchController {...props} routeState={emptyRoute} />,
+    );
+    expect(currentScreenProps().map.autoFitAccommodations).toBe(false);
+
+    mockQueryResult = {
+      ...mockQueryResult,
+      isFetching: true,
+      isPlaceholderData: true,
+    };
+    view.rerender(<SearchController {...props} />);
+    expect(currentScreenProps().map.autoFitAccommodations).toBe(false);
+
+    mockQueryResult = {
+      ...mockQueryResult,
+      dataUpdatedAt: 2,
+      isFetching: false,
+      isPlaceholderData: false,
+    };
+    view.rerender(<SearchController {...props} />);
+    expect(currentScreenProps().map.autoFitAccommodations).toBe(true);
+  });
+
+  it("fits an empty-destination search to its results after the first page", () => {
+    const props = baseProps();
+    const routeState = { ...props.routeState, page: 0 };
+    delete routeState.destination;
+    const view = render(
+      <SearchController {...props} routeState={routeState} />,
+    );
+    expect(currentScreenProps().map.autoFitAccommodations).toBe(false);
+    mockQueryResult = {
+      ...mockQueryResult,
+      isFetching: true,
+      isPlaceholderData: true,
+    };
+    view.rerender(
+      <SearchController {...props} routeState={{ ...routeState, page: 1 }} />,
+    );
+    expect(currentScreenProps().map.autoFitAccommodations).toBe(false);
+    mockQueryResult = {
+      ...mockQueryResult,
+      isFetching: false,
+      isPlaceholderData: false,
+      dataUpdatedAt: 2,
+    };
+    view.rerender(
+      <SearchController {...props} routeState={{ ...routeState, page: 1 }} />,
+    );
+    expect(currentScreenProps().map.autoFitAccommodations).toBe(true);
+
+    act(() => currentScreenProps().onPageChange(0));
+    view.rerender(<SearchController {...props} routeState={routeState} />);
+    expect(currentScreenProps().map.autoFitAccommodations).toBe(true);
+
+    view.rerender(
+      <SearchController
+        {...props}
+        routeState={{
+          ...routeState,
+          checkIn: "2026-08-01",
+          checkOut: "2026-08-03",
+        }}
+      />,
+    );
+    expect(currentScreenProps().map.autoFitAccommodations).toBe(false);
+  });
+
   it("applies deferred pagination effects only after the target request settles", () => {
     const commands = navigation();
     const view = render(

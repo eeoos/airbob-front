@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { WishlistMembershipCommandPort } from "../../features/wishlist/ports/wishlistMembershipCommandPort";
 import type { WishlistModalProps } from "../../features/wishlist/components/WishlistModal";
 import type { SearchMapBounds } from "../../features/search/components/SearchMap/types";
+import { DEFAULT_SEARCH_VIEWPORT } from "../../features/search/lib/searchMapConfig";
 import {
   toSearchAccommodationCardViewModel,
   toSearchAccommodationMapViewModel,
@@ -155,9 +156,16 @@ export function SearchController({
   const request = useMemo(() => toSearchRequest(routeState), [routeState]);
   const query = useSearchResultsReadQuery({ request, scope });
   const { refetch: refetchSearchResults } = query;
-  const viewport = useMemo(() => toViewport(routeState), [routeState]);
+  const committedViewport = useMemo(() => toViewport(routeState), [routeState]);
+  const isDefaultViewport =
+    committedViewport === null && !routeState.destination;
+  const viewport = isDefaultViewport
+    ? DEFAULT_SEARCH_VIEWPORT
+    : committedViewport;
   const isRouteMapDragMode =
-    viewport !== null && routeState.destination === undefined;
+    !isDefaultViewport &&
+    viewport !== null &&
+    routeState.destination === undefined;
   const previousRequestIdentityRef = useRef<string | undefined>(undefined);
   const pendingBoundsRequestRef = useRef<string | null>(null);
   const suspendedBoundsRequestRef = useRef<string | null>(null);
@@ -181,6 +189,13 @@ export function SearchController({
     () => searchRequestIdentity(request),
     [request],
   );
+  const searchIdentity = useMemo(
+    () => searchRequestIdentity({ ...request, page: 0 }),
+    [request],
+  );
+  const [paginatedSearchIdentity, setPaginatedSearchIdentity] = useState<
+    string | null
+  >(null);
   const isMapDragMode =
     isRouteMapDragMode || userDragRequestIdentity === requestIdentity;
   const retainedResultIdentity = retainedSearchResultIdentity(
@@ -252,6 +267,8 @@ export function SearchController({
       return;
     }
 
+    if ((request.page ?? 0) > 0) setPaginatedSearchIdentity(searchIdentity);
+
     if (pendingBoundsRequestRef.current === requestIdentity) {
       pendingBoundsRequestRef.current = null;
       requestMapBoundsUpdate();
@@ -262,8 +279,10 @@ export function SearchController({
     query.isError,
     query.isFetching,
     query.isPlaceholderData,
+    request.page,
     requestIdentity,
     requestMapBoundsUpdate,
+    searchIdentity,
   ]);
 
   useEffect(() => {
@@ -474,6 +493,13 @@ export function SearchController({
       isErrorRetryable={isErrorRetryable}
       getAccommodationHref={navigation.getAccommodationHref}
       map={{
+        autoFitAccommodations:
+          (!isDefaultViewport ||
+            routeState.page > 0 ||
+            paginatedSearchIdentity === searchIdentity) &&
+          !query.isPlaceholderData &&
+          !query.isError &&
+          !isShowingRetainedResult,
         boundsRequestKey: requestIdentity,
         handleAccommodationSelect,
         hoveredAccommodationId,

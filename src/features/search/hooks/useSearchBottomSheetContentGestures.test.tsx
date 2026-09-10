@@ -53,6 +53,39 @@ describe("mobile result content gestures", () => {
     expect(sheet.setState).toHaveBeenCalledWith("half");
   });
 
+  it.each(["expanded", "half"] as const)(
+    "limits long and repeated downward content swipes from %s to the partial sheet",
+    (state) => {
+      const sheet = setup(state);
+      for (let gesture = 0; gesture < 2; gesture++) {
+        expect(swipe(sheet.content, 200, 900)).toBe(false);
+        expect(sheet.y.get()).toBe(sheet.positions.half);
+        expect(sheet.setState).not.toHaveBeenCalledWith("collapsed");
+        sheet.view.rerender({ ...sheet, state: "half" });
+      }
+      expect(sheet.animateToPosition).toHaveBeenLastCalledWith(
+        sheet.positions.half,
+      );
+      swipe(sheet.content, 500, 300);
+      expect(sheet.setState).toHaveBeenLastCalledWith("expanded");
+    },
+  );
+
+  it("stops separate upward wheel bursts at the partial sheet", () => {
+    const now = vi.spyOn(performance, "now").mockReturnValue(1000);
+    const sheet = setup("expanded");
+    fireEvent.wheel(sheet.content, { deltaY: -120 });
+    expect(sheet.setState).toHaveBeenLastCalledWith("half");
+    sheet.view.rerender({ ...sheet, state: "half" });
+    now.mockReturnValue(1300);
+    fireEvent.wheel(sheet.content, { deltaY: -120 });
+    expect(sheet.setState).not.toHaveBeenCalledWith("collapsed");
+    now.mockReturnValue(1600);
+    fireEvent.wheel(sheet.content, { deltaY: 120 });
+    expect(sheet.setState).toHaveBeenLastCalledWith("expanded");
+    now.mockRestore();
+  });
+
   it("uses the remaining swipe distance to scroll after reaching the expanded position", () => {
     const sheet = setup();
     expect(swipe(sheet.content, 600, 200)).toBe(false);

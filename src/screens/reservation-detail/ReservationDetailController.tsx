@@ -113,7 +113,6 @@ function GuestReservationDetailController({
 
   const actions: GuestReservationDetailActions = {
     onBack: navigation.back,
-    onBackToProfile: navigation.backToProfile,
     onDismissError: () => setDismissedErrorIdentity(currentErrorIdentity),
     onDismissFeedback: () => setDismissedFeedbackIdentity(feedbackIdentity),
     onOpenAccommodation: navigation.openAccommodation,

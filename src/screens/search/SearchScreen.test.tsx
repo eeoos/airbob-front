@@ -4,6 +4,7 @@ import type { SearchScreenProps } from "./SearchScreen";
 import { SearchScreen } from "./SearchScreen";
 
 const mockMap = vi.fn();
+const mockMobileMapCard = vi.fn();
 const mockResultsList = vi.fn();
 const mockPagination = vi.fn();
 
@@ -59,6 +60,10 @@ vi.mock("framer-motion", () => {
 });
 
 vi.mock("../../features/search/components/SearchMap", () => ({
+  MobileMapCard: (props: unknown) => {
+    mockMobileMapCard(props);
+    return null;
+  },
   Map: (props: unknown) => {
     mockMap(props);
     return <section data-testid="search-map" />;
@@ -286,6 +291,80 @@ describe("SearchScreen", () => {
     },
   );
 
+  it("keeps the desktop list position when map markers are selected, changed, and cleared", () => {
+    const props = createProps();
+    const view = render(<SearchScreen {...props} />);
+    const scrollArea = screen.getByRole("region", { name: "숙소 목록 스크롤" });
+    scrollArea.scrollTop = 720;
+
+    for (const selectedAccommodationId of [7, 8, null]) {
+      view.rerender(
+        <SearchScreen
+          {...props}
+          map={{ ...props.map, selectedAccommodationId }}
+        />,
+      );
+      expect(screen.getByRole("region", { name: "숙소 목록 스크롤" })).toBe(
+        scrollArea,
+      );
+      expect(scrollArea.scrollTop).toBe(720);
+    }
+  });
+
+  it("shows the mobile selection above the full map and restores the list peek on close", () => {
+    const base = createProps();
+    const props = createProps({
+      bottomSheet: { ...base.bottomSheet, isMobileOrTablet: true },
+      map: { ...base.map, selectedAccommodationId: 7 },
+    });
+    const view = render(<SearchScreen {...props} />);
+    const sheet = props.bottomSheet.bottomSheetRef.current;
+
+    expect(mockMap).toHaveBeenLastCalledWith(
+      expect.objectContaining({ selectionPresentation: "bottom" }),
+    );
+    expect(screen.getByTestId("search-mobile-map-layer")).toHaveAttribute(
+      "data-full-map",
+      "true",
+    );
+    expect(sheet).toHaveAttribute("hidden");
+    expect(sheet).toHaveAttribute("inert");
+    const cardProps = mockMobileMapCard.mock.lastCall?.[0];
+    expect(cardProps).toEqual(
+      expect.objectContaining({
+        accommodation: props.results.accommodationMapItems[0],
+        checkIn: props.checkIn,
+        checkOut: props.checkOut,
+        onAccommodationOpen: props.onAccommodationOpen,
+        onWishlistToggle: props.onWishlistToggle,
+      }),
+    );
+    cardProps.onClose();
+    expect(props.map.handleAccommodationSelect).toHaveBeenCalledWith(null);
+
+    view.rerender(
+      <SearchScreen
+        {...props}
+        map={{ ...props.map, selectedAccommodationId: null }}
+      />,
+    );
+    expect(sheet).not.toHaveAttribute("hidden");
+    expect(sheet).not.toHaveAttribute("inert");
+    expect(mockMobileMapCard).toHaveBeenLastCalledWith(
+      expect.objectContaining({ accommodation: null }),
+    );
+
+    view.rerender(
+      <SearchScreen
+        {...props}
+        bottomSheet={{ ...props.bottomSheet, isMobileOrTablet: false }}
+      />,
+    );
+    expect(mockMap).toHaveBeenLastCalledWith(
+      expect.objectContaining({ selectionPresentation: "anchored" }),
+    );
+  });
+
   it("removes the collapsed result pane from navigation in expanded map mode", () => {
     const base = createProps();
 
@@ -384,11 +463,15 @@ describe("SearchScreen", () => {
     fireEvent.keyDown(handle, { key: "ArrowUp" });
     fireEvent.pointerDown(handle);
     fireEvent.pointerUp(handle);
-    fireEvent.click(handle);
+    fireEvent.click(handle, { detail: 1 });
 
     expect(handleBottomSheetKeyDown).toHaveBeenCalledTimes(1);
     expect(handleBottomSheetPointerDown).toHaveBeenCalledTimes(1);
     expect(handleBottomSheetPointerEnd).toHaveBeenCalledTimes(1);
+    expect(handleBottomSheetToggle).not.toHaveBeenCalled();
+
+    // Keyboard and assistive activation still provide an alternative to dragging.
+    fireEvent.click(handle, { detail: 0 });
     expect(handleBottomSheetToggle).toHaveBeenCalledTimes(1);
 
     view.rerender(

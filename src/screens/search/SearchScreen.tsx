@@ -16,7 +16,7 @@ import type {
 } from "../../features/search/lib/searchAccommodationViewModel";
 import { SearchPagination } from "../../features/search/components/SearchPagination";
 import { SearchResultsList } from "../../features/search/components/SearchResultsList";
-import { Map } from "../../features/search/components/SearchMap";
+import { Map, MobileMapCard } from "../../features/search/components/SearchMap";
 import type {
   SearchMapBounds,
   SearchMapViewport,
@@ -61,6 +61,7 @@ interface SearchScreenBottomSheetProps {
 }
 
 interface SearchScreenMapProps {
+  readonly autoFitAccommodations?: boolean;
   readonly boundsRequestKey: string;
   readonly handleAccommodationSelect: (
     accommodation: SearchAccommodationMapViewModel | null,
@@ -170,6 +171,15 @@ export function SearchScreen({
   }, [results.currentPage, isMobileOrTablet, mobileResultsScrollRef]);
 
   const hasResults = results.accommodationCards.length > 0;
+  const mobileMapSelection =
+    isMobileOrTablet && bottomSheet.bottomSheetState === "collapsed"
+      ? (results.accommodationMapItems.find(
+          (item) =>
+            item.id === map.selectedAccommodationId &&
+            item.coordinate.latitude !== null &&
+            item.coordinate.longitude !== null,
+        ) ?? null)
+      : null;
   const bottomSheetContentId = useId();
   const bottomSheetTitleId = useId();
   const bottomSheetStateLabel =
@@ -190,6 +200,11 @@ export function SearchScreen({
     onMapInteraction?: () => void,
   ) => (
     <Map
+      selectionPresentation={isMobileOrTablet ? "bottom" : "anchored"}
+      autoFitAccommodations={map.autoFitAccommodations}
+      isWaitingForResults={
+        results.isLoading || results.isPlaceholderData || results.isRefreshing
+      }
       accommodations={results.accommodationMapItems}
       boundsRequestKey={map.boundsRequestKey}
       selectedAccommodationId={map.selectedAccommodationId}
@@ -246,20 +261,30 @@ export function SearchScreen({
       <div className={styles.container}>
         {bottomSheet.isMobileOrTablet ? (
           <>
-            <div
+            <motion.div
               aria-hidden={
                 bottomSheet.bottomSheetState === "expanded" || undefined
               }
               className={styles.mapLayer}
               data-search-mobile-map=""
               data-testid="search-mobile-map-layer"
+              data-full-map={bottomSheet.bottomSheetState === "collapsed"}
               inert={bottomSheet.bottomSheetState === "expanded"}
+              style={
+                {
+                  "--search-mobile-map-height": bottomSheet.translateY,
+                  // Keep a usable canvas under the expanded list for camera updates.
+                  minHeight: bottomSheet.snapPositions.half,
+                } as MotionStyle
+              }
             >
               {renderMap(false, undefined, bottomSheet.handleMapInteraction)}
-            </div>
+            </motion.div>
 
             <motion.section
               ref={bottomSheet.bottomSheetRef}
+              aria-hidden={mobileMapSelection !== null || undefined}
+              inert={mobileMapSelection !== null}
               aria-labelledby={bottomSheetTitleId}
               className={`${styles.bottomSheet} ${
                 styles[bottomSheet.bottomSheetState]
@@ -268,6 +293,7 @@ export function SearchScreen({
                 bottomSheet.translateY,
                 bottomSheet.visibleSheetHeight,
               )}
+              hidden={mobileMapSelection !== null}
               data-bottom-sheet="search-results"
               data-state={bottomSheet.bottomSheetState}
               drag={bottomSheet.isMobileOrTablet ? "y" : false}
@@ -311,7 +337,11 @@ export function SearchScreen({
                     aria-keyshortcuts="ArrowUp ArrowDown Home End"
                     aria-label={`검색 결과 패널 조절, 현재 ${bottomSheetStateLabel}`}
                     data-state={bottomSheet.bottomSheetState}
-                    onClick={bottomSheet.handleBottomSheetToggle}
+                    onClick={(event) => {
+                      // Keep keyboard/assistive activation; pointer taps only prepare dragging.
+                      if (event.detail === 0)
+                        bottomSheet.handleBottomSheetToggle();
+                    }}
                     onKeyDown={bottomSheet.handleBottomSheetKeyDown}
                   >
                     <span className={styles.dragHandleBar} aria-hidden="true" />
@@ -362,6 +392,15 @@ export function SearchScreen({
                 </button>
               )}
             </motion.section>
+            <MobileMapCard
+              accommodation={mobileMapSelection}
+              checkIn={checkIn}
+              checkOut={checkOut}
+              getAccommodationHref={getAccommodationHref}
+              onAccommodationOpen={onAccommodationOpen}
+              onWishlistToggle={onWishlistToggle}
+              onClose={() => map.handleAccommodationSelect(null)}
+            />
           </>
         ) : (
           <div

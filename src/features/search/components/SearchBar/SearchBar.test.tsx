@@ -44,9 +44,7 @@ const mockUseSearchBarState = useSearchBarState as MockedFunction<
 
 const routePort: SearchBarRoutePort = {
   currentSearchParams: new URLSearchParams(),
-  isSearchRoute: false,
   pushSearch: vi.fn(),
-  replaceSearch: vi.fn(),
 };
 
 const readProjectFile = (relativePath: string) =>
@@ -120,7 +118,6 @@ const createSearchBarState = (
       resetSearchCriteria: vi.fn(),
       startDestinationSession: vi.fn(),
       handleSearch: vi.fn(),
-      exitMapDragMode: vi.fn(),
       completeCheckoutIfNeeded: vi.fn(),
       closeTransientPanels: vi.fn(),
       handleDateSelect: vi.fn(),
@@ -346,7 +343,6 @@ describe("SearchBar", () => {
     );
     expect(state.actions.startDestinationSession).toHaveBeenCalledTimes(1);
     expect(state.actions.openDestination).toHaveBeenCalledTimes(1);
-    expect(state.actions.exitMapDragMode).not.toHaveBeenCalled();
 
     await userEvent.click(
       screen.getByRole("button", { name: "이전 화면으로" }),
@@ -858,32 +854,34 @@ describe("SearchBar", () => {
     expect(changePetOccupancy).not.toHaveBeenCalled();
   });
 
-  it("submits through the current search handler and closes open filters", async () => {
-    const closeTransientPanels = vi.fn();
-    const handleSearch = vi.fn();
+  it.each(["destination", "date", "guests", "none"] as const)(
+    "collapses the desktop search bar after submission from %s, including repeat searches without dates",
+    async (activePopover) => {
+      const state = createSearchBarState({
+        destination: { inputText: "대한민국 부산" },
+        popover: { activePopover, isExpanded: true },
+      });
+      mockUseSearchBarState.mockReturnValue(state);
+      render(<SearchBar routePort={routePort} />);
 
-    mockUseSearchBarState.mockReturnValue(
-      createSearchBarState({
-        popover: {
-          activePopover: "date",
-          isExpanded: true,
-          showDatePicker: true,
-        },
-        actions: {
-          closeTransientPanels,
-          handleSearch,
-        },
-      }),
-    );
+      await userEvent.click(screen.getByRole("button", { name: "검색" }));
+      expect(state.actions.handleSearch).toHaveBeenCalledOnce();
+      expect(state.actions.collapseShell).toHaveBeenCalledOnce();
+      await userEvent.click(screen.getByRole("button", { name: "검색" }));
+      expect(state.actions.collapseShell).toHaveBeenCalledTimes(2);
+    },
+  );
 
-    render(<SearchBar routePort={routePort} />);
-
-    await userEvent.click(screen.getByRole("button", { name: "검색" }));
-
-    expect(closeTransientPanels).toHaveBeenCalledWith({
-      collapseWhenDateSelected: true,
+  it("keeps the desktop editor open until selected place details are available", async () => {
+    const state = createSearchBarState({
+      popover: { activePopover: "destination", isExpanded: true },
+      status: { isPlacesLoading: true },
     });
-    expect(handleSearch).toHaveBeenCalledTimes(1);
+    mockUseSearchBarState.mockReturnValue(state);
+    render(<SearchBar routePort={routePort} />);
+    await userEvent.click(screen.getByRole("button", { name: "검색" }));
+    expect(state.actions.handleSearch).not.toHaveBeenCalled();
+    expect(state.actions.collapseShell).not.toHaveBeenCalled();
   });
 
   it("closes the active guest popover on Escape", async () => {

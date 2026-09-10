@@ -1,4 +1,5 @@
 import type { SearchCommittedRouteState, SearchRequest } from "../model/search";
+import { DEFAULT_SEARCH_VIEWPORT } from "./searchMapConfig";
 
 const SEARCH_PAGE_SIZE = 18;
 export const SEARCH_PAGE_LIMIT = 15;
@@ -44,7 +45,12 @@ export const toSearchRequest = (
         }
       : state.destination
         ? { destination: state.destination }
-        : {}),
+        : {
+            topLeftLat: DEFAULT_SEARCH_VIEWPORT.north,
+            topLeftLng: DEFAULT_SEARCH_VIEWPORT.west,
+            bottomRightLat: DEFAULT_SEARCH_VIEWPORT.south,
+            bottomRightLng: DEFAULT_SEARCH_VIEWPORT.east,
+          }),
     ...(state.checkIn ? { checkIn: state.checkIn } : {}),
     ...(state.checkOut ? { checkOut: state.checkOut } : {}),
     adultOccupancy: state.adultOccupancy,

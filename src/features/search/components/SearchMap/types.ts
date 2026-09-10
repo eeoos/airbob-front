@@ -11,6 +11,9 @@ export type SearchMapViewport = SearchMapBounds;
 export type SearchMapAccommodation = SearchAccommodationMapViewModel;
 
 export interface SearchMapProps {
+  selectionPresentation?: "anchored" | "bottom" | undefined;
+  autoFitAccommodations?: boolean | undefined;
+  isWaitingForResults?: boolean | undefined;
   accommodations: SearchMapAccommodation[];
   selectedAccommodationId: number | null;
   hoveredAccommodationId?: number | null | undefined;
@@ -43,6 +46,7 @@ interface SearchMapMarkerIcons {
 export type SearchMapMarker = google.maps.Marker & {
   accommodation?: SearchMapAccommodation;
   accommodationId?: number;
+  priceText?: string;
   dispose?: () => void;
   icons?: SearchMapMarkerIcons;
   isSelected?: boolean;

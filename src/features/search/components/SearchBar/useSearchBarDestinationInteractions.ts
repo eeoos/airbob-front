@@ -13,9 +13,7 @@ interface UseSearchBarDestinationInteractionsOptions {
   guestPickerRef: SearchBarDomRef;
   datePickerElementRef: SearchBarDomRef;
   isExpanded: boolean;
-  isMapDragMode: boolean;
   activePopover: SearchActivePopover;
-  exitMapDragMode: () => void;
   changeDestination: (value: string) => void;
   openDestination: () => void;
   openDatePicker: () => void;
@@ -41,9 +39,7 @@ export const useSearchBarDestinationInteractions = ({
   guestPickerRef,
   datePickerElementRef,
   isExpanded,
-  isMapDragMode,
   activePopover,
-  exitMapDragMode,
   changeDestination,
   openDestination,
   openDatePicker,
@@ -90,7 +86,6 @@ export const useSearchBarDestinationInteractions = ({
         completeCheckoutIfNeeded();
       }
 
-      exitMapDragMode();
       openDestination();
 
       if (!isExpanded) {
@@ -104,7 +99,6 @@ export const useSearchBarDestinationInteractions = ({
       clearInteractionTimers,
       completeCheckoutIfNeeded,
       destinationInputRef,
-      exitMapDragMode,
       focusDestination,
       isExpanded,
       openDestination,
@@ -112,34 +106,15 @@ export const useSearchBarDestinationInteractions = ({
   );
 
   const handleDestinationChange = useCallback(
-    (value: string) => {
-      if (isMapDragMode) {
-        exitMapDragMode();
-      }
-
-      changeDestination(value);
-    },
-    [changeDestination, exitMapDragMode, isMapDragMode],
+    (value: string) => changeDestination(value),
+    [changeDestination],
   );
 
   const handleDestinationFocus = useCallback(() => {
     clearInteractionTimers();
-
-    if (isMapDragMode) {
-      exitMapDragMode();
-      changeDestination("");
-    }
-
     startDestinationSession();
     openDestination();
-  }, [
-    changeDestination,
-    clearInteractionTimers,
-    exitMapDragMode,
-    isMapDragMode,
-    openDestination,
-    startDestinationSession,
-  ]);
+  }, [clearInteractionTimers, openDestination, startDestinationSession]);
 
   const handleDestinationEnterWithoutSuggestion = useCallback(() => {
     clearInteractionTimers();
