@@ -204,12 +204,14 @@ export const useMapSelectionInfoWindow = ({
 
         let unbindInfoWindowEvents: (() => void) | null = null;
         let domReadyListener: google.maps.MapsEventListener | null = null;
+        let visibleListener: google.maps.MapsEventListener | null = null;
         let closeClickListener: google.maps.MapsEventListener | null = null;
         let closeListener: google.maps.MapsEventListener | null = null;
         let resizeListener: google.maps.MapsEventListener | null = null;
         let idleListener: google.maps.MapsEventListener | null = null;
         let resizeObserver: ResizeObserver | null = null;
         let cardOffset = { x: 0, y: 0 };
+        let isInfoWindowVisible = false;
         let didHandleInfoWindowClose = false;
         let pendingCloseOptions: CloseInfoWindowOptions | null = null;
         const cleanupInfoWindowListeners = () => {
@@ -220,6 +222,7 @@ export const useMapSelectionInfoWindow = ({
 
           [
             domReadyListener,
+            visibleListener,
             closeClickListener,
             closeListener,
             resizeListener,
@@ -231,6 +234,7 @@ export const useMapSelectionInfoWindow = ({
           });
 
           domReadyListener = null;
+          visibleListener = null;
           closeClickListener = null;
           closeListener = null;
           resizeListener = null;
@@ -284,7 +288,12 @@ export const useMapSelectionInfoWindow = ({
         };
 
         const adjustInfoWindowPosition = () => {
-          if (didHandleInfoWindowClose || !mapRef.current) return;
+          if (
+            didHandleInfoWindowClose ||
+            !isInfoWindowVisible ||
+            !mapRef.current
+          )
+            return;
           adjustInfoWindowIntoMapView({
             mapElement: mapRef.current,
             map,
@@ -318,6 +327,12 @@ export const useMapSelectionInfoWindow = ({
               resizeObserver.observe(infoWindowElement);
             }
           }
+        });
+
+        // domready only attaches the content. Google still measures and moves
+        // its wrapper afterwards; wait for that layout before revealing it.
+        visibleListener = infoWindow.addListener("visible", () => {
+          isInfoWindowVisible = true;
           adjustInfoWindowPosition();
         });
 
