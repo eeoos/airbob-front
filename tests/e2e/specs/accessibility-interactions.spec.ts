@@ -232,9 +232,11 @@ test("moves and selects dates through the calendar grid, then restores trigger f
     }),
   ).toHaveAttribute("aria-selected", "true");
   await expect(rovingTabStop()).toHaveAccessibleName("2026년 7월 3일 금요일");
+  await expect(rovingTabStop()).toBeFocused();
 
   await page.keyboard.press("ArrowRight");
   await expect(rovingTabStop()).toHaveAccessibleName("2026년 7월 4일 토요일");
+  await expect(rovingTabStop()).toBeFocused();
   await page.keyboard.press("Space");
 
   await expect(
