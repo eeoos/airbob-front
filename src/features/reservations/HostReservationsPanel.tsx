@@ -8,11 +8,11 @@ import {
   RetryableErrorState,
   Skeleton,
   StatusBadge,
-  Tabs,
   ToastHost,
   stateViewRecipes,
   type StatusBadgeTone,
 } from "../../shared/ui";
+import { Tabs } from "../../shared/ui/Tabs/Tabs";
 import styles from "./HostReservationsPanel.module.css";
 
 type HostReservationFilterType = ReservationFilterType;

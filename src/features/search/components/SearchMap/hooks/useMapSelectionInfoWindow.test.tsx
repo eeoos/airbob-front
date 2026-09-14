@@ -1,4 +1,4 @@
-import { renderHook } from "@testing-library/react";
+import { renderHook, within } from "@testing-library/react";
 import type { MutableRefObject, RefObject } from "react";
 import type { Mock } from "vitest";
 import { requireDefined } from "../../../../../test/assertions";
@@ -385,5 +385,67 @@ describe("useMapSelectionInfoWindow", () => {
     expect(googleMaps.removeListener).toHaveBeenCalled();
     expect(disconnect).toHaveBeenCalled();
     vi.unstubAllGlobals();
+  });
+
+  it("keeps the card hidden until Google's opening layout is complete", () => {
+    const googleMaps = installGoogleMapsMock();
+    const accommodation = createAccommodation();
+    const mapElement = document.createElement("div");
+    mapElement.innerHTML = `
+      <div class="gm-style-iw-c" data-testid="info-window-container">
+        <div id="info-window-10" data-testid="info-window-card" data-map-card style="visibility: hidden">card</div>
+      </div>
+    `;
+    document.body.append(mapElement);
+    const container = within(mapElement).getByTestId("info-window-container");
+    const card = within(mapElement).getByTestId("info-window-card");
+    vi.spyOn(mapElement, "getBoundingClientRect").mockReturnValue({
+      left: 0,
+      top: 0,
+      width: 800,
+      height: 600,
+    } as DOMRect);
+    let nativeTop = 76;
+    vi.spyOn(container, "getBoundingClientRect").mockImplementation(
+      () =>
+        ({
+          left: 236.5,
+          top: nativeTop,
+          width: 327,
+          height: 200,
+        }) as DOMRect,
+    );
+    const { unmount } = renderHook(() =>
+      useMapSelectionInfoWindow(
+        createHookOptions({
+          accommodations: [accommodation],
+          selectedAccommodationId: accommodation.id,
+          markersRef: ref([createMarker(accommodation.id)]),
+          mapRef: { current: mapElement },
+          mapInstanceRef: ref({
+            getProjection: () => ({
+              fromLatLngToPoint: () => ({ x: 0, y: 0 }),
+            }),
+            getCenter: () => ({ lat: () => 37.5, lng: () => 127 }),
+            getZoom: () => 10,
+          } as unknown as google.maps.Map),
+        }),
+      ),
+    );
+    const infoWindow = requireDefined(googleMaps.infoWindows[0], "InfoWindow");
+    infoWindow.listeners.domready?.forEach((listener) => listener());
+    googleMaps.addMapListener.mock.calls.forEach(([, , listener]) =>
+      listener(),
+    );
+    expect(card).toHaveStyle({ visibility: "hidden" });
+
+    // The SDK changes the anchor after domready, without resizing the card.
+    nativeTop = 116;
+    requireDefined(infoWindow.listeners.visible?.[0], "visible listener")();
+    expect(container).toHaveStyle({ translate: "0px 200px" });
+    expect(card).toHaveStyle({ visibility: "visible" });
+    expect(card.dataset.placement).toBe("below");
+    unmount();
+    mapElement.remove();
   });
 });

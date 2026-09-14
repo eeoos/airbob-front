@@ -1,3 +1,4 @@
+// Presentation exports live in ui/ so cache consumers do not load detail views.
 export type { AccommodationDetail } from "./model/accommodationDetail";
 export { accommodationCouponApi } from "./api/couponApi";
 export {
@@ -19,12 +20,6 @@ export {
 } from "./queries/readQueries";
 export type { AccommodationDetailQueryOptions } from "./queries/readQueries";
 export type { AccommodationAvailability } from "./model/accommodationAvailability";
-export { AccommodationDescriptionModal } from "./components/AccommodationDescriptionModal";
-export { default as AccommodationHero } from "./components/AccommodationHero";
-export { AccommodationImageGalleryModal } from "./components/AccommodationImageGalleryModal";
-export { AccommodationLocationSection } from "./components/AccommodationLocationSection";
-export { AccommodationOverview } from "./components/AccommodationOverview";
-export { AccommodationReviewsSection } from "./components/AccommodationReviewsSection";
 export {
   toAccommodationBookingCouponViewModel,
   toAccommodationBookingCouponViewModels,

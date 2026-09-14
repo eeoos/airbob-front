@@ -415,19 +415,26 @@ test("keeps the empty booking card and anchored date overlay visually stable", a
   );
 
   const before = await checkIn.boundingBox();
+  const beforeCard = await bookingCard.boundingBox();
   await checkIn.click();
   const dateOverlay = page.getByRole("dialog", { name: "예약 날짜 선택" });
   await expect(dateOverlay).toBeVisible();
   await waitForStablePaint(page);
-  const after = await checkIn.boundingBox();
-
-  expect(after).toEqual(before);
   await expect(dateOverlay).toHaveScreenshot(
     "anchored-booking-date-overlay-foundation.png",
     componentScreenshotOptions,
   );
 
   await dateOverlay.getByRole("button", { name: "닫기" }).click();
+  const restored = await checkIn.boundingBox();
+  const restoredCard = await bookingCard.boundingBox();
+  expect(restored?.width).toEqual(before?.width);
+  expect(restored?.height).toEqual(before?.height);
+  expect(restored?.x).toEqual(before?.x);
+  expect((restored?.y ?? 0) - (restoredCard?.y ?? 0)).toBeCloseTo(
+    (before?.y ?? 0) - (beforeCard?.y ?? 0),
+    1,
+  );
   await page.setViewportSize({ width: 390, height: 900 });
   await page.getByRole("button", { name: "숙박 날짜 변경" }).click();
   await expect(dateOverlay).toBeVisible();

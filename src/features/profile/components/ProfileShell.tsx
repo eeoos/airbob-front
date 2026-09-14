@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useResponsiveLayout } from "../../../shared/styles/useResponsiveLayout";
 import { requireCssModuleClass } from "../../../shared/styles/requireCssModuleClass";
-import { Tabs } from "../../../shared/ui";
+import { Tabs } from "../../../shared/ui/Tabs/Tabs";
 import styles from "./ProfileShell.module.css";
 
 export type GuestProfileTab = "upcoming" | "past" | "cancelled";

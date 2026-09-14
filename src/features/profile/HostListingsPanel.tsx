@@ -9,10 +9,10 @@ import {
   RetryableErrorState,
   Skeleton,
   StatusBadge,
-  Tabs,
   ToastHost,
   stateViewRecipes,
 } from "../../shared/ui";
+import { Tabs } from "../../shared/ui/Tabs/Tabs";
 import styles from "./HostListingsPanel.module.css";
 
 interface HostListingCardView {

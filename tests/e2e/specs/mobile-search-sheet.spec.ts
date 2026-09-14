@@ -133,6 +133,14 @@ test("hands touch gestures between the sheet and native list scrolling", async (
   expect((await readGeometry(page)).scrollTop).toBe(0);
 
   await handle.click();
+  await expect(handle).toHaveAttribute("data-state", "collapsed");
+  const collapsedHandle = await handle.boundingBox();
+  expect(collapsedHandle).not.toBeNull();
+  await touchDrag(
+    client,
+    collapsedHandle!.y + collapsedHandle!.height / 2,
+    500,
+  );
   await expect(handle).toHaveAttribute("data-state", "half");
   await touchDrag(client, initial.cardTop + 120, initial.cardTop - 120);
   await expect(handle).toHaveAttribute("data-state", "expanded");

@@ -33,6 +33,7 @@ export const adjustInfoWindowIntoMapView = ({
   card.style.width = `${Math.max(0, Math.min(MAP_CARD_LAYOUT.width, mapRect.width - MAP_CARD_LAYOUT.margin * 2))}px`;
   card.style.maxHeight = `${Math.max(0, mapRect.height - MAP_CARD_LAYOUT.margin * 2)}px`;
   const rect = container.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return;
   const placement = getMapCardPlacement({
     mapWidth: mapRect.width,
     mapHeight: mapRect.height,
@@ -45,7 +46,13 @@ export const adjustInfoWindowIntoMapView = ({
   const dx = placement.left - (rect.left - mapRect.left);
   const dy = placement.top - (rect.top - mapRect.top);
   if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
-    setOffset(offset.x + dx, offset.y + dy);
+    const x = offset.x + dx;
+    const y = offset.y + dy;
+    // Google's pixelOffset is applied on a later SDK render. Move the measured
+    // container synchronously so its default position is never revealed first.
+    // Individual translate composes with Google's own anchor transform.
+    container.style.translate = `${x}px ${y}px`;
+    setOffset(x, y);
   }
   card.dataset.placement = placement.side;
   card.style.visibility = "visible";

@@ -80,6 +80,10 @@ describe("AuthModal", () => {
     await waitFor(() => {
       expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     });
+    expect(screen.getByTestId("auth-modal-inline-error")).toHaveTextContent(
+      "비밀번호가 일치하지 않습니다.",
+    );
+    expect(screen.getByRole("button", { name: "다시 회원가입" })).toBeEnabled();
   });
 
   it("closes and runs the success callback after a current login", async () => {
@@ -165,8 +169,51 @@ describe("AuthModal", () => {
     await userEvent.click(screen.getByRole("button", { name: "로그인" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(failure.message);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "다시 로그인" })).toBeEnabled(),
+    );
     expect(screen.getByLabelText("이메일")).toHaveValue("guest@example.com");
     expect(screen.getByLabelText("비밀번호")).toHaveValue("wrong-password");
+  });
+
+  it("keeps the login failure visible after its toast expires and shows a new toast on retry", async () => {
+    vi.useFakeTimers();
+    try {
+      const failure = new Error("이메일 또는 비밀번호가 올바르지 않습니다.");
+      let rejectLogin!: (error: Error) => void;
+      const commands = createCommands({
+        login: vi.fn<AuthCommandPort["login"]>(
+          () =>
+            new Promise<void>((_, reject) => {
+              rejectLogin = reject;
+            }),
+        ),
+      });
+      renderAuthModal(<AuthModal isOpen={true} onClose={vi.fn()} />, commands);
+      fireEvent.change(screen.getByLabelText("이메일"), {
+        target: { value: "guest@example.com" },
+      });
+      fireEvent.change(screen.getByLabelText("비밀번호"), {
+        target: { value: "wrong-password" },
+      });
+      const form = screen.getByRole("form", { name: "로그인 양식" });
+      fireEvent.submit(form);
+      await act(async () => rejectLogin(failure));
+      expect(screen.getByRole("alert")).toHaveTextContent(failure.message);
+      act(() => vi.advanceTimersByTime(5000));
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      expect(screen.getByTestId("auth-modal-inline-error")).toHaveTextContent(
+        failure.message,
+      );
+      expect(screen.getByRole("button", { name: "다시 로그인" })).toBeEnabled();
+      expect(screen.getByLabelText("이메일")).toHaveValue("guest@example.com");
+      fireEvent.submit(form);
+      await act(async () => rejectLogin(failure));
+      expect(commands.login).toHaveBeenCalledTimes(2);
+      expect(screen.getByRole("alert")).toHaveTextContent(failure.message);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("does not execute a callback rejected by the current-view guard", async () => {

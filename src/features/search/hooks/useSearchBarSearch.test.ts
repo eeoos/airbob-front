@@ -140,4 +140,52 @@ describe("useSearchBarSearch", () => {
     expect(options.pushSearch).toHaveBeenCalledTimes(1);
     expect(options.closeTransientPanels).toHaveBeenCalledTimes(1);
   });
+
+  it.each([false, true])(
+    "allows empty search again after navigating to results and returning home (callback: %s)",
+    (useSearchCallback) => {
+      const onSearch = vi.fn();
+      const options = {
+        ...createOptions(),
+        inputText: "",
+        selectedPlace: null,
+        urlSearchParams: new URLSearchParams(),
+        ...(useSearchCallback ? { onSearch } : {}),
+      };
+      const { result, rerender } = renderHook(useSearchBarSearch, {
+        initialProps: options,
+      });
+      const submit = useSearchCallback ? onSearch : options.pushSearch;
+
+      act(() => result.current());
+      expect(submit).toHaveBeenCalledTimes(1);
+      rerender({
+        ...options,
+        urlSearchParams: new URLSearchParams(
+          "adultOccupancy=2&childOccupancy=1&infantOccupancy=0&petOccupancy=0",
+        ),
+      });
+      rerender({ ...options, urlSearchParams: new URLSearchParams() });
+      act(() => {
+        result.current();
+        result.current();
+      });
+      expect(submit).toHaveBeenCalledTimes(2);
+      expect(options.closeTransientPanels).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it("keeps duplicate submission protection through a rerender of the same URL", () => {
+    const options = createOptions();
+    const { result, rerender } = renderHook(useSearchBarSearch, {
+      initialProps: options,
+    });
+    act(() => result.current());
+    rerender({
+      ...options,
+      urlSearchParams: new URLSearchParams(options.urlSearchParams),
+    });
+    act(() => result.current());
+    expect(options.pushSearch).toHaveBeenCalledTimes(1);
+  });
 });

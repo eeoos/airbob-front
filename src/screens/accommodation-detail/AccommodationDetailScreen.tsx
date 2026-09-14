@@ -10,7 +10,7 @@ import {
   AccommodationLocationSection,
   AccommodationOverview,
   AccommodationReviewsSection,
-} from "../../features/accommodations/detail/public";
+} from "../../features/accommodations/detail/ui";
 import {
   DeferredAuthModal,
   type AuthModalProps,
