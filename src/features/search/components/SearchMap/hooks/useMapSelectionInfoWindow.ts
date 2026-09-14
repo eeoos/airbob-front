@@ -209,7 +209,7 @@ export const useMapSelectionInfoWindow = ({
         let resizeListener: google.maps.MapsEventListener | null = null;
         let idleListener: google.maps.MapsEventListener | null = null;
         let resizeObserver: ResizeObserver | null = null;
-        let pixelOffset = { x: 0, y: 0 };
+        let cardOffset = { x: 0, y: 0 };
         let didHandleInfoWindowClose = false;
         let pendingCloseOptions: CloseInfoWindowOptions | null = null;
         const cleanupInfoWindowListeners = () => {
@@ -290,10 +290,9 @@ export const useMapSelectionInfoWindow = ({
             map,
             position,
             markerHeight,
-            offset: pixelOffset,
+            offset: cardOffset,
             setOffset: (x, y) => {
-              pixelOffset = { x, y };
-              infoWindow.setOptions({ pixelOffset: new maps.Size(x, y) });
+              cardOffset = { x, y };
             },
           });
         };

@@ -69,6 +69,42 @@ describe("info window DOM helpers", () => {
     });
   });
 
+  it("places an upper-map card below its marker before revealing it and does not accumulate offsets", () => {
+    const mapElement = document.createElement("div");
+    const container = document.createElement("div");
+    container.className = "gm-style-iw-c";
+    container.style.transform = "translate(-50%, -100%)";
+    const card = document.createElement("div");
+    card.dataset.mapCard = "";
+    card.style.visibility = "hidden";
+    container.append(card);
+    mapElement.append(container);
+    document.body.append(mapElement);
+    mockRect(mapElement, { left: 0, top: 0, width: 800, height: 600 });
+    mockRect(container, { left: 236.5, top: 76, width: 327, height: 200 });
+    const setOffset = vi.fn(() => {
+      expect(card).toHaveStyle({ visibility: "hidden" });
+      expect(container).toHaveStyle({ translate: "0px 240px" });
+      mockRect(container, { left: 236.5, top: 316, width: 327, height: 200 });
+    });
+    const options = {
+      mapElement,
+      map: centeredMap(),
+      position: { lat: 37.5, lng: 127 },
+      markerHeight: 28,
+      setOffset,
+    };
+
+    adjustInfoWindowIntoMapView({ ...options, offset: { x: 0, y: 0 } });
+    expect(card).toHaveStyle({ visibility: "visible" });
+    expect(card.dataset.placement).toBe("below");
+    expect(container).toHaveStyle({ transform: "translate(-50%, -100%)" });
+
+    adjustInfoWindowIntoMapView({ ...options, offset: { x: 0, y: 240 } });
+    expect(setOffset).toHaveBeenCalledTimes(1);
+    expect(container).toHaveStyle({ translate: "0px 240px" });
+  });
+
   it("leaves an in-bounds info window transform unchanged", () => {
     const mapElement = document.createElement("div");
     const parent = document.createElement("div");
