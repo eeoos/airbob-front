@@ -17,7 +17,6 @@ export {
 } from "./StateView";
 export { StatusBadge } from "./StatusBadge/StatusBadge";
 export type { StatusBadgeTone } from "./StatusBadge/StatusBadge";
-export { Tabs } from "./Tabs/Tabs";
 export { TextField } from "./TextField";
 export { ToastHost } from "./ToastHost/ToastHost";
 export { useOutsideClick } from "./useOutsideClick";
