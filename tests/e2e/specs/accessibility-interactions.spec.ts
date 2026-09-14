@@ -606,6 +606,8 @@ test("keeps sheet content continuous and resumes a snap after an interrupted dra
     .toBeLessThanOrEqual(3);
 
   await handle.click();
+  await expect(handle).toHaveAttribute("data-state", "half");
+  await handle.press("ArrowUp");
   await expect(handle).toHaveAttribute("data-state", "expanded");
   await expect
     .poll(

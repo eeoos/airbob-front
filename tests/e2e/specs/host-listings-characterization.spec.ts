@@ -43,7 +43,11 @@ test("preserves host status filters, missing-address labels, and management acti
   await expect(
     dialog.getByRole("button", { name: "리스팅 공개", exact: true }),
   ).toHaveCount(0);
-  await dialog.getByRole("button", { name: "숙소 관리 닫기" }).click();
+  await expect(
+    dialog.getByRole("button", { name: "숙소 관리 닫기" }),
+  ).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
 
   await page.getByRole("tab", { name: "비공개", exact: true }).click();
   await page
@@ -55,7 +59,8 @@ test("preserves host status filters, missing-address labels, and management acti
   await expect(
     dialog.getByRole("button", { name: "서울 하우스 32 상세 보기" }),
   ).toHaveCount(0);
-  await dialog.getByRole("button", { name: "숙소 관리 닫기" }).click();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
 
   await page.getByRole("tab", { name: "작성 중", exact: true }).click();
   await expect(page.getByText("위치 정보 없음", { exact: true })).toBeVisible();

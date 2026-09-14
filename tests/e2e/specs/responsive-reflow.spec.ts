@@ -348,6 +348,8 @@ for (const width of [320, 390, 768, 1023, 1024]) {
     ).toBeLessThanOrEqual(2);
 
     await bottomSheetHandle.click();
+    await expect(bottomSheetHandle).toHaveAttribute("data-state", "collapsed");
+    await bottomSheetHandle.press("ArrowUp");
     await expect(bottomSheetHandle).toHaveAttribute("data-state", "half");
     await expect(bottomSheetResults).toBeVisible();
     await expect(resultLink).toBeVisible();
@@ -446,6 +448,8 @@ test("keeps every mobile sheet snap attached to the viewport", async ({
     .toBeLessThanOrEqual(2);
 
   await handle.click();
+  await expect(handle).toHaveAttribute("data-state", "collapsed");
+  await handle.press("ArrowUp");
   await expect(handle).toHaveAttribute("data-state", "half");
   await expect
     .poll(async () => {
@@ -455,6 +459,8 @@ test("keeps every mobile sheet snap attached to the viewport", async ({
     .toBeLessThanOrEqual(3);
 
   await handle.click();
+  await expect(handle).toHaveAttribute("data-state", "half");
+  await handle.press("ArrowUp");
   await expect(handle).toHaveAttribute("data-state", "expanded");
   await expect
     .poll(async () => {
@@ -784,7 +790,7 @@ test("aligns the detail shell from 320px through 4K", async ({
   }
 });
 
-test("keeps desktop booking fields anchored when the calendar opens through wide desktop", async ({
+test("fits date fields into the calendar header without shifting the booking card through wide desktop", async ({
   api,
   page,
   session,
@@ -823,6 +829,7 @@ test("keeps desktop booking fields anchored when the calendar opens through wide
       };
       await bookingCard.scrollIntoViewIfNeeded();
       await expect(fields.checkIn).toBeVisible();
+      const beforeCardBounds = await bookingCard.boundingBox();
 
       const before = Object.fromEntries(
         await Promise.all(
@@ -848,7 +855,7 @@ test("keeps desktop booking fields anchored when the calendar opens through wide
         ),
       );
 
-      for (const name of Object.keys(fields)) {
+      for (const name of ["guests", "primaryAction"]) {
         const beforeBounds = before[name];
         const afterBounds = after[name];
         expect(beforeBounds, `${name} before at ${width}px`).not.toBeNull();
@@ -868,10 +875,43 @@ test("keeps desktop booking fields anchored when the calendar opens through wide
         (overlayBounds?.x ?? width) + (overlayBounds?.width ?? 1),
       ).toBeLessThanOrEqual(width);
 
+      for (const name of ["checkIn", "checkOut"]) {
+        const fieldBounds = after[name];
+        expect(fieldBounds).not.toBeNull();
+        expect(fieldBounds?.y).toBeCloseTo(before[name]?.y ?? Number.NaN, 1);
+        expect(fieldBounds?.height).toBeCloseTo(
+          before[name]?.height ?? Number.NaN,
+          1,
+        );
+        expect(fieldBounds?.x ?? -1).toBeGreaterThan(overlayBounds?.x ?? width);
+        expect(
+          (fieldBounds?.x ?? 0) + (fieldBounds?.width ?? width),
+        ).toBeLessThan((overlayBounds?.x ?? 0) + (overlayBounds?.width ?? 0));
+      }
+      expect(
+        (after.checkOut?.x ?? 0) + (after.checkOut?.width ?? 0),
+      ).toBeCloseTo(
+        (before.checkOut?.x ?? 0) + (before.checkOut?.width ?? 0),
+        1,
+      );
+
       await expectNoHorizontalOverflow(page, width);
 
       await dateOverlay.getByRole("button", { name: "닫기" }).click();
       await expect(dateOverlay).toBeHidden();
+      const restoredCardBounds = await bookingCard.boundingBox();
+      for (const [name, locator] of Object.entries(fields)) {
+        const restoredBounds = await locator.boundingBox();
+        for (const key of ["x", "width", "height"] as const) {
+          expect(restoredBounds?.[key]).toBeCloseTo(
+            before[name]?.[key] ?? Number.NaN,
+            1,
+          );
+        }
+        expect(
+          (restoredBounds?.y ?? 0) - (restoredCardBounds?.y ?? 0),
+        ).toBeCloseTo((before[name]?.y ?? 0) - (beforeCardBounds?.y ?? 0), 1);
+      }
     });
   }
 });

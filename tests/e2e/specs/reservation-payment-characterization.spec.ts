@@ -1350,7 +1350,7 @@ test("keeps cloned recovery copies credential-free and confirmation-free", async
   const popup = page.waitForEvent("popup");
   await page.evaluate(() => window.open("/login", "_blank"));
   const clone = await popup;
-  await clone.waitForLoadState("domcontentloaded");
+  await openSeedPage(clone);
   expect((await readV2Storage(clone))[OPERATION_RECEIPT_KEY]).toContain(
     '"status":"SUCCEEDED"',
   );
@@ -1859,7 +1859,7 @@ test("keeps the guest reservation ledger responsive with payment and media fallb
 
   const profileBackButton = page.getByRole("button", { name: /돌아가기/ });
   const routeBackButton = page.getByRole("button", { name: "뒤로 가기" });
-  await expectGuestJourneyTouchTarget(profileBackButton);
+  await expect(profileBackButton).toHaveCount(0);
   await expectGuestJourneyTouchTarget(routeBackButton);
   await expectGuestJourneyVisibleFocus(routeBackButton);
   await expectGuestJourneyNoHorizontalOverflow(page, 320);

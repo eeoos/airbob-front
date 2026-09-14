@@ -389,7 +389,8 @@ test("opens editable review from the mobile booking bar and returns to the inlin
   await expect(
     dateEditor.getByRole("gridcell", { name: /2026년 7월 15일/ }),
   ).toBeEnabled();
-  await dateEditor.getByRole("button", { name: "취소", exact: true }).click();
+  await dateEditor.getByRole("button", { name: "닫기", exact: true }).click();
+  await expect(dateEditor).toBeHidden();
   await page
     .getByRole("button", { name: "숙소로 돌아가기", exact: true })
     .click();

@@ -599,7 +599,7 @@ test("keeps guest trips and host reservation management stable through 320px", a
   const actionDialog = page.getByRole("dialog", { name: "숙소 관리" });
   await expect(actionDialog).toBeVisible();
   await expect(
-    actionDialog.getByRole("button", { name: "숙소 관리 닫기" }),
+    actionDialog.getByRole("button", { name: "망원 햇살 스테이 상세 보기" }),
   ).toBeFocused();
   await expect(
     actionDialog.getByRole("group", { name: "숙소 관리 작업" }),
