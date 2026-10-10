@@ -20,7 +20,6 @@ export interface AccommodationCouponCampaign extends CouponDiscount {
   readonly issueEndAt: string;
   readonly issuanceStatus: "UPCOMING" | "OPEN" | "SOLD_OUT";
   readonly totalQuantity: number | null;
-  readonly issuedQuantity: number;
 }
 
 export interface AccommodationMemberCoupon extends CouponDiscount {

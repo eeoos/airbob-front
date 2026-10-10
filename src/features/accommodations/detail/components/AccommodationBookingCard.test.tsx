@@ -65,7 +65,7 @@ const coupon: AccommodationBookingCouponViewModel = {
   isActionEnabled: true,
   isIssuing: false,
   isSelected: true,
-  metadataLabel: "10,000원 할인 · 남은 수량 8장",
+  metadataLabel: "10,000원 할인 · 발급 쿠폰",
   name: "만원 쿠폰",
 };
 

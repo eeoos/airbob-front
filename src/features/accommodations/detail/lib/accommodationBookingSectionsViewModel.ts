@@ -22,6 +22,25 @@ interface BookingCouponViewModelOptions {
   totalPrice: number;
 }
 
+const couponTimeFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Seoul",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+const displayTime = (instant: string): string => {
+  const parts = Object.fromEntries(
+    couponTimeFormatter
+      .formatToParts(new Date(instant))
+      .map(({ type, value }) => [type, value]),
+  );
+  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}`;
+};
+
 const getCouponActionLabel = (
   coupon: AccommodationCoupon,
   isSelected: boolean,
@@ -54,12 +73,6 @@ const getCouponMetadataLabel = (coupon: AccommodationCoupon): string => {
 
   metadata.push(coupon.kind === "owned" ? "보유 쿠폰" : "발급 쿠폰");
 
-  if (coupon.kind === "campaign" && coupon.totalQuantity !== null) {
-    const remaining = Math.max(coupon.totalQuantity - coupon.issuedQuantity, 0);
-    metadata.push(`남은 수량 ${remaining.toLocaleString()}장`);
-  }
-
-  const displayTime = (value: string) => value.slice(0, 16).replace("T", " ");
   if (coupon.kind === "campaign") {
     metadata.push(
       `발급 ${displayTime(coupon.issueStartAt)} ~ ${displayTime(coupon.issueEndAt)}`,

@@ -2110,8 +2110,8 @@ test("retains the accepted quote after an edit fails and applies a coupon on ret
           discount_value: 10_000,
           min_payment_price: null,
           max_discount_amount: null,
-          usable_from: "2026-01-01T00:00:00",
-          usable_until: "2026-12-31T00:00:00",
+          usable_from: "2025-12-31T15:00:00Z",
+          usable_until: "2026-12-30T15:00:00Z",
         },
       ],
     }),
@@ -2227,6 +2227,64 @@ test("coupon contracts keep sold-out owned coupons usable and unavailable rows d
     ).body,
   ).toMatchObject({ coupon_id: 12 });
 });
+
+for (const timezoneId of ["UTC", "America/Los_Angeles"]) {
+  test.describe(`coupon time display in ${timezoneId}`, () => {
+    test.use({ timezoneId });
+
+    test("shows Korean coupon periods on detail and reservation review", async ({
+      api,
+      page,
+      session,
+    }) => {
+      session.authenticate();
+      registerAccommodationReads(api);
+      api.register(
+        "GET",
+        "/api/v1/coupons",
+        apiSuccess(couponCampaignContract),
+      );
+      api.register(
+        "GET",
+        "/api/v1/members/me/coupons",
+        apiSuccess(memberCouponContract),
+      );
+      api.register(
+        "POST",
+        "/api/v1/reservation-quotes",
+        apiSuccess(quoteWire(), 201),
+      );
+
+      await page.goto(detailPath);
+      const campaignRow = page.getByRole("group", {
+        name: "발급 예정 쿠폰",
+        exact: true,
+      });
+      await expect(campaignRow).toContainText(
+        "발급 2026-09-08 13:00 ~ 2026-09-09 12:00",
+      );
+      await expect(campaignRow).toContainText(
+        "사용 2026-09-07 12:00 ~ 2026-10-08 12:00 (한국 시간)",
+      );
+      await expect(campaignRow).not.toContainText("남은 수량");
+      await expect(
+        page.getByRole("group", { name: "매진 쿠폰", exact: true }),
+      ).toContainText("사용 2026-09-08 12:00 ~ 2026-10-08 12:00 (한국 시간)");
+
+      await page.getByRole("button", { name: "예약하기", exact: true }).click();
+      await page
+        .getByRole("button", { name: "쿠폰 변경", exact: true })
+        .click();
+      const dialog = page.getByRole("dialog", { name: "쿠폰 선택" });
+      await expect(
+        dialog.getByRole("radio", { name: /매진 쿠폰/ }),
+      ).toBeEnabled();
+      await expect(dialog).toContainText(
+        "사용 2026-09-08 12:00 ~ 2026-10-08 12:00 (한국 시간)",
+      );
+    });
+  });
+}
 
 test("coupon CP003 reloads the owned state and does not apply an already-used coupon", async ({
   api,

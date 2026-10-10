@@ -14,13 +14,12 @@ const campaign: AccommodationCouponCampaign = {
   discountValue: 10000,
   minPaymentPrice: 50000,
   maxDiscountAmount: null,
-  issueStartAt: "2026-09-01T00:00:00",
-  issueEndAt: "2026-09-10T00:00:00",
+  issueStartAt: "2026-08-31T15:00:00Z",
+  issueEndAt: "2026-09-09T15:00:00Z",
   issuanceStatus: "OPEN",
-  usableFrom: "2026-09-01T00:00:00",
-  usableUntil: "2026-09-30T00:00:00",
+  usableFrom: "2026-08-31T15:00:00Z",
+  usableUntil: "2026-09-29T15:00:00Z",
   totalQuantity: 10,
-  issuedQuantity: 2,
 };
 const owned: AccommodationMemberCoupon = {
   ...campaign,
@@ -34,6 +33,16 @@ const options = {
 };
 
 describe("coupon display and action contracts", () => {
+  it.each([
+    "2026-12-31T15:00:00.123456Z",
+    "2027-01-01T00:00:00.123456+09:00",
+    "2026-12-31T07:00:00.123456-08:00",
+  ])("displays the same Korean midnight across offsets: %s", (usableFrom) => {
+    const view = toView({ ...owned, usableFrom }, options);
+    expect(view.metadataLabel).toContain("사용 2027-01-01 00:00 ~");
+    expect(view.metadataLabel).toContain("(한국 시간)");
+  });
+
   it.each([
     ["OPEN", "발급받기", true],
     ["UPCOMING", "발급 예정", false],
@@ -97,9 +106,9 @@ describe("coupon display and action contracts", () => {
       true,
     ]);
   });
-  it("shows issuance and usage periods in the server's Korean time without browser conversion", () => {
+  it("converts UTC issuance and usage periods to Korean time", () => {
     const view = toView(campaign, options);
-    expect(view.metadataLabel).toContain("남은 수량 8장");
+    expect(view.metadataLabel).not.toContain("남은 수량");
     expect(view.metadataLabel).toContain(
       "발급 2026-09-01 00:00 ~ 2026-09-10 00:00",
     );

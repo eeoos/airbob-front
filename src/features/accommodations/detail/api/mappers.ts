@@ -150,13 +150,14 @@ export const toAccommodationAvailability = (
   });
 };
 
-const couponLocalDateTime = (value: string): string => {
+const couponInstant = (value: string): string => {
   if (
     typeof value !== "string" ||
     !isCanonicalCalendarLocalDate(value.slice(0, 10)) ||
-    !/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,9})?$/.test(
+    !/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,9})?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/.test(
       value,
-    )
+    ) ||
+    !Number.isFinite(Date.parse(value))
   )
     throw new TypeError("Coupon period is invalid.");
   return value;
@@ -177,13 +178,12 @@ const toAccommodationCoupon = (
     discountValue: wire.discount_value,
     minPaymentPrice: wire.min_payment_price,
     maxDiscountAmount: wire.max_discount_amount,
-    issueStartAt: couponLocalDateTime(wire.issue_start_at),
-    issueEndAt: couponLocalDateTime(wire.issue_end_at),
-    usableFrom: couponLocalDateTime(wire.usable_from),
-    usableUntil: couponLocalDateTime(wire.usable_until),
+    issueStartAt: couponInstant(wire.issue_start_at),
+    issueEndAt: couponInstant(wire.issue_end_at),
+    usableFrom: couponInstant(wire.usable_from),
+    usableUntil: couponInstant(wire.usable_until),
     issuanceStatus: wire.issuance_status,
     totalQuantity: wire.total_quantity,
-    issuedQuantity: wire.issued_quantity,
   };
 };
 
@@ -210,8 +210,8 @@ const toMemberCoupon = (wire: MemberCouponWire): AccommodationMemberCoupon => {
     discountValue: wire.discount_value,
     minPaymentPrice: wire.min_payment_price,
     maxDiscountAmount: wire.max_discount_amount,
-    usableFrom: couponLocalDateTime(wire.usable_from),
-    usableUntil: couponLocalDateTime(wire.usable_until),
+    usableFrom: couponInstant(wire.usable_from),
+    usableUntil: couponInstant(wire.usable_until),
     status: wire.status,
   };
 };

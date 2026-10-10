@@ -150,13 +150,12 @@ const coupon = {
   discountValue: 10000,
   maxDiscountAmount: null,
   minPaymentPrice: null,
-  issuedQuantity: 0,
   kind: "campaign" as const,
   issuanceStatus: "OPEN" as const,
-  issueStartAt: "2026-01-01T00:00:00",
-  issueEndAt: "2026-12-31T00:00:00",
-  usableFrom: "2026-01-01T00:00:00",
-  usableUntil: "2026-12-31T00:00:00",
+  issueStartAt: "2025-12-31T15:00:00Z",
+  issueEndAt: "2026-12-30T15:00:00Z",
+  usableFrom: "2025-12-31T15:00:00Z",
+  usableUntil: "2026-12-30T15:00:00Z",
   totalQuantity: 10,
 };
 
