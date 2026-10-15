@@ -13,18 +13,43 @@ const couponWire: CouponCollectionWire = {
       discount_value: 10000,
       min_payment_price: null,
       max_discount_amount: null,
-      issue_start_at: "2026-01-01T00:00:00",
-      issue_end_at: "2026-12-31T00:00:00",
-      usable_from: "2026-01-01T00:00:00",
-      usable_until: "2026-12-31T00:00:00",
+      issue_start_at: "2025-12-31T15:00:00Z",
+      issue_end_at: "2026-12-30T15:00:00Z",
+      usable_from: "2025-12-31T15:00:00Z",
+      usable_until: "2026-12-30T15:00:00Z",
       issuance_status: "OPEN",
       total_quantity: null,
-      issued_quantity: 0,
     },
   ],
 };
 
 describe("coupon API adapter", () => {
+  it.each([
+    "2026-09-08T13:00:00",
+    "2026-02-30T13:00:00Z",
+    "2026-09-08T24:00:00Z",
+    "2026-09-08T13:00:00+99:00",
+  ])("rejects ambiguous or invalid coupon instants: %s", async (value) => {
+    const request = vi.fn().mockResolvedValue({
+      infos: [{ ...couponWire.infos[0], issue_start_at: value }],
+    });
+    const api = createCouponApi({ request, requestNullable: vi.fn() });
+    await expect(api.getCampaigns()).rejects.toThrow(
+      "Coupon period is invalid.",
+    );
+  });
+
+  it("preserves explicit offsets and fractional seconds at the API boundary", async () => {
+    const value = "2027-01-01T00:30:00.123456+09:00";
+    const request = vi.fn().mockResolvedValue({
+      infos: [{ ...ownedContract.infos[0], usable_from: value }],
+    });
+    const api = createCouponApi({ request, requestNullable: vi.fn() });
+    expect((await api.getMyCoupons()).coupons).toEqual([
+      expect.objectContaining({ usableFrom: value }),
+    ]);
+  });
+
   it("consumes the backend campaign JSON without confusing issuance and usage periods", async () => {
     const request = vi.fn().mockResolvedValue(campaignsContract);
     const api = createCouponApi({ request, requestNullable: vi.fn() });
@@ -36,8 +61,8 @@ describe("coupon API adapter", () => {
     ]);
     expect(coupons[0]).toMatchObject({
       kind: "campaign",
-      issueStartAt: "2026-09-08T13:00:00",
-      usableFrom: "2026-09-07T12:00:00",
+      issueStartAt: "2026-09-08T04:00:00Z",
+      usableFrom: "2026-09-07T03:00:00Z",
     });
   });
 

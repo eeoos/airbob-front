@@ -84,7 +84,6 @@ export interface CouponWire {
   readonly usable_until: string;
   readonly issuance_status: "UPCOMING" | "OPEN" | "SOLD_OUT";
   readonly total_quantity: number | null;
-  readonly issued_quantity: number;
 }
 
 export interface CouponCollectionWire {
