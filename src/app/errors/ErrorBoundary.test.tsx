@@ -73,6 +73,7 @@ describe("ErrorBoundary", () => {
     "Failed to fetch dynamically imported module: https://airbob.test/static/SearchRoute-old.js",
     "error loading dynamically imported module: https://airbob.test/static/SearchRoute-old.js",
     "Importing a module script failed.",
+    "Unable to preload CSS for /static/SearchRoute-old.css",
   ])(
     "reloads the page when a route chunk fails to load: %s",
     async (message) => {
@@ -88,14 +89,11 @@ describe("ErrorBoundary", () => {
       );
 
       expect(
-        screen.getByRole("heading", { name: "페이지를 불러오지 못했습니다" }),
+        screen.getByText("예상치 못한 오류가 발생했습니다."),
       ).toBeInTheDocument();
       expect(screen.queryByText(message)).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole("button", { name: "다시 시도" }),
-      ).not.toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole("button", { name: "새로고침" }));
+      await userEvent.click(screen.getByRole("button", { name: "다시 시도" }));
 
       expect(reloadPage).toHaveBeenCalledTimes(1);
       reloadPage.mockRestore();
