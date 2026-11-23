@@ -78,6 +78,74 @@ describe("search params helpers", () => {
     expect(params.get("petOccupancy")).toBe("0");
   });
 
+  it("keeps the map area when only the dates change after a map move", () => {
+    const existing = new URLSearchParams(
+      "page=2&topLeftLat=35.3&topLeftLng=128.9&bottomRightLat=35&bottomRightLng=129.3",
+    );
+
+    const params = buildSearchNavigationParams(existing, {
+      selectedPlace: null,
+      checkIn: new Date(2026, 6, 10),
+      checkOut: new Date(2026, 6, 12),
+      adultOccupancy: 1,
+      childOccupancy: 0,
+      infantOccupancy: 0,
+      petOccupancy: 0,
+    });
+
+    expect(params.has("destination")).toBe(false);
+    expect(params.get("topLeftLat")).toBe("35.3");
+    expect(params.get("topLeftLng")).toBe("128.9");
+    expect(params.get("bottomRightLat")).toBe("35");
+    expect(params.get("bottomRightLng")).toBe("129.3");
+    expect(params.get("checkIn")).toBe("2026-07-10");
+    expect(params.has("page")).toBe(false);
+  });
+
+  it("keeps the selected place area when only the guests change", () => {
+    const existing = new URLSearchParams(
+      "destination=Seoul&lat=37.5665&lng=126.978&topLeftLat=37.7&topLeftLng=126.8&bottomRightLat=37.4&bottomRightLng=127.1&adultOccupancy=1",
+    );
+
+    const params = buildSearchNavigationParams(existing, {
+      destination: "Seoul",
+      selectedPlace: null,
+      checkIn: null,
+      checkOut: null,
+      adultOccupancy: 3,
+      childOccupancy: 0,
+      infantOccupancy: 0,
+      petOccupancy: 0,
+    });
+
+    expect(params.get("destination")).toBe("Seoul");
+    expect(params.get("lat")).toBe("37.5665");
+    expect(params.get("lng")).toBe("126.978");
+    expect(params.get("topLeftLat")).toBe("37.7");
+    expect(params.get("bottomRightLng")).toBe("127.1");
+    expect(params.get("adultOccupancy")).toBe("3");
+  });
+
+  it("drops the map area when the destination text is cleared", () => {
+    const existing = new URLSearchParams(
+      "destination=Seoul&lat=37.5665&lng=126.978&topLeftLat=37.7&topLeftLng=126.8&bottomRightLat=37.4&bottomRightLng=127.1",
+    );
+
+    const params = buildSearchNavigationParams(existing, {
+      selectedPlace: null,
+      checkIn: null,
+      checkOut: null,
+      adultOccupancy: 1,
+      childOccupancy: 0,
+      infantOccupancy: 0,
+      petOccupancy: 0,
+    });
+
+    expect(params.has("destination")).toBe(false);
+    expect(params.has("lat")).toBe(false);
+    expect(params.has("topLeftLat")).toBe(false);
+  });
+
   it("does not carry unrelated route query params into search navigation", () => {
     const currentParams = new URLSearchParams(
       "mode=host&tab=reservations&id=10&view=recently-viewed&page=3&latitude=37&longitude=127",

@@ -94,6 +94,8 @@ export const buildSearchNavigationParams = (
 ): URLSearchParams => {
   const params = pickSearchParams(currentParams);
   const destination = input.destination?.trim();
+  const destinationChanged =
+    (destination ?? "") !== (currentParams.get("destination")?.trim() ?? "");
 
   if (destination) {
     params.set("destination", destination);
@@ -107,7 +109,9 @@ export const buildSearchNavigationParams = (
     params.set("lat", input.selectedPlace.lat.toString());
     params.set("lng", input.selectedPlace.lng.toString());
     setViewportParams(params, input.selectedPlace.viewport);
-  } else {
+  } else if (destinationChanged) {
+    // Without a new place, the area in the URL still describes this search
+    // unless the destination text itself changed.
     LOCATION_KEYS.forEach((key) => params.delete(key));
     VIEWPORT_KEYS.forEach((key) => params.delete(key));
   }
