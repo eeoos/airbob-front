@@ -184,12 +184,18 @@ const commands = (): Mocked<WishlistMembershipCommands> => ({
   saveMemo: vi.fn().mockResolvedValue({ status: "applied" }),
 });
 
+const confirmDelete = vi.fn(() => true);
+
 const renderController = (
   props: Pick<WishlistControllerProps, "navigation" | "view">,
 ) =>
   render(
     <OverlayProvider>
-      <WishlistController {...props} scope={scope} />
+      <WishlistController
+        {...props}
+        confirmDelete={confirmDelete}
+        scope={scope}
+      />
     </OverlayProvider>,
   );
 
@@ -232,6 +238,7 @@ describe("WishlistController", () => {
       <OverlayProvider>
         <WishlistController
           navigation={commands}
+          confirmDelete={confirmDelete}
           scope={scope}
           view={{ kind: "recently-viewed" }}
         />
@@ -245,6 +252,7 @@ describe("WishlistController", () => {
       <OverlayProvider>
         <WishlistController
           navigation={commands}
+          confirmDelete={confirmDelete}
           scope={scope}
           view={{ kind: "wishlist-detail", wishlistId: 42 }}
         />
@@ -289,6 +297,7 @@ describe("WishlistController", () => {
       <OverlayProvider>
         <WishlistController
           navigation={routeCommands}
+          confirmDelete={confirmDelete}
           scope={scope}
           view={{ kind: "recently-viewed" }}
         />
@@ -313,6 +322,7 @@ describe("WishlistController", () => {
       <OverlayProvider>
         <WishlistController
           navigation={routeCommands}
+          confirmDelete={confirmDelete}
           scope={scope}
           view={{ kind: "wishlist-detail", wishlistId: 42 }}
         />
@@ -391,6 +401,7 @@ describe("WishlistController", () => {
       <OverlayProvider>
         <WishlistController
           navigation={routeCommands}
+          confirmDelete={confirmDelete}
           scope={scope}
           view={{ kind: "recently-viewed" }}
         />
@@ -528,6 +539,7 @@ describe("WishlistController", () => {
       <OverlayProvider>
         <WishlistController
           navigation={routeCommands}
+          confirmDelete={confirmDelete}
           scope={scope}
           view={{ kind: "wishlist-detail", wishlistId: 42 }}
         />
@@ -540,6 +552,23 @@ describe("WishlistController", () => {
       wishlistId: 42,
     });
     expect(routeCommands.replaceWithIndex).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the wishlist when the delete confirmation is declined", async () => {
+    confirmDelete.mockReturnValueOnce(false);
+    renderController({ navigation: navigation(), view: { kind: "index" } });
+
+    await userEvent.click(
+      requireDefined(
+        screen.getAllByRole("button", { name: /위시리스트 삭제/ })[1],
+        "second delete wishlist button",
+      ),
+    );
+
+    expect(confirmDelete).toHaveBeenCalledWith(
+      "정말 이 위시리스트를 삭제하시겠습니까?",
+    );
+    expect(membershipCommands.deleteWishlist).not.toHaveBeenCalled();
   });
 
   it("disables duplicate mutation controls while their command is pending", async () => {

@@ -106,11 +106,13 @@ const renderCommand = ({
   flowHandle = null,
   flowHandleChangeResult = true,
   isRecoveryBlocked = false,
+  routeLease = { isCurrent: () => true },
   workflow = createWorkflow(),
 }: {
   flowHandle?: BookingTransactionHandle | null;
   flowHandleChangeResult?: boolean;
   isRecoveryBlocked?: boolean;
+  routeLease?: { isCurrent(): boolean };
   workflow?: BookingTransactionWorkflow;
 } = {}) => {
   const onError = vi.fn();
@@ -119,7 +121,6 @@ const renderCommand = ({
   const onOpenTrips = vi.fn();
   const onTerminalReservation = vi.fn().mockResolvedValue(true);
   const requestAuthentication = vi.fn();
-  const routeLease = { isCurrent: () => true };
   const view = renderHook(
     ({ currentFlowHandle }) =>
       useReservationCreateCommand({
@@ -174,6 +175,55 @@ describe("useReservationCreateCommand", () => {
     await act(async () => void (await view.result.current.startReservation()));
     expect(view.workflow.checkout).not.toHaveBeenCalled();
     expect(view.onOpenPayment).toHaveBeenLastCalledWith(handle, quoteSnapshot);
+  });
+
+  it("locks booking inputs while the quote is in flight", async () => {
+    const workflow = createWorkflow();
+    const quote = deferred<Awaited<ReturnType<typeof workflow.quote>>>();
+    vi.mocked(workflow.quote).mockReturnValue(quote.promise);
+    const view = renderCommand({ workflow });
+    expect(view.result.current.selectionLocked).toBe(false);
+
+    let started!: Promise<void>;
+    act(() => {
+      started = view.result.current.startReservation();
+    });
+
+    expect(view.result.current.reservationStatus).toBe("quoting");
+    expect(view.result.current.selectionLocked).toBe(true);
+
+    await act(async () => {
+      quote.resolve({ status: "quoted", handle, snapshot: quoteSnapshot });
+      await started;
+    });
+    expect(view.result.current.reservationStatus).toBe("quoted");
+  });
+
+  it("releases the reserve button when the route moves on during a quote", async () => {
+    const workflow = createWorkflow();
+    const quote = deferred<Awaited<ReturnType<typeof workflow.quote>>>();
+    vi.mocked(workflow.quote).mockReturnValue(quote.promise);
+    let isRouteCurrent = true;
+    const view = renderCommand({
+      routeLease: { isCurrent: () => isRouteCurrent },
+      workflow,
+    });
+
+    let started!: Promise<void>;
+    act(() => {
+      started = view.result.current.startReservation();
+    });
+    expect(view.result.current.isReserving).toBe(true);
+
+    isRouteCurrent = false;
+    await act(async () => {
+      quote.resolve({ status: "quoted", handle, snapshot: quoteSnapshot });
+      await started;
+    });
+
+    expect(view.result.current.reservationStatus).toBe("idle");
+    expect(view.result.current.isReserving).toBe(false);
+    expect(view.onOpenPayment).not.toHaveBeenCalled();
   });
 
   it("keeps an in-flight quote alive when same-key history publication rerenders", async () => {

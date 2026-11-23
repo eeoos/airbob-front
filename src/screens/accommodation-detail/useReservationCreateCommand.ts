@@ -333,6 +333,9 @@ export const useReservationCreateCommand = ({
       try {
         const result = await pending;
         if (activeCommandRef.current !== pending || !routeLease.isCurrent()) {
+          // A discarded quote that is still the active command has nothing
+          // else to settle it, so release the button instead of spinning.
+          if (activeCommandRef.current === pending) setStatus("idle");
           return;
         }
         switch (result.status) {
@@ -433,7 +436,9 @@ export const useReservationCreateCommand = ({
       status === "completing",
     quoteSnapshot: snapshot,
     reservationStatus: status,
-    selectionLocked: snapshot !== null,
+    // Inputs stay fixed while a quote is in flight: changing them would
+    // discard the quote that the reserve button is waiting on.
+    selectionLocked: snapshot !== null || status === "quoting",
     startReservation,
   };
 };

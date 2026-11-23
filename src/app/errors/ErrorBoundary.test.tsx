@@ -2,6 +2,7 @@ import type { MockInstance } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { readFileSync } from "fs";
+import { browserWindowNavigation } from "../../platform/browser/windowNavigation";
 import { ErrorBoundary } from "./ErrorBoundary";
 
 let shouldThrow = true;
@@ -67,6 +68,37 @@ describe("ErrorBoundary", () => {
 
     expect(screen.getByText("복구된 화면")).toBeInTheDocument();
   });
+
+  it.each([
+    "Failed to fetch dynamically imported module: https://airbob.test/static/SearchRoute-old.js",
+    "error loading dynamically imported module: https://airbob.test/static/SearchRoute-old.js",
+    "Importing a module script failed.",
+    "Unable to preload CSS for /static/SearchRoute-old.css",
+  ])(
+    "reloads the page when a route chunk fails to load: %s",
+    async (message) => {
+      const reloadPage = vi
+        .spyOn(browserWindowNavigation, "reloadPage")
+        .mockImplementation(() => undefined);
+      errorMessage = message;
+
+      render(
+        <ErrorBoundary>
+          <MaybeThrowingChild />
+        </ErrorBoundary>,
+      );
+
+      expect(
+        screen.getByText("예상치 못한 오류가 발생했습니다."),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(message)).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+
+      expect(reloadPage).toHaveBeenCalledTimes(1);
+      reloadPage.mockRestore();
+    },
+  );
 
   it("renders a provided fallback instead of the default recovery UI", () => {
     render(

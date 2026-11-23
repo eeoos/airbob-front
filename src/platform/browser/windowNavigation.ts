@@ -3,6 +3,7 @@ export interface BrowserWindowNavigation {
   getCurrentUserState(): unknown;
   isCurrentHistoryEntry(entry: BrowserHistoryEntry): boolean;
   openInNewTab(url: string): Window | null;
+  reloadPage(): void;
   replaceCurrentUserState(state: unknown): boolean;
   replaceCurrentUrl(url: string): void;
 }
@@ -59,6 +60,10 @@ export const browserWindowNavigation: BrowserWindowNavigation = {
     }
 
     return openedWindow;
+  },
+
+  reloadPage() {
+    window.location.reload();
   },
 
   replaceCurrentUserState(userState) {

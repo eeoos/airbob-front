@@ -92,9 +92,11 @@ const renderController = (
   onReleased = vi.fn().mockResolvedValue(true),
   onReservationStatusDrift = vi.fn().mockResolvedValue(true),
   initialSnapshot: BookingTransactionSnapshot = snapshot,
+  autoStartPayment = false,
 ) =>
   renderApp(
     <ReservationConfirmController
+      autoStartPayment={autoStartPayment}
       customer={{ email: "guest@example.com", name: "게스트" }}
       failUrl={`https://airbob.test/reservations/${reservationUid}/fail`}
       handle={handle}
@@ -477,6 +479,37 @@ describe("ReservationConfirmController", () => {
 
     await screen.findByText("prepare recoverable");
     expect(screen.getByRole("button", { name: "확인 및 결제" })).toBeEnabled();
+  });
+
+  it("starts the payment once when it arrives from the final confirmation", async () => {
+    const workflow = createWorkflow();
+    vi.mocked(workflow.pay).mockReturnValue(new Promise(() => undefined));
+
+    renderController(workflow, undefined, undefined, undefined, true);
+
+    await waitFor(() => expect(workflow.pay).toHaveBeenCalledTimes(1));
+  });
+
+  it("does not start a payment when a preparation error is dismissed", async () => {
+    const workflow = createWorkflow();
+    vi.mocked(workflow.prepareGateway).mockResolvedValue({
+      status: "gateway-error",
+      error: new PaymentGatewayError({
+        kind: "recoverable",
+        message: "prepare recoverable",
+      }),
+    });
+
+    renderController(workflow, undefined, undefined, undefined, true);
+
+    await screen.findByText("prepare recoverable");
+    fireEvent.click(screen.getByRole("button", { name: "오류 닫기" }));
+
+    await waitFor(() =>
+      expect(screen.queryByText("prepare recoverable")).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: "확인 및 결제" })).toBeEnabled();
+    expect(workflow.pay).not.toHaveBeenCalled();
   });
 
   it("keeps payment disabled after a terminal Toss preparation error", async () => {

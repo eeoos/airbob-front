@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { browserConfirmation } from "../../../platform/browser/confirmation";
 import { browserWindowNavigation } from "../../../platform/browser/windowNavigation";
 import {
   WishlistController,
@@ -55,7 +56,12 @@ function WishlistRouteContent() {
   if (scope === null || !session.isCurrentSession(scope)) return null;
 
   return (
-    <WishlistController navigation={navigation} scope={scope} view={view} />
+    <WishlistController
+      confirmDelete={browserConfirmation.confirm}
+      navigation={navigation}
+      scope={scope}
+      view={view}
+    />
   );
 }
 

@@ -258,9 +258,18 @@ export const normalizeBookingCounts = (
     readonly maxInfants: number;
     readonly maxPets: number;
   },
-): BookingCounts => ({
-  adultCount: clamp(routeState.adultOccupancy, 1, limits.maxOccupancy),
-  childCount: clamp(routeState.childOccupancy, 0, limits.maxOccupancy),
-  infantCount: clamp(routeState.infantOccupancy, 0, limits.maxInfants),
-  petCount: clamp(routeState.petOccupancy, 0, limits.maxPets),
-});
+): BookingCounts => {
+  // maxOccupancy caps adults and children together, adults first.
+  const adultCount = clamp(routeState.adultOccupancy, 1, limits.maxOccupancy);
+
+  return {
+    adultCount,
+    childCount: clamp(
+      routeState.childOccupancy,
+      0,
+      limits.maxOccupancy - adultCount,
+    ),
+    infantCount: clamp(routeState.infantOccupancy, 0, limits.maxInfants),
+    petCount: clamp(routeState.petOccupancy, 0, limits.maxPets),
+  };
+};

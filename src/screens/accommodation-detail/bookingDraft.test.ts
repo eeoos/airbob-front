@@ -196,7 +196,21 @@ describe("accommodation booking draft", () => {
         },
         { maxOccupancy: 4, maxInfants: 1, maxPets: 0 },
       ),
-    ).toEqual({ adultCount: 4, childCount: 4, infantCount: 1, petCount: 0 });
+    ).toEqual({ adultCount: 4, childCount: 0, infantCount: 1, petCount: 0 });
+  });
+
+  it("keeps adults and children together within the maximum occupancy", () => {
+    expect(
+      normalizeBookingCounts(
+        {
+          adultOccupancy: 2,
+          childOccupancy: 5,
+          infantOccupancy: 0,
+          petOccupancy: 0,
+        },
+        { maxOccupancy: 4, maxInfants: 1, maxPets: 0 },
+      ),
+    ).toEqual({ adultCount: 2, childCount: 2, infantCount: 0, petCount: 0 });
   });
 
   it("formats the existing Korean display date", () => {

@@ -289,11 +289,13 @@ export function ReservationConfirmController({
     if (
       !autoStartPayment ||
       autoStartConsumedRef.current ||
-      paymentStatus !== "ready" ||
-      errorMessage !== null
+      paymentStatus !== "ready"
     )
       return;
+    // The auto-start stands in for the click that led here. An error spends
+    // it too, so dismissing that error cannot start a payment by itself.
     autoStartConsumedRef.current = true;
+    if (errorMessage !== null) return;
     confirmPayment();
   }, [autoStartPayment, confirmPayment, errorMessage, paymentStatus]);
 
