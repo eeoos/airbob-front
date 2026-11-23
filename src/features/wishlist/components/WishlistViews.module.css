@@ -356,6 +356,14 @@
   opacity: 1;
 }
 
+/* Touch screens have no hover, so the buttons must not be invisible there. */
+@media (hover: none) {
+  .wishlistDeleteButton,
+  .deleteButton {
+    opacity: 1;
+  }
+}
+
 .wishlistDeleteButton:hover,
 .deleteButton:hover,
 .deleteButtonLeft:hover {

@@ -33,6 +33,7 @@ type WishlistScope = WishlistListsQueryOptions["scope"];
 
 export interface WishlistControllerProps {
   readonly className?: string;
+  readonly confirmDelete: (message: string) => boolean;
   readonly navigation: WishlistNavigationCommands;
   readonly scope: WishlistScope;
   readonly view: WishlistRouteView;
@@ -55,6 +56,7 @@ const flattenWishlistAccommodations = (
 
 export function WishlistController({
   className,
+  confirmDelete,
   navigation,
   scope,
   view,
@@ -233,6 +235,7 @@ export function WishlistController({
   const handleDeleteWishlist = useCallback(
     async (wishlistId: number, event: React.MouseEvent<HTMLButtonElement>) => {
       event.stopPropagation();
+      if (!confirmDelete("정말 이 위시리스트를 삭제하시겠습니까?")) return;
       const result = await runCommand(`delete:${wishlistId}`, () =>
         commands.deleteWishlist({ wishlistId }),
       );
@@ -246,7 +249,7 @@ export function WishlistController({
         navigation.replaceWithIndex();
       }
     },
-    [commands, navigation, runCommand],
+    [commands, confirmDelete, navigation, runCommand],
   );
 
   const handleRemoveFromWishlist = useCallback(
